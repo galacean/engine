@@ -185,12 +185,11 @@ export class ResourceManager {
   _onSubAssetSuccess<T>(assetBaseURL: string, assetSubPath: string, value: T): void {
     const subPromiseCallback = this._subAssetPromiseCallbacks[assetBaseURL]?.[assetSubPath];
     if (subPromiseCallback) {
-      // Already resolved
       subPromiseCallback.resolve(value);
     } else {
       // Pending
       (this._subAssetPromiseCallbacks[assetBaseURL] ||= {})[assetSubPath] = {
-        resolve: value
+        resolvedValue: value
       };
     }
   }
@@ -198,15 +197,14 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _onSubAssetFail(assetBaseURL: string, assetSubPath: string, value: (reason: any) => void): void {
+  _onSubAssetFail(assetBaseURL: string, assetSubPath: string, value: Error): void {
     const subPromiseCallback = this._subAssetPromiseCallbacks[assetBaseURL]?.[assetSubPath];
     if (subPromiseCallback) {
-      // Already rejected
       subPromiseCallback.reject(value);
     } else {
       // Pending
       (this._subAssetPromiseCallbacks[assetBaseURL] ||= {})[assetSubPath] = {
-        reject: value
+        rejectedValue: value
       };
     }
   }
@@ -352,7 +350,6 @@ export class ResourceManager {
     let assetURL = assetBaseURL;
     if (queryPath) {
       assetURL += "?q=" + paths.shift();
-
       let index: string;
       while ((index = paths.shift())) {
         assetURL += `[${index}]`;
@@ -425,35 +422,36 @@ export class ResourceManager {
   ): AssetPromise<T> {
     const loadingPromises = this._loadingPromises;
     const subPromiseCallback = this._subAssetPromiseCallbacks[assetBaseURL]?.[assetSubPath];
-    const resolvedValue = subPromiseCallback?.resolve;
-    const rejectedValue = subPromiseCallback?.reject;
+    const resolvedValue = subPromiseCallback?.resolvedValue;
+    const rejectedValue = subPromiseCallback?.rejectedValue;
 
+    // Already resolved or rejected
+    if (resolvedValue || rejectedValue) {
+      return new AssetPromise<T>((resolve, reject) => {
+        if (resolvedValue) {
+          resolve(resolvedValue);
+        } else if (rejectedValue) {
+          reject(rejectedValue);
+        }
+      });
+    }
+
+    // Pending
     const promise = new AssetPromise<T>((resolve, reject) => {
-      if (resolvedValue) {
-        // Already resolved
-        resolve(resolvedValue);
-      } else if (rejectedValue) {
-        // Already rejected
-        reject(rejectedValue);
-      } else {
-        // Pending
-        loadingPromises[assetURL] = promise;
-
-        (this._subAssetPromiseCallbacks[assetBaseURL] ||= {})[assetSubPath] = {
-          resolve,
-          reject
-        };
-      }
+      (this._subAssetPromiseCallbacks[assetBaseURL] ||= {})[assetSubPath] = {
+        resolve,
+        reject
+      };
     });
 
-    if (!resolvedValue && !rejectedValue) {
-      promise.then(
-        () => {
-          delete loadingPromises[assetURL];
-        },
-        () => delete loadingPromises[assetURL]
-      );
-    }
+    loadingPromises[assetURL] = promise;
+
+    promise.then(
+      () => {
+        delete loadingPromises[assetURL];
+      },
+      () => delete loadingPromises[assetURL]
+    );
 
     return promise;
   }
@@ -607,7 +605,11 @@ type SubAssetPromiseCallbacks<T> = Record<
     // sub asset url, ie. "textures[0]"
     string,
     {
-      resolve?: T | PromiseLike<T>;
+      // Already resolved or rejected
+      resolvedValue?: T;
+      rejectedValue?: Error;
+      // Pending
+      resolve?: (value: T) => void;
       reject?: (reason: any) => void;
     }
   >

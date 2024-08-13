@@ -1,5 +1,5 @@
 ---
-order: 7
+order: 8
 title: 美术动画切片
 type: 动画
 label: Animation
@@ -7,7 +7,7 @@ label: Animation
 
 动画切片(**AnimationClip**) 为**一段时间轴上的动画组合**，可以是多个物体的旋转、位移、缩放、权重动画，如**走路、跑步、跳跃**可以分别导出 3 个动画切片；Galacean 引擎可以选择播放哪一个动画切片，前提是建模软件导出的 FBX 或者 glTF 里面包含多个动画切片。
 
-为减少沟通成本，本文列举了几种常见的动画切片方法，导出 glTF 方便 Galacean 引擎直接使用，也可以通过 [glTF 预览](https://galacean.antgroup.com/#/gltf-viewer) 页面进行功能校验。
+为减少沟通成本，本文列举了几种常见的动画切片方法，导出 glTF 方便 Galacean 引擎直接使用，也可以通过 [glTF 预览](https://galacean.antgroup.com/engine/gltf-viewer) 页面进行功能校验。
 
 Blender 的动画编辑页面非常友好，能够清晰地可视化显示受动画影响的节点，并且在时间轴上显示关键帧，因此推荐使用 Blender 进行动画切片。
 
@@ -99,4 +99,4 @@ Unity 也可以导出动画切片，但是效率比较低。
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/1bfefe2b-ca58-4cca-a091-9efe8028a4df/1622552925151-16b86fcc-4680-4611-aa32-d3697bbe5086.png" alt="image.png" style="zoom:50%;" />
 
-12. 至此，制作的动画切片 glTF 文件导出完毕，可以访问 Galacean 的 [glTF 预览](https://galacean.antgroup.com/#/gltf-viewer) 进行功能校验。
+12. 至此，制作的动画切片 glTF 文件导出完毕，可以访问 Galacean 的 [glTF 预览](https://galacean.antgroup.com/engine/gltf-viewer) 进行功能校验。

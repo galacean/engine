@@ -5,7 +5,7 @@ type: 交互
 label: Interact
 ---
 
-Galacean 的触控是基于 [PointerEvent](https://www.w3.org/TR/pointerevents3/) 实现的，它抹平了 [MouseEvent](https://developer.mozilla.org/zh-CN/docs/Web/API/MouseEvent) 与 [TouchEvent](https://developer.mozilla.org/zh-CN/docs/Web/API/TouchEvent) 的差异，使得触控在概念和接口上都得到了统一。
+Galacean 的触控是基于 [Pointer](https://www.w3.org/TR/pointerevents3/) 实现的，它抹平了 [Mouse](https://developer.mozilla.org/zh-CN/docs/Web/API/MouseEvent) 与 [Touch](https://developer.mozilla.org/zh-CN/docs/Web/API/TouchEvent) 的差异，使得触控在概念和接口上都得到了统一。
 
 ## Pointer
 
@@ -60,7 +60,7 @@ timeline
 
 ### 触控回调
 
-只需要为添加了 Collider 组件的 Entity 增加触控回调，就可以实现与渲染物体交互的能力。触控回调已经整合到引擎的[脚本组件生命周期](/docs/script#组件生命周期函数)中，用户可以很方便地添加以下事件，同时钩子函数中会携带触发此回调的 Pointer 实例。
+只需要为添加了 Collider 组件的 Entity 增加触控回调，就可以实现与渲染物体交互的能力。触控回调已经整合到引擎的[脚本生命周期](/docs/script/class/#脚本生命周期)中，用户可以很方便地添加以下事件，同时钩子函数中会携带触发此回调的 Pointer 实例。
 
 | 接口                                               | 触发时机与频率                                                             |
 | :------------------------------------------------- | :------------------------------------------------------------------------- |
@@ -90,7 +90,7 @@ flowchart LR
    添加碰撞体组件 --> 获取触控点 --> 通过画布坐标获取射线 --> 射线检测
 ```
 
-添加碰撞体组件可参考[物理相关文档](/docs/physics-collider)，实现检测部分的代码逻辑如下：
+添加碰撞体组件可参考[碰撞体组件](/docs/physics/collider/)，实现检测部分的代码逻辑如下：
 
 ```typescript
 // 假设当前有一个活动的触控点

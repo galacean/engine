@@ -28,15 +28,15 @@ Flappy Bird relies on a set of images. You can download the image package to you
 
 ### Upload Resources
 
-Go back to the scene editor, click the upload button on the resource panel <img src="https://gw.alipayobjects.com/zos/OasisHub/07b876d3-462b-4a06-a2da-ce68d2932034/image-20231007145111353.png" alt="image-20231007145111353" style="zoom:50%;" />, and select `Sprite`. This will open the file viewer of your operating system. Choose all the images from the FlappyBird directory. After uploading, as shown in the image below, the editor creates a [Texture](/en/docs/graphics-texture) resource and a [Sprite](/en/docs/graphics-2d-sprite) resource for each image (Sprites are distinguished from Texture resources by a gray rounded rectangle background). In the following steps, we will only focus on Sprite resources.
+Go back to the scene editor, click the upload button on the resource panel <img src="https://gw.alipayobjects.com/zos/OasisHub/07b876d3-462b-4a06-a2da-ce68d2932034/image-20231007145111353.png" alt="image-20231007145111353" style="zoom:50%;" />, and select `Sprite`. This will open the file viewer of your operating system. Choose all the images from the FlappyBird directory. After uploading, as shown in the image below, the editor creates a [Texture](/en/docs/graphics-texture) resource and a [Sprite](/en/docs/graphics/2D/sprite) resource for each image (Sprites are distinguished from Texture resources by a gray rounded rectangle background). In the following steps, we will only focus on Sprite resources.
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/7f13679f-de18-4621-81b1-5834b5d00bd7/image-20231007145451371.png" alt="image-20231007145451371" style="zoom:50%;" />
 
-At this point, we have uploaded the resources. However, if you have a tendency for tidiness, seeing these scattered resources may trigger your urge to organize them. Let's create a folder and rename it to _Sprites_. Then, select all the recently uploaded resources and drag them into the _Sprites_ directory. This not only makes the resource panel more organized but also prepares us for creating a [Sprite Atlas](/en/docs/graphics-2d-spriteAtlas) resource in the next step.
+At this point, we have uploaded the resources. However, if you have a tendency for tidiness, seeing these scattered resources may trigger your urge to organize them. Let's create a folder and rename it to _Sprites_. Then, select all the recently uploaded resources and drag them into the _Sprites_ directory. This not only makes the resource panel more organized but also prepares us for creating a [Sprite Atlas](/en/docs/graphics/2D/spriteAtlas) resource in the next step.
 
 ### Create Sprite Atlas
 
-To achieve better runtime performance, we choose to pack these Sprite resources into an Atlas resource. Click the <img src="https://gw.alipayobjects.com/zos/OasisHub/16aa674c-1bee-49d7-a516-21c591a4ce36/image-20231007152415467.png" alt="image-20231007152415467" style="zoom:50%;" /> button and select `Sprite Atlas`. After creating it, select the Sprite Atlas and use the `Add to List` button on the **[Inspector Panel](/en/docs/interface-inspector)** to add all Sprite resources to the list.
+To achieve better runtime performance, we choose to pack these Sprite resources into an Atlas resource. Click the <img src="https://gw.alipayobjects.com/zos/OasisHub/16aa674c-1bee-49d7-a516-21c591a4ce36/image-20231007152415467.png" alt="image-20231007152415467" style="zoom:50%;" /> button and select `Sprite Atlas`. After creating it, select the Sprite Atlas and use the `Add to List` button on the **[Inspector Panel](/en/docs/interface/inspector)** to add all Sprite resources to the list.
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*1YsTTZdjmm4AAAAAAAAAAAAADhuCAQ/original" alt="image-20231007171348757" style="zoom:50%;" />
 
@@ -48,7 +48,7 @@ Congratulations, you have completed the resource upload and management operation
 
 ## Build Scene
 
-Building a 2D scene is as fun as playing a puzzle. First, let's try dragging the game background image from the resource panel into the scene. Don't worry if the dragging position is not accurate, as we can fine-tune it later in the **[Inspector Panel](/en/docs/interface-inspector)**.
+Building a 2D scene is as fun as playing a puzzle. First, let's try dragging the game background image from the resource panel into the scene. Don't worry if the dragging position is not accurate, as we can fine-tune it later in the **[Inspector Panel](/en/docs/interface/inspector)**.
 
 ![drag1](https://gw.alipayobjects.com/zos/OasisHub/6cabaeea-cc36-4fe1-8bb5-d7ed8a9a49b7/drag1.gif)
 
@@ -60,7 +60,7 @@ Select the `Camera` node in the hierarchy panel to preview how the scene will re
 
 ### Add the Bird
 
-Similarly, drag the Sprite of the bird (`bird3-spr.png`) into the scene. The bird's "flying" animation is achieved through frame-by-frame animation, see [Sprite Sheet Animation](/en/docs/animation-sprite-sheet) for details.
+Similarly, drag the Sprite of the bird (`bird3-spr.png`) into the scene. The bird's "flying" animation is achieved through frame-by-frame animation, see [Sprite Sheet Animation](/en/docs/animation/sprite-sheet/) for details.
 
 ### Add the Pipes
 
@@ -88,18 +88,18 @@ Here are the steps:
 
 1. Create a node named `ground` in the node tree.
 
-2. In the **[Inspector Panel](/en/docs/interface-inspector)**, add a `Sprite Renderer` component by clicking the `Add Component` button, set the `SpriteRenderer DrawMode Info` property to `Tiled`, and set the width to `8.14`.
+2. In the **[Inspector Panel](/en/docs/interface/inspector)**, add a `Sprite Renderer` component by clicking the `Add Component` button, set the `SpriteRenderer DrawMode Info` property to `Tiled`, and set the width to `8.14`.
 
 ```markdown
    <img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*pDBbTp6a78oAAAAAAAAAAAAADleLAQ/original" alt="image-20231007173243980" style="zoom:50%;" />
 
-3. At this point, we have a fully tiled ground. Next, we can make it move by creating animation clips! See [Animation Clip Editing](/en/docs/animation-clip) for details.
+3. At this point, we have a fully tiled ground. Next, we can make it move by creating animation clips! See [Animation Clip Editing](/en/docs/animation/clip) for details.
 
    <img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*3d2GSINL_8IAAAAAAAAAAAAADleLAQ/original" />
 
 ### Adding a Mask
 
-After adding the ground, we noticed that the left and right sides seem to be exposed! In such cases, you just need to add a mask to the sprite renderer. See [Sprite Mask Component](/en/docs/graphics-2d-spriteMask) for details.
+After adding the ground, we noticed that the left and right sides seem to be exposed! In such cases, you just need to add a mask to the sprite renderer. See [Sprite Mask Component](/en/docs/graphics/2D/spriteMask) for details.
 
    <img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*d_ZBS6zxOjQAAAAAAAAAAAAADleLAQ/original" />
 
@@ -257,7 +257,7 @@ timeline
 ```
 ```
 
-After disassembling, it can be found that if we simply classify animations as idle animation, flying animation, and falling animation, considering that when idle, we need to play sprite switching and vertical easing animations, and when flying, we also need to play sprite switching and upward falling animations. The overlapping parts not only increase the workload during animation editing but also require additional consideration of whether the sprite switching animations between these two animations are natural. Therefore, we further atomize each animation state, split the parts of sprite switching and coordinate changes, and set them in different `Layers` separately. Different `Layers` are independent of each other and can play their animations simultaneously, set their overlay modes and weights. For more details, refer to the [animation component](/en/docs/animation-system).
+After disassembling, it can be found that if we simply classify animations as idle animation, flying animation, and falling animation, considering that when idle, we need to play sprite switching and vertical easing animations, and when flying, we also need to play sprite switching and upward falling animations. The overlapping parts not only increase the workload during animation editing but also require additional consideration of whether the sprite switching animations between these two animations are natural. Therefore, we further atomize each animation state, split the parts of sprite switching and coordinate changes, and set them in different `Layers` separately. Different `Layers` are independent of each other and can play their animations simultaneously, set their overlay modes and weights. For more details, refer to the [animation component](/en/docs/animation/system/).
 
 <img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*1cXjQIJAgZoAAAAAAAAAAAAADleLAQ/original" alt="image-20231007180819265" style="zoom:50%;" />
 
@@ -569,7 +569,7 @@ class Pipe extends Script {
 As seen above, the logic above complements the flowchart's code:
 
 - When the state switches to `Idle`, the `Pipe._reset()` function is triggered, and all pipes on the field are recycled back to the pool.
-- When the state switches to `Flying`, the `Pipe._move()` function is triggered, and the gears of the pipe's fate start turning. Within the frame loop, it checks whether a new pipe needs to be generated, whether an old pipe needs to be recycled. Generating a new pipe uses the engine's built-in [clone](/en/docs/core-clone) ability, which can fully replicate the structure and components of a node.
+- When the state switches to `Flying`, the `Pipe._move()` function is triggered, and the gears of the pipe's fate start turning. Within the frame loop, it checks whether a new pipe needs to be generated, whether an old pipe needs to be recycled. Generating a new pipe uses the engine's built-in [clone](/en/docs/core/clone) ability, which can fully replicate the structure and components of a node.
 - When the state switches to `Crash`, the `Pipe._pause()` function is triggered, and the pipe stops moving.
 
 #### Ground

@@ -6,14 +6,11 @@ import { SubPrimitiveChunk } from "./SubPrimitiveChunk";
  * @internal
  */
 export class PrimitiveChunkManager {
-  /** The maximum number of vertex. */
-  static MAX_VERTEX_COUNT = 4096;
-
   primitiveChunks = new Array<PrimitiveChunk>();
 
   constructor(
     public engine: Engine,
-    public maxVertexCount = PrimitiveChunkManager.MAX_VERTEX_COUNT
+    public maxVertexCount = 4096
   ) {}
 
   allocateSubChunk(vertexCount: number): SubPrimitiveChunk {

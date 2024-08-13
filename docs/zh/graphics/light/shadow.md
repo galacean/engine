@@ -10,7 +10,7 @@ label: Graphics/Light
 
 ## 场景配置
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/51e08840-95c0-4c68-82f0-0d2e29fbe966/image-20240726111645816.png" alt="image-20240726111645816" style="zoom:50%;" />
+<img src="https://gw.alipayobjects.com/zos/OasisHub/c1246c17-ba92-405d-b111-3cff6796097d/image-20240730114010025.png" alt="image-20240730114010025" style="zoom:50%;" />
 
 场景中拥有一些配置能够影响全局阴影：
 
@@ -32,10 +32,10 @@ label: Graphics/Light
 | 参数                                              | 应用                                               |
 | :------------------------------------------------ | :------------------------------------------------- |
 | [Shadow Type](/apis/core/#Light-shadowType)       | 阴影投射类型。不同的类型会影响渲染性能和视觉效果。 |
-| [Shadow Bias](/apis/core/#Light-shadowBias)       | 阴影的偏移。防止阴影失真。                       |
-| [Normal Bias](/apis/core/#Light-shadowNormalBias) | 阴影的法向偏移。避免阴影失真。                    |
-| [Near Plane](/apis/core/#Light-shadowNearPlane)   | 渲染深度图时的近裁面。影响阴影的裁剪面和精度。   |
-| [Strength](/apis/core/#Light-shadowStrength)      | 阴影强度。控制阴影的透明度。                      |
+| [Shadow Bias](/apis/core/#Light-shadowBias)       | 阴影的偏移。防止阴影失真。                         |
+| [Normal Bias](/apis/core/#Light-shadowNormalBias) | 阴影的法向偏移。避免阴影失真。                     |
+| [Near Plane](/apis/core/#Light-shadowNearPlane)   | 渲染深度图时的近裁面。影响阴影的裁剪面和精度。     |
+| [Strength](/apis/core/#Light-shadowStrength)      | 阴影强度。控制阴影的透明度。                       |
 
 ## 投射物与接受物
 
@@ -47,6 +47,4 @@ label: Graphics/Light
 
 从 `1.3` 版本开始，引擎支持投射透明裁剪（Alpha Cutoff）物体和透明（Transparent）物体的阴影，其中，透明物体投射阴影需要在场景面板中打开 `Transparent` 开关:
 
-![](https://gw.alipayobjects.com/zos/OasisHub/cf763750-8d2b-45f6-91d0-15502a199010/2024-07-24%25252019.03.15.gif)
-
-## 最佳实践
+![](https://gw.alipayobjects.com/zos/OasisHub/3c972121-d072-4d2c-ba87-2a9ec88c9268/2024-07-30%25252011.36.32.gif)

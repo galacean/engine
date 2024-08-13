@@ -36,7 +36,7 @@ engine.on("devicerestored", () => {
 
 ### 自定义恢复器
 
-还有一种情况是资源完全由开发者自行创建，比如自定义 [Loader](/docs/assets-type) 或程序化生成资源。除了可以通过上面的方式在 `devicerestored` 事件中处理，也可以通过自定义内容恢复器实现，以下案例是为用户自行创建的纹理注册一个自定义恢复器并注册到 `ResourceManager` 中。当设备需要恢复时，`restoreContent` 方法会自动触发并恢复其内容。
+还有一种情况是资源完全由开发者自行创建，比如自定义 [Loader](/docs/assets/custom) 或程序化生成资源。除了可以通过上面的方式在 `devicerestored` 事件中处理，也可以通过自定义内容恢复器实现，以下案例是为用户自行创建的纹理注册一个自定义恢复器并注册到 `ResourceManager` 中。当设备需要恢复时，`restoreContent` 方法会自动触发并恢复其内容。
 
 ```typescript
 // Step 1: Define content restorer

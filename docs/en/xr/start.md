@@ -9,7 +9,7 @@ The process of developing XR interaction is as follows:
 
 ```mermaid
 flowchart LR
-   Create XR Project --> Edit Project --> Export --> Local Build --> PC Preview --> XR Device Preview --> Formal Release
+   A[Create XR Project] --> B[Edit Project] --> C[Export] --> D[Local Build] --> E[PC Preview] --> F[XR Device Preview] --> G[Formal Release]
 ```
 
 The editing process of the project is no different from other projects. This article will take the XR template as an example, focusing on the difficulties of XR projects, **Local Build**, **PC Preview**, and **XR Device Preview**.

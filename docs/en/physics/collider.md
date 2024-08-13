@@ -5,7 +5,7 @@ type: Physics
 label: Physics
 ---
 
-The biggest advantage of introducing a physics engine is to give physical responses to objects in the scene. Colliders belong to components in the engine. Before using them, we need to understand the types of colliders:
+The biggest advantage of introducing a physics engine is that it allows objects in the scene to have physical responses. Colliders ([Collider](/apis/core/#Collider)) are a type of component in the engine, and there are currently two types. Before using them, we need to understand these two types of colliders:
 
 1. [StaticCollider](/apis/core/#StaticCollider): Static collider, mainly used for stationary objects in the scene;
 2. [DynamicCollider](/apis/core/#DynamicCollider): Dynamic collider, used for objects in the scene that need to be controlled by scripts or respond to physical feedback.
@@ -14,30 +14,30 @@ The biggest advantage of introducing a physics engine is to give physical respon
 
 ### Adding Collider Component
 
-The first thing to consider is whether the collider is static or dynamic, then add the corresponding collider component, StaticCollider for static colliders or DynamicCollider for dynamic ones.
+Before adding a physics component to an object, the first thing to consider is whether the collider is static or dynamic, and then add the corresponding collider component, either a static collider [StaticCollider](/apis/core/#StaticCollider) or a dynamic collider [DynamicCollider](/apis/core/#DynamicCollider).
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*-E4USbdiH6sAAAAAAAAAAAAADsJ_AQ/original)
 
-### Selecting Collider Shape
+### Selecting the Shape of the Collider
 
-In fact, each `Collider` is a collection of [ColliderShape](/apis/core/#ColliderShape), meaning each `Collider` can set a composite collider shape by combining `ColliderShape`.
+Next, we need to add a [ColliderShape](/apis/core/#ColliderShape) to the collider component. In fact, each `Collider` is a collection of [ColliderShape](/apis/core/#ColliderShape), meaning each `Collider` can be set to a composite collider shape by combining [ColliderShape](/apis/core/#ColliderShape).
 
-Currently, four `ColliderShape` types are supported, but the level of support varies depending on the backend physics package, as follows:
+Currently, four types of `ColliderShape` are supported, but the support varies among different backend physics packages, as detailed below:
 
-| Name | Description | Supported Backend Physics Packages |
+| Name | Description       | Supported Backend Physics Packages                    |
 | :--- |:---------|:----------------------------|
-| [BoxColliderShape](/apis/core/#BoxColliderShape) | Box-shaped collider | physics-lite, physics-physx |
-| [SphereColliderShape](/apis/core/#SphereColliderShape) | Sphere-shaped collider | physics-lite, physics-physx |
-| [PlaneColliderShape](/apis/core/#PlaneColliderShape) | Infinite plane collider | physics-physx |
-| [CapsuleColliderShape](/apis/core/#CapsuleColliderShape) | Capsule-shaped collider | physics-physx |
+| [BoxColliderShape](/apis/core/#BoxColliderShape) | Box-shaped collider   | physics-lite, physics-physx |
+| [SphereColliderShape](/apis/core/#SphereColliderShape) | Sphere-shaped collider   | physics-lite, physics-physx |
+| [PlaneColliderShape](/apis/core/#PlaneColliderShape) | Unbounded plane collider | physics-physx               |
+| [CapsuleColliderShape](/apis/core/#CapsuleColliderShape) | Capsule-shaped collider   | physics-physx               |
 
-The engine supports composite collider shapes, meaning a collider can be composed of BoxColliderShape, SphereColliderShape, and CapsuleColliderShape.
+The engine supports composite collider shapes, meaning the collider itself can be composed of `BoxColliderShape`, `SphereColliderShape`, and `CapsuleColliderShape`.
 
-It is important to note the relationship between `Collider` and `ColliderShape`. The pose of each `Collider` is consistent with the `Entity` it is attached to, and they are synchronized every frame. The `position` property on `ColliderShape` can be used to set an offset **relative to** the `Collider`.
+It is particularly emphasized here the positional relationship between `Collider` and `ColliderShape`. The posture of each `Collider` is consistent with the `Entity` it is attached to, and they are synchronized every frame. The `ColliderShape` can set an offset **relative to** the `Entity` through the `position` property.
 
 ![table](https://mdn.alipayobjects.com/huamei_vvspai/afts/img/A*erlGRKk7dNMAAAAAAAAAAAAADsqFAQ/original)
 
-When adding a collider component, the collider shape is not added by default, so you need to click on Add Item to add it, and you will see the collider's auxiliary rendering in the viewport after adding it.
+After adding the collider component, the collider shape is not added by default, so you need to click Add Item to add it. After adding, you will see the auxiliary rendering of the collider appear in the viewport.
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*OUr-SIejEkoAAAAAAAAAAAAADsJ_AQ/original)
 
@@ -45,50 +45,67 @@ For each collider shape, you can design corresponding size properties. For examp
 
 <img src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*d4MCRbuHeMsAAAAAAAAAAAAADsJ_AQ/original" alt="alt text" style="zoom:67%;" />
 
-However, regardless of the collider shape, you can set the Local Position, which is the local offset relative to the Entity coordinates.
+No matter which collider shape is used, you can set the Local Position, which is the local offset relative to the Entity coordinates.
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*p8UcRJ9Q0EIAAAAAAAAAAAAADsJ_AQ/original)
 
-### Dynamic Collider Settings
-Unlike static colliders, dynamic colliders are affected by physical laws, so there are many additional physical properties to set. 
+The `ColliderShape` also has a noteworthy property called `Trigger`, which can switch this `ColliderShape` from `collider mode` to `trigger mode`.
 
+Trigger mode: The object does not have a rigid body shape, but can trigger specific script functions when contact occurs.
+Collider mode: The object has a rigid body shape, and when contact occurs, it can not only trigger script functions but also change its original motion according to physical laws.
+
+### Dynamic Collider Settings
+Unlike static colliders, dynamic colliders are subject to physical laws, so there are many additional physical properties to set.
 
 <img src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*7rzqSKtjULMAAAAAAAAAAAAADsJ_AQ/original" alt="alt text" style="zoom:67%;" />
 
-After modifying these parameters, the viewport will not change because the dynamic collider is affected by gravity by default, so observation can only be done in Play mode.
+After modifying these parameters, the viewport will not change because dynamic colliders are subject to gravity by default, so you need to observe them in `preview mode`.
 
 ### Note
-- The collision area should be kept as simple as possible to improve the performance of the physics engine detection.
-- The reference coordinate system of the collider is the coordinate system of the dependent Entity.
-- PlaneColliderShape represents a full plane, so there is no display of auxiliary lines, generally used as a floor.
+- The determined collision area should be as simple as possible to improve the performance of the physics engine detection.
+- The reference coordinate system of the collider is the coordinate system of the subordinate Entity.
+- PlaneColliderShape represents a full plane, so there are no auxiliary lines displayed, and it is generally used as a floor.
 
 ## Script Usage
 
-There are two types of physical responses:
+### Adding a Collider
+``` typescript
+  // 添加静态碰撞器
+  const boxCollider = boxEntity.addComponent(StaticCollider);
+  // 添加动态碰撞器
+  const sphereCollider = sphereEntity.addComponent(DynamicCollider);
+```
 
-1. Trigger mode: Objects do not have a rigid body shape, but specific script functions can be triggered when contact occurs.
-2. Collider mode: Physics have a rigid body shape, and when contact occurs, not only can script functions be triggered, but the original motion can also be changed according to physical laws.
+### Adding a ColliderShape
+``` typescript
+  const boxCollider = boxEntity.getComponent(StaticCollider);
+  const physicsBox = new BoxColliderShape();
+  physicsBox.size = new Vector3(1, 1, 1);
+  boxCollider.addShape(physicsBox);
 
-For these two types, corresponding functions are provided in the script, and the collider component also provides a series of functions to set its own state, such as velocity, mass, and so on.
+  //设置 Trigger
+  physicsBox.isTrigger = true;
+```
+
+For these two types, corresponding functions are provided in the script.
 
 ### Trigger Script Functions
 
-For trigger mode, first, add a `Collider` to the `Entity` in the scene; when these components come into contact, three functions in the script component will be automatically triggered:
+For trigger mode, you first need to add a `Collider` to the `Entity` in the scene; when these components come into contact, three functions in the script component will be automatically triggered:
 
-1. [onTriggerEnter](/en/docs/script#component-lifecycle-functions#ontriggerenter): Called when they come into contact.
-2. [onTriggerStay](/en/docs/script#component-lifecycle-functions#ontriggerstay): Called *repeatedly* during contact.
-3. [onTriggerExit](/en/docs/script#component-lifecycle-functions#ontriggerexit): Called when the contact ends.
+1. [onTriggerEnter](/en/docs/script#$1-ontriggerenter): Called when contact occurs.
+2. [onTriggerStay](/en/docs/script#$1-ontriggerstay): *Loop* called during contact.
+3. [onTriggerExit](/en/docs/script#$1-ontriggerexit): Called when contact ends.
 
-You can enable trigger mode by setting `isTrigger` on the `ColliderShape`, but it is important to note that **trigger events are not called between two StaticColliders unless one of them is a `DynamicCollider`**.
+You can enable trigger mode through the `isTrigger` property on `ColliderShape`, but it is particularly emphasized that **trigger events will not be called between two StaticColliders**, unless one of them is a `DynamicCollider`.
 
 <playground src="physx-collision-detection.ts"></playground>
 
 ### Collider Script Functions
 
-For collider mode, when `DynamicCollider` interact with each other, three collision-related script functions will be triggered:
-1. [onCollisionEnter](/en/docs/script#component-lifecycle-functions#oncollisionenter): Called when a collision occurs.
-2. [onCollisionStay](/en/docs/script#component-lifecycle-functions#oncollisionstay): Called *repeatedly* during the collision process.
-3. [onCollisionExit](/en/docs/script#component-lifecycle-functions#oncollisionexit): Called when the collision ends.
+For collider mode, when `DynamicColliders` interact, three collision-related script functions will be triggered:
+1. [onCollisionEnter](/en/docs/script#$1-oncollisionenter): Called when a collision occurs.
+2. [onCollisionStay](/en/docs/script#$1-oncollisionstay): *Loop* called during the collision.
+3. [onCollisionExit](/en/docs/script#$1-oncollisionexit): Called when the collision ends.
 
 <playground src="physx-compound.ts"></playground>
-

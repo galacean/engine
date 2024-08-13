@@ -621,6 +621,19 @@ export class Entity extends EngineObject {
     onPointerCallBacks.add(callback);
   }
 
+  /**
+   * @internal
+   */
+  _setTransformDirty() {
+    if (this.transform) {
+      this.transform._parentChange();
+    } else {
+      for (let i = 0, len = this._children.length; i < len; i++) {
+        this._children[i]._setTransformDirty();
+      }
+    }
+  }
+
   private _addToChildrenList(index: number, child: Entity): void {
     const children = this._children;
     const childCount = children.length;

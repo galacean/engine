@@ -5,13 +5,13 @@ type: Script
 label: Script
 ---
 
-In projects developed using Galacean Engine, it is often necessary to communicate with the external environment, such as sending runtime information from the project to the outside, or receiving certain configuration information from the external environment. In such cases, you can use the event system of Galacean Engine to achieve this functionality.
+Projects developed with Galacean Engine often need to communicate with the external environment, such as sending runtime information of the project to the outside or obtaining certain configuration information from the external environment. At this time, you can use the event system of Galacean Engine to achieve such functions.
 
-## Add Events
+## Adding Events
 
-Galacean Engine provides [EventDispatcher](/apis/core/#EventDispatcher) as the event class, and [Engine](/apis/core/#Engine) inherits from [EventDispatcher](/apis/core/#EventDispatcher). Therefore, we can directly use `engine` in the code as a medium for internal and external communication.
+Galacean Engine provides [EventDispatcher](/apis/core/#EventDispatcher) as the event class, and [Engine](/apis/core/#Engine) inherits from [EventDispatcher](/apis/core/#EventDispatcher). Therefore, we directly use `engine` in the code as the medium for internal and external communication.
 
-**Add an event using `engine.on`**
+**Add events using `engine.on`**
 
 ```ts
 import { Script } from "@galacean/engine";
@@ -25,9 +25,9 @@ class MyScript extends Script {
 }
 ```
 
-**Add an event using `engine.once`**
+**Add events using `engine.once`**
 
-Events added using `engine.once` will trigger the callback function only once.
+Events added using `engine.once` will only trigger the callback function once.
 
 ```ts
 import { Script } from "@galacean/engine";
@@ -43,19 +43,19 @@ class MyScript extends Script {
 
 After saving the code, we can see the corresponding events in the event panel.
 
-## Trigger Events
+## Triggering Events
 
-Calling the `engine.dispatch` method can dispatch events. Dispatching events will execute the corresponding callback functions using the parameters configured in `dispatch`.
+Calling the `engine.dispatch` method can dispatch events. Dispatching events will execute the corresponding callback function using the parameters configured in `dispatch`.
 
 ```ts
 this.engine.dispatch("Trigger", { eventData: "mydata" });
 ```
 
-You can trigger events at any lifecycle of the script. Of course, you can also trigger events using the event panel or configure the parameters to be carried when triggering events.
+You can trigger events in any lifecycle of the script. Of course, you can also use the event panel to trigger events or configure the parameters carried when triggering events.
 
-## Remove Events
+## Removing Events
 
-Use `this.engine.off` to remove related events.
+You can remove related events using `this.engine.off`.
 
 ```ts
 // Remove the specific function "fun" that listen to "Trigger".

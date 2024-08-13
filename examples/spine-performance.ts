@@ -3,8 +3,8 @@
  * @category Benchmark
  * @thumbnail https://mdn.alipayobjects.com/merchant_appfe/afts/img/A*6xrGR6nr1c0AAAAAAAAAAAAADiR2AQ/original
  */
-import { Camera, Vector3, WebGLEngine } from "@galacean/engine";
-import { SpineRenderer } from "@galacean/engine-spine";
+import { Camera, Entity, Vector3, WebGLEngine } from "@galacean/engine";
+import { SpineAnimationRenderer } from "@galacean/engine-spine";
 import { Stats } from "@galacean/engine-toolkit-stats";
 
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
@@ -21,19 +21,15 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   engine.resourceManager
     .load({
-      urls: [
-        "https://gw.alipayobjects.com/os/OasisHub/a66ef194-6bc8-4325-9a59-6ea9097225b1/1620888427489.json",
-        "https://gw.alipayobjects.com/os/OasisHub/a1e3e67b-a783-4832-ba1b-37a95bd55291/1620888427490.atlas",
-        "https://gw.alipayobjects.com/zos/OasisHub/a3ca8f62-1068-43a5-bb64-5c9a0f823dde/1620888427490.png",
-      ],
+      url: "https://mdn.alipayobjects.com/huamei_kz4wfo/uri/file/as/2/kz4wfo/4/mp/qGISZ7QTJFkEL0Qx/spineboy/spineboy.json",
       type: "spine",
     })
-    .then((spineResouce: any) => {
-      const spineEntity = rootEntity.createChild("spine");
-      const spineRenderer = spineEntity.addComponent(SpineRenderer);
-      spineRenderer.resource = spineResouce;
-      spineRenderer.scale = 0.01;
-      spineRenderer.animationName = "walk";
+    .then((resource: any) => {
+      const spineEntity = new Entity(engine);
+      const spine = spineEntity.addComponent(SpineAnimationRenderer);
+      spine.resource = resource;
+      spine.defaultState.scale = 0.02;
+      spine.defaultState.animationName = "walk";
       for (let i = -5; i < 5; i++) {
         for (let j = -5; j < 5; j++) {
           const clone = spineEntity.clone();

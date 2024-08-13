@@ -6,19 +6,19 @@ group: Model
 label: Graphics/Model
 ---
 
-A model typically refers to a three-dimensional model created by designers using 3D modeling software, containing a series of information such as [mesh](/en/docs/graphics-mesh), [material](/en/docs/graphics-material), [texture](/en/docs/graphics-texture), and [animation](/en/docs/animation-overview). In Galacean, it is also considered as an asset. The model asset workflow is usually as follows:
+Models typically refer to 3D models created by designers using 3D modeling software, containing a series of [meshes](/en/docs/graphics/mesh/mesh/), [materials](/en/docs/graphics/material/material/), [textures](/en/docs/graphics/texture/texture/), and [animations](/en/docs/animation/overview/). In Galacean, they are also considered assets. The model asset workflow is usually as follows:
 
 ```mermaid
 	flowchart LR
-	Model exported from modeling software --> Import model into Galacean editor --> Adjust model
+	A[Modeling software exports model] --> B[Import model into Galacean editor] --> C[Adjust model]
 ```
 
-This chapter mainly addresses the following questions that developers may encounter:
+This chapter mainly addresses the following issues developers might encounter:
 
-- Requirements for model formats. The editor currently supports importing models in `glTF` or `FBX` formats, but ultimately, the editor will convert them into a [glTF](/en/docs/graphics-model-glTF) format that can also be parsed at runtime.
-- [Importing models](/en/docs/graphics-model-importGlTF}) into the editor
-- What are [model assets](/en/docs/graphics-model-assets})
-- [Loading and using models](/en/docs/graphics-model-use})
-- [Restoring artistic effects in the editor](/en/docs/graphics-model-restoration})
-- [Model optimization](/en/docs/graphics-model-opt})
+- Requirements for model formats. The editor currently supports importing models in `glTF` or `FBX` formats, but the editor will ultimately convert them into the [glTF](/en/docs/graphics/model/glTF/) format, which can also be parsed at runtime.
+- [Importing models](/en/docs/graphics/model/importGlTF/) into the editor
+- What are [model assets](/en/docs/graphics/model/assets/)
+- [Loading and using models](/en/docs/graphics/model/use/)
+- [Restoring artistic effects in the editor](/en/docs/graphics/model/restoration/)
+- [Model optimization](/en/docs/graphics/model/opt/)
 

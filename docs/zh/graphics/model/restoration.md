@@ -12,11 +12,11 @@ label: Graphics/Model
 
 Galacean 引擎目前有 3 种方式调试材质：
 
-1. 通过代码修改材质属性，参考[教程](/docs/graphics-material)。
+1. 通过代码修改材质属性，参考[教程](/docs/graphics/material/material)。
 
-2. 通过 Galacean Editor 可视化调试，参考[教程](/docs/graphics-material)。
+2. 通过 Galacean Editor 可视化调试，参考[教程](/docs/graphics/material/material)。
 
-3. **通过 3D 建模软件调好后导出 [glTF](/docs/graphics-model-glTF)**
+3. **通过 3D 建模软件调好后导出 [glTF](/docs/graphics/model/glTF/)**
 
 前两种方式直接使用引擎渲染，所见即所得，没有视觉上的差异。
 
@@ -30,7 +30,7 @@ Galacean 引擎目前有 3 种方式调试材质：
 
 针对造成差异的这些原因，可以通过以下方法来获取最大程度的视觉还原度：
 
-- **通过烘焙贴图，[导出 Unlit 材质到引擎](/docs/graphics-material-Unlit)**
+- **通过烘焙贴图，导出 Unlit 材质到引擎**
 
 - **使用相同的环境贴图(一般为 HDRI 文件)、直接光照等变量。**
 
@@ -50,17 +50,17 @@ Galacean 引擎目前有 3 种方式调试材质：
 
 ### 光照差异
 
-跟现实世界一样，3D 场景也可以添加[直接光与环境光](/docs/graphics-light)。Galacean 场景中默认是**没有**光源的，只有一个偏向蓝色的[纯色漫反射](/apis/core/#AmbientLight-diffuseSolidColor)，如下图左一；而很多建模软件中是自带光源的：
+跟现实世界一样，3D 场景也可以添加[直接光与环境光](/docs/graphics/light/light/)。Galacean 场景中默认是**没有**光源的，只有一个偏向蓝色的[纯色漫反射](/apis/core/#AmbientLight-diffuseSolidColor)，如下图左一；而很多建模软件中是自带光源的：
 
 ![image.png](https://gw.alipayobjects.com/zos/OasisHub/391e9bd9-945d-474d-b3fb-8cb0490e2b6f/1635434650361-60d7f40f-9f22-4e48-8865-141415d638f9.png)
 
-环境光基于 [立方纹理](/docs/graphics-texture-cube) 开启 IBL 模式，需要绑定一张 HDRI 贴图用来模拟周边环境，可以从[网上下载](https://polyhaven.com/hdris)。Galacean 场景中默认是没有绑定 HDRI 贴图的，而很多建模软件是自带了一张比较好看的周边环境的：
+环境光基于 [立方纹理](/docs/graphics/texture/cube) 开启 IBL 模式，需要绑定一张 HDRI 贴图用来模拟周边环境，可以从[网上下载](https://polyhaven.com/hdris)。Galacean 场景中默认是没有绑定 HDRI 贴图的，而很多建模软件是自带了一张比较好看的周边环境的：
 
 ![image.png](https://gw.alipayobjects.com/zos/OasisHub/61c2287b-0793-4763-a5f5-70567fcdf106/1635477315862-08b0c680-029b-400b-8600-1d8cf7a20c60.png)
 
 ### glTF 支持度差异
 
-Galacean 引擎和建模软件的连通渠道是 [glTF 文件](/docs/graphics-model-glTF)。glTF 支持标准的 [PBR 属性](https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#reference-material-pbrmetallicroughness)和[通用材质属性](https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#reference-material)，并支持 [ClearCoat](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_clearcoat) 等插件，如下图。因此建模软件中的操作只要能导出到 glTF，引擎都能通过加载器加载，而那些额外的操作，比如 [vRay](https://www.chaosgroup.com/cn/vray/3ds-max) 材质的一些参数，是无法导出到 glTF 文件的。
+Galacean 引擎和建模软件的连通渠道是 [glTF 文件](/docs/graphics/model/glTF/)。glTF 支持标准的 [PBR 属性](https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#reference-material-pbrmetallicroughness)和[通用材质属性](https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#reference-material)，并支持 [ClearCoat](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_clearcoat) 等插件，如下图。因此建模软件中的操作只要能导出到 glTF，引擎都能通过加载器加载，而那些额外的操作，比如 [vRay](https://www.chaosgroup.com/cn/vray/3ds-max) 材质的一些参数，是无法导出到 glTF 文件的。
 
 ![image.png](https://gw.alipayobjects.com/zos/OasisHub/2010b748-ab8b-4e46-8b15-3aee4daa71f9/1635434775734-f8454efe-d268-4f80-87ab-40f1cddf96ea.png)
 
@@ -116,7 +116,7 @@ Galacean 引擎和建模软件的连通渠道是 [glTF 文件](/docs/graphics-mo
 
 - 校验导出
 
-导出 glTF 后，可以将文件拖拽到 [glTF 查看器](https://galacean.antgroup.com/#/gltf-viewer) 中，查看相应的颜色、纹理、参数等是否正确：
+导出 glTF 后，可以将文件拖拽到 [glTF 查看器](https://galacean.antgroup.com/engine/gltf-viewer) 中，查看相应的颜色、纹理、参数等是否正确：
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/a76d35e6-e222-4877-89a4-c44a117a1284/1635499678001-f7df3dc2-2219-4516-887b-fc5d51dc3521.png" alt="image.png" style="zoom:50%;" />
 
@@ -126,11 +126,9 @@ Galacean 引擎和建模软件的连通渠道是 [glTF 文件](/docs/graphics-mo
 
 我们针对烘焙方案也提供了几篇教程，你也可以通过 Google 搜索“\*\*\* 建模软件 烘焙 KHR_materials_unlit” 等关键词学习更多细节：
 
-- [《C4D 烘焙教程》](/docs/art-bake-c4d)
+- [《C4D 烘焙教程》](/docs/art/bake-c4d/)
 
-- [《Blender 烘焙教程》](/docs/art-bake-blender)
-
-- [《导出 Unlit 材质》](/docs/graphics-material-Unlit)
+- [《Blender 烘焙教程》](/docs/art/bake-blender)
 
 ### Galacean 预览插件(规划中)
 

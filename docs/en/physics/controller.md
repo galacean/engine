@@ -5,9 +5,7 @@ type: Physics
 label: Physics
 ---
 
-The character controller is a very important functional component provided by the physics engine. It allows for easily adding physical behaviors to the motion of animated characters. For example, parameters can be set to prevent a character from climbing steep slopes or to avoid collisions with other colliders during the character's movement. In fact, the character controller is just an advanced encapsulation of colliders, implementing various advanced character control behaviors through collision detection.
-
-Similar to collider components, the creation and usage of character controller components are very similar to collider components.
+The character controller is a very important functional component provided by the physics engine. With the character controller, it is easy to add physical effects to the movement of animated characters. For example, you can set parameters to prevent the character from climbing slopes of a certain angle, or avoid collision feedback with other colliders during the character's movement. In fact, the character controller is just an advanced encapsulation of the [collider](/en/docs/physics/collider), implementing various advanced character control behaviors through collision detection. Therefore, the creation and use of the character controller component are very similar to the collider component.
 ```typescript
 const physicsCapsule = new CapsuleColliderShape();
 physicsCapsule.radius = radius;
@@ -15,11 +13,12 @@ physicsCapsule.height = height;
 const characterController = capsuleEntity.addComponent(CharacterController);
 characterController.addShape(physicsCapsule);
 ```
-Like collider components, a `ColliderShape` is constructed and added to the component to give the character controller a specific shape. However, two points need to be emphasized here:
-1. Character controllers do not support compound shapes, so only one `ColliderShape` can be added.
-2. Currently, character controllers only support `CapsuleColliderShape` and `BoxColliderShape`, with `CapsuleColliderShape` being the most commonly used.
+Like the collider component, it is constructed by creating a `ColliderShape` and adding it to the component, giving the character controller a specific shape. However, two points need to be emphasized here:
+1. The character controller does not support compound shapes, so only one `ColliderShape` can be added.
+2. The character controller currently only supports `CapsuleColliderShape` and `BoxColliderShape`, with `CapsuleColliderShape` being the most commonly used.
 
-The behavior of the character controller can be controlled through the parameters and methods of `CharacterController`, with the most important one being the `move` function:
+Subsequent behaviors of the character controller are controlled through various parameters and methods of `CharacterController`, with the most important being the `move` function:
+
 ```typescript
 class Controller extends Script {
     onPhysicsUpdate() {
@@ -32,9 +31,10 @@ class Controller extends Script {
         this._displacement.setValue(0, 0, 0);
     }
 }
-````
+```
 
-In the `move` method, you can specify the character's displacement, and this method returns an enum type composite value. By using the enum type `ControllerCollisionFlag`, you can determine if the character controller collides with other collider components:
+You can specify the character's displacement in the `move` method, and this method returns a composite value of an enumeration type. Through this enumeration type `ControllerCollisionFlag`, you can determine whether the character controller has collided with other collider components:
+
 ```typescript
 export enum ControllerCollisionFlag {
   /** Character is colliding to the sides. */
@@ -45,5 +45,7 @@ export enum ControllerCollisionFlag {
   Down = 4
 }
 ```
-Based on this, the character's subsequent animations and movements can be determined. In the example below, you can control the character's movement using the keyboard to make it climb or jump over specific obstacles.
+
+This determines how the character's next animation and movement will proceed. In the example below, you can control the character's movement via the keyboard, allowing it to climb or jump over specific obstacles.
+
 <playground src="physx-controller.ts"></playground>

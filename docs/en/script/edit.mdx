@@ -1,0 +1,77 @@
+---
+order: 3
+title: Edit Script
+type: Script
+label: Script
+---
+
+Galacean Editor provides a powerful code editor with features such as code suggestions, third-party package imports, engine event debugging, script parameter debugging, real-time project preview, and more, helping you quickly edit and debug code.
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/2707ed27-a85a-4915-9db0-1cbed9e5c3dc/image-20240318173952160.png" />
+
+| No.  | Area         | Description                                                  |
+| ---- | ------------ | ------------------------------------------------------------ |
+| 1    | File List    | View all script files in the project                         |
+| 2    | Code Editor  | Edit script files with features like code highlighting, code suggestions, and code formatting |
+| 3    | Preview Area | Preview the running effect of the current script. The rendering state of this area will refresh in real-time after saving the code |
+| 4    | Package Management Area | Add required [NPM](https://www.npmjs.org/) third-party packages, such as [tween.js](https://www.npmjs.com/package/@tweenjs/tween.js) |
+| 5    | Event Debugging Area | The code editor will automatically search for all events bound to the engine and display them here. You can trigger events here and configure event parameters |
+| 5    | Console      | View log information during code runtime                     |
+
+For more information about the code editor, please check [Code Editor](/en/docs/script/edit).
+
+## Code Editing
+
+After creating a script asset in the scene editor, double-click the script to open the code editor. Scripts in Galacean need to be written in [Typescript](https://www.typescriptlang.org/), and new scripts are created based on built-in templates by default. Additionally, the Galacean code editor is based on Monaco, with shortcuts similar to VSCode. After modifying the script, press `Ctrl/⌘ + S` to save, and the real-time preview area on the right will show the latest scene effects.
+
+> Tip: The Galacean code editor currently supports `.ts`, `.gs`, and `.glsl` file editing.
+
+## File Preview
+
+<Image src="https://mdn.alipayobjects.com/huamei_fvsq9p/afts/img/A*o51FQa9Uh0MAAAAAAAAAAAAADqiTAQ/original" />
+
+1. **File Search** Quickly search for files in the project
+2. **Code Filter** Whether to display only code files ( `.ts`, `.gs`, `.glsl` ) in the file tree
+3. **Built-in Files** Used to display which files are non-editable internal files
+4. **Expand/Hide** Toggle the expansion or hiding of folders
+5. **Code Files** Editable code files will display corresponding file type thumbnails
+
+## Importing Third-Party Packages
+
+The code editor has a built-in engine corresponding to the project, which can automatically provide intelligent suggestions for engine APIs, helping you quickly implement logic based on the engine. However, in most cases, you will need to import Galacean ecosystem packages or other third-party packages to enhance functionality.
+
+<Image src="https://mdn.alipayobjects.com/huamei_fvsq9p/afts/img/A*Nc2MQqOeWxgAAAAAAAAAAAAADqiTAQ/original" />
+
+1. **Search Box** Enter the package name in the search box and press Enter to quickly fetch the package version list
+2. **Version Selection** By default, the `latest` version is used
+3. **Import Button** After selecting the package name and version, click the import button to load the type information of the third-party package into the workspace
+4. **Package List** This will list all third-party packages that the current project depends on
+5. **Version Switching** You can switch the version of the imported package here. After switching, the new type information will be loaded into the workspace
+
+<Callout type="info">
+Try it: Enter `@galacean/engine-toolkit` in the search box, click the "Import" button, and then use `import { OrbitControl } from '@galacean/engine-toolkit` in the code to import the `OrbitControl` component.
+</Callout>
+
+## Real-time Preview Area
+
+The Galacean code editor provides a real-time preview feature. After saving the code, the preview area will automatically update, allowing you to quickly see the execution results of the code.
+
+<Image src="https://mdn.alipayobjects.com/huamei_fvsq9p/afts/img/A*dCHqRIMdHbkAAAAAAAAAAAAADqiTAQ/original" />
+
+1. **Drag Button** Hold to drag the simulator. Drag the simulator to the right edge of the screen to dock it on the right panel.
+2. **Statistics Toggle** Click to toggle the display status of scene statistics.
+3. **Open in New Window** Open the project preview page in a new window.
+4. **Script Parameter Editing** If the active script in the current scene has configurable parameters, you can open this panel to adjust the script parameters in real-time. For more details on script parameters, please refer to [Script System](/en/docs/script/attributes).
+5. **Close Button** Click to close the simulator. After closing, a display button is provided at the top right corner of the screen, click to reopen the simulator.
+
+## Event Debugging
+
+In the code editor, we provide an event debugging panel to help you quickly debug events in the scene.
+
+<Image src="https://mdn.alipayobjects.com/huamei_fvsq9p/afts/img/A*xtmMT676qvcAAAAAAAAAAAAADqiTAQ/original" />
+
+1. **Event List** The Galacean Editor will automatically collect all event names in the scene and display them here.
+2. **Event Parameter Configuration** You can click this button to configure the parameters carried when the event is triggered. The parameters are written in `JSON` format.
+3. **Event Trigger Button** Click this button to trigger the corresponding event in the scene.
+
+> Note, the script component must be bound to an entity to display the event list.

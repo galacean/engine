@@ -5,17 +5,17 @@ type: Resource
 label: Device
 ---
 
-Since the GPU is a shared resource, in some cases, the GPU may revoke control, causing your program to lose the GPU device. The following situations may lead to device loss:
+Since the GPU is a shared resource, there are situations where the GPU might reclaim control, causing your program's GPU device to be lost. For example, device loss might occur in the following scenarios:
 
 - A page is stuck for too long
-- Multiple pages consume too many GPU resources, causing all pages to lose context and only restoring the foreground page
-- PC device switches graphics cards or updates graphics card drivers
+- Multiple pages occupy too many GPU resources, causing all pages to lose context and only the foreground page to recover
+- PC switches graphics cards or updates graphics card drivers
 
-After the device is lost, the engine will automatically restore all program content at the appropriate time. Users usually do not need to worry about it. When necessary, users can handle device loss and recovery logic through the following mechanisms.
+After device loss, the engine will automatically recover all content at an appropriate time. Users usually do not need to worry about it. If necessary, users can handle device loss and recovery logic through the following mechanisms.
 
-### Handling Loss and Recovery
+### Loss and Recovery Handling
 
-When the GPU device is lost, the `Engine` will dispatch a `devicelost` event, allowing users to implement logic such as user prompts or saving configurations:
+When the GPU device is lost, the `Engine` will dispatch a `devicelost` event. Users can perform some user prompts or save configuration logic:
 
 ```typescript
 engine.on("devicelost", () => {
@@ -24,7 +24,7 @@ engine.on("devicelost", () => {
 });
 ```
 
-The engine supports automatic GPU device recovery. When the program can be restored, the `Engine` will dispatch a `devicerestored` event. The engine will automatically rebuild low-level GPU resources such as textures, buffers, and shaders, and attempt to restore their data content automatically. Resources created through methods provided by the engine, such as Loader and PrimitiveMesh, can be fully restored automatically without any manual intervention. Manual handling is only required when developers modify resource content themselves, such as manually modifying the pixel content of a texture.
+The engine supports automatic GPU device recovery. When the program can recover, the `Engine` will dispatch a `devicerestored` event. The engine will automatically rebuild textures, buffers, shaders, and other low-level GPU resources and will attempt to automatically restore their data content. Resources created through the engine's Loader and PrimitiveMesh methods can usually fully recover their content automatically, and developers do not need to do anything. Only when developers manually modify resource content, such as manually modifying the texture's pixel content, do they need to handle it manually.
 
 ```typescript
 engine.on("devicerestored", () => {
@@ -34,9 +34,9 @@ engine.on("devicerestored", () => {
 });
 ```
 
-### Custom Recovery
+### Custom Restorer
 
-Another scenario is when resources are entirely created by developers, such as custom [Loader](/en/docs/assets-type) or procedurally generated resources. In addition to handling in the `devicerestored` event as mentioned above, custom content recovery can also be achieved by implementing a custom recoveryer. The following example registers a custom recoveryer for a texture created by the user and registers it with the `ResourceManager`. When the device needs to be restored, the `restoreContent` method will automatically trigger and restore its content.
+Another situation is when resources are entirely created by the developer, such as custom [Loader](/en/docs/assets/custom) or programmatically generated resources. Besides handling it in the `devicerestored` event as mentioned above, you can also implement a custom content restorer. The following example registers a custom restorer for a user-created texture and registers it with the `ResourceManager`. When the device needs to be restored, the `restoreContent` method will automatically trigger and restore its content.
 
 ```typescript
 // Step 1: Define content restorer
@@ -69,18 +69,18 @@ resourceManager.addContentRestorer(
 );
 ```
 
-> Note: It is not recommended for recoveryer implementations to rely on or consume a large amount of CPU memory.
+> Note: It is not recommended for the restorer implementation to rely on and occupy a large amount of CPU memory.
 
 ### Simulating Device Loss and Recovery
 
-In actual projects, the probability of triggering device loss and recovery is small. To facilitate developers in testing the program's performance and logic handling after device loss and recovery, the `Engine` provides built-in methods to simulate device loss and recovery.
+In actual projects, the probability of triggering device loss and recovery is relatively low. To facilitate developers in testing the program's performance and logic handling after device loss and recovery, the `Engine` provides built-in methods to simulate device loss and recovery.
 
-| Method                                                     | Description       |
-| ---------------------------------------------------------- | ----------------- |
-| [forceLoseDevice](/apis/core/#Engine-forceLoseDevice)       | Force device loss |
+| Method                                                      | Description  |
+| ----------------------------------------------------------- | ------------ |
+| [forceLoseDevice](/apis/core/#Engine-forceLoseDevice)    | Force device loss |
 | [forceRestoreDevice](/apis/core/#Engine-forceRestoreDevice) | Force device recovery |
 
 ### References
 
-- "Handling WebGL Context Lost": https://www.khronos.org/webgl/wiki/HandlingContextLost
+- "WebGL Handling Context Lost": https://www.khronos.org/webgl/wiki/HandlingContextLost
 

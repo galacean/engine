@@ -1,0 +1,45 @@
+---
+title: Macros
+---
+
+ShaderLab supports some macros and macro operators from the standard GLSL syntax:
+- `#define`
+- `#undef`
+- `#if`
+- `#ifdef`
+- `#ifndef`
+- `#else`
+- `#elif`
+- `#endif`
+- `defined` 
+  
+and the additionally introduced `#include` macro.
+
+<Callout type="warning">
+ShaderLab macros are expanded during the preprocessor stage, so macros cannot affect ShaderLab structure parsing. Keywords such as `Shader`, `SubShader`, `Pass`, `EditorProperties`, and `EditorMacros` cannot be included within branch macros like `#ifdef`.
+</Callout>
+
+## include Macro
+
+To facilitate code reuse, the `include` macro can be used in ShaderLab to reference code segments, which will be automatically expanded and replaced during subsequent compilation.
+
+```glsl
+#include "{includeKey}"
+```
+
+To enable code segments to be referenced via the `include` macro, we have two ways to declare code segments:
+
+1. Create Shader / Shader Fragment in the editor
+
+The `includeKey` for the created code segment is the file path of the file in the project, such as `/Root/Effect.glsl`.
+
+2. Explicitly register code segments in the script
+
+```ts
+import { ShaderFactory } from '@galacean/engine';
+
+const commonSource = `// shader chunk`;
+ShaderFactory.registerInclude('includeKey', commonSource);
+```
+
+Shader file inclusion supports relative path references. All relative paths are converted based on the main Shader file path. For example, if the Shader file path is `/root/hair/shader.gs` and the included code segment path is `/root/hair/common.glsl`, the relative path for inclusion would be `#include "./common.glsl"`.
