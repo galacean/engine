@@ -25,36 +25,51 @@ label: Core
 
 ### 编辑实体
 
-点击实体，你就可以对它进行编辑，在右侧的 **[检查器面板](/docs/interface/inspector)** 中你可以编辑它的名字
+点击实体，你就可以对它进行编辑，在右侧的 **[检查器面板](/docs/interface/inspector)** 中你可以编辑它的以下内容：
+
+#### 名字
 
 <Image
-  src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*qBiVT6YtvkQAAAAAAAAAAAAADsJ_AQ/original"
+  src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*2v38SJ3U_REAAAAAAAAAAAAADsJ_AQ/original"
   figcaption="Name"
   style={{ zoom: "50%" }}
 />
 
-是否激活
+#### 是否激活
 
 <Image
-  src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*1l5_QqTgZYUAAAAAAAAAAAAADsJ_AQ/original"
+  src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*JMvRRbBV3dIAAAAAAAAAAAAADsJ_AQ/original"
   figcaption="IsActive"
     style={{zoom:"50%"}}
 
 />
 
-Transform
+#### Transform
 
 <Image
-  src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*3JO6S7BdgMsAAAAAAAAAAAAADsJ_AQ/original"
+  src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QG3KTJ-x4s0AAAAAAAAAAAAADsJ_AQ/original"
   figcaption="Transform"
     style={{zoom:"50%"}}
 
 />
 
-以及为它增删组件
+#### 所属层
 
 <Image
-  src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*iZKVRrznLOAAAAAAAAAAAAAADsJ_AQ/original"
+  src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*JmWAR6PUjNIAAAAAAAAAAAAADsJ_AQ/original"
+  figcaption="Layer"
+    style={{zoom:"50%"}}/>
+
+Galacean支持分层管理实体，它可以用于以下场景：
+
+1. [裁剪遮罩](/docs/graphics/camera/component/#裁剪遮罩)：用于控制哪些层在渲染过程中被剔除。
+2. [射线检测](docs/physics/manager/#使用射线检测)：用于控制哪些层的实体可以被射线检测到。
+
+
+#### 增删组件
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*u5T_RaYLOegAAAAAAAAAAAAADsJ_AQ/original"
   figcaption="AddComponent"
     style={{zoom:"50%"}}
 
@@ -113,6 +128,19 @@ rootEntity.removeChild(newEntity);
 ```typescript
 newEntity.destroy();
 ```
+### 场景中查找实体
+
+#### 根据名字查找实体
+
+  ```typescript
+  const entity = scene.findEntityByName("entityName");
+  ```
+#### 根据路径查找实体
+
+  ```typescript
+  const entity = scene.findEntityByPath("parent/child/grandson");
+  ```
+
 
 ### 查找子实体
 
