@@ -28,17 +28,17 @@ Pass "PassName" {
 
 1. 显示赋值
 
-  ```
-  BlendState = blendState;
-  ```
+```
+BlendState = blendState;
+```
 
 2. Pass 全局变量域中声明指定
 
-  ```
-  BlendState {
-    渲染状态属性 = 属性值;
-  }
-  ```
+```
+BlendState {
+  渲染状态属性 = 属性值;
+}
+```
 
 ## uniform 变量指定
 
@@ -53,16 +53,17 @@ vec3 u_lightDir;
 
 ## varying 变量声明
 
-通过定义顶点着色器出参结构体和片元着色器入参结构体指定
+通过定义顶点着色器出参[结构体](./shader#结构体函数)和片元着色器入参结构体指定
 
 ```glsl
 struct v2f {
   vec3 color;
-}
+};
 
 v2f vert(a2v o) {
   ...
 }
+
 void frag(v2f i) {
   ...
 }
@@ -84,3 +85,17 @@ FragmentShader = frag;
 ```
 RenderQueueType = Transparent;
 ```
+
+<Callout type="info">
+除了可以在 ShaderLab 中对渲染状态和渲染队列进行设置，开发者同样可以通过材质的API进行设置，如
+```ts
+// 渲染队列设置
+material.renderQueueType = RenderQueueType.Opaque;
+
+// 渲染状态设置
+const renderState = material.renderState.depthState; 
+depthState.writeEnabled = false;
+```
+当 ShaderLab 中声明了渲染状态和渲染队列，材质相应的设置会被忽略。
+</Callout>
+
