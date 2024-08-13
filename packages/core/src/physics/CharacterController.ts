@@ -80,6 +80,8 @@ export class CharacterController extends Collider {
     this._setUpDirection = this._setUpDirection.bind(this);
     //@ts-ignore
     this._upDirection._onValueChanged = this._setUpDirection;
+
+    // sync world position to physical space
     this._onUpdate();
   }
 
