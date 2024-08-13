@@ -5,7 +5,7 @@ group: Basics
 label: Core
 ---
 
-The Galacean Engine encapsulates canvases for different platforms, such as [WebCanvas](/apis/rhi-webgl/WebCanvas), supporting control of [HTMLCanvasElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement) or [OffscreenCanvas](https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvas) using [Engine](/apis/core/#Engine).
+Galacean Engine encapsulates canvases for different platforms, such as [WebCanvas](/en/apis/rhi-webgl/#WebCanvas) which supports using [Engine](/en/apis/core/#Engine) to control [HTMLCanvasElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement) or [OffscreenCanvas](https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvas).
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*ZC9gRY-KCTgAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
 
@@ -33,7 +33,7 @@ console.log(engine.canvas); // => WebCanvas instance
 
 ### Basic Adaptation
 
-The canvas size is generally controlled by the **device pixel ratio**. Taking [WebCanvas](/apis/rhi-webgl/WebCanvas) as an example:
+The canvas size is generally controlled by the **device pixel ratio**, taking [WebCanvas](/en/apis/rhi-webgl/#WebCanvas) as an example:
 
 ```mermaid
 flowchart TD
@@ -54,15 +54,15 @@ engine.canvas.resizeByClientSize();
 engine.canvas.resizeByClientSize(1.5);
 ```
 
-> When the display size of the canvas changes (such as when the browser window changes), the image may appear stretched or compressed. You can call `resizeByClientSize` to restore it to normal. Generally, this line of code can meet the adaptation needs. If you have more complex adaptation requirements, please read the "Advanced Usage" section.
+> When the display size of the canvas changes (such as when the browser window changes), the image may appear stretched or compressed. You can call `resizeByClientSize` to restore it to normal. In most cases, this line of code can meet the adaptation needs. If you have more complex adaptation requirements, please read the "Advanced Usage" section.
 
 ## Advanced Usage
 
 Regarding adaptation, the core point to note is the **device pixel ratio**. Taking iPhoneX as an example, the device pixel ratio `window.devicePixelRatio` is _3_, the window width `window.innerWidth` is _375_, and the screen physical pixel width is: 375 * 3 = *1125*.
 
-Rendering pressure is proportional to the physical pixel height and width of the screen. The larger the physical pixels, the greater the rendering pressure, and the more power it consumes. It is recommended to set the height and width of the canvas through the API exposed by [WebCanvas](/apis/rhi-webgl/WebCanvas), rather than using the native canvas API, such as `canvas.width` or `canvas.style.width`.
+Rendering pressure is proportional to the physical pixel height and width of the screen. The larger the physical pixels, the greater the rendering pressure, and the more power it consumes. It is recommended to set the height and width of the canvas through the API exposed by [WebCanvas](/en/apis/rhi-webgl/WebCanvas), rather than using the native canvas API, such as modifying `canvas.width` or `canvas.style.width`.
 
-> ️ **Note**: Some front-end scaffolds will insert the following tag to modify the page zoom ratio:
+> ️ **Note**: Some front-end scaffolds insert the following tag to modify the page's zoom ratio:
 >
 > `<meta name="viewport" content="width=device-width, initial-scale=0.333333333">`
 >
@@ -70,9 +70,9 @@ Rendering pressure is proportional to the physical pixel height and width of the
 
 除了 `resizeByClientSize` 自动适配，推荐使用以下两种模式：
 
-### 节能模式
+### Energy-saving Mode
 
-考虑到移动端设备虽然是高清屏幕（设别像素比高）但实际显卡性能并不能很好地满足高清实时渲染的性能要求的情况（**3 倍屏和 2 倍屏渲染面积比是 9:4，3 倍屏较容易造成手机发烫**），此模式下引擎通过对画布缩放拉伸来达到适配的目的。代码如下：
+Considering that mobile devices, although having high-definition screens (high device pixel ratio), the actual GPU performance may not meet the performance requirements for high-definition real-time rendering (the rendering area ratio of 3x screens to 2x screens is 9:4, and 3x screens can easily cause the phone to overheat), in this mode, the engine achieves adaptation by scaling and stretching the canvas. The code is as follows:
 
 ```typescript
 const canvas = document.getElementById("canvas");
@@ -88,7 +88,7 @@ webcanvas.height = (window.innerHeight * pixelRatio) / scale;
 webcanvas.setScale(scale, scale); // 拉伸画布
 ```
 
-如果已经通过 CSS 设置了画布高宽（比如 `width: 100vw; height: 100vh;`），那么可以通过 `resizeByClientSize` 传参实现画布的缩放：
+If the canvas height and width have already been set via CSS (e.g., `width: 100vw; height: 100vh;`), you can achieve canvas scaling by passing parameters to `resizeByClientSize`:
 
 ```typescript
 const canvas = document.getElementById("canvas");
@@ -98,9 +98,9 @@ const scale = 2 / 3; // 3 倍高清屏按 2 倍屏来计算画布尺寸
 webcanvas.resizeByClientSize(scale); // 拉伸画布
 ```
 
-### 固定宽度模式
+### Fixed Width Mode
 
-某些情况下，比如设计稿固定 750 宽度的情况，开发者有可能会写死画布宽度来降低适配成本。代码如下：
+In some cases, such as when the design draft has a fixed width of 750, developers might hardcode the canvas width to reduce adaptation costs. The code is as follows:
 
 ```typescript
 import { WebCanvas } from "@galacean/engine";
