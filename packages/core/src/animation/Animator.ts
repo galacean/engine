@@ -548,27 +548,25 @@ export class Animator extends Component {
     srcPlayData.update(playDeltaTime);
 
     const { clipTime, isForwards } = srcPlayData;
+    const { transitions } = state;
+    const { anyStateTransitions } = layer.stateMachine;
+
     const transition =
-      this._applyTransitionsByCondition(
-        layerIndex,
-        layerData,
-        layer,
-        state,
-        layer.stateMachine.anyStateTransitions,
-        aniUpdate
-      ) ||
-      this._applyStateTransitions(
-        layerIndex,
-        layerData,
-        layer,
-        isForwards,
-        srcPlayData,
-        state.transitions,
-        lastClipTime,
-        clipTime,
-        playDeltaTime,
-        aniUpdate
-      );
+      (anyStateTransitions.length &&
+        this._applyTransitionsByCondition(layerIndex, layerData, layer, state, anyStateTransitions, aniUpdate)) ||
+      (transitions.length &&
+        this._applyStateTransitions(
+          layerIndex,
+          layerData,
+          layer,
+          isForwards,
+          srcPlayData,
+          transitions,
+          lastClipTime,
+          clipTime,
+          playDeltaTime,
+          aniUpdate
+        ));
 
     let playCostTime: number;
     if (transition) {
@@ -686,7 +684,7 @@ export class Animator extends Component {
           : dstPlayDeltaTime;
     }
 
-    const actualCostTime = dstPlaySpeed === 0 ? 0 : dstPlayCostTime / dstPlaySpeed;
+    const actualCostTime = dstPlaySpeed === 0 ? deltaTime : dstPlayCostTime / dstPlaySpeed;
     const srcPlayCostTime = actualCostTime * srcPlaySpeed;
 
     srcPlayData.update(srcPlayCostTime);
@@ -698,6 +696,7 @@ export class Animator extends Component {
     const crossFadeFinished = crossWeight === 1.0;
 
     if (crossFadeFinished) {
+      srcPlayData.playState = AnimatorStatePlayState.Finished;
       this._preparePlayOwner(layerData, destState);
       this._evaluatePlayingState(destPlayData, weight, additive, aniUpdate);
     } else {
@@ -810,7 +809,7 @@ export class Animator extends Component {
           : playDeltaTime;
     }
 
-    const actualCostTime = playSpeed === 0 ? 0 : dstPlayCostTime / playSpeed;
+    const actualCostTime = playSpeed === 0 ? deltaTime : dstPlayCostTime / playSpeed;
 
     destPlayData.update(dstPlayCostTime);
 
@@ -899,28 +898,25 @@ export class Animator extends Component {
     playData.updateOrientation(actualDeltaTime);
 
     const { clipTime, isForwards } = playData;
+    const { transitions } = state;
+    const { anyStateTransitions } = layer.stateMachine;
 
     const transition =
-      this._applyTransitionsByCondition(
-        layerIndex,
-        layerData,
-        layer,
-        state,
-        stateMachine.anyStateTransitions,
-        aniUpdate
-      ) ||
-      this._applyStateTransitions(
-        layerIndex,
-        layerData,
-        layer,
-        isForwards,
-        playData,
-        state.transitions,
-        clipTime,
-        clipTime,
-        actualDeltaTime,
-        aniUpdate
-      );
+      (anyStateTransitions.length &&
+        this._applyTransitionsByCondition(layerIndex, layerData, layer, state, anyStateTransitions, aniUpdate)) ||
+      (transitions.length &&
+        this._applyStateTransitions(
+          layerIndex,
+          layerData,
+          layer,
+          isForwards,
+          playData,
+          transitions,
+          clipTime,
+          clipTime,
+          actualDeltaTime,
+          aniUpdate
+        ));
 
     if (transition) {
       this._updateState(layerIndex, layerData, layer, deltaTime, aniUpdate);
