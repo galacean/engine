@@ -20,7 +20,7 @@ attribute float a_StartSpeed;
     attribute vec4 a_Random0;
 //#endif
 
-#if defined(RENDERER_TSA_FRAME_RANDOM_CURVES) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE)
+#if defined(RENDERER_TSA_FRAME_RANDOM_CURVES) || defined(RENDERER_TSA_FRAME_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE) 
     attribute vec4 a_Random1; // x:texture sheet animation random
 #endif
 
@@ -99,7 +99,7 @@ void main() {
         #ifdef MATERIAL_HAS_BASETEXTURE
             vec2 simulateUV;
             #if defined(RENDERER_MODE_SPHERE_BILLBOARD) || defined(RENDERER_MODE_STRETCHED_BILLBOARD) || defined(RENDERER_MODE_HORIZONTAL_BILLBOARD) || defined(RENDERER_MODE_VERTICAL_BILLBOARD)
-                simulateUV = a_CornerTextureCoordinate.zw * a_SimulationUV.xy + a_SimulationUV.zw;
+                simulateUV = a_CornerTextureCoordinate.zw * a_SimulationUV.xy; 
                 v_TextureCoordinate = computeParticleUV(simulateUV, normalizedAge);
             #endif
             #ifdef RENDERER_MODE_MESH

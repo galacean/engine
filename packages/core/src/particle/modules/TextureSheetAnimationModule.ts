@@ -13,13 +13,18 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
  * Texture sheet animation module.
  */
 export class TextureSheetAnimationModule extends ParticleGeneratorModule {
+  private static readonly _frameConstantMacro = ShaderMacro.getByName("RENDERER_TSA_FRAME_CONSTANT");
+  private static readonly _frameRandomConstantMacro = ShaderMacro.getByName("RENDERER_TSA_FRAME_RANDOM_CONSTANT");
   private static readonly _frameCurveMacro = ShaderMacro.getByName("RENDERER_TSA_FRAME_CURVE");
   private static readonly _frameRandomCurvesMacro = ShaderMacro.getByName("RENDERER_TSA_FRAME_RANDOM_CURVES");
 
-  private static readonly _cycleCountProperty = ShaderProperty.getByName("renderer_TSACycles");
-  private static readonly _tillingParamsProperty = ShaderProperty.getByName("renderer_TSATillingParams");
+  private static readonly _frameMinConstantProperty = ShaderProperty.getByName("renderer_TSAFrameMinConstant");
+  private static readonly _frameMaxConstantProperty = ShaderProperty.getByName("renderer_TSAFrameMaxConstant");
   private static readonly _frameMinCurveProperty = ShaderProperty.getByName("renderer_TSAFrameMinCurve");
   private static readonly _frameMaxCurveProperty = ShaderProperty.getByName("renderer_TSAFrameMaxCurve");
+
+  private static readonly _cycleCountProperty = ShaderProperty.getByName("renderer_TSACycles");
+  private static readonly _tillingParamsProperty = ShaderProperty.getByName("renderer_TSATillingParams");
 
   /** Start frame of the texture sheet. */
   @deepClone
@@ -38,6 +43,9 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   /** @internal */
   @ignoreClone
   _frameOverTimeRand = new Rand(0, ParticleRandomSubSeeds.TextureSheetAnimation);
+  /** @internal */
+  @ignoreClone
+  _startFrameRand = new Rand(0, ParticleRandomSubSeeds.StartFrame);
 
   @deepClone
   private _tiling = new Vector2(1, 1);
@@ -63,8 +71,16 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
     let frameMacro = <ShaderMacro>null;
     if (this.enabled) {
       const mode = this.frameOverTime.mode;
-      if (mode === ParticleCurveMode.Curve || mode === ParticleCurveMode.TwoCurves) {
-        const frame = this.frameOverTime;
+      const frame = this.frameOverTime;
+      if (mode === ParticleCurveMode.Constant || mode === ParticleCurveMode.TwoConstants) {
+        shaderData.setFloat(TextureSheetAnimationModule._frameMaxConstantProperty, frame.constantMax);
+        if (mode === ParticleCurveMode.Constant) {
+          frameMacro = TextureSheetAnimationModule._frameConstantMacro;
+        } else {
+          shaderData.setFloat(TextureSheetAnimationModule._frameMinConstantProperty, frame.constantMin);
+          frameMacro = TextureSheetAnimationModule._frameRandomConstantMacro;
+        }
+      } else {
         shaderData.setFloatArray(TextureSheetAnimationModule._frameMaxCurveProperty, frame.curveMax._getTypeArray());
         if (mode === ParticleCurveMode.Curve) {
           frameMacro = TextureSheetAnimationModule._frameCurveMacro;
@@ -72,10 +88,10 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
           shaderData.setFloatArray(TextureSheetAnimationModule._frameMinCurveProperty, frame.curveMin._getTypeArray());
           frameMacro = TextureSheetAnimationModule._frameRandomCurvesMacro;
         }
-
-        shaderData.setFloat(TextureSheetAnimationModule._cycleCountProperty, this.cycleCount);
-        shaderData.setVector3(TextureSheetAnimationModule._tillingParamsProperty, this._tillingInfo);
       }
+
+      shaderData.setFloat(TextureSheetAnimationModule._cycleCountProperty, this.cycleCount);
+      shaderData.setVector3(TextureSheetAnimationModule._tillingParamsProperty, this._tillingInfo);
     }
 
     this._textureSheetMacro = this._enableMacro(shaderData, this._textureSheetMacro, frameMacro);
@@ -86,6 +102,7 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
    */
   _resetRandomSeed(randomSeed: number): void {
     this._frameOverTimeRand.reset(randomSeed, ParticleRandomSubSeeds.TextureSheetAnimation);
+    this._startFrameRand.reset(randomSeed, ParticleRandomSubSeeds.StartFrame);
   }
 }
 

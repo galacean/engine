@@ -807,10 +807,10 @@ export class ParticleGenerator {
 
     // Simulation UV
     if (this.textureSheetAnimation.enabled) {
-      const tillingInfo = this.textureSheetAnimation._tillingInfo;
+      const { _tillingInfo: tillingInfo, _startFrameRand: startFrameRand, startFrame } = this.textureSheetAnimation;
       instanceVertices[offset + ParticleBufferUtils.simulationUVOffset] = tillingInfo.x;
       instanceVertices[offset + 35] = tillingInfo.y;
-      instanceVertices[offset + 36] = 0;
+      instanceVertices[offset + 36] = startFrame.evaluate(undefined, startFrameRand.random());
       instanceVertices[offset + 37] = 0;
     } else {
       instanceVertices[offset + ParticleBufferUtils.simulationUVOffset] = 1;
