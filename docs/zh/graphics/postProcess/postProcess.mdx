@@ -1,21 +1,15 @@
 ---
 order: 0
 title: 后处理总览
-type: 图形
-group: 后处理
-label: Graphics/PostProcess
 ---
 
 后处理系统可以对场景渲染的结果进行“加工”。
 
-<Image
-  src="https://gw.alipayobjects.com/zos/OasisHub/3a50ed18-c2d4-4b33-a4e6-af79f2c273f8/2024-07-18%25252018.08.30.gif"
-  figcaption="关闭后处理"
-/>
-
-<Image
-  src="https://gw.alipayobjects.com/zos/OasisHub/4bd5f985-1b82-4aca-b6fa-fd521aab8f57/2024-07-18%25252018.15.30.gif"
-  figcaption="开启后处理"
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/3a50ed18-c2d4-4b33-a4e6-af79f2c273f8/2024-07-18%25252018.08.30.gif"
+  leftText="关闭后处理"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/4bd5f985-1b82-4aca-b6fa-fd521aab8f57/2024-07-18%25252018.15.30.gif"
+  rightText="开启后处理"
 />
 
 ## 使用后处理
@@ -76,7 +70,7 @@ tonemappingEffect.mode = TonemappingMode.ACES;
 
 <Image src="https://gw.alipayobjects.com/zos/OasisHub/f9f13d02-931f-4638-af91-4a007007c99f/image-20240718193359413.png" />
 
-## 移动端推荐配置
+## 最佳实践
 
 一般来说，下图红框内的一些后处理配置会影响到性能：
 

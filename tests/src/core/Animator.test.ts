@@ -1,5 +1,7 @@
 import {
+  AnimationClip,
   AnimationEvent,
+  AnimationFloatCurve,
   Animator,
   AnimatorConditionMode,
   AnimatorControllerLayer,
@@ -8,7 +10,13 @@ import {
   AnimatorStateMachine,
   AnimatorStateTransition,
   Camera,
-  Script
+  Keyframe,
+  Script,
+  Transform,
+  AnimatorController,
+  WrapMode,
+  StateMachineScript,
+  AnimatorState
 } from "@galacean/engine-core";
 import { GLTFResource } from "@galacean/engine-loader";
 import { Quaternion } from "@galacean/engine-math";
@@ -317,6 +325,8 @@ describe("Animator test", function () {
     animator.animatorController.addParameter("playerSpeed", 1);
     const stateMachine = animator.animatorController.layers[0].stateMachine;
     const idleState = animator.findAnimatorState("Survey");
+    const idleSpeed = 2;
+    idleState.speed = idleSpeed;
     idleState.clearTransitions();
     const walkState = animator.findAnimatorState("Walk");
     walkState.clearTransitions();
@@ -336,7 +346,9 @@ describe("Animator test", function () {
     idleState.addTransition(toWalkTransition);
     idleToWalkTime =
       //@ts-ignore
-      toWalkTransition.exitTime * idleState._getDuration() + toWalkTransition.duration * walkState._getDuration();
+      (toWalkTransition.exitTime * idleState._getDuration()) / idleSpeed +
+      //@ts-ignore
+      toWalkTransition.duration * walkState._getDuration();
 
     const exitTransition = idleState.addExitTransition();
     exitTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
@@ -362,7 +374,7 @@ describe("Animator test", function () {
       //@ts-ignore
       (toIdleTransition.exitTime - toRunTransition.duration) * walkState._getDuration() +
       //@ts-ignore
-      toIdleTransition.duration * idleState._getDuration();
+      (toIdleTransition.duration * idleState._getDuration()) / idleSpeed;
 
     // to run state
     const runToWalkTransition = new AnimatorStateTransition();
@@ -387,7 +399,7 @@ describe("Animator test", function () {
       // @ts-ignore
       (anyTransition.exitTime - toIdleTransition.duration) * walkState._getDuration() +
       // @ts-ignore
-      anyTransition.duration * idleState._getDuration();
+      (anyTransition.duration * idleState._getDuration()) / idleSpeed;
 
     // @ts-ignore
     animator.engine.time._frameCount++;
@@ -407,7 +419,7 @@ describe("Animator test", function () {
     animator.update(0.001);
     expect(animator.getCurrentAnimatorState(0).name).to.eq("Run");
 
-    animator.animatorController.setParameterValue("playerSpeed", 0.4);
+    animator.setParameterValue("playerSpeed", 0.4);
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update(runToWalkTime - 0.001);
@@ -417,7 +429,7 @@ describe("Animator test", function () {
     animator.update(0.001);
     expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
 
-    animator.animatorController.setParameterValue("playerSpeed", 0);
+    animator.setParameterValue("playerSpeed", 0);
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update(anyToIdleTime - 0.001);
@@ -439,6 +451,8 @@ describe("Animator test", function () {
     stateMachine._anyStateTransitions.length = 0;
 
     const idleState = animator.findAnimatorState("Survey");
+    const idleSpeed = 2;
+    idleState.speed = idleSpeed;
     idleState.clearTransitions();
     const walkState = animator.findAnimatorState("Walk");
     walkState.clearTransitions();
@@ -458,7 +472,9 @@ describe("Animator test", function () {
     idleState.addTransition(toWalkTransition);
     idleToWalkTime =
       //@ts-ignore
-      (1 - toWalkTransition.exitTime) * idleState._getDuration() + toWalkTransition.duration * walkState._getDuration();
+      ((1 - toWalkTransition.exitTime) * idleState._getDuration()) / idleSpeed +
+      //@ts-ignore
+      toWalkTransition.duration * walkState._getDuration();
 
     const exitTransition = idleState.addExitTransition();
     exitTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
@@ -484,7 +500,7 @@ describe("Animator test", function () {
       //@ts-ignore
       (1 - toIdleTransition.exitTime - toRunTransition.duration) * walkState._getDuration() +
       //@ts-ignore
-      toIdleTransition.duration * idleState._getDuration();
+      (toIdleTransition.duration * idleState._getDuration()) / idleSpeed;
 
     // to run state
     const runToWalkTransition = new AnimatorStateTransition();
@@ -509,7 +525,7 @@ describe("Animator test", function () {
       // @ts-ignore
       (1 - anyTransition.exitTime - toIdleTransition.duration) * walkState._getDuration() +
       // @ts-ignore
-      anyTransition.duration * idleState._getDuration();
+      (anyTransition.duration * idleState._getDuration()) / idleSpeed;
 
     // @ts-ignore
     animator.engine.time._frameCount++;
@@ -529,7 +545,7 @@ describe("Animator test", function () {
     animator.update(0.001);
     expect(animator.getCurrentAnimatorState(0).name).to.eq("Run");
 
-    animator.animatorController.setParameterValue("playerSpeed", 0.4);
+    animator.setParameterValue("playerSpeed", 0.4);
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update(runToWalkTime - 0.001);
@@ -539,7 +555,7 @@ describe("Animator test", function () {
     animator.update(0.001);
     expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
 
-    animator.animatorController.setParameterValue("playerSpeed", 0);
+    animator.setParameterValue("playerSpeed", 0);
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update(anyToIdleTime - 0.001);
@@ -549,5 +565,148 @@ describe("Animator test", function () {
     animator.engine.time._frameCount++;
     animator.update(0.001);
     expect(animator.getCurrentAnimatorState(0).name).to.eq("Survey");
+  });
+
+  it("change state in one update", () => {
+    const animatorController = new AnimatorController(engine);
+    const layer = new AnimatorControllerLayer("layer");
+    animatorController.addLayer(layer);
+    const state1 = layer.stateMachine.addState("state1");
+    const state2 = layer.stateMachine.addState("state2");
+    state1.wrapMode = WrapMode.Once;
+    state2.wrapMode = WrapMode.Once;
+    const clip1 = new AnimationClip("clip1");
+    const rotationCurve = new AnimationFloatCurve();
+    const key1 = new Keyframe<number>();
+    const key2 = new Keyframe<number>();
+    key1.time = 0;
+    key1.value = 0;
+    key2.time = 1;
+    key2.value = 90;
+    rotationCurve.addKey(key1);
+    rotationCurve.addKey(key2);
+    clip1.addCurveBinding("", Transform, "rotation.x", rotationCurve);
+
+    const clip2 = new AnimationClip("clip2");
+    const positionCurve = new AnimationFloatCurve();
+    const key3 = new Keyframe<number>();
+    const key4 = new Keyframe<number>();
+    key3.time = 0;
+    key3.value = 0;
+    key4.time = 1;
+    key4.value = 5;
+    positionCurve.addKey(key3);
+    positionCurve.addKey(key4);
+    clip2.addCurveBinding("", Transform, "position.x", positionCurve);
+    state1.clip = clip1;
+    state2.clip = clip2;
+
+    const transition = new AnimatorStateTransition();
+    transition.destinationState = state2;
+    transition.exitTime = 1;
+    transition.duration = 1;
+    state1.addTransition(transition);
+
+    animator.animatorController = animatorController;
+    let enterRotation;
+    let exitRotation;
+    state1.addStateMachineScript(
+      class extends StateMachineScript {
+        onStateEnter(animator) {
+          enterRotation = animator.entity.transform.rotation.x;
+        }
+        onStateExit(animator) {
+          exitRotation = animator.entity.transform.rotation.x;
+        }
+      }
+    );
+    animator.play("state1");
+
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(3);
+    expect(enterRotation).to.eq(90);
+    expect(exitRotation).to.eq(90);
+    expect(animator.entity.transform.rotation.x).to.eq(0);
+    expect(animator.entity.transform.position.x).to.eq(5);
+  });
+
+  it("parameter rename", () => {
+    animator.animatorController.addParameter("oldName", 1);
+    const param = animator.getParameter("oldName");
+    param.name = "newName";
+    const value = animator.getParameterValue("newName");
+    expect(value).to.eq(1);
+    const newParam = animator.animatorController.addParameter("oldName", 2);
+    expect(newParam.defaultValue).to.eq(2);
+    const newParam2 = animator.animatorController.addParameter("oldName", 2);
+    expect(newParam2).to.eq(null);
+  });
+
+  it("stateMachineScript", () => {
+    const animatorController = new AnimatorController(engine);
+    const layer = new AnimatorControllerLayer("layer");
+    animatorController.addLayer(layer);
+    const state1 = layer.stateMachine.addState("state1");
+    const state2 = layer.stateMachine.addState("state2");
+    state1.wrapMode = WrapMode.Once;
+    state2.wrapMode = WrapMode.Once;
+    const clip1 = new AnimationClip("clip1");
+    const rotationCurve = new AnimationFloatCurve();
+    const key1 = new Keyframe<number>();
+    const key2 = new Keyframe<number>();
+    key1.time = 0;
+    key1.value = 0;
+    key2.time = 1;
+    key2.value = 90;
+    rotationCurve.addKey(key1);
+    rotationCurve.addKey(key2);
+    clip1.addCurveBinding("", Transform, "rotation.x", rotationCurve);
+
+    const clip2 = new AnimationClip("clip2");
+    const positionCurve = new AnimationFloatCurve();
+    const key3 = new Keyframe<number>();
+    const key4 = new Keyframe<number>();
+    key3.time = 0;
+    key3.value = 0;
+    key4.time = 1;
+    key4.value = 5;
+    positionCurve.addKey(key3);
+    positionCurve.addKey(key4);
+    clip2.addCurveBinding("", Transform, "position.x", positionCurve);
+    state1.clip = clip1;
+    state2.clip = clip2;
+
+    const transition = new AnimatorStateTransition();
+    transition.destinationState = state2;
+    transition.exitTime = 1;
+    transition.duration = 1;
+    state1.addTransition(transition);
+
+    animator.animatorController = animatorController;
+
+    class TestScript extends StateMachineScript {
+      onStateEnter(animator) {}
+      onStateExit(animator) {}
+    }
+
+    const testScript = state1.addStateMachineScript(TestScript);
+    const testScript2 = state2.addStateMachineScript(TestScript);
+
+    const onStateEnterSpy = chai.spy.on(testScript, "onStateEnter");
+    const onStateExitSpy = chai.spy.on(testScript, "onStateExit");
+    const onStateEnter2Spy = chai.spy.on(testScript2, "onStateEnter");
+    const onStateExit2Spy = chai.spy.on(testScript2, "onStateExit");
+
+    animator.play("state1");
+
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(3);
+
+    expect(onStateEnterSpy).to.have.been.called.exactly(1);
+    expect(onStateExitSpy).to.have.been.called.exactly(1);
+    expect(onStateEnter2Spy).to.have.been.called.exactly(1);
+    expect(onStateExit2Spy).to.have.been.called.exactly(1);
   });
 });

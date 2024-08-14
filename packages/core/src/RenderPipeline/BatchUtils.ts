@@ -1,11 +1,17 @@
 import { SpriteMask, SpriteMaskInteraction, SpriteRenderer } from "../2d";
+import { ShaderTagKey } from "../shader";
 import { SubRenderElement } from "./SubRenderElement";
 
 /**
  * @internal
  */
 export class BatchUtils {
+  protected static _disableBatchTag: ShaderTagKey = ShaderTagKey.getByName("spriteDisableBatching");
+
   static canBatchSprite(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
+    if (elementB.shaderPasses[0].getTagValue(BatchUtils._disableBatchTag) === true) {
+      return false;
+    }
     if (elementA.subChunk.chunk !== elementB.subChunk.chunk) {
       return false;
     }

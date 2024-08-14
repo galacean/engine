@@ -32,7 +32,7 @@ label: Resource
 
 ### 添加资产
 
-为了在场景中添加资产，你可以点击资产面板上的添加按钮，或者资产面板的右键菜单中的添加选项来添加新资产。添加资产后，你可以在 **[检查器面板](/docs/interface-inspector)** 中对资产的属性进行编辑。资产面板中的资产类型非常丰富，例如材质、贴图、模型、字体等等。具体可以参照上方的表格。
+为了在场景中添加资产，你可以点击资产面板上的添加按钮，或者资产面板的右键菜单中的添加选项来添加新资产。添加资产后，你可以在 **[检查器面板](/docs/interface/inspector)** 中对资产的属性进行编辑。资产面板中的资产类型非常丰富，例如材质、贴图、模型、字体等等。具体可以参照上方的表格。
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/aec9a0de-98c4-47ce-bc4d-6a7a80decfc8/image-20240319103341208.png" alt="image-20240319103341208" style="zoom:50%;" />
 
@@ -56,7 +56,7 @@ label: Resource
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/8749922b-9989-47c2-ba42-85c122391c85/image-20240319132804611.png" alt="image-20240319132804611" style="zoom:50%;" />
 
-这对项目开发来说很重要，因为项目中经常遇到需要异步加载资产的情况，即初始化不需要加载某个资产（甚至是场景），可以通过脚本来控制某个资产的加载。具体的语法可以看[资产](/docs/assets-load)和[场景](/docs/core-scene)的加载使用，以加载场景为例：
+这对项目开发来说很重要，因为项目中经常遇到需要异步加载资产的情况，即初始化不需要加载某个资产（甚至是场景），可以通过脚本来控制某个资产的加载。具体的语法可以看[资产](/docs/assets/load)和[场景](/docs/core/scene)的加载使用，以加载场景为例：
 
 ```typescript
 this.engine.resourceManager.load({ url: "...", type: AssetType.Scene });
@@ -66,9 +66,17 @@ this.engine.resourceManager.load({ url: "...", type: AssetType.Scene });
 
 你可以在选中一个资产后点击资产面板上的删除按钮，或者通过右键菜单中的删除选项来删除资产。删除资产时，你需要注意所删除的资产是否会影响场景中其他节点的关联性。
 
+## 复制和粘贴资产
+
+你可以在资产面板右键资产复制，然后粘贴在你进入的文件夹中：
+
+![2024-07-19 14.18.11](https://mdn.alipayobjects.com/rms/afts/img/A*0Wf5T6tEvnYAAAAAAAAAAAAAARQnAQ/original/2024-07-19 14.18.11.gif)
+
+也可以使用 `⌘`+ `C` 和 `⌘`+ `V` 操作。 
+
 ### 预览资产
 
-在选中一个资产后, 右侧的 **[检查器面板](/docs/interface-inspector)** 会显示出此资产可配置的属性。不同的资产所对应的可配置项是不同的, 比如 glTF 资产会显示模型预览窗, 材质资产会显示出详细的材质配置选项 。
+在选中一个资产后, 右侧的 **[检查器面板](/docs/interface/inspector)** 会显示出此资产可配置的属性。不同的资产所对应的可配置项是不同的, 比如 glTF 资产会显示模型预览窗, 材质资产会显示出详细的材质配置选项 。
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/e90ace3a-7b03-49cc-ad9a-e3aa51f17283/image-20240319120017637.png" alt="image-20240319120017637" style="zoom:50%;" />
 
@@ -89,3 +97,5 @@ this.engine.resourceManager.load({ url: "...", type: AssetType.Scene });
 | `⌫` / `Delete` | 删除资源 |
 | `⌘` + `D`      | 复制资源 |
 | `⌘`+ `F`       | 搜索资源 |
+| `⌘`+ `C`       | 复制资源 |
+| `⌘`+ `V`       | 粘贴资源 |

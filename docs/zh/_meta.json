@@ -1,6 +1,6 @@
 {
-  "quick-start": {
-    "title": "快速开始",
+  "basics": {
+    "title": "基础",
     "theme": {
       "collapse": true
     }
@@ -54,7 +54,7 @@
     }
   },
   "input": {
-    "title": "输入",
+    "title": "交互",
     "theme": {
       "collapse": true
     }
@@ -67,6 +67,12 @@
   },
   "performance": {
     "title": "性能",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "miniProgram": {
+    "title": "小程序",
     "theme": {
       "collapse": true
     }

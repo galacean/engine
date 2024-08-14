@@ -1,11 +1,11 @@
 ---
 order: 1
 title: Canvas
-group: Basic
+group: Basics
 label: Core
 ---
 
-The Galacean Engine encapsulates canvases for different platforms. For example, [WebCanvas](${api}rhi-webgl/WebCanvas) supports controlling [HTMLCanvasElement](https://developer.mozilla.org/en-US/en/docs/Web/API/HTMLCanvasElement) or [OffscreenCanvas](https://developer.mozilla.org/en-US/en/docs/Web/API/OffscreenCanvas) using [Engine](/apis/core/#Engine).
+Galacean Engine encapsulates canvases for different platforms, such as [WebCanvas](/en/apis/rhi-webgl/#WebCanvas) which supports using [Engine](/en/apis/core/#Engine) to control [HTMLCanvasElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement) or [OffscreenCanvas](https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvas).
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*ZC9gRY-KCTgAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
 
@@ -21,9 +21,9 @@ Insert a `<canvas>` tag in HTML and specify an id:
 <canvas id="canvas" style="width: 500px; height: 500px" />
 ```
 
-> Developers should ensure to check the height and width of the canvas to avoid rendering issues caused by a height or width value of **0**.
+> Developers should check the height and width of the canvas to avoid rendering issues caused by a height or width value of **0**.
 
-When creating a WebGLEngine instance, a WebCanvas instance is automatically created:
+When creating an instance of WebGLEngine, a WebCanvas instance is automatically created. The parameter `canvas` is the `id` of the _Canvas_ element.
 
 ```typescript
 const engine = await WebGLEngine.create({ canvas: "canvas" });
@@ -33,7 +33,7 @@ console.log(engine.canvas); // => WebCanvas instance
 
 ### Basic Adaptation
 
-The canvas size is generally controlled by the **device pixel ratio**, using [WebCanvas](${api}rhi-webgl/WebCanvas) as an example:
+The canvas size is generally controlled by the **device pixel ratio**, taking [WebCanvas](/en/apis/rhi-webgl/#WebCanvas) as an example:
 
 ```mermaid
 flowchart TD
@@ -41,11 +41,11 @@ flowchart TD
     C[HtmlCanvas.clientHeight] -->|pixelRatio| D[WebCanvas.height]
 ```
 
-If developing by exporting an **NPM package** through an editor, controlling the **device pixel ratio** in the export configuration at [Project Export](/en/docs/assets-build) is sufficient.
+If developing by exporting an **NPM package** through the editor, you only need to control the **device pixel ratio** in the [project export](/en/docs/assets/build) rendering export configuration.
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*afw5QrbrxkQAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
 
-Alternatively, adapt the canvas by actively calling `resizeByClientSize` in the code.
+Or actively call `resizeByClientSize` in the code to adapt the canvas.
 
 ```typescript
 // 使用设备像素比（ window.devicePixelRatio ）调整画布尺寸，
@@ -54,25 +54,25 @@ engine.canvas.resizeByClientSize();
 engine.canvas.resizeByClientSize(1.5);
 ```
 
-> When the display size of the canvas changes (such as when the browser window changes), the image may stretch or compress. You can restore it to normal by calling `resizeByClientSize`. In general, this line of code should meet adaptation needs. If you have more complex adaptation requirements, please refer to the "Advanced Usage" section.
+> When the display size of the canvas changes (such as when the browser window changes), the image may appear stretched or compressed. You can call `resizeByClientSize` to restore it to normal. In most cases, this line of code can meet the adaptation needs. If you have more complex adaptation requirements, please read the "Advanced Usage" section.
 
 ## Advanced Usage
 
-Regarding adaptation, the key point to note is the **device pixel ratio**. For example, on an iPhoneX, the device pixel ratio `window.devicePixelRatio` is _3_, the window width `window.innerWidth` is _375_, and the physical screen pixel width is: 375 * 3 = *1125\*.
+Regarding adaptation, the core point to note is the **device pixel ratio**. Taking iPhoneX as an example, the device pixel ratio `window.devicePixelRatio` is _3_, the window width `window.innerWidth` is _375_, and the screen physical pixel width is: 375 * 3 = *1125*.
 
-Rendering load and physical screen pixel height and width are directly proportional. The larger the physical pixels, the greater the rendering load and power consumption. It is recommended to set the height and width of the canvas using the API exposed by [WebCanvas](${api}rhi-webgl/WebCanvas), and not to use native canvas APIs such as `canvas.width` or `canvas.style.width`.
+Rendering pressure is proportional to the physical pixel height and width of the screen. The larger the physical pixels, the greater the rendering pressure, and the more power it consumes. It is recommended to set the height and width of the canvas through the API exposed by [WebCanvas](/en/apis/rhi-webgl/WebCanvas), rather than using the native canvas API, such as modifying `canvas.width` or `canvas.style.width`.
 
-> ⚠️ **Note**: Some front-end scaffolding tools may insert the following tag to modify the page's scaling factor:
+> ️ **Note**: Some front-end scaffolds insert the following tag to modify the page's zoom ratio:
 >
 > `<meta name="viewport" content="width=device-width, initial-scale=0.333333333">`
 >
-> This line of code changes the value of `window.innerWidth` from 375 to 1125.
+> This line of code will change the value of `window.innerWidth` from 375 to 1125.
 
-In addition to automatic adaptation with `resizeByClientSize`, it is recommended to use the following two modes:
+除了 `resizeByClientSize` 自动适配，推荐使用以下两种模式：
 
-### Energy Saving Mode
+### Energy-saving Mode
 
-Considering that mobile devices have high-definition screens (device pixel ratio is high), but the actual graphics card performance cannot meet the performance requirements of high-definition real-time rendering well (**the rendering area ratio of 3x screen and 2x screen is 9:4, and the 3x screen is more likely to cause the phone to heat up**), in this mode, the engine achieves adaptation by scaling and stretching the canvas. The code is as follows:
+Considering that mobile devices, although having high-definition screens (high device pixel ratio), the actual GPU performance may not meet the performance requirements for high-definition real-time rendering (the rendering area ratio of 3x screens to 2x screens is 9:4, and 3x screens can easily cause the phone to overheat), in this mode, the engine achieves adaptation by scaling and stretching the canvas. The code is as follows:
 
 ```typescript
 const canvas = document.getElementById("canvas");
@@ -88,7 +88,7 @@ webcanvas.height = (window.innerHeight * pixelRatio) / scale;
 webcanvas.setScale(scale, scale); // 拉伸画布
 ```
 
-If the canvas width and height have already been set through CSS (such as `width: 100vw; height: 100vh;`), you can achieve canvas scaling by passing parameters to `resizeByClientSize`:
+If the canvas height and width have already been set via CSS (e.g., `width: 100vw; height: 100vh;`), you can achieve canvas scaling by passing parameters to `resizeByClientSize`:
 
 ```typescript
 const canvas = document.getElementById("canvas");
@@ -100,7 +100,7 @@ webcanvas.resizeByClientSize(scale); // 拉伸画布
 
 ### Fixed Width Mode
 
-In some cases, such as when the design draft has a fixed width of 750, developers may choose to hardcode the canvas width to reduce adaptation costs. The code is as follows:
+In some cases, such as when the design draft has a fixed width of 750, developers might hardcode the canvas width to reduce adaptation costs. The code is as follows:
 
 ```typescript
 import { WebCanvas } from "@galacean/engine";

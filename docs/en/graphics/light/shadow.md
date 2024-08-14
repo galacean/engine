@@ -6,73 +6,45 @@ group: Lighting
 label: Graphics/Light
 ---
 
-Shadows can effectively enhance the three-dimensionality and realism of rendered images. In real-time rendering, the so-called ShadowMap technique is generally used to draw shadows. Simply put, the light source is used as a virtual camera to render the depth of the scene. Then, when rendering the scene from the scene camera, the relationship between the rendered objects and the depth information is compared. If the depth of an object is deeper than the depth information, it will be occluded by other objects, thus rendering a shadow.
+Shadows can effectively enhance the three-dimensionality and realism of the rendered scene. To achieve this, the so-called ShadowMap technique is usually used. Simply put, it involves rendering the scene's depth from the light source as a virtual camera, and then when rendering the scene from the camera's perspective, if an object's depth is deeper than the previously saved depth information, it is considered to be occluded by other objects, and thus a shadow is rendered.
 
-## Lighting and Shadows
+## Scene Configuration
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/bf6acb06-c026-4a36-b243-0b39a759624c/image-20240319174904033.png" alt="image-20240319174904033" style="zoom:50%;" />
+<img src="https://gw.alipayobjects.com/zos/OasisHub/c1246c17-ba92-405d-b111-3cff6796097d/image-20240730114010025.png" alt="image-20240730114010025" style="zoom:50%;" />
 
-Based on this principle, it is easier to understand the various shadow-related properties in the `Light` component:
-
-| Parameter                                              | Application           |
-| :----------------------------------------------------- | :-------------------- |
-| [shadowType](/apis/core/#Light-shadowType)              | Shadow projection type |
-| [shadowBias](/apis/core/#Light-shadowBias)              | Shadow bias           |
-| [shadowNormalBias](/apis/core/#Light-shadowNormalBias)  | Shadow normal bias     |
-| [shadowNearPlane](/apis/core/#Light-shadowNearPlane)    | Near clipping plane for rendering depth map |
-| [shadowStrength](/apis/core/#Light-shadowStrength)      | Shadow strength        |
-
-It is important to note the shadow bias:
-
-![shadow-bias](https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*8q5MTbrlC7QAAAAAAAAAAAAAARQnAQ)
-
-Due to depth precision issues, there may be shadow acne when sampling from the camera. Therefore, it is usually necessary to set a shadow bias to produce clean shadows, as shown in the image on the right. However, if the bias is too large, the shadow will deviate from the casting object, as seen in the image where the shadow separates from the heel. Therefore, this parameter is one that needs to be carefully adjusted when using shadows.
-
-In addition to the shadow configurations in the `Light` component mentioned above, there are also some global shadow-related configurations in the `Scene`:
-
-<img src="https://gw.alipayobjects.com/zos/OasisHub/05b00536-63c3-42f4-b89f-1f3270aa375e/image-20240319175051723.png" alt="image-20240319175051723" style="zoom:50%;" />
+There are some configurations in the scene that can affect global shadows:
 
 | Parameter | Application |
 | :-- | :-- |
-| [castShadows](/apis/core/#Scene-castShadows) | Whether to cast shadows |
-| [shadowResolution](/apis/core/#Scene-shadowResolution) | Shadow resolution |
-| [shadowCascades](/apis/core/#Scene-shadowCascades) | Number of cascaded shadows |
-| [shadowTwoCascadeSplits](/apis/core/#Scene-shadowTwoCascadeSplits) | Parameters for dividing two-level cascaded shadows |
-| [shadowFourCascadeSplits](/apis/core/#Scene-shadowFourCascadeSplits) | Parameters for dividing four-level cascaded shadows |
-| [shadowDistance](/apis/core/#Scene-shadowDistance) | Maximum shadow distance |
-| [shadowFadeBorder](/apis/core/#Scene-shadowFadeBorder) | Shadow fade border, indicating at what percentage of the shadow distance the fading starts, ranging from [0~1], where 0 means no fading |
+| [Cast Shadow](/apis/core/#Scene-castShadows) | Whether to cast shadows. This is the main switch. |
+| [Transparent](/apis/core/#Scene-enableTransparentShadow) | Whether to cast transparent shadows. When enabled, transparent objects can also cast shadows. |
+| [Resolution](/apis/core/#Scene-shadowResolution) | The resolution of the Shadowmap. The `Low` option uses a resolution of 512, the `Medium` option uses a resolution of 1024, the `High` option uses a resolution of 2048, and the `VeryHigh` option uses a resolution of 4096. |
+| [Cascades](/apis/core/#Scene-shadowCascades) | The number of [cascaded shadows](https://learn.microsoft.com/en-us/windows/win32/dxtecharts/cascaded-shadow-maps). Generally used for large scenes to divide the shadowmap resolution, which can improve shadow aliasing at different distances. After enabling two-level cascaded shadows, you can configure it through [ShadowTwoCascadeSplits](/apis/core/#Scene-shadowTwoCascadeSplits), and after enabling four-level cascaded shadows, you can configure it through [ShadowFourCascadeSplits](/apis/core/#Scene-shadowFourCascadeSplits). |
+| [Distance](/apis/core/#Scene-shadowDistance) | The farthest shadow distance (distance from the camera), beyond which shadows are not visible. |
+| [Fade Border](/apis/core/#Scene-shadowFadeBorder) | The shadow fade distance, indicating the proportion of the shadow distance at which fading starts, ranging from [0~1]. A value of 0 means no fading. |
 
-These parameters can be understood through debugging in the Playground example:
+## Light Configuration
 
-<playground src="cascaded-shadow.ts"></playground>
+<img src="https://gw.alipayobjects.com/zos/OasisHub/1b572189-db78-4f56-9d42-d8b5ea1fe857/image-20240724183629537.png" alt="image-20240724183629537" style="zoom:50%;" />
 
-目前引擎**只支持为一盏有向光 `DirectLight` 开启阴影**，这主要是因为阴影的渲染使得 DrawCall 翻倍，会严重影响渲染的性能。一般来说都会使用 `DirectLight` 模仿太阳光，所以才只支持一盏。对于有向光的阴影，有两点需要注意。
+To cast shadows, there needs to be a [directional light](/en/docs/graphics/light/directional) in the scene. Currently, the engine can only enable shadows for one directional light `DirectLight`, mainly because shadow rendering doubles the DrawCall, which can severely impact rendering performance. In the absence of a specified [main light(scene.sun)](/apis/core/#Scene-sun), the engine will default to selecting the light with the highest intensity to cast shadows:
 
-### 级联阴影
+| Parameter | Application |
+| :------------------------------------------------ | :------------------------------------------------- |
+| [Shadow Type](/apis/core/#Light-shadowType) | The type of shadow casting. Different types affect rendering performance and visual effects. |
+| [Shadow Bias](/apis/core/#Light-shadowBias) | The offset of the shadow. Prevents shadow distortion. |
+| [Normal Bias](/apis/core/#Light-shadowNormalBias) | The normal offset of the shadow. Avoids shadow distortion. |
+| [Near Plane](/apis/core/#Light-shadowNearPlane) | The near clipping plane when rendering the depth map. Affects the shadow clipping plane and precision. |
+| [Strength](/apis/core/#Light-shadowStrength) | The strength of the shadow. Controls the transparency of the shadow. |
 
-首先是级联阴影。由于有向光只是光照的方向，光源的位置没有什么意义。所以很难确定如何设置从光源出发的深度图绘制时使用的视锥体。且如果在整个场景中只渲染一次深度图，那么远处的物体很小，会严重浪费深度贴图，产生大量空白。所以引擎使用了稳定性级联阴影技术(CSSM):
+## Projectiles and Receivers
 
-![shadow-cascade](https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*R_ESQpQuP3wAAAAAAAAAAAAAARQnAQ)
+<img src="https://gw.alipayobjects.com/zos/OasisHub/f3125f0f-09e6-4404-a84c-7013df5c0db3/image-20240724184711014.png" alt="image-20240724184711014" style="zoom:50%;" />
 
-这种技术将相机的视锥体划分为两个或者四个块，然后沿着光照的方向渲染两次或者四次场景，通过划分参数确定每一个块的大小，由此尽可能提高深度贴图的利用率。引擎在开启阴影时会默认使用四级级联阴影，因此可以通过调整 shadowFourCascadeSplits 控制每一级的大小。
+In the [Mesh Renderer Component](/en/docs/graphics/renderer/meshRenderer), `receiveShadows` determines whether the object receives shadows, and `castShadows` determines whether the object casts shadows.
 
-### 阴影的选择
+## Transparent Shadows
 
-上面提到**只支持为一盏有向光 `DirectLight` 开启阴影**，但如果给场景中的两盏 `DirectLight` 开启了阴影会发生什么呢？在没有确定主光的情况下，引擎会默认选择光强最强的那一盏灯投射阴影。光强由光照的 Intensity 和光照颜色的亮度共同决定，光照颜色是用 Hue-Saturation-Brightness 公式转换成去亮度值。
+Starting from version `1.3`, the engine supports casting shadows for alpha cutoff (Alpha Cutoff) objects and transparent (Transparent) objects. For transparent objects to cast shadows, you need to enable the `Transparent` switch in the scene panel:
 
-## 投射物与接受物
-
-在光照中配置 enableShadow 只能控制深度图是否被渲染，还需要在 Renderer 当中对应选项，才能控制该物体是否投射阴影，或者是否接受其他物体的阴影。
-
-| 参数                                                 | 应用                 |
-| :--------------------------------------------------- | :------------------- |
-| [receiveShadows](/apis/core/#Renderer-receiveShadows) | 该物体是否接受阴影   |
-| [castShadows](/apis/core/#Renderer-castShadows)       | 该物体是否会投射阴影 |
-
-开启 receiveShadows 的 Renderer，如果被其他物体遮挡则会渲染出阴影。开启 castShadows 的 Renderer，则会向其他物体投射阴影。
-
-## 透明阴影
-
-对于大多数需要阴影的场景，上述的控制参数基本够用了。但有时候我们希望在一个透明物体上投射阴影，例如场景中其实没有地面（比如 AR 的画面），但也希望物体能够拥有一个阴影，用以增强画面立体感。如果给地面设置标准的渲染材质，并且使得 alpha 设置为 0，那么地面上不会看到任何阴影。因为在真实世界中，光线会直接穿过透明物体。因此，对于透明地面这样的场景，需要一个特殊的材质进行渲染。可以参考 Playground 当中阴影绘制方式:
-
-<playground src="transparent-shadow.ts"></playground>
+![](https://gw.alipayobjects.com/zos/OasisHub/3c972121-d072-4d2c-ba87-2a9ec88c9268/2024-07-30%25252011.36.32.gif)

@@ -170,7 +170,7 @@ const result = mesh.getPositions();
 
 ## 脚本添加 BlendShape 动画
 
-`BlendShape` 通常用于制作精细程度非常高的动画，比如表情动画等。其原理也比较简单，主要通过权重混合基础形状和目标形状的网格数据来表现形状之间过度的动画效果。
+`BlendShape` 通常用于制作精细程度非常高的动画，比如表情动画等。其原理也比较简单，主要通过权重混合基础形状和目标形状的网格数据来表现形状之间过渡的动画效果。
 
 **glTF 导入 BlendShape 动画案例：**
 <playground src="skeleton-animation-blendShape.ts"></playground>

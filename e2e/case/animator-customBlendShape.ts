@@ -72,7 +72,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   modelMesh.uploadData(false);
 
   const animator = meshEntity.addComponent(Animator);
-  animator.animatorController = new AnimatorController();
+  animator.animatorController = new AnimatorController(engine);
   const layer = new AnimatorControllerLayer("base");
   animator.animatorController.addLayer(layer);
   const stateMachine = (layer.stateMachine = new AnimatorStateMachine());

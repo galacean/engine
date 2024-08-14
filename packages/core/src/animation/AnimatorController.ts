@@ -1,12 +1,14 @@
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
-import { AnimatorControllerParameter, AnimatorControllerParameterValueType } from "./AnimatorControllerParameter";
+import { AnimatorControllerParameter, AnimatorControllerParameterValue } from "./AnimatorControllerParameter";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
+import { ReferResource } from "../asset/ReferResource";
+import { Engine } from "../Engine";
 
 /**
  * Store the data for Animator playback.
  */
-export class AnimatorController {
+export class AnimatorController extends ReferResource {
   /** @internal */
   _parameters: AnimatorControllerParameter[] = [];
   /** @internal */
@@ -33,35 +35,48 @@ export class AnimatorController {
   }
 
   /**
-   * Add a parameter to the controller.
-   * @param name - The name of the parameter
-   * @param value - The value of the parameter
+   * Create an AnimatorController.
+   * @param engine - Engine to which the animatorController belongs
    */
-  addParameter(name: string, value?: AnimatorControllerParameterValueType): AnimatorControllerParameter;
+  constructor(engine: Engine);
+
+  /**
+   * @deprecated
+   */
+  constructor();
+
+  constructor(engine?: Engine) {
+    engine && super(engine);
+  }
 
   /**
    * Add a parameter to the controller.
-   * @param parameter - The parameter
+   * @param name - The name of the parameter
+   * @param defaultValue - The default value of the parameter
    */
-  addParameter(parameter: AnimatorControllerParameter): AnimatorControllerParameter;
-
-  addParameter(param: AnimatorControllerParameter | string, value?: AnimatorControllerParameterValueType) {
-    if (typeof param === "string") {
-      const name = param;
-      param = new AnimatorControllerParameter();
-      param.name = name;
-      param.value = value;
+  addParameter(name: string, defaultValue?: AnimatorControllerParameterValue): AnimatorControllerParameter {
+    if (this._parametersMap[name]) {
+      console.warn(`Parameter ${name} already exists.`);
+      return null;
     }
-    this._parametersMap[param.name] = param;
+    const param = new AnimatorControllerParameter();
+    param.name = name;
+    param.defaultValue = defaultValue;
+    param._onNameChanged = (oldName, newName) => {
+      delete this._parametersMap[oldName];
+      this._parametersMap[newName] = param as AnimatorControllerParameter;
+    };
+    this._parametersMap[name] = param;
     this._parameters.push(param);
     return param;
   }
 
   /**
-   * Remove a parameter from the controller.
-   * @param parameter - The parameter
+   * Remove a parameter from the controller by name.
+   * @param name - The parameter name
    */
-  removeParameter(parameter: AnimatorControllerParameter) {
+  removeParameter(name: string) {
+    const parameter = this._parametersMap[name];
     const index = this._parameters.indexOf(parameter);
     if (index !== -1) {
       this._parameters.splice(index, 1);
@@ -75,18 +90,6 @@ export class AnimatorController {
    */
   getParameter(name: string): AnimatorControllerParameter {
     return this._parametersMap[name] || null;
-  }
-
-  /**
-   * Set the value of the given parameter.
-   * @param name - The name of the parameter
-   * @param value - The value of the parameter
-   */
-  setParameterValue(name: string, value: AnimatorControllerParameterValueType) {
-    const parameter = this._parametersMap[name];
-    if (parameter && parameter.value !== value) {
-      parameter.value = value;
-    }
   }
 
   /**

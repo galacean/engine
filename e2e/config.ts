@@ -45,6 +45,11 @@ export const E2E_CONFIG = {
       caseFileName: "animator-play",
       threshold: 0.1
     },
+    playBackWards: {
+      category: "Animator",
+      caseFileName: "animator-play-backwards",
+      threshold: 0.1
+    },
     playBeforeActive: {
       category: "Animator",
       caseFileName: "animator-play-beforeActive",

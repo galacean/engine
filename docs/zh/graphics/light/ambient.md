@@ -32,7 +32,7 @@ label: Graphics/Light
 
 ## 脚本使用
 
-通过[烘焙教程](/docs/graphics-light-bake)拿到烘焙产物的 url 后，通过引擎的 EnvLoader 进行加载解析：
+通过[烘焙教程](/docs/graphics/light/bake/)拿到烘焙产物的 url 后，通过引擎的 EnvLoader 进行加载解析：
 
 ```typescript
 engine.resourceManager

@@ -6,20 +6,20 @@ group: 渲染器
 label: Graphics/Renderer
 ---
 
-渲染器是负责显示图形的[**组件**](/docs/core-component)，他会依据不同的数据源展示对应的渲染效果。通过在节点上挂载渲染器，并设置对应的渲染数据，可以展现出各种复杂的三维场景。
+渲染器是负责显示图形的[**组件**](/docs/core/component)，他会依据不同的数据源展示对应的渲染效果。通过在节点上挂载渲染器，并设置对应的渲染数据，可以展现出各种复杂的三维场景。
 
 ## 渲染器类型
 
 在 Galacean 中，内置了以下几种渲染器：
 
-- [网格渲染器](graphics-renderer-meshRenderer): 通过设置 `mesh` 与 `material` 即可渲染物体。
-- [蒙皮网格渲染器](graphics-renderer-skinnedMeshRenderer): 基于[网格渲染器](graphics-renderer-meshRenderer)，额外包含了`骨骼动画`与 `Blend Shape` 的能力，使得物体的动画效果更加自然。
-- [精灵渲染器](/docs/graphics-2d-spriteRenderer): 通过设置 `sprite` 与 `material` (默认内置精灵材质)，可以在场景中展示 2D 图像。
-- [精灵遮罩渲染器](/docs/graphics-2d-spriteMask): 用于对精灵渲染器实现遮罩效果。
-- [文字渲染器](/docs/graphics-2d-text): 在场景中显示文本
-- [粒子渲染器](/docs/graphics-particle-renderer): 在场景中展示粒子效果。
+- [网格渲染器](/docs/graphics/renderer/meshRenderer/): 通过设置 `mesh` 与 `material` 即可渲染物体。
+- [蒙皮网格渲染器](/docs/graphics/renderer/skinnedMeshRenderer): 基于[网格渲染器](/docs/graphics/renderer/meshRenderer/)，额外包含了`骨骼动画`与 `Blend Shape` 的能力，使得物体的动画效果更加自然。
+- [精灵渲染器](/docs/graphics/2D/spriteRenderer/): 通过设置 `sprite` 与 `material` (默认内置精灵材质)，可以在场景中展示 2D 图像。
+- [精灵遮罩渲染器](/docs/graphics/2D/spriteMask/): 用于对精灵渲染器实现遮罩效果。
+- [文字渲染器](/docs/graphics/2D/text/): 在场景中显示文本
+- [粒子渲染器](/docs/graphics/particle/renderer/): 在场景中展示粒子效果。
 
-通过[渲染排序](/docs/graphics-renderer-order)可以更深入地了解各种渲染器在引擎内的渲染顺序。
+通过[渲染排序](/docs/graphics/renderer/order/)可以更深入地了解各种渲染器在引擎内的渲染顺序。
 
 ## 属性
 
@@ -47,6 +47,10 @@ console.log("materialCount", renderer.materialCount);
 console.log("bounds", renderer.bounds);
 console.log("isCulled", renderer.isCulled);
 ```
+
+下方展示如何获取多个 `Renderer` 的整体包围盒：
+
+<playground src="bounding-box.ts"></playground>
 
 ## 方法
 

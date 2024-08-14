@@ -82,4 +82,4 @@ document.getElementById('canvas').addEventListener('click', (e) => {
 
 需要特别指出，如果想要对 Entity 启用射线投射，该 Entity 就必须拥有 **Collider** ，否则无法触发。若射线命中的Collider的Shape距离相同，则返回先被添加的Shape（举个例子：有两个Collider相同的Entity完全重合，则会返回先添加Collider，更准确的说是先添加Shape的Entity）。
 
-同时，在 Galacean 当中，还提供了 InputManager，该管理器将输入源做了封装，提供了更加易用的逻辑，使用方式可以[参考](/docs/input) .
+同时，在 Galacean 当中，还提供了 InputManager，该管理器将输入源做了封装，提供了更加易用的逻辑，使用方式可以[参考](/docs/input/input/) .

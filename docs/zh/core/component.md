@@ -26,7 +26,7 @@ label: Core
 
 ## 编辑器使用
 
-从 **[层级面板](/docs/interface-hierarchy)** 或场景中选择一个实体后，检查器将显示出当前选中节点挂载的所有组件，组件名显示在左上角
+从 **[层级面板](/docs/interface/hierarchy)** 或场景中选择一个实体后，检查器将显示出当前选中节点挂载的所有组件，组件名显示在左上角
 
 <img src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*tZcpRrrYQcMAAAAAAAAAAAAADsJ_AQ/original" alt="Name" style="zoom:50%;" />
 

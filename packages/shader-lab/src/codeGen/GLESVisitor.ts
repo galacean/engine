@@ -8,7 +8,15 @@ import { ICodeSegment } from "./types";
 import { Logger } from "@galacean/engine";
 import { VisitorContext } from "./VisitorContext";
 
-const defaultPrecision = `precision mediump float;`;
+const defaultPrecision = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+  precision highp float;
+  precision highp int;
+#else
+  precision mediump float;
+  precision mediump int;
+#endif
+`;
 
 export abstract class GLESVisitor extends CodeGenVisitor {
   protected _versionText: string = "";
@@ -82,7 +90,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     VisitorContext.context.reset();
 
-    return `${this._versionText}\n${defaultPrecision}\n${globalCode}\n\nvoid main() ${statements}`;
+    return `${this._versionText}\n${globalCode}\n\nvoid main() ${statements}`;
   }
 
   private _fragmentMain(entry: string, data: ShaderData): string {

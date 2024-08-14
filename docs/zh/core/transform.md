@@ -9,7 +9,7 @@ label: Core
 
 `Transform` 是 `Entity` 自带的基础组件，开发者可以通过它管理 `Entity` 在**局部空间**与**世界空间**中的位置、旋转和缩放。
 
-> 结合 Galacean 的 **[坐标系统](/docs/core-space)** 会有更深入地了解。
+> 结合 Galacean 的 **[坐标系统](/docs/core/space)** 会有更深入地了解。
 
 <playground src="transform-basic.ts"></playground>
 
@@ -44,7 +44,7 @@ label: Core
 
 点击中心立方体，在所有轴上均匀的缩放选中实体。点击辅助轴，在单个方向缩放选中实体。
 
-通过 **[检查器面板](/docs/interface-inspector)** 可以为节点设置更精确的位置、旋转和缩放信息。
+通过 **[检查器面板](/docs/interface/inspector)** 可以为节点设置更精确的位置、旋转和缩放信息。
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Y0qPTptpIBoAAAAAAAAAAAAADhuCAQ/original" alt="image.png"  />
 

@@ -10,7 +10,7 @@ label: Graphics/Background
 
 ## 设置纯色背景
 
-依据路径 **[层级面板](/docs/interface-hierarchy)** -> **选中 Scene** -> **[检查器面板](/docs/interface-inspector)** -> **Background 栏** 设置 **Mode** 为 **Solid Color**，然后选择期望的背景色，可以看到场景的背景发生实时变化。
+依据路径 **[层级面板](/docs/interface/hierarchy)** -> **选中 Scene** -> **[检查器面板](/docs/interface/inspector)** -> **Background 栏** 设置 **Mode** 为 **Solid Color**，然后选择期望的背景色，可以看到场景的背景发生实时变化。
 
 ![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*RDQ-T5h7YdEAAAAAAAAAAAAADhuCAQ/original)
 

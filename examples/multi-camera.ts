@@ -4,7 +4,7 @@
  * @thumbnail https://mdn.alipayobjects.com/merchant_appfe/afts/img/A*_vyfS5xqVe4AAAAAAAAAAAAADiR2AQ/original
  */
 
-import { SpineAnimation } from "@galacean/engine-spine";
+import { SpineAnimationRenderer } from "@galacean/engine-spine";
 import {
   AssetType,
   BackgroundMode,
@@ -20,7 +20,7 @@ import {
   SkyBoxMaterial,
   TextureCube,
   Vector3,
-  WebGLEngine,
+  WebGLEngine
 } from "@galacean/engine";
 import { OrbitControl } from "@galacean/engine-toolkit-controls";
 
@@ -81,19 +81,21 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   engine.resourceManager
     .load({
-      urls: [
-        "https://gw.alipayobjects.com/os/OasisHub/a66ef194-6bc8-4325-9a59-6ea9097225b1/1620888427489.json",
-        "https://gw.alipayobjects.com/os/OasisHub/a1e3e67b-a783-4832-ba1b-37a95bd55291/1620888427490.atlas",
-        "https://gw.alipayobjects.com/zos/OasisHub/a3ca8f62-1068-43a5-bb64-5c9a0f823dde/1620888427490.png",
-      ],
-      type: "spine",
+      url: "https://mdn.alipayobjects.com/huamei_kz4wfo/uri/file/as/2/kz4wfo/4/mp/qGISZ7QTJFkEL0Qx/spineboy/spineboy.json",
+      type: "spine"
     })
-    .then((spineEntity: Entity) => {
+    .then((spineResource: any) => {
+      const spineEntity = new Entity(engine);
       spineEntity.layer = Layer.Layer1;
+      spineEntity.transform.setPosition(0, -3, 0);
+      const spine = spineEntity.addComponent(SpineAnimationRenderer);
+      spine.resource = spineResource;
+      spine.defaultState.scale = 0.01;
       windowEntity.addChild(spineEntity);
-      const spineAnimation = spineEntity.getComponent(SpineAnimation);
-      spineAnimation.state.setAnimation(0, "walk", true);
-      spineAnimation.scale = 0.01;
+      const { state } = spine;
+      state.data.defaultMix = 0.3;
+      state.data.setMix("death", "portal", 0);
+      state.setAnimation(0, "walk", true, 1);
     });
 
   engine.resourceManager
@@ -104,16 +106,14 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
         "https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*8GF6Q4LZefUAAAAAAAAAAAAAARQnAQ",
         "https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*D5pdRqUHC3IAAAAAAAAAAAAAARQnAQ",
         "https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*_FooTIp6pNIAAAAAAAAAAAAAARQnAQ",
-        "https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*CYGZR7ogZfoAAAAAAAAAAAAAARQnAQ",
+        "https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*CYGZR7ogZfoAAAAAAAAAAAAAARQnAQ"
       ],
-      type: AssetType.TextureCube,
+      type: AssetType.TextureCube
     })
     .then((cubeMap1) => {
       // Add skybox background
       background.mode = BackgroundMode.Sky;
-      const skyMaterial = (background.sky.material = new SkyBoxMaterial(
-        engine
-      ));
+      const skyMaterial = (background.sky.material = new SkyBoxMaterial(engine));
       skyMaterial.texture = cubeMap1;
       background.sky.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
     });

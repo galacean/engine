@@ -28,6 +28,7 @@ export class SpriteMask extends Renderer {
   @assignmentClone
   influenceLayers: number = SpriteMaskLayer.Everything;
   /** @internal */
+  @ignoreClone
   _renderElement: RenderElement;
 
   /** @internal */

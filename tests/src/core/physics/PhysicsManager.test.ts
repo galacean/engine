@@ -257,6 +257,14 @@ describe("Physics Test", () => {
       ray = new Ray(new Vector3(0, 3, 0), new Vector3(0, -1, 0));
       expect(engineLite.physicsManager.raycast(ray, Number.MAX_VALUE, outHitResult)).to.eq(true);
       expect(outHitResult.shape.id).to.eq(box2.id);
+
+      ray = new Ray(new Vector3(0, -3, 0), new Vector3(0, 1, 0));
+      box.position = new Vector3(1, 0, 0);
+
+      // Test that raycast nothing if distance is less than distance of origin to detected collider.
+      expect(engineLite.physicsManager.raycast(ray, -3, outHitResult)).to.eq(false);
+
+      box.position = new Vector3(0, 0, 0);
       collider2.destroy();
       // Test that raycast with outHitResult works correctly.
       ray = new Ray(new Vector3(3, 3, 3), new Vector3(-1, -1.25, -1));
@@ -297,8 +305,8 @@ describe("Physics Test", () => {
       expect(outHitResult.shape).to.be.eq(box);
 
       // Test that raycast nothing if distance is less than distance of origin to detected collider.
-      expect(engineLite.physicsManager.raycast(ray, 0, Layer.Everything, outHitResult)).to.eq(true);
-      expect(engineLite.physicsManager.raycast(ray, -1, Layer.Everything, outHitResult)).to.eq(true);
+      expect(engineLite.physicsManager.raycast(ray, 0, Layer.Everything, outHitResult)).to.eq(false);
+      expect(engineLite.physicsManager.raycast(ray, -1, Layer.Everything, outHitResult)).to.eq(false);
 
       collider.removeShape(box);
       expect(engineLite.physicsManager.raycast(ray)).to.eq(false);

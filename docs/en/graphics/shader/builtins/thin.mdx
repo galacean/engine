@@ -1,0 +1,35 @@
+---
+title: Thin Film Interference
+---
+
+Thin film interference shaders refer to the phenomenon where certain surfaces gradually change color with changes in viewing angle or lighting angle. This is caused by the interference of light waves in microstructures or thin films and is commonly seen in soap bubbles, feathers, butterfly wings, and the nacre of shells.
+
+<Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*taABSY4nUcEAAAAAAAAAAAAADgDwAQ/original"   />
+
+<Callout type="info">
+For thin film interference materials, the color depends on the angle of incidence of the light. Illumination can bring about a good color gradient, but if your model is low-poly, you won't get a good color gradient because each face will reflect light at different angles.
+</Callout>
+
+## Import Example
+
+Galacean provides you with a thin film interference example to help you get started. To find this example, please [click](https://galacean.antgroup.com/editor/projects).
+
+1. Navigate to the editor homepage in the Galacean editor.
+2. Select the **Templates** panel, navigate to the template interface, preview, and download the thin film interference example to **Project**.
+
+## Material Properties
+
+|         Parameter         |                             Description                             |
+| :-----------------------: | :-----------------------------------------------------------------: |
+|    iridescent ior         | This refractive index value determines the degree of light bending. For thin film interference, it affects the color of the resulting light. |
+|      iridescence          | Controls the intensity of the iridescent color. `1` corresponds to the highest intensity, `0` will only have the PBR effect. |
+| iridescence Thickness     | Used to control the thickness of the iridescence, determining the final layers of thin film interference. |
+
+## Detail Display
+The following demonstration compares the differences when only adjusting the iridescent ior with the same PBR properties.
+<Comparison
+  leftSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*opDFQY6Cu1EAAAAAAAAAAAAADgDwAQ/original"
+  leftText="iridescent ior: 1.0"
+  rightSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*bfIhRIAinRIAAAAAAAAAAAAADgDwAQ/original"
+  rightText="iridescent ior: 1.6"
+/>
