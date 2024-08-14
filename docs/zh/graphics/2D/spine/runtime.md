@@ -35,12 +35,23 @@ await engine.resourceManager.load({
 ```
 
 <b>若未添加至场景中，则需要在代码中手动加载</b>，步骤如下：
-1. 首先，需要找到 Spine 动画的资产链接，点击 Galacean 编辑器的下载按钮，选择 project URL，拷贝 project.json 后打开，找到上传的 spine 动画文件（skel / json）：
+1. 首先下载编辑器项目
 
-<img src="https://intranetproxy.alipay.com/skylark/lark/0/2024/png/76063/1721297144951-6dafb4e3-ccfa-495e-a540-8b3918b66400.png#clientId=u4b0ad8a6-bdc5-4&from=paste&height=480&id=u8ed78f33&originHeight=533&originWidth=359&originalType=binary&ratio=1&rotation=0&showTitle=false&size=40311&status=done&style=none&taskId=udf9587bf-1818-470f-a108-8ca0d7fe9d0&title=&width=323" width="330" alt="Project export panel">
+注意：`Uploadd Assets to CDN` 选项，如果勾选，则是通过 cdn 链接来加载动画；如果未勾选，则是通过本地文件相对路径加载动画。
 
-找到 spine 资产文件 json 或 skel：
-<img src="https://intranetproxy.alipay.com/skylark/lark/0/2024/png/76063/1721297264288-7e493fa1-c6dd-4ebe-b674-832e1a566ab4.png#clientId=u19967f75-5563-4&from=paste&height=186&id=u30ef79e4&originHeight=186&originWidth=934&originalType=binary&ratio=1&rotation=0&showTitle=false&size=40438&status=done&style=shadow&taskId=u2fdda912-fec4-4c80-8de7-c96233bedd1&title=&width=934" width="934" alt="Spine skeleton data file">
+<img src="https://lark-assets-prod-aliyun.oss-cn-hangzhou.aliyuncs.com/lark/0/2024/png/76063/1723625698235-35d144af-6132-4443-86bd-ea1aac0dbaab.png?OSSAccessKeyId=LTAI4GGhPJmQ4HWCmhDAn4F5&Expires=1723629894&Signature=ABY7574qDvp7LSuVDOJiMTxKNeQ%3D&x-oss-process=image%2Fformat%2Cwebp%2Fresize%2Cw_856%2Climit_0&response-content-disposition=inline" width="260" alt="Project export panel">
+
+2. 找到 spine 资产文件
+
+下载项目到本地后，打开 project.json 文件，找到 url 属性并打开。
+如果上一步勾选了`Uploadd Assets to CDN`选项，那么可以在 json 文件中找到spine 资产链接：
+
+<img src="https://lark-assets-prod-aliyun.oss-cn-hangzhou.aliyuncs.com/lark/0/2024/png/76063/1723626809088-8e43170a-3370-4efb-b5a0-efbb7e53447f.png?OSSAccessKeyId=LTAI4GGhPJmQ4HWCmhDAn4F5&Expires=1723628613&Signature=6nGO0msM3MVVCtluiUgECJarzqg%3D&x-oss-process=image%2Fformat%2Cwebp%2Fresize%2Cw_1500%2Climit_0&response-content-disposition=inline" width="630" alt="Find spine assset">
+
+如果上一步未勾选`Uploadd Assets to CDN`选项，可以在本地 `public 文件夹`中找到 spine 资产。加载时，使用相对路径作为链接即可。
+
+<img src="https://lark-assets-prod-aliyun.oss-cn-hangzhou.aliyuncs.com/lark/0/2024/png/76063/1723627676520-e86baa02-02b8-463c-97c6-29ba706c2f79.png?OSSAccessKeyId=LTAI4GGhPJmQ4HWCmhDAn4F5&Expires=1723629486&Signature=zJ9EpUh9AnRYxsITn8wM0mWA%2Ffk%3D&x-oss-process=image%2Fformat%2Cwebp&response-content-disposition=inline" width="230" alt="Find spine assset">
+
 
 2. 使用 resourceManager 加载
 
@@ -51,7 +62,7 @@ import { SpineAnimationRenderer } from '@galacean/engine-spine';
 // 加载并得到 spine 资源
 const spineResource = await engine.resourceManager.load(
   {
-    url: 'https://galacean.spineboy.json', // 编辑器资产
+    url: 'https://galacean.raptor.json', // 或者是文件的相对路径 url: '../public/raptor.json"'
     type: 'spine', // 必须指定加载器类型为 spine
   },
 );
