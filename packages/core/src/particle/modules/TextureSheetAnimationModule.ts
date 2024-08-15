@@ -13,13 +13,10 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
  * Texture sheet animation module.
  */
 export class TextureSheetAnimationModule extends ParticleGeneratorModule {
-  private static readonly _frameConstantMacro = ShaderMacro.getByName("RENDERER_TSA_FRAME_CONSTANT");
-  private static readonly _frameRandomConstantMacro = ShaderMacro.getByName("RENDERER_TSA_FRAME_RANDOM_CONSTANT");
+  private static readonly _textureSheetEnableMacro = ShaderMacro.getByName("RENDERER_TSA_ENABLE");
   private static readonly _frameCurveMacro = ShaderMacro.getByName("RENDERER_TSA_FRAME_CURVE");
   private static readonly _frameRandomCurvesMacro = ShaderMacro.getByName("RENDERER_TSA_FRAME_RANDOM_CURVES");
 
-  private static readonly _frameMinConstantProperty = ShaderProperty.getByName("renderer_TSAFrameMinConstant");
-  private static readonly _frameMaxConstantProperty = ShaderProperty.getByName("renderer_TSAFrameMaxConstant");
   private static readonly _frameMinCurveProperty = ShaderProperty.getByName("renderer_TSAFrameMinCurve");
   private static readonly _frameMaxCurveProperty = ShaderProperty.getByName("renderer_TSAFrameMaxCurve");
 
@@ -72,15 +69,9 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
     if (this.enabled) {
       const mode = this.frameOverTime.mode;
       const frame = this.frameOverTime;
-      if (mode === ParticleCurveMode.Constant || mode === ParticleCurveMode.TwoConstants) {
-        shaderData.setFloat(TextureSheetAnimationModule._frameMaxConstantProperty, frame.constantMax);
-        if (mode === ParticleCurveMode.Constant) {
-          frameMacro = TextureSheetAnimationModule._frameConstantMacro;
-        } else {
-          shaderData.setFloat(TextureSheetAnimationModule._frameMinConstantProperty, frame.constantMin);
-          frameMacro = TextureSheetAnimationModule._frameRandomConstantMacro;
-        }
-      } else {
+      frameMacro = TextureSheetAnimationModule._textureSheetEnableMacro;
+
+      if (mode === ParticleCurveMode.Curve || mode === ParticleCurveMode.TwoCurves) {
         shaderData.setFloatArray(TextureSheetAnimationModule._frameMaxCurveProperty, frame.curveMax._getTypeArray());
         if (mode === ParticleCurveMode.Curve) {
           frameMacro = TextureSheetAnimationModule._frameCurveMacro;
