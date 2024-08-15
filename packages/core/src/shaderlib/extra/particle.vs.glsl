@@ -20,7 +20,7 @@ attribute float a_StartSpeed;
     attribute vec4 a_Random0;
 //#endif
 
-#if defined(RENDERER_TSA_FRAME_RANDOM_CURVES) || defined(RENDERER_TSA_FRAME_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE) 
+#if defined(RENDERER_TSA_FRAME_RANDOM_CURVES) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE) 
     attribute vec4 a_Random1; // x:texture sheet animation random
 #endif
 

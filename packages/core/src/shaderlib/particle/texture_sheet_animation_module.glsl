@@ -1,18 +1,17 @@
-#ifdef RENDERER_TSA_ENABLE
+#if defined(RENDERER_TSA_ENABLE) || defined(RENDERER_TSA_FRAME_CURVE) || defined(RENDERER_TSA_FRAME_RANDOM_CURVES)
     uniform float renderer_TSACycles;
     uniform vec3 renderer_TSATillingParams; // x:subU y:subV z:tileCount
 
-    #ifdef RENDERER_TSA_FRAME_CURVE
+    #if defined(RENDERER_TSA_FRAME_CURVE) || defined(RENDERER_TSA_FRAME_RANDOM_CURVES)
         uniform vec2 renderer_TSAFrameMaxCurve[4]; // x:time y:value
-    #endif
-
-    #ifdef RENDERER_TSA_FRAME_RANDOM_CURVES
-        uniform vec2 renderer_TSAFrameMinCurve[4]; // x:time y:value
+        #ifdef RENDERER_TSA_FRAME_RANDOM_CURVES
+            uniform vec2 renderer_TSAFrameMinCurve[4]; // x:time y:value
+        #endif
     #endif
 #endif
 
 vec2 computeParticleUV(in vec2 uv, in float normalizedAge) {
-    #ifdef RENDERER_TSA_ENABLE
+    #if defined(RENDERER_TSA_ENABLE) || defined(RENDERER_TSA_FRAME_CURVE) || defined(RENDERER_TSA_FRAME_RANDOM_CURVES)
         float normalizedFrame;
         #if defined(RENDERER_TSA_FRAME_CURVE) || defined(RENDERER_TSA_FRAME_RANDOM_CURVES)
             float scaledNormalizedAge = normalizedAge * renderer_TSACycles;
