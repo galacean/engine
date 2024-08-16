@@ -16,7 +16,8 @@ import {
   AnimatorController,
   WrapMode,
   StateMachineScript,
-  AnimatorState
+  AnimatorState,
+  Entity
 } from "@galacean/engine-core";
 import { GLTFResource } from "@galacean/engine-loader";
 import { Quaternion } from "@galacean/engine-math";
@@ -397,8 +398,6 @@ describe("Animator test", function () {
     anyTransition.exitTime = 0.9;
     let anyToIdleTime =
       // @ts-ignore
-      (anyTransition.exitTime - toIdleTransition.duration) * walkState._getDuration() +
-      // @ts-ignore
       (anyTransition.duration * idleState._getDuration()) / idleSpeed;
 
     // @ts-ignore
@@ -523,8 +522,6 @@ describe("Animator test", function () {
     anyTransition.exitTime = 0.1;
     let anyToIdleTime =
       // @ts-ignore
-      (1 - anyTransition.exitTime - toIdleTransition.duration) * walkState._getDuration() +
-      // @ts-ignore
       (anyTransition.duration * idleState._getDuration()) / idleSpeed;
 
     // @ts-ignore
@@ -568,6 +565,8 @@ describe("Animator test", function () {
   });
 
   it("change state in one update", () => {
+    const entity = new Entity(engine);
+    const animator = entity.addComponent(Animator);
     const animatorController = new AnimatorController(engine);
     const layer = new AnimatorControllerLayer("layer");
     animatorController.addLayer(layer);
@@ -644,6 +643,8 @@ describe("Animator test", function () {
   });
 
   it("stateMachineScript", () => {
+    const entity = new Entity(engine);
+    const animator = entity.addComponent(Animator);
     const animatorController = new AnimatorController(engine);
     const layer = new AnimatorControllerLayer("layer");
     animatorController.addLayer(layer);
@@ -708,5 +709,37 @@ describe("Animator test", function () {
     expect(onStateExitSpy).to.have.been.called.exactly(1);
     expect(onStateEnter2Spy).to.have.been.called.exactly(1);
     expect(onStateExit2Spy).to.have.been.called.exactly(1);
+  });
+
+  it("anyTransition", () => {
+    const { animatorController } = animator;
+    // @ts-ignore
+    const layerData = animator._getAnimatorLayerData(0);
+    animatorController.addParameter("playRun", 0);
+    const stateMachine = animatorController.layers[0].stateMachine;
+    //@ts-ignore
+    stateMachine._anyStateTransitions.length = 0;
+    const walkState = animator.findAnimatorState("Run");
+    walkState.clipStartTime = 0.5;
+    walkState.addStateMachineScript(
+      class extends StateMachineScript {
+        onStateEnter(animator) {
+          animator.setParameterValue("playRun", 0);
+        }
+      }
+    );
+    const transition = stateMachine.addAnyStateTransition(animator.findAnimatorState("Run"));
+    transition.addCondition(AnimatorConditionMode.Equals, "playRun", 1);
+    transition.duration = 0;
+    animator.setParameterValue("playRun", 1);
+
+    animator.play("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.5);
+
+    expect(layerData.srcPlayData.state.name).to.eq("Run");
+    // @ts-ignore
+    expect(layerData.srcPlayData.frameTime).to.eq(0.5);
   });
 });
