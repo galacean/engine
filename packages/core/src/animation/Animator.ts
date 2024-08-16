@@ -551,43 +551,49 @@ export class Animator extends Component {
     const { transitions } = state;
     const { anyStateTransitions } = layer.stateMachine;
 
-    const transition =
-      (anyStateTransitions.length &&
-        this._applyTransitionsByCondition(layerIndex, layerData, layer, state, anyStateTransitions, aniUpdate)) ||
-      (transitions.length &&
-        this._applyStateTransitions(
-          layerIndex,
-          layerData,
-          layer,
-          isForwards,
-          srcPlayData,
-          transitions,
-          lastClipTime,
-          clipTime,
-          playDeltaTime,
-          aniUpdate
-        ));
+    const anyTransition =
+      anyStateTransitions.length &&
+      this._applyTransitionsByCondition(layerIndex, layerData, layer, state, anyStateTransitions, aniUpdate);
+    const stateTransition =
+      transitions.length &&
+      this._applyStateTransitions(
+        layerIndex,
+        layerData,
+        layer,
+        isForwards,
+        srcPlayData,
+        transitions,
+        lastClipTime,
+        clipTime,
+        playDeltaTime,
+        aniUpdate
+      );
 
+    const transition = anyTransition || stateTransition;
     let playCostTime: number;
     if (transition) {
-      const clipDuration = state.clip.length;
-      const clipEndTime = state.clipEndTime * clipDuration;
-      const exitTime = transition.exitTime * state._getDuration();
-
-      if (isForwards) {
-        if (exitTime < lastClipTime) {
-          playCostTime = exitTime + clipEndTime - lastClipTime;
-        } else {
-          playCostTime = exitTime - lastClipTime;
-        }
+      if (anyTransition) {
+        playCostTime = 0;
       } else {
-        const startTime = state.clipStartTime * clipDuration;
-        if (lastClipTime < exitTime) {
-          playCostTime = clipEndTime - exitTime + lastClipTime - startTime;
+        const clipDuration = state.clip.length;
+        const clipEndTime = state.clipEndTime * clipDuration;
+        const exitTime = transition.exitTime * state._getDuration();
+
+        if (isForwards) {
+          if (exitTime < lastClipTime) {
+            playCostTime = exitTime + clipEndTime - lastClipTime;
+          } else {
+            playCostTime = exitTime - lastClipTime;
+          }
         } else {
-          playCostTime = lastClipTime - exitTime;
+          const startTime = state.clipStartTime * clipDuration;
+          if (lastClipTime < exitTime) {
+            playCostTime = clipEndTime - exitTime + lastClipTime - startTime;
+          } else {
+            playCostTime = lastClipTime - exitTime;
+          }
+          playCostTime = -playCostTime;
         }
-        playCostTime = -playCostTime;
       }
       // Revert actualDeltaTime and update playCostTime
       srcPlayData.update(playCostTime - playDeltaTime);
@@ -667,15 +673,15 @@ export class Animator extends Component {
 
     let dstPlayCostTime: number;
     if (destPlayData.isForwards) {
+      // The time that has been played
+      const playedTime = destState.clipStartTime * destState.clip.length - lastDestClipTime;
       dstPlayCostTime =
-        lastDestClipTime + dstPlayDeltaTime > transitionDuration
-          ? transitionDuration - lastDestClipTime
-          : dstPlayDeltaTime;
+        playedTime + dstPlayDeltaTime > transitionDuration ? transitionDuration - playedTime : dstPlayDeltaTime;
     } else {
       // The time that has been played
-      const playedTime = destStateDuration - lastDestClipTime;
+      const playedTime = destState.clipEndTime * destState.clip.length - lastDestClipTime;
       dstPlayCostTime =
-        // -actualDestDeltaTime: The time that will be played, negative are meant to make ite be a periods
+        // -actualDestDeltaTime: The time that will be played, negative are meant to make it be a periods
         // > transition: The time that will be played is enough to finish the transition
         playedTime - dstPlayDeltaTime > transitionDuration
           ? // Negative number is used to convert a time period into a reverse deltaTime.
