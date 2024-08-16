@@ -99,7 +99,7 @@ void main() {
         #ifdef MATERIAL_HAS_BASETEXTURE
             vec2 simulateUV;
             #if defined(RENDERER_MODE_SPHERE_BILLBOARD) || defined(RENDERER_MODE_STRETCHED_BILLBOARD) || defined(RENDERER_MODE_HORIZONTAL_BILLBOARD) || defined(RENDERER_MODE_VERTICAL_BILLBOARD)
-                simulateUV = a_CornerTextureCoordinate.zw * a_SimulationUV.xy; 
+                simulateUV = a_CornerTextureCoordinate.zw * a_SimulationUV.xy + a_SimulationUV.zw; 
                 v_TextureCoordinate = computeParticleUV(simulateUV, normalizedAge);
             #endif
             #ifdef RENDERER_MODE_MESH

@@ -809,17 +809,20 @@ export class ParticleGenerator {
     if (this.textureSheetAnimation.enabled) {
       const { _tillingInfo, _startFrameRand, _frameOverTimeRand, startFrame, frameOverTime } =
         this.textureSheetAnimation;
+      const { x, y } = _tillingInfo;
 
       let frameOverTimeConstantValue = 0;
       if (frameOverTime.mode === ParticleCurveMode.Constant || frameOverTime.mode === ParticleCurveMode.TwoConstants) {
         frameOverTimeConstantValue = frameOverTime.evaluate(undefined, _frameOverTimeRand.random());
       }
+      const startFrameValue =
+        Math.floor(startFrame.evaluate(undefined, _startFrameRand.random()) + frameOverTimeConstantValue) * x;
+      const floorStartFrameValue = Math.floor(startFrameValue);
 
-      instanceVertices[offset + ParticleBufferUtils.simulationUVOffset] = _tillingInfo.x;
-      instanceVertices[offset + 35] = _tillingInfo.y;
-      instanceVertices[offset + 36] =
-        startFrame.evaluate(undefined, _startFrameRand.random()) + frameOverTimeConstantValue;
-      instanceVertices[offset + 37] = 0;
+      instanceVertices[offset + ParticleBufferUtils.simulationUVOffset] = x;
+      instanceVertices[offset + 35] = y;
+      instanceVertices[offset + 36] = startFrameValue - floorStartFrameValue;
+      instanceVertices[offset + 37] = floorStartFrameValue * y;
     } else {
       instanceVertices[offset + ParticleBufferUtils.simulationUVOffset] = 1;
       instanceVertices[offset + 35] = 1;

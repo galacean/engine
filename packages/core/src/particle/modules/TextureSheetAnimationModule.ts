@@ -13,7 +13,6 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
  * Texture sheet animation module.
  */
 export class TextureSheetAnimationModule extends ParticleGeneratorModule {
-  private static readonly _textureSheetEnableMacro = ShaderMacro.getByName("RENDERER_TSA_ENABLE");
   private static readonly _frameCurveMacro = ShaderMacro.getByName("RENDERER_TSA_FRAME_CURVE");
   private static readonly _frameRandomCurvesMacro = ShaderMacro.getByName("RENDERER_TSA_FRAME_RANDOM_CURVES");
 
@@ -69,7 +68,6 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
     if (this.enabled) {
       const mode = this.frameOverTime.mode;
       const frame = this.frameOverTime;
-      frameMacro = TextureSheetAnimationModule._textureSheetEnableMacro;
 
       if (mode === ParticleCurveMode.Curve || mode === ParticleCurveMode.TwoCurves) {
         shaderData.setFloatArray(TextureSheetAnimationModule._frameMaxCurveProperty, frame.curveMax._getTypeArray());
