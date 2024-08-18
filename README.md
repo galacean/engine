@@ -6,6 +6,7 @@
 [![codecov](https://codecov.io/gh/galacean/engine/branch/main/graph/badge.svg?token=KR2UBKE3OX)](https://codecov.io/gh/galacean/engine)
 
 [Galacean](https://galacean.antgroup.com/editor) is a **web-first** and **mobile-first** high-performance real-time interactive engine. Use **component system design** and pursue ease of use and light weight. Developers can independently use and write Typescript scripts to develop projects using pure code.
+![image](https://github.com/user-attachments/assets/057c2c99-85a8-4ace-a268-c70daa1a449e)
 
 ## Features
 
