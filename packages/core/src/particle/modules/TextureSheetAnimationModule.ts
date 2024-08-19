@@ -80,10 +80,10 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
 
         shaderData.setFloat(TextureSheetAnimationModule._cycleCountProperty, this.cycleCount);
         shaderData.setVector3(TextureSheetAnimationModule._tillingParamsProperty, this._tillingInfo);
-
-        this._frameCurveMacro = this._enableMacro(shaderData, this._frameCurveMacro, frameMacro);
       }
     }
+
+    this._frameCurveMacro = this._enableMacro(shaderData, this._frameCurveMacro, frameMacro);
   }
 
   /**
