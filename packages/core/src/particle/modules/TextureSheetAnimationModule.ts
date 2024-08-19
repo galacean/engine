@@ -67,9 +67,9 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
     let frameMacro = <ShaderMacro>null;
     if (this.enabled) {
       const mode = this.frameOverTime.mode;
-      const frame = this.frameOverTime;
 
       if (mode === ParticleCurveMode.Curve || mode === ParticleCurveMode.TwoCurves) {
+        const frame = this.frameOverTime;
         shaderData.setFloatArray(TextureSheetAnimationModule._frameMaxCurveProperty, frame.curveMax._getTypeArray());
         if (mode === ParticleCurveMode.Curve) {
           frameMacro = TextureSheetAnimationModule._frameCurveMacro;
