@@ -15,7 +15,6 @@ export enum ParticleRandomSubSeeds {
   SizeOverLifetime = 0x591bc05c,
   RotationOverLifetime = 0x40eb95e4,
   TextureSheetAnimation = 0xbc524e5,
-  StartFrame = 0xabcdef01,
   Shape = 0xaf502044,
   GravityModifier = 0xa47b8c4d
 }

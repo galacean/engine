@@ -22,9 +22,6 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   private static readonly _cycleCountProperty = ShaderProperty.getByName("renderer_TSACycles");
   private static readonly _tillingParamsProperty = ShaderProperty.getByName("renderer_TSATillingParams");
 
-  /** Start frame of the texture sheet. */
-  @deepClone
-  readonly startFrame = new ParticleCompositeCurve(0);
   /** Frame over time curve of the texture sheet. */
   @deepClone
   readonly frameOverTime = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1)));
@@ -39,9 +36,6 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   /** @internal */
   @ignoreClone
   _frameOverTimeRand = new Rand(0, ParticleRandomSubSeeds.TextureSheetAnimation);
-  /** @internal */
-  @ignoreClone
-  _startFrameRand = new Rand(0, ParticleRandomSubSeeds.StartFrame);
 
   @deepClone
   private _tiling = new Vector2(1, 1);
@@ -90,7 +84,6 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
    */
   _resetRandomSeed(randomSeed: number): void {
     this._frameOverTimeRand.reset(randomSeed, ParticleRandomSubSeeds.TextureSheetAnimation);
-    this._startFrameRand.reset(randomSeed, ParticleRandomSubSeeds.StartFrame);
   }
 }
 

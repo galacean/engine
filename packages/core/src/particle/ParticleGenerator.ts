@@ -806,23 +806,21 @@ export class ParticleGenerator {
     }
 
     // Simulation UV
-    if (this.textureSheetAnimation.enabled) {
-      const { _tillingInfo, _startFrameRand, _frameOverTimeRand, startFrame, frameOverTime } =
-        this.textureSheetAnimation;
-      const { x, y } = _tillingInfo;
+    if (textureSheetAnimation.enabled) {
+      const { _tillingInfo, frameOverTime } = textureSheetAnimation;
+      const { x, y, z } = _tillingInfo;
 
       let frameOverTimeConstantValue = 0;
       if (frameOverTime.mode === ParticleCurveMode.Constant || frameOverTime.mode === ParticleCurveMode.TwoConstants) {
-        frameOverTimeConstantValue = frameOverTime.evaluate(undefined, _frameOverTimeRand.random());
+        frameOverTimeConstantValue =
+          Math.floor(frameOverTime.evaluate(undefined, textureSheetAnimation._frameOverTimeRand.random()) * z) * x;
       }
-      const startFrameValue =
-        Math.floor(startFrame.evaluate(undefined, _startFrameRand.random()) + frameOverTimeConstantValue) * x;
-      const floorStartFrameValue = Math.floor(startFrameValue);
+      const floorFrameOverTimeConstantValue = Math.floor(frameOverTimeConstantValue);
 
       instanceVertices[offset + ParticleBufferUtils.simulationUVOffset] = x;
       instanceVertices[offset + 35] = y;
-      instanceVertices[offset + 36] = startFrameValue - floorStartFrameValue;
-      instanceVertices[offset + 37] = floorStartFrameValue * y;
+      instanceVertices[offset + 36] = frameOverTimeConstantValue - floorFrameOverTimeConstantValue;
+      instanceVertices[offset + 37] = floorFrameOverTimeConstantValue * y;
     } else {
       instanceVertices[offset + ParticleBufferUtils.simulationUVOffset] = 1;
       instanceVertices[offset + 35] = 1;
