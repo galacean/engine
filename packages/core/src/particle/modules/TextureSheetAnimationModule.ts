@@ -46,7 +46,7 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   @deepClone
   private _tiling = new Vector2(1, 1);
   @ignoreClone
-  private _textureSheetMacro: ShaderMacro;
+  private _frameCurveMacro: ShaderMacro;
 
   /**
    * Tiling of the texture sheet.
@@ -80,9 +80,9 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
 
         shaderData.setFloat(TextureSheetAnimationModule._cycleCountProperty, this.cycleCount);
         shaderData.setVector3(TextureSheetAnimationModule._tillingParamsProperty, this._tillingInfo);
-      }
 
-      this._textureSheetMacro = this._enableMacro(shaderData, this._textureSheetMacro, frameMacro);
+        this._frameCurveMacro = this._enableMacro(shaderData, this._frameCurveMacro, frameMacro);
+      }
     }
   }
 
