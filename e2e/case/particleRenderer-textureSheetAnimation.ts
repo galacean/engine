@@ -7,7 +7,6 @@ import {
   BlendMode,
   Camera,
   Color,
-  ConeShape,
   Logger,
   ParticleCurveMode,
   ParticleMaterial,
@@ -15,7 +14,8 @@ import {
   Vector3,
   WebGLEngine,
   Vector2,
-  CurveKey
+  BoxShape,
+  Entity
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
@@ -48,7 +48,7 @@ WebGLEngine.create({
       type: AssetType.Texture2D
     })
     .then((texture) => {
-      const particleEntity = rootEntity.createChild("Fire");
+      const particleEntity = new Entity(engine);
       const particleRenderer = particleEntity.addComponent(ParticleRenderer);
 
       const material = new ParticleMaterial(engine);
@@ -56,20 +56,22 @@ WebGLEngine.create({
       material.blendMode = BlendMode.Additive;
       material.baseTexture = texture;
       particleRenderer.setMaterial(material);
-      particleRenderer.generator.emission.shape = new ConeShape();
 
       particleRenderer.generator.useAutoRandomSeed = false;
 
+      const shape = new BoxShape();
+      shape.size.set(22, 1, 0);
+      particleRenderer.generator.emission.shape = shape;
+
       const { textureSheetAnimation } = particleRenderer.generator;
+      textureSheetAnimation.enabled = true;
       textureSheetAnimation.tiling = new Vector2(5, 3);
 
       textureSheetAnimation.frameOverTime.mode = ParticleCurveMode.TwoConstants;
-      textureSheetAnimation.frameOverTime.curveMax.setKeys([new CurveKey(0, 0), new CurveKey(1, 12 / 15)]);
-
       textureSheetAnimation.frameOverTime.constantMin = 0;
       textureSheetAnimation.frameOverTime.constantMax = 3 / 15;
 
-      textureSheetAnimation.enabled = true;
+      cameraEntity.addChild(particleEntity);
 
       updateForE2E(engine, 500);
       initScreenshot(engine, camera);
