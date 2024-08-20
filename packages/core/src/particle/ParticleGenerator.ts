@@ -806,12 +806,21 @@ export class ParticleGenerator {
     }
 
     // Simulation UV
-    if (this.textureSheetAnimation.enabled) {
-      const tillingInfo = this.textureSheetAnimation._tillingInfo;
-      instanceVertices[offset + ParticleBufferUtils.simulationUVOffset] = tillingInfo.x;
-      instanceVertices[offset + 35] = tillingInfo.y;
-      instanceVertices[offset + 36] = 0;
-      instanceVertices[offset + 37] = 0;
+    if (textureSheetAnimation.enabled) {
+      const { frameOverTime } = textureSheetAnimation;
+      const { x, y, z } = textureSheetAnimation._tillingInfo;
+
+      let tileRow = 0;
+      if (frameOverTime.mode === ParticleCurveMode.Constant || frameOverTime.mode === ParticleCurveMode.TwoConstants) {
+        tileRow =
+          Math.floor(frameOverTime.evaluate(undefined, textureSheetAnimation._frameOverTimeRand.random()) * z) * x;
+      }
+      const tileRowIndex = Math.floor(tileRow);
+
+      instanceVertices[offset + ParticleBufferUtils.simulationUVOffset] = x;
+      instanceVertices[offset + 35] = y;
+      instanceVertices[offset + 36] = tileRow - tileRowIndex;
+      instanceVertices[offset + 37] = tileRowIndex * y;
     } else {
       instanceVertices[offset + ParticleBufferUtils.simulationUVOffset] = 1;
       instanceVertices[offset + 35] = 1;
