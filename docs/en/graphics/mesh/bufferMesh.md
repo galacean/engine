@@ -6,33 +6,33 @@ group: Mesh
 label: Graphics/Mesh
 ---
 
-[BufferMesh](/apis/core/#BufferMesh}) allows free manipulation of vertex buffer and index buffer data, as well as some instructions related to geometry drawing. It is efficient, flexible, and concise. Developers can use this class to efficiently and flexibly implement custom geometries.
+[BufferMesh](/apis/core/#BufferMesh) allows free manipulation of vertex buffers and index buffer data, as well as some instructions related to geometry drawing. It is efficient, flexible, and concise. Developers who want to efficiently and flexibly implement custom geometries can use this class.
 
-## Schematic Diagram
+## Diagram
 
-Let's take a look at the schematic diagram of `BufferMesh`
+Let's first overview the diagram of `BufferMesh`.
 
 ![image.png](https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*piB3Q4501loAAAAAAAAAAAAAARQnAQ)
 
 `BufferMesh` has three core elements:
 
-| Name                                                  | Description                                                             |
-| :---------------------------------------------------- | :---------------------------------------------------------------------- |
-| [VertexBufferBinding](/apis/core/#VertexBufferBinding) | Vertex buffer binding, used to pack vertex buffer and vertex stride (in bytes). |
-| [VertexElement](/apis/core/#VertexElement)             | Vertex element, used to describe vertex semantics, vertex offset, vertex format, and vertex buffer binding index information. |
-| [IndexBufferBinding](/apis/core/#IndexBufferBinding)   | Index buffer binding (optional), used to pack index buffer and index format. |
+| Name                                                  | Description                                                              |
+| :---------------------------------------------------- | :----------------------------------------------------------------------- |
+| [VertexBufferBinding](/apis/core/#VertexBufferBinding) | Vertex buffer binding, used to package vertex buffers and vertex strides (bytes). |
+| [VertexElement](/apis/core/#VertexElement)             | Vertex element, used to describe vertex semantics, vertex offsets, vertex formats, and vertex buffer binding indices. |
+| [IndexBufferBinding](/apis/core/#IndexBufferBinding)   | Index buffer binding (optional), used to package index buffers and index formats. |
 
-Among them, [IndexBufferBinding](/apis/core/#IndexBufferBinding}) is optional, which means there are only two necessary core elements. They are set through the [setVertexBufferBindings()](/apis/core/#BufferMesh-setVertexBufferBindings) interface and the [setVertexElements()](/apis/core/#BufferMesh-setVertexElements) interface. The last step is to add a submesh through [addSubMesh](/apis/core/#BufferMesh-addSubMesh) and set the vertex or index drawing count. [SubMesh](/apis/core/#SubMesh) contains three attributes: starting drawing offset, drawing count, primitive topology. Developers can add multiple [SubMesh](/apis/core/#SubMesh) independently, and each sub-geometry can correspond to a unique material.
+Among them, [IndexBufferBinding](/apis/core/#IndexBufferBinding) is optional, which means that there are only two necessary core elements, set through the [setVertexBufferBindings()](/apis/core/#BufferMesh-setVertexBufferBindings) interface and the [setVertexElements()](/apis/core/#BufferMesh-setVertexElements) interface. The final step is to add sub [SubMesh](/apis/core/#SubMesh) through [addSubMesh](/apis/core/#BufferMesh-addSubMesh) and set the number of vertices or indices to draw. [SubMesh](/apis/core/#SubMesh) contains three properties: start drawing offset, drawing count, and primitive topology. Developers can add multiple [SubMesh](/apis/core/#SubMesh), each sub-geometry can correspond to an independent material.
 
-## Common Use Cases
+## Common Cases
 
-Here are a few common use cases of [MeshRenderer](/apis/core/#MeshRenderer) and [BufferMesh](/apis/core/#BufferMesh) because this class is more low-level and flexible, detailed code examples are provided.
+Here are some common use cases of [MeshRenderer](/apis/core/#MeshRenderer) and [BufferMesh](/apis/core/#BufferMesh). Because this class is low-level and flexible, detailed code examples are provided.
 
 ### Interleaved Vertex Buffer
 
 <playground src="buffer-mesh-interleaved.ts"></playground>
 
-This is a common way to implement custom Mesh, Particle, etc., with advantages such as compact memory usage and fewer CPU data uploads to the GPU per frame. The main feature of this case is that multiple [VertexElement](/apis/core/#VertexElement) correspond to one *VertexBuffer* ([Buffer](/apis/core/#Buffer)), and only one *VertexBuffer* is used to associate different vertex elements with the Shader.
+A common method, such as custom Mesh, Particle implementation, has the advantages of compact video memory and fewer CPU data uploads to the GPU per frame. The main feature of this case is that multiple [VertexElement](/apis/core/#VertexElement) correspond to one *VertexBuffer* ([Buffer](/apis/core/#Buffer)), and only one *VertexBuffer* is used to associate different vertex elements with the Shader.
 
 ```typescript
 // add MeshRenderer component
@@ -67,7 +67,7 @@ renderer.mesh = mesh;
 
 <playground src="buffer-mesh-independent.ts"></playground>
 
-It has advantages when mixing dynamic and static vertex buffers, such as _position_ being static, but _color_ being dynamic. Independent vertex buffer can update only color data to the GPU. The main feature of this case is that one [VertexElement](/apis/core/#VertexElement) corresponds to one _VertexBuffer_, and you can independently update data by calling the [setData](/apis/core/#Buffer-setData) method of the [Buffer](/apis/core/#Buffer) object.
+It has advantages when mixing dynamic vertex buffers and static vertex buffers, such as _position_ being static but _color_ being dynamic. Independent vertex buffers can update only the color data to the GPU. The main feature of this case is that one [VertexElement](/apis/core/#VertexElement) corresponds to one _VertexBuffer_, and the [setData](/apis/core/#Buffer-setData) method of the [Buffer](/apis/core/#Buffer) object can be called separately to update the data independently.
 
 ```typescript
 // add MeshRenderer component
@@ -111,7 +111,7 @@ renderer.mesh = mesh;
 
 <playground src="buffer-mesh-instance.ts"></playground>
 
-GPU instance rendering is a common technique in 3D engines, where objects with the same geometry shape can be rendered at different positions simultaneously, significantly improving rendering performance. The main feature of this example is the use of the [VertexElement](/apis/core/#VertexElement) instance functionality. The last parameter of its constructor represents the instance step rate (the number of instances to draw for each vertex advancement in the buffer, non-instance elements must be 0), while [BufferMesh](/apis/core/#BufferMesh)'s [instanceCount](/apis/core/#BufferMesh-instanceCount) indicates the number of instances.
+GPU Instance rendering is a common technique in 3D engines. For example, it allows rendering objects with the same geometric shape at different positions in one go, significantly improving rendering performance. The main feature of this example is the use of the instance functionality of [VertexElement](/apis/core/#VertexElement). The last parameter of its constructor indicates the instance step rate (the number of instances drawn per vertex advance in the buffer, non-instance elements must be 0). The [instanceCount](/apis/core/#BufferMesh-instanceCount) of [BufferMesh](/apis/core/#BufferMesh) indicates the number of instances.
 
 ```typescript
 // add MeshRenderer component
@@ -151,7 +151,7 @@ renderer.mesh = mesh;
 
 ## Index Buffer
 
-Using an index buffer allows reusing vertices within a vertex buffer, thus saving memory. The usage is simple, by adding an index buffer object on top of the original base. The following code is modified from the first **interleaved vertex buffer** example.
+Using an index buffer allows reusing vertices in the vertex buffer, thereby saving video memory. Its usage is straightforward, just adding an index buffer object on top of the original setup. The following code is modified based on the first **Interleaved Vertex Buffer** example.
 
 ```typescript
 // add MeshRenderer component

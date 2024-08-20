@@ -34,13 +34,13 @@ The [SpriteRenderer](/apis/core/#SpriteRenderer) component is used to display im
 
 #### Create a Node with Sprite Renderer
 
-By selecting a node in the **[Hierarchy Panel](/en/docs/interface-hierarchy)**, you can quickly add a child node with a sprite renderer by right-clicking -> **2D Object** -> **Sprite Renderer**.
+By selecting a node in the **[Hierarchy Panel](/en/docs/interface/hierarchy)**, you can quickly add a child node with a sprite renderer by right-clicking -> **2D Object** -> **Sprite Renderer**.
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*fiA8R5ZwXyUAAAAAAAAAAAAADhuCAQ/original" alt="avatar" style="zoom:50%;" />
 
 #### Attach Sprite Renderer to a Node
 
-To attach a sprite renderer to an existing node, simply go to the **[Inspector Panel](/en/docs/interface-inspector)** of the selected node, then choose **Add Component** -> **2D** -> **Sprite Renderer**.
+To attach a sprite renderer to an existing node, simply go to the **[Inspector Panel](/en/docs/interface/inspector)** of the selected node, then choose **Add Component** -> **2D** -> **Sprite Renderer**.
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*UnDbQZHMOCcAAAAAAAAAAAAADhuCAQ/original" alt="avatar" style="zoom:50%;" />
 
@@ -87,7 +87,7 @@ The sprite renderer currently provides three drawing modes: normal, nine-slice, 
 
 ### Masking
 
-Please refer to the [Sprite Mask](/en/docs/graphics-2d-spriteMask) documentation.
+Please refer to the [Sprite Mask](/en/docs/graphics/2D/spriteMask) documentation.
 
 ## Custom Materials
 

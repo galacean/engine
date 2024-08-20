@@ -5,36 +5,36 @@ type: Performance
 label: Performance
 ---
 
-The Galacean Engine supports popular 3D modeling software (C4D, 3ds Max, Maya, Blender) to export *.fbx* files. Considering runtime performance and compatibility issues, artists should pay attention to the 3D scene specifications:
+Galacean Engine supports mainstream 3D modeling software (C4D, 3ds Max, Maya, Blender) to export *.fbx* files. Considering runtime performance and compatibility issues, artists should pay attention to the 3D scene specifications:
 
-### Models
+### Model
 
-- **Triangle Faces and Vertex Count:** It is recommended that the face count of a single scene model should not exceed **100,000 faces**. While ensuring visual effects, try to reduce the number of model triangle faces and vertices as they have a significant impact on _GPU_ performance or VRAM usage, especially the rendering performance of triangle faces.
-- **Model Merging:** Artists should merge models that cannot be independently moved to reduce rendering batches as much as possible. Also, be careful not to merge models with a large scene span that may cause issues with model clipping.
+- **Number of Triangles and Vertices:** It is recommended that the number of faces of a single scene model should not exceed **100,000 faces**. Try to reduce the number of model triangles and vertices as much as possible while ensuring visual effects, as both have a certain impact on _GPU_ performance loss or memory usage, especially the rendering performance of triangles.
+- **Model Merging:** Artists should merge models that cannot move independently as much as possible to reduce rendering batches. At the same time, be careful not to merge models that span too large a scene range, which would cause the model to be unclippable.
 
-### Materials
+### Material
 
-- **Material Merging:** Merge materials as much as possible. Materials serve as the foundation for merging rendering batches in a 3D engine. The prerequisite for all engine-level rendering batch merging is to use the same material, so keep the number of material objects as low as possible.
+- **Material Merging:** Merge materials as much as possible. As the basis for merging in a 3D engine, the prerequisite for merging all engine-level rendering batches is to use the same material, so keep the number of material objects as few as possible.
 - **Material Selection:**
-   - Material model selection should be simplified based on the artistic style. For example, for cartoon-style models where lighting is merged into the diffuse texture, you can directly choose _unlit_ materials without the need for complex _PBR_ material models.
-   - Prioritize non-transparent materials as they are less performance-intensive compared to transparent materials, whether in terms of material transparency blending or transparent clipping modes.
+   - The choice of material model should be as simple as possible according to the art style. For example, cartoon-style models that directly merge lighting into the diffuse map can directly choose _unlit_ materials without using complex _PBR_ material models.
+   - Prefer non-transparent materials, as both transparent blending and transparent clipping modes are more performance-consuming compared to non-transparent materials.
 
-### Textures
+### Texture
 
-Textures consume a significant amount of VRAM resources. Avoid blindly pursuing quality with oversized textures. Evaluate the actual display pixels rasterized by textures in the project to use textures of similar sizes. Using excessively large textures not only fails to yield performance benefits but also wastes VRAM. Preferably use textures with sizes that are powers of 2. Additionally, you can continue to optimize VRAM usage by using [texture compression](/en/docs/graphics-texture-compression) within reasonable texture sizes.
+Textures are the main consumers of memory resources. The texture size should not blindly pursue quality using ultra-large sizes. It is necessary to evaluate the actual display pixels of the rasterized texture in the actual project to use a similar texture size. Otherwise, using an oversized texture not only does not gain effect benefits but also wastes memory. Try to use textures with dimensions that are powers of 2. Under reasonable texture sizes, you can also use [texture compression](/en/docs/graphics/texture/compression/) to optimize memory usage.
 
-### Nodes
+### Node
 
-Reduce the number of empty nodes at runtime. Empty nodes consume a certain amount of memory and may introduce potential computational costs for transformations. Artists should strive to delete empty nodes and merge fragmented nodes as much as possible.
+Reduce the number of empty nodes at runtime. Empty nodes occupy a certain amount of memory and may bring potential [transform](/en/docs/core/transform) calculation costs. Artists should try to delete empty nodes and merge fragmented nodes.
 
 ### Animation
 
-For animation production, it is recommended to use skeletal skinning animation. This is a technique in 3D engines that balances effects and memory usage. However, due to the significant computational cost of skeletal animation, especially in languages like JS that are not proficient in intensive computations, artists should ensure a minimal number of bones in skeletal animations. Keeping it below **25** bones can enhance the performance and memory usage of skeletal animations, especially on devices with limited GPU _uniform_ counts like iPhones.
+It is recommended to use skeletal animation for animation production. This is an animation technique that balances effects and memory in a 3D engine. However, due to the high computational cost of skeletal animation, especially in JS, which is not good at intensive calculations, artists should ensure that the number of bones is as few as possible when creating skeletal animations. This helps improve the performance and memory usage of skeletal animations. Generally, keeping it under **25** bones can ensure optimal performance on devices like iPhones, which have fewer GPU _uniforms_.
 
 ### UI
 
-Avoid wasting the Alpha part of UI elements. For instance, drawing UI elements with nearly full-screen but mostly transparent images can impose a significant rendering burden on the GPU. Additionally, artists should merge UI textures themselves and make efficient use of texture space as relying on editor algorithms for merging may still result in some waste.
+Reduce the waste of the Alpha part of the UI. For example, using nearly full-screen but mostly transparent images for UI rendering will bring a huge rendering burden to the GPU. Additionally, artists should merge UI textures themselves and make full use of texture space, as relying on the editor's algorithm to merge may still cause some waste.
 
 ### Effects
 
-Similar to UI textures, **reduce wastage in the size of transparent parts of effect textures**. Additionally, since effects typically have severe OverDraw, such as particles, it is essential to minimize emission frequencies on effects like particles to reduce rendering overhead.
+The texture part of effects is similar to UI. **Be sure to reduce the waste of the transparent part of the texture size**. Additionally, since effects usually have very serious OverDraw, such as particles, it is necessary to reduce the emission frequency of particles and other effects as much as possible.

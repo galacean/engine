@@ -1,9 +1,5 @@
 ---
-order: 2
 title: 编辑器使用
-type: 材质
-group: 网格
-label: Graphics/Material
 ---
 
 ## 编辑器使用
@@ -14,7 +10,7 @@ label: Graphics/Material
 
 ### 2. 导入模型
 
-参考[模型的导入和使用](/docs/graphics-model-use)教程，我们可以先将模型导入到编辑器，一般情况下，模型已经自动绑定好材质，用户可以不用做任何操作；如果想要修改材质，我们需要点击 `duplicate & remap` 按钮来生成一份该材质的副本，然后再编辑该材质副本。
+参考[模型的导入和使用](/docs/graphics/model/use/)教程，我们可以先将模型导入到编辑器，一般情况下，模型已经自动绑定好材质，用户可以不用做任何操作；如果想要修改材质，我们需要点击 `duplicate & remap` 按钮来生成一份该材质的副本，然后再编辑该材质副本。
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/1f5caa3a-bc01-419f-83c0-dd0ef12692bf/remap.gif" alt="remap" style="zoom:100%;" />
 
@@ -24,4 +20,4 @@ label: Graphics/Material
 
 ### 3. 调整材质
 
-具体操作详见[着色器教程](/docs/graphics-shader)。
+具体操作详见[着色器教程](/docs/graphics/shader/intro/)。

@@ -6,15 +6,15 @@ group: Background
 label: Graphics/Background
 ---
 
-When the background type of the scene is set to Solid Color, the rendering area of the canvas will be filled with the corresponding solid color background before camera rendering.
+When the background type of the scene is set to solid color, the rendering area of the canvas will be filled with the corresponding solid color background before the camera renders.
 
-## Set Solid Color Background
+## Setting a Solid Color Background
 
-Navigate to **[Hierarchy Panel](/en/docs/interface-hierarchy)** -> **Select Scene** -> **[Inspector Panel](/en/docs/interface-inspector)** -> **Background section** and set **Mode** to **Solid Color**. Then choose the desired background color, and you will see the background of the scene change in real-time.
+Navigate to **[Hierarchy Panel](/en/docs/interface/hierarchy)** -> **Select Scene** -> **[Inspector Panel](/en/docs/interface/inspector)** -> **Background Section** and set **Mode** to **Solid Color**, then choose the desired background color. You will see the background of the scene change in real-time.
 
 ![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*RDQ-T5h7YdEAAAAAAAAAAAAADhuCAQ/original)
 
-Similarly, you can also set this in scripts using the following code:
+Similarly, you can also set it in the script with the following code:
 
 ```typescript
 // 获取当前场景的背景实例
@@ -29,9 +29,9 @@ background.solidColor.set(0, 0, 0, 0);
 
 ## Properties
 
-It is important to note that all background-related properties are within the scene's `background` property. You need to modify these properties after obtaining the instance of this property for the changes to take effect.
+It is important to note that the relevant properties of the background are all in the `background` property of the scene. After obtaining this property instance, you need to modify the relevant properties for them to take effect.
 
-| Property    | Description  |
-| :---------- | :----------- |
-| solidColor  | Set the background color |
+| Property   | Function          |
+| :--------- | :---------------- |
+| solidColor | Sets the background color |
 

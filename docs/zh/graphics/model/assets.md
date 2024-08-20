@@ -6,7 +6,7 @@ group: 模型
 label: Graphics/Model
 ---
 
-模型导入完毕后， **[资产面板](/docs/assets-interface)** 中会新增导入的模型资产，点击资产缩略图，可以看到这个模型的基本信息。
+模型导入完毕后， **[资产面板](/docs/assets/interface)** 中会新增导入的模型资产，点击资产缩略图，可以看到这个模型的基本信息。
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Aiu9SpMRvxYAAAAAAAAAAAAADhuCAQ/original" alt="image-20231009112328575" style="zoom:50%;" />
 
@@ -40,13 +40,13 @@ label: Graphics/Model
 
 ### 纹理子资产
 
-纹理子资产的基本信息与[纹理](/docs/graphics-texture)资产唯一的区别是纹理信息基本都是只读的。
+纹理子资产的基本信息与[纹理](/docs/graphics/texture/texture/)资产唯一的区别是纹理信息基本都是只读的。
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*o8mdQrcfvcoAAAAAAAAAAAAADhuCAQ/original" alt="image-20231009112328575" style="zoom:50%;" />
 
 ### 材质子资产
 
-同理，[材质](/docs/graphics-material)子资产也是如此：
+同理，[材质](/docs/graphics/material/material/)子资产也是如此：
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*ATbsRrxjiNsAAAAAAAAAAAAADhuCAQ/original" alt="image-20231009112328575" style="zoom:50%;" />
 
@@ -56,6 +56,6 @@ label: Graphics/Model
 
 ### 动画子资产
 
-动画子资产以[动画片段](/docs/animation-clip)的形式出现在模型资产中，它也是**只读**的。
+动画子资产以[动画片段](/docs/animation/clip)的形式出现在模型资产中，它也是**只读**的。
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*rAq5T4i3TTQAAAAAAAAAAAAADhuCAQ/original" alt="image-20231009112328575" style="zoom:50%;" />

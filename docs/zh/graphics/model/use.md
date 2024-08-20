@@ -11,7 +11,7 @@ label: Graphics/Model
 - 已经随场景文件预加载的模型，在脚本中的使用
 - 未预加载的模型，在脚本中的加载与使用
 
-在编辑器中，**放置在场景中的模型**都会随着场景文件被预先加载，依照步骤 **资产界面** -> **左键拖动模型缩略图** -> **拖动至[视图界面](/docs/interface-viewport)** -> **松开左键** -> **调整坐标** 即可将模型放置在对应场景中。
+在编辑器中，**放置在场景中的模型**都会随着场景文件被预先加载，依照步骤 **资产界面** -> **左键拖动模型缩略图** -> **拖动至[视图界面](/docs/interface/viewport)** -> **松开左键** -> **调整坐标** 即可将模型放置在对应场景中。
 
 > 编辑器不能直接调整模型节点的 scale 属性, 所以通常情况下, 你需要把模型节点拖拽到一个 entity 节点下, 然后调整 entity 节点的 scale 属性。
 
@@ -41,7 +41,7 @@ engine.resourceManager
   });
 ```
 
-在编辑器中，可以直接获取模型资产的 URL （ **[资产面板](/docs/assets-interface)** -> **右键模型资产缩略图** -> **Copy file info / Copy relative path**）：
+在编辑器中，可以直接获取模型资产的 URL （ **[资产面板](/docs/assets/interface)** -> **右键模型资产缩略图** -> **Copy file info / Copy relative path**）：
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*T6-QR7KrH8oAAAAAAAAAAAAADhuCAQ/original" alt="import" style="zoom: 50%;" />
 

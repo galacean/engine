@@ -6,7 +6,7 @@ group: 相机
 label: Graphics/Camera
 ---
 
-相机是一个图形引擎对 [3D 投影](https://en.wikipedia.org/wiki/3D_projection)的抽象概念，作用好比现实世界中的摄像机或眼睛。Galacean 的相机实现了自动视锥剔除，只渲染视锥体内的物体。
+相机是一个图形引擎对 [3D 投影](https://en.wikipedia.org/wiki/3D_projection)的抽象概念，作用好比现实世界中的摄像机或眼睛。如果不加相机，画布将什么都画不出来。Galacean 的相机实现了自动视锥剔除，只渲染视锥体内的物体。
 
 ## 相机的类型
 
@@ -50,7 +50,7 @@ Galacean 中的局部坐标与世界坐标遵循`右手坐标系`，因此相机
 
 介绍了相机的基本概念，接下来让我们上手：
 
-- 在场景中添加[相机组件](/docs/graphics-camera-component)
-- 通过[相机控件](/docs/graphics-camera-control)来更方便地操控[相机组件](/docs/graphics-camera-component)
-- 在场景中使用[多相机](graphics-camera-multiCamera)
-- 获取[相机深度纹理](graphics-camera-depthTexture)
+- 在场景中添加[相机组件](/docs/graphics/camera/component/)
+- 通过[相机控件](/docs/graphics/camera/control/)来更方便地操控[相机组件](/docs/graphics/camera/component/)
+- 在场景中使用[多相机](/docs/graphics/camera/multiCamera/)
+- 获取[相机纹理](/docs/graphics/camera/texture/)

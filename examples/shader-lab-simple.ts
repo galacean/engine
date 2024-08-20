@@ -33,11 +33,11 @@ const normalShaderSource = `Shader "Triangle" {
 
       struct a2v {
         vec4 POSITION;
-      }
+      };
 
       struct v2f {
         vec3 v_color;
-      }
+      };
 
       VertexShader = vert;
       FragmentShader = frag;
@@ -66,12 +66,12 @@ Shader "Lines" {
 
       struct a2v {
         vec4 POSITION;
-      }
+      };
 
       struct v2f {
         vec4 v_pos;
         vec3 v_color;
-      }
+      };
 
       VertexShader = vert;
       FragmentShader = frag;
@@ -94,10 +94,9 @@ Shader "Lines" {
       } 
     
       void frag(v2f i) {
-        vec2 iResolution = vec2(1.0, 1.0);
-        vec2 uv = i.v_pos.xy / iResolution.y;
+        vec2 uv = i.v_pos.xy;
         vec4 color = vec4(0.0);
-        for (float i = 0.0; i <= 7.0; i += 1.0) {
+        for (float i = 0.0; i <= 5.; i += 1.0) {
           float t = i / 5.0;
           color += Line(uv, 1.0 + t, 4.0 + t, vec3(0.2 + t * 0.7, 0.2 + t * 0.4, 0.3));
         }
