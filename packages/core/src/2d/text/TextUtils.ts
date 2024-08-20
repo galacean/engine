@@ -349,12 +349,15 @@ export class TextUtils {
     // Safari gets data confusion through getImageData when the canvas width is not an integer.
     // The measure text width of some special invisible characters may be 0, so make sure the width is at least 1.
     // @todo: Text layout may vary from standard and not support emoji.
-    const textMetrics = context.measureText(measureString);
+    const { actualBoundingBoxLeft, actualBoundingBoxRight, width: actualWidth } = context.measureText(measureString);
     // In some case (ex: " "), actualBoundingBoxRight and actualBoundingBoxLeft will be 0, so use width.
+    // TODO: With testing, actualBoundingBoxLeft + actualBoundingBoxRight is the actual rendering width
+    // but the space rules between characters are unclear. Using actualBoundingBoxRight + Math.abs(actualBoundingBoxLeft) is the closest to the native effect.
     const width = Math.max(
       1,
-      Math.round(textMetrics.actualBoundingBoxRight - textMetrics.actualBoundingBoxLeft || textMetrics.width)
+      Math.round(Math.max(actualBoundingBoxRight + Math.abs(actualBoundingBoxLeft), actualWidth))
     );
+    // Make sure enough width.
     let baseline = Math.ceil(context.measureText(TextUtils._measureBaseline).width);
     let height = baseline * TextUtils._heightMultiplier;
     baseline = (TextUtils._baselineMultiplier * baseline) | 0;
@@ -370,7 +373,11 @@ export class TextUtils {
     context.clearRect(0, 0, width, height);
     context.textBaseline = "middle";
     context.fillStyle = "#fff";
-    context.fillText(measureString, 0, baseline);
+    if (actualBoundingBoxLeft > 0) {
+      context.fillText(measureString, actualBoundingBoxLeft, baseline);
+    } else {
+      context.fillText(measureString, 0, baseline);
+    }
 
     const colorData = context.getImageData(0, 0, width, height).data;
     const len = colorData.length;
@@ -421,9 +428,9 @@ export class TextUtils {
         y: 0,
         w: width,
         h: size,
-        offsetX: 0,
+        offsetX: actualBoundingBoxLeft > 0 ? actualBoundingBoxLeft : 0,
         offsetY: (ascent - descent) * 0.5,
-        xAdvance: width,
+        xAdvance: Math.round(actualWidth),
         uvs: [new Vector2(), new Vector2(), new Vector2(), new Vector2()],
         ascent,
         descent,
