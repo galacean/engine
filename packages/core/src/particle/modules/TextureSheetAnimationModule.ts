@@ -16,14 +16,12 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   private static readonly _frameCurveMacro = ShaderMacro.getByName("RENDERER_TSA_FRAME_CURVE");
   private static readonly _frameRandomCurvesMacro = ShaderMacro.getByName("RENDERER_TSA_FRAME_RANDOM_CURVES");
 
-  private static readonly _cycleCountProperty = ShaderProperty.getByName("renderer_TSACycles");
-  private static readonly _tillingParamsProperty = ShaderProperty.getByName("renderer_TSATillingParams");
   private static readonly _frameMinCurveProperty = ShaderProperty.getByName("renderer_TSAFrameMinCurve");
   private static readonly _frameMaxCurveProperty = ShaderProperty.getByName("renderer_TSAFrameMaxCurve");
 
-  /** Start frame of the texture sheet. */
-  @deepClone
-  readonly startFrame = new ParticleCompositeCurve(0);
+  private static readonly _cycleCountProperty = ShaderProperty.getByName("renderer_TSACycles");
+  private static readonly _tillingParamsProperty = ShaderProperty.getByName("renderer_TSATillingParams");
+
   /** Frame over time curve of the texture sheet. */
   @deepClone
   readonly frameOverTime = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1)));
@@ -42,7 +40,7 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   @deepClone
   private _tiling = new Vector2(1, 1);
   @ignoreClone
-  private _textureSheetMacro: ShaderMacro;
+  private _frameCurveMacro: ShaderMacro;
 
   /**
    * Tiling of the texture sheet.
@@ -78,7 +76,7 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
       }
     }
 
-    this._textureSheetMacro = this._enableMacro(shaderData, this._textureSheetMacro, frameMacro);
+    this._frameCurveMacro = this._enableMacro(shaderData, this._frameCurveMacro, frameMacro);
   }
 
   /**
