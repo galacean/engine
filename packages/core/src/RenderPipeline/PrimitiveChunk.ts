@@ -163,7 +163,7 @@ export class PrimitiveChunk {
         pool.return(preArea);
         preArea = curArea;
         !notMerge && areas.splice(i - 1, 1);
-        return ;
+        return;
       } else if (preStart === curEnd) {
         curArea.size += size;
         pool.return(preArea);
