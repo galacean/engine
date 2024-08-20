@@ -207,5 +207,12 @@ export const E2E_CONFIG = {
       caseFileName: "postProcess-LDR-bloom-neutral",
       threshold: 0.2
     }
+  },
+  Text: {
+    TypedText: {
+      category: "Text",
+      caseFileName: "text-typed",
+      threshold: 0.4
+    }
   }
 };
