@@ -19,10 +19,10 @@ vec2 computeParticleUV(in vec2 uv, in float normalizedAge) {
 
         float frame = floor(normalizedFrame * renderer_TSATillingParams.z);
 
-        float totalULength = frame * renderer_TSATillingParams.x;
-        float floorTotalULength = floor(totalULength);
-        uv.x += totalULength - floorTotalULength;
-        uv.y += floorTotalULength * renderer_TSATillingParams.y;
+        float tileRow = frame * renderer_TSATillingParams.x;
+        float floorTotalULength = floor(tileRow);
+        uv.x += tileRow - tileRowIndex;
+        uv.y += tileRowIndex * renderer_TSATillingParams.y;
     #endif
     
     return uv;
