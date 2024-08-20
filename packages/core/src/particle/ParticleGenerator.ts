@@ -807,8 +807,8 @@ export class ParticleGenerator {
 
     // Simulation UV
     if (textureSheetAnimation.enabled) {
-      const { _tillingInfo, frameOverTime } = textureSheetAnimation;
-      const { x, y, z } = _tillingInfo;
+      const { frameOverTime } = textureSheetAnimation;
+      const { x, y, z } = textureSheetAnimation._tillingInfo;
 
       let tileRow = 0;
       if (frameOverTime.mode === ParticleCurveMode.Constant || frameOverTime.mode === ParticleCurveMode.TwoConstants) {
