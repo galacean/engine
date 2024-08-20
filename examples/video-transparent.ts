@@ -112,6 +112,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   dom.crossOrigin = "anonymous";
   dom.loop = true;
   dom.muted = true;
+  dom.playsInline = true;
   dom.play();
 
   // create video texture
