@@ -49,7 +49,6 @@ WebGLEngine.create({
     })
     .then((texture) => {
       const particleEntity = rootEntity.createChild("Fire");
-
       const particleRenderer = particleEntity.addComponent(ParticleRenderer);
 
       const material = new ParticleMaterial(engine);
@@ -57,8 +56,9 @@ WebGLEngine.create({
       material.blendMode = BlendMode.Additive;
       material.baseTexture = texture;
       particleRenderer.setMaterial(material);
-
       particleRenderer.generator.emission.shape = new ConeShape();
+
+      particleRenderer.generator.useAutoRandomSeed = false;
 
       const { textureSheetAnimation } = particleRenderer.generator;
       textureSheetAnimation.tiling = new Vector2(5, 3);
