@@ -136,14 +136,14 @@ export class AnimatorStateMachine {
   }
 
   /**
-   * Clears all entry transitions from the state.
+   * Clears all entry transitions from the stateMachine.
    */
   clearEntryTransitions(): void {
     this._entryTransitions.length = 0;
   }
 
   /**
-   * Clears all any transitions from the state.
+   * Clears all any transitions from the stateMachine.
    */
   clearAnyStateTransitions(): void {
     this._anyStateTransitions.length = 0;
