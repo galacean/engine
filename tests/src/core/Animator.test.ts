@@ -720,6 +720,7 @@ describe("Animator test", function () {
     //@ts-ignore
     stateMachine._anyStateTransitions.length = 0;
     const walkState = animator.findAnimatorState("Run");
+    // For test clipStartTime is not 0 and transition duration is 0
     walkState.clipStartTime = 0.5;
     walkState.addStateMachineScript(
       class extends StateMachineScript {
@@ -730,6 +731,7 @@ describe("Animator test", function () {
     );
     const transition = stateMachine.addAnyStateTransition(animator.findAnimatorState("Run"));
     transition.addCondition(AnimatorConditionMode.Equals, "playRun", 1);
+    // For test clipStartTime is not 0 and transition duration is 0
     transition.duration = 0;
     animator.setParameterValue("playRun", 1);
 
@@ -739,7 +741,28 @@ describe("Animator test", function () {
     animator.update(0.5);
 
     expect(layerData.srcPlayData.state.name).to.eq("Run");
-    // @ts-ignore
     expect(layerData.srcPlayData.frameTime).to.eq(0.5);
+    expect(layerData.srcPlayData.clipTime).to.eq(walkState.clip.length * 0.5 + 0.5);
+  });
+
+  it("hasExitTime", () => {
+    const { animatorController } = animator;
+    const stateMachine = animatorController.layers[0].stateMachine;
+    const walkState = animator.findAnimatorState("Walk");
+    walkState.clipStartTime = 0.5;
+    const runState = animator.findAnimatorState("Run");
+    runState.clipStartTime = 0.5;
+    const transition = new AnimatorStateTransition();
+    transition.destinationState = runState;
+    transition.exitTime = 0.5;
+    transition.hasExitTime = true;
+    walkState.addTransition(transition);
+
+    animator.play("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.5);
+
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Run");
   });
 });

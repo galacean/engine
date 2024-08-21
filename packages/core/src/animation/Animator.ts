@@ -578,25 +578,34 @@ export class Animator extends Component {
     const { transitions } = state;
     const { anyStateTransitions } = layer.stateMachine;
 
-    const anyTransition =
-      anyStateTransitions.length &&
-      this._applyTransitionsByCondition(layerIndex, layerData, layer, state, anyStateTransitions, aniUpdate);
-    const stateTransition =
-      transitions.length &&
-      this._applyStateTransitions(
-        layerIndex,
-        layerData,
-        layer,
-        isForwards,
-        srcPlayData,
-        transitions,
-        lastClipTime,
-        clipTime,
-        playDeltaTime,
-        aniUpdate
-      );
+    const transition =
+      (anyStateTransitions.length &&
+        this._applyStateTransitions(
+          layerIndex,
+          layerData,
+          layer,
+          isForwards,
+          srcPlayData,
+          anyStateTransitions,
+          lastClipTime,
+          clipTime,
+          playDeltaTime,
+          aniUpdate
+        )) ||
+      (transitions.length &&
+        this._applyStateTransitions(
+          layerIndex,
+          layerData,
+          layer,
+          isForwards,
+          srcPlayData,
+          transitions,
+          lastClipTime,
+          clipTime,
+          playDeltaTime,
+          aniUpdate
+        ));
 
-    const transition = anyTransition || stateTransition;
     let playCostTime: number;
     if (transition) {
       const clipDuration = state.clip.length;
