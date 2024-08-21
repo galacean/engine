@@ -39,18 +39,18 @@ await engine.resourceManager.load({
 
 注意：`Uploadd Assets to CDN` 选项，如果勾选，则是通过 cdn 链接来加载动画；如果未勾选，则是通过本地文件相对路径加载动画。
 
-<img src="https://lark-assets-prod-aliyun.oss-cn-hangzhou.aliyuncs.com/lark/0/2024/png/76063/1723625698235-35d144af-6132-4443-86bd-ea1aac0dbaab.png?OSSAccessKeyId=LTAI4GGhPJmQ4HWCmhDAn4F5&Expires=1723629894&Signature=ABY7574qDvp7LSuVDOJiMTxKNeQ%3D&x-oss-process=image%2Fformat%2Cwebp%2Fresize%2Cw_856%2Climit_0&response-content-disposition=inline" width="260" alt="Project export panel">
+<img src="https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*0rZJQJRNamIAAAAAAAAAAAAADsp6AQ/original" width="260" alt="Project export panel">
 
 2. 找到 spine 资产文件
 
 下载项目到本地后，打开 project.json 文件，找到 url 属性并打开。
-如果上一步勾选了`Uploadd Assets to CDN`选项，那么可以在 json 文件中找到spine 资产链接：
+如果上一步勾选了`Uploadd Assets to CDN`选项，那么可以在 json 文件中找到 spine 资产链接：
 
-<img src="https://lark-assets-prod-aliyun.oss-cn-hangzhou.aliyuncs.com/lark/0/2024/png/76063/1723626809088-8e43170a-3370-4efb-b5a0-efbb7e53447f.png?OSSAccessKeyId=LTAI4GGhPJmQ4HWCmhDAn4F5&Expires=1723628613&Signature=6nGO0msM3MVVCtluiUgECJarzqg%3D&x-oss-process=image%2Fformat%2Cwebp%2Fresize%2Cw_1500%2Climit_0&response-content-disposition=inline" width="630" alt="Find spine assset">
+<img src="https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*-eG9RafXm64AAAAAAAAAAAAADsp6AQ/original" width="630" alt="Find spine assset">
 
-如果上一步未勾选`Uploadd Assets to CDN`选项，可以在本地 `public 文件夹`中找到 spine 资产。加载时，使用相对路径作为链接即可。
+如果上一步未勾选`Uploadd Assets to CDN`选项，可以在本地 `public 文件夹`中找到 spine 资产。加载时，使用<b>相对路径</b>作为链接即可。
 
-<img src="https://lark-assets-prod-aliyun.oss-cn-hangzhou.aliyuncs.com/lark/0/2024/png/76063/1723627676520-e86baa02-02b8-463c-97c6-29ba706c2f79.png?OSSAccessKeyId=LTAI4GGhPJmQ4HWCmhDAn4F5&Expires=1723629486&Signature=zJ9EpUh9AnRYxsITn8wM0mWA%2Ffk%3D&x-oss-process=image%2Fformat%2Cwebp&response-content-disposition=inline" width="230" alt="Find spine assset">
+<img src="https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*KT9yTZWQ2C8AAAAAAAAAAAAADsp6AQ/original" width="300" alt="Find spine assset">
 
 
 2. 使用 resourceManager 加载
@@ -290,26 +290,29 @@ addAnimation 接受 4 个参数：
 
 前三个参数很好理解，这里解释一下第四个参数：
 delay 代表了前一个动画的持续时间。
+
 当 delay > 0 时（假设 delay 为 1），前一个动画会在播放 1 秒后，切换到下一个动画。如下图所示：
 
-<img src="https://intranetproxy.alipay.com/skylark/lark/0/2024/png/76063/1721274299254-431c2e96-9c3b-482e-a06b-350023042200.png#clientId=uf07edf19-371c-4&from=paste&height=129&id=u189d34f4&originHeight=348&originWidth=1286&originalType=binary&ratio=2&rotation=0&showTitle=false&size=92765&status=done&style=none&taskId=u329862b0-6b18-42b7-b7f2-4a5c118842d&title=&width=477" width="377" alt="animation delay > 0">
+<img src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*-sY9TrNI8L8AAAAAAAAAAAAADvX8AQ/original" width="350" alt="animation delay > 0">
 
 如果动画 A 的时长小于 1 秒，则会根据是否设置了循环播放：循环播放直至 1 秒，或者播放完毕后，保持在动画播放完毕的状态直至 1 秒。
+
 当 delay = 0 时，下一个动画会在前一个动画播放完毕后播放，如下图所示：
 
-<img src="https://intranetproxy.alipay.com/skylark/lark/0/2024/png/76063/1721274614500-0cde58d2-ebb8-4d07-bf3a-5defb2278733.png#clientId=uf07edf19-371c-4&from=paste&height=168&id=uf2d2deb7&originHeight=476&originWidth=1324&originalType=binary&ratio=2&rotation=0&showTitle=false&size=118555&status=done&style=none&taskId=u1ec109a1-934a-4620-9d40-4d6c5987e6d&title=&width=467" width="377" alt="animation delay = 0">
+<img src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*jk2VRaHwUXMAAAAAAAAAAAAADvX8AQ/original" width="350" alt="animation delay = 0">
 
 假设动画 A 的时长为 1 秒，过渡持续时间为 0.2 秒，当 delay 设置为 0 时，动画 B 会从 1 - 0.2 也就是 0.8 秒开始过渡到动画 B。
+
 当 delay < 0 时，上一个动画未播放完毕前，下一个动画就会开始播放，如下图所示：
 同样假设动画 A 的时长为 1 秒，过渡持续时间为 0.2 秒，动画 B 则会从 0.6 秒开始过渡到动画 B。
 
-<img src="https://intranetproxy.alipay.com/skylark/lark/0/2024/png/76063/1721281456701-391d3d2d-d4f4-42df-9947-43aca9e191ca.png#clientId=uf07edf19-371c-4&from=paste&height=189&id=u3e7c7104&originHeight=496&originWidth=1218&originalType=binary&ratio=2&rotation=0&showTitle=false&size=128314&status=done&style=none&taskId=u924e3b93-e550-4b9a-88d6-dc168361331&title=&width=464" width="377" alt="animation delay < 0">
+<img src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*1xJDTLr0ygAAAAAAAAAAAAAADvX8AQ/original" width="350" alt="animation delay < 0">
 
-除了 addAnimation 外，还能够通过 addEmptyAnimation 方法添加空动画。空动画能够让动画回到初始状态。
+除了 addAnimation 外，还能够通过 [addEmptyAnimation](https://zh.esotericsoftware.com/spine-api-reference#AnimationState-addEmptyAnimation) 方法添加空动画。空动画能够让动画回到初始状态。
 
 addEmptyAnimation 接受三个参数：TrackIndex，mixDuration 和 delay。TrackIndex 和 delay 参数与 addAnimation 一样。 mixDuration 是过渡持续时间，动画会在 mixDuration 时间内逐渐回到初始状态。如下图所示（右侧棕色区域即是空动画），
 
-<img src="https://intranetproxy.alipay.com/skylark/lark/0/2024/png/76063/1721283804385-16d67f51-f1ae-48e5-94c5-7e1a9791b2dc.png#clientId=uf07edf19-371c-4&from=paste&height=138&id=u06ecf378&originHeight=516&originWidth=1000&originalType=binary&ratio=2&rotation=0&showTitle=false&size=126222&status=done&style=none&taskId=u1e6ba48f-dd00-49b1-83e2-3566d25f500&title=&width=267" width="267" alt="Add empty animation api">
+<img src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*UdLBR4xoXAEAAAAAAAAAAAAADvX8AQ/original" width="267" alt="Add empty animation api">
 
 #### **轨道参数**
 setAnimation 和 addAnimation 方法都会返回一个对象：TrackEntry。TrackEntry 提供了更多的参数来进行动画控制。
@@ -323,7 +326,7 @@ setAnimation 和 addAnimation 方法都会返回一个对象：TrackEntry。Trac
 更多参数可以参考 [TrackEntry 官方文档](https://zh.esotericsoftware.com/spine-api-reference#TrackEntry)
 #### **动画事件**
 
-<img src="https://intranetproxy.alipay.com/skylark/lark/0/2024/png/76063/1721284098876-d94511d5-d69a-4754-80ef-4f9686cd17a2.png#clientId=uf07edf19-371c-4&from=paste&height=251&id=uf1167cf1&originHeight=280&originWidth=760&originalType=binary&ratio=2&rotation=0&showTitle=false&size=19012&status=done&style=none&taskId=u00edc2c8-9810-44ad-9254-34d8aa2d258&title=&width=681" width="681" alt="Animation event diagram">
+<img src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*j4SmSKjherYAAAAAAAAAAAAADvX8AQ/original" width="681" alt="Animation event diagram">
 
 当调用 AnimationState API 进行动画控制时，会触发如上图所示的事件。
 在新的动画开始播放时，会触发 Start 事件，当动画在动画队列中移除或者中断时，会触发 End 事件。当动画播放完毕时，无论是否循环，都会触发 Complete 事件。
