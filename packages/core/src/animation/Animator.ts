@@ -895,7 +895,6 @@ export class Animator extends Component {
     deltaTime: number,
     aniUpdate: boolean
   ): void {
-    const { stateMachine } = layer;
     const playData = layerData.srcPlayData;
     const { state } = playData;
     const actualSpeed = state.speed * this.speed;
