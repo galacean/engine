@@ -17,6 +17,10 @@ export class AnimatorStateTransition {
   destinationState: AnimatorState;
   /** Mutes the transition. The transition will never occur. */
   mute: boolean = false;
+  /** When active the transition will have an exit time condition. */
+  hasExitTime: boolean = true;
+  /** Determines whether the duration of the transition is reported in a fixed duration in seconds or as a normalized time. */
+  hasFixedDuration: boolean = false;
 
   /** @internal */
   _srcState: AnimatorState;

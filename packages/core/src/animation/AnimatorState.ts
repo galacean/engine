@@ -112,14 +112,19 @@ export class AnimatorState {
     transition._srcState = this;
     const transitions = this._transitions;
     const count = transitions.length;
-    const time = transition.exitTime;
-    const maxExitTime = count ? transitions[count - 1].exitTime : 0;
-    if (time >= maxExitTime) {
-      transitions.push(transition);
+
+    if (transition.hasExitTime) {
+      const time = transition.exitTime;
+      const maxExitTime = count ? transitions[count - 1].exitTime : 0;
+      if (time >= maxExitTime) {
+        transitions.push(transition);
+      } else {
+        let index = count;
+        while (--index >= 0 && time < transitions[index].exitTime);
+        transitions.splice(index + 1, 0, transition);
+      }
     } else {
-      let index = count;
-      while (--index >= 0 && time < transitions[index].exitTime);
-      transitions.splice(index + 1, 0, transition);
+      transitions.unshift(transition);
     }
 
     transition.solo && !this._hasSoloTransition && this._updateSoloTransition(true);

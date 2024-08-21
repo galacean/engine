@@ -142,6 +142,7 @@ export class AnimatorStateMachine {
     let transition: AnimatorStateTransition;
     if (transitionOrAnimatorState instanceof AnimatorState) {
       transition = new AnimatorStateTransition();
+      transition.hasExitTime = false;
       transition.destinationState = transitionOrAnimatorState;
     } else {
       transition = transitionOrAnimatorState;

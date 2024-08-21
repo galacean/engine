@@ -53,8 +53,13 @@ export class AnimatorController extends ReferResource {
    * Add a parameter to the controller.
    * @param name - The name of the parameter
    * @param defaultValue - The default value of the parameter
+   * @param isTrigger - Is the parameter a trigger, if true, the parameter will act as a trigger, trigger work mostly like bool parameter, but their values are reset to false after check a Transition.
    */
-  addParameter(name: string, defaultValue?: AnimatorControllerParameterValue): AnimatorControllerParameter {
+  addParameter(
+    name: string,
+    defaultValue?: AnimatorControllerParameterValue,
+    isTrigger: boolean = false
+  ): AnimatorControllerParameter {
     if (this._parametersMap[name]) {
       console.warn(`Parameter ${name} already exists.`);
       return null;
@@ -62,6 +67,7 @@ export class AnimatorController extends ReferResource {
     const param = new AnimatorControllerParameter();
     param.name = name;
     param.defaultValue = defaultValue;
+    param._isTrigger = isTrigger;
     param._onNameChanged = (oldName, newName) => {
       delete this._parametersMap[oldName];
       this._parametersMap[newName] = param as AnimatorControllerParameter;
