@@ -94,7 +94,7 @@ export class AnimatorStateMachine {
    */
   addEntryStateTransition(transition: AnimatorStateTransition): AnimatorStateTransition;
   /**
-   * Add an entry transition to the destination state.
+   * Add an entry transition to the destination state, the default value of entry transition's hasExitTime is false.
    * @param animatorState - The destination state
    */
 
@@ -118,7 +118,7 @@ export class AnimatorStateMachine {
    */
   addAnyStateTransition(transition: AnimatorStateTransition): AnimatorStateTransition;
   /**
-   * Add an any transition to the destination state.
+   * Add an any transition to the destination state, the default value of any transition's hasExitTime is false.
    * @param animatorState - The destination state
    */
   addAnyStateTransition(animatorState: AnimatorState): AnimatorStateTransition;
@@ -133,6 +133,20 @@ export class AnimatorStateMachine {
    */
   removeAnyStateTransition(transition: AnimatorStateTransition): void {
     this._removeTransition(transition, this._anyStateTransitions);
+  }
+
+  /**
+   * Clears all entry transitions from the state.
+   */
+  clearEntryTransitions(): void {
+    this._entryTransitions.length = 0;
+  }
+
+  /**
+   * Clears all any transitions from the state.
+   */
+  clearAnyStateTransitions(): void {
+    this._anyStateTransitions.length = 0;
   }
 
   private _addTransition(

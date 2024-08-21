@@ -58,6 +58,8 @@ export class Animator extends Component {
 
   @ignoreClone
   private _tempAnimatorStateInfo: IAnimatorStateInfo = { layerIndex: -1, state: null };
+  @ignoreClone
+  private _tempTriggerParametersName: string[] = [];
 
   @ignoreClone
   private _controlledRenderers: Renderer[] = [];
@@ -179,6 +181,7 @@ export class Animator extends Component {
 
     const animatorController = this._animatorController;
     if (!animatorController) {
+      this._resetTriggerParameters();
       return;
     }
 
@@ -193,6 +196,8 @@ export class Animator extends Component {
       const layerData = this._getAnimatorLayerData(i);
       this._updateState(i, layerData, layers[i], deltaTime, animationUpdate);
     }
+
+    this._resetTriggerParameters();
   }
 
   /**
@@ -262,6 +267,7 @@ export class Animator extends Component {
 
     if (parameter?._isTrigger) {
       this._parametersValueMap[name] = true;
+      this._tempTriggerParametersName.push(name);
     }
   }
 
@@ -1507,6 +1513,12 @@ export class Animator extends Component {
       this._callAnimatorScriptOnExit(state, layerIndex);
     } else {
       this._callAnimatorScriptOnUpdate(state, layerIndex);
+    }
+  }
+
+  private _resetTriggerParameters(): void {
+    for (let i = 0, n = this._tempTriggerParametersName.length; i < n; i++) {
+      this._parametersValueMap[this._tempTriggerParametersName[i]] = false;
     }
   }
 }

@@ -16,7 +16,6 @@ import {
   AnimatorController,
   WrapMode,
   StateMachineScript,
-  AnimatorState,
   Entity
 } from "@galacean/engine-core";
 import { GLTFResource } from "@galacean/engine-loader";
@@ -717,8 +716,8 @@ describe("Animator test", function () {
     const layerData = animator._getAnimatorLayerData(0);
     animatorController.addParameter("playRun", 0);
     const stateMachine = animatorController.layers[0].stateMachine;
-    //@ts-ignore
-    stateMachine._anyStateTransitions.length = 0;
+    stateMachine.clearEntryTransitions();
+    stateMachine.clearAnyStateTransitions();
     const walkState = animator.findAnimatorState("Run");
     // For test clipStartTime is not 0 and transition duration is 0
     walkState.clipStartTime = 0.5;
@@ -747,22 +746,127 @@ describe("Animator test", function () {
 
   it("hasExitTime", () => {
     const { animatorController } = animator;
+    animatorController.clearParameters();
+    animatorController.addParameter("triggerIdle", false);
+    // @ts-ignore
+    const layerData = animator._getAnimatorLayerData(0);
     const stateMachine = animatorController.layers[0].stateMachine;
+    stateMachine.clearEntryTransitions();
+    stateMachine.clearAnyStateTransitions();
+    const idleState = animator.findAnimatorState("Survey");
+    idleState.speed = 1;
+    idleState.clearTransitions();
     const walkState = animator.findAnimatorState("Walk");
-    walkState.clipStartTime = 0.5;
+    walkState.clipStartTime = 0;
+    walkState.clearTransitions();
     const runState = animator.findAnimatorState("Run");
-    runState.clipStartTime = 0.5;
-    const transition = new AnimatorStateTransition();
-    transition.destinationState = runState;
-    transition.exitTime = 0.5;
-    transition.hasExitTime = true;
-    walkState.addTransition(transition);
+    runState.clearTransitions();
+    const walkToRunTransition = walkState.addTransition(runState);
+    walkToRunTransition.hasExitTime = true;
+    walkToRunTransition.exitTime = 0.5;
+    walkToRunTransition.duration = 0;
 
     animator.play("Walk");
     // @ts-ignore
     animator.engine.time._frameCount++;
-    animator.update(0.5);
+    animator.update(walkState.clip.length * 0.5);
+    expect(layerData.destPlayData.state.name).to.eq("Run");
+    expect(layerData.destPlayData.frameTime).to.eq(0);
+    const anyToIdleTransition = stateMachine.addAnyStateTransition(idleState);
+    anyToIdleTransition.hasExitTime = false;
+    anyToIdleTransition.duration = 0.2;
+    anyToIdleTransition.addCondition(AnimatorConditionMode.If, "triggerIdle");
+    animator.setParameterValue("triggerIdle", true);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+    expect(layerData.srcPlayData.state.name).to.eq("Run");
+    expect(layerData.srcPlayData.frameTime).to.eq(0.1);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(idleState.clip.length * 0.2 - 0.1);
+    expect(layerData.srcPlayData.state.name).to.eq("Survey");
+    expect(layerData.srcPlayData.clipTime).to.eq(idleState.clip.length * 0.2);
+  });
 
-    expect(animator.getCurrentAnimatorState(0).name).to.eq("Run");
+  it("setTrigger", () => {
+    const { animatorController } = animator;
+    animatorController.clearParameters();
+    animatorController.addParameter("triggerRun", false, true);
+    animatorController.addParameter("triggerWalk", false, true);
+    // @ts-ignore
+    const layerData = animator._getAnimatorLayerData(0);
+    const stateMachine = animatorController.layers[0].stateMachine;
+    stateMachine.clearEntryTransitions();
+    stateMachine.clearAnyStateTransitions();
+    const walkState = animator.findAnimatorState("Walk");
+    walkState.clearTransitions();
+    const runState = animator.findAnimatorState("Run");
+    runState.clipStartTime = 0;
+    runState.clearTransitions();
+    const walkToRunTransition = walkState.addTransition(runState);
+    walkToRunTransition.hasExitTime = false;
+    walkToRunTransition.duration = 0.1;
+    walkToRunTransition.addCondition(AnimatorConditionMode.If, "triggerRun");
+
+    const runToWalkTransition = runState.addTransition(walkState);
+    runToWalkTransition.hasExitTime = true;
+    runToWalkTransition.exitTime = 0.7;
+    runToWalkTransition.duration = 0.3;
+
+    animator.play("Walk");
+    animator.setTrigger("triggerRun");
+    animator.setTrigger("triggerWalk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+    expect(layerData.srcPlayData.state.name).to.eq("Walk");
+    expect(layerData.srcPlayData.frameTime).to.eq(0.1);
+    expect(layerData.destPlayData.state.name).to.eq("Run");
+    expect(layerData.destPlayData.frameTime).to.eq(0.1);
+    expect(animator.getParameterValue("triggerRun")).to.eq(false);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(runState.clip.length * 0.1 - 0.1);
+    expect(layerData.srcPlayData.state.name).to.eq("Run");
+    expect(layerData.srcPlayData.frameTime).to.eq(runState.clip.length * 0.1);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(runState.clip.length * 0.6);
+    expect(layerData.destPlayData.state.name).to.eq("Walk");
+    expect(layerData.destPlayData.frameTime).to.eq(0);
+    expect(animator.getParameterValue("triggerWalk")).to.eq(false);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(walkState.clip.length * 0.3);
+    expect(layerData.srcPlayData.state.name).to.eq("Walk");
+    expect(layerData.srcPlayData.frameTime).to.eq(walkState.clip.length * 0.3);
+  });
+
+  it("fixedDuration", () => {
+    const { animatorController } = animator;
+    animatorController.clearParameters();
+    animatorController.addParameter("triggerRun", false, true);
+    animatorController.addParameter("triggerWalk", false, true);
+    // @ts-ignore
+    const layerData = animator._getAnimatorLayerData(0);
+    const walkState = animator.findAnimatorState("Walk");
+    walkState.clearTransitions();
+    const runState = animator.findAnimatorState("Run");
+    runState.clipStartTime = runState.clipEndTime = 0;
+    runState.clearTransitions();
+    const walkToRunTransition = walkState.addTransition(runState);
+    walkToRunTransition.hasExitTime = false;
+    walkToRunTransition.hasFixedDuration = true;
+    walkToRunTransition.duration = 0.1;
+    walkToRunTransition.addCondition(AnimatorConditionMode.If, "triggerRun");
+    animator.play("Walk");
+    animator.setTrigger("triggerRun");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+    expect(layerData.srcPlayData.state.name).to.eq("Run");
+    expect(layerData.srcPlayData.frameTime).to.eq(0.1);
+    expect(layerData.srcPlayData.clipTime).to.eq(0);
   });
 });

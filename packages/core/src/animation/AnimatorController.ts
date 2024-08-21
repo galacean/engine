@@ -91,6 +91,16 @@ export class AnimatorController extends ReferResource {
   }
 
   /**
+   * Clear parameters.
+   */
+  clearParameters(): void {
+    this._parameters.length = 0;
+    for (let name in this._parametersMap) {
+      delete this._parametersMap[name];
+    }
+  }
+
+  /**
    * Get the parameter by name.
    * @param name - The name of the parameter
    */
