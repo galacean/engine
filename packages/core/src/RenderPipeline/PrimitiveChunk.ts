@@ -138,17 +138,11 @@ export class PrimitiveChunk {
   }
 
   private _freeArea(area: VertexArea): void {
-    const freeAreas = this.vertexFreeAreas;
-    const areaLen = freeAreas.length;
-    if (areaLen === 0) {
-      freeAreas.push(area);
-      return;
-    }
-
     const { start, size } = area;
+    const freeAreas = this.vertexFreeAreas;
     const end = start + size;
     const pool = PrimitiveChunk.areaPool;
-    for (let i = 0; i < areaLen; ++i) {
+    for (let i = 0, areaLen = freeAreas.length; i < areaLen; ++i) {
       const curFreeArea = freeAreas[i];
       const curStart = curFreeArea.start;
       const curEnd = curStart + curFreeArea.size;
@@ -156,13 +150,13 @@ export class PrimitiveChunk {
       if (end < curStart) {
         // The area to be freed is to the left of the current free area and is not connected
         freeAreas.splice(i, 0, area);
-        break;
+        return;
       } else if (end === curStart) {
         // The area to be freed is to the left of the current free area and is connected
         curFreeArea.start = start;
         curFreeArea.size += size;
         pool.return(area);
-        break;
+        return;
       } else if (start === curEnd) {
         // The area to be freed is to the right of the current free area and is connected
         curFreeArea.size += size;
@@ -177,11 +171,11 @@ export class PrimitiveChunk {
             pool.return(nextFreeArea);
           }
         }
-        break;
-      } else if (start > curEnd) {
-        // The area to be freed is to the right of the current free area and is not connected
-        i + 1 === areaLen && freeAreas.push(area);
+        return;
       }
     }
+
+    // The area to be freed is to the right of the last free area and is not connected or free areas is empty
+    freeAreas.push(area);
   }
 }
