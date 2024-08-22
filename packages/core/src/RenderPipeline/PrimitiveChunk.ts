@@ -145,11 +145,11 @@ export class PrimitiveChunk {
       return;
     }
 
+    const { start, size } = area;
+    const end = start + size;
     const pool = PrimitiveChunk.areaPool;
     for (let i = 0; i < areaLen; ++i) {
       const curFreeArea = freeAreas[i];
-      const { start, size } = area;
-      const end = start + size;
       const curStart = curFreeArea.start;
       const curEnd = curStart + curFreeArea.size;
 
