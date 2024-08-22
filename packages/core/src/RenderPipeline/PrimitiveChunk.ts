@@ -179,6 +179,7 @@ export class PrimitiveChunk {
         }
         break;
       } else if (start > curEnd) {
+        // The area to be freed is to the right of the current free area and is not connected.
         i + 1 === areaLen && freeAreas.push(area);
       }
     }
