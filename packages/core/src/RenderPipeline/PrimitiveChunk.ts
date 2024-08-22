@@ -138,39 +138,48 @@ export class PrimitiveChunk {
   }
 
   private _freeArea(area: VertexArea): void {
-    const areas = this.vertexFreeAreas;
-    const areaLen = areas.length;
+    const freeAreas = this.vertexFreeAreas;
+    const areaLen = freeAreas.length;
     if (areaLen === 0) {
-      areas.push(area);
+      freeAreas.push(area);
       return;
     }
 
     const pool = PrimitiveChunk.areaPool;
-    let preArea = area;
-    let notMerge = true;
     for (let i = 0; i < areaLen; ++i) {
-      const curArea = areas[i];
-      const { start: preStart, size } = preArea;
-      const { start: curStart } = curArea;
-      const preEnd = preStart + size;
-      const curEnd = curStart + curArea.size;
-      if (preEnd < curStart) {
-        notMerge && areas.splice(i, 0, preArea);
-        return;
-      } else if (preEnd === curStart) {
-        curArea.start = preStart;
-        curArea.size += size;
-        pool.return(preArea);
-        preArea = curArea;
-        !notMerge && areas.splice(i - 1, 1);
-        return;
-      } else if (preStart === curEnd) {
-        curArea.size += size;
-        pool.return(preArea);
-        preArea = curArea;
-        notMerge = false;
-      } else if (preStart > curEnd) {
-        i + 1 === areaLen && areas.push(preArea);
+      const curFreeArea = freeAreas[i];
+      const { start, size } = area;
+      const end = start + size;
+      const curStart = curFreeArea.start;
+      const curEnd = curStart + curFreeArea.size;
+
+      if (end < curStart) {
+        // The area to be freed is to the left of the current free area and is not connected.
+        freeAreas.splice(i, 0, area);
+        break;
+      } else if (end === curStart) {
+        // The area to be freed is to the left of the current free area and is connected.
+        curFreeArea.start = start;
+        curFreeArea.size += size;
+        pool.return(area);
+        break;
+      } else if (start === curEnd) {
+        // The area to be freed is to the right of the current free area and is connected.
+        curFreeArea.size += size;
+        pool.return(area);
+        const nextIndex = i + 1;
+        if (nextIndex < areaLen) {
+          const nextFreeArea = freeAreas[nextIndex];
+          if (end === nextFreeArea.start) {
+            // The cur free area after merge is to the left of the next free area and is connected.
+            curFreeArea.size += nextFreeArea.size;
+            freeAreas.splice(nextIndex, 1);
+            pool.return(nextFreeArea);
+          }
+        }
+        break;
+      } else if (start > curEnd) {
+        i + 1 === areaLen && freeAreas.push(area);
       }
     }
   }
