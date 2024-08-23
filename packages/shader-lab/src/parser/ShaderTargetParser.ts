@@ -11,6 +11,7 @@ import { LALR1 } from "../lalr";
 import { ParserUtils } from "../Utils";
 import { Logger } from "@galacean/engine";
 import { CompilationError } from "../Error";
+import { ShaderLab } from "../ShaderLab";
 
 /**
  * The syntax parser and sematic analyzer of `ShaderLab` compiler
@@ -109,7 +110,9 @@ export class ShaderTargetParser {
         traceBackStack.push(nextState);
         continue;
       } else {
-        this.sematicAnalyzer.errors.push(new CompilationError(`Unexpected token ${token.lexeme}`, token.location));
+        this.sematicAnalyzer.errors.push(
+          new CompilationError(`Unexpected token ${token.lexeme}`, token.location, ShaderLab._processingPassText)
+        );
         return null;
       }
     }

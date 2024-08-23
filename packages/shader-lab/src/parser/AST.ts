@@ -435,7 +435,7 @@ export namespace ASTNode {
           this.compute = (a, b) => a % b;
           break;
         default:
-          throw `not implemented operator ${operator.lexeme}`;
+          sa.error(operator.location, `not implemented operator ${operator.lexeme}`);
       }
     }
   }
@@ -459,10 +459,10 @@ export namespace ASTNode {
         else {
           const id = child as VariableIdentifier;
           if (!id.symbolInfo) {
-            sa.error(id.location, "undeclared symbol:", id.lexeme);
+            sa.error(id.location, "Undeclared symbol:", id.lexeme);
           }
           if (!ParserUtils.typeCompatible(EKeyword.INT, id.typeInfo)) {
-            sa.error(id.location, "invalid integer.");
+            sa.error(id.location, "Invalid integer.");
             return;
           }
         }
@@ -535,7 +535,7 @@ export namespace ASTNode {
         const arraySpecifier = this.children[3] as ArraySpecifier;
         // #if _EDITOR
         if (typeInfo.arraySpecifier && arraySpecifier) {
-          sa.error(arraySpecifier.location, "array of array is not supported.");
+          sa.error(arraySpecifier.location, "Array of array is not supported.");
         }
         // #endif
         typeInfo.arraySpecifier = arraySpecifier;
@@ -872,7 +872,7 @@ export namespace ASTNode {
         const fnSymbol = sa.symbolTable.lookup({ ident: fnIdent, symbolType: ESymbolType.FN, signature: paramSig });
         if (!fnSymbol) {
           // #if _EDITOR
-          sa.error(this.location, "no overload function type found:", functionIdentifier.ident);
+          sa.error(this.location, "No overload function type found: ", functionIdentifier.ident);
           // #endif
           return;
         }

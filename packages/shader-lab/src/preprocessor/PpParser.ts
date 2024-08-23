@@ -103,8 +103,8 @@ export class PpParser {
     return this._expandSegmentsStack[this._expandSegmentsStack.length - 1];
   }
 
-  private static reportError(loc: ShaderRange | ShaderPosition, message: string) {
-    this._errors.push(new PreprocessorError(message, loc));
+  private static reportError(loc: ShaderRange | ShaderPosition, message: string, source: string, file: string) {
+    this._errors.push(new PreprocessorError(message, loc, source, file));
   }
 
   private static _parseInclude(scanner: PpScanner) {
@@ -126,7 +126,7 @@ export class PpParser {
     const end = scanner.getShaderPosition();
     const chunk = this._includeMap[includedPath];
     if (!chunk) {
-      this.reportError(id.location, `Shader slice "${includedPath}" not founded.`);
+      this.reportError(id.location, `Shader slice "${includedPath}" not founded.`, scanner.source, scanner.file);
       return;
     }
 
@@ -301,7 +301,7 @@ export class PpParser {
       scanner.skipSpace(false);
       const operand2 = this._parseRelationalExpression(scanner) as number;
       if (typeof operand1 !== typeof operand2 && typeof operand1 !== "number") {
-        this.reportError(opPos, "invalid operator in relation expression.");
+        this.reportError(opPos, "invalid operator in relation expression.", scanner.source, scanner.file);
         return;
       }
       switch (operator) {
@@ -327,7 +327,7 @@ export class PpParser {
       scanner.skipSpace(false);
       const operand2 = this._parseShiftExpression(scanner) as number;
       if (typeof operand1 !== typeof operand2 && typeof operand1 !== "number") {
-        this.reportError(opPos, "invalid operator in shift expression.");
+        this.reportError(opPos, "invalid operator in shift expression.", scanner.source, scanner.file);
         return;
       }
       switch (operator) {
@@ -351,7 +351,7 @@ export class PpParser {
       scanner.skipSpace(false);
       const operand2 = this._parseAdditiveExpression(scanner) as number;
       if (typeof operand1 !== typeof operand2 && typeof operand1 !== "number") {
-        this.reportError(opPos, "invalid operator.");
+        this.reportError(opPos, "invalid operator.", scanner.source, scanner.file);
         return false;
       }
       switch (operator) {
@@ -373,7 +373,7 @@ export class PpParser {
       scanner.skipSpace(false);
       const operand2 = this._parseMulticativeExpression(scanner) as number;
       if (typeof operand1 !== typeof operand2 && typeof operand1 !== "number") {
-        this.reportError(opPos, "invalid operator.");
+        this.reportError(opPos, "invalid operator.", scanner.source, scanner.file);
         return;
       }
       switch (operator) {
@@ -395,7 +395,7 @@ export class PpParser {
       const opPos = scanner.getShaderPosition();
       const parenExpr = this._parseParenthesisExpression(scanner);
       if ((operator === "!" && typeof parenExpr !== "boolean") || (operator !== "!" && typeof parenExpr !== "number")) {
-        this.reportError(opPos, "invalid operator.");
+        this.reportError(opPos, "invalid operator.", scanner.source, scanner.file);
       }
 
       switch (operator) {
@@ -440,11 +440,11 @@ export class PpParser {
           return false;
         }
         if (macro.isFunction) {
-          this.reportError(id.location, "invalid function macro usage");
+          this.reportError(id.location, "invalid function macro usage", scanner.source, scanner.file);
         }
         const value = Number(macro.body.lexeme);
         if (!Number.isInteger(value)) {
-          this.reportError(id.location, `invalid const macro: ${id.lexeme}`);
+          this.reportError(id.location, `invalid const macro: ${id.lexeme}`, scanner.source, scanner.file);
         }
         this._branchMacros.add(id.lexeme);
         return value;
@@ -453,7 +453,12 @@ export class PpParser {
       const integer = scanner.scanInteger();
       return Number(integer.lexeme);
     } else {
-      this.reportError(scanner.getShaderPosition(), `invalid token: ${scanner.getCurChar()}`);
+      this.reportError(
+        scanner.getShaderPosition(),
+        `invalid token: ${scanner.getCurChar()}`,
+        scanner.source,
+        scanner.file
+      );
     }
   }
 
@@ -590,7 +595,7 @@ export class PpParser {
 
     let end = macro.location.end;
     if (this._definedMacros.get(macro.lexeme) && macro.lexeme.startsWith("GL_")) {
-      this.reportError(macro.location, `redefined macro: ${macro.lexeme}`);
+      this.reportError(macro.location, `redefined macro: ${macro.lexeme}`, scanner.source, scanner.file);
     }
 
     let macroArgs: BaseToken[] | undefined;

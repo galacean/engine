@@ -2,44 +2,28 @@ import { Lexer } from "./lexer";
 import { ShaderTargetParser } from "./parser";
 import { Preprocessor } from "./preprocessor";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
-import { IShaderContent, IShaderLab } from "@galacean/engine-design/src/shader-lab";
+import { IShaderContent, IShaderLab } from "@galacean/engine-design";
 import { ShaderContentParser } from "./contentParser";
 // @ts-ignore
 import { Logger, ShaderLib, ShaderMacro, ShaderPass, ShaderPlatformTarget, ShaderProgram } from "@galacean/engine";
 import { ShaderPosition, ShaderRange } from "./common";
 import { ShaderLabObjectPool } from "./ShaderLabObjectPool";
-import { PreprocessorError, CompilationError } from "./Error";
+import { GSError } from "./Error";
 import { PpParser } from "./preprocessor/PpParser";
 
 export class ShaderLab implements IShaderLab {
-  /**
-   * @internal
-   */
   private static _parser = ShaderTargetParser.create();
-  /**
-   * @internal
-   */
   private static _shaderPositionPool = new ShaderLabObjectPool(ShaderPosition);
-  /**
-   * @internal
-   */
   private static _shaderRangePool = new ShaderLabObjectPool(ShaderRange);
 
-  static createPosition(
-    index: number,
-    // #if _EDITOR
-    line?: number,
-    column?: number
-    // #endif
-  ): ShaderPosition {
+  /**
+   * @internal
+   */
+  static _processingPassText?: string;
+
+  static createPosition(index: number, line?: number, column?: number): ShaderPosition {
     const position = this._shaderPositionPool.get();
-    position.setX(
-      index,
-      // #if _EDITOR
-      line,
-      column
-      // #endif
-    );
+    position.setX(index, line, column);
     return position;
   }
 
@@ -47,6 +31,15 @@ export class ShaderLab implements IShaderLab {
     const range = this._shaderRangePool.get();
     range.setX(start, end);
     return range;
+  }
+
+  private _errors: GSError[] = [];
+
+  /**
+   * Retrieve the compilation errors
+   */
+  get errors(): GSError[] | undefined {
+    return this._errors;
   }
 
   _parseShaderPass(
@@ -71,7 +64,10 @@ export class ShaderLab implements IShaderLab {
     const preprocessorStart = performance.now();
     const ppdContent = Preprocessor.process(source);
     if (PpParser._errors.length > 0) {
-      this._reportPreprocessError(PpParser._errors);
+      for (const err of PpParser._errors) {
+        this._errors.push(err);
+      }
+      this._logErrors(this._errors);
       return { vertex: "", fragment: "" };
     }
 
@@ -82,9 +78,13 @@ export class ShaderLab implements IShaderLab {
 
     const { _parser: parser } = ShaderLab;
 
+    ShaderLab._processingPassText = ppdContent;
     const program = parser.parse(tokens);
+    for (const err of parser.errors) {
+      this._errors.push(err);
+    }
     if (!program) {
-      this._reportParserError(parser.errors, ppdContent);
+      this._logErrors(this._errors);
       return { vertex: "", fragment: "" };
     }
     const codeGen =
@@ -93,11 +93,18 @@ export class ShaderLab implements IShaderLab {
     const start = performance.now();
     const ret = codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
     Logger.info(`[CodeGen] cost time: ${performance.now() - start}ms`);
+    ShaderLab._processingPassText = undefined;
+
+    for (const err of codeGen.errors) {
+      this._errors.push(err);
+    }
+    this._logErrors(this._errors);
 
     return ret;
   }
 
   _parseShaderContent(shaderSource: string): IShaderContent {
+    this._errors.length = 0;
     ShaderContentParser.reset();
     return ShaderContentParser.parse(shaderSource);
   }
@@ -135,23 +142,10 @@ export class ShaderLab implements IShaderLab {
   }
   // #endif
 
-  private _reportPreprocessError(errors: PreprocessorError[]) {
+  private _logErrors(errors: GSError[], source?: string) {
     if (!Logger.isEnabled) return;
-    const errorsMsg = errors.map((item) => item.toString()).join("\n");
-    Logger.error(
-      `\nPreprocessor error occur in file ${PpParser._scanningFile}:\n\n` +
-        errorsMsg +
-        "\nShaderLab source:\n\n" +
-        ShaderProgram._addLineNum(PpParser._scanningText)
-    );
-  }
-
-  private _reportParserError(errors: CompilationError[], source: string) {
-    if (!Logger.isEnabled) return;
-    const errorsMsg = errors.map((item) => item.toString()).join("\n");
-    Logger.error(
-      `\nShaderLab syntax error occur.\n${errorsMsg}\n\nExpanded ShaderLab source:\n\n` +
-        ShaderProgram._addLineNum(source)
-    );
+    for (const err of errors) {
+      err.log(source);
+    }
   }
 }

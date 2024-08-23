@@ -1,13 +1,11 @@
 import { ShaderRange } from "../common";
 import { TreeNode } from "./AST";
-// #if _EDITOR
 import { CompilationError } from "../Error";
-// #endif
 import { ShaderData } from "./ShaderInfo";
 import { SymbolInfo, SymbolTable } from "../parser/symbolTable";
 import { NodeChild } from "./types";
 import { SymbolTableStack } from "../common/BaseSymbolTable";
-import { Logger } from "@galacean/engine";
+import { ShaderLab } from "../ShaderLab";
 
 export type TranslationRule<T = any> = (sa: SematicAnalyzer, ...tokens: NodeChild[]) => T;
 
@@ -60,9 +58,7 @@ export default class SematicAnalyzer {
   }
 
   error(loc: ShaderRange, ...param: any[]) {
-    // Logger.warn(loc, ...param);
-
-    const err = new CompilationError(param.join(""), loc);
+    const err = new CompilationError(param.join(""), loc, ShaderLab._processingPassText);
     this.errors.push(err);
     return err;
   }

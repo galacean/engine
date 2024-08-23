@@ -11,8 +11,6 @@ import { VisitorContext } from "./VisitorContext";
  * The code generator
  */
 export class CodeGenVisitor {
-  protected constructor() {}
-
   defaultCodeGen(children: NodeChild[]) {
     let ret: string[] = [];
     for (const child of children) {

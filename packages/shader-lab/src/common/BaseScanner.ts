@@ -1,6 +1,6 @@
 import { ETokenType, ShaderRange, ShaderPosition } from ".";
+import { ScannerError } from "../Error";
 import { ShaderLab } from "../ShaderLab";
-import { ParserUtils } from "../Utils";
 import { BaseToken } from "./BaseToken";
 
 export type OnToken = (token: BaseToken, scanner: BaseScanner) => void;
@@ -35,16 +35,9 @@ export default class BaseScanner {
   }
 
   get curPosition(): ShaderPosition {
-    return ShaderLab.createPosition(
-      this._currentIndex,
-      // #if _EDITOR
-      this._column,
-      this._line
-      // #endif
-    );
+    return ShaderLab.createPosition(this._currentIndex, this._line, this._column);
   }
 
-  // #if _EDITOR
   get line() {
     return this._line;
   }
@@ -52,7 +45,6 @@ export default class BaseScanner {
   get column() {
     return this._column;
   }
-  // #endif
 
   protected readonly _keywordsMap: Map<string, number>;
 
@@ -83,14 +75,12 @@ export default class BaseScanner {
       return;
     }
 
-    // #if _EDITOR
     if (this.getCurChar() === "\n") {
       this._line += 1;
       this._column = 0;
     } else {
       this._column += 1;
     }
-    // #endif
     this._currentIndex++;
   }
 
@@ -133,9 +123,15 @@ export default class BaseScanner {
     this.skipCommentsAndSpace();
     const peek = this.peek(text.length);
     if (peek !== text) {
-      ParserUtils.throw(this._currentIndex, `Expect ${text}, got ${peek}`);
+      this.throwError(this.curPosition, `Expect text "${text}", but got "${peek}"`);
     }
     this.advance(text.length);
+  }
+
+  throwError(pos: ShaderPosition | ShaderRange, ...msgs: any[]) {
+    const error = new ScannerError(msgs.join(" "), pos, this._source);
+    error.log();
+    throw error;
   }
 
   scanPairedText(left: string, right: string, balanced = false, skipLeading = false) {

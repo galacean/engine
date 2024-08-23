@@ -2,23 +2,13 @@ import { IPoolElement } from "@galacean/engine";
 
 export class ShaderPosition implements IPoolElement {
   index: number;
-  // #if _EDITOR
-  line?: number;
-  column?: number;
-  // #endif
+  line: number;
+  column: number;
 
-  setX(
-    index: number,
-    /** #if _EDITOR */
-    line?: number,
-    column?: number
-    /** #endif */
-  ) {
+  setX(index: number, line: number, column: number) {
     this.index = index;
-    /** #if _EDITOR */
     this.line = line;
     this.column = column;
-    /** #endif */
   }
 
   dispose(): void {

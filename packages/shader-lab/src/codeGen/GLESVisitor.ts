@@ -5,8 +5,10 @@ import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo } from "../parser/symbo
 import { EShaderStage } from "../common/Enums";
 import { IShaderInfo } from "@galacean/engine-design";
 import { ICodeSegment } from "./types";
-import { Logger } from "@galacean/engine";
 import { VisitorContext } from "./VisitorContext";
+import { CompilationError, GSError } from "../Error";
+import { ShaderPosition, ShaderRange } from "../common";
+import { ShaderLab } from "../ShaderLab";
 
 const defaultPrecision = `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -22,10 +24,20 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   protected _versionText: string = "";
   protected _extensions: string = "";
 
+  private _errors: GSError[] = [];
+
   abstract getAttributeDeclare(): ICodeSegment[];
   abstract getVaryingDeclare(): ICodeSegment[];
 
+  /**
+   * @internal
+   */
+  get errors() {
+    return this._errors;
+  }
+
   visitShaderProgram(node: ASTNode.GLShaderProgram, vertexEntry: string, fragmentEntry: string): IShaderInfo {
+    this._errors.length = 0;
     VisitorContext.reset();
     VisitorContext.context._passSymbolTable = node.shaderData.symbolTable;
 
@@ -45,11 +57,11 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     const returnType = fnNode.protoType.returnType;
     if (typeof returnType.type !== "string") {
-      Logger.warn("main entry can only return struct.");
+      this.reportError(returnType.location, "main entry can only return struct.");
     } else {
       const varyStruct = symbolTable.lookup<StructSymbol>({ ident: returnType.type, symbolType: ESymbolType.STRUCT });
       if (!varyStruct) {
-        Logger.warn("invalid varying struct:", returnType.type);
+        this.reportError(returnType.location, `invalid varying struct: ${returnType.type}`);
       } else {
         VisitorContext.context.varyingStruct = varyStruct.astNode;
       }
@@ -64,7 +76,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
             symbolType: ESymbolType.STRUCT
           });
           if (!structSymbol) {
-            Logger.warn("no attribute struct found.");
+            this.reportError(paramInfo.astNode.location, `Not found attribute struct "${paramInfo.typeInfo.type}".`);
             continue;
           }
           VisitorContext.context.attributeStructs.push(structSymbol.astNode);
@@ -146,5 +158,11 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       }
     }
     return this._getGlobalText(data, textList, lastLength, _serialized);
+  }
+
+  private reportError(loc: ShaderRange | ShaderPosition, message: string): CompilationError {
+    const error = new CompilationError(message, loc, ShaderLab._processingPassText);
+    this._errors.push(error);
+    return error;
   }
 }

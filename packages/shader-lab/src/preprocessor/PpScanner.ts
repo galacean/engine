@@ -87,7 +87,7 @@ export default class PpScanner extends BaseScanner {
     const end = this._currentIndex;
     const word = this._source.slice(start, end);
     if (end === start) {
-      ParserUtils.throw(this.getShaderPosition(), "no word found.");
+      this.throwError(this.getShaderPosition(), "no word found.");
     }
     const kw = PpKeyword.get(word);
     if (kw) {
@@ -141,14 +141,14 @@ export default class PpScanner extends BaseScanner {
   scanQuotedString(): BaseToken<EPpToken.string_const> {
     this.skipSpace(true);
     if (this.getCurChar() !== '"') {
-      ParserUtils.throw(this.getShaderPosition(), "unexpected char, expected '\"'");
+      this.throwError(this.getShaderPosition(), "unexpected char, expected '\"'");
     }
     const ShaderPosition = this.getShaderPosition();
     this._advance();
     const start = this._currentIndex;
     while (this.getCurChar() !== '"' && !this.isEnd()) this._advance();
     if (this.isEnd()) {
-      ParserUtils.throw(this.getShaderPosition(), "unexpected char, expected '\"'");
+      this.throwError(this.getShaderPosition(), "unexpected char, expected '\"'");
     }
     const word = this._source.slice(start, this._currentIndex);
 
@@ -230,7 +230,7 @@ export default class PpScanner extends BaseScanner {
       this.advance();
     }
     if (this._currentIndex === start) {
-      ParserUtils.throw(this.getShaderPosition(), "no integer found");
+      this.throwError(this.getShaderPosition(), "no integer found");
     }
     const integer = this._source.slice(start, this._currentIndex);
 
