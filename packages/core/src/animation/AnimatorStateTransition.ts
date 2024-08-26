@@ -17,8 +17,6 @@ export class AnimatorStateTransition {
   destinationState: AnimatorState;
   /** Mutes the transition. The transition will never occur. */
   mute: boolean = false;
-  /** When active the transition will have an exit time condition. */
-  hasExitTime: boolean = true;
 
   /** @internal */
   _srcState: AnimatorState;
@@ -27,6 +25,7 @@ export class AnimatorStateTransition {
 
   private _conditions: AnimatorCondition[] = [];
   private _solo = false;
+  private _hasExitTime: boolean = true;
 
   /**
    * Is the transition destination the exit of the current state machine.
@@ -52,6 +51,19 @@ export class AnimatorStateTransition {
    */
   get conditions(): Readonly<AnimatorCondition[]> {
     return this._conditions;
+  }
+
+  /**
+   * When active the transition will have an exit time condition.
+   * */
+  get hasExitTime(): boolean {
+    return this._hasExitTime;
+  }
+
+  set hasExitTime(value: boolean) {
+    if (this._hasExitTime === value) return;
+    this._hasExitTime = value;
+    this._srcState?._updateTransitionsIndex(this, value);
   }
 
   /**

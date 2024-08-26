@@ -111,18 +111,9 @@ export class AnimatorState {
     }
     transition._srcState = this;
     const transitions = this._transitions;
-    const count = transitions.length;
 
     if (transition.hasExitTime) {
-      const time = transition.exitTime;
-      const maxExitTime = count ? transitions[count - 1].exitTime : 0;
-      if (time >= maxExitTime) {
-        transitions.push(transition);
-      } else {
-        let index = count;
-        while (--index >= 0 && time < transitions[index].exitTime);
-        transitions.splice(index + 1, 0, transition);
-      }
+      this._addHasExitTimeTransition(transition);
     } else {
       transitions.unshift(transition);
     }
@@ -235,6 +226,32 @@ export class AnimatorState {
           return;
         }
       }
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _updateTransitionsIndex(transition: AnimatorStateTransition, hasExitTime): void {
+    this._transitions.splice(this._transitions.indexOf(transition), 1);
+    if (hasExitTime) {
+      this._addHasExitTimeTransition(transition);
+    } else {
+      this._transitions.unshift(transition);
+    }
+  }
+
+  private _addHasExitTimeTransition(transition: AnimatorStateTransition): void {
+    const time = transition.exitTime;
+    const transitions = this._transitions;
+    const count = transitions.length;
+    const maxExitTime = count ? transitions[count - 1].exitTime : 0;
+    if (time >= maxExitTime) {
+      transitions.push(transition);
+    } else {
+      let index = count;
+      while (--index >= 0 && time < transitions[index].exitTime);
+      transitions.splice(index + 1, 0, transition);
     }
   }
 }
