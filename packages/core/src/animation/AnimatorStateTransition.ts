@@ -55,7 +55,7 @@ export class AnimatorStateTransition {
 
   /**
    * When active the transition will have an exit time condition.
-   * */
+   */
   get hasExitTime(): boolean {
     return this._hasExitTime;
   }
