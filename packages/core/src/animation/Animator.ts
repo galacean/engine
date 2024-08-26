@@ -58,8 +58,6 @@ export class Animator extends Component {
 
   @ignoreClone
   private _tempAnimatorStateInfo: IAnimatorStateInfo = { layerIndex: -1, state: null };
-  @ignoreClone
-  private _tempTriggerParametersName: string[] = [];
 
   @ignoreClone
   private _controlledRenderers: Renderer[] = [];
@@ -127,17 +125,15 @@ export class Animator extends Component {
   /**
    * Create a cross fade from the current state to another state.
    * @param stateName - The state name
-   * @param duration - The duration of the transition (normalized)
+   * @param normalizedTransitionDuration - The duration of the transition (normalized)
    * @param layerIndex - The layer index(default -1). If layer is -1, play the first state with the given state name
    * @param normalizedTimeOffset - The time offset between 0 and 1(default 0)
-   * @param fixedDuration - The duration is fixed or normalized(default normalized)
    */
   crossFade(
     stateName: string,
-    duration: number,
+    normalizedTransitionDuration: number,
     layerIndex: number = -1,
-    normalizedTimeOffset: number = 0,
-    fixedDuration: boolean = false
+    normalizedTimeOffset: number = 0
   ): void {
     if (this._controllerUpdateFlag?.flag) {
       this._reset();
@@ -145,8 +141,7 @@ export class Animator extends Component {
 
     const { state, layerIndex: playLayerIndex } = this._getAnimatorStateInfo(stateName, layerIndex);
     const { manuallyTransition } = this._getAnimatorLayerData(playLayerIndex);
-    manuallyTransition.hasFixedDuration = fixedDuration;
-    manuallyTransition.duration = duration;
+    manuallyTransition.duration = normalizedTransitionDuration;
     manuallyTransition.offset = normalizedTimeOffset;
     manuallyTransition.destinationState = state;
 
@@ -181,7 +176,6 @@ export class Animator extends Component {
 
     const animatorController = this._animatorController;
     if (!animatorController) {
-      this._resetTriggerParameters();
       return;
     }
 
@@ -196,8 +190,6 @@ export class Animator extends Component {
       const layerData = this._getAnimatorLayerData(i);
       this._updateState(i, layerData, layers[i], deltaTime, animationUpdate);
     }
-
-    this._resetTriggerParameters();
   }
 
   /**
@@ -255,31 +247,6 @@ export class Animator extends Component {
     const parameter = this._animatorController?._parametersMap[name];
     if (parameter) {
       this._parametersValueMap[name] = value;
-    }
-  }
-
-  /**
-   * Set the 'true' value of the given parameter.
-   * @param name - The name of the parameter
-   */
-  setTrigger(name: string) {
-    const parameter = this._animatorController?._parametersMap[name];
-
-    if (parameter?._isTrigger) {
-      this._parametersValueMap[name] = true;
-      this._tempTriggerParametersName.push(name);
-    }
-  }
-
-  /**
-   * Set the 'false' value of the given parameter.
-   * @param name - The name of the parameter
-   */
-  resetTrigger(name: string) {
-    const parameter = this._animatorController?._parametersMap[name];
-
-    if (parameter?._isTrigger) {
-      this._parametersValueMap[name] = false;
     }
   }
 
@@ -697,14 +664,12 @@ export class Animator extends Component {
     deltaTime: number,
     aniUpdate: boolean
   ) {
-    const { srcPlayData, destPlayData, crossFadeTransition } = layerData;
+    const { srcPlayData, destPlayData } = layerData;
     const { speed } = this;
     const { state: srcState } = srcPlayData;
     const { state: destState } = destPlayData;
     const destStateDuration = destState._getDuration();
-    const transitionDuration = crossFadeTransition.hasFixedDuration
-      ? crossFadeTransition.duration
-      : destStateDuration * crossFadeTransition.duration;
+    const transitionDuration = destStateDuration * layerData.crossFadeTransition.duration;
 
     const srcPlaySpeed = srcState.speed * speed;
     const dstPlaySpeed = destState.speed * speed;
@@ -719,7 +684,7 @@ export class Animator extends Component {
     let dstPlayCostTime: number;
     if (destPlayData.isForwards) {
       // The time that has been played
-      const playedTime = destState.clipStartTime * destState.clip.length - lastDestClipTime;
+      const playedTime = lastDestClipTime - destState.clipStartTime * destState.clip.length;
       dstPlayCostTime =
         playedTime + dstPlayDeltaTime > transitionDuration ? transitionDuration - playedTime : dstPlayDeltaTime;
     } else {
@@ -830,13 +795,11 @@ export class Animator extends Component {
     deltaTime: number,
     aniUpdate: boolean
   ) {
-    const { destPlayData, crossFadeTransition } = layerData;
+    const { destPlayData } = layerData;
     const { state } = destPlayData;
 
     const stateDuration = state._getDuration();
-    const transitionDuration = crossFadeTransition.hasFixedDuration
-      ? crossFadeTransition.duration
-      : stateDuration * crossFadeTransition.duration;
+    const transitionDuration = stateDuration * layerData.crossFadeTransition.duration;
 
     const playSpeed = state.speed * this.speed;
     const playDeltaTime = playSpeed * deltaTime;
@@ -1267,11 +1230,6 @@ export class Animator extends Component {
         return false;
       }
 
-      const parameter = this.getParameter(name);
-      if (parameter._isTrigger) {
-        this._parametersValueMap[name] = false;
-      }
-
       switch (mode) {
         case AnimatorConditionMode.Equals:
           if (parameterValue === threshold) {
@@ -1513,12 +1471,6 @@ export class Animator extends Component {
       this._callAnimatorScriptOnExit(state, layerIndex);
     } else {
       this._callAnimatorScriptOnUpdate(state, layerIndex);
-    }
-  }
-
-  private _resetTriggerParameters(): void {
-    for (let i = 0, n = this._tempTriggerParametersName.length; i < n; i++) {
-      this._parametersValueMap[this._tempTriggerParametersName[i]] = false;
     }
   }
 }

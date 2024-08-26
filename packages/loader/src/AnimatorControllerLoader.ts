@@ -99,7 +99,7 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
             animatorController.addLayer(layer);
           });
           parameters.forEach((parameterData) => {
-            animatorController.addParameter(parameterData.name, parameterData.defaultValue, parameterData.isTrigger);
+            animatorController.addParameter(parameterData.name, parameterData.defaultValue);
           });
           Promise.all(promises).then((clipData) => {
             clipData.forEach((data) => {
@@ -116,7 +116,6 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
   private _createTransition(transitionData: ITransitionData, destinationState: AnimatorState): AnimatorStateTransition {
     const transition = new AnimatorStateTransition();
     transition.hasExitTime = transitionData.hasExitTime;
-    transition.hasFixedDuration = transitionData.hasFixedDuration;
     transition.duration = transitionData.duration;
     transition.offset = transitionData.offset;
     transition.exitTime = transitionData.exitTime;
@@ -158,7 +157,6 @@ interface ITransitionData {
   isExit: boolean;
   conditions: IConditionData[];
   hasExitTime: boolean;
-  hasFixedDuration: boolean;
 }
 
 interface IConditionData {

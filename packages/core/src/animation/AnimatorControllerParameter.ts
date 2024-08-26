@@ -10,9 +10,6 @@ export class AnimatorControllerParameter {
   /** @internal */
   _onNameChanged: (oldName: string, newName: string) => void = null;
 
-  /** @internal */
-  _isTrigger: boolean = false;
-
   private _name: string;
 
   /**
