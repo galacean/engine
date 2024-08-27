@@ -136,8 +136,6 @@ BuiltinFunction._create("max", EGenType.GenType, EGenType.GenType);
 BuiltinFunction._create("max", EGenType.GenType, EKeyword.FLOAT);
 BuiltinFunction._create("max", EGenType.GenIntType, EGenType.GenIntType);
 BuiltinFunction._create("max", EGenType.GenIntType, EKeyword.INT);
-// BuiltinFunction._create("max", EGenType.GenUintType, EGenType.GenUintType, EGenType.GenUintType);
-// BuiltinFunction._create("max", EGenType.GenUintType, EGenType.GenUintType, EKeyword.UINT);
 BuiltinFunction._create("clamp", EGenType.GenType, EGenType.GenType, EGenType.GenType, EGenType.GenType);
 BuiltinFunction._create("clamp", EGenType.GenType, EGenType.GenType, EKeyword.FLOAT, EKeyword.FLOAT);
 BuiltinFunction._create("clamp", EGenType.GenIntType, EGenType.GenIntType, EGenType.GenIntType, EGenType.GenIntType);
