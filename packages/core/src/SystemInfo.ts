@@ -8,8 +8,10 @@ export class SystemInfo {
   static platform: Platform = Platform.Unknown;
   /** The operating system is running on. */
   static operatingSystem: string = "";
+
   /** @internal */
   static _isBrowser = true;
+
   /** Whether the system support SIMD. */
   private static _simdSupported: boolean | null = null;
 
@@ -26,7 +28,7 @@ export class SystemInfo {
   static _initialize(): void {
     {
       if (typeof navigator == "undefined") {
-        SystemInfo.isBrowser = false;
+        SystemInfo._isBrowser = false;
         return;
       }
 

@@ -16,6 +16,7 @@ class EXT_texture_webp extends GLTFExtensionParser {
   constructor() {
     super();
 
+    // @ts-ignore
     if (SystemInfo._isBrowser) {
       const testCanvas = document.createElement("canvas");
       testCanvas.width = testCanvas.height = 1;
