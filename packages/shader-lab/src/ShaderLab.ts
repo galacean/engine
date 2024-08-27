@@ -5,7 +5,7 @@ import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { IShaderContent, IShaderLab } from "@galacean/engine-design";
 import { ShaderContentParser } from "./contentParser";
 // @ts-ignore
-import { Logger, ShaderLib, ShaderMacro, ShaderPass, ShaderPlatformTarget, ShaderProgram } from "@galacean/engine";
+import { Logger, ShaderLib, ShaderMacro, ShaderPass, ShaderPlatformTarget } from "@galacean/engine";
 import { ShaderPosition, ShaderRange } from "./common";
 import { ShaderLabObjectPool } from "./ShaderLabObjectPool";
 import { GSError } from "./Error";
@@ -65,7 +65,7 @@ export class ShaderLab implements IShaderLab {
     const ppdContent = Preprocessor.process(source);
     if (PpParser._errors.length > 0) {
       for (const err of PpParser._errors) {
-        this._errors.push(err);
+        this._errors.push(<GSError>err);
       }
       this._logErrors(this._errors);
       return { vertex: "", fragment: "" };
@@ -143,9 +143,14 @@ export class ShaderLab implements IShaderLab {
   // #endif
 
   private _logErrors(errors: GSError[], source?: string) {
+    // #if !_EDITOR
+    Logger.error(`${errors.length} errors occur!`);
+    // #else
     if (!Logger.isEnabled) return;
     for (const err of errors) {
+      if (!err.log) debugger;
       err.log(source);
     }
+    // #endif
   }
 }

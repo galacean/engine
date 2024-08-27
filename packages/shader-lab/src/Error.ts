@@ -64,6 +64,7 @@ export abstract class GSError extends Error {
   }
 }
 
+// #if _EDITOR
 export class PreprocessorError extends GSError {
   constructor(message: string, loc: ShaderRange | ShaderPosition, source: string, file?: string, cause?: Error) {
     super(message, loc, source, file, cause);
@@ -84,3 +85,4 @@ export class ScannerError extends GSError {
     this.name = "ScannerError";
   }
 }
+// #endif

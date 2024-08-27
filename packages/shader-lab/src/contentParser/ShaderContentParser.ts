@@ -23,7 +23,9 @@ import {
   IShaderPassContent,
   IRenderStates
 } from "@galacean/engine-design";
+// #if _EDITOR
 import { CompilationError } from "../Error";
+// #endif
 
 const EngineType = [
   EKeyword.GS_RenderQueueType,
@@ -173,13 +175,16 @@ export class ShaderContentParser {
       scanner.scanText(";");
       const sm = this._symbolTable.lookup({ type: stateToken.type, ident: variable.lexeme });
       if (!sm?.value) {
-        const error = new CompilationError(
+        let error: CompilationError;
+        // #if _EDITOR
+        throw new CompilationError(
           `Invalid ${stateToken.lexeme} variable: ${variable.lexeme}`,
           scanner.curPosition,
           scanner.source
         );
-        error.log();
-        throw error;
+        // #else
+        throw new Error(`Invalid ${stateToken.lexeme} variable: ${variable.lexeme}`);
+        // #endif
       }
       const renderState = sm.value as IRenderStates;
       Object.assign(ret.renderStates.constantMap, renderState.constantMap);

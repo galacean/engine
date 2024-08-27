@@ -1,5 +1,7 @@
 import { ETokenType, ShaderRange, ShaderPosition } from ".";
+// #if _EDITOR
 import { ScannerError } from "../Error";
+// #endif
 import { ShaderLab } from "../ShaderLab";
 import { BaseToken } from "./BaseToken";
 
@@ -21,10 +23,8 @@ export default class BaseScanner {
   protected _currentIndex = 0;
   protected _source: string;
 
-  // #if _EDITOR
   protected _column = 0;
   protected _line = 0;
-  // #endif
 
   get current(): number {
     return this._currentIndex;
@@ -129,9 +129,11 @@ export default class BaseScanner {
   }
 
   throwError(pos: ShaderPosition | ShaderRange, ...msgs: any[]) {
-    const error = new ScannerError(msgs.join(" "), pos, this._source);
-    error.log();
-    throw error;
+    // #if _EDITOR
+    throw new ScannerError(msgs.join(" "), pos, this._source);
+    // #else
+    throw new Error(msgs.join(""));
+    // #endif
   }
 
   scanPairedText(left: string, right: string, balanced = false, skipLeading = false) {

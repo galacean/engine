@@ -3,6 +3,7 @@ import LexerUtils from "../lexer/Utils";
 import { MacroDefine } from "./MacroDefine";
 // #if _EDITOR
 import PpSourceMap, { BlockInfo } from "./sourceMap";
+import { PreprocessorError } from "../Error";
 // #endif
 import { BaseToken } from "../common/BaseToken";
 import { EPpKeyword, EPpToken, PpConstant } from "./constants";
@@ -10,7 +11,6 @@ import PpScanner from "./PpScanner";
 import { PpUtils } from "./Utils";
 import { ShaderLab } from "../ShaderLab";
 import { ShaderPass } from "@galacean/engine";
-import { PreprocessorError } from "../Error";
 
 export interface ExpandSegment {
   // #if _EDITOR
@@ -32,7 +32,7 @@ export class PpParser {
   private static _basePathForIncludeKey: string;
 
   /** @internal */
-  static _errors: PreprocessorError[] = [];
+  static _errors: Error[] = [];
   /** @internal */
   static _scanningText: string;
   /** @internal */
@@ -104,7 +104,11 @@ export class PpParser {
   }
 
   private static reportError(loc: ShaderRange | ShaderPosition, message: string, source: string, file: string) {
+    // #if _EDITOR
     this._errors.push(new PreprocessorError(message, loc, source, file));
+    // #else
+    this._errors.push(new Error(message));
+    // #endif
   }
 
   private static _parseInclude(scanner: PpScanner) {

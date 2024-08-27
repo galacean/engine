@@ -10,7 +10,9 @@ import { addTranslationRule, createGrammar } from "../lalr/CFG";
 import { LALR1 } from "../lalr";
 import { ParserUtils } from "../Utils";
 import { Logger } from "@galacean/engine";
+// #if _EDITOR
 import { CompilationError } from "../Error";
+// #endif
 import { ShaderLab } from "../ShaderLab";
 
 /**
@@ -110,9 +112,14 @@ export class ShaderTargetParser {
         traceBackStack.push(nextState);
         continue;
       } else {
+        // #if _EDITOR
         this.sematicAnalyzer.errors.push(
           new CompilationError(`Unexpected token ${token.lexeme}`, token.location, ShaderLab._processingPassText)
         );
+        // #else
+        // @ts-ignore
+        this.sematicAnalyzer.errors.push(new Error(`Unexpected token ${token.lexeme}`));
+        // #endif
         return null;
       }
     }

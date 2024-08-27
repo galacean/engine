@@ -1,6 +1,8 @@
 import { ShaderRange } from "../common";
 import { TreeNode } from "./AST";
+// #if _EDITOR
 import { CompilationError } from "../Error";
+// #endif
 import { ShaderData } from "./ShaderInfo";
 import { SymbolInfo, SymbolTable } from "../parser/symbolTable";
 import { NodeChild } from "./types";
@@ -58,7 +60,13 @@ export default class SematicAnalyzer {
   }
 
   error(loc: ShaderRange, ...param: any[]) {
-    const err = new CompilationError(param.join(""), loc, ShaderLab._processingPassText);
+    let err: CompilationError;
+    // #if !_EDITOR
+    // @ts-ignore
+    err = new Error(param.join(""));
+    // #else
+    err = new CompilationError(param.join(""), loc, ShaderLab._processingPassText);
+    // #endif
     this.errors.push(err);
     return err;
   }

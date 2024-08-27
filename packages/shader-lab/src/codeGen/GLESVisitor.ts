@@ -6,9 +6,6 @@ import { EShaderStage } from "../common/Enums";
 import { IShaderInfo } from "@galacean/engine-design";
 import { ICodeSegment } from "./types";
 import { VisitorContext } from "./VisitorContext";
-import { CompilationError, GSError } from "../Error";
-import { ShaderPosition, ShaderRange } from "../common";
-import { ShaderLab } from "../ShaderLab";
 
 const defaultPrecision = `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -20,21 +17,15 @@ const defaultPrecision = `
 #endif
 `;
 
+/**
+ * @internal
+ */
 export abstract class GLESVisitor extends CodeGenVisitor {
   protected _versionText: string = "";
   protected _extensions: string = "";
 
-  private _errors: GSError[] = [];
-
   abstract getAttributeDeclare(): ICodeSegment[];
   abstract getVaryingDeclare(): ICodeSegment[];
-
-  /**
-   * @internal
-   */
-  get errors() {
-    return this._errors;
-  }
 
   visitShaderProgram(node: ASTNode.GLShaderProgram, vertexEntry: string, fragmentEntry: string): IShaderInfo {
     this._errors.length = 0;
@@ -158,11 +149,5 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       }
     }
     return this._getGlobalText(data, textList, lastLength, _serialized);
-  }
-
-  private reportError(loc: ShaderRange | ShaderPosition, message: string): CompilationError {
-    const error = new CompilationError(message, loc, ShaderLab._processingPassText);
-    this._errors.push(error);
-    return error;
   }
 }

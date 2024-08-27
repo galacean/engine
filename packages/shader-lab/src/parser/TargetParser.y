@@ -432,7 +432,7 @@ expression_statement:
 // Dangling else ambiguity
 selection_statement:
     IF '(' expression ')' statement
-    | IF '(' expression ')' statement ELSE statement
+    | IF '(' expression ')' statement ELSE statement ELSE 
     ;
 
 iteration_statement:
