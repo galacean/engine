@@ -10,7 +10,7 @@ Pass "PassName" {
   // Glbals
   ...
 
-  // Render pipeline and render state settings 
+  // Render pipeline and render state settings
 
   // Specify the entry function of shader
   VertexShader = vert;
@@ -28,17 +28,17 @@ It can be specified in the following two ways:
 
 1. Explicit assignment
 
-  ```
-  BlendState = blendState;
-  ```
+```
+BlendState = blendState;
+```
 
 2. Declaration in the global variable domain of Pass
 
-  ```
-  BlendState {
-    Rendering state property = Property value;
-  }
-  ```
+```
+BlendState {
+  Rendering state property = Property value;
+}
+```
 
 ## Specifying uniform Variables
 
@@ -53,7 +53,7 @@ vec3 u_lightDir;
 
 ## Declaring varying Variables
 
-Specify by defining the output structure of the vertex shader and the input structure of the fragment shader
+Specify by defining the output [structure](/docs/graphics/shader/shaderLab/syntax/shader/#structs-functions) of the vertex shader and the input structure of the fragment shader
 
 ```glsl
 struct v2f {
@@ -92,9 +92,9 @@ In addition to setting the render state and render queue in ShaderLab, developer
 // Render queue setting
 material.renderQueueType = RenderQueueType.Opaque;
 
-// Render state setting
-const renderState = material.renderState.depthState; 
-depthState.writeEnabled = false;
+// Render state setting const renderState = material.renderState.depthState; depthState.writeEnabled = false;
+
 ```
 When render states and render queues are declared in ShaderLab, the corresponding settings in the material will be ignored."
 </Callout>
+```

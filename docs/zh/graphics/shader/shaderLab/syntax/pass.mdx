@@ -53,7 +53,7 @@ vec3 u_lightDir;
 
 ## varying 变量声明
 
-通过定义顶点着色器出参[结构体](./shader#结构体函数)和片元着色器入参结构体指定
+通过定义顶点着色器出参[结构体](/docs/graphics/shader/shaderLab/syntax/shader/#结构体函数)和片元着色器入参结构体指定
 
 ```glsl
 struct v2f {
@@ -92,10 +92,10 @@ RenderQueueType = Transparent;
 // 渲染队列设置
 material.renderQueueType = RenderQueueType.Opaque;
 
-// 渲染状态设置
-const renderState = material.renderState.depthState; 
-depthState.writeEnabled = false;
+// 渲染状态设置 const renderState = material.renderState.depthState; depthState.writeEnabled = false;
+
 ```
 当 ShaderLab 中声明了渲染状态和渲染队列，材质相应的设置会被忽略。
 </Callout>
 
+```
