@@ -64,7 +64,7 @@ export class ShaderTargetParser {
   }
 
   parse(tokens: Generator<BaseToken, BaseToken>): ASTNode.GLShaderProgram | null {
-    this._reset();
+    this.sematicAnalyzer.reset();
     const start = performance.now();
     const { _traceBackStack: traceBackStack, sematicAnalyzer } = this;
     traceBackStack.push(0);
@@ -124,10 +124,6 @@ export class ShaderTargetParser {
         // #endif
       }
     }
-  }
-
-  private _reset() {
-    this.sematicAnalyzer.reset();
   }
 
   // #if _EDITOR
