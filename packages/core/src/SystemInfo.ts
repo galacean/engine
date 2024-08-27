@@ -6,6 +6,8 @@ import { Platform } from "./Platform";
 export class SystemInfo {
   /** The platform is running on. */
   static platform: Platform = Platform.Unknown;
+  /** Whether the environment is browser. */
+  static isBrowser = true;
   /** The operating system is running on. */
   static operatingSystem: string = "";
   /** Whether the system support SIMD. */
@@ -24,6 +26,7 @@ export class SystemInfo {
   static _initialize(): void {
     {
       if (typeof navigator == "undefined") {
+        SystemInfo.isBrowser = false;
         return;
       }
 
