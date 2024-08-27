@@ -6,10 +6,10 @@ import { Platform } from "./Platform";
 export class SystemInfo {
   /** The platform is running on. */
   static platform: Platform = Platform.Unknown;
-  /** Whether the environment is browser. */
-  static isBrowser = true;
   /** The operating system is running on. */
   static operatingSystem: string = "";
+  /** @internal */
+  static _isBrowser = true;
   /** Whether the system support SIMD. */
   private static _simdSupported: boolean | null = null;
 
