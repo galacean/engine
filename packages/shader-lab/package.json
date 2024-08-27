@@ -9,7 +9,6 @@
   "main": "dist/main.js",
   "module": "dist/module.js",
   "browser": "dist/browser.min.js",
-  "editor": "dist/editor.js",
   "debug": "src/index.ts",
   "types": "types/index.d.ts",
   "scripts": {
