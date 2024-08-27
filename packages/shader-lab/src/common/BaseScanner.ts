@@ -7,6 +7,9 @@ import { BaseToken } from "./BaseToken";
 
 export type OnToken = (token: BaseToken, scanner: BaseScanner) => void;
 
+/**
+ * @internal
+ */
 export default class BaseScanner {
   private static _spaceCharsWithBreak = [" ", "\t", "\n"];
   private static _spaceChars = [" ", "\t"];
@@ -67,9 +70,6 @@ export default class BaseScanner {
     }
   }
 
-  /**
-   * @internal
-   */
   _advance(): void {
     if (this.isEnd()) {
       return;
@@ -130,7 +130,9 @@ export default class BaseScanner {
 
   throwError(pos: ShaderPosition | ShaderRange, ...msgs: any[]) {
     // #if _EDITOR
-    throw new ScannerError(msgs.join(" "), pos, this._source);
+    const error = new ScannerError(msgs.join(" "), pos, this._source);
+    error.log();
+    throw error;
     // #else
     throw new Error(msgs.join(""));
     // #endif

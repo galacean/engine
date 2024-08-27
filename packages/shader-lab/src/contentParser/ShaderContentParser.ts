@@ -46,8 +46,14 @@ const RenderStateType = [
   EKeyword.GS_StencilState
 ];
 
+/**
+ * @internal
+ */
 export class ShaderContentParser {
   static _engineType = { RenderQueueType, CompareFunction, StencilOperation, BlendOperation, BlendFactor, CullMode };
+
+  static _errors: CompilationError[] = [];
+
   private static _isRenderStateDeclarator(token: BaseToken) {
     return RenderStateType.includes(token.type);
   }
@@ -59,6 +65,7 @@ export class ShaderContentParser {
   private static _symbolTable: SymbolTableStack<ISymbol, SymbolTable> = new SymbolTableStack();
 
   static reset() {
+    this._errors.length = 0;
     this._symbolTable.clear();
     this._newScope();
   }
@@ -175,15 +182,19 @@ export class ShaderContentParser {
       scanner.scanText(";");
       const sm = this._symbolTable.lookup({ type: stateToken.type, ident: variable.lexeme });
       if (!sm?.value) {
-        // #if _EDITOR
-        throw new CompilationError(
+        let error: CompilationError;
+        // #if !_EDITOR
+        // @ts-ignore
+        error = new Error(`Invalid ${stateToken.lexeme} variable: ${variable.lexeme}`);
+        // #else
+        error = new CompilationError(
           `Invalid ${stateToken.lexeme} variable: ${variable.lexeme}`,
           scanner.curPosition,
           scanner.source
         );
-        // #else
-        throw new Error(`Invalid ${stateToken.lexeme} variable: ${variable.lexeme}`);
         // #endif
+        this._errors.push(error);
+        return;
       }
       const renderState = sm.value as IRenderStates;
       Object.assign(ret.renderStates.constantMap, renderState.constantMap);
@@ -231,15 +242,20 @@ export class ShaderContentParser {
         scanner.scanText("]");
         scanner.scanText("=");
       } else if (op.lexeme !== "=") {
-        // #if _EDITOR
-        throw new CompilationError(
+        let error: CompilationError;
+        // #if !_EDITOR
+        // @ts-ignore
+        error = new Error(`Invalid syntax, expect character '=', but got ${op.lexeme}`);
+        // #else
+        error = new CompilationError(
           `Invalid syntax, expect character '=', but got ${op.lexeme}`,
           scanner.curPosition,
           scanner.source
         );
-        // #else
-        throw new Error(`Invalid syntax, expect character '=', but got ${op.lexeme}`);
         // #endif
+        this._errors.push(error);
+        scanner.scanToCharacter(";");
+        return;
       }
       renderStateProp += idx;
     }
@@ -247,15 +263,20 @@ export class ShaderContentParser {
     renderStateProp = state + renderStateProp;
     const renderStateElementKey = RenderStateDataKey[renderStateProp];
     if (renderStateElementKey == undefined) {
-      // #if _EDITOR
-      throw new CompilationError(
+      let error: CompilationError;
+      // #if !_EDITOR
+      // @ts-ignore
+      error = new Error(`Invalid render state element ${renderStateProp}`);
+      // #else
+      error = new CompilationError(
         `Invalid render state element ${renderStateProp}`,
         scanner.curPosition,
         scanner.source
       );
-      // #else
-      throw new Error(`Invalid render state element ${renderStateProp}`);
       // #endif
+      this._errors.push(error);
+      scanner.scanToCharacter(";");
+      return;
     }
 
     scanner.skipCommentsAndSpace();
@@ -285,15 +306,20 @@ export class ShaderContentParser {
         const engineTypeProp = scanner.scanToken();
         value = ShaderContentParser._engineType[token.lexeme]?.[engineTypeProp.lexeme];
         if (value == undefined) {
-          // #if _EDITOR
-          throw new CompilationError(
+          let error: CompilationError;
+          // #if !_EDITOR
+          // @ts-ignore
+          error = new Error(`Invalid engine constant: ${token.lexeme}.${engineTypeProp.lexeme}`);
+          // #else
+          error = new CompilationError(
             `Invalid engine constant: ${token.lexeme}.${engineTypeProp.lexeme}`,
-            scanner.curPosition,
+            engineTypeProp.location,
             scanner.source
           );
-          // #else
-          throw new Error(`Invalid engine constant: ${token.lexeme}.${engineTypeProp.lexeme}`);
           // #endif
+          this._errors.push(error);
+          scanner.scanToCharacter(";");
+          return;
         }
       } else {
         value = token.lexeme;
@@ -313,11 +339,15 @@ export class ShaderContentParser {
     scanner.scanText(";");
     const value = ShaderContentParser._engineType.RenderQueueType[word.lexeme];
     if (value == undefined) {
-      // #if _EDITOR
-      throw new CompilationError(`Invalid render queue ${word.lexeme}`, word.location, scanner.source);
+      let error: CompilationError;
+      // #if !_EDITOR
+      // @ts-ignore
+      error = new Error(`Invalid render queue ${word.lexeme}`);
       // #else
-      throw new Error(`Invalid render queue ${word.lexeme}`);
+      error = new CompilationError(`Invalid render queue ${word.lexeme}`, word.location, scanner.source);
       // #endif
+      this._errors.push(error);
+      return;
     }
     const key = RenderStateDataKey.RenderQueueType;
     ret.renderStates.constantMap[key] = value;
@@ -464,7 +494,9 @@ export class ShaderContentParser {
           const entry = scanner.scanToken();
           if (ret[word.lexeme]) {
             // #if _EDITOR
-            throw new CompilationError("reassign main entry", scanner.curPosition, scanner.source);
+            const error = new CompilationError("reassign main entry", scanner.curPosition, scanner.source);
+            error.log();
+            throw error;
             // #else
             throw new Error("reassign main entry");
             // #endif

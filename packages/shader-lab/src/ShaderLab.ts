@@ -53,7 +53,6 @@ export class ShaderLab implements IShaderLab {
     platformMacros: string[],
     basePathForIncludeKey: string
   ) {
-    ShaderLabObjectPool.clearAllShaderLabObjectPool();
     Preprocessor.reset(ShaderLib, basePathForIncludeKey);
     for (const macro of macros) {
       Preprocessor.addPredefinedMacro(macro.name, macro.value);
@@ -106,9 +105,14 @@ export class ShaderLab implements IShaderLab {
   }
 
   _parseShaderContent(shaderSource: string): IShaderContent {
+    ShaderLabObjectPool.clearAllShaderLabObjectPool();
     this._errors.length = 0;
+    const ret = ShaderContentParser.parse(shaderSource);
+    for (const error of ShaderContentParser._errors) {
+      this._errors.push(error);
+    }
     ShaderContentParser.reset();
-    return ShaderContentParser.parse(shaderSource);
+    return ret;
   }
 
   // #if _EDITOR
@@ -148,10 +152,9 @@ export class ShaderLab implements IShaderLab {
    * @internal
    */
   _logErrors(errors: GSError[], source?: string) {
-    // #if !_EDITOR
-    Logger.error(`${errors.length} errors occur!`);
-    // #else
     if (!Logger.isEnabled) return;
+    Logger.error(`${errors.length} errors occur!`);
+    // #if _EDITOR
     for (const err of errors) {
       err.log(source);
     }

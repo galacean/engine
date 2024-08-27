@@ -25,4 +25,11 @@ export default class Scanner extends BaseScanner {
     }
     return Number(this._source.substring(start, this._currentIndex));
   }
+
+  scanToCharacter(char: string): void {
+    while (this.getCurChar() !== char) {
+      this._advance();
+    }
+    this._advance();
+  }
 }
