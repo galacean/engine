@@ -1,9 +1,10 @@
-import { Logger } from "@galacean/engine";
 import { EShaderStage } from "../common/Enums";
 import { ASTNode } from "../parser/AST";
 import { ESymbolType, SymbolTable, SymbolInfo } from "../parser/symbolTable";
 import { IParamInfo } from "../parser/types";
+// #if _EDITOR
 import { CompilationError, GSError } from "../Error";
+// #endif
 import { BaseToken } from "../common/BaseToken";
 import { ShaderLab } from "../ShaderLab";
 

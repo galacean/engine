@@ -2,6 +2,7 @@ export { ShaderLab } from "./ShaderLab";
 
 // #if _EDITOR
 export { Preprocessor } from "./preprocessor";
+export * from "./Error";
 // #endif
 
 //@ts-ignore

@@ -8,7 +8,9 @@ import { ShaderContentParser } from "./contentParser";
 import { Logger, ShaderLib, ShaderMacro, ShaderPass, ShaderPlatformTarget } from "@galacean/engine";
 import { ShaderPosition, ShaderRange } from "./common";
 import { ShaderLabObjectPool } from "./ShaderLabObjectPool";
+// #if _EDITOR
 import { GSError } from "./Error";
+// #endif
 import { PpParser } from "./preprocessor/PpParser";
 
 export class ShaderLab implements IShaderLab {
@@ -116,8 +118,8 @@ export class ShaderLab implements IShaderLab {
    */
   _parse(
     shaderSource: string,
-    macros: ShaderMacro[],
-    backend: ShaderPlatformTarget
+    macros: ShaderMacro[] = [],
+    backend: ShaderPlatformTarget = ShaderPlatformTarget.GLES100
   ): (ReturnType<ShaderLab["_parseShaderPass"]> & { name: string })[] {
     const structInfo = this._parseShaderContent(shaderSource);
     const passResult = [] as any;
@@ -142,13 +144,15 @@ export class ShaderLab implements IShaderLab {
   }
   // #endif
 
-  private _logErrors(errors: GSError[], source?: string) {
+  /**
+   * @internal
+   */
+  _logErrors(errors: GSError[], source?: string) {
     // #if !_EDITOR
     Logger.error(`${errors.length} errors occur!`);
     // #else
     if (!Logger.isEnabled) return;
     for (const err of errors) {
-      if (!err.log) debugger;
       err.log(source);
     }
     // #endif

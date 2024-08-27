@@ -1,3 +1,4 @@
+// #if _EDITOR
 import { Logger } from "@galacean/engine";
 import { ShaderPosition, ShaderRange } from "./common";
 
@@ -17,7 +18,6 @@ export abstract class GSError extends Error {
 
   log(_source?: string): void {
     if (!Logger.enable) return;
-    // #if _EDITOR
     let start: ShaderPosition, end: ShaderPosition;
     const { message, loc, source: originSource } = this;
     let source = originSource;
@@ -50,13 +50,9 @@ export abstract class GSError extends Error {
     }
 
     Logger.error(diagnosticMessage);
-    // #else
-    Logger.error("compile error.");
-    // #endif
   }
 }
 
-// #if _EDITOR
 export class PreprocessorError extends GSError {
   constructor(message: string, loc: ShaderRange | ShaderPosition, source: string, file?: string, cause?: Error) {
     super(message, loc, source, file, cause);
