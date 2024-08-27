@@ -31,11 +31,10 @@ export class PpParser {
   private static _includeMap: Record<string, string>;
   private static _basePathForIncludeKey: string;
 
-  /** @internal */
+  // #if _EDITOR
   static _errors: Error[] = [];
-  /** @internal */
+  // #endif
   static _scanningText: string;
-  /** @internal */
   static _scanningFile = "__main__";
 
   static reset(includeMap: Record<string, string>, basePathForIncludeKey: string) {
@@ -46,7 +45,9 @@ export class PpParser {
     this.addPredefinedMacro("GL_ES");
     this._includeMap = includeMap;
     this._basePathForIncludeKey = basePathForIncludeKey;
+    // #if _EDITOR
     this._errors.length = 0;
+    // #endif
   }
 
   static addPredefinedMacro(macro: string, value?: string) {
@@ -65,7 +66,7 @@ export class PpParser {
   static parse(scanner: PpScanner): string | null {
     this._scanningText = scanner.source;
     this._scanningFile = scanner.file;
-    while (!scanner.isEnd() && this._errors.length === 0) {
+    while (!scanner.isEnd()) {
       const directive = scanner.scanDirective(this._onToken.bind(this))!;
       if (scanner.isEnd()) break;
       switch (directive.type) {
@@ -94,7 +95,9 @@ export class PpParser {
           break;
       }
     }
+    // #if _EDITOR
     if (this._errors.length > 0) return null;
+    // #endif
 
     return PpUtils.expand(this.expandSegments, scanner.source, scanner.sourceMap);
   }
