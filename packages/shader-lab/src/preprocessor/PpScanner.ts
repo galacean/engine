@@ -5,7 +5,6 @@ import PpSourceMap from "./sourceMap";
 // #endif
 import BaseScanner from "../common/BaseScanner";
 import { BaseToken, EOF } from "../common/BaseToken";
-import { ParserUtils } from "../Utils";
 import { EPpKeyword, EPpToken, PpKeyword } from "./constants";
 import { PpUtils } from "./Utils";
 import { ShaderLab } from "../ShaderLab";

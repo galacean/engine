@@ -23,6 +23,7 @@ export abstract class GSError extends Error {
 
   log(_source?: string): void {
     if (!Logger.enable) return;
+    // #if _EDITOR
     const logger = this.level === ErrorLevel.ERROR ? Logger.error : Logger.warn;
 
     let start: ShaderPosition, end: ShaderPosition;
@@ -57,6 +58,9 @@ export abstract class GSError extends Error {
     }
 
     logger(diagnosticMessage);
+    // #else
+    Logger.error("compile error.");
+    // #endif
   }
 }
 

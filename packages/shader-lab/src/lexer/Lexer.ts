@@ -12,9 +12,7 @@ export class Lexer extends BaseScanner {
   reset(source: string) {
     this._source = source;
     this._currentIndex = 0;
-    // #if _EDITOR
     this._line = this._column = 0;
-    // #endif
   }
 
   *tokenize() {

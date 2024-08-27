@@ -61,14 +61,16 @@ const commonPlugins = [
 function config({ location, pkgJson, editorMode }) {
   const input = path.join(location, "src", "index.ts");
   const dependencies = Object.assign({}, pkgJson.dependencies ?? {}, pkgJson.peerDependencies ?? {});
-  commonPlugins.push(
+  const curPlugins = Array.from(commonPlugins);
+
+  curPlugins.push(
     jscc({
-      values: { _EDITOR: NODE_ENV !== "release" || editorMode }
+      values: { _EDITOR: editorMode }
     })
   );
 
   const external = Object.keys(dependencies);
-  commonPlugins.push(
+  curPlugins.push(
     replace({
       preventAssignment: true,
       __buildVersion: pkgJson.version
@@ -80,9 +82,8 @@ function config({ location, pkgJson, editorMode }) {
       const umdConfig = pkgJson.umd;
       let file = path.join(location, "dist", "browser.js");
 
-      const plugins = commonPlugins;
       if (compress) {
-        plugins.push(minify({ sourceMap: true }));
+        curPlugins.push(minify({ sourceMap: true }));
         file = path.join(location, "dist", "browser.min.js");
       }
       if (editorMode) {
@@ -103,12 +104,12 @@ function config({ location, pkgJson, editorMode }) {
             globals: umdConfig.globals
           }
         ],
-        plugins
+        plugins: curPlugins
       };
     },
     mini: () => {
       let file = path.join(location, "dist", "miniprogram.js");
-      const plugins = [...commonPlugins, ...miniProgramPlugin];
+      const plugins = [...curPlugins, ...miniProgramPlugin];
       if (editorMode) {
         file = path.join(location, "dist", "miniprogram.editor.js");
       }
@@ -126,9 +127,8 @@ function config({ location, pkgJson, editorMode }) {
       };
     },
     module: () => {
-      const plugins = commonPlugins;
-      let esFile = pkgJson.module;
-      let mainFile = pkgJson.main;
+      let esFile = path.join(location, pkgJson.module);
+      let mainFile = path.join(location, pkgJson.main);
       if (editorMode) {
         esFile = path.join(location, "dist", "module.editor.js");
         mainFile = path.join(location, "dist", "main.editor.js");
@@ -148,7 +148,7 @@ function config({ location, pkgJson, editorMode }) {
             format: "commonjs"
           }
         ],
-        plugins
+        plugins: curPlugins
       };
     }
   };
