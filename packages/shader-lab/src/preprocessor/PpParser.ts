@@ -107,7 +107,7 @@ export class PpParser {
     // #if _EDITOR
     this._errors.push(new PreprocessorError(message, loc, source, file));
     // #else
-    this._errors.push(new Error(message));
+    throw new Error(message);
     // #endif
   }
 

@@ -71,7 +71,7 @@ export class VisitorContext {
       );
       // #else
       // @ts-ignore
-      return new Error(`referenced attribute not found: ${ident.lexeme}`);
+      throw new Error(`referenced attribute not found: ${ident.lexeme}`);
       // #endif
     }
     this._referencedAttributeList[ident.lexeme] = prop;
@@ -90,7 +90,7 @@ export class VisitorContext {
       );
       // #else
       // @ts-ignore
-      return new Error(`referenced varying not found: ${ident.lexeme}`);
+      throw new Error(`referenced varying not found: ${ident.lexeme}`);
       // #endif
     }
     this._referencedVaryingList[ident.lexeme] = prop;
