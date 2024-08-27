@@ -35,6 +35,7 @@ export class ShaderLab implements IShaderLab {
     return range;
   }
 
+  // #if _EDITOR
   private _errors: GSError[] = [];
 
   /**
@@ -43,6 +44,7 @@ export class ShaderLab implements IShaderLab {
   get errors(): GSError[] | undefined {
     return this._errors;
   }
+  // #endif
 
   _parseShaderPass(
     source: string,
@@ -64,6 +66,7 @@ export class ShaderLab implements IShaderLab {
 
     const preprocessorStart = performance.now();
     const ppdContent = Preprocessor.process(source);
+    // #if _EDITOR
     if (PpParser._errors.length > 0) {
       for (const err of PpParser._errors) {
         this._errors.push(<GSError>err);
@@ -71,6 +74,7 @@ export class ShaderLab implements IShaderLab {
       this._logErrors(this._errors);
       return { vertex: "", fragment: "" };
     }
+    // #endif
 
     Logger.info(`[pass compilation - preprocessor]  cost time ${performance.now() - preprocessorStart}ms`);
 
@@ -81,6 +85,8 @@ export class ShaderLab implements IShaderLab {
 
     ShaderLab._processingPassText = ppdContent;
     const program = parser.parse(tokens);
+
+    // #if _EDITOR
     for (const err of parser.errors) {
       this._errors.push(err);
     }
@@ -88,6 +94,8 @@ export class ShaderLab implements IShaderLab {
       this._logErrors(this._errors);
       return { vertex: "", fragment: "" };
     }
+    // #endif
+
     const codeGen =
       backend === ShaderPlatformTarget.GLES100 ? GLES100Visitor.getVisitor() : GLES300Visitor.getVisitor();
 
@@ -96,10 +104,12 @@ export class ShaderLab implements IShaderLab {
     Logger.info(`[CodeGen] cost time: ${performance.now() - start}ms`);
     ShaderLab._processingPassText = undefined;
 
+    // #if _EDITOR
     for (const err of codeGen.errors) {
       this._errors.push(err);
     }
     this._logErrors(this._errors);
+    // #endif
 
     return ret;
   }
@@ -146,7 +156,6 @@ export class ShaderLab implements IShaderLab {
     }
     return passResult;
   }
-  // #endif
 
   /**
    * @internal
@@ -154,10 +163,9 @@ export class ShaderLab implements IShaderLab {
   _logErrors(errors: GSError[], source?: string) {
     if (!Logger.isEnabled) return;
     Logger.error(`${errors.length} errors occur!`);
-    // #if _EDITOR
     for (const err of errors) {
       err.log(source);
     }
-    // #endif
   }
+  // #endif
 }
