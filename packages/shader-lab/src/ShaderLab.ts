@@ -106,12 +106,12 @@ export class ShaderLab implements IShaderLab {
 
   _parseShaderContent(shaderSource: string): IShaderContent {
     ShaderLabObjectPool.clearAllShaderLabObjectPool();
+    ShaderContentParser.reset();
     this._errors.length = 0;
     const ret = ShaderContentParser.parse(shaderSource);
     for (const error of ShaderContentParser._errors) {
       this._errors.push(error);
     }
-    ShaderContentParser.reset();
     return ret;
   }
 
