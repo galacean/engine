@@ -1,18 +1,12 @@
 import { Logger } from "@galacean/engine";
 import { ShaderPosition, ShaderRange } from "./common";
 
-export enum ErrorLevel {
-  ERROR = 0,
-  WARN
-}
-
 export abstract class GSError extends Error {
   static wrappingLineCount = 2;
 
   readonly loc: ShaderRange | ShaderPosition;
   readonly source: string;
   readonly file?: string;
-  level = ErrorLevel.ERROR;
 
   constructor(message: string, loc: ShaderRange | ShaderPosition, source: string, file?: string, cause?: Error) {
     super(message, { cause });
@@ -24,14 +18,12 @@ export abstract class GSError extends Error {
   log(_source?: string): void {
     if (!Logger.enable) return;
     // #if _EDITOR
-    const logger = this.level === ErrorLevel.ERROR ? Logger.error : Logger.warn;
-
     let start: ShaderPosition, end: ShaderPosition;
     const { message, loc, source: originSource } = this;
     let source = originSource;
     if (_source) source = _source;
     if (!source) {
-      logger(message);
+      Logger.error(message);
     }
 
     if (loc instanceof ShaderPosition) {
@@ -57,7 +49,7 @@ export abstract class GSError extends Error {
       }
     }
 
-    logger(diagnosticMessage);
+    Logger.error(diagnosticMessage);
     // #else
     Logger.error("compile error.");
     // #endif
