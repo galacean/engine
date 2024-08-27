@@ -192,10 +192,10 @@ export class CodeGenVisitor {
     let error: Error;
     // #if _EDITOR
     error = new CompilationError(message, loc, ShaderLab._processingPassText);
-    // #else
-    error = new Error(message);
-    // #endif
     this._errors.push(<CompilationError>error);
     return <CompilationError>error;
+    // #else
+    throw new Error(message);
+    // #endif
   }
 }

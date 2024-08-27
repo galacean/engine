@@ -248,8 +248,6 @@ describe("ShaderLab", () => {
     assert.instanceOf(shaderLabEditor._errors[1], CompilationError);
     assert.instanceOf(shaderLabEditor._errors[2], CompilationError);
 
-    shaderParse.bind(shaderLabRelease)(errorShader);
-    // @ts-ignore
-    expect(shaderLabRelease._errors.length).to.eq(1);
+    expect(shaderParse.bind(shaderLabRelease)).to.throw(Error);
   });
 });

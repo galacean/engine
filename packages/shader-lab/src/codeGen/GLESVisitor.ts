@@ -6,6 +6,7 @@ import { EShaderStage } from "../common/Enums";
 import { IShaderInfo } from "@galacean/engine-design";
 import { ICodeSegment } from "./types";
 import { VisitorContext } from "./VisitorContext";
+import { EKeyword } from "../common";
 
 const defaultPrecision = `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -47,15 +48,15 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     VisitorContext.context.stage = EShaderStage.VERTEX;
 
     const returnType = fnNode.protoType.returnType;
-    if (typeof returnType.type !== "string") {
-      this.reportError(returnType.location, "main entry can only return struct.");
-    } else {
+    if (typeof returnType.type === "string") {
       const varyStruct = symbolTable.lookup<StructSymbol>({ ident: returnType.type, symbolType: ESymbolType.STRUCT });
       if (!varyStruct) {
         this.reportError(returnType.location, `invalid varying struct: ${returnType.type}`);
       } else {
         VisitorContext.context.varyingStruct = varyStruct.astNode;
       }
+    } else if (returnType.type !== EKeyword.VOID) {
+      this.reportError(returnType.location, "main entry can only return struct.");
     }
 
     const paramList = fnNode.protoType.parameterList;

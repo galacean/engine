@@ -116,11 +116,10 @@ export class ShaderTargetParser {
         this.sematicAnalyzer.errors.push(
           new CompilationError(`Unexpected token ${token.lexeme}`, token.location, ShaderLab._processingPassText)
         );
-        // #else
-        // @ts-ignore
-        this.sematicAnalyzer.errors.push(new Error(`Unexpected token ${token.lexeme}`));
-        // #endif
         return null;
+        // #else
+        throw new Error(`Unexpected token ${token.lexeme}`);
+        // #endif
       }
     }
   }

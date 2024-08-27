@@ -60,14 +60,12 @@ export default class SematicAnalyzer {
   }
 
   error(loc: ShaderRange, ...param: any[]) {
-    let err: CompilationError;
-    // #if !_EDITOR
-    // @ts-ignore
-    err = new Error(param.join(""));
-    // #else
-    err = new CompilationError(param.join(""), loc, ShaderLab._processingPassText);
-    // #endif
+    // #if _EDITOR
+    const err = new CompilationError(param.join(""), loc, ShaderLab._processingPassText);
     this.errors.push(err);
     return err;
+    // #else
+    throw new Error(param.join(""));
+    // #endif
   }
 }
