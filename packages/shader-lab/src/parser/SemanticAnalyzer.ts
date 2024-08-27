@@ -22,7 +22,9 @@ export default class SematicAnalyzer {
   symbolTable: SymbolTableStack<SymbolInfo, SymbolTable> = new SymbolTableStack();
   private _shaderData = new ShaderData();
 
+  // #if _EDITOR
   readonly errors: CompilationError[] = [];
+  // #endif
 
   get shaderData() {
     return this._shaderData;
@@ -39,7 +41,9 @@ export default class SematicAnalyzer {
     this._shaderData = new ShaderData();
     this.symbolTable.clear();
     this.newScope();
+    // #if _EDITOR
     this.errors.length = 0;
+    // #endif
   }
 
   newScope() {

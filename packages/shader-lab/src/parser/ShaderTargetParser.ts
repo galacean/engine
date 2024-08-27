@@ -35,10 +35,12 @@ export class ShaderTargetParser {
     return this.gotoTable.get(this.curState);
   }
 
+  // #if _EDITOR
   /** @internal */
   get errors() {
     return this.sematicAnalyzer.errors;
   }
+  // #endif
 
   static _singleton: ShaderTargetParser;
 
