@@ -133,13 +133,12 @@ export class LitePhysicsScene implements IPhysicsScene {
       );
     } else {
       const raycastStaticRes = this._raycast(ray, distance, onRaycast, this._staticColliders, hit);
-      const raycastDynamicRes = this._raycast(
-        ray,
-        LitePhysicsScene._currentHit.distance,
-        onRaycast,
-        this._dynamicColliders,
-        hit
-      );
+
+      if (raycastStaticRes) {
+        distance = LitePhysicsScene._currentHit.distance;
+      }
+
+      const raycastDynamicRes = this._raycast(ray, distance, onRaycast, this._dynamicColliders, hit);
       const isHit = raycastStaticRes || raycastDynamicRes;
       const hitResult = LitePhysicsScene._hitResult;
 
@@ -323,28 +322,19 @@ export class LitePhysicsScene implements IPhysicsScene {
     colliders: LiteCollider[],
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    let hitResult: LiteHitResult;
-    if (hit) {
-      hitResult = LitePhysicsScene._hitResult;
-    }
-
     let isHit = false;
     const curHit = LitePhysicsScene._currentHit;
     for (let i = 0, len = colliders.length; i < len; i++) {
-      const collider = colliders[i];
-
-      if (collider._raycast(ray, onRaycast, curHit)) {
-        isHit = true;
-        if (curHit.distance < distance) {
-          if (hitResult) {
-            hitResult.normal.copyFrom(curHit.normal);
-            hitResult.point.copyFrom(curHit.point);
-            hitResult.distance = curHit.distance;
-            hitResult.shapeID = curHit.shapeID;
-          } else {
-            return true;
-          }
-          distance = curHit.distance;
+      if (colliders[i]._raycast(ray, onRaycast, curHit) && curHit.distance < distance) {
+        if (hit) {
+          isHit = true;
+          const hitResult = LitePhysicsScene._hitResult;
+          hitResult.normal.copyFrom(curHit.normal);
+          hitResult.point.copyFrom(curHit.point);
+          hitResult.distance = distance = curHit.distance;
+          hitResult.shapeID = curHit.shapeID;
+        } else {
+          return true;
         }
       }
     }

@@ -1,0 +1,263 @@
+---
+title: How to Contribute to Documentation
+---
+
+Our documentation is based on Nextra, using `_meta.json` to define file order, page titles, page layouts, and other configurations.
+
+## Capabilities Introduction
+
+### TOC
+
+TOC (*Table-Of-Content*) allows your readers to quickly index specific content. You just need to design appropriate headings and hierarchical structures, and readers can quickly navigate through the document content using the TOC menu on the right side of the page. Of course, you can also use the TOC to constantly check whether the hierarchical structure of your document is reasonable while writing.
+
+### MDX
+
+MDX is a new document format based on `.md` that allows you to introduce React components to enrich the content of the document. The new official website also provides some built-in React components for you to use.
+
+```tsx filename="example.mdx"
+some doc content that you write before...
+
+<Callout>
+You could write some additional information in that place. You also could use mardown syntax in it such as [link](#) or `code`
+</Callout>
+```
+
+<Callout type="info">
+You can certainly continue to use `.md` to write documents! However, you can try using `.mdx` to provide a better reading experience for readers.
+</Callout>
+
+### Callout
+
+```mdx
+<Callout type="info">
+your text...
+</Callout>
+```
+
+The Callout component is similar to the quote syntax `> some text` you use in markdown, but it highlights the content in a block format, making it more intuitive to convey some information.
+The Callout component provides four types: `info`, `warning`, `positive`, and `negative`, to suit different usage scenarios.
+
+For example, for general additional information, we can use the `info` type:
+
+<Callout type="info">
+  This is a piece of information that needs additional explanation. You can use **bold** syntax or `code block` syntax. Touch callbacks **depend on the physics engine**, so make sure the physics engine is initialized before using this feature.
+</Callout>
+
+For operations that may affect performance, you can use the `warning` type to add a prominent reminder:
+
+<Callout type="warning">
+Note that image tracking requires specifying the tracked image when adding the feature, and in WebXR, the same image will only be tracked once.
+</Callout>
+
+For recommended operations or best practices, you can use the `positive` type:
+
+<Callout type="positive">
+Click the `sprite atlas` asset, adjust the `texture max width` and `texture max height` in the `packing settings`, and call `pack and preview` in the `packing object` to ensure a high utilization rate of the atlas.
+</Callout>
+
+Finally, for `breaking changes` or some highly discouraged practices, you can use the `negative` type:
+
+<Callout type="negative">
+Note that if you do not bind the script asset to the entity's script component, the script will not run.
+</Callout>
+
+### Comparison
+
+```mdx
+<Comparison
+  leftSrc="https://mdn.alipayobjects.com/huamei_rbbfv7/afts/img/A*AxpMSqxO5-IAAAAAAAAAAAAADknZAQ/original"
+  leftText="offset: 15.3"
+  rightSrc="https://mdn.alipayobjects.com/huamei_rbbfv7/afts/img/A*-Q8FS7vQhkkAAAAAAAAAAAAADknZAQ/original"
+  rightText="offset: 20.4"
+/>
+```
+
+<Comparison
+  leftSrc="https://mdn.alipayobjects.com/huamei_rbbfv7/afts/img/A*AxpMSqxO5-IAAAAAAAAAAAAADknZAQ/original"
+  leftText="offset: 15.3"
+  rightSrc="https://mdn.alipayobjects.com/huamei_rbbfv7/afts/img/A*-Q8FS7vQhkkAAAAAAAAAAAAADknZAQ/original"
+  rightText="offset: 20.4"
+/>
+
+### Image Zoom
+
+The new official website introduces `react-medium-image-zoom` to achieve the function of clicking to enlarge images. You can use the following method to achieve this:
+
+````mdx filename="your-doc.mdx"
+import { Image } from '@/mdx'
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/334d8ca3-639f-4cd9-8aaa-93c1da7acdc3/image-20240318173506046.png" figcaption="This is an embedded image using the Image component" />
+
+````
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/334d8ca3-639f-4cd9-8aaa-93c1da7acdc3/image-20240318173506046.png" figcaption="This is an embedded image using the Image component" />
+
+<Callout type="warning">
+Since the images in our previous documentation were a mix of markdown syntax and img tags, the new version cannot correctly distinguish between the two when parsing. This makes it impossible to directly apply this feature to all images.
+For example, sometimes we display a button screenshot inline in the document, in which case the zoom component should not be used. Therefore, we need to wait for the old document's image syntax to be updated before we can fully use this feature.
+</Callout>
+
+### Code Highlighting
+
+The new code highlighting feature is very powerful. You can achieve code highlighting not only in inline code and standalone code blocks but also in standalone code blocks with additional features such as **line display**, **filename specification**, **line highlighting**, **range highlighting**, and **keyword highlighting**.
+
+#### Inline Highlighting
+
+```md
+`let x = 1{:ts}`
+```
+
+For example, this is a piece of code embedded in text `let x = 1{:ts}`, and you can see that the TypeScript code is highlighted.
+
+#### Filename
+
+The following example includes how to display the filename and how to show line indicators.
+
+````md filename="script-component.mdx"
+```ts showLineNumbers filename="example.ts"
+class CustomScript extends Script {
+  @ignoreClone
+  a:boolean = false;
+  @assignmentClone
+  b:number = 1;
+  @shallowClone
+  c:Vector3[] = [new Vector3(0,0,0)];
+}
+```
+
+上面的语法产生的效果如下：
+
+```ts showLineNumbers filename="example.ts"
+class CustomScript extends Script{
+  @ignoreClone
+  a:boolean = false;
+  @assignmentClone
+  b:number = 1;
+  @shallowClone
+  c:Vector3[] = [new Vector3(0,0,0)];
+}
+
+<Callout type='info'>
+使用文件名的场景可能并不常见，但某些情况下显示文件名是有必要的。譬如，对于 `project.json` 或 `Scene.json` 这种文件内容，增加文件名的显示可以更直观的传递信息。
+</Callout>
+
+#### 行高亮
+
+````md filename="Markdown"
+```ts {1,4-5}
+async function setupDefaultScene(scene: Scene){
+  const root = scene.createRootEntity();
+  const cameraEntity = root.createChild();
+  cameraEntity.transform.setPosition(0, 0, 10);
+  cameraEntity.addComponent(Camera);
+  cameraEntity.addComponent(OrbitControl);
+}
+```
+
+通过 `{1,4-5}` 这样的语法，我们可以同时实现单行高亮和多行高亮的功能。
+
+```js {1,4-5} showLineNumbers
+async function setupDefaultScene(scene: Scene) {
+  const root = scene.createRootEntity();
+  const cameraEntity = root.createChild();
+  cameraEntity.transform.setPosition(0, 0, 10);
+  cameraEntity.addComponent(Camera);
+  cameraEntity.addComponent(OrbitControl);
+}
+
+#### 指定代码高亮
+
+在某些情况下，你可能需要用户关注某一个关键方法，或某一个类的名称。这时候就可以使用 ` ```ts /specularTexture/ ` 语法来实现指定代码高亮的功能。
+
+````md filename="Markdown"
+```ts /specularTexture/
+  engine.resourceManager
+    .load<AmbientLight>({
+      type: AssetType.Env,
+      url: "https://gw.alipayobjects.com/os/bmw-prod/6470ea5e-094b-4a77-a05f-4945bf81e318.bin",
+    })
+    .then((ambientLight) => {
+      scene.ambientLight = ambientLight;
+      skyMaterial.texture = ambientLight.specularTexture;
+      skyMaterial.textureDecodeRGBM = true;
+      openDebug(ambientLight.specularTexture);
+      engine.run();
+    });
+```
+````
+The effect produced by the above syntax is as follows:
+
+```ts /specularTexture/
+engine.resourceManager
+  .load<AmbientLight>({
+    type: AssetType.Env,
+    url: "https://gw.alipayobjects.com/os/bmw-prod/6470ea5e-094b-4a77-a05f-4945bf81e318.bin",
+  })
+  .then((ambientLight) => {
+    scene.ambientLight = ambientLight;
+    skyMaterial.texture = ambientLight.specularTexture;
+    skyMaterial.textureDecodeRGBM = true;
+    openDebug(ambientLight.specularTexture);
+    engine.run();
+  });
+
+
+### 示例 
+
+#### 编写示例代码
+
+我们现在提供两种方式让你组织示例代码：
+
+- 在 `examples/` 文件夹下新建 `.ts` 示例文件来组织示例代码
+- 在 `examples/` 文件夹下新建一个 **示例文件夹**，最后通过 `示例文件夹/index.ts` 来暴露示例代码
+
+#### 嵌入示例
+
+````mdx filename="light.mdx"
+...
+
+Ambient light emits from all directions and enters the eye, as shown in the example below:
+
+<playground href="/embed/ambient-light" />
+
+...
+````
+
+<Playground href="/embed/ambient-light" />
+
+## New Documentation
+
+Adding new documentation may involve more steps than before (in some cases). It should be noted in advance that in the new official website, the file path is the route. At the same time, the order and titles of the documents need to be configured using `_meta.json`.
+
+For example, to add documentation for the animation system joint:
+
+1. Add the new document `docs/animation/joint.mdx`
+2. Add frontMatter to the document. The currently supported fields are:
+   1. **title** Document title
+   2. **group** Document subtitle
+   3. **banner** Header image
+3. Write the document content
+4. Modify `animation/_meta.json` to define the order of the document and the title in the sidebar
+
+对于文档国际化而言，则同步在 `/docs/en` 文件夹中做上述操作
+
+## 新增博客
+新增博客与新增文档的过程类似，只是 frontMatter 多了一些支持的字段。
+
+1. 新增博客文档 `blog/new_blog.mdx`
+2. 为博客增加 frontMatter, 支持的字段有：
+   1. **title** 博客标题
+   2. **group** 博客分类，可使用英文 `,` 隔开多个 group 名称
+   3. **banner** 头图
+   4. **published** 发布时间。年月日格式，例如 `2024-03-14`
+   5. **author** 博客作者定义。包含 name avatar website 三个字段
+   6. **searchable** 需要配置为 `searchable: false` 从而避免被内置的搜索引擎搜索到
+   7. **summary** 博客的摘要，会显示在博客列表页中
+
+## 新增 Changelog
+和新增博客的过程一样，只不过文件位于 `/changelog` 中。
+
+## 新增示例
+除了以往的单文件示例开发外，我们许你将一个大的示例进行拆分。比如将资产文件列表拆分成一个 `json`，或者将 `dat-gui` 的配置拆分到 `gui-config.ts` 中等等。
+
+要实现文件拆分，你只需要在 `examples` 文件中新建示例文件夹，确保文件夹中包含一个 `index.ts` 即可。在示例页面生成时，会自动检测代码中所依赖的其他文件，并注入到工作区中。

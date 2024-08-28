@@ -45,6 +45,11 @@ export const E2E_CONFIG = {
       caseFileName: "animator-play",
       threshold: 0.1
     },
+    playBeforeActive: {
+      category: "Animator",
+      caseFileName: "animator-play-beforeActive",
+      threshold: 0.1
+    },
     reuse: {
       category: "Animator",
       caseFileName: "animator-reuse",
@@ -53,6 +58,11 @@ export const E2E_CONFIG = {
     stateMachineScript: {
       category: "Animator",
       caseFileName: "animator-stateMachineScript",
+      threshold: 0.1
+    },
+    stateMachine: {
+      category: "Animator",
+      caseFileName: "animator-stateMachine",
       threshold: 0.1
     }
   },
@@ -170,10 +180,27 @@ export const E2E_CONFIG = {
     }
   },
   Particle: {
-    meshopt: {
+    particle: {
       category: "Particle",
       caseFileName: "particleRenderer-dream",
       threshold: 0.3
+    }
+  },
+  PostProcess: {
+    HDRBloomACES: {
+      category: "PostProcess",
+      caseFileName: "postProcess-HDR-bloom-ACES",
+      threshold: 0.2
+    },
+    HDRBloomNeutral: {
+      category: "PostProcess",
+      caseFileName: "postProcess-HDR-bloom-neutral",
+      threshold: 0.2
+    },
+    LDRBloomNeutral: {
+      category: "PostProcess",
+      caseFileName: "postProcess-LDR-bloom-neutral",
+      threshold: 0.2
     }
   }
 };

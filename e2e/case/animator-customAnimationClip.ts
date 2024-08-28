@@ -68,7 +68,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       const animator = defaultSceneRoot.getComponent(Animator);
 
       const sceneAnimator = rootEntity.addComponent(Animator);
-      sceneAnimator.animatorController = new AnimatorController();
+      sceneAnimator.animatorController = new AnimatorController(engine);
       const layer = new AnimatorControllerLayer("base");
       sceneAnimator.animatorController.addLayer(layer);
       const stateMachine = (layer.stateMachine = new AnimatorStateMachine());

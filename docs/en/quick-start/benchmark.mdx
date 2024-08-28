@@ -1,0 +1,46 @@
+---
+order: 4
+title: Benchmarks
+---
+
+## The tests
+
+We have designed a set of test schemes to compare the performance of various game engines across multiple performance factors. All tests are conducted in the following environment:
+
+-  Macbook M2 Pro
+-  Memory 16GB
+-  Sonoma 14.4.1
+
+All tests are run in a production environment. Like the engines, our benchmark test code is also open source. You can access the source code at the [benchmark](https://github.com/galacean/benchmark) repository. This test includes the Galacean Engine, Babylon.js, and Three.js engines.
+
+### Basic Rendering
+
+In this benchmark test, we tested the rendering performance of three engines when loading 100 glTF models and configuring 10 PointerLights.
+
+<BenchmarkDisplay type="gltf" />
+
+### Animation
+
+In this benchmark test, we tested the performance of three engines when loading 225 glTF models and playing 255 glTF animations simultaneously.
+
+<BenchmarkDisplay type="animation" />
+
+### Particle System
+
+In this benchmark, we tested the rendering performance of three engines using 500 particle systems with similar parameters against an opaque background.
+
+<BenchmarkDisplay type="particle" />
+
+> Three.js itself does not have a Particle System nor a currently maintained preferred third-party library. Similar effects are typically implemented by developers independently. Therefore, we use `three-nebula` to represent the Three.js particle system in this test.
+
+### 2D Rendering
+
+In the 2D test, we tested the performance of placing 7920 2D sprites and rotating them simultaneously.
+
+<BenchmarkDisplay type="2d" />
+
+## Conclusion
+
+We chose to test with Babylon.js, Three.js and PixiJS as they are some of the most popular game engines and have been benchmarks we strive to surpass throughout the development process. We hope to provide transparent and comparable performance information to the community through these benchmarks.
+
+If you want us to include your game engine or have suggestions for improvements in these tests, feel free to open an [issue](https://github.com/galacean/benchmark/issues).

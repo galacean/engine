@@ -4,26 +4,35 @@ import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Entity } from "../Entity";
 import { PrimitiveChunkManager } from "../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../RenderPipeline/RenderContext";
-import { Renderer } from "../Renderer";
-import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { UITransform, UITransformModifyFlags } from "./UITransform";
-import { ignoreClone } from "../clone/CloneManager";
 import { SubPrimitiveChunk } from "../RenderPipeline/SubPrimitiveChunk";
-import { SubRenderElement } from "../RenderPipeline/SubRenderElement";
+import { Renderer } from "../Renderer";
+import { TransformModifyFlags } from "../Transform";
+import { ignoreClone } from "../clone/CloneManager";
+import { ComponentType } from "../enums/ComponentType";
+import { ShaderProperty } from "../shader";
+import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
+import { CanvasGroup } from "./CanvasGroup";
+import { UICanvas } from "./UICanvas";
+import { UITransform } from "./UITransform";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
 export class UIRenderer extends Renderer {
-  protected _uiTransform: UITransform;
-  protected _localBounds: BoundingBox = new BoundingBox();
-  protected _rayCastTarget: boolean = true;
-  protected _rayCastPadding: Vector4 = new Vector4(0, 0, 0, 0);
-
+  /** @internal */
+  static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_UITexture");
+  /** @internal */
+  @ignoreClone
+  _uiCanvas: UICanvas;
+  /** @internal */
+  @ignoreClone
+  _uiGroup: CanvasGroup;
   /** @internal */
   @ignoreClone
   _subChunk: SubPrimitiveChunk;
-  /** @internal */
-  @ignoreClone
-  _subRenderElement: SubRenderElement;
+
+  protected _alpha: number = 1;
+  protected _localBounds: BoundingBox = new BoundingBox();
+  protected _rayCastTarget: boolean = true;
+  protected _rayCastPadding: Vector4 = new Vector4(0, 0, 0, 0);
 
   get rayCastTarget(): boolean {
     return this._rayCastTarget;
@@ -48,7 +57,7 @@ export class UIRenderer extends Renderer {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._uiTransform = entity.getComponent(UITransform);
+    this._componentType = ComponentType.UIRenderer;
   }
 
   /**
@@ -71,7 +80,7 @@ export class UIRenderer extends Renderer {
   override _prepareRender(context: RenderContext): void {
     // Update once per frame per renderer, not influenced by batched
     if (this._renderFrameCount !== this.engine.time.frameCount) {
-      this._updateRendererShaderData(context);
+      this._update(context);
     }
 
     this._render(context);
@@ -92,7 +101,6 @@ export class UIRenderer extends Renderer {
     if (this._overrideUpdate) {
       componentsManager.addOnUpdateRenderers(this);
     }
-    this._uiTransform._updateFlagManager.addListener(this._onUITransformChanged);
   }
 
   /**
@@ -103,7 +111,23 @@ export class UIRenderer extends Renderer {
     if (this._overrideUpdate) {
       componentsManager.removeOnUpdateRenderers(this);
     }
-    this._uiTransform._updateFlagManager.removeListener(this._onUITransformChanged);
+  }
+
+  /**
+   * @internal
+   */
+  _setAlpha(alpha: number): void {
+    if (this._alpha !== alpha) {
+      this._alpha = alpha;
+      this._dirtyUpdateFlag |= UIRendererUpdateFlags.Alpha;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _getChunkManager(): PrimitiveChunkManager {
+    return this.engine._batcherManager.primitiveChunkManagerUI;
   }
 
   /** @internal */
@@ -115,12 +139,21 @@ export class UIRenderer extends Renderer {
     return false;
   }
 
-  /**
-   * @internal
-   */
-  _getChunkManager(): PrimitiveChunkManager {
-    return this.engine._batcherManager.primitiveChunkManager2D;
+  protected override _onDestroy(): void {
+    if (this._subChunk) {
+      this._getChunkManager().freeSubChunk(this._subChunk);
+      this._subChunk = null;
+    }
+
+    super._onDestroy();
   }
 
-  protected _onUITransformChanged(flag: UITransformModifyFlags): void {}
+  protected override _onTransformChanged(flag: TransformModifyFlags): void {}
+}
+
+/**
+ * @remarks Extends `RendererUpdateFlag`.
+ */
+export enum UIRendererUpdateFlags {
+  Alpha = 0x8
 }

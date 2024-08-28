@@ -1,13 +1,22 @@
 import {
+  AnimationClip,
   AnimationEvent,
+  AnimationFloatCurve,
   Animator,
+  AnimatorConditionMode,
   AnimatorControllerLayer,
   AnimatorLayerBlendingMode,
   AnimatorLayerMask,
   AnimatorStateMachine,
   AnimatorStateTransition,
   Camera,
-  Script
+  Keyframe,
+  Script,
+  Transform,
+  AnimatorController,
+  WrapMode,
+  StateMachineScript,
+  AnimatorState
 } from "@galacean/engine-core";
 import { GLTFResource } from "@galacean/engine-loader";
 import { Quaternion } from "@galacean/engine-math";
@@ -37,8 +46,6 @@ describe("Animator test", function () {
     const defaultSceneRoot = resource.defaultSceneRoot;
     rootEntity.addChild(defaultSceneRoot);
     animator = defaultSceneRoot.getComponent(Animator);
-
-    engine.run();
   });
 
   after(function () {
@@ -75,6 +82,8 @@ describe("Animator test", function () {
     let expectedSpeed = speed * 0.5;
     animator.speed = expectedSpeed;
     let lastFrameTime = srcPlayData.frameTime;
+    // @ts-ignore
+    animator.engine.time._frameCount++;
     animator.update(5);
     expect(animator.speed).to.eq(expectedSpeed);
     expect(srcPlayData.frameTime).to.eq(lastFrameTime + 5 * expectedSpeed);
@@ -190,7 +199,9 @@ describe("Animator test", function () {
   it("animation cross fade", () => {
     animator.play("Walk");
     animator.crossFade("Run", 0.5);
-    animator.update(1);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
 
     const layerIndex = animator["_tempAnimatorStateInfo"].layerIndex;
     const animatorLayerData = animator["_animatorLayersData"];
@@ -210,8 +221,11 @@ describe("Animator test", function () {
     walkState.addTransition(transition);
 
     animator.play("Walk");
-
+    // @ts-ignore
+    animator.engine.time._frameCount++;
     animator.update(walkState.clip.length - 0.1);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
     animator.update(0.1);
 
     const layerIndex = animator["_tempAnimatorStateInfo"].layerIndex;
@@ -224,10 +238,14 @@ describe("Animator test", function () {
 
   it("animation fix cross fade", () => {
     animator.play("Walk");
-    animator.update(1);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
     animator.crossFade("Survey", 5);
     animator.crossFade("Run", 0.5);
-    animator.update(10);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
 
     const layerIndex = animator["_tempAnimatorStateInfo"].layerIndex;
     const animatorLayerData = animator["_animatorLayersData"];
@@ -301,5 +319,327 @@ describe("Animator test", function () {
     state.clip.addEvent(event0);
     animator.update(10);
     expect(TestScript.prototype.event0).to.have.been.called.exactly(1);
+  });
+
+  it("stateMachine", () => {
+    animator.animatorController.addParameter("playerSpeed", 1);
+    const stateMachine = animator.animatorController.layers[0].stateMachine;
+    const idleState = animator.findAnimatorState("Survey");
+    const idleSpeed = 2;
+    idleState.speed = idleSpeed;
+    idleState.clearTransitions();
+    const walkState = animator.findAnimatorState("Walk");
+    walkState.clearTransitions();
+    const runState = animator.findAnimatorState("Run");
+    runState.clearTransitions();
+    let idleToWalkTime = 0;
+    let walkToRunTime = 0;
+    let runToWalkTime = 0;
+    let walkToIdleTime = 0;
+
+    // handle idle state
+    const toWalkTransition = new AnimatorStateTransition();
+    toWalkTransition.destinationState = walkState;
+    toWalkTransition.duration = 0.2;
+    toWalkTransition.exitTime = 0.9;
+    toWalkTransition.addCondition(AnimatorConditionMode.Greater, "playerSpeed", 0);
+    idleState.addTransition(toWalkTransition);
+    idleToWalkTime =
+      //@ts-ignore
+      (toWalkTransition.exitTime * idleState._getDuration()) / idleSpeed +
+      //@ts-ignore
+      toWalkTransition.duration * walkState._getDuration();
+
+    const exitTransition = idleState.addExitTransition();
+    exitTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
+    // to walk state
+    const toRunTransition = new AnimatorStateTransition();
+    toRunTransition.destinationState = runState;
+    toRunTransition.duration = 0.3;
+    toRunTransition.exitTime = 0.9;
+    toRunTransition.addCondition(AnimatorConditionMode.Greater, "playerSpeed", 0.5);
+    walkState.addTransition(toRunTransition);
+    walkToRunTime =
+      //@ts-ignore
+      (toRunTransition.exitTime - toWalkTransition.duration) * walkState._getDuration() +
+      //@ts-ignore
+      toRunTransition.duration * runState._getDuration();
+    const toIdleTransition = new AnimatorStateTransition();
+    toIdleTransition.destinationState = idleState;
+    toIdleTransition.duration = 0.3;
+    toIdleTransition.exitTime = 0.9;
+    toIdleTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
+    walkState.addTransition(toIdleTransition);
+    walkToIdleTime =
+      //@ts-ignore
+      (toIdleTransition.exitTime - toRunTransition.duration) * walkState._getDuration() +
+      //@ts-ignore
+      (toIdleTransition.duration * idleState._getDuration()) / idleSpeed;
+
+    // to run state
+    const runToWalkTransition = new AnimatorStateTransition();
+    runToWalkTransition.destinationState = walkState;
+    runToWalkTransition.duration = 0.3;
+    runToWalkTransition.exitTime = 0.9;
+    runToWalkTransition.addCondition(AnimatorConditionMode.Less, "playerSpeed", 0.5);
+    runState.addTransition(runToWalkTransition);
+    runToWalkTime =
+      //@ts-ignore
+      (runToWalkTransition.exitTime - toRunTransition.duration) * runState._getDuration() +
+      //@ts-ignore
+      runToWalkTransition.duration * walkState._getDuration();
+
+    stateMachine.addEntryStateTransition(idleState);
+
+    const anyTransition = stateMachine.addAnyStateTransition(idleState);
+    anyTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
+    anyTransition.duration = 0.3;
+    anyTransition.exitTime = 0.9;
+    let anyToIdleTime =
+      // @ts-ignore
+      (anyTransition.exitTime - toIdleTransition.duration) * walkState._getDuration() +
+      // @ts-ignore
+      (anyTransition.duration * idleState._getDuration()) / idleSpeed;
+
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(idleToWalkTime - 0.001);
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Survey");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.001);
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
+
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(walkToRunTime - 0.001);
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.001);
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Run");
+
+    animator.setParameterValue("playerSpeed", 0.4);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(runToWalkTime - 0.001);
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Run");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.001);
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
+
+    animator.setParameterValue("playerSpeed", 0);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(anyToIdleTime - 0.001);
+    // apply any transition not walk to idle
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.001);
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Survey");
+  });
+
+  it("stateMachine backwards", () => {
+    animator.animatorController.addParameter("playerSpeed", 1);
+    animator.speed = -1;
+    const stateMachine = animator.animatorController.layers[0].stateMachine;
+    //@ts-ignore
+    stateMachine._entryTransitions.length = 0;
+    //@ts-ignore
+    stateMachine._anyStateTransitions.length = 0;
+
+    const idleState = animator.findAnimatorState("Survey");
+    const idleSpeed = 2;
+    idleState.speed = idleSpeed;
+    idleState.clearTransitions();
+    const walkState = animator.findAnimatorState("Walk");
+    walkState.clearTransitions();
+    const runState = animator.findAnimatorState("Run");
+    runState.clearTransitions();
+    let idleToWalkTime = 0;
+    let walkToRunTime = 0;
+    let runToWalkTime = 0;
+    let walkToIdleTime = 0;
+
+    // handle idle state
+    const toWalkTransition = new AnimatorStateTransition();
+    toWalkTransition.destinationState = walkState;
+    toWalkTransition.duration = 0.2;
+    toWalkTransition.exitTime = 0.1;
+    toWalkTransition.addCondition(AnimatorConditionMode.Greater, "playerSpeed", 0);
+    idleState.addTransition(toWalkTransition);
+    idleToWalkTime =
+      //@ts-ignore
+      ((1 - toWalkTransition.exitTime) * idleState._getDuration()) / idleSpeed +
+      //@ts-ignore
+      toWalkTransition.duration * walkState._getDuration();
+
+    const exitTransition = idleState.addExitTransition();
+    exitTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
+    // to walk state
+    const toRunTransition = new AnimatorStateTransition();
+    toRunTransition.destinationState = runState;
+    toRunTransition.duration = 0.3;
+    toRunTransition.exitTime = 0.1;
+    toRunTransition.addCondition(AnimatorConditionMode.Greater, "playerSpeed", 0.5);
+    walkState.addTransition(toRunTransition);
+    walkToRunTime =
+      //@ts-ignore
+      (1 - toRunTransition.exitTime - toWalkTransition.duration) * walkState._getDuration() +
+      //@ts-ignore
+      toRunTransition.duration * runState._getDuration();
+    const toIdleTransition = new AnimatorStateTransition();
+    toIdleTransition.destinationState = idleState;
+    toIdleTransition.duration = 0.3;
+    toIdleTransition.exitTime = 0.1;
+    toIdleTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
+    walkState.addTransition(toIdleTransition);
+    walkToIdleTime =
+      //@ts-ignore
+      (1 - toIdleTransition.exitTime - toRunTransition.duration) * walkState._getDuration() +
+      //@ts-ignore
+      (toIdleTransition.duration * idleState._getDuration()) / idleSpeed;
+
+    // to run state
+    const runToWalkTransition = new AnimatorStateTransition();
+    runToWalkTransition.destinationState = walkState;
+    runToWalkTransition.duration = 0.3;
+    runToWalkTransition.exitTime = 0.1;
+    runToWalkTransition.addCondition(AnimatorConditionMode.Less, "playerSpeed", 0.5);
+    runState.addTransition(runToWalkTransition);
+    runToWalkTime =
+      //@ts-ignore
+      (1 - runToWalkTransition.exitTime - toRunTransition.duration) * runState._getDuration() +
+      //@ts-ignore
+      runToWalkTransition.duration * walkState._getDuration();
+
+    stateMachine.addEntryStateTransition(idleState);
+
+    const anyTransition = stateMachine.addAnyStateTransition(idleState);
+    anyTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
+    anyTransition.duration = 0.3;
+    anyTransition.exitTime = 0.1;
+    let anyToIdleTime =
+      // @ts-ignore
+      (1 - anyTransition.exitTime - toIdleTransition.duration) * walkState._getDuration() +
+      // @ts-ignore
+      (anyTransition.duration * idleState._getDuration()) / idleSpeed;
+
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(idleToWalkTime - 0.001);
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Survey");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.001);
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
+
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(walkToRunTime - 0.001);
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.001);
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Run");
+
+    animator.setParameterValue("playerSpeed", 0.4);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(runToWalkTime - 0.001);
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Run");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.001);
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
+
+    animator.setParameterValue("playerSpeed", 0);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(anyToIdleTime - 0.001);
+    // apply any transition not walk to idle
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.001);
+    expect(animator.getCurrentAnimatorState(0).name).to.eq("Survey");
+  });
+
+  it("change state in one update", () => {
+    const animatorController = new AnimatorController(engine);
+    const layer = new AnimatorControllerLayer("layer");
+    animatorController.addLayer(layer);
+    const state1 = layer.stateMachine.addState("state1");
+    const state2 = layer.stateMachine.addState("state2");
+    state1.wrapMode = WrapMode.Once;
+    state2.wrapMode = WrapMode.Once;
+    const clip1 = new AnimationClip("clip1");
+    const rotationCurve = new AnimationFloatCurve();
+    const key1 = new Keyframe<number>();
+    const key2 = new Keyframe<number>();
+    key1.time = 0;
+    key1.value = 0;
+    key2.time = 1;
+    key2.value = 90;
+    rotationCurve.addKey(key1);
+    rotationCurve.addKey(key2);
+    clip1.addCurveBinding("", Transform, "rotation.x", rotationCurve);
+
+    const clip2 = new AnimationClip("clip2");
+    const positionCurve = new AnimationFloatCurve();
+    const key3 = new Keyframe<number>();
+    const key4 = new Keyframe<number>();
+    key3.time = 0;
+    key3.value = 0;
+    key4.time = 1;
+    key4.value = 5;
+    positionCurve.addKey(key3);
+    positionCurve.addKey(key4);
+    clip2.addCurveBinding("", Transform, "position.x", positionCurve);
+    state1.clip = clip1;
+    state2.clip = clip2;
+
+    const transition = new AnimatorStateTransition();
+    transition.destinationState = state2;
+    transition.exitTime = 1;
+    transition.duration = 1;
+    state1.addTransition(transition);
+
+    animator.animatorController = animatorController;
+    let enterRotation;
+    let exitRotation;
+    state1.addStateMachineScript(
+      class extends StateMachineScript {
+        onStateEnter(animator) {
+          enterRotation = animator.entity.transform.rotation.x;
+        }
+        onStateExit(animator) {
+          exitRotation = animator.entity.transform.rotation.x;
+        }
+      }
+    );
+    animator.play("state1");
+
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(3);
+    expect(enterRotation).to.eq(90);
+    expect(exitRotation).to.eq(90);
+    expect(animator.entity.transform.rotation.x).to.eq(0);
+    expect(animator.entity.transform.position.x).to.eq(5);
+  });
+
+  it("parameter rename", () => {
+    animator.animatorController.addParameter("oldName", 1);
+    const param = animator.getParameter("oldName");
+    param.name = "newName";
+    const value = animator.getParameterValue("newName");
+    expect(value).to.eq(1);
+    const newParam = animator.animatorController.addParameter("oldName", 2);
+    expect(newParam.defaultValue).to.eq(2);
+    const newParam2 = animator.animatorController.addParameter("oldName", 2);
+    expect(newParam2).to.eq(null);
   });
 });

@@ -1,18 +1,15 @@
 import { Vector2 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { Transform } from "../Transform";
-import { deepClone } from "../clone/CloneManager";
-import { UICanvas } from "./UICanvas";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
 
 export class UITransform extends Transform {
   @deepClone
   private _rect: Vector2 = new Vector2(100, 100);
   @deepClone
   private _pivot: Vector2 = new Vector2(0.5, 0.5);
-
-  /** @internal */
-  _uiCanvas: UICanvas;
-  _writeable: boolean = true;
+  @ignoreClone
+  private _writeable: boolean = true;
 
   /** @internal */
   get writeable(): boolean {
@@ -57,18 +54,19 @@ export class UITransform extends Transform {
     // @ts-ignore
     this._pivot._onValueChanged = this._onPivotChange.bind(this);
 
+    const _this = this;
     const proxyHandler = {
       set: function (target, prop, value, receiver): boolean {
         if (_this.writeable) {
-          return Reflect.set(target, prop, value, receiver); // 允许设置
+          return Reflect.set(target, prop, value, receiver);
         } else {
           console.log(`Setting readonly property `, prop, ` is not allowed.`);
-          return true; //
+          return true;
         }
       }
     };
 
-    const _this = this;
+    this._scale = new Proxy(this._scale, proxyHandler);
     this._position = new Proxy(this._position, proxyHandler);
     this._rotation = new Proxy(this._rotation, proxyHandler);
     this._rotationQuaternion = new Proxy(this._rotationQuaternion, proxyHandler);
@@ -86,9 +84,13 @@ export class UITransform extends Transform {
   }
 }
 
+/**
+ * @internal
+ * extends TransformModifyFlags
+ */
 export enum UITransformModifyFlags {
   /** Rect. */
-  Rect = 1,
+  Rect = 0x100,
   /** Pivot. */
-  Pivot = 2
+  Pivot = 0x200
 }

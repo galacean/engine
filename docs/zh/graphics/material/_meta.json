@@ -1,0 +1,6 @@
+{
+  "material": { "title": "材质总览" },
+  "composition": { "title": "材质组成" },
+  "editor": { "title": "编辑器使用" },
+  "script": { "title": "脚本使用" }
+}

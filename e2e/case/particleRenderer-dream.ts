@@ -70,10 +70,8 @@ WebGLEngine.create({
 
       cameraEntity.addChild(fireEntity);
 
-      setTimeout(() => {
-        updateForE2E(engine);
-        initScreenshot(engine, camera);
-      }, 2000);
+      updateForE2E(engine, 500);
+      initScreenshot(engine, camera);
     });
 });
 

@@ -1,5 +1,6 @@
 import { Matrix, Vector2 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { UIImage } from "../../ui";
 import { SpriteMask } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { ISpriteAssembler } from "./ISpriteAssembler";
@@ -15,7 +16,7 @@ export class SlicedSpriteAssembler {
   ];
   static _worldMatrix = new Matrix();
 
-  static resetData(renderer: SpriteRenderer): void {
+  static resetData(renderer: SpriteRenderer | UIImage): void {
     const manager = renderer._getChunkManager();
     const lastSubChunk = renderer._subChunk;
     lastSubChunk && manager.freeSubChunk(lastSubChunk);
@@ -25,7 +26,7 @@ export class SlicedSpriteAssembler {
   }
 
   static updatePositions(
-    renderer: SpriteRenderer | SpriteMask,
+    renderer: SpriteRenderer | SpriteMask | UIImage,
     width: number,
     height: number,
     pivot: Vector2,
@@ -126,7 +127,7 @@ export class SlicedSpriteAssembler {
     renderer._bounds.transform(worldMatrix);
   }
 
-  static updateUVs(renderer: SpriteRenderer): void {
+  static updateUVs(renderer: SpriteRenderer | UIImage): void {
     const subChunk = renderer._subChunk;
     const vertices = subChunk.chunk.vertices;
     const spriteUVs = renderer.sprite._getUVs();
@@ -139,15 +140,25 @@ export class SlicedSpriteAssembler {
     }
   }
 
-  static updateColor(renderer: SpriteRenderer): void {
+  static updateColor(renderer: SpriteRenderer | UIImage, alpha: number = 1): void {
     const subChunk = renderer._subChunk;
     const { r, g, b, a } = renderer.color;
+    const finalAlpha = a * alpha;
     const vertices = subChunk.chunk.vertices;
     for (let i = 0, o = subChunk.vertexArea.start + 5; i < 16; ++i, o += 9) {
       vertices[o] = r;
       vertices[o + 1] = g;
       vertices[o + 2] = b;
-      vertices[o + 3] = a;
+      vertices[o + 3] = finalAlpha;
+    }
+  }
+
+  static updateAlpha(renderer: SpriteRenderer, alpha: number = 1): void {
+    const subChunk = renderer._subChunk;
+    const finalAlpha = renderer.color.a * alpha;
+    const vertices = subChunk.chunk.vertices;
+    for (let i = 0, o = subChunk.vertexArea.start + 5; i < 16; ++i, o += 9) {
+      vertices[o + 3] = finalAlpha;
     }
   }
 }

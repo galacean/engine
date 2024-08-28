@@ -17,14 +17,12 @@ import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
 import { RenderQueue } from "./RenderPipeline";
 import { BatcherManager } from "./RenderPipeline/BatcherManager";
-import { MaskManager } from "./RenderPipeline/MaskManager";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderElement } from "./RenderPipeline/RenderElement";
 import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { VirtualCamera } from "./VirtualCamera";
-import { ContentRestorer } from "./asset/ContentRestorer";
 import { ResourceManager } from "./asset/ResourceManager";
 import { EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
@@ -47,7 +45,7 @@ import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
 import { CullMode } from "./shader/enums/CullMode";
 import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
-import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
+import { Texture2D, TextureFormat } from "./texture";
 import { CanvasRenderMode, UITransform } from "./ui";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
@@ -73,8 +71,6 @@ export class Engine extends EventDispatcher {
 
   /** @internal */
   _batcherManager: BatcherManager;
-  /** @internal */
-  _maskManager: MaskManager;
 
   _particleBufferUtils: ParticleBufferUtils;
   /** @internal */
@@ -115,16 +111,6 @@ export class Engine extends EventDispatcher {
   _renderContext: RenderContext = new RenderContext();
 
   /* @internal */
-  _whiteTexture2D: Texture2D;
-  /* @internal */
-  _magentaTexture2D: Texture2D;
-  /* @internal */
-  _uintMagentaTexture2D: Texture2D;
-  /* @internal */
-  _magentaTextureCube: TextureCube;
-  /* @internal */
-  _magentaTexture2DArray: Texture2DArray;
-  /* @internal */
   _meshMagentaMaterial: Material;
   /* @internal */
   _particleMagentaMaterial: Material;
@@ -135,8 +121,6 @@ export class Engine extends EventDispatcher {
   _renderCount: number = 0;
   /* @internal */
   _shaderProgramPools: ShaderProgramPool[] = [];
-  /** @internal */
-  _canSpriteBatch: boolean = true;
   /** @internal */
   _fontMap: Record<string, Font> = {};
   /** @internal @todo: temporary solution */
@@ -280,7 +264,6 @@ export class Engine extends EventDispatcher {
     this._textDefaultFont.isGCIgnored = true;
 
     this._batcherManager = new BatcherManager(this);
-    this._maskManager = new MaskManager();
     this.inputManager = new InputManager(this, configuration.input);
 
     // 为 overlay 的 UI 准备的
@@ -291,8 +274,6 @@ export class Engine extends EventDispatcher {
       this.xrManager = new XRManager();
       this.xrManager._initialize(this, xrDevice);
     }
-
-    this._initMagentaTextures(hardwareRenderer);
 
     if (!hardwareRenderer.canIUse(GLCapabilityType.depthTexture)) {
       this._macroCollection.enable(Engine._noDepthTextureMacro);
@@ -475,7 +456,6 @@ export class Engine extends EventDispatcher {
 
     this.inputManager._destroy();
     this._batcherManager.destroy();
-    this._maskManager.destroy();
     this.xrManager?._destroy();
     this.dispatch("shutdown", this);
 
@@ -572,115 +552,34 @@ export class Engine extends EventDispatcher {
         }
       );
 
-      const {
-        _canvas: canvas,
-        _uiRenderQueue: uiRenderQueue,
-        _virtualCamera: virtualCamera,
-        _renderContext: renderContext,
-        _batcherManager: batcherManager
-      } = this;
-      const uiCanvases = componentsManager._uiCanvasesArray[CanvasRenderMode.ScreenSpaceOverlay]._elements;
-      const { elements: projectE } = virtualCamera.projectionMatrix;
-      const { elements: viewE } = virtualCamera.viewMatrix;
-      (projectE[0] = 2 / canvas.width), (projectE[5] = 2 / canvas.height), (projectE[10] = 0);
-      this._hardwareRenderer.activeRenderTarget(null, new Vector4(0, 0, 1, 1), renderContext.flipProjection, 0);
-      for (let i = uiCanvases.length - 1; i >= 0; i--) {
-        const uiCanvas = uiCanvases[i];
-        if (!uiCanvas) continue;
-        const transform = <UITransform>uiCanvas.entity.transform;
-        (viewE[12] = -transform.position.x), (viewE[13] = -transform.position.y);
-        Matrix.multiply(virtualCamera.projectionMatrix, virtualCamera.viewMatrix, virtualCamera.viewProjectionMatrix);
-        renderContext.applyVirtualCamera(virtualCamera, false);
-        renderContext.rendererUpdateFlag |= ContextRendererUpdateFlag.ProjectionMatrix;
-        uiRenderQueue.clear();
-        uiCanvas._prepareRender(renderContext);
-        uiRenderQueue.pushRenderElement(uiCanvas._renderElement);
-        batcherManager.batch(uiRenderQueue);
-        uiRenderQueue.render(renderContext, "Forward");
+      const uiCanvases = componentsManager._uiCanvasesArray[CanvasRenderMode.ScreenSpaceOverlay]?._elements;
+      if (uiCanvases) {
+        const {
+          _canvas: canvas,
+          _uiRenderQueue: uiRenderQueue,
+          _virtualCamera: virtualCamera,
+          _renderContext: renderContext,
+          _batcherManager: batcherManager
+        } = this;
+        const { elements: projectE } = virtualCamera.projectionMatrix;
+        const { elements: viewE } = virtualCamera.viewMatrix;
+        (projectE[0] = 2 / canvas.width), (projectE[5] = 2 / canvas.height), (projectE[10] = 0);
+        this._hardwareRenderer.activeRenderTarget(null, new Vector4(0, 0, 1, 1), renderContext.flipProjection, 0);
+        for (let i = uiCanvases.length - 1; i >= 0; i--) {
+          const uiCanvas = uiCanvases[i];
+          if (!uiCanvas) continue;
+          const transform = <UITransform>uiCanvas.entity.transform;
+          (viewE[12] = -transform.position.x), (viewE[13] = -transform.position.y);
+          Matrix.multiply(virtualCamera.projectionMatrix, virtualCamera.viewMatrix, virtualCamera.viewProjectionMatrix);
+          renderContext.applyVirtualCamera(virtualCamera, false);
+          renderContext.rendererUpdateFlag |= ContextRendererUpdateFlag.ProjectionMatrix;
+          uiRenderQueue.clear();
+          uiCanvas._prepareRender(renderContext);
+          uiRenderQueue.pushRenderElement(uiCanvas._renderElement);
+          batcherManager.batch(uiRenderQueue);
+          uiRenderQueue.render(renderContext, "Forward");
+        }
       }
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _initMagentaTextures(hardwareRenderer: IHardwareRenderer) {
-    const whitePixel = new Uint8Array([255, 255, 255, 255]);
-    const whiteTexture2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
-    whiteTexture2D.setPixelBuffer(whitePixel);
-    whiteTexture2D.isGCIgnored = true;
-
-    const magentaPixel = new Uint8Array([255, 0, 255, 255]);
-    const magentaTexture2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
-    magentaTexture2D.setPixelBuffer(magentaPixel);
-    magentaTexture2D.isGCIgnored = true;
-
-    this.resourceManager.addContentRestorer(
-      new (class extends ContentRestorer<Texture2D> {
-        constructor() {
-          super(magentaTexture2D);
-        }
-        restoreContent() {
-          this.resource.setPixelBuffer(magentaPixel);
-        }
-      })()
-    );
-
-    const magentaTextureCube = new TextureCube(this, 1, TextureFormat.R8G8B8A8, false);
-    for (let i = 0; i < 6; i++) {
-      magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveX + i, magentaPixel);
-    }
-    magentaTextureCube.isGCIgnored = true;
-
-    this.resourceManager.addContentRestorer(
-      new (class extends ContentRestorer<TextureCube> {
-        constructor() {
-          super(magentaTextureCube);
-        }
-        restoreContent() {
-          for (let i = 0; i < 6; i++) {
-            this.resource.setPixelBuffer(TextureCubeFace.PositiveX + i, magentaPixel);
-          }
-        }
-      })()
-    );
-
-    this._whiteTexture2D = whiteTexture2D;
-    this._magentaTexture2D = magentaTexture2D;
-    this._magentaTextureCube = magentaTextureCube;
-
-    if (hardwareRenderer.isWebGL2) {
-      const magentaPixel32 = new Uint32Array([255, 0, 255, 255]);
-      const uintMagentaTexture2D = new Texture2D(this, 1, 1, TextureFormat.R32G32B32A32_UInt, false);
-      uintMagentaTexture2D.setPixelBuffer(magentaPixel32);
-      uintMagentaTexture2D.isGCIgnored = true;
-      this.resourceManager.addContentRestorer(
-        new (class extends ContentRestorer<Texture2D> {
-          constructor() {
-            super(uintMagentaTexture2D);
-          }
-          restoreContent() {
-            this.resource.setPixelBuffer(magentaPixel32);
-          }
-        })()
-      );
-
-      const magentaTexture2DArray = new Texture2DArray(this, 1, 1, 1, TextureFormat.R8G8B8A8, false);
-      magentaTexture2DArray.setPixelBuffer(0, magentaPixel);
-      magentaTexture2DArray.isGCIgnored = true;
-      this.resourceManager.addContentRestorer(
-        new (class extends ContentRestorer<Texture2DArray> {
-          constructor() {
-            super(magentaTexture2DArray);
-          }
-          restoreContent() {
-            this.resource.setPixelBuffer(0, magentaPixel);
-          }
-        })()
-      );
-
-      this._uintMagentaTexture2D = uintMagentaTexture2D;
-      this._magentaTexture2DArray = magentaTexture2DArray;
     }
   }
 
@@ -701,7 +600,7 @@ export class Engine extends EventDispatcher {
   protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
     const { shaderLab, physics } = configuration;
 
-    if (shaderLab) {
+    if (shaderLab && !Shader._shaderLab) {
       Shader._shaderLab = shaderLab;
     }
 

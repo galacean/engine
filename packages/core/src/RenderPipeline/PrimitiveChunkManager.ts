@@ -6,14 +6,11 @@ import { SubPrimitiveChunk } from "./SubPrimitiveChunk";
  * @internal
  */
 export class PrimitiveChunkManager {
-  /** The maximum number of vertex. */
-  static MAX_VERTEX_COUNT = 4096;
-
   primitiveChunks = new Array<PrimitiveChunk>();
 
   constructor(
     public engine: Engine,
-    public maxVertexCount = PrimitiveChunkManager.MAX_VERTEX_COUNT
+    public maxVertexCount = 4096
   ) {}
 
   allocateSubChunk(vertexCount: number): SubPrimitiveChunk {
@@ -23,19 +20,17 @@ export class PrimitiveChunkManager {
     for (let i = 0; i < length; ++i) {
       subChunk = primitiveChunks[i].allocateSubChunk(vertexCount);
       if (subChunk) {
-        subChunk.id = i;
         return subChunk;
       }
     }
 
-    const data = (this.primitiveChunks[length] ||= new PrimitiveChunk(this.engine, this.maxVertexCount));
+    const data = (primitiveChunks[length] ||= new PrimitiveChunk(this.engine, this.maxVertexCount));
     subChunk = data.allocateSubChunk(vertexCount);
-    subChunk.id = length;
     return subChunk;
   }
 
   freeSubChunk(subChunk: SubPrimitiveChunk): void {
-    this.primitiveChunks[subChunk.id].freeSubChunk(subChunk);
+    subChunk.chunk.freeSubChunk(subChunk);
   }
 
   uploadBuffer(): void {

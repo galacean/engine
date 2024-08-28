@@ -11,6 +11,7 @@ import { DirectLight } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
 import { LightManager } from "./lighting/LightManager";
 import { PhysicsScene } from "./physics/PhysicsScene";
+import { _PostProcessManager } from "./postProcess";
 import { ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -18,6 +19,7 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
 import { ShadowResolution } from "./shadow/enum/ShadowResolution";
 import { ShadowType } from "./shadow/enum/ShadowType";
+import { MaskManager } from "./RenderPipeline/MaskManager";
 
 /**
  * Scene.
@@ -53,6 +55,8 @@ export class Scene extends EngineObject {
   /* @internal */
   _componentsManager: ComponentsManager = new ComponentsManager();
   /** @internal */
+  _maskManager: MaskManager = new MaskManager();
+  /** @internal */
   _isActiveInEngine: boolean = false;
   /** @internal */
   _sceneManager: SceneManager;
@@ -60,6 +64,8 @@ export class Scene extends EngineObject {
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
   _rootEntities: Entity[] = [];
+  /** @internal */
+  _postProcessManager = new _PostProcessManager(this);
 
   private _background: Background = new Background(this._engine);
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
@@ -321,6 +327,7 @@ export class Scene extends EngineObject {
     if (!isRoot) {
       entity._isRoot = true;
       entity._removeFromParent();
+      entity._setParentChange();
     }
 
     // Add or remove from scene's rootEntities
@@ -504,6 +511,7 @@ export class Scene extends EngineObject {
     this._ambientLight && this._ambientLight._removeFromScene(this);
     this.shaderData._addReferCount(-1);
     this._componentsManager.handlingInvalidScripts();
+    this._maskManager.destroy();
 
     const allCreatedScenes = sceneManager._allCreatedScenes;
     allCreatedScenes.splice(allCreatedScenes.indexOf(this), 1);

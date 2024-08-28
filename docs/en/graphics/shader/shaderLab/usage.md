@@ -1,0 +1,17 @@
+---
+title: "Usage"
+---
+
+With custom shader assets written using `ShaderLab`, we can implement user-defined materials by binding the shader to newly created materials.
+
+<img src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*tVDOTq0ms2gAAAAAAAAAAAAADteEAQ/original" style="zoom:50%;">
+
+- `ShaderLab` Reflecting Material Properties
+
+If we write the `material property definition` module in `ShaderLab`, the properties defined in the module will be exposed in the Inspector panel of the material asset bound to the Shader.
+
+<img src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*38UISKqK2WUAAAAAAAAAAAAADteEAQ/original" style="zoom:50%">
+
+## An Example of Implementing Planar Shadows Using Multi-Pass Technology
+
+<playground src="shader-lab.ts"></playground>

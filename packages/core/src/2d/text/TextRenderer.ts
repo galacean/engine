@@ -290,17 +290,13 @@ export class TextRenderer extends Renderer {
 
   constructor(entity: Entity) {
     super(entity);
-    this._init();
-  }
 
-  /**
-   * @internal
-   */
-  _init(): void {
     const { engine } = this;
     this._font = engine._textDefaultFont;
     this._addResourceReferCount(this._font, 1);
     this.setMaterial(engine._textDefaultMaterial);
+    //@ts-ignore
+    this._color._onValueChanged = this._onColorChanged.bind(this);
   }
 
   /**
@@ -418,6 +414,11 @@ export class TextRenderer extends Renderer {
       this._setDirtyFlagFalse(DirtyFlag.WorldPosition);
     }
 
+    if (this._isContainDirtyFlag(DirtyFlag.Color)) {
+      this._updateColor();
+      this._setDirtyFlagFalse(DirtyFlag.Color);
+    }
+
     const camera = context.camera;
     const engine = camera.engine;
     const textSubRenderElementPool = engine._textSubRenderElementPool;
@@ -429,9 +430,7 @@ export class TextRenderer extends Renderer {
       const { subChunk, texture } = textChunks[i];
       const subRenderElement = textSubRenderElementPool.get();
       subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
-      if (!subRenderElement.shaderData) {
-        subRenderElement.shaderData = new ShaderData(ShaderDataGroup.RenderElement);
-      }
+      subRenderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
       subRenderElement.shaderData.setTexture(TextRenderer._textureProperty, texture);
       renderElement.addSubRenderElement(subRenderElement);
     }
@@ -522,6 +521,23 @@ export class TextRenderer extends Renderer {
     }
   }
 
+  private _updateColor(): void {
+    const { r, g, b, a } = this._color;
+    const textChunks = this._textChunks;
+    for (let i = 0, n = textChunks.length; i < n; ++i) {
+      const subChunk = textChunks[i].subChunk;
+      const vertexArea = subChunk.vertexArea;
+      const vertexCount = vertexArea.size / 9;
+      const vertices = subChunk.chunk.vertices;
+      for (let j = 0, o = vertexArea.start + 5; j < vertexCount; ++j, o += 9) {
+        vertices[o] = r;
+        vertices[o + 1] = g;
+        vertices[o + 2] = b;
+        vertices[o + 3] = a;
+      }
+    }
+  }
+
   private _updateLocalData(): void {
     const { min, max } = this._localBounds;
     const charRenderInfos = TextRenderer._charRenderInfos;
@@ -603,7 +619,7 @@ export class TextRenderer extends Renderer {
               j === firstRow && (minX = Math.min(minX, left));
               maxX = Math.max(maxX, right);
             }
-            startX += charInfo.xAdvance;
+            startX += charInfo.xAdvance + charInfo.offsetX;
           }
         }
         startY -= lineHeight;
@@ -635,6 +651,7 @@ export class TextRenderer extends Renderer {
     let curTextChunk = new TextChunk();
     textChunks.push(curTextChunk);
 
+    const chunkMaxVertexCount = this._getChunkManager().maxVertexCount;
     const curCharRenderInfo = charRenderInfos[0];
     let curTexture = curCharRenderInfo.texture;
     curTextChunk.texture = curTexture;
@@ -644,7 +661,7 @@ export class TextRenderer extends Renderer {
     for (let i = 1; i < renderElementCount; ++i) {
       const charRenderInfo = charRenderInfos[i];
       const texture = charRenderInfo.texture;
-      if (curTexture !== texture) {
+      if (curTexture !== texture || curCharInfos.length * 4 + 4 > chunkMaxVertexCount) {
         this._buildChunk(curTextChunk, curCharInfos.length);
 
         curTextChunk = new TextChunk();
@@ -727,6 +744,11 @@ export class TextRenderer extends Renderer {
     }
     textChunks.length = 0;
   }
+
+  @ignoreClone
+  private _onColorChanged(): void {
+    this._setDirtyFlagTrue(DirtyFlag.Color);
+  }
 }
 
 class TextChunk {
@@ -741,6 +763,7 @@ enum DirtyFlag {
   WorldPosition = 0x4,
   WorldBounds = 0x8,
   MaskInteraction = 0x10,
+  Color = 0x20,
 
   Position = LocalPositionBounds | WorldPosition | WorldBounds,
   Font = SubFont | Position

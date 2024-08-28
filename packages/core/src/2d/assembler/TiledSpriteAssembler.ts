@@ -1,9 +1,8 @@
 import { MathUtil, Matrix, Vector2 } from "@galacean/engine-math";
 import { DisorderedArray } from "../../DisorderedArray";
-import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { Logger } from "../../base";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { Image } from "../../ui";
+import { UIImage } from "../../ui";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
@@ -20,7 +19,7 @@ export class TiledSpriteAssembler {
   static _uvRow = new DisorderedArray<number>();
   static _uvColumn = new DisorderedArray<number>();
 
-  static resetData(renderer: SpriteRenderer | Image, vertexCount: number): void {
+  static resetData(renderer: SpriteRenderer | UIImage, vertexCount: number): void {
     if (vertexCount) {
       const manager = renderer._getChunkManager();
       const lastSubChunk = renderer._subChunk;
@@ -36,7 +35,7 @@ export class TiledSpriteAssembler {
   }
 
   static updatePositions(
-    renderer: SpriteRenderer | Image,
+    renderer: SpriteRenderer | UIImage,
     width: number,
     height: number,
     pivot: Vector2,
@@ -46,6 +45,7 @@ export class TiledSpriteAssembler {
     const { sprite, tileMode, tiledAdaptiveThreshold: threshold } = renderer;
     // Calculate row and column
     const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = TiledSpriteAssembler;
+    const maxVertexCount = renderer._getChunkManager().maxVertexCount;
     posRow.length = posColumn.length = uvRow.length = uvColumn.length = 0;
     const vertexCount =
       tileMode === SpriteTileMode.Adaptive
@@ -57,9 +57,19 @@ export class TiledSpriteAssembler {
             posRow,
             posColumn,
             uvRow,
-            uvColumn
+            uvColumn,
+            maxVertexCount
           )
-        : TiledSpriteAssembler._calculateContinuousDividing(sprite, width, height, posRow, posColumn, uvRow, uvColumn);
+        : TiledSpriteAssembler._calculateContinuousDividing(
+            sprite,
+            width,
+            height,
+            posRow,
+            posColumn,
+            uvRow,
+            uvColumn,
+            maxVertexCount
+          );
     TiledSpriteAssembler.resetData(renderer, vertexCount);
     // Update renderer's worldMatrix
     const { x: pivotX, y: pivotY } = pivot;
@@ -137,7 +147,7 @@ export class TiledSpriteAssembler {
     renderer._bounds.transform(worldMatrix);
   }
 
-  static updateUVs(renderer: SpriteRenderer): void {
+  static updateUVs(renderer: SpriteRenderer | UIImage): void {
     const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = TiledSpriteAssembler;
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
@@ -171,16 +181,27 @@ export class TiledSpriteAssembler {
     }
   }
 
-  static updateColor(renderer: SpriteRenderer): void {
+  static updateColor(renderer: SpriteRenderer | UIImage, alpha: number = 1): void {
     const subChunk = renderer._subChunk;
     const { r, g, b, a } = renderer.color;
+    const finalAlpha = a * alpha;
     const vertices = subChunk.chunk.vertices;
     const vertexArea = subChunk.vertexArea;
     for (let i = 0, o = vertexArea.start + 5, n = vertexArea.size / 9; i < n; ++i, o += 9) {
       vertices[o] = r;
       vertices[o + 1] = g;
       vertices[o + 2] = b;
-      vertices[o + 3] = a;
+      vertices[o + 3] = finalAlpha;
+    }
+  }
+
+  static updateAlpha(renderer: SpriteRenderer, alpha: number = 1): void {
+    const subChunk = renderer._subChunk;
+    const finalAlpha = renderer.color.a * alpha;
+    const vertices = subChunk.chunk.vertices;
+    const vertexArea = subChunk.vertexArea;
+    for (let i = 0, o = vertexArea.start + 5, n = vertexArea.size / 9; i < n; ++i, o += 9) {
+      vertices[o + 3] = finalAlpha;
     }
   }
 
@@ -192,7 +213,8 @@ export class TiledSpriteAssembler {
     posRow: DisorderedArray<number>,
     posColumn: DisorderedArray<number>,
     uvRow: DisorderedArray<number>,
-    uvColumn: DisorderedArray<number>
+    uvColumn: DisorderedArray<number>,
+    maxVertexCount: number
   ): number {
     const { border } = sprite;
     const spritePositions = sprite._getPositions();
@@ -245,14 +267,14 @@ export class TiledSpriteAssembler {
     let rowCount = 0;
     let columnCount = 0;
 
-    if ((rVertCount - 1) * (cVertCount - 1) * 4 > PrimitiveChunkManager.MAX_VERTEX_COUNT) {
+    if ((rVertCount - 1) * (cVertCount - 1) * 4 > maxVertexCount) {
       posRow.add(width * left), posRow.add(width * right);
       posColumn.add(height * bottom), posColumn.add(height * top);
       uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
       uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV3.y);
       rowCount += 2;
       columnCount += 2;
-      Logger.warn(`The number of vertices exceeds the upper limit(${PrimitiveChunkManager.MAX_VERTEX_COUNT}).`);
+      Logger.warn(`The number of vertices exceeds the upper limit(${maxVertexCount}).`);
       return rowCount * columnCount;
     }
 
@@ -332,7 +354,8 @@ export class TiledSpriteAssembler {
     posRow: DisorderedArray<number>,
     posColumn: DisorderedArray<number>,
     uvRow: DisorderedArray<number>,
-    uvColumn: DisorderedArray<number>
+    uvColumn: DisorderedArray<number>,
+    maxVertexCount: number
   ): number {
     const { border } = sprite;
     const spritePositions = sprite._getPositions();
@@ -382,14 +405,14 @@ export class TiledSpriteAssembler {
     let rowCount = 0;
     let columnCount = 0;
 
-    if ((rVertCount - 1) * (cVertCount - 1) * 4 > PrimitiveChunkManager.MAX_VERTEX_COUNT) {
+    if ((rVertCount - 1) * (cVertCount - 1) * 4 > maxVertexCount) {
       posRow.add(width * left), posRow.add(width * right);
       posColumn.add(height * bottom), posColumn.add(height * top);
       uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
       uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV3.y);
       rowCount += 2;
       columnCount += 2;
-      Logger.warn(`The number of vertices exceeds the upper limit(${PrimitiveChunkManager.MAX_VERTEX_COUNT}).`);
+      Logger.warn(`The number of vertices exceeds the upper limit(${maxVertexCount}).`);
       return rowCount * columnCount;
     }
 

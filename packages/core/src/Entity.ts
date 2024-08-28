@@ -99,7 +99,8 @@ export class Entity extends EngineObject {
   /** @internal */
   _isTemplate: boolean = false;
   /** @internal */
-  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
+
+  _updateFlagManager: UpdateFlagManager;
 
   private _templateResource: ReferResource;
   private _parent: Entity = null;
@@ -213,14 +214,17 @@ export class Entity extends EngineObject {
   /**
    * Add component based on the component type.
    * @param type - The type of the component
+   * @param args - The arguments of the component
    * @returns	The component which has been added
    */
-  addComponent<T extends Component>(type: new (entity: Entity) => T): T {
+  addComponent<T extends new (entity: Entity, ...args: any[]) => Component>(
+    type: T,
+    ...args: ComponentArguments<T>
+  ): InstanceType<T> {
     ComponentsDependencies._addCheck(this, type);
-    const component = new type(this);
+    const component = new type(this, ...args) as InstanceType<T>;
     this._components.push(component);
     component._setActive(true, ActiveChangeFlag.All);
-    this._updateFlagManager.dispatch(EntityModifyFlags.AddComponent, component);
     return component;
   }
 
@@ -436,7 +440,6 @@ export class Entity extends EngineObject {
 
       Entity._traverseSetOwnerScene(child, null); // Must after child._processInActive().
       children.length--;
-      this._updateFlagManager.dispatch(EntityModifyFlags.DelChild, child);
     }
   }
 
@@ -445,7 +448,7 @@ export class Entity extends EngineObject {
    * @returns Cloned entity
    */
   clone(): Entity {
-    const cloneEntity = this._createCloneEntity(this);
+    const cloneEntity = this._createCloneEntity();
     this._parseCloneEntity(this, cloneEntity, this, cloneEntity, new Map<Object, Object>());
     return cloneEntity;
   }
@@ -458,8 +461,8 @@ export class Entity extends EngineObject {
     this._templateResource = templateResource;
   }
 
-  private _createCloneEntity(srcEntity: Entity): Entity {
-    const cloneEntity = new Entity(srcEntity._engine, srcEntity.name);
+  private _createCloneEntity(): Entity {
+    const cloneEntity = new Entity(this._engine, this.name);
 
     const templateResource = this._templateResource;
     if (templateResource) {
@@ -467,17 +470,17 @@ export class Entity extends EngineObject {
       templateResource._addReferCount(1);
     }
 
-    cloneEntity.layer = srcEntity.layer;
-    cloneEntity._isActive = srcEntity._isActive;
-    const { _transform: cloneTransform } = cloneEntity;
-    const { _transform: srcTransform } = srcEntity;
+    cloneEntity.layer = this.layer;
+    cloneEntity._isActive = this._isActive;
+    const { transform: cloneTransform } = cloneEntity;
+    const { transform: srcTransform } = this;
     cloneTransform.position = srcTransform.position;
     cloneTransform.rotation = srcTransform.rotation;
     cloneTransform.scale = srcTransform.scale;
 
-    const children = srcEntity._children;
-    for (let i = 0, n = srcEntity._children.length; i < n; i++) {
-      cloneEntity.addChild(this._createCloneEntity(children[i]));
+    const srcChildren = this._children;
+    for (let i = 0, n = srcChildren.length; i < n; i++) {
+      cloneEntity.addChild(srcChildren[i]._createCloneEntity());
     }
     return cloneEntity;
   }
@@ -581,7 +584,6 @@ export class Entity extends EngineObject {
       }
       this._parent = null;
       this._siblingIndex = -1;
-      oldParent._updateFlagManager.dispatch(EntityModifyFlags.DelChild, this);
     }
   }
 
@@ -622,6 +624,35 @@ export class Entity extends EngineObject {
     onPointerCallBacks.add(callback);
   }
 
+  /**
+   * @internal
+   */
+  _setParentChange() {
+    this._transform._parentChange();
+    this._dispatchModify(EntityModifyFlags.Parent);
+  }
+
+  /**
+   * @internal
+   */
+  _registerModifyListener(onChange: (flag: EntityModifyFlags) => void): void {
+    (this._updateFlagManager ||= new UpdateFlagManager()).addListener(onChange);
+  }
+
+  /**
+   * @internal
+   */
+  _removeModifyListener(onChange: (flag: EntityModifyFlags) => void): void {
+    (this._updateFlagManager ||= new UpdateFlagManager()).addListener(onChange);
+  }
+
+  /**
+   * @internal
+   */
+  _dispatchModify(flag: EntityModifyFlags, param?: any): void {
+    this._updateFlagManager?.dispatch(flag, param);
+  }
+
   private _addToChildrenList(index: number, child: Entity): void {
     const children = this._children;
     const childCount = children.length;
@@ -638,7 +669,6 @@ export class Entity extends EngineObject {
         children[i]._siblingIndex++;
       }
     }
-    this._updateFlagManager.dispatch(EntityModifyFlags.AddChild, child);
   }
 
   private _setParent(parent: Entity, siblingIndex?: number): void {
@@ -754,11 +784,6 @@ export class Entity extends EngineObject {
     }
   }
 
-  private _setParentChange() {
-    this._transform._parentChange();
-    this._updateFlagManager.dispatch(EntityModifyFlags.Parent);
-  }
-
   private _setSiblingIndex(sibling: Entity[], target: number): void {
     target = Math.min(target, sibling.length - 1);
     if (target < 0) {
@@ -800,8 +825,13 @@ export class Entity extends EngineObject {
 
 export enum EntityModifyFlags {
   Parent = 0x1,
-  AddChild = 0x2,
-  DelChild = 0x4,
-  AddComponent = 0x8,
-  DelComponent = 0x10
+  UICanvasEnableInScene = 0x2,
+  UICanvasDisableInScene = 0x4
 }
+
+type ComponentArguments<T extends new (entity: Entity, ...args: any[]) => Component> = T extends new (
+  entity: Entity,
+  ...args: infer P
+) => Component
+  ? P
+  : never;

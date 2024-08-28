@@ -10,6 +10,7 @@ import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Transform, TransformModifyFlags } from "./Transform";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
 import { IComponentCustomClone } from "./clone/ComponentCloner";
+import { ComponentType } from "./enums/ComponentType";
 import { Material } from "./material";
 import { ShaderMacro, ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
@@ -68,6 +69,8 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected _dirtyUpdateFlag: number = 0;
   @ignoreClone
   protected _rendererLayer: Vector4 = new Vector4();
+  @ignoreClone
+  protected _transform: Transform;
 
   @deepClone
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
@@ -165,12 +168,13 @@ export class Renderer extends Component implements IComponentCustomClone {
     super(entity);
     const prototype = Renderer.prototype;
     const shaderData = this.shaderData;
+    this._componentType = ComponentType.Renderer;
     this._overrideUpdate = this.update !== prototype.update;
 
     this._addResourceReferCount(this.shaderData, 1);
 
     this._onTransformChanged = this._onTransformChanged.bind(this);
-    this._registerEntityTransformListener();
+    this._setTransform(entity.transform);
 
     shaderData.enableMacro(Renderer._receiveShadowMacro);
     shaderData.setVector4(Renderer._rendererLayerProperty, this._rendererLayer);
@@ -323,6 +327,10 @@ export class Renderer extends Component implements IComponentCustomClone {
    * @internal
    */
   _prepareRender(context: RenderContext): void {
+    if (this._renderFrameCount !== this.engine.time.frameCount) {
+      this._update(context);
+    }
+
     const virtualCamera = context.virtualCamera;
     const cameraPosition = virtualCamera.position;
     const boundsCenter = this.bounds.getCenter(Renderer._tempVector0);
@@ -332,11 +340,6 @@ export class Renderer extends Component implements IComponentCustomClone {
       this._distanceForSort = Vector3.dot(boundsCenter, virtualCamera.forward);
     } else {
       this._distanceForSort = Vector3.distanceSquared(boundsCenter, cameraPosition);
-    }
-
-    // Update once per frame per renderer, not influenced by batched
-    if (this._renderFrameCount !== this.engine.time.frameCount) {
-      this._updateRendererShaderData(context);
     }
 
     this._render(context);
@@ -365,7 +368,7 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected override _onDestroy(): void {
     super._onDestroy();
 
-    this._unRegisterEntityTransformListener();
+    this._setTransform(null);
     this._addResourceReferCount(this.shaderData, -1);
 
     const materials = this._materials;
@@ -391,12 +394,12 @@ export class Renderer extends Component implements IComponentCustomClone {
    * @internal
    */
   _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
-    const worldMatrix = this.entity.transform.worldMatrix;
+    const worldMatrix = this._transform.worldMatrix;
     if (onlyMVP) {
       this._updateProjectionRelatedShaderData(context, worldMatrix, batched);
-      return;
+    } else {
+      this._updateWorldViewRelatedShaderData(context, worldMatrix, batched);
     }
-    this._updateWorldViewRelatedShaderData(context, worldMatrix, batched);
   }
 
   /**
@@ -411,7 +414,10 @@ export class Renderer extends Component implements IComponentCustomClone {
    */
   _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {}
 
-  protected _updateRendererShaderData(context: RenderContext): void {
+  /**
+   * Update once per frame per renderer, not influenced by batched.
+   */
+  protected _update(context: RenderContext): void {
     const { layer } = this.entity;
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
   }
@@ -438,7 +444,7 @@ export class Renderer extends Component implements IComponentCustomClone {
       Matrix.invert(worldMatrix, normalMatrix);
       normalMatrix.transpose();
 
-      shaderData.setMatrix(Renderer._localMatrixProperty, this.entity.transform.localMatrix);
+      shaderData.setMatrix(Renderer._localMatrixProperty, this._transform.localMatrix);
       shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
       shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
       shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
@@ -461,15 +467,10 @@ export class Renderer extends Component implements IComponentCustomClone {
   /**
    * @internal
    */
-  protected _registerEntityTransformListener(): void {
-    this.entity.transform._updateFlagManager.addListener(this._onTransformChanged);
-  }
-
-  /**
-   * @internal
-   */
-  protected _unRegisterEntityTransformListener(): void {
-    this.entity.transform._updateFlagManager.removeListener(this._onTransformChanged);
+  protected _setTransform(transform: Transform): void {
+    this._transform?._updateFlagManager.removeListener(this._onTransformChanged);
+    transform?._updateFlagManager.addListener(this._onTransformChanged);
+    this._transform = transform;
   }
 
   /**

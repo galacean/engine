@@ -120,12 +120,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * @internal
    */
   override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
-    const worldMatrix = (this.skin?.rootBone ?? this.entity).transform.worldMatrix;
+    const worldMatrix = this._transform.worldMatrix;
     if (onlyMVP) {
       this._updateProjectionRelatedShaderData(context, worldMatrix, batched);
-      return;
+    } else {
+      this._updateWorldViewRelatedShaderData(context, worldMatrix, batched);
     }
-    this._updateWorldViewRelatedShaderData(context, worldMatrix, batched);
   }
 
   /**
@@ -154,7 +154,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
   }
 
-  protected override _updateRendererShaderData(context: RenderContext): void {
+  protected override _update(context: RenderContext): void {
     const { skin } = this;
     if (skin?.bones.length > 0) {
       skin._updateSkinMatrices(this);
@@ -210,7 +210,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       }
     }
 
-    super._updateRendererShaderData(context);
+    super._update(context);
   }
 
   /**
@@ -219,7 +219,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   protected override _updateBounds(worldBounds: BoundingBox): void {
     const rootBone = this.skin?.rootBone;
     if (rootBone) {
-      BoundingBox.transform(this._localBounds, rootBone.transform.worldMatrix, worldBounds);
+      BoundingBox.transform(this._localBounds, this._transform.worldMatrix, worldBounds);
     } else {
       super._updateBounds(worldBounds);
     }
@@ -265,6 +265,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         }
         break;
       case SkinUpdateFlag.RootBoneChanged:
+        this._setTransform((<Entity>value).transform);
         this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
         break;
     }

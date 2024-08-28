@@ -50,7 +50,7 @@ export class ResourceManager {
   private _graphicResourcePool: Record<number, GraphicsResource> = Object.create(null);
   /** Restorable resource information pool, key is the `instanceID` of resource. */
   private _contentRestorerPool: Record<number, ContentRestorer<any>> = Object.create(null);
-  private _subAssetPromiseCallbacks: SubAssetPromiseCallbacks = {};
+  private _subAssetPromiseCallbacks: SubAssetPromiseCallbacks<any> = {};
 
   /**
    * Create a ResourceManager.
@@ -182,17 +182,31 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _onSubAssetSuccess<T>(assetURL: string, value: T): void {
-    this._subAssetPromiseCallbacks[assetURL]?.resolve(value);
-    delete this._subAssetPromiseCallbacks[assetURL];
+  _onSubAssetSuccess<T>(assetBaseURL: string, assetSubPath: string, value: T): void {
+    const subPromiseCallback = this._subAssetPromiseCallbacks[assetBaseURL]?.[assetSubPath];
+    if (subPromiseCallback) {
+      subPromiseCallback.resolve(value);
+    } else {
+      // Pending
+      (this._subAssetPromiseCallbacks[assetBaseURL] ||= {})[assetSubPath] = {
+        resolvedValue: value
+      };
+    }
   }
 
   /**
    * @internal
    */
-  _onSubAssetFail(assetURL: string, value: (reason: any) => void): void {
-    this._subAssetPromiseCallbacks[assetURL]?.reject(value);
-    delete this._subAssetPromiseCallbacks[assetURL];
+  _onSubAssetFail(assetBaseURL: string, assetSubPath: string, value: Error): void {
+    const subPromiseCallback = this._subAssetPromiseCallbacks[assetBaseURL]?.[assetSubPath];
+    if (subPromiseCallback) {
+      subPromiseCallback.reject(value);
+    } else {
+      // Pending
+      (this._subAssetPromiseCallbacks[assetBaseURL] ||= {})[assetSubPath] = {
+        rejectedValue: value
+      };
+    }
   }
 
   /**
@@ -336,7 +350,6 @@ export class ResourceManager {
     let assetURL = assetBaseURL;
     if (queryPath) {
       assetURL += "?q=" + paths.shift();
-
       let index: string;
       while ((index = paths.shift())) {
         assetURL += `[${index}]`;
@@ -365,8 +378,23 @@ export class ResourceManager {
       throw `loader not found: ${item.type}`;
     }
 
-    // Load asset
+    // Check sub asset
+    if (queryPath) {
+      // Check whether load main asset
+      const mainPromise = loadingPromises[assetBaseURL] || this._loadMainAsset(loader, item, assetBaseURL);
+      mainPromise.catch((e) => {
+        this._onSubAssetFail(assetBaseURL, queryPath, e);
+      });
+
+      return this._createSubAssetPromiseCallback<T>(assetBaseURL, assetURL, queryPath);
+    }
+
+    return this._loadMainAsset(loader, item, assetBaseURL);
+  }
+
+  private _loadMainAsset<T>(loader: Loader<T>, item: LoadItem, assetBaseURL: string): AssetPromise<T> {
     item.url = assetBaseURL;
+    const loadingPromises = this._loadingPromises;
     const promise = loader.load(item, this);
     loadingPromises[assetBaseURL] = promise;
 
@@ -376,38 +404,56 @@ export class ResourceManager {
           this._addAsset(assetBaseURL, resource as EngineObject);
         }
         delete loadingPromises[assetBaseURL];
+        this._releaseSubAssetPromiseCallback(assetBaseURL);
       },
-      () => delete loadingPromises[assetBaseURL]
+      () => {
+        delete loadingPromises[assetBaseURL];
+        this._releaseSubAssetPromiseCallback(assetBaseURL);
+      }
     );
-
-    if (queryPath) {
-      const subPromise = new AssetPromise<T>((resolve, reject) => {
-        this._pushSubAssetPromiseCallback(assetURL, resolve, reject);
-      });
-
-      loadingPromises[assetURL] = subPromise;
-      subPromise.then(
-        () => {
-          delete loadingPromises[assetURL];
-        },
-        () => delete loadingPromises[assetURL]
-      );
-
-      promise.catch((e) => {
-        this._onSubAssetFail(assetURL, e);
-      });
-
-      return subPromise;
-    }
 
     return promise;
   }
 
-  private _pushSubAssetPromiseCallback(assetURL: string, resolve: (value: any) => void, reject: (reason: any) => void) {
-    this._subAssetPromiseCallbacks[assetURL] = {
-      resolve,
-      reject
-    };
+  private _createSubAssetPromiseCallback<T>(
+    assetBaseURL: string,
+    assetURL: string,
+    assetSubPath: string
+  ): AssetPromise<T> {
+    const loadingPromises = this._loadingPromises;
+    const subPromiseCallback = this._subAssetPromiseCallbacks[assetBaseURL]?.[assetSubPath];
+    const resolvedValue = subPromiseCallback?.resolvedValue;
+    const rejectedValue = subPromiseCallback?.rejectedValue;
+
+    // Already resolved or rejected
+    if (resolvedValue || rejectedValue) {
+      return new AssetPromise<T>((resolve, reject) => {
+        if (resolvedValue) {
+          resolve(resolvedValue);
+        } else if (rejectedValue) {
+          reject(rejectedValue);
+        }
+      });
+    }
+
+    // Pending
+    const promise = new AssetPromise<T>((resolve, reject) => {
+      (this._subAssetPromiseCallbacks[assetBaseURL] ||= {})[assetSubPath] = {
+        resolve,
+        reject
+      };
+    });
+
+    loadingPromises[assetURL] = promise;
+
+    promise.then(
+      () => {
+        delete loadingPromises[assetURL];
+      },
+      () => delete loadingPromises[assetURL]
+    );
+
+    return promise;
   }
 
   private _gc(forceDestroy: boolean): void {
@@ -465,6 +511,10 @@ export class ResourceManager {
       result.push(key);
     });
     return result;
+  }
+
+  private _releaseSubAssetPromiseCallback(assetBaseURL: string): void {
+    delete this._subAssetPromiseCallbacks[assetBaseURL];
   }
 
   //-----------------Editor temp solution-----------------
@@ -548,10 +598,19 @@ const rePropName = RegExp(
 
 type EditorResourceItem = { virtualPath: string; path: string; type: string; id: string };
 type EditorResourceConfig = Record<string, EditorResourceItem>;
-type SubAssetPromiseCallbacks = Record<
+type SubAssetPromiseCallbacks<T> = Record<
+  // main asset url, ie. "https://***.glb"
   string,
-  {
-    resolve: (value: any) => void;
-    reject: (reason: any) => void;
-  }
+  Record<
+    // sub asset url, ie. "textures[0]"
+    string,
+    {
+      // Already resolved or rejected
+      resolvedValue?: T;
+      rejectedValue?: Error;
+      // Pending
+      resolve?: (value: T) => void;
+      reject?: (reason: any) => void;
+    }
+  >
 >;
