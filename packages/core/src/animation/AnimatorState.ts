@@ -2,12 +2,13 @@ import { UpdateFlagManager } from "../UpdateFlagManager";
 import { AnimationClip } from "./AnimationClip";
 import { AnimatorStateTransition } from "./AnimatorStateTransition";
 import { WrapMode } from "./enums/WrapMode";
+import { TransitionSource } from "./internal/TransitionSource";
 import { StateMachineScript } from "./StateMachineScript";
 
 /**
  * States are the basic building blocks of a state machine. Each state contains a AnimationClip which will play while the character is in that state.
  */
-export class AnimatorState {
+export class AnimatorState extends TransitionSource {
   /** The speed of the clip. 1 is normal speed, default 1. */
   speed: number = 1.0;
   /** The wrap mode used in the state. */
@@ -87,6 +88,7 @@ export class AnimatorState {
    * @param name - The state's name
    */
   constructor(public readonly name: string) {
+    super();
     this._onClipChanged = this._onClipChanged.bind(this);
   }
 
@@ -102,24 +104,8 @@ export class AnimatorState {
   addTransition(animatorState: AnimatorState): AnimatorStateTransition;
 
   addTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
-    let transition: AnimatorStateTransition;
-    if (transitionOrAnimatorState instanceof AnimatorState) {
-      transition = new AnimatorStateTransition();
-      transition.destinationState = transitionOrAnimatorState;
-    } else {
-      transition = transitionOrAnimatorState;
-    }
-    transition._srcState = this;
-    const transitions = this._transitions;
-
-    if (transition.hasExitTime) {
-      this._addHasExitTimeTransition(transition);
-    } else {
-      transitions.unshift(transition);
-    }
-
-    transition.solo && !this._hasSoloTransition && this._updateSoloTransition(true);
-
+    const transition = this._addTransition(transitionOrAnimatorState, this._transitions);
+    transition.solo && !this._hasSoloTransition && this._updateSoloTransition(transition, true);
     return transition;
   }
 
@@ -129,22 +115,21 @@ export class AnimatorState {
    */
   addExitTransition(exitTime: number = 1.0): AnimatorStateTransition {
     const transition = new AnimatorStateTransition();
-    transition._srcState = this;
     transition._isExit = true;
     transition.exitTime = exitTime;
 
-    return this.addTransition(transition);
+    return this._addTransition(transition, this._transitions);
   }
   /**
    * Remove a transition from the state.
    * @param transition - The transition
    */
   removeTransition(transition: AnimatorStateTransition): void {
-    const index = this._transitions.indexOf(transition);
-    index !== -1 && this._transitions.splice(index, 1);
-    transition._srcState = null;
-
-    this._updateSoloTransition();
+    this._removeTransition(transition, this._transitions);
+    this._updateSoloTransition(transition);
+    if (transition._isExit) {
+      transition._isExit = false;
+    }
   }
 
   /**
@@ -215,7 +200,20 @@ export class AnimatorState {
   /**
    * @internal
    */
-  _updateSoloTransition(hasSolo?: boolean): void {
+  _updateTransitionsIndex(transition: AnimatorStateTransition, hasExitTime: boolean): void {
+    const transitions = this._transitions;
+    transitions.splice(transitions.indexOf(transition), 1);
+    if (hasExitTime) {
+      this._addHasExitTimeTransition(transition, transitions);
+    } else {
+      transitions.unshift(transition);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _updateSoloTransition(transition: AnimatorStateTransition, hasSolo?: boolean): void {
     if (hasSolo !== undefined) {
       this._hasSoloTransition = hasSolo;
     } else {
@@ -226,32 +224,6 @@ export class AnimatorState {
           return;
         }
       }
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _updateTransitionsIndex(transition: AnimatorStateTransition, hasExitTime: boolean): void {
-    this._transitions.splice(this._transitions.indexOf(transition), 1);
-    if (hasExitTime) {
-      this._addHasExitTimeTransition(transition);
-    } else {
-      this._transitions.unshift(transition);
-    }
-  }
-
-  private _addHasExitTimeTransition(transition: AnimatorStateTransition): void {
-    const time = transition.exitTime;
-    const transitions = this._transitions;
-    const count = transitions.length;
-    const maxExitTime = count ? transitions[count - 1].exitTime : 0;
-    if (time >= maxExitTime) {
-      transitions.push(transition);
-    } else {
-      let index = count;
-      while (--index >= 0 && time < transitions[index].exitTime);
-      transitions.splice(index + 1, 0, transition);
     }
   }
 }

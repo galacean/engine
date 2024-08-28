@@ -14,6 +14,7 @@ export class AnimatorLayerData {
   srcPlayData: AnimatorStatePlayData = new AnimatorStatePlayData();
   destPlayData: AnimatorStatePlayData = new AnimatorStatePlayData();
   layerState: LayerState = LayerState.Standby;
+  anyTransitionIndex: number = 0;
   crossCurveMark: number = 0;
   manuallyTransition: AnimatorStateTransition = new AnimatorStateTransition();
   crossFadeTransition: AnimatorStateTransition;

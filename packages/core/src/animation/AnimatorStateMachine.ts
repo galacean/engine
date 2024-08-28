@@ -1,5 +1,6 @@
 import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateTransition } from "./AnimatorStateTransition";
+import { TransitionSource } from "./internal/TransitionSource";
 export interface AnimatorStateMap {
   [key: string]: AnimatorState;
 }
@@ -7,7 +8,7 @@ export interface AnimatorStateMap {
 /**
  * A graph controlling the interaction of states. Each state references a motion.
  */
-export class AnimatorStateMachine {
+export class AnimatorStateMachine extends TransitionSource {
   /** The list of states. */
   readonly states: AnimatorState[] = [];
 
@@ -16,6 +17,12 @@ export class AnimatorStateMachine {
    * @remarks When the Animator's AnimatorController changed or the Animator's onEnable be triggered.
    */
   defaultState: AnimatorState;
+
+  /** @internal */
+  _entryHasSolo: boolean = false;
+
+  /** @internal */
+  _anyHasSolo: boolean = false;
 
   private _entryTransitions: AnimatorStateTransition[] = [];
   private _anyStateTransitions: AnimatorStateTransition[] = [];
@@ -101,7 +108,10 @@ export class AnimatorStateMachine {
   addEntryStateTransition(animatorState: AnimatorState): AnimatorStateTransition;
 
   addEntryStateTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
-    return this._addTransition(transitionOrAnimatorState, this._entryTransitions);
+    const transition = this._addTransition(transitionOrAnimatorState, this._entryTransitions);
+    transition._isEntry = true;
+    transition.solo && !this._entryHasSolo && this._updateSoloTransition(transition, true);
+    return transition;
   }
 
   /**
@@ -110,6 +120,7 @@ export class AnimatorStateMachine {
    */
   removeEntryStateTransition(transition: AnimatorStateTransition): void {
     this._removeTransition(transition, this._entryTransitions);
+    transition._isEntry = false;
   }
 
   /**
@@ -124,7 +135,10 @@ export class AnimatorStateMachine {
   addAnyStateTransition(animatorState: AnimatorState): AnimatorStateTransition;
 
   addAnyStateTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
-    return this._addTransition(transitionOrAnimatorState, this._anyStateTransitions);
+    const transition = this._addTransition(transitionOrAnimatorState, this._entryTransitions);
+    transition._isAny = true;
+    transition.solo && !this._anyHasSolo && this._updateSoloTransition(transition, true);
+    return transition;
   }
 
   /**
@@ -133,26 +147,42 @@ export class AnimatorStateMachine {
    */
   removeAnyStateTransition(transition: AnimatorStateTransition): void {
     this._removeTransition(transition, this._anyStateTransitions);
+    transition._isAny = false;
   }
 
-  private _addTransition(
-    transitionOrAnimatorState: AnimatorStateTransition | AnimatorState,
-    transitions: AnimatorStateTransition[]
-  ): AnimatorStateTransition {
-    let transition: AnimatorStateTransition;
-    if (transitionOrAnimatorState instanceof AnimatorState) {
-      transition = new AnimatorStateTransition();
-      transition.hasExitTime = false;
-      transition.destinationState = transitionOrAnimatorState;
+  /**
+   * @internal
+   */
+  _updateTransitionsIndex(transition: AnimatorStateTransition, hasExitTime: boolean): void {
+    const transitions = transition._isAny ? this._anyStateTransitions : this._entryTransitions;
+    transitions.splice(transitions.indexOf(transition), 1);
+    if (hasExitTime) {
+      this._addHasExitTimeTransition(transition, transitions);
     } else {
-      transition = transitionOrAnimatorState;
+      transitions.unshift(transition);
     }
-    transitions.push(transition);
-    return transition;
   }
 
-  private _removeTransition(transition: AnimatorStateTransition, transitions: AnimatorStateTransition[]): void {
-    const index = transitions.indexOf(transition);
-    index !== -1 && transitions.splice(index, 1);
+  /**
+   * @internal
+   */
+  _updateSoloTransition(transition: AnimatorStateTransition, hasSolo?: boolean): void {
+    const transitions = transition._isAny ? this._anyStateTransitions : this._entryTransitions;
+    let solo = false;
+    if (hasSolo !== undefined) {
+      solo = hasSolo;
+    } else {
+      for (let i = 0, n = transitions.length; i < n; ++i) {
+        if (transitions[i].solo) {
+          solo = true;
+          break;
+        }
+      }
+    }
+    if (transition._isAny) {
+      this._anyHasSolo = hasSolo;
+    } else {
+      this._entryHasSolo = hasSolo;
+    }
   }
 }
