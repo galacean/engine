@@ -5,6 +5,9 @@
     "access": "public",
     "registry": "https://registry.npmjs.org"
   },
+  "repository": {
+    "url": "https://github.com/galacean/engine"
+  },
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
