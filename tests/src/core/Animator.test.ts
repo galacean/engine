@@ -394,8 +394,11 @@ describe("Animator test", function () {
     const anyTransition = stateMachine.addAnyStateTransition(idleState);
     anyTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
     anyTransition.duration = 0.3;
-    anyTransition.exitTime = 0.9;
+    anyTransition.hasExitTime = true;
+    anyTransition.exitTime = 0.7;
     let anyToIdleTime =
+      // @ts-ignore
+      (anyTransition.exitTime - toIdleTransition.duration) * walkState._getDuration() +
       // @ts-ignore
       (anyTransition.duration * idleState._getDuration()) / idleSpeed;
 
@@ -518,8 +521,11 @@ describe("Animator test", function () {
     const anyTransition = stateMachine.addAnyStateTransition(idleState);
     anyTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
     anyTransition.duration = 0.3;
-    anyTransition.exitTime = 0.1;
+    anyTransition.hasExitTime = true;
+    anyTransition.exitTime = 0.3;
     let anyToIdleTime =
+      // @ts-ignore
+      (1 - anyTransition.exitTime - toIdleTransition.duration) * walkState._getDuration() +
       // @ts-ignore
       (anyTransition.duration * idleState._getDuration()) / idleSpeed;
 

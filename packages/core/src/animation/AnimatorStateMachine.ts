@@ -135,7 +135,7 @@ export class AnimatorStateMachine extends TransitionSource {
   addAnyStateTransition(animatorState: AnimatorState): AnimatorStateTransition;
 
   addAnyStateTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
-    const transition = this._addTransition(transitionOrAnimatorState, this._entryTransitions);
+    const transition = this._addTransition(transitionOrAnimatorState, this._anyStateTransitions);
     transition._isAny = true;
     transition.solo && !this._anyHasSolo && this._updateSoloTransition(transition, true);
     return transition;

@@ -1165,11 +1165,11 @@ export class Animator extends Component {
     transitions: Readonly<AnimatorStateTransition[]>,
     lastClipTime: number,
     curClipTime: number,
-    checkAnyTransition: boolean,
+    checkStateMachineTransition: boolean,
     aniUpdate: boolean
   ): AnimatorStateTransition {
     const { state } = playState;
-    let transitionIndex = checkAnyTransition ? layerData.anyTransitionIndex : playState.currentTransitionIndex;
+    let transitionIndex = checkStateMachineTransition ? layerData.anyTransitionIndex : playState.currentTransitionIndex;
     const duration = playState.state._getDuration();
     for (; transitionIndex >= 0; transitionIndex--) {
       const transition = transitions[transitionIndex];
@@ -1180,7 +1180,7 @@ export class Animator extends Component {
       }
 
       if (exitTime <= lastClipTime || !hasExitTime) {
-        if (checkAnyTransition) {
+        if (checkStateMachineTransition) {
           layerData.anyTransitionIndex = Math.max(transitionIndex - 1, 0);
         } else {
           playState.currentTransitionIndex = Math.max(transitionIndex - 1, 0);
@@ -1188,7 +1188,7 @@ export class Animator extends Component {
 
         if (transition.mute) continue;
 
-        const hasSolo = checkAnyTransition
+        const hasSolo = checkStateMachineTransition
           ? (<AnimatorStateMachine>transition._source)._anyHasSolo
           : state._hasSoloTransition;
         if (hasSolo && !transition.solo) continue;
