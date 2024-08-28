@@ -232,7 +232,7 @@ export class AnimatorState {
   /**
    * @internal
    */
-  _updateTransitionsIndex(transition: AnimatorStateTransition, hasExitTime): void {
+  _updateTransitionsIndex(transition: AnimatorStateTransition, hasExitTime: boolean): void {
     this._transitions.splice(this._transitions.indexOf(transition), 1);
     if (hasExitTime) {
       this._addHasExitTimeTransition(transition);
