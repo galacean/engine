@@ -72,7 +72,7 @@ During the game, the height at which pipes appear is random, but the assets we h
 
 <img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*ZDSZTaXK-RIAAAAAAAAAAAAADleLAQ/original"/>
 
-Here's a little trick: setting the `pivot` property of the referenced `sprite` asset to `bottom` can avoid re-anchoring the position every time you adjust the height.
+Here's a little trick: setting the `pivot` property of the referenced `sprite` asset to `buttom` can avoid re-anchoring the position every time you adjust the height.
 
 <img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*MQqKTK0BAFAAAAAAAAAAAAAADleLAQ/original" alt="image-20231007163240028" style="zoom:50%;" />
 
