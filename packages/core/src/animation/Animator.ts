@@ -1145,7 +1145,7 @@ export class Animator extends Component {
           : state._hasSoloTransition;
         if (hasSolo && !transition.solo) continue;
 
-        if (this._checkConditions(state, transition)) {
+        if (this._checkConditions(transition)) {
           if (this._applyTransition(layerIndex, layerData, layer, transition, aniUpdate)) {
             return transition;
           } else {
@@ -1193,7 +1193,7 @@ export class Animator extends Component {
           : state._hasSoloTransition;
         if (hasSolo && !transition.solo) continue;
 
-        if (this._checkConditions(state, transition)) {
+        if (this._checkConditions(transition)) {
           if (this._applyTransition(layerIndex, layerData, layer, transition, aniUpdate)) {
             return transition;
           } else {
@@ -1228,7 +1228,7 @@ export class Animator extends Component {
         : (<AnimatorState>source)._hasSoloTransition;
       if (hasSolo && !transition.solo) continue;
 
-      if (this._checkConditions(state, transition)) {
+      if (this._checkConditions(transition)) {
         if (this._applyTransition(layerIndex, layerData, layer, transition, aniUpdate)) {
           return transition;
         } else {
@@ -1272,7 +1272,7 @@ export class Animator extends Component {
     return success;
   }
 
-  private _checkConditions(state: AnimatorState, transition: AnimatorStateTransition): boolean {
+  private _checkConditions(transition: AnimatorStateTransition): boolean {
     const { conditions } = transition;
 
     let allPass = true;
