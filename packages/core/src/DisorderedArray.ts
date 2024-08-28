@@ -8,7 +8,7 @@ export class DisorderedArray<T> {
 
   _elements: T[];
 
-  private _isLooping = false;
+  private _loopTag = 0;
   private _blankCount = 0;
 
   constructor(count: number = 0) {
@@ -52,7 +52,7 @@ export class DisorderedArray<T> {
   deleteByIndex(index: number): T {
     const elements = this._elements;
     let end: T;
-    if (this._isLooping) {
+    if (this._loopTag > 0) {
       this._elements[index] = null;
       this._blankCount++;
     } else {
@@ -68,23 +68,23 @@ export class DisorderedArray<T> {
     return end;
   }
 
-  forEach(callbackFn: (element: T) => void, swapFn: (element: T, index: number) => void): void {
+  forEach(callbackFn: (element: T, index: number) => void, swapFn?: (element: T, index: number) => void): void {
     this._startLoop();
     const elements = this._elements;
     for (let i = 0, n = this.length; i < n; i++) {
       const element = elements[i];
-      element && callbackFn(element);
+      element && callbackFn(element, i);
     }
     this._endLoop(swapFn);
   }
 
-  forEachAndClean(callbackFn: (e: T) => void, swapFn: (element: T, index: number) => void): void {
+  forEachAndClean(callbackFn: (element: T, index: number) => void, swapFn?: (element: T, index: number) => void): void {
     this._startLoop();
     const preEnd = this.length;
     const elements = this._elements;
     for (let i = 0, n = preEnd; i < n; i++) {
       const element = elements[i];
-      element && callbackFn(element);
+      element && callbackFn(element, i);
     }
     this._endLoopAndClean(preEnd, elements, swapFn);
   }
@@ -98,11 +98,11 @@ export class DisorderedArray<T> {
   }
 
   private _startLoop(): void {
-    this._isLooping = true;
+    ++this._loopTag;
   }
 
   private _endLoop(swapFn: (e: T, idx: number) => void): void {
-    this._isLooping = false;
+    --this._loopTag;
     if (this._blankCount) {
       let from = 0;
       let to = this.length - 1;
@@ -119,7 +119,7 @@ export class DisorderedArray<T> {
           }
 
         const swapElement = elements[to];
-        swapFn(swapElement, from);
+        swapFn && swapFn(swapElement, from);
         elements[from++] = swapElement;
         elements[to--] = null;
       } while (from < to);
@@ -130,15 +130,15 @@ export class DisorderedArray<T> {
   }
 
   private _endLoopAndClean(preEnd: number, elements: T[], swapFn: (element: T, index: number) => void): void {
+    --this._loopTag;
     let index = 0;
     for (let i = preEnd, n = this.length; i < n; i++) {
       const element = elements[i];
       if (!element) continue;
       elements[index] = element;
-      swapFn(element, index);
+      swapFn && swapFn(element, index);
       index++;
     }
-    this._isLooping = false;
     this.length = index;
     this._blankCount = 0;
   }
