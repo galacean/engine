@@ -21,10 +21,10 @@ export class UIRenderer extends Renderer {
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_UITexture");
   /** @internal */
   @ignoreClone
-  _uiCanvas: UICanvas;
+  _canvas: UICanvas;
   /** @internal */
   @ignoreClone
-  _uiGroup: CanvasGroup;
+  _group: CanvasGroup;
   /** @internal */
   @ignoreClone
   _subChunk: SubPrimitiveChunk;
@@ -116,7 +116,9 @@ export class UIRenderer extends Renderer {
   /**
    * @internal
    */
-  _setAlpha(alpha: number): void {
+  _setGroup(group: CanvasGroup): void {
+    this._group = group;
+    const alpha = group ? group._globalAlpha : 1;
     if (this._alpha !== alpha) {
       this._alpha = alpha;
       this._dirtyUpdateFlag |= UIRendererUpdateFlags.Alpha;

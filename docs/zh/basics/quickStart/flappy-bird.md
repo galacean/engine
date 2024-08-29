@@ -70,7 +70,7 @@ Flappy Bird 依赖的资源是一堆图片，点击[这里](https://github.com/g
 
 <img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*ZDSZTaXK-RIAAAAAAAAAAAAADleLAQ/original"/>
 
-这里有个小技巧，将引用 `sprite` 资产的 `pivot` 属性设置为 `bottom` 就可以避免每次调整高度的时候重新锚定位置了。
+这里有个小技巧，将引用 `sprite` 资产的 `pivot` 属性设置为 `buttom` 就可以避免每次调整高度的时候重新锚定位置了。
 
 <img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*MQqKTK0BAFAAAAAAAAAAAAAADleLAQ/original" alt="image-20231007163240028" style="zoom:50%;" />
 

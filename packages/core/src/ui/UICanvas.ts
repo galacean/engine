@@ -24,12 +24,12 @@ export class UICanvas extends Component {
   _isRootCanvas: boolean = false;
   /** @internal */
   @ignoreClone
-  _renderElement = new RenderElement();
+  _renderElement: RenderElement;
 
   @assignmentClone
   private _priority: number = 0;
   @assignmentClone
-  private _renderMode = CanvasRenderMode.ScreenSpaceOverlay;
+  private _renderMode = CanvasRenderMode.WorldSpace;
   @assignmentClone
   private _renderCamera: Camera;
   @assignmentClone
@@ -46,9 +46,10 @@ export class UICanvas extends Component {
 
   /** @internal */
   get renderers(): UIRenderer[] {
-    this._renderers.length = 0;
-    this._walk(this.entity, this._renderers);
-    return this._renderers;
+    const renderers = this._renderers;
+    renderers.length = 0;
+    this._walk(this.entity, renderers);
+    return renderers;
   }
 
   get enableBlocked(): boolean {
@@ -203,7 +204,6 @@ export class UICanvas extends Component {
       renderer._renderFrameCount = frameCount;
       renderer._prepareRender(context);
     }
-    context.camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
   /**
@@ -231,7 +231,6 @@ export class UICanvas extends Component {
    * @internal
    */
   rayCast(ray: Ray, out: HitResult[], camera?: Camera): void {
-    // 获取这个画布上所有的 renderer
     const { renderers } = this;
     const uiPath: UIRenderer[] = [];
     for (let i = 0, n = renderers.length; i < n; i++) {
@@ -303,32 +302,36 @@ export class UICanvas extends Component {
     this._transform.rect.set(curWidth / expectX, curHeight / expectY);
   }
 
-  private _walk(entity: Entity, renderers: UIRenderer[], alpha: number = 1): void {
-    const { _children: children } = entity;
+  private _walk(entity: Entity, renderers: UIRenderer[], group?: CanvasGroup): void {
+    const components = entity._components;
+    const offset = renderers.length;
+    for (let i = 0, n = components.length; i < n; i++) {
+      const component = components[i];
+      if (component.enabled) {
+        switch (component._componentType) {
+          case ComponentType.CanvasGroup:
+            const alpha = group ? group.alpha : 1;
+            group = <CanvasGroup>component;
+            group._globalAlpha = group.ignoreParentGroup ? 1 : alpha * group.alpha;
+            for (let j = offset, m = renderers.length; j < m; j++) {
+              renderers[j]._setGroup(group);
+            }
+            break;
+          case ComponentType.UIRenderer:
+            const uiRenderer = <UIRenderer>component;
+            uiRenderer._canvas = this;
+            uiRenderer._setGroup(group);
+            renderers.push(uiRenderer);
+            break;
+          default:
+            break;
+        }
+      }
+    }
+    const children = entity._children;
     for (let i = 0, n = children.length; i < n; i++) {
       const child = children[i];
-      if (!child.isActive) {
-        continue;
-      }
-      const canvasGroup = child.getComponent(CanvasGroup);
-      if (canvasGroup) {
-        if (canvasGroup.ignoreParentGroup) {
-          alpha = 1;
-        } else {
-          alpha *= canvasGroup.alpha;
-        }
-      }
-      const { _components: components } = child;
-      for (let j = 0, m = components.length; j < m; j++) {
-        const component = components[j];
-        if (component.enabled && component._componentType === ComponentType.UIRenderer) {
-          const uiRenderer = <UIRenderer>component;
-          uiRenderer._uiCanvas = this;
-          uiRenderer._setAlpha(alpha);
-          renderers.push(uiRenderer);
-        }
-      }
-      this._walk(child, renderers, alpha);
+      child.isActive && this._walk(child, renderers, group);
     }
   }
 

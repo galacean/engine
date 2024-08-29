@@ -1,10 +1,13 @@
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { assignmentClone } from "../clone/CloneManager";
+import { ComponentType } from "../enums/ComponentType";
 
 export class CanvasGroup extends Component {
   @assignmentClone
   ignoreParentGroup = false;
+  /** @internal */
+  _globalAlpha = 1;
   @assignmentClone
   private _alpha = 1;
 
@@ -20,5 +23,6 @@ export class CanvasGroup extends Component {
 
   constructor(entity: Entity) {
     super(entity);
+    this._componentType = ComponentType.CanvasGroup;
   }
 }

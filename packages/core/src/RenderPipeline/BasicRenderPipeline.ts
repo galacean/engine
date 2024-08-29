@@ -361,6 +361,7 @@ export class BasicRenderPipeline {
           return;
         }
         canvas._prepareRender(context);
+        this.pushRenderElement(context, canvas._renderElement);
       },
       (canvas: UICanvas, index: number) => {
         canvas._uiCanvasIndex = index;
@@ -375,6 +376,7 @@ export class BasicRenderPipeline {
           return;
         }
         canvas._prepareRender(context);
+        this.pushRenderElement(context, canvas._renderElement);
       },
       (canvas: UICanvas, index: number) => {
         canvas._uiCanvasIndex = index;

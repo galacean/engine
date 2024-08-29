@@ -6,12 +6,14 @@ import { SlicedSpriteAssembler } from "../2d/assembler/SlicedSpriteAssembler";
 import { TiledSpriteAssembler } from "../2d/assembler/TiledSpriteAssembler";
 import { SpriteModifyFlags } from "../2d/enums/SpriteModifyFlags";
 import { Entity } from "../Entity";
+import { RenderQueueFlags } from "../RenderPipeline/BasicRenderPipeline";
 import { BatchUtils } from "../RenderPipeline/BatchUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { SubRenderElement } from "../RenderPipeline/SubRenderElement";
 import { assignmentClone, deepClone, ignoreClone } from "../clone/CloneManager";
 import { UIRenderer, UIRendererUpdateFlags } from "./UIRenderer";
 import { UITransform } from "./UITransform";
+import { CanvasRenderMode } from "./enums/CanvasRenderMode";
 
 export class UIImage extends UIRenderer {
   @deepClone
@@ -181,11 +183,15 @@ export class UIImage extends UIRenderer {
     this._dirtyUpdateFlag = ImageUpdateFlags.None;
     // Init sub render element.
     const { engine } = context.camera;
-    const renderElement = this._uiCanvas._renderElement;
+    const canvas = this._canvas;
     const subRenderElement = engine._subRenderElementPool.get();
     const subChunk = this._subChunk;
     subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
-    renderElement.addSubRenderElement(subRenderElement);
+    if (canvas.renderMode === CanvasRenderMode.ScreenSpaceOverlay) {
+      subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
+      subRenderElement.renderQueueFlags = RenderQueueFlags.All;
+    }
+    canvas._renderElement.addSubRenderElement(subRenderElement);
   }
 
   /**
