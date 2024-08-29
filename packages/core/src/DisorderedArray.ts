@@ -119,7 +119,7 @@ export class DisorderedArray<T> {
           }
 
         const swapElement = elements[to];
-        swapFn && swapFn(swapElement, from);
+        swapFn?.(swapElement, from);
         elements[from++] = swapElement;
         elements[to--] = null;
       } while (from < to);
@@ -136,7 +136,7 @@ export class DisorderedArray<T> {
       const element = elements[i];
       if (!element) continue;
       elements[index] = element;
-      swapFn && swapFn(element, index);
+      swapFn?.(element, index);
       index++;
     }
     this.length = index;
