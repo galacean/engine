@@ -1,14 +1,13 @@
 import { AnimatorState } from "../AnimatorState";
+import { AnimatorStateMachine } from "../AnimatorStateMachine";
 import { AnimatorStateTransition } from "../AnimatorStateTransition";
 
 /**
  * @internal
  */
-export abstract class TransitionSource {
-  abstract _updateTransitionsIndex(transition: AnimatorStateTransition, hasExitTime?: boolean): void;
-  abstract _updateSoloTransition(transition: AnimatorStateTransition, hasSolo?: boolean): void;
-
-  protected _addTransition(
+export class TransitionUtil {
+  static addTransition(
+    source: AnimatorState | AnimatorStateMachine,
     transitionOrAnimatorState: AnimatorStateTransition | AnimatorState,
     transitions: AnimatorStateTransition[]
   ): AnimatorStateTransition {
@@ -20,26 +19,23 @@ export abstract class TransitionSource {
     } else {
       transition = transitionOrAnimatorState;
     }
-    transition._source = this;
+    transition._source = source;
 
     if (transition.hasExitTime) {
-      this._addHasExitTimeTransition(transition, transitions);
+      this.addHasExitTimeTransition(transition, transitions);
     } else {
       transitions.unshift(transition);
     }
     return transition;
   }
 
-  protected _removeTransition(transition: AnimatorStateTransition, transitions: AnimatorStateTransition[]): void {
+  static removeTransition(transition: AnimatorStateTransition, transitions: AnimatorStateTransition[]): void {
     const index = transitions.indexOf(transition);
     index !== -1 && transitions.splice(index, 1);
     transition._source = null;
   }
 
-  protected _addHasExitTimeTransition(
-    transition: AnimatorStateTransition,
-    transitions: AnimatorStateTransition[]
-  ): void {
+  static addHasExitTimeTransition(transition: AnimatorStateTransition, transitions: AnimatorStateTransition[]): void {
     const time = transition.exitTime;
     const count = transitions.length;
     const maxExitTime = count ? transitions[count - 1].exitTime : 0;

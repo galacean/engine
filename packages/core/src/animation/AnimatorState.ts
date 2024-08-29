@@ -2,13 +2,13 @@ import { UpdateFlagManager } from "../UpdateFlagManager";
 import { AnimationClip } from "./AnimationClip";
 import { AnimatorStateTransition } from "./AnimatorStateTransition";
 import { WrapMode } from "./enums/WrapMode";
-import { TransitionSource } from "./internal/TransitionSource";
+import { TransitionUtil } from "./internal/TransitionUtil";
 import { StateMachineScript } from "./StateMachineScript";
 
 /**
  * States are the basic building blocks of a state machine. Each state contains a AnimationClip which will play while the character is in that state.
  */
-export class AnimatorState extends TransitionSource {
+export class AnimatorState {
   /** The speed of the clip. 1 is normal speed, default 1. */
   speed: number = 1.0;
   /** The wrap mode used in the state. */
@@ -88,7 +88,6 @@ export class AnimatorState extends TransitionSource {
    * @param name - The state's name
    */
   constructor(public readonly name: string) {
-    super();
     this._onClipChanged = this._onClipChanged.bind(this);
   }
 
@@ -104,7 +103,7 @@ export class AnimatorState extends TransitionSource {
   addTransition(animatorState: AnimatorState): AnimatorStateTransition;
 
   addTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
-    const transition = this._addTransition(transitionOrAnimatorState, this._transitions);
+    const transition = TransitionUtil.addTransition(this, transitionOrAnimatorState, this._transitions);
     transition.solo && !this._hasSoloTransition && this._updateSoloTransition(transition, true);
     return transition;
   }
@@ -118,14 +117,14 @@ export class AnimatorState extends TransitionSource {
     transition._isExit = true;
     transition.exitTime = exitTime;
 
-    return this._addTransition(transition, this._transitions);
+    return TransitionUtil.addTransition(this, transition, this._transitions);
   }
   /**
    * Remove a transition from the state.
    * @param transition - The transition
    */
   removeTransition(transition: AnimatorStateTransition): void {
-    this._removeTransition(transition, this._transitions);
+    TransitionUtil.removeTransition(transition, this._transitions);
     this._updateSoloTransition(transition);
     if (transition._isExit) {
       transition._isExit = false;
@@ -204,7 +203,7 @@ export class AnimatorState extends TransitionSource {
     const transitions = this._transitions;
     transitions.splice(transitions.indexOf(transition), 1);
     if (hasExitTime) {
-      this._addHasExitTimeTransition(transition, transitions);
+      TransitionUtil.addHasExitTimeTransition(transition, transitions);
     } else {
       transitions.unshift(transition);
     }

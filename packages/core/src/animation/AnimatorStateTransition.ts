@@ -2,7 +2,7 @@ import { AnimatorControllerParameterValue } from "./AnimatorControllerParameter"
 import { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
 import { AnimatorCondition } from "./AnimatorCondition";
 import { AnimatorState } from "./AnimatorState";
-import { TransitionSource } from "./internal/TransitionSource";
+import { AnimatorStateMachine } from "./AnimatorStateMachine";
 
 /**
  * Transitions define when and how the state machine switch from on state to another. AnimatorTransition always originate from a StateMachine or a StateMachine entry.
@@ -20,7 +20,7 @@ export class AnimatorStateTransition {
   mute: boolean = false;
 
   /** @internal */
-  _source: TransitionSource;
+  _source: AnimatorState | AnimatorStateMachine;
   /** @internal */
   _isEntry: boolean = false;
   /** @internal */

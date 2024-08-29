@@ -1,6 +1,6 @@
 import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateTransition } from "./AnimatorStateTransition";
-import { TransitionSource } from "./internal/TransitionSource";
+import { TransitionUtil } from "./internal/TransitionUtil";
 export interface AnimatorStateMap {
   [key: string]: AnimatorState;
 }
@@ -8,7 +8,7 @@ export interface AnimatorStateMap {
 /**
  * A graph controlling the interaction of states. Each state references a motion.
  */
-export class AnimatorStateMachine extends TransitionSource {
+export class AnimatorStateMachine {
   /** The list of states. */
   readonly states: AnimatorState[] = [];
 
@@ -108,7 +108,7 @@ export class AnimatorStateMachine extends TransitionSource {
   addEntryStateTransition(animatorState: AnimatorState): AnimatorStateTransition;
 
   addEntryStateTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
-    const transition = this._addTransition(transitionOrAnimatorState, this._entryTransitions);
+    const transition = TransitionUtil.addTransition(this, transitionOrAnimatorState, this._entryTransitions);
     transition._isEntry = true;
     transition.solo && !this._entryHasSolo && this._updateSoloTransition(transition, true);
     return transition;
@@ -119,7 +119,7 @@ export class AnimatorStateMachine extends TransitionSource {
    * @param transition - The transition
    */
   removeEntryStateTransition(transition: AnimatorStateTransition): void {
-    this._removeTransition(transition, this._entryTransitions);
+    TransitionUtil.removeTransition(transition, this._entryTransitions);
     transition._isEntry = false;
   }
 
@@ -135,7 +135,7 @@ export class AnimatorStateMachine extends TransitionSource {
   addAnyStateTransition(animatorState: AnimatorState): AnimatorStateTransition;
 
   addAnyStateTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
-    const transition = this._addTransition(transitionOrAnimatorState, this._anyStateTransitions);
+    const transition = TransitionUtil.addTransition(this, transitionOrAnimatorState, this._anyStateTransitions);
     transition._isAny = true;
     transition.solo && !this._anyHasSolo && this._updateSoloTransition(transition, true);
     return transition;
@@ -146,7 +146,7 @@ export class AnimatorStateMachine extends TransitionSource {
    * @param transition - The transition
    */
   removeAnyStateTransition(transition: AnimatorStateTransition): void {
-    this._removeTransition(transition, this._anyStateTransitions);
+    TransitionUtil.removeTransition(transition, this._anyStateTransitions);
     transition._isAny = false;
   }
 
@@ -157,7 +157,7 @@ export class AnimatorStateMachine extends TransitionSource {
     const transitions = transition._isAny ? this._anyStateTransitions : this._entryTransitions;
     transitions.splice(transitions.indexOf(transition), 1);
     if (hasExitTime) {
-      this._addHasExitTimeTransition(transition, transitions);
+      TransitionUtil.addHasExitTimeTransition(transition, transitions);
     } else {
       transitions.unshift(transition);
     }
