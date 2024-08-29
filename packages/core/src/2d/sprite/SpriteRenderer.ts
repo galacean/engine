@@ -7,7 +7,6 @@ import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
-import { RendererType } from "../../enums/RendererType";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { ISpriteAssembler } from "../assembler/ISpriteAssembler";
@@ -19,6 +18,7 @@ import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "./Sprite";
+import { ComponentType } from "../../enums/ComponentType";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -268,7 +268,7 @@ export class SpriteRenderer extends Renderer {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._rendererType = RendererType.Sprite;
+    this._componentType = ComponentType.SpriteRenderer;
     this.drawMode = SpriteDrawMode.Simple;
     this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Color;
     this.setMaterial(this._engine._spriteDefaultMaterial);

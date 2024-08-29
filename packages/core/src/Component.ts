@@ -3,12 +3,16 @@ import { EngineObject } from "./base";
 import { assignmentClone, ignoreClone } from "./clone/CloneManager";
 import { Entity } from "./Entity";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
+import { ComponentType } from "./enums/ComponentType";
 import { Scene } from "./Scene";
 
 /**
  * The base class of the components.
  */
 export class Component extends EngineObject {
+  /** @internal */
+  @ignoreClone
+  _componentType: ComponentType = ComponentType.Component;
   /** @internal */
   @ignoreClone
   _entity: Entity;

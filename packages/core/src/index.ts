@@ -39,6 +39,8 @@ export { BackgroundMode } from "./enums/BackgroundMode";
 export { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
 export { CameraClearFlags } from "./enums/CameraClearFlags";
 export { CameraType } from "./enums/CameraType";
+export * from "./env-probe/index";
+export * from "./graphic/index";
 export { MSAASamples } from "./enums/MSAASamples";
 export { ReplacementFailureStrategy } from "./enums/ReplacementFailureStrategy";
 export { Downsampling } from "./enums/Downsampling";

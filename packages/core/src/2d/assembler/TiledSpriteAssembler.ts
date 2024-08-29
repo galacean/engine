@@ -181,16 +181,26 @@ export class TiledSpriteAssembler {
     }
   }
 
-  static updateColor(renderer: SpriteRenderer | UIImage, groupAlpha: number = 1): void {
+  static updateColor(renderer: SpriteRenderer | UIImage, alpha: number = 1): void {
     const subChunk = renderer._subChunk;
     const { r, g, b, a } = renderer.color;
-    const finalAlpha = a * groupAlpha;
+    const finalAlpha = a * alpha;
     const vertices = subChunk.chunk.vertices;
     const vertexArea = subChunk.vertexArea;
     for (let i = 0, o = vertexArea.start + 5, n = vertexArea.size / 9; i < n; ++i, o += 9) {
       vertices[o] = r;
       vertices[o + 1] = g;
       vertices[o + 2] = b;
+      vertices[o + 3] = finalAlpha;
+    }
+  }
+
+  static updateAlpha(renderer: SpriteRenderer, alpha: number = 1): void {
+    const subChunk = renderer._subChunk;
+    const finalAlpha = renderer.color.a * alpha;
+    const vertices = subChunk.chunk.vertices;
+    const vertexArea = subChunk.vertexArea;
+    for (let i = 0, o = vertexArea.start + 5, n = vertexArea.size / 9; i < n; ++i, o += 9) {
       vertices[o + 3] = finalAlpha;
     }
   }

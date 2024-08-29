@@ -82,15 +82,24 @@ export class SimpleSpriteAssembler {
     vertices[offset + 28] = top;
   }
 
-  static updateColor(renderer: SpriteRenderer, groupAlpha: number = 1): void {
+  static updateColor(renderer: SpriteRenderer, alpha: number = 1): void {
     const subChunk = renderer._subChunk;
     const { r, g, b, a } = renderer.color;
-    const finalAlpha = a * groupAlpha;
+    const finalAlpha = a * alpha;
     const vertices = subChunk.chunk.vertices;
     for (let i = 0, o = subChunk.vertexArea.start + 5; i < 4; ++i, o += 9) {
       vertices[o] = r;
       vertices[o + 1] = g;
       vertices[o + 2] = b;
+      vertices[o + 3] = finalAlpha;
+    }
+  }
+
+  static updateAlpha(renderer: SpriteRenderer, alpha: number = 1): void {
+    const subChunk = renderer._subChunk;
+    const finalAlpha = renderer.color.a * alpha;
+    const vertices = subChunk.chunk.vertices;
+    for (let i = 0, o = subChunk.vertexArea.start + 5; i < 4; ++i, o += 9) {
       vertices[o + 3] = finalAlpha;
     }
   }

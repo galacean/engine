@@ -6,12 +6,14 @@ import { PrimitiveChunkManager } from "../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../RenderPipeline/SubPrimitiveChunk";
 import { Renderer } from "../Renderer";
-import { assignmentClone, ignoreClone } from "../clone/CloneManager";
-import { RendererType } from "../enums/RendererType";
+import { TransformModifyFlags } from "../Transform";
+import { ignoreClone } from "../clone/CloneManager";
+import { ComponentType } from "../enums/ComponentType";
 import { ShaderProperty } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
+import { CanvasGroup } from "./CanvasGroup";
 import { UICanvas } from "./UICanvas";
-import { UITransform, UITransformModifyFlags } from "./UITransform";
+import { UITransform } from "./UITransform";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
 export class UIRenderer extends Renderer {
@@ -19,22 +21,18 @@ export class UIRenderer extends Renderer {
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_UITexture");
   /** @internal */
   @ignoreClone
-  _uiCanvas: UICanvas;
+  _canvas: UICanvas;
+  /** @internal */
+  @ignoreClone
+  _group: CanvasGroup;
   /** @internal */
   @ignoreClone
   _subChunk: SubPrimitiveChunk;
-  /** @internal */
-  @assignmentClone
-  _groupAlpha = 1;
 
-  protected _uiTransform: UITransform;
+  protected _alpha: number = 1;
   protected _localBounds: BoundingBox = new BoundingBox();
   protected _rayCastTarget: boolean = true;
   protected _rayCastPadding: Vector4 = new Vector4(0, 0, 0, 0);
-
-  get uiCanvas(): UICanvas {
-    return this._uiCanvas;
-  }
 
   get rayCastTarget(): boolean {
     return this._rayCastTarget;
@@ -54,21 +52,12 @@ export class UIRenderer extends Renderer {
     }
   }
 
-  /** @internal */
-  set groupAlpha(val: number) {
-    if (this._groupAlpha !== val) {
-      this._groupAlpha = val;
-      this._dirtyUpdateFlag |= UIRendererUpdateFlags.GroupColor;
-    }
-  }
-
   /**
    * @internal
    */
   constructor(entity: Entity) {
     super(entity);
-    this._rendererType = RendererType.UI;
-    this._uiTransform = entity.getComponent(UITransform);
+    this._componentType = ComponentType.UIRenderer;
   }
 
   /**
@@ -76,7 +65,13 @@ export class UIRenderer extends Renderer {
    */
   override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
     //@todo: Always update world positions to buffer, should opt
-    super._updateTransformShaderData(context, onlyMVP, true);
+    // super._updateTransformShaderData(context, onlyMVP, true);
+    const worldMatrix = this.entity.transform.worldMatrix;
+    if (onlyMVP) {
+      this._updateProjectionRelatedShaderData(context, worldMatrix, true);
+    } else {
+      this._updateWorldViewRelatedShaderData(context, worldMatrix, true);
+    }
   }
 
   /**
@@ -85,7 +80,7 @@ export class UIRenderer extends Renderer {
   override _prepareRender(context: RenderContext): void {
     // Update once per frame per renderer, not influenced by batched
     if (this._renderFrameCount !== this.engine.time.frameCount) {
-      this._updateRendererShaderData(context);
+      this._update(context);
     }
 
     this._render(context);
@@ -106,7 +101,6 @@ export class UIRenderer extends Renderer {
     if (this._overrideUpdate) {
       componentsManager.addOnUpdateRenderers(this);
     }
-    this._uiTransform._updateFlagManager.addListener(this._onUITransformChanged);
   }
 
   /**
@@ -117,7 +111,25 @@ export class UIRenderer extends Renderer {
     if (this._overrideUpdate) {
       componentsManager.removeOnUpdateRenderers(this);
     }
-    this._uiTransform._updateFlagManager.removeListener(this._onUITransformChanged);
+  }
+
+  /**
+   * @internal
+   */
+  _setGroup(group: CanvasGroup): void {
+    this._group = group;
+    const alpha = group ? group._globalAlpha : 1;
+    if (this._alpha !== alpha) {
+      this._alpha = alpha;
+      this._dirtyUpdateFlag |= UIRendererUpdateFlags.Alpha;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _getChunkManager(): PrimitiveChunkManager {
+    return this.engine._batcherManager.primitiveChunkManagerUI;
   }
 
   /** @internal */
@@ -129,15 +141,6 @@ export class UIRenderer extends Renderer {
     return false;
   }
 
-  /**
-   * @internal
-   */
-  _getChunkManager(): PrimitiveChunkManager {
-    return this.engine._batcherManager.primitiveChunkManagerUI;
-  }
-
-  protected _onUITransformChanged(flag: UITransformModifyFlags): void {}
-
   protected override _onDestroy(): void {
     if (this._subChunk) {
       this._getChunkManager().freeSubChunk(this._subChunk);
@@ -146,11 +149,13 @@ export class UIRenderer extends Renderer {
 
     super._onDestroy();
   }
+
+  protected override _onTransformChanged(flag: TransformModifyFlags): void {}
 }
 
 /**
  * @remarks Extends `RendererUpdateFlag`.
  */
 export enum UIRendererUpdateFlags {
-  GroupColor = 0x8
+  Alpha = 0x8
 }

@@ -15,6 +15,7 @@ import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { Pointer } from "./input";
 import { PointerEventType } from "./input/pointer/PointerEventType";
+import { UITransform } from "./ui";
 
 /**
  * Entity, be used as components container.
@@ -76,8 +77,6 @@ export class Entity extends EngineObject {
   name: string;
   /** The layer the entity belongs to. */
   layer: Layer = Layer.Layer0;
-  /** Transform component. */
-  readonly transform: Transform;
 
   /** @internal */
   _isActiveInHierarchy: boolean = false;
@@ -100,13 +99,19 @@ export class Entity extends EngineObject {
   /** @internal */
   _isTemplate: boolean = false;
   /** @internal */
-  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
+
+  _updateFlagManager: UpdateFlagManager;
 
   private _templateResource: ReferResource;
   private _parent: Entity = null;
+  private _transform: Transform;
   private _activeChangedComponents: Component[];
 
   _onPointerCallBacksArray: DisorderedArray<(event: Pointer) => void>[];
+
+  get transform(): Transform {
+    return this._transform;
+  }
 
   /**
    * Whether to activate locally.
@@ -202,8 +207,8 @@ export class Entity extends EngineObject {
   constructor(engine: Engine, name?: string) {
     super(engine);
     this.name = name;
-    this.transform = this.addComponent(Transform);
-    this._inverseWorldMatFlag = this.transform.registerWorldChangeFlag();
+    this._transform = this.addComponent(Transform);
+    this._inverseWorldMatFlag = this._transform.registerWorldChangeFlag();
   }
 
   /**
@@ -220,7 +225,6 @@ export class Entity extends EngineObject {
     const component = new type(this, ...args) as InstanceType<T>;
     this._components.push(component);
     component._setActive(true, ActiveChangeFlag.All);
-    this._updateFlagManager.dispatch(EntityModifyFlags.AddComponent, component);
     return component;
   }
 
@@ -414,6 +418,7 @@ export class Entity extends EngineObject {
    */
   createChild(name?: string): Entity {
     const child = new Entity(this.engine, name);
+    this._transform instanceof UITransform && child.addComponent(UITransform);
     child.layer = this.layer;
     child.parent = this;
     return child;
@@ -435,7 +440,6 @@ export class Entity extends EngineObject {
 
       Entity._traverseSetOwnerScene(child, null); // Must after child._processInActive().
       children.length--;
-      this._updateFlagManager.dispatch(EntityModifyFlags.DelChild, child);
     }
   }
 
@@ -580,7 +584,6 @@ export class Entity extends EngineObject {
       }
       this._parent = null;
       this._siblingIndex = -1;
-      oldParent._updateFlagManager.dispatch(EntityModifyFlags.DelChild, this);
     }
   }
 
@@ -624,14 +627,30 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  _setTransformDirty() {
-    if (this.transform) {
-      this.transform._parentChange();
-    } else {
-      for (let i = 0, len = this._children.length; i < len; i++) {
-        this._children[i]._setTransformDirty();
-      }
-    }
+  _setParentChange() {
+    this._transform._parentChange();
+    this._dispatchModify(EntityModifyFlags.Parent);
+  }
+
+  /**
+   * @internal
+   */
+  _registerModifyListener(onChange: (flag: EntityModifyFlags) => void): void {
+    (this._updateFlagManager ||= new UpdateFlagManager()).addListener(onChange);
+  }
+
+  /**
+   * @internal
+   */
+  _removeModifyListener(onChange: (flag: EntityModifyFlags) => void): void {
+    (this._updateFlagManager ||= new UpdateFlagManager()).addListener(onChange);
+  }
+
+  /**
+   * @internal
+   */
+  _dispatchModify(flag: EntityModifyFlags, param?: any): void {
+    this._updateFlagManager?.dispatch(flag, param);
   }
 
   private _addToChildrenList(index: number, child: Entity): void {
@@ -650,7 +669,6 @@ export class Entity extends EngineObject {
         children[i]._siblingIndex++;
       }
     }
-    this._updateFlagManager.dispatch(EntityModifyFlags.AddChild, child);
   }
 
   private _setParent(parent: Entity, siblingIndex?: number): void {
@@ -766,11 +784,6 @@ export class Entity extends EngineObject {
     }
   }
 
-  private _setParentChange() {
-    this.transform._parentChange();
-    this._updateFlagManager.dispatch(EntityModifyFlags.Parent);
-  }
-
   private _setSiblingIndex(sibling: Entity[], target: number): void {
     target = Math.min(target, sibling.length - 1);
     if (target < 0) {
@@ -803,7 +816,7 @@ export class Entity extends EngineObject {
    */
   getInvModelMatrix(): Matrix {
     if (this._inverseWorldMatFlag.flag) {
-      Matrix.invert(this.transform.worldMatrix, this._invModelMatrix);
+      Matrix.invert(this._transform.worldMatrix, this._invModelMatrix);
       this._inverseWorldMatFlag.flag = false;
     }
     return this._invModelMatrix;
@@ -812,11 +825,10 @@ export class Entity extends EngineObject {
 
 export enum EntityModifyFlags {
   Parent = 0x1,
-  AddChild = 0x2,
-  DelChild = 0x4,
-  AddComponent = 0x8,
-  DelComponent = 0x10
+  UICanvasEnableInScene = 0x2,
+  UICanvasDisableInScene = 0x4
 }
+
 type ComponentArguments<T extends new (entity: Entity, ...args: any[]) => Component> = T extends new (
   entity: Entity,
   ...args: infer P

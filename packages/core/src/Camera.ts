@@ -618,7 +618,7 @@ export class Camera extends Component {
     const context = engine._renderContext;
     const virtualCamera = this._virtualCamera;
 
-    const transform = this.entity.transform;
+    const transform = this._transform;
     Matrix.multiply(this.projectionMatrix, this.viewMatrix, virtualCamera.viewProjectionMatrix);
     virtualCamera.position.copyFrom(transform.worldPosition);
     if (virtualCamera.isOrthographic) {

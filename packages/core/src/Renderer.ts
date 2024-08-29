@@ -10,7 +10,7 @@ import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Transform, TransformModifyFlags } from "./Transform";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
 import { IComponentCustomClone } from "./clone/ComponentCloner";
-import { RendererType } from "./enums/RendererType";
+import { ComponentType } from "./enums/ComponentType";
 import { Material } from "./material";
 import { ShaderMacro, ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
@@ -34,9 +34,6 @@ export class Renderer extends Component implements IComponentCustomClone {
   private static _normalMatrixProperty = ShaderProperty.getByName("renderer_NormalMat");
   private static _rendererLayerProperty = ShaderProperty.getByName("renderer_Layer");
 
-  /** @internal */
-  @ignoreClone
-  _rendererType = RendererType.Mesh;
   /** @internal */
   @ignoreClone
   _distanceForSort: number;
@@ -171,6 +168,7 @@ export class Renderer extends Component implements IComponentCustomClone {
     super(entity);
     const prototype = Renderer.prototype;
     const shaderData = this.shaderData;
+    this._componentType = ComponentType.Renderer;
     this._overrideUpdate = this.update !== prototype.update;
 
     this._addResourceReferCount(this.shaderData, 1);

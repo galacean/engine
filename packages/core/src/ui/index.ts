@@ -6,4 +6,3 @@ export { UICanvas } from "./UICanvas";
 export { UIImage } from "./UIImage";
 export { UIRenderer } from "./UIRenderer";
 export { UITransform } from "./UITransform";
-

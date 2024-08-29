@@ -6,12 +6,14 @@ import { SlicedSpriteAssembler } from "../2d/assembler/SlicedSpriteAssembler";
 import { TiledSpriteAssembler } from "../2d/assembler/TiledSpriteAssembler";
 import { SpriteModifyFlags } from "../2d/enums/SpriteModifyFlags";
 import { Entity } from "../Entity";
+import { RenderQueueFlags } from "../RenderPipeline/BasicRenderPipeline";
 import { BatchUtils } from "../RenderPipeline/BatchUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { SubRenderElement } from "../RenderPipeline/SubRenderElement";
-import { RendererUpdateFlags } from "../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../clone/CloneManager";
 import { UIRenderer, UIRendererUpdateFlags } from "./UIRenderer";
+import { UITransform } from "./UITransform";
+import { CanvasRenderMode } from "./enums/CanvasRenderMode";
 
 export class UIImage extends UIRenderer {
   @deepClone
@@ -124,7 +126,7 @@ export class UIImage extends UIRenderer {
   set color(value: Color) {
     if (this._color !== value) {
       this._color.copyFrom(value);
-      this._dirtyUpdateFlag |= ImageUpdateFlags.VertexColor;
+      this._dirtyUpdateFlag |= ImageUpdateFlags.Color;
     }
   }
 
@@ -135,7 +137,7 @@ export class UIImage extends UIRenderer {
     super(entity);
 
     this.drawMode = SpriteDrawMode.Simple;
-    this._dirtyUpdateFlag |= ImageUpdateFlags.VertexColor;
+    this._dirtyUpdateFlag |= ImageUpdateFlags.Color;
     this.setMaterial(this._engine._uiDefaultMaterial);
     this._onSpriteChange = this._onSpriteChange.bind(this);
   }
@@ -145,8 +147,8 @@ export class UIImage extends UIRenderer {
    */
   protected override _render(context: RenderContext): void {
     const { _sprite: sprite } = this;
-    const { _uiTransform: uiTransform } = this;
-    const { x: width, y: height } = uiTransform.rect;
+    const transform = this._transform as UITransform;
+    const { x: width, y: height } = transform.rect;
     if (!sprite?.texture || !width || !height) {
       return;
     }
@@ -160,31 +162,36 @@ export class UIImage extends UIRenderer {
       material = this._engine._uiDefaultMaterial;
     }
 
+    const { _dirtyUpdateFlag: dirtyUpdateFlag } = this;
     // Update position
-    if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
-      this._assembler.updatePositions(this, width, height, uiTransform.pivot);
-      this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
+    if (dirtyUpdateFlag & ImageUpdateFlags.Position) {
+      this._assembler.updatePositions(this, width, height, transform.pivot);
     }
 
     // Update uv
-    if (this._dirtyUpdateFlag & ImageUpdateFlags.UV) {
+    if (dirtyUpdateFlag & ImageUpdateFlags.UV) {
       this._assembler.updateUVs(this);
-      this._dirtyUpdateFlag &= ~ImageUpdateFlags.UV;
     }
 
     // Update color
-    if (this._dirtyUpdateFlag & ImageUpdateFlags.Color) {
-      this._assembler.updateColor(this, this._groupAlpha);
-      this._dirtyUpdateFlag &= ~ImageUpdateFlags.Color;
+    if (dirtyUpdateFlag & ImageUpdateFlags.Color) {
+      this._assembler.updateColor(this, this._alpha);
+    } else if (dirtyUpdateFlag & UIRendererUpdateFlags.Alpha) {
+      this._assembler.updateAlpha(this, this._alpha);
     }
 
+    this._dirtyUpdateFlag = ImageUpdateFlags.None;
     // Init sub render element.
     const { engine } = context.camera;
-    const renderElement = this.uiCanvas._renderElement;
+    const canvas = this._canvas;
     const subRenderElement = engine._subRenderElementPool.get();
     const subChunk = this._subChunk;
     subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
-    renderElement.addSubRenderElement(subRenderElement);
+    if (canvas.renderMode === CanvasRenderMode.ScreenSpaceOverlay) {
+      subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
+      subRenderElement.renderQueueFlags = RenderQueueFlags.All;
+    }
+    canvas._renderElement.addSubRenderElement(subRenderElement);
   }
 
   /**
@@ -246,7 +253,7 @@ export class UIImage extends UIRenderer {
         this._dirtyUpdateFlag |= ImageUpdateFlags.UV;
         break;
       case SpriteModifyFlags.pivot:
-        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+        this._dirtyUpdateFlag |= ImageUpdateFlags.Position;
         break;
       case SpriteModifyFlags.destroy:
         this.sprite = null;
@@ -259,19 +266,18 @@ export class UIImage extends UIRenderer {
  * @remarks Extends `RendererUpdateFlag`.
  */
 enum ImageUpdateFlags {
+  None,
   /** Position. */
   Position = 0x1,
   /** UV. */
   UV = 0x2,
   /** Position and UV. */
   PositionAndUV = 0x3,
-  /** Vertex Color. */
-  VertexColor = 0x4,
+  /** Color. */
+  Color = 0x4,
   /** Vertex data. */
   VertexData = 0x7,
 
-  /** Vertex Color and Group Color. */
-  Color = ImageUpdateFlags.VertexColor | UIRendererUpdateFlags.GroupColor,
   /** All. */
-  All = 0x7 | UIRendererUpdateFlags.GroupColor
+  All = 0xf
 }

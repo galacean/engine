@@ -5,7 +5,6 @@ import { Engine } from "../Engine";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
-import { CameraType } from "../enums/CameraType";
 import { DepthTextureMode } from "../enums/DepthTextureMode";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
 import { Shader } from "../shader/Shader";
@@ -335,26 +334,6 @@ export class BasicRenderPipeline {
     const { engine, enableFrustumCulling, cullingMask, _frustum: frustum } = camera;
     const { _renderers: renderers, _uiCanvasesArray: uiCanvasesArray } = camera.scene._componentsManager;
 
-    // Screen Space Overlay UI
-    if (camera._cameraType === CameraType.UIOverlay) {
-      const canvases = uiCanvasesArray[CanvasRenderMode.ScreenSpaceOverlay];
-      if (canvases) {
-        for (let i = 0, n = canvases.length; i < n; ++i) {
-          const canvas = canvases.get(i);
-          const renderMode = canvas.renderMode;
-          if (
-            camera === canvas._overlayCamera &&
-            (renderMode === CanvasRenderMode.ScreenSpaceOverlay ||
-              (renderMode === CanvasRenderMode.ScreenSpaceCamera && !canvas.renderCamera))
-          ) {
-            canvas._prepareRender(context);
-            break;
-          }
-        }
-      }
-      return;
-    }
-
     let rendererElements = renderers._elements;
     for (let i = renderers.length - 1; i >= 0; --i) {
       const renderer = rendererElements[i];
@@ -374,38 +353,35 @@ export class BasicRenderPipeline {
     }
 
     // Screen Space Camera UI
-    let canvases = uiCanvasesArray[CanvasRenderMode.ScreenSpaceCamera];
-    if (canvases) {
-      canvases.forEach(
-        (canvas: UICanvas) => {
-          if (canvas.renderCamera !== camera) return;
-          // Filter by camera culling mask
-          if (!(cullingMask & canvas._entity.layer)) {
-            return;
-          }
-          canvas._prepareRender(context);
-        },
-        (canvas: UICanvas, index: number) => {
-          canvas._uiCanvasIndex = index;
+    uiCanvasesArray[CanvasRenderMode.ScreenSpaceCamera]?.forEach(
+      (canvas: UICanvas) => {
+        if (canvas.renderCamera !== camera) return;
+        // Filter by camera culling mask
+        if (!(cullingMask & canvas._entity.layer)) {
+          return;
         }
-      );
-    }
+        canvas._prepareRender(context);
+        this.pushRenderElement(context, canvas._renderElement);
+      },
+      (canvas: UICanvas, index: number) => {
+        canvas._uiCanvasIndex = index;
+      }
+    );
+
     // World Space UI
-    canvases = uiCanvasesArray[CanvasRenderMode.WorldSpace];
-    if (canvases) {
-      canvases.forEach(
-        (canvas: UICanvas) => {
-          // Filter by camera culling mask
-          if (!(cullingMask & canvas._entity.layer)) {
-            return;
-          }
-          canvas._prepareRender(context);
-        },
-        (canvas: UICanvas, index: number) => {
-          canvas._uiCanvasIndex = index;
+    uiCanvasesArray[CanvasRenderMode.WorldSpace]?.forEach(
+      (canvas: UICanvas) => {
+        // Filter by camera culling mask
+        if (!(cullingMask & canvas._entity.layer)) {
+          return;
         }
-      );
-    }
+        canvas._prepareRender(context);
+        this.pushRenderElement(context, canvas._renderElement);
+      },
+      (canvas: UICanvas, index: number) => {
+        canvas._uiCanvasIndex = index;
+      }
+    );
   }
 }
 
