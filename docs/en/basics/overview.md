@@ -92,5 +92,3 @@ In addition, **Galacean Runtime** also supports running in [Alipay/Taobao Mini P
 
 **Galacean** is eager to collaborate with you to build an interactive engine. All development processes, including [planning](https://github.com/galacean/engine/projects?query=is%3Aopen), [milestones](https://github.com/galacean/engine/milestones), and [architecture design](https://github.com/galacean/engine/wiki/Physical-system-design), are publicly available in GitHub's project management. You can participate in the construction of the engine by [creating an issue](https://docs.github.com/zh/issues/tracking-your-work-with-issues/creating-an-issue) and [submitting a PR](https://docs.github.com/zh/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork). If you have any questions or need help, you can join the DingTalk group or seek help in the [discussion area](https://github.com/orgs/galacean/discussions).
 ```
-
-It seems like your message was empty. Please paste the Markdown content you want translated, and I'll handle the translation while adhering to the rules you've provided.
