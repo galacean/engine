@@ -5,7 +5,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
 
 jobs:
@@ -36,7 +36,10 @@ jobs:
         run: pnpm b:all
 
       - name: Release current monorepo
-        uses: gz65555/publish@v0.0.9
+        uses: gz65555/publish@v0.1.0
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
           NPM_CONFIG_PROVENANCE: true
+          OASISBE_UPLOAD_URL: https://oasisbe.alipay.com/api/file/no-auth/crypto/upload
+          OASISBE_REQUEST_HEADER: ${{secrets.OASISBE_REQUEST_HEADER}}
+          OASISBE_PUBLIC_KEY: $${{secrets.OASISBE_PUBLIC_KEY}}
