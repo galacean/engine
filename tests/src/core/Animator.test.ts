@@ -642,4 +642,71 @@ describe("Animator test", function () {
     const newParam2 = animator.animatorController.addParameter("oldName", 2);
     expect(newParam2).to.eq(null);
   });
+
+  it("stateMachineScript", () => {
+    const animatorController = new AnimatorController(engine);
+    const layer = new AnimatorControllerLayer("layer");
+    animatorController.addLayer(layer);
+    const state1 = layer.stateMachine.addState("state1");
+    const state2 = layer.stateMachine.addState("state2");
+    state1.wrapMode = WrapMode.Once;
+    state2.wrapMode = WrapMode.Once;
+    const clip1 = new AnimationClip("clip1");
+    const rotationCurve = new AnimationFloatCurve();
+    const key1 = new Keyframe<number>();
+    const key2 = new Keyframe<number>();
+    key1.time = 0;
+    key1.value = 0;
+    key2.time = 1;
+    key2.value = 90;
+    rotationCurve.addKey(key1);
+    rotationCurve.addKey(key2);
+    clip1.addCurveBinding("", Transform, "rotation.x", rotationCurve);
+
+    const clip2 = new AnimationClip("clip2");
+    const positionCurve = new AnimationFloatCurve();
+    const key3 = new Keyframe<number>();
+    const key4 = new Keyframe<number>();
+    key3.time = 0;
+    key3.value = 0;
+    key4.time = 1;
+    key4.value = 5;
+    positionCurve.addKey(key3);
+    positionCurve.addKey(key4);
+    clip2.addCurveBinding("", Transform, "position.x", positionCurve);
+    state1.clip = clip1;
+    state2.clip = clip2;
+
+    const transition = new AnimatorStateTransition();
+    transition.destinationState = state2;
+    transition.exitTime = 1;
+    transition.duration = 1;
+    state1.addTransition(transition);
+
+    animator.animatorController = animatorController;
+
+    class TestScript extends StateMachineScript {
+      onStateEnter(animator) {}
+      onStateExit(animator) {}
+    }
+
+    const testScript = state1.addStateMachineScript(TestScript);
+    const testScript2 = state2.addStateMachineScript(TestScript);
+
+    const onStateEnterSpy = chai.spy.on(testScript, "onStateEnter");
+    const onStateExitSpy = chai.spy.on(testScript, "onStateExit");
+    const onStateEnter2Spy = chai.spy.on(testScript2, "onStateEnter");
+    const onStateExit2Spy = chai.spy.on(testScript2, "onStateExit");
+
+    animator.play("state1");
+
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(3);
+
+    expect(onStateEnterSpy).to.have.been.called.exactly(1);
+    expect(onStateExitSpy).to.have.been.called.exactly(1);
+    expect(onStateEnter2Spy).to.have.been.called.exactly(1);
+    expect(onStateExit2Spy).to.have.been.called.exactly(1);
+  });
 });

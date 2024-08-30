@@ -45,6 +45,11 @@ export const E2E_CONFIG = {
       caseFileName: "animator-play",
       threshold: 0.1
     },
+    playBackWards: {
+      category: "Animator",
+      caseFileName: "animator-play-backwards",
+      threshold: 0.1
+    },
     playBeforeActive: {
       category: "Animator",
       caseFileName: "animator-play-beforeActive",
@@ -184,6 +189,11 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-dream",
       threshold: 0.3
+    },
+    textureSheetAnimation: {
+      category: "Particle",
+      caseFileName: "particleRenderer-textureSheetAnimation",
+      threshold: 0.3
     }
   },
   PostProcess: {
@@ -201,6 +211,13 @@ export const E2E_CONFIG = {
       category: "PostProcess",
       caseFileName: "postProcess-LDR-bloom-neutral",
       threshold: 0.2
+    }
+  },
+  Text: {
+    TypedText: {
+      category: "Text",
+      caseFileName: "text-typed",
+      threshold: 0.4
     }
   }
 };
