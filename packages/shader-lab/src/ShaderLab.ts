@@ -163,7 +163,7 @@ export class ShaderLab implements IShaderLab {
    * @internal
    */
   _logErrors(errors: GSError[], source?: string) {
-    if (!Logger.isEnabled) return;
+    if (errors.length === 0 || !Logger.isEnabled) return;
     Logger.error(`${errors.length} errors occur!`);
     for (const err of errors) {
       err.log(source);

@@ -24,6 +24,7 @@ export abstract class GSError extends Error {
     if (_source) source = _source;
     if (!source) {
       Logger.error(message);
+      return;
     }
 
     if (loc instanceof ShaderPosition) {
