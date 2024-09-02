@@ -52,7 +52,6 @@ export class RenderQueue {
     const rhi = engine._hardwareRenderer;
     const pipelineStageKey = RenderContext.pipelineStageKey;
     const renderQueueType = this.renderQueueType;
-    scene._maskManager.preMaskLayer = 0;
 
     for (let i = 0; i < length; i++) {
       const subElement = batchedSubElements[i];

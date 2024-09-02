@@ -1,4 +1,5 @@
 import { BoundingBox } from "@galacean/engine-math";
+import { Camera } from "../../Camera";
 import { Entity } from "../../Entity";
 import { RenderQueueFlags } from "../../RenderPipeline/BasicRenderPipeline";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
@@ -198,6 +199,13 @@ export class SpriteMask extends Renderer {
   override _cloneTo(target: SpriteMask, srcRoot: Entity, targetRoot: Entity): void {
     super._cloneTo(target, srcRoot, targetRoot);
     target.sprite = this._sprite;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  override _isCulledByCamera(camera: Camera): boolean {
+    return false;
   }
 
   /**

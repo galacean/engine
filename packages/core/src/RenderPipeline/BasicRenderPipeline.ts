@@ -169,6 +169,7 @@ export class BasicRenderPipeline {
       rhi.clearRenderTarget(camera.engine, clearFlags, color);
     }
 
+    scene._maskManager.preMaskLayer = 0;
     opaqueQueue.render(context, PipelineStage.Forward);
     alphaTestQueue.render(context, PipelineStage.Forward);
     if (clearFlags & CameraClearFlags.Color) {
@@ -338,7 +339,7 @@ export class BasicRenderPipeline {
       const renderer = elements[i];
 
       // Filter by camera culling mask
-      if (!(camera.cullingMask & renderer._entity.layer)) {
+      if (renderer._isCulledByCamera(camera)) {
         continue;
       }
 

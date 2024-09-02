@@ -617,7 +617,6 @@ export class Engine extends EventDispatcher {
     renderState.rasterState.cullMode = CullMode.Off;
     renderState.stencilState.enabled = true;
     renderState.depthState.enabled = false;
-    renderState.renderQueueType = RenderQueueType.Transparent;
     material.isGCIgnored = true;
     return material;
   }

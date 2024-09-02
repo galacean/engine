@@ -15,6 +15,7 @@ import { ShaderMacro, ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
+import { Camera } from "./Camera";
 
 /**
  * Basis for all renderers.
@@ -348,6 +349,13 @@ export class Renderer extends Component implements IComponentCustomClone {
       this.shaderData._macroCollection,
       this._globalShaderMacro
     );
+  }
+
+  /**
+   * @internal
+   */
+  _isCulledByCamera(camera: Camera): boolean {
+    return !(camera.cullingMask & this._entity.layer);
   }
 
   /**
