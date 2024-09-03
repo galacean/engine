@@ -7,7 +7,6 @@ import {
   IXRDevice
 } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
-import { SpriteMaskInteraction } from "./2d";
 import { CharRenderInfo } from "./2d/text/CharRenderInfo";
 import { Font } from "./2d/text/Font";
 import { BasicResources } from "./BasicResources";
@@ -569,7 +568,7 @@ export class Engine extends EventDispatcher {
     return Promise.all(initializePromises).then(() => this);
   }
 
-  private _createSpriteMaterial(maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None): Material {
+  private _createSpriteMaterial(): Material {
     const material = new Material(this, Shader.find("Sprite"));
     const renderState = material.renderState;
     const target = renderState.blendState.targetBlendState;

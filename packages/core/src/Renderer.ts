@@ -1,12 +1,13 @@
 // @ts-ignore
 import { BoundingBox, Matrix, Vector3, Vector4 } from "@galacean/engine-math";
-import { SpriteMaskLayer } from "./2d";
 import { SpriteMaskInteraction } from "./2d/enums/SpriteMaskInteraction";
+import { Camera } from "./Camera";
 import { Component } from "./Component";
 import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
+import { SpriteMaskLayer } from "./SpriteMaskLayer";
 import { Transform, TransformModifyFlags } from "./Transform";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
 import { IComponentCustomClone } from "./clone/ComponentCloner";
@@ -15,7 +16,6 @@ import { ShaderMacro, ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
-import { Camera } from "./Camera";
 
 /**
  * Basis for all renderers.
