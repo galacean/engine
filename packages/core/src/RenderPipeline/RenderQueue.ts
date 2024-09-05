@@ -39,7 +39,7 @@ export class RenderQueue {
   render(
     context: RenderContext,
     pipelineStageTagValue: string,
-    maskType: RenderQueueMaskType = RenderQueueMaskType.No
+    stencilOperation: StencilOperation = StencilOperation.Keep
   ): void {
     const batchedSubElements = this.batchedSubElements;
     const length = batchedSubElements.length;
@@ -85,16 +85,10 @@ export class RenderQueue {
       // Union render global macro and material self macro
       ShaderMacroCollection.unionCollection(renderer._globalShaderMacro, materialData._macroCollection, compileMacros);
 
-      // TODO: Mask should not modify material's render state, will delete this code after mask refactor
-      if (maskType !== RenderQueueMaskType.No) {
-        const operation =
-          maskType === RenderQueueMaskType.Increment
-            ? StencilOperation.IncrementSaturate
-            : StencilOperation.DecrementSaturate;
-
+      if (stencilOperation !== StencilOperation.Keep) {
         const { stencilState } = material.renderState;
-        stencilState.passOperationFront = operation;
-        stencilState.passOperationBack = operation;
+        stencilState.passOperationFront = stencilOperation;
+        stencilState.passOperationBack = stencilOperation;
       }
 
       for (let j = 0, m = shaderPasses.length; j < m; j++) {
@@ -223,9 +217,9 @@ export class RenderQueue {
     camera.scene._maskManager.buildMaskRenderElement(master, incrementMaskQueue, decrementMaskQueue);
 
     incrementMaskQueue._batch(engine._batcherManager);
-    incrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Increment);
+    incrementMaskQueue.render(context, pipelineStageTagValue, StencilOperation.IncrementSaturate);
     decrementMaskQueue._batch(engine._batcherManager);
-    decrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Decrement);
+    decrementMaskQueue.render(context, pipelineStageTagValue, StencilOperation.DecrementSaturate);
   }
 
   private _copyStencilState(scrStencilState: StencilState, dstStencilState: StencilState): void {
@@ -235,10 +229,4 @@ export class RenderQueue {
     dstStencilState.compareFunctionFront = scrStencilState.compareFunctionFront;
     dstStencilState.compareFunctionBack = scrStencilState.compareFunctionBack;
   }
-}
-
-enum RenderQueueMaskType {
-  No,
-  Increment,
-  Decrement
 }
