@@ -2,7 +2,7 @@ import { Color, MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@galacean/en
 import { Camera } from "../Camera";
 import { PipelinePass } from "../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
-import { RenderContext, ContextRendererUpdateFlag } from "../RenderPipeline/RenderContext";
+import { ContextRendererUpdateFlag, RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
 import { PipelineStage } from "../RenderPipeline/index";
 import { GLCapabilityType } from "../base/Constant";
@@ -151,10 +151,11 @@ export class CascadedShadowCasterPass extends PipelinePass {
     // @todo: shouldn't set viewport and scissor in activeRenderTarget
     rhi.activeRenderTarget(renderTarget, CascadedShadowCasterPass._viewport, context.flipProjection, 0);
     if (this._supportDepthTexture) {
-      rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
+      rhi.clearRenderTarget(engine, CameraClearFlags.DepthStencil, null);
     } else {
       rhi.clearRenderTarget(engine, CameraClearFlags.All, CascadedShadowCasterPass._clearColor);
     }
+    scene._maskManager.preMaskLayer = 0;
 
     // prepare light and camera direction
     Matrix.rotationQuaternion(light.entity.transform.worldRotationQuaternion, lightWorld);
