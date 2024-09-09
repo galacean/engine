@@ -7,7 +7,7 @@ import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
-import { SpriteMaskLayer } from "./SpriteMaskLayer";
+import { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 import { Transform, TransformModifyFlags } from "./Transform";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
 import { IComponentCustomClone } from "./clone/ComponentCloner";

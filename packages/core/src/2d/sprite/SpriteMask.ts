@@ -9,7 +9,7 @@ import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
-import { SpriteMaskLayer } from "../../SpriteMaskLayer";
+import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
