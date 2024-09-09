@@ -148,7 +148,7 @@ export class UIImage extends UIRenderer {
   protected override _render(context: RenderContext): void {
     const { _sprite: sprite } = this;
     const transform = this._transform as UITransform;
-    const { x: width, y: height } = transform.rect;
+    const { x: width, y: height } = transform.size;
     if (!sprite?.texture || !width || !height) {
       return;
     }

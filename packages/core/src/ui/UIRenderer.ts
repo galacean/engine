@@ -1,5 +1,4 @@
-import { BoundingBox, Ray, Vector4 } from "@galacean/engine-math";
-import { Camera } from "../Camera";
+import { Matrix, Plane, Ray, Vector3, Vector4 } from "@galacean/engine-math";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Entity } from "../Entity";
 import { PrimitiveChunkManager } from "../RenderPipeline/PrimitiveChunkManager";
@@ -9,6 +8,7 @@ import { Renderer } from "../Renderer";
 import { TransformModifyFlags } from "../Transform";
 import { ignoreClone } from "../clone/CloneManager";
 import { ComponentType } from "../enums/ComponentType";
+import { HitResult } from "../physics";
 import { ShaderProperty } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { CanvasGroup } from "./CanvasGroup";
@@ -17,6 +17,14 @@ import { UITransform } from "./UITransform";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
 export class UIRenderer extends Renderer {
+  /** @internal */
+  static _tempVec30: Vector3 = new Vector3();
+  /** @internal */
+  static _tempVec31: Vector3 = new Vector3();
+  /** @internal */
+  static _tempMat: Matrix = new Matrix();
+  /** @internal */
+  static _tempPlane: Plane = new Plane();
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_UITexture");
   /** @internal */
@@ -30,16 +38,15 @@ export class UIRenderer extends Renderer {
   _subChunk: SubPrimitiveChunk;
 
   protected _alpha: number = 1;
-  protected _localBounds: BoundingBox = new BoundingBox();
-  protected _rayCastTarget: boolean = true;
+  protected _rayCastAble: boolean = true;
   protected _rayCastPadding: Vector4 = new Vector4(0, 0, 0, 0);
 
-  get rayCastTarget(): boolean {
-    return this._rayCastTarget;
+  get rayCastAble(): boolean {
+    return this._rayCastAble;
   }
 
-  set rayCastTarget(value: boolean) {
-    this._rayCastTarget = value;
+  set rayCastAble(value: boolean) {
+    this._rayCastAble = value;
   }
 
   get rayCastPadding(): Vector4 {
@@ -133,12 +140,37 @@ export class UIRenderer extends Renderer {
   }
 
   /** @internal */
-  _raycast(ray: Ray, camera?: Camera): boolean {
-    const { max, min } = this._localBounds;
-    if (max.z === min.z) {
-      // 面片
+  _raycast(ray: Ray, out: HitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
+    const entity = this._entity;
+    const plane = UIRenderer._tempPlane;
+    const transform = entity.transform;
+    const normal = plane.normal.copyFrom(transform.worldForward);
+    plane.distance = -Vector3.dot(normal, transform.worldPosition);
+    ray.intersectPlane(plane);
+    const curDistance = ray.intersectPlane(plane);
+    if (curDistance >= 0 && curDistance < distance) {
+      const hitPointWorld = ray.getPoint(curDistance, UIRenderer._tempVec30);
+      const worldMatrixInv = UIRenderer._tempMat;
+      Matrix.invert(this.entity.transform.worldMatrix, worldMatrixInv);
+      const hitPointLocal = UIRenderer._tempVec31;
+      Vector3.transformCoordinate(hitPointWorld, worldMatrixInv, hitPointLocal);
+      if (this.isRaycastLocationValid(hitPointLocal)) {
+        out.distance = curDistance;
+        out.entity = entity;
+        out.normal.copyFrom(normal);
+        out.point.copyFrom(hitPointWorld);
+        return true;
+      }
     }
     return false;
+  }
+
+  protected isRaycastLocationValid(hitPoint: Vector3): boolean {
+    const { x, y } = hitPoint;
+    const uiTransform = <UITransform>this._transform;
+    const { x: width, y: height } = uiTransform.size;
+    const { x: pivotX, y: pivotY } = uiTransform.pivot;
+    return x >= -width * pivotX && x <= width * (1 - pivotX) && y >= -height * pivotY && y <= height * (1 - pivotY);
   }
 
   protected override _onDestroy(): void {

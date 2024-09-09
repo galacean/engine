@@ -1,12 +1,11 @@
 import { Ray, Vector2 } from "@galacean/engine-math";
-import { Camera } from "../../Camera";
 import { Canvas } from "../../Canvas";
 import { DisorderedArray } from "../../DisorderedArray";
 import { Engine } from "../../Engine";
+import { Entity } from "../../Entity";
 import { Scene } from "../../Scene";
 import { CameraClearFlags } from "../../enums/CameraClearFlags";
-import { HitResult, PhysicsScene } from "../../physics";
-import { CanvasRenderMode } from "../../ui";
+import { HitResult } from "../../physics";
 import { PointerButton, _pointerDec2BinMap } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
 import { IInput } from "../interface/IInput";
@@ -19,7 +18,6 @@ import { Pointer } from "./Pointer";
 export class PointerManager implements IInput {
   private static _tempRay: Ray = new Ray();
   private static _tempPoint: Vector2 = new Vector2();
-  private static _tempHitResult: HitResult = new HitResult();
   /** @internal */
   _pointers: Pointer[] = [];
   /** @internal */
@@ -124,38 +122,41 @@ export class PointerManager implements IInput {
    * @internal
    */
   _firePointerScript(scenes: readonly Scene[]) {
-    // const { _pointers: pointers, _canvas: canvas } = this;
-    // for (let i = 0, n = pointers.length; i < n; i++) {
-    //   const pointer = pointers[i];
-    //   const { _events: events, position } = pointer;
-    //   pointer._firePointerDrag();
-    //   const hitResults = this._pointerRayCast(scenes, position.x / canvas.width, position.y / canvas.height);
-    //   if (hitResults.length > 0) {
-    //   }
-    //   pointer._firePointerExitAndEnter(rayCastEntity);
-    //   const length = events.length;
-    //   if (length > 0) {
-    //     for (let i = 0; i < length; i++) {
-    //       const event = events[i];
-    //       switch (event.type) {
-    //         case "pointerdown":
-    //           pointer.phase = PointerPhase.Down;
-    //           pointer._firePointerDown(rayCastEntity);
-    //           break;
-    //         case "pointerup":
-    //           pointer.phase = PointerPhase.Up;
-    //           pointer._firePointerUpAndClick(rayCastEntity);
-    //           break;
-    //         case "pointerleave":
-    //         case "pointercancel":
-    //           pointer.phase = PointerPhase.Leave;
-    //           pointer._firePointerExitAndEnter(null);
-    //           break;
-    //       }
-    //     }
-    //     events.length = 0;
-    //   }
-    // }
+    const { _pointers: pointers, _canvas: canvas } = this;
+    for (let i = 0, n = pointers.length; i < n; i++) {
+      const pointer = pointers[i];
+      const { _events: events, position } = pointer;
+      pointer._firePointerDrag();
+      const rayCastEntity = this._pointerRayCast(
+        scenes,
+        position.x / canvas.width,
+        position.y / canvas.height,
+        pointer.hitResult
+      );
+      pointer._firePointerExitAndEnter(rayCastEntity);
+      const length = events.length;
+      if (length > 0) {
+        for (let i = 0; i < length; i++) {
+          const event = events[i];
+          switch (event.type) {
+            case "pointerdown":
+              pointer.phase = PointerPhase.Down;
+              pointer._firePointerDown(rayCastEntity);
+              break;
+            case "pointerup":
+              pointer.phase = PointerPhase.Up;
+              pointer._firePointerUpAndClick(rayCastEntity);
+              break;
+            case "pointerleave":
+            case "pointercancel":
+              pointer.phase = PointerPhase.Leave;
+              pointer._firePointerExitAndEnter(null);
+              break;
+          }
+        }
+        events.length = 0;
+      }
+    }
   }
 
   /**
@@ -230,100 +231,87 @@ export class PointerManager implements IInput {
             break;
         }
       }
-      this._engine._physicsInitialized || (events.length = 0);
     } else {
       pointer.deltaPosition.set(0, 0);
       pointer.phase = PointerPhase.Stationary;
     }
   }
 
-  private _pointerRayCast(
-    scenes: readonly Scene[],
-    normalizedX: number,
-    normalizedY: number,
-    out: HitResult[]
-  ): HitResult[] {
-    const overlayUIHitResults = [];
-    const cameraUIHitResults = [];
-    const worldUIHitResults = [];
-
-    const { _tempRay: ray, _tempHitResult: hitResult } = PointerManager;
+  private _pointerRayCast(scenes: readonly Scene[], normalizedX: number, normalizedY: number, out: HitResult): Entity {
+    const { _tempRay: ray } = PointerManager;
     const { _physicsInitialized: physicsInitialized } = this._engine;
-    let threeDimensionalHitDistance = Number.MAX_VALUE;
+
     for (let i = scenes.length - 1; i >= 0; i--) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) {
         continue;
       }
       const { _componentsManager: componentsManager } = scene;
-      const { _activeCameras: cameras, _uiCanvasesArray: uiCanvasesArray } = componentsManager;
-      componentsManager.sortUICanvases();
-      const uiCanvasesOverlay = uiCanvasesArray[CanvasRenderMode.ScreenSpaceOverlay]._elements;
-      for (let j = uiCanvasesOverlay.length - 1; j >= 0; j--) {
-        uiCanvasesOverlay[j].rayCast(ray, overlayUIHitResults);
-        if (overlayUIHitResults.length > 0) {
-          // 检测到了 overlay ，不需要再检测后面的了
-          break;
-        }
-      }
-      if (physicsInitialized) {
-        const { physics } = scene;
-        const elements = cameras._elements;
-        for (let k = cameras.length - 1; k >= 0; k--) {
-          const camera = elements[k];
-          if (camera.renderTarget) {
-            continue;
-          }
-          if (this._rayCast3D(physics, camera, normalizedX, normalizedY, hitResult)) {
-            threeDimensionalHitDistance = hitResult.distance;
-            break;
-          }
-          if (camera.clearFlags & CameraClearFlags.Color) {
-            break;
-          }
+
+      /** Overlay Canvas */
+      let canvasElements = componentsManager._overlayCanvases._elements;
+      ray.origin.set(normalizedX * this._canvas.width, (1 - normalizedY) * this._canvas.height, 1);
+      ray.direction.set(0, 0, -1);
+      for (let j = canvasElements.length - 1; j >= 0; j--) {
+        if (canvasElements[j].rayCast(ray, out)) {
+          return out.entity;
         }
       }
 
-      // 检测 screenspace-camera 和 worldspace
-      const uiCanvasesCamera = uiCanvasesArray[CanvasRenderMode.ScreenSpaceCamera]._elements;
-      for (let l = uiCanvasesCamera.length - 1; l >= 0; l--) {
-        uiCanvasesCamera[l].rayCast(ray, out);
-        if (out.length > 0) {
-          break;
+      const cameras = componentsManager._activeCameras._elements;
+      let scenePhysics = physicsInitialized ? scene.physics : null;
+      let hitPhysics = false;
+      for (let j = cameras.length - 1; j >= 0; j--) {
+        const camera = cameras[j];
+        if (camera.renderTarget) {
+          continue;
         }
-      }
-      const uiCanvasesWorld = uiCanvasesArray[CanvasRenderMode.WorldSpace]._elements;
-      for (let l = uiCanvasesWorld.length - 1; l >= 0; l--) {
-        uiCanvasesWorld[l].rayCast(ray, out);
-        if (out.length > 0) {
-          break;
+        const { viewport } = camera;
+        const x = (normalizedX - viewport.x) / viewport.z;
+        const y = (normalizedY - viewport.y) / viewport.w;
+        if (x < 0 || y < 0 || x > 1 || y > 1) {
+          continue;
+        }
+        camera.viewportPointToRay(PointerManager._tempPoint.set(x, y), ray);
+
+        /** Physics */
+        let hitDistance = camera.farClipPlane;
+        if (scenePhysics?.raycast(ray, hitDistance, camera.cullingMask, out)) {
+          hitPhysics = true;
+          hitDistance = out.distance;
+        }
+
+        /** Other canvases */
+        const cameraPosition = camera.entity.transform.position;
+        /** Sort by rendering order */
+        const canvases = componentsManager._canvases;
+        canvasElements = canvases._elements;
+        for (let k = 0, n = canvases.length; k < n; k++) {
+          canvasElements[k]._updateSortDistance(cameraPosition);
+        }
+        canvases.sort((a, b) => a.sortOrder - b.sortOrder || a._sortDistance - b._sortDistance);
+        for (let k = 0, n = canvases.length; k < n; k++) {
+          canvasElements[k]._canvasIndex = k;
+        }
+        /** Post-rendering first detection */
+        for (let k = 0, n = canvases.length; k < n; k++) {
+          const canvas = canvasElements[k];
+          if (canvas.renderCamera !== camera) {
+            continue;
+          }
+          if (canvas.rayCast(ray, out, hitDistance)) {
+            return out.entity;
+          }
+        }
+        if (hitPhysics) {
+          return out.entity;
+        }
+        if (camera.clearFlags & CameraClearFlags.Color) {
+          return null;
         }
       }
     }
     return null;
-  }
-
-  private _rayCast3D(
-    physics: PhysicsScene,
-    camera: Camera,
-    normalizedX: number,
-    normalizedY: number,
-    hitResult: HitResult
-  ): boolean {
-    const { _tempPoint: point, _tempRay: ray } = PointerManager;
-    const { viewport } = camera;
-    const x = (normalizedX - viewport.x) / viewport.z;
-    const y = (normalizedY - viewport.y) / viewport.w;
-    if (x >= 0 && y >= 0 && x <= 1 && y <= 1) {
-      return physics.raycast(
-        camera.viewportPointToRay(point.set(x, y), ray),
-        camera.farClipPlane,
-        camera.cullingMask,
-        hitResult
-      );
-    } else {
-      return false;
-    }
   }
 
   private _addEventListener(): void {
