@@ -102,7 +102,7 @@ export class AnimatorState {
   addTransition(animatorState: AnimatorState): AnimatorStateTransition;
 
   addTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
-    return this._transitionCollection.addTransition(transitionOrAnimatorState);
+    return this._transitionCollection.add(transitionOrAnimatorState);
   }
 
   /**
@@ -114,14 +114,14 @@ export class AnimatorState {
     transition._isExit = true;
     transition.exitTime = exitTime;
 
-    return this._transitionCollection.addTransition(transition);
+    return this._transitionCollection.add(transition);
   }
   /**
    * Remove a transition from the state.
    * @param transition - The transition
    */
   removeTransition(transition: AnimatorStateTransition): void {
-    this._transitionCollection.removeTransition(transition);
+    this._transitionCollection.remove(transition);
     if (transition._isExit) {
       transition._isExit = false;
     }

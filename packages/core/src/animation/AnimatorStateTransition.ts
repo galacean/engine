@@ -49,7 +49,7 @@ export class AnimatorStateTransition {
   set solo(value: boolean) {
     if (this._solo === value) return;
     this._solo = value;
-    this._collection?.modifySoloCount(value);
+    this._collection?.updateTransitionSolo(value);
   }
   /**
    * The conditions in the transition.
@@ -68,7 +68,7 @@ export class AnimatorStateTransition {
   set hasExitTime(value: boolean) {
     if (this._hasExitTime === value) return;
     this._hasExitTime = value;
-    this._collection?._updateTransitionsIndex(this, value);
+    this._collection?.updateTransitionsIndex(this, value);
   }
 
   /**
