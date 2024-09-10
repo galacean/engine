@@ -19,9 +19,9 @@ export class AnimatorStateMachine {
   defaultState: AnimatorState;
 
   /** @internal */
-  _entryTransitionCollection: AnimatorStateTransitionCollection = new AnimatorStateTransitionCollection();
+  _entryTransitionCollection = new AnimatorStateTransitionCollection();
   /** @internal */
-  _anyStateTransitionCollection: AnimatorStateTransitionCollection = new AnimatorStateTransitionCollection();
+  _anyStateTransitionCollection = new AnimatorStateTransitionCollection();
 
   private _statesMap: AnimatorStateMap = {};
 
