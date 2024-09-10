@@ -53,7 +53,6 @@ export class RenderQueue {
     const renderCount = engine._renderCount;
     const rhi = engine._hardwareRenderer;
     const pipelineStageKey = RenderContext.pipelineStageKey;
-    const renderQueueType = this.renderQueueType;
     const tempStencilState = RenderQueue._tempStencilState;
 
     for (let i = 0; i < length; i++) {
@@ -94,10 +93,6 @@ export class RenderQueue {
       for (let j = 0, m = shaderPasses.length; j < m; j++) {
         const shaderPass = shaderPasses[j];
         if (shaderPass.getTagValue(pipelineStageKey) !== pipelineStageTagValue) {
-          continue;
-        }
-
-        if ((shaderPass._renderState ?? renderStates[j]).renderQueueType !== renderQueueType) {
           continue;
         }
 

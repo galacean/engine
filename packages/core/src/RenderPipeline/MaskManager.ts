@@ -54,10 +54,8 @@ export class MaskManager {
         }
 
         if (influenceLayers & curMaskLayer) {
-          mask.getMaterial().renderState.renderQueueType = incrementMaskQueue.renderQueueType;
           incrementMaskQueue.pushRenderElement(mask._renderElement);
         } else if (influenceLayers & reduceLayer) {
-          mask.getMaterial().renderState.renderQueueType = decrementMaskQueue.renderQueueType;
           decrementMaskQueue.pushRenderElement(mask._renderElement);
         }
       }
