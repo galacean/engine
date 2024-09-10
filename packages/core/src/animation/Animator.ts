@@ -921,7 +921,7 @@ export class Animator extends Component {
 
     const transition =
       (anyStateTransitions.count &&
-        this._applyTransitionsByCondition(layerIndex, layerData, layer, state, anyStateTransitions, true, aniUpdate)) ||
+        this._applyTransitionsByCondition(layerIndex, layerData, layer, anyStateTransitions, aniUpdate)) ||
       (transitions.count &&
         this._applyStateTransitions(
           layerIndex,
@@ -1205,14 +1205,12 @@ export class Animator extends Component {
     layerIndex: number,
     layerData: AnimatorLayerData,
     layer: AnimatorControllerLayer,
-    state: AnimatorState,
     transitions: AnimatorStateTransitionCollection,
-    checkStateMachineTransition: boolean,
     aniUpdate: boolean
   ): AnimatorStateTransition {
     const isSoloMode = transitions.isSoloMode;
     for (let i = 0, n = transitions.count; i < n; i++) {
-      const transition = transitions[i];
+      const transition = transitions.get(i);
 
       if (transition.mute) continue;
 
@@ -1473,12 +1471,12 @@ export class Animator extends Component {
 
     transition =
       anyStateTransitions.count &&
-      this._applyTransitionsByCondition(layerIndex, layerData, layer, null, anyStateTransitions, true, aniUpdate);
+      this._applyTransitionsByCondition(layerIndex, layerData, layer, anyStateTransitions, aniUpdate);
 
     if (!transition) {
       transition =
         entryTransitions.count &&
-        this._applyTransitionsByCondition(layerIndex, layerData, layer, null, entryTransitions, true, aniUpdate);
+        this._applyTransitionsByCondition(layerIndex, layerData, layer, entryTransitions, aniUpdate);
     }
 
     if (transition) {
