@@ -5,7 +5,7 @@ title: Shader
 ```glsl
 Shader "ShaderName" {
   ...
-  // 全局变量区：变量声明，结构体声明，渲染状态声明，材质属性定义
+  // Global variables
   ...
   SubShader "SubShaderName" {
     ...
@@ -33,7 +33,7 @@ EditorProperties
   ...
 }
 
-// 宏
+// Macro
 EditorMacros
 {
   [On] UV_OFFSET("UV Offset", Range(1,100)) = 10;
@@ -104,7 +104,7 @@ This module is used to define the UI display of the material bound to the Shader
 
 You can declare 4 types of global variables in ShaderLab: RenderState, Structs, Functions, and Single Variables.
 
-- RenderState
+### RenderState
 
   Includes BlendState, DepthState, StencilState, RasterState
 
@@ -180,9 +180,9 @@ You can declare 4 types of global variables in ShaderLab: RenderState, Structs, 
     BlendState customBlendState
     {
       Enabled = true;
-      // 常量复制方式
+      // Constant variable assignment
       SourceColorBlendFactor = BlendFactor.SourceColor;
-      // 变量赋值方式
+      // Variable assignment
       DestinationColorBlendFactor = material_DstBlend;
     }
     ...
@@ -199,11 +199,11 @@ You can declare 4 types of global variables in ShaderLab: RenderState, Structs, 
   - Constant assignment means the right side of the assignment statement is a specified engine enum variable, e.g., BlendFactor.SourceColor.
   - Variable assignment means the right side of the assignment statement is any variable name. The specific value of the variable is specified by the user at runtime through the ShaderData.setInt("material_DstBlend", BlendFactor.SourceColor) API.
 
-- Structs, Functions
+### Structs, Functions
 
   Same as the syntax in GLSL.
 
-- Single Variables
+### Single Variables
 
   ```glsl
   [lowp/mediump/highp] variableType variableName;
