@@ -1,8 +1,8 @@
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { AnimationClip } from "./AnimationClip";
 import { AnimatorStateTransition } from "./AnimatorStateTransition";
+import { AnimatorStateTransitionCollection } from "./AnimatorStateTransitionCollection";
 import { WrapMode } from "./enums/WrapMode";
-import { TransitionUtil } from "./internal/TransitionUtil";
 import { StateMachineScript } from "./StateMachineScript";
 
 /**
@@ -23,18 +23,17 @@ export class AnimatorState {
   /** @internal */
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
   /** @internal */
-  _hasSoloTransition: boolean = false;
+  _transitionCollection: AnimatorStateTransitionCollection = new AnimatorStateTransitionCollection();
 
   private _clipStartTime: number = 0;
   private _clipEndTime: number = 1;
   private _clip: AnimationClip;
-  private _transitions: AnimatorStateTransition[] = [];
 
   /**
    * The transitions that are going out of the state.
    */
   get transitions(): Readonly<AnimatorStateTransition[]> {
-    return this._transitions;
+    return this._transitionCollection._transitions;
   }
 
   /**
@@ -103,9 +102,7 @@ export class AnimatorState {
   addTransition(animatorState: AnimatorState): AnimatorStateTransition;
 
   addTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
-    const transition = TransitionUtil.addTransition(this, transitionOrAnimatorState, this._transitions);
-    transition.solo && !this._hasSoloTransition && this._updateSoloTransition(transition, true);
-    return transition;
+    return this._transitionCollection.addTransition(transitionOrAnimatorState);
   }
 
   /**
@@ -117,15 +114,14 @@ export class AnimatorState {
     transition._isExit = true;
     transition.exitTime = exitTime;
 
-    return TransitionUtil.addTransition(this, transition, this._transitions);
+    return this._transitionCollection.addTransition(transition);
   }
   /**
    * Remove a transition from the state.
    * @param transition - The transition
    */
   removeTransition(transition: AnimatorStateTransition): void {
-    TransitionUtil.removeTransition(transition, this._transitions);
-    this._updateSoloTransition(transition);
+    this._transitionCollection.removeTransition(transition);
     if (transition._isExit) {
       transition._isExit = false;
     }
@@ -157,7 +153,7 @@ export class AnimatorState {
    * Clears all transitions from the state.
    */
   clearTransitions(): void {
-    this._transitions.length = 0;
+    this._transitionCollection.count = 0;
   }
 
   /**
@@ -194,35 +190,5 @@ export class AnimatorState {
    */
   _onClipChanged(): void {
     this._updateFlagManager.dispatch();
-  }
-
-  /**
-   * @internal
-   */
-  _updateTransitionsIndex(transition: AnimatorStateTransition, hasExitTime: boolean): void {
-    const transitions = this._transitions;
-    transitions.splice(transitions.indexOf(transition), 1);
-    if (hasExitTime) {
-      TransitionUtil.addHasExitTimeTransition(transition, transitions);
-    } else {
-      transitions.unshift(transition);
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _updateSoloTransition(transition: AnimatorStateTransition, hasSolo?: boolean): void {
-    if (hasSolo !== undefined) {
-      this._hasSoloTransition = hasSolo;
-    } else {
-      this._hasSoloTransition = false;
-      for (let i = 0, n = this.transitions.length; i < n; ++i) {
-        if (this.transitions[i].solo) {
-          this._hasSoloTransition = true;
-          return;
-        }
-      }
-    }
   }
 }

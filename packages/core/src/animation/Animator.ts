@@ -1,3 +1,4 @@
+import { MathUtil } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
@@ -10,8 +11,8 @@ import { AnimatorController } from "./AnimatorController";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 import { AnimatorControllerParameter, AnimatorControllerParameterValue } from "./AnimatorControllerParameter";
 import { AnimatorState } from "./AnimatorState";
-import { AnimatorStateMachine } from "./AnimatorStateMachine";
 import { AnimatorStateTransition } from "./AnimatorStateTransition";
+import { AnimatorStateTransitionCollection } from "./AnimatorStateTransitionCollection";
 import { KeyframeValueType } from "./Keyframe";
 import { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
 import { AnimatorCullingMode } from "./enums/AnimatorCullingMode";
@@ -24,7 +25,6 @@ import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
-import { MathUtil } from "@galacean/engine-math";
 
 /**
  * The controller of the animation system.
@@ -549,11 +549,11 @@ export class Animator extends Component {
     srcPlayData.update(playDeltaTime);
 
     const { clipTime, isForwards } = srcPlayData;
-    const { transitions } = state;
-    const { anyStateTransitions } = layer.stateMachine;
+    const { _transitionCollection: transitions } = state;
+    const { _anyStateTransitionCollection: anyStateTransitions } = layer.stateMachine;
 
     const transition =
-      (anyStateTransitions.length &&
+      (anyStateTransitions.count &&
         this._applyStateTransitions(
           layerIndex,
           layerData,
@@ -567,7 +567,7 @@ export class Animator extends Component {
           true,
           aniUpdate
         )) ||
-      (transitions.length &&
+      (transitions.count &&
         this._applyStateTransitions(
           layerIndex,
           layerData,
@@ -916,13 +916,13 @@ export class Animator extends Component {
     playData.updateOrientation(actualDeltaTime);
 
     const { clipTime, isForwards } = playData;
-    const { transitions } = state;
-    const { anyStateTransitions } = layer.stateMachine;
+    const { _transitionCollection: transitions } = state;
+    const { _anyStateTransitionCollection: anyStateTransitions } = layer.stateMachine;
 
     const transition =
-      (anyStateTransitions.length &&
+      (anyStateTransitions.count &&
         this._applyTransitionsByCondition(layerIndex, layerData, layer, state, anyStateTransitions, true, aniUpdate)) ||
-      (transitions.length &&
+      (transitions.count &&
         this._applyStateTransitions(
           layerIndex,
           layerData,
@@ -1003,7 +1003,7 @@ export class Animator extends Component {
     layer: AnimatorControllerLayer,
     isForwards: boolean,
     playData: AnimatorStatePlayData,
-    transitions: Readonly<AnimatorStateTransition[]>,
+    transitionCollection: AnimatorStateTransitionCollection,
     lastClipTime: number,
     clipTime: number,
     deltaTime: number,
@@ -1022,7 +1022,7 @@ export class Animator extends Component {
           layerData,
           layer,
           playData,
-          transitions,
+          transitionCollection,
           lastClipTime,
           endTime,
           checkStateMachineTransition,
@@ -1039,7 +1039,7 @@ export class Animator extends Component {
             layerData,
             layer,
             playData,
-            transitions,
+            transitionCollection,
             startTime,
             clipTime,
             checkStateMachineTransition,
@@ -1052,7 +1052,7 @@ export class Animator extends Component {
           layerData,
           layer,
           playData,
-          transitions,
+          transitionCollection,
           lastClipTime,
           clipTime,
           checkStateMachineTransition,
@@ -1067,7 +1067,7 @@ export class Animator extends Component {
           layerData,
           layer,
           playData,
-          transitions,
+          transitionCollection,
           lastClipTime,
           startTime,
           checkStateMachineTransition,
@@ -1075,16 +1075,16 @@ export class Animator extends Component {
         );
         if (!targetTransition) {
           if (checkStateMachineTransition) {
-            layerData.anyTransitionIndex = transitions.length - 1;
+            layerData.anyTransitionIndex = transitionCollection.count - 1;
           } else {
-            playData.currentTransitionIndex = transitions.length - 1;
+            playData.currentTransitionIndex = transitionCollection.count - 1;
           }
           targetTransition = this._checkBackwardsSubTransition(
             layerIndex,
             layerData,
             layer,
             playData,
-            transitions,
+            transitionCollection,
             clipTime,
             endTime,
             checkStateMachineTransition,
@@ -1097,7 +1097,7 @@ export class Animator extends Component {
           layerData,
           layer,
           playData,
-          transitions,
+          transitionCollection,
           lastClipTime,
           clipTime,
           checkStateMachineTransition,
@@ -1114,7 +1114,7 @@ export class Animator extends Component {
     layerData: AnimatorLayerData,
     layer: AnimatorControllerLayer,
     playData: AnimatorStatePlayData,
-    transitions: Readonly<AnimatorStateTransition[]>,
+    transitionCollection: AnimatorStateTransitionCollection,
     lastClipTime: number,
     curClipTime: number,
     checkStateMachineTransition: boolean,
@@ -1123,8 +1123,9 @@ export class Animator extends Component {
     const { state } = playData;
     let transitionIndex = checkStateMachineTransition ? layerData.anyTransitionIndex : playData.currentTransitionIndex;
     const duration = state._getDuration();
-    for (let n = transitions.length; transitionIndex < n; transitionIndex++) {
-      const transition = transitions[transitionIndex];
+    const isSoloMode = transitionCollection.isSoloMode;
+    for (let n = transitionCollection.count; transitionIndex < n; transitionIndex++) {
+      const transition = transitionCollection.get(transitionIndex);
       const hasExitTime = transition.hasExitTime;
       const exitTime = transition.exitTime * duration;
       if (hasExitTime && exitTime > curClipTime) {
@@ -1140,10 +1141,7 @@ export class Animator extends Component {
 
         if (transition.mute) continue;
 
-        const hasSolo = checkStateMachineTransition
-          ? (<AnimatorStateMachine>transition._source)._anyHasSolo
-          : state._hasSoloTransition;
-        if (hasSolo && !transition.solo) continue;
+        if (isSoloMode && !transition.solo) continue;
 
         if (this._checkConditions(transition)) {
           if (this._applyTransition(layerIndex, layerData, layer, transition, aniUpdate)) {
@@ -1162,7 +1160,7 @@ export class Animator extends Component {
     layerData: AnimatorLayerData,
     layer: AnimatorControllerLayer,
     playState: AnimatorStatePlayData,
-    transitions: Readonly<AnimatorStateTransition[]>,
+    transitionCollection: AnimatorStateTransitionCollection,
     lastClipTime: number,
     curClipTime: number,
     checkStateMachineTransition: boolean,
@@ -1171,8 +1169,9 @@ export class Animator extends Component {
     const { state } = playState;
     let transitionIndex = checkStateMachineTransition ? layerData.anyTransitionIndex : playState.currentTransitionIndex;
     const duration = playState.state._getDuration();
+    const isSoloMode = transitionCollection.isSoloMode;
     for (; transitionIndex >= 0; transitionIndex--) {
-      const transition = transitions[transitionIndex];
+      const transition = transitionCollection.get(transitionIndex);
       const hasExitTime = transition.hasExitTime;
       const exitTime = transition.exitTime * duration;
       if (hasExitTime && exitTime < curClipTime) {
@@ -1188,10 +1187,7 @@ export class Animator extends Component {
 
         if (transition.mute) continue;
 
-        const hasSolo = checkStateMachineTransition
-          ? (<AnimatorStateMachine>transition._source)._anyHasSolo
-          : state._hasSoloTransition;
-        if (hasSolo && !transition.solo) continue;
+        if (isSoloMode && !transition.solo) continue;
 
         if (this._checkConditions(transition)) {
           if (this._applyTransition(layerIndex, layerData, layer, transition, aniUpdate)) {
@@ -1210,23 +1206,17 @@ export class Animator extends Component {
     layerData: AnimatorLayerData,
     layer: AnimatorControllerLayer,
     state: AnimatorState,
-    transitions: Readonly<AnimatorStateTransition[]>,
+    transitions: AnimatorStateTransitionCollection,
     checkStateMachineTransition: boolean,
     aniUpdate: boolean
   ): AnimatorStateTransition {
-    for (let i = 0, n = transitions.length; i < n; i++) {
+    const isSoloMode = transitions.isSoloMode;
+    for (let i = 0, n = transitions.count; i < n; i++) {
       const transition = transitions[i];
 
       if (transition.mute) continue;
 
-      const source = transition._source;
-      const isAnyTransition = transition._isAny;
-      const hasSolo = checkStateMachineTransition
-        ? isAnyTransition
-          ? (<AnimatorStateMachine>source)._anyHasSolo
-          : (<AnimatorStateMachine>source)._entryHasSolo
-        : (<AnimatorState>source)._hasSoloTransition;
-      if (hasSolo && !transition.solo) continue;
+      if (isSoloMode && !transition.solo) continue;
 
       if (this._checkConditions(transition)) {
         if (this._applyTransition(layerIndex, layerData, layer, transition, aniUpdate)) {
@@ -1477,16 +1467,17 @@ export class Animator extends Component {
     aniUpdate: boolean
   ): void {
     const { stateMachine } = layer;
-    const { anyStateTransitions, entryTransitions } = stateMachine;
+    const { _anyStateTransitionCollection: anyStateTransitions, _entryTransitionCollection: entryTransitions } =
+      stateMachine;
     let transition: AnimatorStateTransition;
 
     transition =
-      anyStateTransitions.length &&
+      anyStateTransitions.count &&
       this._applyTransitionsByCondition(layerIndex, layerData, layer, null, anyStateTransitions, true, aniUpdate);
 
     if (!transition) {
       transition =
-        entryTransitions.length &&
+        entryTransitions.count &&
         this._applyTransitionsByCondition(layerIndex, layerData, layer, null, entryTransitions, true, aniUpdate);
     }
 
