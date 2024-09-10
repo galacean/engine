@@ -2,17 +2,17 @@
 title: 介绍
 ---
 
-目前Galacean引擎内置了许多常用的Shader，诸如
+目前 Galacean 引擎内置了许多常用的 Shader，诸如
 
 | 类型 | 描述 |
 | :-- | :-- |
-| [Unlit ](/docs/graphics/shader/builtins/unlit) | Unlit 材质适用于烘焙好的模型渲染，她只需要设置一张基本纹理或者颜色，即可展现离线渲染得到的高质量渲染结果，但是缺点是无法实时展现光影交互，因为 Unlit 由纹理决定渲染，不受任何光照影响，可参考 [烘焙教程](/docs/art/bake-blender) 和 [导出 Unlit 教程](/docs/graphics/shader/builtins/unlit) |
-| [Blinn Phong ](/docs/graphics/shader/builtins/blinnPhong) | Blinn Phong 材质适用于那些对真实感没有那么高要求的场景，虽然没有遵循物理，但是其高效的渲染算法和基本齐全的光学部分，可以适用很多的场景。 |
-| [PBR ](/docs/graphics/shader/builtins/pbr) | PBR 材质适合需要真实感渲染的应用场景，因为 PBR 是基于物理的渲染，遵循能量守恒，开发者通过调整金属度、粗糙度、灯光等参数，能够保证渲染效果都是物理正确的。 |
+| [Unlit ](/docs/graphics/shader/builtins/unlit) | Unlit Shader 适用于烘焙好的模型渲染，她只需要设置一张基本纹理或者颜色，即可展现离线渲染得到的高质量渲染结果，但是缺点是无法实时展现光影交互，因为 Unlit 由纹理决定渲染，不受任何光照影响，可参考 [烘焙教程](/docs/art/bake-blender) 和 [导出 Unlit 教程](/docs/graphics/shader/builtins/unlit) |
+| [Blinn Phong ](/docs/graphics/shader/builtins/blinnPhong) | Blinn Phong Shader 适用于那些对真实感没有那么高要求的场景，虽然没有遵循物理，但是其高效的渲染算法和基本齐全的光学部分，可以适用很多的场景。 |
+| [PBR ](/docs/graphics/shader/builtins/pbr) | PBR Shader 适合需要真实感渲染的应用场景，因为 PBR 是基于物理的渲染，遵循能量守恒，开发者通过调整金属度、粗糙度、灯光等参数，能够保证渲染效果都是物理正确的。 |
 
 可以在编辑器中直接调试内置着色器的对应属性观察实时渲染效果变化。
 
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/94cf8176-569d-4605-bd73-967b03316c3d/image-20240206173751409.png" />
+<Image src='https://gw.alipayobjects.com/zos/OasisHub/94cf8176-569d-4605-bd73-967b03316c3d/image-20240206173751409.png' />
 
 > 与之对应的，也可以通过设置 PBRMaterial , BlinnPhongMaterial 与 UnlitMaterial 材质的 API 达到相同效果。
 

@@ -7,15 +7,15 @@ Pass "PassName" {
   Tag {PipelineStage = "ShadowCaster"}
 
   ...
-  // 全局变量区：公共变量声明，结构体声明，函数声明
+  // Glbals
   ...
 
-  // 渲染管线和渲染状态设置
+  // Render pipeline and render state settings
 
-  // 指定顶点着色器和片元着色器  强调glsl语言
+  // Specify the entry function of shader
   VertexShader = vert;
 
-  // 指定渲染队列
+  // Specify render queue
   RenderQueueType = Transparent;
 }
 ```
@@ -28,17 +28,17 @@ It can be specified in the following two ways:
 
 1. Explicit assignment
 
-  ```
-  BlendState = blendState;
-  ```
+```
+BlendState = blendState;
+```
 
 2. Declaration in the global variable domain of Pass
 
-  ```
-  BlendState {
-    Rendering state property = Property value;
-  }
-  ```
+```
+BlendState {
+  Rendering state property = Property value;
+}
+```
 
 ## Specifying uniform Variables
 
@@ -53,16 +53,17 @@ vec3 u_lightDir;
 
 ## Declaring varying Variables
 
-Specify by defining the output structure of the vertex shader and the input structure of the fragment shader
+Specify by defining the output [structure](/en/docs/graphics/shader/shaderLab/syntax/shader/#structs-functions) of the vertex shader and the input structure of the fragment shader
 
 ```glsl
 struct v2f {
   vec3 color;
-}
+};
 
 v2f vert(a2v o) {
   ...
 }
+
 void frag(v2f i) {
   ...
 }
@@ -83,4 +84,17 @@ Specify using the `RenderQueueType` directive, which is equivalent to the engine
 
 ```
 RenderQueueType = Transparent;
+```
+
+<Callout type="info">
+In addition to setting the render state and render queue in ShaderLab, developers can also configure these settings through the material API, such as:
+```ts
+// Render queue setting
+material.renderQueueType = RenderQueueType.Opaque;
+
+// Render state setting const renderState = material.renderState.depthState; depthState.writeEnabled = false;
+
+```
+When render states and render queues are declared in ShaderLab, the corresponding settings in the material will be ignored."
+</Callout>
 ```
