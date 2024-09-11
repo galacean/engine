@@ -1,6 +1,6 @@
 import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import { Utils } from "../Utils";
-import { CompareFunction, RenderQueueType, Shader, StencilOperation, StencilState } from "../shader";
+import { CompareFunction, RenderQueueType, Shader, StencilOperation } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { RenderStateElementKey } from "../shader/enums/RenderStateElementKey";
 import { BatcherManager } from "./BatcherManager";
@@ -213,13 +213,5 @@ export class RenderQueue {
     incrementMaskQueue.render(context, pipelineStageTagValue, StencilOperation.IncrementSaturate);
     decrementMaskQueue._batch(engine._batcherManager);
     decrementMaskQueue.render(context, pipelineStageTagValue, StencilOperation.DecrementSaturate);
-  }
-
-  private _copyStencilState(scrStencilState: StencilState, dstStencilState: StencilState): void {
-    dstStencilState.enabled = scrStencilState.enabled;
-    dstStencilState.writeMask = scrStencilState.writeMask;
-    dstStencilState.referenceValue = scrStencilState.referenceValue;
-    dstStencilState.compareFunctionFront = scrStencilState.compareFunctionFront;
-    dstStencilState.compareFunctionBack = scrStencilState.compareFunctionBack;
   }
 }
