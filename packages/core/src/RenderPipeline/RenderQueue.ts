@@ -2,6 +2,7 @@ import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import { Utils } from "../Utils";
 import { CompareFunction, RenderQueueType, Shader, StencilOperation, StencilState } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
+import { RenderStateElementKey } from "../shader/enums/RenderStateElementKey";
 import { BatcherManager } from "./BatcherManager";
 import { MaskManager } from "./MaskManager";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
@@ -12,7 +13,7 @@ import { SubRenderElement } from "./SubRenderElement";
  * @internal
  */
 export class RenderQueue {
-  private static _tempStencilState: StencilState = new StencilState();
+  private static _customStates: Record<number, any> = {};
 
   static compareForOpaque(a: RenderElement, b: RenderElement): number {
     return a.priority - b.priority || a.distanceForSort - b.distanceForSort;
@@ -53,7 +54,6 @@ export class RenderQueue {
     const renderCount = engine._renderCount;
     const rhi = engine._hardwareRenderer;
     const pipelineStageKey = RenderContext.pipelineStageKey;
-    const tempStencilState = RenderQueue._tempStencilState;
 
     for (let i = 0; i < length; i++) {
       const subElement = batchedSubElements[i];
@@ -73,8 +73,21 @@ export class RenderQueue {
       }
 
       const maskInteraction = renderer._maskInteraction;
+      const customStates = RenderQueue._customStates;
       const maskInteractionNotNone = maskInteraction !== SpriteMaskInteraction.None;
-      maskInteractionNotNone && this._drawMask(context, pipelineStageTagValue, subElement);
+      if (maskInteractionNotNone) {
+        this._drawMask(context, pipelineStageTagValue, subElement);
+
+        customStates[RenderStateElementKey.StencilStateEnabled] = true;
+        customStates[RenderStateElementKey.StencilStateWriteMask] = 0x00;
+        customStates[RenderStateElementKey.StencilStateReferenceValue] = 1;
+        const compareFunc =
+          maskInteraction === SpriteMaskInteraction.VisibleInsideMask
+            ? CompareFunction.LessEqual
+            : CompareFunction.Greater;
+        customStates[RenderStateElementKey.StencilStateCompareFunctionFront] = compareFunc;
+        customStates[RenderStateElementKey.StencilStateCompareFunctionBack] = compareFunc;
+      }
 
       const compileMacros = Shader._compileMacros;
       const { primitive, material, shaderPasses, shaderData: renderElementShaderData } = subElement;
@@ -156,29 +169,14 @@ export class RenderQueue {
         }
 
         const renderState = shaderPass._renderState ?? renderStates[j];
-        const stencilState = renderState.stencilState;
-        if (maskInteractionNotNone) {
-          // Copy origin stencil state to temp stencil state
-          this._copyStencilState(stencilState, tempStencilState);
-          // Set stencil state for renderer
-          stencilState.enabled = true;
-          stencilState.writeMask = 0x00;
-          stencilState.referenceValue = 1;
-          stencilState.compareFunctionFront = stencilState.compareFunctionBack =
-            maskInteraction === SpriteMaskInteraction.VisibleInsideMask
-              ? CompareFunction.LessEqual
-              : CompareFunction.Greater;
-        }
         renderState._applyStates(
           engine,
           renderer.entity.transform._isFrontFaceInvert(),
           shaderPass._renderStateDataMap,
-          material.shaderData
+          material.shaderData,
+          maskInteractionNotNone ? customStates : null
         );
-
         rhi.drawPrimitive(primitive, subElement.subPrimitive, program);
-        // Restore the previous stencil state from temp stencil state
-        maskInteractionNotNone && this._copyStencilState(tempStencilState, stencilState);
       }
     }
   }
