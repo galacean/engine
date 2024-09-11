@@ -189,6 +189,11 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-dream",
       threshold: 0.3
+    },
+    textureSheetAnimation: {
+      category: "Particle",
+      caseFileName: "particleRenderer-textureSheetAnimation",
+      threshold: 0.3
     }
   },
   PostProcess: {
@@ -206,6 +211,13 @@ export const E2E_CONFIG = {
       category: "PostProcess",
       caseFileName: "postProcess-LDR-bloom-neutral",
       threshold: 0.2
+    }
+  },
+  Text: {
+    TypedText: {
+      category: "Text",
+      caseFileName: "text-typed",
+      threshold: 0.4
     }
   }
 };

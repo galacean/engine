@@ -394,7 +394,8 @@ describe("Animator test", function () {
     const anyTransition = stateMachine.addAnyStateTransition(idleState);
     anyTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
     anyTransition.duration = 0.3;
-    anyTransition.exitTime = 0.9;
+    anyTransition.hasExitTime = true;
+    anyTransition.exitTime = 0.7;
     let anyToIdleTime =
       // @ts-ignore
       (anyTransition.duration * idleState._getDuration()) / idleSpeed;
@@ -443,10 +444,8 @@ describe("Animator test", function () {
     animator.animatorController.addParameter("playerSpeed", 1);
     animator.speed = -1;
     const stateMachine = animator.animatorController.layers[0].stateMachine;
-    //@ts-ignore
-    stateMachine._entryTransitions.length = 0;
-    //@ts-ignore
-    stateMachine._anyStateTransitions.length = 0;
+    stateMachine.clearEntryStateTransitions();
+    stateMachine.clearAnyStateTransitions();
 
     const idleState = animator.findAnimatorState("Survey");
     const idleSpeed = 2;
@@ -518,7 +517,8 @@ describe("Animator test", function () {
     const anyTransition = stateMachine.addAnyStateTransition(idleState);
     anyTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
     anyTransition.duration = 0.3;
-    anyTransition.exitTime = 0.1;
+    anyTransition.hasExitTime = true;
+    anyTransition.exitTime = 0.3;
     let anyToIdleTime =
       // @ts-ignore
       (anyTransition.duration * idleState._getDuration()) / idleSpeed;
@@ -746,12 +746,15 @@ describe("Animator test", function () {
 
   it("hasExitTime", () => {
     const { animatorController } = animator;
-    animatorController.clearParameters();
+    // @ts-ignore
+    animatorController._parameters.length = 0;
+    // @ts-ignore
+    animatorController._parametersMap = Object.create(null);
     animatorController.addParameter("triggerIdle", false);
     // @ts-ignore
     const layerData = animator._getAnimatorLayerData(0);
     const stateMachine = animatorController.layers[0].stateMachine;
-    stateMachine.clearEntryTransitions();
+    stateMachine.clearEntryStateTransitions();
     stateMachine.clearAnyStateTransitions();
     const idleState = animator.findAnimatorState("Survey");
     idleState.speed = 1;
@@ -841,32 +844,5 @@ describe("Animator test", function () {
     animator.update(walkState.clip.length * 0.3);
     expect(layerData.srcPlayData.state.name).to.eq("Walk");
     expect(layerData.srcPlayData.frameTime).to.eq(walkState.clip.length * 0.3);
-  });
-
-  it("fixedDuration", () => {
-    const { animatorController } = animator;
-    animatorController.clearParameters();
-    animatorController.addParameter("triggerRun", false, true);
-    animatorController.addParameter("triggerWalk", false, true);
-    // @ts-ignore
-    const layerData = animator._getAnimatorLayerData(0);
-    const walkState = animator.findAnimatorState("Walk");
-    walkState.clearTransitions();
-    const runState = animator.findAnimatorState("Run");
-    runState.clipStartTime = runState.clipEndTime = 0;
-    runState.clearTransitions();
-    const walkToRunTransition = walkState.addTransition(runState);
-    walkToRunTransition.hasExitTime = false;
-    walkToRunTransition.hasFixedDuration = true;
-    walkToRunTransition.duration = 0.1;
-    walkToRunTransition.addCondition(AnimatorConditionMode.If, "triggerRun");
-    animator.play("Walk");
-    animator.setTrigger("triggerRun");
-    // @ts-ignore
-    animator.engine.time._frameCount++;
-    animator.update(0.1);
-    expect(layerData.srcPlayData.state.name).to.eq("Run");
-    expect(layerData.srcPlayData.frameTime).to.eq(0.1);
-    expect(layerData.srcPlayData.clipTime).to.eq(0);
   });
 });
