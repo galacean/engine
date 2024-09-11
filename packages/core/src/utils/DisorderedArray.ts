@@ -4,7 +4,7 @@ import { Utils } from "../Utils";
  * High-performance unordered array, delete uses exchange method to improve performance, internal capacity only increases.
  */
 export class DisorderedArray<T> {
-  /** The length of the array */
+  /** The length of the array. */
   length = 0;
 
   /** @internal */
