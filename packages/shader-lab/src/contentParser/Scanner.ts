@@ -27,7 +27,7 @@ export default class Scanner extends BaseScanner {
   }
 
   scanToCharacter(char: string): void {
-    while (this.getCurChar() !== char) {
+    while (this.getCurChar() !== char && !this.isEnd()) {
       this._advance();
     }
     this._advance();

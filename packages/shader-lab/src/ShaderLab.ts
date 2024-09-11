@@ -41,7 +41,7 @@ export class ShaderLab implements IShaderLab {
   /**
    * Retrieve the compilation errors
    */
-  get errors(): GSError[] | undefined {
+  get errors(): GSError[] {
     return this._errors;
   }
   // #endif
