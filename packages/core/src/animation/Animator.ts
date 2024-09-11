@@ -1007,7 +1007,7 @@ export class Animator extends Component {
     lastClipTime: number,
     clipTime: number,
     deltaTime: number,
-    checkStateMachineTransition: boolean,
+    checkStateMachine: boolean,
     aniUpdate: boolean
   ): AnimatorStateTransition {
     const { state } = playData;
@@ -1025,11 +1025,11 @@ export class Animator extends Component {
           transitions,
           lastClipTime,
           endTime,
-          checkStateMachineTransition,
+          checkStateMachine,
           aniUpdate
         );
         if (!targetTransition) {
-          if (checkStateMachineTransition) {
+          if (checkStateMachine) {
             layerData.anyTransitionIndex = 0;
           } else {
             playData.currentTransitionIndex = 0;
@@ -1042,7 +1042,7 @@ export class Animator extends Component {
             transitions,
             startTime,
             clipTime,
-            checkStateMachineTransition,
+            checkStateMachine,
             aniUpdate
           );
         }
@@ -1055,7 +1055,7 @@ export class Animator extends Component {
           transitions,
           lastClipTime,
           clipTime,
-          checkStateMachineTransition,
+          checkStateMachine,
           aniUpdate
         );
       }
@@ -1070,11 +1070,11 @@ export class Animator extends Component {
           transitions,
           lastClipTime,
           startTime,
-          checkStateMachineTransition,
+          checkStateMachine,
           aniUpdate
         );
         if (!targetTransition) {
-          if (checkStateMachineTransition) {
+          if (checkStateMachine) {
             layerData.anyTransitionIndex = transitions.count - 1;
           } else {
             playData.currentTransitionIndex = transitions.count - 1;
@@ -1087,7 +1087,7 @@ export class Animator extends Component {
             transitions,
             clipTime,
             endTime,
-            checkStateMachineTransition,
+            checkStateMachine,
             aniUpdate
           );
         }
@@ -1100,7 +1100,7 @@ export class Animator extends Component {
           transitions,
           lastClipTime,
           clipTime,
-          checkStateMachineTransition,
+          checkStateMachine,
           aniUpdate
         );
       }
@@ -1120,9 +1120,8 @@ export class Animator extends Component {
     checkStateMachineTransition: boolean,
     aniUpdate: boolean
   ): AnimatorStateTransition {
-    const { state } = playData;
     let transitionIndex = checkStateMachineTransition ? layerData.anyTransitionIndex : playData.currentTransitionIndex;
-    const duration = state._getDuration();
+    const duration = playData.state._getDuration();
     const isSoloMode = transitions.isSoloMode;
     for (let n = transitions.count; transitionIndex < n; transitionIndex++) {
       const transition = transitions.get(transitionIndex);
@@ -1166,7 +1165,6 @@ export class Animator extends Component {
     checkStateMachineTransition: boolean,
     aniUpdate: boolean
   ): AnimatorStateTransition {
-    const { state } = playState;
     let transitionIndex = checkStateMachineTransition ? layerData.anyTransitionIndex : playState.currentTransitionIndex;
     const duration = playState.state._getDuration();
     const isSoloMode = transitions.isSoloMode;
