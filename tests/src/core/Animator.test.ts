@@ -446,10 +446,8 @@ describe("Animator test", function () {
     animator.animatorController.addParameter("playerSpeed", 1);
     animator.speed = -1;
     const stateMachine = animator.animatorController.layers[0].stateMachine;
-    //@ts-ignore
-    stateMachine._entryTransitions.length = 0;
-    //@ts-ignore
-    stateMachine._anyStateTransitions.length = 0;
+    stateMachine.clearEntryStateTransitions();
+    stateMachine.clearAnyStateTransitions();
 
     const idleState = animator.findAnimatorState("Survey");
     const idleSpeed = 2;
@@ -722,10 +720,8 @@ describe("Animator test", function () {
     const layerData = animator._getAnimatorLayerData(0);
     animatorController.addParameter("playRun", 0);
     const stateMachine = animatorController.layers[0].stateMachine;
-    // @ts-ignore
-    stateMachine._entryTransitions.length = 0;
-    // @ts-ignore
-    stateMachine._anyStateTransitions.length = 0;
+    stateMachine.clearEntryStateTransitions();
+    stateMachine.clearAnyStateTransitions();
     const walkState = animator.findAnimatorState("Run");
     // For test clipStartTime is not 0 and transition duration is 0
     walkState.clipStartTime = 0.5;
@@ -762,10 +758,8 @@ describe("Animator test", function () {
     // @ts-ignore
     const layerData = animator._getAnimatorLayerData(0);
     const stateMachine = animatorController.layers[0].stateMachine;
-    // @ts-ignore
-    stateMachine._entryTransitions.length = 0;
-    // @ts-ignore
-    stateMachine._anyStateTransitions.length = 0;
+    stateMachine.clearEntryStateTransitions();
+    stateMachine.clearAnyStateTransitions();
     const idleState = animator.findAnimatorState("Survey");
     idleState.speed = 1;
     idleState.clearTransitions();

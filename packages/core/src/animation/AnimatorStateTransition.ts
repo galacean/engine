@@ -22,10 +22,6 @@ export class AnimatorStateTransition {
   /** @internal */
   _collection: AnimatorStateTransitionCollection;
   /** @internal */
-  _isEntry: boolean = false;
-  /** @internal */
-  _isAny: boolean = false;
-  /** @internal */
   _isExit: boolean = false;
 
   private _conditions: AnimatorCondition[] = [];

@@ -105,9 +105,7 @@ export class AnimatorStateMachine {
   addEntryStateTransition(animatorState: AnimatorState): AnimatorStateTransition;
 
   addEntryStateTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
-    const transition = this._entryTransitionCollection.add(transitionOrAnimatorState);
-    transition._isEntry = true;
-    return transition;
+    return this._entryTransitionCollection.add(transitionOrAnimatorState);
   }
 
   /**
@@ -116,7 +114,6 @@ export class AnimatorStateMachine {
    */
   removeEntryStateTransition(transition: AnimatorStateTransition): void {
     this._entryTransitionCollection.remove(transition);
-    transition._isEntry = false;
   }
 
   /**
@@ -131,9 +128,7 @@ export class AnimatorStateMachine {
   addAnyStateTransition(animatorState: AnimatorState): AnimatorStateTransition;
 
   addAnyStateTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
-    const transition = this._anyStateTransitionCollection.add(transitionOrAnimatorState);
-    transition._isAny = true;
-    return transition;
+    return this._anyStateTransitionCollection.add(transitionOrAnimatorState);
   }
 
   /**
@@ -142,6 +137,19 @@ export class AnimatorStateMachine {
    */
   removeAnyStateTransition(transition: AnimatorStateTransition): void {
     this._anyStateTransitionCollection.remove(transition);
-    transition._isAny = false;
+  }
+
+  /**
+   * Clear all entry state transitions.
+   */
+  clearEntryStateTransitions(): void {
+    this._entryTransitionCollection.clear();
+  }
+
+  /**
+   * Clear all any state transitions.
+   */
+  clearAnyStateTransitions(): void {
+    this._anyStateTransitionCollection.clear();
   }
 }

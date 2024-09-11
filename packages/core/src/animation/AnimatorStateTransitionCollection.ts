@@ -58,6 +58,15 @@ export class AnimatorStateTransitionCollection {
     }
   }
 
+  clear(): void {
+    for (let i = 0, n = this._transitions.length; i < n; i++) {
+      const transition = this._transitions[i];
+      transition._collection = null;
+    }
+    this._transitions.length = 0;
+    this._soloCount = 0;
+  }
+
   updateTransitionSolo(isModifiedSolo: boolean): void {
     this._soloCount += isModifiedSolo ? 1 : -1;
   }
