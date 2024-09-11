@@ -3,7 +3,7 @@ export { Engine } from "./Engine";
 export { SystemInfo } from "./SystemInfo";
 export { Canvas } from "./Canvas";
 
-export { DisorderedArray } from "./DisorderedArray";
+export { DisorderedArray } from "./utils/DisorderedArray";
 
 export { Scene } from "./Scene";
 export { SceneManager } from "./SceneManager";

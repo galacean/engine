@@ -1,6 +1,6 @@
 import { SpriteMask } from "../2d";
-import { DisorderedArray } from "../DisorderedArray";
 import { RenderQueueType } from "../shader";
+import { DisorderedArray } from "../utils/DisorderedArray";
 import { RenderQueue } from "./RenderQueue";
 import { SubRenderElement } from "./SubRenderElement";
 
