@@ -1,13 +1,12 @@
-import { BoundingBox, BoundingSphere, CollisionUtil, Ray, Vector3 } from "@galacean/engine";
+import { BoundingBox, BoundingSphere, CollisionUtil, DisorderedArray, Ray, Vector3 } from "@galacean/engine";
 import { ICharacterController, IPhysicsScene } from "@galacean/engine-design";
-import { DisorderedArray } from "./DisorderedArray";
 import { LiteCollider } from "./LiteCollider";
+import { LiteDynamicCollider } from "./LiteDynamicCollider";
 import { LiteHitResult } from "./LiteHitResult";
+import { LiteStaticCollider } from "./LiteStaticCollider";
 import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
 import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
-import { LiteStaticCollider } from "./LiteStaticCollider";
-import { LiteDynamicCollider } from "./LiteDynamicCollider";
 
 /**
  * A manager is a collection of colliders and constraints which can interact.
@@ -70,8 +69,7 @@ export class LitePhysicsScene implements IPhysicsScene {
   removeColliderShape(colliderShape: LiteColliderShape): void {
     const { _eventPool: eventPool, _currentEvents: currentEvents, _eventMap: eventMap } = this;
     const { _id: id } = colliderShape;
-    for (let i = currentEvents.length - 1; i >= 0; i--) {
-      const event = currentEvents.get(i);
+    currentEvents.forEach((event, i) => {
       if (event.index1 == id) {
         currentEvents.deleteByIndex(i);
         eventPool.push(event);
@@ -81,7 +79,7 @@ export class LitePhysicsScene implements IPhysicsScene {
         // If the shape is big index, should clear from the small index shape subMap
         eventMap[event.index1][id] = undefined;
       }
-    }
+    });
     delete eventMap[id];
   }
 
@@ -267,8 +265,7 @@ export class LitePhysicsScene implements IPhysicsScene {
 
   private _fireEvent(): void {
     const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    for (let i = currentEvents.length - 1; i >= 0; i--) {
-      const event = currentEvents.get(i);
+    currentEvents.forEach((event, i) => {
       if (!event.alreadyInvoked) {
         if (event.state == TriggerEventState.Enter) {
           this._onTriggerEnter(event.index1, event.index2);
@@ -281,12 +278,11 @@ export class LitePhysicsScene implements IPhysicsScene {
         event.state = TriggerEventState.Exit;
         this._eventMap[event.index1][event.index2] = undefined;
 
-        this._onTriggerExit(event.index1, event.index2);
-
         currentEvents.deleteByIndex(i);
+        this._onTriggerExit(event.index1, event.index2);
         eventPool.push(event);
       }
-    }
+    });
   }
 
   private _boxCollision(other: LiteColliderShape): boolean {

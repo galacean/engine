@@ -1,6 +1,5 @@
-import { Quaternion, Vector3 } from "@galacean/engine";
+import { Quaternion, Vector3, DisorderedArray } from "@galacean/engine";
 import { IColliderShape } from "@galacean/engine-design";
-import { DisorderedArray } from "../DisorderedArray";
 import { PhysXCharacterController } from "../PhysXCharacterController";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
