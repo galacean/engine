@@ -398,6 +398,8 @@ describe("Animator test", function () {
     anyTransition.exitTime = 0.7;
     let anyToIdleTime =
       // @ts-ignore
+      (anyTransition.exitTime - toIdleTransition.duration) * walkState._getDuration() +
+      // @ts-ignore
       (anyTransition.duration * idleState._getDuration()) / idleSpeed;
 
     // @ts-ignore
@@ -520,6 +522,8 @@ describe("Animator test", function () {
     anyTransition.hasExitTime = true;
     anyTransition.exitTime = 0.3;
     let anyToIdleTime =
+      // @ts-ignore
+      (1 - anyTransition.exitTime - toIdleTransition.duration) * walkState._getDuration() +
       // @ts-ignore
       (anyTransition.duration * idleState._getDuration()) / idleSpeed;
 
@@ -716,7 +720,7 @@ describe("Animator test", function () {
     const layerData = animator._getAnimatorLayerData(0);
     animatorController.addParameter("playRun", 0);
     const stateMachine = animatorController.layers[0].stateMachine;
-    stateMachine.clearEntryTransitions();
+    stateMachine.clearEntryStateTransitions();
     stateMachine.clearAnyStateTransitions();
     const walkState = animator.findAnimatorState("Run");
     // For test clipStartTime is not 0 and transition duration is 0
@@ -800,7 +804,7 @@ describe("Animator test", function () {
     // @ts-ignore
     const layerData = animator._getAnimatorLayerData(0);
     const stateMachine = animatorController.layers[0].stateMachine;
-    stateMachine.clearEntryTransitions();
+    stateMachine.clearEntryStateTransitions();
     stateMachine.clearAnyStateTransitions();
     const walkState = animator.findAnimatorState("Walk");
     walkState.clearTransitions();
