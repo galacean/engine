@@ -14,6 +14,13 @@ export class DisorderedArray<T> {
   private _blankCount = 0;
 
   /**
+   * Get whether the array is in the loop.
+   */
+  get isLopping(): boolean {
+    return this._loopCounter > 0;
+  }
+
+  /**
    * Create a DisorderedArray.
    * @param count - The initial length of the array
    */
@@ -95,7 +102,7 @@ export class DisorderedArray<T> {
   /**
    * Loop through all elements.
    * @param callbackFn - The callback function
-   * @param swapFn - The swap function can process the element after the callback function
+   * @param swapFn - The swap function can process the element after the callback function, it will be called after end looping(`isLopping` = true)
    */
   forEach(callbackFn: (element: T, index: number) => void, swapFn?: (element: T, index: number) => void): void {
     this._startLoop();
@@ -110,7 +117,7 @@ export class DisorderedArray<T> {
   /**
    * Loop through all elements and clean up the blank elements.
    * @param callbackFn - The callback function
-   * @param swapFn - The swap function can process the element after the callback function
+   * @param swapFn - The swap function can process the element after the callback function,  it will be called after end looping(`isLopping` = true)
    */
   forEachAndClean(callbackFn: (element: T, index: number) => void, swapFn?: (element: T, index: number) => void): void {
     this._startLoop();
