@@ -1,16 +1,16 @@
 // @ts-ignore
 import { BoundingBox, Matrix, Vector3, Vector4 } from "@galacean/engine-math";
 import { SpriteMaskInteraction } from "./2d/enums/SpriteMaskInteraction";
-import { Camera } from "./Camera";
 import { Component } from "./Component";
 import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
+import { Layer } from "./Layer";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
-import { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 import { Transform, TransformModifyFlags } from "./Transform";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
 import { IComponentCustomClone } from "./clone/ComponentCloner";
+import { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 import { Material } from "./material";
 import { ShaderMacro, ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
@@ -354,8 +354,8 @@ export class Renderer extends Component implements IComponentCustomClone {
   /**
    * @internal
    */
-  _isCulledByCamera(camera: Camera): boolean {
-    return !(camera.cullingMask & this._entity.layer);
+  _isFilteredByLayer(layer: Layer): boolean {
+    return !(layer & this._entity.layer);
   }
 
   /**

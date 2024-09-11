@@ -1,6 +1,6 @@
 import { BoundingBox } from "@galacean/engine-math";
-import { Camera } from "../../Camera";
 import { Entity } from "../../Entity";
+import { Layer } from "../../Layer";
 import { RenderQueueFlags } from "../../RenderPipeline/BasicRenderPipeline";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
@@ -9,8 +9,8 @@ import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
-import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
+import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
@@ -204,7 +204,7 @@ export class SpriteMask extends Renderer {
   /**
    * @inheritdoc
    */
-  override _isCulledByCamera(camera: Camera): boolean {
+  override _isFilteredByLayer(layer: Layer): boolean {
     return false;
   }
 

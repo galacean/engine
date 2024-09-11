@@ -339,7 +339,7 @@ export class BasicRenderPipeline {
       const renderer = elements[i];
 
       // Filter by camera culling mask
-      if (renderer._isCulledByCamera(camera)) {
+      if (renderer._isFilteredByLayer(camera.cullingMask)) {
         continue;
       }
 
