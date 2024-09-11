@@ -1,7 +1,8 @@
-import { AnimatorControllerParameterValue } from "./AnimatorControllerParameter";
-import { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
 import { AnimatorCondition } from "./AnimatorCondition";
+import { AnimatorControllerParameterValue } from "./AnimatorControllerParameter";
 import { AnimatorState } from "./AnimatorState";
+import { AnimatorStateTransitionCollection } from "./AnimatorStateTransitionCollection";
+import { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
 
 /**
  * Transitions define when and how the state machine switch from on state to another. AnimatorTransition always originate from a StateMachine or a StateMachine entry.
@@ -19,12 +20,13 @@ export class AnimatorStateTransition {
   mute: boolean = false;
 
   /** @internal */
-  _srcState: AnimatorState;
+  _collection: AnimatorStateTransitionCollection;
   /** @internal */
   _isExit: boolean = false;
 
   private _conditions: AnimatorCondition[] = [];
   private _solo = false;
+  private _hasExitTime: boolean = true;
 
   /**
    * Is the transition destination the exit of the current state machine.
@@ -43,13 +45,26 @@ export class AnimatorStateTransition {
   set solo(value: boolean) {
     if (this._solo === value) return;
     this._solo = value;
-    this._srcState?._updateSoloTransition(value ? true : undefined);
+    this._collection?.updateTransitionSolo(value);
   }
   /**
    * The conditions in the transition.
    */
   get conditions(): Readonly<AnimatorCondition[]> {
     return this._conditions;
+  }
+
+  /**
+   * When active the transition will have an exit time condition.
+   */
+  get hasExitTime(): boolean {
+    return this._hasExitTime;
+  }
+
+  set hasExitTime(value: boolean) {
+    if (this._hasExitTime === value) return;
+    this._hasExitTime = value;
+    this._collection?.updateTransitionsIndex(this, value);
   }
 
   /**

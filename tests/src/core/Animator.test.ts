@@ -16,7 +16,7 @@ import {
   AnimatorController,
   WrapMode,
   StateMachineScript,
-  AnimatorState
+  Entity
 } from "@galacean/engine-core";
 import { GLTFResource } from "@galacean/engine-loader";
 import { Quaternion } from "@galacean/engine-math";
@@ -394,7 +394,8 @@ describe("Animator test", function () {
     const anyTransition = stateMachine.addAnyStateTransition(idleState);
     anyTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
     anyTransition.duration = 0.3;
-    anyTransition.exitTime = 0.9;
+    anyTransition.hasExitTime = true;
+    anyTransition.exitTime = 0.7;
     let anyToIdleTime =
       // @ts-ignore
       (anyTransition.exitTime - toIdleTransition.duration) * walkState._getDuration() +
@@ -445,10 +446,8 @@ describe("Animator test", function () {
     animator.animatorController.addParameter("playerSpeed", 1);
     animator.speed = -1;
     const stateMachine = animator.animatorController.layers[0].stateMachine;
-    //@ts-ignore
-    stateMachine._entryTransitions.length = 0;
-    //@ts-ignore
-    stateMachine._anyStateTransitions.length = 0;
+    stateMachine.clearEntryStateTransitions();
+    stateMachine.clearAnyStateTransitions();
 
     const idleState = animator.findAnimatorState("Survey");
     const idleSpeed = 2;
@@ -520,7 +519,8 @@ describe("Animator test", function () {
     const anyTransition = stateMachine.addAnyStateTransition(idleState);
     anyTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
     anyTransition.duration = 0.3;
-    anyTransition.exitTime = 0.1;
+    anyTransition.hasExitTime = true;
+    anyTransition.exitTime = 0.3;
     let anyToIdleTime =
       // @ts-ignore
       (1 - anyTransition.exitTime - toIdleTransition.duration) * walkState._getDuration() +
@@ -568,6 +568,8 @@ describe("Animator test", function () {
   });
 
   it("change state in one update", () => {
+    const entity = new Entity(engine);
+    const animator = entity.addComponent(Animator);
     const animatorController = new AnimatorController(engine);
     const layer = new AnimatorControllerLayer("layer");
     animatorController.addLayer(layer);
@@ -644,6 +646,8 @@ describe("Animator test", function () {
   });
 
   it("stateMachineScript", () => {
+    const entity = new Entity(engine);
+    const animator = entity.addComponent(Animator);
     const animatorController = new AnimatorController(engine);
     const layer = new AnimatorControllerLayer("layer");
     animatorController.addLayer(layer);
@@ -708,5 +712,87 @@ describe("Animator test", function () {
     expect(onStateExitSpy).to.have.been.called.exactly(1);
     expect(onStateEnter2Spy).to.have.been.called.exactly(1);
     expect(onStateExit2Spy).to.have.been.called.exactly(1);
+  });
+
+  it("anyTransition", () => {
+    const { animatorController } = animator;
+    // @ts-ignore
+    const layerData = animator._getAnimatorLayerData(0);
+    animatorController.addParameter("playRun", 0);
+    const stateMachine = animatorController.layers[0].stateMachine;
+    stateMachine.clearEntryStateTransitions();
+    stateMachine.clearAnyStateTransitions();
+    const walkState = animator.findAnimatorState("Run");
+    // For test clipStartTime is not 0 and transition duration is 0
+    walkState.clipStartTime = 0.5;
+    walkState.addStateMachineScript(
+      class extends StateMachineScript {
+        onStateEnter(animator) {
+          animator.setParameterValue("playRun", 0);
+        }
+      }
+    );
+    const transition = stateMachine.addAnyStateTransition(animator.findAnimatorState("Run"));
+    transition.addCondition(AnimatorConditionMode.Equals, "playRun", 1);
+    // For test clipStartTime is not 0 and transition duration is 0
+    transition.duration = 0;
+    animator.setParameterValue("playRun", 1);
+
+    animator.play("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.5);
+
+    expect(layerData.srcPlayData.state.name).to.eq("Run");
+    expect(layerData.srcPlayData.frameTime).to.eq(0.5);
+    expect(layerData.srcPlayData.clipTime).to.eq(walkState.clip.length * 0.5 + 0.5);
+  });
+
+  it("hasExitTime", () => {
+    const { animatorController } = animator;
+    // @ts-ignore
+    animatorController._parameters.length = 0;
+    // @ts-ignore
+    animatorController._parametersMap = Object.create(null);
+    animatorController.addParameter("triggerIdle", false);
+    // @ts-ignore
+    const layerData = animator._getAnimatorLayerData(0);
+    const stateMachine = animatorController.layers[0].stateMachine;
+    stateMachine.clearEntryStateTransitions();
+    stateMachine.clearAnyStateTransitions();
+    const idleState = animator.findAnimatorState("Survey");
+    idleState.speed = 1;
+    idleState.clearTransitions();
+    const walkState = animator.findAnimatorState("Walk");
+    walkState.clipStartTime = 0;
+    walkState.clearTransitions();
+    const runState = animator.findAnimatorState("Run");
+    runState.clearTransitions();
+    const walkToRunTransition = walkState.addTransition(runState);
+    walkToRunTransition.hasExitTime = true;
+    walkToRunTransition.exitTime = 0.5;
+    walkToRunTransition.duration = 0;
+
+    animator.play("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(walkState.clip.length * 0.5);
+    expect(layerData.destPlayData.state.name).to.eq("Run");
+    expect(layerData.destPlayData.frameTime).to.eq(0);
+    const anyToIdleTransition = stateMachine.addAnyStateTransition(idleState);
+    anyToIdleTransition.hasExitTime = false;
+    anyToIdleTransition.duration = 0.2;
+    anyToIdleTransition.addCondition(AnimatorConditionMode.If, "triggerIdle");
+    animator.setParameterValue("triggerIdle", true);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+    expect(layerData.srcPlayData.state.name).to.eq("Run");
+    expect(layerData.srcPlayData.frameTime).to.eq(0.1);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(idleState.clip.length * 0.2 - 0.1);
+    expect(layerData.srcPlayData.state.name).to.eq("Survey");
+    expect(layerData.srcPlayData.clipTime).to.eq(idleState.clip.length * 0.2);
   });
 });
