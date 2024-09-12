@@ -1298,43 +1298,48 @@ export class Animator extends Component {
       if (parameterValue === undefined) {
         return false;
       }
+
       if (parameterValue === true) {
         const parameter = this.getParameter(name);
         parameter._isTrigger && this._tempTriggeredParametersName.push(name);
+        pass = true;
       }
 
-      switch (mode) {
-        case AnimatorConditionMode.Equals:
-          if (parameterValue === threshold) {
-            pass = true;
-          }
-          break;
-        case AnimatorConditionMode.Greater:
-          if (parameterValue > threshold) {
-            pass = true;
-          }
-          break;
-        case AnimatorConditionMode.Less:
-          if (parameterValue < threshold) {
-            pass = true;
-          }
-          break;
-        case AnimatorConditionMode.NotEquals:
-          if (parameterValue !== threshold) {
-            pass = true;
-          }
-          break;
-        case AnimatorConditionMode.If:
-          if (parameterValue === true) {
-            pass = true;
-          }
-          break;
-        case AnimatorConditionMode.IfNot:
-          if (parameterValue === false) {
-            pass = true;
-          }
-          break;
+      if (!pass) {
+        switch (mode) {
+          case AnimatorConditionMode.Equals:
+            if (parameterValue === threshold) {
+              pass = true;
+            }
+            break;
+          case AnimatorConditionMode.Greater:
+            if (parameterValue > threshold) {
+              pass = true;
+            }
+            break;
+          case AnimatorConditionMode.Less:
+            if (parameterValue < threshold) {
+              pass = true;
+            }
+            break;
+          case AnimatorConditionMode.NotEquals:
+            if (parameterValue !== threshold) {
+              pass = true;
+            }
+            break;
+          case AnimatorConditionMode.If:
+            if (parameterValue === true) {
+              pass = true;
+            }
+            break;
+          case AnimatorConditionMode.IfNot:
+            if (parameterValue === false) {
+              pass = true;
+            }
+            break;
+        }
       }
+
       if (!pass) {
         allPass = false;
         break;

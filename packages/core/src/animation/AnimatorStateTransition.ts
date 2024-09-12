@@ -69,13 +69,13 @@ export class AnimatorStateTransition {
 
   /**
    * Add a condition to a transition.
-   * @param mode - The AnimatorCondition mode of the condition
    * @param parameterName - The name of the parameter
+   * @param mode - The AnimatorCondition mode of the condition
    * @param threshold - The threshold value of the condition
    */
   addCondition(
-    mode: AnimatorConditionMode,
     parameterName: string,
+    mode: AnimatorConditionMode,
     threshold?: AnimatorControllerParameterValue
   ): AnimatorCondition;
 
@@ -86,8 +86,8 @@ export class AnimatorStateTransition {
   addCondition(animatorCondition: AnimatorCondition): AnimatorCondition;
 
   addCondition(
-    param: AnimatorConditionMode | AnimatorCondition,
-    parameterName?: string,
+    param: string | AnimatorCondition,
+    mode?: AnimatorConditionMode,
     threshold?: AnimatorControllerParameterValue
   ): AnimatorCondition {
     if (typeof param === "object") {
@@ -95,8 +95,8 @@ export class AnimatorStateTransition {
       return param;
     } else {
       const condition = new AnimatorCondition();
-      condition.mode = param;
-      condition.parameterName = parameterName;
+      condition.parameterName = param;
+      condition.mode = mode ?? AnimatorConditionMode.If;
       condition.threshold = threshold;
       this._conditions.push(condition);
       return condition;

@@ -125,7 +125,7 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
     transition._isExit = transitionData.isExit;
     transition.destinationState = destinationState;
     transitionData.conditions.forEach((conditionData) => {
-      transition.addCondition(conditionData.mode, conditionData.parameterName, conditionData.threshold);
+      transition.addCondition(conditionData.parameterName, conditionData.mode, conditionData.threshold);
     });
     return transition;
   }
