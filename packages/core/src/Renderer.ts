@@ -4,7 +4,6 @@ import { SpriteMaskInteraction } from "./2d/enums/SpriteMaskInteraction";
 import { Component } from "./Component";
 import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
-import { Layer } from "./Layer";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Transform, TransformModifyFlags } from "./Transform";
@@ -349,13 +348,6 @@ export class Renderer extends Component implements IComponentCustomClone {
       this.shaderData._macroCollection,
       this._globalShaderMacro
     );
-  }
-
-  /**
-   * @internal
-   */
-  _isFilteredByLayer(layer: Layer): boolean {
-    return !(layer & this._entity.layer);
   }
 
   /**

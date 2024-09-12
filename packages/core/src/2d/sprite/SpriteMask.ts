@@ -1,6 +1,5 @@
 import { BoundingBox } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
-import { Layer } from "../../Layer";
 import { RenderQueueFlags } from "../../RenderPipeline/BasicRenderPipeline";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
@@ -199,13 +198,6 @@ export class SpriteMask extends Renderer {
   override _cloneTo(target: SpriteMask, srcRoot: Entity, targetRoot: Entity): void {
     super._cloneTo(target, srcRoot, targetRoot);
     target.sprite = this._sprite;
-  }
-
-  /**
-   * @inheritdoc
-   */
-  override _isFilteredByLayer(layer: Layer): boolean {
-    return false;
   }
 
   /**
