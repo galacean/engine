@@ -1,4 +1,4 @@
-import { MathUtil, Ray, Vector2 } from "@galacean/engine-math";
+import { MathUtil, Ray, Vector2, Vector3 } from "@galacean/engine-math";
 import { Camera, CameraModifyFlags } from "../Camera";
 import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
@@ -18,16 +18,17 @@ import { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrate
 export class UICanvas extends Component {
   /** @internal */
   @ignoreClone
-  _uiCanvasIndex: number = -1;
+  _canvasIndex: number = -1;
   /** @internal */
   @ignoreClone
   _isRootCanvas: boolean = false;
   /** @internal */
   @ignoreClone
   _renderElement: RenderElement;
+  /** @internal */
+  @ignoreClone
+  _sortDistance: number = 0;
 
-  @assignmentClone
-  private _priority: number = 0;
   @assignmentClone
   private _renderMode = CanvasRenderMode.WorldSpace;
   @assignmentClone
@@ -160,8 +161,8 @@ export class UICanvas extends Component {
   set sortOrder(val: number) {
     if (this._sortOrder !== val) {
       this._sortOrder = val;
-      if (this._isRootCanvas) {
-        this.scene._componentsManager._uiCanvasSortingFlag |= 1 << this._renderMode;
+      if (this._isRootCanvas && this._renderMode === CanvasRenderMode.ScreenSpaceOverlay) {
+        this.scene._componentsManager._overlayCanvasesSortingFlag = true;
       }
     }
   }
@@ -198,11 +199,24 @@ export class UICanvas extends Component {
     const { renderers } = this;
     const { frameCount } = this.engine.time;
     const renderElement = (this._renderElement = this.engine._renderElementPool.get());
-    renderElement.set(0, this._distance);
+    this._updateSortDistance(context.virtualCamera.position);
+    renderElement.set(this.sortOrder, this._sortDistance);
     for (let i = 0, n = renderers.length; i < n; i++) {
       const renderer = renderers[i];
       renderer._renderFrameCount = frameCount;
       renderer._prepareRender(context);
+    }
+  }
+
+  /** @internal */
+  _updateSortDistance(cameraPosition: Vector3): void {
+    switch (this._renderMode) {
+      case CanvasRenderMode.ScreenSpaceOverlay:
+        this._sortDistance = 0;
+      case CanvasRenderMode.ScreenSpaceCamera:
+        this._sortDistance = this._distance;
+      case CanvasRenderMode.WorldSpace:
+        this._sortDistance = Vector3.distance(cameraPosition, (this._transform as UITransform).worldPosition);
     }
   }
 
@@ -230,16 +244,15 @@ export class UICanvas extends Component {
   /**
    * @internal
    */
-  rayCast(ray: Ray, out: HitResult[], camera?: Camera): void {
+  rayCast(ray: Ray, out: HitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
     const { renderers } = this;
-    const uiPath: UIRenderer[] = [];
-    for (let i = 0, n = renderers.length; i < n; i++) {
+    for (let i = renderers.length - 1; i >= 0; i--) {
       const renderer = renderers[i];
-      if (!renderer.rayCastTarget) continue;
-      if (renderer._raycast(ray, camera)) {
-        uiPath.push(renderer);
+      if (renderer.rayCastAble && renderer._raycast(ray, out, distance)) {
+        return true;
       }
     }
+    return false;
   }
 
   private _adapterPoseInScreenSpace(): void {
@@ -299,7 +312,7 @@ export class UICanvas extends Component {
         break;
     }
     this.entity.transform.setScale(expectX, expectY, expectZ);
-    this._transform.rect.set(curWidth / expectX, curHeight / expectY);
+    this._transform.size.set(curWidth / expectX, curHeight / expectY);
   }
 
   private _walk(entity: Entity, renderers: UIRenderer[], group?: CanvasGroup): void {

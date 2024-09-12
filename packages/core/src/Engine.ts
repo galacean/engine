@@ -46,7 +46,7 @@ import { CullMode } from "./shader/enums/CullMode";
 import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureFormat } from "./texture";
-import { CanvasRenderMode, UITransform } from "./ui";
+import { UITransform } from "./ui";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
@@ -552,7 +552,7 @@ export class Engine extends EventDispatcher {
         }
       );
 
-      const uiCanvases = componentsManager._uiCanvasesArray[CanvasRenderMode.ScreenSpaceOverlay]?._elements;
+      const uiCanvases = componentsManager._overlayCanvases._elements;
       if (uiCanvases) {
         const {
           _canvas: canvas,

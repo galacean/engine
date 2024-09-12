@@ -21,7 +21,7 @@ import {
   TextureFormat,
   TextureWrapMode
 } from "../texture";
-import { CanvasRenderMode, UICanvas } from "../ui";
+import { CanvasRenderMode } from "../ui";
 import { CullingResults } from "./CullingResults";
 import { DepthOnlyPass } from "./DepthOnlyPass";
 import { OpaqueTexturePass } from "./OpaqueTexturePass";
@@ -332,7 +332,7 @@ export class BasicRenderPipeline {
   private _prepareRender(context: RenderContext): void {
     const camera = context.camera;
     const { engine, enableFrustumCulling, cullingMask, _frustum: frustum } = camera;
-    const { _renderers: renderers, _uiCanvasesArray: uiCanvasesArray } = camera.scene._componentsManager;
+    const { _renderers: renderers, _canvases: canvases } = camera.scene._componentsManager;
 
     let rendererElements = renderers._elements;
     for (let i = renderers.length - 1; i >= 0; --i) {
@@ -352,36 +352,17 @@ export class BasicRenderPipeline {
       renderer._renderFrameCount = engine.time.frameCount;
     }
 
-    // Screen Space Camera UI
-    uiCanvasesArray[CanvasRenderMode.ScreenSpaceCamera]?.forEach(
-      (canvas: UICanvas) => {
-        if (canvas.renderCamera !== camera) return;
-        // Filter by camera culling mask
-        if (!(cullingMask & canvas._entity.layer)) {
-          return;
-        }
-        canvas._prepareRender(context);
-        this.pushRenderElement(context, canvas._renderElement);
-      },
-      (canvas: UICanvas, index: number) => {
-        canvas._uiCanvasIndex = index;
+    let canvasesElements = canvases._elements;
+    for (let i = canvases.length - 1; i >= 0; i--) {
+      const canvas = canvasesElements[i];
+      if (canvas.renderMode === CanvasRenderMode.ScreenSpaceCamera && canvas.renderCamera !== camera) continue;
+      // Filter by camera culling mask
+      if (!(cullingMask & canvas._entity.layer)) {
+        continue;
       }
-    );
-
-    // World Space UI
-    uiCanvasesArray[CanvasRenderMode.WorldSpace]?.forEach(
-      (canvas: UICanvas) => {
-        // Filter by camera culling mask
-        if (!(cullingMask & canvas._entity.layer)) {
-          return;
-        }
-        canvas._prepareRender(context);
-        this.pushRenderElement(context, canvas._renderElement);
-      },
-      (canvas: UICanvas, index: number) => {
-        canvas._uiCanvasIndex = index;
-      }
-    );
+      canvas._prepareRender(context);
+      this.pushRenderElement(context, canvas._renderElement);
+    }
   }
 }
 

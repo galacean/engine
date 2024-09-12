@@ -16,10 +16,13 @@ export class ComponentsManager {
   _activeCameras: DisorderedArray<Camera> = new DisorderedArray();
   /** @internal */
   _renderers: DisorderedArray<Renderer> = new DisorderedArray();
-  /* @internal */
-  _uiCanvasSortingFlag: number = 0;
+
   /** @internal */
-  _uiCanvasesArray: DisorderedArray<UICanvas>[] = [];
+  _overlayCanvases: DisorderedArray<UICanvas> = new DisorderedArray();
+  /* @internal */
+  _overlayCanvasesSortingFlag: boolean = false;
+  /** @internal */
+  _canvases: DisorderedArray<UICanvas> = new DisorderedArray();
 
   // Script
   private _onStartScripts: DisorderedArray<Script> = new DisorderedArray();
@@ -75,31 +78,39 @@ export class ComponentsManager {
   }
 
   addUICanvas(mode: CanvasRenderMode, uiCanvas: UICanvas) {
-    const uiCanvases = (this._uiCanvasesArray[mode] ||= new DisorderedArray());
-    uiCanvas._uiCanvasIndex = uiCanvases.length;
-    uiCanvases.add(uiCanvas);
-    this._uiCanvasSortingFlag |= 1 << mode;
+    let canvases: DisorderedArray<UICanvas>;
+    if (mode === CanvasRenderMode.ScreenSpaceOverlay) {
+      canvases = this._overlayCanvases;
+      this._overlayCanvasesSortingFlag = true;
+    } else {
+      canvases = this._canvases;
+    }
+    uiCanvas._canvasIndex = canvases.length;
+    canvases.add(uiCanvas);
   }
 
   removeUICanvas(mode: CanvasRenderMode, uiCanvas: UICanvas) {
-    const uiCanvases = this._uiCanvasesArray[mode];
-    if (uiCanvases) {
-      const replaced = uiCanvases.deleteByIndex(uiCanvas._uiCanvasIndex);
-      replaced && (replaced._uiCanvasIndex = uiCanvas._uiCanvasIndex);
-      this._uiCanvasSortingFlag |= 1 << mode;
+    let canvases: DisorderedArray<UICanvas>;
+    if (mode === CanvasRenderMode.ScreenSpaceOverlay) {
+      canvases = this._overlayCanvases;
+      this._overlayCanvasesSortingFlag = true;
+    } else {
+      canvases = this._canvases;
     }
-    uiCanvas._uiCanvasIndex = -1;
+    const replaced = canvases.deleteByIndex(uiCanvas._canvasIndex);
+    replaced && (replaced._canvasIndex = uiCanvas._canvasIndex);
+    uiCanvas._canvasIndex = -1;
   }
 
   sortUICanvases(): void {
-    const { _uiCanvasSortingFlag: uiCanvasSortingFlag, _uiCanvasesArray: uiCanvasesArray } = this;
-    if (uiCanvasSortingFlag & (1 << CanvasRenderMode.ScreenSpaceOverlay)) {
-      uiCanvasesArray[CanvasRenderMode.ScreenSpaceOverlay].sort((a, b) => a.sortOrder - b.sortOrder);
+    if (this._overlayCanvasesSortingFlag) {
+      const overlayCanvases = this._overlayCanvases;
+      overlayCanvases.sort((a, b) => a.sortOrder - b.sortOrder);
+      for (let i = 0, n = overlayCanvases.length; i < n; i++) {
+        overlayCanvases.get(i)._canvasIndex = i;
+      }
+      this._overlayCanvasesSortingFlag = false;
     }
-    if (uiCanvasSortingFlag & (1 << CanvasRenderMode.ScreenSpaceCamera)) {
-      uiCanvasesArray[CanvasRenderMode.ScreenSpaceCamera].sort((a, b) => b.distance - a.distance);
-    }
-    this._uiCanvasSortingFlag = 0;
   }
 
   addOnStartScript(script: Script) {
@@ -300,9 +311,7 @@ export class ComponentsManager {
     this._onUpdateAnimations.garbageCollection();
     this._onUpdateRenderers.garbageCollection();
     this._activeCameras.garbageCollection();
-    const { _uiCanvasesArray: uiCanvasesArray } = this;
-    for (let i = 0, n = uiCanvasesArray.length; i < n; i++) {
-      uiCanvasesArray[i]?.garbageCollection();
-    }
+    this._overlayCanvases.garbageCollection();
+    this._canvases.garbageCollection();
   }
 }
