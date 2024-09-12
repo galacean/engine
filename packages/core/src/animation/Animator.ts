@@ -60,7 +60,7 @@ export class Animator extends Component {
   @ignoreClone
   private _tempAnimatorStateInfo: IAnimatorStateInfo = { layerIndex: -1, state: null };
   @ignoreClone
-  private _tempTriggerParametersName: string[] = [];
+  private _tempTriggeredParametersName: string[] = [];
 
   @ignoreClone
   private _controlledRenderers: Renderer[] = [];
@@ -179,7 +179,6 @@ export class Animator extends Component {
 
     const animatorController = this._animatorController;
     if (!animatorController) {
-      this._resetTriggerParameters();
       return;
     }
 
@@ -194,8 +193,6 @@ export class Animator extends Component {
       const layerData = this._getAnimatorLayerData(i);
       this._updateState(i, layerData, layers[i], deltaTime, animationUpdate);
     }
-
-    this._resetTriggerParameters();
   }
 
   /**
@@ -260,12 +257,11 @@ export class Animator extends Component {
    * Set the 'true' value of the given parameter.
    * @param name - The name of the parameter
    */
-  setTrigger(name: string) {
+  setTriggerParameter(name: string) {
     const parameter = this._animatorController?._parametersMap[name];
 
     if (parameter?._isTrigger) {
       this._parametersValueMap[name] = true;
-      this._tempTriggerParametersName.push(name);
     }
   }
 
@@ -273,7 +269,7 @@ export class Animator extends Component {
    * Set the 'false' value of the given parameter.
    * @param name - The name of the parameter
    */
-  resetTrigger(name: string) {
+  resetTriggerParameter(name: string) {
     const parameter = this._animatorController?._parametersMap[name];
 
     if (parameter?._isTrigger) {
@@ -1291,6 +1287,8 @@ export class Animator extends Component {
   private _checkConditions(transition: AnimatorStateTransition): boolean {
     const { conditions } = transition;
 
+    this._tempTriggeredParametersName.length = 0;
+
     let allPass = true;
     for (let i = 0, n = conditions.length; i < n; ++i) {
       let pass = false;
@@ -1299,6 +1297,10 @@ export class Animator extends Component {
 
       if (parameterValue === undefined) {
         return false;
+      }
+      if (parameterValue === true) {
+        const parameter = this.getParameter(name);
+        parameter._isTrigger && this._tempTriggeredParametersName.push(name);
       }
 
       switch (mode) {
@@ -1338,6 +1340,11 @@ export class Animator extends Component {
         break;
       }
     }
+
+    if (allPass) {
+      this._resetTriggerParameters();
+    }
+
     return allPass;
   }
 
@@ -1547,9 +1554,10 @@ export class Animator extends Component {
   }
 
   private _resetTriggerParameters(): void {
-    for (let i = 0, n = this._tempTriggerParametersName.length; i < n; i++) {
-      this._parametersValueMap[this._tempTriggerParametersName[i]] = false;
+    for (let i = 0, n = this._tempTriggeredParametersName.length; i < n; i++) {
+      this._parametersValueMap[this._tempTriggeredParametersName[i]] = false;
     }
+    this._tempTriggeredParametersName.length = 0;
   }
 }
 

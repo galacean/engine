@@ -796,7 +796,7 @@ describe("Animator test", function () {
     expect(layerData.srcPlayData.clipTime).to.eq(idleState.clip.length * 0.2);
   });
 
-  it("setTrigger", () => {
+  it("setTriggerParameter", () => {
     const { animatorController } = animator;
     animatorController.clearParameters();
     animatorController.addParameter("triggerRun", false, true);
@@ -820,10 +820,11 @@ describe("Animator test", function () {
     runToWalkTransition.hasExitTime = true;
     runToWalkTransition.exitTime = 0.7;
     runToWalkTransition.duration = 0.3;
+    runToWalkTransition.addCondition(AnimatorConditionMode.If, "triggerWalk");
 
     animator.play("Walk");
-    animator.setTrigger("triggerRun");
-    animator.setTrigger("triggerWalk");
+    animator.setTriggerParameter("triggerRun");
+    animator.setTriggerParameter("triggerWalk");
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update(0.1);
@@ -832,6 +833,7 @@ describe("Animator test", function () {
     expect(layerData.destPlayData.state.name).to.eq("Run");
     expect(layerData.destPlayData.frameTime).to.eq(0.1);
     expect(animator.getParameterValue("triggerRun")).to.eq(false);
+    expect(animator.getParameterValue("triggerWalk")).to.eq(true);
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update(runState.clip.length * 0.1 - 0.1);
