@@ -1347,7 +1347,7 @@ export class Animator extends Component {
     }
 
     if (allPass) {
-      this._resetTriggerParameters();
+      this._deactivateTriggerParameters();
     }
 
     return allPass;
@@ -1558,7 +1558,7 @@ export class Animator extends Component {
     }
   }
 
-  private _resetTriggerParameters(): void {
+  private _deactivateTriggerParameters(): void {
     for (let i = 0, n = this._tempTriggeredParametersName.length; i < n; i++) {
       this._parametersValueMap[this._tempTriggeredParametersName[i]] = false;
     }
