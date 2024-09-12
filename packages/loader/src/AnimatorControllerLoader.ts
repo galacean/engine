@@ -11,8 +11,7 @@ import {
   AnimatorState,
   AnimatorConditionMode,
   AnimatorControllerParameterValue,
-  WrapMode,
-  AnimatorControllerParameter
+  WrapMode
 } from "@galacean/engine-core";
 
 @resourceLoader(AssetType.AnimatorController, ["json"], false)
@@ -116,6 +115,7 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
 
   private _createTransition(transitionData: ITransitionData, destinationState: AnimatorState): AnimatorStateTransition {
     const transition = new AnimatorStateTransition();
+    transition.hasExitTime = transitionData.hasExitTime;
     transition.duration = transitionData.duration;
     transition.offset = transitionData.offset;
     transition.exitTime = transitionData.exitTime;
@@ -156,6 +156,7 @@ interface ITransitionData {
   mute: boolean;
   isExit: boolean;
   conditions: IConditionData[];
+  hasExitTime: boolean;
 }
 
 interface IConditionData {
