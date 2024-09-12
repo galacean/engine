@@ -99,7 +99,11 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
             animatorController.addLayer(layer);
           });
           parameters.forEach((parameterData) => {
-            animatorController.addParameter(parameterData.name, parameterData.defaultValue, parameterData.isTrigger);
+            if (parameterData.isTrigger) {
+              animatorController.addTriggerParameter(parameterData.name);
+            } else {
+              animatorController.addParameter(parameterData.name, parameterData.defaultValue);
+            }
           });
           Promise.all(promises).then((clipData) => {
             clipData.forEach((data) => {

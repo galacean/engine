@@ -799,8 +799,8 @@ describe("Animator test", function () {
   it("setTriggerParameter", () => {
     const { animatorController } = animator;
     animatorController.clearParameters();
-    animatorController.addParameter("triggerRun", false, true);
-    animatorController.addParameter("triggerWalk", false, true);
+    animatorController.addTriggerParameter("triggerRun");
+    animatorController.addTriggerParameter("triggerWalk");
     // @ts-ignore
     const layerData = animator._getAnimatorLayerData(0);
     const stateMachine = animatorController.layers[0].stateMachine;
