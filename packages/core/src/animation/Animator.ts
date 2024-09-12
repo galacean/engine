@@ -30,6 +30,8 @@ import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCur
  * The controller of the animation system.
  */
 export class Animator extends Component {
+  private static _tempTriggeredParametersName: string[] = [];
+
   /** Culling mode of this Animator. */
   cullingMode: AnimatorCullingMode = AnimatorCullingMode.None;
   /** The playback speed of the Animator, 1.0 is normal playback speed. */
@@ -59,8 +61,6 @@ export class Animator extends Component {
 
   @ignoreClone
   private _tempAnimatorStateInfo: IAnimatorStateInfo = { layerIndex: -1, state: null };
-  @ignoreClone
-  private _tempTriggeredParametersName: string[] = [];
 
   @ignoreClone
   private _controlledRenderers: Renderer[] = [];
@@ -1287,8 +1287,6 @@ export class Animator extends Component {
   private _checkConditions(transition: AnimatorStateTransition): boolean {
     const { conditions } = transition;
 
-    this._tempTriggeredParametersName.length = 0;
-
     let allPass = true;
     for (let i = 0, n = conditions.length; i < n; ++i) {
       let pass = false;
@@ -1302,7 +1300,7 @@ export class Animator extends Component {
       if (parameterValue === true) {
         const parameter = this.getParameter(name);
         if (parameter?._isTrigger) {
-          this._tempTriggeredParametersName.push(name);
+          Animator._tempTriggeredParametersName.push(name);
           pass = true;
         }
       }
@@ -1349,8 +1347,10 @@ export class Animator extends Component {
     }
 
     if (allPass) {
-      this._deactivateTriggerParameters();
+      this._deactivateTriggeredParameters();
     }
+
+    Animator._tempTriggeredParametersName.length = 0;
 
     return allPass;
   }
@@ -1560,11 +1560,11 @@ export class Animator extends Component {
     }
   }
 
-  private _deactivateTriggerParameters(): void {
-    for (let i = 0, n = this._tempTriggeredParametersName.length; i < n; i++) {
-      this._parametersValueMap[this._tempTriggeredParametersName[i]] = false;
+  private _deactivateTriggeredParameters(): void {
+    const tempTriggeredParametersName = Animator._tempTriggeredParametersName;
+    for (let i = 0, n = tempTriggeredParametersName.length; i < n; i++) {
+      this._parametersValueMap[tempTriggeredParametersName[i]] = false;
     }
-    this._tempTriggeredParametersName.length = 0;
   }
 }
 
