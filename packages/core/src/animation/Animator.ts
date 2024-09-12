@@ -1301,8 +1301,10 @@ export class Animator extends Component {
 
       if (parameterValue === true) {
         const parameter = this.getParameter(name);
-        parameter._isTrigger && this._tempTriggeredParametersName.push(name);
-        pass = true;
+        if (parameter?._isTrigger) {
+          this._tempTriggeredParametersName.push(name);
+          pass = true;
+        }
       }
 
       if (!pass) {
