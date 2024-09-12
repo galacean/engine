@@ -67,8 +67,8 @@ export class AnimatorController extends ReferResource {
   }
 
   /**
-   * Remove a parameter(include trigger parameter) from the controller by name.
-   * @param name - The parameter name
+   * Remove a parameter from the controller by name, including trigger parameters.
+   * @param name - The name of the parameter
    */
   removeParameter(name: string) {
     const parameter = this._parametersMap[name];
@@ -80,7 +80,7 @@ export class AnimatorController extends ReferResource {
   }
 
   /**
-   * Clear parameters(include trigger parameters).
+   * Clear all parameters, including trigger parameters.
    */
   clearParameters(): void {
     this._parameters.length = 0;
