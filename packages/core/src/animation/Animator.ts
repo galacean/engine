@@ -246,7 +246,7 @@ export class Animator extends Component {
    * @param name - The name of the parameter
    * @param value - The value of the parameter
    */
-  setParameterValue(name: string, value: AnimatorControllerParameterValue) {
+  setParameterValue(name: string, value: AnimatorControllerParameterValue): void {
     const parameter = this._animatorController?._parametersMap[name];
     if (parameter) {
       this._parametersValueMap[name] = value;
@@ -254,10 +254,10 @@ export class Animator extends Component {
   }
 
   /**
-   * Set the 'true' value of the given parameter.
-   * @param name - The name of the parameter
+   * Activate the trigger parameter by name.
+   * @param name - The name of the trigger parameter
    */
-  setTriggerParameter(name: string) {
+  activateTriggerParameter(name: string): void {
     const parameter = this._animatorController?._parametersMap[name];
 
     if (parameter?._isTrigger) {
@@ -266,10 +266,10 @@ export class Animator extends Component {
   }
 
   /**
-   * Set the 'false' value of the given parameter.
-   * @param name - The name of the parameter
+   * Reset the trigger parameter to deactivate it by name.
+   * @param name - The name of the trigger parameter to reset
    */
-  resetTriggerParameter(name: string) {
+  resetTriggerParameter(name: string): void {
     const parameter = this._animatorController?._parametersMap[name];
 
     if (parameter?._isTrigger) {
