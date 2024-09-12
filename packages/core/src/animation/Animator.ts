@@ -267,7 +267,7 @@ export class Animator extends Component {
 
   /**
    * Reset the trigger parameter to deactivate it by name.
-   * @param name - The name of the trigger parameter to reset
+   * @param name - The name of the trigger parameter
    */
   resetTriggerParameter(name: string): void {
     const parameter = this._animatorController?._parametersMap[name];
