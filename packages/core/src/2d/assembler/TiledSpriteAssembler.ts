@@ -1,11 +1,11 @@
 import { MathUtil, Matrix } from "@galacean/engine-math";
-import { DisorderedArray } from "../../DisorderedArray";
 import { Logger } from "../../base";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { ISpriteAssembler } from "./ISpriteAssembler";
+import { DisorderedArray } from "../../utils/DisorderedArray";
 
 /**
  * @internal

@@ -1,9 +1,12 @@
 {
   "name": "@galacean/engine-design",
-  "version": "1.3.8",
+  "version": "1.3.11",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
+  },
+  "repository": {
+    "url": "https://github.com/galacean/engine.git"
   },
   "license": "MIT",
   "main": "dist/main.js",
