@@ -75,7 +75,7 @@ export class AnimatorStateTransition {
    */
   addCondition(
     parameterName: string,
-    mode: AnimatorConditionMode,
+    mode?: AnimatorConditionMode,
     threshold?: AnimatorControllerParameterValue
   ): AnimatorCondition;
 

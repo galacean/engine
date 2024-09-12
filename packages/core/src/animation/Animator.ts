@@ -30,7 +30,7 @@ import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCur
  * The controller of the animation system.
  */
 export class Animator extends Component {
-  private static _tempTriggeredParametersName: string[] = [];
+  private static _passedTriggerParameterNames = new Array<string>();
 
   /** Culling mode of this Animator. */
   cullingMode: AnimatorCullingMode = AnimatorCullingMode.None;
@@ -1300,7 +1300,7 @@ export class Animator extends Component {
       if (parameterValue === true) {
         const parameter = this.getParameter(name);
         if (parameter?._isTrigger) {
-          Animator._tempTriggeredParametersName.push(name);
+          Animator._passedTriggerParameterNames.push(name);
           pass = true;
         }
       }
@@ -1350,7 +1350,7 @@ export class Animator extends Component {
       this._deactivateTriggeredParameters();
     }
 
-    Animator._tempTriggeredParametersName.length = 0;
+    Animator._passedTriggerParameterNames.length = 0;
 
     return allPass;
   }
@@ -1561,9 +1561,9 @@ export class Animator extends Component {
   }
 
   private _deactivateTriggeredParameters(): void {
-    const tempTriggeredParametersName = Animator._tempTriggeredParametersName;
-    for (let i = 0, n = tempTriggeredParametersName.length; i < n; i++) {
-      this._parametersValueMap[tempTriggeredParametersName[i]] = false;
+    const passedTriggerParameterNames = Animator._passedTriggerParameterNames;
+    for (let i = 0, n = passedTriggerParameterNames.length; i < n; i++) {
+      this._parametersValueMap[passedTriggerParameterNames[i]] = false;
     }
   }
 }
