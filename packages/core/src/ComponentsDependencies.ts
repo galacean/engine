@@ -23,10 +23,14 @@ export class ComponentsDependencies {
         for (let i = 0, n = components.length; i < n; i++) {
           const dependentComponent = components[i];
           if (!entity.getComponent(dependentComponent)) {
-            if (mode === DependentMode.AutoAdd) {
-              entity.addComponent(dependentComponent);
-            } else {
-              throw `Should add ${dependentComponent.name} before adding ${type.name}`;
+            switch (mode) {
+              case DependentMode.AutoAdd:
+                entity.addComponent(dependentComponent);
+                break;
+              case DependentMode.CheckOnly:
+                throw `Should add ${dependentComponent.name} before adding ${type.name}`;
+              default:
+                break;
             }
           }
         }

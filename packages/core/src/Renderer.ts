@@ -10,6 +10,7 @@ import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Transform, TransformModifyFlags } from "./Transform";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
 import { IComponentCustomClone } from "./clone/ComponentCloner";
+import { ComponentType } from "./enums/ComponentType";
 import { Material } from "./material";
 import { ShaderMacro, ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
@@ -167,6 +168,7 @@ export class Renderer extends Component implements IComponentCustomClone {
     super(entity);
     const prototype = Renderer.prototype;
     const shaderData = this.shaderData;
+    this._componentType = ComponentType.Renderer;
     this._overrideUpdate = this.update !== prototype.update;
 
     this._addResourceReferCount(this.shaderData, 1);

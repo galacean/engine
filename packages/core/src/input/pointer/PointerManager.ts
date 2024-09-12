@@ -18,7 +18,6 @@ import { Pointer } from "./Pointer";
 export class PointerManager implements IInput {
   private static _tempRay: Ray = new Ray();
   private static _tempPoint: Vector2 = new Vector2();
-  private static _tempHitResult: HitResult = new HitResult();
   /** @internal */
   _pointers: Pointer[] = [];
   /** @internal */
@@ -128,7 +127,12 @@ export class PointerManager implements IInput {
       const pointer = pointers[i];
       const { _events: events, position } = pointer;
       pointer._firePointerDrag();
-      const rayCastEntity = this._pointerRayCast(scenes, position.x / canvas.width, position.y / canvas.height);
+      const rayCastEntity = this._pointerRayCast(
+        scenes,
+        position.x / canvas.width,
+        position.y / canvas.height,
+        pointer.hitResult
+      );
       pointer._firePointerExitAndEnter(rayCastEntity);
       const length = events.length;
       if (length > 0) {
@@ -227,43 +231,83 @@ export class PointerManager implements IInput {
             break;
         }
       }
-      this._engine._physicsInitialized || (events.length = 0);
     } else {
       pointer.deltaPosition.set(0, 0);
       pointer.phase = PointerPhase.Stationary;
     }
   }
 
-  private _pointerRayCast(scenes: readonly Scene[], normalizedX: number, normalizedY: number): Entity {
-    const { _tempPoint: point, _tempRay: ray, _tempHitResult: hitResult } = PointerManager;
+  private _pointerRayCast(scenes: readonly Scene[], normalizedX: number, normalizedY: number, out: HitResult): Entity {
+    const { _tempRay: ray } = PointerManager;
+    const { _physicsInitialized: physicsInitialized } = this._engine;
+
     for (let i = scenes.length - 1; i >= 0; i--) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) {
         continue;
       }
-      const { _activeCameras: cameras } = scene._componentsManager;
-      const elements = cameras._elements;
+      const { _componentsManager: componentsManager } = scene;
 
+      /** Overlay Canvas */
+      let canvasElements = componentsManager._overlayCanvases._elements;
+      ray.origin.set(normalizedX * this._canvas.width, (1 - normalizedY) * this._canvas.height, 1);
+      ray.direction.set(0, 0, -1);
+      for (let j = canvasElements.length - 1; j >= 0; j--) {
+        if (canvasElements[j].rayCast(ray, out)) {
+          return out.entity;
+        }
+      }
+
+      const cameras = componentsManager._activeCameras._elements;
+      let scenePhysics = physicsInitialized ? scene.physics : null;
+      let hitPhysics = false;
       for (let j = cameras.length - 1; j >= 0; j--) {
-        const camera = elements[j];
+        const camera = cameras[j];
         if (camera.renderTarget) {
           continue;
         }
-        const { x: vpX, y: vpY, z: vpW, w: vpH } = camera.viewport;
-        if (normalizedX >= vpX && normalizedY >= vpY && normalizedX - vpX <= vpW && normalizedY - vpY <= vpH) {
-          point.set((normalizedX - vpX) / vpW, (normalizedY - vpY) / vpH);
-          if (
-            scene.physics.raycast(
-              camera.viewportPointToRay(point, ray),
-              Number.MAX_VALUE,
-              camera.cullingMask,
-              hitResult
-            )
-          ) {
-            return hitResult.entity;
-          } else if (camera.clearFlags & CameraClearFlags.Color) {
-            return null;
+        const { viewport } = camera;
+        const x = (normalizedX - viewport.x) / viewport.z;
+        const y = (normalizedY - viewport.y) / viewport.w;
+        if (x < 0 || y < 0 || x > 1 || y > 1) {
+          continue;
+        }
+        camera.viewportPointToRay(PointerManager._tempPoint.set(x, y), ray);
+
+        /** Physics */
+        let hitDistance = camera.farClipPlane;
+        if (scenePhysics?.raycast(ray, hitDistance, camera.cullingMask, out)) {
+          hitPhysics = true;
+          hitDistance = out.distance;
+        }
+
+        /** Other canvases */
+        const cameraPosition = camera.entity.transform.position;
+        /** Sort by rendering order */
+        const canvases = componentsManager._canvases;
+        canvasElements = canvases._elements;
+        for (let k = 0, n = canvases.length; k < n; k++) {
+          canvasElements[k]._updateSortDistance(cameraPosition);
+        }
+        canvases.sort((a, b) => a.sortOrder - b.sortOrder || a._sortDistance - b._sortDistance);
+        for (let k = 0, n = canvases.length; k < n; k++) {
+          canvasElements[k]._canvasIndex = k;
+        }
+        /** Post-rendering first detection */
+        for (let k = 0, n = canvases.length; k < n; k++) {
+          const canvas = canvasElements[k];
+          if (canvas.renderCamera !== camera) {
+            continue;
           }
+          if (canvas.rayCast(ray, out, hitDistance)) {
+            return out.entity;
+          }
+        }
+        if (hitPhysics) {
+          return out.entity;
+        }
+        if (camera.clearFlags & CameraClearFlags.Color) {
+          return null;
         }
       }
     }

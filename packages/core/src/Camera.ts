@@ -7,6 +7,7 @@ import { Layer } from "./Layer";
 import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 import { PipelineUtils } from "./RenderPipeline/PipelineUtils";
 import { Transform } from "./Transform";
+import { UpdateFlagManager } from "./UpdateFlagManager";
 import { VirtualCamera } from "./VirtualCamera";
 import { GLCapabilityType, Logger } from "./base";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
@@ -125,6 +126,9 @@ export class Camera extends Component {
   private _enableHDR = false;
   private _enablePostProcess = false;
 
+  /** @internal */
+  @ignoreClone
+  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
   @ignoreClone
   private _frustumChangeFlag: BoolUpdateFlag;
   @ignoreClone
@@ -212,8 +216,11 @@ export class Camera extends Component {
   }
 
   set fieldOfView(value: number) {
-    this._fieldOfView = value;
-    this._projectionMatrixChange();
+    if (this._fieldOfView !== value) {
+      this._fieldOfView = value;
+      this._projectionMatrixChange();
+      this._updateFlagManager.dispatch(CameraModifyFlags.FOV);
+    }
   }
 
   /**
@@ -277,13 +284,16 @@ export class Camera extends Component {
   }
 
   set isOrthographic(value: boolean) {
-    this._virtualCamera.isOrthographic = value;
-    this._projectionMatrixChange();
-
-    if (value) {
-      this.shaderData.enableMacro("CAMERA_ORTHOGRAPHIC");
-    } else {
-      this.shaderData.disableMacro("CAMERA_ORTHOGRAPHIC");
+    const { _virtualCamera: virtualCamera } = this;
+    if (virtualCamera.isOrthographic !== value) {
+      virtualCamera.isOrthographic = value;
+      this._projectionMatrixChange();
+      if (value) {
+        this.shaderData.enableMacro("CAMERA_ORTHOGRAPHIC");
+      } else {
+        this.shaderData.disableMacro("CAMERA_ORTHOGRAPHIC");
+      }
+      this._updateFlagManager.dispatch(CameraModifyFlags.Type);
     }
   }
 
@@ -295,8 +305,11 @@ export class Camera extends Component {
   }
 
   set orthographicSize(value: number) {
-    this._orthographicSize = value;
-    this._projectionMatrixChange();
+    if (this._orthographicSize !== value) {
+      this._orthographicSize = value;
+      this._projectionMatrixChange();
+      this._updateFlagManager.dispatch(CameraModifyFlags.OrthographicSize);
+    }
   }
 
   /**
@@ -410,6 +423,8 @@ export class Camera extends Component {
       value && this._addResourceReferCount(value, 1);
       this._renderTarget = value;
       this._onPixelViewportChanged();
+      this._checkMainCanvasAntialiasWaste();
+      this._updateFlagManager.dispatch(CameraModifyFlags.RenderTarget);
     }
   }
 
@@ -603,7 +618,7 @@ export class Camera extends Component {
     const context = engine._renderContext;
     const virtualCamera = this._virtualCamera;
 
-    const transform = this.entity.transform;
+    const transform = this._transform;
     Matrix.multiply(this.projectionMatrix, this.viewMatrix, virtualCamera.viewProjectionMatrix);
     virtualCamera.position.copyFrom(transform.worldPosition);
     if (virtualCamera.isOrthographic) {
@@ -636,7 +651,7 @@ export class Camera extends Component {
       Logger.error("mipLevel only take effect in WebGL2.0");
     }
     let ignoreClearFlags: CameraClearFlags;
-    if (this._cameraType !== CameraType.Normal && !this._renderTarget && !this.independentCanvasEnabled) {
+    if (this._cameraType === CameraType.XRCamera && !this._renderTarget && !this.independentCanvasEnabled) {
       ignoreClearFlags = engine.xrManager._getCameraIgnoreClearFlags(this._cameraType);
     }
     this._renderPipeline.render(context, cubeFace, mipLevel, ignoreClearFlags);
@@ -823,6 +838,7 @@ export class Camera extends Component {
     this._updatePixelViewport();
     this._customAspectRatio ?? this._projectionMatrixChange();
     this._checkMainCanvasAntialiasWaste();
+    this._updateFlagManager.dispatch(CameraModifyFlags.ViewPort);
   }
 
   private _checkMainCanvasAntialiasWaste(): void {
@@ -836,4 +852,17 @@ export class Camera extends Component {
       );
     }
   }
+}
+
+/**
+ * @internal
+ */
+export enum CameraModifyFlags {
+  Type = 0x1,
+  NearPlane = 0x2,
+  FarPlane = 0x4,
+  FOV = 0x8,
+  ViewPort = 0x10,
+  OrthographicSize = 0x20,
+  RenderTarget = 0x40
 }
