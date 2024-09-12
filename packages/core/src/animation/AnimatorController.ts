@@ -146,7 +146,7 @@ export class AnimatorController extends ReferResource {
 
   private _addParameter(
     name: string,
-    defaultValue?: AnimatorControllerParameterValue,
+    defaultValue: AnimatorControllerParameterValue,
     isTrigger: boolean = false
   ): AnimatorControllerParameter {
     if (this._parametersMap[name]) {
