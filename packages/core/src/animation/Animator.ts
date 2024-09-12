@@ -30,6 +30,8 @@ import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCur
  * The controller of the animation system.
  */
 export class Animator extends Component {
+  private static _passedTriggerParameterNames = new Array<string>();
+
   /** Culling mode of this Animator. */
   cullingMode: AnimatorCullingMode = AnimatorCullingMode.None;
   /** The playback speed of the Animator, 1.0 is normal playback speed. */
@@ -244,10 +246,34 @@ export class Animator extends Component {
    * @param name - The name of the parameter
    * @param value - The value of the parameter
    */
-  setParameterValue(name: string, value: AnimatorControllerParameterValue) {
+  setParameterValue(name: string, value: AnimatorControllerParameterValue): void {
     const parameter = this._animatorController?._parametersMap[name];
     if (parameter) {
       this._parametersValueMap[name] = value;
+    }
+  }
+
+  /**
+   * Activate the trigger parameter by name.
+   * @param name - The name of the trigger parameter
+   */
+  activateTriggerParameter(name: string): void {
+    const parameter = this._animatorController?._parametersMap[name];
+
+    if (parameter?._isTrigger) {
+      this._parametersValueMap[name] = true;
+    }
+  }
+
+  /**
+   * Reset the trigger parameter to deactivate it by name.
+   * @param name - The name of the trigger parameter
+   */
+  deactivateTriggerParameter(name: string): void {
+    const parameter = this._animatorController?._parametersMap[name];
+
+    if (parameter?._isTrigger) {
+      this._parametersValueMap[name] = false;
     }
   }
 
@@ -1271,43 +1297,61 @@ export class Animator extends Component {
         return false;
       }
 
-      switch (mode) {
-        case AnimatorConditionMode.Equals:
-          if (parameterValue === threshold) {
-            pass = true;
-          }
-          break;
-        case AnimatorConditionMode.Greater:
-          if (parameterValue > threshold) {
-            pass = true;
-          }
-          break;
-        case AnimatorConditionMode.Less:
-          if (parameterValue < threshold) {
-            pass = true;
-          }
-          break;
-        case AnimatorConditionMode.NotEquals:
-          if (parameterValue !== threshold) {
-            pass = true;
-          }
-          break;
-        case AnimatorConditionMode.If:
-          if (parameterValue === true) {
-            pass = true;
-          }
-          break;
-        case AnimatorConditionMode.IfNot:
-          if (parameterValue === false) {
-            pass = true;
-          }
-          break;
+      if (parameterValue === true) {
+        const parameter = this.getParameter(name);
+        if (parameter?._isTrigger) {
+          Animator._passedTriggerParameterNames.push(name);
+          pass = true;
+        }
       }
+
+      if (!pass) {
+        switch (mode) {
+          case AnimatorConditionMode.Equals:
+            if (parameterValue === threshold) {
+              pass = true;
+            }
+            break;
+          case AnimatorConditionMode.Greater:
+            if (parameterValue > threshold) {
+              pass = true;
+            }
+            break;
+          case AnimatorConditionMode.Less:
+            if (parameterValue < threshold) {
+              pass = true;
+            }
+            break;
+          case AnimatorConditionMode.NotEquals:
+            if (parameterValue !== threshold) {
+              pass = true;
+            }
+            break;
+          case AnimatorConditionMode.If:
+            if (parameterValue === true) {
+              pass = true;
+            }
+            break;
+          case AnimatorConditionMode.IfNot:
+            if (parameterValue === false) {
+              pass = true;
+            }
+            break;
+        }
+      }
+
       if (!pass) {
         allPass = false;
         break;
       }
     }
+
+    if (allPass) {
+      this._deactivateTriggeredParameters();
+    }
+
+    Animator._passedTriggerParameterNames.length = 0;
+
     return allPass;
   }
 
@@ -1513,6 +1557,13 @@ export class Animator extends Component {
       this._callAnimatorScriptOnExit(state, layerIndex);
     } else {
       this._callAnimatorScriptOnUpdate(state, layerIndex);
+    }
+  }
+
+  private _deactivateTriggeredParameters(): void {
+    const passedTriggerParameterNames = Animator._passedTriggerParameterNames;
+    for (let i = 0, n = passedTriggerParameterNames.length; i < n; i++) {
+      this._parametersValueMap[passedTriggerParameterNames[i]] = false;
     }
   }
 }

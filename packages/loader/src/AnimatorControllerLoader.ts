@@ -99,7 +99,11 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
             animatorController.addLayer(layer);
           });
           parameters.forEach((parameterData) => {
-            animatorController.addParameter(parameterData.name, parameterData.defaultValue);
+            if (parameterData.isTrigger) {
+              animatorController.addTriggerParameter(parameterData.name);
+            } else {
+              animatorController.addParameter(parameterData.name, parameterData.defaultValue);
+            }
           });
           Promise.all(promises).then((clipData) => {
             clipData.forEach((data) => {
@@ -125,7 +129,7 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
     transition._isExit = transitionData.isExit;
     transition.destinationState = destinationState;
     transitionData.conditions.forEach((conditionData) => {
-      transition.addCondition(conditionData.mode, conditionData.parameterName, conditionData.threshold);
+      transition.addCondition(conditionData.parameterName, conditionData.mode, conditionData.threshold);
     });
     return transition;
   }
