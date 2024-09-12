@@ -269,7 +269,7 @@ export class Animator extends Component {
    * Reset the trigger parameter to deactivate it by name.
    * @param name - The name of the trigger parameter
    */
-  resetTriggerParameter(name: string): void {
+  deactivateTriggerParameter(name: string): void {
     const parameter = this._animatorController?._parametersMap[name];
 
     if (parameter?._isTrigger) {
@@ -698,7 +698,7 @@ export class Animator extends Component {
     const { state: srcState } = srcPlayData;
     const { state: destState } = destPlayData;
     const destStateDuration = destState._getDuration();
-    const transitionDuration = destStateDuration * layerData.crossFadeTransition.duration;
+    const transitionDuration = destStateDuration * crossFadeTransition.duration;
 
     const srcPlaySpeed = srcState.speed * speed;
     const dstPlaySpeed = destState.speed * speed;

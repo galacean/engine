@@ -823,8 +823,8 @@ describe("Animator test", function () {
     runToWalkTransition.addCondition(AnimatorConditionMode.If, "triggerWalk");
 
     animator.play("Walk");
-    animator.setTriggerParameter("triggerRun");
-    animator.setTriggerParameter("triggerWalk");
+    animator.activateTriggerParameter("triggerRun");
+    animator.activateTriggerParameter("triggerWalk");
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update(0.1);
