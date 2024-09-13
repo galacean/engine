@@ -106,7 +106,7 @@ export class Animator extends Component {
    * Play a state by name.
    * @param stateName - The state name
    * @param layerIndex - The layer index(default -1). If layer is -1, play the first state with the given state name
-   * @param normalizedTimeOffset - The normalized time offset (0-1) relative to the state's duration
+   * @param normalizedTimeOffset - The normalized time offset (between 0 and 1, default 0) to start the state's animation from
    */
   play(stateName: string, layerIndex: number = -1, normalizedTimeOffset: number = 0): void {
     this._play(stateName, layerIndex, normalizedTimeOffset, false);
@@ -127,7 +127,7 @@ export class Animator extends Component {
    * @param stateName - The state name
    * @param normalizedDuration - The normalized duration of the transition, relative to the destination state's duration (range: 0 to 1)
    * @param layerIndex - The layer index(default -1). If layer is -1, play the first state with the given state name
-   * @param normalizedTimeOffset - The normalized time offset between 0 and 1 (default 0) to start the destination state's animation from
+   * @param normalizedTimeOffset - The normalized time offset (between 0 and 1, default 0) to start the destination state's animation from
    */
   crossFade(
     stateName: string,
@@ -322,7 +322,7 @@ export class Animator extends Component {
     }
   }
 
-  _play(stateName: string, layerIndex: number = -1, timeOffset: number = 0, isFixedTime: boolean): void {
+  private _play(stateName: string, layerIndex: number, timeOffset: number, isFixedTime: boolean): void {
     if (this._controllerUpdateFlag?.flag) {
       this._reset();
     }
@@ -346,9 +346,9 @@ export class Animator extends Component {
   private _crossFade(
     stateName: string,
     duration: number,
-    layerIndex: number = -1,
-    normalizedTimeOffset: number = 0,
-    isFixedDuration: boolean = false
+    layerIndex: number,
+    normalizedTimeOffset: number,
+    isFixedDuration: boolean
   ): void {
     if (this._controllerUpdateFlag?.flag) {
       this._reset();
