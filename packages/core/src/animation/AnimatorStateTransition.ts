@@ -70,13 +70,6 @@ export class AnimatorStateTransition {
   }
 
   /**
-   * @internal
-   */
-  get _fixedDuration(): number {
-    return this.isFixedDuration ? this.duration : this.duration * this.destinationState._getDuration();
-  }
-
-  /**
    * Add a condition to a transition.
    * @param parameterName - The name of the parameter
    * @param mode - The AnimatorCondition mode of the condition
@@ -119,5 +112,12 @@ export class AnimatorStateTransition {
   removeCondition(condition: AnimatorCondition) {
     const index = this._conditions.indexOf(condition);
     index !== -1 && this._conditions.splice(index, 1);
+  }
+
+  /**
+   * @internal
+   */
+  _getFixedDuration(): number {
+    return this.isFixedDuration ? this.duration : this.duration * this.destinationState._getDuration();
   }
 }
