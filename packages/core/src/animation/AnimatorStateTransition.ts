@@ -69,7 +69,10 @@ export class AnimatorStateTransition {
     this._collection?.updateTransitionsIndex(this, value);
   }
 
-  get fixedDuration(): number {
+  /**
+   * @internal
+   */
+  get _fixedDuration(): number {
     return this.isFixedDuration ? this.duration : this.duration * this.destinationState._getDuration();
   }
 
