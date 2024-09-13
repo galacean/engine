@@ -1,9 +1,9 @@
 import { Camera } from "./Camera";
 import { Component } from "./Component";
-import { DisorderedArray } from "./DisorderedArray";
 import { Renderer } from "./Renderer";
 import { Script } from "./Script";
 import { Animator } from "./animation";
+import { DisorderedArray } from "./utils/DisorderedArray";
 
 /**
  * The manager of the components.
