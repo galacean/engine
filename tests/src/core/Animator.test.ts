@@ -211,6 +211,35 @@ describe("Animator test", function () {
     expect(layerState).to.eq(2);
   });
 
+  it("play in fixed time", () => {
+    animator.playInFixedTime("Walk", 0, 0.3);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    // @ts-ignore
+    animator.update(0.3);
+
+    // @ts-ignore
+    const layerData = animator._getAnimatorLayerData(0);
+    const srcPlayData = layerData.srcPlayData;
+    expect(srcPlayData.frameTime).to.eq(0.6);
+  });
+
+  it("cross fade in fixed time", () => {
+    const runState = animator.findAnimatorState("Run");
+    animator.play("Walk");
+    animator.crossFadeInFixedTime("Run", 0.3, 0, 0.1);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    // @ts-ignore
+    animator.update(0.3);
+
+    // @ts-ignore
+    const layerData = animator._getAnimatorLayerData(0);
+    const srcPlayData = layerData.srcPlayData;
+    expect(srcPlayData.state.name).to.eq("Run");
+    expect(srcPlayData.frameTime).to.eq(0.4);
+  });
+
   it("animation cross fade by transition", () => {
     const walkState = animator.findAnimatorState("Walk");
     const runState = animator.findAnimatorState("Run");

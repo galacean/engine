@@ -120,4 +120,11 @@ export class AnimatorStateTransition {
   _getFixedDuration(): number {
     return this.isFixedDuration ? this.duration : this.duration * this.destinationState._getDuration();
   }
+
+  /**
+   * @internal
+   */
+  _getFixedTimeOffset(): number {
+    return this.offset * this.destinationState._getDuration();
+  }
 }

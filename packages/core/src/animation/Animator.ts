@@ -347,8 +347,8 @@ export class Animator extends Component {
     stateName: string,
     duration: number,
     layerIndex: number,
-    normalizedTimeOffset: number,
-    isFixedDuration: boolean
+    timeOffset: number,
+    isFixedTime: boolean
   ): void {
     if (this._controllerUpdateFlag?.flag) {
       this._reset();
@@ -357,8 +357,10 @@ export class Animator extends Component {
     const { state, layerIndex: playLayerIndex } = this._getAnimatorStateInfo(stateName, layerIndex);
     const { manuallyTransition } = this._getAnimatorLayerData(playLayerIndex);
     manuallyTransition.duration = duration;
-    manuallyTransition.offset = normalizedTimeOffset;
-    manuallyTransition.isFixedDuration = isFixedDuration;
+
+    const stateDuration = state._getDuration();
+    manuallyTransition.offset = isFixedTime ? (stateDuration === 0 ? 0 : timeOffset / stateDuration) : timeOffset;
+    manuallyTransition.isFixedDuration = isFixedTime;
     manuallyTransition.destinationState = state;
 
     if (this._prepareCrossFadeByTransition(manuallyTransition, playLayerIndex)) {
@@ -1405,15 +1407,13 @@ export class Animator extends Component {
       return false;
     }
     if (!crossState.clip) {
-      Logger.warn(`The state named ${name} has no AnimationClip data.`);
+      Logger.warn(`The state named ${crossState.name} has no AnimationClip data.`);
       return false;
     }
 
     const animatorLayerData = this._getAnimatorLayerData(layerIndex);
     const animatorStateData = this._getAnimatorStateData(crossState.name, crossState, animatorLayerData, layerIndex);
-    const duration = crossState._getDuration();
-    const offset = duration * transition.offset;
-    animatorLayerData.destPlayData.reset(crossState, animatorStateData, offset);
+    animatorLayerData.destPlayData.reset(crossState, animatorStateData, transition._getFixedTimeOffset());
 
     switch (animatorLayerData.layerState) {
       case LayerState.Standby:
