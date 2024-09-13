@@ -126,7 +126,7 @@ export class Animator extends Component {
   }
 
   /**
-   * Create a cross fade from the current state to another state.
+   * Create a cross fade from the current state to another state with a normalized duration.
    * @param stateName - The state name
    * @param normalizedDuration - The duration of the transition (normalized)
    * @param layerIndex - The layer index(default -1). If layer is -1, play the first state with the given state name
@@ -142,6 +142,13 @@ export class Animator extends Component {
     this._crossFade(stateName, normalizedDuration, layerIndex, normalizedTimeOffset, false);
   }
 
+  /**
+   * Create a cross fade from the current state to another state with a fixed duration.
+   * @param stateName - The state name
+   * @param fixedDuration - The duration of the transition (fixed)
+   * @param layerIndex - The layer index(default -1). If layer is -1, play the first state with the given state name
+   * @param normalizedTimeOffset - The time offset between 0 and 1(default 0)
+   */
   crossFadeInFixedDuration(
     stateName: string,
     fixedDuration: number,
