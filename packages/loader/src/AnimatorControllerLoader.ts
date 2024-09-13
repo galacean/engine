@@ -120,6 +120,7 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
   private _createTransition(transitionData: ITransitionData, destinationState: AnimatorState): AnimatorStateTransition {
     const transition = new AnimatorStateTransition();
     transition.hasExitTime = transitionData.hasExitTime;
+    transition.isFixedDuration = transitionData.isFixedDuration;
     transition.duration = transitionData.duration;
     transition.offset = transitionData.offset;
     transition.exitTime = transitionData.exitTime;
@@ -161,6 +162,7 @@ interface ITransitionData {
   isExit: boolean;
   conditions: IConditionData[];
   hasExitTime: boolean;
+  isFixedDuration: boolean;
 }
 
 interface IConditionData {

@@ -8,25 +8,27 @@ import { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
  * Transitions define when and how the state machine switch from on state to another. AnimatorTransition always originate from a StateMachine or a StateMachine entry.
  */
 export class AnimatorStateTransition {
-  /** The duration of the transition. This is represented in normalized time. */
-  duration: number = 0;
+  /** The duration of the transition. The duration is in normalized time by default. To set it to be in seconds, set isFixedDuration to true. */
+  duration = 0;
   /** The time at which the destination state will start. This is represented in normalized time. */
-  offset: number = 0;
+  offset = 0;
   /** ExitTime represents the exact time at which the transition can take effect. This is represented in normalized time. */
-  exitTime: number = 1.0;
+  exitTime = 1.0;
   /** The destination state of the transition. */
   destinationState: AnimatorState;
   /** Mutes the transition. The transition will never occur. */
-  mute: boolean = false;
+  mute = false;
+  /** Determines whether the duration of the transition is reported in a fixed duration in seconds or as a normalized time. */
+  isFixedDuration = false;
 
   /** @internal */
   _collection: AnimatorStateTransitionCollection;
   /** @internal */
-  _isExit: boolean = false;
+  _isExit = false;
 
   private _conditions: AnimatorCondition[] = [];
   private _solo = false;
-  private _hasExitTime: boolean = true;
+  private _hasExitTime = true;
 
   /**
    * Is the transition destination the exit of the current state machine.
@@ -110,5 +112,12 @@ export class AnimatorStateTransition {
   removeCondition(condition: AnimatorCondition) {
     const index = this._conditions.indexOf(condition);
     index !== -1 && this._conditions.splice(index, 1);
+  }
+
+  /**
+   * @internal
+   */
+  _getFixedDuration(): number {
+    return this.isFixedDuration ? this.duration : this.duration * this.destinationState._getDuration();
   }
 }

@@ -211,6 +211,23 @@ describe("Animator test", function () {
     expect(layerState).to.eq(2);
   });
 
+  it("cross fade in fixed time", () => {
+    const runState = animator.findAnimatorState("Run");
+    animator.play("Walk");
+    animator.crossFadeInFixedDuration("Run", 0.3, 0, 0.1);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    // @ts-ignore
+    animator.update(0.3);
+
+    // @ts-ignore
+    const layerData = animator._getAnimatorLayerData(0);
+    const srcPlayData = layerData.srcPlayData;
+    expect(srcPlayData.state.name).to.eq("Run");
+    // @ts-ignore
+    expect(srcPlayData.frameTime).to.eq(0.3 + 0.1 * runState._getDuration());
+  });
+
   it("animation cross fade by transition", () => {
     const walkState = animator.findAnimatorState("Walk");
     const runState = animator.findAnimatorState("Run");
@@ -850,5 +867,32 @@ describe("Animator test", function () {
     animator.update(walkState.clip.length * 0.3);
     expect(layerData.srcPlayData.state.name).to.eq("Walk");
     expect(layerData.srcPlayData.frameTime).to.eq(walkState.clip.length * 0.3);
+  });
+
+  it("fixedDuration", () => {
+    const { animatorController } = animator;
+    animatorController.clearParameters();
+    animatorController.addTriggerParameter("triggerRun");
+    animatorController.addTriggerParameter("triggerWalk");
+    // @ts-ignore
+    const layerData = animator._getAnimatorLayerData(0);
+    const walkState = animator.findAnimatorState("Walk");
+    walkState.clearTransitions();
+    const runState = animator.findAnimatorState("Run");
+    runState.clipStartTime = runState.clipEndTime = 0;
+    runState.clearTransitions();
+    const walkToRunTransition = walkState.addTransition(runState);
+    walkToRunTransition.hasExitTime = false;
+    walkToRunTransition.isFixedDuration = true;
+    walkToRunTransition.duration = 0.1;
+    walkToRunTransition.addCondition("triggerRun", AnimatorConditionMode.If, true);
+    animator.play("Walk");
+    animator.activateTriggerParameter("triggerRun");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+    expect(layerData.srcPlayData.state.name).to.eq("Run");
+    expect(layerData.srcPlayData.frameTime).to.eq(0.1);
+    expect(layerData.srcPlayData.clipTime).to.eq(0);
   });
 });
