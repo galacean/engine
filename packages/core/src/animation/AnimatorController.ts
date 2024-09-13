@@ -55,31 +55,21 @@ export class AnimatorController extends ReferResource {
    * @param defaultValue - The default value of the parameter
    * @param isTrigger - Is the parameter a trigger, if true, the parameter will act as a trigger, trigger work mostly like bool parameter, but their values are reset to false after check a Transition.
    */
-  addParameter(
-    name: string,
-    defaultValue?: AnimatorControllerParameterValue,
-    isTrigger: boolean = false
-  ): AnimatorControllerParameter {
-    if (this._parametersMap[name]) {
-      console.warn(`Parameter ${name} already exists.`);
-      return null;
-    }
-    const param = new AnimatorControllerParameter();
-    param.name = name;
-    param.defaultValue = defaultValue;
-    param._isTrigger = isTrigger;
-    param._onNameChanged = (oldName, newName) => {
-      delete this._parametersMap[oldName];
-      this._parametersMap[newName] = param as AnimatorControllerParameter;
-    };
-    this._parametersMap[name] = param;
-    this._parameters.push(param);
-    return param;
+  addParameter(name: string, defaultValue?: AnimatorControllerParameterValue): AnimatorControllerParameter {
+    return this._addParameter(name, defaultValue, false);
   }
 
   /**
-   * Remove a parameter from the controller by name.
-   * @param name - The parameter name
+   * Add a trigger parameter to the controller.
+   * @param name - The name of the parameter
+   */
+  addTriggerParameter(name: string): AnimatorControllerParameter {
+    return this._addParameter(name, false, true);
+  }
+
+  /**
+   * Remove a parameter from the controller by name, including trigger parameters.
+   * @param name - The name of the parameter
    */
   removeParameter(name: string) {
     const parameter = this._parametersMap[name];
@@ -91,7 +81,7 @@ export class AnimatorController extends ReferResource {
   }
 
   /**
-   * Clear parameters.
+   * Clear all parameters, including trigger parameters.
    */
   clearParameters(): void {
     this._parameters.length = 0;
@@ -153,5 +143,27 @@ export class AnimatorController extends ReferResource {
    */
   _registerChangeFlag(): BoolUpdateFlag {
     return this._updateFlagManager.createFlag(BoolUpdateFlag);
+  }
+
+  private _addParameter(
+    name: string,
+    defaultValue: AnimatorControllerParameterValue,
+    isTrigger: boolean = false
+  ): AnimatorControllerParameter {
+    if (this._parametersMap[name]) {
+      console.warn(`Parameter ${name} already exists.`);
+      return null;
+    }
+    const param = new AnimatorControllerParameter();
+    param.name = name;
+    param.defaultValue = defaultValue;
+    param._isTrigger = isTrigger;
+    param._onNameChanged = (oldName, newName) => {
+      delete this._parametersMap[oldName];
+      this._parametersMap[newName] = param as AnimatorControllerParameter;
+    };
+    this._parametersMap[name] = param;
+    this._parameters.push(param);
+    return param;
   }
 }
