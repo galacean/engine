@@ -106,32 +106,28 @@ export class Animator extends Component {
    * Play a state by name.
    * @param stateName - The state name
    * @param layerIndex - The layer index(default -1). If layer is -1, play the first state with the given state name
-   * @param normalizedTimeOffset - The time offset between 0 and 1(default 0)
+   * @param normalizedTimeOffset - The normalized time offset (0-1) relative to the state's duration
    */
   play(stateName: string, layerIndex: number = -1, normalizedTimeOffset: number = 0): void {
-    if (this._controllerUpdateFlag?.flag) {
-      this._reset();
-    }
+    this._play(stateName, layerIndex, normalizedTimeOffset, false);
+  }
 
-    const stateInfo = this._getAnimatorStateInfo(stateName, layerIndex);
-    const { state } = stateInfo;
-
-    if (!state) {
-      return;
-    }
-
-    if (this._preparePlay(state, stateInfo.layerIndex, normalizedTimeOffset)) {
-      this._playFrameCount = this.engine.time.frameCount;
-    }
+  /**
+   * Play a state by name with a fixed time offset.
+   * @param stateName - The state name
+   * @param layerIndex - The layer index(default -1). If layer is -1, play the first state with the given state name
+   * @param fixedTimeOffset - The time offset in seconds from the start of the animation
+   */
+  playInFixedTime(stateName: string, layerIndex: number = -1, fixedTimeOffset: number = 0): void {
+    this._play(stateName, layerIndex, fixedTimeOffset, true);
   }
 
   /**
    * Create a cross fade from the current state to another state with a normalized duration.
    * @param stateName - The state name
-   * @param normalizedDuration - The duration of the transition (normalized)
+   * @param normalizedDuration - The normalized duration of the transition, relative to the destination state's duration (range: 0 to 1)
    * @param layerIndex - The layer index(default -1). If layer is -1, play the first state with the given state name
-   * @param normalizedTimeOffset - The time offset between 0 and 1(default 0)
-   * @param fixedDuration - The duration is fixed or normalized(default normalized)
+   * @param normalizedTimeOffset - The normalized time offset between 0 and 1 (default 0) to start the destination state's animation from
    */
   crossFade(
     stateName: string,
@@ -145,17 +141,17 @@ export class Animator extends Component {
   /**
    * Create a cross fade from the current state to another state with a fixed duration.
    * @param stateName - The state name
-   * @param fixedDuration - The duration of the transition (fixed)
+   * @param fixedDuration - The duration of the transition in seconds
    * @param layerIndex - The layer index(default -1). If layer is -1, play the first state with the given state name
-   * @param normalizedTimeOffset - The time offset between 0 and 1(default 0)
+   * @param fixedTimeOffset - The time offset in seconds from the start of the animation
    */
-  crossFadeInFixedDuration(
+  crossFadeInFixedTime(
     stateName: string,
     fixedDuration: number,
     layerIndex: number = -1,
-    normalizedTimeOffset: number = 0
+    fixedTimeOffset: number = 0
   ): void {
-    this._crossFade(stateName, fixedDuration, layerIndex, normalizedTimeOffset, true);
+    this._crossFade(stateName, fixedDuration, layerIndex, fixedTimeOffset, true);
   }
 
   /**
@@ -323,6 +319,27 @@ export class Animator extends Component {
 
     if (this._controllerUpdateFlag) {
       this._controllerUpdateFlag.flag = false;
+    }
+  }
+
+  _play(stateName: string, layerIndex: number = -1, timeOffset: number = 0, isFixedTime: boolean): void {
+    if (this._controllerUpdateFlag?.flag) {
+      this._reset();
+    }
+
+    const stateInfo = this._getAnimatorStateInfo(stateName, layerIndex);
+    const { state } = stateInfo;
+
+    if (!state) {
+      return;
+    }
+
+    if (!isFixedTime) {
+      timeOffset = timeOffset * state._getDuration();
+    }
+
+    if (this._preparePlay(state, stateInfo.layerIndex, timeOffset)) {
+      this._playFrameCount = this.engine.time.frameCount;
     }
   }
 
@@ -721,14 +738,11 @@ export class Animator extends Component {
     deltaTime: number,
     aniUpdate: boolean
   ) {
-    const { srcPlayData, destPlayData, crossFadeTransition } = layerData;
+    const { srcPlayData, destPlayData } = layerData;
     const { speed } = this;
     const { state: srcState } = srcPlayData;
     const { state: destState } = destPlayData;
-    const destStateDuration = destState._getDuration();
-    const transitionDuration = crossFadeTransition.isFixedDuration
-      ? crossFadeTransition.duration
-      : destStateDuration * crossFadeTransition.duration;
+    const transitionDuration = layerData.crossFadeTransition.fixedDuration;
 
     const srcPlaySpeed = srcState.speed * speed;
     const dstPlaySpeed = destState.speed * speed;
@@ -854,13 +868,10 @@ export class Animator extends Component {
     deltaTime: number,
     aniUpdate: boolean
   ) {
-    const { destPlayData, crossFadeTransition } = layerData;
+    const { destPlayData } = layerData;
     const { state } = destPlayData;
 
-    const stateDuration = state._getDuration();
-    const transitionDuration = crossFadeTransition.isFixedDuration
-      ? crossFadeTransition.duration
-      : stateDuration * crossFadeTransition.duration;
+    const transitionDuration = layerData.crossFadeTransition.fixedDuration;
 
     const playSpeed = state.speed * this.speed;
     const playDeltaTime = playSpeed * deltaTime;
@@ -875,7 +886,7 @@ export class Animator extends Component {
         lastDestClipTime + playDeltaTime > transitionDuration ? transitionDuration - lastDestClipTime : playDeltaTime;
     } else {
       // The time that has been played
-      const playedTime = stateDuration - lastDestClipTime;
+      const playedTime = state._getDuration() - lastDestClipTime;
       dstPlayCostTime =
         // -playDeltaTime: The time that will be played, negative are meant to make it be a periods
         // > transition: The time that will be played is enough to finish the transition
@@ -1282,7 +1293,7 @@ export class Animator extends Component {
     }
   }
 
-  private _preparePlay(state: AnimatorState, layerIndex: number, normalizedTimeOffset: number = 0): boolean {
+  private _preparePlay(state: AnimatorState, layerIndex: number, timeOffset: number = 0): boolean {
     const name = state.name;
     if (!state.clip) {
       Logger.warn(`The state named ${name} has no AnimationClip data.`);
@@ -1295,7 +1306,7 @@ export class Animator extends Component {
     this._preparePlayOwner(animatorLayerData, state);
 
     animatorLayerData.layerState = LayerState.Playing;
-    animatorLayerData.srcPlayData.reset(state, animatorStateData, state._getDuration() * normalizedTimeOffset);
+    animatorLayerData.srcPlayData.reset(state, animatorStateData, timeOffset);
 
     return true;
   }
