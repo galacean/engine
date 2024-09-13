@@ -150,11 +150,19 @@ export class StencilState {
   /**
    * @internal
    */
-  _apply(hardwareRenderer: IHardwareRenderer, lastRenderState: RenderState, customStates?: Record<number, any>): void {
+  _apply(
+    hardwareRenderer: IHardwareRenderer,
+    lastRenderState: RenderState,
+    customStates?: Record<number, number | boolean>
+  ): void {
     this._platformApply(hardwareRenderer, lastRenderState.stencilState, customStates);
   }
 
-  private _platformApply(rhi: IHardwareRenderer, lastState: StencilState, customStates?: Record<number, any>): void {
+  private _platformApply(
+    rhi: IHardwareRenderer,
+    lastState: StencilState,
+    customStates?: Record<number, number | boolean>
+  ): void {
     const gl = <WebGLRenderingContext>rhi.gl;
     let {
       enabled,
@@ -173,15 +181,15 @@ export class StencilState {
 
     if (customStates) {
       const enabledState = customStates[RenderStateElementKey.StencilStateEnabled];
-      enabledState !== undefined && (enabled = enabledState);
+      enabledState !== undefined && (enabled = <boolean>enabledState);
       const writeMaskState = customStates[RenderStateElementKey.StencilStateWriteMask];
-      writeMaskState !== undefined && (writeMask = writeMaskState);
+      writeMaskState !== undefined && (writeMask = <number>writeMaskState);
       const referenceValueState = customStates[RenderStateElementKey.StencilStateReferenceValue];
-      referenceValueState !== undefined && (referenceValue = referenceValueState);
+      referenceValueState !== undefined && (referenceValue = <number>referenceValueState);
       const compareFunctionFrontState = customStates[RenderStateElementKey.StencilStateCompareFunctionFront];
-      compareFunctionFrontState !== undefined && (compareFunctionFront = compareFunctionFrontState);
+      compareFunctionFrontState !== undefined && (compareFunctionFront = <number>compareFunctionFrontState);
       const compareFunctionBackState = customStates[RenderStateElementKey.StencilStateCompareFunctionBack];
-      compareFunctionBackState !== undefined && (compareFunctionBack = compareFunctionBackState);
+      compareFunctionBackState !== undefined && (compareFunctionBack = <number>compareFunctionBackState);
     }
 
     if (enabled != lastState.enabled) {

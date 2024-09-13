@@ -36,7 +36,7 @@ export class RenderState {
     frontFaceInvert: boolean,
     renderStateDataMap: Record<number, ShaderProperty>,
     shaderData: ShaderData,
-    customStates?: Record<number, any>
+    customStates?: Record<number, number | boolean>
   ): void {
     // @todo: Should merge when we can delete material render state
     renderStateDataMap && this._applyStatesByShaderData(renderStateDataMap, shaderData);
