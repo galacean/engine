@@ -109,17 +109,20 @@ export class Animator extends Component {
    * @param normalizedTimeOffset - The normalized time offset (between 0 and 1, default 0) to start the state's animation from
    */
   play(stateName: string, layerIndex: number = -1, normalizedTimeOffset: number = 0): void {
-    this._play(stateName, layerIndex, normalizedTimeOffset, false);
-  }
+    if (this._controllerUpdateFlag?.flag) {
+      this._reset();
+    }
 
-  /**
-   * Play a state by name with a fixed time offset.
-   * @param stateName - The state name
-   * @param layerIndex - The layer index(default -1). If layer is -1, play the first state with the given state name
-   * @param fixedTimeOffset - The time offset in seconds from the start of the animation
-   */
-  playInFixedTime(stateName: string, layerIndex: number = -1, fixedTimeOffset: number = 0): void {
-    this._play(stateName, layerIndex, fixedTimeOffset, true);
+    const stateInfo = this._getAnimatorStateInfo(stateName, layerIndex);
+    const { state } = stateInfo;
+
+    if (!state) {
+      return;
+    }
+
+    if (this._preparePlay(state, stateInfo.layerIndex, normalizedTimeOffset)) {
+      this._playFrameCount = this.engine.time.frameCount;
+    }
   }
 
   /**
@@ -143,15 +146,15 @@ export class Animator extends Component {
    * @param stateName - The state name
    * @param fixedDuration - The duration of the transition in seconds
    * @param layerIndex - The layer index(default -1). If layer is -1, play the first state with the given state name
-   * @param fixedTimeOffset - The time offset in seconds from the start of the animation
+   * @param normalizedTimeOffset - The normalized time offset (between 0 and 1, default 0) to start the destination state's animation from
    */
-  crossFadeInFixedTime(
+  crossFadeInFixedDuration(
     stateName: string,
     fixedDuration: number,
     layerIndex: number = -1,
-    fixedTimeOffset: number = 0
+    normalizedTimeOffset: number = 0
   ): void {
-    this._crossFade(stateName, fixedDuration, layerIndex, fixedTimeOffset, true);
+    this._crossFade(stateName, fixedDuration, layerIndex, normalizedTimeOffset, true);
   }
 
   /**
@@ -322,33 +325,12 @@ export class Animator extends Component {
     }
   }
 
-  private _play(stateName: string, layerIndex: number, timeOffset: number, isFixedTime: boolean): void {
-    if (this._controllerUpdateFlag?.flag) {
-      this._reset();
-    }
-
-    const stateInfo = this._getAnimatorStateInfo(stateName, layerIndex);
-    const { state } = stateInfo;
-
-    if (!state) {
-      return;
-    }
-
-    if (!isFixedTime) {
-      timeOffset = timeOffset * state._getDuration();
-    }
-
-    if (this._preparePlay(state, stateInfo.layerIndex, timeOffset)) {
-      this._playFrameCount = this.engine.time.frameCount;
-    }
-  }
-
   private _crossFade(
     stateName: string,
     duration: number,
     layerIndex: number,
-    timeOffset: number,
-    isFixedTime: boolean
+    normalizedTimeOffset: number,
+    isFixedDuration: boolean
   ): void {
     if (this._controllerUpdateFlag?.flag) {
       this._reset();
@@ -358,9 +340,8 @@ export class Animator extends Component {
     const { manuallyTransition } = this._getAnimatorLayerData(playLayerIndex);
     manuallyTransition.duration = duration;
 
-    const stateDuration = state._getDuration();
-    manuallyTransition.offset = isFixedTime ? (stateDuration === 0 ? 0 : timeOffset / stateDuration) : timeOffset;
-    manuallyTransition.isFixedDuration = isFixedTime;
+    manuallyTransition.offset = normalizedTimeOffset;
+    manuallyTransition.isFixedDuration = isFixedDuration;
     manuallyTransition.destinationState = state;
 
     if (this._prepareCrossFadeByTransition(manuallyTransition, playLayerIndex)) {
@@ -1295,7 +1276,7 @@ export class Animator extends Component {
     }
   }
 
-  private _preparePlay(state: AnimatorState, layerIndex: number, timeOffset: number = 0): boolean {
+  private _preparePlay(state: AnimatorState, layerIndex: number, normalizedTimeOffset: number = 0): boolean {
     const name = state.name;
     if (!state.clip) {
       Logger.warn(`The state named ${name} has no AnimationClip data.`);
@@ -1308,7 +1289,7 @@ export class Animator extends Component {
     this._preparePlayOwner(animatorLayerData, state);
 
     animatorLayerData.layerState = LayerState.Playing;
-    animatorLayerData.srcPlayData.reset(state, animatorStateData, timeOffset);
+    animatorLayerData.srcPlayData.reset(state, animatorStateData, state._getDuration() * normalizedTimeOffset);
 
     return true;
   }
@@ -1413,7 +1394,8 @@ export class Animator extends Component {
 
     const animatorLayerData = this._getAnimatorLayerData(layerIndex);
     const animatorStateData = this._getAnimatorStateData(crossState.name, crossState, animatorLayerData, layerIndex);
-    animatorLayerData.destPlayData.reset(crossState, animatorStateData, transition._getFixedTimeOffset());
+
+    animatorLayerData.destPlayData.reset(crossState, animatorStateData, transition.offset * crossState._getDuration());
 
     switch (animatorLayerData.layerState) {
       case LayerState.Standby:

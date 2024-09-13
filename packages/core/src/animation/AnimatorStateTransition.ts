@@ -8,7 +8,7 @@ import { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
  * Transitions define when and how the state machine switch from on state to another. AnimatorTransition always originate from a StateMachine or a StateMachine entry.
  */
 export class AnimatorStateTransition {
-  /** The duration of the transition. This is represented in normalized time. */
+  /** The duration of the transition. The duration is in normalized time by default. To set it to be in seconds, set isFixedDuration to true. */
   duration = 0;
   /** The time at which the destination state will start. This is represented in normalized time. */
   offset = 0;
@@ -119,12 +119,5 @@ export class AnimatorStateTransition {
    */
   _getFixedDuration(): number {
     return this.isFixedDuration ? this.duration : this.duration * this.destinationState._getDuration();
-  }
-
-  /**
-   * @internal
-   */
-  _getFixedTimeOffset(): number {
-    return this.offset * this.destinationState._getDuration();
   }
 }
