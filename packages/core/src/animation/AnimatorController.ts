@@ -53,7 +53,6 @@ export class AnimatorController extends ReferResource {
    * Add a parameter to the controller.
    * @param name - The name of the parameter
    * @param defaultValue - The default value of the parameter
-   * @param isTrigger - Is the parameter a trigger, if true, the parameter will act as a trigger, trigger work mostly like bool parameter, but their values are reset to false after check a Transition.
    */
   addParameter(name: string, defaultValue?: AnimatorControllerParameterValue): AnimatorControllerParameter {
     return this._addParameter(name, defaultValue, false);

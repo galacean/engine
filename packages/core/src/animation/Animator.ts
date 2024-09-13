@@ -36,22 +36,22 @@ export class Animator extends Component {
   cullingMode: AnimatorCullingMode = AnimatorCullingMode.None;
   /** The playback speed of the Animator, 1.0 is normal playback speed. */
   @assignmentClone
-  speed: number = 1.0;
+  speed = 1.0;
 
   /** @internal */
-  _playFrameCount: number = -1;
+  _playFrameCount = -1;
   /** @internal */
-  _onUpdateIndex: number = -1;
+  _onUpdateIndex = -1;
 
   protected _animatorController: AnimatorController;
 
   @ignoreClone
   protected _controllerUpdateFlag: BoolUpdateFlag;
   @ignoreClone
-  protected _updateMark: number = 0;
+  protected _updateMark = 0;
 
   @ignoreClone
-  private _animatorLayersData: AnimatorLayerData[] = [];
+  private _animatorLayersData = new Array<AnimatorLayerData>();
   @ignoreClone
   private _curveOwnerPool: Record<number, Record<string, AnimationCurveOwner<KeyframeValueType>>> = Object.create(null);
   @ignoreClone
@@ -61,11 +61,9 @@ export class Animator extends Component {
 
   @ignoreClone
   private _tempAnimatorStateInfo: IAnimatorStateInfo = { layerIndex: -1, state: null };
-  @ignoreClone
-  private _tempTriggerParametersName: string[] = [];
 
   @ignoreClone
-  private _controlledRenderers: Renderer[] = [];
+  private _controlledRenderers = new Array<Renderer>();
 
   /**
    * All layers from the AnimatorController which belongs this Animator.
