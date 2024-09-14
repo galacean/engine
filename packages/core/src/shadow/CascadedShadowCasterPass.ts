@@ -155,7 +155,6 @@ export class CascadedShadowCasterPass extends PipelinePass {
     } else {
       rhi.clearRenderTarget(engine, CameraClearFlags.All, CascadedShadowCasterPass._clearColor);
     }
-    scene._maskManager.preMaskLayer = 0;
 
     // prepare light and camera direction
     Matrix.rotationQuaternion(light.entity.transform.worldRotationQuaternion, lightWorld);

@@ -33,8 +33,16 @@ export class RenderQueue {
   }
 
   sortBatch(compareFunc: Function, batcherManager: BatcherManager): void {
-    this._sort(compareFunc);
-    this._batch(batcherManager);
+    this.sort(compareFunc);
+    this.batch(batcherManager);
+  }
+
+  sort(compareFunc: Function): void {
+    Utils._quickSort(this.elements, 0, this.elements.length, compareFunc);
+  }
+
+  batch(batcherManager: BatcherManager): void {
+    batcherManager.batch(this);
   }
 
   render(
@@ -179,6 +187,9 @@ export class RenderQueue {
         rhi.drawPrimitive(primitive, subElement.subPrimitive, program);
       }
     }
+
+    stencilOperation === StencilOperation.Keep &&
+      scene._maskManager.clear(engine, this.renderQueueType, pipelineStageTagValue);
   }
 
   clear(): void {
@@ -188,30 +199,27 @@ export class RenderQueue {
 
   destroy(): void {}
 
-  private _sort(compareFunc: Function): void {
-    Utils._quickSort(this.elements, 0, this.elements.length, compareFunc);
-  }
-
-  private _batch(batcherManager: BatcherManager): void {
-    batcherManager.batch(this);
-  }
-
   private _drawMask(context: RenderContext, pipelineStageTagValue: string, master: SubRenderElement): void {
-    const incrementMaskQueue = MaskManager.getMaskIncrementRenderQueue();
-    incrementMaskQueue.renderQueueType = this.renderQueueType;
-    incrementMaskQueue.clear();
+    const renderQueueType = this.renderQueueType;
 
+    const incrementMaskQueue = MaskManager.getMaskIncrementRenderQueue();
+    incrementMaskQueue.renderQueueType = renderQueueType;
+    incrementMaskQueue.clear();
     const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
-    decrementMaskQueue.renderQueueType = this.renderQueueType;
+    decrementMaskQueue.renderQueueType = renderQueueType;
     decrementMaskQueue.clear();
 
     const camera = context.camera;
     const engine = camera.engine;
-    camera.scene._maskManager.buildMaskRenderElement(master, incrementMaskQueue, decrementMaskQueue);
+    const maskManager = camera.scene._maskManager;
+    maskManager.buildMaskRenderElement(master, incrementMaskQueue, decrementMaskQueue);
 
-    incrementMaskQueue._batch(engine._batcherManager);
+    const batcherManager = engine._batcherManager;
+    incrementMaskQueue.batch(engine._batcherManager);
+    batcherManager.uploadBuffer();
     incrementMaskQueue.render(context, pipelineStageTagValue, StencilOperation.IncrementSaturate);
-    decrementMaskQueue._batch(engine._batcherManager);
+    decrementMaskQueue.batch(engine._batcherManager);
+    batcherManager.uploadBuffer();
     decrementMaskQueue.render(context, pipelineStageTagValue, StencilOperation.DecrementSaturate);
   }
 }

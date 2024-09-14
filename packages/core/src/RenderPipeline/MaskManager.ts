@@ -1,6 +1,7 @@
 import { SpriteMask } from "../2d";
 import { DisorderedArray } from "../DisorderedArray";
-import { RenderQueueType } from "../shader";
+import { Engine } from "../Engine";
+import { RenderQueueType, StencilOperation } from "../shader";
 import { RenderQueue } from "./RenderQueue";
 import { SubRenderElement } from "./SubRenderElement";
 
@@ -34,12 +35,12 @@ export class MaskManager {
   }
 
   buildMaskRenderElement(
-    element: SubRenderElement,
+    elementOrNumber: SubRenderElement | number,
     incrementMaskQueue: RenderQueue,
     decrementMaskQueue: RenderQueue
   ): void {
     const preMaskLayer = this.preMaskLayer;
-    const curMaskLayer = element.component._maskLayer;
+    const curMaskLayer = typeof elementOrNumber === "number" ? elementOrNumber : elementOrNumber.component._maskLayer;
     if (preMaskLayer !== curMaskLayer) {
       const masks = this.allSpriteMasks;
       const commonLayer = preMaskLayer & curMaskLayer;
@@ -61,6 +62,25 @@ export class MaskManager {
       }
       this.preMaskLayer = curMaskLayer;
     }
+  }
+
+  clear(engine: Engine, renderQueueType: RenderQueueType, pipelineStageTagValue: string): void {
+    const incrementMaskQueue = MaskManager.getMaskIncrementRenderQueue();
+    incrementMaskQueue.renderQueueType = renderQueueType;
+    incrementMaskQueue.clear();
+    const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
+    decrementMaskQueue.renderQueueType = renderQueueType;
+    decrementMaskQueue.clear();
+
+    this.buildMaskRenderElement(0, incrementMaskQueue, decrementMaskQueue);
+
+    const { _renderContext: context, _batcherManager: batcherManager } = engine;
+    incrementMaskQueue.batch(engine._batcherManager);
+    batcherManager.uploadBuffer();
+    incrementMaskQueue.render(context, pipelineStageTagValue, StencilOperation.IncrementSaturate);
+    decrementMaskQueue.batch(engine._batcherManager);
+    batcherManager.uploadBuffer();
+    decrementMaskQueue.render(context, pipelineStageTagValue, StencilOperation.DecrementSaturate);
   }
 
   destroy(): void {
