@@ -36,15 +36,12 @@ export class MaskManager {
 
   drawMask(
     context: RenderContext,
-    renderQueueType: RenderQueueType,
     pipelineStageTagValue: string,
     maskLayer: SpriteMaskLayer = SpriteMaskLayer.Nothing
   ): void {
     const incrementMaskQueue = MaskManager.getMaskIncrementRenderQueue();
-    incrementMaskQueue.renderQueueType = renderQueueType;
     incrementMaskQueue.clear();
     const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
-    decrementMaskQueue.renderQueueType = renderQueueType;
     decrementMaskQueue.clear();
 
     this._buildMaskRenderElement(maskLayer, incrementMaskQueue, decrementMaskQueue);

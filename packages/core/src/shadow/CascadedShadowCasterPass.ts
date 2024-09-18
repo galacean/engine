@@ -7,6 +7,7 @@ import { RenderQueue } from "../RenderPipeline/RenderQueue";
 import { PipelineStage } from "../RenderPipeline/index";
 import { GLCapabilityType } from "../base/Constant";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
+import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { DirectLight } from "../lighting";
 import { ShaderProperty } from "../shader";
 import { TextureFilterMode } from "../texture";
@@ -238,6 +239,8 @@ export class CascadedShadowCasterPass extends PipelinePass {
 
         opaqueQueue.render(context, PipelineStage.ShadowCaster);
         alphaTestQueue.render(context, PipelineStage.ShadowCaster);
+        // Reset stencil
+        scene._maskManager.drawMask(context, PipelineStage.ShadowCaster, SpriteMaskLayer.Nothing);
         rhi.setGlobalDepthBias(0, 0);
       }
     }

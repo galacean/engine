@@ -22,6 +22,22 @@ export class RenderQueue {
     return a.priority - b.priority || b.distanceForSort - a.distanceForSort;
   }
 
+  static updateCustomStates(
+    customStates: Record<number, number | boolean>,
+    maskInteraction: SpriteMaskInteraction
+  ): void {
+    if (customStates[RenderStateElementKey.StencilStateEnabled] === undefined) {
+      customStates[RenderStateElementKey.StencilStateEnabled] = true;
+      customStates[RenderStateElementKey.StencilStateWriteMask] = 0x00;
+      customStates[RenderStateElementKey.StencilStateReferenceValue] = 1;
+    }
+
+    const compareFunc =
+      maskInteraction === SpriteMaskInteraction.VisibleInsideMask ? CompareFunction.LessEqual : CompareFunction.Greater;
+    customStates[RenderStateElementKey.StencilStateCompareFunctionFront] = compareFunc;
+    customStates[RenderStateElementKey.StencilStateCompareFunctionBack] = compareFunc;
+  }
+
   readonly elements = new Array<RenderElement>();
   readonly batchedSubElements = new Array<SubRenderElement>();
 
@@ -55,7 +71,6 @@ export class RenderQueue {
       return;
     }
 
-    const { renderQueueType } = this;
     const { rendererUpdateFlag, camera } = context;
     const { engine, scene, instanceId: cameraId, shaderData: cameraData } = camera;
     const { instanceId: sceneId, shaderData: sceneData, _maskManager: maskManager } = scene;
@@ -84,17 +99,8 @@ export class RenderQueue {
       const customStates = RenderQueue._customStates;
       const maskInteractionNotNone = maskInteraction !== SpriteMaskInteraction.None;
       if (maskInteractionNotNone) {
-        maskManager.drawMask(context, renderQueueType, pipelineStageTagValue, subElement.component._maskLayer);
-
-        customStates[RenderStateElementKey.StencilStateEnabled] = true;
-        customStates[RenderStateElementKey.StencilStateWriteMask] = 0x00;
-        customStates[RenderStateElementKey.StencilStateReferenceValue] = 1;
-        const compareFunc =
-          maskInteraction === SpriteMaskInteraction.VisibleInsideMask
-            ? CompareFunction.LessEqual
-            : CompareFunction.Greater;
-        customStates[RenderStateElementKey.StencilStateCompareFunctionFront] = compareFunc;
-        customStates[RenderStateElementKey.StencilStateCompareFunctionBack] = compareFunc;
+        maskManager.drawMask(context, pipelineStageTagValue, subElement.component._maskLayer);
+        RenderQueue.updateCustomStates(RenderQueue._customStates, maskInteraction);
       }
 
       const compileMacros = Shader._compileMacros;
@@ -187,8 +193,6 @@ export class RenderQueue {
         rhi.drawPrimitive(primitive, subElement.subPrimitive, program);
       }
     }
-
-    stencilOperation === StencilOperation.Keep && maskManager.drawMask(context, renderQueueType, pipelineStageTagValue);
   }
 
   clear(): void {
