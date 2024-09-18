@@ -1,10 +1,9 @@
 import { SpriteMask } from "../2d";
 import { DisorderedArray } from "../DisorderedArray";
-import { Engine } from "../Engine";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { RenderQueueType, StencilOperation } from "../shader";
+import { RenderContext } from "./RenderContext";
 import { RenderQueue } from "./RenderQueue";
-import { SubRenderElement } from "./SubRenderElement";
 
 /**
  * @internal
@@ -35,14 +34,41 @@ export class MaskManager {
     mask._maskIndex = -1;
   }
 
-  buildMaskRenderElement(
-    elementOrMaskLayer: SubRenderElement | SpriteMaskLayer,
+  drawMask(
+    context: RenderContext,
+    renderQueueType: RenderQueueType,
+    pipelineStageTagValue: string,
+    maskLayer: SpriteMaskLayer = SpriteMaskLayer.Nothing
+  ): void {
+    const incrementMaskQueue = MaskManager.getMaskIncrementRenderQueue();
+    incrementMaskQueue.renderQueueType = renderQueueType;
+    incrementMaskQueue.clear();
+    const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
+    decrementMaskQueue.renderQueueType = renderQueueType;
+    decrementMaskQueue.clear();
+
+    this._buildMaskRenderElement(maskLayer, incrementMaskQueue, decrementMaskQueue);
+
+    const engine = context.camera.engine;
+    const batcherManager = engine._batcherManager;
+    incrementMaskQueue.batch(engine._batcherManager);
+    batcherManager.uploadBuffer();
+    incrementMaskQueue.render(context, pipelineStageTagValue, StencilOperation.IncrementSaturate);
+    decrementMaskQueue.batch(engine._batcherManager);
+    batcherManager.uploadBuffer();
+    decrementMaskQueue.render(context, pipelineStageTagValue, StencilOperation.DecrementSaturate);
+  }
+
+  destroy(): void {
+    this._allSpriteMasks.length = 0;
+  }
+
+  private _buildMaskRenderElement(
+    curMaskLayer: SpriteMaskLayer,
     incrementMaskQueue: RenderQueue,
     decrementMaskQueue: RenderQueue
   ): void {
     const preMaskLayer = this._preMaskLayer;
-    const curMaskLayer =
-      typeof elementOrMaskLayer === "number" ? elementOrMaskLayer : elementOrMaskLayer.component._maskLayer;
     if (preMaskLayer !== curMaskLayer) {
       const masks = this._allSpriteMasks;
       const commonLayer = preMaskLayer & curMaskLayer;
@@ -64,28 +90,5 @@ export class MaskManager {
       }
       this._preMaskLayer = curMaskLayer;
     }
-  }
-
-  clear(engine: Engine, renderQueueType: RenderQueueType, pipelineStageTagValue: string): void {
-    const incrementMaskQueue = MaskManager.getMaskIncrementRenderQueue();
-    incrementMaskQueue.renderQueueType = renderQueueType;
-    incrementMaskQueue.clear();
-    const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
-    decrementMaskQueue.renderQueueType = renderQueueType;
-    decrementMaskQueue.clear();
-
-    this.buildMaskRenderElement(SpriteMaskLayer.Nothing, incrementMaskQueue, decrementMaskQueue);
-
-    const { _renderContext: context, _batcherManager: batcherManager } = engine;
-    incrementMaskQueue.batch(engine._batcherManager);
-    batcherManager.uploadBuffer();
-    incrementMaskQueue.render(context, pipelineStageTagValue, StencilOperation.IncrementSaturate);
-    decrementMaskQueue.batch(engine._batcherManager);
-    batcherManager.uploadBuffer();
-    decrementMaskQueue.render(context, pipelineStageTagValue, StencilOperation.DecrementSaturate);
-  }
-
-  destroy(): void {
-    this._allSpriteMasks.length = 0;
   }
 }

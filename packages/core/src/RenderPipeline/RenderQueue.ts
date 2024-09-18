@@ -4,7 +4,6 @@ import { CompareFunction, RenderQueueType, Shader, StencilOperation } from "../s
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { RenderStateElementKey } from "../shader/enums/RenderStateElementKey";
 import { BatcherManager } from "./BatcherManager";
-import { MaskManager } from "./MaskManager";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
@@ -56,9 +55,10 @@ export class RenderQueue {
       return;
     }
 
+    const { renderQueueType } = this;
     const { rendererUpdateFlag, camera } = context;
     const { engine, scene, instanceId: cameraId, shaderData: cameraData } = camera;
-    const { instanceId: sceneId, shaderData: sceneData } = scene;
+    const { instanceId: sceneId, shaderData: sceneData, _maskManager: maskManager } = scene;
     const renderCount = engine._renderCount;
     const rhi = engine._hardwareRenderer;
     const pipelineStageKey = RenderContext.pipelineStageKey;
@@ -84,7 +84,7 @@ export class RenderQueue {
       const customStates = RenderQueue._customStates;
       const maskInteractionNotNone = maskInteraction !== SpriteMaskInteraction.None;
       if (maskInteractionNotNone) {
-        this._drawMask(context, pipelineStageTagValue, subElement);
+        maskManager.drawMask(context, renderQueueType, pipelineStageTagValue, subElement.component._maskLayer);
 
         customStates[RenderStateElementKey.StencilStateEnabled] = true;
         customStates[RenderStateElementKey.StencilStateWriteMask] = 0x00;
@@ -188,8 +188,7 @@ export class RenderQueue {
       }
     }
 
-    stencilOperation === StencilOperation.Keep &&
-      scene._maskManager.clear(engine, this.renderQueueType, pipelineStageTagValue);
+    stencilOperation === StencilOperation.Keep && maskManager.drawMask(context, renderQueueType, pipelineStageTagValue);
   }
 
   clear(): void {
@@ -198,28 +197,4 @@ export class RenderQueue {
   }
 
   destroy(): void {}
-
-  private _drawMask(context: RenderContext, pipelineStageTagValue: string, master: SubRenderElement): void {
-    const renderQueueType = this.renderQueueType;
-
-    const incrementMaskQueue = MaskManager.getMaskIncrementRenderQueue();
-    incrementMaskQueue.renderQueueType = renderQueueType;
-    incrementMaskQueue.clear();
-    const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
-    decrementMaskQueue.renderQueueType = renderQueueType;
-    decrementMaskQueue.clear();
-
-    const camera = context.camera;
-    const engine = camera.engine;
-    const maskManager = camera.scene._maskManager;
-    maskManager.buildMaskRenderElement(master, incrementMaskQueue, decrementMaskQueue);
-
-    const batcherManager = engine._batcherManager;
-    incrementMaskQueue.batch(engine._batcherManager);
-    batcherManager.uploadBuffer();
-    incrementMaskQueue.render(context, pipelineStageTagValue, StencilOperation.IncrementSaturate);
-    decrementMaskQueue.batch(engine._batcherManager);
-    batcherManager.uploadBuffer();
-    decrementMaskQueue.render(context, pipelineStageTagValue, StencilOperation.DecrementSaturate);
-  }
 }
