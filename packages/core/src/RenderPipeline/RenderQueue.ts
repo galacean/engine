@@ -12,7 +12,7 @@ import { SubRenderElement } from "./SubRenderElement";
  * @internal
  */
 export class RenderQueue {
-  private static _customStates: Record<number, any> = {};
+  private static _customStates: Record<number, number | boolean> = {};
 
   static compareForOpaque(a: RenderElement, b: RenderElement): number {
     return a.priority - b.priority || a.distanceForSort - b.distanceForSort;
