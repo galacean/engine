@@ -5,6 +5,7 @@ import { Script } from "../../Script";
 import { HitResult } from "../../physics";
 import { PointerButton } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
+import { PointerEventData } from "./PointerEventData";
 
 /**
  * Pointer.
@@ -42,6 +43,7 @@ export class Pointer {
 
   private _currentPressedEntity: Entity;
   private _currentEnteredEntity: Entity;
+  private _currentDraggedEntity: Entity;
 
   /**
    * @internal
@@ -123,6 +125,17 @@ export class Pointer {
       );
       this._currentPressedEntity = null;
     }
+  }
+
+  /**
+   * @internal
+   */
+  _createEventData(): PointerEventData {
+    const data = new PointerEventData();
+    data.pointer = this;
+    data.button = this.button;
+    data.position.copyFrom(this.position);
+    return data;
   }
 
   /**

@@ -10,6 +10,8 @@ import { PointerButton, _pointerDec2BinMap } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
 import { IInput } from "../interface/IInput";
 import { Pointer } from "./Pointer";
+import { PointerEventData } from "./PointerEventData";
+import { ReturnableObjectPool } from "../../utils/ReturnableObjectPool";
 
 /**
  * Pointer Manager.
@@ -32,6 +34,8 @@ export class PointerManager implements IInput {
   _upList: DisorderedArray<PointerButton> = new DisorderedArray();
   /** @internal */
   _downList: DisorderedArray<PointerButton> = new DisorderedArray();
+  /** @internal */
+  _pointerEventPool: ReturnableObjectPool<PointerEventData> = new ReturnableObjectPool(PointerEventData);
 
   // @internal
   _target: EventTarget;
@@ -313,6 +317,8 @@ export class PointerManager implements IInput {
     }
     return null;
   }
+
+  private _;
 
   private _addEventListener(): void {
     const { _target: target, _onPointerEvent: onPointerEvent } = this;

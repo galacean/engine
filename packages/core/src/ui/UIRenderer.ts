@@ -6,7 +6,7 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../RenderPipeline/SubPrimitiveChunk";
 import { Renderer } from "../Renderer";
 import { TransformModifyFlags } from "../Transform";
-import { ignoreClone } from "../clone/CloneManager";
+import { assignmentClone, deepClone, ignoreClone } from "../clone/CloneManager";
 import { ComponentType } from "../enums/ComponentType";
 import { HitResult } from "../physics";
 import { ShaderProperty } from "../shader";
@@ -27,6 +27,14 @@ export class UIRenderer extends Renderer {
   static _tempPlane: Plane = new Plane();
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_UITexture");
+
+  @assignmentClone
+  raycastEnable: boolean = true;
+  @assignmentClone
+  raycastThrough: boolean = true;
+  @deepClone
+  raycastPadding: Vector4 = new Vector4(0, 0, 0, 0);
+
   /** @internal */
   @ignoreClone
   _canvas: UICanvas;
@@ -38,26 +46,6 @@ export class UIRenderer extends Renderer {
   _subChunk: SubPrimitiveChunk;
 
   protected _alpha: number = 1;
-  protected _rayCastAble: boolean = true;
-  protected _rayCastPadding: Vector4 = new Vector4(0, 0, 0, 0);
-
-  get rayCastAble(): boolean {
-    return this._rayCastAble;
-  }
-
-  set rayCastAble(value: boolean) {
-    this._rayCastAble = value;
-  }
-
-  get rayCastPadding(): Vector4 {
-    return this._rayCastPadding;
-  }
-
-  set rayCastPadding(value: Vector4) {
-    if (this._rayCastPadding !== value) {
-      this._rayCastPadding.copyFrom(value);
-    }
-  }
 
   /**
    * @internal

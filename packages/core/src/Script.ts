@@ -2,7 +2,7 @@ import { Camera } from "./Camera";
 import { ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { Pointer } from "./input";
-import { PointerEvent } from "./input/pointer/PointerEvent";
+import { PointerEventData } from "./input/pointer/PointerEventData";
 import { PointerEventType } from "./input/pointer/PointerEventType";
 import { ColliderShape } from "./physics";
 import { Collision } from "./physics/Collision";

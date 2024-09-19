@@ -42,7 +42,6 @@ export class UICanvas extends Component {
   private _renderers: UIRenderer[] = [];
   private _transform: UITransform;
   private _referenceResolution: Vector2 = new Vector2(800, 600);
-  private _enableBlocked: boolean = true;
   private _parents: Entity[] = [];
 
   /** @internal */
@@ -51,14 +50,6 @@ export class UICanvas extends Component {
     renderers.length = 0;
     this._walk(this.entity, renderers);
     return renderers;
-  }
-
-  get enableBlocked(): boolean {
-    return this._enableBlocked;
-  }
-
-  set enableBlocked(value: boolean) {
-    this._enableBlocked = value;
   }
 
   get referenceResolution(): Vector2 {
@@ -248,8 +239,12 @@ export class UICanvas extends Component {
     const { renderers } = this;
     for (let i = renderers.length - 1; i >= 0; i--) {
       const renderer = renderers[i];
-      if (renderer.rayCastAble && renderer._raycast(ray, out, distance)) {
+      if (renderer.raycastEnable && renderer._raycast(ray, out, distance)) {
         return true;
+      } else {
+        if (!renderer.raycastThrough && renderer._raycast(ray, out, distance)) {
+          return false;
+        }
       }
     }
     return false;

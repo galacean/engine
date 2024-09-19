@@ -6,6 +6,11 @@ import { ComponentType } from "../enums/ComponentType";
 export class CanvasGroup extends Component {
   @assignmentClone
   ignoreParentGroup = false;
+  @assignmentClone
+  raycastEnabled = true;
+  @assignmentClone
+  raycastThrough = true;
+
   /** @internal */
   _globalAlpha = 1;
   @assignmentClone
