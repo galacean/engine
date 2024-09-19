@@ -57,8 +57,6 @@ export class DepthOnlyPass extends PipelinePass {
     engine._renderCount++;
     cullingResults.opaqueQueue.render(context, PipelineStage.DepthOnly);
     cullingResults.alphaTestQueue.render(context, PipelineStage.DepthOnly);
-    // Reset stencil
-    camera.scene._maskManager.drawMask(context, PipelineStage.Forward, SpriteMaskLayer.Nothing);
 
     camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, this._renderTarget.depthTexture);
   }

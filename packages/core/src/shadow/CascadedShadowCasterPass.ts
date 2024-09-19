@@ -239,8 +239,6 @@ export class CascadedShadowCasterPass extends PipelinePass {
 
         opaqueQueue.render(context, PipelineStage.ShadowCaster);
         alphaTestQueue.render(context, PipelineStage.ShadowCaster);
-        // Reset stencil
-        scene._maskManager.drawMask(context, PipelineStage.ShadowCaster, SpriteMaskLayer.Nothing);
         rhi.setGlobalDepthBias(0, 0);
       }
     }
