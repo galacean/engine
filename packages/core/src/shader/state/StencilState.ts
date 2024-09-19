@@ -190,6 +190,10 @@ export class StencilState {
       compareFunctionFrontState !== undefined && (compareFunctionFront = <number>compareFunctionFrontState);
       const compareFunctionBackState = customStates[RenderStateElementKey.StencilStateCompareFunctionBack];
       compareFunctionBackState !== undefined && (compareFunctionBack = <number>compareFunctionBackState);
+      const passOperationFrontState = customStates[RenderStateElementKey.StencilStatePassOperationFront];
+      passOperationFrontState !== undefined && (passOperationFront = <number>passOperationFrontState);
+      const passOperationBackState = customStates[RenderStateElementKey.StencilStatePassOperationBack];
+      passOperationBackState !== undefined && (passOperationBack = <number>passOperationBackState);
     }
 
     if (enabled != lastState.enabled) {
