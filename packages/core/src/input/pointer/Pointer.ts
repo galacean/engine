@@ -1,9 +1,9 @@
 import { Vector2 } from "@galacean/engine-math";
-import { DisorderedArray } from "../../DisorderedArray";
 import { Entity } from "../../Entity";
 import { Script } from "../../Script";
 import { PointerButton } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
+import { DisorderedArray } from "../../utils/DisorderedArray";
 
 /**
  * Pointer.

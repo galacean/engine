@@ -1,7 +1,7 @@
 import { SpriteMask } from "../2d";
-import { DisorderedArray } from "../DisorderedArray";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { RenderQueueType } from "../shader";
+import { DisorderedArray } from "../utils/DisorderedArray";
 import { RenderContext } from "./RenderContext";
 import { RenderQueue } from "./RenderQueue";
 import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
