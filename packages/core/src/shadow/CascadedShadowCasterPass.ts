@@ -7,7 +7,6 @@ import { RenderQueue } from "../RenderPipeline/RenderQueue";
 import { PipelineStage } from "../RenderPipeline/index";
 import { GLCapabilityType } from "../base/Constant";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
-import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { DirectLight } from "../lighting";
 import { ShaderProperty } from "../shader";
 import { TextureFilterMode } from "../texture";

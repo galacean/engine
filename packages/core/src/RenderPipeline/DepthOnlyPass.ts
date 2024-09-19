@@ -3,7 +3,6 @@ import { Engine } from "../Engine";
 import { PipelinePass } from "../RenderPipeline/PipelinePass";
 import { GLCapabilityType } from "../base/Constant";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
-import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
 import { CullingResults } from "./CullingResults";
