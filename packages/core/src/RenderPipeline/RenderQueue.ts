@@ -13,7 +13,8 @@ import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
  * @internal
  */
 export class RenderQueue {
-  private static _customStates: Record<number, number | boolean> = {};
+  private static _insideStencilStates: Record<number, number | boolean> = {};
+  private static _outsideStencilStates: Record<number, number | boolean> = {};
 
   static compareForOpaque(a: RenderElement, b: RenderElement): number {
     return a.priority - b.priority || a.distanceForSort - b.distanceForSort;
@@ -23,20 +24,23 @@ export class RenderQueue {
     return a.priority - b.priority || b.distanceForSort - a.distanceForSort;
   }
 
-  static updateCustomStates(
-    customStates: Record<number, number | boolean>,
-    maskInteraction: SpriteMaskInteraction
-  ): void {
-    if (customStates[RenderStateElementKey.StencilStateEnabled] === undefined) {
-      customStates[RenderStateElementKey.StencilStateEnabled] = true;
-      customStates[RenderStateElementKey.StencilStateWriteMask] = 0x00;
-      customStates[RenderStateElementKey.StencilStateReferenceValue] = 1;
+  private static _getCustomStencilStates(maskInteraction: SpriteMaskInteraction): Record<number, number | boolean> {
+    const customStencilStates =
+      maskInteraction === SpriteMaskInteraction.VisibleInsideMask
+        ? RenderQueue._insideStencilStates
+        : RenderQueue._outsideStencilStates;
+    if (customStencilStates[RenderStateElementKey.StencilStateEnabled] === undefined) {
+      customStencilStates[RenderStateElementKey.StencilStateEnabled] = true;
+      customStencilStates[RenderStateElementKey.StencilStateWriteMask] = 0x00;
+      customStencilStates[RenderStateElementKey.StencilStateReferenceValue] = 1;
+      const compareFunction =
+        maskInteraction === SpriteMaskInteraction.VisibleInsideMask
+          ? CompareFunction.LessEqual
+          : CompareFunction.Greater;
+      customStencilStates[RenderStateElementKey.StencilStateCompareFunctionFront] = compareFunction;
+      customStencilStates[RenderStateElementKey.StencilStateCompareFunctionBack] = compareFunction;
     }
-
-    const compareFunc =
-      maskInteraction === SpriteMaskInteraction.VisibleInsideMask ? CompareFunction.LessEqual : CompareFunction.Greater;
-    customStates[RenderStateElementKey.StencilStateCompareFunctionFront] = compareFunc;
-    customStates[RenderStateElementKey.StencilStateCompareFunctionBack] = compareFunc;
+    return customStencilStates;
   }
 
   readonly elements = new Array<RenderElement>();
@@ -97,11 +101,11 @@ export class RenderQueue {
       }
 
       const maskInteraction = renderer._maskInteraction;
-      const customStates = RenderQueue._customStates;
       const maskInteractionNotNone = maskInteraction !== SpriteMaskInteraction.None;
+      let customStates: Record<number, number | boolean> = null;
       if (maskInteractionNotNone) {
         maskManager.drawMask(context, pipelineStageTagValue, subElement.component._maskLayer);
-        RenderQueue.updateCustomStates(RenderQueue._customStates, maskInteraction);
+        customStates = RenderQueue._getCustomStencilStates(maskInteraction);
       }
 
       const compileMacros = Shader._compileMacros;
