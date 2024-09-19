@@ -35,11 +35,7 @@ export class MaskManager {
     mask._maskIndex = -1;
   }
 
-  drawMask(
-    context: RenderContext,
-    pipelineStageTagValue: string,
-    maskLayer: SpriteMaskLayer = SpriteMaskLayer.Nothing
-  ): void {
+  drawMask(context: RenderContext, pipelineStageTagValue: string, maskLayer: SpriteMaskLayer): void {
     const incrementMaskQueue = MaskManager.getMaskIncrementRenderQueue();
     incrementMaskQueue.clear();
     const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
@@ -57,8 +53,32 @@ export class MaskManager {
     decrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Decrement);
   }
 
+  clearMask(context: RenderContext, pipelineStageTagValue: string): void {
+    const preMaskLayer = this._preMaskLayer;
+    if (preMaskLayer !== SpriteMaskLayer.Nothing) {
+      const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
+      decrementMaskQueue.clear();
+
+      const masks = this._allSpriteMasks;
+      const maskElements = masks._elements;
+      for (let i = 0, n = masks.length; i < n; i++) {
+        const mask = maskElements[i];
+        mask.influenceLayers & preMaskLayer && decrementMaskQueue.pushRenderElement(mask._renderElement);
+      }
+
+      const batcherManager = context.camera.engine._batcherManager;
+      decrementMaskQueue.batch(batcherManager);
+      batcherManager.uploadBuffer();
+      decrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Decrement);
+
+      this._preMaskLayer = SpriteMaskLayer.Nothing;
+    }
+  }
+
   destroy(): void {
-    this._allSpriteMasks.garbageCollection();
+    const allSpriteMasks = this._allSpriteMasks;
+    allSpriteMasks.length = 0;
+    allSpriteMasks.garbageCollection();
   }
 
   private _buildMaskRenderElement(

@@ -7,7 +7,6 @@ import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DepthTextureMode } from "../enums/DepthTextureMode";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
-import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Shader } from "../shader/Shader";
 import { ShaderPass } from "../shader/ShaderPass";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
@@ -197,7 +196,7 @@ export class BasicRenderPipeline {
 
     transparentQueue.render(context, PipelineStage.Forward);
     // Reset stencil
-    scene._maskManager.drawMask(context, PipelineStage.Forward, SpriteMaskLayer.Nothing);
+    scene._maskManager.clearMask(context, PipelineStage.Forward);
 
     const postProcessManager = scene._postProcessManager;
     const cameraRenderTarget = camera.renderTarget;
