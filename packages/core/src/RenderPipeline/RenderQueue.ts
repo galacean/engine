@@ -30,8 +30,8 @@ export class RenderQueue {
     maskInteraction: SpriteMaskInteraction,
     maskType: RenderQueueMaskType
   ): Record<number, number | boolean> | null {
+    // When the renderer's mask interaction not none
     if (maskInteraction !== SpriteMaskInteraction.None) {
-      // When the renderer's mask interaction not none
       const customStencilStates =
         maskInteraction === SpriteMaskInteraction.VisibleInsideMask
           ? RenderQueue._insideStencilStates
@@ -48,8 +48,10 @@ export class RenderQueue {
         customStencilStates[RenderStateElementKey.StencilStateCompareFunctionBack] = compareFunction;
       }
       return customStencilStates;
-    } else if (maskType !== RenderQueueMaskType.No) {
-      // When need current mask to increase or decrease stencil value
+    }
+
+    // When need current mask to increase or decrease stencil value
+    if (maskType !== RenderQueueMaskType.No) {
       const customStencilStates =
         maskType === RenderQueueMaskType.Increment
           ? RenderQueue._incrementStencilStates
