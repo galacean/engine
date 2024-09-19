@@ -7,6 +7,7 @@ import { BatcherManager } from "./BatcherManager";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
+import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
 
 /**
  * @internal
@@ -63,7 +64,7 @@ export class RenderQueue {
   render(
     context: RenderContext,
     pipelineStageTagValue: string,
-    stencilOperation: StencilOperation = StencilOperation.Keep
+    maskType: RenderQueueMaskType = RenderQueueMaskType.No
   ): void {
     const batchedSubElements = this.batchedSubElements;
     const length = batchedSubElements.length;
@@ -111,10 +112,14 @@ export class RenderQueue {
       // Union render global macro and material self macro
       ShaderMacroCollection.unionCollection(renderer._globalShaderMacro, materialData._macroCollection, compileMacros);
 
-      if (stencilOperation !== StencilOperation.Keep) {
+      if (maskType !== RenderQueueMaskType.No) {
         const { stencilState } = material.renderState;
-        stencilState.passOperationFront = stencilOperation;
-        stencilState.passOperationBack = stencilOperation;
+        const passOperation =
+          maskType === RenderQueueMaskType.Increment
+            ? StencilOperation.IncrementSaturate
+            : StencilOperation.DecrementSaturate;
+        stencilState.passOperationFront = passOperation;
+        stencilState.passOperationBack = passOperation;
       }
 
       for (let j = 0, m = shaderPasses.length; j < m; j++) {

@@ -732,7 +732,7 @@ enum DirtyFlag {
   LocalPositionBounds = 0x2,
   WorldPosition = 0x4,
   WorldBounds = 0x8,
-  Color = 0x20,
+  Color = 0x10,
 
   Position = LocalPositionBounds | WorldPosition | WorldBounds,
   Font = SubFont | Position

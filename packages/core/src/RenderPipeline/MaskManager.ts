@@ -1,9 +1,10 @@
 import { SpriteMask } from "../2d";
 import { DisorderedArray } from "../DisorderedArray";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
-import { RenderQueueType, StencilOperation } from "../shader";
+import { RenderQueueType } from "../shader";
 import { RenderContext } from "./RenderContext";
 import { RenderQueue } from "./RenderQueue";
+import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
 
 /**
  * @internal
@@ -48,16 +49,16 @@ export class MaskManager {
 
     const engine = context.camera.engine;
     const batcherManager = engine._batcherManager;
-    incrementMaskQueue.batch(engine._batcherManager);
+    incrementMaskQueue.batch(batcherManager);
     batcherManager.uploadBuffer();
-    incrementMaskQueue.render(context, pipelineStageTagValue, StencilOperation.IncrementSaturate);
-    decrementMaskQueue.batch(engine._batcherManager);
+    incrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Increment);
+    decrementMaskQueue.batch(batcherManager);
     batcherManager.uploadBuffer();
-    decrementMaskQueue.render(context, pipelineStageTagValue, StencilOperation.DecrementSaturate);
+    decrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Decrement);
   }
 
   destroy(): void {
-    this._allSpriteMasks.length = 0;
+    this._allSpriteMasks.garbageCollection();
   }
 
   private _buildMaskRenderElement(
