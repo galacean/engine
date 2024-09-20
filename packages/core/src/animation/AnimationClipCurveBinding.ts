@@ -4,6 +4,7 @@ import { KeyframeValueType } from "./Keyframe";
 import { AnimationCurve } from "./animationCurve";
 import { IAnimationCurveCalculator } from "./animationCurve/interfaces/IAnimationCurveCalculator";
 import { AnimationCurveLayerOwner } from "./internal/AnimationCurveLayerOwner";
+import { AnimationPropertyReferenceManager } from "./internal/AnimationPropertyReferenceManager";
 import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
 
 /**
@@ -33,14 +34,28 @@ export class AnimationClipCurveBinding {
   /** The animation curve. */
   curve: AnimationCurve<KeyframeValueType>;
 
+  /** @internal */
+  _pathLength: number;
   private _tempCurveOwner: Record<number, AnimationCurveOwner<KeyframeValueType>> = {};
 
   /**
    * @internal
    */
-  _createCurveOwner(entity: Entity, component: Component): AnimationCurveOwner<KeyframeValueType> {
+  _createCurveOwner(
+    referenceManager: AnimationPropertyReferenceManager,
+    entity: Entity,
+    component: Component
+  ): AnimationCurveOwner<KeyframeValueType> {
     const curveType = (<unknown>this.curve.constructor) as IAnimationCurveCalculator<KeyframeValueType>;
-    const owner = new AnimationCurveOwner(entity, this.type, component, this.property, this.getProperty, curveType);
+    const owner = new AnimationCurveOwner(
+      referenceManager,
+      entity,
+      this.type,
+      component,
+      this.property,
+      this.getProperty,
+      curveType
+    );
     curveType._initializeOwner(owner);
     owner.saveDefaultValue();
     return owner;
@@ -62,10 +77,14 @@ export class AnimationClipCurveBinding {
   /**
    * @internal
    */
-  _getTempCurveOwner(entity: Entity, component: Component): AnimationCurveOwner<KeyframeValueType> {
+  _getTempCurveOwner(
+    referenceManager: AnimationPropertyReferenceManager,
+    entity: Entity,
+    component: Component
+  ): AnimationCurveOwner<KeyframeValueType> {
     const { instanceId } = entity;
     if (!this._tempCurveOwner[instanceId]) {
-      this._tempCurveOwner[instanceId] = this._createCurveOwner(entity, component);
+      this._tempCurveOwner[instanceId] = this._createCurveOwner(referenceManager, entity, component);
     }
     return this._tempCurveOwner[instanceId];
   }

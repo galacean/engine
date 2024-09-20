@@ -19,7 +19,7 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
    * @internal
    */
   static _initializeOwner(owner: AnimationCurveOwner<Float32Array>): void {
-    const size = owner.referenceTargetValue.length;
+    const size = owner._assembler.getTargetValue().length;
     owner.defaultValue = new Float32Array(size);
     owner.fixedPoseValue = new Float32Array(size);
     owner.baseEvaluateData.value = new Float32Array(size);
@@ -30,7 +30,7 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
    * @internal
    */
   static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
-    const size = (<Float32Array>owner.curveOwner.referenceTargetValue).length;
+    const size = (<Float32Array>owner.curveOwner._assembler.getTargetValue()).length;
     owner.finalValue = new Float32Array(size);
   }
 

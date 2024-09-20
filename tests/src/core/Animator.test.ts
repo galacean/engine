@@ -137,7 +137,7 @@ describe("Animator test", function () {
     animator.update(5);
     const curveOwner = srcPlayData.stateData.curveLayerOwner[0].curveOwner;
     const initValue = curveOwner.defaultValue;
-    const currentValue = curveOwner.referenceTargetValue;
+    const currentValue = curveOwner._assembler.getTargetValue();
     expect(Quaternion.equals(initValue, currentValue)).to.eq(true);
 
     animator.cullingMode = 0;

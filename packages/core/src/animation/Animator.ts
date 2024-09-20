@@ -25,6 +25,8 @@ import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
+import { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
+import { AnimationPropertyReferenceManager } from "./internal/AnimationPropertyReferenceManager";
 
 /**
  * The controller of the animation system.
@@ -58,12 +60,12 @@ export class Animator extends Component {
   private _animationEventHandlerPool = new ClearableObjectPool(AnimationEventHandler);
   @ignoreClone
   private _parametersValueMap = <Record<string, AnimatorControllerParameterValue>>Object.create(null);
-
   @ignoreClone
   private _tempAnimatorStateInfo: IAnimatorStateInfo = { layerIndex: -1, state: null };
-
   @ignoreClone
   private _controlledRenderers = new Array<Renderer>();
+  @ignoreClone
+  private _animationPropertyReferenceManager = new AnimationPropertyReferenceManager();
 
   /**
    * All layers from the AnimatorController which belongs this Animator.
@@ -319,6 +321,7 @@ export class Animator extends Component {
     this._curveOwnerPool = Object.create(null);
     this._parametersValueMap = Object.create(null);
     this._animationEventHandlerPool.clear();
+    this._animationPropertyReferenceManager.clear();
 
     if (this._controllerUpdateFlag) {
       this._controllerUpdateFlag.flag = false;
@@ -397,37 +400,41 @@ export class Animator extends Component {
     const { entity, _curveOwnerPool: curveOwnerPool } = this;
     let { mask } = this._animatorController.layers[layerIndex];
     const { curveLayerOwner } = animatorStateData;
-    const { _curveBindings: curves } = animatorState.clip;
-
+    const { _curveBindings: curveBindings } = animatorState.clip;
     const { curveOwnerPool: layerCurveOwnerPool } = animatorLayerData;
 
-    for (let i = curves.length - 1; i >= 0; i--) {
-      const curve = curves[i];
-      const { relativePath } = curve;
-      const targetEntity = curve.relativePath === "" ? entity : entity.findByPath(curve.relativePath);
+    for (let i = 0, n = curveBindings.length; i < n; i++) {
+      const curveBinding = curveBindings[i];
+      const { relativePath } = curveBinding;
+      const targetEntity = curveBinding.relativePath === "" ? entity : entity.findByPath(curveBinding.relativePath);
+
       if (targetEntity) {
         const component =
-          curve.typeIndex > 0
-            ? targetEntity.getComponents(curve.type, AnimationCurveOwner._components)[curve.typeIndex]
-            : targetEntity.getComponent(curve.type);
+          curveBinding.typeIndex > 0
+            ? targetEntity.getComponents(curveBinding.type, AnimationCurveOwner._components)[curveBinding.typeIndex]
+            : targetEntity.getComponent(curveBinding.type);
 
         if (!component) {
           continue;
         }
 
-        const { property } = curve;
+        const { property } = curveBinding;
         const { instanceId } = component;
         // Get owner
         const propertyOwners = (curveOwnerPool[instanceId] ||= <Record<string, AnimationCurveOwner<KeyframeValueType>>>(
           Object.create(null)
         ));
-        const owner = (propertyOwners[property] ||= curve._createCurveOwner(targetEntity, component));
+        const owner = (propertyOwners[property] ||= curveBinding._createCurveOwner(
+          this._animationPropertyReferenceManager,
+          targetEntity,
+          component
+        ));
 
         // Get layer owner
         const layerPropertyOwners = (layerCurveOwnerPool[instanceId] ||= <Record<string, AnimationCurveLayerOwner>>(
           Object.create(null)
         ));
-        const layerOwner = (layerPropertyOwners[property] ||= curve._createCurveLayerOwner(owner));
+        const layerOwner = (layerPropertyOwners[property] ||= curveBinding._createCurveLayerOwner(owner));
 
         if (mask && mask.pathMasks.length) {
           layerOwner.isActive = mask.getPathMask(relativePath)?.active ?? true;
@@ -436,7 +443,7 @@ export class Animator extends Component {
         curveLayerOwner[i] = layerOwner;
       } else {
         curveLayerOwner[i] = null;
-        Logger.warn(`The entity don\'t have the child entity which path is ${curve.relativePath}.`);
+        Logger.warn(`The entity don\'t have the child entity which path is ${relativePath}.`);
       }
     }
   }
@@ -505,7 +512,7 @@ export class Animator extends Component {
     const { crossLayerOwnerCollection } = animatorLayerData;
 
     // Save current cross curve data owner fixed pose
-    for (let i = crossLayerOwnerCollection.length - 1; i >= 0; i--) {
+    for (let i = 0, n = crossLayerOwnerCollection.length; i < n; i++) {
       const layerOwner = crossLayerOwnerCollection[i];
       if (!layerOwner) continue;
       layerOwner.curveOwner.saveFixedPoseValue();
@@ -518,7 +525,7 @@ export class Animator extends Component {
 
   private _prepareSrcCrossData(animatorLayerData: AnimatorLayerData, saveFixed: boolean): void {
     const { curveLayerOwner } = animatorLayerData.srcPlayData.stateData;
-    for (let i = curveLayerOwner.length - 1; i >= 0; i--) {
+    for (let i = 0, n = curveLayerOwner.length; i < n; i++) {
       const layerOwner = curveLayerOwner[i];
       if (!layerOwner) continue;
       layerOwner.crossCurveMark = animatorLayerData.crossCurveMark;
@@ -529,7 +536,7 @@ export class Animator extends Component {
 
   private _prepareDestCrossData(animatorLayerData: AnimatorLayerData, saveFixed: boolean): void {
     const { curveLayerOwner } = animatorLayerData.destPlayData.stateData;
-    for (let i = curveLayerOwner.length - 1; i >= 0; i--) {
+    for (let i = 0, n = curveLayerOwner.length; i < n; i++) {
       const layerOwner = curveLayerOwner[i];
       if (!layerOwner) continue;
       if (layerOwner.crossCurveMark === animatorLayerData.crossCurveMark) {
@@ -692,7 +699,7 @@ export class Animator extends Component {
 
     if (aniUpdate || finished) {
       const curveLayerOwner = playData.stateData.curveLayerOwner;
-      for (let i = curveBindings.length - 1; i >= 0; i--) {
+      for (let i = 0, n = curveBindings.length; i < n; i++) {
         const layerOwner = curveLayerOwner[i];
         const owner = layerOwner?.curveOwner;
 
@@ -817,7 +824,7 @@ export class Animator extends Component {
     const finished = destPlayData.playState === AnimatorStatePlayState.Finished;
 
     if (aniUpdate || finished) {
-      for (let i = crossLayerOwnerCollection.length - 1; i >= 0; i--) {
+      for (let i = 0, n = crossLayerOwnerCollection.length; i < n; i++) {
         const layerOwner = crossLayerOwnerCollection[i];
         const owner = layerOwner?.curveOwner;
 
@@ -929,7 +936,7 @@ export class Animator extends Component {
 
     // When the animator is culled (aniUpdate=false), if the play state has finished, the final value needs to be calculated and saved to be applied directly
     if (aniUpdate || finished) {
-      for (let i = crossLayerOwnerCollection.length - 1; i >= 0; i--) {
+      for (let i = 0, n = crossLayerOwnerCollection.length; i < n; i++) {
         const layerOwner = crossLayerOwnerCollection[i];
         const owner = layerOwner?.curveOwner;
 
@@ -1009,7 +1016,7 @@ export class Animator extends Component {
     const { curveLayerOwner } = playData.stateData;
     const { _curveBindings: curveBindings } = playData.state.clip;
 
-    for (let i = curveBindings.length - 1; i >= 0; i--) {
+    for (let i = 0, n = curveBindings.length; i < n; i++) {
       const layerOwner = curveLayerOwner[i];
       const owner = layerOwner?.curveOwner;
 
@@ -1037,13 +1044,13 @@ export class Animator extends Component {
       const srcPlayData = layerData.srcPlayData;
       if (srcPlayData.state !== playState) {
         const { curveLayerOwner } = srcPlayData.stateData;
-        for (let i = curveLayerOwner.length - 1; i >= 0; i--) {
+        for (let i = 0, n = curveLayerOwner.length; i < n; i++) {
           curveLayerOwner[i]?.curveOwner.revertDefaultValue();
         }
       }
     } else {
       const { crossLayerOwnerCollection } = layerData;
-      for (let i = crossLayerOwnerCollection.length - 1; i >= 0; i--) {
+      for (let i = 0, n = crossLayerOwnerCollection.length; i < n; i++) {
         crossLayerOwnerCollection[i].curveOwner.revertDefaultValue();
       }
     }
