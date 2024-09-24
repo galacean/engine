@@ -1,4 +1,4 @@
-import { Color, Matrix, Vector3 } from "@galacean/engine-math";
+import { Color, Vector3 } from "@galacean/engine-math";
 import { ColorSpace } from "../enums/ColorSpace";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
@@ -21,6 +21,12 @@ export class DirectLight extends Light {
     shaderData.setFloatArray(DirectLight._directionProperty, data.direction);
   }
 
+  /**
+   * The offset distance in the opposite direction of light direction when generating shadows.
+   * @remarks Increasing this value can avoid the holes in the shadow caused by low polygon models.
+   */
+  shadowNearPlaneOffset = 0.1;
+
   private _reverseDirection: Vector3 = new Vector3();
 
   /**
@@ -36,13 +42,6 @@ export class DirectLight extends Light {
   get reverseDirection(): Vector3 {
     Vector3.scale(this.direction, -1, this._reverseDirection);
     return this._reverseDirection;
-  }
-
-  /**
-   * @internal
-   */
-  override get _shadowProjectionMatrix(): Matrix {
-    throw "Unknown!";
   }
 
   /**

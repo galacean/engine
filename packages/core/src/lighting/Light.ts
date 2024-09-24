@@ -23,7 +23,11 @@ export abstract class Light extends Component {
   shadowBias = 1;
   /** Shadow mapping normal-based bias. */
   shadowNormalBias = 1;
-  /** Near plane value to use for shadow frustums. */
+
+  /**
+   * @deprecated
+   * Please use `shadowNearPlaneOffset` instead.
+   */
   shadowNearPlane = 0.1;
 
   /** @internal */
@@ -76,11 +80,6 @@ export abstract class Light extends Component {
     Matrix.invert(this.viewMatrix, this._inverseViewMat);
     return this._inverseViewMat;
   }
-
-  /**
-   * @internal
-   */
-  abstract get _shadowProjectionMatrix(): Matrix;
 
   /**
    * Light Color, include intensity.
