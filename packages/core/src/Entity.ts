@@ -14,7 +14,8 @@ import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { Pointer } from "./input";
-import { PointerEventType } from "./input/pointer/PointerEventType";
+import { PointerEventData } from "./input/pointer/PointerEventData";
+import { PointerCallbackType } from "./input/pointer/PointerCallbackType";
 import { UITransform } from "./ui";
 
 /**
@@ -99,15 +100,12 @@ export class Entity extends EngineObject {
   /** @internal */
   _isTemplate: boolean = false;
   /** @internal */
-
   _updateFlagManager: UpdateFlagManager;
 
   private _templateResource: ReferResource;
   private _parent: Entity = null;
   private _transform: Transform;
   private _activeChangedComponents: Component[];
-
-  _onPointerCallBacksArray: DisorderedArray<(event: Pointer) => void>[];
 
   get transform(): Transform {
     return this._transform;
@@ -609,19 +607,6 @@ export class Entity extends EngineObject {
     this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
     this._setInActiveInHierarchy(this._activeChangedComponents, activeChangeFlag);
     this._setActiveComponents(false, activeChangeFlag);
-  }
-
-  /** @internal */
-  _addOnPointerEvent(
-    type: PointerEventType,
-    script: Script,
-    callback: (event: Pointer) => void,
-    useCapture: boolean = false
-  ): void {
-    const onPointerCallBacksArray = (this._onPointerCallBacksArray ||= []);
-    const onPointerCallBacks = (onPointerCallBacksArray[type] ||= new DisorderedArray<(event: Pointer) => void>());
-    script._onPointerEventIndexArray[type] = onPointerCallBacks.length;
-    onPointerCallBacks.add(callback);
   }
 
   /**

@@ -8,7 +8,7 @@ import { Renderer } from "../Renderer";
 import { TransformModifyFlags } from "../Transform";
 import { assignmentClone, deepClone, ignoreClone } from "../clone/CloneManager";
 import { ComponentType } from "../enums/ComponentType";
-import { HitResult } from "../physics";
+import { UIHitResult } from "../input/pointer/emitter/UIHitResult";
 import { ShaderProperty } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { CanvasGroup } from "./CanvasGroup";
@@ -128,7 +128,7 @@ export class UIRenderer extends Renderer {
   }
 
   /** @internal */
-  _raycast(ray: Ray, out: HitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
+  _raycast(ray: Ray, distance: number = Number.MAX_SAFE_INTEGER, out: UIHitResult = null): boolean {
     const entity = this._entity;
     const plane = UIRenderer._tempPlane;
     const transform = entity.transform;
@@ -143,10 +143,13 @@ export class UIRenderer extends Renderer {
       const hitPointLocal = UIRenderer._tempVec31;
       Vector3.transformCoordinate(hitPointWorld, worldMatrixInv, hitPointLocal);
       if (this.isRaycastLocationValid(hitPointLocal)) {
-        out.distance = curDistance;
-        out.entity = entity;
-        out.normal.copyFrom(normal);
-        out.point.copyFrom(hitPointWorld);
+        if (out) {
+          out.distance = curDistance;
+          out.entity = entity;
+          out.component = this;
+          out.normal.copyFrom(normal);
+          out.point.copyFrom(hitPointWorld);
+        }
         return true;
       }
     }

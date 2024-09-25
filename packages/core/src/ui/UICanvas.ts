@@ -1,4 +1,4 @@
-import { MathUtil, Ray, Vector2, Vector3 } from "@galacean/engine-math";
+import { MathUtil, Matrix, Ray, Vector2, Vector3 } from "@galacean/engine-math";
 import { Camera, CameraModifyFlags } from "../Camera";
 import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
@@ -7,7 +7,7 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderElement } from "../RenderPipeline/RenderElement";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { ComponentType } from "../enums/ComponentType";
-import { HitResult } from "../physics";
+import { UIHitResult } from "../input/pointer/emitter/UIHitResult";
 import { CanvasGroup } from "./CanvasGroup";
 import { UIRenderer } from "./UIRenderer";
 import { UITransform } from "./UITransform";
@@ -28,6 +28,9 @@ export class UICanvas extends Component {
   /** @internal */
   @ignoreClone
   _sortDistance: number = 0;
+  /** @internal */
+  @ignoreClone
+  _canvas: UICanvas;
 
   @assignmentClone
   private _renderMode = CanvasRenderMode.WorldSpace;
@@ -235,17 +238,44 @@ export class UICanvas extends Component {
   /**
    * @internal
    */
-  rayCast(ray: Ray, out: HitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
+  rayCast(ray: Ray, out: UIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
     const { renderers } = this;
     for (let i = renderers.length - 1; i >= 0; i--) {
       const renderer = renderers[i];
-      if (renderer.raycastEnable && renderer._raycast(ray, out, distance)) {
+      if (renderer.raycastEnable && renderer._raycast(ray, distance, out)) {
         return true;
       } else {
-        if (!renderer.raycastThrough && renderer._raycast(ray, out, distance)) {
+        if (!renderer.raycastThrough && renderer._raycast(ray, distance)) {
           return false;
         }
       }
+    }
+    return false;
+  }
+
+  /** @internal */
+  _raycast(ray: Ray, distance: number = Number.MAX_SAFE_INTEGER, out: UIHitResult = null): boolean {
+    const entity = this._entity;
+    const plane = UIRenderer._tempPlane;
+    const transform = entity.transform;
+    const normal = plane.normal.copyFrom(transform.worldForward);
+    plane.distance = -Vector3.dot(normal, transform.worldPosition);
+    ray.intersectPlane(plane);
+    const curDistance = ray.intersectPlane(plane);
+    if (curDistance >= 0 && curDistance < distance) {
+      const hitPointWorld = ray.getPoint(curDistance, UIRenderer._tempVec30);
+      const worldMatrixInv = UIRenderer._tempMat;
+      Matrix.invert(this.entity.transform.worldMatrix, worldMatrixInv);
+      const hitPointLocal = UIRenderer._tempVec31;
+      Vector3.transformCoordinate(hitPointWorld, worldMatrixInv, hitPointLocal);
+      if (out) {
+        out.distance = curDistance;
+        out.entity = entity;
+        out.component = this;
+        out.normal.copyFrom(normal);
+        out.point.copyFrom(hitPointWorld);
+      }
+      return true;
     }
     return false;
   }
@@ -330,6 +360,9 @@ export class UICanvas extends Component {
             uiRenderer._canvas = this;
             uiRenderer._setGroup(group);
             renderers.push(uiRenderer);
+            break;
+          case ComponentType.UICanvas:
+            (<UICanvas>component)._canvas = this;
             break;
           default:
             break;
