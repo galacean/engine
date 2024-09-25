@@ -70,7 +70,7 @@ jobs:
       - name: Test
         run: npm run test-cov
       - name: Report
-        run: nyc report --reporter=lcov
+        run: ./node_modules/.bin/nyc report --reporter=lcov
       - run: pnpm install codecov -w
       - name: Upload coverage to Codecov
         run: ./node_modules/.bin/codecov
