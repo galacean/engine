@@ -69,13 +69,13 @@ jobs:
         run: npm run build:editor
       - name: Test
         run: npm run test-cov
-      - name: Report
-        run: ./node_modules/.bin/nyc report --reporter=lcov
-      - run: pnpm install codecov -w
       - name: Upload coverage to Codecov
-        run: ./node_modules/.bin/codecov
-      - run: curl -s https://codecov.io/bash
-
+        uses: codecov/codecov-action@v4
+        with:
+          directory: ./coverage/lcov-report/
+          fail_ci_if_error: true
+          flags: unittests
+          
   e2e:
     runs-on: macos-latest
 
