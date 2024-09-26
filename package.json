@@ -9,7 +9,6 @@
     "test-debug": "cross-env TS_NODE_PROJECT=tsconfig.tests.json floss --path tests -r ts-node/register --debug",
     "test-cov": "cross-env TS_NODE_PROJECT=tsconfig.tests.json IS_COV=1 nyc --reporter=lcov floss --path tests -r ts-node/register",
     "build": "npm run b:module && npm run b:types",
-    "build:editor": "npm run b:module:editor && npm run b:types",
     "lint": "eslint packages/*/src --ext .ts",
     "watch": "cross-env NODE_ENV=release BUILD_TYPE=MODULE rollup -cw -m inline",
     "watch:umd": "cross-env NODE_ENV=release BUILD_TYPE=UMD rollup -cw -m inline",

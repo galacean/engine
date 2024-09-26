@@ -43,9 +43,11 @@ export abstract class GSError extends Error {
 
       diagnosticMessage += lineSplit;
       diagnosticMessage += `${lines[i]}\n`;
+      const paddingLength = lineSplit.length + start.column;
+      const remarkLength = Math.max(end.column - start.column, 1);
       if (i >= start.line && i <= end.line) {
-        diagnosticMessage += " ".repeat(lineSplit.length + start.column);
-        diagnosticMessage += "^".repeat(Math.max(end.column - start.column, 1));
+        diagnosticMessage += " ".repeat(paddingLength);
+        diagnosticMessage += "^".repeat(remarkLength);
         diagnosticMessage += "\n";
       }
     }
