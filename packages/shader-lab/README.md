@@ -31,14 +31,7 @@ There are two versions of ShaderLab: `Release` and `Verbose`. The `Verbose` vers
 you can use `Verbose` version by import:
 
 ```ts
-// umd
-import { ShaderLab } from "@galacean/engine-shader-lab/dist/browser.verbose";
-// minified umd
-import { ShaderLab } from "@galacean/engine-shader-lab/dist/browser.verbose.min";
-// esmoudle
-import { ShaderLab } from "@galacean/engine-shader-lab/dist/module.verbose";
-// commonjs
-import { ShaderLab } from "@galacean/engine-shader-lab/dist/main.verbose";
+import { ShaderLab } from "@galacean/engine-shader-lab/verbose";
 ```
 
 ## CFG Grammar conflict detection
