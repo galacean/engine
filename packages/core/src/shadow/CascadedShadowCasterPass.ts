@@ -187,7 +187,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
         lightSide,
         lightForward,
         j,
-        light.shadowNearPlane,
+        light.shadowNearPlaneOffset,
         shadowTileResolution,
         shadowSliceData,
         shadowMatrices

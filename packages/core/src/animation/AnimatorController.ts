@@ -55,25 +55,20 @@ export class AnimatorController extends ReferResource {
    * @param defaultValue - The default value of the parameter
    */
   addParameter(name: string, defaultValue?: AnimatorControllerParameterValue): AnimatorControllerParameter {
-    if (this._parametersMap[name]) {
-      console.warn(`Parameter ${name} already exists.`);
-      return null;
-    }
-    const param = new AnimatorControllerParameter();
-    param.name = name;
-    param.defaultValue = defaultValue;
-    param._onNameChanged = (oldName, newName) => {
-      delete this._parametersMap[oldName];
-      this._parametersMap[newName] = param as AnimatorControllerParameter;
-    };
-    this._parametersMap[name] = param;
-    this._parameters.push(param);
-    return param;
+    return this._addParameter(name, defaultValue, false);
   }
 
   /**
-   * Remove a parameter from the controller by name.
-   * @param name - The parameter name
+   * Add a trigger parameter to the controller.
+   * @param name - The name of the parameter
+   */
+  addTriggerParameter(name: string): AnimatorControllerParameter {
+    return this._addParameter(name, false, true);
+  }
+
+  /**
+   * Remove a parameter from the controller by name, including trigger parameters.
+   * @param name - The name of the parameter
    */
   removeParameter(name: string) {
     const parameter = this._parametersMap[name];
@@ -81,6 +76,16 @@ export class AnimatorController extends ReferResource {
     if (index !== -1) {
       this._parameters.splice(index, 1);
       delete this._parametersMap[parameter.name];
+    }
+  }
+
+  /**
+   * Clear all parameters, including trigger parameters.
+   */
+  clearParameters(): void {
+    this._parameters.length = 0;
+    for (let name in this._parametersMap) {
+      delete this._parametersMap[name];
     }
   }
 
@@ -137,5 +142,27 @@ export class AnimatorController extends ReferResource {
    */
   _registerChangeFlag(): BoolUpdateFlag {
     return this._updateFlagManager.createFlag(BoolUpdateFlag);
+  }
+
+  private _addParameter(
+    name: string,
+    defaultValue: AnimatorControllerParameterValue,
+    isTrigger: boolean = false
+  ): AnimatorControllerParameter {
+    if (this._parametersMap[name]) {
+      console.warn(`Parameter ${name} already exists.`);
+      return null;
+    }
+    const param = new AnimatorControllerParameter();
+    param.name = name;
+    param.defaultValue = defaultValue;
+    param._isTrigger = isTrigger;
+    param._onNameChanged = (oldName, newName) => {
+      delete this._parametersMap[oldName];
+      this._parametersMap[newName] = param as AnimatorControllerParameter;
+    };
+    this._parametersMap[name] = param;
+    this._parameters.push(param);
+    return param;
   }
 }
