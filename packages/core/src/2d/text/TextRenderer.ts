@@ -61,6 +61,8 @@ export class TextRenderer extends Renderer {
   @assignmentClone
   private _lineSpacing: number = 0;
   @assignmentClone
+  private _letterSpacing: number = 0;
+  @assignmentClone
   private _horizontalAlignment: TextHorizontalAlignment = TextHorizontalAlignment.Center;
   @assignmentClone
   private _verticalAlignment: TextVerticalAlignment = TextVerticalAlignment.Center;
@@ -171,7 +173,7 @@ export class TextRenderer extends Renderer {
   }
 
   /**
-   * The space between two lines (in pixels).
+   * The space between two lines.
    */
   get lineSpacing(): number {
     return this._lineSpacing;
@@ -180,6 +182,20 @@ export class TextRenderer extends Renderer {
   set lineSpacing(value: number) {
     if (this._lineSpacing !== value) {
       this._lineSpacing = value;
+      this._setDirtyFlagTrue(DirtyFlag.Position);
+    }
+  }
+
+  /**
+   * The space between two letters.
+   */
+  get letterSpacing(): number {
+    return this._letterSpacing;
+  }
+
+  set letterSpacing(value: number) {
+    if (this._letterSpacing !== value) {
+      this._letterSpacing = value;
       this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
@@ -554,10 +570,11 @@ export class TextRenderer extends Renderer {
       const { _pixelsPerUnit } = Engine;
       const { horizontalAlignment } = this;
       const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
-      const rendererWidth = this.width * _pixelsPerUnit;
+      const rendererWidth = this._width * _pixelsPerUnit;
       const halfRendererWidth = rendererWidth * 0.5;
-      const rendererHeight = this.height * _pixelsPerUnit;
+      const rendererHeight = this._height * _pixelsPerUnit;
       const halfLineHeight = lineHeight * 0.5;
+      const letterSpacing = this._letterSpacing * _pixelsPerUnit;
 
       let startY = 0;
       const topDiff = lineHeight * 0.5 - lineMaxSizes[0].ascent;
@@ -619,7 +636,7 @@ export class TextRenderer extends Renderer {
               j === firstRow && (minX = Math.min(minX, left));
               maxX = Math.max(maxX, right);
             }
-            startX += charInfo.xAdvance + charInfo.offsetX;
+            startX += charInfo.xAdvance + charInfo.offsetX + letterSpacing;
           }
         }
         startY -= lineHeight;
