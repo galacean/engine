@@ -105,26 +105,29 @@ The manual add method is similar to the quick add method, but you need to manual
 
 <img src="https://intranetproxy.alipay.com/skylark/lark/0/2024/png/76063/1721269154975-11ceb229-2142-4c6c-9552-0afba11ae924.png#clientId=uf07edf19-371c-4&from=paste&height=476&id=u450ac092&originHeight=1460&originWidth=1048&originalType=binary&ratio=2&rotation=0&showTitle=false&size=276525&status=done&style=shadow&taskId=u1924fec4-712d-4f69-b343-2ab8021cc8e&title=&width=342" width="342" alt="Use add component to add spine animation renderer">
 
-添加了 SpineAnimationRenderer 组件后，同样需要指定组件的 Resource，也就是 SpineAnimationRenderer 组件要渲染的 SpineSkeletonData 资产。
+After adding the SpineAnimationRenderer component, you also need to specify the resource of the component, which is the SpineSkeletonData asset that the SpineAnimationRenderer component will render.
 
-### SpineAnimationRenderer 组件配置
-以上三种添加 Spine 动画的方法实际上本质其实是相同的，都是通过给实体 `添加 SpineAnimationRenderer 组件` ，来让 Spine 动画添加至场景中的。
+### SpineAnimationRenderer Configuration
 
-SpineAnimationRenderer 组件的配置如下：
+The three methods of adding Spine animations mentioned above are essentially the same, all achieved by adding the `SpineAnimationRenderer` component to the entity to incorporate Spine animations into the scene.
+
+The configuration of the `SpineAnimationRenderer`` component is as follows:
 
 <img src="https://intranetproxy.alipay.com/skylark/lark/0/2024/png/76063/1721269455151-ceaf0b7e-a00b-4ba4-a109-0cdb08c135f2.png#clientId=uf07edf19-371c-4&from=paste&height=199&id=ucac2f7de&originHeight=398&originWidth=1060&originalType=binary&ratio=2&rotation=0&showTitle=false&size=82934&status=done&style=shadow&taskId=ub50cded7-5559-41de-b104-9db3c4bb4f5&title=&width=530" width="503" alt="Spine animation renderer component config">
 
-通过 SpineAnimationRenderer 组件能够配置 Spine 动画的资产以及默认状态：
+Through the `SpineAnimationRenderer` component, you can configure the assets and default state of Spine animations.
 
-- Resource：Spine 动画的资源 ( SpineSkeletonData 资产 )
-- Animation：默认播放的动画名称
-- Loop：默认播放的动画是否循环
-- Skin：默认的皮肤名称
-- Scale：默认的缩放系数
-- Priority：渲染优先级
+- Resource: Resource for Spine animations (SpineSkeletonData asset)
+-  Animation: Default animation to play
+-  Loop: Whether the default animation loops
+-  Skin: Default skin name
+-  Scale: Default scaling factor
+-  Priority: Rendering priority
 
-## 4. 项目导出
-最终，完成场景编辑器后，可以参考[项目导出](/en/docs/assets/build/)流程，导出编辑器项目。
 
-</br></br></br></br>
-下一章节：[在代码中使用 Galacean Spine 运行时](/en/docs/graphics/2D/spine/runtime)
+## 4. Exporting the Project
+
+Finally, after completing the scene editor, you can refer to the [project export](/en/docs/assets/build/) process to export the editor project.
+
+
+Next section: [Using Galacean Spine Runtime in Your Code](/en/docs/graphics/2D/spine/runtime)
