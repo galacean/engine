@@ -1,5 +1,4 @@
 {
-  "name": "@galacean/engine-shader-lab-verbose",
   "license": "MIT",
   "main": "../dist/main.verbose.js",
   "module": "../dist/module.verbose.js",

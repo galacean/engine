@@ -26,6 +26,7 @@ const pkgs = fs
   });
 
 const shaderLabPkg = pkgs.find((item) => item.pkgJson.name === "@galacean/engine-shader-lab");
+pkgs.push({ ...shaderLabPkg, verboseMode: true });
 
 // toGlobalName
 
@@ -187,7 +188,7 @@ switch (BUILD_TYPE) {
 
 function getUMD() {
   const configs = pkgs.filter((pkg) => pkg.pkgJson.umd);
-  const umds = configs
+  return configs
     .map((config) => makeRollupConfig({ ...config, type: "umd" }))
     .concat(
       configs.map((config) =>
@@ -199,22 +200,16 @@ function getUMD() {
         })
       )
     );
-  umds.push(makeRollupConfig({ ...shaderLabPkg, verboseMode: true, type: "umd" }));
-  return umds;
 }
 
 function getModule() {
   const configs = [...pkgs];
-  const modules = configs.map((config) => makeRollupConfig({ ...config, type: "module" }));
-  modules.push(makeRollupConfig({ ...shaderLabPkg, verboseMode: true, type: "module" }));
-  return modules;
+  return configs.map((config) => makeRollupConfig({ ...config, type: "module" }));
 }
 
 function getMini() {
   const configs = [...pkgs];
-  const minis = configs.map((config) => makeRollupConfig({ ...config, type: "mini" }));
-  minis.push(makeRollupConfig({ ...shaderLabPkg, verboseMode: true, type: "mini" }));
-  return minis;
+  return configs.map((config) => makeRollupConfig({ ...config, type: "mini" }));
 }
 
 function getAll() {
