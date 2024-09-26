@@ -1,3 +1,4 @@
+import { AnimatorControllerLayer } from "../AnimatorControllerLayer";
 import { AnimatorStateTransition } from "../AnimatorStateTransition";
 import { LayerState } from "../enums/LayerState";
 import { AnimationCurveLayerOwner } from "./AnimationCurveLayerOwner";
@@ -8,8 +9,9 @@ import { AnimatorStatePlayData } from "./AnimatorStatePlayData";
  * @internal
  */
 export class AnimatorLayerData {
+  layerIndex: number;
+  layer: AnimatorControllerLayer;
   curveOwnerPool: Record<number, Record<string, AnimationCurveLayerOwner>> = Object.create(null);
-
   animatorStateDataMap: Record<string, AnimatorStateData> = {};
   srcPlayData: AnimatorStatePlayData = new AnimatorStatePlayData();
   destPlayData: AnimatorStatePlayData = new AnimatorStatePlayData();
