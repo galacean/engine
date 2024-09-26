@@ -16,6 +16,7 @@ import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
 import { Material } from "../../material";
 import { ColorWriteMask, CullMode, RenderQueueType, Shader } from "../../shader";
+import { Engine } from "../../Engine";
 
 /**
  * A component for masking Sprites.
@@ -26,7 +27,7 @@ export class SpriteMask extends Renderer {
   /** @internal */
   static _alphaCutoffProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskAlphaCutoff");
 
-  static _createSpriteMaskMaterial(engine): Material {
+  static _createSpriteMaskMaterial(engine: Engine): Material {
     const material = new Material(engine, Shader.find("SpriteMask"));
     const renderState = material.renderState;
     renderState.blendState.targetBlendState.colorWriteMask = ColorWriteMask.None;

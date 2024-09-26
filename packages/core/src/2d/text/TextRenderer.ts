@@ -33,7 +33,7 @@ export class TextRenderer extends Renderer {
   private static _worldPositions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   private static _charRenderInfos: CharRenderInfo[] = [];
 
-  static _createTextMaterial(engine): Material {
+  static _createTextMaterial(engine: Engine): Material {
     const material = new Material(engine, Shader.find("Text"));
     const renderState = material.renderState;
     const target = renderState.blendState.targetBlendState;

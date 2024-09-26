@@ -20,6 +20,7 @@ import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "./Sprite";
 import { Material } from "../../material";
 import { BlendFactor, BlendOperation, CullMode, RenderQueueType, Shader } from "../../shader";
+import { Engine } from "../../Engine";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -28,7 +29,7 @@ export class SpriteRenderer extends Renderer {
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_SpriteTexture");
 
-  static _createSpriteMaterial(engine, maskInteraction: SpriteMaskInteraction): Material {
+  static _createSpriteMaterial(engine: Engine, maskInteraction: SpriteMaskInteraction): Material {
     const material = new Material(engine, Shader.find("Sprite"));
     const renderState = material.renderState;
     const target = renderState.blendState.targetBlendState;

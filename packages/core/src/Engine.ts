@@ -234,9 +234,22 @@ export class Engine extends EventDispatcher {
     this._canvas = canvas;
 
     const { _spriteDefaultMaterials: spriteDefaultMaterials } = this;
-    this._spriteDefaultMaterial = spriteDefaultMaterials[SpriteMaskInteraction.None] = SpriteRenderer._createSpriteMaterial(this, SpriteMaskInteraction.None);
-    spriteDefaultMaterials[SpriteMaskInteraction.VisibleInsideMask] = SpriteRenderer._createSpriteMaterial(this, SpriteMaskInteraction.VisibleInsideMask);
-    spriteDefaultMaterials[SpriteMaskInteraction.VisibleOutsideMask] = SpriteRenderer._createSpriteMaterial(this, SpriteMaskInteraction.VisibleOutsideMask);
+
+    this._spriteDefaultMaterial = spriteDefaultMaterials[SpriteMaskInteraction.None] = SpriteRenderer._createSpriteMaterial(
+      this,
+      SpriteMaskInteraction.None
+    );
+
+    spriteDefaultMaterials[SpriteMaskInteraction.VisibleInsideMask] = SpriteRenderer._createSpriteMaterial(
+      this,
+      SpriteMaskInteraction.VisibleInsideMask
+    );
+
+    spriteDefaultMaterials[SpriteMaskInteraction.VisibleOutsideMask] = SpriteRenderer._createSpriteMaterial(
+      this,
+      SpriteMaskInteraction.VisibleOutsideMask
+    );
+
     this._textDefaultMaterial = TextRenderer._createTextMaterial(this);
     this._spriteMaskDefaultMaterial = SpriteMask._createSpriteMaskMaterial(this);
     this._textDefaultFont = Font.createFromOS(this, "Arial");
