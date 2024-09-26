@@ -1,8 +1,10 @@
 import { SpriteMask } from "../2d";
+import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { RenderQueueType } from "../shader";
 import { DisorderedArray } from "../utils/DisorderedArray";
+import { RenderContext } from "./RenderContext";
 import { RenderQueue } from "./RenderQueue";
-import { SubRenderElement } from "./SubRenderElement";
+import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
 
 /**
  * @internal
@@ -19,29 +21,74 @@ export class MaskManager {
     return (MaskManager._maskDecrementRenderQueue ||= new RenderQueue(RenderQueueType.Transparent));
   }
 
-  allSpriteMasks = new DisorderedArray<SpriteMask>();
-  preMaskLayer = 0;
+  private _allSpriteMasks = new DisorderedArray<SpriteMask>();
+  private _preMaskLayer = SpriteMaskLayer.Nothing;
 
   addSpriteMask(mask: SpriteMask): void {
-    mask._maskIndex = this.allSpriteMasks.length;
-    this.allSpriteMasks.add(mask);
+    mask._maskIndex = this._allSpriteMasks.length;
+    this._allSpriteMasks.add(mask);
   }
 
   removeSpriteMask(mask: SpriteMask): void {
-    const replaced = this.allSpriteMasks.deleteByIndex(mask._maskIndex);
+    const replaced = this._allSpriteMasks.deleteByIndex(mask._maskIndex);
     replaced && (replaced._maskIndex = mask._maskIndex);
     mask._maskIndex = -1;
   }
 
-  buildMaskRenderElement(
-    element: SubRenderElement,
+  drawMask(context: RenderContext, pipelineStageTagValue: string, maskLayer: SpriteMaskLayer): void {
+    const incrementMaskQueue = MaskManager.getMaskIncrementRenderQueue();
+    incrementMaskQueue.clear();
+    const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
+    decrementMaskQueue.clear();
+
+    this._buildMaskRenderElement(maskLayer, incrementMaskQueue, decrementMaskQueue);
+
+    const engine = context.camera.engine;
+    const batcherManager = engine._batcherManager;
+    incrementMaskQueue.batch(batcherManager);
+    batcherManager.uploadBuffer();
+    incrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Increment);
+    decrementMaskQueue.batch(batcherManager);
+    batcherManager.uploadBuffer();
+    decrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Decrement);
+  }
+
+  clearMask(context: RenderContext, pipelineStageTagValue: string): void {
+    const preMaskLayer = this._preMaskLayer;
+    if (preMaskLayer !== SpriteMaskLayer.Nothing) {
+      const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
+      decrementMaskQueue.clear();
+
+      const masks = this._allSpriteMasks;
+      const maskElements = masks._elements;
+      for (let i = 0, n = masks.length; i < n; i++) {
+        const mask = maskElements[i];
+        mask.influenceLayers & preMaskLayer && decrementMaskQueue.pushRenderElement(mask._renderElement);
+      }
+
+      const batcherManager = context.camera.engine._batcherManager;
+      decrementMaskQueue.batch(batcherManager);
+      batcherManager.uploadBuffer();
+      decrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Decrement);
+
+      this._preMaskLayer = SpriteMaskLayer.Nothing;
+    }
+  }
+
+  destroy(): void {
+    const allSpriteMasks = this._allSpriteMasks;
+    allSpriteMasks.length = 0;
+    allSpriteMasks.garbageCollection();
+  }
+
+  private _buildMaskRenderElement(
+    curMaskLayer: SpriteMaskLayer,
     incrementMaskQueue: RenderQueue,
     decrementMaskQueue: RenderQueue
   ): void {
-    const preMaskLayer = this.preMaskLayer;
-    const curMaskLayer = element.component._maskLayer;
+    const preMaskLayer = this._preMaskLayer;
     if (preMaskLayer !== curMaskLayer) {
-      const masks = this.allSpriteMasks;
+      const masks = this._allSpriteMasks;
       const commonLayer = preMaskLayer & curMaskLayer;
       const reduceLayer = preMaskLayer & ~curMaskLayer;
       const maskElements = masks._elements;
@@ -59,11 +106,7 @@ export class MaskManager {
           decrementMaskQueue.pushRenderElement(mask._renderElement);
         }
       }
-      this.preMaskLayer = curMaskLayer;
+      this._preMaskLayer = curMaskLayer;
     }
-  }
-
-  destroy(): void {
-    this.allSpriteMasks.length = 0;
   }
 }

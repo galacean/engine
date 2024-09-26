@@ -2,7 +2,7 @@ import { Color, MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@galacean/en
 import { Camera } from "../Camera";
 import { PipelinePass } from "../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
-import { RenderContext, ContextRendererUpdateFlag } from "../RenderPipeline/RenderContext";
+import { ContextRendererUpdateFlag, RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
 import { PipelineStage } from "../RenderPipeline/index";
 import { GLCapabilityType } from "../base/Constant";

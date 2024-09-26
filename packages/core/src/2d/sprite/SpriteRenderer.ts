@@ -8,7 +8,6 @@ import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderProperty } from "../../shader/ShaderProperty";
-import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { ISpriteAssembler } from "../assembler/ISpriteAssembler";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
@@ -19,7 +18,7 @@ import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "./Sprite";
 import { Material } from "../../material";
-import { BlendFactor, BlendOperation, CullMode, RenderQueueType, Shader } from "../../shader";
+import { BlendFactor, BlendOperation, ColorWriteMask, CullMode, RenderQueueType, Shader } from "../../shader";
 import { Engine } from "../../Engine";
 
 /**
@@ -29,7 +28,7 @@ export class SpriteRenderer extends Renderer {
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_SpriteTexture");
 
-  static _createSpriteMaterial(engine: Engine, maskInteraction: SpriteMaskInteraction): Material {
+  static _createSpriteMaterial(engine: Engine): Material {
     const material = new Material(engine, Shader.find("Sprite"));
     const renderState = material.renderState;
     const target = renderState.blendState.targetBlendState;
@@ -39,18 +38,6 @@ export class SpriteRenderer extends Renderer {
     target.sourceAlphaBlendFactor = BlendFactor.One;
     target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
     target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-    if (maskInteraction !== SpriteMaskInteraction.None) {
-      const stencilState = renderState.stencilState;
-      stencilState.enabled = true;
-      stencilState.writeMask = 0x00;
-      stencilState.referenceValue = 1;
-      const compare =
-        maskInteraction === SpriteMaskInteraction.VisibleInsideMask
-          ? CompareFunction.LessEqual
-          : CompareFunction.Greater;
-      stencilState.compareFunctionFront = compare;
-      stencilState.compareFunctionBack = compare;
-    }
     renderState.depthState.writeEnabled = false;
     renderState.rasterState.cullMode = CullMode.Off;
     renderState.renderQueueType = RenderQueueType.Transparent;
@@ -289,7 +276,6 @@ export class SpriteRenderer extends Renderer {
 
   set maskInteraction(value: SpriteMaskInteraction) {
     if (this._maskInteraction !== value) {
-      this._updateStencilState(this._maskInteraction, value);
       this._maskInteraction = value;
     }
   }
@@ -366,7 +352,7 @@ export class SpriteRenderer extends Renderer {
     }
     // @todo: This question needs to be raised rather than hidden.
     if (material.destroyed) {
-      material = this._engine._spriteDefaultMaterials[this._maskInteraction];
+      material = this._engine._spriteDefaultMaterial;
     }
 
     // Update position
@@ -425,28 +411,6 @@ export class SpriteRenderer extends Renderer {
       this._automaticWidth = this._automaticHeight = 0;
     }
     this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.AutomaticSize;
-  }
-
-  private _updateStencilState(from: SpriteMaskInteraction, to: SpriteMaskInteraction): void {
-    const material = this.getMaterial();
-    const { _spriteDefaultMaterials: spriteDefaultMaterials } = this._engine;
-    if (material === spriteDefaultMaterials[from]) {
-      this.setMaterial(spriteDefaultMaterials[to]);
-    } else {
-      const { stencilState } = material.renderState;
-      if (to === SpriteMaskInteraction.None) {
-        stencilState.enabled = false;
-        stencilState.writeMask = 0xff;
-        stencilState.referenceValue = 0;
-        stencilState.compareFunctionFront = stencilState.compareFunctionBack = CompareFunction.Always;
-      } else {
-        stencilState.enabled = true;
-        stencilState.writeMask = 0x00;
-        stencilState.referenceValue = 1;
-        stencilState.compareFunctionFront = stencilState.compareFunctionBack =
-          to === SpriteMaskInteraction.VisibleInsideMask ? CompareFunction.LessEqual : CompareFunction.Greater;
-      }
-    }
   }
 
   @ignoreClone

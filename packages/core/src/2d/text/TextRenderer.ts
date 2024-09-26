@@ -10,7 +10,6 @@ import { Renderer } from "../../Renderer";
 import { TransformModifyFlags } from "../../Transform";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { BlendFactor, BlendOperation, CullMode, RenderQueueType, Shader, ShaderData, ShaderProperty } from "../../shader";
-import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { ShaderDataGroup } from "../../shader/enums/ShaderDataGroup";
 import { Texture2D } from "../../texture";
 import { FontStyle } from "../enums/FontStyle";
@@ -268,7 +267,6 @@ export class TextRenderer extends Renderer {
   set maskInteraction(value: SpriteMaskInteraction) {
     if (this._maskInteraction !== value) {
       this._maskInteraction = value;
-      this._setDirtyFlagTrue(DirtyFlag.MaskInteraction);
     }
   }
 
@@ -412,11 +410,6 @@ export class TextRenderer extends Renderer {
       return;
     }
 
-    if (this._isContainDirtyFlag(DirtyFlag.MaskInteraction)) {
-      this._updateStencilState();
-      this._setDirtyFlagFalse(DirtyFlag.MaskInteraction);
-    }
-
     if (this._isContainDirtyFlag(DirtyFlag.SubFont)) {
       this._resetSubFont();
       this._setDirtyFlagFalse(DirtyFlag.SubFont);
@@ -453,29 +446,6 @@ export class TextRenderer extends Renderer {
       renderElement.addSubRenderElement(subRenderElement);
     }
     camera._renderPipeline.pushRenderElement(context, renderElement);
-  }
-
-  private _updateStencilState(): void {
-    const material = this.getInstanceMaterial();
-    const stencilState = material.renderState.stencilState;
-    const maskInteraction = this._maskInteraction;
-
-    if (maskInteraction === SpriteMaskInteraction.None) {
-      stencilState.enabled = false;
-      stencilState.writeMask = 0xff;
-      stencilState.referenceValue = 0;
-      stencilState.compareFunctionFront = stencilState.compareFunctionBack = CompareFunction.Always;
-    } else {
-      stencilState.enabled = true;
-      stencilState.writeMask = 0x00;
-      stencilState.referenceValue = 1;
-      const compare =
-        maskInteraction === SpriteMaskInteraction.VisibleInsideMask
-          ? CompareFunction.LessEqual
-          : CompareFunction.Greater;
-      stencilState.compareFunctionFront = compare;
-      stencilState.compareFunctionBack = compare;
-    }
   }
 
   private _resetSubFont(): void {
@@ -780,8 +750,7 @@ enum DirtyFlag {
   LocalPositionBounds = 0x2,
   WorldPosition = 0x4,
   WorldBounds = 0x8,
-  MaskInteraction = 0x10,
-  Color = 0x20,
+  Color = 0x10,
 
   Position = LocalPositionBounds | WorldPosition | WorldBounds,
   Font = SubFont | Position

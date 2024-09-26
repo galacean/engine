@@ -7,7 +7,6 @@ import {
   IXRDevice
 } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
-import { SpriteMask, SpriteMaskInteraction, SpriteRenderer, TextRenderer } from "./2d";
 import { CharRenderInfo } from "./2d/text/CharRenderInfo";
 import { Font } from "./2d/text/Font";
 import { BasicResources } from "./BasicResources";
@@ -41,6 +40,7 @@ import { Texture2D, TextureFormat } from "./texture";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
+import { SpriteMask, SpriteRenderer, TextRenderer } from "./2d";
 
 ShaderPool.init();
 
@@ -88,8 +88,6 @@ export class Engine extends EventDispatcher {
   _basicResources: BasicResources;
   /* @internal */
   _spriteDefaultMaterial: Material;
-  /** @internal */
-  _spriteDefaultMaterials: Material[] = [];
   /* @internal */
   _textDefaultMaterial: Material;
   /* @internal */
@@ -233,23 +231,7 @@ export class Engine extends EventDispatcher {
 
     this._canvas = canvas;
 
-    const { _spriteDefaultMaterials: spriteDefaultMaterials } = this;
-
-    this._spriteDefaultMaterial = spriteDefaultMaterials[SpriteMaskInteraction.None] = SpriteRenderer._createSpriteMaterial(
-      this,
-      SpriteMaskInteraction.None
-    );
-
-    spriteDefaultMaterials[SpriteMaskInteraction.VisibleInsideMask] = SpriteRenderer._createSpriteMaterial(
-      this,
-      SpriteMaskInteraction.VisibleInsideMask
-    );
-
-    spriteDefaultMaterials[SpriteMaskInteraction.VisibleOutsideMask] = SpriteRenderer._createSpriteMaterial(
-      this,
-      SpriteMaskInteraction.VisibleOutsideMask
-    );
-
+    this._spriteDefaultMaterial = SpriteRenderer._createSpriteMaterial(this);
     this._textDefaultMaterial = TextRenderer._createTextMaterial(this);
     this._spriteMaskDefaultMaterial = SpriteMask._createSpriteMaskMaterial(this);
     this._textDefaultFont = Font.createFromOS(this, "Arial");
