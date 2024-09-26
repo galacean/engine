@@ -14,6 +14,8 @@ import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
+import { Material } from "../../material";
+import { ColorWriteMask, CullMode, RenderQueueType, Shader } from "../../shader";
 
 /**
  * A component for masking Sprites.
@@ -23,6 +25,18 @@ export class SpriteMask extends Renderer {
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskTexture");
   /** @internal */
   static _alphaCutoffProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskAlphaCutoff");
+
+  static _createSpriteMaskMaterial(engine): Material {
+    const material = new Material(engine, Shader.find("SpriteMask"));
+    const renderState = material.renderState;
+    renderState.blendState.targetBlendState.colorWriteMask = ColorWriteMask.None;
+    renderState.rasterState.cullMode = CullMode.Off;
+    renderState.stencilState.enabled = true;
+    renderState.depthState.enabled = false;
+    renderState.renderQueueType = RenderQueueType.Transparent;
+    material.isGCIgnored = true;
+    return material;
+  }
 
   /** The mask layers the sprite mask influence to. */
   @assignmentClone
