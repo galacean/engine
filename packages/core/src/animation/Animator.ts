@@ -555,11 +555,11 @@ export class Animator extends Component {
   }
 
   private _updateState(layerData: AnimatorLayerData, deltaTime: number, aniUpdate: boolean): void {
-    const { layerIndex, layer } = layerData;
+    const { layer } = layerData;
     let { weight } = layer;
     const additive = layer.blendingMode === AnimatorLayerBlendingMode.Additive;
 
-    layerIndex === 0 && (weight = 1.0);
+    layerData.layerIndex === 0 && (weight = 1.0);
 
     switch (layerData.layerState) {
       case LayerState.Standby:
@@ -1495,8 +1495,7 @@ export class Animator extends Component {
   }
 
   private _checkAnyAndEntryState(layerData: AnimatorLayerData, remainDeltaTime: number, aniUpdate: boolean): void {
-    const { layerIndex, layer } = layerData;
-    const { stateMachine } = layer;
+    const { stateMachine } = layerData.layer;
     const { _anyStateTransitionCollection: anyStateTransitions, _entryTransitionCollection: entryTransitions } =
       stateMachine;
     let transition: AnimatorStateTransition;
@@ -1513,7 +1512,7 @@ export class Animator extends Component {
     } else {
       const defaultState = stateMachine.defaultState;
       if (defaultState) {
-        this._preparePlay(defaultState, layerIndex);
+        this._preparePlay(defaultState, layerData.layerIndex);
         this._updateState(layerData, remainDeltaTime, aniUpdate);
       }
     }
