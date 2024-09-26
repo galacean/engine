@@ -10,7 +10,7 @@ export const version = `__buildVersion`;
 
 let mode = "Release";
 // #if _EDITOR
-mode = "Editor";
+mode = "Verbose";
 // #endif
 
 console.log(`Galacean ShaderLab version: ${version}. mode: ${mode}`);
