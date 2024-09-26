@@ -58,14 +58,14 @@ const commonPlugins = [
     : null
 ];
 
-function config({ location, pkgJson, editorMode }) {
+function config({ location, pkgJson, verboseMode }) {
   const input = path.join(location, "src", "index.ts");
   const dependencies = Object.assign({}, pkgJson.dependencies ?? {}, pkgJson.peerDependencies ?? {});
   const curPlugins = Array.from(commonPlugins);
 
   curPlugins.push(
     jscc({
-      values: { _EDITOR: editorMode }
+      values: { _EDITOR: verboseMode }
     })
   );
 
@@ -82,12 +82,20 @@ function config({ location, pkgJson, editorMode }) {
       const umdConfig = pkgJson.umd;
       let file = path.join(location, "dist", "browser.js");
 
-      if (compress) {
-        curPlugins.push(minify({ sourceMap: true }));
-        file = path.join(location, "dist", "browser.min.js");
-      }
-      if (editorMode) {
-        file = path.join(location, "dist", "browser.editor.js");
+      if (verboseMode) {
+        if (compress) {
+          curPlugins.push(minify({ sourceMap: true }));
+          file = path.join(location, "dist", "browser.verbose.min.js");
+        } else {
+          file = path.join(location, "dist", "browser.verbose.js");
+        }
+      } else {
+        if (compress) {
+          curPlugins.push(minify({ sourceMap: true }));
+          file = path.join(location, "dist", "browser.min.js");
+        } else {
+          file = path.join(location, "dist", "browser.js");
+        }
       }
 
       const umdExternal = Object.keys(umdConfig.globals ?? {});
@@ -110,8 +118,8 @@ function config({ location, pkgJson, editorMode }) {
     mini: () => {
       let file = path.join(location, "dist", "miniprogram.js");
       const plugins = [...curPlugins, ...miniProgramPlugin];
-      if (editorMode) {
-        file = path.join(location, "dist", "miniprogram.editor.js");
+      if (verboseMode) {
+        file = path.join(location, "dist", "miniprogram.verbose.js");
       }
       return {
         input,
@@ -129,9 +137,9 @@ function config({ location, pkgJson, editorMode }) {
     module: () => {
       let esFile = path.join(location, pkgJson.module);
       let mainFile = path.join(location, pkgJson.main);
-      if (editorMode) {
-        esFile = path.join(location, "dist", "module.editor.js");
-        mainFile = path.join(location, "dist", "main.editor.js");
+      if (verboseMode) {
+        esFile = path.join(location, "dist", "module.verbose.js");
+        mainFile = path.join(location, "dist", "main.verbose.js");
       }
       return {
         input,
@@ -191,21 +199,21 @@ function getUMD() {
         })
       )
     );
-  umds.push(makeRollupConfig({ ...shaderLabPkg, editorMode: true, type: "umd" }));
+  umds.push(makeRollupConfig({ ...shaderLabPkg, verboseMode: true, type: "umd" }));
   return umds;
 }
 
 function getModule() {
   const configs = [...pkgs];
   const modules = configs.map((config) => makeRollupConfig({ ...config, type: "module" }));
-  modules.push(makeRollupConfig({ ...shaderLabPkg, editorMode: true, type: "module" }));
+  modules.push(makeRollupConfig({ ...shaderLabPkg, verboseMode: true, type: "module" }));
   return modules;
 }
 
 function getMini() {
   const configs = [...pkgs];
   const minis = configs.map((config) => makeRollupConfig({ ...config, type: "mini" }));
-  minis.push(makeRollupConfig({ ...shaderLabPkg, editorMode: true, type: "mini" }));
+  minis.push(makeRollupConfig({ ...shaderLabPkg, verboseMode: true, type: "mini" }));
   return minis;
 }
 

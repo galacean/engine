@@ -26,17 +26,19 @@ const shader = Shader.create(galaceanShaderCode);
 engine.run()
 ```
 
-There are two versions of ShaderLab: `Release` and `Debug`. The Debug version offers more user-friendly diagnostic information for debug ShaderLab compilation errors, while the Release version provides superior performance.
+There are two versions of ShaderLab: `Release` and `Verbose`. The `Verbose` version offers more user-friendly diagnostic information for debug ShaderLab compilation errors, while the Release version provides superior performance.
 
-you can use debug version by import:
+you can use `Verbose` version by import:
 
 ```ts
 // umd
-import { ShaderLab } from "@galacean/engine-shader-lab/dist/browser.editor";
+import { ShaderLab } from "@galacean/engine-shader-lab/dist/browser.verbose";
+// minified umd
+import { ShaderLab } from "@galacean/engine-shader-lab/dist/browser.verbose.min";
 // esmoudle
-import { ShaderLab } from "@galacean/engine-shader-lab/dist/module.editor";
+import { ShaderLab } from "@galacean/engine-shader-lab/dist/module.verbose";
 // commonjs
-import { ShaderLab } from "@galacean/engine-shader-lab/dist/main.editor";
+import { ShaderLab } from "@galacean/engine-shader-lab/dist/main.verbose";
 ```
 
 ## CFG Grammar conflict detection

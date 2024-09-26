@@ -1,6 +1,6 @@
 import { BlendOperation, CompareFunction, CullMode, RenderStateDataKey } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
-import { ShaderLab as ShaderLabEditor, CompilationError } from "@galacean/engine-shader-lab/dist/main.editor";
+import { ShaderLab as ShaderLabEditor, CompilationError } from "@galacean/engine-shader-lab/verbose";
 import { ShaderLab as ShaderLabRelease } from "@galacean/engine-shader-lab";
 import { glslValidate, shaderParse } from "./ShaderValidate";
 
@@ -243,9 +243,13 @@ describe("ShaderLab", () => {
     const errorShader = fs.readFileSync(path.join(__dirname, "shaders/compilation-error.shader")).toString();
     // @ts-ignore
     shaderLabEditor._parse(errorShader);
+    // @ts-ignore
     expect(shaderLabEditor._errors.length).to.eq(3);
+    // @ts-ignore
     assert.instanceOf(shaderLabEditor._errors[0], CompilationError);
+    // @ts-ignore
     assert.instanceOf(shaderLabEditor._errors[1], CompilationError);
+    // @ts-ignore
     assert.instanceOf(shaderLabEditor._errors[2], CompilationError);
 
     expect(shaderParse.bind(shaderLabRelease)).to.throw(Error);
