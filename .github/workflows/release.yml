@@ -1,34 +1,45 @@
 # This is a basic workflow to help you get started with Actions
 
-name: Release Note
+name: Release
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "master" branch
-  release:
-    types: [published]
-  # Allows you to run this workflow manually from the Actions tab
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  message:
-    # The type of runner that the job will run on
+  release:
     runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
+    permissions:
+      contents: write
+      id-token: write
     steps:
-      - name: Dump Github context
-        env:
-          GITHUB_CONTEXT: ${{ toJSON(github) }}
-        run: echo "$GITHUB_CONTEXT"
-      - name: Send notification to Dingding
-        if: success()
-        uses: mrkou47/action-dingding-webhook@main
-        env:
-          DINGDING_SECRET_TOKEN_MAP: ${{ secrets.DINGDING_SECRET_TOKEN_MAP }}
+      - uses: actions/checkout@v4
         with:
-          title: Release Note ${{ github.event.release.tag_name }}
-          text: ${{ toJSON(github.event.release.body) }}
-      
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: true
+
+      # after pnpm
+      - name: Use Node.js LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: '>=22.6.0'
+          registry-url: https://registry.npmjs.org/
+          cache: pnpm
+
+      - name: Build
+        run: pnpm b:all
+
+      - name: Release current monorepo
+        uses: gz65555/publish@v0.1.3
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          NPM_CONFIG_PROVENANCE: true
+          OASISBE_UPLOAD_URL: https://oasisbe.alipay.com/api/file/no-auth/crypto/upload
+          OASISBE_REQUEST_HEADER: ${{secrets.OASISBE_REQUEST_HEADER}}
+          OASISBE_PUBLIC_KEY: ${{secrets.OASISBE_PUBLIC_KEY}}

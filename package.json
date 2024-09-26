@@ -1,7 +1,7 @@
 {
   "name": "@galacean/engine-root",
-  "version": "1.0.0",
-  "packageManager": "pnpm@8.6.2",
+  "version": "1.3.11",
+  "packageManager": "pnpm@9.3.0",
   "private": true,
   "scripts": {
     "preinstall": "npx only-allow pnpm",
@@ -21,7 +21,8 @@
     "e2e:case": "pnpm -C ./e2e run case",
     "e2e": "cypress run --browser chrome --headless",
     "e2e:debug": "cypress open",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "release": "bumpp -r"
   },
   "devDependencies": {
     "@commitlint/cli": "^11.0.0",
@@ -39,6 +40,7 @@
     "@types/webxr": "latest",
     "@typescript-eslint/eslint-plugin": "^6.1.0",
     "@typescript-eslint/parser": "^6.1.0",
+    "bumpp": "^9.5.2",
     "chai": "^4.3.6",
     "chai-spies": "^1.0.0",
     "cross-env": "^5.2.0",

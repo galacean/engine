@@ -1,4 +1,4 @@
-import { Color, Matrix, Vector3 } from "@galacean/engine-math";
+import { Color, Vector3 } from "@galacean/engine-math";
 import { ColorSpace } from "../enums/ColorSpace";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
@@ -31,13 +31,6 @@ export class PointLight extends Light {
    */
   get position(): Vector3 {
     return this.entity.transform.worldPosition;
-  }
-
-  /**
-   * @internal
-   */
-  override get _shadowProjectionMatrix(): Matrix {
-    throw "Unknown!";
   }
 
   /**

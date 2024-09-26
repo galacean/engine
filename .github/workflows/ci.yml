@@ -19,7 +19,7 @@ jobs:
       - uses: pnpm/action-setup@v2
       - uses: actions/setup-node@v3
         with:
-          node-version: 16.x
+          node-version: 22.x
           cache: pnpm
 
       - name: Install
@@ -33,7 +33,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16.x]
+        node-version: [22.x]
         os: [ubuntu-latest, macos-latest, windows-latest]
       fail-fast: false
 
@@ -60,7 +60,7 @@ jobs:
       - uses: pnpm/action-setup@v2
       - uses: actions/setup-node@v3
         with:
-          node-version: 16.x
+          node-version: 22.x
           cache: pnpm
 
       - name: Install
@@ -79,7 +79,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16.x]
+        node-version: [22.x]
 
     steps:
       - uses: actions/checkout@v3
