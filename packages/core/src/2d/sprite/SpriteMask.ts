@@ -39,7 +39,6 @@ export class SpriteMask extends Renderer {
     return material;
   }
 
-
   /** The mask layers the sprite mask influence to. */
   @assignmentClone
   influenceLayers: number = SpriteMaskLayer.Everything;

@@ -9,7 +9,15 @@ import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer } from "../../Renderer";
 import { TransformModifyFlags } from "../../Transform";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
-import { BlendFactor, BlendOperation, CullMode, RenderQueueType, Shader, ShaderData, ShaderProperty } from "../../shader";
+import {
+  BlendFactor,
+  BlendOperation,
+  CullMode,
+  RenderQueueType,
+  Shader,
+  ShaderData,
+  ShaderProperty
+} from "../../shader";
 import { ShaderDataGroup } from "../../shader/enums/ShaderDataGroup";
 import { Texture2D } from "../../texture";
 import { FontStyle } from "../enums/FontStyle";
