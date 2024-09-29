@@ -17,6 +17,8 @@ import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "./Sprite";
+import { Material } from "../../material";
+import { BlendFactor, BlendOperation, CullMode, RenderQueueType, Shader } from "../../shader";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -24,6 +26,24 @@ import { Sprite } from "./Sprite";
 export class SpriteRenderer extends Renderer {
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_SpriteTexture");
+
+  /** @internal */
+  static _createSpriteMaterial(engine): Material {
+    const material = new Material(engine, Shader.find("Sprite"));
+    const renderState = material.renderState;
+    const target = renderState.blendState.targetBlendState;
+    target.enabled = true;
+    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.sourceAlphaBlendFactor = BlendFactor.One;
+    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+    renderState.depthState.writeEnabled = false;
+    renderState.rasterState.cullMode = CullMode.Off;
+    renderState.renderQueueType = RenderQueueType.Transparent;
+    material.isGCIgnored = true;
+    return material;
+  }
 
   /** @internal */
   @ignoreClone
