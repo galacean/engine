@@ -552,7 +552,7 @@ export class Engine extends EventDispatcher {
         }
       );
 
-      const uiCanvases = componentsManager._overlayCanvases._elements;
+      const uiCanvases = componentsManager._overlayCanvases;
       if (uiCanvases) {
         const {
           _canvas: canvas,
@@ -566,7 +566,7 @@ export class Engine extends EventDispatcher {
         (projectE[0] = 2 / canvas.width), (projectE[5] = 2 / canvas.height), (projectE[10] = 0);
         this._hardwareRenderer.activeRenderTarget(null, new Vector4(0, 0, 1, 1), renderContext.flipProjection, 0);
         for (let i = 0, n = uiCanvases.length; i < n; i++) {
-          const uiCanvas = uiCanvases[i];
+          const uiCanvas = uiCanvases.get(i);
           if (!uiCanvas) continue;
           const transform = <UITransform>uiCanvas.entity.transform;
           (viewE[12] = -transform.position.x), (viewE[13] = -transform.position.y);

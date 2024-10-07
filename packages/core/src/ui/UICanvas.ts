@@ -179,6 +179,7 @@ export class UICanvas extends Component {
 
   constructor(entity: Entity) {
     super(entity);
+    this._componentType = ComponentType.UICanvas;
     this._transform = <UITransform>entity.transform;
     this._onEntityModify = this._onEntityModify.bind(this);
     this._onCanvasSizeListener = this._onCanvasSizeListener.bind(this);
@@ -250,7 +251,7 @@ export class UICanvas extends Component {
         }
       }
     }
-    return false;
+    return this._raycast(ray, distance, out);
   }
 
   /** @internal */

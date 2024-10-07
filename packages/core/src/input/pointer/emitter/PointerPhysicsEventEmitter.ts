@@ -20,10 +20,10 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
       if (!scene.isActive || scene.destroyed) {
         continue;
       }
-      const cameras = scene._componentsManager._activeCameras._elements;
+      const cameras = scene._componentsManager._activeCameras;
       let scenePhysics = scene.physics;
       for (let j = cameras.length - 1; j >= 0; j--) {
-        const camera = cameras[j];
+        const camera = cameras.get(j);
         if (camera.renderTarget) continue;
         const { pixelViewport } = camera;
         if (

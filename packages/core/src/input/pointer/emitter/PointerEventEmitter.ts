@@ -38,7 +38,7 @@ export abstract class PointerEventEmitter {
   /**
    * @internal
    */
-  _createEventData(pointer: Pointer, target: Entity, currentTarget: Entity = null): PointerEventData {
+  _createEventData(pointer: Pointer, target: Entity = null, currentTarget: Entity = null): PointerEventData {
     const data = new PointerEventData();
     data.pointer = pointer;
     // data.position.copyFrom(pointer.position);
