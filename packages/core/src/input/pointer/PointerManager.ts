@@ -33,8 +33,6 @@ export class PointerManager implements IInput {
   _upList: DisorderedArray<PointerButton> = new DisorderedArray();
   /** @internal */
   _downList: DisorderedArray<PointerButton> = new DisorderedArray();
-  /** @internal */
-  _pointerEventPool: ReturnableObjectPool<PointerEventData> = new ReturnableObjectPool(PointerEventData);
 
   // @internal
   _target: EventTarget;
