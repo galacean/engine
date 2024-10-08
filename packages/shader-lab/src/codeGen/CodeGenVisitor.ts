@@ -6,7 +6,7 @@ import { ESymbolType, FnSymbol, VarSymbol } from "../parser/symbolTable";
 import { ParserUtils } from "../Utils";
 import { NodeChild } from "../parser/types";
 import { VisitorContext } from "./VisitorContext";
-// #if _EDITOR
+// #if _VERBOSE
 import { GSErrorName, GSError } from "../Error";
 // #endif
 import { ShaderLab } from "../ShaderLab";
@@ -190,7 +190,7 @@ export class CodeGenVisitor {
 
   protected reportError(loc: ShaderRange | ShaderPosition, message: string): GSError {
     let error: Error;
-    // #if _EDITOR
+    // #if _VERBOSE
     error = new GSError(GSErrorName.CompilationError, message, loc, ShaderLab._processingPassText);
     this._errors.push(<GSError>error);
     return <GSError>error;

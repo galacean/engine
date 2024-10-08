@@ -27,7 +27,7 @@ export class MacroDefine {
     if (this.isFunction) {
       const argsTextList = this.args!.map((item) => item.lexeme);
 
-      // #if _EDITOR
+      // #if _VERBOSE
       if (args.length !== this.args?.length) {
         throw new GSError(GSErrorName.PreprocessorError, "mismatched function macro", this.location, "");
       }

@@ -1,6 +1,6 @@
 export { ShaderLab } from "./ShaderLab";
 
-// #if _EDITOR
+// #if _VERBOSE
 export { Preprocessor } from "./preprocessor";
 export * from "./Error";
 // #endif
@@ -9,7 +9,7 @@ export * from "./Error";
 export const version = `__buildVersion`;
 
 let mode = "Release";
-// #if _EDITOR
+// #if _VERBOSE
 mode = "Verbose";
 // #endif
 

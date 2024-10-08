@@ -66,7 +66,7 @@ function config({ location, pkgJson, verboseMode }) {
 
   curPlugins.push(
     jscc({
-      values: { _EDITOR: verboseMode }
+      values: { _VERBOSE: verboseMode }
     })
   );
 

@@ -1,4 +1,4 @@
-// #if _EDITOR
+// #if _VERBOSE
 import { BuiltinFunction, BuiltinVariable, NonGenericGalaceanType } from "./builtin";
 // #endif
 import { CodeGenVisitor } from "../codeGen";
@@ -101,7 +101,7 @@ export namespace ASTNode {
       super.set(loc, children, ENonTerminal.jump_statement);
     }
 
-    // #if _EDITOR
+    // #if _VERBOSE
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (ASTNode._unwrapToken(this.children![0]).type === EKeyword.RETURN) {
         // TODO: check the equality of function return type declared and this type.
@@ -114,7 +114,7 @@ export namespace ASTNode {
     }
   }
 
-  // #if _EDITOR
+  // #if _VERBOSE
   export class ConditionOpt extends TreeNode {
     static pool = new ShaderLabObjectPool(ConditionOpt);
 
@@ -187,7 +187,7 @@ export namespace ASTNode {
     }
   }
 
-  // #if _EDITOR
+  // #if _VERBOSE
   export class InitializerList extends ExpressionAstNode {
     static pool = new ShaderLabObjectPool(InitializerList);
 
@@ -335,7 +335,7 @@ export namespace ASTNode {
     }
   }
 
-  // #if _EDITOR
+  // #if _VERBOSE
   export class StorageQualifier extends BasicTypeQualifier {
     static pool = new ShaderLabObjectPool(StorageQualifier);
 
@@ -455,7 +455,7 @@ export namespace ASTNode {
         if (child instanceof Token) {
           this.value = Number(child.lexeme);
         }
-        // #if _EDITOR
+        // #if _VERBOSE
         else {
           const id = child as VariableIdentifier;
           if (!id.symbolInfo) {
@@ -533,7 +533,7 @@ export namespace ASTNode {
       } else if (this.children.length === 4 || this.children.length === 6) {
         const typeInfo = this.typeInfo;
         const arraySpecifier = this.children[3] as ArraySpecifier;
-        // #if _EDITOR
+        // #if _VERBOSE
         if (typeInfo.arraySpecifier && arraySpecifier) {
           sa.error(arraySpecifier.location, "Array of array is not supported.");
         }
@@ -747,7 +747,7 @@ export namespace ASTNode {
     }
   }
 
-  // #if _EDITOR
+  // #if _VERBOSE
   export class SimpleStatement extends TreeNode {
     static pool = new ShaderLabObjectPool(SimpleStatement);
 
@@ -773,7 +773,7 @@ export namespace ASTNode {
     }
   }
 
-  // #if _EDITOR
+  // #if _VERBOSE
   export class Statement extends TreeNode {
     static pool = new ShaderLabObjectPool(Statement);
 
@@ -861,7 +861,7 @@ export namespace ASTNode {
             paramSig = paramList.paramSig as any;
           }
         }
-        // #if _EDITOR
+        // #if _VERBOSE
         const builtinFn = BuiltinFunction.getFn(fnIdent, ...(paramSig ?? []));
         if (builtinFn) {
           this.type = BuiltinFunction.getReturnType(builtinFn.fun, builtinFn.genType);
@@ -871,7 +871,7 @@ export namespace ASTNode {
 
         const fnSymbol = sa.symbolTable.lookup({ ident: fnIdent, symbolType: ESymbolType.FN, signature: paramSig });
         if (!fnSymbol) {
-          // #if _EDITOR
+          // #if _VERBOSE
           sa.error(this.location, "No overload function type found: ", functionIdentifier.ident);
           // #endif
           return;
@@ -964,7 +964,7 @@ export namespace ASTNode {
       super.set(loc, children, ENonTerminal.assignment_expression);
     }
 
-    // #if _EDITOR
+    // #if _VERBOSE
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         const expr = this.children[0] as ConditionalExpression;
@@ -977,7 +977,7 @@ export namespace ASTNode {
     // #endif
   }
 
-  // #if _EDITOR
+  // #if _VERBOSE
   export class AssignmentOperator extends TreeNode {
     static pool = new ShaderLabObjectPool(AssignmentOperator);
 
@@ -994,7 +994,7 @@ export namespace ASTNode {
       super.set(loc, children, ENonTerminal.expression);
     }
 
-    // #if _EDITOR
+    // #if _VERBOSE
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         const expr = this.children[0] as AssignmentExpression;
@@ -1056,7 +1056,7 @@ export namespace ASTNode {
     }
   }
 
-  // #if _EDITOR
+  // #if _VERBOSE
   export class UnaryOperator extends TreeNode {
     static pool = new ShaderLabObjectPool(UnaryOperator);
 
@@ -1066,7 +1066,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _EDITOR
+  // #if _VERBOSE
   export class UnaryExpression extends ExpressionAstNode {
     static pool = new ShaderLabObjectPool(UnaryExpression);
 
@@ -1077,7 +1077,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _EDITOR
+  // #if _VERBOSE
   export class MultiplicativeExpression extends ExpressionAstNode {
     static pool = new ShaderLabObjectPool(MultiplicativeExpression);
 
@@ -1096,7 +1096,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _EDITOR
+  // #if _VERBOSE
   export class AdditiveExpression extends ExpressionAstNode {
     static pool = new ShaderLabObjectPool(AdditiveExpression);
 
@@ -1115,7 +1115,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _EDITOR
+  // #if _VERBOSE
   export class ShiftExpression extends ExpressionAstNode {
     static pool = new ShaderLabObjectPool(ShiftExpression);
 
@@ -1130,7 +1130,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _EDITOR
+  // #if _VERBOSE
   export class RelationalExpression extends ExpressionAstNode {
     static pool = new ShaderLabObjectPool(RelationalExpression);
 
@@ -1148,7 +1148,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _EDITOR
+  // #if _VERBOSE
   export class EqualityExpression extends ExpressionAstNode {
     static pool = new ShaderLabObjectPool(EqualityExpression);
 
@@ -1166,7 +1166,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _EDITOR
+  // #if _VERBOSE
   export class AndExpression extends ExpressionAstNode {
     static pool = new ShaderLabObjectPool(AndExpression);
 
@@ -1184,7 +1184,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _EDITOR
+  // #if _VERBOSE
   export class ExclusiveOrExpression extends ExpressionAstNode {
     static pool = new ShaderLabObjectPool(ExclusiveOrExpression);
 
@@ -1202,7 +1202,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _EDITOR
+  // #if _VERBOSE
   export class InclusiveOrExpression extends ExpressionAstNode {
     static pool = new ShaderLabObjectPool(InclusiveOrExpression);
 
@@ -1220,7 +1220,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _EDITOR
+  // #if _VERBOSE
   export class LogicalAndExpression extends ExpressionAstNode {
     static pool = new ShaderLabObjectPool(LogicalAndExpression);
 
@@ -1238,7 +1238,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _EDITOR
+  // #if _VERBOSE
   export class LogicalXorExpression extends ExpressionAstNode {
     static pool = new ShaderLabObjectPool(LogicalXorExpression);
 
@@ -1256,7 +1256,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _EDITOR
+  // #if _VERBOSE
   export class LogicalOrExpression extends ExpressionAstNode {
     static pool = new ShaderLabObjectPool(LogicalOrExpression);
 
@@ -1274,7 +1274,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  // #if _EDITOR
+  // #if _VERBOSE
   export class ConditionalExpression extends ExpressionAstNode {
     static pool = new ShaderLabObjectPool(ConditionalExpression);
 
@@ -1421,7 +1421,7 @@ export namespace ASTNode {
 
     symbolInfo:
       | VarSymbol
-      // #if _EDITOR
+      // #if _VERBOSE
       | BuiltinVariable
       // #endif
       | null;
@@ -1442,7 +1442,7 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const token = this.children[0] as Token;
 
-      // #if _EDITOR
+      // #if _VERBOSE
       const builtinVar = BuiltinVariable.getVar(token.lexeme);
       if (builtinVar) {
         this.symbolInfo = builtinVar;
@@ -1451,7 +1451,7 @@ export namespace ASTNode {
       // #endif
 
       this.symbolInfo = sa.symbolTable.lookup({ ident: token.lexeme, symbolType: ESymbolType.VAR }) as VarSymbol;
-      // #if _EDITOR
+      // #if _VERBOSE
       if (!this.symbolInfo) {
         sa.error(this.location, "undeclared identifier:", token.lexeme);
       }

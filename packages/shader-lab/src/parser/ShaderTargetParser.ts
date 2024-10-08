@@ -10,7 +10,7 @@ import { addTranslationRule, createGrammar } from "../lalr/CFG";
 import { LALR1 } from "../lalr";
 import { ParserUtils } from "../Utils";
 import { Logger } from "@galacean/engine";
-// #if _EDITOR
+// #if _VERBOSE
 import { GSError, GSErrorName } from "../Error";
 // #endif
 import { ShaderLab } from "../ShaderLab";
@@ -35,7 +35,7 @@ export class ShaderTargetParser {
     return this.gotoTable.get(this.curState);
   }
 
-  // #if _EDITOR
+  // #if _VERBOSE
   /** @internal */
   get errors() {
     return this.sematicAnalyzer.errors;
@@ -114,7 +114,7 @@ export class ShaderTargetParser {
         traceBackStack.push(nextState);
         continue;
       } else {
-        // #if _EDITOR
+        // #if _VERBOSE
         this.sematicAnalyzer.errors.push(
           new GSError(
             GSErrorName.CompilationError,
@@ -131,7 +131,7 @@ export class ShaderTargetParser {
     }
   }
 
-  // #if _EDITOR
+  // #if _VERBOSE
   private _printStack(nextToken: BaseToken) {
     let str = "";
     for (let i = 0; i < this._traceBackStack.length - 1; i++) {

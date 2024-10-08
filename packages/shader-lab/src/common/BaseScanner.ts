@@ -1,5 +1,5 @@
 import { ETokenType, ShaderRange, ShaderPosition } from ".";
-// #if _EDITOR
+// #if _VERBOSE
 import { GSError, GSErrorName } from "../Error";
 // #endif
 import { ShaderLab } from "../ShaderLab";
@@ -129,7 +129,7 @@ export default class BaseScanner {
   }
 
   throwError(pos: ShaderPosition | ShaderRange, ...msgs: any[]) {
-    // #if _EDITOR
+    // #if _VERBOSE
     const error = new GSError(GSErrorName.ScannerError, msgs.join(" "), pos, this._source);
     error.log();
     throw error;

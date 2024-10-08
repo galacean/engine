@@ -8,7 +8,7 @@ import { ShaderContentParser } from "./contentParser";
 import { Logger, ShaderLib, ShaderMacro, ShaderPass, ShaderPlatformTarget } from "@galacean/engine";
 import { ShaderPosition, ShaderRange } from "./common";
 import { ShaderLabObjectPool } from "./ShaderLabObjectPool";
-// #if _EDITOR
+// #if _VERBOSE
 import { GSError } from "./Error";
 // #endif
 import { PpParser } from "./preprocessor/PpParser";
@@ -35,7 +35,7 @@ export class ShaderLab implements IShaderLab {
     return range;
   }
 
-  // #if _EDITOR
+  // #if _VERBOSE
   private _errors: GSError[] = [];
 
   /**
@@ -66,7 +66,7 @@ export class ShaderLab implements IShaderLab {
 
     const preprocessorStart = performance.now();
     const ppdContent = Preprocessor.process(source);
-    // #if _EDITOR
+    // #if _VERBOSE
     if (PpParser._errors.length > 0) {
       for (const err of PpParser._errors) {
         this._errors.push(<GSError>err);
@@ -86,7 +86,7 @@ export class ShaderLab implements IShaderLab {
     ShaderLab._processingPassText = ppdContent;
     const program = parser.parse(tokens);
 
-    // #if _EDITOR
+    // #if _VERBOSE
     for (const err of parser.errors) {
       this._errors.push(err);
     }
@@ -104,7 +104,7 @@ export class ShaderLab implements IShaderLab {
     Logger.info(`[CodeGen] cost time: ${performance.now() - start}ms`);
     ShaderLab._processingPassText = undefined;
 
-    // #if _EDITOR
+    // #if _VERBOSE
     for (const err of codeGen.errors) {
       this._errors.push(err);
     }
@@ -117,7 +117,7 @@ export class ShaderLab implements IShaderLab {
   _parseShaderContent(shaderSource: string): IShaderContent {
     ShaderLabObjectPool.clearAllShaderLabObjectPool();
     ShaderContentParser.reset();
-    // #if _EDITOR
+    // #if _VERBOSE
     this._errors.length = 0;
     // #endif
     const ret = ShaderContentParser.parse(shaderSource);
@@ -127,7 +127,7 @@ export class ShaderLab implements IShaderLab {
     return ret;
   }
 
-  // #if _EDITOR
+  // #if _VERBOSE
   /**
    * @internal
    * For debug

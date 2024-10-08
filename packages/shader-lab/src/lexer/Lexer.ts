@@ -311,7 +311,7 @@ export class Lexer extends BaseScanner {
   private _getPosition(offset /** offset from starting point */ = 0) {
     return ShaderLab.createPosition(
       this.current - offset,
-      // #if _EDITOR
+      // #if _VERBOSE
       this._line,
       this._column - offset
       // #endif

@@ -23,7 +23,7 @@ import {
   IShaderPassContent,
   IRenderStates
 } from "@galacean/engine-design";
-// #if _EDITOR
+// #if _VERBOSE
 import { GSError, GSErrorName } from "../Error";
 // #endif
 
@@ -182,7 +182,7 @@ export class ShaderContentParser {
       scanner.scanText(";");
       const sm = this._symbolTable.lookup({ type: stateToken.type, ident: variable.lexeme });
       if (!sm?.value) {
-        // #if _EDITOR
+        // #if _VERBOSE
         this._errors.push(
           new GSError(
             GSErrorName.CompilationError,
@@ -242,7 +242,7 @@ export class ShaderContentParser {
         scanner.scanText("]");
         scanner.scanText("=");
       } else if (op.lexeme !== "=") {
-        // #if _EDITOR
+        // #if _VERBOSE
         this._errors.push(
           new GSError(
             GSErrorName.CompilationError,
@@ -263,7 +263,7 @@ export class ShaderContentParser {
     renderStateProp = state + renderStateProp;
     const renderStateElementKey = RenderStateDataKey[renderStateProp];
     if (renderStateElementKey == undefined) {
-      // #if _EDITOR
+      // #if _VERBOSE
       this._errors.push(
         new GSError(
           GSErrorName.CompilationError,
@@ -306,7 +306,7 @@ export class ShaderContentParser {
         const engineTypeProp = scanner.scanToken();
         value = ShaderContentParser._engineType[token.lexeme]?.[engineTypeProp.lexeme];
         if (value == undefined) {
-          // #if _EDITOR
+          // #if _VERBOSE
           this._errors.push(
             new GSError(
               GSErrorName.CompilationError,
@@ -339,7 +339,7 @@ export class ShaderContentParser {
     scanner.scanText(";");
     const value = ShaderContentParser._engineType.RenderQueueType[word.lexeme];
     if (value == undefined) {
-      // #if _EDITOR
+      // #if _VERBOSE
       this._errors.push(
         new GSError(GSErrorName.CompilationError, `Invalid render queue ${word.lexeme}`, word.location, scanner.source)
       );
@@ -492,7 +492,7 @@ export class ShaderContentParser {
           scanner.scanText("=");
           const entry = scanner.scanToken();
           if (ret[word.lexeme]) {
-            // #if _EDITOR
+            // #if _VERBOSE
             const error = new GSError(
               GSErrorName.CompilationError,
               "reassign main entry",

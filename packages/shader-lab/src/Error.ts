@@ -1,4 +1,4 @@
-// #if _EDITOR
+// #if _VERBOSE
 import { Logger } from "@galacean/engine";
 import { ShaderPosition, ShaderRange } from "./common";
 

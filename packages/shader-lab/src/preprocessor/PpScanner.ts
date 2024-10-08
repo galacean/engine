@@ -1,6 +1,6 @@
 import { ShaderRange, ShaderPosition } from "../common";
 import LexerUtils from "../lexer/Utils";
-// #if _EDITOR
+// #if _VERBOSE
 import PpSourceMap from "./sourceMap";
 // #endif
 import BaseScanner from "../common/BaseScanner";
@@ -16,7 +16,7 @@ export default class PpScanner extends BaseScanner {
 
   private macroLvl = 0;
 
-  // #if _EDITOR
+  // #if _VERBOSE
   readonly sourceMap = new PpSourceMap();
   readonly file: string;
   readonly blockRange?: ShaderRange;
@@ -24,13 +24,13 @@ export default class PpScanner extends BaseScanner {
 
   constructor(
     source: string,
-    // #if _EDITOR
+    // #if _VERBOSE
     file = "__main__",
     blockRange?: ShaderRange
     // #endif
   ) {
     super(source);
-    // #if _EDITOR
+    // #if _VERBOSE
     this.file = file;
     this.blockRange = blockRange;
     // #endif

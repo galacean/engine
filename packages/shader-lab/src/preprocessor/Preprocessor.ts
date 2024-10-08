@@ -25,7 +25,7 @@ export class Preprocessor {
     PpParser.addPredefinedMacro(macro, value);
   }
 
-  // #if _EDITOR
+  // #if _VERBOSE
   static convertSourceIndex(index: number) {
     return this.baseScanner.sourceMap.map(index);
   }
