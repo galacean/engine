@@ -1,11 +1,11 @@
 import { ETokenType } from "./types";
 import { ShaderRange, ShaderPosition } from ".";
 import { ShaderLab } from "../ShaderLab";
-import { ShaderLabObjectPool } from "../ShaderLabObjectPool";
 import { IPoolElement } from "@galacean/engine";
+import { ShaderLabUtils } from "../ShaderLabUtils";
 
 export class BaseToken<T extends number = number> implements IPoolElement {
-  static pool = new ShaderLabObjectPool<BaseToken>(BaseToken);
+  static pool = ShaderLabUtils.createObjectPool(BaseToken);
 
   type: T;
   lexeme: string;

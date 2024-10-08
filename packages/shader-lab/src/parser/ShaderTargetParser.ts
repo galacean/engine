@@ -8,7 +8,7 @@ import SematicAnalyzer from "./SemanticAnalyzer";
 import { TraceStackItem } from "./types";
 import { addTranslationRule, createGrammar } from "../lalr/CFG";
 import { LALR1 } from "../lalr";
-import { ParserUtils } from "../Utils";
+import { ParserUtils } from "../ParserUtils";
 import { Logger } from "@galacean/engine";
 // #if _VERBOSE
 import { GSError, GSErrorName } from "../Error";

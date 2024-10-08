@@ -252,7 +252,6 @@ describe("ShaderLab", () => {
     // @ts-ignore
     assert.instanceOf(shaderLabVerbose._errors[2], GSError);
 
-    debugger;
     // @ts-ignore
     for (const err of shaderLabVerbose._errors) {
       console.log(err.toString());

@@ -3,7 +3,7 @@ import { BaseToken as Token } from "../common/BaseToken";
 import { EKeyword, ShaderPosition, ShaderRange } from "../common";
 import { ASTNode, TreeNode } from "../parser/AST";
 import { ESymbolType, FnSymbol, VarSymbol } from "../parser/symbolTable";
-import { ParserUtils } from "../Utils";
+import { ParserUtils } from "../ParserUtils";
 import { NodeChild } from "../parser/types";
 import { VisitorContext } from "./VisitorContext";
 // #if _VERBOSE

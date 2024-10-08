@@ -7,20 +7,17 @@ import { ShaderContentParser } from "./contentParser";
 // @ts-ignore
 import { Logger, ShaderLib, ShaderMacro, ShaderPass, ShaderPlatformTarget } from "@galacean/engine";
 import { ShaderPosition, ShaderRange } from "./common";
-import { ShaderLabObjectPool } from "./ShaderLabObjectPool";
 // #if _VERBOSE
 import { GSError } from "./Error";
 // #endif
 import { PpParser } from "./preprocessor/PpParser";
+import { ShaderLabUtils } from "./ShaderLabUtils";
 
 export class ShaderLab implements IShaderLab {
   private static _parser = ShaderTargetParser.create();
-  private static _shaderPositionPool = new ShaderLabObjectPool(ShaderPosition);
-  private static _shaderRangePool = new ShaderLabObjectPool(ShaderRange);
+  private static _shaderPositionPool = ShaderLabUtils.createObjectPool(ShaderPosition);
+  private static _shaderRangePool = ShaderLabUtils.createObjectPool(ShaderRange);
 
-  /**
-   * @internal
-   */
   static _processingPassText?: string;
 
   static createPosition(index: number, line?: number, column?: number): ShaderPosition {
@@ -115,7 +112,7 @@ export class ShaderLab implements IShaderLab {
   }
 
   _parseShaderContent(shaderSource: string): IShaderContent {
-    ShaderLabObjectPool.clearAllShaderLabObjectPool();
+    ShaderLabUtils.clearAllShaderLabObjectPool();
     ShaderContentParser.reset();
     // #if _VERBOSE
     this._errors.length = 0;
@@ -129,6 +126,7 @@ export class ShaderLab implements IShaderLab {
 
   // #if _VERBOSE
   /**
+   * TODO:
    * @internal
    * For debug
    */
