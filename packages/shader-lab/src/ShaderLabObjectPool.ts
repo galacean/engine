@@ -1,5 +1,6 @@
 import { ClearableObjectPool, IPoolElement } from "@galacean/engine";
 
+// 放到静态类里
 /**
  * @internal
  */

@@ -24,7 +24,7 @@ import {
   IRenderStates
 } from "@galacean/engine-design";
 // #if _EDITOR
-import { CompilationError } from "../Error";
+import { GSError, GSErrorName } from "../Error";
 // #endif
 
 const EngineType = [
@@ -52,7 +52,7 @@ const RenderStateType = [
 export class ShaderContentParser {
   static _engineType = { RenderQueueType, CompareFunction, StencilOperation, BlendOperation, BlendFactor, CullMode };
 
-  static _errors: CompilationError[] = [];
+  static _errors: GSError[] = [];
 
   private static _isRenderStateDeclarator(token: BaseToken) {
     return RenderStateType.includes(token.type);
@@ -184,7 +184,8 @@ export class ShaderContentParser {
       if (!sm?.value) {
         // #if _EDITOR
         this._errors.push(
-          new CompilationError(
+          new GSError(
+            GSErrorName.CompilationError,
             `Invalid "${stateToken.lexeme}" variable: ${variable.lexeme}`,
             variable.location,
             scanner.source
@@ -243,7 +244,8 @@ export class ShaderContentParser {
       } else if (op.lexeme !== "=") {
         // #if _EDITOR
         this._errors.push(
-          new CompilationError(
+          new GSError(
+            GSErrorName.CompilationError,
             `Invalid syntax, expect character '=', but got ${op.lexeme}`,
             scanner.curPosition,
             scanner.source
@@ -263,7 +265,12 @@ export class ShaderContentParser {
     if (renderStateElementKey == undefined) {
       // #if _EDITOR
       this._errors.push(
-        new CompilationError(`Invalid render state element ${renderStateProp}`, scanner.curPosition, scanner.source)
+        new GSError(
+          GSErrorName.CompilationError,
+          `Invalid render state element ${renderStateProp}`,
+          scanner.curPosition,
+          scanner.source
+        )
       );
       scanner.scanToCharacter(";");
       return;
@@ -301,7 +308,8 @@ export class ShaderContentParser {
         if (value == undefined) {
           // #if _EDITOR
           this._errors.push(
-            new CompilationError(
+            new GSError(
+              GSErrorName.CompilationError,
               `Invalid engine constant: ${token.lexeme}.${engineTypeProp.lexeme}`,
               engineTypeProp.location,
               scanner.source
@@ -332,7 +340,9 @@ export class ShaderContentParser {
     const value = ShaderContentParser._engineType.RenderQueueType[word.lexeme];
     if (value == undefined) {
       // #if _EDITOR
-      this._errors.push(new CompilationError(`Invalid render queue ${word.lexeme}`, word.location, scanner.source));
+      this._errors.push(
+        new GSError(GSErrorName.CompilationError, `Invalid render queue ${word.lexeme}`, word.location, scanner.source)
+      );
       return;
       // #else
       throw new Error(`Invalid render queue ${word.lexeme}`);
@@ -483,7 +493,12 @@ export class ShaderContentParser {
           const entry = scanner.scanToken();
           if (ret[word.lexeme]) {
             // #if _EDITOR
-            const error = new CompilationError("reassign main entry", scanner.curPosition, scanner.source);
+            const error = new GSError(
+              GSErrorName.CompilationError,
+              "reassign main entry",
+              scanner.curPosition,
+              scanner.source
+            );
             error.log();
             throw error;
             // #else

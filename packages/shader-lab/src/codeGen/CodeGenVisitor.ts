@@ -7,7 +7,7 @@ import { ParserUtils } from "../Utils";
 import { NodeChild } from "../parser/types";
 import { VisitorContext } from "./VisitorContext";
 // #if _EDITOR
-import { CompilationError, GSError } from "../Error";
+import { GSErrorName, GSError } from "../Error";
 // #endif
 import { ShaderLab } from "../ShaderLab";
 
@@ -188,12 +188,12 @@ export class CodeGenVisitor {
     return this.defaultCodeGen(node.children);
   }
 
-  protected reportError(loc: ShaderRange | ShaderPosition, message: string): CompilationError {
+  protected reportError(loc: ShaderRange | ShaderPosition, message: string): GSError {
     let error: Error;
     // #if _EDITOR
-    error = new CompilationError(message, loc, ShaderLab._processingPassText);
-    this._errors.push(<CompilationError>error);
-    return <CompilationError>error;
+    error = new GSError(GSErrorName.CompilationError, message, loc, ShaderLab._processingPassText);
+    this._errors.push(<GSError>error);
+    return <GSError>error;
     // #else
     throw new Error(message);
     // #endif

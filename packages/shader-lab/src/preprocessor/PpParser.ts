@@ -3,7 +3,7 @@ import LexerUtils from "../lexer/Utils";
 import { MacroDefine } from "./MacroDefine";
 // #if _EDITOR
 import PpSourceMap, { BlockInfo } from "./sourceMap";
-import { PreprocessorError } from "../Error";
+import { GSError, GSErrorName } from "../Error";
 // #endif
 import { BaseToken } from "../common/BaseToken";
 import { EPpKeyword, EPpToken, PpConstant } from "./constants";
@@ -108,7 +108,7 @@ export class PpParser {
 
   private static reportError(loc: ShaderRange | ShaderPosition, message: string, source: string, file: string) {
     // #if _EDITOR
-    this._errors.push(new PreprocessorError(message, loc, source, file));
+    this._errors.push(new GSError(GSErrorName.PreprocessorError, message, loc, source, file));
     // #else
     throw new Error(message);
     // #endif

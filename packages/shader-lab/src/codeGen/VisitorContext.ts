@@ -3,7 +3,7 @@ import { ASTNode } from "../parser/AST";
 import { ESymbolType, SymbolTable, SymbolInfo } from "../parser/symbolTable";
 import { IParamInfo } from "../parser/types";
 // #if _EDITOR
-import { CompilationError, GSError } from "../Error";
+import { GSErrorName, GSError } from "../Error";
 // #endif
 import { BaseToken } from "../common/BaseToken";
 import { ShaderLab } from "../ShaderLab";
@@ -64,7 +64,8 @@ export class VisitorContext {
     const prop = this.attributeList.find((item) => item.ident.lexeme === ident.lexeme);
     if (!prop) {
       // #if _EDITOR
-      return new CompilationError(
+      return new GSError(
+        GSErrorName.CompilationError,
         `referenced attribute not found: ${ident.lexeme}`,
         ident.location,
         ShaderLab._processingPassText
@@ -77,13 +78,14 @@ export class VisitorContext {
     this._referencedAttributeList[ident.lexeme] = prop;
   }
 
-  referenceVarying(ident: BaseToken): CompilationError | undefined {
+  referenceVarying(ident: BaseToken): GSError | undefined {
     if (this._referencedVaryingList[ident.lexeme]) return;
 
     const prop = this.varyingStruct?.propList.find((item) => item.ident.lexeme === ident.lexeme);
     if (!prop) {
       // #if _EDITOR
-      return new CompilationError(
+      return new GSError(
+        GSErrorName.CompilationError,
         `referenced varying not found: ${ident.lexeme}`,
         ident.location,
         ShaderLab._processingPassText

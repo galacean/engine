@@ -26,7 +26,7 @@
   "files": [
     "dist/**/*",
     "types/**/*",
-    "verbose"
+    "verbose/package.json"
   ],
   "devDependencies": {
     "@galacean/engine-design": "workspace:*",

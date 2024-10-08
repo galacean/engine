@@ -1,7 +1,7 @@
 import { ShaderRange } from "../common";
 import { TreeNode } from "./AST";
 // #if _EDITOR
-import { CompilationError } from "../Error";
+import { GSError, GSErrorName } from "../Error";
 // #endif
 import { ShaderData } from "./ShaderInfo";
 import { SymbolInfo, SymbolTable } from "../parser/symbolTable";
@@ -23,7 +23,7 @@ export default class SematicAnalyzer {
   private _shaderData = new ShaderData();
 
   // #if _EDITOR
-  readonly errors: CompilationError[] = [];
+  readonly errors: GSError[] = [];
   // #endif
 
   get shaderData() {
@@ -65,7 +65,7 @@ export default class SematicAnalyzer {
 
   error(loc: ShaderRange, ...param: any[]) {
     // #if _EDITOR
-    const err = new CompilationError(param.join(""), loc, ShaderLab._processingPassText);
+    const err = new GSError(GSErrorName.CompilationError, param.join(""), loc, ShaderLab._processingPassText);
     this.errors.push(err);
     return err;
     // #else

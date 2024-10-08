@@ -11,7 +11,7 @@ import { LALR1 } from "../lalr";
 import { ParserUtils } from "../Utils";
 import { Logger } from "@galacean/engine";
 // #if _EDITOR
-import { CompilationError } from "../Error";
+import { GSError, GSErrorName } from "../Error";
 // #endif
 import { ShaderLab } from "../ShaderLab";
 
@@ -116,7 +116,12 @@ export class ShaderTargetParser {
       } else {
         // #if _EDITOR
         this.sematicAnalyzer.errors.push(
-          new CompilationError(`Unexpected token ${token.lexeme}`, token.location, ShaderLab._processingPassText)
+          new GSError(
+            GSErrorName.CompilationError,
+            `Unexpected token ${token.lexeme}`,
+            token.location,
+            ShaderLab._processingPassText
+          )
         );
         return null;
         // #else

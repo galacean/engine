@@ -31,7 +31,7 @@ export class ShaderLab implements IShaderLab {
 
   static createRange(start: ShaderPosition, end: ShaderPosition): ShaderRange {
     const range = this._shaderRangePool.get();
-    range.setX(start, end);
+    range.set(start, end);
     return range;
   }
 

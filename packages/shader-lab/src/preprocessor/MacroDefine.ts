@@ -1,6 +1,6 @@
 import { BaseToken } from "../common/BaseToken";
 import { ShaderRange } from "../common";
-import { PreprocessorError } from "../Error";
+import { GSError, GSErrorName } from "../Error";
 
 export class MacroDefine {
   readonly location?: ShaderRange;
@@ -29,7 +29,7 @@ export class MacroDefine {
 
       // #if _EDITOR
       if (args.length !== this.args?.length) {
-        throw new PreprocessorError("mismatched function macro", this.location, "");
+        throw new GSError(GSErrorName.PreprocessorError, "mismatched function macro", this.location, "");
       }
       // #endif
       const replaceRegex = new RegExp(`\\b(${argsTextList.join("|")})\\b`, "g");
