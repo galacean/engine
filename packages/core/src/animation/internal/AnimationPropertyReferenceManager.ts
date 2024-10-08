@@ -14,7 +14,7 @@ import {
 export class AnimationPropertyReferenceManager {
   animationPropertyReferences: AnimationPropertyReference[] = [];
 
-  private _referenceIndexMap: Map<string | Component, AnimationPropertyReference> = new Map();
+  private _referenceIndexMap: Map<string | number, AnimationPropertyReference> = new Map();
   private _subProperties = new Array<string>();
 
   addReference(component: Component, propertyStr: string, parseFlag: MountedParseFlag): AnimationPropertyReference {
@@ -22,13 +22,14 @@ export class AnimationPropertyReferenceManager {
 
     let reference: AnimationPropertyReference;
 
-    const existedReference = this._referenceIndexMap.get(component);
+    const existedReference = this._referenceIndexMap.get(instanceId);
     if (existedReference) {
       reference = existedReference;
     } else {
       reference = new ComponentReference();
       reference.manager = this;
       reference.value = component;
+      this._referenceIndexMap.set(instanceId, reference);
     }
 
     const properties = propertyStr.split(".");

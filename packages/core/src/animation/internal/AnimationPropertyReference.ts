@@ -1,5 +1,8 @@
 import { AnimationPropertyReferenceManager } from "./AnimationPropertyReferenceManager";
 
+/**
+ * @internal
+ */
 export abstract class AnimationPropertyReference {
   manager: AnimationPropertyReferenceManager;
   parseFlag: MountedParseFlag;
@@ -38,6 +41,9 @@ export abstract class AnimationPropertyReference {
   abstract setValue(value: any): void;
 }
 
+/**
+ * @internal
+ */
 export class ComponentReference extends AnimationPropertyReference {
   getValue() {
     return this.value;
@@ -48,6 +54,9 @@ export class ComponentReference extends AnimationPropertyReference {
   }
 }
 
+/**
+ * @internal
+ */
 export class PropertyReference extends AnimationPropertyReference {
   property: string;
 
@@ -81,6 +90,9 @@ export class PropertyReference extends AnimationPropertyReference {
   }
 }
 
+/**
+ * @internal
+ */
 export class MethodReference extends AnimationPropertyReference {
   methodName: string;
   args: any[];
@@ -121,6 +133,9 @@ export class MethodReference extends AnimationPropertyReference {
   }
 }
 
+/**
+ * @internal
+ */
 export class ArrayReference extends AnimationPropertyReference {
   property: string;
   arrayIndex: number;
@@ -152,6 +167,9 @@ export class ArrayReference extends AnimationPropertyReference {
   }
 }
 
+/**
+ * @internal
+ */
 export enum MountedParseFlag {
   Get = 0x1,
   Set = 0x2,

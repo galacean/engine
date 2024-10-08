@@ -8,20 +8,18 @@ import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
  * @internal
  */
 export class UniversalAnimationCurveOwnerAssembler implements IAnimationCurveOwnerAssembler<KeyframeValueType> {
-  getReference: AnimationPropertyReference;
-  setReference: AnimationPropertyReference;
-  referenceManager: AnimationPropertyReferenceManager;
+  private _getReference: AnimationPropertyReference;
+  private _setReference: AnimationPropertyReference;
 
   initialize(owner: AnimationCurveOwner<KeyframeValueType>): void {
     const { referenceManager } = owner;
-    this.referenceManager = referenceManager;
 
     if (owner.getProperty) {
-      this.getReference = referenceManager.addReference(owner.component, owner.getProperty, MountedParseFlag.Get);
-      this.setReference = referenceManager.addReference(owner.component, owner.property, MountedParseFlag.Set);
-      this.setReference.invDependencies.push(this.getReference.index);
+      this._getReference = referenceManager.addReference(owner.component, owner.getProperty, MountedParseFlag.Get);
+      this._setReference = referenceManager.addReference(owner.component, owner.property, MountedParseFlag.Set);
+      this._setReference.invDependencies.push(this._getReference.index);
     } else {
-      this.getReference = this.setReference = referenceManager.addReference(
+      this._getReference = this._setReference = referenceManager.addReference(
         owner.component,
         owner.property,
         MountedParseFlag.Both
@@ -30,10 +28,10 @@ export class UniversalAnimationCurveOwnerAssembler implements IAnimationCurveOwn
   }
 
   getTargetValue(): KeyframeValueType {
-    return this.getReference.getValue();
+    return this._getReference.getValue();
   }
 
   setTargetValue(value: KeyframeValueType): void {
-    this.setReference.setValue(value);
+    this._setReference.setValue(value);
   }
 }
