@@ -25,7 +25,7 @@ export class ShaderLab implements IShaderLab {
 
   static createPosition(index: number, line?: number, column?: number): ShaderPosition {
     const position = this._shaderPositionPool.get();
-    position.setX(index, line, column);
+    position.set(index, line, column);
     return position;
   }
 

@@ -5,7 +5,7 @@ export class ShaderPosition implements IPoolElement {
   line: number;
   column: number;
 
-  setX(index: number, line: number, column: number) {
+  set(index: number, line: number, column: number) {
     this.index = index;
     this.line = line;
     this.column = column;

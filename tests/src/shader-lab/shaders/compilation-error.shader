@@ -64,7 +64,9 @@ Shader "custom/pbr" {
                 Varyings v;
               
                 gl_Position = renderer_MVPMat * attr2.POSITION;
-                none();
+                none(
+                  12
+                );
                 v.v_pos = gl_Position.xyz;
                 v.v_uv = attr.TEXCOORD_023;
                 return v;
