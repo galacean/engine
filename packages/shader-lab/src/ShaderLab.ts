@@ -126,38 +126,6 @@ export class ShaderLab implements IShaderLab {
 
   // #if _VERBOSE
   /**
-   * TODO:
-   * @internal
-   * For debug
-   */
-  _parse(
-    shaderSource: string,
-    macros: ShaderMacro[] = [],
-    backend: ShaderPlatformTarget = ShaderPlatformTarget.GLES100
-  ): (ReturnType<ShaderLab["_parseShaderPass"]> & { name: string })[] {
-    const structInfo = this._parseShaderContent(shaderSource);
-    const passResult = [] as any;
-    for (const subShader of structInfo.subShaders) {
-      for (const pass of subShader.passes) {
-        if (pass.isUsePass) continue;
-        const passInfo = this._parseShaderPass(
-          pass.contents,
-          pass.vertexEntry,
-          pass.fragmentEntry,
-          macros,
-          backend,
-          [],
-          // @ts-ignore
-          new URL(pass.name, ShaderPass._shaderRootPath).href
-        ) as any;
-        passInfo.name = pass.name;
-        passResult.push(passInfo);
-      }
-    }
-    return passResult;
-  }
-
-  /**
    * @internal
    */
   _logErrors(errors: GSError[], source?: string) {

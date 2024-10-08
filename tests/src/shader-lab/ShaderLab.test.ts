@@ -241,8 +241,7 @@ describe("ShaderLab", () => {
 
   it("compilation-error", () => {
     const errorShader = fs.readFileSync(path.join(__dirname, "shaders/compilation-error.shader")).toString();
-    // @ts-ignore
-    shaderLabVerbose._parse(errorShader);
+    shaderParse.bind(shaderLabVerbose)(errorShader);
     // @ts-ignore
     expect(shaderLabVerbose._errors.length).to.eq(3);
     // @ts-ignore
@@ -257,6 +256,6 @@ describe("ShaderLab", () => {
       console.log(err.toString());
     }
 
-    expect(shaderParse.bind(shaderLabRelease)).to.throw(Error);
+    expect(shaderParse.bind(shaderLabRelease, errorShader)).to.throw(Error);
   });
 });
