@@ -26,48 +26,49 @@ export class RenderQueue {
     return a.priority - b.priority || b.distanceForSort - a.distanceForSort;
   }
 
-  private static _getCustomStencilStates(
-    maskInteraction: SpriteMaskInteraction,
-    maskType: RenderQueueMaskType
+  private static _getMaskInteractionStencilStates(
+    maskInteraction: SpriteMaskInteraction
   ): Record<number, number | boolean> | null {
-    // When the renderer's mask interaction not none
-    if (maskInteraction !== SpriteMaskInteraction.None) {
-      const customStencilStates =
+    if (maskInteraction === SpriteMaskInteraction.None) {
+      return null;
+    }
+
+    const stencilStates =
+      maskInteraction === SpriteMaskInteraction.VisibleInsideMask
+        ? RenderQueue._insideStencilStates
+        : RenderQueue._outsideStencilStates;
+    if (stencilStates[RenderStateElementKey.StencilStateEnabled] === undefined) {
+      stencilStates[RenderStateElementKey.StencilStateEnabled] = true;
+      stencilStates[RenderStateElementKey.StencilStateWriteMask] = 0x00;
+      stencilStates[RenderStateElementKey.StencilStateReferenceValue] = 1;
+      const compareFunction =
         maskInteraction === SpriteMaskInteraction.VisibleInsideMask
-          ? RenderQueue._insideStencilStates
-          : RenderQueue._outsideStencilStates;
-      if (customStencilStates[RenderStateElementKey.StencilStateEnabled] === undefined) {
-        customStencilStates[RenderStateElementKey.StencilStateEnabled] = true;
-        customStencilStates[RenderStateElementKey.StencilStateWriteMask] = 0x00;
-        customStencilStates[RenderStateElementKey.StencilStateReferenceValue] = 1;
-        const compareFunction =
-          maskInteraction === SpriteMaskInteraction.VisibleInsideMask
-            ? CompareFunction.LessEqual
-            : CompareFunction.Greater;
-        customStencilStates[RenderStateElementKey.StencilStateCompareFunctionFront] = compareFunction;
-        customStencilStates[RenderStateElementKey.StencilStateCompareFunctionBack] = compareFunction;
-      }
-      return customStencilStates;
+          ? CompareFunction.LessEqual
+          : CompareFunction.Greater;
+      stencilStates[RenderStateElementKey.StencilStateCompareFunctionFront] = compareFunction;
+      stencilStates[RenderStateElementKey.StencilStateCompareFunctionBack] = compareFunction;
+    }
+    return stencilStates;
+  }
+
+  private static _getMaskTypeStencilStates(maskType: RenderQueueMaskType): Record<number, number | boolean> | null {
+    if (maskType === RenderQueueMaskType.No) {
+      return null;
     }
 
-    // When need current mask to increase or decrease stencil value
-    if (maskType !== RenderQueueMaskType.No) {
-      const customStencilStates =
-        maskType === RenderQueueMaskType.Increment
-          ? RenderQueue._incrementStencilStates
-          : RenderQueue._decrementStencilStates;
-      const passOperation =
-        maskType === RenderQueueMaskType.Increment
-          ? StencilOperation.IncrementSaturate
-          : StencilOperation.DecrementSaturate;
-      if (customStencilStates[RenderStateElementKey.StencilStatePassOperationFront] === undefined) {
-        customStencilStates[RenderStateElementKey.StencilStatePassOperationFront] = passOperation;
-        customStencilStates[RenderStateElementKey.StencilStatePassOperationBack] = passOperation;
-      }
-      return customStencilStates;
+    const stencilStates =
+      maskType === RenderQueueMaskType.Increment
+        ? RenderQueue._incrementStencilStates
+        : RenderQueue._decrementStencilStates;
+    const passOperation =
+      maskType === RenderQueueMaskType.Increment
+        ? StencilOperation.IncrementSaturate
+        : StencilOperation.DecrementSaturate;
+    if (stencilStates[RenderStateElementKey.StencilStatePassOperationFront] === undefined) {
+      stencilStates[RenderStateElementKey.StencilStatePassOperationFront] = passOperation;
+      stencilStates[RenderStateElementKey.StencilStatePassOperationBack] = passOperation;
     }
-
-    return null;
+    return stencilStates;
   }
 
   readonly elements = new Array<RenderElement>();
@@ -132,7 +133,9 @@ export class RenderQueue {
       if (maskInteractionNotNone) {
         maskManager.drawMask(context, pipelineStageTagValue, subElement.component._maskLayer);
       }
-      const customStates = RenderQueue._getCustomStencilStates(maskInteraction, maskType);
+      const customStates =
+        RenderQueue._getMaskInteractionStencilStates(maskInteraction) ||
+        RenderQueue._getMaskTypeStencilStates(maskType);
 
       const compileMacros = Shader._compileMacros;
       const { primitive, material, shaderPasses, shaderData: renderElementShaderData } = subElement;
