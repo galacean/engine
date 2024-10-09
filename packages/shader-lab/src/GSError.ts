@@ -1,5 +1,4 @@
 // #if _VERBOSE
-import { Logger } from "@galacean/engine";
 import { ShaderPosition } from "./common/ShaderPosition";
 import { ShaderRange } from "./common/ShaderRange";
 
@@ -18,7 +17,6 @@ export class GSError extends Error {
   }
 
   override toString(): string {
-    if (!Logger.enable) return;
     let start: ShaderPosition, end: ShaderPosition;
     const { message, location: loc, source } = this;
     if (!source) {
