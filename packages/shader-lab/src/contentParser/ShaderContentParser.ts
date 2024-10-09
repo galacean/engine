@@ -499,7 +499,7 @@ export class ShaderContentParser {
               scanner.curPosition,
               scanner.source
             );
-            error.log();
+            Logger.error(error.toString());
             throw error;
             // #else
             throw new Error("reassign main entry");

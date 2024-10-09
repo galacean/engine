@@ -69,7 +69,7 @@ export class ShaderLab implements IShaderLab {
       for (const err of PpParser._errors) {
         this._errors.push(<GSError>err);
       }
-      this._logErrors(this._errors);
+      this._logErrors();
       return { vertex: "", fragment: "" };
     }
     // #endif
@@ -89,7 +89,7 @@ export class ShaderLab implements IShaderLab {
       this._errors.push(err);
     }
     if (!program) {
-      this._logErrors(this._errors);
+      this._logErrors();
       return { vertex: "", fragment: "" };
     }
     // #endif
@@ -106,7 +106,7 @@ export class ShaderLab implements IShaderLab {
     for (const err of codeGen.errors) {
       this._errors.push(err);
     }
-    this._logErrors(this._errors);
+    this._logErrors();
     // #endif
 
     return ret;
@@ -129,11 +129,12 @@ export class ShaderLab implements IShaderLab {
   /**
    * @internal
    */
-  _logErrors(errors: GSError[], source?: string) {
+  _logErrors() {
+    const errors = this._errors;
     if (errors.length === 0 || !Logger.isEnabled) return;
     Logger.error(`${errors.length} errors occur!`);
     for (const err of errors) {
-      err.log(source);
+      Logger.error(err.toString());
     }
   }
   // #endif

@@ -1,3 +1,4 @@
+import { Logger } from "@galacean/engine";
 import { ETokenType, ShaderRange, ShaderPosition } from ".";
 // #if _VERBOSE
 import { GSError, GSErrorName } from "../GSError";
@@ -131,7 +132,7 @@ export default class BaseScanner {
   throwError(pos: ShaderPosition | ShaderRange, ...msgs: any[]) {
     // #if _VERBOSE
     const error = new GSError(GSErrorName.ScannerError, msgs.join(" "), pos, this._source);
-    error.log();
+    Logger.error(error.toString());
     throw error;
     // #else
     throw new Error(msgs.join(""));

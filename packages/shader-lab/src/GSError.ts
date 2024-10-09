@@ -1,6 +1,7 @@
 // #if _VERBOSE
 import { Logger } from "@galacean/engine";
-import { ShaderPosition, ShaderRange } from "./common";
+import { ShaderPosition } from "./common/ShaderPosition";
+import { ShaderRange } from "./common/ShaderRange";
 
 export class GSError extends Error {
   static wrappingLineCount = 2;
@@ -16,17 +17,11 @@ export class GSError extends Error {
     this.name = name;
   }
 
-  log(content?: string): void {
-    Logger.error(this.toString(content));
-  }
-
-  override toString(content?: string): string {
+  override toString(): string {
     if (!Logger.enable) return;
     let start: ShaderPosition, end: ShaderPosition;
-    const { message, location: loc, source: originSource } = this;
-    let logSource = originSource;
-    if (content) logSource = content;
-    if (!logSource) {
+    const { message, location: loc, source } = this;
+    if (!source) {
       return message;
     }
 
@@ -36,7 +31,7 @@ export class GSError extends Error {
       start = loc.start;
       end = loc.end;
     }
-    const lines = logSource.split("\n");
+    const lines = source.split("\n");
 
     let diagnosticMessage = `${this.name}: ${message}\n\n`;
     const lineSplit = "|···";
