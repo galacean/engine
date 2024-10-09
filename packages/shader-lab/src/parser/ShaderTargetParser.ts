@@ -11,7 +11,7 @@ import { LALR1 } from "../lalr";
 import { ParserUtils } from "../ParserUtils";
 import { Logger } from "@galacean/engine";
 // #if _VERBOSE
-import { GSError, GSErrorName } from "../Error";
+import { GSError, GSErrorName } from "../GSError";
 // #endif
 import { ShaderLab } from "../ShaderLab";
 

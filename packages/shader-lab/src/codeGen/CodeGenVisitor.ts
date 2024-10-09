@@ -7,7 +7,7 @@ import { ParserUtils } from "../ParserUtils";
 import { NodeChild } from "../parser/types";
 import { VisitorContext } from "./VisitorContext";
 // #if _VERBOSE
-import { GSErrorName, GSError } from "../Error";
+import { GSErrorName, GSError } from "../GSError";
 // #endif
 import { ShaderLab } from "../ShaderLab";
 

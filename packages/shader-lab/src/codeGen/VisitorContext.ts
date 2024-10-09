@@ -3,7 +3,7 @@ import { ASTNode } from "../parser/AST";
 import { ESymbolType, SymbolTable, SymbolInfo } from "../parser/symbolTable";
 import { IParamInfo } from "../parser/types";
 // #if _VERBOSE
-import { GSErrorName, GSError } from "../Error";
+import { GSErrorName, GSError } from "../GSError";
 // #endif
 import { BaseToken } from "../common/BaseToken";
 import { ShaderLab } from "../ShaderLab";

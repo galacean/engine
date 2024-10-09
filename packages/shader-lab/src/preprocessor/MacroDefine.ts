@@ -1,6 +1,6 @@
 import { BaseToken } from "../common/BaseToken";
 import { ShaderRange } from "../common";
-import { GSError, GSErrorName } from "../Error";
+import { GSError, GSErrorName } from "../GSError";
 
 export class MacroDefine {
   readonly location?: ShaderRange;

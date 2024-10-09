@@ -24,7 +24,7 @@ import {
   IRenderStates
 } from "@galacean/engine-design";
 // #if _VERBOSE
-import { GSError, GSErrorName } from "../Error";
+import { GSError, GSErrorName } from "../GSError";
 // #endif
 
 const EngineType = [

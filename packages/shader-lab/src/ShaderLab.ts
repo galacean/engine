@@ -8,11 +8,12 @@ import { ShaderContentParser } from "./contentParser";
 import { Logger, ShaderLib, ShaderMacro, ShaderPass, ShaderPlatformTarget } from "@galacean/engine";
 import { ShaderPosition, ShaderRange } from "./common";
 // #if _VERBOSE
-import { GSError } from "./Error";
+import { GSError } from "./GSError";
 // #endif
 import { PpParser } from "./preprocessor/PpParser";
 import { ShaderLabUtils } from "./ShaderLabUtils";
 
+/** @internal */
 export class ShaderLab implements IShaderLab {
   private static _parser = ShaderTargetParser.create();
   private static _shaderPositionPool = ShaderLabUtils.createObjectPool(ShaderPosition);

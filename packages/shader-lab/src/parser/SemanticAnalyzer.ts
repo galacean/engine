@@ -1,7 +1,7 @@
 import { ShaderRange } from "../common";
 import { TreeNode } from "./AST";
 // #if _VERBOSE
-import { GSError, GSErrorName } from "../Error";
+import { GSError, GSErrorName } from "../GSError";
 // #endif
 import { ShaderData } from "./ShaderInfo";
 import { SymbolInfo, SymbolTable } from "../parser/symbolTable";

@@ -2,7 +2,7 @@ export { ShaderLab } from "./ShaderLab";
 
 // #if _VERBOSE
 export { Preprocessor } from "./preprocessor";
-export * from "./Error";
+export * from "./GSError";
 // #endif
 
 //@ts-ignore

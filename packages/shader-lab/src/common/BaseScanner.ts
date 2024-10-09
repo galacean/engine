@@ -1,6 +1,6 @@
 import { ETokenType, ShaderRange, ShaderPosition } from ".";
 // #if _VERBOSE
-import { GSError, GSErrorName } from "../Error";
+import { GSError, GSErrorName } from "../GSError";
 // #endif
 import { ShaderLab } from "../ShaderLab";
 import { BaseToken } from "./BaseToken";

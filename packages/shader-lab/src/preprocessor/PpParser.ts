@@ -3,7 +3,7 @@ import LexerUtils from "../lexer/Utils";
 import { MacroDefine } from "./MacroDefine";
 // #if _VERBOSE
 import PpSourceMap, { BlockInfo } from "./sourceMap";
-import { GSError, GSErrorName } from "../Error";
+import { GSError, GSErrorName } from "../GSError";
 // #endif
 import { BaseToken } from "../common/BaseToken";
 import { EPpKeyword, EPpToken, PpConstant } from "./constants";
