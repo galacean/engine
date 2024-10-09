@@ -150,13 +150,21 @@ export class StencilState {
   /**
    * @internal
    */
-  _apply(hardwareRenderer: IHardwareRenderer, lastRenderState: RenderState): void {
-    this._platformApply(hardwareRenderer, lastRenderState.stencilState);
+  _apply(
+    hardwareRenderer: IHardwareRenderer,
+    lastRenderState: RenderState,
+    customStates?: Record<number, number | boolean>
+  ): void {
+    this._platformApply(hardwareRenderer, lastRenderState.stencilState, customStates);
   }
 
-  private _platformApply(rhi: IHardwareRenderer, lastState: StencilState): void {
+  private _platformApply(
+    rhi: IHardwareRenderer,
+    lastState: StencilState,
+    customStates?: Record<number, number | boolean>
+  ): void {
     const gl = <WebGLRenderingContext>rhi.gl;
-    const {
+    let {
       enabled,
       referenceValue,
       mask,
@@ -170,6 +178,23 @@ export class StencilState {
       passOperationBack,
       writeMask
     } = this;
+
+    if (customStates) {
+      const enabledState = customStates[RenderStateElementKey.StencilStateEnabled];
+      enabledState !== undefined && (enabled = <boolean>enabledState);
+      const writeMaskState = customStates[RenderStateElementKey.StencilStateWriteMask];
+      writeMaskState !== undefined && (writeMask = <number>writeMaskState);
+      const referenceValueState = customStates[RenderStateElementKey.StencilStateReferenceValue];
+      referenceValueState !== undefined && (referenceValue = <number>referenceValueState);
+      const compareFunctionFrontState = customStates[RenderStateElementKey.StencilStateCompareFunctionFront];
+      compareFunctionFrontState !== undefined && (compareFunctionFront = <number>compareFunctionFrontState);
+      const compareFunctionBackState = customStates[RenderStateElementKey.StencilStateCompareFunctionBack];
+      compareFunctionBackState !== undefined && (compareFunctionBack = <number>compareFunctionBackState);
+      const passOperationFrontState = customStates[RenderStateElementKey.StencilStatePassOperationFront];
+      passOperationFrontState !== undefined && (passOperationFront = <number>passOperationFrontState);
+      const passOperationBackState = customStates[RenderStateElementKey.StencilStatePassOperationBack];
+      passOperationBackState !== undefined && (passOperationBack = <number>passOperationBackState);
+    }
 
     if (enabled != lastState.enabled) {
       if (enabled) {
@@ -200,11 +225,11 @@ export class StencilState {
           referenceValue,
           mask
         );
-        lastState.compareFunctionBack = this.compareFunctionBack;
+        lastState.compareFunctionBack = compareFunctionBack;
       }
       if (referenceOrMaskChange) {
-        lastState.referenceValue = this.referenceValue;
-        lastState.mask = this.mask;
+        lastState.referenceValue = referenceValue;
+        lastState.mask = mask;
       }
 
       // apply stencil operation.

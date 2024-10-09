@@ -67,5 +67,7 @@ export enum SpriteMaskLayer {
   /** Mask layer 31. */
   Layer31 = 0x80000000,
   /** All mask layers. */
-  Everything = 0xffffffff
+  Everything = 0xffffffff,
+  /** None mask layer. */
+  Nothing = 0x0
 }

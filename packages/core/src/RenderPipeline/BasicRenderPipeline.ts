@@ -195,6 +195,8 @@ export class BasicRenderPipeline {
     }
 
     transparentQueue.render(context, PipelineStage.Forward);
+    // Reset stencil
+    scene._maskManager.clearMask(context, PipelineStage.Forward);
 
     const postProcessManager = scene._postProcessManager;
     const cameraRenderTarget = camera.renderTarget;

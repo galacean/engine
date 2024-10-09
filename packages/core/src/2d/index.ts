@@ -1,5 +1,4 @@
 export { SpriteMaskInteraction } from "./enums/SpriteMaskInteraction";
-export { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 export { TextHorizontalAlignment, TextVerticalAlignment } from "./enums/TextAlignment";
 export { OverflowMode } from "./enums/TextOverflow";
 export { FontStyle } from "./enums/FontStyle";

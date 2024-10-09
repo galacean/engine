@@ -8,7 +8,6 @@ import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderProperty } from "../../shader/ShaderProperty";
-import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { ISpriteAssembler } from "../assembler/ISpriteAssembler";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
@@ -18,6 +17,8 @@ import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "./Sprite";
+import { Material } from "../../material";
+import { BlendFactor, BlendOperation, CullMode, RenderQueueType, Shader } from "../../shader";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -25,6 +26,24 @@ import { Sprite } from "./Sprite";
 export class SpriteRenderer extends Renderer {
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_SpriteTexture");
+
+  /** @internal */
+  static _createSpriteMaterial(engine): Material {
+    const material = new Material(engine, Shader.find("Sprite"));
+    const renderState = material.renderState;
+    const target = renderState.blendState.targetBlendState;
+    target.enabled = true;
+    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.sourceAlphaBlendFactor = BlendFactor.One;
+    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+    renderState.depthState.writeEnabled = false;
+    renderState.rasterState.cullMode = CullMode.Off;
+    renderState.renderQueueType = RenderQueueType.Transparent;
+    material.isGCIgnored = true;
+    return material;
+  }
 
   /** @internal */
   @ignoreClone
@@ -257,7 +276,6 @@ export class SpriteRenderer extends Renderer {
 
   set maskInteraction(value: SpriteMaskInteraction) {
     if (this._maskInteraction !== value) {
-      this._updateStencilState(this._maskInteraction, value);
       this._maskInteraction = value;
     }
   }
@@ -334,7 +352,7 @@ export class SpriteRenderer extends Renderer {
     }
     // @todo: This question needs to be raised rather than hidden.
     if (material.destroyed) {
-      material = this._engine._spriteDefaultMaterials[this._maskInteraction];
+      material = this._engine._spriteDefaultMaterial;
     }
 
     // Update position
@@ -393,28 +411,6 @@ export class SpriteRenderer extends Renderer {
       this._automaticWidth = this._automaticHeight = 0;
     }
     this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.AutomaticSize;
-  }
-
-  private _updateStencilState(from: SpriteMaskInteraction, to: SpriteMaskInteraction): void {
-    const material = this.getMaterial();
-    const { _spriteDefaultMaterials: spriteDefaultMaterials } = this._engine;
-    if (material === spriteDefaultMaterials[from]) {
-      this.setMaterial(spriteDefaultMaterials[to]);
-    } else {
-      const { stencilState } = material.renderState;
-      if (to === SpriteMaskInteraction.None) {
-        stencilState.enabled = false;
-        stencilState.writeMask = 0xff;
-        stencilState.referenceValue = 0;
-        stencilState.compareFunctionFront = stencilState.compareFunctionBack = CompareFunction.Always;
-      } else {
-        stencilState.enabled = true;
-        stencilState.writeMask = 0x00;
-        stencilState.referenceValue = 1;
-        stencilState.compareFunctionFront = stencilState.compareFunctionBack =
-          to === SpriteMaskInteraction.VisibleInsideMask ? CompareFunction.LessEqual : CompareFunction.Greater;
-      }
-    }
   }
 
   @ignoreClone
