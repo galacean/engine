@@ -188,12 +188,9 @@ export class CodeGenVisitor {
     return this.defaultCodeGen(node.children);
   }
 
-  protected reportError(loc: ShaderRange | ShaderPosition, message: string): GSError {
-    let error: Error;
+  protected reportError(loc: ShaderRange | ShaderPosition, message: string): void {
     // #if _VERBOSE
-    error = new GSError(GSErrorName.CompilationError, message, loc, ShaderLab._processingPassText);
-    this._errors.push(<GSError>error);
-    return <GSError>error;
+    this._errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderLab._processingPassText));
     // #else
     throw new Error(message);
     // #endif
