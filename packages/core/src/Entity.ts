@@ -13,9 +13,6 @@ import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
-import { Pointer } from "./input";
-import { PointerEventData } from "./input/pointer/PointerEventData";
-import { PointerCallbackType } from "./input/pointer/PointerCallbackType";
 import { UITransform } from "./ui";
 
 /**
@@ -634,8 +631,8 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  _dispatchModify(flag: EntityModifyFlags, param?: any): void {
-    this._updateFlagManager?.dispatch(flag, param);
+  _dispatchModify(flag: EntityModifyFlags): void {
+    this._updateFlagManager?.dispatch(flag);
   }
 
   private _addToChildrenList(index: number, child: Entity): void {

@@ -1,3 +1,4 @@
+import { Entity } from "../Entity";
 import { ComponentType } from "../enums/ComponentType";
 import { UICanvas } from "./UICanvas";
 import { UIGroup } from "./UIGroup";
@@ -79,6 +80,32 @@ export class UIRegistry {
         ) {
           return <UICanvas>component;
         }
+      }
+      entity = entity.parent;
+    }
+    return null;
+  }
+
+  static getGroupInParent(entity: Entity): UIGroup {
+    let _meetRootCanvas = false;
+    while (entity) {
+      const components = entity._components;
+      for (let i = 0, n = components.length; i < n; i++) {
+        const component = components[i];
+        if (component.enabled) {
+          switch (component._componentType) {
+            case ComponentType.UIRenderer:
+              _meetRootCanvas = (<UICanvas>component)._isRootCanvas;
+              break;
+            case ComponentType.UIGroup:
+              return <UIGroup>component;
+            default:
+              break;
+          }
+        }
+      }
+      if (_meetRootCanvas) {
+        return null;
       }
       entity = entity.parent;
     }

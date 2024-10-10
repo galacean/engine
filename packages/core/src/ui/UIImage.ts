@@ -173,10 +173,12 @@ export class UIImage extends UIRenderer {
       this._assembler.updateUVs(this);
     }
 
+    const globalAlpha = this._group?._getGlobalAlpha() ?? 1;
     // Update color
     if (dirtyUpdateFlag & ImageUpdateFlags.Color) {
       this._assembler.updateColor(this, this._alpha);
-    } else if (dirtyUpdateFlag & UIRendererUpdateFlags.Alpha) {
+    } else if (this._alpha !== globalAlpha) {
+      this._alpha = globalAlpha;
       this._assembler.updateAlpha(this, this._alpha);
     }
 

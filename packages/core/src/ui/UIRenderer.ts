@@ -110,6 +110,7 @@ export class UIRenderer extends Renderer implements IUIElement {
     }
     UIRegistry.registerElementToCanvas(this, UIRegistry.getRootCanvasInParent(this));
     UIRegistry.registerEntityListener(this);
+    UIRegistry.registerElementToGroup(this, UIRegistry.getGroupInParent(this._entity));
   }
 
   /**
@@ -122,6 +123,7 @@ export class UIRenderer extends Renderer implements IUIElement {
     }
     UIRegistry.registerElementToCanvas(this, null);
     UIRegistry.unRegisterEntityListener(this);
+    UIRegistry.registerElementToGroup(this, null);
   }
 
   /**

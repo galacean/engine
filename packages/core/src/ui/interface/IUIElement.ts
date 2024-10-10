@@ -18,6 +18,5 @@ export interface IUIElement {
   _indexInGroup: number;
 
   _raycast(ray: Ray, out: UIHitResult, distance: number): boolean;
-  _onGroupModify(flag: UIGroupModifyFlags): void;
   _onEntityModify(flag: EntityModifyFlags): void;
 }

@@ -266,25 +266,30 @@ export class UICanvas extends Component implements IUIElement {
    */
   override _onEnableInScene(): void {
     this._entity._dispatchModify(EntityModifyFlags.UICanvasEnableInScene);
-    const isRootCanvas = this._checkIsRootCanvas();
-    this._setIsRootCanvas(isRootCanvas);
-    if (!isRootCanvas) {
-      UIRegistry.registerElementToCanvas(this, UIRegistry.getRootCanvasInParent(this));
-      UIRegistry.registerEntityListener(this);
+    const rootCanvas = UIRegistry.getRootCanvasInParent(this);
+    this._setIsRootCanvas(!rootCanvas);
+    if (rootCanvas) {
+      this._setIsRootCanvas(false);
+    } else {
+      this._setIsRootCanvas(true);
+      UIRegistry.registerElementToCanvas(this, rootCanvas);
     }
+    UIRegistry.registerElementToGroup(this, UIRegistry.getGroupInParent(this._entity));
+    UIRegistry.registerEntityListener(this);
   }
 
   /**
    * @internal
    */
   override _onDisableInScene(): void {
-    this._entity._dispatchModify(EntityModifyFlags.UICanvasDisableInScene);
     if (this._isRootCanvas) {
       this._setIsRootCanvas(false);
     } else {
       UIRegistry.registerElementToCanvas(this, null);
       UIRegistry.unRegisterEntityListener(this);
     }
+    UIRegistry.registerElementToGroup(this, null);
+    this._entity._dispatchModify(EntityModifyFlags.UICanvasDisableInScene);
   }
 
   /**
@@ -319,11 +324,10 @@ export class UICanvas extends Component implements IUIElement {
   /**
    * @internal
    */
-  _onEntityModify(flag: EntityModifyFlags, param?: any): void {
+  _onEntityModify(flag: EntityModifyFlags): void {
     if (this._isRootCanvas) {
       switch (flag) {
         case EntityModifyFlags.Parent:
-          UIRegistry.registerEntityListener(this);
           this._setIsRootCanvas(this._checkIsRootCanvas());
           break;
         case EntityModifyFlags.UICanvasEnableInScene:
@@ -335,6 +339,7 @@ export class UICanvas extends Component implements IUIElement {
         default:
           break;
       }
+      UIRegistry.registerEntityListener(this);
     } else {
       switch (flag) {
         case EntityModifyFlags.Parent:
@@ -344,19 +349,11 @@ export class UICanvas extends Component implements IUIElement {
         case EntityModifyFlags.SiblingIndex:
           this._canvas && (this._canvas._hierarchyDirty = true);
           break;
-        case EntityModifyFlags.UIGroupEnableInScene:
-        case EntityModifyFlags.UIGroupDisableInScene:
-          break;
         default:
           break;
       }
     }
   }
-
-  /**
-   * @internal
-   */
-  _onGroupModify(flag: UIGroupModifyFlags): void {}
 
   private _dispatchRootCanvasChange(): void {
     this._disorderedElements.forEach(
