@@ -221,13 +221,6 @@ export class UICanvas extends Component implements IUIElement {
     this._referenceResolution._onValueChanged = this._onReferenceResolutionChanged;
   }
 
-  /**
-   *
-   * @param ray
-   * @param out
-   * @param distance
-   * @returns
-   */
   raycast(ray: Ray, out: UIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
     const { elements } = this;
     for (let i = elements.length - 1; i >= 0; i--) {
