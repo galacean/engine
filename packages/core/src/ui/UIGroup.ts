@@ -3,7 +3,7 @@ import { DisorderedArray } from "../DisorderedArray";
 import { Entity, EntityModifyFlags } from "../Entity";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { ComponentType } from "../enums/ComponentType";
-import { UIRegistry } from "./UIRegistery";
+import { UIUtil } from "./UIUtil";
 import { IUIElement } from "./interface/IUIElement";
 
 export class UIGroup extends Component {
@@ -46,10 +46,9 @@ export class UIGroup extends Component {
   }
 
   set ignoreParentGroup(val: boolean) {
-    if (val) {
-      // 移除父 Group 的监听
-    } else {
-      // 添加父 Group 的监听
+    if (this._ignoreParentGroup !== val) {
+      this._ignoreParentGroup = val;
+      this._updateGlobalModify(UIGroupModifyFlags.All);
     }
   }
 
@@ -94,43 +93,36 @@ export class UIGroup extends Component {
    * @internal
    */
   _updateGlobalModify(flags: UIGroupModifyFlags): void {
-    let transferFlags = UIGroupModifyFlags.None;
+    let passDownFlags = UIGroupModifyFlags.None;
     const parentGroup = this._parentGroup;
     if (flags & UIGroupModifyFlags.Alpha) {
-      const alpha = this._alpha * (parentGroup?._getGlobalAlpha() ?? 1);
+      const alpha = this._alpha * (!this._ignoreParentGroup && parentGroup ? parentGroup._getGlobalAlpha() : 1);
       if (this._globalAlpha !== alpha) {
         this._globalAlpha = alpha;
-        transferFlags |= UIGroupModifyFlags.Alpha;
+        passDownFlags |= UIGroupModifyFlags.Alpha;
       }
     }
     if (flags & UIGroupModifyFlags.RaycastEnable) {
-      const raycastEnable = this._raycastEnabled && (parentGroup?._getGlobalRaycastEnable() ?? true);
+      const raycastEnable =
+        this._raycastEnabled &&
+        (!this._ignoreParentGroup && parentGroup ? parentGroup?._getGlobalRaycastEnable() : true);
       if (this._globalRaycastEnable !== raycastEnable) {
         this._globalRaycastEnable = raycastEnable;
-        transferFlags |= UIGroupModifyFlags.RaycastEnable;
+        passDownFlags |= UIGroupModifyFlags.RaycastEnable;
       }
     }
     this._disorderedGroups.forEach(
       (element: UIGroup) => {
-        element._updateGlobalModify(transferFlags);
+        element._updateGlobalModify(passDownFlags);
       },
       () => {}
     );
   }
 
-  /**
-   * @internal
-   */
-  _onParentEntityModify(flags: EntityModifyFlags): void {
-    if (flags & EntityModifyFlags.UIGroupEnableInScene) {
-      this._registryToParentGroup(UIRegistry.getGroupInParent(this._entity.parent));
-    }
-  }
-
   override _onEnableInScene(): void {
     const entity = this._entity;
     entity._dispatchModify(EntityModifyFlags.UIGroupEnableInScene);
-    this._registryToParentGroup(UIRegistry.getGroupInParent(entity.parent));
+    this._registryToParentGroup(UIUtil.getGroupInParent(entity.parent));
   }
 
   override _onDisableInScene(): void {
@@ -143,7 +135,7 @@ export class UIGroup extends Component {
     const parentGroup = this._parentGroup;
     this._disorderedElements.forEach(
       (element: IUIElement) => {
-        UIRegistry.registerElementToGroup(element, parentGroup);
+        UIUtil.registerUIToGroup(element, parentGroup);
       },
       () => {}
     );
@@ -196,12 +188,18 @@ export class UIGroup extends Component {
     this._updateGlobalModify(UIGroupModifyFlags.All);
   }
 
+  private _onParentEntityModify(flags: EntityModifyFlags): void {
+    if (flags & EntityModifyFlags.UIGroupEnableInScene) {
+      this._registryToParentGroup(UIUtil.getGroupInParent(this._entity.parent));
+    }
+  }
+
   private _onEntityModify(flags: EntityModifyFlags): void {
     switch (flags) {
       case EntityModifyFlags.Parent:
       case EntityModifyFlags.UIGroupEnableInScene:
       case EntityModifyFlags.UIGroupDisableInScene:
-        this._registryToParentGroup(UIRegistry.getGroupInParent(this._entity.parent));
+        this._registryToParentGroup(UIUtil.getGroupInParent(this._entity.parent));
         break;
       default:
         break;

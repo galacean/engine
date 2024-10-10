@@ -13,8 +13,8 @@ import { ShaderProperty } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { UICanvas } from "./UICanvas";
 import { UIGroup, UIGroupModifyFlags } from "./UIGroup";
-import { UIRegistry } from "./UIRegistery";
 import { UITransform } from "./UITransform";
+import { UIUtil } from "./UIUtil";
 import { IUIElement } from "./interface/IUIElement";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
@@ -104,26 +104,20 @@ export class UIRenderer extends Renderer implements IUIElement {
    * @internal
    */
   override _onEnableInScene(): void {
-    const componentsManager = this.scene._componentsManager;
-    if (this._overrideUpdate) {
-      componentsManager.addOnUpdateRenderers(this);
-    }
-    UIRegistry.registerElementToCanvas(this, UIRegistry.getRootCanvasInParent(this));
-    UIRegistry.registerEntityListener(this);
-    UIRegistry.registerElementToGroup(this, UIRegistry.getGroupInParent(this._entity));
+    this._overrideUpdate && this.scene._componentsManager.addOnUpdateRenderers(this);
+    UIUtil.registerUIToCanvas(this, UIUtil.getRootCanvasInParent(this));
+    UIUtil.registerEntityListener(this);
+    UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
   }
 
   /**
    * @internal
    */
   override _onDisableInScene(): void {
-    const componentsManager = this.scene._componentsManager;
-    if (this._overrideUpdate) {
-      componentsManager.removeOnUpdateRenderers(this);
-    }
-    UIRegistry.registerElementToCanvas(this, null);
-    UIRegistry.unRegisterEntityListener(this);
-    UIRegistry.registerElementToGroup(this, null);
+    this._overrideUpdate && this.scene._componentsManager.removeOnUpdateRenderers(this);
+    UIUtil.registerUIToCanvas(this, null);
+    UIUtil.unRegisterEntityListener(this);
+    UIUtil.registerUIToGroup(this, null);
   }
 
   /**
@@ -132,11 +126,15 @@ export class UIRenderer extends Renderer implements IUIElement {
   _onEntityModify(flag: EntityModifyFlags): void {
     switch (flag) {
       case EntityModifyFlags.Parent:
-        UIRegistry.registerEntityListener(this);
-        UIRegistry.registerElementToCanvas(this, UIRegistry.getRootCanvasInParent(this));
+        UIUtil.registerEntityListener(this);
+        UIUtil.registerUIToCanvas(this, UIUtil.getRootCanvasInParent(this));
+        UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
         break;
       case EntityModifyFlags.SiblingIndex:
         this._canvas && (this._canvas._hierarchyDirty = true);
+        break;
+      case EntityModifyFlags.UIGroupEnableInScene:
+        UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
         break;
       default:
         break;

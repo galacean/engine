@@ -9,10 +9,10 @@ import { RenderElement } from "../RenderPipeline/RenderElement";
 import { assignmentClone, deepClone, ignoreClone } from "../clone/CloneManager";
 import { ComponentType } from "../enums/ComponentType";
 import { UIHitResult } from "../input/pointer/emitter/UIHitResult";
-import { UIGroup, UIGroupModifyFlags } from "./UIGroup";
-import { UIRegistry } from "./UIRegistery";
+import { UIGroup } from "./UIGroup";
 import { UIRenderer } from "./UIRenderer";
 import { UITransform } from "./UITransform";
+import { UIUtil } from "./UIUtil";
 import { CanvasRenderMode } from "./enums/CanvasRenderMode";
 import { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrategy";
 import { IUIElement } from "./interface/IUIElement";
@@ -266,16 +266,15 @@ export class UICanvas extends Component implements IUIElement {
    */
   override _onEnableInScene(): void {
     this._entity._dispatchModify(EntityModifyFlags.UICanvasEnableInScene);
-    const rootCanvas = UIRegistry.getRootCanvasInParent(this);
-    this._setIsRootCanvas(!rootCanvas);
+    const rootCanvas = UIUtil.getRootCanvasInParent(this);
     if (rootCanvas) {
       this._setIsRootCanvas(false);
     } else {
       this._setIsRootCanvas(true);
-      UIRegistry.registerElementToCanvas(this, rootCanvas);
+      UIUtil.registerUIToCanvas(this, rootCanvas);
     }
-    UIRegistry.registerElementToGroup(this, UIRegistry.getGroupInParent(this._entity));
-    UIRegistry.registerEntityListener(this);
+    UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
+    UIUtil.registerEntityListener(this);
   }
 
   /**
@@ -285,10 +284,10 @@ export class UICanvas extends Component implements IUIElement {
     if (this._isRootCanvas) {
       this._setIsRootCanvas(false);
     } else {
-      UIRegistry.registerElementToCanvas(this, null);
-      UIRegistry.unRegisterEntityListener(this);
+      UIUtil.registerUIToCanvas(this, null);
+      UIUtil.unRegisterEntityListener(this);
     }
-    UIRegistry.registerElementToGroup(this, null);
+    UIUtil.registerUIToGroup(this, null);
     this._entity._dispatchModify(EntityModifyFlags.UICanvasDisableInScene);
   }
 
@@ -329,39 +328,35 @@ export class UICanvas extends Component implements IUIElement {
       switch (flag) {
         case EntityModifyFlags.Parent:
           this._setIsRootCanvas(this._checkIsRootCanvas());
+          UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
           break;
         case EntityModifyFlags.UICanvasEnableInScene:
           this._setIsRootCanvas(false);
           break;
-        case EntityModifyFlags.UICanvasDisableInScene:
-          this._setIsRootCanvas(this._checkIsRootCanvas());
+        case EntityModifyFlags.UIGroupEnableInScene:
+          UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
           break;
         default:
           break;
       }
-      UIRegistry.registerEntityListener(this);
+      UIUtil.registerEntityListener(this);
     } else {
       switch (flag) {
         case EntityModifyFlags.Parent:
-          UIRegistry.registerEntityListener(this);
-          UIRegistry.registerElementToCanvas(this, UIRegistry.getRootCanvasInParent(this));
+          UIUtil.registerEntityListener(this);
+          UIUtil.registerUIToCanvas(this, UIUtil.getRootCanvasInParent(this));
+          UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
           break;
         case EntityModifyFlags.SiblingIndex:
           this._canvas && (this._canvas._hierarchyDirty = true);
+          break;
+        case EntityModifyFlags.UIGroupEnableInScene:
+          UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
           break;
         default:
           break;
       }
     }
-  }
-
-  private _dispatchRootCanvasChange(): void {
-    this._disorderedElements.forEach(
-      (element: IUIElement) => {
-        UIRegistry.registerElementToCanvas(element, UIRegistry.getRootCanvasInParent(element));
-      },
-      () => {}
-    );
   }
 
   private _adapterPoseInScreenSpace(): void {
@@ -546,7 +541,12 @@ export class UICanvas extends Component implements IUIElement {
             break;
         }
         this.scene._componentsManager.removeUICanvas(renderMode, this);
-        this._dispatchRootCanvasChange();
+        this._disorderedElements.forEach(
+          (element: IUIElement) => {
+            UIUtil.registerUIToCanvas(element, UIUtil.getRootCanvasInParent(element));
+          },
+          () => {}
+        );
         this._orderedElements.length = 0;
         this._disorderedElements.length = 0;
         this._disorderedElements.garbageCollection();

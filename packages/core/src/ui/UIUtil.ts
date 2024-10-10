@@ -4,7 +4,7 @@ import { UICanvas } from "./UICanvas";
 import { UIGroup } from "./UIGroup";
 import { IUIElement } from "./interface/IUIElement";
 
-export class UIRegistry {
+export class UIUtil {
   static registerEntityListener(element: IUIElement): void {
     const parents = element._parents;
     const root = element._canvas?.entity;
@@ -31,7 +31,7 @@ export class UIRegistry {
     parents.length = 0;
   }
 
-  static registerElementToCanvas(element: IUIElement, canvas: UICanvas): void {
+  static registerUIToCanvas(element: IUIElement, canvas: UICanvas): void {
     const preCanvas = element._canvas;
     if (preCanvas !== canvas) {
       element._canvas = canvas;
@@ -50,7 +50,7 @@ export class UIRegistry {
     }
   }
 
-  static registerElementToGroup(element: IUIElement, group: UIGroup): void {
+  static registerUIToGroup(element: IUIElement, group: UIGroup): void {
     const preGroup = element._group;
     if (preGroup !== group) {
       element._group = group;
