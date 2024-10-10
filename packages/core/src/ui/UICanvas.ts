@@ -213,10 +213,13 @@ export class UICanvas extends Component {
     switch (this._renderMode) {
       case CanvasRenderMode.ScreenSpaceOverlay:
         this._sortDistance = 0;
+        break;
       case CanvasRenderMode.ScreenSpaceCamera:
         this._sortDistance = this._distance;
+        break;
       case CanvasRenderMode.WorldSpace:
         this._sortDistance = Vector3.distance(cameraPosition, (this._transform as UITransform).worldPosition);
+        break;
     }
   }
 
