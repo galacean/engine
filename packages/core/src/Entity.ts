@@ -627,8 +627,8 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  _removeModifyListener(onChange: (flag: EntityModifyFlags) => void): void {
-    (this._updateFlagManager ||= new UpdateFlagManager()).addListener(onChange);
+  _unRegisterModifyListener(onChange: (flag: EntityModifyFlags) => void): void {
+    (this._updateFlagManager ||= new UpdateFlagManager()).removeListener(onChange);
   }
 
   /**
@@ -790,6 +790,7 @@ export class Entity extends EngineObject {
         }
       }
     }
+    this._dispatchModify(EntityModifyFlags.SiblingIndex);
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
@@ -810,8 +811,11 @@ export class Entity extends EngineObject {
 
 export enum EntityModifyFlags {
   Parent = 0x1,
-  UICanvasEnableInScene = 0x2,
-  UICanvasDisableInScene = 0x4
+  SiblingIndex = 0x2,
+  UICanvasEnableInScene = 0x4,
+  UICanvasDisableInScene = 0x8,
+  UIGroupEnableInScene = 0x10,
+  UIGroupDisableInScene = 0x20
 }
 
 type ComponentArguments<T extends new (entity: Entity, ...args: any[]) => Component> = T extends new (
