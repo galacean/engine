@@ -167,7 +167,7 @@ export class AnimatorState {
    * Clears all transitions from the state.
    */
   clearTransitions(): void {
-    this._transitionCollection.count = 0;
+    this._transitionCollection.clear();
   }
 
   /**

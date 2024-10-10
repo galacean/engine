@@ -20,10 +20,6 @@ export class AnimatorStateTransitionCollection {
     return this._transitions.length;
   }
 
-  set count(value: number) {
-    this._transitions.length = value;
-  }
-
   get(index: number): AnimatorStateTransition {
     return this._transitions[index];
   }
@@ -54,6 +50,13 @@ export class AnimatorStateTransitionCollection {
   remove(transition: AnimatorStateTransition): void {
     const index = this._transitions.indexOf(transition);
     index !== -1 && this._transitions.splice(index, 1);
+
+    if (transition.hasExitTime) {
+      this._hasExitTimeTransitions.splice(this._hasExitTimeTransitions.indexOf(transition), 1);
+    } else {
+      this._noExitTimeTransitions.splice(this._noExitTimeTransitions.indexOf(transition), 1);
+    }
+
     transition._collection = null;
     if (transition.solo) {
       this._soloCount--;
@@ -66,6 +69,8 @@ export class AnimatorStateTransitionCollection {
       transition._collection = null;
     }
     this._transitions.length = 0;
+    this._hasExitTimeTransitions.length = 0;
+    this._noExitTimeTransitions.length = 0;
     this._soloCount = 0;
   }
 
