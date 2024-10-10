@@ -389,6 +389,7 @@ export class ShaderContentParser {
   }
 
   private static _parsePass(scanner: Scanner): IShaderPassContent {
+    this._newScope();
     const ret = {
       globalContents: [],
       renderStates: { constantMap: {}, variableMap: {} },
