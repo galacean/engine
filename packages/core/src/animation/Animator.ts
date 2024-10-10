@@ -638,11 +638,10 @@ export class Animator extends Component {
 
     let playCostTime: number;
     if (transition) {
-      const clipDuration = state.clip.length;
-      const clipEndTime = state.clipEndTime * clipDuration;
+      const clipEndTime = state.clipEndFixedTime;
 
       if (transition.hasExitTime) {
-        const exitTime = transition.exitTime * state._getDuration();
+        const exitTime = transition.exitTime * clipEndTime;
 
         if (isForwards) {
           if (exitTime < lastClipTime) {
@@ -651,7 +650,7 @@ export class Animator extends Component {
             playCostTime = exitTime - lastClipTime;
           }
         } else {
-          const startTime = state.clipStartTime * clipDuration;
+          const startTime = state.clipStartFixedTime;
           if (lastClipTime < exitTime) {
             playCostTime = clipEndTime - exitTime + lastClipTime - startTime;
           } else {
@@ -740,12 +739,12 @@ export class Animator extends Component {
     let dstPlayCostTime: number;
     if (destPlayData.isForwards) {
       // The time that has been played
-      const playedTime = lastDestClipTime - destState.clipStartTime * destState.clip.length;
+      const playedTime = lastDestClipTime - destState.clipStartFixedTime;
       dstPlayCostTime =
         playedTime + dstPlayDeltaTime > transitionDuration ? transitionDuration - playedTime : dstPlayDeltaTime;
     } else {
       // The time that has been played
-      const playedTime = destState.clipEndTime * destState.clip.length - lastDestClipTime;
+      const playedTime = destState.clipEndFixedTime - lastDestClipTime;
       dstPlayCostTime =
         // -dstPlayDeltaTime: The time that will be played, negative are meant to make it be a periods
         // > transition: The time that will be played is enough to finish the transition
@@ -1055,18 +1054,88 @@ export class Animator extends Component {
     layer: AnimatorControllerLayer,
     isForwards: boolean,
     playData: AnimatorStatePlayData,
-    transitions: AnimatorStateTransitionCollection,
+    transitionCollection: AnimatorStateTransitionCollection,
     lastClipTime: number,
     clipTime: number,
     deltaTime: number,
     checkStateMachine: boolean,
     aniUpdate: boolean
   ): AnimatorStateTransition {
-    const { state } = playData;
-    const clipDuration = state.clip.length;
     let targetTransition: AnimatorStateTransition = null;
-    const startTime = state.clipStartTime * clipDuration;
-    const endTime = state.clipEndTime * clipDuration;
+
+    const {
+      isSoloMode,
+      _noExitTimeTransitions: noExitTimeTransitions,
+      _hasExitTimeTransitions: hasExitTimeTransitions
+    } = transitionCollection;
+    if (noExitTimeTransitions.length) {
+      targetTransition = this._checkNoExitTimeTransition(
+        layerIndex,
+        layerData,
+        layer,
+        noExitTimeTransitions,
+        isSoloMode
+      );
+      if (targetTransition) {
+        return targetTransition;
+      }
+    }
+
+    if (hasExitTimeTransitions.length) {
+      targetTransition = this._checkHasExitTimeTransition(
+        layerIndex,
+        layerData,
+        layer,
+        playData,
+        hasExitTimeTransitions,
+        lastClipTime,
+        clipTime,
+        deltaTime,
+        isForwards,
+        isSoloMode,
+        checkStateMachine,
+        aniUpdate
+      );
+    }
+
+    return targetTransition;
+  }
+
+  private _checkNoExitTimeTransition(
+    layerIndex: number,
+    layerData: AnimatorLayerData,
+    layer: AnimatorControllerLayer,
+    transitions: AnimatorStateTransition[],
+    isSoloMode: boolean
+  ): AnimatorStateTransition {
+    for (let i = 0, n = transitions.length; i < n; ++i) {
+      const transition = transitions[i];
+      if (transition.mute || (isSoloMode && !transition.solo) || !this._checkConditions(transition)) continue;
+
+      return this._applyTransition(layerIndex, layerData, layer, transition, true);
+    }
+    return null;
+  }
+
+  private _checkHasExitTimeTransition(
+    layerIndex: number,
+    layerData: AnimatorLayerData,
+    layer: AnimatorControllerLayer,
+    playData: AnimatorStatePlayData,
+    hasExitTimeTransitions: AnimatorStateTransition[],
+    lastClipTime: number,
+    clipTime: number,
+    deltaTime: number,
+    isForwards: boolean,
+    isSoloMode: boolean,
+    checkStateMachine: boolean,
+    aniUpdate: boolean
+  ): AnimatorStateTransition {
+    const { state } = playData;
+    const startTime = state.clipStartFixedTime;
+    const endTime = state.clipEndFixedTime;
+
+    let targetTransition: AnimatorStateTransition = null;
     if (isForwards) {
       if (lastClipTime + deltaTime >= endTime) {
         targetTransition = this._checkSubTransition(
@@ -1074,9 +1143,10 @@ export class Animator extends Component {
           layerData,
           layer,
           playData,
-          transitions,
+          hasExitTimeTransitions,
           lastClipTime,
           endTime,
+          isSoloMode,
           checkStateMachine,
           aniUpdate
         );
@@ -1091,9 +1161,10 @@ export class Animator extends Component {
             layerData,
             layer,
             playData,
-            transitions,
+            hasExitTimeTransitions,
             startTime,
             clipTime,
+            isSoloMode,
             checkStateMachine,
             aniUpdate
           );
@@ -1104,9 +1175,10 @@ export class Animator extends Component {
           layerData,
           layer,
           playData,
-          transitions,
+          hasExitTimeTransitions,
           lastClipTime,
           clipTime,
+          isSoloMode,
           checkStateMachine,
           aniUpdate
         );
@@ -1119,26 +1191,28 @@ export class Animator extends Component {
           layerData,
           layer,
           playData,
-          transitions,
+          hasExitTimeTransitions,
           lastClipTime,
           startTime,
+          isSoloMode,
           checkStateMachine,
           aniUpdate
         );
         if (!targetTransition) {
           if (checkStateMachine) {
-            layerData.anyTransitionIndex = transitions.count - 1;
+            layerData.anyTransitionIndex = hasExitTimeTransitions.length - 1;
           } else {
-            playData.currentTransitionIndex = transitions.count - 1;
+            playData.currentTransitionIndex = hasExitTimeTransitions.length - 1;
           }
           targetTransition = this._checkBackwardsSubTransition(
             layerIndex,
             layerData,
             layer,
             playData,
-            transitions,
+            hasExitTimeTransitions,
             clipTime,
             endTime,
+            isSoloMode,
             checkStateMachine,
             aniUpdate
           );
@@ -1149,15 +1223,15 @@ export class Animator extends Component {
           layerData,
           layer,
           playData,
-          transitions,
+          hasExitTimeTransitions,
           lastClipTime,
           clipTime,
+          isSoloMode,
           checkStateMachine,
           aniUpdate
         );
       }
     }
-
     return targetTransition;
   }
 
@@ -1166,42 +1240,34 @@ export class Animator extends Component {
     layerData: AnimatorLayerData,
     layer: AnimatorControllerLayer,
     playData: AnimatorStatePlayData,
-    transitions: AnimatorStateTransitionCollection,
+    transitions: AnimatorStateTransition[],
     lastClipTime: number,
     curClipTime: number,
+    isSoloMode: boolean,
     checkStateMachine: boolean,
     aniUpdate: boolean
   ): AnimatorStateTransition {
     let transitionIndex = checkStateMachine ? layerData.anyTransitionIndex : playData.currentTransitionIndex;
-    const duration = playData.state._getDuration();
-    const isSoloMode = transitions.isSoloMode;
-    for (let n = transitions.count; transitionIndex < n; transitionIndex++) {
-      const transition = transitions.get(transitionIndex);
-      const hasExitTime = transition.hasExitTime;
-      const exitTime = transition.exitTime * duration;
-      if (hasExitTime && exitTime > curClipTime) {
+    const endTime = playData.state.clipEndFixedTime;
+    for (let n = transitions.length; transitionIndex < n; transitionIndex++) {
+      const transition = transitions[transitionIndex];
+      const exitTime = transition.exitTime * endTime;
+
+      if (exitTime > curClipTime) {
         break;
       }
 
-      if (exitTime >= lastClipTime || !hasExitTime) {
-        if (checkStateMachine) {
-          layerData.anyTransitionIndex = Math.min(transitionIndex + 1, n - 1);
-        } else {
-          playData.currentTransitionIndex = Math.min(transitionIndex + 1, n - 1);
-        }
+      if (exitTime < lastClipTime) continue;
 
-        if (transition.mute) continue;
-
-        if (isSoloMode && !transition.solo) continue;
-
-        if (this._checkConditions(transition)) {
-          if (this._applyTransition(layerIndex, layerData, layer, transition, aniUpdate)) {
-            return transition;
-          } else {
-            return null;
-          }
-        }
+      if (checkStateMachine) {
+        layerData.anyTransitionIndex = Math.min(transitionIndex + 1, n - 1);
+      } else {
+        playData.currentTransitionIndex = Math.min(transitionIndex + 1, n - 1);
       }
+
+      if (transition.mute || (isSoloMode && !transition.solo) || !this._checkConditions(transition)) continue;
+
+      return this._applyTransition(layerIndex, layerData, layer, transition, aniUpdate);
     }
     return null;
   }
@@ -1210,43 +1276,36 @@ export class Animator extends Component {
     layerIndex: number,
     layerData: AnimatorLayerData,
     layer: AnimatorControllerLayer,
-    playState: AnimatorStatePlayData,
-    transitions: AnimatorStateTransitionCollection,
+    playData: AnimatorStatePlayData,
+    transitions: AnimatorStateTransition[],
     lastClipTime: number,
     curClipTime: number,
+    isSoloMode: boolean,
     checkStateMachine: boolean,
     aniUpdate: boolean
   ): AnimatorStateTransition {
-    let transitionIndex = checkStateMachine ? layerData.anyTransitionIndex : playState.currentTransitionIndex;
-    const duration = playState.state._getDuration();
-    const isSoloMode = transitions.isSoloMode;
+    let transitionIndex = checkStateMachine ? layerData.anyTransitionIndex : playData.currentTransitionIndex;
+    const endTime = playData.state.clipEndFixedTime;
     for (; transitionIndex >= 0; transitionIndex--) {
-      const transition = transitions.get(transitionIndex);
-      const hasExitTime = transition.hasExitTime;
-      const exitTime = transition.exitTime * duration;
-      if (hasExitTime && exitTime < curClipTime) {
+      const transition = transitions[transitionIndex];
+      const exitTime = transition.exitTime * endTime;
+      if (exitTime < curClipTime) {
         break;
       }
 
-      if (exitTime <= lastClipTime || !hasExitTime) {
-        if (checkStateMachine) {
-          layerData.anyTransitionIndex = Math.max(transitionIndex - 1, 0);
-        } else {
-          playState.currentTransitionIndex = Math.max(transitionIndex - 1, 0);
-        }
-
-        if (transition.mute) continue;
-
-        if (isSoloMode && !transition.solo) continue;
-
-        if (this._checkConditions(transition)) {
-          if (this._applyTransition(layerIndex, layerData, layer, transition, aniUpdate)) {
-            return transition;
-          } else {
-            return null;
-          }
-        }
+      if (exitTime > lastClipTime) {
+        continue;
       }
+
+      if (checkStateMachine) {
+        layerData.anyTransitionIndex = Math.max(transitionIndex - 1, 0);
+      } else {
+        playData.currentTransitionIndex = Math.max(transitionIndex - 1, 0);
+      }
+
+      if (transition.mute || (isSoloMode && !transition.solo) || !this._checkConditions(transition)) continue;
+
+      return this._applyTransition(layerIndex, layerData, layer, transition, aniUpdate);
     }
     return null;
   }
@@ -1262,17 +1321,9 @@ export class Animator extends Component {
     for (let i = 0, n = transitions.count; i < n; i++) {
       const transition = transitions.get(i);
 
-      if (transition.mute) continue;
+      if (transition.mute || (isSoloMode && !transition.solo) || !this._checkConditions(transition)) continue;
 
-      if (isSoloMode && !transition.solo) continue;
-
-      if (this._checkConditions(transition)) {
-        if (this._applyTransition(layerIndex, layerData, layer, transition, aniUpdate)) {
-          return transition;
-        } else {
-          return null;
-        }
-      }
+      return this._applyTransition(layerIndex, layerData, layer, transition, aniUpdate);
     }
   }
 
@@ -1300,14 +1351,14 @@ export class Animator extends Component {
     layer: AnimatorControllerLayer,
     transition: AnimatorStateTransition,
     aniUpdate: boolean
-  ): boolean {
+  ): AnimatorStateTransition {
     // Need prepare first, it should crossFade when to exit
     const success = this._prepareCrossFadeByTransition(transition, layerIndex);
     if (transition.isExit) {
       this._checkAnyAndEntryState(layerIndex, layerData, layer, 0, aniUpdate);
-      return true;
+      return transition;
     }
-    return success;
+    return success ? transition : null;
   }
 
   private _checkConditions(transition: AnimatorStateTransition): boolean {
@@ -1430,23 +1481,22 @@ export class Animator extends Component {
     deltaTime: number
   ): void {
     const { state, isForwards, clipTime } = playData;
-    const clipDuration = state.clip.length;
-    const startTime = state.clipStartTime * clipDuration;
-    const endTime = state.clipEndTime * clipDuration;
+    const startTime = state.clipStartFixedTime;
+    const endTime = state.clipEndFixedTime;
 
     if (isForwards) {
       if (lastClipTime + deltaTime >= endTime) {
-        this._fireSubAnimationEvents(playData, eventHandlers, lastClipTime, state.clipEndTime * clipDuration);
+        this._fireSubAnimationEvents(playData, eventHandlers, lastClipTime, endTime);
         playData.currentEventIndex = 0;
-        this._fireSubAnimationEvents(playData, eventHandlers, state.clipStartTime * clipDuration, clipTime);
+        this._fireSubAnimationEvents(playData, eventHandlers, startTime, clipTime);
       } else {
         this._fireSubAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
       }
     } else {
       if (lastClipTime + deltaTime <= startTime) {
-        this._fireBackwardSubAnimationEvents(playData, eventHandlers, lastClipTime, state.clipStartTime * clipDuration);
+        this._fireBackwardSubAnimationEvents(playData, eventHandlers, lastClipTime, startTime);
         playData.currentEventIndex = eventHandlers.length - 1;
-        this._fireBackwardSubAnimationEvents(playData, eventHandlers, state.clipEndTime * clipDuration, clipTime);
+        this._fireBackwardSubAnimationEvents(playData, eventHandlers, endTime, clipTime);
       } else {
         this._fireBackwardSubAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
       }

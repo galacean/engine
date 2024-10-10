@@ -84,6 +84,20 @@ export class AnimatorState {
   }
 
   /**
+   * The fixed start time of the clip, the range is 0 to clip.length, default is 0.
+   */
+  get clipStartFixedTime() {
+    return this._clipStartTime * this.clip.length;
+  }
+
+  /**
+   * The fixed end time of the clip, the range is 0 to clip.length, default is clip.length.
+   */
+  get clipEndFixedTime() {
+    return this._clipEndTime * this.clip.length;
+  }
+
+  /**
    * @param name - The state's name
    */
   constructor(public readonly name: string) {
