@@ -427,19 +427,19 @@ export class UICanvas extends Component implements IUIElement {
     this._transform.size.set(curWidth / expectX, curHeight / expectY);
   }
 
-  private _walk(entity: Entity, elements: IUIElement[], group?: UIGroup): void {
+  private _walk(entity: Entity, elements: IUIElement[], depth = 0): void {
     const components = entity._components;
-    const uiType = ComponentType.UIRenderer | ComponentType.UICanvas;
     for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
-      if (component.enabled && component._componentType & uiType) {
+      if (component.enabled && component._componentType & ComponentType.UIElement) {
+        (component as unknown as IUIElement).depth = depth++;
         elements.push(component as unknown as IUIElement);
       }
     }
     const children = entity._children;
     for (let i = 0, n = children.length; i < n; i++) {
       const child = children[i];
-      child.isActive && this._walk(child, elements, group);
+      child.isActive && this._walk(child, elements, depth);
     }
   }
 

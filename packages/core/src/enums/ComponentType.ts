@@ -11,5 +11,6 @@ export enum ComponentType {
   TextRenderer = 0x40,
   UICanvas = 0x80,
   UIRenderer = 0x100,
-  UIGroup = 0x200
+  UIGroup = 0x200,
+  UIElement = UICanvas | UIRenderer
 }
