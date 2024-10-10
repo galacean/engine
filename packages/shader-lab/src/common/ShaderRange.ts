@@ -5,7 +5,7 @@ export class ShaderRange implements IPoolElement {
   public start: ShaderPosition;
   public end: ShaderPosition;
 
-  setX(start: ShaderPosition, end: ShaderPosition) {
+  set(start: ShaderPosition, end: ShaderPosition) {
     this.start = start;
     this.end = end;
   }

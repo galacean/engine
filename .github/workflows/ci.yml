@@ -50,7 +50,7 @@ jobs:
 
       - name: Install
         run: pnpm install
-      - run: npm run build:editor
+      - run: npm run build
 
   codecov:
     runs-on: macos-latest
@@ -66,7 +66,7 @@ jobs:
       - name: Install
         run: pnpm install
       - name: Build
-        run: npm run build:editor
+        run: npm run build
       - name: Test
         run: npm run test-cov
       - name: Upload coverage to Codecov
@@ -96,7 +96,7 @@ jobs:
       - name: Run Cypress Tests
         uses: cypress-io/github-action@v5
         with:
-          build: npm run build:editor
+          build: npm run build
           start: npm run e2e:case
           wait-on: "http://localhost:5175"
           wait-on-timeout: 120

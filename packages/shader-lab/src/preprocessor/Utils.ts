@@ -1,6 +1,6 @@
 import { ShaderRange } from "../common";
 import { ExpandSegment } from "./PpParser";
-// #if _EDITOR
+// #if _VERBOSE
 import PpSourceMap, { MapRange } from "./sourceMap";
 // #endif
 
@@ -8,7 +8,7 @@ export class PpUtils {
   static expand(
     segments: ExpandSegment[],
     source: string,
-    // #if _EDITOR
+    // #if _VERBOSE
     sourceMap?: PpSourceMap
     //#endif
   ) {
@@ -22,7 +22,7 @@ export class PpUtils {
 
       const generatedIdxEnd = generatedIdx + originSlice.length + seg.replace.length;
 
-      // #if _EDITOR
+      // #if _VERBOSE
       const mapRange = new MapRange(seg.block, seg.rangeInBlock, {
         start: generatedIdx + originSlice.length,
         end: generatedIdxEnd

@@ -1,6 +1,6 @@
 import { ShaderRange } from "../../common/ShaderRange";
 
-// #if _EDITOR
+// #if _VERBOSE
 export class BlockInfo {
   readonly sourceFile: string;
   readonly rangeInFile?: ShaderRange;

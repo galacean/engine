@@ -1,11 +1,10 @@
 import { ENonTerminal, GrammarSymbol } from "./parser/GrammarSymbol";
 import { BaseToken as Token } from "./common/BaseToken";
-import { EKeyword, ETokenType, GalaceanDataType, ShaderRange, ShaderPosition } from "./common";
+import { EKeyword, ETokenType, GalaceanDataType } from "./common";
 import { TreeNode } from "./parser/AST";
-// #if _EDITOR
+// #if _VERBOSE
 import State from "./lalr/State";
 // #endif
-import { Logger } from "@galacean/engine";
 
 export class ParserUtils {
   static unwrapNodeByType<T = TreeNode>(node: TreeNode, type: ENonTerminal): T | undefined {
@@ -15,7 +14,7 @@ export class ParserUtils {
     return ParserUtils.unwrapNodeByType(child, type);
   }
 
-  // #if _EDITOR
+  // #if _VERBOSE
   /**
    * Check if type `tb` is compatible with type `ta`.
    */
@@ -39,15 +38,10 @@ export class ParserUtils {
     return sm < ENonTerminal.START;
   }
 
-  static throw(pos: ShaderPosition | ShaderRange | number, ...msgs: any[]) {
-    Logger.error(pos.toString(), ...msgs);
-    throw msgs.join(" ");
-  }
-
   /**
    * @internal
    */
-  // #if _EDITOR
+  // #if _VERBOSE
   static printStatePool(logPath: string) {
     let output = "";
 

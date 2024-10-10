@@ -1,9 +1,14 @@
-import { Logger } from "@galacean/engine";
 import { EShaderStage } from "../common/Enums";
 import { ASTNode } from "../parser/AST";
 import { ESymbolType, SymbolTable, SymbolInfo } from "../parser/symbolTable";
 import { IParamInfo } from "../parser/types";
+// #if _VERBOSE
+import { GSErrorName, GSError } from "../GSError";
+// #endif
+import { BaseToken } from "../common/BaseToken";
+import { ShaderLab } from "../ShaderLab";
 
+/** @internal */
 export class VisitorContext {
   private static _singleton: VisitorContext;
   static get context() {
@@ -30,11 +35,12 @@ export class VisitorContext {
   _curFn?: ASTNode.FunctionProtoType;
 
   _passSymbolTable: SymbolTable;
+
+  private constructor() {}
+
   get passSymbolTable() {
     return this._passSymbolTable;
   }
-
-  private constructor() {}
 
   reset() {
     this.attributeList.length = 0;
@@ -52,26 +58,44 @@ export class VisitorContext {
     return this.varyingStruct?.ident?.lexeme === type;
   }
 
-  referenceAttribute(ident: string) {
-    if (this._referencedAttributeList[ident]) return;
+  referenceAttribute(ident: BaseToken): GSError {
+    if (this._referencedAttributeList[ident.lexeme]) return;
 
-    const prop = this.attributeList.find((item) => item.ident.lexeme === ident);
+    const prop = this.attributeList.find((item) => item.ident.lexeme === ident.lexeme);
     if (!prop) {
-      Logger.error("referenced attribute not found:", ident);
-      return;
+      // #if _VERBOSE
+      return new GSError(
+        GSErrorName.CompilationError,
+        `referenced attribute not found: ${ident.lexeme}`,
+        ident.location,
+        ShaderLab._processingPassText
+      );
+      // #else
+      // @ts-ignore
+      throw new Error(`referenced attribute not found: ${ident.lexeme}`);
+      // #endif
     }
-    this._referencedAttributeList[ident] = prop;
+    this._referencedAttributeList[ident.lexeme] = prop;
   }
 
-  referenceVarying(ident: string) {
-    if (this._referencedVaryingList[ident]) return;
+  referenceVarying(ident: BaseToken): GSError | undefined {
+    if (this._referencedVaryingList[ident.lexeme]) return;
 
-    const prop = this.varyingStruct?.propList.find((item) => item.ident.lexeme === ident);
+    const prop = this.varyingStruct?.propList.find((item) => item.ident.lexeme === ident.lexeme);
     if (!prop) {
-      Logger.error("referenced varying not found:", ident);
-      return;
+      // #if _VERBOSE
+      return new GSError(
+        GSErrorName.CompilationError,
+        `referenced varying not found: ${ident.lexeme}`,
+        ident.location,
+        ShaderLab._processingPassText
+      );
+      // #else
+      // @ts-ignore
+      throw new Error(`referenced varying not found: ${ident.lexeme}`);
+      // #endif
     }
-    this._referencedVaryingList[ident] = prop;
+    this._referencedVaryingList[ident.lexeme] = prop;
   }
 
   referenceGlobal(ident: string, type: ESymbolType) {

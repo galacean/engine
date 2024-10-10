@@ -3,7 +3,7 @@ import { testCaseList } from "./test-case";
 import { ShaderLib } from "@galacean/engine-core";
 import { expect } from "chai";
 import { readFileSync } from "fs";
-import { Preprocessor } from "@galacean/engine-shader-lab";
+import { Preprocessor } from "@galacean/engine-shader-lab/verbose";
 import { join } from "path";
 
 const includedSource = readFileSync(join(__dirname, "test-case/included.txt")).toString();

@@ -1,11 +1,11 @@
 import { ETokenType } from "./types";
 import { ShaderRange, ShaderPosition } from ".";
 import { ShaderLab } from "../ShaderLab";
-import { ShaderLabObjectPool } from "../ShaderLabObjectPool";
 import { IPoolElement } from "@galacean/engine";
+import { ShaderLabUtils } from "../ShaderLabUtils";
 
 export class BaseToken<T extends number = number> implements IPoolElement {
-  static pool = new ShaderLabObjectPool<BaseToken>(BaseToken);
+  static pool = ShaderLabUtils.createObjectPool(BaseToken);
 
   type: T;
   lexeme: string;
@@ -20,13 +20,7 @@ export class BaseToken<T extends number = number> implements IPoolElement {
       if (arg instanceof ShaderRange) {
         this.location = arg as ShaderRange;
       } else {
-        const end = ShaderLab.createPosition(
-          arg.index + lexeme.length,
-          // #if _EDITOR
-          arg.line,
-          arg.column
-          // #endif
-        );
+        const end = ShaderLab.createPosition(arg.index + lexeme.length, arg.line, arg.column + lexeme.length);
         this.location = ShaderLab.createRange(arg, end);
       }
     }

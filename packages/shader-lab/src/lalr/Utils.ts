@@ -5,8 +5,7 @@ import { ENonTerminal, GrammarSymbol } from "../parser/GrammarSymbol";
 import Production from "./Production";
 import { ActionInfo, EAction } from "./types";
 import { ShaderLab } from "../ShaderLab";
-import { ShaderLabObjectPool } from "../ShaderLabObjectPool";
-import { IPoolElement } from "@galacean/engine";
+import { ClearableObjectPool, IPoolElement } from "@galacean/engine";
 import { NodeChild } from "../parser/types";
 
 export default class GrammarUtils {
@@ -25,8 +24,7 @@ export default class GrammarUtils {
     goal: ENonTerminal,
     options: GrammarSymbol[][],
     /** the ast node */
-    // astType?: ASTNodeConstructor
-    astTypePool?: ShaderLabObjectPool<
+    astTypePool?: ClearableObjectPool<
       { set: (loc: ShaderRange, children: NodeChild[]) => void } & IPoolElement & TreeNode
     >
   ) {
@@ -74,6 +72,7 @@ export default class GrammarUtils {
     return a.action === b.action && a.target === b.target;
   }
 
+  // #if _VERBOSE
   static printAction(actionInfo: ActionInfo) {
     return `<Action: ${EAction[actionInfo.action]} -> ${
       actionInfo.action === EAction.Reduce ? Production.pool.get(actionInfo.target!) : `State ${actionInfo.target!}`
@@ -84,4 +83,5 @@ export default class GrammarUtils {
     const deriv = production.derivation.map((gs) => GrammarUtils.toString(gs)).join("|");
     return `${ENonTerminal[production.goal]} :=> ${deriv}`;
   }
+  // #endif
 }

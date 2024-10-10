@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { ShaderLab } from "@galacean/engine-shader-lab";
-import { Shader, ShaderFactory, ShaderPass, ShaderPlatformTarget } from "@galacean/engine-core";
+import { Shader, ShaderFactory, ShaderPass, ShaderPlatformTarget, ShaderMacro } from "@galacean/engine-core";
 import { IShaderContent } from "@galacean/engine-design/src/shader-lab";
 
 function addLineNum(str: string) {
@@ -93,4 +93,31 @@ export function glslValidate(shaderSource, _shaderLab?: ShaderLab, includeMap = 
       validateShaderPass(pass, compiledPass.vertex, compiledPass.fragment);
     });
   });
+}
+
+export function shaderParse(
+  shaderSource: string,
+  macros: ShaderMacro[] = [],
+  backend: ShaderPlatformTarget = ShaderPlatformTarget.GLES100
+): (ReturnType<ShaderLab["_parseShaderPass"]> & { name: string })[] {
+  const structInfo = this._parseShaderContent(shaderSource);
+  const passResult = [] as any;
+  for (const subShader of structInfo.subShaders) {
+    for (const pass of subShader.passes) {
+      if (pass.isUsePass) continue;
+      const passInfo = this._parseShaderPass(
+        pass.contents,
+        pass.vertexEntry,
+        pass.fragmentEntry,
+        macros,
+        backend,
+        [],
+        // @ts-ignore
+        new URL(pass.name, ShaderPass._shaderRootPath).href
+      ) as any;
+      passInfo.name = pass.name;
+      passResult.push(passInfo);
+    }
+  }
+  return passResult;
 }

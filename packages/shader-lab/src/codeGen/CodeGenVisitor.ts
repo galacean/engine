@@ -1,17 +1,26 @@
 import { ENonTerminal } from "../parser/GrammarSymbol";
 import { BaseToken as Token } from "../common/BaseToken";
-import { EKeyword } from "../common";
+import { EKeyword, ShaderPosition, ShaderRange } from "../common";
 import { ASTNode, TreeNode } from "../parser/AST";
 import { ESymbolType, FnSymbol, VarSymbol } from "../parser/symbolTable";
-import { ParserUtils } from "../Utils";
+import { ParserUtils } from "../ParserUtils";
 import { NodeChild } from "../parser/types";
 import { VisitorContext } from "./VisitorContext";
+// #if _VERBOSE
+import { GSErrorName, GSError } from "../GSError";
+// #endif
+import { ShaderLab } from "../ShaderLab";
 
 /**
+ * @internal
  * The code generator
  */
 export class CodeGenVisitor {
-  protected constructor() {}
+  protected _errors: GSError[] = [];
+
+  get errors() {
+    return this._errors;
+  }
 
   defaultCodeGen(children: NodeChild[]) {
     let ret: string[] = [];
@@ -35,10 +44,16 @@ export class CodeGenVisitor {
 
       if (prop instanceof Token) {
         if (context.isAttributeStruct(<string>postExpr.type)) {
-          context.referenceAttribute(prop.lexeme);
+          const error = context.referenceAttribute(prop);
+          if (error) {
+            this._errors.push(error);
+          }
           return prop.lexeme;
         } else if (context.isVaryingStruct(<string>postExpr.type)) {
-          context.referenceVarying(prop.lexeme);
+          const error = context.referenceVarying(prop);
+          if (error) {
+            this._errors.push(error);
+          }
           return prop.lexeme;
         }
 
@@ -171,5 +186,13 @@ export class CodeGenVisitor {
 
   visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {
     return this.defaultCodeGen(node.children);
+  }
+
+  protected reportError(loc: ShaderRange | ShaderPosition, message: string): void {
+    // #if _VERBOSE
+    this._errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderLab._processingPassText));
+    // #else
+    throw new Error(message);
+    // #endif
   }
 }

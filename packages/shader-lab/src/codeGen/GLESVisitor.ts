@@ -5,8 +5,8 @@ import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo } from "../parser/symbo
 import { EShaderStage } from "../common/Enums";
 import { IShaderInfo } from "@galacean/engine-design";
 import { ICodeSegment } from "./types";
-import { Logger } from "@galacean/engine";
 import { VisitorContext } from "./VisitorContext";
+import { EKeyword } from "../common";
 
 const defaultPrecision = `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -18,6 +18,9 @@ const defaultPrecision = `
 #endif
 `;
 
+/**
+ * @internal
+ */
 export abstract class GLESVisitor extends CodeGenVisitor {
   protected _versionText: string = "";
   protected _extensions: string = "";
@@ -26,6 +29,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   abstract getVaryingDeclare(): ICodeSegment[];
 
   visitShaderProgram(node: ASTNode.GLShaderProgram, vertexEntry: string, fragmentEntry: string): IShaderInfo {
+    this._errors.length = 0;
     VisitorContext.reset();
     VisitorContext.context._passSymbolTable = node.shaderData.symbolTable;
 
@@ -44,15 +48,15 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     VisitorContext.context.stage = EShaderStage.VERTEX;
 
     const returnType = fnNode.protoType.returnType;
-    if (typeof returnType.type !== "string") {
-      Logger.warn("main entry can only return struct.");
-    } else {
+    if (typeof returnType.type === "string") {
       const varyStruct = symbolTable.lookup<StructSymbol>({ ident: returnType.type, symbolType: ESymbolType.STRUCT });
       if (!varyStruct) {
-        Logger.warn("invalid varying struct:", returnType.type);
+        this.reportError(returnType.location, `invalid varying struct: ${returnType.type}`);
       } else {
         VisitorContext.context.varyingStruct = varyStruct.astNode;
       }
+    } else if (returnType.type !== EKeyword.VOID) {
+      this.reportError(returnType.location, "main entry can only return struct.");
     }
 
     const paramList = fnNode.protoType.parameterList;
@@ -64,7 +68,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
             symbolType: ESymbolType.STRUCT
           });
           if (!structSymbol) {
-            Logger.warn("no attribute struct found.");
+            this.reportError(paramInfo.astNode.location, `Not found attribute struct "${paramInfo.typeInfo.type}".`);
             continue;
           }
           VisitorContext.context.attributeStructs.push(structSymbol.astNode);
