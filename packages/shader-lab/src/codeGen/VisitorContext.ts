@@ -7,6 +7,7 @@ import { GSErrorName, GSError } from "../GSError";
 // #endif
 import { BaseToken } from "../common/BaseToken";
 import { ShaderLab } from "../ShaderLab";
+import { ShaderLabUtils } from "../ShaderLabUtils";
 
 /** @internal */
 export class VisitorContext {
@@ -63,17 +64,12 @@ export class VisitorContext {
 
     const prop = this.attributeList.find((item) => item.ident.lexeme === ident.lexeme);
     if (!prop) {
-      // #if _VERBOSE
-      return new GSError(
-        GSErrorName.CompilationError,
+      return ShaderLabUtils.createGSError(
         `referenced attribute not found: ${ident.lexeme}`,
-        ident.location,
-        ShaderLab._processingPassText
+        GSErrorName.CompilationError,
+        ShaderLab._processingPassText,
+        ident.location
       );
-      // #else
-      // @ts-ignore
-      throw new Error(`referenced attribute not found: ${ident.lexeme}`);
-      // #endif
     }
     this._referencedAttributeList[ident.lexeme] = prop;
   }
@@ -83,17 +79,12 @@ export class VisitorContext {
 
     const prop = this.varyingStruct?.propList.find((item) => item.ident.lexeme === ident.lexeme);
     if (!prop) {
-      // #if _VERBOSE
-      return new GSError(
-        GSErrorName.CompilationError,
+      return ShaderLabUtils.createGSError(
         `referenced varying not found: ${ident.lexeme}`,
-        ident.location,
-        ShaderLab._processingPassText
+        GSErrorName.CompilationError,
+        ShaderLab._processingPassText,
+        ident.location
       );
-      // #else
-      // @ts-ignore
-      throw new Error(`referenced varying not found: ${ident.lexeme}`);
-      // #endif
     }
     this._referencedVaryingList[ident.lexeme] = prop;
   }

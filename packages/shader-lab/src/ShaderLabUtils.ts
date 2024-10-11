@@ -1,4 +1,7 @@
 import { ClearableObjectPool, IPoolElement } from "@galacean/engine";
+import { GSError, GSErrorName } from "./GSError";
+import { ShaderRange } from "./common/ShaderRange";
+import { ShaderPosition } from "./common/ShaderPosition";
 
 export class ShaderLabUtils {
   private static _shaderLabObjectPoolSet: ClearableObjectPool<IPoolElement>[] = [];
@@ -13,5 +16,19 @@ export class ShaderLabUtils {
     for (let i = 0; i < ShaderLabUtils._shaderLabObjectPoolSet.length; i++) {
       ShaderLabUtils._shaderLabObjectPoolSet[i].clear();
     }
+  }
+
+  static createGSError(
+    message: string,
+    errorName: GSErrorName,
+    source: string,
+    location: ShaderRange | ShaderPosition,
+    file?: string
+  ) {
+    // #if _VERBOSE
+    return new GSError(errorName, message, location, source, file);
+    // #else
+    throw new Error(message);
+    // #endif
   }
 }

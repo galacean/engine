@@ -16,11 +16,9 @@ import { ShaderLab } from "../ShaderLab";
  * The code generator
  */
 export class CodeGenVisitor {
-  protected _errors: GSError[] = [];
-
-  get errors() {
-    return this._errors;
-  }
+  // #if _VERBOSE
+  readonly errors: GSError[] = [];
+  // #endif
 
   defaultCodeGen(children: NodeChild[]) {
     let ret: string[] = [];
@@ -45,15 +43,19 @@ export class CodeGenVisitor {
       if (prop instanceof Token) {
         if (context.isAttributeStruct(<string>postExpr.type)) {
           const error = context.referenceAttribute(prop);
+          // #if _VERBOSE
           if (error) {
-            this._errors.push(error);
+            this.errors.push(error);
           }
+          // #endif
           return prop.lexeme;
         } else if (context.isVaryingStruct(<string>postExpr.type)) {
           const error = context.referenceVarying(prop);
+          // #if _VERBOSE
           if (error) {
-            this._errors.push(error);
+            this.errors.push(error);
           }
+          // #endif
           return prop.lexeme;
         }
 
@@ -190,7 +192,7 @@ export class CodeGenVisitor {
 
   protected reportError(loc: ShaderRange | ShaderPosition, message: string): void {
     // #if _VERBOSE
-    this._errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderLab._processingPassText));
+    this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderLab._processingPassText));
     // #else
     throw new Error(message);
     // #endif

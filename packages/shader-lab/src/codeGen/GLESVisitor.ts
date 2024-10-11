@@ -29,7 +29,9 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   abstract getVaryingDeclare(): ICodeSegment[];
 
   visitShaderProgram(node: ASTNode.GLShaderProgram, vertexEntry: string, fragmentEntry: string): IShaderInfo {
-    this._errors.length = 0;
+    // #if _VERBOSE
+    this.errors.length = 0;
+    // #endif
     VisitorContext.reset();
     VisitorContext.context._passSymbolTable = node.shaderData.symbolTable;
 

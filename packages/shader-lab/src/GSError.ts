@@ -18,16 +18,16 @@ export class GSError extends Error {
 
   override toString(): string {
     let start: ShaderPosition, end: ShaderPosition;
-    const { message, location: loc, source } = this;
+    const { message, location, source } = this;
     if (!source) {
       return message;
     }
 
-    if (loc instanceof ShaderPosition) {
-      start = end = loc;
+    if (location instanceof ShaderPosition) {
+      start = end = location;
     } else {
-      start = loc.start;
-      end = loc.end;
+      start = location.start;
+      end = location.end;
     }
     const lines = source.split("\n");
 

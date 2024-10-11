@@ -243,16 +243,16 @@ describe("ShaderLab", () => {
     const errorShader = fs.readFileSync(path.join(__dirname, "shaders/compilation-error.shader")).toString();
     shaderParse.bind(shaderLabVerbose)(errorShader);
     // @ts-ignore
-    expect(shaderLabVerbose._errors.length).to.eq(3);
+    expect(shaderLabVerbose.errors.length).to.eq(3);
     // @ts-ignore
-    assert.instanceOf(shaderLabVerbose._errors[0], GSError);
+    assert.instanceOf(shaderLabVerbose.errors[0], GSError);
     // @ts-ignore
-    assert.instanceOf(shaderLabVerbose._errors[1], GSError);
+    assert.instanceOf(shaderLabVerbose.errors[1], GSError);
     // @ts-ignore
-    assert.instanceOf(shaderLabVerbose._errors[2], GSError);
+    assert.instanceOf(shaderLabVerbose.errors[2], GSError);
 
     // @ts-ignore
-    for (const err of shaderLabVerbose._errors) {
+    for (const err of shaderLabVerbose.errors) {
       console.log(err.toString());
     }
 

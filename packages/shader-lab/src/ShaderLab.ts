@@ -5,7 +5,7 @@ import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { IShaderContent, IShaderLab } from "@galacean/engine-design";
 import { ShaderContentParser } from "./contentParser";
 // @ts-ignore
-import { Logger, ShaderLib, ShaderMacro, ShaderPass, ShaderPlatformTarget } from "@galacean/engine";
+import { Logger, ShaderLib, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
 import { ShaderPosition, ShaderRange } from "./common";
 // #if _VERBOSE
 import { GSError } from "./GSError";
@@ -19,11 +19,19 @@ export class ShaderLab implements IShaderLab {
   private static _shaderPositionPool = ShaderLabUtils.createObjectPool(ShaderPosition);
   private static _shaderRangePool = ShaderLabUtils.createObjectPool(ShaderRange);
 
+  // #if _VERBOSE
   static _processingPassText?: string;
+  // #endif
 
   static createPosition(index: number, line?: number, column?: number): ShaderPosition {
     const position = this._shaderPositionPool.get();
-    position.set(index, line, column);
+    position.set(
+      index,
+      // #if _VERBOSE
+      line,
+      column
+      // #endif
+    );
     return position;
   }
 
@@ -34,14 +42,8 @@ export class ShaderLab implements IShaderLab {
   }
 
   // #if _VERBOSE
-  private _errors: GSError[] = [];
-
-  /**
-   * Retrieve the compilation errors
-   */
-  get errors(): GSError[] {
-    return this._errors;
-  }
+  /** Retrieve the compilation errors */
+  readonly errors: GSError[] = [];
   // #endif
 
   _parseShaderPass(
@@ -67,7 +69,7 @@ export class ShaderLab implements IShaderLab {
     // #if _VERBOSE
     if (PpParser._errors.length > 0) {
       for (const err of PpParser._errors) {
-        this._errors.push(<GSError>err);
+        this.errors.push(<GSError>err);
       }
       this._logErrors();
       return { vertex: "", fragment: "" };
@@ -86,7 +88,7 @@ export class ShaderLab implements IShaderLab {
 
     // #if _VERBOSE
     for (const err of parser.errors) {
-      this._errors.push(err);
+      this.errors.push(err);
     }
     if (!program) {
       this._logErrors();
@@ -104,7 +106,7 @@ export class ShaderLab implements IShaderLab {
 
     // #if _VERBOSE
     for (const err of codeGen.errors) {
-      this._errors.push(err);
+      this.errors.push(err);
     }
     this._logErrors();
     // #endif
@@ -115,13 +117,15 @@ export class ShaderLab implements IShaderLab {
   _parseShaderContent(shaderSource: string): IShaderContent {
     ShaderLabUtils.clearAllShaderLabObjectPool();
     ShaderContentParser.reset();
-    // #if _VERBOSE
-    this._errors.length = 0;
-    // #endif
     const ret = ShaderContentParser.parse(shaderSource);
+
+    // #if _VERBOSE
+    this.errors.length = 0;
     for (const error of ShaderContentParser._errors) {
-      this._errors.push(error);
+      this.errors.push(error);
     }
+    // #endif
+
     return ret;
   }
 
@@ -130,7 +134,7 @@ export class ShaderLab implements IShaderLab {
    * @internal
    */
   _logErrors() {
-    const errors = this._errors;
+    const errors = this.errors;
     if (errors.length === 0 || !Logger.isEnabled) return;
     Logger.error(`${errors.length} errors occur!`);
     for (const err of errors) {

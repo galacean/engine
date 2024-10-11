@@ -5,6 +5,7 @@ import { GSError, GSErrorName } from "../GSError";
 // #endif
 import { ShaderLab } from "../ShaderLab";
 import { BaseToken } from "./BaseToken";
+import { ShaderLabUtils } from "../ShaderLabUtils";
 
 export type OnToken = (token: BaseToken, scanner: BaseScanner) => void;
 
@@ -27,8 +28,10 @@ export default class BaseScanner {
   protected _currentIndex = 0;
   protected _source: string;
 
+  // #if _VERBOSE
   protected _column = 0;
   protected _line = 0;
+  // #endif
 
   get current(): number {
     return this._currentIndex;
@@ -38,8 +41,14 @@ export default class BaseScanner {
     return this._source;
   }
 
-  get curPosition(): ShaderPosition {
-    return ShaderLab.createPosition(this._currentIndex, this._line, this._column);
+  getCurPosition(): ShaderPosition {
+    return ShaderLab.createPosition(
+      this._currentIndex,
+      // #if _VERBOSE
+      this._line,
+      this._column
+      // #endif
+    );
   }
 
   get line() {
@@ -98,20 +107,20 @@ export default class BaseScanner {
   skipCommentsAndSpace(): ShaderRange | undefined {
     this.skipSpace(true);
     if (this.peek(2) === "//") {
-      const start = this.curPosition;
+      const start = this.getCurPosition();
       this.advance(2);
       // single line comments
       while (this.getCurChar() !== "\n") this._advance();
       this.skipCommentsAndSpace();
-      return ShaderLab.createRange(start, this.curPosition);
+      return ShaderLab.createRange(start, this.getCurPosition());
     } else if (this.peek(2) === "/*") {
-      const start = this.curPosition;
+      const start = this.getCurPosition();
       this.advance(2);
       //  multi-line comments
       while (this.peek(2) !== "*/" && !this.isEnd()) this._advance();
       this.advance(2);
       this.skipCommentsAndSpace();
-      return ShaderLab.createRange(start, this.curPosition);
+      return ShaderLab.createRange(start, this.getCurPosition());
     }
   }
 
@@ -124,19 +133,14 @@ export default class BaseScanner {
     this.skipCommentsAndSpace();
     const peek = this.peek(text.length);
     if (peek !== text) {
-      this.throwError(this.curPosition, `Expect text "${text}", but got "${peek}"`);
+      this.throwError(this.getCurPosition(), `Expect text "${text}", but got "${peek}"`);
     }
     this.advance(text.length);
   }
 
   throwError(pos: ShaderPosition | ShaderRange, ...msgs: any[]) {
-    // #if _VERBOSE
-    const error = new GSError(GSErrorName.ScannerError, msgs.join(" "), pos, this._source);
-    Logger.error(error.toString());
+    const error = ShaderLabUtils.createGSError(msgs.join(" "), GSErrorName.ScannerError, this._source, pos);
     throw error;
-    // #else
-    throw new Error(msgs.join(""));
-    // #endif
   }
 
   scanPairedText(left: string, right: string, balanced = false, skipLeading = false) {
@@ -167,10 +171,10 @@ export default class BaseScanner {
 
   scanToken(onToken?: OnToken, splitCharRegex = /\w/) {
     this.skipCommentsAndSpace();
-    const start = this.curPosition;
+    const start = this.getCurPosition();
     if (this.isEnd()) return;
     while (splitCharRegex.test(this.getCurChar()) && !this.isEnd()) this._advance();
-    const end = this.curPosition;
+    const end = this.getCurPosition();
 
     if (start.index === end.index) {
       this._advance();

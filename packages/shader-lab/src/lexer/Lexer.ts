@@ -12,7 +12,9 @@ export class Lexer extends BaseScanner {
   reset(source: string) {
     this._source = source;
     this._currentIndex = 0;
+    // #if _VERBOSE
     this._line = this._column = 0;
+    // #endif
   }
 
   *tokenize() {
@@ -276,7 +278,7 @@ export class Lexer extends BaseScanner {
         return this._scanStringConst();
 
       default:
-        this.throwError(this.curPosition, `Unexpected character ${this.getCurChar()}`);
+        this.throwError(this.getCurPosition(), `Unexpected character ${this.getCurChar()}`);
     }
     return token;
   }
@@ -383,7 +385,7 @@ export class Lexer extends BaseScanner {
         this.advance();
       }
       if (!LexerUtils.isNum(this.getCurChar()))
-        this.throwError(this.curPosition, "lexing error, invalid exponent suffix.");
+        this.throwError(this.getCurPosition(), "lexing error, invalid exponent suffix.");
       while (LexerUtils.isNum(this.getCurChar())) {
         buffer.push(this.getCurChar());
         this.advance();

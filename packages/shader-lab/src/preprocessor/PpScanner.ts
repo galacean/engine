@@ -101,7 +101,13 @@ export default class PpScanner extends BaseScanner {
   }
 
   getShaderPosition(offset /** offset from starting point */ = 0) {
-    return ShaderLab.createPosition(this._currentIndex - offset, this.line, this.column - offset);
+    return ShaderLab.createPosition(
+      this._currentIndex - offset,
+      // #if _VERBOSE
+      this.line,
+      this.column - offset
+      // #endif
+    );
   }
 
   /**
@@ -292,7 +298,7 @@ export default class PpScanner extends BaseScanner {
       while (this.getCurChar() !== "\n" && !this.isEnd()) {
         this._advance();
       }
-      return ShaderLab.createRange(start, this.curPosition);
+      return ShaderLab.createRange(start, this.getCurPosition());
     } else if (this.peek(2) === "/*") {
       const start = this.getShaderPosition();
       //  multi-line comments

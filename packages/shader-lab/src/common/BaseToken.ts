@@ -20,7 +20,13 @@ export class BaseToken<T extends number = number> implements IPoolElement {
       if (arg instanceof ShaderRange) {
         this.location = arg as ShaderRange;
       } else {
-        const end = ShaderLab.createPosition(arg.index + lexeme.length, arg.line, arg.column + lexeme.length);
+        const end = ShaderLab.createPosition(
+          arg.index + lexeme.length,
+          // #if _VERBOSE
+          arg.line,
+          arg.column + lexeme.length
+          // #endif
+        );
         this.location = ShaderLab.createRange(arg, end);
       }
     }
