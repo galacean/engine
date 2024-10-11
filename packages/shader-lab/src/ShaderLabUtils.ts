@@ -13,7 +13,7 @@ export class ShaderLabUtils {
   }
 
   static clearAllShaderLabObjectPool() {
-    for (let i = 0; i < ShaderLabUtils._shaderLabObjectPoolSet.length; i++) {
+    for (let i = 0, n = ShaderLabUtils._shaderLabObjectPoolSet.length; i < n; i++) {
       ShaderLabUtils._shaderLabObjectPoolSet[i].clear();
     }
   }
