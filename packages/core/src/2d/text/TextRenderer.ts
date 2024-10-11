@@ -6,7 +6,7 @@ import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManage
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
-import { Renderer } from "../../Renderer";
+import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { TransformModifyFlags } from "../../Transform";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderData, ShaderProperty } from "../../shader";
@@ -32,16 +32,10 @@ export class TextRenderer extends Renderer {
   private static _worldPositions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   private static _charRenderInfos: CharRenderInfo[] = [];
 
-  /** @internal */
   @ignoreClone
-  _textChunks = Array<TextChunk>();
-  /** @internal */
+  private _textChunks = Array<TextChunk>();
   @assignmentClone
-  _subFont: SubFont = null;
-  /** @internal */
-  @ignoreClone
-  _dirtyFlag: number = DirtyFlag.Font;
-
+  private _subFont: SubFont = null;
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
   @assignmentClone
@@ -50,8 +44,6 @@ export class TextRenderer extends Renderer {
   private _width: number = 0;
   @assignmentClone
   private _height: number = 0;
-  @ignoreClone
-  private _localBounds: BoundingBox = new BoundingBox();
   @assignmentClone
   private _font: Font = null;
   @assignmentClone
@@ -93,7 +85,7 @@ export class TextRenderer extends Renderer {
     value = value || "";
     if (this._text !== value) {
       this._text = value;
-      this._setDirtyFlagTrue(DirtyFlag.Position);
+      this._setDirtyFlagTrue(TextRendererUpdateFlag.PositionAndBounds);
     }
   }
 
@@ -107,7 +99,7 @@ export class TextRenderer extends Renderer {
   set width(value: number) {
     if (this._width !== value) {
       this._width = value;
-      this._setDirtyFlagTrue(DirtyFlag.Position);
+      this._setDirtyFlagTrue(TextRendererUpdateFlag.PositionAndBounds);
     }
   }
 
@@ -121,7 +113,7 @@ export class TextRenderer extends Renderer {
   set height(value: number) {
     if (this._height !== value) {
       this._height = value;
-      this._setDirtyFlagTrue(DirtyFlag.Position);
+      this._setDirtyFlagTrue(TextRendererUpdateFlag.PositionAndBounds);
     }
   }
 
@@ -138,7 +130,7 @@ export class TextRenderer extends Renderer {
       lastFont && this._addResourceReferCount(lastFont, -1);
       value && this._addResourceReferCount(value, 1);
       this._font = value;
-      this._setDirtyFlagTrue(DirtyFlag.Font);
+      this._setDirtyFlagTrue(TextRendererUpdateFlag.FontPositionAndBounds);
     }
   }
 
@@ -152,7 +144,7 @@ export class TextRenderer extends Renderer {
   set fontSize(value: number) {
     if (this._fontSize !== value) {
       this._fontSize = value;
-      this._setDirtyFlagTrue(DirtyFlag.Font);
+      this._setDirtyFlagTrue(TextRendererUpdateFlag.FontPositionAndBounds);
     }
   }
 
@@ -166,7 +158,7 @@ export class TextRenderer extends Renderer {
   set fontStyle(value: FontStyle) {
     if (this.fontStyle !== value) {
       this._fontStyle = value;
-      this._setDirtyFlagTrue(DirtyFlag.Font);
+      this._setDirtyFlagTrue(TextRendererUpdateFlag.FontPositionAndBounds);
     }
   }
 
@@ -180,7 +172,7 @@ export class TextRenderer extends Renderer {
   set lineSpacing(value: number) {
     if (this._lineSpacing !== value) {
       this._lineSpacing = value;
-      this._setDirtyFlagTrue(DirtyFlag.Position);
+      this._setDirtyFlagTrue(TextRendererUpdateFlag.PositionAndBounds);
     }
   }
 
@@ -194,7 +186,7 @@ export class TextRenderer extends Renderer {
   set horizontalAlignment(value: TextHorizontalAlignment) {
     if (this._horizontalAlignment !== value) {
       this._horizontalAlignment = value;
-      this._setDirtyFlagTrue(DirtyFlag.Position);
+      this._setDirtyFlagTrue(TextRendererUpdateFlag.PositionAndBounds);
     }
   }
 
@@ -208,7 +200,7 @@ export class TextRenderer extends Renderer {
   set verticalAlignment(value: TextVerticalAlignment) {
     if (this._verticalAlignment !== value) {
       this._verticalAlignment = value;
-      this._setDirtyFlagTrue(DirtyFlag.Position);
+      this._setDirtyFlagTrue(TextRendererUpdateFlag.PositionAndBounds);
     }
   }
 
@@ -222,7 +214,7 @@ export class TextRenderer extends Renderer {
   set enableWrapping(value: boolean) {
     if (this._enableWrapping !== value) {
       this._enableWrapping = value;
-      this._setDirtyFlagTrue(DirtyFlag.Position);
+      this._setDirtyFlagTrue(TextRendererUpdateFlag.PositionAndBounds);
     }
   }
 
@@ -236,7 +228,7 @@ export class TextRenderer extends Renderer {
   set overflowMode(value: OverflowMode) {
     if (this._overflowMode !== value) {
       this._overflowMode = value;
-      this._setDirtyFlagTrue(DirtyFlag.Position);
+      this._setDirtyFlagTrue(TextRendererUpdateFlag.PositionAndBounds);
     }
   }
 
@@ -248,10 +240,7 @@ export class TextRenderer extends Renderer {
   }
 
   set maskInteraction(value: SpriteMaskInteraction) {
-    if (this._maskInteraction !== value) {
-      this._maskInteraction = value;
-      this._setDirtyFlagTrue(DirtyFlag.MaskInteraction);
-    }
+    this._maskInteraction = value;
   }
 
   /**
@@ -265,27 +254,13 @@ export class TextRenderer extends Renderer {
     this._maskLayer = value;
   }
 
-  /**
-   * The bounding volume of the TextRenderer.
-   */
-  override get bounds(): BoundingBox {
+  protected override _updateLocalBounds(localBounds: BoundingBox): void {
     if (this._isTextNoVisible()) {
-      if (this._isContainDirtyFlag(DirtyFlag.WorldBounds)) {
-        const localBounds = this._localBounds;
-        localBounds.min.set(0, 0, 0);
-        localBounds.max.set(0, 0, 0);
-        this._updateBounds(this._bounds);
-        this._setDirtyFlagFalse(DirtyFlag.WorldBounds);
-      }
-      return this._bounds;
+      localBounds.min.set(0, 0, 0);
+      localBounds.max.set(0, 0, 0);
+    } else {
+      this._updateLocalData();
     }
-    this._isContainDirtyFlag(DirtyFlag.SubFont) && this._resetSubFont();
-    this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds) && this._updateLocalData();
-    this._isContainDirtyFlag(DirtyFlag.WorldPosition) && this._updatePosition();
-    this._isContainDirtyFlag(DirtyFlag.WorldBounds) && this._updateBounds(this._bounds);
-    this._setDirtyFlagFalse(DirtyFlag.Font);
-
-    return this._bounds;
   }
 
   constructor(entity: Entity) {
@@ -322,36 +297,39 @@ export class TextRenderer extends Renderer {
   override _cloneTo(target: TextRenderer, srcRoot: Entity, targetRoot: Entity): void {
     super._cloneTo(target, srcRoot, targetRoot);
     target.font = this._font;
-    target._subFont = this._subFont;
+    target._subFont = this._getSubFont();
   }
 
   /**
    * @internal
    */
   _isContainDirtyFlag(type: number): boolean {
-    return (this._dirtyFlag & type) != 0;
+    return (this._dirtyUpdateFlag & type) != 0;
   }
 
   /**
    * @internal
    */
   _setDirtyFlagTrue(type: number): void {
-    this._dirtyFlag |= type;
+    this._dirtyUpdateFlag |= type;
   }
 
   /**
    * @internal
    */
   _setDirtyFlagFalse(type: number): void {
-    this._dirtyFlag &= ~type;
+    this._dirtyUpdateFlag &= ~type;
   }
 
   /**
    * @internal
    */
   _getSubFont(): SubFont {
-    if (!this._subFont) {
-      this._resetSubFont();
+    if (this._dirtyUpdateFlag & TextRendererUpdateFlag.SubFont) {
+      const { fontSize, fontStyle, _font: font } = this;
+      this._subFont = font._getSubFont(fontSize, fontStyle);
+      this._subFont.nativeFontString = TextUtils.getNativeFontString(font.name, fontSize, fontStyle);
+      this._setDirtyFlagFalse(TextRendererUpdateFlag.SubFont);
     }
     return this._subFont;
   }
@@ -385,38 +363,24 @@ export class TextRenderer extends Renderer {
     return this.engine._batcherManager.primitiveChunkManager2D;
   }
 
-  protected override _updateBounds(worldBounds: BoundingBox): void {
-    BoundingBox.transform(this._localBounds, this._entity.transform.worldMatrix, worldBounds);
-  }
-
   protected override _render(context: RenderContext): void {
     if (this._isTextNoVisible()) {
       return;
     }
 
-    if (this._isContainDirtyFlag(DirtyFlag.MaskInteraction)) {
-      this._updateStencilState();
-      this._setDirtyFlagFalse(DirtyFlag.MaskInteraction);
-    }
-
-    if (this._isContainDirtyFlag(DirtyFlag.SubFont)) {
-      this._resetSubFont();
-      this._setDirtyFlagFalse(DirtyFlag.SubFont);
-    }
-
-    if (this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds)) {
+    if (this._isContainDirtyFlag(TextRendererUpdateFlag.LocalPosition)) {
       this._updateLocalData();
-      this._setDirtyFlagFalse(DirtyFlag.LocalPositionBounds);
+      this._setDirtyFlagFalse(TextRendererUpdateFlag.LocalPositionAndLocalBounds);
     }
 
-    if (this._isContainDirtyFlag(DirtyFlag.WorldPosition)) {
+    if (this._isContainDirtyFlag(TextRendererUpdateFlag.WorldPosition)) {
       this._updatePosition();
-      this._setDirtyFlagFalse(DirtyFlag.WorldPosition);
+      this._setDirtyFlagFalse(TextRendererUpdateFlag.WorldPosition);
     }
 
-    if (this._isContainDirtyFlag(DirtyFlag.Color)) {
+    if (this._isContainDirtyFlag(TextRendererUpdateFlag.Color)) {
       this._updateColor();
-      this._setDirtyFlagFalse(DirtyFlag.Color);
+      this._setDirtyFlagFalse(TextRendererUpdateFlag.Color);
     }
 
     const camera = context.camera;
@@ -435,35 +399,6 @@ export class TextRenderer extends Renderer {
       renderElement.addSubRenderElement(subRenderElement);
     }
     camera._renderPipeline.pushRenderElement(context, renderElement);
-  }
-
-  private _updateStencilState(): void {
-    const material = this.getInstanceMaterial();
-    const stencilState = material.renderState.stencilState;
-    const maskInteraction = this._maskInteraction;
-
-    if (maskInteraction === SpriteMaskInteraction.None) {
-      stencilState.enabled = false;
-      stencilState.writeMask = 0xff;
-      stencilState.referenceValue = 0;
-      stencilState.compareFunctionFront = stencilState.compareFunctionBack = CompareFunction.Always;
-    } else {
-      stencilState.enabled = true;
-      stencilState.writeMask = 0x00;
-      stencilState.referenceValue = 1;
-      const compare =
-        maskInteraction === SpriteMaskInteraction.VisibleInsideMask
-          ? CompareFunction.LessEqual
-          : CompareFunction.Greater;
-      stencilState.compareFunctionFront = compare;
-      stencilState.compareFunctionBack = compare;
-    }
-  }
-
-  private _resetSubFont(): void {
-    const font = this._font;
-    this._subFont = font._getSubFont(this.fontSize, this.fontStyle);
-    this._subFont.nativeFontString = TextUtils.getNativeFontString(font.name, this.fontSize, this.fontStyle);
   }
 
   private _updatePosition(): void {
@@ -541,7 +476,7 @@ export class TextRenderer extends Renderer {
   private _updateLocalData(): void {
     const { min, max } = this._localBounds;
     const charRenderInfos = TextRenderer._charRenderInfos;
-    const charFont = this._subFont;
+    const charFont = this._getSubFont();
     const textMetrics = this.enableWrapping
       ? TextUtils.measureTextWithWrap(this)
       : TextUtils.measureTextWithoutWrap(this);
@@ -683,8 +618,7 @@ export class TextRenderer extends Renderer {
    * @internal
    */
   protected override _onTransformChanged(bit: TransformModifyFlags): void {
-    super._onTransformChanged(bit);
-    this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
+    this._setDirtyFlagTrue(TextRendererUpdateFlag.WorldPositionAndWorldBounds);
   }
 
   private _isTextNoVisible(): boolean {
@@ -747,7 +681,7 @@ export class TextRenderer extends Renderer {
 
   @ignoreClone
   private _onColorChanged(): void {
-    this._setDirtyFlagTrue(DirtyFlag.Color);
+    this._setDirtyFlagTrue(TextRendererUpdateFlag.Color);
   }
 }
 
@@ -757,14 +691,21 @@ class TextChunk {
   texture: Texture2D;
 }
 
-enum DirtyFlag {
-  SubFont = 0x1,
-  LocalPositionBounds = 0x2,
-  WorldPosition = 0x4,
-  WorldBounds = 0x8,
-  MaskInteraction = 0x10,
+/**
+ * @remarks Extends `RendererUpdateFlags`.
+ */
+enum TextRendererUpdateFlag {
+  SubFont = 0x4,
+  LocalPosition = 0x8,
+  WorldPosition = 0x10,
   Color = 0x20,
 
-  Position = LocalPositionBounds | WorldPosition | WorldBounds,
-  Font = SubFont | Position
+  LocalPositionAndLocalBounds = LocalPosition | RendererUpdateFlags.LocalBounds,
+  WorldPositionAndWorldBounds = WorldPosition | RendererUpdateFlags.WorldBounds,
+  PositionAndBounds = LocalPosition | WorldPosition | RendererUpdateFlags.LocalBounds | RendererUpdateFlags.WorldBounds,
+  FontPositionAndBounds = SubFont |
+    LocalPosition |
+    WorldPosition |
+    RendererUpdateFlags.LocalBounds |
+    RendererUpdateFlags.WorldBounds
 }

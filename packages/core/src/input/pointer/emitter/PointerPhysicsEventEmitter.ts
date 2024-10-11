@@ -12,9 +12,10 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
   protected _draggedEntity: Entity;
 
   override _processRaycast(scenes: readonly Scene[], pointer: Pointer): void {
-    const { _tempRay: ray, _tempHitResult: hitResult } = PointerEventEmitter;
+    const { _tempRay: ray } = PointerEventEmitter;
     const { position } = pointer;
     const { x, y } = position;
+    const hitResult = this._hitResult;
     for (let i = scenes.length - 1; i >= 0; i--) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) {

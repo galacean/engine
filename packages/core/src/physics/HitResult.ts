@@ -1,5 +1,6 @@
-import { Entity } from "../Entity";
 import { Vector3 } from "@galacean/engine-math";
+import { Component } from "../Component";
+import { Entity } from "../Entity";
 import { ColliderShape } from "./shape";
 
 /**
@@ -15,5 +16,5 @@ export class HitResult {
   /** The normal of the surface the ray hit. */
   normal: Vector3 = new Vector3();
   /** The shape of the collider that was hit. */
-  shape: ColliderShape = null;
+  shape: ColliderShape | Component = null;
 }

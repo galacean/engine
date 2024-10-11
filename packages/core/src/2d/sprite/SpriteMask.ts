@@ -7,7 +7,7 @@ import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
-import { Renderer, RendererUpdateFlags } from "../../Renderer";
+import { Renderer } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
@@ -76,7 +76,7 @@ export class SpriteMask extends Renderer {
   set width(value: number) {
     if (this._customWidth !== value) {
       this._customWidth = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.PositionAndAllBounds;
     }
   }
 
@@ -99,7 +99,7 @@ export class SpriteMask extends Renderer {
   set height(value: number) {
     if (this._customHeight !== value) {
       this._customHeight = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.PositionAndAllBounds;
     }
   }
 
@@ -113,7 +113,7 @@ export class SpriteMask extends Renderer {
   set flipX(value: boolean) {
     if (this._flipX !== value) {
       this._flipX = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.PositionAndAllBounds;
     }
   }
 
@@ -127,7 +127,7 @@ export class SpriteMask extends Renderer {
   set flipY(value: boolean) {
     if (this._flipY !== value) {
       this._flipY = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.PositionAndAllBounds;
     }
   }
 
@@ -237,13 +237,13 @@ export class SpriteMask extends Renderer {
     return this.engine._batcherManager.primitiveChunkManagerMask;
   }
 
-  protected override _updateBounds(worldBounds: BoundingBox): void {
+  protected override _updateLocalBounds(localBounds: BoundingBox): void {
     const { sprite } = this;
     if (sprite) {
       SimpleSpriteAssembler.updatePositions(this, this.width, this.height, sprite.pivot, this._flipX, this._flipY);
     } else {
-      worldBounds.min.set(0, 0, 0);
-      worldBounds.max.set(0, 0, 0);
+      localBounds.min.set(0, 0, 0);
+      localBounds.max.set(0, 0, 0);
     }
   }
 
@@ -267,9 +267,9 @@ export class SpriteMask extends Renderer {
     }
 
     // Update position
-    if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
+    if (this._dirtyUpdateFlag & SpriteMaskUpdateFlags.Position) {
       SimpleSpriteAssembler.updatePositions(this, this.width, this.height, sprite.pivot, this._flipX, this._flipY);
-      this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.Position;
     }
 
     // Update uv
@@ -330,7 +330,7 @@ export class SpriteMask extends Renderer {
       case SpriteModifyFlags.size:
         this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.AutomaticSize;
         if (this._customWidth === undefined || this._customHeight === undefined) {
-          this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+          this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.PositionAndAllBounds;
         }
         break;
       case SpriteModifyFlags.region:
@@ -341,7 +341,7 @@ export class SpriteMask extends Renderer {
         this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.UV;
         break;
       case SpriteModifyFlags.pivot:
-        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.PositionAndAllBounds;
         break;
       case SpriteModifyFlags.destroy:
         this.sprite = null;
@@ -356,12 +356,16 @@ export class SpriteMask extends Renderer {
  * @remarks Extends `RendererUpdateFlag`.
  */
 enum SpriteMaskUpdateFlags {
+  /** Position. */
+  Position = 0x4,
   /** UV. */
-  UV = 0x2,
+  UV = 0x8,
   /** WorldVolume and UV . */
   RenderData = 0x3,
+  /** Position and all bounds. */
+  PositionAndAllBounds = 0x7,
   /** Automatic Size. */
-  AutomaticSize = 0x4,
+  AutomaticSize = 0x10,
   /** All. */
-  All = 0x7
+  All = 0x1f
 }

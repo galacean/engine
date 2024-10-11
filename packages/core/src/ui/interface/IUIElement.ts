@@ -1,8 +1,8 @@
 import { Ray, Vector4 } from "@galacean/engine-math";
 import { Entity, EntityModifyFlags } from "../../Entity";
-import { UIHitResult } from "../../input/pointer/emitter/UIHitResult";
+import { HitResult } from "../../physics";
 import { UICanvas } from "../UICanvas";
-import { UIGroup, UIGroupModifyFlags } from "../UIGroup";
+import { UIGroup } from "../UIGroup";
 
 export interface IUIElement {
   depth: number;
@@ -17,6 +17,6 @@ export interface IUIElement {
   _group: UIGroup;
   _indexInGroup: number;
 
-  _raycast(ray: Ray, out: UIHitResult, distance: number): boolean;
+  _raycast(ray: Ray, out: HitResult, distance: number): boolean;
   _onEntityModify(flag: EntityModifyFlags): void;
 }

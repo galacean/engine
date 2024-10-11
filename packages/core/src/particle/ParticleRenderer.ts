@@ -259,7 +259,7 @@ export class ParticleRenderer extends Renderer {
    * @internal
    */
   _onWorldVolumeChanged(): void {
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+    this._dirtyUpdateFlag |= RendererUpdateFlags.AllBounds;
   }
 
   /**
@@ -268,14 +268,14 @@ export class ParticleRenderer extends Renderer {
   @ignoreClone
   _onGeneratorParamsChanged(): void {
     this._dirtyUpdateFlag |=
-      ParticleUpdateFlags.GeneratorVolume | ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
+      ParticleUpdateFlags.GeneratorVolume | ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.AllBounds;
   }
 
   /**
    * @internal
    */
   override _onTransformChanged(type: TransformModifyFlags): void {
-    this._dirtyUpdateFlag |= ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
+    this._dirtyUpdateFlag |= ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.AllBounds;
   }
 }
 

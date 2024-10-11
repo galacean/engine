@@ -1,4 +1,4 @@
-import { Color, MathUtil } from "@galacean/engine-math";
+import { BoundingBox, Color, MathUtil } from "@galacean/engine-math";
 import { Sprite, SpriteDrawMode, SpriteTileMode } from "../2d";
 import { ISpriteAssembler } from "../2d/assembler/ISpriteAssembler";
 import { SimpleSpriteAssembler } from "../2d/assembler/SimpleSpriteAssembler";
@@ -11,7 +11,7 @@ import { BatchUtils } from "../RenderPipeline/BatchUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { SubRenderElement } from "../RenderPipeline/SubRenderElement";
 import { assignmentClone, deepClone, ignoreClone } from "../clone/CloneManager";
-import { UIRenderer, UIRendererUpdateFlags } from "./UIRenderer";
+import { UIRenderer } from "./UIRenderer";
 import { UITransform } from "./UITransform";
 import { CanvasRenderMode } from "./enums/CanvasRenderMode";
 
@@ -53,7 +53,7 @@ export class UIImage extends UIRenderer {
           break;
       }
       this._assembler.resetData(this);
-      this._dirtyUpdateFlag |= ImageUpdateFlags.VertexData;
+      this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
     }
   }
 
@@ -68,7 +68,7 @@ export class UIImage extends UIRenderer {
     if (this._tileMode !== value) {
       this._tileMode = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= ImageUpdateFlags.VertexData;
+        this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
       }
     }
   }
@@ -85,7 +85,7 @@ export class UIImage extends UIRenderer {
       value = MathUtil.clamp(value, 0, 1);
       this._tiledAdaptiveThreshold = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= ImageUpdateFlags.VertexData;
+        this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
       }
     }
   }
@@ -104,7 +104,7 @@ export class UIImage extends UIRenderer {
         this._addResourceReferCount(lastSprite, -1);
         lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
       }
-      this._dirtyUpdateFlag |= ImageUpdateFlags.All;
+      this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
       if (value) {
         this._addResourceReferCount(value, 1);
         value._updateFlagManager.addListener(this._onSpriteChange);
@@ -142,6 +142,19 @@ export class UIImage extends UIRenderer {
     this._onSpriteChange = this._onSpriteChange.bind(this);
   }
 
+  protected override _updateLocalBounds(localBounds: BoundingBox): void {
+    if (this._sprite) {
+      const transform = <UITransform>this._transform;
+      const { x: width, y: height } = transform.size;
+      const { x: pivotX, y: pivotY } = transform.pivot;
+      localBounds.min.set(-width * pivotX, -height * pivotY, 0);
+      localBounds.max.set(width * (1 - pivotX), height * (1 - pivotY), 0);
+    } else {
+      localBounds.min.set(0, 0, 0);
+      localBounds.max.set(0, 0, 0);
+    }
+  }
+
   /**
    * @internal
    */
@@ -164,33 +177,37 @@ export class UIImage extends UIRenderer {
 
     let { _dirtyUpdateFlag: dirtyUpdateFlag } = this;
 
-    const globalAlpha = this._group?._getGlobalAlpha() ?? 1;
-    if (this._alpha !== globalAlpha) {
-      dirtyUpdateFlag |= UIRendererUpdateFlags.Alpha;
-      this._alpha = globalAlpha;
+    const alpha = this._group?._getGlobalAlpha() ?? 1;
+    if (this._alpha !== alpha) {
+      dirtyUpdateFlag |= ImageUpdateFlags.Alpha;
+      this._alpha = alpha;
     }
-    if (this._color.a * this._alpha <= 0) {
+    if (this._color.a * alpha <= 0) {
       return;
     }
 
     // Update position
     if (dirtyUpdateFlag & ImageUpdateFlags.Position) {
       this._assembler.updatePositions(this, width, height, transform.pivot);
+      dirtyUpdateFlag &= ~ImageUpdateFlags.Position;
     }
 
     // Update uv
     if (dirtyUpdateFlag & ImageUpdateFlags.UV) {
       this._assembler.updateUVs(this);
+      dirtyUpdateFlag &= ~ImageUpdateFlags.UV;
     }
 
     // Update color
     if (dirtyUpdateFlag & ImageUpdateFlags.Color) {
-      this._assembler.updateColor(this, this._alpha);
-    } else if (dirtyUpdateFlag & UIRendererUpdateFlags.Alpha) {
-      this._assembler.updateAlpha(this, this._alpha);
+      this._assembler.updateColor(this, alpha);
+      dirtyUpdateFlag &= ~(ImageUpdateFlags.Color & ImageUpdateFlags.Alpha);
+    } else if (dirtyUpdateFlag & ImageUpdateFlags.Alpha) {
+      this._assembler.updateAlpha(this, alpha);
+      dirtyUpdateFlag &= ~ImageUpdateFlags.Alpha;
     }
 
-    this._dirtyUpdateFlag = ImageUpdateFlags.None;
+    this._dirtyUpdateFlag = dirtyUpdateFlag;
     // Init sub render element.
     const { engine } = context.camera;
     const canvas = this._canvas;
@@ -246,14 +263,14 @@ export class UIImage extends UIRenderer {
             this._dirtyUpdateFlag |= ImageUpdateFlags.Position;
             break;
           case SpriteDrawMode.Tiled:
-            this._dirtyUpdateFlag |= ImageUpdateFlags.VertexData;
+            this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
             break;
           default:
             break;
         }
         break;
       case SpriteModifyFlags.border:
-        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= ImageUpdateFlags.VertexData);
+        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor);
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:
@@ -261,9 +278,6 @@ export class UIImage extends UIRenderer {
         break;
       case SpriteModifyFlags.atlasRegion:
         this._dirtyUpdateFlag |= ImageUpdateFlags.UV;
-        break;
-      case SpriteModifyFlags.pivot:
-        this._dirtyUpdateFlag |= ImageUpdateFlags.Position;
         break;
       case SpriteModifyFlags.destroy:
         this.sprite = null;
@@ -273,21 +287,26 @@ export class UIImage extends UIRenderer {
 }
 
 /**
- * @remarks Extends `RendererUpdateFlag`.
+ * @remarks Extends `UIRendererUpdateFlags`.
  */
 enum ImageUpdateFlags {
-  None,
-  /** Position. */
-  Position = 0x1,
-  /** UV. */
-  UV = 0x2,
-  /** Position and UV. */
-  PositionAndUV = 0x3,
-  /** Color. */
-  Color = 0x4,
-  /** Vertex data. */
-  VertexData = 0x7,
+  Position = 0x4,
+  UV = 0x8,
+  Color = 0x10,
+  Alpha = 0x20,
 
-  /** All. */
-  All = 0xf
+  /** Position | WorldBounds */
+  PositionAndWorldBounds = 0x6,
+  /** Position | LocalBounds | WorldBounds */
+  PositionAndAllBounds = 0x7,
+  /** Position | UV */
+  PositionAndUV = 0xc,
+  /** Position | UV | LocalBounds | WorldBounds */
+  PositionUVAndAllBounds = 0xf,
+  /** Position | UV | Color */
+  PositionUVAndColor = 0x1c,
+  /** Position | UV | Color | WorldBounds */
+  PositionUVColorAndWorldBounds = 0x1e,
+  /** Position | UV | Color | LocalBounds | WorldBounds */
+  PositionUVColorAndAllBounds = 0x1f
 }

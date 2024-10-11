@@ -1,10 +1,10 @@
-import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@galacean/engine-math";
+import { MathUtil, Rect, Vector2, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { ReferResource } from "../../asset/ReferResource";
 import { Texture2D } from "../../texture/Texture2D";
-import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { SpriteAtlas } from "../atlas/SpriteAtlas";
+import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 
 /**
  * 2D sprite.
@@ -20,7 +20,6 @@ export class Sprite extends ReferResource {
 
   private _positions: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
   private _uvs: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
-  private _bounds: BoundingBox = new BoundingBox();
 
   private _texture: Texture2D = null;
   private _atlasRotated: boolean = false;
@@ -251,14 +250,6 @@ export class Sprite extends ReferResource {
   /**
    * @internal
    */
-  _getBounds(): BoundingBox {
-    this._dirtyUpdateFlag & SpriteUpdateFlags.positions && this._updatePositions();
-    return this._bounds;
-  }
-
-  /**
-   * @internal
-   */
   override _addReferCount(value: number): void {
     super._addReferCount(value);
     this._atlas?._addReferCount(value);
@@ -279,7 +270,6 @@ export class Sprite extends ReferResource {
     this._region = null;
     this._pivot = null;
     this._border = null;
-    this._bounds = null;
     this._atlas = null;
     this._texture = null;
     this._updateFlagManager = null;
@@ -324,10 +314,6 @@ export class Sprite extends ReferResource {
     positions[1].set(right, bottom);
     positions[2].set(left, top);
     positions[3].set(right, top);
-
-    const { min, max } = this._bounds;
-    min.set(left, bottom, 0);
-    max.set(right, top, 0);
     this._dirtyUpdateFlag &= ~SpriteUpdateFlags.positions;
   }
 

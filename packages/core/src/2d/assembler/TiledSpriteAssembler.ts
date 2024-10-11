@@ -140,11 +140,6 @@ export class TiledSpriteAssembler {
         o += 36;
       }
     }
-
-    const { min, max } = renderer._bounds;
-    min.set(posRow.get(0), posColumn.get(0), 0);
-    max.set(posRow.get(rowLength), posColumn.get(columnLength), 0);
-    renderer._bounds.transform(worldMatrix);
   }
 
   static updateUVs(renderer: SpriteRenderer | UIImage): void {

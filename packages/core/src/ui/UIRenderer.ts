@@ -4,16 +4,15 @@ import { Entity, EntityModifyFlags } from "../Entity";
 import { PrimitiveChunkManager } from "../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../RenderPipeline/SubPrimitiveChunk";
-import { Renderer } from "../Renderer";
-import { TransformModifyFlags } from "../Transform";
+import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../clone/CloneManager";
 import { ComponentType } from "../enums/ComponentType";
-import { UIHitResult } from "../input/pointer/emitter/UIHitResult";
+import { HitResult } from "../physics";
 import { ShaderProperty } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { UICanvas } from "./UICanvas";
-import { UIGroup, UIGroupModifyFlags } from "./UIGroup";
-import { UITransform } from "./UITransform";
+import { UIGroup } from "./UIGroup";
+import { UITransform, UITransformModifyFlags } from "./UITransform";
 import { UIUtil } from "./UIUtil";
 import { IUIElement } from "./interface/IUIElement";
 
@@ -144,19 +143,12 @@ export class UIRenderer extends Renderer implements IUIElement {
   /**
    * @internal
    */
-  _onGroupModify(flag: UIGroupModifyFlags): void {
-    flag === UIGroupModifyFlags.Alpha && (this._dirtyUpdateFlag |= UIRendererUpdateFlags.Alpha);
-  }
-
-  /**
-   * @internal
-   */
   _getChunkManager(): PrimitiveChunkManager {
     return this.engine._batcherManager.primitiveChunkManagerUI;
   }
 
   /** @internal */
-  _raycast(ray: Ray, out: UIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
+  _raycast(ray: Ray, out: HitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
     const entity = this._entity;
     const plane = UIRenderer._tempPlane;
     const transform = entity.transform;
@@ -173,7 +165,7 @@ export class UIRenderer extends Renderer implements IUIElement {
       if (this._hitTest(hitPointLocal)) {
         out.distance = curDistance;
         out.entity = entity;
-        out.component = this;
+        out.shape = this;
         out.normal.copyFrom(normal);
         out.point.copyFrom(hitPointWorld);
         return true;
@@ -195,16 +187,18 @@ export class UIRenderer extends Renderer implements IUIElement {
       this._getChunkManager().freeSubChunk(this._subChunk);
       this._subChunk = null;
     }
-
     super._onDestroy();
   }
 
-  protected override _onTransformChanged(flag: TransformModifyFlags): void {}
-}
-
-/**
- * @remarks Extends `RendererUpdateFlag`.
- */
-export enum UIRendererUpdateFlags {
-  Alpha = 0x8
+  protected override _onTransformChanged(flag: UITransformModifyFlags): void {
+    switch (flag) {
+      case UITransformModifyFlags.Size:
+      case UITransformModifyFlags.Pivot:
+        this._dirtyUpdateFlag |= RendererUpdateFlags.AllBounds;
+        break;
+      default:
+        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldBounds;
+        break;
+    }
+  }
 }

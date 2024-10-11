@@ -8,7 +8,8 @@ import { PointerEventData } from "../PointerEventData";
 export abstract class PointerEventEmitter {
   protected static _tempRay: Ray = new Ray();
   protected static _tempPoint: Vector2 = new Vector2();
-  protected static _tempHitResult: HitResult = new HitResult();
+
+  protected _hitResult: HitResult = new HitResult();
 
   /**
    * @internal
@@ -41,7 +42,7 @@ export abstract class PointerEventEmitter {
   _createEventData(pointer: Pointer, target: Entity = null, currentTarget: Entity = null): PointerEventData {
     const data = new PointerEventData();
     data.pointer = pointer;
-    // data.position.copyFrom(pointer.position);
+    data.position.copyFrom(this._hitResult.point);
     data.target = target;
     data.currentTarget = currentTarget;
     return data;

@@ -46,6 +46,8 @@ export class UIUtil {
         element._indexInCanvas = disorderedElements.length;
         disorderedElements.add(element);
         canvas._hierarchyDirty = true;
+      } else {
+        element.depth = -1;
       }
     }
   }

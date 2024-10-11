@@ -120,11 +120,6 @@ export class SlicedSpriteAssembler {
         vertices[o + 2] = wE[2] * rowValue + wE[6] * columnValue + wE[14];
       }
     }
-
-    const { min, max } = renderer._bounds;
-    min.set(row[0], column[0], 0);
-    max.set(row[3], column[3], 0);
-    renderer._bounds.transform(worldMatrix);
   }
 
   static updateUVs(renderer: SpriteRenderer | UIImage): void {

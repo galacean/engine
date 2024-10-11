@@ -133,22 +133,23 @@ export class UIGroup extends Component {
     listeners.length = 0;
     this._parentGroupEntity?._unRegisterModifyListener(this._onParentEntityModify);
     const parentGroup = this._parentGroup;
-    this._disorderedElements.forEach(
+    const { _disorderedElements: disorderedElements, _disorderedGroups: disorderedGroups } = this;
+    disorderedElements.forEach(
       (element: IUIElement) => {
         UIUtil.registerUIToGroup(element, parentGroup);
       },
       () => {}
     );
-    this._disorderedElements.length = 0;
-    this._disorderedElements.garbageCollection();
-    this._disorderedGroups.forEach(
+    disorderedElements.length = 0;
+    disorderedElements.garbageCollection();
+    disorderedGroups.forEach(
       (element: UIGroup) => {
         element._registryToParentGroup(parentGroup);
       },
       () => {}
     );
-    this._disorderedGroups.length = 0;
-    this._disorderedGroups.garbageCollection();
+    disorderedGroups.length = 0;
+    disorderedGroups.garbageCollection();
     this._parentGroup = this._parentGroupEntity = null;
     this._entity._dispatchModify(EntityModifyFlags.UIGroupDisableInScene);
   }
@@ -189,7 +190,7 @@ export class UIGroup extends Component {
   }
 
   private _onParentEntityModify(flags: EntityModifyFlags): void {
-    if (flags & EntityModifyFlags.UIGroupEnableInScene) {
+    if (flags === EntityModifyFlags.UIGroupEnableInScene) {
       this._registryToParentGroup(UIUtil.getGroupInParent(this._entity.parent));
     }
   }
@@ -198,7 +199,6 @@ export class UIGroup extends Component {
     switch (flags) {
       case EntityModifyFlags.Parent:
       case EntityModifyFlags.UIGroupEnableInScene:
-      case EntityModifyFlags.UIGroupDisableInScene:
         this._registryToParentGroup(UIUtil.getGroupInParent(this._entity.parent));
         break;
       default:
