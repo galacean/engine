@@ -9,6 +9,8 @@ export enum ComponentType {
   SkinnedMeshRenderer = 0x10,
   SpriteRenderer = 0x20,
   TextRenderer = 0x40,
-  UIRenderer = 0x80,
-  CanvasGroup = 0x100
+  UICanvas = 0x80,
+  UIRenderer = 0x100,
+  UIGroup = 0x200,
+  UIElement = UICanvas | UIRenderer
 }

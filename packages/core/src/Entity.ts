@@ -13,8 +13,6 @@ import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
-import { Pointer } from "./input";
-import { PointerEventType } from "./input/pointer/PointerEventType";
 import { UITransform } from "./ui";
 
 /**
@@ -99,15 +97,12 @@ export class Entity extends EngineObject {
   /** @internal */
   _isTemplate: boolean = false;
   /** @internal */
-
   _updateFlagManager: UpdateFlagManager;
 
   private _templateResource: ReferResource;
   private _parent: Entity = null;
   private _transform: Transform;
   private _activeChangedComponents: Component[];
-
-  _onPointerCallBacksArray: DisorderedArray<(event: Pointer) => void>[];
 
   get transform(): Transform {
     return this._transform;
@@ -611,19 +606,6 @@ export class Entity extends EngineObject {
     this._setActiveComponents(false, activeChangeFlag);
   }
 
-  /** @internal */
-  _addOnPointerEvent(
-    type: PointerEventType,
-    script: Script,
-    callback: (event: Pointer) => void,
-    useCapture: boolean = false
-  ): void {
-    const onPointerCallBacksArray = (this._onPointerCallBacksArray ||= []);
-    const onPointerCallBacks = (onPointerCallBacksArray[type] ||= new DisorderedArray<(event: Pointer) => void>());
-    script._onPointerEventIndexArray[type] = onPointerCallBacks.length;
-    onPointerCallBacks.add(callback);
-  }
-
   /**
    * @internal
    */
@@ -642,15 +624,15 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  _removeModifyListener(onChange: (flag: EntityModifyFlags) => void): void {
-    (this._updateFlagManager ||= new UpdateFlagManager()).addListener(onChange);
+  _unRegisterModifyListener(onChange: (flag: EntityModifyFlags) => void): void {
+    (this._updateFlagManager ||= new UpdateFlagManager()).removeListener(onChange);
   }
 
   /**
    * @internal
    */
-  _dispatchModify(flag: EntityModifyFlags, param?: any): void {
-    this._updateFlagManager?.dispatch(flag, param);
+  _dispatchModify(flag: EntityModifyFlags): void {
+    this._updateFlagManager?.dispatch(flag);
   }
 
   private _addToChildrenList(index: number, child: Entity): void {
@@ -805,6 +787,7 @@ export class Entity extends EngineObject {
         }
       }
     }
+    this._dispatchModify(EntityModifyFlags.SiblingIndex);
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
@@ -825,8 +808,11 @@ export class Entity extends EngineObject {
 
 export enum EntityModifyFlags {
   Parent = 0x1,
-  UICanvasEnableInScene = 0x2,
-  UICanvasDisableInScene = 0x4
+  SiblingIndex = 0x2,
+  UICanvasEnableInScene = 0x4,
+  UICanvasDisableInScene = 0x8,
+  UIGroupEnableInScene = 0x10,
+  UIGroupDisableInScene = 0x20
 }
 
 type ComponentArguments<T extends new (entity: Entity, ...args: any[]) => Component> = T extends new (

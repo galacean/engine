@@ -1,22 +1,24 @@
 import { Matrix, Plane, Ray, Vector3, Vector4 } from "@galacean/engine-math";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
-import { Entity } from "../Entity";
+import { Entity, EntityModifyFlags } from "../Entity";
 import { PrimitiveChunkManager } from "../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../RenderPipeline/SubPrimitiveChunk";
 import { Renderer } from "../Renderer";
 import { TransformModifyFlags } from "../Transform";
-import { ignoreClone } from "../clone/CloneManager";
+import { assignmentClone, deepClone, ignoreClone } from "../clone/CloneManager";
 import { ComponentType } from "../enums/ComponentType";
-import { HitResult } from "../physics";
+import { UIHitResult } from "../input/pointer/emitter/UIHitResult";
 import { ShaderProperty } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { CanvasGroup } from "./CanvasGroup";
 import { UICanvas } from "./UICanvas";
+import { UIGroup, UIGroupModifyFlags } from "./UIGroup";
 import { UITransform } from "./UITransform";
+import { UIUtil } from "./UIUtil";
+import { IUIElement } from "./interface/IUIElement";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
-export class UIRenderer extends Renderer {
+export class UIRenderer extends Renderer implements IUIElement {
   /** @internal */
   static _tempVec30: Vector3 = new Vector3();
   /** @internal */
@@ -27,37 +29,34 @@ export class UIRenderer extends Renderer {
   static _tempPlane: Plane = new Plane();
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_UITexture");
+
+  @assignmentClone
+  raycastEnable: boolean = true;
+  @deepClone
+  raycastPadding: Vector4 = new Vector4(0, 0, 0, 0);
+  @ignoreClone
+  depth: number = 0;
+
+  /** @internal */
+  @ignoreClone
+  _parents: Entity[] = [];
+  /** @internal */
+  @ignoreClone
+  _group: UIGroup;
+  /** @internal */
+  @ignoreClone
+  _indexInGroup: number = -1;
   /** @internal */
   @ignoreClone
   _canvas: UICanvas;
   /** @internal */
   @ignoreClone
-  _group: CanvasGroup;
+  _indexInCanvas: number = -1;
   /** @internal */
   @ignoreClone
   _subChunk: SubPrimitiveChunk;
 
   protected _alpha: number = 1;
-  protected _rayCastAble: boolean = true;
-  protected _rayCastPadding: Vector4 = new Vector4(0, 0, 0, 0);
-
-  get rayCastAble(): boolean {
-    return this._rayCastAble;
-  }
-
-  set rayCastAble(value: boolean) {
-    this._rayCastAble = value;
-  }
-
-  get rayCastPadding(): Vector4 {
-    return this._rayCastPadding;
-  }
-
-  set rayCastPadding(value: Vector4) {
-    if (this._rayCastPadding !== value) {
-      this._rayCastPadding.copyFrom(value);
-    }
-  }
 
   /**
    * @internal
@@ -65,6 +64,7 @@ export class UIRenderer extends Renderer {
   constructor(entity: Entity) {
     super(entity);
     this._componentType = ComponentType.UIRenderer;
+    this._onEntityModify = this._onEntityModify.bind(this);
   }
 
   /**
@@ -104,32 +104,48 @@ export class UIRenderer extends Renderer {
    * @internal
    */
   override _onEnableInScene(): void {
-    const componentsManager = this.scene._componentsManager;
-    if (this._overrideUpdate) {
-      componentsManager.addOnUpdateRenderers(this);
-    }
+    this._overrideUpdate && this.scene._componentsManager.addOnUpdateRenderers(this);
+    UIUtil.registerUIToCanvas(this, UIUtil.getRootCanvasInParent(this));
+    UIUtil.registerEntityListener(this);
+    UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
   }
 
   /**
    * @internal
    */
   override _onDisableInScene(): void {
-    const componentsManager = this.scene._componentsManager;
-    if (this._overrideUpdate) {
-      componentsManager.removeOnUpdateRenderers(this);
+    this._overrideUpdate && this.scene._componentsManager.removeOnUpdateRenderers(this);
+    UIUtil.registerUIToCanvas(this, null);
+    UIUtil.unRegisterEntityListener(this);
+    UIUtil.registerUIToGroup(this, null);
+  }
+
+  /**
+   * @internal
+   */
+  _onEntityModify(flag: EntityModifyFlags): void {
+    switch (flag) {
+      case EntityModifyFlags.Parent:
+        UIUtil.registerEntityListener(this);
+        UIUtil.registerUIToCanvas(this, UIUtil.getRootCanvasInParent(this));
+        UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
+        break;
+      case EntityModifyFlags.SiblingIndex:
+        this._canvas && (this._canvas._hierarchyDirty = true);
+        break;
+      case EntityModifyFlags.UIGroupEnableInScene:
+        UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
+        break;
+      default:
+        break;
     }
   }
 
   /**
    * @internal
    */
-  _setGroup(group: CanvasGroup): void {
-    this._group = group;
-    const alpha = group ? group._globalAlpha : 1;
-    if (this._alpha !== alpha) {
-      this._alpha = alpha;
-      this._dirtyUpdateFlag |= UIRendererUpdateFlags.Alpha;
-    }
+  _onGroupModify(flag: UIGroupModifyFlags): void {
+    flag === UIGroupModifyFlags.Alpha && (this._dirtyUpdateFlag |= UIRendererUpdateFlags.Alpha);
   }
 
   /**
@@ -140,7 +156,7 @@ export class UIRenderer extends Renderer {
   }
 
   /** @internal */
-  _raycast(ray: Ray, out: HitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
+  _raycast(ray: Ray, out: UIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
     const entity = this._entity;
     const plane = UIRenderer._tempPlane;
     const transform = entity.transform;
@@ -154,9 +170,10 @@ export class UIRenderer extends Renderer {
       Matrix.invert(this.entity.transform.worldMatrix, worldMatrixInv);
       const hitPointLocal = UIRenderer._tempVec31;
       Vector3.transformCoordinate(hitPointWorld, worldMatrixInv, hitPointLocal);
-      if (this.isRaycastLocationValid(hitPointLocal)) {
+      if (this._hitTest(hitPointLocal)) {
         out.distance = curDistance;
         out.entity = entity;
+        out.component = this;
         out.normal.copyFrom(normal);
         out.point.copyFrom(hitPointWorld);
         return true;
@@ -165,7 +182,7 @@ export class UIRenderer extends Renderer {
     return false;
   }
 
-  protected isRaycastLocationValid(hitPoint: Vector3): boolean {
+  protected _hitTest(hitPoint: Vector3): boolean {
     const { x, y } = hitPoint;
     const uiTransform = <UITransform>this._transform;
     const { x: width, y: height } = uiTransform.size;

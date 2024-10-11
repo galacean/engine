@@ -1,21 +1,35 @@
-import { MathUtil, Ray, Vector2, Vector3 } from "@galacean/engine-math";
+import { MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Camera, CameraModifyFlags } from "../Camera";
 import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
+import { DisorderedArray } from "../DisorderedArray";
 import { Entity, EntityModifyFlags } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderElement } from "../RenderPipeline/RenderElement";
-import { assignmentClone, ignoreClone } from "../clone/CloneManager";
+import { assignmentClone, deepClone, ignoreClone } from "../clone/CloneManager";
 import { ComponentType } from "../enums/ComponentType";
-import { HitResult } from "../physics";
-import { CanvasGroup } from "./CanvasGroup";
+import { UIHitResult } from "../input/pointer/emitter/UIHitResult";
+import { UIGroup } from "./UIGroup";
 import { UIRenderer } from "./UIRenderer";
 import { UITransform } from "./UITransform";
+import { UIUtil } from "./UIUtil";
 import { CanvasRenderMode } from "./enums/CanvasRenderMode";
 import { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrategy";
+import { IUIElement } from "./interface/IUIElement";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
-export class UICanvas extends Component {
+export class UICanvas extends Component implements IUIElement {
+  @assignmentClone
+  raycastEnable: boolean = true;
+  @deepClone
+  raycastPadding: Vector4 = new Vector4(0, 0, 0, 0);
+  @ignoreClone
+  depth: number = 0;
+
+  /** @internal */
+  @ignoreClone
+  _parents: Entity[] = [];
+
   /** @internal */
   @ignoreClone
   _canvasIndex: number = -1;
@@ -28,6 +42,27 @@ export class UICanvas extends Component {
   /** @internal */
   @ignoreClone
   _sortDistance: number = 0;
+  /** @internal */
+  @ignoreClone
+  _group: UIGroup;
+  /** @internal */
+  @ignoreClone
+  _indexInGroup: number = -1;
+  /** @internal */
+  @ignoreClone
+  _canvas: UICanvas;
+  /** @internal */
+  @ignoreClone
+  _indexInCanvas: number = -1;
+  /** @internal */
+  @ignoreClone
+  _hierarchyDirty: boolean = true;
+  /** @internal */
+  @ignoreClone
+  _disorderedElements: DisorderedArray<IUIElement> = new DisorderedArray();
+  /** @internal */
+  @ignoreClone
+  _orderedElements: IUIElement[] = [];
 
   @assignmentClone
   private _renderMode = CanvasRenderMode.WorldSpace;
@@ -39,26 +74,18 @@ export class UICanvas extends Component {
   private _sortOrder: number = 0;
   @assignmentClone
   private _distance: number = 10;
-  private _renderers: UIRenderer[] = [];
   private _transform: UITransform;
   private _referenceResolution: Vector2 = new Vector2(800, 600);
-  private _enableBlocked: boolean = true;
-  private _parents: Entity[] = [];
 
   /** @internal */
-  get renderers(): UIRenderer[] {
-    const renderers = this._renderers;
-    renderers.length = 0;
-    this._walk(this.entity, renderers);
-    return renderers;
-  }
-
-  get enableBlocked(): boolean {
-    return this._enableBlocked;
-  }
-
-  set enableBlocked(value: boolean) {
-    this._enableBlocked = value;
+  get elements(): IUIElement[] {
+    const elements = this._orderedElements;
+    if (this._hierarchyDirty) {
+      elements.length = 0;
+      this._walk(this.entity, elements);
+      this._hierarchyDirty = false;
+    }
+    return elements;
   }
 
   get referenceResolution(): Vector2 {
@@ -173,18 +200,17 @@ export class UICanvas extends Component {
 
   set distance(val: number) {
     if (this._distance !== val) {
-      const { _isRootCanvas: isRootCanvas, _renderMode: renderMode } = this;
+      const { _renderMode: renderMode } = this;
       this._distance = val;
-      if (this._isRootCanvas) {
-        if (renderMode === CanvasRenderMode.ScreenSpaceCamera && this._renderCamera) {
-          this._adapterPoseInScreenSpace();
-        }
+      if (this._isRootCanvas && renderMode === CanvasRenderMode.ScreenSpaceCamera && this._renderCamera) {
+        this._adapterPoseInScreenSpace();
       }
     }
   }
 
   constructor(entity: Entity) {
     super(entity);
+    this._componentType = ComponentType.UICanvas;
     this._transform = <UITransform>entity.transform;
     this._onEntityModify = this._onEntityModify.bind(this);
     this._onCanvasSizeListener = this._onCanvasSizeListener.bind(this);
@@ -195,16 +221,28 @@ export class UICanvas extends Component {
     this._referenceResolution._onValueChanged = this._onReferenceResolutionChanged;
   }
 
+  raycast(ray: Ray, out: UIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
+    const { elements } = this;
+    for (let i = elements.length - 1; i >= 0; i--) {
+      const renderer = elements[i];
+      if (renderer.raycastEnable && renderer._raycast(ray, out, distance)) {
+        return true;
+      }
+    }
+  }
+
   _prepareRender(context: RenderContext): void {
-    const { renderers } = this;
+    const { elements } = this;
     const { frameCount } = this.engine.time;
     const renderElement = (this._renderElement = this.engine._renderElementPool.get());
     this._updateSortDistance(context.virtualCamera.position);
     renderElement.set(this.sortOrder, this._sortDistance);
-    for (let i = 0, n = renderers.length; i < n; i++) {
-      const renderer = renderers[i];
-      renderer._renderFrameCount = frameCount;
-      renderer._prepareRender(context);
+    for (let i = 0, n = elements.length; i < n; i++) {
+      const element = elements[i];
+      if ((element as unknown as Component)._componentType === ComponentType.UIRenderer) {
+        (element as unknown as UIRenderer)._renderFrameCount = frameCount;
+        (element as unknown as UIRenderer)._prepareRender(context);
+      }
     }
   }
 
@@ -228,34 +266,97 @@ export class UICanvas extends Component {
    */
   override _onEnableInScene(): void {
     this._entity._dispatchModify(EntityModifyFlags.UICanvasEnableInScene);
-    this._entity._registerModifyListener(this._onEntityModify);
-    this._registerParentListener();
-    this._setIsRootCanvas(this._checkIsRootCanvas());
+    const rootCanvas = UIUtil.getRootCanvasInParent(this);
+    if (rootCanvas) {
+      this._setIsRootCanvas(false);
+    } else {
+      this._setIsRootCanvas(true);
+      UIUtil.registerUIToCanvas(this, rootCanvas);
+    }
+    UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
+    UIUtil.registerEntityListener(this);
   }
 
   /**
    * @internal
    */
   override _onDisableInScene(): void {
-    this._removeParentListener();
-    this._entity._removeModifyListener(this._onEntityModify);
+    if (this._isRootCanvas) {
+      this._setIsRootCanvas(false);
+    } else {
+      UIUtil.registerUIToCanvas(this, null);
+      UIUtil.unRegisterEntityListener(this);
+    }
+    UIUtil.registerUIToGroup(this, null);
     this._entity._dispatchModify(EntityModifyFlags.UICanvasDisableInScene);
-    this._setIsRootCanvas(false);
-    this._renderers.length = 0;
   }
 
   /**
    * @internal
    */
-  rayCast(ray: Ray, out: HitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
-    const { renderers } = this;
-    for (let i = renderers.length - 1; i >= 0; i--) {
-      const renderer = renderers[i];
-      if (renderer.rayCastAble && renderer._raycast(ray, out, distance)) {
-        return true;
+  _raycast(ray: Ray, out: UIHitResult = null, distance: number = Number.MAX_SAFE_INTEGER): boolean {
+    const entity = this._entity;
+    const plane = UIRenderer._tempPlane;
+    const transform = entity.transform;
+    const normal = plane.normal.copyFrom(transform.worldForward);
+    plane.distance = -Vector3.dot(normal, transform.worldPosition);
+    ray.intersectPlane(plane);
+    const curDistance = ray.intersectPlane(plane);
+    if (curDistance >= 0 && curDistance < distance) {
+      const hitPointWorld = ray.getPoint(curDistance, UIRenderer._tempVec30);
+      const worldMatrixInv = UIRenderer._tempMat;
+      Matrix.invert(this.entity.transform.worldMatrix, worldMatrixInv);
+      const hitPointLocal = UIRenderer._tempVec31;
+      Vector3.transformCoordinate(hitPointWorld, worldMatrixInv, hitPointLocal);
+      if (out) {
+        out.distance = curDistance;
+        out.entity = entity;
+        out.component = this;
+        out.normal.copyFrom(normal);
+        out.point.copyFrom(hitPointWorld);
       }
+      return true;
     }
     return false;
+  }
+
+  /**
+   * @internal
+   */
+  _onEntityModify(flag: EntityModifyFlags): void {
+    if (this._isRootCanvas) {
+      switch (flag) {
+        case EntityModifyFlags.Parent:
+          this._setIsRootCanvas(this._checkIsRootCanvas());
+          UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
+          break;
+        case EntityModifyFlags.UICanvasEnableInScene:
+          this._setIsRootCanvas(false);
+          break;
+        case EntityModifyFlags.UIGroupEnableInScene:
+          UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
+          break;
+        default:
+          break;
+      }
+      UIUtil.registerEntityListener(this);
+    } else {
+      switch (flag) {
+        case EntityModifyFlags.Parent:
+          UIUtil.registerEntityListener(this);
+          UIUtil.registerUIToCanvas(this, UIUtil.getRootCanvasInParent(this));
+          UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
+          break;
+        case EntityModifyFlags.SiblingIndex:
+          this._canvas && (this._canvas._hierarchyDirty = true);
+          break;
+        case EntityModifyFlags.UIGroupEnableInScene:
+          UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
+          break;
+        default:
+          break;
+      }
+    }
   }
 
   private _adapterPoseInScreenSpace(): void {
@@ -318,36 +419,19 @@ export class UICanvas extends Component {
     this._transform.size.set(curWidth / expectX, curHeight / expectY);
   }
 
-  private _walk(entity: Entity, renderers: UIRenderer[], group?: CanvasGroup): void {
+  private _walk(entity: Entity, elements: IUIElement[], depth = 0): void {
     const components = entity._components;
-    const offset = renderers.length;
     for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
-      if (component.enabled) {
-        switch (component._componentType) {
-          case ComponentType.CanvasGroup:
-            const alpha = group ? group.alpha : 1;
-            group = <CanvasGroup>component;
-            group._globalAlpha = group.ignoreParentGroup ? 1 : alpha * group.alpha;
-            for (let j = offset, m = renderers.length; j < m; j++) {
-              renderers[j]._setGroup(group);
-            }
-            break;
-          case ComponentType.UIRenderer:
-            const uiRenderer = <UIRenderer>component;
-            uiRenderer._canvas = this;
-            uiRenderer._setGroup(group);
-            renderers.push(uiRenderer);
-            break;
-          default:
-            break;
-        }
+      if (component.enabled && component._componentType & ComponentType.UIElement) {
+        (component as unknown as IUIElement).depth = depth++;
+        elements.push(component as unknown as IUIElement);
       }
     }
     const children = entity._children;
     for (let i = 0, n = children.length; i < n; i++) {
       const child = children[i];
-      child.isActive && this._walk(child, renderers, group);
+      child.isActive && this._walk(child, elements, depth);
     }
   }
 
@@ -390,56 +474,21 @@ export class UICanvas extends Component {
     this._adapterSizeInScreenSpace();
   }
 
-  private _removeParentListener(offset: number = 0): void {
-    const { _parents: parents } = this;
-    for (let i = 0, n = parents.length; i < n; i++) {
-      parents[i]._removeModifyListener(this._onEntityModify);
-    }
-    parents.length = 0;
-  }
-
-  private _registerParentListener(): void {
-    const { _parents: parents } = this;
-    let curParent = this.entity.parent;
-    let index = 0;
-    while (curParent) {
-      const preParent = parents[index];
-      if (preParent !== curParent) {
-        preParent?._removeModifyListener(this._onEntityModify);
-        parents[index] = curParent;
-        curParent._registerModifyListener(this._onEntityModify);
-      }
-      curParent = curParent.parent;
-      index++;
-    }
-  }
-
-  private _onEntityModify(flag: EntityModifyFlags, param?: any): void {
-    switch (flag) {
-      case EntityModifyFlags.Parent:
-        this._removeParentListener();
-        this._registerParentListener();
-        this._setIsRootCanvas(this._checkIsRootCanvas());
-        break;
-      case EntityModifyFlags.UICanvasEnableInScene:
-        this._setIsRootCanvas(false);
-        break;
-      case EntityModifyFlags.UICanvasDisableInScene:
-        this._setIsRootCanvas(this._checkIsRootCanvas());
-        break;
-      default:
-        break;
-    }
-  }
-
   private _onReferenceResolutionChanged(): void {
     this._adapterSizeInScreenSpace();
   }
 
   private _checkIsRootCanvas(): boolean {
-    const canvases = this.entity.getComponentsInParent(UICanvas, []);
-    for (let i = 0, n = canvases.length; i < n; i++) {
-      if (canvases[i].enabled) return false;
+    let entity = this._entity.parent;
+    while (entity) {
+      const components = entity._components;
+      for (let i = 0, n = components.length; i < n; i++) {
+        const component = components[i];
+        if (component.enabled && component._componentType === ComponentType.UICanvas) {
+          return false;
+        }
+      }
+      entity = entity.parent;
     }
     return true;
   }
@@ -492,7 +541,21 @@ export class UICanvas extends Component {
             break;
         }
         this.scene._componentsManager.removeUICanvas(renderMode, this);
+        this._disorderedElements.forEach(
+          (element: IUIElement) => {
+            UIUtil.registerUIToCanvas(element, UIUtil.getRootCanvasInParent(element));
+          },
+          () => {}
+        );
+        this._orderedElements.length = 0;
+        this._disorderedElements.length = 0;
+        this._disorderedElements.garbageCollection();
       }
     }
   }
+}
+
+export enum RootCanvasChangeFlag {
+  EnableChange,
+  Parent
 }

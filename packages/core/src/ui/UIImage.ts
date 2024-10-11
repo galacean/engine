@@ -162,7 +162,17 @@ export class UIImage extends UIRenderer {
       material = this._engine._uiDefaultMaterial;
     }
 
-    const { _dirtyUpdateFlag: dirtyUpdateFlag } = this;
+    let { _dirtyUpdateFlag: dirtyUpdateFlag } = this;
+
+    const globalAlpha = this._group?._getGlobalAlpha() ?? 1;
+    if (this._alpha !== globalAlpha) {
+      dirtyUpdateFlag |= UIRendererUpdateFlags.Alpha;
+      this._alpha = globalAlpha;
+    }
+    if (this._color.a * this._alpha <= 0) {
+      return;
+    }
+
     // Update position
     if (dirtyUpdateFlag & ImageUpdateFlags.Position) {
       this._assembler.updatePositions(this, width, height, transform.pivot);
