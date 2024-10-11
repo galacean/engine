@@ -85,12 +85,15 @@ export default class BaseScanner {
       return;
     }
 
+    // #if _VERBOSE
     if (this.getCurChar() === "\n") {
       this._line += 1;
       this._column = 0;
     } else {
       this._column += 1;
     }
+    // #endif
+
     this._currentIndex++;
   }
 
