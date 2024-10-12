@@ -190,7 +190,7 @@ export class CodeGenVisitor {
     return this.defaultCodeGen(node.children);
   }
 
-  protected reportError(loc: ShaderRange | ShaderPosition, message: string): void {
+  protected _reportError(loc: ShaderRange | ShaderPosition, message: string): void {
     // #if _VERBOSE
     this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderLab._processingPassText));
     // #else

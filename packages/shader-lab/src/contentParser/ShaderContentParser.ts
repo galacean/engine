@@ -328,13 +328,15 @@ export class ShaderContentParser {
     scanner.scanText(";");
     const value = ShaderContentParser._engineType.RenderQueueType[word.lexeme];
     if (value == undefined) {
-      // #if _VERBOSE
-      this._errors.push(
-        new GSError(GSErrorName.CompilationError, `Invalid render queue ${word.lexeme}`, word.location, scanner.source)
+      const error = ShaderLabUtils.createGSError(
+        `Invalid render queue ${word.lexeme}`,
+        GSErrorName.CompilationError,
+        scanner.source,
+        word.location
       );
+      // #if _VERBOSE
+      this._errors.push(error);
       return;
-      // #else
-      throw new Error(`Invalid render queue ${word.lexeme}`);
       // #endif
     }
     const key = RenderStateDataKey.RenderQueueType;

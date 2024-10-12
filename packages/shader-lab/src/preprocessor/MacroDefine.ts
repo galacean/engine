@@ -1,6 +1,7 @@
 import { BaseToken } from "../common/BaseToken";
 import { ShaderRange } from "../common";
 import { GSError, GSErrorName } from "../GSError";
+import { ShaderLabUtils } from "../ShaderLabUtils";
 
 export class MacroDefine {
   get isFunction() {
@@ -28,11 +29,9 @@ export class MacroDefine {
   expandFunctionBody(args: string[]): string {
     const argsTextList = this.args!.map((item) => item.lexeme);
 
-    // #if _VERBOSE
     if (args.length !== this.args?.length) {
-      throw new GSError(GSErrorName.PreprocessorError, "mismatched function macro", this.location, "");
+      throw ShaderLabUtils.createGSError("mismatched function macro", GSErrorName.PreprocessorError, "", this.location);
     }
-    // #endif
 
     const expanded = this.body.lexeme.replace(this._replaceRegex, (_, m) => {
       return args[argsTextList.indexOf(m)];

@@ -14,6 +14,7 @@ import { Logger } from "@galacean/engine";
 import { GSError, GSErrorName } from "../GSError";
 // #endif
 import { ShaderLab } from "../ShaderLab";
+import { ShaderLabUtils } from "../ShaderLabUtils";
 
 /**
  * The syntax parser and sematic analyzer of `ShaderLab` compiler
@@ -114,18 +115,15 @@ export class ShaderTargetParser {
         traceBackStack.push(nextState);
         continue;
       } else {
-        // #if _VERBOSE
-        this.sematicAnalyzer.errors.push(
-          new GSError(
-            GSErrorName.CompilationError,
-            `Unexpected token ${token.lexeme}`,
-            token.location,
-            ShaderLab._processingPassText
-          )
+        const error = ShaderLabUtils.createGSError(
+          `Unexpected token ${token.lexeme}`,
+          GSErrorName.CompilationError,
+          ShaderLab._processingPassText,
+          token.location
         );
+        // #if _VERBOSE
+        this.sematicAnalyzer.errors.push(error);
         return null;
-        // #else
-        throw new Error(`Unexpected token ${token.lexeme}`);
         // #endif
       }
     }

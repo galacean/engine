@@ -53,12 +53,12 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     if (typeof returnType.type === "string") {
       const varyStruct = symbolTable.lookup<StructSymbol>({ ident: returnType.type, symbolType: ESymbolType.STRUCT });
       if (!varyStruct) {
-        this.reportError(returnType.location, `invalid varying struct: ${returnType.type}`);
+        this._reportError(returnType.location, `invalid varying struct: ${returnType.type}`);
       } else {
         VisitorContext.context.varyingStruct = varyStruct.astNode;
       }
     } else if (returnType.type !== EKeyword.VOID) {
-      this.reportError(returnType.location, "main entry can only return struct.");
+      this._reportError(returnType.location, "main entry can only return struct.");
     }
 
     const paramList = fnNode.protoType.parameterList;
@@ -70,7 +70,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
             symbolType: ESymbolType.STRUCT
           });
           if (!structSymbol) {
-            this.reportError(paramInfo.astNode.location, `Not found attribute struct "${paramInfo.typeInfo.type}".`);
+            this._reportError(paramInfo.astNode.location, `Not found attribute struct "${paramInfo.typeInfo.type}".`);
             continue;
           }
           VisitorContext.context.attributeStructs.push(structSymbol.astNode);
