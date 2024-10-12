@@ -12,11 +12,4 @@ export class PointerEventData implements IPoolElement {
   dispose() {
     this.pointer = this.target = this.currentTarget = null;
   }
-
-  // 派发之后的逻辑
-  protected _postDispatch() {}
-  // 派发之前的逻辑
-  protected _preDispatch() {}
-  // 派发
-  private _dispatch() {}
 }

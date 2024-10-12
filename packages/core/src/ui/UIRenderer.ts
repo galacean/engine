@@ -124,15 +124,17 @@ export class UIRenderer extends Renderer implements IUIElement {
    */
   _onEntityModify(flag: EntityModifyFlags): void {
     switch (flag) {
-      case EntityModifyFlags.Parent:
-        UIUtil.registerEntityListener(this);
-        UIUtil.registerUIToCanvas(this, UIUtil.getRootCanvasInParent(this));
-        UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
-        break;
       case EntityModifyFlags.SiblingIndex:
         this._canvas && (this._canvas._hierarchyDirty = true);
         break;
       case EntityModifyFlags.UIGroupEnableInScene:
+        UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
+        break;
+      case EntityModifyFlags.Parent:
+        UIUtil.registerUIToCanvas(this, UIUtil.getRootCanvasInParent(this));
+        // preRootCanvas === curRootCanvas, but need to set hierarchyDirty
+        this._canvas && (this._canvas._hierarchyDirty = true);
+        UIUtil.registerEntityListener(this);
         UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
         break;
       default:
@@ -147,25 +149,26 @@ export class UIRenderer extends Renderer implements IUIElement {
     return this.engine._batcherManager.primitiveChunkManagerUI;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _raycast(ray: Ray, out: HitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
     const entity = this._entity;
     const plane = UIRenderer._tempPlane;
     const transform = entity.transform;
     const normal = plane.normal.copyFrom(transform.worldForward);
     plane.distance = -Vector3.dot(normal, transform.worldPosition);
-    ray.intersectPlane(plane);
     const curDistance = ray.intersectPlane(plane);
     if (curDistance >= 0 && curDistance < distance) {
       const hitPointWorld = ray.getPoint(curDistance, UIRenderer._tempVec30);
       const worldMatrixInv = UIRenderer._tempMat;
       Matrix.invert(this.entity.transform.worldMatrix, worldMatrixInv);
-      const hitPointLocal = UIRenderer._tempVec31;
-      Vector3.transformCoordinate(hitPointWorld, worldMatrixInv, hitPointLocal);
-      if (this._hitTest(hitPointLocal)) {
+      const localPosition = UIRenderer._tempVec31;
+      Vector3.transformCoordinate(hitPointWorld, worldMatrixInv, localPosition);
+      if (this._hitTest(localPosition)) {
         out.distance = curDistance;
         out.entity = entity;
-        out.shape = this;
+        out.component = this;
         out.normal.copyFrom(normal);
         out.point.copyFrom(hitPointWorld);
         return true;
@@ -174,12 +177,18 @@ export class UIRenderer extends Renderer implements IUIElement {
     return false;
   }
 
-  protected _hitTest(hitPoint: Vector3): boolean {
-    const { x, y } = hitPoint;
+  protected _hitTest(localPosition: Vector3): boolean {
+    const { x, y } = localPosition;
     const uiTransform = <UITransform>this._transform;
     const { x: width, y: height } = uiTransform.size;
     const { x: pivotX, y: pivotY } = uiTransform.pivot;
-    return x >= -width * pivotX && x <= width * (1 - pivotX) && y >= -height * pivotY && y <= height * (1 - pivotY);
+    const { x: paddingLeft, y: paddingBottom, z: paddingRight, w: paddingTop } = this.raycastPadding;
+    return (
+      x >= -width * pivotX + paddingLeft &&
+      x <= width * (1 - pivotX) - paddingRight &&
+      y >= -height * pivotY + paddingTop &&
+      y <= height * (1 - pivotY) - paddingBottom
+    );
   }
 
   protected override _onDestroy(): void {

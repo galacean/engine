@@ -334,7 +334,7 @@ export class BasicRenderPipeline {
     const { engine, enableFrustumCulling, cullingMask, _frustum: frustum } = camera;
     const { _renderers: renderers, _canvases: canvases } = camera.scene._componentsManager;
 
-    let rendererElements = renderers._elements;
+    const rendererElements = renderers._elements;
     for (let i = renderers.length - 1; i >= 0; --i) {
       const renderer = rendererElements[i];
       // Filter by camera culling mask
@@ -352,7 +352,7 @@ export class BasicRenderPipeline {
       renderer._renderFrameCount = engine.time.frameCount;
     }
 
-    let canvasesElements = canvases._elements;
+    const canvasesElements = canvases._elements;
     for (let i = canvases.length - 1; i >= 0; i--) {
       const canvas = canvasesElements[i];
       if (canvas.renderMode === CanvasRenderMode.ScreenSpaceCamera && canvas.renderCamera !== camera) continue;

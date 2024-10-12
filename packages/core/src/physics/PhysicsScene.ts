@@ -3,12 +3,12 @@ import { MathUtil, Ray, Vector3 } from "@galacean/engine-math";
 import { DisorderedArray } from "../DisorderedArray";
 import { Layer } from "../Layer";
 import { Scene } from "../Scene";
+import { Script } from "../Script";
 import { CharacterController } from "./CharacterController";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
 import { ColliderShape } from "./shape";
-import { Script } from "../Script";
 
 /**
  * A physics scene is a collection of colliders and constraints which can interact.
@@ -317,6 +317,7 @@ export class PhysicsScene {
       const result = this._nativePhysicsScene.raycast(ray, distance, onRaycast, (idx, distance, position, normal) => {
         const hitShape = this._scene.engine._physicalObjectsMap[idx];
         hitResult.entity = hitShape._collider.entity;
+        hitResult.component = hitShape._collider;
         hitResult.shape = hitShape;
         hitResult.distance = distance;
         hitResult.normal.copyFrom(normal);
@@ -327,6 +328,7 @@ export class PhysicsScene {
         return true;
       } else {
         hitResult.entity = null;
+        hitResult.component = null;
         hitResult.shape = null;
         hitResult.distance = 0;
         hitResult.point.set(0, 0, 0);

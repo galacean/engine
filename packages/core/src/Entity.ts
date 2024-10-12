@@ -270,18 +270,6 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Get the components which match the type of the entity and it's parent.
-   * @param type - The component type
-   * @param results - The components collection
-   * @returns	The components collection which match the type
-   */
-  getComponentsInParent<T extends Component>(type: new (entity: Entity) => T, results: T[]): T[] {
-    results.length = 0;
-    this.parent?._getComponentsInParent<T>(type, results);
-    return results;
-  }
-
-  /**
    * Add child entity.
    * @param child - The child entity which want to be added
    */
@@ -703,16 +691,6 @@ export class Entity extends EngineObject {
       }
       this._setParentChange();
     }
-  }
-
-  private _getComponentsInParent<T extends Component>(type: new (entity: Entity) => T, results: T[]): void {
-    for (let i = this._components.length - 1; i >= 0; i--) {
-      const component = this._components[i];
-      if (component instanceof type) {
-        results.push(component);
-      }
-    }
-    this.parent?._getComponentsInParent<T>(type, results);
   }
 
   private _getComponentsInChildren<T extends Component>(type: new (entity: Entity) => T, results: T[]): void {

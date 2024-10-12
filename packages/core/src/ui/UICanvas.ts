@@ -185,7 +185,7 @@ export class UICanvas extends Component implements IUIElement {
       }
     }
     out.entity = null;
-    out.shape = null;
+    out.component = null;
     out.distance = 0;
     out.point.set(0, 0, 0);
     out.normal.set(0, 0, 0);
@@ -263,8 +263,8 @@ export class UICanvas extends Component implements IUIElement {
       this._setIsRootCanvas(true);
       UIUtil.registerUIToCanvas(this, rootCanvas);
     }
-    UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
     UIUtil.registerEntityListener(this);
+    UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
   }
 
   /**
@@ -284,30 +284,44 @@ export class UICanvas extends Component implements IUIElement {
   /**
    * @internal
    */
-  _raycast(ray: Ray, out: HitResult = null, distance: number = Number.MAX_SAFE_INTEGER): boolean {
+  _raycast(ray: Ray, out: HitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
     const entity = this._entity;
     const plane = UIRenderer._tempPlane;
     const transform = entity.transform;
     const normal = plane.normal.copyFrom(transform.worldForward);
     plane.distance = -Vector3.dot(normal, transform.worldPosition);
-    ray.intersectPlane(plane);
     const curDistance = ray.intersectPlane(plane);
     if (curDistance >= 0 && curDistance < distance) {
       const hitPointWorld = ray.getPoint(curDistance, UIRenderer._tempVec30);
       const worldMatrixInv = UIRenderer._tempMat;
       Matrix.invert(this.entity.transform.worldMatrix, worldMatrixInv);
-      const hitPointLocal = UIRenderer._tempVec31;
-      Vector3.transformCoordinate(hitPointWorld, worldMatrixInv, hitPointLocal);
-      if (out) {
+      const localPosition = UIRenderer._tempVec31;
+      Vector3.transformCoordinate(hitPointWorld, worldMatrixInv, localPosition);
+      if (this._hitTest(localPosition)) {
         out.distance = curDistance;
         out.entity = entity;
-        out.shape = this;
+        out.component = this;
         out.normal.copyFrom(normal);
         out.point.copyFrom(hitPointWorld);
+        return true;
       }
       return true;
     }
     return false;
+  }
+
+  protected _hitTest(localPosition: Vector3): boolean {
+    const { x, y } = localPosition;
+    const uiTransform = <UITransform>this._transform;
+    const { x: width, y: height } = uiTransform.size;
+    const { x: pivotX, y: pivotY } = uiTransform.pivot;
+    const { x: paddingLeft, y: paddingBottom, z: paddingRight, w: paddingTop } = this.raycastPadding;
+    return (
+      x >= -width * pivotX + paddingLeft &&
+      x <= width * (1 - pivotX) - paddingRight &&
+      y >= -height * pivotY + paddingTop &&
+      y <= height * (1 - pivotY) - paddingBottom
+    );
   }
 
   /**
@@ -316,31 +330,34 @@ export class UICanvas extends Component implements IUIElement {
   _onEntityModify(flag: EntityModifyFlags): void {
     if (this._isRootCanvas) {
       switch (flag) {
-        case EntityModifyFlags.Parent:
-          this._setIsRootCanvas(this._checkIsRootCanvas());
+        case EntityModifyFlags.UIGroupEnableInScene:
           UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
           break;
         case EntityModifyFlags.UICanvasEnableInScene:
           this._setIsRootCanvas(false);
+          UIUtil.registerEntityListener(this);
           break;
-        case EntityModifyFlags.UIGroupEnableInScene:
+        case EntityModifyFlags.Parent:
+          this._setIsRootCanvas(this._checkIsRootCanvas());
           UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
+          UIUtil.registerEntityListener(this);
           break;
         default:
           break;
       }
-      UIUtil.registerEntityListener(this);
     } else {
       switch (flag) {
-        case EntityModifyFlags.Parent:
-          UIUtil.registerEntityListener(this);
-          UIUtil.registerUIToCanvas(this, UIUtil.getRootCanvasInParent(this));
-          UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
-          break;
         case EntityModifyFlags.SiblingIndex:
           this._canvas && (this._canvas._hierarchyDirty = true);
           break;
         case EntityModifyFlags.UIGroupEnableInScene:
+          UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
+          break;
+        case EntityModifyFlags.Parent:
+          UIUtil.registerUIToCanvas(this, UIUtil.getRootCanvasInParent(this));
+          // preRootCanvas === curRootCanvas, but need to set hierarchyDirty
+          this._canvas && (this._canvas._hierarchyDirty = true);
+          UIUtil.registerEntityListener(this);
           UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
           break;
         default:

@@ -34,7 +34,7 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
       ray.direction.set(0, 0, -1);
       for (let j = canvasElements.length - 1; j >= 0; j--) {
         if (canvasElements.get(j).raycast(ray, hitResult)) {
-          this._updateRaycast(<Component>hitResult.shape, pointer);
+          this._updateRaycast(<Component>hitResult.component, pointer);
           return;
         }
       }
@@ -71,7 +71,7 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
           const canvas = canvasElements.get(k);
           if (canvas.renderCamera !== camera) continue;
           if (canvas.raycast(ray, hitResult, farClipPlane)) {
-            this._updateRaycast(<Component>hitResult.shape, pointer);
+            this._updateRaycast(<Component>hitResult.component, pointer);
             return;
           }
         }
