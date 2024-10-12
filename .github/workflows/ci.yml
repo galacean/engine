@@ -69,10 +69,12 @@ jobs:
         run: npm run build:editor
       - name: Test
         run: npm run test-cov
-      - run: pnpm install codecov -w
       - name: Upload coverage to Codecov
-        run: ./node_modules/.bin/codecov
-      - run: curl -s https://codecov.io/bash
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}
+          fail_ci_if_error: true
+          flags: unittests
 
   e2e:
     runs-on: macos-latest
