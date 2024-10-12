@@ -48,6 +48,7 @@ export default class BaseScanner {
     );
   }
 
+  // #if _VERBOSE
   get line() {
     return this._line;
   }
@@ -55,6 +56,7 @@ export default class BaseScanner {
   get column() {
     return this._column;
   }
+  // #endif
 
   protected readonly _keywordsMap: Map<string, number>;
 
