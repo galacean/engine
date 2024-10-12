@@ -34,7 +34,8 @@ export class MacroDefine {
       throw ShaderLabUtils.createGSError("mismatched function macro", GSErrorName.PreprocessorError, "", this.location);
     }
 
-    const expanded = this.body.lexeme.replace(this._replaceRegex, (_, m) => {
+    const expanded = this.body.lexeme.replace(this._replaceRegex, (m) => {
+      debugger;
       return args[this._argsTextList.indexOf(m)];
     });
 
