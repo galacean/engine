@@ -1,13 +1,17 @@
 import { BaseToken } from "../common/BaseToken";
 import { ShaderRange } from "../common";
+import { ShaderLabUtils } from "../ShaderLabUtils";
 // #if _VERBOSE
 import { GSErrorName } from "../GSError";
 // #endif
-import { ShaderLabUtils } from "../ShaderLabUtils";
 
 export class MacroDefine {
   private _replaceRegex?: RegExp;
-  private readonly _argsTextList: string[];
+  private readonly _argsLexemes: string[];
+
+  get isFunction(): boolean {
+    return !!this.args?.length;
+  }
 
   constructor(
     public readonly macro: BaseToken,
@@ -16,13 +20,9 @@ export class MacroDefine {
     public readonly args?: BaseToken[]
   ) {
     if (args) {
-      this._argsTextList = this.args.map((item) => item.lexeme);
-      this._replaceRegex = new RegExp(`\\b(${this._argsTextList.join("|")})\\b`, "g");
+      this._argsLexemes = this.args.map((item) => item.lexeme);
+      this._replaceRegex = new RegExp(`\\b(${this._argsLexemes.join("|")})\\b`, "g");
     }
-  }
-
-  get isFunction(): boolean {
-    return !!this.args?.length;
   }
 
   expandFunctionBody(args: string[]): string {
@@ -30,10 +30,8 @@ export class MacroDefine {
       throw ShaderLabUtils.createGSError("mismatched function macro", GSErrorName.PreprocessorError, "", this.location);
     }
 
-    const expanded = this.body.lexeme.replace(this._replaceRegex, (m) => {
-      return args[this._argsTextList.indexOf(m)];
+    return this.body.lexeme.replace(this._replaceRegex, (m) => {
+      return args[this._argsLexemes.indexOf(m)];
     });
-
-    return expanded;
   }
 }
