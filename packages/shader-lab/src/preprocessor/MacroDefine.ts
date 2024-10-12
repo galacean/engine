@@ -6,10 +6,6 @@ import { GSErrorName } from "../GSError";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 
 export class MacroDefine {
-  get isFunction() {
-    return !!this.args?.length;
-  }
-
   private _replaceRegex?: RegExp;
   private readonly _argsTextList: string[];
 
@@ -23,6 +19,10 @@ export class MacroDefine {
       this._argsTextList = this.args.map((item) => item.lexeme);
       this._replaceRegex = new RegExp(`\\b(${this._argsTextList.join("|")})\\b`, "g");
     }
+  }
+
+  get isFunction(): boolean {
+    return !!this.args?.length;
   }
 
   expandFunctionBody(args: string[]): string {
