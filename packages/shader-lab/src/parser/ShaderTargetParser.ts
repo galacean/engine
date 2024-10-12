@@ -10,9 +10,7 @@ import { addTranslationRule, createGrammar } from "../lalr/CFG";
 import { LALR1 } from "../lalr";
 import { ParserUtils } from "../ParserUtils";
 import { Logger } from "@galacean/engine";
-// #if _VERBOSE
-import { GSError, GSErrorName } from "../GSError";
-// #endif
+import { GSErrorName } from "../GSError";
 import { ShaderLab } from "../ShaderLab";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 

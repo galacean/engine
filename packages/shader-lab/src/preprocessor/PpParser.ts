@@ -1,10 +1,6 @@
 import { ShaderPosition, ShaderRange } from "../common";
 import LexerUtils from "../lexer/Utils";
 import { MacroDefine } from "./MacroDefine";
-// #if _VERBOSE
-import PpSourceMap, { BlockInfo } from "./sourceMap";
-import { GSError, GSErrorName } from "../GSError";
-// #endif
 import { BaseToken } from "../common/BaseToken";
 import { EPpKeyword, EPpToken, PpConstant } from "./constants";
 import PpScanner from "./PpScanner";
@@ -12,6 +8,10 @@ import { PpUtils } from "./Utils";
 import { ShaderLab } from "../ShaderLab";
 import { ShaderPass } from "@galacean/engine";
 import { ShaderLabUtils } from "../ShaderLabUtils";
+import { GSErrorName } from "../GSError";
+// #if _VERBOSE
+import PpSourceMap, { BlockInfo } from "./sourceMap";
+// #endif
 
 export interface ExpandSegment {
   // #if _VERBOSE

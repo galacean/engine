@@ -2,12 +2,13 @@ import { EShaderStage } from "../common/Enums";
 import { ASTNode } from "../parser/AST";
 import { ESymbolType, SymbolTable, SymbolInfo } from "../parser/symbolTable";
 import { IParamInfo } from "../parser/types";
-// #if _VERBOSE
-import { GSErrorName, GSError } from "../GSError";
-// #endif
+import { GSErrorName } from "../GSError";
 import { BaseToken } from "../common/BaseToken";
 import { ShaderLab } from "../ShaderLab";
 import { ShaderLabUtils } from "../ShaderLabUtils";
+// #if _VERBOSE
+import { GSError } from "../GSError";
+// #endif
 
 /** @internal */
 export class VisitorContext {

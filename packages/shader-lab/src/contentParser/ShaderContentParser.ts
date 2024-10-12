@@ -23,8 +23,9 @@ import {
   IShaderPassContent,
   IRenderStates
 } from "@galacean/engine-design";
+import { GSErrorName } from "../GSError";
 // #if _VERBOSE
-import { GSError, GSErrorName } from "../GSError";
+import { GSError } from "../GSError";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 // #endif
 

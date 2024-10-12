@@ -1,8 +1,5 @@
-import { Logger } from "@galacean/engine";
 import { ETokenType, ShaderRange, ShaderPosition } from ".";
-// #if _VERBOSE
-import { GSError, GSErrorName } from "../GSError";
-// #endif
+import { GSErrorName } from "../GSError";
 import { ShaderLab } from "../ShaderLab";
 import { BaseToken } from "./BaseToken";
 import { ShaderLabUtils } from "../ShaderLabUtils";

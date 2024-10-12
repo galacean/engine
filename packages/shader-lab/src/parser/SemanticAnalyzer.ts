@@ -1,13 +1,14 @@
 import { ShaderRange } from "../common";
 import { TreeNode } from "./AST";
-// #if _VERBOSE
-import { GSError, GSErrorName } from "../GSError";
-// #endif
+import { GSErrorName } from "../GSError";
 import { ShaderData } from "./ShaderInfo";
 import { SymbolInfo, SymbolTable } from "../parser/symbolTable";
 import { NodeChild } from "./types";
 import { SymbolTableStack } from "../common/BaseSymbolTable";
 import { ShaderLab } from "../ShaderLab";
+// #if _VERBOSE
+import { GSError } from "../GSError";
+// #endif
 
 export type TranslationRule<T = any> = (sa: SematicAnalyzer, ...tokens: NodeChild[]) => T;
 
