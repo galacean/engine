@@ -10,10 +10,6 @@ export class MacroDefine {
     return !!this.args?.length;
   }
 
-  get macroLexeme() {
-    return this.macro.lexeme;
-  }
-
   private _replaceRegex?: RegExp;
   private readonly _argsTextList: string[];
 
