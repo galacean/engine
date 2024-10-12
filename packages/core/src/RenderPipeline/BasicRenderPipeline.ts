@@ -166,7 +166,7 @@ export class BasicRenderPipeline {
     const clearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
     const color = background.solidColor;
     if (clearFlags !== CameraClearFlags.None) {
-      rhi.clearRenderTarget(camera.engine, clearFlags, color);
+      rhi.clearRenderTarget(engine, clearFlags, color);
     }
 
     opaqueQueue.render(context, PipelineStage.Forward);
@@ -197,6 +197,7 @@ export class BasicRenderPipeline {
     transparentQueue.render(context, PipelineStage.Forward);
     // Reset stencil
     scene._maskManager.clearMask(context, PipelineStage.Forward);
+    scene._stencilManager.clearStencil();
 
     const postProcessManager = scene._postProcessManager;
     const cameraRenderTarget = camera.renderTarget;

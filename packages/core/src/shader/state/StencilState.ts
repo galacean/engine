@@ -194,6 +194,14 @@ export class StencilState {
       passOperationFrontState !== undefined && (passOperationFront = <number>passOperationFrontState);
       const passOperationBackState = customStates[RenderStateElementKey.StencilStatePassOperationBack];
       passOperationBackState !== undefined && (passOperationBack = <number>passOperationBackState);
+      const failOperationFrontState = customStates[RenderStateElementKey.StencilStateFailOperationFront];
+      failOperationFrontState !== undefined && (failOperationFront = <number>failOperationFrontState);
+      const failOperationBackState = customStates[RenderStateElementKey.StencilStateFailOperationBack];
+      failOperationBackState !== undefined && (failOperationBack = <number>failOperationBackState);
+      const zFailOperationFrontState = customStates[RenderStateElementKey.StencilStateZFailOperationFront];
+      zFailOperationFrontState !== undefined && (zFailOperationFront = <number>zFailOperationFrontState);
+      const zFailOperationBackState = customStates[RenderStateElementKey.StencilStateZFailOperationBack];
+      zFailOperationBackState !== undefined && (zFailOperationBack = <number>zFailOperationBackState);
     }
 
     if (enabled != lastState.enabled) {
