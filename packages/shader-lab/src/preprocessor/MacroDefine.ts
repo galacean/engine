@@ -35,7 +35,6 @@ export class MacroDefine {
     }
 
     const expanded = this.body.lexeme.replace(this._replaceRegex, (m) => {
-      debugger;
       return args[this._argsTextList.indexOf(m)];
     });
 
