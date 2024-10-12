@@ -666,7 +666,6 @@ export class PpParser {
     const macro = this._definedMacros.get(token.lexeme);
     if (macro) {
       let replace = macro.body.lexeme;
-      debugger;
       if (macro.isFunction) {
         scanner.scanToChar("(");
         scanner.advance();
