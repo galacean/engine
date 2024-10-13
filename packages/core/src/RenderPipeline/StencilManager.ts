@@ -1,7 +1,7 @@
 import { Engine } from "../Engine";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Material } from "../material";
-import { ColorWriteMask, CompareFunction, RenderQueueType, StencilOperation } from "../shader";
+import { ColorWriteMask, CompareFunction, RenderQueueType, RenderTargetBlendState, StencilOperation } from "../shader";
 import { DisorderedArray } from "../utils/DisorderedArray";
 import { RenderContext } from "./RenderContext";
 import { RenderQueue } from "./RenderQueue";
@@ -15,6 +15,7 @@ export class StencilManager {
   }
 
   private _stencilWriteSubElements = new DisorderedArray<SubRenderElement>();
+  private _targetBlendStates = new DisorderedArray<RenderTargetBlendState>();
   private _colorWriteMasks = new DisorderedArray<ColorWriteMask>();
   private _hasSuspendStencil = false;
   private _isResuming = false;
@@ -58,6 +59,7 @@ export class StencilManager {
 
   addStencilWriteSubElement(subElement: SubRenderElement): void {
     this._stencilWriteSubElements.add(subElement);
+    this._targetBlendStates.add(subElement.material.renderState.blendState.targetBlendState);
     this._colorWriteMasks.add(subElement.material.renderState.blendState.targetBlendState.colorWriteMask);
   }
 
@@ -77,16 +79,21 @@ export class StencilManager {
     const stencilRenderQueue = StencilManager.getStencilRenderQueue();
     stencilRenderQueue.clear();
 
+    // Close color write
+    const targetBlendStates = this._targetBlendStates;
     for (let i = 0; i < stencilLen; ++i) {
       const subElement = stencilWriteSubElements.get(i);
       stencilRenderQueue.batchedSubElements.push(subElement);
-      subElement.material.renderState.blendState.targetBlendState.colorWriteMask = ColorWriteMask.None;
+      const targetBlendState = targetBlendStates.get(i);
+      targetBlendState.colorWriteMask = ColorWriteMask.None;
     }
+    // Resume stencil
     stencilRenderQueue.render(context, pipelineStageTagValue);
+    // Resume color write
     const colorWriteMasks = this._colorWriteMasks;
     for (let i = 0; i < stencilLen; ++i) {
-      const subElement = stencilWriteSubElements.get(i);
-      subElement.material.renderState.blendState.targetBlendState.colorWriteMask = colorWriteMasks.get(i);
+      const targetBlendState = targetBlendStates.get(i);
+      targetBlendState.colorWriteMask = colorWriteMasks.get(i);
     }
 
     this._hasSuspendStencil = false;
@@ -94,9 +101,15 @@ export class StencilManager {
   }
 
   clearStencil(): void {
-    const { _stencilWriteSubElements: stencilWriteSubElements, _colorWriteMasks: colorWriteMasks } = this;
+    const {
+      _stencilWriteSubElements: stencilWriteSubElements,
+      _targetBlendStates: targetBlendStates,
+      _colorWriteMasks: colorWriteMasks
+    } = this;
     stencilWriteSubElements.length = 0;
     stencilWriteSubElements.garbageCollection();
+    targetBlendStates.length = 0;
+    targetBlendStates.garbageCollection();
     colorWriteMasks.length = 0;
     colorWriteMasks.garbageCollection();
   }
