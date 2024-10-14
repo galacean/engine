@@ -1,4 +1,6 @@
+import { SpriteMaskInteraction } from "./2d";
 import { Engine } from "./Engine";
+import { RenderQueueMaskType } from "./RenderPipeline/enums/RenderQueueMaskType";
 import { ContentRestorer } from "./asset/ContentRestorer";
 import { Buffer } from "./graphic/Buffer";
 import { VertexElement } from "./graphic/VertexElement";
@@ -8,8 +10,17 @@ import { MeshTopology } from "./graphic/enums/MeshTopology";
 import { VertexElementFormat } from "./graphic/enums/VertexElementFormat";
 import { Material } from "./material";
 import { ModelMesh } from "./mesh";
-import { BlendFactor, BlendOperation, ColorWriteMask, CullMode, RenderQueueType } from "./shader";
+import {
+  BlendFactor,
+  BlendOperation,
+  ColorWriteMask,
+  CompareFunction,
+  CullMode,
+  RenderQueueType,
+  StencilOperation
+} from "./shader";
 import { Shader } from "./shader/Shader";
+import { RenderStateElementKey } from "./shader/enums/RenderStateElementKey";
 import { Texture, Texture2D, TextureCube, TextureCubeFace } from "./texture";
 import { Texture2DArray } from "./texture/Texture2DArray";
 import { TextureFormat } from "./texture/enums/TextureFormat";
@@ -18,6 +29,82 @@ import { TextureFormat } from "./texture/enums/TextureFormat";
  * @internal
  */
 export class BasicResources {
+  /** @internal */
+  static _maskReadInsideStencilStates: Record<number, number | boolean> = null;
+  /** @internal */
+  static _maskReadOutsideStencilStates: Record<number, number | boolean> = null;
+  /** @internal */
+  static _maskWriteIncrementStencilStates: Record<number, number | boolean> = null;
+  /** @internal */
+  static _maskWriteDecrementStencilStates: Record<number, number | boolean> = null;
+
+  /** @internal */
+  static _getMaskInteractionStencilStates(
+    maskInteraction: SpriteMaskInteraction
+  ): Record<number, number | boolean> | null {
+    const visibleInsideMask = maskInteraction === SpriteMaskInteraction.VisibleInsideMask;
+    let stencilStates: Record<number, number | boolean>;
+    let compareFunction: CompareFunction;
+
+    if (visibleInsideMask) {
+      stencilStates = BasicResources._maskReadInsideStencilStates;
+      if (stencilStates) {
+        return stencilStates;
+      }
+      BasicResources._maskReadInsideStencilStates = stencilStates = {};
+      compareFunction = CompareFunction.LessEqual;
+    } else {
+      stencilStates = BasicResources._maskReadOutsideStencilStates;
+      if (stencilStates) {
+        return stencilStates;
+      }
+      BasicResources._maskReadOutsideStencilStates = stencilStates = {};
+      compareFunction = CompareFunction.Greater;
+    }
+
+    stencilStates[RenderStateElementKey.StencilStateEnabled] = true;
+    stencilStates[RenderStateElementKey.StencilStateWriteMask] = 0x00;
+    stencilStates[RenderStateElementKey.StencilStateReferenceValue] = 1;
+    stencilStates[RenderStateElementKey.StencilStateCompareFunctionFront] = compareFunction;
+    stencilStates[RenderStateElementKey.StencilStateCompareFunctionBack] = compareFunction;
+
+    return stencilStates;
+  }
+
+  /** @internal */
+  static _getMaskTypeStencilStates(maskType: RenderQueueMaskType): Record<number, number | boolean> | null {
+    const isIncrement = maskType === RenderQueueMaskType.Increment;
+    let stencilStates: Record<number, number | boolean>;
+    let passOperation: StencilOperation;
+
+    if (isIncrement) {
+      stencilStates = BasicResources._maskWriteIncrementStencilStates;
+      if (stencilStates) {
+        return stencilStates;
+      }
+      BasicResources._maskWriteIncrementStencilStates = stencilStates = {};
+      passOperation = StencilOperation.IncrementSaturate;
+    } else {
+      stencilStates = BasicResources._maskWriteDecrementStencilStates;
+      if (stencilStates) {
+        return stencilStates;
+      }
+      BasicResources._maskWriteDecrementStencilStates = stencilStates = {};
+      passOperation = StencilOperation.DecrementSaturate;
+    }
+
+    stencilStates[RenderStateElementKey.StencilStateEnabled] = true;
+    stencilStates[RenderStateElementKey.StencilStatePassOperationFront] = passOperation;
+    stencilStates[RenderStateElementKey.StencilStatePassOperationBack] = passOperation;
+    const failStencilOperation = StencilOperation.Keep;
+    stencilStates[RenderStateElementKey.StencilStateFailOperationFront] = failStencilOperation;
+    stencilStates[RenderStateElementKey.StencilStateFailOperationBack] = failStencilOperation;
+    stencilStates[RenderStateElementKey.StencilStateZFailOperationFront] = failStencilOperation;
+    stencilStates[RenderStateElementKey.StencilStateZFailOperationBack] = failStencilOperation;
+
+    return stencilStates;
+  }
+
   /**
    * Use triangle to blit texture, ref: https://michaldrobot.com/2014/04/01/gcn-execution-patterns-in-full-screen-passes/ .
    */
@@ -172,7 +259,6 @@ export class BasicResources {
     const renderState = material.renderState;
     renderState.blendState.targetBlendState.colorWriteMask = ColorWriteMask.None;
     renderState.rasterState.cullMode = CullMode.Off;
-    renderState.stencilState.enabled = true;
     renderState.depthState.enabled = false;
     material.isGCIgnored = true;
     return material;

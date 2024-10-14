@@ -1,8 +1,8 @@
 import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
+import { BasicResources } from "../BasicResources";
 import { Utils } from "../Utils";
-import { CompareFunction, RenderQueueType, Shader, StencilOperation } from "../shader";
+import { RenderQueueType, Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { RenderStateElementKey } from "../shader/enums/RenderStateElementKey";
 import { BatcherManager } from "./BatcherManager";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
@@ -14,67 +14,12 @@ import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
  * @internal
  */
 export class RenderQueue {
-  private static _insideStencilStates: Record<number, number | boolean> = {};
-  private static _outsideStencilStates: Record<number, number | boolean> = {};
-  private static _incrementStencilStates: Record<number, number | boolean> = {};
-  private static _decrementStencilStates: Record<number, number | boolean> = {};
-
   static compareForOpaque(a: RenderElement, b: RenderElement): number {
     return a.priority - b.priority || a.distanceForSort - b.distanceForSort;
   }
 
   static compareForTransparent(a: RenderElement, b: RenderElement): number {
     return a.priority - b.priority || b.distanceForSort - a.distanceForSort;
-  }
-
-  private static _getMaskInteractionStencilStates(
-    maskInteraction: SpriteMaskInteraction
-  ): Record<number, number | boolean> | null {
-    if (maskInteraction === SpriteMaskInteraction.None) {
-      return null;
-    }
-
-    const stencilStates =
-      maskInteraction === SpriteMaskInteraction.VisibleInsideMask
-        ? RenderQueue._insideStencilStates
-        : RenderQueue._outsideStencilStates;
-    if (stencilStates[RenderStateElementKey.StencilStateEnabled] === undefined) {
-      stencilStates[RenderStateElementKey.StencilStateEnabled] = true;
-      stencilStates[RenderStateElementKey.StencilStateWriteMask] = 0x00;
-      stencilStates[RenderStateElementKey.StencilStateReferenceValue] = 1;
-      const compareFunction =
-        maskInteraction === SpriteMaskInteraction.VisibleInsideMask
-          ? CompareFunction.LessEqual
-          : CompareFunction.Greater;
-      stencilStates[RenderStateElementKey.StencilStateCompareFunctionFront] = compareFunction;
-      stencilStates[RenderStateElementKey.StencilStateCompareFunctionBack] = compareFunction;
-    }
-    return stencilStates;
-  }
-
-  private static _getMaskTypeStencilStates(maskType: RenderQueueMaskType): Record<number, number | boolean> | null {
-    if (maskType === RenderQueueMaskType.No) {
-      return null;
-    }
-
-    const stencilStates =
-      maskType === RenderQueueMaskType.Increment
-        ? RenderQueue._incrementStencilStates
-        : RenderQueue._decrementStencilStates;
-    const passOperation =
-      maskType === RenderQueueMaskType.Increment
-        ? StencilOperation.IncrementSaturate
-        : StencilOperation.DecrementSaturate;
-    if (stencilStates[RenderStateElementKey.StencilStatePassOperationFront] === undefined) {
-      stencilStates[RenderStateElementKey.StencilStatePassOperationFront] = passOperation;
-      stencilStates[RenderStateElementKey.StencilStatePassOperationBack] = passOperation;
-      const stencilOperation = StencilOperation.Keep;
-      stencilStates[RenderStateElementKey.StencilStateFailOperationFront] = stencilOperation;
-      stencilStates[RenderStateElementKey.StencilStateFailOperationBack] = stencilOperation;
-      stencilStates[RenderStateElementKey.StencilStateZFailOperationFront] = stencilOperation;
-      stencilStates[RenderStateElementKey.StencilStateZFailOperationBack] = stencilOperation;
-    }
-    return stencilStates;
   }
 
   readonly elements = new Array<RenderElement>();
@@ -156,9 +101,13 @@ export class RenderQueue {
           }
         }
       }
-      const customStates =
-        RenderQueue._getMaskInteractionStencilStates(maskInteraction) ||
-        RenderQueue._getMaskTypeStencilStates(maskType);
+
+      let customStates: Record<number, number | boolean> = null;
+      if (maskInteractionNotNone) {
+        customStates = BasicResources._getMaskInteractionStencilStates(maskInteraction);
+      } else if (maskType !== RenderQueueMaskType.No) {
+        customStates = BasicResources._getMaskTypeStencilStates(maskType);
+      }
 
       const compileMacros = Shader._compileMacros;
       const { primitive, shaderPasses, shaderData: renderElementShaderData } = subElement;
