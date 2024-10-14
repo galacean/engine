@@ -8,6 +8,7 @@ import { MeshTopology } from "./graphic/enums/MeshTopology";
 import { VertexElementFormat } from "./graphic/enums/VertexElementFormat";
 import { Material } from "./material";
 import { ModelMesh } from "./mesh";
+import { BlendFactor, BlendOperation, ColorWriteMask, CullMode, RenderQueueType } from "./shader";
 import { Shader } from "./shader/Shader";
 import { Texture, Texture2D, TextureCube, TextureCubeFace } from "./texture";
 import { Texture2DArray } from "./texture/Texture2DArray";
@@ -28,6 +29,10 @@ export class BasicResources {
   readonly whiteTextureCube: TextureCube;
   readonly whiteTexture2DArray: Texture2DArray;
   readonly uintWhiteTexture2D: Texture2D;
+
+  readonly spriteDefaultMaterial: Material;
+  readonly textDefaultMaterial: Material;
+  readonly spriteMaskDefaultMaterial: Material;
 
   constructor(engine: Engine) {
     // prettier-ignore
@@ -74,6 +79,10 @@ export class BasicResources {
         whitePixel32
       );
     }
+
+    this.spriteDefaultMaterial = this._createSpriteMaterial(engine);
+    this.textDefaultMaterial = this._createTextMaterial(engine);
+    this.spriteMaskDefaultMaterial = this._createSpriteMaskMaterial(engine);
   }
 
   private _createBlitMesh(engine: Engine, vertices: Float32Array): ModelMesh {
@@ -139,6 +148,51 @@ export class BasicResources {
       })()
     );
     return texture as T;
+  }
+
+  private _createSpriteMaterial(engine): Material {
+    const material = new Material(engine, Shader.find("Sprite"));
+    const renderState = material.renderState;
+    const target = renderState.blendState.targetBlendState;
+    target.enabled = true;
+    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.sourceAlphaBlendFactor = BlendFactor.One;
+    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+    renderState.depthState.writeEnabled = false;
+    renderState.rasterState.cullMode = CullMode.Off;
+    renderState.renderQueueType = RenderQueueType.Transparent;
+    material.isGCIgnored = true;
+    return material;
+  }
+
+  private _createTextMaterial(engine: Engine): Material {
+    const material = new Material(engine, Shader.find("Text"));
+    const renderState = material.renderState;
+    const target = renderState.blendState.targetBlendState;
+    target.enabled = true;
+    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.sourceAlphaBlendFactor = BlendFactor.One;
+    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+    renderState.depthState.writeEnabled = false;
+    renderState.rasterState.cullMode = CullMode.Off;
+    renderState.renderQueueType = RenderQueueType.Transparent;
+    material.isGCIgnored = true;
+    return material;
+  }
+
+  private _createSpriteMaskMaterial(engine: Engine): Material {
+    const material = new Material(engine, Shader.find("SpriteMask"));
+    const renderState = material.renderState;
+    renderState.blendState.targetBlendState.colorWriteMask = ColorWriteMask.None;
+    renderState.rasterState.cullMode = CullMode.Off;
+    renderState.stencilState.enabled = true;
+    renderState.depthState.enabled = false;
+    material.isGCIgnored = true;
+    return material;
   }
 }
 

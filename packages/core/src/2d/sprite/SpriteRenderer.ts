@@ -17,8 +17,6 @@ import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "./Sprite";
-import { Material } from "../../material";
-import { BlendFactor, BlendOperation, CullMode, RenderQueueType, Shader } from "../../shader";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -26,24 +24,6 @@ import { BlendFactor, BlendOperation, CullMode, RenderQueueType, Shader } from "
 export class SpriteRenderer extends Renderer {
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_SpriteTexture");
-
-  /** @internal */
-  static _createSpriteMaterial(engine): Material {
-    const material = new Material(engine, Shader.find("Sprite"));
-    const renderState = material.renderState;
-    const target = renderState.blendState.targetBlendState;
-    target.enabled = true;
-    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
-    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    target.sourceAlphaBlendFactor = BlendFactor.One;
-    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-    renderState.depthState.writeEnabled = false;
-    renderState.rasterState.cullMode = CullMode.Off;
-    renderState.renderQueueType = RenderQueueType.Transparent;
-    material.isGCIgnored = true;
-    return material;
-  }
 
   /** @internal */
   @ignoreClone
@@ -287,7 +267,7 @@ export class SpriteRenderer extends Renderer {
     super(entity);
     this.drawMode = SpriteDrawMode.Simple;
     this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Color;
-    this.setMaterial(this._engine._spriteDefaultMaterial);
+    this.setMaterial(this._engine._basicResources.spriteDefaultMaterial);
     this._onSpriteChange = this._onSpriteChange.bind(this);
     //@ts-ignore
     this._color._onValueChanged = this._onColorChanged.bind(this);
@@ -352,7 +332,7 @@ export class SpriteRenderer extends Renderer {
     }
     // @todo: This question needs to be raised rather than hidden.
     if (material.destroyed) {
-      material = this._engine._spriteDefaultMaterial;
+      material = this._engine._basicResources.spriteDefaultMaterial;
     }
 
     // Update position

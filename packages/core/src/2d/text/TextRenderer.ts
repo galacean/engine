@@ -10,11 +10,6 @@ import { Renderer } from "../../Renderer";
 import { TransformModifyFlags } from "../../Transform";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import {
-  BlendFactor,
-  BlendOperation,
-  CullMode,
-  RenderQueueType,
-  Shader,
   ShaderData,
   ShaderProperty
 } from "../../shader";
@@ -28,7 +23,6 @@ import { CharRenderInfo } from "./CharRenderInfo";
 import { Font } from "./Font";
 import { SubFont } from "./SubFont";
 import { TextUtils } from "./TextUtils";
-import { Material } from "../../material";
 
 /**
  * Renders a text for 2D graphics.
@@ -39,24 +33,6 @@ export class TextRenderer extends Renderer {
   private static _tempVec31 = new Vector3();
   private static _worldPositions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   private static _charRenderInfos: CharRenderInfo[] = [];
-
-  /** @internal */
-  static _createTextMaterial(engine: Engine): Material {
-    const material = new Material(engine, Shader.find("Text"));
-    const renderState = material.renderState;
-    const target = renderState.blendState.targetBlendState;
-    target.enabled = true;
-    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
-    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    target.sourceAlphaBlendFactor = BlendFactor.One;
-    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-    renderState.depthState.writeEnabled = false;
-    renderState.rasterState.cullMode = CullMode.Off;
-    renderState.renderQueueType = RenderQueueType.Transparent;
-    material.isGCIgnored = true;
-    return material;
-  }
 
   /** @internal */
   @ignoreClone
@@ -319,7 +295,7 @@ export class TextRenderer extends Renderer {
     const { engine } = this;
     this._font = engine._textDefaultFont;
     this._addResourceReferCount(this._font, 1);
-    this.setMaterial(engine._textDefaultMaterial);
+    this.setMaterial(engine._basicResources.textDefaultMaterial);
     //@ts-ignore
     this._color._onValueChanged = this._onColorChanged.bind(this);
   }

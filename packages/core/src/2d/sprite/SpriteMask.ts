@@ -14,9 +14,6 @@ import { ShaderProperty } from "../../shader/ShaderProperty";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
-import { Material } from "../../material";
-import { ColorWriteMask, CullMode, Shader } from "../../shader";
-import { Engine } from "../../Engine";
 
 /**
  * A component for masking Sprites.
@@ -26,18 +23,6 @@ export class SpriteMask extends Renderer {
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskTexture");
   /** @internal */
   static _alphaCutoffProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskAlphaCutoff");
-
-  /** @internal */
-  static _createSpriteMaskMaterial(engine: Engine): Material {
-    const material = new Material(engine, Shader.find("SpriteMask"));
-    const renderState = material.renderState;
-    renderState.blendState.targetBlendState.colorWriteMask = ColorWriteMask.None;
-    renderState.rasterState.cullMode = CullMode.Off;
-    renderState.stencilState.enabled = true;
-    renderState.depthState.enabled = false;
-    material.isGCIgnored = true;
-    return material;
-  }
 
   /** The mask layers the sprite mask influence to. */
   @assignmentClone
@@ -192,7 +177,7 @@ export class SpriteMask extends Renderer {
   constructor(entity: Entity) {
     super(entity);
     SimpleSpriteAssembler.resetData(this);
-    this.setMaterial(this._engine._spriteMaskDefaultMaterial);
+    this.setMaterial(this._engine._basicResources.spriteMaskDefaultMaterial);
     this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, this._alphaCutoff);
     this._renderElement = new RenderElement();
     this._renderElement.addSubRenderElement(new SubRenderElement());
@@ -276,7 +261,7 @@ export class SpriteMask extends Renderer {
     const { _engine: engine } = this;
     // @todo: This question needs to be raised rather than hidden.
     if (material.destroyed) {
-      material = engine._spriteMaskDefaultMaterial;
+      material = engine._basicResources.spriteMaskDefaultMaterial;
     }
 
     // Update position

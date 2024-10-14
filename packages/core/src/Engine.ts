@@ -87,12 +87,6 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _basicResources: BasicResources;
   /* @internal */
-  _spriteDefaultMaterial: Material;
-  /* @internal */
-  _textDefaultMaterial: Material;
-  /* @internal */
-  _spriteMaskDefaultMaterial: Material;
-  /* @internal */
   _textDefaultFont: Font;
   /* @internal */
   _renderContext: RenderContext = new RenderContext();
@@ -231,9 +225,6 @@ export class Engine extends EventDispatcher {
 
     this._canvas = canvas;
 
-    this._spriteDefaultMaterial = SpriteRenderer._createSpriteMaterial(this);
-    this._textDefaultMaterial = TextRenderer._createTextMaterial(this);
-    this._spriteMaskDefaultMaterial = SpriteMask._createSpriteMaskMaterial(this);
     this._textDefaultFont = Font.createFromOS(this, "Arial");
     this._textDefaultFont.isGCIgnored = true;
 
