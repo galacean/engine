@@ -28,11 +28,25 @@ export class UICanvas extends Component implements IUIElement {
 
   /** @internal */
   @ignoreClone
-  _parents: Entity[] = [];
-
+  _canvasIndex: number = -1;
   /** @internal */
   @ignoreClone
-  _canvasIndex: number = -1;
+  _parents: Entity[] = [];
+  /** @internal */
+  @ignoreClone
+  _hierarchyDirty: boolean = true;
+  /** @internal */
+  @ignoreClone
+  _canvas: UICanvas;
+  /** @internal */
+  @ignoreClone
+  _indexInCanvas: number = -1;
+  /** @internal */
+  @ignoreClone
+  _group: UIGroup;
+  /** @internal */
+  @ignoreClone
+  _indexInGroup: number = -1;
   /** @internal */
   @ignoreClone
   _isRootCanvas: boolean = false;
@@ -44,21 +58,6 @@ export class UICanvas extends Component implements IUIElement {
   _sortDistance: number = 0;
   /** @internal */
   @ignoreClone
-  _group: UIGroup;
-  /** @internal */
-  @ignoreClone
-  _indexInGroup: number = -1;
-  /** @internal */
-  @ignoreClone
-  _canvas: UICanvas;
-  /** @internal */
-  @ignoreClone
-  _indexInCanvas: number = -1;
-  /** @internal */
-  @ignoreClone
-  _hierarchyDirty: boolean = true;
-  /** @internal */
-  @ignoreClone
   _disorderedElements: DisorderedArray<IUIElement> = new DisorderedArray();
   /** @internal */
   @ignoreClone
@@ -66,7 +65,7 @@ export class UICanvas extends Component implements IUIElement {
 
   @assignmentClone
   private _renderMode = CanvasRenderMode.WorldSpace;
-  @assignmentClone
+  @ignoreClone
   private _realRenderMode: number = CanvasRealRenderMode.None;
   @assignmentClone
   private _renderCamera: Camera;

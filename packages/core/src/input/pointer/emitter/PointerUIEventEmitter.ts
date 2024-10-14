@@ -6,7 +6,6 @@ import { CameraClearFlags } from "../../../enums/CameraClearFlags";
 import { ComponentType } from "../../../enums/ComponentType";
 import { UICanvas, UIRenderer } from "../../../ui";
 import { Pointer } from "../Pointer";
-import { PointerCallbackType } from "../PointerCallbackType";
 import { PointerEventData } from "../PointerEventData";
 import { PointerEventEmitter } from "./PointerEventEmitter";
 
@@ -191,7 +190,7 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
     eventData.currentTarget = entity;
     entity._scripts.forEach(
       (script: Script) => {
-        script._pointerOverrideFlag & PointerCallbackType[type] && script[type](eventData);
+        script[type]?.(eventData);
       },
       (script: Script, index: number) => {
         script._entityScriptsIndex = index;

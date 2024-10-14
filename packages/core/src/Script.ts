@@ -1,7 +1,6 @@
 import { Camera } from "./Camera";
 import { Component } from "./Component";
-import { ignoreClone } from "./clone/CloneManager";
-import { PointerCallbackType } from "./input/pointer/PointerCallbackType";
+import { assignmentClone, ignoreClone } from "./clone/CloneManager";
 import { PointerEventData } from "./input/pointer/PointerEventData";
 import { ColliderShape } from "./physics";
 import { Collision } from "./physics/Collision";
@@ -34,9 +33,34 @@ export class Script extends Component {
   /** @internal */
   @ignoreClone
   _entityScriptsIndex: number = -1;
-  /** @internal */
-  @ignoreClone
-  _pointerOverrideFlag: PointerCallbackType;
+
+  /** Called when the pointer is down while over the ColliderShape. */
+  @assignmentClone
+  onPointerDown: (event: PointerEventData) => void | null;
+  /** Called when the pointer is up while over the ColliderShape. */
+  @assignmentClone
+  onPointerUp: (event: PointerEventData) => void | null;
+  /** Called when the pointer is down and up with the same collider. */
+  @assignmentClone
+  onPointerClick: (event: PointerEventData) => void | null;
+  /** Called when the pointer is enters the ColliderShape. */
+  @assignmentClone
+  onPointerEnter: (event: PointerEventData) => void | null;
+  /** Called when the pointer is no longer over the ColliderShape. */
+  @assignmentClone
+  onPointerExit: (event: PointerEventData) => void | null;
+  /** This function will be called when the pointer is pressed on the collider. */
+  @assignmentClone
+  onPointerBeginDrag: (event: PointerEventData) => void | null;
+  /** When a drag collision occurs on the pointer, this function will be called every time it moves. */
+  @assignmentClone
+  onPointerDrag: (event: PointerEventData) => void | null;
+  /** When dragging ends, this function will be called(Dragged object). */
+  @assignmentClone
+  onPointerEndDrag: (event: PointerEventData) => void | null;
+  /** When dragging ends, this function will be called(Receiving object). */
+  @assignmentClone
+  onPointerDrop: (event: PointerEventData) => void | null;
 
   /**
    * Called when be enabled first time, only once.
@@ -123,62 +147,6 @@ export class Script extends Component {
   onCollisionStay(other: Collision): void {}
 
   /**
-   * Called when the pointer is down while over the ColliderShape.
-   * @param pointer - The pointer that triggered
-   */
-  onPointerDown(event: PointerEventData): void {}
-
-  /**
-   * Called when the pointer is up while over the ColliderShape.
-   * @param pointer - The pointer that triggered
-   */
-  onPointerUp(event: PointerEventData): void {}
-
-  /**
-   * Called when the pointer is down and up with the same collider.
-   * @param pointer - The pointer that triggered
-   */
-  onPointerClick(event: PointerEventData): void {}
-
-  /**
-   * Called when the pointer is enters the ColliderShape.
-   * @param pointer - The pointer that triggered
-   */
-  onPointerEnter(event: PointerEventData): void {}
-
-  /**
-   * Called when the pointer is no longer over the ColliderShape.
-   * @param pointer - The pointer that triggered
-   */
-  onPointerExit(event: PointerEventData): void {}
-
-  /**
-   * This function will be called when the pointer is pressed on the collider.
-   * @param pointer
-   */
-  onPointerBeginDrag(pointer: PointerEventData): void {}
-
-  /**
-   * When a drag collision occurs on the pointer, this function will be called every time it moves.
-   * @param pointer - The pointer that triggered
-   */
-  onPointerDrag(pointer: PointerEventData): void {}
-
-  /**
-   * When dragging ends, this function will be called(Dragged object).
-   * @param pointer - The pointer that triggered
-   * @remarks Dragged object: The object being dragged.
-   */
-  onPointerEndDrag(pointer: PointerEventData): void {}
-
-  /**
-   * When dragging ends, this function will be called(Receiving object).
-   * @param pointer - The pointer that triggered
-   * @remarks Receiving object: The collider hit when ending the drag.
-   */
-  onPointerDrop(pointer: PointerEventData): void {}
-
-  /**
    * Called when be disabled.
    */
   onDisable(): void {}
@@ -227,35 +195,7 @@ export class Script extends Component {
     if (this.onPhysicsUpdate !== prototype.onPhysicsUpdate) {
       componentsManager.addOnPhysicsUpdateScript(this);
     }
-    const { _entity: entity } = this;
-    if (this.onPointerDown !== prototype.onPointerDown) {
-      this._pointerOverrideFlag |= PointerCallbackType.onPointerDown;
-    }
-    if (this.onPointerUp !== prototype.onPointerUp) {
-      this._pointerOverrideFlag |= PointerCallbackType.onPointerUp;
-    }
-    if (this.onPointerClick !== prototype.onPointerClick) {
-      this._pointerOverrideFlag |= PointerCallbackType.onPointerClick;
-    }
-    if (this.onPointerEnter !== prototype.onPointerEnter) {
-      this._pointerOverrideFlag |= PointerCallbackType.onPointerEnter;
-    }
-    if (this.onPointerExit !== prototype.onPointerExit) {
-      this._pointerOverrideFlag |= PointerCallbackType.onPointerExit;
-    }
-    if (this.onPointerBeginDrag !== prototype.onPointerBeginDrag) {
-      this._pointerOverrideFlag |= PointerCallbackType.onPointerBeginDrag;
-    }
-    if (this.onPointerDrag !== prototype.onPointerDrag) {
-      this._pointerOverrideFlag |= PointerCallbackType.onPointerDrag;
-    }
-    if (this.onPointerEndDrag !== prototype.onPointerEndDrag) {
-      this._pointerOverrideFlag |= PointerCallbackType.onPointerEndDrag;
-    }
-    if (this.onPointerDrop !== prototype.onPointerDrop) {
-      this._pointerOverrideFlag |= PointerCallbackType.onPointerDrop;
-    }
-    entity._addScript(this);
+    this._entity._addScript(this);
   }
 
   /**
