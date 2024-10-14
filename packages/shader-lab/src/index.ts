@@ -1,9 +1,5 @@
 export { ShaderLab } from "./ShaderLab";
 
-import BaseScanner from "./common/BaseScanner";
-/** @internal */
-export { BaseScanner };
-
 // #if _VERBOSE
 export { Preprocessor } from "./preprocessor";
 export * from "./GSError";
