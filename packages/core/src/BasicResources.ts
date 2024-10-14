@@ -80,8 +80,8 @@ export class BasicResources {
       );
     }
 
-    this.spriteDefaultMaterial = this._createSpriteMaterial(engine);
-    this.textDefaultMaterial = this._createTextMaterial(engine);
+    this.spriteDefaultMaterial = this._create2DMaterial(engine, Shader.find("Sprite"));
+    this.textDefaultMaterial = this._create2DMaterial(engine, Shader.find("Text"));
     this.spriteMaskDefaultMaterial = this._createSpriteMaskMaterial(engine);
   }
 
@@ -150,25 +150,8 @@ export class BasicResources {
     return texture as T;
   }
 
-  private _createSpriteMaterial(engine): Material {
-    const material = new Material(engine, Shader.find("Sprite"));
-    const renderState = material.renderState;
-    const target = renderState.blendState.targetBlendState;
-    target.enabled = true;
-    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
-    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    target.sourceAlphaBlendFactor = BlendFactor.One;
-    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-    renderState.depthState.writeEnabled = false;
-    renderState.rasterState.cullMode = CullMode.Off;
-    renderState.renderQueueType = RenderQueueType.Transparent;
-    material.isGCIgnored = true;
-    return material;
-  }
-
-  private _createTextMaterial(engine: Engine): Material {
-    const material = new Material(engine, Shader.find("Text"));
+  private _create2DMaterial(engine: Engine, shader: Shader): Material {
+    const material = new Material(engine, shader);
     const renderState = material.renderState;
     const target = renderState.blendState.targetBlendState;
     target.enabled = true;

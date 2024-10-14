@@ -7,7 +7,6 @@ import {
   IXRDevice
 } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
-import { SpriteMask, SpriteRenderer, TextRenderer } from "./2d";
 import { CharRenderInfo } from "./2d/text/CharRenderInfo";
 import { Font } from "./2d/text/Font";
 import { BasicResources } from "./BasicResources";
