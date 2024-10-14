@@ -68,7 +68,6 @@ export class SpriteMask extends Renderer {
     if (this._customWidth !== undefined) {
       return this._customWidth;
     } else {
-      this._dirtyUpdateFlag & SpriteMaskUpdateFlags.AutomaticSize && this._calDefaultSize();
       return this._automaticWidth;
     }
   }
@@ -91,7 +90,6 @@ export class SpriteMask extends Renderer {
     if (this._customHeight !== undefined) {
       return this._customHeight;
     } else {
-      this._dirtyUpdateFlag & SpriteMaskUpdateFlags.AutomaticSize && this._calDefaultSize();
       return this._automaticHeight;
     }
   }
@@ -318,7 +316,6 @@ export class SpriteMask extends Renderer {
     } else {
       this._automaticWidth = this._automaticHeight = 0;
     }
-    this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.AutomaticSize;
   }
 
   @ignoreClone
@@ -328,14 +325,14 @@ export class SpriteMask extends Renderer {
         this.shaderData.setTexture(SpriteMask._textureProperty, this.sprite.texture);
         break;
       case SpriteModifyFlags.size:
-        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.AutomaticSize;
         if (this._customWidth === undefined || this._customHeight === undefined) {
+          this._calDefaultSize();
           this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.PositionAndAllBounds;
         }
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:
-        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.RenderData;
+        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.PositionAndUV;
         break;
       case SpriteModifyFlags.atlasRegion:
         this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.UV;
@@ -356,16 +353,13 @@ export class SpriteMask extends Renderer {
  * @remarks Extends `RendererUpdateFlag`.
  */
 enum SpriteMaskUpdateFlags {
-  /** Position. */
   Position = 0x4,
-  /** UV. */
   UV = 0x8,
-  /** WorldVolume and UV . */
-  RenderData = 0x3,
-  /** Position and all bounds. */
+
+  /** Position | LocalBounds | WorldBounds */
   PositionAndAllBounds = 0x7,
-  /** Automatic Size. */
-  AutomaticSize = 0x10,
+  /** Position | UV */
+  PositionAndUV = 0xc,
   /** All. */
-  All = 0x1f
+  All = 0xf
 }

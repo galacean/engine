@@ -1,7 +1,7 @@
 import { Vector2 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { Transform } from "../Transform";
-import { deepClone } from "../clone/CloneManager";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
 
 export class UITransform extends Transform {
   @deepClone
@@ -43,10 +43,12 @@ export class UITransform extends Transform {
     this._pivot._onValueChanged = this._onPivotChange.bind(this);
   }
 
+  @ignoreClone
   private _onSizeChange(): void {
     this._updateFlagManager.dispatch(UITransformModifyFlags.Size);
   }
 
+  @ignoreClone
   private _onPivotChange(): void {
     this._updateFlagManager.dispatch(UITransformModifyFlags.Pivot);
   }

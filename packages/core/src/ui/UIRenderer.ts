@@ -122,6 +122,7 @@ export class UIRenderer extends Renderer implements IUIElement {
   /**
    * @internal
    */
+  @ignoreClone
   _onEntityModify(flag: EntityModifyFlags): void {
     switch (flag) {
       case EntityModifyFlags.SiblingIndex:

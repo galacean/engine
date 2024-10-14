@@ -10,9 +10,10 @@ import { RenderQueueFlags } from "../RenderPipeline/BasicRenderPipeline";
 import { BatchUtils } from "../RenderPipeline/BatchUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { SubRenderElement } from "../RenderPipeline/SubRenderElement";
+import { RendererUpdateFlags } from "../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../clone/CloneManager";
 import { UIRenderer } from "./UIRenderer";
-import { UITransform } from "./UITransform";
+import { UITransform, UITransformModifyFlags } from "./UITransform";
 import { CanvasRenderMode } from "./enums/CanvasRenderMode";
 
 export class UIImage extends UIRenderer {
@@ -235,6 +236,26 @@ export class UIImage extends UIRenderer {
     BatchUtils.batchFor2D(elementA, elementB);
   }
 
+  protected override _onTransformChanged(type: number): void {
+    if (type & UITransformModifyFlags.Size) {
+      switch (this._drawMode) {
+        case SpriteDrawMode.Simple:
+        case SpriteDrawMode.Sliced:
+          this._dirtyUpdateFlag |= ImageUpdateFlags.PositionAndAllBounds;
+          break;
+        case SpriteDrawMode.Tiled:
+          this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVColorAndAllBounds;
+          break;
+        default:
+          break;
+      }
+    }
+    if (type & UITransformModifyFlags.Pivot) {
+      this._dirtyUpdateFlag |= ImageUpdateFlags.PositionAndAllBounds;
+    }
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldBounds;
+  }
+
   protected override _onDestroy(): void {
     const sprite = this._sprite;
     if (sprite) {
@@ -257,8 +278,7 @@ export class UIImage extends UIRenderer {
         this.shaderData.setTexture(UIRenderer._textureProperty, this.sprite.texture);
         break;
       case SpriteModifyFlags.size:
-        const { _drawMode: drawMode } = this;
-        switch (drawMode) {
+        switch (this._drawMode) {
           case SpriteDrawMode.Sliced:
             this._dirtyUpdateFlag |= ImageUpdateFlags.Position;
             break;
@@ -270,7 +290,9 @@ export class UIImage extends UIRenderer {
         }
         break;
       case SpriteModifyFlags.border:
-        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor);
+        if (this._drawMode === SpriteDrawMode.Sliced) {
+          this._dirtyUpdateFlag |= ImageUpdateFlags.PositionAndUV;
+        }
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:

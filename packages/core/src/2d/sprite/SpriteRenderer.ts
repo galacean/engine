@@ -5,7 +5,7 @@ import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManage
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
-import { Renderer } from "../../Renderer";
+import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ComponentType } from "../../enums/ComponentType";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -82,7 +82,7 @@ export class SpriteRenderer extends Renderer {
           break;
       }
       this._assembler.resetData(this);
-      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionUVColorAndWorldBounds;
+      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionUVAndColor;
     }
   }
 
@@ -97,7 +97,7 @@ export class SpriteRenderer extends Renderer {
     if (this._tileMode !== value) {
       this._tileMode = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionUVColorAndWorldBounds;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionUVAndColor;
       }
     }
   }
@@ -114,7 +114,7 @@ export class SpriteRenderer extends Renderer {
       value = MathUtil.clamp(value, 0, 1);
       this._tiledAdaptiveThreshold = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionUVColorAndWorldBounds;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionUVAndColor;
       }
     }
   }
@@ -430,29 +430,34 @@ export class SpriteRenderer extends Renderer {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
         break;
       case SpriteModifyFlags.size:
-        const { _drawMode: drawMode } = this;
         if (this._customWidth === undefined || this._customHeight === undefined) {
           this._calDefaultSize();
+          this._dirtyUpdateFlag |= RendererUpdateFlags.AllBounds;
         }
-        if (this._drawMode === SpriteDrawMode.Sliced) {
-          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionAndAllBounds;
-        } else if (drawMode === SpriteDrawMode.Tiled) {
-          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionUVAndAllBounds;
-        } else {
-          // When the width and height of `SpriteRenderer` are `undefined`,
-          // the `size` of `Sprite` will affect the position of `SpriteRenderer`.
-          if (this._customWidth === undefined || this._customHeight === undefined) {
-            this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionAndAllBounds;
-          }
+        switch (this._drawMode) {
+          case SpriteDrawMode.Simple:
+            // When the width and height of `SpriteRenderer` are `undefined`,
+            // the `size` of `Sprite` will affect the position of `SpriteRenderer`.
+            if (this._customWidth === undefined || this._customHeight === undefined) {
+              this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Position;
+            }
+            break;
+          case SpriteDrawMode.Sliced:
+            this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Position;
+            break;
+          case SpriteDrawMode.Tiled:
+            this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionUVAndColor;
+            break;
         }
         break;
       case SpriteModifyFlags.border:
-        this._drawMode === SpriteDrawMode.Sliced &&
-          (this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionUVAndAllBounds);
+        if (this._drawMode === SpriteDrawMode.Sliced) {
+          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionAndUV;
+        }
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionUVAndAllBounds;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionAndUV;
         break;
       case SpriteModifyFlags.atlasRegion:
         this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.UV;
@@ -492,10 +497,12 @@ enum SpriteRendererUpdateFlags {
   PositionAndWorldBounds = 0x6,
   /** Position | LocalBounds | WorldBounds */
   PositionAndAllBounds = 0x7,
+  /** Position | UV */
+  PositionAndUV = 0xc,
   /** Position | UV | LocalBounds | WorldBounds */
   PositionUVAndAllBounds = 0xf,
-  /** Position | UV | Color | LocalBounds | WorldBounds */
-  VertexData = SpriteRendererUpdateFlags.PositionUVAndAllBounds | SpriteRendererUpdateFlags.Color,
+  /** Position | UV | Color*/
+  PositionUVAndColor = 0x1c,
   /** Position | UV | Color | WorldBounds */
   PositionUVColorAndWorldBounds = 0x1e,
   /** Position | UV | Color | LocalBounds | WorldBounds */

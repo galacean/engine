@@ -1,8 +1,8 @@
-import { ColliderShape } from "./ColliderShape";
 import { IBoxColliderShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
-import { PhysicsScene } from "../PhysicsScene";
 import { ignoreClone } from "../../clone/CloneManager";
+import { PhysicsScene } from "../PhysicsScene";
+import { ColliderShape } from "./ColliderShape";
 
 /**
  * Physical collider shape for box.
@@ -45,6 +45,7 @@ export class BoxColliderShape extends ColliderShape {
     target.size = this.size;
   }
 
+  @ignoreClone
   private _setSize(): void {
     (<IBoxColliderShape>this._nativeShape).setSize(this._size);
   }

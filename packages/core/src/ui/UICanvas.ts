@@ -76,7 +76,9 @@ export class UICanvas extends Component implements IUIElement {
   private _sortOrder: number = 0;
   @assignmentClone
   private _distance: number = 10;
+  @ignoreClone
   private _transform: UITransform;
+  @deepClone
   private _referenceResolution: Vector2 = new Vector2(800, 600);
 
   /** @internal */
@@ -246,7 +248,7 @@ export class UICanvas extends Component implements IUIElement {
         this._sortDistance = this._distance;
         break;
       case CanvasRenderMode.WorldSpace:
-        this._sortDistance = Vector3.distance(cameraPosition, (this._transform as UITransform).worldPosition);
+        this._sortDistance = Vector3.distance(cameraPosition, this._transform.worldPosition);
         break;
     }
   }
@@ -312,7 +314,7 @@ export class UICanvas extends Component implements IUIElement {
 
   protected _hitTest(localPosition: Vector3): boolean {
     const { x, y } = localPosition;
-    const uiTransform = <UITransform>this._transform;
+    const uiTransform = this._transform;
     const { x: width, y: height } = uiTransform.size;
     const { x: pivotX, y: pivotY } = uiTransform.pivot;
     const { x: paddingLeft, y: paddingBottom, z: paddingRight, w: paddingTop } = this.raycastPadding;
@@ -327,6 +329,7 @@ export class UICanvas extends Component implements IUIElement {
   /**
    * @internal
    */
+  @ignoreClone
   _onEntityModify(flag: EntityModifyFlags): void {
     if (this._isRootCanvas) {
       switch (flag) {
@@ -525,6 +528,7 @@ export class UICanvas extends Component implements IUIElement {
     camera._updateFlagManager.removeListener(this._onCameraPropertyListener);
   }
 
+  @ignoreClone
   private _onCameraPropertyListener(flag: CameraModifyFlags): void {
     switch (flag) {
       case CameraModifyFlags.NearPlane:
@@ -536,6 +540,7 @@ export class UICanvas extends Component implements IUIElement {
     }
   }
 
+  @ignoreClone
   private _onCameraTransformListener(): void {
     this._adapterPoseInScreenSpace();
   }
@@ -548,12 +553,14 @@ export class UICanvas extends Component implements IUIElement {
     this.engine.canvas._sizeUpdateFlagManager.removeListener(this._onCanvasSizeListener);
   }
 
+  @ignoreClone
   private _onCanvasSizeListener(): void {
     const { canvas } = this.engine;
     this._transform.setWorldPosition(canvas.width / 2, canvas.height / 2, 0);
     this._adapterSizeInScreenSpace();
   }
 
+  @ignoreClone
   private _onReferenceResolutionChanged(): void {
     this._adapterSizeInScreenSpace();
   }

@@ -4,6 +4,7 @@ import { DisorderedArray } from "../DisorderedArray";
 import { Layer } from "../Layer";
 import { Scene } from "../Scene";
 import { Script } from "../Script";
+import { ignoreClone } from "../clone/CloneManager";
 import { CharacterController } from "./CharacterController";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
@@ -456,6 +457,7 @@ export class PhysicsScene {
     this._colliders.garbageCollection();
   }
 
+  @ignoreClone
   private _setGravity(): void {
     this._nativePhysicsScene.setGravity(this._gravity);
   }
