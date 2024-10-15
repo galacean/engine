@@ -24,7 +24,6 @@ export class MaskManager {
   /** @internal */
   _preMaskLayer = SpriteMaskLayer.Nothing;
   private _allSpriteMasks = new DisorderedArray<SpriteMask>();
-  
 
   addSpriteMask(mask: SpriteMask): void {
     mask._maskIndex = this._allSpriteMasks.length;
