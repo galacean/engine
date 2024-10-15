@@ -104,9 +104,9 @@ export class RenderQueue {
 
       let customStates: Record<number, number | boolean> = null;
       if (maskInteractionNotNone) {
-        customStates = BasicResources._getMaskInteractionStencilStates(maskInteraction);
+        customStates = BasicResources._getMaskInteractionRenderStates(maskInteraction);
       } else if (maskType !== RenderQueueMaskType.No) {
-        customStates = BasicResources._getMaskTypeStencilStates(maskType);
+        customStates = BasicResources._getMaskTypeRenderStates(maskType);
       }
 
       const compileMacros = Shader._compileMacros;

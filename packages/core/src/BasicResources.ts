@@ -30,79 +30,80 @@ import { TextureFormat } from "./texture/enums/TextureFormat";
  */
 export class BasicResources {
   /** @internal */
-  static _maskReadInsideStencilStates: Record<number, number | boolean> = null;
+  static _maskReadInsideRenderStates: Record<number, number | boolean> = null;
   /** @internal */
-  static _maskReadOutsideStencilStates: Record<number, number | boolean> = null;
+  static _maskReadOutsideRenderStates: Record<number, number | boolean> = null;
   /** @internal */
-  static _maskWriteIncrementStencilStates: Record<number, number | boolean> = null;
+  static _maskWriteIncrementRenderStates: Record<number, number | boolean> = null;
   /** @internal */
-  static _maskWriteDecrementStencilStates: Record<number, number | boolean> = null;
+  static _maskWriteDecrementRenderStates: Record<number, number | boolean> = null;
 
   /** @internal */
-  static _getMaskInteractionStencilStates(
+  static _getMaskInteractionRenderStates(
     maskInteraction: SpriteMaskInteraction
   ): Record<number, number | boolean> | null {
     const visibleInsideMask = maskInteraction === SpriteMaskInteraction.VisibleInsideMask;
-    let stencilStates: Record<number, number | boolean>;
+    let renderStates: Record<number, number | boolean>;
     let compareFunction: CompareFunction;
 
     if (visibleInsideMask) {
-      stencilStates = BasicResources._maskReadInsideStencilStates;
-      if (stencilStates) {
-        return stencilStates;
+      renderStates = BasicResources._maskReadInsideRenderStates;
+      if (renderStates) {
+        return renderStates;
       }
-      BasicResources._maskReadInsideStencilStates = stencilStates = {};
+      BasicResources._maskReadInsideRenderStates = renderStates = {};
       compareFunction = CompareFunction.LessEqual;
     } else {
-      stencilStates = BasicResources._maskReadOutsideStencilStates;
-      if (stencilStates) {
-        return stencilStates;
+      renderStates = BasicResources._maskReadOutsideRenderStates;
+      if (renderStates) {
+        return renderStates;
       }
-      BasicResources._maskReadOutsideStencilStates = stencilStates = {};
+      BasicResources._maskReadOutsideRenderStates = renderStates = {};
       compareFunction = CompareFunction.Greater;
     }
 
-    stencilStates[RenderStateElementKey.StencilStateEnabled] = true;
-    stencilStates[RenderStateElementKey.StencilStateWriteMask] = 0x00;
-    stencilStates[RenderStateElementKey.StencilStateReferenceValue] = 1;
-    stencilStates[RenderStateElementKey.StencilStateCompareFunctionFront] = compareFunction;
-    stencilStates[RenderStateElementKey.StencilStateCompareFunctionBack] = compareFunction;
+    renderStates[RenderStateElementKey.StencilStateEnabled] = true;
+    renderStates[RenderStateElementKey.StencilStateWriteMask] = 0x00;
+    renderStates[RenderStateElementKey.StencilStateReferenceValue] = 1;
+    renderStates[RenderStateElementKey.StencilStateCompareFunctionFront] = compareFunction;
+    renderStates[RenderStateElementKey.StencilStateCompareFunctionBack] = compareFunction;
 
-    return stencilStates;
+    return renderStates;
   }
 
   /** @internal */
-  static _getMaskTypeStencilStates(maskType: RenderQueueMaskType): Record<number, number | boolean> | null {
+  static _getMaskTypeRenderStates(maskType: RenderQueueMaskType): Record<number, number | boolean> | null {
     const isIncrement = maskType === RenderQueueMaskType.Increment;
-    let stencilStates: Record<number, number | boolean>;
+    let renderStates: Record<number, number | boolean>;
     let passOperation: StencilOperation;
 
     if (isIncrement) {
-      stencilStates = BasicResources._maskWriteIncrementStencilStates;
-      if (stencilStates) {
-        return stencilStates;
+      renderStates = BasicResources._maskWriteIncrementRenderStates;
+      if (renderStates) {
+        return renderStates;
       }
-      BasicResources._maskWriteIncrementStencilStates = stencilStates = {};
+      BasicResources._maskWriteIncrementRenderStates = renderStates = {};
       passOperation = StencilOperation.IncrementSaturate;
     } else {
-      stencilStates = BasicResources._maskWriteDecrementStencilStates;
-      if (stencilStates) {
-        return stencilStates;
+      renderStates = BasicResources._maskWriteDecrementRenderStates;
+      if (renderStates) {
+        return renderStates;
       }
-      BasicResources._maskWriteDecrementStencilStates = stencilStates = {};
+      BasicResources._maskWriteDecrementRenderStates = renderStates = {};
       passOperation = StencilOperation.DecrementSaturate;
     }
 
-    stencilStates[RenderStateElementKey.StencilStateEnabled] = true;
-    stencilStates[RenderStateElementKey.StencilStatePassOperationFront] = passOperation;
-    stencilStates[RenderStateElementKey.StencilStatePassOperationBack] = passOperation;
+    renderStates[RenderStateElementKey.StencilStateEnabled] = true;
+    renderStates[RenderStateElementKey.StencilStatePassOperationFront] = passOperation;
+    renderStates[RenderStateElementKey.StencilStatePassOperationBack] = passOperation;
     const failStencilOperation = StencilOperation.Keep;
-    stencilStates[RenderStateElementKey.StencilStateFailOperationFront] = failStencilOperation;
-    stencilStates[RenderStateElementKey.StencilStateFailOperationBack] = failStencilOperation;
-    stencilStates[RenderStateElementKey.StencilStateZFailOperationFront] = failStencilOperation;
-    stencilStates[RenderStateElementKey.StencilStateZFailOperationBack] = failStencilOperation;
+    renderStates[RenderStateElementKey.StencilStateFailOperationFront] = failStencilOperation;
+    renderStates[RenderStateElementKey.StencilStateFailOperationBack] = failStencilOperation;
+    renderStates[RenderStateElementKey.StencilStateZFailOperationFront] = failStencilOperation;
+    renderStates[RenderStateElementKey.StencilStateZFailOperationBack] = failStencilOperation;
+    renderStates[RenderStateElementKey.BlendStateColorWriteMask0] = ColorWriteMask.None;
 
-    return stencilStates;
+    return renderStates;
   }
 
   /**
@@ -257,7 +258,6 @@ export class BasicResources {
   private _createSpriteMaskMaterial(engine: Engine): Material {
     const material = new Material(engine, Shader.find("SpriteMask"));
     const renderState = material.renderState;
-    renderState.blendState.targetBlendState.colorWriteMask = ColorWriteMask.None;
     renderState.rasterState.cullMode = CullMode.Off;
     renderState.depthState.enabled = false;
     material.isGCIgnored = true;

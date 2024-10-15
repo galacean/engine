@@ -36,16 +36,16 @@ export class RenderState {
     frontFaceInvert: boolean,
     renderStateDataMap: Record<number, ShaderProperty>,
     shaderData: ShaderData,
-    customStencilStates?: Record<number, number | boolean>
+    customRenderStates?: Record<number, number | boolean>
   ): void {
     // @todo: Should merge when we can delete material render state
     renderStateDataMap && this._applyStatesByShaderData(renderStateDataMap, shaderData);
     const hardwareRenderer = engine._hardwareRenderer;
     const lastRenderState = engine._lastRenderState;
     const context = engine._renderContext;
-    this.blendState._apply(hardwareRenderer, lastRenderState);
+    this.blendState._apply(hardwareRenderer, lastRenderState, customRenderStates);
     this.depthState._apply(hardwareRenderer, lastRenderState);
-    this.stencilState._apply(hardwareRenderer, lastRenderState, customStencilStates);
+    this.stencilState._apply(hardwareRenderer, lastRenderState, customRenderStates);
     this.rasterState._apply(
       hardwareRenderer,
       lastRenderState,
