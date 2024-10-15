@@ -21,8 +21,10 @@ export class MaskManager {
     return (MaskManager._maskDecrementRenderQueue ||= new RenderQueue(RenderQueueType.Transparent));
   }
 
+  /** @internal */
+  _preMaskLayer = SpriteMaskLayer.Nothing;
   private _allSpriteMasks = new DisorderedArray<SpriteMask>();
-  private _preMaskLayer = SpriteMaskLayer.Nothing;
+  
 
   addSpriteMask(mask: SpriteMask): void {
     mask._maskIndex = this._allSpriteMasks.length;
