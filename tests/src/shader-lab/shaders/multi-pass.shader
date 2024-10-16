@@ -2,6 +2,14 @@ Shader "Triangle" {
   SubShader "Default" {
      mat4 renderer_MVPMat;
 
+     BlendState transparentBlendState {
+      Enabled = true;
+      SourceColorBlendFactor = BlendFactor.SourceAlpha;
+      DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+      SourceAlphaBlendFactor = BlendFactor.One;
+      DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    }
+
      struct a2v {
        vec4 POSITION;
        vec2 TEXCOORD_0; 
@@ -52,6 +60,8 @@ Shader "Triangle" {
     Pass "0" {
       vec3 u_color;
 
+      BlendState = transparentBlendState;
+
       struct a2v {
         vec4 POSITION;
       };
@@ -78,6 +88,8 @@ Shader "Triangle" {
 
     Pass "1" {
       vec3 u_color;
+
+      BlendState = transparentBlendState;
 
       struct a2v {
         vec4 POSITION;

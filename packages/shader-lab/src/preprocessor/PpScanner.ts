@@ -1,11 +1,10 @@
 import { ShaderRange, ShaderPosition } from "../common";
 import LexerUtils from "../lexer/Utils";
-// #if _EDITOR
+// #if _VERBOSE
 import PpSourceMap from "./sourceMap";
 // #endif
 import BaseScanner from "../common/BaseScanner";
 import { BaseToken, EOF } from "../common/BaseToken";
-import { ParserUtils } from "../Utils";
 import { EPpKeyword, EPpToken, PpKeyword } from "./constants";
 import { PpUtils } from "./Utils";
 import { ShaderLab } from "../ShaderLab";
@@ -15,12 +14,9 @@ export type OnToken = (token: BaseToken, scanner: PpScanner) => void;
 export default class PpScanner extends BaseScanner {
   private static _splitCharacters = /[\w#.]/;
 
-  private line: number = 0;
-  private column: number = 0;
-
   private macroLvl = 0;
 
-  // #if _EDITOR
+  // #if _VERBOSE
   readonly sourceMap = new PpSourceMap();
   readonly file: string;
   readonly blockRange?: ShaderRange;
@@ -28,13 +24,13 @@ export default class PpScanner extends BaseScanner {
 
   constructor(
     source: string,
-    // #if _EDITOR
+    // #if _VERBOSE
     file = "__main__",
     blockRange?: ShaderRange
     // #endif
   ) {
     super(source);
-    // #if _EDITOR
+    // #if _VERBOSE
     this.file = file;
     this.blockRange = blockRange;
     // #endif
@@ -90,7 +86,7 @@ export default class PpScanner extends BaseScanner {
     const end = this._currentIndex;
     const word = this._source.slice(start, end);
     if (end === start) {
-      ParserUtils.throw(this.getShaderPosition(), "no word found.");
+      this.throwError(this.getShaderPosition(), "no word found.");
     }
     const kw = PpKeyword.get(word);
     if (kw) {
@@ -105,7 +101,13 @@ export default class PpScanner extends BaseScanner {
   }
 
   getShaderPosition(offset /** offset from starting point */ = 0) {
-    return ShaderLab.createPosition(this._currentIndex - offset, this.line, this.column - offset);
+    return ShaderLab.createPosition(
+      this._currentIndex - offset,
+      // #if _VERBOSE
+      this.line,
+      this.column - offset
+      // #endif
+    );
   }
 
   /**
@@ -144,14 +146,14 @@ export default class PpScanner extends BaseScanner {
   scanQuotedString(): BaseToken<EPpToken.string_const> {
     this.skipSpace(true);
     if (this.getCurChar() !== '"') {
-      ParserUtils.throw(this.getShaderPosition(), "unexpected char, expected '\"'");
+      this.throwError(this.getShaderPosition(), "unexpected char, expected '\"'");
     }
     const ShaderPosition = this.getShaderPosition();
     this._advance();
     const start = this._currentIndex;
     while (this.getCurChar() !== '"' && !this.isEnd()) this._advance();
     if (this.isEnd()) {
-      ParserUtils.throw(this.getShaderPosition(), "unexpected char, expected '\"'");
+      this.throwError(this.getShaderPosition(), "unexpected char, expected '\"'");
     }
     const word = this._source.slice(start, this._currentIndex);
 
@@ -233,7 +235,7 @@ export default class PpScanner extends BaseScanner {
       this.advance();
     }
     if (this._currentIndex === start) {
-      ParserUtils.throw(this.getShaderPosition(), "no integer found");
+      this.throwError(this.getShaderPosition(), "no integer found");
     }
     const integer = this._source.slice(start, this._currentIndex);
 
@@ -296,7 +298,7 @@ export default class PpScanner extends BaseScanner {
       while (this.getCurChar() !== "\n" && !this.isEnd()) {
         this._advance();
       }
-      return ShaderLab.createRange(start, this.curPosition);
+      return ShaderLab.createRange(start, this.getCurPosition());
     } else if (this.peek(2) === "/*") {
       const start = this.getShaderPosition();
       //  multi-line comments
