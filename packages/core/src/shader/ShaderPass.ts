@@ -193,8 +193,9 @@ export class ShaderPass extends ShaderPart {
 
     if (shaderProgramSource) {
       return new ShaderProgram(engine, shaderProgramSource.vertex, shaderProgramSource.fragment);
+    } else {
+      return new ShaderProgram(engine, "", "");
     }
-    return new ShaderProgram(engine, "", "");
   }
 
   // TODO: remove it after migrate all shader to `ShaderLab`.
