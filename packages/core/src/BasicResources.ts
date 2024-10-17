@@ -29,17 +29,12 @@ import { TextureFormat } from "./texture/enums/TextureFormat";
  * @internal
  */
 export class BasicResources {
-  /** @internal */
-  static _maskReadInsideRenderStates: Record<number, number | boolean> = null;
-  /** @internal */
-  static _maskReadOutsideRenderStates: Record<number, number | boolean> = null;
-  /** @internal */
-  static _maskWriteIncrementRenderStates: Record<number, number | boolean> = null;
-  /** @internal */
-  static _maskWriteDecrementRenderStates: Record<number, number | boolean> = null;
+  private static _maskReadInsideRenderStates: Record<number, number | boolean> = null;
+  private static _maskReadOutsideRenderStates: Record<number, number | boolean> = null;
+  private static _maskWriteIncrementRenderStates: Record<number, number | boolean> = null;
+  private static _maskWriteDecrementRenderStates: Record<number, number | boolean> = null;
 
-  /** @internal */
-  static _getMaskInteractionRenderStates(
+  static getMaskInteractionRenderStates(
     maskInteraction: SpriteMaskInteraction
   ): Record<number, number | boolean> | null {
     const visibleInsideMask = maskInteraction === SpriteMaskInteraction.VisibleInsideMask;
@@ -71,8 +66,7 @@ export class BasicResources {
     return renderStates;
   }
 
-  /** @internal */
-  static _getMaskTypeRenderStates(maskType: RenderQueueMaskType): Record<number, number | boolean> | null {
+  static getMaskTypeRenderStates(maskType: RenderQueueMaskType): Record<number, number | boolean> | null {
     const isIncrement = maskType === RenderQueueMaskType.Increment;
     let renderStates: Record<number, number | boolean>;
     let passOperation: StencilOperation;
