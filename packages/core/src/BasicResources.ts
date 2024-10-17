@@ -10,17 +10,15 @@ import { MeshTopology } from "./graphic/enums/MeshTopology";
 import { VertexElementFormat } from "./graphic/enums/VertexElementFormat";
 import { Material } from "./material";
 import { ModelMesh } from "./mesh";
-import {
-  BlendFactor,
-  BlendOperation,
-  ColorWriteMask,
-  CompareFunction,
-  CullMode,
-  RenderQueueType,
-  StencilOperation
-} from "./shader";
 import { Shader } from "./shader/Shader";
+import { BlendFactor } from "./shader/enums/BlendFactor";
+import { BlendOperation } from "./shader/enums/BlendOperation";
+import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
+import { CompareFunction } from "./shader/enums/CompareFunction";
+import { CullMode } from "./shader/enums/CullMode";
+import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderStateElementKey } from "./shader/enums/RenderStateElementKey";
+import { StencilOperation } from "./shader/enums/StencilOperation";
 import { Texture, Texture2D, TextureCube, TextureCubeFace } from "./texture";
 import { Texture2DArray } from "./texture/Texture2DArray";
 import { TextureFormat } from "./texture/enums/TextureFormat";
