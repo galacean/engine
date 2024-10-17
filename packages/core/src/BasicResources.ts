@@ -29,16 +29,14 @@ import { TextureFormat } from "./texture/enums/TextureFormat";
  * @internal
  */
 export class BasicResources {
-  private static _maskReadInsideRenderStates: Record<number, number | boolean> = null;
-  private static _maskReadOutsideRenderStates: Record<number, number | boolean> = null;
-  private static _maskWriteIncrementRenderStates: Record<number, number | boolean> = null;
-  private static _maskWriteDecrementRenderStates: Record<number, number | boolean> = null;
+  private static _maskReadInsideRenderStates: RenderStateElementMap = null;
+  private static _maskReadOutsideRenderStates: RenderStateElementMap = null;
+  private static _maskWriteIncrementRenderStates: RenderStateElementMap = null;
+  private static _maskWriteDecrementRenderStates: RenderStateElementMap = null;
 
-  static getMaskInteractionRenderStates(
-    maskInteraction: SpriteMaskInteraction
-  ): Record<number, number | boolean> | null {
+  static getMaskInteractionRenderStates(maskInteraction: SpriteMaskInteraction): RenderStateElementMap {
     const visibleInsideMask = maskInteraction === SpriteMaskInteraction.VisibleInsideMask;
-    let renderStates: Record<number, number | boolean>;
+    let renderStates: RenderStateElementMap;
     let compareFunction: CompareFunction;
 
     if (visibleInsideMask) {
@@ -46,14 +44,14 @@ export class BasicResources {
       if (renderStates) {
         return renderStates;
       }
-      BasicResources._maskReadInsideRenderStates = renderStates = {};
+      BasicResources._maskReadInsideRenderStates = renderStates = <RenderStateElementMap>{};
       compareFunction = CompareFunction.LessEqual;
     } else {
       renderStates = BasicResources._maskReadOutsideRenderStates;
       if (renderStates) {
         return renderStates;
       }
-      BasicResources._maskReadOutsideRenderStates = renderStates = {};
+      BasicResources._maskReadOutsideRenderStates = renderStates = <RenderStateElementMap>{};
       compareFunction = CompareFunction.Greater;
     }
 
@@ -66,9 +64,9 @@ export class BasicResources {
     return renderStates;
   }
 
-  static getMaskTypeRenderStates(maskType: RenderQueueMaskType): Record<number, number | boolean> | null {
+  static getMaskTypeRenderStates(maskType: RenderQueueMaskType): RenderStateElementMap {
     const isIncrement = maskType === RenderQueueMaskType.Increment;
-    let renderStates: Record<number, number | boolean>;
+    let renderStates: RenderStateElementMap;
     let passOperation: StencilOperation;
 
     if (isIncrement) {
@@ -76,14 +74,14 @@ export class BasicResources {
       if (renderStates) {
         return renderStates;
       }
-      BasicResources._maskWriteIncrementRenderStates = renderStates = {};
+      BasicResources._maskWriteIncrementRenderStates = renderStates = <RenderStateElementMap>{};
       passOperation = StencilOperation.IncrementSaturate;
     } else {
       renderStates = BasicResources._maskWriteDecrementRenderStates;
       if (renderStates) {
         return renderStates;
       }
-      BasicResources._maskWriteDecrementRenderStates = renderStates = {};
+      BasicResources._maskWriteDecrementRenderStates = renderStates = <RenderStateElementMap>{};
       passOperation = StencilOperation.DecrementSaturate;
     }
 
@@ -264,3 +262,5 @@ enum TextureType {
   TextureCube,
   Texture2DArray
 }
+
+type RenderStateElementMap = Record<RenderStateElementKey, number | boolean>;
