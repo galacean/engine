@@ -4,9 +4,9 @@ import { Utils } from "../Utils";
 import { RenderQueueType, Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { BatcherManager } from "./BatcherManager";
+import { StencilAccess } from "./MaskManager";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
-import { StencilAccess } from "./StencilManager";
 import { SubRenderElement } from "./SubRenderElement";
 import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
 
@@ -57,12 +57,7 @@ export class RenderQueue {
 
     const { rendererUpdateFlag, camera } = context;
     const { engine, scene, instanceId: cameraId, shaderData: cameraData } = camera;
-    const {
-      instanceId: sceneId,
-      shaderData: sceneData,
-      _maskManager: maskManager,
-      _stencilManager: stencilManager
-    } = scene;
+    const { instanceId: sceneId, shaderData: sceneData, _maskManager: maskManager } = scene;
     const renderCount = engine._renderCount;
     const rhi = engine._hardwareRenderer;
     const pipelineStageKey = RenderContext.pipelineStageKey;
@@ -87,19 +82,9 @@ export class RenderQueue {
       const maskInteraction = renderer._maskInteraction;
       const maskInteractionNotNone = maskInteraction !== SpriteMaskInteraction.None;
       if (maskInteractionNotNone) {
-        stencilManager.hasSuspendStencil || stencilManager.suspendStencil(engine);
         maskManager.drawMask(context, pipelineStageTagValue, subElement.component._maskLayer);
       } else {
-        if (!stencilManager.isResuming) {
-          // This render element need write or read stencil value
-          const stencilAccess = stencilManager.checkStencilAccess(material);
-          if (stencilAccess & StencilAccess.All) {
-            maskManager.clearMask(context, pipelineStageTagValue);
-            stencilManager.hasSuspendStencil && stencilManager.resumeStencil(context, pipelineStageTagValue);
-            // If has writable access, should add to stencil manager for resume when need
-            stencilAccess & StencilAccess.Writable && stencilManager.addStencilWriteSubElement(subElement);
-          }
-        }
+        maskManager.checkStencilAccess(material) & StencilAccess.Writable && (maskManager.notWriteStencil = false);
       }
 
       let customStates: Record<number, number | boolean> = null;

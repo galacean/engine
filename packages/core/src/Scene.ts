@@ -4,7 +4,6 @@ import { ComponentsManager } from "./ComponentsManager";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
 import { MaskManager } from "./RenderPipeline/MaskManager";
-import { StencilManager } from "./RenderPipeline/StencilManager";
 import { SceneManager } from "./SceneManager";
 import { EngineObject, Logger } from "./base";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
@@ -57,8 +56,6 @@ export class Scene extends EngineObject {
   _componentsManager: ComponentsManager = new ComponentsManager();
   /** @internal */
   _maskManager: MaskManager = new MaskManager();
-  /** @internal */
-  _stencilManager: StencilManager = new StencilManager();
   /** @internal */
   _isActiveInEngine: boolean = false;
   /** @internal */
@@ -515,7 +512,6 @@ export class Scene extends EngineObject {
     this.shaderData._addReferCount(-1);
     this._componentsManager.handlingInvalidScripts();
     this._maskManager.destroy();
-    this._stencilManager.destroy();
 
     const allCreatedScenes = sceneManager._allCreatedScenes;
     allCreatedScenes.splice(allCreatedScenes.indexOf(this), 1);

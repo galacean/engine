@@ -169,6 +169,9 @@ export class BasicRenderPipeline {
       rhi.clearRenderTarget(engine, clearFlags, color);
     }
 
+    const maskManager = scene._maskManager;
+    maskManager.notWriteStencil = true;
+
     opaqueQueue.render(context, PipelineStage.Forward);
     alphaTestQueue.render(context, PipelineStage.Forward);
     if (clearFlags & CameraClearFlags.Color) {
@@ -195,6 +198,7 @@ export class BasicRenderPipeline {
     }
 
     transparentQueue.render(context, PipelineStage.Forward);
+    maskManager.clearMask(context, PipelineStage.Forward);
 
     const postProcessManager = scene._postProcessManager;
     const cameraRenderTarget = camera.renderTarget;

@@ -1,6 +1,10 @@
 import { SpriteMask } from "../2d";
+import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
-import { RenderQueueType } from "../shader";
+import { Material } from "../material";
+import { CompareFunction } from "../shader/enums/CompareFunction";
+import { RenderQueueType } from "../shader/enums/RenderQueueType";
+import { StencilOperation } from "../shader/enums/StencilOperation";
 import { DisorderedArray } from "../utils/DisorderedArray";
 import { RenderContext } from "./RenderContext";
 import { RenderQueue } from "./RenderQueue";
@@ -21,8 +25,8 @@ export class MaskManager {
     return (MaskManager._maskDecrementRenderQueue ||= new RenderQueue(RenderQueueType.Transparent));
   }
 
-  /** @internal */
-  _preMaskLayer = SpriteMaskLayer.Nothing;
+  notWriteStencil = true;
+  private _preMaskLayer = SpriteMaskLayer.Nothing;
   private _allSpriteMasks = new DisorderedArray<SpriteMask>();
 
   addSpriteMask(mask: SpriteMask): void {
@@ -57,23 +61,57 @@ export class MaskManager {
   clearMask(context: RenderContext, pipelineStageTagValue: string): void {
     const preMaskLayer = this._preMaskLayer;
     if (preMaskLayer !== SpriteMaskLayer.Nothing) {
-      const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
-      decrementMaskQueue.clear();
+      if (this.notWriteStencil) {
+        const engine = context.camera.engine;
+        engine._hardwareRenderer.clearRenderTarget(engine, CameraClearFlags.Stencil, null);
+      } else {
+        const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
+        decrementMaskQueue.clear();
 
-      const masks = this._allSpriteMasks;
-      const maskElements = masks._elements;
-      for (let i = 0, n = masks.length; i < n; i++) {
-        const mask = maskElements[i];
-        mask.influenceLayers & preMaskLayer && decrementMaskQueue.pushRenderElement(mask._renderElement);
+        const masks = this._allSpriteMasks;
+        const maskElements = masks._elements;
+        for (let i = 0, n = masks.length; i < n; i++) {
+          const mask = maskElements[i];
+          mask.influenceLayers & preMaskLayer && decrementMaskQueue.pushRenderElement(mask._renderElement);
+        }
+
+        const batcherManager = context.camera.engine._batcherManager;
+        decrementMaskQueue.batch(batcherManager);
+        batcherManager.uploadBuffer();
+        decrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Decrement);
       }
-
-      const batcherManager = context.camera.engine._batcherManager;
-      decrementMaskQueue.batch(batcherManager);
-      batcherManager.uploadBuffer();
-      decrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Decrement);
 
       this._preMaskLayer = SpriteMaskLayer.Nothing;
     }
+  }
+
+  checkStencilAccess(material: Material): StencilAccess {
+    const stencilState = material.renderState.stencilState;
+    let stencilAccess = StencilAccess.None;
+
+    if (stencilState.enabled) {
+      const { compareFunctionFront, compareFunctionBack } = stencilState;
+      if (
+        (compareFunctionFront !== CompareFunction.Always && compareFunctionFront !== CompareFunction.Never) ||
+        (compareFunctionBack !== CompareFunction.Always && compareFunctionBack !== CompareFunction.Never)
+      ) {
+        stencilAccess |= StencilAccess.Readable;
+      }
+
+      const stencilOperation = StencilOperation.Keep;
+      if (
+        stencilState.passOperationFront !== stencilOperation ||
+        stencilState.passOperationBack !== stencilOperation ||
+        stencilState.failOperationFront !== stencilOperation ||
+        stencilState.failOperationBack !== stencilOperation ||
+        stencilState.zFailOperationFront !== stencilOperation ||
+        stencilState.zFailOperationBack !== stencilOperation
+      ) {
+        stencilAccess |= StencilAccess.Writable;
+      }
+    }
+
+    return stencilAccess;
   }
 
   destroy(): void {
@@ -110,4 +148,11 @@ export class MaskManager {
       this._preMaskLayer = curMaskLayer;
     }
   }
+}
+
+export enum StencilAccess {
+  None = 0x0,
+  Writable = 0x1,
+  Readable = 0x2,
+  All = StencilAccess.Writable | StencilAccess.Readable
 }

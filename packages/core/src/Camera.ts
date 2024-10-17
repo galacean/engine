@@ -4,7 +4,6 @@ import { Component } from "./Component";
 import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { Layer } from "./Layer";
-import { PipelineStage } from "./RenderPipeline";
 import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 import { PipelineUtils } from "./RenderPipeline/PipelineUtils";
 import { Transform } from "./Transform";
@@ -17,7 +16,6 @@ import { DepthTextureMode } from "./enums/DepthTextureMode";
 import { Downsampling } from "./enums/Downsampling";
 import { MSAASamples } from "./enums/MSAASamples";
 import { ReplacementFailureStrategy } from "./enums/ReplacementFailureStrategy";
-import { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -604,17 +602,6 @@ export class Camera extends Component {
     const engine = this._engine;
     const context = engine._renderContext;
     const virtualCamera = this._virtualCamera;
-
-    const lastCamera = context.camera;
-    if (lastCamera) {
-      const scene = lastCamera.scene;
-      if (this.clearFlags & CameraClearFlags.Stencil) {
-        scene._maskManager._preMaskLayer = SpriteMaskLayer.Nothing;
-      } else {
-        scene._maskManager.clearMask(context, PipelineStage.Forward);
-      }
-      scene._stencilManager.clearStencil();
-    }
 
     const transform = this.entity.transform;
     Matrix.multiply(this.projectionMatrix, this.viewMatrix, virtualCamera.viewProjectionMatrix);
