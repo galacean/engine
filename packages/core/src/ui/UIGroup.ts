@@ -3,36 +3,33 @@ import { DisorderedArray } from "../DisorderedArray";
 import { Entity, EntityModifyFlags } from "../Entity";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { ComponentType } from "../enums/ComponentType";
-import { UIUtil } from "./UIUtil";
+import { UIUtils } from "./UIUtils";
 import { IUIElement } from "./interface/IUIElement";
 
 export class UIGroup extends Component {
   /** @internal */
   @ignoreClone
-  _disorderedElements: DisorderedArray<IUIElement> = new DisorderedArray();
-  /** @internal */
-  @ignoreClone
   _parentGroup: UIGroup;
-  /** @internal */
-  @ignoreClone
-  _parentGroupEntity: Entity;
   /** @internal */
   @ignoreClone
   _groupIndex: number = -1;
   /** @internal */
   @ignoreClone
   _disorderedGroups: DisorderedArray<UIGroup> = new DisorderedArray();
+  /** @internal */
+  @ignoreClone
+  _disorderedElements: DisorderedArray<IUIElement> = new DisorderedArray();
 
-  @assignmentClone
-  private _ignoreParentGroup = false;
-  @assignmentClone
-  private _raycastEnabled = true;
   @assignmentClone
   private _alpha = 1;
   @ignoreClone
   private _globalAlpha = 1;
+  @assignmentClone
+  private _raycastEnabled = true;
   @ignoreClone
   private _globalRaycastEnable = true;
+  @assignmentClone
+  private _ignoreParentGroup = false;
   @ignoreClone
   private _entityListeners: Entity[] = [];
 
@@ -122,26 +119,26 @@ export class UIGroup extends Component {
   override _onEnableInScene(): void {
     const entity = this._entity;
     entity._dispatchModify(EntityModifyFlags.UIGroupEnableInScene);
-    this._registryToParentGroup(UIUtil.getGroupInParent(entity.parent));
+    this._registryToParentGroup(UIUtils.getGroupInParents(entity.parent));
   }
 
   override _onDisableInScene(): void {
-    const listeners = this._entityListeners;
-    for (let i = 0, n = listeners.length; i < n; i++) {
-      listeners[i]._unRegisterModifyListener(this._onEntityModify);
+    const entityListeners = this._entityListeners;
+    for (let i = 0, n = entityListeners.length; i < n; i++) {
+      entityListeners[i]._unRegisterModifyListener(this._onEntityModify);
     }
-    listeners.length = 0;
-    this._parentGroupEntity?._unRegisterModifyListener(this._onParentEntityModify);
+    entityListeners.length = 0;
     const parentGroup = this._parentGroup;
-    const { _disorderedElements: disorderedElements, _disorderedGroups: disorderedGroups } = this;
+    const disorderedElements = this._disorderedElements;
     disorderedElements.forEach(
       (element: IUIElement) => {
-        UIUtil.registerUIToGroup(element, parentGroup);
+        UIUtils.registerUIToGroup(element, parentGroup);
       },
       () => {}
     );
     disorderedElements.length = 0;
     disorderedElements.garbageCollection();
+    const disorderedGroups = this._disorderedGroups;
     disorderedGroups.forEach(
       (element: UIGroup) => {
         element._registryToParentGroup(parentGroup);
@@ -150,7 +147,7 @@ export class UIGroup extends Component {
     );
     disorderedGroups.length = 0;
     disorderedGroups.garbageCollection();
-    this._parentGroup = this._parentGroupEntity = null;
+    this._parentGroup = null;
     this._entity._dispatchModify(EntityModifyFlags.UIGroupDisableInScene);
   }
 
@@ -158,18 +155,6 @@ export class UIGroup extends Component {
     let entity = this._entity;
     const preParentGroup = this._parentGroup;
     if (parentGroup !== preParentGroup) {
-      const parentGroupEntity = parentGroup?.entity;
-      let index = 0;
-      const listeners = this._entityListeners;
-      while (entity && entity !== parentGroupEntity) {
-        const preListener = listeners[index];
-        if (preListener !== entity) {
-          preListener?._unRegisterModifyListener(this._onEntityModify);
-          listeners[index] = entity;
-          entity._registerModifyListener(this._onEntityModify);
-        }
-        entity = entity.parent;
-      }
       if (preParentGroup) {
         const replaced = preParentGroup._disorderedGroups.deleteByIndex(this._groupIndex);
         replaced && (replaced._groupIndex = this._groupIndex);
@@ -180,26 +165,29 @@ export class UIGroup extends Component {
         this._groupIndex = disorderedGroups.length;
         disorderedGroups.add(this);
       }
-      const preParentGroupEntity = this._parentGroupEntity;
-      if (preParentGroupEntity !== parentGroupEntity) {
-        preParentGroupEntity && preParentGroupEntity._unRegisterModifyListener(this._onParentEntityModify);
-        parentGroupEntity && parentGroupEntity._registerModifyListener(this._onParentEntityModify);
+      this._updateGlobalModify(UIGroupModifyFlags.All);
+    }
+    let index = 0;
+    const parentGroupEntity = parentGroup?.entity;
+    const entityListeners = this._entityListeners;
+    while (entity && entity !== parentGroupEntity) {
+      const preListener = entityListeners[index];
+      if (preListener !== entity) {
+        preListener?._unRegisterModifyListener(this._onEntityModify);
+        entityListeners[index] = entity;
+        entity._registerModifyListener(this._onEntityModify);
       }
+      entity = entity.parent;
+      index++;
     }
-    this._updateGlobalModify(UIGroupModifyFlags.All);
-  }
-
-  private _onParentEntityModify(flags: EntityModifyFlags): void {
-    if (flags === EntityModifyFlags.UIGroupEnableInScene) {
-      this._registryToParentGroup(UIUtil.getGroupInParent(this._entity.parent));
-    }
+    entityListeners.length = index;
   }
 
   private _onEntityModify(flags: EntityModifyFlags): void {
     switch (flags) {
       case EntityModifyFlags.Parent:
       case EntityModifyFlags.UIGroupEnableInScene:
-        this._registryToParentGroup(UIUtil.getGroupInParent(this._entity.parent));
+        this._registryToParentGroup(UIUtils.getGroupInParents(this._entity.parent));
         break;
       default:
         break;

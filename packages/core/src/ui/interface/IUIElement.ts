@@ -12,7 +12,7 @@ export interface IUIElement {
 
   _entity: Entity;
   _parents: Entity[];
-  _canvas: UICanvas;
+  _rootCanvas: UICanvas;
   _indexInCanvas: number;
   _group: UIGroup;
   _indexInGroup: number;

@@ -6,7 +6,7 @@ import {
   IShaderLab,
   IXRDevice
 } from "@galacean/engine-design";
-import { Color, Matrix, Vector4 } from "@galacean/engine-math";
+import { Color } from "@galacean/engine-math";
 import { SpriteMaskInteraction } from "./2d";
 import { CharRenderInfo } from "./2d/text/CharRenderInfo";
 import { Font } from "./2d/text/Font";
@@ -15,14 +15,12 @@ import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
-import { RenderQueue } from "./RenderPipeline";
 import { BatcherManager } from "./RenderPipeline/BatcherManager";
-import { ContextRendererUpdateFlag, RenderContext } from "./RenderPipeline/RenderContext";
+import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderElement } from "./RenderPipeline/RenderElement";
 import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
-import { VirtualCamera } from "./VirtualCamera";
 import { ResourceManager } from "./asset/ResourceManager";
 import { EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
@@ -46,7 +44,7 @@ import { CullMode } from "./shader/enums/CullMode";
 import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureFormat } from "./texture";
-import { UITransform } from "./ui";
+import { UIUtils } from "./ui/UIUtils";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
@@ -132,8 +130,6 @@ export class Engine extends EventDispatcher {
   private _settings: EngineSettings = {};
   private _resourceManager: ResourceManager = new ResourceManager(this);
   private _sceneManager: SceneManager = new SceneManager(this);
-  private _uiRenderQueue: RenderQueue;
-  private _virtualCamera: VirtualCamera = new VirtualCamera();
   private _vSyncCount: number = 1;
   private _targetFrameRate: number = 60;
   private _time: Time = new Time();
@@ -265,9 +261,6 @@ export class Engine extends EventDispatcher {
 
     this._batcherManager = new BatcherManager(this);
     this.inputManager = new InputManager(this, configuration.input);
-
-    // 为 overlay 的 UI 准备的
-    this._uiRenderQueue = new RenderQueue(RenderQueueType.Transparent);
 
     const { xrDevice } = configuration;
     if (xrDevice) {
@@ -552,34 +545,7 @@ export class Engine extends EventDispatcher {
         }
       );
 
-      const uiCanvases = componentsManager._overlayCanvases;
-      if (uiCanvases) {
-        const {
-          _canvas: canvas,
-          _uiRenderQueue: uiRenderQueue,
-          _virtualCamera: virtualCamera,
-          _renderContext: renderContext,
-          _batcherManager: batcherManager
-        } = this;
-        const { elements: projectE } = virtualCamera.projectionMatrix;
-        const { elements: viewE } = virtualCamera.viewMatrix;
-        (projectE[0] = 2 / canvas.width), (projectE[5] = 2 / canvas.height), (projectE[10] = 0);
-        this._hardwareRenderer.activeRenderTarget(null, new Vector4(0, 0, 1, 1), renderContext.flipProjection, 0);
-        for (let i = 0, n = uiCanvases.length; i < n; i++) {
-          const uiCanvas = uiCanvases.get(i);
-          if (!uiCanvas) continue;
-          const transform = <UITransform>uiCanvas.entity.transform;
-          (viewE[12] = -transform.position.x), (viewE[13] = -transform.position.y);
-          Matrix.multiply(virtualCamera.projectionMatrix, virtualCamera.viewMatrix, virtualCamera.viewProjectionMatrix);
-          renderContext.applyVirtualCamera(virtualCamera, false);
-          renderContext.rendererUpdateFlag |= ContextRendererUpdateFlag.ProjectionMatrix;
-          uiRenderQueue.clear();
-          uiCanvas._prepareRender(renderContext);
-          uiRenderQueue.pushRenderElement(uiCanvas._renderElement);
-          batcherManager.batch(uiRenderQueue);
-          uiRenderQueue.render(renderContext, "Forward");
-        }
-      }
+      UIUtils.render(this, componentsManager._overlayCanvases);
     }
   }
 

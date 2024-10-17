@@ -524,7 +524,10 @@ export class Entity extends EngineObject {
     }
 
     this.isActive = false;
-    this._updateFlagManager = null;
+    if (this._updateFlagManager) {
+      this._updateFlagManager.removeAllListeners();
+      this._updateFlagManager = null;
+    }
   }
 
   /**
@@ -613,7 +616,7 @@ export class Entity extends EngineObject {
    * @internal
    */
   _unRegisterModifyListener(onChange: (flag: EntityModifyFlags) => void): void {
-    (this._updateFlagManager ||= new UpdateFlagManager()).removeListener(onChange);
+    this._updateFlagManager?.removeListener(onChange);
   }
 
   /**

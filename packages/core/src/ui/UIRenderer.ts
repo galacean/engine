@@ -13,7 +13,7 @@ import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { UICanvas } from "./UICanvas";
 import { UIGroup } from "./UIGroup";
 import { UITransform, UITransformModifyFlags } from "./UITransform";
-import { UIUtil } from "./UIUtil";
+import { UIUtils } from "./UIUtils";
 import { IUIElement } from "./interface/IUIElement";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
@@ -29,12 +29,12 @@ export class UIRenderer extends Renderer implements IUIElement {
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_UITexture");
 
+  @ignoreClone
+  depth: number = 0;
   @assignmentClone
   raycastEnable: boolean = true;
   @deepClone
   raycastPadding: Vector4 = new Vector4(0, 0, 0, 0);
-  @ignoreClone
-  depth: number = 0;
 
   /** @internal */
   @ignoreClone
@@ -47,14 +47,14 @@ export class UIRenderer extends Renderer implements IUIElement {
   _indexInGroup: number = -1;
   /** @internal */
   @ignoreClone
-  _canvas: UICanvas;
+  _rootCanvas: UICanvas;
   /** @internal */
   @ignoreClone
   _indexInCanvas: number = -1;
   /** @internal */
   @ignoreClone
   _subChunk: SubPrimitiveChunk;
-
+  @ignoreClone
   protected _alpha: number = 1;
 
   /**
@@ -104,9 +104,10 @@ export class UIRenderer extends Renderer implements IUIElement {
    */
   override _onEnableInScene(): void {
     this._overrideUpdate && this.scene._componentsManager.addOnUpdateRenderers(this);
-    UIUtil.registerUIToCanvas(this, UIUtil.getRootCanvasInParent(this));
-    UIUtil.registerEntityListener(this);
-    UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
+    const entity = this._entity;
+    UIUtils.registerUIToCanvas(this, UIUtils.getRootCanvasInParent(entity));
+    UIUtils.registerUIToGroup(this, UIUtils.getGroupInParents(entity));
+    UIUtils.registerEntityListener(this);
   }
 
   /**
@@ -114,9 +115,9 @@ export class UIRenderer extends Renderer implements IUIElement {
    */
   override _onDisableInScene(): void {
     this._overrideUpdate && this.scene._componentsManager.removeOnUpdateRenderers(this);
-    UIUtil.registerUIToCanvas(this, null);
-    UIUtil.unRegisterEntityListener(this);
-    UIUtil.registerUIToGroup(this, null);
+    UIUtils.registerUIToCanvas(this, null);
+    UIUtils.registerUIToGroup(this, null);
+    UIUtils.unRegisterEntityListener(this);
   }
 
   /**
@@ -126,17 +127,15 @@ export class UIRenderer extends Renderer implements IUIElement {
   _onEntityModify(flag: EntityModifyFlags): void {
     switch (flag) {
       case EntityModifyFlags.SiblingIndex:
-        this._canvas && (this._canvas._hierarchyDirty = true);
-        break;
-      case EntityModifyFlags.UIGroupEnableInScene:
-        UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
+        this._rootCanvas && (this._rootCanvas._hierarchyDirty = true);
         break;
       case EntityModifyFlags.Parent:
-        UIUtil.registerUIToCanvas(this, UIUtil.getRootCanvasInParent(this));
-        // preRootCanvas === curRootCanvas, but need to set hierarchyDirty
-        this._canvas && (this._canvas._hierarchyDirty = true);
-        UIUtil.registerEntityListener(this);
-        UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
+        const rootCanvas = UIUtils.getRootCanvasInParent(this._entity);
+        rootCanvas && (rootCanvas._hierarchyDirty = true);
+        UIUtils.registerUIToCanvas(this, rootCanvas);
+        UIUtils.registerEntityListener(this);
+      case EntityModifyFlags.UIGroupEnableInScene:
+        UIUtils.registerUIToGroup(this, UIUtils.getGroupInParents(this._entity));
         break;
       default:
         break;

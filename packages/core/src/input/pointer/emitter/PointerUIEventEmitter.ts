@@ -213,9 +213,9 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
       path.length = 1;
       return path;
     } else {
-      const rootEntity = (<UICanvas | UIRenderer>element)._canvas._entity;
+      const rootEntity = (<UICanvas | UIRenderer>element)._rootCanvas._entity;
       // Avoid endless loops
-      for (; i < 2048 && !!entity && entity !== rootEntity; i++) {
+      for (; i < 1024 && !!entity && entity !== rootEntity; i++) {
         entity = path[i] = entity.parent;
       }
     }

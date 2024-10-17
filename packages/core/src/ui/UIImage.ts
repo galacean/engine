@@ -138,7 +138,7 @@ export class UIImage extends UIRenderer {
     super(entity);
 
     this.drawMode = SpriteDrawMode.Simple;
-    this._dirtyUpdateFlag |= ImageUpdateFlags.Color;
+    this._dirtyUpdateFlag |= ImageUpdateFlags.Color | RendererUpdateFlags.AllBounds;
     this.setMaterial(this._engine._uiDefaultMaterial);
     this._onSpriteChange = this._onSpriteChange.bind(this);
   }
@@ -211,7 +211,7 @@ export class UIImage extends UIRenderer {
     this._dirtyUpdateFlag = dirtyUpdateFlag;
     // Init sub render element.
     const { engine } = context.camera;
-    const canvas = this._canvas;
+    const canvas = this._rootCanvas;
     const subRenderElement = engine._subRenderElementPool.get();
     const subChunk = this._subChunk;
     subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);

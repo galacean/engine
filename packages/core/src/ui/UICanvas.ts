@@ -12,20 +12,26 @@ import { HitResult } from "../physics";
 import { UIGroup } from "./UIGroup";
 import { UIRenderer } from "./UIRenderer";
 import { UITransform } from "./UITransform";
-import { UIUtil } from "./UIUtil";
+import { UIUtils } from "./UIUtils";
 import { CanvasRenderMode } from "./enums/CanvasRenderMode";
 import { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrategy";
 import { IUIElement } from "./interface/IUIElement";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
 export class UICanvas extends Component implements IUIElement {
+  @ignoreClone
+  depth: number = 0;
   @assignmentClone
   raycastEnable: boolean = true;
   @deepClone
   raycastPadding: Vector4 = new Vector4(0, 0, 0, 0);
-  @ignoreClone
-  depth: number = 0;
 
+  /** @internal */
+  @ignoreClone
+  _rootCanvas: UICanvas;
+  /** @internal */
+  @ignoreClone
+  _isRootCanvas: boolean = false;
   /** @internal */
   @ignoreClone
   _canvasIndex: number = -1;
@@ -37,9 +43,6 @@ export class UICanvas extends Component implements IUIElement {
   _hierarchyDirty: boolean = true;
   /** @internal */
   @ignoreClone
-  _canvas: UICanvas;
-  /** @internal */
-  @ignoreClone
   _indexInCanvas: number = -1;
   /** @internal */
   @ignoreClone
@@ -47,9 +50,6 @@ export class UICanvas extends Component implements IUIElement {
   /** @internal */
   @ignoreClone
   _indexInGroup: number = -1;
-  /** @internal */
-  @ignoreClone
-  _isRootCanvas: boolean = false;
   /** @internal */
   @ignoreClone
   _renderElement: RenderElement;
@@ -69,6 +69,8 @@ export class UICanvas extends Component implements IUIElement {
   private _realRenderMode: number = CanvasRealRenderMode.None;
   @assignmentClone
   private _renderCamera: Camera;
+  @ignoreClone
+  private _cameraObserver: Camera;
   @assignmentClone
   private _resolutionAdaptationStrategy = ResolutionAdaptationStrategy.BothAdaptation;
   @assignmentClone
@@ -108,7 +110,10 @@ export class UICanvas extends Component implements IUIElement {
     let preMode = this._renderMode;
     if (preMode !== mode) {
       this._renderMode = mode;
-      this._updateRealRenderMode();
+      this._setCameraObserver(
+        this._isRootCanvas && mode === CanvasRenderMode.ScreenSpaceCamera ? this._renderCamera : null
+      );
+      this._setRealRenderMode(this._getRealRenderMode());
     }
   }
 
@@ -120,7 +125,10 @@ export class UICanvas extends Component implements IUIElement {
     const preCamera = this._renderCamera;
     if (preCamera !== val) {
       this._renderCamera = val;
-      this._updateRealRenderMode();
+      this._setCameraObserver(
+        this._isRootCanvas && this._renderMode === CanvasRenderMode.ScreenSpaceCamera ? val : null
+      );
+      this._setRealRenderMode(this._getRealRenderMode());
     }
   }
 
@@ -131,7 +139,11 @@ export class UICanvas extends Component implements IUIElement {
   set resolutionAdaptationStrategy(val: ResolutionAdaptationStrategy) {
     if (this._resolutionAdaptationStrategy !== val) {
       this._resolutionAdaptationStrategy = val;
-      if (this._isRootCanvas && this._renderMode !== CanvasRenderMode.WorldSpace) {
+      const realRenderMode = this._realRenderMode;
+      if (
+        realRenderMode === CanvasRenderMode.ScreenSpaceCamera ||
+        realRenderMode === CanvasRenderMode.ScreenSpaceOverlay
+      ) {
         this._adapterSizeInScreenSpace();
       }
     }
@@ -144,9 +156,8 @@ export class UICanvas extends Component implements IUIElement {
   set sortOrder(val: number) {
     if (this._sortOrder !== val) {
       this._sortOrder = val;
-      if (this._isRootCanvas && this._renderMode === CanvasRenderMode.ScreenSpaceOverlay) {
-        this.scene._componentsManager._overlayCanvasesSortingFlag = true;
-      }
+      this._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay &&
+        this.scene._componentsManager._overlayCanvasesSortingFlag;
     }
   }
 
@@ -156,11 +167,8 @@ export class UICanvas extends Component implements IUIElement {
 
   set distance(val: number) {
     if (this._distance !== val) {
-      const { _renderMode: renderMode } = this;
       this._distance = val;
-      if (this._isRootCanvas && renderMode === CanvasRenderMode.ScreenSpaceCamera && this._renderCamera) {
-        this._adapterPoseInScreenSpace();
-      }
+      this._realRenderMode === CanvasRenderMode.ScreenSpaceCamera && this._adapterPoseInScreenSpace();
     }
   }
 
@@ -170,7 +178,7 @@ export class UICanvas extends Component implements IUIElement {
     this._transform = <UITransform>entity.transform;
     this._onEntityModify = this._onEntityModify.bind(this);
     this._onCanvasSizeListener = this._onCanvasSizeListener.bind(this);
-    this._onCameraPropertyListener = this._onCameraPropertyListener.bind(this);
+    this._onCameraModifyListener = this._onCameraModifyListener.bind(this);
     this._onCameraTransformListener = this._onCameraTransformListener.bind(this);
     this._onReferenceResolutionChanged = this._onReferenceResolutionChanged.bind(this);
     // @ts-ignore
@@ -193,6 +201,9 @@ export class UICanvas extends Component implements IUIElement {
     return false;
   }
 
+  /**
+   * @internal
+   */
   _prepareRender(context: RenderContext): void {
     const { engine, elements, _realRenderMode: mode } = this;
     const { enableFrustumCulling, cullingMask, _frustum: frustum } = context.camera;
@@ -239,7 +250,7 @@ export class UICanvas extends Component implements IUIElement {
    * @internal
    */
   _updateSortDistance(cameraPosition: Vector3): void {
-    switch (this._renderMode) {
+    switch (this._realRenderMode) {
       case CanvasRenderMode.ScreenSpaceOverlay:
         this._sortDistance = 0;
         break;
@@ -256,29 +267,23 @@ export class UICanvas extends Component implements IUIElement {
    * @internal
    */
   override _onEnableInScene(): void {
-    this._entity._dispatchModify(EntityModifyFlags.UICanvasEnableInScene);
-    const rootCanvas = UIUtil.getRootCanvasInParent(this);
-    if (rootCanvas) {
-      this._setIsRootCanvas(false);
-    } else {
-      this._setIsRootCanvas(true);
-      UIUtil.registerUIToCanvas(this, rootCanvas);
-    }
-    UIUtil.registerEntityListener(this);
-    UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
+    const entity = this._entity;
+    entity._dispatchModify(EntityModifyFlags.UICanvasEnableInScene);
+    UIUtils.registerUIToGroup(this, UIUtils.getGroupInParents(entity));
+    const rootCanvas = UIUtils.getRootCanvasInParent(entity);
+    UIUtils.registerUIToCanvas(this, rootCanvas);
+    this._setIsRootCanvas(!rootCanvas);
+    UIUtils.registerEntityListener(this);
   }
 
   /**
    * @internal
    */
   override _onDisableInScene(): void {
-    if (this._isRootCanvas) {
-      this._setIsRootCanvas(false);
-    } else {
-      UIUtil.registerUIToCanvas(this, null);
-      UIUtil.unRegisterEntityListener(this);
-    }
-    UIUtil.registerUIToGroup(this, null);
+    UIUtils.registerUIToGroup(this, null);
+    UIUtils.registerUIToCanvas(this, null);
+    this._setIsRootCanvas(false);
+    UIUtils.unRegisterEntityListener(this);
     this._entity._dispatchModify(EntityModifyFlags.UICanvasDisableInScene);
   }
 
@@ -330,119 +335,30 @@ export class UICanvas extends Component implements IUIElement {
    */
   @ignoreClone
   _onEntityModify(flag: EntityModifyFlags): void {
-    if (this._isRootCanvas) {
-      switch (flag) {
-        case EntityModifyFlags.UIGroupEnableInScene:
-          UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
-          break;
-        case EntityModifyFlags.UICanvasEnableInScene:
-          this._setIsRootCanvas(false);
-          UIUtil.registerEntityListener(this);
-          break;
-        case EntityModifyFlags.Parent:
-          this._setIsRootCanvas(this._checkIsRootCanvas());
-          UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
-          UIUtil.registerEntityListener(this);
-          break;
-        default:
-          break;
-      }
-    } else {
-      switch (flag) {
-        case EntityModifyFlags.SiblingIndex:
-          this._canvas && (this._canvas._hierarchyDirty = true);
-          break;
-        case EntityModifyFlags.UIGroupEnableInScene:
-          UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
-          break;
-        case EntityModifyFlags.Parent:
-          UIUtil.registerUIToCanvas(this, UIUtil.getRootCanvasInParent(this));
-          // preRootCanvas === curRootCanvas, but need to set hierarchyDirty
-          this._canvas && (this._canvas._hierarchyDirty = true);
-          UIUtil.registerEntityListener(this);
-          UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
-          break;
-        default:
-          break;
-      }
-    }
-  }
-
-  private _updateRealRenderMode(): void {
-    let mode: number = this._renderMode;
-    if (this._isRootCanvas) {
-      if (mode === CanvasRenderMode.ScreenSpaceCamera && !this._renderCamera) {
-        mode = CanvasRenderMode.ScreenSpaceOverlay;
-      }
-    } else {
-      mode = CanvasRealRenderMode.None;
-    }
-    const preMode = this._realRenderMode;
-    if (preMode !== mode) {
-      this._realRenderMode = mode;
-      const componentsManager = this.scene._componentsManager;
-      switch (preMode) {
-        case CanvasRenderMode.ScreenSpaceCamera:
-          this._removeCameraListener(this._renderCamera);
-          // @ts-ignore
-          this._referenceResolution._onValueChanged = null;
-          componentsManager.removeUICanvas(preMode, this);
-          break;
-        case CanvasRenderMode.ScreenSpaceOverlay:
-          this._removeCanvasListener();
-          // @ts-ignore
-          this._referenceResolution._onValueChanged = null;
-          componentsManager.removeUICanvas(preMode, this);
-          break;
-        case CanvasRenderMode.WorldSpace:
-          componentsManager.removeUICanvas(preMode, this);
-          break;
-        default:
-          break;
-      }
-      switch (mode) {
-        case CanvasRenderMode.ScreenSpaceCamera:
-          this._addCameraListener(this._renderCamera);
-          // @ts-ignore
-          this._referenceResolution._onValueChanged = this._onReferenceResolutionChanged;
-          this._adapterPoseInScreenSpace();
-          this._adapterSizeInScreenSpace();
-          componentsManager.addUICanvas(mode, this);
-          break;
-        case CanvasRenderMode.ScreenSpaceOverlay:
-          this._addCanvasListener();
-          // @ts-ignore
-          this._referenceResolution._onValueChanged = this._onReferenceResolutionChanged;
-          this._adapterPoseInScreenSpace();
-          this._adapterSizeInScreenSpace();
-          componentsManager.addUICanvas(mode, this);
-          break;
-        case CanvasRenderMode.WorldSpace:
-          this._adapterPoseInScreenSpace();
-          this._adapterSizeInScreenSpace();
-          componentsManager.addUICanvas(mode, this);
-          break;
-        case CanvasRealRenderMode.None:
-          this._disorderedElements.forEach(
-            (element: IUIElement) => {
-              UIUtil.registerUIToCanvas(element, UIUtil.getRootCanvasInParent(element));
-            },
-            () => {}
-          );
-          this._orderedElements.length = 0;
-          this._disorderedElements.length = 0;
-          this._disorderedElements.garbageCollection();
-          break;
-        default:
-          break;
-      }
+    switch (flag) {
+      case EntityModifyFlags.SiblingIndex:
+        this._rootCanvas && (this._rootCanvas._hierarchyDirty = true);
+        break;
+      case EntityModifyFlags.UICanvasEnableInScene:
+        if (!this._isRootCanvas) break;
+      case EntityModifyFlags.Parent:
+        const rootCanvas = UIUtils.getRootCanvasInParent(this._entity);
+        rootCanvas && (rootCanvas._hierarchyDirty = true);
+        this._setIsRootCanvas(!rootCanvas);
+        UIUtils.registerUIToCanvas(this, rootCanvas);
+        UIUtils.registerEntityListener(this);
+      case EntityModifyFlags.UIGroupEnableInScene:
+        UIUtils.registerUIToGroup(this, UIUtils.getGroupInParents(this._entity));
+        break;
+      default:
+        break;
     }
   }
 
   private _adapterPoseInScreenSpace(): void {
-    const { _renderCamera: renderCamera, _transform: transform } = this;
-    if (renderCamera) {
-      const { transform: cameraTransform } = renderCamera.entity;
+    const { _transform: transform, _realRenderMode: realRenderMode } = this;
+    if (realRenderMode === CanvasRenderMode.ScreenSpaceCamera) {
+      const { transform: cameraTransform } = this._renderCamera.entity;
       const { worldPosition: cameraWorldPosition, worldForward: cameraWorldForward } = cameraTransform;
       const { _distance: distance } = this;
       transform.setWorldPosition(
@@ -459,11 +375,12 @@ export class UICanvas extends Component implements IUIElement {
   }
 
   private _adapterSizeInScreenSpace(): void {
-    const { _renderCamera: renderCamera } = this;
+    const { _transform: transform, _realRenderMode: realRenderMode } = this;
     const { x: width, y: height } = this._referenceResolution;
     let curWidth: number;
     let curHeight: number;
-    if (renderCamera) {
+    if (realRenderMode === CanvasRenderMode.ScreenSpaceCamera) {
+      const renderCamera = this._renderCamera;
       curHeight = renderCamera.isOrthographic
         ? renderCamera.orthographicSize * 2
         : 2 * (Math.tan(MathUtil.degreeToRadian(renderCamera.fieldOfView / 2)) * this._distance);
@@ -495,12 +412,12 @@ export class UICanvas extends Component implements IUIElement {
       default:
         break;
     }
-    this.entity.transform.setScale(expectX, expectY, expectZ);
-    this._transform.size.set(curWidth / expectX, curHeight / expectY);
+    transform.setScale(expectX, expectY, expectZ);
+    transform.size.set(curWidth / expectX, curHeight / expectY);
   }
 
   private _walk(entity: Entity, elements: IUIElement[], depth = 0): number {
-    const components = entity._components;
+    const { _components: components, _children: children } = entity;
     for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
       if (component.enabled && component._componentType & ComponentType.UIElement) {
@@ -509,7 +426,6 @@ export class UICanvas extends Component implements IUIElement {
         ++depth;
       }
     }
-    const children = entity._children;
     for (let i = 0, n = children.length; i < n; i++) {
       const child = children[i];
       child.isActive && (depth = this._walk(child, elements, depth));
@@ -517,31 +433,54 @@ export class UICanvas extends Component implements IUIElement {
     return depth;
   }
 
-  private _addCameraListener(camera: Camera): void {
-    camera.entity.transform._updateFlagManager.addListener(this._onCameraTransformListener);
-    camera._updateFlagManager.addListener(this._onCameraPropertyListener);
-  }
-
-  private _removeCameraListener(camera: Camera): void {
-    camera.entity.transform._updateFlagManager.removeListener(this._onCameraTransformListener);
-    camera._updateFlagManager.removeListener(this._onCameraPropertyListener);
+  private _setCameraObserver(camera: Camera): void {
+    const preCamera = this._cameraObserver;
+    if (preCamera !== camera) {
+      this._cameraObserver = camera;
+      if (preCamera) {
+        preCamera.entity.transform._updateFlagManager.removeListener(this._onCameraTransformListener);
+        preCamera._unRegisterModifyListener(this._onCameraModifyListener);
+      }
+      if (camera) {
+        camera.entity.transform._updateFlagManager.addListener(this._onCameraTransformListener);
+        camera._registerModifyListener(this._onCameraModifyListener);
+      }
+    }
   }
 
   @ignoreClone
-  private _onCameraPropertyListener(flag: CameraModifyFlags): void {
-    switch (flag) {
-      case CameraModifyFlags.NearPlane:
-      case CameraModifyFlags.FarPlane:
+  private _onCameraModifyListener(flag: CameraModifyFlags): void {
+    switch (this._realRenderMode) {
+      case CanvasRenderMode.ScreenSpaceCamera:
+        switch (flag) {
+          case CameraModifyFlags.Type:
+          case CameraModifyFlags.AspectRatio:
+            this._adapterSizeInScreenSpace();
+            break;
+          case CameraModifyFlags.FieldOfView:
+            !this._renderCamera.isOrthographic && this._adapterSizeInScreenSpace();
+            break;
+          case CameraModifyFlags.OrthographicSize:
+            this._renderCamera.isOrthographic && this._adapterSizeInScreenSpace();
+            break;
+          case CameraModifyFlags.DisableInScene:
+            this._setRealRenderMode(CanvasRenderMode.ScreenSpaceOverlay);
+            break;
+          default:
+            break;
+        }
+        break;
+      case CanvasRenderMode.ScreenSpaceOverlay:
+        flag === CameraModifyFlags.EnableInScene && this._setRealRenderMode(CanvasRenderMode.ScreenSpaceCamera);
         break;
       default:
-        this._adapterSizeInScreenSpace();
         break;
     }
   }
 
   @ignoreClone
   private _onCameraTransformListener(): void {
-    this._adapterPoseInScreenSpace();
+    this._realRenderMode === CanvasRenderMode.ScreenSpaceCamera && this._adapterPoseInScreenSpace();
   }
 
   private _addCanvasListener(): void {
@@ -561,28 +500,78 @@ export class UICanvas extends Component implements IUIElement {
 
   @ignoreClone
   private _onReferenceResolutionChanged(): void {
-    this._adapterSizeInScreenSpace();
-  }
-
-  private _checkIsRootCanvas(): boolean {
-    let entity = this._entity.parent;
-    while (entity) {
-      const components = entity._components;
-      for (let i = 0, n = components.length; i < n; i++) {
-        const component = components[i];
-        if (component.enabled && component._componentType === ComponentType.UICanvas) {
-          return false;
-        }
-      }
-      entity = entity.parent;
+    const realRenderMode = this._realRenderMode;
+    if (
+      realRenderMode === CanvasRenderMode.ScreenSpaceOverlay ||
+      realRenderMode === CanvasRenderMode.ScreenSpaceCamera
+    ) {
+      this._adapterSizeInScreenSpace();
     }
-    return true;
   }
 
-  private _setIsRootCanvas(value: boolean): void {
-    if (this._isRootCanvas !== value) {
-      this._isRootCanvas = value;
-      this._updateRealRenderMode();
+  private _setIsRootCanvas(isRootCanvas: boolean): void {
+    if (this._isRootCanvas !== isRootCanvas) {
+      this._isRootCanvas = isRootCanvas;
+      this._setCameraObserver(
+        isRootCanvas && this._renderMode === CanvasRenderMode.ScreenSpaceCamera ? this._renderCamera : null
+      );
+      this._setRealRenderMode(this._getRealRenderMode());
+      if (!isRootCanvas) {
+        const { _disorderedElements: disorderedElements } = this;
+        disorderedElements.forEach(
+          (element: IUIElement) => {
+            UIUtils.registerUIToCanvas(element, UIUtils.getRootCanvasInParent(element._entity));
+          },
+          () => {}
+        );
+        disorderedElements.length = 0;
+        disorderedElements.garbageCollection();
+        this._orderedElements.length = 0;
+      }
+    }
+  }
+
+  private _getRealRenderMode(): number {
+    if (this._isRootCanvas) {
+      const { _renderMode: mode, _renderCamera: camera } = this;
+      // @ts-ignore
+      if (mode === CanvasRenderMode.ScreenSpaceCamera && (!camera || !camera._phasedActiveInScene)) {
+        return CanvasRenderMode.ScreenSpaceOverlay;
+      } else {
+        return mode;
+      }
+    } else {
+      return CanvasRealRenderMode.None;
+    }
+  }
+
+  private _setRealRenderMode(curRealMode: number): void {
+    const preRealMode = this._realRenderMode;
+    if (preRealMode !== curRealMode) {
+      this._realRenderMode = curRealMode;
+      const componentsManager = this.scene._componentsManager;
+      switch (preRealMode) {
+        case CanvasRenderMode.ScreenSpaceOverlay:
+          this._removeCanvasListener();
+        case CanvasRenderMode.ScreenSpaceCamera:
+        case CanvasRenderMode.WorldSpace:
+          componentsManager.removeUICanvas(preRealMode, this);
+          break;
+        default:
+          break;
+      }
+      switch (curRealMode) {
+        case CanvasRenderMode.ScreenSpaceOverlay:
+          this._addCanvasListener();
+        case CanvasRenderMode.ScreenSpaceCamera:
+          this._adapterPoseInScreenSpace();
+          this._adapterSizeInScreenSpace();
+        case CanvasRenderMode.WorldSpace:
+          componentsManager.addUICanvas(curRealMode, this);
+          break;
+        default:
+          break;
+      }
     }
   }
 }
