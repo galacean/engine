@@ -129,6 +129,7 @@ export class ShaderContentParser {
 
         case EKeyword.GS_EditorProperties:
         case EKeyword.GS_EditorMacros:
+        case EKeyword.GS_Editor:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           scanner.scanPairedText("{", "}", true);
           start = scanner.getCurPosition();
