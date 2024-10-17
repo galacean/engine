@@ -12,6 +12,7 @@ import { GSError } from "./GSError";
 // #endif
 import { PpParser } from "./preprocessor/PpParser";
 import { ShaderLabUtils } from "./ShaderLabUtils";
+import { IShaderProgramSource } from "@galacean/engine-design/types/shader-lab/IShaderProgramSource";
 
 /** @internal */
 export class ShaderLab implements IShaderLab {
@@ -54,7 +55,7 @@ export class ShaderLab implements IShaderLab {
     backend: ShaderPlatformTarget,
     platformMacros: string[],
     basePathForIncludeKey: string
-  ) {
+  ): IShaderProgramSource | undefined {
     Preprocessor.reset(ShaderLib, basePathForIncludeKey);
     for (const macro of macros) {
       Preprocessor.addPredefinedMacro(macro.name, macro.value);
@@ -72,7 +73,7 @@ export class ShaderLab implements IShaderLab {
         this.errors.push(<GSError>err);
       }
       this._logErrors();
-      return { vertex: "", fragment: "" };
+      return undefined;
     }
     // #endif
 
@@ -92,7 +93,7 @@ export class ShaderLab implements IShaderLab {
     }
     if (!program) {
       this._logErrors();
-      return { vertex: "", fragment: "" };
+      return undefined;
     }
     // #endif
 

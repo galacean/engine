@@ -34,13 +34,15 @@ export class GSError extends Error {
     let diagnosticMessage = `${this.name}: ${message}\n\n`;
     const lineSplit = "|···";
 
-    for (let i = start.line - GSError.wrappingLineCount, n = end.line + GSError.wrappingLineCount; i <= n; i++) {
-      diagnosticMessage += lineSplit + `${lines[i]}\n`;
+    const wrappingLineCount = GSError.wrappingLineCount;
+    for (let i = start.line - wrappingLineCount, n = end.line + wrappingLineCount; i <= n; i++) {
+      const line = lines[i];
+      diagnosticMessage += lineSplit + `${line}\n`;
 
       if (i < start.line || i > end.line) continue;
 
       let remarkStart = 0;
-      let remarkEnd = lines[i].length;
+      let remarkEnd = line.length;
       let paddingLength = lineSplit.length;
       if (i === start.line) {
         remarkStart = start.column;

@@ -35,8 +35,6 @@ export class PpParser {
   // #if _VERBOSE
   static _errors: Error[] = [];
   // #endif
-  static _scanningText: string;
-  static _scanningFile = "__main__";
 
   static reset(includeMap: Record<string, string>, basePathForIncludeKey: string) {
     this._definedMacros.clear();
@@ -65,8 +63,6 @@ export class PpParser {
   }
 
   static parse(scanner: PpScanner): string | null {
-    this._scanningText = scanner.source;
-    this._scanningFile = scanner.file;
     while (!scanner.isEnd()) {
       const directive = scanner.scanDirective(this._onToken.bind(this))!;
       if (scanner.isEnd()) break;
