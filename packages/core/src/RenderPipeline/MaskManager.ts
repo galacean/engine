@@ -25,7 +25,7 @@ export class MaskManager {
     return (MaskManager._maskDecrementRenderQueue ||= new RenderQueue(RenderQueueType.Transparent));
   }
 
-  notWriteStencil = true;
+  hasWrittenToStencil = false;
   private _preMaskLayer = SpriteMaskLayer.Nothing;
   private _allSpriteMasks = new DisorderedArray<SpriteMask>();
 
@@ -61,10 +61,7 @@ export class MaskManager {
   clearMask(context: RenderContext, pipelineStageTagValue: string): void {
     const preMaskLayer = this._preMaskLayer;
     if (preMaskLayer !== SpriteMaskLayer.Nothing) {
-      if (this.notWriteStencil) {
-        const engine = context.camera.engine;
-        engine._hardwareRenderer.clearRenderTarget(engine, CameraClearFlags.Stencil, null);
-      } else {
+      if (this.hasWrittenToStencil) {
         const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
         decrementMaskQueue.clear();
 
@@ -79,6 +76,9 @@ export class MaskManager {
         decrementMaskQueue.batch(batcherManager);
         batcherManager.uploadBuffer();
         decrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Decrement);
+      } else {
+        const engine = context.camera.engine;
+        engine._hardwareRenderer.clearRenderTarget(engine, CameraClearFlags.Stencil, null);
       }
 
       this._preMaskLayer = SpriteMaskLayer.Nothing;

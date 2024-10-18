@@ -84,7 +84,7 @@ export class RenderQueue {
       if (maskInteractionNotNone) {
         maskManager.drawMask(context, pipelineStageTagValue, subElement.component._maskLayer);
       } else {
-        maskManager.checkStencilAccess(material) & StencilAccess.Writable && (maskManager.notWriteStencil = false);
+        maskManager.checkStencilAccess(material) & StencilAccess.Writable && (maskManager.hasWrittenToStencil = true);
       }
 
       let customStates: RenderStateElementMap = null;
