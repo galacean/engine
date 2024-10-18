@@ -1,4 +1,5 @@
 import { IHardwareRenderer } from "@galacean/engine-design";
+import { RenderStateElementMap } from "../../BasicResources";
 import { ShaderData } from "../ShaderData";
 import { ShaderProperty } from "../ShaderProperty";
 import { CompareFunction } from "../enums/CompareFunction";
@@ -153,16 +154,12 @@ export class StencilState {
   _apply(
     hardwareRenderer: IHardwareRenderer,
     lastRenderState: RenderState,
-    customStates?: Record<number, number | boolean>
+    customStates?: RenderStateElementMap
   ): void {
     this._platformApply(hardwareRenderer, lastRenderState.stencilState, customStates);
   }
 
-  private _platformApply(
-    rhi: IHardwareRenderer,
-    lastState: StencilState,
-    customStates?: Record<number, number | boolean>
-  ): void {
+  private _platformApply(rhi: IHardwareRenderer, lastState: StencilState, customStates?: RenderStateElementMap): void {
     const gl = <WebGLRenderingContext>rhi.gl;
     let {
       enabled,

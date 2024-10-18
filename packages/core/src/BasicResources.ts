@@ -92,6 +92,8 @@ export class BasicResources {
     renderStates[RenderStateElementKey.StencilStateZFailOperationFront] = failStencilOperation;
     renderStates[RenderStateElementKey.StencilStateZFailOperationBack] = failStencilOperation;
     renderStates[RenderStateElementKey.BlendStateColorWriteMask0] = ColorWriteMask.None;
+    renderStates[RenderStateElementKey.DepthStateEnabled] = false;
+    renderStates[RenderStateElementKey.RasterStateCullMode] = CullMode.Off;
 
     return renderStates;
   }
@@ -247,9 +249,6 @@ export class BasicResources {
 
   private _createSpriteMaskMaterial(engine: Engine): Material {
     const material = new Material(engine, Shader.find("SpriteMask"));
-    const renderState = material.renderState;
-    renderState.rasterState.cullMode = CullMode.Off;
-    renderState.depthState.enabled = false;
     material.isGCIgnored = true;
     return material;
   }
@@ -261,4 +260,4 @@ enum TextureType {
   Texture2DArray
 }
 
-type RenderStateElementMap = Record<RenderStateElementKey, number | boolean>;
+export type RenderStateElementMap = Record<RenderStateElementKey, number | boolean>;

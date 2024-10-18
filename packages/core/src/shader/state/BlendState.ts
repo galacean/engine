@@ -1,5 +1,6 @@
 import { IHardwareRenderer } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
+import { RenderStateElementMap } from "../../BasicResources";
 import { GLCapabilityType } from "../../base/Constant";
 import { deepClone } from "../../clone/CloneManager";
 import { ShaderData } from "../ShaderData";
@@ -151,16 +152,12 @@ export class BlendState {
   _apply(
     hardwareRenderer: IHardwareRenderer,
     lastRenderState: RenderState,
-    customStates?: Record<number, number | boolean>
+    customStates?: RenderStateElementMap
   ): void {
     this._platformApply(hardwareRenderer, lastRenderState.blendState, customStates);
   }
 
-  private _platformApply(
-    rhi: IHardwareRenderer,
-    lastState: BlendState,
-    customStates?: Record<number, number | boolean>
-  ): void {
+  private _platformApply(rhi: IHardwareRenderer, lastState: BlendState, customStates?: RenderStateElementMap): void {
     const gl = <WebGLRenderingContext>rhi.gl;
     const lastTargetBlendState = lastState.targetBlendState;
 

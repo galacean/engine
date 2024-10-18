@@ -1,5 +1,5 @@
 import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
-import { BasicResources } from "../BasicResources";
+import { BasicResources, RenderStateElementMap } from "../BasicResources";
 import { Utils } from "../Utils";
 import { RenderQueueType, Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
@@ -87,7 +87,7 @@ export class RenderQueue {
         maskManager.checkStencilAccess(material) & StencilAccess.Writable && (maskManager.notWriteStencil = false);
       }
 
-      let customStates: Record<number, number | boolean> = null;
+      let customStates: RenderStateElementMap = null;
       if (maskInteractionNotNone) {
         customStates = BasicResources.getMaskInteractionRenderStates(maskInteraction);
       } else if (maskType !== RenderQueueMaskType.No) {
