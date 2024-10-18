@@ -103,9 +103,10 @@ export class MaskManager {
   }
 
   isReadStencil(material: Material): boolean {
-    const { enabled, compareFunctionFront, compareFunctionBack } = material.renderState.stencilState;
+    const { enabled, mask, compareFunctionFront, compareFunctionBack } = material.renderState.stencilState;
     if (
       enabled &&
+      mask !== 0x00 &&
       ((compareFunctionFront !== CompareFunction.Always && compareFunctionFront !== CompareFunction.Never) ||
         (compareFunctionBack !== CompareFunction.Always && compareFunctionBack !== CompareFunction.Never))
     ) {
