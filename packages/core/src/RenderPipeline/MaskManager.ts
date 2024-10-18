@@ -65,9 +65,8 @@ export class MaskManager {
         decrementMaskQueue.clear();
 
         const masks = this._allSpriteMasks;
-        const maskElements = masks._elements;
         for (let i = 0, n = masks.length; i < n; i++) {
-          const mask = maskElements[i];
+          const mask = masks.get(i);
           mask.influenceLayers & preMaskLayer && decrementMaskQueue.pushRenderElement(mask._renderElement);
         }
 
