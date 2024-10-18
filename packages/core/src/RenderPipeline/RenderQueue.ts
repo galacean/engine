@@ -77,18 +77,18 @@ export class RenderQueue {
       const maskInteraction = renderer._maskInteraction;
       const needMaskInteraction = maskInteraction !== SpriteMaskInteraction.None;
       const needMaskType = maskType !== RenderQueueMaskType.No;
-      if (needMaskInteraction) {
-        maskManager.drawMask(context, pipelineStageTagValue, subElement.component._maskLayer);
-      } else {
-        maskManager.isReadStencil(material) && maskManager.clearMask(context, pipelineStageTagValue);
-      }
-      needMaskType || (maskManager.isStencilWritten(material) && (maskManager.hasStencilWritten = true));
-
       let customStates: RenderStateElementMap = null;
-      if (needMaskInteraction) {
-        customStates = BasicResources.getMaskInteractionRenderStates(maskInteraction);
-      } else if (needMaskType) {
+
+      if (needMaskType) {
         customStates = BasicResources.getMaskTypeRenderStates(maskType);
+      } else {
+        if (needMaskInteraction) {
+          maskManager.drawMask(context, pipelineStageTagValue, subElement.component._maskLayer);
+          customStates = BasicResources.getMaskInteractionRenderStates(maskInteraction);
+        } else {
+          maskManager.isReadStencil(material) && maskManager.clearMask(context, pipelineStageTagValue);
+        }
+        maskManager.isStencilWritten(material) && (maskManager.hasStencilWritten = true);
       }
 
       const compileMacros = Shader._compileMacros;

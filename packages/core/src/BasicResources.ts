@@ -86,6 +86,8 @@ export class BasicResources {
     renderStates[RenderStateElementKey.StencilStateEnabled] = true;
     renderStates[RenderStateElementKey.StencilStatePassOperationFront] = passOperation;
     renderStates[RenderStateElementKey.StencilStatePassOperationBack] = passOperation;
+    renderStates[RenderStateElementKey.StencilStateCompareFunctionFront] = CompareFunction.Always;
+    renderStates[RenderStateElementKey.StencilStateCompareFunctionBack] = CompareFunction.Always;
     const failStencilOperation = StencilOperation.Keep;
     renderStates[RenderStateElementKey.StencilStateFailOperationFront] = failStencilOperation;
     renderStates[RenderStateElementKey.StencilStateFailOperationBack] = failStencilOperation;
@@ -94,8 +96,6 @@ export class BasicResources {
     renderStates[RenderStateElementKey.BlendStateColorWriteMask0] = ColorWriteMask.None;
     renderStates[RenderStateElementKey.DepthStateEnabled] = false;
     renderStates[RenderStateElementKey.RasterStateCullMode] = CullMode.Off;
-    renderStates[RenderStateElementKey.StencilStateCompareFunctionFront] = CompareFunction.Always;
-    renderStates[RenderStateElementKey.StencilStateCompareFunctionBack] = CompareFunction.Always;
 
     return renderStates;
   }
