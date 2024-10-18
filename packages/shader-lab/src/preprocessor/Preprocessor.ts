@@ -1,4 +1,4 @@
-import PpParser from "./PpParser";
+import { PpParser } from "./PpParser";
 import PpScanner from "./PpScanner";
 
 /** @internal */
@@ -16,7 +16,7 @@ export class Preprocessor {
   /**
    * Should call it after reset.
    */
-  static process(source: string): string {
+  static process(source: string): string | null {
     this.baseScanner = new PpScanner(source);
     return PpParser.parse(this.baseScanner);
   }
@@ -25,7 +25,7 @@ export class Preprocessor {
     PpParser.addPredefinedMacro(macro, value);
   }
 
-  // #if _EDITOR
+  // #if _VERBOSE
   static convertSourceIndex(index: number) {
     return this.baseScanner.sourceMap.map(index);
   }

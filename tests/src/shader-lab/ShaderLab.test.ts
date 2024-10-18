@@ -1,18 +1,11 @@
-import {
-  BlendFactor,
-  BlendOperation,
-  CompareFunction,
-  CullMode,
-  RenderQueueType,
-  RenderStateDataKey,
-  StencilOperation
-} from "@galacean/engine-core";
+import { BlendOperation, CompareFunction, CullMode, RenderStateDataKey } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
-import { ShaderLab } from "@galacean/engine-shader-lab";
-import { glslValidate } from "./ShaderValidate";
+import { ShaderLab as ShaderLabVerbose, GSError } from "@galacean/engine-shader-lab/verbose";
+import { ShaderLab as ShaderLabRelease } from "@galacean/engine-shader-lab";
+import { glslValidate, shaderParse } from "./ShaderValidate";
 
 import { IShaderContent } from "@galacean/engine-design";
-import { describe, beforeAll, expect, it } from "vitest";
+import { describe, beforeAll, expect, assert, it } from "vitest";
 import { server } from "@vitest/browser/context";
 const { readFile } = server.commands;
 
@@ -109,7 +102,8 @@ vec4 linearToGamma(vec4 linearIn){
 #endif
 `;
 
-const shaderLab = new ShaderLab();
+const shaderLabVerbose = new ShaderLabVerbose();
+const shaderLabRelease = new ShaderLabRelease();
 
 describe("ShaderLab", () => {
   let shader: IShaderContent;
@@ -118,7 +112,7 @@ describe("ShaderLab", () => {
   let pass1: IShaderContent["subShaders"][number]["passes"][number];
 
   beforeAll(() => {
-    shader = shaderLab._parseShaderContent(demoShader);
+    shader = shaderLabVerbose._parseShaderContent(demoShader);
     subShader = shader.subShaders[0];
     passList = subShader.passes;
     expect(passList[0].isUsePass).to.be.true;
@@ -127,7 +121,7 @@ describe("ShaderLab", () => {
   });
 
   it("create shaderLab", async () => {
-    expect(shaderLab).not.be.null;
+    expect(shaderLabVerbose).not.be.null;
   });
 
   it("shader name", () => {
@@ -186,68 +180,80 @@ describe("ShaderLab", () => {
   });
 
   it("engine shader", async () => {
-    glslValidate(demoShader, shaderLab);
+    glslValidate(demoShader, shaderLabVerbose);
+    glslValidate(demoShader, shaderLabRelease);
   });
 
   it("include", async () => {
     const demoShader = await readFile("./shaders/unlit.shader");
-    glslValidate(demoShader, shaderLab, { test_common: commonSource });
+    glslValidate(demoShader, shaderLabVerbose, { test_common: commonSource });
   });
 
   it("planarShadow shader", async () => {
     const demoShader = await readFile("./shaders/planarShadow.shader");
-    glslValidate(demoShader, shaderLab);
+    glslValidate(demoShader, shaderLabVerbose);
+    glslValidate(demoShader, shaderLabRelease);
   });
 
   it("Empty macro shader", async () => {
     const demoShader = await readFile("./shaders/triangle.shader");
-    glslValidate(demoShader, shaderLab);
+    glslValidate(demoShader, shaderLabVerbose);
+    glslValidate(demoShader, shaderLabRelease);
   });
 
   it("No frag shader args", async () => {
     const demoShader = await readFile("./shaders/noFragArgs.shader");
-    glslValidate(demoShader, shaderLab);
+    glslValidate(demoShader, shaderLabVerbose);
+    glslValidate(demoShader, shaderLabRelease);
   });
 
   it("water full shader(complex)", async () => {
     const demoShader = await readFile("./shaders/waterfull.shader");
-    glslValidate(demoShader, shaderLab);
+    glslValidate(demoShader, shaderLabVerbose);
+    glslValidate(demoShader, shaderLabRelease);
   });
 
   it("glass shader", async () => {
     const demoShader = await readFile("./shaders/glass.shader");
-    glslValidate(demoShader, shaderLab);
+    glslValidate(demoShader, shaderLabVerbose);
+    glslValidate(demoShader, shaderLabRelease);
   });
-
-  // it("shader with duplicate name", () => {
-  //   const demoShader = await readFile("./shaders/glass.shader");
-  //   (Shader as any)._shaderLab = shaderLab;
-
-  //   const shaderInstance = Shader.create(demoShader);
-  //   expect(shaderInstance).instanceOf(Shader);
-
-  //   const errorSpy = chai.spy.on(console, "error");
-  //   Shader.create(demoShader);
-  //   expect(errorSpy).to.have.been.called.with('Shader named "Gem" already exists.');
-  //   shaderInstance.destroy();
-  //   chai.spy.restore(console, "error");
-
-  //   const sameNameShader = Shader.create(demoShader);
-  //   expect(sameNameShader).instanceOf(Shader);
-  // });
 
   it("template shader", async () => {
     const demoShader = await readFile("./shaders/template.shader");
-    glslValidate(demoShader, shaderLab);
+    glslValidate(demoShader, shaderLabVerbose);
+    glslValidate(demoShader, shaderLabRelease);
   });
 
   it("multi-pass", async () => {
     const shaderSource = await readFile("./shaders/multi-pass.shader");
-    glslValidate(shaderSource, shaderLab);
+    glslValidate(shaderSource, shaderLabVerbose);
+    glslValidate(shaderSource, shaderLabRelease);
   });
 
   it("macro-with-preprocessor", async () => {
     const shaderSource = await readFile("./shaders/macro-pre.shader");
-    glslValidate(shaderSource, shaderLab);
+    glslValidate(shaderSource, shaderLabVerbose);
+    glslValidate(shaderSource, shaderLabRelease);
+  });
+
+  it("compilation-error", async () => {
+    const errorShader = await readFile("./shaders/compilation-error.shader");
+    shaderParse.bind(shaderLabVerbose)(errorShader);
+    // @ts-ignore
+    expect(shaderLabVerbose.errors.length).to.eq(3);
+    // @ts-ignore
+    assert.instanceOf(shaderLabVerbose.errors[0], GSError);
+    // @ts-ignore
+    assert.instanceOf(shaderLabVerbose.errors[1], GSError);
+    // @ts-ignore
+    assert.instanceOf(shaderLabVerbose.errors[2], GSError);
+
+    // @ts-ignore
+    for (const err of shaderLabVerbose.errors) {
+      console.log(err.toString());
+    }
+
+    expect(shaderParse.bind(shaderLabRelease, errorShader)).to.throw(Error);
   });
 });
