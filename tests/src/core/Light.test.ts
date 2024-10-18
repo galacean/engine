@@ -1,4 +1,3 @@
-import { expect } from "chai";
 import {
   Layer,
   DirectLight,
@@ -19,7 +18,7 @@ import { Color, SphericalHarmonics3, Vector3 } from "@galacean/engine-math";
 
 import { lightResource } from "./model/ambientLight";
 import { ColorSpace, ShadowType } from "@galacean/engine-core";
-import { describe, beforeAll, it, afterAll } from "vitest";
+import { describe, beforeAll, it, expect, afterAll } from "vitest";
 
 const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
