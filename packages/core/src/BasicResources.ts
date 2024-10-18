@@ -94,6 +94,8 @@ export class BasicResources {
     renderStates[RenderStateElementKey.BlendStateColorWriteMask0] = ColorWriteMask.None;
     renderStates[RenderStateElementKey.DepthStateEnabled] = false;
     renderStates[RenderStateElementKey.RasterStateCullMode] = CullMode.Off;
+    renderStates[RenderStateElementKey.StencilStateCompareFunctionFront] = CompareFunction.Always;
+    renderStates[RenderStateElementKey.StencilStateCompareFunctionBack] = CompareFunction.Always;
 
     return renderStates;
   }
