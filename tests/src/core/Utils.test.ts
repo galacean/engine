@@ -1,5 +1,5 @@
 import { DisorderedArray, Utils } from "@galacean/engine-core";
-import { expect } from "chai";
+import { describe, expect, it } from "vitest";
 
 describe("Utils test", function () {
   it("is absolute", () => {

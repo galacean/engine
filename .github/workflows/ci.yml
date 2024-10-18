@@ -68,7 +68,7 @@ jobs:
       - name: Build
         run: npm run build:editor
       - name: Test
-        run: npm run test-cov
+        run: npm run coverage
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:

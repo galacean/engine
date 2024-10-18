@@ -1,7 +1,7 @@
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { TextUtils, TextRenderer, Entity, Scene, Camera, Font, FontStyle, OverflowMode } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
-import { expect } from "chai";
+import {describe, beforeAll, expect, it, afterAll } from "vitest";
 
 describe("TextUtils", () => {
   let engine: WebGLEngine;
@@ -15,7 +15,7 @@ describe("TextUtils", () => {
   let wrap1TextRenderer: TextRenderer;
   let wrap2TextRenderer: TextRenderer;
 
-  before(async function () {
+  beforeAll(async function () {
     engine = await WebGLEngine.create({
       canvas: document.createElement("canvas")
     });
@@ -319,7 +319,7 @@ describe("TextUtils", () => {
     );
   });
 
-  after(() => {
+  afterAll(() => {
     engine.destroy();
   });
 });

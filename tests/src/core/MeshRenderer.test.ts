@@ -1,7 +1,7 @@
 import { BlinnPhongMaterial, MeshRenderer, PrimitiveMesh, Entity, Camera, ModelMesh } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
+import { describe, beforeAll, expect, it } from "vitest";
 
 describe("MeshRenderer", async function () {
   let engine: WebGLEngine;
@@ -9,7 +9,7 @@ describe("MeshRenderer", async function () {
   let cubeEntity: Entity;
   let cubeMesh: ModelMesh;
 
- before(async function () {
+  beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     const scene = engine.sceneManager.activeScene;
 

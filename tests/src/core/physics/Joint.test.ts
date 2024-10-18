@@ -10,12 +10,12 @@ import {
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Vector3, Quaternion } from "@galacean/engine-math";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
-import { expect } from "chai";
+import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
 describe("Joint", function () {
   let root: Entity;
 
-  before(async function () {
+  beforeAll(async function () {
     const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
     engine.run();
 

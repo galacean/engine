@@ -28,10 +28,10 @@ import {
 } from "@galacean/engine-loader";
 import { Color } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
+import { describe, beforeAll, afterAll, expect, it } from "vitest";
 
 let engine: WebGLEngine;
-before(async function () {
+beforeAll(async function () {
   const canvasDOM = document.createElement("canvas");
   canvasDOM.width = 1024;
   canvasDOM.height = 1024;
@@ -370,7 +370,7 @@ before(async function () {
   }
 });
 
-after(() => {
+afterAll(() => {
   @registerGLTFParser(GLTFParserType.Schema)
   class test extends GLTFSchemaParser {}
 });

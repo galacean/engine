@@ -1,6 +1,7 @@
 import { BlinnPhongMaterial, Camera, DirectLight, MeshRenderer, PrimitiveMesh } from "@galacean/engine-core";
 import "@galacean/engine-loader";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { describe, it } from "vitest";
 
 const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
