@@ -56,6 +56,7 @@ export class RenderQueue {
     const renderCount = engine._renderCount;
     const rhi = engine._hardwareRenderer;
     const pipelineStageKey = RenderContext.pipelineStageKey;
+    const renderQueueType = this.renderQueueType;
 
     for (let i = 0; i < length; i++) {
       const subElement = batchedSubElements[i];
@@ -103,6 +104,12 @@ export class RenderQueue {
         const shaderPass = shaderPasses[j];
         if (shaderPass.getTagValue(pipelineStageKey) !== pipelineStageTagValue) {
           continue;
+        }
+
+        if (!needMaskType) {
+          if ((shaderPass._renderState ?? renderStates[j]).renderQueueType !== renderQueueType) {
+            continue;
+          }
         }
 
         const program = shaderPass._getShaderProgram(engine, compileMacros);
