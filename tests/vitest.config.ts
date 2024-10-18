@@ -14,7 +14,13 @@ export default defineProject({
     browser: {
       provider: "playwright",
       enabled: true,
-      name: "chromium"
+      name: "chromium",
+      headless: true,
+      providerOptions: {
+        launch: {
+          args: ["--use-gl=egl", "--ignore-gpu-blocklist", "--use-gl=angle"]
+        }
+      }
     },
     environmentMatchGlobs: [["tests/**/*.test.ts", "node"]]
   }
