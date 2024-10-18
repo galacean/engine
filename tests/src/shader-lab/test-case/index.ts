@@ -6,7 +6,7 @@ const cmpDir = "test-case/compare/";
 
 const files = ["frag.txt", "frag2.txt"];
 const testCaseList: { source: string; compare: string; name: string }[] = [];
-for (const f in files) {
+for (const f of files) {
   const cmpFilePath = `${cmpDir}${f}`;
   const sourceFilePath = `${sourceDir}${f}`;
   testCaseList.push({
