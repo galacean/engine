@@ -65,7 +65,8 @@ jobs:
 
       - name: Install
         run: pnpm install
-        run: npx playwright install
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
       - name: Build
         run: npm run build
       - name: Test
