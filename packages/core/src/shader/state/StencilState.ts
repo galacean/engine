@@ -184,21 +184,21 @@ export class StencilState {
       const referenceValueState = customStates[RenderStateElementKey.StencilStateReferenceValue];
       referenceValueState !== undefined && (referenceValue = <number>referenceValueState);
       const compareFunctionFrontState = customStates[RenderStateElementKey.StencilStateCompareFunctionFront];
-      compareFunctionFrontState !== undefined && (compareFunctionFront = <number>compareFunctionFrontState);
+      compareFunctionFrontState !== undefined && (compareFunctionFront = <CompareFunction>compareFunctionFrontState);
       const compareFunctionBackState = customStates[RenderStateElementKey.StencilStateCompareFunctionBack];
-      compareFunctionBackState !== undefined && (compareFunctionBack = <number>compareFunctionBackState);
+      compareFunctionBackState !== undefined && (compareFunctionBack = <CompareFunction>compareFunctionBackState);
       const passOperationFrontState = customStates[RenderStateElementKey.StencilStatePassOperationFront];
-      passOperationFrontState !== undefined && (passOperationFront = <number>passOperationFrontState);
+      passOperationFrontState !== undefined && (passOperationFront = <StencilOperation>passOperationFrontState);
       const passOperationBackState = customStates[RenderStateElementKey.StencilStatePassOperationBack];
-      passOperationBackState !== undefined && (passOperationBack = <number>passOperationBackState);
+      passOperationBackState !== undefined && (passOperationBack = <StencilOperation>passOperationBackState);
       const failOperationFrontState = customStates[RenderStateElementKey.StencilStateFailOperationFront];
-      failOperationFrontState !== undefined && (failOperationFront = <number>failOperationFrontState);
+      failOperationFrontState !== undefined && (failOperationFront = <StencilOperation>failOperationFrontState);
       const failOperationBackState = customStates[RenderStateElementKey.StencilStateFailOperationBack];
-      failOperationBackState !== undefined && (failOperationBack = <number>failOperationBackState);
+      failOperationBackState !== undefined && (failOperationBack = <StencilOperation>failOperationBackState);
       const zFailOperationFrontState = customStates[RenderStateElementKey.StencilStateZFailOperationFront];
-      zFailOperationFrontState !== undefined && (zFailOperationFront = <number>zFailOperationFrontState);
+      zFailOperationFrontState !== undefined && (zFailOperationFront = <StencilOperation>zFailOperationFrontState);
       const zFailOperationBackState = customStates[RenderStateElementKey.StencilStateZFailOperationBack];
-      zFailOperationBackState !== undefined && (zFailOperationBack = <number>zFailOperationBackState);
+      zFailOperationBackState !== undefined && (zFailOperationBack = <StencilOperation>zFailOperationBackState);
     }
 
     if (enabled != lastState.enabled) {

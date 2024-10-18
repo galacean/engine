@@ -2,7 +2,6 @@ import { SpriteMask } from "../2d";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Material } from "../material";
-import { CompareFunction } from "../shader/enums/CompareFunction";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { StencilOperation } from "../shader/enums/StencilOperation";
 import { DisorderedArray } from "../utils/DisorderedArray";
@@ -25,7 +24,8 @@ export class MaskManager {
     return (MaskManager._maskDecrementRenderQueue ||= new RenderQueue(RenderQueueType.Transparent));
   }
 
-  hasWrittenToStencil = false;
+  hasWrittenStencil = false;
+
   private _preMaskLayer = SpriteMaskLayer.Nothing;
   private _allSpriteMasks = new DisorderedArray<SpriteMask>();
 
@@ -48,8 +48,7 @@ export class MaskManager {
 
     this._buildMaskRenderElement(maskLayer, incrementMaskQueue, decrementMaskQueue);
 
-    const engine = context.camera.engine;
-    const batcherManager = engine._batcherManager;
+    const batcherManager = context.camera.engine._batcherManager;
     incrementMaskQueue.batch(batcherManager);
     batcherManager.uploadBuffer();
     incrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Increment);
@@ -61,7 +60,7 @@ export class MaskManager {
   clearMask(context: RenderContext, pipelineStageTagValue: string): void {
     const preMaskLayer = this._preMaskLayer;
     if (preMaskLayer !== SpriteMaskLayer.Nothing) {
-      if (this.hasWrittenToStencil) {
+      if (this.hasWrittenStencil) {
         const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
         decrementMaskQueue.clear();
 
@@ -85,33 +84,22 @@ export class MaskManager {
     }
   }
 
-  checkStencilAccess(material: Material): StencilAccess {
+  isStencilWritten(material: Material): boolean {
     const stencilState = material.renderState.stencilState;
-    let stencilAccess = StencilAccess.None;
-
-    if (stencilState.enabled) {
-      const { compareFunctionFront, compareFunctionBack } = stencilState;
-      if (
-        (compareFunctionFront !== CompareFunction.Always && compareFunctionFront !== CompareFunction.Never) ||
-        (compareFunctionBack !== CompareFunction.Always && compareFunctionBack !== CompareFunction.Never)
-      ) {
-        stencilAccess |= StencilAccess.Readable;
-      }
-
-      const stencilOperation = StencilOperation.Keep;
-      if (
-        stencilState.passOperationFront !== stencilOperation ||
+    const stencilOperation = StencilOperation.Keep;
+    if (
+      stencilState.enabled &&
+      stencilState.writeMask !== 0x00 &&
+      (stencilState.passOperationFront !== stencilOperation ||
         stencilState.passOperationBack !== stencilOperation ||
         stencilState.failOperationFront !== stencilOperation ||
         stencilState.failOperationBack !== stencilOperation ||
         stencilState.zFailOperationFront !== stencilOperation ||
-        stencilState.zFailOperationBack !== stencilOperation
-      ) {
-        stencilAccess |= StencilAccess.Writable;
-      }
+        stencilState.zFailOperationBack !== stencilOperation)
+    ) {
+      return true;
     }
-
-    return stencilAccess;
+    return false;
   }
 
   destroy(): void {
@@ -148,11 +136,4 @@ export class MaskManager {
       this._preMaskLayer = curMaskLayer;
     }
   }
-}
-
-export enum StencilAccess {
-  None = 0x0,
-  Writable = 0x1,
-  Readable = 0x2,
-  All = StencilAccess.Writable | StencilAccess.Readable
 }

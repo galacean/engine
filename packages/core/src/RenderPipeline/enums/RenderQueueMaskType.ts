@@ -1,4 +1,5 @@
 /**
+ * @internal
  * Render queue mask type.
  */
 export enum RenderQueueMaskType {

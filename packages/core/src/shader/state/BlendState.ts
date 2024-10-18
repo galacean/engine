@@ -174,7 +174,7 @@ export class BlendState {
 
     if (customStates) {
       const colorWriteMaskState = customStates[RenderStateElementKey.BlendStateColorWriteMask0];
-      colorWriteMaskState !== undefined && (colorWriteMask = <number>colorWriteMaskState);
+      colorWriteMaskState !== undefined && (colorWriteMask = <ColorWriteMask>colorWriteMaskState);
     }
 
     if (enabled !== lastTargetBlendState.enabled) {

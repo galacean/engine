@@ -65,7 +65,7 @@ export class RasterState {
 
     if (customStates) {
       const cullModeState = customStates[RenderStateElementKey.RasterStateCullMode];
-      cullModeState !== undefined && (cullMode = <number>cullModeState);
+      cullModeState !== undefined && (cullMode = <CullMode>cullModeState);
     }
 
     const cullFaceEnable = cullMode !== CullMode.Off;

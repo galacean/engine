@@ -4,7 +4,6 @@ import { Utils } from "../Utils";
 import { RenderQueueType, Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { BatcherManager } from "./BatcherManager";
-import { StencilAccess } from "./MaskManager";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
@@ -32,12 +31,8 @@ export class RenderQueue {
   }
 
   sortBatch(compareFunc: Function, batcherManager: BatcherManager): void {
-    this.sort(compareFunc);
-    this.batch(batcherManager);
-  }
-
-  sort(compareFunc: Function): void {
     Utils._quickSort(this.elements, 0, this.elements.length, compareFunc);
+    this.batch(batcherManager);
   }
 
   batch(batcherManager: BatcherManager): void {
@@ -80,17 +75,17 @@ export class RenderQueue {
       }
 
       const maskInteraction = renderer._maskInteraction;
-      const maskInteractionNotNone = maskInteraction !== SpriteMaskInteraction.None;
-      if (maskInteractionNotNone) {
+      const needMaskInteraction = maskInteraction !== SpriteMaskInteraction.None;
+      const needMaskType = maskType !== RenderQueueMaskType.No;
+      if (needMaskInteraction) {
         maskManager.drawMask(context, pipelineStageTagValue, subElement.component._maskLayer);
-      } else {
-        maskManager.checkStencilAccess(material) & StencilAccess.Writable && (maskManager.hasWrittenToStencil = true);
       }
+      needMaskType && maskManager.isStencilWritten(material) && (maskManager.hasWrittenStencil = true);
 
       let customStates: RenderStateElementMap = null;
-      if (maskInteractionNotNone) {
+      if (needMaskInteraction) {
         customStates = BasicResources.getMaskInteractionRenderStates(maskInteraction);
-      } else if (maskType !== RenderQueueMaskType.No) {
+      } else if (needMaskType) {
         customStates = BasicResources.getMaskTypeRenderStates(maskType);
       }
 
