@@ -170,7 +170,9 @@ export class BasicRenderPipeline {
     }
 
     const maskManager = scene._maskManager;
-    maskManager.hasStencilWritten = false;
+    if (clearFlags & CameraClearFlags.Stencil) {
+      maskManager.hasStencilWritten = false;
+    }
 
     opaqueQueue.render(context, PipelineStage.Forward);
     alphaTestQueue.render(context, PipelineStage.Forward);
