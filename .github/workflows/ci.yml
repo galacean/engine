@@ -65,6 +65,7 @@ jobs:
 
       - name: Install
         run: pnpm install
+        run: npx playwright install
       - name: Build
         run: npm run build
       - name: Test
