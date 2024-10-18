@@ -30,11 +30,19 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor = physXPhysics._pxPhysics.createRigidDynamic(transform);
   }
 
+  getLinearDamping(): number {
+    return this._pxActor.getLinearDamping();
+  }
+
   /**
    * {@inheritDoc IDynamicCollider.setLinearDamping }
    */
   setLinearDamping(value: number): void {
     this._pxActor.setLinearDamping(value);
+  }
+
+  getAngularDamping(): number {
+    return this._pxActor.getAngularDamping();
   }
 
   /**
@@ -44,6 +52,10 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setAngularDamping(value);
   }
 
+  getLinearVelocity(out: Vector3): Vector3 {
+    const velocity = this._pxActor.getLinearVelocity();
+    return out.set(velocity.x, velocity.y, velocity.z);
+  }
   /**
    * {@inheritDoc IDynamicCollider.setLinearVelocity }
    */
@@ -51,6 +63,10 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setLinearVelocity(value, true);
   }
 
+  getAngularVelocity(out: Vector3): Vector3 {
+    const velocity = this._pxActor.getAngularVelocity();
+    return out.set(velocity.x, velocity.y, velocity.z);
+  }
   /**
    * {@inheritDoc IDynamicCollider.setAngularVelocity }
    */
@@ -68,6 +84,14 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   /**
    * {@inheritDoc IDynamicCollider.setCenterOfMass }
    */
+  getCenterOfMass(out: Vector3): Vector3 {
+    const { translation } = this._pxActor.getCMassLocalPose();
+    return out.set(translation.x, translation.y, translation.z);
+  }
+
+  /**
+   * {@inheritDoc IDynamicCollider.setCenterOfMass }
+   */
   setCenterOfMass(position: Vector3): void {
     this._pxActor.setCMassLocalPose(position);
   }
@@ -79,11 +103,23 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setMassSpaceInertiaTensor(value);
   }
 
+  setMassAndUpdateInertia(mass: number): void {
+    this._pxActor.setMassAndUpdateInertia(mass);
+  }
+
+  getMaxAngularVelocity(): number {
+    return this._pxActor.getMaxAngularVelocity();
+  }
+
   /**
    * {@inheritDoc IDynamicCollider.setMaxAngularVelocity }
    */
   setMaxAngularVelocity(value: number): void {
     this._pxActor.setMaxAngularVelocity(value);
+  }
+
+  getMaxDepenetrationVelocity(): number {
+    return this._pxActor.getMaxDepenetrationVelocity();
   }
 
   /**

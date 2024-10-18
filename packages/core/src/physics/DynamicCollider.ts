@@ -5,11 +5,14 @@ import { ICustomClone } from "../clone/ComponentCloner";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
 import { PhysicsScene } from "./PhysicsScene";
+import { ColliderShape } from "./shape";
 
 /**
  * A dynamic collider can act with self-defined movement or physical force.
  */
 export class DynamicCollider extends Collider {
+  automaticCenterOfMass = true;
+
   @ignoreClone
   private _linearDamping: number = 0;
   @ignoreClone
@@ -43,6 +46,7 @@ export class DynamicCollider extends Collider {
    * The linear damping of the dynamic collider.
    */
   get linearDamping(): number {
+    this._getLinearDamping();
     return this._linearDamping;
   }
 
@@ -57,6 +61,7 @@ export class DynamicCollider extends Collider {
    * The angular damping of the dynamic collider.
    */
   get angularDamping(): number {
+    this._getAngularDamping();
     return this._angularDamping;
   }
 
@@ -71,6 +76,7 @@ export class DynamicCollider extends Collider {
    * The linear velocity vector of the dynamic collider measured in world unit per second.
    */
   get linearVelocity(): Vector3 {
+    this._getLinearVelocity();
     return this._linearVelocity;
   }
 
@@ -84,6 +90,7 @@ export class DynamicCollider extends Collider {
    * The angular velocity vector of the dynamic collider measured in radians per second.
    */
   get angularVelocity(): Vector3 {
+    this._getAngularVelocity();
     return this._angularVelocity;
   }
 
@@ -111,6 +118,7 @@ export class DynamicCollider extends Collider {
    * The center of mass relative to the transform's origin.
    */
   get centerOfMass(): Vector3 {
+    (<IDynamicCollider>this._nativeCollider).getCenterOfMass(this._centerOfMass);
     return this._centerOfMass;
   }
 
@@ -137,6 +145,7 @@ export class DynamicCollider extends Collider {
    * The maximum angular velocity of the collider measured in radians per second. (Default 7) range { 0, infinity }.
    */
   get maxAngularVelocity(): number {
+    this._getMaxAngularVelocity();
     return this._maxAngularVelocity;
   }
 
@@ -151,6 +160,7 @@ export class DynamicCollider extends Collider {
    * Maximum velocity of a collider when moving out of penetrating state.
    */
   get maxDepenetrationVelocity(): number {
+    this._getMaxDepenetrationVelocity;
     return this._maxDepenetrationVelocity;
   }
 
@@ -257,6 +267,21 @@ export class DynamicCollider extends Collider {
     this._inertiaTensor._onValueChanged = this._setInertiaTensor;
   }
 
+  override addShape(shape: ColliderShape): void {
+    super.addShape(shape);
+    this._setMassAndUpdateInertia();
+  }
+
+  override removeShape(shape: ColliderShape): void {
+    super.removeShape(shape);
+    this._setMassAndUpdateInertia();
+  }
+
+  override clearShapes(): void {
+    super.clearShapes();
+    this._setMassAndUpdateInertia();
+  }
+
   /**
    * Apply a force to the DynamicCollider.
    * @param force - The force make the collider move
@@ -317,6 +342,12 @@ export class DynamicCollider extends Collider {
     const { transform } = this.entity;
     const { worldPosition, worldRotationQuaternion } = transform;
     (<IDynamicCollider>this._nativeCollider).getWorldTransform(worldPosition, worldRotationQuaternion);
+    // this._getLinearVelocity();
+    // this._getLinearDamping();
+    // this._getAngularVelocity();
+    // this._getAngularDamping();
+    // this._getMaxAngularVelocity();
+    // this._getMaxDepenetrationVelocity();
     this._updateFlag.flag = false;
   }
 
@@ -341,12 +372,40 @@ export class DynamicCollider extends Collider {
     target.collisionDetectionMode = this.collisionDetectionMode;
   }
 
+  _setMassAndUpdateInertia(): void {
+    (<IDynamicCollider>this._nativeCollider).setMassAndUpdateInertia(this.mass);
+  }
+
+  private _getLinearVelocity(): void {
+    (<IDynamicCollider>this._nativeCollider).getLinearVelocity(this._linearVelocity);
+  }
+
   private _setLinearVelocity(): void {
     (<IDynamicCollider>this._nativeCollider).setLinearVelocity(this._linearVelocity);
   }
 
+  private _getLinearDamping(): void {
+    this._linearDamping = (<IDynamicCollider>this._nativeCollider).getLinearDamping();
+  }
+
+  private _getAngularVelocity(): void {
+    (<IDynamicCollider>this._nativeCollider).getAngularVelocity(this._angularVelocity);
+  }
+
   private _setAngularVelocity(): void {
     (<IDynamicCollider>this._nativeCollider).setAngularVelocity(this._angularVelocity);
+  }
+
+  private _getAngularDamping(): void {
+    this._angularDamping = (<IDynamicCollider>this._nativeCollider).getAngularDamping();
+  }
+
+  private _getMaxAngularVelocity(): void {
+    this._maxAngularVelocity = (<IDynamicCollider>this._nativeCollider).getMaxAngularVelocity();
+  }
+
+  private _getMaxDepenetrationVelocity(): void {
+    this._maxDepenetrationVelocity = (<IDynamicCollider>this._nativeCollider).getMaxDepenetrationVelocity();
   }
 
   private _setCenterOfMass(): void {

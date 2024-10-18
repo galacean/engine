@@ -91,7 +91,7 @@ export class PhysXPhysics implements IPhysics {
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
         script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*rnDeR58NNGoAAAAAAAAAAAAAARQnAQ/physx.release.js.js`;
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
-        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*nA97QLQehRMAAAAAAAAAAAAAARQnAQ/physx.release.js`;
+        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*j4jkTp7N5dAAAAAAAAAAAAAAARQnAQ/physx.release.js`;
       }
     });
 

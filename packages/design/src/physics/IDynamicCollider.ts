@@ -19,12 +19,15 @@ export interface IDynamicCollider extends ICollider {
    */
   getWorldTransform(outPosition: Vector3, outRotation: Quaternion): void;
 
+  getLinearDamping(): number;
+
   /**
    * Sets the linear damping coefficient.
    * @param value - Linear damping coefficient.
    */
   setLinearDamping(value: number): void;
 
+  getAngularDamping(): number;
   /**
    * Sets the angular damping coefficient.
    * @param value - Angular damping coefficient.
@@ -32,10 +35,18 @@ export interface IDynamicCollider extends ICollider {
   setAngularDamping(value: number): void;
 
   /**
+   * Get the linear velocity of the actor.
+   * @param out - The linear velocity of the actor.
+   */
+  getLinearVelocity(out: Vector3): Vector3;
+
+  /**
    * Sets the linear velocity of the actor.
    * @param value - New linear velocity of actor.
    */
   setLinearVelocity(value: Vector3): void;
+
+  getAngularVelocity(out: Vector3): Vector3;
 
   /**
    * Sets the angular velocity of the actor.
@@ -43,12 +54,21 @@ export interface IDynamicCollider extends ICollider {
    */
   setAngularVelocity(value: Vector3): void;
 
+  getMaxAngularVelocity(): number;
+
+  setMaxAngularVelocity(value: number): void;
+
+  getMaxDepenetrationVelocity(): number;
+
+  setMaxDepenetrationVelocity(value: number): void;
+
   /**
    *  Sets the mass of a dynamic actor.
    * @param value - New mass value for the actor.
    */
   setMass(value: number): void;
 
+  getCenterOfMass(out: Vector3): Vector3;
   /**
    * Sets the pose of the center of mass relative to the actor.
    * @param value - Mass frame offset transform relative to the actor frame.
@@ -61,6 +81,7 @@ export interface IDynamicCollider extends ICollider {
    */
   setInertiaTensor(value: Vector3): void;
 
+  setMassAndUpdateInertia(mass: number): void;
   /**
    * Set the maximum angular velocity permitted for this actor.
    * @param value - Max allowable angular velocity for actor.

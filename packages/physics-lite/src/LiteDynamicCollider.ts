@@ -18,6 +18,17 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
     this._transform.setPosition(position.x, position.y, position.z);
     this._transform.setRotationQuaternion(rotation.x, rotation.y, rotation.z, rotation.w);
   }
+  /**
+   * {@inheritDoc IDynamicCollider.getCenterOfMass }
+   */
+  getCenterOfMass(out: Vector3): Vector3 {
+    throw "Physics-lite don't support getCenterOfMass. Use Physics-PhysX instead!";
+  }
+
+  /**
+   * {@inheritDoc IDynamicCollider.setMassAndUpdateInertia }
+   */
+  setMassAndUpdateInertia(mass: number): void {}
 
   /**
    * {@inheritDoc IDynamicCollider.addForce }
@@ -47,6 +58,10 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
     throw "Physics-lite don't support putToSleep. Use Physics-PhysX instead!";
   }
 
+  getAngularDamping(): number {
+    throw "Physics-lite don't support getAngularDamping. Use Physics-PhysX instead!";
+  }
+
   /**
    * {@inheritDoc IDynamicCollider.setAngularDamping }
    */
@@ -54,6 +69,9 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
     throw "Physics-lite don't support setAngularDamping. Use Physics-PhysX instead!";
   }
 
+  getAngularVelocity(out: Vector3): Vector3 {
+    throw "Physics-lite don't support getAngularVelocity. Use Physics-PhysX instead!";
+  }
   /**
    * {@inheritDoc IDynamicCollider.setAngularVelocity }
    */
@@ -96,11 +114,18 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
     throw "Physics-lite don't support setIsKinematic. Use Physics-PhysX instead!";
   }
 
+  getLinearDamping(): number {
+    throw "Physics-lite don't support getLinearDamping. Use Physics-PhysX instead!";
+  }
   /**
    * {@inheritDoc IDynamicCollider.setLinearDamping }
    */
   setLinearDamping(value: number): void {
     throw "Physics-lite don't support setLinearDamping. Use Physics-PhysX instead!";
+  }
+
+  getLinearVelocity(out: Vector3): Vector3 {
+    throw "Physics-lite don't support getLinearVelocity. Use Physics-PhysX instead!";
   }
 
   /**
@@ -117,11 +142,19 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
     throw "Physics-lite don't support setMass. Use Physics-PhysX instead!";
   }
 
+  getMaxAngularVelocity(): number {
+    throw "Physics-lite don't support getMaxAngularVelocity. Use Physics-PhysX instead!";
+  }
+
   /**
    * {@inheritDoc IDynamicCollider.setMaxAngularVelocity }
    */
   setMaxAngularVelocity(value: number): void {
     throw "Physics-lite don't support setMaxAngularVelocity. Use Physics-PhysX instead!";
+  }
+
+  getMaxDepenetrationVelocity(): number {
+    throw "Physics-lite don't support getMaxDepenetrationVelocity. Use Physics-PhysX instead!";
   }
 
   /**
