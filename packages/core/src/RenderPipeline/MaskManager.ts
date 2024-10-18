@@ -2,6 +2,7 @@ import { SpriteMask } from "../2d";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Material } from "../material";
+import { CompareFunction } from "../shader";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { StencilOperation } from "../shader/enums/StencilOperation";
 import { DisorderedArray } from "../utils/DisorderedArray";
@@ -95,6 +96,18 @@ export class MaskManager {
         stencilState.failOperationBack !== stencilOperation ||
         stencilState.zFailOperationFront !== stencilOperation ||
         stencilState.zFailOperationBack !== stencilOperation)
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  isReadStencil(material: Material): boolean {
+    const { enabled, compareFunctionFront, compareFunctionBack } = material.renderState.stencilState;
+    if (
+      enabled &&
+      ((compareFunctionFront !== CompareFunction.Always && compareFunctionFront !== CompareFunction.Never) ||
+        (compareFunctionBack !== CompareFunction.Always && compareFunctionBack !== CompareFunction.Never))
     ) {
       return true;
     }

@@ -79,6 +79,8 @@ export class RenderQueue {
       const needMaskType = maskType !== RenderQueueMaskType.No;
       if (needMaskInteraction) {
         maskManager.drawMask(context, pipelineStageTagValue, subElement.component._maskLayer);
+      } else {
+        maskManager.isReadStencil(material) && maskManager.clearMask(context, pipelineStageTagValue);
       }
       needMaskType && maskManager.isStencilWritten(material) && (maskManager.hasStencilWritten = true);
 
