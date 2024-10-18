@@ -24,7 +24,7 @@ export class MaskManager {
     return (MaskManager._maskDecrementRenderQueue ||= new RenderQueue(RenderQueueType.Transparent));
   }
 
-  hasWrittenStencil = false;
+  hasStencilWritten = false;
 
   private _preMaskLayer = SpriteMaskLayer.Nothing;
   private _allSpriteMasks = new DisorderedArray<SpriteMask>();
@@ -60,7 +60,7 @@ export class MaskManager {
   clearMask(context: RenderContext, pipelineStageTagValue: string): void {
     const preMaskLayer = this._preMaskLayer;
     if (preMaskLayer !== SpriteMaskLayer.Nothing) {
-      if (this.hasWrittenStencil) {
+      if (this.hasStencilWritten) {
         const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
         decrementMaskQueue.clear();
 

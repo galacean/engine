@@ -170,7 +170,7 @@ export class BasicRenderPipeline {
     }
 
     const maskManager = scene._maskManager;
-    maskManager.hasWrittenStencil = false;
+    maskManager.hasStencilWritten = false;
 
     opaqueQueue.render(context, PipelineStage.Forward);
     alphaTestQueue.render(context, PipelineStage.Forward);

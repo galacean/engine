@@ -80,7 +80,7 @@ export class RenderQueue {
       if (needMaskInteraction) {
         maskManager.drawMask(context, pipelineStageTagValue, subElement.component._maskLayer);
       }
-      needMaskType && maskManager.isStencilWritten(material) && (maskManager.hasWrittenStencil = true);
+      needMaskType && maskManager.isStencilWritten(material) && (maskManager.hasStencilWritten = true);
 
       let customStates: RenderStateElementMap = null;
       if (needMaskInteraction) {
