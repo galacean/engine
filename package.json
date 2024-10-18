@@ -5,9 +5,9 @@
   "private": true,
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "installPlaywright": "pnpm exec playwright install",
-    "test": "pnpm run installPlaywright && vitest",
-    "coverage": "pnpm run installPlaywright && vitest --coverage",
+    "pretest": "pnpm exec playwright install",
+    "test": "vitest",
+    "coverage": "vitest --coverage",
     "build": "npm run b:module && npm run b:types",
     "lint": "eslint packages/*/src --ext .ts",
     "watch": "cross-env NODE_ENV=release BUILD_TYPE=MODULE rollup -cw -m inline",
