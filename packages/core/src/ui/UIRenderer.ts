@@ -5,13 +5,13 @@ import { PrimitiveChunkManager } from "../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../RenderPipeline/SubPrimitiveChunk";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
-import { assignmentClone, deepClone, ignoreClone } from "../clone/CloneManager";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ComponentType } from "../enums/ComponentType";
 import { HitResult } from "../physics";
 import { ShaderProperty } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { UICanvas } from "./UICanvas";
-import { UIGroup } from "./UIGroup";
+import { GroupModifyFlags, UIGroup } from "./UIGroup";
 import { UITransform, UITransformModifyFlags } from "./UITransform";
 import { UIUtils } from "./UIUtils";
 import { IUIElement } from "./interface/IUIElement";
@@ -31,8 +31,6 @@ export class UIRenderer extends Renderer implements IUIElement {
 
   @ignoreClone
   depth: number = 0;
-  @assignmentClone
-  raycastEnable: boolean = true;
   @deepClone
   raycastPadding: Vector4 = new Vector4(0, 0, 0, 0);
 
@@ -54,8 +52,29 @@ export class UIRenderer extends Renderer implements IUIElement {
   /** @internal */
   @ignoreClone
   _subChunk: SubPrimitiveChunk;
+  /** @internal */
+  @ignoreClone
+  _runtimeRaycastEnable: boolean = true;
+
+  @ignoreClone
+  private _raycastEnable: boolean = true;
   @ignoreClone
   protected _alpha: number = 1;
+
+  get raycastEnable(): boolean {
+    return this._raycastEnable;
+  }
+
+  set raycastEnable(val: boolean) {
+    if (this._raycastEnable !== val) {
+      this._raycastEnable = val;
+      const runtimeRaycastEnable = val && (!this._group || this._group._getGlobalRaycastEnable());
+      if (this._runtimeRaycastEnable !== runtimeRaycastEnable) {
+        this._runtimeRaycastEnable = runtimeRaycastEnable;
+        this.entity._onUIInteractiveChange(runtimeRaycastEnable);
+      }
+    }
+  }
 
   /**
    * @internal
@@ -64,6 +83,7 @@ export class UIRenderer extends Renderer implements IUIElement {
     super(entity);
     this._componentType = ComponentType.UIRenderer;
     this._onEntityModify = this._onEntityModify.bind(this);
+    this._onGroupModify = this._onGroupModify.bind(this);
   }
 
   /**
@@ -108,6 +128,7 @@ export class UIRenderer extends Renderer implements IUIElement {
     UIUtils.registerUIToCanvas(this, UIUtils.getRootCanvasInParent(entity));
     UIUtils.registerUIToGroup(this, UIUtils.getGroupInParents(entity));
     UIUtils.registerEntityListener(this);
+    entity._onUIInteractiveChange(this._runtimeRaycastEnable);
   }
 
   /**
@@ -118,6 +139,7 @@ export class UIRenderer extends Renderer implements IUIElement {
     UIUtils.registerUIToCanvas(this, null);
     UIUtils.registerUIToGroup(this, null);
     UIUtils.unRegisterEntityListener(this);
+    this._entity._onUIInteractiveChange(false);
   }
 
   /**
@@ -139,6 +161,19 @@ export class UIRenderer extends Renderer implements IUIElement {
         break;
       default:
         break;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _onGroupModify(flag: GroupModifyFlags): void {
+    if (flag & GroupModifyFlags.RaycastEnable) {
+      const runtimeRaycastEnable = this.raycastEnable && this._group._getGlobalRaycastEnable();
+      if (this._runtimeRaycastEnable !== runtimeRaycastEnable) {
+        this._runtimeRaycastEnable = runtimeRaycastEnable;
+        this.entity._onUIInteractiveChange(runtimeRaycastEnable);
+      }
     }
   }
 

@@ -121,8 +121,10 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
             break;
           }
         }
-        for (let j = enterLength - i; j < enterLength; j++) {
-          this._fireEvent(liftedPath[j], this._createEventData(pointer), "onPointerClick");
+        const targetIndex = enterLength - i;
+        const event = this._createEventData(pointer, liftedPath[targetIndex]);
+        for (let j = targetIndex; j < enterLength; j++) {
+          this._fireEvent(liftedPath[j], event, "onPointerClick");
         }
         this._pressedElement = null;
       }
@@ -187,6 +189,7 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
   }
 
   private _fireEvent(entity: Entity, eventData: PointerEventData, type: PointerCallback): void {
+    if (!entity._interactive) return;
     eventData.currentTarget = entity;
     entity._scripts.forEach(
       (script: Script) => {

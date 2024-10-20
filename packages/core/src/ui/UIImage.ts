@@ -12,6 +12,7 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { SubRenderElement } from "../RenderPipeline/SubRenderElement";
 import { RendererUpdateFlags } from "../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../clone/CloneManager";
+import { GroupModifyFlags } from "./UIGroup";
 import { UIRenderer } from "./UIRenderer";
 import { UITransform, UITransformModifyFlags } from "./UITransform";
 import { CanvasRenderMode } from "./enums/CanvasRenderMode";
@@ -143,6 +144,16 @@ export class UIImage extends UIRenderer {
     this._onSpriteChange = this._onSpriteChange.bind(this);
   }
 
+  override _onGroupModify(flag: GroupModifyFlags): void {
+    if (flag & GroupModifyFlags.RaycastEnable) {
+      this._runtimeRaycastEnable = this.raycastEnable && this._group._getGlobalRaycastEnable();
+    }
+    if (flag & GroupModifyFlags.Alpha) {
+      this._alpha = this._group._globalAlpha;
+      this._dirtyUpdateFlag |= ImageUpdateFlags.Alpha;
+    }
+  }
+
   protected override _updateLocalBounds(localBounds: BoundingBox): void {
     if (this._sprite) {
       const transform = <UITransform>this._transform;
@@ -176,17 +187,11 @@ export class UIImage extends UIRenderer {
       material = this._engine._uiDefaultMaterial;
     }
 
-    let { _dirtyUpdateFlag: dirtyUpdateFlag } = this;
-
-    const alpha = this._group?._getGlobalAlpha() ?? 1;
-    if (this._alpha !== alpha) {
-      dirtyUpdateFlag |= ImageUpdateFlags.Alpha;
-      this._alpha = alpha;
-    }
-    if (this._color.a * alpha <= 0) {
+    if (this._color.a * this._alpha <= 0) {
       return;
     }
 
+    let { _dirtyUpdateFlag: dirtyUpdateFlag } = this;
     // Update position
     if (dirtyUpdateFlag & ImageUpdateFlags.Position) {
       this._assembler.updatePositions(this, width, height, transform.pivot);
@@ -201,10 +206,10 @@ export class UIImage extends UIRenderer {
 
     // Update color
     if (dirtyUpdateFlag & ImageUpdateFlags.Color) {
-      this._assembler.updateColor(this, alpha);
+      this._assembler.updateColor(this, this._alpha);
       dirtyUpdateFlag &= ~(ImageUpdateFlags.Color & ImageUpdateFlags.Alpha);
     } else if (dirtyUpdateFlag & ImageUpdateFlags.Alpha) {
-      this._assembler.updateAlpha(this, alpha);
+      this._assembler.updateAlpha(this, this._alpha);
       dirtyUpdateFlag &= ~ImageUpdateFlags.Alpha;
     }
 

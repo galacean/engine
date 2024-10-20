@@ -20,14 +20,16 @@ export class UIGroup extends Component {
   @ignoreClone
   _disorderedElements: DisorderedArray<IUIElement> = new DisorderedArray();
 
+  /** @internal */
+  @ignoreClone
+  _globalAlpha = 1;
+  /** @internal */
+  _globalRaycastEnable = true;
+
   @assignmentClone
   private _alpha = 1;
-  @ignoreClone
-  private _globalAlpha = 1;
   @assignmentClone
   private _raycastEnabled = true;
-  @ignoreClone
-  private _globalRaycastEnable = true;
   @assignmentClone
   private _ignoreParentGroup = false;
   @ignoreClone
@@ -45,7 +47,7 @@ export class UIGroup extends Component {
   set ignoreParentGroup(val: boolean) {
     if (this._ignoreParentGroup !== val) {
       this._ignoreParentGroup = val;
-      this._updateGlobalModify(UIGroupModifyFlags.All);
+      this._updateGlobalModify(GroupModifyFlags.All);
     }
   }
 
@@ -56,7 +58,7 @@ export class UIGroup extends Component {
   set raycastEnabled(val: boolean) {
     if (this._raycastEnabled !== val) {
       this._raycastEnabled = val;
-      this._updateGlobalModify(UIGroupModifyFlags.RaycastEnable);
+      this._updateGlobalModify(GroupModifyFlags.RaycastEnable);
     }
   }
 
@@ -68,15 +70,8 @@ export class UIGroup extends Component {
     val = Math.max(0, Math.min(val, 1));
     if (this._alpha !== val) {
       this._alpha = val;
-      this._updateGlobalModify(UIGroupModifyFlags.Alpha);
+      this._updateGlobalModify(GroupModifyFlags.Alpha);
     }
-  }
-
-  /**
-   * @internal
-   */
-  _getGlobalAlpha(): number {
-    return this._globalAlpha;
   }
 
   /**
@@ -89,31 +84,41 @@ export class UIGroup extends Component {
   /**
    * @internal
    */
-  _updateGlobalModify(flags: UIGroupModifyFlags): void {
-    let passDownFlags = UIGroupModifyFlags.None;
+  _updateGlobalModify(flags: GroupModifyFlags): void {
+    let passDownFlags = GroupModifyFlags.None;
     const parentGroup = this._parentGroup;
-    if (flags & UIGroupModifyFlags.Alpha) {
-      const alpha = this._alpha * (!this._ignoreParentGroup && parentGroup ? parentGroup._getGlobalAlpha() : 1);
+    if (flags & GroupModifyFlags.Alpha) {
+      const alpha = this._alpha * (!this._ignoreParentGroup && parentGroup ? parentGroup._globalAlpha : 1);
       if (this._globalAlpha !== alpha) {
         this._globalAlpha = alpha;
-        passDownFlags |= UIGroupModifyFlags.Alpha;
+        passDownFlags |= GroupModifyFlags.Alpha;
       }
     }
-    if (flags & UIGroupModifyFlags.RaycastEnable) {
+    if (flags & GroupModifyFlags.RaycastEnable) {
       const raycastEnable =
         this._raycastEnabled &&
         (!this._ignoreParentGroup && parentGroup ? parentGroup?._getGlobalRaycastEnable() : true);
       if (this._globalRaycastEnable !== raycastEnable) {
         this._globalRaycastEnable = raycastEnable;
-        passDownFlags |= UIGroupModifyFlags.RaycastEnable;
+        passDownFlags |= GroupModifyFlags.RaycastEnable;
       }
     }
-    this._disorderedGroups.forEach(
-      (element: UIGroup) => {
-        element._updateGlobalModify(passDownFlags);
-      },
-      () => {}
-    );
+    if (!!flags) {
+      this._disorderedElements.forEach(
+        (element: IUIElement) => {
+          element._onGroupModify(passDownFlags);
+        },
+        () => {}
+      );
+    }
+    if (!!passDownFlags) {
+      this._disorderedGroups.forEach(
+        (element: UIGroup) => {
+          element._updateGlobalModify(passDownFlags);
+        },
+        () => {}
+      );
+    }
   }
 
   override _onEnableInScene(): void {
@@ -165,7 +170,7 @@ export class UIGroup extends Component {
         this._groupIndex = disorderedGroups.length;
         disorderedGroups.add(this);
       }
-      this._updateGlobalModify(UIGroupModifyFlags.All);
+      this._updateGlobalModify(GroupModifyFlags.All);
     }
     let index = 0;
     const parentGroupEntity = parentGroup?.entity;
@@ -195,7 +200,7 @@ export class UIGroup extends Component {
   }
 }
 
-export enum UIGroupModifyFlags {
+export enum GroupModifyFlags {
   None = 0x0,
   Alpha = 0x1,
   RaycastEnable = 0x2,

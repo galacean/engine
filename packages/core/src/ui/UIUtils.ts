@@ -8,7 +8,7 @@ import { VirtualCamera } from "../VirtualCamera";
 import { ComponentType } from "../enums/ComponentType";
 import { RenderQueueType } from "../shader";
 import { UICanvas } from "./UICanvas";
-import { UIGroup } from "./UIGroup";
+import { GroupModifyFlags, UIGroup } from "./UIGroup";
 import { UITransform } from "./UITransform";
 import { IUIElement } from "./interface/IUIElement";
 
@@ -77,6 +77,7 @@ export class UIUtils {
         element._indexInGroup = disorderedElements.length;
         disorderedElements.add(element);
       }
+      element._onGroupModify(GroupModifyFlags.All);
     }
   }
 
