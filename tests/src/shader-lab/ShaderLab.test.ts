@@ -1,17 +1,10 @@
-import {
-  BlendFactor,
-  BlendOperation,
-  CompareFunction,
-  CullMode,
-  RenderQueueType,
-  RenderStateDataKey,
-  StencilOperation
-} from "@galacean/engine-core";
+import { BlendOperation, CompareFunction, CullMode, RenderStateDataKey } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
-import { ShaderLab } from "@galacean/engine-shader-lab";
-import { glslValidate } from "./ShaderValidate";
+import { ShaderLab as ShaderLabVerbose, GSError } from "@galacean/engine-shader-lab/verbose";
+import { ShaderLab as ShaderLabRelease } from "@galacean/engine-shader-lab";
+import { glslValidate, shaderParse } from "./ShaderValidate";
 
-import chai, { expect } from "chai";
+import chai, { expect, assert } from "chai";
 import spies from "chai-spies";
 import fs from "fs";
 import path from "path";
@@ -111,7 +104,8 @@ vec4 linearToGamma(vec4 linearIn){
 #endif
 `;
 
-const shaderLab = new ShaderLab();
+const shaderLabVerbose = new ShaderLabVerbose();
+const shaderLabRelease = new ShaderLabRelease();
 
 describe("ShaderLab", () => {
   let shader: IShaderContent;
@@ -120,7 +114,7 @@ describe("ShaderLab", () => {
   let pass1: IShaderContent["subShaders"][number]["passes"][number];
 
   before(() => {
-    shader = shaderLab._parseShaderContent(demoShader);
+    shader = shaderLabVerbose._parseShaderContent(demoShader);
     subShader = shader.subShaders[0];
     passList = subShader.passes;
     expect(passList[0].isUsePass).to.be.true;
@@ -129,7 +123,7 @@ describe("ShaderLab", () => {
   });
 
   it("create shaderLab", async () => {
-    expect(shaderLab).not.be.null;
+    expect(shaderLabVerbose).not.be.null;
   });
 
   it("shader name", () => {
@@ -188,68 +182,80 @@ describe("ShaderLab", () => {
   });
 
   it("engine shader", async () => {
-    glslValidate(demoShader, shaderLab);
+    glslValidate(demoShader, shaderLabVerbose);
+    glslValidate(demoShader, shaderLabRelease);
   });
 
   it("include", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/unlit.shader")).toString();
-    glslValidate(demoShader, shaderLab, { test_common: commonSource });
+    glslValidate(demoShader, shaderLabVerbose, { test_common: commonSource });
   });
 
   it("planarShadow shader", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/planarShadow.shader")).toString();
-    glslValidate(demoShader, shaderLab);
+    glslValidate(demoShader, shaderLabVerbose);
+    glslValidate(demoShader, shaderLabRelease);
   });
 
   it("Empty macro shader", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/triangle.shader")).toString();
-    glslValidate(demoShader, shaderLab);
+    glslValidate(demoShader, shaderLabVerbose);
+    glslValidate(demoShader, shaderLabRelease);
   });
 
   it("No frag shader args", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/noFragArgs.shader")).toString();
-    glslValidate(demoShader, shaderLab);
+    glslValidate(demoShader, shaderLabVerbose);
+    glslValidate(demoShader, shaderLabRelease);
   });
 
   it("water full shader(complex)", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/waterfull.shader")).toString();
-    glslValidate(demoShader, shaderLab);
+    glslValidate(demoShader, shaderLabVerbose);
+    glslValidate(demoShader, shaderLabRelease);
   });
 
   it("glass shader", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/glass.shader")).toString();
-    glslValidate(demoShader, shaderLab);
+    glslValidate(demoShader, shaderLabVerbose);
+    glslValidate(demoShader, shaderLabRelease);
   });
-
-  // it("shader with duplicate name", () => {
-  //   const demoShader = fs.readFileSync(path.join(__dirname, "shaders/glass.shader")).toString();
-  //   (Shader as any)._shaderLab = shaderLab;
-
-  //   const shaderInstance = Shader.create(demoShader);
-  //   expect(shaderInstance).instanceOf(Shader);
-
-  //   const errorSpy = chai.spy.on(console, "error");
-  //   Shader.create(demoShader);
-  //   expect(errorSpy).to.have.been.called.with('Shader named "Gem" already exists.');
-  //   shaderInstance.destroy();
-  //   chai.spy.restore(console, "error");
-
-  //   const sameNameShader = Shader.create(demoShader);
-  //   expect(sameNameShader).instanceOf(Shader);
-  // });
 
   it("template shader", () => {
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/template.shader")).toString();
-    glslValidate(demoShader, shaderLab);
+    glslValidate(demoShader, shaderLabVerbose);
+    glslValidate(demoShader, shaderLabRelease);
   });
 
   it("multi-pass", () => {
     const shaderSource = fs.readFileSync(path.join(__dirname, "shaders/multi-pass.shader")).toString();
-    glslValidate(shaderSource, shaderLab);
+    glslValidate(shaderSource, shaderLabVerbose);
+    glslValidate(shaderSource, shaderLabRelease);
   });
 
   it("macro-with-preprocessor", () => {
     const shaderSource = fs.readFileSync(path.join(__dirname, "shaders/macro-pre.shader")).toString();
-    glslValidate(shaderSource, shaderLab);
+    glslValidate(shaderSource, shaderLabVerbose);
+    glslValidate(shaderSource, shaderLabRelease);
+  });
+
+  it("compilation-error", () => {
+    const errorShader = fs.readFileSync(path.join(__dirname, "shaders/compilation-error.shader")).toString();
+    shaderParse.bind(shaderLabVerbose)(errorShader);
+    // @ts-ignore
+    expect(shaderLabVerbose.errors.length).to.eq(3);
+    // @ts-ignore
+    assert.instanceOf(shaderLabVerbose.errors[0], GSError);
+    // @ts-ignore
+    assert.instanceOf(shaderLabVerbose.errors[1], GSError);
+    // @ts-ignore
+    assert.instanceOf(shaderLabVerbose.errors[2], GSError);
+
+    // @ts-ignore
+    for (const err of shaderLabVerbose.errors) {
+      console.log(err.toString());
+    }
+
+    expect(shaderParse.bind(shaderLabRelease, errorShader)).to.throw(Error);
   });
 });

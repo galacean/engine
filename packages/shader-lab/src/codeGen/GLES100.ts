@@ -1,4 +1,3 @@
-import { CodeGenVisitor } from "./CodeGenVisitor";
 import { GLESVisitor } from "./GLESVisitor";
 import { VisitorContext } from "./VisitorContext";
 import { ICodeSegment } from "./types";
