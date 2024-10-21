@@ -1,9 +1,8 @@
-import { Ray, Vector2 } from "@galacean/engine-math";
 import { Canvas } from "../../Canvas";
 import { DisorderedArray } from "../../DisorderedArray";
 import { Engine } from "../../Engine";
 import { Scene } from "../../Scene";
-import { ReturnableObjectPool } from "../../utils/ReturnableObjectPool";
+import { ClearableObjectPool } from "../../utils/ClearableObjectPool";
 import { PointerButton, _pointerDec2BinMap } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
 import { IInput } from "../interface/IInput";
@@ -17,8 +16,6 @@ import { PointerUIEventEmitter } from "./emitter/PointerUIEventEmitter";
  * @internal
  */
 export class PointerManager implements IInput {
-  private static _tempRay: Ray = new Ray();
-  private static _tempPoint: Vector2 = new Vector2();
   /** @internal */
   _pointers: Pointer[] = [];
   /** @internal */
@@ -41,6 +38,7 @@ export class PointerManager implements IInput {
   private _nativeEvents: PointerEvent[] = [];
   private _pointerPool: Pointer[];
   private _htmlCanvas: HTMLCanvasElement;
+  private _eventDataPool = new ClearableObjectPool(PointerEventData);
 
   /**
    * @internal
@@ -65,65 +63,66 @@ export class PointerManager implements IInput {
    * @internal
    */
   _update(): void {
-    const { _pointers: pointers, _nativeEvents: nativeEvents, _htmlCanvas: htmlCanvas, _engine: engine } = this;
+    const { _pointers, _nativeEvents, _htmlCanvas, _engine, _eventDataPool: _eventPool } = this;
     const { width, height } = this._canvas;
-    const { clientWidth, clientHeight } = htmlCanvas;
-    const { left, top } = htmlCanvas.getBoundingClientRect();
+    const { clientWidth, clientHeight } = _htmlCanvas;
+    const { left, top } = _htmlCanvas.getBoundingClientRect();
     const widthDPR = width / clientWidth;
     const heightDPR = height / clientHeight;
 
-    const physicsInitialized = engine._physicsInitialized;
+    // Clear the pointer event data pool
+    _eventPool.clear();
 
     // Clean up the pointer released in the previous frame
-    for (let i = pointers.length - 1; i >= 0; i--) {
-      const pointer = pointers[i];
+    for (let i = _pointers.length - 1; i >= 0; i--) {
+      const pointer = _pointers[i];
       if (pointer.phase === PointerPhase.Leave) {
         pointer._dispose();
-        pointers.splice(i, 1);
+        _pointers.splice(i, 1);
       } else {
         pointer._resetOnFrameBegin();
       }
     }
 
     // Generate the pointer received for this frame
-    for (let i = 0, n = nativeEvents.length; i < n; i++) {
-      const evt = nativeEvents[i];
+    for (let i = 0, n = _nativeEvents.length; i < n; i++) {
+      const evt = _nativeEvents[i];
       const { pointerId } = evt;
       let pointer = this._getPointerByID(pointerId);
       if (pointer) {
         pointer._events.push(evt);
       } else {
-        const lastCount = pointers.length;
+        const lastCount = _pointers.length;
         if (lastCount === 0 || this._multiPointerEnabled) {
           const { _pointerPool: pointerPool } = this;
           // Get Pointer smallest index
           let i = 0;
           for (; i < lastCount; i++) {
-            if (pointers[i].id > i) {
+            if (_pointers[i].id > i) {
               break;
             }
           }
           pointer = pointerPool[i];
           if (!pointer) {
             pointer = new Pointer(i);
-            pointer._addEmitters(PointerUIEventEmitter);
-            physicsInitialized && pointer._addEmitters(PointerPhysicsEventEmitter);
+            pointer._addEmitters(PointerUIEventEmitter, _eventPool);
+            _engine._physicsInitialized && pointer._addEmitters(PointerPhysicsEventEmitter, _eventPool);
           }
           pointer._uniqueID = pointerId;
           pointer._events.push(evt);
           pointer.position.set((evt.clientX - left) * widthDPR, (evt.clientY - top) * heightDPR);
-          pointers.splice(i, 0, pointer);
+          _pointers.splice(i, 0, pointer);
         }
       }
     }
-    nativeEvents.length = 0;
+    _nativeEvents.length = 0;
 
     this._upList.length = this._downList.length = 0;
     this._buttons = PointerButton.None;
     // Pointer handles its own events
-    const frameCount = engine.time.frameCount;
-    for (let i = 0, n = pointers.length; i < n; i++) {
-      const pointer = pointers[i];
+    const frameCount = _engine.time.frameCount;
+    for (let i = 0, n = _pointers.length; i < n; i++) {
+      const pointer = _pointers[i];
       this._updatePointerInfo(frameCount, pointer, left, top, widthDPR, heightDPR);
       this._buttons |= pointer.pressedButtons;
     }
@@ -184,9 +183,6 @@ export class PointerManager implements IInput {
   _destroy(): void {
     this._removeEventListener();
     this._pointerPool.length = 0;
-    this._nativeEvents.length = 0;
-    this._downMap.length = 0;
-    this._upMap.length = 0;
   }
 
   private _onPointerEvent(evt: PointerEvent) {
@@ -280,9 +276,12 @@ export class PointerManager implements IInput {
     target.removeEventListener("pointerleave", onPointerEvent);
     target.removeEventListener("pointermove", onPointerEvent);
     target.removeEventListener("pointercancel", onPointerEvent);
+    this._eventDataPool.garbageCollection();
     this._nativeEvents.length = 0;
     this._pointers.length = 0;
     this._downList.length = 0;
+    this._downMap.length = 0;
     this._upList.length = 0;
+    this._upMap.length = 0;
   }
 }

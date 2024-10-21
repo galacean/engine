@@ -7,7 +7,7 @@ import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
-import { Transform, TransformModifyFlags } from "./Transform";
+import { Transform } from "./Transform";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
 import { IComponentCustomClone } from "./clone/ComponentCloner";
 import { ComponentType } from "./enums/ComponentType";
@@ -46,6 +46,9 @@ export class Renderer extends Component implements IComponentCustomClone {
   /** @internal */
   @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
+  /** @internal */
+  @ignoreClone
+  _localBounds: BoundingBox = new BoundingBox();
   /** @internal */
   @ignoreClone
   _bounds: BoundingBox = new BoundingBox();
@@ -140,12 +143,23 @@ export class Renderer extends Component implements IComponentCustomClone {
   }
 
   /**
-   * The bounding volume of the renderer.
+   * The local bounding volume of the renderer.
+   */
+  get localBounds(): BoundingBox {
+    if (this._dirtyUpdateFlag & RendererUpdateFlags.LocalBounds) {
+      this._updateLocalBounds(this._localBounds);
+      this._dirtyUpdateFlag &= ~RendererUpdateFlags.LocalBounds;
+    }
+    return this._localBounds;
+  }
+
+  /**
+   * The world bounding volume of the renderer.
    */
   get bounds(): BoundingBox {
-    if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
+    if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldBounds) {
       this._updateBounds(this._bounds);
-      this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldBounds;
     }
     return this._bounds;
   }
@@ -379,6 +393,7 @@ export class Renderer extends Component implements IComponentCustomClone {
 
     this._entity = null;
     this._globalShaderMacro = null;
+    this._localBounds = null;
     this._bounds = null;
     this._materials = null;
     this._shaderData = null;
@@ -476,13 +491,25 @@ export class Renderer extends Component implements IComponentCustomClone {
   /**
    * @internal
    */
-  protected _updateBounds(worldBounds: BoundingBox): void {}
+  protected _updateLocalBounds(localBounds: BoundingBox): void {}
+
+  /**
+   * @internal
+   */
+  protected _updateBounds(worldBounds: BoundingBox): void {
+    BoundingBox.transform(this.localBounds, this._entity.transform.worldMatrix, worldBounds);
+  }
 
   /**
    * @internal
    */
   protected _render(context: RenderContext): void {
     throw "not implement";
+  }
+
+  @ignoreClone
+  private _onLocalBoundsChanged(): void {
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldBounds;
   }
 
   /**
@@ -519,8 +546,8 @@ export class Renderer extends Component implements IComponentCustomClone {
    * @internal
    */
   @ignoreClone
-  protected _onTransformChanged(type: TransformModifyFlags): void {
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+  protected _onTransformChanged(type: number): void {
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldBounds;
   }
 }
 
@@ -528,6 +555,10 @@ export class Renderer extends Component implements IComponentCustomClone {
  * @internal
  */
 export enum RendererUpdateFlags {
-  /** Include world position and world bounds. */
-  WorldVolume = 0x1
+  None = 0x0,
+  LocalBounds = 0x1,
+  WorldBounds = 0x2,
+
+  /** LocalBounds | WorldBounds */
+  AllBounds = 0x3
 }

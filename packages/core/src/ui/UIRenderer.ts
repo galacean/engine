@@ -4,17 +4,16 @@ import { Entity, EntityModifyFlags } from "../Entity";
 import { PrimitiveChunkManager } from "../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../RenderPipeline/SubPrimitiveChunk";
-import { Renderer } from "../Renderer";
-import { TransformModifyFlags } from "../Transform";
-import { assignmentClone, deepClone, ignoreClone } from "../clone/CloneManager";
+import { Renderer, RendererUpdateFlags } from "../Renderer";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ComponentType } from "../enums/ComponentType";
-import { UIHitResult } from "../input/pointer/emitter/UIHitResult";
+import { HitResult } from "../physics";
 import { ShaderProperty } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { UICanvas } from "./UICanvas";
-import { UIGroup, UIGroupModifyFlags } from "./UIGroup";
-import { UITransform } from "./UITransform";
-import { UIUtil } from "./UIUtil";
+import { GroupModifyFlags, UIGroup } from "./UIGroup";
+import { UITransform, UITransformModifyFlags } from "./UITransform";
+import { UIUtils } from "./UIUtils";
 import { IUIElement } from "./interface/IUIElement";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
@@ -30,12 +29,10 @@ export class UIRenderer extends Renderer implements IUIElement {
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_UITexture");
 
-  @assignmentClone
-  raycastEnable: boolean = true;
-  @deepClone
-  raycastPadding: Vector4 = new Vector4(0, 0, 0, 0);
   @ignoreClone
   depth: number = 0;
+  @deepClone
+  raycastPadding: Vector4 = new Vector4(0, 0, 0, 0);
 
   /** @internal */
   @ignoreClone
@@ -48,15 +45,36 @@ export class UIRenderer extends Renderer implements IUIElement {
   _indexInGroup: number = -1;
   /** @internal */
   @ignoreClone
-  _canvas: UICanvas;
+  _rootCanvas: UICanvas;
   /** @internal */
   @ignoreClone
   _indexInCanvas: number = -1;
   /** @internal */
   @ignoreClone
   _subChunk: SubPrimitiveChunk;
+  /** @internal */
+  @ignoreClone
+  _runtimeRaycastEnable: boolean = true;
 
+  @ignoreClone
+  private _raycastEnable: boolean = true;
+  @ignoreClone
   protected _alpha: number = 1;
+
+  get raycastEnable(): boolean {
+    return this._raycastEnable;
+  }
+
+  set raycastEnable(val: boolean) {
+    if (this._raycastEnable !== val) {
+      this._raycastEnable = val;
+      const runtimeRaycastEnable = val && (!this._group || this._group._getGlobalRaycastEnable());
+      if (this._runtimeRaycastEnable !== runtimeRaycastEnable) {
+        this._runtimeRaycastEnable = runtimeRaycastEnable;
+        this.entity._onUIInteractiveChange(runtimeRaycastEnable);
+      }
+    }
+  }
 
   /**
    * @internal
@@ -65,6 +83,7 @@ export class UIRenderer extends Renderer implements IUIElement {
     super(entity);
     this._componentType = ComponentType.UIRenderer;
     this._onEntityModify = this._onEntityModify.bind(this);
+    this._onGroupModify = this._onGroupModify.bind(this);
   }
 
   /**
@@ -105,9 +124,11 @@ export class UIRenderer extends Renderer implements IUIElement {
    */
   override _onEnableInScene(): void {
     this._overrideUpdate && this.scene._componentsManager.addOnUpdateRenderers(this);
-    UIUtil.registerUIToCanvas(this, UIUtil.getRootCanvasInParent(this));
-    UIUtil.registerEntityListener(this);
-    UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
+    const entity = this._entity;
+    UIUtils.registerUIToCanvas(this, UIUtils.getRootCanvasInParent(entity));
+    UIUtils.registerUIToGroup(this, UIUtils.getGroupInParents(entity));
+    UIUtils.registerEntityListener(this);
+    entity._onUIInteractiveChange(this._runtimeRaycastEnable);
   }
 
   /**
@@ -115,26 +136,28 @@ export class UIRenderer extends Renderer implements IUIElement {
    */
   override _onDisableInScene(): void {
     this._overrideUpdate && this.scene._componentsManager.removeOnUpdateRenderers(this);
-    UIUtil.registerUIToCanvas(this, null);
-    UIUtil.unRegisterEntityListener(this);
-    UIUtil.registerUIToGroup(this, null);
+    UIUtils.registerUIToCanvas(this, null);
+    UIUtils.registerUIToGroup(this, null);
+    UIUtils.unRegisterEntityListener(this);
+    this._entity._onUIInteractiveChange(false);
   }
 
   /**
    * @internal
    */
+  @ignoreClone
   _onEntityModify(flag: EntityModifyFlags): void {
     switch (flag) {
-      case EntityModifyFlags.Parent:
-        UIUtil.registerEntityListener(this);
-        UIUtil.registerUIToCanvas(this, UIUtil.getRootCanvasInParent(this));
-        UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
-        break;
       case EntityModifyFlags.SiblingIndex:
-        this._canvas && (this._canvas._hierarchyDirty = true);
+        this._rootCanvas && (this._rootCanvas._hierarchyDirty = true);
         break;
+      case EntityModifyFlags.Parent:
+        const rootCanvas = UIUtils.getRootCanvasInParent(this._entity);
+        rootCanvas && (rootCanvas._hierarchyDirty = true);
+        UIUtils.registerUIToCanvas(this, rootCanvas);
+        UIUtils.registerEntityListener(this);
       case EntityModifyFlags.UIGroupEnableInScene:
-        UIUtil.registerUIToGroup(this, UIUtil.getGroupInParent(this._entity));
+        UIUtils.registerUIToGroup(this, UIUtils.getGroupInParents(this._entity));
         break;
       default:
         break;
@@ -144,8 +167,14 @@ export class UIRenderer extends Renderer implements IUIElement {
   /**
    * @internal
    */
-  _onGroupModify(flag: UIGroupModifyFlags): void {
-    flag === UIGroupModifyFlags.Alpha && (this._dirtyUpdateFlag |= UIRendererUpdateFlags.Alpha);
+  _onGroupModify(flag: GroupModifyFlags): void {
+    if (flag & GroupModifyFlags.RaycastEnable) {
+      const runtimeRaycastEnable = this.raycastEnable && this._group._getGlobalRaycastEnable();
+      if (this._runtimeRaycastEnable !== runtimeRaycastEnable) {
+        this._runtimeRaycastEnable = runtimeRaycastEnable;
+        this.entity._onUIInteractiveChange(runtimeRaycastEnable);
+      }
+    }
   }
 
   /**
@@ -155,22 +184,23 @@ export class UIRenderer extends Renderer implements IUIElement {
     return this.engine._batcherManager.primitiveChunkManagerUI;
   }
 
-  /** @internal */
-  _raycast(ray: Ray, out: UIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
+  /**
+   * @internal
+   */
+  _raycast(ray: Ray, out: HitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
     const entity = this._entity;
     const plane = UIRenderer._tempPlane;
     const transform = entity.transform;
     const normal = plane.normal.copyFrom(transform.worldForward);
     plane.distance = -Vector3.dot(normal, transform.worldPosition);
-    ray.intersectPlane(plane);
     const curDistance = ray.intersectPlane(plane);
     if (curDistance >= 0 && curDistance < distance) {
       const hitPointWorld = ray.getPoint(curDistance, UIRenderer._tempVec30);
       const worldMatrixInv = UIRenderer._tempMat;
       Matrix.invert(this.entity.transform.worldMatrix, worldMatrixInv);
-      const hitPointLocal = UIRenderer._tempVec31;
-      Vector3.transformCoordinate(hitPointWorld, worldMatrixInv, hitPointLocal);
-      if (this._hitTest(hitPointLocal)) {
+      const localPosition = UIRenderer._tempVec31;
+      Vector3.transformCoordinate(hitPointWorld, worldMatrixInv, localPosition);
+      if (this._hitTest(localPosition)) {
         out.distance = curDistance;
         out.entity = entity;
         out.component = this;
@@ -182,12 +212,18 @@ export class UIRenderer extends Renderer implements IUIElement {
     return false;
   }
 
-  protected _hitTest(hitPoint: Vector3): boolean {
-    const { x, y } = hitPoint;
+  protected _hitTest(localPosition: Vector3): boolean {
+    const { x, y } = localPosition;
     const uiTransform = <UITransform>this._transform;
     const { x: width, y: height } = uiTransform.size;
     const { x: pivotX, y: pivotY } = uiTransform.pivot;
-    return x >= -width * pivotX && x <= width * (1 - pivotX) && y >= -height * pivotY && y <= height * (1 - pivotY);
+    const { x: paddingLeft, y: paddingBottom, z: paddingRight, w: paddingTop } = this.raycastPadding;
+    return (
+      x >= -width * pivotX + paddingLeft &&
+      x <= width * (1 - pivotX) - paddingRight &&
+      y >= -height * pivotY + paddingTop &&
+      y <= height * (1 - pivotY) - paddingBottom
+    );
   }
 
   protected override _onDestroy(): void {
@@ -195,16 +231,18 @@ export class UIRenderer extends Renderer implements IUIElement {
       this._getChunkManager().freeSubChunk(this._subChunk);
       this._subChunk = null;
     }
-
     super._onDestroy();
   }
 
-  protected override _onTransformChanged(flag: TransformModifyFlags): void {}
-}
-
-/**
- * @remarks Extends `RendererUpdateFlag`.
- */
-export enum UIRendererUpdateFlags {
-  Alpha = 0x8
+  protected override _onTransformChanged(flag: UITransformModifyFlags): void {
+    switch (flag) {
+      case UITransformModifyFlags.Size:
+      case UITransformModifyFlags.Pivot:
+        this._dirtyUpdateFlag |= RendererUpdateFlags.AllBounds;
+        break;
+      default:
+        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldBounds;
+        break;
+    }
+  }
 }

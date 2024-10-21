@@ -128,7 +128,8 @@ export class Camera extends Component {
 
   /** @internal */
   @ignoreClone
-  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
+  _updateFlagManager: UpdateFlagManager;
+
   @ignoreClone
   private _frustumChangeFlag: BoolUpdateFlag;
   @ignoreClone
@@ -219,7 +220,7 @@ export class Camera extends Component {
     if (this._fieldOfView !== value) {
       this._fieldOfView = value;
       this._projectionMatrixChange();
-      this._updateFlagManager.dispatch(CameraModifyFlags.FOV);
+      this._dispatchModify(CameraModifyFlags.FieldOfView);
     }
   }
 
@@ -235,6 +236,7 @@ export class Camera extends Component {
   set aspectRatio(value: number) {
     this._customAspectRatio = value;
     this._projectionMatrixChange();
+    this._dispatchModify(CameraModifyFlags.AspectRatio);
   }
 
   /**
@@ -293,7 +295,7 @@ export class Camera extends Component {
       } else {
         this.shaderData.disableMacro("CAMERA_ORTHOGRAPHIC");
       }
-      this._updateFlagManager.dispatch(CameraModifyFlags.Type);
+      this._dispatchModify(CameraModifyFlags.Type);
     }
   }
 
@@ -308,7 +310,7 @@ export class Camera extends Component {
     if (this._orthographicSize !== value) {
       this._orthographicSize = value;
       this._projectionMatrixChange();
-      this._updateFlagManager.dispatch(CameraModifyFlags.OrthographicSize);
+      this._dispatchModify(CameraModifyFlags.OrthographicSize);
     }
   }
 
@@ -424,7 +426,6 @@ export class Camera extends Component {
       this._renderTarget = value;
       this._onPixelViewportChanged();
       this._checkMainCanvasAntialiasWaste();
-      this._updateFlagManager.dispatch(CameraModifyFlags.RenderTarget);
     }
   }
 
@@ -471,6 +472,7 @@ export class Camera extends Component {
   resetAspectRatio(): void {
     this._customAspectRatio = undefined;
     this._projectionMatrixChange();
+    this._dispatchModify(CameraModifyFlags.AspectRatio);
   }
 
   /**
@@ -707,6 +709,7 @@ export class Camera extends Component {
    */
   override _onEnableInScene(): void {
     this.scene._componentsManager.addCamera(this);
+    this._dispatchModify(CameraModifyFlags.EnableInScene);
   }
 
   /**
@@ -714,6 +717,7 @@ export class Camera extends Component {
    */
   override _onDisableInScene(): void {
     this.scene._componentsManager.removeCamera(this);
+    this._dispatchModify(CameraModifyFlags.DisableInScene);
   }
 
   /**
@@ -725,6 +729,20 @@ export class Camera extends Component {
         ? TextureFormat.R11G11B10_UFloat
         : TextureFormat.R16G16B16A16
       : TextureFormat.R8G8B8A8;
+  }
+
+  /**
+   * @internal
+   */
+  _registerModifyListener(onChange: (flag: CameraModifyFlags) => void): void {
+    (this._updateFlagManager ||= new UpdateFlagManager()).addListener(onChange);
+  }
+
+  /**
+   * @internal
+   */
+  _unRegisterModifyListener(onChange: (flag: CameraModifyFlags) => void): void {
+    this._updateFlagManager?.removeListener(onChange);
   }
 
   /**
@@ -741,6 +759,10 @@ export class Camera extends Component {
     //@ts-ignore
     this._viewport._onValueChanged = null;
     this.engine.canvas._sizeUpdateFlagManager.removeListener(this._onPixelViewportChanged);
+    if (this._updateFlagManager) {
+      this._updateFlagManager.removeAllListeners();
+      this._updateFlagManager = null;
+    }
 
     this._entity = null;
     this._globalShaderMacro = null;
@@ -772,6 +794,7 @@ export class Camera extends Component {
 
     const viewport = this._viewport;
     this._pixelViewport.set(viewport.x * width, viewport.y * height, viewport.z * width, viewport.w * height);
+    !this._customAspectRatio && this._dispatchModify(CameraModifyFlags.AspectRatio);
   }
 
   private _viewMatrixChange(): void {
@@ -838,7 +861,6 @@ export class Camera extends Component {
     this._updatePixelViewport();
     this._customAspectRatio ?? this._projectionMatrixChange();
     this._checkMainCanvasAntialiasWaste();
-    this._updateFlagManager.dispatch(CameraModifyFlags.ViewPort);
   }
 
   private _checkMainCanvasAntialiasWaste(): void {
@@ -852,6 +874,10 @@ export class Camera extends Component {
       );
     }
   }
+
+  private _dispatchModify(flag: CameraModifyFlags): void {
+    this._updateFlagManager?.dispatch(flag);
+  }
 }
 
 /**
@@ -859,10 +885,9 @@ export class Camera extends Component {
  */
 export enum CameraModifyFlags {
   Type = 0x1,
-  NearPlane = 0x2,
-  FarPlane = 0x4,
-  FOV = 0x8,
-  ViewPort = 0x10,
-  OrthographicSize = 0x20,
-  RenderTarget = 0x40
+  AspectRatio = 0x2,
+  FieldOfView = 0x4,
+  OrthographicSize = 0x8,
+  EnableInScene = 0x10,
+  DisableInScene = 0x20
 }

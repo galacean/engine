@@ -1,13 +1,24 @@
+import { Matrix, Vector4 } from "@galacean/engine-math";
+import { DisorderedArray } from "../DisorderedArray";
+import { Engine } from "../Engine";
 import { Entity } from "../Entity";
+import { RenderQueue } from "../RenderPipeline";
+import { ContextRendererUpdateFlag } from "../RenderPipeline/RenderContext";
+import { VirtualCamera } from "../VirtualCamera";
 import { ComponentType } from "../enums/ComponentType";
+import { RenderQueueType } from "../shader";
 import { UICanvas } from "./UICanvas";
-import { UIGroup } from "./UIGroup";
+import { GroupModifyFlags, UIGroup } from "./UIGroup";
+import { UITransform } from "./UITransform";
 import { IUIElement } from "./interface/IUIElement";
 
-export class UIUtil {
+export class UIUtils {
+  private static _renderQueue: RenderQueue;
+  private static _virtualCamera: VirtualCamera;
+
   static registerEntityListener(element: IUIElement): void {
     const parents = element._parents;
-    const root = element._canvas?.entity;
+    const root = element._rootCanvas?.entity;
     let entity = element._entity;
     let index = 0;
     while (entity && entity !== root) {
@@ -32,9 +43,9 @@ export class UIUtil {
   }
 
   static registerUIToCanvas(element: IUIElement, canvas: UICanvas): void {
-    const preCanvas = element._canvas;
+    const preCanvas = element._rootCanvas;
     if (preCanvas !== canvas) {
-      element._canvas = canvas;
+      element._rootCanvas = canvas;
       if (preCanvas) {
         const replaced = preCanvas._disorderedElements.deleteByIndex(element._indexInCanvas);
         replaced && (replaced._indexInCanvas = element._indexInCanvas);
@@ -46,6 +57,8 @@ export class UIUtil {
         element._indexInCanvas = disorderedElements.length;
         disorderedElements.add(element);
         canvas._hierarchyDirty = true;
+      } else {
+        element.depth = -1;
       }
     }
   }
@@ -64,11 +77,11 @@ export class UIUtil {
         element._indexInGroup = disorderedElements.length;
         disorderedElements.add(element);
       }
+      element._onGroupModify(GroupModifyFlags.All);
     }
   }
 
-  static getRootCanvasInParent(element: IUIElement): UICanvas {
-    let entity = element._entity;
+  static getRootCanvasInParent(entity: Entity): UICanvas {
     while (entity) {
       const components = entity._components;
       for (let i = 0, n = components.length; i < n; i++) {
@@ -86,8 +99,8 @@ export class UIUtil {
     return null;
   }
 
-  static getGroupInParent(entity: Entity): UIGroup {
-    let _meetRootCanvas = false;
+  static getGroupInParents(entity: Entity): UIGroup {
+    let meetRootCanvas = false;
     while (entity) {
       const components = entity._components;
       for (let i = 0, n = components.length; i < n; i++) {
@@ -95,7 +108,7 @@ export class UIUtil {
         if (component.enabled) {
           switch (component._componentType) {
             case ComponentType.UIRenderer:
-              _meetRootCanvas = (<UICanvas>component)._isRootCanvas;
+              meetRootCanvas = (<UICanvas>component)._isRootCanvas;
               break;
             case ComponentType.UIGroup:
               return <UIGroup>component;
@@ -104,11 +117,36 @@ export class UIUtil {
           }
         }
       }
-      if (_meetRootCanvas) {
+      if (meetRootCanvas) {
         return null;
       }
       entity = entity.parent;
     }
     return null;
+  }
+
+  static render(engine: Engine, uiCanvases: DisorderedArray<UICanvas>): void {
+    if (uiCanvases.length <= 0) return;
+    const uiRenderQueue = (this._renderQueue ||= new RenderQueue(RenderQueueType.Transparent));
+    const virtualCamera = (this._virtualCamera ||= new VirtualCamera());
+    const { canvas, _hardwareRenderer: rhi, _renderContext: renderContext, _batcherManager: batcherManager } = engine;
+    const { elements: projectE } = virtualCamera.projectionMatrix;
+    const { elements: viewE } = virtualCamera.viewMatrix;
+    (projectE[0] = 2 / canvas.width), (projectE[5] = 2 / canvas.height), (projectE[10] = 0);
+    rhi.activeRenderTarget(null, new Vector4(0, 0, 1, 1), renderContext.flipProjection, 0);
+    for (let i = 0, n = uiCanvases.length; i < n; i++) {
+      const uiCanvas = uiCanvases.get(i);
+      if (!uiCanvas) continue;
+      const transform = <UITransform>uiCanvas.entity.transform;
+      (viewE[12] = -transform.position.x), (viewE[13] = -transform.position.y);
+      Matrix.multiply(virtualCamera.projectionMatrix, virtualCamera.viewMatrix, virtualCamera.viewProjectionMatrix);
+      renderContext.applyVirtualCamera(virtualCamera, false);
+      renderContext.rendererUpdateFlag |= ContextRendererUpdateFlag.ProjectionMatrix;
+      uiRenderQueue.clear();
+      uiCanvas._prepareRender(renderContext);
+      uiRenderQueue.pushRenderElement(uiCanvas._renderElement);
+      batcherManager.batch(uiRenderQueue);
+      uiRenderQueue.render(renderContext, "Forward");
+    }
   }
 }

@@ -1,7 +1,6 @@
 import { Camera } from "./Camera";
 import { Component } from "./Component";
 import { ignoreClone } from "./clone/CloneManager";
-import { PointerCallbackType } from "./input/pointer/PointerCallbackType";
 import { PointerEventData } from "./input/pointer/PointerEventData";
 import { ColliderShape } from "./physics";
 import { Collision } from "./physics/Collision";
@@ -34,9 +33,6 @@ export class Script extends Component {
   /** @internal */
   @ignoreClone
   _entityScriptsIndex: number = -1;
-  /** @internal */
-  @ignoreClone
-  _pointerOverrideFlag: PointerCallbackType;
 
   /**
    * Called when be enabled first time, only once.
@@ -124,59 +120,57 @@ export class Script extends Component {
 
   /**
    * Called when the pointer is down while over the ColliderShape.
-   * @param pointer - The pointer that triggered
+   * @param event - Information carried by the event
    */
   onPointerDown(event: PointerEventData): void {}
 
   /**
    * Called when the pointer is up while over the ColliderShape.
-   * @param pointer - The pointer that triggered
+   * @param event - Information carried by the event
    */
   onPointerUp(event: PointerEventData): void {}
 
   /**
-   * Called when the pointer is down and up with the same collider.
-   * @param pointer - The pointer that triggered
+   *  Called when the pointer is down and up with the same collider.
+   * @param event - Information carried by the event
    */
   onPointerClick(event: PointerEventData): void {}
 
   /**
-   * Called when the pointer is enters the ColliderShape.
-   * @param pointer - The pointer that triggered
+   *  Called when the pointer is enters the ColliderShape.
+   * @param event - Information carried by the event
    */
   onPointerEnter(event: PointerEventData): void {}
 
   /**
-   * Called when the pointer is no longer over the ColliderShape.
-   * @param pointer - The pointer that triggered
+   * Called when the pointer is exits the ColliderShape.
+   * @param event - Information carried by the event
    */
   onPointerExit(event: PointerEventData): void {}
 
   /**
    * This function will be called when the pointer is pressed on the collider.
-   * @param pointer
+   * @param event - Information carried by the event
    */
-  onPointerBeginDrag(pointer: PointerEventData): void {}
+  onPointerBeginDrag(event: PointerEventData): void {}
 
   /**
-   * When a drag collision occurs on the pointer, this function will be called every time it moves.
-   * @param pointer - The pointer that triggered
+   *  When a drag collision occurs on the pointer, this function will be called every time it moves.
+   * @param event - Information carried by the event
    */
-  onPointerDrag(pointer: PointerEventData): void {}
+  onPointerDrag(event: PointerEventData): void {}
 
   /**
-   * When dragging ends, this function will be called(Dragged object).
-   * @param pointer - The pointer that triggered
-   * @remarks Dragged object: The object being dragged.
+   *  When dragging ends, this function will be called(Dragged object).
+   * @param event - Information carried by the event
    */
-  onPointerEndDrag(pointer: PointerEventData): void {}
+  onPointerEndDrag(event: PointerEventData): void {}
 
   /**
-   * When dragging ends, this function will be called(Receiving object).
-   * @param pointer - The pointer that triggered
-   * @remarks Receiving object: The collider hit when ending the drag.
+   *  When dragging ends, this function will be called(Receiving object).
+   * @param event - Information carried by the event
    */
-  onPointerDrop(pointer: PointerEventData): void {}
+  onPointerDrop(event: PointerEventData): void {}
 
   /**
    * Called when be disabled.
@@ -227,35 +221,36 @@ export class Script extends Component {
     if (this.onPhysicsUpdate !== prototype.onPhysicsUpdate) {
       componentsManager.addOnPhysicsUpdateScript(this);
     }
-    const { _entity: entity } = this;
-    if (this.onPointerDown !== prototype.onPointerDown) {
-      this._pointerOverrideFlag |= PointerCallbackType.onPointerDown;
+
+    if (this.onPointerDown === prototype.onPointerDown) {
+      this.onPointerDown = null;
     }
-    if (this.onPointerUp !== prototype.onPointerUp) {
-      this._pointerOverrideFlag |= PointerCallbackType.onPointerUp;
+    if (this.onPointerUp === prototype.onPointerUp) {
+      this.onPointerUp = null;
     }
-    if (this.onPointerClick !== prototype.onPointerClick) {
-      this._pointerOverrideFlag |= PointerCallbackType.onPointerClick;
+    if (this.onPointerClick === prototype.onPointerClick) {
+      this.onPointerClick = null;
     }
-    if (this.onPointerEnter !== prototype.onPointerEnter) {
-      this._pointerOverrideFlag |= PointerCallbackType.onPointerEnter;
+    if (this.onPointerEnter === prototype.onPointerEnter) {
+      this.onPointerEnter = null;
     }
-    if (this.onPointerExit !== prototype.onPointerExit) {
-      this._pointerOverrideFlag |= PointerCallbackType.onPointerExit;
+    if (this.onPointerExit === prototype.onPointerExit) {
+      this.onPointerExit = null;
     }
-    if (this.onPointerBeginDrag !== prototype.onPointerBeginDrag) {
-      this._pointerOverrideFlag |= PointerCallbackType.onPointerBeginDrag;
+    if (this.onPointerBeginDrag === prototype.onPointerBeginDrag) {
+      this.onPointerBeginDrag = null;
     }
-    if (this.onPointerDrag !== prototype.onPointerDrag) {
-      this._pointerOverrideFlag |= PointerCallbackType.onPointerDrag;
+    if (this.onPointerDrag === prototype.onPointerDrag) {
+      this.onPointerDrag = null;
     }
-    if (this.onPointerEndDrag !== prototype.onPointerEndDrag) {
-      this._pointerOverrideFlag |= PointerCallbackType.onPointerEndDrag;
+    if (this.onPointerEndDrag === prototype.onPointerEndDrag) {
+      this.onPointerEndDrag = null;
     }
-    if (this.onPointerDrop !== prototype.onPointerDrop) {
-      this._pointerOverrideFlag |= PointerCallbackType.onPointerDrop;
+    if (this.onPointerDrop === prototype.onPointerDrop) {
+      this.onPointerDrop = null;
     }
-    entity._addScript(this);
+
+    this._entity._addScript(this);
   }
 
   /**

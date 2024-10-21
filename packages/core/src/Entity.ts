@@ -13,7 +13,9 @@ import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
+import { ComponentType } from "./enums/ComponentType";
 import { UITransform } from "./ui";
+import { IUIElement } from "./ui/interface/IUIElement";
 
 /**
  * Entity, be used as components container.
@@ -80,6 +82,8 @@ export class Entity extends EngineObject {
   _isActiveInHierarchy: boolean = false;
   /** @internal */
   _isActiveInScene: boolean = false;
+  /** @internal */
+  _interactive: boolean = false;
   /** @internal */
   _components: Component[] = [];
   /** @internal */
@@ -266,18 +270,6 @@ export class Entity extends EngineObject {
   getComponentsIncludeChildren<T extends Component>(type: new (entity: Entity) => T, results: T[]): T[] {
     results.length = 0;
     this._getComponentsInChildren<T>(type, results);
-    return results;
-  }
-
-  /**
-   * Get the components which match the type of the entity and it's parent.
-   * @param type - The component type
-   * @param results - The components collection
-   * @returns	The components collection which match the type
-   */
-  getComponentsInParent<T extends Component>(type: new (entity: Entity) => T, results: T[]): T[] {
-    results.length = 0;
-    this.parent?._getComponentsInParent<T>(type, results);
     return results;
   }
 
@@ -536,7 +528,10 @@ export class Entity extends EngineObject {
     }
 
     this.isActive = false;
-    this._updateFlagManager = null;
+    if (this._updateFlagManager) {
+      this._updateFlagManager.removeAllListeners();
+      this._updateFlagManager = null;
+    }
   }
 
   /**
@@ -625,7 +620,7 @@ export class Entity extends EngineObject {
    * @internal
    */
   _unRegisterModifyListener(onChange: (flag: EntityModifyFlags) => void): void {
-    (this._updateFlagManager ||= new UpdateFlagManager()).removeListener(onChange);
+    this._updateFlagManager?.removeListener(onChange);
   }
 
   /**
@@ -633,6 +628,29 @@ export class Entity extends EngineObject {
    */
   _dispatchModify(flag: EntityModifyFlags): void {
     this._updateFlagManager?.dispatch(flag);
+  }
+
+  /**
+   * @internal
+   */
+  _onUIInteractiveChange(val: boolean): void {
+    if (val) {
+      this._interactive = true;
+    } else {
+      const components = this._components;
+      for (let i = 0, n = components.length; i < n; i++) {
+        const component = components[i];
+        if (
+          component._componentType & ComponentType.UIElement &&
+          component.enabled &&
+          (component as unknown as IUIElement)._runtimeRaycastEnable
+        ) {
+          this._interactive = true;
+          return;
+        }
+      }
+      this._interactive = false;
+    }
   }
 
   private _addToChildrenList(index: number, child: Entity): void {
@@ -703,16 +721,6 @@ export class Entity extends EngineObject {
       }
       this._setParentChange();
     }
-  }
-
-  private _getComponentsInParent<T extends Component>(type: new (entity: Entity) => T, results: T[]): void {
-    for (let i = this._components.length - 1; i >= 0; i--) {
-      const component = this._components[i];
-      if (component instanceof type) {
-        results.push(component);
-      }
-    }
-    this.parent?._getComponentsInParent<T>(type, results);
   }
 
   private _getComponentsInChildren<T extends Component>(type: new (entity: Entity) => T, results: T[]): void {

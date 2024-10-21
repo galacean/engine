@@ -1,4 +1,4 @@
-import { BoundingBox, Matrix, Vector2 } from "@galacean/engine-math";
+import { Matrix, Vector2 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { UIImage } from "../../ui";
 import { SpriteMask } from "../sprite";
@@ -61,8 +61,6 @@ export class SimpleSpriteAssembler {
       vertices[o + 1] = wE[1] * x + wE[5] * y + wE[13];
       vertices[o + 2] = wE[2] * x + wE[6] * y + wE[14];
     }
-
-    BoundingBox.transform(sprite._getBounds(), worldMatrix, renderer._bounds);
   }
 
   static updateUVs(renderer: SpriteRenderer | SpriteMask): void {

@@ -3,7 +3,6 @@ import { Scene } from "../../../Scene";
 import { Script } from "../../../Script";
 import { CameraClearFlags } from "../../../enums/CameraClearFlags";
 import { Pointer } from "../Pointer";
-import { PointerCallbackType } from "../PointerCallbackType";
 import { PointerEventEmitter } from "./PointerEventEmitter";
 
 export class PointerPhysicsEventEmitter extends PointerEventEmitter {
@@ -12,9 +11,10 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
   protected _draggedEntity: Entity;
 
   override _processRaycast(scenes: readonly Scene[], pointer: Pointer): void {
-    const { _tempRay: ray, _tempHitResult: hitResult } = PointerEventEmitter;
+    const { _tempRay: ray } = PointerEventEmitter;
     const { position } = pointer;
     const { x, y } = position;
+    const hitResult = this._hitResult;
     for (let i = scenes.length - 1; i >= 0; i--) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) {
@@ -56,8 +56,7 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
     if (entity) {
       entity._scripts.forEach(
         (script: Script) => {
-          script._pointerOverrideFlag & PointerCallbackType.onPointerDrag &&
-            script.onPointerDrag(this._createEventData(pointer, entity, entity));
+          script.onPointerDrag?.(this._createEventData(pointer, entity, entity));
         },
         (script: Script, index: number) => {
           script._entityScriptsIndex = index;
@@ -74,11 +73,8 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
     if (entity) {
       entity._scripts.forEach(
         (script: Script) => {
-          const overrideFlag = script._pointerOverrideFlag;
-          overrideFlag & PointerCallbackType.onPointerDown &&
-            script.onPointerDown(this._createEventData(pointer, entity, entity));
-          overrideFlag & PointerCallbackType.onPointerBeginDrag &&
-            script.onPointerBeginDrag(this._createEventData(pointer, entity, entity));
+          script.onPointerDown?.(this._createEventData(pointer, entity, entity));
+          script.onPointerBeginDrag?.(this._createEventData(pointer, entity, entity));
         },
         (script: Script, index: number) => {
           script._entityScriptsIndex = index;
@@ -96,14 +92,9 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
       const sameTarget = this._pressedEntity === enteredEntity;
       enteredEntity._scripts.forEach(
         (script: Script) => {
-          const flag = script._pointerOverrideFlag;
-          flag & PointerCallbackType.onPointerUp &&
-            script.onPointerUp(this._createEventData(pointer, enteredEntity, enteredEntity));
-          flag & PointerCallbackType.onPointerClick &&
-            sameTarget &&
-            script.onPointerClick(this._createEventData(pointer, enteredEntity, enteredEntity));
-          flag & PointerCallbackType.onPointerDrop &&
-            script.onPointerDrop(this._createEventData(pointer, enteredEntity, enteredEntity));
+          script.onPointerUp?.(this._createEventData(pointer, enteredEntity, enteredEntity));
+          sameTarget && script.onPointerClick?.(this._createEventData(pointer, enteredEntity, enteredEntity));
+          script.onPointerDrop?.(this._createEventData(pointer, enteredEntity, enteredEntity));
         },
         (script: Script, index: number) => {
           script._entityScriptsIndex = index;
@@ -114,8 +105,7 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
     if (draggedEntity) {
       draggedEntity._scripts.forEach(
         (script: Script) => {
-          script._pointerOverrideFlag & PointerCallbackType.onPointerEndDrag &&
-            script.onPointerEndDrag(this._createEventData(pointer, draggedEntity, draggedEntity));
+          script.onPointerEndDrag?.(this._createEventData(pointer, draggedEntity, draggedEntity));
         },
         (script: Script, index: number) => {
           script._entityScriptsIndex = index;
@@ -130,8 +120,7 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
     if (enteredEntity) {
       enteredEntity._scripts.forEach(
         (script: Script) => {
-          script._pointerOverrideFlag & PointerCallbackType.onPointerExit &&
-            script.onPointerExit(this._createEventData(pointer, enteredEntity, enteredEntity));
+          script.onPointerExit?.(this._createEventData(pointer, enteredEntity, enteredEntity));
         },
         (script: Script, index: number) => {
           script._entityScriptsIndex = index;
@@ -144,8 +133,7 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
     if (draggedEntity) {
       draggedEntity._scripts.forEach(
         (script: Script) => {
-          script._pointerOverrideFlag & PointerCallbackType.onPointerEndDrag &&
-            script.onPointerEndDrag(this._createEventData(pointer, draggedEntity, draggedEntity));
+          script.onPointerEndDrag?.(this._createEventData(pointer, draggedEntity, draggedEntity));
         },
         (script: Script, index: number) => {
           script._entityScriptsIndex = index;
@@ -166,8 +154,7 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
       if (enteredEntity) {
         enteredEntity._scripts.forEach(
           (script: Script) => {
-            script._pointerOverrideFlag & PointerCallbackType.onPointerExit &&
-              script.onPointerExit(this._createEventData(pointer, enteredEntity, enteredEntity));
+            script.onPointerExit?.(this._createEventData(pointer, enteredEntity, enteredEntity));
           },
           (script: Script, index: number) => {
             script._entityScriptsIndex = index;
@@ -177,8 +164,7 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
       if (entity) {
         entity._scripts.forEach(
           (script: Script) => {
-            script._pointerOverrideFlag & PointerCallbackType.onPointerEnter &&
-              script.onPointerEnter(this._createEventData(pointer, entity, entity));
+            script.onPointerEnter?.(this._createEventData(pointer, entity, entity));
           },
           (script: Script, index: number) => {
             script._entityScriptsIndex = index;

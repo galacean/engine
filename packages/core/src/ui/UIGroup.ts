@@ -3,36 +3,35 @@ import { DisorderedArray } from "../DisorderedArray";
 import { Entity, EntityModifyFlags } from "../Entity";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { ComponentType } from "../enums/ComponentType";
-import { UIUtil } from "./UIUtil";
+import { UIUtils } from "./UIUtils";
 import { IUIElement } from "./interface/IUIElement";
 
 export class UIGroup extends Component {
   /** @internal */
   @ignoreClone
-  _disorderedElements: DisorderedArray<IUIElement> = new DisorderedArray();
-  /** @internal */
-  @ignoreClone
   _parentGroup: UIGroup;
-  /** @internal */
-  @ignoreClone
-  _parentGroupEntity: Entity;
   /** @internal */
   @ignoreClone
   _groupIndex: number = -1;
   /** @internal */
   @ignoreClone
   _disorderedGroups: DisorderedArray<UIGroup> = new DisorderedArray();
+  /** @internal */
+  @ignoreClone
+  _disorderedElements: DisorderedArray<IUIElement> = new DisorderedArray();
+
+  /** @internal */
+  @ignoreClone
+  _globalAlpha = 1;
+  /** @internal */
+  _globalRaycastEnable = true;
 
   @assignmentClone
-  private _ignoreParentGroup = false;
+  private _alpha = 1;
   @assignmentClone
   private _raycastEnabled = true;
   @assignmentClone
-  private _alpha = 1;
-  @ignoreClone
-  private _globalAlpha = 1;
-  @ignoreClone
-  private _globalRaycastEnable = true;
+  private _ignoreParentGroup = false;
   @ignoreClone
   private _entityListeners: Entity[] = [];
 
@@ -48,7 +47,7 @@ export class UIGroup extends Component {
   set ignoreParentGroup(val: boolean) {
     if (this._ignoreParentGroup !== val) {
       this._ignoreParentGroup = val;
-      this._updateGlobalModify(UIGroupModifyFlags.All);
+      this._updateGlobalModify(GroupModifyFlags.All);
     }
   }
 
@@ -59,7 +58,7 @@ export class UIGroup extends Component {
   set raycastEnabled(val: boolean) {
     if (this._raycastEnabled !== val) {
       this._raycastEnabled = val;
-      this._updateGlobalModify(UIGroupModifyFlags.RaycastEnable);
+      this._updateGlobalModify(GroupModifyFlags.RaycastEnable);
     }
   }
 
@@ -71,15 +70,8 @@ export class UIGroup extends Component {
     val = Math.max(0, Math.min(val, 1));
     if (this._alpha !== val) {
       this._alpha = val;
-      this._updateGlobalModify(UIGroupModifyFlags.Alpha);
+      this._updateGlobalModify(GroupModifyFlags.Alpha);
     }
-  }
-
-  /**
-   * @internal
-   */
-  _getGlobalAlpha(): number {
-    return this._globalAlpha;
   }
 
   /**
@@ -92,64 +84,75 @@ export class UIGroup extends Component {
   /**
    * @internal
    */
-  _updateGlobalModify(flags: UIGroupModifyFlags): void {
-    let passDownFlags = UIGroupModifyFlags.None;
+  _updateGlobalModify(flags: GroupModifyFlags): void {
+    let passDownFlags = GroupModifyFlags.None;
     const parentGroup = this._parentGroup;
-    if (flags & UIGroupModifyFlags.Alpha) {
-      const alpha = this._alpha * (!this._ignoreParentGroup && parentGroup ? parentGroup._getGlobalAlpha() : 1);
+    if (flags & GroupModifyFlags.Alpha) {
+      const alpha = this._alpha * (!this._ignoreParentGroup && parentGroup ? parentGroup._globalAlpha : 1);
       if (this._globalAlpha !== alpha) {
         this._globalAlpha = alpha;
-        passDownFlags |= UIGroupModifyFlags.Alpha;
+        passDownFlags |= GroupModifyFlags.Alpha;
       }
     }
-    if (flags & UIGroupModifyFlags.RaycastEnable) {
+    if (flags & GroupModifyFlags.RaycastEnable) {
       const raycastEnable =
         this._raycastEnabled &&
         (!this._ignoreParentGroup && parentGroup ? parentGroup?._getGlobalRaycastEnable() : true);
       if (this._globalRaycastEnable !== raycastEnable) {
         this._globalRaycastEnable = raycastEnable;
-        passDownFlags |= UIGroupModifyFlags.RaycastEnable;
+        passDownFlags |= GroupModifyFlags.RaycastEnable;
       }
     }
-    this._disorderedGroups.forEach(
-      (element: UIGroup) => {
-        element._updateGlobalModify(passDownFlags);
-      },
-      () => {}
-    );
+    if (!!flags) {
+      this._disorderedElements.forEach(
+        (element: IUIElement) => {
+          element._onGroupModify(passDownFlags);
+        },
+        () => {}
+      );
+    }
+    if (!!passDownFlags) {
+      this._disorderedGroups.forEach(
+        (element: UIGroup) => {
+          element._updateGlobalModify(passDownFlags);
+        },
+        () => {}
+      );
+    }
   }
 
   override _onEnableInScene(): void {
     const entity = this._entity;
     entity._dispatchModify(EntityModifyFlags.UIGroupEnableInScene);
-    this._registryToParentGroup(UIUtil.getGroupInParent(entity.parent));
+    this._registryToParentGroup(UIUtils.getGroupInParents(entity.parent));
   }
 
   override _onDisableInScene(): void {
-    const listeners = this._entityListeners;
-    for (let i = 0, n = listeners.length; i < n; i++) {
-      listeners[i]._unRegisterModifyListener(this._onEntityModify);
+    const entityListeners = this._entityListeners;
+    for (let i = 0, n = entityListeners.length; i < n; i++) {
+      entityListeners[i]._unRegisterModifyListener(this._onEntityModify);
     }
-    listeners.length = 0;
-    this._parentGroupEntity?._unRegisterModifyListener(this._onParentEntityModify);
+    entityListeners.length = 0;
     const parentGroup = this._parentGroup;
-    this._disorderedElements.forEach(
+    const disorderedElements = this._disorderedElements;
+    disorderedElements.forEach(
       (element: IUIElement) => {
-        UIUtil.registerUIToGroup(element, parentGroup);
+        UIUtils.registerUIToGroup(element, parentGroup);
       },
       () => {}
     );
-    this._disorderedElements.length = 0;
-    this._disorderedElements.garbageCollection();
-    this._disorderedGroups.forEach(
+    disorderedElements.length = 0;
+    disorderedElements.garbageCollection();
+    const disorderedGroups = this._disorderedGroups;
+    disorderedGroups.forEach(
       (element: UIGroup) => {
         element._registryToParentGroup(parentGroup);
       },
       () => {}
     );
-    this._disorderedGroups.length = 0;
-    this._disorderedGroups.garbageCollection();
-    this._parentGroup = this._parentGroupEntity = null;
+    disorderedGroups.length = 0;
+    disorderedGroups.garbageCollection();
+    this._parentGroup = null;
     this._entity._dispatchModify(EntityModifyFlags.UIGroupDisableInScene);
   }
 
@@ -157,18 +160,6 @@ export class UIGroup extends Component {
     let entity = this._entity;
     const preParentGroup = this._parentGroup;
     if (parentGroup !== preParentGroup) {
-      const parentGroupEntity = parentGroup?.entity;
-      let index = 0;
-      const listeners = this._entityListeners;
-      while (entity && entity !== parentGroupEntity) {
-        const preListener = listeners[index];
-        if (preListener !== entity) {
-          preListener?._unRegisterModifyListener(this._onEntityModify);
-          listeners[index] = entity;
-          entity._registerModifyListener(this._onEntityModify);
-        }
-        entity = entity.parent;
-      }
       if (preParentGroup) {
         const replaced = preParentGroup._disorderedGroups.deleteByIndex(this._groupIndex);
         replaced && (replaced._groupIndex = this._groupIndex);
@@ -179,27 +170,29 @@ export class UIGroup extends Component {
         this._groupIndex = disorderedGroups.length;
         disorderedGroups.add(this);
       }
-      const preParentGroupEntity = this._parentGroupEntity;
-      if (preParentGroupEntity !== parentGroupEntity) {
-        preParentGroupEntity && preParentGroupEntity._unRegisterModifyListener(this._onParentEntityModify);
-        parentGroupEntity && parentGroupEntity._registerModifyListener(this._onParentEntityModify);
+      this._updateGlobalModify(GroupModifyFlags.All);
+    }
+    let index = 0;
+    const parentGroupEntity = parentGroup?.entity;
+    const entityListeners = this._entityListeners;
+    while (entity && entity !== parentGroupEntity) {
+      const preListener = entityListeners[index];
+      if (preListener !== entity) {
+        preListener?._unRegisterModifyListener(this._onEntityModify);
+        entityListeners[index] = entity;
+        entity._registerModifyListener(this._onEntityModify);
       }
+      entity = entity.parent;
+      index++;
     }
-    this._updateGlobalModify(UIGroupModifyFlags.All);
-  }
-
-  private _onParentEntityModify(flags: EntityModifyFlags): void {
-    if (flags & EntityModifyFlags.UIGroupEnableInScene) {
-      this._registryToParentGroup(UIUtil.getGroupInParent(this._entity.parent));
-    }
+    entityListeners.length = index;
   }
 
   private _onEntityModify(flags: EntityModifyFlags): void {
     switch (flags) {
       case EntityModifyFlags.Parent:
       case EntityModifyFlags.UIGroupEnableInScene:
-      case EntityModifyFlags.UIGroupDisableInScene:
-        this._registryToParentGroup(UIUtil.getGroupInParent(this._entity.parent));
+        this._registryToParentGroup(UIUtils.getGroupInParents(this._entity.parent));
         break;
       default:
         break;
@@ -207,7 +200,7 @@ export class UIGroup extends Component {
   }
 }
 
-export enum UIGroupModifyFlags {
+export enum GroupModifyFlags {
   None = 0x0,
   Alpha = 0x1,
   RaycastEnable = 0x2,
