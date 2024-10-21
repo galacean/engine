@@ -58,6 +58,10 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
     throw "Physics-lite don't support putToSleep. Use Physics-PhysX instead!";
   }
 
+  isSleeping(): boolean {
+    throw "Physics-lite don't support isSleeping. Use Physics-PhysX instead!";
+  }
+
   getAngularDamping(): number {
     throw "Physics-lite don't support getAngularDamping. Use Physics-PhysX instead!";
   }
@@ -169,6 +173,10 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
    */
   setSleepThreshold(value: number): void {
     throw "Physics-lite don't support setSleepThreshold. Use Physics-PhysX instead!";
+  }
+
+  getSleepThreshold(): number {
+    throw "Physics-lite don't support getSleepThreshold. Use Physics-PhysX instead!";
   }
 
   /**

@@ -137,6 +137,10 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setSleepThreshold(value);
   }
 
+  getSleepThreshold() {
+    return this._pxActor.getSleepThreshold();
+  }
+
   /**
    * {@inheritDoc IDynamicCollider.setSolverIterations }
    */
@@ -148,18 +152,21 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
    * {@inheritDoc IDynamicCollider.setCollisionDetectionMode }
    */
   setCollisionDetectionMode(value: number): void {
+    const physX = this._physXPhysics._physX;
+
     switch (value) {
       case CollisionDetectionMode.Continuous:
         this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eENABLE_CCD, true);
         break;
       case CollisionDetectionMode.ContinuousDynamic:
+        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, false);
         this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, true);
         break;
       case CollisionDetectionMode.ContinuousSpeculative:
+        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, false);
         this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, true);
         break;
       case CollisionDetectionMode.Discrete:
-        const physX = this._physXPhysics._physX;
         this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, false);
         this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, false);
         this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, false);
@@ -223,6 +230,10 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
    */
   sleep(): void {
     return this._pxActor.putToSleep();
+  }
+
+  isSleeping(): boolean {
+    return this._pxActor.isSleeping();
   }
 
   /**

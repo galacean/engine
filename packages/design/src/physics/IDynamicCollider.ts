@@ -100,6 +100,8 @@ export interface IDynamicCollider extends ICollider {
    */
   setSleepThreshold(value: number): void;
 
+  getSleepThreshold(): number;
+
   /**
    * Sets the solver iteration counts for the body.
    * @param value - Number of position iterations the solver should perform for this body.
@@ -147,6 +149,8 @@ export interface IDynamicCollider extends ICollider {
    * Forces a collider to sleep at least one frame.
    */
   sleep(): void;
+
+  isSleeping(): boolean;
 
   /**
    * Forces a collider to wake up.

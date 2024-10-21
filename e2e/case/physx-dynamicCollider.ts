@@ -71,9 +71,7 @@ function addBox(rootEntity: Entity, cubeSize: number, x: number, y: number, z: n
   const boxCollider = boxEntity.addComponent(DynamicCollider);
 
   boxCollider.addShape(physicsBox);
-  boxCollider.addShape(physicsBox2);
-  boxCollider._setMassAndUpdateInertia();
-  console.log(222, boxCollider.centerOfMass);
+  // boxCollider.addShape(physicsBox2);
 
   // boxCollider.addShape(physicsBox3);
   return boxEntity;
@@ -97,7 +95,7 @@ function addStaticBox(rootEntity: Entity, cubeSize: number, x: number, y: number
   }
 
   const physicsBox = new BoxColliderShape();
-  physicsBox.size = new Vector3(0.5, 0.5, 10);
+  physicsBox.size = new Vector3(cubeSize, cubeSize, cubeSize);
   const boxCollider = boxEntity.addComponent(StaticCollider);
 
   boxCollider.addShape(physicsBox);
@@ -119,14 +117,17 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
 
   // create box test entity
   const boxEntity = addBox(rootEntity, 2, 0, 1.5, 0, 0);
-  const boxEntity2 = addStaticBox(rootEntity, 1, 0, 0, 0, 0);
+  const boxEntity2 = addBox(rootEntity, 2, 0, 1.5, 0, 0);
+  const ground = addPlane(rootEntity, 0, 0, 0);
+  boxEntity2.getComponent(DynamicCollider).maxDepenetrationVelocity = 10;
+  // const boxEntity2 = addStaticBox(rootEntity, 1, 0, 0, 0, 0);
   const collider = boxEntity.getComponent(DynamicCollider);
   // collider.centerOfMass = new Vector3(1, 0, 0);
 
   boxEntity.addComponent(
     class extends Script {
       onUpdate() {
-        // console.log(collider.entity.transform.rotation);
+        // console.log(collider.linearDamping);
       }
     }
   );

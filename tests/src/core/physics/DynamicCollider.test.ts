@@ -11,13 +11,12 @@ import {
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
-import { MathUtil, Quaternion, Vector3 } from "@galacean/engine-math";
+import { Vector3 } from "@galacean/engine-math";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
-describe.only("DynamicCollider", function () {
+describe("DynamicCollider", function () {
   let engine: Engine;
   let rootEntity: Entity;
-  let defaultDynamicCollider: DynamicCollider;
 
   function addPlane(x: number, y: number, z: number) {
     const planeEntity = rootEntity.createChild("PlaneEntity");
@@ -59,7 +58,7 @@ describe.only("DynamicCollider", function () {
     rootEntity.clearChildren();
   });
 
-  it.only("addShape and removeShape", function () {
+  it("addShape and removeShape", function () {
     const collider = rootEntity.createChild("entity").addComponent(DynamicCollider);
     const boxCollider = new BoxColliderShape();
     collider.addShape(new BoxColliderShape());
@@ -89,7 +88,7 @@ describe.only("DynamicCollider", function () {
     expect(collider.shapes.length).to.equal(0);
   });
 
-  it.only("linearDamping", function () {
+  it("linearDamping", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
     const ground = addPlane(0, -1, 0);
     const boxCollider = box.getComponent(DynamicCollider);
@@ -106,7 +105,7 @@ describe.only("DynamicCollider", function () {
     expect(formatValue(boxCollider.linearVelocity.x)).to.equal(0.90476);
   });
 
-  it.only("angularDamping", function () {
+  it("angularDamping", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
     const ground = addPlane(0, -1, 0);
     const boxCollider = box.getComponent(DynamicCollider);
@@ -123,7 +122,7 @@ describe.only("DynamicCollider", function () {
     expect(formatValue(boxCollider.angularVelocity.y)).to.equal(0.90476);
   });
 
-  it.only("linearVelocity", function () {
+  it("linearVelocity", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
     const ground = addPlane(0, -1, 0);
     const boxCollider = box.getComponent(DynamicCollider);
@@ -139,7 +138,7 @@ describe.only("DynamicCollider", function () {
     expect(formatValue(box.transform.position.x)).to.equal(1);
   });
 
-  it.only("angularVelocity", function () {
+  it("angularVelocity", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
     const ground = addPlane(0, -1, 0);
     const boxCollider = box.getComponent(DynamicCollider);
@@ -162,205 +161,221 @@ describe.only("DynamicCollider", function () {
 
     boxCollider.mass = 1;
     expect(boxCollider.mass).to.equal(1);
+    boxCollider.applyForce(new Vector3(1, 0, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(formatValue(boxCollider.linearVelocity.x)).to.equal(0.01667);
+    boxCollider.mass = 0.01;
+    expect(boxCollider.mass).to.equal(0.01);
 
-    boxCollider.mass = 0;
-    expect(boxCollider.mass).to.equal(0);
+    boxCollider.linearVelocity.x = 0;
+    boxCollider.applyForce(new Vector3(1, 0, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(formatValue(boxCollider.linearVelocity.x)).to.equal(1.66667);
   });
 
-  it.only("centerOfMass", function () {
+  it("centerOfMass", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
     const boxCollider = box.getComponent(DynamicCollider);
-    const support = addBox(new Vector3(0.5, 0.5, 2), StaticCollider, new Vector3(0, -1, 0));
+    const support = addBox(new Vector3(1, 1, 2), StaticCollider, new Vector3(0, -1.5, 0));
     boxCollider.centerOfMass = new Vector3(0, 0, 0);
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(Math.abs(box.transform.rotation.z)).to.lessThan(0.1);
 
+    boxCollider.wakeUp();
     boxCollider.centerOfMass = new Vector3(1, 0, 0);
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(Math.abs(box.transform.rotation.z)).to.greaterThan(90);
   });
 
-  it("test inertiaTensor", function () {
-    // Test that set inertiaTensor will change the value of inertiaTensor.
-    defaultDynamicCollider.inertiaTensor = defaultDynamicCollider.inertiaTensor;
-    expect(defaultDynamicCollider.inertiaTensor).to.deep.include({ x: 1, y: 1, z: 1 });
+  it("inertiaTensor", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.inertiaTensor = new Vector3(0, 1, 0);
+    boxCollider.applyTorque(new Vector3(0, 10, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(formatValue(boxCollider.inertiaTensor.y)).to.equal(1);
+    expect(formatValue(boxCollider.angularVelocity.y)).to.equal(0.15853);
 
-    defaultDynamicCollider.inertiaTensor = new Vector3(1, 0, 0);
-    expect(defaultDynamicCollider.inertiaTensor).to.deep.include({ x: 1, y: 0, z: 0 });
+    boxCollider.inertiaTensor = new Vector3(0, 2, 0);
+    boxCollider.angularVelocity.y = 0;
+    boxCollider.applyTorque(new Vector3(0, 10, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(formatValue(boxCollider.inertiaTensor.y)).to.equal(2);
+    expect(formatValue(boxCollider.angularVelocity.y)).to.equal(0.07927);
   });
 
-  it("test maxAngularVelocity", function () {
-    // Test that set maxAngularVelocity will change the value of maxAngularVelocity.
-    defaultDynamicCollider.maxAngularVelocity = 100;
-    expect(defaultDynamicCollider.maxAngularVelocity).to.equal(100);
-
-    defaultDynamicCollider.maxAngularVelocity = 0;
-    expect(defaultDynamicCollider.maxAngularVelocity).to.equal(0);
+  it("maxAngularVelocity", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.maxAngularVelocity = 100;
+    boxCollider.angularDamping = 0;
+    boxCollider.angularVelocity = new Vector3(0, 300, 0);
+    expect(boxCollider.maxAngularVelocity).to.equal(100);
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(formatValue(boxCollider.angularVelocity.y)).to.equal(100);
   });
 
-  it("test maxDepenetrationVelocity", function () {
-    // Test that set maxDepenetrationVelocity will change the value of maxDepenetrationVelocity.
-    defaultDynamicCollider.maxDepenetrationVelocity = 1000;
-    expect(defaultDynamicCollider.maxDepenetrationVelocity).to.equal(1000);
-
-    defaultDynamicCollider.maxDepenetrationVelocity = 0;
-    expect(defaultDynamicCollider.maxDepenetrationVelocity).to.equal(0);
+  it("maxDepenetrationVelocity", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const box2 = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const ground = addPlane(0, -1, 0);
+    const boxCollider = box.getComponent(DynamicCollider);
+    const boxCollider2 = box2.getComponent(DynamicCollider);
+    boxCollider.maxDepenetrationVelocity = boxCollider2.maxDepenetrationVelocity = 0;
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(boxCollider.linearVelocity.x).to.equal(0);
+    boxCollider2.maxDepenetrationVelocity = boxCollider.maxDepenetrationVelocity = 10;
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(Math.abs(boxCollider.linearVelocity.x)).to.gt(1);
   });
 
-  it("test sleepThreshold", function () {
-    // Test that set sleepThreshold will change the value of sleepThreshold.
-    defaultDynamicCollider.sleepThreshold = 5e-3;
-    expect(defaultDynamicCollider.sleepThreshold).to.equal(5e-3);
+  it("sleepThreshold", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const ground = addPlane(0, -1, 0);
+    const boxCollider = box.getComponent(DynamicCollider);
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
 
-    defaultDynamicCollider.sleepThreshold = 10;
-    expect(defaultDynamicCollider.sleepThreshold).to.equal(10);
+    expect(boxCollider.isSleeping()).to.be.true;
+    boxCollider.linearVelocity = new Vector3(1, 0, 0);
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(boxCollider.isSleeping()).to.be.false;
+
+    boxCollider.sleepThreshold = 100;
+    expect(boxCollider.sleepThreshold).to.equal(100);
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(boxCollider.isSleeping()).to.be.true;
   });
 
-  it("test solverIterations", function () {
-    // Test that set solverIterations will change the value of solverIterations.
-    defaultDynamicCollider.solverIterations = 4;
-    expect(defaultDynamicCollider.solverIterations).to.equal(4);
-
-    defaultDynamicCollider.solverIterations = 0;
-    expect(defaultDynamicCollider.solverIterations).to.equal(0);
+  it("solverIterations", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    expect(boxCollider.solverIterations).to.equal(4);
+    boxCollider.solverIterations = 10;
+    expect(boxCollider.solverIterations).to.equal(10);
   });
 
-  it("test isKinematic", function () {
-    // Test that set isKinematic will change the value of isKinematic.
-    defaultDynamicCollider.isKinematic = false;
-    expect(defaultDynamicCollider.isKinematic).to.equal(false);
+  it("isKinematic", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 1, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.isKinematic = true;
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(box.transform.position.y).to.equal(1);
 
-    defaultDynamicCollider.isKinematic = true;
-    expect(defaultDynamicCollider.isKinematic).to.equal(true);
+    boxCollider.isKinematic = false;
+    boxCollider.wakeUp();
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(box.transform.position.y).to.be.below(1);
   });
 
-  it("test constraints", function () {
-    // Test that set constraints will change the value of constraints.
-    defaultDynamicCollider.constraints = DynamicColliderConstraints.None;
-    expect(defaultDynamicCollider.constraints).to.equal(DynamicColliderConstraints.None);
+  it("constraints", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    expect(boxCollider.constraints).to.equal(DynamicColliderConstraints.None);
 
-    defaultDynamicCollider.constraints =
-      DynamicColliderConstraints.FreezePositionX | DynamicColliderConstraints.FreezePositionY;
-    expect(defaultDynamicCollider.constraints).to.equal(
-      DynamicColliderConstraints.FreezePositionX | DynamicColliderConstraints.FreezePositionY
-    );
+    boxCollider.constraints = DynamicColliderConstraints.FreezePositionX;
+    boxCollider.applyForce(new Vector3(10, 0, 10));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(box.transform.position.x).to.equal(0);
+    expect(box.transform.position.z).to.greaterThan(0);
   });
 
-  it("test collisionDetectionMode", function () {
-    // Test that set collisionDetectionMode will change the value of collisionDetectionMode.
-    defaultDynamicCollider.collisionDetectionMode = CollisionDetectionMode.Discrete;
-    expect(defaultDynamicCollider.collisionDetectionMode).to.equal(CollisionDetectionMode.Discrete);
+  it("collisionDetectionMode", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    // @ts-ignore
+    const physX = boxCollider._nativeCollider._physXPhysics._physX;
 
-    defaultDynamicCollider.collisionDetectionMode = CollisionDetectionMode.Continuous;
-    expect(defaultDynamicCollider.collisionDetectionMode).to.equal(CollisionDetectionMode.Continuous);
+    boxCollider.collisionDetectionMode = CollisionDetectionMode.Discrete;
+    // @ts-ignore
+    expect(boxCollider._nativeCollider._pxActor.getRigidBodyFlags(physX.PxRigidBodyFlag.eENABLE_CCD)).toBeFalsy();
 
-    defaultDynamicCollider.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-    expect(defaultDynamicCollider.collisionDetectionMode).to.equal(CollisionDetectionMode.ContinuousDynamic);
+    boxCollider.collisionDetectionMode = CollisionDetectionMode.Continuous;
+    // @ts-ignore
+    expect(boxCollider._nativeCollider._pxActor.getRigidBodyFlags(physX.PxRigidBodyFlag.eENABLE_CCD)).toBeTruthy();
 
-    defaultDynamicCollider.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
-    expect(defaultDynamicCollider.collisionDetectionMode).to.equal(CollisionDetectionMode.ContinuousSpeculative);
+    boxCollider.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+    expect(
+      // @ts-ignore
+      boxCollider._nativeCollider._pxActor.getRigidBodyFlags(physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION)
+    ).toBeTruthy();
+
+    boxCollider.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+    expect(
+      // @ts-ignore
+      boxCollider._nativeCollider._pxActor.getRigidBodyFlags(physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD)
+    ).toBeTruthy();
   });
 
-  it("test sleep", function () {
-    expect(function () {
-      defaultDynamicCollider.sleep();
-    }).not.to.throw();
+  it("sleep", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    expect(boxCollider.isSleeping()).to.be.false;
+    boxCollider.sleep();
+    expect(boxCollider.isSleeping()).to.be.true;
   });
 
-  it("test wakeUp", function () {
-    expect(function () {
-      defaultDynamicCollider.wakeUp();
-    }).not.to.throw();
+  it("wakeUp", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.sleep();
+    expect(boxCollider.isSleeping()).to.be.true;
+    boxCollider.wakeUp();
+    expect(boxCollider.isSleeping()).to.be.false;
   });
 
-  it("test applyForce", function () {
-    const nonKinematicCollider = rootEntity.createChild("nonKinematicCollider").addComponent(DynamicCollider);
-    nonKinematicCollider.entity.transform.setPosition(0, 1, 1.5);
-    nonKinematicCollider.isKinematic = false;
-    nonKinematicCollider.addShape(new BoxColliderShape());
-    nonKinematicCollider.applyForce(new Vector3(10, 0, 10));
+  it("applyForce", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
 
-    const kinematicCollider = rootEntity.createChild("kinematicCollider").addComponent(DynamicCollider);
-    kinematicCollider.entity.transform.setPosition(0, 10, 1.5);
-    kinematicCollider.isKinematic = true;
-    kinematicCollider.addShape(new BoxColliderShape());
-    kinematicCollider.applyForce(new Vector3(0, 0, 10));
-
-    setTimeout(function () {
-      // Test that applyForce works correctly.
-      expect(nonKinematicCollider.entity.transform.position.x).to.be.greaterThan(0);
-      expect(nonKinematicCollider.entity.transform.position.y).to.be.eq(1);
-      expect(nonKinematicCollider.entity.transform.position.z).to.be.greaterThan(1.5);
-
-      // Test that applyForce not effect kinematic collider.
-      expect(kinematicCollider.entity.transform.position.x).to.be.eq(0);
-      expect(kinematicCollider.entity.transform.position.y).to.be.eq(10);
-      expect(kinematicCollider.entity.transform.position.z).to.be.eq(1.5);
-    }, 1000);
+    boxCollider.applyForce(new Vector3(30, 0, 30));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(formatValue(box.transform.position.x)).to.equal(0.5);
+    expect(formatValue(box.transform.position.z)).to.equal(0.5);
   });
 
-  it("test applyTorque", function () {
-    const nonKinematicCollider = rootEntity.createChild("nonKinematicCollider").addComponent(DynamicCollider);
-    nonKinematicCollider.entity.transform.setPosition(0, 20, 1.5);
-    nonKinematicCollider.isKinematic = false;
-    nonKinematicCollider.addShape(new BoxColliderShape());
-    nonKinematicCollider.applyTorque(new Vector3(0, 0, 10));
-    nonKinematicCollider.applyForce(new Vector3(0, 0, 10));
+  it("applyTorque", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
 
-    const kinematicCollider = rootEntity.createChild("kinematicCollider").addComponent(DynamicCollider);
-    kinematicCollider.entity.transform.setPosition(0, 30, 1.5);
-    kinematicCollider.isKinematic = true;
-    kinematicCollider.addShape(new BoxColliderShape());
-    kinematicCollider.applyTorque(new Vector3(0, 0, 10));
-    kinematicCollider.applyForce(new Vector3(0, 0, 10));
-
-    setTimeout(function () {
-      // Test that applyTorque works correctly.
-      expect(nonKinematicCollider.entity.transform.rotation.x).to.be.eq(0);
-      expect(nonKinematicCollider.entity.transform.rotation.y).to.be.eq(0);
-      expect(nonKinematicCollider.entity.transform.rotation.z).to.be.greaterThan(0);
-
-      // Test that applyTorque not effect kinematic collider.
-      expect(kinematicCollider.entity.transform.rotation.x).to.be.eq(0);
-      expect(kinematicCollider.entity.transform.rotation.y).to.be.eq(0);
-      expect(kinematicCollider.entity.transform.rotation.z).to.be.eq(0);
-    }, 1000);
+    boxCollider.applyTorque(new Vector3(0, 10, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(formatValue(box.transform.rotation.y)).to.equal(13.96578);
   });
 
   it("test move", function () {
-    const nonKinematicCollider = rootEntity.createChild("nonKinematicCollider").addComponent(DynamicCollider);
-    nonKinematicCollider.addShape(new BoxColliderShape());
-    nonKinematicCollider.isKinematic = false;
-    nonKinematicCollider.entity.transform.setPosition(1, 5, 0);
-    nonKinematicCollider.move(
-      new Vector3(-1, 5, 1),
-      new Quaternion().rotateAxisAngle(new Vector3(0, 1, 0), MathUtil.degreeToRadian(30))
-    );
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.isKinematic = false;
+    boxCollider.move(new Vector3(1, 0, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(formatValue(box.transform.position.x)).to.equal(0);
 
-    const kinematicCollider = rootEntity.createChild("kinematicCollider").addComponent(DynamicCollider);
-    kinematicCollider.addShape(new BoxColliderShape());
-    kinematicCollider.isKinematic = true;
-    kinematicCollider.entity.transform.setPosition(1, 5, 0);
-    kinematicCollider.move(
-      new Vector3(-1, 5, 1),
-      new Quaternion().rotateAxisAngle(new Vector3(0, 1, 0), MathUtil.degreeToRadian(30))
-    );
-
-    setTimeout(function () {
-      // Test that move position and rotation works correctly.
-      expect(nonKinematicCollider.entity.transform.position).to.deep.include({ x: 1, y: 5, z: 0 });
-      expect(nonKinematicCollider.entity.transform.rotation).to.deep.include({ x: 0, y: 0, z: 0 });
-
-      expect(kinematicCollider.entity.transform.position).to.deep.include({ x: -1, y: 5, z: 1 });
-      expect(kinematicCollider.entity.transform.rotation.x).to.eq(0);
-      expect(kinematicCollider.entity.transform.rotation.y).to.be.closeTo(30, 0.001);
-      expect(kinematicCollider.entity.transform.rotation.z).to.eq(0);
-    }, 1000);
+    boxCollider.isKinematic = true;
+    boxCollider.move(new Vector3(1, 0, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(formatValue(box.transform.position.x)).to.equal(1);
   });
 
-  it("test destroy", function () {
+  it("destroy", function () {
     const entity = rootEntity.createChild("collider");
     const collider = entity.addComponent(DynamicCollider);
     collider.addShape(new BoxColliderShape());
