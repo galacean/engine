@@ -51,9 +51,9 @@ KTX2 的生成可以使用：
 
 - IOS 16 以下系统在通过 worker 加载必要的 KTX2 解析文件时会概率发生无返回的情况，此时可以通过 IOS 不走 worker 绕过去：
 
-```
+```typescript
 // 判断 IOS 系统
 const isIOS = SystemInfo.platform === Platform.IPhone || SystemInfo.platform === Platform.IPad;
 // 将 IOS 环境下的 worker 数量设置为 0
-webGlEngine.create({canvas: "canvas", ktx2Loader: { workerCount: isIOS ? 0 : 4 }});
+webGlEngine.create({ canvas: "canvas", ktx2Loader: { workerCount: isIOS ? 0 : 4 } });
 ```
