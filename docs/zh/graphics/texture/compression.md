@@ -49,7 +49,7 @@ KTX2 的生成可以使用：
 
 - KTX2 转码使用到了 WebAssembly 技术，需要保证使用 Chrome 57+，和 iOS 11.3+（11.0 ~ 11.2.以下的 WebAssembly 存在 [bug](https://bugs.webkit.org/show_bug.cgi?id=181781)）
 
-- IOS 16 以下系统在通过 worker 加载必要的 KTX2 解析文件时会概率发生无返回的情况，此时可以通过 IOS 不走 worker 绕过去：
+- 引擎会默认开启 worker 解析 KTX2 文件，但在 IOS 16 以下系统在通过 worker 加载必要的 KTX2 解析文件时会概率发生无返回的情况，此时可以通过 IOS 不走 worker 绕过去：
 
 ```typescript
 // 判断 IOS 系统
