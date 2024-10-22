@@ -66,7 +66,7 @@ vec3 computeParticlePosition(in vec3 startVelocity, in vec3 lifeVelocity, in flo
 
         #if defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CURVE)
             lifePosition = vec3(
-            evaluateParticleCurveCumulative(renderer_VOLMaxGradientX, normalizedAge)
+            evaluateParticleCurveCumulative(renderer_VOLMaxGradientX, normalizedAge),
             evaluateParticleCurveCumulative(renderer_VOLMaxGradientY, normalizedAge),
             evaluateParticleCurveCumulative(renderer_VOLMaxGradientZ, normalizedAge));
 
