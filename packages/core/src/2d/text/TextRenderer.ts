@@ -10,7 +10,6 @@ import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { TransformModifyFlags } from "../../Transform";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderData, ShaderProperty } from "../../shader";
-import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { ShaderDataGroup } from "../../shader/enums/ShaderDataGroup";
 import { Texture2D } from "../../texture";
 import { FontStyle } from "../enums/FontStyle";
@@ -240,7 +239,9 @@ export class TextRenderer extends Renderer {
   }
 
   set maskInteraction(value: SpriteMaskInteraction) {
-    this._maskInteraction = value;
+    if (this._maskInteraction !== value) {
+      this._maskInteraction = value;
+    }
   }
 
   /**
@@ -269,7 +270,7 @@ export class TextRenderer extends Renderer {
     const { engine } = this;
     this._font = engine._textDefaultFont;
     this._addResourceReferCount(this._font, 1);
-    this.setMaterial(engine._textDefaultMaterial);
+    this.setMaterial(engine._basicResources.textDefaultMaterial);
     //@ts-ignore
     this._color._onValueChanged = this._onColorChanged.bind(this);
   }

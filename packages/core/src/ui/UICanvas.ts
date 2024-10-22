@@ -2,13 +2,13 @@ import { MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engi
 import { Camera, CameraModifyFlags } from "../Camera";
 import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
-import { DisorderedArray } from "../DisorderedArray";
 import { Entity, EntityModifyFlags } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderElement } from "../RenderPipeline/RenderElement";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ComponentType } from "../enums/ComponentType";
 import { HitResult } from "../physics";
+import { DisorderedArray } from "../utils/DisorderedArray";
 import { GroupModifyFlags, UIGroup } from "./UIGroup";
 import { UIRenderer } from "./UIRenderer";
 import { UITransform } from "./UITransform";

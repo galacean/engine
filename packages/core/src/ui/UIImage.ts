@@ -140,7 +140,7 @@ export class UIImage extends UIRenderer {
 
     this.drawMode = SpriteDrawMode.Simple;
     this._dirtyUpdateFlag |= ImageUpdateFlags.Color | RendererUpdateFlags.AllBounds;
-    this.setMaterial(this._engine._uiDefaultMaterial);
+    this.setMaterial(this._engine._basicResources.uiDefaultMaterial);
     this._onSpriteChange = this._onSpriteChange.bind(this);
   }
 
@@ -188,7 +188,7 @@ export class UIImage extends UIRenderer {
     }
     // @todo: This question needs to be raised rather than hidden.
     if (material.destroyed) {
-      material = this._engine._uiDefaultMaterial;
+      material = this._engine._basicResources.uiDefaultMaterial;
     }
 
     if (this._color.a * this._alpha <= 0) {

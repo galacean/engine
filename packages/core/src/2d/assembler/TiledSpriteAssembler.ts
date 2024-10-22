@@ -1,8 +1,8 @@
 import { MathUtil, Matrix, Vector2 } from "@galacean/engine-math";
-import { DisorderedArray } from "../../DisorderedArray";
 import { Logger } from "../../base";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { UIImage } from "../../ui";
+import { DisorderedArray } from "../../utils/DisorderedArray";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";

@@ -1,8 +1,8 @@
 import { Component } from "../Component";
-import { DisorderedArray } from "../DisorderedArray";
 import { Entity, EntityModifyFlags } from "../Entity";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { ComponentType } from "../enums/ComponentType";
+import { DisorderedArray } from "../utils/DisorderedArray";
 import { UIUtils } from "./UIUtils";
 import { IUIElement } from "./interface/IUIElement";
 

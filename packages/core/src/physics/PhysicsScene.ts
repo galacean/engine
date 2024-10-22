@@ -1,10 +1,10 @@
 import { ICharacterController, ICollider, IPhysics, IPhysicsScene } from "@galacean/engine-design";
 import { MathUtil, Ray, Vector3 } from "@galacean/engine-math";
-import { DisorderedArray } from "../DisorderedArray";
 import { Layer } from "../Layer";
 import { Scene } from "../Scene";
 import { Script } from "../Script";
 import { ignoreClone } from "../clone/CloneManager";
+import { DisorderedArray } from "../utils/DisorderedArray";
 import { CharacterController } from "./CharacterController";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";

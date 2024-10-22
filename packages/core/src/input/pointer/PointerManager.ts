@@ -1,8 +1,8 @@
 import { Canvas } from "../../Canvas";
-import { DisorderedArray } from "../../DisorderedArray";
 import { Engine } from "../../Engine";
 import { Scene } from "../../Scene";
 import { ClearableObjectPool } from "../../utils/ClearableObjectPool";
+import { DisorderedArray } from "../../utils/DisorderedArray";
 import { PointerButton, _pointerDec2BinMap } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
 import { IInput } from "../interface/IInput";

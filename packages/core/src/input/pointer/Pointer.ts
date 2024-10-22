@@ -1,6 +1,6 @@
 import { Vector2 } from "@galacean/engine-math";
-import { DisorderedArray } from "../../DisorderedArray";
 import { ClearableObjectPool } from "../../utils/ClearableObjectPool";
+import { DisorderedArray } from "../../utils/DisorderedArray";
 import { PointerButton } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
 import { PointerEventData } from "./PointerEventData";

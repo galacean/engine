@@ -1,8 +1,6 @@
 import {
   Engine,
-  Camera,
   Entity,
-  ControllerNonWalkableMode,
   BoxColliderShape,
   CapsuleColliderShape,
   DynamicCollider,
@@ -12,14 +10,14 @@ import {
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { MathUtil, Quaternion, Vector3 } from "@galacean/engine-math";
-import { expect } from "chai";
+import { describe, beforeAll, expect, it } from "vitest";
 
 describe("DynamicCollider", function () {
   let engine: Engine;
   let rootEntity: Entity;
   let defaultDynamicCollider: DynamicCollider;
 
-  before(async function () {
+  beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
 
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");

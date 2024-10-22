@@ -3,6 +3,8 @@ export { Engine } from "./Engine";
 export { SystemInfo } from "./SystemInfo";
 export { Canvas } from "./Canvas";
 
+export { DisorderedArray } from "./utils/DisorderedArray";
+
 export { Scene } from "./Scene";
 export { SceneManager } from "./SceneManager";
 
@@ -40,6 +42,7 @@ export { MSAASamples } from "./enums/MSAASamples";
 export { ReplacementFailureStrategy } from "./enums/ReplacementFailureStrategy";
 export { Downsampling } from "./enums/Downsampling";
 export { ColorSpace } from "./enums/ColorSpace";
+export { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 export { XRManager } from "./xr/XRManager";
 export * from "./utils/index";
 export * from "./input/index";

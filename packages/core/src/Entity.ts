@@ -2,7 +2,6 @@ import { Matrix } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
 import { ComponentsDependencies } from "./ComponentsDependencies";
-import { DisorderedArray } from "./DisorderedArray";
 import { Engine } from "./Engine";
 import { Layer } from "./Layer";
 import { Scene } from "./Scene";
@@ -16,6 +15,7 @@ import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { ComponentType } from "./enums/ComponentType";
 import { UITransform } from "./ui";
 import { IUIElement } from "./ui/interface/IUIElement";
+import { DisorderedArray } from "./utils/DisorderedArray";
 
 /**
  * Entity, be used as components container.

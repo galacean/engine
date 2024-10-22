@@ -180,7 +180,7 @@ export class ShaderPass extends ShaderPart {
     }
 
     const start = performance.now();
-    const { vertex, fragment } = Shader._shaderLab._parseShaderPass(
+    const shaderProgramSource = Shader._shaderLab._parseShaderPass(
       this._shaderLabSource,
       vertexEntry,
       fragmentEntry,
@@ -191,7 +191,11 @@ export class ShaderPass extends ShaderPart {
     );
     Logger.info(`[ShaderLab compilation] cost time: ${performance.now() - start}ms`);
 
-    return new ShaderProgram(engine, vertex, fragment);
+    if (shaderProgramSource) {
+      return new ShaderProgram(engine, shaderProgramSource.vertex, shaderProgramSource.fragment);
+    } else {
+      return new ShaderProgram(engine, "", "");
+    }
   }
 
   // TODO: remove it after migrate all shader to `ShaderLab`.

@@ -1,7 +1,7 @@
 import { Sprite, SpriteMask, SpriteMaskLayer, Texture2D } from "@galacean/engine-core";
 import { Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
+import { describe, beforeEach, expect, it } from "vitest";
 
 describe("SpriteMask", async () => {
   const canvas = document.createElement("canvas");

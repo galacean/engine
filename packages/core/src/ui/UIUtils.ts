@@ -1,5 +1,4 @@
 import { Matrix, Vector4 } from "@galacean/engine-math";
-import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { RenderQueue } from "../RenderPipeline";
@@ -7,6 +6,7 @@ import { ContextRendererUpdateFlag } from "../RenderPipeline/RenderContext";
 import { VirtualCamera } from "../VirtualCamera";
 import { ComponentType } from "../enums/ComponentType";
 import { RenderQueueType } from "../shader";
+import { DisorderedArray } from "../utils/DisorderedArray";
 import { UICanvas } from "./UICanvas";
 import { GroupModifyFlags, UIGroup } from "./UIGroup";
 import { UITransform } from "./UITransform";
