@@ -347,7 +347,7 @@ export class SpriteRenderer extends Renderer {
 
     // Update position
     if (this._dirtyUpdateFlag & SpriteRendererUpdateFlags.Position) {
-      this._assembler.updatePositions(this, this.width, this.height, sprite.pivot);
+      this._assembler.updatePositions(this, this.width, this.height, sprite.pivot, this._flipX, this._flipY);
       this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.Position;
     }
 
