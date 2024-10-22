@@ -15,7 +15,7 @@ The following is a set of guidelines for contributing to Galacean. Please spend 
 1. Ask a question
 
 
-<br />Before reqorting an issue, please take the following steps:<br />
+<br />Before reporting an issue, please take the following steps:<br />
 
 1. Search the existing issues.
 1. Clearly describe the issue including steps to reproduce when it is a bug.
