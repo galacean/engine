@@ -488,7 +488,7 @@ export class UICanvas extends Component implements IUIElement {
     switch (this._realRenderMode) {
       case CanvasRenderMode.ScreenSpaceCamera:
         switch (flag) {
-          case CameraModifyFlags.Type:
+          case CameraModifyFlags.CameraType:
           case CameraModifyFlags.AspectRatio:
             this._adapterSizeInScreenSpace();
             break;

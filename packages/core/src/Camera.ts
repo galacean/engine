@@ -295,7 +295,7 @@ export class Camera extends Component {
       } else {
         this.shaderData.disableMacro("CAMERA_ORTHOGRAPHIC");
       }
-      this._dispatchModify(CameraModifyFlags.Type);
+      this._dispatchModify(CameraModifyFlags.CameraType);
     }
   }
 
@@ -884,7 +884,7 @@ export class Camera extends Component {
  * @internal
  */
 export enum CameraModifyFlags {
-  Type = 0x1,
+  CameraType = 0x1,
   AspectRatio = 0x2,
   FieldOfView = 0x4,
   OrthographicSize = 0x8,

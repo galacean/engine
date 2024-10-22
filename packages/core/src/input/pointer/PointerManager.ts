@@ -96,22 +96,22 @@ export class PointerManager implements IInput {
         if (lastCount === 0 || this._multiPointerEnabled) {
           const { _pointerPool: pointerPool } = this;
           // Get Pointer smallest index
-          let i = 0;
-          for (; i < lastCount; i++) {
-            if (_pointers[i].id > i) {
+          let j = 0;
+          for (; j < lastCount; j++) {
+            if (_pointers[j].id > j) {
               break;
             }
           }
-          pointer = pointerPool[i];
+          pointer = pointerPool[j];
           if (!pointer) {
-            pointer = new Pointer(i);
+            pointer = new Pointer(j);
             pointer._addEmitters(PointerUIEventEmitter, _eventPool);
             _engine._physicsInitialized && pointer._addEmitters(PointerPhysicsEventEmitter, _eventPool);
           }
           pointer._uniqueID = pointerId;
           pointer._events.push(evt);
           pointer.position.set((evt.clientX - left) * widthDPR, (evt.clientY - top) * heightDPR);
-          _pointers.splice(i, 0, pointer);
+          _pointers.splice(j, 0, pointer);
         }
       }
     }

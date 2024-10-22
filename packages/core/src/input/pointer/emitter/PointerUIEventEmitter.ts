@@ -5,13 +5,15 @@ import { Script } from "../../../Script";
 import { CameraClearFlags } from "../../../enums/CameraClearFlags";
 import { ComponentType } from "../../../enums/ComponentType";
 import { UICanvas, UIRenderer } from "../../../ui";
+import { PointerMethods } from "../../enums/PointerMethods";
 import { Pointer } from "../Pointer";
 import { PointerEventData } from "../PointerEventData";
 import { PointerEventEmitter } from "./PointerEventEmitter";
 
 export class PointerUIEventEmitter extends PointerEventEmitter {
-  protected static _path0: Entity[] = [];
-  protected static _path1: Entity[] = [];
+  private static _MAX_PATH_DEPTH = 2048;
+  private static _path0: Entity[] = [];
+  private static _path1: Entity[] = [];
 
   private _enteredElement: Component;
   private _pressedElement: Component;
@@ -85,7 +87,11 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
 
   override _processDrag(pointer: Pointer): void {
     if (this._pressedElement) {
-      this._bubble(this._composedPath(this._pressedElement, PointerUIEventEmitter._path0), pointer, "onPointerDrag");
+      this._bubble(
+        this._composedPath(this._pressedElement, PointerUIEventEmitter._path0),
+        pointer,
+        PointerMethods.onPointerDrag
+      );
     }
   }
 
@@ -96,8 +102,8 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
     const element = (this._pressedElement = this._draggedElement = this._enteredElement);
     if (element) {
       const path = this._composedPath(element, PointerUIEventEmitter._path0);
-      this._bubble(path, pointer, "onPointerDown");
-      this._bubble(path, pointer, "onPointerBeginDrag");
+      this._bubble(path, pointer, PointerMethods.onPointerDown);
+      this._bubble(path, pointer, PointerMethods.onPointerBeginDrag);
     }
   }
 
@@ -109,7 +115,7 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
     const enteredElement = this._enteredElement;
     if (enteredElement) {
       this._composedPath(enteredElement, liftedPath);
-      this._bubble(liftedPath, pointer, "onPointerUp");
+      this._bubble(liftedPath, pointer, PointerMethods.onPointerUp);
       if (this._pressedElement) {
         const pressedPath = this._composedPath(this._pressedElement, PointerUIEventEmitter._path1);
         const enterLength = liftedPath.length;
@@ -124,30 +130,34 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
         const targetIndex = enterLength - i;
         const event = this._createEventData(pointer, liftedPath[targetIndex]);
         for (let j = targetIndex; j < enterLength; j++) {
-          this._fireEvent(liftedPath[j], event, "onPointerClick");
+          this._fireEvent(liftedPath[j], event, PointerMethods.onPointerClick);
         }
         this._pressedElement = null;
       }
     }
 
     if (this._draggedElement) {
-      this._bubble(this._composedPath(this._draggedElement, PointerUIEventEmitter._path1), pointer, "onPointerEndDrag");
+      this._bubble(
+        this._composedPath(this._draggedElement, PointerUIEventEmitter._path1),
+        pointer,
+        PointerMethods.onPointerEndDrag
+      );
       this._draggedElement = null;
     }
 
     if (enteredElement) {
-      this._bubble(liftedPath, pointer, "onPointerDrop");
+      this._bubble(liftedPath, pointer, PointerMethods.onPointerDrop);
     }
   }
 
   override _processLeave(pointer: Pointer): void {
     const path = PointerUIEventEmitter._path0;
     if (this._enteredElement) {
-      this._bubble(this._composedPath(this._enteredElement, path), pointer, "onPointerExit");
+      this._bubble(this._composedPath(this._enteredElement, path), pointer, PointerMethods.onPointerExit);
       this._enteredElement = null;
     }
     if (this._draggedElement) {
-      this._bubble(this._composedPath(this._draggedElement, path), pointer, "onPointerEndDrag");
+      this._bubble(this._composedPath(this._draggedElement, path), pointer, PointerMethods.onPointerEndDrag);
       this._draggedElement = null;
     }
 
@@ -170,30 +180,30 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
       }
       const event = this._createEventData(pointer);
       for (let j = 0, n = preLength - i; j < n; j++) {
-        this._fireEvent(prePath[j], event, "onPointerExit");
+        this._fireEvent(prePath[j], event, PointerMethods.onPointerExit);
       }
       for (let j = 0, n = curLength - i; j < n; j++) {
-        this._fireEvent(curPath[j], event, "onPointerEnter");
+        this._fireEvent(curPath[j], event, PointerMethods.onPointerEnter);
       }
       this._enteredElement = element;
     }
   }
 
-  private _bubble(path: Entity[], pointer: Pointer, type: PointerCallback): void {
+  private _bubble(path: Entity[], pointer: Pointer, methods: PointerMethods): void {
     const length = path.length;
     if (length <= 0) return;
     const eventData = this._createEventData(pointer, path[0]);
     for (let i = 0; i < length; i++) {
-      this._fireEvent(path[i], eventData, type);
+      this._fireEvent(path[i], eventData, methods);
     }
   }
 
-  private _fireEvent(entity: Entity, eventData: PointerEventData, type: PointerCallback): void {
+  private _fireEvent(entity: Entity, eventData: PointerEventData, methods: PointerMethods): void {
     if (!entity._interactive) return;
     eventData.currentTarget = entity;
     entity._scripts.forEach(
       (script: Script) => {
-        script[type]?.(eventData);
+        script[methods]?.(eventData);
       },
       (script: Script, index: number) => {
         script._entityScriptsIndex = index;
@@ -217,8 +227,7 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
       return path;
     } else {
       const rootEntity = (<UICanvas | UIRenderer>element)._rootCanvas._entity;
-      // Avoid endless loops
-      for (; i < 1024 && !!entity && entity !== rootEntity; i++) {
+      for (; i < PointerUIEventEmitter._MAX_PATH_DEPTH && !!entity && entity !== rootEntity; i++) {
         entity = path[i] = entity.parent;
       }
     }
@@ -226,14 +235,3 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
     return path;
   }
 }
-
-type PointerCallback =
-  | "onPointerDown"
-  | "onPointerUp"
-  | "onPointerClick"
-  | "onPointerEnter"
-  | "onPointerExit"
-  | "onPointerBeginDrag"
-  | "onPointerDrag"
-  | "onPointerEndDrag"
-  | "onPointerDrop";

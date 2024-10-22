@@ -107,7 +107,7 @@ export class UIUtils {
         const component = components[i];
         if (component.enabled) {
           switch (component._componentType) {
-            case ComponentType.UIRenderer:
+            case ComponentType.UICanvas:
               meetRootCanvas = (<UICanvas>component)._isRootCanvas;
               break;
             case ComponentType.UIGroup:

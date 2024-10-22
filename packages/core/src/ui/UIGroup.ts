@@ -97,7 +97,7 @@ export class UIGroup extends Component {
     if (flags & GroupModifyFlags.RaycastEnable) {
       const raycastEnable =
         this._raycastEnabled &&
-        (!this._ignoreParentGroup && parentGroup ? parentGroup?._getGlobalRaycastEnable() : true);
+        (!this._ignoreParentGroup && parentGroup ? parentGroup._getGlobalRaycastEnable() : true);
       if (this._globalRaycastEnable !== raycastEnable) {
         this._globalRaycastEnable = raycastEnable;
         passDownFlags |= GroupModifyFlags.RaycastEnable;
@@ -160,6 +160,7 @@ export class UIGroup extends Component {
     let entity = this._entity;
     const preParentGroup = this._parentGroup;
     if (parentGroup !== preParentGroup) {
+      this._parentGroup = parentGroup;
       if (preParentGroup) {
         const replaced = preParentGroup._disorderedGroups.deleteByIndex(this._groupIndex);
         replaced && (replaced._groupIndex = this._groupIndex);
