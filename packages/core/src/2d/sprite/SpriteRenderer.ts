@@ -142,6 +142,7 @@ export class SpriteRenderer extends Renderer {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, null);
       }
       this._sprite = value;
+      this._calDefaultSize();
     }
   }
 
