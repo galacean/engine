@@ -146,7 +146,11 @@ export class UIImage extends UIRenderer {
 
   override _onGroupModify(flag: GroupModifyFlags): void {
     if (flag & GroupModifyFlags.RaycastEnable) {
-      this._runtimeRaycastEnable = this.raycastEnable && this._group._getGlobalRaycastEnable();
+      const runtimeRaycastEnable = this.raycastEnable && this._group._getGlobalRaycastEnable();
+      if (this._runtimeRaycastEnable !== runtimeRaycastEnable) {
+        this._runtimeRaycastEnable = runtimeRaycastEnable;
+        this.entity._onUIInteractiveChange(runtimeRaycastEnable);
+      }
     }
     if (flag & GroupModifyFlags.Alpha) {
       this._alpha = this._group._globalAlpha;
