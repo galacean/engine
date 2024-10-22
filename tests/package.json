@@ -23,6 +23,8 @@
     "@galacean/engine-physics-lite": "workspace:*",
     "@galacean/engine-shader-lab": "workspace:*",
     "@galacean/engine-physics-physx": "workspace:*"
-    
+  },
+  "devDependencies": {
+    "@vitest/browser": "2.1.3"
   }
 }

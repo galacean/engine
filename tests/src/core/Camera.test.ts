@@ -1,7 +1,7 @@
 import { Camera, CameraClearFlags, Entity, Layer, ReplacementFailureStrategy, Shader } from "@galacean/engine-core";
 import { Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
+import { describe, beforeAll, expect, it } from "vitest";
 
 describe("camera test", function () {
   const canvasDOM = new OffscreenCanvas(256, 256);
@@ -10,8 +10,7 @@ describe("camera test", function () {
   let camera: Camera;
   let identityMatrix: Matrix = new Matrix();
 
-  before(async function () {
-    this.timeout(10000);
+  beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: canvasDOM });
     rootEntity = engine.sceneManager.scenes[0].createRootEntity();
     camera = rootEntity.addComponent(Camera);

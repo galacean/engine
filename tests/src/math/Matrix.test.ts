@@ -1,5 +1,5 @@
 import { Matrix, Vector3, Quaternion } from "@galacean/engine-math";
-import { expect } from "chai";
+import { describe, expect, it } from "vitest";
 
 describe("Matrix test", () => {
   it("static multiply", () => {
@@ -395,9 +395,7 @@ describe("Matrix test", () => {
     // getScaling
     const scale = new Vector3();
     a.getScaling(scale);
-    expect(Vector3.equals(scale, new Vector3(3.7416573867739413, 10.488088481701515, 17.911169699380327))).to.eq(
-      true
-    );
+    expect(Vector3.equals(scale, new Vector3(3.7416573867739413, 10.488088481701515, 17.911169699380327))).to.eq(true);
 
     // getTranslation
     const translation = new Vector3();
@@ -474,9 +472,7 @@ describe("Matrix test", () => {
     const a = new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16);
 
     a.translate(new Vector3(1, 2, 0.5));
-    expect(Matrix.equals(a, new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 28.5, 33.45, 37.8, 42))).to.eq(
-      true
-    );
+    expect(Matrix.equals(a, new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 28.5, 33.45, 37.8, 42))).to.eq(true);
   });
 
   it("transpose", () => {

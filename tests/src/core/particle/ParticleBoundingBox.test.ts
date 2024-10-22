@@ -17,7 +17,7 @@ import {
 import { Color, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { LitePhysics } from "@galacean/engine-physics-lite";
-import { expect } from "chai";
+import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
 const delta = 0.2;
 
@@ -61,7 +61,7 @@ describe("ParticleBoundingBox", function () {
   let particleRenderer: ParticleRenderer;
   let entity: Entity;
 
-  before(async function () {
+  beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new LitePhysics() });
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity("root");
@@ -383,8 +383,6 @@ describe("ParticleBoundingBox", function () {
   });
 
   it("VelocityOverLifetime", function () {
-    this.timeout(10000);
-
     particleRenderer.generator.main.startSpeed.mode = ParticleCurveMode.Constant;
     particleRenderer.generator.main.startSpeed.constant = 0;
 

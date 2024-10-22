@@ -10,7 +10,7 @@ import {
 } from "@galacean/engine-core";
 import { Color, Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
+import { describe, beforeEach, expect, it } from "vitest";
 
 describe("SpriteRenderer", async () => {
   const canvas = document.createElement("canvas");
