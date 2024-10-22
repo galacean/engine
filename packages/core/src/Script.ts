@@ -1,6 +1,7 @@
 import { Camera } from "./Camera";
 import { Component } from "./Component";
 import { ignoreClone } from "./clone/CloneManager";
+import { PointerMethods } from "./input/enums/PointerMethods";
 import { PointerEventData } from "./input/pointer/PointerEventData";
 import { ColliderShape } from "./physics";
 import { Collision } from "./physics/Collision";
@@ -120,55 +121,55 @@ export class Script extends Component {
 
   /**
    * Called when the pointer is down while over the ColliderShape.
-   * @param event - Information carried by the event
+   * @param event - The pointer event data that triggered this callback
    */
   onPointerDown(event: PointerEventData): void {}
 
   /**
    * Called when the pointer is up while over the ColliderShape.
-   * @param event - Information carried by the event
+   * @param event - The pointer event data that triggered this callback
    */
   onPointerUp(event: PointerEventData): void {}
 
   /**
    *  Called when the pointer is down and up with the same collider.
-   * @param event - Information carried by the event
+   * @param event - The pointer event data that triggered this callback
    */
   onPointerClick(event: PointerEventData): void {}
 
   /**
-   *  Called when the pointer is enters the ColliderShape.
-   * @param event - Information carried by the event
+   *  Called when the pointer enters the ColliderShape.
+   * @param event - The pointer event data that triggered this callback
    */
   onPointerEnter(event: PointerEventData): void {}
 
   /**
-   * Called when the pointer is exits the ColliderShape.
-   * @param event - Information carried by the event
+   * Called when the pointer exits the ColliderShape.
+   * @param event - The pointer event data that triggered this callback
    */
   onPointerExit(event: PointerEventData): void {}
 
   /**
    * This function will be called when the pointer is pressed on the collider.
-   * @param event - Information carried by the event
+   * @param event - The pointer event data that triggered this callback
    */
   onPointerBeginDrag(event: PointerEventData): void {}
 
   /**
    *  When a drag collision occurs on the pointer, this function will be called every time it moves.
-   * @param event - Information carried by the event
+   * @param event - The pointer event data that triggered this callback
    */
   onPointerDrag(event: PointerEventData): void {}
 
   /**
-   *  When dragging ends, this function will be called(Dragged object).
-   * @param event - Information carried by the event
+   *  When dragging ends, this function will be called (Dragged object).
+   * @param event - The pointer event data that triggered this callback
    */
   onPointerEndDrag(event: PointerEventData): void {}
 
   /**
-   *  When dragging ends, this function will be called(Receiving object).
-   * @param event - Information carried by the event
+   *  When dragging ends, this function will be called (Receiving object).
+   * @param event - The pointer event data that triggered this callback
    */
   onPointerDrop(event: PointerEventData): void {}
 
@@ -222,32 +223,10 @@ export class Script extends Component {
       componentsManager.addOnPhysicsUpdateScript(this);
     }
 
-    if (this.onPointerDown === prototype.onPointerDown) {
-      this.onPointerDown = null;
-    }
-    if (this.onPointerUp === prototype.onPointerUp) {
-      this.onPointerUp = null;
-    }
-    if (this.onPointerClick === prototype.onPointerClick) {
-      this.onPointerClick = null;
-    }
-    if (this.onPointerEnter === prototype.onPointerEnter) {
-      this.onPointerEnter = null;
-    }
-    if (this.onPointerExit === prototype.onPointerExit) {
-      this.onPointerExit = null;
-    }
-    if (this.onPointerBeginDrag === prototype.onPointerBeginDrag) {
-      this.onPointerBeginDrag = null;
-    }
-    if (this.onPointerDrag === prototype.onPointerDrag) {
-      this.onPointerDrag = null;
-    }
-    if (this.onPointerEndDrag === prototype.onPointerEndDrag) {
-      this.onPointerEndDrag = null;
-    }
-    if (this.onPointerDrop === prototype.onPointerDrop) {
-      this.onPointerDrop = null;
+    for (const pointerMethod of Object.values(PointerMethods)) {
+      if (this[pointerMethod] === prototype[pointerMethod]) {
+        this[pointerMethod] = null;
+      }
     }
 
     this._entity._addScript(this);

@@ -36,16 +36,16 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
         }
         camera.screenPointToRay(pointer.position, ray);
         if (scenePhysics.raycast(ray, camera.farClipPlane, camera.cullingMask, hitResult)) {
-          this._updateRaycast(hitResult.entity);
+          this._updateRaycast(hitResult.entity, pointer);
           return;
         }
         if (camera.clearFlags & CameraClearFlags.Color) {
-          this._updateRaycast(null);
+          this._updateRaycast(null, pointer);
           return;
         }
       }
     }
-    this._updateRaycast(null);
+    this._updateRaycast(null, pointer);
   }
 
   /**
@@ -54,14 +54,9 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
   override _processDrag(pointer: Pointer): void {
     const entity = this._pressedEntity;
     if (entity) {
-      entity._scripts.forEach(
-        (script: Script) => {
-          script.onPointerDrag?.(this._createEventData(pointer, entity, entity));
-        },
-        (script: Script, index: number) => {
-          script._entityScriptsIndex = index;
-        }
-      );
+      this._invokeEntityScripts(entity, (script: Script) => {
+        script.onPointerDrag?.(this._createEventData(pointer, entity, entity));
+      });
     }
   }
 
@@ -71,15 +66,10 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
   override _processDown(pointer: Pointer): void {
     const entity = (this._pressedEntity = this._draggedEntity = this._enteredEntity);
     if (entity) {
-      entity._scripts.forEach(
-        (script: Script) => {
-          script.onPointerDown?.(this._createEventData(pointer, entity, entity));
-          script.onPointerBeginDrag?.(this._createEventData(pointer, entity, entity));
-        },
-        (script: Script, index: number) => {
-          script._entityScriptsIndex = index;
-        }
-      );
+      this._invokeEntityScripts(entity, (script: Script) => {
+        script.onPointerDown?.(this._createEventData(pointer, entity, entity));
+        script.onPointerBeginDrag?.(this._createEventData(pointer, entity, entity));
+      });
     }
   }
 
@@ -90,27 +80,17 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
     const { _enteredEntity: enteredEntity, _draggedEntity: draggedEntity } = this;
     if (enteredEntity) {
       const sameTarget = this._pressedEntity === enteredEntity;
-      enteredEntity._scripts.forEach(
-        (script: Script) => {
-          script.onPointerUp?.(this._createEventData(pointer, enteredEntity, enteredEntity));
-          sameTarget && script.onPointerClick?.(this._createEventData(pointer, enteredEntity, enteredEntity));
-          script.onPointerDrop?.(this._createEventData(pointer, enteredEntity, enteredEntity));
-        },
-        (script: Script, index: number) => {
-          script._entityScriptsIndex = index;
-        }
-      );
+      this._invokeEntityScripts(enteredEntity, (script: Script) => {
+        script.onPointerUp?.(this._createEventData(pointer, enteredEntity, enteredEntity));
+        sameTarget && script.onPointerClick?.(this._createEventData(pointer, enteredEntity, enteredEntity));
+        script.onPointerDrop?.(this._createEventData(pointer, enteredEntity, enteredEntity));
+      });
     }
     this._pressedEntity = null;
     if (draggedEntity) {
-      draggedEntity._scripts.forEach(
-        (script: Script) => {
-          script.onPointerEndDrag?.(this._createEventData(pointer, draggedEntity, draggedEntity));
-        },
-        (script: Script, index: number) => {
-          script._entityScriptsIndex = index;
-        }
-      );
+      this._invokeEntityScripts(draggedEntity, (script: Script) => {
+        script.onPointerEndDrag?.(this._createEventData(pointer, draggedEntity, draggedEntity));
+      });
       this._draggedEntity = null;
     }
   }
@@ -118,60 +98,46 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
   override _processLeave(pointer: Pointer): void {
     const enteredEntity = this._enteredEntity;
     if (enteredEntity) {
-      enteredEntity._scripts.forEach(
-        (script: Script) => {
-          script.onPointerExit?.(this._createEventData(pointer, enteredEntity, enteredEntity));
-        },
-        (script: Script, index: number) => {
-          script._entityScriptsIndex = index;
-        }
-      );
+      this._invokeEntityScripts(enteredEntity, (script: Script) => {
+        script.onPointerExit?.(this._createEventData(pointer, enteredEntity, enteredEntity));
+      });
       this._enteredEntity = null;
     }
 
     const draggedEntity = this._draggedEntity;
     if (draggedEntity) {
-      draggedEntity._scripts.forEach(
-        (script: Script) => {
-          script.onPointerEndDrag?.(this._createEventData(pointer, draggedEntity, draggedEntity));
-        },
-        (script: Script, index: number) => {
-          script._entityScriptsIndex = index;
-        }
-      );
+      this._invokeEntityScripts(draggedEntity, (script: Script) => {
+        script.onPointerEndDrag?.(this._createEventData(pointer, draggedEntity, draggedEntity));
+      });
       this._draggedEntity = null;
     }
     this._pressedEntity = null;
   }
 
   override _dispose(): void {
-    this._enteredEntity = this._draggedEntity = this._draggedEntity = null;
+    this._enteredEntity = this._pressedEntity = this._draggedEntity = null;
   }
 
-  private _updateRaycast(entity: Entity, pointer: Pointer = null): void {
+  private _updateRaycast(entity: Entity, pointer: Pointer): void {
     const enteredEntity = this._enteredEntity;
     if (entity !== enteredEntity) {
       if (enteredEntity) {
-        enteredEntity._scripts.forEach(
-          (script: Script) => {
-            script.onPointerExit?.(this._createEventData(pointer, enteredEntity, enteredEntity));
-          },
-          (script: Script, index: number) => {
-            script._entityScriptsIndex = index;
-          }
-        );
+        this._invokeEntityScripts(enteredEntity, (script: Script) => {
+          script.onPointerExit?.(this._createEventData(pointer, enteredEntity, enteredEntity));
+        });
       }
       if (entity) {
-        entity._scripts.forEach(
-          (script: Script) => {
-            script.onPointerEnter?.(this._createEventData(pointer, entity, entity));
-          },
-          (script: Script, index: number) => {
-            script._entityScriptsIndex = index;
-          }
-        );
+        this._invokeEntityScripts(entity, (script: Script) => {
+          script.onPointerEnter?.(this._createEventData(pointer, entity, entity));
+        });
       }
       this._enteredEntity = entity;
     }
+  }
+
+  private _invokeEntityScripts(entity: Entity, callback: (script: Script) => void): void {
+    entity._scripts.forEach(callback, (script: Script, index: number) => {
+      script._entityScriptsIndex = index;
+    });
   }
 }

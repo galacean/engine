@@ -97,7 +97,7 @@ export class UIGroup extends Component {
     if (flags & GroupModifyFlags.RaycastEnable) {
       const raycastEnable =
         this._raycastEnabled &&
-        (!this._ignoreParentGroup && parentGroup ? parentGroup?._getGlobalRaycastEnable() : true);
+        (!this._ignoreParentGroup && parentGroup ? parentGroup._getGlobalRaycastEnable() : true);
       if (this._globalRaycastEnable !== raycastEnable) {
         this._globalRaycastEnable = raycastEnable;
         passDownFlags |= GroupModifyFlags.RaycastEnable;

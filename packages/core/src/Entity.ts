@@ -426,8 +426,8 @@ export class Entity extends EngineObject {
       activeChangeFlag && child._processInActive(activeChangeFlag);
 
       Entity._traverseSetOwnerScene(child, null); // Must after child._processInActive().
-      children.length--;
     }
+    children.length = 0;
   }
 
   /**
