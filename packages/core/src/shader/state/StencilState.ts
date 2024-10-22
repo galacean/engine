@@ -1,4 +1,5 @@
 import { IHardwareRenderer } from "@galacean/engine-design";
+import { RenderStateElementMap } from "../../BasicResources";
 import { ShaderData } from "../ShaderData";
 import { ShaderProperty } from "../ShaderProperty";
 import { CompareFunction } from "../enums/CompareFunction";
@@ -150,13 +151,17 @@ export class StencilState {
   /**
    * @internal
    */
-  _apply(hardwareRenderer: IHardwareRenderer, lastRenderState: RenderState): void {
-    this._platformApply(hardwareRenderer, lastRenderState.stencilState);
+  _apply(
+    hardwareRenderer: IHardwareRenderer,
+    lastRenderState: RenderState,
+    customStates?: RenderStateElementMap
+  ): void {
+    this._platformApply(hardwareRenderer, lastRenderState.stencilState, customStates);
   }
 
-  private _platformApply(rhi: IHardwareRenderer, lastState: StencilState): void {
+  private _platformApply(rhi: IHardwareRenderer, lastState: StencilState, customStates?: RenderStateElementMap): void {
     const gl = <WebGLRenderingContext>rhi.gl;
-    const {
+    let {
       enabled,
       referenceValue,
       mask,
@@ -170,6 +175,31 @@ export class StencilState {
       passOperationBack,
       writeMask
     } = this;
+
+    if (customStates) {
+      const enabledState = customStates[RenderStateElementKey.StencilStateEnabled];
+      enabledState !== undefined && (enabled = <boolean>enabledState);
+      const writeMaskState = customStates[RenderStateElementKey.StencilStateWriteMask];
+      writeMaskState !== undefined && (writeMask = <number>writeMaskState);
+      const referenceValueState = customStates[RenderStateElementKey.StencilStateReferenceValue];
+      referenceValueState !== undefined && (referenceValue = <number>referenceValueState);
+      const compareFunctionFrontState = customStates[RenderStateElementKey.StencilStateCompareFunctionFront];
+      compareFunctionFrontState !== undefined && (compareFunctionFront = <CompareFunction>compareFunctionFrontState);
+      const compareFunctionBackState = customStates[RenderStateElementKey.StencilStateCompareFunctionBack];
+      compareFunctionBackState !== undefined && (compareFunctionBack = <CompareFunction>compareFunctionBackState);
+      const passOperationFrontState = customStates[RenderStateElementKey.StencilStatePassOperationFront];
+      passOperationFrontState !== undefined && (passOperationFront = <StencilOperation>passOperationFrontState);
+      const passOperationBackState = customStates[RenderStateElementKey.StencilStatePassOperationBack];
+      passOperationBackState !== undefined && (passOperationBack = <StencilOperation>passOperationBackState);
+      const failOperationFrontState = customStates[RenderStateElementKey.StencilStateFailOperationFront];
+      failOperationFrontState !== undefined && (failOperationFront = <StencilOperation>failOperationFrontState);
+      const failOperationBackState = customStates[RenderStateElementKey.StencilStateFailOperationBack];
+      failOperationBackState !== undefined && (failOperationBack = <StencilOperation>failOperationBackState);
+      const zFailOperationFrontState = customStates[RenderStateElementKey.StencilStateZFailOperationFront];
+      zFailOperationFrontState !== undefined && (zFailOperationFront = <StencilOperation>zFailOperationFrontState);
+      const zFailOperationBackState = customStates[RenderStateElementKey.StencilStateZFailOperationBack];
+      zFailOperationBackState !== undefined && (zFailOperationBack = <StencilOperation>zFailOperationBackState);
+    }
 
     if (enabled != lastState.enabled) {
       if (enabled) {
@@ -200,11 +230,11 @@ export class StencilState {
           referenceValue,
           mask
         );
-        lastState.compareFunctionBack = this.compareFunctionBack;
+        lastState.compareFunctionBack = compareFunctionBack;
       }
       if (referenceOrMaskChange) {
-        lastState.referenceValue = this.referenceValue;
-        lastState.mask = this.mask;
+        lastState.referenceValue = referenceValue;
+        lastState.mask = mask;
       }
 
       // apply stencil operation.
