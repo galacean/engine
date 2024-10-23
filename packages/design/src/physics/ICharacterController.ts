@@ -48,4 +48,10 @@ export interface ICharacterController extends ICollider {
    * @param slopeLimit The slope limit for the controller.
    */
   setSlopeLimit(slopeLimit: number): void;
+
+  /**
+   * Sets the contact offset.
+   * @param offset The new contact offset for the controller.
+   */
+  setContactOffset(offset: number): void;
 }

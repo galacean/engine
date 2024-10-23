@@ -10,10 +10,27 @@ import { ColliderShape } from "./shape";
  * The character controllers.
  */
 export class CharacterController extends Collider {
+  // Character can overcome obstacle less than the height(stepOffset + contractOffset(0.1))
   private _stepOffset: number = 0.5;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
   private _upDirection = new Vector3(0, 1, 0);
+  // The default value is 0.707, which is the cosine value of 45 degrees.
   private _slopeLimit: number = 0.707;
+  private _contactOffset: number = 0.1;
+
+  /**
+   * Contact offset for this shape.
+   */
+  get contactOffset(): number {
+    return this._contactOffset;
+  }
+
+  set contactOffset(value: number) {
+    if (this._contactOffset !== value) {
+      this._contactOffset = value;
+      (<ICharacterController>this._nativeCollider).setContactOffset(value);
+    }
+  }
 
   /**
    * The step offset for the controller.
@@ -57,7 +74,7 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * The slope limit for the controller.
+   * The slope limit for the controller, the value is the cosine value of the maximum slope angle, the default value is 0.707, which is the cosine value of 45 degrees.
    */
   get slopeLimit(): number {
     return this._slopeLimit;
@@ -152,7 +169,7 @@ export class CharacterController extends Collider {
     physics._addCharacterController(this);
     const shapes = this.shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
-      physics._addColliderShape(shapes[i]);
+      this.addShape(shapes[i]);
     }
   }
 
@@ -164,7 +181,7 @@ export class CharacterController extends Collider {
     physics._removeCharacterController(this);
     const shapes = this.shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
-      physics._removeColliderShape(shapes[i]);
+      this.removeShape(shapes[i]);
     }
   }
 
