@@ -1,5 +1,5 @@
 import { Rect } from "@galacean/engine-math";
-import { expect } from "chai";
+import { describe, expect, it } from "vitest";
 
 describe("Rect test", () => {
   it("set", () => {

@@ -10,16 +10,16 @@ export class Keyframe<
   T = V extends number
     ? number
     : V extends Vector2
-    ? Vector2
-    : V extends Vector3
-    ? Vector3
-    : V extends Vector4 | Color | Quaternion | Rect
-    ? Vector4
-    : V extends number[] | Float32Array
-    ? number[]
-    : V extends ReferResource
-    ? ReferResource
-    : never
+      ? Vector2
+      : V extends Vector3
+        ? Vector3
+        : V extends Vector4 | Color | Quaternion | Rect
+          ? Vector4
+          : V extends number[] | Float32Array
+            ? number[]
+            : V extends ReferResource
+              ? ReferResource
+              : never
 > {
   /** The time of the Keyframe. */
   time: number;

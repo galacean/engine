@@ -1,7 +1,7 @@
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { KTX2Loader } from "@galacean/engine-loader";
-import { expect } from "chai";
 import { Texture2D, TextureFormat, GLCapabilityType } from "@galacean/engine-core";
+import { describe, beforeAll, afterAll, expect, it } from "vitest";
 
 let engine: WebGLEngine;
 
@@ -28,7 +28,7 @@ async function encode(array: ArrayBuffer): Promise<string> {
   });
 }
 
-before(async function () {
+beforeAll(async function () {
   Texture2D.prototype.setPixelBuffer = function (data, mipLevel) {
     if (!this.mipmapData) this.mipmapData = [];
     this.mipmapData[mipLevel] = data;
@@ -104,6 +104,6 @@ describe("ktx2 Loader test", function () {
   });
 });
 
-after(() => {
+afterAll(() => {
   Texture2D.prototype.setPixelBuffer = originSetPixelBuffer;
 });

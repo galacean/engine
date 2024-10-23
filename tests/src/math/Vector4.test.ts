@@ -1,5 +1,5 @@
 import { MathUtil, Vector4, Quaternion, Matrix } from "@galacean/engine-math";
-import { expect } from "chai";
+import { describe, expect, it } from "vitest";
 
 function toString(v: Vector4): string {
   return `vec4(${v.x}, ${v.y}, ${v.z}, ${v.w})`;

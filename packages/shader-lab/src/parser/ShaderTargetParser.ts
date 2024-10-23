@@ -8,8 +8,11 @@ import SematicAnalyzer from "./SemanticAnalyzer";
 import { TraceStackItem } from "./types";
 import { addTranslationRule, createGrammar } from "../lalr/CFG";
 import { LALR1 } from "../lalr";
-import { ParserUtils } from "../Utils";
+import { ParserUtils } from "../ParserUtils";
 import { Logger } from "@galacean/engine";
+import { GSErrorName } from "../GSError";
+import { ShaderLab } from "../ShaderLab";
+import { ShaderLabUtils } from "../ShaderLabUtils";
 
 /**
  * The syntax parser and sematic analyzer of `ShaderLab` compiler
@@ -30,6 +33,13 @@ export class ShaderTargetParser {
   private get stateGotoTable() {
     return this.gotoTable.get(this.curState);
   }
+
+  // #if _VERBOSE
+  /** @internal */
+  get errors() {
+    return this.sematicAnalyzer.errors;
+  }
+  // #endif
 
   static _singleton: ShaderTargetParser;
 
@@ -103,13 +113,21 @@ export class ShaderTargetParser {
         traceBackStack.push(nextState);
         continue;
       } else {
-        Logger.error(token.location, `parse error token ${token.lexeme}`);
+        const error = ShaderLabUtils.createGSError(
+          `Unexpected token ${token.lexeme}`,
+          GSErrorName.CompilationError,
+          ShaderLab._processingPassText,
+          token.location
+        );
+        // #if _VERBOSE
+        this.sematicAnalyzer.errors.push(error);
         return null;
+        // #endif
       }
     }
   }
 
-  // #if _EDITOR
+  // #if _VERBOSE
   private _printStack(nextToken: BaseToken) {
     let str = "";
     for (let i = 0; i < this._traceBackStack.length - 1; i++) {

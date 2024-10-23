@@ -18,15 +18,12 @@ import {
   StateMachineScript,
   Entity
 } from "@galacean/engine-core";
-import { GLTFResource } from "@galacean/engine-loader";
+import "@galacean/engine-loader"
+import type {  GLTFResource } from "@galacean/engine-loader";
 import { Quaternion } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import chai, { expect } from "chai";
-import spies from "chai-spies";
+import  { vi, describe, beforeAll, expect, it, afterAll, afterEach } from "vitest";
 import { glbResource } from "./model/fox";
-
-chai.use(spies);
-
 const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
 canvasDOM.height = 1024;
@@ -36,7 +33,7 @@ describe("Animator test", function () {
   let resource: GLTFResource;
   let engine: WebGLEngine;
 
-  before(async function () {
+  beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: canvasDOM });
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity();
@@ -48,7 +45,7 @@ describe("Animator test", function () {
     animator = defaultSceneRoot.getComponent(Animator);
   });
 
-  after(function () {
+  afterAll(function () {
     animator.destroy();
     engine.destroy();
   });
@@ -150,21 +147,23 @@ describe("Animator test", function () {
   it("animation enabled", () => {
     // Test animator play.
     animator.play("Survey");
-    const onDisableSpy = chai.spy.on(animator, "_onDisable");
-    const onEnableSpy = chai.spy.on(animator, "_onEnable");
-    const onUpdateSpy = chai.spy.on(animator, "update");
+    // @ts-ignore
+    const onDisableSpy = vi.spyOn(animator, "_onDisable");
+    // @ts-ignore
+    const onEnableSpy = vi.spyOn(animator, "_onEnable");
+    const onUpdateSpy = vi.spyOn(animator, "update");
 
     animator.enabled = false;
     expect(animator["_enabled"]).to.eq(false);
-    expect(onDisableSpy).to.have.been.called.exactly(1);
+    expect(onDisableSpy).toHaveBeenCalledTimes(1);
     engine.update();
-    expect(onUpdateSpy).to.have.been.called.exactly(0);
+    expect(onUpdateSpy).toHaveBeenCalledTimes(0);
 
     animator.enabled = true;
     expect(animator["_enabled"]).to.eq(true);
-    expect(onEnableSpy).to.have.been.called.exactly(1);
+    expect(onEnableSpy).toHaveBeenCalledTimes(1);
     engine.update();
-    expect(onUpdateSpy).to.have.been.called.exactly(1);
+    expect(onUpdateSpy).toHaveBeenCalledTimes(1);
   });
 
   it("find animator state", () => {
@@ -325,9 +324,9 @@ describe("Animator test", function () {
     class TestScript extends Script {
       event0(): void {}
     }
-    TestScript.prototype.event0 = chai.spy(TestScript.prototype.event0);
 
-    animator.entity.addComponent(TestScript);
+    const testScript = animator.entity.addComponent(TestScript);
+    const testScriptSpy = vi.spyOn(testScript, "event0");
 
     const event0 = new AnimationEvent();
     event0.functionName = "event0";
@@ -336,7 +335,7 @@ describe("Animator test", function () {
     const state = animator.findAnimatorState("Walk");
     state.clip.addEvent(event0);
     animator.update(10);
-    expect(TestScript.prototype.event0).to.have.been.called.exactly(1);
+    expect(testScriptSpy).toHaveBeenCalledTimes(1);
   });
 
   it("stateMachine", () => {
@@ -715,10 +714,10 @@ describe("Animator test", function () {
     const testScript = state1.addStateMachineScript(TestScript);
     const testScript2 = state2.addStateMachineScript(TestScript);
 
-    const onStateEnterSpy = chai.spy.on(testScript, "onStateEnter");
-    const onStateExitSpy = chai.spy.on(testScript, "onStateExit");
-    const onStateEnter2Spy = chai.spy.on(testScript2, "onStateEnter");
-    const onStateExit2Spy = chai.spy.on(testScript2, "onStateExit");
+    const onStateEnterSpy = vi.spyOn(testScript, "onStateEnter");
+    const onStateExitSpy = vi.spyOn(testScript, "onStateExit");
+    const onStateEnter2Spy = vi.spyOn(testScript2, "onStateEnter");
+    const onStateExit2Spy = vi.spyOn(testScript2, "onStateExit");
 
     animator.play("state1");
 
@@ -726,10 +725,10 @@ describe("Animator test", function () {
     animator.engine.time._frameCount++;
     animator.update(3);
 
-    expect(onStateEnterSpy).to.have.been.called.exactly(1);
-    expect(onStateExitSpy).to.have.been.called.exactly(1);
-    expect(onStateEnter2Spy).to.have.been.called.exactly(1);
-    expect(onStateExit2Spy).to.have.been.called.exactly(1);
+    expect(onStateEnterSpy).toHaveBeenCalledTimes(1);
+    expect(onStateExitSpy).toHaveBeenCalledTimes(1);
+    expect(onStateEnter2Spy).toHaveBeenCalledTimes(1);
+    expect(onStateExit2Spy).toHaveBeenCalledTimes(1);
   });
 
   it("anyTransition", () => {

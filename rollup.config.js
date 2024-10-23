@@ -8,7 +8,6 @@ import serve from "rollup-plugin-serve";
 import miniProgramPlugin from "./rollup.miniprogram.plugin";
 import replace from "@rollup/plugin-replace";
 import { swc, defineRollupSwcOption, minify } from "rollup-plugin-swc3";
-import modify from "rollup-plugin-modify";
 import jscc from "rollup-plugin-jscc";
 
 const { BUILD_TYPE, NODE_ENV } = process.env;
@@ -25,6 +24,9 @@ const pkgs = fs
       pkgJson: require(path.resolve(location, "package.json"))
     };
   });
+
+const shaderLabPkg = pkgs.find((item) => item.pkgJson.name === "@galacean/engine-shader-lab");
+pkgs.push({ ...shaderLabPkg, verboseMode: true });
 
 // toGlobalName
 
@@ -49,9 +51,6 @@ const commonPlugins = [
     })
   ),
   commonjs(),
-  jscc({
-    values: { _EDITOR: NODE_ENV !== "release" }
-  }),
   NODE_ENV === "development"
     ? serve({
         contentBase: "packages",
@@ -60,11 +59,19 @@ const commonPlugins = [
     : null
 ];
 
-function config({ location, pkgJson }) {
+function config({ location, pkgJson, verboseMode }) {
   const input = path.join(location, "src", "index.ts");
   const dependencies = Object.assign({}, pkgJson.dependencies ?? {}, pkgJson.peerDependencies ?? {});
+  const curPlugins = Array.from(commonPlugins);
+
+  curPlugins.push(
+    jscc({
+      values: { _VERBOSE: verboseMode }
+    })
+  );
+
   const external = Object.keys(dependencies);
-  commonPlugins.push(
+  curPlugins.push(
     replace({
       preventAssignment: true,
       __buildVersion: pkgJson.version
@@ -76,16 +83,20 @@ function config({ location, pkgJson }) {
       const umdConfig = pkgJson.umd;
       let file = path.join(location, "dist", "browser.js");
 
-      const plugins = [
-        modify({
-          find: "chevrotain",
-          replace: path.join(process.cwd(), "packages", "shader-lab", `./node_modules/chevrotain/lib/chevrotain.js`)
-        }),
-        ...commonPlugins
-      ];
-      if (compress) {
-        plugins.push(minify({ sourceMap: true }));
-        file = path.join(location, "dist", "browser.min.js");
+      if (verboseMode) {
+        if (compress) {
+          curPlugins.push(minify({ sourceMap: true }));
+          file = path.join(location, "dist", "browser.verbose.min.js");
+        } else {
+          file = path.join(location, "dist", "browser.verbose.js");
+        }
+      } else {
+        if (compress) {
+          curPlugins.push(minify({ sourceMap: true }));
+          file = path.join(location, "dist", "browser.min.js");
+        } else {
+          file = path.join(location, "dist", "browser.js");
+        }
       }
 
       const umdExternal = Object.keys(umdConfig.globals ?? {});
@@ -102,17 +113,21 @@ function config({ location, pkgJson }) {
             globals: umdConfig.globals
           }
         ],
-        plugins
+        plugins: curPlugins
       };
     },
     mini: () => {
-      const plugins = [...commonPlugins, ...miniProgramPlugin];
+      let file = path.join(location, "dist", "miniprogram.js");
+      const plugins = [...curPlugins, ...miniProgramPlugin];
+      if (verboseMode) {
+        file = path.join(location, "dist", "miniprogram.verbose.js");
+      }
       return {
         input,
         output: [
           {
             format: "cjs",
-            file: path.join(location, "dist/miniprogram.js"),
+            file,
             sourcemap: false
           }
         ],
@@ -121,29 +136,28 @@ function config({ location, pkgJson }) {
       };
     },
     module: () => {
-      const plugins = [
-        modify({
-          find: "chevrotain",
-          replace: path.join(process.cwd(), "packages", "shader-lab", `./node_modules/chevrotain/lib/chevrotain.js`)
-        }),
-        ...commonPlugins
-      ];
+      let esFile = path.join(location, pkgJson.module);
+      let mainFile = path.join(location, pkgJson.main);
+      if (verboseMode) {
+        esFile = path.join(location, "dist", "module.verbose.js");
+        mainFile = path.join(location, "dist", "main.verbose.js");
+      }
       return {
         input,
         external,
         output: [
           {
-            file: path.join(location, pkgJson.module),
+            file: esFile,
             format: "es",
             sourcemap: true
           },
           {
-            file: path.join(location, pkgJson.main),
+            file: mainFile,
             sourcemap: true,
             format: "commonjs"
           }
         ],
-        plugins
+        plugins: curPlugins
       };
     }
   };

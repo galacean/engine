@@ -1,12 +1,11 @@
 import { Material, Shader, ShaderPropertyType, Texture2D, Texture2DArray } from "@galacean/engine-core";
 import { Color, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
+import { describe, beforeAll, expect, it } from "vitest";
 
 describe("Material", () => {
   let engine: WebGLEngine;
- before(async function () {
-    this.timeout(10000);
+  beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   });
 

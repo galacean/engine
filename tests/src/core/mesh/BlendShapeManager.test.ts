@@ -3,18 +3,13 @@ import {
   Entity,
   BlendShape,
   SkinnedMeshRenderer,
-  Shader,
   PrimitiveMesh,
   BlendShapeFrame,
-  VertexBufferBinding,
-  Buffer,
-  BufferBindFlag,
-  BufferUsage,
   UnlitMaterial
 } from "@galacean/engine-core";
 import { WebGLEngine, WebGLMode } from "@galacean/engine-rhi-webgl";
 import { Vector3 } from "@galacean/engine-math";
-import { expect } from "chai";
+import { describe, beforeAll, expect, it } from "vitest";
 
 describe("BlendShapeManager", () => {
   let engineWebGL2: WebGLEngine;
@@ -22,7 +17,7 @@ describe("BlendShapeManager", () => {
   let rootEntity1: Entity;
   let rootEntity2: Entity;
 
-  before(async () => {
+  beforeAll(async () => {
     engineWebGL2 = await WebGLEngine.create({
       canvas: document.createElement("canvas")
     });

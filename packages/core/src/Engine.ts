@@ -7,7 +7,6 @@ import {
   IXRDevice
 } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
-import { SpriteMaskInteraction } from "./2d";
 import { CharRenderInfo } from "./2d/text/CharRenderInfo";
 import { Font } from "./2d/text/Font";
 import { BasicResources } from "./BasicResources";
@@ -30,18 +29,12 @@ import { Material } from "./material/Material";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
 import { PhysicsScene } from "./physics/PhysicsScene";
 import { ColliderShape } from "./physics/shape/ColliderShape";
-import { CompareFunction } from "./shader";
 import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderPass } from "./shader/ShaderPass";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
-import { BlendFactor } from "./shader/enums/BlendFactor";
-import { BlendOperation } from "./shader/enums/BlendOperation";
-import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
-import { CullMode } from "./shader/enums/CullMode";
-import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureFormat } from "./texture";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
@@ -92,14 +85,6 @@ export class Engine extends EventDispatcher {
 
   /* @internal */
   _basicResources: BasicResources;
-  /* @internal */
-  _spriteDefaultMaterial: Material;
-  /** @internal */
-  _spriteDefaultMaterials: Material[] = [];
-  /* @internal */
-  _textDefaultMaterial: Material;
-  /* @internal */
-  _spriteMaskDefaultMaterial: Material;
   /* @internal */
   _textDefaultFont: Font;
   /* @internal */
@@ -239,18 +224,6 @@ export class Engine extends EventDispatcher {
 
     this._canvas = canvas;
 
-    const { _spriteDefaultMaterials: spriteDefaultMaterials } = this;
-    this._spriteDefaultMaterial = spriteDefaultMaterials[SpriteMaskInteraction.None] = this._createSpriteMaterial(
-      SpriteMaskInteraction.None
-    );
-    spriteDefaultMaterials[SpriteMaskInteraction.VisibleInsideMask] = this._createSpriteMaterial(
-      SpriteMaskInteraction.VisibleInsideMask
-    );
-    spriteDefaultMaterials[SpriteMaskInteraction.VisibleOutsideMask] = this._createSpriteMaterial(
-      SpriteMaskInteraction.VisibleOutsideMask
-    );
-    this._textDefaultMaterial = this._createTextMaterial();
-    this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
     this._textDefaultFont = Font.createFromOS(this, "Arial");
     this._textDefaultFont.isGCIgnored = true;
 
@@ -579,64 +552,6 @@ export class Engine extends EventDispatcher {
       if (loader.initialize) initializePromises.push(loader.initialize(this, configuration));
     }
     return Promise.all(initializePromises).then(() => this);
-  }
-
-  private _createSpriteMaterial(maskInteraction: SpriteMaskInteraction): Material {
-    const material = new Material(this, Shader.find("Sprite"));
-    const renderState = material.renderState;
-    const target = renderState.blendState.targetBlendState;
-    target.enabled = true;
-    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
-    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    target.sourceAlphaBlendFactor = BlendFactor.One;
-    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-    if (maskInteraction !== SpriteMaskInteraction.None) {
-      const stencilState = renderState.stencilState;
-      stencilState.enabled = true;
-      stencilState.writeMask = 0x00;
-      stencilState.referenceValue = 1;
-      const compare =
-        maskInteraction === SpriteMaskInteraction.VisibleInsideMask
-          ? CompareFunction.LessEqual
-          : CompareFunction.Greater;
-      stencilState.compareFunctionFront = compare;
-      stencilState.compareFunctionBack = compare;
-    }
-    renderState.depthState.writeEnabled = false;
-    renderState.rasterState.cullMode = CullMode.Off;
-    renderState.renderQueueType = RenderQueueType.Transparent;
-    material.isGCIgnored = true;
-    return material;
-  }
-
-  private _createSpriteMaskMaterial(): Material {
-    const material = new Material(this, Shader.find("SpriteMask"));
-    const renderState = material.renderState;
-    renderState.blendState.targetBlendState.colorWriteMask = ColorWriteMask.None;
-    renderState.rasterState.cullMode = CullMode.Off;
-    renderState.stencilState.enabled = true;
-    renderState.depthState.enabled = false;
-    renderState.renderQueueType = RenderQueueType.Transparent;
-    material.isGCIgnored = true;
-    return material;
-  }
-
-  private _createTextMaterial(): Material {
-    const material = new Material(this, Shader.find("Text"));
-    const renderState = material.renderState;
-    const target = renderState.blendState.targetBlendState;
-    target.enabled = true;
-    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
-    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    target.sourceAlphaBlendFactor = BlendFactor.One;
-    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-    renderState.depthState.writeEnabled = false;
-    renderState.rasterState.cullMode = CullMode.Off;
-    renderState.renderQueueType = RenderQueueType.Transparent;
-    material.isGCIgnored = true;
-    return material;
   }
 
   private _onDeviceLost(): void {
