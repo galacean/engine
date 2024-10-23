@@ -8,6 +8,7 @@ import blitVs from "../../shaderlib/extra/Blit.vs.glsl";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureWrapMode } from "../../texture";
 
 import { Blitter } from "../../RenderPipeline/Blitter";
+import { PostProcess } from "../PostProcess";
 import { PostProcessEffect } from "../PostProcessEffect";
 import fragBlurH from "../shaders/Bloom/BloomBlurH.glsl";
 import fragBlurV from "../shaders/Bloom/BloomBlurV.glsl";
@@ -104,24 +105,24 @@ export class BloomEffect extends PostProcessEffect {
    * Controls the strength of the bloom effect.
    */
   get intensity(): number {
-    return this._uberMaterial.shaderData.getVector4(BloomEffect._bloomIntensityParams).x;
+    return this.uberMaterial.shaderData.getVector4(BloomEffect._bloomIntensityParams).x;
   }
 
   set intensity(value: number) {
     value = Math.max(0, value);
 
-    this._uberMaterial.shaderData.getVector4(BloomEffect._bloomIntensityParams).x = value;
+    this.uberMaterial.shaderData.getVector4(BloomEffect._bloomIntensityParams).x = value;
   }
 
   /**
    * Specifies the tint of the bloom effect.
    */
   get tint(): Color {
-    return this._uberMaterial.shaderData.getColor(BloomEffect._tintProp);
+    return this.uberMaterial.shaderData.getColor(BloomEffect._tintProp);
   }
 
   set tint(value: Color) {
-    const tint = this._uberMaterial.shaderData.getColor(BloomEffect._tintProp);
+    const tint = this.uberMaterial.shaderData.getColor(BloomEffect._tintProp);
     if (value !== tint) {
       tint.copyFrom(value);
     }
@@ -141,10 +142,10 @@ export class BloomEffect extends PostProcessEffect {
       this._highQualityFiltering = value;
       if (value) {
         this._bloomMaterial.shaderData.enableMacro(BloomEffect._hqMacro);
-        this._uberMaterial.shaderData.enableMacro(BloomEffect._hqMacro);
+        this.uberMaterial.shaderData.enableMacro(BloomEffect._hqMacro);
       } else {
         this._bloomMaterial.shaderData.disableMacro(BloomEffect._hqMacro);
-        this._uberMaterial.shaderData.disableMacro(BloomEffect._hqMacro);
+        this.uberMaterial.shaderData.disableMacro(BloomEffect._hqMacro);
       }
     }
   }
@@ -153,15 +154,15 @@ export class BloomEffect extends PostProcessEffect {
    * Specifies a Texture to add smudges or dust to the bloom effect.
    */
   get dirtTexture(): Texture2D {
-    return <Texture2D>this._uberMaterial.shaderData.getTexture(BloomEffect._dirtTextureProp);
+    return <Texture2D>this.uberMaterial.shaderData.getTexture(BloomEffect._dirtTextureProp);
   }
 
   set dirtTexture(value: Texture2D) {
-    this._uberMaterial.shaderData.setTexture(BloomEffect._dirtTextureProp, value);
+    this.uberMaterial.shaderData.setTexture(BloomEffect._dirtTextureProp, value);
     if (value) {
-      this._uberMaterial.shaderData.enableMacro(BloomEffect._dirtMacro);
+      this.uberMaterial.shaderData.enableMacro(BloomEffect._dirtMacro);
     } else {
-      this._uberMaterial.shaderData.disableMacro(BloomEffect._dirtMacro);
+      this.uberMaterial.shaderData.disableMacro(BloomEffect._dirtMacro);
     }
   }
 
@@ -169,18 +170,22 @@ export class BloomEffect extends PostProcessEffect {
    * Controls the strength of the lens dirt.
    */
   get dirtIntensity(): number {
-    return this._uberMaterial.shaderData.getVector4(BloomEffect._bloomIntensityParams).y;
+    return this.uberMaterial.shaderData.getVector4(BloomEffect._bloomIntensityParams).y;
   }
 
   set dirtIntensity(value: number) {
     value = Math.max(0, value);
 
-    this._uberMaterial.shaderData.getVector4(BloomEffect._bloomIntensityParams).y = value;
+    this.uberMaterial.shaderData.getVector4(BloomEffect._bloomIntensityParams).y = value;
   }
 
-  constructor(private _uberMaterial: Material) {
-    super();
-    const engine = _uberMaterial.engine;
+  /**
+   * Create a BloomEffect.
+   * @param postProcess - The post process being used
+   */
+  constructor(postProcess: PostProcess) {
+    super(postProcess);
+    const engine = this.uberMaterial.engine;
     const material = new Material(engine, Shader.find(BloomEffect.SHADER_NAME));
     const depthState = material.renderState.depthState;
 
@@ -188,7 +193,7 @@ export class BloomEffect extends PostProcessEffect {
     depthState.writeEnabled = false;
 
     const bloomShaderData = material.shaderData;
-    const uberShaderData = _uberMaterial.shaderData;
+    const uberShaderData = this.uberMaterial.shaderData;
     bloomShaderData.setVector4(BloomEffect._bloomParams, new Vector4());
     bloomShaderData.setVector4(BloomEffect._lowMipTexelSizeProp, new Vector4());
 
@@ -207,14 +212,14 @@ export class BloomEffect extends PostProcessEffect {
    *  @inheritdoc
    */
   override onEnable() {
-    this._uberMaterial.shaderData.enableMacro(BloomEffect._enableMacro);
+    this.uberMaterial.shaderData.enableMacro(BloomEffect._enableMacro);
   }
 
   /**
    *  @inheritdoc
    */
   override onDisable(): void {
-    this._uberMaterial.shaderData.disableMacro(BloomEffect._enableMacro);
+    this.uberMaterial.shaderData.disableMacro(BloomEffect._enableMacro);
     this._releaseRenderTargets();
   }
 
@@ -248,7 +253,7 @@ export class BloomEffect extends PostProcessEffect {
   }
 
   private _prefilter(camera: Camera, srcTexture: Texture2D, tw: number, th: number, mipCount: number): void {
-    const engine = this._uberMaterial.engine;
+    const engine = this.uberMaterial.engine;
     const internalColorTextureFormat = camera._getInternalColorTextureFormat();
     let mipWidth = tw,
       mipHeight = th;
@@ -343,7 +348,7 @@ export class BloomEffect extends PostProcessEffect {
   }
 
   private _setupUber(camera: Camera): void {
-    const shaderData = this._uberMaterial.shaderData;
+    const shaderData = this.uberMaterial.shaderData;
     const dirtTexture = this.dirtTexture;
 
     if (dirtTexture) {

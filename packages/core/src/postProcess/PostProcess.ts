@@ -32,7 +32,7 @@ export class PostProcess extends Component {
   private _effects: PostProcessEffect[] = [];
 
   get effects(): PostProcessEffect[] {
-    return this.effects;
+    return this._effects;
   }
 
   constructor(entity: Entity) {
@@ -82,8 +82,7 @@ export class PostProcess extends Component {
       return;
     }
 
-    const effect = new type();
-    effect.onInitBlitMaterial();
+    const effect = new type(this);
     this._effects.push(effect);
     return effect;
   }

@@ -1,12 +1,20 @@
 import { Material } from "../material/Material";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Texture2D } from "../texture";
+import { PostProcess } from "./PostProcess";
 
 /**
  * The base class for post process effect.
  */
 export class PostProcessEffect {
   private _enabled: boolean = true;
+
+  /**
+   * The Uber material used to render the post process effect.
+   */
+  get uberMaterial(): Material {
+    return this.postProcess.scene._postProcessManager._uberMaterial;
+  }
 
   /**
    * Indicates whether the post process effect is enabled.
@@ -28,6 +36,12 @@ export class PostProcessEffect {
   }
 
   /**
+   * Create a post process effect.
+   * @param postProcess - The post process being used
+   */
+  constructor(public postProcess: PostProcess) {}
+
+  /**
    * Called when be enabled.
    */
   onEnable(): void {}
@@ -41,7 +55,6 @@ export class PostProcessEffect {
    * Called when the post process effect is rendered.
    * @param context - The render context
    * @param srcTexture - The source texture from last render target
-   * @param blitMaterial - The material used to render the post process effect
    */
-  onRender(context: RenderContext, srcTexture: Texture2D, blitMaterial: Material): void {}
+  onRender(context: RenderContext, srcTexture: Texture2D): void {}
 }

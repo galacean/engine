@@ -1,5 +1,5 @@
-import { Material } from "../../material";
 import { ShaderMacro } from "../../shader";
+import { PostProcess } from "../PostProcess";
 import { PostProcessEffect } from "../PostProcessEffect";
 
 /**
@@ -36,12 +36,12 @@ export class TonemappingEffect extends PostProcessEffect {
   set mode(value: TonemappingMode) {
     if (value !== this._mode) {
       this._mode = value;
-      this._uberMaterial.shaderData.enableMacro("TONEMAPPING_MODE", value.toString());
+      this.uberMaterial.shaderData.enableMacro("TONEMAPPING_MODE", value.toString());
     }
   }
 
-  constructor(private _uberMaterial: Material) {
-    super();
+  constructor(postProcess: PostProcess) {
+    super(postProcess);
     this.mode = TonemappingMode.Neutral;
   }
 
@@ -49,13 +49,13 @@ export class TonemappingEffect extends PostProcessEffect {
    *  @inheritdoc
    */
   override onEnable() {
-    this._uberMaterial.shaderData.enableMacro(TonemappingEffect._enableMacro);
+    this.uberMaterial.shaderData.enableMacro(TonemappingEffect._enableMacro);
   }
 
   /**
    *  @inheritdoc
    */
   override onDisable() {
-    this._uberMaterial.shaderData.disableMacro(TonemappingEffect._enableMacro);
+    this.uberMaterial.shaderData.disableMacro(TonemappingEffect._enableMacro);
   }
 }

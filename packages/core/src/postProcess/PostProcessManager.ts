@@ -12,9 +12,6 @@ import { PostProcess } from "./PostProcess";
 export class PostProcessManager {
   static readonly UBER_SHADER_NAME = "UberPost";
 
-  private _activePostProcesses: PostProcess[] = [];
-  private _postProcessNeedSorting = false;
-
   /**
    * Whether the post process manager is active.
    */
@@ -22,6 +19,9 @@ export class PostProcessManager {
 
   /** @internal */
   _uberMaterial: Material;
+
+  private _activePostProcesses: PostProcess[] = [];
+  private _postProcessNeedSorting = false;
 
   /**
    * Whether has active post process effect.
@@ -90,9 +90,8 @@ export class PostProcessManager {
 
       for (let j = 0; j < effects.length; j++) {
         const effect = effects[j];
-
         if (effect.enabled) {
-          effect.onRender(context, srcTexture, this._uberMaterial);
+          effect.onRender(context, srcTexture);
         }
       }
     }
