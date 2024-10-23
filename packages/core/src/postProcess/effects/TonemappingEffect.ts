@@ -1,5 +1,6 @@
 import { Material } from "../../material";
 import { ShaderMacro } from "../../shader";
+import { PostProcessEffect } from "../PostProcessEffect";
 
 /**
  * Options to select a tonemapping algorithm to use.
@@ -20,29 +21,10 @@ export enum TonemappingMode {
   ACES
 }
 
-export class TonemappingEffect {
+export class TonemappingEffect extends PostProcessEffect {
   private static _enableMacro: ShaderMacro = ShaderMacro.getByName("ENABLE_EFFECT_TONEMAPPING");
 
   private _mode: TonemappingMode;
-  private _enabled = false;
-
-  /**
-   * Indicates whether the post process effect is enabled.
-   */
-  get enabled(): boolean {
-    return this._enabled;
-  }
-
-  set enabled(value: boolean) {
-    if (value !== this._enabled) {
-      this._enabled = value;
-      if (value) {
-        this._uberMaterial.shaderData.enableMacro(TonemappingEffect._enableMacro);
-      } else {
-        this._uberMaterial.shaderData.disableMacro(TonemappingEffect._enableMacro);
-      }
-    }
-  }
 
   /**
    * Use this to select a tonemapping algorithm to use.
@@ -59,6 +41,21 @@ export class TonemappingEffect {
   }
 
   constructor(private _uberMaterial: Material) {
+    super();
     this.mode = TonemappingMode.Neutral;
+  }
+
+  /**
+   *  @inheritdoc
+   */
+  override onEnable() {
+    this._uberMaterial.shaderData.enableMacro(TonemappingEffect._enableMacro);
+  }
+
+  /**
+   *  @inheritdoc
+   */
+  override onDisable() {
+    this._uberMaterial.shaderData.disableMacro(TonemappingEffect._enableMacro);
   }
 }

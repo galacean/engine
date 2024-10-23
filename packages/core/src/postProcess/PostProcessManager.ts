@@ -1,16 +1,19 @@
-import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
+import { Blitter } from "../RenderPipeline/Blitter";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Scene } from "../Scene";
 import { Material } from "../material";
 import { Shader } from "../shader";
 import { RenderTarget, Texture2D } from "../texture";
-import { BloomEffect, TonemappingEffect } from "./effects";
+import { PostProcess } from "./PostProcess";
 
 /**
- * @internal
+ * A global manager of the PostProcess.
  */
-export class _PostProcessManager {
+export class PostProcessManager {
   static readonly UBER_SHADER_NAME = "UberPost";
+
+  private _activePostProcesses: PostProcess[] = [];
+  private _postProcessNeedSorting = false;
 
   /**
    * Whether the post process manager is active.
@@ -19,16 +22,13 @@ export class _PostProcessManager {
 
   /** @internal */
   _uberMaterial: Material;
-  /** @internal */
-  _bloomEffect: BloomEffect;
-  /** @internal */
-  _tonemappingEffect: TonemappingEffect;
 
   /**
    * Whether has active post process effect.
    */
   get hasActiveEffect(): boolean {
-    return this.isActive && (this._bloomEffect.enabled || this._tonemappingEffect.enabled);
+    // @todo
+    return this.isActive;
   }
 
   /**
@@ -36,38 +36,68 @@ export class _PostProcessManager {
    * @param scene - Scene to which the current PostProcessManager belongs
    */
   constructor(public readonly scene: Scene) {
-    const uberShader = Shader.find(_PostProcessManager.UBER_SHADER_NAME);
+    const uberShader = Shader.find(PostProcessManager.UBER_SHADER_NAME);
     const uberMaterial = new Material(scene.engine, uberShader);
     const depthState = uberMaterial.renderState.depthState;
 
     depthState.enabled = false;
     depthState.writeEnabled = false;
 
-    const bloomEffect = new BloomEffect(uberMaterial);
-    const tonemappingEffect = new TonemappingEffect(uberMaterial);
-
     this._uberMaterial = uberMaterial;
-    this._bloomEffect = bloomEffect;
-    this._tonemappingEffect = tonemappingEffect;
   }
 
-  /**
-   * @internal
-   */
-  _render(context: RenderContext, srcTarget: RenderTarget, destTarget: RenderTarget): void {
+  addPostProcess(postProcess: PostProcess): void {
+    this._activePostProcesses.push(postProcess);
+    this._postProcessNeedSorting = true;
+  }
+
+  removePostProcess(postProcess: PostProcess): void {
+    const index = this._activePostProcesses.indexOf(postProcess);
+
+    if (index >= 0) {
+      this._activePostProcesses.splice(index, 1);
+      this._postProcessNeedSorting = true;
+    }
+  }
+
+  sortPostProcess(): void {
+    if (this._postProcessNeedSorting) {
+      const postProcesses = this._activePostProcesses;
+      if (postProcesses.length) {
+        postProcesses.sort((a, b) => a.priority - b.priority);
+      }
+      this._postProcessNeedSorting = false;
+    }
+  }
+
+  render(context: RenderContext, srcTarget: RenderTarget, destTarget: RenderTarget): void {
     const camera = context.camera;
     const engine = camera.engine;
+    const postProcesses = this._activePostProcesses;
 
     // Should blit to resolve the MSAA
     srcTarget._blitRenderTarget();
     const srcTexture = <Texture2D>srcTarget.getColorTexture();
-    const bloomEffect = this._bloomEffect;
 
-    if (bloomEffect.enabled) {
-      bloomEffect.onRender(context, srcTexture);
+    for (let i = 0; i < postProcesses.length; i++) {
+      const postProcess = postProcesses[i];
+
+      if (!(camera.postProcessMask & postProcess.layer)) {
+        continue;
+      }
+
+      const effects = postProcess.effects;
+
+      for (let j = 0; j < effects.length; j++) {
+        const effect = effects[j];
+
+        if (effect.enabled) {
+          effect.onRender(context, srcTexture, this._uberMaterial);
+        }
+      }
     }
 
     // Done with Uber, blit it
-    PipelineUtils.blitTexture(engine, srcTexture, destTarget, 0, camera.viewport, this._uberMaterial);
+    Blitter.blitTexture(engine, srcTexture, destTarget, 0, camera.viewport, this._uberMaterial);
   }
 }

@@ -350,8 +350,10 @@ export class Engine extends EventDispatcher {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
       const componentsManager = scene._componentsManager;
+      const postProcessManager = scene._postProcessManager;
       componentsManager.sortCameras();
       componentsManager.callScriptOnStart();
+      postProcessManager.sortPostProcess();
     }
 
     // Update physics and fire `onPhysicsUpdate`

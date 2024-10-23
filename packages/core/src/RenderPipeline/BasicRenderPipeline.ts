@@ -21,6 +21,7 @@ import {
   TextureFormat,
   TextureWrapMode
 } from "../texture";
+import { Blitter } from "./Blitter";
 import { CullingResults } from "./CullingResults";
 import { DepthOnlyPass } from "./DepthOnlyPass";
 import { OpaqueTexturePass } from "./OpaqueTexturePass";
@@ -199,10 +200,10 @@ export class BasicRenderPipeline {
     const postProcessManager = scene._postProcessManager;
     const cameraRenderTarget = camera.renderTarget;
     if (camera.enablePostProcess && postProcessManager.hasActiveEffect) {
-      postProcessManager._render(context, internalColorTarget, cameraRenderTarget);
+      postProcessManager.render(context, internalColorTarget, cameraRenderTarget);
     } else if (internalColorTarget) {
       internalColorTarget._blitRenderTarget();
-      PipelineUtils.blitTexture(
+      Blitter.blitTexture(
         engine,
         <Texture2D>internalColorTarget.getColorTexture(0),
         cameraRenderTarget,

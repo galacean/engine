@@ -7,6 +7,8 @@ import { Shader, ShaderMacro, ShaderPass, ShaderProperty } from "../../shader";
 import blitVs from "../../shaderlib/extra/Blit.vs.glsl";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureWrapMode } from "../../texture";
 
+import { Blitter } from "../../RenderPipeline/Blitter";
+import { PostProcessEffect } from "../PostProcessEffect";
 import fragBlurH from "../shaders/Bloom/BloomBlurH.glsl";
 import fragBlurV from "../shaders/Bloom/BloomBlurV.glsl";
 import fragPrefilter from "../shaders/Bloom/BloomPrefilter.glsl";
@@ -26,7 +28,7 @@ export enum BloomDownScaleMode {
   Quarter
 }
 
-export class BloomEffect {
+export class BloomEffect extends PostProcessEffect {
   static readonly SHADER_NAME = "PostProcessEffect Bloom";
 
   // Bloom shader properties
@@ -52,31 +54,11 @@ export class BloomEffect {
   private _mipDownRT: RenderTarget[] = [];
   private _mipUpRT: RenderTarget[] = [];
   private _maxIterations = 6;
-  private _enabled = false;
 
   /**
    * Controls the starting resolution that this effect begins processing.
    */
   downScale = BloomDownScaleMode.Half;
-
-  /**
-   * Indicates whether the post process effect is enabled.
-   */
-  get enabled(): boolean {
-    return this._enabled;
-  }
-
-  set enabled(value: boolean) {
-    if (value !== this._enabled) {
-      this._enabled = value;
-      if (value) {
-        this._uberMaterial.shaderData.enableMacro(BloomEffect._enableMacro);
-      } else {
-        this._uberMaterial.shaderData.disableMacro(BloomEffect._enableMacro);
-        this._releaseRenderTargets();
-      }
-    }
-  }
 
   /**
    * Set the level of brightness to filter out pixels under this level.
@@ -197,6 +179,7 @@ export class BloomEffect {
   }
 
   constructor(private _uberMaterial: Material) {
+    super();
     const engine = _uberMaterial.engine;
     const material = new Material(engine, Shader.find(BloomEffect.SHADER_NAME));
     const depthState = material.renderState.depthState;
@@ -220,7 +203,25 @@ export class BloomEffect {
     this.dirtIntensity = 1;
   }
 
-  onRender(context: RenderContext, srcTexture: Texture2D): void {
+  /**
+   *  @inheritdoc
+   */
+  override onEnable() {
+    this._uberMaterial.shaderData.enableMacro(BloomEffect._enableMacro);
+  }
+
+  /**
+   *  @inheritdoc
+   */
+  override onDisable(): void {
+    this._uberMaterial.shaderData.disableMacro(BloomEffect._enableMacro);
+    this._releaseRenderTargets();
+  }
+
+  /**
+   * @inheritdoc
+   */
+  override onRender(context: RenderContext, srcTexture: Texture2D): void {
     const camera = context.camera;
     const downRes = this.downScale === BloomDownScaleMode.Half ? 1 : 2;
     const pixelViewport = camera.pixelViewport;
@@ -284,7 +285,7 @@ export class BloomEffect {
       mipHeight = Math.max(1, Math.floor(mipHeight / 2));
     }
 
-    PipelineUtils.blitTexture(engine, srcTexture, this._mipDownRT[0], undefined, undefined, this._bloomMaterial, 0);
+    Blitter.blitTexture(engine, srcTexture, this._mipDownRT[0], undefined, undefined, this._bloomMaterial, 0);
   }
 
   private _downsample(mipCount: number): void {
@@ -297,7 +298,7 @@ export class BloomEffect {
       // Classic two pass gaussian blur - use mipUp as a temporary target
       // First pass does 2x downsampling + 9-tap gaussian
       // Second pass does 9-tap gaussian using a 5-tap filter + bilinear filtering
-      PipelineUtils.blitTexture(
+      Blitter.blitTexture(
         engine,
         <Texture2D>lastDown.getColorTexture(0),
         this._mipUpRT[i],
@@ -306,7 +307,7 @@ export class BloomEffect {
         material,
         1
       );
-      PipelineUtils.blitTexture(
+      Blitter.blitTexture(
         engine,
         <Texture2D>this._mipUpRT[i].getColorTexture(0),
         this._mipDownRT[i],
@@ -337,7 +338,7 @@ export class BloomEffect {
         texelSizeLow.set(1 / lowMip.width, 1 / lowMip.height, lowMip.width, lowMip.height);
       }
 
-      PipelineUtils.blitTexture(engine, <Texture2D>highMip.getColorTexture(0), dst, undefined, undefined, material, 3);
+      Blitter.blitTexture(engine, <Texture2D>highMip.getColorTexture(0), dst, undefined, undefined, material, 3);
     }
   }
 
