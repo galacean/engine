@@ -9,9 +9,9 @@ import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
+import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
-import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
 
@@ -26,7 +26,7 @@ export class SpriteMask extends Renderer {
 
   /** The mask layers the sprite mask influence to. */
   @assignmentClone
-  influenceLayers: number = SpriteMaskLayer.Everything;
+  influenceLayers: SpriteMaskLayer = SpriteMaskLayer.Everything;
   /** @internal */
   @ignoreClone
   _renderElement: RenderElement;
@@ -175,7 +175,7 @@ export class SpriteMask extends Renderer {
   constructor(entity: Entity) {
     super(entity);
     SimpleSpriteAssembler.resetData(this);
-    this.setMaterial(this._engine._spriteMaskDefaultMaterial);
+    this.setMaterial(this._engine._basicResources.spriteMaskDefaultMaterial);
     this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, this._alphaCutoff);
     this._renderElement = new RenderElement();
     this._renderElement.addSubRenderElement(new SubRenderElement());
@@ -261,7 +261,7 @@ export class SpriteMask extends Renderer {
     const { _engine: engine } = this;
     // @todo: This question needs to be raised rather than hidden.
     if (material.destroyed) {
-      material = engine._spriteMaskDefaultMaterial;
+      material = engine._basicResources.spriteMaskDefaultMaterial;
     }
 
     // Update position

@@ -1,6 +1,6 @@
-import { DisorderedArray } from "../DisorderedArray";
 import { ShaderData, ShaderProperty } from "../shader";
 import { ShadowType } from "../shadow";
+import { DisorderedArray } from "../utils/DisorderedArray";
 import { DirectLight, IDirectLightShaderData } from "./DirectLight";
 import { PointLight, IPointLightShaderData } from "./PointLight";
 import { SpotLight, ISpotLightShaderData } from "./SpotLight";

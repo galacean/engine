@@ -1,17 +1,25 @@
 import { ENonTerminal } from "../parser/GrammarSymbol";
 import { BaseToken as Token } from "../common/BaseToken";
-import { EKeyword } from "../common";
+import { EKeyword, ShaderPosition, ShaderRange } from "../common";
 import { ASTNode, TreeNode } from "../parser/AST";
 import { ESymbolType, FnSymbol, VarSymbol } from "../parser/symbolTable";
-import { ParserUtils } from "../Utils";
+import { ParserUtils } from "../ParserUtils";
 import { NodeChild } from "../parser/types";
 import { VisitorContext } from "./VisitorContext";
+import { ShaderLab } from "../ShaderLab";
+import { GSErrorName } from "../GSError";
+// #if _VERBOSE
+import { GSError } from "../GSError";
+// #endif
 
 /**
+ * @internal
  * The code generator
  */
 export class CodeGenVisitor {
-  protected constructor() {}
+  // #if _VERBOSE
+  readonly errors: GSError[] = [];
+  // #endif
 
   defaultCodeGen(children: NodeChild[]) {
     let ret: string[] = [];
@@ -35,10 +43,20 @@ export class CodeGenVisitor {
 
       if (prop instanceof Token) {
         if (context.isAttributeStruct(<string>postExpr.type)) {
-          context.referenceAttribute(prop.lexeme);
+          const error = context.referenceAttribute(prop);
+          // #if _VERBOSE
+          if (error) {
+            this.errors.push(error);
+          }
+          // #endif
           return prop.lexeme;
         } else if (context.isVaryingStruct(<string>postExpr.type)) {
-          context.referenceVarying(prop.lexeme);
+          const error = context.referenceVarying(prop);
+          // #if _VERBOSE
+          if (error) {
+            this.errors.push(error);
+          }
+          // #endif
           return prop.lexeme;
         }
 
@@ -171,5 +189,13 @@ export class CodeGenVisitor {
 
   visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {
     return this.defaultCodeGen(node.children);
+  }
+
+  protected _reportError(loc: ShaderRange | ShaderPosition, message: string): void {
+    // #if _VERBOSE
+    this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderLab._processingPassText));
+    // #else
+    throw new Error(message);
+    // #endif
   }
 }

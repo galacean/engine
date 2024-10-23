@@ -1,5 +1,5 @@
 import { MathUtil, Quaternion, Vector3, Matrix3x3, Matrix } from "@galacean/engine-math";
-import { expect } from "chai";
+import { describe, expect, it } from "vitest";
 
 function toString(q: Quaternion): string {
   return `quat(${q.x}, ${q.y}, ${q.z}, ${q.w})`;

@@ -1,13 +1,11 @@
-import { AssetPromise, ResourceManager, Texture2D } from "@galacean/engine-core";
+import { ResourceManager, Texture2D } from "@galacean/engine-core";
+import "@galacean/engine-loader";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import chai, { expect } from "chai";
-import spies from "chai-spies";
-
-chai.use(spies);
+import { vi, describe, beforeAll, beforeEach, expect, it } from "vitest";
 
 describe("ResourceManager", () => {
   let engine: WebGLEngine;
-  before(async function () {
+  beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     engine.run();
   });
@@ -69,16 +67,12 @@ describe("ResourceManager", () => {
       // @ts-ignore
       const glTFLoader = ResourceManager._loaders["GLTF"];
 
-      const loaderSpy = chai.spy.on(glTFLoader, "load", () => {
-        return new AssetPromise(() => {});
-      });
+      const loaderSpy = vi.spyOn(glTFLoader, "load");
 
       engine.resourceManager.load("/mock.glb");
       engine.resourceManager.load("/mock.glb");
       engine.resourceManager.load("/mock.glb?q=materials[0]");
-      expect(loaderSpy).to.have.been.called.once;
-
-      chai.spy.restore(glTFLoader, "load");
+      expect(loaderSpy).toHaveBeenCalled();
     });
   });
 });

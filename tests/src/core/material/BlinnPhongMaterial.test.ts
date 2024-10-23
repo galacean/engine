@@ -1,11 +1,11 @@
 import { Color, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { BlinnPhongMaterial, Texture2D } from "@galacean/engine-core";
-import { expect } from "chai";
+import { describe, beforeAll, expect, it } from "vitest";
 
-describe("BlinnPhongMaterial",  () => {
+describe("BlinnPhongMaterial", () => {
   let engine: WebGLEngine;
-  before(async function () {
+  beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   });
 

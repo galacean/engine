@@ -104,109 +104,109 @@ EditorMacros
 
 可以在 ShaderLab 中声明 4 类全局变量：渲染状态(RenderState)，结构体，函数，以及单变量。
 
-- 渲染状态
+### 渲染状态
 
-  包含混合状态(BlendState)，深度状态(DepthState)，模板状态(StencilState)，光栅化状态(RasterState)
+包含混合状态(BlendState)，深度状态(DepthState)，模板状态(StencilState)，光栅化状态(RasterState)
 
-  - BlendState
-
-    ```glsl
-    BlendState {
-      Enabled[n]: bool;
-      ColorBlendOperation[n]: BlendOperation;
-      AlphaBlendOperation[n]: BlendOperation;
-      SourceColorBlendFactor[n]: BlendFactor;
-      SourceAlphaBlendFactor[n]: BlendFactor;
-      DestinationColorBlendFactor[n]: BlendFactor;
-      DestinationAlphaBlendFactor[n]: BlendFactor;
-      ColorWriteMask[n]: float // 0xffffffff
-      BlendColor: vec4;
-      AlphaToCoverage: bool;
-    }
-    ```
-
-    [n] 可省略，在使用 MRT 的情况下， [n] 为指定某个 MRT 渲染状态，省略为设置所有 MRT 状态，BlendOperation 和 BlendFactor 枚举等同引擎 API
-
-  - DepthState
-
-    ```glsl
-    DepthState {
-      Enabled: bool;
-      WriteEnabled: bool;
-      CompareFunction: CompareFunction;
-    }
-    ```
-
-    CompareFunction 枚举等同引擎 API
-
-  - StencilState
-
-    ```glsl
-    StencilState {
-      Enabled: bool;
-      ReferenceValue: int;
-      Mask: float; // 0xffffffff
-      WriteMask: float; // 0xffffffff
-      CompareFunctionFront: CompareFunction;
-      CompareFunctionBack: CompareFunction;
-      PassOperationFront: StencilOperation;
-      PassOperationBack: StencilOperation;
-      FailOperationFront: StencilOperation;
-      FailOperationBack: StencilOperation;
-      ZFailOperationFront: StencilOperation;
-      ZFailOperationBack: StencilOperation;
-    }
-    ```
-
-    CompareFunction 和 StencilOperation 举等同引擎 API
-
-  - RasterState
-
-    ```glsl
-    RasterState {
-      CullMode: CullMode;
-      DepthBias: float;
-      SlopeScaledDepthBias: float;
-    }
-    ```
-
-    CullMode 举等同引擎 API
-
-  在`ShaderLab`中设置`BlendState`示例:
+- BlendState
 
   ```glsl
-  Shader "Demo" {
-    ...
-    BlendState customBlendState
-    {
-      Enabled = true;
-      // 常量复制方式
-      SourceColorBlendFactor = BlendFactor.SourceColor;
-      // 变量赋值方式
-      DestinationColorBlendFactor = material_DstBlend;
-    }
-    ...
-    Pass "0" {
-      ...
-      BlendState = customBlendState;
-      ...
-    }
+  BlendState {
+    Enabled[n]: bool;
+    ColorBlendOperation[n]: BlendOperation;
+    AlphaBlendOperation[n]: BlendOperation;
+    SourceColorBlendFactor[n]: BlendFactor;
+    SourceAlphaBlendFactor[n]: BlendFactor;
+    DestinationColorBlendFactor[n]: BlendFactor;
+    DestinationAlphaBlendFactor[n]: BlendFactor;
+    ColorWriteMask[n]: float // 0xffffffff
+    BlendColor: vec4;
+    AlphaToCoverage: bool;
   }
   ```
 
-  上述案例中对于 BlendState 属性赋值展示了 2 种方式: *常量赋值*和*变量赋值*方式:
+  [n] 可省略，在使用 MRT 的情况下， [n] 为指定某个 MRT 渲染状态，省略为设置所有 MRT 状态，BlendOperation 和 BlendFactor 枚举等同引擎 API
 
-  - 常量赋值指赋值语句右端为指定的对应引擎枚举变量，譬如：BlendFactor.SourceColor
-  - 变量赋值指赋值语句右端为任一变量名，变量具体值由用户通过脚本方式在运行时通过 ShaderData.setInt("material_DstBlend", BlendFactor.SourceColor) API 进行指定
-
-- 结构体、函数
-
-  等同 glsl 中的语法
-
-- 单变量
+- DepthState
 
   ```glsl
-  [lowp/mediump/highp] variableType variableName;
+  DepthState {
+    Enabled: bool;
+    WriteEnabled: bool;
+    CompareFunction: CompareFunction;
+  }
   ```
+
+  CompareFunction 枚举等同引擎 API
+
+- StencilState
+
+  ```glsl
+  StencilState {
+    Enabled: bool;
+    ReferenceValue: int;
+    Mask: float; // 0xffffffff
+    WriteMask: float; // 0xffffffff
+    CompareFunctionFront: CompareFunction;
+    CompareFunctionBack: CompareFunction;
+    PassOperationFront: StencilOperation;
+    PassOperationBack: StencilOperation;
+    FailOperationFront: StencilOperation;
+    FailOperationBack: StencilOperation;
+    ZFailOperationFront: StencilOperation;
+    ZFailOperationBack: StencilOperation;
+  }
+  ```
+
+  CompareFunction 和 StencilOperation 举等同引擎 API
+
+- RasterState
+
+  ```glsl
+  RasterState {
+    CullMode: CullMode;
+    DepthBias: float;
+    SlopeScaledDepthBias: float;
+  }
+  ```
+
+  CullMode 举等同引擎 API
+
+在`ShaderLab`中设置`BlendState`示例:
+
+```glsl
+Shader "Demo" {
+  ...
+  BlendState customBlendState
+  {
+    Enabled = true;
+    // 常量复制方式
+    SourceColorBlendFactor = BlendFactor.SourceColor;
+    // 变量赋值方式
+    DestinationColorBlendFactor = material_DstBlend;
+  }
+  ...
+  Pass "0" {
+    ...
+    BlendState = customBlendState;
+    ...
+  }
+}
+```
+
+上述案例中对于 BlendState 属性赋值展示了 2 种方式: *常量赋值*和*变量赋值*方式:
+
+- 常量赋值指赋值语句右端为指定的对应引擎枚举变量，譬如：BlendFactor.SourceColor
+- 变量赋值指赋值语句右端为任一变量名，变量具体值由用户通过脚本方式在运行时通过 ShaderData.setInt("material_DstBlend", BlendFactor.SourceColor) API 进行指定
+
+### 结构体、函数
+
+等同 glsl 中的语法
+
+### 单变量
+
+```glsl
+[lowp/mediump/highp] variableType variableName;
+```
 
 与其他编程语言类似，ShaderLab 中的全局变量也有作用域和同名覆盖原则。简单来说，ShaderLab 中的全局变量的作用范围仅限于其声明的 SubShader 或 Pass 模块内部，而同名覆盖原则指的是如果存在与 Pass 内部同名的全局变量，则 Pass 内的全局变量会覆盖 SubShader 内的同名全局变量。
