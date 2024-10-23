@@ -60,10 +60,10 @@ export default class PpScanner extends BaseScanner {
       if (LexerUtils.isLetter(this.getCurChar())) {
         ret.push(this.scanWord());
       } else if (this.getCurChar() === nonLetterChar) {
-        this.advance();
+        this._advance();
         return ret;
       } else {
-        this.advance();
+        this._advance();
       }
     }
   }
@@ -71,7 +71,7 @@ export default class PpScanner extends BaseScanner {
   scanWord(skipNonLetter = false): BaseToken {
     if (skipNonLetter) {
       while (!LexerUtils.isLetter(this.getCurChar()) && !this.isEnd()) {
-        this.advance();
+        this._advance();
       }
     } else {
       this.skipSpace(true);
@@ -81,7 +81,7 @@ export default class PpScanner extends BaseScanner {
 
     const start = this._currentIndex;
     while (LexerUtils.isLetter(this.getCurChar()) && !this.isEnd()) {
-      this.advance();
+      this._advance();
     }
     const end = this._currentIndex;
     const word = this._source.slice(start, end);
@@ -165,7 +165,7 @@ export default class PpScanner extends BaseScanner {
   scanToChar(char: string) {
     const source = this._source;
     while (source[this._currentIndex] !== char && !this.isEnd()) {
-      this.advance();
+      this._advance();
     }
   }
 
@@ -232,7 +232,7 @@ export default class PpScanner extends BaseScanner {
   scanInteger() {
     const start = this._currentIndex;
     while (LexerUtils.isNum(this.getCurChar())) {
-      this.advance();
+      this._advance();
     }
     if (this._currentIndex === start) {
       this.throwError(this.getShaderPosition(), "no integer found");
@@ -261,7 +261,7 @@ export default class PpScanner extends BaseScanner {
         token.set(EPpToken.line_remain, line, this.getShaderPosition(line.length));
         return token;
       }
-      this.advance();
+      this._advance();
       const commentRange = this._skipComments();
       if (commentRange) {
         commentRange.start.index -= start;

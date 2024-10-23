@@ -73,17 +73,17 @@ export default class BaseScanner {
     return this._source[this._currentIndex];
   }
 
-  advance(count = 1): void {
+  advance(count: number): void {
+    // #if _VERBOSE
     for (let i = 0; i < count; i++) {
       this._advance();
     }
+    // #else
+    this._currentIndex += count;
+    // #endif
   }
 
   _advance(): void {
-    if (this.isEnd()) {
-      return;
-    }
-
     // #if _VERBOSE
     if (this.getCurChar() === "\n") {
       this._line += 1;
