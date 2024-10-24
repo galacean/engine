@@ -11,8 +11,8 @@ export class AnimatorStateTransitionCollection {
   _transitions = new Array<AnimatorStateTransition>();
   /** @internal */
   _noExitTimeCount = 0;
-
-  needReset = true;
+  /** @internal */
+  _needReset = true;
 
   private _soloCount = 0;
   private _currentTransitionIndex = 0;
@@ -93,7 +93,7 @@ export class AnimatorStateTransitionCollection {
 
   resetTransitionIndex(isForwards: boolean): void {
     this._currentTransitionIndex = isForwards ? this._noExitTimeCount : this.count - 1;
-    this.needReset = false;
+    this._needReset = false;
   }
 
   forwardCheck(
@@ -102,7 +102,7 @@ export class AnimatorStateTransitionCollection {
     lastClipTime: number,
     curClipTime: number
   ): AnimatorStateTransition {
-    if (this.needReset) this.resetTransitionIndex(true);
+    if (this._needReset) this.resetTransitionIndex(true);
 
     const { _transitions: transitions } = this;
     let transitionIndex = this._currentTransitionIndex;
@@ -134,7 +134,7 @@ export class AnimatorStateTransitionCollection {
     lastClipTime: number,
     curClipTime: number
   ): AnimatorStateTransition {
-    if (this.needReset) this.resetTransitionIndex(false);
+    if (this._needReset) this.resetTransitionIndex(false);
 
     const { _transitions: transitions } = this;
     let transitionIndex = this._currentTransitionIndex;

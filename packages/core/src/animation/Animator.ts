@@ -1197,8 +1197,8 @@ export class Animator extends Component {
 
     animatorLayerData.layerState = LayerState.Playing;
     animatorLayerData.srcPlayData.reset(state, animatorStateData, state.clipEndFixedTime * normalizedTimeOffset);
-    animatorLayerData.layer.stateMachine._entryTransitionCollection.needReset = true;
-    animatorLayerData.layer.stateMachine._anyStateTransitionCollection.needReset = true;
+    animatorLayerData.layer.stateMachine._entryTransitionCollection._needReset = true;
+    animatorLayerData.layer.stateMachine._anyStateTransitionCollection._needReset = true;
 
     return true;
   }
@@ -1236,8 +1236,8 @@ export class Animator extends Component {
       animatorStateData,
       transition.offset * crossState.clipEndFixedTime
     );
-    animatorLayerData.layer.stateMachine._entryTransitionCollection.needReset = true;
-    animatorLayerData.layer.stateMachine._anyStateTransitionCollection.needReset = true;
+    animatorLayerData.layer.stateMachine._entryTransitionCollection._needReset = true;
+    animatorLayerData.layer.stateMachine._anyStateTransitionCollection._needReset = true;
 
     switch (animatorLayerData.layerState) {
       case LayerState.Standby:
