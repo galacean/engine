@@ -1071,7 +1071,7 @@ export class Animator extends Component {
           aniUpdate
         );
         if (!targetTransition) {
-          transitionCollection.resetTransitionIndex(true);
+          transitionCollection.needReset = true;
           targetTransition = this._checkSubTransition(
             layerData,
             state,
@@ -1103,7 +1103,7 @@ export class Animator extends Component {
           aniUpdate
         );
         if (!targetTransition) {
-          transitionCollection.resetTransitionIndex(false);
+          transitionCollection.needReset = true;
           targetTransition = this._checkBackwardsSubTransition(
             layerData,
             state,
@@ -1257,8 +1257,7 @@ export class Animator extends Component {
 
     animatorLayerData.layerState = LayerState.Playing;
     animatorLayerData.srcPlayData.reset(state, animatorStateData, state._getClipActualEndTime() * normalizedTimeOffset);
-    animatorLayerData.layer.stateMachine._entryTransitionCollection.needReset = true;
-    animatorLayerData.layer.stateMachine._anyStateTransitionCollection.needReset = true;
+    animatorLayerData.resetTransitionIndex();
 
     return true;
   }
@@ -1366,8 +1365,7 @@ export class Animator extends Component {
       animatorStateData,
       transition.offset * crossState._getClipActualEndTime()
     );
-    animatorLayerData.layer.stateMachine._entryTransitionCollection.needReset = true;
-    animatorLayerData.layer.stateMachine._anyStateTransitionCollection.needReset = true;
+    animatorLayerData.resetTransitionIndex();
 
     switch (animatorLayerData.layerState) {
       case LayerState.Standby:
