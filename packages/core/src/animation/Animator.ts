@@ -14,6 +14,7 @@ import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateTransition } from "./AnimatorStateTransition";
 import { AnimatorStateTransitionCollection } from "./AnimatorStateTransitionCollection";
 import { KeyframeValueType } from "./Keyframe";
+import { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
 import { AnimatorCullingMode } from "./enums/AnimatorCullingMode";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 import { AnimatorStatePlayState } from "./enums/AnimatorStatePlayState";
@@ -24,13 +25,11 @@ import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
-import { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
 
 /**
  * The controller of the animation system.
  */
 export class Animator extends Component {
-  /** @internal */
   private static _passedTriggerParameterNames = new Array<string>();
 
   /** Culling mode of this Animator. */
