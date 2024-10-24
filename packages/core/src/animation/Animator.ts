@@ -406,7 +406,7 @@ export class Animator extends Component {
         handlers.length = 0;
         for (let j = scriptCount - 1; j >= 0; j--) {
           const script = scripts[j];
-          const handler = <Function>script[funcName].bind(script);
+          const handler = <Function>script[funcName]?.bind(script);
           handler && handlers.push(handler);
         }
         eventHandlers.push(eventHandler);
