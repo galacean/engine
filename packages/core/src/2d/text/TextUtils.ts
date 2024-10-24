@@ -109,6 +109,7 @@ export class TextUtils {
     const pixelsPerUnit = Engine._pixelsPerUnit;
     const lineHeight = fontSizeInfo.size + renderer.lineSpacing * pixelsPerUnit;
     const wrapWidth = renderer.width * pixelsPerUnit;
+    const letterSpacing = renderer.letterSpacing * pixelsPerUnit;
     let textWidth = 0;
 
     subFont.nativeFontString = fontString;
@@ -155,6 +156,7 @@ export class TextUtils {
             if (lineWidth + wordWidth > wrapWidth) {
               // Push if before line is not empty
               if (lineWidth > 0) {
+                lineWidth -= letterSpacing;
                 this._pushLine(lines, lineWidths, lineMaxSizes, line, lineWidth, lineMaxAscent, lineMaxDescent);
               }
 
@@ -178,6 +180,7 @@ export class TextUtils {
           // Handle char
           // At least one char in a line
           if (lineWidth + w > wrapWidth && lineWidth > 0) {
+            lineWidth -= letterSpacing;
             this._pushLine(lines, lineWidths, lineMaxSizes, line, lineWidth, lineMaxAscent, lineMaxDescent);
             textWidth = Math.max(textWidth, lineWidth);
             notFirstLine = true;
@@ -186,19 +189,20 @@ export class TextUtils {
               lineWidth = lineMaxAscent = lineMaxDescent = 0;
             } else {
               line = char;
-              lineWidth = charInfo.xAdvance;
+              lineWidth = charInfo.xAdvance + letterSpacing;
               lineMaxAscent = ascent;
               lineMaxDescent = descent;
             }
           } else {
             line += char;
-            lineWidth += charInfo.xAdvance;
+            lineWidth += charInfo.xAdvance + letterSpacing;
             lineMaxAscent = Math.max(lineMaxAscent, ascent);
             lineMaxDescent = Math.max(lineMaxDescent, descent);
           }
         } else {
           if (wordWidth + charInfo.w > wrapWidth) {
             if (lineWidth > 0) {
+              lineWidth -= letterSpacing;
               this._pushLine(lines, lineWidths, lineMaxSizes, line, lineWidth, lineMaxAscent, lineMaxDescent);
               textWidth = Math.max(textWidth, lineWidth);
               line = "";
@@ -213,12 +217,12 @@ export class TextUtils {
             textWidth = Math.max(textWidth, wordWidth);
             notFirstLine = true;
             word = char;
-            wordWidth = charInfo.xAdvance;
+            wordWidth = charInfo.xAdvance + letterSpacing;
             wordMaxAscent = ascent;
             wordMaxDescent = descent;
           } else {
             word += char;
-            wordWidth += charInfo.xAdvance;
+            wordWidth += charInfo.xAdvance + letterSpacing;
             wordMaxAscent = Math.max(wordMaxAscent, ascent);
             wordMaxDescent = Math.max(wordMaxDescent, descent);
           }
@@ -230,6 +234,7 @@ export class TextUtils {
         if (lineWidth + wordWidth > wrapWidth) {
           // Push chars to a single line
           if (lineWidth > 0) {
+            lineWidth -= letterSpacing;
             this._pushLine(lines, lineWidths, lineMaxSizes, line, lineWidth, lineMaxAscent, lineMaxDescent);
           }
           textWidth = Math.max(textWidth, lineWidth);
@@ -237,6 +242,7 @@ export class TextUtils {
           lineWidth = 0;
           // Push word to a single line
           if (wordWidth > 0) {
+            wordWidth -= letterSpacing;
             this._pushLine(lines, lineWidths, lineMaxSizes, word, wordWidth, wordMaxAscent, wordMaxDescent);
           }
           textWidth = Math.max(textWidth, wordWidth);
@@ -250,6 +256,7 @@ export class TextUtils {
       }
 
       if (lineWidth > 0) {
+        lineWidth -= letterSpacing;
         this._pushLine(lines, lineWidths, lineMaxSizes, line, lineWidth, lineMaxAscent, lineMaxDescent);
         textWidth = Math.max(textWidth, lineWidth);
       }
@@ -281,16 +288,18 @@ export class TextUtils {
     const lineMaxSizes = new Array<FontSizeInfo>();
     const { _pixelsPerUnit } = Engine;
     const lineHeight = fontSizeInfo.size + renderer.lineSpacing * _pixelsPerUnit;
+    const letterSpacing = renderer.letterSpacing * _pixelsPerUnit;
 
     let width = 0;
     subFont.nativeFontString = fontString;
     for (let i = 0; i < textCount; ++i) {
       const line = subTexts[i];
-      let curWidth = 0;
+      const lineLength = line.length;
+      let curWidth = lineLength > 1 ? letterSpacing * (lineLength - 1) : 0;
       let maxAscent = 0;
       let maxDescent = 0;
 
-      for (let j = 0, m = line.length; j < m; ++j) {
+      for (let j = 0; j < lineLength; ++j) {
         const charInfo = TextUtils._getCharInfo(line[j], fontString, subFont);
         curWidth += charInfo.xAdvance;
         const { offsetY } = charInfo;
