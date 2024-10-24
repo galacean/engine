@@ -44,9 +44,10 @@ export class AnimatorStateTransitionCollection {
   }
 
   remove(transition: AnimatorStateTransition): void {
-    const index = this.transitions.indexOf(transition);
+    const transitions = this.transitions;
+    const index = transitions.indexOf(transition);
     if (index !== -1) {
-      this.transitions.splice(index, 1);
+      transitions.splice(index, 1);
       if (!transition.hasExitTime) {
         this.noExitTimeCount--;
       }
@@ -59,11 +60,12 @@ export class AnimatorStateTransitionCollection {
   }
 
   clear(): void {
-    for (let i = 0, n = this.transitions.length; i < n; i++) {
-      const transition = this.transitions[i];
+    const transitions = this.transitions;
+    for (let i = 0, n = transitions.length; i < n; i++) {
+      const transition = transitions[i];
       transition._collection = null;
     }
-    this.transitions.length = 0;
+    transitions.length = 0;
     this._soloCount = 0;
     this.noExitTimeCount = 0;
   }
