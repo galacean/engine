@@ -24,13 +24,14 @@ import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
+import { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
 
 /**
  * The controller of the animation system.
  */
 export class Animator extends Component {
   /** @internal */
-  static _passedTriggerParameterNames = new Array<string>();
+  private static _passedTriggerParameterNames = new Array<string>();
 
   /** Culling mode of this Animator. */
   cullingMode: AnimatorCullingMode = AnimatorCullingMode.None;
@@ -322,16 +323,6 @@ export class Animator extends Component {
 
     if (this._controllerUpdateFlag) {
       this._controllerUpdateFlag.flag = false;
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _deactivateTriggeredParameters(): void {
-    const passedTriggerParameterNames = Animator._passedTriggerParameterNames;
-    for (let i = 0, n = passedTriggerParameterNames.length; i < n; i++) {
-      this._parametersValueMap[passedTriggerParameterNames[i]] = false;
     }
   }
 
@@ -1064,9 +1055,9 @@ export class Animator extends Component {
     const endTime = state.clipEndTime * clipDuration;
 
     if (transitionCollection._noExitTimeCount) {
-      targetTransition = transitionCollection.checkNoExitTimeTransition(this);
+      targetTransition = this._checkNoExitTimeTransition(layerData, transitionCollection);
       if (targetTransition) {
-        return this._applyTransition(layerData, targetTransition, aniUpdate);
+        return targetTransition;
       }
     }
 
@@ -1138,6 +1129,24 @@ export class Animator extends Component {
     return targetTransition;
   }
 
+  private _checkNoExitTimeTransition(
+    layerData: AnimatorLayerData,
+    transitionCollection: AnimatorStateTransitionCollection
+  ): AnimatorStateTransition {
+    for (let i = 0, n = transitionCollection.count; i < n; ++i) {
+      const transition = transitionCollection.get(i);
+      if (
+        transition.mute ||
+        (transitionCollection.isSoloMode && !transition.solo) ||
+        !this._checkConditions(transition)
+      )
+        continue;
+
+      return this._applyTransition(layerData, transition, true);
+    }
+    return null;
+  }
+
   private _checkSubTransition(
     layerData: AnimatorLayerData,
     state: AnimatorState,
@@ -1146,9 +1155,30 @@ export class Animator extends Component {
     curClipTime: number,
     aniUpdate: boolean
   ): AnimatorStateTransition {
-    const transition = transitionCollection.forwardCheck(this, state, lastClipTime, curClipTime);
+    if (transitionCollection._needReset) transitionCollection.resetTransitionIndex(true);
 
-    if (transition) {
+    const { _transitions: transitions } = transitionCollection;
+    let transitionIndex = transitionCollection._currentTransitionIndex;
+    for (let n = transitions.length; transitionIndex < n; transitionIndex++) {
+      const transition = transitions[transitionIndex];
+      const exitTime = transition.exitTime * state.clipEndFixedTime;
+
+      if (exitTime > curClipTime) {
+        break;
+      }
+
+      if (exitTime < lastClipTime) continue;
+
+      transitionCollection._currentTransitionIndex = Math.min(transitionIndex + 1, n - 1);
+
+      if (
+        transition.mute ||
+        (transitionCollection.isSoloMode && !transition.solo) ||
+        !this._checkConditions(transition)
+      ) {
+        continue;
+      }
+
       return this._applyTransition(layerData, transition, aniUpdate);
     }
     return null;
@@ -1162,9 +1192,30 @@ export class Animator extends Component {
     curClipTime: number,
     aniUpdate: boolean
   ): AnimatorStateTransition {
-    const transition = transitionCollection.backwardCheck(this, state, lastClipTime, curClipTime);
+    if (transitionCollection._needReset) transitionCollection.resetTransitionIndex(false);
 
-    if (transition) {
+    const { _transitions: transitions } = transitionCollection;
+    let transitionIndex = transitionCollection._currentTransitionIndex;
+    for (let n = transitions.length; transitionIndex >= transitionCollection._noExitTimeCount; transitionIndex--) {
+      const transition = transitions[transitionIndex];
+      const exitTime = transition.exitTime * state.clipEndFixedTime;
+
+      if (exitTime < curClipTime) {
+        break;
+      }
+
+      if (exitTime > lastClipTime) continue;
+
+      transitionCollection._currentTransitionIndex = Math.max(transitionIndex - 1, 0);
+
+      if (
+        transition.mute ||
+        (transitionCollection.isSoloMode && !transition.solo) ||
+        !this._checkConditions(transition)
+      ) {
+        continue;
+      }
+
       return this._applyTransition(layerData, transition, aniUpdate);
     }
     return null;
@@ -1175,12 +1226,21 @@ export class Animator extends Component {
     transitionCollection: AnimatorStateTransitionCollection,
     aniUpdate: boolean
   ): AnimatorStateTransition {
-    const transition = transitionCollection.checkTransitionByCondition(this);
+    for (let i = 0, n = transitionCollection.count; i < n; i++) {
+      const transition = transitionCollection.get(i);
 
-    if (transition) {
-      return this._applyTransition(layerData, transition, aniUpdate);
+      if (transition.mute) continue;
+
+      if (transitionCollection.isSoloMode && !transition.solo) continue;
+
+      if (this._checkConditions(transition)) {
+        if (this._applyTransition(layerData, transition, aniUpdate)) {
+          return transition;
+        } else {
+          return null;
+        }
+      }
     }
-    return null;
   }
 
   private _preparePlay(state: AnimatorState, layerIndex: number, normalizedTimeOffset: number = 0): boolean {
@@ -1215,6 +1275,76 @@ export class Animator extends Component {
       return transition;
     }
     return success ? transition : null;
+  }
+
+  private _checkConditions(transition: AnimatorStateTransition): boolean {
+    const { conditions } = transition;
+    let allPass = true;
+    for (let i = 0, n = conditions.length; i < n; ++i) {
+      let pass = false;
+      const { mode, parameterName: name, threshold } = conditions[i];
+      const parameterValue = this.getParameterValue(name);
+
+      if (parameterValue === undefined) {
+        return false;
+      }
+
+      if (parameterValue === true) {
+        const parameter = this.getParameter(name);
+        if (parameter?._isTrigger) {
+          Animator._passedTriggerParameterNames.push(name);
+          pass = true;
+        }
+      }
+
+      if (!pass) {
+        switch (mode) {
+          case AnimatorConditionMode.Equals:
+            if (parameterValue === threshold) {
+              pass = true;
+            }
+            break;
+          case AnimatorConditionMode.Greater:
+            if (parameterValue > threshold) {
+              pass = true;
+            }
+            break;
+          case AnimatorConditionMode.Less:
+            if (parameterValue < threshold) {
+              pass = true;
+            }
+            break;
+          case AnimatorConditionMode.NotEquals:
+            if (parameterValue !== threshold) {
+              pass = true;
+            }
+            break;
+          case AnimatorConditionMode.If:
+            if (parameterValue === true) {
+              pass = true;
+            }
+            break;
+          case AnimatorConditionMode.IfNot:
+            if (parameterValue === false) {
+              pass = true;
+            }
+            break;
+        }
+      }
+
+      if (!pass) {
+        allPass = false;
+        break;
+      }
+    }
+
+    if (allPass) {
+      this._deactivateTriggeredParameters();
+    }
+
+    Animator._passedTriggerParameterNames.length = 0;
+
+    return allPass;
   }
 
   private _prepareCrossFadeByTransition(transition: AnimatorStateTransition, layerIndex: number): boolean {
@@ -1414,6 +1544,13 @@ export class Animator extends Component {
       this._callAnimatorScriptOnExit(state, layerIndex);
     } else {
       this._callAnimatorScriptOnUpdate(state, layerIndex);
+    }
+  }
+
+  private _deactivateTriggeredParameters(): void {
+    const passedTriggerParameterNames = Animator._passedTriggerParameterNames;
+    for (let i = 0, n = passedTriggerParameterNames.length; i < n; i++) {
+      this._parametersValueMap[passedTriggerParameterNames[i]] = false;
     }
   }
 }
