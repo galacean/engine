@@ -28,7 +28,7 @@ export class AnimatorLayerData {
     this.destPlayData = switchTemp;
   }
 
-  resetTransitionIndex(): void {
+  resetCurrentCheckIndex(): void {
     this.layer.stateMachine._entryTransitionCollection.needResetCurrentCheckIndex = true;
     this.layer.stateMachine._anyStateTransitionCollection.needResetCurrentCheckIndex = true;
   }

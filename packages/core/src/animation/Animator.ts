@@ -1257,7 +1257,7 @@ export class Animator extends Component {
 
     animatorLayerData.layerState = LayerState.Playing;
     animatorLayerData.srcPlayData.reset(state, animatorStateData, state._getClipActualEndTime() * normalizedTimeOffset);
-    animatorLayerData.resetTransitionIndex();
+    animatorLayerData.resetCurrentCheckIndex();
 
     return true;
   }
@@ -1365,7 +1365,7 @@ export class Animator extends Component {
       animatorStateData,
       transition.offset * crossState._getClipActualEndTime()
     );
-    animatorLayerData.resetTransitionIndex();
+    animatorLayerData.resetCurrentCheckIndex();
 
     switch (animatorLayerData.layerState) {
       case LayerState.Standby:
