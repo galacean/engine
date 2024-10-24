@@ -84,22 +84,6 @@ export class AnimatorState {
   }
 
   /**
-   * @internal
-   * The fixed start time of the clip, the range is 0 to clip.length, default is 0.
-   */
-  get clipStartFixedTime(): number {
-    return this._clipStartTime * this.clip.length;
-  }
-
-  /**
-   * @internal
-   * The fixed end time of the clip, the range is 0 to clip.length, default is clip.length.
-   */
-  get clipEndFixedTime(): number {
-    return this._clipEndTime * this.clip.length;
-  }
-
-  /**
    * @param name - The state's name
    */
   constructor(public readonly name: string) {
@@ -206,5 +190,19 @@ export class AnimatorState {
    */
   _onClipChanged(): void {
     this._updateFlagManager.dispatch();
+  }
+
+  /**
+   * @internal
+   */
+  _getClipActualStartTime(): number {
+    return this._clipStartTime * this.clip.length;
+  }
+
+  /**
+   * @internal
+   */
+  _getClipActualEndTime(): number {
+    return this._clipEndTime * this.clip.length;
   }
 }

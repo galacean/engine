@@ -630,7 +630,7 @@ export class Animator extends Component {
 
     let playCostTime: number;
     if (transition) {
-      const clipEndTime = state.clipEndFixedTime;
+      const clipEndTime = state._getClipActualEndTime();
 
       if (transition.hasExitTime) {
         const exitTime = transition.exitTime * clipEndTime;
@@ -642,7 +642,7 @@ export class Animator extends Component {
             playCostTime = exitTime - lastClipTime;
           }
         } else {
-          const startTime = state.clipStartFixedTime;
+          const startTime = state._getClipActualStartTime();
           if (lastClipTime < exitTime) {
             playCostTime = clipEndTime - exitTime + lastClipTime - startTime;
           } else {
@@ -736,12 +736,12 @@ export class Animator extends Component {
     let dstPlayCostTime: number;
     if (destPlayData.isForward) {
       // The time that has been played
-      const playedTime = lastDestClipTime - destState.clipStartFixedTime;
+      const playedTime = lastDestClipTime - destState._getClipActualStartTime();
       dstPlayCostTime =
         playedTime + dstPlayDeltaTime > transitionDuration ? transitionDuration - playedTime : dstPlayDeltaTime;
     } else {
       // The time that has been played
-      const playedTime = destState.clipEndFixedTime - lastDestClipTime;
+      const playedTime = destState._getClipActualEndTime() - lastDestClipTime;
       dstPlayCostTime =
         // -dstPlayDeltaTime: The time that will be played, negative are meant to make it be a periods
         // > transition: The time that will be played is enough to finish the transition
@@ -863,7 +863,7 @@ export class Animator extends Component {
         lastDestClipTime + playDeltaTime > transitionDuration ? transitionDuration - lastDestClipTime : playDeltaTime;
     } else {
       // The time that has been played
-      const playedTime = state.clipEndFixedTime - lastDestClipTime;
+      const playedTime = state._getClipActualEndTime() - lastDestClipTime;
       dstPlayCostTime =
         // -playDeltaTime: The time that will be played, negative are meant to make it be a periods
         // > transition: The time that will be played is enough to finish the transition
@@ -1161,7 +1161,7 @@ export class Animator extends Component {
     let transitionIndex = transitionCollection.currentTransitionIndex;
     for (let n = transitions.length; transitionIndex < n; transitionIndex++) {
       const transition = transitions[transitionIndex];
-      const exitTime = transition.exitTime * state.clipEndFixedTime;
+      const exitTime = transition.exitTime * state._getClipActualEndTime();
 
       if (exitTime > curClipTime) {
         break;
@@ -1169,7 +1169,7 @@ export class Animator extends Component {
 
       if (exitTime < lastClipTime) continue;
 
-      transitionCollection.currentTransitionIndex = Math.min(transitionIndex + 1, n - 1);
+      transitionCollection.updateTransitionIndexOffset(true);
 
       if (
         transition.mute ||
@@ -1198,7 +1198,7 @@ export class Animator extends Component {
     let transitionIndex = transitionCollection.currentTransitionIndex;
     for (let n = transitions.length; transitionIndex >= transitionCollection.noExitTimeCount; transitionIndex--) {
       const transition = transitions[transitionIndex];
-      const exitTime = transition.exitTime * state.clipEndFixedTime;
+      const exitTime = transition.exitTime * state._getClipActualEndTime();
 
       if (exitTime < curClipTime) {
         break;
@@ -1206,7 +1206,7 @@ export class Animator extends Component {
 
       if (exitTime > lastClipTime) continue;
 
-      transitionCollection.currentTransitionIndex = Math.max(transitionIndex - 1, 0);
+      transitionCollection.updateTransitionIndexOffset(false);
 
       if (
         transition.mute ||
@@ -1256,7 +1256,7 @@ export class Animator extends Component {
     this._preparePlayOwner(animatorLayerData, state);
 
     animatorLayerData.layerState = LayerState.Playing;
-    animatorLayerData.srcPlayData.reset(state, animatorStateData, state.clipEndFixedTime * normalizedTimeOffset);
+    animatorLayerData.srcPlayData.reset(state, animatorStateData, state._getClipActualEndTime() * normalizedTimeOffset);
     animatorLayerData.layer.stateMachine._entryTransitionCollection.needReset = true;
     animatorLayerData.layer.stateMachine._anyStateTransitionCollection.needReset = true;
 
@@ -1364,7 +1364,7 @@ export class Animator extends Component {
     animatorLayerData.destPlayData.reset(
       crossState,
       animatorStateData,
-      transition.offset * crossState.clipEndFixedTime
+      transition.offset * crossState._getClipActualEndTime()
     );
     animatorLayerData.layer.stateMachine._entryTransitionCollection.needReset = true;
     animatorLayerData.layer.stateMachine._anyStateTransitionCollection.needReset = true;
@@ -1402,8 +1402,8 @@ export class Animator extends Component {
     deltaTime: number
   ): void {
     const { state, isForward, clipTime } = playData;
-    const startTime = state.clipStartFixedTime;
-    const endTime = state.clipEndFixedTime;
+    const startTime = state._getClipActualStartTime();
+    const endTime = state._getClipActualEndTime();
 
     if (isForward) {
       if (lastClipTime + deltaTime >= endTime) {
