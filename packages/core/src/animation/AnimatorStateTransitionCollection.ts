@@ -102,8 +102,9 @@ export class AnimatorStateTransitionCollection {
     lastClipTime: number,
     curClipTime: number
   ): AnimatorStateTransition {
-    const { _transitions: transitions, isSoloMode } = this;
     if (this.needReset) this.resetTransitionIndex(true);
+
+    const { _transitions: transitions } = this;
     let transitionIndex = this._currentTransitionIndex;
     for (let n = transitions.length; transitionIndex < n; transitionIndex++) {
       const transition = transitions[transitionIndex];
@@ -118,7 +119,9 @@ export class AnimatorStateTransitionCollection {
 
       this._currentTransitionIndex = Math.min(transitionIndex + 1, n - 1);
 
-      if (transition.mute || (isSoloMode && !transition.solo) || !this.checkConditions(animator, transition)) continue;
+      if (transition.mute || (this.isSoloMode && !transition.solo) || !this.checkConditions(animator, transition)) {
+        continue;
+      }
 
       return transition;
     }
@@ -131,8 +134,9 @@ export class AnimatorStateTransitionCollection {
     lastClipTime: number,
     curClipTime: number
   ): AnimatorStateTransition {
-    const { _transitions: transitions, isSoloMode } = this;
     if (this.needReset) this.resetTransitionIndex(false);
+
+    const { _transitions: transitions } = this;
     let transitionIndex = this._currentTransitionIndex;
     for (let n = transitions.length; transitionIndex >= this._noExitTimeCount; transitionIndex--) {
       const transition = transitions[transitionIndex];
@@ -147,19 +151,19 @@ export class AnimatorStateTransitionCollection {
 
       this._currentTransitionIndex = Math.max(transitionIndex - 1, 0);
 
-      if (transition.mute || (isSoloMode && !transition.solo) || !this.checkConditions(animator, transition)) continue;
-
-      return transition;
+      if (transition.mute || (this.isSoloMode && !transition.solo) || !this.checkConditions(animator, transition)) {
+        continue;
+      }
     }
     return null;
   }
 
   checkNoExitTimeTransition(animator: Animator): AnimatorStateTransition {
-    const transitionCollection = this;
-    const { _transitions: transitions, isSoloMode, _noExitTimeCount: noExitTimeCount } = transitionCollection;
-    for (let i = 0; i < noExitTimeCount; ++i) {
-      const transition = transitions[i];
-      if (transition.mute || (isSoloMode && !transition.solo) || !this.checkConditions(animator, transition)) continue;
+    for (let i = 0; i < this._noExitTimeCount; ++i) {
+      const transition = this._transitions[i];
+      if (transition.mute || (this.isSoloMode && !transition.solo) || !this.checkConditions(animator, transition)) {
+        continue;
+      }
 
       return transition;
     }
