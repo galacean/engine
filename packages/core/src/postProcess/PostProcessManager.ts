@@ -12,23 +12,37 @@ import { PostProcess } from "./PostProcess";
 export class PostProcessManager {
   static readonly UBER_SHADER_NAME = "UberPost";
 
-  /**
-   * Whether the post process manager is active.
-   */
-  isActive = true;
-
   /** @internal */
   _uberMaterial: Material;
 
   private _activePostProcesses: PostProcess[] = [];
   private _postProcessNeedSorting = false;
+  private _hasActiveEffect = false;
+  private _activeStateChangeFlag = false;
 
   /**
    * Whether has active post process effect.
    */
   get hasActiveEffect(): boolean {
-    // @todo
-    return this.isActive;
+    if (!this._activeStateChangeFlag) {
+      return this._hasActiveEffect;
+    }
+    this._activeStateChangeFlag = false;
+
+    for (let i = 0; i < this._activePostProcesses.length; i++) {
+      const postProcess = this._activePostProcesses[i];
+      if (postProcess.enabled) {
+        for (let j = 0; j < postProcess._effects.length; j++) {
+          if (postProcess._effects[j].enabled) {
+            this._hasActiveEffect = true;
+            return true;
+          }
+        }
+      }
+    }
+
+    this._hasActiveEffect = false;
+    return false;
   }
 
   /**
@@ -48,6 +62,7 @@ export class PostProcessManager {
 
   addPostProcess(postProcess: PostProcess): void {
     this._activePostProcesses.push(postProcess);
+    this._setActiveStateDirty();
     this._postProcessNeedSorting = true;
   }
 
@@ -56,6 +71,7 @@ export class PostProcessManager {
 
     if (index >= 0) {
       this._activePostProcesses.splice(index, 1);
+      this._setActiveStateDirty();
       this._postProcessNeedSorting = true;
     }
   }
@@ -86,7 +102,7 @@ export class PostProcessManager {
         continue;
       }
 
-      const effects = postProcess.effects;
+      const effects = postProcess._effects;
 
       for (let j = 0; j < effects.length; j++) {
         const effect = effects[j];
@@ -98,5 +114,12 @@ export class PostProcessManager {
 
     // Done with Uber, blit it
     Blitter.blitTexture(engine, srcTexture, destTarget, 0, camera.viewport, this._uberMaterial);
+  }
+
+  /**
+   * @internal
+   */
+  _setActiveStateDirty(): void {
+    this._activeStateChangeFlag = true;
   }
 }

@@ -1,5 +1,5 @@
 import { Logger } from "../base";
-import { deepClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { Layer } from "../Layer";
@@ -28,29 +28,14 @@ export class PostProcess extends Component {
    */
   readonly isGlobal = true;
 
-  @deepClone
-  private _effects: PostProcessEffect[] = [];
-
-  get effects(): PostProcessEffect[] {
-    return this._effects;
-  }
+  /**
+   * @internal
+   */
+  @ignoreClone
+  _effects: PostProcessEffect[] = [];
 
   constructor(entity: Entity) {
     super(entity);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  override _onEnable() {
-    this.scene._postProcessManager.addPostProcess(this);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  override _onDisable() {
-    this.scene._postProcessManager.removePostProcess(this);
   }
 
   /**
@@ -84,6 +69,7 @@ export class PostProcess extends Component {
 
     const effect = new type(this);
     this._effects.push(effect);
+    effect._setActive(true);
     return effect;
   }
 
@@ -98,7 +84,41 @@ export class PostProcess extends Component {
 
     if (effectFind) {
       effects.splice(effects.indexOf(effectFind), 1);
+      effectFind._setActive(false);
       return effectFind;
+    }
+  }
+
+  /**
+   * @inheritdoc
+   */
+  override _onEnable() {
+    this.scene._postProcessManager.addPostProcess(this);
+    this._setActiveEffects(true);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  override _onDisable() {
+    this.scene._postProcessManager.removePostProcess(this);
+    this._setActiveEffects(false);
+  }
+
+  private _setActiveEffects(isActive: boolean): void {
+    const effects = this._effects;
+    for (let i = 0, length = effects.length; i < length; i++) {
+      effects[i]._setActive(isActive);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: PostProcess, srcRoot: Entity, targetRoot: Entity): void {
+    const effects = this._effects;
+    for (let i = 0; i < effects.length; i++) {
+      target.addEffect(<typeof PostProcessEffect>effects[i].constructor);
     }
   }
 }
