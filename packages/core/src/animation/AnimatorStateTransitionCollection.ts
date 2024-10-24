@@ -1,7 +1,5 @@
-import { Animator } from "./Animator";
 import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateTransition } from "./AnimatorStateTransition";
-import { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
 
 /**
  * @internal
@@ -40,11 +38,7 @@ export class AnimatorStateTransitionCollection {
       transition = transitionOrAnimatorState;
     }
 
-    if (transition.hasExitTime) {
-      this._addHasExitTimeTransition(transition);
-    } else {
-      this._addNoExitTimeTransition(transition);
-    }
+    this._addTransition(transition);
 
     transition._collection = this;
     if (transition.solo) {
@@ -85,11 +79,7 @@ export class AnimatorStateTransitionCollection {
   updateTransitionsIndex(transition: AnimatorStateTransition, hasExitTime: boolean): void {
     const transitions = this._transitions;
     transitions.splice(transitions.indexOf(transition), 1);
-    if (hasExitTime) {
-      this._addHasExitTimeTransition(transition);
-    } else {
-      this._addNoExitTimeTransition(transition);
-    }
+    this._addTransition(transition);
   }
 
   resetTransitionIndex(isForwards: boolean): void {
@@ -97,8 +87,15 @@ export class AnimatorStateTransitionCollection {
     this._needReset = false;
   }
 
-  private _addHasExitTimeTransition(transition: AnimatorStateTransition): void {
+  private _addTransition(transition: AnimatorStateTransition): void {
     const transitions = this._transitions;
+
+    if (!transition.hasExitTime) {
+      transitions.unshift(transition);
+      this._noExitTimeCount++;
+      return;
+    }
+
     const { exitTime } = transition;
     const count = transitions.length;
     const maxExitTime = count ? transitions[count - 1].exitTime : 0;
@@ -109,10 +106,5 @@ export class AnimatorStateTransitionCollection {
       while (--index >= 0 && exitTime < transitions[index].exitTime);
       transitions.splice(index + 1, 0, transition);
     }
-  }
-
-  private _addNoExitTimeTransition(transition: AnimatorStateTransition): void {
-    this._transitions.unshift(transition);
-    this._noExitTimeCount++;
   }
 }
