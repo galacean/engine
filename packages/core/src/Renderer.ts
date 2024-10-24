@@ -497,7 +497,7 @@ export class Renderer extends Component implements IComponentCustomClone {
    * @internal
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
-    BoundingBox.transform(this.localBounds, this._entity.transform.worldMatrix, worldBounds);
+    BoundingBox.transform(this.localBounds, this._transform.worldMatrix, worldBounds);
   }
 
   /**

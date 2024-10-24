@@ -308,21 +308,20 @@ export class UICanvas extends Component implements IUIElement {
    * @internal
    */
   _raycast(ray: Ray, out: HitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
-    const entity = this._entity;
+    const transform = this._transform;
     const plane = UIRenderer._tempPlane;
-    const transform = entity.transform;
     const normal = plane.normal.copyFrom(transform.worldForward);
     plane.distance = -Vector3.dot(normal, transform.worldPosition);
     const curDistance = ray.intersectPlane(plane);
     if (curDistance >= 0 && curDistance < distance) {
       const hitPointWorld = ray.getPoint(curDistance, UIRenderer._tempVec30);
       const worldMatrixInv = UIRenderer._tempMat;
-      Matrix.invert(this.entity.transform.worldMatrix, worldMatrixInv);
+      Matrix.invert(transform.worldMatrix, worldMatrixInv);
       const localPosition = UIRenderer._tempVec31;
       Vector3.transformCoordinate(hitPointWorld, worldMatrixInv, localPosition);
       if (this._hitTest(localPosition)) {
         out.distance = curDistance;
-        out.entity = entity;
+        out.entity = this._entity;
         out.component = this;
         out.normal.copyFrom(normal);
         out.point.copyFrom(hitPointWorld);

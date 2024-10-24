@@ -128,7 +128,6 @@ export class UIImage extends UIRenderer {
   set color(value: Color) {
     if (this._color !== value) {
       this._color.copyFrom(value);
-      this._dirtyUpdateFlag |= ImageUpdateFlags.Color;
     }
   }
 
@@ -142,6 +141,8 @@ export class UIImage extends UIRenderer {
     this._dirtyUpdateFlag |= ImageUpdateFlags.Color | RendererUpdateFlags.AllBounds;
     this.setMaterial(this._engine._basicResources.uiDefaultMaterial);
     this._onSpriteChange = this._onSpriteChange.bind(this);
+    //@ts-ignore
+    this._color._onValueChanged = this._onColorChange.bind(this);
   }
 
   override _onGroupModify(flag: GroupModifyFlags): void {
@@ -312,6 +313,11 @@ export class UIImage extends UIRenderer {
         this.sprite = null;
         break;
     }
+  }
+
+  @ignoreClone
+  private _onColorChange(): void {
+    this._dirtyUpdateFlag |= ImageUpdateFlags.Color;
   }
 }
 

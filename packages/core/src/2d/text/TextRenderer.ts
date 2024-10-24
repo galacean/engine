@@ -261,6 +261,7 @@ export class TextRenderer extends Renderer {
       localBounds.max.set(0, 0, 0);
     } else {
       this._updateLocalData();
+      this._setDirtyFlagFalse(RendererUpdateFlags.LocalPositionAndBounds);
     }
   }
 
@@ -271,7 +272,7 @@ export class TextRenderer extends Renderer {
     this.font = engine._textDefaultFont;
     this.setMaterial(engine._basicResources.textDefaultMaterial);
     //@ts-ignore
-    this._color._onValueChanged = this._onColorChanged.bind(this);
+    this._color._onValueChanged = this._onColorChange.bind(this);
   }
 
   /**
@@ -369,7 +370,7 @@ export class TextRenderer extends Renderer {
 
     if (this._isContainDirtyFlag(RendererUpdateFlags.LocalPosition)) {
       this._updateLocalData();
-      this._setDirtyFlagFalse(RendererUpdateFlags.LocalPosition);
+      this._setDirtyFlagFalse(RendererUpdateFlags.LocalPositionAndBounds);
     }
 
     if (this._isContainDirtyFlag(RendererUpdateFlags.WorldPosition)) {
@@ -435,13 +436,10 @@ export class TextRenderer extends Renderer {
 
         // Right offset
         Vector3.scale(right, localPositions.z - topLeftX, worldPosition1);
-
         // Top-Right
         Vector3.add(worldPosition0, worldPosition1, worldPosition1);
-
         // Up offset
         Vector3.scale(up, localPositions.w - topLeftY, worldPosition2);
-
         // Bottom-Left
         Vector3.add(worldPosition0, worldPosition2, worldPosition3);
         // Bottom-Right
@@ -611,6 +609,7 @@ export class TextRenderer extends Renderer {
       this._buildChunk(curTextChunk, charLength);
     }
     charRenderInfos.length = 0;
+    this._setDirtyFlagFalse(RendererUpdateFlags.LocalPositionAndBounds);
   }
 
   @ignoreClone
@@ -677,7 +676,7 @@ export class TextRenderer extends Renderer {
   }
 
   @ignoreClone
-  private _onColorChanged(): void {
+  private _onColorChange(): void {
     this._setDirtyFlagTrue(TextRendererUpdateFlags.Color);
   }
 }
