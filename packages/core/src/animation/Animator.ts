@@ -1039,7 +1039,7 @@ export class Animator extends Component {
 
   private _applyStateTransitions(
     layerData: AnimatorLayerData,
-    isForwards: boolean,
+    isForward: boolean,
     playData: AnimatorStatePlayData,
     transitionCollection: AnimatorStateTransitionCollection,
     lastClipTime: number,
@@ -1060,7 +1060,7 @@ export class Animator extends Component {
       }
     }
 
-    if (isForwards) {
+    if (isForward) {
       if (lastClipTime + deltaTime >= endTime) {
         targetTransition = this._checkSubTransition(
           layerData,
@@ -1158,7 +1158,7 @@ export class Animator extends Component {
     if (transitionCollection.needReset) transitionCollection.resetTransitionIndex(true);
 
     const { transitions } = transitionCollection;
-    let transitionIndex = transitionCollection.currentTransitionIndex;
+    let transitionIndex = transitionCollection.noExitTimeCount + transitionCollection.currentTransitionIndex;
     for (let n = transitions.length; transitionIndex < n; transitionIndex++) {
       const transition = transitions[transitionIndex];
       const exitTime = transition.exitTime * state._getClipActualEndTime();
@@ -1169,7 +1169,7 @@ export class Animator extends Component {
 
       if (exitTime < lastClipTime) continue;
 
-      transitionCollection.updateTransitionIndexOffset(true);
+      transitionCollection.updateCurrentTransitionIndex(true);
 
       if (
         transition.mute ||
@@ -1194,9 +1194,9 @@ export class Animator extends Component {
   ): AnimatorStateTransition {
     if (transitionCollection.needReset) transitionCollection.resetTransitionIndex(false);
 
-    const { transitions } = transitionCollection;
-    let transitionIndex = transitionCollection.currentTransitionIndex;
-    for (; transitionIndex >= transitionCollection.noExitTimeCount; transitionIndex--) {
+    const { transitions, noExitTimeCount } = transitionCollection;
+    let transitionIndex = transitionCollection.currentTransitionIndex + noExitTimeCount;
+    for (; transitionIndex >= noExitTimeCount; transitionIndex--) {
       const transition = transitions[transitionIndex];
       const exitTime = transition.exitTime * state._getClipActualEndTime();
 
@@ -1206,7 +1206,7 @@ export class Animator extends Component {
 
       if (exitTime > lastClipTime) continue;
 
-      transitionCollection.updateTransitionIndexOffset(false);
+      transitionCollection.updateCurrentTransitionIndex(false);
 
       if (
         transition.mute ||

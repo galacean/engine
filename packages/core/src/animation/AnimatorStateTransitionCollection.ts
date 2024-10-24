@@ -8,7 +8,7 @@ export class AnimatorStateTransitionCollection {
   transitions = new Array<AnimatorStateTransition>();
   noExitTimeCount = 0;
   needReset = true;
-  hasExitTimeIndexOffset = 0;
+  currentTransitionIndex: number;
 
   private _soloCount = 0;
 
@@ -18,10 +18,6 @@ export class AnimatorStateTransitionCollection {
 
   get count(): number {
     return this.transitions.length;
-  }
-
-  get currentTransitionIndex(): number {
-    return Math.min(this.hasExitTimeIndexOffset + this.noExitTimeCount, this.count - 1);
   }
 
   get(index: number): AnimatorStateTransition {
@@ -82,13 +78,14 @@ export class AnimatorStateTransitionCollection {
     this._addTransition(transition);
   }
 
-  updateTransitionIndexOffset(isForwards: boolean): void {
-    this.hasExitTimeIndexOffset = isForwards
-      ? Math.min(this.hasExitTimeIndexOffset + 1, this.count - this.noExitTimeCount)
-      : Math.max(this.hasExitTimeIndexOffset - 1, 0);
+  updateCurrentTransitionIndex(isForward: boolean): void {
+    this.currentTransitionIndex = isForward
+      ? Math.min(this.currentTransitionIndex + 1, this.count - this.noExitTimeCount - 1)
+      : Math.max(this.currentTransitionIndex - 1, 0);
   }
-  resetTransitionIndex(isForwards: boolean): void {
-    this.hasExitTimeIndexOffset = isForwards ? 0 : this.count - this.noExitTimeCount;
+
+  resetTransitionIndex(isForward: boolean): void {
+    this.currentTransitionIndex = isForward ? 0 : this.count - this.noExitTimeCount - 1;
     this.needReset = false;
   }
 

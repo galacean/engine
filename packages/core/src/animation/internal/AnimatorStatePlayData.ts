@@ -30,9 +30,9 @@ export class AnimatorStatePlayData {
 
   updateOrientation(deltaTime: number): void {
     if (deltaTime !== 0) {
-      const lastIsForwards = this.isForward;
+      const lastIsForward = this.isForward;
       this.isForward = deltaTime > 0;
-      if (this.isForward !== lastIsForwards) {
+      if (this.isForward !== lastIsForward) {
         this._changedOrientation = true;
         this.isForward || this._correctTime();
       }
