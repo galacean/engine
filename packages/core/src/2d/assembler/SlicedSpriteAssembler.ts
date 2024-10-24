@@ -147,13 +147,4 @@ export class SlicedSpriteAssembler {
       vertices[o + 3] = finalAlpha;
     }
   }
-
-  static updateAlpha(renderer: SpriteRenderer, alpha: number = 1): void {
-    const subChunk = renderer._subChunk;
-    const finalAlpha = renderer.color.a * alpha;
-    const vertices = subChunk.chunk.vertices;
-    for (let i = 0, o = subChunk.vertexArea.start + 5; i < 16; ++i, o += 9) {
-      vertices[o + 3] = finalAlpha;
-    }
-  }
 }

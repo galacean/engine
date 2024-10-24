@@ -16,5 +16,4 @@ export interface ISpriteAssembler {
   ): void;
   updateUVs?(renderer: Renderer): void;
   updateColor?(renderer: Renderer, alpha?: number): void;
-  updateAlpha?(renderer: Renderer, alpha: number): void;
 }

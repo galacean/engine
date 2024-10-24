@@ -274,6 +274,7 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
+  @ignoreClone
   override _onTransformChanged(type: TransformModifyFlags): void {
     this._dirtyUpdateFlag |= ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.AllBounds;
   }
@@ -284,7 +285,7 @@ export class ParticleRenderer extends Renderer {
  */
 export enum ParticleUpdateFlags {
   /** On World Transform Changed */
-  TransformVolume = 0x2,
+  TransformVolume = 0x10,
   /** On Generator Bounds Related Params Changed */
-  GeneratorVolume = 0x4
+  GeneratorVolume = 0x20
 }

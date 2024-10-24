@@ -190,16 +190,6 @@ export class TiledSpriteAssembler {
     }
   }
 
-  static updateAlpha(renderer: SpriteRenderer, alpha: number = 1): void {
-    const subChunk = renderer._subChunk;
-    const finalAlpha = renderer.color.a * alpha;
-    const vertices = subChunk.chunk.vertices;
-    const vertexArea = subChunk.vertexArea;
-    for (let i = 0, o = vertexArea.start + 5, n = vertexArea.size / 9; i < n; ++i, o += 9) {
-      vertices[o + 3] = finalAlpha;
-    }
-  }
-
   private static _calculateAdaptiveDividing(
     sprite: Sprite,
     width: number,

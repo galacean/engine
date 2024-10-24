@@ -33,7 +33,7 @@ export class TextRenderer extends Renderer {
 
   @ignoreClone
   private _textChunks = Array<TextChunk>();
-  @assignmentClone
+  @ignoreClone
   private _subFont: SubFont = null;
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
@@ -84,7 +84,7 @@ export class TextRenderer extends Renderer {
     value = value || "";
     if (this._text !== value) {
       this._text = value;
-      this._setDirtyFlagTrue(TextRendererUpdateFlag.PositionAndBounds);
+      this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
     }
   }
 
@@ -98,7 +98,7 @@ export class TextRenderer extends Renderer {
   set width(value: number) {
     if (this._width !== value) {
       this._width = value;
-      this._setDirtyFlagTrue(TextRendererUpdateFlag.PositionAndBounds);
+      this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
     }
   }
 
@@ -112,7 +112,7 @@ export class TextRenderer extends Renderer {
   set height(value: number) {
     if (this._height !== value) {
       this._height = value;
-      this._setDirtyFlagTrue(TextRendererUpdateFlag.PositionAndBounds);
+      this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
     }
   }
 
@@ -129,7 +129,7 @@ export class TextRenderer extends Renderer {
       lastFont && this._addResourceReferCount(lastFont, -1);
       value && this._addResourceReferCount(value, 1);
       this._font = value;
-      this._setDirtyFlagTrue(TextRendererUpdateFlag.FontPositionAndBounds);
+      this._setDirtyFlagTrue(TextRendererUpdateFlags.FontAllPositionAndBounds);
     }
   }
 
@@ -143,7 +143,7 @@ export class TextRenderer extends Renderer {
   set fontSize(value: number) {
     if (this._fontSize !== value) {
       this._fontSize = value;
-      this._setDirtyFlagTrue(TextRendererUpdateFlag.FontPositionAndBounds);
+      this._setDirtyFlagTrue(TextRendererUpdateFlags.FontAllPositionAndBounds);
     }
   }
 
@@ -157,7 +157,7 @@ export class TextRenderer extends Renderer {
   set fontStyle(value: FontStyle) {
     if (this.fontStyle !== value) {
       this._fontStyle = value;
-      this._setDirtyFlagTrue(TextRendererUpdateFlag.FontPositionAndBounds);
+      this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
     }
   }
 
@@ -171,7 +171,7 @@ export class TextRenderer extends Renderer {
   set lineSpacing(value: number) {
     if (this._lineSpacing !== value) {
       this._lineSpacing = value;
-      this._setDirtyFlagTrue(TextRendererUpdateFlag.PositionAndBounds);
+      this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
     }
   }
 
@@ -185,7 +185,7 @@ export class TextRenderer extends Renderer {
   set horizontalAlignment(value: TextHorizontalAlignment) {
     if (this._horizontalAlignment !== value) {
       this._horizontalAlignment = value;
-      this._setDirtyFlagTrue(TextRendererUpdateFlag.PositionAndBounds);
+      this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
     }
   }
 
@@ -199,7 +199,7 @@ export class TextRenderer extends Renderer {
   set verticalAlignment(value: TextVerticalAlignment) {
     if (this._verticalAlignment !== value) {
       this._verticalAlignment = value;
-      this._setDirtyFlagTrue(TextRendererUpdateFlag.PositionAndBounds);
+      this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
     }
   }
 
@@ -213,7 +213,7 @@ export class TextRenderer extends Renderer {
   set enableWrapping(value: boolean) {
     if (this._enableWrapping !== value) {
       this._enableWrapping = value;
-      this._setDirtyFlagTrue(TextRendererUpdateFlag.PositionAndBounds);
+      this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
     }
   }
 
@@ -227,7 +227,7 @@ export class TextRenderer extends Renderer {
   set overflowMode(value: OverflowMode) {
     if (this._overflowMode !== value) {
       this._overflowMode = value;
-      this._setDirtyFlagTrue(TextRendererUpdateFlag.PositionAndBounds);
+      this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
     }
   }
 
@@ -268,8 +268,7 @@ export class TextRenderer extends Renderer {
     super(entity);
 
     const { engine } = this;
-    this._font = engine._textDefaultFont;
-    this._addResourceReferCount(this._font, 1);
+    this.font = engine._textDefaultFont;
     this.setMaterial(engine._basicResources.textDefaultMaterial);
     //@ts-ignore
     this._color._onValueChanged = this._onColorChanged.bind(this);
@@ -298,7 +297,6 @@ export class TextRenderer extends Renderer {
   override _cloneTo(target: TextRenderer, srcRoot: Entity, targetRoot: Entity): void {
     super._cloneTo(target, srcRoot, targetRoot);
     target.font = this._font;
-    target._subFont = this._getSubFont();
   }
 
   /**
@@ -326,11 +324,11 @@ export class TextRenderer extends Renderer {
    * @internal
    */
   _getSubFont(): SubFont {
-    if (this._dirtyUpdateFlag & TextRendererUpdateFlag.SubFont) {
+    if (this._dirtyUpdateFlag & TextRendererUpdateFlags.SubFont) {
       const { fontSize, fontStyle, _font: font } = this;
       this._subFont = font._getSubFont(fontSize, fontStyle);
       this._subFont.nativeFontString = TextUtils.getNativeFontString(font.name, fontSize, fontStyle);
-      this._setDirtyFlagFalse(TextRendererUpdateFlag.SubFont);
+      this._setDirtyFlagFalse(TextRendererUpdateFlags.SubFont);
     }
     return this._subFont;
   }
@@ -369,19 +367,19 @@ export class TextRenderer extends Renderer {
       return;
     }
 
-    if (this._isContainDirtyFlag(TextRendererUpdateFlag.LocalPosition)) {
+    if (this._isContainDirtyFlag(RendererUpdateFlags.LocalPosition)) {
       this._updateLocalData();
-      this._setDirtyFlagFalse(TextRendererUpdateFlag.LocalPositionAndLocalBounds);
+      this._setDirtyFlagFalse(RendererUpdateFlags.LocalPosition);
     }
 
-    if (this._isContainDirtyFlag(TextRendererUpdateFlag.WorldPosition)) {
+    if (this._isContainDirtyFlag(RendererUpdateFlags.WorldPosition)) {
       this._updatePosition();
-      this._setDirtyFlagFalse(TextRendererUpdateFlag.WorldPosition);
+      this._setDirtyFlagFalse(RendererUpdateFlags.WorldPosition);
     }
 
-    if (this._isContainDirtyFlag(TextRendererUpdateFlag.Color)) {
+    if (this._isContainDirtyFlag(TextRendererUpdateFlags.Color)) {
       this._updateColor();
-      this._setDirtyFlagFalse(TextRendererUpdateFlag.Color);
+      this._setDirtyFlagFalse(TextRendererUpdateFlags.Color);
     }
 
     const camera = context.camera;
@@ -615,11 +613,9 @@ export class TextRenderer extends Renderer {
     charRenderInfos.length = 0;
   }
 
-  /**
-   * @internal
-   */
+  @ignoreClone
   protected override _onTransformChanged(bit: TransformModifyFlags): void {
-    this._setDirtyFlagTrue(TextRendererUpdateFlag.WorldPositionAndWorldBounds);
+    this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
   }
 
   private _isTextNoVisible(): boolean {
@@ -682,7 +678,7 @@ export class TextRenderer extends Renderer {
 
   @ignoreClone
   private _onColorChanged(): void {
-    this._setDirtyFlagTrue(TextRendererUpdateFlag.Color);
+    this._setDirtyFlagTrue(TextRendererUpdateFlags.Color);
   }
 }
 
@@ -695,18 +691,12 @@ class TextChunk {
 /**
  * @remarks Extends `RendererUpdateFlags`.
  */
-enum TextRendererUpdateFlag {
-  SubFont = 0x4,
-  LocalPosition = 0x8,
-  WorldPosition = 0x10,
+enum TextRendererUpdateFlags {
+  SubFont = 0x10,
   Color = 0x20,
 
-  LocalPositionAndLocalBounds = LocalPosition | RendererUpdateFlags.LocalBounds,
-  WorldPositionAndWorldBounds = WorldPosition | RendererUpdateFlags.WorldBounds,
-  PositionAndBounds = LocalPosition | WorldPosition | RendererUpdateFlags.LocalBounds | RendererUpdateFlags.WorldBounds,
-  FontPositionAndBounds = SubFont |
-    LocalPosition |
-    WorldPosition |
-    RendererUpdateFlags.LocalBounds |
-    RendererUpdateFlags.WorldBounds
+  /** SubFont | LocalPosition | WorldPosition | LocalBounds | WorldBounds */
+  FontAllPositionAndBounds = 0x1f,
+  /** SubFont | LocalPosition | WorldPosition | Color | LocalBounds | WorldBounds */
+  All = 0x3f
 }
