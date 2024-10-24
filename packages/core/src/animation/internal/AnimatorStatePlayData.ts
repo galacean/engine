@@ -25,7 +25,7 @@ export class AnimatorStatePlayData {
     this.playState = AnimatorStatePlayState.UnStarted;
     this.clipTime = state.clipStartTime * state.clip.length;
     this.currentEventIndex = 0;
-    this.currentTransitionIndex = 0;
+    this.currentTransitionIndex = state._transitionCollection._noExitTimeCount;
     this.isForwards = true;
   }
 

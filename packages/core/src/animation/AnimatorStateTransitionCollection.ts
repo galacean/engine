@@ -7,8 +7,8 @@ import { AnimatorStateTransition } from "./AnimatorStateTransition";
 export class AnimatorStateTransitionCollection {
   /** @internal */
   _transitions = new Array<AnimatorStateTransition>();
-  _hasExitTimeTransitions = new Array<AnimatorStateTransition>();
-  _noExitTimeTransitions = new Array<AnimatorStateTransition>();
+  /** @internal */
+  _noExitTimeCount = 0;
 
   private _soloCount = 0;
 
@@ -51,10 +51,8 @@ export class AnimatorStateTransitionCollection {
     const index = this._transitions.indexOf(transition);
     index !== -1 && this._transitions.splice(index, 1);
 
-    if (transition.hasExitTime) {
-      this._hasExitTimeTransitions.splice(this._hasExitTimeTransitions.indexOf(transition), 1);
-    } else {
-      this._noExitTimeTransitions.splice(this._noExitTimeTransitions.indexOf(transition), 1);
+    if (!transition.hasExitTime) {
+      this._noExitTimeCount--;
     }
 
     transition._collection = null;
@@ -69,9 +67,8 @@ export class AnimatorStateTransitionCollection {
       transition._collection = null;
     }
     this._transitions.length = 0;
-    this._hasExitTimeTransitions.length = 0;
-    this._noExitTimeTransitions.length = 0;
     this._soloCount = 0;
+    this._noExitTimeCount = 0;
   }
 
   updateTransitionSolo(isModifiedSolo: boolean): void {
@@ -82,10 +79,8 @@ export class AnimatorStateTransitionCollection {
     const transitions = this._transitions;
     transitions.splice(transitions.indexOf(transition), 1);
     if (hasExitTime) {
-      this._noExitTimeTransitions.splice(this._noExitTimeTransitions.indexOf(transition), 1);
       this._addHasExitTimeTransition(transition);
     } else {
-      this._hasExitTimeTransitions.splice(this._hasExitTimeTransitions.indexOf(transition), 1);
       this._addNoExitTimeTransition(transition);
     }
   }
@@ -102,11 +97,10 @@ export class AnimatorStateTransitionCollection {
       while (--index >= 0 && exitTime < transitions[index].exitTime);
       transitions.splice(index + 1, 0, transition);
     }
-    this._hasExitTimeTransitions.push(transition);
   }
 
   private _addNoExitTimeTransition(transition: AnimatorStateTransition): void {
-    this._noExitTimeTransitions.push(transition);
     this._transitions.unshift(transition);
+    this._noExitTimeCount++;
   }
 }
