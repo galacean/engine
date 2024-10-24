@@ -1071,7 +1071,7 @@ export class Animator extends Component {
           aniUpdate
         );
         if (!targetTransition) {
-          transitionCollection.needReset = true;
+          transitionCollection.needResetCurrentCheckIndex = true;
           targetTransition = this._checkSubTransition(
             layerData,
             state,
@@ -1103,7 +1103,7 @@ export class Animator extends Component {
           aniUpdate
         );
         if (!targetTransition) {
-          transitionCollection.needReset = true;
+          transitionCollection.needResetCurrentCheckIndex = true;
           targetTransition = this._checkBackwardsSubTransition(
             layerData,
             state,
@@ -1155,10 +1155,10 @@ export class Animator extends Component {
     curClipTime: number,
     aniUpdate: boolean
   ): AnimatorStateTransition {
-    if (transitionCollection.needReset) transitionCollection.resetTransitionIndex(true);
+    if (transitionCollection.needResetCurrentCheckIndex) transitionCollection.resetCurrentCheckIndex(true);
 
     const { transitions } = transitionCollection;
-    let transitionIndex = transitionCollection.noExitTimeCount + transitionCollection.currentTransitionIndex;
+    let transitionIndex = transitionCollection.noExitTimeCount + transitionCollection.currentCheckIndex;
     for (let n = transitions.length; transitionIndex < n; transitionIndex++) {
       const transition = transitions[transitionIndex];
       const exitTime = transition.exitTime * state._getClipActualEndTime();
@@ -1169,7 +1169,7 @@ export class Animator extends Component {
 
       if (exitTime < lastClipTime) continue;
 
-      transitionCollection.updateCurrentTransitionIndex(true);
+      transitionCollection.updateCurrentCheckIndex(true);
 
       if (
         transition.mute ||
@@ -1192,10 +1192,10 @@ export class Animator extends Component {
     curClipTime: number,
     aniUpdate: boolean
   ): AnimatorStateTransition {
-    if (transitionCollection.needReset) transitionCollection.resetTransitionIndex(false);
+    if (transitionCollection.needResetCurrentCheckIndex) transitionCollection.resetCurrentCheckIndex(false);
 
     const { transitions, noExitTimeCount } = transitionCollection;
-    let transitionIndex = transitionCollection.currentTransitionIndex + noExitTimeCount;
+    let transitionIndex = transitionCollection.currentCheckIndex + noExitTimeCount;
     for (; transitionIndex >= noExitTimeCount; transitionIndex--) {
       const transition = transitions[transitionIndex];
       const exitTime = transition.exitTime * state._getClipActualEndTime();
@@ -1206,7 +1206,7 @@ export class Animator extends Component {
 
       if (exitTime > lastClipTime) continue;
 
-      transitionCollection.updateCurrentTransitionIndex(false);
+      transitionCollection.updateCurrentCheckIndex(false);
 
       if (
         transition.mute ||

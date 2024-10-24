@@ -29,7 +29,7 @@ export class AnimatorLayerData {
   }
 
   resetTransitionIndex(): void {
-    this.layer.stateMachine._entryTransitionCollection.needReset = true;
-    this.layer.stateMachine._anyStateTransitionCollection.needReset = true;
+    this.layer.stateMachine._entryTransitionCollection.needResetCurrentCheckIndex = true;
+    this.layer.stateMachine._anyStateTransitionCollection.needResetCurrentCheckIndex = true;
   }
 }

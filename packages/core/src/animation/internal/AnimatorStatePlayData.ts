@@ -25,7 +25,7 @@ export class AnimatorStatePlayData {
     this.clipTime = state.clipStartTime * state.clip.length;
     this.currentEventIndex = 0;
     this.isForward = true;
-    this.state._transitionCollection.needReset = true;
+    this.state._transitionCollection.needResetCurrentCheckIndex = true;
   }
 
   updateOrientation(deltaTime: number): void {
