@@ -1054,7 +1054,7 @@ export class Animator extends Component {
     const endTime = state.clipEndTime * clipDuration;
 
     if (transitionCollection._noExitTimeCount) {
-      targetTransition = this._checkNoExitTimeTransition(layerData, transitionCollection);
+      targetTransition = this._checkNoExitTimeTransition(layerData, transitionCollection, aniUpdate);
       if (targetTransition) {
         return targetTransition;
       }
@@ -1130,7 +1130,8 @@ export class Animator extends Component {
 
   private _checkNoExitTimeTransition(
     layerData: AnimatorLayerData,
-    transitionCollection: AnimatorStateTransitionCollection
+    transitionCollection: AnimatorStateTransitionCollection,
+    aniUpdate: boolean
   ): AnimatorStateTransition {
     for (let i = 0, n = transitionCollection.count; i < n; ++i) {
       const transition = transitionCollection.get(i);
@@ -1141,7 +1142,7 @@ export class Animator extends Component {
       )
         continue;
 
-      return this._applyTransition(layerData, transition, true);
+      return this._applyTransition(layerData, transition, aniUpdate);
     }
     return null;
   }
