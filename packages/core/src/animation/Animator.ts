@@ -1196,7 +1196,7 @@ export class Animator extends Component {
 
     const { transitions } = transitionCollection;
     let transitionIndex = transitionCollection.currentTransitionIndex;
-    for (let n = transitions.length; transitionIndex >= transitionCollection.noExitTimeCount; transitionIndex--) {
+    for (; transitionIndex >= transitionCollection.noExitTimeCount; transitionIndex--) {
       const transition = transitions[transitionIndex];
       const exitTime = transition.exitTime * state._getClipActualEndTime();
 

@@ -83,10 +83,9 @@ export class AnimatorStateTransitionCollection {
   }
 
   updateTransitionIndexOffset(isForwards: boolean): void {
-    this.hasExitTimeIndexOffset += isForwards ? 1 : -1;
     this.hasExitTimeIndexOffset = isForwards
-      ? Math.min(this.hasExitTimeIndexOffset, this.count - this.noExitTimeCount)
-      : Math.max(this.hasExitTimeIndexOffset, 0);
+      ? Math.min(this.hasExitTimeIndexOffset + 1, this.count - this.noExitTimeCount)
+      : Math.max(this.hasExitTimeIndexOffset - 1, 0);
   }
   resetTransitionIndex(isForwards: boolean): void {
     this.hasExitTimeIndexOffset = isForwards ? 0 : this.count - this.noExitTimeCount;
