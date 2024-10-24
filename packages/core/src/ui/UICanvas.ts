@@ -558,9 +558,8 @@ export class UICanvas extends Component implements IUIElement {
 
   private _getRealRenderMode(): number {
     if (this._isRootCanvas) {
-      const { _renderMode: mode, _renderCamera: camera } = this;
-      // @ts-ignore
-      if (mode === CanvasRenderMode.ScreenSpaceCamera && (!camera || !camera._phasedActiveInScene)) {
+      const mode = this._renderMode;
+      if (mode === CanvasRenderMode.ScreenSpaceCamera && !this._renderCamera?.enabled) {
         return CanvasRenderMode.ScreenSpaceOverlay;
       } else {
         return mode;
