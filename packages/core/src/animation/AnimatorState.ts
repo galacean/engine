@@ -33,7 +33,7 @@ export class AnimatorState {
    * The transitions that are going out of the state.
    */
   get transitions(): Readonly<AnimatorStateTransition[]> {
-    return this._transitionCollection._transitions;
+    return this._transitionCollection.transitions;
   }
 
   /**
