@@ -3,6 +3,7 @@ import { Component } from "./Component";
 import { Renderer } from "./Renderer";
 import { Script } from "./Script";
 import { Animator } from "./animation";
+import { CanvasRenderMode, UICanvas } from "./ui";
 import { DisorderedArray } from "./utils/DisorderedArray";
 
 /**
@@ -15,6 +16,13 @@ export class ComponentsManager {
   _activeCameras: DisorderedArray<Camera> = new DisorderedArray();
   /** @internal */
   _renderers: DisorderedArray<Renderer> = new DisorderedArray();
+
+  /** @internal */
+  _overlayCanvases: DisorderedArray<UICanvas> = new DisorderedArray();
+  /* @internal */
+  _overlayCanvasesSortingFlag: boolean = false;
+  /** @internal */
+  _canvases: DisorderedArray<UICanvas> = new DisorderedArray();
 
   // Script
   private _onStartScripts: DisorderedArray<Script> = new DisorderedArray();
@@ -67,6 +75,42 @@ export class ComponentsManager {
     const replaced = this._renderers.deleteByIndex(renderer._rendererIndex);
     replaced && (replaced._rendererIndex = renderer._rendererIndex);
     renderer._rendererIndex = -1;
+  }
+
+  addUICanvas(mode: CanvasRenderMode, uiCanvas: UICanvas) {
+    let canvases: DisorderedArray<UICanvas>;
+    if (mode === CanvasRenderMode.ScreenSpaceOverlay) {
+      canvases = this._overlayCanvases;
+      this._overlayCanvasesSortingFlag = true;
+    } else {
+      canvases = this._canvases;
+    }
+    uiCanvas._canvasIndex = canvases.length;
+    canvases.add(uiCanvas);
+  }
+
+  removeUICanvas(mode: CanvasRenderMode, uiCanvas: UICanvas) {
+    let canvases: DisorderedArray<UICanvas>;
+    if (mode === CanvasRenderMode.ScreenSpaceOverlay) {
+      canvases = this._overlayCanvases;
+      this._overlayCanvasesSortingFlag = true;
+    } else {
+      canvases = this._canvases;
+    }
+    const replaced = canvases.deleteByIndex(uiCanvas._canvasIndex);
+    replaced && (replaced._canvasIndex = uiCanvas._canvasIndex);
+    uiCanvas._canvasIndex = -1;
+  }
+
+  sortUICanvases(): void {
+    if (this._overlayCanvasesSortingFlag) {
+      const overlayCanvases = this._overlayCanvases;
+      overlayCanvases.sort((a, b) => a.sortOrder - b.sortOrder);
+      for (let i = 0, n = overlayCanvases.length; i < n; i++) {
+        overlayCanvases.get(i)._canvasIndex = i;
+      }
+      this._overlayCanvasesSortingFlag = false;
+    }
   }
 
   addOnStartScript(script: Script) {
@@ -267,5 +311,7 @@ export class ComponentsManager {
     this._onUpdateAnimations.garbageCollection();
     this._onUpdateRenderers.garbageCollection();
     this._activeCameras.garbageCollection();
+    this._overlayCanvases.garbageCollection();
+    this._canvases.garbageCollection();
   }
 }

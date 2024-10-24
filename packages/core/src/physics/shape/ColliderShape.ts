@@ -1,9 +1,9 @@
 import { IColliderShape } from "@galacean/engine-design";
-import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Vector3 } from "@galacean/engine-math";
-import { Collider } from "../Collider";
 import { ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
+import { Collider } from "../Collider";
+import { PhysicsMaterial } from "../PhysicsMaterial";
 
 /**
  * Abstract class for collider shapes.
@@ -151,10 +151,12 @@ export abstract class ColliderShape implements ICustomClone {
     this._nativeShape.destroy();
   }
 
+  @ignoreClone
   private _setPosition(): void {
     this._nativeShape.setPosition(this._position);
   }
 
+  @ignoreClone
   private _setRotation(): void {
     this._nativeShape.setRotation(this._rotation);
   }

@@ -12,7 +12,7 @@ export { Entity } from "./Entity";
 export { Component } from "./Component";
 export { Script } from "./Script";
 export { Renderer } from "./Renderer";
-export { dependentComponents, DependentMode } from "./ComponentsDependencies";
+export { DependentMode, dependentComponents } from "./ComponentsDependencies";
 export { Camera } from "./Camera";
 export { Transform } from "./Transform";
 export { BoolUpdateFlag } from "./BoolUpdateFlag";
@@ -33,6 +33,7 @@ export * from "./base";
 
 export { Background } from "./Background";
 export { BackgroundMode } from "./enums/BackgroundMode";
+export { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
 export { DepthTextureMode } from "./enums/DepthTextureMode";
 export { FogMode } from "./enums/FogMode";
 export { CameraClearFlags } from "./enums/CameraClearFlags";
@@ -41,7 +42,6 @@ export { MSAASamples } from "./enums/MSAASamples";
 export { ReplacementFailureStrategy } from "./enums/ReplacementFailureStrategy";
 export { Downsampling } from "./enums/Downsampling";
 export { ColorSpace } from "./enums/ColorSpace";
-export { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
 export { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 export { XRManager } from "./xr/XRManager";
 export * from "./utils/index";
@@ -65,7 +65,7 @@ export * from "./clone/CloneManager";
 export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
 export * from "./Utils";
-
 export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+export * from "./ui";
 
 export * from "./postProcess";

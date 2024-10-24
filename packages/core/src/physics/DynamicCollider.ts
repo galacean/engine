@@ -1,8 +1,7 @@
 import { IDynamicCollider } from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine-math";
-import { ignoreClone } from "../clone/CloneManager";
-import { ICustomClone } from "../clone/ComponentCloner";
 import { Entity } from "../Entity";
+import { ignoreClone } from "../clone/CloneManager";
 import { Collider } from "./Collider";
 import { PhysicsScene } from "./PhysicsScene";
 
@@ -341,18 +340,22 @@ export class DynamicCollider extends Collider {
     target.collisionDetectionMode = this.collisionDetectionMode;
   }
 
+  @ignoreClone
   private _setLinearVelocity(): void {
     (<IDynamicCollider>this._nativeCollider).setLinearVelocity(this._linearVelocity);
   }
 
+  @ignoreClone
   private _setAngularVelocity(): void {
     (<IDynamicCollider>this._nativeCollider).setAngularVelocity(this._angularVelocity);
   }
 
+  @ignoreClone
   private _setCenterOfMass(): void {
     (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
   }
 
+  @ignoreClone
   private _setInertiaTensor(): void {
     (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
   }

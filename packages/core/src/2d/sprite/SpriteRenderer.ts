@@ -7,6 +7,7 @@ import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ComponentType } from "../../enums/ComponentType";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ISpriteAssembler } from "../assembler/ISpriteAssembler";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
@@ -80,7 +81,7 @@ export class SpriteRenderer extends Renderer {
           break;
       }
       this._assembler.resetData(this);
-      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
+      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AllPositionUVAndColor;
     }
   }
 
@@ -95,7 +96,7 @@ export class SpriteRenderer extends Renderer {
     if (this._tileMode !== value) {
       this._tileMode = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AllPositionUVAndColor;
       }
     }
   }
@@ -112,7 +113,7 @@ export class SpriteRenderer extends Renderer {
       value = MathUtil.clamp(value, 0, 1);
       this._tiledAdaptiveThreshold = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AllPositionUVAndColor;
       }
     }
   }
@@ -140,6 +141,7 @@ export class SpriteRenderer extends Renderer {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, null);
       }
       this._sprite = value;
+      this._calDefaultSize();
     }
   }
 
@@ -167,7 +169,6 @@ export class SpriteRenderer extends Renderer {
     if (this._customWidth !== undefined) {
       return this._customWidth;
     } else {
-      this._dirtyUpdateFlag & SpriteRendererUpdateFlags.AutomaticSize && this._calDefaultSize();
       return this._automaticWidth;
     }
   }
@@ -177,8 +178,8 @@ export class SpriteRenderer extends Renderer {
       this._customWidth = value;
       this._dirtyUpdateFlag |=
         this._drawMode === SpriteDrawMode.Tiled
-          ? SpriteRendererUpdateFlags.VertexData
-          : RendererUpdateFlags.WorldVolume;
+          ? SpriteRendererUpdateFlags.All
+          : RendererUpdateFlags.AllPositionAndBounds;
     }
   }
 
@@ -193,7 +194,6 @@ export class SpriteRenderer extends Renderer {
     if (this._customHeight !== undefined) {
       return this._customHeight;
     } else {
-      this._dirtyUpdateFlag & SpriteRendererUpdateFlags.AutomaticSize && this._calDefaultSize();
       return this._automaticHeight;
     }
   }
@@ -203,8 +203,8 @@ export class SpriteRenderer extends Renderer {
       this._customHeight = value;
       this._dirtyUpdateFlag |=
         this._drawMode === SpriteDrawMode.Tiled
-          ? SpriteRendererUpdateFlags.VertexData
-          : RendererUpdateFlags.WorldVolume;
+          ? SpriteRendererUpdateFlags.All
+          : RendererUpdateFlags.AllPositionAndBounds;
     }
   }
 
@@ -218,7 +218,7 @@ export class SpriteRenderer extends Renderer {
   set flipX(value: boolean) {
     if (this._flipX !== value) {
       this._flipX = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
     }
   }
 
@@ -232,7 +232,7 @@ export class SpriteRenderer extends Renderer {
   set flipY(value: boolean) {
     if (this._flipY !== value) {
       this._flipY = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
     }
   }
 
@@ -265,6 +265,7 @@ export class SpriteRenderer extends Renderer {
    */
   constructor(entity: Entity) {
     super(entity);
+    this._componentType = ComponentType.SpriteRenderer;
     this.drawMode = SpriteDrawMode.Simple;
     this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Color;
     this.setMaterial(this._engine._basicResources.spriteDefaultMaterial);
@@ -312,17 +313,24 @@ export class SpriteRenderer extends Renderer {
     return this.engine._batcherManager.primitiveChunkManager2D;
   }
 
-  protected override _updateBounds(worldBounds: BoundingBox): void {
-    if (this.sprite) {
-      this._assembler.updatePositions(this);
+  protected override _updateLocalBounds(localBounds: BoundingBox): void {
+    const sprite = this._sprite;
+    if (sprite) {
+      const { width, height } = this;
+      let { x: pivotX, y: pivotY } = sprite.pivot;
+      pivotX = !!this.flipX ? 1 - pivotX : pivotX;
+      pivotY = !!this.flipY ? 1 - pivotY : pivotY;
+      localBounds.min.set(-width * pivotX, -height * pivotY, 0);
+      localBounds.max.set(width * (1 - pivotX), height * (1 - pivotY), 0);
     } else {
-      worldBounds.min.set(0, 0, 0);
-      worldBounds.max.set(0, 0, 0);
+      localBounds.min.set(0, 0, 0);
+      localBounds.max.set(0, 0, 0);
     }
   }
 
   protected override _render(context: RenderContext): void {
-    if (!this.sprite?.texture || !this.width || !this.height) {
+    const { _sprite: sprite } = this;
+    if (!sprite?.texture || !this.width || !this.height) {
       return;
     }
 
@@ -336,9 +344,9 @@ export class SpriteRenderer extends Renderer {
     }
 
     // Update position
-    if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
-      this._assembler.updatePositions(this);
-      this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
+    if (this._dirtyUpdateFlag & RendererUpdateFlags.AllPositions) {
+      this._assembler.updatePositions(this, this.width, this.height, sprite.pivot, this._flipX, this._flipY);
+      this._dirtyUpdateFlag &= ~RendererUpdateFlags.AllPositions;
     }
 
     // Update uv
@@ -390,7 +398,6 @@ export class SpriteRenderer extends Renderer {
     } else {
       this._automaticWidth = this._automaticHeight = 0;
     }
-    this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.AutomaticSize;
   }
 
   @ignoreClone
@@ -400,33 +407,40 @@ export class SpriteRenderer extends Renderer {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
         break;
       case SpriteModifyFlags.size:
-        const { _drawMode: drawMode } = this;
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AutomaticSize;
-        if (this._drawMode === SpriteDrawMode.Sliced) {
-          this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
-        } else if (drawMode === SpriteDrawMode.Tiled) {
-          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
-        } else {
-          // When the width and height of `SpriteRenderer` are `undefined`,
-          // the `size` of `Sprite` will affect the position of `SpriteRenderer`.
-          if (this._customWidth === undefined || this._customHeight === undefined) {
-            this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
-          }
+        if (this._customWidth === undefined || this._customHeight === undefined) {
+          this._calDefaultSize();
+          this._dirtyUpdateFlag |= RendererUpdateFlags.AllBounds;
+        }
+        switch (this._drawMode) {
+          case SpriteDrawMode.Simple:
+            // When the width and height of `SpriteRenderer` are `undefined`,
+            // the `size` of `Sprite` will affect the position of `SpriteRenderer`.
+            if (this._customWidth === undefined || this._customHeight === undefined) {
+              this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositions;
+            }
+            break;
+          case SpriteDrawMode.Sliced:
+            this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositions;
+            break;
+          case SpriteDrawMode.Tiled:
+            this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AllPositionUVAndColor;
+            break;
         }
         break;
       case SpriteModifyFlags.border:
-        this._drawMode === SpriteDrawMode.Sliced &&
-          (this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV);
+        if (this._drawMode === SpriteDrawMode.Sliced) {
+          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AllPositionAndUV;
+        }
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AllPositionAndUV;
         break;
       case SpriteModifyFlags.atlasRegion:
         this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.UV;
         break;
       case SpriteModifyFlags.pivot:
-        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+        this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
         break;
       case SpriteModifyFlags.destroy:
         this.sprite = null;
@@ -441,19 +455,16 @@ export class SpriteRenderer extends Renderer {
 }
 
 /**
- * @remarks Extends `RendererUpdateFlag`.
+ * @remarks Extends `RendererUpdateFlags`.
  */
 enum SpriteRendererUpdateFlags {
-  /** UV. */
-  UV = 0x2,
-  /** Color. */
-  Color = 0x4,
-  /** Automatic Size. */
-  AutomaticSize = 0x8,
-  /** WorldVolume and UV. */
-  WorldVolumeAndUV = RendererUpdateFlags.WorldVolume | SpriteRendererUpdateFlags.UV,
-  /** Vertex data.*/
-  VertexData = SpriteRendererUpdateFlags.WorldVolumeAndUV | SpriteRendererUpdateFlags.Color,
-  /** All. */
-  All = 0xf
+  UV = 0x10,
+  Color = 0x20,
+
+  /** LocalPosition | WorldPosition | UV */
+  AllPositionAndUV = 0x13,
+  /** LocalPosition | WorldPosition | UV | Color */
+  AllPositionUVAndColor = 0x33,
+  /** LocalPosition | WorldPosition | UV | Color | LocalBounds | WorldBounds */
+  All = 0x3f
 }

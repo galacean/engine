@@ -115,6 +115,7 @@ export class BasicResources {
   readonly spriteDefaultMaterial: Material;
   readonly textDefaultMaterial: Material;
   readonly spriteMaskDefaultMaterial: Material;
+  readonly uiDefaultMaterial: Material;
 
   constructor(engine: Engine) {
     // prettier-ignore
@@ -165,6 +166,7 @@ export class BasicResources {
     this.spriteDefaultMaterial = this._create2DMaterial(engine, Shader.find("Sprite"));
     this.textDefaultMaterial = this._create2DMaterial(engine, Shader.find("Text"));
     this.spriteMaskDefaultMaterial = this._createSpriteMaskMaterial(engine);
+    this.uiDefaultMaterial = this._createUIMaterial(engine);
   }
 
   private _createBlitMesh(engine: Engine, vertices: Float32Array): ModelMesh {
@@ -251,6 +253,23 @@ export class BasicResources {
 
   private _createSpriteMaskMaterial(engine: Engine): Material {
     const material = new Material(engine, Shader.find("SpriteMask"));
+    material.isGCIgnored = true;
+    return material;
+  }
+
+  private _createUIMaterial(engine: Engine): Material {
+    const material = new Material(engine, Shader.find("ui"));
+    const renderState = material.renderState;
+    const target = renderState.blendState.targetBlendState;
+    target.enabled = true;
+    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.sourceAlphaBlendFactor = BlendFactor.One;
+    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+    renderState.depthState.writeEnabled = false;
+    renderState.rasterState.cullMode = CullMode.Off;
+    renderState.renderQueueType = RenderQueueType.Transparent;
     material.isGCIgnored = true;
     return material;
   }

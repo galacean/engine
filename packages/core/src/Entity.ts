@@ -7,10 +7,14 @@ import { Layer } from "./Layer";
 import { Scene } from "./Scene";
 import { Script } from "./Script";
 import { Transform } from "./Transform";
+import { UpdateFlagManager } from "./UpdateFlagManager";
 import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
+import { ComponentType } from "./enums/ComponentType";
+import { UITransform } from "./ui";
+import { IUIElement } from "./ui/interface/IUIElement";
 import { DisorderedArray } from "./utils/DisorderedArray";
 
 /**
@@ -73,13 +77,13 @@ export class Entity extends EngineObject {
   name: string;
   /** The layer the entity belongs to. */
   layer: Layer = Layer.Layer0;
-  /** Transform component. */
-  readonly transform: Transform;
 
   /** @internal */
   _isActiveInHierarchy: boolean = false;
   /** @internal */
   _isActiveInScene: boolean = false;
+  /** @internal */
+  _interactive: boolean = false;
   /** @internal */
   _components: Component[] = [];
   /** @internal */
@@ -94,13 +98,19 @@ export class Entity extends EngineObject {
   _isActive: boolean = true;
   /** @internal */
   _siblingIndex: number = -1;
-
   /** @internal */
   _isTemplate: boolean = false;
+  /** @internal */
+  _updateFlagManager: UpdateFlagManager;
 
   private _templateResource: ReferResource;
   private _parent: Entity = null;
+  private _transform: Transform;
   private _activeChangedComponents: Component[];
+
+  get transform(): Transform {
+    return this._transform;
+  }
 
   /**
    * Whether to activate locally.
@@ -196,8 +206,8 @@ export class Entity extends EngineObject {
   constructor(engine: Engine, name?: string) {
     super(engine);
     this.name = name;
-    this.transform = this.addComponent(Transform);
-    this._inverseWorldMatFlag = this.transform.registerWorldChangeFlag();
+    this._transform = this.addComponent(Transform);
+    this._inverseWorldMatFlag = this._transform.registerWorldChangeFlag();
   }
 
   /**
@@ -325,7 +335,7 @@ export class Entity extends EngineObject {
       }
       activeChangeFlag && child._processActive(activeChangeFlag);
 
-      child._setTransformDirty();
+      child._setParentChange();
     } else {
       child._setParent(this, index);
     }
@@ -395,6 +405,7 @@ export class Entity extends EngineObject {
    */
   createChild(name?: string): Entity {
     const child = new Entity(this.engine, name);
+    this._transform instanceof UITransform && child.addComponent(UITransform);
     child.layer = this.layer;
     child.parent = this;
     return child;
@@ -517,6 +528,10 @@ export class Entity extends EngineObject {
     }
 
     this.isActive = false;
+    if (this._updateFlagManager) {
+      this._updateFlagManager.removeAllListeners();
+      this._updateFlagManager = null;
+    }
   }
 
   /**
@@ -589,13 +604,52 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  _setTransformDirty() {
-    if (this.transform) {
-      this.transform._parentChange();
+  _setParentChange() {
+    this._transform._parentChange();
+    this._dispatchModify(EntityModifyFlags.Parent);
+  }
+
+  /**
+   * @internal
+   */
+  _registerModifyListener(onChange: (flag: EntityModifyFlags) => void): void {
+    (this._updateFlagManager ||= new UpdateFlagManager()).addListener(onChange);
+  }
+
+  /**
+   * @internal
+   */
+  _unRegisterModifyListener(onChange: (flag: EntityModifyFlags) => void): void {
+    this._updateFlagManager?.removeListener(onChange);
+  }
+
+  /**
+   * @internal
+   */
+  _dispatchModify(flag: EntityModifyFlags): void {
+    this._updateFlagManager?.dispatch(flag);
+  }
+
+  /**
+   * @internal
+   */
+  _onUIInteractiveChange(val: boolean): void {
+    if (val) {
+      this._interactive = true;
     } else {
-      for (let i = 0, len = this._children.length; i < len; i++) {
-        this._children[i]._setTransformDirty();
+      const components = this._components;
+      for (let i = 0, n = components.length; i < n; i++) {
+        const component = components[i];
+        if (
+          component._componentType & ComponentType.UIElement &&
+          component.enabled &&
+          (component as unknown as IUIElement)._runtimeRaycastEnable
+        ) {
+          this._interactive = true;
+          return;
+        }
       }
+      this._interactive = false;
     }
   }
 
@@ -665,7 +719,7 @@ export class Entity extends EngineObject {
           Entity._traverseSetOwnerScene(this, null);
         }
       }
-      this._setTransformDirty();
+      this._setParentChange();
     }
   }
 
@@ -741,6 +795,7 @@ export class Entity extends EngineObject {
         }
       }
     }
+    this._dispatchModify(EntityModifyFlags.SiblingIndex);
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
@@ -752,11 +807,20 @@ export class Entity extends EngineObject {
    */
   getInvModelMatrix(): Matrix {
     if (this._inverseWorldMatFlag.flag) {
-      Matrix.invert(this.transform.worldMatrix, this._invModelMatrix);
+      Matrix.invert(this._transform.worldMatrix, this._invModelMatrix);
       this._inverseWorldMatFlag.flag = false;
     }
     return this._invModelMatrix;
   }
+}
+
+export enum EntityModifyFlags {
+  Parent = 0x1,
+  SiblingIndex = 0x2,
+  UICanvasEnableInScene = 0x4,
+  UICanvasDisableInScene = 0x8,
+  UIGroupEnableInScene = 0x10,
+  UIGroupDisableInScene = 0x20
 }
 
 type ComponentArguments<T extends new (entity: Entity, ...args: any[]) => Component> = T extends new (

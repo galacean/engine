@@ -7,6 +7,7 @@ import { Layer } from "./Layer";
 import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 import { PipelineUtils } from "./RenderPipeline/PipelineUtils";
 import { Transform } from "./Transform";
+import { UpdateFlagManager } from "./UpdateFlagManager";
 import { VirtualCamera } from "./VirtualCamera";
 import { GLCapabilityType, Logger } from "./base";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
@@ -125,6 +126,10 @@ export class Camera extends Component {
   private _enableHDR = false;
   private _enablePostProcess = false;
 
+  /** @internal */
+  @ignoreClone
+  _updateFlagManager: UpdateFlagManager;
+
   @ignoreClone
   private _frustumChangeFlag: BoolUpdateFlag;
   @ignoreClone
@@ -212,8 +217,11 @@ export class Camera extends Component {
   }
 
   set fieldOfView(value: number) {
-    this._fieldOfView = value;
-    this._projectionMatrixChange();
+    if (this._fieldOfView !== value) {
+      this._fieldOfView = value;
+      this._projectionMatrixChange();
+      this._dispatchModify(CameraModifyFlags.FieldOfView);
+    }
   }
 
   /**
@@ -228,6 +236,7 @@ export class Camera extends Component {
   set aspectRatio(value: number) {
     this._customAspectRatio = value;
     this._projectionMatrixChange();
+    this._dispatchModify(CameraModifyFlags.AspectRatio);
   }
 
   /**
@@ -277,13 +286,16 @@ export class Camera extends Component {
   }
 
   set isOrthographic(value: boolean) {
-    this._virtualCamera.isOrthographic = value;
-    this._projectionMatrixChange();
-
-    if (value) {
-      this.shaderData.enableMacro("CAMERA_ORTHOGRAPHIC");
-    } else {
-      this.shaderData.disableMacro("CAMERA_ORTHOGRAPHIC");
+    const { _virtualCamera: virtualCamera } = this;
+    if (virtualCamera.isOrthographic !== value) {
+      virtualCamera.isOrthographic = value;
+      this._projectionMatrixChange();
+      if (value) {
+        this.shaderData.enableMacro("CAMERA_ORTHOGRAPHIC");
+      } else {
+        this.shaderData.disableMacro("CAMERA_ORTHOGRAPHIC");
+      }
+      this._dispatchModify(CameraModifyFlags.CameraType);
     }
   }
 
@@ -295,8 +307,11 @@ export class Camera extends Component {
   }
 
   set orthographicSize(value: number) {
-    this._orthographicSize = value;
-    this._projectionMatrixChange();
+    if (this._orthographicSize !== value) {
+      this._orthographicSize = value;
+      this._projectionMatrixChange();
+      this._dispatchModify(CameraModifyFlags.OrthographicSize);
+    }
   }
 
   /**
@@ -410,6 +425,7 @@ export class Camera extends Component {
       value && this._addResourceReferCount(value, 1);
       this._renderTarget = value;
       this._onPixelViewportChanged();
+      this._checkMainCanvasAntialiasWaste();
     }
   }
 
@@ -456,6 +472,7 @@ export class Camera extends Component {
   resetAspectRatio(): void {
     this._customAspectRatio = undefined;
     this._projectionMatrixChange();
+    this._dispatchModify(CameraModifyFlags.AspectRatio);
   }
 
   /**
@@ -603,7 +620,7 @@ export class Camera extends Component {
     const context = engine._renderContext;
     const virtualCamera = this._virtualCamera;
 
-    const transform = this.entity.transform;
+    const transform = this._transform;
     Matrix.multiply(this.projectionMatrix, this.viewMatrix, virtualCamera.viewProjectionMatrix);
     virtualCamera.position.copyFrom(transform.worldPosition);
     if (virtualCamera.isOrthographic) {
@@ -636,7 +653,7 @@ export class Camera extends Component {
       Logger.error("mipLevel only take effect in WebGL2.0");
     }
     let ignoreClearFlags: CameraClearFlags;
-    if (this._cameraType !== CameraType.Normal && !this._renderTarget && !this.independentCanvasEnabled) {
+    if (this._cameraType === CameraType.XRCamera && !this._renderTarget && !this.independentCanvasEnabled) {
       ignoreClearFlags = engine.xrManager._getCameraIgnoreClearFlags(this._cameraType);
     }
     this._renderPipeline.render(context, cubeFace, mipLevel, ignoreClearFlags);
@@ -692,6 +709,7 @@ export class Camera extends Component {
    */
   override _onEnableInScene(): void {
     this.scene._componentsManager.addCamera(this);
+    this._dispatchModify(CameraModifyFlags.EnableInScene);
   }
 
   /**
@@ -699,6 +717,7 @@ export class Camera extends Component {
    */
   override _onDisableInScene(): void {
     this.scene._componentsManager.removeCamera(this);
+    this._dispatchModify(CameraModifyFlags.DisableInScene);
   }
 
   /**
@@ -710,6 +729,20 @@ export class Camera extends Component {
         ? TextureFormat.R11G11B10_UFloat
         : TextureFormat.R16G16B16A16
       : TextureFormat.R8G8B8A8;
+  }
+
+  /**
+   * @internal
+   */
+  _registerModifyListener(onChange: (flag: CameraModifyFlags) => void): void {
+    (this._updateFlagManager ||= new UpdateFlagManager()).addListener(onChange);
+  }
+
+  /**
+   * @internal
+   */
+  _unRegisterModifyListener(onChange: (flag: CameraModifyFlags) => void): void {
+    this._updateFlagManager?.removeListener(onChange);
   }
 
   /**
@@ -726,6 +759,10 @@ export class Camera extends Component {
     //@ts-ignore
     this._viewport._onValueChanged = null;
     this.engine.canvas._sizeUpdateFlagManager.removeListener(this._onPixelViewportChanged);
+    if (this._updateFlagManager) {
+      this._updateFlagManager.removeAllListeners();
+      this._updateFlagManager = null;
+    }
 
     this._entity = null;
     this._globalShaderMacro = null;
@@ -757,6 +794,7 @@ export class Camera extends Component {
 
     const viewport = this._viewport;
     this._pixelViewport.set(viewport.x * width, viewport.y * height, viewport.z * width, viewport.w * height);
+    !this._customAspectRatio && this._dispatchModify(CameraModifyFlags.AspectRatio);
   }
 
   private _viewMatrixChange(): void {
@@ -836,4 +874,20 @@ export class Camera extends Component {
       );
     }
   }
+
+  private _dispatchModify(flag: CameraModifyFlags): void {
+    this._updateFlagManager?.dispatch(flag);
+  }
+}
+
+/**
+ * @internal
+ */
+export enum CameraModifyFlags {
+  CameraType = 0x1,
+  AspectRatio = 0x2,
+  FieldOfView = 0x4,
+  OrthographicSize = 0x8,
+  EnableInScene = 0x10,
+  DisableInScene = 0x20
 }

@@ -1,6 +1,7 @@
 import { ICharacterController } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
+import { ignoreClone } from "../clone/CloneManager";
 import { Collider } from "./Collider";
 import { PhysicsScene } from "./PhysicsScene";
 import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
@@ -172,6 +173,7 @@ export class CharacterController extends Collider {
     (<ICharacterController>this._nativeCollider).getWorldPosition(this.entity.transform.worldPosition);
   }
 
+  @ignoreClone
   private _setUpDirection(): void {
     (<ICharacterController>this._nativeCollider).setUpDirection(this._upDirection);
   }

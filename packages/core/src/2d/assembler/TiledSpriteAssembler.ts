@@ -1,11 +1,12 @@
-import { MathUtil, Matrix } from "@galacean/engine-math";
+import { MathUtil, Matrix, Vector2 } from "@galacean/engine-math";
 import { Logger } from "../../base";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { UIImage } from "../../ui";
+import { DisorderedArray } from "../../utils/DisorderedArray";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { ISpriteAssembler } from "./ISpriteAssembler";
-import { DisorderedArray } from "../../utils/DisorderedArray";
 
 /**
  * @internal
@@ -18,7 +19,7 @@ export class TiledSpriteAssembler {
   static _uvRow = new DisorderedArray<number>();
   static _uvColumn = new DisorderedArray<number>();
 
-  static resetData(renderer: SpriteRenderer, vertexCount: number): void {
+  static resetData(renderer: SpriteRenderer | UIImage, vertexCount: number): void {
     if (vertexCount) {
       const manager = renderer._getChunkManager();
       const lastSubChunk = renderer._subChunk;
@@ -33,8 +34,15 @@ export class TiledSpriteAssembler {
     }
   }
 
-  static updatePositions(renderer: SpriteRenderer): void {
-    const { width, height, sprite, tileMode, tiledAdaptiveThreshold: threshold } = renderer;
+  static updatePositions(
+    renderer: SpriteRenderer | UIImage,
+    width: number,
+    height: number,
+    pivot: Vector2,
+    flipX: boolean = false,
+    flipY: boolean = false
+  ): void {
+    const { sprite, tileMode, tiledAdaptiveThreshold: threshold } = renderer;
     // Calculate row and column
     const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = TiledSpriteAssembler;
     const maxVertexCount = renderer._getChunkManager().maxVertexCount;
@@ -64,16 +72,16 @@ export class TiledSpriteAssembler {
           );
     TiledSpriteAssembler.resetData(renderer, vertexCount);
     // Update renderer's worldMatrix
-    const { x: pivotX, y: pivotY } = renderer.sprite.pivot;
-    const localTransX = renderer.width * pivotX;
-    const localTransY = renderer.height * pivotY;
+    const { x: pivotX, y: pivotY } = pivot;
+    const localTransX = width * pivotX;
+    const localTransY = height * pivotY;
     // Renderer's worldMatrix
     const { _worldMatrix: worldMatrix } = TiledSpriteAssembler;
     const { elements: wE } = worldMatrix;
     // Parent's worldMatrix
     const { elements: pWE } = renderer.entity.transform.worldMatrix;
-    const sx = renderer.flipX ? -1 : 1;
-    const sy = renderer.flipY ? -1 : 1;
+    const sx = flipX ? -1 : 1;
+    const sy = flipY ? -1 : 1;
     let wE0: number, wE1: number, wE2: number;
     let wE4: number, wE5: number, wE6: number;
     (wE0 = wE[0] = pWE[0] * sx), (wE1 = wE[1] = pWE[1] * sx), (wE2 = wE[2] = pWE[2] * sx);
@@ -132,14 +140,9 @@ export class TiledSpriteAssembler {
         o += 36;
       }
     }
-
-    const { min, max } = renderer._bounds;
-    min.set(posRow.get(0), posColumn.get(0), 0);
-    max.set(posRow.get(rowLength), posColumn.get(columnLength), 0);
-    renderer._bounds.transform(worldMatrix);
   }
 
-  static updateUVs(renderer: SpriteRenderer): void {
+  static updateUVs(renderer: SpriteRenderer | UIImage): void {
     const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = TiledSpriteAssembler;
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
@@ -173,16 +176,17 @@ export class TiledSpriteAssembler {
     }
   }
 
-  static updateColor(renderer: SpriteRenderer): void {
+  static updateColor(renderer: SpriteRenderer | UIImage, alpha: number = 1): void {
     const subChunk = renderer._subChunk;
     const { r, g, b, a } = renderer.color;
+    const finalAlpha = a * alpha;
     const vertices = subChunk.chunk.vertices;
     const vertexArea = subChunk.vertexArea;
     for (let i = 0, o = vertexArea.start + 5, n = vertexArea.size / 9; i < n; ++i, o += 9) {
       vertices[o] = r;
       vertices[o + 1] = g;
       vertices[o + 2] = b;
-      vertices[o + 3] = a;
+      vertices[o + 3] = finalAlpha;
     }
   }
 

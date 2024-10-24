@@ -1,5 +1,6 @@
-import { Entity } from "../Entity";
 import { Vector3 } from "@galacean/engine-math";
+import { Component } from "../Component";
+import { Entity } from "../Entity";
 import { ColliderShape } from "./shape";
 
 /**
@@ -16,4 +17,6 @@ export class HitResult {
   normal: Vector3 = new Vector3();
   /** The shape of the collider that was hit. */
   shape: ColliderShape = null;
+  /** The component that was hit. */
+  component: Component = null;
 }

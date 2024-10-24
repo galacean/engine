@@ -37,6 +37,7 @@ import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureFormat } from "./texture";
+import { UIUtils } from "./ui/UIUtils";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
@@ -324,6 +325,7 @@ export class Engine extends EventDispatcher {
       if (!scene.isActive || scene.destroyed) continue;
       const componentsManager = scene._componentsManager;
       componentsManager.sortCameras();
+      componentsManager.sortUICanvases();
       componentsManager.callScriptOnStart();
     }
 
@@ -337,7 +339,7 @@ export class Engine extends EventDispatcher {
     }
 
     // Fire `onPointerXX`
-    physicsInitialized && inputManager._firePointerScript(scenes);
+    inputManager._firePointerScript(scenes);
 
     // Fire `onUpdate`
     for (let i = 0; i < sceneCount; i++) {
@@ -487,7 +489,9 @@ export class Engine extends EventDispatcher {
     for (let i = 0, n = scenes.length; i < n; i++) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
-      const cameras = scene._componentsManager._activeCameras;
+
+      const componentsManager = scene._componentsManager;
+      const cameras = componentsManager._activeCameras;
 
       if (cameras.length === 0) {
         Logger.debug("No active camera in scene.");
@@ -496,7 +500,6 @@ export class Engine extends EventDispatcher {
 
       cameras.forEach(
         (camera: Camera) => {
-          const componentsManager = scene._componentsManager;
           componentsManager.callCameraOnBeginRender(camera);
           camera.render();
           componentsManager.callCameraOnEndRender(camera);
@@ -510,6 +513,8 @@ export class Engine extends EventDispatcher {
           camera._cameraIndex = index;
         }
       );
+
+      UIUtils.render(this, componentsManager._overlayCanvases);
     }
   }
 

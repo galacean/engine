@@ -1,7 +1,8 @@
 import { Camera } from "./Camera";
-import { ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
-import { Pointer } from "./input";
+import { ignoreClone } from "./clone/CloneManager";
+import { PointerMethods } from "./input/enums/PointerMethods";
+import { PointerEventData } from "./input/pointer/PointerEventData";
 import { ColliderShape } from "./physics";
 import { Collision } from "./physics/Collision";
 
@@ -30,6 +31,7 @@ export class Script extends Component {
   /** @internal */
   @ignoreClone
   _onPostRenderIndex: number = -1;
+  /** @internal */
   @ignoreClone
   _entityScriptsIndex: number = -1;
 
@@ -119,40 +121,57 @@ export class Script extends Component {
 
   /**
    * Called when the pointer is down while over the ColliderShape.
-   * @param pointer - The pointer that triggered
+   * @param event - The pointer event data that triggered this callback
    */
-  onPointerDown(pointer: Pointer): void {}
+  onPointerDown(event: PointerEventData): void {}
 
   /**
    * Called when the pointer is up while over the ColliderShape.
-   * @param pointer - The pointer that triggered
+   * @param event - The pointer event data that triggered this callback
    */
-  onPointerUp(pointer: Pointer): void {}
+  onPointerUp(event: PointerEventData): void {}
 
   /**
-   * Called when the pointer is down and up with the same collider.
-   * @param pointer - The pointer that triggered
+   *  Called when the pointer is down and up with the same collider.
+   * @param event - The pointer event data that triggered this callback
    */
-  onPointerClick(pointer: Pointer): void {}
+  onPointerClick(event: PointerEventData): void {}
 
   /**
-   * Called when the pointer is enters the ColliderShape.
-   * @param pointer - The pointer that triggered
+   *  Called when the pointer enters the ColliderShape.
+   * @param event - The pointer event data that triggered this callback
    */
-  onPointerEnter(pointer: Pointer): void {}
+  onPointerEnter(event: PointerEventData): void {}
 
   /**
-   * Called when the pointer is no longer over the ColliderShape.
-   * @param pointer - The pointer that triggered
+   * Called when the pointer exits the ColliderShape.
+   * @param event - The pointer event data that triggered this callback
    */
-  onPointerExit(pointer: Pointer): void {}
+  onPointerExit(event: PointerEventData): void {}
 
   /**
-   * Called when the pointer is down while over the ColliderShape and is still holding down.
-   * @param pointer - The pointer that triggered
-   * @remarks onPointerDrag is called every frame while the pointer is down.
+   * This function will be called when the pointer is pressed on the collider.
+   * @param event - The pointer event data that triggered this callback
    */
-  onPointerDrag(pointer: Pointer): void {}
+  onPointerBeginDrag(event: PointerEventData): void {}
+
+  /**
+   *  When a drag collision occurs on the pointer, this function will be called every time it moves.
+   * @param event - The pointer event data that triggered this callback
+   */
+  onPointerDrag(event: PointerEventData): void {}
+
+  /**
+   *  When dragging ends, this function will be called (Dragged object).
+   * @param event - The pointer event data that triggered this callback
+   */
+  onPointerEndDrag(event: PointerEventData): void {}
+
+  /**
+   *  When dragging ends, this function will be called (Receiving object).
+   * @param event - The pointer event data that triggered this callback
+   */
+  onPointerDrop(event: PointerEventData): void {}
 
   /**
    * Called when be disabled.
@@ -203,6 +222,13 @@ export class Script extends Component {
     if (this.onPhysicsUpdate !== prototype.onPhysicsUpdate) {
       componentsManager.addOnPhysicsUpdateScript(this);
     }
+
+    for (const pointerMethod of Object.values(PointerMethods)) {
+      if (this[pointerMethod] === prototype[pointerMethod]) {
+        this[pointerMethod] = null;
+      }
+    }
+
     this._entity._addScript(this);
   }
 

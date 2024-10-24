@@ -1,4 +1,4 @@
-import { BoundingBox, Vector2 } from "@galacean/engine-math";
+import { BoundingBox, Matrix, Vector2 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RendererUpdateFlags } from "../Renderer";
@@ -23,10 +23,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /** @internal */
   @ignoreClone
   _condensedBlendShapeWeights: Float32Array;
-
-  @deepClone
-  private _localBounds: BoundingBox = new BoundingBox();
-
   @ignoreClone
   private _jointDataCreateCache: Vector2 = new Vector2(-1, -1);
   @ignoreClone
@@ -77,19 +73,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   /**
-   * Local bounds.
-   */
-  get localBounds(): BoundingBox {
-    return this._localBounds;
-  }
-
-  set localBounds(value: BoundingBox) {
-    if (this._localBounds !== value) {
-      this._localBounds.copyFrom(value);
-    }
-  }
-
-  /**
    * @internal
    */
   constructor(entity: Entity) {
@@ -106,14 +89,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     this._maxVertexUniformVectors = maxVertexUniformVectors;
 
-    this._onLocalBoundsChanged = this._onLocalBoundsChanged.bind(this);
     this._onSkinUpdated = this._onSkinUpdated.bind(this);
-
-    const localBounds = this._localBounds;
-    // @ts-ignore
-    localBounds.min._onValueChanged = this._onLocalBoundsChanged;
-    // @ts-ignore
-    localBounds.max._onValueChanged = this._onLocalBoundsChanged;
   }
 
   /**
@@ -136,7 +112,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     this._jointDataCreateCache = null;
     this._skin = null;
     this._blendShapeWeights = null;
-    this._localBounds = null;
     this._jointTexture?.destroy();
     this._jointTexture = null;
   }
@@ -213,18 +188,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     super._update(context);
   }
 
-  /**
-   * @internal
-   */
-  protected override _updateBounds(worldBounds: BoundingBox): void {
-    const rootBone = this.skin?.rootBone;
-    if (rootBone) {
-      BoundingBox.transform(this._localBounds, this._transform.worldMatrix, worldBounds);
-    } else {
-      super._updateBounds(worldBounds);
-    }
-  }
-
   private _checkBlendShapeWeightLength(): void {
     const mesh = <ModelMesh>this._mesh;
     const newBlendShapeCount = mesh ? mesh.blendShapeCount : 0;
@@ -247,9 +210,39 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
   }
 
-  @ignoreClone
-  private _onLocalBoundsChanged(): void {
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+  protected override _updateLocalBounds(localBounds: BoundingBox): void {
+    if (this._dirtyUpdateFlag & RendererUpdateFlags.LocalBounds) {
+      const skin = this._skin;
+      const rootBone = skin?.rootBone;
+      if (rootBone) {
+        const meshBounds = this._mesh.bounds;
+        const { bones, inverseBindMatrices } = skin;
+        const rootBoneIndex = bones.indexOf(rootBone);
+        if (rootBoneIndex !== -1) {
+          BoundingBox.transform(meshBounds, inverseBindMatrices[rootBoneIndex], localBounds);
+        } else {
+          // Root bone is not in joints list, we can only compute approximate inverse bind matrix
+          // Average all root bone's children inverse bind matrix
+          const approximateBindMatrix = new Matrix(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+          let subRootBoneCount = this._computeApproximateBindMatrix(
+            bones,
+            inverseBindMatrices,
+            rootBone,
+            approximateBindMatrix
+          );
+
+          if (subRootBoneCount !== 0) {
+            Matrix.multiplyScalar(approximateBindMatrix, 1.0 / subRootBoneCount, approximateBindMatrix);
+            BoundingBox.transform(meshBounds, approximateBindMatrix, localBounds);
+          } else {
+            localBounds.copyFrom(meshBounds);
+          }
+        }
+      } else {
+        super._updateLocalBounds(localBounds);
+      }
+      this._dirtyUpdateFlag &= ~RendererUpdateFlags.LocalBounds;
+    }
   }
 
   @ignoreClone
@@ -263,10 +256,14 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         } else {
           shaderData.disableMacro("RENDERER_HAS_SKIN");
         }
+        const skin = this._skin;
+        if (skin?.rootBone && skin.bones.indexOf(skin.rootBone) !== -1) {
+          this._dirtyUpdateFlag |= RendererUpdateFlags.AllBounds;
+        }
         break;
       case SkinUpdateFlag.RootBoneChanged:
         this._setTransform((<Entity>value).transform);
-        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+        this._dirtyUpdateFlag |= RendererUpdateFlags.AllBounds;
         break;
     }
   }
@@ -286,6 +283,33 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     if (lastRootBone !== rootBone) {
       this._onSkinUpdated(SkinUpdateFlag.RootBoneChanged, rootBone);
     }
+  }
+
+  private _computeApproximateBindMatrix(
+    jointEntities: ReadonlyArray<Entity>,
+    inverseBindMatrices: Matrix[],
+    rootEntity: Entity,
+    approximateBindMatrix: Matrix
+  ): number {
+    let subRootBoneCount = 0;
+    const children = rootEntity.children;
+    for (let i = 0, n = children.length; i < n; i++) {
+      const rootChild = children[i];
+      const index = jointEntities.indexOf(rootChild);
+      if (index !== -1) {
+        Matrix.add(approximateBindMatrix, inverseBindMatrices[index], approximateBindMatrix);
+        subRootBoneCount++;
+      } else {
+        subRootBoneCount += this._computeApproximateBindMatrix(
+          jointEntities,
+          inverseBindMatrices,
+          rootChild,
+          approximateBindMatrix
+        );
+      }
+    }
+
+    return subRootBoneCount;
   }
 
   /**

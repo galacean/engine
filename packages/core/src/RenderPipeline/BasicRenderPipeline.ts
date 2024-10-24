@@ -21,6 +21,7 @@ import {
   TextureFormat,
   TextureWrapMode
 } from "../texture";
+import { CanvasRenderMode } from "../ui";
 import { CullingResults } from "./CullingResults";
 import { DepthOnlyPass } from "./DepthOnlyPass";
 import { OpaqueTexturePass } from "./OpaqueTexturePass";
@@ -337,26 +338,37 @@ export class BasicRenderPipeline {
 
   private _prepareRender(context: RenderContext): void {
     const camera = context.camera;
-    const engine = camera.engine;
-    const renderers = camera.scene._componentsManager._renderers;
+    const { engine, enableFrustumCulling, cullingMask, _frustum: frustum } = camera;
+    const { _renderers: renderers, _canvases: canvases } = camera.scene._componentsManager;
 
-    const elements = renderers._elements;
+    const rendererElements = renderers._elements;
     for (let i = renderers.length - 1; i >= 0; --i) {
-      const renderer = elements[i];
-
+      const renderer = rendererElements[i];
       // Filter by camera culling mask
-      if (!(camera.cullingMask & renderer._entity.layer)) {
+      if (!(cullingMask & renderer._entity.layer)) {
         continue;
       }
 
       // Filter by camera frustum
-      if (camera.enableFrustumCulling) {
-        if (!camera._frustum.intersectsBox(renderer.bounds)) {
+      if (enableFrustumCulling) {
+        if (!frustum.intersectsBox(renderer.bounds)) {
           continue;
         }
       }
       renderer._prepareRender(context);
       renderer._renderFrameCount = engine.time.frameCount;
+    }
+
+    const canvasesElements = canvases._elements;
+    for (let i = canvases.length - 1; i >= 0; i--) {
+      const canvas = canvasesElements[i];
+      if (canvas.renderMode === CanvasRenderMode.ScreenSpaceCamera && canvas.renderCamera !== camera) continue;
+      // Filter by camera culling mask
+      if (!(cullingMask & canvas._entity.layer)) {
+        continue;
+      }
+      canvas._prepareRender(context);
+      this.pushRenderElement(context, canvas._renderElement);
     }
   }
 }
