@@ -13,8 +13,7 @@ export class AnimatorStatePlayData {
   playState: AnimatorStatePlayState;
   clipTime: number;
   currentEventIndex: number;
-  currentTransitionIndex: number;
-  isForwards = true;
+  isForward = true;
 
   private _changedOrientation = false;
 
@@ -25,17 +24,17 @@ export class AnimatorStatePlayData {
     this.playState = AnimatorStatePlayState.UnStarted;
     this.clipTime = state.clipStartTime * state.clip.length;
     this.currentEventIndex = 0;
-    this.currentTransitionIndex = 0;
-    this.isForwards = true;
+    this.isForward = true;
+    this.state._transitionCollection.needResetCurrentCheckIndex = true;
   }
 
   updateOrientation(deltaTime: number): void {
     if (deltaTime !== 0) {
-      const lastIsForwards = this.isForwards;
-      this.isForwards = deltaTime > 0;
-      if (this.isForwards !== lastIsForwards) {
+      const lastIsForward = this.isForward;
+      this.isForward = deltaTime > 0;
+      if (this.isForward !== lastIsForward) {
         this._changedOrientation = true;
-        this.isForwards || this._correctTime();
+        this.isForward || this._correctTime();
       }
     }
   }
@@ -59,7 +58,7 @@ export class AnimatorStatePlayData {
     this.clipTime = time + state.clipStartTime * state.clip.length;
 
     if (this._changedOrientation) {
-      !this.isForwards && this._correctTime();
+      !this.isForward && this._correctTime();
       this._changedOrientation = false;
     }
   }

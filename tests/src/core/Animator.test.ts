@@ -18,11 +18,11 @@ import {
   StateMachineScript,
   Entity
 } from "@galacean/engine-core";
-import "@galacean/engine-loader"
-import type {  GLTFResource } from "@galacean/engine-loader";
+import "@galacean/engine-loader";
+import type { GLTFResource } from "@galacean/engine-loader";
 import { Quaternion } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import  { vi, describe, beforeAll, expect, it, afterAll, afterEach } from "vitest";
+import { vi, describe, beforeAll, expect, it, afterAll, afterEach } from "vitest";
 import { glbResource } from "./model/fox";
 const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
@@ -54,6 +54,7 @@ describe("Animator test", function () {
     animator.speed = 1;
     // @ts-ignore
     animator._reset();
+    animator.animatorController.clearParameters();
   });
   it("constructor", () => {
     // Test default values
@@ -766,10 +767,6 @@ describe("Animator test", function () {
 
   it("hasExitTime", () => {
     const { animatorController } = animator;
-    // @ts-ignore
-    animatorController._parameters.length = 0;
-    // @ts-ignore
-    animatorController._parametersMap = Object.create(null);
     animatorController.addParameter("triggerIdle", false);
     // @ts-ignore
     const layerData = animator._getAnimatorLayerData(0);
@@ -814,7 +811,6 @@ describe("Animator test", function () {
 
   it("setTriggerParameter", () => {
     const { animatorController } = animator;
-    animatorController.clearParameters();
     animatorController.addTriggerParameter("triggerRun");
     animatorController.addTriggerParameter("triggerWalk");
     // @ts-ignore
@@ -870,7 +866,6 @@ describe("Animator test", function () {
 
   it("fixedDuration", () => {
     const { animatorController } = animator;
-    animatorController.clearParameters();
     animatorController.addTriggerParameter("triggerRun");
     animatorController.addTriggerParameter("triggerWalk");
     // @ts-ignore
@@ -893,5 +888,72 @@ describe("Animator test", function () {
     expect(layerData.srcPlayData.state.name).to.eq("Run");
     expect(layerData.srcPlayData.frameTime).to.eq(0.1);
     expect(layerData.srcPlayData.clipTime).to.eq(0);
+  });
+
+  it("transitionIndex", () => {
+    const entity = new Entity(engine);
+    const animator = entity.addComponent(Animator);
+    const animatorController = new AnimatorController(engine);
+    animator.animatorController = animatorController;
+    const layer = new AnimatorControllerLayer("layer");
+    animatorController.addLayer(layer);
+    const state1 = layer.stateMachine.addState("state1");
+    const state2 = layer.stateMachine.addState("state2");
+    state1.wrapMode = WrapMode.Once;
+    state2.wrapMode = WrapMode.Once;
+    const clip1 = new AnimationClip("clip1");
+    const rotationCurve = new AnimationFloatCurve();
+    const key1 = new Keyframe<number>();
+    const key2 = new Keyframe<number>();
+    key1.time = 0;
+    key1.value = 0;
+    key2.time = 1;
+    key2.value = 90;
+    rotationCurve.addKey(key1);
+    rotationCurve.addKey(key2);
+    clip1.addCurveBinding("", Transform, "rotation.x", rotationCurve);
+
+    const clip2 = new AnimationClip("clip2");
+    const positionCurve = new AnimationFloatCurve();
+    const key3 = new Keyframe<number>();
+    const key4 = new Keyframe<number>();
+    key3.time = 0;
+    key3.value = 0;
+    key4.time = 0.1;
+    key4.value = 5;
+    positionCurve.addKey(key3);
+    positionCurve.addKey(key4);
+    clip2.addCurveBinding("", Transform, "position.x", positionCurve);
+    state1.clip = clip1;
+    state2.clip = clip2;
+
+    const transition = state1.addTransition(state2);
+    transition.exitTime = 1;
+    transition.duration = 0.5;
+    transition.mute = true;
+
+    const transition2 = state1.addTransition(state2);
+    transition2.hasExitTime = false;
+    transition2.duration = 0.5;
+    transition2.mute = true;
+
+    const transition3 = state1.addTransition(state2);
+    transition3.exitTime = 0.2;
+    transition3.duration = 0.5;
+    transition3.mute = true;
+
+    animator.play("state1");
+
+    let animatorLayerData = animator["_animatorLayersData"];
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.6);
+    expect(animatorLayerData[0]?.srcPlayData.state.name).to.eq("state1");
+
+    transition2.mute = false;
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.3);
+    expect(animatorLayerData[0]?.srcPlayData.state.name).to.eq("state2");
   });
 });
