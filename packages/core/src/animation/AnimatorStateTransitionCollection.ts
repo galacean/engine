@@ -108,14 +108,13 @@ export class AnimatorStateTransitionCollection {
     let transitionIndex = this._currentTransitionIndex;
     for (let n = transitions.length; transitionIndex < n; transitionIndex++) {
       const transition = transitions[transitionIndex];
-      const hasExitTime = transition.hasExitTime;
       const exitTime = transition.exitTime * state.clipEndFixedTime;
 
-      if (hasExitTime && exitTime > curClipTime) {
+      if (exitTime > curClipTime) {
         break;
       }
 
-      if (hasExitTime && exitTime < lastClipTime) continue;
+      if (exitTime < lastClipTime) continue;
 
       this._currentTransitionIndex = Math.min(transitionIndex + 1, n - 1);
 
@@ -140,14 +139,13 @@ export class AnimatorStateTransitionCollection {
     let transitionIndex = this._currentTransitionIndex;
     for (let n = transitions.length; transitionIndex >= this._noExitTimeCount; transitionIndex--) {
       const transition = transitions[transitionIndex];
-      const hasExitTime = transition.hasExitTime;
       const exitTime = transition.exitTime * state.clipEndFixedTime;
 
-      if (hasExitTime && exitTime < curClipTime) {
+      if (exitTime < curClipTime) {
         break;
       }
 
-      if (hasExitTime && exitTime > lastClipTime) continue;
+      if (exitTime > lastClipTime) continue;
 
       this._currentTransitionIndex = Math.max(transitionIndex - 1, 0);
 
