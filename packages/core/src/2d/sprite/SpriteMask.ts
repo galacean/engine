@@ -7,7 +7,7 @@ import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
-import { Renderer } from "../../Renderer";
+import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -75,7 +75,7 @@ export class SpriteMask extends Renderer {
   set width(value: number) {
     if (this._customWidth !== value) {
       this._customWidth = value;
-      this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.PositionAndAllBounds;
+      this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
     }
   }
 
@@ -97,7 +97,7 @@ export class SpriteMask extends Renderer {
   set height(value: number) {
     if (this._customHeight !== value) {
       this._customHeight = value;
-      this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.PositionAndAllBounds;
+      this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
     }
   }
 
@@ -111,7 +111,7 @@ export class SpriteMask extends Renderer {
   set flipX(value: boolean) {
     if (this._flipX !== value) {
       this._flipX = value;
-      this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.PositionAndAllBounds;
+      this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
     }
   }
 
@@ -125,7 +125,7 @@ export class SpriteMask extends Renderer {
   set flipY(value: boolean) {
     if (this._flipY !== value) {
       this._flipY = value;
-      this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.PositionAndAllBounds;
+      this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
     }
   }
 
@@ -152,6 +152,7 @@ export class SpriteMask extends Renderer {
         this.shaderData.setTexture(SpriteMask._textureProperty, null);
       }
       this._sprite = value;
+      this._calDefaultSize();
     }
   }
 
@@ -265,9 +266,9 @@ export class SpriteMask extends Renderer {
     }
 
     // Update position
-    if (this._dirtyUpdateFlag & SpriteMaskUpdateFlags.Position) {
+    if (this._dirtyUpdateFlag & RendererUpdateFlags.AllPositions) {
       SimpleSpriteAssembler.updatePositions(this, this.width, this.height, sprite.pivot, this._flipX, this._flipY);
-      this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.Position;
+      this._dirtyUpdateFlag &= ~RendererUpdateFlags.AllPositions;
     }
 
     // Update uv
@@ -327,18 +328,18 @@ export class SpriteMask extends Renderer {
       case SpriteModifyFlags.size:
         if (this._customWidth === undefined || this._customHeight === undefined) {
           this._calDefaultSize();
-          this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.PositionAndAllBounds;
+          this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
         }
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:
-        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.PositionAndUV;
+        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.AllPositionAndUV;
         break;
       case SpriteModifyFlags.atlasRegion:
         this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.UV;
         break;
       case SpriteModifyFlags.pivot:
-        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.PositionAndAllBounds;
+        this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
         break;
       case SpriteModifyFlags.destroy:
         this.sprite = null;
@@ -350,16 +351,13 @@ export class SpriteMask extends Renderer {
 }
 
 /**
- * @remarks Extends `RendererUpdateFlag`.
+ * @remarks Extends `RendererUpdateFlags`.
  */
 enum SpriteMaskUpdateFlags {
-  Position = 0x4,
-  UV = 0x8,
+  UV = 0x10,
 
-  /** Position | LocalBounds | WorldBounds */
-  PositionAndAllBounds = 0x7,
-  /** Position | UV */
-  PositionAndUV = 0xc,
-  /** All. */
-  All = 0xf
+  /** LocalPosition | WorldPosition | UV */
+  AllPositionAndUV = 0x13,
+  /** LocalPosition | WorldPosition | UV | LocalBounds | WorldBounds */
+  All = 0x1f
 }

@@ -55,7 +55,7 @@ export class UIImage extends UIRenderer {
           break;
       }
       this._assembler.resetData(this);
-      this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
+      this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionUVAndColor;
     }
   }
 
@@ -70,7 +70,7 @@ export class UIImage extends UIRenderer {
     if (this._tileMode !== value) {
       this._tileMode = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
+        this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionUVAndColor;
       }
     }
   }
@@ -87,7 +87,7 @@ export class UIImage extends UIRenderer {
       value = MathUtil.clamp(value, 0, 1);
       this._tiledAdaptiveThreshold = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
+        this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionUVAndColor;
       }
     }
   }
@@ -106,7 +106,7 @@ export class UIImage extends UIRenderer {
         this._addResourceReferCount(lastSprite, -1);
         lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
       }
-      this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
+      this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionUVAndColor;
       if (value) {
         this._addResourceReferCount(value, 1);
         value._updateFlagManager.addListener(this._onSpriteChange);
@@ -154,7 +154,7 @@ export class UIImage extends UIRenderer {
     }
     if (flag & GroupModifyFlags.Alpha) {
       this._alpha = this._group._globalAlpha;
-      this._dirtyUpdateFlag |= ImageUpdateFlags.Alpha;
+      this._dirtyUpdateFlag |= ImageUpdateFlags.Color;
     }
   }
 
@@ -197,9 +197,9 @@ export class UIImage extends UIRenderer {
 
     let { _dirtyUpdateFlag: dirtyUpdateFlag } = this;
     // Update position
-    if (dirtyUpdateFlag & ImageUpdateFlags.Position) {
+    if (dirtyUpdateFlag & RendererUpdateFlags.AllPositions) {
       this._assembler.updatePositions(this, width, height, transform.pivot);
-      dirtyUpdateFlag &= ~ImageUpdateFlags.Position;
+      dirtyUpdateFlag &= ~RendererUpdateFlags.AllPositions;
     }
 
     // Update uv
@@ -211,10 +211,7 @@ export class UIImage extends UIRenderer {
     // Update color
     if (dirtyUpdateFlag & ImageUpdateFlags.Color) {
       this._assembler.updateColor(this, this._alpha);
-      dirtyUpdateFlag &= ~(ImageUpdateFlags.Color & ImageUpdateFlags.Alpha);
-    } else if (dirtyUpdateFlag & ImageUpdateFlags.Alpha) {
-      this._assembler.updateAlpha(this, this._alpha);
-      dirtyUpdateFlag &= ~ImageUpdateFlags.Alpha;
+      dirtyUpdateFlag &= ~ImageUpdateFlags.Color;
     }
 
     this._dirtyUpdateFlag = dirtyUpdateFlag;
@@ -245,22 +242,23 @@ export class UIImage extends UIRenderer {
     BatchUtils.batchFor2D(elementA, elementB);
   }
 
+  @ignoreClone
   protected override _onTransformChanged(type: number): void {
     if (type & UITransformModifyFlags.Size) {
       switch (this._drawMode) {
         case SpriteDrawMode.Simple:
         case SpriteDrawMode.Sliced:
-          this._dirtyUpdateFlag |= ImageUpdateFlags.PositionAndAllBounds;
+          this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
           break;
         case SpriteDrawMode.Tiled:
-          this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVColorAndAllBounds;
+          this._dirtyUpdateFlag |= ImageUpdateFlags.All;
           break;
         default:
           break;
       }
     }
     if (type & UITransformModifyFlags.Pivot) {
-      this._dirtyUpdateFlag |= ImageUpdateFlags.PositionAndAllBounds;
+      this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
     }
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldBounds;
   }
@@ -289,10 +287,10 @@ export class UIImage extends UIRenderer {
       case SpriteModifyFlags.size:
         switch (this._drawMode) {
           case SpriteDrawMode.Sliced:
-            this._dirtyUpdateFlag |= ImageUpdateFlags.Position;
+            this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositions;
             break;
           case SpriteDrawMode.Tiled:
-            this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
+            this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionUVAndColor;
             break;
           default:
             break;
@@ -300,12 +298,12 @@ export class UIImage extends UIRenderer {
         break;
       case SpriteModifyFlags.border:
         if (this._drawMode === SpriteDrawMode.Sliced) {
-          this._dirtyUpdateFlag |= ImageUpdateFlags.PositionAndUV;
+          this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionAndUV;
         }
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:
-        this._dirtyUpdateFlag |= ImageUpdateFlags.PositionAndUV;
+        this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionAndUV;
         break;
       case SpriteModifyFlags.atlasRegion:
         this._dirtyUpdateFlag |= ImageUpdateFlags.UV;
@@ -318,26 +316,16 @@ export class UIImage extends UIRenderer {
 }
 
 /**
- * @remarks Extends `UIRendererUpdateFlags`.
+ * @remarks Extends `RendererUpdateFlags`.
  */
 enum ImageUpdateFlags {
-  Position = 0x4,
-  UV = 0x8,
-  Color = 0x10,
-  Alpha = 0x20,
+  UV = 0x10,
+  Color = 0x20,
 
-  /** Position | WorldBounds */
-  PositionAndWorldBounds = 0x6,
-  /** Position | LocalBounds | WorldBounds */
-  PositionAndAllBounds = 0x7,
-  /** Position | UV */
-  PositionAndUV = 0xc,
-  /** Position | UV | LocalBounds | WorldBounds */
-  PositionUVAndAllBounds = 0xf,
-  /** Position | UV | Color */
-  PositionUVAndColor = 0x1c,
-  /** Position | UV | Color | WorldBounds */
-  PositionUVColorAndWorldBounds = 0x1e,
-  /** Position | UV | Color | LocalBounds | WorldBounds */
-  PositionUVColorAndAllBounds = 0x1f
+  /** LocalPosition | WorldPosition | UV */
+  AllPositionAndUV = 0x13,
+  /** LocalPosition | WorldPosition | UV | Color */
+  AllPositionUVAndColor = 0x33,
+  /** LocalPosition | WorldPosition | UV | Color | LocalBounds | WorldBounds */
+  All = 0x3f
 }

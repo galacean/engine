@@ -81,7 +81,7 @@ export class SpriteRenderer extends Renderer {
           break;
       }
       this._assembler.resetData(this);
-      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionUVAndColor;
+      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AllPositionUVAndColor;
     }
   }
 
@@ -96,7 +96,7 @@ export class SpriteRenderer extends Renderer {
     if (this._tileMode !== value) {
       this._tileMode = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionUVAndColor;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AllPositionUVAndColor;
       }
     }
   }
@@ -113,7 +113,7 @@ export class SpriteRenderer extends Renderer {
       value = MathUtil.clamp(value, 0, 1);
       this._tiledAdaptiveThreshold = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionUVAndColor;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AllPositionUVAndColor;
       }
     }
   }
@@ -178,8 +178,8 @@ export class SpriteRenderer extends Renderer {
       this._customWidth = value;
       this._dirtyUpdateFlag |=
         this._drawMode === SpriteDrawMode.Tiled
-          ? SpriteRendererUpdateFlags.PositionUVColorAndWorldBounds
-          : SpriteRendererUpdateFlags.PositionAndAllBounds;
+          ? SpriteRendererUpdateFlags.All
+          : RendererUpdateFlags.AllPositionAndBounds;
     }
   }
 
@@ -203,8 +203,8 @@ export class SpriteRenderer extends Renderer {
       this._customHeight = value;
       this._dirtyUpdateFlag |=
         this._drawMode === SpriteDrawMode.Tiled
-          ? SpriteRendererUpdateFlags.PositionUVColorAndWorldBounds
-          : SpriteRendererUpdateFlags.PositionAndAllBounds;
+          ? SpriteRendererUpdateFlags.All
+          : RendererUpdateFlags.AllPositionAndBounds;
     }
   }
 
@@ -218,7 +218,7 @@ export class SpriteRenderer extends Renderer {
   set flipX(value: boolean) {
     if (this._flipX !== value) {
       this._flipX = value;
-      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionAndAllBounds;
+      this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
     }
   }
 
@@ -232,7 +232,7 @@ export class SpriteRenderer extends Renderer {
   set flipY(value: boolean) {
     if (this._flipY !== value) {
       this._flipY = value;
-      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionAndAllBounds;
+      this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
     }
   }
 
@@ -344,9 +344,9 @@ export class SpriteRenderer extends Renderer {
     }
 
     // Update position
-    if (this._dirtyUpdateFlag & SpriteRendererUpdateFlags.Position) {
+    if (this._dirtyUpdateFlag & RendererUpdateFlags.AllPositions) {
       this._assembler.updatePositions(this, this.width, this.height, sprite.pivot, this._flipX, this._flipY);
-      this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.Position;
+      this._dirtyUpdateFlag &= ~RendererUpdateFlags.AllPositions;
     }
 
     // Update uv
@@ -416,31 +416,31 @@ export class SpriteRenderer extends Renderer {
             // When the width and height of `SpriteRenderer` are `undefined`,
             // the `size` of `Sprite` will affect the position of `SpriteRenderer`.
             if (this._customWidth === undefined || this._customHeight === undefined) {
-              this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Position;
+              this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositions;
             }
             break;
           case SpriteDrawMode.Sliced:
-            this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Position;
+            this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositions;
             break;
           case SpriteDrawMode.Tiled:
-            this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionUVAndColor;
+            this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AllPositionUVAndColor;
             break;
         }
         break;
       case SpriteModifyFlags.border:
         if (this._drawMode === SpriteDrawMode.Sliced) {
-          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionAndUV;
+          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AllPositionAndUV;
         }
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionAndUV;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AllPositionAndUV;
         break;
       case SpriteModifyFlags.atlasRegion:
         this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.UV;
         break;
       case SpriteModifyFlags.pivot:
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionAndAllBounds;
+        this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
         break;
       case SpriteModifyFlags.destroy:
         this.sprite = null;
@@ -452,36 +452,19 @@ export class SpriteRenderer extends Renderer {
   private _onColorChanged(): void {
     this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Color;
   }
-
-  /**
-   * @internal
-   */
-  @ignoreClone
-  protected override _onTransformChanged(type: number): void {
-    this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.PositionAndWorldBounds;
-  }
 }
 
 /**
- * @remarks Extends `RendererUpdateFlag`.
+ * @remarks Extends `RendererUpdateFlags`.
  */
 enum SpriteRendererUpdateFlags {
-  Position = 0x4,
-  UV = 0x8,
-  Color = 0x10,
+  UV = 0x10,
+  Color = 0x20,
 
-  /** Position | WorldBounds */
-  PositionAndWorldBounds = 0x6,
-  /** Position | LocalBounds | WorldBounds */
-  PositionAndAllBounds = 0x7,
-  /** Position | UV */
-  PositionAndUV = 0xc,
-  /** Position | UV | LocalBounds | WorldBounds */
-  PositionUVAndAllBounds = 0xf,
-  /** Position | UV | Color*/
-  PositionUVAndColor = 0x1c,
-  /** Position | UV | Color | WorldBounds */
-  PositionUVColorAndWorldBounds = 0x1e,
-  /** Position | UV | Color | LocalBounds | WorldBounds */
-  All = 0x1f
+  /** LocalPosition | WorldPosition | UV */
+  AllPositionAndUV = 0x13,
+  /** LocalPosition | WorldPosition | UV | Color */
+  AllPositionUVAndColor = 0x33,
+  /** LocalPosition | WorldPosition | UV | Color | LocalBounds | WorldBounds */
+  All = 0x3f
 }

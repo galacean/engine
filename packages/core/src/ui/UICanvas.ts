@@ -128,9 +128,7 @@ export class UICanvas extends Component implements IUIElement {
     let preMode = this._renderMode;
     if (preMode !== mode) {
       this._renderMode = mode;
-      this._setCameraObserver(
-        this._isRootCanvas && mode === CanvasRenderMode.ScreenSpaceCamera ? this._renderCamera : null
-      );
+      this._updateCameraObserver();
       this._setRealRenderMode(this._getRealRenderMode());
     }
   }
@@ -143,9 +141,7 @@ export class UICanvas extends Component implements IUIElement {
     const preCamera = this._renderCamera;
     if (preCamera !== val) {
       this._renderCamera = val;
-      this._setCameraObserver(
-        this._isRootCanvas && this._renderMode === CanvasRenderMode.ScreenSpaceCamera ? val : null
-      );
+      this._updateCameraObserver();
       this._setRealRenderMode(this._getRealRenderMode());
     }
   }
@@ -347,7 +343,6 @@ export class UICanvas extends Component implements IUIElement {
         this._rootCanvas && (this._rootCanvas._hierarchyDirty = true);
         break;
       case EntityModifyFlags.UICanvasEnableInScene:
-        if (!this._isRootCanvas) break;
       case EntityModifyFlags.Parent:
         const rootCanvas = UIUtils.getRootCanvasInParent(this._entity);
         rootCanvas && (rootCanvas._hierarchyDirty = true);
@@ -468,7 +463,9 @@ export class UICanvas extends Component implements IUIElement {
     return depth;
   }
 
-  private _setCameraObserver(camera: Camera): void {
+  private _updateCameraObserver(): void {
+    const camera =
+      this._isRootCanvas && this._renderMode === CanvasRenderMode.ScreenSpaceCamera ? this._renderCamera : null;
     const preCamera = this._cameraObserver;
     if (preCamera !== camera) {
       this._cameraObserver = camera;
@@ -485,31 +482,26 @@ export class UICanvas extends Component implements IUIElement {
 
   @ignoreClone
   private _onCameraModifyListener(flag: CameraModifyFlags): void {
-    switch (this._realRenderMode) {
-      case CanvasRenderMode.ScreenSpaceCamera:
-        switch (flag) {
-          case CameraModifyFlags.CameraType:
-          case CameraModifyFlags.AspectRatio:
-            this._adapterSizeInScreenSpace();
-            break;
-          case CameraModifyFlags.FieldOfView:
-            !this._renderCamera.isOrthographic && this._adapterSizeInScreenSpace();
-            break;
-          case CameraModifyFlags.OrthographicSize:
-            this._renderCamera.isOrthographic && this._adapterSizeInScreenSpace();
-            break;
-          case CameraModifyFlags.DisableInScene:
-            this._setRealRenderMode(CanvasRenderMode.ScreenSpaceOverlay);
-            break;
-          default:
-            break;
-        }
-        break;
-      case CanvasRenderMode.ScreenSpaceOverlay:
-        flag === CameraModifyFlags.EnableInScene && this._setRealRenderMode(CanvasRenderMode.ScreenSpaceCamera);
-        break;
-      default:
-        break;
+    if (this._realRenderMode === CanvasRenderMode.ScreenSpaceCamera) {
+      switch (flag) {
+        case CameraModifyFlags.CameraType:
+        case CameraModifyFlags.AspectRatio:
+          this._adapterSizeInScreenSpace();
+          break;
+        case CameraModifyFlags.FieldOfView:
+          !this._renderCamera.isOrthographic && this._adapterSizeInScreenSpace();
+          break;
+        case CameraModifyFlags.OrthographicSize:
+          this._renderCamera.isOrthographic && this._adapterSizeInScreenSpace();
+          break;
+        case CameraModifyFlags.DisableInScene:
+          this._setRealRenderMode(CanvasRenderMode.ScreenSpaceOverlay);
+          break;
+        default:
+          break;
+      }
+    } else {
+      flag === CameraModifyFlags.EnableInScene && this._setRealRenderMode(CanvasRenderMode.ScreenSpaceCamera);
     }
   }
 
@@ -547,9 +539,7 @@ export class UICanvas extends Component implements IUIElement {
   private _setIsRootCanvas(isRootCanvas: boolean): void {
     if (this._isRootCanvas !== isRootCanvas) {
       this._isRootCanvas = isRootCanvas;
-      this._setCameraObserver(
-        isRootCanvas && this._renderMode === CanvasRenderMode.ScreenSpaceCamera ? this._renderCamera : null
-      );
+      this._updateCameraObserver();
       this._setRealRenderMode(this._getRealRenderMode());
       if (!isRootCanvas) {
         const { _disorderedElements: disorderedElements } = this;

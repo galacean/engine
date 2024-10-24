@@ -68,7 +68,7 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected _overrideUpdate: boolean = false;
   @ignoreClone
   protected _materials: Material[] = [];
-  @ignoreClone
+  @assignmentClone
   protected _dirtyUpdateFlag: number = 0;
   @ignoreClone
   protected _rendererLayer: Vector4 = new Vector4();
@@ -542,12 +542,9 @@ export class Renderer extends Component implements IComponentCustomClone {
     }
   }
 
-  /**
-   * @internal
-   */
   @ignoreClone
   protected _onTransformChanged(type: number): void {
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldBounds;
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldPositionAndBounds;
   }
 }
 
@@ -556,9 +553,19 @@ export class Renderer extends Component implements IComponentCustomClone {
  */
 export enum RendererUpdateFlags {
   None = 0x0,
-  LocalBounds = 0x1,
-  WorldBounds = 0x2,
+  LocalPosition = 0x1,
+  WorldPosition = 0x2,
+  LocalBounds = 0x4,
+  WorldBounds = 0x8,
 
+  /** LocalPosition | WorldPosition */
+  AllPositions = 0x3,
+  /** LocalPosition | LocalBounds */
+  LocalPositionAndBounds = 0x5,
+  /** WorldPosition | WorldBounds */
+  WorldPositionAndBounds = 0xa,
   /** LocalBounds | WorldBounds */
-  AllBounds = 0x3
+  AllBounds = 0xc,
+  /** LocalPosition | WorldPosition | LocalBounds | WorldBounds */
+  AllPositionAndBounds = 0xf
 }

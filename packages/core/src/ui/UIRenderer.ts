@@ -151,6 +151,7 @@ export class UIRenderer extends Renderer implements IUIElement {
       case EntityModifyFlags.SiblingIndex:
         this._rootCanvas && (this._rootCanvas._hierarchyDirty = true);
         break;
+      case EntityModifyFlags.UICanvasEnableInScene:
       case EntityModifyFlags.Parent:
         const rootCanvas = UIUtils.getRootCanvasInParent(this._entity);
         rootCanvas && (rootCanvas._hierarchyDirty = true);
@@ -234,11 +235,12 @@ export class UIRenderer extends Renderer implements IUIElement {
     super._onDestroy();
   }
 
+  @ignoreClone
   protected override _onTransformChanged(flag: UITransformModifyFlags): void {
     switch (flag) {
       case UITransformModifyFlags.Size:
       case UITransformModifyFlags.Pivot:
-        this._dirtyUpdateFlag |= RendererUpdateFlags.AllBounds;
+        this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
         break;
       default:
         this._dirtyUpdateFlag |= RendererUpdateFlags.WorldBounds;
