@@ -154,6 +154,8 @@ export class AnimatorStateTransitionCollection {
       if (transition.mute || (this.isSoloMode && !transition.solo) || !this.checkConditions(animator, transition)) {
         continue;
       }
+
+      return transition;
     }
     return null;
   }
