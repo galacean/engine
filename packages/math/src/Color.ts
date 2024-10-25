@@ -23,14 +23,13 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_framebuffer_sRGB.txt
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_texture_sRGB_decode.txt
 
-    const gammaCrack_0_condition = Math.ceil(Color.sigmoid(value)-Color._gammaBranchNumber_0);
-    value = value * gammaCrack_0_condition;
-    const gammaCrack_0_04045_condition = Math.ceil(Color.sigmoid(value)-Color._gammaBranchNumber_0_04045);
-    const gammaCrack_1_condition = Math.ceil(Color.sigmoid(value)-Color._gammaBranchNumber_1);
+    const gammaBranch_0_condition = Math.ceil(Color.sigmoid(value)-Color._gammaBranchNumber_0);
+    value = value * gammaBranch_0_condition;
+    const gammaBranch_0_04045_condition = Math.ceil(Color.sigmoid(value)-Color._gammaBranchNumber_0_04045);
+    const gammaBranch_1_condition = Math.ceil(Color.sigmoid(value)-Color._gammaBranchNumber_1);
     const base = (value / 12.92);
-    const offset = 0.055 * gammaCrack_1_condition;
-    const pow = ((Math.pow((value + (0.055 - offset)) / (1.055 - offset), 2.4)) - base) * gammaCrack_0_04045_condition;
-    return (base * gammaCrack_0_condition) + pow;
+    const offset = 0.055 * gammaBranch_1_condition;
+    return (base * gammaBranch_0_condition) + ((Math.pow((value + (0.055 - offset)) / (1.055 - offset), 2.4)) - base) * gammaBranch_0_04045_condition;
   }
 
   /**
