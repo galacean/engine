@@ -8,11 +8,11 @@ import { MathUtil } from "./MathUtil";
 export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
 
   /**
-   * magic number for gammaToLinearSpace
+   * branch number for gammaToLinearSpace
    */
-  static _gammaCrack_0 = Color.sigmoid(0);
-  static _gammaCrack_0_04045 = Color.sigmoid(0.04045);
-  static _gammaCrack_1 = Color.sigmoid(1);
+  static _gammaBranchNumber_0 = Color.sigmoid(0);
+  static _gammaBranchNumber_0_04045 = Color.sigmoid(0.04045);
+  static _gammaBranchNumber_1 = Color.sigmoid(1);
 
   /**
    * Modify a value from the gamma space to the linear space.
@@ -23,10 +23,10 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_framebuffer_sRGB.txt
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_texture_sRGB_decode.txt
 
-    const gammaCrack_0_condition = Math.ceil(Color.sigmoid(value)-Color._gammaCrack_0);
+    const gammaCrack_0_condition = Math.ceil(Color.sigmoid(value)-Color._gammaBranchNumber_0);
     value = value * gammaCrack_0_condition;
-    const gammaCrack_0_04045_condition = Math.ceil(Color.sigmoid(value)-Color._gammaCrack_0_04045);
-    const gammaCrack_1_condition = Math.ceil(Color.sigmoid(value)-Color._gammaCrack_1);
+    const gammaCrack_0_04045_condition = Math.ceil(Color.sigmoid(value)-Color._gammaBranchNumber_0_04045);
+    const gammaCrack_1_condition = Math.ceil(Color.sigmoid(value)-Color._gammaBranchNumber_1);
     const base = (value / 12.92);
     const offset = 0.055 * gammaCrack_1_condition;
     const pow = ((Math.pow((value + (0.055 - offset)) / (1.055 - offset), 2.4)) - base) * gammaCrack_0_04045_condition;
@@ -130,7 +130,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
   }
 
   /**
-   * Sigmoid take a number and output normalized values between −1 and 1.
+   * Sigmoid take a number and output normalized values between 0 and 1.
    * @param num - The number
    * @returns The normalized value
    */
