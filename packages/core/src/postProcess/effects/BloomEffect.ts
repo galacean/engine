@@ -1,7 +1,6 @@
 import { Color, MathUtil, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../../Camera";
 import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
-import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { Material } from "../../material";
 import { Shader, ShaderMacro, ShaderPass, ShaderProperty } from "../../shader";
 import blitVs from "../../shaderlib/extra/Blit.vs.glsl";
@@ -226,8 +225,7 @@ export class BloomEffect extends PostProcessEffect {
   /**
    * @inheritdoc
    */
-  override onRender(context: RenderContext, srcTexture: Texture2D): void {
-    const camera = context.camera;
+  override onRender(camera: Camera, srcTexture: Texture2D): void {
     const downRes = this.downScale === BloomDownScaleMode.Half ? 1 : 2;
     const pixelViewport = camera.pixelViewport;
     const tw = pixelViewport.width >> downRes;

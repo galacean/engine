@@ -1,17 +1,35 @@
+import { Camera } from "../Camera";
 import { ignoreClone } from "../clone/CloneManager";
-import { Material } from "../material/Material";
-import { RenderContext } from "../RenderPipeline/RenderContext";
-import { Texture2D } from "../texture";
+import { Material } from "../material";
+import { RenderTarget, Texture2D } from "../texture";
 import { PostProcess } from "./PostProcess";
+
+export enum RenderPostProcessEvent {
+  BeforeUber,
+  InUber,
+  AfterUber
+}
 
 /**
  * The base class for post process effect.
  */
 export class PostProcessEffect {
+  /**
+   * When the post process effect is rendered.
+   */
+  renderEvent = RenderPostProcessEvent.InUber;
+
   @ignoreClone
   private _phasedActive: boolean = false;
 
   private _enabled: boolean = true;
+
+  /**
+   * The engine the post process effect belongs to
+   */
+  get engine() {
+    return this.postProcess.engine;
+  }
 
   /**
    * The Uber material used to render the post process effect.
@@ -69,10 +87,11 @@ export class PostProcessEffect {
 
   /**
    * Called when the post process effect is rendered.
-   * @param context - The render context
+   * @param camera - The camera used to render
    * @param srcTexture - The source texture from last render target
+   * @param destTarget - The destination render target
    */
-  onRender(context: RenderContext, srcTexture: Texture2D): void {}
+  onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void {}
 
   /**
    * @internal

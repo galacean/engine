@@ -43,12 +43,12 @@ export class PostProcess extends Component {
    * @param type - The type of PostProcessEffect
    * @returns The PostProcessEffect found
    */
-  getEffect(type: typeof PostProcessEffect): PostProcessEffect {
+  getEffect<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
     const effects = this._effects;
     const length = effects.length;
 
     for (let i = 0; i < length; i++) {
-      const effect = effects[i];
+      const effect = effects[i] as InstanceType<T>;
       if (effect instanceof type) {
         return effect;
       }
@@ -61,13 +61,13 @@ export class PostProcess extends Component {
    * @param type - The type of PostProcessEffect
    * @returns The PostProcessEffect added
    */
-  addEffect(type: typeof PostProcessEffect): PostProcessEffect {
+  addEffect<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
     if (this.getEffect(type)) {
       Logger.error(`effect "${type.name}" already exists in the PostProcess.`);
       return;
     }
 
-    const effect = new type(this);
+    const effect = new type(this) as InstanceType<T>;
     this._effects.push(effect);
     effect._setActive(true);
     return effect;
@@ -78,9 +78,9 @@ export class PostProcess extends Component {
    * @param type - The type of PostProcessEffect
    * @returns The PostProcessEffect removed
    */
-  removeEffect(type: typeof PostProcessEffect): PostProcessEffect {
+  removeEffect<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
     const effects = this._effects;
-    const effectFind = this.getEffect(type);
+    const effectFind = this.getEffect(type) as InstanceType<T>;
 
     if (effectFind) {
       effects.splice(effects.indexOf(effectFind), 1);

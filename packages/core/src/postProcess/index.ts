@@ -15,7 +15,7 @@ import UberPost from "./shaders/UberPost.glsl";
 
 export * from "./effects";
 export { PostProcess } from "./PostProcess";
-export { PostProcessEffect } from "./PostProcessEffect";
+export { PostProcessEffect, RenderPostProcessEvent } from "./PostProcessEffect";
 export { PostProcessManager };
 
 Object.assign(ShaderLib, {
