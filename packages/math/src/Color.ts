@@ -6,6 +6,14 @@ import { MathUtil } from "./MathUtil";
  * Describes a color in the from of RGBA (in order: R, G, B, A).
  */
 export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
+
+  /**
+   * magic number for gammaToLinearSpace
+   */
+  static _gammaCrack_0 = Color.sigmoid(0);
+  static _gammaCrack_0_04045 = Color.sigmoid(0.04045);
+  static _gammaCrack_1 = Color.sigmoid(1);
+
   /**
    * Modify a value from the gamma space to the linear space.
    * @param value - The value in gamma space
@@ -15,10 +23,14 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_framebuffer_sRGB.txt
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_texture_sRGB_decode.txt
 
-    if (value <= 0.0) return 0.0;
-    else if (value <= 0.04045) return value / 12.92;
-    else if (value < 1.0) return Math.pow((value + 0.055) / 1.055, 2.4);
-    else return Math.pow(value, 2.4);
+    const gammaCrack_0_condition = Math.ceil(Color.sigmoid(value)-Color._gammaCrack_0);
+    value = value * gammaCrack_0_condition;
+    const gammaCrack_0_04045_condition = Math.ceil(Color.sigmoid(value)-Color._gammaCrack_0_04045);
+    const gammaCrack_1_condition = Math.ceil(Color.sigmoid(value)-Color._gammaCrack_1);
+    const base = (value / 12.92);
+    const offset = 0.055 * gammaCrack_1_condition;
+    const pow = ((Math.pow((value + (0.055 - offset)) / (1.055 - offset), 2.4)) - base) * gammaCrack_0_04045_condition;
+    return (base * gammaCrack_0_condition) + pow;
   }
 
   /**
@@ -115,6 +127,15 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     out._onValueChanged && out._onValueChanged();
 
     return out;
+  }
+
+  /**
+   * Sigmoid take a number and output normalized values between −1 and 1.
+   * @param num - The number
+   * @returns The normalized value
+   */
+  static sigmoid(num: number): number {
+    return 1 / (1 + Math.exp(-num/2));
   }
 
   /** @internal */
