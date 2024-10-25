@@ -28,10 +28,11 @@ export class PostProcessManager {
   private _postProcessNeedSorting = false;
   private _hasActiveEffect = false;
   private _activeStateChangeFlag = false;
-  private _useSwapRenderTarget = false;
   private _swapRenderTarget: RenderTarget;
   private _srcRenderTarget: RenderTarget;
   private _destRenderTarget: RenderTarget;
+  private _currentSourceRenderTarget: RenderTarget;
+  private _currentDestRenderTarget: RenderTarget;
   private _sortedEffects: ISortedEffects = {
     [RenderPostProcessEvent.BeforeUber]: [],
     [RenderPostProcessEvent.InUber]: [],
@@ -119,42 +120,44 @@ export class PostProcessManager {
     // Should blit to resolve the MSAA
     srcRenderTarget._blitRenderTarget();
 
-    this._initSwapRenderTarget(camera);
     this._sortEffects(camera.postProcessMask, beforeUber, inUber, afterUber);
+    this._initSwapRenderTarget(camera);
 
+    // Before Uber
     for (let i = 0; i < beforeUber.length; i++) {
       const effect = beforeUber[i];
-      effect.onRender(camera, this._getSourceTexture(), this._getDestRenderTarget());
+      effect.onRender(camera, this._getCurrentSourceTexture(), this._currentDestRenderTarget);
       this._swapRT();
       this._remainEffectCount--;
     }
 
-    for (let i = 0; i < inUber.length; i++) {
-      const effect = inUber[i];
-      effect.onRender(camera, this._getSourceTexture(), this._getDestRenderTarget());
+    // In Uber
+    if (inUber.length) {
+      for (let i = 0; i < inUber.length; i++) {
+        const effect = inUber[i];
+        effect.onRender(camera, this._getCurrentSourceTexture(), null);
+      }
+
       this._remainEffectCount--;
+
+      Blitter.blitTexture(
+        engine,
+        this._getCurrentSourceTexture(),
+        this._currentDestRenderTarget,
+        0,
+        camera.viewport,
+        this._uberMaterial
+      );
+
+      this._swapRT();
     }
 
-    Blitter.blitTexture(
-      engine,
-      this._getSourceTexture(),
-      this._getDestRenderTarget(),
-      0,
-      camera.viewport,
-      this._uberMaterial
-    );
-
+    // After Uber
     for (let i = 0; i < afterUber.length; i++) {
       const effect = afterUber[i];
+      effect.onRender(camera, this._getCurrentSourceTexture(), this._currentDestRenderTarget);
       this._swapRT();
-      effect.onRender(camera, this._getSourceTexture(), this._getDestRenderTarget());
       this._remainEffectCount--;
-    }
-
-    // Done with Uber, blit it
-    const currentSource = this._getSourceRenderTarget();
-    if (currentSource !== destRenderTarget) {
-      Blitter.blitTexture(engine, this._getSourceTexture(), destRenderTarget, 0, camera.viewport, this._uberMaterial);
     }
   }
 
@@ -187,7 +190,6 @@ export class PostProcessManager {
     const postProcesses = this._activePostProcesses;
 
     beforeUber.length = inUber.length = afterUber.length = 0;
-    this._remainEffectCount = 0;
 
     for (let i = postProcesses.length - 1; i >= 0; i--) {
       const postProcess = postProcesses[i];
@@ -215,56 +217,58 @@ export class PostProcessManager {
         }
         if (effect.renderEvent === RenderPostProcessEvent.BeforeUber) {
           beforeUber.push(effect);
-          this._remainEffectCount++;
         } else if (effect.renderEvent === RenderPostProcessEvent.InUber) {
           inUber.push(effect);
-          this._remainEffectCount++;
         } else if (effect.renderEvent === RenderPostProcessEvent.AfterUber) {
           afterUber.push(effect);
-          this._remainEffectCount++;
         }
       }
     }
+
+    // uber is only counted as one
+    this._remainEffectCount = beforeUber.length + afterUber.length + Number(!!inUber.length);
   }
 
   private _initSwapRenderTarget(camera: Camera) {
-    const viewport = camera.pixelViewport;
-    const swapRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
-      this.scene.engine,
-      this._swapRenderTarget,
-      viewport.width,
-      viewport.height,
-      camera._getInternalColorTextureFormat(),
-      TextureFormat.Depth24Stencil8,
-      false,
-      false,
-      1,
-      TextureWrapMode.Clamp,
-      TextureFilterMode.Bilinear
-    );
+    if (this._remainEffectCount > 1) {
+      const viewport = camera.pixelViewport;
+      const swapRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
+        this.scene.engine,
+        this._swapRenderTarget,
+        viewport.width,
+        viewport.height,
+        camera._getInternalColorTextureFormat(),
+        TextureFormat.Depth24Stencil8,
+        false,
+        false,
+        1,
+        TextureWrapMode.Clamp,
+        TextureFilterMode.Bilinear
+      );
 
-    this._swapRenderTarget = swapRenderTarget;
-    this._useSwapRenderTarget = false;
+      this._swapRenderTarget = swapRenderTarget;
+      this._currentDestRenderTarget = this._swapRenderTarget;
+    } else {
+      this._currentDestRenderTarget = this._destRenderTarget;
+    }
+
+    this._currentSourceRenderTarget = this._srcRenderTarget;
   }
 
   private _swapRT(): void {
-    this._useSwapRenderTarget = !this._useSwapRenderTarget;
-  }
+    const currentSourceRenderTarget = this._currentSourceRenderTarget;
+    const currentDestRenderTarget = this._currentDestRenderTarget;
 
-  private _getSourceTexture(): Texture2D {
-    return this._getSourceRenderTarget().getColorTexture(0) as Texture2D;
-  }
+    this._currentSourceRenderTarget = currentDestRenderTarget;
 
-  private _getSourceRenderTarget(): RenderTarget {
-    return this._useSwapRenderTarget ? this._swapRenderTarget : this._srcRenderTarget;
-  }
-
-  private _getDestRenderTarget(): RenderTarget {
-    // Render to the destRenderTarget if this is the last effect
-    if (this._remainEffectCount <= 1) {
-      return this._destRenderTarget;
+    if (this._remainEffectCount > 1) {
+      this._currentDestRenderTarget = currentSourceRenderTarget;
     } else {
-      return this._useSwapRenderTarget ? this._srcRenderTarget : this._swapRenderTarget;
+      this._currentDestRenderTarget = this._destRenderTarget;
     }
+  }
+
+  private _getCurrentSourceTexture(): Texture2D {
+    return this._currentSourceRenderTarget.getColorTexture(0) as Texture2D;
   }
 }
