@@ -23,11 +23,11 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_framebuffer_sRGB.txt
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_texture_sRGB_decode.txt
 
-    const gammaBranch_0_condition = Math.ceil(Color.sigmoid(value)-Color._gammaBranchNumber_0);
+    const gammaBranch_0_condition = Math.ceil(Color.sigmoid(value) - Color._gammaBranchNumber_0);
     value = value * gammaBranch_0_condition;
-    const gammaBranch_0_04045_condition = Math.ceil(Color.sigmoid(value)-Color._gammaBranchNumber_0_04045);
-    const gammaBranch_1_condition = Math.ceil(Color.sigmoid(value)-Color._gammaBranchNumber_1);
-    const base = (value / 12.92);
+    const gammaBranch_0_04045_condition = Math.ceil(Color.sigmoid(value) - Color._gammaBranchNumber_0_04045);
+    const gammaBranch_1_condition = Math.ceil(Color.sigmoid(value) - Color._gammaBranchNumber_1);
+    const base = value / 12.92;
     const offset = 0.055 * gammaBranch_1_condition;
     return (base * gammaBranch_0_condition) + ((Math.pow((value + (0.055 - offset)) / (1.055 - offset), 2.4)) - base) * gammaBranch_0_04045_condition;
   }
@@ -134,7 +134,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
    * @returns The normalized value
    */
   static sigmoid(num: number): number {
-    return 1 / (1 + Math.exp(-num/2));
+    return 1 / (1 + Math.exp(-num / 2));
   }
 
   /** @internal */
