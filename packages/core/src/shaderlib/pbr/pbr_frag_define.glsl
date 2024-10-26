@@ -1,59 +1,67 @@
-uniform float u_alphaCutoff;
-uniform vec4 u_baseColor;
-uniform float u_metal;
-uniform float u_roughness;
-uniform vec3 u_PBRSpecularColor;
-uniform float u_glossiness;
-uniform vec3 u_emissiveColor;
+#define MIN_PERCEPTUAL_ROUGHNESS 0.045
+#define MIN_ROUGHNESS            0.002025
 
-#ifdef CLEARCOAT
-    uniform float u_clearCoat;
-    uniform float u_clearCoatRoughness;
+uniform float material_AlphaCutoff;
+uniform vec4 material_BaseColor;
+uniform float material_Metal;
+uniform float material_Roughness;
+uniform float material_IOR;
+uniform vec3 material_PBRSpecularColor;
+uniform float material_Glossiness;
+uniform vec3 material_EmissiveColor;
+uniform float material_NormalIntensity;
+uniform float material_OcclusionIntensity;
+uniform float material_OcclusionTextureCoord;
+
+#ifdef MATERIAL_ENABLE_CLEAR_COAT
+    uniform float material_ClearCoat;
+    uniform float material_ClearCoatRoughness;
+
+    #ifdef MATERIAL_HAS_CLEAR_COAT_TEXTURE
+        uniform sampler2D material_ClearCoatTexture;
+    #endif
+
+    #ifdef MATERIAL_HAS_CLEAR_COAT_ROUGHNESS_TEXTURE
+        uniform sampler2D material_ClearCoatRoughnessTexture;
+    #endif
+
+    #ifdef MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE
+        uniform sampler2D material_ClearCoatNormalTexture;
+    #endif
 #endif
 
-uniform float u_normalIntensity;
-uniform float u_occlusionIntensity;
-uniform float u_occlusionTextureCoord;
+#ifdef MATERIAL_ENABLE_ANISOTROPY
+    uniform vec3 material_AnisotropyInfo;
+    #ifdef MATERIAL_HAS_ANISOTROPY_TEXTURE
+        uniform sampler2D material_AnisotropyTexture;
+    #endif
+#endif
 
 // Texture
-#ifdef BASETEXTURE
-    uniform sampler2D u_baseTexture;
+#ifdef MATERIAL_HAS_BASETEXTURE
+    uniform sampler2D material_BaseTexture;
 #endif
 
-#ifdef NORMALTEXTURE
-    uniform sampler2D u_normalTexture;
+#ifdef MATERIAL_HAS_NORMALTEXTURE
+    uniform sampler2D material_NormalTexture;
 #endif
 
-#ifdef EMISSIVETEXTURE
-    uniform sampler2D u_emissiveTexture;
+#ifdef MATERIAL_HAS_EMISSIVETEXTURE
+    uniform sampler2D material_EmissiveTexture;
 #endif
 
-#ifdef ROUGHNESSMETALLICTEXTURE
-    uniform sampler2D u_roughnessMetallicTexture;
-#endif
-
-
-#ifdef SPECULARGLOSSINESSTEXTURE
-    uniform sampler2D u_specularGlossinessTexture;
-#endif
-
-#ifdef OCCLUSIONTEXTURE
-    uniform sampler2D u_occlusionTexture;
-#endif
-
-#ifdef HAS_CLEARCOATTEXTURE
-    uniform sampler2D u_clearCoatTexture;
-#endif
-
-#ifdef HAS_CLEARCOATROUGHNESSTEXTURE
-    uniform sampler2D u_clearCoatRoughnessTexture;
-#endif
-
-#ifdef HAS_CLEARCOATNORMALTEXTURE
-    uniform sampler2D u_clearCoatNormalTexture;
+#ifdef MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE
+    uniform sampler2D material_RoughnessMetallicTexture;
 #endif
 
 
+#ifdef MATERIAL_HAS_SPECULAR_GLOSSINESS_TEXTURE
+    uniform sampler2D material_SpecularGlossinessTexture;
+#endif
+
+#ifdef MATERIAL_HAS_OCCLUSION_TEXTURE
+    uniform sampler2D material_OcclusionTexture;
+#endif
 
 // Runtime
 struct ReflectedLight {
@@ -69,11 +77,17 @@ struct Geometry {
     vec3  viewDir;
     float dotNV;
     
-    #ifdef CLEARCOAT
+    #ifdef MATERIAL_ENABLE_CLEAR_COAT
         vec3 clearCoatNormal;
         float clearCoatDotNV;
     #endif
 
+    #ifdef MATERIAL_ENABLE_ANISOTROPY
+        vec3  anisotropicT;
+        vec3  anisotropicB;
+        vec3  anisotropicN;
+        float anisotropy;
+    #endif
 };
 
 struct Material {
@@ -81,7 +95,8 @@ struct Material {
     float roughness;
     vec3  specularColor;
     float opacity;
-    #ifdef CLEARCOAT
+    float f0;
+    #ifdef MATERIAL_ENABLE_CLEAR_COAT
         float clearCoat;
         float clearCoatRoughness;
     #endif

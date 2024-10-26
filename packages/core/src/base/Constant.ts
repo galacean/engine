@@ -106,6 +106,7 @@ export enum GLCapabilityType {
   colorBufferHalfFloat = "EXT_color_buffer_half_float",
   textureFilterAnisotropic = "EXT_texture_filter_anisotropic",
   blendMinMax = "EXT_blend_minmax",
+  fragDepth = "EXT_frag_depth",
 
   astc = "WEBGL_compressed_texture_astc",
   astc_webkit = "WEBKIT_WEBGL_compressed_texture_astc",
@@ -116,9 +117,13 @@ export enum GLCapabilityType {
   pvrtc = "WEBGL_compressed_texture_pvrtc",
   pvrtc_webkit = "WEBKIT_WEBGL_compressed_texture_pvrtc",
   s3tc = "WEBGL_compressed_texture_s3tc",
-  s3tc_webkit = "WEBKIT_WEBGL_compressed_texture_s3tc"
+  s3tc_webkit = "WEBKIT_WEBGL_compressed_texture_s3tc",
   // atc = "WEBGL_compressed_texture_atc",
   // s3tc_srgb = "WEBGL_compressed_texture_s3tc_srgb"
+
+  bptc = "EXT_texture_compression_bptc",
+
+  WEBGL_lose_context = "WEBGL_lose_context"
 }
 
 export type TypedArray =

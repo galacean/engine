@@ -1,5 +1,6 @@
 export { ContainmentType } from "./enums/ContainmentType";
 export { PlaneIntersectionType } from "./enums/PlaneIntersectionType";
+export { FrustumFace } from "./enums/FrustumFace";
 export { BoundingSphere } from "./BoundingSphere";
 export { BoundingBox } from "./BoundingBox";
 export { BoundingFrustum } from "./BoundingFrustum";
@@ -16,3 +17,4 @@ export { Plane } from "./Plane";
 export { Color } from "./Color";
 export { Rect } from "./Rect";
 export { SphericalHarmonics3 } from "./SphericalHarmonics3";
+export { Rand } from "./Rand";

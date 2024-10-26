@@ -1,5 +1,8 @@
-import { IHardwareRenderer } from "../../renderingHardwareInterface/IHardwareRenderer";
+import { IHardwareRenderer } from "@galacean/engine-design";
+import { ShaderData } from "../ShaderData";
+import { ShaderProperty } from "../ShaderProperty";
 import { CompareFunction } from "../enums/CompareFunction";
+import { RenderStateElementKey } from "../enums/RenderStateElementKey";
 import { RenderState } from "./RenderState";
 
 /**
@@ -31,10 +34,32 @@ export class DepthState {
 
   /** Whether to enable the depth test. */
   enabled: boolean = true;
-  /** Whether the depth value can be written.*/
-  writeEnabled: boolean = true;
   /** Depth comparison function. */
   compareFunction: CompareFunction = CompareFunction.Less;
+  /** Whether the depth value can be written.*/
+  writeEnabled: boolean = true;
+
+  /**
+   * @internal
+   */
+  _applyShaderDataValue(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
+    const enableProperty = renderStateDataMap[RenderStateElementKey.DepthStateEnabled];
+    if (enableProperty !== undefined) {
+      const enabled = shaderData.getFloat(enableProperty);
+      this.enabled = enabled !== undefined ? !!enabled : false;
+    }
+
+    const writeEnabledProperty = renderStateDataMap[RenderStateElementKey.DepthStateWriteEnabled];
+    if (writeEnabledProperty !== undefined) {
+      const writeEnabled = shaderData.getFloat(writeEnabledProperty);
+      this.writeEnabled = writeEnabled !== undefined ? !!writeEnabled : false;
+    }
+
+    const compareFunctionProperty = renderStateDataMap[RenderStateElementKey.DepthStateCompareFunction];
+    if (compareFunctionProperty !== undefined) {
+      this.compareFunction = shaderData.getFloat(compareFunctionProperty) ?? CompareFunction.Less;
+    }
+  }
 
   /**
    * @internal
@@ -58,17 +83,17 @@ export class DepthState {
     }
 
     if (enabled) {
-      // apply compare func.
+      // Apply compare func
       if (compareFunction != lastState.compareFunction) {
         gl.depthFunc(DepthState._getGLCompareFunction(rhi, compareFunction));
         lastState.compareFunction = compareFunction;
       }
+    }
 
-      // apply write enabled.
-      if (writeEnabled != lastState.writeEnabled) {
-        gl.depthMask(writeEnabled);
-        lastState.writeEnabled = writeEnabled;
-      }
+    // Apply write enabled
+    if (writeEnabled != lastState.writeEnabled) {
+      gl.depthMask(writeEnabled);
+      lastState.writeEnabled = writeEnabled;
     }
   }
 }

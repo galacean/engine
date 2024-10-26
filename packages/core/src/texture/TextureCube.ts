@@ -53,6 +53,7 @@ export class TextureCube extends Texture {
     height?: number
   ): void {
     (this._platformTexture as IPlatformTextureCube).setPixelBuffer(face, colorBuffer, mipLevel, x, y, width, height);
+    this._isContentLost = false;
   }
 
   /**
@@ -67,7 +68,7 @@ export class TextureCube extends Texture {
    */
   setImageSource(
     face: TextureCubeFace,
-    imageSource: TexImageSource | OffscreenCanvas,
+    imageSource: TexImageSource,
     mipLevel: number = 0,
     flipY: boolean = false,
     premultiplyAlpha: boolean = false,
@@ -83,6 +84,7 @@ export class TextureCube extends Texture {
       x,
       y
     );
+    this._isContentLost = false;
   }
 
   /**
@@ -185,5 +187,13 @@ export class TextureCube extends Texture {
         out
       );
     }
+  }
+
+  /**
+   * @internal
+   */
+  override _rebuild(): void {
+    this._platformTexture = this._engine._hardwareRenderer.createPlatformTextureCube(this);
+    super._rebuild();
   }
 }

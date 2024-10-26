@@ -1,0 +1,89 @@
+{
+  "basics": {
+    "title": "基础",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "interface": {
+    "title": "界面",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "core": {
+    "title": "核心",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "assets": {
+    "title": "资产",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "graphics": {
+    "title": "图形",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "animation": {
+    "title": "动画",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "physics": {
+    "title": "物理",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "script": {
+    "title": "脚本",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "xr": {
+    "title": "XR",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "input": {
+    "title": "交互",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "device": {
+    "title": "设备",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "performance": {
+    "title": "性能",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "miniProgram": {
+    "title": "小程序",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "art": {
+    "title": "美术",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "en": {
+    "display": "hidden"
+  }
+}

@@ -45,39 +45,17 @@ export class Matrix implements IClone<Matrix>, ICopy<Matrix, Matrix> {
     const re = right.elements;
     const oe = out.elements;
 
-    const l11 = le[0],
-      l12 = le[1],
-      l13 = le[2],
-      l14 = le[3];
-    const l21 = le[4],
-      l22 = le[5],
-      l23 = le[6],
-      l24 = le[7];
-    const l31 = le[8],
-      l32 = le[9],
-      l33 = le[10],
-      l34 = le[11];
-    const l41 = le[12],
-      l42 = le[13],
-      l43 = le[14],
-      l44 = le[15];
+    // prettier-ignore
+    const l11 = le[0], l12 = le[1], l13 = le[2], l14 = le[3],
+    l21 = le[4], l22 = le[5], l23 = le[6], l24 = le[7],
+    l31 = le[8], l32 = le[9], l33 = le[10], l34 = le[11],
+    l41 = le[12], l42 = le[13], l43 = le[14], l44 = le[15];
 
-    const r11 = re[0],
-      r12 = re[1],
-      r13 = re[2],
-      r14 = re[3];
-    const r21 = re[4],
-      r22 = re[5],
-      r23 = re[6],
-      r24 = re[7];
-    const r31 = re[8],
-      r32 = re[9],
-      r33 = re[10],
-      r34 = re[11];
-    const r41 = re[12],
-      r42 = re[13],
-      r43 = re[14],
-      r44 = re[15];
+    // prettier-ignore
+    const r11 = re[0], r12 = re[1], r13 = re[2], r14 = re[3],
+    r21 = re[4], r22 = re[5], r23 = re[6], r24 = re[7],
+    r31 = re[8], r32 = re[9], r33 = re[10], r34 = re[11],
+    r41 = re[12], r42 = re[13], r43 = re[14], r44 = re[15];
 
     oe[0] = l11 * r11 + l21 * r12 + l31 * r13 + l41 * r14;
     oe[1] = l12 * r11 + l22 * r12 + l32 * r13 + l42 * r14;
@@ -162,6 +140,62 @@ export class Matrix implements IClone<Matrix>, ICopy<Matrix, Matrix> {
     oe[13] = se[13] * inv + ee[13] * t;
     oe[14] = se[14] * inv + ee[14] * t;
     oe[15] = se[15] * inv + ee[15] * t;
+  }
+
+  /**
+   * Determines the sum of two matrices.
+   * @param left - The first matrix to add
+   * @param right - The second matrix to add
+   * @param out - The sum of two matrices
+   */
+  static add(left: Matrix, right: Matrix, out: Matrix): void {
+    const le = left.elements;
+    const re = right.elements;
+    const oe = out.elements;
+    oe[0] = le[0] + re[0];
+    oe[1] = le[1] + re[1];
+    oe[2] = le[2] + re[2];
+    oe[3] = le[3] + re[3];
+    oe[4] = le[4] + re[4];
+    oe[5] = le[5] + re[5];
+    oe[6] = le[6] + re[6];
+    oe[7] = le[7] + re[7];
+    oe[8] = le[8] + re[8];
+    oe[9] = le[9] + re[9];
+    oe[10] = le[10] + re[10];
+    oe[11] = le[11] + re[11];
+    oe[12] = le[12] + re[12];
+    oe[13] = le[13] + re[13];
+    oe[14] = le[14] + re[14];
+    oe[15] = le[15] + re[15];
+  }
+
+  /**
+   * Multiplies a matrix by a scalar.
+   * @param source - The matrix to multiply
+   * @param scalar - The scalar to multiply
+   * @param out - The result of multiplying a matrix by a scalar
+   */
+  static multiplyScalar(source: Matrix, scalar: number, out: Matrix): void {
+    const se = source.elements;
+    const oe = out.elements;
+
+    oe[0] = se[0] * scalar;
+    oe[1] = se[1] * scalar;
+    oe[2] = se[2] * scalar;
+    oe[3] = se[3] * scalar;
+    oe[4] = se[4] * scalar;
+    oe[5] = se[5] * scalar;
+    oe[6] = se[6] * scalar;
+    oe[7] = se[7] * scalar;
+    oe[8] = se[8] * scalar;
+    oe[9] = se[9] * scalar;
+    oe[10] = se[10] * scalar;
+    oe[11] = se[11] * scalar;
+    oe[12] = se[12] * scalar;
+    oe[13] = se[13] * scalar;
+    oe[14] = se[14] * scalar;
+    oe[15] = se[15] * scalar;
   }
 
   /**
@@ -957,24 +991,18 @@ export class Matrix implements IClone<Matrix>, ICopy<Matrix, Matrix> {
     const m11 = e[0];
     const m12 = e[1];
     const m13 = e[2];
-    const m14 = e[3];
     const m21 = e[4];
     const m22 = e[5];
     const m23 = e[6];
-    const m24 = e[7];
     const m31 = e[8];
     const m32 = e[9];
     const m33 = e[10];
-    const m34 = e[11];
     translation.set(e[12], e[13], e[14]);
 
-    const xs = Math.sign(m11 * m12 * m13 * m14) < 0 ? -1 : 1;
-    const ys = Math.sign(m21 * m22 * m23 * m24) < 0 ? -1 : 1;
-    const zs = Math.sign(m31 * m32 * m33 * m34) < 0 ? -1 : 1;
-
-    const sx = xs * Math.sqrt(m11 * m11 + m12 * m12 + m13 * m13);
-    const sy = ys * Math.sqrt(m21 * m21 + m22 * m22 + m23 * m23);
-    const sz = zs * Math.sqrt(m31 * m31 + m32 * m32 + m33 * m33);
+    let sx = Math.sqrt(m11 * m11 + m12 * m12 + m13 * m13);
+    const sy = Math.sqrt(m21 * m21 + m22 * m22 + m23 * m23);
+    const sz = Math.sqrt(m31 * m31 + m32 * m32 + m33 * m33);
+    if (this.determinant() < 0) sx = -sx;
     scale.set(sx, sy, sz);
 
     if (

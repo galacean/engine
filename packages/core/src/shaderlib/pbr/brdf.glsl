@@ -1,5 +1,6 @@
-float F_Schlick(float dotLH) {
-	return 0.04 + 0.96 * (pow(1.0 - dotLH, 5.0));
+
+float F_Schlick(float f0, float dotLH) {
+	return f0 + 0.96 * (pow(1.0 - dotLH, 5.0));
 }
 
 vec3 F_Schlick(vec3 specularColor, float dotLH ) {
@@ -29,6 +30,16 @@ float G_GGX_SmithCorrelated(float alpha, float dotNL, float dotNV ) {
 
 }
 
+#ifdef MATERIAL_ENABLE_ANISOTROPY
+    // Heitz 2014, "Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs"
+    // Heitz http://jcgt.org/published/0003/02/03/paper.pdf
+    float G_GGX_SmithCorrelated_Anisotropic(float at, float ab, float ToV, float BoV, float ToL, float BoL, float NoV, float NoL) {
+        float lambdaV = NoL * length(vec3(at * ToV, ab * BoV, NoV));
+        float lambdaL = NoV * length(vec3(at * ToL, ab * BoL, NoL));
+        return 0.5 / max(lambdaV + lambdaL, EPSILON);
+    }
+#endif
+
 // Microfacet Models for Refraction through Rough Surfaces - equation (33)
 // http://graphicrants.blogspot.com/2013/08/specular-brdf-reference.html
 // alpha is "roughness squared" in Disney’s reparameterization
@@ -42,25 +53,70 @@ float D_GGX(float alpha, float dotNH ) {
 
 }
 
+#ifdef MATERIAL_ENABLE_ANISOTROPY
+    // GGX Distribution Anisotropic
+    // https://blog.selfshadow.com/publications/s2012-shading-course/burley/s2012_pbs_disney_brdf_notes_v3.pdf Addenda
+    float D_GGX_Anisotropic(float at, float ab, float ToH, float BoH, float NoH) {
+        float a2 = at * ab;
+        vec3 d = vec3(ab * ToH, at * BoH, a2 * NoH);
+        float d2 = dot(d, d);
+        float b2 = a2 / d2;
+        return a2 * b2 * b2 * RECIPROCAL_PI;
+    }
+#endif
+
+vec3 isotropicLobe(vec3 specularColor, float alpha, float dotNV, float dotNL, float dotNH, float dotLH) {
+	vec3 F = F_Schlick( specularColor, dotLH );
+	float D = D_GGX( alpha, dotNH );
+	float G = G_GGX_SmithCorrelated( alpha, dotNL, dotNV );
+
+	return F * ( G * D );
+}
+
+#ifdef MATERIAL_ENABLE_ANISOTROPY
+    vec3 anisotropicLobe(vec3 h, vec3 l, Geometry geometry, vec3 specularColor, float alpha, float dotNV, float dotNL, float dotNH, float dotLH) {
+        vec3 t = geometry.anisotropicT;
+        vec3 b = geometry.anisotropicB;
+        vec3 v = geometry.viewDir;
+
+        float dotTV = dot(t, v);
+        float dotBV = dot(b, v);
+        float dotTL = dot(t, l);
+        float dotBL = dot(b, l);
+        float dotTH = dot(t, h);
+        float dotBH = dot(b, h);
+
+        // Aniso parameter remapping
+        // https://blog.selfshadow.com/publications/s2017-shading-course/imageworks/s2017_pbs_imageworks_slides_v2.pdf page 24
+        float at = max(alpha * (1.0 + geometry.anisotropy), MIN_ROUGHNESS);
+        float ab = max(alpha * (1.0 - geometry.anisotropy), MIN_ROUGHNESS);
+
+        // specular anisotropic BRDF
+    	vec3 F = F_Schlick( specularColor, dotLH );
+        float D = D_GGX_Anisotropic(at, ab, dotTH, dotBH, dotNH);
+        float G = G_GGX_SmithCorrelated_Anisotropic(at, ab, dotTV, dotBV, dotTL, dotBL, dotNV, dotNL);
+
+        return F * ( G * D );
+    }
+#endif
+
 // GGX Distribution, Schlick Fresnel, GGX-Smith Visibility
-vec3 BRDF_Specular_GGX(vec3 incidentDirection, vec3 viewDir, vec3 normal, vec3 specularColor, float roughness ) {
+vec3 BRDF_Specular_GGX(vec3 incidentDirection, Geometry geometry, vec3 normal, vec3 specularColor, float roughness ) {
 
 	float alpha = pow2( roughness ); // UE4's roughness
 
-	vec3 halfDir = normalize( incidentDirection + viewDir );
+	vec3 halfDir = normalize( incidentDirection + geometry.viewDir );
 
 	float dotNL = saturate( dot( normal, incidentDirection ) );
-	float dotNV = saturate( dot( normal, viewDir ) );
+	float dotNV = saturate( dot( normal, geometry.viewDir ) );
 	float dotNH = saturate( dot( normal, halfDir ) );
 	float dotLH = saturate( dot( incidentDirection, halfDir ) );
 
-	vec3 F = F_Schlick( specularColor, dotLH );
-
-	float G = G_GGX_SmithCorrelated( alpha, dotNL, dotNV );
-
-	float D = D_GGX( alpha, dotNH );
-
-	return F * ( G * D );
+    #ifdef MATERIAL_ENABLE_ANISOTROPY
+        return anisotropicLobe(halfDir, incidentDirection, geometry, specularColor, alpha, dotNV, dotNL, dotNH, dotLH);
+    #else
+        return isotropicLobe(specularColor, alpha, dotNV, dotNL, dotNH, dotLH);
+    #endif
 
 }
 

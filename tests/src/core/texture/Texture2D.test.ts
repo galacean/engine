@@ -1,5 +1,5 @@
-import { Texture2D, TextureFormat } from "@oasis-engine/core";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+import { Engine, Texture2D, TextureFormat } from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("Texture2D", () => {
@@ -7,9 +7,16 @@ describe("Texture2D", () => {
   const height = 1024;
 
   const canvas = document.createElement("canvas");
-  const engine = new WebGLEngine(canvas);
-  const rhi = engine._hardwareRenderer;
-  const isWebGL2 = rhi.isWebGL2;
+
+  let engine: Engine;
+  let rhi: any;
+  let isWebGL2: boolean;
+  before(async function () {
+    engine = await WebGLEngine.create({ canvas: canvas });
+    // @ts-ignore
+    rhi = engine._hardwareRenderer;
+    isWebGL2 = rhi.isWebGL2;
+  });
 
   beforeEach(() => {
     rhi._isWebGL2 = isWebGL2;
@@ -24,7 +31,7 @@ describe("Texture2D", () => {
     });
     it("引擎不支持的格式", () => {
       expect(() => {
-        new Texture2D(engine, width, height, 1234567);
+        new Texture2D(engine, width, height, 1234567 as any);
       }).to.throw;
     });
   });
@@ -56,24 +63,22 @@ describe("Texture2D", () => {
   });
 
   describe("设置颜色缓冲", () => {
-    const texture = new Texture2D(engine, width, height);
-    const buffer = new Uint8Array(width * height * 4);
-
-    it("默认匹配大小", () => {
+    it("设置数据", () => {
+      const texture = new Texture2D(engine, width, height);
+      const buffer = new Uint8Array(width * height * 4);
       expect(() => {
         texture.setPixelBuffer(buffer);
       }).not.to.throw;
-    });
-    it("设置 mip 数据", () => {
+
       expect(() => {
         texture.setPixelBuffer(buffer, 1);
       }).not.to.throw;
-    });
-    it("手动设置偏移和宽高", () => {
+
       expect(() => {
         texture.setPixelBuffer(buffer, 1, 0, 0, width, height);
       }).not.to.throw;
     });
+
     it("浮点纹理写入数据", () => {
       expect(() => {
         const texture = new Texture2D(engine, width, height, TextureFormat.R32G32B32A32);

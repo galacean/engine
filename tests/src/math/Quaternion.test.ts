@@ -1,4 +1,4 @@
-import { MathUtil, Quaternion, Vector3, Matrix3x3 } from "@oasis-engine/math";
+import { MathUtil, Quaternion, Vector3, Matrix3x3, Matrix } from "@galacean/engine-math";
 import { expect } from "chai";
 
 function toString(q: Quaternion): string {
@@ -198,6 +198,40 @@ describe("Quaternion test", () => {
     const ypr = a.toYawPitchRoll(new Vector3());
     expect(Vector3.equals(euler, new Vector3(0, Math.PI / 3, 0))).to.eq(true);
     expect(Vector3.equals(ypr, new Vector3(Math.PI / 3, 0, 0))).to.eq(true);
+
+    a.set(0.5, 0.5, 0.5, -0.5);
+    a.toEuler(euler);
+    expect(MathUtil.radianToDegree(euler.x)).to.eq(-90);
+    expect(MathUtil.radianToDegree(euler.y)).to.eq(-90);
+    expect(MathUtil.radianToDegree(euler.z)).to.eq(0);
+
+    a.set(0.5, -0.5, 0.5, 0.5);
+    a.toEuler(euler);
+    expect(MathUtil.radianToDegree(euler.x)).to.eq(90);
+    expect(MathUtil.radianToDegree(euler.y)).to.eq(-90);
+    expect(MathUtil.radianToDegree(euler.z)).to.eq(0);
+
+    const matrixBef = new Matrix();
+    const matrixAft = new Matrix();
+    const scale = new Vector3(1, 1, 1);
+    const transform = new Vector3(0, 0, 0);
+    for (let x = 0; x <= 180; x += 10) {
+      for (let y = 0; y <= 180; y += 10) {
+        for (let z = 0; z <= 180; z += 10) {
+          Quaternion.rotationEuler(
+            MathUtil.degreeToRadian(x),
+            MathUtil.degreeToRadian(y),
+            MathUtil.degreeToRadian(z),
+            a
+          );
+          Matrix.affineTransformation(scale, a, transform, matrixBef);
+          a.toEuler(euler);
+          Quaternion.rotationEuler(euler.x, euler.y, euler.z, a);
+          Matrix.affineTransformation(scale, a, transform, matrixAft);
+          expect(Matrix.equals(matrixBef, matrixAft)).to.eq(true);
+        }
+      }
+    }
   });
 
   it("setValue", () => {

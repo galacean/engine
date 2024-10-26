@@ -1,6 +1,6 @@
-import { IPlatformTextureCube, Logger, TextureCube, TextureCubeFace, TextureFormat } from "@oasis-engine/core";
+import { IPlatformTextureCube, Logger, TextureCube, TextureCubeFace, TextureFormat } from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
-import { WebGLRenderer } from "./WebGLRenderer";
+import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
 /**
  * Cube texture in WebGL platform.
@@ -9,13 +9,14 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
   /** Backward compatible with WebGL1.0. */
   private _compressedFaceFilled: number[] = [0, 0, 0, 0, 0, 0];
 
-  constructor(rhi: WebGLRenderer, textureCube: TextureCube) {
+  constructor(rhi: WebGLGraphicDevice, textureCube: TextureCube) {
     super(rhi, textureCube, rhi.gl.TEXTURE_CUBE_MAP);
 
     /** @ts-ignore */
     const { format, _mipmap, width: size } = textureCube;
     const isWebGL2 = this._isWebGL2;
 
+    /** @ts-ignore */
     if (!GLTexture._supportTextureFormat(format, rhi)) {
       throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
     }
@@ -32,7 +33,7 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
     }
 
     this._formatDetail = GLTexture._getFormatDetail(format, this._gl, isWebGL2);
-    (this._formatDetail.isCompressed && !isWebGL2) || this._initMipmap(true);
+    (this._formatDetail.isCompressed && !isWebGL2) || this._init(true);
   }
 
   /**

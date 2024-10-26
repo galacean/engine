@@ -1,0 +1,46 @@
+---
+order: 4
+title: 基准测试
+---
+
+## 测试准备
+
+我们设计了一套测试方案，可以比较多种游戏引擎在多个性能因素上的表现。所有的测试都在以下环境中进行：
+
+-  Macbook M2 Pro
+-  Memory 16GB
+-  Sonoma 14.4.1
+
+和引擎一样，我们的基准测试代码也是开源的。你可以在 [benchmark](https://github.com/galacean/benchmark) 仓库来获取源代码。 本次测试中将包括 Galacean Engine, Babylon.js 以及 Three.js 三个引擎。
+
+### 基础渲染
+
+本基准测试，我们测试了三款引擎在加载 100 个 glTF 模型后，配置 10 个 PointerLight 时的渲染性能。
+
+<BenchmarkDisplay type="gltf" />
+
+### 动画
+
+本基准测试，我们测试了三款引擎在加载 225 个 glTF 模型后，同时播放 255 个 glTF 动画时的性能。
+
+<BenchmarkDisplay type="animation" />
+
+### 粒子系统
+
+本基准测试，我们测试了三款引擎在使用 500 个粒子系统，以相似参数在不透明背景下的渲染性能。
+
+<BenchmarkDisplay type="particle" />
+
+> Three.js 自身没有 Particle System，也没有目前仍在维护的首选三方库。类似效果一般通过开发者独力实现。因此我们在此项测试中使用 `three-nebula` 来代指 Three.js 的粒子系统
+
+### 2D 渲染
+
+在2D测试中，我们测试了同时放置 7920 个 2D 精灵并旋转时它们的性能。
+
+<BenchmarkDisplay type="2d" />
+
+## 总结
+
+我们选择了 Babylon.js，Three.js 以及 PixiJS 这几款引擎进行测试，是因为它们都是当前最受欢迎的游戏引擎，并且在开发的过程中，它们一直是我们努力去赶超的目标。我们希望通过这些基准测试为社区提供透明以及可比较的性能信息。
+
+如果你希望我们包括你的游戏引擎，或者认为这些测试存在改进建议，欢迎随时开启一个 [issue](https://github.com/galacean/benchmark/issues)。

@@ -1,6 +1,6 @@
-import { IPlatformTexture2D, Logger, Texture2D, TextureFormat } from "@oasis-engine/core";
+import { IPlatformTexture2D, Logger, Texture2D, TextureFormat, TextureUsage } from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
-import { WebGLRenderer } from "./WebGLRenderer";
+import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
 /**
  * Texture 2d in WebGL platform.
@@ -9,13 +9,14 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
   /** Backward compatible with WebGL1.0. */
   private _compressedMipFilled: number = 0;
 
-  constructor(rhi: WebGLRenderer, texture2D: Texture2D) {
+  constructor(rhi: WebGLGraphicDevice, texture2D: Texture2D) {
     super(rhi, texture2D, rhi.gl.TEXTURE_2D);
 
     /** @ts-ignore */
     const { format, _mipmap, width, height } = texture2D;
     const isWebGL2 = this._isWebGL2;
 
+    /** @ts-ignore */
     if (!GLTexture._supportTextureFormat(format, rhi)) {
       throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
     }
@@ -32,7 +33,7 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
     }
 
     this._formatDetail = GLTexture._getFormatDetail(format, this._gl, isWebGL2);
-    (this._formatDetail.isCompressed && !isWebGL2) || this._initMipmap(false);
+    (this._formatDetail.isCompressed && !isWebGL2) || this._init(false);
   }
 
   /**
@@ -85,12 +86,17 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
     y: number
   ): void {
     const gl = this._gl;
-    const { baseFormat, dataType } = this._formatDetail;
+    const { internalFormat, baseFormat, dataType } = this._formatDetail;
 
     this._bind();
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, +flipY);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, +premultiplyAlpha);
-    gl.texSubImage2D(this._target, mipLevel, x || 0, y || 0, baseFormat, dataType, imageSource);
+
+    if (this._texture.usage === TextureUsage.Dynamic) {
+      gl.texImage2D(this._target, mipLevel, internalFormat, baseFormat, dataType, imageSource);
+    } else {
+      gl.texSubImage2D(this._target, mipLevel, x || 0, y || 0, baseFormat, dataType, imageSource);
+    }
   }
 
   /**

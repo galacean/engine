@@ -1,10 +1,10 @@
+import { AnimationCurveLayerOwner } from "./AnimationCurveLayerOwner";
 import { AnimationEventHandler } from "./AnimationEventHandler";
-import { AnimationCurveOwner } from "./AnimationCurveOwner";
 
 /**
  * @internal
  */
 export class AnimatorStateData {
-  curveOwners: AnimationCurveOwner[] = [];
+  curveLayerOwner: AnimationCurveLayerOwner[] = [];
   eventHandlers: AnimationEventHandler[] = [];
 }

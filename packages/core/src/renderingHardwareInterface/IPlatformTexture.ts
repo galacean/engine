@@ -1,4 +1,5 @@
 import { TextureFilterMode, TextureWrapMode } from "../texture";
+import { TextureDepthCompareFunction } from "../texture/enums/TextureDepthCompareFunction";
 
 /**
  * Texture interface specification.
@@ -25,6 +26,11 @@ export interface IPlatformTexture {
   anisoLevel: number;
 
   /**
+   *  Filter mode when texture as depth Texture.
+   */
+  depthCompareFunction: TextureDepthCompareFunction;
+
+  /**
    * Destroy texture.
    */
   destroy(): void;
@@ -33,4 +39,6 @@ export interface IPlatformTexture {
    * Generate multi-level textures based on the 0th level data.
    */
   generateMipmaps(): void;
+
+  setUseDepthCompareMode(value: boolean);
 }

@@ -1,4 +1,6 @@
+import { MathUtil, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
+import { ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { Texture2D } from "../texture/Texture2D";
 import { PBRBaseMaterial } from "./PBRBaseMaterial";
@@ -7,12 +9,32 @@ import { PBRBaseMaterial } from "./PBRBaseMaterial";
  * PBR (Metallic-Roughness Workflow) Material.
  */
 export class PBRMaterial extends PBRBaseMaterial {
-  private static _metallicProp = Shader.getPropertyByName("u_metal");
-  private static _roughnessProp = Shader.getPropertyByName("u_roughness");
-  private static _roughnessMetallicTextureProp = Shader.getPropertyByName("u_roughnessMetallicTexture");
+  private static _metallicProp = ShaderProperty.getByName("material_Metal");
+  private static _roughnessProp = ShaderProperty.getByName("material_Roughness");
+  private static _roughnessMetallicTextureProp = ShaderProperty.getByName("material_RoughnessMetallicTexture");
+
+  private static _iorProp = ShaderProperty.getByName("material_IOR");
+
+  private static _anisotropyInfoProp = ShaderProperty.getByName("material_AnisotropyInfo");
+  private static _anisotropyTextureProp = ShaderProperty.getByName("material_AnisotropyTexture");
+
+  private _anisotropyRotation: number = 0;
 
   /**
-   * Metallic, default 1.0.
+   * Index Of Refraction.
+   * @defaultValue `1.5`
+   */
+  get ior(): number {
+    return this.shaderData.getFloat(PBRMaterial._iorProp);
+  }
+
+  set ior(v: number) {
+    this.shaderData.setFloat(PBRMaterial._iorProp, Math.max(v, 0));
+  }
+
+  /**
+   * Metallic.
+   * @defaultValue `1.0`
    */
   get metallic(): number {
     return this.shaderData.getFloat(PBRMaterial._metallicProp);
@@ -23,7 +45,8 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
-   * Roughness, default 1.0.
+   * Roughness. default 1.0.
+   * @defaultValue `1.0`
    */
   get roughness(): number {
     return this.shaderData.getFloat(PBRMaterial._roughnessProp);
@@ -44,9 +67,68 @@ export class PBRMaterial extends PBRBaseMaterial {
   set roughnessMetallicTexture(value: Texture2D) {
     this.shaderData.setTexture(PBRMaterial._roughnessMetallicTextureProp, value);
     if (value) {
-      this.shaderData.enableMacro("ROUGHNESSMETALLICTEXTURE");
+      this.shaderData.enableMacro("MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE");
     } else {
-      this.shaderData.disableMacro("ROUGHNESSMETALLICTEXTURE");
+      this.shaderData.disableMacro("MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE");
+    }
+  }
+
+  /**
+   * The strength of anisotropy, when anisotropyTexture is present, this value is multiplied by the blue channel.
+   * @defaultValue `0`
+   */
+  get anisotropy(): number {
+    return this.shaderData.getVector3(PBRMaterial._anisotropyInfoProp).z;
+  }
+
+  set anisotropy(value: number) {
+    const anisotropyInfo = this.shaderData.getVector3(PBRMaterial._anisotropyInfoProp);
+    if (!!anisotropyInfo.z !== !!value) {
+      if (value === 0) {
+        this.shaderData.disableMacro("MATERIAL_ENABLE_ANISOTROPY");
+      } else {
+        this.shaderData.enableMacro("MATERIAL_ENABLE_ANISOTROPY");
+      }
+    }
+    anisotropyInfo.z = value;
+  }
+
+  /**
+   * The rotation of the anisotropy in tangent, bitangent space, value in degrees.
+   * @defaultValue `0`
+   */
+  get anisotropyRotation(): number {
+    return this._anisotropyRotation;
+  }
+
+  set anisotropyRotation(value: number) {
+    if (this._anisotropyRotation !== value) {
+      this._anisotropyRotation = value;
+
+      const anisotropyInfo = this.shaderData.getVector3(PBRMaterial._anisotropyInfoProp);
+      const rad = MathUtil.degreeToRadFactor * value;
+      anisotropyInfo.x = Math.cos(rad);
+      anisotropyInfo.y = Math.sin(rad);
+    }
+  }
+
+  /**
+   * The anisotropy texture.
+   * @remarks
+   * Red and green channels represent the anisotropy direction in [-1, 1] tangent, bitangent space, to be rotated by anisotropyRotation.
+   * The blue channel contains strength as [0, 1] to be multiplied by anisotropy.
+   */
+  get anisotropyTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._anisotropyTextureProp);
+  }
+
+  set anisotropyTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._anisotropyTextureProp, value);
+
+    if (value) {
+      this.shaderData.enableMacro("MATERIAL_HAS_ANISOTROPY_TEXTURE");
+    } else {
+      this.shaderData.disableMacro("MATERIAL_HAS_ANISOTROPY_TEXTURE");
     }
   }
 
@@ -56,14 +138,18 @@ export class PBRMaterial extends PBRBaseMaterial {
    */
   constructor(engine: Engine) {
     super(engine, Shader.find("pbr"));
-    this.shaderData.setFloat(PBRMaterial._metallicProp, 1);
-    this.shaderData.setFloat(PBRMaterial._roughnessProp, 1);
+
+    const shaderData = this.shaderData;
+    shaderData.setFloat(PBRMaterial._metallicProp, 1);
+    shaderData.setFloat(PBRMaterial._roughnessProp, 1);
+    shaderData.setFloat(PBRMaterial._iorProp, 1.5);
+    shaderData.setVector3(PBRMaterial._anisotropyInfoProp, new Vector3(1, 0, 0));
   }
 
   /**
-   * @override
+   * @inheritdoc
    */
-  clone(): PBRMaterial {
+  override clone(): PBRMaterial {
     const dest = new PBRMaterial(this._engine);
     this.cloneTo(dest);
     return dest;

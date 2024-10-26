@@ -1,11 +1,11 @@
-import { Entity, Script } from "@oasis-engine/core";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
-import { expect } from "chai";
+import { Entity, Script } from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import chai, { expect } from "chai";
 
 class TestComponent extends Script {}
 
-describe("Entity", () => {
-  const engine = new WebGLEngine(document.createElement("canvas"));
+describe("Entity", async () => {
+  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   const scene = engine.sceneManager.activeScene;
   engine.run();
   beforeEach(() => {
@@ -271,6 +271,7 @@ describe("Entity", () => {
       child.parent = parent;
       const child2 = new Entity(engine, "child2");
       child2.parent = parent;
+      expect(parent.findByName("parent")).eq(parent);
       expect(parent.findByName("child")).eq(child);
       expect(parent.findByName("child2")).eq(child2);
     });
@@ -393,6 +394,45 @@ describe("Entity", () => {
       child.parent = parent;
       child.destroy();
       expect(parent.children.length).eq(0);
+    });
+
+    it("children", () => {
+      const entity = new Entity(engine, "entity");
+      entity.createChild("child0");
+      entity.createChild("child1");
+      entity.createChild("child2");
+      entity.createChild("child3");
+      entity.createChild("child4");
+      entity.destroy();
+      expect(entity.children.length).eq(0);
+    });
+
+    it("addChildAfterDestroy", () => {
+      class DestroyScript extends Script {
+        onDisable(): void {}
+        onDestroy(): void {}
+      }
+      DestroyScript.prototype.onDisable = chai.spy(DestroyScript.prototype.onDisable);
+      DestroyScript.prototype.onDestroy = chai.spy(DestroyScript.prototype.onDestroy);
+
+      const root = scene.createRootEntity("root");
+      const entity = root.createChild("entity");
+      const script = entity.addComponent(DestroyScript);
+      entity.destroy();
+      expect(entity.isActive).eq(false);
+      expect(entity.isActiveInHierarchy).eq(false);
+      expect(entity.parent).eq(null);
+      expect(entity.scene).eq(null);
+      expect(script.onDisable).to.have.been.called.exactly(1);
+
+      expect(entity.createChild("child0").isActiveInHierarchy).eq(false);
+      root.destroy();
+      expect(root.isActive).eq(false);
+      expect(root.isActiveInHierarchy).eq(false);
+      expect(root.createChild("child1").isActiveInHierarchy).eq(false);
+
+      engine.update();
+      expect(script.onDestroy).to.have.been.called.exactly(1);
     });
   });
 });

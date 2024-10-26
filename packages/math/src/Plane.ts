@@ -3,7 +3,7 @@ import { ICopy } from "./ICopy";
 import { Vector3 } from "./Vector3";
 
 /**
- * Represents a plane in three dimensional space.
+ * Represents a plane in three-dimensional space.
  */
 export class Plane implements IClone<Plane>, ICopy<Plane, Plane> {
   /**

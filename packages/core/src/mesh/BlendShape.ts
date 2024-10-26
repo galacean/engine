@@ -1,8 +1,6 @@
-import { Vector3 } from "@oasis-engine/math";
-import { BoolUpdateFlag } from "../BoolUpdateFlag";
-import { UpdateFlag } from "../UpdateFlag";
+import { Vector3 } from "@galacean/engine-math";
 import { UpdateFlagManager } from "../UpdateFlagManager";
-import { BlendShapeFrame } from "./BlendShapeFrame";
+import { BlendShapeFrame, BlendShapeFrameDirty } from "./BlendShapeFrame";
 
 /**
  * BlendShape.
@@ -15,9 +13,11 @@ export class BlendShape {
   _useBlendShapeNormal: boolean = true;
   /** @internal */
   _useBlendShapeTangent: boolean = true;
+  /** @internal */
+  _layoutChangeManager: UpdateFlagManager = new UpdateFlagManager();
+  /** @internal */
+  _dataChangeManager: UpdateFlagManager = new UpdateFlagManager();
 
-  private _layoutChangeManager: UpdateFlagManager = new UpdateFlagManager();
-  private _dataChangeManager: UpdateFlagManager = new UpdateFlagManager();
   private _frames: BlendShapeFrame[] = [];
 
   /**
@@ -33,6 +33,7 @@ export class BlendShape {
    */
   constructor(name: string) {
     this.name = name;
+    this._frameDataChangeListener = this._frameDataChangeListener.bind(this);
   }
 
   /**
@@ -74,7 +75,12 @@ export class BlendShape {
    * Clear all frames.
    */
   clearFrames(): void {
-    this._frames.length = 0;
+    const frames = this._frames;
+
+    for (let i = 0, n = frames.length; i < n; i++) {
+      frames[i]._dataChangeManager.removeListener(this._frameDataChangeListener);
+    }
+    frames.length = 0;
     this._updateUseNormalAndTangent(true, true);
     this._dataChangeManager.dispatch();
   }
@@ -82,22 +88,11 @@ export class BlendShape {
   /**
    * @internal
    */
-  _addLayoutChangeFlag(flag: UpdateFlag): void {
-    this._layoutChangeManager.addFlag(flag);
-  }
-
-  /**
-   * @internal
-   */
-  _addDataDirtyFlag(flag: UpdateFlag): void {
-    this._dataChangeManager.addFlag(flag);
-  }
-
-  /**
-   * @internal
-   */
-  _createSubDataDirtyFlag(): BoolUpdateFlag {
-    return this._dataChangeManager.createFlag(BoolUpdateFlag);
+  _releaseData(): void {
+    const frames = this._frames;
+    for (let i = 0, n = frames.length; i < n; i++) {
+      frames[i]._releaseData();
+    }
   }
 
   private _addFrame(frame: BlendShapeFrame): void {
@@ -108,8 +103,8 @@ export class BlendShape {
     }
     this._frames.push(frame);
 
-    this._updateUseNormalAndTangent(!!frame.deltaNormals, !!frame.deltaTangents);
-    this._dataChangeManager.dispatch();
+    this._frameDataChangeListener(BlendShapeFrameDirty.All, frame);
+    frame._dataChangeManager.addListener(this._frameDataChangeListener);
   }
 
   private _updateUseNormalAndTangent(useNormal: boolean, useTangent: boolean): void {
@@ -118,7 +113,12 @@ export class BlendShape {
     if (this._useBlendShapeNormal !== useBlendShapeNormal || this._useBlendShapeTangent !== useBlendShapeTangent) {
       this._useBlendShapeNormal = useBlendShapeNormal;
       this._useBlendShapeTangent = useBlendShapeTangent;
-      this._layoutChangeManager.dispatch(this);
+      this._layoutChangeManager.dispatch(0, this);
     }
+  }
+
+  private _frameDataChangeListener(type: BlendShapeFrameDirty, frame: BlendShapeFrame): void {
+    this._updateUseNormalAndTangent(!!frame.deltaNormals, !!frame.deltaTangents);
+    this._dataChangeManager.dispatch();
   }
 }

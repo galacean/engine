@@ -479,7 +479,7 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
 
   /**
    * Copy the value of this vector by an array.
-   * @param array - The arrayƒ
+   * @param array - The array
    * @param offset - The start offset of the array
    * @returns This vector
    */
@@ -502,6 +502,19 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
     out[outOffset + 1] = this._y;
     out[outOffset + 2] = this._z;
     out[outOffset + 3] = this._w;
+  }
+
+  /**
+   * Serialize this vector to a JSON representation.
+   * @returns A JSON representation of this vector
+   */
+  toJSON(): Vector4Like {
+    return {
+      x: this._x,
+      y: this._y,
+      z: this._z,
+      w: this._w
+    };
   }
 }
 

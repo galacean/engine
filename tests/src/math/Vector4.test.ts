@@ -1,4 +1,4 @@
-import { MathUtil, Vector4, Quaternion, Matrix } from "@oasis-engine/math";
+import { MathUtil, Vector4, Quaternion, Matrix } from "@galacean/engine-math";
 import { expect } from "chai";
 
 function toString(v: Vector4): string {
@@ -208,5 +208,10 @@ describe("Vector4 test", () => {
     const a = new Vector4(3, 4, 0, 0);
     expect(toString(a.scale(2))).to.eq(toString(a));
     expect(toString(a)).to.eq("vec4(6, 8, 0, 0)");
+  });
+
+  it("toJSON", () => {
+    const a = new Vector4(3, 4, 5, 0);
+    expect(JSON.stringify(a)).to.eq('{"x":3,"y":4,"z":5,"w":0}');
   });
 });

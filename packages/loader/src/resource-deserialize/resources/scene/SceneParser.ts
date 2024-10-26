@@ -1,36 +1,39 @@
-import { Engine, Entity, Scene } from "@oasis-engine/core";
-import { IEntity, IScene } from "../prefab/PrefabDesign";
-import { PrefabParser } from "../prefab/PrefabParser";
-import { ReflectionParser } from "../prefab/ReflectionParser";
+import { Engine, Scene } from "@galacean/engine-core";
+import type { IScene } from "../schema";
+import { HierarchyParser } from "../parser/HierarchyParser";
+import { ParserContext, ParserType } from "../parser/ParserContext";
 
-export class SceneParser {
+/** @Internal */
+export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene, Scene>> {
+  /**
+   * Parse scene data.
+   * @param engine - the engine of the parser context
+   * @param sceneData - scene data which is exported by editor
+   * @returns a promise of scene
+   */
   static parse(engine: Engine, sceneData: IScene): Promise<Scene> {
     const scene = new Scene(engine);
-    const entitiesMap: Record<string, Entity> = {};
-    const entitiesConfigMap: Record<string, IEntity> = {};
-    const promises: Promise<Entity>[] = [];
-    const entitiesConfig = sceneData.entities;
-    for (const entity of entitiesConfig) {
-      entitiesConfigMap[entity.id] = entity;
-      promises.push(ReflectionParser.parseEntity(entity, engine));
-    }
+    const context = new ParserContext<IScene, Scene>(engine, ParserType.Scene, scene);
+    const parser = new SceneParser(sceneData, context, scene);
+    parser.start();
+    return parser.promise.then(() => scene);
+  }
 
-    return Promise.all(promises).then((entities) => {
-      const rootIds = [];
-      entities.forEach((entity, index) => {
-        entitiesMap[entitiesConfig[index].id] = entity;
-        if (!entitiesConfig[index].parent) {
-          rootIds.push(entitiesConfig[index].id);
-        }
-      });
-      for (const rootId of rootIds) {
-        PrefabParser.parseChildren(entitiesConfigMap, entitiesMap, rootId);
-      }
-      const rootEntities = rootIds.map((id) => entitiesMap[id]);
-      for (let i = 0; i < rootEntities.length; i++) {
-        scene.addRootEntity(rootEntities[i]);
-      }
-      return scene;
-    });
+  constructor(
+    data: IScene,
+    context: ParserContext<IScene, Scene>,
+    public readonly scene: Scene
+  ) {
+    super(data, context);
+  }
+
+  protected override _handleRootEntity(id: string): void {
+    const { entityMap } = this.context;
+    this.scene.addRootEntity(entityMap.get(id));
+  }
+
+  protected override _clearAndResolve() {
+    this.context.clear();
+    return this.scene;
   }
 }

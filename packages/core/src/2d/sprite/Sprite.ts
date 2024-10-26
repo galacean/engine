@@ -1,23 +1,22 @@
-import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@oasis-engine/math";
-import { RefObject } from "../../asset/RefObject";
+import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
-import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
-import { Texture2D } from "../../texture/Texture2D";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
-import { SpritePropertyDirtyFlag } from "../enums/SpriteDirtyFlag";
+import { ReferResource } from "../../asset/ReferResource";
+import { Texture2D } from "../../texture/Texture2D";
+import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
+import { SpriteAtlas } from "../atlas/SpriteAtlas";
 
 /**
  * 2D sprite.
  */
-export class Sprite extends RefObject {
+export class Sprite extends ReferResource {
   /** The name of sprite. */
   name: string;
 
-  /** @internal temp solution. */
-  _assetID: number;
-
-  private _width: number = undefined;
-  private _height: number = undefined;
+  private _automaticWidth: number = 0;
+  private _automaticHeight: number = 0;
+  private _customWidth: number = undefined;
+  private _customHeight: number = undefined;
 
   private _positions: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
   private _uvs: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
@@ -32,8 +31,12 @@ export class Sprite extends RefObject {
   private _pivot: Vector2 = new Vector2(0.5, 0.5);
   private _border: Vector4 = new Vector4(0, 0, 0, 0);
 
-  private _dirtyFlag: DirtyFlag = DirtyFlag.all;
-  private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
+  private _dirtyUpdateFlag: SpriteUpdateFlags = SpriteUpdateFlags.all;
+
+  /** @internal */
+  _atlas: SpriteAtlas;
+  /** @internal */
+  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   /**
    * The reference to the used texture.
@@ -45,37 +48,56 @@ export class Sprite extends RefObject {
   set texture(value: Texture2D) {
     if (this._texture !== value) {
       this._texture = value;
-      this._dispatchSpriteChange(SpritePropertyDirtyFlag.texture);
+      this._dispatchSpriteChange(SpriteModifyFlags.texture);
+      if (this._customWidth === undefined || this._customHeight === undefined) {
+        this._dispatchSpriteChange(SpriteModifyFlags.size);
+      }
     }
   }
 
   /**
    * The width of the sprite (in world coordinates).
+   *
+   * @remarks
+   * If width is set, return the set value,
+   * otherwise return the width calculated according to `Texture.width`, `Sprite.region`, `Sprite.atlasRegion`, `Sprite.atlasRegionOffset` and `Engine._pixelsPerUnit`.
    */
   get width(): number {
-    this._width === undefined && this._calDefaultSize();
-    return this._width;
+    if (this._customWidth !== undefined) {
+      return this._customWidth;
+    } else {
+      this._dirtyUpdateFlag & SpriteUpdateFlags.automaticSize && this._calDefaultSize();
+      return this._automaticWidth;
+    }
   }
 
   set width(value: number) {
-    if (this._width !== value) {
-      this._width = value;
-      this._dispatchSpriteChange(SpritePropertyDirtyFlag.size);
+    if (this._customWidth !== value) {
+      this._customWidth = value;
+      this._dispatchSpriteChange(SpriteModifyFlags.size);
     }
   }
 
   /**
    * The height of the sprite (in world coordinates).
+   *
+   * @remarks
+   * If height is set, return the set value,
+   * otherwise return the height calculated according to `Texture.height`, `Sprite.region`, `Sprite.atlasRegion`, `Sprite.atlasRegionOffset` and `Engine._pixelsPerUnit`.
    */
   get height(): number {
-    this._height === undefined && this._calDefaultSize();
-    return this._height;
+    if (this._customHeight !== undefined) {
+      return this._customHeight;
+    } else {
+      this._dirtyUpdateFlag & SpriteUpdateFlags.automaticSize && this._calDefaultSize();
+      return this._automaticHeight;
+    }
   }
 
   set height(value: number) {
-    if (this._height !== value) {
-      this._height = value;
-      this._dispatchSpriteChange(SpritePropertyDirtyFlag.size);
+    if (this._customHeight !== value) {
+      this._customHeight = value;
+      this._dispatchSpriteChange(SpriteModifyFlags.size);
     }
   }
 
@@ -103,7 +125,10 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     this._atlasRegion.set(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
-    this._dispatchSpriteChange(SpritePropertyDirtyFlag.atlasRegion);
+    this._dispatchSpriteChange(SpriteModifyFlags.atlasRegion);
+    if (this._customWidth === undefined || this._customHeight === undefined) {
+      this._dispatchSpriteChange(SpriteModifyFlags.size);
+    }
   }
 
   /**
@@ -117,7 +142,10 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     this._atlasRegionOffset.set(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
-    this._dispatchSpriteChange(SpritePropertyDirtyFlag.atlasRegionOffset);
+    this._dispatchSpriteChange(SpriteModifyFlags.atlasRegionOffset);
+    if (this._customWidth === undefined || this._customHeight === undefined) {
+      this._dispatchSpriteChange(SpriteModifyFlags.size);
+    }
   }
 
   /**
@@ -128,11 +156,7 @@ export class Sprite extends RefObject {
   }
 
   set region(value: Rect) {
-    const region = this._region;
-    const x = MathUtil.clamp(value.x, 0, 1);
-    const y = MathUtil.clamp(value.y, 0, 1);
-    region.set(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
-    this._dispatchSpriteChange(SpritePropertyDirtyFlag.region);
+    this._region !== value && this._region.copyFrom(value);
   }
 
   /**
@@ -144,16 +168,7 @@ export class Sprite extends RefObject {
   }
 
   set pivot(value: Vector2) {
-    const pivot = this._pivot;
-    if (pivot === value) {
-      this._dispatchSpriteChange(SpritePropertyDirtyFlag.pivot);
-    } else {
-      const { x, y } = value;
-      if (pivot.x !== x || pivot.y !== y) {
-        pivot.set(x, y);
-        this._dispatchSpriteChange(SpritePropertyDirtyFlag.pivot);
-      }
-    }
+    this._pivot !== value && this._pivot.copyFrom(value);
   }
 
   /**
@@ -161,18 +176,14 @@ export class Sprite extends RefObject {
    *  x      y       z     w
    *  |      |       |     |
    * Left, bottom, right, top.
-   * @remark only use in sliced mode.
+   * @remarks only use in sliced mode.
    */
   get border(): Vector4 {
     return this._border;
   }
 
   set border(value: Vector4) {
-    const border = this._border;
-    const x = MathUtil.clamp(value.x, 0, 1);
-    const y = MathUtil.clamp(value.y, 0, 1);
-    border.set(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
-    this._dispatchSpriteChange(SpritePropertyDirtyFlag.border);
+    this._border !== value && this._border.copyFrom(value);
   }
 
   /**
@@ -194,6 +205,15 @@ export class Sprite extends RefObject {
   ) {
     super(engine);
     this._texture = texture;
+    this._onRegionChange = this._onRegionChange.bind(this);
+    this._onPivotChange = this._onPivotChange.bind(this);
+    this._onBorderChange = this._onBorderChange.bind(this);
+    // @ts-ignore
+    this._region._onValueChanged = this._onRegionChange;
+    // @ts-ignore
+    this._pivot._onValueChanged = this._onPivotChange;
+    // @ts-ignore
+    this._border._onValueChanged = this._onBorderChange;
     region && this._region.copyFrom(region);
     pivot && this._pivot.copyFrom(pivot);
     border && this._border.copyFrom(border);
@@ -206,7 +226,6 @@ export class Sprite extends RefObject {
    */
   clone(): Sprite {
     const cloneSprite = new Sprite(this._engine, this._texture, this._region, this._pivot, this._border, this.name);
-    cloneSprite._assetID = this._assetID;
     cloneSprite._atlasRotated = this._atlasRotated;
     cloneSprite._atlasRegion.copyFrom(this._atlasRegion);
     cloneSprite._atlasRegionOffset.copyFrom(this._atlasRegionOffset);
@@ -216,15 +235,8 @@ export class Sprite extends RefObject {
   /**
    * @internal
    */
-  _registerUpdateFlag(): ListenerUpdateFlag {
-    return this._updateFlagManager.createFlag(ListenerUpdateFlag);
-  }
-
-  /**
-   * @internal
-   */
   _getPositions(): Vector2[] {
-    this._dirtyFlag & DirtyFlag.positions && this._updatePositions();
+    this._dirtyUpdateFlag & SpriteUpdateFlags.positions && this._updatePositions();
     return this._positions;
   }
 
@@ -232,7 +244,7 @@ export class Sprite extends RefObject {
    * @internal
    */
   _getUVs(): Vector2[] {
-    this._dirtyFlag & DirtyFlag.uvs && this._updateUVs();
+    this._dirtyUpdateFlag & SpriteUpdateFlags.uvs && this._updateUVs();
     return this._uvs;
   }
 
@@ -240,32 +252,55 @@ export class Sprite extends RefObject {
    * @internal
    */
   _getBounds(): BoundingBox {
-    this._dirtyFlag & DirtyFlag.positions && this._updatePositions();
+    this._dirtyUpdateFlag & SpriteUpdateFlags.positions && this._updatePositions();
     return this._bounds;
   }
 
   /**
-   * @override
+   * @internal
    */
-  _onDestroy(): void {
-    if (this._texture) {
-      this._texture = null;
-    }
+  override _addReferCount(value: number): void {
+    super._addReferCount(value);
+    this._atlas?._addReferCount(value);
+  }
+
+  /**
+   * @internal
+   */
+  protected override _onDestroy(): void {
+    this._dispatchSpriteChange(SpriteModifyFlags.destroy);
+    super._onDestroy();
+    this._positions.length = 0;
+    this._positions = null;
+    this._uvs.length = 0;
+    this._uvs = null;
+    this._atlasRegion = null;
+    this._atlasRegionOffset = null;
+    this._region = null;
+    this._pivot = null;
+    this._border = null;
+    this._bounds = null;
+    this._atlas = null;
+    this._texture = null;
+    this._updateFlagManager = null;
   }
 
   private _calDefaultSize(): void {
     if (this._texture) {
       const { _texture, _atlasRegion, _atlasRegionOffset, _region } = this;
       const pixelsPerUnitReciprocal = 1.0 / Engine._pixelsPerUnit;
-      this.width =
+      this._automaticWidth =
         ((_texture.width * _atlasRegion.width) / (1 - _atlasRegionOffset.x - _atlasRegionOffset.z)) *
         _region.width *
         pixelsPerUnitReciprocal;
-      this.height =
+      this._automaticHeight =
         ((_texture.height * _atlasRegion.height) / (1 - _atlasRegionOffset.y - _atlasRegionOffset.w)) *
         _region.height *
         pixelsPerUnitReciprocal;
+    } else {
+      this._automaticWidth = this._automaticHeight = 0;
     }
+    this._dirtyUpdateFlag &= ~SpriteUpdateFlags.automaticSize;
   }
 
   private _updatePositions(): void {
@@ -293,7 +328,7 @@ export class Sprite extends RefObject {
     const { min, max } = this._bounds;
     min.set(left, bottom, 0);
     max.set(right, top, 0);
-    this._dirtyFlag &= ~DirtyFlag.positions;
+    this._dirtyUpdateFlag &= ~SpriteUpdateFlags.positions;
   }
 
   private _updateUVs(): void {
@@ -325,28 +360,63 @@ export class Sprite extends RefObject {
     );
     // Right-Top
     uv[3].set(right, top);
-    this._dirtyFlag &= ~DirtyFlag.uvs;
+    this._dirtyUpdateFlag &= ~SpriteUpdateFlags.uvs;
   }
 
-  private _dispatchSpriteChange(type: SpritePropertyDirtyFlag): void {
+  private _dispatchSpriteChange(type: SpriteModifyFlags): void {
     switch (type) {
-      case SpritePropertyDirtyFlag.atlasRegionOffset:
-      case SpritePropertyDirtyFlag.region:
-        this._dirtyFlag |= DirtyFlag.all;
+      case SpriteModifyFlags.texture:
+        this._dirtyUpdateFlag |= SpriteUpdateFlags.automaticSize;
         break;
-      case SpritePropertyDirtyFlag.atlasRegion:
-      case SpritePropertyDirtyFlag.border:
-        this._dirtyFlag |= DirtyFlag.uvs;
+      case SpriteModifyFlags.atlasRegionOffset:
+      case SpriteModifyFlags.region:
+        this._dirtyUpdateFlag |= SpriteUpdateFlags.all;
         break;
-      default:
+      case SpriteModifyFlags.atlasRegion:
+        this._dirtyUpdateFlag |= SpriteUpdateFlags.automaticSize | SpriteUpdateFlags.uvs;
+        break;
+      case SpriteModifyFlags.border:
+        this._dirtyUpdateFlag |= SpriteUpdateFlags.uvs;
         break;
     }
     this._updateFlagManager.dispatch(type);
   }
+
+  private _onRegionChange(): void {
+    const { _region: region } = this;
+    // @ts-ignore
+    region._onValueChanged = null;
+    const x = MathUtil.clamp(region.x, 0, 1);
+    const y = MathUtil.clamp(region.y, 0, 1);
+    region.set(x, y, MathUtil.clamp(region.width, 0, 1 - x), MathUtil.clamp(region.height, 0, 1 - y));
+    this._dispatchSpriteChange(SpriteModifyFlags.region);
+    if (this._customWidth === undefined || this._customHeight === undefined) {
+      this._dispatchSpriteChange(SpriteModifyFlags.size);
+    }
+    // @ts-ignore
+    region._onValueChanged = this._onRegionChange;
+  }
+
+  private _onPivotChange(): void {
+    this._dispatchSpriteChange(SpriteModifyFlags.pivot);
+  }
+
+  private _onBorderChange(): void {
+    const { _border: border } = this;
+    // @ts-ignore
+    border._onValueChanged = null;
+    const x = MathUtil.clamp(border.x, 0, 1);
+    const y = MathUtil.clamp(border.y, 0, 1);
+    border.set(x, y, MathUtil.clamp(border.z, 0, 1 - x), MathUtil.clamp(border.w, 0, 1 - y));
+    this._dispatchSpriteChange(SpriteModifyFlags.border);
+    // @ts-ignore
+    border._onValueChanged = this._onBorderChange;
+  }
 }
 
-enum DirtyFlag {
+enum SpriteUpdateFlags {
   positions = 0x1,
   uvs = 0x2,
-  all = 0x3
+  automaticSize = 0x4,
+  all = 0x7
 }

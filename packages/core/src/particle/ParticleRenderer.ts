@@ -1,930 +1,290 @@
-import { MathUtil, Vector3, Color } from "@oasis-engine/math";
-import { Buffer } from "../graphic/Buffer";
-import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
-import { BufferUsage } from "../graphic/enums/BufferUsage";
-import { IndexFormat } from "../graphic/enums/IndexFormat";
-import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
-import { VertexElement } from "../graphic/VertexElement";
-import { Material } from "../material/Material";
-import { BlendFactor } from "../shader/enums/BlendFactor";
-import { RenderQueueType } from "../material/enums/RenderQueueType";
-import { Shader, CullMode } from "../shader";
-import { Texture } from "../texture";
-import { MeshRenderer } from "../mesh/MeshRenderer";
+import { BoundingBox, Vector3 } from "@galacean/engine-math";
+import { Entity } from "../Entity";
+import { RenderContext } from "../RenderPipeline/RenderContext";
+import { Renderer, RendererUpdateFlags } from "../Renderer";
+import { TransformModifyFlags } from "../Transform";
 import { GLCapabilityType } from "../base/Constant";
-import { BufferMesh } from "../mesh/BufferMesh";
-
-enum DirtyFlagType {
-  Position = 0x1,
-  Velocity = 0x2,
-  Acceleration = 0x4,
-  Color = 0x8,
-  Alpha = 0x10,
-  Size = 0x20,
-  StartAngle = 0x40,
-  StartTime = 0x80,
-  LifeTime = 0x100,
-  RotateVelocity = 0x200,
-  Scale = 0x400,
-  Everything = 0xffffffff
-}
-
-/**
- * Blend mode enums of the particle renderer's material.
- */
-export enum ParticleRendererBlendMode {
-  Transparent = 0,
-  Additive = 1
-}
+import { deepClone, ignoreClone, shallowClone } from "../clone/CloneManager";
+import { ModelMesh } from "../mesh/ModelMesh";
+import { ShaderMacro } from "../shader/ShaderMacro";
+import { ShaderProperty } from "../shader/ShaderProperty";
+import { ParticleGenerator } from "./ParticleGenerator";
+import { ParticleRenderMode } from "./enums/ParticleRenderMode";
+import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
+import { ParticleStopMode } from "./enums/ParticleStopMode";
 
 /**
  * Particle Renderer Component.
  */
-export class ParticleRenderer extends MeshRenderer {
-  /** The max number of indices that Uint16Array can support. */
-  private static _uint16VertexLimit: number = 65535;
+export class ParticleRenderer extends Renderer {
+  private static readonly _billboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_SPHERE_BILLBOARD");
+  private static readonly _stretchedBillboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_STRETCHED_BILLBOARD");
+  private static readonly _horizontalBillboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_HORIZONTAL_BILLBOARD");
+  private static readonly _verticalBillboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_VERTICAL_BILLBOARD");
+  private static readonly _renderModeMeshMacro = ShaderMacro.getByName("RENDERER_MODE_MESH");
 
-  private static _getRandom(): number {
-    return Math.random() - 0.5;
-  }
+  private static readonly _pivotOffsetProperty = ShaderProperty.getByName("renderer_PivotOffset");
+  private static readonly _lengthScale = ShaderProperty.getByName("renderer_StretchedBillboardLengthScale");
+  private static readonly _speedScale = ShaderProperty.getByName("renderer_StretchedBillboardSpeedScale");
+  private static readonly _currentTime = ShaderProperty.getByName("renderer_CurrentTime");
 
-  private _vertexStride: number;
-  private _vertices: Float32Array;
-  private _vertexBuffer: Buffer;
-  private _maxCount: number = 1000;
-  private _position: Vector3 = new Vector3();
-  private _positionRandomness: Vector3 = new Vector3();
-  private _positionArray: Vector3[];
-  private _velocity: Vector3 = new Vector3();
-  private _velocityRandomness: Vector3 = new Vector3();
-  private _acceleration: Vector3 = new Vector3();
-  private _accelerationRandomness: Vector3 = new Vector3();
-  private _color: Color = new Color(1, 1, 1, 1);
-  private _colorRandomness: number = 0;
-  private _size: number = 1;
-  private _sizeRandomness: number = 0;
-  private _alpha: number = 1;
-  private _alphaRandomness: number = 0;
-  private _startAngle: number = 0;
-  private _startAngleRandomness: number = 0;
-  private _rotateVelocity: number = 0;
-  private _rotateVelocityRandomness: number = 0;
-  private _lifetime: number = 5;
-  private _startTimeRandomness: number = 0;
-  private _scale: number = 1;
-  private _isOnce: boolean = false;
-  private _onceTime: number = 0;
-  private _time: number = 0;
-  private _isInit: boolean = false;
-  private _isStart: boolean = false;
-  private _updateDirtyFlag: number = DirtyFlagType.Everything;
-  private _isRotateToVelocity: boolean = false;
-  private _isUseOriginColor: boolean = false;
-  private _isScaleByLifetime: boolean = false;
-  private _is2d: boolean = true;
-  private _isFadeIn: boolean = false;
-  private _isFadeOut: boolean = false;
-  private _playOnEnable: boolean = true;
-  private _blendMode: ParticleRendererBlendMode = ParticleRendererBlendMode.Transparent;
+  /** Particle generator. */
+  @deepClone
+  readonly generator: ParticleGenerator;
+  /** Specifies how much particles stretch depending on their velocity. */
+  velocityScale = 0;
+  /** How much are the particles stretched in their direction of motion, defined as the length of the particle compared to its width. */
+  lengthScale = 2;
+  /** The pivot of particle. */
+  @shallowClone
+  pivot = new Vector3();
+
+  /** @internal */
+  @ignoreClone
+  _generatorBounds = new BoundingBox();
+  /** @internal */
+  @ignoreClone
+  _transformedBounds = new BoundingBox();
+
+  private _renderMode: ParticleRenderMode;
+  private _currentRenderModeMacro: ShaderMacro;
+  private _mesh: ModelMesh;
+  private _supportInstancedArrays: boolean;
 
   /**
-   * Sprite sheet of texture.
+   * Specifies how particles are rendered.
    */
-  public spriteSheet: { x: number; y: number; w: number; h: number }[];
-
-  /**
-   * Texture of particle.
-   */
-  get texture(): Texture {
-    return this.getMaterial().shaderData.getTexture("u_texture");
+  get renderMode(): ParticleRenderMode {
+    return this._renderMode;
   }
 
-  set texture(texture: Texture) {
-    if (texture) {
-      this.shaderData.enableMacro("particleTexture");
-      this.getMaterial().shaderData.setTexture("u_texture", texture);
-    } else {
-      this.shaderData.disableMacro("particleTexture");
+  set renderMode(value: ParticleRenderMode) {
+    if (this._renderMode !== value) {
+      const lastRenderMode = this._renderMode;
+      this._renderMode = value;
+
+      let renderModeMacro = <ShaderMacro>null;
+      const shaderData = this.shaderData;
+      switch (value) {
+        case ParticleRenderMode.Billboard:
+          renderModeMacro = ParticleRenderer._billboardModeMacro;
+          break;
+        case ParticleRenderMode.StretchBillboard:
+          renderModeMacro = ParticleRenderer._stretchedBillboardModeMacro;
+          break;
+        case ParticleRenderMode.HorizontalBillboard:
+          throw "Not implemented";
+          renderModeMacro = ParticleRenderer._horizontalBillboardModeMacro;
+          break;
+        case ParticleRenderMode.VerticalBillboard:
+          throw "Not implemented";
+          renderModeMacro = ParticleRenderer._verticalBillboardModeMacro;
+          break;
+        case ParticleRenderMode.Mesh:
+          throw "Not implemented";
+          renderModeMacro = ParticleRenderer._renderModeMeshMacro;
+          break;
+      }
+
+      if (this._currentRenderModeMacro !== renderModeMacro) {
+        this._currentRenderModeMacro && shaderData.disableMacro(this._currentRenderModeMacro);
+        renderModeMacro && shaderData.enableMacro(renderModeMacro);
+        this._currentRenderModeMacro = renderModeMacro;
+      }
+
+      // @ts-ignore
+      if ((lastRenderMode !== ParticleRenderMode.Mesh) !== (value === ParticleRenderMode.Mesh)) {
+        this.generator._reorganizeGeometryBuffers();
+      }
     }
   }
 
   /**
-   * Position of particles.
+   * The mesh of particle.
+   * @remarks Valid when `renderMode` is `Mesh`.
    */
-  get position(): Vector3 {
-    return this._position;
+  get mesh(): ModelMesh {
+    return this._mesh;
   }
 
-  set position(value: Vector3) {
-    this._updateDirtyFlag |= DirtyFlagType.Position;
-    this._position = value;
-  }
-
-  /**
-   * Random range of positions.
-   */
-  get positionRandomness(): Vector3 {
-    return this._positionRandomness;
-  }
-
-  set positionRandomness(value: Vector3) {
-    this._updateDirtyFlag |= DirtyFlagType.Position;
-    this._positionRandomness = value;
-  }
-
-  /**
-   * Array of fixed positions.
-   */
-  get positionArray(): Vector3[] {
-    return this._positionArray;
-  }
-
-  set positionArray(value: Vector3[]) {
-    this._updateDirtyFlag |= DirtyFlagType.Position;
-    this._positionArray = value;
-  }
-
-  /**
-   * Velocity of particles.
-   */
-  get velocity(): Vector3 {
-    return this._velocity;
-  }
-
-  set velocity(value: Vector3) {
-    this._updateDirtyFlag |= DirtyFlagType.Velocity;
-    this._velocity = value;
-  }
-
-  /**
-   * Random range of velocity.
-   */
-  get velocityRandomness(): Vector3 {
-    return this._velocityRandomness;
-  }
-
-  set velocityRandomness(value: Vector3) {
-    this._updateDirtyFlag |= DirtyFlagType.Velocity;
-    this._velocityRandomness = value;
-  }
-
-  /**
-   * Acceleration of particles.
-   */
-  get acceleration(): Vector3 {
-    return this._acceleration;
-  }
-
-  set acceleration(value: Vector3) {
-    this._updateDirtyFlag |= DirtyFlagType.Acceleration;
-    this._acceleration = value;
-  }
-
-  /**
-   * Random range of acceleration.
-   */
-  get accelerationRandomness(): Vector3 {
-    return this._accelerationRandomness;
-  }
-
-  set accelerationRandomness(value: Vector3) {
-    this._updateDirtyFlag |= DirtyFlagType.Acceleration;
-    this._accelerationRandomness = value;
-  }
-
-  /**
-   * Color of particles.
-   */
-  get color(): Color {
-    return this._color;
-  }
-
-  set color(value: Color) {
-    this._updateDirtyFlag |= DirtyFlagType.Color;
-    this._color = value;
-  }
-
-  /**
-   * Random range of color.
-   */
-  get colorRandomness(): number {
-    return this._colorRandomness;
-  }
-
-  set colorRandomness(value: number) {
-    this._updateDirtyFlag |= DirtyFlagType.Color;
-    this._colorRandomness = value;
-  }
-
-  /**
-   * Size of particles.
-   */
-  get size(): number {
-    return this._size;
-  }
-
-  set size(value: number) {
-    this._updateDirtyFlag |= DirtyFlagType.Size;
-    this._size = value;
-  }
-
-  /**
-   * Random range of size.
-   */
-  get sizeRandomness(): number {
-    return this._sizeRandomness;
-  }
-
-  set sizeRandomness(value: number) {
-    this._updateDirtyFlag |= DirtyFlagType.Size;
-    this._sizeRandomness = value;
-  }
-
-  /**
-   * Alpha of particles.
-   */
-  get alpha(): number {
-    return this._alpha;
-  }
-
-  set alpha(value: number) {
-    this._updateDirtyFlag |= DirtyFlagType.Alpha;
-    this._alpha = value;
-  }
-
-  /**
-   * Random range of alpha.
-   */
-  get alphaRandomness(): number {
-    return this._alphaRandomness;
-  }
-
-  set alphaRandomness(value: number) {
-    this._updateDirtyFlag |= DirtyFlagType.Alpha;
-    this._alphaRandomness = value;
-  }
-
-  /**
-   * Angle of particles.
-   */
-  get angle(): number {
-    return this._startAngle;
-  }
-
-  set angle(value: number) {
-    this._updateDirtyFlag |= DirtyFlagType.StartAngle;
-    this._startAngle = value;
-  }
-
-  /**
-   * Random range of angle.
-   */
-  get angleRandomness(): number {
-    return this._startAngleRandomness;
-  }
-
-  set angleRandomness(value: number) {
-    this._updateDirtyFlag |= DirtyFlagType.StartAngle;
-    this._startAngleRandomness = value;
-  }
-
-  /**
-   * Rotate velocity of particles.
-   */
-  get rotateVelocity(): number {
-    return this._rotateVelocity;
-  }
-
-  set rotateVelocity(value: number) {
-    this._updateDirtyFlag |= DirtyFlagType.RotateVelocity;
-    this._rotateVelocity = value;
-  }
-
-  /**
-   * Random range of rotate velocity.
-   */
-  get rotateVelocityRandomness(): number {
-    return this._rotateVelocityRandomness;
-  }
-
-  set rotateVelocityRandomness(value: number) {
-    this._updateDirtyFlag |= DirtyFlagType.RotateVelocity;
-    this._rotateVelocityRandomness = value;
-  }
-
-  /**
-   * Lifetime of particles.
-   */
-  get lifetime(): number {
-    return this._lifetime;
-  }
-
-  set lifetime(value: number) {
-    this._updateDirtyFlag |= DirtyFlagType.LifeTime;
-    this._lifetime = value;
-    this._onceTime = 0;
-  }
-
-  /**
-   * Random range of start time.
-   */
-  get startTimeRandomness(): number {
-    return this._startTimeRandomness;
-  }
-
-  set startTimeRandomness(value: number) {
-    this._updateDirtyFlag |= DirtyFlagType.StartTime;
-    this._startTimeRandomness = value;
-    this._onceTime = 0;
-  }
-
-  /**
-   * Scale factor of particles.
-   */
-  get scale(): number {
-    return this._scale;
-  }
-
-  set scale(value: number) {
-    this._updateDirtyFlag |= DirtyFlagType.Scale;
-    this._scale = value;
-  }
-
-  /**
-   * Max count of particles.
-   */
-  get maxCount(): number {
-    return this._maxCount;
-  }
-
-  set maxCount(value: number) {
-    this._isStart = false;
-    this._isInit = false;
-    this._maxCount = value;
-    this._updateDirtyFlag = DirtyFlagType.Everything;
-    this.mesh = this._createMesh();
-
-    this._updateBuffer();
-
-    this._isInit = true;
-    this.shaderData.setFloat("u_time", 0);
-  }
-
-  /**
-   * Whether play once.
-   */
-  get isOnce(): boolean {
-    return this._isOnce;
-  }
-
-  set isOnce(value: boolean) {
-    this._time = 0;
-    this.shaderData.setInt("u_once", value ? 1 : 0);
-    this._isOnce = value;
-  }
-
-  /**
-   * Whether follow the direction of velocity.
-   */
-  get isRotateToVelocity(): boolean {
-    return this._isRotateToVelocity;
-  }
-
-  set isRotateToVelocity(value: boolean) {
-    if (value) {
-      this.shaderData.enableMacro("rotateToVelocity");
-    } else {
-      this.shaderData.disableMacro("rotateToVelocity");
-    }
-
-    this._isRotateToVelocity = value;
-  }
-
-  /**
-   * Whether use origin color.
-   */
-  get isUseOriginColor(): boolean {
-    return this._isUseOriginColor;
-  }
-
-  set isUseOriginColor(value: boolean) {
-    if (value) {
-      this.shaderData.enableMacro("useOriginColor");
-    } else {
-      this.shaderData.disableMacro("useOriginColor");
-    }
-
-    this._isUseOriginColor = value;
-  }
-
-  /**
-   * Whether scale by lifetime.
-   */
-  get isScaleByLifetime(): boolean {
-    return this._isScaleByLifetime;
-  }
-
-  set isScaleByLifetime(value: boolean) {
-    if (value) {
-      this.shaderData.enableMacro("isScaleByLifetime");
-    } else {
-      this.shaderData.disableMacro("isScaleByLifetime");
-    }
-
-    this._isScaleByLifetime = value;
-  }
-
-  /**
-   * Whether 2D rendering.
-   */
-  get is2d(): boolean {
-    return this._is2d;
-  }
-
-  set is2d(value: boolean) {
-    if (value) {
-      this.shaderData.enableMacro("is2d");
-    } else {
-      this.shaderData.disableMacro("is2d");
-      this.getMaterial().renderState.rasterState.cullMode = CullMode.Off;
-    }
-
-    this._is2d = value;
-  }
-
-  /**
-   * Whether fade in.
-   */
-  get isFadeIn(): boolean {
-    return this._isFadeIn;
-  }
-
-  set isFadeIn(value: boolean) {
-    if (value) {
-      this.shaderData.enableMacro("fadeIn");
-    } else {
-      this.shaderData.disableMacro("fadeIn");
-    }
-
-    this._isFadeIn = value;
-  }
-
-  /**
-   * Whether fade out.
-   */
-  get isFadeOut(): boolean {
-    return this._isFadeOut;
-  }
-
-  set isFadeOut(value: boolean) {
-    if (value) {
-      this.shaderData.enableMacro("fadeOut");
-    } else {
-      this.shaderData.disableMacro("fadeOut");
-    }
-
-    this._isFadeOut = value;
-  }
-
-  /**
-   * Whether play on enable.
-   */
-  get playOnEnable(): boolean {
-    return this._playOnEnable;
-  }
-
-  set playOnEnable(value: boolean) {
-    this._playOnEnable = value;
-
-    if (value) {
-      this.start();
-    } else {
-      this.stop();
+  set mesh(value: ModelMesh) {
+    const lastMesh = this._mesh;
+    if (lastMesh !== value) {
+      this._mesh = value;
+      lastMesh && this._addResourceReferCount(lastMesh, -1);
+      value && this._addResourceReferCount(value, 1);
+      if (this.renderMode === ParticleRenderMode.Mesh) {
+        this.generator._reorganizeGeometryBuffers();
+      }
     }
   }
 
   /**
-   * Blend mode of the particle renderer's material.
-   */
-  get blendMode(): ParticleRendererBlendMode {
-    return this._blendMode;
-  }
-
-  set blendMode(value: ParticleRendererBlendMode) {
-    const blendState = this.getMaterial().renderState.blendState;
-    const target = blendState.targetBlendState;
-
-    if (value === ParticleRendererBlendMode.Transparent) {
-      target.enabled = true;
-      target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
-      target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-      target.sourceAlphaBlendFactor = BlendFactor.One;
-      target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    } else if (value === ParticleRendererBlendMode.Additive) {
-      target.enabled = true;
-      target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
-      target.destinationColorBlendFactor = BlendFactor.One;
-      target.sourceAlphaBlendFactor = BlendFactor.One;
-      target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    }
-
-    this._blendMode = value;
-  }
-
-  constructor(props) {
-    super(props);
-
-    this.setMaterial(this._createMaterial());
-  }
-
-  /**
-   * @override
    * @internal
    */
-  update(deltaTime: number): void {
-    if (!this._isInit || !this._isStart) {
+  constructor(entity: Entity) {
+    super(entity);
+    this._onGeneratorParamsChanged = this._onGeneratorParamsChanged.bind(this);
+    this.generator = new ParticleGenerator(this);
+
+    this._currentRenderModeMacro = ParticleRenderer._billboardModeMacro;
+    this.shaderData.enableMacro(ParticleRenderer._billboardModeMacro);
+
+    this._supportInstancedArrays = this.engine._hardwareRenderer.canIUse(GLCapabilityType.instancedArrays);
+
+    this._onGeneratorParamsChanged();
+  }
+
+  /**
+   * @internal
+   */
+  override _onEnable(): void {
+    if (this.generator.main.playOnEnabled) {
+      this.generator.play(false);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  override _onDisable(): void {
+    this.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+  }
+
+  /**
+   * @internal
+   */
+  override _prepareRender(context: RenderContext): void {
+    if (!this._supportInstancedArrays) {
       return;
     }
 
-    // Stop after play once
-    if (this._isOnce && this._time > this._onceTime) {
-      return this.stop();
-    }
-
-    if (this._updateDirtyFlag) {
-      this._updateBuffer();
-      this._updateDirtyFlag = 0;
-    }
-
-    this._time += deltaTime / 1000;
-    this.shaderData.setFloat("u_time", this._time);
+    super._prepareRender(context);
   }
 
   /**
-   * @override
    * @internal
    */
-  _onEnable(): void {
-    super._onEnable();
+  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+    //@todo: Don't need to update transform shader data, temp solution
+    super._updateTransformShaderData(context, onlyMVP, true);
+  }
+  protected override _updateBounds(worldBounds: BoundingBox): void {
+    const { generator } = this;
 
-    if (this._playOnEnable) {
-      this.start();
+    // Using `isAlive` instead of `firstActiveElement !== firstFreeElement`
+    // Because `firstActiveElement !== firstFreeElement` will cause bounds is merely a point, and cannot be culled forever
+    // Must generate bounds even when there is no particle but in play state
+    if (!generator.isAlive) {
+      const worldPosition = this.entity.transform.worldPosition;
+      worldBounds.min.copyFrom(worldPosition);
+      worldBounds.max.copyFrom(worldPosition);
+      return;
     }
+    if (generator.main.simulationSpace === ParticleSimulationSpace.Local) {
+      generator._updateBoundsSimulationLocal(worldBounds);
+    } else {
+      if (this._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
+        generator._generateTransformedBounds();
+        this._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
+      }
+      generator._updateBoundsSimulationWorld(worldBounds);
+    }
+  }
+
+  protected override _update(context: RenderContext): void {
+    const generator = this.generator;
+    generator._update(this.engine.time.deltaTime);
+
+    // No particles to render
+    if (generator._firstActiveElement === generator._firstFreeElement) {
+      return;
+    }
+
+    const shaderData = this.shaderData;
+    shaderData.setFloat(ParticleRenderer._lengthScale, this.lengthScale);
+    shaderData.setFloat(ParticleRenderer._speedScale, this.velocityScale);
+    shaderData.setFloat(ParticleRenderer._currentTime, this.generator._playTime);
+    shaderData.setVector3(ParticleRenderer._pivotOffsetProperty, this.pivot);
+
+    this.generator._updateShaderData(shaderData);
+  }
+
+  protected override _render(context: RenderContext): void {
+    const generator = this.generator;
+    generator._primitive.instanceCount = generator._getAliveParticleCount();
+
+    let material = this.getMaterial();
+    if (!material) {
+      return;
+    }
+
+    if (material.destroyed || material.shader.destroyed) {
+      material = this.engine._particleMagentaMaterial;
+    }
+
+    const engine = this._engine;
+    const renderElement = engine._renderElementPool.get();
+    renderElement.set(this.priority, this._distanceForSort);
+    const subRenderElement = engine._subRenderElementPool.get();
+    subRenderElement.set(this, material, generator._primitive, generator._subPrimitive);
+    renderElement.addSubRenderElement(subRenderElement);
+    context.camera._renderPipeline.pushRenderElement(context, renderElement);
+  }
+
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    const mesh = this._mesh;
+    if (mesh) {
+      mesh.destroyed || this._addResourceReferCount(mesh, -1);
+    }
+    this.generator._destroy();
   }
 
   /**
-   * Start emitting.
+   * @internal
    */
-  start(): void {
-    this._isStart = true;
-    this._time = 0;
+  _isContainDirtyFlag(type: number): boolean {
+    return (this._dirtyUpdateFlag & type) != 0;
   }
 
   /**
-   * Stop emitting.
+   * @internal
    */
-  stop(): void {
-    this._isStart = false;
+  _setDirtyFlagFalse(type: number): void {
+    this._dirtyUpdateFlag &= ~type;
   }
 
-  private _createMaterial(): Material {
-    const material = new Material(this.engine, Shader.find("particle-shader"));
-    const { renderState } = material;
-    const target = renderState.blendState.targetBlendState;
-
-    target.enabled = true;
-    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
-    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    target.sourceAlphaBlendFactor = BlendFactor.One;
-    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-
-    renderState.depthState.writeEnabled = false;
-
-    material.renderQueueType = RenderQueueType.Transparent;
-
-    this.isUseOriginColor = true;
-    this.is2d = true;
-    this.isFadeOut = true;
-
-    return material;
+  /**
+   * @internal
+   */
+  _onWorldVolumeChanged(): void {
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 
-  private _createMesh(): BufferMesh {
-    const mesh = new BufferMesh(this._entity.engine, "particleMesh");
-    const vertexStride = 96;
-    const vertexCount = this._maxCount * 4;
-    const vertexFloatCount = vertexCount * vertexStride;
-    const vertices = new Float32Array(vertexFloatCount);
-    let indices: Uint16Array | Uint32Array = null;
-    let useUint32: boolean = false;
-    if (vertexCount > ParticleRenderer._uint16VertexLimit) {
-      if (this.engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
-        useUint32 = true;
-        indices = new Uint32Array(6 * this._maxCount);
-      } else {
-        throw Error("The vertex count is over limit.");
-      }
-    } else {
-      indices = new Uint16Array(6 * this._maxCount);
-    }
-
-    for (let i = 0, idx = 0; i < this._maxCount; ++i) {
-      let startIndex = i * 4;
-      indices[idx++] = startIndex;
-      indices[idx++] = startIndex + 1;
-      indices[idx++] = startIndex + 2;
-      indices[idx++] = startIndex;
-      indices[idx++] = startIndex + 2;
-      indices[idx++] = startIndex + 3;
-    }
-
-    const vertexElements = [
-      new VertexElement("a_position", 0, VertexElementFormat.Vector3, 0),
-      new VertexElement("a_velocity", 12, VertexElementFormat.Vector3, 0),
-      new VertexElement("a_acceleration", 24, VertexElementFormat.Vector3, 0),
-      new VertexElement("a_color", 36, VertexElementFormat.Vector4, 0),
-      new VertexElement("a_lifeAndSize", 52, VertexElementFormat.Vector4, 0),
-      new VertexElement("a_rotation", 68, VertexElementFormat.Vector2, 0),
-      new VertexElement("a_uv", 76, VertexElementFormat.Vector3, 0),
-      new VertexElement("a_normalizedUv", 88, VertexElementFormat.Vector2, 0)
-    ];
-
-    const vertexBuffer = new Buffer(
-      this.engine,
-      BufferBindFlag.VertexBuffer,
-      vertexFloatCount * 4,
-      BufferUsage.Dynamic
-    );
-
-    const indexBuffer = new Buffer(this.engine, BufferBindFlag.IndexBuffer, indices, BufferUsage.Dynamic);
-
-    mesh.setVertexBufferBinding(vertexBuffer, vertexStride);
-    mesh.setIndexBufferBinding(indexBuffer, useUint32 ? IndexFormat.UInt32 : IndexFormat.UInt16);
-    mesh.setVertexElements(vertexElements);
-    mesh.addSubMesh(0, indices.length);
-
-    this._vertexBuffer = vertexBuffer;
-    this._vertexStride = vertexStride / 4;
-    this._vertices = vertices;
-    return mesh;
+  /**
+   * @internal
+   */
+  @ignoreClone
+  _onGeneratorParamsChanged(): void {
+    this._dirtyUpdateFlag |=
+      ParticleUpdateFlags.GeneratorVolume | ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
   }
 
-  private _updateBuffer(): void {
-    for (let x = 0; x < this._maxCount; x++) {
-      this._updateSingleBuffer(x);
-    }
-
-    this._vertexBuffer.setData(this._vertices);
+  /**
+   * @internal
+   */
+  override _onTransformChanged(type: TransformModifyFlags): void {
+    this._dirtyUpdateFlag |= ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
   }
+}
 
-  private _updateSingleBuffer(i: number): void {
-    const { _updateDirtyFlag, _vertices: vertices, _vertexStride: vertexStride } = this;
-    const { _getRandom: getRandom } = ParticleRenderer;
-    const offset = i * 4;
-
-    const k0 = offset * vertexStride;
-    const k1 = (offset + 1) * vertexStride;
-    const k2 = (offset + 2) * vertexStride;
-    const k3 = (offset + 3) * vertexStride;
-
-    if (_updateDirtyFlag & DirtyFlagType.Position) {
-      let { x, y, z } = this._position;
-      const { _positionArray, _positionRandomness } = this;
-
-      if (_positionArray) {
-        if (_positionArray.length !== this._maxCount) {
-          throw Error("The length of positionArray must be equal to maxCount.");
-        }
-        const pos = _positionArray[i];
-
-        x += pos.x;
-        y += pos.y;
-        z += pos.z;
-      } else {
-        x += getRandom() * _positionRandomness.x;
-        y += getRandom() * _positionRandomness.y;
-        z += getRandom() * _positionRandomness.z;
-      }
-
-      vertices[k0] = vertices[k1] = vertices[k2] = vertices[k3] = x;
-      vertices[k0 + 1] = vertices[k1 + 1] = vertices[k2 + 1] = vertices[k3 + 1] = y;
-      vertices[k0 + 2] = vertices[k1 + 2] = vertices[k2 + 2] = vertices[k3 + 2] = z;
-    }
-
-    if (_updateDirtyFlag & DirtyFlagType.Velocity) {
-      const { _velocity, _velocityRandomness } = this;
-
-      vertices[k0 + 3] =
-        vertices[k1 + 3] =
-        vertices[k2 + 3] =
-        vertices[k3 + 3] =
-          _velocity.x + getRandom() * _velocityRandomness.x;
-      vertices[k0 + 4] =
-        vertices[k1 + 4] =
-        vertices[k2 + 4] =
-        vertices[k3 + 4] =
-          _velocity.y + getRandom() * _velocityRandomness.y;
-      vertices[k0 + 5] =
-        vertices[k1 + 5] =
-        vertices[k2 + 5] =
-        vertices[k3 + 5] =
-          _velocity.z + getRandom() * _velocityRandomness.z;
-    }
-
-    if (_updateDirtyFlag & DirtyFlagType.Acceleration) {
-      const { _acceleration, _accelerationRandomness } = this;
-
-      vertices[k0 + 6] =
-        vertices[k1 + 6] =
-        vertices[k2 + 6] =
-        vertices[k3 + 6] =
-          _acceleration.x + getRandom() * _accelerationRandomness.x;
-      vertices[k0 + 7] =
-        vertices[k1 + 7] =
-        vertices[k2 + 7] =
-        vertices[k3 + 7] =
-          _acceleration.y + getRandom() * _accelerationRandomness.y;
-      vertices[k0 + 8] =
-        vertices[k1 + 8] =
-        vertices[k2 + 8] =
-        vertices[k3 + 8] =
-          _acceleration.z + getRandom() * _accelerationRandomness.z;
-    }
-
-    if (_updateDirtyFlag & DirtyFlagType.Color) {
-      const { _color, _colorRandomness } = this;
-
-      vertices[k0 + 9] =
-        vertices[k1 + 9] =
-        vertices[k2 + 9] =
-        vertices[k3 + 9] =
-          MathUtil.clamp(_color.r + getRandom() * _colorRandomness, 0, 1);
-
-      vertices[k0 + 10] =
-        vertices[k1 + 10] =
-        vertices[k2 + 10] =
-        vertices[k3 + 10] =
-          MathUtil.clamp(_color.g + getRandom() * _colorRandomness, 0, 1);
-      vertices[k0 + 11] =
-        vertices[k1 + 11] =
-        vertices[k2 + 11] =
-        vertices[k3 + 11] =
-          MathUtil.clamp(_color.b + getRandom() * _colorRandomness, 0, 1);
-    }
-
-    if (_updateDirtyFlag & DirtyFlagType.Alpha) {
-      vertices[k0 + 12] =
-        vertices[k1 + 12] =
-        vertices[k2 + 12] =
-        vertices[k3 + 12] =
-          MathUtil.clamp(this._alpha + getRandom() * this._alphaRandomness, 0, 1);
-    }
-
-    if (_updateDirtyFlag & DirtyFlagType.StartTime) {
-      vertices[k0 + 13] =
-        vertices[k1 + 13] =
-        vertices[k2 + 13] =
-        vertices[k3 + 13] =
-          Math.random() * this._startTimeRandomness;
-    }
-
-    if (_updateDirtyFlag & DirtyFlagType.LifeTime) {
-      const { _lifetime } = this;
-
-      vertices[k0 + 14] =
-        vertices[k1 + 14] =
-        vertices[k2 + 14] =
-        vertices[k3 + 14] =
-          _lifetime + getRandom() * _lifetime;
-    }
-
-    // Update the duration of play once when startTime or lifetime changes.
-    if (_updateDirtyFlag & DirtyFlagType.StartTime || _updateDirtyFlag & DirtyFlagType.LifeTime) {
-      this._onceTime = Math.max(this._onceTime, vertices[k0 + 13] + vertices[k0 + 14]);
-    }
-
-    if (_updateDirtyFlag & DirtyFlagType.Size) {
-      const { _size } = this;
-
-      vertices[k0 + 15] =
-        vertices[k1 + 15] =
-        vertices[k2 + 15] =
-        vertices[k3 + 15] =
-          Math.max(_size + getRandom() * this._sizeRandomness * _size * 2, 0);
-    }
-
-    if (_updateDirtyFlag & DirtyFlagType.Scale) {
-      vertices[k0 + 16] = vertices[k1 + 16] = vertices[k2 + 16] = vertices[k3 + 16] = this._scale;
-    }
-
-    if (_updateDirtyFlag & DirtyFlagType.StartAngle) {
-      vertices[k0 + 17] =
-        vertices[k1 + 17] =
-        vertices[k2 + 17] =
-        vertices[k3 + 17] =
-          this._startAngle + getRandom() * Math.PI * this._startAngleRandomness * 2;
-    }
-
-    if (_updateDirtyFlag & DirtyFlagType.RotateVelocity) {
-      vertices[k0 + 18] =
-        vertices[k1 + 18] =
-        vertices[k2 + 18] =
-        vertices[k3 + 18] =
-          this._rotateVelocity + getRandom() * this._rotateVelocityRandomness;
-    }
-
-    this._updateSingleUv(i, k0, k1, k2, k3);
-  }
-
-  private _updateSingleUv(i: number, k0: number, k1: number, k2: number, k3: number): void {
-    const { spriteSheet } = this;
-    const texture = this.getMaterial().shaderData.getTexture("u_texture");
-    const vertices = this._vertices;
-
-    if (texture) {
-      const width = texture.width;
-      const height = texture.height;
-
-      if (spriteSheet) {
-        const { x, y, w, h } = spriteSheet[i % spriteSheet.length];
-
-        const u = x / width;
-        const v = y / height;
-        const p = u + w / width;
-        const q = v + h / height;
-        const ratio = h / w;
-
-        // left bottom
-        vertices[k0 + 19] = u;
-        vertices[k0 + 20] = q;
-        vertices[k0 + 21] = ratio;
-
-        // right bottom
-        vertices[k1 + 19] = p;
-        vertices[k1 + 20] = q;
-        vertices[k1 + 21] = ratio;
-
-        // right top
-        vertices[k2 + 19] = p;
-        vertices[k2 + 20] = v;
-        vertices[k2 + 21] = ratio;
-
-        // left top
-        vertices[k3 + 19] = u;
-        vertices[k3 + 20] = v;
-        vertices[k3 + 21] = ratio;
-      } else {
-        const ratio = height / width;
-
-        // left bottom
-        vertices[k0 + 19] = 0;
-        vertices[k0 + 20] = 1;
-        vertices[k0 + 21] = ratio;
-
-        // right bottom
-        vertices[k1 + 19] = 1;
-        vertices[k1 + 20] = 1;
-        vertices[k1 + 21] = ratio;
-
-        // right top
-        vertices[k2 + 19] = 1;
-        vertices[k2 + 20] = 0;
-        vertices[k2 + 21] = ratio;
-
-        // left top
-        vertices[k3 + 19] = 0;
-        vertices[k3 + 20] = 0;
-        vertices[k3 + 21] = ratio;
-      }
-    } else {
-      // left bottom
-      vertices[k0 + 19] = 0;
-      vertices[k0 + 20] = 0;
-      vertices[k0 + 21] = 1;
-
-      // right bottom
-      vertices[k1 + 19] = 1;
-      vertices[k1 + 20] = 0;
-      vertices[k1 + 21] = 1;
-
-      // right top
-      vertices[k2 + 19] = 1;
-      vertices[k2 + 20] = 1;
-      vertices[k2 + 21] = 1;
-
-      // left top
-      vertices[k3 + 19] = 0;
-      vertices[k3 + 20] = 1;
-      vertices[k3 + 21] = 1;
-    }
-
-    vertices[k0 + 22] = -0.5;
-    vertices[k0 + 23] = -0.5;
-    vertices[k1 + 22] = 0.5;
-    vertices[k1 + 23] = -0.5;
-    vertices[k2 + 22] = 0.5;
-    vertices[k2 + 23] = 0.5;
-    vertices[k3 + 22] = -0.5;
-    vertices[k3 + 23] = 0.5;
-  }
+/**
+ * @internal
+ */
+export enum ParticleUpdateFlags {
+  /** On World Transform Changed */
+  TransformVolume = 0x2,
+  /** On Generator Bounds Related Params Changed */
+  GeneratorVolume = 0x4
 }

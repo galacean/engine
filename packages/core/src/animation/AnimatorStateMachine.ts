@@ -1,4 +1,5 @@
 import { AnimatorState } from "./AnimatorState";
+import { AnimatorStateTransition } from "./AnimatorStateTransition";
 export interface AnimatorStateMap {
   [key: string]: AnimatorState;
 }
@@ -10,8 +11,29 @@ export class AnimatorStateMachine {
   /** The list of states. */
   readonly states: AnimatorState[] = [];
 
-  /** @internal */
-  _statesMap: AnimatorStateMap = {};
+  /**
+   * The state will be played automatically.
+   * @remarks When the Animator's AnimatorController changed or the Animator's onEnable be triggered.
+   */
+  defaultState: AnimatorState;
+
+  private _entryTransitions: AnimatorStateTransition[] = [];
+  private _anyStateTransitions: AnimatorStateTransition[] = [];
+  private _statesMap: AnimatorStateMap = {};
+
+  /**
+   * The list of entry transitions in the state machine.
+   */
+  get entryTransitions(): Readonly<AnimatorStateTransition[]> {
+    return this._entryTransitions;
+  }
+
+  /**
+   * The list of AnyState transitions.
+   */
+  get anyStateTransitions(): Readonly<AnimatorStateTransition[]> {
+    return this._anyStateTransitions;
+  }
 
   /**
    * Add a state to the state machine.
@@ -64,5 +86,72 @@ export class AnimatorStateMachine {
       index++;
     }
     return name;
+  }
+
+  /**
+   * Add an entry transition.
+   * @param transition - The transition
+   */
+  addEntryStateTransition(transition: AnimatorStateTransition): AnimatorStateTransition;
+  /**
+   * Add an entry transition to the destination state.
+   * @param animatorState - The destination state
+   */
+
+  addEntryStateTransition(animatorState: AnimatorState): AnimatorStateTransition;
+
+  addEntryStateTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
+    return this._addTransition(transitionOrAnimatorState, this._entryTransitions);
+  }
+
+  /**
+   * Remove an entry transition.
+   * @param transition - The transition
+   */
+  removeEntryStateTransition(transition: AnimatorStateTransition): void {
+    this._removeTransition(transition, this._entryTransitions);
+  }
+
+  /**
+   * Add an any transition.
+   * @param transition - The transition
+   */
+  addAnyStateTransition(transition: AnimatorStateTransition): AnimatorStateTransition;
+  /**
+   * Add an any transition to the destination state.
+   * @param animatorState - The destination state
+   */
+  addAnyStateTransition(animatorState: AnimatorState): AnimatorStateTransition;
+
+  addAnyStateTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
+    return this._addTransition(transitionOrAnimatorState, this._anyStateTransitions);
+  }
+
+  /**
+   * Remove an any transition.
+   * @param transition - The transition
+   */
+  removeAnyStateTransition(transition: AnimatorStateTransition): void {
+    this._removeTransition(transition, this._anyStateTransitions);
+  }
+
+  private _addTransition(
+    transitionOrAnimatorState: AnimatorStateTransition | AnimatorState,
+    transitions: AnimatorStateTransition[]
+  ): AnimatorStateTransition {
+    let transition: AnimatorStateTransition;
+    if (transitionOrAnimatorState instanceof AnimatorState) {
+      transition = new AnimatorStateTransition();
+      transition.destinationState = transitionOrAnimatorState;
+    } else {
+      transition = transitionOrAnimatorState;
+    }
+    transitions.push(transition);
+    return transition;
+  }
+
+  private _removeTransition(transition: AnimatorStateTransition, transitions: AnimatorStateTransition[]): void {
+    const index = transitions.indexOf(transition);
+    index !== -1 && transitions.splice(index, 1);
   }
 }

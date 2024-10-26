@@ -1,12 +1,12 @@
-import { IPlatformTexture2DArray, Texture2DArray, TextureFormat } from "@oasis-engine/core";
+import { IPlatformTexture2DArray, Texture2DArray, TextureFormat } from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
-import { WebGLRenderer } from "./WebGLRenderer";
+import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
 /**
  * Texture 2D array in WebGL platform.
  */
 export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArray {
-  constructor(rhi: WebGLRenderer, texture2DArray: Texture2DArray) {
+  constructor(rhi: WebGLGraphicDevice, texture2DArray: Texture2DArray) {
     super(rhi, texture2DArray, (<WebGL2RenderingContext>rhi.gl).TEXTURE_2D_ARRAY);
 
     const { format, width, height, length, mipmapCount } = texture2DArray;
@@ -15,6 +15,7 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
       throw new Error(`Texture2D Array is not supported in WebGL1.0`);
     }
 
+    /** @ts-ignore */
     if (!GLTexture._supportTextureFormat(format, rhi)) {
       throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
     }
@@ -90,8 +91,8 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
       x,
       y,
       elementIndex,
-      imageSource.width,
-      imageSource.height,
+      (<Exclude<TexImageSource, VideoFrame>>imageSource).width ?? (<VideoFrame>imageSource).codedWidth,
+      (<Exclude<TexImageSource, VideoFrame>>imageSource).height ?? (<VideoFrame>imageSource).codedHeight,
       1,
       baseFormat,
       dataType,

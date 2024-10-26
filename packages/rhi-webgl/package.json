@@ -1,6 +1,9 @@
 {
-  "name": "@oasis-engine/rhi-webgl",
-  "version": "0.8.0-beta.21",
+  "name": "@galacean/engine-rhi-webgl",
+  "version": "0.0.0-experimental-1.3-xr.10",
+  "repository": {
+    "url": "https://github.com/galacean/engine.git"
+  },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -18,10 +21,10 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.8.0-beta.21",
-    "@oasis-engine/math": "0.8.0-beta.21"
+    "@galacean/engine-core": "workspace:*",
+    "@galacean/engine-math": "workspace:*"
   },
   "devDependencies": {
-    "@oasis-engine/design": "0.8.0-beta.21"
+    "@galacean/engine-design": "workspace:*"
   }
 }

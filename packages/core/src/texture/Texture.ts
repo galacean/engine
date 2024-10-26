@@ -1,30 +1,37 @@
-import { RefObject } from "../asset/RefObject";
+import { GraphicsResource } from "../asset/GraphicsResource";
 import { Logger } from "../base/Logger";
 import { IPlatformTexture } from "../renderingHardwareInterface";
+import { TextureDepthCompareFunction } from "./enums/TextureDepthCompareFunction";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
+import { TextureUsage } from "./enums/TextureUsage";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
 
 /**
  * The base class of texture, contains some common functions of texture-related classes.
  */
-export abstract class Texture extends RefObject {
+export abstract class Texture extends GraphicsResource {
   name: string;
 
   /** @internal */
   _platformTexture: IPlatformTexture;
   /** @internal */
   _mipmap: boolean;
+  /** @internal */
+  _isDepthTexture: boolean = false;
 
   protected _format: TextureFormat;
   protected _width: number;
   protected _height: number;
+  protected _usage: TextureUsage;
   protected _mipmapCount: number;
 
   private _wrapModeU: TextureWrapMode;
   private _wrapModeV: TextureWrapMode;
   private _filterMode: TextureFilterMode;
   private _anisoLevel: number = 1;
+  private _depthCompareFunction: TextureDepthCompareFunction;
+  private _useDepthCompareMode: boolean = false;
 
   /**
    * Texture format.
@@ -45,6 +52,13 @@ export abstract class Texture extends RefObject {
    */
   get height(): number {
     return this._height;
+  }
+
+  /**
+   * The usage of the texture.
+   */
+  get usage(): TextureUsage {
+    return this._usage;
   }
 
   /**
@@ -91,6 +105,13 @@ export abstract class Texture extends RefObject {
 
   set filterMode(value: TextureFilterMode) {
     if (value === this._filterMode) return;
+
+    if (value !== TextureFilterMode.Point && this._isIntFormat()) {
+      value = TextureFilterMode.Point;
+      Logger.warn(`Int or UInt format texture only support TextureFilterMode.Point`);
+      return;
+    }
+
     this._filterMode = value;
 
     this._platformTexture.filterMode = value;
@@ -124,6 +145,26 @@ export abstract class Texture extends RefObject {
   }
 
   /**
+   * Filter mode when texture as depth Texture.
+   * @remarks Only depth-related formats take effect.
+   */
+  get depthCompareFunction(): TextureDepthCompareFunction {
+    return this._depthCompareFunction;
+  }
+
+  set depthCompareFunction(value: TextureDepthCompareFunction) {
+    if (!this._engine._hardwareRenderer._isWebGL2) {
+      console.warn("depthCompareFunction only support WebGL2");
+      return;
+    }
+
+    if (value !== this._depthCompareFunction) {
+      this._depthCompareFunction = value;
+      this._platformTexture.depthCompareFunction = value;
+    }
+  }
+
+  /**
    * Generate multi-level textures based on the 0th level data.
    */
   generateMipmaps(): void {
@@ -133,9 +174,35 @@ export abstract class Texture extends RefObject {
   }
 
   /**
-   * @override
+   * @internal
    */
-  _onDestroy() {
+  _setUseDepthCompareMode(value: boolean): void {
+    if (this._useDepthCompareMode !== value) {
+      this._platformTexture.setUseDepthCompareMode(value);
+      this._useDepthCompareMode = value;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  override _rebuild(): void {
+    const platformTexture = this._platformTexture;
+    platformTexture.wrapModeU = this._wrapModeU;
+    platformTexture.wrapModeV = this._wrapModeV;
+    platformTexture.filterMode = this._filterMode;
+    platformTexture.anisoLevel = this._anisoLevel;
+    if (this._engine._hardwareRenderer._isWebGL2) {
+      platformTexture.depthCompareFunction = this._depthCompareFunction;
+      platformTexture.setUseDepthCompareMode(this._useDepthCompareMode);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  protected override _onDestroy() {
+    super._onDestroy();
     this._platformTexture.destroy();
     this._platformTexture = null;
   }
@@ -150,5 +217,12 @@ export abstract class Texture extends RefObject {
 
   protected _getMipmapCount(): number {
     return this._mipmap ? Math.floor(Math.log2(Math.max(this._width, this._height))) + 1 : 1;
+  }
+
+  protected _isIntFormat(): boolean {
+    if (TextureFormat.R32G32B32A32_UInt === this._format) {
+      return true;
+    }
+    return false;
   }
 }

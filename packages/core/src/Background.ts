@@ -1,5 +1,5 @@
-import { Color, Vector2, Vector3 } from "@oasis-engine/math";
-import { ModelMesh } from ".";
+import { Color, Vector2, Vector3 } from "@galacean/engine-math";
+import { CompareFunction, Material, ModelMesh, Shader } from ".";
 import { Engine } from "./Engine";
 import { BackgroundMode } from "./enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
@@ -35,6 +35,8 @@ export class Background {
 
   /** @internal */
   _mesh: ModelMesh;
+  /** @internal */
+  _material: Material;
 
   private _texture: Texture2D = null;
 
@@ -48,13 +50,15 @@ export class Background {
 
   set texture(value: Texture2D) {
     if (this._texture !== value) {
+      value?._addReferCount(1);
+      this._texture?._addReferCount(-1);
       this._texture = value;
-      this._engine._backgroundTextureMaterial.shaderData.setTexture("u_baseTexture", value);
+      this._material.shaderData.setTexture("material_BaseTexture", value);
+      this._resizeBackgroundTexture();
     }
   }
 
   /**
-   * @internal
    * Background texture fill mode.
    * @remarks When `mode` is `BackgroundMode.Texture`, the property will take effects.
    * @defaultValue `BackgroundTextureFillMode.FitHeight`
@@ -71,24 +75,37 @@ export class Background {
   }
 
   /**
+   * @internal
+   */
+  destroy(): void {
+    this.texture = null;
+    this._mesh._addReferCount(-1);
+    this._mesh = null;
+    this._material._addReferCount(-1);
+    this._material = null;
+    this.solidColor = null;
+    this.sky.destroy();
+  }
+
+  /**
    * Constructor of Background.
    * @param _engine Engine Which the background belongs to.
    */
   constructor(private _engine: Engine) {
-    this._mesh = this._createPlane(_engine);
+    this._initMesh(_engine);
+    this._initMaterial(_engine);
   }
 
   /**
    * @internal
    */
   _resizeBackgroundTexture(): void {
+    const { _texture: texture, _mesh: mesh } = this;
     if (!this._texture) {
       return;
     }
-    const { canvas } = this._engine;
-    const { width, height } = canvas;
-    const { _mesh:_backgroundTextureMesh } = this;
-    const positions = _backgroundTextureMesh.getPositions();
+    const { width, height } = this._engine.canvas;
+    const positions = mesh.getPositions();
 
     switch (this._textureFillMode) {
       case BackgroundTextureFillMode.Fill:
@@ -98,29 +115,37 @@ export class Background {
         positions[3].set(1, 1, 1);
         break;
       case BackgroundTextureFillMode.AspectFitWidth:
-        const fitWidthScale = (this._texture.height * width) / this.texture.width / height;
+        const fitWidthScale = (texture.height * width) / texture.width / height;
         positions[0].set(-1, -fitWidthScale, 1);
         positions[1].set(1, -fitWidthScale, 1);
         positions[2].set(-1, fitWidthScale, 1);
         positions[3].set(1, fitWidthScale, 1);
         break;
       case BackgroundTextureFillMode.AspectFitHeight:
-        const fitHeightScale = (this._texture.width * height) / this.texture.height / width;
+        const fitHeightScale = (texture.width * height) / texture.height / width;
         positions[0].set(-fitHeightScale, -1, 1);
         positions[1].set(fitHeightScale, -1, 1);
         positions[2].set(-fitHeightScale, 1, 1);
         positions[3].set(fitHeightScale, 1, 1);
         break;
     }
-    _backgroundTextureMesh.setPositions(positions);
-    _backgroundTextureMesh.uploadData(false);
+    mesh.setPositions(positions);
+    mesh.uploadData(false);
   }
 
-  private _createPlane(
-    engine: Engine,
-  ): ModelMesh {
+  private _initMesh(engine: Engine): void {
+    this._mesh = this._createPlane(engine);
+    this._mesh._addReferCount(1);
+  }
+
+  private _initMaterial(engine: Engine): void {
+    const material = (this._material = new Material(engine, Shader.find("background-texture")));
+    material.renderState.depthState.compareFunction = CompareFunction.LessEqual;
+    material._addReferCount(1);
+  }
+
+  private _createPlane(engine: Engine): ModelMesh {
     const mesh = new ModelMesh(engine);
-    mesh.isGCIgnored = true;
     const indices = new Uint8Array([1, 2, 0, 1, 3, 2]);
 
     const positions: Vector3[] = new Array(4);

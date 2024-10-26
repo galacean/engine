@@ -1,18 +1,17 @@
-import { Joint } from "./Joint";
-import { PhysicsManager } from "../PhysicsManager";
 import { Collider } from "../Collider";
+import { PhysicsScene } from "../PhysicsScene";
+import { Joint } from "./Joint";
 
 /*
  * A fixed joint permits no relative movement between two colliders. ie the colliders are glued together.
  */
 export class FixedJoint extends Joint {
   /**
-   * @override
    * @internal
    */
-  _onAwake() {
-    const collider = this._collider;
+  override _onAwake() {
+    const collider = this._colliderInfo;
     collider.collider = this.entity.getComponent(Collider);
-    this._nativeJoint = PhysicsManager._nativePhysics.createFixedJoint(collider.collider._nativeCollider);
+    this._nativeJoint = PhysicsScene._nativePhysics.createFixedJoint(collider.collider._nativeCollider);
   }
 }

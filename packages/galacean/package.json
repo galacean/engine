@@ -1,0 +1,33 @@
+{
+  "name": "@galacean/engine",
+  "version": "0.0.0-experimental-1.3-xr.10",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "license": "MIT",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "types": "types/index.d.ts",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "browser": "dist/browser.js",
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
+  "umd": {
+    "name": "Galacean"
+  },
+  "homepage": "https://galacean.antgroup.com/",
+  "repository": {
+    "url": "https://github.com/galacean/engine"
+  },
+  "dependencies": {
+    "@galacean/engine-core": "workspace:*",
+    "@galacean/engine-loader": "workspace:*",
+    "@galacean/engine-math": "workspace:*",
+    "@galacean/engine-rhi-webgl": "workspace:*"
+  }
+}

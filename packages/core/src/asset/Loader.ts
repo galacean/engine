@@ -1,6 +1,7 @@
-import { LoadItem } from "./LoadItem";
+import { Engine, EngineConfiguration } from "../Engine";
 import { AssetPromise } from "./AssetPromise";
-import { RequestConfig, request } from "./request";
+import { LoadItem } from "./LoadItem";
+import { request, RequestConfig } from "./request";
 import { ResourceManager } from "./ResourceManager";
 /**
  * Loader abstract class.
@@ -13,6 +14,7 @@ export abstract class Loader<T> {
    */
   public static registerClass(className: string, classDefine: { new (...args: any): any }) {
     this._engineObjects[className] = classDefine;
+    this._classNameMap.set(classDefine, className);
   }
 
   /**
@@ -24,8 +26,20 @@ export abstract class Loader<T> {
     return this._engineObjects[className];
   }
 
+  /**
+   * Get the class name by class object.
+   * @param obj - class object
+   * @returns class name
+   */
+  public static getClassName(obj: Object): string {
+    return this._classNameMap.get(obj);
+  }
+
   private static _engineObjects: { [key: string]: any } = {};
-  request: <U>(url: string, config: RequestConfig) => AssetPromise<U> = request;
-  abstract load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<T>;
+  private static _classNameMap: Map<Object, string> = new Map();
+
   constructor(public readonly useCache: boolean) {}
+  initialize?(engine: Engine, configuration: EngineConfiguration): Promise<void>;
+  abstract load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<T>;
+  request: <U>(url: string, config: RequestConfig) => AssetPromise<U> = request;
 }

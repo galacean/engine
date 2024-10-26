@@ -1,0 +1,101 @@
+---
+title: Pass
+---
+
+```glsl
+Pass "PassName" {
+  Tag {PipelineStage = "ShadowCaster"}
+
+  ...
+  // 全局变量区：公共变量声明，结构体声明，函数声明
+  ...
+
+  // 渲染管线和渲染状态设置
+
+  // 指定顶点着色器和片元着色器  强调glsl语言
+  VertexShader = vert;
+
+  // 指定渲染队列
+  RenderQueueType = Transparent;
+}
+```
+
+`Pass` 是 `Shader` 对象的基本元素。简单的着色器对象可能只包含一个 `Pass`，但更复杂的着色器可以包含多个 `Pass`。 它定义了渲染管线特定阶段执行的操作，例如在 GPU 上运行的着色器程序，渲染状态，以及渲染管线相关设置。
+
+## 渲染状态
+
+可以通过以下两种方式指定
+
+1. 显示赋值
+
+```
+BlendState = blendState;
+```
+
+2. Pass 全局变量域中声明指定
+
+```
+BlendState {
+  渲染状态属性 = 属性值;
+}
+```
+
+## uniform 变量指定
+
+直接声明成全局变量
+
+```glsl
+mediump vec4 u_color;
+float material_AlphaCutoff;
+mat4 renderer_ModelMat;
+vec3 u_lightDir;
+```
+
+## varying 变量声明
+
+通过定义顶点着色器出参[结构体](/docs/graphics/shader/shaderLab/syntax/shader/#结构体函数)和片元着色器入参结构体指定
+
+```glsl
+struct v2f {
+  vec3 color;
+};
+
+v2f vert(a2v o) {
+  ...
+}
+
+void frag(v2f i) {
+  ...
+}
+```
+
+## 顶点、片元着色器指定
+
+通过`VertexShader`和`FragmentShader`指定显示指定着色器入口函数
+
+```
+VertexShader = vert;
+FragmentShader = frag;
+```
+
+## 渲染队列设置
+
+通过`RenderQueueType`指令指定，`RenderQueueType`等同与引擎 API。
+
+```
+RenderQueueType = Transparent;
+```
+
+<Callout type="info">
+除了可以在 ShaderLab 中对渲染状态和渲染队列进行设置，开发者同样可以通过材质的API进行设置，如
+```ts
+// 渲染队列设置
+material.renderQueueType = RenderQueueType.Opaque;
+
+// 渲染状态设置 const renderState = material.renderState.depthState; depthState.writeEnabled = false;
+
+```
+当 ShaderLab 中声明了渲染状态和渲染队列，材质相应的设置会被忽略。
+</Callout>
+
+```

@@ -1,4 +1,5 @@
-import { Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@galacean/engine-math";
+import { Engine } from "../../Engine";
 import { IInput } from "../interface/IInput";
 
 /**
@@ -9,18 +10,17 @@ export class WheelManager implements IInput {
   /** @internal */
   _delta: Vector3 = new Vector3();
 
+  // @internal
+  _target: EventTarget;
   private _nativeEvents: WheelEvent[] = [];
-  private _canvas: HTMLCanvasElement;
-  private _hadListener: boolean;
 
   /**
-   * Create a KeyboardManager.
+   * @internal
    */
-  constructor(htmlCanvas: HTMLCanvasElement) {
+  constructor(engine: Engine, target: EventTarget) {
     this._onWheelEvent = this._onWheelEvent.bind(this);
-    htmlCanvas.addEventListener("wheel", this._onWheelEvent);
-    this._canvas = htmlCanvas;
-    this._hadListener = true;
+    this._target = target;
+    this._addEventListener();
   }
 
   /**
@@ -44,38 +44,29 @@ export class WheelManager implements IInput {
   /**
    * @internal
    */
-  _onFocus(): void {
-    if (!this._hadListener) {
-      this._canvas.addEventListener("wheel", this._onWheelEvent);
-      this._hadListener = true;
-    }
+  _addEventListener(): void {
+    this._target.addEventListener("wheel", this._onWheelEvent);
   }
 
   /**
    * @internal
    */
-  _onBlur(): void {
-    if (this._hadListener) {
-      this._canvas.removeEventListener("wheel", this._onWheelEvent);
-      this._nativeEvents.length = 0;
-      this._delta.set(0, 0, 0);
-      this._hadListener = false;
-    }
+  _removeEventListener(): void {
+    this._target.removeEventListener("wheel", this._onWheelEvent);
+    this._nativeEvents.length = 0;
+    this._delta.set(0, 0, 0);
   }
 
   /**
    * @internal
    */
   _destroy(): void {
-    if (this._hadListener) {
-      this._canvas.removeEventListener("wheel", this._onWheelEvent);
-      this._hadListener = false;
-    }
+    this._removeEventListener();
     this._nativeEvents = null;
+    this._delta = null;
   }
 
   private _onWheelEvent(evt: WheelEvent): void {
-    evt.cancelable && evt.preventDefault();
     this._nativeEvents.push(evt);
   }
 }

@@ -7,9 +7,9 @@ import {
   TextureCube,
   TextureCubeFace,
   TextureFormat
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
-import { WebGLRenderer } from "./WebGLRenderer";
+import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
 /**
  * The render target in WebGL platform is used for off-screen rendering.
@@ -26,11 +26,12 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   private _oriDrawBuffers: GLenum[];
   private _blitDrawBuffers: GLenum[] | null;
   private _curMipLevel: number = 0;
+  private _curFaceIndex: TextureCubeFace = undefined;
 
   /**
    * Create render target in WebGL platform.
    */
-  constructor(rhi: WebGLRenderer, target: RenderTarget) {
+  constructor(rhi: WebGLGraphicDevice, target: RenderTarget) {
     this._gl = rhi.gl as WebGLRenderingContext & WebGL2RenderingContext;
     this._isWebGL2 = rhi.isWebGL2;
     this._target = target;
@@ -51,7 +52,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       }
     }
 
-    if (!GLTexture._supportRenderBufferDepthFormat(isDepthTexture ? _depth.format : _depth, rhi, isDepthTexture)) {
+    if (!isDepthTexture && !GLTexture._supportRenderBufferDepthFormat(_depth, rhi)) {
       throw new Error(`TextureFormat is not supported:${TextureFormat[_depth]} in RenderTarget`);
     }
 
@@ -94,35 +95,39 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
   /**
    * Set which face and mipLevel of the cube texture to render to.
-   * @param faceIndex - Cube texture face
    * @param mipLevel - Set mip level the data want to write
+   * @param faceIndex - Cube texture face
    */
-  setRenderTargetInfo(faceIndex: TextureCubeFace, mipLevel: number): void {
+  activeRenderTarget(mipLevel: number, faceIndex?: TextureCubeFace): void {
+    // @todo: support MRT
     const { _gl: gl, _target: target } = this;
-    const { depthTexture } = target;
-    const colorTexture = target.getColorTexture(0);
-    const mipChanged = mipLevel !== this._curMipLevel;
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
 
+    const mipChanged = mipLevel !== this._curMipLevel;
+    const faceChanged = faceIndex !== this._curFaceIndex;
+
+    const colorTexture = target.getColorTexture(0);
     if (colorTexture) {
       const isCube = colorTexture instanceof TextureCube;
-      if (mipChanged || isCube) {
+      if (mipChanged || (isCube && faceChanged)) {
         gl.framebufferTexture2D(
           gl.FRAMEBUFFER,
           gl.COLOR_ATTACHMENT0,
           isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex : gl.TEXTURE_2D,
-          /** @ts-ignore */
+          // @ts-ignore
           (colorTexture._platformTexture as GLTexture)._glTexture,
           mipLevel
         );
       }
     }
+
+    const { depthTexture } = target;
     if (depthTexture) {
       const isCube = depthTexture instanceof TextureCube;
       if (mipChanged || isCube) {
-        /** @ts-ignore */
-        const { _platformTexture: platformTexture } = depthTexture;
+        // @ts-ignore
+        const platformTexture = <GLTexture>depthTexture._platformTexture;
         gl.framebufferTexture2D(
           gl.FRAMEBUFFER,
           platformTexture._formatDetail.attachment,
@@ -139,10 +144,13 @@ export class GLRenderTarget implements IPlatformRenderTarget {
         gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, target.width >> mipLevel, target.height >> mipLevel);
       }
     }
-    this._curMipLevel = mipLevel;
 
-    // revert current activated render target
-    this._activeRenderTarget();
+    this._curMipLevel = mipLevel;
+    this._curFaceIndex = faceIndex;
+
+    if (this._MSAAFrameBuffer) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
+    }
   }
 
   /**
@@ -195,23 +203,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     this._MSAADepthRenderBuffer = null;
   }
 
-  /**
-   * Activate this RenderTarget.
-   * @internal
-   * @remarks
-   * If MSAA is turned on, MSAA FBO is activated, and then this._blitRenderTarget() is performed to exchange FBO.
-   * If MSAA is not turned on, activate the main FBO.
-   */
-  _activeRenderTarget(): void {
-    const gl = this._gl;
-
-    if (this._MSAAFrameBuffer) {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
-    } else {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
-    }
-  }
-
   private _bindMainFBO(): void {
     const gl = this._gl;
     const isWebGL2: boolean = this._isWebGL2;
@@ -248,18 +239,16 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
     /** depth render buffer */
     if (_depth !== null) {
-      if (_depth instanceof Texture) {
-        if (!(_depth instanceof TextureCube)) {
-          gl.framebufferTexture2D(
-            gl.FRAMEBUFFER,
-            /** @ts-ignore */
-            (_depth._platformTexture as GLTexture)._formatDetail.attachment,
-            gl.TEXTURE_2D,
-            /** @ts-ignore */
-            (_depth._platformTexture as GLTexture)._glTexture,
-            0
-          );
-        }
+      if (_depth instanceof Texture && !(_depth instanceof TextureCube)) {
+        // @ts-ignore
+        const platformTexture = _depth._platformTexture as GLTexture;
+        gl.framebufferTexture2D(
+          gl.FRAMEBUFFER,
+          platformTexture._formatDetail.attachment,
+          gl.TEXTURE_2D,
+          platformTexture._glTexture,
+          0
+        );
       } else if (this._target.antiAliasing <= 1) {
         const { internalFormat, attachment } = GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
         const depthRenderBuffer = gl.createRenderbuffer();

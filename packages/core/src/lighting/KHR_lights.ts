@@ -2,7 +2,7 @@ import { AmbientLight } from "./AmbientLight";
 import { DirectLight } from "./DirectLight";
 import { PointLight } from "./PointLight";
 import { SpotLight } from "./SpotLight";
-import { Logger } from "../base/Logger";
+import { Logger } from "../base";
 
 class KHR_lights {
   static parseLights(lights) {

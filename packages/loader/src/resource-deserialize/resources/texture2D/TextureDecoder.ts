@@ -1,4 +1,4 @@
-import { Engine, Texture2D } from "@oasis-engine/core";
+import { Engine, Texture2D } from "@galacean/engine-core";
 import { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
 
@@ -27,12 +27,12 @@ export class Texture2DDecoder {
       texture2D.wrapModeV = wrapModeV;
 
       if (isPixelBuffer) {
-        const pixelBuffer = new Uint8Array(imagesData[0]);
+        const pixelBuffer = imagesData[0];
         texture2D.setPixelBuffer(pixelBuffer);
         if (mipmap) {
           texture2D.generateMipmaps();
           for (let i = 1; i < mipCount; i++) {
-            const pixelBuffer = new Uint8Array(imagesData[i]);
+            const pixelBuffer = imagesData[i];
             texture2D.setPixelBuffer(pixelBuffer, i);
           }
         }
@@ -42,7 +42,6 @@ export class Texture2DDecoder {
       } else {
         const blob = new window.Blob([imagesData[0]]);
         const img = new Image();
-        img.src = URL.createObjectURL(blob);
         img.onload = () => {
           texture2D.setImageSource(img);
           let completedCount = 0;
@@ -58,14 +57,15 @@ export class Texture2DDecoder {
             for (let i = 1; i < mipCount; i++) {
               const blob = new window.Blob([imagesData[i]]);
               const img = new Image();
-              img.src = URL.createObjectURL(blob);
               img.onload = () => {
                 texture2D.setImageSource(img, i);
                 onComplete();
               };
+              img.src = URL.createObjectURL(blob);
             }
           }
         };
+        img.src = URL.createObjectURL(blob);
       }
     });
   }

@@ -1,51 +1,52 @@
+export { Platform } from "./Platform";
 export { Engine } from "./Engine";
 export { SystemInfo } from "./SystemInfo";
-export type { Canvas } from "./Canvas";
-export { EngineFeature } from "./EngineFeature";
+export { Canvas } from "./Canvas";
+
+export { DisorderedArray } from "./utils/DisorderedArray";
 
 export { Scene } from "./Scene";
-export { SceneFeature } from "./SceneFeature";
 export { SceneManager } from "./SceneManager";
 
 export { Entity } from "./Entity";
 export { Component } from "./Component";
 export { Script } from "./Script";
 export { Renderer } from "./Renderer";
-export { dependentComponents } from "./ComponentsDependencies";
+export { dependentComponents, DependentMode } from "./ComponentsDependencies";
 export { Camera } from "./Camera";
 export { Transform } from "./Transform";
 export { BoolUpdateFlag } from "./BoolUpdateFlag";
-export { ListenerUpdateFlag } from "./ListenerUpdateFlag";
 export type { EngineSettings } from "./EngineSettings";
+export type { EngineConfiguration } from "./Engine";
 
 export { request } from "./asset/request";
 export { Loader } from "./asset/Loader";
+export { ContentRestorer } from "./asset/ContentRestorer";
 export { ResourceManager, resourceLoader } from "./asset/ResourceManager";
-export { AssetPromise, AssetPromiseStatus } from "./asset/AssetPromise";
+export { AssetPromise } from "./asset/AssetPromise";
 export type { LoadItem } from "./asset/LoadItem";
 export { AssetType } from "./asset/AssetType";
-export { RefObject } from "./asset/RefObject";
+export { ReferResource } from "./asset/ReferResource";
 
-export { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
-export { RenderQueue } from "./RenderPipeline/RenderQueue";
-export { RenderPass } from "./RenderPipeline/RenderPass";
-export { MeshRenderElement } from "./RenderPipeline/MeshRenderElement";
-export { SpriteElement } from "./RenderPipeline/SpriteElement";
+export * from "./RenderPipeline/index";
 export * from "./base";
-
-// Lighting
-import { LightFeature, hasLight } from "./lighting/LightFeature";
-import { Scene } from "./Scene";
-Scene.registerFeature(LightFeature);
-(Scene.prototype as any).hasLight = hasLight;
 
 export { Background } from "./Background";
 export { BackgroundMode } from "./enums/BackgroundMode";
+export { DepthTextureMode } from "./enums/DepthTextureMode";
+export { FogMode } from "./enums/FogMode";
 export { CameraClearFlags } from "./enums/CameraClearFlags";
+export { CameraType } from "./enums/CameraType";
+export { MSAASamples } from "./enums/MSAASamples";
+export { ReplacementFailureStrategy } from "./enums/ReplacementFailureStrategy";
+export { Downsampling } from "./enums/Downsampling";
 export { ColorSpace } from "./enums/ColorSpace";
 export { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
+export { XRManager } from "./xr/XRManager";
+export * from "./utils/index";
 export * from "./input/index";
 export * from "./lighting/index";
+export * from "./shadow/index";
 export * from "./material/index";
 export * from "./texture/index";
 export * from "./graphic/index";
@@ -56,11 +57,14 @@ export * from "./mesh/index";
 export * from "./sky/index";
 export * from "./particle/index";
 export * from "./trail/index";
-export * from "./fog/index";
 export * from "./env-probe/index";
-export * from "./shadow/index";
 export * from "./shader/index";
 export * from "./Layer";
 export * from "./clone/CloneManager";
 export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
+export * from "./Utils";
+
+export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+
+export * from "./postProcess";

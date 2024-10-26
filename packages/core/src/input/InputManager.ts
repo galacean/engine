@@ -1,28 +1,30 @@
+import { IInputOptions } from "@galacean/engine-design";
+import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
-import { KeyboardManager } from "./keyboard/KeyboardManager";
+import { Scene } from "../Scene";
 import { Keys } from "./enums/Keys";
+import { PointerButton, _pointerBin2DecMap } from "./enums/PointerButton";
+import { KeyboardManager } from "./keyboard/KeyboardManager";
 import { Pointer } from "./pointer/Pointer";
 import { PointerManager } from "./pointer/PointerManager";
-import { PointerButton } from "./enums/PointerButton";
 import { WheelManager } from "./wheel/WheelManager";
-import { Vector2, Vector3 } from "@oasis-engine/math";
 
 /**
  * InputManager manages device input such as mouse, touch, keyboard, etc.
  */
 export class InputManager {
+  private _engine: Engine;
   /** Sometimes the input module will not be initialized, such as off-screen rendering. */
   private _initialized: boolean = false;
-  private _curFrameCount: number = 0;
   private _wheelManager: WheelManager;
   private _pointerManager: PointerManager;
   private _keyboardManager: KeyboardManager;
 
   /**
-   * Pointer List.
+   * Pointer list.
    */
-  get pointers(): Readonly<Pointer[] | null> {
-    return this._initialized ? this._pointerManager._pointers : null;
+  get pointers(): Readonly<Pointer[]> {
+    return this._initialized ? this._pointerManager._pointers : [];
   }
 
   /**
@@ -42,24 +44,6 @@ export class InputManager {
    */
   get wheelDelta(): Readonly<Vector3 | null> {
     return this._initialized ? this._wheelManager._delta : null;
-  }
-
-  /**
-   * Get the change of the pointer.
-   * @returns Change value
-   */
-  get pointerMovingDelta(): Readonly<Vector2 | null> {
-    return this._initialized ? this._pointerManager._movingDelta : null;
-  }
-
-  /**
-   * Get the position of the pointer.
-   * @returns The position of the pointer
-   */
-  get pointerPosition(): Readonly<Vector2> {
-    return this._initialized && this._pointerManager._pointers.length > 0
-      ? this._pointerManager._currentPosition
-      : null;
   }
 
   /**
@@ -89,7 +73,7 @@ export class InputManager {
       if (key === undefined) {
         return this._keyboardManager._curFrameDownList.length > 0;
       } else {
-        return this._keyboardManager._downKeyToFrameCountMap[key] === this._curFrameCount;
+        return this._keyboardManager._downKeyToFrameCountMap[key] === this._engine.time.frameCount;
       }
     } else {
       return false;
@@ -106,7 +90,7 @@ export class InputManager {
       if (key === undefined) {
         return this._keyboardManager._curFrameUpList.length > 0;
       } else {
-        return this._keyboardManager._upKeyToFrameCountMap[key] === this._curFrameCount;
+        return this._keyboardManager._upKeyToFrameCountMap[key] === this._engine.time.frameCount;
       }
     } else {
       return false;
@@ -123,7 +107,7 @@ export class InputManager {
       if (pointerButton === undefined) {
         return this._pointerManager._buttons !== 0;
       } else {
-        return (this._pointerManager._buttons & PointerManager.Buttons[pointerButton]) !== 0;
+        return (this._pointerManager._buttons & pointerButton) !== 0;
       }
     } else {
       return false;
@@ -135,12 +119,12 @@ export class InputManager {
    * @param pointerButton - The pointerButton on a pointer device
    * @returns Whether the pointer starts to be pressed down during the current frame
    */
-  isPointerDown(pointerButton: PointerButton): boolean {
+  isPointerDown(pointerButton?: PointerButton): boolean {
     if (this._initialized) {
       if (pointerButton === undefined) {
         return this._pointerManager._downList.length > 0;
       } else {
-        return this._pointerManager._downMap[pointerButton] === this._curFrameCount;
+        return this._pointerManager._downMap[_pointerBin2DecMap[pointerButton]] === this._engine.time.frameCount;
       }
     } else {
       return false;
@@ -152,12 +136,12 @@ export class InputManager {
    * @param pointerButton - The pointerButtons on a mouse device
    * @returns Whether the pointer is released during the current frame
    */
-  isPointerUp(pointerButton: PointerButton): boolean {
+  isPointerUp(pointerButton?: PointerButton): boolean {
     if (this._initialized) {
       if (pointerButton === undefined) {
         return this._pointerManager._upList.length > 0;
       } else {
-        return this._pointerManager._upMap[pointerButton] === this._curFrameCount;
+        return this._pointerManager._upMap[_pointerBin2DecMap[pointerButton]] === this._engine.time.frameCount;
       }
     } else {
       return false;
@@ -167,17 +151,14 @@ export class InputManager {
   /**
    * @internal
    */
-  constructor(engine: Engine) {
+  constructor(engine: Engine, inputOptions?: IInputOptions) {
+    this._engine = engine;
     // @ts-ignore
     const canvas = engine._canvas._webCanvas;
     if (typeof OffscreenCanvas === "undefined" || !(canvas instanceof OffscreenCanvas)) {
-      this._wheelManager = new WheelManager(canvas);
-      this._pointerManager = new PointerManager(engine, canvas);
-      this._keyboardManager = new KeyboardManager(canvas);
-      this._onBlur = this._onBlur.bind(this);
-      window.addEventListener("blur", this._onBlur);
-      this._onFocus = this._onFocus.bind(this);
-      window.addEventListener("focus", this._onFocus);
+      this._wheelManager = new WheelManager(engine, inputOptions?.wheelTarget ?? canvas);
+      this._pointerManager = new PointerManager(engine, inputOptions?.pointerTarget ?? canvas);
+      this._keyboardManager = new KeyboardManager(engine, inputOptions?.keyboardTarget ?? window);
       this._initialized = true;
     }
   }
@@ -187,11 +168,17 @@ export class InputManager {
    */
   _update(): void {
     if (this._initialized) {
-      ++this._curFrameCount;
       this._wheelManager._update();
-      this._pointerManager._update(this._curFrameCount);
-      this._keyboardManager._update(this._curFrameCount);
+      this._pointerManager._update();
+      this._keyboardManager._update();
     }
+  }
+
+  /**
+   * @internal
+   */
+  _firePointerScript(scenes: readonly Scene[]): void {
+    this._initialized && this._pointerManager._firePointerScript(scenes);
   }
 
   /**
@@ -199,23 +186,12 @@ export class InputManager {
    */
   _destroy(): void {
     if (this._initialized) {
-      window.removeEventListener("blur", this._onBlur);
-      window.removeEventListener("focus", this._onFocus);
       this._wheelManager._destroy();
+      this._wheelManager = null;
       this._pointerManager._destroy();
+      this._pointerManager = null;
       this._keyboardManager._destroy();
+      this._keyboardManager = null;
     }
-  }
-
-  private _onBlur(): void {
-    this._wheelManager._onBlur();
-    this._pointerManager._onBlur();
-    this._keyboardManager._onBlur();
-  }
-
-  private _onFocus(): void {
-    this._wheelManager._onFocus();
-    this._pointerManager._onFocus();
-    this._keyboardManager._onFocus();
   }
 }

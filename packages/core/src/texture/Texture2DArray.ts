@@ -81,6 +81,7 @@ export class Texture2DArray extends Texture {
       height,
       length
     );
+    this._isContentLost = false;
   }
 
   /**
@@ -95,7 +96,7 @@ export class Texture2DArray extends Texture {
    */
   setImageSource(
     elementIndex: number,
-    imageSource: TexImageSource | OffscreenCanvas,
+    imageSource: TexImageSource,
     mipLevel: number = 0,
     flipY: boolean = false,
     premultiplyAlpha: boolean = false,
@@ -111,6 +112,7 @@ export class Texture2DArray extends Texture {
       x,
       y
     );
+    this._isContentLost = false;
   }
 
   /**
@@ -210,5 +212,13 @@ export class Texture2DArray extends Texture {
         out
       );
     }
+  }
+
+  /**
+   * @internal
+   */
+  override _rebuild(): void {
+    this._platformTexture = this._engine._hardwareRenderer.createPlatformTexture2DArray(this);
+    super._rebuild();
   }
 }

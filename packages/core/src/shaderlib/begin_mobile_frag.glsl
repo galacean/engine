@@ -1,41 +1,41 @@
     vec4 ambient = vec4(0.0);
-    vec4 emission = u_emissiveColor;
-    vec4 diffuse = u_baseColor;
-    vec4 specular = u_specularColor;
+    vec4 emission = material_EmissiveColor;
+    vec4 diffuse = material_BaseColor;
+    vec4 specular = material_SpecularColor;
 
     
 
-    #ifdef EMISSIVETEXTURE
-        vec4 emissiveTextureColor = texture2D(u_emissiveTexture, v_uv);
-        #ifndef OASIS_COLORSPACE_GAMMA
+    #ifdef MATERIAL_HAS_EMISSIVETEXTURE
+        vec4 emissiveTextureColor = texture2D(material_EmissiveTexture, v_uv);
+        #ifndef ENGINE_IS_COLORSPACE_GAMMA
             emissiveTextureColor = gammaToLinear(emissiveTextureColor);
         #endif
         emission *= emissiveTextureColor;
 
     #endif
 
-    #ifdef BASETEXTURE
-        vec4 diffuseTextureColor = texture2D(u_baseTexture, v_uv);
-        #ifndef OASIS_COLORSPACE_GAMMA
+    #ifdef MATERIAL_HAS_BASETEXTURE
+        vec4 diffuseTextureColor = texture2D(material_BaseTexture, v_uv);
+        #ifndef ENGINE_IS_COLORSPACE_GAMMA
             diffuseTextureColor = gammaToLinear(diffuseTextureColor);
         #endif
         diffuse *= diffuseTextureColor;
 
     #endif
 
-     #ifdef O3_HAS_VERTEXCOLOR
+     #ifdef RENDERER_ENABLE_VERTEXCOLOR
 
         diffuse *= v_color;
 
     #endif
 
-    #ifdef O3_SPECULAR_TEXTURE
-        vec4 specularTextureColor = texture2D(u_specularTexture, v_uv);
-        #ifndef OASIS_COLORSPACE_GAMMA
+    #ifdef MATERIAL_HAS_SPECULAR_TEXTURE
+        vec4 specularTextureColor = texture2D(material_SpecularTexture, v_uv);
+        #ifndef ENGINE_IS_COLORSPACE_GAMMA
             specularTextureColor = gammaToLinear(specularTextureColor);
         #endif
         specular *= specularTextureColor;
 
     #endif
 
-    ambient = vec4(u_envMapLight.diffuse * u_envMapLight.diffuseIntensity, 1.0) * diffuse;
+    ambient = vec4(scene_EnvMapLight.diffuse * scene_EnvMapLight.diffuseIntensity, 1.0) * diffuse;

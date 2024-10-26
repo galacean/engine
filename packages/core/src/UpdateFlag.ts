@@ -1,5 +1,5 @@
-import { removeFromArray } from "./base/Util";
 import { UpdateFlagManager } from "./UpdateFlagManager";
+import { Utils } from "./Utils";
 
 /**
  * Used to update tags.
@@ -10,9 +10,10 @@ export abstract class UpdateFlag {
 
   /**
    * Dispatch.
+   * @param bit - Bit
    * @param param - Parameter
    */
-  abstract dispatch(param?: Object): void;
+  abstract dispatch(bit?: number, param?: Object): void;
 
   /**
    * Clear.
@@ -33,7 +34,7 @@ export abstract class UpdateFlag {
   private _removeFromManagers(): void {
     const flagManagers = this._flagManagers;
     for (let i = 0, n = flagManagers.length; i < n; i++) {
-      removeFromArray(flagManagers[i]._updateFlags, this);
+      Utils.removeFromArray(flagManagers[i]._updateFlags, this);
     }
   }
 }

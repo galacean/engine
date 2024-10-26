@@ -1,5 +1,5 @@
-import { IColliderShape, IPhysicsMaterial } from "@oasis-engine/design";
-import { Matrix, Ray, Vector3 } from "oasis-engine";
+import { Matrix, Ray, Vector3 } from "@galacean/engine";
+import { IColliderShape, IPhysicsMaterial } from "@galacean/engine-design";
 import { LiteCollider } from "../LiteCollider";
 import { LiteHitResult } from "../LiteHitResult";
 import { LiteTransform } from "../LiteTransform";
@@ -17,6 +17,10 @@ export abstract class LiteColliderShape implements IColliderShape {
   /** @internal */
   _collider: LiteCollider;
   /** @internal */
+  _position: Vector3 = new Vector3();
+  /** @internal */
+  _worldScale: Vector3 = new Vector3(1, 1, 1);
+  /** @internal */
   _transform: LiteTransform = new LiteTransform();
   /** @internal */
   _invModelMatrix: Matrix = new Matrix();
@@ -29,29 +33,42 @@ export abstract class LiteColliderShape implements IColliderShape {
   }
 
   /**
+   * {@inheritDoc IColliderShape.setRotation }
+   */
+  setRotation(rotation: Vector3): void {
+    console.log("Physics-lite don't support setRotation. Use Physics-PhysX instead!");
+  }
+
+  /**
    * {@inheritDoc IColliderShape.setPosition }
    */
   setPosition(position: Vector3): void {
-    this._transform.setPosition(position.x, position.y, position.z);
+    if (position !== this._position) {
+      this._position.copyFrom(position);
+    }
+    this._setLocalPose();
   }
 
   /**
    * {@inheritDoc IColliderShape.setWorldScale }
    */
-  abstract setWorldScale(scale: Vector3): void;
+  setWorldScale(scale: Vector3): void {
+    this._worldScale.copyFrom(scale);
+    this._setLocalPose();
+  }
 
   /**
    * {@inheritDoc IColliderShape.setContactOffset }
    */
   setContactOffset(offset: number): void {
-    throw "Physics-lite don't support setContactOffset. Use Physics-PhysX instead!";
+    console.log("Physics-lite don't support setContactOffset. Use Physics-PhysX instead!");
   }
 
   /**
    * {@inheritDoc IColliderShape.setMaterial }
    */
   setMaterial(material: IPhysicsMaterial): void {
-    throw "Physics-lite don't support setMaterial. Use Physics-PhysX instead!";
+    console.log("Physics-lite don't support setMaterial. Use Physics-PhysX instead!");
   }
 
   /**
@@ -65,14 +82,7 @@ export abstract class LiteColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setIsTrigger }
    */
   setIsTrigger(value: boolean): void {
-    throw "Physics-lite don't support setIsTrigger. Use Physics-PhysX instead!";
-  }
-
-  /**
-   * {@inheritDoc IColliderShape.setIsSceneQuery }
-   */
-  setIsSceneQuery(value: boolean): void {
-    throw "Physics-lite don't support setIsSceneQuery. Use Physics-PhysX instead!";
+    console.log("Physics-lite don't support setIsTrigger. Use Physics-PhysX instead!");
   }
 
   /**
@@ -124,5 +134,11 @@ export abstract class LiteColliderShape implements IColliderShape {
       this._inverseWorldMatFlag.flag = false;
     }
     return this._invModelMatrix;
+  }
+
+  private _setLocalPose() {
+    const shapePosition = LiteColliderShape._tempPoint;
+    Vector3.multiply(this._position, this._worldScale, shapePosition);
+    this._transform.position = shapePosition;
   }
 }

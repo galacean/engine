@@ -1,4 +1,4 @@
-import { Vector2, Vector3, Vector4, Quaternion } from "@oasis-engine/math";
+import { Vector2, Vector3, Vector4, Quaternion } from "@galacean/engine-math";
 /**
  * @internal
  */

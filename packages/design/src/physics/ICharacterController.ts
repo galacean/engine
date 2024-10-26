@@ -1,4 +1,4 @@
-import { Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@galacean/engine-math";
 import { ICollider } from "./ICollider";
 
 /**
@@ -17,7 +17,7 @@ export interface ICharacterController extends ICollider {
    * Sets controller's world position.
    * @param position The new (center) position for the controller.
    */
-  setWorldPosition(position: Vector3): boolean;
+  setWorldPosition(position: Vector3): void;
 
   /**
    * Retrieve the world position of the controller.

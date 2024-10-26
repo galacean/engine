@@ -9,7 +9,7 @@ import {
   PlaneIntersectionType,
   Ray,
   Vector3
-} from "@oasis-engine/math";
+} from "@galacean/engine-math";
 import { expect } from "chai";
 
 describe("CollisionUtil", () => {
@@ -129,6 +129,19 @@ describe("CollisionUtil", () => {
     const box2 = new BoundingBox(new Vector3(-32, -2, -2), new Vector3(-28, 2, 2));
     const flag2 = frustum.intersectsBox(box2);
     expect(flag2).to.eq(false);
+  });
+
+  it("frustumContainsPoint", () => {
+    const point1 = new Vector3(0, 0, -15);
+    const point2 = new Vector3(0, 20, -15);
+    const point3 = new Vector3(0, 0, -80.00000199);
+
+    const expected1 = CollisionUtil.frustumContainsPoint(frustum, point1);
+    const expected2 = CollisionUtil.frustumContainsPoint(frustum, point2);
+    const expected3 = CollisionUtil.frustumContainsPoint(frustum, point3);
+    expect(expected1).to.eq(ContainmentType.Contains);
+    expect(expected2).to.eq(ContainmentType.Disjoint);
+    expect(expected3).to.eq(ContainmentType.Intersects);
   });
 
   it("frustumContainsBox", () => {

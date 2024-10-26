@@ -1,0 +1,45 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: true
+
+      # after pnpm
+      - name: Use Node.js LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: '>=22.6.0'
+          registry-url: https://registry.npmjs.org/
+          cache: pnpm
+
+      - name: Build
+        run: pnpm b:all
+
+      - name: Release current monorepo
+        uses: gz65555/publish@v0.1.9
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          NPM_CONFIG_PROVENANCE: true
+          OASISBE_UPLOAD_URL: https://oasisbe.alipay.com/api/file/no-auth/crypto/upload
+          OASISBE_REQUEST_HEADER: ${{secrets.OASISBE_REQUEST_HEADER}}
+          OASISBE_PUBLIC_KEY: ${{secrets.OASISBE_PUBLIC_KEY}}

@@ -35,7 +35,6 @@ vec3 envBRDFApprox(vec3 specularColor,float roughness, float dotNV ) {
     vec2 AB = vec2( -1.04, 1.04 ) * a004 + r.zw;
 
     return specularColor * AB.x + AB.y;
-
 }
 
 
@@ -43,32 +42,39 @@ float getSpecularMIPLevel(float roughness, int maxMIPLevel ) {
     return roughness * float(maxMIPLevel);
 }
 
-vec3 getLightProbeRadiance(vec3 viewDir, vec3 normal, float roughness, int maxMIPLevel, float specularIntensity) {
-
-    #ifndef O3_USE_SPECULAR_ENV
-
-        return vec3(0);
-
+vec3 getReflectedVector(Geometry geometry, vec3 n) {
+    #ifdef MATERIAL_ENABLE_ANISOTROPY
+        vec3 r = reflect(-geometry.viewDir, geometry.anisotropicN);
     #else
+        vec3 r = reflect(-geometry.viewDir, n);
+    #endif
 
-        vec3 reflectVec = reflect( -viewDir, normal );
+    return r;
+}
+
+vec3 getLightProbeRadiance(Geometry geometry, vec3 normal, float roughness, int maxMIPLevel, float specularIntensity) {
+
+    #ifndef SCENE_USE_SPECULAR_ENV
+        return vec3(0);
+    #else
+        vec3 reflectVec = getReflectedVector(geometry, normal);
         reflectVec.x = -reflectVec.x; // TextureCube is left-hand,so x need inverse
         
         float specularMIPLevel = getSpecularMIPLevel(roughness, maxMIPLevel );
 
         #ifdef HAS_TEX_LOD
-            vec4 envMapColor = textureCubeLodEXT( u_env_specularSampler, reflectVec, specularMIPLevel );
+            vec4 envMapColor = textureCubeLodEXT( scene_EnvSpecularSampler, reflectVec, specularMIPLevel );
         #else
-            vec4 envMapColor = textureCube( u_env_specularSampler, reflectVec, specularMIPLevel );
+            vec4 envMapColor = textureCube( scene_EnvSpecularSampler, reflectVec, specularMIPLevel );
         #endif
 
-        #ifdef O3_DECODE_ENV_RGBM
+        #ifdef SCENE_IS_DECODE_ENV_RGBM
             envMapColor.rgb = RGBMToLinear(envMapColor, 5.0).rgb;
-            #ifdef OASIS_COLORSPACE_GAMMA
+            #ifdef ENGINE_IS_COLORSPACE_GAMMA
                 envMapColor = linearToGamma(envMapColor);
             #endif
         #else
-             #ifndef OASIS_COLORSPACE_GAMMA
+             #ifndef ENGINE_IS_COLORSPACE_GAMMA
                 envMapColor = gammaToLinear(envMapColor);
             #endif
         #endif

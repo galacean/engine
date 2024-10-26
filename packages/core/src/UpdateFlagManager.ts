@@ -1,4 +1,5 @@
 import { UpdateFlag } from "./UpdateFlag";
+import { Utils } from "./Utils";
 
 /**
  * @internal
@@ -6,6 +7,8 @@ import { UpdateFlag } from "./UpdateFlag";
 export class UpdateFlagManager {
   /** @internal */
   _updateFlags: UpdateFlag[] = [];
+
+  private _listeners: ((type?: number, param?: Object) => void)[] = [];
 
   /**
    * Create a UpdateFlag.
@@ -27,12 +30,46 @@ export class UpdateFlagManager {
   }
 
   /**
-   * Dispatch.
+   * Remove a UpdateFlag.
+   * @param flag - The UpdateFlag.
    */
-  dispatch(param?: Object): void {
+  removeFlag(flag: UpdateFlag): void {
+    const success = Utils.removeFromArray(this._updateFlags, flag);
+    if (success) {
+      Utils.removeFromArray(flag._flagManagers, this);
+    }
+  }
+
+  /**
+   * Add a listener.
+   * @param listener - The listener
+   */
+  addListener(listener: (type?: number, param?: Object) => void): void {
+    this._listeners.push(listener);
+  }
+
+  /**
+   * Remove a listener.
+   * @param listener - The listener
+   */
+  removeListener(listener: (type?: number, param?: Object) => void): void {
+    Utils.removeFromArray(this._listeners, listener);
+  }
+
+  /**
+   * Dispatch a event.
+   * @param type - Event type, usually in the form of enumeration
+   * @param param - Event param
+   */
+  dispatch(type?: number, param?: Object): void {
     const updateFlags = this._updateFlags;
     for (let i = updateFlags.length - 1; i >= 0; i--) {
-      updateFlags[i].dispatch(param);
+      updateFlags[i].dispatch(type, param);
+    }
+
+    const listeners = this._listeners;
+    for (let i = listeners.length - 1; i >= 0; i--) {
+      listeners[i](type, param);
     }
   }
 }

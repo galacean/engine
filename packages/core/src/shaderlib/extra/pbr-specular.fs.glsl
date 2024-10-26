@@ -1,7 +1,7 @@
 #include <common>
-#include <common_frag>
+#include <camera_declare>
 
-#include <fog_share>
+#include <FogFragmentDeclaration>
 
 #include <uv_share>
 #include <normal_share>
@@ -16,5 +16,9 @@
 
 void main() {
     #include <pbr_frag>
-    #include <fog_frag>
+    #include <FogFragment>
+
+    #ifndef ENGINE_IS_COLORSPACE_GAMMA
+        gl_FragColor = linearToGamma(gl_FragColor);
+    #endif
 }

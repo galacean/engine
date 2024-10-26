@@ -247,48 +247,29 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
    * Performs a spherical linear blend between two quaternions.
    * @param start - The first quaternion
    * @param end - The second quaternion
-   * @param t - The blend amount where 0 returns start and 1 end
+   * @param amount - The blend amount where 0 returns start and 1 end
    * @param out - The result of spherical linear blending between two quaternions
    */
-  static slerp(start: Quaternion, end: Quaternion, t: number, out: Quaternion): void {
-    const ax = start._x;
-    const ay = start._y;
-    const az = start._z;
-    const aw = start._w;
-    let bx = end._x;
-    let by = end._y;
-    let bz = end._z;
-    let bw = end._w;
+  static slerp(start: Quaternion, end: Quaternion, amount: number, out: Quaternion): void {
+    let opposite: number;
+    let inverse: number;
+    const dot = Quaternion.dot(start, end);
 
-    let scale0: number, scale1: number;
-    // calc cosine
-    let cosom = ax * bx + ay * by + az * bz + aw * bw;
-    // adjust signs (if necessary)
-    if (cosom < 0.0) {
-      cosom = -cosom;
-      bx = -bx;
-      by = -by;
-      bz = -bz;
-      bw = -bw;
-    }
-    // calculate coefficients
-    if (1.0 - cosom > MathUtil.zeroTolerance) {
-      // standard case (slerp)
-      const omega = Math.acos(cosom);
-      const sinom = Math.sin(omega);
-      scale0 = Math.sin((1.0 - t) * omega) / sinom;
-      scale1 = Math.sin(t * omega) / sinom;
+    if (Math.abs(dot) > 1.0 - MathUtil.zeroTolerance) {
+      inverse = 1.0 - amount;
+      opposite = amount * Math.sign(dot);
     } else {
-      // "from" and "to" quaternions are very close
-      //  ... so we can do a linear interpolation
-      scale0 = 1.0 - t;
-      scale1 = t;
+      const acos = Math.acos(Math.abs(dot));
+      const invSin = 1.0 / Math.sin(acos);
+
+      inverse = Math.sin((1.0 - amount) * acos) * invSin;
+      opposite = Math.sin(amount * acos) * invSin * Math.sign(dot);
     }
-    // calculate final values
-    out._x = scale0 * ax + scale1 * bx;
-    out._y = scale0 * ay + scale1 * by;
-    out._z = scale0 * az + scale1 * bz;
-    out._w = scale0 * aw + scale1 * bw;
+
+    out.x = inverse * start.x + opposite * end.x;
+    out.y = inverse * start.y + opposite * end.y;
+    out.z = inverse * start.z + opposite * end.z;
+    out.w = inverse * start.w + opposite * end.w;
     out._onValueChanged && out._onValueChanged();
   }
 
@@ -776,27 +757,41 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     out[outOffset + 3] = this._w;
   }
 
-  private _toYawPitchRoll(out: Vector3): Vector3 {
-    const { _x, _y, _z, _w } = this;
-    const xx = _x * _x;
-    const yy = _y * _y;
-    const zz = _z * _z;
-    const xy = _x * _y;
-    const zw = _z * _w;
-    const zx = _z * _x;
-    const yw = _y * _w;
-    const yz = _y * _z;
-    const xw = _x * _w;
+  /**
+   * Serialize this quaternion to a JSON representation.
+   * @returns A JSON Object representation of this quaternion
+   */
+  toJSON(): QuaternionLike {
+    return {
+      x: this._x,
+      y: this._y,
+      z: this._z,
+      w: this._w
+    };
+  }
 
-    out._y = Math.asin(2.0 * (xw - yz));
-    if (Math.cos(out.y) > MathUtil.zeroTolerance) {
-      out._z = Math.atan2(2.0 * (xy + zw), 1.0 - 2.0 * (zz + xx));
-      out._x = Math.atan2(2.0 * (zx + yw), 1.0 - 2.0 * (yy + xx));
+  private _toYawPitchRoll(out: Vector3): void {
+    // http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/
+    const { _x: x, _y: y, _z: z, _w: w } = this;
+    const xx = x * x;
+    const yy = y * y;
+    const zz = z * z;
+    const ww = w * w;
+    const unit = xx + yy + zz + ww;
+    const test = 2 * (x * w - y * z);
+    if (test > (1 - MathUtil.zeroTolerance) * unit) {
+      out._x = Math.atan2(2.0 * (w * y - x * z), xx + ww - yy - zz);
+      out._y = Math.PI / 2;
+      out._z = 0;
+    } else if (test < -(1 - MathUtil.zeroTolerance) * unit) {
+      out._x = Math.atan2(2.0 * (w * y - x * z), xx + ww - yy - zz);
+      out._y = -Math.PI / 2;
+      out._z = 0;
     } else {
-      out._z = Math.atan2(-2.0 * (xy - zw), 1.0 - 2.0 * (yy + zz));
-      out._x = 0.0;
+      out._x = Math.atan2(2.0 * (z * x + y * w), zz + ww - yy - xx);
+      out._y = Math.asin(test / unit);
+      out._z = Math.atan2(2.0 * (x * y + z * w), yy + ww - zz - xx);
     }
-    return out;
   }
 }
 

@@ -1,180 +1,64 @@
-type PromiseNotifier = (progress: number) => void;
-
-/**
- * Asset Promise Status
- */
-export enum AssetPromiseStatus {
-  /** Success. */
-  Success,
-  /** Pending. */
-  Pending,
-  /** Failed. */
-  Failed
-}
 /**
  * Asset Loading Promise.
  */
-export class AssetPromise<T> extends Promise<T> {
-  static all<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
-    values: readonly [
-      T1 | PromiseLike<T1>,
-      T2 | PromiseLike<T2>,
-      T3 | PromiseLike<T3>,
-      T4 | PromiseLike<T4>,
-      T5 | PromiseLike<T5>,
-      T6 | PromiseLike<T6>,
-      T7 | PromiseLike<T7>,
-      T8 | PromiseLike<T8>,
-      T9 | PromiseLike<T9>,
-      T10 | PromiseLike<T10>
-    ]
-  ): AssetPromise<[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]>;
-
-  static all<T1, T2, T3, T4, T5, T6, T7, T8, T9>(
-    values: readonly [
-      T1 | PromiseLike<T1>,
-      T2 | PromiseLike<T2>,
-      T3 | PromiseLike<T3>,
-      T4 | PromiseLike<T4>,
-      T5 | PromiseLike<T5>,
-      T6 | PromiseLike<T6>,
-      T7 | PromiseLike<T7>,
-      T8 | PromiseLike<T8>,
-      T9 | PromiseLike<T9>
-    ]
-  ): AssetPromise<[T1, T2, T3, T4, T5, T6, T7, T8, T9]>;
-
-  static all<T1, T2, T3, T4, T5, T6, T7, T8>(
-    values: readonly [
-      T1 | PromiseLike<T1>,
-      T2 | PromiseLike<T2>,
-      T3 | PromiseLike<T3>,
-      T4 | PromiseLike<T4>,
-      T5 | PromiseLike<T5>,
-      T6 | PromiseLike<T6>,
-      T7 | PromiseLike<T7>,
-      T8 | PromiseLike<T8>
-    ]
-  ): AssetPromise<[T1, T2, T3, T4, T5, T6, T7, T8]>;
-
-  static all<T1, T2, T3, T4, T5, T6, T7>(
-    values: readonly [
-      T1 | PromiseLike<T1>,
-      T2 | PromiseLike<T2>,
-      T3 | PromiseLike<T3>,
-      T4 | PromiseLike<T4>,
-      T5 | PromiseLike<T5>,
-      T6 | PromiseLike<T6>,
-      T7 | PromiseLike<T7>
-    ]
-  ): AssetPromise<[T1, T2, T3, T4, T5, T6, T7]>;
-
-  static all<T1, T2, T3, T4, T5, T6>(
-    values: readonly [
-      T1 | PromiseLike<T1>,
-      T2 | PromiseLike<T2>,
-      T3 | PromiseLike<T3>,
-      T4 | PromiseLike<T4>,
-      T5 | PromiseLike<T5>,
-      T6 | PromiseLike<T6>
-    ]
-  ): AssetPromise<[T1, T2, T3, T4, T5, T6]>;
-
-  static all<T1, T2, T3, T4, T5>(
-    values: readonly [
-      T1 | PromiseLike<T1>,
-      T2 | PromiseLike<T2>,
-      T3 | PromiseLike<T3>,
-      T4 | PromiseLike<T4>,
-      T5 | PromiseLike<T5>
-    ]
-  ): AssetPromise<[T1, T2, T3, T4, T5]>;
-
-  static all<T1, T2, T3, T4>(
-    values: readonly [T1 | PromiseLike<T1>, T2 | PromiseLike<T2>, T3 | PromiseLike<T3>, T4 | PromiseLike<T4>]
-  ): AssetPromise<[T1, T2, T3, T4]>;
-
-  static all<T1, T2, T3>(
-    values: readonly [T1 | PromiseLike<T1>, T2 | PromiseLike<T2>, T3 | PromiseLike<T3>]
-  ): AssetPromise<[T1, T2, T3]>;
-
-  static all<T1, T2>(values: readonly [T1 | PromiseLike<T1>, T2 | PromiseLike<T2>]): AssetPromise<[T1, T2]>;
-
-  static all<T>(values: readonly (T | PromiseLike<T>)[]): AssetPromise<T[]>;
-
+export class AssetPromise<T> implements PromiseLike<T> {
   /**
    * Return a new resource Promise through the provided asset promise collection.
    * The resolved of the new AssetPromise will be triggered when all the Promises in the provided set are completed.
-   * @param - AssetPromise Collection
+   * @param - Promise Collection
    * @returns AssetPromise
    */
-  static all<T>(promises: T | PromiseLike<T>[]): AssetPromise<T[]> {
-    return new AssetPromise((resolve, reject, setProgress) => {
-      if (!Array.isArray(promises)) {
-        return resolve([promises]);
+  static all<T = any>(promises: (PromiseLike<T> | T)[]) {
+    return new AssetPromise<T[]>((resolve, reject, setTaskCompleteProgress) => {
+      const count = promises.length;
+      const results: T[] = new Array(count);
+      let completed = 0;
+
+      if (count === 0) {
+        return resolve(results);
       }
 
-      let completed = 0;
-      let total = promises.length;
-      let results = new Array<T>(total);
+      function onComplete(index: number, resultValue: T) {
+        completed++;
+        results[index] = resultValue;
 
-      promises.forEach((value, index) => {
-        Promise.resolve(value)
-          .then((result) => {
-            results[index] = result;
+        setTaskCompleteProgress(completed, count);
+        if (completed === count) {
+          resolve(results);
+        }
+      }
 
-            completed += 1;
-            setProgress(completed / total);
+      function onProgress(promise: PromiseLike<T> | T, index: number) {
+        if (promise instanceof Promise || promise instanceof AssetPromise) {
+          promise.then(function (value) {
+            onComplete(index, value);
+          }, reject);
+        } else {
+          Promise.resolve().then(() => {
+            onComplete(index, promise as T);
+          });
+        }
+      }
 
-            if (completed == total) {
-              resolve(results);
-            }
-          })
-          .catch((err) => reject(err));
-      });
+      for (let i = 0; i < count; i++) {
+        onProgress(promises[i], i);
+      }
     });
   }
 
-  private _status: AssetPromiseStatus;
-  private _progress: number;
-  private _reject: (reason?: any) => void;
-  private _listeners: Set<PromiseNotifier>;
-
-  /**
-   * Current promise state.
-   */
-  get status(): AssetPromiseStatus {
-    return this._status;
+  /** compatible with Promise */
+  get [Symbol.toStringTag]() {
+    return "AssetPromise";
   }
 
-  /**
-   * Loading progress.
-   */
-  get progress(): number {
-    return this._progress;
-  }
-
-  /**
-   * Progress callback.
-   * @param callback - Progress callback
-   * @returns Asset Promise
-   */
-  onProgress(callback: (progress?: number) => any): AssetPromise<T> {
-    this._listeners.add(callback);
-    return this;
-  }
-
-  /**
-   * Cancel promise request.
-   * @returns Asset promise
-   */
-  cancel(): AssetPromise<T> {
-    if (this._status !== AssetPromiseStatus.Pending) {
-      return this;
-    }
-    this._reject("Promise Canceled");
-    return this;
-  }
+  private _promise: Promise<T>;
+  private _state = PromiseState.Pending;
+  private _taskCompleteProgress: TaskCompleteProgress;
+  private _taskDetailProgress: Record<string, TaskCompleteProgress>;
+  private _onTaskCompleteCallbacks: TaskCompleteCallback[] = [];
+  private _onTaskDetailCallbacks: TaskDetailCallback[] = [];
+  private _onCancelHandler: () => void;
+  private _reject: (reason: any) => void;
 
   /**
    * Create an asset loading Promise.
@@ -183,55 +67,151 @@ export class AssetPromise<T> extends Promise<T> {
    * and a reject callback used to reject the promise with a provided reason or error.
    * and a setProgress callback used to set promise progress with a percent.
    */
-  constructor(
-    executor: (
-      resolve: (value?: T | PromiseLike<T>) => void,
-      reject?: (reason?: any) => void,
-      setProgress?: PromiseNotifier
-    ) => void
-  ) {
-    let newReject: (reason?: any) => void;
-
-    const setProgress = (progress: number) => {
-      if (progress <= this._progress) {
-        return;
-      }
-      this._progress = progress;
-
-      for (const listener of this._listeners) {
-        listener(progress);
-      }
-    };
-
-    super((resolve, reject) => {
-      newReject = (reason?: any) => {
-        // Add it to the micro task to avoid reporting an error when calling this directly.
-        Promise.resolve().then(() => {
-          this._status = AssetPromiseStatus.Failed;
-          reject(reason);
-        });
-      };
-      executor(
-        (value: T) => {
-          // Add it to the micro task to avoid reporting an error when calling this directly.
-          Promise.resolve().then(() => {
-            setProgress(1);
-            this._status = AssetPromiseStatus.Success;
-            resolve(value);
-          });
-        },
-        newReject,
-        (progress: number) => {
-          // Add it to the micro task to avoid reporting an error when calling this directly
-          Promise.resolve().then(() => {
-            setProgress(progress);
-          });
+  constructor(executor: AssetPromiseExecutor<T>) {
+    this._promise = new Promise((resolve, reject) => {
+      this._reject = reject;
+      const onResolve = (value: T) => {
+        if (this._state === PromiseState.Pending) {
+          resolve(value);
+          this._state = PromiseState.Fulfilled;
+          this._onTaskCompleteCallbacks = undefined;
+          this._onTaskDetailCallbacks = undefined;
         }
-      );
+      };
+      const onReject = (reason) => {
+        if (this._state === PromiseState.Pending) {
+          reject(reason);
+          this._state = PromiseState.Rejected;
+          this._onTaskCompleteCallbacks = undefined;
+          this._onTaskDetailCallbacks = undefined;
+        }
+      };
+      const onCancel = (callback) => {
+        if (this._state === PromiseState.Pending) {
+          this._onCancelHandler = callback;
+        }
+      };
+      const setTaskCompleteProgress = (loaded: number, total: number) => {
+        if (this._state === PromiseState.Pending) {
+          const progress = (this._taskCompleteProgress ||= { loaded, total });
+
+          progress.loaded = loaded;
+          progress.total = total;
+
+          this._onTaskCompleteCallbacks.forEach((callback) => callback(loaded, total));
+        }
+      };
+      const setTaskDetailProgress = (url: string, loaded: number, total: number) => {
+        if (this._state === PromiseState.Pending) {
+          this._taskDetailProgress ||= {};
+          const progress = (this._taskDetailProgress[url] ||= { loaded, total });
+          progress.loaded = loaded;
+          progress.total = total;
+          this._onTaskDetailCallbacks.forEach((callback) => callback(url, loaded, total));
+        }
+      };
+
+      executor(onResolve, onReject, setTaskCompleteProgress, setTaskDetailProgress, onCancel);
     });
-    this._reject = newReject;
-    this._listeners = new Set();
-    this._progress = 0;
-    this._status = AssetPromiseStatus.Pending;
+  }
+
+  /**
+   * Progress callback.
+   * @param onTaskComplete - This callback function provides information about the overall progress of the task. For example, in batch processing tasks, you can use the loaded and total parameters to calculate the percentage of task completion or display a progress bar
+   * @param onTaskDetail - This callback function provides detailed progress information about the task. For instance, in file downloading scenarios, you can use the loaded and total parameters to calculate the download progress percentage and utilize the url parameter to provide additional details such as download speed and estimated remaining time
+   * @returns AssetPromise
+   */
+  onProgress(
+    onTaskComplete: (loaded: number, total: number) => void,
+    onTaskDetail?: (identifier: string, loaded: number, total: number) => void
+  ): AssetPromise<T> {
+    const completeProgress = this._taskCompleteProgress;
+    const detailProgress = this._taskDetailProgress;
+    if (completeProgress) {
+      onTaskComplete(completeProgress.loaded, completeProgress.total);
+    }
+
+    if (detailProgress) {
+      for (let url in detailProgress) {
+        const { loaded, total } = detailProgress[url];
+        onTaskDetail(url, loaded, total);
+      }
+    }
+
+    if (this._state === PromiseState.Pending) {
+      onTaskComplete && this._onTaskCompleteCallbacks.push(onTaskComplete);
+      onTaskDetail && this._onTaskDetailCallbacks.push(onTaskDetail);
+    }
+
+    return this;
+  }
+
+  then<TResult1 = T, TResult2 = never>(
+    onfulfilled?: (value: T) => TResult1 | PromiseLike<TResult1>,
+    onrejected?: (reason: any) => TResult2 | PromiseLike<TResult2>
+  ): AssetPromise<TResult1 | TResult2> {
+    return new AssetPromise<TResult1 | TResult2>((resolve, reject) => {
+      this._promise.then(onfulfilled, onrejected).then(resolve).catch(reject);
+    });
+  }
+
+  /**
+   * Attaches a callback for only the rejection of the Promise.
+   * @param onRejected - The callback to execute when the Promise is rejected.
+   * @returns A Promise for the completion of the callback.
+   */
+  catch(onRejected: (reason: any) => any): AssetPromise<T> {
+    return new AssetPromise<T>((resolve, reject) => {
+      this._promise.catch(onRejected).then(resolve).catch(reject);
+    });
+  }
+
+  /**
+   * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+   * resolved value cannot be modified from the callback.
+   * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+   * @returns A Promise for the completion of the callback.
+   */
+  finally(onFinally?: () => void): Promise<T> {
+    return this._promise.finally(onFinally);
+  }
+
+  /**
+   * Cancel promise request.
+   * @returns Asset promise
+   */
+  cancel(): AssetPromise<T> {
+    if (this._state !== PromiseState.Pending) {
+      return;
+    }
+    this._state = PromiseState.Canceled;
+    this._reject("canceled");
+    this._onCancelHandler && this._onCancelHandler();
+    return this;
   }
 }
+
+interface AssetPromiseExecutor<T> {
+  (
+    resolve: (value?: T | PromiseLike<T>) => void,
+    reject?: (reason?: any) => void,
+    setTaskCompleteProgress?: TaskCompleteCallback,
+    setTaskDetailProgress?: TaskDetailCallback,
+    onCancel?: (callback: () => void) => void
+  ): void;
+}
+
+/** @internal */
+enum PromiseState {
+  Pending = "pending",
+  Fulfilled = "fulfilled",
+  Rejected = "rejected",
+  Canceled = "canceled"
+}
+
+type TaskCompleteProgress = {
+  loaded: number;
+  total: number;
+};
+type TaskCompleteCallback = (loaded: number, total: number) => void;
+type TaskDetailCallback = (url: string, loaded: number, total: number) => void;

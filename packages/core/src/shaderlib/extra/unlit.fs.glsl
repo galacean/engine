@@ -1,37 +1,40 @@
 #include <common>
 #include <uv_share>
-#include <fog_share>
+#include <FogFragmentDeclaration>
 
-uniform vec4 u_baseColor;
-uniform float u_alphaCutoff;
+uniform vec4 material_BaseColor;
+uniform float material_AlphaCutoff;
 
-#ifdef BASETEXTURE
-    uniform sampler2D u_baseTexture;
+#ifdef MATERIAL_HAS_BASETEXTURE
+    uniform sampler2D material_BaseTexture;
 #endif
 
 void main() {
-     vec4 baseColor = u_baseColor;
+     vec4 baseColor = material_BaseColor;
 
-    #ifdef BASETEXTURE
-        vec4 textureColor = texture2D(u_baseTexture, v_uv);
-        #ifndef OASIS_COLORSPACE_GAMMA
+    #ifdef MATERIAL_HAS_BASETEXTURE
+        vec4 textureColor = texture2D(material_BaseTexture, v_uv);
+        #ifndef ENGINE_IS_COLORSPACE_GAMMA
             textureColor = gammaToLinear(textureColor);
         #endif
         baseColor *= textureColor;
     #endif
 
-    #ifdef ALPHA_CUTOFF
-        if( baseColor.a < u_alphaCutoff ) {
+    #ifdef MATERIAL_IS_ALPHA_CUTOFF
+        if( baseColor.a < material_AlphaCutoff ) {
             discard;
         }
     #endif
 
-
-    #ifndef OASIS_COLORSPACE_GAMMA
-        baseColor = linearToGamma(baseColor);
-    #endif
-
     gl_FragColor = baseColor;
 
-    #include <fog_frag>
+    #ifndef MATERIAL_IS_TRANSPARENT
+        gl_FragColor.a = 1.0;
+    #endif
+
+    #include <FogFragment>
+
+     #ifndef ENGINE_IS_COLORSPACE_GAMMA
+        gl_FragColor = linearToGamma(gl_FragColor);
+    #endif
 }

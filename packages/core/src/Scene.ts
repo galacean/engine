@@ -1,41 +1,131 @@
+import { Color, Vector3, Vector4 } from "@galacean/engine-math";
 import { Background } from "./Background";
-import { EngineObject, Logger } from "./base";
-import { Camera } from "./Camera";
+import { ComponentsManager } from "./ComponentsManager";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
-import { FeatureManager } from "./FeatureManager";
+import { SceneManager } from "./SceneManager";
+import { EngineObject, Logger } from "./base";
+import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
+import { FogMode } from "./enums/FogMode";
+import { DirectLight } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
-import { LightFeature } from "./lighting/LightFeature";
-import { SceneFeature } from "./SceneFeature";
-import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
+import { LightManager } from "./lighting/LightManager";
+import { PhysicsScene } from "./physics/PhysicsScene";
+import { _PostProcessManager } from "./postProcess";
+import { ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
+import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
+import { ShadowResolution } from "./shadow/enum/ShadowResolution";
+import { ShadowType } from "./shadow/enum/ShadowType";
+import { MaskManager } from "./RenderPipeline/MaskManager";
 
 /**
  * Scene.
  */
 export class Scene extends EngineObject {
-  static sceneFeatureManager = new FeatureManager<SceneFeature>();
+  private static _fogColorProperty = ShaderProperty.getByName("scene_FogColor");
+  private static _fogParamsProperty = ShaderProperty.getByName("scene_FogParams");
 
   /** Scene name. */
   name: string;
 
-  /** The background of the scene. */
-  readonly background: Background = new Background(this._engine);
+  /** Physics. */
+  readonly physics: PhysicsScene = new PhysicsScene(this);
 
-  /** Scene-related shader data. */
-  readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
+  /** If cast shadows. */
+  castShadows: boolean = true;
+  /** The resolution of the shadow maps. */
+  shadowResolution: ShadowResolution = ShadowResolution.Medium;
+  /** The splits of two cascade distribution. */
+  shadowTwoCascadeSplits: number = 1.0 / 3.0;
+  /** The splits of four cascade distribution. */
+  shadowFourCascadeSplits: Vector3 = new Vector3(1.0 / 15, 3.0 / 15.0, 7.0 / 15.0);
+  /** Max Shadow distance. */
+  shadowDistance: number = 50;
+  /**
+   * Last shadow fade distance in percentage, range [0,1].
+   * @remarks Value 0 is used for no shadow fade.
+   */
+  shadowFadeBorder: number = 0.1;
 
+  /* @internal */
+  _lightManager: LightManager = new LightManager();
+  /* @internal */
+  _componentsManager: ComponentsManager = new ComponentsManager();
   /** @internal */
-  _activeCameras: Camera[] = [];
+  _maskManager: MaskManager = new MaskManager();
   /** @internal */
   _isActiveInEngine: boolean = false;
+  /** @internal */
+  _sceneManager: SceneManager;
   /** @internal */
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
   _rootEntities: Entity[] = [];
+  /** @internal */
+  _postProcessManager = new _PostProcessManager(this);
 
+  private _background: Background = new Background(this._engine);
+  private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
+  private _shadowCascades: ShadowCascadesMode = ShadowCascadesMode.NoCascades;
   private _ambientLight: AmbientLight;
+  private _fogMode: FogMode = FogMode.None;
+  private _fogColor: Color = new Color(0.5, 0.5, 0.5, 1.0);
+  private _fogStart: number = 0;
+  private _fogEnd: number = 300;
+  private _fogDensity: number = 0.01;
+  private _fogParams: Vector4 = new Vector4();
+  private _isActive: boolean = true;
+  private _sun: DirectLight | null;
+  private _enableTransparentShadow = false;
+
+  /**
+   * Whether the scene is active.
+   */
+  get isActive(): boolean {
+    return this._isActive;
+  }
+
+  set isActive(value: boolean) {
+    if (this._isActive !== value) {
+      this._isActive = value;
+      if (value) {
+        this._sceneManager && this._processActive(true);
+      } else {
+        this._sceneManager && this._processActive(false);
+      }
+    }
+  }
+
+  /**
+   * Scene-related shader data.
+   */
+  get shaderData(): ShaderData {
+    return this._shaderData;
+  }
+
+  /**
+   * The background of the scene.
+   */
+  get background(): Background {
+    return this._background;
+  }
+
+  /**
+   *  Number of cascades to use for directional light shadows.
+   */
+  get shadowCascades(): ShadowCascadesMode {
+    return this._shadowCascades;
+  }
+
+  set shadowCascades(value: ShadowCascadesMode) {
+    if (this._shadowCascades !== value) {
+      this.shaderData.enableMacro("SCENE_SHADOW_CASCADED_COUNT", value.toString());
+      this._shadowCascades = value;
+    }
+  }
 
   /**
    * Ambient light.
@@ -59,6 +149,80 @@ export class Scene extends EngineObject {
   }
 
   /**
+   * Fog mode.
+   * @remarks
+   * If set to `FogMode.None`, the fog will be disabled.
+   * If set to `FogMode.Linear`, the fog will be linear and controlled by `fogStart` and `fogEnd`.
+   * If set to `FogMode.Exponential`, the fog will be exponential and controlled by `fogDensity`.
+   * If set to `FogMode.ExponentialSquared`, the fog will be exponential squared and controlled by `fogDensity`.
+   */
+  get fogMode(): FogMode {
+    return this._fogMode;
+  }
+
+  set fogMode(value: FogMode) {
+    if (this._fogMode !== value) {
+      this.shaderData.enableMacro("SCENE_FOG_MODE", value.toString());
+      this._fogMode = value;
+    }
+  }
+
+  /**
+   * Fog color.
+   */
+  get fogColor(): Color {
+    return this._fogColor;
+  }
+
+  set fogColor(value: Color) {
+    if (this._fogColor !== value) {
+      this._fogColor.copyFrom(value);
+    }
+  }
+
+  /**
+   * Fog start.
+   */
+  get fogStart(): number {
+    return this._fogStart;
+  }
+
+  set fogStart(value: number) {
+    if (this._fogStart !== value) {
+      this._computeLinearFogParams(value, this._fogEnd);
+      this._fogStart = value;
+    }
+  }
+
+  /**
+   * Fog end.
+   */
+  get fogEnd(): number {
+    return this._fogEnd;
+  }
+
+  set fogEnd(value: number) {
+    if (this._fogEnd !== value) {
+      this._computeLinearFogParams(this._fogStart, value);
+      this._fogEnd = value;
+    }
+  }
+
+  /**
+   * Fog density.
+   */
+  get fogDensity(): number {
+    return this._fogDensity;
+  }
+
+  set fogDensity(value: number) {
+    if (this._fogDensity !== value) {
+      this._computeExponentialFogParams(value);
+      this._fogDensity = value;
+    }
+  }
+
+  /**
    * Count of root entities.
    */
   get rootEntitiesCount(): number {
@@ -73,6 +237,36 @@ export class Scene extends EngineObject {
   }
 
   /**
+   * Sun light source.
+   * @remarks If set this to null, scene will use the brightest directional light.
+   */
+  get sun(): DirectLight | null {
+    return this._sun;
+  }
+
+  set sun(light: DirectLight | null) {
+    this._sun = light;
+  }
+
+  /**
+   * Whether to enable transparent shadow.
+   */
+  get enableTransparentShadow(): boolean {
+    return this._enableTransparentShadow;
+  }
+
+  set enableTransparentShadow(value: boolean) {
+    if (value !== this._enableTransparentShadow) {
+      this._enableTransparentShadow = value;
+      if (value) {
+        this.shaderData.enableMacro("SCENE_ENABLE_TRANSPARENT_SHADOW");
+      } else {
+        this.shaderData.disableMacro("SCENE_ENABLE_TRANSPARENT_SHADOW");
+      }
+    }
+  }
+
+  /**
    * Create scene.
    * @param engine - Engine
    * @param name - Name
@@ -82,10 +276,17 @@ export class Scene extends EngineObject {
     this.name = name || "";
 
     const shaderData = this.shaderData;
-    Scene.sceneFeatureManager.addObject(this);
-    shaderData._addRefCount(1);
-    this.ambientLight = new AmbientLight();
-    engine.sceneManager._allScenes.push(this);
+    shaderData._addReferCount(1);
+    this.ambientLight = new AmbientLight(engine);
+    engine.sceneManager._allCreatedScenes.push(this);
+
+    shaderData.enableMacro("SCENE_FOG_MODE", this._fogMode.toString());
+    shaderData.enableMacro("SCENE_SHADOW_CASCADED_COUNT", this.shadowCascades.toString());
+    shaderData.setColor(Scene._fogColorProperty, this._fogColor);
+    shaderData.setVector4(Scene._fogParamsProperty, this._fogParams);
+
+    this._computeLinearFogParams(this._fogStart, this._fogEnd);
+    this._computeExponentialFogParams(this._fogDensity);
   }
 
   /**
@@ -122,30 +323,47 @@ export class Scene extends EngineObject {
     }
 
     const isRoot = entity._isRoot;
-    // let entity become root
+    // Let entity become root
     if (!isRoot) {
       entity._isRoot = true;
       entity._removeFromParent();
+      entity._setTransformDirty();
     }
 
-    // add or remove from scene's rootEntities
+    // Add or remove from scene's rootEntities
     const oldScene = entity._scene;
     if (oldScene !== this) {
       if (oldScene && isRoot) {
         oldScene._removeFromEntityList(entity);
       }
       this._addToRootEntityList(index, entity);
-      Entity._traverseSetOwnerScene(entity, this);
     } else if (!isRoot) {
       this._addToRootEntityList(index, entity);
     }
 
-    // process entity active/inActive
-    if (this._isActiveInEngine) {
-      !entity._isActiveInHierarchy && entity._isActive && entity._processActive();
-    } else {
-      entity._isActiveInHierarchy && entity._processInActive();
+    // Process entity active/inActive
+    let inActiveChangeFlag = ActiveChangeFlag.None;
+    if (entity._isActiveInHierarchy) {
+      this._isActiveInEngine || (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
     }
+
+    // Cross scene should inActive first and then active
+    entity._isActiveInScene && oldScene !== this && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+
+    inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
+
+    if (oldScene !== this) {
+      Entity._traverseSetOwnerScene(entity, this);
+    }
+
+    let activeChangeFlag = ActiveChangeFlag.None;
+    if (entity._isActive) {
+      if (this._isActiveInEngine) {
+        !entity._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
+      }
+      (!entity._isActiveInScene || oldScene !== this) && (activeChangeFlag |= ActiveChangeFlag.Scene);
+    }
+    activeChangeFlag && entity._processActive(activeChangeFlag);
   }
 
   /**
@@ -156,7 +374,11 @@ export class Scene extends EngineObject {
     if (entity._isRoot && entity._scene == this) {
       this._removeFromEntityList(entity);
       entity._isRoot = false;
-      this._isActiveInEngine && entity._isActiveInHierarchy && entity._processInActive();
+
+      let inActiveChangeFlag = ActiveChangeFlag.None;
+      this._isActiveInEngine && entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
+      entity._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+      inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
       Entity._traverseSetOwnerScene(entity, null);
     }
   }
@@ -176,17 +398,9 @@ export class Scene extends EngineObject {
    * @returns Entity
    */
   findEntityByName(name: string): Entity | null {
-    const children = this._rootEntities;
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      if (child.name === name) {
-        return child;
-      }
-    }
-
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      const entity = child.findByName(name);
+    const rootEntities = this._rootEntities;
+    for (let i = 0, n = rootEntities.length; i < n; i++) {
+      const entity = rootEntities[i].findByName(name);
       if (entity) {
         return entity;
       }
@@ -214,42 +428,6 @@ export class Scene extends EngineObject {
   }
 
   /**
-   * Destroy this scene.
-   */
-  destroy(): void {
-    if (this._destroyed) {
-      return;
-    }
-
-    this._destroy();
-
-    const allScenes = this.engine.sceneManager._allScenes;
-    allScenes.splice(allScenes.indexOf(this), 1);
-  }
-
-  /**
-   * @internal
-   */
-  _attachRenderCamera(camera: Camera): void {
-    const index = this._activeCameras.indexOf(camera);
-    if (index === -1) {
-      this._activeCameras.push(camera);
-    } else {
-      Logger.warn("Camera already attached.");
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _detachRenderCamera(camera: Camera): void {
-    const index = this._activeCameras.indexOf(camera);
-    if (index !== -1) {
-      this._activeCameras.splice(index, 1);
-    }
-  }
-
-  /**
    * @internal
    */
   _processActive(active: boolean): void {
@@ -258,7 +436,11 @@ export class Scene extends EngineObject {
     for (let i = rootEntities.length - 1; i >= 0; i--) {
       const entity = rootEntities[i];
       if (entity._isActive) {
-        active ? entity._processActive() : entity._processInActive();
+        if (active) {
+          entity._processActive(ActiveChangeFlag.Hierarchy);
+        } else {
+          entity._processInActive(ActiveChangeFlag.Hierarchy);
+        }
       }
     }
   }
@@ -267,11 +449,34 @@ export class Scene extends EngineObject {
    * @internal
    */
   _updateShaderData(): void {
-    this.findFeature(LightFeature)._updateShaderData(this.shaderData);
+    const shaderData = this.shaderData;
+    const engine = this._engine;
+    const lightManager = this._lightManager;
+
+    engine.time._updateSceneShaderData(shaderData);
+    lightManager._updateShaderData(this.shaderData);
+
+    const sunlight = (this._lightManager._sunlight = this._getSunlight());
+
+    if (sunlight) {
+      lightManager._updateSunlightIndex(sunlight);
+      shaderData.setColor(LightManager._sunlightColorProperty, sunlight._lightColor);
+      shaderData.setVector3(LightManager._sunlightDirectionProperty, sunlight.direction);
+    } else {
+      // @ts-ignore
+      shaderData.setVector3(LightManager._sunlightDirectionProperty, Vector3._zero);
+    }
+
+    if (this.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
+      shaderData.enableMacro("SCENE_SHADOW_TYPE", sunlight.shadowType.toString());
+    } else {
+      shaderData.disableMacro("SCENE_SHADOW_TYPE");
+    }
+
     // union scene and camera macro.
     ShaderMacroCollection.unionCollection(
       this.engine._macroCollection,
-      this.shaderData._macroCollection,
+      shaderData._macroCollection,
       this._globalShaderMacro
     );
   }
@@ -292,16 +497,24 @@ export class Scene extends EngineObject {
   /**
    * @internal
    */
-  _destroy(): void {
-    this._isActiveInEngine && (this._engine.sceneManager.activeScene = null);
-    Scene.sceneFeatureManager.callFeatureMethod(this, "destroy", [this]);
-    for (let i = 0, n = this.rootEntitiesCount; i < n; i++) {
-      this._rootEntities[i].destroy();
+  protected override _onDestroy(): void {
+    super._onDestroy();
+
+    // Remove from sceneManager
+    const sceneManager = this._engine.sceneManager;
+    sceneManager.removeScene(this);
+
+    while (this.rootEntitiesCount > 0) {
+      this._rootEntities[0].destroy();
     }
-    this._rootEntities.length = 0;
-    this._activeCameras.length = 0;
-    (Scene.sceneFeatureManager as any)._objects = [];
-    this.shaderData._addRefCount(-1);
+    this.background.destroy();
+    this._ambientLight && this._ambientLight._removeFromScene(this);
+    this.shaderData._addReferCount(-1);
+    this._componentsManager.handlingInvalidScripts();
+    this._maskManager.destroy();
+
+    const allCreatedScenes = sceneManager._allCreatedScenes;
+    allCreatedScenes.splice(allCreatedScenes.indexOf(this), 1);
   }
 
   private _addToRootEntityList(index: number, rootEntity: Entity): void {
@@ -322,14 +535,27 @@ export class Scene extends EngineObject {
     }
   }
 
-  //-----------------------------------------@deprecated-----------------------------------
-  static registerFeature(Feature: new () => SceneFeature) {
-    Scene.sceneFeatureManager.registerFeature(Feature);
+  private _computeLinearFogParams(fogStart: number, fogEnd: number): void {
+    const fogRange = fogEnd - fogStart;
+    const fogParams = this._fogParams;
+    fogParams.x = -1 / fogRange;
+    fogParams.y = fogEnd / fogRange;
   }
 
-  findFeature<T extends SceneFeature>(Feature: { new (): T }): T {
-    return Scene.sceneFeatureManager.findFeature(this, Feature) as T;
+  private _computeExponentialFogParams(density: number) {
+    this._fogParams.z = density / Math.LN2;
+    this._fogParams.w = density / Math.sqrt(Math.LN2);
   }
 
-  features: SceneFeature[] = [];
+  private _getSunlight(): DirectLight | null {
+    let sunlight = null;
+
+    if (this._sun) {
+      sunlight = this._sun.enabled ? this._sun : null;
+    } else {
+      sunlight = this._lightManager._getMaxBrightestSunlight();
+    }
+
+    return sunlight;
+  }
 }

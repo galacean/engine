@@ -14,6 +14,35 @@ import { Vector3 } from "./Vector3";
 export class CollisionUtil {
   private static _tempVec30: Vector3 = new Vector3();
   private static _tempVec31: Vector3 = new Vector3();
+  private static _tempVec32: Vector3 = new Vector3();
+
+  /**
+   * Calculate the intersection point of three plane.
+   * @param  p1 - Plane 1
+   * @param  p2 - Plane 2
+   * @param  p3 - Plane 3
+   * @param out - intersection point
+   */
+  static intersectionPointThreePlanes(p1: Plane, p2: Plane, p3: Plane, out: Vector3): void {
+    const p1Nor = p1.normal;
+    const p2Nor = p2.normal;
+    const p3Nor = p3.normal;
+
+    Vector3.cross(p2Nor, p3Nor, CollisionUtil._tempVec30);
+    Vector3.cross(p3Nor, p1Nor, CollisionUtil._tempVec31);
+    Vector3.cross(p1Nor, p2Nor, CollisionUtil._tempVec32);
+
+    const a = -Vector3.dot(p1Nor, CollisionUtil._tempVec30);
+    const b = -Vector3.dot(p2Nor, CollisionUtil._tempVec31);
+    const c = -Vector3.dot(p3Nor, CollisionUtil._tempVec32);
+
+    Vector3.scale(CollisionUtil._tempVec30, p1.distance / a, CollisionUtil._tempVec30);
+    Vector3.scale(CollisionUtil._tempVec31, p2.distance / b, CollisionUtil._tempVec31);
+    Vector3.scale(CollisionUtil._tempVec32, p3.distance / c, CollisionUtil._tempVec32);
+
+    Vector3.add(CollisionUtil._tempVec30, CollisionUtil._tempVec31, out);
+    Vector3.add(out, CollisionUtil._tempVec32, out);
+  }
 
   /**
    * Calculate the distance from a point to a plane.
@@ -317,19 +346,65 @@ export class CollisionUtil {
    */
   static intersectsFrustumAndBox(frustum: BoundingFrustum, box: BoundingBox): boolean {
     const { min, max } = box;
-    const back = CollisionUtil._tempVec30;
+    const p = CollisionUtil._tempVec30;
 
     for (let i = 0; i < 6; ++i) {
       const plane = frustum.getPlane(i);
       const normal = plane.normal;
 
-      back.set(normal.x >= 0 ? min.x : max.x, normal.y >= 0 ? min.y : max.y, normal.z >= 0 ? min.z : max.z);
-      if (Vector3.dot(normal, back) > -plane.distance) {
+      p.set(normal.x >= 0 ? max.x : min.x, normal.y >= 0 ? max.y : min.y, normal.z >= 0 ? max.z : min.z);
+      if (Vector3.dot(normal, p) < -plane.distance) {
         return false;
       }
     }
 
     return true;
+  }
+
+  /**
+   * Get the containment type between a frustum and a point.
+   * @param frustum - The frustum
+   * @param point - The point
+   * @returns The containment type
+   */
+  static frustumContainsPoint(frustum: BoundingFrustum, point: Vector3): ContainmentType {
+    let distance = CollisionUtil.distancePlaneAndPoint(frustum.near, point);
+    if (Math.abs(distance) < MathUtil.zeroTolerance) {
+      return ContainmentType.Intersects;
+    } else if (distance < 0) {
+      return ContainmentType.Disjoint;
+    }
+    distance = CollisionUtil.distancePlaneAndPoint(frustum.far, point);
+    if (Math.abs(distance) < MathUtil.zeroTolerance) {
+      return ContainmentType.Intersects;
+    } else if (distance < 0) {
+      return ContainmentType.Disjoint;
+    }
+    distance = CollisionUtil.distancePlaneAndPoint(frustum.left, point);
+    if (Math.abs(distance) < MathUtil.zeroTolerance) {
+      return ContainmentType.Intersects;
+    } else if (distance < 0) {
+      return ContainmentType.Disjoint;
+    }
+    distance = CollisionUtil.distancePlaneAndPoint(frustum.right, point);
+    if (Math.abs(distance) < MathUtil.zeroTolerance) {
+      return ContainmentType.Intersects;
+    } else if (distance < 0) {
+      return ContainmentType.Disjoint;
+    }
+    distance = CollisionUtil.distancePlaneAndPoint(frustum.top, point);
+    if (Math.abs(distance) < MathUtil.zeroTolerance) {
+      return ContainmentType.Intersects;
+    } else if (distance < 0) {
+      return ContainmentType.Disjoint;
+    }
+    distance = CollisionUtil.distancePlaneAndPoint(frustum.bottom, point);
+    if (Math.abs(distance) < MathUtil.zeroTolerance) {
+      return ContainmentType.Intersects;
+    } else if (distance < 0) {
+      return ContainmentType.Disjoint;
+    }
+    return ContainmentType.Contains;
   }
 
   /**
@@ -340,8 +415,8 @@ export class CollisionUtil {
    */
   static frustumContainsBox(frustum: BoundingFrustum, box: BoundingBox): ContainmentType {
     const { min, max } = box;
-    const front = CollisionUtil._tempVec30;
-    const back = CollisionUtil._tempVec31;
+    const p = CollisionUtil._tempVec30;
+    const n = CollisionUtil._tempVec31;
     let result = ContainmentType.Contains;
 
     for (let i = 0; i < 6; ++i) {
@@ -349,32 +424,32 @@ export class CollisionUtil {
       const normal = plane.normal;
 
       if (normal.x >= 0) {
-        front.x = max.x;
-        back.x = min.x;
+        p.x = max.x;
+        n.x = min.x;
       } else {
-        front.x = min.x;
-        back.x = max.x;
+        p.x = min.x;
+        n.x = max.x;
       }
       if (normal.y >= 0) {
-        front.y = max.y;
-        back.y = min.y;
+        p.y = max.y;
+        n.y = min.y;
       } else {
-        front.y = min.y;
-        back.y = max.y;
+        p.y = min.y;
+        n.y = max.y;
       }
       if (normal.z >= 0) {
-        front.z = max.z;
-        back.z = min.z;
+        p.z = max.z;
+        n.z = min.z;
       } else {
-        front.z = min.z;
-        back.z = max.z;
+        p.z = min.z;
+        n.z = max.z;
       }
 
-      if (CollisionUtil.intersectsPlaneAndPoint(plane, back) === PlaneIntersectionType.Front) {
+      if (CollisionUtil.intersectsPlaneAndPoint(plane, p) === PlaneIntersectionType.Back) {
         return ContainmentType.Disjoint;
       }
 
-      if (CollisionUtil.intersectsPlaneAndPoint(plane, front) === PlaneIntersectionType.Front) {
+      if (CollisionUtil.intersectsPlaneAndPoint(plane, n) === PlaneIntersectionType.Back) {
         result = ContainmentType.Intersects;
       }
     }
@@ -394,7 +469,7 @@ export class CollisionUtil {
     for (let i = 0; i < 6; ++i) {
       const plane = frustum.getPlane(i);
       const intersectionType = CollisionUtil.intersectsPlaneAndSphere(plane, sphere);
-      if (intersectionType === PlaneIntersectionType.Front) {
+      if (intersectionType === PlaneIntersectionType.Back) {
         return ContainmentType.Disjoint;
       } else if (intersectionType === PlaneIntersectionType.Intersecting) {
         result = ContainmentType.Intersects;

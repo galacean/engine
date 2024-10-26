@@ -1,0 +1,43 @@
+---
+order: 4
+title: Framebuffer Picking
+type: Interact
+label: Interact
+---
+
+In 3D applications, it is often necessary to pick objects in the scene. [Ray-box intersection](/en/docs/physics/manager/#使用射线检测) is a common method for picking on the CPU. **It has good performance but poor accuracy** because bounding boxes are simple and cannot pick complex models.
+
+When the picking frequency is not high, you can consider using the `FramebufferPicker` component with **pixel-level accuracy**. When the picking frequency is too high, developers need to evaluate whether the performance overhead is suitable for the business scenario, as this component involves CPU-GPU communication at the underlying level, i.e., calling `gl.readPixels`.
+
+<playground src="framebuffer-picker.ts"></playground>
+
+## Create Framebuffer Picking
+
+```typescript
+import { FramebufferPicker } from "@galacean/engine-toolkit-framebuffer-picker";
+
+const framebufferPicker = rootEntity.addComponent(FramebufferPicker);
+framebufferPicker.camera = camera;
+```
+
+## Register Picking Event
+
+```typescript
+class ClickScript extends Script {
+  onUpdate(): void {
+    const inputManager = this.engine.inputManager;
+    if (inputManager.isPointerDown(PointerButton.Primary)) {
+      const pointerPosition = inputManager.pointerPosition;
+      framebufferPicker.pick(pointerPosition.x, pointerPosition.y).then((renderElement) => {
+        if (renderElement) {
+          // ...
+        } else {
+          // ...
+        }
+      });
+    }
+  }
+}
+
+cameraEntity.addComponent(ClickScript);
+```
