@@ -7,6 +7,10 @@ type PickOnlyOne<T extends {}, Keys extends keyof T = keyof T> = Keys extends un
  */
 export type LoadItem = {
   /**
+   * Resource's alias.
+   */
+  name?: string;
+  /**
    * Asset Type.
    */
   type?: string;
