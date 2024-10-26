@@ -27,7 +27,6 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
   static gammaToLinearSpace(value: number): number {
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_framebuffer_sRGB.txt
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_texture_sRGB_decode.txt
-    
     // Calculate 0 conditions using sigmoid thresholds
     const branch0condition = Math.ceil(Color.sigmoid(value) - Color._gammaBranchNumber_0);
     // Normalize the value to the 0-1 range
