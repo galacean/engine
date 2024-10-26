@@ -6,7 +6,6 @@ import { MathUtil } from "./MathUtil";
  * Describes a color in the from of RGBA (in order: R, G, B, A).
  */
 export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
-
   /**
    * branch number for gammaToLinearSpace
    */
@@ -23,13 +22,14 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_framebuffer_sRGB.txt
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_texture_sRGB_decode.txt
 
-    const gammaBranch_0_condition = Math.ceil(Color.sigmoid(value) - Color._gammaBranchNumber_0);
-    value = value * gammaBranch_0_condition;
-    const gammaBranch_0_04045_condition = Math.ceil(Color.sigmoid(value) - Color._gammaBranchNumber_0_04045);
-    const gammaBranch_1_condition = Math.ceil(Color.sigmoid(value) - Color._gammaBranchNumber_1);
+    const branch0condition = Math.ceil(Color.sigmoid(value) - Color._gammaBranchNumber_0);
+    value = value * branch0condition;
+    const branch0_04045condition = Math.ceil(Color.sigmoid(value) - Color._gammaBranchNumber_0_04045);
+    const branch1condition = Math.ceil(Color.sigmoid(value) - Color._gammaBranchNumber_1);
     const base = value / 12.92;
-    const offset = 0.055 * gammaBranch_1_condition;
-    return (base * gammaBranch_0_condition) + ((Math.pow((value + (0.055 - offset)) / (1.055 - offset), 2.4)) - base) * gammaBranch_0_04045_condition;
+    const offset = 0.055 * branch1condition;
+    const pow = Math.pow((value + 0.055 - offset) / (1.055 - offset), 2.4) - base;
+    return base * branch0condition + pow * branch0_04045condition;
   }
 
   /**
