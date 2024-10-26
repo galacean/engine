@@ -7,10 +7,16 @@ import { MathUtil } from "./MathUtil";
  */
 export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
   /**
-   * branch number for gammaToLinearSpace
+   * Precomputed sigmoid value at 0 used in gammaToLinearSpace for condition evaluation
    */
   static _gammaBranchNumber_0 = Color.sigmoid(0);
+  /**
+   * Precomputed sigmoid value at 0.04045 used in gammaToLinearSpace for condition evaluation
+   */
   static _gammaBranchNumber_0_04045 = Color.sigmoid(0.04045);
+  /**
+   * Precomputed sigmoid value at 1 used in gammaToLinearSpace for condition evaluation
+   */
   static _gammaBranchNumber_1 = Color.sigmoid(1);
 
   /**
@@ -21,12 +27,17 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
   static gammaToLinearSpace(value: number): number {
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_framebuffer_sRGB.txt
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_texture_sRGB_decode.txt
-
+    
+    // Calculate 0 conditions using sigmoid thresholds
     const branch0condition = Math.ceil(Color.sigmoid(value) - Color._gammaBranchNumber_0);
+    // Normalize the value to the 0-1 range
     value = value * branch0condition;
+    // Calculate 0.0405 conditions using sigmoid thresholds
     const branch0_04045condition = Math.ceil(Color.sigmoid(value) - Color._gammaBranchNumber_0_04045);
+    // Calculate 1 conditions using sigmoid thresholds
     const branch1condition = Math.ceil(Color.sigmoid(value) - Color._gammaBranchNumber_1);
     const base = value / 12.92;
+    // offset if value is greater than 1
     const offset = 0.055 * branch1condition;
     const pow = Math.pow((value + 0.055 - offset) / (1.055 - offset), 2.4) - base;
     return base * branch0condition + pow * branch0_04045condition;
