@@ -175,8 +175,6 @@ export class TiledSpriteAssembler {
     out: Vector2
   ): boolean {
     const { sprite, tileMode, tiledAdaptiveThreshold } = renderer;
-    const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = TiledSpriteAssembler;
-    posRow.length = posColumn.length = uvRow.length = uvColumn.length = 0;
     const { border } = sprite;
     const { width: expectWidth, height: expectHeight } = sprite;
     const fixedL = expectWidth * border.x;
@@ -352,6 +350,7 @@ export class TiledSpriteAssembler {
     rUV: DisorderedArray<number>,
     cUV: DisorderedArray<number>
   ): number {
+    rPos.length = cPos.length = rUV.length = cUV.length = 0;
     const { sprite, tiledAdaptiveThreshold: threshold } = renderer;
     const { border } = sprite;
     const spritePositions = sprite._getPositions();

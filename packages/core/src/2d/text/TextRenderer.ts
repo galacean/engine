@@ -261,7 +261,6 @@ export class TextRenderer extends Renderer {
       localBounds.max.set(0, 0, 0);
     } else {
       this._updateLocalData();
-      this._setDirtyFlagFalse(RendererUpdateFlags.LocalPositionAndBounds);
     }
   }
 

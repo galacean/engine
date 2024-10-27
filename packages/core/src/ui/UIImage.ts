@@ -347,8 +347,15 @@ export class UIImage extends UIRenderer implements ISpriteRenderer {
         }
         break;
       case SpriteModifyFlags.border:
-        if (this._drawMode === SpriteDrawMode.Sliced) {
-          this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionAndUV;
+        switch (this._drawMode) {
+          case SpriteDrawMode.Sliced:
+            this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionAndUV;
+            break;
+          case SpriteDrawMode.Tiled:
+            this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionUVAndColor;
+            break;
+          default:
+            break;
         }
         break;
       case SpriteModifyFlags.region:
