@@ -63,6 +63,8 @@ export class Renderer extends Component implements IComponentCustomClone {
   /** @internal */
   @ignoreClone
   _batchedTransformShaderData: boolean = false;
+  @ignoreClone
+  _transform: Transform;
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;
@@ -72,8 +74,6 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected _dirtyUpdateFlag: number = 0;
   @ignoreClone
   protected _rendererLayer: Vector4 = new Vector4();
-  @ignoreClone
-  protected _transform: Transform;
 
   @deepClone
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
@@ -189,6 +189,9 @@ export class Renderer extends Component implements IComponentCustomClone {
 
     this._onTransformChanged = this._onTransformChanged.bind(this);
     this._setTransform(entity.transform);
+
+    // @ts-ignore
+    this._localBounds._onValueChanged = this._onLocalBoundsChanged.bind(this);
 
     shaderData.enableMacro(Renderer._receiveShadowMacro);
     shaderData.setVector4(Renderer._rendererLayerProperty, this._rendererLayer);
@@ -479,30 +482,18 @@ export class Renderer extends Component implements IComponentCustomClone {
     }
   }
 
-  /**
-   * @internal
-   */
   protected _setTransform(transform: Transform): void {
     this._transform?._updateFlagManager.removeListener(this._onTransformChanged);
     transform?._updateFlagManager.addListener(this._onTransformChanged);
     this._transform = transform;
   }
 
-  /**
-   * @internal
-   */
   protected _updateLocalBounds(localBounds: BoundingBox): void {}
 
-  /**
-   * @internal
-   */
   protected _updateBounds(worldBounds: BoundingBox): void {
     BoundingBox.transform(this.localBounds, this._transform.worldMatrix, worldBounds);
   }
 
-  /**
-   * @internal
-   */
   protected _render(context: RenderContext): void {
     throw "not implement";
   }
@@ -512,9 +503,6 @@ export class Renderer extends Component implements IComponentCustomClone {
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldBounds;
   }
 
-  /**
-   * @internal
-   */
   private _createInstanceMaterial(material: Material, index: number): Material {
     const insMaterial: Material = material.clone();
     insMaterial.name = insMaterial.name + "(Instance)";

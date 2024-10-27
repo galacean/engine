@@ -10,6 +10,7 @@ import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManage
 import { ComponentType } from "../../enums/ComponentType";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ISpriteAssembler } from "../assembler/ISpriteAssembler";
+import { ISpriteRenderer } from "../assembler/ISpriteRenderer";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
 import { TiledSpriteAssembler } from "../assembler/TiledSpriteAssembler";
@@ -22,7 +23,7 @@ import { Sprite } from "./Sprite";
 /**
  * Renders a Sprite for 2D graphics.
  */
-export class SpriteRenderer extends Renderer {
+export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_SpriteTexture");
 
@@ -428,8 +429,15 @@ export class SpriteRenderer extends Renderer {
         }
         break;
       case SpriteModifyFlags.border:
-        if (this._drawMode === SpriteDrawMode.Sliced) {
-          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AllPositionAndUV;
+        switch (this._drawMode) {
+          case SpriteDrawMode.Sliced:
+            this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AllPositionAndUV;
+            break;
+          case SpriteDrawMode.Tiled:
+            this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AllPositionUVAndColor;
+            break;
+          default:
+            break;
         }
         break;
       case SpriteModifyFlags.region:

@@ -1,19 +1,17 @@
-import { Matrix, Vector2 } from "@galacean/engine-math";
+import { Matrix, Vector2, Vector3 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { UIImage } from "../../ui";
-import { SpriteMask } from "../sprite";
-import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { ISpriteAssembler } from "./ISpriteAssembler";
+import { ISpriteRenderer } from "./ISpriteRenderer";
 
 /**
  * @internal
  */
 @StaticInterfaceImplement<ISpriteAssembler>()
 export class SimpleSpriteAssembler {
-  static _rectangleTriangles = [0, 1, 2, 2, 1, 3];
-  static _worldMatrix = new Matrix();
+  private static _rectangleTriangles = [0, 1, 2, 2, 1, 3];
+  private static _worldMatrix = new Matrix();
 
-  static resetData(renderer: SpriteRenderer | SpriteMask | UIImage): void {
+  static resetData(renderer: ISpriteRenderer): void {
     const manager = renderer._getChunkManager();
     const lastSubChunk = renderer._subChunk;
     lastSubChunk && manager.freeSubChunk(lastSubChunk);
@@ -23,7 +21,7 @@ export class SimpleSpriteAssembler {
   }
 
   static updatePositions(
-    renderer: SpriteRenderer | SpriteMask | UIImage,
+    renderer: ISpriteRenderer,
     width: number,
     height: number,
     pivot: Vector2,
@@ -36,7 +34,7 @@ export class SimpleSpriteAssembler {
     const worldMatrix = SimpleSpriteAssembler._worldMatrix;
     const { elements: wE } = worldMatrix;
     // Parent's worldMatrix
-    const { elements: pWE } = renderer.entity.transform.worldMatrix;
+    const { elements: pWE } = renderer._transform.worldMatrix;
     const sx = flipX ? -width : width;
     const sy = flipY ? -height : height;
     (wE[0] = pWE[0] * sx), (wE[1] = pWE[1] * sx), (wE[2] = pWE[2] * sx);
@@ -63,7 +61,7 @@ export class SimpleSpriteAssembler {
     }
   }
 
-  static updateUVs(renderer: SpriteRenderer | SpriteMask): void {
+  static updateUVs(renderer: ISpriteRenderer): void {
     const spriteUVs = renderer.sprite._getUVs();
     const { x: left, y: bottom } = spriteUVs[0];
     const { x: right, y: top } = spriteUVs[3];
@@ -80,7 +78,7 @@ export class SimpleSpriteAssembler {
     vertices[offset + 28] = top;
   }
 
-  static updateColor(renderer: SpriteRenderer, alpha: number = 1): void {
+  static updateColor(renderer: ISpriteRenderer, alpha: number = 1): void {
     const subChunk = renderer._subChunk;
     const { r, g, b, a } = renderer.color;
     const finalAlpha = a * alpha;
@@ -90,6 +88,33 @@ export class SimpleSpriteAssembler {
       vertices[o + 1] = g;
       vertices[o + 2] = b;
       vertices[o + 3] = finalAlpha;
+    }
+  }
+
+  static getUVByLocalPosition(
+    renderer: ISpriteRenderer,
+    width: number,
+    height: number,
+    pivot: Vector2,
+    position: Vector3,
+    out: Vector2
+  ): boolean {
+    const sprite = renderer.sprite;
+    const normalizedX = position.x / width + pivot.x;
+    const normalizedY = position.y / height + pivot.y;
+    const positions = sprite._getPositions();
+    const { x: left, y: bottom } = positions[0];
+    const { x: right, y: top } = positions[3];
+    if (normalizedX >= left && normalizedX <= right && normalizedY >= bottom && normalizedY <= top) {
+      const uvs = sprite._getUVs();
+      const { x: uvLeft, y: uvBottom } = uvs[0];
+      const { x: uvRight, y: uvTop } = uvs[3];
+      const factorX = (normalizedX - left) / (right - left);
+      const factorY = (normalizedY - bottom) / (top - bottom);
+      out.set(uvLeft + (uvRight - uvLeft) * factorX, uvBottom + (uvTop - uvBottom) * factorY);
+      return true;
+    } else {
+      return false;
     }
   }
 }

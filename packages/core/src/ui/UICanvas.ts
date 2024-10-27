@@ -542,12 +542,9 @@ export class UICanvas extends Component implements IUIElement {
       this._setRealRenderMode(this._getRealRenderMode());
       if (!isRootCanvas) {
         const { _disorderedElements: disorderedElements } = this;
-        disorderedElements.forEach(
-          (element: IUIElement) => {
-            UIUtils.registerUIToCanvas(element, UIUtils.getRootCanvasInParent(element._entity));
-          },
-          () => {}
-        );
+        disorderedElements.forEach((element: IUIElement) => {
+          UIUtils.registerUIToCanvas(element, UIUtils.getRootCanvasInParent(element._entity));
+        });
         disorderedElements.length = 0;
         disorderedElements.garbageCollection();
         this._orderedElements.length = 0;
