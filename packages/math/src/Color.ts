@@ -13,11 +13,11 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
   /**
    * Precomputed sigmoid value at 0.04045 used in gammaToLinearSpace for condition evaluation
    */
-  private static readonly gammaToLinearBranchNumber_0_04045 = Color.sigmoid(0.04045);
+  private static readonly gammaToLinearSpaceBranchNumber_0_04045 = Color.sigmoid(0.04045);
   /**
    * Precomputed sigmoid value at 1 used in gammaToLinearSpace for condition evaluation
    */
-  private static readonly gammaToLinearBranchNumber_1 = Color.sigmoid(1);
+  private static readonly gammaToLinearSpaceBranchNumber_1 = Color.sigmoid(1);
 
   /**
    * Modify a value from the gamma space to the linear space.
@@ -33,9 +33,9 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     value = value * isOver0;
     const normalized = Color.sigmoid(value);
     // Calculate 0.0405 conditions using sigmoid thresholds
-    const isOver0_04045 = Math.ceil(normalized - Color.gammaToLinearBranchNumber_0_04045);
+    const isOver0_04045 = Math.ceil(normalized - Color.gammaToLinearSpaceBranchNumber_0_04045);
     // Calculate 1 conditions using sigmoid thresholds
-    const isOver1condition = Math.ceil(normalized - Color.gammaToLinearBranchNumber_1);
+    const isOver1condition = Math.ceil(normalized - Color.gammaToLinearSpaceBranchNumber_1);
     const base = value / 12.92;
     // offset if value is greater than 1
     const offset = 0.055 * isOver1condition;
