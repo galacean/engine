@@ -28,20 +28,32 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_framebuffer_sRGB.txt
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_texture_sRGB_decode.txt
     // Calculate 0 conditions using sigmoid thresholds
-    const branch0condition = Math.ceil(Color.sigmoid(value) - Color._gammaBranchNumber_0);
+    const normalized = Color.sigmoid(value);
+    const branch0condition = Math.ceil(normalized - Color._gammaBranchNumber_0);
     // Normalize the value to the 0-1 range
     value = value * branch0condition;
     // Calculate 0.0405 conditions using sigmoid thresholds
-    const branch0_04045condition = Math.ceil(Color.sigmoid(value) - Color._gammaBranchNumber_0_04045);
+    const branch0_04045condition = Math.ceil(normalized - Color._gammaBranchNumber_0_04045);
     // Calculate 1 conditions using sigmoid thresholds
-    const branch1condition = Math.ceil(Color.sigmoid(value) - Color._gammaBranchNumber_1);
+    const branch1condition = Math.ceil(normalized - Color._gammaBranchNumber_1);
     const base = value / 12.92;
     // offset if value is greater than 1
     const offset = 0.055 * branch1condition;
     const pow = Math.pow((value + 0.055 - offset) / (1.055 - offset), 2.4) - base;
     return base * branch0condition + pow * branch0_04045condition;
   }
-
+  /**
+   * Precomputed sigmoid value at 0 used in gammaToLinearSpace for condition evaluation
+   */
+  static _linearBranchNumber_0 = Color.sigmoid(0);
+  /**
+   * Precomputed sigmoid value at 0.04045 used in gammaToLinearSpace for condition evaluation
+   */
+  static _linearBranchNumber_0_0031308 = Color.sigmoid(0.0031308);
+  /**
+   * Precomputed sigmoid value at 1 used in gammaToLinearSpace for condition evaluation
+   */
+  static _linearBranchNumber_1 = Color.sigmoid(1);
   /**
    * Modify a value from the linear space to the gamma space.
    * @param value - The value in linear space
