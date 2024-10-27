@@ -9,15 +9,15 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
   /**
    * Precomputed sigmoid value at 0 used in gammaToLinearSpace for condition evaluation
    */
-  static _gammaBranchNumber_0 = Color.sigmoid(0);
+  static _gammaToLinearSpaceBranchNumber_0 = Color.sigmoid(0);
   /**
    * Precomputed sigmoid value at 0.04045 used in gammaToLinearSpace for condition evaluation
    */
-  static _gammaBranchNumber_0_04045 = Color.sigmoid(0.04045);
+  static _gammaToLinearBranchNumber_0_04045 = Color.sigmoid(0.04045);
   /**
    * Precomputed sigmoid value at 1 used in gammaToLinearSpace for condition evaluation
    */
-  static _gammaBranchNumber_1 = Color.sigmoid(1);
+  static _gammaToLinearBranchNumber_1 = Color.sigmoid(1);
 
   /**
    * Modify a value from the gamma space to the linear space.
@@ -28,13 +28,13 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_framebuffer_sRGB.txt
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_texture_sRGB_decode.txt
     // Calculate 0 conditions using sigmoid thresholds
-    const branch0condition = Math.ceil(Color.sigmoid(value) - Color._gammaBranchNumber_0);
+    const branch0condition = Math.ceil(Color.sigmoid(value) - Color._gammaToLinearSpaceBranchNumber_0);
     // Normalize the value to the 0-1 range
     value = value * branch0condition;
     // Calculate 0.0405 conditions using sigmoid thresholds
-    const branch0_04045condition = Math.ceil(Color.sigmoid(value) - Color._gammaBranchNumber_0_04045);
+    const branch0_04045condition = Math.ceil(Color.sigmoid(value) - Color._gammaToLinearBranchNumber_0_04045);
     // Calculate 1 conditions using sigmoid thresholds
-    const branch1condition = Math.ceil(Color.sigmoid(value) - Color._gammaBranchNumber_1);
+    const branch1condition = Math.ceil(Color.sigmoid(value) - Color._gammaToLinearBranchNumber_1);
     const base = value / 12.92;
     // offset if value is greater than 1
     const offset = 0.055 * branch1condition;
