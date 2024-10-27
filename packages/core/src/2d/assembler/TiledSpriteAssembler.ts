@@ -190,7 +190,6 @@ export class TiledSpriteAssembler {
     if (fixedLR >= width) {
       rType = TiledType.Compressed;
       rBlocksCount = 2;
-      rTiledCount = 0;
     } else {
       if (fixedCW > MathUtil.zeroTolerance) {
         rTiledCount = (width - fixedLR) / fixedCW;
@@ -203,7 +202,6 @@ export class TiledSpriteAssembler {
         rType = TiledType.WithTiled;
       } else {
         rBlocksCount = 2;
-        rTiledCount = 0;
         rType = TiledType.WithoutTiled;
       }
     }
@@ -211,7 +209,6 @@ export class TiledSpriteAssembler {
     if (fixedTB >= height) {
       cType = TiledType.Compressed;
       cBlocksCount = 2;
-      cTiledCount = 0;
     } else {
       if (fixedCH > MathUtil.zeroTolerance) {
         cTiledCount = (height - fixedTB) / fixedCH;
@@ -224,7 +221,6 @@ export class TiledSpriteAssembler {
         cType = TiledType.WithTiled;
       } else {
         cBlocksCount = 2;
-        cTiledCount = 0;
         cType = TiledType.WithoutTiled;
       }
     }
