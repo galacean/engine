@@ -28,19 +28,19 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_framebuffer_sRGB.txt
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_texture_sRGB_decode.txt
     // Calculate 0 conditions using sigmoid thresholds
-    const branch0condition = Math.ceil(Color.sigmoid(value) - Color.gammaToLinearSpaceBranchNumber_0);
+    const isOver0 = Math.ceil(Color.sigmoid(value) - Color.gammaToLinearSpaceBranchNumber_0);
     // Normalize the value to the 0-1 range
-    value = value * branch0condition;
+    value = value * isOver0;
     const normalized = Color.sigmoid(value);
     // Calculate 0.0405 conditions using sigmoid thresholds
-    const branch0_04045condition = Math.ceil(normalized - Color.gammaToLinearBranchNumber_0_04045);
+    const isOver0_04045 = Math.ceil(normalized - Color.gammaToLinearBranchNumber_0_04045);
     // Calculate 1 conditions using sigmoid thresholds
-    const branch1condition = Math.ceil(normalized - Color.gammaToLinearBranchNumber_1);
+    const isOver1condition = Math.ceil(normalized - Color.gammaToLinearBranchNumber_1);
     const base = value / 12.92;
     // offset if value is greater than 1
-    const offset = 0.055 * branch1condition;
+    const offset = 0.055 * isOver1condition;
     const pow = Math.pow((value + 0.055 - offset) / (1.055 - offset), 2.4) - base;
-    return base * branch0condition + pow * branch0_04045condition;
+    return base * isOver0 + pow * isOver0_04045;
   }
 
   /**
