@@ -1,6 +1,9 @@
 import { IClone } from "./IClone";
 import { ICopy } from "./ICopy";
 
+// Empty function for initialization of _onValueChangedCallback .
+function emptyFunc(): void {}
+
 // A 2d rectangle defined by x and y position, width and height.
 export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
   /** @internal */
@@ -12,8 +15,20 @@ export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
   /** @internal */
   _height: number;
   /** @internal */
-  _onValueChanged: () => void = null;
-
+  get _onValueChanged(): () => void {
+    if (this._onValueChangedCallback === emptyFunc) {
+      return null;
+    }
+    return this._onValueChangedCallback;
+  }
+  set _onValueChanged(callback: () => void | null | undefined) {
+    if (callback) {
+      this._onValueChangedCallback = callback;
+    } else {
+      this._onValueChangedCallback = emptyFunc;
+    }
+  }
+  private _onValueChangedCallback: () => void = emptyFunc;
   /**
    *  The x coordinate of the rectangle.
    */
@@ -23,7 +38,7 @@ export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
 
   set x(value: number) {
     this._x = value;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChangedCallback();
   }
 
   /**
@@ -35,7 +50,7 @@ export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
 
   set y(value: number) {
     this._y = value;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChangedCallback();
   }
 
   /**
@@ -47,7 +62,7 @@ export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
 
   set width(value: number) {
     this._width = value;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChangedCallback();
   }
 
   /**
@@ -59,7 +74,7 @@ export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
 
   set height(value: number) {
     this._height = value;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChangedCallback();
   }
 
   /**
@@ -89,7 +104,7 @@ export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
     this._y = y;
     this._width = width;
     this._height = height;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChangedCallback();
     return this;
   }
 
@@ -111,7 +126,7 @@ export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
     this._y = source.y;
     this._width = source.width;
     this._height = source.height;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChangedCallback();
     return this;
   }
 }
