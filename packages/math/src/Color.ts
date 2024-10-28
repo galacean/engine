@@ -35,10 +35,10 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     // Calculate 0.0405 conditions using sigmoid thresholds
     const isOver0_04045 = Math.ceil(normalized - Color.gammaToLinearSpaceBranchNumber_0_04045);
     // Calculate 1 conditions using sigmoid thresholds
-    const isOver1condition = Math.ceil(normalized - Color.gammaToLinearSpaceBranchNumber_1);
+    const isOver1 = Math.ceil(normalized - Color.gammaToLinearSpaceBranchNumber_1);
     const base = value / 12.92;
     // offset if value is greater than 1
-    const offset = 0.055 * isOver1condition;
+    const offset = 0.055 * isOver1;
     const pow = Math.pow((value + 0.055 - offset) / (1.055 - offset), 2.4) - base;
     return base * isOver0 + pow * isOver0_04045;
   }
