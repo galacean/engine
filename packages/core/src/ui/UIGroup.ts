@@ -104,20 +104,14 @@ export class UIGroup extends Component {
       }
     }
     if (!!flags) {
-      this._disorderedElements.forEach(
-        (element: IUIElement) => {
-          element._onGroupModify(passDownFlags);
-        },
-        () => {}
-      );
+      this._disorderedElements.forEach((element: IUIElement) => {
+        element._onGroupModify(passDownFlags);
+      });
     }
     if (!!passDownFlags) {
-      this._disorderedGroups.forEach(
-        (element: UIGroup) => {
-          element._updateGlobalModify(passDownFlags);
-        },
-        () => {}
-      );
+      this._disorderedGroups.forEach((element: UIGroup) => {
+        element._updateGlobalModify(passDownFlags);
+      });
     }
   }
 
@@ -135,21 +129,15 @@ export class UIGroup extends Component {
     entityListeners.length = 0;
     const parentGroup = this._parentGroup;
     const disorderedElements = this._disorderedElements;
-    disorderedElements.forEach(
-      (element: IUIElement) => {
-        UIUtils.registerUIToGroup(element, parentGroup);
-      },
-      () => {}
-    );
+    disorderedElements.forEach((element: IUIElement) => {
+      UIUtils.registerUIToGroup(element, parentGroup);
+    });
     disorderedElements.length = 0;
     disorderedElements.garbageCollection();
     const disorderedGroups = this._disorderedGroups;
-    disorderedGroups.forEach(
-      (element: UIGroup) => {
-        element._registryToParentGroup(parentGroup);
-      },
-      () => {}
-    );
+    disorderedGroups.forEach((element: UIGroup) => {
+      element._registryToParentGroup(parentGroup);
+    });
     disorderedGroups.length = 0;
     disorderedGroups.garbageCollection();
     this._parentGroup = null;

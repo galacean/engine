@@ -1,22 +1,22 @@
-import { Matrix, Vector2 } from "@galacean/engine-math";
+import { Matrix, Vector2, Vector3 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { UIImage } from "../../ui";
-import { SpriteMask } from "../sprite";
-import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { ISpriteAssembler } from "./ISpriteAssembler";
+import { ISpriteRenderer } from "./ISpriteRenderer";
 
 /**
  * @internal
  */
 @StaticInterfaceImplement<ISpriteAssembler>()
 export class SlicedSpriteAssembler {
-  static _rectangleTriangles = [
+  private static _rectangleTriangles = [
     0, 1, 4, 1, 5, 4, 1, 2, 5, 2, 6, 5, 2, 3, 6, 3, 7, 6, 4, 5, 8, 5, 9, 8, 5, 6, 9, 6, 10, 9, 6, 7, 10, 7, 11, 10, 8,
     9, 12, 9, 13, 12, 9, 10, 13, 10, 14, 13, 10, 11, 14, 11, 15, 14
   ];
-  static _worldMatrix = new Matrix();
+  private static _worldMatrix = new Matrix();
+  private static _row = new Array<number>(4);
+  private static _column = new Array<number>(4);
 
-  static resetData(renderer: SpriteRenderer | UIImage): void {
+  static resetData(renderer: ISpriteRenderer): void {
     const manager = renderer._getChunkManager();
     const lastSubChunk = renderer._subChunk;
     lastSubChunk && manager.freeSubChunk(lastSubChunk);
@@ -26,7 +26,7 @@ export class SlicedSpriteAssembler {
   }
 
   static updatePositions(
-    renderer: SpriteRenderer | SpriteMask | UIImage,
+    renderer: ISpriteRenderer,
     width: number,
     height: number,
     pivot: Vector2,
@@ -56,29 +56,23 @@ export class SlicedSpriteAssembler {
     //    column
     // ------------------------
     // Calculate row and column.
-    let row: number[], column: number[];
+    const { _row: row, _column: column } = SlicedSpriteAssembler;
     if (fixedLeft + fixedRight > width) {
       const widthScale = width / (fixedLeft + fixedRight);
-      row = [
-        expectWidth * left * widthScale,
-        fixedLeft * widthScale,
-        fixedLeft * widthScale,
-        width - expectWidth * (1 - right) * widthScale
-      ];
+      (row[0] = expectWidth * left * widthScale), (row[1] = row[2] = fixedLeft * widthScale);
+      row[3] = width - expectWidth * (1 - right) * widthScale;
     } else {
-      row = [expectWidth * left, fixedLeft, width - fixedRight, width - expectWidth * (1 - right)];
+      (row[0] = expectWidth * left), (row[1] = fixedLeft), (row[2] = width - fixedRight);
+      row[3] = width - expectWidth * (1 - right);
     }
 
     if (fixedTop + fixedBottom > height) {
       const heightScale = height / (fixedTop + fixedBottom);
-      column = [
-        expectHeight * bottom * heightScale,
-        fixedBottom * heightScale,
-        fixedBottom * heightScale,
-        height - expectHeight * (1 - top) * heightScale
-      ];
+      (column[0] = expectHeight * bottom * heightScale), (column[1] = column[2] = fixedBottom * heightScale);
+      column[3] = height - expectHeight * (1 - top) * heightScale;
     } else {
-      column = [expectHeight * bottom, fixedBottom, height - fixedTop, height - expectHeight * (1 - top)];
+      (column[0] = expectHeight * bottom), (column[1] = fixedBottom), (column[2] = height - fixedTop);
+      column[3] = height - expectHeight * (1 - top);
     }
 
     // Update renderer's worldMatrix.
@@ -89,7 +83,7 @@ export class SlicedSpriteAssembler {
     const worldMatrix = SlicedSpriteAssembler._worldMatrix;
     const { elements: wE } = worldMatrix;
     // Parent's worldMatrix.
-    const { elements: pWE } = renderer.entity.transform.worldMatrix;
+    const { elements: pWE } = renderer._transform.worldMatrix;
     const sx = flipX ? -1 : 1;
     const sy = flipY ? -1 : 1;
     (wE[0] = pWE[0] * sx), (wE[1] = pWE[1] * sx), (wE[2] = pWE[2] * sx);
@@ -122,7 +116,7 @@ export class SlicedSpriteAssembler {
     }
   }
 
-  static updateUVs(renderer: SpriteRenderer | UIImage): void {
+  static updateUVs(renderer: ISpriteRenderer): void {
     const subChunk = renderer._subChunk;
     const vertices = subChunk.chunk.vertices;
     const spriteUVs = renderer.sprite._getUVs();
@@ -135,7 +129,7 @@ export class SlicedSpriteAssembler {
     }
   }
 
-  static updateColor(renderer: SpriteRenderer | UIImage, alpha: number = 1): void {
+  static updateColor(renderer: ISpriteRenderer, alpha: number = 1): void {
     const subChunk = renderer._subChunk;
     const { r, g, b, a } = renderer.color;
     const finalAlpha = a * alpha;
@@ -145,6 +139,66 @@ export class SlicedSpriteAssembler {
       vertices[o + 1] = g;
       vertices[o + 2] = b;
       vertices[o + 3] = finalAlpha;
+    }
+  }
+
+  static getUVByLocalPosition(
+    renderer: ISpriteRenderer,
+    width: number,
+    height: number,
+    pivot: Vector2,
+    position: Vector3,
+    out: Vector2
+  ): boolean {
+    const sprite = renderer.sprite;
+    const positions = sprite._getPositions();
+    const { x: left, y: bottom } = positions[0];
+    const { x: right, y: top } = positions[3];
+    const { border } = sprite;
+    const { width: expectWidth, height: expectHeight } = sprite;
+    const fixedLeft = expectWidth * border.x;
+    const fixedBottom = expectHeight * border.y;
+    const fixedRight = expectWidth * border.z;
+    const fixedTop = expectHeight * border.w;
+    const { _row: row, _column: column } = SlicedSpriteAssembler;
+    if (fixedLeft + fixedRight > width) {
+      const widthScale = width / (fixedLeft + fixedRight);
+      (row[0] = expectWidth * left * widthScale), (row[1] = row[2] = fixedLeft * widthScale);
+      row[3] = width - expectWidth * (1 - right) * widthScale;
+    } else {
+      (row[0] = expectWidth * left), (row[1] = fixedLeft), (row[2] = width - fixedRight);
+      row[3] = width - expectWidth * (1 - right);
+    }
+
+    if (fixedTop + fixedBottom > height) {
+      const heightScale = height / (fixedTop + fixedBottom);
+      (column[0] = expectHeight * bottom * heightScale), (column[1] = column[2] = fixedBottom * heightScale);
+      column[3] = height - expectHeight * (1 - top) * heightScale;
+    } else {
+      (column[0] = expectHeight * bottom), (column[1] = fixedBottom), (column[2] = height - fixedTop);
+      column[3] = height - expectHeight * (1 - top);
+    }
+
+    const x = position.x + width * pivot.x;
+    const y = position.y + height * pivot.y;
+    if (x >= row[0] && x <= row[3] && y >= column[0] && y <= column[3]) {
+      for (let i = row.length - 2; i >= 0; i--) {
+        if (x >= row[i]) {
+          for (let j = column.length - 2; j >= 0; j--) {
+            if (y >= column[j]) {
+              const uvs = sprite._getUVs();
+              const factorX = (x - row[i]) / (row[i + 1] - row[i]);
+              const factorY = (y - column[j]) / (column[j + 1] - column[j]);
+              const uvLeft = uvs[i].x;
+              const uvBottom = uvs[j].y;
+              out.set(uvLeft + (uvs[i + 1].x - uvLeft) * factorX, uvBottom + (uvs[j + 1].y - uvBottom) * factorY);
+              return true;
+            }
+          }
+        }
+      }
+    } else {
+      return false;
     }
   }
 }

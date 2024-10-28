@@ -1,6 +1,7 @@
-import { BoundingBox, Color, MathUtil } from "@galacean/engine-math";
+import { BoundingBox, Color, MathUtil, Vector2, Vector3 } from "@galacean/engine-math";
 import { Sprite, SpriteDrawMode, SpriteTileMode } from "../2d";
 import { ISpriteAssembler } from "../2d/assembler/ISpriteAssembler";
+import { ISpriteRenderer } from "../2d/assembler/ISpriteRenderer";
 import { SimpleSpriteAssembler } from "../2d/assembler/SimpleSpriteAssembler";
 import { SlicedSpriteAssembler } from "../2d/assembler/SlicedSpriteAssembler";
 import { TiledSpriteAssembler } from "../2d/assembler/TiledSpriteAssembler";
@@ -17,7 +18,10 @@ import { UIRenderer } from "./UIRenderer";
 import { UITransform, UITransformModifyFlags } from "./UITransform";
 import { CanvasRenderMode } from "./enums/CanvasRenderMode";
 
-export class UIImage extends UIRenderer {
+export class UIImage extends UIRenderer implements ISpriteRenderer {
+  private static _tempVec2: Vector2 = new Vector2();
+  private static _tempUnit8Array: Uint8ClampedArray = new Uint8ClampedArray(4);
+
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
   @ignoreClone
@@ -30,6 +34,16 @@ export class UIImage extends UIRenderer {
   private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
   @assignmentClone
   private _tiledAdaptiveThreshold: number = 0.5;
+  @assignmentClone
+  private _alphaHitTestMinimumThreshold: number = 0.0;
+
+  get alphaHitTestMinimumThreshold(): number {
+    return this._alphaHitTestMinimumThreshold;
+  }
+
+  set alphaHitTestMinimumThreshold(value: number) {
+    this._alphaHitTestMinimumThreshold = MathUtil.clamp(value, 0, 1);
+  }
 
   /**
    * The draw mode of the sprite renderer.
@@ -128,7 +142,6 @@ export class UIImage extends UIRenderer {
   set color(value: Color) {
     if (this._color !== value) {
       this._color.copyFrom(value);
-      this._dirtyUpdateFlag |= ImageUpdateFlags.Color;
     }
   }
 
@@ -142,6 +155,8 @@ export class UIImage extends UIRenderer {
     this._dirtyUpdateFlag |= ImageUpdateFlags.Color | RendererUpdateFlags.AllBounds;
     this.setMaterial(this._engine._basicResources.uiDefaultMaterial);
     this._onSpriteChange = this._onSpriteChange.bind(this);
+    //@ts-ignore
+    this._color._onValueChanged = this._onColorChange.bind(this);
   }
 
   override _onGroupModify(flag: GroupModifyFlags): void {
@@ -155,6 +170,41 @@ export class UIImage extends UIRenderer {
     if (flag & GroupModifyFlags.Alpha) {
       this._alpha = this._group._globalAlpha;
       this._dirtyUpdateFlag |= ImageUpdateFlags.Color;
+    }
+  }
+
+  protected override _hitTest(localPosition: Vector3): boolean {
+    let { x, y } = localPosition;
+    const uiTransform = <UITransform>this._transform;
+    const { x: width, y: height } = uiTransform.size;
+    const { x: pivotX, y: pivotY } = uiTransform.pivot;
+    const { x: paddingLeft, y: paddingBottom, z: paddingRight, w: paddingTop } = this.raycastPadding;
+    if (
+      x < -width * pivotX + paddingLeft ||
+      x > width * (1 - pivotX) - paddingRight ||
+      y < -height * pivotY + paddingTop ||
+      y > height * (1 - pivotY) - paddingBottom
+    ) {
+      return false;
+    }
+    const texture = this.sprite?.texture;
+    if (!texture) {
+      return false;
+    }
+    const alphaHitTestMinimumThreshold = this._alphaHitTestMinimumThreshold;
+    if (alphaHitTestMinimumThreshold <= 0) {
+      return true;
+    }
+    const uv = UIImage._tempVec2;
+    if (!this._getUVByLocalPosition(localPosition, uv)) {
+      return false;
+    }
+    const pixel = UIImage._tempUnit8Array;
+    texture.getPixelBuffer(Math.floor(uv.x * texture.width), Math.floor(uv.y * texture.height), 1, 1, 0, pixel);
+    if (pixel[3] >= alphaHitTestMinimumThreshold * 255) {
+      return true;
+    } else {
+      return false;
     }
   }
 
@@ -297,8 +347,15 @@ export class UIImage extends UIRenderer {
         }
         break;
       case SpriteModifyFlags.border:
-        if (this._drawMode === SpriteDrawMode.Sliced) {
-          this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionAndUV;
+        switch (this._drawMode) {
+          case SpriteDrawMode.Sliced:
+            this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionAndUV;
+            break;
+          case SpriteDrawMode.Tiled:
+            this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionUVAndColor;
+            break;
+          default:
+            break;
         }
         break;
       case SpriteModifyFlags.region:
@@ -311,6 +368,26 @@ export class UIImage extends UIRenderer {
       case SpriteModifyFlags.destroy:
         this.sprite = null;
         break;
+    }
+  }
+
+  @ignoreClone
+  private _onColorChange(): void {
+    this._dirtyUpdateFlag |= ImageUpdateFlags.Color;
+  }
+
+  private _getUVByLocalPosition(position: Vector3, out: Vector2): boolean {
+    const transform = <UITransform>this._transform;
+    const { size, pivot } = transform;
+    switch (this._drawMode) {
+      case SpriteDrawMode.Simple:
+        return SimpleSpriteAssembler.getUVByLocalPosition(this, size.x, size.y, pivot, position, out);
+      case SpriteDrawMode.Sliced:
+        return SlicedSpriteAssembler.getUVByLocalPosition(this, size.x, size.y, pivot, position, out);
+      case SpriteDrawMode.Tiled:
+        return SlicedSpriteAssembler.getUVByLocalPosition(this, size.x, size.y, pivot, position, out);
+      default:
+        return false;
     }
   }
 }

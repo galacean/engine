@@ -33,6 +33,7 @@ export class MeshRenderer extends Renderer {
   set mesh(value: Mesh) {
     if (this._mesh !== value) {
       this._setMesh(value);
+      this._dirtyUpdateFlag |= MeshRendererUpdateFlags.VertexElementMacroAndAllBounds;
     }
   }
 
@@ -45,8 +46,8 @@ export class MeshRenderer extends Renderer {
 
   set enableVertexColor(value: boolean) {
     if (value !== this._enableVertexColor) {
-      this._dirtyUpdateFlag |= MeshRendererUpdateFlags.VertexElementMacro;
       this._enableVertexColor = value;
+      this._dirtyUpdateFlag |= MeshRendererUpdateFlags.VertexElementMacro;
     }
   }
 
@@ -175,7 +176,6 @@ export class MeshRenderer extends Renderer {
     if (mesh) {
       this._addResourceReferCount(mesh, 1);
       mesh._updateFlagManager.addListener(this._onMeshChanged);
-      this._dirtyUpdateFlag |= MeshRendererUpdateFlags.All;
     }
     this._mesh = mesh;
   }
@@ -188,11 +188,13 @@ export class MeshRenderer extends Renderer {
 }
 
 /**
- * @remarks Extends `RendererUpdateFlag`.
+ * @remarks Extends `RendererUpdateFlags`.
  */
 enum MeshRendererUpdateFlags {
   /** VertexElementMacro. */
-  VertexElementMacro = 0x2,
+  VertexElementMacro = 0x10,
+  /** VertexElementMacro | LocalBounds | WorldBounds */
+  VertexElementMacroAndAllBounds = 0x1c,
   /** All. */
-  All = 0x3
+  All = 0x1f
 }

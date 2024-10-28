@@ -11,6 +11,7 @@ import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { ShaderProperty } from "../../shader/ShaderProperty";
+import { ISpriteRenderer } from "../assembler/ISpriteRenderer";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
@@ -18,7 +19,7 @@ import { Sprite } from "./Sprite";
 /**
  * A component for masking Sprites.
  */
-export class SpriteMask extends Renderer {
+export class SpriteMask extends Renderer implements ISpriteRenderer {
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskTexture");
   /** @internal */
@@ -237,9 +238,14 @@ export class SpriteMask extends Renderer {
   }
 
   protected override _updateLocalBounds(localBounds: BoundingBox): void {
-    const { sprite } = this;
+    const sprite = this._sprite;
     if (sprite) {
-      SimpleSpriteAssembler.updatePositions(this, this.width, this.height, sprite.pivot, this._flipX, this._flipY);
+      const { width, height } = this;
+      let { x: pivotX, y: pivotY } = sprite.pivot;
+      pivotX = this.flipX ? 1 - pivotX : pivotX;
+      pivotY = this.flipY ? 1 - pivotY : pivotY;
+      localBounds.min.set(-width * pivotX, -height * pivotY, 0);
+      localBounds.max.set(width * (1 - pivotX), height * (1 - pivotY), 0);
     } else {
       localBounds.min.set(0, 0, 0);
       localBounds.max.set(0, 0, 0);

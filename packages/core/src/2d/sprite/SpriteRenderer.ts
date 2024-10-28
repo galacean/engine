@@ -10,6 +10,7 @@ import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManage
 import { ComponentType } from "../../enums/ComponentType";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ISpriteAssembler } from "../assembler/ISpriteAssembler";
+import { ISpriteRenderer } from "../assembler/ISpriteRenderer";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
 import { TiledSpriteAssembler } from "../assembler/TiledSpriteAssembler";
@@ -22,7 +23,7 @@ import { Sprite } from "./Sprite";
 /**
  * Renders a Sprite for 2D graphics.
  */
-export class SpriteRenderer extends Renderer {
+export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_SpriteTexture");
 
@@ -271,7 +272,7 @@ export class SpriteRenderer extends Renderer {
     this.setMaterial(this._engine._basicResources.spriteDefaultMaterial);
     this._onSpriteChange = this._onSpriteChange.bind(this);
     //@ts-ignore
-    this._color._onValueChanged = this._onColorChanged.bind(this);
+    this._color._onValueChanged = this._onColorChange.bind(this);
   }
 
   /**
@@ -318,8 +319,8 @@ export class SpriteRenderer extends Renderer {
     if (sprite) {
       const { width, height } = this;
       let { x: pivotX, y: pivotY } = sprite.pivot;
-      pivotX = !!this.flipX ? 1 - pivotX : pivotX;
-      pivotY = !!this.flipY ? 1 - pivotY : pivotY;
+      pivotX = this.flipX ? 1 - pivotX : pivotX;
+      pivotY = this.flipY ? 1 - pivotY : pivotY;
       localBounds.min.set(-width * pivotX, -height * pivotY, 0);
       localBounds.max.set(width * (1 - pivotX), height * (1 - pivotY), 0);
     } else {
@@ -428,8 +429,15 @@ export class SpriteRenderer extends Renderer {
         }
         break;
       case SpriteModifyFlags.border:
-        if (this._drawMode === SpriteDrawMode.Sliced) {
-          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AllPositionAndUV;
+        switch (this._drawMode) {
+          case SpriteDrawMode.Sliced:
+            this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AllPositionAndUV;
+            break;
+          case SpriteDrawMode.Tiled:
+            this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AllPositionUVAndColor;
+            break;
+          default:
+            break;
         }
         break;
       case SpriteModifyFlags.region:
@@ -449,7 +457,7 @@ export class SpriteRenderer extends Renderer {
   }
 
   @ignoreClone
-  private _onColorChanged(): void {
+  private _onColorChange(): void {
     this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Color;
   }
 }

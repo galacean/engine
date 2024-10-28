@@ -188,6 +188,38 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     super._update(context);
   }
 
+  protected override _updateLocalBounds(localBounds: BoundingBox): void {
+    const skin = this._skin;
+    const rootBone = skin?.rootBone;
+    if (rootBone) {
+      const meshBounds = this._mesh.bounds;
+      const { bones, inverseBindMatrices } = skin;
+      const rootBoneIndex = bones.indexOf(rootBone);
+      if (rootBoneIndex !== -1) {
+        BoundingBox.transform(meshBounds, inverseBindMatrices[rootBoneIndex], localBounds);
+      } else {
+        // Root bone is not in joints list, we can only compute approximate inverse bind matrix
+        // Average all root bone's children inverse bind matrix
+        const approximateBindMatrix = new Matrix(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        let subRootBoneCount = this._computeApproximateBindMatrix(
+          bones,
+          inverseBindMatrices,
+          rootBone,
+          approximateBindMatrix
+        );
+
+        if (subRootBoneCount !== 0) {
+          Matrix.multiplyScalar(approximateBindMatrix, 1.0 / subRootBoneCount, approximateBindMatrix);
+          BoundingBox.transform(meshBounds, approximateBindMatrix, localBounds);
+        } else {
+          localBounds.copyFrom(meshBounds);
+        }
+      }
+    } else {
+      super._updateLocalBounds(localBounds);
+    }
+  }
+
   private _checkBlendShapeWeightLength(): void {
     const mesh = <ModelMesh>this._mesh;
     const newBlendShapeCount = mesh ? mesh.blendShapeCount : 0;
@@ -207,41 +239,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       }
     } else {
       this._blendShapeWeights = new Float32Array(newBlendShapeCount);
-    }
-  }
-
-  protected override _updateLocalBounds(localBounds: BoundingBox): void {
-    if (this._dirtyUpdateFlag & RendererUpdateFlags.LocalBounds) {
-      const skin = this._skin;
-      const rootBone = skin?.rootBone;
-      if (rootBone) {
-        const meshBounds = this._mesh.bounds;
-        const { bones, inverseBindMatrices } = skin;
-        const rootBoneIndex = bones.indexOf(rootBone);
-        if (rootBoneIndex !== -1) {
-          BoundingBox.transform(meshBounds, inverseBindMatrices[rootBoneIndex], localBounds);
-        } else {
-          // Root bone is not in joints list, we can only compute approximate inverse bind matrix
-          // Average all root bone's children inverse bind matrix
-          const approximateBindMatrix = new Matrix(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-          let subRootBoneCount = this._computeApproximateBindMatrix(
-            bones,
-            inverseBindMatrices,
-            rootBone,
-            approximateBindMatrix
-          );
-
-          if (subRootBoneCount !== 0) {
-            Matrix.multiplyScalar(approximateBindMatrix, 1.0 / subRootBoneCount, approximateBindMatrix);
-            BoundingBox.transform(meshBounds, approximateBindMatrix, localBounds);
-          } else {
-            localBounds.copyFrom(meshBounds);
-          }
-        }
-      } else {
-        super._updateLocalBounds(localBounds);
-      }
-      this._dirtyUpdateFlag &= ~RendererUpdateFlags.LocalBounds;
     }
   }
 
