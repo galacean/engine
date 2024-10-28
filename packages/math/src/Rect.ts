@@ -21,8 +21,8 @@ export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
     }
     return this._onValueChangedCallback;
   }
-  set _onValueChanged(callback: () => void | null) {
-    if (callback) {
+  set _onValueChanged(callback: () => void | null | undefined) {
+    if (callback && typeof callback === 'function') {
       this._onValueChangedCallback = callback;
     } else {
       this._onValueChangedCallback = emptyFunc;
