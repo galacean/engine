@@ -127,28 +127,28 @@ export class PostProcessManager {
     for (let i = 0; i < beforeUber.length; i++) {
       const effect = beforeUber[i];
       effect.onRender(camera, this._getCurrentSourceTexture(), this._currentDestRenderTarget);
-      this._swapRT();
       this._remainEffectCount--;
+      this._swapRT();
     }
 
     // In Uber
     if (inUber.length) {
+      const uberSourceTexture = this._getCurrentSourceTexture();
       for (let i = 0; i < inUber.length; i++) {
         const effect = inUber[i];
-        effect.onRender(camera, this._getCurrentSourceTexture(), null);
+        effect.onRender(camera, uberSourceTexture, null);
       }
-
-      this._remainEffectCount--;
 
       Blitter.blitTexture(
         engine,
-        this._getCurrentSourceTexture(),
+        uberSourceTexture,
         this._currentDestRenderTarget,
         0,
         camera.viewport,
         this._uberMaterial
       );
 
+      this._remainEffectCount--;
       this._swapRT();
     }
 
@@ -156,8 +156,8 @@ export class PostProcessManager {
     for (let i = 0; i < afterUber.length; i++) {
       const effect = afterUber[i];
       effect.onRender(camera, this._getCurrentSourceTexture(), this._currentDestRenderTarget);
-      this._swapRT();
       this._remainEffectCount--;
+      this._swapRT();
     }
   }
 
