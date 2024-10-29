@@ -615,6 +615,7 @@ export class Transform extends Component {
    * Get worldPosition: Will trigger the worldMatrix, local position update of itself and the worldMatrix update of all parent entities.
    * Get worldRotationQuaternion: Will trigger the world rotation (in quaternion) update of itself and all parent entities.
    * Get worldRotation: Will trigger the world rotation(in euler and quaternion) update of itself and world rotation(in quaternion) update of all parent entities.
+   * Get worldScale: Will trigger the scaling update of itself and all parent entities.
    * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix or worldRotationQuaternion) to be false.
    */
   private _updateWorldRotationFlag() {
@@ -622,7 +623,7 @@ export class Transform extends Component {
       this._worldAssociatedChange(TransformModifyFlags.WmWeWqWs);
       const nodeChildren = this._entity._children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
-        nodeChildren[i].transform?._updateAllWorldFlag(); // Rotation update of parent entity will trigger world position and rotation update of all child entity.
+        nodeChildren[i].transform?._updateAllWorldFlag(); // Rotation update of parent entity will trigger world position, rotation and scale update of all child entity.
       }
     }
   }
