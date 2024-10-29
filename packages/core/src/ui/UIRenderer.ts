@@ -17,7 +17,7 @@ import { UIUtils } from "./UIUtils";
 import { IUIElement } from "./interface/IUIElement";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
-export class UIRenderer extends Renderer implements IUIElement {
+export abstract class UIRenderer extends Renderer implements IUIElement {
   /** @internal */
   static _tempVec30: Vector3 = new Vector3();
   /** @internal */
@@ -168,6 +168,7 @@ export class UIRenderer extends Renderer implements IUIElement {
   /**
    * @internal
    */
+  @ignoreClone
   _onGroupModify(flag: GroupModifyFlags): void {
     if (flag & GroupModifyFlags.RaycastEnable) {
       const runtimeRaycastEnable = this.raycastEnable && this._group._getGlobalRaycastEnable();

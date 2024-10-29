@@ -15,6 +15,7 @@ import { IUIElement } from "./interface/IUIElement";
 export class UIUtils {
   private static _renderQueue: RenderQueue;
   private static _virtualCamera: VirtualCamera;
+  private static _viewport: Vector4;
 
   static registerEntityListener(element: IUIElement): void {
     const parents = element._parents;
@@ -129,11 +130,12 @@ export class UIUtils {
     if (uiCanvases.length <= 0) return;
     const uiRenderQueue = (this._renderQueue ||= new RenderQueue(RenderQueueType.Transparent));
     const virtualCamera = (this._virtualCamera ||= new VirtualCamera());
+    const viewport = (this._viewport ||= new Vector4(0, 0, 1, 1));
     const { canvas, _hardwareRenderer: rhi, _renderContext: renderContext, _batcherManager: batcherManager } = engine;
     const { elements: projectE } = virtualCamera.projectionMatrix;
     const { elements: viewE } = virtualCamera.viewMatrix;
     (projectE[0] = 2 / canvas.width), (projectE[5] = 2 / canvas.height), (projectE[10] = 0);
-    rhi.activeRenderTarget(null, new Vector4(0, 0, 1, 1), renderContext.flipProjection, 0);
+    rhi.activeRenderTarget(null, viewport, renderContext.flipProjection, 0);
     for (let i = 0, n = uiCanvases.length; i < n; i++) {
       const uiCanvas = uiCanvases.get(i);
       if (!uiCanvas) continue;

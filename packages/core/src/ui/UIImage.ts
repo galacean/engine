@@ -159,6 +159,7 @@ export class UIImage extends UIRenderer implements ISpriteRenderer {
     this._color._onValueChanged = this._onColorChange.bind(this);
   }
 
+  @ignoreClone
   override _onGroupModify(flag: GroupModifyFlags): void {
     if (flag & GroupModifyFlags.RaycastEnable) {
       const runtimeRaycastEnable = this.raycastEnable && this._group._getGlobalRaycastEnable();
