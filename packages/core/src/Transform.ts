@@ -619,11 +619,38 @@ export class Transform extends Component {
    * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix or worldRotationQuaternion) to be false.
    */
   private _updateWorldRotationFlag() {
-    if (!this._isContainDirtyFlags(TransformModifyFlags.WmWeWqWs)) {
-      this._worldAssociatedChange(TransformModifyFlags.WmWeWqWs);
-      const nodeChildren = this._entity._children;
-      for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
-        nodeChildren[i].transform?._updateAllWorldFlag(); // Rotation update of parent entity will trigger world position, rotation and scale update of all child entity.
+    if (!this._isContainDirtyFlags(TransformModifyFlags.WmWeWq)) {
+      let worldScaleDirty = !this._isParentWorldUniformScaling();
+      this._worldAssociatedChange(worldScaleDirty ? TransformModifyFlags.WmWeWqWs : TransformModifyFlags.WmWeWq);
+      const children = this._entity._children;
+      const n = children.length;
+      if (n > 0) {
+        worldScaleDirty = worldScaleDirty || !this._isLocalUniformScaling();
+        for (let i = 0; i < n; i++) {
+          children[i].transform?._updateWorldPositionAndRotationFlag(worldScaleDirty); // Rotation update of parent entity will trigger world position, rotation and scale update of all child entity.
+        }
+      }
+    }
+  }
+
+  /**
+   * Get worldMatrix: Will trigger the worldMatrix update of itself and all parent entities.
+   * Get worldPosition: Will trigger the worldMatrix, local position update of itself and the worldMatrix update of all parent entities.
+   * Get worldRotationQuaternion: Will trigger the world rotation (in quaternion) update of itself and all parent entities.
+   * Get worldRotation: Will trigger the world rotation(in euler and quaternion) update of itself and world rotation(in quaternion) update of all parent entities.
+   * Get worldScale: Will trigger the scaling update of itself and all parent entities.
+   * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix or worldRotationQuaternion) to be false.
+   */
+  private _updateWorldPositionAndRotationFlag(worldScaleDirty: boolean): void {
+    if (!this._isContainDirtyFlags(TransformModifyFlags.WmWpWeWq)) {
+      this._worldAssociatedChange(worldScaleDirty ? TransformModifyFlags.WmWpWeWqWs : TransformModifyFlags.WmWpWeWq);
+      const children = this._entity._children;
+      const n = children.length;
+      if (n > 0) {
+        worldScaleDirty = worldScaleDirty || !this._isLocalUniformScaling();
+        for (let i = 0; i < n; i++) {
+          children[i].transform?._updateWorldPositionAndRotationFlag(worldScaleDirty);
+        }
       }
     }
   }
@@ -691,6 +718,18 @@ export class Transform extends Component {
     this._parentTransformCache = parentCache;
     this._isParentDirty = false;
     return parentCache;
+  }
+
+  private _isLocalUniformScaling(): boolean {
+    const { x, y, z } = this._scale;
+    return x === y && y === z;
+  }
+
+  private _isParentWorldUniformScaling(): boolean {
+    const parent = this._getParentTransform();
+    if (!parent) return true;
+    const { x, y, z } = parent.lossyWorldScale;
+    return x === y && y === z;
   }
 
   private _getScaleMatrix(): Matrix3x3 {
@@ -832,8 +871,12 @@ export enum TransformModifyFlags {
 
   /** WorldMatrix | WorldPosition */
   WmWp = 0x84,
+  /** WorldMatrix | WorldEuler | WorldQuat */
+  WmWeWq = 0x98,
   /** WorldMatrix | WorldEuler | WorldQuat | WorldScale*/
   WmWeWqWs = 0xb8,
+  /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat */
+  WmWpWeWq = 0x9c,
   /** WorldMatrix | WorldScale */
   WmWs = 0xa0,
   /** WorldMatrix | WorldPosition | WorldScale */
