@@ -1,9 +1,9 @@
 import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
-import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
 import { UpdateFlagManager } from "./UpdateFlagManager";
+import { deepClone, ignoreClone } from "./clone/CloneManager";
 
 /**
  * Used to implement transformation related functions.
@@ -618,28 +618,11 @@ export class Transform extends Component {
    * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix or worldRotationQuaternion) to be false.
    */
   private _updateWorldRotationFlag() {
-    if (!this._isContainDirtyFlags(TransformModifyFlags.WmWeWq)) {
-      this._worldAssociatedChange(TransformModifyFlags.WmWeWq);
+    if (!this._isContainDirtyFlags(TransformModifyFlags.WmWeWqWs)) {
+      this._worldAssociatedChange(TransformModifyFlags.WmWeWqWs);
       const nodeChildren = this._entity._children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
-        nodeChildren[i].transform?._updateWorldPositionAndRotationFlag(); // Rotation update of parent entity will trigger world position and rotation update of all child entity.
-      }
-    }
-  }
-
-  /**
-   * Get worldMatrix: Will trigger the worldMatrix update of itself and all parent entities.
-   * Get worldPosition: Will trigger the worldMatrix, local position update of itself and the worldMatrix update of all parent entities.
-   * Get worldRotationQuaternion: Will trigger the world rotation (in quaternion) update of itself and all parent entities.
-   * Get worldRotation: Will trigger the world rotation(in euler and quaternion) update of itself and world rotation(in quaternion) update of all parent entities.
-   * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix or worldRotationQuaternion) to be false.
-   */
-  private _updateWorldPositionAndRotationFlag() {
-    if (!this._isContainDirtyFlags(TransformModifyFlags.WmWpWeWq)) {
-      this._worldAssociatedChange(TransformModifyFlags.WmWpWeWq);
-      const nodeChildren = this._entity._children;
-      for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
-        nodeChildren[i].transform?._updateWorldPositionAndRotationFlag();
+        nodeChildren[i].transform?._updateAllWorldFlag(); // Rotation update of parent entity will trigger world position and rotation update of all child entity.
       }
     }
   }
@@ -739,7 +722,7 @@ export class Transform extends Component {
 
   private _worldAssociatedChange(type: number): void {
     this._dirtyFlag |= type;
-    this._updateFlagManager.dispatch(TransformModifyFlags.WorldMatrix);
+    this._updateFlagManager.dispatch(type);
   }
 
   private _rotateByQuat(rotateQuat: Quaternion, relativeToLocal: boolean): void {
@@ -848,10 +831,8 @@ export enum TransformModifyFlags {
 
   /** WorldMatrix | WorldPosition */
   WmWp = 0x84,
-  /** WorldMatrix | WorldEuler | WorldQuat */
-  WmWeWq = 0x98,
-  /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat */
-  WmWpWeWq = 0x9c,
+  /** WorldMatrix | WorldEuler | WorldQuat | WorldScale*/
+  WmWeWqWs = 0xb8,
   /** WorldMatrix | WorldScale */
   WmWs = 0xa0,
   /** WorldMatrix | WorldPosition | WorldScale */
