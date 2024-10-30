@@ -211,17 +211,18 @@ export class Script extends Component {
    */
   override _onDisableInScene(): void {
     const componentsManager = this.scene._componentsManager;
+    const { prototype } = Script;
 
     if (!this._started) {
       componentsManager.removeOnStartScript(this);
     }
-    if (this._onUpdateIndex >= 0) {
+    if (this.onUpdate !== prototype.onUpdate) {
       componentsManager.removeOnUpdateScript(this);
     }
-    if (this._onLateUpdateIndex >= 0) {
+    if (this.onLateUpdate !== prototype.onLateUpdate) {
       componentsManager.removeOnLateUpdateScript(this);
     }
-    if (this._onPhysicsUpdateIndex >= 0) {
+    if (this.onPhysicsUpdate !== prototype.onPhysicsUpdate) {
       componentsManager.removeOnPhysicsUpdateScript(this);
     }
 
