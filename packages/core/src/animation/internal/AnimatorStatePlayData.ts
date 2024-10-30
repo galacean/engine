@@ -9,7 +9,7 @@ import { AnimatorStateData } from "./AnimatorStateData";
 export class AnimatorStatePlayData {
   state: AnimatorState;
   stateData: AnimatorStateData;
-  frameTime: number;
+  playedTime: number;
   playState: AnimatorStatePlayState;
   clipTime: number;
   currentEventIndex: number;
@@ -21,7 +21,7 @@ export class AnimatorStatePlayData {
 
   reset(state: AnimatorState, stateData: AnimatorStateData, offsetFrameTime: number): void {
     this.state = state;
-    this.frameTime = 0;
+    this.playedTime = 0;
     this.offsetFrameTime = offsetFrameTime;
     this.stateData = stateData;
     this.playState = AnimatorStatePlayState.UnStarted;
@@ -43,9 +43,9 @@ export class AnimatorStatePlayData {
   }
 
   update(deltaTime: number): void {
-    this.frameTime += deltaTime;
+    this.playedTime += deltaTime;
     const state = this.state;
-    let time = this.frameTime + this.offsetFrameTime;
+    let time = this.playedTime + this.offsetFrameTime;
     const duration = state._getDuration();
     this.playState = AnimatorStatePlayState.Playing;
     if (state.wrapMode === WrapMode.Loop) {

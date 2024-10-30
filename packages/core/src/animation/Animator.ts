@@ -667,12 +667,12 @@ export class Animator extends Component {
     let dstPlayCostTime: number;
     if (destPlayData.isForwards) {
       // The time that has been played
-      const playedTime = destPlayData.frameTime;
+      const playedTime = destPlayData.playedTime;
       dstPlayCostTime =
         playedTime + dstPlayDeltaTime > transitionDuration ? transitionDuration - playedTime : dstPlayDeltaTime;
     } else {
       // The time that has been played
-      const playedTime = destPlayData.frameTime;
+      const playedTime = destPlayData.playedTime;
       dstPlayCostTime =
         // -dstPlayDeltaTime: The time that will be played, negative are meant to make it be a periods
         // > transition: The time that will be played is enough to finish the transition
@@ -689,7 +689,7 @@ export class Animator extends Component {
     srcPlayData.update(srcPlayCostTime);
     destPlayData.update(dstPlayCostTime);
 
-    let crossWeight = Math.abs(destPlayData.frameTime) / transitionDuration;
+    let crossWeight = Math.abs(destPlayData.playedTime) / transitionDuration;
     (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
 
     const crossFadeFinished = crossWeight === 1.0;
@@ -794,12 +794,12 @@ export class Animator extends Component {
     let dstPlayCostTime: number;
     if (destPlayData.isForwards) {
       // The time that has been played
-      const playedTime = destPlayData.frameTime;
+      const playedTime = destPlayData.playedTime;
       dstPlayCostTime =
         playedTime + playDeltaTime > transitionDuration ? transitionDuration - playedTime : playDeltaTime;
     } else {
       // The time that has been played
-      const playedTime = destPlayData.frameTime;
+      const playedTime = destPlayData.playedTime;
       dstPlayCostTime =
         // -actualDestDeltaTime: The time that will be played, negative are meant to make ite be a periods
         // > transition: The time that will be played is enough to finish the transition
@@ -814,7 +814,7 @@ export class Animator extends Component {
 
     destPlayData.update(dstPlayCostTime);
 
-    let crossWeight = Math.abs(destPlayData.frameTime) / transitionDuration;
+    let crossWeight = Math.abs(destPlayData.playedTime) / transitionDuration;
     (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
 
     const crossFadeFinished = crossWeight === 1.0;
