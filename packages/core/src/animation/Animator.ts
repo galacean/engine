@@ -570,9 +570,8 @@ export class Animator extends Component {
 
     let playCostTime: number;
     if (transition) {
-      const clipDuration = state.clip.length;
-      const clipEndTime = state.clipEndTime * clipDuration;
-      const exitTime = transition.exitTime * state._getDuration();
+      const clipEndTime = state._getClipActualEndTime();
+      const exitTime = transition.exitTime * state._getDuration() + state._getClipActualStartTime();
 
       if (isForwards) {
         if (exitTime < lastClipTime) {
@@ -581,7 +580,7 @@ export class Animator extends Component {
           playCostTime = exitTime - lastClipTime;
         }
       } else {
-        const startTime = state.clipStartTime * clipDuration;
+        const startTime = state._getClipActualStartTime();
         if (lastClipTime < exitTime) {
           playCostTime = clipEndTime - exitTime + lastClipTime - startTime;
         } else {
@@ -667,15 +666,15 @@ export class Animator extends Component {
 
     let dstPlayCostTime: number;
     if (destPlayData.isForwards) {
+      // The time that has been played
+      const playedTime = destPlayData.frameTime;
       dstPlayCostTime =
-        lastDestClipTime + dstPlayDeltaTime > transitionDuration
-          ? transitionDuration - lastDestClipTime
-          : dstPlayDeltaTime;
+        playedTime + dstPlayDeltaTime > transitionDuration ? transitionDuration - playedTime : dstPlayDeltaTime;
     } else {
       // The time that has been played
-      const playedTime = destStateDuration - lastDestClipTime;
+      const playedTime = destPlayData.frameTime;
       dstPlayCostTime =
-        // -actualDestDeltaTime: The time that will be played, negative are meant to make ite be a periods
+        // -dstPlayDeltaTime: The time that will be played, negative are meant to make it be a periods
         // > transition: The time that will be played is enough to finish the transition
         playedTime - dstPlayDeltaTime > transitionDuration
           ? // Negative number is used to convert a time period into a reverse deltaTime.
@@ -794,11 +793,13 @@ export class Animator extends Component {
 
     let dstPlayCostTime: number;
     if (destPlayData.isForwards) {
+      // The time that has been played
+      const playedTime = destPlayData.frameTime;
       dstPlayCostTime =
-        lastDestClipTime + playDeltaTime > transitionDuration ? transitionDuration - lastDestClipTime : playDeltaTime;
+        playedTime + playDeltaTime > transitionDuration ? transitionDuration - playedTime : playDeltaTime;
     } else {
       // The time that has been played
-      const playedTime = stateDuration - lastDestClipTime;
+      const playedTime = destPlayData.frameTime;
       dstPlayCostTime =
         // -actualDestDeltaTime: The time that will be played, negative are meant to make ite be a periods
         // > transition: The time that will be played is enough to finish the transition
@@ -1086,10 +1087,9 @@ export class Animator extends Component {
   ): AnimatorStateTransition {
     const { state } = playState;
     let transitionIndex = playState.currentTransitionIndex;
-    const duration = state._getDuration();
     for (let n = transitions.length; transitionIndex < n; transitionIndex++) {
       const transition = transitions[transitionIndex];
-      const exitTime = transition.exitTime * duration;
+      const exitTime = transition.exitTime * state._getDuration() + state._getClipActualStartTime();
       if (exitTime > curClipTime) {
         break;
       }
@@ -1120,10 +1120,9 @@ export class Animator extends Component {
   ): AnimatorStateTransition {
     const { state } = playState;
     let transitionIndex = playState.currentTransitionIndex;
-    const duration = playState.state._getDuration();
     for (; transitionIndex >= 0; transitionIndex--) {
       const transition = transitions[transitionIndex];
-      const exitTime = transition.exitTime * duration;
+      const exitTime = transition.exitTime * state._getDuration() + state._getClipActualStartTime();
       if (exitTime < curClipTime) {
         break;
       }
