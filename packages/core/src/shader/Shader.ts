@@ -345,7 +345,7 @@ export class Shader implements IReferable {
     for (let i = 0, n = subShaders.length; i < n; i++) {
       const passes = subShaders[i].passes;
       for (let j = 0, m = passes.length; j < m; j++) {
-        passes[j]._destroy();
+        passes[j]._clearShaderProgramPool();
       }
     }
 
