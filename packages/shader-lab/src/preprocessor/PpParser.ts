@@ -647,7 +647,7 @@ export class PpParser {
   }
 
   private static _skipEditorBlock(token: BaseToken, scanner: PpScanner) {
-    if (["EditorProperties", "EditorMacros", "Editor"].indexOf(token.lexeme)) {
+    if (["EditorProperties", "EditorMacros", "Editor"].indexOf(token.lexeme) !== -1) {
       const start = scanner.current - token.lexeme.length;
       scanner.scanPairedBlock("{", "}");
       const end = scanner.current;
