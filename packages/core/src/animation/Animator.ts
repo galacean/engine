@@ -461,7 +461,7 @@ export class Animator extends Component {
         handlers.length = 0;
         for (let j = scriptCount - 1; j >= 0; j--) {
           const script = scripts[j];
-          const handler = <Function>script[funcName].bind(script);
+          const handler = <Function>script[funcName]?.bind(script);
           handler && handlers.push(handler);
         }
         eventHandlers.push(eventHandler);
@@ -633,7 +633,7 @@ export class Animator extends Component {
       const clipEndTime = state._getClipActualEndTime();
 
       if (transition.hasExitTime) {
-        const exitTime = transition.exitTime * clipEndTime;
+        const exitTime = transition.exitTime * state._getDuration() + state._getClipActualStartTime();
 
         if (isForward) {
           if (exitTime < lastClipTime) {
@@ -736,12 +736,12 @@ export class Animator extends Component {
     let dstPlayCostTime: number;
     if (destPlayData.isForward) {
       // The time that has been played
-      const playedTime = lastDestClipTime - destState._getClipActualStartTime();
+      const playedTime = destPlayData.playedTime;
       dstPlayCostTime =
         playedTime + dstPlayDeltaTime > transitionDuration ? transitionDuration - playedTime : dstPlayDeltaTime;
     } else {
       // The time that has been played
-      const playedTime = destState._getClipActualEndTime() - lastDestClipTime;
+      const playedTime = destPlayData.playedTime;
       dstPlayCostTime =
         // -dstPlayDeltaTime: The time that will be played, negative are meant to make it be a periods
         // > transition: The time that will be played is enough to finish the transition
@@ -758,7 +758,7 @@ export class Animator extends Component {
     srcPlayData.update(srcPlayCostTime);
     destPlayData.update(dstPlayCostTime);
 
-    let crossWeight = Math.abs(destPlayData.frameTime) / transitionDuration;
+    let crossWeight = Math.abs(destPlayData.playedTime) / transitionDuration;
     (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
 
     const crossFadeFinished = crossWeight === 1.0;
@@ -859,11 +859,13 @@ export class Animator extends Component {
 
     let dstPlayCostTime: number;
     if (destPlayData.isForward) {
+      // The time that has been played
+      const playedTime = destPlayData.playedTime;
       dstPlayCostTime =
-        lastDestClipTime + playDeltaTime > transitionDuration ? transitionDuration - lastDestClipTime : playDeltaTime;
+        playedTime + playDeltaTime > transitionDuration ? transitionDuration - playedTime : playDeltaTime;
     } else {
       // The time that has been played
-      const playedTime = state._getClipActualEndTime() - lastDestClipTime;
+      const playedTime = destPlayData.playedTime;
       dstPlayCostTime =
         // -playDeltaTime: The time that will be played, negative are meant to make it be a periods
         // > transition: The time that will be played is enough to finish the transition
@@ -878,7 +880,7 @@ export class Animator extends Component {
 
     destPlayData.update(dstPlayCostTime);
 
-    let crossWeight = Math.abs(destPlayData.frameTime) / transitionDuration;
+    let crossWeight = Math.abs(destPlayData.playedTime) / transitionDuration;
     (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
 
     const crossFadeFinished = crossWeight === 1.0;
@@ -1161,7 +1163,7 @@ export class Animator extends Component {
     let transitionIndex = transitionCollection.noExitTimeCount + transitionCollection.currentCheckIndex;
     for (let n = transitions.length; transitionIndex < n; transitionIndex++) {
       const transition = transitions[transitionIndex];
-      const exitTime = transition.exitTime * state._getClipActualEndTime();
+      const exitTime = transition.exitTime * state._getDuration() + state._getClipActualStartTime();
 
       if (exitTime > curClipTime) {
         break;
@@ -1198,7 +1200,7 @@ export class Animator extends Component {
     let transitionIndex = transitionCollection.currentCheckIndex + noExitTimeCount;
     for (; transitionIndex >= noExitTimeCount; transitionIndex--) {
       const transition = transitions[transitionIndex];
-      const exitTime = transition.exitTime * state._getClipActualEndTime();
+      const exitTime = transition.exitTime * state._getDuration() + state._getClipActualStartTime();
 
       if (exitTime < curClipTime) {
         break;

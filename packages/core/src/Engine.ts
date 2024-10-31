@@ -464,7 +464,7 @@ export class Engine extends EventDispatcher {
       if (length > shaderProgramPools.length) {
         shaderProgramPools.length = length;
       }
-      shaderProgramPools[index] = pool = new ShaderProgramPool();
+      shaderProgramPools[index] = pool = new ShaderProgramPool(this);
       shaderPass._shaderProgramPools.push(pool);
     }
     return pool;

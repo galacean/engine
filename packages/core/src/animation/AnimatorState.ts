@@ -205,4 +205,18 @@ export class AnimatorState {
   _getClipActualEndTime(): number {
     return this._clipEndTime * this.clip.length;
   }
+
+  /**
+   * @internal
+   */
+  _getClipActualStartTime(): number {
+    return this._clipStartTime * this.clip.length;
+  }
+
+  /**
+   * @internal
+   */
+  _getClipActualEndTime(): number {
+    return this._clipEndTime * this.clip.length;
+  }
 }
