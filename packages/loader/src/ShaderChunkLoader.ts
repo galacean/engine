@@ -9,7 +9,7 @@ import {
   resourceLoader
 } from "@galacean/engine-core";
 
-@resourceLoader(AssetType.ShaderChunk, ["glsl"], false)
+@resourceLoader("ShaderChunk", ["glsl"], false)
 class ShaderChunkLoader extends Loader<void> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<void> {
     return this.request<any>(item.url, { ...item, type: "text" }).then(async (code) => {
@@ -24,7 +24,7 @@ class ShaderChunkLoader extends Loader<void> {
             // @ts-ignore
             const resource = resourceManager._virtualPathMap[path];
             if (!resource) return;
-            return resourceManager.load({ type: AssetType.ShaderChunk, url: resource, params: { includeKey: path } });
+            return resourceManager.load({ type: "ShaderChunk", url: resource, params: { includeKey: path } });
           }
         })
       );
