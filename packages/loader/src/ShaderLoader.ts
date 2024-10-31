@@ -5,8 +5,12 @@ import {
   Loader,
   ResourceManager,
   Shader,
-  resourceLoader
+  resourceLoader,
+  // @ts-ignore
+  ShaderLib,
+  Logger
 } from "@galacean/engine-core";
+import { PathUtils } from "./PathUtils";
 
 @resourceLoader(AssetType.Shader, ["gs", "gsl"])
 class ShaderLoader extends Loader<Shader> {
@@ -19,16 +23,31 @@ class ShaderLoader extends Loader<Shader> {
         return Shader.find(builtinShader);
       }
 
-      const matches = code.matchAll(/^[ \t]*#include +"([^$\\"]+)"/gm);
+      const { uuid } = item;
+      // @ts-ignore
+      const shaderConfig = resourceManager._editorResourceConfig[uuid];
+      if (!shaderConfig) {
+        Logger.error("not found shader", uuid);
+        return;
+      }
+      const shaderPath: string = shaderConfig.virtualPath;
+
+      const shaderChunkPaths: string[] = [];
+      const matches = code.matchAll(PathUtils.shaderIncludeRegex);
+      for (const match of matches) {
+        const matchedPath = match[1];
+        const path = PathUtils.isRelativePath(matchedPath) ? PathUtils.pathResolve(match[1], shaderPath) : matchedPath;
+        if (!ShaderLib[path]) {
+          shaderChunkPaths.push(path);
+        }
+      }
+
       return Promise.all(
-        Array.from(matches).map((m) => {
-          const path = m[1];
-          if (path) {
-            // @ts-ignore
-            const resource = resourceManager._virtualPathMap[path];
-            if (!resource) return;
-            return resourceManager.load({ type: "ShaderChunk", url: resource, params: { includeKey: path } });
-          }
+        shaderChunkPaths.map((path) => {
+          // @ts-ignore
+          const resource = resourceManager._virtualPathMap[path];
+          if (!resource) return;
+          return resourceManager.load({ type: "ShaderChunk", url: resource, params: { includeKey: path, shaderPath } });
         })
       ).then(() => {
         return Shader.create(code);

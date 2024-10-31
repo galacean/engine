@@ -545,7 +545,8 @@ export class ResourceManager {
       url = key ? `${url}${url.indexOf("?") > -1 ? "&" : "?"}q=${key}` : url;
       promise = this.load<any>({
         url,
-        type: this._editorResourceConfig[refId].type
+        type: this._editorResourceConfig[refId].type,
+        uuid: refId
       });
     }
     return promise.then((item) => (isClone ? item.clone() : item));

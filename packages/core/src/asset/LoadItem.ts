@@ -26,6 +26,10 @@ export type LoadItem = {
    * Additional parameters for specified loader.
    */
   params?: Record<string, any>;
+  /**
+   * Asset uuid
+   */
+  uuid?: string;
 } & PickOnlyOne<{
   /**
    * Loading url.
