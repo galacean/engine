@@ -12,7 +12,7 @@ import {
 @resourceLoader("ShaderChunk", ["glsl"], false)
 class ShaderChunkLoader extends Loader<void> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<void> {
-    return this.request<any>(item.url, { ...item, type: "text" }).then(async (code) => {
+    return this.request<any>(item.url, { ...item, type: "text" }).then(async (code: string) => {
       const { includeKey } = item.params;
       ShaderFactory.registerInclude(includeKey, code);
 
