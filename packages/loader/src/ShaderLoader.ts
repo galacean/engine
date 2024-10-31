@@ -8,10 +8,12 @@ import {
   resourceLoader
 } from "@galacean/engine-core";
 
-@resourceLoader(AssetType.Shader, ["gs", "gsl"], false)
+@resourceLoader(AssetType.Shader, ["gs", "gsl"])
 class ShaderLoader extends Loader<Shader> {
+  private static _builtinRegex = /^\s*\/\/\s*@builtin\s+(\w+)/;
+
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Shader> {
-    return this.request<any>(item.url, { ...item, type: "text" }).then((code: string) => {
+    return this.request<string>(item.url, { ...item, type: "text" }).then((code: string) => {
       const builtinShader = this.getBuiltinShader(code);
       if (builtinShader) {
         return Shader.find(builtinShader);
@@ -35,7 +37,7 @@ class ShaderLoader extends Loader<Shader> {
   }
 
   private getBuiltinShader(code: string) {
-    const match = code.match(/^\s*\/\/\s*@builtin\s+(\w+)/);
+    const match = code.match(ShaderLoader._builtinRegex);
     if (match && match[1]) return match[1];
   }
 }
