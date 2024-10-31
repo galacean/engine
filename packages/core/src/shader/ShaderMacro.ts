@@ -5,7 +5,7 @@ import { ShaderMacroCollection } from "./ShaderMacroCollection";
  */
 export class ShaderMacro {
   /** @internal */
-  static _macroMaskMap: string[][] = [];
+  static _macroMaskMap: ShaderMacro[][] = [];
   /** @internal */
   static _macroNameIdMap: Record<string, number> = Object.create(null);
 
@@ -41,9 +41,9 @@ export class ShaderMacro {
       ShaderMacro._macroMap[key] = macro;
       if (index == maskMap.length) {
         maskMap.length++;
-        maskMap[index] = new Array<string>(32);
+        maskMap[index] = new Array<ShaderMacro>(32);
       }
-      maskMap[index][bit] = key;
+      maskMap[index][bit] = macro;
       ShaderMacro._macroCounter++;
     }
     return macro;
@@ -52,7 +52,7 @@ export class ShaderMacro {
   /**
    * @internal
    */
-  static _getNamesByMacros(macros: ShaderMacroCollection, out: string[]): void {
+  static _getMacrosElements(macros: ShaderMacroCollection, out: ShaderMacro[]): void {
     const maskMap = ShaderMacro._macroMaskMap;
     const mask = macros._mask;
     out.length = 0;

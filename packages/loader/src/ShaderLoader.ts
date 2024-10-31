@@ -25,7 +25,7 @@ class ShaderLoader extends Loader<Shader> {
             // @ts-ignore
             const resource = resourceManager._virtualPathMap[path];
             if (!resource) return;
-            return resourceManager.load({ type: AssetType.ShaderChunk, url: resource, params: { includeKey: path } });
+            return resourceManager.load({ type: "ShaderChunk", url: resource, params: { includeKey: path } });
           }
         })
       ).then(() => {

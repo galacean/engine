@@ -8,23 +8,19 @@ import {
 } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
 import { SpriteMaskInteraction } from "./2d";
+import { CharRenderInfo } from "./2d/text/CharRenderInfo";
 import { Font } from "./2d/text/Font";
 import { BasicResources } from "./BasicResources";
 import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
-import { ClassPool } from "./RenderPipeline/ClassPool";
+import { BatcherManager } from "./RenderPipeline/BatcherManager";
 import { RenderContext } from "./RenderPipeline/RenderContext";
-import { RenderData } from "./RenderPipeline/RenderData";
 import { RenderElement } from "./RenderPipeline/RenderElement";
-import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
-import { SpriteMaskRenderData } from "./RenderPipeline/SpriteMaskRenderData";
-import { SpriteRenderData } from "./RenderPipeline/SpriteRenderData";
-import { TextRenderData } from "./RenderPipeline/TextRenderData";
+import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
-import { ContentRestorer } from "./asset/ContentRestorer";
 import { ResourceManager } from "./asset/ResourceManager";
 import { EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
@@ -47,7 +43,9 @@ import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
 import { CullMode } from "./shader/enums/CullMode";
 import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
-import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
+import { Texture2D, TextureFormat } from "./texture";
+import { ClearableObjectPool } from "./utils/ClearableObjectPool";
+import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
 
 ShaderPool.init();
@@ -69,6 +67,8 @@ export class Engine extends EventDispatcher {
   readonly xrManager: XRManager;
 
   /** @internal */
+  _batcherManager: BatcherManager;
+
   _particleBufferUtils: ParticleBufferUtils;
   /** @internal */
   _physicsInitialized: boolean = false;
@@ -82,15 +82,13 @@ export class Engine extends EventDispatcher {
   _lastRenderState: RenderState = new RenderState();
 
   /* @internal */
-  _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
+  _renderElementPool = new ClearableObjectPool(RenderElement);
   /* @internal */
-  _renderDataPool: ClassPool<RenderData> = new ClassPool(RenderData);
+  _subRenderElementPool = new ClearableObjectPool(SubRenderElement);
   /* @internal */
-  _spriteRenderDataPool: ClassPool<SpriteRenderData> = new ClassPool(SpriteRenderData);
+  _textSubRenderElementPool = new ClearableObjectPool(SubRenderElement);
   /* @internal */
-  _spriteMaskRenderDataPool: ClassPool<SpriteMaskRenderData> = new ClassPool(SpriteMaskRenderData);
-  /* @internal */
-  _textRenderDataPool: ClassPool<TextRenderData> = new ClassPool(TextRenderData);
+  _charRenderInfoPool = new ReturnableObjectPool(CharRenderInfo, 50);
 
   /* @internal */
   _basicResources: BasicResources;
@@ -99,22 +97,14 @@ export class Engine extends EventDispatcher {
   /** @internal */
   _spriteDefaultMaterials: Material[] = [];
   /* @internal */
+  _textDefaultMaterial: Material;
+  /* @internal */
   _spriteMaskDefaultMaterial: Material;
   /* @internal */
   _textDefaultFont: Font;
   /* @internal */
   _renderContext: RenderContext = new RenderContext();
 
-  /* @internal */
-  _whiteTexture2D: Texture2D;
-  /* @internal */
-  _magentaTexture2D: Texture2D;
-  /* @internal */
-  _uintMagentaTexture2D: Texture2D;
-  /* @internal */
-  _magentaTextureCube: TextureCube;
-  /* @internal */
-  _magentaTexture2DArray: Texture2DArray;
   /* @internal */
   _meshMagentaMaterial: Material;
   /* @internal */
@@ -126,10 +116,6 @@ export class Engine extends EventDispatcher {
   _renderCount: number = 0;
   /* @internal */
   _shaderProgramPools: ShaderProgramPool[] = [];
-  /** @internal */
-  _spriteMaskManager: SpriteMaskManager;
-  /** @internal */
-  _canSpriteBatch: boolean = true;
   /** @internal */
   _fontMap: Record<string, Font> = {};
   /** @internal @todo: temporary solution */
@@ -253,7 +239,6 @@ export class Engine extends EventDispatcher {
 
     this._canvas = canvas;
 
-    this._spriteMaskManager = new SpriteMaskManager(this);
     const { _spriteDefaultMaterials: spriteDefaultMaterials } = this;
     this._spriteDefaultMaterial = spriteDefaultMaterials[SpriteMaskInteraction.None] = this._createSpriteMaterial(
       SpriteMaskInteraction.None
@@ -264,10 +249,12 @@ export class Engine extends EventDispatcher {
     spriteDefaultMaterials[SpriteMaskInteraction.VisibleOutsideMask] = this._createSpriteMaterial(
       SpriteMaskInteraction.VisibleOutsideMask
     );
+    this._textDefaultMaterial = this._createTextMaterial();
     this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
     this._textDefaultFont = Font.createFromOS(this, "Arial");
     this._textDefaultFont.isGCIgnored = true;
 
+    this._batcherManager = new BatcherManager(this);
     this.inputManager = new InputManager(this, configuration.input);
 
     const { xrDevice } = configuration;
@@ -275,8 +262,6 @@ export class Engine extends EventDispatcher {
       this.xrManager = new XRManager();
       this.xrManager._initialize(this, xrDevice);
     }
-
-    this._initMagentaTextures(hardwareRenderer);
 
     if (!hardwareRenderer.canIUse(GLCapabilityType.depthTexture)) {
       this._macroCollection.enable(Engine._noDepthTextureMacro);
@@ -349,11 +334,9 @@ export class Engine extends EventDispatcher {
     const deltaTime = time.deltaTime;
     this._frameInProcess = true;
 
-    this._renderElementPool.resetPool();
-    this._renderDataPool.resetPool();
-    this._spriteRenderDataPool.resetPool();
-    this._spriteMaskRenderDataPool.resetPool();
-    this._textRenderDataPool.resetPool();
+    this._subRenderElementPool.clear();
+    this._textSubRenderElementPool.clear();
+    this._renderElementPool.clear();
 
     this.xrManager?._update();
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
@@ -459,13 +442,13 @@ export class Engine extends EventDispatcher {
     this._fontMap = null;
 
     this.inputManager._destroy();
+    this._batcherManager.destroy();
     this.xrManager?._destroy();
     this.dispatch("shutdown", this);
 
     // Cancel animation
     this.pause();
 
-    this._spriteMaskManager.destroy();
     this._hardwareRenderer.destroy();
 
     this.removeAllEventListeners();
@@ -508,7 +491,7 @@ export class Engine extends EventDispatcher {
       if (length > shaderProgramPools.length) {
         shaderProgramPools.length = length;
       }
-      shaderProgramPools[index] = pool = new ShaderProgramPool();
+      shaderProgramPools[index] = pool = new ShaderProgramPool(this);
       shaderPass._shaderProgramPools.push(pool);
     }
     return pool;
@@ -559,90 +542,6 @@ export class Engine extends EventDispatcher {
 
   /**
    * @internal
-   * Standalone for CanvasRenderer plugin.
-   */
-  _initMagentaTextures(hardwareRenderer: IHardwareRenderer) {
-    const whitePixel = new Uint8Array([255, 255, 255, 255]);
-    const whiteTexture2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
-    whiteTexture2D.setPixelBuffer(whitePixel);
-    whiteTexture2D.isGCIgnored = true;
-
-    const magentaPixel = new Uint8Array([255, 0, 255, 255]);
-    const magentaTexture2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
-    magentaTexture2D.setPixelBuffer(magentaPixel);
-    magentaTexture2D.isGCIgnored = true;
-
-    this.resourceManager.addContentRestorer(
-      new (class extends ContentRestorer<Texture2D> {
-        constructor() {
-          super(magentaTexture2D);
-        }
-        restoreContent() {
-          this.resource.setPixelBuffer(magentaPixel);
-        }
-      })()
-    );
-
-    const magentaTextureCube = new TextureCube(this, 1, TextureFormat.R8G8B8A8, false);
-    for (let i = 0; i < 6; i++) {
-      magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveX + i, magentaPixel);
-    }
-    magentaTextureCube.isGCIgnored = true;
-
-    this.resourceManager.addContentRestorer(
-      new (class extends ContentRestorer<TextureCube> {
-        constructor() {
-          super(magentaTextureCube);
-        }
-        restoreContent() {
-          for (let i = 0; i < 6; i++) {
-            this.resource.setPixelBuffer(TextureCubeFace.PositiveX + i, magentaPixel);
-          }
-        }
-      })()
-    );
-
-    this._whiteTexture2D = whiteTexture2D;
-    this._magentaTexture2D = magentaTexture2D;
-    this._magentaTextureCube = magentaTextureCube;
-
-    if (hardwareRenderer.isWebGL2) {
-      const magentaPixel32 = new Uint32Array([255, 0, 255, 255]);
-      const uintMagentaTexture2D = new Texture2D(this, 1, 1, TextureFormat.R32G32B32A32_UInt, false);
-      uintMagentaTexture2D.setPixelBuffer(magentaPixel32);
-      uintMagentaTexture2D.isGCIgnored = true;
-      this.resourceManager.addContentRestorer(
-        new (class extends ContentRestorer<Texture2D> {
-          constructor() {
-            super(uintMagentaTexture2D);
-          }
-          restoreContent() {
-            this.resource.setPixelBuffer(magentaPixel32);
-          }
-        })()
-      );
-
-      const magentaTexture2DArray = new Texture2DArray(this, 1, 1, 1, TextureFormat.R8G8B8A8, false);
-      magentaTexture2DArray.setPixelBuffer(0, magentaPixel);
-      magentaTexture2DArray.isGCIgnored = true;
-      this.resourceManager.addContentRestorer(
-        new (class extends ContentRestorer<Texture2DArray> {
-          constructor() {
-            super(magentaTexture2DArray);
-          }
-          restoreContent() {
-            this.resource.setPixelBuffer(0, magentaPixel);
-          }
-        })()
-      );
-
-      this._uintMagentaTexture2D = uintMagentaTexture2D;
-      this._magentaTexture2DArray = magentaTexture2DArray;
-    }
-  }
-
-  /**
-   * @internal
    */
   _pendingGC() {
     if (this._frameInProcess) {
@@ -658,7 +557,7 @@ export class Engine extends EventDispatcher {
   protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
     const { shaderLab, physics } = configuration;
 
-    if (shaderLab) {
+    if (shaderLab && !Shader._shaderLab) {
       Shader._shaderLab = shaderLab;
     }
 
@@ -718,6 +617,24 @@ export class Engine extends EventDispatcher {
     renderState.rasterState.cullMode = CullMode.Off;
     renderState.stencilState.enabled = true;
     renderState.depthState.enabled = false;
+    renderState.renderQueueType = RenderQueueType.Transparent;
+    material.isGCIgnored = true;
+    return material;
+  }
+
+  private _createTextMaterial(): Material {
+    const material = new Material(this, Shader.find("Text"));
+    const renderState = material.renderState;
+    const target = renderState.blendState.targetBlendState;
+    target.enabled = true;
+    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.sourceAlphaBlendFactor = BlendFactor.One;
+    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+    renderState.depthState.writeEnabled = false;
+    renderState.rasterState.cullMode = CullMode.Off;
+    renderState.renderQueueType = RenderQueueType.Transparent;
     material.isGCIgnored = true;
     return material;
   }
@@ -755,11 +672,9 @@ export class Engine extends EventDispatcher {
   }
 
   private _gc(): void {
+    this._subRenderElementPool.garbageCollection();
+    this._textSubRenderElementPool.garbageCollection();
     this._renderElementPool.garbageCollection();
-    this._renderDataPool.garbageCollection();
-    this._spriteRenderDataPool.garbageCollection();
-    this._spriteMaskRenderDataPool.garbageCollection();
-    this._textRenderDataPool.garbageCollection();
     this._renderContext.garbageCollection();
   }
 

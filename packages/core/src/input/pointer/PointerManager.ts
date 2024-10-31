@@ -1,6 +1,5 @@
 import { Ray, Vector2 } from "@galacean/engine-math";
 import { Canvas } from "../../Canvas";
-import { DisorderedArray } from "../../DisorderedArray";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { Scene } from "../../Scene";
@@ -10,6 +9,7 @@ import { PointerButton, _pointerDec2BinMap } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
 import { IInput } from "../interface/IInput";
 import { Pointer } from "./Pointer";
+import { DisorderedArray } from "../../utils/DisorderedArray";
 
 /**
  * Pointer Manager.

@@ -1,0 +1,25 @@
+---
+title: Introduction
+---
+
+Currently, the Galacean engine has many built-in shaders, such as
+
+| Type | Description |
+| :-- | :-- |
+| [Unlit](/en/docs/graphics/shader/builtins/unlit) | The Unlit Shader is suitable for rendering baked models. It only requires setting a basic texture or color to display high-quality rendering results obtained from offline rendering. However, the downside is that it cannot display real-time light and shadow interactions because Unlit rendering is determined by the texture and is not affected by any lighting. Refer to [Baking Tutorial](/en/docs/art/bake-blender) and [Export Unlit Tutorial](/en/docs/graphics/shader/builtins/unlit) |
+| [Blinn Phong](/en/docs/graphics/shader/builtins/blinnPhong) | The Blinn Phong Shader is suitable for scenes that do not require high realism. Although it does not follow physical principles, its efficient rendering algorithm and comprehensive optical components make it suitable for many scenes. |
+| [PBR](/en/docs/graphics/shader/builtins/pbr) | The PBR Shader is suitable for applications that require realistic rendering. Since PBR is based on physical rendering and follows energy conservation, developers can ensure that the rendering effects are physically correct by adjusting parameters such as metallicity, roughness, and lighting. |
+
+You can directly debug the corresponding properties of the built-in shaders in the editor to observe real-time rendering effect changes.
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/94cf8176-569d-4605-bd73-967b03316c3d/image-20240206173751409.png" />
+
+> Correspondingly, you can achieve the same effect by setting the APIs of PBRMaterial, BlinnPhongMaterial, and UnlitMaterial materials.
+
+| Parameter | Application |
+| :-- | :-- |
+| [isTransparent](/apis/core/#BaseMaterial-isTransparent) | Transparency. You can set whether the material is transparent. If set to transparent, you can use [BlendMode](/apis/core/#BaseMaterial-blendMode) to set the color blending mode. |
+| [alphaCutoff](/apis/core/#BaseMaterial-alphaCutoff) | Alpha cutoff value. You can set the cutoff value. In the shader, fragments with transparency less than this value will be culled. Refer to [Example](/en/embed/blend-mode) |
+| [renderFace](/apis/core/#BaseMaterial-renderFace) | Render face. You can decide to render the front, back, or both sides. |
+| [blendMode](/apis/core/#BaseMaterial-blendMode) | Color blending mode. When the material is set to transparent, you can set this enumeration to decide the color blending mode. Refer to [Example](/en/embed/blend-mode) |
+| [tilingOffset](/apis/core/#BlinnPhongMaterial-tilingOffset) | Texture coordinate scaling and offset. It is a Vector4 data that controls the scaling and offset of texture coordinates in the uv direction. Refer to [Example](/en/embed/tiling-offset) |

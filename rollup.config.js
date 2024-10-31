@@ -9,6 +9,7 @@ import miniProgramPlugin from "./rollup.miniprogram.plugin";
 import replace from "@rollup/plugin-replace";
 import { swc, defineRollupSwcOption, minify } from "rollup-plugin-swc3";
 import modify from "rollup-plugin-modify";
+import jscc from "rollup-plugin-jscc";
 
 const { BUILD_TYPE, NODE_ENV } = process.env;
 
@@ -48,6 +49,9 @@ const commonPlugins = [
     })
   ),
   commonjs(),
+  jscc({
+    values: { _EDITOR: NODE_ENV !== "release" }
+  }),
   NODE_ENV === "development"
     ? serve({
         contentBase: "packages",
@@ -80,7 +84,7 @@ function config({ location, pkgJson }) {
         ...commonPlugins
       ];
       if (compress) {
-        plugins.push(minify());
+        plugins.push(minify({ sourceMap: true }));
         file = path.join(location, "dist", "browser.min.js");
       }
 

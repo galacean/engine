@@ -1,5 +1,5 @@
-import { BlendShape, ModelMesh, SkinnedMeshRenderer, Entity, Skin } from "@galacean/engine-core";
-import { BoundingBox, Vector3, Matrix } from "@galacean/engine-math";
+import { BlendShape, Entity, ModelMesh, Skin, SkinnedMeshRenderer } from "@galacean/engine-core";
+import { BoundingBox, Matrix, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
@@ -72,8 +72,10 @@ describe("SkinnedMeshRenderer", async () => {
       new Matrix(1, 0, 0, -1, 0, 0, 0, -1, 0, 0, -2, -1).invert()
     ];
 
+    const position = new Vector3();
     const modelMesh = new ModelMesh(engine);
     const entity = rootEntity.createChild("SkinEntity");
+    entity.transform.position = position;
     const rootBone = entity.createChild("RootBone");
     rootBone.createChild("Joint0");
     rootBone.createChild("Joint1");
@@ -84,6 +86,8 @@ describe("SkinnedMeshRenderer", async () => {
 
     skinnedMR.skin = skin;
     engine.update();
+    expect(skinnedMR.bounds.min).to.deep.eq(position);
+    expect(skinnedMR.bounds.max).to.deep.eq(position);
 
     // Test that the skin is set correctly.
     expect(skinnedMR.skin).to.be.equal(skin);
@@ -94,6 +98,11 @@ describe("SkinnedMeshRenderer", async () => {
 
     // Test that the rootBone is set correctly.
     expect(skinnedMR.rootBone).to.be.equal(rootBone0);
+
+    position.set(1, 0, 0);
+    rootBone0.transform.position = position;
+    expect(skinnedMR.bounds.min).to.deep.eq(position);
+    expect(skinnedMR.bounds.max).to.deep.eq(position);
   });
 
   it("clone", () => {

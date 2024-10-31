@@ -9,41 +9,67 @@ import { AnimatorStateData } from "./AnimatorStateData";
 export class AnimatorStatePlayData {
   state: AnimatorState;
   stateData: AnimatorStateData;
-  frameTime: number;
+  playedTime: number;
   playState: AnimatorStatePlayState;
   clipTime: number;
   currentEventIndex: number;
   currentTransitionIndex: number;
+  isForwards = true;
+  offsetFrameTime: number;
+
+  private _changedOrientation = false;
 
   reset(state: AnimatorState, stateData: AnimatorStateData, offsetFrameTime: number): void {
     this.state = state;
-    this.frameTime = offsetFrameTime;
+    this.playedTime = 0;
+    this.offsetFrameTime = offsetFrameTime;
     this.stateData = stateData;
     this.playState = AnimatorStatePlayState.UnStarted;
     this.clipTime = state.clipStartTime * state.clip.length;
     this.currentEventIndex = 0;
     this.currentTransitionIndex = 0;
+    this.isForwards = true;
   }
 
-  update(isBackwards: boolean): void {
+  updateOrientation(deltaTime: number): void {
+    if (deltaTime !== 0) {
+      const lastIsForwards = this.isForwards;
+      this.isForwards = deltaTime > 0;
+      if (this.isForwards !== lastIsForwards) {
+        this._changedOrientation = true;
+        this.isForwards || this._correctTime();
+      }
+    }
+  }
+
+  update(deltaTime: number): void {
+    this.playedTime += deltaTime;
     const state = this.state;
-    let time = this.frameTime;
+    let time = this.playedTime + this.offsetFrameTime;
     const duration = state._getDuration();
     this.playState = AnimatorStatePlayState.Playing;
     if (state.wrapMode === WrapMode.Loop) {
       time = duration ? time % duration : 0;
     } else {
-      if (Math.abs(time) > duration) {
+      if (Math.abs(time) >= duration) {
         time = time < 0 ? -duration : duration;
         this.playState = AnimatorStatePlayState.Finished;
       }
     }
 
-    if (isBackwards && time === 0) {
+    time < 0 && (time += duration);
+    this.clipTime = time + state.clipStartTime * state.clip.length;
+
+    if (this._changedOrientation) {
+      !this.isForwards && this._correctTime();
+      this._changedOrientation = false;
+    }
+  }
+
+  private _correctTime() {
+    const { state } = this;
+    if (this.clipTime === 0) {
       this.clipTime = state.clipEndTime * state.clip.length;
-    } else {
-      time < 0 && (time += duration);
-      this.clipTime = time + state.clipStartTime * state.clip.length;
     }
   }
 }

@@ -1,6 +1,5 @@
-import { Quaternion, Vector3 } from "@galacean/engine";
+import { Quaternion, Vector3, DisorderedArray } from "@galacean/engine";
 import { IColliderShape } from "@galacean/engine-design";
-import { DisorderedArray } from "../DisorderedArray";
 import { PhysXCharacterController } from "../PhysXCharacterController";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
@@ -100,7 +99,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
 
     const controllers = this._controllers;
     for (let i = 0, n = controllers.length; i < n; i++) {
-      controllers.get(i)._pxController.setContactOffset(offset);
+      controllers.get(i)._pxController?.setContactOffset(offset);
     }
   }
 

@@ -1,0 +1,61 @@
+---
+order: 3
+title: Model Assets
+type: Graphics
+group: Model
+label: Graphics/Model
+---
+
+After the model is imported, the imported model asset will be added to the **[Asset Panel](/en/docs/assets/interface)**. By clicking on the asset thumbnail, you can see the basic information of this model.
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Aiu9SpMRvxYAAAAAAAAAAAAADhuCAQ/original" alt="image-20231009112328575" style="zoom:50%;" />
+
+| Area       | Function         | Explanation                                                        |
+| :--------- | :--------------- | :----------------------------------------------------------------- |
+| View Area  | Preview          | Similar to glTF viewer, developers can easily observe the model's different animations from various angles |
+| Basic Info | URL              | The CDN link of the model                                          |
+|            | DrawCall         | The number of times this model calls for drawing                   |
+|            | ComputeTangents  | Processing of tangent information in the model's vertex data       |
+| Material Remapping | Material List in the Model | Corresponding remapped materials                                  |
+| Export     | Cut first frame  | Whether to cut the first frame                                     |
+|            | isGLB            | Whether to export in GLB format                                    |
+|            | Export glb/glTF  | Export the model to local                                          |
+
+## Sub-assets of the Model
+
+Hover the mouse over the model asset thumbnail and click the triangle button that appears on the right. The mesh, textures, animations, materials, and other sub-asset information contained in the model asset will be displayed in the resource panel.
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*v_imTKivm0oAAAAAAAAAAAAADhuCAQ/original" alt="image-20231009112328575" style="zoom:50%;" />
+
+### Mesh Sub-assets
+
+Click on the mesh sub-asset thumbnail to see the basic information of the mesh as follows:
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*snL9SaV1tp4AAAAAAAAAAAAADhuCAQ/original" alt="image-20231009112328575" style="zoom:50%;" />
+
+| Area     | Function       | Explanation               |
+| :------- | :------------- | :------------------------ |
+| Vertex Data | Vertex Info List | The format and stride of the vertex information |
+| Sub-mesh  | Sub-mesh List | Drawing information of the sub-mesh |
+
+### Texture Sub-assets
+
+The only difference between the basic information of texture sub-assets and [texture](/en/docs/graphics/texture/texture/) assets is that the texture information is mostly read-only.
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*o8mdQrcfvcoAAAAAAAAAAAAADhuCAQ/original" alt="image-20231009112328575" style="zoom:50%;" />
+
+### Material Sub-assets
+
+Similarly, [material](/en/docs/graphics/material/material/) sub-assets work the same way:
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*ATbsRrxjiNsAAAAAAAAAAAAADhuCAQ/original" alt="image-20231009112328575" style="zoom:50%;" />
+
+In general, users do not need to perform any operations on the materials that come with the model; however, in certain scenarios, developers may want to manually tweak the materials, such as changing the color. In this case, we can duplicate the original material by clicking **duplicate & remap**, and then modify it based on the original material parameters:
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*R9S1Sr1PivEAAAAAAAAAAAAADhuCAQ/original" alt="image-20231009112328575" style="zoom:50%;" />
+
+### Animation Sub-assets
+
+Animation sub-assets appear in the model assets in the form of [animation clips](/en/docs/animation/clip), and they are also **read-only**.
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*rAq5T4i3TTQAAAAAAAAAAAAADhuCAQ/original" alt="image-20231009112328575" style="zoom:50%;" />

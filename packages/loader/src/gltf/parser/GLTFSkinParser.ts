@@ -1,6 +1,5 @@
 import { Entity, Skin } from "@galacean/engine-core";
 import { Matrix } from "@galacean/engine-math";
-import { ISkin } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
@@ -15,7 +14,8 @@ export class GLTFSkinParser extends GLTFParser {
 
     const skin = new Skin(name);
     skin.inverseBindMatrices.length = jointCount;
-    skin._bones.length = jointCount;
+
+    const bones = new Array<Entity>(jointCount);
 
     // parse IBM
     const accessor = glTF.accessors[inverseBindMatrices];
@@ -29,24 +29,24 @@ export class GLTFSkinParser extends GLTFParser {
 
         // Get bones
         const bone = entities[joints[i]];
-        skin._bones[i] = bone;
+        bones[i] = bone;
         skin.joints[i] = bone.name;
+      }
+      skin.bones = bones;
 
-        // Get skeleton
-        if (skeleton !== undefined) {
-          const rootBone = entities[skeleton];
-          skin._rootBone = rootBone;
-          skin.skeleton = rootBone.name;
+      // Get skeleton
+      if (skeleton !== undefined) {
+        const rootBone = entities[skeleton];
+        skin.rootBone = rootBone;
+      } else {
+        const rootBone = this._findSkeletonRootBone(joints, entities);
+        if (rootBone) {
+          skin.rootBone = rootBone;
         } else {
-          const rootBone = this._findSkeletonRootBone(joints, entities);
-          if (rootBone) {
-            skin._rootBone = rootBone;
-            skin.skeleton = rootBone.name;
-          } else {
-            throw "Failed to find skeleton root bone.";
-          }
+          throw "Failed to find skeleton root bone.";
         }
       }
+
       return skin;
     });
 

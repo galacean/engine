@@ -1,0 +1,38 @@
+---
+order: 2
+title: 导出 Lottie 动画
+type: 美术
+label: Art
+---
+
+## 什么是 Bodymovin
+
+- Bodymovin 是一个 AE 的插件，它可以把动画直接输出成代码，直接给程序员使用放在各个终端上使用。
+- 你可以在 github 上找到最新版本的 bodymovin 使用。
+- Bodymovin 的版本等于输出的 json 文件版本。
+
+## 怎样使用 Bodymovin
+
+- 到 Bodymovin 的 GitHub 首页（链接：airbnb/lottie-web）克隆项目到本地，或者下载 .zip 包。   
+  ![image.png](https://gw.alipayobjects.com/zos/OasisHub/429a17b1-19b3-41b8-902c-4992d722832f/1597673434824-27e06992-4a7d-486a-8514-62a470c53789.png)
+- 在项目目录的“/build/extension”目录下找到“bodymovin.zxp”文件，这个就是插件包了。
+- 下载安装 ZXP Installer。
+  ZXP 插件安装器地址: [https://aescripts.com/learn/zxp-installer](https://aescripts.com/learn/zxp-installer) <br />
+
+![image.png](https://gw.alipayobjects.com/zos/OasisHub/1e996008-498c-4845-953b-8d39f05503e0/1597674042809-af5a084f-f21b-4bf4-b0d4-7404466b2a1e.png)
+
+- 打开 AE，点击“编辑”>“首选项”>“常规”菜单项，选中“允许脚本写入文件和访问网络”，点击确定。
+
+![image.png](https://gw.alipayobjects.com/zos/OasisHub/22b31fcd-2b6e-4691-abd1-b173ccab87e7/1597674058269-f2242296-32c5-4ae9-973b-2943e04e94bc.png)
+
+- 点击“窗口”>“扩展”>“Bodymovin”菜单项，就可以打开 Bodymovin 的界面使用插件了。
+
+![image.png](https://gw.alipayobjects.com/zos/OasisHub/cb002ffc-4b59-4dbd-a85d-56e0c1809475/1597674100420-41e2440c-fe9a-4280-8000-4f384ccdf9c3.png)
+
+- 打开 Bodymovin 插件窗口，可以发现该项目的名称出现在了下面的列表中。选中该名称，设置好 json 文件输出位置，点击 “Render”。
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/605a89c4-4cde-4e36-a3cf-4d47abbd2f92/1597675512496-6c7320a9-fb09-460b-a2b0-e1a133020d9e.png" alt="image.png" style="zoom:50%;" />
+
+- 点击上图中的 Settings，可以对导出的 json 进行配置：
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/8e63e349-dad4-4fc9-a535-121aa92450b4/1597675671244-f967fb47-da02-4033-9c37-277e2056af40.png" alt="image.png" style="zoom:50%;" />

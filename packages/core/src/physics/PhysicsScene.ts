@@ -1,6 +1,5 @@
 import { ICharacterController, ICollider, IPhysics, IPhysicsScene } from "@galacean/engine-design";
 import { MathUtil, Ray, Vector3 } from "@galacean/engine-math";
-import { DisorderedArray } from "../DisorderedArray";
 import { Layer } from "../Layer";
 import { Scene } from "../Scene";
 import { CharacterController } from "./CharacterController";
@@ -9,6 +8,7 @@ import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
 import { ColliderShape } from "./shape";
 import { Script } from "../Script";
+import { DisorderedArray } from "../utils/DisorderedArray";
 
 /**
  * A physics scene is a collection of colliders and constraints which can interact.

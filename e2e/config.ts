@@ -30,6 +30,11 @@ export const E2E_CONFIG = {
       caseFileName: "animator-customBlendShape",
       threshold: 0.1
     },
+    multiSubMeshBlendShape: {
+      category: "Animator",
+      caseFileName: "animator-multiSubMeshBlendShape",
+      threshold: 0.1
+    },
     event: {
       category: "Animator",
       caseFileName: "animator-event",
@@ -40,6 +45,16 @@ export const E2E_CONFIG = {
       caseFileName: "animator-play",
       threshold: 0.1
     },
+    playBackWards: {
+      category: "Animator",
+      caseFileName: "animator-play-backwards",
+      threshold: 0.1
+    },
+    playBeforeActive: {
+      category: "Animator",
+      caseFileName: "animator-play-beforeActive",
+      threshold: 0.1
+    },
     reuse: {
       category: "Animator",
       caseFileName: "animator-reuse",
@@ -48,6 +63,11 @@ export const E2E_CONFIG = {
     stateMachineScript: {
       category: "Animator",
       caseFileName: "animator-stateMachineScript",
+      threshold: 0.1
+    },
+    stateMachine: {
+      category: "Animator",
+      caseFileName: "animator-stateMachine",
       threshold: 0.1
     }
   },
@@ -106,6 +126,11 @@ export const E2E_CONFIG = {
       category: "Shadow",
       caseFileName: "shadow-basic",
       threshold: 0.2
+    },
+    transparent: {
+      category: "Shadow",
+      caseFileName: "shadow-transparent",
+      threshold: 0.2
     }
   },
   Primitive: {
@@ -157,6 +182,42 @@ export const E2E_CONFIG = {
       category: "Physics",
       caseFileName: "physx-collision",
       threshold: 0.1
+    }
+  },
+  Particle: {
+    particle: {
+      category: "Particle",
+      caseFileName: "particleRenderer-dream",
+      threshold: 0.3
+    },
+    textureSheetAnimation: {
+      category: "Particle",
+      caseFileName: "particleRenderer-textureSheetAnimation",
+      threshold: 0.3
+    }
+  },
+  PostProcess: {
+    HDRBloomACES: {
+      category: "PostProcess",
+      caseFileName: "postProcess-HDR-bloom-ACES",
+      threshold: 0.2
+    },
+    HDRBloomNeutral: {
+      category: "PostProcess",
+      caseFileName: "postProcess-HDR-bloom-neutral",
+      threshold: 0.2
+    },
+    LDRBloomNeutral: {
+      category: "PostProcess",
+      caseFileName: "postProcess-LDR-bloom-neutral",
+      threshold: 0.2
+    }
+  },
+  Text: {
+    TypedText: {
+      category: "Text",
+      caseFileName: "text-typed",
+      threshold: 0.4
     }
   }
 };

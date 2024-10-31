@@ -82,11 +82,11 @@ Shader "PlanarShadow" {
         vec4 POSITION;
         vec4 JOINTS_0; 
         vec4 WEIGHTS_0;
-      }
+      };
 
       struct v2f {
         vec4 color;
-      }
+      };
 
       v2f vert(a2v v) {
         v2f o;
@@ -125,13 +125,13 @@ Shader "PlanarShadow" {
         o.color.a *= falloff;
         return o;
       }
-      
-      VertexShader = vert;
-      FragmentShader = frag;
 
       void frag(v2f i) {
         gl_FragColor = i.color;
       }
+
+      VertexShader = vert;
+      FragmentShader = frag;
     }
   }
 }

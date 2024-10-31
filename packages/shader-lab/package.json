@@ -1,9 +1,12 @@
 {
   "name": "@galacean/engine-shader-lab",
-  "version": "0.0.0-experimental-shaderlab.2",
+  "version": "1.3.15",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
+  },
+  "repository": {
+    "url": "https://github.com/galacean/engine.git"
   },
   "license": "MIT",
   "main": "dist/main.js",
@@ -12,9 +15,7 @@
   "debug": "src/index.ts",
   "types": "types/index.d.ts",
   "scripts": {
-    "b:types": "tsc",
-    "gen_diagram": "ts-node ./scripts/genDiagram.ts",
-    "gen_dts": "ts-node ./scripts/genDts.ts"
+    "b:types": "tsc"
   },
   "umd": {
     "name": "Galacean.ShaderLab",
@@ -26,9 +27,6 @@
     "dist/**/*",
     "types/**/*"
   ],
-  "dependencies": {
-    "chevrotain": "^10.5.0"
-  },
   "devDependencies": {
     "@galacean/engine-design": "workspace:*",
     "@galacean/engine": "workspace:*"

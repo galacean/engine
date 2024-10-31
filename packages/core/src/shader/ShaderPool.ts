@@ -1,4 +1,5 @@
 import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
+import { BaseMaterial } from "../material/BaseMaterial";
 import blitFs from "../shaderlib/extra/Blit.fs.glsl";
 import blitVs from "../shaderlib/extra/Blit.vs.glsl";
 import skyProceduralFs from "../shaderlib/extra/SkyProcedural.fs.glsl";
@@ -22,10 +23,14 @@ import spriteMaskFs from "../shaderlib/extra/sprite-mask.fs.glsl";
 import spriteMaskVs from "../shaderlib/extra/sprite-mask.vs.glsl";
 import spriteFs from "../shaderlib/extra/sprite.fs.glsl";
 import spriteVs from "../shaderlib/extra/sprite.vs.glsl";
+import textFs from "../shaderlib/extra/text.fs.glsl";
+import textVs from "../shaderlib/extra/text.vs.glsl";
 import unlitFs from "../shaderlib/extra/unlit.fs.glsl";
 import unlitVs from "../shaderlib/extra/unlit.vs.glsl";
 import { Shader } from "./Shader";
 import { ShaderPass } from "./ShaderPass";
+import { RenderStateElementKey } from "./enums/RenderStateElementKey";
+import { RenderState } from "./state";
 
 /**
  * Internal shader pool.
@@ -36,6 +41,10 @@ export class ShaderPool {
     const shadowCasterPass = new ShaderPass("ShadowCaster", shadowMapVs, shadowMapFs, {
       pipelineStage: PipelineStage.ShadowCaster
     });
+    shadowCasterPass._renderState = new RenderState();
+    shadowCasterPass._renderStateDataMap[RenderStateElementKey.RenderQueueType] =
+      BaseMaterial._shadowCasterRenderQueueProp;
+
     const depthOnlyPass = new ShaderPass("DepthOnly", depthOnlyVs, depthOnlyFs, {
       pipelineStage: PipelineStage.DepthOnly
     });
@@ -60,6 +69,7 @@ export class ShaderPool {
     Shader.create("particle-shader", [new ShaderPass("Forward", particleVs, particleFs, forwardPassTags)]);
     Shader.create("SpriteMask", [new ShaderPass("Forward", spriteMaskVs, spriteMaskFs, forwardPassTags)]);
     Shader.create("Sprite", [new ShaderPass("Forward", spriteVs, spriteFs, forwardPassTags)]);
+    Shader.create("Text", [new ShaderPass("Forward", textVs, textFs, forwardPassTags)]);
     Shader.create("background-texture", [
       new ShaderPass("Forward", backgroundTextureVs, backgroundTextureFs, forwardPassTags)
     ]);

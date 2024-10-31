@@ -1,0 +1,93 @@
+---
+order: 3
+title: Hierarchy Panel
+type: Basics
+group: Interface
+label: Basics/Interface
+---
+
+The hierarchy panel is located on the far left side of the editor. It displays all the nodes in the current scene in a tree structure. The scene node is the parent node of all other nodes, including cameras, lights, meshes, etc.
+
+<Image src="https://mdn.alipayobjects.com/huamei_fvsq9p/afts/img/A*YOCVRa_kAaAAAAAAAAAAAAAADqiTAQ/original" />
+
+In the hierarchy panel, you can:
+
+- Add, delete, or clone a node
+- Copy the path information of a node
+- Adjust the hierarchy of nodes by dragging
+- Fuzzy search for nodes in the scene
+- Temporarily hide a node
+
+## Adding, Deleting, and Copying Nodes
+
+### Adding Nodes
+
+> You can add empty nodes or quickly add nodes with corresponding functional components, such as nodes with camera components, light source components, and basic 3D/2D rendering components.
+
+You can click the "+" button in the hierarchy tree panel to add a node. Note that if you have a node selected, the added node will become a **child node of the selected node**; otherwise, it will default to being a child node of the scene:
+
+<Image
+  figcaption="Add a node using the add button"
+  src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*JmW8S4_cb4YAAAAAAAAAAAAADhuCAQ/original"
+/>
+
+After adding, you can edit the properties of the new node in the **[Inspector Panel](/en/docs/interface/inspector)**.
+
+### Deleting Nodes
+
+To delete a node, you can use the following methods:
+
+- Select the node to be deleted -> Click the delete button
+- Select the node to be deleted -> Press the <Kbd>Delete</Kbd> key
+- Right-click a node -> Delete
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*P7PJTrSlaHMAAAAAAAAAAAAADhuCAQ/original" />
+
+<Callout type="warning">
+  Deleting a node will delete the node and all its child nodes. So when deleting a node, you need to be aware of whether the deleted node will affect other nodes in the scene.
+</Callout>
+
+### Copying Nodes
+
+> Copying a node will copy the selected node and all its child nodes, essentially calling the engine's [clone](/en/docs/core/clone) capability.
+
+After selecting a node, you can quickly clone the node at the same level by using `Duplicated`.
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*ZBAsRKWVP9oAAAAAAAAAAAAADhuCAQ/original" />
+
+You can also choose `copy` and `paste` separately to achieve cross-level copying.
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*9groQ7DrzM4AAAAAAAAAAAAADhuCAQ/original" />
+
+Additionally, you can quickly copy the selected node using the shortcut key <Kbd>⌘ + D</Kbd>.
+
+## Node Sorting
+
+To better organize nodes, you can sort nodes by dragging. After selecting a node, you can change its position in the hierarchy tree by dragging it with the left mouse button.
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*eQi1SZYqqCgAAAAAAAAAAAAADhuCAQ/original" />
+
+## Node Search
+
+There is a search box at the top of the hierarchy panel where users can enter the name of a node to search for nodes in the scene. The search box supports fuzzy search, allowing you to enter part of the node's name to find it.
+
+## Node Hiding
+
+Each entity node has an eye button on the right side. Clicking it toggles the node's visibility in the scene.
+
+> Note that adjusting the node's visibility here only affects the workspace and not the `isActive` property in the **[Inspector Panel](/en/docs/interface/inspector)**.
+
+## Shortcuts
+
+The following operations are effective only after selecting a node.
+
+| Operation         | Shortcut                                   |
+| :---------------- | :----------------------------------------- |
+| `Delete Node`     | <Kbd>Backspace</Kbd> or <Kbd>Delete</Kbd>  |
+| `Copy Node`       | <Kbd>⌘ + D</Kbd>                           |
+| `Select Previous Node` | <Kbd>↑</Kbd>                          |
+| `Select Next Node` | <Kbd>↓</Kbd>                              |
+| `Expand Node`     | <Kbd>→</Kbd>                               |
+| `Collapse Node`   | <Kbd>←</Kbd>                               |
+
+It looks like you haven't pasted the Markdown content yet. Please provide the content you need translated, and I'll help you with the translation while adhering to the specified rules.

@@ -58,8 +58,8 @@ float D_GGX(float alpha, float dotNH ) {
     // https://blog.selfshadow.com/publications/s2012-shading-course/burley/s2012_pbs_disney_brdf_notes_v3.pdf Addenda
     float D_GGX_Anisotropic(float at, float ab, float ToH, float BoH, float NoH) {
         float a2 = at * ab;
-        highp vec3 d = vec3(ab * ToH, at * BoH, a2 * NoH);
-        highp float d2 = dot(d, d);
+        vec3 d = vec3(ab * ToH, at * BoH, a2 * NoH);
+        float d2 = dot(d, d);
         float b2 = a2 / d2;
         return a2 * b2 * b2 * RECIPROCAL_PI;
     }

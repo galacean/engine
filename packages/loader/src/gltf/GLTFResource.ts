@@ -1,5 +1,6 @@
 import {
   AnimationClip,
+  AnimatorController,
   Camera,
   Engine,
   Entity,
@@ -12,21 +13,23 @@ import {
 } from "@galacean/engine-core";
 
 /**
- * Product after glTF parser, usually, `defaultSceneRoot` is only needed to use.
+ * The glTF resource.
  */
 export class GLTFResource extends ReferResource {
   /** glTF file url. */
   readonly url: string;
-  /** Texture2D after TextureParser. */
+  /** The array of loaded textures. */
   readonly textures?: Texture2D[];
-  /** Material after MaterialParser. */
+  /** The array of loaded materials. */
   readonly materials?: Material[];
-  /** ModelMesh after MeshParser. */
+  /** The array of loaded Meshes. */
   readonly meshes?: ModelMesh[][];
-  /** Skin after SkinParser. */
+  /** The array of loaded skins. */
   readonly skins?: Skin[];
-  /** AnimationClip after AnimationParser. */
+  /** The array of loaded animationClips. */
   readonly animations?: AnimationClip[];
+  /** The loaded  AnimatorController. */
+  readonly animatorController?: AnimatorController;
 
   /** @internal */
   _defaultSceneRoot: Entity;
