@@ -175,7 +175,7 @@ export class BasicRenderPipeline {
       if (background.mode === BackgroundMode.Sky) {
         background.sky._render(context);
       } else if (background.mode === BackgroundMode.Texture && background.texture) {
-        this._drawBackgroundTexture(engine, background);
+        this._drawBackgroundTexture(engine, camera, background);
       }
     }
 
@@ -300,7 +300,7 @@ export class BasicRenderPipeline {
     }
   }
 
-  private _drawBackgroundTexture(engine: Engine, background: Background) {
+  private _drawBackgroundTexture(engine: Engine, camera: Camera, background: Background) {
     const rhi = engine._hardwareRenderer;
     const { canvas } = engine;
     const { _material: material, _mesh: mesh } = background;
@@ -317,6 +317,7 @@ export class BasicRenderPipeline {
     const program = pass._getShaderProgram(engine, Shader._compileMacros);
     program.bind();
     program.uploadAll(program.materialUniformBlock, material.shaderData);
+    program.uploadAll(program.cameraUniformBlock, camera.shaderData);
     program.uploadUnGroupTextures();
 
     (pass._renderState || material.renderState)._applyStates(
