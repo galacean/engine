@@ -2,7 +2,7 @@ import { AssetPromise, LoadItem, Loader, ResourceManager, ShaderFactory, resourc
 
 @resourceLoader("ShaderChunk", ["glsl"])
 class ShaderChunkLoader extends Loader<void[]> {
-  private static _includeRegex = /^[ \t]*#include +"([^$\\"]+)"/gm;
+  private static _includeRegex = /^[ \t]*#include\s+"([^\\"]+)"/gm;
 
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<void[]> {
     return this.request<string>(item.url, { ...item, type: "text" }).then((code: string) => {
