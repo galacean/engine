@@ -81,24 +81,24 @@ describe("Animator test", function () {
     const speed = 1;
     let expectedSpeed = speed * 0.5;
     animator.speed = expectedSpeed;
-    let lastFrameTime = srcPlayData.frameTime;
+    let lastFrameTime = srcPlayData.playedTime;
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update(5);
     expect(animator.speed).to.eq(expectedSpeed);
-    expect(srcPlayData.frameTime).to.eq(lastFrameTime + 5 * expectedSpeed);
+    expect(srcPlayData.playedTime).to.eq(lastFrameTime + 5 * expectedSpeed);
     expectedSpeed = speed * 2;
     animator.speed = expectedSpeed;
-    lastFrameTime = srcPlayData.frameTime;
+    lastFrameTime = srcPlayData.playedTime;
     animator.update(10);
     expect(animator.speed).to.eq(expectedSpeed);
-    expect(srcPlayData.frameTime).to.eq(lastFrameTime + 10 * expectedSpeed);
+    expect(srcPlayData.playedTime).to.eq(lastFrameTime + 10 * expectedSpeed);
     expectedSpeed = speed * 0;
     animator.speed = expectedSpeed;
-    lastFrameTime = srcPlayData.frameTime;
+    lastFrameTime = srcPlayData.playedTime;
     animator.update(15);
     expect(animator.speed).to.eq(expectedSpeed);
-    expect(srcPlayData.frameTime).to.eq(lastFrameTime + 15 * expectedSpeed);
+    expect(srcPlayData.playedTime).to.eq(lastFrameTime + 15 * expectedSpeed);
   });
 
   it("play animation", () => {
@@ -565,6 +565,47 @@ describe("Animator test", function () {
     animator.engine.time._frameCount++;
     animator.update(0.001);
     expect(animator.getCurrentAnimatorState(0).name).to.eq("Survey");
+  });
+
+  it("transitionOffset", () => {
+    const walkState = animator.findAnimatorState("Walk");
+    walkState.clearTransitions();
+    const runState = animator.findAnimatorState("Run");
+    runState.clearTransitions();
+    const toRunTransition = walkState.addTransition(runState);
+    toRunTransition.exitTime = 0;
+    toRunTransition.duration = 1;
+    toRunTransition.offset = 0.5;
+    animator.play("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.01);
+
+    const destPlayData = animator["_animatorLayersData"][0].destPlayData;
+    const destState = destPlayData.state;
+    const transitionDuration = toRunTransition.duration * destState._getDuration();
+    const crossWeight = animator["_animatorLayersData"][0].destPlayData.playedTime / transitionDuration;
+    expect(crossWeight).to.lessThan(0.01);
+  });
+
+  it("clipStartTime crossFade", () => {
+    const walkState = animator.findAnimatorState("Walk");
+    walkState.wrapMode = WrapMode.Once;
+    walkState.clipStartTime = 0.8;
+    walkState.clearTransitions();
+    const runState = animator.findAnimatorState("Run");
+    runState.clearTransitions();
+    const toRunTransition = walkState.addTransition(runState);
+    toRunTransition.exitTime = 0.5;
+    toRunTransition.duration = 1;
+    runState.clipStartTime = 0.5;
+    animator.play("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+
+    const destPlayData = animator["_animatorLayersData"][0].destPlayData;
+    expect(destPlayData.state?.name).to.eq("Run");
   });
 
   it("change state in one update", () => {
