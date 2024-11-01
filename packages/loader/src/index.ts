@@ -26,7 +26,7 @@ export type { GLTFParams } from "./GLTFLoader";
 export * from "./SceneLoader";
 export type { Texture2DParams } from "./Texture2DLoader";
 export { parseSingleKTX } from "./compressed-texture";
-export { ScriptLoader } from './ScriptLoader'
+export { ScriptLoader } from "./ScriptLoader";
 export * from "./gltf";
 export { KTX2Loader, KTX2Transcoder } from "./ktx2/KTX2Loader";
 export { KTX2TargetFormat } from "./ktx2/KTX2TargetFormat";
