@@ -63,11 +63,24 @@ describe("Rect test", () => {
     expect(countChange).to.eq(2);
   });
   it("y", () => {
+    const a = new Rect(0, 0, 1, 2);
+    a._onValueChanged = undefined;
+    expect(a._onValueChanged).to.eq(null);
+    // Test non-function value
+    a._onValueChanged = "not a function" as any;
+    expect(a._onValueChanged).to.eq(null);
+
+    // Test multiple assignments
+    const callback1 = () => {};
+    const callback2 = () => {};
+    a._onValueChanged = callback1;
+    expect(a._onValueChanged).to.eq(callback1);
+    a._onValueChanged = callback2;
+    expect(a._onValueChanged).to.eq(callback2);
     let countChange = 0;
     const _onValueChanged = () => {
       countChange += 1;
     };
-    const a = new Rect(0, 0, 1, 2);
     a._onValueChanged = _onValueChanged
     a.y = 1;
     expect(countChange).to.eq(1);
