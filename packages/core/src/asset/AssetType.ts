@@ -57,6 +57,6 @@ export enum AssetType {
   SourceFont = "SourceFont",
   /** Project asset. */
   Project = "project",
-  /** Script in ES module */
+  /** Script in ES module. */
   Script = "Script"
 }
