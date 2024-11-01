@@ -1,7 +1,7 @@
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { AssetType, Script } from "@galacean/engine-core";
 import "@galacean/engine-loader";
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 
 let engine: WebGLEngine;
 
@@ -50,5 +50,10 @@ describe("ScriptLoader test", function () {
       expect(script.default).not.to.be.null;
       expect(script.default).equal(script.colord)
     })
+  });
+
+  afterAll(function () {
+    engine.resourceManager.gc();
+    engine.destroy();
   });
 });
