@@ -1,5 +1,6 @@
 import { Rect } from "@galacean/engine-math";
 import { expect } from "chai";
+import { count } from "console";
 
 describe("Rect test", () => {
   it("set", () => {
@@ -46,5 +47,41 @@ describe("Rect test", () => {
     expect(countChange).to.eq(3);
     a._onValueChanged = null
     expect(a._onValueChanged).to.eq(null);
+  });
+  it("x", () => {
+    let countChange = 0;
+    const _onValueChanged = () => {
+      countChange += 1;
+    };
+    const a = new Rect(0, 0, 1, 2);
+    a._onValueChanged = _onValueChanged
+    a.x = 1;
+    expect(a.x).to.eq(1);
+    expect(countChange).to.eq(1);
+    a.x = 2;
+    expect(a.x).to.eq(1);
+    expect(countChange).to.eq(2);
+  });
+  it("y", () => {
+    let countChange = 0;
+    const _onValueChanged = () => {
+      countChange += 1;
+    };
+    const a = new Rect(0, 0, 1, 2);
+    a._onValueChanged = _onValueChanged
+    a.y = 1;
+    expect(countChange).to.eq(1);
+    expect(a.y).to.eq(1);
+    expect(countChange).to.eq(2);
+  });
+  it("width", () => {
+    const a = new Rect(0, 0, 1, 2);
+    a.width = 1;
+    expect(a.width).to.eq(1);
+  });
+  it("height", () => {
+    const a = new Rect(0, 0, 1, 2);
+    a.height = 1;
+    expect(a.height).to.eq(1);
   });
 });
