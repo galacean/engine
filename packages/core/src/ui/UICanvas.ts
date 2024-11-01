@@ -1,4 +1,4 @@
-import { MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { MathUtil, Ray, Vector2, Vector3 } from "@galacean/engine-math";
 import { Camera, CameraModifyFlags } from "../Camera";
 import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
@@ -9,24 +9,16 @@ import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ComponentType } from "../enums/ComponentType";
 import { HitResult } from "../physics";
 import { DisorderedArray } from "../utils/DisorderedArray";
-import { GroupModifyFlags, UIGroup } from "./UIGroup";
 import { UIRenderer } from "./UIRenderer";
 import { UITransform } from "./UITransform";
 import { UIUtils } from "./UIUtils";
 import { CanvasRenderMode } from "./enums/CanvasRenderMode";
 import { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrategy";
-import { IUIElement } from "./interface/IUIElement";
+import { ICanvasElement } from "./interface/ICanvasElement";
+import { IUIGraphics } from "./interface/IUIGraphics";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
-export class UICanvas extends Component implements IUIElement {
-  @ignoreClone
-  depth: number = 0;
-  @deepClone
-  raycastPadding: Vector4 = new Vector4(0, 0, 0, 0);
-
-  /** @internal */
-  @ignoreClone
-  _rootCanvas: UICanvas;
+export class UICanvas extends Component implements ICanvasElement {
   /** @internal */
   @ignoreClone
   _isRootCanvas: boolean = false;
@@ -41,13 +33,10 @@ export class UICanvas extends Component implements IUIElement {
   _hierarchyDirty: boolean = true;
   /** @internal */
   @ignoreClone
+  _rootCanvas: UICanvas;
+  /** @internal */
+  @ignoreClone
   _indexInCanvas: number = -1;
-  /** @internal */
-  @ignoreClone
-  _group: UIGroup;
-  /** @internal */
-  @ignoreClone
-  _indexInGroup: number = -1;
   /** @internal */
   @ignoreClone
   _renderElement: RenderElement;
@@ -56,16 +45,11 @@ export class UICanvas extends Component implements IUIElement {
   _sortDistance: number = 0;
   /** @internal */
   @ignoreClone
-  _disorderedElements: DisorderedArray<IUIElement> = new DisorderedArray();
+  _disorderedElements: DisorderedArray<ICanvasElement> = new DisorderedArray();
   /** @internal */
   @ignoreClone
-  _orderedElements: IUIElement[] = [];
-  /** @internal */
-  @ignoreClone
-  _runtimeRaycastEnable: boolean = true;
+  _orderedElements: IUIGraphics[] = [];
 
-  @ignoreClone
-  private _raycastEnable: boolean = true;
   @ignoreClone
   private _renderMode = CanvasRenderMode.WorldSpace;
   @ignoreClone
@@ -86,28 +70,13 @@ export class UICanvas extends Component implements IUIElement {
   private _referenceResolution: Vector2 = new Vector2(800, 600);
 
   /** @internal */
-  get elements(): IUIElement[] {
+  get elements(): IUIGraphics[] {
     const elements = this._orderedElements;
     if (this._hierarchyDirty) {
       elements.length = this._walk(this.entity, elements);
       this._hierarchyDirty = false;
     }
     return elements;
-  }
-
-  get raycastEnable(): boolean {
-    return this._raycastEnable;
-  }
-
-  set raycastEnable(val: boolean) {
-    if (this._raycastEnable !== val) {
-      this._raycastEnable = val;
-      const runtimeRaycastEnable = val && (!this._group || this._group._getGlobalRaycastEnable());
-      if (this._runtimeRaycastEnable !== runtimeRaycastEnable) {
-        this._runtimeRaycastEnable = runtimeRaycastEnable;
-        this._entity._onUIInteractiveChange(runtimeRaycastEnable);
-      }
-    }
   }
 
   get referenceResolution(): Vector2 {
@@ -203,7 +172,7 @@ export class UICanvas extends Component implements IUIElement {
     const { elements } = this;
     for (let i = elements.length - 1; i >= 0; i--) {
       const element = elements[i];
-      if (element._runtimeRaycastEnable && element._raycast(ray, out, distance)) {
+      if (element.raycastEnable && element._raycast(ray, out, distance)) {
         return true;
       }
     }
@@ -283,20 +252,17 @@ export class UICanvas extends Component implements IUIElement {
   override _onEnableInScene(): void {
     const entity = this._entity;
     entity._dispatchModify(EntityModifyFlags.UICanvasEnableInScene);
-    UIUtils.registerUIToGroup(this, UIUtils.getGroupInParents(entity));
     const rootCanvas = UIUtils.getRootCanvasInParent(entity);
-    UIUtils.registerUIToCanvas(this, rootCanvas);
+    UIUtils.registerElementToCanvas(this, rootCanvas);
     this._setIsRootCanvas(!rootCanvas);
     UIUtils.registerEntityListener(this);
-    entity._onUIInteractiveChange(this._runtimeRaycastEnable);
   }
 
   /**
    * @internal
    */
   override _onDisableInScene(): void {
-    UIUtils.registerUIToGroup(this, null);
-    UIUtils.registerUIToCanvas(this, null);
+    UIUtils.registerElementToCanvas(this, null);
     this._setIsRootCanvas(false);
     UIUtils.unRegisterEntityListener(this);
     const entity = this._entity;
@@ -307,81 +273,14 @@ export class UICanvas extends Component implements IUIElement {
   /**
    * @internal
    */
-  _raycast(ray: Ray, out: HitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
-    const transform = this._transform;
-    const plane = UIRenderer._tempPlane;
-    const normal = plane.normal.copyFrom(transform.worldForward);
-    plane.distance = -Vector3.dot(normal, transform.worldPosition);
-    const curDistance = ray.intersectPlane(plane);
-    if (curDistance >= 0 && curDistance < distance) {
-      const hitPointWorld = ray.getPoint(curDistance, UIRenderer._tempVec30);
-      const worldMatrixInv = UIRenderer._tempMat;
-      Matrix.invert(transform.worldMatrix, worldMatrixInv);
-      const localPosition = UIRenderer._tempVec31;
-      Vector3.transformCoordinate(hitPointWorld, worldMatrixInv, localPosition);
-      if (this._hitTest(localPosition)) {
-        out.distance = curDistance;
-        out.entity = this._entity;
-        out.component = this;
-        out.normal.copyFrom(normal);
-        out.point.copyFrom(hitPointWorld);
-        return true;
-      }
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * @internal
-   */
   @ignoreClone
   _onEntityModify(flag: EntityModifyFlags): void {
-    switch (flag) {
-      case EntityModifyFlags.SiblingIndex:
-        this._rootCanvas && (this._rootCanvas._hierarchyDirty = true);
-        break;
-      case EntityModifyFlags.UICanvasEnableInScene:
-      case EntityModifyFlags.Parent:
-        const rootCanvas = UIUtils.getRootCanvasInParent(this._entity);
-        rootCanvas && (rootCanvas._hierarchyDirty = true);
-        this._setIsRootCanvas(!rootCanvas);
-        UIUtils.registerUIToCanvas(this, rootCanvas);
-        UIUtils.registerEntityListener(this);
-      case EntityModifyFlags.UIGroupEnableInScene:
-        UIUtils.registerUIToGroup(this, UIUtils.getGroupInParents(this._entity));
-        break;
-      default:
-        break;
+    if (flag === EntityModifyFlags.UICanvasEnableInScene || flag === EntityModifyFlags.Parent) {
+      const rootCanvas = UIUtils.getRootCanvasInParent(this._entity);
+      this._setIsRootCanvas(!rootCanvas);
+      UIUtils.registerElementToCanvas(this, rootCanvas);
+      UIUtils.registerEntityListener(this);
     }
-  }
-
-  /**
-   * @internal
-   */
-  @ignoreClone
-  _onGroupModify(flag: GroupModifyFlags): void {
-    if (flag & GroupModifyFlags.RaycastEnable) {
-      const runtimeRaycastEnable = this.raycastEnable && this._group._getGlobalRaycastEnable();
-      if (this._runtimeRaycastEnable !== runtimeRaycastEnable) {
-        this._runtimeRaycastEnable = runtimeRaycastEnable;
-        this.entity._onUIInteractiveChange(runtimeRaycastEnable);
-      }
-    }
-  }
-
-  private _hitTest(localPosition: Vector3): boolean {
-    const { x, y } = localPosition;
-    const uiTransform = this._transform;
-    const { x: width, y: height } = uiTransform.size;
-    const { x: pivotX, y: pivotY } = uiTransform.pivot;
-    const { x: paddingLeft, y: paddingBottom, z: paddingRight, w: paddingTop } = this.raycastPadding;
-    return (
-      x >= -width * pivotX + paddingLeft &&
-      x <= width * (1 - pivotX) - paddingRight &&
-      y >= -height * pivotY + paddingTop &&
-      y <= height * (1 - pivotY) - paddingBottom
-    );
   }
 
   private _adapterPoseInScreenSpace(): void {
@@ -445,13 +344,13 @@ export class UICanvas extends Component implements IUIElement {
     transform.size.set(curWidth / expectX, curHeight / expectY);
   }
 
-  private _walk(entity: Entity, elements: IUIElement[], depth = 0): number {
+  private _walk(entity: Entity, elements: IUIGraphics[], depth = 0): number {
     const { _components: components, _children: children } = entity;
     for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
-      if (component.enabled && component._componentType & ComponentType.UIElement) {
-        (component as unknown as IUIElement).depth = depth;
-        elements[depth] = component as unknown as IUIElement;
+      if (component.enabled && component._componentType === ComponentType.UIRenderer) {
+        (component as unknown as IUIGraphics).depth = depth;
+        elements[depth] = component as unknown as IUIGraphics;
         ++depth;
       }
     }
@@ -542,8 +441,8 @@ export class UICanvas extends Component implements IUIElement {
       this._setRealRenderMode(this._getRealRenderMode());
       if (!isRootCanvas) {
         const { _disorderedElements: disorderedElements } = this;
-        disorderedElements.forEach((element: IUIElement) => {
-          UIUtils.registerUIToCanvas(element, UIUtils.getRootCanvasInParent(element._entity));
+        disorderedElements.forEach((element: IUIGraphics) => {
+          UIUtils.registerElementToCanvas(element, UIUtils.getRootCanvasInParent(element._entity));
         });
         disorderedElements.length = 0;
         disorderedElements.garbageCollection();
