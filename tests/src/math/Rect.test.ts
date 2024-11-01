@@ -55,11 +55,11 @@ describe("Rect test", () => {
     };
     const a = new Rect(0, 0, 1, 2);
     a._onValueChanged = _onValueChanged
-    a.x = 1;
-    expect(a.x).to.eq(1);
+    a.x = 9;
+    expect(a.x).to.eq(9);
     expect(countChange).to.eq(1);
-    a.x = 2;
-    expect(a.x).to.eq(1);
+    a.x = 10;
+    expect(a.x).to.eq(10);
     expect(countChange).to.eq(2);
   });
   it("y", () => {
@@ -72,16 +72,18 @@ describe("Rect test", () => {
     a.y = 1;
     expect(countChange).to.eq(1);
     expect(a.y).to.eq(1);
+    a.y = 2
+    expect(a.y).to.eq(2);
     expect(countChange).to.eq(2);
   });
   it("width", () => {
     const a = new Rect(0, 0, 1, 2);
-    a.width = 1;
-    expect(a.width).to.eq(1);
+    a.width = 5;
+    expect(a.width).to.eq(5);
   });
   it("height", () => {
     const a = new Rect(0, 0, 1, 2);
-    a.height = 1;
-    expect(a.height).to.eq(1);
+    a.height = 6;
+    expect(a.height).to.eq(6);
   });
 });
