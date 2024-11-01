@@ -5,4 +5,6 @@ export { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrate
 export { UICanvas } from "./UICanvas";
 export { UIImage } from "./UIImage";
 export { UIRenderer } from "./UIRenderer";
+export { UIText } from "./UIText";
 export { UITransform } from "./UITransform";
+
