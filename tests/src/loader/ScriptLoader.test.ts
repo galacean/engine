@@ -1,6 +1,7 @@
-import { expect } from "chai";
-import { WebGLEngine, Script } from '@galacean/engine'
-import { AssetType } from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { AssetType, Script } from "@galacean/engine-core";
+import "@galacean/engine-loader";
+import { describe, it, expect, beforeAll } from "vitest";
 
 let engine: WebGLEngine;
 
@@ -9,7 +10,7 @@ interface ESModuleStructure {
   [key: string]: any;
 }
 
-before(async () => {
+beforeAll(async () => {
   const canvasDOM = document.createElement("canvas");
   canvasDOM.width = 1024;
   canvasDOM.height = 1024;
@@ -18,6 +19,7 @@ before(async () => {
 
 describe("ScriptLoader test", function () {
   it("loader from string url", async () => {
+    
     engine.resourceManager.load<ESModuleStructure>({
       url: "https://cdn.jsdelivr.net/npm/colord@2.9.3/+esm",
       type: AssetType.Script
@@ -47,6 +49,6 @@ describe("ScriptLoader test", function () {
       expect(script.getFormat).not.to.be.null;
       expect(script.default).not.to.be.null;
       expect(script.default).equal(script.colord)
-    });
+    })
   });
 });
