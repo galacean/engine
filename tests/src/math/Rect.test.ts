@@ -1,6 +1,5 @@
 import { Rect } from "@galacean/engine-math";
 import { expect } from "chai";
-import { count } from "console";
 
 describe("Rect test", () => {
   it("set", () => {
