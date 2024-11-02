@@ -10,7 +10,7 @@ export class ScriptLoader extends Loader<ESModuleStructure> {
   load(item: LoadItem): AssetPromise<ESModuleStructure> {
     return new AssetPromise((resolve, reject) => {
       const { url } = item;
-      (import(/* @vite-ignore */url) as Promise<ESModuleStructure>)
+      (import(/* @vite-ignore */ url) as Promise<ESModuleStructure>)
         .then((esModule) => {
           resolve(esModule);
         })
