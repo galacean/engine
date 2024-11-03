@@ -16,7 +16,8 @@ export class GLTFSchemaParser extends GLTFParser {
     return request<ArrayBuffer>(url, requestConfig)
       .onProgress(undefined, context._onTaskDetail)
       .then((buffer) => {
-        restoreBufferRequests.push(new BufferRequestInfo(url, requestConfig));
+        const parseResult = GLTFUtils.parseGLB(context, buffer);
+        parseResult.buffers && restoreBufferRequests.push(new BufferRequestInfo(url, requestConfig));
         return GLTFUtils.parseGLB(context, buffer);
       })
       .then((result) => {

@@ -83,16 +83,16 @@ export class BasicResources {
     const buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static, true);
     mesh.setVertexBufferBinding(buffer, 16);
     mesh.addSubMesh(0, 3, MeshTopology.Triangles);
-    // engine.resourceManager.addContentRestorer(
-    //   new (class extends ContentRestorer<ModelMesh> {
-    //     constructor() {
-    //       super(mesh);
-    //     }
-    //     restoreContent() {
-    //       buffer.setData(buffer.data);
-    //     }
-    //   })()
-    // );
+    engine.resourceManager.addContentRestorer(
+      new (class extends ContentRestorer<ModelMesh> {
+        constructor() {
+          super(mesh);
+        }
+        restoreContent() {
+          buffer.setData(buffer.data);
+        }
+      })()
+    );
     return mesh;
   }
 
