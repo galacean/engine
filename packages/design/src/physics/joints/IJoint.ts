@@ -16,20 +16,22 @@ export interface IJoint {
    */
   setConnectedAnchor(value: Vector3): void;
 
+  setAnchor(value: Vector3): void;
+
   /**
    *  The scale to apply to the inverse mass of collider 0 for resolving this constraint.
    */
   setConnectedMassScale(value: number): void;
 
   /**
-   * The scale to apply to the inverse inertia of collider0 for resolving this constraint.
-   */
-  setConnectedInertiaScale(value: number): void;
-
-  /**
    * The scale to apply to the inverse mass of collider 1 for resolving this constraint.
    */
   setMassScale(value: number): void;
+
+  /**
+   * The scale to apply to the inverse inertia of collider0 for resolving this constraint.
+   */
+  setConnectedInertiaScale(value: number): void;
 
   /**
    * The scale to apply to the inverse inertia of collider1 for resolving this constraint.
@@ -45,4 +47,6 @@ export interface IJoint {
    * The maximum torque the joint can apply before breaking.
    */
   setBreakTorque(value: number): void;
+
+  destroy(): void;
 }

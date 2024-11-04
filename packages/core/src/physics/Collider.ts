@@ -118,7 +118,7 @@ export class Collider extends Component implements ICustomClone {
     physics._addCollider(this);
     const shapes = this.shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
-      this.addShape(shapes[i]);
+      physics._addColliderShape(shapes[i]);
     }
   }
 
@@ -130,7 +130,7 @@ export class Collider extends Component implements ICustomClone {
     physics._removeCollider(this);
     const shapes = this.shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
-      this.removeShape(shapes[i]);
+      physics._removeColliderShape(shapes[i]);
     }
   }
 

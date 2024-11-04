@@ -34,23 +34,8 @@ export class HingeJoint extends Joint {
     const axis = this._axis;
     if (value !== axis) {
       axis.copyFrom(value);
+      (<IHingeJoint>this._nativeJoint).setAxis(axis);
     }
-    (<IHingeJoint>this._nativeJoint).setAxis(axis);
-  }
-
-  /**
-   * The swing offset.
-   */
-  get swingOffset(): Vector3 {
-    return this._colliderInfo.localPosition;
-  }
-
-  set swingOffset(value: Vector3) {
-    const swingOffset = this._colliderInfo.localPosition;
-    if (value !== swingOffset) {
-      swingOffset.copyFrom(value);
-    }
-    (<IHingeJoint>this._nativeJoint).setSwingOffset(swingOffset);
   }
 
   /**
@@ -144,26 +129,23 @@ export class HingeJoint extends Joint {
     }
   }
 
-  /**
-   * @internal
-   */
-  override _onAwake() {
-    const collider = this._colliderInfo;
-    collider.localPosition = new Vector3();
-    collider.collider = this.entity.getComponent(Collider);
-    this._nativeJoint = PhysicsScene._nativePhysics.createHingeJoint(collider.collider._nativeCollider);
+  protected _createJoint(): void {
+    const colliderInfo = this._colliderInfo;
+    colliderInfo.collider = this.entity.getComponent(Collider);
+    this._nativeJoint = PhysicsScene._nativePhysics.createHingeJoint(colliderInfo.collider._nativeCollider);
   }
 
-  /**
-   * @internal
-   */
-  override _cloneTo(target: HingeJoint): void {
-    target.axis = this.axis;
-    target.swingOffset = this.swingOffset;
-    target.useLimits = this.useLimits;
-    target.useMotor = this.useMotor;
-    target.useSpring = this.useSpring;
-    target.motor = this.motor;
-    target.limits = this.limits;
+  protected override _syncBackends(): void {
+    super._syncBackends();
+    const motor = this._jointMonitor;
+    (<IHingeJoint>this._nativeJoint).setAxis(this._axis);
+    (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.LimitEnabled, this.useLimits);
+    (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.DriveEnabled, this.useMotor);
+    if (motor) {
+      (<IHingeJoint>this._nativeJoint).setDriveVelocity(motor.targetVelocity);
+      (<IHingeJoint>this._nativeJoint).setDriveForceLimit(motor.forceLimit);
+      (<IHingeJoint>this._nativeJoint).setDriveGearRatio(motor.gearRation);
+      (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.DriveFreeSpin, motor.freeSpin);
+    }
   }
 }

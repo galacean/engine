@@ -32,9 +32,8 @@ export class BoxColliderShape extends ColliderShape {
       this._material._nativeMaterial
     );
 
-    this._setSize = this._setSize.bind(this);
     //@ts-ignore
-    this._size._onValueChanged = this._setSize;
+    this._size._onValueChanged = this._setSize.bind(this);
   }
 
   /**

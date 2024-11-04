@@ -54,32 +54,27 @@ export interface IDynamicCollider extends ICollider {
    */
   setAngularVelocity(value: Vector3): void;
 
-  getMaxAngularVelocity(): number;
-
-  setMaxAngularVelocity(value: number): void;
-
-  getMaxDepenetrationVelocity(): number;
-
-  setMaxDepenetrationVelocity(value: number): void;
-
   /**
    *  Sets the mass of a dynamic actor.
    * @param value - New mass value for the actor.
    */
   setMass(value: number): void;
 
-  getCenterOfMass(out: Vector3): Vector3;
   /**
    * Sets the pose of the center of mass relative to the actor.
    * @param value - Mass frame offset transform relative to the actor frame.
    */
   setCenterOfMass(value: Vector3): void;
 
+  getCenterOfMass(out: Vector3): Vector3;
+
   /**
    * Sets the inertia tensor, using a parameter specified in mass space coordinates.
    * @param value - New mass space inertia tensor for the actor.
    */
   setInertiaTensor(value: Vector3): void;
+
+  getInertiaTensor(out: Vector3): Vector3;
 
   setMassAndUpdateInertia(mass: number): void;
   /**

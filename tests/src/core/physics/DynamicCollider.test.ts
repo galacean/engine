@@ -359,7 +359,7 @@ describe("DynamicCollider", function () {
     expect(formatValue(box.transform.rotation.y)).to.equal(13.96578);
   });
 
-  it("test move", function () {
+  it("move", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
     const boxCollider = box.getComponent(DynamicCollider);
     boxCollider.isKinematic = false;

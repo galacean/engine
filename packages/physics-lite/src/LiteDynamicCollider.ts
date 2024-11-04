@@ -18,11 +18,14 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
     this._transform.setPosition(position.x, position.y, position.z);
     this._transform.setRotationQuaternion(rotation.x, rotation.y, rotation.z, rotation.w);
   }
+  getInertiaTensor(out: Vector3): Vector3 {
+    return out;
+  }
   /**
    * {@inheritDoc IDynamicCollider.getCenterOfMass }
    */
   getCenterOfMass(out: Vector3): Vector3 {
-    throw "Physics-lite don't support getCenterOfMass. Use Physics-PhysX instead!";
+    return out;
   }
 
   /**
@@ -74,7 +77,7 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
   }
 
   getAngularVelocity(out: Vector3): Vector3 {
-    throw "Physics-lite don't support getAngularVelocity. Use Physics-PhysX instead!";
+    return out;
   }
   /**
    * {@inheritDoc IDynamicCollider.setAngularVelocity }
@@ -129,7 +132,7 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
   }
 
   getLinearVelocity(out: Vector3): Vector3 {
-    throw "Physics-lite don't support getLinearVelocity. Use Physics-PhysX instead!";
+    return out;
   }
 
   /**

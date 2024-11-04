@@ -103,6 +103,11 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setMassSpaceInertiaTensor(value);
   }
 
+  getInertiaTensor(out: Vector3): Vector3 {
+    const inertia = this._pxActor.getMassSpaceInertiaTensor();
+    return out.set(inertia.x, inertia.y, inertia.z);
+  }
+
   setMassAndUpdateInertia(mass: number): void {
     this._pxActor.setMassAndUpdateInertia(mass);
   }
