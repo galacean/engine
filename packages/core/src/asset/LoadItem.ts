@@ -27,9 +27,9 @@ export type LoadItem = {
    */
   params?: Record<string, any>;
   /**
-   * Asset uuid
+   * Asset path in editor
    */
-  uuid?: string;
+  virtualPath?: string;
 } & PickOnlyOne<{
   /**
    * Loading url.

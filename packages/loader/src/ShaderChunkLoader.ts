@@ -13,29 +13,29 @@ import { PathUtils } from "./PathUtils";
 @resourceLoader("ShaderChunk", ["glsl"])
 class ShaderChunkLoader extends Loader<void[]> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<void[]> {
-    return this.request<string>(item.url, { ...item, type: "text" }).then((code: string) => {
-      const { includeKey, shaderPath } = item.params;
-      ShaderFactory.registerInclude((<string>includeKey).substring(1), code);
+    const { virtualPath, url } = item;
+    const shaderVirtualPath = item.params?.shaderVirtualPath ?? "/";
+    const chunkPath = virtualPath ?? new URL(url).pathname;
+
+    return this.request<string>(url, { ...item, type: "text" }).then((code: string) => {
+      ShaderFactory.registerInclude(chunkPath.substring(1), code);
 
       const matches = code.matchAll(PathUtils.shaderIncludeRegex);
       const shaderChunkPaths: string[] = [];
       for (const match of matches) {
-        const matchedPath = match[1];
-        const path = PathUtils.isRelativePath(matchedPath) ? PathUtils.pathResolve(match[1], shaderPath) : matchedPath;
-        if (!ShaderLib[path]) {
-          shaderChunkPaths.push(path);
+        const chunkPath = PathUtils.pathResolve(match[1], shaderVirtualPath);
+        if (!ShaderLib[chunkPath.substring(1)]) {
+          shaderChunkPaths.push(chunkPath);
         }
       }
 
       return Promise.all(
-        shaderChunkPaths.map((path) => {
-          // @ts-ignore
-          const resource = resourceManager._virtualPathMap[path];
-          if (!resource) return;
+        shaderChunkPaths.map((chunkPath) => {
           return resourceManager.load<void>({
             type: "ShaderChunk",
-            url: resource,
-            params: { includeKey: path, shaderPath }
+            url: chunkPath,
+            virtualPath: chunkPath,
+            params: { shaderVirtualPath }
           });
         })
       );
