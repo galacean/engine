@@ -1,12 +1,12 @@
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Camera, ParticleRenderer, ModelMesh, Scene, ParticleRenderMode } from "@galacean/engine-core";
-import { expect } from "chai";
+import { beforeAll, describe, expect, it } from "vitest";
 
 describe("ParticleRenderer", () => {
   let engine: WebGLEngine;
   let scene: Scene;
 
-  before(async function () {
+  beforeAll(async function () {
     engine = await WebGLEngine.create({
       canvas: document.createElement("canvas")
     });
