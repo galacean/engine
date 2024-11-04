@@ -26,7 +26,7 @@ export class UIInteractive extends Script implements IGroupElement {
   @ignoreClone
   _indexInGroup: number = -1;
 
-  protected _interactive: boolean = false;
+  protected _interactive: boolean = true;
   protected _runtimeInteractive: boolean = false;
   protected _status: InteractiveStatus = InteractiveStatus.Normal;
   protected _transitions: Transition[] = [];
@@ -108,6 +108,7 @@ export class UIInteractive extends Script implements IGroupElement {
    * @internal
    */
   override _onEnableInScene(): void {
+    super._onEnableInScene();
     UIUtils.registerElementToGroup(this, UIUtils.getGroupInParents(this._entity));
     UIUtils.registerEntityListener(this);
   }
@@ -116,6 +117,7 @@ export class UIInteractive extends Script implements IGroupElement {
    * @internal
    */
   override _onDisableInScene(): void {
+    super._onDisableInScene();
     UIUtils.registerElementToGroup(this, null);
     UIUtils.unRegisterEntityListener(this);
   }
@@ -157,7 +159,7 @@ export class UIInteractive extends Script implements IGroupElement {
       this._status = state;
       const transitions = this._transitions;
       for (let i = 0, n = transitions.length; i < n; i++) {
-        transitions[i].setStatus(state, instant);
+        transitions[i]._setStatus(state, instant);
       }
     }
   }

@@ -1,14 +1,9 @@
-import { Color } from "@galacean/engine-math";
+import { Color, Vector3 } from "@galacean/engine-math";
 import { Sprite } from "../../../2d";
 import { UIRenderer } from "../../UIRenderer";
 import { InteractiveStatus } from "../InteractiveStatus";
-import { SamplingType } from "./SamplingType";
-import { CopyType } from "./CopyType";
 
 export abstract class Transition<T extends TransitionValueType = any, K extends UIRenderer = any> {
-  samplingType: SamplingType = SamplingType.Continuous;
-  copyType: CopyType = CopyType.Shallow;
-
   protected _normal: T;
   protected _pressed: T;
   protected _hover: T;
@@ -16,10 +11,10 @@ export abstract class Transition<T extends TransitionValueType = any, K extends 
   protected _target: K;
   protected _duration: number = 0;
   protected _countDown: number = 0;
-  protected _initialState: InteractiveStatus = InteractiveStatus.Normal;
   protected _initialValue: T;
-  protected _finalState: InteractiveStatus = InteractiveStatus.Normal;
   protected _finalValue: T;
+  protected _currentValue: T;
+  protected _finalState: InteractiveStatus = InteractiveStatus.Normal;
 
   get normal(): T {
     return this._normal;
@@ -69,19 +64,6 @@ export abstract class Transition<T extends TransitionValueType = any, K extends 
     }
   }
 
-  private _onStateValueDirty(status: InteractiveStatus) {
-    let needUpdateValue = false;
-    if (this._initialState === status) {
-      this._initialValue = this._getValueByState(status);
-      needUpdateValue = true;
-    }
-    if (this._finalState === status) {
-      this._finalValue = this._getValueByState(status);
-      needUpdateValue = true;
-    }
-    needUpdateValue && this._updateValue();
-  }
-
   get target(): K {
     return this._target;
   }
@@ -89,9 +71,7 @@ export abstract class Transition<T extends TransitionValueType = any, K extends 
   set target(value: K) {
     if (this._target !== value) {
       this._target = value;
-      this._applyValue(this._getCurrentValue());
-
-      this._updateValue();
+      value?.enabled && this._applyValue(this._currentValue);
     }
   }
 
@@ -111,43 +91,39 @@ export abstract class Transition<T extends TransitionValueType = any, K extends 
     }
   }
 
-  setStatus(status: InteractiveStatus, instant: boolean) {
+  /**
+   * @internal
+   */
+  _setStatus(status: InteractiveStatus, instant: boolean) {
+    this._finalState = status;
+    const value = this._getValueByState(status);
     if (instant) {
       this._countDown = 0;
-      this._applyValue((this._initialValue = this._finalValue = this._getValueByState(status)));
+      this._initialValue = this._finalValue = value;
     } else {
-      this._initialValue = this._getCurrentValue();
-      this._finalValue = this._getValueByState(status);
-      const countDown = (this._countDown = this._duration);
-      this._applyValue(countDown > 0 ? this._initialValue : this._finalValue);
+      this._countDown = this._duration;
+      this._initialValue = this._currentValue;
+      this._finalValue = value;
     }
+    this._updateValue();
   }
 
   /**
    * @internal
    */
   _onUpdate(delta: number): void {
-    let countDown = this._countDown;
-    if (countDown > 0) {
-      this._countDown = countDown -= delta;
+    if (this._countDown > 0) {
+      this._countDown -= delta;
       this._updateValue();
     }
   }
 
-  protected abstract _getCurrentValue(): T;
-  protected abstract _samplingValue(srcValue: T, destValue: T, weight: number, out: T): T;
-  protected _dispose() {}
-
-  protected _isEqual(srcValue: T, targetValue: T): boolean {
-    return srcValue === targetValue;
-  }
-
-  protected abstract _applyValue(value: T);
+  protected abstract _updateCurrentValue(srcValue: T, destValue: T, weight: number): void;
+  protected abstract _applyValue(value: T): void;
 
   private _updateValue() {
-    const currentValue = this._getCurrentValue();
-    const value = this._samplingValue(this._initialValue, this._finalValue, 1, currentValue);
-    this._applyValue(value);
+    this._updateCurrentValue(this._initialValue, this._finalValue, 1 - this._countDown / this._duration);
+    this._target?.enabled && this._applyValue(this._currentValue);
   }
 
   private _getValueByState(state: InteractiveStatus): T {
@@ -162,6 +138,13 @@ export abstract class Transition<T extends TransitionValueType = any, K extends 
         return this.disabled;
     }
   }
+
+  private _onStateValueDirty(status: InteractiveStatus) {
+    if (this._finalState === status) {
+      this._finalValue = this._getValueByState(status);
+      this._updateValue();
+    }
+  }
 }
 
-export type TransitionValueType = number | Sprite | Color;
+export type TransitionValueType = number | Sprite | Color | Vector3;

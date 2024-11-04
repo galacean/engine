@@ -12,7 +12,7 @@ import { ShaderProperty } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { UICanvas } from "./UICanvas";
 import { GroupModifyFlags, UIGroup } from "./UIGroup";
-import { UITransform, UITransformModifyFlags } from "./UITransform";
+import { UITransform } from "./UITransform";
 import { UIUtils } from "./UIUtils";
 import { IUIGraphics } from "./interface/IUIGraphics";
 
@@ -249,19 +249,6 @@ export abstract class UIRenderer extends Renderer implements IUIGraphics {
     //@ts-ignore
     this._color._onValueChanged = null;
     this._color = null;
-  }
-
-  @ignoreClone
-  protected override _onTransformChanged(flag: UITransformModifyFlags): void {
-    switch (flag) {
-      case UITransformModifyFlags.Size:
-      case UITransformModifyFlags.Pivot:
-        this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
-        break;
-      default:
-        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldBounds;
-        break;
-    }
   }
 }
 

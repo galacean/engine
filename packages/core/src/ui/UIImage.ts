@@ -277,7 +277,7 @@ export class UIImage extends UIRenderer implements ISpriteRenderer {
     if (type & UITransformModifyFlags.Pivot) {
       this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
     }
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldBounds;
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldPositionAndBounds;
   }
 
   protected override _onDestroy(): void {
