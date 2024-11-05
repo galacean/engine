@@ -31,6 +31,8 @@ describe("ScriptLoader test", function () {
 
   it("loader from blob raw script text", async () => {
     const esModuleString = `
+      import { Script } from 'https://galaceancdn.com/@galacean/engine@1.3.15';
+      export class TestScript extends Script {}
       export const colord = "colord";
       export const getFormat = () => "getFormat";
       export default colord;
@@ -43,6 +45,7 @@ describe("ScriptLoader test", function () {
       expect(script).not.to.be.null;
       expect(script.colord).not.to.be.null;
       expect(script.getFormat).not.to.be.null;
+      expect(script.TestScript).not.to.be.null;
       expect(script.default).not.to.be.null;
       expect(script.default).equal(script.colord)
     })
