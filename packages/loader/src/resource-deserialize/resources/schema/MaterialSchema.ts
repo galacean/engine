@@ -99,7 +99,6 @@ export interface IMaterialSchema {
   shaderRef: IShaderRef;
 }
 
-/** @internal */
 export enum MaterialLoadType {
   Vector2 = "Vector2",
   Vector3 = "Vector3",
