@@ -5,11 +5,11 @@ import { PointerButton, PointerEventData } from "../../input";
 import { UICanvas } from "../UICanvas";
 import { GroupModifyFlags, UIGroup } from "../UIGroup";
 import { UIUtils } from "../UIUtils";
-import { IGroupElement } from "../interface/IGroupElement";
+import { IUIGroupable } from "../interface/IUIGroupable";
 import { InteractiveState } from "./InteractiveState";
 import { Transition } from "./transition/Transition";
 
-export class UIInteractive extends Script implements IGroupElement {
+export class UIInteractive extends Script implements IUIGroupable {
   /** @internal */
   @ignoreClone
   _rootCanvas: UICanvas;
@@ -133,7 +133,7 @@ export class UIInteractive extends Script implements IGroupElement {
     super._onDisableInScene();
     UIUtils.registerElementToGroup(this, null);
     UIUtils.unRegisterEntityListener(this);
-    this._isPointerInside = this._isPointerDown = false;
+    this._isPointerDown = this._isPointerInside = this._isPointerDragging = false;
     this._updateState(true);
   }
 
@@ -158,6 +158,7 @@ export class UIInteractive extends Script implements IGroupElement {
   /**
    * @internal
    */
+  @ignoreClone
   _onGroupModify(flag: GroupModifyFlags): void {
     if (flag & GroupModifyFlags.Interactive) {
       const runtimeInteractive = this._interactive && this._group._getGlobalInteractive();

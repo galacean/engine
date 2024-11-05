@@ -14,11 +14,11 @@ import { UITransform } from "./UITransform";
 import { UIUtils } from "./UIUtils";
 import { CanvasRenderMode } from "./enums/CanvasRenderMode";
 import { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrategy";
-import { ICanvasElement } from "./interface/ICanvasElement";
+import { IUIElement } from "./interface/IUIElement";
 import { IUIGraphics } from "./interface/IUIGraphics";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
-export class UICanvas extends Component implements ICanvasElement {
+export class UICanvas extends Component implements IUIElement {
   /** @internal */
   @ignoreClone
   _isRootCanvas: boolean = false;
@@ -45,7 +45,7 @@ export class UICanvas extends Component implements ICanvasElement {
   _sortDistance: number = 0;
   /** @internal */
   @ignoreClone
-  _disorderedElements: DisorderedArray<ICanvasElement> = new DisorderedArray();
+  _disorderedElements: DisorderedArray<IUIElement> = new DisorderedArray();
   /** @internal */
   @ignoreClone
   _orderedElements: IUIGraphics[] = [];
@@ -265,9 +265,7 @@ export class UICanvas extends Component implements ICanvasElement {
     UIUtils.registerElementToCanvas(this, null);
     this._setIsRootCanvas(false);
     UIUtils.unRegisterEntityListener(this);
-    const entity = this._entity;
-    entity._dispatchModify(EntityModifyFlags.UICanvasDisableInScene);
-    entity._onUIInteractiveChange(false);
+    this._entity._dispatchModify(EntityModifyFlags.UICanvasDisableInScene);
   }
 
   /**

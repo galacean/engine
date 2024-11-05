@@ -4,7 +4,7 @@ import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { ComponentType } from "../enums/ComponentType";
 import { DisorderedArray } from "../utils/DisorderedArray";
 import { UIUtils } from "./UIUtils";
-import { IGroupElement } from "./interface/IGroupElement";
+import { IUIGroupable } from "./interface/IUIGroupable";
 
 export class UIGroup extends Component {
   /** @internal */
@@ -18,7 +18,7 @@ export class UIGroup extends Component {
   _disorderedGroups: DisorderedArray<UIGroup> = new DisorderedArray();
   /** @internal */
   @ignoreClone
-  _disorderedElements: DisorderedArray<IGroupElement> = new DisorderedArray();
+  _disorderedElements: DisorderedArray<IUIGroupable> = new DisorderedArray();
 
   /** @internal */
   @ignoreClone

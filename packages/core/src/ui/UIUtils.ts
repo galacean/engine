@@ -10,15 +10,15 @@ import { DisorderedArray } from "../utils/DisorderedArray";
 import { UICanvas } from "./UICanvas";
 import { GroupModifyFlags, UIGroup } from "./UIGroup";
 import { UITransform } from "./UITransform";
-import { ICanvasElement } from "./interface/ICanvasElement";
-import { IGroupElement } from "./interface/IGroupElement";
+import { IUIElement } from "./interface/IUIElement";
+import { IUIGroupable } from "./interface/IUIGroupable";
 
 export class UIUtils {
   private static _renderQueue: RenderQueue;
   private static _virtualCamera: VirtualCamera;
   private static _viewport: Vector4;
 
-  static registerEntityListener(element: ICanvasElement): void {
+  static registerEntityListener(element: IUIElement): void {
     const parents = element._parents;
     const root = element._rootCanvas?.entity;
     let entity = element._entity;
@@ -36,7 +36,7 @@ export class UIUtils {
     parents.length = index;
   }
 
-  static unRegisterEntityListener(element: ICanvasElement): void {
+  static unRegisterEntityListener(element: IUIElement): void {
     const { _parents: parents } = element;
     for (let i = 0, n = parents.length; i < n; i++) {
       parents[i]._unRegisterModifyListener(element._onEntityModify);
@@ -44,7 +44,7 @@ export class UIUtils {
     parents.length = 0;
   }
 
-  static registerElementToCanvas(element: ICanvasElement, canvas: UICanvas): void {
+  static registerElementToCanvas(element: IUIElement, canvas: UICanvas): void {
     const preCanvas = element._rootCanvas;
     if (preCanvas !== canvas) {
       element._rootCanvas = canvas;
@@ -63,7 +63,7 @@ export class UIUtils {
     }
   }
 
-  static registerElementToGroup(element: IGroupElement, group: UIGroup): void {
+  static registerElementToGroup(element: IUIGroupable, group: UIGroup): void {
     const preGroup = element._group;
     if (preGroup !== group) {
       element._group = group;

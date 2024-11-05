@@ -199,7 +199,6 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
   }
 
   private _fireEvent(entity: Entity, eventData: PointerEventData, methods: PointerMethods): void {
-    if (!entity._interactive) return;
     eventData.currentTarget = entity;
     entity._scripts.forEach(
       (script: Script) => {

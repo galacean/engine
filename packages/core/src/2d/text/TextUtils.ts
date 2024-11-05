@@ -1,6 +1,6 @@
 import { Vector2 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
-import { UIText } from "../../ui";
+import { Text } from "../../ui";
 import { FontStyle } from "../enums/FontStyle";
 import { OverflowMode } from "../enums/TextOverflow";
 import { CharInfo } from "./CharInfo";
@@ -97,7 +97,7 @@ export class TextUtils {
     return <CharInfo>TextUtils._measureFontOrChar(fontString, char, true);
   }
 
-  static measureTextWithWrap(renderer: TextRenderer | UIText): TextMetrics {
+  static measureTextWithWrap(renderer: TextRenderer | Text): TextMetrics {
     const subFont = renderer._getSubFont();
     const fontString = subFont.nativeFontString;
     const fontSizeInfo = TextUtils.measureFont(fontString);
@@ -271,7 +271,7 @@ export class TextUtils {
     };
   }
 
-  static measureTextWithoutWrap(renderer: TextRenderer | UIText): TextMetrics {
+  static measureTextWithoutWrap(renderer: TextRenderer | Text): TextMetrics {
     const subFont = renderer._getSubFont();
     const fontString = subFont.nativeFontString;
     const fontSizeInfo = TextUtils.measureFont(fontString);

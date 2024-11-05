@@ -17,7 +17,7 @@ import { UIRenderer, UIRendererUpdateFlags } from "./UIRenderer";
 import { UITransform, UITransformModifyFlags } from "./UITransform";
 import { CanvasRenderMode } from "./enums/CanvasRenderMode";
 
-export class UIImage extends UIRenderer implements ISpriteRenderer {
+export class Image extends UIRenderer implements ISpriteRenderer {
   private static _tempVec2: Vector2 = new Vector2();
   private static _tempUnit8Array: Uint8ClampedArray = new Uint8ClampedArray(4);
 
@@ -164,11 +164,11 @@ export class UIImage extends UIRenderer implements ISpriteRenderer {
     if (alphaHitTestMinimumThreshold <= 0) {
       return true;
     }
-    const uv = UIImage._tempVec2;
+    const uv = Image._tempVec2;
     if (!this._getUVByLocalPosition(localPosition, uv)) {
       return false;
     }
-    const pixel = UIImage._tempUnit8Array;
+    const pixel = Image._tempUnit8Array;
     texture.getPixelBuffer(Math.floor(uv.x * texture.width), Math.floor(uv.y * texture.height), 1, 1, 0, pixel);
     if (pixel[3] >= alphaHitTestMinimumThreshold * 255) {
       return true;

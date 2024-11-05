@@ -78,10 +78,7 @@ export abstract class UIRenderer extends Renderer implements IUIGraphics {
   }
 
   set raycastEnable(val: boolean) {
-    if (this._raycastEnable !== val) {
-      this._raycastEnable = val;
-      this.entity._onUIInteractiveChange(val);
-    }
+    this._raycastEnable = val;
   }
 
   /**
@@ -139,7 +136,6 @@ export abstract class UIRenderer extends Renderer implements IUIGraphics {
     UIUtils.registerElementToCanvas(this, UIUtils.getRootCanvasInParent(entity));
     UIUtils.registerElementToGroup(this, UIUtils.getGroupInParents(entity));
     UIUtils.registerEntityListener(this);
-    entity._onUIInteractiveChange(this.raycastEnable);
   }
 
   /**
@@ -150,7 +146,6 @@ export abstract class UIRenderer extends Renderer implements IUIGraphics {
     UIUtils.registerElementToCanvas(this, null);
     UIUtils.registerElementToGroup(this, null);
     UIUtils.unRegisterEntityListener(this);
-    this._entity._onUIInteractiveChange(false);
   }
 
   /**
