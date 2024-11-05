@@ -3,6 +3,10 @@ import { UIImage } from "../../UIImage";
 import { Transition } from "./Transition";
 
 export class SpriteTransition extends Transition<Sprite, UIImage> {
+  protected _getTargetValueCopy(): Sprite {
+    return this._target?.sprite;
+  }
+
   protected override _updateCurrentValue(srcValue: Sprite, destValue: Sprite, weight: number): void {
     this._currentValue = weight >= 1 ? destValue : srcValue;
   }

@@ -1,4 +1,5 @@
-export enum InteractiveStatus {
+export enum InteractiveState {
+  None,
   Normal,
   Pressed,
   Hover,

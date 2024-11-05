@@ -86,9 +86,9 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
   }
 
   override _processDrag(pointer: Pointer): void {
-    if (this._pressedElement) {
+    if (this._draggedElement) {
       this._bubble(
-        this._composedPath(this._pressedElement, PointerUIEventEmitter._path0),
+        this._composedPath(this._draggedElement, PointerUIEventEmitter._path0),
         pointer,
         PointerMethods.onPointerDrag
       );

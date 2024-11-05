@@ -1,7 +1,7 @@
 import { Color, Vector3 } from "@galacean/engine-math";
 import { Sprite } from "../../../2d";
 import { UIRenderer } from "../../UIRenderer";
-import { InteractiveStatus } from "../InteractiveStatus";
+import { InteractiveState } from "../InteractiveState";
 
 export abstract class Transition<T extends TransitionValueType = any, K extends UIRenderer = any> {
   protected _normal: T;
@@ -14,7 +14,7 @@ export abstract class Transition<T extends TransitionValueType = any, K extends 
   protected _initialValue: T;
   protected _finalValue: T;
   protected _currentValue: T;
-  protected _finalState: InteractiveStatus = InteractiveStatus.Normal;
+  protected _finalState: InteractiveState = InteractiveState.Normal;
 
   get normal(): T {
     return this._normal;
@@ -24,7 +24,7 @@ export abstract class Transition<T extends TransitionValueType = any, K extends 
     const preNormal = this._normal;
     if (preNormal !== value) {
       this._normal = value;
-      this._onStateValueDirty(InteractiveStatus.Normal);
+      this._onStateValueDirty(InteractiveState.Normal);
     }
   }
 
@@ -36,7 +36,7 @@ export abstract class Transition<T extends TransitionValueType = any, K extends 
     const prePressed = this._pressed;
     if (prePressed !== value) {
       this._pressed = value;
-      this._onStateValueDirty(InteractiveStatus.Pressed);
+      this._onStateValueDirty(InteractiveState.Pressed);
     }
   }
 
@@ -48,7 +48,7 @@ export abstract class Transition<T extends TransitionValueType = any, K extends 
     const preHover = this._hover;
     if (preHover !== value) {
       this._hover = value;
-      this._onStateValueDirty(InteractiveStatus.Hover);
+      this._onStateValueDirty(InteractiveState.Hover);
     }
   }
 
@@ -60,7 +60,7 @@ export abstract class Transition<T extends TransitionValueType = any, K extends 
     const preDisabled = this._disabled;
     if (preDisabled !== value) {
       this._disabled = value;
-      this._onStateValueDirty(InteractiveStatus.Disable);
+      this._onStateValueDirty(InteractiveState.Disable);
     }
   }
 
@@ -94,15 +94,15 @@ export abstract class Transition<T extends TransitionValueType = any, K extends 
   /**
    * @internal
    */
-  _setStatus(status: InteractiveStatus, instant: boolean) {
-    this._finalState = status;
-    const value = this._getValueByState(status);
+  _setState(state: InteractiveState, instant: boolean) {
+    this._finalState = state;
+    const value = this._getValueByState(state);
     if (instant) {
       this._countDown = 0;
       this._initialValue = this._finalValue = value;
     } else {
       this._countDown = this._duration;
-      this._initialValue = this._currentValue;
+      this._initialValue = this._getTargetValueCopy();
       this._finalValue = value;
     }
     this._updateValue();
@@ -118,30 +118,32 @@ export abstract class Transition<T extends TransitionValueType = any, K extends 
     }
   }
 
+  protected abstract _getTargetValueCopy(): T;
   protected abstract _updateCurrentValue(srcValue: T, destValue: T, weight: number): void;
   protected abstract _applyValue(value: T): void;
 
   private _updateValue() {
-    this._updateCurrentValue(this._initialValue, this._finalValue, 1 - this._countDown / this._duration);
+    const weight = this._duration ? 1 - this._countDown / this._duration : 1;
+    this._updateCurrentValue(this._initialValue, this._finalValue, weight);
     this._target?.enabled && this._applyValue(this._currentValue);
   }
 
-  private _getValueByState(state: InteractiveStatus): T {
+  private _getValueByState(state: InteractiveState): T {
     switch (state) {
-      case InteractiveStatus.Normal:
+      case InteractiveState.Normal:
         return this.normal;
-      case InteractiveStatus.Pressed:
+      case InteractiveState.Pressed:
         return this.pressed;
-      case InteractiveStatus.Hover:
+      case InteractiveState.Hover:
         return this.hover;
-      case InteractiveStatus.Disable:
+      case InteractiveState.Disable:
         return this.disabled;
     }
   }
 
-  private _onStateValueDirty(status: InteractiveStatus) {
-    if (this._finalState === status) {
-      this._finalValue = this._getValueByState(status);
+  private _onStateValueDirty(state: InteractiveState) {
+    if (this._finalState === state) {
+      this._finalValue = this._getValueByState(state);
       this._updateValue();
     }
   }

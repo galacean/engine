@@ -9,7 +9,10 @@ export class ScaleTransition extends Transition<number, UIImage> {
     this._pressed = 1.2;
     this._disabled = 1;
     this._duration = 0.1;
-    this._currentValue = 1;
+  }
+
+  protected _getTargetValueCopy(): number {
+    return this._target?.entity.transform.scale.x || this._normal;
   }
 
   protected override _updateCurrentValue(srcValue: number, destValue: number, weight: number): void {
@@ -18,6 +21,5 @@ export class ScaleTransition extends Transition<number, UIImage> {
 
   protected override _applyValue(value: number): void {
     this._target.entity.transform.setScale(value, value, value);
-    console.log("_applyValue", this._currentValue);
   }
 }

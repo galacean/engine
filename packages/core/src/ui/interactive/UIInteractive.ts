@@ -6,7 +6,7 @@ import { UICanvas } from "../UICanvas";
 import { GroupModifyFlags, UIGroup } from "../UIGroup";
 import { UIUtils } from "../UIUtils";
 import { IGroupElement } from "../interface/IGroupElement";
-import { InteractiveStatus } from "./InteractiveStatus";
+import { InteractiveState } from "./InteractiveState";
 import { Transition } from "./transition/Transition";
 
 export class UIInteractive extends Script implements IGroupElement {
@@ -28,11 +28,12 @@ export class UIInteractive extends Script implements IGroupElement {
 
   protected _interactive: boolean = true;
   protected _runtimeInteractive: boolean = false;
-  protected _status: InteractiveStatus = InteractiveStatus.Normal;
+  protected _state: InteractiveState = InteractiveState.None;
   protected _transitions: Transition[] = [];
 
   private _isPointerDown: boolean = false;
   private _isPointerInside: boolean = false;
+  private _isPointerDragging: boolean = false;
 
   get interactive() {
     return this._interactive;
@@ -44,7 +45,7 @@ export class UIInteractive extends Script implements IGroupElement {
       const runtimeInteractive = value && this._group?._getGlobalInteractive();
       if (this._runtimeInteractive !== runtimeInteractive) {
         this._runtimeInteractive = runtimeInteractive;
-        this._updateStatus(true);
+        this._updateState(true);
       }
     }
   }
@@ -63,6 +64,7 @@ export class UIInteractive extends Script implements IGroupElement {
   addTransition<T extends new () => Transition>(type: T): InstanceType<T> {
     const transition = new type() as InstanceType<T>;
     this._transitions.push(transition);
+    transition._setState(this._state, true);
     return transition;
   }
 
@@ -83,25 +85,35 @@ export class UIInteractive extends Script implements IGroupElement {
   override onPointerDown(event: PointerEventData): void {
     if (event.pointer.button === PointerButton.Primary) {
       this._isPointerDown = true;
-      this._updateStatus(false);
+      this._updateState(false);
     }
   }
 
   override onPointerUp(event: PointerEventData): void {
     if (event.pointer.button === PointerButton.Primary) {
       this._isPointerDown = false;
-      this._updateStatus(false);
+      this._updateState(false);
     }
   }
 
-  override onPointerEnter(event: PointerEventData): void {
+  override onPointerBeginDrag(event: PointerEventData): void {
+    this._isPointerDragging = true;
+    this._updateState(false);
+  }
+
+  override onPointerEndDrag(event: PointerEventData): void {
+    this._isPointerDragging = false;
+    this._updateState(false);
+  }
+
+  override onPointerEnter(): void {
     this._isPointerInside = true;
-    this._updateStatus(false);
+    this._updateState(false);
   }
 
   override onPointerExit(): void {
-    this._isPointerInside = false;
-    this._updateStatus(false);
+    this._isPointerInside = this._isPointerDown = false;
+    this._updateState(false);
   }
 
   /**
@@ -111,6 +123,7 @@ export class UIInteractive extends Script implements IGroupElement {
     super._onEnableInScene();
     UIUtils.registerElementToGroup(this, UIUtils.getGroupInParents(this._entity));
     UIUtils.registerEntityListener(this);
+    this._updateState(true);
   }
 
   /**
@@ -120,6 +133,8 @@ export class UIInteractive extends Script implements IGroupElement {
     super._onDisableInScene();
     UIUtils.registerElementToGroup(this, null);
     UIUtils.unRegisterEntityListener(this);
+    this._isPointerInside = this._isPointerDown = false;
+    this._updateState(true);
   }
 
   /**
@@ -148,32 +163,34 @@ export class UIInteractive extends Script implements IGroupElement {
       const runtimeInteractive = this._interactive && this._group._getGlobalInteractive();
       if (this._runtimeInteractive !== runtimeInteractive) {
         this._runtimeInteractive = runtimeInteractive;
-        this._updateStatus(true);
+        this._updateState(true);
       }
     }
   }
 
-  private _updateStatus(instant: boolean): void {
-    const state = this._getInteractiveStatus();
-    if (this._status !== state) {
-      this._status = state;
+  private _updateState(instant: boolean): void {
+    const state = this._getInteractiveState();
+    if (this._state !== state) {
+      this._state = state;
       const transitions = this._transitions;
       for (let i = 0, n = transitions.length; i < n; i++) {
-        transitions[i]._setStatus(state, instant);
+        transitions[i]._setState(state, instant);
       }
     }
   }
 
-  private _getInteractiveStatus(): InteractiveStatus {
+  private _getInteractiveState(): InteractiveState {
     if (!this._runtimeInteractive) {
-      return InteractiveStatus.Disable;
+      return InteractiveState.Disable;
     }
-    if (this._isPointerDown) {
-      return InteractiveStatus.Pressed;
+    if (this._isPointerDragging) {
+      return InteractiveState.Pressed;
+    } else {
+      if (this._isPointerInside) {
+        return this._isPointerDown ? InteractiveState.Pressed : InteractiveState.Hover;
+      } else {
+        return InteractiveState.Normal;
+      }
     }
-    if (this._isPointerInside) {
-      return InteractiveStatus.Hover;
-    }
-    return InteractiveStatus.Normal;
   }
 }
