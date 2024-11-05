@@ -11,10 +11,7 @@ import {
 import { Vector2, Vector3 } from "@galacean/engine-math";
 import { LitePhysics } from "@galacean/engine-physics-lite";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import chai, { expect } from "chai";
-import spies from "chai-spies";
-
-chai.use(spies);
+import { vi, describe, expect, it } from "vitest";
 
 const body = document.getElementsByTagName("body")[0];
 const canvasDOM = document.createElement("canvas");
@@ -115,46 +112,46 @@ describe("InputManager", async () => {
         console.log("onPointerUp");
       }
     }
-    TestScript.prototype.onPointerEnter = chai.spy(TestScript.prototype.onPointerEnter);
-    TestScript.prototype.onPointerExit = chai.spy(TestScript.prototype.onPointerExit);
-    TestScript.prototype.onPointerDown = chai.spy(TestScript.prototype.onPointerDown);
-    TestScript.prototype.onPointerClick = chai.spy(TestScript.prototype.onPointerClick);
-    TestScript.prototype.onPointerDrag = chai.spy(TestScript.prototype.onPointerDrag);
-    TestScript.prototype.onPointerUp = chai.spy(TestScript.prototype.onPointerUp);
+    TestScript.prototype.onPointerEnter = vi.fn(TestScript.prototype.onPointerEnter);
+    TestScript.prototype.onPointerExit = vi.fn(TestScript.prototype.onPointerExit);
+    TestScript.prototype.onPointerDown = vi.fn(TestScript.prototype.onPointerDown);
+    TestScript.prototype.onPointerClick = vi.fn(TestScript.prototype.onPointerClick);
+    TestScript.prototype.onPointerDrag = vi.fn(TestScript.prototype.onPointerDrag);
+    TestScript.prototype.onPointerUp = vi.fn(TestScript.prototype.onPointerUp);
     const script = boxEntity.addComponent(TestScript);
 
     const { left, top } = target.getBoundingClientRect();
     target.dispatchEvent(generatePointerEvent("pointerdown", 2, left + 2, top + 2));
     engine.update();
 
-    expect(script.onPointerEnter).to.have.been.called.exactly(1);
-    expect(script.onPointerExit).to.have.been.called.exactly(0);
-    expect(script.onPointerDown).to.have.been.called.exactly(1);
-    expect(script.onPointerClick).to.have.been.called.exactly(0);
-    expect(script.onPointerDrag).to.have.been.called.exactly(0);
-    expect(script.onPointerUp).to.have.been.called.exactly(0);
+    expect(script.onPointerEnter).toHaveBeenCalledTimes(1);
+    expect(script.onPointerExit).toHaveBeenCalledTimes(0);
+    expect(script.onPointerDown).toHaveBeenCalledTimes(1);
+    expect(script.onPointerClick).toHaveBeenCalledTimes(0);
+    expect(script.onPointerDrag).toHaveBeenCalledTimes(0);
+    expect(script.onPointerUp).toHaveBeenCalledTimes(0);
 
     target.dispatchEvent(generatePointerEvent("pointermove", 2, left + 2, top + 2));
     target.dispatchEvent(generatePointerEvent("pointerup", 2, left + 2, top + 2, 0, 0));
     target.dispatchEvent(generatePointerEvent("pointerleave", 2, left + 2, top + 2, -1, 0));
     engine.update();
-    expect(script.onPointerEnter).to.have.been.called.exactly(1);
-    expect(script.onPointerExit).to.have.been.called.exactly(1);
-    expect(script.onPointerDown).to.have.been.called.exactly(1);
-    expect(script.onPointerClick).to.have.been.called.exactly(1);
-    expect(script.onPointerDrag).to.have.been.called.exactly(1);
-    expect(script.onPointerUp).to.have.been.called.exactly(1);
+    expect(script.onPointerEnter).toHaveBeenCalledTimes(1);
+    expect(script.onPointerExit).toHaveBeenCalledTimes(1);
+    expect(script.onPointerDown).toHaveBeenCalledTimes(1);
+    expect(script.onPointerClick).toHaveBeenCalledTimes(1);
+    expect(script.onPointerDrag).toHaveBeenCalledTimes(1);
+    expect(script.onPointerUp).toHaveBeenCalledTimes(1);
 
     target.dispatchEvent(generatePointerEvent("pointerdown", 3, left + 200, top + 200));
     target.dispatchEvent(generatePointerEvent("pointerup", 3, left + 200, top + 200, 0, 0));
     target.dispatchEvent(generatePointerEvent("pointerleave", 3, left + 200, top + 200, -1, 0));
     engine.update();
-    expect(script.onPointerEnter).to.have.been.called.exactly(1);
-    expect(script.onPointerExit).to.have.been.called.exactly(1);
-    expect(script.onPointerDown).to.have.been.called.exactly(1);
-    expect(script.onPointerClick).to.have.been.called.exactly(1);
-    expect(script.onPointerDrag).to.have.been.called.exactly(1);
-    expect(script.onPointerUp).to.have.been.called.exactly(1);
+    expect(script.onPointerEnter).toHaveBeenCalledTimes(1);
+    expect(script.onPointerExit).toHaveBeenCalledTimes(1);
+    expect(script.onPointerDown).toHaveBeenCalledTimes(1);
+    expect(script.onPointerClick).toHaveBeenCalledTimes(1);
+    expect(script.onPointerDrag).toHaveBeenCalledTimes(1);
+    expect(script.onPointerUp).toHaveBeenCalledTimes(1);
 
     target.dispatchEvent(generatePointerEvent("pointerdown", 4, 0, 0));
     engine.update();

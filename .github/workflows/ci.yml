@@ -65,10 +65,12 @@ jobs:
 
       - name: Install
         run: pnpm install
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
       - name: Build
         run: npm run build
       - name: Test
-        run: npm run test-cov
+        run: npm run coverage
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:

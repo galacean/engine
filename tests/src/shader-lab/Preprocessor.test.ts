@@ -1,12 +1,12 @@
 import { testCaseList } from "./test-case";
 // @ts-ignore
 import { ShaderLib } from "@galacean/engine-core";
-import { expect } from "chai";
-import { readFileSync } from "fs";
 import { Preprocessor } from "@galacean/engine-shader-lab/verbose";
-import { join } from "path";
+import { describe, expect, it } from "vitest";
+import { server } from "@vitest/browser/context";
+const { readFile } = server.commands;
 
-const includedSource = readFileSync(join(__dirname, "test-case/included.txt")).toString();
+const includedSource = await readFile("test-case/included.txt");
 ShaderLib["TEST"] = includedSource;
 
 describe("Preprocessor", () => {

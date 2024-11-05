@@ -12,7 +12,7 @@ import {
 } from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
+import { describe, beforeAll, expect, it } from "vitest";
 
 describe("ModelMesh Test", async function () {
   let engine: Engine;
@@ -38,7 +38,7 @@ describe("ModelMesh Test", async function () {
   let falsyTangents: Vector4[];
   let falsyWeights: Vector4[];
   let falsyJoints: Vector4[];
-  before(async function () {
+  beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     modelMesh = new ModelMesh(engine);
     positions = [new Vector3(0, 0, 0), new Vector3(0, 1, 0), new Vector3(1, 1, 0)];

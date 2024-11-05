@@ -11,12 +11,12 @@ import {
 import { Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
-import { expect } from "chai";
+import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
 describe("ColliderShape", () => {
   let dynamicCollider: DynamicCollider;
 
-  before(async () => {
+  beforeAll(async () => {
     const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
     engine.run();
 

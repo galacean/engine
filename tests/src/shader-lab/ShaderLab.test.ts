@@ -4,14 +4,12 @@ import { ShaderLab as ShaderLabVerbose, GSError } from "@galacean/engine-shader-
 import { ShaderLab as ShaderLabRelease } from "@galacean/engine-shader-lab";
 import { glslValidate, shaderParse } from "./ShaderValidate";
 
-import chai, { expect, assert } from "chai";
-import spies from "chai-spies";
-import fs from "fs";
-import path from "path";
 import { IShaderContent } from "@galacean/engine-design";
+import { describe, beforeAll, expect, assert, it } from "vitest";
+import { server } from "@vitest/browser/context";
+const { readFile } = server.commands;
 
-chai.use(spies);
-const demoShader = fs.readFileSync(path.join(__dirname, "shaders/demo.shader")).toString();
+const demoShader = await readFile("./shaders/demo.shader");
 
 function toString(v: Color): string {
   return `Color(${v.r}, ${v.g}, ${v.b}, ${v.a})`;
@@ -113,7 +111,7 @@ describe("ShaderLab", () => {
   let passList: IShaderContent["subShaders"][number]["passes"];
   let pass1: IShaderContent["subShaders"][number]["passes"][number];
 
-  before(() => {
+  beforeAll(() => {
     shader = shaderLabVerbose._parseShaderContent(demoShader);
     subShader = shader.subShaders[0];
     passList = subShader.passes;
@@ -186,61 +184,61 @@ describe("ShaderLab", () => {
     glslValidate(demoShader, shaderLabRelease);
   });
 
-  it("include", () => {
-    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/unlit.shader")).toString();
+  it("include", async () => {
+    const demoShader = await readFile("./shaders/unlit.shader");
     glslValidate(demoShader, shaderLabVerbose, { test_common: commonSource });
   });
 
-  it("planarShadow shader", () => {
-    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/planarShadow.shader")).toString();
+  it("planarShadow shader", async () => {
+    const demoShader = await readFile("./shaders/planarShadow.shader");
     glslValidate(demoShader, shaderLabVerbose);
     glslValidate(demoShader, shaderLabRelease);
   });
 
-  it("Empty macro shader", () => {
-    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/triangle.shader")).toString();
+  it("Empty macro shader", async () => {
+    const demoShader = await readFile("./shaders/triangle.shader");
     glslValidate(demoShader, shaderLabVerbose);
     glslValidate(demoShader, shaderLabRelease);
   });
 
-  it("No frag shader args", () => {
-    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/noFragArgs.shader")).toString();
+  it("No frag shader args", async () => {
+    const demoShader = await readFile("./shaders/noFragArgs.shader");
     glslValidate(demoShader, shaderLabVerbose);
     glslValidate(demoShader, shaderLabRelease);
   });
 
-  it("water full shader(complex)", () => {
-    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/waterfull.shader")).toString();
+  it("water full shader(complex)", async () => {
+    const demoShader = await readFile("./shaders/waterfull.shader");
     glslValidate(demoShader, shaderLabVerbose);
     glslValidate(demoShader, shaderLabRelease);
   });
 
-  it("glass shader", () => {
-    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/glass.shader")).toString();
+  it("glass shader", async () => {
+    const demoShader = await readFile("./shaders/glass.shader");
     glslValidate(demoShader, shaderLabVerbose);
     glslValidate(demoShader, shaderLabRelease);
   });
 
-  it("template shader", () => {
-    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/template.shader")).toString();
+  it("template shader", async () => {
+    const demoShader = await readFile("./shaders/template.shader");
     glslValidate(demoShader, shaderLabVerbose);
     glslValidate(demoShader, shaderLabRelease);
   });
 
-  it("multi-pass", () => {
-    const shaderSource = fs.readFileSync(path.join(__dirname, "shaders/multi-pass.shader")).toString();
+  it("multi-pass", async () => {
+    const shaderSource = await readFile("./shaders/multi-pass.shader");
     glslValidate(shaderSource, shaderLabVerbose);
     glslValidate(shaderSource, shaderLabRelease);
   });
 
-  it("macro-with-preprocessor", () => {
-    const shaderSource = fs.readFileSync(path.join(__dirname, "shaders/macro-pre.shader")).toString();
+  it("macro-with-preprocessor", async () => {
+    const shaderSource = await readFile("./shaders/macro-pre.shader");
     glslValidate(shaderSource, shaderLabVerbose);
     glslValidate(shaderSource, shaderLabRelease);
   });
 
-  it("compilation-error", () => {
-    const errorShader = fs.readFileSync(path.join(__dirname, "shaders/compilation-error.shader")).toString();
+  it("compilation-error", async () => {
+    const errorShader = await readFile("./shaders/compilation-error.shader");
     shaderParse.bind(shaderLabVerbose)(errorShader);
     // @ts-ignore
     expect(shaderLabVerbose.errors.length).to.eq(3);
