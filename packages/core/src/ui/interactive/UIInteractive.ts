@@ -1,7 +1,7 @@
 import { Entity, EntityModifyFlags } from "../../Entity";
 import { Script } from "../../Script";
 import { ignoreClone } from "../../clone/CloneManager";
-import { PointerButton, PointerEventData } from "../../input";
+import { PointerEventData } from "../../input";
 import { UICanvas } from "../UICanvas";
 import { GroupModifyFlags, UIGroup } from "../UIGroup";
 import { UIUtils } from "../UIUtils";
@@ -31,7 +31,6 @@ export class UIInteractive extends Script implements IUIGroupable {
   protected _state: InteractiveState = InteractiveState.None;
   protected _transitions: Transition[] = [];
 
-  private _isPointerDown: boolean = false;
   private _isPointerInside: boolean = false;
   private _isPointerDragging: boolean = false;
 
@@ -82,20 +81,6 @@ export class UIInteractive extends Script implements IUIGroupable {
     this._interactive && this._transitions.forEach((transition) => transition._onUpdate(deltaTime));
   }
 
-  override onPointerDown(event: PointerEventData): void {
-    if (event.pointer.button === PointerButton.Primary) {
-      this._isPointerDown = true;
-      this._updateState(false);
-    }
-  }
-
-  override onPointerUp(event: PointerEventData): void {
-    if (event.pointer.button === PointerButton.Primary) {
-      this._isPointerDown = false;
-      this._updateState(false);
-    }
-  }
-
   override onPointerBeginDrag(event: PointerEventData): void {
     this._isPointerDragging = true;
     this._updateState(false);
@@ -112,7 +97,7 @@ export class UIInteractive extends Script implements IUIGroupable {
   }
 
   override onPointerExit(): void {
-    this._isPointerInside = this._isPointerDown = false;
+    this._isPointerInside = false;
     this._updateState(false);
   }
 
@@ -133,7 +118,7 @@ export class UIInteractive extends Script implements IUIGroupable {
     super._onDisableInScene();
     UIUtils.registerElementToGroup(this, null);
     UIUtils.unRegisterEntityListener(this);
-    this._isPointerDown = this._isPointerInside = this._isPointerDragging = false;
+    this._isPointerInside = this._isPointerDragging = false;
     this._updateState(true);
   }
 
@@ -173,10 +158,7 @@ export class UIInteractive extends Script implements IUIGroupable {
     const state = this._getInteractiveState();
     if (this._state !== state) {
       this._state = state;
-      const transitions = this._transitions;
-      for (let i = 0, n = transitions.length; i < n; i++) {
-        transitions[i]._setState(state, instant);
-      }
+      this._transitions.forEach((transition) => transition._setState(state, instant));
     }
   }
 
@@ -187,11 +169,7 @@ export class UIInteractive extends Script implements IUIGroupable {
     if (this._isPointerDragging) {
       return InteractiveState.Pressed;
     } else {
-      if (this._isPointerInside) {
-        return this._isPointerDown ? InteractiveState.Pressed : InteractiveState.Hover;
-      } else {
-        return InteractiveState.Normal;
-      }
+      return this._isPointerInside ? InteractiveState.Hover : InteractiveState.Normal;
     }
   }
 }

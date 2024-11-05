@@ -156,13 +156,13 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     ) {
       return false;
     }
-    const texture = this.sprite?.texture;
-    if (!texture) {
-      return false;
-    }
     const alphaHitTestMinimumThreshold = this._alphaHitTestMinimumThreshold;
     if (alphaHitTestMinimumThreshold <= 0) {
       return true;
+    }
+    const texture = this.sprite?.texture;
+    if (!texture) {
+      return false;
     }
     const uv = Image._tempVec2;
     if (!this._getUVByLocalPosition(localPosition, uv)) {

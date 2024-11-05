@@ -97,7 +97,11 @@ export class TextUtils {
     return <CharInfo>TextUtils._measureFontOrChar(fontString, char, true);
   }
 
-  static measureTextWithWrap(renderer: TextRenderer | Text): TextMetrics {
+  static measureTextWithWrap(
+    renderer: TextRenderer | Text,
+    rendererWidth: number,
+    rendererHeight: number
+  ): TextMetrics {
     const subFont = renderer._getSubFont();
     const fontString = subFont.nativeFontString;
     const fontSizeInfo = TextUtils.measureFont(fontString);
@@ -109,7 +113,7 @@ export class TextUtils {
 
     const pixelsPerUnit = Engine._pixelsPerUnit;
     const lineHeight = fontSizeInfo.size + renderer.lineSpacing * pixelsPerUnit;
-    const wrapWidth = renderer.width * pixelsPerUnit;
+    const wrapWidth = rendererWidth * pixelsPerUnit;
     let textWidth = 0;
 
     subFont.nativeFontString = fontString;
@@ -256,7 +260,7 @@ export class TextUtils {
       }
     }
 
-    let height = renderer.height * pixelsPerUnit;
+    let height = rendererHeight * pixelsPerUnit;
     if (renderer.overflowMode === OverflowMode.Overflow) {
       height = lineHeight * lines.length;
     }
@@ -271,7 +275,7 @@ export class TextUtils {
     };
   }
 
-  static measureTextWithoutWrap(renderer: TextRenderer | Text): TextMetrics {
+  static measureTextWithoutWrap(renderer: TextRenderer | Text, rendererHeight: number): TextMetrics {
     const subFont = renderer._getSubFont();
     const fontString = subFont.nativeFontString;
     const fontSizeInfo = TextUtils.measureFont(fontString);
@@ -308,7 +312,7 @@ export class TextUtils {
       }
     }
 
-    let height = renderer.height * _pixelsPerUnit;
+    let height = rendererHeight * _pixelsPerUnit;
     if (renderer.overflowMode === OverflowMode.Overflow) {
       height = lineHeight * lines.length;
     }

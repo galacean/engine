@@ -19,7 +19,7 @@ import { ShaderProperty } from "../shader/ShaderProperty";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { Texture2D } from "../texture/Texture2D";
 import { UIRenderer, UIRendererUpdateFlags } from "./UIRenderer";
-import { UITransformModifyFlags } from "./UITransform";
+import { UITransform, UITransformModifyFlags } from "./UITransform";
 import { CanvasRenderMode } from "./enums/CanvasRenderMode";
 
 export class Text extends UIRenderer {
@@ -33,10 +33,6 @@ export class Text extends UIRenderer {
   private _subFont: SubFont = null;
   @assignmentClone
   private _text: string = "";
-  @assignmentClone
-  private _width: number = 0;
-  @assignmentClone
-  private _height: number = 0;
   @assignmentClone
   private _font: Font = null;
   @assignmentClone
@@ -65,34 +61,6 @@ export class Text extends UIRenderer {
     value = value || "";
     if (this._text !== value) {
       this._text = value;
-      this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
-    }
-  }
-
-  /**
-   * The width of the TextRenderer (in 3D world coordinates).
-   */
-  get width(): number {
-    return this._width;
-  }
-
-  set width(value: number) {
-    if (this._width !== value) {
-      this._width = value;
-      this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
-    }
-  }
-
-  /**
-   * The height of the TextRenderer (in 3D world coordinates).
-   */
-  get height(): number {
-    return this._height;
-  }
-
-  set height(value: number) {
-    if (this._height !== value) {
-      this._height = value;
       this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
     }
   }
@@ -435,9 +403,12 @@ export class Text extends UIRenderer {
     const { min, max } = this._localBounds;
     const charRenderInfos = Text._charRenderInfos;
     const charFont = this._getSubFont();
+    const size = (<UITransform>this._transform).size;
+    const rendererWidth = size.x;
+    const rendererHeight = size.y;
     const textMetrics = this.enableWrapping
-      ? TextUtils.measureTextWithWrap(this)
-      : TextUtils.measureTextWithoutWrap(this);
+      ? TextUtils.measureTextWithWrap(this, rendererWidth, rendererHeight)
+      : TextUtils.measureTextWithoutWrap(this, rendererHeight);
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
     const charRenderInfoPool = this.engine._charRenderInfoPool;
     const linesLen = lines.length;
@@ -445,8 +416,7 @@ export class Text extends UIRenderer {
 
     if (linesLen > 0) {
       const { horizontalAlignment } = this;
-      const halfRendererWidth = this.width * 0.5;
-      const rendererHeight = this.height;
+      const halfRendererWidth = rendererWidth * 0.5;
       const halfLineHeight = lineHeight * 0.5;
 
       let startY = 0;
@@ -571,16 +541,20 @@ export class Text extends UIRenderer {
   }
 
   @ignoreClone
-  protected override _onTransformChanged(bit: UITransformModifyFlags): void {
-    this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
+  protected override _onTransformChanged(type: number): void {
+    if (type & UITransformModifyFlags.Size || type & UITransformModifyFlags.Pivot) {
+      this._dirtyUpdateFlag |= RendererUpdateFlags.LocalPositionAndBounds;
+    }
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldPositionAndBounds;
   }
 
   private _isTextNoVisible(): boolean {
+    const size = (<UITransform>this._transform).size;
     return (
       this._text === "" ||
       this._fontSize === 0 ||
-      (this.enableWrapping && this.width <= 0) ||
-      (this.overflowMode === OverflowMode.Truncate && this.height <= 0)
+      (this.enableWrapping && size.x <= 0) ||
+      (this.overflowMode === OverflowMode.Truncate && size.y <= 0)
     );
   }
 
