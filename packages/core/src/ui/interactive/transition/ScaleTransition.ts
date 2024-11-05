@@ -1,7 +1,7 @@
-import { UIImage } from "../../UIImage";
+import { UIRenderer } from "../../UIRenderer";
 import { Transition } from "./Transition";
 
-export class ScaleTransition extends Transition<number, UIImage> {
+export class ScaleTransition extends Transition<number, UIRenderer> {
   constructor() {
     super();
     this._normal = 1;

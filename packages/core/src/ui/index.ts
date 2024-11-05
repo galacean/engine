@@ -6,6 +6,7 @@ export { Button } from "./Button";
 export { UICanvas } from "./UICanvas";
 export { UIImage } from "./UIImage";
 export { UIRenderer } from "./UIRenderer";
+export { UIText } from "./UIText";
 export { UITransform } from "./UITransform";
 
 export { ColorTransition } from "./interactive/transition/ColorTransition";
