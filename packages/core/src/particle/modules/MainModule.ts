@@ -1,4 +1,5 @@
 import { Color, Rand, Vector3, Vector4 } from "@galacean/engine-math";
+import { TransformModifyFlags } from "../../Transform";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { ShaderData } from "../../shader/ShaderData";
@@ -9,7 +10,6 @@ import { ParticleScaleMode } from "../enums/ParticleScaleMode";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleCompositeGradient } from "./ParticleCompositeGradient";
-import { TransformModifyFlags } from "../../Transform";
 
 export class MainModule implements ICustomClone {
   private static _tempVector40 = new Vector4();
@@ -96,8 +96,6 @@ export class MainModule implements ICustomClone {
   private _simulationSpace = ParticleSimulationSpace.Local;
   @ignoreClone
   private _generator: ParticleGenerator;
-  @ignoreClone
-  private _gravity = new Vector3();
 
   /**
    * The initial lifetime of particles when emitted.
@@ -322,11 +320,7 @@ export class MainModule implements ICustomClone {
         break;
     }
 
-    const particleGravity = this._gravity;
-    const gravityModifierValue = this.gravityModifier.evaluate(undefined, this._gravityModifierRand.random());
-    Vector3.scale(renderer.scene.physics.gravity, gravityModifierValue, particleGravity);
-
-    shaderData.setVector3(MainModule._gravity, particleGravity);
+    shaderData.setVector3(MainModule._gravity, renderer.scene.physics.gravity);
     shaderData.setInt(MainModule._simulationSpace, this.simulationSpace);
     shaderData.setFloat(MainModule._startRotation3D, +this.startRotation3D);
     shaderData.setInt(MainModule._scaleMode, this.scalingMode);
