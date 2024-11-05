@@ -5,11 +5,9 @@ import {
   Loader,
   ResourceManager,
   Shader,
-  resourceLoader,
-  // @ts-ignore
-  ShaderLib
+  resourceLoader
 } from "@galacean/engine-core";
-import { PathUtils } from "./PathUtils";
+import { _loadChunksInCode } from "./ShaderChunkLoader";
 
 @resourceLoader(AssetType.Shader, ["gs", "gsl"])
 class ShaderLoader extends Loader<Shader> {
@@ -25,25 +23,7 @@ class ShaderLoader extends Loader<Shader> {
         return Shader.find(builtinShader);
       }
 
-      const shaderChunkPaths: string[] = [];
-      const matches = code.matchAll(PathUtils.shaderIncludeRegex);
-      for (const match of matches) {
-        const chunkPath = PathUtils.pathResolve(match[1], shaderVirtualPath);
-        if (!ShaderLib[chunkPath.substring(1)]) {
-          shaderChunkPaths.push(chunkPath);
-        }
-      }
-
-      return Promise.all(
-        shaderChunkPaths.map((chunkPath) => {
-          return resourceManager.load({
-            type: "ShaderChunk",
-            url: chunkPath,
-            virtualPath: chunkPath,
-            params: { shaderVirtualPath }
-          });
-        })
-      ).then(() => {
+      return _loadChunksInCode(code, shaderVirtualPath, resourceManager).then(() => {
         return Shader.create(code);
       });
     });

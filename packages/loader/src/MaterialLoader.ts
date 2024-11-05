@@ -11,7 +11,15 @@ import {
   resourceLoader
 } from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import type { IAssetRef, IColor, IMaterialSchema, IVector2, IVector3, IVector4 } from "./resource-deserialize";
+import {
+  EngineMaterialPropertyType,
+  type IAssetRef,
+  type IColor,
+  type IMaterialSchema,
+  type IVector2,
+  type IVector3,
+  type IVector4
+} from "./resource-deserialize";
 
 function parseProperty(object: Object, key: string, value: any) {
   if (typeof value === "object") {
@@ -64,31 +72,31 @@ class MaterialLoader extends Loader<Material> {
       const { type, value } = shaderData[key];
 
       switch (type) {
-        case "Vector2":
+        case EngineMaterialPropertyType.Vector2:
           materialShaderData.setVector2(key, new Vector2((<IVector2>value).x, (<IVector2>value).y));
           break;
-        case "Vector3":
+        case EngineMaterialPropertyType.Vector3:
           materialShaderData.setVector3(
             key,
             new Vector3((<IVector3>value).x, (<IVector3>value).y, (<IVector3>value).z)
           );
           break;
-        case "Vector4":
+        case EngineMaterialPropertyType.Vector4:
           materialShaderData.setVector4(
             key,
             new Vector4((<IVector4>value).x, (<IVector4>value).y, (<IVector4>value).z, (<IVector4>value).w)
           );
           break;
-        case "Color":
+        case EngineMaterialPropertyType.Color:
           materialShaderData.setColor(
             key,
             new Color((<IColor>value).r, (<IColor>value).g, (<IColor>value).b, (<IColor>value).a)
           );
           break;
-        case "Float":
+        case EngineMaterialPropertyType.Float:
           materialShaderData.setFloat(key, <number>value);
           break;
-        case "Texture":
+        case EngineMaterialPropertyType.Texture:
           texturePromises.push(
             // @ts-ignore
             engine.resourceManager.getResourceByRef<Texture2D>(<IAssetRef>value).then((texture) => {
@@ -96,10 +104,10 @@ class MaterialLoader extends Loader<Material> {
             })
           );
           break;
-        case "Boolean":
+        case EngineMaterialPropertyType.Boolean:
           materialShaderData.setInt(key, value ? 1 : 0);
           break;
-        case "Integer":
+        case EngineMaterialPropertyType.Integer:
           materialShaderData.setInt(key, Number(value));
           break;
       }

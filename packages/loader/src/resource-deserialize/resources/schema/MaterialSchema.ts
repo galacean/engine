@@ -90,11 +90,23 @@ export interface IMaterialSchema {
   shader: string;
   shaderData: {
     [key: string]: {
-      type: "Vector2" | "Vector3" | "Vector4" | "Color" | "Float" | "Texture" | "Boolean" | "Integer";
+      type: EngineMaterialPropertyType;
       value: IVector3 | IVector2 | IColor | number | IAssetRef;
     };
   };
   macros: Array<{ name: string; value?: string }>;
   renderState: IRenderState;
   shaderRef: IShaderRef;
+}
+
+/** @internal */
+export enum EngineMaterialPropertyType {
+  Vector2 = "Vector2",
+  Vector3 = "Vector3",
+  Vector4 = "Vector4",
+  Color = "Color",
+  Float = "Float",
+  Texture = "Texture",
+  Boolean = "Boolean",
+  Integer = "Integer"
 }
