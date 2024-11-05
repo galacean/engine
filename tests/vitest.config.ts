@@ -12,7 +12,7 @@ export default defineProject({
   },
   test: {
     browser: {
-      provider: "preview",
+      provider: "playwright",
       enabled: true,
       name: "chromium",
       providerOptions: {

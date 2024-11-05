@@ -16,7 +16,6 @@ export class AnimatorLayerData {
   srcPlayData: AnimatorStatePlayData = new AnimatorStatePlayData();
   destPlayData: AnimatorStatePlayData = new AnimatorStatePlayData();
   layerState: LayerState = LayerState.Standby;
-  anyTransitionIndex: number = 0;
   crossCurveMark: number = 0;
   manuallyTransition: AnimatorStateTransition = new AnimatorStateTransition();
   crossFadeTransition: AnimatorStateTransition;
@@ -27,5 +26,10 @@ export class AnimatorLayerData {
     const switchTemp = this.srcPlayData;
     this.srcPlayData = srcPlayData;
     this.destPlayData = switchTemp;
+  }
+
+  resetCurrentCheckIndex(): void {
+    this.layer.stateMachine._entryTransitionCollection.needResetCurrentCheckIndex = true;
+    this.layer.stateMachine._anyStateTransitionCollection.needResetCurrentCheckIndex = true;
   }
 }
