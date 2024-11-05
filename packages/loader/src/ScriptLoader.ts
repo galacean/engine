@@ -1,10 +1,5 @@
 import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader } from "@galacean/engine-core";
 
-export interface ESModule {
-  default?: any;
-  [key: string]: any;
-}
-
 @resourceLoader(AssetType.Script, ["js", "mjs"], false)
 export class ScriptLoader extends Loader<ESModule> {
   load(item: LoadItem): AssetPromise<ESModule> {
@@ -16,4 +11,14 @@ export class ScriptLoader extends Loader<ESModule> {
         .catch(reject);
     });
   }
+}
+
+/**
+ * Represents a generic ES module that can have a default export and additional named exports.
+ */
+export interface ESModule {
+  /** Default export of the module. */
+  default?: any;
+  /** Named exports from the module. */
+  [key: string]: any;
 }
