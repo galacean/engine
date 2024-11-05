@@ -46,10 +46,27 @@ describe("physics collider test", function () {
   let physicsBox: BoxColliderShape;
   let physicsSphere: SphereColliderShape;
 
+  function addBox(cubeSize: Vector3, type: typeof DynamicCollider | typeof StaticCollider, pos: Vector3) {
+    const boxEntity = rootEntity.createChild("BoxEntity");
+    boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
+
+    const physicsBox = new BoxColliderShape();
+    physicsBox.material.dynamicFriction = 0;
+    physicsBox.material.staticFriction = 0;
+    physicsBox.size = cubeSize;
+    const boxCollider = boxEntity.addComponent(type);
+    boxCollider.addShape(physicsBox);
+    return boxEntity;
+  }
+
+  function formatValue(value: number) {
+    return Math.round(value * 100000) / 100000;
+  }
+
   beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
-    const scene = engine.sceneManager.activeScene;
-    rootEntity = scene.createRootEntity("root");
+
+    rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
   });
 
   beforeEach(function () {
@@ -273,5 +290,69 @@ describe("physics collider test", function () {
     expect(collisionScript.onTriggerStay.mock.calls.length).toBeGreaterThan(1);
     expect(collisionScript.onTriggerExit.mock.calls.length).toBe(1);
     expect(boxEntity.transform.position.x).not.to.be.equal(5);
+  });
+
+  it("clone StaticCollider", function () {
+    const box = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 0.5, 0));
+    const collider = box.getComponent(DynamicCollider);
+    // Avoid the box rotating
+    collider.automaticInertiaTensor = false;
+    collider.inertiaTensor.set(10000000, 10000000, 10000000);
+    collider.applyForce(new Vector3(1000, 0, 0));
+    collider.shapes[0].material.dynamicFriction = 1;
+    //@ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(formatValue(collider.linearVelocity.x)).eq(6.85668);
+    box.isActive = false;
+    const ground = rootEntity.findByName("ground");
+    const newGround = ground.clone();
+    ground.isActive = false;
+    rootEntity.addChild(newGround);
+    const box2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 0.5, 0));
+    const collider2 = box2.getComponent(DynamicCollider);
+    // Avoid the box rotating
+    collider2.automaticInertiaTensor = false;
+    collider2.inertiaTensor.set(10000000, 10000000, 10000000);
+    collider2.applyForce(new Vector3(1000, 0, 0));
+    collider2.shapes[0].material.dynamicFriction = 1;
+    //@ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(formatValue(collider2.linearVelocity.x)).eq(6.85668);
+  });
+
+  it("clone DynamicCollider", function () {
+    const box = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 0.5, 0));
+    const collider = box.getComponent(DynamicCollider);
+    // Avoid the box rotating
+    collider.automaticInertiaTensor = false;
+    collider.inertiaTensor.set(10000000, 10000000, 10000000);
+    collider.applyForce(new Vector3(1000, 0, 0));
+    collider.shapes[0].material.dynamicFriction = 1;
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(formatValue(collider.linearVelocity.x)).eq(6.85668);
+
+    const box2 = box.clone();
+    rootEntity.addChild(box2);
+    box2.transform.position.z = 2;
+    const collider2 = box2.getComponent(DynamicCollider);
+    expect(formatValue(collider2.linearVelocity.x)).eq(6.85668);
+    expect(collider2.shapes[0].material.dynamicFriction).eq(1);
+
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(2);
+    expect(formatValue(collider.linearVelocity.x)).eq(0);
+    expect(formatValue(collider2.linearVelocity.x)).eq(0);
+  });
+
+  it("inActive modification", function () {
+    const box = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 0.5, 0));
+    box.isActive = false;
+    const collider = box.getComponent(DynamicCollider);
+    const physicsBox = new BoxColliderShape();
+    collider.addShape(physicsBox);
+    collider.removeShape(physicsBox);
+    collider.clearShapes();
+    collider.destroy();
   });
 });

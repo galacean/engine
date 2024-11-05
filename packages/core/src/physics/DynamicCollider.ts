@@ -1,6 +1,6 @@
 import { IDynamicCollider } from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
 import { PhysicsScene } from "./PhysicsScene";
@@ -12,14 +12,14 @@ import { ColliderShape } from "./shape";
 export class DynamicCollider extends Collider {
   private _linearDamping: number = 0;
   private _angularDamping: number = 0.05;
-  @deepClone
+  @ignoreClone
   private _linearVelocity = new Vector3();
-  @deepClone
+  @ignoreClone
   private _angularVelocity = new Vector3();
   private _mass: number = 1.0;
-  @deepClone
+  @ignoreClone
   private _centerOfMass = new Vector3();
-  @deepClone
+  @ignoreClone
   private _inertiaTensor = new Vector3(1, 1, 1);
   private _maxAngularVelocity: number = 100;
   private _maxDepenetrationVelocity: number = Infinity;
@@ -373,6 +373,17 @@ export class DynamicCollider extends Collider {
     const { worldPosition, worldRotationQuaternion } = transform;
     (<IDynamicCollider>this._nativeCollider).getWorldTransform(worldPosition, worldRotationQuaternion);
     this._updateFlag.flag = false;
+  }
+
+  /**
+   * @internal
+   */
+  override _cloneTo(target: DynamicCollider): void {
+    target._linearVelocity.copyFrom(this.linearVelocity);
+    target._angularVelocity.copyFrom(this.angularVelocity);
+    target._centerOfMass.copyFrom(this.centerOfMass);
+    target._inertiaTensor.copyFrom(this.inertiaTensor);
+    super._cloneTo(target);
   }
 
   protected override _syncBackends(): void {

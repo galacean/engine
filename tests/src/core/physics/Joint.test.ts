@@ -1,15 +1,4 @@
-import {
-  FixedJoint,
-  HingeJoint,
-  SpringJoint,
-  JointLimits,
-  JointMotor,
-  Entity,
-  DynamicCollider,
-  StaticCollider,
-  BoxColliderShape,
-  Engine
-} from "@galacean/engine-core";
+import { FixedJoint, Entity, DynamicCollider, StaticCollider, BoxColliderShape, Engine } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Vector3 } from "@galacean/engine-math";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
@@ -309,5 +298,42 @@ describe("Joint", function () {
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(10);
     expect(Math.abs(box1.transform.position.z)).greaterThan(1);
+  });
+
+  it("clone", function () {
+    engine.sceneManager.activeScene.physics.gravity = new Vector3(0, -1, 0);
+    const box1 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
+    const box2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 2, 0));
+    const box1Collider = box1.getComponent(DynamicCollider);
+    const box2Collider = box2.getComponent(DynamicCollider);
+    box1Collider.isKinematic = true;
+    const fixedJoint = box1.addComponent(FixedJoint);
+    fixedJoint.connectedCollider = box2.getComponent(DynamicCollider);
+    fixedJoint.autoConnectedAnchor = true;
+    fixedJoint.breakForce = 1;
+
+    const newBox1 = box1.clone();
+    rootEntity.addChild(newBox1);
+    box1.isActive = false;
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(box2Collider.linearVelocity.y).eq(0);
+  });
+
+  it("inActive modification", function () {
+    const box1 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
+    box1.isActive = false;
+    const fixedJoint = box1.addComponent(FixedJoint);
+    fixedJoint.autoConnectedAnchor = true;
+    fixedJoint.autoConnectedAnchor = false;
+    fixedJoint.connectedCollider = null;
+    fixedJoint.anchor = new Vector3(0, 3, 0);
+    fixedJoint.connectedAnchor = new Vector3(0, 3, 0);
+    fixedJoint.massScale = 3;
+    fixedJoint.inertiaScale = 3;
+    fixedJoint.connectedMassScale = 3;
+    fixedJoint.connectedInertiaScale = 3;
+    fixedJoint.breakForce = 3;
+    fixedJoint.breakTorque = 3;
   });
 });

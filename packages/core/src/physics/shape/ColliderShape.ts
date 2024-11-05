@@ -2,7 +2,7 @@ import { IColliderShape } from "@galacean/engine-design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
-import { ignoreClone } from "../../clone/CloneManager";
+import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 
 /**
@@ -20,15 +20,12 @@ export abstract class ColliderShape implements ICustomClone {
 
   @ignoreClone
   protected _id: number;
-  @ignoreClone
   protected _material: PhysicsMaterial;
-  @ignoreClone
   private _isTrigger: boolean = false;
-  @ignoreClone
+  @deepClone
   private _rotation: Vector3 = new Vector3();
-  @ignoreClone
+  @deepClone
   private _position: Vector3 = new Vector3();
-  @ignoreClone
   private _contactOffset: number = 0.02;
 
   /**
@@ -136,11 +133,7 @@ export abstract class ColliderShape implements ICustomClone {
    * @internal
    */
   _cloneTo(target: ColliderShape) {
-    target.contactOffset = this.contactOffset;
-    target.rotation = this.rotation;
-    target.position = this.position;
-    target.isTrigger = this.isTrigger;
-    target.material = this.material;
+    target._syncBackends();
   }
 
   /**
@@ -149,6 +142,14 @@ export abstract class ColliderShape implements ICustomClone {
   _destroy() {
     this._material._destroy();
     this._nativeShape.destroy();
+  }
+
+  protected _syncBackends(): void {
+    this._setPosition();
+    this._setRotation();
+    this._nativeShape.setContactOffset(this._contactOffset);
+    this._nativeShape.setIsTrigger(this._isTrigger);
+    this._nativeShape.setMaterial(this._material._nativeMaterial);
   }
 
   private _setPosition(): void {

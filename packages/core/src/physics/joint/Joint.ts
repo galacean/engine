@@ -5,7 +5,6 @@ import { Component } from "../../Component";
 import { dependentComponents, DependentMode } from "../../ComponentsDependencies";
 import { Entity } from "../../Entity";
 import { Collider } from "../Collider";
-import { ICustomClone } from "../../clone/ComponentCloner";
 import { TransformModifyFlags } from "../../Transform";
 
 /**
@@ -13,7 +12,7 @@ import { TransformModifyFlags } from "../../Transform";
  * @decorator `@dependentComponents(Collider, DependentMode.CheckOnly)`
  */
 @dependentComponents(Collider, DependentMode.CheckOnly)
-export abstract class Joint extends Component implements ICustomClone {
+export abstract class Joint extends Component {
   private static _tempVector3 = new Vector3();
 
   @deepClone
@@ -39,7 +38,7 @@ export abstract class Joint extends Component implements ICustomClone {
         this._onConnectedTransformChanged
       );
       this._connectedColliderInfo.collider = value;
-      this._nativeJoint.setConnectedCollider(value._nativeCollider);
+      this._nativeJoint?.setConnectedCollider(value._nativeCollider);
       if (this._autoConnectedAnchor) {
         this._calculateConnectedAnchor();
       } else {
@@ -100,7 +99,7 @@ export abstract class Joint extends Component implements ICustomClone {
   set connectedMassScale(value: number) {
     if (value !== this._connectedColliderInfo.massScale) {
       this._connectedColliderInfo.massScale = value;
-      this._nativeJoint.setConnectedMassScale(value);
+      this._nativeJoint?.setConnectedMassScale(value);
     }
   }
 
@@ -114,7 +113,7 @@ export abstract class Joint extends Component implements ICustomClone {
   set massScale(value: number) {
     if (value !== this._colliderInfo.massScale) {
       this._colliderInfo.massScale = value;
-      this._nativeJoint.setMassScale(value);
+      this._nativeJoint?.setMassScale(value);
     }
   }
 
@@ -128,7 +127,7 @@ export abstract class Joint extends Component implements ICustomClone {
   set connectedInertiaScale(value: number) {
     if (value !== this._connectedColliderInfo.inertiaScale) {
       this._connectedColliderInfo.inertiaScale = value;
-      this._nativeJoint.setConnectedInertiaScale(value);
+      this._nativeJoint?.setConnectedInertiaScale(value);
     }
   }
 
@@ -142,7 +141,7 @@ export abstract class Joint extends Component implements ICustomClone {
   set inertiaScale(value: number) {
     if (value !== this._colliderInfo.inertiaScale) {
       this._colliderInfo.inertiaScale = value;
-      this._nativeJoint.setInertiaScale(value);
+      this._nativeJoint?.setInertiaScale(value);
     }
   }
 
@@ -156,7 +155,7 @@ export abstract class Joint extends Component implements ICustomClone {
   set breakForce(value: number) {
     if (value !== this._force) {
       this._force = value;
-      this._nativeJoint.setBreakForce(value);
+      this._nativeJoint?.setBreakForce(value);
     }
   }
 
@@ -170,7 +169,7 @@ export abstract class Joint extends Component implements ICustomClone {
   set breakTorque(value: number) {
     if (value !== this._torque) {
       this._torque = value;
-      this._nativeJoint.setBreakTorque(value);
+      this._nativeJoint?.setBreakTorque(value);
     }
   }
 
@@ -202,29 +201,24 @@ export abstract class Joint extends Component implements ICustomClone {
     this._nativeJoint = null;
   }
 
-  /**
-   * @internal
-   */
-  _cloneTo(target: Joint): void {
-    target._syncBackends();
-  }
-
   protected abstract _createJoint(): void;
 
   protected _syncBackends(): void {
-    this._nativeJoint.setConnectedCollider(this._connectedColliderInfo.collider?._nativeCollider || null);
-    this._updateActualAnchor(AnchorOwner.Self);
-    if (this._autoConnectedAnchor) {
-      this._calculateConnectedAnchor();
-    } else {
-      this._updateActualAnchor(AnchorOwner.Connected);
+    if (this._nativeJoint) {
+      this._nativeJoint.setConnectedCollider(this._connectedColliderInfo.collider?._nativeCollider || null);
+      this._updateActualAnchor(AnchorOwner.Self);
+      if (this._autoConnectedAnchor) {
+        this._calculateConnectedAnchor();
+      } else {
+        this._updateActualAnchor(AnchorOwner.Connected);
+      }
+      this._nativeJoint.setConnectedMassScale(this._connectedColliderInfo.massScale);
+      this._nativeJoint.setConnectedInertiaScale(this._connectedColliderInfo.inertiaScale);
+      this._nativeJoint.setMassScale(this._colliderInfo.massScale);
+      this._nativeJoint.setInertiaScale(this._colliderInfo.inertiaScale);
+      this._nativeJoint.setBreakForce(this._force);
+      this._nativeJoint.setBreakTorque(this._torque);
     }
-    this._nativeJoint.setConnectedMassScale(this._connectedColliderInfo.massScale);
-    this._nativeJoint.setConnectedInertiaScale(this._connectedColliderInfo.inertiaScale);
-    this._nativeJoint.setMassScale(this._colliderInfo.massScale);
-    this._nativeJoint.setInertiaScale(this._colliderInfo.inertiaScale);
-    this._nativeJoint.setBreakForce(this._force);
-    this._nativeJoint.setBreakTorque(this._torque);
   }
 
   private _calculateConnectedAnchor(): void {
@@ -264,7 +258,7 @@ export abstract class Joint extends Component implements ICustomClone {
       const worldScale = this.entity.transform.lossyWorldScale;
       const selfColliderInfo = this._colliderInfo;
       Vector3.multiply(selfColliderInfo.anchor, worldScale, selfColliderInfo.actualAnchor);
-      this._nativeJoint.setAnchor(selfColliderInfo.actualAnchor);
+      this._nativeJoint?.setAnchor(selfColliderInfo.actualAnchor);
     }
     if (flag & AnchorOwner.Connected) {
       const connectedColliderInfo = this._connectedColliderInfo;
@@ -275,7 +269,7 @@ export abstract class Joint extends Component implements ICustomClone {
       } else {
         connectedColliderInfo.actualAnchor.copyFrom(connectedColliderInfo.anchor);
       }
-      this._nativeJoint.setConnectedAnchor(connectedColliderInfo.actualAnchor);
+      this._nativeJoint?.setConnectedAnchor(connectedColliderInfo.actualAnchor);
     }
   }
 }
@@ -294,7 +288,9 @@ enum AnchorOwner {
  */
 class JointColliderInfo {
   collider: Collider = null;
+  @deepClone
   anchor = new Vector3();
+  @deepClone
   actualAnchor = new Vector3();
   massScale: number = 1;
   inertiaScale: number = 1;

@@ -6,22 +6,22 @@ import { HingeJointFlag } from "../enums/HingeJointFlag";
 import { Joint } from "./Joint";
 import { JointLimits } from "./JointLimits";
 import { JointMotor } from "./JointMotor";
-import { ignoreClone } from "../../clone/CloneManager";
+import { deepClone } from "../../clone/CloneManager";
 
 /**
  * A joint which behaves in a similar way to a hinge or axle.
  */
 export class HingeJoint extends Joint {
-  @ignoreClone
+  @deepClone
   private _axis = new Vector3(1, 0, 0);
-  @ignoreClone
   private _hingeFlags = HingeJointFlag.None;
-  @ignoreClone
   private _useSpring = false;
-  @ignoreClone
+  @deepClone
   private _jointMonitor: JointMotor;
-  @ignoreClone
+  @deepClone
   private _limits: JointLimits;
+  private _angle = 0;
+  private _velocity = 0;
 
   /**
    * The anchor rotation.
@@ -34,7 +34,7 @@ export class HingeJoint extends Joint {
     const axis = this._axis;
     if (value !== axis) {
       axis.copyFrom(value);
-      (<IHingeJoint>this._nativeJoint).setAxis(axis);
+      (<IHingeJoint>this._nativeJoint)?.setAxis(axis);
     }
   }
 
@@ -42,14 +42,22 @@ export class HingeJoint extends Joint {
    * The current angle in degrees of the joint relative to its rest position.
    */
   get angle(): number {
-    return (<IHingeJoint>this._nativeJoint).getAngle();
+    const nativeJoint = <IHingeJoint>this._nativeJoint;
+    if (nativeJoint) {
+      this._angle = nativeJoint.getAngle();
+    }
+    return this._angle;
   }
 
   /**
    * The angular velocity of the joint in degrees per second.
    */
   get velocity(): Readonly<number> {
-    return (<IHingeJoint>this._nativeJoint).getVelocity();
+    const nativeJoint = <IHingeJoint>this._nativeJoint;
+    if (nativeJoint) {
+      this._velocity = nativeJoint.getVelocity();
+    }
+    return this._velocity;
   }
 
   /**
@@ -62,7 +70,7 @@ export class HingeJoint extends Joint {
   set useLimits(value: boolean) {
     if (value !== this.useLimits) {
       value ? (this._hingeFlags |= HingeJointFlag.LimitEnabled) : (this._hingeFlags &= ~HingeJointFlag.LimitEnabled);
-      (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.LimitEnabled, value);
+      (<IHingeJoint>this._nativeJoint)?.setHingeJointFlag(HingeJointFlag.LimitEnabled, value);
     }
   }
 
@@ -76,7 +84,7 @@ export class HingeJoint extends Joint {
   set useMotor(value: boolean) {
     if (value !== this.useMotor) {
       value ? (this._hingeFlags |= HingeJointFlag.DriveEnabled) : (this._hingeFlags &= ~HingeJointFlag.DriveEnabled);
-      (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.DriveEnabled, value);
+      (<IHingeJoint>this._nativeJoint)?.setHingeJointFlag(HingeJointFlag.DriveEnabled, value);
     }
   }
 
@@ -104,10 +112,10 @@ export class HingeJoint extends Joint {
   set motor(value: JointMotor) {
     if (this._jointMonitor !== value) {
       this._jointMonitor = value;
-      (<IHingeJoint>this._nativeJoint).setDriveVelocity(value.targetVelocity);
-      (<IHingeJoint>this._nativeJoint).setDriveForceLimit(value.forceLimit);
-      (<IHingeJoint>this._nativeJoint).setDriveGearRatio(value.gearRation);
-      (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.DriveFreeSpin, value.freeSpin);
+      (<IHingeJoint>this._nativeJoint)?.setDriveVelocity(value.targetVelocity);
+      (<IHingeJoint>this._nativeJoint)?.setDriveForceLimit(value.forceLimit);
+      (<IHingeJoint>this._nativeJoint)?.setDriveGearRatio(value.gearRation);
+      (<IHingeJoint>this._nativeJoint)?.setHingeJointFlag(HingeJointFlag.DriveFreeSpin, value.freeSpin);
     }
   }
 
@@ -122,9 +130,9 @@ export class HingeJoint extends Joint {
     if (this._limits !== value) {
       this._limits = value;
       if (this.useSpring) {
-        (<IHingeJoint>this._nativeJoint).setSoftLimit(value.min, value.max, value.stiffness, value.damping);
+        (<IHingeJoint>this._nativeJoint)?.setSoftLimit(value.min, value.max, value.stiffness, value.damping);
       } else {
-        (<IHingeJoint>this._nativeJoint).setHardLimit(value.min, value.max, value.contactDistance);
+        (<IHingeJoint>this._nativeJoint)?.setHardLimit(value.min, value.max, value.contactDistance);
       }
     }
   }

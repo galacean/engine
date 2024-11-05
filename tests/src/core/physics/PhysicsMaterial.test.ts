@@ -148,8 +148,8 @@ describe("PhysicsMaterial", () => {
     // Avoid the box rotating
     collider.automaticInertiaTensor = false;
     collider2.automaticInertiaTensor = false;
-    collider.inertiaTensor.set(10000, 10000, 10000);
-    collider2.inertiaTensor.set(10000, 10000, 10000);
+    collider.inertiaTensor.set(10000000, 10000000, 10000000);
+    collider2.inertiaTensor.set(10000000, 10000000, 10000000);
 
     collider.shapes[0].material.dynamicFriction = 1;
     collider2.shapes[0].material.dynamicFriction = 0.5;
@@ -172,8 +172,8 @@ describe("PhysicsMaterial", () => {
     // Avoid the box rotating
     collider.automaticInertiaTensor = false;
     collider2.automaticInertiaTensor = false;
-    collider.inertiaTensor.set(10000, 10000, 10000);
-    collider2.inertiaTensor.set(10000, 10000, 10000);
+    collider.inertiaTensor.set(10000000, 10000000, 10000000);
+    collider2.inertiaTensor.set(10000000, 10000000, 10000000);
 
     collider.shapes[0].material.staticFriction = 2000;
     collider2.shapes[0].material.staticFriction = 100;
@@ -194,7 +194,7 @@ describe("PhysicsMaterial", () => {
 
     // Avoid the box rotating
     collider.automaticInertiaTensor = false;
-    collider.inertiaTensor.set(10000, 10000, 10000);
+    collider.inertiaTensor.set(10000000, 10000000, 10000000);
 
     collider.shapes[0].material.frictionCombine = PhysicsMaterialCombineMode.Average;
 
@@ -222,7 +222,7 @@ describe("PhysicsMaterial", () => {
 
     // Avoid the box rotating
     collider.automaticInertiaTensor = false;
-    collider.inertiaTensor.set(10000, 10000, 10000);
+    collider.inertiaTensor.set(10000000, 10000000, 10000000);
 
     collider.shapes[0].material.frictionCombine = PhysicsMaterialCombineMode.Minimum;
 
@@ -256,7 +256,7 @@ describe("PhysicsMaterial", () => {
 
     // Avoid the box rotating
     collider.automaticInertiaTensor = false;
-    collider.inertiaTensor.set(10000, 10000, 10000);
+    collider.inertiaTensor.set(10000000, 10000000, 10000000);
 
     collider.shapes[0].material.frictionCombine = PhysicsMaterialCombineMode.Maximum;
 
@@ -290,7 +290,7 @@ describe("PhysicsMaterial", () => {
 
     // Avoid the box rotating
     collider.automaticInertiaTensor = false;
-    collider.inertiaTensor.set(10000, 10000, 10000);
+    collider.inertiaTensor.set(10000000, 10000000, 10000000);
 
     collider.shapes[0].material.frictionCombine = PhysicsMaterialCombineMode.Multiply;
 
@@ -324,7 +324,7 @@ describe("PhysicsMaterial", () => {
 
     // Avoid the box rotating
     collider.automaticInertiaTensor = false;
-    collider.inertiaTensor.set(10000, 10000, 10000);
+    collider.inertiaTensor.set(10000000, 10000000, 10000000);
 
     collider.shapes[0].material.frictionCombine = PhysicsMaterialCombineMode.Average;
 
@@ -334,7 +334,7 @@ describe("PhysicsMaterial", () => {
     collider.applyForce(new Vector3(0, 0, 1000));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(boxEntity.transform.position.z)).eq(1.27887);
+    expect(formatValue(boxEntity.transform.position.z)).eq(1.27903);
 
     boxEntity.isActive = false;
     const boxEntity2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 0, 0));
@@ -342,7 +342,7 @@ describe("PhysicsMaterial", () => {
 
     // Avoid the box rotating
     collider2.automaticInertiaTensor = false;
-    collider2.inertiaTensor.set(10000, 10000, 10000);
+    collider2.inertiaTensor.set(10000000, 10000000, 10000000);
 
     collider2.shapes[0].material.frictionCombine = PhysicsMaterialCombineMode.Average;
 
@@ -352,7 +352,7 @@ describe("PhysicsMaterial", () => {
     collider2.applyForce(new Vector3(0, 0, 1000));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(boxEntity2.transform.position.z)).eq(1.27887);
+    expect(formatValue(boxEntity2.transform.position.z)).eq(1.27903);
   });
 
   it("frictionCombine Minimum DynamicFriction", () => {
@@ -362,7 +362,7 @@ describe("PhysicsMaterial", () => {
 
     // Avoid the box rotating
     collider.automaticInertiaTensor = false;
-    collider.inertiaTensor.set(10000, 10000, 10000);
+    collider.inertiaTensor.set(10000000, 10000000, 10000000);
 
     collider.shapes[0].material.frictionCombine = PhysicsMaterialCombineMode.Minimum;
 
@@ -380,7 +380,7 @@ describe("PhysicsMaterial", () => {
 
     // Avoid the box rotating
     collider2.automaticInertiaTensor = false;
-    collider2.inertiaTensor.set(10000, 10000, 10000);
+    collider2.inertiaTensor.set(10000000, 10000000, 10000000);
 
     collider2.shapes[0].material.frictionCombine = PhysicsMaterialCombineMode.Minimum;
 
@@ -400,7 +400,7 @@ describe("PhysicsMaterial", () => {
 
     // Avoid the box rotating
     collider.automaticInertiaTensor = false;
-    collider.inertiaTensor.set(10000, 10000, 10000);
+    collider.inertiaTensor.set(10000000, 10000000, 10000000);
 
     collider.shapes[0].material.frictionCombine = PhysicsMaterialCombineMode.Maximum;
 
@@ -410,7 +410,7 @@ describe("PhysicsMaterial", () => {
     collider.applyForce(new Vector3(0, 0, 1000));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(boxEntity.transform.position.z)).eq(0.57123);
+    expect(formatValue(boxEntity.transform.position.z)).eq(0.57139);
 
     boxEntity.isActive = false;
     const boxEntity2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 0, 0));
@@ -418,7 +418,7 @@ describe("PhysicsMaterial", () => {
 
     // Avoid the box rotating
     collider2.automaticInertiaTensor = false;
-    collider2.inertiaTensor.set(10000, 10000, 10000);
+    collider2.inertiaTensor.set(10000000, 10000000, 10000000);
 
     collider2.shapes[0].material.frictionCombine = PhysicsMaterialCombineMode.Maximum;
 
@@ -428,7 +428,7 @@ describe("PhysicsMaterial", () => {
     collider2.applyForce(new Vector3(0, 0, 1000));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(boxEntity2.transform.position.z)).eq(0.57123);
+    expect(formatValue(boxEntity2.transform.position.z)).eq(0.57139);
   });
 
   it("frictionCombine Multiply DynamicFriction", () => {
@@ -438,7 +438,7 @@ describe("PhysicsMaterial", () => {
 
     // Avoid the box rotating
     collider.automaticInertiaTensor = false;
-    collider.inertiaTensor.set(10000, 10000, 10000);
+    collider.inertiaTensor.set(10000000, 10000000, 10000000);
 
     collider.shapes[0].material.frictionCombine = PhysicsMaterialCombineMode.Multiply;
 
@@ -448,7 +448,7 @@ describe("PhysicsMaterial", () => {
     collider.applyForce(new Vector3(0, 0, 1000));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(boxEntity.transform.position.z)).eq(0.57123);
+    expect(formatValue(boxEntity.transform.position.z)).eq(0.57139);
 
     boxEntity.isActive = false;
     const boxEntity2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 0, 0));
@@ -456,7 +456,7 @@ describe("PhysicsMaterial", () => {
 
     // Avoid the box rotating
     collider2.automaticInertiaTensor = false;
-    collider2.inertiaTensor.set(10000, 10000, 10000);
+    collider2.inertiaTensor.set(10000000, 10000000, 10000000);
 
     collider2.shapes[0].material.frictionCombine = PhysicsMaterialCombineMode.Multiply;
 
@@ -466,6 +466,6 @@ describe("PhysicsMaterial", () => {
     collider2.applyForce(new Vector3(0, 0, 1000));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(boxEntity2.transform.position.z)).eq(0.57123);
+    expect(formatValue(boxEntity2.transform.position.z)).eq(0.57139);
   });
 });

@@ -419,4 +419,30 @@ describe("DynamicCollider", function () {
     expect(collider.shapes.length).eq(0);
     expect(entity.getComponent(DynamicCollider)).null;
   });
+
+  it("inActive modification", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    box.isActive = false;
+    boxCollider.automaticCenterOfMass = true;
+    boxCollider.linearDamping = 0.1;
+    boxCollider.angularDamping = 0.1;
+    boxCollider.mass = 1;
+    boxCollider.linearVelocity = new Vector3(1, 0, 0);
+    boxCollider.angularVelocity = new Vector3(0, 1, 0);
+    boxCollider.centerOfMass = new Vector3(1, 0, 0);
+    boxCollider.inertiaTensor = new Vector3(0, 1, 0);
+    boxCollider.maxAngularVelocity = 100;
+    boxCollider.maxDepenetrationVelocity = 10;
+    boxCollider.sleepThreshold = 100;
+    boxCollider.solverIterations = 10;
+    boxCollider.constraints = DynamicColliderConstraints.FreezePositionX;
+    boxCollider.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+    boxCollider.sleep();
+    boxCollider.wakeUp();
+    boxCollider.applyForce(new Vector3(1, 0, 0));
+    boxCollider.applyTorque(new Vector3(0, 1, 0));
+    boxCollider.move(new Vector3(1, 0, 0));
+    boxCollider.destroy();
+  });
 });
