@@ -90,7 +90,7 @@ export interface IMaterialSchema {
   shader: string;
   shaderData: {
     [key: string]: {
-      type: EngineMaterialPropertyType;
+      type: MaterialLoadType;
       value: IVector3 | IVector2 | IColor | number | IAssetRef;
     };
   };
@@ -100,7 +100,7 @@ export interface IMaterialSchema {
 }
 
 /** @internal */
-export enum EngineMaterialPropertyType {
+export enum MaterialLoadType {
   Vector2 = "Vector2",
   Vector3 = "Vector3",
   Vector4 = "Vector4",

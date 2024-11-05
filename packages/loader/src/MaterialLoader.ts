@@ -12,7 +12,7 @@ import {
 } from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import {
-  EngineMaterialPropertyType,
+  MaterialLoadType,
   type IAssetRef,
   type IColor,
   type IMaterialSchema,
@@ -72,31 +72,31 @@ class MaterialLoader extends Loader<Material> {
       const { type, value } = shaderData[key];
 
       switch (type) {
-        case EngineMaterialPropertyType.Vector2:
+        case MaterialLoadType.Vector2:
           materialShaderData.setVector2(key, new Vector2((<IVector2>value).x, (<IVector2>value).y));
           break;
-        case EngineMaterialPropertyType.Vector3:
+        case MaterialLoadType.Vector3:
           materialShaderData.setVector3(
             key,
             new Vector3((<IVector3>value).x, (<IVector3>value).y, (<IVector3>value).z)
           );
           break;
-        case EngineMaterialPropertyType.Vector4:
+        case MaterialLoadType.Vector4:
           materialShaderData.setVector4(
             key,
             new Vector4((<IVector4>value).x, (<IVector4>value).y, (<IVector4>value).z, (<IVector4>value).w)
           );
           break;
-        case EngineMaterialPropertyType.Color:
+        case MaterialLoadType.Color:
           materialShaderData.setColor(
             key,
             new Color((<IColor>value).r, (<IColor>value).g, (<IColor>value).b, (<IColor>value).a)
           );
           break;
-        case EngineMaterialPropertyType.Float:
+        case MaterialLoadType.Float:
           materialShaderData.setFloat(key, <number>value);
           break;
-        case EngineMaterialPropertyType.Texture:
+        case MaterialLoadType.Texture:
           texturePromises.push(
             // @ts-ignore
             engine.resourceManager.getResourceByRef<Texture2D>(<IAssetRef>value).then((texture) => {
@@ -104,10 +104,10 @@ class MaterialLoader extends Loader<Material> {
             })
           );
           break;
-        case EngineMaterialPropertyType.Boolean:
+        case MaterialLoadType.Boolean:
           materialShaderData.setInt(key, value ? 1 : 0);
           break;
-        case EngineMaterialPropertyType.Integer:
+        case MaterialLoadType.Integer:
           materialShaderData.setInt(key, Number(value));
           break;
       }
