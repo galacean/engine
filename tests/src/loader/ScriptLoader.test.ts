@@ -1,14 +1,10 @@
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { AssetType, Script } from "@galacean/engine-core";
+import { AssetType } from "@galacean/engine-core";
 import "@galacean/engine-loader";
+import type { ESModule } from "@galacean/engine-loader";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 
 let engine: WebGLEngine;
-
-interface ESModuleStructure {
-  default?: Script;
-  [key: string]: any;
-}
 
 beforeAll(async () => {
   const canvasDOM = document.createElement("canvas");
@@ -20,7 +16,7 @@ beforeAll(async () => {
 describe("ScriptLoader test", function () {
   it("loader from string url", async () => {
     
-    engine.resourceManager.load<ESModuleStructure>({
+    engine.resourceManager.load<ESModule>({
       url: "https://cdn.jsdelivr.net/npm/colord@2.9.3/+esm",
       type: AssetType.Script
     })
@@ -39,7 +35,7 @@ describe("ScriptLoader test", function () {
       export const getFormat = () => "getFormat";
       export default colord;
     `
-    engine.resourceManager.load<ESModuleStructure>({
+    engine.resourceManager.load<ESModule>({
       url: URL.createObjectURL(new Blob([esModuleString], { type: "application/javascript" })),
       type: AssetType.Script
     })

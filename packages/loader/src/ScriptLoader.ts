@@ -1,15 +1,16 @@
 import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, Script } from "@galacean/engine-core";
 
-interface ESModuleStructure {
-  default?: Script;
+export interface ESModule {
+  default?: any;
   [key: string]: any;
 }
 
 @resourceLoader(AssetType.Script, ["js", "mjs"], false)
-export class ScriptLoader extends Loader<ESModuleStructure> {
-  load(item: LoadItem): AssetPromise<ESModuleStructure> {
+export class ScriptLoader extends Loader<ESModule> {
+  load(item: LoadItem): AssetPromise<ESModule> {
     return new AssetPromise((resolve, reject) => {
-      (import(/* @vite-ignore */ item.url) as Promise<ESModuleStructure>)
+      const { url } = item;
+      (import(/* @vite-ignore */ url) as Promise<ESModule>)
         .then((esModule) => {
           resolve(esModule);
         })
