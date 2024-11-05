@@ -1,7 +1,7 @@
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { AssetType } from "@galacean/engine-core";
 import "@galacean/engine-loader";
-import type { ESModule } from "@galacean/engine-loader";
+import { ESModule } from "@galacean/engine-loader";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 
 let engine: WebGLEngine;
