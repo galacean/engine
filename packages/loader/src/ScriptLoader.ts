@@ -9,8 +9,7 @@ export interface ESModule {
 export class ScriptLoader extends Loader<ESModule> {
   load(item: LoadItem): AssetPromise<ESModule> {
     return new AssetPromise((resolve, reject) => {
-      const { url } = item;
-      (import(/* @vite-ignore */ url) as Promise<ESModule>)
+      (import(/* @vite-ignore */ item.url) as Promise<ESModule>)
         .then((esModule) => {
           resolve(esModule);
         })
