@@ -90,7 +90,7 @@ export interface IMaterialSchema {
   shader: string;
   shaderData: {
     [key: string]: {
-      type: MaterialLoadType;
+      type: MaterialLoaderType;
       value: IVector3 | IVector2 | IColor | number | IAssetRef;
     };
   };
@@ -99,7 +99,7 @@ export interface IMaterialSchema {
   shaderRef: IShaderRef;
 }
 
-export enum MaterialLoadType {
+export enum MaterialLoaderType {
   Vector2 = "Vector2",
   Vector3 = "Vector3",
   Vector4 = "Vector4",
