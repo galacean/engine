@@ -1,6 +1,6 @@
 import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, Script } from "@galacean/engine-core";
 
-export interface ESModule {
+export type interface ESModule {
   default?: any;
   [key: string]: any;
 }
