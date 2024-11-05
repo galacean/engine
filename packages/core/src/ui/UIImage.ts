@@ -1,4 +1,4 @@
-import { BoundingBox, Color, MathUtil, Vector2, Vector3 } from "@galacean/engine-math";
+import { BoundingBox, MathUtil, Vector2, Vector3 } from "@galacean/engine-math";
 import { Sprite, SpriteDrawMode, SpriteTileMode } from "../2d";
 import { ISpriteAssembler } from "../2d/assembler/ISpriteAssembler";
 import { ISpriteRenderer } from "../2d/assembler/ISpriteRenderer";
@@ -12,9 +12,8 @@ import { BatchUtils } from "../RenderPipeline/BatchUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { SubRenderElement } from "../RenderPipeline/SubRenderElement";
 import { RendererUpdateFlags } from "../Renderer";
-import { assignmentClone, deepClone, ignoreClone } from "../clone/CloneManager";
-import { GroupModifyFlags } from "./UIGroup";
-import { UIRenderer } from "./UIRenderer";
+import { assignmentClone, ignoreClone } from "../clone/CloneManager";
+import { UIRenderer, UIRendererUpdateFlags } from "./UIRenderer";
 import { UITransform, UITransformModifyFlags } from "./UITransform";
 import { CanvasRenderMode } from "./enums/CanvasRenderMode";
 
@@ -22,8 +21,6 @@ export class UIImage extends UIRenderer implements ISpriteRenderer {
   private static _tempVec2: Vector2 = new Vector2();
   private static _tempUnit8Array: Uint8ClampedArray = new Uint8ClampedArray(4);
 
-  @deepClone
-  private _color: Color = new Color(1, 1, 1, 1);
   @ignoreClone
   private _sprite: Sprite = null;
   @ignoreClone
@@ -133,44 +130,16 @@ export class UIImage extends UIRenderer implements ISpriteRenderer {
   }
 
   /**
-   * Rendering color for the Sprite graphic.
-   */
-  get color(): Color {
-    return this._color;
-  }
-
-  set color(value: Color) {
-    if (this._color !== value) {
-      this._color.copyFrom(value);
-    }
-  }
-
-  /**
    * @internal
    */
   constructor(entity: Entity) {
     super(entity);
 
     this.drawMode = SpriteDrawMode.Simple;
-    this._dirtyUpdateFlag |= ImageUpdateFlags.Color | RendererUpdateFlags.AllBounds;
     this.setMaterial(this._engine._basicResources.uiDefaultMaterial);
     this._onSpriteChange = this._onSpriteChange.bind(this);
     //@ts-ignore
     this._color._onValueChanged = this._onColorChange.bind(this);
-  }
-
-  override _onGroupModify(flag: GroupModifyFlags): void {
-    if (flag & GroupModifyFlags.RaycastEnable) {
-      const runtimeRaycastEnable = this.raycastEnable && this._group._getGlobalRaycastEnable();
-      if (this._runtimeRaycastEnable !== runtimeRaycastEnable) {
-        this._runtimeRaycastEnable = runtimeRaycastEnable;
-        this.entity._onUIInteractiveChange(runtimeRaycastEnable);
-      }
-    }
-    if (flag & GroupModifyFlags.Alpha) {
-      this._alpha = this._group._globalAlpha;
-      this._dirtyUpdateFlag |= ImageUpdateFlags.Color;
-    }
   }
 
   protected override _hitTest(localPosition: Vector3): boolean {
@@ -259,9 +228,9 @@ export class UIImage extends UIRenderer implements ISpriteRenderer {
     }
 
     // Update color
-    if (dirtyUpdateFlag & ImageUpdateFlags.Color) {
+    if (dirtyUpdateFlag & UIRendererUpdateFlags.Color) {
       this._assembler.updateColor(this, this._alpha);
-      dirtyUpdateFlag &= ~ImageUpdateFlags.Color;
+      dirtyUpdateFlag &= ~UIRendererUpdateFlags.Color;
     }
 
     this._dirtyUpdateFlag = dirtyUpdateFlag;
@@ -310,7 +279,7 @@ export class UIImage extends UIRenderer implements ISpriteRenderer {
     if (type & UITransformModifyFlags.Pivot) {
       this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
     }
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldBounds;
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldPositionAndBounds;
   }
 
   protected override _onDestroy(): void {
@@ -371,11 +340,6 @@ export class UIImage extends UIRenderer implements ISpriteRenderer {
     }
   }
 
-  @ignoreClone
-  private _onColorChange(): void {
-    this._dirtyUpdateFlag |= ImageUpdateFlags.Color;
-  }
-
   private _getUVByLocalPosition(position: Vector3, out: Vector2): boolean {
     const transform = <UITransform>this._transform;
     const { size, pivot } = transform;
@@ -393,14 +357,13 @@ export class UIImage extends UIRenderer implements ISpriteRenderer {
 }
 
 /**
- * @remarks Extends `RendererUpdateFlags`.
+ * @remarks Extends `UIRendererUpdateFlags`.
  */
 enum ImageUpdateFlags {
-  UV = 0x10,
-  Color = 0x20,
+  UV = 0x20,
 
   /** LocalPosition | WorldPosition | UV */
-  AllPositionAndUV = 0x13,
+  AllPositionAndUV = 0x23,
   /** LocalPosition | WorldPosition | UV | Color */
   AllPositionUVAndColor = 0x33,
   /** LocalPosition | WorldPosition | UV | Color | LocalBounds | WorldBounds */

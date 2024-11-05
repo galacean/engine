@@ -4,7 +4,7 @@ import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { ComponentType } from "../enums/ComponentType";
 import { DisorderedArray } from "../utils/DisorderedArray";
 import { UIUtils } from "./UIUtils";
-import { IUIElement } from "./interface/IUIElement";
+import { IGroupElement } from "./interface/IGroupElement";
 
 export class UIGroup extends Component {
   /** @internal */
@@ -18,18 +18,18 @@ export class UIGroup extends Component {
   _disorderedGroups: DisorderedArray<UIGroup> = new DisorderedArray();
   /** @internal */
   @ignoreClone
-  _disorderedElements: DisorderedArray<IUIElement> = new DisorderedArray();
+  _disorderedElements: DisorderedArray<IGroupElement> = new DisorderedArray();
 
   /** @internal */
   @ignoreClone
   _globalAlpha = 1;
   /** @internal */
-  _globalRaycastEnable = true;
+  _globalInteractive = true;
 
   @assignmentClone
   private _alpha = 1;
   @assignmentClone
-  private _raycastEnabled = true;
+  private _interactive = true;
   @assignmentClone
   private _ignoreParentGroup = false;
   @ignoreClone
@@ -51,14 +51,14 @@ export class UIGroup extends Component {
     }
   }
 
-  get raycastEnabled(): boolean {
-    return this._raycastEnabled;
+  get interactive(): boolean {
+    return this._interactive;
   }
 
-  set raycastEnabled(val: boolean) {
-    if (this._raycastEnabled !== val) {
-      this._raycastEnabled = val;
-      this._updateGlobalModify(GroupModifyFlags.RaycastEnable);
+  set interactive(val: boolean) {
+    if (this._interactive !== val) {
+      this._interactive = val;
+      this._updateGlobalModify(GroupModifyFlags.Interactive);
     }
   }
 
@@ -77,8 +77,8 @@ export class UIGroup extends Component {
   /**
    * @internal
    */
-  _getGlobalRaycastEnable(): boolean {
-    return this._globalRaycastEnable;
+  _getGlobalInteractive(): boolean {
+    return this._globalInteractive;
   }
 
   /**
@@ -94,22 +94,21 @@ export class UIGroup extends Component {
         passDownFlags |= GroupModifyFlags.Alpha;
       }
     }
-    if (flags & GroupModifyFlags.RaycastEnable) {
-      const raycastEnable =
-        this._raycastEnabled &&
-        (!this._ignoreParentGroup && parentGroup ? parentGroup._getGlobalRaycastEnable() : true);
-      if (this._globalRaycastEnable !== raycastEnable) {
-        this._globalRaycastEnable = raycastEnable;
-        passDownFlags |= GroupModifyFlags.RaycastEnable;
+    if (flags & GroupModifyFlags.Interactive) {
+      const interactive =
+        this._interactive && (!this._ignoreParentGroup && parentGroup ? parentGroup._getGlobalInteractive() : true);
+      if (this._globalInteractive !== interactive) {
+        this._globalInteractive = interactive;
+        passDownFlags |= GroupModifyFlags.Interactive;
       }
     }
     if (!!flags) {
-      this._disorderedElements.forEach((element: IUIElement) => {
+      this._disorderedElements.forEach((element) => {
         element._onGroupModify(passDownFlags);
       });
     }
     if (!!passDownFlags) {
-      this._disorderedGroups.forEach((element: UIGroup) => {
+      this._disorderedGroups.forEach((element) => {
         element._updateGlobalModify(passDownFlags);
       });
     }
@@ -129,8 +128,8 @@ export class UIGroup extends Component {
     entityListeners.length = 0;
     const parentGroup = this._parentGroup;
     const disorderedElements = this._disorderedElements;
-    disorderedElements.forEach((element: IUIElement) => {
-      UIUtils.registerUIToGroup(element, parentGroup);
+    disorderedElements.forEach((element) => {
+      UIUtils.registerElementToGroup(element, parentGroup);
     });
     disorderedElements.length = 0;
     disorderedElements.garbageCollection();
@@ -178,13 +177,8 @@ export class UIGroup extends Component {
   }
 
   private _onEntityModify(flags: EntityModifyFlags): void {
-    switch (flags) {
-      case EntityModifyFlags.Parent:
-      case EntityModifyFlags.UIGroupEnableInScene:
-        this._registryToParentGroup(UIUtils.getGroupInParents(this._entity.parent));
-        break;
-      default:
-        break;
+    if (flags === EntityModifyFlags.Parent || flags === EntityModifyFlags.UIGroupEnableInScene) {
+      this._registryToParentGroup(UIUtils.getGroupInParents(this._entity.parent));
     }
   }
 }
@@ -192,6 +186,6 @@ export class UIGroup extends Component {
 export enum GroupModifyFlags {
   None = 0x0,
   Alpha = 0x1,
-  RaycastEnable = 0x2,
+  Interactive = 0x2,
   All = 0x3
 }

@@ -10,13 +10,15 @@ import { DisorderedArray } from "../utils/DisorderedArray";
 import { UICanvas } from "./UICanvas";
 import { GroupModifyFlags, UIGroup } from "./UIGroup";
 import { UITransform } from "./UITransform";
-import { IUIElement } from "./interface/IUIElement";
+import { ICanvasElement } from "./interface/ICanvasElement";
+import { IGroupElement } from "./interface/IGroupElement";
 
 export class UIUtils {
   private static _renderQueue: RenderQueue;
   private static _virtualCamera: VirtualCamera;
+  private static _viewport: Vector4;
 
-  static registerEntityListener(element: IUIElement): void {
+  static registerEntityListener(element: ICanvasElement): void {
     const parents = element._parents;
     const root = element._rootCanvas?.entity;
     let entity = element._entity;
@@ -34,7 +36,7 @@ export class UIUtils {
     parents.length = index;
   }
 
-  static unRegisterEntityListener(element: IUIElement): void {
+  static unRegisterEntityListener(element: ICanvasElement): void {
     const { _parents: parents } = element;
     for (let i = 0, n = parents.length; i < n; i++) {
       parents[i]._unRegisterModifyListener(element._onEntityModify);
@@ -42,7 +44,7 @@ export class UIUtils {
     parents.length = 0;
   }
 
-  static registerUIToCanvas(element: IUIElement, canvas: UICanvas): void {
+  static registerElementToCanvas(element: ICanvasElement, canvas: UICanvas): void {
     const preCanvas = element._rootCanvas;
     if (preCanvas !== canvas) {
       element._rootCanvas = canvas;
@@ -57,13 +59,11 @@ export class UIUtils {
         element._indexInCanvas = disorderedElements.length;
         disorderedElements.add(element);
         canvas._hierarchyDirty = true;
-      } else {
-        element.depth = -1;
       }
     }
   }
 
-  static registerUIToGroup(element: IUIElement, group: UIGroup): void {
+  static registerElementToGroup(element: IGroupElement, group: UIGroup): void {
     const preGroup = element._group;
     if (preGroup !== group) {
       element._group = group;
@@ -129,11 +129,12 @@ export class UIUtils {
     if (uiCanvases.length <= 0) return;
     const uiRenderQueue = (this._renderQueue ||= new RenderQueue(RenderQueueType.Transparent));
     const virtualCamera = (this._virtualCamera ||= new VirtualCamera());
+    const viewport = (this._viewport ||= new Vector4(0, 0, 1, 1));
     const { canvas, _hardwareRenderer: rhi, _renderContext: renderContext, _batcherManager: batcherManager } = engine;
     const { elements: projectE } = virtualCamera.projectionMatrix;
     const { elements: viewE } = virtualCamera.viewMatrix;
     (projectE[0] = 2 / canvas.width), (projectE[5] = 2 / canvas.height), (projectE[10] = 0);
-    rhi.activeRenderTarget(null, new Vector4(0, 0, 1, 1), renderContext.flipProjection, 0);
+    rhi.activeRenderTarget(null, viewport, renderContext.flipProjection, 0);
     for (let i = 0, n = uiCanvases.length; i < n; i++) {
       const uiCanvas = uiCanvases.get(i);
       if (!uiCanvas) continue;

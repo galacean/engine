@@ -1,4 +1,4 @@
-import { Matrix, Plane, Ray, Vector3, Vector4 } from "@galacean/engine-math";
+import { Color, Matrix, Plane, Ray, Vector3, Vector4 } from "@galacean/engine-math";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Entity, EntityModifyFlags } from "../Entity";
 import { PrimitiveChunkManager } from "../RenderPipeline/PrimitiveChunkManager";
@@ -12,12 +12,12 @@ import { ShaderProperty } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { UICanvas } from "./UICanvas";
 import { GroupModifyFlags, UIGroup } from "./UIGroup";
-import { UITransform, UITransformModifyFlags } from "./UITransform";
+import { UITransform } from "./UITransform";
 import { UIUtils } from "./UIUtils";
-import { IUIElement } from "./interface/IUIElement";
+import { IUIGraphics } from "./interface/IUIGraphics";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
-export class UIRenderer extends Renderer implements IUIElement {
+export abstract class UIRenderer extends Renderer implements IUIGraphics {
   /** @internal */
   static _tempVec30: Vector3 = new Vector3();
   /** @internal */
@@ -52,14 +52,26 @@ export class UIRenderer extends Renderer implements IUIElement {
   /** @internal */
   @ignoreClone
   _subChunk: SubPrimitiveChunk;
-  /** @internal */
-  @ignoreClone
-  _runtimeRaycastEnable: boolean = true;
 
   @ignoreClone
   private _raycastEnable: boolean = true;
   @ignoreClone
   protected _alpha: number = 1;
+  @deepClone
+  protected _color: Color = new Color(1, 1, 1, 1);
+
+  /**
+   * Rendering color for the ui renderer.
+   */
+  get color(): Color {
+    return this._color;
+  }
+
+  set color(value: Color) {
+    if (this._color !== value) {
+      this._color.copyFrom(value);
+    }
+  }
 
   get raycastEnable(): boolean {
     return this._raycastEnable;
@@ -68,11 +80,7 @@ export class UIRenderer extends Renderer implements IUIElement {
   set raycastEnable(val: boolean) {
     if (this._raycastEnable !== val) {
       this._raycastEnable = val;
-      const runtimeRaycastEnable = val && (!this._group || this._group._getGlobalRaycastEnable());
-      if (this._runtimeRaycastEnable !== runtimeRaycastEnable) {
-        this._runtimeRaycastEnable = runtimeRaycastEnable;
-        this.entity._onUIInteractiveChange(runtimeRaycastEnable);
-      }
+      this.entity._onUIInteractiveChange(val);
     }
   }
 
@@ -82,8 +90,11 @@ export class UIRenderer extends Renderer implements IUIElement {
   constructor(entity: Entity) {
     super(entity);
     this._componentType = ComponentType.UIRenderer;
+    this._dirtyUpdateFlag = RendererUpdateFlags.AllBounds | UIRendererUpdateFlags.Color;
     this._onEntityModify = this._onEntityModify.bind(this);
-    this._onGroupModify = this._onGroupModify.bind(this);
+    this._onColorChange = this._onColorChange.bind(this);
+    //@ts-ignore
+    this._color._onValueChanged = this._onColorChange;
   }
 
   /**
@@ -125,10 +136,10 @@ export class UIRenderer extends Renderer implements IUIElement {
   override _onEnableInScene(): void {
     this._overrideUpdate && this.scene._componentsManager.addOnUpdateRenderers(this);
     const entity = this._entity;
-    UIUtils.registerUIToCanvas(this, UIUtils.getRootCanvasInParent(entity));
-    UIUtils.registerUIToGroup(this, UIUtils.getGroupInParents(entity));
+    UIUtils.registerElementToCanvas(this, UIUtils.getRootCanvasInParent(entity));
+    UIUtils.registerElementToGroup(this, UIUtils.getGroupInParents(entity));
     UIUtils.registerEntityListener(this);
-    entity._onUIInteractiveChange(this._runtimeRaycastEnable);
+    entity._onUIInteractiveChange(this.raycastEnable);
   }
 
   /**
@@ -136,8 +147,8 @@ export class UIRenderer extends Renderer implements IUIElement {
    */
   override _onDisableInScene(): void {
     this._overrideUpdate && this.scene._componentsManager.removeOnUpdateRenderers(this);
-    UIUtils.registerUIToCanvas(this, null);
-    UIUtils.registerUIToGroup(this, null);
+    UIUtils.registerElementToCanvas(this, null);
+    UIUtils.registerElementToGroup(this, null);
     UIUtils.unRegisterEntityListener(this);
     this._entity._onUIInteractiveChange(false);
   }
@@ -155,10 +166,10 @@ export class UIRenderer extends Renderer implements IUIElement {
       case EntityModifyFlags.Parent:
         const rootCanvas = UIUtils.getRootCanvasInParent(this._entity);
         rootCanvas && (rootCanvas._hierarchyDirty = true);
-        UIUtils.registerUIToCanvas(this, rootCanvas);
+        UIUtils.registerElementToCanvas(this, rootCanvas);
         UIUtils.registerEntityListener(this);
       case EntityModifyFlags.UIGroupEnableInScene:
-        UIUtils.registerUIToGroup(this, UIUtils.getGroupInParents(this._entity));
+        UIUtils.registerElementToGroup(this, UIUtils.getGroupInParents(this._entity));
         break;
       default:
         break;
@@ -168,14 +179,17 @@ export class UIRenderer extends Renderer implements IUIElement {
   /**
    * @internal
    */
+  @ignoreClone
   _onGroupModify(flag: GroupModifyFlags): void {
-    if (flag & GroupModifyFlags.RaycastEnable) {
-      const runtimeRaycastEnable = this.raycastEnable && this._group._getGlobalRaycastEnable();
-      if (this._runtimeRaycastEnable !== runtimeRaycastEnable) {
-        this._runtimeRaycastEnable = runtimeRaycastEnable;
-        this.entity._onUIInteractiveChange(runtimeRaycastEnable);
-      }
+    if (flag & GroupModifyFlags.Alpha) {
+      this._alpha = this._group._globalAlpha;
+      this._dirtyUpdateFlag |= UIRendererUpdateFlags.Color;
     }
+  }
+
+  @ignoreClone
+  private _onColorChange(): void {
+    this._dirtyUpdateFlag |= UIRendererUpdateFlags.Color;
   }
 
   /**
@@ -232,18 +246,15 @@ export class UIRenderer extends Renderer implements IUIElement {
       this._subChunk = null;
     }
     super._onDestroy();
+    //@ts-ignore
+    this._color._onValueChanged = null;
+    this._color = null;
   }
+}
 
-  @ignoreClone
-  protected override _onTransformChanged(flag: UITransformModifyFlags): void {
-    switch (flag) {
-      case UITransformModifyFlags.Size:
-      case UITransformModifyFlags.Pivot:
-        this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
-        break;
-      default:
-        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldBounds;
-        break;
-    }
-  }
+/**
+ * @remarks Extends `RendererUpdateFlags`.
+ */
+export enum UIRendererUpdateFlags {
+  Color = 0x10
 }

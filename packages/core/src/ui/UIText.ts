@@ -1,4 +1,4 @@
-import { BoundingBox, Color, Vector3 } from "@galacean/engine-math";
+import { BoundingBox, Vector3 } from "@galacean/engine-math";
 import { FontStyle } from "../2d/enums/FontStyle";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../2d/enums/TextAlignment";
 import { OverflowMode } from "../2d/enums/TextOverflow";
@@ -13,12 +13,12 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../RenderPipeline/SubRenderElement";
 import { RendererUpdateFlags } from "../Renderer";
-import { assignmentClone, deepClone, ignoreClone } from "../clone/CloneManager";
+import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { Texture2D } from "../texture/Texture2D";
-import { UIRenderer } from "./UIRenderer";
+import { UIRenderer, UIRendererUpdateFlags } from "./UIRenderer";
 import { UITransformModifyFlags } from "./UITransform";
 import { CanvasRenderMode } from "./enums/CanvasRenderMode";
 
@@ -31,8 +31,6 @@ export class UIText extends UIRenderer {
   private _textChunks = Array<TextChunk>();
   @ignoreClone
   private _subFont: SubFont = null;
-  @deepClone
-  private _color: Color = new Color(1, 1, 1, 1);
   @assignmentClone
   private _text: string = "";
   @assignmentClone
@@ -55,19 +53,6 @@ export class UIText extends UIRenderer {
   private _enableWrapping: boolean = false;
   @assignmentClone
   private _overflowMode: OverflowMode = OverflowMode.Overflow;
-
-  /**
-   * Rendering color for the Text.
-   */
-  get color(): Color {
-    return this._color;
-  }
-
-  set color(value: Color) {
-    if (this._color !== value) {
-      this._color.copyFrom(value);
-    }
-  }
 
   /**
    * Rendering string for the Text.
@@ -253,8 +238,6 @@ export class UIText extends UIRenderer {
     const { engine } = this;
     this.font = engine._textDefaultFont;
     this.setMaterial(engine._basicResources.textDefaultMaterial);
-    //@ts-ignore
-    this._color._onValueChanged = this._onColorChange.bind(this);
   }
 
   /**
@@ -353,9 +336,9 @@ export class UIText extends UIRenderer {
       this._setDirtyFlagFalse(RendererUpdateFlags.WorldPosition);
     }
 
-    if (this._isContainDirtyFlag(UITextUpdateFlags.Color)) {
+    if (this._isContainDirtyFlag(UIRendererUpdateFlags.Color)) {
       this._updateColor();
-      this._setDirtyFlagFalse(UITextUpdateFlags.Color);
+      this._setDirtyFlagFalse(UIRendererUpdateFlags.Color);
     }
 
     const engine = context.camera.engine;
@@ -649,11 +632,6 @@ export class UIText extends UIRenderer {
     }
     textChunks.length = 0;
   }
-
-  @ignoreClone
-  private _onColorChange(): void {
-    this._setDirtyFlagTrue(UITextUpdateFlags.Color);
-  }
 }
 
 class TextChunk {
@@ -666,11 +644,10 @@ class TextChunk {
  * @remarks Extends `RendererUpdateFlags`.
  */
 enum UITextUpdateFlags {
-  SubFont = 0x10,
-  Color = 0x20,
+  SubFont = 0x20,
 
   /** SubFont | LocalPosition | WorldPosition | LocalBounds | WorldBounds */
-  FontAllPositionAndBounds = 0x1f,
+  FontAllPositionAndBounds = 0x2f,
   /** SubFont | LocalPosition | WorldPosition | Color | LocalBounds | WorldBounds */
   All = 0x3f
 }

@@ -150,6 +150,8 @@ export class PointerManager implements IInput {
         }
         for (let j = 0; j < length; j++) {
           const event = events[j];
+          pointer.button = _pointerDec2BinMap[event.button] || PointerButton.None;
+          pointer.pressedButtons = event.buttons;
           switch (event.type) {
             case "pointerdown":
               pointer.phase = PointerPhase.Down;
@@ -218,11 +220,9 @@ export class PointerManager implements IInput {
       position.set(currX, currY);
       for (let i = 0; i < length; i++) {
         const event = events[i];
-        const { button } = event;
-        pointer.button = _pointerDec2BinMap[button] || PointerButton.None;
-        pointer.pressedButtons = event.buttons;
         switch (event.type) {
-          case "pointerdown":
+          case "pointerdown": {
+            const button = event.button;
             _downList.add(button);
             _downMap[button] = frameCount;
             pointer._downList.add(button);
@@ -230,7 +230,9 @@ export class PointerManager implements IInput {
             pointer._frameEvents |= PointerEventType.Down;
             pointer.phase = PointerPhase.Down;
             break;
-          case "pointerup":
+          }
+          case "pointerup": {
+            const button = event.button;
             _upList.add(button);
             _upMap[button] = frameCount;
             pointer._upList.add(button);
@@ -238,6 +240,7 @@ export class PointerManager implements IInput {
             pointer._frameEvents |= PointerEventType.Up;
             pointer.phase = PointerPhase.Up;
             break;
+          }
           case "pointermove":
             pointer._frameEvents |= PointerEventType.Move;
             pointer.phase = PointerPhase.Move;

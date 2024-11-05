@@ -52,7 +52,7 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
    * @internal
    */
   override _processDrag(pointer: Pointer): void {
-    const entity = this._pressedEntity;
+    const entity = this._draggedEntity;
     if (entity) {
       this._invokeEntityScripts(entity, (script: Script) => {
         script.onPointerDrag?.(this._createEventData(pointer, entity, entity));

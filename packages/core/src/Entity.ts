@@ -14,7 +14,7 @@ import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { ComponentType } from "./enums/ComponentType";
 import { UITransform } from "./ui";
-import { IUIElement } from "./ui/interface/IUIElement";
+import { IUIGraphics } from "./ui/interface/IUIGraphics";
 import { DisorderedArray } from "./utils/DisorderedArray";
 
 /**
@@ -643,7 +643,7 @@ export class Entity extends EngineObject {
         if (
           component._componentType & ComponentType.UIElement &&
           component.enabled &&
-          (component as unknown as IUIElement)._runtimeRaycastEnable
+          (component as unknown as IUIGraphics).raycastEnable
         ) {
           this._interactive = true;
           return;
