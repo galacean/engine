@@ -53,17 +53,18 @@ describe("HingeJoint", function () {
     const collider2 = boxEntity2.getComponent(DynamicCollider);
     collider.isKinematic = true;
     const joint = boxEntity.addComponent(HingeJoint);
+    joint.autoConnectedAnchor = true;
     joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
     joint.anchor = new Vector3(0.5, 0, 0);
     joint.axis = new Vector3(0, 1, 0);
 
-    expect(formatValue(joint.angle)).to.eq(0);
+    expect(formatValue(joint.angle)).eq(0);
 
     collider2.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
-    expect(formatValue(joint.velocity)).to.eq(6.89082);
-    expect(formatValue(joint.angle)).to.eq(0.11485);
+    expect(formatValue(joint.velocity)).eq(6.89082);
+    expect(formatValue(joint.angle)).eq(0.11485);
   });
 
   it("hardLimit", function () {
@@ -73,6 +74,7 @@ describe("HingeJoint", function () {
     const collider2 = boxEntity2.getComponent(DynamicCollider);
     collider.isKinematic = true;
     const joint = boxEntity.addComponent(HingeJoint);
+    joint.autoConnectedAnchor = true;
     joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
     joint.anchor = new Vector3(0.5, 0, 0);
     joint.axis = new Vector3(0, 1, 0);
@@ -82,12 +84,12 @@ describe("HingeJoint", function () {
     limits.max = Math.PI / 2;
     joint.limits = limits;
 
-    expect(formatValue(joint.angle)).to.eq(0);
+    expect(formatValue(joint.angle)).eq(0);
 
     collider2.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(joint.angle)).to.eq(1.5708);
+    expect(formatValue(joint.angle)).eq(1.5708);
   });
 
   it("softLimit", function () {
@@ -97,6 +99,7 @@ describe("HingeJoint", function () {
     const collider2 = boxEntity2.getComponent(DynamicCollider);
     collider.isKinematic = true;
     const joint = boxEntity.addComponent(HingeJoint);
+    joint.autoConnectedAnchor = true;
     joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
     joint.anchor = new Vector3(0.5, 0, 0);
     joint.axis = new Vector3(0, 1, 0);
@@ -109,12 +112,12 @@ describe("HingeJoint", function () {
     limits.damping = 30;
     joint.limits = limits;
 
-    expect(formatValue(joint.angle)).to.eq(0);
+    expect(formatValue(joint.angle)).eq(0);
 
     collider2.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(joint.angle)).to.eq(1.50047);
+    expect(formatValue(joint.angle)).eq(1.50047);
   });
 
   it("motor", function () {
@@ -132,12 +135,12 @@ describe("HingeJoint", function () {
     motor.targetVelocity = 30;
     joint.motor = motor;
 
-    expect(formatValue(joint.velocity)).to.eq(0);
+    expect(formatValue(joint.velocity)).eq(0);
 
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(joint.velocity)).to.eq(30);
-    expect(formatValue(joint.angle)).to.eq(4.86726);
+    expect(formatValue(joint.velocity)).eq(30);
+    expect(formatValue(joint.angle)).eq(4.86726);
   });
 
   it("forceLimit", function () {
@@ -156,15 +159,15 @@ describe("HingeJoint", function () {
     motor.forceLimit = 0.01;
     joint.motor = motor;
 
-    expect(formatValue(joint.velocity)).to.eq(0);
+    expect(formatValue(joint.velocity)).eq(0);
 
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(joint.velocity)).to.eq(3.51291);
+    expect(formatValue(joint.velocity)).eq(3.51291);
 
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(10);
-    expect(formatValue(joint.velocity)).to.eq(30);
+    expect(formatValue(joint.velocity)).eq(30);
   });
 
   it("gearRation", function () {
@@ -183,11 +186,11 @@ describe("HingeJoint", function () {
     motor.gearRation = 2;
     joint.motor = motor;
 
-    expect(formatValue(joint.velocity)).to.eq(0);
+    expect(formatValue(joint.velocity)).eq(0);
 
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(joint.velocity)).to.eq(15);
+    expect(formatValue(joint.velocity)).eq(15);
   });
 
   it("freeSpin", function () {
@@ -206,11 +209,11 @@ describe("HingeJoint", function () {
     motor.freeSpin = false;
     joint.motor = motor;
 
-    expect(formatValue(joint.velocity)).to.eq(0);
+    expect(formatValue(joint.velocity)).eq(0);
     collider2.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(collider2.angularVelocity.y)).to.eq(30);
+    expect(formatValue(collider2.angularVelocity.y)).eq(30);
 
     const motor2 = new JointMotor();
     motor2.targetVelocity = 30;
@@ -218,11 +221,11 @@ describe("HingeJoint", function () {
     joint.motor = motor2;
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(collider2.angularVelocity.y)).to.eq(30);
+    expect(formatValue(collider2.angularVelocity.y)).eq(30);
 
     collider2.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(collider2.angularVelocity.y)).to.eq(95.20031);
+    expect(formatValue(collider2.angularVelocity.y)).eq(95.20031);
   });
 });

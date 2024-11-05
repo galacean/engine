@@ -1,6 +1,6 @@
 import { IDynamicCollider } from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine-math";
-import { ignoreClone } from "../clone/CloneManager";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
 import { PhysicsScene } from "./PhysicsScene";
@@ -10,33 +10,23 @@ import { ColliderShape } from "./shape";
  * A dynamic collider can act with self-defined movement or physical force.
  */
 export class DynamicCollider extends Collider {
-  @ignoreClone
   private _linearDamping: number = 0;
-  @ignoreClone
   private _angularDamping: number = 0.05;
-  @ignoreClone
+  @deepClone
   private _linearVelocity = new Vector3();
-  @ignoreClone
+  @deepClone
   private _angularVelocity = new Vector3();
-  @ignoreClone
   private _mass: number = 1.0;
-  @ignoreClone
+  @deepClone
   private _centerOfMass = new Vector3();
-  @ignoreClone
+  @deepClone
   private _inertiaTensor = new Vector3(1, 1, 1);
-  @ignoreClone
-  private _maxAngularVelocity: number = 7;
-  @ignoreClone
+  private _maxAngularVelocity: number = 100;
   private _maxDepenetrationVelocity: number = Infinity;
-  @ignoreClone
   private _solverIterations: number = 4;
-  @ignoreClone
   private _isKinematic: boolean = false;
-  @ignoreClone
   private _constraints: DynamicColliderConstraints = 0;
-  @ignoreClone
   private _collisionDetectionMode: CollisionDetectionMode = CollisionDetectionMode.Discrete;
-  @ignoreClone
   private _sleepThreshold: number = 5e-3;
   private _automaticCenterOfMass = true;
   private _automaticInertiaTensor = true;
@@ -179,7 +169,7 @@ export class DynamicCollider extends Collider {
   set maxAngularVelocity(value: number) {
     if (this._maxAngularVelocity !== value) {
       this._maxAngularVelocity = value;
-      (<IDynamicCollider>this._nativeCollider).setMaxAngularVelocity(value);
+      this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).setMaxAngularVelocity(value);
     }
   }
 
@@ -193,7 +183,7 @@ export class DynamicCollider extends Collider {
   set maxDepenetrationVelocity(value: number) {
     if (this._maxDepenetrationVelocity !== value) {
       this._maxDepenetrationVelocity = value;
-      (<IDynamicCollider>this._nativeCollider).setMaxDepenetrationVelocity(value);
+      this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).setMaxDepenetrationVelocity(value);
     }
   }
 
@@ -207,7 +197,7 @@ export class DynamicCollider extends Collider {
   set sleepThreshold(value: number) {
     if (value !== this._sleepThreshold) {
       this._sleepThreshold = value;
-      (<IDynamicCollider>this._nativeCollider).setSleepThreshold(value);
+      this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).setSleepThreshold(value);
     }
   }
 
@@ -221,7 +211,7 @@ export class DynamicCollider extends Collider {
   set solverIterations(value: number) {
     if (this._solverIterations !== value) {
       this._solverIterations = value;
-      (<IDynamicCollider>this._nativeCollider).setSolverIterations(value);
+      this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).setSolverIterations(value);
     }
   }
 
@@ -235,7 +225,7 @@ export class DynamicCollider extends Collider {
   set isKinematic(value: boolean) {
     if (this._isKinematic !== value) {
       this._isKinematic = value;
-      (<IDynamicCollider>this._nativeCollider).setIsKinematic(value);
+      this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).setIsKinematic(value);
     }
   }
 
@@ -249,7 +239,7 @@ export class DynamicCollider extends Collider {
   set constraints(value: DynamicColliderConstraints) {
     if (this._constraints !== value) {
       this._constraints = value;
-      (<IDynamicCollider>this._nativeCollider).setConstraints(value);
+      this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).setConstraints(value);
     }
   }
 
@@ -263,7 +253,7 @@ export class DynamicCollider extends Collider {
   set collisionDetectionMode(value: CollisionDetectionMode) {
     if (this._collisionDetectionMode !== value) {
       this._collisionDetectionMode = value;
-      (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(value);
+      this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(value);
     }
   }
 
@@ -319,7 +309,7 @@ export class DynamicCollider extends Collider {
    * @param force - The force make the collider move
    */
   applyForce(force: Vector3): void {
-    (<IDynamicCollider>this._nativeCollider).addForce(force);
+    this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).addForce(force);
   }
 
   /**
@@ -327,7 +317,7 @@ export class DynamicCollider extends Collider {
    * @param torque - The force make the collider rotate
    */
   applyTorque(torque: Vector3): void {
-    (<IDynamicCollider>this._nativeCollider).addTorque(torque);
+    this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).addTorque(torque);
   }
 
   /**
@@ -350,14 +340,14 @@ export class DynamicCollider extends Collider {
   move(position: Vector3, rotation: Quaternion): void;
 
   move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void {
-    (<IDynamicCollider>this._nativeCollider).move(positionOrRotation, rotation);
+    this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).move(positionOrRotation, rotation);
   }
 
   /**
    * Forces a collider to sleep at least one frame.
    */
   sleep(): void {
-    (<IDynamicCollider>this._nativeCollider).sleep();
+    this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).sleep();
   }
 
   /**
@@ -365,14 +355,14 @@ export class DynamicCollider extends Collider {
    * @returns True if the collider is sleeping, false otherwise.
    */
   isSleeping(): boolean {
-    return (<IDynamicCollider>this._nativeCollider).isSleeping();
+    return !this._phasedActiveInScene || (<IDynamicCollider>this._nativeCollider).isSleeping();
   }
 
   /**
    * Forces a collider to wake up.
    */
   wakeUp(): void {
-    (<IDynamicCollider>this._nativeCollider).wakeUp();
+    this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).wakeUp();
   }
 
   /**
@@ -385,48 +375,47 @@ export class DynamicCollider extends Collider {
     this._updateFlag.flag = false;
   }
 
-  /**
-   * @internal
-   */
-  override _cloneTo(target: DynamicCollider): void {
-    super._cloneTo(target);
-    target.linearDamping = this.linearDamping;
-    target.angularDamping = this.angularDamping;
-    target.linearVelocity = this.linearVelocity;
-    target.angularVelocity = this.angularVelocity;
-    target.mass = this.mass;
-    target.centerOfMass = this.centerOfMass;
-    target.inertiaTensor = this.inertiaTensor;
-    target.maxAngularVelocity = this.maxAngularVelocity;
-    target.maxDepenetrationVelocity = this.maxDepenetrationVelocity;
-    target.sleepThreshold = this.sleepThreshold;
-    target.solverIterations = this.solverIterations;
-    target.isKinematic = this.isKinematic;
-    target.constraints = this.constraints;
-    target.collisionDetectionMode = this.collisionDetectionMode;
+  protected override _syncBackends(): void {
+    super._syncBackends();
+    (<IDynamicCollider>this._nativeCollider).setLinearDamping(this._linearDamping);
+    (<IDynamicCollider>this._nativeCollider).setAngularDamping(this._angularDamping);
+    (<IDynamicCollider>this._nativeCollider).setLinearVelocity(this._linearVelocity);
+    (<IDynamicCollider>this._nativeCollider).setAngularVelocity(this._angularVelocity);
+    (<IDynamicCollider>this._nativeCollider).setMass(this._mass);
+    (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
+    (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
+    (<IDynamicCollider>this._nativeCollider).setMaxAngularVelocity(this._maxAngularVelocity);
+    (<IDynamicCollider>this._nativeCollider).setMaxDepenetrationVelocity(this._maxDepenetrationVelocity);
+    (<IDynamicCollider>this._nativeCollider).setSleepThreshold(this._sleepThreshold);
+    (<IDynamicCollider>this._nativeCollider).setSolverIterations(this._solverIterations);
+    (<IDynamicCollider>this._nativeCollider).setIsKinematic(this._isKinematic);
+    (<IDynamicCollider>this._nativeCollider).setConstraints(this._constraints);
+    (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(this._collisionDetectionMode);
   }
 
   private _setMassAndUpdateInertia(): void {
-    (<IDynamicCollider>this._nativeCollider).setMassAndUpdateInertia(this._mass);
-    this._setCenterOfMass();
-    this._setInertiaTensor();
+    if (this._phasedActiveInScene) {
+      (<IDynamicCollider>this._nativeCollider).setMassAndUpdateInertia(this._mass);
+      this._setCenterOfMass();
+      this._setInertiaTensor();
+    }
   }
 
   private _setLinearVelocity(): void {
-    (<IDynamicCollider>this._nativeCollider).setLinearVelocity(this._linearVelocity);
+    this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).setLinearVelocity(this._linearVelocity);
   }
   private _setAngularVelocity(): void {
-    (<IDynamicCollider>this._nativeCollider).setAngularVelocity(this._angularVelocity);
+    this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).setAngularVelocity(this._angularVelocity);
   }
 
   private _setCenterOfMass(): void {
-    if (!this._automaticCenterOfMass) {
+    if (this._phasedActiveInScene && !this._automaticCenterOfMass) {
       (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
     }
   }
 
   private _setInertiaTensor(): void {
-    if (!this._automaticInertiaTensor) {
+    if (this._phasedActiveInScene && !this._automaticInertiaTensor) {
       (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
     }
   }

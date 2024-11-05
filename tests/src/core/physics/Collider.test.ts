@@ -70,6 +70,7 @@ describe("physics collider test", function () {
     boxEntity.transform.position.y = cubeSize / 2;
     physicsBox = new BoxColliderShape();
     physicsBox.size = new Vector3(cubeSize, cubeSize, cubeSize);
+    physicsBox.material.bounciness = 0.1;
 
     const radius = 1.25;
     sphereEntity.transform.position.x = 0;

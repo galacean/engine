@@ -120,6 +120,7 @@ export class Collider extends Component implements ICustomClone {
     for (let i = 0, n = shapes.length; i < n; i++) {
       physics._addColliderShape(shapes[i]);
     }
+    this._syncBackends();
   }
 
   /**
@@ -138,9 +139,12 @@ export class Collider extends Component implements ICustomClone {
    * @internal
    */
   _cloneTo(target: Collider): void {
-    const shapes = target._shapes;
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      target._addPhysicsShape(shapes[i]);
+    target._syncBackends();
+  }
+
+  protected _syncBackends(): void {
+    for (let i = 0, n = this.shapes.length; i < n; i++) {
+      this._addPhysicsShape(this.shapes[i]);
     }
   }
 

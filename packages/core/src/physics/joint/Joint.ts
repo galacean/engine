@@ -24,7 +24,7 @@ export abstract class Joint extends Component implements ICustomClone {
   protected _nativeJoint: IJoint;
   private _force = Infinity;
   private _torque = Infinity;
-  private _autoConnectedAnchor = true;
+  private _autoConnectedAnchor = false;
 
   /**
    * The connected collider.

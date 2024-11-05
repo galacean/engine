@@ -52,14 +52,14 @@ describe("SpringJoint", function () {
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
 
-    expect(boxEntity2.transform.position.x).to.eq(2);
+    expect(boxEntity2.transform.position.x).eq(2);
 
     joint.minDistance = 1.1;
     collider2.wakeUp();
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
 
-    expect(boxEntity2.transform.position.x).to.greaterThan(2);
+    expect(boxEntity2.transform.position.x).greaterThan(2);
   });
 
   it("maxDistance", function () {
@@ -82,7 +82,7 @@ describe("SpringJoint", function () {
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
 
-    expect(boxEntity2.transform.position.x).to.eq(6);
+    expect(boxEntity2.transform.position.x).eq(6);
   });
 
   it("tolerance", function () {
@@ -105,14 +105,14 @@ describe("SpringJoint", function () {
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
 
-    expect(boxEntity2.transform.position.x).to.eq(6);
+    expect(boxEntity2.transform.position.x).eq(6);
 
     boxEntity2.transform.position.x = 2;
     joint.tolerance = 0.1;
     collider2.wakeUp();
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(boxEntity2.transform.position.x).to.eq(2);
+    expect(boxEntity2.transform.position.x).eq(2);
   });
 
   it("low stiffness", function () {
@@ -135,7 +135,7 @@ describe("SpringJoint", function () {
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
 
-    expect(boxEntity2.transform.position.x).to.greaterThan(6);
+    expect(boxEntity2.transform.position.x).greaterThan(6);
   });
 
   it("high stiffness", function () {
@@ -157,7 +157,7 @@ describe("SpringJoint", function () {
     collider2.applyForce(new Vector3(100000, 0, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(boxEntity2.transform.position.x).to.lessThanOrEqual(6);
+    expect(boxEntity2.transform.position.x).lessThanOrEqual(6);
   });
 
   it("damping", function () {
@@ -180,7 +180,7 @@ describe("SpringJoint", function () {
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
 
-    expect(collider2.linearVelocity.x).to.not.eq(0);
+    expect(collider2.linearVelocity.x).not.eq(0);
 
     boxEntity2.transform.position.x = 2;
     collider2.linearVelocity.x = 0;
@@ -188,6 +188,6 @@ describe("SpringJoint", function () {
     collider2.applyForce(new Vector3(1000, 0, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(collider2.linearVelocity.x).to.eq(0);
+    expect(collider2.linearVelocity.x).eq(0);
   });
 });
