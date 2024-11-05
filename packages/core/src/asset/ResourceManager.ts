@@ -329,7 +329,7 @@ export class ResourceManager {
 
     // Check url mapping
     const itemURL = item.url;
-    let url = this._virtualPathMap[itemURL] ? this._virtualPathMap[itemURL] : itemURL;
+    let url = this._virtualPathMap[itemURL] ?? itemURL;
 
     // Not absolute and base url is set
     if (!Utils.isAbsoluteUrl(url) && this.baseUrl) url = Utils.resolveAbsoluteUrl(this.baseUrl, url);
@@ -537,7 +537,8 @@ export class ResourceManager {
     if (obj) {
       promise = Promise.resolve(obj);
     } else {
-      let url = this._editorResourceConfig[refId]?.path;
+      const resourceConfig = this._editorResourceConfig[refId];
+      let url = resourceConfig?.path;
       if (!url) {
         Logger.warn(`refId:${refId} is not find in this._editorResourceConfig.`);
         return Promise.resolve(null);
@@ -545,7 +546,8 @@ export class ResourceManager {
       url = key ? `${url}${url.indexOf("?") > -1 ? "&" : "?"}q=${key}` : url;
       promise = this.load<any>({
         url,
-        type: this._editorResourceConfig[refId].type
+        virtualPath: resourceConfig.virtualPath,
+        type: resourceConfig.type
       });
     }
     return promise.then((item) => (isClone ? item.clone() : item));
