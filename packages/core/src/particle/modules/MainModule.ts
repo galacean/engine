@@ -12,7 +12,7 @@ import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleCompositeGradient } from "./ParticleCompositeGradient";
 
 export class MainModule implements ICustomClone {
-  private static _tempVector40 = new Vector4();
+  private _tempVector40 = new Vector4();
   private static _vector3One = new Vector3(1, 1, 1);
 
   private static readonly _positionScale = ShaderProperty.getByName("renderer_PositionScale");
@@ -293,8 +293,7 @@ export class MainModule implements ICustomClone {
       case ParticleSimulationSpace.Local:
         shaderData.setVector3(MainModule._worldPosition, transform.worldPosition);
         const worldRotation = transform.worldRotationQuaternion;
-        const worldRotationV4 = MainModule._tempVector40;
-        worldRotationV4.copyFrom(worldRotation);
+        const worldRotationV4 = this._tempVector40.copyFrom(worldRotation); // Maybe shaderData should support Quaternion
         shaderData.setVector4(MainModule._worldRotation, worldRotationV4);
         break;
       case ParticleSimulationSpace.World:
