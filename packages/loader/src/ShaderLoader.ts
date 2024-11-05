@@ -19,6 +19,7 @@ class ShaderLoader extends Loader<Shader> {
 
     return this.request<string>(url, { ...item, type: "text" }).then((code: string) => {
       const builtinShader = this.getBuiltinShader(code);
+      // TODO: delete the snippets below when breaking change version released
       if (builtinShader) {
         return Shader.find(builtinShader);
       }
