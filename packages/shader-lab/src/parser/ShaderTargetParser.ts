@@ -121,8 +121,8 @@ export class ShaderTargetParser {
         );
         // #if _VERBOSE
         this.sematicAnalyzer.errors.push(error);
-        return null;
         // #endif
+        return null;
       }
     }
   }
