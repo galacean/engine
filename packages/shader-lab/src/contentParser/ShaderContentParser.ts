@@ -26,8 +26,8 @@ import {
 import { GSErrorName } from "../GSError";
 // #if _VERBOSE
 import { GSError } from "../GSError";
-import { ShaderLabUtils } from "../ShaderLabUtils";
 // #endif
+import { ShaderLabUtils } from "../ShaderLabUtils";
 
 const EngineType = [
   EKeyword.GS_RenderQueueType,
@@ -329,20 +329,12 @@ export class ShaderContentParser {
     const word = scanner.scanToken();
     scanner.scanText(";");
     const value = ShaderContentParser._engineType.RenderQueueType[word.lexeme];
-    if (value == undefined) {
-      const error = ShaderLabUtils.createGSError(
-        `Invalid render queue ${word.lexeme}`,
-        GSErrorName.CompilationError,
-        scanner.source,
-        word.location
-      );
-      // #if _VERBOSE
-      this._errors.push(error);
-      return;
-      // #endif
-    }
     const key = RenderStateDataKey.RenderQueueType;
-    ret.renderStates.constantMap[key] = value;
+    if (value == undefined) {
+      ret.renderStates.variableMap[key] = word.lexeme;
+    } else {
+      ret.renderStates.constantMap[key] = value;
+    }
   }
 
   private static _addGlobalStatement(
