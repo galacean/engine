@@ -50,6 +50,10 @@ export class Transform extends Component {
   private _isParentDirty: boolean = true;
   @ignoreClone
   private _parentTransformCache: Transform = null;
+  @ignoreClone
+  private _isWorldUniformScaling: boolean = true;
+  @ignoreClone
+  private _isLocalUniformScaling: boolean = true;
   private _dirtyFlag: number = TransformModifyFlags.WmWpWeWqWs;
 
   /** @internal */
@@ -625,7 +629,7 @@ export class Transform extends Component {
       const children = this._entity._children;
       const n = children.length;
       if (n > 0) {
-        worldScaleDirty = worldScaleDirty || !this._isLocalUniformScaling();
+        worldScaleDirty = worldScaleDirty || !this._isWorldUniformScaling;
         for (let i = 0; i < n; i++) {
           children[i].transform?._updateWorldPositionAndRotationFlag(worldScaleDirty); // Rotation update of parent entity will trigger world position, rotation and scale update of all child entity.
         }
@@ -661,9 +665,10 @@ export class Transform extends Component {
    * Get worldScale: Will trigger the scaling update of itself and all parent entities.
    * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix) to be false.
    */
-  private _updateWorldScaleFlag() {
-    if (!this._isContainDirtyFlags(TransformModifyFlags.WmWs)) {
-      this._worldAssociatedChange(TransformModifyFlags.WmWs);
+  private _updateWorldScaleFlag(worldUniformScalingDirty: boolean): void {
+    const dirtyFlag = worldUniformScalingDirty ? TransformModifyFlags.WmWs : TransformModifyFlags.WmWsWus;
+    if (!this._isContainDirtyFlags(dirtyFlag)) {
+      this._worldAssociatedChange(dirtyFlag);
       const nodeChildren = this._entity._children;
       for (let i: number = 0, n: number = nodeChildren.length; i < n; i++) {
         nodeChildren[i].transform?._updateWorldPositionAndScaleFlag();
@@ -720,17 +725,16 @@ export class Transform extends Component {
     return parentCache;
   }
 
-  private _isLocalUniformScaling(): boolean {
-    const { x, y, z } = this._scale;
-    return x === y && y === z;
-  }
+  // private _isLocalUniformScaling(): boolean {
+  //   const { x, y, z } = this._scale;
+  //   return x === y && y === z;
+  // }
 
-  private _isParentWorldUniformScaling(): boolean {
-    const parent = this._getParentTransform();
-    if (!parent) return true;
-    const { x, y, z } = parent.lossyWorldScale;
-    return x === y && y === z;
-  }
+  // private _isParentWorldUniformScaling(): boolean {
+  //   const parent = this._getParentTransform();
+  //   if (!parent) return true;
+  //   return parent._isWorldUniformScaling;
+  // }
 
   private _getScaleMatrix(): Matrix3x3 {
     const invRotation = Transform._tempQuat0;
@@ -851,8 +855,22 @@ export class Transform extends Component {
 
   @ignoreClone
   private _onScaleChanged(): void {
+    const { x, y, z } = this._scale;
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
-    this._updateWorldScaleFlag();
+    const isLocalUniformScaling = x == y && y == z;
+    const isWorldUniformScaling = isLocalUniformScaling && this._getParentIsWorldUniformScaling();
+    if (isWorldUniformScaling !== this._isWorldUniformScaling) {
+      this._isWorldUniformScaling = isWorldUniformScaling;
+      this._updateWorldScaleFlag(true);
+    } else {
+      this._updateWorldScaleFlag(false);
+    }
+  }
+
+  private _getParentIsWorldUniformScaling(): boolean {
+    const parent = this._getParentTransform();
+    if (!parent) return true;
+    return parent._isWorldUniformScaling;
   }
 }
 
@@ -868,6 +886,7 @@ export enum TransformModifyFlags {
   WorldScale = 0x20,
   LocalMatrix = 0x40,
   WorldMatrix = 0x80,
+  WorldUniformScaling = 0x100,
 
   /** WorldMatrix | WorldPosition */
   WmWp = 0x84,
@@ -882,5 +901,7 @@ export enum TransformModifyFlags {
   /** WorldMatrix | WorldPosition | WorldScale */
   WmWpWs = 0xa4,
   /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale */
-  WmWpWeWqWs = 0xbc
+  WmWpWeWqWs = 0xbc,
+  /** WorldMatrix | WorldScale | WorldUniformScaling */
+  WmWsWus = 0x1a0
 }
