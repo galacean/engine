@@ -12,14 +12,14 @@ import {
 
 @resourceLoader("ShaderChunk", ["glsl"])
 export class ShaderChunkLoader extends Loader<void[]> {
-  static shaderIncludeRegex = /\s#include\s+"([./][^\\"]+)"/gm;
+  private static _shaderIncludeRegex = /\s#include\s+"([./][^\\"]+)"/gm;
 
   /**
    * @internal
    */
   static _loadChunksInCode(code: string, basePath: string, resourceManager: ResourceManager): Promise<void[]> {
-    const shaderChunkPaths: string[] = [];
-    const matches = code.matchAll(ShaderChunkLoader.shaderIncludeRegex);
+    const shaderChunkPaths = new Array<string>();
+    const matches = code.matchAll(ShaderChunkLoader._shaderIncludeRegex);
     for (const match of matches) {
       const chunkPath = Utils.resolveAbsoluteUrl(basePath, match[1]);
       if (!ShaderLib[chunkPath.substring(1)]) {
