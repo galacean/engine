@@ -73,6 +73,7 @@ export class UIInteractive extends Script implements IUIGroupable {
       const transition = transitions[i];
       if (transition instanceof type) {
         transitions.splice(i, 1);
+        transition._destroy();
       }
     }
   }
@@ -120,6 +121,13 @@ export class UIInteractive extends Script implements IUIGroupable {
     UIUtils.unRegisterEntityListener(this);
     this._isPointerInside = this._isPointerDragging = false;
     this._updateState(true);
+  }
+
+  override onDestroy(): void {
+    super.onDestroy();
+    const transitions = this._transitions;
+    transitions.forEach((transition) => transition._destroy());
+    transitions.length = 0;
   }
 
   /**

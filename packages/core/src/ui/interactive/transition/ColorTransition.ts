@@ -1,6 +1,6 @@
 import { Color } from "@galacean/engine-math";
-import { Transition } from "./Transition";
 import { UIRenderer } from "../../UIRenderer";
+import { Transition } from "./Transition";
 
 export class ColorTransition extends Transition<Color, UIRenderer> {
   private _color: Color = new Color();
