@@ -1,4 +1,4 @@
-import { MathUtil, Vector3 } from "@galacean/engine-math";
+import { MathUtil, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
@@ -205,7 +205,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   set iridescenceThicknessMax(value: number) {
-    const IridescenceInfo = this.shaderData.getVector3(PBRMaterial._iridescenceProp);
+    const IridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceProp);
     if (!!IridescenceInfo.w !== !!value) {
       if (value === 0) {
         this.shaderData.disableMacro("MATERIAL_ENABLE_IRIDESCENCE");
