@@ -10,11 +10,9 @@ import { ColliderShape } from "./shape";
  * The character controllers.
  */
 export class CharacterController extends Collider {
-  // Character can overcome obstacle less than the height(stepOffset + contractOffset(0.1))
   private _stepOffset: number = 0.5;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
   private _upDirection = new Vector3(0, 1, 0);
-  // The default value is 0.707, which is the cosine value of 45 degrees.
   private _slopeLimit: number = 0.707;
   private _contactOffset: number = 0.1;
 
@@ -33,7 +31,7 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * The step offset for the controller.
+   * The step offset for the controller,   // Character can overcome obstacle less than the height(stepOffset + contractOffset(0.1)).
    */
   get stepOffset(): number {
     return this._stepOffset;

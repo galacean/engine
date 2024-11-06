@@ -180,7 +180,7 @@ describe("DynamicCollider", function () {
     const boxCollider = box.getComponent(DynamicCollider);
     const support = addBox(new Vector3(1, 1, 2), StaticCollider, new Vector3(0, -1.5, 0));
     boxCollider.automaticCenterOfMass = false;
-    boxCollider.automaticInertiaTensor = false;
+    boxCollider.automaticInertiaTensor = true;
     boxCollider.centerOfMass = new Vector3(0, 0, 0);
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);

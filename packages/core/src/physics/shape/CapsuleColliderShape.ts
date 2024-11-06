@@ -65,6 +65,7 @@ export class CapsuleColliderShape extends ColliderShape {
   }
 
   protected override _syncBackends(): void {
+    super._syncBackends();
     (<ICapsuleColliderShape>this._nativeShape).setRadius(this._radius);
     (<ICapsuleColliderShape>this._nativeShape).setHeight(this._height);
     (<ICapsuleColliderShape>this._nativeShape).setUpAxis(this._upAxis);

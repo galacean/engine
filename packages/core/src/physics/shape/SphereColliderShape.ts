@@ -33,6 +33,7 @@ export class SphereColliderShape extends ColliderShape {
   }
 
   protected override _syncBackends(): void {
+    super._syncBackends();
     (<ISphereColliderShape>this._nativeShape).setRadius(this._radius);
   }
 }

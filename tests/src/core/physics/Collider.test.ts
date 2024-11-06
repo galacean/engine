@@ -324,6 +324,7 @@ describe("physics collider test", function () {
     const box = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 0.5, 0));
     const collider = box.getComponent(DynamicCollider);
     // Avoid the box rotating
+    collider.automaticCenterOfMass = false;
     collider.automaticInertiaTensor = false;
     collider.inertiaTensor.set(10000000, 10000000, 10000000);
     collider.applyForce(new Vector3(1000, 0, 0));

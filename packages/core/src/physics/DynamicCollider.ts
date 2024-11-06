@@ -10,26 +10,26 @@ import { ColliderShape } from "./shape";
  * A dynamic collider can act with self-defined movement or physical force.
  */
 export class DynamicCollider extends Collider {
-  private _linearDamping: number = 0;
-  private _angularDamping: number = 0.05;
+  private _linearDamping = 0;
+  private _angularDamping = 0.05;
   @ignoreClone
   private _linearVelocity = new Vector3();
   @ignoreClone
   private _angularVelocity = new Vector3();
-  private _mass: number = 1.0;
+  private _mass = 1.0;
   @ignoreClone
   private _centerOfMass = new Vector3();
   @ignoreClone
   private _inertiaTensor = new Vector3(1, 1, 1);
-  private _maxAngularVelocity: number = 100;
-  private _maxDepenetrationVelocity: number = Infinity;
-  private _solverIterations: number = 4;
-  private _isKinematic: boolean = false;
+  private _maxAngularVelocity = 100;
+  private _maxDepenetrationVelocity = Infinity;
+  private _solverIterations = 4;
+  private _isKinematic = false;
   private _constraints: DynamicColliderConstraints = 0;
   private _collisionDetectionMode: CollisionDetectionMode = CollisionDetectionMode.Discrete;
-  private _sleepThreshold: number = 5e-3;
-  private _automaticCenterOfMass = true;
-  private _automaticInertiaTensor = true;
+  private _sleepThreshold = 5e-3;
+  private _automaticCenterOfMass = false;
+  private _automaticInertiaTensor = false;
 
   /**
    * The linear damping of the dynamic collider.
@@ -105,6 +105,9 @@ export class DynamicCollider extends Collider {
     }
   }
 
+  /**
+   * Whether or not to calculate the center of mass automatically, if true, the center of mass will be calculated based on the shapes added to the collider.
+   */
   get automaticCenterOfMass(): boolean {
     return this._automaticCenterOfMass;
   }
@@ -120,6 +123,7 @@ export class DynamicCollider extends Collider {
 
   /**
    * The center of mass relative to the transform's origin.
+   * @remarks The center of mass is automatically calculated, if you want to set it manually, please set automaticCenterOfMass to false.
    */
   get centerOfMass(): Vector3 {
     (<IDynamicCollider>this._nativeCollider).getCenterOfMass(this._centerOfMass);
@@ -127,11 +131,20 @@ export class DynamicCollider extends Collider {
   }
 
   set centerOfMass(value: Vector3) {
-    if (!this._automaticCenterOfMass && this._centerOfMass !== value) {
+    if (this._automaticCenterOfMass) {
+      console.warn(
+        "The center of mass is automatically calculated, if you want to set it manually, please set automaticCenterOfMass to false."
+      );
+      return;
+    }
+    if (this._centerOfMass !== value) {
       this._centerOfMass.copyFrom(value);
     }
   }
 
+  /**
+   * Whether or not to calculate the inertia tensor automatically, if true, the inertia tensor will be calculated based on the shapes added to the collider.
+   */
   get automaticInertiaTensor(): boolean {
     return this._automaticInertiaTensor;
   }
@@ -147,6 +160,7 @@ export class DynamicCollider extends Collider {
 
   /**
    * The diagonal inertia tensor of mass relative to the center of mass.
+   * @remarks The inertia tensor is automatically calculated, if you want to set it manually, please set automaticInertiaTensor to false.
    */
   get inertiaTensor(): Vector3 {
     (<IDynamicCollider>this._nativeCollider).getInertiaTensor(this._inertiaTensor);
@@ -154,7 +168,13 @@ export class DynamicCollider extends Collider {
   }
 
   set inertiaTensor(value: Vector3) {
-    if (!this._automaticInertiaTensor && this._inertiaTensor !== value) {
+    if (this._automaticInertiaTensor) {
+      console.warn(
+        "The inertia tensor is automatically calculated, if you want to set it manually, please set automaticInertiaTensor to false."
+      );
+      return;
+    }
+    if (this._inertiaTensor !== value) {
       this._inertiaTensor.copyFrom(value);
     }
   }
@@ -392,9 +412,13 @@ export class DynamicCollider extends Collider {
     (<IDynamicCollider>this._nativeCollider).setAngularDamping(this._angularDamping);
     (<IDynamicCollider>this._nativeCollider).setLinearVelocity(this._linearVelocity);
     (<IDynamicCollider>this._nativeCollider).setAngularVelocity(this._angularVelocity);
-    (<IDynamicCollider>this._nativeCollider).setMass(this._mass);
-    (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
-    (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
+    if (this._automaticCenterOfMass || this._automaticInertiaTensor) {
+      this._setMassAndUpdateInertia();
+    } else {
+      (<IDynamicCollider>this._nativeCollider).setMass(this._mass);
+      (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
+      (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
+    }
     (<IDynamicCollider>this._nativeCollider).setMaxAngularVelocity(this._maxAngularVelocity);
     (<IDynamicCollider>this._nativeCollider).setMaxDepenetrationVelocity(this._maxDepenetrationVelocity);
     (<IDynamicCollider>this._nativeCollider).setSleepThreshold(this._sleepThreshold);

@@ -37,6 +37,7 @@ export class BoxColliderShape extends ColliderShape {
   }
 
   protected override _syncBackends(): void {
+    super._syncBackends();
     this._setSize();
   }
 

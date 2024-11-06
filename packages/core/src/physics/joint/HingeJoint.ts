@@ -173,7 +173,7 @@ export class HingeJoint extends Joint {
   };
   private _onLimitsChanged = (): void => {
     const limits = this._limits;
-    if (this._nativeJoint) {
+    if (limits && this._nativeJoint) {
       if (this.useSpring) {
         (<IHingeJoint>this._nativeJoint).setSoftLimit(limits.min, limits.max, limits.stiffness, limits.damping);
       } else {
