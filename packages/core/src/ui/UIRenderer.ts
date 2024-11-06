@@ -177,7 +177,7 @@ export abstract class UIRenderer extends Renderer implements IUIGraphics {
   @ignoreClone
   _onGroupModify(flag: GroupModifyFlags): void {
     if (flag & GroupModifyFlags.Alpha) {
-      this._alpha = this._group._globalAlpha;
+      this._alpha = this._group?._globalAlpha || 1;
       this._dirtyUpdateFlag |= UIRendererUpdateFlags.Color;
     }
   }

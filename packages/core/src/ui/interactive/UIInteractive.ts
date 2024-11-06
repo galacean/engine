@@ -146,7 +146,7 @@ export class UIInteractive extends Script implements IUIGroupable {
   @ignoreClone
   _onGroupModify(flag: GroupModifyFlags): void {
     if (flag & GroupModifyFlags.Interactive) {
-      const runtimeInteractive = this._interactive && this._group._getGlobalInteractive();
+      const runtimeInteractive = this._interactive && (this._group?._getGlobalInteractive() || true);
       if (this._runtimeInteractive !== runtimeInteractive) {
         this._runtimeInteractive = runtimeInteractive;
         this._updateState(true);
