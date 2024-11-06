@@ -7,7 +7,6 @@ import { ignoreClone } from "../../clone/CloneManager";
  * Physical collider shape for sphere.
  */
 export class SphereColliderShape extends ColliderShape {
-  @ignoreClone
   private _radius: number = 1;
 
   /**
@@ -33,8 +32,7 @@ export class SphereColliderShape extends ColliderShape {
     );
   }
 
-  override _cloneTo(target: SphereColliderShape) {
-    super._cloneTo(target);
-    target.radius = this.radius;
+  protected override _syncBackends(): void {
+    (<ISphereColliderShape>this._nativeShape).setRadius(this._radius);
   }
 }

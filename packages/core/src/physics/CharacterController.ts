@@ -158,10 +158,7 @@ export class CharacterController extends Collider {
   override _onEnableInScene() {
     const physics = this.scene.physics;
     physics._addCharacterController(this);
-    const shapes = this.shapes;
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      this._addNativeShape(shapes[i]);
-    }
+    this._syncBackends();
   }
 
   /**
@@ -174,6 +171,15 @@ export class CharacterController extends Collider {
     for (let i = 0, n = shapes.length; i < n; i++) {
       this._removeNativeShape(shapes[i]);
     }
+  }
+
+  protected override _syncBackends(): void {
+    super._syncBackends();
+    (<ICharacterController>this._nativeCollider).setContactOffset(this._contactOffset);
+    (<ICharacterController>this._nativeCollider).setStepOffset(this._stepOffset);
+    (<ICharacterController>this._nativeCollider).setNonWalkableMode(this._nonWalkableMode);
+    (<ICharacterController>this._nativeCollider).setUpDirection(this._upDirection);
+    (<ICharacterController>this._nativeCollider).setSlopeLimit(this._slopeLimit);
   }
 
   private _syncWorldPositionFromPhysicalSpace(): void {

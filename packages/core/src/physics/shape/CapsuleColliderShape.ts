@@ -8,11 +8,8 @@ import { ignoreClone } from "../../clone/CloneManager";
  * Physical collider shape for capsule.
  */
 export class CapsuleColliderShape extends ColliderShape {
-  @ignoreClone
   private _radius: number = 1;
-  @ignoreClone
   private _height: number = 2;
-  @ignoreClone
   private _upAxis: ColliderShapeUpAxis = ColliderShapeUpAxis.Y;
 
   /**
@@ -67,13 +64,9 @@ export class CapsuleColliderShape extends ColliderShape {
     );
   }
 
-  /**
-   * @internal
-   */
-  override _cloneTo(target: CapsuleColliderShape) {
-    super._cloneTo(target);
-    target.radius = this.radius;
-    target.height = this.height;
-    target.upAxis = this.upAxis;
+  protected override _syncBackends(): void {
+    (<ICapsuleColliderShape>this._nativeShape).setRadius(this._radius);
+    (<ICapsuleColliderShape>this._nativeShape).setHeight(this._height);
+    (<ICapsuleColliderShape>this._nativeShape).setUpAxis(this._upAxis);
   }
 }
