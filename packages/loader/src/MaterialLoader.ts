@@ -41,19 +41,19 @@ class MaterialLoader extends Loader<Material> {
       })
         .then((materialSchema: IMaterialSchema) => {
           const engine = resourceManager.engine;
-          const { shaderRef, shader } = materialSchema;
+          const { shaderRef, shader: shaderName } = materialSchema;
 
           if (shaderRef) {
             resolve(
               resourceManager
                 // @ts-ignore
                 .getResourceByRef<Shader>(<IAssetRef>shaderRef)
-                .then((shaderObject) => this.getMaterialByShader(materialSchema, shaderObject, engine))
+                .then((shader) => this.getMaterialByShader(materialSchema, shader, engine))
             );
           } else {
             // compatible with 1.2-pre version material schema
-            const shaderObject = Shader.find(shader);
-            resolve(this.getMaterialByShader(materialSchema, shaderObject, engine));
+            const shader = Shader.find(shaderName);
+            resolve(this.getMaterialByShader(materialSchema, shader, engine));
           }
         })
         .catch(reject);
