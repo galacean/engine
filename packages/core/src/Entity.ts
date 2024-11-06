@@ -12,9 +12,7 @@ import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
-import { ComponentType } from "./enums/ComponentType";
 import { UITransform } from "./ui";
-import { IUIGraphics } from "./ui/interface/IUIGraphics";
 import { DisorderedArray } from "./utils/DisorderedArray";
 
 /**
@@ -82,8 +80,6 @@ export class Entity extends EngineObject {
   _isActiveInHierarchy: boolean = false;
   /** @internal */
   _isActiveInScene: boolean = false;
-  /** @internal */
-  _interactive: boolean = false;
   /** @internal */
   _components: Component[] = [];
   /** @internal */
@@ -628,29 +624,6 @@ export class Entity extends EngineObject {
    */
   _dispatchModify(flag: EntityModifyFlags): void {
     this._updateFlagManager?.dispatch(flag);
-  }
-
-  /**
-   * @internal
-   */
-  _onUIInteractiveChange(val: boolean): void {
-    if (val) {
-      this._interactive = true;
-    } else {
-      const components = this._components;
-      for (let i = 0, n = components.length; i < n; i++) {
-        const component = components[i];
-        if (
-          component._componentType & ComponentType.UIElement &&
-          component.enabled &&
-          (component as unknown as IUIGraphics).raycastEnable
-        ) {
-          this._interactive = true;
-          return;
-        }
-      }
-      this._interactive = false;
-    }
   }
 
   private _addToChildrenList(index: number, child: Entity): void {

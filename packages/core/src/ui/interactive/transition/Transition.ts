@@ -1,14 +1,17 @@
-import { Color, Vector3 } from "@galacean/engine-math";
+import { Color } from "@galacean/engine-math";
 import { Sprite } from "../../../2d";
 import { UIRenderer } from "../../UIRenderer";
 import { InteractiveState } from "../InteractiveState";
 
-export abstract class Transition<T extends TransitionValueType = any, K extends UIRenderer = any> {
+export abstract class Transition<
+  T extends TransitionValueType = TransitionValueType,
+  K extends UIRenderer = UIRenderer
+> {
+  protected _target: K;
   protected _normal: T;
   protected _pressed: T;
   protected _hover: T;
   protected _disabled: T;
-  protected _target: K;
   protected _duration: number = 0;
   protected _countDown: number = 0;
   protected _initialValue: T;
@@ -149,4 +152,4 @@ export abstract class Transition<T extends TransitionValueType = any, K extends 
   }
 }
 
-export type TransitionValueType = number | Sprite | Color | Vector3;
+export type TransitionValueType = number | Sprite | Color;

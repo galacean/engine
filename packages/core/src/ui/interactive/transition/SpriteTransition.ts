@@ -1,8 +1,8 @@
 import { Sprite } from "../../../2d";
-import { UIImage } from "../../UIImage";
+import { Image } from "../../Image";
 import { Transition } from "./Transition";
 
-export class SpriteTransition extends Transition<Sprite, UIImage> {
+export class SpriteTransition extends Transition<Sprite, Image> {
   protected _getTargetValueCopy(): Sprite {
     return this._target?.sprite;
   }

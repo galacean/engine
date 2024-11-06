@@ -474,8 +474,8 @@ export class TextRenderer extends Renderer {
     const charRenderInfos = TextRenderer._charRenderInfos;
     const charFont = this._getSubFont();
     const textMetrics = this.enableWrapping
-      ? TextUtils.measureTextWithWrap(this)
-      : TextUtils.measureTextWithoutWrap(this);
+      ? TextUtils.measureTextWithWrap(this, this.width, this.height)
+      : TextUtils.measureTextWithoutWrap(this, this.height);
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
     const charRenderInfoPool = this.engine._charRenderInfoPool;
     const linesLen = lines.length;
@@ -613,7 +613,7 @@ export class TextRenderer extends Renderer {
 
   @ignoreClone
   protected override _onTransformChanged(bit: TransformModifyFlags): void {
-    this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
+    this._setDirtyFlagTrue(RendererUpdateFlags.WorldPositionAndBounds);
   }
 
   private _isTextNoVisible(): boolean {

@@ -1,8 +1,9 @@
 import { GroupModifyFlags, UIGroup } from "../UIGroup";
-import { ICanvasElement } from "./ICanvasElement";
+import { IUIElement } from "./IUIElement";
 
-export interface IGroupElement extends ICanvasElement {
+export interface IUIGroupable extends IUIElement {
   _group: UIGroup;
   _indexInGroup: number;
+
   _onGroupModify(flag: GroupModifyFlags): void;
 }
