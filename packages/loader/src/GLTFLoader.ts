@@ -37,10 +37,8 @@ export class GLTFLoader extends Loader<GLTFResource> {
   }
 
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<GLTFResource> {
-    // @ts-ignore
-    const url = resourceManager._virtualPathMap[item.url] ?? item.url;
     const params = <GLTFParams>item.params;
-    const glTFResource = new GLTFResource(resourceManager.engine, url);
+    const glTFResource = new GLTFResource(resourceManager.engine, item.url);
     const context = new GLTFParserContext(glTFResource, resourceManager, {
       keepMeshData: false,
       ...params

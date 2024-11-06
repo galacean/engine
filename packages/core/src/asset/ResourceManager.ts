@@ -537,8 +537,19 @@ export class ResourceManager {
       promise = Promise.resolve(obj);
     } else {
       const resourceConfig = this._editorResourceConfig[refId];
+      if (!resourceConfig) {
+        Logger.warn(`refId:${refId} is not find in this._editorResourceConfig.`);
+        return Promise.resolve(null);
+      }
+      const remoteUrl = resourceConfig.path;
+      const queryPath = new URL(remoteUrl).search;
+      let url = resourceConfig.virtualPath + queryPath;
+      if (key) {
+        url += (url.indexOf("?") > -1 ? "&" : "?") + key;
+      }
+
       promise = this.load<any>({
-        url: resourceConfig.virtualPath,
+        url,
         type: resourceConfig.type
       });
     }

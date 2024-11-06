@@ -7,7 +7,7 @@ import {
   RenderQueueType,
   StencilOperation
 } from "@galacean/engine-core";
-import type { IAssetRef, IColor, IShaderRef, IVector2, IVector3 } from "./BasicSchema";
+import type { IAssetRef, IColor, IVector2, IVector3 } from "./BasicSchema";
 
 export interface IRenderState {
   /** Blend state. */
@@ -96,7 +96,7 @@ export interface IMaterialSchema {
   };
   macros: Array<{ name: string; value?: string }>;
   renderState: IRenderState;
-  shaderRef: IShaderRef;
+  shaderRef: IAssetRef;
 }
 
 export enum MaterialLoaderType {
