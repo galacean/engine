@@ -27,7 +27,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
           chainPromises[i].cancel();
         }
       });
-      const configPromise = this.request<AtlasConfig>(item.url, {
+      const configPromise = this.request<AtlasConfig>(item.url, resourceManager, {
         ...item,
         type: "json"
       });

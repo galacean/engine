@@ -393,7 +393,7 @@ export class ResourceManager {
   }
 
   private _loadMainAsset<T>(loader: Loader<T>, item: LoadItem, assetBaseURL: string): AssetPromise<T> {
-    item.url = assetBaseURL;
+    // item.url = assetBaseURL;
     const loadingPromises = this._loadingPromises;
     const promise = loader.load(item, this);
     loadingPromises[assetBaseURL] = promise;
@@ -538,15 +538,8 @@ export class ResourceManager {
       promise = Promise.resolve(obj);
     } else {
       const resourceConfig = this._editorResourceConfig[refId];
-      let url = resourceConfig?.path;
-      if (!url) {
-        Logger.warn(`refId:${refId} is not find in this._editorResourceConfig.`);
-        return Promise.resolve(null);
-      }
-      url = key ? `${url}${url.indexOf("?") > -1 ? "&" : "?"}q=${key}` : url;
       promise = this.load<any>({
-        url,
-        virtualPath: resourceConfig.virtualPath,
+        url: resourceConfig.virtualPath,
         type: resourceConfig.type
       });
     }

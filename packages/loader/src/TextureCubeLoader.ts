@@ -21,7 +21,7 @@ class TextureCubeLoader extends Loader<TextureCube> {
         type: "image"
       };
 
-      Promise.all(urls.map((url) => this.request<HTMLImageElement>(url, requestConfig)))
+      Promise.all(urls.map((url) => this.request<HTMLImageElement>(url, resourceManager, requestConfig)))
         .then((images) => {
           const { width, height } = images[0];
 

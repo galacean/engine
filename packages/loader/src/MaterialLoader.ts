@@ -35,7 +35,7 @@ function parseProperty(object: Object, key: string, value: any) {
 class MaterialLoader extends Loader<Material> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Material> {
     return new AssetPromise((resolve, reject) => {
-      this.request(item.url, {
+      this.request(item.url, resourceManager, {
         ...item,
         type: "json"
       })

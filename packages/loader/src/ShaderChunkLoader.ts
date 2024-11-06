@@ -8,33 +8,27 @@ import {
   // @ts-ignore
   ShaderLib
 } from "@galacean/engine-core";
-import { PathUtils } from "./PathUtils";
+import { Utils } from "./Utils";
 
 @resourceLoader("ShaderChunk", ["glsl"])
 class ShaderChunkLoader extends Loader<void[]> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<void[]> {
-    const { virtualPath, url } = item;
-    const shaderVirtualPath = item.params?.shaderVirtualPath ?? "/";
-    const chunkPath = virtualPath ?? new URL(url).pathname;
+    const { url } = item;
 
-    return this.request<string>(url, { ...item, type: "text" }).then((code: string) => {
-      ShaderFactory.registerInclude(chunkPath.substring(1), code);
+    return this.request<string>(url, resourceManager, { ...item, type: "text" }).then((code) => {
+      ShaderFactory.registerInclude(url.substring(1), code);
 
-      return _loadChunksInCode(code, shaderVirtualPath, resourceManager);
+      return _loadChunksInCode(code, url, resourceManager);
     });
   }
 }
 
 /** @internal */
-export function _loadChunksInCode(
-  code: string,
-  shaderVirtualPath: string,
-  resourceManager: ResourceManager
-): Promise<void[]> {
+export function _loadChunksInCode(code: string, basePath: string, resourceManager: ResourceManager): Promise<void[]> {
   const shaderChunkPaths: string[] = [];
-  const matches = code.matchAll(PathUtils.shaderIncludeRegex);
+  const matches = code.matchAll(Utils.shaderIncludeRegex);
   for (const match of matches) {
-    const chunkPath = PathUtils.pathResolve(match[1], shaderVirtualPath);
+    const chunkPath = Utils.pathResolve(match[1], basePath);
     if (!ShaderLib[chunkPath.substring(1)]) {
       shaderChunkPaths.push(chunkPath);
     }
@@ -44,9 +38,7 @@ export function _loadChunksInCode(
     shaderChunkPaths.map((chunkPath) => {
       return resourceManager.load<void>({
         type: "ShaderChunk",
-        url: chunkPath,
-        virtualPath: chunkPath,
-        params: { shaderVirtualPath }
+        url: chunkPath
       });
     })
   );

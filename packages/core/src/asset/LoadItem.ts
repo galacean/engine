@@ -26,10 +26,6 @@ export type LoadItem = {
    * Additional parameters for specified loader.
    */
   params?: Record<string, any>;
-  /**
-   * Asset path in editor
-   */
-  virtualPath?: string;
 } & PickOnlyOne<{
   /**
    * Loading url.

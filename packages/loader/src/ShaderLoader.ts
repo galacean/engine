@@ -14,17 +14,15 @@ class ShaderLoader extends Loader<Shader> {
   private static _builtinRegex = /^\s*\/\/\s*@builtin\s+(\w+)/;
 
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Shader> {
-    const { virtualPath, url } = item;
-    const shaderVirtualPath = virtualPath ?? "/";
+    const { url } = item;
 
-    return this.request<string>(url, { ...item, type: "text" }).then((code: string) => {
+    return this.request<string>(url, resourceManager, { ...item, type: "text" }).then((code: string) => {
       const builtinShader = this.getBuiltinShader(code);
-      // TODO: delete the snippets below when breaking change version released
       if (builtinShader) {
         return Shader.find(builtinShader);
       }
 
-      return _loadChunksInCode(code, shaderVirtualPath, resourceManager).then(() => {
+      return _loadChunksInCode(code, url, resourceManager).then(() => {
         return Shader.create(code);
       });
     });

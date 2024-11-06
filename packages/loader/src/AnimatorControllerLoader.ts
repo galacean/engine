@@ -19,7 +19,7 @@ import {
 class AnimatorControllerLoader extends Loader<AnimatorController> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AnimatorController> {
     return new AssetPromise((resolve, reject) => {
-      this.request<any>(item.url, {
+      this.request<any>(item.url, resourceManager, {
         ...item,
         type: "json"
       })
