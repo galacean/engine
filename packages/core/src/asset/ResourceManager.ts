@@ -393,7 +393,6 @@ export class ResourceManager {
   }
 
   private _loadMainAsset<T>(loader: Loader<T>, item: LoadItem, assetBaseURL: string): AssetPromise<T> {
-    // item.url = assetBaseURL;
     const loadingPromises = this._loadingPromises;
     const promise = loader.load(item, this);
     loadingPromises[assetBaseURL] = promise;
