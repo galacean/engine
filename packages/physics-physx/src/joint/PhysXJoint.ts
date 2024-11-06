@@ -21,7 +21,7 @@ export class PhysXJoint implements IJoint {
     this._physXPhysics = physXPhysics;
   }
 
-  /**s
+  /**
    * {@inheritDoc IJoint.setConnectedCollider }
    */
   setConnectedCollider(value: PhysXCollider): void {
@@ -86,6 +86,9 @@ export class PhysXJoint implements IJoint {
     this._pxJoint.setBreakForce(this._breakForce, this._breakTorque);
   }
 
+  /**
+   * {@inheritDoc IJoint.destroy }
+   */
   destroy(): void {
     this._pxJoint.release();
   }

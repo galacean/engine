@@ -23,12 +23,14 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
    * {@inheritDoc IDynamicCollider.getInertiaTensor }
    */
   getInertiaTensor(out: Vector3): Vector3 {
+    console.error("Physics-lite don't support getInertiaTensor. Use Physics-PhysX instead!");
     return out;
   }
   /**
    * {@inheritDoc IDynamicCollider.getCenterOfMass }
    */
   getCenterOfMass(out: Vector3): Vector3 {
+    console.error("Physics-lite don't support getCenterOfMass. Use Physics-PhysX instead!");
     return out;
   }
 
@@ -90,6 +92,7 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
    * {@inheritDoc IDynamicCollider.getAngularVelocity }
    */
   getAngularVelocity(out: Vector3): Vector3 {
+    console.error("Physics-lite don't support getAngularVelocity. Use Physics-PhysX instead!");
     return out;
   }
 
@@ -152,6 +155,7 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
    * {@inheritDoc IDynamicCollider.getLinearVelocity }
    */
   getLinearVelocity(out: Vector3): Vector3 {
+    console.error("Physics-lite don't support getLinearVelocity. Use Physics-PhysX instead!");
     return out;
   }
 

@@ -51,5 +51,8 @@ export interface IJoint {
    */
   setBreakTorque(value: number): void;
 
+  /**
+   * Destroy the joint.
+   */
   destroy(): void;
 }

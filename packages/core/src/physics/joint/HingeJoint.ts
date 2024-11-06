@@ -111,12 +111,10 @@ export class HingeJoint extends Joint {
 
   set motor(value: JointMotor) {
     if (this._jointMotor !== value) {
-      if (this._jointMotor) {
-        this._jointMotor._updateFlagManager.removeListener(this._onMotorChanged);
-      }
+      this._jointMotor?._updateFlagManager.removeListener(this._onMotorChanged);
 
       this._jointMotor = value;
-      value && value._updateFlagManager.addListener(this._onMotorChanged);
+      value?._updateFlagManager.addListener(this._onMotorChanged);
 
       this._onMotorChanged();
     }
@@ -131,12 +129,10 @@ export class HingeJoint extends Joint {
 
   set limits(value: JointLimits) {
     if (this._limits !== value) {
-      if (this._limits) {
-        this._limits._updateFlagManager.removeListener(this._onLimitsChanged);
-      }
+      this._limits?._updateFlagManager.removeListener(this._onLimitsChanged);
 
       this._limits = value;
-      value && value._updateFlagManager.addListener(this._onLimitsChanged);
+      value?._updateFlagManager.addListener(this._onLimitsChanged);
 
       this._onLimitsChanged();
     }

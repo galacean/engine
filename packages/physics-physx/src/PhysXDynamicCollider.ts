@@ -30,6 +30,9 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor = physXPhysics._pxPhysics.createRigidDynamic(transform);
   }
 
+  /**
+   * {@inheritDoc IDynamicCollider.getLinearDamping }
+   */
   getLinearDamping(): number {
     return this._pxActor.getLinearDamping();
   }
@@ -41,6 +44,9 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setLinearDamping(value);
   }
 
+  /**
+   * {@inheritDoc IDynamicCollider.getAngularDamping }
+   */
   getAngularDamping(): number {
     return this._pxActor.getAngularDamping();
   }
@@ -52,10 +58,14 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setAngularDamping(value);
   }
 
+  /**
+   * {@inheritDoc IDynamicCollider.getLinearVelocity }
+   */
   getLinearVelocity(out: Vector3): Vector3 {
     const velocity = this._pxActor.getLinearVelocity();
     return out.set(velocity.x, velocity.y, velocity.z);
   }
+
   /**
    * {@inheritDoc IDynamicCollider.setLinearVelocity }
    */
@@ -63,10 +73,14 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setLinearVelocity(value, true);
   }
 
+  /**
+   * {@inheritDoc IDynamicCollider.getAngularVelocity }
+   */
   getAngularVelocity(out: Vector3): Vector3 {
     const velocity = this._pxActor.getAngularVelocity();
     return out.set(velocity.x, velocity.y, velocity.z);
   }
+
   /**
    * {@inheritDoc IDynamicCollider.setAngularVelocity }
    */
@@ -103,15 +117,24 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setMassSpaceInertiaTensor(value);
   }
 
+  /**
+   * {@inheritDoc IDynamicCollider.getInertiaTensor }
+   */
   getInertiaTensor(out: Vector3): Vector3 {
     const inertia = this._pxActor.getMassSpaceInertiaTensor();
     return out.set(inertia.x, inertia.y, inertia.z);
   }
 
+  /**
+   * {@inheritDoc IDynamicCollider.setMassAndUpdateInertia }
+   */
   setMassAndUpdateInertia(mass: number): void {
     this._pxActor.setMassAndUpdateInertia(mass);
   }
 
+  /**
+   * {@inheritDoc IDynamicCollider.getMaxLinearVelocity }
+   */
   getMaxAngularVelocity(): number {
     return this._pxActor.getMaxAngularVelocity();
   }
@@ -123,6 +146,9 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setMaxAngularVelocity(value);
   }
 
+  /**
+   * {@inheritDoc IDynamicCollider.getMaxDepenetrationVelocity }
+   */
   getMaxDepenetrationVelocity(): number {
     return this._pxActor.getMaxDepenetrationVelocity();
   }
@@ -157,15 +183,15 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
 
     switch (value) {
       case CollisionDetectionMode.Continuous:
-        this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eENABLE_CCD, true);
+        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, true);
         break;
       case CollisionDetectionMode.ContinuousDynamic:
         this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, false);
-        this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, true);
+        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, true);
         break;
       case CollisionDetectionMode.ContinuousSpeculative:
         this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, false);
-        this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, true);
+        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, true);
         break;
       case CollisionDetectionMode.Discrete:
         this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, false);
@@ -233,6 +259,9 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     return this._pxActor.putToSleep();
   }
 
+  /**
+   * {@inheritDoc IDynamicCollider.isSleeping }
+   */
   isSleeping(): boolean {
     return this._pxActor.isSleeping();
   }
