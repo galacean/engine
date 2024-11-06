@@ -7,7 +7,7 @@ import {
   Shader,
   resourceLoader
 } from "@galacean/engine-core";
-import { _loadChunksInCode } from "./ShaderChunkLoader";
+import { ShaderChunkLoader } from "./ShaderChunkLoader";
 
 @resourceLoader(AssetType.Shader, ["gs", "gsl"])
 class ShaderLoader extends Loader<Shader> {
@@ -22,7 +22,7 @@ class ShaderLoader extends Loader<Shader> {
         return Shader.find(builtinShader);
       }
 
-      return _loadChunksInCode(code, url, resourceManager).then(() => {
+      return ShaderChunkLoader._loadChunksInCode(code, url, resourceManager).then(() => {
         const shader = Shader.create(code);
         // @ts-ignore
         shader._registerPath(url);
