@@ -407,8 +407,8 @@ export class Text extends UIRenderer {
     const rendererWidth = size.x;
     const rendererHeight = size.y;
     const textMetrics = this.enableWrapping
-      ? TextUtils.measureTextWithWrap(this, rendererWidth, rendererHeight)
-      : TextUtils.measureTextWithoutWrap(this, rendererHeight);
+      ? TextUtils.measureTextWithWrap(this, rendererWidth, rendererHeight, this._lineSpacing)
+      : TextUtils.measureTextWithoutWrap(this, rendererHeight, this._lineSpacing);
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
     const charRenderInfoPool = this.engine._charRenderInfoPool;
     const linesLen = lines.length;
@@ -549,6 +549,7 @@ export class Text extends UIRenderer {
   }
 
   private _isTextNoVisible(): boolean {
+    debugger;
     const size = (<UITransform>this._transform).size;
     return (
       this._text === "" ||
