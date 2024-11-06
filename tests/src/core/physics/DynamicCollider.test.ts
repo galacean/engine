@@ -424,6 +424,8 @@ describe("DynamicCollider", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
     const boxCollider = box.getComponent(DynamicCollider);
     box.isActive = false;
+    const angularVelocity = boxCollider.angularVelocity;
+    const linearVelocity = boxCollider.linearVelocity;
     boxCollider.automaticCenterOfMass = true;
     boxCollider.linearDamping = 0.1;
     boxCollider.angularDamping = 0.1;
@@ -440,6 +442,7 @@ describe("DynamicCollider", function () {
     boxCollider.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
     boxCollider.sleep();
     boxCollider.wakeUp();
+    const isSleeping = boxCollider.isSleeping();
     boxCollider.applyForce(new Vector3(1, 0, 0));
     boxCollider.applyTorque(new Vector3(0, 1, 0));
     boxCollider.isKinematic = true;

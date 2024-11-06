@@ -21,6 +21,9 @@ export class JointLimits {
   }
 
   set max(value: number) {
+    if (value < this._min) {
+      throw new Error("Max limit must be greater than min limit");
+    }
     if (this._max !== value) {
       this._max = value;
       this._updateFlagManager.dispatch();
@@ -35,6 +38,9 @@ export class JointLimits {
   }
 
   set min(value: number) {
+    if (value > this._max) {
+      throw new Error("Min limit must be less than max limit");
+    }
     if (this._min !== value) {
       this._min = value;
       this._updateFlagManager.dispatch();
@@ -46,6 +52,9 @@ export class JointLimits {
    * Default is the lesser of 0.1 radians, and 0.49 * (upperLimit - lowerLimit)
    */
   get contactDistance(): number {
+    if (this._contactDistance === -1) {
+      return Math.min(0.1, 0.49 * (this._max - this._min));
+    }
     return this._contactDistance;
   }
 

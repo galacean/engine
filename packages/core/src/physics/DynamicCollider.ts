@@ -189,7 +189,7 @@ export class DynamicCollider extends Collider {
   set maxAngularVelocity(value: number) {
     if (this._maxAngularVelocity !== value) {
       this._maxAngularVelocity = value;
-      this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).setMaxAngularVelocity(value);
+      (<IDynamicCollider>this._nativeCollider).setMaxAngularVelocity(value);
     }
   }
 
@@ -203,7 +203,7 @@ export class DynamicCollider extends Collider {
   set maxDepenetrationVelocity(value: number) {
     if (this._maxDepenetrationVelocity !== value) {
       this._maxDepenetrationVelocity = value;
-      this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).setMaxDepenetrationVelocity(value);
+      (<IDynamicCollider>this._nativeCollider).setMaxDepenetrationVelocity(value);
     }
   }
 
@@ -217,7 +217,7 @@ export class DynamicCollider extends Collider {
   set sleepThreshold(value: number) {
     if (value !== this._sleepThreshold) {
       this._sleepThreshold = value;
-      this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).setSleepThreshold(value);
+      (<IDynamicCollider>this._nativeCollider).setSleepThreshold(value);
     }
   }
 
@@ -231,7 +231,7 @@ export class DynamicCollider extends Collider {
   set solverIterations(value: number) {
     if (this._solverIterations !== value) {
       this._solverIterations = value;
-      this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).setSolverIterations(value);
+      (<IDynamicCollider>this._nativeCollider).setSolverIterations(value);
     }
   }
 
@@ -245,7 +245,7 @@ export class DynamicCollider extends Collider {
   set isKinematic(value: boolean) {
     if (this._isKinematic !== value) {
       this._isKinematic = value;
-      this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).setIsKinematic(value);
+      (<IDynamicCollider>this._nativeCollider).setIsKinematic(value);
     }
   }
 
@@ -259,7 +259,7 @@ export class DynamicCollider extends Collider {
   set constraints(value: DynamicColliderConstraints) {
     if (this._constraints !== value) {
       this._constraints = value;
-      this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).setConstraints(value);
+      (<IDynamicCollider>this._nativeCollider).setConstraints(value);
     }
   }
 
@@ -273,7 +273,7 @@ export class DynamicCollider extends Collider {
   set collisionDetectionMode(value: CollisionDetectionMode) {
     if (this._collisionDetectionMode !== value) {
       this._collisionDetectionMode = value;
-      this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(value);
+      (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(value);
     }
   }
 
@@ -367,7 +367,7 @@ export class DynamicCollider extends Collider {
    * Forces a collider to sleep at least one frame.
    */
   sleep(): void {
-    this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).sleep();
+    (<IDynamicCollider>this._nativeCollider).sleep();
   }
 
   /**
@@ -375,14 +375,14 @@ export class DynamicCollider extends Collider {
    * @returns True if the collider is sleeping, false otherwise.
    */
   isSleeping(): boolean {
-    return !this._phasedActiveInScene || (<IDynamicCollider>this._nativeCollider).isSleeping();
+    return (<IDynamicCollider>this._nativeCollider).isSleeping();
   }
 
   /**
    * Forces a collider to wake up.
    */
   wakeUp(): void {
-    this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).wakeUp();
+    (<IDynamicCollider>this._nativeCollider).wakeUp();
   }
 
   /**
@@ -437,20 +437,20 @@ export class DynamicCollider extends Collider {
   }
 
   private _setLinearVelocity(): void {
-    this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).setLinearVelocity(this._linearVelocity);
+    (<IDynamicCollider>this._nativeCollider).setLinearVelocity(this._linearVelocity);
   }
   private _setAngularVelocity(): void {
-    this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).setAngularVelocity(this._angularVelocity);
+    (<IDynamicCollider>this._nativeCollider).setAngularVelocity(this._angularVelocity);
   }
 
   private _setCenterOfMass(): void {
-    if (this._phasedActiveInScene && !this._automaticCenterOfMass) {
+    if (!this._automaticCenterOfMass) {
       (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
     }
   }
 
   private _setInertiaTensor(): void {
-    if (this._phasedActiveInScene && !this._automaticInertiaTensor) {
+    if (!this._automaticInertiaTensor) {
       (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
     }
   }

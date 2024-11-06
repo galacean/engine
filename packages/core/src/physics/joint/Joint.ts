@@ -73,8 +73,12 @@ export abstract class Joint extends Component {
   }
 
   set connectedAnchor(value: Vector3) {
+    if (this.autoConnectedAnchor) {
+      console.warn("Cannot set connectedAnchor when autoConnectedAnchor is true.");
+      return;
+    }
     const connectedAnchor = this._connectedColliderInfo.anchor;
-    if (!this._autoConnectedAnchor && value !== connectedAnchor) {
+    if (value !== connectedAnchor) {
       connectedAnchor.copyFrom(value);
       this._updateActualAnchor(AnchorOwner.Connected);
     }

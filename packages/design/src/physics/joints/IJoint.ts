@@ -16,6 +16,9 @@ export interface IJoint {
    */
   setConnectedAnchor(value: Vector3): void;
 
+  /**
+   * The anchor position.
+   */
   setAnchor(value: Vector3): void;
 
   /**

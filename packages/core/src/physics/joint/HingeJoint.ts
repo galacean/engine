@@ -143,8 +143,12 @@ export class HingeJoint extends Joint {
   }
 
   protected _createJoint(): void {
+    const collider = this.entity.getComponent(Collider);
+    if (!collider) {
+      throw new Error("HingeJoint requires a Collider component on the entity.");
+    }
     const colliderInfo = this._colliderInfo;
-    colliderInfo.collider = this.entity.getComponent(Collider);
+    colliderInfo.collider = collider;
     this._nativeJoint = PhysicsScene._nativePhysics.createHingeJoint(colliderInfo.collider._nativeCollider);
   }
 
@@ -157,7 +161,7 @@ export class HingeJoint extends Joint {
     if (motor) {
       (<IHingeJoint>this._nativeJoint).setDriveVelocity(motor.targetVelocity);
       (<IHingeJoint>this._nativeJoint).setDriveForceLimit(motor.forceLimit);
-      (<IHingeJoint>this._nativeJoint).setDriveGearRatio(motor.gearRation);
+      (<IHingeJoint>this._nativeJoint).setDriveGearRatio(motor.gearRatio);
       (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.DriveFreeSpin, motor.freeSpin);
     }
   }
@@ -167,7 +171,7 @@ export class HingeJoint extends Joint {
     if (this._nativeJoint) {
       (<IHingeJoint>this._nativeJoint).setDriveVelocity(motor.targetVelocity);
       (<IHingeJoint>this._nativeJoint).setDriveForceLimit(motor.forceLimit);
-      (<IHingeJoint>this._nativeJoint).setDriveGearRatio(motor.gearRation);
+      (<IHingeJoint>this._nativeJoint).setDriveGearRatio(motor.gearRatio);
       (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.DriveFreeSpin, motor.freeSpin);
     }
   };

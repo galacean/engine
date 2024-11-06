@@ -142,10 +142,6 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setSleepThreshold(value);
   }
 
-  getSleepThreshold() {
-    return this._pxActor.getSleepThreshold();
-  }
-
   /**
    * {@inheritDoc IDynamicCollider.setSolverIterations }
    */

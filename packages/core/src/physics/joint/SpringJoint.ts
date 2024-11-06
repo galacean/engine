@@ -84,8 +84,12 @@ export class SpringJoint extends Joint {
   }
 
   protected _createJoint(): void {
+    const collider = this.entity.getComponent(Collider);
+    if (!collider) {
+      throw new Error("SpringJoint requires a Collider component on the entity.");
+    }
     const colliderInfo = this._colliderInfo;
-    colliderInfo.collider = this.entity.getComponent(Collider);
+    colliderInfo.collider = collider;
     this._nativeJoint = PhysicsScene._nativePhysics.createSpringJoint(colliderInfo.collider._nativeCollider);
   }
 

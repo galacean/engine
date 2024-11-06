@@ -7,10 +7,10 @@ export class JointMotor {
   /** @internal */
   _updateFlagManager = new UpdateFlagManager();
 
-  private _targetVelocity: number = 0;
-  private _forceLimit: number = Number.MAX_VALUE;
-  private _gearRation: number = 1.0;
-  private _freeSpin: boolean = false;
+  private _targetVelocity = 0;
+  private _forceLimit = Number.MAX_VALUE;
+  private _gearRatio = 1.0;
+  private _freeSpin = false;
 
   /**
    * The motor will apply a force up to force to achieve targetVelocity.
@@ -39,12 +39,12 @@ export class JointMotor {
   /**
    * Gear ration for the motor
    */
-  get gearRation(): number {
-    return this._gearRation;
+  get gearRatio(): number {
+    return this._gearRatio;
   }
 
-  set gearRation(value: number) {
-    this._gearRation = value;
+  set gearRatio(value: number) {
+    this._gearRatio = value;
     this._updateFlagManager.dispatch();
   }
 

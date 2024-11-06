@@ -254,7 +254,7 @@ describe("HingeJoint", function () {
     expect(formatValue(joint.velocity)).eq(30);
   });
 
-  it("gearRation", function () {
+  it("gearRatio", function () {
     const boxEntity = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
     const boxEntity2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0.5, 5, 0));
     const collider = boxEntity.getComponent(DynamicCollider);
@@ -271,7 +271,7 @@ describe("HingeJoint", function () {
     joint.useMotor = true;
     const motor = new JointMotor();
     motor.targetVelocity = 30;
-    motor.gearRation = 2;
+    motor.gearRatio = 2;
     joint.motor = motor;
 
     expect(formatValue(joint.velocity)).eq(0);
