@@ -442,7 +442,17 @@ describe("DynamicCollider", function () {
     boxCollider.wakeUp();
     boxCollider.applyForce(new Vector3(1, 0, 0));
     boxCollider.applyTorque(new Vector3(0, 1, 0));
+    boxCollider.isKinematic = true;
     boxCollider.move(new Vector3(1, 0, 0));
+    box.isActive = true;
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    expect(box.transform.position.x).eq(0);
+    boxCollider.move(new Vector3(1, 0, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    expect(box.transform.position.x).eq(1);
+    box.isActive = false;
     boxCollider.destroy();
   });
 });

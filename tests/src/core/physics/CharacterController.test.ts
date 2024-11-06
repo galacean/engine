@@ -287,4 +287,37 @@ describe("CharacterController", function () {
     expect(capsuleColliderShape.radius).eq(0.2);
     expect(capsuleColliderShape.height).eq(1);
   });
+
+  it("clone", () => {
+    const newRole = roleEntity.clone();
+    roleEntity.isActive = false;
+    rootEntity.addChild(newRole);
+    const { fixedTimeStep } = engine.sceneManager.activeScene.physics;
+    const moveScript = newRole.getComponent(MoveScript);
+    const controller = newRole.getComponent(CharacterController);
+    expect(controller.slopeLimit).eq(0.707);
+    const slope = addPlane(new Vector3(0, 0, 2), new Quaternion().rotateX(-Math.PI / 4));
+    moveScript.moveTo(new Vector3(0, 0, 3), 50);
+    // @ts-ignore
+    engine.sceneManager.activeScene._componentsManager.callScriptOnStart();
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(fixedTimeStep * 50);
+    expect(formatValue(newRole.transform.position.z)).eq(3);
+  });
+
+  it("inActive modification", function () {
+    roleEntity.isActive = false;
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.contactOffset = 0.1;
+    controller.stepOffset = 1;
+    controller.slopeLimit = 1;
+    controller.nonWalkableMode = ControllerNonWalkableMode.PreventClimbingAndForceSliding;
+    controller.upDirection = new Vector3(0, -1, 0);
+    controller.move(new Vector3(0, 0, 1), 0.0001, 0.1);
+    roleEntity.isActive = true;
+    controller.move(new Vector3(0, 0, 1), 0.0001, 0.1);
+    expect(roleEntity.transform.position.z).eq(1);
+    roleEntity.isActive = false;
+    controller.destroy();
+  });
 });

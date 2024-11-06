@@ -128,15 +128,6 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * Remove all shape attached.
-   */
-  override clearShapes(): void {
-    if (this._shapes.length > 0) {
-      super.removeShape(this._shapes[0]);
-    }
-  }
-
-  /**
    * @internal
    */
   override _onUpdate() {
@@ -169,7 +160,7 @@ export class CharacterController extends Collider {
     physics._addCharacterController(this);
     const shapes = this.shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
-      this.addShape(shapes[i]);
+      this._addNativeShape(shapes[i]);
     }
   }
 
@@ -181,7 +172,7 @@ export class CharacterController extends Collider {
     physics._removeCharacterController(this);
     const shapes = this.shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
-      this.removeShape(shapes[i]);
+      this._removeNativeShape(shapes[i]);
     }
   }
 

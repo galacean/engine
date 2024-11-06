@@ -98,7 +98,7 @@ export class HingeJoint extends Joint {
   set useSpring(value: boolean) {
     if (this._useSpring !== value) {
       this._useSpring = value;
-      this.limits = this._limits;
+      this._onLimitsChanged();
     }
   }
 
