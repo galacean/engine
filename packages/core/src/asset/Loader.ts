@@ -42,7 +42,6 @@ export abstract class Loader<T> {
   initialize?(engine: Engine, configuration: EngineConfiguration): Promise<void>;
   abstract load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<T>;
   request<U>(url: string, resourceManager: ResourceManager, config: RequestConfig): AssetPromise<U> {
-    // @ts-ignore
     const remoteUrl = resourceManager._virtualPathMap[url] ?? url;
     return request(remoteUrl, config);
   }
