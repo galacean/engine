@@ -14,7 +14,7 @@ export class GLTFSchemaParser extends GLTFParser {
     const restoreBufferRequests = contentRestorer.bufferRequests;
     const requestConfig = <RequestConfig>{ type: "arraybuffer" };
     // @ts-ignore
-    const remoteUrl = context.resourceManager._virtualPathMap[url];
+    const remoteUrl = context.resourceManager._virtualPathMap[url] ?? url;
     return request<ArrayBuffer>(remoteUrl, requestConfig)
       .onProgress(undefined, context._onTaskDetail)
       .then((buffer) => {

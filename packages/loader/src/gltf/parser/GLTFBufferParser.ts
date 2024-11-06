@@ -17,7 +17,7 @@ export class GLTFBufferParser extends GLTFParser {
     const { glTFResource, contentRestorer } = context;
     const url = glTFResource.url;
     // @ts-ignore
-    const remoteUrl = context.resourceManager._virtualPathMap[url];
+    const remoteUrl = context.resourceManager._virtualPathMap[url] ?? url;
     const restoreBufferRequests = contentRestorer.bufferRequests;
     const requestConfig = <RequestConfig>{ type: "arraybuffer" };
     const absoluteUrl = Utils.resolveAbsoluteUrl(remoteUrl, bufferInfo.uri);
