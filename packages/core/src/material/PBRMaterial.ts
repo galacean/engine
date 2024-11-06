@@ -21,8 +21,8 @@ export class PBRMaterial extends PBRBaseMaterial {
   private _anisotropyRotation: number = 0;
 
   private static _iridescenceProp = ShaderProperty.getByName("material_IridescenceInfo");
-  private static _irithicknesstextureProp = ShaderProperty.getByName("material_IridescenceThicknessTexture");
-  private static _iridecencetextureProp = ShaderProperty.getByName("material_IridescenceTexture");
+  private static _iridescenceThicknessTextureProp = ShaderProperty.getByName("material_IridescenceThicknessTexture");
+  private static _iridescenceTextureProp = ShaderProperty.getByName("material_IridescenceTexture");
 
   /**
    * Index Of Refraction.
@@ -220,11 +220,11 @@ export class PBRMaterial extends PBRBaseMaterial {
    * The thickness texture of the thin-film layer.	
    */
   get irithicknessTexture(): Texture2D {
-    return <Texture2D>this.shaderData.getTexture(PBRMaterial._irithicknesstextureProp);
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._iridescenceThicknessTextureProp);
   }
 
   set irithicknessTexture(value: Texture2D) {
-    this.shaderData.setTexture(PBRMaterial._irithicknesstextureProp, value);
+    this.shaderData.setTexture(PBRMaterial._iridescenceThicknessTextureProp, value);
 
     if (value) {
       this.shaderData.enableMacro("MATERIAL_HAS_IRIDESCENCE_THICKNESS_TEXTURE");
@@ -237,11 +237,11 @@ export class PBRMaterial extends PBRBaseMaterial {
    * The iridescence intensity texture.	
    */
   get iridescenceTexture(): Texture2D {
-    return <Texture2D>this.shaderData.getTexture(PBRMaterial._iridecencetextureProp);
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._iridescenceTextureProp);
   }
 
   set iridescenceTexture(value: Texture2D) {
-    this.shaderData.setTexture(PBRMaterial._iridecencetextureProp, value);
+    this.shaderData.setTexture(PBRMaterial._iridescenceTextureProp, value);
 
     if (value) {
       this.shaderData.enableMacro("MATERIAL_HAS_IRIDESCENCE_TEXTURE");
