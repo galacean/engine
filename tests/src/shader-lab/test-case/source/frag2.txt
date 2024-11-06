@@ -8,6 +8,7 @@
 #define COLOR_2_LINEAR(color) color*color
 
 #define RECURSIVE_MACRO(mat) (COLOR_2_LINEAR(vec3(1.0)); INVERSE_MAT(mat));
+#define HAS_TEXTURE
 
 void function() {
   saturate(9.9999 + EPSILON);

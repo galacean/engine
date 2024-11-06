@@ -1,0 +1,14 @@
+---
+title: Material Overview
+---
+
+Materials refer to a collection of properties used to describe the appearance and surface characteristics of an object. Materials determine how a model interacts with light during rendering, thus affecting its visual presentation.
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/a3f74864-241e-4cd8-9ad4-733c2a0b2cc2/image-20240206153815596.png" alt="image-20240206153815596" style="zoom:50%;" />
+
+This section includes the following related information:
+
+- [Material Composition](/en/docs/graphics/material/composition/)
+- [Editor Usage](/en/docs/graphics/material/editor/)
+- [Script Usage](/en/docs/graphics/material/script/)
+

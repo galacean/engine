@@ -155,9 +155,14 @@ describe("Light test", function () {
   });
 
   it("update shadow strength", function () {
-    const expectShadowStrength = 0.8;
-    directLight.shadowStrength = expectShadowStrength;
-    expect(directLight.shadowStrength).to.equal(expectShadowStrength);
+    directLight.shadowStrength = 0.8;
+    expect(directLight.shadowStrength).to.equal(0.8);
+
+    directLight.shadowStrength = 2;
+    expect(directLight.shadowStrength).to.equal(1);
+
+    directLight.shadowStrength = -2;
+    expect(directLight.shadowStrength).to.equal(0);
   });
 
   it("multiple directlight or sunlight", function () {

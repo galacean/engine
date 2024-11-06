@@ -1,28 +1,9 @@
-import { IPoolElement } from "../RenderPipeline/IPoolElement";
-import { MeshTopology } from "./enums/MeshTopology";
+import { IPoolElement } from "../utils/ObjectPool";
+import { SubPrimitive } from "./SubPrimitive";
 
 /**
  * Sub-mesh, mainly contains drawing information.
  */
-export class SubMesh implements IPoolElement {
-  /** Start drawing offset. */
-  start: number;
-  /** Drawing count. */
-  count: number;
-  /** Drawing topology. */
-  topology: MeshTopology;
-
-  /**
-   * Create a sub-mesh.
-   * @param start - Start drawing offset
-   * @param count - Drawing count
-   * @param topology - Drawing topology
-   */
-  constructor(start: number = 0, count: number = 0, topology: MeshTopology = MeshTopology.Triangles) {
-    this.start = start;
-    this.count = count;
-    this.topology = topology;
-  }
-
+export class SubMesh extends SubPrimitive implements IPoolElement {
   dispose?(): void {}
 }

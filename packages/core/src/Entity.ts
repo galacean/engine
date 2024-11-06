@@ -2,7 +2,6 @@ import { Matrix } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
 import { ComponentsDependencies } from "./ComponentsDependencies";
-import { DisorderedArray } from "./DisorderedArray";
 import { Engine } from "./Engine";
 import { Layer } from "./Layer";
 import { Scene } from "./Scene";
@@ -12,6 +11,7 @@ import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
+import { DisorderedArray } from "./utils/DisorderedArray";
 
 /**
  * Entity, be used as components container.
@@ -203,11 +203,15 @@ export class Entity extends EngineObject {
   /**
    * Add component based on the component type.
    * @param type - The type of the component
+   * @param args - The arguments of the component
    * @returns	The component which has been added
    */
-  addComponent<T extends Component>(type: new (entity: Entity) => T): T {
+  addComponent<T extends new (entity: Entity, ...args: any[]) => Component>(
+    type: T,
+    ...args: ComponentArguments<T>
+  ): InstanceType<T> {
     ComponentsDependencies._addCheck(this, type);
-    const component = new type(this);
+    const component = new type(this, ...args) as InstanceType<T>;
     this._components.push(component);
     component._setActive(true, ActiveChangeFlag.All);
     return component;
@@ -420,7 +424,7 @@ export class Entity extends EngineObject {
    * @returns Cloned entity
    */
   clone(): Entity {
-    const cloneEntity = this._createCloneEntity(this);
+    const cloneEntity = this._createCloneEntity();
     this._parseCloneEntity(this, cloneEntity, this, cloneEntity, new Map<Object, Object>());
     return cloneEntity;
   }
@@ -433,8 +437,8 @@ export class Entity extends EngineObject {
     this._templateResource = templateResource;
   }
 
-  private _createCloneEntity(srcEntity: Entity): Entity {
-    const cloneEntity = new Entity(srcEntity._engine, srcEntity.name);
+  private _createCloneEntity(): Entity {
+    const cloneEntity = new Entity(this._engine, this.name);
 
     const templateResource = this._templateResource;
     if (templateResource) {
@@ -442,17 +446,17 @@ export class Entity extends EngineObject {
       templateResource._addReferCount(1);
     }
 
-    cloneEntity.layer = srcEntity.layer;
-    cloneEntity._isActive = srcEntity._isActive;
+    cloneEntity.layer = this.layer;
+    cloneEntity._isActive = this._isActive;
     const { transform: cloneTransform } = cloneEntity;
-    const { transform: srcTransform } = srcEntity;
+    const { transform: srcTransform } = this;
     cloneTransform.position = srcTransform.position;
     cloneTransform.rotation = srcTransform.rotation;
     cloneTransform.scale = srcTransform.scale;
 
-    const children = srcEntity._children;
-    for (let i = 0, n = srcEntity._children.length; i < n; i++) {
-      cloneEntity.addChild(this._createCloneEntity(children[i]));
+    const srcChildren = this._children;
+    for (let i = 0, n = srcChildren.length; i < n; i++) {
+      cloneEntity.addChild(srcChildren[i]._createCloneEntity());
     }
     return cloneEntity;
   }
@@ -582,6 +586,19 @@ export class Entity extends EngineObject {
     this._setActiveComponents(false, activeChangeFlag);
   }
 
+  /**
+   * @internal
+   */
+  _setTransformDirty() {
+    if (this.transform) {
+      this.transform._parentChange();
+    } else {
+      for (let i = 0, len = this._children.length; i < len; i++) {
+        this._children[i]._setTransformDirty();
+      }
+    }
+  }
+
   private _addToChildrenList(index: number, child: Entity): void {
     const children = this._children;
     const childCount = children.length;
@@ -703,16 +720,6 @@ export class Entity extends EngineObject {
     }
   }
 
-  private _setTransformDirty() {
-    if (this.transform) {
-      this.transform._parentChange();
-    } else {
-      for (let i = 0, len = this._children.length; i < len; i++) {
-        this._children[i]._setTransformDirty();
-      }
-    }
-  }
-
   private _setSiblingIndex(sibling: Entity[], target: number): void {
     target = Math.min(target, sibling.length - 1);
     if (target < 0) {
@@ -751,3 +758,10 @@ export class Entity extends EngineObject {
     return this._invModelMatrix;
   }
 }
+
+type ComponentArguments<T extends new (entity: Entity, ...args: any[]) => Component> = T extends new (
+  entity: Entity,
+  ...args: infer P
+) => Component
+  ? P
+  : never;

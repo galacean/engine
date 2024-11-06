@@ -16,6 +16,7 @@ import "./GALACEAN_animation_event";
 import "./EXT_meshopt_compression";
 import "./KHR_materials_anisotropy";
 import "./KHR_materials_iridescence";
+import "./EXT_texture_webp";
 
 export { GLTFExtensionParser, GLTFExtensionMode } from "./GLTFExtensionParser";
 

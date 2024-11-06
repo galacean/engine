@@ -25,3 +25,11 @@ const shader = Shader.create(galaceanShaderCode);
 // Run engine
 engine.run()
 ```
+
+## CFG Grammar conflict detection
+
+The Galacean ShaderLab syntax is defined using Context-Free Grammar (CFG) and is documented within the `\*.y` file. When modifications to the ShaderLab syntax are required, it is recommended to make changes to the existing CFG syntax file, and employ [Bison](https://www.gnu.org/software/bison/manual/bison.html) to detect any potential grammar conflicts.
+
+```sh
+bison ./Parser.y -r all
+```

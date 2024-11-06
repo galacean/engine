@@ -1,9 +1,9 @@
 import { Camera } from "./Camera";
 import { Component } from "./Component";
-import { DisorderedArray } from "./DisorderedArray";
 import { Renderer } from "./Renderer";
 import { Script } from "./Script";
 import { Animator } from "./animation";
+import { DisorderedArray } from "./utils/DisorderedArray";
 
 /**
  * The manager of the components.
@@ -192,7 +192,7 @@ export class ComponentsManager {
   callAnimationUpdate(deltaTime: number): void {
     this._onUpdateAnimations.forEach(
       (element: Animator) => {
-        element.engine.time.frameCount > element._playFrameCount && element.update(deltaTime);
+        element.update(deltaTime);
       },
       (element: Animator, index: number) => {
         element._onUpdateIndex = index;

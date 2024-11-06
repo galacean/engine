@@ -119,27 +119,50 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /**
    * @internal
    */
-  override update(): void {
-    const skin = this._skin;
-    if (skin?.bones.length > 0) {
-      skin._updateSkinMatrices(this);
+  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+    const worldMatrix = this._transform.worldMatrix;
+    if (onlyMVP) {
+      this._updateProjectionRelatedShaderData(context, worldMatrix, batched);
+    } else {
+      this._updateWorldViewRelatedShaderData(context, worldMatrix, batched);
     }
   }
 
-  override _updateShaderData(context: RenderContext, onlyMVP: boolean): void {
-    const { entity, skin } = this;
-    const worldMatrix = (skin?.rootBone ?? entity).transform.worldMatrix;
+  /**
+   * @internal
+   */
+  override _onDestroy(): void {
+    super._onDestroy();
+    this._jointDataCreateCache = null;
+    this._skin = null;
+    this._blendShapeWeights = null;
+    this._localBounds = null;
+    this._jointTexture?.destroy();
+    this._jointTexture = null;
+  }
 
-    if (onlyMVP) {
-      this._updateMVPShaderData(context, worldMatrix);
-      return;
+  /**
+   * @internal
+   */
+  override _cloneTo(target: SkinnedMeshRenderer, srcRoot: Entity, targetRoot: Entity): void {
+    super._cloneTo(target, srcRoot, targetRoot);
+
+    if (this.skin) {
+      target._applySkin(null, target.skin);
     }
 
-    this._updateTransformShaderData(context, worldMatrix);
+    this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
+  }
+
+  protected override _update(context: RenderContext): void {
+    const { skin } = this;
+    if (skin?.bones.length > 0) {
+      skin._updateSkinMatrices(this);
+    }
 
     const shaderData = this.shaderData;
-
     const mesh = <ModelMesh>this.mesh;
+
     const blendShapeManager = mesh._blendShapeManager;
     blendShapeManager._updateShaderData(shaderData, this);
 
@@ -187,34 +210,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       }
     }
 
-    const layer = entity.layer;
-    this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
-  }
-
-  /**
-   * @internal
-   */
-  override _onDestroy(): void {
-    super._onDestroy();
-    this._jointDataCreateCache = null;
-    this._skin = null;
-    this._blendShapeWeights = null;
-    this._localBounds = null;
-    this._jointTexture?.destroy();
-    this._jointTexture = null;
-  }
-
-  /**
-   * @internal
-   */
-  override _cloneTo(target: SkinnedMeshRenderer, srcRoot: Entity, targetRoot: Entity): void {
-    super._cloneTo(target, srcRoot, targetRoot);
-
-    if (this.skin) {
-      target._applySkin(null, target.skin);
-    }
-
-    this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
+    super._update(context);
   }
 
   /**
@@ -223,7 +219,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   protected override _updateBounds(worldBounds: BoundingBox): void {
     const rootBone = this.skin?.rootBone;
     if (rootBone) {
-      BoundingBox.transform(this._localBounds, rootBone.transform.worldMatrix, worldBounds);
+      BoundingBox.transform(this._localBounds, this._transform.worldMatrix, worldBounds);
     } else {
       super._updateBounds(worldBounds);
     }
@@ -269,6 +265,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         }
         break;
       case SkinUpdateFlag.RootBoneChanged:
+        this._setTransform((<Entity>value).transform);
         this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
         break;
     }

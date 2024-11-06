@@ -54,9 +54,12 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
     const controllers = this._controllers;
     for (let i = 0, n = controllers.length; i < n; i++) {
       const pxController = controllers.get(i)._pxController;
-      pxController.setHalfHeight(extents.x);
-      pxController.setHalfSideExtent(extents.y);
-      pxController.setHalfForwardExtent(extents.z);
+
+      if (pxController) {
+        pxController.setHalfHeight(extents.x);
+        pxController.setHalfSideExtent(extents.y);
+        pxController.setHalfForwardExtent(extents.z);
+      }
     }
   }
 }

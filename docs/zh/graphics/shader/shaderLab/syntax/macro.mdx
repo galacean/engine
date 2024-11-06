@@ -1,0 +1,45 @@
+---
+title: 宏
+---
+
+ShaderLab 支持 GLSL 标准语法中的部分宏和宏操作符：
+- `#define`
+- `#undef`
+- `#if`
+- `#ifdef`
+- `#ifndef`
+- `#else`
+- `#elif`
+- `#endif`
+- `defined` 
+  
+以及额外引入的 `#include` 宏。
+
+<Callout type="warning">
+ShaderLab 宏会在预处理器阶段被展开，因此宏不能影响 ShaderLab 结构解析，即 `Shader`，`SubShader`，`Pass`，`EditorProperties`，`EditorMacros` 关键字不能被包含在类似 `#ifdef` 这样的分支宏内。
+</Callout>
+
+## include 宏
+
+为了方便代码段复用，ShaderLab 中可以如下使用 `include` 宏进行代码段引用，后续编译过程中会被自动扩展替换。
+
+```glsl
+#include "{includeKey}"
+```
+
+为了能使代码段可以通过 `include` 宏进行引用，我们有 2 种方式进行代码段声明：
+
+1. 编辑器中创建 着色器 / 着色器片段
+
+创建的代码段 `includeKey` 为该文件在工程中的文件路径，比如 `/Root/Effect.glsl`
+
+2. 脚本中显示注册代码段
+
+```ts
+import { ShaderFactory } from '@galacean/engine';
+
+const commonSource = `// shader chunk`;
+ShaderFactory.registerInclude('includeKey', commonSource);
+```
+
+Shader 文件引入代码段支持相对路径引用，所有相对路径都基于主 Shader 文件路径进行转换。如Shader文件路径为`/root/hair/shader.gs`，引入代码段路径为`/root/hair/common.glsl`，则引入的相对路径为 `#include "./common.glsl"`。

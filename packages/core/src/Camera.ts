@@ -8,19 +8,21 @@ import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 import { PipelineUtils } from "./RenderPipeline/PipelineUtils";
 import { Transform } from "./Transform";
 import { VirtualCamera } from "./VirtualCamera";
-import { Logger } from "./base";
+import { GLCapabilityType, Logger } from "./base";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { CameraType } from "./enums/CameraType";
 import { DepthTextureMode } from "./enums/DepthTextureMode";
 import { Downsampling } from "./enums/Downsampling";
 import { MSAASamples } from "./enums/MSAASamples";
+import { ReplacementFailureStrategy } from "./enums/ReplacementFailureStrategy";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderProperty } from "./shader/ShaderProperty";
 import { ShaderTagKey } from "./shader/ShaderTagKey";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
+import { TextureFormat } from "./texture";
 import { RenderTarget } from "./texture/RenderTarget";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 
@@ -103,6 +105,8 @@ export class Camera extends Component {
   /** @internal */
   _replacementSubShaderTag: ShaderTagKey = null;
   /** @internal */
+  _replacementFailureStrategy: ReplacementFailureStrategy = null;
+  /** @internal */
   @ignoreClone
   _cameraIndex: number = -1;
 
@@ -118,6 +122,8 @@ export class Camera extends Component {
   private _renderTarget: RenderTarget = null;
   private _depthBufferParams: Vector4 = new Vector4();
   private _opaqueTextureEnabled: boolean = false;
+  private _enableHDR = false;
+  private _enablePostProcess = false;
 
   @ignoreClone
   private _frustumChangeFlag: BoolUpdateFlag;
@@ -141,7 +147,6 @@ export class Camera extends Component {
    * If enabled, the opaque texture can be accessed in the shader using `camera_OpaqueTexture`.
    *
    * @defaultValue `false`
-   *
    * @remarks If enabled, the `independentCanvasEnabled` property will be forced to be true.
    */
   get opaqueTextureEnabled(): boolean {
@@ -161,11 +166,11 @@ export class Camera extends Component {
    * @remarks If true, the msaa in viewport can turn or off independently by `msaaSamples` property.
    */
   get independentCanvasEnabled(): boolean {
-    if (this._renderTarget) {
-      return false;
+    if (this.enableHDR || (this.enablePostProcess && this.scene._postProcessManager.hasActiveEffect)) {
+      return true;
     }
 
-    return this._forceUseInternalCanvas();
+    return this.opaqueTextureEnabled && !this._renderTarget;
   }
 
   /**
@@ -356,15 +361,40 @@ export class Camera extends Component {
 
   /**
    * Whether to enable HDR.
-   * @todo When render pipeline modification
+   * @defaultValue `false`
+   * @remarks If enabled, the `independentCanvasEnabled` property will be forced to be true.
    */
   get enableHDR(): boolean {
-    console.log("not implementation");
-    return false;
+    return this._enableHDR;
   }
 
   set enableHDR(value: boolean) {
-    console.log("not implementation");
+    if (this.enableHDR !== value) {
+      const rhi = this.engine._hardwareRenderer;
+      const supportHDR = rhi.isWebGL2 || rhi.canIUse(GLCapabilityType.textureHalfFloat);
+      if (value && !supportHDR) {
+        Logger.warn("Can't enable HDR in this device.");
+        return;
+      }
+      this._enableHDR = value;
+      this._checkMainCanvasAntialiasWaste();
+    }
+  }
+
+  /**
+   * Whether to enable post process.
+   * @defaultValue `false`
+   * @remarks If enabled, the `independentCanvasEnabled` property will be forced to be true.
+   */
+  get enablePostProcess(): boolean {
+    return this._enablePostProcess;
+  }
+
+  set enablePostProcess(value: boolean) {
+    if (this._enablePostProcess !== value) {
+      this._enablePostProcess = value;
+      this._checkMainCanvasAntialiasWaste();
+    }
   }
 
   /**
@@ -380,7 +410,6 @@ export class Camera extends Component {
       value && this._addResourceReferCount(value, 1);
       this._renderTarget = value;
       this._onPixelViewportChanged();
-      this._checkMainCanvasAntialiasWaste();
     }
   }
 
@@ -570,7 +599,8 @@ export class Camera extends Component {
    * @param mipLevel - Set mip level the data want to write, only take effect in webgl2.0
    */
   render(cubeFace?: TextureCubeFace, mipLevel: number = 0): void {
-    const context = this.engine._renderContext;
+    const engine = this._engine;
+    const context = engine._renderContext;
     const virtualCamera = this._virtualCamera;
 
     const transform = this.entity.transform;
@@ -584,6 +614,7 @@ export class Camera extends Component {
     context.virtualCamera = virtualCamera;
     context.replacementShader = this._replacementShader;
     context.replacementTag = this._replacementSubShaderTag;
+    context.replacementFailureStrategy = this._replacementFailureStrategy;
 
     // compute cull frustum.
     if (this.enableFrustumCulling && this._frustumChangeFlag.flag) {
@@ -600,44 +631,51 @@ export class Camera extends Component {
       this._globalShaderMacro
     );
 
-    if (mipLevel > 0 && !this.engine._hardwareRenderer.isWebGL2) {
+    if (mipLevel > 0 && !engine._hardwareRenderer.isWebGL2) {
       mipLevel = 0;
       Logger.error("mipLevel only take effect in WebGL2.0");
     }
-    let clearMask: CameraClearFlags;
-    if (this._cameraType !== CameraType.Normal) {
-      clearMask = this.engine.xrManager._getCameraClearFlagsMask(this._cameraType);
+    let ignoreClearFlags: CameraClearFlags;
+    if (this._cameraType !== CameraType.Normal && !this._renderTarget && !this.independentCanvasEnabled) {
+      ignoreClearFlags = engine.xrManager._getCameraIgnoreClearFlags(this._cameraType);
     }
-    this._renderPipeline.render(context, cubeFace, mipLevel, clearMask);
-    this._engine._renderCount++;
+    this._renderPipeline.render(context, cubeFace, mipLevel, ignoreClearFlags);
+    engine._renderCount++;
   }
 
   /**
    * Set the replacement shader.
    * @param shader - Replacement shader
    * @param replacementTagName - Sub shader tag name
+   * @param failureStrategy - Replacement failure strategy, @defaultValue `ReplacementFailureStrategy.KeepOriginalShader`
    *
    * @remarks
    * If replacementTagName is not specified, the first sub shader will be replaced.
-   * If replacementTagName is specified, the replacement shader will find the first sub shader which has the same tag value get by replacementTagKey.
+   * If replacementTagName is specified, the replacement shader will find the first sub shader which has the same tag value get by replacementTagKey. If failed to find the sub shader, the strategy will be determined by failureStrategy.
    */
-  setReplacementShader(shader: Shader, replacementTagName?: string);
+  setReplacementShader(shader: Shader, replacementTagName?: string, failureStrategy?: ReplacementFailureStrategy);
 
   /**
    * Set the replacement shader.
    * @param shader - Replacement shader
    * @param replacementTag - Sub shader tag
+   * @param failureStrategy - Replacement failure strategy, @defaultValue `ReplacementFailureStrategy.KeepOriginalShader`
    *
    * @remarks
    * If replacementTag is not specified, the first sub shader will be replaced.
-   * If replacementTag is specified, the replacement shader will find the first sub shader which has the same tag value get by replacementTagKey.
+   * If replacementTag is specified, the replacement shader will find the first sub shader which has the same tag value get by replacementTagKey. If failed to find the sub shader, the strategy will be determined by failureStrategy.
    */
-  setReplacementShader(shader: Shader, replacementTag?: ShaderTagKey);
+  setReplacementShader(shader: Shader, replacementTag?: ShaderTagKey, failureStrategy?: ReplacementFailureStrategy);
 
-  setReplacementShader(shader: Shader, replacementTag?: string | ShaderTagKey): void {
+  setReplacementShader(
+    shader: Shader,
+    replacementTag?: string | ShaderTagKey,
+    failureStrategy: ReplacementFailureStrategy = ReplacementFailureStrategy.KeepOriginalShader
+  ): void {
     this._replacementShader = shader;
     this._replacementSubShaderTag =
       typeof replacementTag === "string" ? ShaderTagKey.getByName(replacementTag) : replacementTag;
+    this._replacementFailureStrategy = failureStrategy;
   }
 
   /**
@@ -646,6 +684,7 @@ export class Camera extends Component {
   resetReplacementShader(): void {
     this._replacementShader = null;
     this._replacementSubShaderTag = null;
+    this._replacementFailureStrategy = null;
   }
 
   /**
@@ -660,6 +699,17 @@ export class Camera extends Component {
    */
   override _onDisableInScene(): void {
     this.scene._componentsManager.removeCamera(this);
+  }
+
+  /**
+   * @internal
+   */
+  _getInternalColorTextureFormat(): TextureFormat {
+    return this._enableHDR
+      ? this.engine._hardwareRenderer.isWebGL2
+        ? TextureFormat.R11G11B10_UFloat
+        : TextureFormat.R16G16B16A16
+      : TextureFormat.R8G8B8A8;
   }
 
   /**
@@ -768,10 +818,6 @@ export class Camera extends Component {
     return this._inverseProjectionMatrix;
   }
 
-  private _forceUseInternalCanvas(): boolean {
-    return this.opaqueTextureEnabled;
-  }
-
   @ignoreClone
   private _onPixelViewportChanged(): void {
     this._updatePixelViewport();
@@ -780,8 +826,12 @@ export class Camera extends Component {
   }
 
   private _checkMainCanvasAntialiasWaste(): void {
-    if (this.independentCanvasEnabled && Vector4.equals(this._viewport, PipelineUtils.defaultViewport)) {
-      console.warn(
+    if (
+      this._phasedActiveInScene &&
+      this.independentCanvasEnabled &&
+      Vector4.equals(this._viewport, PipelineUtils.defaultViewport)
+    ) {
+      Logger.warn(
         "Camera use independent canvas and viewport cover the whole screen, it is recommended to disable antialias, depth and stencil to save memory when create engine."
       );
     }

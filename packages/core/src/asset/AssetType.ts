@@ -30,6 +30,8 @@ export enum AssetType {
   /** AnimatorController. */
   AnimatorController = "AnimatorController",
   /** Prefab.*/
+  Prefab = "Prefab",
+  /** GLTF.*/
   GLTF = "GLTF",
   /** Compress Texture. */
   KTX = "KTX",

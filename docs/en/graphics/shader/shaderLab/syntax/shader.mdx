@@ -1,0 +1,212 @@
+---
+title: Shader
+---
+
+```glsl
+Shader "ShaderName" {
+  ...
+  // Global variables
+  ...
+  SubShader "SubShaderName" {
+    ...
+  }
+  ...
+}
+```
+
+In ShaderLab, `Shader` is a collection of shader programs and other engine rendering settings in the traditional rendering pipeline. It allows defining multiple shader programs within the same `Shader` object and instructs Galacean on how to choose and use them during rendering. The `Shader` object has a nested structure, corresponding to the engine's encapsulated [Shader](/apis/galacean/#Shader), [SubShader](/apis/galacean/#SubShader), and [ShaderPass](/apis/galacean/#ShaderPass) objects.
+
+## Material Property Definition
+
+```glsl
+// Uniform
+EditorProperties
+{
+  material_BaseColor("Offset unit scale", Color) = (1,1,1,1);
+  ...
+
+  Header("Emissive")
+  {
+    material_EmissiveColor("Emissive color", Color) = (1,1,1,1);
+    ...
+  }
+  ...
+}
+
+// Macro
+EditorMacros
+{
+  [On] UV_OFFSET("UV Offset", Range(1,100)) = 10;
+  ...
+}
+```
+
+This module is used to define the UI display of the material bound to the Shader in the editor's Inspector panel. ShaderLab material properties use `EditorProperties` and `EditorMacros` to separately declare macro properties and other Uniform properties. The declaration format is:
+
+1. Uniform Properties
+
+   ```glsl
+   EditorProperties {
+     propertyName("label in Inspector", type) [= defaultValue];
+     ...
+     [ Header("blockName") {
+         propertyName("label in Inspector", type) [= defaultValue];
+         ...
+     } ]
+   }
+   ```
+
+   > Nested `Header` blocks can be used to hierarchically categorize material properties.
+
+   Supported types are
+
+   | Type | Example |
+   | :-: | :-- |
+   | Bool | propertyName("Property Description", Boolean) = true; |
+   | Int | propertyName("Property Description", Int) = 1; <br/>propertyName("Property Description", Range(0,8)) = 1 |
+   | Float | propertyName("Property Description", Float) = 0.5; <br/>propertyName("Property Description", Range(0.0, 1.0)) = 0.5; |
+   | Texture2D | propertyName("Property Description", Texture2D); |
+   | TextureCube | propertyName("Property Description", TextureCube); |
+   | Color | propertyName("Property Description", Color) = (0.25, 0.5, 0.5, 1); |
+   | Vector2 | propertyName("Property Description", Vector2) = (0.25, 0.5); |
+   | Vector3 | propertyName("Property Description", Vector3) = (0.25, 0.5, 0.5); |
+   | Vector4 | propertyName("Property Description", Vector4) = (0.25, 0.5, 0.5, 1.0); |
+
+2. Macro Properties
+
+   ```glsl
+   EditorMacros {
+     [\[Off/On\]] propertyName("label in Inspector"[, type]) [= defaultValue];
+     ...
+     [ Header("blockName") {
+         [\[Off/On\]] propertyName("label in Inspector"[, type]) [= defaultValue];
+         ...
+     } ]
+   }
+   ```
+
+   All include enable and disable functions, initialized by the `[On/Off]` directive. The types include
+
+   | Type | Example |
+   | :-: | :-- |
+   | None (Toggle Macro) | macroName("Macro Description"); |
+   | Bool | macroName("Macro Description", Boolean) = true; |
+   | Int | macroName("Macro Description", Int) = 1; <br/> macroName("Macro Description", Range(0,8)) = 1; |
+   | Float | macroName("Macro Description", Float) = 0.5; <br/> macroName("Macro Description", Range(0.0, 1.0)) = 0.5; |
+   | Color | macroName("Macro Description", Color) = (0.25, 0.5, 0.5, 1); |
+   | Vector2 | macroName("Macro Description", Vector2) = (0.25, 0.5); |
+   | Vector3 | macroName("Macro Description", Vector3) = (0.25, 0.5, 0.5); |
+   | Vector4 | macroName("Macro Description", Vector4) = (0.25, 0.5, 0.5, 1.0); |
+
+> Note that the current version of the ShaderLab material property module only defines the Inspector UI panel for the material bound to this Shader in the editor. It does not declare the corresponding global variables for you in the `ShaderPass`. If the `ShaderPass` code references this variable, you need to explicitly declare it in the global variable module (see below).
+
+## Global Variables
+
+You can declare 4 types of global variables in ShaderLab: RenderState, Structs, Functions, and Single Variables.
+
+### RenderState
+
+  Includes BlendState, DepthState, StencilState, RasterState
+
+  - BlendState
+
+    ```glsl
+    BlendState {
+      Enabled[n]: bool;
+      ColorBlendOperation[n]: BlendOperation;
+      AlphaBlendOperation[n]: BlendOperation;
+      SourceColorBlendFactor[n]: BlendFactor;
+      SourceAlphaBlendFactor[n]: BlendFactor;
+      DestinationColorBlendFactor[n]: BlendFactor;
+      DestinationAlphaBlendFactor[n]: BlendFactor;
+      ColorWriteMask[n]: float // 0xffffffff
+      BlendColor: vec4;
+      AlphaToCoverage: bool;
+    }
+    ```
+
+    [n] can be omitted. When using MRT, [n] specifies a particular MRT render state. Omitting it sets all MRT states. BlendOperation and BlendFactor enums are the same as the engine API.
+
+  - DepthState
+
+    ```glsl
+    DepthState {
+      Enabled: bool;
+      WriteEnabled: bool;
+      CompareFunction: CompareFunction;
+    }
+    ```
+
+    CompareFunction enums are the same as the engine API.
+
+  - StencilState
+
+    ```glsl
+    StencilState {
+      Enabled: bool;
+      ReferenceValue: int;
+      Mask: float; // 0xffffffff
+      WriteMask: float; // 0xffffffff
+      CompareFunctionFront: CompareFunction;
+      CompareFunctionBack: CompareFunction;
+      PassOperationFront: StencilOperation;
+      PassOperationBack: StencilOperation;
+      FailOperationFront: StencilOperation;
+      FailOperationBack: StencilOperation;
+      ZFailOperationFront: StencilOperation;
+      ZFailOperationBack: StencilOperation;
+    }
+    ```
+
+    CompareFunction and StencilOperation enums are the same as the engine API.
+
+  - RasterState
+
+    ```glsl
+    RasterState {
+      CullMode: CullMode;
+      DepthBias: float;
+      SlopeScaledDepthBias: float;
+    }
+    ```
+
+    CullMode enums are the same as the engine API.
+
+  Example of setting `BlendState` in `ShaderLab`:
+
+  ```glsl
+  Shader "Demo" {
+    ...
+    BlendState customBlendState
+    {
+      Enabled = true;
+      // Constant variable assignment
+      SourceColorBlendFactor = BlendFactor.SourceColor;
+      // Variable assignment
+      DestinationColorBlendFactor = material_DstBlend;
+    }
+    ...
+    Pass "0" {
+      ...
+      BlendState = customBlendState;
+      ...
+    }
+  }
+  ```
+
+  The above example shows two ways of assigning values to BlendState properties: *constant assignment* and *variable assignment*:
+
+  - Constant assignment means the right side of the assignment statement is a specified engine enum variable, e.g., BlendFactor.SourceColor.
+  - Variable assignment means the right side of the assignment statement is any variable name. The specific value of the variable is specified by the user at runtime through the ShaderData.setInt("material_DstBlend", BlendFactor.SourceColor) API.
+
+### Structs, Functions
+
+  Same as the syntax in GLSL.
+
+### Single Variables
+
+  ```glsl
+  [lowp/mediump/highp] variableType variableName;
+  ```
+
+Similar to other programming languages, global variables in ShaderLab also have scope and name overriding principles. In simple terms, the scope of global variables in ShaderLab is limited to the SubShader or Pass module in which they are declared. The name overriding principle means that if there are global variables with the same name within a Pass, the global variables within the Pass will override the global variables with the same name in the SubShader.

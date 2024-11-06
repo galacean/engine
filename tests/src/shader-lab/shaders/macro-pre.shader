@@ -13,7 +13,7 @@ Shader "Water" {
   }
 
   SubShader "subname" {
-    Tags { LightMode = "ForwardBase", Tag2 = true, Tag3 = 1.2 }
+    Tags { LightMode = "ForwardBase" }
 
     BlendFactor material_SrcBlend;
 
@@ -21,24 +21,24 @@ Shader "Water" {
       SourceAlphaBlendFactor = material_SrcBlend;
       Enabled[0] = true;
       ColorWriteMask[0] = 0.8;
-      BlendColor = vec4(1.0, 1.0, 1.0, 1.0);
+      BlendColor = Color(1.0, 1.0, 1.0, 1.0);
       AlphaBlendOperation = BlendOperation.Max;
     }
 
     UsePass "pbr/Default/Forward"
 
     Pass "default" {
-      Tags { ReplacementTag = "Opaque", Tag2 = true, Tag3 = 1.9 }
+      Tags { ReplacementTag = "Opaque" }
 
       struct a2v {
        vec4 POSITION;
        vec2 TEXCOORD_0; 
-      }
+      };
 
       struct v2f {
        vec2 v_uv;
        vec3 v_position;
-      }
+      };
 
       mat4 renderer_MVPMat;
       mat4 renderer_MVMat;
@@ -47,9 +47,6 @@ Shader "Water" {
       vec4 u_color;
       vec4 u_fogColor;
       float u_fogDensity;
-      
-      VertexShader = vert;
-      FragmentShader = frag;
 
       vec4 linearToGamma(vec4 linearIn) {
           return vec4(pow(linearIn.rgb, vec3(1.0 / 2.2)), linearIn.a);
@@ -104,7 +101,7 @@ float sampleShadowMapFiltered4(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoo
         v2f o;
 
         o.v_uv = v.TEXCOORD_0;
-        vec4 tmp = renderer_MVMat * POSITION;
+        vec4 tmp = renderer_MVMat * v.POSITION;
         float t = sampleShadowMapFiltered4(scene_ShadowMap, vec3(1.0), vec4(1.0));
         o.v_position = tmp.xyz;
         gl_Position = renderer_MVPMat * v.POSITION;
@@ -143,6 +140,9 @@ float sampleShadowMapFiltered4(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoo
           gl_FragColor = vec4(1.0, 1.0, 0.0, 0.0);
         #endif 
       }
+
+      VertexShader = vert;
+      FragmentShader = frag;
     }
     UsePass "blinn-phong/Default/Forward"
   }
