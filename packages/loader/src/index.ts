@@ -10,7 +10,6 @@ import "./JSONLoader";
 import "./KTXCubeLoader";
 import "./KTXLoader";
 import "./MaterialLoader";
-import "./MeshLoader";
 import "./PrimitiveMeshLoader";
 import "./ProjectLoader";
 import "./SourceFontLoader";
@@ -19,6 +18,8 @@ import "./SpriteLoader";
 import "./Texture2DLoader";
 import "./TextureCubeLoader";
 import "./ktx2/KTX2Loader";
+import "./ShaderLoader";
+import "./ShaderChunkLoader";
 
 export { GLTFLoader } from "./GLTFLoader";
 export type { GLTFParams } from "./GLTFLoader";

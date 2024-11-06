@@ -13,7 +13,7 @@ import { parseSingleKTX } from "./compressed-texture";
 export class KTXLoader extends Loader<Texture2D> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
     return new AssetPromise((resolve, reject) => {
-      this.request<ArrayBuffer>(item.url, {
+      this.request<ArrayBuffer>(item.url, resourceManager, {
         ...item,
         type: "arraybuffer"
       })
