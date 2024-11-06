@@ -1,7 +1,3 @@
-import { AssetPromise, ResourceManager } from "@galacean/engine-core";
-import { request } from "@galacean/engine-core";
-import type { RequestConfig } from "@galacean/engine-core/types/asset/request";
-
 /** @internal */
 export class Utils {
   private static _urlSchema = "files://";
