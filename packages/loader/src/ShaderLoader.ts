@@ -17,7 +17,7 @@ class ShaderLoader extends Loader<Shader> {
     const { url } = item;
 
     return this.request<string>(url, resourceManager, { ...item, type: "text" }).then((code: string) => {
-      const builtinShader = this.getBuiltinShader(code);
+      const builtinShader = this._getBuiltinShader(code);
       if (builtinShader) {
         return Shader.find(builtinShader);
       }
@@ -31,7 +31,7 @@ class ShaderLoader extends Loader<Shader> {
     });
   }
 
-  private getBuiltinShader(code: string) {
+  private _getBuiltinShader(code: string) {
     const match = code.match(ShaderLoader._builtinRegex);
     if (match && match[1]) return match[1];
   }
