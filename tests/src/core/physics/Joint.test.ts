@@ -335,5 +335,6 @@ describe("Joint", function () {
     fixedJoint.connectedInertiaScale = 3;
     fixedJoint.breakForce = 3;
     fixedJoint.breakTorque = 3;
+    fixedJoint.destroy();
   });
 });

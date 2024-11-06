@@ -227,5 +227,6 @@ describe("SpringJoint", function () {
     springJoint.tolerance = 0;
     springJoint.stiffness = 10000000000;
     springJoint.damping = 1;
+    springJoint.destroy();
   });
 });

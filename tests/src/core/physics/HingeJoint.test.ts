@@ -82,6 +82,7 @@ describe("HingeJoint", function () {
     const limits = new JointLimits();
     limits.min = -Math.PI / 2;
     limits.max = Math.PI / 2;
+    limits.contactDistance = 0.1;
     joint.limits = limits;
 
     expect(formatValue(joint.angle)).eq(0);
@@ -90,6 +91,11 @@ describe("HingeJoint", function () {
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(joint.angle)).eq(1.5708);
+
+    collider2.applyTorque(new Vector3(0, -1000, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(formatValue(joint.angle)).eq(-1.5708);
   });
 
   it("softLimit", function () {
@@ -108,7 +114,7 @@ describe("HingeJoint", function () {
     const limits = new JointLimits();
     limits.min = -Math.PI / 2;
     limits.max = Math.PI / 2;
-    limits.stiffness = 100;
+    limits.stiffness = 1000;
     limits.damping = 30;
     joint.limits = limits;
 
@@ -117,7 +123,63 @@ describe("HingeJoint", function () {
     collider2.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(joint.angle)).eq(1.50047);
+    expect(formatValue(joint.angle)).eq(0.10957);
+  });
+
+  it("stiffness", function () {
+    const boxEntity = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
+    const boxEntity2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(2, 5, 0));
+    const collider = boxEntity.getComponent(DynamicCollider);
+    const collider2 = boxEntity2.getComponent(DynamicCollider);
+    collider.isKinematic = true;
+    const joint = boxEntity.addComponent(HingeJoint);
+    joint.autoConnectedAnchor = true;
+    joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
+    joint.anchor = new Vector3(0.5, 0, 0);
+    joint.axis = new Vector3(0, 1, 0);
+    joint.useLimits = true;
+    joint.useSpring = true;
+    const limits = new JointLimits();
+    limits.min = -Math.PI / 2;
+    limits.max = Math.PI / 2;
+    limits.stiffness = 2000;
+    limits.damping = 30;
+    joint.limits = limits;
+
+    expect(formatValue(joint.angle)).eq(0);
+
+    collider2.applyTorque(new Vector3(0, 1000, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(formatValue(joint.angle)).eq(-0.22578);
+  });
+
+  it("damping", function () {
+    const boxEntity = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
+    const boxEntity2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(2, 5, 0));
+    const collider = boxEntity.getComponent(DynamicCollider);
+    const collider2 = boxEntity2.getComponent(DynamicCollider);
+    collider.isKinematic = true;
+    const joint = boxEntity.addComponent(HingeJoint);
+    joint.autoConnectedAnchor = true;
+    joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
+    joint.anchor = new Vector3(0.5, 0, 0);
+    joint.axis = new Vector3(0, 1, 0);
+    joint.useLimits = true;
+    joint.useSpring = true;
+    const limits = new JointLimits();
+    limits.min = -Math.PI / 2;
+    limits.max = Math.PI / 2;
+    limits.stiffness = 1000;
+    limits.damping = 100;
+    joint.limits = limits;
+
+    expect(formatValue(joint.angle)).eq(0);
+
+    collider2.applyTorque(new Vector3(0, 1000, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(formatValue(joint.angle)).eq(0.87375);
   });
 
   it("motor", function () {
@@ -215,10 +277,8 @@ describe("HingeJoint", function () {
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(collider2.angularVelocity.y)).eq(30);
 
-    const motor2 = new JointMotor();
-    motor2.targetVelocity = 30;
-    motor2.freeSpin = true;
-    joint.motor = motor2;
+    motor.targetVelocity = 30;
+    motor.freeSpin = true;
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(collider2.angularVelocity.y)).eq(30);
@@ -266,5 +326,6 @@ describe("HingeJoint", function () {
     hingeJoint.limits = limits;
     const motor = new JointMotor();
     hingeJoint.motor = motor;
+    hingeJoint.destroy();
   });
 });

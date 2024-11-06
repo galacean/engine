@@ -17,7 +17,7 @@ export class HingeJoint extends Joint {
   private _hingeFlags = HingeJointFlag.None;
   private _useSpring = false;
   @deepClone
-  private _jointMonitor: JointMotor;
+  private _jointMotor: JointMotor;
   @deepClone
   private _limits: JointLimits;
   private _angle = 0;
@@ -106,16 +106,19 @@ export class HingeJoint extends Joint {
    * The motor will apply a force up to a maximum force to achieve the target velocity in degrees per second.
    */
   get motor(): JointMotor {
-    return this._jointMonitor;
+    return this._jointMotor;
   }
 
   set motor(value: JointMotor) {
-    if (this._jointMonitor !== value) {
-      this._jointMonitor = value;
-      (<IHingeJoint>this._nativeJoint)?.setDriveVelocity(value.targetVelocity);
-      (<IHingeJoint>this._nativeJoint)?.setDriveForceLimit(value.forceLimit);
-      (<IHingeJoint>this._nativeJoint)?.setDriveGearRatio(value.gearRation);
-      (<IHingeJoint>this._nativeJoint)?.setHingeJointFlag(HingeJointFlag.DriveFreeSpin, value.freeSpin);
+    if (this._jointMotor !== value) {
+      if (this._jointMotor) {
+        this._jointMotor._updateFlagManager.removeListener(this._onMotorChanged);
+      }
+
+      this._jointMotor = value;
+      value && value._updateFlagManager.addListener(this._onMotorChanged);
+
+      this._onMotorChanged();
     }
   }
 
@@ -128,12 +131,14 @@ export class HingeJoint extends Joint {
 
   set limits(value: JointLimits) {
     if (this._limits !== value) {
-      this._limits = value;
-      if (this.useSpring) {
-        (<IHingeJoint>this._nativeJoint)?.setSoftLimit(value.min, value.max, value.stiffness, value.damping);
-      } else {
-        (<IHingeJoint>this._nativeJoint)?.setHardLimit(value.min, value.max, value.contactDistance);
+      if (this._limits) {
+        this._limits._updateFlagManager.removeListener(this._onLimitsChanged);
       }
+
+      this._limits = value;
+      value && value._updateFlagManager.addListener(this._onLimitsChanged);
+
+      this._onLimitsChanged();
     }
   }
 
@@ -145,7 +150,7 @@ export class HingeJoint extends Joint {
 
   protected override _syncBackends(): void {
     super._syncBackends();
-    const motor = this._jointMonitor;
+    const motor = this._jointMotor;
     (<IHingeJoint>this._nativeJoint).setAxis(this._axis);
     (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.LimitEnabled, this.useLimits);
     (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.DriveEnabled, this.useMotor);
@@ -156,4 +161,24 @@ export class HingeJoint extends Joint {
       (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.DriveFreeSpin, motor.freeSpin);
     }
   }
+
+  private _onMotorChanged = (): void => {
+    const motor = this._jointMotor;
+    if (this._nativeJoint) {
+      (<IHingeJoint>this._nativeJoint).setDriveVelocity(motor.targetVelocity);
+      (<IHingeJoint>this._nativeJoint).setDriveForceLimit(motor.forceLimit);
+      (<IHingeJoint>this._nativeJoint).setDriveGearRatio(motor.gearRation);
+      (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.DriveFreeSpin, motor.freeSpin);
+    }
+  };
+  private _onLimitsChanged = (): void => {
+    const limits = this._limits;
+    if (this._nativeJoint) {
+      if (this.useSpring) {
+        (<IHingeJoint>this._nativeJoint).setSoftLimit(limits.min, limits.max, limits.stiffness, limits.damping);
+      } else {
+        (<IHingeJoint>this._nativeJoint).setHardLimit(limits.min, limits.max, limits.contactDistance);
+      }
+    }
+  };
 }
