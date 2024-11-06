@@ -6,20 +6,22 @@ import {
   ShaderFactory,
   resourceLoader,
   // @ts-ignore
-  ShaderLib
+  ShaderLib,
+  Utils
 } from "@galacean/engine-core";
-import { Utils } from "./Utils";
 
 @resourceLoader("ShaderChunk", ["glsl"])
 export class ShaderChunkLoader extends Loader<void[]> {
+  static shaderIncludeRegex = /\s#include\s+"([./][^\\"]+)"/gm;
+
   /**
    * @internal
    */
   static _loadChunksInCode(code: string, basePath: string, resourceManager: ResourceManager): Promise<void[]> {
     const shaderChunkPaths: string[] = [];
-    const matches = code.matchAll(Utils.shaderIncludeRegex);
+    const matches = code.matchAll(ShaderChunkLoader.shaderIncludeRegex);
     for (const match of matches) {
-      const chunkPath = Utils.pathResolve(match[1], basePath);
+      const chunkPath = Utils.resolveAbsoluteUrl(basePath, match[1]);
       if (!ShaderLib[chunkPath.substring(1)]) {
         shaderChunkPaths.push(chunkPath);
       }
