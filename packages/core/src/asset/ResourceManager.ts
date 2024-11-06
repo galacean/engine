@@ -545,7 +545,7 @@ export class ResourceManager {
       const queryPath = new URL(remoteUrl).search;
       let url = resourceConfig.virtualPath + queryPath;
       if (key) {
-        url += (url.indexOf("?") > -1 ? "&" : "?") + key;
+        url += (url.indexOf("?") > -1 ? "&" : "?") + "q=" + key;
       }
 
       promise = this.load<any>({
