@@ -1,11 +1,7 @@
 import { Matrix } from "@galacean/engine-math";
 
 export class Utils {
-  private static _urlSchema = "files://";
-
-  static pathResolve(path: string, base: string): string {
-    return new URL(path, Utils._urlSchema + base).href.substring(Utils._urlSchema.length);
-  }
+  private static _fileSchema = "files://";
 
   /**
    * Fast remove an element from array.
@@ -85,8 +81,8 @@ export class Utils {
     }
 
     if (!/^https?:/.test(baseUrl)) {
-      baseUrl = Utils._urlSchema + baseUrl;
-      return new URL(relativeUrl, baseUrl).href.substring(Utils._urlSchema.length);
+      baseUrl = Utils._fileSchema + baseUrl;
+      return new URL(relativeUrl, baseUrl).href.substring(Utils._fileSchema.length);
     }
 
     return relativeUrl ? new URL(relativeUrl, baseUrl).href : baseUrl;
