@@ -20,6 +20,10 @@ export class PBRMaterial extends PBRBaseMaterial {
 
   private _anisotropyRotation: number = 0;
 
+  private static _iridescenceProp = ShaderProperty.getByName("material_IridescenceInfo");
+  private static _irithicknesstextureProp = ShaderProperty.getByName("material_IridescenceThicknessTexture");
+  private static _iridecencetextureProp = ShaderProperty.getByName("material_IridescenceTexture");
+
   /**
    * Index Of Refraction.
    * @defaultValue `1.5`
@@ -133,6 +137,120 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
+   * The iridescence intensity factor.	
+   * @defaultValue `1.0`
+   */
+  get iridescenceFactor(): number {
+    return this.shaderData.getVector4(PBRMaterial._iridescenceProp).x;
+  }
+
+  set iridescenceFactor(value: number) {
+    const IridescenceInfo = this.shaderData.getVector3(PBRMaterial._iridescenceProp);
+    if (!!IridescenceInfo.x !== !!value) {
+      if (value === 0) {
+        this.shaderData.disableMacro("MATERIAL_ENABLE_IRIDESCENCE");
+      } else {
+        this.shaderData.enableMacro("MATERIAL_ENABLE_IRIDESCENCE");
+      }
+    }
+    IridescenceInfo.x = value;
+  }
+
+  /**
+   * The index of refraction of the dielectric thin-film layer.	
+   * @defaultValue `1.3`
+   */
+  get iridescenceIor(): number {
+    return this.shaderData.getVector4(PBRMaterial._iridescenceProp).y;
+  }
+
+  set iridescenceIor(value: number) {
+    const IridescenceInfo = this.shaderData.getVector3(PBRMaterial._iridescenceProp);
+    if (!!IridescenceInfo.y !== !!value) {
+      if (value === 0) {
+        this.shaderData.disableMacro("MATERIAL_ENABLE_IRIDESCENCE");
+      } else {
+        this.shaderData.enableMacro("MATERIAL_ENABLE_IRIDESCENCE");
+      }
+    }
+    IridescenceInfo.y = value;
+  }
+
+  /**
+   * The minimum thickness of the thin-film layer given in nanometers.		
+   * @defaultValue `100`
+   */
+  get iridescenceThicknessMin(): number {
+    return this.shaderData.getVector4(PBRMaterial._iridescenceProp).z;
+  }
+
+  set iridescenceThicknessMin(value: number) {
+    const IridescenceInfo = this.shaderData.getVector3(PBRMaterial._iridescenceProp);
+    if (!!IridescenceInfo.z !== !!value) {
+      if (value === 0) {
+        this.shaderData.disableMacro("MATERIAL_ENABLE_IRIDESCENCE");
+      } else {
+        this.shaderData.enableMacro("MATERIAL_ENABLE_IRIDESCENCE");
+      }
+    }
+    IridescenceInfo.z = value;
+  }
+
+  /**
+   * The maximum thickness of the thin-film layer given in nanometers.	
+   * @defaultValue `400`
+   */
+  get iridescenceThicknessMax(): number {
+    return this.shaderData.getVector4(PBRMaterial._iridescenceProp).w;
+  }
+
+  set iridescenceThicknessMax(value: number) {
+    const IridescenceInfo = this.shaderData.getVector3(PBRMaterial._iridescenceProp);
+    if (!!IridescenceInfo.w !== !!value) {
+      if (value === 0) {
+        this.shaderData.disableMacro("MATERIAL_ENABLE_IRIDESCENCE");
+      } else {
+        this.shaderData.enableMacro("MATERIAL_ENABLE_IRIDESCENCE");
+      }
+    }
+    IridescenceInfo.w = value;
+  }
+  
+  /**
+   * The thickness texture of the thin-film layer.	
+   */
+  get irithicknessTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._irithicknesstextureProp);
+  }
+
+  set irithicknessTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._irithicknesstextureProp, value);
+
+    if (value) {
+      this.shaderData.enableMacro("MATERIAL_HAS_IRIDESCENCE_THICKNESS_TEXTURE");
+    } else {
+      this.shaderData.disableMacro("MATERIAL_HAS_IRIDESCENCE_THICKNESS_TEXTURE");
+    }
+  }
+
+  /**
+   * The iridescence intensity texture.	
+   */
+  get iridescenceTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._iridecencetextureProp);
+  }
+
+  set iridescenceTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._iridecencetextureProp, value);
+
+    if (value) {
+      this.shaderData.enableMacro("MATERIAL_HAS_IRIDESCENCE_TEXTURE");
+    } else {
+      this.shaderData.disableMacro("MATERIAL_HAS_IRIDESCENCE_TEXTURE");
+    }
+  }
+
+  /**
    * Create a pbr metallic-roughness workflow material instance.
    * @param engine - Engine to which the material belongs
    */
@@ -144,6 +262,8 @@ export class PBRMaterial extends PBRBaseMaterial {
     shaderData.setFloat(PBRMaterial._roughnessProp, 1);
     shaderData.setFloat(PBRMaterial._iorProp, 1.5);
     shaderData.setVector3(PBRMaterial._anisotropyInfoProp, new Vector3(1, 0, 0));
+    shaderData.setVector4(PBRMaterial._iridescenceProp, new Vector4(0, 1.3, 100, 400));
+
   }
 
   /**
