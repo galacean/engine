@@ -183,12 +183,14 @@ export class ResourceManager {
    * @internal
    */
   _onSubAssetSuccess<T>(assetBaseURL: string, assetSubPath: string, value: T): void {
-    const subPromiseCallback = this._subAssetPromiseCallbacks[assetBaseURL]?.[assetSubPath];
+    const remoteAssetBaseURL = this._virtualPathMap[assetBaseURL] ?? assetBaseURL;
+
+    const subPromiseCallback = this._subAssetPromiseCallbacks[remoteAssetBaseURL]?.[assetSubPath];
     if (subPromiseCallback) {
       subPromiseCallback.resolve(value);
     } else {
       // Pending
-      (this._subAssetPromiseCallbacks[assetBaseURL] ||= {})[assetSubPath] = {
+      (this._subAssetPromiseCallbacks[remoteAssetBaseURL] ||= {})[assetSubPath] = {
         resolvedValue: value
       };
     }
@@ -326,10 +328,7 @@ export class ResourceManager {
 
   private _loadSingleItem<T>(itemOrURL: LoadItem | string): AssetPromise<T> {
     const item = this._assignDefaultOptions(typeof itemOrURL === "string" ? { url: itemOrURL } : itemOrURL);
-
-    // Check url mapping
-    const itemURL = item.url;
-    let url = this._virtualPathMap[itemURL] ?? itemURL;
+    let { url } = item;
 
     // Not absolute and base url is set
     if (!Utils.isAbsoluteUrl(url) && this.baseUrl) url = Utils.resolveAbsoluteUrl(this.baseUrl, url);
@@ -338,8 +337,11 @@ export class ResourceManager {
     const { assetBaseURL, queryPath } = this._parseURL(url);
     const paths = queryPath ? this._parseQueryPath(queryPath) : [];
 
+    // Get remote asset base url
+    const remoteAssetBaseURL = this._virtualPathMap[assetBaseURL] ?? assetBaseURL;
+
     // Check cache
-    const cacheObject = this._assetUrlPool[assetBaseURL];
+    const cacheObject = this._assetUrlPool[remoteAssetBaseURL];
     if (cacheObject) {
       return new AssetPromise((resolve) => {
         resolve(this._getResolveResource(cacheObject, paths) as T);
@@ -347,18 +349,18 @@ export class ResourceManager {
     }
 
     // Get asset url
-    let assetURL = assetBaseURL;
+    let remoteAssetURL = remoteAssetBaseURL;
     if (queryPath) {
-      assetURL += "?q=" + paths.shift();
+      remoteAssetURL += "?q=" + paths.shift();
       let index: string;
       while ((index = paths.shift())) {
-        assetURL += `[${index}]`;
+        remoteAssetURL += `[${index}]`;
       }
     }
 
     // Check is loading
     const loadingPromises = this._loadingPromises;
-    const loadingPromise = loadingPromises[assetURL];
+    const loadingPromise = loadingPromises[remoteAssetURL];
     if (loadingPromise) {
       return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
         loadingPromise
@@ -381,33 +383,40 @@ export class ResourceManager {
     // Check sub asset
     if (queryPath) {
       // Check whether load main asset
-      const mainPromise = loadingPromises[assetBaseURL] || this._loadMainAsset(loader, item, assetBaseURL);
+      const mainPromise =
+        loadingPromises[remoteAssetBaseURL] || this._loadMainAsset(loader, item, remoteAssetBaseURL, assetBaseURL);
       mainPromise.catch((e) => {
-        this._onSubAssetFail(assetBaseURL, queryPath, e);
+        this._onSubAssetFail(remoteAssetBaseURL, queryPath, e);
       });
 
-      return this._createSubAssetPromiseCallback<T>(assetBaseURL, assetURL, queryPath);
+      return this._createSubAssetPromiseCallback<T>(remoteAssetBaseURL, remoteAssetURL, queryPath);
     }
 
-    return this._loadMainAsset(loader, item, assetBaseURL);
+    return this._loadMainAsset(loader, item, remoteAssetBaseURL, assetBaseURL);
   }
 
-  private _loadMainAsset<T>(loader: Loader<T>, item: LoadItem, assetBaseURL: string): AssetPromise<T> {
+  private _loadMainAsset<T>(
+    loader: Loader<T>,
+    item: LoadItem,
+    remoteAssetBaseURL: string,
+    assetBaseURL: string
+  ): AssetPromise<T> {
+    item.url = assetBaseURL;
     const loadingPromises = this._loadingPromises;
     const promise = loader.load(item, this);
-    loadingPromises[assetBaseURL] = promise;
+    loadingPromises[remoteAssetBaseURL] = promise;
 
     promise.then(
       (resource: T) => {
         if (loader.useCache) {
-          this._addAsset(assetBaseURL, resource as EngineObject);
+          this._addAsset(remoteAssetBaseURL, resource as EngineObject);
         }
-        delete loadingPromises[assetBaseURL];
-        this._releaseSubAssetPromiseCallback(assetBaseURL);
+        delete loadingPromises[remoteAssetBaseURL];
+        this._releaseSubAssetPromiseCallback(remoteAssetBaseURL);
       },
       () => {
-        delete loadingPromises[assetBaseURL];
-        this._releaseSubAssetPromiseCallback(assetBaseURL);
+        delete loadingPromises[remoteAssetBaseURL];
+        this._releaseSubAssetPromiseCallback(remoteAssetBaseURL);
       }
     );
 
@@ -415,12 +424,12 @@ export class ResourceManager {
   }
 
   private _createSubAssetPromiseCallback<T>(
-    assetBaseURL: string,
-    assetURL: string,
+    remoteAssetBaseURL: string,
+    remoteAssetURL: string,
     assetSubPath: string
   ): AssetPromise<T> {
     const loadingPromises = this._loadingPromises;
-    const subPromiseCallback = this._subAssetPromiseCallbacks[assetBaseURL]?.[assetSubPath];
+    const subPromiseCallback = this._subAssetPromiseCallbacks[remoteAssetBaseURL]?.[assetSubPath];
     const resolvedValue = subPromiseCallback?.resolvedValue;
     const rejectedValue = subPromiseCallback?.rejectedValue;
 
@@ -437,19 +446,19 @@ export class ResourceManager {
 
     // Pending
     const promise = new AssetPromise<T>((resolve, reject) => {
-      (this._subAssetPromiseCallbacks[assetBaseURL] ||= {})[assetSubPath] = {
+      (this._subAssetPromiseCallbacks[remoteAssetBaseURL] ||= {})[assetSubPath] = {
         resolve,
         reject
       };
     });
 
-    loadingPromises[assetURL] = promise;
+    loadingPromises[remoteAssetURL] = promise;
 
     promise.then(
       () => {
-        delete loadingPromises[assetURL];
+        delete loadingPromises[remoteAssetURL];
       },
-      () => delete loadingPromises[assetURL]
+      () => delete loadingPromises[remoteAssetURL]
     );
 
     return promise;
