@@ -22,22 +22,22 @@ export interface IJoint {
   setAnchor(value: Vector3): void;
 
   /**
-   *  The scale to apply to the inverse mass of collider 0 for resolving this constraint.
+   *  The scale to apply to the inverse mass of collider1 for resolving this constraint.
    */
   setConnectedMassScale(value: number): void;
 
   /**
-   * The scale to apply to the inverse mass of collider 1 for resolving this constraint.
+   * The scale to apply to the inverse mass of collider0 for resolving this constraint.
    */
   setMassScale(value: number): void;
 
   /**
-   * The scale to apply to the inverse inertia of collider0 for resolving this constraint.
+   * The scale to apply to the inverse inertia of collider1 for resolving this constraint.
    */
   setConnectedInertiaScale(value: number): void;
 
   /**
-   * The scale to apply to the inverse inertia of collider1 for resolving this constraint.
+   * The scale to apply to the inverse inertia of collider0 for resolving this constraint.
    */
   setInertiaScale(value: number): void;
 

@@ -37,7 +37,9 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
   /**
    * {@inheritDoc IDynamicCollider.setMassAndUpdateInertia }
    */
-  setMassAndUpdateInertia(mass: number): void {}
+  setMassAndUpdateInertia(mass: number): void {
+    console.error("Physics-lite don't support setMassAndUpdateInertia. Use Physics-PhysX instead!");
+  }
 
   /**
    * {@inheritDoc IDynamicCollider.addForce }
@@ -174,7 +176,7 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setMassAndUpdateInertia }
+   * {@inheritDoc IDynamicCollider.getMaxAngularVelocity }
    */
   getMaxAngularVelocity(): number {
     throw "Physics-lite don't support getMaxAngularVelocity. Use Physics-PhysX instead!";

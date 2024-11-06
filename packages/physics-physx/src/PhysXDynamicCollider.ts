@@ -96,7 +96,7 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setCenterOfMass }
+   * {@inheritDoc IDynamicCollider.getCenterOfMass }
    */
   getCenterOfMass(out: Vector3): Vector3 {
     const { translation } = this._pxActor.getCMassLocalPose();
@@ -133,7 +133,7 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.getMaxLinearVelocity }
+   * {@inheritDoc IDynamicCollider.getMaxAngularVelocity }
    */
   getMaxAngularVelocity(): number {
     return this._pxActor.getMaxAngularVelocity();
