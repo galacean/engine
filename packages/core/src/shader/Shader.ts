@@ -112,22 +112,23 @@ export class Shader implements IReferable {
             passInfo.tags
           );
 
-          const renderStates = passInfo.renderStates;
-          const renderState = new RenderState();
+          const { constantMap, variableMap } = passInfo.renderStates;
+          // Compatible shader lab no render state use material `renderState` to modify render state
+          if (Object.keys(constantMap).length > 0 || Object.keys(variableMap).length > 0) {
+            // Parse const render state
+            const renderState = new RenderState();
+            shaderPassContent._renderState = renderState;
+            for (let k in constantMap) {
+              Shader._applyConstRenderStates(renderState, <RenderStateElementKey>parseInt(k), constantMap[k]);
+            }
 
-          shaderPassContent._renderState = renderState;
-          // Parse const render state
-          const { constantMap, variableMap } = renderStates;
-          for (let k in constantMap) {
-            Shader._applyConstRenderStates(renderState, <RenderStateElementKey>parseInt(k), constantMap[k]);
+            // Parse variable render state
+            const renderStateDataMap = {} as Record<number, ShaderProperty>;
+            for (let k in variableMap) {
+              renderStateDataMap[k] = ShaderProperty.getByName(variableMap[k]);
+            }
+            shaderPassContent._renderStateDataMap = renderStateDataMap;
           }
-
-          // Parse variable render state
-          const renderStateDataMap = {} as Record<number, ShaderProperty>;
-          for (let k in variableMap) {
-            renderStateDataMap[k] = ShaderProperty.getByName(variableMap[k]);
-          }
-          shaderPassContent._renderStateDataMap = renderStateDataMap;
 
           return shaderPassContent;
         });

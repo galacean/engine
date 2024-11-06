@@ -2,38 +2,33 @@ import { Lexer } from "./lexer";
 import { ShaderTargetParser } from "./parser";
 import { Preprocessor } from "./preprocessor";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
-import { IShaderContent, IShaderLab } from "@galacean/engine-design/src/shader-lab";
+import { IShaderContent, IShaderLab } from "@galacean/engine-design";
 import { ShaderContentParser } from "./contentParser";
 // @ts-ignore
-import { Logger, ShaderLib, ShaderMacro, ShaderPass, ShaderPlatformTarget } from "@galacean/engine";
+import { Logger, ShaderLib, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
 import { ShaderPosition, ShaderRange } from "./common";
-import { ShaderLabObjectPool } from "./ShaderLabObjectPool";
+// #if _VERBOSE
+import { GSError } from "./GSError";
+// #endif
+import { PpParser } from "./preprocessor/PpParser";
+import { ShaderLabUtils } from "./ShaderLabUtils";
+import { IShaderProgramSource } from "@galacean/engine-design/types/shader-lab/IShaderProgramSource";
 
+/** @internal */
 export class ShaderLab implements IShaderLab {
-  /**
-   * @internal
-   */
   private static _parser = ShaderTargetParser.create();
-  /**
-   * @internal
-   */
-  private static _shaderPositionPool = new ShaderLabObjectPool(ShaderPosition);
-  /**
-   * @internal
-   */
-  private static _shaderRangePool = new ShaderLabObjectPool(ShaderRange);
+  private static _shaderPositionPool = ShaderLabUtils.createObjectPool(ShaderPosition);
+  private static _shaderRangePool = ShaderLabUtils.createObjectPool(ShaderRange);
 
-  static createPosition(
-    index: number,
-    // #if _EDITOR
-    line?: number,
-    column?: number
-    // #endif
-  ): ShaderPosition {
+  // #if _VERBOSE
+  static _processingPassText?: string;
+  // #endif
+
+  static createPosition(index: number, line?: number, column?: number): ShaderPosition {
     const position = this._shaderPositionPool.get();
-    position.setX(
+    position.set(
       index,
-      // #if _EDITOR
+      // #if _VERBOSE
       line,
       column
       // #endif
@@ -43,9 +38,14 @@ export class ShaderLab implements IShaderLab {
 
   static createRange(start: ShaderPosition, end: ShaderPosition): ShaderRange {
     const range = this._shaderRangePool.get();
-    range.setX(start, end);
+    range.set(start, end);
     return range;
   }
+
+  // #if _VERBOSE
+  /** Retrieve the compilation errors */
+  readonly errors: GSError[] = [];
+  // #endif
 
   _parseShaderPass(
     source: string,
@@ -55,8 +55,7 @@ export class ShaderLab implements IShaderLab {
     backend: ShaderPlatformTarget,
     platformMacros: string[],
     basePathForIncludeKey: string
-  ) {
-    ShaderLabObjectPool.clearAllShaderLabObjectPool();
+  ): IShaderProgramSource | undefined {
     Preprocessor.reset(ShaderLib, basePathForIncludeKey);
     for (const macro of macros) {
       Preprocessor.addPredefinedMacro(macro.name, macro.value);
@@ -66,68 +65,82 @@ export class ShaderLab implements IShaderLab {
       Preprocessor.addPredefinedMacro(platformMacros[i]);
     }
 
-    // #if _EDITOR
-    // TODO: index to position
-    // Logger.convertSourceIndex = Preprocessor.convertSourceIndex.bind(Preprocessor);
-    // #endif
-
     const preprocessorStart = performance.now();
-
     const ppdContent = Preprocessor.process(source);
+    // #if _VERBOSE
+    if (PpParser._errors.length > 0) {
+      for (const err of PpParser._errors) {
+        this.errors.push(<GSError>err);
+      }
+      this._logErrors();
+      return undefined;
+    }
+    // #endif
 
     Logger.info(`[pass compilation - preprocessor]  cost time ${performance.now() - preprocessorStart}ms`);
 
     const lexer = new Lexer(ppdContent);
     const tokens = lexer.tokenize();
-    const program = ShaderLab._parser.parse(tokens);
-    if (!program) {
-      return { vertex: "", fragment: "" };
+
+    const { _parser: parser } = ShaderLab;
+
+    ShaderLab._processingPassText = ppdContent;
+    const program = parser.parse(tokens);
+
+    // #if _VERBOSE
+    for (const err of parser.errors) {
+      this.errors.push(err);
     }
+    if (!program) {
+      this._logErrors();
+      return undefined;
+    }
+    // #endif
+
     const codeGen =
       backend === ShaderPlatformTarget.GLES100 ? GLES100Visitor.getVisitor() : GLES300Visitor.getVisitor();
 
     const start = performance.now();
     const ret = codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
     Logger.info(`[CodeGen] cost time: ${performance.now() - start}ms`);
+    ShaderLab._processingPassText = undefined;
+
+    // #if _VERBOSE
+    for (const err of codeGen.errors) {
+      this.errors.push(err);
+    }
+    this._logErrors();
+    // #endif
 
     return ret;
   }
 
   _parseShaderContent(shaderSource: string): IShaderContent {
+    ShaderLabUtils.clearAllShaderLabObjectPool();
     ShaderContentParser.reset();
-    return ShaderContentParser.parse(shaderSource);
+    const ret = ShaderContentParser.parse(shaderSource);
+
+    // #if _VERBOSE
+    this.errors.length = 0;
+    for (const error of ShaderContentParser._errors) {
+      this.errors.push(error);
+    }
+    // #endif
+
+    return ret;
   }
 
-  // #if _EDITOR
+  // #if _VERBOSE
   /**
    * @internal
-   * For debug
    */
-  _parse(
-    shaderSource: string,
-    macros: ShaderMacro[],
-    backend: ShaderPlatformTarget
-  ): (ReturnType<ShaderLab["_parseShaderPass"]> & { name: string })[] {
-    const structInfo = this._parseShaderContent(shaderSource);
-    const passResult = [] as any;
-    for (const subShader of structInfo.subShaders) {
-      for (const pass of subShader.passes) {
-        if (pass.isUsePass) continue;
-        const passInfo = this._parseShaderPass(
-          pass.contents,
-          pass.vertexEntry,
-          pass.fragmentEntry,
-          macros,
-          backend,
-          [],
-          // @ts-ignore
-          new URL(pass.name, ShaderPass._shaderRootPath).href
-        ) as any;
-        passInfo.name = pass.name;
-        passResult.push(passInfo);
-      }
+  _logErrors() {
+    const errors = this.errors;
+    if (errors.length === 0 || !Logger.isEnabled) return;
+    Logger.error(`${errors.length} errors occur!`);
+    for (const err of errors) {
+      Logger.error(err.toString());
     }
-    return passResult;
   }
   // #endif
 }

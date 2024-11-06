@@ -10,14 +10,13 @@ import {
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { Vector3 } from "@galacean/engine-math";
-import { expect } from "chai";
+import { describe, beforeAll, expect, it } from "vitest";
 
 describe("CharacterController", function () {
-  this.timeout(10000);
   let engine: Engine;
   let roleEntity: Entity;
 
-  before(async function () {
+  beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
 
     const root = engine.sceneManager.activeScene.createRootEntity("root");

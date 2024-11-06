@@ -1,12 +1,12 @@
 import { Camera, GLCapabilityType, PrimitiveMesh } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Vector3 } from "@galacean/engine-math";
-import { expect } from "chai";
+import { describe, beforeAll, expect, it } from "vitest";
 
 describe("PrimitiveMesh", () => {
   let engine: WebGLEngine;
 
-  before(async () => {
+  beforeAll(async () => {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     engine.canvas.resizeByClientSize();
 
@@ -179,7 +179,6 @@ describe("PrimitiveMesh", () => {
   });
 
   it("test limit vertex count", function () {
-    this.timeout(5000);
     const radius = 1;
     const segments = 256;
     const floorSegments = Math.floor(segments);

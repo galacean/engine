@@ -1,5 +1,5 @@
 import { AssetPromise } from "@galacean/engine-core";
-import { expect } from "chai";
+import { describe, expect, it } from "vitest";
 
 describe("Asset Promise test", function () {
   it("constructor", () => {

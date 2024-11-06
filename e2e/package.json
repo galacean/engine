@@ -20,7 +20,7 @@
     "@galacean/engine-physics-lite": "workspace:*",
     "@galacean/engine-physics-physx": "workspace:*",
     "dat.gui": "^0.7.9",
-    "vite": "^3.1.6",
+    "vite": "3.1.6",
     "sass": "^1.55.0"
   }
 }
