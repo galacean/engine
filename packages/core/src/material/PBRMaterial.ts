@@ -145,7 +145,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   set iridescenceFactor(value: number) {
-    const IridescenceInfo = this.shaderData.getVector3(PBRMaterial._iridescenceProp);
+    const IridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceProp);
     if (!!IridescenceInfo.x !== !!value) {
       if (value === 0) {
         this.shaderData.disableMacro("MATERIAL_ENABLE_IRIDESCENCE");
@@ -165,7 +165,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   set iridescenceIor(value: number) {
-    const IridescenceInfo = this.shaderData.getVector3(PBRMaterial._iridescenceProp);
+    const IridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceProp);
     if (!!IridescenceInfo.y !== !!value) {
       if (value === 0) {
         this.shaderData.disableMacro("MATERIAL_ENABLE_IRIDESCENCE");
@@ -185,7 +185,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   set iridescenceThicknessMin(value: number) {
-    const IridescenceInfo = this.shaderData.getVector3(PBRMaterial._iridescenceProp);
+    const IridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceProp);
     if (!!IridescenceInfo.z !== !!value) {
       if (value === 0) {
         this.shaderData.disableMacro("MATERIAL_ENABLE_IRIDESCENCE");
