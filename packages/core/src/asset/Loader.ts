@@ -1,4 +1,3 @@
-import { url } from "inspector";
 import { Engine, EngineConfiguration } from "../Engine";
 import { AssetPromise } from "./AssetPromise";
 import { LoadItem } from "./LoadItem";
