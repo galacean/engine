@@ -1,8 +1,6 @@
 import { Matrix } from "@galacean/engine-math";
 
 export class Utils {
-  private static _fileSchema = "files://";
-
   /**
    * Fast remove an element from array.
    * @param array - Array
@@ -81,8 +79,9 @@ export class Utils {
     }
 
     if (!/^https?:/.test(baseUrl)) {
-      baseUrl = Utils._fileSchema + baseUrl;
-      return new URL(relativeUrl, baseUrl).href.substring(Utils._fileSchema.length);
+      const fileSchema = "files://";
+      baseUrl = fileSchema + baseUrl;
+      return new URL(relativeUrl, baseUrl).href.substring(fileSchema.length);
     }
 
     return relativeUrl ? new URL(relativeUrl, baseUrl).href : baseUrl;
