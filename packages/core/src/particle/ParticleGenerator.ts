@@ -14,6 +14,7 @@ import { SetDataOptions } from "../graphic/enums/SetDataOptions";
 import { VertexAttribute } from "../mesh";
 import { ShaderData } from "../shader";
 import { Buffer } from "./../graphic/Buffer";
+import { ParticleBufferUtils } from "./ParticleBufferUtils";
 import { ParticleRenderer, ParticleUpdateFlags } from "./ParticleRenderer";
 import { ParticleCurveMode } from "./enums/ParticleCurveMode";
 import { ParticleGradientMode } from "./enums/ParticleGradientMode";
@@ -23,12 +24,11 @@ import { ParticleStopMode } from "./enums/ParticleStopMode";
 import { ColorOverLifetimeModule } from "./modules/ColorOverLifetimeModule";
 import { EmissionModule } from "./modules/EmissionModule";
 import { MainModule } from "./modules/MainModule";
+import { ParticleCompositeCurve } from "./modules/ParticleCompositeCurve";
 import { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule";
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
-import { ParticleBufferUtils } from "./ParticleBufferUtils";
-import { ParticleCompositeCurve } from "./modules/ParticleCompositeCurve";
 
 /**
  * Particle Generator.
@@ -758,8 +758,16 @@ export class ParticleGenerator {
     // Start speed
     instanceVertices[offset + 18] = startSpeed;
 
-    // Unused, Color, size, rotation,
-    // instanceVertices[offset + 19] = rand.random();
+    // Gravity, unused, size, rotation
+    switch (main.gravityModifier.mode) {
+      case ParticleCurveMode.Constant:
+        instanceVertices[offset + 19] = main.gravityModifier.constant;
+        break;
+      case ParticleCurveMode.TwoConstants:
+        instanceVertices[offset + 19] = main.gravityModifier.evaluate(undefined, main._gravityModifierRand.random());
+        break;
+    }
+
     const colorOverLifetime = this.colorOverLifetime;
     if (colorOverLifetime.enabled && colorOverLifetime.color.mode === ParticleGradientMode.TwoGradients) {
       instanceVertices[offset + 20] = colorOverLifetime._colorGradientRand.random();
