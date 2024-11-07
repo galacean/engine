@@ -1,17 +1,25 @@
-import { MathUtil, Ray, Vector2, Vector3 } from "@galacean/engine-math";
-import { Camera, CameraModifyFlags } from "../Camera";
-import { Component } from "../Component";
-import { DependentMode, dependentComponents } from "../ComponentsDependencies";
-import { Entity, EntityModifyFlags } from "../Entity";
-import { RenderContext } from "../RenderPipeline/RenderContext";
-import { RenderElement } from "../RenderPipeline/RenderElement";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
-import { ComponentType } from "../enums/ComponentType";
-import { HitResult } from "../physics";
-import { DisorderedArray } from "../utils/DisorderedArray";
+import {
+  Camera,
+  CameraModifyFlags,
+  Component,
+  ComponentType,
+  DependentMode,
+  DisorderedArray,
+  Entity,
+  EntityModifyFlags,
+  HitResult,
+  MathUtil,
+  Ray,
+  Vector2,
+  Vector3,
+  deepClone,
+  dependentComponents,
+  ignoreClone
+} from "@galacean/engine";
+
 import { UIRenderer } from "./UIRenderer";
 import { UITransform } from "./UITransform";
-import { UIUtils } from "./UIUtils";
+import { Utils } from "./Utils";
 import { CanvasRenderMode } from "./enums/CanvasRenderMode";
 import { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrategy";
 import { IUIElement } from "./interface/IUIElement";
@@ -39,7 +47,7 @@ export class UICanvas extends Component implements IUIElement {
   _indexInCanvas: number = -1;
   /** @internal */
   @ignoreClone
-  _renderElement: RenderElement;
+  _renderElement;
   /** @internal */
   @ignoreClone
   _sortDistance: number = 0;
@@ -140,6 +148,7 @@ export class UICanvas extends Component implements IUIElement {
     if (this._sortOrder !== val) {
       this._sortOrder = val;
       this._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay &&
+        // @ts-ignore
         this.scene._componentsManager._overlayCanvasesSortingFlag;
     }
   }
@@ -157,6 +166,7 @@ export class UICanvas extends Component implements IUIElement {
 
   constructor(entity: Entity) {
     super(entity);
+    // @ts-ignore
     this._componentType = ComponentType.UICanvas;
     this._transform = <UITransform>entity.transform;
     this._onEntityModify = this._onEntityModify.bind(this);
@@ -187,10 +197,11 @@ export class UICanvas extends Component implements IUIElement {
   /**
    * @internal
    */
-  _prepareRender(context: RenderContext): void {
+  _prepareRender(context): void {
     const { engine, elements, _realRenderMode: mode } = this;
     const { enableFrustumCulling, cullingMask, _frustum: frustum } = context.camera;
     const { frameCount } = engine.time;
+    // @ts-ignore
     const renderElement = (this._renderElement = engine._renderElementPool.get());
     this._updateSortDistance(context.virtualCamera.position);
     renderElement.set(this.sortOrder, this._sortDistance);
@@ -198,10 +209,11 @@ export class UICanvas extends Component implements IUIElement {
 
     for (let i = 0, n = elements.length; i < n; i++) {
       const element = elements[i];
+      // @ts-ignore
       if ((element as unknown as Component)._componentType === ComponentType.UIRenderer) {
         const renderer = element as unknown as UIRenderer;
         // Filter by camera culling mask
-        if (!(cullingMask & renderer._entity.layer)) {
+        if (!(cullingMask & renderer.entity.layer)) {
           continue;
         }
         // Filter by camera frustum
@@ -246,38 +258,36 @@ export class UICanvas extends Component implements IUIElement {
     }
   }
 
-  /**
-   * @internal
-   */
+  // @ts-ignore
   override _onEnableInScene(): void {
-    const entity = this._entity;
-    entity._dispatchModify(EntityModifyFlags.UICanvasEnableInScene);
-    const rootCanvas = UIUtils.getRootCanvasInParent(entity);
-    UIUtils.registerElementToCanvas(this, rootCanvas);
+    const entity = this.entity;
+    // @ts-ignore
+    entity._dispatchModify(EntityUIModifyFlags.UICanvasEnableInScene);
+    const rootCanvas = Utils.getRootCanvasInParent(entity);
+    Utils.registerElementToCanvas(this, rootCanvas);
     this._setIsRootCanvas(!rootCanvas);
-    UIUtils.registerEntityListener(this);
+    Utils.registerEntityListener(this);
   }
 
-  /**
-   * @internal
-   */
+  // @ts-ignore
   override _onDisableInScene(): void {
-    UIUtils.registerElementToCanvas(this, null);
+    Utils.registerElementToCanvas(this, null);
     this._setIsRootCanvas(false);
-    UIUtils.unRegisterEntityListener(this);
-    this._entity._dispatchModify(EntityModifyFlags.UICanvasDisableInScene);
+    Utils.unRegisterEntityListener(this);
+    // @ts-ignore
+    this.entity._dispatchModify(EntityUIModifyFlags.UICanvasDisableInScene);
   }
 
   /**
    * @internal
    */
   @ignoreClone
-  _onEntityModify(flag: EntityModifyFlags): void {
-    if (flag === EntityModifyFlags.UICanvasEnableInScene || flag === EntityModifyFlags.Parent) {
-      const rootCanvas = UIUtils.getRootCanvasInParent(this._entity);
+  _onEntityModify(flag: number): void {
+    if (flag === EntityUIModifyFlags.UICanvasEnableInScene || flag === EntityModifyFlags.Parent) {
+      const rootCanvas = Utils.getRootCanvasInParent(this.entity);
       this._setIsRootCanvas(!rootCanvas);
-      UIUtils.registerElementToCanvas(this, rootCanvas);
-      UIUtils.registerEntityListener(this);
+      Utils.registerElementToCanvas(this, rootCanvas);
+      Utils.registerEntityListener(this);
     }
   }
 
@@ -343,7 +353,8 @@ export class UICanvas extends Component implements IUIElement {
   }
 
   private _walk(entity: Entity, elements: IUIGraphics[], depth = 0): number {
-    const { _components: components, _children: children } = entity;
+    // @ts-ignore
+    const components = entity._components;
     for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
       if (component.enabled && component._componentType === ComponentType.UIRenderer) {
@@ -352,6 +363,7 @@ export class UICanvas extends Component implements IUIElement {
         ++depth;
       }
     }
+    const children = entity.children;
     for (let i = 0, n = children.length; i < n; i++) {
       const child = children[i];
       child.isActive && (depth = this._walk(child, elements, depth));
@@ -366,11 +378,15 @@ export class UICanvas extends Component implements IUIElement {
     if (preCamera !== camera) {
       this._cameraObserver = camera;
       if (preCamera) {
+        // @ts-ignore
         preCamera.entity.transform._updateFlagManager.removeListener(this._onCameraTransformListener);
+        // @ts-ignore
         preCamera._unRegisterModifyListener(this._onCameraModifyListener);
       }
       if (camera) {
+        // @ts-ignore
         camera.entity.transform._updateFlagManager.addListener(this._onCameraTransformListener);
+        // @ts-ignore
         camera._registerModifyListener(this._onCameraModifyListener);
       }
     }
@@ -407,10 +423,12 @@ export class UICanvas extends Component implements IUIElement {
   }
 
   private _addCanvasListener(): void {
+    // @ts-ignore
     this.engine.canvas._sizeUpdateFlagManager.addListener(this._onCanvasSizeListener);
   }
 
   private _removeCanvasListener(): void {
+    // @ts-ignore
     this.engine.canvas._sizeUpdateFlagManager.removeListener(this._onCanvasSizeListener);
   }
 
@@ -440,7 +458,7 @@ export class UICanvas extends Component implements IUIElement {
       if (!isRootCanvas) {
         const { _disorderedElements: disorderedElements } = this;
         disorderedElements.forEach((element: IUIGraphics) => {
-          UIUtils.registerElementToCanvas(element, UIUtils.getRootCanvasInParent(element._entity));
+          Utils.registerElementToCanvas(element, Utils.getRootCanvasInParent(element.entity));
         });
         disorderedElements.length = 0;
         disorderedElements.garbageCollection();
@@ -466,6 +484,7 @@ export class UICanvas extends Component implements IUIElement {
     const preRealMode = this._realRenderMode;
     if (preRealMode !== curRealMode) {
       this._realRenderMode = curRealMode;
+      // @ts-ignore
       const componentsManager = this.scene._componentsManager;
       switch (preRealMode) {
         case CanvasRenderMode.ScreenSpaceOverlay:
@@ -498,4 +517,14 @@ export class UICanvas extends Component implements IUIElement {
  */
 enum CanvasRealRenderMode {
   None = 4
+}
+
+/**
+ * @remarks Extends `EntityModifyFlags`.
+ */
+export enum EntityUIModifyFlags {
+  UICanvasEnableInScene = 0x4,
+  UICanvasDisableInScene = 0x8,
+  UIGroupEnableInScene = 0x10,
+  UIGroupDisableInScene = 0x20
 }

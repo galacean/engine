@@ -1,5 +1,4 @@
-import { Ray, Vector4 } from "@galacean/engine-math";
-import { HitResult } from "../../physics";
+import { Ray, Vector4, HitResult } from "@galacean/engine";
 import { IUIGroupable } from "./IUIGroupable";
 
 export interface IUIGraphics extends IUIGroupable {

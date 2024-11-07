@@ -1,14 +1,13 @@
-export { UIGroup } from "./UIGroup";
-export { CanvasRenderMode } from "./enums/CanvasRenderMode";
-export { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrategy";
-
 export { UICanvas } from "./UICanvas";
+export { UIGroup } from "./UIGroup";
 export { UIRenderer } from "./UIRenderer";
 export { UITransform } from "./UITransform";
-export { Button } from "./Button";
-export { Image } from "./Image";
-export { Text } from "./Text";
-
+export { Button } from "./component/Button";
+export { Image } from "./component/Image";
+export { Text } from "./component/Text";
+export { CanvasRenderMode } from "./enums/CanvasRenderMode";
+export { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrategy";
+export { UIPointerEventEmitter } from "./interactive/UIPointerEventEmitter";
 export { ColorTransition } from "./interactive/transition/ColorTransition";
 export { ScaleTransition } from "./interactive/transition/ScaleTransition";
 export { SpriteTransition } from "./interactive/transition/SpriteTransition";

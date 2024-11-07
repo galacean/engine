@@ -46,18 +46,10 @@ export class Renderer extends Component implements IComponentCustomClone {
   /** @internal */
   @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
-  /** @internal */
-  @ignoreClone
-  _localBounds: BoundingBox = new BoundingBox();
-  /** @internal */
-  @ignoreClone
-  _bounds: BoundingBox = new BoundingBox();
   @ignoreClone
   _renderFrameCount: number;
-  /** @internal */
   @assignmentClone
   _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
-  /** @internal */
   @assignmentClone
   _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
   /** @internal */
@@ -74,6 +66,10 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected _dirtyUpdateFlag: number = 0;
   @ignoreClone
   protected _rendererLayer: Vector4 = new Vector4();
+  @ignoreClone
+  protected _localBounds: BoundingBox = new BoundingBox();
+  @ignoreClone
+  protected _bounds: BoundingBox = new BoundingBox();
 
   @deepClone
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
@@ -536,9 +532,6 @@ export class Renderer extends Component implements IComponentCustomClone {
   }
 }
 
-/**
- * @internal
- */
 export enum RendererUpdateFlags {
   None = 0x0,
   LocalPosition = 0x1,

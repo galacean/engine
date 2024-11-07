@@ -1,9 +1,10 @@
+import { IUICanvas } from "@galacean/engine-design";
 import { Camera } from "./Camera";
 import { Component } from "./Component";
 import { Renderer } from "./Renderer";
 import { Script } from "./Script";
 import { Animator } from "./animation";
-import { CanvasRenderMode, UICanvas } from "./ui";
+import { CanvasRenderMode } from "./ui/CanvasRenderMode";
 import { DisorderedArray } from "./utils/DisorderedArray";
 
 /**
@@ -18,11 +19,11 @@ export class ComponentsManager {
   _renderers: DisorderedArray<Renderer> = new DisorderedArray();
 
   /** @internal */
-  _overlayCanvases: DisorderedArray<UICanvas> = new DisorderedArray();
+  _overlayCanvases: DisorderedArray<IUICanvas> = new DisorderedArray();
   /* @internal */
   _overlayCanvasesSortingFlag: boolean = false;
   /** @internal */
-  _canvases: DisorderedArray<UICanvas> = new DisorderedArray();
+  _canvases: DisorderedArray<IUICanvas> = new DisorderedArray();
 
   // Script
   private _onStartScripts: DisorderedArray<Script> = new DisorderedArray();
@@ -77,8 +78,8 @@ export class ComponentsManager {
     renderer._rendererIndex = -1;
   }
 
-  addUICanvas(mode: CanvasRenderMode, uiCanvas: UICanvas) {
-    let canvases: DisorderedArray<UICanvas>;
+  addUICanvas(mode: CanvasRenderMode, uiCanvas: IUICanvas) {
+    let canvases: DisorderedArray<IUICanvas>;
     if (mode === CanvasRenderMode.ScreenSpaceOverlay) {
       canvases = this._overlayCanvases;
       this._overlayCanvasesSortingFlag = true;
@@ -89,8 +90,8 @@ export class ComponentsManager {
     canvases.add(uiCanvas);
   }
 
-  removeUICanvas(mode: CanvasRenderMode, uiCanvas: UICanvas) {
-    let canvases: DisorderedArray<UICanvas>;
+  removeUICanvas(mode: CanvasRenderMode, uiCanvas: IUICanvas) {
+    let canvases: DisorderedArray<IUICanvas>;
     if (mode === CanvasRenderMode.ScreenSpaceOverlay) {
       canvases = this._overlayCanvases;
       this._overlayCanvasesSortingFlag = true;

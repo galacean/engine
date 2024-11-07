@@ -325,7 +325,6 @@ export class Engine extends EventDispatcher {
       if (!scene.isActive || scene.destroyed) continue;
       const componentsManager = scene._componentsManager;
       componentsManager.sortCameras();
-      componentsManager.sortUICanvases();
       componentsManager.callScriptOnStart();
     }
 
@@ -514,7 +513,11 @@ export class Engine extends EventDispatcher {
         }
       );
 
-      UIUtils.render(this, componentsManager._overlayCanvases);
+      const uiCanvas = componentsManager._overlayCanvases;
+      if (uiCanvas.length > 0) {
+        componentsManager.sortUICanvases();
+        UIUtils.render(this, uiCanvas);
+      }
     }
   }
 

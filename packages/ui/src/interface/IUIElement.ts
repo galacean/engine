@@ -1,11 +1,11 @@
-import { Entity, EntityModifyFlags } from "../../Entity";
+import { Entity } from "@galacean/engine";
 import { UICanvas } from "../UICanvas";
 
 export interface IUIElement {
-  _entity: Entity;
+  entity: Entity;
   _parents: Entity[];
   _rootCanvas: UICanvas;
   _indexInCanvas: number;
 
-  _onEntityModify(flag: EntityModifyFlags): void;
+  _onEntityModify(flag: number): void;
 }

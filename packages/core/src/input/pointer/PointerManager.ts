@@ -8,14 +8,19 @@ import { PointerPhase } from "../enums/PointerPhase";
 import { IInput } from "../interface/IInput";
 import { Pointer, PointerEventType } from "./Pointer";
 import { PointerEventData } from "./PointerEventData";
-import { PointerPhysicsEventEmitter } from "./emitter/PointerPhysicsEventEmitter";
-import { PointerUIEventEmitter } from "./emitter/PointerUIEventEmitter";
+import { PhysicsPointerEventEmitter } from "./emitter/PhysicsPointerEventEmitter";
+import { PointerEventEmitter } from "./emitter/PointerEventEmitter";
+
+type PointerEventEmitterConstructor = new (pool: ClearableObjectPool<PointerEventData>) => PointerEventEmitter;
 
 /**
  * Pointer Manager.
  * @internal
  */
 export class PointerManager implements IInput {
+  /** @internal */
+  static _pointerEventEmitters: PointerEventEmitterConstructor[] = [];
+
   /** @internal */
   _pointers: Pointer[] = [];
   /** @internal */
@@ -38,7 +43,7 @@ export class PointerManager implements IInput {
   private _nativeEvents: PointerEvent[] = [];
   private _pointerPool: Pointer[];
   private _htmlCanvas: HTMLCanvasElement;
-  private _eventDataPool = new ClearableObjectPool(PointerEventData);
+  private _eventPool = new ClearableObjectPool(PointerEventData);
 
   /**
    * @internal
@@ -63,7 +68,7 @@ export class PointerManager implements IInput {
    * @internal
    */
   _update(): void {
-    const { _pointers, _nativeEvents, _htmlCanvas, _engine, _eventDataPool: _eventPool } = this;
+    const { _pointers, _nativeEvents, _htmlCanvas, _engine, _eventPool: eventPool } = this;
     const { width, height } = this._canvas;
     const { clientWidth, clientHeight } = _htmlCanvas;
     const { left, top } = _htmlCanvas.getBoundingClientRect();
@@ -71,7 +76,7 @@ export class PointerManager implements IInput {
     const heightDPR = height / clientHeight;
 
     // Clear the pointer event data pool
-    _eventPool.clear();
+    eventPool.clear();
 
     // Clean up the pointer released in the previous frame
     for (let i = _pointers.length - 1; i >= 0; i--) {
@@ -105,8 +110,10 @@ export class PointerManager implements IInput {
           pointer = pointerPool[j];
           if (!pointer) {
             pointer = new Pointer(j);
-            pointer._addEmitters(PointerUIEventEmitter, _eventPool);
-            _engine._physicsInitialized && pointer._addEmitters(PointerPhysicsEventEmitter, _eventPool);
+            _engine._physicsInitialized && pointer._addEmitters(PhysicsPointerEventEmitter, eventPool);
+            PointerManager._pointerEventEmitters.forEach((emitter) => {
+              pointer._addEmitters(emitter, eventPool);
+            });
           }
           pointer._uniqueID = pointerId;
           pointer._events.push(evt);
@@ -137,7 +144,7 @@ export class PointerManager implements IInput {
       const pointer = pointers[i];
       const { _events: events, _emitters: emitters } = pointer;
       emitters.forEach((emitter) => {
-        emitter._processRaycast(scenes, pointer);
+        emitter.processRaycast(scenes, pointer);
       });
       const length = events.length;
       if (length > 0) {
@@ -145,7 +152,7 @@ export class PointerManager implements IInput {
           // `Drag` must be processed first, otherwise `EndDrag` may be triggered first.
           pointer.phase = PointerPhase.Move;
           emitters.forEach((emitter) => {
-            emitter._processDrag(pointer);
+            emitter.processDrag(pointer);
           });
         }
         for (let j = 0; j < length; j++) {
@@ -156,20 +163,20 @@ export class PointerManager implements IInput {
             case "pointerdown":
               pointer.phase = PointerPhase.Down;
               emitters.forEach((emitter) => {
-                emitter._processDown(pointer);
+                emitter.processDown(pointer);
               });
               break;
             case "pointerup":
               pointer.phase = PointerPhase.Up;
               emitters.forEach((emitter) => {
-                emitter._processUp(pointer);
+                emitter.processUp(pointer);
               });
               break;
             case "pointerleave":
             case "pointercancel":
               pointer.phase = PointerPhase.Leave;
               emitters.forEach((emitter) => {
-                emitter._processLeave(pointer);
+                emitter.processLeave(pointer);
               });
               break;
           }
@@ -279,7 +286,7 @@ export class PointerManager implements IInput {
     target.removeEventListener("pointerleave", onPointerEvent);
     target.removeEventListener("pointermove", onPointerEvent);
     target.removeEventListener("pointercancel", onPointerEvent);
-    this._eventDataPool.garbageCollection();
+    this._eventPool.garbageCollection();
     this._nativeEvents.length = 0;
     this._pointers.length = 0;
     this._downList.length = 0;
@@ -287,4 +294,13 @@ export class PointerManager implements IInput {
     this._upList.length = 0;
     this._upMap.length = 0;
   }
+}
+
+/**
+ * Declare pointer event emitter decorator.
+ */
+export function registerPointerEventEmitter() {
+  return <T extends PointerEventEmitter>(Target: { new (pool: ClearableObjectPool<PointerEventData>): T }) => {
+    PointerManager._pointerEventEmitters.push(Target);
+  };
 }

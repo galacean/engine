@@ -1,5 +1,5 @@
-import { Sprite } from "../../../2d";
-import { Image } from "../../Image";
+import { Sprite } from "@galacean/engine";
+import { Image } from "../../component/Image";
 import { Transition } from "./Transition";
 
 export class SpriteTransition extends Transition<Sprite, Image> {
@@ -8,18 +8,22 @@ export class SpriteTransition extends Transition<Sprite, Image> {
    */
   override _destroy(): void {
     if (this._normal) {
+      // @ts-ignore
       this._normal._addReferCount(-1);
       this._normal = null;
     }
     if (this._hover) {
+      // @ts-ignore
       this._hover._addReferCount(-1);
       this._hover = null;
     }
     if (this._pressed) {
+      // @ts-ignore
       this._pressed._addReferCount(-1);
       this._pressed = null;
     }
     if (this._disabled) {
+      // @ts-ignore
       this._disabled._addReferCount(-1);
       this._disabled = null;
     }

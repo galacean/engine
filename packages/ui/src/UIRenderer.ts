@@ -1,19 +1,28 @@
-import { Color, Matrix, Plane, Ray, Vector3, Vector4 } from "@galacean/engine-math";
-import { DependentMode, dependentComponents } from "../ComponentsDependencies";
-import { Entity, EntityModifyFlags } from "../Entity";
-import { PrimitiveChunkManager } from "../RenderPipeline/PrimitiveChunkManager";
-import { RenderContext } from "../RenderPipeline/RenderContext";
-import { SubPrimitiveChunk } from "../RenderPipeline/SubPrimitiveChunk";
-import { Renderer, RendererUpdateFlags } from "../Renderer";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
-import { ComponentType } from "../enums/ComponentType";
-import { HitResult } from "../physics";
-import { ShaderProperty } from "../shader";
-import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { UICanvas } from "./UICanvas";
+import {
+  BatchUtils,
+  Color,
+  ComponentType,
+  DependentMode,
+  Entity,
+  EntityModifyFlags,
+  HitResult,
+  Matrix,
+  Plane,
+  Ray,
+  Renderer,
+  RendererUpdateFlags,
+  ShaderMacroCollection,
+  ShaderProperty,
+  Vector3,
+  Vector4,
+  deepClone,
+  dependentComponents,
+  ignoreClone
+} from "@galacean/engine";
+import { EntityUIModifyFlags, UICanvas } from "./UICanvas";
 import { GroupModifyFlags, UIGroup } from "./UIGroup";
 import { UITransform } from "./UITransform";
-import { UIUtils } from "./UIUtils";
+import { Utils } from "./Utils";
 import { IUIGraphics } from "./interface/IUIGraphics";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
@@ -51,7 +60,7 @@ export abstract class UIRenderer extends Renderer implements IUIGraphics {
   _indexInCanvas: number = -1;
   /** @internal */
   @ignoreClone
-  _subChunk: SubPrimitiveChunk;
+  _subChunk;
 
   @ignoreClone
   private _raycastEnable: boolean = true;
@@ -86,6 +95,7 @@ export abstract class UIRenderer extends Renderer implements IUIGraphics {
    */
   constructor(entity: Entity) {
     super(entity);
+    // @ts-ignore
     this._componentType = ComponentType.UIRenderer;
     this._dirtyUpdateFlag = RendererUpdateFlags.AllBounds | UIRendererUpdateFlags.Color;
     this._onEntityModify = this._onEntityModify.bind(this);
@@ -94,24 +104,24 @@ export abstract class UIRenderer extends Renderer implements IUIGraphics {
     this._color._onValueChanged = this._onColorChange;
   }
 
-  /**
-   * @internal
-   */
-  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
-    //@todo: Always update world positions to buffer, should opt
-    // super._updateTransformShaderData(context, onlyMVP, true);
-    const worldMatrix = this.entity.transform.worldMatrix;
-    if (onlyMVP) {
-      this._updateProjectionRelatedShaderData(context, worldMatrix, true);
-    } else {
-      this._updateWorldViewRelatedShaderData(context, worldMatrix, true);
-    }
+  // @ts-ignore
+  override _canBatch(elementA, elementB): boolean {
+    return BatchUtils.canBatchSprite(elementA, elementB);
   }
 
-  /**
-   * @internal
-   */
-  override _prepareRender(context: RenderContext): void {
+  // @ts-ignore
+  override _batch(elementA, elementB?): void {
+    BatchUtils.batchFor2D(elementA, elementB);
+  }
+
+  // @ts-ignore
+  override _updateTransformShaderData(context, onlyMVP: boolean, batched: boolean): void {
+    // @ts-ignore
+    super._updateTransformShaderData(context, onlyMVP, true);
+  }
+
+  // @ts-ignore
+  override _prepareRender(context): void {
     // Update once per frame per renderer, not influenced by batched
     if (this._renderFrameCount !== this.engine.time.frameCount) {
       this._update(context);
@@ -122,49 +132,49 @@ export abstract class UIRenderer extends Renderer implements IUIGraphics {
     // union camera global macro and renderer macro.
     ShaderMacroCollection.unionCollection(
       context.camera._globalShaderMacro,
+      // @ts-ignore
       this.shaderData._macroCollection,
+      //@ts-ignore
       this._globalShaderMacro
     );
   }
 
-  /**
-   * @internal
-   */
+  // @ts-ignore
   override _onEnableInScene(): void {
+    // @ts-ignore
     this._overrideUpdate && this.scene._componentsManager.addOnUpdateRenderers(this);
-    const entity = this._entity;
-    UIUtils.registerElementToCanvas(this, UIUtils.getRootCanvasInParent(entity));
-    UIUtils.registerElementToGroup(this, UIUtils.getGroupInParents(entity));
-    UIUtils.registerEntityListener(this);
+    const entity = this.entity;
+    Utils.registerElementToCanvas(this, Utils.getRootCanvasInParent(entity));
+    Utils.registerElementToGroup(this, Utils.getGroupInParents(entity));
+    Utils.registerEntityListener(this);
   }
 
-  /**
-   * @internal
-   */
+  // @ts-ignore
   override _onDisableInScene(): void {
+    // @ts-ignore
     this._overrideUpdate && this.scene._componentsManager.removeOnUpdateRenderers(this);
-    UIUtils.registerElementToCanvas(this, null);
-    UIUtils.registerElementToGroup(this, null);
-    UIUtils.unRegisterEntityListener(this);
+    Utils.registerElementToCanvas(this, null);
+    Utils.registerElementToGroup(this, null);
+    Utils.unRegisterEntityListener(this);
   }
 
   /**
    * @internal
    */
   @ignoreClone
-  _onEntityModify(flag: EntityModifyFlags): void {
+  _onEntityModify(flag: number): void {
     switch (flag) {
       case EntityModifyFlags.SiblingIndex:
         this._rootCanvas && (this._rootCanvas._hierarchyDirty = true);
         break;
-      case EntityModifyFlags.UICanvasEnableInScene:
+      case EntityUIModifyFlags.UICanvasEnableInScene:
       case EntityModifyFlags.Parent:
-        const rootCanvas = UIUtils.getRootCanvasInParent(this._entity);
+        const rootCanvas = Utils.getRootCanvasInParent(this.entity);
         rootCanvas && (rootCanvas._hierarchyDirty = true);
-        UIUtils.registerElementToCanvas(this, rootCanvas);
-        UIUtils.registerEntityListener(this);
-      case EntityModifyFlags.UIGroupEnableInScene:
-        UIUtils.registerElementToGroup(this, UIUtils.getGroupInParents(this._entity));
+        Utils.registerElementToCanvas(this, rootCanvas);
+        Utils.registerEntityListener(this);
+      case EntityUIModifyFlags.UIGroupEnableInScene:
+        Utils.registerElementToGroup(this, Utils.getGroupInParents(this.entity));
         break;
       default:
         break;
@@ -190,7 +200,8 @@ export abstract class UIRenderer extends Renderer implements IUIGraphics {
   /**
    * @internal
    */
-  _getChunkManager(): PrimitiveChunkManager {
+  _getChunkManager() {
+    // @ts-ignore
     return this.engine._batcherManager.primitiveChunkManagerUI;
   }
 
@@ -211,7 +222,7 @@ export abstract class UIRenderer extends Renderer implements IUIGraphics {
       Vector3.transformCoordinate(hitPointWorld, worldMatrixInv, localPosition);
       if (this._hitTest(localPosition)) {
         out.distance = curDistance;
-        out.entity = this._entity;
+        out.entity = this.entity;
         out.component = this;
         out.normal.copyFrom(normal);
         out.point.copyFrom(hitPointWorld);

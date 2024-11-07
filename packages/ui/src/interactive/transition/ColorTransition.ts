@@ -1,4 +1,4 @@
-import { Color } from "@galacean/engine-math";
+import { Color } from "@galacean/engine";
 import { UIRenderer } from "../../UIRenderer";
 import { Transition } from "./Transition";
 

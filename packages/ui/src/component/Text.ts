@@ -1,26 +1,27 @@
-import { BoundingBox, Vector3 } from "@galacean/engine-math";
-import { FontStyle } from "../2d/enums/FontStyle";
-import { TextHorizontalAlignment, TextVerticalAlignment } from "../2d/enums/TextAlignment";
-import { OverflowMode } from "../2d/enums/TextOverflow";
-import { CharRenderInfo } from "../2d/text/CharRenderInfo";
-import { Font } from "../2d/text/Font";
-import { SubFont } from "../2d/text/SubFont";
-import { TextUtils } from "../2d/text/TextUtils";
-import { Entity } from "../Entity";
-import { RenderQueueFlags } from "../RenderPipeline/BasicRenderPipeline";
-import { BatchUtils } from "../RenderPipeline/BatchUtils";
-import { RenderContext } from "../RenderPipeline/RenderContext";
-import { SubPrimitiveChunk } from "../RenderPipeline/SubPrimitiveChunk";
-import { SubRenderElement } from "../RenderPipeline/SubRenderElement";
-import { RendererUpdateFlags } from "../Renderer";
-import { assignmentClone, ignoreClone } from "../clone/CloneManager";
-import { ShaderData } from "../shader/ShaderData";
-import { ShaderProperty } from "../shader/ShaderProperty";
-import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
-import { Texture2D } from "../texture/Texture2D";
-import { UIRenderer, UIRendererUpdateFlags } from "./UIRenderer";
-import { UITransform, UITransformModifyFlags } from "./UITransform";
-import { CanvasRenderMode } from "./enums/CanvasRenderMode";
+import {
+  BoundingBox,
+  CanvasRenderMode,
+  CharRenderInfo,
+  Entity,
+  Font,
+  FontStyle,
+  OverflowMode,
+  RenderQueueFlags,
+  RendererUpdateFlags,
+  ShaderData,
+  ShaderDataGroup,
+  ShaderProperty,
+  SubFont,
+  TextHorizontalAlignment,
+  TextUtils,
+  TextVerticalAlignment,
+  Texture2D,
+  Vector3,
+  assignmentClone,
+  ignoreClone
+} from "@galacean/engine";
+import { UIRenderer, UIRendererUpdateFlags } from "../UIRenderer";
+import { UITransform, UITransformModifyFlags } from "../UITransform";
 
 export class Text extends UIRenderer {
   private static _textTextureProperty = ShaderProperty.getByName("renderElement_TextTexture");
@@ -202,11 +203,13 @@ export class Text extends UIRenderer {
 
   constructor(entity: Entity) {
     super(entity);
-
     const { engine } = this;
+    // @ts-ignore
     this.font = engine._textDefaultFont;
+    // @ts-ignore
     this.setMaterial(engine._basicResources.textDefaultMaterial);
   }
+  z;
 
   /**
    * @internal
@@ -225,10 +228,9 @@ export class Text extends UIRenderer {
     this._subFont && (this._subFont = null);
   }
 
-  /**
-   * @internal
-   */
+  // @ts-ignore
   override _cloneTo(target: Text, srcRoot: Entity, targetRoot: Entity): void {
+    // @ts-ignore
     super._cloneTo(target, srcRoot, targetRoot);
     target.font = this._font;
   }
@@ -260,6 +262,7 @@ export class Text extends UIRenderer {
   _getSubFont(): SubFont {
     if (this._dirtyUpdateFlag & UITextUpdateFlags.SubFont) {
       const { fontSize, fontStyle, _font: font } = this;
+      // @ts-ignore
       this._subFont = font._getSubFont(fontSize, fontStyle);
       this._subFont.nativeFontString = TextUtils.getNativeFontString(font.name, fontSize, fontStyle);
       this._setDirtyFlagFalse(UITextUpdateFlags.SubFont);
@@ -267,29 +270,7 @@ export class Text extends UIRenderer {
     return this._subFont;
   }
 
-  /**
-   * @internal
-   */
-  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
-    //@todo: Always update world positions to buffer, should opt
-    super._updateTransformShaderData(context, onlyMVP, true);
-  }
-
-  /**
-   * @internal
-   */
-  override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
-    return BatchUtils.canBatchSprite(elementA, elementB);
-  }
-
-  /**
-   * @internal
-   */
-  override _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {
-    BatchUtils.batchFor2D(elementA, elementB);
-  }
-
-  protected override _render(context: RenderContext): void {
+  protected override _render(context): void {
     if (this._isTextNoVisible()) {
       return;
     }
@@ -320,6 +301,7 @@ export class Text extends UIRenderer {
       const { subChunk, texture } = textChunks[i];
       const subRenderElement = textSubRenderElementPool.get();
       subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
+      // @ts-ignore
       subRenderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
       subRenderElement.shaderData.setTexture(Text._textTextureProperty, texture);
       if (isOverlay) {
@@ -336,18 +318,14 @@ export class Text extends UIRenderer {
 
     // prettier-ignore
     const e0 = e[0], e1 = e[1], e2 = e[2],
-  e4 = e[4], e5 = e[5], e6 = e[6],
-  e12 = e[12], e13 = e[13], e14 = e[14];
+          e4 = e[4], e5 = e[5], e6 = e[6],
+          e12 = e[12], e13 = e[13], e14 = e[14];
 
     const up = UIRenderer._tempVec31.set(e4, e5, e6);
     const right = UIRenderer._tempVec30.set(e0, e1, e2);
 
     const worldPositions = Text._worldPositions;
-    const worldPosition0 = worldPositions[0];
-    const worldPosition1 = worldPositions[1];
-    const worldPosition2 = worldPositions[2];
-    const worldPosition3 = worldPositions[3];
-
+    const [worldPosition0, worldPosition1, worldPosition2, worldPosition3] = worldPositions;
     const textChunks = this._textChunks;
     for (let i = 0, n = textChunks.length; i < n; ++i) {
       const { subChunk, charRenderInfos } = textChunks[i];
@@ -410,6 +388,7 @@ export class Text extends UIRenderer {
       ? TextUtils.measureTextWithWrap(this, rendererWidth, rendererHeight, this._lineSpacing)
       : TextUtils.measureTextWithoutWrap(this, rendererHeight, this._lineSpacing);
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
+    // @ts-ignore
     const charRenderInfoPool = this.engine._charRenderInfoPool;
     const linesLen = lines.length;
     let renderElementCount = 0;
@@ -558,7 +537,7 @@ export class Text extends UIRenderer {
     );
   }
 
-  private _buildChunk(textChunk: TextChunk, count: number): SubPrimitiveChunk {
+  private _buildChunk(textChunk: TextChunk, count: number) {
     const { r, g, b, a } = this.color;
     const tempIndices = CharRenderInfo.triangles;
     const tempIndicesLength = tempIndices.length;
@@ -591,6 +570,7 @@ export class Text extends UIRenderer {
 
   private _freeTextChunks(): void {
     const textChunks = this._textChunks;
+    // @ts-ignore
     const charRenderInfoPool = this.engine._charRenderInfoPool;
     const manager = this._getChunkManager();
     for (let i = 0, n = textChunks.length; i < n; ++i) {
@@ -610,8 +590,8 @@ export class Text extends UIRenderer {
 
 class TextChunk {
   charRenderInfos = new Array<CharRenderInfo>();
-  subChunk: SubPrimitiveChunk;
   texture: Texture2D;
+  subChunk;
 }
 
 /**

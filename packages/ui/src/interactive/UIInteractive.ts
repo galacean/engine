@@ -1,10 +1,8 @@
-import { Entity, EntityModifyFlags } from "../../Entity";
-import { Script } from "../../Script";
-import { ignoreClone } from "../../clone/CloneManager";
-import { PointerEventData } from "../../input";
-import { UICanvas } from "../UICanvas";
-import { GroupModifyFlags, UIGroup } from "../UIGroup";
-import { UIUtils } from "../UIUtils";
+import { Entity, EntityModifyFlags, PointerEventData, Script, ignoreClone } from "@galacean/engine";
+import { UIGroup } from "..";
+import { EntityUIModifyFlags, UICanvas } from "../UICanvas";
+import { GroupModifyFlags } from "../UIGroup";
+import { Utils } from "../Utils";
 import { IUIGroupable } from "../interface/IUIGroupable";
 import { InteractiveState } from "./InteractiveState";
 import { Transition } from "./transition/Transition";
@@ -41,7 +39,7 @@ export class UIInteractive extends Script implements IUIGroupable {
   set interactive(value: boolean) {
     if (this._interactive !== value) {
       this._interactive = value;
-      const runtimeInteractive = value && this._group?._getGlobalInteractive();
+      const runtimeInteractive = value && this._group?.globalInteractive;
       if (this._runtimeInteractive !== runtimeInteractive) {
         this._runtimeInteractive = runtimeInteractive;
         this._updateState(true);
@@ -102,23 +100,21 @@ export class UIInteractive extends Script implements IUIGroupable {
     this._updateState(false);
   }
 
-  /**
-   * @internal
-   */
+  // @ts-ignore
   override _onEnableInScene(): void {
+    // @ts-ignore
     super._onEnableInScene();
-    UIUtils.registerElementToGroup(this, UIUtils.getGroupInParents(this._entity));
-    UIUtils.registerEntityListener(this);
+    Utils.registerElementToGroup(this, Utils.getGroupInParents(this.entity));
+    Utils.registerEntityListener(this);
     this._updateState(true);
   }
 
-  /**
-   * @internal
-   */
+  // @ts-ignore
   override _onDisableInScene(): void {
+    // @ts-ignore
     super._onDisableInScene();
-    UIUtils.registerElementToGroup(this, null);
-    UIUtils.unRegisterEntityListener(this);
+    Utils.registerElementToGroup(this, null);
+    Utils.unRegisterEntityListener(this);
     this._isPointerInside = this._isPointerDragging = false;
     this._updateState(true);
   }
@@ -134,14 +130,14 @@ export class UIInteractive extends Script implements IUIGroupable {
    * @internal
    */
   @ignoreClone
-  _onEntityModify(flag: EntityModifyFlags): void {
+  _onEntityModify(flag: number): void {
     switch (flag) {
-      case EntityModifyFlags.UICanvasEnableInScene:
+      case EntityUIModifyFlags.UICanvasEnableInScene:
       case EntityModifyFlags.Parent:
-        UIUtils.registerElementToCanvas(this, UIUtils.getRootCanvasInParent(this._entity));
-        UIUtils.registerEntityListener(this);
-      case EntityModifyFlags.UIGroupEnableInScene:
-        UIUtils.registerElementToGroup(this, UIUtils.getGroupInParents(this._entity));
+        Utils.registerElementToCanvas(this, Utils.getRootCanvasInParent(this.entity));
+        Utils.registerEntityListener(this);
+      case EntityUIModifyFlags.UIGroupEnableInScene:
+        Utils.registerElementToGroup(this, Utils.getGroupInParents(this.entity));
         break;
       default:
         break;

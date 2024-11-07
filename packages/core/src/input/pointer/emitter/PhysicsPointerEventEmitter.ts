@@ -5,12 +5,12 @@ import { CameraClearFlags } from "../../../enums/CameraClearFlags";
 import { Pointer } from "../Pointer";
 import { PointerEventEmitter } from "./PointerEventEmitter";
 
-export class PointerPhysicsEventEmitter extends PointerEventEmitter {
+export class PhysicsPointerEventEmitter extends PointerEventEmitter {
   protected _enteredEntity: Entity;
   protected _pressedEntity: Entity;
   protected _draggedEntity: Entity;
 
-  override _processRaycast(scenes: readonly Scene[], pointer: Pointer): void {
+  override processRaycast(scenes: readonly Scene[], pointer: Pointer): void {
     const { _tempRay: ray } = PointerEventEmitter;
     const { position } = pointer;
     const { x, y } = position;
@@ -48,10 +48,7 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
     this._updateRaycast(null, pointer);
   }
 
-  /**
-   * @internal
-   */
-  override _processDrag(pointer: Pointer): void {
+  override processDrag(pointer: Pointer): void {
     const entity = this._draggedEntity;
     if (entity) {
       this._invokeEntityScripts(entity, (script: Script) => {
@@ -60,10 +57,7 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
     }
   }
 
-  /**
-   * @internal
-   */
-  override _processDown(pointer: Pointer): void {
+  override processDown(pointer: Pointer): void {
     const entity = (this._pressedEntity = this._draggedEntity = this._enteredEntity);
     if (entity) {
       this._invokeEntityScripts(entity, (script: Script) => {
@@ -73,10 +67,7 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
     }
   }
 
-  /**
-   * @internal
-   */
-  override _processUp(pointer: Pointer): void {
+  override processUp(pointer: Pointer): void {
     const { _enteredEntity: enteredEntity, _draggedEntity: draggedEntity } = this;
     if (enteredEntity) {
       const sameTarget = this._pressedEntity === enteredEntity;
@@ -95,7 +86,7 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
     }
   }
 
-  override _processLeave(pointer: Pointer): void {
+  override processLeave(pointer: Pointer): void {
     const enteredEntity = this._enteredEntity;
     if (enteredEntity) {
       this._invokeEntityScripts(enteredEntity, (script: Script) => {
@@ -114,7 +105,7 @@ export class PointerPhysicsEventEmitter extends PointerEventEmitter {
     this._pressedEntity = null;
   }
 
-  override _dispose(): void {
+  override dispose(): void {
     this._enteredEntity = this._pressedEntity = this._draggedEntity = null;
   }
 

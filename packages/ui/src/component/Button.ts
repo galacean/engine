@@ -1,6 +1,5 @@
-import { PointerEventData } from "../input";
-import { SafeLoopArray } from "../utils/SafeLoopArray";
-import { UIInteractive } from "./interactive/UIInteractive";
+import { PointerEventData, SafeLoopArray } from "@galacean/engine";
+import { UIInteractive } from "../interactive/UIInteractive";
 
 export class Button extends UIInteractive {
   private _listeners: SafeLoopArray<IUIListener> = new SafeLoopArray<IUIListener>();

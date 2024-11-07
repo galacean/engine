@@ -11,6 +11,7 @@ export class ComponentsDependencies {
   private static _invDependenciesMap = new Map<ComponentConstructor, ComponentConstructor[]>();
 
   static _dependenciesMap = new Map<ComponentConstructor, DependentInfo>();
+  static _inheritedMap = new Map<ComponentConstructor, Boolean>();
 
   /**
    * @internal
@@ -55,6 +56,15 @@ export class ComponentsDependencies {
   /**
    * @internal
    */
+  static _createChildCheck(child: Entity, type: ComponentConstructor): void {
+    if (ComponentsDependencies._inheritedMap.get(type)) {
+      child.addComponent(type);
+    }
+  }
+
+  /**
+   * @internal
+   */
   static _addDependency(
     targetInfo: DependentInfo,
     dependentComponent: ComponentConstructor,
@@ -82,6 +92,12 @@ export class ComponentsDependencies {
   }
 
   private constructor() {}
+}
+
+export function markAsInherited() {
+  return function <T extends ComponentConstructor>(target: T): void {
+    ComponentsDependencies._inheritedMap.set(target, true);
+  };
 }
 
 /**

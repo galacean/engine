@@ -1,6 +1,4 @@
-import { Color } from "@galacean/engine-math";
-import { Sprite } from "../../../2d";
-import { ReferResource } from "../../../asset/ReferResource";
+import { Color, ReferResource, Sprite } from "@galacean/engine";
 import { UIRenderer } from "../../UIRenderer";
 import { InteractiveState } from "../InteractiveState";
 
@@ -153,7 +151,9 @@ export abstract class Transition<
   }
 
   private _onStateValueDirty(state: InteractiveState, preValue: T, curValue: T): void {
+    // @ts-ignore
     preValue instanceof ReferResource && preValue._addReferCount(-1);
+    // @ts-ignore
     curValue instanceof ReferResource && curValue._addReferCount(1);
     if (this._finalState === state) {
       this._finalValue = curValue;

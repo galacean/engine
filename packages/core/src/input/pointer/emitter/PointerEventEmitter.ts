@@ -16,30 +16,17 @@ export abstract class PointerEventEmitter {
     this._pool = pool;
   }
 
-  /**
-   * @internal
-   */
-  abstract _processRaycast(scenes: readonly Scene[], pointer: Pointer): void;
+  abstract processRaycast(scenes: readonly Scene[], pointer: Pointer): void;
 
-  /**
-   * @internal
-   */
-  abstract _processDrag(pointer: Pointer): void;
+  abstract processDrag(pointer: Pointer): void;
 
-  /**
-   * @internal
-   */
-  abstract _processDown(pointer: Pointer): void;
+  abstract processDown(pointer: Pointer): void;
 
-  /**
-   * @internal
-   */
-  abstract _processUp(pointer: Pointer): void;
+  abstract processUp(pointer: Pointer): void;
 
-  /**
-   * @internal
-   */
-  abstract _processLeave(pointer: Pointer): void;
+  abstract processLeave(pointer: Pointer): void;
+
+  abstract dispose(): void;
 
   protected _createEventData(pointer: Pointer, target: Entity = null, currentTarget: Entity = null): PointerEventData {
     const data = this._pool.get();
@@ -49,9 +36,4 @@ export abstract class PointerEventEmitter {
     data.currentTarget = currentTarget;
     return data;
   }
-
-  /**
-   * @internal
-   */
-  abstract _dispose(): void;
 }

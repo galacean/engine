@@ -1,8 +1,6 @@
-import { Vector2 } from "@galacean/engine-math";
-import { Entity } from "../Entity";
-import { Transform } from "../Transform";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { Entity, Transform, Vector2, deepClone, ignoreClone, markAsInherited } from "@galacean/engine";
 
+@markAsInherited()
 export class UITransform extends Transform {
   @deepClone
   private _size: Vector2 = new Vector2(100, 100);
@@ -45,11 +43,13 @@ export class UITransform extends Transform {
 
   @ignoreClone
   private _onSizeChange(): void {
+    // @ts-ignore
     this._updateFlagManager.dispatch(UITransformModifyFlags.Size);
   }
 
   @ignoreClone
   private _onPivotChange(): void {
+    // @ts-ignore
     this._updateFlagManager.dispatch(UITransformModifyFlags.Pivot);
   }
 }
