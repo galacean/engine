@@ -5,13 +5,15 @@ import {
   Loader,
   ModelMesh,
   PrimitiveMesh,
+  ResourceManager,
   resourceLoader
 } from "@galacean/engine-core";
 
 @resourceLoader(AssetType.PrimitiveMesh, ["mesh"], false)
 class PrimitiveMeshLoader extends Loader<ModelMesh> {
-  load(item: LoadItem, { engine }): AssetPromise<ModelMesh> {
-    return this.request<IPrimitiveMesh>(item.url, {
+  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<ModelMesh> {
+    const { engine } = resourceManager;
+    return this.request<IPrimitiveMesh>(item.url, resourceManager, {
       ...item,
       type: "json"
     }).then((data) => {
