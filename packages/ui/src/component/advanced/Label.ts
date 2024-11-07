@@ -1,6 +1,5 @@
 import {
   BoundingBox,
-  CanvasRenderMode,
   CharRenderInfo,
   Entity,
   Font,
@@ -20,6 +19,7 @@ import {
   assignmentClone,
   ignoreClone
 } from "@galacean/engine";
+import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
 import { UIRenderer, UIRendererUpdateFlags } from "../UIRenderer";
 import { UITransform, UITransformModifyFlags } from "../UITransform";
 
@@ -296,7 +296,7 @@ export class Label extends UIRenderer {
     const canvas = this._rootCanvas;
     const renderElement = canvas._renderElement;
     const textChunks = this._textChunks;
-    const isOverlay = canvas.renderMode === CanvasRenderMode.ScreenSpaceOverlay;
+    const isOverlay = canvas._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay;
     for (let i = 0, n = textChunks.length; i < n; ++i) {
       const { subChunk, texture } = textChunks[i];
       const subRenderElement = textSubRenderElementPool.get();

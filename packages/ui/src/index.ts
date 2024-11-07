@@ -9,5 +9,6 @@ export { ColorTransition } from "./component/interactive/transition/ColorTransit
 export { ScaleTransition } from "./component/interactive/transition/ScaleTransition";
 export { SpriteTransition } from "./component/interactive/transition/SpriteTransition";
 export { Transition } from "./component/interactive/transition/Transition";
+export { CanvasRenderMode } from "./enums/CanvasRenderMode";
 export { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrategy";
 export { UIPointerEventEmitter } from "./input/UIPointerEventEmitter";

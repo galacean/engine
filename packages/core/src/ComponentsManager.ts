@@ -4,7 +4,6 @@ import { Component } from "./Component";
 import { Renderer } from "./Renderer";
 import { Script } from "./Script";
 import { Animator } from "./animation";
-import { CanvasRenderMode } from "./ui/CanvasRenderMode";
 import { DisorderedArray } from "./utils/DisorderedArray";
 
 /**
@@ -78,9 +77,9 @@ export class ComponentsManager {
     renderer._rendererIndex = -1;
   }
 
-  addUICanvas(mode: CanvasRenderMode, uiCanvas: IUICanvas) {
+  addUICanvas(uiCanvas: IUICanvas, isOverlay: boolean) {
     let canvases: DisorderedArray<IUICanvas>;
-    if (mode === CanvasRenderMode.ScreenSpaceOverlay) {
+    if (isOverlay) {
       canvases = this._overlayCanvases;
       this._overlayCanvasesSortingFlag = true;
     } else {
@@ -90,9 +89,9 @@ export class ComponentsManager {
     canvases.add(uiCanvas);
   }
 
-  removeUICanvas(mode: CanvasRenderMode, uiCanvas: IUICanvas) {
+  removeUICanvas(uiCanvas: IUICanvas, isOverlay: boolean) {
     let canvases: DisorderedArray<IUICanvas>;
-    if (mode === CanvasRenderMode.ScreenSpaceOverlay) {
+    if (isOverlay) {
       canvases = this._overlayCanvases;
       this._overlayCanvasesSortingFlag = true;
     } else {

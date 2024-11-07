@@ -22,7 +22,6 @@ import {
   TextureWrapMode
 } from "../texture";
 
-import { CanvasRenderMode } from "../ui/CanvasRenderMode";
 import { CullingResults } from "./CullingResults";
 import { DepthOnlyPass } from "./DepthOnlyPass";
 import { OpaqueTexturePass } from "./OpaqueTexturePass";
@@ -363,7 +362,6 @@ export class BasicRenderPipeline {
     const canvasesElements = canvases._elements;
     for (let i = canvases.length - 1; i >= 0; i--) {
       const canvas = canvasesElements[i];
-      if (canvas.renderMode === CanvasRenderMode.ScreenSpaceCamera && canvas.renderCamera !== camera) continue;
       // Filter by camera culling mask
       if (!(cullingMask & canvas.entity.layer)) {
         continue;

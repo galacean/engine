@@ -1,7 +1,6 @@
 import {
   Camera,
   CameraModifyFlags,
-  CanvasRenderMode,
   Component,
   ComponentType,
   DependentMode,
@@ -17,8 +16,8 @@ import {
   dependentComponents,
   ignoreClone
 } from "@galacean/engine";
-
 import { Utils } from "../Utils";
+import { CanvasRenderMode } from "../enums/CanvasRenderMode";
 import { ResolutionAdaptationStrategy } from "../enums/ResolutionAdaptationStrategy";
 import { IUIElement } from "../interface/IUIElement";
 import { IUIGraphics } from "../interface/IUIGraphics";
@@ -57,11 +56,12 @@ export class UICanvas extends Component implements IUIElement {
   /** @internal */
   @ignoreClone
   _orderedElements: IUIGraphics[] = [];
+  /** @internal */
+  @ignoreClone
+  _realRenderMode: number = CanvasRealRenderMode.None;
 
   @ignoreClone
   private _renderMode = CanvasRenderMode.WorldSpace;
-  @ignoreClone
-  private _realRenderMode: number = CanvasRealRenderMode.None;
   @ignoreClone
   private _renderCamera: Camera;
   @ignoreClone
@@ -149,7 +149,7 @@ export class UICanvas extends Component implements IUIElement {
       this._sortOrder = val;
       this._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay &&
         // @ts-ignore
-        this.scene._componentsManager._overlayCanvasesSortingFlag;
+        (this.scene._componentsManager._overlayCanvasesSortingFlag = true);
     }
   }
 
@@ -491,7 +491,7 @@ export class UICanvas extends Component implements IUIElement {
           this._removeCanvasListener();
         case CanvasRenderMode.ScreenSpaceCamera:
         case CanvasRenderMode.WorldSpace:
-          componentsManager.removeUICanvas(preRealMode, this);
+          componentsManager.removeUICanvas(this, preRealMode === CanvasRenderMode.ScreenSpaceOverlay);
           break;
         default:
           break;
@@ -503,7 +503,7 @@ export class UICanvas extends Component implements IUIElement {
           this._adapterPoseInScreenSpace();
           this._adapterSizeInScreenSpace();
         case CanvasRenderMode.WorldSpace:
-          componentsManager.addUICanvas(curRealMode, this);
+          componentsManager.addUICanvas(this, curRealMode === CanvasRenderMode.ScreenSpaceOverlay);
           break;
         default:
           break;

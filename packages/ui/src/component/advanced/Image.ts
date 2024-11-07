@@ -1,6 +1,5 @@
 import {
   BoundingBox,
-  CanvasRenderMode,
   Entity,
   ISpriteAssembler,
   ISpriteRenderer,
@@ -19,6 +18,7 @@ import {
   assignmentClone,
   ignoreClone
 } from "@galacean/engine";
+import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
 import { UIRenderer, UIRendererUpdateFlags } from "../UIRenderer";
 import { UITransform, UITransformModifyFlags } from "../UITransform";
 
@@ -249,7 +249,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     const subRenderElement = engine._subRenderElementPool.get();
     const subChunk = this._subChunk;
     subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
-    if (canvas.renderMode === CanvasRenderMode.ScreenSpaceOverlay) {
+    if (canvas._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay) {
       subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
       subRenderElement.renderQueueFlags = RenderQueueFlags.All;
     }

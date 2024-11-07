@@ -47,7 +47,6 @@ export { Downsampling } from "./enums/Downsampling";
 export { ColorSpace } from "./enums/ColorSpace";
 export { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 export { XRManager } from "./xr/XRManager";
-export { CanvasRenderMode } from "./ui/CanvasRenderMode";
 export * from "./utils/index";
 export * from "./input/index";
 export * from "./lighting/index";
