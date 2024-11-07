@@ -1,6 +1,7 @@
 import {
   Camera,
   CameraModifyFlags,
+  CanvasRenderMode,
   Component,
   ComponentType,
   DependentMode,
@@ -17,13 +18,12 @@ import {
   ignoreClone
 } from "@galacean/engine";
 
+import { Utils } from "../Utils";
+import { ResolutionAdaptationStrategy } from "../enums/ResolutionAdaptationStrategy";
+import { IUIElement } from "../interface/IUIElement";
+import { IUIGraphics } from "../interface/IUIGraphics";
 import { UIRenderer } from "./UIRenderer";
 import { UITransform } from "./UITransform";
-import { Utils } from "./Utils";
-import { CanvasRenderMode } from "./enums/CanvasRenderMode";
-import { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrategy";
-import { IUIElement } from "./interface/IUIElement";
-import { IUIGraphics } from "./interface/IUIGraphics";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
 export class UICanvas extends Component implements IUIElement {

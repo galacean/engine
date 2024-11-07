@@ -1,5 +1,5 @@
 import { Sprite } from "@galacean/engine";
-import { Image } from "../../component/Image";
+import { Image } from "../../advanced/Image";
 import { Transition } from "./Transition";
 
 export class SpriteTransition extends Transition<Sprite, Image> {

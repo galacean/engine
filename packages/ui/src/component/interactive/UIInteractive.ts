@@ -1,10 +1,9 @@
 import { Entity, EntityModifyFlags, PointerEventData, Script, ignoreClone } from "@galacean/engine";
-import { UIGroup } from "..";
+import { UIGroup } from "../..";
+import { Utils } from "../../Utils";
+import { IUIGroupable } from "../../interface/IUIGroupable";
 import { EntityUIModifyFlags, UICanvas } from "../UICanvas";
 import { GroupModifyFlags } from "../UIGroup";
-import { Utils } from "../Utils";
-import { IUIGroupable } from "../interface/IUIGroupable";
-import { InteractiveState } from "./InteractiveState";
 import { Transition } from "./transition/Transition";
 
 export class UIInteractive extends Script implements IUIGroupable {
@@ -176,4 +175,12 @@ export class UIInteractive extends Script implements IUIGroupable {
       return this._isPointerInside ? InteractiveState.Hover : InteractiveState.Normal;
     }
   }
+}
+
+export enum InteractiveState {
+  None,
+  Normal,
+  Pressed,
+  Hover,
+  Disable
 }

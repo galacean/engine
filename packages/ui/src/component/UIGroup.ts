@@ -8,8 +8,8 @@ import {
   ignoreClone
 } from "@galacean/engine";
 import { EntityUIModifyFlags } from "./UICanvas";
-import { Utils } from "./Utils";
-import { IUIGroupable } from "./interface/IUIGroupable";
+import { Utils } from "../Utils";
+import { IUIGroupable } from "../interface/IUIGroupable";
 
 export class UIGroup extends Component {
   /** @internal */

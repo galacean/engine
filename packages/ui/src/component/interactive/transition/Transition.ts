@@ -1,6 +1,6 @@
 import { Color, ReferResource, Sprite } from "@galacean/engine";
 import { UIRenderer } from "../../UIRenderer";
-import { InteractiveState } from "../InteractiveState";
+import { InteractiveState } from "../UIInteractive";
 
 export abstract class Transition<
   T extends TransitionValueType = TransitionValueType,

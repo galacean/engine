@@ -1,5 +1,5 @@
 import { Entity } from "@galacean/engine";
-import { UICanvas } from "../UICanvas";
+import { UICanvas } from "../component/UICanvas";
 
 export interface IUIElement {
   entity: Entity;

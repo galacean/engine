@@ -22,8 +22,8 @@ import {
 import { EntityUIModifyFlags, UICanvas } from "./UICanvas";
 import { GroupModifyFlags, UIGroup } from "./UIGroup";
 import { UITransform } from "./UITransform";
-import { Utils } from "./Utils";
-import { IUIGraphics } from "./interface/IUIGraphics";
+import { Utils } from "../Utils";
+import { IUIGraphics } from "../interface/IUIGraphics";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
 export abstract class UIRenderer extends Renderer implements IUIGraphics {

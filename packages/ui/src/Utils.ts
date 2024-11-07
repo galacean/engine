@@ -1,6 +1,6 @@
 import { ComponentType, Entity } from "@galacean/engine";
-import { UICanvas } from "./UICanvas";
-import { GroupModifyFlags, UIGroup } from "./UIGroup";
+import { UICanvas } from "./component/UICanvas";
+import { GroupModifyFlags, UIGroup } from "./component/UIGroup";
 import { IUIElement } from "./interface/IUIElement";
 import { IUIGroupable } from "./interface/IUIGroupable";
 

@@ -23,7 +23,7 @@ import {
 import { UIRenderer, UIRendererUpdateFlags } from "../UIRenderer";
 import { UITransform, UITransformModifyFlags } from "../UITransform";
 
-export class Text extends UIRenderer {
+export class Label extends UIRenderer {
   private static _textTextureProperty = ShaderProperty.getByName("renderElement_TextTexture");
   private static _worldPositions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   private static _charRenderInfos: CharRenderInfo[] = [];
@@ -229,7 +229,7 @@ export class Text extends UIRenderer {
   }
 
   // @ts-ignore
-  override _cloneTo(target: Text, srcRoot: Entity, targetRoot: Entity): void {
+  override _cloneTo(target: Label, srcRoot: Entity, targetRoot: Entity): void {
     // @ts-ignore
     super._cloneTo(target, srcRoot, targetRoot);
     target.font = this._font;
@@ -303,7 +303,7 @@ export class Text extends UIRenderer {
       subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
       // @ts-ignore
       subRenderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
-      subRenderElement.shaderData.setTexture(Text._textTextureProperty, texture);
+      subRenderElement.shaderData.setTexture(Label._textTextureProperty, texture);
       if (isOverlay) {
         subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
         subRenderElement.renderQueueFlags = RenderQueueFlags.All;
@@ -324,7 +324,7 @@ export class Text extends UIRenderer {
     const up = UIRenderer._tempVec31.set(e4, e5, e6);
     const right = UIRenderer._tempVec30.set(e0, e1, e2);
 
-    const worldPositions = Text._worldPositions;
+    const worldPositions = Label._worldPositions;
     const [worldPosition0, worldPosition1, worldPosition2, worldPosition3] = worldPositions;
     const textChunks = this._textChunks;
     for (let i = 0, n = textChunks.length; i < n; ++i) {
@@ -379,7 +379,7 @@ export class Text extends UIRenderer {
 
   private _updateLocalData(): void {
     const { min, max } = this._localBounds;
-    const charRenderInfos = Text._charRenderInfos;
+    const charRenderInfos = Label._charRenderInfos;
     const charFont = this._getSubFont();
     const size = (<UITransform>this._transform).size;
     const rendererWidth = size.x;

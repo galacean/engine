@@ -1,4 +1,4 @@
-import { GroupModifyFlags, UIGroup } from "../UIGroup";
+import { GroupModifyFlags, UIGroup } from "../component/UIGroup";
 import { IUIElement } from "./IUIElement";
 
 export interface IUIGroupable extends IUIElement {
