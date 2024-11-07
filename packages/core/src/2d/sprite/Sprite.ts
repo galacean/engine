@@ -60,7 +60,7 @@ export class Sprite extends ReferResource {
    *
    * @remarks
    * If width is set, return the set value,
-   * otherwise return the width calculated according to `Texture.width`, `Sprite.region`, `Sprite.atlasRegion`, `Sprite.atlasRegionOffset` and `Engine._pixelsPerUnit`.
+   * otherwise return the width calculated according to `Texture.width`, `Sprite.region`, `Sprite.atlasRegion` and `Sprite.atlasRegionOffset`.
    */
   get width(): number {
     if (this._customWidth !== undefined) {
@@ -83,7 +83,7 @@ export class Sprite extends ReferResource {
    *
    * @remarks
    * If height is set, return the set value,
-   * otherwise return the height calculated according to `Texture.height`, `Sprite.region`, `Sprite.atlasRegion`, `Sprite.atlasRegionOffset` and `Engine._pixelsPerUnit`.
+   * otherwise return the height calculated according to `Texture.height`, `Sprite.region`, `Sprite.atlasRegion` and `Sprite.atlasRegionOffset`.
    */
   get height(): number {
     if (this._customHeight !== undefined) {
@@ -279,15 +279,10 @@ export class Sprite extends ReferResource {
   private _calDefaultSize(): void {
     if (this._texture) {
       const { _texture, _atlasRegion, _atlasRegionOffset, _region } = this;
-      const pixelsPerUnitReciprocal = 1.0 / Engine._pixelsPerUnit;
       this._automaticWidth =
-        ((_texture.width * _atlasRegion.width) / (1 - _atlasRegionOffset.x - _atlasRegionOffset.z)) *
-        _region.width *
-        pixelsPerUnitReciprocal;
+        ((_texture.width * _atlasRegion.width) / (1 - _atlasRegionOffset.x - _atlasRegionOffset.z)) * _region.width;
       this._automaticHeight =
-        ((_texture.height * _atlasRegion.height) / (1 - _atlasRegionOffset.y - _atlasRegionOffset.w)) *
-        _region.height *
-        pixelsPerUnitReciprocal;
+        ((_texture.height * _atlasRegion.height) / (1 - _atlasRegionOffset.y - _atlasRegionOffset.w)) * _region.height;
     } else {
       this._automaticWidth = this._automaticHeight = 0;
     }

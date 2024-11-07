@@ -39,13 +39,14 @@ export class TiledSpriteAssembler {
     height: number,
     pivot: Vector2,
     flipX: boolean = false,
-    flipY: boolean = false
+    flipY: boolean = false,
+    pixelsPerUnit: number = 1
   ): void {
     // Calculate row and column
     const { _posRow: rPos, _posColumn: cPos, _uvRow: rUV, _uvColumn: cUV } = TiledSpriteAssembler;
     TiledSpriteAssembler.resetData(
       renderer,
-      TiledSpriteAssembler._calculateDividing(renderer, width, height, rPos, cPos, rUV, cUV)
+      TiledSpriteAssembler._calculateDividing(renderer, width, height, rPos, cPos, rUV, cUV, 1 / pixelsPerUnit)
     );
     // Update renderer's worldMatrix
     const { x: pivotX, y: pivotY } = pivot;
@@ -344,7 +345,8 @@ export class TiledSpriteAssembler {
     rPos: DisorderedArray<number>,
     cPos: DisorderedArray<number>,
     rUV: DisorderedArray<number>,
-    cUV: DisorderedArray<number>
+    cUV: DisorderedArray<number>,
+    pixelsPerUnitReciprocal: number = 1
   ): number {
     rPos.length = cPos.length = rUV.length = cUV.length = 0;
     const { sprite, tiledAdaptiveThreshold: threshold } = renderer;
@@ -353,7 +355,8 @@ export class TiledSpriteAssembler {
     const { x: left, y: bottom } = spritePositions[0];
     const { x: right, y: top } = spritePositions[3];
     const [spriteUV0, spriteUV1, spriteUV2, spriteUV3] = sprite._getUVs();
-    const { width: expectWidth, height: expectHeight } = sprite;
+    const expectWidth = sprite.width * pixelsPerUnitReciprocal;
+    const expectHeight = sprite.height * pixelsPerUnitReciprocal;
     const fixedL = expectWidth * border.x;
     const fixedR = expectWidth * border.z;
     const fixedLR = fixedL + fixedR;
