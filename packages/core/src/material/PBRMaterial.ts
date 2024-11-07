@@ -146,6 +146,12 @@ export class PBRMaterial extends PBRBaseMaterial {
 
   set iridescenceFactor(value: number) {
     const IridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceProp);
+    if (!!IridescenceInfo.x !== !!value) {
+      if (value === 0) {
+        this.shaderData.disableMacro("MATERIAL_ENABLE_IRIDESCENCE");
+      } else {
+        this.shaderData.enableMacro("MATERIAL_ENABLE_IRIDESCENCE");
+      }
     IridescenceInfo.x = value;
   }
 
