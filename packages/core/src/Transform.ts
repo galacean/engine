@@ -572,7 +572,7 @@ export class Transform extends Component {
     if (worldUniformScaling !== this._worldUniformScaling) {
       this._worldUniformScaling = worldUniformScaling;
       this._entity._children.forEach((child) => {
-        child.transform?._updateWorldPositionScaleUniformScalingFlagAndUniformScaling(worldUniformScaling);
+        child.transform?._updateWorldPositionScaleFlagAndUniformScaling(worldUniformScaling);
       });
     }
     this._updateAllWorldFlag();
@@ -662,11 +662,12 @@ export class Transform extends Component {
    * Get worldPosition: Will trigger the worldMatrix, local position update of itself and the worldMatrix update of all parent entities.
    * Get worldScale: Will trigger the scaling update of itself and all parent entities.
    * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix) to be false.
+   * @param worldUniformScaling - Whether the world scaling is uniform
    */
   private _updateWorldScaleFlagAndUniformScaling(worldUniformScaling: boolean): void {
     this._isContainDirtyFlags(TransformModifyFlags.WmWs) || this._worldAssociatedChange(TransformModifyFlags.WmWs);
     this._entity._children.forEach((child) => {
-      child.transform?._updateWorldPositionScaleUniformScalingFlagAndUniformScaling(worldUniformScaling);
+      child.transform?._updateWorldPositionScaleFlagAndUniformScaling(worldUniformScaling);
     });
   }
 
@@ -675,14 +676,15 @@ export class Transform extends Component {
    * Get worldPosition: Will trigger the worldMatrix, local position update of itself and the worldMatrix update of all parent entities.
    * Get worldScale: Will trigger the scaling update of itself and all parent entities.
    * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix) to be false.
+   * @param parentWorldUniformScaling - Whether the parent world scaling is uniform
    */
-  private _updateWorldPositionScaleUniformScalingFlagAndUniformScaling(parentWorldUniformScaling: boolean): void {
+  private _updateWorldPositionScaleFlagAndUniformScaling(parentWorldUniformScaling: boolean): void {
     this._isContainDirtyFlags(TransformModifyFlags.WmWpWs) || this._worldAssociatedChange(TransformModifyFlags.WmWpWs);
     const worldUniformScaling = this._localUniformScaling && parentWorldUniformScaling;
     if (worldUniformScaling !== this._worldUniformScaling) {
       this._worldUniformScaling = worldUniformScaling;
       this._entity._children.forEach((child) => {
-        child.transform?._updateWorldPositionScaleUniformScalingFlagAndUniformScaling(worldUniformScaling);
+        child.transform?._updateWorldPositionScaleFlagAndUniformScaling(worldUniformScaling);
       });
     } else {
       this._entity._children.forEach((child) => {
