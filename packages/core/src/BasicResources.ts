@@ -80,8 +80,19 @@ export class BasicResources {
     const mesh = new ModelMesh(engine);
     mesh._addReferCount(1);
     mesh.setVertexElements([new VertexElement("POSITION_UV", 0, VertexElementFormat.Vector4, 0)]);
-    mesh.setVertexBufferBinding(new Buffer(engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static), 16);
+    const buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static, true);
+    mesh.setVertexBufferBinding(buffer, 16);
     mesh.addSubMesh(0, 3, MeshTopology.Triangles);
+    engine.resourceManager.addContentRestorer(
+      new (class extends ContentRestorer<ModelMesh> {
+        constructor() {
+          super(mesh);
+        }
+        restoreContent() {
+          buffer.setData(buffer.data);
+        }
+      })()
+    );
     return mesh;
   }
 
