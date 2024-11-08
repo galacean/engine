@@ -478,6 +478,19 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
   }
 
   /**
+   * Copy to vector4 like object.
+   * @param target - Vector4 like object
+   * @returns This Vector4 like object
+   */
+  copyTo(target: Vector4Like): Vector4Like {
+    target.x = this._x;
+    target.y = this._y;
+    target.z = this._z;
+    target.w = this._w;
+    return target;
+  }
+
+  /**
    * Copy the value of this vector by an array.
    * @param array - The array
    * @param offset - The start offset of the array

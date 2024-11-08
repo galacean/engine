@@ -26,7 +26,6 @@ export function decode<T>(arrayBuffer: ArrayBuffer, engine: Engine): Promise<T> 
 
 export * from "./resources/schema";
 export * from "./resources/scene/SceneParser";
-export * from "./resources/scene/MeshLoader";
 export * from "./resources/scene/EditorTextureLoader";
 export * from "./resources/parser/ParserContext";
 

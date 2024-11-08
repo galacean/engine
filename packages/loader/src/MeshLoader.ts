@@ -13,7 +13,7 @@ import { decode } from "./resource-deserialize";
 class MeshLoader extends Loader<ModelMesh> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<ModelMesh> {
     return new AssetPromise((resolve, reject) => {
-      this.request<any>(item.url, {
+      this.request<any>(item.url, resourceManager, {
         ...item,
         type: "arraybuffer"
       })

@@ -13,7 +13,7 @@ import {
 @resourceLoader(AssetType.Sprite, ["sprite"], false)
 class SpriteLoader extends Loader<Sprite> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Sprite> {
-    return this.request<any>(item.url, {
+    return this.request<any>(item.url, resourceManager, {
       ...item,
       type: "json"
     }).then((data) => {
