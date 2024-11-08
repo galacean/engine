@@ -791,20 +791,6 @@ export class ModelMesh extends Mesh {
 
   /**
    * @internal
-   * @remarks Only used for advanced vertex and readable data mesh.
-   */
-  _reUploadAdvancedData(): void {
-    this._advancedDataUpdateFlag = 0xffff;
-    this._indicesChangeFlag = true;
-    const advancedVertexDataVersions = this._advancedVertexDataVersions;
-    for (let i = 0, n = advancedVertexDataVersions.length; i < n; i++) {
-      advancedVertexDataVersions[i] = this._dataVersionCounter++;
-    }
-    this.uploadData(false);
-  }
-
-  /**
-   * @internal
    */
   _getVertexTypedArray(vertexDataBuffer: ArrayBuffer, dataType: DataType): TypedArray {
     switch (dataType) {
