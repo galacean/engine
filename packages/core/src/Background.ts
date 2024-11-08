@@ -141,7 +141,10 @@ export class Background {
           super(mesh);
         }
         restoreContent() {
-          mesh._reUploadAdvancedData();
+          mesh.setPositions(mesh.getPositions());
+          mesh.setUVs(mesh.getUVs());
+          mesh.setIndices(mesh.getIndices());
+          mesh.uploadData(false);
         }
       })()
     );
