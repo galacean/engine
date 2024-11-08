@@ -263,19 +263,20 @@ export class Transform extends Component {
     if (this._localMatrix !== value) {
       this._localMatrix.copyFrom(value);
     }
-
+    const { _position: position, _rotationQuaternion: rotationQuaternion, _scale: scale } = this;
     // @ts-ignore
-    this._position._onValueChanged = this._rotationQuaternion._onValueChanged = this._scale._onValueChanged = null;
-    this._localMatrix.decompose(this._position, this._rotationQuaternion, this._scale);
+    position._onValueChanged = rotationQuaternion._onValueChanged = scale._onValueChanged = null;
+    this._localMatrix.decompose(position, rotationQuaternion, scale);
     // @ts-ignore
-    this._position._onValueChanged = this._onPositionChanged;
+    position._onValueChanged = this._onPositionChanged;
     // @ts-ignore
-    this._rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
+    rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
     // @ts-ignore
-    this._scale._onValueChanged = this._onScaleChanged;
+    scale._onValueChanged = this._onScaleChanged;
 
     this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler);
     this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalQuat);
+    this._localUniformScaling = scale.x === scale.y && scale.y === scale.z;
     this._updateAllWorldFlag();
   }
 
@@ -568,13 +569,6 @@ export class Transform extends Component {
    */
   _parentChange(): void {
     this._isParentDirty = true;
-    const worldUniformScaling = this._localUniformScaling;
-    if (worldUniformScaling !== this._worldUniformScaling) {
-      this._worldUniformScaling = worldUniformScaling;
-      this._entity._children.forEach((child) => {
-        child.transform?._updateWorldPositionScaleFlagAndUniformScaling(worldUniformScaling);
-      });
-    }
     this._updateAllWorldFlag();
   }
 
@@ -630,9 +624,9 @@ export class Transform extends Component {
    * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix or worldRotationQuaternion) to be false.
    */
   private _updateWorldRotationFlag() {
-    const dirtyFlag = this._worldUniformScaling ? TransformModifyFlags.WmWeWq : TransformModifyFlags.WmWeWqWs;
-    if (!this._isContainDirtyFlags(dirtyFlag)) {
-      this._worldAssociatedChange(dirtyFlag);
+    const flags = this._getWorldUniformScalingChange() ? TransformModifyFlags.WmWeWq : TransformModifyFlags.WmWeWqWs;
+    if (!this._isContainDirtyFlags(flags)) {
+      this._worldAssociatedChange(flags);
       this._entity._children.forEach((child) => {
         child.transform?._updateWorldPositionAndRotationFlag(); // Rotation update of parent entity will trigger world position, rotation and scale update of all child entity.
       });
@@ -648,9 +642,11 @@ export class Transform extends Component {
    * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix or worldRotationQuaternion) to be false.
    */
   private _updateWorldPositionAndRotationFlag(): void {
-    const dirtyFlag = this._worldUniformScaling ? TransformModifyFlags.WmWpWeWq : TransformModifyFlags.WmWpWeWqWs;
-    if (!this._isContainDirtyFlags(dirtyFlag)) {
-      this._worldAssociatedChange(dirtyFlag);
+    const flags = this._getWorldUniformScalingChange()
+      ? TransformModifyFlags.WmWpWeWq
+      : TransformModifyFlags.WmWpWeWqWs;
+    if (!this._isContainDirtyFlags(flags)) {
+      this._worldAssociatedChange(flags);
       this._entity._children.forEach((child) => {
         child.transform?._updateWorldPositionAndRotationFlag();
       });
@@ -664,31 +660,12 @@ export class Transform extends Component {
    * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix) to be false.
    * @param worldUniformScaling - Whether the world scaling is uniform
    */
-  private _updateWorldScaleFlagAndUniformScaling(worldUniformScaling: boolean): void {
-    this._isContainDirtyFlags(TransformModifyFlags.WmWs) || this._worldAssociatedChange(TransformModifyFlags.WmWs);
-    this._entity._children.forEach((child) => {
-      child.transform?._updateWorldPositionScaleFlagAndUniformScaling(worldUniformScaling);
-    });
-  }
-
-  /**
-   * Get worldMatrix: Will trigger the worldMatrix update of itself and all parent entities.
-   * Get worldPosition: Will trigger the worldMatrix, local position update of itself and the worldMatrix update of all parent entities.
-   * Get worldScale: Will trigger the scaling update of itself and all parent entities.
-   * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix) to be false.
-   * @param parentWorldUniformScaling - Whether the parent world scaling is uniform
-   */
-  private _updateWorldPositionScaleFlagAndUniformScaling(parentWorldUniformScaling: boolean): void {
-    this._isContainDirtyFlags(TransformModifyFlags.WmWpWs) || this._worldAssociatedChange(TransformModifyFlags.WmWpWs);
-    const worldUniformScaling = this._localUniformScaling && parentWorldUniformScaling;
-    if (worldUniformScaling !== this._worldUniformScaling) {
-      this._worldUniformScaling = worldUniformScaling;
+  private _updateWorldScaleFlag(flag: TransformModifyFlags): void {
+    if (!this._isContainDirtyFlags(flag)) {
+      this._worldAssociatedChange(flag);
+      flag |= TransformModifyFlags.WorldPosition;
       this._entity._children.forEach((child) => {
-        child.transform?._updateWorldPositionScaleFlagAndUniformScaling(worldUniformScaling);
-      });
-    } else {
-      this._entity._children.forEach((child) => {
-        child.transform?._updateWorldPositionAndScaleFlag();
+        child.transform?._updateWorldPositionAndScaleFlag(flag);
       });
     }
   }
@@ -699,26 +676,11 @@ export class Transform extends Component {
    * Get worldScale: Will trigger the scaling update of itself and all parent entities.
    * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix) to be false.
    */
-  private _updateWorldScaleFlag(): void {
-    if (!this._isContainDirtyFlags(TransformModifyFlags.WmWs)) {
-      this._worldAssociatedChange(TransformModifyFlags.WmWs);
+  private _updateWorldPositionAndScaleFlag(flag: TransformModifyFlags): void {
+    if (!this._isContainDirtyFlags(flag)) {
+      this._worldAssociatedChange(flag);
       this._entity._children.forEach((child) => {
-        child.transform?._updateWorldPositionAndScaleFlag();
-      });
-    }
-  }
-
-  /**
-   * Get worldMatrix: Will trigger the worldMatrix update of itself and all parent entities.
-   * Get worldPosition: Will trigger the worldMatrix, local position update of itself and the worldMatrix update of all parent entities.
-   * Get worldScale: Will trigger the scaling update of itself and all parent entities.
-   * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix) to be false.
-   */
-  private _updateWorldPositionAndScaleFlag(): void {
-    if (!this._isContainDirtyFlags(TransformModifyFlags.WmWpWs)) {
-      this._worldAssociatedChange(TransformModifyFlags.WmWpWs);
-      this._entity._children.forEach((child) => {
-        child.transform?._updateWorldPositionAndScaleFlag();
+        child.transform?._updateWorldPositionAndScaleFlag(flag);
       });
     }
   }
@@ -727,8 +689,8 @@ export class Transform extends Component {
    * Update all world transform property dirty flag, the principle is the same as above.
    */
   private _updateAllWorldFlag(): void {
-    if (!this._isContainDirtyFlags(TransformModifyFlags.WmWpWeWqWs)) {
-      this._worldAssociatedChange(TransformModifyFlags.WmWpWeWqWs);
+    if (!this._isContainDirtyFlags(TransformModifyFlags.WmWpWeWqWsWus)) {
+      this._worldAssociatedChange(TransformModifyFlags.WmWpWeWqWsWus);
       this._entity._children.forEach((child) => {
         child.transform?._updateAllWorldFlag();
       });
@@ -876,21 +838,23 @@ export class Transform extends Component {
   private _onScaleChanged(): void {
     const { x, y, z } = this._scale;
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
-    const isLocalUniformScaling = x == y && y == z;
-    if (this._localUniformScaling !== isLocalUniformScaling) {
-      this._localUniformScaling = isLocalUniformScaling;
-      const parentTransform = this._getParentTransform();
-      const parentWorldUniformScaling = parentTransform ? parentTransform._worldUniformScaling : true;
-      const worldUniformScaling = parentWorldUniformScaling && isLocalUniformScaling;
-      if (this._worldUniformScaling !== worldUniformScaling) {
-        this._worldUniformScaling = worldUniformScaling;
-        this._updateWorldScaleFlagAndUniformScaling(worldUniformScaling);
-      } else {
-        this._updateWorldScaleFlag();
-      }
+    const localUniformScaling = x == y && y == z;
+    if (this._localUniformScaling !== localUniformScaling) {
+      this._localUniformScaling = localUniformScaling;
+      this._updateWorldScaleFlag(TransformModifyFlags.WmWsWus);
     } else {
-      this._updateWorldScaleFlag();
+      this._updateWorldScaleFlag(TransformModifyFlags.WmWs);
     }
+  }
+
+  private _getWorldUniformScalingChange(): boolean {
+    if (this._dirtyFlag & TransformModifyFlags.WorldUniformScaling) {
+      const parent = this._getParentTransform();
+      const parentWorldUniformScaling = parent ? parent._worldUniformScaling : true;
+      this._worldUniformScaling = this._localUniformScaling && parentWorldUniformScaling;
+      this._dirtyFlag &= ~TransformModifyFlags.WorldUniformScaling;
+    }
+    return this._worldUniformScaling;
   }
 }
 
@@ -906,6 +870,7 @@ export enum TransformModifyFlags {
   WorldScale = 0x20,
   LocalMatrix = 0x40,
   WorldMatrix = 0x80,
+  WorldUniformScaling = 0x100,
 
   /** WorldMatrix | WorldPosition */
   WmWp = 0x84,
@@ -920,5 +885,6 @@ export enum TransformModifyFlags {
   /** WorldMatrix | WorldPosition | WorldScale */
   WmWpWs = 0xa4,
   /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale */
-  WmWpWeWqWs = 0xbc
+  WmWpWeWqWs = 0xbc,
+  WmWpWeWqWsWus = 0x1bc
 }
