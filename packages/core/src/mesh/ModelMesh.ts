@@ -1159,7 +1159,6 @@ export class ModelMesh extends Mesh {
           }
         }
       }
-      vertexBufferInfo.dataVersion = advancedDataVersion;
       vertexBufferInfo.uploadAdvancedData = true;
     }
   }
