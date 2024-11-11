@@ -41,8 +41,4 @@ export abstract class Loader<T> {
   constructor(public readonly useCache: boolean) {}
   initialize?(engine: Engine, configuration: EngineConfiguration): Promise<void>;
   abstract load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<T>;
-  request<U>(url: string, resourceManager: ResourceManager, config: RequestConfig): AssetPromise<U> {
-    const remoteUrl = resourceManager._virtualPathMap[url] ?? url;
-    return request(remoteUrl, config);
-  }
 }

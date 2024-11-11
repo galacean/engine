@@ -9,12 +9,14 @@ export class PrefabLoader extends Loader<PrefabResource> {
     const engine = resourceManager.engine;
 
     return new AssetPromise((resolve, reject) => {
-      this.request<IHierarchyFile>(item.url, resourceManager, {
-        ...item,
-        type: "json"
-      }).then((data) => {
-        PrefabParser.parse(engine, item.url, data).then(resolve).catch(reject);
-      });
+      resourceManager
+        .request<IHierarchyFile>(item.url, {
+          ...item,
+          type: "json"
+        })
+        .then((data) => {
+          PrefabParser.parse(engine, item.url, data).then(resolve).catch(reject);
+        });
     });
   }
 }

@@ -12,7 +12,8 @@ import {
 class FontLoader extends Loader<Font> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Font> {
     return new AssetPromise((resolve, reject) => {
-      this.request<any>(item.url, resourceManager, { ...item, type: "json" })
+      resourceManager
+        .request<any>(item.url, { ...item, type: "json" })
         .then((data) => {
           const { fontName, fontUrl } = data;
 

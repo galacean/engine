@@ -381,7 +381,8 @@ class HDRLoader extends Loader<TextureCube> {
     return new AssetPromise((resolve, reject) => {
       const engine = resourceManager.engine;
 
-      this.request<ArrayBuffer>(item.url, resourceManager, { ...item, type: "arraybuffer" })
+      resourceManager
+        .request<ArrayBuffer>(item.url, { ...item, type: "arraybuffer" })
         .then((buffer) => {
           const uint8Array = new Uint8Array(buffer);
           const { width, height, dataPosition } = HDRLoader._parseHeader(uint8Array);

@@ -14,10 +14,11 @@ import { decode } from "./resource-deserialize";
 class AnimationClipLoader extends Loader<AnimationClip> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AnimationClip> {
     return new AssetPromise((resolve, reject) => {
-      this.request<any>(item.url, resourceManager, {
-        ...item,
-        type: "arraybuffer"
-      })
+      resourceManager
+        .request<any>(item.url, {
+          ...item,
+          type: "arraybuffer"
+        })
         .then((data) => {
           return decode<AnimationClip>(data, resourceManager.engine)
             .then((clip) => {

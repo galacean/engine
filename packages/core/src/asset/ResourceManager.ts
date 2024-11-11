@@ -4,6 +4,7 @@ import { GraphicsResource } from "./GraphicsResource";
 import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
 import { ReferResource } from "./ReferResource";
+import { request, RequestConfig } from "./request";
 
 /**
  * ResourceManager
@@ -177,6 +178,14 @@ export class ResourceManager {
    */
   addContentRestorer<T extends EngineObject>(restorer: ContentRestorer<T>): void {
     this._contentRestorerPool[restorer.resource.instanceId] = restorer;
+  }
+
+  /**
+   * Request resource by editor path or remote cdn url.
+   */
+  request<U>(url: string, config: RequestConfig): AssetPromise<U> {
+    const remoteUrl = this._virtualPathMap[url] ?? url;
+    return request(remoteUrl, config);
   }
 
   /**

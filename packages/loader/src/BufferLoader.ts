@@ -14,7 +14,7 @@ class BufferLoader extends Loader<ArrayBuffer> {
         resolve(result.buffer);
       });
     }
-    return this.request(url, resourceManager, {
+    return resourceManager.request(url, {
       ...item,
       type: "arraybuffer"
     });

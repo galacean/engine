@@ -35,10 +35,11 @@ function parseProperty(object: Object, key: string, value: any) {
 class MaterialLoader extends Loader<Material> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Material> {
     return new AssetPromise((resolve, reject) => {
-      this.request(item.url, resourceManager, {
-        ...item,
-        type: "json"
-      })
+      resourceManager
+        .request(item.url, {
+          ...item,
+          type: "json"
+        })
         .then((materialSchema: IMaterialSchema) => {
           const engine = resourceManager.engine;
           const { shaderRef, shader: shaderName } = materialSchema;
