@@ -14,16 +14,19 @@ export class GLTFBufferParser extends GLTFParser {
   }
 
   private _parseSingleBuffer(context: GLTFParserContext, bufferInfo: IBuffer): Promise<ArrayBuffer> {
-    const { glTFResource, contentRestorer } = context;
+    const { glTFResource, contentRestorer, resourceManager } = context;
     const url = glTFResource.url;
     // @ts-ignore
-    const remoteUrl = context.resourceManager._virtualPathMap[url] ?? url;
+    const remoteUrl = resourceManager._getRemoteUrl(url);
     const restoreBufferRequests = contentRestorer.bufferRequests;
     const requestConfig = <RequestConfig>{ type: "arraybuffer" };
     const absoluteUrl = Utils.resolveAbsoluteUrl(remoteUrl, bufferInfo.uri);
 
     restoreBufferRequests.push(new BufferRequestInfo(absoluteUrl, requestConfig));
-    const promise = request<ArrayBuffer>(absoluteUrl, requestConfig).onProgress(undefined, context._onTaskDetail);
+    const promise = resourceManager
+      // @ts-ignore
+      ._requestByRemoteUrl<ArrayBuffer>(absoluteUrl, requestConfig)
+      .onProgress(undefined, context._onTaskDetail);
 
     context._addTaskCompletePromise(promise);
     return promise;

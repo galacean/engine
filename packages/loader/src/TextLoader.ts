@@ -3,7 +3,8 @@ import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem, ResourceMana
 @resourceLoader(AssetType.Text, ["txt"], false)
 class TextLoader extends Loader<string> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<string> {
-    return this.request(item.url, resourceManager, {
+    // @ts-ignore
+    return resourceManager._request(item.url, {
       ...item,
       type: "text"
     });

@@ -40,7 +40,8 @@ export class ShaderChunkLoader extends Loader<void[]> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<void[]> {
     const { url } = item;
 
-    return this.request<string>(url, resourceManager, { ...item, type: "text" }).then((code) => {
+    // @ts-ignore
+    return resourceManager._request<string>(url, { ...item, type: "text" }).then((code) => {
       ShaderFactory.registerInclude(url.substring(1), code);
 
       return ShaderChunkLoader._loadChunksInCode(code, url, resourceManager);
