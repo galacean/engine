@@ -2,7 +2,7 @@
  * @title Project loader
  * @category Advance
  */
-import { Logger, WebGLEngine, AssetType, Entity, Camera } from "@galacean/engine";
+import { Logger, WebGLEngine, AssetType, Camera } from "@galacean/engine";
 import { ShaderLab } from "@galacean/engine-shader-lab";
 import { registerIncludes } from "@galacean/engine-toolkit";
 import { initScreenshot, updateForE2E } from './.mockForE2E';
@@ -13,10 +13,11 @@ registerIncludes();
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas", shaderLab }).then( (engine) => {
+  engine.canvas.resizeByClientSize(2);
   engine.resourceManager
     .load({
       type: AssetType.Project,
-      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*6tHUQ4pAug0AAAAAAAAAAAAADkp5AQ/project.json"
+      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*o15SSopTBh0AAAAAAAAAAAAADkp5AQ/project.json"
     }).then(() => {
       updateForE2E(engine);
 
@@ -25,7 +26,4 @@ WebGLEngine.create({ canvas: "canvas", shaderLab }).then( (engine) => {
       const camera = cameraEntity.getComponent(Camera)
       initScreenshot(engine, camera)
     })
-  engine.run();
-
-  engine.canvas.resizeByClientSize();
 });
