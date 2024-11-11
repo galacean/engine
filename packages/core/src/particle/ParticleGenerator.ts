@@ -274,9 +274,9 @@ export class ParticleGenerator {
 
     // Process start delay time
     if (this._playStartDelay > 0) {
-      this._playStartDelay -= deltaTime;
-      if (this._playStartDelay < 0) {
-        this._playTime -= this._playStartDelay;
+      const remainingDelay = (this._playStartDelay -= deltaTime);
+      if (remainingDelay < 0) {
+        this._playTime -= remainingDelay;
         this._playStartDelay = 0;
       } else {
         return;
