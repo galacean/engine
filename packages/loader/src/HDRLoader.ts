@@ -1,13 +1,17 @@
 import {
   AssetPromise,
   AssetType,
-  Loader,
+  ContentRestorer,
+  Engine,
   LoadItem,
-  resourceLoader,
+  Loader,
   ResourceManager,
   TextureCube,
-  TextureCubeFace
+  TextureCubeFace,
+  request,
+  resourceLoader
 } from "@galacean/engine-core";
+import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { Color, Vector3 } from "@galacean/engine-math";
 
 const PI = Math.PI;
@@ -81,6 +85,23 @@ class HDRLoader extends Loader<TextureCube> {
   private static _temp3Vector3 = new Vector3();
   private static _temp4Vector3 = new Vector3();
   private static _temp5Vector3 = new Vector3();
+
+  /**
+   * @internal
+   */
+  static _setTextureByBuffer(engine: Engine, buffer: ArrayBuffer, texture?: TextureCube) {
+    const bufferArray = new Uint8Array(buffer);
+    const { width, height, dataPosition } = HDRLoader._parseHeader(bufferArray);
+    const cubeSize = height >> 1;
+    texture ||= new TextureCube(engine, cubeSize);
+    const pixels = HDRLoader._readPixels(bufferArray.subarray(dataPosition), width, height);
+    const cubeMapData = HDRLoader._convertToCubemap(pixels, width, height, cubeSize);
+    for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
+      texture.setPixelBuffer(TextureCubeFace.PositiveX + faceIndex, cubeMapData[faceIndex], 0);
+    }
+    texture.generateMipmaps();
+    return texture;
+  }
 
   private static _convertToCubemap(
     pixels: Uint8Array,
@@ -376,27 +397,39 @@ class HDRLoader extends Loader<TextureCube> {
     color.b *= scaleFactor;
     color.a *= M;
   }
-
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCube> {
     return new AssetPromise((resolve, reject) => {
       const engine = resourceManager.engine;
-
-      resourceManager
-        .request<ArrayBuffer>(item.url, { ...item, type: "arraybuffer" })
+      const requestConfig = { ...item, type: "arraybuffer" } as RequestConfig;
+      resourceManager.request<ArrayBuffer>(item.url, requestConfig)
         .then((buffer) => {
-          const uint8Array = new Uint8Array(buffer);
-          const { width, height, dataPosition } = HDRLoader._parseHeader(uint8Array);
-          const pixels = HDRLoader._readPixels(uint8Array.subarray(dataPosition), width, height);
-          const cubeSize = height >> 1;
-
-          const cubeMapData = HDRLoader._convertToCubemap(pixels, width, height, cubeSize);
-          const texture = new TextureCube(engine, cubeSize);
-
-          for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
-            texture.setPixelBuffer(TextureCubeFace.PositiveX + faceIndex, cubeMapData[faceIndex], 0);
-          }
-          texture.generateMipmaps();
+          const texture = HDRLoader._setTextureByBuffer(engine, buffer);
+          engine.resourceManager.addContentRestorer(new HDRContentRestorer(texture, item.url, requestConfig));
           resolve(texture);
+        })
+        .catch(reject);
+    });
+  }
+}
+
+/**
+ * @internal
+ */
+class HDRContentRestorer extends ContentRestorer<TextureCube> {
+  constructor(
+    resource: TextureCube,
+    public url: string,
+    public requestConfig: RequestConfig
+  ) {
+    super(resource);
+  }
+
+  override restoreContent(): AssetPromise<TextureCube> {
+    return new AssetPromise((resolve, reject) => {
+      request<ArrayBuffer>(this.url, this.requestConfig)
+        .then((buffer) => {
+          HDRLoader._setTextureByBuffer(this.resource.engine, buffer, this.resource);
+          resolve(this.resource);
         })
         .catch(reject);
     });
