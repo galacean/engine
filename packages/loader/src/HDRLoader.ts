@@ -401,7 +401,8 @@ class HDRLoader extends Loader<TextureCube> {
     return new AssetPromise((resolve, reject) => {
       const engine = resourceManager.engine;
       const requestConfig = { ...item, type: "arraybuffer" } as RequestConfig;
-      resourceManager.request<ArrayBuffer>(item.url, requestConfig)
+      resourceManager
+        .request<ArrayBuffer>(item.url, requestConfig)
         .then((buffer) => {
           const texture = HDRLoader._setTextureByBuffer(engine, buffer);
           engine.resourceManager.addContentRestorer(new HDRContentRestorer(texture, item.url, requestConfig));
