@@ -20,7 +20,7 @@ export class PBRMaterial extends PBRBaseMaterial {
 
   private _anisotropyRotation: number = 0;
 
-  private static _iridescenceProp = ShaderProperty.getByName("material_IridescenceInfo");
+  private static _iridescenceInfoProp = ShaderProperty.getByName("material_IridescenceInfo");
   private static _iridescenceThicknessTextureProp = ShaderProperty.getByName("material_IridescenceThicknessTexture");
   private static _iridescenceTextureProp = ShaderProperty.getByName("material_IridescenceTexture");
 
@@ -138,34 +138,34 @@ export class PBRMaterial extends PBRBaseMaterial {
 
   /**
    * The iridescence intensity factor.	
-   * @defaultValue `1.0`
+   * @defaultValue `0.0`
    */
   get iridescenceFactor(): number {
-    return this.shaderData.getVector4(PBRMaterial._iridescenceProp).x;
+    return this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp).x;
   }
 
   set iridescenceFactor(value: number) {
-    const IridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceProp);
-    if (!!IridescenceInfo.x !== !!value) {
+    const iridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp);
+    if (!!iridescenceInfo.x !== !!value) {
       if (value === 0) {
         this.shaderData.disableMacro("MATERIAL_ENABLE_IRIDESCENCE");
       } else {
         this.shaderData.enableMacro("MATERIAL_ENABLE_IRIDESCENCE");
       }
-    IridescenceInfo.x = value;
-  }
+      iridescenceInfo.x = value;
+   }
 
   /**
    * The index of refraction of the dielectric thin-film layer.	
    * @defaultValue `1.3`
    */
   get iridescenceIor(): number {
-    return this.shaderData.getVector4(PBRMaterial._iridescenceProp).y;
+    return this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp).y;
   }
 
   set iridescenceIor(value: number) {
-    const IridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceProp);
-    IridescenceInfo.y = value;
+    const iridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp);
+    iridescenceInfo.y = value;
   }
 
   /**
@@ -173,12 +173,13 @@ export class PBRMaterial extends PBRBaseMaterial {
    * @defaultValue `100`
    */
   get iridescenceThicknessMin(): number {
-    return this.shaderData.getVector4(PBRMaterial._iridescenceProp).z;
+    return this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp).z;
+    
   }
 
   set iridescenceThicknessMin(value: number) {
-    const IridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceProp);
-    IridescenceInfo.z = value;
+    const iridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp);
+    iridescenceInfo.z = value;
   }
 
   /**
@@ -186,22 +187,22 @@ export class PBRMaterial extends PBRBaseMaterial {
    * @defaultValue `400`
    */
   get iridescenceThicknessMax(): number {
-    return this.shaderData.getVector4(PBRMaterial._iridescenceProp).w;
+    return this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp).w;
   }
 
   set iridescenceThicknessMax(value: number) {
-    const IridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceProp);
-    IridescenceInfo.w = value;
+    const iridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp);
+    iridescenceInfo.w = value;
   }
   
   /**
    * The thickness texture of the thin-film layer.	
    */
-  get irithicknessTexture(): Texture2D {
+  get iridescenceThicknessTexture(): Texture2D {
     return <Texture2D>this.shaderData.getTexture(PBRMaterial._iridescenceThicknessTextureProp);
   }
 
-  set irithicknessTexture(value: Texture2D) {
+  set iridescenceThicknessTexture(value: Texture2D) {
     this.shaderData.setTexture(PBRMaterial._iridescenceThicknessTextureProp, value);
 
     if (value) {
@@ -240,7 +241,7 @@ export class PBRMaterial extends PBRBaseMaterial {
     shaderData.setFloat(PBRMaterial._roughnessProp, 1);
     shaderData.setFloat(PBRMaterial._iorProp, 1.5);
     shaderData.setVector3(PBRMaterial._anisotropyInfoProp, new Vector3(1, 0, 0));
-    shaderData.setVector4(PBRMaterial._iridescenceProp, new Vector4(0, 1.3, 100, 400));
+    shaderData.setVector4(PBRMaterial._iridescenceInfoProp, new Vector4(0, 1.3, 100, 400));
 
   }
 

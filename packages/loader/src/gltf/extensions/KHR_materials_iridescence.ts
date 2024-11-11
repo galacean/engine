@@ -19,8 +19,8 @@ class KHR_materials_iridescence extends GLTFExtensionParser {
 
      material.iridescenceFactor = iridescenceFactor;
      material.iridescenceIor = iridescenceIor;
-     material.iridescenceThicknessMin = iridescenceThicknessMaximum;
-     material.iridescenceThicknessMax = iridescenceThicknessMinimum;
+     material.iridescenceThicknessMin = iridescenceThicknessMinimum;
+     material.iridescenceThicknessMax = iridescenceThicknessMaximum;
  
     if (iridescenceTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(iridescenceTexture, "Iridescence texture");
@@ -33,7 +33,7 @@ class KHR_materials_iridescence extends GLTFExtensionParser {
       GLTFMaterialParser._checkOtherTextureTransform(iridescenceThicknessTexture, "IridescenceThickness texture");
 
       context.get<Texture2D>(GLTFParserType.Texture, iridescenceThicknessTexture.index).then((texture) => {
-        material.irithicknessTexture = texture;
+        material.iridescenceThicknessTexture = texture;
       });
     }
   }
