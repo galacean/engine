@@ -153,7 +153,8 @@ export class PBRMaterial extends PBRBaseMaterial {
         this.shaderData.enableMacro("MATERIAL_ENABLE_IRIDESCENCE");
       }
       iridescenceInfo.x = value;
-   }
+    }
+  }
 
   /**
    * The index of refraction of the dielectric thin-film layer.	
@@ -174,7 +175,7 @@ export class PBRMaterial extends PBRBaseMaterial {
    */
   get iridescenceThicknessMin(): number {
     return this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp).z;
-    
+
   }
 
   set iridescenceThicknessMin(value: number) {
@@ -194,7 +195,7 @@ export class PBRMaterial extends PBRBaseMaterial {
     const iridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp);
     iridescenceInfo.w = value;
   }
-  
+
   /**
    * The thickness texture of the thin-film layer.	
    */
@@ -227,30 +228,30 @@ export class PBRMaterial extends PBRBaseMaterial {
     } else {
       this.shaderData.disableMacro("MATERIAL_HAS_IRIDESCENCE_TEXTURE");
     }
-  }
+  } 
 
-  /**
-   * Create a pbr metallic-roughness workflow material instance.
-   * @param engine - Engine to which the material belongs
-   */
-  constructor(engine: Engine) {
-    super(engine, Shader.find("pbr"));
+/**
+ * Create a pbr metallic-roughness workflow material instance.
+ * @param engine - Engine to which the material belongs
+ */
+constructor(engine: Engine) {
+  super(engine, Shader.find("pbr"));
 
-    const shaderData = this.shaderData;
-    shaderData.setFloat(PBRMaterial._metallicProp, 1);
-    shaderData.setFloat(PBRMaterial._roughnessProp, 1);
-    shaderData.setFloat(PBRMaterial._iorProp, 1.5);
-    shaderData.setVector3(PBRMaterial._anisotropyInfoProp, new Vector3(1, 0, 0));
-    shaderData.setVector4(PBRMaterial._iridescenceInfoProp, new Vector4(0, 1.3, 100, 400));
+  const shaderData = this.shaderData;
+  shaderData.setFloat(PBRMaterial._metallicProp, 1);
+  shaderData.setFloat(PBRMaterial._roughnessProp, 1);
+  shaderData.setFloat(PBRMaterial._iorProp, 1.5);
+  shaderData.setVector3(PBRMaterial._anisotropyInfoProp, new Vector3(1, 0, 0));
+  shaderData.setVector4(PBRMaterial._iridescenceInfoProp, new Vector4(0, 1.3, 100, 400));
 
-  }
+}
 
   /**
    * @inheritdoc
    */
   override clone(): PBRMaterial {
-    const dest = new PBRMaterial(this._engine);
-    this.cloneTo(dest);
-    return dest;
-  }
+  const dest = new PBRMaterial(this._engine);
+  this.cloneTo(dest);
+  return dest;
+}
 }
