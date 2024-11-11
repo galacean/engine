@@ -180,7 +180,6 @@ export class ResourceManager {
     this._contentRestorerPool[restorer.resource.instanceId] = restorer;
   }
 
-
   /**
    * @internal
    */
