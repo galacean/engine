@@ -15,7 +15,8 @@ class AnimationClipLoader extends Loader<AnimationClip> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AnimationClip> {
     return new AssetPromise((resolve, reject) => {
       resourceManager
-        .request<any>(item.url, {
+        // @ts-ignore
+        ._request<any>(item.url, {
           ...item,
           type: "arraybuffer"
         })

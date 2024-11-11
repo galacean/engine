@@ -6,7 +6,8 @@ export class EditorTextureLoader extends Loader<Texture2D> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
     return new AssetPromise((resolve, reject) => {
       resourceManager
-        .request<ArrayBuffer>(item.url, { ...item, type: "arraybuffer" })
+        // @ts-ignore
+        ._request<ArrayBuffer>(item.url, { ...item, type: "arraybuffer" })
         .then((data) => {
           decode<Texture2D>(data, resourceManager.engine).then((texture) => {
             resolve(texture);

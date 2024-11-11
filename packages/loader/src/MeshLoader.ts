@@ -14,7 +14,8 @@ class MeshLoader extends Loader<ModelMesh> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<ModelMesh> {
     return new AssetPromise((resolve, reject) => {
       resourceManager
-        .request<any>(item.url, {
+        // @ts-ignore
+        ._request<any>(item.url, {
           ...item,
           type: "arraybuffer"
         })

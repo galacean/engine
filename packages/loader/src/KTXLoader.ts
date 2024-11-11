@@ -14,7 +14,8 @@ export class KTXLoader extends Loader<Texture2D> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
     return new AssetPromise((resolve, reject) => {
       resourceManager
-        .request<ArrayBuffer>(item.url, {
+        // @ts-ignore
+        ._request<ArrayBuffer>(item.url, {
           ...item,
           type: "arraybuffer"
         })

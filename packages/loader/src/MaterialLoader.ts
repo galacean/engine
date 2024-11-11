@@ -36,7 +36,8 @@ class MaterialLoader extends Loader<Material> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Material> {
     return new AssetPromise((resolve, reject) => {
       resourceManager
-        .request(item.url, {
+        // @ts-ignore
+        ._request(item.url, {
           ...item,
           type: "json"
         })

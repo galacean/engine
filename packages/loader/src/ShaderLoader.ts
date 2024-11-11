@@ -16,7 +16,8 @@ class ShaderLoader extends Loader<Shader> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Shader> {
     const { url } = item;
 
-    return resourceManager.request<string>(url, { ...item, type: "text" }).then((code: string) => {
+    // @ts-ignore
+    return resourceManager._request<string>(url, { ...item, type: "text" }).then((code: string) => {
       const builtinShader = this._getBuiltinShader(code);
       if (builtinShader) {
         return Shader.find(builtinShader);

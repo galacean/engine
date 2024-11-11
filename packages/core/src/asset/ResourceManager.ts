@@ -180,12 +180,27 @@ export class ResourceManager {
     this._contentRestorerPool[restorer.resource.instanceId] = restorer;
   }
 
+
   /**
-   * Request resource by editor path or remote cdn url.
+   * @internal
    */
-  request<U>(url: string, config: RequestConfig): AssetPromise<U> {
-    const remoteUrl = this._virtualPathMap[url] ?? url;
-    return request(remoteUrl, config);
+  _getRemoteUrl(url: string): string {
+    return this._virtualPathMap[url] ?? url;
+  }
+
+  /**
+   * @internal
+   */
+  _requestByRemoteUrl<T>(url: string, config: RequestConfig): AssetPromise<T> {
+    return request(url, config);
+  }
+
+  /**
+   * @internal
+   */
+  _request<T>(url: string, config: RequestConfig): AssetPromise<T> {
+    const remoteUrl = this._getRemoteUrl(url);
+    return this._requestByRemoteUrl(remoteUrl, config);
   }
 
   /**

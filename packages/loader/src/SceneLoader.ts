@@ -22,7 +22,8 @@ class SceneLoader extends Loader<Scene> {
     const { engine } = resourceManager;
     return new AssetPromise((resolve, reject) => {
       resourceManager
-        .request<IScene>(item.url, { ...item, type: "json" })
+        // @ts-ignore
+        ._request<IScene>(item.url, { ...item, type: "json" })
         .then((data) => {
           return SceneParser.parse(engine, data).then((scene) => {
             const promises = [];

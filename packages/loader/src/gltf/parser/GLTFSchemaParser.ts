@@ -9,13 +9,15 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 @registerGLTFParser(GLTFParserType.Schema)
 export class GLTFSchemaParser extends GLTFParser {
   parse(context: GLTFParserContext): Promise<IGLTF> {
-    const { glTFResource, contentRestorer } = context;
+    const { glTFResource, contentRestorer, resourceManager } = context;
     const url = glTFResource.url;
     const restoreBufferRequests = contentRestorer.bufferRequests;
     const requestConfig = <RequestConfig>{ type: "arraybuffer" };
     // @ts-ignore
-    const remoteUrl = context.resourceManager._virtualPathMap[url] ?? url;
-    return request<ArrayBuffer>(remoteUrl, requestConfig)
+    const remoteUrl = resourceManager._getRemoteUrl(url);
+    return resourceManager
+      // @ts-ignore
+      ._requestByRemoteUrl<ArrayBuffer>(remoteUrl, requestConfig)
       .onProgress(undefined, context._onTaskDetail)
       .then((buffer) => {
         const parseResult = GLTFUtils.parseGLB(context, buffer);

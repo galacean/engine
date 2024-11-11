@@ -23,7 +23,8 @@ class Texture2DLoader extends Loader<Texture2D> {
         type: "image"
       };
       resourceManager
-        .request<HTMLImageElement>(url, requestConfig)
+        // @ts-ignore
+        ._request<HTMLImageElement>(url, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((image) => {
           const { format, mipmap, anisoLevel, wrapModeU, wrapModeV, filterMode } =

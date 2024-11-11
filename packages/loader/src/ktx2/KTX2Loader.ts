@@ -222,7 +222,8 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   ): AssetPromise<Texture2D | TextureCube> {
     return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
       resourceManager
-        .request<ArrayBuffer>(item.url, { type: "arraybuffer" })
+        // @ts-ignore
+        ._request<ArrayBuffer>(item.url, { type: "arraybuffer" })
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((buffer) =>
           KTX2Loader._parseBuffer(new Uint8Array(buffer), resourceManager.engine, item.params).then(

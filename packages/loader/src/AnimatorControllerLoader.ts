@@ -20,7 +20,8 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AnimatorController> {
     return new AssetPromise((resolve, reject) => {
       resourceManager
-        .request<any>(item.url, {
+        // @ts-ignore
+        ._request<any>(item.url, {
           ...item,
           type: "json"
         })

@@ -10,7 +10,8 @@ export class PrefabLoader extends Loader<PrefabResource> {
 
     return new AssetPromise((resolve, reject) => {
       resourceManager
-        .request<IHierarchyFile>(item.url, {
+        // @ts-ignore
+        ._request<IHierarchyFile>(item.url, {
           ...item,
           type: "json"
         })
