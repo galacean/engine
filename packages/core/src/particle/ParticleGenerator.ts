@@ -121,6 +121,8 @@ export class ParticleGenerator {
   private _firstActiveTransformedBoundingBox = 0;
   @ignoreClone
   private _firstFreeTransformedBoundingBox = 0;
+  @ignoreClone
+  private _playStartDelay = 0;
 
   /**
    * Whether the particle generator is contain alive or is still creating particles.
@@ -187,6 +189,8 @@ export class ParticleGenerator {
       if (this.useAutoRandomSeed) {
         this._resetGlobalRandSeed(Math.floor(Math.random() * 0xffffffff)); // 2^32 - 1
       }
+
+      this._playStartDelay = this.main.startDelay.evaluate(undefined, this.main._startDelayRand.random());
     }
   }
 
@@ -266,8 +270,20 @@ export class ParticleGenerator {
     const { main, emission } = this;
     const duration = main.duration;
     const lastPlayTime = this._playTime;
+    const deltaTime = elapsedTime * main.simulationSpeed;
 
-    this._playTime += elapsedTime * main.simulationSpeed;
+    // Process start delay time
+    if (this._playStartDelay > 0) {
+      this._playStartDelay -= deltaTime;
+      if (this._playStartDelay < 0) {
+        this._playTime -= this._playStartDelay;
+        this._playStartDelay = 0;
+      } else {
+        return;
+      }
+    }
+
+    this._playTime += deltaTime;
 
     this._retireActiveParticles();
     this._freeRetiredParticles();

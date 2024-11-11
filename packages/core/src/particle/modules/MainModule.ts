@@ -63,6 +63,9 @@ export class MainModule implements ICustomClone {
   _maxParticleBuffer = 1000;
   /** @internal */
   @ignoreClone
+  readonly _startDelayRand = new Rand(0, ParticleRandomSubSeeds.StartDelay);
+  /** @internal */
+  @ignoreClone
   readonly _startSpeedRand = new Rand(0, ParticleRandomSubSeeds.StartSpeed);
   /** @internal */
   @ignoreClone
