@@ -121,7 +121,6 @@ describe("HingeJoint", function () {
     joint.useLimits = true;
     joint.useSpring = true;
     const limits = new JointLimits();
-    console.log(333, limits);
     limits.min = -Math.PI / 2;
     limits.max = Math.PI / 2;
     limits.stiffness = 1000;
@@ -334,12 +333,18 @@ describe("HingeJoint", function () {
     joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
     joint.anchor = new Vector3(0.5, 0, 0);
     joint.axis = new Vector3(0, 1, 0);
+    joint.limits = new JointLimits();
+    joint.motor = new JointMotor();
 
     const newBox = boxEntity.clone();
     boxEntity.isActive = false;
     rootEntity.addChild(newBox);
     const newJoint = newBox.getComponent(HingeJoint);
     expect(formatValue(newJoint.angle)).eq(0);
+    // @ts-ignore
+    expect(newJoint.limits._updateFlagManager).not.eq(joint.limits._updateFlagManager);
+    // @ts-ignore
+    expect(newJoint.motor._updateFlagManager).not.eq(joint.motor._updateFlagManager);
 
     collider2.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore

@@ -1,9 +1,11 @@
+import { deepClone } from "../../clone/CloneManager";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 
 /**
  * The JointMotor is used to motorize a joint.
  */
 export class JointMotor {
+  @deepClone
   /** @internal */
   _updateFlagManager = new UpdateFlagManager();
 
