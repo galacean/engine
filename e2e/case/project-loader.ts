@@ -16,8 +16,8 @@ WebGLEngine.create({ canvas: "canvas", shaderLab }).then( (engine) => {
   engine.resourceManager
     .load({
       type: AssetType.Project,
-      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*CENZSK2UxscAAAAAAAAAAAAADkp5AQ/project.json"
-    }).then((defaultSceneRoot: Entity) => {
+      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*6tHUQ4pAug0AAAAAAAAAAAAADkp5AQ/project.json"
+    }).then(() => {
       updateForE2E(engine);
 
       const cameraEntity =
