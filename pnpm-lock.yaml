@@ -150,7 +150,7 @@ importers:
         specifier: workspace:*
         version: link:../packages/shader-lab
       '@galacean/engine-toolkit':
-        specifier: ^1.0.0-beta.1
+        specifier: ^1.3.9
         version: 1.3.9(@galacean/engine@packages+galacean)
       dat.gui:
         specifier: ^0.7.9

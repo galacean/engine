@@ -226,5 +226,12 @@ export const E2E_CONFIG = {
       caseFileName: "text-typed",
       threshold: 0.4
     }
-  }
+  },
+  Other: {
+    ProjectLoader: {
+      category: "Advance",
+      caseFileName: "project-loader",
+      threshold: 0.4
+    }
+  },
 };

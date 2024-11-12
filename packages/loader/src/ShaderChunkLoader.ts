@@ -6,48 +6,45 @@ import {
   ShaderFactory,
   resourceLoader,
   // @ts-ignore
-  ShaderLib
+  ShaderLib,
+  Utils
 } from "@galacean/engine-core";
-import { PathUtils } from "./PathUtils";
 
 @resourceLoader("ShaderChunk", ["glsl"])
-class ShaderChunkLoader extends Loader<void[]> {
+export class ShaderChunkLoader extends Loader<void[]> {
+  private static _shaderIncludeRegex = /\s#include\s+"([./][^\\"]+)"/gm;
+
+  /**
+   * @internal
+   */
+  static _loadChunksInCode(code: string, basePath: string, resourceManager: ResourceManager): Promise<void[]> {
+    const shaderChunkPaths = new Array<string>();
+    const matches = code.matchAll(ShaderChunkLoader._shaderIncludeRegex);
+    for (const match of matches) {
+      const chunkPath = Utils.resolveAbsoluteUrl(basePath, match[1]);
+      if (!ShaderLib[chunkPath.substring(1)]) {
+        shaderChunkPaths.push(chunkPath);
+      }
+    }
+
+    return Promise.all(
+      shaderChunkPaths.map((chunkPath) => {
+        return resourceManager.load<void>({
+          type: "ShaderChunk",
+          url: chunkPath
+        });
+      })
+    );
+  }
+
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<void[]> {
-    const { virtualPath, url } = item;
-    const shaderVirtualPath = item.params?.shaderVirtualPath ?? "/";
-    const chunkPath = virtualPath ?? new URL(url).pathname;
+    const { url } = item;
 
-    return this.request<string>(url, { ...item, type: "text" }).then((code: string) => {
-      ShaderFactory.registerInclude(chunkPath.substring(1), code);
+    // @ts-ignore
+    return resourceManager._request<string>(url, { ...item, type: "text" }).then((code) => {
+      ShaderFactory.registerInclude(url.substring(1), code);
 
-      return _loadChunksInCode(code, shaderVirtualPath, resourceManager);
+      return ShaderChunkLoader._loadChunksInCode(code, url, resourceManager);
     });
   }
-}
-
-/** @internal */
-export function _loadChunksInCode(
-  code: string,
-  shaderVirtualPath: string,
-  resourceManager: ResourceManager
-): Promise<void[]> {
-  const shaderChunkPaths: string[] = [];
-  const matches = code.matchAll(PathUtils.shaderIncludeRegex);
-  for (const match of matches) {
-    const chunkPath = PathUtils.pathResolve(match[1], shaderVirtualPath);
-    if (!ShaderLib[chunkPath.substring(1)]) {
-      shaderChunkPaths.push(chunkPath);
-    }
-  }
-
-  return Promise.all(
-    shaderChunkPaths.map((chunkPath) => {
-      return resourceManager.load<void>({
-        type: "ShaderChunk",
-        url: chunkPath,
-        virtualPath: chunkPath,
-        params: { shaderVirtualPath }
-      });
-    })
-  );
 }

@@ -96,7 +96,7 @@ export interface IMaterialSchema {
   };
   macros: Array<{ name: string; value?: string }>;
   renderState: IRenderState;
-  shaderRef: IShaderRef;
+  shaderRef: IAssetRef;
 }
 
 export enum MaterialLoaderType {
