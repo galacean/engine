@@ -7,7 +7,7 @@ import {
   RenderQueueType,
   StencilOperation
 } from "@galacean/engine-core";
-import type { IAssetRef, IColor, IShaderRef, IVector2, IVector3 } from "./BasicSchema";
+import type { IAssetRef, IColor, IVector2, IVector3 } from "./BasicSchema";
 
 export interface IRenderState {
   /** Blend state. */
