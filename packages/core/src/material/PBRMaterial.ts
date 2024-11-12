@@ -137,7 +137,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
-   * The iridescence intensity factor.	
+   * The iridescence intensity factor.
    * @defaultValue `0.0`
    */
   get iridescenceFactor(): number {
@@ -157,7 +157,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
-   * The index of refraction of the dielectric thin-film layer.	
+   * The index of refraction of the dielectric thin-film layer.
    * @defaultValue `1.3`
    */
   get iridescenceIor(): number {
@@ -170,12 +170,11 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
-   * The minimum thickness of the thin-film layer given in nanometers.		
+   * The minimum thickness of the thin-film layer given in nanometers.
    * @defaultValue `100`
    */
   get iridescenceThicknessMin(): number {
     return this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp).z;
-
   }
 
   set iridescenceThicknessMin(value: number) {
@@ -184,7 +183,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
-   * The maximum thickness of the thin-film layer given in nanometers.	
+   * The maximum thickness of the thin-film layer given in nanometers.
    * @defaultValue `400`
    */
   get iridescenceThicknessMax(): number {
@@ -197,7 +196,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
-   * The thickness texture of the thin-film layer.	
+   * The thickness texture of the thin-film layer.
    */
   get iridescenceThicknessTexture(): Texture2D {
     return <Texture2D>this.shaderData.getTexture(PBRMaterial._iridescenceThicknessTextureProp);
@@ -214,7 +213,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
-   * The iridescence intensity texture.	
+   * The iridescence intensity texture.
    */
   get iridescenceTexture(): Texture2D {
     return <Texture2D>this.shaderData.getTexture(PBRMaterial._iridescenceTextureProp);
@@ -228,30 +227,29 @@ export class PBRMaterial extends PBRBaseMaterial {
     } else {
       this.shaderData.disableMacro("MATERIAL_HAS_IRIDESCENCE_TEXTURE");
     }
-  } 
+  }
 
-/**
- * Create a pbr metallic-roughness workflow material instance.
- * @param engine - Engine to which the material belongs
- */
-constructor(engine: Engine) {
-  super(engine, Shader.find("pbr"));
+  /**
+   * Create a pbr metallic-roughness workflow material instance.
+   * @param engine - Engine to which the material belongs
+   */
+  constructor(engine: Engine) {
+    super(engine, Shader.find("pbr"));
 
-  const shaderData = this.shaderData;
-  shaderData.setFloat(PBRMaterial._metallicProp, 1);
-  shaderData.setFloat(PBRMaterial._roughnessProp, 1);
-  shaderData.setFloat(PBRMaterial._iorProp, 1.5);
-  shaderData.setVector3(PBRMaterial._anisotropyInfoProp, new Vector3(1, 0, 0));
-  shaderData.setVector4(PBRMaterial._iridescenceInfoProp, new Vector4(0, 1.3, 100, 400));
-
-}
+    const shaderData = this.shaderData;
+    shaderData.setFloat(PBRMaterial._metallicProp, 1);
+    shaderData.setFloat(PBRMaterial._roughnessProp, 1);
+    shaderData.setFloat(PBRMaterial._iorProp, 1.5);
+    shaderData.setVector3(PBRMaterial._anisotropyInfoProp, new Vector3(1, 0, 0));
+    shaderData.setVector4(PBRMaterial._iridescenceInfoProp, new Vector4(0, 1.3, 100, 400));
+  }
 
   /**
    * @inheritdoc
    */
   override clone(): PBRMaterial {
-  const dest = new PBRMaterial(this._engine);
-  this.cloneTo(dest);
-  return dest;
-}
+    const dest = new PBRMaterial(this._engine);
+    this.cloneTo(dest);
+    return dest;
+  }
 }
