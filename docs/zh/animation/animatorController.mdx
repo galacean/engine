@@ -6,32 +6,39 @@ label: Animation
 ---
 ## 简介
 
-动画控制器（[AnimatorController](/apis/core/#AnimatorController)）可以帮助你为角色或其他动画对象组织一组动画的播放逻辑。
-它通过[动画状态机](/docs/animation/state-machine/)（[AnimatorStateMachine](/apis/core/#AnimatorStateMachine)）像流程图一样可视化的组织动画对象的动画播放逻辑，并在符合条件时自动切换动画状态（[AnimatorState](/apis/core/#AnimatorState)）并播放引用的[动画片段](/docs/animation/clip)（[AnimationClip](/apis/core/#AnimationClip)）。
+`动画控制器`（[API](/apis/core/#AnimatorController)）可以帮助你为角色或其他动画对象组织一组动画的播放逻辑。
+它通过 `动画状态机`（[详细介绍](/docs/animation/state-machine/)）像流程图一样可视化的组织动画对象的动画播放逻辑，并在符合条件时自动切换 `动画状态` 并播放引用的 `动画片段`（[详细介绍](/docs/animation/clip/)）。
 
 ### 主要组成部分
+#### 动画层
+`动画层` 用于在一个 `动画控制器` 中组织和管理 `动画状态机` ，每个 `动画层` 都有其自己的 `动画状态机`。
+在 `动画控制组件` 运行时所有的 `动画层` 同时运行，通过 `混合权重` 及 `混合模式` 控制各个 `动画层` 对整体动画的影响。关于 `动画层` 的使用请参考[动画层](/docs/animation/layer/)文档。
 
-#### 
+#### 动画参数
+`动画参数` 用于控制 `动画状态机` 的 `动画状态` 切换，通过设置 `动画参数` 的值满足 `动画过渡` 的条件时，`动画过渡` 会触发，从而切换到目标 `动画状态`。关于 `动画参数` 的使用请参考[动画状态机](/docs/animation/state-machine/)文档。
 
 ## 编辑器使用
 
-通过动画控制器的编辑器，用户可以在其中组织[动画片段](/docs/animation/clip)的播放逻辑
+通过 `动画控制器` 的编辑器，用户可以在其中组织 `动画片段`（[详细介绍](/docs/animation/clip)）的播放逻辑
 
-1. 准备好动画片段（[制作动画片段](/docs/animation/clip)） 
+1. 准备好 `动画片段`（[详细介绍](/docs/animation/clip)） 
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Wl35T7U_zg8AAAAAAAAAAAAADsJ_AQ/original)
 
-2. 要组织播放这些动画片段我们需要创建一个动画控制器（[AnimatorController](/apis/core/#AnimatorController)）资产 
+2. 要组织播放这些 `动画片段` 我们需要创建一个 `动画控制器` 资产 
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*PxHwTrU58yAAAAAAAAAAAAAADsJ_AQ/original)
 
-3. 刚创建的动画控制器中没有任何数据，我们需要对他进行编辑，双击资产, 并为它添加一个动画状态（[AnimatorState](/apis/core/#AnimatorState)）
+3. 刚创建的 `动画控制器` 中没有任何数据，我们需要对他进行编辑，双击资产, 并为它添加一个 `动画状态`（[详细介绍](/docs/animation/state-machine/#动画状态)）
+
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*V0n1TJMquGYAAAAAAAAAAAAADsJ_AQ/original)
 
-4. 点击 AnimatorState 为它绑定一个[动画片段](/docs/animation/clip)（[AnimationClip](/apis/core/#AnimationClip)）
+4. 点击添加的 `动画状态` 为它绑定一个 `动画片段`（[详细介绍](/docs/animation/clip)）
+
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*xfPTRJg-hOMAAAAAAAAAAAAADsJ_AQ/original)
 
-5. 在[动画控制组件](/docs/animation/animator)上绑定该动画控制器（[AnimatorController](/apis/core/#AnimatorController)）资产
+5. 在 `动画控制组件`（[详细介绍](/docs/animation/animator)）上绑定该 `动画控制器` 资产
+
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Ds5TTosYiDYAAAAAAAAAAAAADsJ_AQ/original)
 
 6. 至此你在导出的项目中就可以通过 `animator.play("New State")` 播放 `Idle` 动画了
@@ -48,7 +55,11 @@ label: Animation
 
 ### 绑定动画控制器
 
-你可以通过 [animator.animatorController](/apis/core/#Animator-animatorController)  属性来为 [Animator](/apis/core/#Animator) 绑定动画控制器。加载完成的 glTF 模型如果有动画数据会为每个glTF实例自动绑定一个默认的 AnimatorController。
+你可以通过 [animator.animatorController](/apis/core/#Animator-animatorController)  属性来为 [Animator](/apis/core/#Animator) 绑定 `动画控制器` 。
+
+<Callout type="info">
+加载完成的 glTF 模型如果有动画数据引擎会为每个glTF实例自动绑定一个默认的 `动画控制器`，你可以直接使用播放其内的动画。
+</Callout>
 
 ```typescript
 animator.animatorController = new AnimatorController(engine);
@@ -57,7 +68,7 @@ animator.play("New State");
 
 #### 复用动画数据
 
-Animator 的 [animatorController](/apis/core/#AnimatorController) 就是一个数据存储的类，它不会包含运行时的数据。基于这种设计只要绑定 Animator 组件的模型的**骨骼节点的层级结构和命名相同**，我们就可以使用此模型的动画数据进行复用。
+`动画控制器` 就是一个存储数据的类，它不会包含运行时的数据。基于这种设计只要绑定 `动画控制组件` 的模型的**骨骼节点的层级结构和命名相同**，我们就可以使用此模型的动画数据进行复用。
 
 ```typescript
 const animator = model1.getComponent(Animator);

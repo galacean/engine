@@ -33,7 +33,7 @@ flowchart TD
 
 | 概念 | 解释 |
 | --- | --- |
-| [Animator](/apis/core/#Animator) | 动画控制器组件，用于控制动画的播放。`Animator` 组件读取 `AnimatorController` 作为动画数据。 |
+| [Animator](/apis/core/#Animator) | 动画控制组件，用于控制动画的播放。`Animator` 组件读取 `AnimatorController` 作为动画数据。 |
 | [AnimatorController](/apis/core/#AnimatorController) | 用于存储 `Animator` 组件的动画数据。一个 `AnimatorController` 包含多个 `AnimatorControllerLayer`，用于分层播放或动画叠加。 |
 | [AnimatorControllerParameter](/apis/core/#AnimatorControllerParameter) | 动画控制器中使用的变量，使用户可以通过在脚本中通过 `Animator` 设置参数的值以控制动画状态的切换。 |
 | [AnimatorControllerLayer](/apis/core/#AnimatorControllerLayer) | 存储该层的动画状态机数据，混合模式以及混合的权重。|
