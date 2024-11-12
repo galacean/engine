@@ -5,65 +5,72 @@ import {
   Loader,
   ModelMesh,
   PrimitiveMesh,
+  ResourceManager,
   resourceLoader
 } from "@galacean/engine-core";
 
 @resourceLoader(AssetType.PrimitiveMesh, ["mesh"], false)
 class PrimitiveMeshLoader extends Loader<ModelMesh> {
-  load(item: LoadItem, { engine }): AssetPromise<ModelMesh> {
-    return this.request<IPrimitiveMesh>(item.url, {
-      ...item,
-      type: "json"
-    }).then((data) => {
-      switch (data.type) {
-        case PrimitiveMeshType.Sphere:
-          return PrimitiveMesh.createSubdivisionSurfaceSphere(engine, data.sphereRadius, data.sphereStep);
-        case PrimitiveMeshType.Capsule:
-          return PrimitiveMesh.createCapsule(
-            engine,
-            data.capsuleRadius,
-            data.capsuleHeight,
-            data.capsuleRadialSegments,
-            data.capsuleHeightSegments
-          );
-        case PrimitiveMeshType.Cone:
-          return PrimitiveMesh.createCone(
-            engine,
-            data.coneRadius,
-            data.coneHeight,
-            data.coneRadialSegment,
-            data.coneHeightSegment
-          );
-        case PrimitiveMeshType.Cuboid:
-          return PrimitiveMesh.createCuboid(engine, data.cuboidWidth, data.cuboidHeight, data.cuboidDepth);
-        case PrimitiveMeshType.Cylinder:
-          return PrimitiveMesh.createCylinder(
-            engine,
-            data.cylinderRadiusTop,
-            data.cylinderRadiusBottom,
-            data.cylinderHeight,
-            data.cylinderRadialSegment,
-            data.cylinderHeightSegment
-          );
-        case PrimitiveMeshType.Plane:
-          return PrimitiveMesh.createPlane(
-            engine,
-            data.planeWidth,
-            data.planeHeight,
-            data.planeHorizontalSegments,
-            data.planeVerticalSegments
-          );
-        case PrimitiveMeshType.Torus:
-          return PrimitiveMesh.createTorus(
-            engine,
-            data.torusRadius,
-            data.torusTubeRadius,
-            data.torusRadialSegments,
-            data.torusTubularSegments,
-            data.torusArc
-          );
-      }
-    });
+  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<ModelMesh> {
+    const { engine } = resourceManager;
+    return (
+      resourceManager
+        // @ts-ignore
+        ._request<IPrimitiveMesh>(item.url, {
+          ...item,
+          type: "json"
+        })
+        .then((data) => {
+          switch (data.type) {
+            case PrimitiveMeshType.Sphere:
+              return PrimitiveMesh.createSubdivisionSurfaceSphere(engine, data.sphereRadius, data.sphereStep);
+            case PrimitiveMeshType.Capsule:
+              return PrimitiveMesh.createCapsule(
+                engine,
+                data.capsuleRadius,
+                data.capsuleHeight,
+                data.capsuleRadialSegments,
+                data.capsuleHeightSegments
+              );
+            case PrimitiveMeshType.Cone:
+              return PrimitiveMesh.createCone(
+                engine,
+                data.coneRadius,
+                data.coneHeight,
+                data.coneRadialSegment,
+                data.coneHeightSegment
+              );
+            case PrimitiveMeshType.Cuboid:
+              return PrimitiveMesh.createCuboid(engine, data.cuboidWidth, data.cuboidHeight, data.cuboidDepth);
+            case PrimitiveMeshType.Cylinder:
+              return PrimitiveMesh.createCylinder(
+                engine,
+                data.cylinderRadiusTop,
+                data.cylinderRadiusBottom,
+                data.cylinderHeight,
+                data.cylinderRadialSegment,
+                data.cylinderHeightSegment
+              );
+            case PrimitiveMeshType.Plane:
+              return PrimitiveMesh.createPlane(
+                engine,
+                data.planeWidth,
+                data.planeHeight,
+                data.planeHorizontalSegments,
+                data.planeVerticalSegments
+              );
+            case PrimitiveMeshType.Torus:
+              return PrimitiveMesh.createTorus(
+                engine,
+                data.torusRadius,
+                data.torusTubeRadius,
+                data.torusRadialSegments,
+                data.torusTubularSegments,
+                data.torusArc
+              );
+          }
+        })
+    );
   }
 }
 
