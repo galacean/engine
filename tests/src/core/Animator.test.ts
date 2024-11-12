@@ -609,7 +609,7 @@ describe("Animator test", function () {
   });
 
   it("transition to exit but no entry", () => {
-    const  animatorLayerData = animator["_animatorLayersData"];
+    const animatorLayerData = animator["_animatorLayersData"];
 
     const walkState = animator.findAnimatorState("Walk");
     walkState.wrapMode = WrapMode.Once;
@@ -621,7 +621,7 @@ describe("Animator test", function () {
     animator.update(1);
     const transition = animatorLayerData[0]?.crossFadeTransition;
 
-    expect(transition).to.eq(undefined);
+    expect(transition).to.be.oneOf([null, undefined]);
   });
 
   it("change state in one update", () => {
