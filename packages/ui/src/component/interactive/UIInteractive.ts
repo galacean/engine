@@ -174,10 +174,7 @@ export class UIInteractive extends Script implements IGroupAble {
   @ignoreClone
   _canvasListener(flag: number): void {
     if (Utils.isContainDirtyFlag(this, UIElementDirtyFlag.Canvas)) return;
-    if (flag === EntityModifyFlags.SiblingIndex) {
-      const rootCanvas = this._rootCanvas;
-      rootCanvas && (rootCanvas._hierarchyDirty = true);
-    } else if (flag === EntityModifyFlags.Parent) {
+    if (flag === EntityModifyFlags.Parent) {
       Utils.registerElementToCanvas(this, null);
       Utils.registerElementToGroup(this, null);
       Utils.setDirtyFlagTrue(this, UIElementDirtyFlag.Canvas | UIElementDirtyFlag.Group);

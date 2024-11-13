@@ -162,7 +162,7 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
     const componentsManager = this.scene._componentsManager;
     this._overrideUpdate && componentsManager.removeOnUpdateRenderers(this);
     componentsManager.removeOnUpdateUIElement(this);
-    Utils.registerElementToCanvas(this, null);
+    Utils.registerElementToCanvas(this, null, false, true);
     Utils.unRegisterListener(this._canvasListeningEntities, this._canvasListener);
     Utils.registerElementToGroup(this, null);
     Utils.unRegisterListener(this._groupListeningEntities, this._groupListener);
@@ -173,7 +173,7 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
    */
   _onUpdate(): void {
     if (Utils.isContainDirtyFlag(this, UIElementDirtyFlag.Canvas)) {
-      Utils.registerElementToCanvas(this, Utils.getRootCanvasInParents(this.entity), true);
+      Utils.registerElementToCanvas(this, Utils.getRootCanvasInParents(this.entity), true, true);
       Utils.setDirtyFlagFalse(this, UIElementDirtyFlag.Canvas);
     }
     if (Utils.isContainDirtyFlag(this, UIElementDirtyFlag.Group)) {
@@ -208,7 +208,7 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
       const rootCanvas = this._rootCanvas;
       rootCanvas && (rootCanvas._hierarchyDirty = true);
     } else if (flag === EntityModifyFlags.Parent) {
-      Utils.registerElementToCanvas(this, null);
+      Utils.registerElementToCanvas(this, null, false, true);
       Utils.registerElementToGroup(this, null);
       Utils.setDirtyFlagTrue(this, UIElementDirtyFlag.Canvas | UIElementDirtyFlag.Group);
     }

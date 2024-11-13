@@ -39,7 +39,7 @@ export class UICanvas extends Component implements IElement {
   _canvasListeningEntities: Entity[] = [];
   /** @internal */
   @ignoreClone
-  _hierarchyDirty: boolean = true;
+  _hierarchyDirty: boolean = false;
   /** @internal */
   @ignoreClone
   _rootCanvas: UICanvas;

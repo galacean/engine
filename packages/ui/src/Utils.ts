@@ -36,7 +36,12 @@ export class Utils {
     listeningEntities.length = 0;
   }
 
-  static registerElementToCanvas(element: IElement, canvas: UICanvas, instant: boolean = false): void {
+  static registerElementToCanvas(
+    element: IElement,
+    canvas: UICanvas,
+    instant: boolean = false,
+    isGraphics: boolean = false
+  ): void {
     const preCanvas = element._rootCanvas;
     if (preCanvas !== canvas) {
       element._rootCanvas = canvas;
@@ -44,13 +49,13 @@ export class Utils {
         const replaced = preCanvas._disorderedElements.deleteByIndex(element._indexInRootCanvas);
         replaced && (replaced._indexInRootCanvas = element._indexInRootCanvas);
         element._indexInRootCanvas = -1;
-        preCanvas._hierarchyDirty = true;
+        isGraphics && (preCanvas._hierarchyDirty = true);
       }
       if (canvas) {
         const disorderedElements = canvas._disorderedElements;
         element._indexInRootCanvas = disorderedElements.length;
         disorderedElements.add(element);
-        canvas._hierarchyDirty = true;
+        isGraphics && (canvas._hierarchyDirty = true);
       }
       element._rootCanvas = canvas;
     }
