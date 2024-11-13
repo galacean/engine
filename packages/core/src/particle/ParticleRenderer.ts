@@ -159,6 +159,11 @@ export class ParticleRenderer extends Renderer {
       return;
     }
 
+    // Don't need to render when no particles
+    if (!this.generator._getAliveParticleCount()) {
+      return;
+    }
+
     super._prepareRender(context);
   }
 
