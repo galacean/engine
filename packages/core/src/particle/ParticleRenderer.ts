@@ -159,11 +159,6 @@ export class ParticleRenderer extends Renderer {
       return;
     }
 
-    // Don't need to render when no particles
-    if (!this.generator._getAliveParticleCount()) {
-      return;
-    }
-
     super._prepareRender(context);
   }
 
@@ -217,7 +212,14 @@ export class ParticleRenderer extends Renderer {
 
   protected override _render(context: RenderContext): void {
     const generator = this.generator;
-    generator._primitive.instanceCount = generator._getAliveParticleCount();
+    // Don't need to render when no particles
+
+    const aliveParticleCount = generator._getAliveParticleCount();
+    if (!aliveParticleCount) {
+      return;
+    }
+
+    generator._primitive.instanceCount = aliveParticleCount;
 
     let material = this.getMaterial();
     if (!material) {
