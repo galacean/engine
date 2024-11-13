@@ -624,8 +624,8 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  _dispatchModify(flag: EntityModifyFlags): void {
-    this._updateFlagManager?.dispatch(flag);
+  _dispatchModify(flag: EntityModifyFlags, param?: any): void {
+    this._updateFlagManager?.dispatch(flag, param);
   }
 
   private _addToChildrenList(index: number, child: Entity): void {

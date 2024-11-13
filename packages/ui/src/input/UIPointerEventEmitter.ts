@@ -11,7 +11,7 @@ import {
   Script,
   registerPointerEventEmitter
 } from "@galacean/engine";
-import { IUIElement } from "../interface/IUIElement";
+import { IGraphics } from "../interface/IGraphics";
 
 @registerPointerEventEmitter()
 export class UIPointerEventEmitter extends PointerEventEmitter {
@@ -226,7 +226,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
       path.length = 1;
       return path;
     } else {
-      const rootEntity = (element as unknown as IUIElement)._rootCanvas.entity;
+      const rootEntity = (element as unknown as IGraphics)._rootCanvas.entity;
       for (; i < UIPointerEventEmitter._MAX_PATH_DEPTH && !!entity && entity !== rootEntity; i++) {
         entity = path[i] = entity.parent;
       }

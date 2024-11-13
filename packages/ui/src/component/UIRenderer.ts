@@ -19,14 +19,14 @@ import {
   dependentComponents,
   ignoreClone
 } from "@galacean/engine";
+import { Utils } from "../Utils";
+import { IGraphics } from "../interface/IGraphics";
 import { EntityUIModifyFlags, UICanvas } from "./UICanvas";
 import { GroupModifyFlags, UIGroup } from "./UIGroup";
 import { UITransform } from "./UITransform";
-import { Utils } from "../Utils";
-import { IUIGraphics } from "../interface/IUIGraphics";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
-export abstract class UIRenderer extends Renderer implements IUIGraphics {
+export abstract class UIRenderer extends Renderer implements IGraphics {
   /** @internal */
   static _tempVec30: Vector3 = new Vector3();
   /** @internal */
@@ -38,14 +38,9 @@ export abstract class UIRenderer extends Renderer implements IUIGraphics {
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_UITexture");
 
-  @ignoreClone
-  depth: number = 0;
   @deepClone
   raycastPadding: Vector4 = new Vector4(0, 0, 0, 0);
 
-  /** @internal */
-  @ignoreClone
-  _parents: Entity[] = [];
   /** @internal */
   @ignoreClone
   _group: UIGroup;
@@ -57,10 +52,22 @@ export abstract class UIRenderer extends Renderer implements IUIGraphics {
   _rootCanvas: UICanvas;
   /** @internal */
   @ignoreClone
-  _indexInCanvas: number = -1;
+  _indexInRootCanvas: number = -1;
   /** @internal */
   @ignoreClone
   _subChunk;
+  /** @internal */
+  @ignoreClone
+  _elementDirty: number = UIElementDirtyFlag.None;
+  /** @internal */
+  @ignoreClone
+  _canvasListeningEntities: Entity[] = [];
+  /** @internal */
+  @ignoreClone
+  _groupListeningEntities: Entity[] = [];
+  /**@internal */
+  @ignoreClone
+  _onUIUpdateIndex: number = 0;
 
   @ignoreClone
   private _raycastEnable: boolean = true;
@@ -98,10 +105,11 @@ export abstract class UIRenderer extends Renderer implements IUIGraphics {
     // @ts-ignore
     this._componentType = ComponentType.UIRenderer;
     this._dirtyUpdateFlag = RendererUpdateFlags.AllBounds | UIRendererUpdateFlags.Color;
-    this._onEntityModify = this._onEntityModify.bind(this);
     this._onColorChange = this._onColorChange.bind(this);
     //@ts-ignore
     this._color._onValueChanged = this._onColorChange;
+    this._groupListener = this._groupListener.bind(this);
+    this._canvasListener = this._canvasListener.bind(this);
   }
 
   // @ts-ignore
@@ -142,42 +150,67 @@ export abstract class UIRenderer extends Renderer implements IUIGraphics {
   // @ts-ignore
   override _onEnableInScene(): void {
     // @ts-ignore
-    this._overrideUpdate && this.scene._componentsManager.addOnUpdateRenderers(this);
-    const entity = this.entity;
-    Utils.registerElementToCanvas(this, Utils.getRootCanvasInParent(entity));
-    Utils.registerElementToGroup(this, Utils.getGroupInParents(entity));
-    Utils.registerEntityListener(this);
+    const componentsManager = this.scene._componentsManager;
+    this._overrideUpdate && componentsManager.addOnUpdateRenderers(this);
+    componentsManager.addOnUpdateUIElement(this);
+    Utils.setDirtyFlagTrue(this, UIElementDirtyFlag.Canvas | UIElementDirtyFlag.Group);
   }
 
   // @ts-ignore
   override _onDisableInScene(): void {
     // @ts-ignore
-    this._overrideUpdate && this.scene._componentsManager.removeOnUpdateRenderers(this);
+    const componentsManager = this.scene._componentsManager;
+    this._overrideUpdate && componentsManager.removeOnUpdateRenderers(this);
+    componentsManager.removeOnUpdateUIElement(this);
     Utils.registerElementToCanvas(this, null);
+    Utils.unRegisterListener(this._canvasListeningEntities, this._canvasListener);
     Utils.registerElementToGroup(this, null);
-    Utils.unRegisterEntityListener(this);
+    Utils.unRegisterListener(this._groupListeningEntities, this._groupListener);
+  }
+
+  /**
+   * @internal
+   */
+  _onUpdate(): void {
+    if (Utils.isContainDirtyFlag(this, UIElementDirtyFlag.Canvas)) {
+      Utils.registerElementToCanvas(this, Utils.getRootCanvasInParents(this.entity), true);
+      Utils.setDirtyFlagFalse(this, UIElementDirtyFlag.Canvas);
+    }
+    if (Utils.isContainDirtyFlag(this, UIElementDirtyFlag.Group)) {
+      if (this._rootCanvas) {
+        Utils.registerElementToGroup(this, Utils.getGroupInParents(this.entity), true);
+      } else {
+        Utils.unRegisterListener(this._groupListeningEntities, this._groupListener);
+      }
+      Utils.setDirtyFlagFalse(this, UIElementDirtyFlag.Group);
+    }
   }
 
   /**
    * @internal
    */
   @ignoreClone
-  _onEntityModify(flag: number): void {
-    switch (flag) {
-      case EntityModifyFlags.SiblingIndex:
-        this._rootCanvas && (this._rootCanvas._hierarchyDirty = true);
-        break;
-      case EntityUIModifyFlags.UICanvasEnableInScene:
-      case EntityModifyFlags.Parent:
-        const rootCanvas = Utils.getRootCanvasInParent(this.entity);
-        rootCanvas && (rootCanvas._hierarchyDirty = true);
-        Utils.registerElementToCanvas(this, rootCanvas);
-        Utils.registerEntityListener(this);
-      case EntityUIModifyFlags.UIGroupEnableInScene:
-        Utils.registerElementToGroup(this, Utils.getGroupInParents(this.entity));
-        break;
-      default:
-        break;
+  _groupListener(flag: number): void {
+    if (Utils.isContainDirtyFlag(this, UIElementDirtyFlag.Group)) return;
+    if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.UIGroupEnableInScene) {
+      Utils.registerElementToGroup(this, null);
+      Utils.setDirtyFlagTrue(this, UIElementDirtyFlag.Group);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  @ignoreClone
+  _canvasListener(flag: number): void {
+    if (Utils.isContainDirtyFlag(this, UIElementDirtyFlag.Canvas)) return;
+    if (flag === EntityModifyFlags.SiblingIndex) {
+      const rootCanvas = this._rootCanvas;
+      rootCanvas && (rootCanvas._hierarchyDirty = true);
+    } else if (flag === EntityModifyFlags.Parent) {
+      Utils.registerElementToCanvas(this, null);
+      Utils.registerElementToGroup(this, null);
+      Utils.setDirtyFlagTrue(this, UIElementDirtyFlag.Canvas | UIElementDirtyFlag.Group);
     }
   }
 
@@ -263,4 +296,10 @@ export abstract class UIRenderer extends Renderer implements IUIGraphics {
  */
 export enum UIRendererUpdateFlags {
   Color = 0x10
+}
+
+export enum UIElementDirtyFlag {
+  None = 0x0,
+  Canvas = 0x1,
+  Group = 0x2
 }

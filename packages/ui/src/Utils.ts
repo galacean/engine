@@ -1,62 +1,67 @@
 import { ComponentType, Entity } from "@galacean/engine";
 import { UICanvas } from "./component/UICanvas";
 import { GroupModifyFlags, UIGroup } from "./component/UIGroup";
-import { IUIElement } from "./interface/IUIElement";
-import { IUIGroupable } from "./interface/IUIGroupable";
+import { UIElementDirtyFlag } from "./component/UIRenderer";
+import { IElement } from "./interface/IElement";
+import { IGroupAble } from "./interface/IGroupAble";
 
 export class Utils {
-  static registerEntityListener(element: IUIElement): void {
-    const parents = element._parents;
-    const root = element._rootCanvas?.entity;
-    let entity = element.entity;
-    let index = 0;
+  static registerListener(
+    entity: Entity,
+    root: Entity,
+    listener: (flag: number, param?: any) => void,
+    listeningEntities: Entity[]
+  ): void {
+    let count = 0;
     while (entity && entity !== root) {
-      const preParent = parents[index];
-      if (preParent !== entity) {
+      const preEntity = listeningEntities[count];
+      if (preEntity !== entity) {
         // @ts-ignore
-        preParent?._unRegisterModifyListener(element._onEntityModify);
-        parents[index] = entity;
+        preEntity?._unRegisterModifyListener(listener);
+        listeningEntities[count] = entity;
         // @ts-ignore
-        entity._registerModifyListener(element._onEntityModify);
+        entity._registerModifyListener(listener);
       }
       entity = entity.parent;
-      index++;
+      count++;
     }
-    parents.length = index;
+    listeningEntities.length = count;
   }
 
-  static unRegisterEntityListener(element: IUIElement): void {
-    const { _parents: parents } = element;
-    for (let i = 0, n = parents.length; i < n; i++) {
+  static unRegisterListener(listeningEntities: Entity[], listener: (flag: number, param?: any) => void): void {
+    for (let i = 0, n = listeningEntities.length; i < n; i++) {
       // @ts-ignore
-      parents[i]._unRegisterModifyListener(element._onEntityModify);
+      listeningEntities[i]._unRegisterModifyListener(listener);
     }
-    parents.length = 0;
+    listeningEntities.length = 0;
   }
 
-  static registerElementToCanvas(element: IUIElement, canvas: UICanvas): void {
+  static registerElementToCanvas(element: IElement, canvas: UICanvas, instant: boolean = false): void {
     const preCanvas = element._rootCanvas;
     if (preCanvas !== canvas) {
       element._rootCanvas = canvas;
       if (preCanvas) {
-        const replaced = preCanvas._disorderedElements.deleteByIndex(element._indexInCanvas);
-        replaced && (replaced._indexInCanvas = element._indexInCanvas);
-        element._indexInCanvas = -1;
+        const replaced = preCanvas._disorderedElements.deleteByIndex(element._indexInRootCanvas);
+        replaced && (replaced._indexInRootCanvas = element._indexInRootCanvas);
+        element._indexInRootCanvas = -1;
         preCanvas._hierarchyDirty = true;
       }
       if (canvas) {
         const disorderedElements = canvas._disorderedElements;
-        element._indexInCanvas = disorderedElements.length;
+        element._indexInRootCanvas = disorderedElements.length;
         disorderedElements.add(element);
         canvas._hierarchyDirty = true;
       }
+      element._rootCanvas = canvas;
+    }
+    if (instant) {
+      Utils.registerListener(element.entity, canvas?.entity, element._canvasListener, element._canvasListeningEntities);
     }
   }
 
-  static registerElementToGroup(element: IUIGroupable, group: UIGroup): void {
+  static registerElementToGroup(element: IGroupAble, group: UIGroup, instant: boolean = false): void {
     const preGroup = element._group;
     if (preGroup !== group) {
-      element._group = group;
       if (preGroup) {
         const replaced = preGroup._disorderedElements.deleteByIndex(element._indexInGroup);
         replaced && (replaced._indexInGroup = element._indexInGroup);
@@ -67,11 +72,29 @@ export class Utils {
         element._indexInGroup = disorderedElements.length;
         disorderedElements.add(element);
       }
-      element._onGroupModify(GroupModifyFlags.All);
+      element._group = group;
+      instant && element._onGroupModify(GroupModifyFlags.All);
+    }
+    if (instant) {
+      const rootCanvas = element._rootCanvas;
+      const root = group ? group.entity : rootCanvas.entity;
+      Utils.registerListener(element.entity, root, element._groupListener, element._groupListeningEntities);
     }
   }
 
-  static getRootCanvasInParent(entity: Entity): UICanvas {
+  static isContainDirtyFlag(element: IElement, flag: UIElementDirtyFlag) {
+    return (element._elementDirty & flag) != 0;
+  }
+
+  static setDirtyFlagTrue(element: IElement, flag: UIElementDirtyFlag) {
+    element._elementDirty |= flag;
+  }
+
+  static setDirtyFlagFalse(element: IElement, flag: UIElementDirtyFlag) {
+    element._elementDirty &= ~flag;
+  }
+
+  static getRootCanvasInParents(entity: Entity): UICanvas {
     while (entity) {
       // @ts-ignore
       const components = entity._components;
@@ -88,6 +111,22 @@ export class Utils {
       entity = entity.parent;
     }
     return null;
+  }
+
+  static isTheFirstCanvas(canvas: UICanvas): boolean {
+    let entity = canvas.entity;
+    while (entity) {
+      // @ts-ignore
+      const components = entity._components;
+      for (let i = 0, n = components.length; i < n; i++) {
+        const component = components[i];
+        if (component.enabled && component._componentType === ComponentType.UICanvas) {
+          return false;
+        }
+      }
+      entity = entity.parent;
+    }
+    return true;
   }
 
   static getGroupInParents(entity: Entity): UIGroup {

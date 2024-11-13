@@ -7,9 +7,10 @@ import {
   assignmentClone,
   ignoreClone
 } from "@galacean/engine";
-import { EntityUIModifyFlags } from "./UICanvas";
 import { Utils } from "../Utils";
-import { IUIGroupable } from "../interface/IUIGroupable";
+import { IGroupAble } from "../interface/IGroupAble";
+import { EntityUIModifyFlags } from "./UICanvas";
+import { UIElementDirtyFlag } from "./UIRenderer";
 
 export class UIGroup extends Component {
   /** @internal */
@@ -23,7 +24,7 @@ export class UIGroup extends Component {
   _disorderedGroups: DisorderedArray<UIGroup> = new DisorderedArray();
   /** @internal */
   @ignoreClone
-  _disorderedElements: DisorderedArray<IUIGroupable> = new DisorderedArray();
+  _disorderedElements: DisorderedArray<IGroupAble> = new DisorderedArray();
 
   /** @internal */
   @ignoreClone
@@ -44,6 +45,7 @@ export class UIGroup extends Component {
     super(entity);
     // @ts-ignore
     this._componentType = ComponentType.UIGroup;
+    this._onEntityModify = this._onEntityModify.bind(this);
   }
 
   get ignoreParentGroup(): boolean {
@@ -144,7 +146,8 @@ export class UIGroup extends Component {
     const parentGroup = this._parentGroup;
     const disorderedElements = this._disorderedElements;
     disorderedElements.forEach((element) => {
-      Utils.registerElementToGroup(element, parentGroup);
+      Utils.registerElementToGroup(element, null);
+      Utils.setDirtyFlagTrue(element, UIElementDirtyFlag.Group);
     });
     disorderedElements.length = 0;
     disorderedElements.garbageCollection();
@@ -194,8 +197,16 @@ export class UIGroup extends Component {
     entityListeners.length = index;
   }
 
+  /**
+   * @internal
+   */
+  @ignoreClone
   private _onEntityModify(flags: number): void {
-    if (flags === EntityModifyFlags.Parent || flags === EntityUIModifyFlags.UIGroupEnableInScene) {
+    if (
+      flags === EntityModifyFlags.Parent ||
+      flags === EntityUIModifyFlags.UIGroupEnableInScene ||
+      flags === EntityUIModifyFlags.UICanvasEnableInScene
+    ) {
       this._registryToParentGroup(Utils.getGroupInParents(this.entity.parent));
     }
   }

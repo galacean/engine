@@ -15,6 +15,9 @@ export enum ComponentType {
 
   // UI components
   UICanvas = 0x80,
-  UIRenderer = 0x100,
-  UIGroup = 0x200
+  UIGroup = 0x100,
+  UIRenderer = 0x200,
+  UIInteractive = 0x400,
+  UIGroupAble = 0x600,
+  UIElement = 0x680
 }

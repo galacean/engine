@@ -480,7 +480,9 @@ export class Engine extends EventDispatcher {
     for (let i = 0, n = scenes.length; i < n; i++) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
-      scene._componentsManager.callRendererOnUpdate(deltaTime);
+      const componentsManager = scene._componentsManager;
+      componentsManager.callUIOnUpdate(deltaTime);
+      componentsManager.callRendererOnUpdate(deltaTime);
       scene._updateShaderData();
     }
 

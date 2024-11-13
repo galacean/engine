@@ -1,4 +1,4 @@
-import { IUICanvas } from "@galacean/engine-design";
+import { IUICanvas, IUIElement } from "@galacean/engine-design";
 import { Camera } from "./Camera";
 import { Component } from "./Component";
 import { Renderer } from "./Renderer";
@@ -38,6 +38,9 @@ export class ComponentsManager {
 
   // Render
   private _onUpdateRenderers: DisorderedArray<Renderer> = new DisorderedArray();
+
+  // UIElement
+  private _onUpdateUIElements: DisorderedArray<IUIElement> = new DisorderedArray();
 
   // Delay dispose active/inActive Pool
   private _componentsContainerPool: Component[][] = [];
@@ -179,6 +182,17 @@ export class ComponentsManager {
     renderer._onUpdateIndex = -1;
   }
 
+  addOnUpdateUIElement(element: IUIElement): void {
+    element._onUIUpdateIndex = this._onUpdateRenderers.length;
+    this._onUpdateUIElements.add(element);
+  }
+
+  removeOnUpdateUIElement(element: IUIElement): void {
+    const replaced = this._onUpdateUIElements.deleteByIndex(element._onUIUpdateIndex);
+    replaced && (replaced._onUIUpdateIndex = element._onUIUpdateIndex);
+    element._onUIUpdateIndex = -1;
+  }
+
   addPendingDestroyScript(component: Script): void {
     this._pendingDestroyScripts.push(component);
   }
@@ -253,6 +267,12 @@ export class ComponentsManager {
         element._onUpdateIndex = index;
       }
     );
+  }
+
+  callUIOnUpdate(deltaTime: number): void {
+    this._onUpdateUIElements.forEach((element: IUIElement) => {
+      element._onUpdate();
+    });
   }
 
   handlingInvalidScripts(): void {

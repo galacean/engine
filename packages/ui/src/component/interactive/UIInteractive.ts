@@ -1,31 +1,41 @@
 import { Entity, EntityModifyFlags, PointerEventData, Script, ignoreClone } from "@galacean/engine";
 import { UIGroup } from "../..";
 import { Utils } from "../../Utils";
-import { IUIGroupable } from "../../interface/IUIGroupable";
+import { IGroupAble } from "../../interface/IGroupAble";
 import { EntityUIModifyFlags, UICanvas } from "../UICanvas";
 import { GroupModifyFlags } from "../UIGroup";
+import { UIElementDirtyFlag } from "../UIRenderer";
 import { Transition } from "./transition/Transition";
 
-export class UIInteractive extends Script implements IUIGroupable {
+export class UIInteractive extends Script implements IGroupAble {
   /** @internal */
   @ignoreClone
   _rootCanvas: UICanvas;
   /** @internal */
   @ignoreClone
-  _indexInCanvas: number = -1;
-  /** @internal */
-  @ignoreClone
-  _parents: Entity[] = [];
+  _indexInRootCanvas: number = -1;
   /** @internal */
   @ignoreClone
   _group: UIGroup;
   /** @internal */
   @ignoreClone
   _indexInGroup: number = -1;
+  /** @internal */
+  @ignoreClone
+  _elementDirty: number = UIElementDirtyFlag.None;
+  /** @internal */
+  @ignoreClone
+  _canvasListeningEntities: Entity[] = [];
+  /** @internal */
+  @ignoreClone
+  _groupListeningEntities: Entity[] = [];
+  /**@internal */
+  @ignoreClone
+  _onUIUpdateIndex: number = 0;
 
   protected _interactive: boolean = true;
   protected _runtimeInteractive: boolean = false;
-  protected _state: InteractiveState = InteractiveState.None;
+  protected _state: InteractiveState = InteractiveState.Normal;
   protected _transitions: Transition[] = [];
 
   private _isPointerInside: boolean = false;
@@ -103,19 +113,22 @@ export class UIInteractive extends Script implements IUIGroupable {
   override _onEnableInScene(): void {
     // @ts-ignore
     super._onEnableInScene();
-    Utils.registerElementToGroup(this, Utils.getGroupInParents(this.entity));
-    Utils.registerEntityListener(this);
-    this._updateState(true);
+    // @ts-ignore
+    this.scene._componentsManager.addOnUpdateUIElement(this);
+    Utils.setDirtyFlagTrue(this, UIElementDirtyFlag.Canvas | UIElementDirtyFlag.Group);
   }
 
   // @ts-ignore
   override _onDisableInScene(): void {
     // @ts-ignore
     super._onDisableInScene();
+    // @ts-ignore
+    this.scene._componentsManager.removeOnUpdateUIElement(this);
+    Utils.registerElementToCanvas(this, null);
+    Utils.unRegisterListener(this._canvasListeningEntities, this._canvasListener);
     Utils.registerElementToGroup(this, null);
-    Utils.unRegisterEntityListener(this);
+    Utils.unRegisterListener(this._groupListeningEntities, this._groupListener);
     this._isPointerInside = this._isPointerDragging = false;
-    this._updateState(true);
   }
 
   override onDestroy(): void {
@@ -128,18 +141,46 @@ export class UIInteractive extends Script implements IUIGroupable {
   /**
    * @internal
    */
+  _onUpdate(): void {
+    if (Utils.isContainDirtyFlag(this, UIElementDirtyFlag.Canvas)) {
+      Utils.registerElementToCanvas(this, Utils.getRootCanvasInParents(this.entity), true);
+      Utils.setDirtyFlagFalse(this, UIElementDirtyFlag.Canvas);
+    }
+    if (Utils.isContainDirtyFlag(this, UIElementDirtyFlag.Group)) {
+      if (this._rootCanvas) {
+        Utils.registerElementToGroup(this, Utils.getGroupInParents(this.entity), true);
+      } else {
+        Utils.unRegisterListener(this._groupListeningEntities, this._groupListener);
+      }
+      Utils.setDirtyFlagFalse(this, UIElementDirtyFlag.Group);
+    }
+  }
+
+  /**
+   * @internal
+   */
   @ignoreClone
-  _onEntityModify(flag: number): void {
-    switch (flag) {
-      case EntityUIModifyFlags.UICanvasEnableInScene:
-      case EntityModifyFlags.Parent:
-        Utils.registerElementToCanvas(this, Utils.getRootCanvasInParent(this.entity));
-        Utils.registerEntityListener(this);
-      case EntityUIModifyFlags.UIGroupEnableInScene:
-        Utils.registerElementToGroup(this, Utils.getGroupInParents(this.entity));
-        break;
-      default:
-        break;
+  _groupListener(flag: number): void {
+    if (Utils.isContainDirtyFlag(this, UIElementDirtyFlag.Group)) return;
+    if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.UIGroupEnableInScene) {
+      Utils.registerElementToGroup(this, null);
+      Utils.setDirtyFlagTrue(this, UIElementDirtyFlag.Group);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  @ignoreClone
+  _canvasListener(flag: number): void {
+    if (Utils.isContainDirtyFlag(this, UIElementDirtyFlag.Canvas)) return;
+    if (flag === EntityModifyFlags.SiblingIndex) {
+      const rootCanvas = this._rootCanvas;
+      rootCanvas && (rootCanvas._hierarchyDirty = true);
+    } else if (flag === EntityModifyFlags.Parent) {
+      Utils.registerElementToCanvas(this, null);
+      Utils.registerElementToGroup(this, null);
+      Utils.setDirtyFlagTrue(this, UIElementDirtyFlag.Canvas | UIElementDirtyFlag.Group);
     }
   }
 
@@ -178,7 +219,6 @@ export class UIInteractive extends Script implements IUIGroupable {
 }
 
 export enum InteractiveState {
-  None,
   Normal,
   Pressed,
   Hover,

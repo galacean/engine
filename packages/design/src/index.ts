@@ -3,5 +3,5 @@ export * from "./input/index";
 export * from "./physics/index";
 export * from "./renderingHardwareInterface/index";
 export * from "./shader-lab/index";
-export type { IUICanvas } from "./ui/IUICanvas";
+export * from "./ui/index";
 export * from "./xr/index";
