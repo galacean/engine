@@ -105,7 +105,9 @@ export class PpParser {
 
   private static reportError(loc: ShaderRange | ShaderPosition, message: string, source: string, file: string) {
     const error = ShaderLabUtils.createGSError(message, GSErrorName.PreprocessorError, source, loc, file);
+    // #if _VERBOSE
     this._errors.push(error);
+    // #endif
   }
 
   private static _parseInclude(scanner: PpScanner) {
