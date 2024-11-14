@@ -4,9 +4,9 @@ import { UICanvas } from "../component/UICanvas";
 export interface IElement {
   entity: Entity;
 
-  _rootCanvas: UICanvas;
-  _indexInRootCanvas: number;
-  _elementDirty: number;
+  _canvas: UICanvas;
+  _indexInCanvas: number;
+  _isCanvasDirty: boolean;
 
   _canvasListeningEntities: Entity[];
   _canvasListener: (flag: number, param?: any) => void;

@@ -49,16 +49,19 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
   _indexInGroup: number = -1;
   /** @internal */
   @ignoreClone
-  _rootCanvas: UICanvas;
+  _canvas: UICanvas;
   /** @internal */
   @ignoreClone
-  _indexInRootCanvas: number = -1;
+  _indexInCanvas: number = -1;
   /** @internal */
   @ignoreClone
   _subChunk;
   /** @internal */
   @ignoreClone
-  _elementDirty: number = UIElementDirtyFlag.None;
+  _isGroupDirty: boolean = false;
+  /** @internal */
+  @ignoreClone
+  _isCanvasDirty: boolean = false;
   /** @internal */
   @ignoreClone
   _canvasListeningEntities: Entity[] = [];
@@ -68,6 +71,9 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
   /**@internal */
   @ignoreClone
   _onUIUpdateIndex: number = 0;
+  /**@internal */
+  @ignoreClone
+  _groupDirtyFlags: number = 0;
 
   @ignoreClone
   private _raycastEnable: boolean = true;
@@ -150,40 +156,17 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
   // @ts-ignore
   override _onEnableInScene(): void {
     // @ts-ignore
-    const componentsManager = this.scene._componentsManager;
-    this._overrideUpdate && componentsManager.addOnUpdateRenderers(this);
-    componentsManager.addOnUpdateUIElement(this);
-    Utils.setDirtyFlagTrue(this, UIElementDirtyFlag.Canvas | UIElementDirtyFlag.Group);
+    this._overrideUpdate && this.scene._componentsManager.addOnUpdateRenderers(this);
+    Utils._onCanvasChange(this, true);
+    Utils._onGroupChange(this);
   }
 
   // @ts-ignore
   override _onDisableInScene(): void {
     // @ts-ignore
-    const componentsManager = this.scene._componentsManager;
-    this._overrideUpdate && componentsManager.removeOnUpdateRenderers(this);
-    componentsManager.removeOnUpdateUIElement(this);
-    Utils.registerElementToCanvas(this, null, false, true);
-    Utils.unRegisterListener(this._canvasListeningEntities, this._canvasListener);
-    Utils.registerElementToGroup(this, null);
-    Utils.unRegisterListener(this._groupListeningEntities, this._groupListener);
-  }
-
-  /**
-   * @internal
-   */
-  _onUpdate(): void {
-    if (Utils.isContainDirtyFlag(this, UIElementDirtyFlag.Canvas)) {
-      Utils.registerElementToCanvas(this, Utils.getRootCanvasInParents(this.entity), true, true);
-      Utils.setDirtyFlagFalse(this, UIElementDirtyFlag.Canvas);
-    }
-    if (Utils.isContainDirtyFlag(this, UIElementDirtyFlag.Group)) {
-      if (this._rootCanvas) {
-        Utils.registerElementToGroup(this, Utils.getGroupInParents(this.entity), true);
-      } else {
-        Utils.unRegisterListener(this._groupListeningEntities, this._groupListener);
-      }
-      Utils.setDirtyFlagFalse(this, UIElementDirtyFlag.Group);
-    }
+    this._overrideUpdate && this.scene._componentsManager.removeOnUpdateRenderers(this);
+    Utils.unRegisterCanvasListener(this, true);
+    Utils.unRegisterGroupListener(this);
   }
 
   /**
@@ -191,10 +174,9 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
    */
   @ignoreClone
   _groupListener(flag: number): void {
-    if (Utils.isContainDirtyFlag(this, UIElementDirtyFlag.Group)) return;
+    if (this._isGroupDirty) return;
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.UIGroupEnableInScene) {
-      Utils.registerElementToGroup(this, null);
-      Utils.setDirtyFlagTrue(this, UIElementDirtyFlag.Group);
+      Utils._onGroupChange(this);
     }
   }
 
@@ -203,24 +185,21 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
    */
   @ignoreClone
   _canvasListener(flag: number): void {
-    if (Utils.isContainDirtyFlag(this, UIElementDirtyFlag.Canvas)) return;
+    if (this._isCanvasDirty) return;
     if (flag === EntityModifyFlags.SiblingIndex) {
-      const rootCanvas = this._rootCanvas;
+      const rootCanvas = this._canvas;
       rootCanvas && (rootCanvas._hierarchyDirty = true);
     } else if (flag === EntityModifyFlags.Parent) {
-      Utils.registerElementToCanvas(this, null, false, true);
-      Utils.registerElementToGroup(this, null);
-      Utils.setDirtyFlagTrue(this, UIElementDirtyFlag.Canvas | UIElementDirtyFlag.Group);
+      Utils._onCanvasChange(this, true);
+      Utils._onGroupChange(this);
     }
   }
 
   /**
    * @internal
    */
-  @ignoreClone
-  _onGroupModify(flag: GroupModifyFlags): void {
-    if (flag & GroupModifyFlags.Alpha) {
-      this._alpha = this._group?._globalAlpha || 1;
+  _onGroupModify(flags: GroupModifyFlags): void {
+    if (flags & GroupModifyFlags.GlobalAlpha) {
       this._dirtyUpdateFlag |= UIRendererUpdateFlags.Color;
     }
   }
@@ -296,10 +275,4 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
  */
 export enum UIRendererUpdateFlags {
   Color = 0x10
-}
-
-export enum UIElementDirtyFlag {
-  None = 0x0,
-  Canvas = 0x1,
-  Group = 0x2
 }

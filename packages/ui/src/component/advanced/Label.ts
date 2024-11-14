@@ -293,7 +293,7 @@ export class Label extends UIRenderer {
     const engine = context.camera.engine;
     const textSubRenderElementPool = engine._textSubRenderElementPool;
     const material = this.getMaterial();
-    const canvas = this._rootCanvas;
+    const canvas = this._canvas;
     const renderElement = canvas._renderElement;
     const textChunks = this._textChunks;
     const isOverlay = canvas._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay;

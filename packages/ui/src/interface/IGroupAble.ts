@@ -6,9 +6,13 @@ export interface IGroupAble extends IElement {
   _group: UIGroup;
   _indexInGroup: number;
   _groupListeningEntities: Entity[];
-  _onUIUpdateIndex: number;
+  _isGroupDirty: boolean;
+  _groupDirtyFlags: number;
+  _onUIUpdateIndex?: number;
+  _globalAlpha?: number;
+  _globalInteractive?: boolean;
 
-  _onUpdate(): void;
+  _onUpdate?(): void;
   _onGroupModify(flag: GroupModifyFlags): void;
   _groupListener: (flag: number) => void;
 }

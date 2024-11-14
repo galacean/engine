@@ -4,25 +4,21 @@ import { Utils } from "../../Utils";
 import { IGroupAble } from "../../interface/IGroupAble";
 import { EntityUIModifyFlags, UICanvas } from "../UICanvas";
 import { GroupModifyFlags } from "../UIGroup";
-import { UIElementDirtyFlag } from "../UIRenderer";
 import { Transition } from "./transition/Transition";
 
 export class UIInteractive extends Script implements IGroupAble {
   /** @internal */
   @ignoreClone
-  _rootCanvas: UICanvas;
+  _canvas: UICanvas;
   /** @internal */
   @ignoreClone
-  _indexInRootCanvas: number = -1;
+  _indexInCanvas: number = -1;
   /** @internal */
   @ignoreClone
   _group: UIGroup;
   /** @internal */
   @ignoreClone
   _indexInGroup: number = -1;
-  /** @internal */
-  @ignoreClone
-  _elementDirty: number = UIElementDirtyFlag.None;
   /** @internal */
   @ignoreClone
   _canvasListeningEntities: Entity[] = [];
@@ -32,9 +28,20 @@ export class UIInteractive extends Script implements IGroupAble {
   /**@internal */
   @ignoreClone
   _onUIUpdateIndex: number = 0;
+  /**@internal */
+  @ignoreClone
+  _groupDirtyFlags: number = 0;
+  /** @internal */
+  @ignoreClone
+  _isGroupDirty: boolean = false;
+  /** @internal */
+  @ignoreClone
+  _isCanvasDirty: boolean = false;
+  /** @internal */
+  @ignoreClone
+  _globalInteractive: boolean = false;
 
   protected _interactive: boolean = true;
-  protected _runtimeInteractive: boolean = false;
   protected _state: InteractiveState = InteractiveState.Normal;
   protected _transitions: Transition[] = [];
 
@@ -48,9 +55,9 @@ export class UIInteractive extends Script implements IGroupAble {
   set interactive(value: boolean) {
     if (this._interactive !== value) {
       this._interactive = value;
-      const runtimeInteractive = value && this._group?.globalInteractive;
-      if (this._runtimeInteractive !== runtimeInteractive) {
-        this._runtimeInteractive = runtimeInteractive;
+      const globalInteractive = value && this._group?.globalInteractive;
+      if (this._globalInteractive !== globalInteractive) {
+        this._globalInteractive = globalInteractive;
         this._updateState(true);
       }
     }
@@ -115,7 +122,8 @@ export class UIInteractive extends Script implements IGroupAble {
     super._onEnableInScene();
     // @ts-ignore
     this.scene._componentsManager.addOnUpdateUIElement(this);
-    Utils.setDirtyFlagTrue(this, UIElementDirtyFlag.Canvas | UIElementDirtyFlag.Group);
+    Utils._onCanvasChange(this);
+    Utils._onGroupChange(this);
   }
 
   // @ts-ignore
@@ -124,10 +132,8 @@ export class UIInteractive extends Script implements IGroupAble {
     super._onDisableInScene();
     // @ts-ignore
     this.scene._componentsManager.removeOnUpdateUIElement(this);
-    Utils.registerElementToCanvas(this, null);
-    Utils.unRegisterListener(this._canvasListeningEntities, this._canvasListener);
-    Utils.registerElementToGroup(this, null);
-    Utils.unRegisterListener(this._groupListeningEntities, this._groupListener);
+    Utils.unRegisterCanvasListener(this);
+    Utils.unRegisterGroupListener(this);
     this._isPointerInside = this._isPointerDragging = false;
   }
 
@@ -142,17 +148,10 @@ export class UIInteractive extends Script implements IGroupAble {
    * @internal
    */
   _onUpdate(): void {
-    if (Utils.isContainDirtyFlag(this, UIElementDirtyFlag.Canvas)) {
-      Utils.registerElementToCanvas(this, Utils.getRootCanvasInParents(this.entity), true);
-      Utils.setDirtyFlagFalse(this, UIElementDirtyFlag.Canvas);
-    }
-    if (Utils.isContainDirtyFlag(this, UIElementDirtyFlag.Group)) {
-      if (this._rootCanvas) {
-        Utils.registerElementToGroup(this, Utils.getGroupInParents(this.entity), true);
-      } else {
-        Utils.unRegisterListener(this._groupListeningEntities, this._groupListener);
-      }
-      Utils.setDirtyFlagFalse(this, UIElementDirtyFlag.Group);
+    if (this._groupDirtyFlags & GroupModifyFlags.GlobalInteractive) {
+      const group = Utils._getGroup(this);
+      this._globalInteractive = this._interactive && (!group || group.globalInteractive);
+      this._groupDirtyFlags &= ~GroupModifyFlags.GlobalInteractive;
     }
   }
 
@@ -161,10 +160,9 @@ export class UIInteractive extends Script implements IGroupAble {
    */
   @ignoreClone
   _groupListener(flag: number): void {
-    if (Utils.isContainDirtyFlag(this, UIElementDirtyFlag.Group)) return;
+    if (this._isGroupDirty) return;
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.UIGroupEnableInScene) {
-      Utils.registerElementToGroup(this, null);
-      Utils.setDirtyFlagTrue(this, UIElementDirtyFlag.Group);
+      Utils._onGroupChange(this);
     }
   }
 
@@ -173,11 +171,10 @@ export class UIInteractive extends Script implements IGroupAble {
    */
   @ignoreClone
   _canvasListener(flag: number): void {
-    if (Utils.isContainDirtyFlag(this, UIElementDirtyFlag.Canvas)) return;
+    if (this._isCanvasDirty) return;
     if (flag === EntityModifyFlags.Parent) {
-      Utils.registerElementToCanvas(this, null);
-      Utils.registerElementToGroup(this, null);
-      Utils.setDirtyFlagTrue(this, UIElementDirtyFlag.Canvas | UIElementDirtyFlag.Group);
+      Utils._onCanvasChange(this);
+      Utils._onGroupChange(this);
     }
   }
 
@@ -185,14 +182,8 @@ export class UIInteractive extends Script implements IGroupAble {
    * @internal
    */
   @ignoreClone
-  _onGroupModify(flag: GroupModifyFlags): void {
-    if (flag & GroupModifyFlags.Interactive) {
-      const runtimeInteractive = this._interactive && (this._group?._getGlobalInteractive() || true);
-      if (this._runtimeInteractive !== runtimeInteractive) {
-        this._runtimeInteractive = runtimeInteractive;
-        this._updateState(true);
-      }
-    }
+  _onGroupModify(flags: GroupModifyFlags): void {
+    this._groupDirtyFlags |= flags;
   }
 
   private _updateState(instant: boolean): void {
@@ -204,7 +195,7 @@ export class UIInteractive extends Script implements IGroupAble {
   }
 
   private _getInteractiveState(): InteractiveState {
-    if (!this._runtimeInteractive) {
+    if (!this._globalInteractive) {
       return InteractiveState.Disable;
     }
     if (this._isPointerDragging) {

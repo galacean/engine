@@ -23,7 +23,7 @@ import { IElement } from "../interface/IElement";
 import { IGraphics } from "../interface/IGraphics";
 import { IGroupAble } from "../interface/IGroupAble";
 import { UIGroup } from "./UIGroup";
-import { UIElementDirtyFlag, UIRenderer } from "./UIRenderer";
+import { UIRenderer } from "./UIRenderer";
 import { UITransform } from "./UITransform";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
@@ -42,9 +42,9 @@ export class UICanvas extends Component implements IElement {
   _hierarchyDirty: boolean = false;
   /** @internal */
   @ignoreClone
-  _rootCanvas: UICanvas;
+  _canvas: UICanvas;
   /** @internal */
-  _indexInRootCanvas: number = -1;
+  _indexInCanvas: number = -1;
   /** @internal */
   @ignoreClone
   _renderElement;
@@ -62,7 +62,7 @@ export class UICanvas extends Component implements IElement {
   _realRenderMode: number = CanvasRealRenderMode.None;
   /** @internal */
   @ignoreClone
-  _elementDirty: number = UIElementDirtyFlag.None;
+  _isCanvasDirty: boolean = false;
 
   @ignoreClone
   private _renderMode = CanvasRenderMode.WorldSpace;
@@ -213,36 +213,32 @@ export class UICanvas extends Component implements IElement {
     const { width, height } = engine.canvas;
 
     for (let i = 0, n = elements.length; i < n; i++) {
-      const element = elements[i];
-      // @ts-ignore
-      if ((element as unknown as Component)._componentType === ComponentType.UIRenderer) {
-        const renderer = element as unknown as UIRenderer;
-        // Filter by camera culling mask
-        if (!(cullingMask & renderer.entity.layer)) {
-          continue;
-        }
-        // Filter by camera frustum
-        if (enableFrustumCulling) {
-          switch (mode) {
-            case CanvasRenderMode.ScreenSpaceOverlay:
-              const { min, max } = renderer.bounds;
-              if (min.x > width || max.x < 0 || min.y > height || max.y < 0) {
-                continue;
-              }
-              break;
-            case CanvasRenderMode.ScreenSpaceCamera:
-            case CanvasRenderMode.WorldSpace:
-              if (!frustum.intersectsBox(renderer.bounds)) {
-                continue;
-              }
-              break;
-            default:
-              break;
-          }
-        }
-        renderer._prepareRender(context);
-        renderer._renderFrameCount = frameCount;
+      const renderer = elements[i] as unknown as UIRenderer;
+      // Filter by camera culling mask
+      if (!(cullingMask & renderer.entity.layer)) {
+        continue;
       }
+      // Filter by camera frustum
+      if (enableFrustumCulling) {
+        switch (mode) {
+          case CanvasRenderMode.ScreenSpaceOverlay:
+            const { min, max } = renderer.bounds;
+            if (min.x > width || max.x < 0 || min.y > height || max.y < 0) {
+              continue;
+            }
+            break;
+          case CanvasRenderMode.ScreenSpaceCamera:
+          case CanvasRenderMode.WorldSpace:
+            if (!frustum.intersectsBox(renderer.bounds)) {
+              continue;
+            }
+            break;
+          default:
+            break;
+        }
+      }
+      renderer._prepareRender(context);
+      renderer._renderFrameCount = frameCount;
     }
   }
 
@@ -268,19 +264,24 @@ export class UICanvas extends Component implements IElement {
     const entity = this.entity;
     // @ts-ignore
     entity._dispatchModify(EntityUIModifyFlags.UICanvasEnableInScene, this);
-    const rootCanvas = Utils.getRootCanvasInParents(entity);
-    !rootCanvas && this._setIsRootCanvas(true);
-    Utils.registerElementToCanvas(this, rootCanvas, true);
+    const rootCanvas = Utils.getCanvasInParents(entity);
+    if (rootCanvas) {
+      this._setIsRootCanvas(false);
+      Utils._onCanvasChange(this);
+      Utils._registerElementToCanvas(this, rootCanvas);
+    } else {
+      this._setIsRootCanvas(true);
+      Utils.registerListener(entity, null, this._canvasListener, this._canvasListeningEntities);
+    }
   }
 
   // @ts-ignore
   override _onDisableInScene(): void {
     if (this._isRootCanvas) {
-      this._setIsRootCanvas(false, this._phasedActiveInScene || !this.enabled);
+      this._setIsRootCanvas(false);
     } else {
-      Utils.registerElementToCanvas(this, null);
+      Utils.unRegisterCanvasListener(this);
     }
-    Utils.unRegisterListener(this._canvasListeningEntities, this._canvasListener);
   }
 
   /**
@@ -291,22 +292,30 @@ export class UICanvas extends Component implements IElement {
     if (this._isRootCanvas) {
       if (flag === EntityModifyFlags.Parent) {
         const entity = this.entity;
-        const rootCanvas = Utils.getRootCanvasInParents(entity);
+        const rootCanvas = Utils.getCanvasInParents(entity);
         if (rootCanvas) {
           this._setIsRootCanvas(false);
-          Utils.registerElementToCanvas(this, rootCanvas, true);
+          Utils._onCanvasChange(this);
+          Utils._registerElementToCanvas(this, rootCanvas);
         } else {
           Utils.registerListener(entity, null, this._canvasListener, this._canvasListeningEntities);
         }
       } else if (flag === EntityUIModifyFlags.UICanvasEnableInScene) {
         this._setIsRootCanvas(false);
-        Utils.registerElementToCanvas(this, param as UICanvas, true);
+        Utils._onCanvasChange(this);
+        Utils._registerElementToCanvas(this, param as UICanvas);
       }
     } else {
       if (flag === EntityModifyFlags.Parent) {
-        const rootCanvas = Utils.getRootCanvasInParents(this.entity);
-        !rootCanvas && this._setIsRootCanvas(true);
-        Utils.registerElementToCanvas(this, rootCanvas, true);
+        const rootCanvas = Utils.getCanvasInParents(this.entity);
+        if (rootCanvas) {
+          this._setIsRootCanvas(false);
+          Utils._onCanvasChange(this);
+          Utils._registerElementToCanvas(this, rootCanvas);
+        } else {
+          this._setIsRootCanvas(true);
+          Utils.registerListener(this.entity, null, this._canvasListener, this._canvasListeningEntities);
+        }
       }
     }
   }
@@ -387,12 +396,12 @@ export class UICanvas extends Component implements IElement {
           elements[depth] = component as unknown as IGraphics;
           ++depth;
         case ComponentType.UIInteractive:
-          if (Utils.isContainDirtyFlag(component as unknown as IGroupAble, UIElementDirtyFlag.Group)) {
+          if ((component as unknown as IGroupAble)._isGroupDirty) {
             tempGroupAbleList[groupAbleCount++] = component as unknown as IGroupAble;
           }
-          if (Utils.isContainDirtyFlag(component as unknown as IGroupAble, UIElementDirtyFlag.Canvas)) {
-            Utils.registerElementToCanvas(component as unknown as IGroupAble, this, true);
-            Utils.setDirtyFlagFalse(component as unknown as IGroupAble, UIElementDirtyFlag.Canvas);
+          if ((component as unknown as IElement)._isCanvasDirty) {
+            Utils._registerElementToCanvas(component as unknown as IElement, this);
+            (component as unknown as IElement)._isCanvasDirty = false;
           }
           break;
         case ComponentType.UIGroup:
@@ -403,12 +412,10 @@ export class UICanvas extends Component implements IElement {
       }
     }
     if (groupAbleCount > 0) {
-      const root = group?.entity || this.entity;
       for (let i = 0; i < groupAbleCount; i++) {
         const groupAble = tempGroupAbleList[i];
-        Utils.registerElementToGroup(groupAble, group);
-        Utils.registerListener(groupAble.entity, root, groupAble._groupListener, groupAble._groupListeningEntities);
-        Utils.setDirtyFlagFalse(groupAble, UIElementDirtyFlag.Group);
+        Utils._registerElementToGroup(groupAble, group);
+        groupAble._isGroupDirty = false;
       }
     }
     const children = entity.children;
@@ -498,7 +505,7 @@ export class UICanvas extends Component implements IElement {
     }
   }
 
-  private _setIsRootCanvas(isRootCanvas: boolean, needFindRootCanvasInElements: boolean = false): void {
+  private _setIsRootCanvas(isRootCanvas: boolean): void {
     if (this._isRootCanvas !== isRootCanvas) {
       this._isRootCanvas = isRootCanvas;
       this._updateCameraObserver();
@@ -507,18 +514,28 @@ export class UICanvas extends Component implements IElement {
         this._hierarchyDirty = true;
       } else {
         const { _disorderedElements: disorderedElements } = this;
-        if (needFindRootCanvasInElements) {
+        if (this._phasedActiveInScene || !this.enabled) {
+          const root = this.entity;
+          // Canvas is destroyed or disabled
           disorderedElements.forEach((element: IElement) => {
-            // @ts-ignore
-            if ((element as unknown as Component)._componentType === ComponentType.UICanvas) {
-              if (Utils.isTheFirstCanvas(element as unknown as UICanvas)) {
-                (element as unknown as UICanvas)._setIsRootCanvas(true);
-                Utils.registerElementToCanvas(element as unknown as UICanvas, null, true);
+            if (element as unknown as UICanvas) {
+              const canvas = element as unknown as UICanvas;
+              const rootCanvas = Utils.getCanvasInParents(element.entity, root);
+              if (rootCanvas) {
+                canvas._setIsRootCanvas(false);
+                Utils._onCanvasChange(canvas);
+                Utils._registerElementToCanvas(canvas, rootCanvas);
+              } else {
+                canvas._setIsRootCanvas(true);
+                Utils.registerListener(canvas.entity, null, canvas._canvasListener, canvas._canvasListeningEntities);
               }
             } else {
-              Utils.registerElementToCanvas(element, null);
-              Utils.setDirtyFlagTrue(element, UIElementDirtyFlag.Canvas);
+              Utils._onCanvasChange(element);
             }
+          });
+        } else {
+          disorderedElements.forEach((element: IElement) => {
+            Utils._onCanvasChange(element);
           });
         }
         disorderedElements.length = 0;
