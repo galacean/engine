@@ -574,7 +574,7 @@ export class ResourceManager {
         return Promise.resolve(null);
       }
       const remoteUrl = resourceConfig.path;
-      const queryPath = new URL(remoteUrl).search;
+      const queryPath = new URL(remoteUrl, "http://localhost").search;
       let url = resourceConfig.virtualPath + queryPath;
       if (key) {
         url += (url.indexOf("?") > -1 ? "&" : "?") + "q=" + key;
