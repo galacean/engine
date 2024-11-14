@@ -99,8 +99,13 @@ export class RenderQueue {
         if (shaderPass.getTagValue(pipelineStageKey) !== pipelineStageTagValue) {
           continue;
         }
+        const renderState = shaderPass._renderState ?? renderStates[j];
 
-        if ((shaderPass._renderState ?? renderStates[j]).renderQueueType !== renderQueueType) {
+        if (shaderPass._renderState) {
+          renderState._applyRenderQueueByShaderData(shaderPass._renderStateDataMap, materialData);
+        }
+
+        if (renderState.renderQueueType !== renderQueueType) {
           continue;
         }
 
@@ -163,7 +168,6 @@ export class RenderQueue {
           }
         }
 
-        const renderState = shaderPass._renderState ?? renderStates[j];
         renderState._applyStates(
           engine,
           renderer.entity.transform._isFrontFaceInvert(),
