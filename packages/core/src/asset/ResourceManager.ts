@@ -573,19 +573,20 @@ export class ResourceManager {
         Logger.warn(`refId:${refId} is not find in this._editorResourceConfig.`);
         return Promise.resolve(null);
       }
-      const remoteUrl = resourceConfig.path;
-      const queryPath = new URL(remoteUrl, "http://localhost").search;
-      let url = resourceConfig.virtualPath + queryPath;
-      if (key) {
-        url += (url.indexOf("?") > -1 ? "&" : "?") + "q=" + key;
-      }
-
+      const url = resourceConfig.path;
       promise = this.load<any>({
         url,
         type: resourceConfig.type
       });
     }
-    return promise.then((item) => (isClone ? item.clone() : item));
+    return promise.then((item) => {
+      let resource = item;
+      if (key) {
+        const paths = this._parseQueryPath(key);
+        resource = this._getResolveResource(item, paths);
+      }
+      return isClone ? resource.clone() : resource;
+    });
   }
 
   /**
