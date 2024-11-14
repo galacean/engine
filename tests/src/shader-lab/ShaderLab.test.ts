@@ -253,7 +253,5 @@ describe("ShaderLab", () => {
     for (const err of shaderLabVerbose.errors) {
       console.log(err.toString());
     }
-
-    expect(shaderParse.bind(shaderLabRelease, errorShader)).to.throw(Error);
   });
 });

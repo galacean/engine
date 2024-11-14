@@ -15,7 +15,6 @@ export default defineProject({
       provider: "playwright",
       enabled: true,
       name: "chromium",
-      headless: true,
       providerOptions: {
         launch: {
           args: ["--use-gl=egl", "--ignore-gpu-blocklist", "--use-gl=angle"]
