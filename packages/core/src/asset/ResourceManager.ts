@@ -573,9 +573,7 @@ export class ResourceManager {
         Logger.warn(`refId:${refId} is not find in this._editorResourceConfig.`);
         return Promise.resolve(null);
       }
-      const remoteUrl = resourceConfig.path;
-      const queryPath = new URL(remoteUrl, "http://localhost").search;
-      let url = resourceConfig.virtualPath + queryPath;
+      let url = resourceConfig.virtualPath;
       if (key) {
         url += (url.indexOf("?") > -1 ? "&" : "?") + "q=" + key;
       }
