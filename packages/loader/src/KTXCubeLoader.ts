@@ -16,7 +16,8 @@ class KTXCubeLoader extends Loader<TextureCube> {
     return new AssetPromise((resolve, reject) => {
       Promise.all(
         item.urls.map((url) =>
-          this.request<ArrayBuffer>(url, resourceManager, {
+          // @ts-ignore
+          resourceManager._request<ArrayBuffer>(url, {
             ...item,
             type: "arraybuffer"
           })

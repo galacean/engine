@@ -19,10 +19,12 @@ import {
 class AnimatorControllerLoader extends Loader<AnimatorController> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AnimatorController> {
     return new AssetPromise((resolve, reject) => {
-      this.request<any>(item.url, resourceManager, {
-        ...item,
-        type: "json"
-      })
+      resourceManager
+        // @ts-ignore
+        ._request<any>(item.url, {
+          ...item,
+          type: "json"
+        })
         .then((data) => {
           const animatorController = new AnimatorController(resourceManager.engine);
           const { layers, parameters } = data;

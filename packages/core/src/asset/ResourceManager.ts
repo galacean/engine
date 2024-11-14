@@ -4,6 +4,7 @@ import { GraphicsResource } from "./GraphicsResource";
 import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
 import { ReferResource } from "./ReferResource";
+import { request, RequestConfig } from "./request";
 
 /**
  * ResourceManager
@@ -177,6 +178,28 @@ export class ResourceManager {
    */
   addContentRestorer<T extends EngineObject>(restorer: ContentRestorer<T>): void {
     this._contentRestorerPool[restorer.resource.instanceId] = restorer;
+  }
+
+  /**
+   * @internal
+   */
+  _getRemoteUrl(url: string): string {
+    return this._virtualPathMap[url] ?? url;
+  }
+
+  /**
+   * @internal
+   */
+  _requestByRemoteUrl<T>(url: string, config: RequestConfig): AssetPromise<T> {
+    return request(url, config);
+  }
+
+  /**
+   * @internal
+   */
+  _request<T>(url: string, config: RequestConfig): AssetPromise<T> {
+    const remoteUrl = this._getRemoteUrl(url);
+    return this._requestByRemoteUrl(remoteUrl, config);
   }
 
   /**
