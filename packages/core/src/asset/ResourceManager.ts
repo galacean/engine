@@ -514,7 +514,7 @@ export class ResourceManager {
     let assetBaseURL = baseUrl;
     if (searchStr) {
       const params = searchStr.split("&");
-      for (let i = 0; i < params.length; i++) {
+      for (let i = params.length - 1; i >= 0; i--) {
         const param = params[i];
         if (param.startsWith(`q=`)) {
           queryPath = decodeURIComponent(param.split("=")[1]);
@@ -573,20 +573,19 @@ export class ResourceManager {
         Logger.warn(`refId:${refId} is not find in this._editorResourceConfig.`);
         return Promise.resolve(null);
       }
-      const url = resourceConfig.path;
+      const remoteUrl = resourceConfig.path;
+      const queryPath = new URL(remoteUrl, "http://localhost").search;
+      let url = resourceConfig.virtualPath + queryPath;
+      if (key) {
+        url += (url.indexOf("?") > -1 ? "&" : "?") + "q=" + key;
+      }
+
       promise = this.load<any>({
         url,
         type: resourceConfig.type
       });
     }
-    return promise.then((item) => {
-      let resource = item;
-      if (key) {
-        const paths = this._parseQueryPath(key);
-        resource = this._getResolveResource(item, paths);
-      }
-      return isClone ? resource.clone() : resource;
-    });
+    return promise.then((item) => (isClone ? item.clone() : item));
   }
 
   /**
