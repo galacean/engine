@@ -575,7 +575,7 @@ export class ResourceManager {
       }
       let url = resourceConfig.virtualPath;
       if (key) {
-        url += (url.indexOf("?") > -1 ? "&" : "?") + "q=" + key;
+        url += "?q=" + key;
       }
 
       promise = this.load<any>({
