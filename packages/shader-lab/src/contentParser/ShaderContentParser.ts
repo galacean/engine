@@ -192,7 +192,7 @@ export class ShaderContentParser {
           variable.location
         );
         // #if _VERBOSE
-        this._errors.push(error);
+        this._errors.push(<GSError>error);
         return;
         // #endif
       }
@@ -249,7 +249,7 @@ export class ShaderContentParser {
           scanner.getCurPosition()
         );
         // #if _VERBOSE
-        this._errors.push(error);
+        this._errors.push(<GSError>error);
         scanner.scanToCharacter(";");
         return;
         // #endif
@@ -267,7 +267,7 @@ export class ShaderContentParser {
         scanner.getCurPosition()
       );
       // #if _VERBOSE
-      this._errors.push(error);
+      this._errors.push(<GSError>error);
       scanner.scanToCharacter(";");
       return;
       // #endif
@@ -307,7 +307,7 @@ export class ShaderContentParser {
             engineTypeProp.location
           );
           // #if _VERBOSE
-          this._errors.push(error);
+          this._errors.push(<GSError>error);
           scanner.scanToCharacter(";");
           return;
           // #endif

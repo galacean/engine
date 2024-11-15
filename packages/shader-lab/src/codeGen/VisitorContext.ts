@@ -70,7 +70,7 @@ export class VisitorContext {
         GSErrorName.CompilationError,
         ShaderLab._processingPassText,
         ident.location
-      );
+      ) as GSError;
     }
     this._referencedAttributeList[ident.lexeme] = prop;
   }
@@ -85,7 +85,7 @@ export class VisitorContext {
         GSErrorName.CompilationError,
         ShaderLab._processingPassText,
         ident.location
-      );
+      ) as GSError;
     }
     this._referencedVaryingList[ident.lexeme] = prop;
   }

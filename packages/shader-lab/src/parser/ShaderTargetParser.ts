@@ -10,7 +10,7 @@ import { addTranslationRule, createGrammar } from "../lalr/CFG";
 import { LALR1 } from "../lalr";
 import { ParserUtils } from "../ParserUtils";
 import { Logger } from "@galacean/engine";
-import { GSErrorName } from "../GSError";
+import { GSError, GSErrorName } from "../GSError";
 import { ShaderLab } from "../ShaderLab";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 
@@ -120,7 +120,7 @@ export class ShaderTargetParser {
           token.location
         );
         // #if _VERBOSE
-        this.sematicAnalyzer.errors.push(error);
+        this.sematicAnalyzer.errors.push(<GSError>error);
         // #endif
         return null;
       }
