@@ -644,20 +644,21 @@ export class PpParser {
   }
 
   private static _onToken(token: BaseToken, scanner: PpScanner) {
-    this._skipEditorBlock(token, scanner);
-    this._expandToken(token, scanner);
+    if (["EditorProperties", "EditorMacros", "Editor"].indexOf(token.lexeme) !== -1) {
+      this._skipEditorBlock(token, scanner);
+    } else {
+      this._expandToken(token, scanner);
+    }
   }
 
   private static _skipEditorBlock(token: BaseToken, scanner: PpScanner) {
-    if (["EditorProperties", "EditorMacros", "Editor"].indexOf(token.lexeme) !== -1) {
-      const start = scanner.current - token.lexeme.length;
-      scanner.scanPairedBlock("{", "}");
-      const end = scanner.current;
-      const startPosition = ShaderLab.createPosition(start);
-      const endPosition = ShaderLab.createPosition(end);
-      const range = ShaderLab.createRange(startPosition, endPosition);
-      this.expandSegments.push({ rangeInBlock: range, replace: "" });
-    }
+    const start = scanner.current - token.lexeme.length;
+    scanner.scanPairedBlock("{", "}");
+    const end = scanner.current;
+    const startPosition = ShaderLab.createPosition(start);
+    const endPosition = ShaderLab.createPosition(end);
+    const range = ShaderLab.createRange(startPosition, endPosition);
+    this.expandSegments.push({ rangeInBlock: range, replace: "" });
   }
 
   private static _expandToken(token: BaseToken, scanner: PpScanner) {
