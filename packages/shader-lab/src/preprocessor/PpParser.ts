@@ -2,7 +2,7 @@ import { ShaderPosition, ShaderRange } from "../common";
 import LexerUtils from "../lexer/Utils";
 import { MacroDefine } from "./MacroDefine";
 import { BaseToken } from "../common/BaseToken";
-import { EPpKeyword, EPpToken, PpConstant } from "./constants";
+import { EPpKeyword, EPpToken, PpConstant, SkipTokens } from "./constants";
 import PpScanner from "./PpScanner";
 import { PpUtils } from "./Utils";
 import { ShaderLab } from "../ShaderLab";
@@ -644,7 +644,7 @@ export class PpParser {
   }
 
   private static _onToken(token: BaseToken, scanner: PpScanner) {
-    if (["EditorProperties", "EditorMacros", "Editor"].indexOf(token.lexeme) !== -1) {
+    if (SkipTokens.indexOf(token.lexeme) !== -1) {
       this._skipBlock(token, scanner);
     } else {
       this._expandToken(token, scanner);
