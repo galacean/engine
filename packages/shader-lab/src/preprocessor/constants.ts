@@ -70,5 +70,3 @@ export const PpKeyword = new Map<string, EPpKeyword>([
 ]);
 
 export type PpConstant = boolean | number;
-
-export const SkipTokens = ["EditorProperties", "EditorMacros", "Editor"];

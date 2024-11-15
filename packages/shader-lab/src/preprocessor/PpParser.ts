@@ -2,7 +2,7 @@ import { ShaderPosition, ShaderRange } from "../common";
 import LexerUtils from "../lexer/Utils";
 import { MacroDefine } from "./MacroDefine";
 import { BaseToken } from "../common/BaseToken";
-import { EPpKeyword, EPpToken, PpConstant, SkipTokens } from "./constants";
+import { EPpKeyword, EPpToken, PpConstant } from "./constants";
 import PpScanner from "./PpScanner";
 import { PpUtils } from "./Utils";
 import { ShaderLab } from "../ShaderLab";
@@ -644,21 +644,7 @@ export class PpParser {
   }
 
   private static _onToken(token: BaseToken, scanner: PpScanner) {
-    if (SkipTokens.indexOf(token.lexeme) !== -1) {
-      this._skipBlock(token, scanner);
-    } else {
-      this._expandToken(token, scanner);
-    }
-  }
-
-  private static _skipBlock(token: BaseToken, scanner: PpScanner) {
-    const start = scanner.current - token.lexeme.length;
-    scanner.scanPairedBlock("{", "}");
-    const end = scanner.current;
-    const startPosition = ShaderLab.createPosition(start);
-    const endPosition = ShaderLab.createPosition(end);
-    const range = ShaderLab.createRange(startPosition, endPosition);
-    this.expandSegments.push({ rangeInBlock: range, replace: "" });
+    this._expandToken(token, scanner);
   }
 
   private static _expandToken(token: BaseToken, scanner: PpScanner) {
