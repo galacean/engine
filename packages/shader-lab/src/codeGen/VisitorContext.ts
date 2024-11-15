@@ -60,7 +60,7 @@ export class VisitorContext {
     return this.varyingStruct?.ident?.lexeme === type;
   }
 
-  referenceAttribute(ident: BaseToken): GSError {
+  referenceAttribute(ident: BaseToken): Error {
     if (this._referencedAttributeList[ident.lexeme]) return;
 
     const prop = this.attributeList.find((item) => item.ident.lexeme === ident.lexeme);
@@ -70,12 +70,12 @@ export class VisitorContext {
         GSErrorName.CompilationError,
         ShaderLab._processingPassText,
         ident.location
-      ) as GSError;
+      );
     }
     this._referencedAttributeList[ident.lexeme] = prop;
   }
 
-  referenceVarying(ident: BaseToken): GSError | undefined {
+  referenceVarying(ident: BaseToken): Error | undefined {
     if (this._referencedVaryingList[ident.lexeme]) return;
 
     const prop = this.varyingStruct?.propList.find((item) => item.ident.lexeme === ident.lexeme);
@@ -85,7 +85,7 @@ export class VisitorContext {
         GSErrorName.CompilationError,
         ShaderLab._processingPassText,
         ident.location
-      ) as GSError;
+      );
     }
     this._referencedVaryingList[ident.lexeme] = prop;
   }
