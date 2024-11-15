@@ -644,10 +644,6 @@ export class PpParser {
   }
 
   private static _onToken(token: BaseToken, scanner: PpScanner) {
-    this._expandToken(token, scanner);
-  }
-
-  private static _expandToken(token: BaseToken, scanner: PpScanner) {
     const macro = this._definedMacros.get(token.lexeme);
     if (macro) {
       let replace = macro.body.lexeme;
