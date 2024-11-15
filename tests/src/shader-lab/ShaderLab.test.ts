@@ -136,6 +136,8 @@ describe("ShaderLab", () => {
     expect(pass1.renderStates).not.be.null;
 
     const { constantMap, variableMap } = pass1.renderStates;
+    expect(Object.values(variableMap).includes("customRenderQueue"));
+
     expect(constantMap).not.be.null;
 
     expect(toString(constantMap[RenderStateDataKey.BlendStateBlendColor] as Color)).eq("Color(1, 1, 1, 1)");
