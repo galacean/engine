@@ -99,13 +99,17 @@ export class RenderQueue {
         if (shaderPass.getTagValue(pipelineStageKey) !== pipelineStageTagValue) {
           continue;
         }
-        const renderState = shaderPass._renderState ?? renderStates[j];
 
-        if (shaderPass._renderState) {
-          renderState._applyRenderQueueByShaderData(shaderPass._renderStateDataMap, materialData);
+        let renderState = shaderPass._renderState;
+        let passQueueType: RenderQueueType;
+        if (renderState) {
+          passQueueType = renderState._getRenderQueueByShaderData(shaderPass._renderStateDataMap, materialData);
+        } else {
+          renderState = renderStates[j];
+          passQueueType = renderState.renderQueueType;
         }
 
-        if (renderState.renderQueueType !== renderQueueType) {
+        if (passQueueType !== renderQueueType) {
           continue;
         }
 
