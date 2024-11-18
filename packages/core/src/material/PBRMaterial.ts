@@ -140,11 +140,11 @@ export class PBRMaterial extends PBRBaseMaterial {
    * The iridescence intensity factor.
    * @defaultValue `0.0`
    */
-  get iridescenceFactor(): number {
+  get iridescence(): number {
     return this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp).x;
   }
 
-  set iridescenceFactor(value: number) {
+  set iridescence(value: number) {
     const iridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp);
     if (!!iridescenceInfo.x !== !!value) {
       if (value === 0) {
