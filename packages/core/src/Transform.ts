@@ -3,7 +3,7 @@ import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
 import { UpdateFlagManager } from "./UpdateFlagManager";
-import { deepClone, ignoreClone } from "./clone/CloneManager";
+import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
 
 /**
  * Used to implement transformation related functions.
@@ -27,12 +27,16 @@ export class Transform extends Component {
   private _rotationQuaternion: Quaternion = new Quaternion();
   @deepClone
   private _scale: Vector3 = new Vector3(1, 1, 1);
+  @assignmentClone
+  private _localUniformScaling: boolean = true;
   @deepClone
   private _worldPosition: Vector3 = new Vector3();
   @deepClone
   private _worldRotation: Vector3 = new Vector3();
   @deepClone
   private _worldRotationQuaternion: Quaternion = new Quaternion();
+  @assignmentClone
+  private _worldUniformScaling: boolean = true;
   @deepClone
   private _lossyWorldScale: Vector3 = new Vector3(1, 1, 1);
   @deepClone
@@ -50,10 +54,6 @@ export class Transform extends Component {
   private _isParentDirty: boolean = true;
   @ignoreClone
   private _parentTransformCache: Transform = null;
-  @ignoreClone
-  private _worldUniformScaling: boolean = true;
-  @ignoreClone
-  private _localUniformScaling: boolean = true;
   @ignoreClone
   private _dirtyFlag: number = TransformModifyFlags.WmWpWeWqWs;
 
