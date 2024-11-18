@@ -1,31 +1,24 @@
 import { Camera } from "../Camera";
 import { Layer } from "../Layer";
-import { Blitter } from "../RenderPipeline/Blitter";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { Scene } from "../Scene";
 import { Material } from "../material";
-import { Shader } from "../shader";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 import { PostProcess } from "./PostProcess";
-import { PostProcessEffect, RenderPostProcessEvent } from "./PostProcessEffect";
-
-interface ISortedEffects {
-  [RenderPostProcessEvent.BeforeUber]: PostProcessEffect[];
-  [RenderPostProcessEvent.InUber]: PostProcessEffect[];
-  [RenderPostProcessEvent.AfterUber]: PostProcessEffect[];
-}
+import { PostProcessEffect } from "./PostProcessEffect";
+import { PostProcessPass } from "./PostProcessPass";
 
 /**
  * A global manager of the PostProcess.
  */
 export class PostProcessManager {
-  static readonly UBER_SHADER_NAME = "UberPost";
-
   /** @internal */
   _uberMaterial: Material;
 
   private _activePostProcesses: PostProcess[] = [];
+  private _activePostProcessPasses: PostProcessPass[] = [];
   private _postProcessNeedSorting = false;
+  private _postProcessPassNeedSorting = false;
   private _hasActiveEffect = false;
   private _activeStateChangeFlag = false;
   private _swapRenderTarget: RenderTarget;
@@ -33,12 +26,8 @@ export class PostProcessManager {
   private _destRenderTarget: RenderTarget;
   private _currentSourceRenderTarget: RenderTarget;
   private _currentDestRenderTarget: RenderTarget;
-  private _sortedEffects: ISortedEffects = {
-    [RenderPostProcessEvent.BeforeUber]: [],
-    [RenderPostProcessEvent.InUber]: [],
-    [RenderPostProcessEvent.AfterUber]: []
-  };
-  private _remainEffectCount = 0;
+  private _postProcessEffectInstance = new Map<typeof PostProcessEffect, PostProcessEffect>();
+  private _remainPassCount = 0;
 
   /**
    * Whether has active post process effect.
@@ -70,24 +59,30 @@ export class PostProcessManager {
    * Create a PostProcessManager.
    * @param scene - Scene to which the current PostProcessManager belongs
    */
-  constructor(public readonly scene: Scene) {
-    const uberShader = Shader.find(PostProcessManager.UBER_SHADER_NAME);
-    const uberMaterial = new Material(scene.engine, uberShader);
-    const depthState = uberMaterial.renderState.depthState;
+  constructor(public readonly scene: Scene) {}
 
-    depthState.enabled = false;
-    depthState.writeEnabled = false;
-
-    this._uberMaterial = uberMaterial;
+  /**
+   * Add a post process pass to the manager.
+   * @param pass - Post process pass to add
+   */
+  addPostProcessPass(pass: PostProcessPass) {
+    this._activePostProcessPasses.push(pass);
+    this._postProcessPassNeedSorting = true;
   }
 
-  addPostProcess(postProcess: PostProcess): void {
+  /**
+   * @internal
+   */
+  _addPostProcess(postProcess: PostProcess): void {
     this._activePostProcesses.push(postProcess);
     this._setActiveStateDirty();
     this._postProcessNeedSorting = true;
   }
 
-  removePostProcess(postProcess: PostProcess): void {
+  /**
+   * @internal
+   */
+  _removePostProcess(postProcess: PostProcess): void {
     const index = this._activePostProcesses.indexOf(postProcess);
 
     if (index >= 0) {
@@ -97,7 +92,7 @@ export class PostProcessManager {
     }
   }
 
-  sortPostProcess(): void {
+  private _sortPostProcess(): void {
     if (this._postProcessNeedSorting) {
       const postProcesses = this._activePostProcesses;
       if (postProcesses.length) {
@@ -107,56 +102,69 @@ export class PostProcessManager {
     }
   }
 
-  render(camera: Camera, srcRenderTarget: RenderTarget, destRenderTarget: RenderTarget): void {
-    const engine = camera.engine;
-    const list = this._sortedEffects;
-    const beforeUber = list[RenderPostProcessEvent.BeforeUber];
-    const inUber = list[RenderPostProcessEvent.InUber];
-    const afterUber = list[RenderPostProcessEvent.AfterUber];
+  private _sortPostProcessPass(): void {
+    if (this._postProcessPassNeedSorting) {
+      const passes = this._activePostProcessPasses;
+      if (passes.length) {
+        passes.sort((a, b) => a.event - b.event);
+      }
+      this._postProcessPassNeedSorting = false;
+    }
+  }
 
+  update(postProcessMask: Layer) {
+    this._sortPostProcess();
+    this._sortPostProcessPass();
+
+    for (let i = 0; i < this._activePostProcesses.length; i++) {
+      const postProcess = this._activePostProcesses[i];
+      if (!postProcess.enabled) {
+        continue;
+      }
+
+      if (!(postProcessMask & postProcess.layer)) {
+        continue;
+      }
+
+      const effects = postProcess._effects;
+      for (let j = 0; j < effects.length; j++) {
+        const effect = effects[j];
+        if (!effect.enabled) {
+          continue;
+        }
+        const PostConstructor = effect.constructor as typeof PostProcessEffect;
+        let effectInstance = this._postProcessEffectInstance.get(PostConstructor);
+        if (!effectInstance) {
+          effectInstance = new PostConstructor(postProcess);
+          effectInstance._setActive(true);
+          this._postProcessEffectInstance.set(PostConstructor, effectInstance);
+        }
+
+        effect.mergeFrom(effectInstance, 1);
+      }
+    }
+  }
+
+  getEffectInstance<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
+    return this._postProcessEffectInstance.get(type) as InstanceType<T>;
+  }
+
+  render(camera: Camera, srcRenderTarget: RenderTarget, destRenderTarget: RenderTarget): void {
     this._srcRenderTarget = srcRenderTarget;
     this._destRenderTarget = destRenderTarget;
 
     // Should blit to resolve the MSAA
     srcRenderTarget._blitRenderTarget();
 
-    this._sortEffects(camera.postProcessMask, beforeUber, inUber, afterUber);
+    this.update(camera.postProcessMask);
+
+    this._remainPassCount = this._activePostProcessPasses.length;
     this._initSwapRenderTarget(camera);
 
-    // Before Uber
-    for (let i = 0; i < beforeUber.length; i++) {
-      const effect = beforeUber[i];
-      effect.onRender(camera, this._getCurrentSourceTexture(), this._currentDestRenderTarget);
-      this._remainEffectCount--;
-      this._swapRT();
-    }
-
-    // In Uber
-    if (inUber.length) {
-      const uberSourceTexture = this._getCurrentSourceTexture();
-      for (let i = 0; i < inUber.length; i++) {
-        const effect = inUber[i];
-        effect.onRender(camera, uberSourceTexture, null);
-      }
-
-      Blitter.blitTexture(
-        engine,
-        uberSourceTexture,
-        this._currentDestRenderTarget,
-        0,
-        camera.viewport,
-        this._uberMaterial
-      );
-
-      this._remainEffectCount--;
-      this._swapRT();
-    }
-
-    // After Uber
-    for (let i = 0; i < afterUber.length; i++) {
-      const effect = afterUber[i];
-      effect.onRender(camera, this._getCurrentSourceTexture(), this._currentDestRenderTarget);
-      this._remainEffectCount--;
+    for (let i = 0; i < this._activePostProcessPasses.length; i++) {
+      const pass = this._activePostProcessPasses[i];
+      pass.onRender(camera, this._getCurrentSourceTexture(), this._currentDestRenderTarget);
+      this._remainPassCount--;
       this._swapRT();
     }
   }
@@ -180,57 +188,8 @@ export class PostProcessManager {
     }
   }
 
-  private _sortEffects(
-    postProcessMask: Layer,
-    beforeUber: PostProcessEffect[],
-    inUber: PostProcessEffect[],
-    afterUber: PostProcessEffect[]
-  ): void {
-    let globalProcessed = false;
-    const postProcesses = this._activePostProcesses;
-
-    beforeUber.length = inUber.length = afterUber.length = 0;
-
-    for (let i = postProcesses.length - 1; i >= 0; i--) {
-      const postProcess = postProcesses[i];
-
-      if (!postProcess.enabled) {
-        continue;
-      }
-
-      if (!(postProcessMask & postProcess.layer)) {
-        continue;
-      }
-
-      if (postProcess.isGlobal) {
-        if (globalProcessed) {
-          continue;
-        }
-        globalProcessed = true;
-      }
-
-      const effects = postProcess._effects;
-      for (let i = 0; i < effects.length; i++) {
-        const effect = effects[i];
-        if (!effect.enabled) {
-          continue;
-        }
-        if (effect.renderEvent === RenderPostProcessEvent.BeforeUber) {
-          beforeUber.push(effect);
-        } else if (effect.renderEvent === RenderPostProcessEvent.InUber) {
-          inUber.push(effect);
-        } else if (effect.renderEvent === RenderPostProcessEvent.AfterUber) {
-          afterUber.push(effect);
-        }
-      }
-    }
-
-    // uber is only counted as one
-    this._remainEffectCount = beforeUber.length + afterUber.length + Number(!!inUber.length);
-  }
-
   private _initSwapRenderTarget(camera: Camera) {
-    if (this._remainEffectCount > 1) {
+    if (this._remainPassCount > 1) {
       const viewport = camera.pixelViewport;
       const swapRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
         this.scene.engine,
@@ -261,7 +220,7 @@ export class PostProcessManager {
 
     this._currentSourceRenderTarget = currentDestRenderTarget;
 
-    if (this._remainEffectCount > 1) {
+    if (this._remainPassCount > 1) {
       this._currentDestRenderTarget = currentSourceRenderTarget;
     } else {
       this._currentDestRenderTarget = this._destRenderTarget;

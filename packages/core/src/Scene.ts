@@ -3,6 +3,7 @@ import { Background } from "./Background";
 import { ComponentsManager } from "./ComponentsManager";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
+import { MaskManager } from "./RenderPipeline/MaskManager";
 import { SceneManager } from "./SceneManager";
 import { EngineObject, Logger } from "./base";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
@@ -11,7 +12,7 @@ import { DirectLight } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
 import { LightManager } from "./lighting/LightManager";
 import { PhysicsScene } from "./physics/PhysicsScene";
-import { PostProcessManager } from "./postProcess";
+import { PostProcessManager, PostProcessUberPass } from "./postProcess";
 import { ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -19,7 +20,6 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
 import { ShadowResolution } from "./shadow/enum/ShadowResolution";
 import { ShadowType } from "./shadow/enum/ShadowType";
-import { MaskManager } from "./RenderPipeline/MaskManager";
 
 /**
  * Scene.
@@ -80,6 +80,13 @@ export class Scene extends EngineObject {
   private _isActive: boolean = true;
   private _sun: DirectLight | null;
   private _enableTransparentShadow = false;
+
+  /**
+   * Get the post process manager.
+   */
+  get postProcessManager(): PostProcessManager {
+    return this._postProcessManager;
+  }
 
   /**
    * Whether the scene is active.
@@ -287,6 +294,9 @@ export class Scene extends EngineObject {
 
     this._computeLinearFogParams(this._fogStart, this._fogEnd);
     this._computeExponentialFogParams(this._fogDensity);
+
+    const uberPass = new PostProcessUberPass(this._postProcessManager);
+    this._postProcessManager.addPostProcessPass(uberPass);
   }
 
   /**

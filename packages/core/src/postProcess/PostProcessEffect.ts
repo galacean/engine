@@ -1,41 +1,20 @@
-import { Camera } from "../Camera";
 import { ignoreClone } from "../clone/CloneManager";
-import { Material } from "../material";
-import { RenderTarget, Texture2D } from "../texture";
 import { PostProcess } from "./PostProcess";
-
-export enum RenderPostProcessEvent {
-  BeforeUber,
-  InUber,
-  AfterUber
-}
 
 /**
  * The base class for post process effect.
  */
 export class PostProcessEffect {
-  /**
-   * When the post process effect is rendered.
-   */
-  renderEvent = RenderPostProcessEvent.InUber;
-
   @ignoreClone
-  private _phasedActive: boolean = false;
+  private _phasedActive = false;
 
-  private _enabled: boolean = true;
+  private _enabled = true;
 
   /**
    * The engine the post process effect belongs to
    */
   get engine() {
     return this.postProcess.engine;
-  }
-
-  /**
-   * The Uber material used to render the post process effect.
-   */
-  get uberMaterial(): Material {
-    return this.postProcess.scene._postProcessManager._uberMaterial;
   }
 
   /**
@@ -86,12 +65,11 @@ export class PostProcessEffect {
   onDisable(): void {}
 
   /**
-   * Called when the post process effect is rendered.
-   * @param camera - The camera used to render
-   * @param srcTexture - The source texture from last render target
-   * @param destTarget - The destination render target
+   * Merge from post process effect instance.
+   * @param fromEffect - The post process effect instance to merge from
+   * @param interpFactor - The interpolation factor
    */
-  onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void {}
+  mergeFrom(fromEffect: PostProcessEffect, interpFactor: number): void {}
 
   /**
    * @internal

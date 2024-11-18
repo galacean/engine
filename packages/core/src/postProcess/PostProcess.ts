@@ -93,7 +93,7 @@ export class PostProcess extends Component {
    * @inheritdoc
    */
   override _onEnable() {
-    this.scene._postProcessManager.addPostProcess(this);
+    this.scene._postProcessManager._addPostProcess(this);
     this._setActiveEffects(true);
   }
 
@@ -101,7 +101,7 @@ export class PostProcess extends Component {
    * @inheritdoc
    */
   override _onDisable() {
-    this.scene._postProcessManager.removePostProcess(this);
+    this.scene._postProcessManager._removePostProcess(this);
     this._setActiveEffects(false);
   }
 
