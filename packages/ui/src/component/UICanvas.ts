@@ -545,16 +545,16 @@ export class UICanvas extends Component implements IElement {
               }
               Utils._registerElementToCanvasListener(canvas, rootCanvas);
             } else if (componentType === ComponentType.UIRenderer) {
-              Utils._onCanvasChange(element, this, true);
+              Utils._onCanvasDirty(element, this, true);
             } else {
-              Utils._onCanvasChange(element, this);
+              Utils._onCanvasDirty(element, this);
             }
           });
         } else {
           disorderedElements.forEach((element: IElement) => {
             // @ts-ignore
             const isGraphics = (element as unknown as Component)._componentType === ComponentType.UIRenderer;
-            Utils._onCanvasChange(element, this, isGraphics);
+            Utils._onCanvasDirty(element, this, isGraphics);
           });
         }
         disorderedElements.length = 0;

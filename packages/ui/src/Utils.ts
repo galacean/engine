@@ -57,7 +57,8 @@ export class Utils {
 
   static getGroupInParents(entity: Entity, canvasEntity: Entity): UIGroup {
     entity = entity.parent;
-    while (entity && entity !== canvasEntity) {
+    const root = canvasEntity?.parent;
+    while (entity && entity !== root) {
       // @ts-ignore
       const components = entity._components;
       for (let i = 0, n = components.length; i < n; i++) {
@@ -124,7 +125,7 @@ export class Utils {
     element._onGroupModify(GroupModifyFlags.All);
   }
 
-  static _onCanvasChange(element: IElement, preCanvas: UICanvas, isGraphics: boolean = false): void {
+  static _onCanvasDirty(element: IElement, preCanvas: UICanvas, isGraphics: boolean = false): void {
     if (element._isCanvasDirty) return;
     element._isCanvasDirty = true;
     if (preCanvas) {

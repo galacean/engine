@@ -1,6 +1,7 @@
 import { Color } from "@galacean/engine";
 import { UIRenderer } from "../../UIRenderer";
 import { Transition } from "./Transition";
+import { InteractiveState } from "../UIInteractive";
 
 export class ColorTransition extends Transition<Color, UIRenderer> {
   private _color: Color = new Color();
@@ -12,6 +13,36 @@ export class ColorTransition extends Transition<Color, UIRenderer> {
     this._disabled = new Color(200 / 255, 200 / 255, 200 / 255, 1);
     this._duration = 0.1;
     this._currentValue = new Color();
+
+    this._onNormalValueChanged = this._onNormalValueChanged.bind(this);
+    this._onHoverValueChanged = this._onHoverValueChanged.bind(this);
+    this._onPressedValueChanged = this._onPressedValueChanged.bind(this);
+    this._onDisabledValueChanged = this._onDisabledValueChanged.bind(this);
+
+    // @ts-ignore
+    this._normal._onValueChanged = this._onNormalValueChanged;
+    // @ts-ignore
+    this._hover._onValueChanged = this._onHoverValueChanged;
+    // @ts-ignore
+    this._pressed._onValueChanged = this._onPressedValueChanged;
+    // @ts-ignore
+    this._disabled._onValueChanged = this._onDisabledValueChanged;
+  }
+
+  private _onNormalValueChanged(): void {
+    this._finalState === InteractiveState.Normal && this._updateValue();
+  }
+
+  private _onHoverValueChanged(): void {
+    this._finalState === InteractiveState.Hover && this._updateValue();
+  }
+
+  private _onPressedValueChanged(): void {
+    this._finalState === InteractiveState.Pressed && this._updateValue();
+  }
+
+  private _onDisabledValueChanged(): void {
+    this._finalState === InteractiveState.Disable && this._updateValue();
   }
 
   protected _getTargetValueCopy(): Color {

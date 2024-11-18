@@ -149,8 +149,9 @@ export class UIInteractive extends Script implements IGroupAble {
     super._onEnableInScene();
     // @ts-ignore
     this.scene._componentsManager.addOnUpdateUIElement(this);
-    Utils._onCanvasChange(this, this._canvas);
+    Utils._onCanvasDirty(this, this._canvas);
     Utils._onGroupDirty(this, this._group);
+    this._updateState(true);
   }
 
   // @ts-ignore
@@ -197,7 +198,7 @@ export class UIInteractive extends Script implements IGroupAble {
   _canvasListener(flag: number): void {
     if (this._isCanvasDirty) return;
     if (flag === EntityModifyFlags.Parent) {
-      Utils._onCanvasChange(this, this._canvas);
+      Utils._onCanvasDirty(this, this._canvas);
       Utils._onGroupDirty(this, this._group);
     }
   }

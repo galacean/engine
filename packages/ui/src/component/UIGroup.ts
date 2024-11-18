@@ -148,7 +148,7 @@ export class UIGroup extends Component implements IGroupAble {
   // @ts-ignore
   override _onEnableInScene(): void {
     Utils._onGroupDirty(this, this._group);
-    Utils._onCanvasChange(this, this._canvas);
+    Utils._onCanvasDirty(this, this._canvas);
     // @ts-ignore
     this.entity._dispatchModify(EntityUIModifyFlags.UIGroupEnableInScene);
   }
@@ -184,7 +184,7 @@ export class UIGroup extends Component implements IGroupAble {
   _canvasListener(flag: number): void {
     if (this._isCanvasDirty) return;
     if (flag === EntityModifyFlags.Parent) {
-      Utils._onCanvasChange(this, this._canvas);
+      Utils._onCanvasDirty(this, this._canvas);
       Utils._onGroupDirty(this, this._group);
     }
   }

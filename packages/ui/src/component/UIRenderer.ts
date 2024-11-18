@@ -180,7 +180,7 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
   override _onEnableInScene(): void {
     // @ts-ignore
     this._overrideUpdate && this.scene._componentsManager.addOnUpdateRenderers(this);
-    Utils._onCanvasChange(this, this._canvas, true);
+    Utils._onCanvasDirty(this, this._canvas, true);
     Utils._onGroupDirty(this, this._group);
   }
 
@@ -214,7 +214,7 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
       const rootCanvas = this._canvas;
       rootCanvas && (rootCanvas._hierarchyDirty = true);
     } else if (flag === EntityModifyFlags.Parent) {
-      Utils._onCanvasChange(this, this._canvas, true);
+      Utils._onCanvasDirty(this, this._canvas, true);
       Utils._onGroupDirty(this, this._group);
     }
   }

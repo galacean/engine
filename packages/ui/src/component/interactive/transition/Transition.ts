@@ -131,7 +131,18 @@ export abstract class Transition<
   protected abstract _updateCurrentValue(srcValue: T, destValue: T, weight: number): void;
   protected abstract _applyValue(value: T): void;
 
-  private _updateValue() {
+  protected _onStateValueDirty(state: InteractiveState, preValue: T, curValue: T): void {
+    // @ts-ignore
+    preValue instanceof ReferResource && preValue._addReferCount(-1);
+    // @ts-ignore
+    curValue instanceof ReferResource && curValue._addReferCount(1);
+    if (this._finalState === state) {
+      this._finalValue = curValue;
+      this._updateValue();
+    }
+  }
+
+  protected _updateValue() {
     const weight = this._duration ? 1 - this._countDown / this._duration : 1;
     this._updateCurrentValue(this._initialValue, this._finalValue, weight);
     this._target?.enabled && this._applyValue(this._currentValue);
@@ -147,17 +158,6 @@ export abstract class Transition<
         return this.hover;
       case InteractiveState.Disable:
         return this.disabled;
-    }
-  }
-
-  private _onStateValueDirty(state: InteractiveState, preValue: T, curValue: T): void {
-    // @ts-ignore
-    preValue instanceof ReferResource && preValue._addReferCount(-1);
-    // @ts-ignore
-    curValue instanceof ReferResource && curValue._addReferCount(1);
-    if (this._finalState === state) {
-      this._finalValue = curValue;
-      this._updateValue();
     }
   }
 }
