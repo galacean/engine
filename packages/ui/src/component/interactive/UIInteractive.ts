@@ -28,9 +28,6 @@ export class UIInteractive extends Script implements IGroupAble {
   /**@internal */
   @ignoreClone
   _onUIUpdateIndex: number = 0;
-  /**@internal */
-  @ignoreClone
-  _groupDirtyFlags: number = 0;
   /** @internal */
   @ignoreClone
   _isGroupDirty: boolean = false;
@@ -40,6 +37,9 @@ export class UIInteractive extends Script implements IGroupAble {
   /** @internal */
   @ignoreClone
   _globalInteractive: boolean = false;
+  /** @internal */
+  @ignoreClone
+  _globalInteractiveDirty: boolean = false;
 
   protected _interactive: boolean = true;
   protected _state: InteractiveState = InteractiveState.Normal;
@@ -55,12 +55,39 @@ export class UIInteractive extends Script implements IGroupAble {
   set interactive(value: boolean) {
     if (this._interactive !== value) {
       this._interactive = value;
-      const globalInteractive = value && this._group?.globalInteractive;
-      if (this._globalInteractive !== globalInteractive) {
-        this._globalInteractive = globalInteractive;
-        this._updateState(true);
-      }
+      this._globalInteractiveDirty = true;
     }
+  }
+
+  get globalInteractive(): boolean {
+    this._updateGlobalInteractive();
+    return this._globalInteractive;
+  }
+
+  /**
+   * @internal
+   */
+  get canvas(): UICanvas {
+    if (this._isCanvasDirty) {
+      const curCanvas = Utils.getCanvasInParents(this.entity);
+      Utils._registerElementToCanvas(this, this._canvas, curCanvas);
+      Utils._registerElementToCanvasListener(this, curCanvas);
+      this._isCanvasDirty = false;
+    }
+    return this._canvas;
+  }
+
+  /**
+   * @internal
+   */
+  get group(): UIGroup {
+    if (this._isGroupDirty) {
+      const canvas = this.canvas;
+      Utils._registerElementToGroup(this, this._group, Utils.getGroupInParents(this.entity, canvas?.entity));
+      Utils._registerElementToGroupListener(this, canvas);
+      this._isGroupDirty = false;
+    }
+    return this._group;
   }
 
   getTransition<T extends Transition>(type: new () => T): T | null {
@@ -122,8 +149,8 @@ export class UIInteractive extends Script implements IGroupAble {
     super._onEnableInScene();
     // @ts-ignore
     this.scene._componentsManager.addOnUpdateUIElement(this);
-    Utils._onCanvasChange(this);
-    Utils._onGroupChange(this);
+    Utils._onCanvasChange(this, this._canvas);
+    Utils._onGroupDirty(this, this._group);
   }
 
   // @ts-ignore
@@ -132,9 +159,10 @@ export class UIInteractive extends Script implements IGroupAble {
     super._onDisableInScene();
     // @ts-ignore
     this.scene._componentsManager.removeOnUpdateUIElement(this);
-    Utils.unRegisterCanvasListener(this);
-    Utils.unRegisterGroupListener(this);
+    Utils._unRegisterListener(this._canvasListener, this._canvasListeningEntities);
+    Utils._unRegisterListener(this._groupListener, this._groupListeningEntities);
     this._isPointerInside = this._isPointerDragging = false;
+    this._isCanvasDirty = this._isGroupDirty = false;
   }
 
   override onDestroy(): void {
@@ -148,11 +176,7 @@ export class UIInteractive extends Script implements IGroupAble {
    * @internal
    */
   _onUpdate(): void {
-    if (this._groupDirtyFlags & GroupModifyFlags.GlobalInteractive) {
-      const group = Utils._getGroup(this);
-      this._globalInteractive = this._interactive && (!group || group.globalInteractive);
-      this._groupDirtyFlags &= ~GroupModifyFlags.GlobalInteractive;
-    }
+    this._updateGlobalInteractive();
   }
 
   /**
@@ -162,7 +186,7 @@ export class UIInteractive extends Script implements IGroupAble {
   _groupListener(flag: number): void {
     if (this._isGroupDirty) return;
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.UIGroupEnableInScene) {
-      Utils._onGroupChange(this);
+      Utils._onGroupDirty(this, this._group);
     }
   }
 
@@ -173,8 +197,8 @@ export class UIInteractive extends Script implements IGroupAble {
   _canvasListener(flag: number): void {
     if (this._isCanvasDirty) return;
     if (flag === EntityModifyFlags.Parent) {
-      Utils._onCanvasChange(this);
-      Utils._onGroupChange(this);
+      Utils._onCanvasChange(this, this._canvas);
+      Utils._onGroupDirty(this, this._group);
     }
   }
 
@@ -183,7 +207,21 @@ export class UIInteractive extends Script implements IGroupAble {
    */
   @ignoreClone
   _onGroupModify(flags: GroupModifyFlags): void {
-    this._groupDirtyFlags |= flags;
+    if (flags & GroupModifyFlags.GlobalInteractive) {
+      this._globalInteractiveDirty = true;
+    }
+  }
+
+  private _updateGlobalInteractive(): void {
+    if (this._globalInteractiveDirty) {
+      const group = this.group;
+      const globalInteractive = this._interactive && (!group || group.globalInteractive);
+      if (this._globalInteractive !== globalInteractive) {
+        this._globalInteractive = globalInteractive;
+        this._updateState(true);
+      }
+      this._globalInteractiveDirty = false;
+    }
   }
 
   private _updateState(instant: boolean): void {

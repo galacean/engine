@@ -3,8 +3,8 @@ import { UICanvas } from "../component/UICanvas";
 
 export interface IElement {
   entity: Entity;
+  readonly canvas: UICanvas;
 
-  _canvas: UICanvas;
   _indexInCanvas: number;
   _isCanvasDirty: boolean;
 

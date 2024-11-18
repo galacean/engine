@@ -71,9 +71,6 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
   /**@internal */
   @ignoreClone
   _onUIUpdateIndex: number = 0;
-  /**@internal */
-  @ignoreClone
-  _groupDirtyFlags: number = 0;
 
   @ignoreClone
   private _raycastEnable: boolean = true;
@@ -101,6 +98,32 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
 
   set raycastEnable(val: boolean) {
     this._raycastEnable = val;
+  }
+
+  /**
+   * @internal
+   */
+  get canvas(): UICanvas {
+    if (this._isCanvasDirty) {
+      const curCanvas = Utils.getCanvasInParents(this.entity);
+      Utils._registerElementToCanvas(this, this._canvas, curCanvas);
+      Utils._registerElementToCanvasListener(this, curCanvas);
+      this._isCanvasDirty = false;
+    }
+    return this._canvas;
+  }
+
+  /**
+   * @internal
+   */
+  get group(): UIGroup {
+    if (this._isGroupDirty) {
+      const canvas = this.canvas;
+      Utils._registerElementToGroup(this, this._group, Utils.getGroupInParents(this.entity, canvas?.entity));
+      Utils._registerElementToGroupListener(this, canvas);
+      this._isGroupDirty = false;
+    }
+    return this._group;
   }
 
   /**
@@ -157,16 +180,17 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
   override _onEnableInScene(): void {
     // @ts-ignore
     this._overrideUpdate && this.scene._componentsManager.addOnUpdateRenderers(this);
-    Utils._onCanvasChange(this, true);
-    Utils._onGroupChange(this);
+    Utils._onCanvasChange(this, this._canvas, true);
+    Utils._onGroupDirty(this, this._group);
   }
 
   // @ts-ignore
   override _onDisableInScene(): void {
     // @ts-ignore
     this._overrideUpdate && this.scene._componentsManager.removeOnUpdateRenderers(this);
-    Utils.unRegisterCanvasListener(this, true);
-    Utils.unRegisterGroupListener(this);
+    Utils._unRegisterListener(this._canvasListener, this._canvasListeningEntities);
+    Utils._unRegisterListener(this._groupListener, this._groupListeningEntities);
+    this._isCanvasDirty = this._isGroupDirty = false;
   }
 
   /**
@@ -176,7 +200,7 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
   _groupListener(flag: number): void {
     if (this._isGroupDirty) return;
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.UIGroupEnableInScene) {
-      Utils._onGroupChange(this);
+      Utils._onGroupDirty(this, this._group);
     }
   }
 
@@ -190,8 +214,8 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
       const rootCanvas = this._canvas;
       rootCanvas && (rootCanvas._hierarchyDirty = true);
     } else if (flag === EntityModifyFlags.Parent) {
-      Utils._onCanvasChange(this, true);
-      Utils._onGroupChange(this);
+      Utils._onCanvasChange(this, this._canvas, true);
+      Utils._onGroupDirty(this, this._group);
     }
   }
 
