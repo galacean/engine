@@ -159,7 +159,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
-   * The iridescence intensity texture, Sampling blue channel, And multiply "iridescence".
+   * The iridescence intensity texture, sampling red channel, and multiply 'iridescence'.
    */
   get iridescenceTexture(): Texture2D {
     return <Texture2D>this.shaderData.getTexture(PBRMaterial._iridescenceTextureProp);
@@ -189,7 +189,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
-   * "iridescenceThicknessRange.x" is minimum thickness, "iridescenceThicknessRange.y" is maximum thickness.
+   * The range of iridescence thickness, x is minimum, y is maximum.
    *  @defaultValue `[100, 400]`.
    */
   get iridescenceThicknessRange(): Vector2 {
@@ -203,10 +203,10 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
-   * The thickness texture of the thin-film layer, Sampling green channel.
+   * The thickness texture of the thin-film layer, sampling green channel.
    * @remarks
-   * If iridescenceThicknessTexture is defined, Values in-between will linearly interpolate between the elements of the iridescenceThicknessRange.
-   * If iridescenceThicknessTexture is not defined, iridescence thickness will use only iridescenceThicknessMax.
+   * If iridescenceThicknessTexture is defined, iridescence thickness between the 'iridescenceThicknessRange'.
+   * If iridescenceThicknessTexture is not defined, iridescence thickness will use only 'iridescenceThicknessRange.y'.
    */
   get iridescenceThicknessTexture(): Texture2D {
     return <Texture2D>this.shaderData.getTexture(PBRMaterial._iridescenceThicknessTextureProp);
