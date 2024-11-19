@@ -259,6 +259,19 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
   }
 
   /**
+   * Copy to color like object.
+   * @param target - Color like object.
+   * @returns This Color like object
+   */
+  copyTo(target: ColorLike): ColorLike {
+    target.r = this._r;
+    target.g = this._g;
+    target.b = this._b;
+    target.a = this._a;
+    return target;
+  }
+
+  /**
    * Copy from array like object.
    * @param source - Array like object
    * @param offset - The start offset
