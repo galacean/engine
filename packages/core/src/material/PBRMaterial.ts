@@ -1,4 +1,4 @@
-import { MathUtil, Vector3, Vector4 } from "@galacean/engine-math";
+import { MathUtil, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
@@ -23,6 +23,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   private static _iridescenceInfoProp = ShaderProperty.getByName("material_IridescenceInfo");
   private static _iridescenceThicknessTextureProp = ShaderProperty.getByName("material_IridescenceThicknessTexture");
   private static _iridescenceTextureProp = ShaderProperty.getByName("material_IridescenceTexture");
+  private _iridescenceRange = new Vector2();
 
   /**
    * Index Of Refraction.
@@ -137,7 +138,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
-   * The iridescence intensity factor.
+   * The iridescence intensity factor, from 0.0 to 1.0.
    * @defaultValue `0.0`
    */
   get iridescence(): number {
@@ -158,63 +159,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
-   * The index of refraction of the dielectric thin-film layer.
-   * @defaultValue `1.3`
-   */
-  get iridescenceIor(): number {
-    return this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp).y;
-  }
-
-  set iridescenceIor(value: number) {
-    const iridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp);
-    iridescenceInfo.y = Math.max(value, 1.0);
-  }
-
-  /**
-   * The minimum thickness of the thin-film layer given in nanometers.
-   * @defaultValue `100`
-   */
-  get iridescenceThicknessMin(): number {
-    return this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp).z;
-  }
-
-  set iridescenceThicknessMin(value: number) {
-    const iridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp);
-    iridescenceInfo.z = value;
-  }
-
-  /**
-   * The maximum thickness of the thin-film layer given in nanometers.
-   * @defaultValue `400`
-   */
-  get iridescenceThicknessMax(): number {
-    return this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp).w;
-  }
-
-  set iridescenceThicknessMax(value: number) {
-    const iridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp);
-    iridescenceInfo.w = value;
-  }
-
-  /**
-   * The thickness texture of the thin-film layer.
-   */
-  get iridescenceThicknessTexture(): Texture2D {
-    return <Texture2D>this.shaderData.getTexture(PBRMaterial._iridescenceThicknessTextureProp);
-  }
-
-  set iridescenceThicknessTexture(value: Texture2D) {
-    this.shaderData.setTexture(PBRMaterial._iridescenceThicknessTextureProp, value);
-
-    if (value) {
-      this.shaderData.enableMacro("MATERIAL_HAS_IRIDESCENCE_THICKNESS_TEXTURE");
-    } else {
-      this.shaderData.disableMacro("MATERIAL_HAS_IRIDESCENCE_THICKNESS_TEXTURE");
-    }
-  }
-
-  /**
-   * The iridescence intensity texture.
+   * The iridescence intensity texture, Sampling blue channel, And multiply "iridescence".
    */
   get iridescenceTexture(): Texture2D {
     return <Texture2D>this.shaderData.getTexture(PBRMaterial._iridescenceTextureProp);
@@ -231,6 +176,53 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
+   * The index of refraction of the dielectric thin-film layer, limit less than 1.0.
+   * @defaultValue `1.3`
+   */
+  get iridescenceIOR(): number {
+    return this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp).y;
+  }
+
+  set iridescenceIOR(value: number) {
+    const iridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp);
+    iridescenceInfo.y = Math.max(value, 1.0);
+  }
+
+  /**
+   * "iridescenceThicknessRange.x" is minimum thickness, "iridescenceThicknessRange.y" is maximum thickness.
+   *  @defaultValue `[100, 400]`.
+   */
+  get iridescenceThicknessRange(): Vector2 {
+    return this._iridescenceRange;
+  }
+
+  set iridescenceThicknessRange(value: Vector2) {
+    if (this._iridescenceRange !== value) {
+      this._iridescenceRange.copyFrom(value);
+    }
+  }
+
+  /**
+   * The thickness texture of the thin-film layer, Sampling green channel.
+   * @remarks
+   * If iridescenceThicknessTexture is defined, Values in-between will linearly interpolate between the elements of the iridescenceThicknessRange.
+   * If iridescenceThicknessTexture is not defined, iridescence thickness will use only iridescenceThicknessMax.
+   */
+  get iridescenceThicknessTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._iridescenceThicknessTextureProp);
+  }
+
+  set iridescenceThicknessTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._iridescenceThicknessTextureProp, value);
+
+    if (value) {
+      this.shaderData.enableMacro("MATERIAL_HAS_IRIDESCENCE_THICKNESS_TEXTURE");
+    } else {
+      this.shaderData.disableMacro("MATERIAL_HAS_IRIDESCENCE_THICKNESS_TEXTURE");
+    }
+  }
+
+  /**
    * Create a pbr metallic-roughness workflow material instance.
    * @param engine - Engine to which the material belongs
    */
@@ -243,6 +235,14 @@ export class PBRMaterial extends PBRBaseMaterial {
     shaderData.setFloat(PBRMaterial._iorProp, 1.5);
     shaderData.setVector3(PBRMaterial._anisotropyInfoProp, new Vector3(1, 0, 0));
     shaderData.setVector4(PBRMaterial._iridescenceInfoProp, new Vector4(0, 1.3, 100, 400));
+    // @ts-ignore
+    this._iridescenceRange._onValueChanged = this._onIridescenceRangeChanged.bind(this);
+  }
+
+  private _onIridescenceRangeChanged(): void {
+    const iridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp);
+    iridescenceInfo.z = this._iridescenceRange.x;
+    iridescenceInfo.w = this._iridescenceRange.y;
   }
 
   /**
