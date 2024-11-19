@@ -23,7 +23,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   private static _iridescenceInfoProp = ShaderProperty.getByName("material_IridescenceInfo");
   private static _iridescenceThicknessTextureProp = ShaderProperty.getByName("material_IridescenceThicknessTexture");
   private static _iridescenceTextureProp = ShaderProperty.getByName("material_IridescenceTexture");
-  private _iridescenceRange = new Vector2();
+  private _iridescenceRange = new Vector2(100, 400);
 
   /**
    * Index Of Refraction.
