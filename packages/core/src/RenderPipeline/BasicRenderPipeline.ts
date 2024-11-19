@@ -1,7 +1,6 @@
 import { Vector2 } from "@galacean/engine-math";
 import { Background } from "../Background";
 import { Camera } from "../Camera";
-import { Engine } from "../Engine";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
@@ -270,8 +269,10 @@ export class BasicRenderPipeline {
       const shaderPass = shaderPasses[i];
       const renderState = shaderPass._renderState;
       if (renderState) {
-        renderState._applyRenderQueueByShaderData(shaderPass._renderStateDataMap, subRenderElement.material.shaderData);
-        renderQueueType = renderState.renderQueueType;
+        renderQueueType = renderState._getRenderQueueByShaderData(
+          shaderPass._renderStateDataMap,
+          subRenderElement.material.shaderData
+        );
       } else {
         renderQueueType = renderStates[i].renderQueueType;
       }

@@ -119,6 +119,11 @@ export const E2E_CONFIG = {
       category: "Material",
       caseFileName: "material-unlit",
       threshold: 0.2
+    },
+    "shaderLab-renderState": {
+      category: "Material",
+      caseFileName: "shaderLab-renderState",
+      threshold: 0.2
     }
   },
   Shadow: {
@@ -226,5 +231,5 @@ export const E2E_CONFIG = {
       caseFileName: "project-loader",
       threshold: 0.4
     }
-  },
+  }
 };
