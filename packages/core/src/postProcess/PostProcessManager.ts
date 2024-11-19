@@ -15,9 +15,11 @@ export class PostProcessManager {
   /** @internal */
   _uberMaterial: Material;
 
+  /** @internal */
+  _postProcessNeedSorting = false;
+
   private _activePostProcesses: PostProcess[] = [];
   private _activePostProcessPasses: PostProcessPass[] = [];
-  private _postProcessNeedSorting = false;
   private _postProcessPassNeedSorting = false;
   private _hasActiveEffect = false;
   private _activeStateChangeFlag = false;

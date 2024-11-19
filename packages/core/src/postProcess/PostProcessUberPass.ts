@@ -210,6 +210,7 @@ export class PostProcessUberPass extends PostProcessPass {
       }
       Blitter.blitTexture(engine, <Texture2D>highMip.getColorTexture(0), dst, undefined, undefined, bloomMaterial, 3);
     }
+
     // Setup bloom on uber
     if (dirtTexture) {
       const dirtTilingOffset = uberShaderData.getVector4(BloomEffect._dirtTilingOffsetProp);

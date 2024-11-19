@@ -9,12 +9,20 @@ import { PostProcessEffect } from "./PostProcessEffect";
  * PostProcess can be used to apply effects such as Bloom and Tonemapping to the Scene or Colliders.
  */
 export class PostProcess extends Component {
+  private _priority = 0;
   /**
    * A value which determines which PostProcess is being used when PostProcess have an equal amount of influence on the Scene.
    * @remarks
    * PostProcess with a higher priority will override lower ones.
    */
-  priority = 0;
+  get priority(): number {
+    return this._priority;
+  }
+
+  set priority(value: number) {
+    this._priority = value;
+    this.scene._postProcessManager._postProcessNeedSorting = true;
+  }
 
   /**
    * The layer to which the PostProcess belongs.
