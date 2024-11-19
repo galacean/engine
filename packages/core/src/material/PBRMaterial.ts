@@ -176,7 +176,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
-   * The index of refraction of the dielectric thin-film layer, limit less than 1.0.
+   * The index of refraction of the dielectric thin-film layer, greater than or equal to 1.0.
    * @defaultValue `1.3`
    */
   get iridescenceIOR(): number {
