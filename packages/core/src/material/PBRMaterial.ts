@@ -145,6 +145,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   set iridescence(value: number) {
+    value = Math.max(0, Math.min(1, value));
     const iridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp);
     if (!!iridescenceInfo.x !== !!value) {
       if (value === 0) {
@@ -152,8 +153,8 @@ export class PBRMaterial extends PBRBaseMaterial {
       } else {
         this.shaderData.enableMacro("MATERIAL_ENABLE_IRIDESCENCE");
       }
-      iridescenceInfo.x = value;
     }
+    iridescenceInfo.x = value;
   }
 
   /**
@@ -166,7 +167,7 @@ export class PBRMaterial extends PBRBaseMaterial {
 
   set iridescenceIor(value: number) {
     const iridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp);
-    iridescenceInfo.y = value;
+    iridescenceInfo.y = Math.max(value, 1.0);
   }
 
   /**
