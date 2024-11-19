@@ -40,14 +40,14 @@ export class PostProcessUberPass extends PostProcessPass {
     super(postProcessManager);
     const engine = postProcessManager.scene.engine;
 
-    // Uber
+    // Uber Material
     const uberMaterial = new Material(engine, Shader.find(PostProcessUberPass.UBER_SHADER_NAME));
     const uberDepthState = uberMaterial.renderState.depthState;
     uberDepthState.enabled = false;
     uberDepthState.writeEnabled = false;
     this._uberMaterial = uberMaterial;
 
-    // Bloom
+    // Bloom Material
     const bloomMaterial = new Material(engine, Shader.find(BloomEffect.SHADER_NAME));
     const bloomDepthState = bloomMaterial.renderState.depthState;
     bloomDepthState.enabled = false;
@@ -88,6 +88,15 @@ export class PostProcessUberPass extends PostProcessPass {
     }
 
     Blitter.blitTexture(camera.engine, srcTexture, destTarget, 0, camera.viewport, this._uberMaterial, undefined);
+  }
+
+  /**
+   * Destroy the pass.
+   */
+  destroy() {
+    this._releaseBloomRenderTargets();
+    this._uberMaterial.destroy();
+    this._bloomMaterial.destroy();
   }
 
   private _setupBloom(bloomInstance: BloomEffect, camera: Camera, srcTexture: Texture2D) {
