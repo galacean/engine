@@ -211,6 +211,11 @@ export const E2E_CONFIG = {
       category: "PostProcess",
       caseFileName: "postProcess-LDR-bloom-neutral",
       threshold: 0.2
+    },
+    customPass: {
+      category: "PostProcess",
+      caseFileName: "postProcess-customPass",
+      threshold: 0.2
     }
   },
   Text: {

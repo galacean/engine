@@ -163,7 +163,7 @@ export class PostProcessManager {
         }
 
         // @todo: need `collider.ClosestPoint` to be implemented
-        effect.lerp(effectInstance, 0.5);
+        effect.lerp(effectInstance, 1);
       }
     }
   }
