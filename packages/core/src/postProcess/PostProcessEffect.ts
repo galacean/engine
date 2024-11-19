@@ -65,11 +65,11 @@ export class PostProcessEffect {
   onDisable(): void {}
 
   /**
-   * Merge from post process effect instance.
-   * @param fromEffect - The post process effect instance to merge from
-   * @param interpFactor - The interpolation factor
+   * Interpolates a post process effect with this effect by an interpolation.
+   * @param fromEffect - The effect to interpolate from, you must store the result of the interpolation in this same effect
+   * @param interpFactor - The interpolation factor in range [0,1]
    */
-  mergeFrom(fromEffect: PostProcessEffect, interpFactor: number): void {}
+  lerp(fromEffect: PostProcessEffect, interpFactor: number): void {}
 
   /**
    * @internal

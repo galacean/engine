@@ -28,7 +28,8 @@ export class PostProcessManager {
   private _destRenderTarget: RenderTarget;
   private _currentSourceRenderTarget: RenderTarget;
   private _currentDestRenderTarget: RenderTarget;
-  private _postProcessEffectInstance = new Map<typeof PostProcessEffect, PostProcessEffect>();
+  private _postProcessEffectInstanceMap = new Map<typeof PostProcessEffect, PostProcessEffect>();
+  private _defaultPostProcessEffectMap = new Map<typeof PostProcessEffect, PostProcessEffect>();
   private _remainPassCount = 0;
 
   /**
@@ -114,7 +115,26 @@ export class PostProcessManager {
     }
   }
 
+  private _resetDefaultValue() {
+    this._postProcessEffectInstanceMap.forEach((effectInstance, typeofEffectInstance) => {
+      let defaultEffect = this._defaultPostProcessEffectMap.get(typeofEffectInstance);
+
+      if (!defaultEffect) {
+        defaultEffect = new typeofEffectInstance(effectInstance.postProcess);
+        defaultEffect._setActive(true);
+        this._defaultPostProcessEffectMap.set(typeofEffectInstance, defaultEffect);
+      }
+
+      // Reset effectInstance's value by defaultEffect
+      defaultEffect.lerp(effectInstance, 1);
+    });
+  }
+
   update(postProcessMask: Layer) {
+    // Start by resetting post process effect instance to default values
+    this._resetDefaultValue();
+
+    // Sort post process and post process pass
     this._sortPostProcess();
     this._sortPostProcessPass();
 
@@ -135,20 +155,21 @@ export class PostProcessManager {
           continue;
         }
         const PostConstructor = effect.constructor as typeof PostProcessEffect;
-        let effectInstance = this._postProcessEffectInstance.get(PostConstructor);
+        let effectInstance = this._postProcessEffectInstanceMap.get(PostConstructor);
         if (!effectInstance) {
           effectInstance = new PostConstructor(postProcess);
           effectInstance._setActive(true);
-          this._postProcessEffectInstance.set(PostConstructor, effectInstance);
+          this._postProcessEffectInstanceMap.set(PostConstructor, effectInstance);
         }
 
-        effect.mergeFrom(effectInstance, 1);
+        // @todo: need `collider.ClosestPoint` to be implemented
+        effect.lerp(effectInstance, 0.5);
       }
     }
   }
 
   getEffectInstance<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
-    return this._postProcessEffectInstance.get(type) as InstanceType<T>;
+    return this._postProcessEffectInstanceMap.get(type) as InstanceType<T>;
   }
 
   render(camera: Camera, srcRenderTarget: RenderTarget, destRenderTarget: RenderTarget): void {

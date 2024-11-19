@@ -29,7 +29,10 @@ export class TonemappingEffect extends PostProcessEffect {
    */
   mode: TonemappingMode = TonemappingMode.Neutral;
 
-  override mergeFrom(fromEffect: TonemappingEffect): void {
+  /**
+   * @inheritdoc
+   */
+  override lerp(fromEffect: TonemappingEffect): void {
     fromEffect.mode = this.mode;
   }
 }

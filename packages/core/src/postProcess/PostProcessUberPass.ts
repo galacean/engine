@@ -65,7 +65,7 @@ export class PostProcessUberPass extends PostProcessPass {
   }
 
   /**
-   *  @inheritdoc
+   * @inheritdoc
    */
   onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void {
     const uberShaderData = this._uberMaterial.shaderData;

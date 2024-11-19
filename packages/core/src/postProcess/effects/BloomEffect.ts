@@ -56,7 +56,7 @@ export class BloomEffect extends PostProcessEffect {
 
   private _threshold = 0.9;
   private _scatter = 0.7;
-  private _intensity = 1;
+  private _intensity = 0;
   private _dirtIntensity = 1;
   private _tint: Color = new Color(1, 1, 1, 1);
 
@@ -136,7 +136,10 @@ export class BloomEffect extends PostProcessEffect {
     }
   }
 
-  override mergeFrom(fromEffect: BloomEffect, interpFactor: number): void {
+  /**
+   * @inheritdoc
+   */
+  override lerp(fromEffect: BloomEffect, interpFactor: number): void {
     fromEffect.highQualityFiltering = this.highQualityFiltering;
     fromEffect.downScale = this.downScale;
     fromEffect.threshold = MathUtil.lerp(fromEffect.threshold, this.threshold, interpFactor);
