@@ -1,16 +1,20 @@
-import { Component } from "../../../Component";
-import { Entity } from "../../../Entity";
-import { Scene } from "../../../Scene";
-import { Script } from "../../../Script";
-import { CameraClearFlags } from "../../../enums/CameraClearFlags";
-import { ComponentType } from "../../../enums/ComponentType";
-import { UICanvas, UIRenderer } from "../../../ui";
-import { PointerMethods } from "../../enums/PointerMethods";
-import { Pointer } from "../Pointer";
-import { PointerEventData } from "../PointerEventData";
-import { PointerEventEmitter } from "./PointerEventEmitter";
+import {
+  CameraClearFlags,
+  Component,
+  ComponentType,
+  Entity,
+  Pointer,
+  PointerEventData,
+  PointerEventEmitter,
+  PointerMethods,
+  Scene,
+  Script,
+  registerPointerEventEmitter
+} from "@galacean/engine";
+import { IGraphics } from "../interface/IGraphics";
 
-export class PointerUIEventEmitter extends PointerEventEmitter {
+@registerPointerEventEmitter()
+export class UIPointerEventEmitter extends PointerEventEmitter {
   private static _MAX_PATH_DEPTH = 2048;
   private static _path0: Entity[] = [];
   private static _path1: Entity[] = [];
@@ -19,7 +23,7 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
   private _pressedElement: Component;
   private _draggedElement: Component;
 
-  override _processRaycast(scenes: readonly Scene[], pointer: Pointer): void {
+  override processRaycast(scenes: readonly Scene[], pointer: Pointer): void {
     const { _tempRay: ray } = PointerEventEmitter;
     const hitResult = this._hitResult;
     const { position } = pointer;
@@ -27,8 +31,8 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
     for (let i = scenes.length - 1; i >= 0; i--) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
-      const { _componentsManager: componentsManager } = scene;
-
+      // @ts-ignore
+      const componentsManager = scene._componentsManager;
       /** Overlay Canvas */
       let canvasElements = componentsManager._overlayCanvases;
       ray.origin.set(position.x, position.y, 1);
@@ -85,39 +89,33 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
     return null;
   }
 
-  override _processDrag(pointer: Pointer): void {
+  override processDrag(pointer: Pointer): void {
     if (this._draggedElement) {
       this._bubble(
-        this._composedPath(this._draggedElement, PointerUIEventEmitter._path0),
+        this._composedPath(this._draggedElement, UIPointerEventEmitter._path0),
         pointer,
         PointerMethods.onPointerDrag
       );
     }
   }
 
-  /**
-   * @internal
-   */
-  override _processDown(pointer: Pointer): void {
+  override processDown(pointer: Pointer): void {
     const element = (this._pressedElement = this._draggedElement = this._enteredElement);
     if (element) {
-      const path = this._composedPath(element, PointerUIEventEmitter._path0);
+      const path = this._composedPath(element, UIPointerEventEmitter._path0);
       this._bubble(path, pointer, PointerMethods.onPointerDown);
       this._bubble(path, pointer, PointerMethods.onPointerBeginDrag);
     }
   }
 
-  /**
-   * @internal
-   */
-  override _processUp(pointer: Pointer): void {
-    const liftedPath = PointerUIEventEmitter._path0;
+  override processUp(pointer: Pointer): void {
+    const liftedPath = UIPointerEventEmitter._path0;
     const enteredElement = this._enteredElement;
     if (enteredElement) {
       this._composedPath(enteredElement, liftedPath);
       this._bubble(liftedPath, pointer, PointerMethods.onPointerUp);
       if (this._pressedElement) {
-        const pressedPath = this._composedPath(this._pressedElement, PointerUIEventEmitter._path1);
+        const pressedPath = this._composedPath(this._pressedElement, UIPointerEventEmitter._path1);
         const enterLength = liftedPath.length;
         const pressLength = pressedPath.length;
         const minLength = Math.min(enterLength, pressLength);
@@ -138,7 +136,7 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
 
     if (this._draggedElement) {
       this._bubble(
-        this._composedPath(this._draggedElement, PointerUIEventEmitter._path1),
+        this._composedPath(this._draggedElement, UIPointerEventEmitter._path1),
         pointer,
         PointerMethods.onPointerEndDrag
       );
@@ -150,8 +148,8 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
     }
   }
 
-  override _processLeave(pointer: Pointer): void {
-    const path = PointerUIEventEmitter._path0;
+  override processLeave(pointer: Pointer): void {
+    const path = UIPointerEventEmitter._path0;
     if (this._enteredElement) {
       this._bubble(this._composedPath(this._enteredElement, path), pointer, PointerMethods.onPointerExit);
       this._enteredElement = null;
@@ -164,11 +162,15 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
     this._pressedElement = null;
   }
 
+  override dispose(): void {
+    this._enteredElement = this._pressedElement = this._draggedElement = null;
+  }
+
   private _updateRaycast(element: Component, pointer: Pointer = null): void {
     const enteredElement = this._enteredElement;
     if (element !== enteredElement) {
-      let prePath = this._composedPath(enteredElement, PointerUIEventEmitter._path0);
-      let curPath = this._composedPath(element, PointerUIEventEmitter._path1);
+      let prePath = this._composedPath(enteredElement, UIPointerEventEmitter._path0);
+      let curPath = this._composedPath(element, UIPointerEventEmitter._path1);
       const preLength = prePath.length;
       const curLength = curPath.length;
       const minLength = Math.min(preLength, curLength);
@@ -200,18 +202,16 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
 
   private _fireEvent(entity: Entity, eventData: PointerEventData, methods: PointerMethods): void {
     eventData.currentTarget = entity;
+    // @ts-ignore
     entity._scripts.forEach(
       (script: Script) => {
         script[methods]?.(eventData);
       },
       (script: Script, index: number) => {
+        // @ts-ignore
         script._entityScriptsIndex = index;
       }
     );
-  }
-
-  override _dispose(): void {
-    this._enteredElement = this._pressedElement = this._draggedElement = null;
   }
 
   private _composedPath(element: Component, path: Entity[]): Entity[] {
@@ -219,14 +219,15 @@ export class PointerUIEventEmitter extends PointerEventEmitter {
       path.length = 0;
       return path;
     }
-    let entity = (path[0] = element._entity);
+    let entity = (path[0] = element.entity);
     let i = 1;
-    if (element._componentType === ComponentType.UICanvas && (<UICanvas>element)._isRootCanvas) {
+    // @ts-ignore
+    if (element._componentType === ComponentType.UICanvas && element._isRootCanvas) {
       path.length = 1;
       return path;
     } else {
-      const rootEntity = (<UICanvas | UIRenderer>element)._rootCanvas._entity;
-      for (; i < PointerUIEventEmitter._MAX_PATH_DEPTH && !!entity && entity !== rootEntity; i++) {
+      const rootEntity = (element as unknown as IGraphics).canvas.entity;
+      for (; i < UIPointerEventEmitter._MAX_PATH_DEPTH && !!entity && entity !== rootEntity; i++) {
         entity = path[i] = entity.parent;
       }
     }

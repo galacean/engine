@@ -1,21 +1,26 @@
-import { BoundingBox, MathUtil, Vector2, Vector3 } from "@galacean/engine-math";
-import { Sprite, SpriteDrawMode, SpriteTileMode } from "../2d";
-import { ISpriteAssembler } from "../2d/assembler/ISpriteAssembler";
-import { ISpriteRenderer } from "../2d/assembler/ISpriteRenderer";
-import { SimpleSpriteAssembler } from "../2d/assembler/SimpleSpriteAssembler";
-import { SlicedSpriteAssembler } from "../2d/assembler/SlicedSpriteAssembler";
-import { TiledSpriteAssembler } from "../2d/assembler/TiledSpriteAssembler";
-import { SpriteModifyFlags } from "../2d/enums/SpriteModifyFlags";
-import { Entity } from "../Entity";
-import { RenderQueueFlags } from "../RenderPipeline/BasicRenderPipeline";
-import { BatchUtils } from "../RenderPipeline/BatchUtils";
-import { RenderContext } from "../RenderPipeline/RenderContext";
-import { SubRenderElement } from "../RenderPipeline/SubRenderElement";
-import { RendererUpdateFlags } from "../Renderer";
-import { assignmentClone, ignoreClone } from "../clone/CloneManager";
-import { UIRenderer, UIRendererUpdateFlags } from "./UIRenderer";
-import { UITransform, UITransformModifyFlags } from "./UITransform";
-import { CanvasRenderMode } from "./enums/CanvasRenderMode";
+import {
+  BoundingBox,
+  Entity,
+  ISpriteAssembler,
+  ISpriteRenderer,
+  MathUtil,
+  RenderQueueFlags,
+  RendererUpdateFlags,
+  SimpleSpriteAssembler,
+  SlicedSpriteAssembler,
+  Sprite,
+  SpriteDrawMode,
+  SpriteModifyFlags,
+  SpriteTileMode,
+  TiledSpriteAssembler,
+  Vector2,
+  Vector3,
+  assignmentClone,
+  ignoreClone
+} from "@galacean/engine";
+import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
+import { UIRenderer, UIRendererUpdateFlags } from "../UIRenderer";
+import { UITransform, UITransformModifyFlags } from "../UITransform";
 
 export class Image extends UIRenderer implements ISpriteRenderer {
   private static _tempVec2: Vector2 = new Vector2();
@@ -115,11 +120,13 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     if (lastSprite !== value) {
       if (lastSprite) {
         this._addResourceReferCount(lastSprite, -1);
+        // @ts-ignore
         lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
       }
       this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionUVAndColor;
       if (value) {
         this._addResourceReferCount(value, 1);
+        // @ts-ignore
         value._updateFlagManager.addListener(this._onSpriteChange);
         this.shaderData.setTexture(UIRenderer._textureProperty, value.texture);
       } else {
@@ -136,6 +143,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     super(entity);
 
     this.drawMode = SpriteDrawMode.Simple;
+    // @ts-ignore
     this.setMaterial(this._engine._basicResources.uiDefaultMaterial);
     this._onSpriteChange = this._onSpriteChange.bind(this);
     //@ts-ignore
@@ -193,7 +201,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   /**
    * @internal
    */
-  protected override _render(context: RenderContext): void {
+  protected override _render(context): void {
     const { _sprite: sprite } = this;
     const transform = this._transform as UITransform;
     const { x: width, y: height } = transform.size;
@@ -207,6 +215,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     }
     // @todo: This question needs to be raised rather than hidden.
     if (material.destroyed) {
+      // @ts-ignore
       material = this._engine._basicResources.uiDefaultMaterial;
     }
 
@@ -236,29 +245,15 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     this._dirtyUpdateFlag = dirtyUpdateFlag;
     // Init sub render element.
     const { engine } = context.camera;
-    const canvas = this._rootCanvas;
+    const canvas = this.canvas;
     const subRenderElement = engine._subRenderElementPool.get();
     const subChunk = this._subChunk;
     subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
-    if (canvas.renderMode === CanvasRenderMode.ScreenSpaceOverlay) {
+    if (canvas._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay) {
       subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
       subRenderElement.renderQueueFlags = RenderQueueFlags.All;
     }
     canvas._renderElement.addSubRenderElement(subRenderElement);
-  }
-
-  /**
-   * @internal
-   */
-  override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
-    return BatchUtils.canBatchSprite(elementA, elementB);
-  }
-
-  /**
-   * @internal
-   */
-  override _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {
-    BatchUtils.batchFor2D(elementA, elementB);
   }
 
   @ignoreClone
@@ -286,15 +281,11 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     const sprite = this._sprite;
     if (sprite) {
       this._addResourceReferCount(sprite, -1);
+      // @ts-ignore
       sprite._updateFlagManager.removeListener(this._onSpriteChange);
+      this._sprite = null;
     }
-
     super._onDestroy();
-
-    this._entity = null;
-    this._color = null;
-    this._sprite = null;
-    this._assembler = null;
   }
 
   @ignoreClone
@@ -341,18 +332,8 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   }
 
   private _getUVByLocalPosition(position: Vector3, out: Vector2): boolean {
-    const transform = <UITransform>this._transform;
-    const { size, pivot } = transform;
-    switch (this._drawMode) {
-      case SpriteDrawMode.Simple:
-        return SimpleSpriteAssembler.getUVByLocalPosition(this, size.x, size.y, pivot, position, out);
-      case SpriteDrawMode.Sliced:
-        return SlicedSpriteAssembler.getUVByLocalPosition(this, size.x, size.y, pivot, position, out);
-      case SpriteDrawMode.Tiled:
-        return SlicedSpriteAssembler.getUVByLocalPosition(this, size.x, size.y, pivot, position, out);
-      default:
-        return false;
-    }
+    const { size, pivot } = <UITransform>this._transform;
+    return this._assembler.getUVByLocalPosition(this, size.x, size.y, pivot, position, out);
   }
 }
 

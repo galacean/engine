@@ -12,7 +12,7 @@ import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
-import { UITransform } from "./ui";
+import { EntityModifyFlags } from "./enums/EntityModifyFlags";
 import { DisorderedArray } from "./utils/DisorderedArray";
 
 /**
@@ -401,7 +401,9 @@ export class Entity extends EngineObject {
    */
   createChild(name?: string): Entity {
     const child = new Entity(this.engine, name);
-    this._transform instanceof UITransform && child.addComponent(UITransform);
+    this._components.forEach((component) => {
+      ComponentsDependencies._createChildCheck(child, component.constructor as any);
+    });
     child.layer = this.layer;
     child.parent = this;
     return child;
@@ -622,8 +624,8 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  _dispatchModify(flag: EntityModifyFlags): void {
-    this._updateFlagManager?.dispatch(flag);
+  _dispatchModify(flag: EntityModifyFlags, param?: any): void {
+    this._updateFlagManager?.dispatch(flag, param);
   }
 
   private _addToChildrenList(index: number, child: Entity): void {
@@ -785,15 +787,6 @@ export class Entity extends EngineObject {
     }
     return this._invModelMatrix;
   }
-}
-
-export enum EntityModifyFlags {
-  Parent = 0x1,
-  SiblingIndex = 0x2,
-  UICanvasEnableInScene = 0x4,
-  UICanvasDisableInScene = 0x8,
-  UIGroupEnableInScene = 0x10,
-  UIGroupDisableInScene = 0x20
 }
 
 type ComponentArguments<T extends new (entity: Entity, ...args: any[]) => Component> = T extends new (

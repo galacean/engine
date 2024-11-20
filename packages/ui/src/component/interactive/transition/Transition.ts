@@ -1,7 +1,6 @@
-import { Color } from "@galacean/engine-math";
-import { Sprite } from "../../../2d";
+import { Color, ReferResource, Sprite } from "@galacean/engine";
 import { UIRenderer } from "../../UIRenderer";
-import { InteractiveState } from "../InteractiveState";
+import { InteractiveState } from "../UIInteractive";
 
 export abstract class Transition<
   T extends TransitionValueType = TransitionValueType,
@@ -27,7 +26,7 @@ export abstract class Transition<
     const preNormal = this._normal;
     if (preNormal !== value) {
       this._normal = value;
-      this._onStateValueDirty(InteractiveState.Normal);
+      this._onStateValueDirty(InteractiveState.Normal, preNormal, value);
     }
   }
 
@@ -39,7 +38,7 @@ export abstract class Transition<
     const prePressed = this._pressed;
     if (prePressed !== value) {
       this._pressed = value;
-      this._onStateValueDirty(InteractiveState.Pressed);
+      this._onStateValueDirty(InteractiveState.Pressed, prePressed, value);
     }
   }
 
@@ -51,7 +50,7 @@ export abstract class Transition<
     const preHover = this._hover;
     if (preHover !== value) {
       this._hover = value;
-      this._onStateValueDirty(InteractiveState.Hover);
+      this._onStateValueDirty(InteractiveState.Hover, preHover, value);
     }
   }
 
@@ -63,7 +62,7 @@ export abstract class Transition<
     const preDisabled = this._disabled;
     if (preDisabled !== value) {
       this._disabled = value;
-      this._onStateValueDirty(InteractiveState.Disable);
+      this._onStateValueDirty(InteractiveState.Disable, preDisabled, value);
     }
   }
 
@@ -121,11 +120,29 @@ export abstract class Transition<
     }
   }
 
+  /**
+   * @internal
+   */
+  _destroy(): void {
+    this._target = null;
+  }
+
   protected abstract _getTargetValueCopy(): T;
   protected abstract _updateCurrentValue(srcValue: T, destValue: T, weight: number): void;
   protected abstract _applyValue(value: T): void;
 
-  private _updateValue() {
+  protected _onStateValueDirty(state: InteractiveState, preValue: T, curValue: T): void {
+    // @ts-ignore
+    preValue instanceof ReferResource && preValue._addReferCount(-1);
+    // @ts-ignore
+    curValue instanceof ReferResource && curValue._addReferCount(1);
+    if (this._finalState === state) {
+      this._finalValue = curValue;
+      this._updateValue();
+    }
+  }
+
+  protected _updateValue() {
     const weight = this._duration ? 1 - this._countDown / this._duration : 1;
     this._updateCurrentValue(this._initialValue, this._finalValue, weight);
     this._target?.enabled && this._applyValue(this._currentValue);
@@ -141,13 +158,6 @@ export abstract class Transition<
         return this.hover;
       case InteractiveState.Disable:
         return this.disabled;
-    }
-  }
-
-  private _onStateValueDirty(state: InteractiveState) {
-    if (this._finalState === state) {
-      this._finalValue = this._getValueByState(state);
-      this._updateValue();
     }
   }
 }

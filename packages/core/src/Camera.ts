@@ -12,6 +12,7 @@ import { VirtualCamera } from "./VirtualCamera";
 import { GLCapabilityType, Logger } from "./base";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
+import { CameraModifyFlags } from "./enums/CameraModifyFlags";
 import { CameraType } from "./enums/CameraType";
 import { DepthTextureMode } from "./enums/DepthTextureMode";
 import { Downsampling } from "./enums/Downsampling";
@@ -878,16 +879,4 @@ export class Camera extends Component {
   private _dispatchModify(flag: CameraModifyFlags): void {
     this._updateFlagManager?.dispatch(flag);
   }
-}
-
-/**
- * @internal
- */
-export enum CameraModifyFlags {
-  CameraType = 0x1,
-  AspectRatio = 0x2,
-  FieldOfView = 0x4,
-  OrthographicSize = 0x8,
-  EnableInScene = 0x10,
-  DisableInScene = 0x20
 }

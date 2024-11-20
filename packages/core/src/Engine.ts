@@ -325,7 +325,6 @@ export class Engine extends EventDispatcher {
       if (!scene.isActive || scene.destroyed) continue;
       const componentsManager = scene._componentsManager;
       componentsManager.sortCameras();
-      componentsManager.sortUICanvases();
       componentsManager.callScriptOnStart();
     }
 
@@ -481,7 +480,9 @@ export class Engine extends EventDispatcher {
     for (let i = 0, n = scenes.length; i < n; i++) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
-      scene._componentsManager.callRendererOnUpdate(deltaTime);
+      const componentsManager = scene._componentsManager;
+      componentsManager.callUIOnUpdate(deltaTime);
+      componentsManager.callRendererOnUpdate(deltaTime);
       scene._updateShaderData();
     }
 
@@ -514,7 +515,11 @@ export class Engine extends EventDispatcher {
         }
       );
 
-      UIUtils.render(this, componentsManager._overlayCanvases);
+      const uiCanvas = componentsManager._overlayCanvases;
+      if (uiCanvas.length > 0) {
+        componentsManager.sortUICanvases();
+        UIUtils.render(this, uiCanvas);
+      }
     }
   }
 

@@ -1,6 +1,5 @@
-import { PointerEventData } from "../input";
-import { SafeLoopArray } from "../utils/SafeLoopArray";
-import { UIInteractive } from "./interactive/UIInteractive";
+import { PointerEventData, SafeLoopArray } from "@galacean/engine";
+import { UIInteractive } from "../interactive/UIInteractive";
 
 export class Button extends UIInteractive {
   private _listeners: SafeLoopArray<IUIListener> = new SafeLoopArray<IUIListener>();
@@ -22,6 +21,7 @@ export class Button extends UIInteractive {
   }
 
   override onPointerClick(event: PointerEventData): void {
+    if (!this.globalInteractive) return;
     const listeners = this._listeners.getLoopArray();
     for (let i = 0, n = listeners.length; i < n; i++) {
       const listener = listeners[i];

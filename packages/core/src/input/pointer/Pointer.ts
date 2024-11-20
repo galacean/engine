@@ -71,17 +71,11 @@ export class Pointer {
    * @internal
    */
   _dispose(): void {
-    const emitters = this._emitters;
-    for (let i = 0, n = emitters.length; i < n; i++) {
-      emitters[i]._dispose();
-    }
+    this._emitters.forEach((emitter) => {
+      emitter.dispose();
+    });
     this._events.length = this._upList.length = this._downList.length = 0;
   }
-}
-
-export enum EmitterType {
-  Physics = 1,
-  UI = 2
 }
 
 export enum PointerEventType {

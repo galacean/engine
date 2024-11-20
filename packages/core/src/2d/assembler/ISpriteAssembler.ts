@@ -12,7 +12,8 @@ export interface ISpriteAssembler {
     height: number,
     pivot: Vector2,
     flipX?: boolean,
-    flipY?: boolean
+    flipY?: boolean,
+    pixelsPerUnit?: number
   ): void;
   updateUVs(renderer: ISpriteRenderer): void;
   updateColor(renderer: ISpriteRenderer, alpha?: number): void;
