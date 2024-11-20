@@ -1,7 +1,6 @@
 import { Logger } from "../base";
 import { ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
-import { Entity } from "../Entity";
 import { Layer } from "../Layer";
 import { PostProcessEffect } from "./PostProcessEffect";
 
@@ -100,6 +99,9 @@ export class PostProcess extends Component {
    * @inheritdoc
    */
   override _onEnable() {
+    if (this._destroyed) {
+      return;
+    }
     this.scene.postProcessManager._addPostProcess(this);
     this._setActiveEffects(true);
   }
@@ -108,6 +110,9 @@ export class PostProcess extends Component {
    * @inheritdoc
    */
   override _onDisable() {
+    if (this._destroyed) {
+      return;
+    }
     this.scene.postProcessManager._removePostProcess(this);
     this._setActiveEffects(false);
   }
@@ -122,7 +127,7 @@ export class PostProcess extends Component {
   /**
    * @internal
    */
-  _cloneTo(target: PostProcess, srcRoot: Entity, targetRoot: Entity): void {
+  _cloneTo(target: PostProcess): void {
     const effects = this._effects;
     for (let i = 0; i < effects.length; i++) {
       target.addEffect(<typeof PostProcessEffect>effects[i].constructor);
