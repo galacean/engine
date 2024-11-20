@@ -90,6 +90,3 @@ npm run build
 
 > 导出项目为 vite 工程，更多部署方案参考 [vite 官网](https://vitejs.dev/guide/)
 
-## 小程序项目
-
-请参照 [小程序项目](/docs/miniProgram/miniProgame/)
