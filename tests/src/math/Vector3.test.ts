@@ -176,6 +176,13 @@ describe("Vector3 test", () => {
     expect(toString(a)).to.eq(toString(out));
   });
 
+  it("copyTo", () => {
+    const a = new Vector3(3, 4, 5);
+    const out = new Vector3();
+    a.copyTo(out);
+    expect(toString(a)).to.eq(toString(out));
+  });
+
   it("add", () => {
     const a = new Vector3(3, 4, 5);
     const ret = new Vector3(1, 2, 4);

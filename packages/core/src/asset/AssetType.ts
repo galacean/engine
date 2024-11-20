@@ -23,6 +23,8 @@ export enum AssetType {
   TextureCube = "TextureCube",
   /** Material. */
   Material = "Material",
+  /** Shader. */
+  Shader = "Shader",
   /** Mesh. */
   Mesh = "Mesh",
   /** AnimationClip. */

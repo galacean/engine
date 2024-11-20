@@ -353,6 +353,17 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   }
 
   /**
+   * Copy to vector2 like object.
+   * @param target - Vector2 like object
+   * @returns This Vector2 like object
+   */
+  copyTo(target: Vector2Like): Vector2Like {
+    target.x = this._x;
+    target.y = this._y;
+    return target;
+  }
+
+  /**
    * Copy the value of this vector from an array.
    * @param array - The array
    * @param offset - The start offset of the array

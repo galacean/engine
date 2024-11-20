@@ -8,6 +8,7 @@ export const KeywordMap = new Map([
   ["RasterState", EKeyword.GS_RasterState],
   ["EditorProperties", EKeyword.GS_EditorProperties],
   ["EditorMacros", EKeyword.GS_EditorMacros],
+  ["Editor", EKeyword.GS_Editor],
   ["Tags", EKeyword.GS_Tags],
   ["VertexShader", EKeyword.GS_VertexShader],
   ["FragmentShader", EKeyword.GS_FragmentShader],
