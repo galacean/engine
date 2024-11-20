@@ -40,7 +40,9 @@ export class PostProcess extends Component {
 
   set priority(value: number) {
     this._priority = value;
-    this.scene.postProcessManager._postProcessNeedSorting = true;
+    if (this.scene) {
+      this.scene.postProcessManager._postProcessNeedSorting = true;
+    }
   }
 
   /**

@@ -25,8 +25,6 @@ export class PostProcessEffect {
   }
 
   set enabled(value: boolean) {
-    const postProcessManager = this.postProcess.scene.postProcessManager;
-
     if (value === this._enabled) {
       return;
     }
@@ -36,6 +34,8 @@ export class PostProcessEffect {
     if (!this.postProcess._phasedActive) {
       return;
     }
+
+    const postProcessManager = this.postProcess.scene.postProcessManager;
 
     if (value && !this._phasedActive) {
       this._phasedActive = true;
@@ -75,17 +75,20 @@ export class PostProcessEffect {
    * @internal
    */
   _setActive(value: boolean): void {
+    if (!this.postProcess._phasedActive) {
+      return;
+    }
+
     const postProcess = this.postProcess;
     const postProcessManager = postProcess.scene.postProcessManager;
-
     if (value) {
-      if (!this._phasedActive && postProcess._phasedActive && this._enabled) {
+      if (!this._phasedActive && this._enabled) {
         this._phasedActive = true;
         postProcessManager._setActiveStateDirty();
         this.onEnable();
       }
     } else {
-      if (this._phasedActive && !(postProcess._phasedActive && this.enabled)) {
+      if (this._phasedActive && !this.enabled) {
         this._phasedActive = false;
         postProcessManager._setActiveStateDirty();
         this.onDisable();
