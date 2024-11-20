@@ -294,7 +294,7 @@ export class Scene extends EngineObject {
     this._computeLinearFogParams(this._fogStart, this._fogEnd);
     this._computeExponentialFogParams(this._fogDensity);
 
-    const uberPass = new PostProcessUberPass(this._postProcessManager);
+    const uberPass = new PostProcessUberPass(engine);
     this._postProcessManager.addPostProcessPass(uberPass);
   }
 

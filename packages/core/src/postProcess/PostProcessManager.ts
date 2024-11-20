@@ -42,14 +42,16 @@ export class PostProcessManager {
     }
     this._activeStateChangeFlag = false;
 
-    for (let i = 0; i < this._activePostProcesses.length; i++) {
-      const postProcess = this._activePostProcesses[i];
-      if (postProcess.enabled) {
-        const effects = postProcess._effects;
-        for (let j = 0; j < effects.length; j++) {
-          if (effects[j].enabled) {
-            this._hasActiveEffect = true;
-            return true;
+    if (this._activePostProcessPasses.length) {
+      for (let i = 0; i < this._activePostProcesses.length; i++) {
+        const postProcess = this._activePostProcesses[i];
+        if (postProcess.enabled) {
+          const effects = postProcess._effects;
+          for (let j = 0; j < effects.length; j++) {
+            if (effects[j].enabled) {
+              this._hasActiveEffect = true;
+              return true;
+            }
           }
         }
       }
@@ -73,9 +75,13 @@ export class PostProcessManager {
     const passes = this._activePostProcessPasses;
     const index = passes.indexOf(pass);
 
-    if (index < 0) {
-      this._activePostProcessPasses.push(pass);
-      this._postProcessPassNeedSorting = true;
+    if (index === -1) {
+      if (pass.isActive) {
+        pass._postProcessManager = this;
+        this._activePostProcessPasses.push(pass);
+        this._postProcessPassNeedSorting = true;
+        this._activeStateChangeFlag = true;
+      }
     } else {
       Logger.error(`pass "${pass.constructor.name}" already exists in the post process manager.`);
     }
@@ -91,6 +97,7 @@ export class PostProcessManager {
     if (index >= 0) {
       passes.splice(index, 1);
       this._postProcessPassNeedSorting = true;
+      this._activeStateChangeFlag = true;
     }
   }
 
@@ -108,11 +115,59 @@ export class PostProcessManager {
    */
   _removePostProcess(postProcess: PostProcess): void {
     const index = this._activePostProcesses.indexOf(postProcess);
-
     if (index >= 0) {
       this._activePostProcesses.splice(index, 1);
       this._setActiveStateDirty();
       this._postProcessNeedSorting = true;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _getEffectInstance<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
+    return this._postProcessEffectInstanceMap.get(type) as InstanceType<T>;
+  }
+
+  /**
+   * @internal
+   */
+  _render(camera: Camera, srcRenderTarget: RenderTarget, destRenderTarget: RenderTarget): void {
+    this._srcRenderTarget = srcRenderTarget;
+    this._destRenderTarget = destRenderTarget;
+
+    // Should blit to resolve the MSAA
+    srcRenderTarget._blitRenderTarget();
+
+    this._update(camera.postProcessMask);
+
+    this._remainPassCount = this._activePostProcessPasses.length;
+    this._initSwapRenderTarget(camera);
+
+    for (let i = 0; i < this._activePostProcessPasses.length; i++) {
+      const pass = this._activePostProcessPasses[i];
+      pass.onRender(camera, this._getCurrentSourceTexture(), this._currentDestRenderTarget);
+      this._remainPassCount--;
+      this._swapRT();
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _setActiveStateDirty(): void {
+    this._activeStateChangeFlag = true;
+  }
+
+  /**
+   * @internal
+   */
+  _releaseSwapRenderTarget(): void {
+    const swapRenderTarget = this._swapRenderTarget;
+    if (swapRenderTarget) {
+      swapRenderTarget.getColorTexture(0)?.destroy(true);
+      swapRenderTarget.destroy(true);
+      this._swapRenderTarget = null;
     }
   }
 
@@ -151,7 +206,7 @@ export class PostProcessManager {
     });
   }
 
-  update(postProcessMask: Layer) {
+  private _update(postProcessMask: Layer) {
     // Start by resetting post process effect instance to default values
     this._resetDefaultValue();
 
@@ -186,49 +241,6 @@ export class PostProcessManager {
         // @todo: need `collider.ClosestPoint` to be implemented
         effect.lerp(effectInstance, 1);
       }
-    }
-  }
-
-  getEffectInstance<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
-    return this._postProcessEffectInstanceMap.get(type) as InstanceType<T>;
-  }
-
-  render(camera: Camera, srcRenderTarget: RenderTarget, destRenderTarget: RenderTarget): void {
-    this._srcRenderTarget = srcRenderTarget;
-    this._destRenderTarget = destRenderTarget;
-
-    // Should blit to resolve the MSAA
-    srcRenderTarget._blitRenderTarget();
-
-    this.update(camera.postProcessMask);
-
-    this._remainPassCount = this._activePostProcessPasses.length;
-    this._initSwapRenderTarget(camera);
-
-    for (let i = 0; i < this._activePostProcessPasses.length; i++) {
-      const pass = this._activePostProcessPasses[i];
-      pass.onRender(camera, this._getCurrentSourceTexture(), this._currentDestRenderTarget);
-      this._remainPassCount--;
-      this._swapRT();
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _setActiveStateDirty(): void {
-    this._activeStateChangeFlag = true;
-  }
-
-  /**
-   * @internal
-   */
-  _releaseSwapRenderTarget(): void {
-    const swapRenderTarget = this._swapRenderTarget;
-    if (swapRenderTarget) {
-      swapRenderTarget.getColorTexture(0)?.destroy(true);
-      swapRenderTarget.destroy(true);
-      this._swapRenderTarget = null;
     }
   }
 

@@ -1,7 +1,7 @@
 import { EngineObject } from "../base";
 import { Camera } from "../Camera";
-import { Scene } from "../Scene";
 import { RenderTarget, Texture2D } from "../texture";
+import { PostProcessEffect } from "./PostProcessEffect";
 import { PostProcessManager } from "./PostProcessManager";
 
 /**
@@ -19,15 +19,24 @@ export abstract class PostProcessPass extends EngineObject {
   private _isActive = true;
 
   /**
+   * @internal
+   */
+  _postProcessManager: PostProcessManager;
+
+  /**
    * When the post process pass is rendered.
    */
-  get event(): number {
+  get event(): PostProcessPassEvent {
     return this._event;
   }
 
-  set event(value: number) {
-    this._event = value;
-    this.postProcessManager._postProcessPassNeedSorting = true;
+  set event(value: PostProcessPassEvent) {
+    if (value !== this._event) {
+      this._event = value;
+      if (this._postProcessManager) {
+        this._postProcessManager._postProcessPassNeedSorting = true;
+      }
+    }
   }
 
   /**
@@ -42,31 +51,17 @@ export abstract class PostProcessPass extends EngineObject {
       this._isActive = value;
 
       if (value) {
-        this.postProcessManager.addPostProcessPass(this);
+        this._postProcessManager && this._postProcessManager.addPostProcessPass(this);
       } else {
-        this.postProcessManager._removePostProcessPass(this);
+        this._postProcessManager && this._postProcessManager._removePostProcessPass(this);
       }
     }
   }
 
-  get scene(): Scene {
-    return this.postProcessManager.scene;
-  }
-
-  /**
-   * Create a post process pass.
-   * @param postProcessManager - The post process manager being used
-   */
-  constructor(public postProcessManager: PostProcessManager) {
-    super(postProcessManager.scene.engine);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  override _onDestroy() {
-    super._onDestroy();
-    this.postProcessManager._removePostProcessPass(this);
+  getEffectInstance<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
+    if (this._postProcessManager) {
+      return this._postProcessManager._getEffectInstance(type);
+    }
   }
 
   /**
@@ -76,4 +71,13 @@ export abstract class PostProcessPass extends EngineObject {
    * @param destTarget - The destination render target
    */
   abstract onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void;
+
+  /**
+   * @inheritdoc
+   */
+  override _onDestroy() {
+    super._onDestroy();
+    this._postProcessManager && this._postProcessManager._removePostProcessPass(this);
+    this._postProcessManager = null;
+  }
 }

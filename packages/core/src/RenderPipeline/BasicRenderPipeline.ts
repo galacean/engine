@@ -200,7 +200,7 @@ export class BasicRenderPipeline {
     const postProcessManager = scene.postProcessManager;
     const cameraRenderTarget = camera.renderTarget;
     if (camera.enablePostProcess && postProcessManager.hasActiveEffect) {
-      postProcessManager.render(camera, internalColorTarget, cameraRenderTarget);
+      postProcessManager._render(camera, internalColorTarget, cameraRenderTarget);
     } else {
       postProcessManager._releaseSwapRenderTarget();
       if (internalColorTarget) {

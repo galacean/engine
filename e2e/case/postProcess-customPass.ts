@@ -6,9 +6,9 @@ import {
   Blitter,
   BloomEffect,
   Camera,
+  Engine,
   Material,
   PostProcess,
-  PostProcessManager,
   PostProcessPass,
   PostProcessPassEvent,
   RenderTarget,
@@ -47,8 +47,8 @@ class CustomPass extends PostProcessPass {
     this._blitMaterial.shaderData.setFloat("intensity", value);
   }
 
-  constructor(postProcessManager: PostProcessManager) {
-    super(postProcessManager);
+  constructor(engine: Engine) {
+    super(engine);
     this.event = PostProcessPassEvent.AfterUber;
     this._blitMaterial = new Material(this.engine, customShader);
 
@@ -67,6 +67,7 @@ class CustomPass extends PostProcessPass {
 initPostProcessEnv((camera: Camera, resArray) => {
   const [_, __, dirtTexture] = resArray;
   const scene = camera.scene;
+  const engine = scene.engine;
   const postProcessManager = scene.postProcessManager;
 
   camera.enablePostProcess = true;
@@ -83,6 +84,6 @@ initPostProcessEnv((camera: Camera, resArray) => {
   bloomEffect.dirtTexture = dirtTexture;
   tonemappingEffect.mode = TonemappingMode.Neutral;
 
-  const customPass = new CustomPass(postProcessManager);
+  const customPass = new CustomPass(engine);
   postProcessManager.addPostProcessPass(customPass);
 });

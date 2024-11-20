@@ -1,16 +1,15 @@
+import { Color, MathUtil, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
+import { Engine } from "../Engine";
 import { Material } from "../material";
 import { Blitter } from "../RenderPipeline/Blitter";
+import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { Shader } from "../shader";
 import { ShaderLib } from "../shaderlib";
-import { RenderTarget, Texture2D, TextureFilterMode, TextureWrapMode } from "../texture";
-import { PostProcessPass, PostProcessPassEvent } from "./PostProcessPass";
-
-import { Color, MathUtil, Vector4 } from "@galacean/engine-math";
-import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import blitVs from "../shaderlib/extra/Blit.vs.glsl";
+import { RenderTarget, Texture2D, TextureFilterMode, TextureWrapMode } from "../texture";
 import { BloomDownScaleMode, BloomEffect, TonemappingEffect } from "./effects";
-import { PostProcessManager } from "./PostProcessManager";
+import { PostProcessPass, PostProcessPassEvent } from "./PostProcessPass";
 import Filtering from "./shaders/Filtering.glsl";
 import PostCommon from "./shaders/PostCommon.glsl";
 import ACESTonemapping from "./shaders/Tonemapping/ACES/ACESTonemapping.glsl";
@@ -31,10 +30,9 @@ export class PostProcessUberPass extends PostProcessPass {
   private _mipDownRT: RenderTarget[] = [];
   private _mipUpRT: RenderTarget[] = [];
 
-  constructor(postProcessManager: PostProcessManager) {
-    super(postProcessManager);
+  constructor(engine: Engine) {
+    super(engine);
     this.event = PostProcessPassEvent.AfterUber - 1;
-    const engine = postProcessManager.scene.engine;
 
     // Uber Material
     const uberMaterial = new Material(engine, Shader.find(PostProcessUberPass.UBER_SHADER_NAME));
@@ -65,8 +63,8 @@ export class PostProcessUberPass extends PostProcessPass {
    */
   onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void {
     const uberShaderData = this._uberMaterial.shaderData;
-    const bloomInstance = this.postProcessManager.getEffectInstance(BloomEffect);
-    const tonemappingInstance = this.postProcessManager.getEffectInstance(TonemappingEffect);
+    const bloomInstance = this.getEffectInstance(BloomEffect);
+    const tonemappingInstance = this.getEffectInstance(TonemappingEffect);
 
     if (bloomInstance) {
       this._setupBloom(bloomInstance, camera, srcTexture);
