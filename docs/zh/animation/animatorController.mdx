@@ -23,15 +23,20 @@ label: Animation
 
 1. 准备好 `动画片段`（[详细介绍](/docs/animation/clip)） 
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Wl35T7U_zg8AAAAAAAAAAAAADsJ_AQ/original)
+![1.jpg](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*lq8jQIgm_-cAAAAAAAAAAAAADsJ_AQ/original)
 
-2. 要组织播放这些 `动画片段` 我们需要创建一个 `动画控制器` 资产 
+2. 要组织播放这些 `动画片段` 我们需要创建一个 `动画控制器` 资产，创建 `动画控制器` 有两种方式：
+    1. 右键点击 **[资产面板](/docs/assets/interface)** 中的空白处，选择 `Create` -> `Animation Controller`
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*PxHwTrU58yAAAAAAAAAAAAAADsJ_AQ/original)
+      ![image9](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*61Q7S62IZxQAAAAAAAAAAAAADsJ_AQ/original) 
+
+    2. 点击添加资产按钮 `+`，选择 `Animation Controller`
+
+      ![image10](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QqpxS6I9D90AAAAAAAAAAAAADsJ_AQ/original) 
 
 3. 刚创建的 `动画控制器` 中没有任何数据，我们需要对他进行编辑，双击资产, 并为它添加一个 `动画状态`（[详细介绍](/docs/animation/state-machine/#动画状态)）
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*V0n1TJMquGYAAAAAAAAAAAAADsJ_AQ/original)
+![2.jpg](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*7bZmS4iZ10gAAAAAAAAAAAAADsJ_AQ/original)
 
 4. 点击添加的 `动画状态` 为它绑定一个 `动画片段`（[详细介绍](/docs/animation/clip)）
 
@@ -39,7 +44,7 @@ label: Animation
 
 5. 在 `动画控制组件`（[详细介绍](/docs/animation/animator)）上绑定该 `动画控制器` 资产
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Ds5TTosYiDYAAAAAAAAAAAAADsJ_AQ/original)
+![3.jpg](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*H_ShSaWEXtIAAAAAAAAAAAAADsJ_AQ/original)
 
 6. 至此你在导出的项目中就可以通过 `animator.play("New State")` 播放 `Idle` 动画了
 
@@ -49,9 +54,10 @@ label: Animation
 
 ## 脚本使用
 
-<Callout type="positive">
-  在使用脚本之前，最好阅读[动画系统构成](/docs/animation/system)文档，以帮助你更好的了解动画系统的运行逻辑
-</Callout>
+在使用脚本之前，建议先阅读以下文档：
+
+- [脚本](/docs/script/script)
+- [动画系统构成](/docs/animation/system)
 
 ### 绑定动画控制器
 
