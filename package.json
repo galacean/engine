@@ -15,7 +15,6 @@
     "b:types": "pnpm -r --filter=./packages/* run b:types",
     "b:module": "cross-env BUILD_TYPE=MODULE NODE_ENV=release rollup -c",
     "b:umd": "cross-env BUILD_TYPE=UMD NODE_ENV=release rollup -c",
-    "b:miniprogram": "cross-env BUILD_TYPE=MINI rollup -c",
     "b:all": "cross-env NODE_ENV=release npm run b:types && cross-env BUILD_TYPE=ALL NODE_ENV=release rollup -c",
     "clean": "pnpm -r exec rm -rf dist && pnpm -r exec rm -rf types",
     "e2e:case": "pnpm -C ./e2e run case",

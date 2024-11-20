@@ -5,7 +5,6 @@ import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import glslify from "rollup-plugin-glslify";
 import serve from "rollup-plugin-serve";
-import miniProgramPlugin from "./rollup.miniprogram.plugin";
 import replace from "@rollup/plugin-replace";
 import { swc, defineRollupSwcOption, minify } from "rollup-plugin-swc3";
 import jscc from "rollup-plugin-jscc";
@@ -116,25 +115,6 @@ function config({ location, pkgJson, verboseMode }) {
         plugins: curPlugins
       };
     },
-    mini: () => {
-      let file = path.join(location, "dist", "miniprogram.js");
-      const plugins = [...curPlugins, ...miniProgramPlugin];
-      if (verboseMode) {
-        file = path.join(location, "dist", "miniprogram.verbose.js");
-      }
-      return {
-        input,
-        output: [
-          {
-            format: "cjs",
-            file,
-            sourcemap: false
-          }
-        ],
-        external: external.concat("@galacean/engine-miniprogram-adapter").map((name) => `${name}/dist/miniprogram`),
-        plugins
-      };
-    },
     module: () => {
       let esFile = path.join(location, pkgJson.module);
       let mainFile = path.join(location, pkgJson.main);
@@ -176,9 +156,6 @@ switch (BUILD_TYPE) {
   case "MODULE":
     promises.push(...getModule());
     break;
-  case "MINI":
-    promises.push(...getMini());
-    break;
   case "ALL":
     promises.push(...getAll());
     break;
@@ -207,13 +184,8 @@ function getModule() {
   return configs.map((config) => makeRollupConfig({ ...config, type: "module" }));
 }
 
-function getMini() {
-  const configs = [...pkgs];
-  return configs.map((config) => makeRollupConfig({ ...config, type: "mini" }));
-}
-
 function getAll() {
-  return [...getModule(), ...getMini(), ...getUMD()];
+  return [...getModule(), ...getUMD()];
 }
 
 export default Promise.all(promises);
