@@ -81,7 +81,7 @@ There are also some secondary ecosystem packages, which are introduced and used 
 
 Galacean Runtime runs in environments that support WebGL. So far, all major mobile and desktop browsers support this standard. You can check the compatibility of the runtime environment on [CanIUse](https://caniuse.com/?search=webgl).
 
-In addition, **Galacean Runtime** also supports running in [Alipay/Taobao Mini Programs](/en/docs/assets/build), and developers in the community have contributed [WeChat Mini Programs/Game adaptation solutions](https://github.com/deepkolos/platformize). For some functional modules that require additional compatibility considerations, the current adaptation solutions are as follows:
+For some functional modules that require additional compatibility considerations, the current adaptation solutions are as follows:
 
 | Module | Compatibility Considerations | Specific Documentation |
 | :-- | :-- | :-- |
