@@ -29,14 +29,14 @@ export class AnimatorStateMachine {
    * The list of entry transitions in the state machine.
    */
   get entryTransitions(): Readonly<AnimatorStateTransition[]> {
-    return this._entryTransitionCollection._transitions;
+    return this._entryTransitionCollection.transitions;
   }
 
   /**
    * The list of AnyState transitions.
    */
   get anyStateTransitions(): Readonly<AnimatorStateTransition[]> {
-    return this._anyStateTransitionCollection._transitions;
+    return this._anyStateTransitionCollection.transitions;
   }
 
   /**

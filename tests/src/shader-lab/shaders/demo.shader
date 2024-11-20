@@ -38,6 +38,8 @@ Shader "Water" {
     Pass "default" {
       Tags { ReplacementTag = "Opaque", pipelineStage = "DepthOnly"}
 
+      RenderQueueType = customRenderQueue;
+
       struct a2v {
        vec4 POSITION;
        vec2 TEXCOORD_0; 

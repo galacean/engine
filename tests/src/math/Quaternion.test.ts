@@ -261,6 +261,13 @@ describe("Quaternion test", () => {
     expect(toString(a)).to.eq(toString(out));
   });
 
+  it("copyTo", () => {
+    const a = new Quaternion(3, 4, 5, 0);
+    const out = new Quaternion();
+    a.copyTo(out);
+    expect(toString(a)).to.eq(toString(out));
+  });
+
   it("conjugate", () => {
     const a = new Quaternion(1, 1, 1, 1);
     expect(toString(a.conjugate())).to.eq("quat(-1, -1, -1, 1)");

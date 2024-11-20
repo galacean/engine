@@ -105,7 +105,9 @@ export class PpParser {
 
   private static reportError(loc: ShaderRange | ShaderPosition, message: string, source: string, file: string) {
     const error = ShaderLabUtils.createGSError(message, GSErrorName.PreprocessorError, source, loc, file);
+    // #if _VERBOSE
     this._errors.push(error);
+    // #endif
   }
 
   private static _parseInclude(scanner: PpScanner) {
@@ -642,23 +644,6 @@ export class PpParser {
   }
 
   private static _onToken(token: BaseToken, scanner: PpScanner) {
-    this._skipEditorBlock(token, scanner);
-    this._expandToken(token, scanner);
-  }
-
-  private static _skipEditorBlock(token: BaseToken, scanner: PpScanner) {
-    if (token.lexeme === "EditorProperties" || token.lexeme === "EditorMacros") {
-      const start = scanner.current - token.lexeme.length;
-      scanner.scanPairedBlock("{", "}");
-      const end = scanner.current;
-      const startPosition = ShaderLab.createPosition(start);
-      const endPosition = ShaderLab.createPosition(end);
-      const range = ShaderLab.createRange(startPosition, endPosition);
-      this.expandSegments.push({ rangeInBlock: range, replace: "" });
-    }
-  }
-
-  private static _expandToken(token: BaseToken, scanner: PpScanner) {
     const macro = this._definedMacros.get(token.lexeme);
     if (macro) {
       let replace = macro.body.lexeme;

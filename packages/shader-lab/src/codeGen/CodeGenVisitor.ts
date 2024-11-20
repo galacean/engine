@@ -46,7 +46,7 @@ export class CodeGenVisitor {
           const error = context.referenceAttribute(prop);
           // #if _VERBOSE
           if (error) {
-            this.errors.push(error);
+            this.errors.push(<GSError>error);
           }
           // #endif
           return prop.lexeme;
@@ -54,7 +54,7 @@ export class CodeGenVisitor {
           const error = context.referenceVarying(prop);
           // #if _VERBOSE
           if (error) {
-            this.errors.push(error);
+            this.errors.push(<GSError>error);
           }
           // #endif
           return prop.lexeme;
