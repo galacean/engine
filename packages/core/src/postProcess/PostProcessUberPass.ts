@@ -24,11 +24,6 @@ import UberPost from "./shaders/UberPost.glsl";
 export class PostProcessUberPass extends PostProcessPass {
   static readonly UBER_SHADER_NAME = "UberPost";
 
-  /**
-   *  @inheritdoc
-   */
-  override event = PostProcessPassEvent.AfterUber - 1;
-
   private _uberMaterial: Material;
 
   // Bloom
@@ -38,6 +33,7 @@ export class PostProcessUberPass extends PostProcessPass {
 
   constructor(postProcessManager: PostProcessManager) {
     super(postProcessManager);
+    this.event = PostProcessPassEvent.AfterUber - 1;
     const engine = postProcessManager.scene.engine;
 
     // Uber Material

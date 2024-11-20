@@ -64,8 +64,6 @@ export class Scene extends EngineObject {
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
   _rootEntities: Entity[] = [];
-  /** @internal */
-  _postProcessManager = new PostProcessManager(this);
 
   private _background: Background = new Background(this._engine);
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
@@ -80,6 +78,7 @@ export class Scene extends EngineObject {
   private _isActive: boolean = true;
   private _sun: DirectLight | null;
   private _enableTransparentShadow = false;
+  private _postProcessManager = new PostProcessManager(this);
 
   /**
    * Get the post process manager.

@@ -171,7 +171,7 @@ export class Camera extends Component {
    * @remarks If true, the msaa in viewport can turn or off independently by `msaaSamples` property.
    */
   get independentCanvasEnabled(): boolean {
-    if (this.enableHDR || (this.enablePostProcess && this.scene._postProcessManager.hasActiveEffect)) {
+    if (this.enableHDR || (this.enablePostProcess && this.scene.postProcessManager.hasActiveEffect)) {
       return true;
     }
 

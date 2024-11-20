@@ -197,7 +197,7 @@ export class BasicRenderPipeline {
 
     transparentQueue.render(context, PipelineStage.Forward);
 
-    const postProcessManager = scene._postProcessManager;
+    const postProcessManager = scene.postProcessManager;
     const cameraRenderTarget = camera.renderTarget;
     if (camera.enablePostProcess && postProcessManager.hasActiveEffect) {
       postProcessManager.render(camera, internalColorTarget, cameraRenderTarget);

@@ -25,26 +25,26 @@ export class PostProcessEffect {
   }
 
   set enabled(value: boolean) {
-    const postProcessManager = this.postProcess.scene._postProcessManager;
+    const postProcessManager = this.postProcess.scene.postProcessManager;
 
-    if (value !== this._enabled) {
-      this._enabled = value;
+    if (value === this._enabled) {
+      return;
+    }
 
-      if (this.postProcess._phasedActive) {
-        if (value) {
-          if (!this._phasedActive) {
-            this._phasedActive = true;
-            postProcessManager._setActiveStateDirty();
-            this.onEnable();
-          }
-        } else {
-          if (this._phasedActive) {
-            this._phasedActive = false;
-            postProcessManager._setActiveStateDirty();
-            this.onDisable();
-          }
-        }
-      }
+    this._enabled = value;
+
+    if (!this.postProcess._phasedActive) {
+      return;
+    }
+
+    if (value && !this._phasedActive) {
+      this._phasedActive = true;
+      postProcessManager._setActiveStateDirty();
+      this.onEnable();
+    } else if (!value && this._phasedActive) {
+      this._phasedActive = false;
+      postProcessManager._setActiveStateDirty();
+      this.onDisable();
     }
   }
 
@@ -76,7 +76,7 @@ export class PostProcessEffect {
    */
   _setActive(value: boolean): void {
     const postProcess = this.postProcess;
-    const postProcessManager = postProcess.scene._postProcessManager;
+    const postProcessManager = postProcess.scene.postProcessManager;
 
     if (value) {
       if (!this._phasedActive && postProcess._phasedActive && this._enabled) {

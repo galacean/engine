@@ -10,19 +10,6 @@ import { PostProcessEffect } from "./PostProcessEffect";
  */
 export class PostProcess extends Component {
   private _priority = 0;
-  /**
-   * A value which determines which PostProcess is being used when PostProcess have an equal amount of influence on the Scene.
-   * @remarks
-   * PostProcess with a higher priority will override lower ones.
-   */
-  get priority(): number {
-    return this._priority;
-  }
-
-  set priority(value: number) {
-    this._priority = value;
-    this.scene._postProcessManager._postProcessNeedSorting = true;
-  }
 
   /**
    * The layer to which the PostProcess belongs.
@@ -42,8 +29,18 @@ export class PostProcess extends Component {
   @ignoreClone
   _effects: PostProcessEffect[] = [];
 
-  constructor(entity: Entity) {
-    super(entity);
+  /**
+   * A value which determines which PostProcess is being used when PostProcess have an equal amount of influence on the Scene.
+   * @remarks
+   * PostProcess with a higher priority will override lower ones.
+   */
+  get priority(): number {
+    return this._priority;
+  }
+
+  set priority(value: number) {
+    this._priority = value;
+    this.scene.postProcessManager._postProcessNeedSorting = true;
   }
 
   /**
@@ -101,7 +98,7 @@ export class PostProcess extends Component {
    * @inheritdoc
    */
   override _onEnable() {
-    this.scene._postProcessManager._addPostProcess(this);
+    this.scene.postProcessManager._addPostProcess(this);
     this._setActiveEffects(true);
   }
 
@@ -109,7 +106,7 @@ export class PostProcess extends Component {
    * @inheritdoc
    */
   override _onDisable() {
-    this.scene._postProcessManager._removePostProcess(this);
+    this.scene.postProcessManager._removePostProcess(this);
     this._setActiveEffects(false);
   }
 

@@ -14,13 +14,13 @@ import { PostProcessPass } from "./PostProcessPass";
 export class PostProcessManager {
   /** @internal */
   _uberMaterial: Material;
-
   /** @internal */
   _postProcessNeedSorting = false;
+  /** @internal */
+  _postProcessPassNeedSorting = false;
 
   private _activePostProcesses: PostProcess[] = [];
   private _activePostProcessPasses: PostProcessPass[] = [];
-  private _postProcessPassNeedSorting = false;
   private _hasActiveEffect = false;
   private _activeStateChangeFlag = false;
   private _swapRenderTarget: RenderTarget;

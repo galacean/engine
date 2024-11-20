@@ -43,14 +43,13 @@ void main() {
 class CustomPass extends PostProcessPass {
   private _blitMaterial: Material;
 
-  event = PostProcessPassEvent.AfterUber;
-
   set intensity(value) {
     this._blitMaterial.shaderData.setFloat("intensity", value);
   }
 
   constructor(postProcessManager: PostProcessManager) {
     super(postProcessManager);
+    this.event = PostProcessPassEvent.AfterUber;
     this._blitMaterial = new Material(this.engine, customShader);
 
     const depthState = this._blitMaterial.renderState.depthState;
