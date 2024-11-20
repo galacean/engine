@@ -87,9 +87,10 @@ export class PostProcessUberPass extends PostProcessPass {
   }
 
   /**
-   * Destroy the pass.
+   * @inheritdoc
    */
-  destroy() {
+  override _onDestroy() {
+    super._onDestroy();
     this._releaseBloomRenderTargets();
     this._uberMaterial.destroy();
     this._bloomMaterial.destroy();

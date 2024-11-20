@@ -2,6 +2,7 @@ import { Camera } from "../Camera";
 import { Layer } from "../Layer";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { Scene } from "../Scene";
+import { Logger } from "../base";
 import { Material } from "../material";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 import { PostProcess } from "./PostProcess";
@@ -69,8 +70,28 @@ export class PostProcessManager {
    * @param pass - Post process pass to add
    */
   addPostProcessPass(pass: PostProcessPass) {
-    this._activePostProcessPasses.push(pass);
-    this._postProcessPassNeedSorting = true;
+    const passes = this._activePostProcessPasses;
+    const index = passes.indexOf(pass);
+
+    if (index < 0) {
+      this._activePostProcessPasses.push(pass);
+      this._postProcessPassNeedSorting = true;
+    } else {
+      Logger.error(`pass "${pass.constructor.name}" already exists in the post process manager.`);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _removePostProcessPass(pass: PostProcessPass) {
+    const passes = this._activePostProcessPasses;
+    const index = passes.indexOf(pass);
+
+    if (index >= 0) {
+      passes.splice(index, 1);
+      this._postProcessPassNeedSorting = true;
+    }
   }
 
   /**

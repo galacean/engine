@@ -1,5 +1,5 @@
+import { EngineObject } from "../base";
 import { Camera } from "../Camera";
-import { Engine } from "../Engine";
 import { Scene } from "../Scene";
 import { RenderTarget, Texture2D } from "../texture";
 import { PostProcessManager } from "./PostProcessManager";
@@ -14,8 +14,9 @@ export enum PostProcessPassEvent {
   AfterUber = 100
 }
 
-export abstract class PostProcessPass {
+export abstract class PostProcessPass extends EngineObject {
   private _event = PostProcessPassEvent.AfterUber;
+  private _isActive = true;
 
   /**
    * When the post process pass is rendered.
@@ -26,27 +27,47 @@ export abstract class PostProcessPass {
 
   set event(value: number) {
     this._event = value;
-    this.scene.postProcessManager._postProcessPassNeedSorting = true;
+    this.postProcessManager._postProcessPassNeedSorting = true;
   }
 
   /**
    * Whether the post process pass is active.
    */
-  isActive = true;
+  get isActive(): boolean {
+    return this._isActive;
+  }
+
+  set isActive(value: boolean) {
+    if (value !== this._isActive) {
+      this._isActive = value;
+
+      if (value) {
+        this.postProcessManager.addPostProcessPass(this);
+      } else {
+        this.postProcessManager._removePostProcessPass(this);
+      }
+    }
+  }
 
   get scene(): Scene {
     return this.postProcessManager.scene;
-  }
-
-  get engine(): Engine {
-    return this.postProcessManager.scene.engine;
   }
 
   /**
    * Create a post process pass.
    * @param postProcessManager - The post process manager being used
    */
-  constructor(public postProcessManager: PostProcessManager) {}
+  constructor(public postProcessManager: PostProcessManager) {
+    super(postProcessManager.scene.engine);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  override _onDestroy() {
+    super._onDestroy();
+    this.postProcessManager._removePostProcessPass(this);
+  }
 
   /**
    * Execute the post process pass if it is active.
