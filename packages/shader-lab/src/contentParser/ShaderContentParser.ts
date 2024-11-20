@@ -26,8 +26,8 @@ import {
 import { GSErrorName } from "../GSError";
 // #if _VERBOSE
 import { GSError } from "../GSError";
-import { ShaderLabUtils } from "../ShaderLabUtils";
 // #endif
+import { ShaderLabUtils } from "../ShaderLabUtils";
 
 const EngineType = [
   EKeyword.GS_RenderQueueType,
@@ -129,6 +129,7 @@ export class ShaderContentParser {
 
         case EKeyword.GS_EditorProperties:
         case EKeyword.GS_EditorMacros:
+        case EKeyword.GS_Editor:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           scanner.scanPairedText("{", "}", true);
           start = scanner.getCurPosition();
@@ -191,7 +192,7 @@ export class ShaderContentParser {
           variable.location
         );
         // #if _VERBOSE
-        this._errors.push(error);
+        this._errors.push(<GSError>error);
         return;
         // #endif
       }
@@ -248,7 +249,7 @@ export class ShaderContentParser {
           scanner.getCurPosition()
         );
         // #if _VERBOSE
-        this._errors.push(error);
+        this._errors.push(<GSError>error);
         scanner.scanToCharacter(";");
         return;
         // #endif
@@ -266,7 +267,7 @@ export class ShaderContentParser {
         scanner.getCurPosition()
       );
       // #if _VERBOSE
-      this._errors.push(error);
+      this._errors.push(<GSError>error);
       scanner.scanToCharacter(";");
       return;
       // #endif
@@ -306,7 +307,7 @@ export class ShaderContentParser {
             engineTypeProp.location
           );
           // #if _VERBOSE
-          this._errors.push(error);
+          this._errors.push(<GSError>error);
           scanner.scanToCharacter(";");
           return;
           // #endif
@@ -328,20 +329,12 @@ export class ShaderContentParser {
     const word = scanner.scanToken();
     scanner.scanText(";");
     const value = ShaderContentParser._engineType.RenderQueueType[word.lexeme];
-    if (value == undefined) {
-      const error = ShaderLabUtils.createGSError(
-        `Invalid render queue ${word.lexeme}`,
-        GSErrorName.CompilationError,
-        scanner.source,
-        word.location
-      );
-      // #if _VERBOSE
-      this._errors.push(error);
-      return;
-      // #endif
-    }
     const key = RenderStateDataKey.RenderQueueType;
-    ret.renderStates.constantMap[key] = value;
+    if (value == undefined) {
+      ret.renderStates.variableMap[key] = word.lexeme;
+    } else {
+      ret.renderStates.constantMap[key] = value;
+    }
   }
 
   private static _addGlobalStatement(

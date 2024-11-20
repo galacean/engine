@@ -146,8 +146,11 @@ export class ShaderPass extends ShaderPart {
   _destroy(): void {
     const shaderProgramPools = this._shaderProgramPools;
     for (let i = 0, n = shaderProgramPools.length; i < n; i++) {
-      shaderProgramPools[i]._destroy();
+      const shaderProgramPool = shaderProgramPools[i];
+      shaderProgramPool._destroy();
+      delete shaderProgramPool.engine._shaderProgramPools[this._shaderPassId];
     }
+    // Clear array storing multiple engine shader program pools
     shaderProgramPools.length = 0;
   }
 
