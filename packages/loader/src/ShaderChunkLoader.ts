@@ -37,10 +37,7 @@ export class ShaderChunkLoader extends Loader<void[]> {
     );
   }
 
-  /**
-   * @internal
-   */
-  static _matchAll(pattern: RegExp, haystack: string) {
+  private static _matchAll(pattern: RegExp, haystack: string) {
     var regex = new RegExp(pattern, "g");
     var matches = [];
 
@@ -48,7 +45,7 @@ export class ShaderChunkLoader extends Loader<void[]> {
 
     for (let index in match_result) {
       var item = match_result[index];
-      matches[index] = item.match(new RegExp(pattern));
+      matches[index] = item.match(pattern);
     }
     return matches;
   }
