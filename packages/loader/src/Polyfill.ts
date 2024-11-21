@@ -8,7 +8,7 @@ export class Polyfill {
   private static _registerMatchAll() {
     if (!String.prototype.matchAll) {
       Logger.info("polyfill String.prototype.matchAll");
-      String.prototype.matchAll = function (pattern: RegExp): RegExpStringIterator<RegExpExecArray> {
+      String.prototype.matchAll = function (pattern: RegExp): ReturnType<String["matchAll"]> {
         const flags = pattern.flags;
         const globalFlagIdx = flags.indexOf("g");
         if (globalFlagIdx === -1) {
