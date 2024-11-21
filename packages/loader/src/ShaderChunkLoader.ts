@@ -12,16 +12,14 @@ import {
 
 @resourceLoader("ShaderChunk", ["glsl"])
 export class ShaderChunkLoader extends Loader<void[]> {
-  private static _shaderIncludeRegex = /\s#include\s+"([./][^\\"]+)"/;
+  private static _shaderIncludeRegex = /#include\s+"([./][^\\"]+)"/gm;
 
   /**
    * @internal
    */
   static _loadChunksInCode(code: string, basePath: string, resourceManager: ResourceManager): Promise<void[]> {
     const shaderChunkPaths = new Array<string>();
-    const matches = ShaderChunkLoader._matchAll(ShaderChunkLoader._shaderIncludeRegex, code);
-    if (!matches) return Promise.resolve([]);
-
+    const matches = code.matchAll(ShaderChunkLoader._shaderIncludeRegex);
     for (const match of matches) {
       const chunkPath = Utils.resolveAbsoluteUrl(basePath, match[1]);
       if (!ShaderLib[chunkPath.substring(1)]) {
@@ -37,20 +35,6 @@ export class ShaderChunkLoader extends Loader<void[]> {
         });
       })
     );
-  }
-
-  private static _matchAll(pattern: RegExp, haystack: string): RegExpMatchArray[] | null {
-    var regex = new RegExp(pattern, "g");
-    var matches: RegExpMatchArray[] = [];
-
-    var match_result = haystack.match(regex);
-    if (match_result == null) return null;
-
-    for (let index in match_result) {
-      var item = match_result[index];
-      matches[index] = item.match(pattern);
-    }
-    return matches;
   }
 
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<void[]> {

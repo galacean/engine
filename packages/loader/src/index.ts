@@ -21,6 +21,7 @@ import "./TextureCubeLoader";
 import "./ktx2/KTX2Loader";
 import "./ShaderLoader";
 import "./ShaderChunkLoader";
+import { Polyfill } from "./Polyfill";
 
 export { GLTFLoader } from "./GLTFLoader";
 export type { GLTFParams } from "./GLTFLoader";
@@ -32,3 +33,5 @@ export { KTX2Loader, KTX2Transcoder } from "./ktx2/KTX2Loader";
 export { KTX2TargetFormat } from "./ktx2/KTX2TargetFormat";
 export * from "./resource-deserialize";
 export * from "./prefab/PrefabResource";
+
+Polyfill.registerPolyFill();
