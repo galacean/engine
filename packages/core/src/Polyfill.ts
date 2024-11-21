@@ -1,4 +1,4 @@
-import { Logger } from "@galacean/engine-core";
+import { Logger } from "./base/Logger";
 
 /**
  * @internal

@@ -64,7 +64,10 @@ export * from "./clone/CloneManager";
 export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
 export * from "./Utils";
+import { Polyfill } from "./Polyfill";
 
 export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 
 export * from "./postProcess";
+
+Polyfill.registerPolyfill();

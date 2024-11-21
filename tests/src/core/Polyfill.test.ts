@@ -12,7 +12,7 @@ describe("Polyfill", () => {
     const originResultArray = Array.from(originMatchResult);
 
     String.prototype.matchAll = null;
-    import("@galacean/engine-loader").then(() => {
+    import("@galacean/engine-core").then(() => {
       const regexTest = /noGlobal/;
       const contentTest = "test";
       expect(
