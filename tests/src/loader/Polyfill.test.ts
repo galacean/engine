@@ -21,7 +21,6 @@ describe("Polyfill", () => {
       ).to.throw(TypeError);
 
       const matchResult = content.matchAll(regex);
-      debugger;
       expect(!!matchResult.next, "result should be iterable").to.be.true;
       const resultArray = Array.from(matchResult);
       expect(resultArray.length).to.equal(3).to.equal(originResultArray.length);
