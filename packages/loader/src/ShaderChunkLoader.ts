@@ -12,14 +12,14 @@ import {
 
 @resourceLoader("ShaderChunk", ["glsl"])
 export class ShaderChunkLoader extends Loader<void[]> {
-  private static _shaderIncludeRegex = /\s#include\s+"([./][^\\"]+)"/gm;
+  private static _shaderIncludeRegex = /\s#include\s+"([./][^\\"]+)"/;
 
   /**
    * @internal
    */
   static _loadChunksInCode(code: string, basePath: string, resourceManager: ResourceManager): Promise<void[]> {
     const shaderChunkPaths = new Array<string>();
-    const matches = code.matchAll(ShaderChunkLoader._shaderIncludeRegex);
+    const matches = ShaderChunkLoader._matchAll(ShaderChunkLoader._shaderIncludeRegex, code);
     for (const match of matches) {
       const chunkPath = Utils.resolveAbsoluteUrl(basePath, match[1]);
       if (!ShaderLib[chunkPath.substring(1)]) {
@@ -35,6 +35,22 @@ export class ShaderChunkLoader extends Loader<void[]> {
         });
       })
     );
+  }
+
+  /**
+   * @internal
+   */
+  static _matchAll(pattern: RegExp, haystack: string) {
+    var regex = new RegExp(pattern, "g");
+    var matches = [];
+
+    var match_result = haystack.match(regex);
+
+    for (let index in match_result) {
+      var item = match_result[index];
+      matches[index] = item.match(new RegExp(pattern));
+    }
+    return matches;
   }
 
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<void[]> {
