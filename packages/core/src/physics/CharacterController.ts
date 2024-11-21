@@ -10,11 +10,11 @@ import { ColliderShape } from "./shape";
  * The character controllers.
  */
 export class CharacterController extends Collider {
-  private _stepOffset: number = 0.5;
+  private _stepOffset = 0.5;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
   private _upDirection = new Vector3(0, 1, 0);
-  private _slopeLimit: number = 0.707;
-  private _contactOffset: number = 0.1;
+  private _slopeLimit = 0.707;
+  private _contactOffset = 0.1;
 
   /**
    * Contact offset for this shape.

@@ -257,10 +257,10 @@ describe("PhysicsMaterial", () => {
     collider2.shapes[0].material.staticFriction = 0;
     ground.getComponent(StaticCollider).shapes[0].material.staticFriction = 2000;
 
-    collider.applyForce(new Vector3(0, 0, 1000));
+    collider2.applyForce(new Vector3(0, 0, 1000));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(boxEntity.transform.position.z).greaterThan(10);
+    expect(boxEntity2.transform.position.z).greaterThan(10);
   });
 
   it("frictionCombine Maximum staticFriction", () => {
@@ -286,15 +286,19 @@ describe("PhysicsMaterial", () => {
     const boxEntity2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 0, 0));
     const collider2 = boxEntity2.getComponent(DynamicCollider);
 
+    // Avoid the box rotating
+    collider2.automaticInertiaTensor = false;
+    collider2.inertiaTensor.set(10000000, 10000000, 10000000);
+
     collider2.shapes[0].material.frictionCombine = PhysicsMaterialCombineMode.Maximum;
 
     collider2.shapes[0].material.staticFriction = 0;
     ground.getComponent(StaticCollider).shapes[0].material.staticFriction = 2000;
 
-    collider.applyForce(new Vector3(0, 0, 1000));
+    collider2.applyForce(new Vector3(0, 0, 1000));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(boxEntity.transform.position.z).closeTo(0, 0.001);
+    expect(boxEntity2.transform.position.z).closeTo(0, 0.001);
   });
 
   it("frictionCombine Multiply staticFriction", () => {

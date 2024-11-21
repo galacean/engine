@@ -126,6 +126,9 @@ export class DynamicCollider extends Collider {
    * @remarks The center of mass is automatically calculated, if you want to set it manually, please set automaticCenterOfMass to false.
    */
   get centerOfMass(): Vector3 {
+    if (this._automaticCenterOfMass) {
+      this._setMassAndUpdateInertia();
+    }
     (<IDynamicCollider>this._nativeCollider).getCenterOfMass(this._centerOfMass);
     return this._centerOfMass;
   }
@@ -163,6 +166,9 @@ export class DynamicCollider extends Collider {
    * @remarks The inertia tensor is automatically calculated, if you want to set it manually, please set automaticInertiaTensor to false.
    */
   get inertiaTensor(): Vector3 {
+    if (this._automaticInertiaTensor) {
+      this._setMassAndUpdateInertia();
+    }
     (<IDynamicCollider>this._nativeCollider).getInertiaTensor(this._inertiaTensor);
     return this._inertiaTensor;
   }

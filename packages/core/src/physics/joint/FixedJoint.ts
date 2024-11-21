@@ -7,12 +7,8 @@ import { Joint } from "./Joint";
  */
 export class FixedJoint extends Joint {
   protected _createJoint(): void {
-    const collider = this.entity.getComponent(Collider);
-    if (!collider) {
-      throw new Error("FixedJoint requires a Collider component on the entity.");
-    }
     const colliderInfo = this._colliderInfo;
-    colliderInfo.collider = collider;
+    colliderInfo.collider = this.entity.getComponent(Collider);
     this._nativeJoint = PhysicsScene._nativePhysics.createFixedJoint(colliderInfo.collider._nativeCollider);
   }
 }

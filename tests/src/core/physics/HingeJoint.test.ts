@@ -346,6 +346,11 @@ describe("HingeJoint", function () {
     // @ts-ignore
     expect(newJoint.motor._updateFlagManager).not.eq(joint.motor._updateFlagManager);
 
+    newJoint.limits.min = -Math.PI;
+    expect(joint.limits.min).not.eq(newJoint.limits.min);
+    newJoint.motor.targetVelocity = 50;
+    expect(joint.motor.targetVelocity).not.eq(newJoint.motor.targetVelocity);
+
     collider2.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);

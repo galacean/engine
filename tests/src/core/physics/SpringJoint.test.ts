@@ -48,6 +48,7 @@ describe("SpringJoint", function () {
     joint.minDistance = 1;
     joint.maxDistance = 5;
     joint.tolerance = 0;
+    expect(joint.minDistance).eq(1);
 
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
@@ -55,6 +56,7 @@ describe("SpringJoint", function () {
     expect(boxEntity2.transform.position.x).eq(2);
 
     joint.minDistance = 1.1;
+    expect(joint.minDistance).eq(1.1);
     collider2.wakeUp();
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
@@ -101,6 +103,7 @@ describe("SpringJoint", function () {
     joint.minDistance = 1.1;
     joint.maxDistance = 5;
     joint.tolerance = 0;
+    expect(joint.tolerance).eq(0);
 
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
@@ -109,6 +112,7 @@ describe("SpringJoint", function () {
 
     boxEntity2.transform.position.x = 2;
     joint.tolerance = 0.1;
+    expect(joint.tolerance).eq(0.1);
     collider2.wakeUp();
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
@@ -131,6 +135,7 @@ describe("SpringJoint", function () {
     joint.minDistance = 1;
     joint.maxDistance = 5;
     joint.tolerance = 0;
+    expect(joint.stiffness).eq(10);
     collider2.applyForce(new Vector3(100000, 0, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
@@ -154,6 +159,7 @@ describe("SpringJoint", function () {
     joint.minDistance = 1;
     joint.maxDistance = 5;
     joint.tolerance = 0;
+    expect(joint.stiffness).eq(10000000000);
     collider2.applyForce(new Vector3(100000, 0, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
@@ -176,6 +182,7 @@ describe("SpringJoint", function () {
     joint.minDistance = 1;
     joint.maxDistance = 5;
     joint.tolerance = 0;
+    expect(joint.damping).eq(1);
     collider2.applyForce(new Vector3(1000, 0, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
@@ -185,6 +192,7 @@ describe("SpringJoint", function () {
     boxEntity2.transform.position.x = 2;
     collider2.linearVelocity.x = 0;
     joint.damping = 10000;
+    expect(joint.damping).eq(10000);
     collider2.applyForce(new Vector3(1000, 0, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);

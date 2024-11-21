@@ -139,12 +139,8 @@ export class HingeJoint extends Joint {
   }
 
   protected _createJoint(): void {
-    const collider = this.entity.getComponent(Collider);
-    if (!collider) {
-      throw new Error("HingeJoint requires a Collider component on the entity.");
-    }
     const colliderInfo = this._colliderInfo;
-    colliderInfo.collider = collider;
+    colliderInfo.collider = this.entity.getComponent(Collider);
     this._nativeJoint = PhysicsScene._nativePhysics.createHingeJoint(colliderInfo.collider._nativeCollider);
   }
 

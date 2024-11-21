@@ -12,7 +12,7 @@ import {
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { Vector3 } from "@galacean/engine-math";
-import { describe, beforeAll, beforeEach, expect, it } from "vitest";
+import { vi, describe, beforeAll, beforeEach, expect, it } from "vitest";
 
 describe("DynamicCollider", function () {
   let engine: Engine;
@@ -94,12 +94,14 @@ describe("DynamicCollider", function () {
     const boxCollider = box.getComponent(DynamicCollider);
     boxCollider.linearVelocity = new Vector3(1, 0, 0);
     boxCollider.linearDamping = 0;
+    expect(boxCollider.linearDamping).eq(0);
 
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(boxCollider.linearVelocity.x)).eq(1);
 
     boxCollider.linearDamping = 0.1;
+    expect(boxCollider.linearDamping).eq(0.1);
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(boxCollider.linearVelocity.x)).eq(0.90476);
@@ -111,12 +113,14 @@ describe("DynamicCollider", function () {
     const boxCollider = box.getComponent(DynamicCollider);
     boxCollider.angularVelocity = new Vector3(0, 1, 0);
     boxCollider.angularDamping = 0;
+    expect(boxCollider.angularDamping).eq(0);
 
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(boxCollider.angularVelocity.y)).eq(1);
 
     boxCollider.angularDamping = 0.1;
+    expect(boxCollider.angularDamping).eq(0.1);
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(boxCollider.angularVelocity.y)).eq(0.90476);
@@ -193,10 +197,40 @@ describe("DynamicCollider", function () {
     expect(Math.abs(box.transform.rotation.z)).greaterThan(90);
   });
 
+  it("automaticCenterOfMass", function () {
+    const consoleWarnSpy = vi.spyOn(console, "warn");
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.automaticCenterOfMass = true;
+    expect(boxCollider.automaticCenterOfMass).toBeTruthy();
+    boxCollider.centerOfMass = new Vector3(0, 0, 0);
+    expect(consoleWarnSpy).toBeCalledTimes(1);
+    boxCollider.automaticInertiaTensor = true;
+    expect(boxCollider.centerOfMass).to.deep.include({ x: 0, y: 0, z: 0 });
+
+    const newBoxShape = new BoxColliderShape();
+    newBoxShape.size = new Vector3(2, 2, 2);
+    newBoxShape.position = new Vector3(1, 0, 0);
+    boxCollider.addShape(newBoxShape);
+    expect(boxCollider.centerOfMass).to.deep.include({ x: 0.5, y: 0, z: 0 });
+    boxCollider.removeShape(newBoxShape);
+    boxCollider.shapes[0].position = new Vector3(1, 0, 0);
+    expect(boxCollider.centerOfMass).to.deep.include({ x: 1, y: 0, z: 0 });
+    boxCollider.clearShapes();
+    expect(boxCollider.centerOfMass).to.deep.include({ x: 0, y: 0, z: 0 });
+  });
+
   it("inertiaTensor", function () {
+    const consoleWarnSpy = vi.spyOn(console, "warn");
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
     const boxCollider = box.getComponent(DynamicCollider);
     boxCollider.automaticCenterOfMass = false;
+
+    boxCollider.automaticInertiaTensor = true;
+    expect(boxCollider.automaticInertiaTensor).toBeTruthy();
+    boxCollider.inertiaTensor = new Vector3(0, 1, 0);
+    expect(consoleWarnSpy).toBeCalledTimes(1);
+
     boxCollider.automaticInertiaTensor = false;
     boxCollider.inertiaTensor = new Vector3(0, 1, 0);
     boxCollider.applyTorque(new Vector3(0, 10, 0));
@@ -214,16 +248,42 @@ describe("DynamicCollider", function () {
     expect(formatValue(boxCollider.angularVelocity.y)).eq(0.07927);
   });
 
+  it("automaticInertiaTensor", function () {
+    const consoleWarnSpy = vi.spyOn(console, "warn");
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    expect(formatValue(boxCollider.inertiaTensor.y)).eq(1);
+    boxCollider.inertiaTensor = new Vector3(0, 2, 0);
+    expect(formatValue(boxCollider.inertiaTensor.y)).eq(2);
+
+    boxCollider.automaticCenterOfMass = true;
+    boxCollider.automaticInertiaTensor = true;
+    expect(boxCollider.automaticInertiaTensor).toBeTruthy();
+    boxCollider.inertiaTensor = new Vector3(2, 0, 0);
+    expect(consoleWarnSpy).toBeCalledTimes(1);
+    expect(formatValue(boxCollider.inertiaTensor.y)).eq(0.66667);
+
+    const newBoxShape = new BoxColliderShape();
+    newBoxShape.size = new Vector3(2, 2, 2);
+    newBoxShape.position = new Vector3(1, 0, 0);
+    boxCollider.addShape(newBoxShape);
+    expect(formatValue(boxCollider.inertiaTensor.y)).eq(0.91667);
+    boxCollider.removeShape(newBoxShape);
+    expect(formatValue(boxCollider.inertiaTensor.y)).eq(0.66667);
+    boxCollider.clearShapes();
+    expect(formatValue(boxCollider.inertiaTensor.y)).eq(1);
+  });
+
   it("maxAngularVelocity", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
     const boxCollider = box.getComponent(DynamicCollider);
-    boxCollider.maxAngularVelocity = 100;
+    boxCollider.maxAngularVelocity = 200;
     boxCollider.angularDamping = 0;
     boxCollider.angularVelocity = new Vector3(0, 300, 0);
-    expect(boxCollider.maxAngularVelocity).eq(100);
+    expect(boxCollider.maxAngularVelocity).eq(200);
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(boxCollider.angularVelocity.y)).eq(100);
+    expect(formatValue(boxCollider.angularVelocity.y)).eq(200);
   });
 
   it("maxDepenetrationVelocity", function () {
@@ -243,6 +303,7 @@ describe("DynamicCollider", function () {
     engine.sceneManager.activeScene.physics._update(1);
     expect(boxCollider.linearVelocity.x).eq(0);
     boxCollider2.maxDepenetrationVelocity = boxCollider.maxDepenetrationVelocity = 10;
+    expect(boxCollider2.maxDepenetrationVelocity).eq(10);
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(Math.abs(boxCollider.linearVelocity.x)).gt(1);
@@ -346,6 +407,7 @@ describe("DynamicCollider", function () {
     ).toBeTruthy();
 
     boxCollider.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+    expect(boxCollider.collisionDetectionMode).toEqual(CollisionDetectionMode.ContinuousSpeculative);
     expect(
       // @ts-ignore
       boxCollider._nativeCollider._pxActor.getRigidBodyFlags(physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD)

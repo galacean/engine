@@ -352,8 +352,12 @@ describe("physics collider test", function () {
     const collider = box.getComponent(DynamicCollider);
     const physicsBox = new BoxColliderShape();
     collider.addShape(physicsBox);
+    expect(collider.shapes.length).eq(2);
     collider.removeShape(physicsBox);
+    expect(collider.shapes.length).eq(1);
     collider.clearShapes();
+    expect(collider.shapes.length).eq(0);
     collider.destroy();
+    expect(box.getComponent(DynamicCollider)).to.null;
   });
 });
