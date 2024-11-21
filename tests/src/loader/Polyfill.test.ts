@@ -32,8 +32,8 @@ describe("Polyfill", () => {
       expect(resultArray[1][0]).to.equal(originResultArray[1][0]).to.equal('#include "./f2.glsl"');
       expect(resultArray[1][1]).to.equal(originResultArray[1][1]).to.equal("./f2.glsl");
 
-      expect(resultArray[2][0]).to.equal(resultArray[2][0]).to.equal('#include "/f3.glsl"');
-      expect(resultArray[2][1]).to.equal(resultArray[2][1]).to.equal("/f3.glsl");
+      expect(resultArray[2][0]).to.equal(originResultArray[2][0]).to.equal('#include "/f3.glsl"');
+      expect(resultArray[2][1]).to.equal(originResultArray[2][1]).to.equal("/f3.glsl");
     });
   });
 });
