@@ -164,7 +164,10 @@ export class BasicRenderPipeline {
     rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
     const clearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
     const color = background.solidColor;
-    if (clearFlags !== CameraClearFlags.None) {
+
+    if (internalColorTarget) {
+      rhi.clearRenderTarget(camera.engine, CameraClearFlags.All, color);
+    } else if (clearFlags !== CameraClearFlags.None) {
       rhi.clearRenderTarget(camera.engine, clearFlags, color);
     }
 

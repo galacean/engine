@@ -1,8 +1,9 @@
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Scene } from "../Scene";
+import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Material } from "../material";
-import { Shader } from "../shader";
+import { BlendFactor, BlendOperation, Shader } from "../shader";
 import { RenderTarget, Texture2D } from "../texture";
 import { BloomEffect, TonemappingEffect } from "./effects";
 
@@ -39,6 +40,14 @@ export class _PostProcessManager {
     const uberShader = Shader.find(_PostProcessManager.UBER_SHADER_NAME);
     const uberMaterial = new Material(scene.engine, uberShader);
     const depthState = uberMaterial.renderState.depthState;
+    const blendState = uberMaterial.renderState.blendState.targetBlendState;
+
+    blendState.enabled = true;
+    blendState.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+    blendState.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    blendState.sourceAlphaBlendFactor = BlendFactor.One;
+    blendState.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    blendState.colorBlendOperation = blendState.alphaBlendOperation = BlendOperation.Add;
 
     depthState.enabled = false;
     depthState.writeEnabled = false;
@@ -66,6 +75,10 @@ export class _PostProcessManager {
     if (bloomEffect.enabled) {
       bloomEffect.onRender(context, srcTexture);
     }
+
+    this._uberMaterial.renderState.blendState.targetBlendState.enabled = !(
+      context.camera.clearFlags & CameraClearFlags.Color
+    );
 
     // Done with Uber, blit it
     PipelineUtils.blitTexture(engine, srcTexture, destTarget, 0, camera.viewport, this._uberMaterial);
