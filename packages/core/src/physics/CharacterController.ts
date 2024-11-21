@@ -157,6 +157,7 @@ export class CharacterController extends Collider {
   override _onEnableInScene() {
     const physics = this.scene.physics;
     physics._addCharacterController(this);
+
     this._syncNative();
   }
 
@@ -166,9 +167,10 @@ export class CharacterController extends Collider {
   override _onDisableInScene() {
     const physics = this.scene.physics;
     physics._removeCharacterController(this);
+
     const shapes = this.shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
-      this._removeNativeShape(shapes[i]);
+      this._removeNativeShape(shapes[i], true);
     }
   }
 

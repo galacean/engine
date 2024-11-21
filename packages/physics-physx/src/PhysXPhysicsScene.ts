@@ -4,7 +4,6 @@ import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXCollider } from "./PhysXCollider";
 import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
-import { PhysXColliderShape } from "./shape/PhysXColliderShape";
 
 /**
  * A manager is a collection of colliders and constraints which can interact.
@@ -104,45 +103,27 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.addColliderShape }
-   */
-  addColliderShape(colliderShape: PhysXColliderShape) {
-    this._physXManager._eventMap[colliderShape._id] = {};
-  }
-
-  /**
-   * {@inheritDoc IPhysicsManager.removeColliderShape }
-   */
-  removeColliderShape(colliderShape: PhysXColliderShape) {
-    const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    const { _id: id } = colliderShape;
-    const { _eventMap: eventMap } = this._physXManager;
-    currentEvents.forEach((event, i) => {
-      if (event.index1 == id) {
-        currentEvents.deleteByIndex(i);
-        eventPool.push(event);
-      } else if (event.index2 == id) {
-        currentEvents.deleteByIndex(i);
-        eventPool.push(event);
-        // If the shape is big index, should clear from the small index shape subMap
-        eventMap[event.index1][id] = undefined;
-      }
-    });
-    delete eventMap[id];
-  }
-
-  /**
    * {@inheritDoc IPhysicsManager.addCollider }
    */
   addCollider(collider: PhysXCollider): void {
+    collider._scene = this;
     this._pxScene.addActor(collider._pxActor, null);
+    const shapes = collider._shapeIds;
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      this._addColliderShape(shapes[i]);
+    }
   }
 
   /**
    * {@inheritDoc IPhysicsManager.removeCollider }
    */
   removeCollider(collider: PhysXCollider): void {
+    collider._scene = null;
     this._pxScene.removeActor(collider._pxActor, true);
+    const shapes = collider._shapeIds;
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      this._removeColliderShape(shapes[i]);
+    }
   }
 
   /**
@@ -231,6 +212,33 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       this._pxControllerManager = pxControllerManager = this._pxScene.createControllerManager();
     }
     return pxControllerManager;
+  }
+
+  /**
+   * @internal
+   */
+  _addColliderShape(id: number) {
+    this._physXManager._eventMap[id] = {};
+  }
+
+  /**
+   * @internal
+   */
+  _removeColliderShape(id: number) {
+    const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
+    const { _eventMap: eventMap } = this._physXManager;
+    currentEvents.forEach((event, i) => {
+      if (event.index1 == id) {
+        currentEvents.deleteByIndex(i);
+        eventPool.push(event);
+      } else if (event.index2 == id) {
+        currentEvents.deleteByIndex(i);
+        eventPool.push(event);
+        // If the shape is big index, should clear from the small index shape subMap
+        eventMap[event.index1][id] = undefined;
+      }
+    });
+    delete eventMap[id];
   }
 
   private _simulate(elapsedTime: number): void {

@@ -48,7 +48,7 @@ describe("ColliderShape", () => {
     boxShape.contactOffset = contactOffset;
     expect(boxShape.contactOffset).to.eq(contactOffset);
 
-    contactOffset = -2.4;
+    contactOffset = 2.4;
     boxShape.contactOffset = contactOffset;
     expect(boxShape.contactOffset).to.eq(contactOffset);
 
@@ -124,7 +124,7 @@ describe("ColliderShape", () => {
     capsuleShape.contactOffset = contactOffset;
     expect(capsuleShape.contactOffset).to.eq(contactOffset);
 
-    contactOffset = -2.4;
+    contactOffset = 2.4;
     capsuleShape.contactOffset = contactOffset;
     expect(capsuleShape.contactOffset).to.eq(contactOffset);
 
@@ -163,7 +163,7 @@ describe("ColliderShape", () => {
     planeShape.contactOffset = contactOffset;
     expect(planeShape.contactOffset).to.eq(contactOffset);
 
-    contactOffset = -2.4;
+    contactOffset = 2.4;
     planeShape.contactOffset = contactOffset;
     expect(planeShape.contactOffset).to.eq(contactOffset);
 
@@ -214,7 +214,7 @@ describe("ColliderShape", () => {
     sphereShape.contactOffset = contactOffset;
     expect(sphereShape.contactOffset).to.eq(contactOffset);
 
-    contactOffset = -2.4;
+    contactOffset = 2.4;
     sphereShape.contactOffset = contactOffset;
     expect(sphereShape.contactOffset).to.eq(contactOffset);
 

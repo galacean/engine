@@ -6,7 +6,6 @@ import { CharacterController } from "./CharacterController";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
-import { ColliderShape } from "./shape";
 import { Script } from "../Script";
 import { DisorderedArray } from "../utils/DisorderedArray";
 
@@ -355,26 +354,6 @@ export class PhysicsScene {
       nativePhysicsManager.update(fixedTimeStep);
       this._callColliderOnLateUpdate();
     }
-  }
-
-  /**
-   * Add ColliderShape into the manager.
-   * @param colliderShape - The Collider Shape.
-   * @internal
-   */
-  _addColliderShape(colliderShape: ColliderShape): void {
-    this._scene.engine._physicalObjectsMap[colliderShape.id] = colliderShape;
-    this._nativePhysicsScene.addColliderShape(colliderShape._nativeShape);
-  }
-
-  /**
-   * Remove ColliderShape.
-   * @param colliderShape - The Collider Shape.
-   * @internal
-   */
-  _removeColliderShape(colliderShape: ColliderShape): void {
-    delete this._scene.engine._physicalObjectsMap[colliderShape.id];
-    this._nativePhysicsScene.removeColliderShape(colliderShape._nativeShape);
   }
 
   /**
