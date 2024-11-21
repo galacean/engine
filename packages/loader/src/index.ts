@@ -34,4 +34,4 @@ export { KTX2TargetFormat } from "./ktx2/KTX2TargetFormat";
 export * from "./resource-deserialize";
 export * from "./prefab/PrefabResource";
 
-Polyfill.registerPolyFill();
+Polyfill.registerPolyfill();

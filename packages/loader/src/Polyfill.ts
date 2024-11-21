@@ -1,7 +1,7 @@
 import { Logger } from "@galacean/engine-core";
 
 export class Polyfill {
-  static registerPolyFill() {
+  static registerPolyfill() {
     Polyfill._registerMatchAll();
   }
 
