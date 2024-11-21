@@ -1,11 +1,14 @@
 import { Logger } from "@galacean/engine-core";
 
+/**
+ * @internal
+ */
 export class Polyfill {
-  static registerPolyfill() {
+  static registerPolyfill(): void {
     Polyfill._registerMatchAll();
   }
 
-  private static _registerMatchAll() {
+  private static _registerMatchAll(): void {
     if (!String.prototype.matchAll) {
       Logger.info("polyfill String.prototype.matchAll");
       String.prototype.matchAll = function (pattern: RegExp): ReturnType<String["matchAll"]> {
