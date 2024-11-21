@@ -113,7 +113,7 @@ export class Collider extends Component implements ICustomClone {
   override _onEnableInScene(): void {
     const physics = this.scene.physics;
     physics._addCollider(this);
-    this._syncBackends();
+    this._syncNative();
   }
 
   /**
@@ -132,10 +132,10 @@ export class Collider extends Component implements ICustomClone {
    * @internal
    */
   _cloneTo(target: Collider): void {
-    target._phasedActiveInScene && target._syncBackends();
+    target._phasedActiveInScene && target._syncNative();
   }
 
-  protected _syncBackends(): void {
+  protected _syncNative(): void {
     for (let i = 0, n = this.shapes.length; i < n; i++) {
       this._addNativeShape(this.shapes[i]);
     }

@@ -36,8 +36,8 @@ export class BoxColliderShape extends ColliderShape {
     this._size._onValueChanged = this._setSize.bind(this);
   }
 
-  protected override _syncBackends(): void {
-    super._syncBackends();
+  protected override _syncNative(): void {
+    super._syncNative();
     this._setSize();
   }
 

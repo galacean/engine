@@ -17,14 +17,14 @@ export class CharacterController extends Collider {
   private _contactOffset = 0.1;
 
   /**
-   * Contact offset for this shape.
+   * Contact offset for this characterController, the value must be greater than or equal to 0.
    */
   get contactOffset(): number {
     return this._contactOffset;
   }
 
   set contactOffset(value: number) {
-    if (this._contactOffset !== value) {
+    if (this._contactOffset !== value && value >= 0) {
       this._contactOffset = value;
       (<ICharacterController>this._nativeCollider).setContactOffset(value);
     }
@@ -72,7 +72,8 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * The slope limit for the controller, the value is the cosine value of the maximum slope angle, the default value is 0.707, which is the cosine value of 45 degrees.
+   * The slope limit for the controller, the value is the cosine value of the maximum slope angle.
+   * @defaultValue 0.707(the cosine value of 45 degrees)
    */
   get slopeLimit(): number {
     return this._slopeLimit;
@@ -156,7 +157,7 @@ export class CharacterController extends Collider {
   override _onEnableInScene() {
     const physics = this.scene.physics;
     physics._addCharacterController(this);
-    this._syncBackends();
+    this._syncNative();
   }
 
   /**
@@ -171,8 +172,8 @@ export class CharacterController extends Collider {
     }
   }
 
-  protected override _syncBackends(): void {
-    super._syncBackends();
+  protected override _syncNative(): void {
+    super._syncNative();
     (<ICharacterController>this._nativeCollider).setContactOffset(this._contactOffset);
     (<ICharacterController>this._nativeCollider).setStepOffset(this._stepOffset);
     (<ICharacterController>this._nativeCollider).setNonWalkableMode(this._nonWalkableMode);

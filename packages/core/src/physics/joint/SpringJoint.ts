@@ -89,8 +89,8 @@ export class SpringJoint extends Joint {
     this._nativeJoint = PhysicsScene._nativePhysics.createSpringJoint(colliderInfo.collider._nativeCollider);
   }
 
-  protected override _syncBackends(): void {
-    super._syncBackends();
+  protected override _syncNative(): void {
+    super._syncNative();
     (<ISpringJoint>this._nativeJoint).setMinDistance(this._minDistance);
     (<ISpringJoint>this._nativeJoint).setMaxDistance(this._maxDistance);
     (<ISpringJoint>this._nativeJoint).setTolerance(this._tolerance);

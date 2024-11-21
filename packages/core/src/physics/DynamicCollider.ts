@@ -412,8 +412,8 @@ export class DynamicCollider extends Collider {
     super._cloneTo(target);
   }
 
-  protected override _syncBackends(): void {
-    super._syncBackends();
+  protected override _syncNative(): void {
+    super._syncNative();
     (<IDynamicCollider>this._nativeCollider).setLinearDamping(this._linearDamping);
     (<IDynamicCollider>this._nativeCollider).setAngularDamping(this._angularDamping);
     (<IDynamicCollider>this._nativeCollider).setLinearVelocity(this._linearVelocity);

@@ -194,7 +194,7 @@ export abstract class Joint extends Component {
    */
   override _onEnableInScene(): void {
     this._createJoint();
-    this._syncBackends();
+    this._syncNative();
   }
 
   /**
@@ -207,7 +207,7 @@ export abstract class Joint extends Component {
 
   protected abstract _createJoint(): void;
 
-  protected _syncBackends(): void {
+  protected _syncNative(): void {
     if (this._nativeJoint) {
       this._nativeJoint.setConnectedCollider(this._connectedColliderInfo.collider?._nativeCollider || null);
       this._updateActualAnchor(AnchorOwner.Self);

@@ -144,8 +144,8 @@ export class HingeJoint extends Joint {
     this._nativeJoint = PhysicsScene._nativePhysics.createHingeJoint(colliderInfo.collider._nativeCollider);
   }
 
-  protected override _syncBackends(): void {
-    super._syncBackends();
+  protected override _syncNative(): void {
+    super._syncNative();
     const motor = this._jointMotor;
     (<IHingeJoint>this._nativeJoint).setAxis(this._axis);
     (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.LimitEnabled, this.useLimits);
