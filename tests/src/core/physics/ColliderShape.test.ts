@@ -239,4 +239,34 @@ describe("ColliderShape", () => {
     sphereShape.rotation = new Vector3(40, -182, 720);
     expect(sphereShape.rotation).to.deep.include({ x: 40, y: -182, z: 720 });
   });
+
+  it("clone", () => {
+    // SphereColliderShape
+    const sphereShape = new SphereColliderShape();
+    sphereShape.radius = 2;
+    dynamicCollider.addShape(sphereShape);
+    const newCollider = dynamicCollider.entity.clone().getComponent(DynamicCollider);
+    expect(newCollider.shapes.length).to.eq(1);
+    expect((newCollider.shapes[0] as SphereColliderShape).radius).to.eq(2);
+
+    // BoxColliderShape
+    dynamicCollider.clearShapes();
+    const boxShape = new BoxColliderShape();
+    boxShape.size = new Vector3(1, 2, 3);
+    dynamicCollider.addShape(boxShape);
+    const newCollider2 = dynamicCollider.entity.clone().getComponent(DynamicCollider);
+    expect(newCollider2.shapes.length).to.eq(1);
+    expect((newCollider2.shapes[0] as BoxColliderShape).size).to.deep.include({ x: 1, y: 2, z: 3 });
+
+    // CapsuleColliderShape
+    dynamicCollider.clearShapes();
+    const capsuleShape = new CapsuleColliderShape();
+    capsuleShape.radius = 2;
+    capsuleShape.height = 3;
+    dynamicCollider.addShape(capsuleShape);
+    const newCollider3 = dynamicCollider.entity.clone().getComponent(DynamicCollider);
+    expect(newCollider3.shapes.length).to.eq(1);
+    expect((newCollider3.shapes[0] as CapsuleColliderShape).radius).to.eq(2);
+    expect((newCollider3.shapes[0] as CapsuleColliderShape).height).to.eq(3);
+  });
 });
