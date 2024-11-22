@@ -29,7 +29,7 @@ export class PostProcessManager {
   private _destRenderTarget: RenderTarget;
   private _currentSourceRenderTarget: RenderTarget;
   private _currentDestRenderTarget: RenderTarget;
-  private _postProcessEffectInstanceMap = new Map<typeof PostProcessEffect, PostProcessEffect>();
+  private _blendPostProcessEffectMap = new Map<typeof PostProcessEffect, PostProcessEffect>();
   private _defaultPostProcessEffectMap = new Map<typeof PostProcessEffect, PostProcessEffect>();
   private _remainPassCount = 0;
 
@@ -62,6 +62,13 @@ export class PostProcessManager {
   }
 
   /**
+   * Get all post process passes.
+   */
+  get postProcessPasses(): ReadonlyArray<PostProcessPass> {
+    return this._activePostProcessPasses;
+  }
+
+  /**
    * Create a PostProcessManager.
    * @param scene - Scene to which the current PostProcessManager belongs
    */
@@ -71,12 +78,17 @@ export class PostProcessManager {
    * Add a post process pass to the manager.
    * @param pass - Post process pass to add
    */
-  addPostProcessPass(pass: PostProcessPass) {
+  addPostProcessPass(pass: PostProcessPass): void {
+    if (pass.engine !== this.scene.engine) {
+      throw "The pass is not belong to this engine.";
+    }
+
     const passes = this._activePostProcessPasses;
     const index = passes.indexOf(pass);
 
     if (index === -1) {
       if (pass.isActive) {
+        pass._postProcessManager?._removePostProcessPass(pass);
         pass._postProcessManager = this;
         this._activePostProcessPasses.push(pass);
         this._postProcessPassNeedSorting = true;
@@ -90,7 +102,7 @@ export class PostProcessManager {
   /**
    * @internal
    */
-  _removePostProcessPass(pass: PostProcessPass) {
+  _removePostProcessPass(pass: PostProcessPass): void {
     const passes = this._activePostProcessPasses;
     const index = passes.indexOf(pass);
 
@@ -125,8 +137,8 @@ export class PostProcessManager {
   /**
    * @internal
    */
-  _getEffectInstance<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
-    return this._postProcessEffectInstanceMap.get(type) as InstanceType<T>;
+  _getBlendEffect<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
+    return this._blendPostProcessEffectMap.get(type) as InstanceType<T>;
   }
 
   /**
@@ -191,8 +203,8 @@ export class PostProcessManager {
     }
   }
 
-  private _resetDefaultValue() {
-    this._postProcessEffectInstanceMap.forEach((effectInstance, typeofEffectInstance) => {
+  private _resetDefaultValue(): void {
+    this._blendPostProcessEffectMap.forEach((effectInstance, typeofEffectInstance) => {
       let defaultEffect = this._defaultPostProcessEffectMap.get(typeofEffectInstance);
 
       if (!defaultEffect) {
@@ -206,7 +218,7 @@ export class PostProcessManager {
     });
   }
 
-  private _update(postProcessMask: Layer) {
+  private _update(postProcessMask: Layer): void {
     // Start by resetting post process effect instance to default values
     this._resetDefaultValue();
 
@@ -231,11 +243,11 @@ export class PostProcessManager {
           continue;
         }
         const PostConstructor = effect.constructor as typeof PostProcessEffect;
-        let effectInstance = this._postProcessEffectInstanceMap.get(PostConstructor);
+        let effectInstance = this._blendPostProcessEffectMap.get(PostConstructor);
         if (!effectInstance) {
           effectInstance = new PostConstructor(postProcess);
           effectInstance._setActive(true);
-          this._postProcessEffectInstanceMap.set(PostConstructor, effectInstance);
+          this._blendPostProcessEffectMap.set(PostConstructor, effectInstance);
         }
 
         // @todo: need `collider.ClosestPoint` to be implemented
@@ -244,7 +256,7 @@ export class PostProcessManager {
     }
   }
 
-  private _initSwapRenderTarget(camera: Camera) {
+  private _initSwapRenderTarget(camera: Camera): void {
     if (this._remainPassCount > 1) {
       const viewport = camera.pixelViewport;
       const swapRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(

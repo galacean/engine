@@ -6,8 +6,6 @@ import { PostProcessManager } from "./PostProcessManager";
 
 /**
  * Controls when the post process pass executes.
- * @remarks
- * Users can also inject pass events in a specific point by doing PostProcessPassEvent + offset.
  */
 export enum PostProcessPassEvent {
   BeforeUber = 0,
@@ -25,6 +23,8 @@ export abstract class PostProcessPass extends EngineObject {
 
   /**
    * When the post process pass is rendered.
+   * @remarks
+   * Users can also inject pass events in a specific point by doing PostProcessPassEvent + offset.
    */
   get event(): PostProcessPassEvent {
     return this._event;
@@ -49,18 +49,24 @@ export abstract class PostProcessPass extends EngineObject {
   set isActive(value: boolean) {
     if (value !== this._isActive) {
       this._isActive = value;
-
       if (value) {
-        this._postProcessManager && this._postProcessManager.addPostProcessPass(this);
+        this._postProcessManager?.addPostProcessPass(this);
       } else {
-        this._postProcessManager && this._postProcessManager._removePostProcessPass(this);
+        this._postProcessManager?._removePostProcessPass(this);
       }
     }
   }
 
-  getEffectInstance<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
+  /**
+   * Get the blend effect by type.
+   * @remarks
+   * The blend effect is a post process effect that is used to blend all result of the effects by the type.
+   * @param type - The type of PostProcessEffect
+   * @returns The PostProcessEffect instance found
+   */
+  getBlendEffect<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
     if (this._postProcessManager) {
-      return this._postProcessManager._getEffectInstance(type);
+      return this._postProcessManager._getBlendEffect(type);
     }
   }
 
@@ -77,7 +83,7 @@ export abstract class PostProcessPass extends EngineObject {
    */
   override _onDestroy() {
     super._onDestroy();
-    this._postProcessManager && this._postProcessManager._removePostProcessPass(this);
+    this._postProcessManager?._removePostProcessPass(this);
     this._postProcessManager = null;
   }
 }

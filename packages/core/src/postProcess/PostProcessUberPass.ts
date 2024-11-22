@@ -63,19 +63,19 @@ export class PostProcessUberPass extends PostProcessPass {
    */
   onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void {
     const uberShaderData = this._uberMaterial.shaderData;
-    const bloomInstance = this.getEffectInstance(BloomEffect);
-    const tonemappingInstance = this.getEffectInstance(TonemappingEffect);
+    const bloomBlend = this.getBlendEffect(BloomEffect);
+    const tonemappingBlend = this.getBlendEffect(TonemappingEffect);
 
-    if (bloomInstance) {
-      this._setupBloom(bloomInstance, camera, srcTexture);
+    if (bloomBlend) {
+      this._setupBloom(bloomBlend, camera, srcTexture);
       uberShaderData.enableMacro(BloomEffect._enableMacro);
     } else {
       uberShaderData.disableMacro(BloomEffect._enableMacro);
       this._releaseBloomRenderTargets();
     }
 
-    if (tonemappingInstance) {
-      uberShaderData.enableMacro("TONEMAPPING_MODE", tonemappingInstance.mode.toString());
+    if (tonemappingBlend) {
+      uberShaderData.enableMacro("TONEMAPPING_MODE", tonemappingBlend.mode.toString());
       uberShaderData.enableMacro(TonemappingEffect._enableMacro);
     } else {
       uberShaderData.disableMacro(TonemappingEffect._enableMacro);
@@ -94,14 +94,14 @@ export class PostProcessUberPass extends PostProcessPass {
     this._bloomMaterial.destroy();
   }
 
-  private _setupBloom(bloomInstance: BloomEffect, camera: Camera, srcTexture: Texture2D) {
+  private _setupBloom(bloomBlend: BloomEffect, camera: Camera, srcTexture: Texture2D) {
     const engine = camera.engine;
     const bloomMaterial = this._bloomMaterial;
     const bloomShaderData = bloomMaterial.shaderData;
     const uberMaterial = this._uberMaterial;
     const uberShaderData = uberMaterial.shaderData;
     const { downScale, threshold, scatter, intensity, tint, highQualityFiltering, dirtTexture, dirtIntensity } =
-      bloomInstance;
+      bloomBlend;
 
     // Update shaderData
     const thresholdLinear = Color.gammaToLinearSpace(threshold);
