@@ -360,4 +360,13 @@ describe("physics collider test", function () {
     collider.destroy();
     expect(box.getComponent(DynamicCollider)).to.null;
   });
+
+  it("destroy", function () {
+    const box = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 0.5, 0));
+    const collider = box.getComponent(DynamicCollider);
+    collider.destroy();
+    expect(collider.destroyed).to.eq(true);
+    expect(box.getComponent(DynamicCollider)).to.null;
+    expect(collider.shapes.length).eq(0);
+  });
 });
