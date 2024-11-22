@@ -24,22 +24,22 @@ export class PostProcessManager {
   private _postProcessPasses: PostProcessPass[] = [];
   private _activePostProcesses: PostProcess[] = [];
   private _activePostProcessPasses: PostProcessPass[] = [];
-  private _hasActiveEffect = false;
+  private _isActive = false;
   private _swapRenderTarget: RenderTarget;
   private _srcRenderTarget: RenderTarget;
   private _destRenderTarget: RenderTarget;
   private _currentSourceRenderTarget: RenderTarget;
   private _currentDestRenderTarget: RenderTarget;
-  private _blendPostProcessEffectMap = new Map<typeof PostProcessEffect, PostProcessEffect>();
-  private _defaultPostProcessEffectMap = new Map<typeof PostProcessEffect, PostProcessEffect>();
-  private _remainPassCount = 0;
+  private _blendEffectMap = new Map<typeof PostProcessEffect, PostProcessEffect>();
+  private _defaultEffectMap = new Map<typeof PostProcessEffect, PostProcessEffect>();
+  private _remainActivePassCount = 0;
 
   /**
    * Whether has any active pass and active effect.
    */
   get isActive(): boolean {
     if (!this._activeStateChangeFlag) {
-      return this._hasActiveEffect;
+      return this._isActive;
     }
     this._activeStateChangeFlag = false;
 
@@ -50,7 +50,7 @@ export class PostProcessManager {
           const effects = postProcess._effects;
           for (let j = 0; j < effects.length; j++) {
             if (effects[j].enabled) {
-              this._hasActiveEffect = true;
+              this._isActive = true;
               return true;
             }
           }
@@ -58,7 +58,7 @@ export class PostProcessManager {
       }
     }
 
-    this._hasActiveEffect = false;
+    this._isActive = false;
     return false;
   }
 
@@ -154,7 +154,7 @@ export class PostProcessManager {
    * @internal
    */
   _getBlendEffect<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
-    return this._blendPostProcessEffectMap.get(type) as InstanceType<T>;
+    return this._blendEffectMap.get(type) as InstanceType<T>;
   }
 
   /**
@@ -169,13 +169,13 @@ export class PostProcessManager {
 
     this._update(camera.postProcessMask);
 
-    this._remainPassCount = this._activePostProcessPasses.length;
+    this._remainActivePassCount = this._activePostProcessPasses.length;
     this._initSwapRenderTarget(camera);
 
     for (let i = 0; i < this._activePostProcessPasses.length; i++) {
       const pass = this._activePostProcessPasses[i];
       pass.onRender(camera, this._getCurrentSourceTexture(), this._currentDestRenderTarget);
-      this._remainPassCount--;
+      this._remainActivePassCount--;
       this._swapRT();
     }
   }
@@ -213,17 +213,18 @@ export class PostProcessManager {
   }
 
   private _resetDefaultValue(): void {
-    this._blendPostProcessEffectMap.forEach((effectInstance, typeofEffectInstance) => {
-      let defaultEffect = this._defaultPostProcessEffectMap.get(typeofEffectInstance);
+    this._blendEffectMap.forEach((blendEffect, typeofBlendEffect) => {
+      let defaultEffect = this._defaultEffectMap.get(typeofBlendEffect);
 
       if (!defaultEffect) {
-        defaultEffect = new typeofEffectInstance(effectInstance.postProcess);
+        defaultEffect = new typeofBlendEffect(blendEffect.postProcess);
         defaultEffect._setActive(true);
-        this._defaultPostProcessEffectMap.set(typeofEffectInstance, defaultEffect);
+        this._defaultEffectMap.set(typeofBlendEffect, defaultEffect);
       }
 
       // Reset effectInstance's value by defaultEffect
-      defaultEffect.lerp(effectInstance, 1);
+      defaultEffect.lerp(blendEffect, 1);
+      blendEffect.enabled = false;
     });
   }
 
@@ -252,21 +253,23 @@ export class PostProcessManager {
           continue;
         }
         const PostConstructor = effect.constructor as typeof PostProcessEffect;
-        let effectInstance = this._blendPostProcessEffectMap.get(PostConstructor);
-        if (!effectInstance) {
-          effectInstance = new PostConstructor(postProcess);
-          effectInstance._setActive(true);
-          this._blendPostProcessEffectMap.set(PostConstructor, effectInstance);
+        let blendEffect = this._blendEffectMap.get(PostConstructor);
+        if (!blendEffect) {
+          blendEffect = new PostConstructor(postProcess);
+          blendEffect._setActive(true);
+          this._blendEffectMap.set(PostConstructor, blendEffect);
         }
 
+        blendEffect.enabled = true;
+
         // @todo: need `collider.ClosestPoint` to be implemented
-        effect.lerp(effectInstance, 1);
+        effect.lerp(blendEffect, 1);
       }
     }
   }
 
   private _initSwapRenderTarget(camera: Camera): void {
-    if (this._remainPassCount > 1) {
+    if (this._remainActivePassCount > 1) {
       const viewport = camera.pixelViewport;
       const swapRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
         this.scene.engine,
@@ -297,7 +300,7 @@ export class PostProcessManager {
 
     this._currentSourceRenderTarget = currentDestRenderTarget;
 
-    if (this._remainPassCount > 1) {
+    if (this._remainActivePassCount > 1) {
       this._currentDestRenderTarget = currentSourceRenderTarget;
     } else {
       this._currentDestRenderTarget = this._destRenderTarget;

@@ -66,7 +66,7 @@ export class PostProcessUberPass extends PostProcessPass {
     const bloomBlend = this.getBlendEffect(BloomEffect);
     const tonemappingBlend = this.getBlendEffect(TonemappingEffect);
 
-    if (bloomBlend) {
+    if (bloomBlend && bloomBlend.enabled && bloomBlend.intensity > 0) {
       this._setupBloom(bloomBlend, camera, srcTexture);
       uberShaderData.enableMacro(BloomEffect._enableMacro);
     } else {
@@ -74,7 +74,7 @@ export class PostProcessUberPass extends PostProcessPass {
       this._releaseBloomRenderTargets();
     }
 
-    if (tonemappingBlend) {
+    if (tonemappingBlend && tonemappingBlend.enabled) {
       uberShaderData.enableMacro("TONEMAPPING_MODE", tonemappingBlend.mode.toString());
       uberShaderData.enableMacro(TonemappingEffect._enableMacro);
     } else {
