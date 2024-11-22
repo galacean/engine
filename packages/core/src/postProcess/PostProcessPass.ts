@@ -33,7 +33,7 @@ export abstract class PostProcessPass extends EngineObject {
   set event(value: PostProcessPassEvent) {
     if (value !== this._event) {
       this._event = value;
-      if (this._postProcessManager) {
+      if (this._postProcessManager && this._isActive) {
         this._postProcessManager._postProcessPassNeedSorting = true;
       }
     }
@@ -49,11 +49,7 @@ export abstract class PostProcessPass extends EngineObject {
   set isActive(value: boolean) {
     if (value !== this._isActive) {
       this._isActive = value;
-      if (value) {
-        this._postProcessManager?.addPostProcessPass(this);
-      } else {
-        this._postProcessManager?._removePostProcessPass(this);
-      }
+      this._postProcessManager?._refreshActivePostProcessPasses();
     }
   }
 
@@ -65,9 +61,7 @@ export abstract class PostProcessPass extends EngineObject {
    * @returns The PostProcessEffect instance found
    */
   getBlendEffect<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
-    if (this._postProcessManager) {
-      return this._postProcessManager._getBlendEffect(type);
-    }
+    return this._postProcessManager?._getBlendEffect(type);
   }
 
   /**
@@ -84,6 +78,5 @@ export abstract class PostProcessPass extends EngineObject {
   override _onDestroy() {
     super._onDestroy();
     this._postProcessManager?._removePostProcessPass(this);
-    this._postProcessManager = null;
   }
 }

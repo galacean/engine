@@ -39,11 +39,11 @@ export class PostProcessEffect {
 
     if (value && !this._phasedActive) {
       this._phasedActive = true;
-      postProcessManager._setActiveStateDirty();
+      postProcessManager._activeStateChangeFlag = true;
       this.onEnable();
     } else if (!value && this._phasedActive) {
       this._phasedActive = false;
-      postProcessManager._setActiveStateDirty();
+      postProcessManager._activeStateChangeFlag = true;
       this.onDisable();
     }
   }
@@ -84,13 +84,13 @@ export class PostProcessEffect {
     if (value) {
       if (!this._phasedActive && this._enabled) {
         this._phasedActive = true;
-        postProcessManager._setActiveStateDirty();
+        postProcessManager._activeStateChangeFlag = true;
         this.onEnable();
       }
     } else {
       if (this._phasedActive && !this.enabled) {
         this._phasedActive = false;
-        postProcessManager._setActiveStateDirty();
+        postProcessManager._activeStateChangeFlag = true;
         this.onDisable();
       }
     }

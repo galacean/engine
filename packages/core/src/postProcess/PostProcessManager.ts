@@ -2,7 +2,6 @@ import { Camera } from "../Camera";
 import { Layer } from "../Layer";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { Scene } from "../Scene";
-import { Logger } from "../base";
 import { Material } from "../material";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 import { PostProcess } from "./PostProcess";
@@ -19,11 +18,13 @@ export class PostProcessManager {
   _postProcessNeedSorting = false;
   /** @internal */
   _postProcessPassNeedSorting = false;
+  /** @internal */
+  _activeStateChangeFlag = false;
 
+  private _postProcessPasses: PostProcessPass[] = [];
   private _activePostProcesses: PostProcess[] = [];
   private _activePostProcessPasses: PostProcessPass[] = [];
   private _hasActiveEffect = false;
-  private _activeStateChangeFlag = false;
   private _swapRenderTarget: RenderTarget;
   private _srcRenderTarget: RenderTarget;
   private _destRenderTarget: RenderTarget;
@@ -34,9 +35,9 @@ export class PostProcessManager {
   private _remainPassCount = 0;
 
   /**
-   * Whether has active post process effect.
+   * Whether has any active pass and active effect.
    */
-  get hasActiveEffect(): boolean {
+  get isActive(): boolean {
     if (!this._activeStateChangeFlag) {
       return this._hasActiveEffect;
     }
@@ -65,7 +66,7 @@ export class PostProcessManager {
    * Get all post process passes.
    */
   get postProcessPasses(): ReadonlyArray<PostProcessPass> {
-    return this._activePostProcessPasses;
+    return this._postProcessPasses;
   }
 
   /**
@@ -83,19 +84,15 @@ export class PostProcessManager {
       throw "The pass is not belong to this engine.";
     }
 
-    const passes = this._activePostProcessPasses;
+    const passes = this._postProcessPasses;
     const index = passes.indexOf(pass);
 
     if (index === -1) {
-      if (pass.isActive) {
-        pass._postProcessManager?._removePostProcessPass(pass);
-        pass._postProcessManager = this;
-        this._activePostProcessPasses.push(pass);
-        this._postProcessPassNeedSorting = true;
-        this._activeStateChangeFlag = true;
-      }
-    } else {
-      Logger.error(`pass "${pass.constructor.name}" already exists in the post process manager.`);
+      pass._postProcessManager?._removePostProcessPass(pass);
+      pass._postProcessManager = this;
+      passes.push(pass);
+
+      pass.isActive && this._refreshActivePostProcessPasses();
     }
   }
 
@@ -103,14 +100,33 @@ export class PostProcessManager {
    * @internal
    */
   _removePostProcessPass(pass: PostProcessPass): void {
-    const passes = this._activePostProcessPasses;
+    const passes = this._postProcessPasses;
     const index = passes.indexOf(pass);
 
-    if (index >= 0) {
+    if (index !== -1) {
       passes.splice(index, 1);
-      this._postProcessPassNeedSorting = true;
-      this._activeStateChangeFlag = true;
+      pass._postProcessManager = null;
+
+      pass.isActive && this._refreshActivePostProcessPasses();
     }
+  }
+
+  /**
+   * @internal
+   */
+  _refreshActivePostProcessPasses(): void {
+    const activePostProcesses = this._activePostProcessPasses;
+    activePostProcesses.length = 0;
+
+    for (let i = 0; i < this._postProcessPasses.length; i++) {
+      const pass = this._postProcessPasses[i];
+      if (pass.isActive) {
+        activePostProcesses.push(pass);
+      }
+    }
+
+    this._activeStateChangeFlag = true;
+    this._postProcessPassNeedSorting = true;
   }
 
   /**
@@ -118,7 +134,7 @@ export class PostProcessManager {
    */
   _addPostProcess(postProcess: PostProcess): void {
     this._activePostProcesses.push(postProcess);
-    this._setActiveStateDirty();
+    this._activeStateChangeFlag = true;
     this._postProcessNeedSorting = true;
   }
 
@@ -129,7 +145,7 @@ export class PostProcessManager {
     const index = this._activePostProcesses.indexOf(postProcess);
     if (index >= 0) {
       this._activePostProcesses.splice(index, 1);
-      this._setActiveStateDirty();
+      this._activeStateChangeFlag = true;
       this._postProcessNeedSorting = true;
     }
   }
@@ -167,13 +183,6 @@ export class PostProcessManager {
   /**
    * @internal
    */
-  _setActiveStateDirty(): void {
-    this._activeStateChangeFlag = true;
-  }
-
-  /**
-   * @internal
-   */
   _releaseSwapRenderTarget(): void {
     const swapRenderTarget = this._swapRenderTarget;
     if (swapRenderTarget) {
@@ -183,23 +192,23 @@ export class PostProcessManager {
     }
   }
 
-  private _sortPostProcess(): void {
-    if (this._postProcessNeedSorting) {
-      const postProcesses = this._activePostProcesses;
-      if (postProcesses.length) {
-        postProcesses.sort((a, b) => a.priority - b.priority);
-      }
-      this._postProcessNeedSorting = false;
-    }
-  }
-
-  private _sortPostProcessPass(): void {
+  private _sortActivePostProcessPass(): void {
     if (this._postProcessPassNeedSorting) {
       const passes = this._activePostProcessPasses;
       if (passes.length) {
         passes.sort((a, b) => a.event - b.event);
       }
       this._postProcessPassNeedSorting = false;
+    }
+  }
+
+  private _sortActivePostProcess(): void {
+    if (this._postProcessNeedSorting) {
+      const postProcesses = this._activePostProcesses;
+      if (postProcesses.length) {
+        postProcesses.sort((a, b) => a.priority - b.priority);
+      }
+      this._postProcessNeedSorting = false;
     }
   }
 
@@ -223,8 +232,8 @@ export class PostProcessManager {
     this._resetDefaultValue();
 
     // Sort post process and post process pass
-    this._sortPostProcess();
-    this._sortPostProcessPass();
+    this._sortActivePostProcess();
+    this._sortActivePostProcessPass();
 
     for (let i = 0; i < this._activePostProcesses.length; i++) {
       const postProcess = this._activePostProcesses[i];
