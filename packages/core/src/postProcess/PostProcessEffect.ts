@@ -1,11 +1,9 @@
-import { ignoreClone } from "../clone/CloneManager";
 import { PostProcess } from "./PostProcess";
 
 /**
  * The base class for post process effect.
  */
 export class PostProcessEffect {
-  @ignoreClone
   private _phasedActive = false;
 
   private _enabled = true;

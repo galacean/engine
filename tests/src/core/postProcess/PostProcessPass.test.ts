@@ -10,7 +10,7 @@ import {
   Texture2D
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 class CustomPass extends PostProcessPass {
   onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void {}
@@ -29,6 +29,11 @@ describe("PostProcessPass", () => {
     scene2 = new Scene(engine);
     engine.sceneManager.addScene(scene2);
     engine.run();
+  });
+
+  afterAll(() => {
+    engine.destroy();
+    engine2.destroy();
   });
 
   it("internal uber pass", () => {
@@ -122,6 +127,6 @@ describe("PostProcessPass", () => {
     expect(passes1[0] === uberPass).to.be.true;
 
     const bloomBlend = customPass.getBlendEffect(BloomEffect);
-    expect(bloomBlend).toBeUndefined;
+    expect(bloomBlend).toBeUndefined();
   });
 });

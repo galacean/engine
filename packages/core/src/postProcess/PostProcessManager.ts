@@ -43,23 +43,13 @@ export class PostProcessManager {
     }
     this._activeStateChangeFlag = false;
 
-    if (this._activePostProcessPasses.length) {
-      for (let i = 0; i < this._activePostProcesses.length; i++) {
-        const postProcess = this._activePostProcesses[i];
-        if (postProcess.enabled) {
-          const effects = postProcess._effects;
-          for (let j = 0; j < effects.length; j++) {
-            if (effects[j].enabled) {
-              this._isActive = true;
-              return true;
-            }
-          }
-        }
-      }
-    }
+    this._isActive =
+      this._activePostProcessPasses.length > 0 &&
+      this._activePostProcesses.some(
+        (postProcess) => postProcess.enabled && postProcess._effects.some((effect) => effect.enabled)
+      );
 
-    this._isActive = false;
-    return false;
+    return this._isActive;
   }
 
   /**
