@@ -127,29 +127,9 @@ class SceneLoader extends Loader<Scene> {
             // Post Process
             const postProcessData = data.scene.postProcess;
             if (postProcessData) {
-              // @ts-ignore
-              const postProcessManager = scene._postProcessManager;
-              const bloomEffect = postProcessManager._bloomEffect as BloomEffect;
-              const tonemappingEffect = postProcessManager._tonemappingEffect as TonemappingEffect;
-
-              postProcessManager.isActive = postProcessData.isActive;
-              bloomEffect.enabled = postProcessData.bloom.enabled;
-              bloomEffect.downScale = postProcessData.bloom.downScale;
-              bloomEffect.threshold = postProcessData.bloom.threshold;
-              bloomEffect.scatter = postProcessData.bloom.scatter;
-              bloomEffect.intensity = postProcessData.bloom.intensity;
-              bloomEffect.tint.copyFrom(postProcessData.bloom.tint);
-              bloomEffect.dirtIntensity = postProcessData.bloom.dirtIntensity;
-              tonemappingEffect.enabled = postProcessData.tonemapping.enabled;
-              tonemappingEffect.mode = postProcessData.tonemapping.mode;
-              if (postProcessData.bloom.dirtTexture) {
-                // @ts-ignore
-                // prettier-ignore
-                const dirtTexturePromise = resourceManager.getResourceByRef<any>(postProcessData.bloom.dirtTexture).then((texture) => {
-                    bloomEffect.dirtTexture = texture;
-                });
-                promises.push(dirtTexturePromise);
-              }
+              Logger.warn(
+                "Post Process is not supported in scene yet, please add PostProcess component in entity instead."
+              );
             }
 
             return Promise.all(promises).then(() => {
