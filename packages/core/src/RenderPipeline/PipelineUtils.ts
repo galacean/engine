@@ -1,6 +1,5 @@
 import { Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
-import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Material } from "../material";
 import { ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
@@ -195,11 +194,6 @@ export class PipelineUtils {
     program.uploadAll(program.materialUniformBlock, blitMaterial.shaderData);
     program.uploadUnGroupTextures();
 
-    if (!material) {
-      blitMaterial.renderState.blendState.targetBlendState.enabled = !(
-        context.camera.clearFlags & CameraClearFlags.Color
-      );
-    }
     (pass._renderState || blitMaterial.renderState)._applyStates(
       engine,
       false,
@@ -208,5 +202,6 @@ export class PipelineUtils {
     );
 
     rhi.drawPrimitive(blitMesh._primitive, blitMesh.subMesh, program);
+    basicResources.blitMaterial.renderState.blendState.targetBlendState.enabled = false;
   }
 }

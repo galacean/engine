@@ -42,7 +42,7 @@ export class _PostProcessManager {
     const depthState = uberMaterial.renderState.depthState;
     const blendState = uberMaterial.renderState.blendState.targetBlendState;
 
-    blendState.enabled = true;
+    blendState.enabled = false;
     blendState.sourceColorBlendFactor = BlendFactor.SourceAlpha;
     blendState.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
     blendState.sourceAlphaBlendFactor = BlendFactor.One;

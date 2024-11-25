@@ -49,7 +49,7 @@ export class BasicResources {
     blitMaterial.renderState.depthState.writeEnabled = false;
     const blendState = blitMaterial.renderState.blendState.targetBlendState;
 
-    blendState.enabled = true;
+    blendState.enabled = false;
     blendState.sourceColorBlendFactor = BlendFactor.SourceAlpha;
     blendState.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
     blendState.sourceAlphaBlendFactor = BlendFactor.One;

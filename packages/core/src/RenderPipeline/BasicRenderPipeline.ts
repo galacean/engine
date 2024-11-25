@@ -1,4 +1,4 @@
-import { Vector2 } from "@galacean/engine-math";
+import { Color, Vector2 } from "@galacean/engine-math";
 import { Background } from "../Background";
 import { Camera } from "../Camera";
 import { BackgroundMode } from "../enums/BackgroundMode";
@@ -43,6 +43,7 @@ export class BasicRenderPipeline {
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
   private _opaqueTexturePass: OpaqueTexturePass;
+  private _transparentBgColor = new Color(0, 0, 0, 0);
 
   /**
    * Create a basic render pipeline.
@@ -163,17 +164,22 @@ export class BasicRenderPipeline {
 
     rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
     const clearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
+    const needClearColor = clearFlags & CameraClearFlags.Color;
     const color = background.solidColor;
 
     if (internalColorTarget) {
-      rhi.clearRenderTarget(camera.engine, CameraClearFlags.All, color);
+      if (needClearColor) {
+        rhi.clearRenderTarget(camera.engine, CameraClearFlags.All, color);
+      } else {
+        rhi.clearRenderTarget(camera.engine, CameraClearFlags.All, this._transparentBgColor);
+      }
     } else if (clearFlags !== CameraClearFlags.None) {
       rhi.clearRenderTarget(camera.engine, clearFlags, color);
     }
 
     opaqueQueue.render(context, PipelineStage.Forward);
     alphaTestQueue.render(context, PipelineStage.Forward);
-    if (clearFlags & CameraClearFlags.Color) {
+    if (needClearColor) {
       if (background.mode === BackgroundMode.Sky) {
         background.sky._render(context);
       } else if (background.mode === BackgroundMode.Texture && background.texture) {
@@ -204,6 +210,9 @@ export class BasicRenderPipeline {
       postProcessManager._render(context, internalColorTarget, cameraRenderTarget);
     } else if (internalColorTarget) {
       internalColorTarget._blitRenderTarget();
+
+      engine._basicResources.blitMaterial.renderState.blendState.targetBlendState.enabled = !needClearColor;
+
       PipelineUtils.blitTexture(
         engine,
         <Texture2D>internalColorTarget.getColorTexture(0),

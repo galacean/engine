@@ -230,6 +230,16 @@ export const E2E_CONFIG = {
       category: "Advance",
       caseFileName: "project-loader",
       threshold: 0.4
+    },
+    MultiSceneClear: {
+      category: "Advance",
+      caseFileName: "multi-scene-clear",
+      threshold: 0
+    },
+    MultiSceneNoClear: {
+      category: "Advance",
+      caseFileName: "multi-scene-no-clear",
+      threshold: 0
     }
   }
 };
