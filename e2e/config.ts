@@ -218,11 +218,25 @@ export const E2E_CONFIG = {
       threshold: 0.2
     }
   },
+  SpriteMask: {
+    CustomStencil: {
+      category: "SpriteMask",
+      caseFileName: "spriteMask-customStencil",
+      threshold: 0.3
+    }
+  },
   Text: {
     TypedText: {
       category: "Text",
       caseFileName: "text-typed",
       threshold: 0.4
     }
-  }
+  },
+  Other: {
+    ProjectLoader: {
+      category: "Advance",
+      caseFileName: "project-loader",
+      threshold: 0.4
+    }
+  },
 };

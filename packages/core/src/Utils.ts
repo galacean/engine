@@ -78,6 +78,12 @@ export class Utils {
       return relativeUrl;
     }
 
+    if (!/^https?:/.test(baseUrl)) {
+      const fileSchema = "files://";
+      baseUrl = fileSchema + baseUrl;
+      return new URL(relativeUrl, baseUrl).href.substring(fileSchema.length);
+    }
+
     return relativeUrl ? new URL(relativeUrl, baseUrl).href : baseUrl;
   }
 
