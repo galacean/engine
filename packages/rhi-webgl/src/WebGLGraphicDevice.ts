@@ -375,17 +375,37 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     }
     const gl = this._gl;
     // @ts-ignore
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, srcRT ? srcRT._platformRenderTarget._frameBuffer : null);
+    const srcFrameBuffer = srcRT ? srcRT._platformRenderTarget._frameBuffer : null;
     // @ts-ignore
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, destRT ? destRT._platformRenderTarget._frameBuffer : null);
+    const destFrameBuffer = destRT ? destRT._platformRenderTarget._frameBuffer : null;
+    const bufferWidth = this.getMainFrameBufferWidth();
+    const bufferHeight = this.getMainFrameBufferHeight();
+    const srcWidth = srcRT ? srcRT.width : bufferWidth;
+    const srcHeight = srcRT ? srcRT.height : bufferHeight;
+    const destWidth = destRT ? destRT.width : bufferWidth;
+    const destHeight = destRT ? destRT.height : bufferHeight;
+    const needFlipY = !!srcRT !== !!destRT;
+
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, srcFrameBuffer);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, destFrameBuffer);
+
     const blitMask =
       (clearFlags & CameraClearFlags.Color ? 0 : gl.COLOR_BUFFER_BIT) |
       (clearFlags & CameraClearFlags.Depth ? 0 : gl.DEPTH_BUFFER_BIT) |
       (clearFlags & CameraClearFlags.Stencil ? 0 : gl.STENCIL_BUFFER_BIT);
-    const bufferWidth = this.getMainFrameBufferWidth();
-    const bufferHeight = this.getMainFrameBufferHeight();
 
-    gl.blitFramebuffer(0, 0, bufferWidth, bufferHeight, 0, 0, bufferWidth, bufferHeight, blitMask, gl.NEAREST);
+    gl.blitFramebuffer(
+      0,
+      needFlipY ? srcHeight : 0,
+      srcWidth,
+      needFlipY ? 0 : srcHeight,
+      0,
+      0,
+      destWidth,
+      destHeight,
+      blitMask,
+      gl.NEAREST
+    );
   }
 
   activeTexture(textureID: number): void {
