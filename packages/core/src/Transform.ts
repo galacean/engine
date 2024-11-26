@@ -319,23 +319,6 @@ export class Transform extends Component {
   /**
    * @internal
    */
-  _getWorldUniformScaling(): boolean {
-    if (this._isContainDirtyFlag(TransformModifyFlags.WorldUniformScaling)) {
-      const localUniformScaling = this._localUniformScaling;
-      if (localUniformScaling) {
-        const parent = this._getParentTransform();
-        this._worldUniformScaling = localUniformScaling && (parent ? parent._getWorldUniformScaling() : true);
-      } else {
-        this._worldUniformScaling = false;
-      }
-      this._setDirtyFlagFalse(TransformModifyFlags.WorldUniformScaling);
-    }
-    return this._worldUniformScaling;
-  }
-
-  /**
-   * @internal
-   */
   constructor(entity: Entity) {
     super(entity);
 
@@ -882,6 +865,20 @@ export class Transform extends Component {
     } else {
       this._updateWorldScaleFlag(TransformModifyFlags.WmWs);
     }
+  }
+
+  private _getWorldUniformScaling(): boolean {
+    if (this._isContainDirtyFlag(TransformModifyFlags.WorldUniformScaling)) {
+      const localUniformScaling = this._localUniformScaling;
+      if (localUniformScaling) {
+        const parent = this._getParentTransform();
+        this._worldUniformScaling = localUniformScaling && (parent ? parent._getWorldUniformScaling() : true);
+      } else {
+        this._worldUniformScaling = false;
+      }
+      this._setDirtyFlagFalse(TransformModifyFlags.WorldUniformScaling);
+    }
+    return this._worldUniformScaling;
   }
 }
 
