@@ -474,10 +474,13 @@ describe("DynamicCollider", function () {
   it("destroy", function () {
     const entity = rootEntity.createChild("collider");
     const collider = entity.addComponent(DynamicCollider);
-    collider.addShape(new BoxColliderShape());
+    const boxShape = new BoxColliderShape();
+    collider.addShape(boxShape);
     collider.destroy();
 
     // Test that destroy works correctly.
+    // @ts-ignore
+    expect(boxShape._nativeShape).null;
     expect(collider.shapes.length).eq(0);
     expect(entity.getComponent(DynamicCollider)).null;
   });

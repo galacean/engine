@@ -24,7 +24,8 @@ export class CharacterController extends Collider {
   }
 
   set contactOffset(value: number) {
-    if (this._contactOffset !== value && value >= 0) {
+    value = Math.max(0, value);
+    if (this._contactOffset !== value) {
       this._contactOffset = value;
       (<ICharacterController>this._nativeCollider).setContactOffset(value);
     }

@@ -138,10 +138,12 @@ export class Collider extends Component implements ICustomClone {
   protected override _onDestroy(): void {
     super._onDestroy();
     const shapes = this._shapes;
-    this.clearShapes();
     for (let i = 0, n = shapes.length; i < n; i++) {
-      shapes[i]._destroy();
+      const shape = shapes[i];
+      this._removeNativeShape(shape);
+      shape._destroy();
     }
+    shapes.length = 0;
     this._nativeCollider.destroy();
   }
 
