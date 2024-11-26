@@ -54,7 +54,6 @@ export class Transform extends Component {
   private _isParentDirty: boolean = true;
   @ignoreClone
   private _parentTransformCache: Transform = null;
-
   private _dirtyFlag: number = TransformModifyFlags.WmWpWeWqWs;
 
   /** @internal */
@@ -320,10 +319,15 @@ export class Transform extends Component {
   /**
    * @internal
    */
-  get worldUniformScaling(): boolean {
+  _getWorldUniformScaling(): boolean {
     if (this._isContainDirtyFlag(TransformModifyFlags.WorldUniformScaling)) {
-      const parent = this._getParentTransform();
-      this._worldUniformScaling = this._localUniformScaling && (parent ? parent.worldUniformScaling : true);
+      const localUniformScaling = this._localUniformScaling;
+      if (localUniformScaling) {
+        const parent = this._getParentTransform();
+        this._worldUniformScaling = localUniformScaling && (parent ? parent._getWorldUniformScaling() : true);
+      } else {
+        this._worldUniformScaling = false;
+      }
       this._setDirtyFlagFalse(TransformModifyFlags.WorldUniformScaling);
     }
     return this._worldUniformScaling;
@@ -643,11 +647,15 @@ export class Transform extends Component {
    */
   private _updateWorldRotationFlag() {
     const parent = this._getParentTransform();
-    const parentWorldUniformScaling = parent ? parent.worldUniformScaling : true;
+    const parentWorldUniformScaling = parent ? parent._getWorldUniformScaling() : true;
     let flags = parentWorldUniformScaling ? TransformModifyFlags.WmWeWq : TransformModifyFlags.WmWeWqWs;
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
-      flags = this.worldUniformScaling ? TransformModifyFlags.WmWpWeWq : TransformModifyFlags.WmWpWeWqWs;
+      if (flags === TransformModifyFlags.WmWeWq && !this._getWorldUniformScaling()) {
+        flags = TransformModifyFlags.WmWpWeWq;
+      } else {
+        flags = TransformModifyFlags.WmWpWeWqWs;
+      }
       const children = this._entity._children;
       for (let i = 0, n = children.length; i < n; i++) {
         children[i].transform?._updateWorldPositionAndRotationFlag(flags); // Rotation update of parent entity will trigger world position, rotation and scale update of all child entity.
@@ -667,7 +675,9 @@ export class Transform extends Component {
   private _updateWorldPositionAndRotationFlag(flags: TransformModifyFlags): void {
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
-      flags = this.worldUniformScaling ? TransformModifyFlags.WmWpWeWq : TransformModifyFlags.WmWpWeWqWs;
+      if (flags === TransformModifyFlags.WmWpWeWq && !this._getWorldUniformScaling()) {
+        flags = TransformModifyFlags.WmWpWeWqWs;
+      }
       const children = this._entity._children;
       for (let i = 0, n = children.length; i < n; i++) {
         children[i].transform?._updateWorldPositionAndRotationFlag(flags);
