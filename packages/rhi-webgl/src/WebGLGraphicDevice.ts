@@ -19,7 +19,8 @@ import {
   Texture2D,
   Texture2DArray,
   TextureCube,
-  TextureCubeFace
+  TextureCubeFace,
+  TextureFormat
 } from "@galacean/engine-core";
 import { IHardwareRenderer, IPlatformPrimitive } from "@galacean/engine-design";
 import { Color, Vector4 } from "@galacean/engine-math";
@@ -395,10 +396,15 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, srcFrameBuffer);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, destFrameBuffer);
 
-    const blitMask =
-      (clearFlags & CameraClearFlags.Color ? 0 : gl.COLOR_BUFFER_BIT) |
-      (clearFlags & CameraClearFlags.Depth ? 0 : gl.DEPTH_BUFFER_BIT) |
-      (clearFlags & CameraClearFlags.Stencil ? 0 : gl.STENCIL_BUFFER_BIT);
+    // @ts-ignore
+    const canBlitDepthStencil = !srcRT || srcRT._depthFormat === TextureFormat.Depth24Stencil8;
+
+    let blitMask = clearFlags & CameraClearFlags.Color ? 0 : gl.COLOR_BUFFER_BIT;
+
+    if (canBlitDepthStencil) {
+      blitMask |= clearFlags & CameraClearFlags.Depth ? 0 : gl.DEPTH_BUFFER_BIT;
+      blitMask |= clearFlags & CameraClearFlags.Stencil ? 0 : gl.STENCIL_BUFFER_BIT;
+    }
 
     const xStart = viewport.x * srcWidth;
     const xEnd = xStart + destWidth;
