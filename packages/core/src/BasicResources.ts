@@ -8,7 +8,6 @@ import { MeshTopology } from "./graphic/enums/MeshTopology";
 import { VertexElementFormat } from "./graphic/enums/VertexElementFormat";
 import { Material } from "./material";
 import { ModelMesh } from "./mesh";
-import { BlendFactor, BlendOperation } from "./shader";
 import { Shader } from "./shader/Shader";
 import { Texture, Texture2D, TextureCube, TextureCubeFace } from "./texture";
 import { Texture2DArray } from "./texture/Texture2DArray";

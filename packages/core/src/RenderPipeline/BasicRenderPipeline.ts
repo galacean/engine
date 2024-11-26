@@ -163,7 +163,6 @@ export class BasicRenderPipeline {
 
     rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
     const clearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
-    const needClearColor = clearFlags & CameraClearFlags.Color;
     const color = background.solidColor;
 
     if (internalColorTarget) {
@@ -171,7 +170,7 @@ export class BasicRenderPipeline {
         rhi.clearRenderTarget(camera.engine, CameraClearFlags.All, color);
       } else {
         clearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(camera.engine, clearFlags, color);
-        rhi.blitFrameBufferToViewport(camera.renderTarget, internalColorTarget, clearFlags, camera.viewport);
+        rhi.blitFrameBufferToInternalRT(camera.renderTarget, internalColorTarget, clearFlags, camera.viewport);
         rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
       }
     } else if (clearFlags !== CameraClearFlags.None) {
@@ -180,7 +179,7 @@ export class BasicRenderPipeline {
 
     opaqueQueue.render(context, PipelineStage.Forward);
     alphaTestQueue.render(context, PipelineStage.Forward);
-    if (needClearColor) {
+    if (clearFlags & CameraClearFlags.Color) {
       if (background.mode === BackgroundMode.Sky) {
         background.sky._render(context);
       } else if (background.mode === BackgroundMode.Texture && background.texture) {

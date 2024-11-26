@@ -1,9 +1,8 @@
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Scene } from "../Scene";
-import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Material } from "../material";
-import { BlendFactor, BlendOperation, Shader } from "../shader";
+import { Shader } from "../shader";
 import { RenderTarget, Texture2D } from "../texture";
 import { BloomEffect, TonemappingEffect } from "./effects";
 

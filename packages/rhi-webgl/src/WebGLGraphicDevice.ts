@@ -370,7 +370,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this.scissor(x, y, width, height);
   }
 
-  blitFrameBufferToViewport(
+  blitFrameBufferToInternalRT(
     srcRT: RenderTarget,
     destRT: RenderTarget,
     clearFlags: CameraClearFlags,

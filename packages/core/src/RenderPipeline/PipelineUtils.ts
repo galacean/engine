@@ -202,6 +202,5 @@ export class PipelineUtils {
     );
 
     rhi.drawPrimitive(blitMesh._primitive, blitMesh.subMesh, program);
-    basicResources.blitMaterial.renderState.blendState.targetBlendState.enabled = false;
   }
 }
