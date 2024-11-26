@@ -47,14 +47,6 @@ export class BasicResources {
     blitMaterial._addReferCount(1);
     blitMaterial.renderState.depthState.enabled = false;
     blitMaterial.renderState.depthState.writeEnabled = false;
-    const blendState = blitMaterial.renderState.blendState.targetBlendState;
-
-    blendState.enabled = false;
-    blendState.sourceColorBlendFactor = BlendFactor.SourceAlpha;
-    blendState.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    blendState.sourceAlphaBlendFactor = BlendFactor.One;
-    blendState.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    blendState.colorBlendOperation = blendState.alphaBlendOperation = BlendOperation.Add;
 
     this.blitMesh = this._createBlitMesh(engine, vertices);
     this.flipYBlitMesh = this._createBlitMesh(engine, flipYVertices);

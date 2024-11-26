@@ -1,4 +1,4 @@
-import { Color, Vector2 } from "@galacean/engine-math";
+import { Vector2 } from "@galacean/engine-math";
 import { Background } from "../Background";
 import { Camera } from "../Camera";
 import { BackgroundMode } from "../enums/BackgroundMode";
@@ -43,7 +43,6 @@ export class BasicRenderPipeline {
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
   private _opaqueTexturePass: OpaqueTexturePass;
-  private _transparentBgColor = new Color(0, 0, 0, 0);
 
   /**
    * Create a basic render pipeline.
@@ -168,10 +167,12 @@ export class BasicRenderPipeline {
     const color = background.solidColor;
 
     if (internalColorTarget) {
-      if (needClearColor) {
+      if (clearFlags === CameraClearFlags.All) {
         rhi.clearRenderTarget(camera.engine, CameraClearFlags.All, color);
       } else {
-        rhi.clearRenderTarget(camera.engine, CameraClearFlags.All, this._transparentBgColor);
+        clearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(camera.engine, clearFlags, color);
+        rhi.blitFrameBuffer(camera.renderTarget, internalColorTarget, clearFlags);
+        rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
       }
     } else if (clearFlags !== CameraClearFlags.None) {
       rhi.clearRenderTarget(camera.engine, clearFlags, color);
@@ -210,8 +211,6 @@ export class BasicRenderPipeline {
       postProcessManager._render(context, internalColorTarget, cameraRenderTarget);
     } else if (internalColorTarget) {
       internalColorTarget._blitRenderTarget();
-
-      engine._basicResources.blitMaterial.renderState.blendState.targetBlendState.enabled = !needClearColor;
 
       PipelineUtils.blitTexture(
         engine,

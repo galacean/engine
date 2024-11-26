@@ -277,7 +277,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this._gl.colorMask(r, g, b, a);
   }
 
-  clearRenderTarget(engine: Engine, clearFlags: CameraClearFlags, clearColor: Color) {
+  clearRenderTarget(engine: Engine, clearFlags: CameraClearFlags, clearColor?: Color) {
     const gl = this._gl;
 
     const {
@@ -287,7 +287,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       // @ts-ignore
     } = engine._lastRenderState;
     let clearFlag = 0;
-    if (clearFlags & CameraClearFlags.Color) {
+    if (clearFlags & CameraClearFlags.Color && clearColor) {
       clearFlag |= gl.COLOR_BUFFER_BIT;
 
       const lc = this._lastClearColor;
@@ -340,7 +340,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     renderTarget: RenderTarget,
     viewport: Vector4,
     isFlipProjection: boolean,
-    mipLevel: number,
+    mipLevel?: number,
     faceIndex?: TextureCubeFace
   ) {
     let bufferWidth: number, bufferHeight: number;
@@ -367,6 +367,25 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     const y = isFlipProjection ? viewport.y * bufferHeight : bufferHeight - viewport.y * bufferHeight - height;
     this.viewport(x, y, width, height);
     this.scissor(x, y, width, height);
+  }
+
+  blitFrameBuffer(srcRT: RenderTarget, destRT: RenderTarget, clearFlags: CameraClearFlags) {
+    if (!this._isWebGL2) {
+      return;
+    }
+    const gl = this._gl;
+    // @ts-ignore
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, srcRT ? srcRT._platformRenderTarget._frameBuffer : null);
+    // @ts-ignore
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, destRT ? destRT._platformRenderTarget._frameBuffer : null);
+    const blitMask =
+      (clearFlags & CameraClearFlags.Color ? 0 : gl.COLOR_BUFFER_BIT) |
+      (clearFlags & CameraClearFlags.Depth ? 0 : gl.DEPTH_BUFFER_BIT) |
+      (clearFlags & CameraClearFlags.Stencil ? 0 : gl.STENCIL_BUFFER_BIT);
+    const bufferWidth = this.getMainFrameBufferWidth();
+    const bufferHeight = this.getMainFrameBufferHeight();
+
+    gl.blitFramebuffer(0, 0, bufferWidth, bufferHeight, 0, 0, bufferWidth, bufferHeight, blitMask, gl.NEAREST);
   }
 
   activeTexture(textureID: number): void {

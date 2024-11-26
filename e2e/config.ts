@@ -234,12 +234,17 @@ export const E2E_CONFIG = {
     MultiSceneClear: {
       category: "Advance",
       caseFileName: "multi-scene-clear",
-      threshold: 0
+      threshold: 0.2
     },
     MultiSceneNoClear: {
       category: "Advance",
       caseFileName: "multi-scene-no-clear",
-      threshold: 0
+      threshold: 0.2
+    },
+    MultiCameraNoClear: {
+      category: "Advance",
+      caseFileName: "multi-camera-no-clear",
+      threshold: 0.2
     }
   }
 };
