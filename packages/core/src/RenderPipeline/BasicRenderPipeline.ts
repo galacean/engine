@@ -171,7 +171,7 @@ export class BasicRenderPipeline {
         rhi.clearRenderTarget(camera.engine, CameraClearFlags.All, color);
       } else {
         clearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(camera.engine, clearFlags, color);
-        rhi.blitFrameBuffer(camera.renderTarget, internalColorTarget, clearFlags);
+        rhi.blitFrameBufferToViewport(camera.renderTarget, internalColorTarget, clearFlags, camera.viewport);
         rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
       }
     } else if (clearFlags !== CameraClearFlags.None) {

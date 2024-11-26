@@ -369,8 +369,14 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this.scissor(x, y, width, height);
   }
 
-  blitFrameBuffer(srcRT: RenderTarget, destRT: RenderTarget, clearFlags: CameraClearFlags) {
+  blitFrameBufferToViewport(
+    srcRT: RenderTarget,
+    destRT: RenderTarget,
+    clearFlags: CameraClearFlags,
+    viewport: Vector4
+  ) {
     if (!this._isWebGL2) {
+      Logger.warn("WebGL1.0 not support blit frame buffer.");
       return;
     }
     const gl = this._gl;
@@ -382,8 +388,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     const bufferHeight = this.getMainFrameBufferHeight();
     const srcWidth = srcRT ? srcRT.width : bufferWidth;
     const srcHeight = srcRT ? srcRT.height : bufferHeight;
-    const destWidth = destRT ? destRT.width : bufferWidth;
-    const destHeight = destRT ? destRT.height : bufferHeight;
+    const destWidth = srcWidth * viewport.z;
+    const destHeight = srcHeight * viewport.w;
     const needFlipY = !!srcRT !== !!destRT;
 
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, srcFrameBuffer);
@@ -394,18 +400,12 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       (clearFlags & CameraClearFlags.Depth ? 0 : gl.DEPTH_BUFFER_BIT) |
       (clearFlags & CameraClearFlags.Stencil ? 0 : gl.STENCIL_BUFFER_BIT);
 
-    gl.blitFramebuffer(
-      0,
-      needFlipY ? srcHeight : 0,
-      srcWidth,
-      needFlipY ? 0 : srcHeight,
-      0,
-      0,
-      destWidth,
-      destHeight,
-      blitMask,
-      gl.NEAREST
-    );
+    const xStart = viewport.x * srcWidth;
+    const xEnd = xStart + destWidth;
+    const yStart = needFlipY ? srcHeight - viewport.y * srcHeight : srcHeight - viewport.y * srcHeight - destHeight;
+    const yEnd = needFlipY ? yStart - destHeight : yStart + destHeight;
+
+    gl.blitFramebuffer(xStart, yStart, xEnd, yEnd, 0, 0, destWidth, destHeight, blitMask, gl.NEAREST);
   }
 
   activeTexture(textureID: number): void {
