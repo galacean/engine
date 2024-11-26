@@ -4,6 +4,7 @@ import { Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
+import { Engine } from "../../Engine";
 
 /**
  * Abstract class for collider shapes.
@@ -127,6 +128,8 @@ export abstract class ColliderShape implements ICustomClone {
     this._rotation._onValueChanged = this._setRotation;
     //@ts-ignore
     this._position._onValueChanged = this._setPosition;
+
+    Engine._physicalObjectsMap[this._id] = this;
   }
 
   /**
@@ -142,6 +145,8 @@ export abstract class ColliderShape implements ICustomClone {
   _destroy() {
     this._material._destroy();
     this._nativeShape.destroy();
+
+    delete Engine._physicalObjectsMap[this._id];
   }
 
   protected _syncNative(): void {

@@ -8,6 +8,7 @@ import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
 import { Script } from "../Script";
 import { DisorderedArray } from "../utils/DisorderedArray";
+import { Engine } from "../Engine";
 
 /**
  * A physics scene is a collection of colliders and constraints which can interact.
@@ -28,7 +29,7 @@ export class PhysicsScene {
   private _nativePhysicsScene: IPhysicsScene;
 
   private _onContactEnter = (obj1: number, obj2: number) => {
-    const physicalObjectsMap = this._scene.engine._physicalObjectsMap;
+    const physicalObjectsMap = Engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
@@ -56,7 +57,7 @@ export class PhysicsScene {
   };
 
   private _onContactExit = (obj1: number, obj2: number) => {
-    const physicalObjectsMap = this._scene.engine._physicalObjectsMap;
+    const physicalObjectsMap = Engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
@@ -83,7 +84,7 @@ export class PhysicsScene {
     );
   };
   private _onContactStay = (obj1: number, obj2: number) => {
-    const physicalObjectsMap = this._scene.engine._physicalObjectsMap;
+    const physicalObjectsMap = Engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
@@ -110,7 +111,7 @@ export class PhysicsScene {
     );
   };
   private _onTriggerEnter = (obj1: number, obj2: number) => {
-    const physicalObjectsMap = this._scene.engine._physicalObjectsMap;
+    const physicalObjectsMap = Engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
@@ -134,7 +135,7 @@ export class PhysicsScene {
   };
 
   private _onTriggerExit = (obj1: number, obj2: number) => {
-    const physicalObjectsMap = this._scene.engine._physicalObjectsMap;
+    const physicalObjectsMap = Engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
@@ -158,7 +159,7 @@ export class PhysicsScene {
   };
 
   private _onTriggerStay = (obj1: number, obj2: number) => {
-    const physicalObjectsMap = this._scene.engine._physicalObjectsMap;
+    const physicalObjectsMap = Engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
@@ -305,7 +306,7 @@ export class PhysicsScene {
     }
 
     const onRaycast = (obj: number) => {
-      const shape = this._scene.engine._physicalObjectsMap[obj];
+      const shape = Engine._physicalObjectsMap[obj];
       if (!shape) {
         return false;
       }
@@ -314,7 +315,7 @@ export class PhysicsScene {
 
     if (hitResult != undefined) {
       const result = this._nativePhysicsScene.raycast(ray, distance, onRaycast, (idx, distance, position, normal) => {
-        const hitShape = this._scene.engine._physicalObjectsMap[idx];
+        const hitShape = Engine._physicalObjectsMap[idx];
         hitResult.entity = hitShape._collider.entity;
         hitResult.shape = hitShape;
         hitResult.distance = distance;

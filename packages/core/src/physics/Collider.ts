@@ -109,8 +109,6 @@ export class Collider extends Component implements ICustomClone {
   override _onEnableInScene(): void {
     const physics = this.scene.physics;
     physics._addCollider(this);
-
-    this._syncNative();
   }
 
   /**
@@ -119,11 +117,6 @@ export class Collider extends Component implements ICustomClone {
   override _onDisableInScene(): void {
     const physics = this.scene.physics;
     physics._removeCollider(this);
-
-    const shapes = this.shapes;
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      this._removeNativeShape(shapes[i], true);
-    }
   }
 
   /**
@@ -155,16 +148,10 @@ export class Collider extends Component implements ICustomClone {
   protected _addNativeShape(shape: ColliderShape): void {
     shape._collider = this;
     this._nativeCollider.addShape(shape._nativeShape);
-    if (this._phasedActiveInScene) {
-      this.engine._physicalObjectsMap[shape.id] = shape;
-    }
   }
 
   protected _removeNativeShape(shape: ColliderShape, disableInScene = false): void {
     shape._collider = null;
     this._nativeCollider.removeShape(shape._nativeShape);
-    if (this._phasedActiveInScene || disableInScene) {
-      delete this.engine._physicalObjectsMap[shape.id];
-    }
   }
 }
