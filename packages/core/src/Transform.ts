@@ -54,7 +54,7 @@ export class Transform extends Component {
   private _isParentDirty: boolean = true;
   @ignoreClone
   private _parentTransformCache: Transform = null;
-  @ignoreClone
+
   private _dirtyFlag: number = TransformModifyFlags.WmWpWeWqWs;
 
   /** @internal */
@@ -626,9 +626,10 @@ export class Transform extends Component {
   private _updateWorldPositionFlag(): void {
     if (!this._isContainDirtyFlags(TransformModifyFlags.WmWp)) {
       this._worldAssociatedChange(TransformModifyFlags.WmWp);
-      this._entity._children.forEach((child) => {
-        child.transform?._updateWorldPositionFlag();
-      });
+      const children = this._entity._children;
+      for (let i = 0, n = children.length; i < n; i++) {
+        children[i].transform?._updateWorldPositionFlag();
+      }
     }
   }
 
@@ -647,9 +648,10 @@ export class Transform extends Component {
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
       flags = this.worldUniformScaling ? TransformModifyFlags.WmWpWeWq : TransformModifyFlags.WmWpWeWqWs;
-      this._entity._children.forEach((child) => {
-        child.transform?._updateWorldPositionAndRotationFlag(flags); // Rotation update of parent entity will trigger world position, rotation and scale update of all child entity.
-      });
+      const children = this._entity._children;
+      for (let i = 0, n = children.length; i < n; i++) {
+        children[i].transform?._updateWorldPositionAndRotationFlag(flags); // Rotation update of parent entity will trigger world position, rotation and scale update of all child entity.
+      }
     }
   }
 
@@ -666,9 +668,10 @@ export class Transform extends Component {
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
       flags = this.worldUniformScaling ? TransformModifyFlags.WmWpWeWq : TransformModifyFlags.WmWpWeWqWs;
-      this._entity._children.forEach((child) => {
-        child.transform?._updateWorldPositionAndRotationFlag(flags);
-      });
+      const children = this._entity._children;
+      for (let i = 0, n = children.length; i < n; i++) {
+        children[i].transform?._updateWorldPositionAndRotationFlag(flags);
+      }
     }
   }
 
@@ -683,9 +686,10 @@ export class Transform extends Component {
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
       flags |= TransformModifyFlags.WorldPosition;
-      this._entity._children.forEach((child) => {
-        child.transform?._updateWorldPositionAndScaleFlag(flags);
-      });
+      const children = this._entity._children;
+      for (let i = 0, n = children.length; i < n; i++) {
+        children[i].transform?._updateWorldPositionAndScaleFlag(flags);
+      }
     }
   }
 
@@ -699,9 +703,10 @@ export class Transform extends Component {
   private _updateWorldPositionAndScaleFlag(flags: TransformModifyFlags): void {
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
-      this._entity._children.forEach((child) => {
-        child.transform?._updateWorldPositionAndScaleFlag(flags);
-      });
+      const children = this._entity._children;
+      for (let i = 0, n = children.length; i < n; i++) {
+        children[i].transform?._updateWorldPositionAndScaleFlag(flags);
+      }
     }
   }
 
@@ -712,9 +717,10 @@ export class Transform extends Component {
   private _updateAllWorldFlag(flags: TransformModifyFlags): void {
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
-      this._entity._children.forEach((child) => {
-        child.transform?._updateAllWorldFlag(flags);
-      });
+      const children = this._entity._children;
+      for (let i = 0, n = children.length; i < n; i++) {
+        children[i].transform?._updateAllWorldFlag(flags);
+      }
     }
   }
 
