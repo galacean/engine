@@ -58,6 +58,14 @@ describe("Color test", () => {
     expect(Color.equals(a, out)).to.eq(true);
   });
 
+  it("copyTo", () => {
+    const a = new Color(1, 0, 0, 1);
+    const out = new Color();
+
+    a.copyTo(out);
+    expect(Color.equals(a, out)).to.eq(true);
+  });
+
   it("copyFromArray", () => {
     const a = new Color();
     const b = new Color(0, 0, 1, 1);

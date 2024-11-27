@@ -36,7 +36,7 @@ jobs:
         run: pnpm b:all
 
       - name: Release current monorepo
-        uses: gz65555/publish@v0.1.9
+        uses: galacean/publish@v0.2.0
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
           NPM_CONFIG_PROVENANCE: true

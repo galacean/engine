@@ -731,6 +731,19 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
   }
 
   /**
+   * Copy this quaternion to the specified quaternion.
+   * @param target - The specified quaternion
+   * @returns This specified quaternion
+   */
+  copyTo(target: QuaternionLike): QuaternionLike {
+    target.x = this._x;
+    target.y = this._y;
+    target.z = this._z;
+    target.w = this._w;
+    return target;
+  }
+
+  /**
    * Copy the value of this quaternion from an array.
    * @param array - The array
    * @param offset - The start offset of the array

@@ -119,6 +119,11 @@ export const E2E_CONFIG = {
       category: "Material",
       caseFileName: "material-unlit",
       threshold: 0.2
+    },
+    "shaderLab-renderState": {
+      category: "Material",
+      caseFileName: "shaderLab-renderState",
+      threshold: 0.2
     }
   },
   Shadow: {
@@ -217,6 +222,13 @@ export const E2E_CONFIG = {
     TypedText: {
       category: "Text",
       caseFileName: "text-typed",
+      threshold: 0.4
+    }
+  },
+  Other: {
+    ProjectLoader: {
+      category: "Advance",
+      caseFileName: "project-loader",
       threshold: 0.4
     }
   }

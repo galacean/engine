@@ -1,7 +1,6 @@
 import { Vector2 } from "@galacean/engine-math";
 import { Background } from "../Background";
 import { Camera } from "../Camera";
-import { Engine } from "../Engine";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
@@ -175,7 +174,7 @@ export class BasicRenderPipeline {
       if (background.mode === BackgroundMode.Sky) {
         background.sky._render(context);
       } else if (background.mode === BackgroundMode.Texture && background.texture) {
-        this._drawBackgroundTexture(engine, background);
+        this._drawBackgroundTexture(camera, background);
       }
     }
 
@@ -270,8 +269,10 @@ export class BasicRenderPipeline {
       const shaderPass = shaderPasses[i];
       const renderState = shaderPass._renderState;
       if (renderState) {
-        renderState._applyRenderQueueByShaderData(shaderPass._renderStateDataMap, subRenderElement.material.shaderData);
-        renderQueueType = renderState.renderQueueType;
+        renderQueueType = renderState._getRenderQueueByShaderData(
+          shaderPass._renderStateDataMap,
+          subRenderElement.material.shaderData
+        );
       } else {
         renderQueueType = renderStates[i].renderQueueType;
       }
@@ -300,7 +301,8 @@ export class BasicRenderPipeline {
     }
   }
 
-  private _drawBackgroundTexture(engine: Engine, background: Background) {
+  private _drawBackgroundTexture(camera: Camera, background: Background) {
+    const engine = camera.engine;
     const rhi = engine._hardwareRenderer;
     const { canvas } = engine;
     const { _material: material, _mesh: mesh } = background;
@@ -317,6 +319,7 @@ export class BasicRenderPipeline {
     const program = pass._getShaderProgram(engine, Shader._compileMacros);
     program.bind();
     program.uploadAll(program.materialUniformBlock, material.shaderData);
+    program.uploadAll(program.cameraUniformBlock, camera.shaderData);
     program.uploadUnGroupTextures();
 
     (pass._renderState || material.renderState)._applyStates(

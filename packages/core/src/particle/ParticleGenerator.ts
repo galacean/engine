@@ -14,6 +14,7 @@ import { SetDataOptions } from "../graphic/enums/SetDataOptions";
 import { VertexAttribute } from "../mesh";
 import { ShaderData } from "../shader";
 import { Buffer } from "./../graphic/Buffer";
+import { ParticleBufferUtils } from "./ParticleBufferUtils";
 import { ParticleRenderer, ParticleUpdateFlags } from "./ParticleRenderer";
 import { ParticleCurveMode } from "./enums/ParticleCurveMode";
 import { ParticleGradientMode } from "./enums/ParticleGradientMode";
@@ -23,12 +24,11 @@ import { ParticleStopMode } from "./enums/ParticleStopMode";
 import { ColorOverLifetimeModule } from "./modules/ColorOverLifetimeModule";
 import { EmissionModule } from "./modules/EmissionModule";
 import { MainModule } from "./modules/MainModule";
+import { ParticleCompositeCurve } from "./modules/ParticleCompositeCurve";
 import { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule";
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
-import { ParticleBufferUtils } from "./ParticleBufferUtils";
-import { ParticleCompositeCurve } from "./modules/ParticleCompositeCurve";
 
 /**
  * Particle Generator.
@@ -121,6 +121,8 @@ export class ParticleGenerator {
   private _firstActiveTransformedBoundingBox = 0;
   @ignoreClone
   private _firstFreeTransformedBoundingBox = 0;
+  @ignoreClone
+  private _playStartDelay = 0;
 
   /**
    * Whether the particle generator is contain alive or is still creating particles.
@@ -187,6 +189,8 @@ export class ParticleGenerator {
       if (this.useAutoRandomSeed) {
         this._resetGlobalRandSeed(Math.floor(Math.random() * 0xffffffff)); // 2^32 - 1
       }
+
+      this._playStartDelay = this.main.startDelay.evaluate(undefined, this.main._startDelayRand.random());
     }
   }
 
@@ -236,7 +240,8 @@ export class ParticleGenerator {
   _emit(time: number, count: number): void {
     if (this.emission.enabled) {
       // Wait the existing particles to be retired
-      if (this.main._maxParticleBuffer < this._currentParticleCount) {
+      const notRetireParticleCount = this._getNotRetiredParticleCount();
+      if (notRetireParticleCount >= this.main.maxParticles) {
         return;
       }
       const position = ParticleGenerator._tempVector30;
@@ -266,8 +271,20 @@ export class ParticleGenerator {
     const { main, emission } = this;
     const duration = main.duration;
     const lastPlayTime = this._playTime;
+    const deltaTime = elapsedTime * main.simulationSpeed;
 
-    this._playTime += elapsedTime * main.simulationSpeed;
+    // Process start delay time
+    if (this._playStartDelay > 0) {
+      const remainingDelay = (this._playStartDelay -= deltaTime);
+      if (remainingDelay < 0) {
+        this._playTime -= remainingDelay;
+        this._playStartDelay = 0;
+      } else {
+        return;
+      }
+    }
+
+    this._playTime += deltaTime;
 
     this._retireActiveParticles();
     this._freeRetiredParticles();
@@ -758,8 +775,16 @@ export class ParticleGenerator {
     // Start speed
     instanceVertices[offset + 18] = startSpeed;
 
-    // Unused, Color, size, rotation,
-    // instanceVertices[offset + 19] = rand.random();
+    // Gravity, unused, size, rotation
+    switch (main.gravityModifier.mode) {
+      case ParticleCurveMode.Constant:
+        instanceVertices[offset + 19] = main.gravityModifier.constant;
+        break;
+      case ParticleCurveMode.TwoConstants:
+        instanceVertices[offset + 19] = main.gravityModifier.evaluate(undefined, main._gravityModifierRand.random());
+        break;
+    }
+
     const colorOverLifetime = this.colorOverLifetime;
     if (colorOverLifetime.enabled && colorOverLifetime.color.mode === ParticleGradientMode.TwoGradients) {
       instanceVertices[offset + 20] = colorOverLifetime._colorGradientRand.random();
