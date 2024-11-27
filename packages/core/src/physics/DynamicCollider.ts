@@ -63,7 +63,11 @@ export class DynamicCollider extends Collider {
    * The linear velocity vector of the dynamic collider measured in world unit per second.
    */
   get linearVelocity(): Vector3 {
+    //@ts-ignore
+    this._linearVelocity._onValueChanged = null;
     (<IDynamicCollider>this._nativeCollider).getLinearVelocity(this._linearVelocity);
+    //@ts-ignore
+    this._linearVelocity._onValueChanged = this._setLinearVelocity;
     return this._linearVelocity;
   }
 
@@ -77,7 +81,11 @@ export class DynamicCollider extends Collider {
    * The angular velocity vector of the dynamic collider measured in radians per second.
    */
   get angularVelocity(): Vector3 {
+    //@ts-ignore
+    this._angularVelocity._onValueChanged = null;
     (<IDynamicCollider>this._nativeCollider).getAngularVelocity(this._angularVelocity);
+    //@ts-ignore
+    this._angularVelocity._onValueChanged = this._setAngularVelocity;
     return this._angularVelocity;
   }
 
@@ -126,20 +134,15 @@ export class DynamicCollider extends Collider {
    * @remarks The center of mass is automatically calculated, if you want to set it manually, please set automaticCenterOfMass to false.
    */
   get centerOfMass(): Vector3 {
-    if (this._automaticCenterOfMass) {
-      this._setMassAndUpdateInertia();
-    }
+    // @ts-ignore
+    this._centerOfMass._onValueChanged = null;
     (<IDynamicCollider>this._nativeCollider).getCenterOfMass(this._centerOfMass);
+    // @ts-ignore
+    this._centerOfMass._onValueChanged = this._handleCenterOfMassChanged;
     return this._centerOfMass;
   }
 
   set centerOfMass(value: Vector3) {
-    if (this._automaticCenterOfMass) {
-      console.warn(
-        "The center of mass is automatically calculated, if you want to set it manually, please set automaticCenterOfMass to false."
-      );
-      return;
-    }
     if (this._centerOfMass !== value) {
       this._centerOfMass.copyFrom(value);
     }
@@ -166,20 +169,15 @@ export class DynamicCollider extends Collider {
    * @remarks The inertia tensor is automatically calculated, if you want to set it manually, please set automaticInertiaTensor to false.
    */
   get inertiaTensor(): Vector3 {
-    if (this._automaticInertiaTensor) {
-      this._setMassAndUpdateInertia();
-    }
+    // @ts-ignore
+    this._inertiaTensor._onValueChanged = null;
     (<IDynamicCollider>this._nativeCollider).getInertiaTensor(this._inertiaTensor);
+    // @ts-ignore
+    this._inertiaTensor._onValueChanged = this._handleInertiaTensor;
     return this._inertiaTensor;
   }
 
   set inertiaTensor(value: Vector3) {
-    if (this._automaticInertiaTensor) {
-      console.warn(
-        "The inertia tensor is automatically calculated, if you want to set it manually, please set automaticInertiaTensor to false."
-      );
-      return;
-    }
     if (this._inertiaTensor !== value) {
       this._inertiaTensor.copyFrom(value);
     }
@@ -296,17 +294,17 @@ export class DynamicCollider extends Collider {
 
     this._setLinearVelocity = this._setLinearVelocity.bind(this);
     this._setAngularVelocity = this._setAngularVelocity.bind(this);
-    this._setCenterOfMass = this._setCenterOfMass.bind(this);
-    this._setInertiaTensor = this._setInertiaTensor.bind(this);
+    this._handleCenterOfMassChanged = this._handleCenterOfMassChanged.bind(this);
+    this._handleInertiaTensor = this._handleInertiaTensor.bind(this);
 
     //@ts-ignore
     this._linearVelocity._onValueChanged = this._setLinearVelocity;
     //@ts-ignore
     this._angularVelocity._onValueChanged = this._setAngularVelocity;
     //@ts-ignore
-    this._centerOfMass._onValueChanged = this._setCenterOfMass;
+    this._centerOfMass._onValueChanged = this._handleCenterOfMassChanged;
     //@ts-ignore
-    this._inertiaTensor._onValueChanged = this._setInertiaTensor;
+    this._inertiaTensor._onValueChanged = this._handleInertiaTensor;
   }
 
   override addShape(shape: ColliderShape): void {
@@ -436,8 +434,9 @@ export class DynamicCollider extends Collider {
 
   private _setMassAndUpdateInertia(): void {
     (<IDynamicCollider>this._nativeCollider).setMassAndUpdateInertia(this._mass);
-    this._setCenterOfMass();
-    this._setInertiaTensor();
+
+    !this._automaticCenterOfMass && (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
+    !this._automaticInertiaTensor && (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
   }
 
   private _setLinearVelocity(): void {
@@ -447,14 +446,22 @@ export class DynamicCollider extends Collider {
     (<IDynamicCollider>this._nativeCollider).setAngularVelocity(this._angularVelocity);
   }
 
-  private _setCenterOfMass(): void {
-    if (!this._automaticCenterOfMass) {
+  private _handleCenterOfMassChanged(): void {
+    if (this._automaticCenterOfMass) {
+      console.warn(
+        "The center of mass is automatically calculated, please set automaticCenterOfMass to false if you want to set it manually."
+      );
+    } else {
       (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
     }
   }
 
-  private _setInertiaTensor(): void {
-    if (!this._automaticInertiaTensor) {
+  private _handleInertiaTensor(): void {
+    if (this._automaticInertiaTensor) {
+      console.warn(
+        "The inertia tensor is automatically calculated, please set automaticInertiaTensor to false if you want to set it manually."
+      );
+    } else {
       (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
     }
   }
