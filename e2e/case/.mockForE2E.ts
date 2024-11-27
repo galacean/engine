@@ -1,4 +1,4 @@
-import { Camera, Engine, RenderTarget, Texture2D } from "@galacean/engine-core";
+import { Camera, Engine, RenderTarget, Texture2D, TextureFormat } from "@galacean/engine-core";
 
 export const updateForE2E = (engine, deltaTime = 100, loopTime = 10) => {
   engine._vSyncCount = Infinity;
@@ -42,7 +42,7 @@ export function initScreenshot(
   const callbacks = [];
   const renderColorTexture = new Texture2D(engine, width, height);
   const renderTargetData = new Uint8Array(width * height * 4);
-  const renderTarget = new RenderTarget(engine, width, height, renderColorTexture, undefined, 1);
+  const renderTarget = new RenderTarget(engine, width, height, renderColorTexture, TextureFormat.Depth24Stencil8, 1);
 
   cameras.forEach((camera) => {
     const originalTarget = camera.renderTarget;

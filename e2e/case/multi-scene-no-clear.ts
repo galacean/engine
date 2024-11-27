@@ -12,12 +12,18 @@ import {
   MeshRenderer,
   PrimitiveMesh,
   Scene,
-  WebGLEngine
+  WebGLEngine,
+  WebGLMode
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
-WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
+WebGLEngine.create({
+  canvas: "canvas",
+  graphicDeviceOptions: {
+    webGLMode: WebGLMode.WebGL2
+  }
+}).then((engine) => {
   engine.canvas.resizeByClientSize();
 
   const firstCamera = initFirstScene(engine);
