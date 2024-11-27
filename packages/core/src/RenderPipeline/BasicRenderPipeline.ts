@@ -43,6 +43,9 @@ export class BasicRenderPipeline {
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
   private _opaqueTexturePass: OpaqueTexturePass;
+  private _grabTexture: Texture2D;
+  private _canUseBlitFrameBuffer = false; // TODO: Check why some browser only support blitFrameBuffer from screen when antialias === false
+  private _shouldGrabColor = false;
 
   /**
    * Create a basic render pipeline.
@@ -108,6 +111,9 @@ export class BasicRenderPipeline {
 
     // Check if need to create internal color texture
     const independentCanvasEnabled = camera.independentCanvasEnabled;
+    const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
+    this._shouldGrabColor = independentCanvasEnabled && !(finalClearFlags & CameraClearFlags.Color);
+
     if (independentCanvasEnabled) {
       const viewport = camera.pixelViewport;
       const internalColorTarget = PipelineUtils.recreateRenderTargetIfNeeded(
@@ -123,25 +129,45 @@ export class BasicRenderPipeline {
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear
       );
+
+      if (!this._canUseBlitFrameBuffer && this._shouldGrabColor) {
+        const grabTexture = PipelineUtils.recreateTextureIfNeeded(
+          engine,
+          this._grabTexture,
+          viewport.width,
+          viewport.height,
+          TextureFormat.R8G8B8A8,
+          false,
+          TextureWrapMode.Clamp,
+          TextureFilterMode.Bilinear
+        );
+        this._grabTexture = grabTexture;
+      }
+
       this._internalColorTarget = internalColorTarget;
     } else {
       const internalColorTarget = this._internalColorTarget;
+      const grabTexture = this._grabTexture;
       if (internalColorTarget) {
         internalColorTarget.getColorTexture(0)?.destroy(true);
         internalColorTarget.destroy(true);
         this._internalColorTarget = null;
       }
+      if (grabTexture) {
+        grabTexture.destroy(true);
+        this._grabTexture = null;
+      }
     }
 
-    this._drawRenderPass(context, camera, cubeFace, mipLevel, ignoreClear);
+    this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel);
   }
 
   private _drawRenderPass(
     context: RenderContext,
     camera: Camera,
+    finalClearFlags: CameraClearFlags,
     cubeFace?: TextureCubeFace,
-    mipLevel?: number,
-    ignoreClear?: CameraClearFlags
+    mipLevel?: number
   ) {
     const cullingResults = this._cullingResults;
     const { opaqueQueue, alphaTestQueue, transparentQueue } = cullingResults;
@@ -162,24 +188,56 @@ export class BasicRenderPipeline {
     }
 
     rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
-    const clearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
     const color = background.solidColor;
 
     if (internalColorTarget) {
-      if (clearFlags === CameraClearFlags.All) {
-        rhi.clearRenderTarget(camera.engine, CameraClearFlags.All, color);
+      if (finalClearFlags === CameraClearFlags.All) {
+        rhi.clearRenderTarget(engine, CameraClearFlags.All, color);
       } else {
-        clearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(camera.engine, clearFlags, color);
-        rhi.blitFrameBufferToInternalRT(camera.renderTarget, internalColorTarget, clearFlags, camera.viewport);
+        // @todo: Only some browsers support blitFrameBuffer from screen
+        if (this._canUseBlitFrameBuffer) {
+          finalClearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(engine, finalClearFlags, color);
+          rhi.blitInternalRTByBlitFrameBuffer(
+            camera.renderTarget,
+            internalColorTarget,
+            finalClearFlags,
+            camera.viewport
+          );
+        } else {
+          if (this._shouldGrabColor) {
+            rhi.clearRenderTarget(engine, CameraClearFlags.ColorDepth);
+            rhi.copyRenderTargetToSubTexture(
+              camera.renderTarget,
+              internalColorTarget,
+              this._grabTexture,
+              camera.viewport
+            );
+            PipelineUtils.blitTexture(
+              engine,
+              this._grabTexture,
+              internalColorTarget,
+              0,
+              undefined,
+              undefined,
+              undefined,
+              // Only flip Y axis in webgl context
+              !camera.renderTarget
+            );
+          } else {
+            // Must clear all cause of the internal color target can't copy depth/stencil buffer from back buffer
+            rhi.clearRenderTarget(engine, CameraClearFlags.All, color);
+          }
+        }
+
         rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
       }
-    } else if (clearFlags !== CameraClearFlags.None) {
-      rhi.clearRenderTarget(camera.engine, clearFlags, color);
+    } else if (finalClearFlags !== CameraClearFlags.None) {
+      rhi.clearRenderTarget(engine, finalClearFlags, color);
     }
 
     opaqueQueue.render(context, PipelineStage.Forward);
     alphaTestQueue.render(context, PipelineStage.Forward);
-    if (clearFlags & CameraClearFlags.Color) {
+    if (finalClearFlags & CameraClearFlags.Color) {
       if (background.mode === BackgroundMode.Sky) {
         background.sky._render(context);
       } else if (background.mode === BackgroundMode.Texture && background.texture) {

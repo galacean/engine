@@ -35,9 +35,15 @@ function initFirstScene(engine: Engine): Scene {
   const scene = engine.sceneManager.scenes[0];
   const rootEntity = scene.createRootEntity();
 
+  // const renderColorTexture = new Texture2D(engine, 1024, 1024);
+  // const depthTexture = new Texture2D(engine, 1024, 1024, TextureFormat.Depth24Stencil8, false);
+  // const renderTarget = new RenderTarget(engine, 1024, 1024, renderColorTexture, TextureFormat.Depth);
+  // const renderTarget = new RenderTarget(engine, 1024, 1024, renderColorTexture, depthTexture);
+
   // Create full screen camera
   const cameraEntity = rootEntity.createChild("fullscreen-camera");
   const camera = cameraEntity.addComponent(Camera);
+  // camera.renderTarget = renderTarget;
   camera.cullingMask = Layer.Layer0;
   cameraEntity.transform.setPosition(0, 0, 20);
 
@@ -53,11 +59,12 @@ function initFirstScene(engine: Engine): Scene {
   {
     const cameraEntity = rootEntity.createChild("window-camera");
     const camera2 = cameraEntity.addComponent(Camera);
+    // camera2.renderTarget = renderTarget;
     camera2.cullingMask = Layer.Layer1;
     camera2.enablePostProcess = true;
     camera2.enableHDR = true;
     camera2.clearFlags = CameraClearFlags.None;
-    // camera.msaaSamples = 4;
+    camera2.msaaSamples = 4;
 
     // @ts-ignore
     const bloomEffect = scene._postProcessManager._bloomEffect;

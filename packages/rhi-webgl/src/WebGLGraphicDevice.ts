@@ -370,7 +370,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this.scissor(x, y, width, height);
   }
 
-  blitFrameBufferToInternalRT(
+  blitInternalRTByBlitFrameBuffer(
     srcRT: RenderTarget,
     destRT: RenderTarget,
     clearFlags: CameraClearFlags,
@@ -389,29 +389,43 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     const bufferHeight = this.getMainFrameBufferHeight();
     const srcWidth = srcRT ? srcRT.width : bufferWidth;
     const srcHeight = srcRT ? srcRT.height : bufferHeight;
-    const destWidth = srcWidth * viewport.z;
-    const destHeight = srcHeight * viewport.w;
-    const needFlipY = !!srcRT !== !!destRT;
+    const blitWidth = destRT.width;
+    const blitHeight = destRT.height;
+    const needFlipY = !srcRT;
 
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, srcFrameBuffer);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, destFrameBuffer);
 
-    // @ts-ignore
-    const canBlitDepthStencil = !srcRT || srcRT._depthFormat === TextureFormat.Depth24Stencil8;
-
     let blitMask = clearFlags & CameraClearFlags.Color ? 0 : gl.COLOR_BUFFER_BIT;
 
+    // @ts-ignore
+    const canBlitDepthStencil = !srcRT || srcRT._depthFormat === TextureFormat.Depth24Stencil8;
     if (canBlitDepthStencil) {
       blitMask |= clearFlags & CameraClearFlags.Depth ? 0 : gl.DEPTH_BUFFER_BIT;
       blitMask |= clearFlags & CameraClearFlags.Stencil ? 0 : gl.STENCIL_BUFFER_BIT;
     }
 
     const xStart = viewport.x * srcWidth;
-    const xEnd = xStart + destWidth;
-    const yStart = needFlipY ? srcHeight - viewport.y * srcHeight : srcHeight - viewport.y * srcHeight - destHeight;
-    const yEnd = needFlipY ? yStart - destHeight : yStart + destHeight;
+    const xEnd = xStart + blitWidth;
+    const yStart = needFlipY ? srcHeight - viewport.y * srcHeight : srcHeight - viewport.y * srcHeight - blitHeight;
+    const yEnd = needFlipY ? yStart - blitHeight : yStart + blitHeight;
 
-    gl.blitFramebuffer(xStart, yStart, xEnd, yEnd, 0, 0, destWidth, destHeight, blitMask, gl.NEAREST);
+    gl.blitFramebuffer(xStart, yStart, xEnd, yEnd, 0, 0, blitWidth, blitHeight, blitMask, gl.NEAREST);
+  }
+
+  copyRenderTargetToSubTexture(srcRT: RenderTarget, destRT: RenderTarget, grabTexture: Texture2D, viewport: Vector4) {
+    const bufferWidth = this.getMainFrameBufferWidth();
+    const bufferHeight = this.getMainFrameBufferHeight();
+    const srcWidth = srcRT ? srcRT.width : bufferWidth;
+    const srcHeight = srcRT ? srcRT.height : bufferHeight;
+    const copyWidth = destRT.width;
+    const copyHeight = destRT.height;
+    const flipY = !srcRT;
+
+    const xStart = viewport.x * srcWidth;
+    const yStart = flipY ? srcHeight - viewport.y * srcHeight - copyHeight : viewport.y * srcHeight;
+
+    grabTexture.copySubFromRenderTarget(srcRT, 0, 0, 0, xStart, yStart, copyWidth, copyHeight);
   }
 
   activeTexture(textureID: number): void {

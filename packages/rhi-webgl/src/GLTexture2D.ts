@@ -1,6 +1,14 @@
-import { IPlatformTexture2D, Logger, Texture2D, TextureFormat, TextureUsage } from "@galacean/engine-core";
+import {
+  IPlatformTexture2D,
+  Logger,
+  RenderTarget,
+  Texture2D,
+  TextureFormat,
+  TextureUsage
+} from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
+import { GLRenderTarget } from "./GLRenderTarget";
 
 /**
  * Texture 2d in WebGL platform.
@@ -107,5 +115,30 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
       throw new Error("Unable to read compressed texture");
     }
     super._getPixelBuffer(null, x, y, width, height, mipLevel, out);
+  }
+
+  /**
+   * {@inheritDoc IPlatformTexture2D.copySubFromRenderTarget }
+   */
+  copySubFromRenderTarget(
+    renderTarget: RenderTarget,
+    level: number,
+    xOffset: number,
+    yOffset: number,
+    x: number,
+    y: number,
+    width: number,
+    height: number
+  ) {
+    // @ts-ignore
+    const frameBuffer = renderTarget?._platformRenderTarget._frameBuffer ?? null;
+    const gl = this._gl;
+
+    // @ts-ignore
+    gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+
+    this._bind();
+
+    gl.copyTexSubImage2D(this._target, level, xOffset, yOffset, x, y, width, height);
   }
 }
