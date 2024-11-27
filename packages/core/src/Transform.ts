@@ -229,12 +229,13 @@ export class Transform extends Component {
 
   /**
    * Local lossy scaling.
-   * @remarks The value obtained may not be correct under certain conditions(for example, the parent node has scaling,
-   * and the child node has a rotation), the scaling will be tilted. Vector3 cannot be used to correctly represent the scaling. Must use Matrix3x3.
+   * @remarks The value obtained may not be correct under certain conditions(for example, the parent node has non-uniform world scaling,
+   * and the child node has a rotation), the scaling will be tilted.
    */
   get lossyWorldScale(): Vector3 {
     if (this._isContainDirtyFlag(TransformModifyFlags.WorldScale)) {
       if (this._getParentTransform()) {
+        // Vector3 cannot be used to correctly represent the scaling. Must use Matrix3x3
         const scaleMat = this._getScaleMatrix();
         const e = scaleMat.elements;
         this._lossyWorldScale.set(e[0], e[4], e[8]);
@@ -634,11 +635,7 @@ export class Transform extends Component {
     let flags = parentWorldUniformScaling ? TransformModifyFlags.WmWeWq : TransformModifyFlags.WmWeWqWs;
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
-      if (flags === TransformModifyFlags.WmWeWq && !this._getWorldUniformScaling()) {
-        flags = TransformModifyFlags.WmWpWeWq;
-      } else {
-        flags = TransformModifyFlags.WmWpWeWqWs;
-      }
+      flags = this._getWorldUniformScaling() ? TransformModifyFlags.WmWpWeWq : TransformModifyFlags.WmWpWeWqWs;
       const children = this._entity._children;
       for (let i = 0, n = children.length; i < n; i++) {
         children[i].transform?._updateWorldPositionAndRotationFlag(flags); // Rotation update of parent entity will trigger world position, rotation and scale update of all child entity.
@@ -658,9 +655,7 @@ export class Transform extends Component {
   private _updateWorldPositionAndRotationFlag(flags: TransformModifyFlags): void {
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
-      if (flags === TransformModifyFlags.WmWpWeWq && !this._getWorldUniformScaling()) {
-        flags = TransformModifyFlags.WmWpWeWqWs;
-      }
+      flags = this._getWorldUniformScaling() ? TransformModifyFlags.WmWpWeWq : TransformModifyFlags.WmWpWeWqWs;
       const children = this._entity._children;
       for (let i = 0, n = children.length; i < n; i++) {
         children[i].transform?._updateWorldPositionAndRotationFlag(flags);
@@ -868,7 +863,7 @@ export class Transform extends Component {
   }
 
   private _getWorldUniformScaling(): boolean {
-    if (this._isContainDirtyFlag(TransformModifyFlags.WorldUniformScaling)) {
+    if (this._isContainDirtyFlag(TransformModifyFlags.IsWorldUniformScaling)) {
       const localUniformScaling = this._localUniformScaling;
       if (localUniformScaling) {
         const parent = this._getParentTransform();
@@ -876,7 +871,7 @@ export class Transform extends Component {
       } else {
         this._worldUniformScaling = false;
       }
-      this._setDirtyFlagFalse(TransformModifyFlags.WorldUniformScaling);
+      this._setDirtyFlagFalse(TransformModifyFlags.IsWorldUniformScaling);
     }
     return this._worldUniformScaling;
   }
@@ -894,7 +889,11 @@ export enum TransformModifyFlags {
   WorldScale = 0x20,
   LocalMatrix = 0x40,
   WorldMatrix = 0x80,
-  WorldUniformScaling = 0x100,
+
+  /** This is an internal flag used to assist in determining the dispatch
+   *  of world scaling dirty flags in the case of non-uniform scaling.
+   */
+  IsWorldUniformScaling = 0x100,
 
   /** WorldMatrix | WorldPosition */
   WmWp = 0x84,
