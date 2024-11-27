@@ -32,7 +32,8 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * The step offset for the controller,   // Character can overcome obstacle less than the height(stepOffset + contractOffset(0.1)).
+   * The step offset for the controller.
+   * @remarks Character can overcome obstacle less than the height(stepOffset + contractOffset(0.1)).
    */
   get stepOffset(): number {
     return this._stepOffset;
@@ -171,7 +172,7 @@ export class CharacterController extends Collider {
 
     const shapes = this.shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
-      this._removeNativeShape(shapes[i], true);
+      this._removeNativeShape(shapes[i]);
     }
   }
 
