@@ -158,9 +158,11 @@ export abstract class ColliderShape implements ICustomClone {
 
   private _setPosition(): void {
     this._nativeShape.setPosition(this._position);
+    this._collider?._handleShapesChanged();
   }
 
   private _setRotation(): void {
     this._nativeShape.setRotation(this._rotation);
+    this._collider?._handleShapesChanged();
   }
 }

@@ -308,6 +308,8 @@ describe("DynamicCollider", function () {
     expect(boxCollider.linearVelocity.x).eq(0);
     boxCollider2.maxDepenetrationVelocity = boxCollider.maxDepenetrationVelocity = 10;
     expect(boxCollider2.maxDepenetrationVelocity).eq(10);
+    boxCollider.wakeUp();
+    boxCollider2.wakeUp();
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(Math.abs(boxCollider.linearVelocity.x)).gt(1);

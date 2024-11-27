@@ -173,7 +173,7 @@ export class DynamicCollider extends Collider {
     this._inertiaTensor._onValueChanged = null;
     (<IDynamicCollider>this._nativeCollider).getInertiaTensor(this._inertiaTensor);
     // @ts-ignore
-    this._inertiaTensor._onValueChanged = this._handleInertiaTensor;
+    this._inertiaTensor._onValueChanged = this._handleInertiaTensorChanged;
     return this._inertiaTensor;
   }
 
@@ -295,7 +295,7 @@ export class DynamicCollider extends Collider {
     this._setLinearVelocity = this._setLinearVelocity.bind(this);
     this._setAngularVelocity = this._setAngularVelocity.bind(this);
     this._handleCenterOfMassChanged = this._handleCenterOfMassChanged.bind(this);
-    this._handleInertiaTensor = this._handleInertiaTensor.bind(this);
+    this._handleInertiaTensorChanged = this._handleInertiaTensorChanged.bind(this);
 
     //@ts-ignore
     this._linearVelocity._onValueChanged = this._setLinearVelocity;
@@ -304,7 +304,7 @@ export class DynamicCollider extends Collider {
     //@ts-ignore
     this._centerOfMass._onValueChanged = this._handleCenterOfMassChanged;
     //@ts-ignore
-    this._inertiaTensor._onValueChanged = this._handleInertiaTensor;
+    this._inertiaTensor._onValueChanged = this._handleInertiaTensorChanged;
   }
 
   override addShape(shape: ColliderShape): void {
@@ -410,6 +410,15 @@ export class DynamicCollider extends Collider {
     super._cloneTo(target);
   }
 
+  /**
+   * @internal
+   */
+  override _handleShapesChanged(): void {
+    if (this._automaticCenterOfMass || this._automaticInertiaTensor) {
+      this._setMassAndUpdateInertia();
+    }
+  }
+
   protected override _syncNative(): void {
     super._syncNative();
     (<IDynamicCollider>this._nativeCollider).setLinearDamping(this._linearDamping);
@@ -456,7 +465,7 @@ export class DynamicCollider extends Collider {
     }
   }
 
-  private _handleInertiaTensor(): void {
+  private _handleInertiaTensorChanged(): void {
     if (this._automaticInertiaTensor) {
       console.warn(
         "The inertia tensor is automatically calculated, please set automaticInertiaTensor to false if you want to set it manually."

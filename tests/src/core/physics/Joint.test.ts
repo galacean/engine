@@ -150,6 +150,7 @@ describe("Joint", function () {
 
     fixedJoint.massScale = 10.01;
     expect(fixedJoint.massScale).eq(10.01);
+    box2Collider.wakeUp();
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(box2Collider.linearVelocity.y).lessThan(0);
@@ -293,6 +294,7 @@ describe("Joint", function () {
     expect(box2Collider.linearVelocity.y).eq(0);
 
     fixedJoint.breakForce = 0.9;
+    box2Collider.wakeUp();
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(box2Collider.linearVelocity.y).lessThan(0);

@@ -18,14 +18,15 @@ export class CharacterController extends Collider {
   private _slopeLimit = 0.707;
 
   /**
-   * The step offset for the controller.
-   * @remarks Character can overcome obstacle less than the height(stepOffset + contractOffset(0.1)).
+   * The step offset for the controller, the value must be greater than or equal to 0.
+   * @remarks Character can overcome obstacle less than the height(stepOffset + contractOffset(0.02) of the shape).
    */
   get stepOffset(): number {
     return this._stepOffset;
   }
 
   set stepOffset(value: number) {
+    value = Math.max(0, value);
     if (this._stepOffset !== value) {
       this._stepOffset = value;
       (<ICharacterController>this._nativeCollider).setStepOffset(value);

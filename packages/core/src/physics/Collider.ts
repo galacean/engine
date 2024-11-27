@@ -124,6 +124,11 @@ export class Collider extends Component implements ICustomClone {
     target._syncNative();
   }
 
+  /**
+   * @internal
+   */
+  _handleShapesChanged(): void {}
+
   protected _syncNative(): void {
     for (let i = 0, n = this.shapes.length; i < n; i++) {
       this._addNativeShape(this.shapes[i]);
