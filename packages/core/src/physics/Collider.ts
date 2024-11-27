@@ -152,7 +152,7 @@ export class Collider extends Component implements ICustomClone {
     this._nativeCollider.addShape(shape._nativeShape);
   }
 
-  protected _removeNativeShape(shape: ColliderShape, disableInScene = false): void {
+  protected _removeNativeShape(shape: ColliderShape): void {
     shape._collider = null;
     this._nativeCollider.removeShape(shape._nativeShape);
   }
