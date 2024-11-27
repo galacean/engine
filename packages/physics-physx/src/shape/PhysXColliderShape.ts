@@ -28,6 +28,8 @@ export abstract class PhysXColliderShape implements IColliderShape {
 
   /** @internal */
   _controllers: DisorderedArray<PhysXCharacterController> = new DisorderedArray<PhysXCharacterController>();
+  /** @internal */
+  _contractOffset: number = 0.02;
 
   protected _physXPhysics: PhysXPhysics;
   protected _worldScale: Vector3 = new Vector3(1, 1, 1);
@@ -95,7 +97,15 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * @default 0.02f * PxTolerancesScale::length
    */
   setContactOffset(offset: number): void {
-    this._pxShape.setContactOffset(offset);
+    this._contractOffset = offset;
+    const controllers = this._controllers;
+    if (controllers.length) {
+      for (let i = 0, n = controllers.length; i < n; i++) {
+        controllers.get(i).setContactOffset(offset);
+      }
+    } else {
+      this._pxShape.setContactOffset(offset);
+    }
   }
 
   /**

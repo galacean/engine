@@ -5,6 +5,7 @@ import { Collider } from "./Collider";
 import { PhysicsScene } from "./PhysicsScene";
 import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
 import { ColliderShape } from "./shape";
+import { deepClone } from "../clone/CloneManager";
 
 /**
  * The character controllers.
@@ -12,24 +13,9 @@ import { ColliderShape } from "./shape";
 export class CharacterController extends Collider {
   private _stepOffset = 0.5;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
+  @deepClone
   private _upDirection = new Vector3(0, 1, 0);
   private _slopeLimit = 0.707;
-  private _contactOffset = 0.1;
-
-  /**
-   * Contact offset for this characterController, the value must be greater than or equal to 0.
-   */
-  get contactOffset(): number {
-    return this._contactOffset;
-  }
-
-  set contactOffset(value: number) {
-    value = Math.max(0, value);
-    if (this._contactOffset !== value) {
-      this._contactOffset = value;
-      (<ICharacterController>this._nativeCollider).setContactOffset(value);
-    }
-  }
 
   /**
    * The step offset for the controller.
@@ -169,7 +155,6 @@ export class CharacterController extends Collider {
 
   protected override _syncNative(): void {
     super._syncNative();
-    (<ICharacterController>this._nativeCollider).setContactOffset(this._contactOffset);
     (<ICharacterController>this._nativeCollider).setStepOffset(this._stepOffset);
     (<ICharacterController>this._nativeCollider).setNonWalkableMode(this._nonWalkableMode);
     (<ICharacterController>this._nativeCollider).setUpDirection(this._upDirection);

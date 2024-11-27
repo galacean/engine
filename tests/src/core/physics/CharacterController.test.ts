@@ -162,13 +162,13 @@ describe("CharacterController", function () {
   it("contactOffset", () => {
     const controller = roleEntity.getComponent(CharacterController);
 
-    expect(controller.contactOffset).eq(0.1);
+    expect(controller.shapes[0].contactOffset).eq(0.02);
     controller.move(new Vector3(0, 0, 0.1), 0.0001, 1);
     controller.move(new Vector3(0, 0, 0.1), 0.0001, 1);
     engine.update();
-    expect(formatValue(roleEntity.transform.position.y)).eq(0.6);
+    expect(formatValue(roleEntity.transform.position.y)).eq(0.52);
 
-    controller.contactOffset = 1;
+    controller.shapes[0].contactOffset = 1;
     controller.move(new Vector3(0, 0, 0.1), 0.0001, 1);
     controller.move(new Vector3(0, 0, 0.1), 0.0001, 1);
     engine.update();
