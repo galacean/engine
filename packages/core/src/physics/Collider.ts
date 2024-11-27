@@ -107,16 +107,14 @@ export class Collider extends Component implements ICustomClone {
    * @internal
    */
   override _onEnableInScene(): void {
-    const physics = this.scene.physics;
-    physics._addCollider(this);
+    this.scene.physics._addCollider(this);
   }
 
   /**
    * @internal
    */
   override _onDisableInScene(): void {
-    const physics = this.scene.physics;
-    physics._removeCollider(this);
+    this.scene.physics._removeCollider(this);
   }
 
   /**

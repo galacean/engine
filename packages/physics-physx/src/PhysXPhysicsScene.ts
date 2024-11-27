@@ -130,6 +130,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsManager.addCharacterController }
    */
   addCharacterController(characterController: PhysXCharacterController): void {
+    characterController._scene = this;
+
     // Physx have no API to remove/readd cct into scene.
     if (!characterController._pxController) {
       const shape = characterController._shape;
@@ -139,6 +141,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
           lastPXManager && characterController._destroyPXController();
           characterController._createPXController(this, shape);
         }
+        this._addColliderShape(shape._id);
       }
     }
     characterController._pxManager = this;
@@ -148,7 +151,11 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsManager.removeCharacterController }
    */
   removeCharacterController(characterController: PhysXCharacterController): void {
+    characterController._scene = null;
     characterController._pxManager = null;
+    characterController._destroyPXController();
+    const shape = characterController._shape;
+    shape && this._removeColliderShape(shape?._id);
   }
 
   /**
