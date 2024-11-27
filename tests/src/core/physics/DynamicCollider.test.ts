@@ -40,6 +40,10 @@ describe("DynamicCollider", function () {
     physicsBox.material.staticFriction = 0;
     physicsBox.size = cubeSize;
     const boxCollider = boxEntity.addComponent(type);
+    if (type === DynamicCollider) {
+      (boxCollider as DynamicCollider).automaticCenterOfMass = false;
+      (boxCollider as DynamicCollider).automaticInertiaTensor = false;
+    }
     boxCollider.addShape(physicsBox);
     return boxEntity;
   }

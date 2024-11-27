@@ -28,8 +28,8 @@ export class DynamicCollider extends Collider {
   private _constraints: DynamicColliderConstraints = 0;
   private _collisionDetectionMode: CollisionDetectionMode = CollisionDetectionMode.Discrete;
   private _sleepThreshold = 5e-3;
-  private _automaticCenterOfMass = false;
-  private _automaticInertiaTensor = false;
+  private _automaticCenterOfMass = true;
+  private _automaticInertiaTensor = true;
 
   /**
    * The linear damping of the dynamic collider.

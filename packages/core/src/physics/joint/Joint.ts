@@ -23,7 +23,7 @@ export abstract class Joint extends Component {
   protected _nativeJoint: IJoint;
   private _force = Infinity;
   private _torque = Infinity;
-  private _autoConnectedAnchor = false;
+  private _autoConnectedAnchor = true;
 
   /**
    * The connected collider.
