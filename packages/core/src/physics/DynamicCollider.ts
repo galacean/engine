@@ -435,11 +435,9 @@ export class DynamicCollider extends Collider {
   }
 
   private _setMassAndUpdateInertia(): void {
-    if (this._phasedActiveInScene) {
-      (<IDynamicCollider>this._nativeCollider).setMassAndUpdateInertia(this._mass);
-      this._setCenterOfMass();
-      this._setInertiaTensor();
-    }
+    (<IDynamicCollider>this._nativeCollider).setMassAndUpdateInertia(this._mass);
+    this._setCenterOfMass();
+    this._setInertiaTensor();
   }
 
   private _setLinearVelocity(): void {
