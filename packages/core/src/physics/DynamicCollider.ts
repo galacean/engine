@@ -22,7 +22,7 @@ export class DynamicCollider extends Collider {
   @ignoreClone
   private _inertiaTensor = new Vector3(1, 1, 1);
   private _maxAngularVelocity = 100;
-  private _maxDepenetrationVelocity = Infinity;
+  private _maxDepenetrationVelocity = 1.0000000331813535e32;
   private _solverIterations = 4;
   private _isKinematic = false;
   private _constraints: DynamicColliderConstraints = 0;
