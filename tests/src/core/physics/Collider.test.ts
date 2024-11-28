@@ -302,7 +302,7 @@ describe("physics collider test", function () {
     collider.shapes[0].material.dynamicFriction = 1;
     //@ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(collider.linearVelocity.x)).eq(6.85668);
+    expect(formatValue(collider.linearVelocity.x)).eq(5.87569);
     box.isActive = false;
     const ground = rootEntity.findByName("ground");
     const newGround = ground.clone();
@@ -317,7 +317,7 @@ describe("physics collider test", function () {
     collider2.shapes[0].material.dynamicFriction = 1;
     //@ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(collider2.linearVelocity.x)).eq(6.85668);
+    expect(formatValue(collider2.linearVelocity.x)).eq(5.87569);
   });
 
   it("clone DynamicCollider", function () {
@@ -331,13 +331,13 @@ describe("physics collider test", function () {
     collider.shapes[0].material.dynamicFriction = 1;
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(collider.linearVelocity.x)).eq(6.85668);
+    expect(formatValue(collider.linearVelocity.x)).eq(5.87569);
 
     const box2 = box.clone();
     rootEntity.addChild(box2);
     box2.transform.position.z = 2;
     const collider2 = box2.getComponent(DynamicCollider);
-    expect(formatValue(collider2.linearVelocity.x)).eq(6.85668);
+    expect(formatValue(collider2.linearVelocity.x)).eq(5.87569);
     expect(collider2.shapes[0].material.dynamicFriction).eq(1);
 
     // @ts-ignore

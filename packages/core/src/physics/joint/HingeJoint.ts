@@ -6,7 +6,8 @@ import { HingeJointFlag } from "../enums/HingeJointFlag";
 import { Joint } from "./Joint";
 import { JointLimits } from "./JointLimits";
 import { JointMotor } from "./JointMotor";
-import { deepClone } from "../../clone/CloneManager";
+import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { Entity } from "../../Entity";
 
 /**
  * A joint which behaves in a similar way to a hinge or axle.
@@ -138,6 +139,12 @@ export class HingeJoint extends Joint {
     }
   }
 
+  constructor(entity: Entity) {
+    super(entity);
+    this._onMotorChanged = this._onMotorChanged.bind(this);
+    this._onLimitsChanged = this._onLimitsChanged.bind(this);
+  }
+
   protected _createJoint(): void {
     const colliderInfo = this._colliderInfo;
     colliderInfo.collider = this.entity.getComponent(Collider);
@@ -158,7 +165,8 @@ export class HingeJoint extends Joint {
     }
   }
 
-  private _onMotorChanged = (): void => {
+  @ignoreClone
+  private _onMotorChanged() {
     const motor = this._jointMotor;
     if (this._nativeJoint) {
       (<IHingeJoint>this._nativeJoint).setDriveVelocity(motor.targetVelocity);
@@ -166,8 +174,10 @@ export class HingeJoint extends Joint {
       (<IHingeJoint>this._nativeJoint).setDriveGearRatio(motor.gearRatio);
       (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.DriveFreeSpin, motor.freeSpin);
     }
-  };
-  private _onLimitsChanged = (): void => {
+  }
+
+  @ignoreClone
+  private _onLimitsChanged() {
     const limits = this._limits;
     if (limits && this._nativeJoint) {
       if (this.useSpring) {
@@ -176,5 +186,5 @@ export class HingeJoint extends Joint {
         (<IHingeJoint>this._nativeJoint).setHardLimit(limits.min, limits.max, limits.contactDistance);
       }
     }
-  };
+  }
 }

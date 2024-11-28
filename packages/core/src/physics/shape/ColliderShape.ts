@@ -58,7 +58,8 @@ export abstract class ColliderShape implements ICustomClone {
   }
 
   set contactOffset(value: number) {
-    if (this._contactOffset !== value && value >= 0) {
+    value = Math.max(0, value);
+    if (this._contactOffset !== value) {
       this._contactOffset = value;
       this._nativeShape.setContactOffset(value);
     }
@@ -149,11 +150,13 @@ export abstract class ColliderShape implements ICustomClone {
   }
 
   protected _syncNative(): void {
-    this._setPosition();
-    this._setRotation();
+    this._nativeShape.setPosition(this._position);
+    this._nativeShape.setRotation(this._rotation);
     this._nativeShape.setContactOffset(this._contactOffset);
     this._nativeShape.setIsTrigger(this._isTrigger);
     this._nativeShape.setMaterial(this._material._nativeMaterial);
+
+    this._collider?._handleShapesChanged();
   }
 
   private _setPosition(): void {

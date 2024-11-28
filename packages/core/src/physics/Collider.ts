@@ -52,6 +52,7 @@ export class Collider extends Component implements ICustomClone {
       }
       this._shapes.push(shape);
       this._addNativeShape(shape);
+      this._handleShapesChanged();
     }
   }
 
@@ -64,6 +65,7 @@ export class Collider extends Component implements ICustomClone {
     if (index !== -1) {
       this._shapes.splice(index, 1);
       this._removeNativeShape(shape);
+      this._handleShapesChanged();
     }
   }
 
@@ -73,10 +75,10 @@ export class Collider extends Component implements ICustomClone {
   clearShapes(): void {
     const shapes = this._shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
-      const shape = shapes[i];
-      this._removeNativeShape(shape);
+      this._removeNativeShape(shapes[i]);
     }
     shapes.length = 0;
+    this._handleShapesChanged();
   }
 
   /**

@@ -108,9 +108,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   addCollider(collider: PhysXCollider): void {
     collider._scene = this;
     this._pxScene.addActor(collider._pxActor, null);
-    const shapes = collider._shapeIds;
+    const shapes = collider._shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
-      this._addColliderShape(shapes[i]);
+      this._addColliderShape(shapes[i]._id);
     }
   }
 
@@ -120,9 +120,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   removeCollider(collider: PhysXCollider): void {
     collider._scene = null;
     this._pxScene.removeActor(collider._pxActor, true);
-    const shapes = collider._shapeIds;
+    const shapes = collider._shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
-      this._removeColliderShape(shapes[i]);
+      this._removeColliderShape(shapes[i]._id);
     }
   }
 

@@ -18,7 +18,7 @@ export abstract class PhysXCollider implements ICollider {
   /** @internal */
   _pxActor: any;
   /** @internal */
-  _shapeIds = new Array<number>();
+  _shapes = new Array<PhysXColliderShape>();
 
   protected _physXPhysics: PhysXPhysics;
 
@@ -31,7 +31,7 @@ export abstract class PhysXCollider implements ICollider {
    */
   addShape(shape: PhysXColliderShape): void {
     this._pxActor.attachShape(shape._pxShape);
-    this._shapeIds.push(shape._id);
+    this._shapes.push(shape);
     this._scene?._addColliderShape(shape._id);
   }
 
@@ -40,9 +40,9 @@ export abstract class PhysXCollider implements ICollider {
    */
   removeShape(shape: PhysXColliderShape): void {
     this._pxActor.detachShape(shape._pxShape, true);
-    const shapeIds = this._shapeIds;
-    const index = shapeIds.indexOf(shape._id);
-    index > -1 && shapeIds.splice(index, 1);
+    const shapes = this._shapes;
+    const index = shapes.indexOf(shape);
+    index > -1 && shapes.splice(index, 1);
     this._scene?._removeColliderShape(shape._id);
   }
 

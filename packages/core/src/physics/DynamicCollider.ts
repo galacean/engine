@@ -4,7 +4,6 @@ import { ignoreClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
 import { PhysicsScene } from "./PhysicsScene";
-import { ColliderShape } from "./shape";
 
 /**
  * A dynamic collider can act with self-defined movement or physical force.
@@ -114,7 +113,7 @@ export class DynamicCollider extends Collider {
   }
 
   /**
-   * Whether or not to calculate the center of mass automatically, if true, the center of mass will be calculated based on the shapes added to the collider.
+   * Whether or not to calculate the center of mass automatically, if true, the center of mass will be calculated based on the associated shapes.
    */
   get automaticCenterOfMass(): boolean {
     return this._automaticCenterOfMass;
@@ -149,7 +148,7 @@ export class DynamicCollider extends Collider {
   }
 
   /**
-   * Whether or not to calculate the inertia tensor automatically, if true, the inertia tensor will be calculated based on the shapes added to the collider.
+   * Whether or not to calculate the inertia tensor automatically, if true, the inertia tensor will be calculated based on the associated shapes and mass.
    */
   get automaticInertiaTensor(): boolean {
     return this._automaticInertiaTensor;
@@ -307,27 +306,6 @@ export class DynamicCollider extends Collider {
     this._inertiaTensor._onValueChanged = this._handleInertiaTensorChanged;
   }
 
-  override addShape(shape: ColliderShape): void {
-    super.addShape(shape);
-    if (this._automaticCenterOfMass || this._automaticInertiaTensor) {
-      this._setMassAndUpdateInertia();
-    }
-  }
-
-  override removeShape(shape: ColliderShape): void {
-    super.removeShape(shape);
-    if (this._automaticCenterOfMass || this._automaticInertiaTensor) {
-      this._setMassAndUpdateInertia();
-    }
-  }
-
-  override clearShapes(): void {
-    super.clearShapes();
-    if (this._automaticCenterOfMass || this._automaticInertiaTensor) {
-      this._setMassAndUpdateInertia();
-    }
-  }
-
   /**
    * Apply a force to the DynamicCollider.
    * @param force - The force make the collider move
@@ -448,13 +426,17 @@ export class DynamicCollider extends Collider {
     !this._automaticInertiaTensor && (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
   }
 
+  @ignoreClone
   private _setLinearVelocity(): void {
     (<IDynamicCollider>this._nativeCollider).setLinearVelocity(this._linearVelocity);
   }
+
+  @ignoreClone
   private _setAngularVelocity(): void {
     (<IDynamicCollider>this._nativeCollider).setAngularVelocity(this._angularVelocity);
   }
 
+  @ignoreClone
   private _handleCenterOfMassChanged(): void {
     if (this._automaticCenterOfMass) {
       console.warn(
@@ -465,6 +447,7 @@ export class DynamicCollider extends Collider {
     }
   }
 
+  @ignoreClone
   private _handleInertiaTensorChanged(): void {
     if (this._automaticInertiaTensor) {
       console.warn(

@@ -57,13 +57,6 @@ export class PhysXCharacterController implements ICharacterController {
   }
 
   /**
-   * {@inheritDoc ICharacterController.setContactOffset }
-   */
-  setContactOffset(offset: number): void {
-    this._pxController?.setContactOffset(offset);
-  }
-
-  /**
    * {@inheritDoc ICharacterController.setStepOffset }
    */
   setStepOffset(offset: number): void {
@@ -99,7 +92,7 @@ export class PhysXCharacterController implements ICharacterController {
     this._pxManager && this._createPXController(this._pxManager, shape);
     this._shape = shape;
     shape._controllers.add(this);
-    this.setContactOffset(shape._contractOffset);
+    this._pxController?.setContactOffset(shape._contractOffset);
     this._scene?._addColliderShape(shape._id);
   }
 
