@@ -10,8 +10,8 @@ import { PhysXJoint } from "./PhysXJoint";
 export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   protected static _xAxis = new Vector3(1, 0, 0);
 
-  private _anchor = new Vector3();
-  private _connectedAnchor = new Vector3();
+  private _anchor: Vector3;
+  private _connectedAnchor: Vector3;
   private _axisRotationQuaternion = new Quaternion();
 
   constructor(physXPhysics: PhysXPhysics, collider: PhysXCollider) {
@@ -44,12 +44,12 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
 
   override setAnchor(value: Vector3): void {
     this._setLocalPose(0, value, this._axisRotationQuaternion);
-    this._anchor.copyFrom(value);
+    this._anchor = value;
   }
 
   override setConnectedAnchor(value: Vector3): void {
     this._setLocalPose(1, value, this._axisRotationQuaternion);
-    this._connectedAnchor.copyFrom(value);
+    this._connectedAnchor = value;
   }
 
   /**

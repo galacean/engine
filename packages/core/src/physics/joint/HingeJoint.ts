@@ -145,6 +145,16 @@ export class HingeJoint extends Joint {
     this._onLimitsChanged = this._onLimitsChanged.bind(this);
   }
 
+  /**
+   * @internal
+   */
+  override _onDisableInScene(): void {
+    const nativeJoint = <IHingeJoint>this._nativeJoint;
+    this._angle = nativeJoint.getAngle();
+    this._velocity = nativeJoint.getVelocity();
+    super._onDisableInScene();
+  }
+
   protected _createJoint(): void {
     const colliderInfo = this._colliderInfo;
     colliderInfo.collider = this.entity.getComponent(Collider);

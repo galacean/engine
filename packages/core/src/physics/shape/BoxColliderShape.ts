@@ -41,6 +41,7 @@ export class BoxColliderShape extends ColliderShape {
     this._setSize();
   }
 
+  @ignoreClone
   private _setSize(): void {
     (<IBoxColliderShape>this._nativeShape).setSize(this._size);
   }
