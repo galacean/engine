@@ -41,7 +41,7 @@ describe("Joint", function () {
 
     const joint = box.addComponent(FixedJoint);
 
-    joint.autoConnectedAnchor = false;
+    joint.automaticConnectedAnchor = false;
     joint.connectedAnchor = new Vector3(1, 4, 1);
     expect(joint.anchor).deep.include({ x: 0, y: 0, z: 0 });
 
@@ -68,7 +68,7 @@ describe("Joint", function () {
     box2Collider.isKinematic = true;
 
     const joint = box1.addComponent(FixedJoint);
-    joint.autoConnectedAnchor = false;
+    joint.automaticConnectedAnchor = false;
     joint.connectedCollider = box2.getComponent(DynamicCollider);
     joint.anchor = new Vector3(0, 0.5, 0);
     joint.connectedAnchor = new Vector3(0, -0.5, 0);
@@ -86,13 +86,13 @@ describe("Joint", function () {
     expect(box1.transform.position).deep.include({ x: 3, y: 1.5, z: 3 });
   });
 
-  it("autoConnectedAnchor", function () {
+  it("automaticConnectedAnchor", function () {
     const consoleWarnSpy = vi.spyOn(console, "warn");
     const box = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(4, 4, 4));
 
     // No connectedCollider
     const joint = box.addComponent(FixedJoint);
-    joint.autoConnectedAnchor = true;
+    joint.automaticConnectedAnchor = true;
     joint.connectedAnchor = new Vector3(1, 1, 1);
     expect(consoleWarnSpy).toBeCalledTimes(1);
 
@@ -138,7 +138,7 @@ describe("Joint", function () {
     box1Collider.isKinematic = true;
     const fixedJoint = box2.addComponent(FixedJoint);
     fixedJoint.connectedCollider = box1.getComponent(DynamicCollider);
-    fixedJoint.autoConnectedAnchor = true;
+    fixedJoint.automaticConnectedAnchor = true;
     fixedJoint.breakForce = 10;
 
     fixedJoint.massScale = 10;
@@ -165,7 +165,7 @@ describe("Joint", function () {
     box1Collider.isKinematic = true;
     const fixedJoint = box1.addComponent(FixedJoint);
     fixedJoint.connectedCollider = box2.getComponent(DynamicCollider);
-    fixedJoint.autoConnectedAnchor = true;
+    fixedJoint.automaticConnectedAnchor = true;
     fixedJoint.breakForce = 10;
 
     fixedJoint.connectedMassScale = 10;
@@ -194,7 +194,7 @@ describe("Joint", function () {
     box1Collider.mass = 0.00001;
     box1Collider.inertiaTensor = new Vector3(1, 1, 1);
     box2Collider.inertiaTensor = new Vector3(1, 1, 1);
-    fixedJoint.autoConnectedAnchor = true;
+    fixedJoint.automaticConnectedAnchor = true;
     box2Collider.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
@@ -241,7 +241,7 @@ describe("Joint", function () {
     box1Collider.mass = 0.00001;
     box1Collider.inertiaTensor = new Vector3(1, 1, 1);
     box2Collider.inertiaTensor = new Vector3(1, 1, 1);
-    fixedJoint.autoConnectedAnchor = true;
+    fixedJoint.automaticConnectedAnchor = true;
     box2Collider.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
@@ -285,7 +285,7 @@ describe("Joint", function () {
     box1Collider.isKinematic = true;
     const fixedJoint = box1.addComponent(FixedJoint);
     fixedJoint.connectedCollider = box2.getComponent(DynamicCollider);
-    fixedJoint.autoConnectedAnchor = true;
+    fixedJoint.automaticConnectedAnchor = true;
     fixedJoint.breakForce = 10;
     expect(fixedJoint.breakForce).eq(10);
 
@@ -307,7 +307,7 @@ describe("Joint", function () {
     const fixedJoint = box1.addComponent(FixedJoint);
     const box2Collider = box2.getComponent(DynamicCollider);
     fixedJoint.connectedCollider = box2.getComponent(DynamicCollider);
-    fixedJoint.autoConnectedAnchor = true;
+    fixedJoint.automaticConnectedAnchor = true;
     box2Collider.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(10);
@@ -330,7 +330,7 @@ describe("Joint", function () {
     box1Collider.isKinematic = true;
     const fixedJoint = box1.addComponent(FixedJoint);
     fixedJoint.connectedCollider = box2Collider;
-    fixedJoint.autoConnectedAnchor = true;
+    fixedJoint.automaticConnectedAnchor = true;
     fixedJoint.breakForce = 1;
 
     const newBox1 = box1.clone();
@@ -347,8 +347,8 @@ describe("Joint", function () {
 
     box1.isActive = false;
     const fixedJoint = box1.addComponent(FixedJoint);
-    fixedJoint.autoConnectedAnchor = true;
-    fixedJoint.autoConnectedAnchor = false;
+    fixedJoint.automaticConnectedAnchor = true;
+    fixedJoint.automaticConnectedAnchor = false;
     fixedJoint.connectedCollider = null;
     fixedJoint.connectedCollider = box2.getComponent(DynamicCollider);
     fixedJoint.anchor = new Vector3(0, 3, 0);

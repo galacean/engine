@@ -23,7 +23,7 @@ export abstract class Joint extends Component {
   protected _nativeJoint: IJoint;
   private _force = Infinity;
   private _torque = Infinity;
-  private _autoConnectedAnchor = true;
+  private _automaticConnectedAnchor = true;
 
   /**
    * The connected collider.
@@ -40,7 +40,7 @@ export abstract class Joint extends Component {
       value?.entity.transform._updateFlagManager.addListener(this._onConnectedTransformChanged);
       this._connectedColliderInfo.collider = value;
       this._nativeJoint?.setConnectedCollider(value._nativeCollider);
-      if (this._autoConnectedAnchor) {
+      if (this._automaticConnectedAnchor) {
         this._calculateConnectedAnchor();
       } else {
         this._updateActualAnchor(AnchorOwner.Connected);
@@ -61,7 +61,7 @@ export abstract class Joint extends Component {
     if (value !== anchor) {
       anchor.copyFrom(value);
       this._updateActualAnchor(AnchorOwner.Self);
-      this._autoConnectedAnchor && this._calculateConnectedAnchor();
+      this._automaticConnectedAnchor && this._calculateConnectedAnchor();
     }
   }
 
@@ -74,8 +74,8 @@ export abstract class Joint extends Component {
   }
 
   set connectedAnchor(value: Vector3) {
-    if (this.autoConnectedAnchor) {
-      console.warn("Cannot set connectedAnchor when autoConnectedAnchor is true.");
+    if (this.automaticConnectedAnchor) {
+      console.warn("Cannot set connectedAnchor when automaticConnectedAnchor is true.");
       return;
     }
     const connectedAnchor = this._connectedColliderInfo.anchor;
@@ -85,12 +85,15 @@ export abstract class Joint extends Component {
     }
   }
 
-  get autoConnectedAnchor(): boolean {
-    return this._autoConnectedAnchor;
+  /**
+   * Whether or not to calculate the connectedAnchor automatically, if true, the connectedAnchor will be calculated automatically to match the global position of the anchor property.
+   */
+  get automaticConnectedAnchor(): boolean {
+    return this._automaticConnectedAnchor;
   }
 
-  set autoConnectedAnchor(value: boolean) {
-    this._autoConnectedAnchor = value;
+  set automaticConnectedAnchor(value: boolean) {
+    this._automaticConnectedAnchor = value;
     value && this._calculateConnectedAnchor();
   }
 
@@ -212,7 +215,7 @@ export abstract class Joint extends Component {
     if (this._nativeJoint) {
       this._nativeJoint.setConnectedCollider(this._connectedColliderInfo.collider?._nativeCollider || null);
       this._updateActualAnchor(AnchorOwner.Self);
-      if (this._autoConnectedAnchor) {
+      if (this._automaticConnectedAnchor) {
         this._calculateConnectedAnchor();
       } else {
         this._updateActualAnchor(AnchorOwner.Connected);

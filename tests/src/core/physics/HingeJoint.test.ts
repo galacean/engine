@@ -57,7 +57,7 @@ describe("HingeJoint", function () {
     collider2.automaticInertiaTensor = true;
     collider.isKinematic = true;
     const joint = boxEntity.addComponent(HingeJoint);
-    joint.autoConnectedAnchor = true;
+    joint.automaticConnectedAnchor = true;
     joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
     joint.anchor = new Vector3(0.5, 0, 0);
     joint.axis = new Vector3(0, 1, 0);
@@ -78,7 +78,7 @@ describe("HingeJoint", function () {
     const collider2 = boxEntity2.getComponent(DynamicCollider);
     collider.isKinematic = true;
     const joint = boxEntity.addComponent(HingeJoint);
-    joint.autoConnectedAnchor = true;
+    joint.automaticConnectedAnchor = true;
     joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
     joint.anchor = new Vector3(0.5, 0, 0);
     joint.axis = new Vector3(0, 1, 0);
@@ -114,7 +114,7 @@ describe("HingeJoint", function () {
 
     collider.isKinematic = true;
     const joint = boxEntity.addComponent(HingeJoint);
-    joint.autoConnectedAnchor = true;
+    joint.automaticConnectedAnchor = true;
     joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
     joint.anchor = new Vector3(0.5, 0, 0);
     joint.axis = new Vector3(0, 1, 0);
@@ -146,7 +146,7 @@ describe("HingeJoint", function () {
     collider2.automaticInertiaTensor = true;
     collider.isKinematic = true;
     const joint = boxEntity.addComponent(HingeJoint);
-    joint.autoConnectedAnchor = true;
+    joint.automaticConnectedAnchor = true;
     joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
     joint.anchor = new Vector3(0.5, 0, 0);
     joint.axis = new Vector3(0, 1, 0);
@@ -178,7 +178,7 @@ describe("HingeJoint", function () {
     collider2.automaticInertiaTensor = true;
     collider.isKinematic = true;
     const joint = boxEntity.addComponent(HingeJoint);
-    joint.autoConnectedAnchor = true;
+    joint.automaticConnectedAnchor = true;
     joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
     joint.anchor = new Vector3(0.5, 0, 0);
     joint.axis = new Vector3(0, 1, 0);
@@ -329,7 +329,7 @@ describe("HingeJoint", function () {
     collider2.automaticInertiaTensor = true;
     collider.isKinematic = true;
     const joint = boxEntity.addComponent(HingeJoint);
-    joint.autoConnectedAnchor = true;
+    joint.automaticConnectedAnchor = true;
     joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
     joint.anchor = new Vector3(0.5, 0, 0);
     joint.axis = new Vector3(0, 1, 0);

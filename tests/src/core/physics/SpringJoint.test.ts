@@ -40,7 +40,7 @@ describe("SpringJoint", function () {
     const joint = boxEntity2.addComponent(SpringJoint);
     const collider = (joint.connectedCollider = boxEntity.getComponent(DynamicCollider));
     collider.isKinematic = true;
-    joint.autoConnectedAnchor = false;
+    joint.automaticConnectedAnchor = false;
     joint.anchor = new Vector3(-0.5, 0, 0);
     joint.connectedAnchor = new Vector3(0.5, 0, 0);
     joint.stiffness = 10000;
@@ -72,7 +72,7 @@ describe("SpringJoint", function () {
     const joint = boxEntity2.addComponent(SpringJoint);
     const collider = (joint.connectedCollider = boxEntity.getComponent(DynamicCollider));
     collider.isKinematic = true;
-    joint.autoConnectedAnchor = false;
+    joint.automaticConnectedAnchor = false;
     joint.anchor = new Vector3(-0.5, 0, 0);
     joint.connectedAnchor = new Vector3(0.5, 0, 0);
     joint.stiffness = 10000000000;
@@ -95,7 +95,7 @@ describe("SpringJoint", function () {
     const joint = boxEntity2.addComponent(SpringJoint);
     const collider = (joint.connectedCollider = boxEntity.getComponent(DynamicCollider));
     collider.isKinematic = true;
-    joint.autoConnectedAnchor = false;
+    joint.automaticConnectedAnchor = false;
     joint.anchor = new Vector3(-0.5, 0, 0);
     joint.connectedAnchor = new Vector3(0.5, 0, 0);
     joint.stiffness = 10000000000;
@@ -127,7 +127,7 @@ describe("SpringJoint", function () {
     const joint = boxEntity2.addComponent(SpringJoint);
     const collider = (joint.connectedCollider = boxEntity.getComponent(DynamicCollider));
     collider.isKinematic = true;
-    joint.autoConnectedAnchor = false;
+    joint.automaticConnectedAnchor = false;
     joint.anchor = new Vector3(-0.5, 0, 0);
     joint.connectedAnchor = new Vector3(0.5, 0, 0);
     joint.stiffness = 10;
@@ -151,7 +151,7 @@ describe("SpringJoint", function () {
     const joint = boxEntity2.addComponent(SpringJoint);
     const collider = (joint.connectedCollider = boxEntity.getComponent(DynamicCollider));
     collider.isKinematic = true;
-    joint.autoConnectedAnchor = false;
+    joint.automaticConnectedAnchor = false;
     joint.anchor = new Vector3(-0.5, 0, 0);
     joint.connectedAnchor = new Vector3(0.5, 0, 0);
     joint.stiffness = 10000000000;
@@ -174,7 +174,7 @@ describe("SpringJoint", function () {
     const joint = boxEntity2.addComponent(SpringJoint);
     const collider = (joint.connectedCollider = boxEntity.getComponent(DynamicCollider));
     collider.isKinematic = true;
-    joint.autoConnectedAnchor = false;
+    joint.automaticConnectedAnchor = false;
     joint.anchor = new Vector3(-0.5, 0, 0);
     joint.connectedAnchor = new Vector3(0.5, 0, 0);
     joint.stiffness = 10;
@@ -207,7 +207,7 @@ describe("SpringJoint", function () {
     const joint = boxEntity2.addComponent(SpringJoint);
     const collider = (joint.connectedCollider = boxEntity.getComponent(DynamicCollider));
     collider.isKinematic = true;
-    joint.autoConnectedAnchor = false;
+    joint.automaticConnectedAnchor = false;
     joint.anchor = new Vector3(-0.5, 0, 0);
     joint.connectedAnchor = new Vector3(0.5, 0, 0);
     joint.stiffness = 10000000000;
