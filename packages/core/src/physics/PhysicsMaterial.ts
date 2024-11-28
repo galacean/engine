@@ -6,9 +6,9 @@ import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
  * Material class to represent a set of surface properties.
  */
 export class PhysicsMaterial {
-  private _bounciness = 0.5;
-  private _dynamicFriction = 0.5;
-  private _staticFriction = 0.5;
+  private _bounciness = 0;
+  private _dynamicFriction = 0.6;
+  private _staticFriction = 0.6;
   private _bounceCombine: PhysicsMaterialCombineMode = PhysicsMaterialCombineMode.Average;
   private _frictionCombine: PhysicsMaterialCombineMode = PhysicsMaterialCombineMode.Average;
   private _destroyed: boolean;
