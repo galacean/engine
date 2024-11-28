@@ -55,6 +55,8 @@ export interface IPlatformTexture2D extends IPlatformTexture {
 
   /**
    * Copy the specified area of the render target to the sub texture.
+   * @remarks
+   * If the render target has MSAA FBO, must be resolved before copying.
    * @param renderTarget - The render target to copy from
    * @param level - Texture mipmapping level
    * @param xOffset - Specifying the horizontal offset within the texture image

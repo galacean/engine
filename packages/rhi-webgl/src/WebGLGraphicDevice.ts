@@ -104,6 +104,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   private _lastScissor: Vector4 = new Vector4(null, null, null, null);
   private _lastClearColor: Color = new Color(null, null, null, null);
   private _scissorEnable: boolean = false;
+  private _contextAttributes: WebGLContextAttributes;
 
   private _onDeviceLost: () => void;
   private _onDeviceRestored: () => void;
@@ -134,6 +135,10 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   get canIUseMoreJoints() {
     return this.capability.canIUseMoreJoints;
+  }
+
+  get context(): WebGLGraphicDeviceOptions {
+    return this._contextAttributes;
   }
 
   constructor(initializeOptions: WebGLGraphicDeviceOptions = {}) {
@@ -392,17 +397,24 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     const blitWidth = destRT.width;
     const blitHeight = destRT.height;
     const needFlipY = !srcRT;
+    const needBlitColor = (clearFlags & CameraClearFlags.Color) === 0;
+    const needBlitDepth = (clearFlags & CameraClearFlags.Depth) === 0;
+    const needBlitStencil = (clearFlags & CameraClearFlags.Stencil) === 0;
 
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, srcFrameBuffer);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, destFrameBuffer);
 
-    let blitMask = clearFlags & CameraClearFlags.Color ? 0 : gl.COLOR_BUFFER_BIT;
+    let blitMask = needBlitColor ? gl.COLOR_BUFFER_BIT : 0;
 
-    // @ts-ignore
-    const canBlitDepthStencil = !srcRT || srcRT._depthFormat === TextureFormat.Depth24Stencil8;
-    if (canBlitDepthStencil) {
-      blitMask |= clearFlags & CameraClearFlags.Depth ? 0 : gl.DEPTH_BUFFER_BIT;
-      blitMask |= clearFlags & CameraClearFlags.Stencil ? 0 : gl.STENCIL_BUFFER_BIT;
+    if (needBlitDepth || needBlitStencil) {
+      // @ts-ignore
+      const canBlitDepthStencil = !srcRT || srcRT._depthFormat === TextureFormat.Depth24Stencil8;
+      if (canBlitDepthStencil) {
+        blitMask |= needBlitDepth ? gl.DEPTH_BUFFER_BIT : 0;
+        blitMask |= needBlitStencil ? gl.STENCIL_BUFFER_BIT : 0;
+      } else {
+        Logger.error(`The Depth/Stencil format of Target must be "TextureFormat.Depth24Stencil8"`);
+      }
     }
 
     const xStart = viewport.x * srcWidth;
@@ -499,6 +511,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     if (debugRenderInfo != null) {
       this._renderer = gl.getParameter(debugRenderInfo.UNMASKED_RENDERER_WEBGL);
     }
+
+    this._contextAttributes = gl.getContextAttributes();
   }
 
   destroy(): void {

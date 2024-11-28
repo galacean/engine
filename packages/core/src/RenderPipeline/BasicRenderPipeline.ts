@@ -44,7 +44,7 @@ export class BasicRenderPipeline {
   private _depthOnlyPass: DepthOnlyPass;
   private _opaqueTexturePass: OpaqueTexturePass;
   private _grabTexture: Texture2D;
-  private _canUseBlitFrameBuffer = false; // TODO: Check why some browser only support blitFrameBuffer from screen when antialias === false
+  private _canUseBlitFrameBuffer = false;
   private _shouldGrabColor = false;
 
   /**
@@ -80,10 +80,19 @@ export class BasicRenderPipeline {
 
     const camera = this._camera;
     const { scene, engine } = camera;
+    const rhi = engine._hardwareRenderer;
     const cullingResults = this._cullingResults;
     const sunlight = scene._lightManager._sunlight;
     const depthOnlyPass = this._depthOnlyPass;
     const depthPassEnabled = camera.depthTextureMode === DepthTextureMode.PrePass && depthOnlyPass._supportDepthTexture;
+    const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
+    const independentCanvasEnabled = camera.independentCanvasEnabled;
+    this._shouldGrabColor = independentCanvasEnabled && !(finalClearFlags & CameraClearFlags.Color);
+    // 1. Only support blitFramebuffer in webgl2 context
+    // 2. Can't blit normal FBO to MSAA FBO
+    // 3. Can't blit screen FBO to normal FBO in some platform when antialias enabled
+    this._canUseBlitFrameBuffer =
+      rhi.isWebGL2 && camera.msaaSamples === 1 && (!!camera.renderTarget || !rhi.context.antialias);
 
     if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
       this._cascadedShadowCasterPass.onRender(context);
@@ -109,11 +118,7 @@ export class BasicRenderPipeline {
       camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._basicResources.whiteTexture2D);
     }
 
-    // Check if need to create internal color texture
-    const independentCanvasEnabled = camera.independentCanvasEnabled;
-    const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
-    this._shouldGrabColor = independentCanvasEnabled && !(finalClearFlags & CameraClearFlags.Color);
-
+    // Check if need to create internal color texture or grab texture
     if (independentCanvasEnabled) {
       const viewport = camera.pixelViewport;
       const internalColorTarget = PipelineUtils.recreateRenderTargetIfNeeded(
@@ -194,7 +199,6 @@ export class BasicRenderPipeline {
       if (finalClearFlags === CameraClearFlags.All) {
         rhi.clearRenderTarget(engine, CameraClearFlags.All, color);
       } else {
-        // @todo: Only some browsers support blitFrameBuffer from screen
         if (this._canUseBlitFrameBuffer) {
           finalClearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(engine, finalClearFlags, color);
           rhi.blitInternalRTByBlitFrameBuffer(
