@@ -114,6 +114,7 @@ export class DynamicCollider extends Collider {
 
   /**
    * Whether or not to calculate the center of mass automatically, if true, the center of mass will be calculated based on the associated shapes.
+   * @remarks Affected by the position, rotation of the shapes.
    */
   get automaticCenterOfMass(): boolean {
     return this._automaticCenterOfMass;
@@ -149,6 +150,7 @@ export class DynamicCollider extends Collider {
 
   /**
    * Whether or not to calculate the inertia tensor automatically, if true, the inertia tensor will be calculated based on the associated shapes and mass.
+   * @remarks Affected by the position, rotation of the shapes and the mass of the collider.
    */
   get automaticInertiaTensor(): boolean {
     return this._automaticInertiaTensor;
@@ -422,8 +424,8 @@ export class DynamicCollider extends Collider {
   private _setMassAndUpdateInertia(): void {
     (<IDynamicCollider>this._nativeCollider).setMassAndUpdateInertia(this._mass);
 
-    !this._automaticCenterOfMass && (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
-    !this._automaticInertiaTensor && (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
+    this._automaticCenterOfMass || (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
+    this._automaticInertiaTensor || (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
   }
 
   @ignoreClone

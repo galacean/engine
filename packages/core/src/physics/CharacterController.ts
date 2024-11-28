@@ -19,7 +19,7 @@ export class CharacterController extends Collider {
 
   /**
    * The step offset for the controller, the value must be greater than or equal to 0.
-   * @remarks Character can overcome obstacle less than the height(stepOffset + contractOffset(0.02) of the shape).
+   * @remarks Character can overcome obstacle less than the height(stepOffset + contractOffset of the shape).
    */
   get stepOffset(): number {
     return this._stepOffset;
