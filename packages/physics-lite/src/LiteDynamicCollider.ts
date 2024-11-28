@@ -176,13 +176,6 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.getMaxAngularVelocity }
-   */
-  getMaxAngularVelocity(): number {
-    throw "Physics-lite don't support getMaxAngularVelocity. Use Physics-PhysX instead!";
-  }
-
-  /**
    * {@inheritDoc IDynamicCollider.setMaxAngularVelocity }
    */
   setMaxAngularVelocity(value: number): void {

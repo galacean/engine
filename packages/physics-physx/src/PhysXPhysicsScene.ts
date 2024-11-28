@@ -155,7 +155,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     characterController._pxManager = null;
     characterController._destroyPXController();
     const shape = characterController._shape;
-    shape && this._removeColliderShape(shape?._id);
+    shape && this._removeColliderShape(shape._id);
   }
 
   /**

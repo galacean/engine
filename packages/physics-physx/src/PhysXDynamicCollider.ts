@@ -133,13 +133,6 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.getMaxAngularVelocity }
-   */
-  getMaxAngularVelocity(): number {
-    return this._pxActor.getMaxAngularVelocity();
-  }
-
-  /**
    * {@inheritDoc IDynamicCollider.setMaxAngularVelocity }
    */
   setMaxAngularVelocity(value: number): void {
