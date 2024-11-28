@@ -41,8 +41,7 @@ export abstract class PhysXCollider implements ICollider {
   removeShape(shape: PhysXColliderShape): void {
     this._pxActor.detachShape(shape._pxShape, true);
     const shapes = this._shapes;
-    const index = shapes.indexOf(shape);
-    index > -1 && shapes.splice(index, 1);
+    shapes.splice(shapes.indexOf(shape), 1);
     this._scene?._removeColliderShape(shape._id);
   }
 
