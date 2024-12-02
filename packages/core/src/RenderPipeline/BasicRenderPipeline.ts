@@ -201,61 +201,52 @@ export class BasicRenderPipeline {
     rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
     const color = background.solidColor;
 
-    if (internalColorTarget) {
-      if (finalClearFlags === CameraClearFlags.All) {
-        rhi.clearRenderTarget(engine, CameraClearFlags.All, color);
+    if (internalColorTarget && finalClearFlags !== CameraClearFlags.All) {
+      // Can use `blitFramebuffer` API to copy color/depth/stencil buffer from back buffer to internal RT
+      if (this._canUseBlitFrameBuffer) {
+        finalClearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(engine, finalClearFlags, color);
+        rhi.blitInternalRTByBlitFrameBuffer(camera.renderTarget, internalColorTarget, finalClearFlags, camera.viewport);
       } else {
-        // Can use `blitFramebuffer` API to copy color/depth/stencil buffer from back buffer to internal RT
-        if (this._canUseBlitFrameBuffer) {
-          finalClearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(engine, finalClearFlags, color);
-          rhi.blitInternalRTByBlitFrameBuffer(
-            camera.renderTarget,
-            internalColorTarget,
-            finalClearFlags,
-            camera.viewport
+        const shouldGrabDepth = (finalClearFlags & CameraClearFlags.Depth) === 0;
+        const shouldGrabStencil = (finalClearFlags & CameraClearFlags.Stencil) === 0;
+
+        if (shouldGrabDepth || shouldGrabStencil) {
+          Logger.warn(
+            "We clear all depth/stencil state cause of the internalRT can't copy depth/stencil buffer from back buffer when use copy plan"
           );
-        } else {
-          const shouldGrabDepth = (finalClearFlags & CameraClearFlags.Depth) === 0;
-          const shouldGrabStencil = (finalClearFlags & CameraClearFlags.Stencil) === 0;
-
-          if (shouldGrabDepth || shouldGrabStencil) {
-            Logger.warn(
-              "We clear all depth/stencil state cause of the internalRT can't copy depth/stencil buffer from back buffer when use copy plan"
-            );
-          }
-
-          if (this._shouldGrabColor) {
-            rhi.clearRenderTarget(engine, CameraClearFlags.ColorDepth);
-            // Copy RT's color buffer to internal RT's color buffer
-            if (this._canJustCopyToInternalRT) {
-              rhi.copyRenderTargetToSubTexture(
-                camera.renderTarget,
-                internalColorTarget.getColorTexture(),
-                camera.viewport
-              );
-            } else {
-              // Copy RT's color buffer to grab texture
-              rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._grabTexture, camera.viewport);
-              // Then blit grab texture to internal RT's color buffer
-              PipelineUtils.blitTexture(
-                engine,
-                this._grabTexture,
-                internalColorTarget,
-                0,
-                undefined,
-                undefined,
-                undefined,
-                // Only flip Y axis in webgl context
-                !camera.renderTarget
-              );
-            }
-          } else {
-            rhi.clearRenderTarget(engine, CameraClearFlags.All, color);
-          }
         }
 
-        rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
+        if (this._shouldGrabColor) {
+          rhi.clearRenderTarget(engine, CameraClearFlags.ColorDepth);
+          // Copy RT's color buffer to internal RT's color buffer
+          if (this._canJustCopyToInternalRT) {
+            rhi.copyRenderTargetToSubTexture(
+              camera.renderTarget,
+              internalColorTarget.getColorTexture(),
+              camera.viewport
+            );
+          } else {
+            // Copy RT's color buffer to grab texture
+            rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._grabTexture, camera.viewport);
+            // Then blit grab texture to internal RT's color buffer
+            PipelineUtils.blitTexture(
+              engine,
+              this._grabTexture,
+              internalColorTarget,
+              0,
+              undefined,
+              undefined,
+              undefined,
+              // Only flip Y axis in webgl context
+              !camera.renderTarget
+            );
+          }
+        } else {
+          rhi.clearRenderTarget(engine, CameraClearFlags.All, color);
+        }
       }
+
+      rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
     } else if (finalClearFlags !== CameraClearFlags.None) {
       rhi.clearRenderTarget(engine, finalClearFlags, color);
     }
