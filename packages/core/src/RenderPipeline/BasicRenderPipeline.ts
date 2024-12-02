@@ -122,6 +122,18 @@ export class BasicRenderPipeline {
 
     // Check if need to create internal color texture or grab texture
     if (independentCanvasEnabled) {
+      let depthFormat: TextureFormat;
+      if (camera.renderTarget) {
+        depthFormat = camera.renderTarget._depthFormat;
+      } else if (rhi.context.depth && rhi.context.stencil) {
+        depthFormat = TextureFormat.Depth24Stencil8;
+      } else if (rhi.context.depth) {
+        depthFormat = TextureFormat.Depth24;
+      } else if (rhi.context.stencil) {
+        depthFormat = TextureFormat.Stencil;
+      } else {
+        depthFormat = null;
+      }
       const viewport = camera.pixelViewport;
       const internalColorTarget = PipelineUtils.recreateRenderTargetIfNeeded(
         engine,
@@ -129,7 +141,7 @@ export class BasicRenderPipeline {
         viewport.width,
         viewport.height,
         camera._getInternalColorTextureFormat(),
-        camera.renderTarget ? camera.renderTarget._depthFormat : TextureFormat.Depth24Stencil8,
+        depthFormat,
         false,
         false,
         msaaSamples,

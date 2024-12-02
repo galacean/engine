@@ -404,10 +404,38 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, srcFrameBuffer);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, destFrameBuffer);
 
-    const blitMask =
-      (needBlitColor ? gl.COLOR_BUFFER_BIT : 0) |
-      (needBlitDepth ? gl.DEPTH_BUFFER_BIT : 0) |
-      (needBlitStencil ? gl.STENCIL_BUFFER_BIT : 0);
+    let blitMask = needBlitColor ? gl.COLOR_BUFFER_BIT : 0;
+
+    if (needBlitDepth || needBlitStencil) {
+      // @ts-ignore
+      const depthFormat = destRT._depthFormat;
+
+      if (needBlitDepth) {
+        if (
+          depthFormat === TextureFormat.Depth ||
+          (depthFormat >= TextureFormat.DepthStencil && depthFormat <= TextureFormat.Depth32Stencil8)
+        ) {
+          blitMask |= gl.DEPTH_BUFFER_BIT;
+        } else {
+          Logger.warn(`Do not clear depth, or set depth format of target which is ${TextureFormat[depthFormat]} now.`);
+        }
+      }
+
+      if (needBlitStencil) {
+        if (
+          depthFormat === TextureFormat.Stencil ||
+          depthFormat === TextureFormat.DepthStencil ||
+          depthFormat >= TextureFormat.Depth24Stencil8 ||
+          depthFormat >= TextureFormat.Depth32Stencil8
+        ) {
+          blitMask |= gl.STENCIL_BUFFER_BIT;
+        } else {
+          Logger.warn(
+            `Do not clear stencil, or set stencil format of target which is ${TextureFormat[depthFormat]} now.`
+          );
+        }
+      }
+    }
 
     const xStart = viewport.x * srcWidth;
     const xEnd = xStart + blitWidth;
