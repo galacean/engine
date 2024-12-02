@@ -4,7 +4,6 @@ import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
 import { TextureUsage } from "./enums/TextureUsage";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
-import { RenderTarget } from "./RenderTarget";
 import { Texture } from "./Texture";
 
 /**
@@ -174,42 +173,6 @@ export class Texture2D extends Texture {
         out
       );
     }
-  }
-
-  /**
-   * Copy the specified area of the render target to the sub texture.
-   * @remarks
-   * If the render target has MSAA FBO, must be resolved before copying.
-   * @param renderTarget - The render target to copy from
-   * @param level - Texture mipmapping level
-   * @param xOffset - Specifying the horizontal offset within the texture image
-   * @param yOffset - Specifying the vertical offset within the texture image
-   * @param x - Specifying the x coordinate of the lower left corner where to start copying
-   * @param y - Specifying the x coordinate of the lower left corner where to start copying
-   * @param width - The width of the copy area
-   * @param height - The height of the copy area
-   */
-  copySubFromRenderTarget(
-    renderTarget: RenderTarget,
-    level: number,
-    xOffset: number,
-    yOffset: number,
-    x: number,
-    y: number,
-    width: number,
-    height: number
-  ) {
-    (this._platformTexture as IPlatformTexture2D).copySubFromRenderTarget(
-      renderTarget,
-      level,
-      xOffset,
-      yOffset,
-      x,
-      y,
-      width,
-      height
-    );
-    this._isContentLost = false;
   }
 
   /**

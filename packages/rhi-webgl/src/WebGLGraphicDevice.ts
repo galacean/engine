@@ -425,19 +425,31 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     gl.blitFramebuffer(xStart, yStart, xEnd, yEnd, 0, 0, blitWidth, blitHeight, blitMask, gl.NEAREST);
   }
 
-  copyRenderTargetToSubTexture(srcRT: RenderTarget, destRT: RenderTarget, grabTexture: Texture2D, viewport: Vector4) {
+  copyRenderTargetToSubTexture(srcRT: RenderTarget, grabTexture: Texture2D, viewport: Vector4) {
+    const gl = this._gl;
     const bufferWidth = this.getMainFrameBufferWidth();
     const bufferHeight = this.getMainFrameBufferHeight();
     const srcWidth = srcRT ? srcRT.width : bufferWidth;
     const srcHeight = srcRT ? srcRT.height : bufferHeight;
-    const copyWidth = destRT.width;
-    const copyHeight = destRT.height;
+    const copyWidth = grabTexture.width;
+    const copyHeight = grabTexture.height;
     const flipY = !srcRT;
 
     const xStart = viewport.x * srcWidth;
     const yStart = flipY ? srcHeight - viewport.y * srcHeight - copyHeight : viewport.y * srcHeight;
 
-    grabTexture.copySubFromRenderTarget(srcRT, 0, 0, 0, xStart, yStart, copyWidth, copyHeight);
+    // @ts-ignore
+    const frameBuffer = srcRT?._platformRenderTarget._frameBuffer ?? null;
+
+    // @ts-ignore
+    gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+
+    // @ts-ignore
+    const glTexture = grabTexture._platformTexture;
+
+    glTexture._bind();
+
+    gl.copyTexSubImage2D(glTexture._target, 0, 0, 0, xStart, yStart, copyWidth, copyHeight);
   }
 
   activeTexture(textureID: number): void {

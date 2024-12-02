@@ -1,6 +1,7 @@
 import { Vector2 } from "@galacean/engine-math";
 import { Background } from "../Background";
 import { Camera } from "../Camera";
+import { Logger } from "../base/Logger";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
@@ -46,6 +47,7 @@ export class BasicRenderPipeline {
   private _grabTexture: Texture2D;
   private _canUseBlitFrameBuffer = false;
   private _shouldGrabColor = false;
+  private _canJustCopyToInternalRT = false;
 
   /**
    * Create a basic render pipeline.
@@ -85,6 +87,7 @@ export class BasicRenderPipeline {
     const sunlight = scene._lightManager._sunlight;
     const depthOnlyPass = this._depthOnlyPass;
     const depthPassEnabled = camera.depthTextureMode === DepthTextureMode.PrePass && depthOnlyPass._supportDepthTexture;
+    const internalFormat = camera._getInternalColorTextureFormat();
     const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
     const independentCanvasEnabled = camera.independentCanvasEnabled;
     this._shouldGrabColor = independentCanvasEnabled && !(finalClearFlags & CameraClearFlags.Color);
@@ -93,6 +96,7 @@ export class BasicRenderPipeline {
     // 3. Can't blit screen FBO to normal FBO in some platform when antialias enabled
     this._canUseBlitFrameBuffer =
       rhi.isWebGL2 && camera.msaaSamples === 1 && (!!camera.renderTarget || !rhi.context.antialias);
+    this._canJustCopyToInternalRT = camera.renderTarget?.getColorTexture().format === internalFormat;
 
     if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
       this._cascadedShadowCasterPass.onRender(context);
@@ -126,7 +130,7 @@ export class BasicRenderPipeline {
         this._internalColorTarget,
         viewport.width,
         viewport.height,
-        camera._getInternalColorTextureFormat(),
+        internalFormat,
         TextureFormat.Depth24Stencil8,
         false,
         false,
@@ -135,7 +139,7 @@ export class BasicRenderPipeline {
         TextureFilterMode.Bilinear
       );
 
-      if (!this._canUseBlitFrameBuffer && this._shouldGrabColor) {
+      if (!this._canUseBlitFrameBuffer && this._shouldGrabColor && !this._canJustCopyToInternalRT) {
         const grabTexture = PipelineUtils.recreateTextureIfNeeded(
           engine,
           this._grabTexture,
@@ -210,25 +214,30 @@ export class BasicRenderPipeline {
         } else {
           if (this._shouldGrabColor) {
             rhi.clearRenderTarget(engine, CameraClearFlags.ColorDepth);
-            rhi.copyRenderTargetToSubTexture(
-              camera.renderTarget,
-              internalColorTarget,
-              this._grabTexture,
-              camera.viewport
-            );
-            PipelineUtils.blitTexture(
-              engine,
-              this._grabTexture,
-              internalColorTarget,
-              0,
-              undefined,
-              undefined,
-              undefined,
-              // Only flip Y axis in webgl context
-              !camera.renderTarget
-            );
+            if (this._canJustCopyToInternalRT) {
+              rhi.copyRenderTargetToSubTexture(
+                camera.renderTarget,
+                internalColorTarget.getColorTexture(),
+                camera.viewport
+              );
+            } else {
+              rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._grabTexture, camera.viewport);
+              PipelineUtils.blitTexture(
+                engine,
+                this._grabTexture,
+                internalColorTarget,
+                0,
+                undefined,
+                undefined,
+                undefined,
+                // Only flip Y axis in webgl context
+                !camera.renderTarget
+              );
+            }
           } else {
-            // Must clear all cause of the internal color target can't copy depth/stencil buffer from back buffer
+            Logger.warn(
+              "We clear all depth/stencil state cause of the internalRT can't copy depth/stencil buffer from back buffer when use copy plan"
+            );
             rhi.clearRenderTarget(engine, CameraClearFlags.All, color);
           }
         }
