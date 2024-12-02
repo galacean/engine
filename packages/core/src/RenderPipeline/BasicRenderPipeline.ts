@@ -47,7 +47,6 @@ export class BasicRenderPipeline {
   private _grabTexture: Texture2D;
   private _canUseBlitFrameBuffer = false;
   private _shouldGrabColor = false;
-  private _canJustCopyToInternalRT = false;
 
   /**
    * Create a basic render pipeline.
@@ -87,18 +86,15 @@ export class BasicRenderPipeline {
     const sunlight = scene._lightManager._sunlight;
     const depthOnlyPass = this._depthOnlyPass;
     const depthPassEnabled = camera.depthTextureMode === DepthTextureMode.PrePass && depthOnlyPass._supportDepthTexture;
-    const internalFormat = camera._getInternalColorTextureFormat();
     const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
     const independentCanvasEnabled = camera.independentCanvasEnabled;
+    const msaaSamples = camera.renderTarget ? camera.renderTarget.antiAliasing : camera.msaaSamples;
     this._shouldGrabColor = independentCanvasEnabled && !(finalClearFlags & CameraClearFlags.Color);
     // 1. Only support blitFramebuffer in webgl2 context
     // 2. Can't blit normal FBO to MSAA FBO
     // 3. Can't blit screen FBO to normal FBO in some platform when antialias enabled
     this._canUseBlitFrameBuffer =
-      rhi.isWebGL2 && camera.msaaSamples === 1 && (!!camera.renderTarget || !rhi.context.antialias);
-    // Can just copy RT's color buffer to internal RT's color buffer in normal FBO
-    this._canJustCopyToInternalRT =
-      camera.msaaSamples === 1 && camera.renderTarget?.getColorTexture().format === internalFormat;
+      rhi.isWebGL2 && msaaSamples === 1 && (!!camera.renderTarget || !rhi.context.antialias);
 
     if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
       this._cascadedShadowCasterPass.onRender(context);
@@ -132,16 +128,16 @@ export class BasicRenderPipeline {
         this._internalColorTarget,
         viewport.width,
         viewport.height,
-        internalFormat,
-        TextureFormat.Depth24Stencil8,
+        camera._getInternalColorTextureFormat(),
+        camera.renderTarget ? camera.renderTarget._depthFormat : TextureFormat.Depth24Stencil8,
         false,
         false,
-        camera.msaaSamples,
+        msaaSamples,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear
       );
 
-      if (!this._canUseBlitFrameBuffer && this._shouldGrabColor && !this._canJustCopyToInternalRT) {
+      if (!this._canUseBlitFrameBuffer && this._shouldGrabColor) {
         const grabTexture = PipelineUtils.recreateTextureIfNeeded(
           engine,
           this._grabTexture,
@@ -215,29 +211,20 @@ export class BasicRenderPipeline {
 
         if (this._shouldGrabColor) {
           rhi.clearRenderTarget(engine, CameraClearFlags.DepthStencil);
-          // Copy RT's color buffer to internal RT's color buffer
-          if (this._canJustCopyToInternalRT) {
-            rhi.copyRenderTargetToSubTexture(
-              camera.renderTarget,
-              internalColorTarget.getColorTexture(),
-              camera.viewport
-            );
-          } else {
-            // Copy RT's color buffer to grab texture
-            rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._grabTexture, camera.viewport);
-            // Then blit grab texture to internal RT's color buffer
-            PipelineUtils.blitTexture(
-              engine,
-              this._grabTexture,
-              internalColorTarget,
-              0,
-              undefined,
-              undefined,
-              undefined,
-              // Only flip Y axis in webgl context
-              !camera.renderTarget
-            );
-          }
+          // Copy RT's color buffer to grab texture
+          rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._grabTexture, camera.viewport);
+          // Then blit grab texture to internal RT's color buffer
+          PipelineUtils.blitTexture(
+            engine,
+            this._grabTexture,
+            internalColorTarget,
+            0,
+            undefined,
+            undefined,
+            undefined,
+            // Only flip Y axis in webgl context
+            !camera.renderTarget
+          );
         } else {
           rhi.clearRenderTarget(engine, CameraClearFlags.All, color);
         }

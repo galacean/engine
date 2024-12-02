@@ -404,18 +404,10 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, srcFrameBuffer);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, destFrameBuffer);
 
-    let blitMask = needBlitColor ? gl.COLOR_BUFFER_BIT : 0;
-
-    if (needBlitDepth || needBlitStencil) {
-      // @ts-ignore
-      const canBlitDepthStencil = !srcRT || srcRT._depthFormat === TextureFormat.Depth24Stencil8;
-      if (canBlitDepthStencil) {
-        blitMask |= needBlitDepth ? gl.DEPTH_BUFFER_BIT : 0;
-        blitMask |= needBlitStencil ? gl.STENCIL_BUFFER_BIT : 0;
-      } else {
-        Logger.error(`The Depth/Stencil format of Target must be "TextureFormat.Depth24Stencil8"`);
-      }
-    }
+    const blitMask =
+      (needBlitColor ? gl.COLOR_BUFFER_BIT : 0) |
+      (needBlitDepth ? gl.DEPTH_BUFFER_BIT : 0) |
+      (needBlitStencil ? gl.STENCIL_BUFFER_BIT : 0);
 
     const xStart = viewport.x * srcWidth;
     const xEnd = xStart + blitWidth;
