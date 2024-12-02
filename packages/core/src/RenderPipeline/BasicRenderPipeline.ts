@@ -215,6 +215,15 @@ export class BasicRenderPipeline {
             camera.viewport
           );
         } else {
+          const shouldGrabDepth = (finalClearFlags & CameraClearFlags.Depth) === 0;
+          const shouldGrabStencil = (finalClearFlags & CameraClearFlags.Stencil) === 0;
+
+          if (shouldGrabDepth || shouldGrabStencil) {
+            Logger.warn(
+              "We clear all depth/stencil state cause of the internalRT can't copy depth/stencil buffer from back buffer when use copy plan"
+            );
+          }
+
           if (this._shouldGrabColor) {
             rhi.clearRenderTarget(engine, CameraClearFlags.ColorDepth);
             // Copy RT's color buffer to internal RT's color buffer
@@ -241,9 +250,6 @@ export class BasicRenderPipeline {
               );
             }
           } else {
-            Logger.warn(
-              "We clear all depth/stencil state cause of the internalRT can't copy depth/stencil buffer from back buffer when use copy plan"
-            );
             rhi.clearRenderTarget(engine, CameraClearFlags.All, color);
           }
         }
