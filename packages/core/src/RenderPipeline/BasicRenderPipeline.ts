@@ -96,7 +96,9 @@ export class BasicRenderPipeline {
     // 3. Can't blit screen FBO to normal FBO in some platform when antialias enabled
     this._canUseBlitFrameBuffer =
       rhi.isWebGL2 && camera.msaaSamples === 1 && (!!camera.renderTarget || !rhi.context.antialias);
-    this._canJustCopyToInternalRT = camera.renderTarget?.getColorTexture().format === internalFormat;
+    // Can just copy RT's color buffer to internal RT's color buffer in normal FBO
+    this._canJustCopyToInternalRT =
+      camera.msaaSamples === 1 && camera.renderTarget?.getColorTexture().format === internalFormat;
 
     if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
       this._cascadedShadowCasterPass.onRender(context);
@@ -203,6 +205,7 @@ export class BasicRenderPipeline {
       if (finalClearFlags === CameraClearFlags.All) {
         rhi.clearRenderTarget(engine, CameraClearFlags.All, color);
       } else {
+        // Can use `blitFramebuffer` API to copy color/depth/stencil buffer from back buffer to internal RT
         if (this._canUseBlitFrameBuffer) {
           finalClearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(engine, finalClearFlags, color);
           rhi.blitInternalRTByBlitFrameBuffer(
@@ -214,6 +217,7 @@ export class BasicRenderPipeline {
         } else {
           if (this._shouldGrabColor) {
             rhi.clearRenderTarget(engine, CameraClearFlags.ColorDepth);
+            // Copy RT's color buffer to internal RT's color buffer
             if (this._canJustCopyToInternalRT) {
               rhi.copyRenderTargetToSubTexture(
                 camera.renderTarget,
@@ -221,7 +225,9 @@ export class BasicRenderPipeline {
                 camera.viewport
               );
             } else {
+              // Copy RT's color buffer to grab texture
               rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._grabTexture, camera.viewport);
+              // Then blit grab texture to internal RT's color buffer
               PipelineUtils.blitTexture(
                 engine,
                 this._grabTexture,
