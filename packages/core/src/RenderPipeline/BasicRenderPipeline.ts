@@ -141,7 +141,7 @@ export class BasicRenderPipeline {
           this._grabTexture,
           viewport.width,
           viewport.height,
-          TextureFormat.R8G8B8A8,
+          camera.renderTarget?.getColorTexture(0).format ?? TextureFormat.R8G8B8A8,
           false,
           TextureWrapMode.Clamp,
           TextureFilterMode.Bilinear
