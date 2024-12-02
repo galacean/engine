@@ -92,7 +92,7 @@ export class BasicRenderPipeline {
     this._shouldGrabColor = independentCanvasEnabled && !(finalClearFlags & CameraClearFlags.Color);
     // 1. Only support blitFramebuffer in webgl2 context
     // 2. Can't blit normal FBO to MSAA FBO
-    // 3. Can't blit screen FBO to normal FBO in some platform when antialias enabled
+    // 3. Can't blit screen MSAA FBO to normal FBO in mac safari platform and mobile, but mac chrome and firfox is OK
     this._canUseBlitFrameBuffer =
       rhi.isWebGL2 && msaaSamples === 1 && (!!camera.renderTarget || !rhi.context.antialias);
 
