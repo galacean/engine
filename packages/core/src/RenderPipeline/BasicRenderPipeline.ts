@@ -207,17 +207,14 @@ export class BasicRenderPipeline {
         finalClearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(engine, finalClearFlags, color);
         rhi.blitInternalRTByBlitFrameBuffer(camera.renderTarget, internalColorTarget, finalClearFlags, camera.viewport);
       } else {
-        const shouldGrabDepth = (finalClearFlags & CameraClearFlags.Depth) === 0;
-        const shouldGrabStencil = (finalClearFlags & CameraClearFlags.Stencil) === 0;
-
-        if (shouldGrabDepth || shouldGrabStencil) {
+        if (!(finalClearFlags & CameraClearFlags.Depth) || !(finalClearFlags & CameraClearFlags.Stencil)) {
           Logger.warn(
             "We clear all depth/stencil state cause of the internalRT can't copy depth/stencil buffer from back buffer when use copy plan"
           );
         }
 
         if (this._shouldGrabColor) {
-          rhi.clearRenderTarget(engine, CameraClearFlags.ColorDepth);
+          rhi.clearRenderTarget(engine, CameraClearFlags.DepthStencil);
           // Copy RT's color buffer to internal RT's color buffer
           if (this._canJustCopyToInternalRT) {
             rhi.copyRenderTargetToSubTexture(
