@@ -19,7 +19,8 @@ class AudioLoader extends Loader<AudioClip> {
         type: "arraybuffer"
       };
 
-      this.request<ArrayBuffer>(url, requestConfig).then((arrayBuffer) => {
+      // @ts-ignore
+      resourceManager._request<ArrayBuffer>(url, requestConfig).then((arrayBuffer) => {
         const audioClip = new AudioClip(resourceManager.engine);
         // @ts-ignore
         audioClip._context
