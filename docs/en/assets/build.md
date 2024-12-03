@@ -89,7 +89,3 @@ Then visit the corresponding address:
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Z4X6TKcFDaIAAAAAAAAAAAAADhuCAQ/original" alt="image-20231008163057689" style="zoom:50%;" />
 
 > The exported project is a vite project. For more deployment solutions, refer to [vite official website](https://vitejs.dev/guide/)
-
-## Mini Program Project
-
-Please refer to [Mini Program Project](/en/docs/miniProgram/miniProgame/)

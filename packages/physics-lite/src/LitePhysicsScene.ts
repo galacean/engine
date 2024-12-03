@@ -57,48 +57,29 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.addColliderShape }
-   */
-  addColliderShape(colliderShape: LiteColliderShape): void {
-    this._eventMap[colliderShape._id] = {};
-  }
-
-  /**
-   * {@inheritDoc IPhysicsManager.removeColliderShape }
-   */
-  removeColliderShape(colliderShape: LiteColliderShape): void {
-    const { _eventPool: eventPool, _currentEvents: currentEvents, _eventMap: eventMap } = this;
-    const { _id: id } = colliderShape;
-    currentEvents.forEach((event, i) => {
-      if (event.index1 == id) {
-        currentEvents.deleteByIndex(i);
-        eventPool.push(event);
-      } else if (event.index2 == id) {
-        currentEvents.deleteByIndex(i);
-        eventPool.push(event);
-        // If the shape is big index, should clear from the small index shape subMap
-        eventMap[event.index1][id] = undefined;
-      }
-    });
-    delete eventMap[id];
-  }
-
-  /**
    * {@inheritDoc IPhysicsManager.addCollider }
    */
   addCollider(actor: LiteCollider): void {
+    actor._scene = this;
     const colliders = actor._isStaticCollider ? this._staticColliders : this._dynamicColliders;
     colliders.push(actor);
+    const shapes = actor._shapes;
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      this._addColliderShape(shapes[i]);
+    }
   }
 
   /**
    * {@inheritDoc IPhysicsManager.removeCollider }
    */
   removeCollider(collider: LiteCollider): void {
+    collider._scene = null;
     const colliders = collider._isStaticCollider ? this._staticColliders : this._dynamicColliders;
     const index = colliders.indexOf(collider);
-    if (index !== -1) {
-      colliders.splice(index, 1);
+    index > -1 && colliders.splice(index, 1);
+    const shapes = collider._shapes;
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      this._removeColliderShape(shapes[i]);
     }
   }
 
@@ -164,6 +145,33 @@ export class LitePhysicsScene implements IPhysicsScene {
    */
   removeCharacterController(characterController: ICharacterController): void {
     throw "Physics-lite don't support removeCharacterController. Use Physics-PhysX instead!";
+  }
+
+  /**
+   * @internal
+   */
+  _addColliderShape(colliderShape: LiteColliderShape): void {
+    this._eventMap[colliderShape._id] = {};
+  }
+
+  /**
+   * @internal
+   */
+  _removeColliderShape(colliderShape: LiteColliderShape): void {
+    const { _eventPool: eventPool, _currentEvents: currentEvents, _eventMap: eventMap } = this;
+    const { _id: id } = colliderShape;
+    currentEvents.forEach((event, i) => {
+      if (event.index1 == id) {
+        currentEvents.deleteByIndex(i);
+        eventPool.push(event);
+      } else if (event.index2 == id) {
+        currentEvents.deleteByIndex(i);
+        eventPool.push(event);
+        // If the shape is big index, should clear from the small index shape subMap
+        eventMap[event.index1][id] = undefined;
+      }
+    });
+    delete eventMap[id];
   }
 
   /**
