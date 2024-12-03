@@ -1,6 +1,6 @@
 /**
  * @internal
- * Audio Manager
+ * Audio Manager.
  */
 export class AudioManager {
   private static _context: AudioContext;

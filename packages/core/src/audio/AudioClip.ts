@@ -3,16 +3,15 @@ import { ReferResource } from "../asset/ReferResource";
 import { AudioManager } from "./AudioManager";
 
 /**
- * Audio Clip
+ * Audio Clip.
  */
 export class AudioClip extends ReferResource {
   /** @internal */
   _context: AudioContext;
+
   private _audioBuffer: AudioBuffer | null = null;
 
-  /**
-   * Name of clip.
-   */
+  /** Name of clip. */
   name: string;
 
   /**
@@ -36,6 +35,12 @@ export class AudioClip extends ReferResource {
     return this._audioBuffer.duration;
   }
 
+  constructor(engine: Engine, name: string = "") {
+    super(engine);
+    this.name = name;
+    this._context = AudioManager.context;
+  }
+
   /**
    * Get the clip's audio buffer.
    */
@@ -48,12 +53,6 @@ export class AudioClip extends ReferResource {
    */
   setAudioSource(value: AudioBuffer): void {
     this._audioBuffer = value;
-  }
-
-  constructor(engine: Engine, name: string = "") {
-    super(engine);
-    this.name = name;
-    this._context = AudioManager.context;
   }
 
   /**

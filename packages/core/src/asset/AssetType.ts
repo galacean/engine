@@ -61,6 +61,4 @@ export enum AssetType {
   Audio = "Audio",
   /** Project asset. */
   Project = "project"
-}
-
-
+}ƒ

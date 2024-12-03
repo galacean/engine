@@ -1,11 +1,11 @@
+import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { AudioClip } from "./AudioClip";
 import { AudioManager } from "./AudioManager";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
 
 /**
- * Audio Source Component
+ * Audio Source Component.
  */
 export class AudioSource extends Component {
   @ignoreClone
@@ -36,7 +36,7 @@ export class AudioSource extends Component {
   playOnEnabled: boolean = true;
 
   /**
-   * The audio cilp to play.
+   * The audio clip to play.
    */
   get clip(): AudioClip {
     return this._clip;
@@ -136,6 +136,15 @@ export class AudioSource extends Component {
     }
   }
 
+  /** @internal */
+  constructor(entity: Entity) {
+    super(entity);
+    this._onPlayEnd = this._onPlayEnd.bind(this);
+
+    this._gainNode = AudioManager.context.createGain();
+    this._gainNode.connect(AudioManager.gainNode);
+  }
+
   /**
    * Plays the clip.
    */
@@ -172,15 +181,6 @@ export class AudioSource extends Component {
       this._isPlaying = false;
       this._pausedTime = this.time;
     }
-  }
-
-  /** @internal */
-  constructor(entity: Entity) {
-    super(entity);
-    this._onPlayEnd = this._onPlayEnd.bind(this);
-
-    this._gainNode = AudioManager.context.createGain();
-    this._gainNode.connect(AudioManager.gainNode);
   }
 
   /**
