@@ -106,11 +106,21 @@ export class RenderQueue {
           continue;
         }
 
+
+        let renderState = shaderPass._renderState;
         if (!needMaskType) {
-          if ((shaderPass._renderState ?? renderStates[j]).renderQueueType !== renderQueueType) {
-            continue;
-          }
+        let passQueueType: RenderQueueType;
+        if (renderState) {
+          passQueueType = renderState._getRenderQueueByShaderData(shaderPass._renderStateDataMap, materialData);
+        } else {
+          renderState = renderStates[j];
+          passQueueType = renderState.renderQueueType;
         }
+
+        if (passQueueType !== renderQueueType) {
+          continue;
+        }
+      }
 
         const program = shaderPass._getShaderProgram(engine, compileMacros);
         if (!program.isValid) {
@@ -171,7 +181,6 @@ export class RenderQueue {
           }
         }
 
-        const renderState = shaderPass._renderState ?? renderStates[j];
         renderState._applyStates(
           engine,
           renderer.entity.transform._isFrontFaceInvert(),

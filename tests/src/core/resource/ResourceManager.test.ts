@@ -1,7 +1,7 @@
-import { ResourceManager, Texture2D } from "@galacean/engine-core";
+import { AssetType, ResourceManager, Texture2D } from "@galacean/engine-core";
 import "@galacean/engine-loader";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { vi, describe, beforeAll, beforeEach, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 describe("ResourceManager", () => {
   let engine: WebGLEngine;
@@ -74,5 +74,18 @@ describe("ResourceManager", () => {
       engine.resourceManager.load("/mock.glb?q=materials[0]");
       expect(loaderSpy).toHaveBeenCalled();
     });
+  });
+
+  describe("gltf subAsset load", () => {
+    it("invalid q case", async () => {
+      const loadRes = await engine.resourceManager.load({
+        // contains invalid q value cdn url.
+        url: "https://mdn.alipayobjects.com/huamei_aftkdx/afts/file/A*_Ao1QZtL9fMAAAAAAAAAAAAADteEAQ/mock-project.json",
+        type: AssetType.Project
+      });
+      expect(loadRes).to.equal(undefined);
+    });
+
+    // TODO: case for gltf loader load invalid q url, expect to throw
   });
 });

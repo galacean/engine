@@ -59,10 +59,15 @@ export class RenderState {
    * @internal
    * @todo Should merge when we can delete material render state
    */
-  _applyRenderQueueByShaderData(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
+  _getRenderQueueByShaderData(
+    renderStateDataMap: Record<number, ShaderProperty>,
+    shaderData: ShaderData
+  ): RenderQueueType {
     const renderQueueType = renderStateDataMap[RenderStateElementKey.RenderQueueType];
-    if (renderQueueType !== undefined) {
-      this.renderQueueType = shaderData.getFloat(renderQueueType) ?? RenderQueueType.Opaque;
+    if (renderQueueType === undefined) {
+      return this.renderQueueType;
+    } else {
+      return shaderData.getFloat(renderQueueType) ?? RenderQueueType.Opaque;
     }
   }
 

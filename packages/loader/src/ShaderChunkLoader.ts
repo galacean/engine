@@ -12,7 +12,7 @@ import {
 
 @resourceLoader("ShaderChunk", ["glsl"])
 export class ShaderChunkLoader extends Loader<void[]> {
-  private static _shaderIncludeRegex = /\s#include\s+"([./][^\\"]+)"/gm;
+  private static _shaderIncludeRegex = /#include\s+"([./][^\\"]+)"/gm;
 
   /**
    * @internal
