@@ -1,6 +1,6 @@
 import { AssetType, AudioClip, AudioSource, Engine } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
+import { expect, describe, it } from "vitest";
 import { sound } from "../model/sound";
 
 describe("AudioSource", () => {
