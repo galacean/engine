@@ -1,14 +1,18 @@
 import { Camera } from "./Camera";
 import { Component } from "./Component";
-import { DisorderedArray } from "./DisorderedArray";
 import { Renderer } from "./Renderer";
 import { Script } from "./Script";
 import { Animator } from "./animation";
+import { DisorderedArray } from "./utils/DisorderedArray";
 
 /**
  * The manager of the components.
  */
 export class ComponentsManager {
+  /* @internal */
+  _cameraNeedSorting: boolean = false;
+  /** @internal */
+  _activeCameras: DisorderedArray<Camera> = new DisorderedArray();
   /** @internal */
   _renderers: DisorderedArray<Renderer> = new DisorderedArray();
 
@@ -29,6 +33,30 @@ export class ComponentsManager {
 
   // Delay dispose active/inActive Pool
   private _componentsContainerPool: Component[][] = [];
+
+  addCamera(camera: Camera) {
+    camera._cameraIndex = this._activeCameras.length;
+    this._activeCameras.add(camera);
+    this._cameraNeedSorting = true;
+  }
+
+  removeCamera(camera: Camera) {
+    const replaced = this._activeCameras.deleteByIndex(camera._cameraIndex);
+    replaced && (replaced._cameraIndex = camera._cameraIndex);
+    camera._cameraIndex = -1;
+    this._cameraNeedSorting = true;
+  }
+
+  sortCameras(): void {
+    if (this._cameraNeedSorting) {
+      const activeCameras = this._activeCameras;
+      activeCameras.sort((a, b) => a.priority - b.priority);
+      for (let i = 0, n = activeCameras.length; i < n; i++) {
+        activeCameras.get(i)._cameraIndex = i;
+      }
+      this._cameraNeedSorting = false;
+    }
+  }
 
   addRenderer(renderer: Renderer) {
     renderer._rendererIndex = this._renderers.length;
@@ -115,11 +143,16 @@ export class ComponentsManager {
     const onStartScripts = this._onStartScripts;
     if (onStartScripts.length > 0) {
       // The 'onStartScripts.length' maybe add if you add some Script with addComponent() in some Script's onStart()
-      onStartScripts.forEachAndClean((script: Script) => {
-        script._started = true;
-        this.removeOnStartScript(script);
-        script.onStart();
-      });
+      onStartScripts.forEachAndClean(
+        (script: Script) => {
+          script._started = true;
+          this.removeOnStartScript(script);
+          script.onStart();
+        },
+        (element: Script, index: number) => {
+          element._onStartIndex = index;
+        }
+      );
     }
   }
 
@@ -159,7 +192,7 @@ export class ComponentsManager {
   callAnimationUpdate(deltaTime: number): void {
     this._onUpdateAnimations.forEach(
       (element: Animator) => {
-        element.engine.time.frameCount > element._playFrameCount && element.update(deltaTime);
+        element.update(deltaTime);
       },
       (element: Animator, index: number) => {
         element._onUpdateIndex = index;
@@ -233,5 +266,6 @@ export class ComponentsManager {
     this._onPhysicsUpdateScripts.garbageCollection();
     this._onUpdateAnimations.garbageCollection();
     this._onUpdateRenderers.garbageCollection();
+    this._activeCameras.garbageCollection();
   }
 }

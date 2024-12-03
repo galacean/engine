@@ -1,6 +1,9 @@
-import { Texture2D } from "@galacean/engine-core";
+import { AssetPromise, AssetType, ResourceManager, Texture2D } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
+import chai, { expect } from "chai";
+import spies from "chai-spies";
+
+chai.use(spies);
 
 describe("ResourceManager", () => {
   let engine: WebGLEngine;
@@ -34,5 +37,61 @@ describe("ResourceManager", () => {
       const textures = engine.resourceManager.findResourcesByType(Texture2D);
       expect(textures.length).equal(4);
     });
+  });
+
+  describe("queryPath", () => {
+    it("no encode", () => {
+      // @ts-ignore
+      const { assetBaseURL } = engine.resourceManager._parseURL(
+        "https://cdn.ali.com/inner.jpg?x-oss-process=image/resize,l_1024"
+      );
+      expect(assetBaseURL).equal("https://cdn.ali.com/inner.jpg?x-oss-process=image/resize,l_1024");
+    });
+
+    it("encode", () => {
+      // @ts-ignore
+      const { assetBaseURL } = engine.resourceManager._parseURL(
+        "https://cdn.ali.com/inner.jpg?x-oss-process=image%25resize,l_1024"
+      );
+      expect(assetBaseURL).equal("https://cdn.ali.com/inner.jpg?x-oss-process=image%25resize,l_1024");
+    });
+
+    it("query path", () => {
+      // @ts-ignore
+      const { assetBaseURL, queryPath } = engine.resourceManager._parseURL("https://cdn.ali.com/inner.jpg?q=abc");
+      expect(assetBaseURL).equal("https://cdn.ali.com/inner.jpg");
+      expect(queryPath).equal("abc");
+    });
+  });
+
+  describe("load subAsset", () => {
+    it("no repeat network query", () => {
+      // @ts-ignore
+      const glTFLoader = ResourceManager._loaders["GLTF"];
+
+      const loaderSpy = chai.spy.on(glTFLoader, "load", () => {
+        return new AssetPromise(() => {});
+      });
+
+      engine.resourceManager.load("/mock.glb");
+      engine.resourceManager.load("/mock.glb");
+      engine.resourceManager.load("/mock.glb?q=materials[0]");
+      expect(loaderSpy).to.have.been.called.once;
+
+      chai.spy.restore(glTFLoader, "load");
+    });
+  });
+
+  describe("gltf subAsset load", () => {
+    it("invalid q case", async () => {
+      const loadRes = await engine.resourceManager.load({
+        // contains invalid q value cdn url.
+        url: "https://mdn.alipayobjects.com/huamei_aftkdx/afts/file/A*_Ao1QZtL9fMAAAAAAAAAAAAADteEAQ/mock-project.json",
+        type: AssetType.Project
+      });
+      expect(loadRes).to.equal(undefined);
+    });
+
+    // TODO: case for gltf loader load invalid q url, expect to throw
   });
 });

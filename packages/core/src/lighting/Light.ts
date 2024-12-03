@@ -1,4 +1,4 @@
-import { Color, Matrix } from "@galacean/engine-math";
+import { Color, MathUtil, Matrix } from "@galacean/engine-math";
 import { Component } from "../Component";
 import { Layer } from "../Layer";
 import { ignoreClone } from "../clone/CloneManager";
@@ -9,33 +9,42 @@ import { ShadowType } from "../shadow";
  */
 export abstract class Light extends Component {
   /** Light Intensity */
-  intensity: number = 1;
+  intensity = 1;
 
   /**
    * Culling mask - which layers the light affect.
    * @remarks Support bit manipulation, corresponding to `Layer`.
    */
-  cullingMask: Layer = Layer.Everything;
+  cullingMask = Layer.Everything;
 
   /** How this light casts shadows. */
-  shadowType: ShadowType = ShadowType.None;
+  shadowType = ShadowType.None;
   /** Shadow bias.*/
-  shadowBias: number = 1;
+  shadowBias = 1;
   /** Shadow mapping normal-based bias. */
-  shadowNormalBias: number = 1;
+  shadowNormalBias = 1;
   /** Near plane value to use for shadow frustums. */
-  shadowNearPlane: number = 0.1;
-  /** Shadow intensity, the larger the value, the clearer and darker the shadow. */
-  shadowStrength: number = 1.0;
+  shadowNearPlane = 0.1;
 
   /** @internal */
   @ignoreClone
-  _lightIndex: number = -1;
+  _lightIndex = -1;
+  /** @internal */
+  _lightColor = new Color();
 
-  private _color: Color = new Color(1, 1, 1, 1);
+  private _shadowStrength = 1.0;
+  private _color = new Color(1, 1, 1, 1);
   private _viewMat: Matrix;
   private _inverseViewMat: Matrix;
-  private _lightColor: Color = new Color();
+
+  /** Shadow intensity, the larger the value, the clearer and darker the shadow, range [0,1]. */
+  get shadowStrength(): number {
+    return this._shadowStrength;
+  }
+
+  set shadowStrength(value: number) {
+    this._shadowStrength = MathUtil.clamp(value, 0, 1);
+  }
 
   /**
    * Light Color.

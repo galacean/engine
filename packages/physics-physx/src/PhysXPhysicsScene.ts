@@ -1,6 +1,5 @@
-import { Ray, Vector3 } from "@galacean/engine";
+import { Ray, Vector3, DisorderedArray } from "@galacean/engine";
 import { IPhysicsScene } from "@galacean/engine-design";
-import { DisorderedArray } from "./DisorderedArray";
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXCollider } from "./PhysXCollider";
 import { PhysXPhysics } from "./PhysXPhysics";
@@ -116,15 +115,20 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    */
   removeColliderShape(colliderShape: PhysXColliderShape) {
     const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    const { _id: shapeID } = colliderShape;
-    for (let i = currentEvents.length - 1; i >= 0; i--) {
-      const event = currentEvents.get(i);
-      if (event.index1 == shapeID || event.index2 == shapeID) {
+    const { _id: id } = colliderShape;
+    const { _eventMap: eventMap } = this._physXManager;
+    currentEvents.forEach((event, i) => {
+      if (event.index1 == id) {
         currentEvents.deleteByIndex(i);
         eventPool.push(event);
+      } else if (event.index2 == id) {
+        currentEvents.deleteByIndex(i);
+        eventPool.push(event);
+        // If the shape is big index, should clear from the small index shape subMap
+        eventMap[event.index1][id] = undefined;
       }
-    }
-    delete this._physXManager._eventMap[shapeID];
+    });
+    delete eventMap[id];
   }
 
   /**
@@ -252,19 +256,18 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
   private _fireEvent(): void {
     const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    for (let i = currentEvents.length - 1; i >= 0; i--) {
-      const event = currentEvents.get(i);
+    currentEvents.forEach((event, i) => {
       if (event.state == TriggerEventState.Enter) {
         this._onTriggerEnter(event.index1, event.index2);
         event.state = TriggerEventState.Stay;
       } else if (event.state == TriggerEventState.Stay) {
         this._onTriggerStay(event.index1, event.index2);
       } else if (event.state == TriggerEventState.Exit) {
-        this._onTriggerExit(event.index1, event.index2);
         currentEvents.deleteByIndex(i);
+        this._onTriggerExit(event.index1, event.index2);
         eventPool.push(event);
       }
-    }
+    });
   }
 }
 

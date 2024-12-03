@@ -1,0 +1,21 @@
+void Gerstner() {
+    // #ifdef CALCULATE_NORMALS
+    nrml += GerstnerNormal4( position, amplitude, frequency, speed, directionAB, directionCD, normalStr );
+    // #endif
+  }
+
+
+
+// #include "ShadowCoord"
+
+
+
+
+vec4 a = vec4(1.0 ,1.0,3.0,4.0);
+
+
+
+
+float a = 1.0;
+float b = 2.0;
+((a) < ( b) ? (1.0 ) : ( b));

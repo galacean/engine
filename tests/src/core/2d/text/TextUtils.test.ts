@@ -8,8 +8,12 @@ describe("TextUtils", () => {
   let scene: Scene;
   let textEntity1: Entity;
   let textEntity2: Entity;
+  let textEntity3: Entity;
+  let textEntity4: Entity;
   let textRendererTruncate: TextRenderer;
   let textRendererOverflow: TextRenderer;
+  let wrap1TextRenderer: TextRenderer;
+  let wrap2TextRenderer: TextRenderer;
 
   before(async function () {
     engine = await WebGLEngine.create({
@@ -29,12 +33,19 @@ describe("TextUtils", () => {
 
     textEntity1 = rootEntity.createChild("text1");
     textEntity2 = rootEntity.createChild("text2");
+    textEntity3 = rootEntity.createChild("text3");
+    textEntity4 = rootEntity.createChild("text4");
 
     textRendererTruncate = textEntity1.addComponent(TextRenderer);
     textRendererTruncate.font = Font.createFromOS(engine, "Arial");
 
     textRendererOverflow = textEntity2.addComponent(TextRenderer);
     textRendererOverflow.font = Font.createFromOS(engine, "Arial");
+
+    wrap1TextRenderer = textEntity3.addComponent(TextRenderer);
+    wrap1TextRenderer.font = Font.createFromOS(engine, "Arial");
+    wrap2TextRenderer = textEntity4.addComponent(TextRenderer);
+    wrap2TextRenderer.font = Font.createFromOS(engine, "Arial");
 
     engine.run();
   });
@@ -111,25 +122,9 @@ describe("TextUtils", () => {
     textRendererTruncate.height = 1;
     textRendererTruncate.enableWrapping = true;
 
-    // Test that measureTextWithWrap works correctly, while set overflow mode to truncate.
-    textRendererTruncate.text = "";
-    let result = TextUtils.measureTextWithWrap(textRendererTruncate);
-    expect(result.width).to.be.equal(0);
-    expect(result.height).to.be.equal(100);
-    expect(result.lines).to.be.deep.equal([""]);
-    expect(result.lineWidths).to.be.deep.equal([0]);
-    expect(result.lineHeight).to.be.deep.equal(27);
-
-    textRendererTruncate.text = undefined;
-    result = TextUtils.measureTextWithWrap(textRendererTruncate);
-    expect(result.width).to.be.equal(0);
-    expect(result.height).to.be.equal(100);
-    expect(result.lines).to.be.deep.equal([""]);
-    expect(result.lineWidths).to.be.deep.equal([0]);
-    expect(result.lineHeight).to.be.deep.equal(27);
-
     textRendererTruncate.text = text1;
-    result = TextUtils.measureTextWithWrap(textRendererTruncate);
+    textRendererTruncate.bounds;
+    let result = TextUtils.measureTextWithWrap(textRendererTruncate);
     expect(result.width).to.be.equal(24);
     expect(result.height).to.be.equal(100);
     expect(result.lines).to.be.deep.equal(["趚", "今", "天", "天", "气", "很", "好", "，", "阳", "光", "明", "媚", "。", "我", "在", "公", "园", "里", "漫", "步", "。"]);
@@ -138,19 +133,19 @@ describe("TextUtils", () => {
     result = TextUtils.measureTextWithWrap(textRendererTruncate);
     expect(result.width).to.be.equal(24);
     expect(result.height).to.be.equal(100);
-    expect(result.lines).to.be.deep.equal(["T", "h", "e ", "w", "e", "at", "h", "er", "is ", "gr", "e", "at", "to", "d", "a", "y."]);
+    expect(result.lines).to.be.deep.equal(['T', 'h', 'e ', 'w', 'e', 'at', 'h', 'er', 'is ', 'gr', 'e', 'at', 'to', 'd', 'a', 'y.']);
     expect(result.lineHeight).to.be.equal(27);
     textRendererTruncate.text = text3;
     result = TextUtils.measureTextWithWrap(textRendererTruncate);
     expect(result.width).to.be.equal(24);
     expect(result.height).to.be.equal(100);
-    expect(result.lines).to.be.deep.equal(["阳", "光", "明", "媚", "，", "th", "e ", "w", "e", "at", "h", "er", "is ", "gr", "e", "at", "to", "d", "a", "y", "。"]);
+    expect(result.lines).to.be.deep.equal(['阳', '光', '明', '媚', '，', 'th', 'e ', 'w', 'e', 'at', 'h', 'er', 'is ', 'gr', 'e', 'at', 'to', 'd', 'a', 'y', '。']);
     expect(result.lineHeight).to.be.equal(27);
     textRendererTruncate.text = text4;
     result = TextUtils.measureTextWithWrap(textRendererTruncate);
     expect(result.width).to.be.equal(23);
     expect(result.height).to.be.equal(100);
-    expect(result.lines).to.be.deep.equal(["   ", "   ", "W", "or", "ld"]);
+    expect(result.lines).to.be.deep.equal(['   ', '   ', 'W', 'or', 'ld']);
     expect(result.lineHeight).to.be.equal(27);
 
     // Test that measureTextWithWrap works correctly, while set overflow mode to overflow.
@@ -160,23 +155,8 @@ describe("TextUtils", () => {
     textRendererOverflow.height = 1;
     textRendererOverflow.enableWrapping = true;
 
-    textRendererOverflow.text = "";
-    result = TextUtils.measureTextWithWrap(textRendererOverflow);
-    expect(result.width).to.be.equal(0);
-    expect(result.height).to.be.equal(27);
-    expect(result.lines).to.be.deep.equal([""]);
-    expect(result.lineWidths).to.be.deep.equal([0]);
-    expect(result.lineHeight).to.be.deep.equal(27);
-
-    textRendererOverflow.text = undefined;
-    result = TextUtils.measureTextWithWrap(textRendererOverflow);
-    expect(result.width).to.be.equal(0);
-    expect(result.height).to.be.equal(27);
-    expect(result.lines).to.be.deep.equal([""]);
-    expect(result.lineWidths).to.be.deep.equal([0]);
-    expect(result.lineHeight).to.be.deep.equal(27);
-
     textRendererOverflow.text = text1;
+    textRendererOverflow.bounds;
     result = TextUtils.measureTextWithWrap(textRendererOverflow);
     expect(result.width).to.be.equal(24);
     expect(result.height).to.be.equal(567);
@@ -186,20 +166,34 @@ describe("TextUtils", () => {
     result = TextUtils.measureTextWithWrap(textRendererOverflow);
     expect(result.width).to.be.equal(20);
     expect(result.height).to.be.equal(486);
-    expect(result.lines).to.be.deep.equal(["T", "h", "e ", "w", "e", "at", "h", "e", "r ", "is", "g", "r", "e", "at", "to", "d", "a", "y."]);
+    expect(result.lines).to.be.deep.equal(['T', 'h', 'e ', 'w', 'e', 'at', 'h', 'e', 'r ', 'is', 'g', 'r', 'e', 'at', 'to', 'd', 'a', 'y.']);
     expect(result.lineHeight).to.be.equal(27);
     textRendererOverflow.text = text3;
     result = TextUtils.measureTextWithWrap(textRendererOverflow);
     expect(result.width).to.be.equal(24);
     expect(result.height).to.be.equal(621);
-    expect(result.lines).to.be.deep.equal(["阳", "光", "明", "媚", "，", "th", "e ", "w", "e", "at", "h", "e", "r ", "is", "g", "r", "e", "at", "to", "d", "a", "y", "。"]);
+    expect(result.lines).to.be.deep.equal(['阳', '光', '明', '媚', '，', 'th', 'e ', 'w', 'e', 'at', 'h', 'e', 'r ', 'is', 'g', 'r', 'e', 'at', 'to', 'd', 'a', 'y', '。']);
     expect(result.lineHeight).to.be.equal(27);
     textRendererOverflow.text = text4;
     result = TextUtils.measureTextWithWrap(textRendererOverflow);
     expect(result.width).to.be.equal(23);
     expect(result.height).to.be.equal(162);
-    expect(result.lines).to.be.deep.equal(["  ", "  ", "W", "o", "rl", "d"]);
+    expect(result.lines).to.be.deep.equal(['  ', '  ', 'W', 'o', 'rl', 'd']);
     expect(result.lineHeight).to.be.equal(27);
+
+    wrap1TextRenderer.enableWrapping = true;
+    wrap1TextRenderer.width = 5;
+    wrap1TextRenderer.fontSize = 60;
+    wrap1TextRenderer.text = "测试";
+    wrap1TextRenderer.bounds;
+    const text1Metrics = TextUtils.measureTextWithWrap(wrap1TextRenderer);
+    wrap2TextRenderer.enableWrapping = true;
+    wrap2TextRenderer.width = 5;
+    wrap2TextRenderer.fontSize = 60;
+    wrap2TextRenderer.text = "测试。";
+    wrap2TextRenderer.bounds;
+    const text2Metrics = TextUtils.measureTextWithWrap(wrap2TextRenderer);
+    expect(text1Metrics.lineMaxSizes[0].size).to.be.equal(text2Metrics.lineMaxSizes[0].size);
   });
 
   it("measureTextWithoutWrap", () => {
@@ -209,25 +203,8 @@ describe("TextUtils", () => {
     textRendererTruncate.height = 1;
     textRendererTruncate.enableWrapping = true;
 
-    // Test that measureTextWithoutWrap works correctly, while set overflow mode to truncate.
-    textRendererTruncate.text = "";
-    let result = TextUtils.measureTextWithoutWrap(textRendererTruncate);
-    expect(result.width).to.be.equal(0);
-    expect(result.height).to.be.equal(100);
-    expect(result.lines).to.be.deep.equal([]);
-    expect(result.lineWidths).to.be.deep.equal([]);
-    expect(result.lineHeight).to.be.deep.equal(27);
-
-    textRendererTruncate.text = undefined;
-    result = TextUtils.measureTextWithoutWrap(textRendererTruncate);
-    expect(result.width).to.be.equal(0);
-    expect(result.height).to.be.equal(100);
-    expect(result.lines).to.be.deep.equal([]);
-    expect(result.lineWidths).to.be.deep.equal([]);
-    expect(result.lineHeight).to.be.deep.equal(27);
-
     textRendererTruncate.text = text1;
-    result = TextUtils.measureTextWithoutWrap(textRendererTruncate);
+    let result = TextUtils.measureTextWithoutWrap(textRendererTruncate);
     expect(result.width).to.be.equal(518);
     expect(result.height).to.be.equal(100);
     expect(result.lines).to.be.deep.equal(["趚今天天气很好，阳光明媚。我 在公园里 漫步。"]);

@@ -1,6 +1,6 @@
-import { Engine, Entity, Loader } from "@galacean/engine-core";
-import type { IAssetRef, IBasicType, IClassObject, IEntity, IEntityRef } from "../schema";
-import { SceneParserContext } from "../scene/SceneParserContext";
+import { EngineObject, Entity, Loader, ReferResource } from "@galacean/engine-core";
+import type { IAssetRef, IBasicType, IClassObject, IEntity, IEntityRef, IHierarchyFile, IRefEntity } from "../schema";
+import { ParserContext, ParserType } from "./ParserContext";
 
 export class ReflectionParser {
   static customParseComponentHandles = new Map<string, Function>();
@@ -9,7 +9,7 @@ export class ReflectionParser {
     this.customParseComponentHandles[componentType] = handle;
   }
 
-  constructor(private readonly _context: SceneParserContext) {}
+  constructor(private readonly _context: ParserContext<IHierarchyFile, EngineObject>) {}
 
   parseEntity(entityConfig: IEntity): Promise<Entity> {
     return this._getEntityByConfig(entityConfig).then((entity) => {
@@ -18,6 +18,9 @@ export class ReflectionParser {
       if (position) entity.transform.position.copyFrom(position);
       if (rotation) entity.transform.rotation.copyFrom(rotation);
       if (scale) entity.transform.scale.copyFrom(scale);
+      entity.layer = entityConfig.layer ?? entity.layer;
+      // @ts-ignore
+      this._context.type === ParserType.Prefab && entity._markAsTemplate(this._context.resource);
       return entity;
     });
   }
@@ -72,9 +75,16 @@ export class ReflectionParser {
         // class object
         return this.parseClassObject(value);
       } else if (ReflectionParser._isAssetRef(value)) {
+        const { _context: context } = this;
         // reference object
         // @ts-ignore
-        return this._context.resourceManager.getResourceByRef(value);
+        return context.resourceManager.getResourceByRef(value).then((resource) => {
+          if (context.type === ParserType.Prefab) {
+            // @ts-ignore
+            context.resource._addDependenceAsset(resource);
+          }
+          return resource;
+        });
       } else if (ReflectionParser._isEntityRef(value)) {
         // entity reference
         return Promise.resolve(this._context.entityMap.get(value.entityId));
@@ -106,12 +116,23 @@ export class ReflectionParser {
     // @ts-ignore
     const assetRefId: string = entityConfig.assetRefId;
     const engine = this._context.engine;
+
     if (assetRefId) {
       return (
         engine.resourceManager
           // @ts-ignore
-          .getResourceByRef<Entity>({ refId: assetRefId, key: entityConfig.key, isClone: entityConfig.isClone })
+          .getResourceByRef({
+            refId: assetRefId,
+            key: (entityConfig as IRefEntity).key,
+            isClone: (entityConfig as IRefEntity).isClone
+          })
           .then((entity) => {
+            // @ts-ignore
+            const resource = engine.resourceManager._objectPool[assetRefId];
+            if (this._context.type === ParserType.Prefab) {
+              // @ts-ignore
+              this._context.resource._addDependenceAsset(resource);
+            }
             entity.name = entityConfig.name;
             return entity;
           })

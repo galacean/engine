@@ -6,10 +6,10 @@ import { TextureCubeFace } from "../texture";
 export interface IPlatformRenderTarget {
   /**
    * Set which face and mipLevel of the cube texture to render to.
-   * @param faceIndex - Cube texture face
    * @param mipLevel - Set mip level the data want to write
+   * @param faceIndex - Cube texture face
    */
-  setRenderTargetInfo(faceIndex: TextureCubeFace, mipLevel: number): void;
+  activeRenderTarget(mipLevel: number, faceIndex?: TextureCubeFace): void;
 
   /**
    * Blit FBO.

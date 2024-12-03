@@ -1,0 +1,212 @@
+---
+title: Shader
+---
+
+```glsl
+Shader "ShaderName" {
+  ...
+  // 全局变量区：变量声明，结构体声明，渲染状态声明，材质属性定义
+  ...
+  SubShader "SubShaderName" {
+    ...
+  }
+  ...
+}
+```
+
+ShaderLab 中的 `Shader` 是传统渲染管线中着色器程序和其他引擎渲染设置相关信息的集合封装，它允许在同一个 `Shader` 对象中定义多个着色器程序，并告诉 Galacean 在渲染过程中如何选择使用它们。`Shader` 对象具有嵌套的结构，包分别对应引擎封装的 [Shader](/apis/galacean/#Shader)，[SubShader](/apis/galacean/#SubShader) 和 [ShaderPass](/apis/galacean/#ShaderPass) 对象。
+
+## 材质属性定义
+
+```glsl
+// Uniform
+EditorProperties
+{
+  material_BaseColor("Offset unit scale", Color) = (1,1,1,1);
+  ...
+
+  Header("Emissive")
+  {
+    material_EmissiveColor("Emissive color", Color) = (1,1,1,1);
+    ...
+  }
+  ...
+}
+
+// 宏
+EditorMacros
+{
+  [On] UV_OFFSET("UV Offset", Range(1,100)) = 10;
+  ...
+}
+```
+
+此模块用于定义绑定该 Shader 的材质在编辑器 Inspector 面板中的 UI 展示。ShaderLab 材质属性对宏属性和其它 Uniform 属性使用`EditorProperties`和`EditorMacros`进行分开声明，其声明格式为：
+
+1. Uniform 属性
+
+   ```glsl
+   EditorProperties {
+     propertyName("label in Inspector", type) [= defaultValue];
+     ...
+     [ Header("blockName") {
+         propertyName("label in Inspector", type) [= defaultValue];
+         ...
+     } ]
+   }
+   ```
+
+   > 可以使用嵌套`Header`块对材质属性进行层级分类。
+
+   支持的类型有
+
+   | Type | Example |
+   | :-: | :-- |
+   | Bool | propertyName("Property Description", Boolean) = true; |
+   | Int | propertyName("Property Description", Int) = 1; <br/>propertyName("Property Description", Range(0,8)) = 1 |
+   | Float | propertyName("Property Description", FLoat) = 0.5; <br/>propertyName("Property Description", Range(0.0, 1.0)) = 0.5; |
+   | Texture2D | propertyName("Property Description", Texture2D); |
+   | TextureCube | propertyName("Property Description", TextureCube); |
+   | Color | propertyName("Property Description", Color) = (0.25, 0.5, 0.5, 1); |
+   | Vector2 | propertyName("Property Description", Vector2) = (0.25, 0.5); |
+   | Vector3 | propertyName("Property Description", Vector3) = (0.25, 0.5, 0.5); |
+   | Vector4 | propertyName("Property Description", Vector4) = (0.25, 0.5, 0.5, 1.0); |
+
+2. 宏属性
+
+   ```glsl
+   EditorMacros {
+     [\[Off/On\]] propertyName("label in Inspector"[, type]) [= defaultValue];
+     ...
+     [ Header("blockName") {
+         [\[Off/On\]] propertyName("label in Inspector"[, type]) [= defaultValue];
+         ...
+     } ]
+   }
+   ```
+
+   均包含开启和禁用功能，初始化通过 `[On/Off]` 指令指定，其类型包含
+
+   | Type | Example |
+   | :-: | :-- |
+   | 无(开关宏) | macroName("Macro Description"); |
+   | Bool | macroName("Macro Description", Boolean) = true; |
+   | Int | macroName("Macro Description", Int) = 1; <br/> macroName("Macro Description", Range(0,8)) = 1; |
+   | Float | macroName("Macro Description", FLoat) = 0.5; <br/> macroName("Macro Description", Range(0.0, 1.0)) = 0.5; |
+   | Color | macroName("Macro Description", Color) = (0.25, 0.5, 0.5, 1); |
+   | Vector2 | macroName("Macro Description", Vector2) = (0.25, 0.5); |
+   | Vector3 | macroName("Macro Description", Vector3) = (0.25, 0.5, 0.5); |
+   | Vector4 | macroName("Macro Description", Vector4) = (0.25, 0.5, 0.5, 1.0); |
+
+> 注意，当前版本 ShaderLab 材质属性模块只是定义了绑定该 Shader 的材质在编辑器中的 Inspector UI 面板，并不会替你在`ShaderPass`中声明对应的全局变量，如果`ShaderPass`代码中引用了该变量需在全局变量模块(见下文)中明确声明补充。
+
+## 全局变量
+
+可以在 ShaderLab 中声明 4 类全局变量：渲染状态(RenderState)，结构体，函数，以及单变量。
+
+### 渲染状态
+
+包含混合状态(BlendState)，深度状态(DepthState)，模板状态(StencilState)，光栅化状态(RasterState)
+
+- BlendState
+
+  ```glsl
+  BlendState {
+    Enabled[n]: bool;
+    ColorBlendOperation[n]: BlendOperation;
+    AlphaBlendOperation[n]: BlendOperation;
+    SourceColorBlendFactor[n]: BlendFactor;
+    SourceAlphaBlendFactor[n]: BlendFactor;
+    DestinationColorBlendFactor[n]: BlendFactor;
+    DestinationAlphaBlendFactor[n]: BlendFactor;
+    ColorWriteMask[n]: float // 0xffffffff
+    BlendColor: vec4;
+    AlphaToCoverage: bool;
+  }
+  ```
+
+  [n] 可省略，在使用 MRT 的情况下， [n] 为指定某个 MRT 渲染状态，省略为设置所有 MRT 状态，BlendOperation 和 BlendFactor 枚举等同引擎 API
+
+- DepthState
+
+  ```glsl
+  DepthState {
+    Enabled: bool;
+    WriteEnabled: bool;
+    CompareFunction: CompareFunction;
+  }
+  ```
+
+  CompareFunction 枚举等同引擎 API
+
+- StencilState
+
+  ```glsl
+  StencilState {
+    Enabled: bool;
+    ReferenceValue: int;
+    Mask: float; // 0xffffffff
+    WriteMask: float; // 0xffffffff
+    CompareFunctionFront: CompareFunction;
+    CompareFunctionBack: CompareFunction;
+    PassOperationFront: StencilOperation;
+    PassOperationBack: StencilOperation;
+    FailOperationFront: StencilOperation;
+    FailOperationBack: StencilOperation;
+    ZFailOperationFront: StencilOperation;
+    ZFailOperationBack: StencilOperation;
+  }
+  ```
+
+  CompareFunction 和 StencilOperation 举等同引擎 API
+
+- RasterState
+
+  ```glsl
+  RasterState {
+    CullMode: CullMode;
+    DepthBias: float;
+    SlopeScaledDepthBias: float;
+  }
+  ```
+
+  CullMode 举等同引擎 API
+
+在`ShaderLab`中设置`BlendState`示例:
+
+```glsl
+Shader "Demo" {
+  ...
+  BlendState customBlendState
+  {
+    Enabled = true;
+    // 常量复制方式
+    SourceColorBlendFactor = BlendFactor.SourceColor;
+    // 变量赋值方式
+    DestinationColorBlendFactor = material_DstBlend;
+  }
+  ...
+  Pass "0" {
+    ...
+    BlendState = customBlendState;
+    ...
+  }
+}
+```
+
+上述案例中对于 BlendState 属性赋值展示了 2 种方式: *常量赋值*和*变量赋值*方式:
+
+- 常量赋值指赋值语句右端为指定的对应引擎枚举变量，譬如：BlendFactor.SourceColor
+- 变量赋值指赋值语句右端为任一变量名，变量具体值由用户通过脚本方式在运行时通过 ShaderData.setInt("material_DstBlend", BlendFactor.SourceColor) API 进行指定
+
+### 结构体、函数
+
+等同 glsl 中的语法
+
+### 单变量
+
+```glsl
+[lowp/mediump/highp] variableType variableName;
+```
+
+与其他编程语言类似，ShaderLab 中的全局变量也有作用域和同名覆盖原则。简单来说，ShaderLab 中的全局变量的作用范围仅限于其声明的 SubShader 或 Pass 模块内部，而同名覆盖原则指的是如果存在与 Pass 内部同名的全局变量，则 Pass 内的全局变量会覆盖 SubShader 内的同名全局变量。

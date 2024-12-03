@@ -1,0 +1,105 @@
+---
+order: 1
+title: 后处理效果
+---
+
+## 泛光（Bloom）
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/99928a81-72c2-45f3-90ba-b51117e01715/image-20240719122439611.png" />
+
+Bloom 特效可以给图像增加光晕质感。
+
+### 属性
+
+- **Down Scale**： 控制泛光后处理的起始分辨率，默认为 `Half`，即初始降采样的分辨率为画布的一半，如果对精度要求没那么高，可以切换为 `Quarter`，节省为画布的 1/4。
+
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/b537d126-863e-4387-b6a6-7c4f042029ca/image-20240726114458404.png"
+  leftText="Half"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/b62624a6-a4f2-4c9d-964c-7742f9970c8f/image-20240726114511958.png"
+  rightText="Quarter"
+/>
+
+- **Threshold**：泛光效果会过滤掉低于此亮度级别的像素，即值越低，Bloom 区域越大。该值位于伽马空间，默认 0.9。
+
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/47347ffb-b6c3-43f8-8008-32041c1d1d3c/image-20240726114601564.png"
+  leftText="0.9"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/ee71fee4-ab78-4848-ac46-79587e107df4/image-20240726114616577.png"
+  rightText="0.5"
+/>
+
+- **Scatter**：设置泛光效果的扩散范围，默认 0.7。
+
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/38833509-dac2-4a97-bf55-6c1d85ec17c6/image-20240726115106399.png"
+  leftText="0.3"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/352d7efb-3c61-4cef-bc7f-7405faa7b121/image-20240726115129010.png"
+  rightText="0.8"
+/>
+
+- **Intensity**：泛光效果的强度。
+
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/8555a001-d1b6-4a2c-8687-ad322e841071/image-20240726115441141.png"
+  leftText="1"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/8391bd7e-feeb-4351-b65e-9c1352bfb032/image-20240726115350389.png"
+  rightText="2"
+/>
+
+- **Tint**：泛光效果的色调。
+
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/ae9ce1a2-9075-4739-9162-c0e5ff6b8ad1/image-20240726115519606.png"
+  leftText="White"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/796ec758-bf4e-45df-8050-67f88ad174b8/image-20240726115534397.png"
+  rightText="Red"
+/>
+
+- **Dirt Texture**：使用污渍纹理可为泛光效果添加污迹或灰尘。
+
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/8a9b9fdb-191e-4ec9-bb38-ab0877fbde68/image-20240726115722323.png"
+  leftText="Off"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/a711bdd0-95a0-4f88-85fc-8f533569635d/image-20240726115736031.png"
+  rightText="On"
+/>
+
+- **Dirt Intensity**：污渍纹理的强度。
+
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/a711bdd0-95a0-4f88-85fc-8f533569635d/image-20240726115736031.png"
+  leftText="1"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/451dff04-fc7b-4e40-9a3c-76dce3ff81c8/image-20240726115803813.png"
+  rightText="5"
+/>
+
+## 色调映射（Tonemapping）
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/d326f3fb-0d04-493c-8714-93cd4c5924ae/image-20240719122505552.png" />
+
+色调映射可以重映射图像的 HDR 值，改善整个画面的对比度、色彩饱和度。
+
+<Callout type="positive">
+  色调映射一般搭配 [相机开启 HDR 模式](/docs/graphics/postProcess/postProcess/#2相机开关) 后使用
+</Callout>
+
+比如下图开启 ACES 色调映射后，可以提高太阳曝光处的动态范围，看到更多细节：
+
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/8ec8f8e0-0054-48c9-aeb1-146b745ac996/image-20240726114047059.png"
+  leftText="Tonemapping Off"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/9bbb75f2-8ed2-4448-930f-960da82ed298/image-20240726114242977.png"
+  rightText="Tonemapping On"
+/>
+
+### 属性
+
+- **Mode**：色调映射算法。可以选择 `Neutral` 和 `ACES`。 `Netural` 模式特别适用于只需要范围重映射且对色调和饱和度影响最小的情况；`ACES` 模式使用电影的 ACES 参考色彩空间，可产生电影般的对比度效果，但性能消耗较大。
+
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/8eaed6b4-ceb6-4e05-927e-eb02b1f76aaa/image-20240726114338413.png"
+  leftText="Netural"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/9bbb75f2-8ed2-4448-930f-960da82ed298/image-20240726114242977.png"
+  rightText="ACES"
+/>

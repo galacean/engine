@@ -1,3 +1,4 @@
+import { IReferable } from "./asset/IReferable";
 import { EngineObject } from "./base";
 import { assignmentClone, ignoreClone } from "./clone/CloneManager";
 import { Entity } from "./Entity";
@@ -35,20 +36,28 @@ export class Component extends EngineObject {
       this._enabled = value;
       if (this._entity._isActiveInScene) {
         if (value) {
-          this._phasedActiveInScene = true;
-          this._onEnableInScene();
+          if (!this._phasedActiveInScene) {
+            this._phasedActiveInScene = true;
+            this._onEnableInScene();
+          }
         } else {
-          this._phasedActiveInScene = false;
-          this._onDisableInScene();
+          if (this._phasedActiveInScene) {
+            this._phasedActiveInScene = false;
+            this._onDisableInScene();
+          }
         }
       }
       if (this._entity.isActiveInHierarchy) {
         if (value) {
-          this._phasedActive = true;
-          this._onEnable();
+          if (!this._phasedActive) {
+            this._phasedActive = true;
+            this._onEnable();
+          }
         } else {
-          this._phasedActive = false;
-          this._onDisable();
+          if (this._phasedActive) {
+            this._phasedActive = false;
+            this._onDisable();
+          }
         }
       }
     }
@@ -141,6 +150,10 @@ export class Component extends EngineObject {
         }
       }
     }
+  }
+
+  protected _addResourceReferCount(resource: IReferable, count: number): void {
+    this._entity._isTemplate || resource._addReferCount(count);
   }
 
   /**

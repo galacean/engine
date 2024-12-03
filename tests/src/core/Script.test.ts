@@ -196,6 +196,32 @@ describe("Script", () => {
       expect(script3.onUpdate).to.have.been.called.exactly(3);
     });
 
+    it("Script add in script's onStart", async () => {
+      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+      const scene = engine.sceneManager.activeScene;
+      class Script1 extends Script {
+        onStart(): void {
+          entity1.addComponent(Script2);
+        }
+      }
+      class Script2 extends Script {
+        onStart(): void {}
+      }
+
+      Script1.prototype.onStart = chai.spy(Script1.prototype.onStart);
+      Script2.prototype.onStart = chai.spy(Script2.prototype.onStart);
+
+      const entity1 = scene.createRootEntity("1");
+      const script1 = entity1.addComponent(Script1);
+      engine.update();
+      expect(script1.onStart).to.have.been.called.exactly(1);
+      const script2 = entity1.getComponent(Script2);
+      expect(script2.onStart).to.have.been.called.exactly(0);
+      engine.update();
+      expect(script1.onStart).to.have.been.called.exactly(1);
+      expect(script2.onStart).to.have.been.called.exactly(1);
+    });
+
     it("Engine destroy outside the main loop", async () => {
       class TestScript extends Script {
         onAwake() {
@@ -287,6 +313,31 @@ describe("Script", () => {
       }, 1000);
     });
 
+    it("Enable Disable components", async () => {
+      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+      class KKK extends Script {
+        cmdStr = "";
+        onEnable(): void {
+          this.cmdStr += "A";
+        }
+        onDisable(): void {
+          this.cmdStr += "D";
+        }
+      }
+      const root = new Entity(engine);
+      const kkk = root.addComponent(KKK);
+      root.addComponent(
+        class extends Script {
+          onEnable(): void {
+            kkk.enabled = false;
+            kkk.enabled = true;
+          }
+        }
+      );
+      engine.sceneManager.activeScene.addRootEntity(root);
+      expect(kkk.cmdStr[0]).to.eql("A");
+    });
+
     it("Dependent components", async () => {
       @dependentComponents(Camera, DependentMode.CheckOnly)
       class CheckScript extends Script {}
@@ -320,6 +371,35 @@ describe("Script", () => {
       expect(() => {
         engine.update();
       }).to.not.throw();
+    });
+
+    it("script order", async () => {
+      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+      const scene = engine.sceneManager.activeScene;
+      const rootEntity = scene.createRootEntity("root");
+      const entity = rootEntity.createChild("entity");
+      let tag: string;
+      entity.addComponent(
+        class extends Script {
+          onUpdate(deltaTime: number): void {
+            tag = "script1";
+          }
+        }
+      );
+      entity.addComponent(
+        class extends Script {
+          onUpdate(deltaTime: number): void {
+            tag = "script2";
+          }
+        }
+      );
+      engine.update();
+      expect(tag).to.equal("script2");
+
+      rootEntity.removeChild(entity);
+      rootEntity.addChild(entity);
+      engine.update();
+      expect(tag).to.equal("script2");
     });
   });
 });

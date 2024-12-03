@@ -105,6 +105,13 @@ export abstract class Texture extends GraphicsResource {
 
   set filterMode(value: TextureFilterMode) {
     if (value === this._filterMode) return;
+
+    if (value !== TextureFilterMode.Point && this._isIntFormat()) {
+      value = TextureFilterMode.Point;
+      Logger.warn(`Int or UInt format texture only support TextureFilterMode.Point`);
+      return;
+    }
+
     this._filterMode = value;
 
     this._platformTexture.filterMode = value;
@@ -210,5 +217,12 @@ export abstract class Texture extends GraphicsResource {
 
   protected _getMipmapCount(): number {
     return this._mipmap ? Math.floor(Math.log2(Math.max(this._width, this._height))) + 1 : 1;
+  }
+
+  protected _isIntFormat(): boolean {
+    if (TextureFormat.R32G32B32A32_UInt === this._format) {
+      return true;
+    }
+    return false;
   }
 }

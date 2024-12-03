@@ -1,0 +1,43 @@
+---
+order: 5
+title: 基础物理约束组件
+type: 物理
+label: Physics
+---
+
+物理约束组件是一种非常重要的物理组件，通过约束可以更好控制动态碰撞器组件的运动，为场景添加有趣的交互响应。本文主要介绍最基础的三种物理约束组件：
+
+1. 固定约束组件
+
+   ![fixedJoint](https://gameworksdocs.nvidia.com/PhysX/4.1/documentation/physxguide/_images/fixedJoint.png)
+2. 弹性约束组件
+
+   ![springJoint](https://gameworksdocs.nvidia.com/PhysX/4.1/documentation/physxguide/_images/distanceJoint.png)
+3. 铰链约束组件
+
+   ![hingeJoint](https://gameworksdocs.nvidia.com/PhysX/4.1/documentation/physxguide/_images/revoluteJoint.png)
+
+所有的物理约束都有两个作用对象，其中代表受到物理约束作用的动态碰撞器（在该节点上挂载物理约束组件），另外一个是约束挂载的位置或者是另外一个动态碰撞器（通过组件配置来设置）。
+因此，这些组件的使用方法类似，以固定约束组件`FixedJoint`为例：
+
+```typescript
+const fixedJoint = currentEntity.addComponent(FixedJoint);
+fixedJoint.connectedCollider = prevCollider;
+```
+
+## 局部坐标与世界坐标
+
+理解物理约束组件的使用，其中一个关键点就是理解**局部坐标**和**世界坐标**。所有的物理约束，都可以配置 `connectedCollider` 属性。
+此外，某些物理约束组件还可以通过配置 `connectedAnchor` 属性，设置物理约束挂载的位置。
+
+**需要特别注意的是，当 `connectedCollider` 被设置后，`connectedAnchor` 代表的是相对于该碰撞器的局部坐标。`connectedCollider` 为 null 时，
+`connectedAnchor` 代表的是世界坐标。**
+
+## 铰链约束
+
+以上三种物理约束中，相对比较复杂的是铰链约束，因为除了需要配置 `connectedCollider` 和 `connectedAnchor` 之外，还需要指定铰链的旋转轴方向和旋转半径。
+可以通过配置 `axis` (默认方向是朝向 x 轴正方向)和 `swingOffset` 指定这两个属性。
+其中 `swingOffset` 也是一个向量，可以理解成从 `connectedAnchor` 和 `connectedCollider` 共同确定的旋转中心出发的偏移，动态碰撞就被挪到该点开始绕着旋转轴旋转。
+
+上述物理约束组件的使用，可以参照：
+<playground src="physx-joint-basic.ts"></playground>

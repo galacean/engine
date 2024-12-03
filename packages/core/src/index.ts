@@ -1,7 +1,9 @@
 export { Platform } from "./Platform";
 export { Engine } from "./Engine";
 export { SystemInfo } from "./SystemInfo";
-export type { Canvas } from "./Canvas";
+export { Canvas } from "./Canvas";
+
+export { DisorderedArray } from "./utils/DisorderedArray";
 
 export { Scene } from "./Scene";
 export { SceneManager } from "./SceneManager";
@@ -34,8 +36,14 @@ export { BackgroundMode } from "./enums/BackgroundMode";
 export { DepthTextureMode } from "./enums/DepthTextureMode";
 export { FogMode } from "./enums/FogMode";
 export { CameraClearFlags } from "./enums/CameraClearFlags";
+export { CameraType } from "./enums/CameraType";
+export { MSAASamples } from "./enums/MSAASamples";
+export { ReplacementFailureStrategy } from "./enums/ReplacementFailureStrategy";
+export { Downsampling } from "./enums/Downsampling";
 export { ColorSpace } from "./enums/ColorSpace";
 export { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
+export { XRManager } from "./xr/XRManager";
+export * from "./utils/index";
 export * from "./input/index";
 export * from "./lighting/index";
 export * from "./shadow/index";
@@ -57,7 +65,10 @@ export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
 export * from "./Utils";
 export * from "./audio";
+import { Polyfill } from "./Polyfill";
 
-// Export for CanvasRenderer plugin.
-export { Basic2DBatcher } from "./RenderPipeline/Basic2DBatcher";
 export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+
+export * from "./postProcess";
+
+Polyfill.registerPolyfill();

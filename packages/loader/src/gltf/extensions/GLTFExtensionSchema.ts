@@ -23,16 +23,6 @@ export interface IKHRLightsPunctual {
 }
 
 /**
- * Interfaces from the KHR_draco_mesh_compression extension
- */
-export interface IKHRDracoMeshCompression {
-  bufferView: number;
-  attributes: {
-    [name: string]: number;
-  };
-}
-
-/**
  * Interfaces from the KHR_materials_clearcoat extension
  */
 export interface IKHRMaterialsClearcoat {
@@ -119,6 +109,15 @@ export interface IKHRMaterialVariants_Variant {
   extras?: any;
 }
 
+/**
+ * Interfaces from the KHR_materials_clearcoat extension
+ */
+export interface IKHRMaterialsAnisotropy {
+  anisotropyStrength: number;
+  anisotropyRotation: number;
+  anisotropyTexture: ITextureInfo;
+}
+
 export interface IKHRMaterialVariants_Variants {
   variants: Array<IKHRMaterialVariants_Variant>;
 }
@@ -153,6 +152,16 @@ export interface IKHRXmp_Node {
   packet: number;
 }
 
+export interface IEXTMeshoptCompressionSchema {
+  buffer: number;
+  byteOffset?: number;
+  byteLength: number;
+  byteStride: number;
+  mode: "ATTRIBUTES" | "TRIANGLES" | "INDICES";
+  count: number;
+  filter?: "NONE" | "OCTAHEDRAL" | "QUATERNION" | "EXPONENTIAL";
+}
+
 export interface IGalaceanMaterialRemap {
   refId: string;
   key?: string;
@@ -169,7 +178,6 @@ export interface IGalaceanAnimation {
 
 export type GLTFExtensionSchema =
   | IKHRLightsPunctual_Light
-  | IKHRDracoMeshCompression
   | IKHRMaterialsClearcoat
   | IKHRMaterialsIor
   | IKHRMaterialsUnlit
@@ -180,6 +188,7 @@ export type GLTFExtensionSchema =
   | IKHRMaterialsTranslucency
   | IKHRMaterialVariants_Mapping
   | IKHRMaterialVariants_Variants
+  | IKHRMaterialsAnisotropy
   | IKHRTextureBasisU
   | IKHRTextureTransform
   | IKHRXmp

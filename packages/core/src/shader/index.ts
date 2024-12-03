@@ -7,6 +7,7 @@ export { RenderStateElementKey as RenderStateDataKey } from "./enums/RenderState
 export { RenderQueueType } from "./enums/RenderQueueType";
 export { ShaderPropertyType } from "./enums/ShaderPropertyType";
 export { StencilOperation } from "./enums/StencilOperation";
+export { ShaderPlatformTarget } from "./enums/ShaderPlatformTarget";
 export { Shader } from "./Shader";
 export { ShaderData } from "./ShaderData";
 export { ShaderMacro } from "./ShaderMacro";

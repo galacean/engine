@@ -1,6 +1,5 @@
 import { Ray, Vector2 } from "@galacean/engine-math";
 import { Canvas } from "../../Canvas";
-import { DisorderedArray } from "../../DisorderedArray";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { Scene } from "../../Scene";
@@ -10,6 +9,7 @@ import { PointerButton, _pointerDec2BinMap } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
 import { IInput } from "../interface/IInput";
 import { Pointer } from "./Pointer";
+import { DisorderedArray } from "../../utils/DisorderedArray";
 
 /**
  * Pointer Manager.
@@ -34,28 +34,31 @@ export class PointerManager implements IInput {
   /** @internal */
   _downList: DisorderedArray<PointerButton> = new DisorderedArray();
 
+  // @internal
+  _target: EventTarget;
   private _engine: Engine;
   private _canvas: Canvas;
-  private _htmlCanvas: HTMLCanvasElement;
   private _nativeEvents: PointerEvent[] = [];
   private _pointerPool: Pointer[];
-  private _hadListener: boolean = false;
+  private _htmlCanvas: HTMLCanvasElement;
 
   /**
-   * Create a PointerManager.
-   * @param engine - The current engine instance
-   * @param htmlCanvas - HTMLCanvasElement
+   * @internal
    */
-  constructor(engine: Engine) {
-    // @ts-ignore
-    const htmlCanvas = engine._canvas._webCanvas;
+  constructor(engine: Engine, target: EventTarget) {
+    // Temporary solution for mini program, window does not exist
+    if (typeof Window !== "undefined" && target instanceof Window) {
+      throw "Do not set window as target because window cannot listen to pointer leave event.";
+    }
     this._engine = engine;
+    this._target = target;
     this._canvas = engine.canvas;
-    this._htmlCanvas = htmlCanvas;
-    this._onPointerEvent = this._onPointerEvent.bind(this);
-    this._onFocus();
+    // @ts-ignore
+    this._htmlCanvas = engine._canvas._webCanvas;
     // If there are no compatibility issues, navigator.maxTouchPoints should be used here
     this._pointerPool = new Array<Pointer>(11);
+    this._onPointerEvent = this._onPointerEvent.bind(this);
+    this._addEventListener();
   }
 
   /**
@@ -130,7 +133,8 @@ export class PointerManager implements IInput {
       const length = events.length;
       if (length > 0) {
         for (let i = 0; i < length; i++) {
-          switch (events[i].type) {
+          const event = events[i];
+          switch (event.type) {
             case "pointerdown":
               pointer.phase = PointerPhase.Down;
               pointer._firePointerDown(rayCastEntity);
@@ -154,71 +158,15 @@ export class PointerManager implements IInput {
   /**
    * @internal
    */
-  _onFocus(): void {
-    if (!this._hadListener) {
-      const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
-      htmlCanvas.addEventListener("pointerdown", onPointerEvent);
-      htmlCanvas.addEventListener("pointerup", onPointerEvent);
-      htmlCanvas.addEventListener("pointerleave", onPointerEvent);
-      htmlCanvas.addEventListener("pointermove", onPointerEvent);
-      htmlCanvas.addEventListener("pointercancel", onPointerEvent);
-      this._hadListener = true;
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _onBlur(): void {
-    if (this._hadListener) {
-      const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
-      htmlCanvas.removeEventListener("pointerdown", onPointerEvent);
-      htmlCanvas.removeEventListener("pointerup", onPointerEvent);
-      htmlCanvas.removeEventListener("pointerleave", onPointerEvent);
-      htmlCanvas.removeEventListener("pointermove", onPointerEvent);
-      htmlCanvas.removeEventListener("pointercancel", onPointerEvent);
-      this._hadListener = false;
-      this._pointers.length = 0;
-      this._downList.length = 0;
-      this._upList.length = 0;
-    }
-  }
-
-  /**
-   * @internal
-   */
   _destroy(): void {
-    // @ts-ignore
-    if (this._hadListener) {
-      const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
-      htmlCanvas.removeEventListener("pointerdown", onPointerEvent);
-      htmlCanvas.removeEventListener("pointerup", onPointerEvent);
-      htmlCanvas.removeEventListener("pointerleave", onPointerEvent);
-      htmlCanvas.removeEventListener("pointermove", onPointerEvent);
-      htmlCanvas.removeEventListener("pointercancel", onPointerEvent);
-      this._hadListener = false;
-    }
+    this._removeEventListener();
     this._pointerPool.length = 0;
-    this._pointerPool = null;
-    this._pointers.length = 0;
-    this._pointers = null;
-    this._downList.length = 0;
-    this._downList = null;
-    this._upList.length = 0;
-    this._upList = null;
     this._nativeEvents.length = 0;
-    this._nativeEvents = null;
-    this._upMap.length = 0;
-    this._upMap = null;
     this._downMap.length = 0;
-    this._downMap = null;
-    this._htmlCanvas = null;
-    this._canvas = null;
-    this._engine = null;
+    this._upMap.length = 0;
   }
 
   private _onPointerEvent(evt: PointerEvent) {
-    evt.type === "pointerdown" && this._htmlCanvas.focus();
     this._nativeEvents.push(evt);
   }
 
@@ -293,10 +241,12 @@ export class PointerManager implements IInput {
       if (!scene.isActive || scene.destroyed) {
         continue;
       }
-      const { _activeCameras: cameras } = scene;
+      const { _activeCameras: cameras } = scene._componentsManager;
+      const elements = cameras._elements;
+
       for (let j = cameras.length - 1; j >= 0; j--) {
-        const camera = cameras[j];
-        if (!camera.enabled || camera.renderTarget) {
+        const camera = elements[j];
+        if (camera.renderTarget) {
           continue;
         }
         const { x: vpX, y: vpY, z: vpW, w: vpH } = camera.viewport;
@@ -318,5 +268,27 @@ export class PointerManager implements IInput {
       }
     }
     return null;
+  }
+
+  private _addEventListener(): void {
+    const { _target: target, _onPointerEvent: onPointerEvent } = this;
+    target.addEventListener("pointerdown", onPointerEvent);
+    target.addEventListener("pointerup", onPointerEvent);
+    target.addEventListener("pointerleave", onPointerEvent);
+    target.addEventListener("pointermove", onPointerEvent);
+    target.addEventListener("pointercancel", onPointerEvent);
+  }
+
+  private _removeEventListener(): void {
+    const { _target: target, _onPointerEvent: onPointerEvent } = this;
+    target.removeEventListener("pointerdown", onPointerEvent);
+    target.removeEventListener("pointerup", onPointerEvent);
+    target.removeEventListener("pointerleave", onPointerEvent);
+    target.removeEventListener("pointermove", onPointerEvent);
+    target.removeEventListener("pointercancel", onPointerEvent);
+    this._nativeEvents.length = 0;
+    this._pointers.length = 0;
+    this._downList.length = 0;
+    this._upList.length = 0;
   }
 }

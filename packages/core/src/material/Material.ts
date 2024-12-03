@@ -36,6 +36,12 @@ export class Material extends ReferResource implements IClone {
   }
 
   set shader(value: Shader) {
+    const refCount = this._getReferCount();
+    if (refCount > 0) {
+      this._shader?._addReferCount(-refCount);
+      value._addReferCount(refCount);
+    }
+
     this._shader = value;
 
     const renderStates = this._renderStates;
@@ -96,13 +102,14 @@ export class Material extends ReferResource implements IClone {
   cloneTo(target: Material): void {
     target.shader = this.shader;
     this.shaderData.cloneTo(target.shaderData);
-    CloneManager.deepCloneObject(this.renderStates, target.renderStates);
+    CloneManager.deepCloneObject(this.renderStates, target.renderStates, new Map<Object, Object>());
   }
 
   override _addReferCount(value: number): void {
     if (this._destroyed) return;
     super._addReferCount(value);
     this.shaderData._addReferCount(value);
+    this._shader._addReferCount(value);
   }
 
   /**

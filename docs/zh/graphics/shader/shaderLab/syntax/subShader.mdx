@@ -1,0 +1,36 @@
+---
+title: SubShader
+---
+
+```glsl
+SubShader "SubShaderName" {
+  ...
+  // 全局变量区：变量声明，结构体声明，渲染状态声明
+  ...
+  Tags {ReplaceTag = "opaque"}
+
+  UsePass "ShaderName/SubShaderName/PassName"
+
+  Pass "PassName" {
+    ...
+  }
+}
+```
+
+## Tags
+
+在 [Shader 对象](/docs/graphics/shader/class/) 章节我们了解了 Tags 的基本概念和用途，ShaderLab 中可以通过 `Tags` 指令直接声明和指定，无须通过 `SubShader.setTag` api 方式手动指定。
+
+
+## UsePass
+
+  如果一个 `SubShader` 包含多个 `Pass`，可以通过 `UsePass` 指令复用其他 `Pass` 对象，比如引擎内置的 PBR Pass: `UsePass "pbr/Default/Forward"`
+
+  |   内置 Shader   |            Pass 路径            |
+  | :-------------: | :-----------------------------: |
+  |       PBR       |       pbr/Default/Forward       |
+  |      Unlit      |      unlit/Default/Forward      |
+  |     Skybox      |     skybox/Default/Forward      |
+  | Particle-shader | particle-shader/Default/Forward |
+  |   SpriteMask    |   SpriteMask/Default/Forward    |
+  |     Sprite      |     Sprite/Default/Forward      |

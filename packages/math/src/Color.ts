@@ -259,6 +259,19 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
   }
 
   /**
+   * Copy to color like object.
+   * @param target - Color like object.
+   * @returns This Color like object
+   */
+  copyTo(target: ColorLike): ColorLike {
+    target.r = this._r;
+    target.g = this._g;
+    target.b = this._b;
+    target.a = this._a;
+    return target;
+  }
+
+  /**
    * Copy from array like object.
    * @param source - Array like object
    * @param offset - The start offset
@@ -294,7 +307,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     out._r = Color.gammaToLinearSpace(this._r);
     out._g = Color.gammaToLinearSpace(this._g);
     out._b = Color.gammaToLinearSpace(this._b);
-    this._onValueChanged && this._onValueChanged();
+    out._onValueChanged && out._onValueChanged();
     return out;
   }
 
@@ -307,7 +320,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     out._r = Color.linearToGammaSpace(this._r);
     out._g = Color.linearToGammaSpace(this._g);
     out._b = Color.linearToGammaSpace(this._b);
-    this._onValueChanged && this._onValueChanged();
+    out._onValueChanged && out._onValueChanged();
     return out;
   }
 

@@ -11,17 +11,34 @@ float getAARoughnessFactor(vec3 normal) {
     // Tokuyoshi and Kaplanyan 2019, "Improved Geometric Specular Antialiasing"
     #ifdef HAS_DERIVATIVES
         vec3 dxy = max( abs(dFdx(normal)), abs(dFdy(normal)) );
-        return 0.04 + max( max(dxy.x, dxy.y), dxy.z );
+        return max( max(dxy.x, dxy.y), dxy.z );
     #else
-        return 0.04;
+        return 0.0;
     #endif
 }
 
+#ifdef MATERIAL_ENABLE_ANISOTROPY
+    // Aniso Bent Normals
+    // Mc Alley https://www.gdcvault.com/play/1022235/Rendering-the-World-of-Far 
+    vec3 getAnisotropicBentNormal(Geometry geometry, vec3 n, float roughness) {
+        vec3  anisotropyDirection = geometry.anisotropy >= 0.0 ? geometry.anisotropicB : geometry.anisotropicT;
+        vec3  anisotropicTangent  = cross(anisotropyDirection, geometry.viewDir);
+        vec3  anisotropicNormal   = cross(anisotropicTangent, anisotropyDirection);
+        // reduce stretching for (roughness < 0.2), refer to https://advances.realtimerendering.com/s2018/Siggraph%202018%20HDRP%20talk_with%20notes.pdf 80
+        vec3  bentNormal          = normalize( mix(n, anisotropicNormal, abs(geometry.anisotropy) * saturate( 5.0 * roughness)) );
+
+        return bentNormal;
+    }
+#endif
+
 void initGeometry(out Geometry geometry, bool isFrontFacing){
     geometry.position = v_pos;
-    geometry.viewDir =  normalize(camera_Position - v_pos);
-
-    #if defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE)
+    #ifdef CAMERA_ORTHOGRAPHIC
+        geometry.viewDir =  -camera_Forward;
+    #else
+        geometry.viewDir =  normalize(camera_Position - v_pos);
+    #endif
+    #if defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) || defined(MATERIAL_ENABLE_ANISOTROPY)
         mat3 tbn = getTBN(isFrontFacing);
     #endif
 
@@ -43,16 +60,31 @@ void initGeometry(out Geometry geometry, bool isFrontFacing){
         geometry.clearCoatDotNV = saturate( dot(geometry.clearCoatNormal, geometry.viewDir) );
     #endif
 
+    #ifdef MATERIAL_ENABLE_ANISOTROPY
+        float anisotropy = material_AnisotropyInfo.z;
+        vec3 anisotropicDirection = vec3(material_AnisotropyInfo.xy, 0.0);
+        #ifdef MATERIAL_HAS_ANISOTROPY_TEXTURE
+            vec3 anisotropyTextureInfo = texture2D( material_AnisotropyTexture, v_uv ).rgb;
+            anisotropy *= anisotropyTextureInfo.b;
+            anisotropicDirection.xy *= anisotropyTextureInfo.rg * 2.0 - 1.0;
+        #endif
+
+        geometry.anisotropy = anisotropy;
+        geometry.anisotropicT = normalize(tbn * anisotropicDirection);
+        geometry.anisotropicB = normalize(cross(geometry.normal, geometry.anisotropicT));
+    #endif
 }
 
-void initMaterial(out Material material, const in Geometry geometry){
+void initMaterial(out Material material, inout Geometry geometry){
         vec4 baseColor = material_BaseColor;
         float metal = material_Metal;
         float roughness = material_Roughness;
         vec3 specularColor = material_PBRSpecularColor;
         float glossiness = material_Glossiness;
         float alphaCutoff = material_AlphaCutoff;
-        float F0 = pow2( (material_IOR - 1.0) / (material_IOR + 1.0) );
+        float f0 = pow2( (material_IOR - 1.0) / (material_IOR + 1.0) );
+
+        material.f0 = f0;
 
         #ifdef MATERIAL_HAS_BASETEXTURE
             vec4 baseTextureColor = texture2D(material_BaseTexture, v_uv);
@@ -91,7 +123,7 @@ void initMaterial(out Material material, const in Geometry geometry){
 
         #ifdef IS_METALLIC_WORKFLOW
             material.diffuseColor = baseColor.rgb * ( 1.0 - metal );
-            material.specularColor = mix( vec3(F0), baseColor.rgb, metal );
+            material.specularColor = mix( vec3(f0), baseColor.rgb, metal );
             material.roughness = roughness;
         #else
             float specularStrength = max( max( specularColor.r, specularColor.g ), specularColor.b );
@@ -100,7 +132,7 @@ void initMaterial(out Material material, const in Geometry geometry){
             material.roughness = 1.0 - glossiness;
         #endif
 
-        material.roughness = max(material.roughness, getAARoughnessFactor(geometry.normal));
+        material.roughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(material.roughness + getAARoughnessFactor(geometry.normal), 1.0));
 
         #ifdef MATERIAL_ENABLE_CLEAR_COAT
             material.clearCoat = material_ClearCoat;
@@ -112,7 +144,7 @@ void initMaterial(out Material material, const in Geometry geometry){
                 material.clearCoatRoughness *= texture2D( material_ClearCoatRoughnessTexture, v_uv ).g;
             #endif
             material.clearCoat = saturate( material.clearCoat );
-            material.clearCoatRoughness = max(material.clearCoatRoughness, getAARoughnessFactor(geometry.clearCoatNormal));
+            material.clearCoatRoughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(material.clearCoatRoughness + getAARoughnessFactor(geometry.clearCoatNormal), 1.0));
         #endif
 
         #ifdef MATERIAL_IS_TRANSPARENT
@@ -120,6 +152,10 @@ void initMaterial(out Material material, const in Geometry geometry){
         #else
             material.opacity = 1.0;
         #endif
+        #ifdef MATERIAL_ENABLE_ANISOTROPY
+            geometry.anisotropicN = getAnisotropicBentNormal(geometry, geometry.normal, material.roughness);
+        #endif
+
 }
 
 // direct + indirect

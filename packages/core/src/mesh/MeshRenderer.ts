@@ -62,13 +62,14 @@ export class MeshRenderer extends Renderer {
    * @internal
    */
   protected override _onDestroy(): void {
-    super._onDestroy();
     const mesh = this._mesh;
     if (mesh) {
-      mesh.destroyed || mesh._addReferCount(-1);
+      mesh.destroyed || this._addResourceReferCount(mesh, -1);
       mesh._updateFlagManager.removeListener(this._onMeshChanged);
       this._mesh = null;
     }
+
+    super._onDestroy();
   }
 
   /**
@@ -146,33 +147,35 @@ export class MeshRenderer extends Renderer {
       this._dirtyUpdateFlag &= ~MeshRendererUpdateFlags.VertexElementMacro;
     }
 
-    const materials = this._materials;
+    const { _materials: materials, _engine: engine } = this;
     const subMeshes = mesh.subMeshes;
-    const renderPipeline = context.camera._renderPipeline;
-    const meshRenderDataPool = this._engine._renderDataPool;
+    const renderElement = engine._renderElementPool.get();
+    renderElement.set(this.priority, this._distanceForSort);
+    const subRenderElementPool = engine._subRenderElementPool;
     for (let i = 0, n = subMeshes.length; i < n; i++) {
       let material = materials[i];
       if (!material) {
         continue;
       }
-      if (material.destroyed) {
+      if (material.destroyed || material.shader.destroyed) {
         material = this.engine._meshMagentaMaterial;
       }
 
-      const renderData = meshRenderDataPool.getFromPool();
-      renderData.setX(this, material, mesh._primitive, subMeshes[i]);
-      renderPipeline.pushRenderData(context, renderData);
+      const subRenderElement = subRenderElementPool.get();
+      subRenderElement.set(this, material, mesh._primitive, subMeshes[i]);
+      renderElement.addSubRenderElement(subRenderElement);
     }
+    context.camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
   private _setMesh(mesh: Mesh): void {
     const lastMesh = this._mesh;
     if (lastMesh) {
-      lastMesh._addReferCount(-1);
+      this._addResourceReferCount(lastMesh, -1);
       lastMesh._updateFlagManager.removeListener(this._onMeshChanged);
     }
     if (mesh) {
-      mesh._addReferCount(1);
+      this._addResourceReferCount(mesh, 1);
       mesh._updateFlagManager.addListener(this._onMeshChanged);
       this._dirtyUpdateFlag |= MeshRendererUpdateFlags.All;
     }

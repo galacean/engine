@@ -1,7 +1,7 @@
+import { IHardwareRenderer } from "@galacean/engine-design";
 import { Color, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { ColorSpace } from "../enums/ColorSpace";
-import { IHardwareRenderer } from "../renderingHardwareInterface/IHardwareRenderer";
 import { Texture } from "../texture/Texture";
 import { ShaderPropertyValueType } from "./ShaderData";
 

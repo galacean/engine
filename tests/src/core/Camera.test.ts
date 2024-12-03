@@ -1,4 +1,4 @@
-import { Camera, CameraClearFlags, Entity, Layer } from "@galacean/engine-core";
+import { Camera, CameraClearFlags, Entity, Layer, ReplacementFailureStrategy, Shader } from "@galacean/engine-core";
 import { Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
@@ -6,12 +6,13 @@ import { expect } from "chai";
 describe("camera test", function () {
   const canvasDOM = new OffscreenCanvas(256, 256);
   let rootEntity: Entity;
+  let engine: WebGLEngine;
   let camera: Camera;
   let identityMatrix: Matrix = new Matrix();
 
   before(async function () {
     this.timeout(10000);
-    const engine = await WebGLEngine.create({ canvas: canvasDOM });
+    engine = await WebGLEngine.create({ canvas: canvasDOM });
     rootEntity = engine.sceneManager.scenes[0].createRootEntity();
     camera = rootEntity.addComponent(Camera);
   });
@@ -20,7 +21,7 @@ describe("camera test", function () {
     // Test default values
     expect(camera.aspectRatio).to.eq(1);
     expect(camera.entity.transform.worldPosition).not.to.be.undefined;
-    expect(camera.viewport).to.deep.eq(new Vector4(0, 0, 1, 1));
+    expect(camera.viewport).to.deep.include(new Vector4(0, 0, 1, 1).toJSON());
     expect(camera.fieldOfView).to.eq(45);
     expect(camera.isOrthographic).to.eq(false);
 
@@ -65,9 +66,9 @@ describe("camera test", function () {
     // Test viewport
     const originViewPort = new Vector4(0, 0, 1, 1);
     const expectedViewPort = new Vector4(0, 1, 0, 1);
-    expect(camera.viewport).to.deep.eq(originViewPort);
+    expect(camera.viewport).to.deep.include(originViewPort.toJSON());
     camera.viewport = expectedViewPort;
-    expect(camera.viewport).to.deep.eq(expectedViewPort);
+    expect(camera.viewport).to.deep.include(expectedViewPort.toJSON());
     camera.viewport = originViewPort;
 
     // Test orthographicSize
@@ -77,31 +78,50 @@ describe("camera test", function () {
     camera.orthographicSize = expectedOrthographicSize;
     expect(camera.orthographicSize).to.eq(expectedOrthographicSize);
     camera.orthographicSize = orthographicSize;
+    const testVS = `    
+    void main() {
+      gl_Position = vec4(1.0, 1.0, 1.0, 1.0);
+    }`;
+
+    const testFS = `    
+    void main() {
+      gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    }
+    `;
+
+    const shader = Shader.create("TestReplaceShader", testVS, testFS);
 
     // Test ReplacementShader
+    camera.setReplacementShader(shader, "CanReplace");
+    expect(camera["_replacementShader"]).to.eq(shader);
+    expect(camera["_replacementSubShaderTag"].name).to.eq("CanReplace");
+    expect(camera["_replacementFailureStrategy"]).to.eq(ReplacementFailureStrategy.KeepOriginalShader);
+
+    camera.setReplacementShader(shader, "CanReplace", ReplacementFailureStrategy.DoNotRender);
+    expect(camera["_replacementShader"]).to.eq(shader);
+    expect(camera["_replacementSubShaderTag"].name).to.eq("CanReplace");
+    expect(camera["_replacementFailureStrategy"]).to.eq(ReplacementFailureStrategy.DoNotRender);
+
     camera.resetReplacementShader();
     expect(camera["_replacementShader"]).to.eq(null);
     expect(camera["_replacementSubShaderTag"]).to.eq(null);
+    expect(camera["_replacementFailureStrategy"]).to.eq(null);
   });
 
   it("static void function", () => {
-    // Test that restore the automatic calculation of projection matrix.
-    camera.resetProjectionMatrix();
-    expect(camera["_isProjMatSetting"]).to.eq(false);
-
     // Test that restore the automatic calculation of the aspect ratio.
     camera.resetAspectRatio();
     expect(camera["_customAspectRatio"]).to.be.undefined;
   });
 
   it("enable HDR", () => {
-    // origin method has not been implemented
-
     // get enableHDR
     expect(camera.enableHDR).to.eq(false);
+    expect(camera.independentCanvasEnabled).to.eq(false);
     // set enableHDR
     camera.enableHDR = true;
-    expect(camera.enableHDR).to.eq(false);
+    expect(camera.enableHDR).to.eq(true);
+    expect(camera.independentCanvasEnabled).to.eq(true);
   });
 
   it("view matrix", () => {
@@ -147,6 +167,15 @@ describe("camera test", function () {
     const worldPoint = camera.viewportToWorldPoint(viewportPoint, new Vector3());
     const expectedviewportPoint = camera.worldToViewportPoint(worldPoint, new Vector3());
     expect(viewportPoint.z).to.be.closeTo(expectedviewportPoint.z, 0.1, "Result z should match expected value");
+
+    const webCanvas = engine.canvas;
+    webCanvas.width = 100;
+    webCanvas.height = 1000;
+    camera.viewportToWorldPoint(viewportPoint, worldPoint);
+    expect(worldPoint.x).to.be.closeTo(-1.73, 0.1, "Result x should match expected value");
+    expect(worldPoint.y).to.be.closeTo(17.32, 0.1, "Result y should match expected value");
+    expect(worldPoint.z).to.be.closeTo(-30, 0.1, "Result z should match expected value");
+    webCanvas.width = webCanvas.height = 256;
   });
 
   it("viewport to world point, while isOrthographic = true", () => {
@@ -265,6 +294,69 @@ describe("camera test", function () {
     // Test reset projection matrix
     camera.projectionMatrix = camera.viewMatrix;
     expect(camera.projectionMatrix).to.deep.eq(camera.viewMatrix);
+  });
+
+  it("Custom view matrix", () => {
+    const customViewMatrix = new Matrix(0.1, 0.2, 0.3, 0, 0, 0, 1, 0, 1, 0, 0.5, 0, 0, 0, 0, 1);
+    camera.viewMatrix = customViewMatrix;
+    expect(camera.viewMatrix).to.deep.eq(customViewMatrix);
+
+    camera.entity.transform.position = new Vector3(-1, 2, 3);
+    camera.entity.transform.rotation = new Vector3(-20, -40, 0);
+
+    camera.resetViewMatrix();
+    expect(camera.viewMatrix).to.deep.eq(
+      new Matrix(
+        0.7660444378852844,
+        0.21984632313251495,
+        -0.6040228009223938,
+        0,
+        1.2836363083579272e-9,
+        0.9396926164627075,
+        0.3420201241970062,
+        -0,
+        0.6427876353263855,
+        -0.2620026171207428,
+        0.7198463082313538,
+        0,
+        -1.162318468093872,
+        -0.8735310435295105,
+        -3.447601795196533,
+        1
+      )
+    );
+  });
+
+  it("Custom projection matrix", () => {
+    const customProjectionMatrix = new Matrix(0.1, 0.2, 0.3, 0, 0, 0, 1, 0, 1, 0, 0.5, 0, 0, 0, 0, 1);
+    camera.projectionMatrix = customProjectionMatrix;
+    expect(camera.projectionMatrix).to.deep.eq(customProjectionMatrix);
+
+    camera.fieldOfView = 60;
+    camera.nearClipPlane = 0.3;
+    camera.farClipPlane = 1000;
+
+    camera.resetProjectionMatrix();
+    expect(camera.projectionMatrix).to.deep.eq(
+      new Matrix(
+        0.8660253882408142,
+        0,
+        0,
+        0,
+        0,
+        1.7320507764816284,
+        0,
+        0,
+        0,
+        0,
+        -1.0006002187728882,
+        -1,
+        0,
+        0,
+        -0.6001800298690796,
+        0
+      )
+    );
   });
 
   it("destroy test", () => {

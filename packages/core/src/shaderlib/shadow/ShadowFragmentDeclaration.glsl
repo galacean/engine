@@ -9,8 +9,8 @@
         #include <ShadowCoord>
     #endif
     
-    // intensity, resolution, sunIndex
-    uniform vec3 scene_ShadowInfo;
+    // intensity, null, fadeScale, fadeBias
+    uniform vec4 scene_ShadowInfo;
     uniform vec4 scene_ShadowMapSize;
 
     #ifdef GRAPHICS_API_WEBGL2
@@ -73,6 +73,13 @@
         }
     #endif
 
+
+    float getShadowFade(vec3 positionWS){
+        vec3 camToPixel = positionWS - camera_Position;
+        float distanceCamToPixel2 = dot(camToPixel, camToPixel);
+        return saturate( distanceCamToPixel2 * scene_ShadowInfo.z + scene_ShadowInfo.w );
+    }
+
     float sampleShadowMap() {
         #if SCENE_SHADOW_CASCADED_COUNT == 1
             vec3 shadowCoord = v_shadowCoord;
@@ -93,7 +100,9 @@
         #if SCENE_SHADOW_TYPE == 3
             attenuation = sampleShadowMapFiltered9(scene_ShadowMap, shadowCoord, scene_ShadowMapSize);
         #endif
-            attenuation = mix(1.0, attenuation, scene_ShadowInfo.x);
+
+        float shadowFade = getShadowFade(v_pos);
+        attenuation = mix(1.0, mix(attenuation, 1.0, shadowFade), scene_ShadowInfo.x);
         }
         return attenuation;
     }

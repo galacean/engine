@@ -1,7 +1,7 @@
-import { Sprite, SpriteMask, Texture2D, SpriteMaskLayer } from "@galacean/engine-core";
+import { Sprite, SpriteMask, SpriteMaskLayer, Texture2D } from "@galacean/engine-core";
+import { Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
-import { Vector2, Vector4, Rect, Vector3 } from "@galacean/engine-math";
 
 describe("SpriteMask", async () => {
   const canvas = document.createElement("canvas");
@@ -156,8 +156,8 @@ describe("SpriteMask", async () => {
     spriteMask.sprite = sprite;
 
     const rootEntityClone = rootEntity.clone();
-    const spriteMaskClone = rootEntityClone.getComponent(SpriteMask);
-    expect(spriteMaskClone.sprite).to.deep.eq(spriteMask.sprite);
+    const spriteMaskClone = rootEntityClone.getComponents(SpriteMask, []);
+    expect(spriteMaskClone[spriteMaskClone.length - 1].sprite).to.deep.eq(spriteMask.sprite);
   });
 
   it("destroy", () => {
@@ -166,19 +166,26 @@ describe("SpriteMask", async () => {
     spriteMask.sprite = new Sprite(engine, new Texture2D(engine, 100, 200));
     spriteMask.destroy();
     expect(spriteMask.sprite).to.eq(null);
-    // @ts-ignore
-    expect(spriteMask._verticesData).to.eq(null);
   });
 
   it("_render", () => {
     const rootEntity = scene.getRootEntity();
     const spriteMask = rootEntity.addComponent(SpriteMask);
     const texture2d = new Texture2D(engine, 100, 200);
-    const context = { camera: { _renderPipeline: { _allSpriteMasks: { add: () => {} } } } };
+    const context = { camera: { engine: { _maskManager: { addSpriteMask: () => {} } } } };
     // @ts-ignore
     spriteMask._render(context);
     // @ts-ignore
-    let { positions, uvs } = spriteMask._verticesData;
+    const subChunk = spriteMask._subChunk;
+    const vertices = subChunk.chunk.vertices;
+    const positions: Array<Vector3> = [];
+    const uvs: Array<Vector2> = [];
+    let index = subChunk.vertexArea.start;
+    for (let i = 0; i < 4; ++i) {
+      positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
+      uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
+      index += 9;
+    }
     expect(positions[0]).to.deep.eq(new Vector3(0, 0, 0));
     expect(positions[1]).to.deep.eq(new Vector3(0, 0, 0));
     expect(positions[2]).to.deep.eq(new Vector3(0, 0, 0));
@@ -197,6 +204,14 @@ describe("SpriteMask", async () => {
     spriteMask.sprite = sprite;
     // @ts-ignore
     spriteMask._render(context);
+    positions.length = 0;
+    uvs.length = 0;
+    index = subChunk.vertexArea.start;
+    for (let i = 0; i < 4; ++i) {
+      positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
+      uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
+      index += 9;
+    }
     // @ts-ignore
     expect(positions[0]).to.deep.eq(new Vector3(-0.5, -1, 0));
     expect(positions[1]).to.deep.eq(new Vector3(0.5, -1, 0));

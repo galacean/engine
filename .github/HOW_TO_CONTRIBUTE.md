@@ -15,11 +15,11 @@ The following is a set of guidelines for contributing to Galacean. Please spend 
 1. Ask a question
 
 
-<br />Before reqorting an issue, please take the following steps:<br />
+<br />Before reporting an issue, please take the following steps:<br />
 
 1. Search the existing issues.
 1. Clearly describe the issue including steps to reproduce when it is a bug.
-1. Provite an online example. Make use of [jsFiddle](http://jsfiddle.net/), [jsBin](http://jsbin.com/).
+1. Provide an online example. Make use of [jsFiddle](http://jsfiddle.net/), [jsBin](http://jsbin.com/).
 
 
 <br />If you open an issue that does not conform to the requirements, **it will be closed immediately**.<br />
@@ -47,6 +47,8 @@ The following is a set of guidelines for contributing to Galacean. Please spend 
 
 - Clone the Galacean playground repository and write a demo for your change.
 - Write an uint test in the Galacean repository and run `npm run test` to execute the uint test.
+
+- [Write an e2e test](https://github.com/galacean/runtime/wiki/How-to-write-an-e2e-Test-for-runtime) in the Galacean repository and run `npm run e2e` to execute the e2e test.
 
 
 

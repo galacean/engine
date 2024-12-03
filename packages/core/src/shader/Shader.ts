@@ -1,6 +1,7 @@
 import { IShaderLab } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
 import { Engine } from "../Engine";
+import { IReferable } from "../asset/IReferable";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPass } from "./ShaderPass";
@@ -19,7 +20,7 @@ import { RenderState } from "./state/RenderState";
 /**
  * Shader for rendering.
  */
-export class Shader {
+export class Shader implements IReferable {
   /** @internal */
   static readonly _compileMacros: ShaderMacroCollection = new ShaderMacroCollection();
 
@@ -88,54 +89,59 @@ export class Shader {
         throw "ShaderLab has not been set up yet.";
       }
 
-      const shaderInfo = Shader._shaderLab.parseShader(nameOrShaderSource);
-      if (shaderMap[shaderInfo.name]) {
-        throw `Shader named "${shaderInfo.name}" already exists.`;
+      const shaderContent = Shader._shaderLab._parseShaderContent(nameOrShaderSource);
+      if (shaderMap[shaderContent.name]) {
+        console.error(`Shader named "${shaderContent.name}" already exists.`);
+        return;
       }
-      const subShaderList = shaderInfo.subShaders.map((subShaderInfo) => {
-        const passList = subShaderInfo.passes.map((passInfo) => {
-          if (typeof passInfo === "string") {
+      const subShaderList = shaderContent.subShaders.map((subShaderContent) => {
+        const passList = subShaderContent.passes.map((passInfo) => {
+          if (passInfo.isUsePass) {
             // Use pass reference
-            const paths = passInfo.split("/");
+            const paths = passInfo.name.split("/");
             return Shader.find(paths[0])
               ?.subShaders.find((subShader) => subShader.name === paths[1])
               ?.passes.find((pass) => pass.name === paths[2]);
           }
 
-          const shaderPass = new ShaderPass(
+          const shaderPassContent = new ShaderPass(
             passInfo.name,
-            passInfo.vertexSource,
-            passInfo.fragmentSource,
+            passInfo.contents,
+            passInfo.vertexEntry,
+            passInfo.fragmentEntry,
             passInfo.tags
           );
+
           const renderStates = passInfo.renderStates;
           const renderState = new RenderState();
-          shaderPass._renderState = renderState;
 
+          shaderPassContent._renderState = renderState;
           // Parse const render state
-          const constRenderStateInfo = renderStates[0];
-          for (let k in constRenderStateInfo) {
-            Shader._applyConstRenderStates(renderState, <RenderStateElementKey>parseInt(k), constRenderStateInfo[k]);
+          const { constantMap, variableMap } = renderStates;
+          for (let k in constantMap) {
+            Shader._applyConstRenderStates(renderState, <RenderStateElementKey>parseInt(k), constantMap[k]);
           }
 
           // Parse variable render state
-          const variableRenderStateInfo = renderStates[1];
           const renderStateDataMap = {} as Record<number, ShaderProperty>;
-          for (let k in variableRenderStateInfo) {
-            renderStateDataMap[k] = ShaderProperty.getByName(variableRenderStateInfo[k]);
+          for (let k in variableMap) {
+            renderStateDataMap[k] = ShaderProperty.getByName(variableMap[k]);
           }
-          shaderPass._renderStateDataMap = renderStateDataMap;
-          return shaderPass;
+          shaderPassContent._renderStateDataMap = renderStateDataMap;
+
+          return shaderPassContent;
         });
-        return new SubShader(shaderInfo.name, passList, subShaderInfo.tags);
+
+        return new SubShader(subShaderContent.name, passList, subShaderContent.tags);
       });
 
-      shader = new Shader(shaderInfo.name, subShaderList);
-      shaderMap[shaderInfo.name] = shader;
+      shader = new Shader(shaderContent.name, subShaderList);
+      shaderMap[shaderContent.name] = shader;
       return shader;
     } else {
       if (shaderMap[nameOrShaderSource]) {
-        throw `Shader named "${nameOrShaderSource}" already exists.`;
+        console.error(`Shader named "${nameOrShaderSource}" already exists.`);
+        return;
       }
       if (typeof vertexSourceOrShaderPassesOrSubShaders === "string") {
         const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShaders, fragmentSource);
@@ -165,56 +171,6 @@ export class Shader {
    */
   static find(name: string): Shader {
     return Shader._shaderMap[name];
-  }
-
-  private _subShaders: SubShader[];
-
-  /**
-   * Sub shaders of the shader.
-   */
-  get subShaders(): ReadonlyArray<SubShader> {
-    return this._subShaders;
-  }
-
-  private constructor(
-    public readonly name: string,
-    subShaders: SubShader[]
-  ) {
-    this.name = name;
-    this._subShaders = subShaders;
-  }
-
-  /**
-   * Compile shader variant by macro name list.
-   *
-   * @remarks
-   * Usually a shader contains some macros,any combination of macros is called shader variant.
-   *
-   * @param engine - Engine to which the shader variant belongs
-   * @param macros - Macro name list
-   * @returns Is the compiled shader variant valid
-   */
-  compileVariant(engine: Engine, macros: string[]): boolean {
-    const compileMacros = Shader._compileMacros;
-    compileMacros.clear();
-    for (let i = 0, n = macros.length; i < n; i++) {
-      compileMacros.enable(ShaderMacro.getByName(macros[i]));
-    }
-
-    const subShaders = this._subShaders;
-    for (let i = 0, n = subShaders.length; i < n; i++) {
-      let isValid: boolean;
-      const { passes } = subShaders[i];
-      for (let j = 0, m = passes.length; j < m; j++) {
-        if (isValid === undefined) {
-          isValid = passes[j]._getShaderProgram(engine, compileMacros).isValid;
-        } else {
-          isValid &&= passes[j]._getShaderProgram(engine, compileMacros).isValid;
-        }
-      }
-      if (isValid) return true;
-    }
-    return false;
   }
 
   private static _applyConstRenderStates(
@@ -305,6 +261,110 @@ export class Shader {
         renderState.renderQueueType = <RenderQueueType>value;
         break;
     }
+  }
+
+  private _refCount: number = 0;
+  private _destroyed: boolean = false;
+  private _subShaders: SubShader[];
+
+  /**
+   * Sub shaders of the shader.
+   */
+  get subShaders(): ReadonlyArray<SubShader> {
+    return this._subShaders;
+  }
+
+  /**
+   * Whether it has been destroyed.
+   */
+  get destroyed(): boolean {
+    return this._destroyed;
+  }
+
+  /**
+   * @internal
+   * path should follow the specifications of [URL.origin](https://developer.mozilla.org/en-US/docs/Web/API/URL/origin), like: `shaders://root/`
+   */
+  _registerPath(path: string) {
+    for (const subShader of this._subShaders) {
+      for (const shaderPass of subShader.passes) {
+        shaderPass._path = path;
+      }
+    }
+  }
+
+  private constructor(
+    public readonly name: string,
+    subShaders: SubShader[]
+  ) {
+    this.name = name;
+    this._subShaders = subShaders;
+  }
+
+  /**
+   * Compile shader variant by macro name list.
+   *
+   * @remarks
+   * Usually a shader contains some macros,any combination of macros is called shader variant.
+   *
+   * @param engine - Engine to which the shader variant belongs
+   * @param macros - Macro name list
+   * @returns Is the compiled shader variant valid
+   */
+  compileVariant(engine: Engine, macros: string[]): boolean {
+    const compileMacros = Shader._compileMacros;
+    compileMacros.clear();
+    for (let i = 0, n = macros.length; i < n; i++) {
+      compileMacros.enable(ShaderMacro.getByName(macros[i]));
+    }
+
+    let isValid = false;
+    const subShaders = this._subShaders;
+    for (let i = 0, n = subShaders.length; i < n; i++) {
+      const { passes } = subShaders[i];
+      for (let j = 0, m = passes.length; j < m; j++) {
+        const shaderProgram = passes[j]._getShaderProgram(engine, compileMacros);
+        isValid = j === 0 ? shaderProgram.isValid : isValid && shaderProgram.isValid;
+      }
+    }
+    return isValid;
+  }
+
+  /**
+   * Destroy the shader.
+   * @param force - Whether to force the destruction, if it is false, refCount = 0 can be released successfully.
+   * @returns Whether the release was successful.
+   */
+  destroy(force: boolean = false): boolean {
+    if (!force && this._refCount !== 0) {
+      return false;
+    }
+
+    const subShaders = this._subShaders;
+    for (let i = 0, n = subShaders.length; i < n; i++) {
+      const passes = subShaders[i].passes;
+      for (let j = 0, m = passes.length; j < m; j++) {
+        passes[j]._destroy();
+      }
+    }
+
+    delete Shader._shaderMap[this.name];
+    this._destroyed = true;
+    return true;
+  }
+
+  /**
+   * @internal
+   */
+  _getReferCount(): number {
+    return this._refCount;
+  }
+
+  /**
+   * @internal
+   */
+  _addReferCount(value: number): void {
+    this._refCount += value;
   }
 
   /**

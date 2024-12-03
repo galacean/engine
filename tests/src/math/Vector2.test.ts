@@ -148,6 +148,13 @@ describe("Vector2 test", () => {
     expect(toString(a)).to.eq(toString(out));
   });
 
+  it("copyTo", () => {
+    const a = new Vector2(3, 4);
+    const out = new Vector2();
+    a.copyTo(out);
+    expect(toString(a)).to.eq(toString(out));
+  });
+
   it("add", () => {
     const a = new Vector2(3, 4);
     const ret = new Vector2(1, 2);

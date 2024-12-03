@@ -23,6 +23,8 @@ export enum AssetType {
   TextureCube = "TextureCube",
   /** Material. */
   Material = "Material",
+  /** Shader. */
+  Shader = "Shader",
   /** Mesh. */
   Mesh = "Mesh",
   /** AnimationClip. */
@@ -30,6 +32,8 @@ export enum AssetType {
   /** AnimatorController. */
   AnimatorController = "AnimatorController",
   /** Prefab.*/
+  Prefab = "Prefab",
+  /** GLTF.*/
   GLTF = "GLTF",
   /** Compress Texture. */
   KTX = "KTX",
@@ -39,6 +43,8 @@ export enum AssetType {
   KTX2 = "KTX2",
   /** Sprite. */
   Sprite = "Sprite",
+  /** PrimitiveMesh. */
+  PrimitiveMesh = "PrimitiveMesh",
   /** Sprite Atlas. */
   SpriteAtlas = "SpriteAtlas",
   /** Ambient light. */
@@ -49,9 +55,9 @@ export enum AssetType {
   HDR = "HDR",
   /** Font. */
   Font = "Font",
-  /** Source Font, include ttf、 otf and woff. */
+  /** Source Font, include ttf, otf and woff. */
   SourceFont = "SourceFont",
-  /** AudioClip, inclue ogg, wav and mp3 */
+  /** AudioClip, include ogg, wav and mp3. */
   Audio = "Audio",
   /** Project asset. */
   Project = "project"

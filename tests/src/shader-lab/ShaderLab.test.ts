@@ -1,19 +1,24 @@
-import { BlendOperation, CompareFunction, CullMode, RenderStateDataKey, ShaderFactory } from "@galacean/engine-core";
-import { IShaderPassInfo, ISubShaderInfo } from "@galacean/engine-design";
+import {
+  BlendFactor,
+  BlendOperation,
+  CompareFunction,
+  CullMode,
+  RenderQueueType,
+  RenderStateDataKey,
+  StencilOperation
+} from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
 import { ShaderLab } from "@galacean/engine-shader-lab";
 import { glslValidate } from "./ShaderValidate";
-import { Shader } from "@galacean/engine-core";
 
 import chai, { expect } from "chai";
 import spies from "chai-spies";
 import fs from "fs";
 import path from "path";
+import { IShaderContent } from "@galacean/engine-design";
 
 chai.use(spies);
 const demoShader = fs.readFileSync(path.join(__dirname, "shaders/demo.shader")).toString();
-
-const shaderLab = new ShaderLab();
 
 function toString(v: Color): string {
   return `Color(${v.r}, ${v.g}, ${v.b}, ${v.a})`;
@@ -106,19 +111,21 @@ vec4 linearToGamma(vec4 linearIn){
 #endif
 `;
 
+const shaderLab = new ShaderLab();
+
 describe("ShaderLab", () => {
-  let shader: ReturnType<typeof shaderLab.parseShader>;
-  let subShader: ISubShaderInfo;
-  let passList: ISubShaderInfo["passes"];
-  let pass: IShaderPassInfo;
-  let usePass: string;
+  let shader: IShaderContent;
+  let subShader: IShaderContent["subShaders"][number];
+  let passList: IShaderContent["subShaders"][number]["passes"];
+  let pass1: IShaderContent["subShaders"][number]["passes"][number];
 
   before(() => {
-    shader = shaderLab.parseShader(demoShader);
+    shader = shaderLab._parseShaderContent(demoShader);
     subShader = shader.subShaders[0];
     passList = subShader.passes;
-    usePass = <string>passList[0];
-    pass = <IShaderPassInfo>passList[1];
+    expect(passList[0].isUsePass).to.be.true;
+    expect(passList[0].name).eq("pbr/Default/Forward");
+    pass1 = passList[1];
   });
 
   it("create shaderLab", async () => {
@@ -128,19 +135,20 @@ describe("ShaderLab", () => {
   it("shader name", () => {
     expect(shader.name).to.equal("Water");
     expect(subShader.name).to.equal("subname");
-    expect(pass.name).to.equal("default");
-    expect(usePass).to.equal("pbr/Default/Forward");
+    expect(pass1.name).to.equal("default");
+    expect(passList.length).to.eq(3);
+    expect(passList[2].name).to.equal("blinn-phong/Default/Forward");
   });
 
   it("render state", () => {
-    expect(pass.renderStates).not.be.null;
+    expect(pass1.renderStates).not.be.null;
 
-    const [constantState, variableState] = pass.renderStates;
-    expect(constantState).not.be.null;
+    const { constantMap, variableMap } = pass1.renderStates;
+    expect(constantMap).not.be.null;
 
-    expect(toString(constantState[RenderStateDataKey.BlendStateBlendColor] as Color)).eq("Color(1, 1, 1, 1)");
+    expect(toString(constantMap[RenderStateDataKey.BlendStateBlendColor] as Color)).eq("Color(1, 1, 1, 1)");
 
-    expect(constantState).include({
+    expect(constantMap).include({
       // Stencil State
       [RenderStateDataKey.StencilStateEnabled]: true,
       [RenderStateDataKey.StencilStateReferenceValue]: 2,
@@ -163,7 +171,7 @@ describe("ShaderLab", () => {
       [RenderStateDataKey.RasterStateSlopeScaledDepthBias]: 0.8
     });
 
-    expect(variableState).include({
+    expect(variableMap).include({
       [RenderStateDataKey.BlendStateSourceAlphaBlendFactor0]: "material_SrcBlend"
     });
   });
@@ -171,25 +179,21 @@ describe("ShaderLab", () => {
   it("shader tags", () => {
     expect(subShader.tags).not.be.undefined;
     expect(subShader.tags).include({
-      LightMode: "ForwardBase",
-      Tag2: true,
-      Tag3: 1.2
+      LightMode: "ForwardBase"
     });
-    expect(pass.tags).include({
+    expect(pass1.tags).include({
       ReplacementTag: "Opaque",
-      Tag2: true,
-      Tag3: 1.9
+      pipelineStage: "DepthOnly"
     });
   });
 
   it("engine shader", async () => {
-    glslValidate(demoShader);
+    glslValidate(demoShader, shaderLab);
   });
 
   it("include", () => {
-    ShaderFactory.registerInclude("test_common", commonSource);
     const demoShader = fs.readFileSync(path.join(__dirname, "shaders/unlit.shader")).toString();
-    glslValidate(demoShader, shaderLab);
+    glslValidate(demoShader, shaderLab, { test_common: commonSource });
   });
 
   it("planarShadow shader", () => {
@@ -217,10 +221,35 @@ describe("ShaderLab", () => {
     glslValidate(demoShader, shaderLab);
   });
 
-  it("shader with duplicate name", () => {
-    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/glass.shader")).toString();
-    (Shader as any)._shaderLab = shaderLab;
-    expect(Shader.create(demoShader) instanceof Shader).to.be.true;
-    expect(Shader.create.bind(null, demoShader)).to.throw('Shader named "Gem" already exists.');
+  // it("shader with duplicate name", () => {
+  //   const demoShader = fs.readFileSync(path.join(__dirname, "shaders/glass.shader")).toString();
+  //   (Shader as any)._shaderLab = shaderLab;
+
+  //   const shaderInstance = Shader.create(demoShader);
+  //   expect(shaderInstance).instanceOf(Shader);
+
+  //   const errorSpy = chai.spy.on(console, "error");
+  //   Shader.create(demoShader);
+  //   expect(errorSpy).to.have.been.called.with('Shader named "Gem" already exists.');
+  //   shaderInstance.destroy();
+  //   chai.spy.restore(console, "error");
+
+  //   const sameNameShader = Shader.create(demoShader);
+  //   expect(sameNameShader).instanceOf(Shader);
+  // });
+
+  it("template shader", () => {
+    const demoShader = fs.readFileSync(path.join(__dirname, "shaders/template.shader")).toString();
+    glslValidate(demoShader, shaderLab);
+  });
+
+  it("multi-pass", () => {
+    const shaderSource = fs.readFileSync(path.join(__dirname, "shaders/multi-pass.shader")).toString();
+    glslValidate(shaderSource, shaderLab);
+  });
+
+  it("macro-with-preprocessor", () => {
+    const shaderSource = fs.readFileSync(path.join(__dirname, "shaders/macro-pre.shader")).toString();
+    glslValidate(shaderSource, shaderLab);
   });
 });

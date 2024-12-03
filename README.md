@@ -5,7 +5,9 @@
 ![npm-download](https://img.shields.io/npm/dm/@galacean/engine)
 [![codecov](https://codecov.io/gh/galacean/engine/branch/main/graph/badge.svg?token=KR2UBKE3OX)](https://codecov.io/gh/galacean/engine)
 
-Galacean is a **web-first** and **mobile-first** high-performance real-time interactive engine. Use **component system design** and pursue ease of use and light weight. Developers can independently use and write Typescript scripts to develop projects using pure code.
+[Galacean](https://galacean.antgroup.com/editor) is a **web-first** and **mobile-first** high-performance real-time interactive engine. Use **component system design** and pursue ease of use and light weight. Developers can independently use and write Typescript scripts to develop projects using pure code.
+
+![image](https://github.com/user-attachments/assets/057c2c99-85a8-4ace-a268-c70daa1a449e)
 
 ## Features
 
@@ -75,6 +77,16 @@ Everyone is welcome to join us! Whether you find a bug, have a great feature req
 
 Make sure to read the [Contributing Guide](.github/HOW_TO_CONTRIBUTE.md) / [贡献指南](https://github.com/galacean/engine/wiki/%E5%A6%82%E4%BD%95%E4%B8%8E%E6%88%91%E4%BB%AC%E5%85%B1%E5%BB%BA-Oasis-%E5%BC%80%E6%BA%90%E4%BA%92%E5%8A%A8%E5%BC%95%E6%93%8E) before submitting changes.
 
+## Clone
+Prerequisites:
+- [git-lfs](https://git-lfs.com/) (Install by official website)
+  
+Clone this repository:
+
+```sh
+git clone git@github.com:galacean/runtime.git
+```
+
 ## Build
 
 Prerequisites:
@@ -96,10 +108,9 @@ npm run b:all
 
 ## Links
 
-- [Official Site](https://galacean.antgroup.com/)
-- [Examples](https://galacean.antgroup.com/#/examples/latest)
-- [Documentation](https://galacean.antgroup.com/#/docs/latest/en/install)
-- [API References](https://galacean.antgroup.com/#/api/latest)
+- [Official Site](https://galacean.antgroup.com/engine)
+- [Editor](https://galacean.antgroup.com/editor)
+- [Documentation](https://galacean.antgroup.com/engine/docs)
 
 ## License
 

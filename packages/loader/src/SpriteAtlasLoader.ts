@@ -20,14 +20,15 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
   private _tempVec2: Vector2 = new Vector2();
   private _tempVec4: Vector4 = new Vector4();
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<SpriteAtlas> {
-    return new AssetPromise<SpriteAtlas>((resolve, reject, _, onCancel) => {
+    return new AssetPromise<SpriteAtlas>((resolve, reject, _, __, onCancel) => {
       const chainPromises = [];
       onCancel(() => {
         for (let i = 0; i < chainPromises.length; i++) {
           chainPromises[i].cancel();
         }
       });
-      const configPromise = this.request<AtlasConfig>(item.url, {
+      // @ts-ignore
+      const configPromise = resourceManager._request<AtlasConfig>(item.url, {
         ...item,
         type: "json"
       });
@@ -38,12 +39,12 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
           const atlasItemsLen = atlasItems ? atlasItems.length : 0;
           const { engine } = resourceManager;
           const spriteAtlas = new SpriteAtlas(engine);
-          if (atlasItemsLen < 0) {
+          if (atlasItemsLen <= 0) {
             resolve(spriteAtlas);
             return;
           }
           chainPromises.length = 0;
-          for (let i = 0; i < atlasItems.length; i++) {
+          for (let i = 0; i < atlasItemsLen; i++) {
             const atlasItem = atlasItems[i];
             if (atlasItem.img) {
               chainPromises.push(
@@ -84,7 +85,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
 
   private _makeSprite(engine: Engine, config: AtlasSprite, texture?: Texture2D): Sprite {
     // Generate a SpriteAtlas object.
-    const { region, atlasRegionOffset, atlasRegion, pivot, border } = config;
+    const { region, atlasRegionOffset, atlasRegion, pivot, border, width, height } = config;
     const sprite = new Sprite(
       engine,
       texture,
@@ -103,6 +104,8 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
       }
       config.atlasRotated && (sprite.atlasRotated = true);
     }
+    isNaN(width) || (sprite.width = width);
+    isNaN(height) || (sprite.height = height);
     return sprite;
   }
 }

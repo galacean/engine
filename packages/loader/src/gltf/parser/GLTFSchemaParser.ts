@@ -1,4 +1,4 @@
-import { AssetPromise, request } from "@galacean/engine-core";
+import { Utils, request } from "@galacean/engine-core";
 import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { BufferRequestInfo } from "../../GLTFContentRestorer";
 import { IGLTF } from "../GLTFSchema";
@@ -9,32 +9,35 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 @registerGLTFParser(GLTFParserType.Schema)
 export class GLTFSchemaParser extends GLTFParser {
   parse(context: GLTFParserContext): Promise<IGLTF> {
-    const { glTFResource, contentRestorer } = context;
+    const { glTFResource, contentRestorer, resourceManager } = context;
     const url = glTFResource.url;
     const restoreBufferRequests = contentRestorer.bufferRequests;
     const requestConfig = <RequestConfig>{ type: "arraybuffer" };
-    const isGLB = this._isGLB(url);
-
-    contentRestorer.isGLB = isGLB;
-    const promise: AssetPromise<IGLTF> = isGLB
-      ? request<ArrayBuffer>(url, requestConfig)
-          .then((glb) => {
-            restoreBufferRequests.push(new BufferRequestInfo(url, requestConfig));
-            return GLTFUtils.parseGLB(context, glb);
-          })
-          .then(({ glTF, buffers }) => {
-            context.buffers = buffers;
-            return glTF;
-          })
-      : request(url, {
-          type: "json"
-        });
-
-    return promise;
-  }
-
-  private _isGLB(url: string): boolean {
-    const index = url.lastIndexOf(".");
-    return url.substring(index + 1, index + 4) === "glb";
+    // @ts-ignore
+    const remoteUrl = resourceManager._getRemoteUrl(url);
+    return (
+      resourceManager
+        // @ts-ignore
+        ._requestByRemoteUrl<ArrayBuffer>(remoteUrl, requestConfig)
+        .onProgress(undefined, context._onTaskDetail)
+        .then((buffer) => {
+          const parseResult = GLTFUtils.parseGLB(context, buffer);
+          // If the buffer is a GLB file, we need to restore the buffer data
+          if (parseResult?.glTF) {
+            restoreBufferRequests.push(new BufferRequestInfo(remoteUrl, requestConfig));
+          }
+          return parseResult;
+        })
+        .then((result) => {
+          if (result?.glTF) {
+            contentRestorer.isGLB = true;
+            context.buffers = result.buffers;
+            return result.glTF;
+          } else {
+            contentRestorer.isGLB = false;
+            return JSON.parse(Utils.decodeText(new Uint8Array(result.originBuffer)));
+          }
+        })
+    );
   }
 }

@@ -1,0 +1,177 @@
+---
+order: 3
+title: 实体
+type: 核心
+label: Core
+---
+
+## 编辑器使用
+
+**[层级面板](/docs/interface/hierarchy)** 位于编辑器的最左侧，它以树状结构显示当前场景中的所有节点，场景节点是所有其他节点的父节点，包括相机、灯光、网格等等。在节点面板上方有一个搜索框，可以模糊搜索场景中的节点，来快速定位。通过 **[层级面板](/docs/interface/hierarchy)**，你可以添加或删除节点，通过拖拽的方式来排序从而更好的组织节点。
+
+<Callout type="info">
+编辑器中的节点在引擎中被称为 `实体`，为了避免混淆，下文统一使用 `实体` 。
+</Callout>
+
+<Image
+  src="https://gw.alipayobjects.com/zos/OasisHub/e85a8a9b-decd-4a80-a7b2-9eccaeed1e2c/image-20230925173904478.png"
+  figcaption="The Hierarchy Panel"
+  style={{ zoom: "50%" }}
+/>
+
+### 新增实体
+
+要新增实体，你可以点击 **[层级面板](/docs/interface/hierarchy)** 的添加按钮，或右键某个实体后选择添加子实体。添加完成后，你可以在 **[检查器面板](/docs/interface/inspector)** 中对新实体的属性进行编辑。如果使用新增实体按钮, 你还可以快速创建立方体/球体等基本模型
+
+### 编辑实体
+
+点击实体，你就可以对它进行编辑，在右侧的 **[检查器面板](/docs/interface/inspector)** 中你可以编辑它的以下内容：
+
+#### 名字
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*2v38SJ3U_REAAAAAAAAAAAAADsJ_AQ/original"
+  figcaption="Name"
+  style={{ zoom: "50%" }}
+/>
+
+#### 是否激活
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*JMvRRbBV3dIAAAAAAAAAAAAADsJ_AQ/original"
+  figcaption="IsActive"
+    style={{zoom:"50%"}}
+
+/>
+
+#### Transform
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QG3KTJ-x4s0AAAAAAAAAAAAADsJ_AQ/original"
+  figcaption="Transform"
+    style={{zoom:"50%"}}
+
+/>
+
+#### 所属层
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*JmWAR6PUjNIAAAAAAAAAAAAADsJ_AQ/original"
+  figcaption="Layer"
+    style={{zoom:"50%"}}/>
+
+Galacean支持分层管理实体，它可以用于以下场景：
+
+1. [裁剪遮罩](/docs/graphics/camera/component/#裁剪遮罩)：用于控制哪些层在渲染过程中被剔除。
+2. [射线检测](/docs/physics/manager/#使用射线检测)：用于控制哪些层的实体可以被射线检测到。
+
+
+#### 增删组件
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*u5T_RaYLOegAAAAAAAAAAAAADsJ_AQ/original"
+  figcaption="AddComponent"
+    style={{zoom:"50%"}}
+
+/>
+
+### 删除实体
+
+选中一个实体后，可以点击 **[层级面板](/docs/interface/hierarchy)** 上的删除按钮或通过右键菜单中的删除选项来删除实体。删除实体会删除实体及其所有的子实体。所以在删除实体时，你需要注意所删除的实体是否会影响场景中其他实体。
+
+### 实体排序
+
+为了更好的组织实体，你可以通过拖拽的方式来排序实体。选中一个实体后，可以通过鼠标左键拖拽来改变实体在层级树中的位置。
+
+### 实体搜索
+
+**[层级面板](/docs/interface/hierarchy)** 上方有一个搜索框，用户可以输入实体的名称来搜索场景中的实体。搜索框支持模糊搜索，你可以输入实体名称的部分字符来查找实体。
+
+### 实体隐藏
+
+每个实体实体右侧都有一个眼睛按钮，点击可以切换实体在场景中的显示/隐藏状态。需要注意的是, 此处对实体显示状态的调整仅是工作区的修改，而非在 **[检查器面板](/docs/interface/inspector)** 中的 `isActive` 的属性。
+
+## 脚本使用
+
+### 创建新实体
+
+在[场景](/docs/core/scene)中已经介绍了如何获取激活场景。在新场景中，我们通常会先添加根实体：
+
+```typescript
+const scene = engine.sceneManager.activeScene;
+const rootEntity = scene.createRootEntity();
+```
+
+一般以添加子实体的方式创建新实体：
+
+```typescript
+const newEntity = rootEntity.createChild("firstEntity");
+```
+
+当然，也可以直接创建实体。但这种实体是游离的，在关联层级树上的实体之前不显示在场景中。
+
+```typescript
+const newEntity = new Entity(engine, "firstEntity");
+rootEntity.addChild(newEntity);
+```
+
+### 删除实体
+
+某个实体在场景中不再需要时，我们可以删除它:
+
+```typescript
+rootEntity.removeChild(newEntity);
+```
+
+值得注意的是，这种方式仅仅是将物体从层级树上释放出来，不在场景中显示。如果彻底销毁还需要：
+
+```typescript
+newEntity.destroy();
+```
+### 场景中查找实体
+
+#### 根据名字查找实体
+
+  ```typescript
+  const entity = scene.findEntityByName("entityName");
+  ```
+#### 根据路径查找实体
+
+  ```typescript
+  const entity = scene.findEntityByPath("parent/child/grandson");
+  ```
+
+
+### 查找子实体
+
+在已知父实体的情况下，通常我们通过父实体来获得子实体：
+
+```typescript
+const childrenEntity = newEntity.children;
+```
+
+如果明确知道子实体在父实体中的 _index_ 可以直接使用 [getChild](/apis/core/#Entity-getChild)：
+
+```typescript
+newEntity.getChild(0);
+```
+
+如果不清楚子实体的 index，可以使用 [findByName](/apis/core/#Entity-findByName) 通过名字查找。`findByName` 不仅会查找子实体，还会查找孙子实体。
+
+```typescript
+newEntity.findByName("model");
+```
+
+如果有同名的实体可以使用 [findByPath](/apis/core/#Entity-findByPath) 传入路径进行逐级查找，使用此 API 也会一定程度上提高查找效率。
+
+```typescript
+newEntity.findByPath("parent/child/grandson");
+```
+
+### 状态
+
+暂时不使用某实体时，可以通过调用实体的 [isActive](/apis/core/#Entity-isActive) 停止激活。同时该实体下的组件被动`component.enabled = false`
+
+```typescript
+newEntity.isActive = false;
+```

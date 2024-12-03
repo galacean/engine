@@ -1,17 +1,16 @@
 import {
-  Camera,
   BoxColliderShape,
-  Layer,
-  StaticCollider,
-  DynamicCollider,
-  HitResult,
+  Camera,
   CharacterController,
-  CapsuleColliderShape,
-  SphereColliderShape,
-  Script,
+  Collider,
   ColliderShape,
+  DynamicCollider,
   Entity,
-  Collider
+  HitResult,
+  Layer,
+  Script,
+  SphereColliderShape,
+  StaticCollider
 } from "@galacean/engine-core";
 import { Ray, Vector3 } from "@galacean/engine-math";
 import { LitePhysics } from "@galacean/engine-physics-lite";
@@ -136,6 +135,75 @@ describe("Physics Test", () => {
       engineLite.run();
     });
 
+    it("removeShape", () => {
+      const scene = engineLite.sceneManager.activeScene;
+      const root = scene.createRootEntity("root");
+      const removeShapeRoot1 = root.createChild("root");
+      removeShapeRoot1.transform.position = new Vector3(1000, 1000, 1000);
+
+      const enterEvent = [];
+      const collider1 = removeShapeRoot1.addComponent(StaticCollider);
+      const box1 = new BoxColliderShape();
+      enterEvent[box1.id] = [];
+      collider1.addShape(box1);
+      removeShapeRoot1.addComponent(
+        class extends Script {
+          onTriggerEnter(other: ColliderShape): void {
+            ++enterEvent[box1.id][other.id];
+          }
+        }
+      );
+      const removeShapeRoot2 = root.createChild("root");
+      removeShapeRoot2.transform.position = new Vector3(1000, 1000, 1000);
+      const collider2 = removeShapeRoot2.addComponent(StaticCollider);
+      const box2 = new BoxColliderShape();
+      enterEvent[box2.id] = [];
+      collider2.addShape(box2);
+      removeShapeRoot2.addComponent(
+        class extends Script {
+          onTriggerEnter(other: ColliderShape) {
+            ++enterEvent[box2.id][other.id];
+          }
+        }
+      );
+      // @ts-ignore
+      engineLite.physicsManager._update(8);
+      // Remove collider shape.
+      removeShapeRoot2.isActive = false;
+      const removeShapeRoot3 = root.createChild("root");
+      removeShapeRoot3.transform.position = new Vector3(1000, 1000, 1000);
+      const collider3 = removeShapeRoot3.addComponent(DynamicCollider);
+      const box3 = new BoxColliderShape();
+      enterEvent[box3.id] = [];
+      collider3.addShape(box3);
+      removeShapeRoot3.addComponent(
+        class extends Script {
+          onTriggerEnter(other: ColliderShape) {
+            ++enterEvent[box3.id][other.id];
+          }
+        }
+      );
+      removeShapeRoot2.isActive = true;
+      enterEvent[box1.id][box2.id] = 0;
+      enterEvent[box1.id][box3.id] = 0;
+      enterEvent[box2.id][box1.id] = 0;
+      enterEvent[box2.id][box3.id] = 0;
+      enterEvent[box3.id][box1.id] = 0;
+      enterEvent[box3.id][box2.id] = 0;
+      // @ts-ignore
+      engineLite.physicsManager._update(8);
+      expect(enterEvent[box1.id][box2.id]).to.eq(0);
+      expect(enterEvent[box1.id][box3.id]).to.eq(1);
+      expect(enterEvent[box2.id][box1.id]).to.eq(0);
+      expect(enterEvent[box2.id][box3.id]).to.eq(1);
+      expect(enterEvent[box3.id][box1.id]).to.eq(1);
+      expect(enterEvent[box3.id][box2.id]).to.eq(1);
+
+      removeShapeRoot1.destroy();
+      removeShapeRoot2.destroy();
+      removeShapeRoot3.destroy();
+    });
+
     it("constructor", () => {
       expect(engineLite.physicsManager.gravity.y).to.eq(-9.81);
       expect(engineLite.physicsManager.fixedTimeStep).to.eq(1 / 60);
@@ -179,9 +247,27 @@ describe("Physics Test", () => {
       expect(engineLite.physicsManager.raycast(ray, Number.MAX_VALUE)).to.eq(true);
       expect(engineLite.physicsManager.raycast(ray, Number.MAX_VALUE, Layer.Everything)).to.eq(true);
 
+      // Test that raycast the nearest collider.
+      const collider2 = raycastTestRoot.addComponent(DynamicCollider);
+      const outHitResult = new HitResult();
+      const box2 = new BoxColliderShape();
+      box2.position = new Vector3(0, 0.5, 0);
+      collider2.addShape(box2);
+
+      ray = new Ray(new Vector3(0, 3, 0), new Vector3(0, -1, 0));
+      expect(engineLite.physicsManager.raycast(ray, Number.MAX_VALUE, outHitResult)).to.eq(true);
+      expect(outHitResult.shape.id).to.eq(box2.id);
+
+      ray = new Ray(new Vector3(0, -3, 0), new Vector3(0, 1, 0));
+      box.position = new Vector3(1, 0, 0);
+
+      // Test that raycast nothing if distance is less than distance of origin to detected collider.
+      expect(engineLite.physicsManager.raycast(ray, -3, outHitResult)).to.eq(false);
+
+      box.position = new Vector3(0, 0, 0);
+      collider2.destroy();
       // Test that raycast with outHitResult works correctly.
       ray = new Ray(new Vector3(3, 3, 3), new Vector3(-1, -1.25, -1));
-      const outHitResult = new HitResult();
       engineLite.physicsManager.raycast(ray, outHitResult);
       expect(engineLite.physicsManager.raycast(ray, outHitResult)).to.eq(true);
       expect(outHitResult.distance).to.be.closeTo(4.718, 0.01);
@@ -190,6 +276,7 @@ describe("Physics Test", () => {
       expect(outHitResult.point.z).to.be.closeTo(0.5, 0.01);
       expect(outHitResult.normal).to.be.deep.include({ x: 0, y: 0, z: 0 });
       expect(outHitResult.entity).to.be.eq(raycastTestRoot);
+      expect(outHitResult.shape).to.be.eq(box);
 
       // Test that raycast with outHitResult works correctly.
       expect(engineLite.physicsManager.raycast(ray, Number.MAX_VALUE, outHitResult)).to.eq(true);
@@ -199,6 +286,7 @@ describe("Physics Test", () => {
       expect(outHitResult.point.z).to.be.closeTo(0.5, 0.01);
       expect(outHitResult.normal).to.be.deep.include({ x: 0, y: 0, z: 0 });
       expect(outHitResult.entity).to.be.eq(raycastTestRoot);
+      expect(outHitResult.shape).to.be.eq(box);
 
       // Test that raycast nothing if layer is not match.
       expect(engineLite.physicsManager.raycast(ray, Number.MAX_VALUE, Layer.Layer1, outHitResult)).to.eq(false);
@@ -206,6 +294,7 @@ describe("Physics Test", () => {
       expect(outHitResult.point).to.be.deep.include({ x: 0, y: 0, z: 0 });
       expect(outHitResult.normal).to.be.deep.include({ x: 0, y: 0, z: 0 });
       expect(outHitResult.entity).to.be.null;
+      expect(outHitResult.shape).to.be.null;
 
       // Test that return origin point if origin is inside collider.
       ray = new Ray(new Vector3(0.25, -0.5, 0.5), new Vector3(0, -1, 0));
@@ -213,10 +302,11 @@ describe("Physics Test", () => {
       expect(outHitResult.distance).to.be.eq(0);
       expect(outHitResult.point).to.be.deep.include({ x: 0.25, y: -0.5, z: 0.5 });
       expect(outHitResult.entity).to.be.eq(raycastTestRoot);
+      expect(outHitResult.shape).to.be.eq(box);
 
       // Test that raycast nothing if distance is less than distance of origin to detected collider.
-      expect(engineLite.physicsManager.raycast(ray, 0, Layer.Everything, outHitResult)).to.eq(true);
-      expect(engineLite.physicsManager.raycast(ray, -1, Layer.Everything, outHitResult)).to.eq(true);
+      expect(engineLite.physicsManager.raycast(ray, 0, Layer.Everything, outHitResult)).to.eq(false);
+      expect(engineLite.physicsManager.raycast(ray, -1, Layer.Everything, outHitResult)).to.eq(false);
 
       collider.removeShape(box);
       expect(engineLite.physicsManager.raycast(ray)).to.eq(false);

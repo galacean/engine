@@ -37,7 +37,7 @@ describe("RenderTarget", async () => {
 
       expect(renderTarget.colorTextureCount).to.eq(1);
       expect(renderTarget.getColorTexture(0)).to.eq(renderColorTexture);
-      expect(renderTarget.depthTexture).to.be.undefined;
+      expect(renderTarget.depthTexture).to.be.null;
     });
 
     it("创建渲染目标-通过颜色纹理和深度纹理", () => {
@@ -60,7 +60,7 @@ describe("RenderTarget", async () => {
       expect(renderTarget.colorTextureCount).to.eq(2);
       expect(renderTarget.getColorTexture(0)).to.eq(renderColorTexture);
       expect(renderTarget.getColorTexture(1)).to.eq(renderColorTexture2);
-      expect(renderTarget.depthTexture).to.be.undefined;
+      expect(renderTarget.depthTexture).to.be.null;
     });
 
     it("创建渲染目标-通过颜色纹理数组和深度纹理", () => {

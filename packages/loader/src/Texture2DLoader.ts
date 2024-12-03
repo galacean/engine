@@ -16,13 +16,16 @@ import { Texture2DContentRestorer } from "./Texture2DContentRestorer";
 @resourceLoader(AssetType.Texture2D, ["png", "jpg", "webp", "jpeg"])
 class Texture2DLoader extends Loader<Texture2D> {
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
-    return new AssetPromise((resolve, reject) => {
+    return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
       const url = item.url;
       const requestConfig = <RequestConfig>{
         ...item,
         type: "image"
       };
-      this.request<HTMLImageElement>(url, requestConfig)
+      resourceManager
+        // @ts-ignore
+        ._request<HTMLImageElement>(url, requestConfig)
+        .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((image) => {
           const { format, mipmap, anisoLevel, wrapModeU, wrapModeV, filterMode } =
             (item.params as Partial<Texture2DParams>) ?? {};

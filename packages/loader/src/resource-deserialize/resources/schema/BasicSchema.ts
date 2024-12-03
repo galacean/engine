@@ -1,3 +1,5 @@
+import { Layer } from "@galacean/engine-core";
+
 export interface IVector3 {
   x: number;
   y: number;
@@ -22,7 +24,7 @@ export interface IColor {
   a: number;
 }
 
-export interface IPrefabFile {
+export interface IHierarchyFile {
   entities: Array<IEntity>;
 }
 
@@ -38,14 +40,33 @@ export interface IBasicEntity {
   scale?: IVector3;
   children?: Array<string>;
   parent?: string;
+  layer?: Layer;
 }
 
-export type IEntity = IBasicEntity | IRefEntity;
+export type IEntity = IBasicEntity | IRefEntity | IStrippedEntity;
 
 export interface IRefEntity extends IBasicEntity {
   assetRefId: string;
   key?: string;
   isClone?: boolean;
+  modifications: {
+    target: IPrefabModifyTarget;
+    methods?: { [methodName: string]: Array<IMethodParams> };
+    props?: { [key: string]: IBasicType | IMethodParams };
+  }[];
+  removedEntities: IPrefabModifyTarget[];
+  removedComponents: IPrefabModifyTarget[];
+}
+
+export interface IPrefabModifyTarget {
+  entityId?: string;
+  componentId?: string;
+}
+
+export interface IStrippedEntity extends IBasicEntity {
+  strippedId: string;
+  prefabInstanceId: string;
+  prefabSource: { assetId: string; entityId: string };
 }
 
 export type IComponent = { id: string; refId?: string } & IClassObject;
