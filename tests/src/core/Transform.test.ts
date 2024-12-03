@@ -1,7 +1,7 @@
 import { Entity, Scene } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
+import { describe, beforeAll, expect, it } from "vitest";
 
 const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
@@ -10,7 +10,7 @@ canvasDOM.height = 1024;
 describe("Transform test", function () {
   let entity: Entity;
   let scene: Scene;
-  before(async function () {
+  beforeAll(async function () {
     const engine = await WebGLEngine.create({ canvas: canvasDOM });
     scene = engine.sceneManager.scenes[0];
     entity = scene.createRootEntity();

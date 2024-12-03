@@ -81,7 +81,7 @@ import { WebGLEngine, Camera } from "@galacean/engine";
 
 Galacean Runtime 在支持 WebGL 的环境下运行，到目前为止，所有主流的移动端浏览器与桌面浏览器都支持这一标准。可以在 [CanIUse](https://caniuse.com/?search=webgl) 上检测运行环境的兼容性。
 
-此外，**Galacean Runtime** 还支持在[支付宝/淘宝小程序](/docs/miniProgram/miniProgame/)中运行，同时也有开发者在社区贡献了[微信小程序/游戏的适配方案](https://github.com/deepkolos/platformize)。对于一些需要额外考虑兼容性的功能模块，当前的适配方案如下：
+对于一些需要额外考虑兼容性的功能模块，当前的适配方案如下：
 
 | 模块 | 兼容考虑 | 具体文档 |
 | :-- | :-- | :-- |

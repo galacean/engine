@@ -6,9 +6,9 @@ import { CharacterController } from "./CharacterController";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
-import { ColliderShape } from "./shape";
 import { Script } from "../Script";
 import { DisorderedArray } from "../utils/DisorderedArray";
+import { Engine } from "../Engine";
 
 /**
  * A physics scene is a collection of colliders and constraints which can interact.
@@ -29,7 +29,7 @@ export class PhysicsScene {
   private _nativePhysicsScene: IPhysicsScene;
 
   private _onContactEnter = (obj1: number, obj2: number) => {
-    const physicalObjectsMap = this._scene.engine._physicalObjectsMap;
+    const physicalObjectsMap = Engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
@@ -57,7 +57,7 @@ export class PhysicsScene {
   };
 
   private _onContactExit = (obj1: number, obj2: number) => {
-    const physicalObjectsMap = this._scene.engine._physicalObjectsMap;
+    const physicalObjectsMap = Engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
@@ -84,7 +84,7 @@ export class PhysicsScene {
     );
   };
   private _onContactStay = (obj1: number, obj2: number) => {
-    const physicalObjectsMap = this._scene.engine._physicalObjectsMap;
+    const physicalObjectsMap = Engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
@@ -111,7 +111,7 @@ export class PhysicsScene {
     );
   };
   private _onTriggerEnter = (obj1: number, obj2: number) => {
-    const physicalObjectsMap = this._scene.engine._physicalObjectsMap;
+    const physicalObjectsMap = Engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
@@ -135,7 +135,7 @@ export class PhysicsScene {
   };
 
   private _onTriggerExit = (obj1: number, obj2: number) => {
-    const physicalObjectsMap = this._scene.engine._physicalObjectsMap;
+    const physicalObjectsMap = Engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
@@ -159,7 +159,7 @@ export class PhysicsScene {
   };
 
   private _onTriggerStay = (obj1: number, obj2: number) => {
-    const physicalObjectsMap = this._scene.engine._physicalObjectsMap;
+    const physicalObjectsMap = Engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
 
@@ -306,7 +306,7 @@ export class PhysicsScene {
     }
 
     const onRaycast = (obj: number) => {
-      const shape = this._scene.engine._physicalObjectsMap[obj];
+      const shape = Engine._physicalObjectsMap[obj];
       if (!shape) {
         return false;
       }
@@ -315,7 +315,7 @@ export class PhysicsScene {
 
     if (hitResult != undefined) {
       const result = this._nativePhysicsScene.raycast(ray, distance, onRaycast, (idx, distance, position, normal) => {
-        const hitShape = this._scene.engine._physicalObjectsMap[idx];
+        const hitShape = Engine._physicalObjectsMap[idx];
         hitResult.entity = hitShape._collider.entity;
         hitResult.shape = hitShape;
         hitResult.distance = distance;
@@ -355,26 +355,6 @@ export class PhysicsScene {
       nativePhysicsManager.update(fixedTimeStep);
       this._callColliderOnLateUpdate();
     }
-  }
-
-  /**
-   * Add ColliderShape into the manager.
-   * @param colliderShape - The Collider Shape.
-   * @internal
-   */
-  _addColliderShape(colliderShape: ColliderShape): void {
-    this._scene.engine._physicalObjectsMap[colliderShape.id] = colliderShape;
-    this._nativePhysicsScene.addColliderShape(colliderShape._nativeShape);
-  }
-
-  /**
-   * Remove ColliderShape.
-   * @param colliderShape - The Collider Shape.
-   * @internal
-   */
-  _removeColliderShape(colliderShape: ColliderShape): void {
-    delete this._scene.engine._physicalObjectsMap[colliderShape.id];
-    this._nativePhysicsScene.removeColliderShape(colliderShape._nativeShape);
   }
 
   /**

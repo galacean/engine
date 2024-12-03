@@ -50,11 +50,9 @@ export class Collider extends Component implements ICustomClone {
       if (oldCollider) {
         oldCollider.removeShape(shape);
       }
-
       this._shapes.push(shape);
-      shape._collider = this;
-      this._nativeCollider.addShape(shape._nativeShape);
-      this._phasedActiveInScene && this.scene.physics._addColliderShape(shape);
+      this._addNativeShape(shape);
+      this._handleShapesChanged();
     }
   }
 
@@ -66,9 +64,8 @@ export class Collider extends Component implements ICustomClone {
     const index = this._shapes.indexOf(shape);
     if (index !== -1) {
       this._shapes.splice(index, 1);
-      this._phasedActiveInScene && this.scene.physics._removeColliderShape(shape);
-      shape._collider = null;
-      this._nativeCollider.removeShape(shape._nativeShape);
+      this._removeNativeShape(shape);
+      this._handleShapesChanged();
     }
   }
 
@@ -78,12 +75,10 @@ export class Collider extends Component implements ICustomClone {
   clearShapes(): void {
     const shapes = this._shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
-      const shape = shapes[i];
-      this._phasedActiveInScene && this.scene.physics._removeColliderShape(shape);
-      shape._destroy();
-      this._nativeCollider.removeShape(shape._nativeShape);
+      this._removeNativeShape(shapes[i]);
     }
     shapes.length = 0;
+    this._handleShapesChanged();
   }
 
   /**
@@ -114,33 +109,31 @@ export class Collider extends Component implements ICustomClone {
    * @internal
    */
   override _onEnableInScene(): void {
-    const physics = this.scene.physics;
-    physics._addCollider(this);
-    const shapes = this.shapes;
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      physics._addColliderShape(shapes[i]);
-    }
+    this.scene.physics._addCollider(this);
   }
 
   /**
    * @internal
    */
   override _onDisableInScene(): void {
-    const physics = this.scene.physics;
-    physics._removeCollider(this);
-    const shapes = this.shapes;
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      physics._removeColliderShape(shapes[i]);
-    }
+    this.scene.physics._removeCollider(this);
   }
 
   /**
    * @internal
    */
   _cloneTo(target: Collider): void {
-    const shapes = target._shapes;
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      target._addPhysicsShape(shapes[i]);
+    target._syncNative();
+  }
+
+  /**
+   * @internal
+   */
+  _handleShapesChanged(): void {}
+
+  protected _syncNative(): void {
+    for (let i = 0, n = this.shapes.length; i < n; i++) {
+      this._addNativeShape(this.shapes[i]);
     }
   }
 
@@ -149,14 +142,23 @@ export class Collider extends Component implements ICustomClone {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this.clearShapes();
+    const shapes = this._shapes;
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      const shape = shapes[i];
+      this._removeNativeShape(shape);
+      shape._destroy();
+    }
+    shapes.length = 0;
     this._nativeCollider.destroy();
   }
 
-  protected _addPhysicsShape(shape: ColliderShape): void {
+  protected _addNativeShape(shape: ColliderShape): void {
     shape._collider = this;
-
     this._nativeCollider.addShape(shape._nativeShape);
-    this._phasedActiveInScene && this.scene.physics._addColliderShape(shape);
+  }
+
+  protected _removeNativeShape(shape: ColliderShape): void {
+    shape._collider = null;
+    this._nativeCollider.removeShape(shape._nativeShape);
   }
 }

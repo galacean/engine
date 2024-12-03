@@ -22,7 +22,8 @@ Logger.enable();
 WebGLEngine.create({
   canvas: "canvas",
   graphicDeviceOptions: {
-    webGLMode: WebGLMode.WebGL2
+    webGLMode: WebGLMode.WebGL2,
+    antialias: false
   }
 }).then((engine) => {
   engine.canvas.resizeByClientSize();
@@ -64,7 +65,7 @@ function initFirstScene(engine: Engine): Scene {
     camera2.enablePostProcess = true;
     camera2.enableHDR = true;
     camera2.clearFlags = CameraClearFlags.None;
-    camera2.msaaSamples = 4;
+    camera2.msaaSamples = 1;
 
     // @ts-ignore
     const bloomEffect = scene._postProcessManager._bloomEffect;

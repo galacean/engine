@@ -1,6 +1,6 @@
 import { RenderBufferDepthFormat, RenderTarget, Texture2D } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
+import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
 describe("RenderTarget", async () => {
   const width = 1024;
@@ -15,7 +15,7 @@ describe("RenderTarget", async () => {
   let renderColorTexture: Texture2D;
   let renderColorTexture2: Texture2D;
   let renderDepthTexture: Texture2D;
-  before(async function () {
+  beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: canvas });
     // @ts-ignore
     rhi = engine._hardwareRenderer;

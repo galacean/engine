@@ -1,4 +1,6 @@
+import { SpriteMaskInteraction } from "./2d";
 import { Engine } from "./Engine";
+import { RenderQueueMaskType } from "./RenderPipeline/enums/RenderQueueMaskType";
 import { ContentRestorer } from "./asset/ContentRestorer";
 import { Buffer } from "./graphic/Buffer";
 import { VertexElement } from "./graphic/VertexElement";
@@ -9,6 +11,14 @@ import { VertexElementFormat } from "./graphic/enums/VertexElementFormat";
 import { Material } from "./material";
 import { ModelMesh } from "./mesh";
 import { Shader } from "./shader/Shader";
+import { BlendFactor } from "./shader/enums/BlendFactor";
+import { BlendOperation } from "./shader/enums/BlendOperation";
+import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
+import { CompareFunction } from "./shader/enums/CompareFunction";
+import { CullMode } from "./shader/enums/CullMode";
+import { RenderQueueType } from "./shader/enums/RenderQueueType";
+import { RenderStateElementKey } from "./shader/enums/RenderStateElementKey";
+import { StencilOperation } from "./shader/enums/StencilOperation";
 import { Texture, Texture2D, TextureCube, TextureCubeFace } from "./texture";
 import { Texture2DArray } from "./texture/Texture2DArray";
 import { TextureFormat } from "./texture/enums/TextureFormat";
@@ -17,6 +27,79 @@ import { TextureFormat } from "./texture/enums/TextureFormat";
  * @internal
  */
 export class BasicResources {
+  private static _maskReadInsideRenderStates: RenderStateElementMap = null;
+  private static _maskReadOutsideRenderStates: RenderStateElementMap = null;
+  private static _maskWriteIncrementRenderStates: RenderStateElementMap = null;
+  private static _maskWriteDecrementRenderStates: RenderStateElementMap = null;
+
+  static getMaskInteractionRenderStates(maskInteraction: SpriteMaskInteraction): RenderStateElementMap {
+    const visibleInsideMask = maskInteraction === SpriteMaskInteraction.VisibleInsideMask;
+    let renderStates: RenderStateElementMap;
+    let compareFunction: CompareFunction;
+
+    if (visibleInsideMask) {
+      renderStates = BasicResources._maskReadInsideRenderStates;
+      if (renderStates) {
+        return renderStates;
+      }
+      BasicResources._maskReadInsideRenderStates = renderStates = <RenderStateElementMap>{};
+      compareFunction = CompareFunction.LessEqual;
+    } else {
+      renderStates = BasicResources._maskReadOutsideRenderStates;
+      if (renderStates) {
+        return renderStates;
+      }
+      BasicResources._maskReadOutsideRenderStates = renderStates = <RenderStateElementMap>{};
+      compareFunction = CompareFunction.Greater;
+    }
+
+    renderStates[RenderStateElementKey.StencilStateEnabled] = true;
+    renderStates[RenderStateElementKey.StencilStateWriteMask] = 0x00;
+    renderStates[RenderStateElementKey.StencilStateReferenceValue] = 1;
+    renderStates[RenderStateElementKey.StencilStateCompareFunctionFront] = compareFunction;
+    renderStates[RenderStateElementKey.StencilStateCompareFunctionBack] = compareFunction;
+
+    return renderStates;
+  }
+
+  static getMaskTypeRenderStates(maskType: RenderQueueMaskType): RenderStateElementMap {
+    const isIncrement = maskType === RenderQueueMaskType.Increment;
+    let renderStates: RenderStateElementMap;
+    let passOperation: StencilOperation;
+
+    if (isIncrement) {
+      renderStates = BasicResources._maskWriteIncrementRenderStates;
+      if (renderStates) {
+        return renderStates;
+      }
+      BasicResources._maskWriteIncrementRenderStates = renderStates = <RenderStateElementMap>{};
+      passOperation = StencilOperation.IncrementSaturate;
+    } else {
+      renderStates = BasicResources._maskWriteDecrementRenderStates;
+      if (renderStates) {
+        return renderStates;
+      }
+      BasicResources._maskWriteDecrementRenderStates = renderStates = <RenderStateElementMap>{};
+      passOperation = StencilOperation.DecrementSaturate;
+    }
+
+    renderStates[RenderStateElementKey.StencilStateEnabled] = true;
+    renderStates[RenderStateElementKey.StencilStatePassOperationFront] = passOperation;
+    renderStates[RenderStateElementKey.StencilStatePassOperationBack] = passOperation;
+    renderStates[RenderStateElementKey.StencilStateCompareFunctionFront] = CompareFunction.Always;
+    renderStates[RenderStateElementKey.StencilStateCompareFunctionBack] = CompareFunction.Always;
+    const failStencilOperation = StencilOperation.Keep;
+    renderStates[RenderStateElementKey.StencilStateFailOperationFront] = failStencilOperation;
+    renderStates[RenderStateElementKey.StencilStateFailOperationBack] = failStencilOperation;
+    renderStates[RenderStateElementKey.StencilStateZFailOperationFront] = failStencilOperation;
+    renderStates[RenderStateElementKey.StencilStateZFailOperationBack] = failStencilOperation;
+    renderStates[RenderStateElementKey.BlendStateColorWriteMask0] = ColorWriteMask.None;
+    renderStates[RenderStateElementKey.DepthStateEnabled] = false;
+    renderStates[RenderStateElementKey.RasterStateCullMode] = CullMode.Off;
+
+    return renderStates;
+  }
+
   /**
    * Use triangle to blit texture, ref: https://michaldrobot.com/2014/04/01/gcn-execution-patterns-in-full-screen-passes/ .
    */
@@ -28,6 +111,10 @@ export class BasicResources {
   readonly whiteTextureCube: TextureCube;
   readonly whiteTexture2DArray: Texture2DArray;
   readonly uintWhiteTexture2D: Texture2D;
+
+  readonly spriteDefaultMaterial: Material;
+  readonly textDefaultMaterial: Material;
+  readonly spriteMaskDefaultMaterial: Material;
 
   constructor(engine: Engine) {
     // prettier-ignore
@@ -74,6 +161,10 @@ export class BasicResources {
         whitePixel32
       );
     }
+
+    this.spriteDefaultMaterial = this._create2DMaterial(engine, Shader.find("Sprite"));
+    this.textDefaultMaterial = this._create2DMaterial(engine, Shader.find("Text"));
+    this.spriteMaskDefaultMaterial = this._createSpriteMaskMaterial(engine);
   }
 
   private _createBlitMesh(engine: Engine, vertices: Float32Array): ModelMesh {
@@ -151,6 +242,29 @@ export class BasicResources {
     );
     return texture as T;
   }
+
+  private _create2DMaterial(engine: Engine, shader: Shader): Material {
+    const material = new Material(engine, shader);
+    const renderState = material.renderState;
+    const target = renderState.blendState.targetBlendState;
+    target.enabled = true;
+    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.sourceAlphaBlendFactor = BlendFactor.One;
+    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+    renderState.depthState.writeEnabled = false;
+    renderState.rasterState.cullMode = CullMode.Off;
+    renderState.renderQueueType = RenderQueueType.Transparent;
+    material.isGCIgnored = true;
+    return material;
+  }
+
+  private _createSpriteMaskMaterial(engine: Engine): Material {
+    const material = new Material(engine, Shader.find("SpriteMask"));
+    material.isGCIgnored = true;
+    return material;
+  }
 }
 
 enum TextureType {
@@ -158,3 +272,5 @@ enum TextureType {
   TextureCube,
   Texture2DArray
 }
+
+export type RenderStateElementMap = Record<RenderStateElementKey, number | boolean>;

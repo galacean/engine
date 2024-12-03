@@ -38,6 +38,8 @@ Shader "Water" {
     Pass "default" {
       Tags { ReplacementTag = "Opaque", pipelineStage = "DepthOnly"}
 
+      RenderQueueType = customRenderQueue;
+
       struct a2v {
        vec4 POSITION;
        vec2 TEXCOORD_0; 
@@ -75,7 +77,12 @@ Shader "Water" {
 
     RenderQueueType = Opaque;
 
+    /* First comment */
+      /* Second comment */
+
     #define SCENE_SHADOW_TYPE 3
+
+    /*Comment without leading space*/
 
       v2f vert(a2v v) {
         v2f o;
@@ -87,6 +94,9 @@ Shader "Water" {
         vec3 tangentW = v.TBN[0];
         return o;
       }
+
+      /* This is a
+      multi-line comment */
 
       void frag(v2f i) {
         vec4 color = texture2D(material_BaseTexture, i.v_uv) * u_color;

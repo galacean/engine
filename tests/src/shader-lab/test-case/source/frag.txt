@@ -10,7 +10,8 @@ void Gerstner() {
 
 // #include "ShadowCoord"
 
-#define TT 1.0 // comments
+#define TT 1./** comments 
+*/0 // test
 #define QQ
 
 vec4 a = vec4(TT,1.0,3.0,4.0);
