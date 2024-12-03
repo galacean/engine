@@ -64,7 +64,7 @@ export * from "./clone/CloneManager";
 export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
 export * from "./Utils";
-export * from "./audio";
+export * from "./audio/index";
 import { Polyfill } from "./Polyfill";
 
 export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
