@@ -68,10 +68,10 @@ describe("ResourceManager", () => {
       const glTFLoader = ResourceManager._loaders["GLTF"];
 
       const loaderSpy = vi.spyOn(glTFLoader, "load");
-
-      engine.resourceManager.load("/mock.glb");
-      engine.resourceManager.load("/mock.glb");
-      engine.resourceManager.load("/mock.glb?q=materials[0]");
+      
+      engine.resourceManager.load("https://gw.alipayobjects.com/os/bmw-prod/5e3c1e4e-496e-45f8-8e05-f89f2bd5e4a4.glb");
+      engine.resourceManager.load("https://gw.alipayobjects.com/os/bmw-prod/5e3c1e4e-496e-45f8-8e05-f89f2bd5e4a4.glb");
+      engine.resourceManager.load("https://gw.alipayobjects.com/os/bmw-prod/5e3c1e4e-496e-45f8-8e05-f89f2bd5e4a4.glb?q=materials[0]");
       expect(loaderSpy).toHaveBeenCalled();
     });
   });
