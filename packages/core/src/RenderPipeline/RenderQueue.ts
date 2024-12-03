@@ -107,7 +107,12 @@ export class RenderQueue {
         }
 
         let renderState = shaderPass._renderState;
-        if (!needMaskType) {
+        if (needMaskType) {
+          // Mask don't care render queue type
+          if (!renderState) {
+            renderState = renderStates[j];
+          }
+        } else {
           let passQueueType: RenderQueueType;
           if (renderState) {
             passQueueType = renderState._getRenderQueueByShaderData(shaderPass._renderStateDataMap, materialData);
@@ -115,7 +120,6 @@ export class RenderQueue {
             renderState = renderStates[j];
             passQueueType = renderState.renderQueueType;
           }
-
           if (passQueueType !== renderQueueType) {
             continue;
           }
