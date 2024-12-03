@@ -106,21 +106,20 @@ export class RenderQueue {
           continue;
         }
 
-
         let renderState = shaderPass._renderState;
         if (!needMaskType) {
-        let passQueueType: RenderQueueType;
-        if (renderState) {
-          passQueueType = renderState._getRenderQueueByShaderData(shaderPass._renderStateDataMap, materialData);
-        } else {
-          renderState = renderStates[j];
-          passQueueType = renderState.renderQueueType;
-        }
+          let passQueueType: RenderQueueType;
+          if (renderState) {
+            passQueueType = renderState._getRenderQueueByShaderData(shaderPass._renderStateDataMap, materialData);
+          } else {
+            renderState = renderStates[j];
+            passQueueType = renderState.renderQueueType;
+          }
 
-        if (passQueueType !== renderQueueType) {
-          continue;
+          if (passQueueType !== renderQueueType) {
+            continue;
+          }
         }
-      }
 
         const program = shaderPass._getShaderProgram(engine, compileMacros);
         if (!program.isValid) {

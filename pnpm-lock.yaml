@@ -271,6 +271,9 @@ importers:
 
   tests:
     dependencies:
+      '@galacean/engine':
+        specifier: workspace:*
+        version: link:../packages/galacean
       '@galacean/engine-core':
         specifier: workspace:*
         version: link:../packages/core

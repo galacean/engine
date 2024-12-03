@@ -1,4 +1,4 @@
-import { AssetType, ResourceManager, Texture2D } from "@galacean/engine-core";
+import { AssetType, ResourceManager, Texture2D } from "@galacean/engine";
 import "@galacean/engine-loader";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
