@@ -123,11 +123,11 @@ export class AudioSource extends Component {
    * Playback position in seconds.
    */
   get time(): number {
-    const currentTime = AudioManager.getContext().currentTime;
     if (this._isPlaying) {
+      const currentTime = AudioManager.getContext().currentTime;
       return currentTime - this._playTime;
     } else {
-      return this._pausedTime > 0 ? currentTime - this._pausedTime : 0;
+      return this._pausedTime > 0 ? this._pausedTime - this._playTime : 0;
     }
   }
 
@@ -152,9 +152,10 @@ export class AudioSource extends Component {
     if (this._isPlaying) {
       return;
     }
-    this._initSourceNode(this._pausedTime > 0 ? this._pausedTime : 0);
+    const startTime = this._pausedTime > 0 ? this._pausedTime - this._playTime : 0;
+    this._initSourceNode(startTime);
 
-    this._playTime = AudioManager.getContext().currentTime;
+    this._playTime = AudioManager.getContext().currentTime - startTime;
     this._pausedTime = -1;
     this._isPlaying = true;
   }
@@ -181,7 +182,6 @@ export class AudioSource extends Component {
 
       this._pausedTime = AudioManager.getContext().currentTime;
       this._isPlaying = false;
-      this._pausedTime = this.time;
     }
   }
 
