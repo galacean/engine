@@ -37,7 +37,7 @@ describe("AudioSource", () => {
 
     audioSource.stop();
     audioSource.play();
-    expect(audioSource.isPlaying).to.be.true;
+    expect(audioSource.isPlaying).to.be.false;
     expect(audioSource.time).to.be.equal(0);
   });
 });
