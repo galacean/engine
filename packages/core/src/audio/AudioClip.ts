@@ -1,14 +1,10 @@
 import { Engine } from "../Engine";
 import { ReferResource } from "../asset/ReferResource";
-import { AudioManager } from "./AudioManager";
 
 /**
  * Audio Clip.
  */
 export class AudioClip extends ReferResource {
-  /** @internal */
-  _context: AudioContext;
-
   private _audioBuffer: AudioBuffer | null = null;
 
   /** Name of clip. */
@@ -38,7 +34,6 @@ export class AudioClip extends ReferResource {
   constructor(engine: Engine, name: string = "") {
     super(engine);
     this.name = name;
-    this._context = AudioManager.getContext();
   }
 
   /**
