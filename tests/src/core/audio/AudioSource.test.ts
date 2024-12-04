@@ -35,9 +35,26 @@ describe("AudioSource", () => {
     audioSource = audioEntity.addComponent(AudioSource);
     audioSource.clip = clip;
 
+    audioSource.volume = 2.0;
+    expect(audioSource.volume).to.be.equal(2.0);
+
+    audioSource.playbackRate = 0.6;
+    expect(audioSource.playbackRate).to.be.equal(0.6);
+
+    audioSource.loop = false;
+    expect(audioSource.loop).to.be.equal(false);
+
+    audioSource.mute = false;
+    expect(audioSource.mute).to.be.false;
+    audioSource.mute = true;
+    expect(audioSource.mute).to.be.true;
+
+    expect(audioSource.time).to.be.equal(0);
+
     audioSource.stop();
     audioSource.play();
+
+    // Because the audio play should interaction
     expect(audioSource.isPlaying).to.be.false;
-    expect(audioSource.time).to.be.equal(0);
   });
 });
