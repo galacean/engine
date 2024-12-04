@@ -13,14 +13,15 @@ export class AudioContentRestorer extends ContentRestorer<AudioClip> {
   }
 
   override restoreContent(): AssetPromise<AudioClip> {
-    return request<ArrayBuffer>(this.url, this.requestConfig)
-      .then((arrayBuffer) => {
-        return AudioManager.getContext().decodeAudioData(arrayBuffer);
-      })
-      .then((audioBuffer) => {
-        const resource = this.resource;
-        resource.setAudioSource(audioBuffer);
-        return resource;
-      });
+    return request<ArrayBuffer>(this.url, this.requestConfig).then((arrayBuffer) => {
+      return AudioManager.getContext()
+        .decodeAudioData(arrayBuffer)
+        .then((audioBuffer) => {
+          const resource = this.resource;
+          //@ts-ignore
+          resource._setAudioSource(audioBuffer);
+          return resource;
+        });
+    });
   }
 }

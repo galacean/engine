@@ -220,7 +220,7 @@ export class AudioSource extends Component {
     this._sourceNode = context.createBufferSource();
 
     const { _sourceNode: sourceNode } = this;
-    sourceNode.buffer = this._clip.getAudioSource();
+    sourceNode.buffer = this._clip._getAudioSource();
     sourceNode.onended = this._onPlayEnd;
     sourceNode.playbackRate.value = this._playbackRate;
     sourceNode.loop = this._loop;
@@ -245,7 +245,7 @@ export class AudioSource extends Component {
   }
 
   private _canPlay(): boolean {
-    const isValidClip = this._clip?.getAudioSource() ? true : false;
+    const isValidClip = this._clip?._getAudioSource() ? true : false;
     return isValidClip && AudioManager.isAudioContextRunning();
   }
 }

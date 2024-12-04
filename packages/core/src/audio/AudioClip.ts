@@ -27,7 +27,7 @@ export class AudioClip extends ReferResource {
   /**
    * Duration, in seconds.
    */
-  get duration(): Readonly<number> {
+  get duration(): number {
     return this._audioBuffer.duration;
   }
 
@@ -37,22 +37,19 @@ export class AudioClip extends ReferResource {
   }
 
   /**
-   * Get the clip's audio buffer.
+   * @internal
    */
-  getAudioSource(): AudioBuffer {
+  _getAudioSource(): AudioBuffer {
     return this._audioBuffer;
-  }
-
-  /**
-   * Set audio buffer for the clip.
-   */
-  setAudioSource(value: AudioBuffer): void {
-    this._audioBuffer = value;
   }
 
   /**
    * @internal
    */
+  _setAudioSource(value: AudioBuffer): void {
+    this._audioBuffer = value;
+  }
+
   protected override _onDestroy(): void {
     super._onDestroy();
     this._audioBuffer = null;
