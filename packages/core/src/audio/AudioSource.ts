@@ -133,8 +133,8 @@ export class AudioSource extends Component {
     }
   }
 
-  /** 
-   * @internal 
+  /**
+   * @internal
    */
   constructor(entity: Entity) {
     super(entity);
