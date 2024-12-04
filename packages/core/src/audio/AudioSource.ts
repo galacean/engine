@@ -60,7 +60,7 @@ export class AudioSource extends Component {
   }
 
   /**
-   * The volume of the audio source.
+   * The volume of the audio source, ranging from 0 to 1.
    * @defaultValue `1`
    */
   get volume(): number {
@@ -68,6 +68,7 @@ export class AudioSource extends Component {
   }
 
   set volume(value: number) {
+    value = Math.min(Math.max(0, value), 1.0);
     this._volume = value;
     this._gainNode.gain.setValueAtTime(value, AudioManager.getContext().currentTime);
   }
@@ -88,8 +89,8 @@ export class AudioSource extends Component {
   }
 
   /**
-   * Mutes or unmutes the audio source.
-   * Mute sets volume as 0, Un-Mute restore volume.
+   * Mutes or unmute the audio source.
+   * Mute sets volume as 0, unmute restore volume.
    */
   get mute(): boolean {
     return this.volume === 0;
