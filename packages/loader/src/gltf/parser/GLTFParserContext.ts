@@ -4,6 +4,7 @@ import {
   AnimatorController,
   Buffer,
   Entity,
+  Logger,
   Material,
   ModelMesh,
   ResourceManager,
@@ -150,9 +151,13 @@ export class GLTFParserContext {
   _addTaskCompletePromise(taskPromise: Promise<any>): void {
     const task = this._progress.taskComplete;
     task.total += 1;
-    taskPromise.then(() => {
-      this._setTaskCompleteProgress(++task.loaded, task.total);
-    });
+    taskPromise
+      .then(() => {
+        this._setTaskCompleteProgress(++task.loaded, task.total);
+      })
+      .catch((e) => {
+        Logger.error(e.toString());
+      });
   }
 
   private _handleSubAsset<T>(
