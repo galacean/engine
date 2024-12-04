@@ -8,6 +8,9 @@ import { AudioManager } from "./AudioManager";
  * Audio Source Component.
  */
 export class AudioSource extends Component {
+  /** If set to true, the audio component automatically begins to play on startup. */
+  playOnEnabled = true;
+
   @ignoreClone
   private _isPlaying: boolean = false;
 
@@ -32,9 +35,6 @@ export class AudioSource extends Component {
   @deepClone
   private _loop: boolean = false;
 
-  /** If set to true, the audio component automatically begins to play on startup. */
-  playOnEnabled: boolean = true;
-
   /**
    * The audio clip to play.
    */
@@ -46,11 +46,8 @@ export class AudioSource extends Component {
     const lastClip = this._clip;
     if (lastClip !== value) {
       lastClip && lastClip._addReferCount(-1);
+      value && value._addReferCount(1);
       this._clip = value;
-
-      if (this.playOnEnabled && this.enabled) {
-        this.play();
-      }
     }
   }
 
@@ -136,7 +133,9 @@ export class AudioSource extends Component {
     }
   }
 
-  /** @internal */
+  /** 
+   * @internal 
+   */
   constructor(entity: Entity) {
     super(entity);
     this._onPlayEnd = this._onPlayEnd.bind(this);
