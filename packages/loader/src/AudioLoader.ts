@@ -1,21 +1,20 @@
 import {
-  resourceLoader,
-  Loader,
   AssetPromise,
   AssetType,
-  LoadItem,
   AudioClip,
-  ResourceManager,
-  // @ts-ignore
-  AudioManager
+  AudioManager,
+  Loader,
+  LoadItem,
+  resourceLoader,
+  ResourceManager
 } from "@galacean/engine-core";
 import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { AudioContentRestorer } from "./AudioContentRestorer";
-@resourceLoader(AssetType.Audio, ["mp3", "ogg", "wav"], false)
+@resourceLoader(AssetType.Audio, ["mp3", "ogg", "wav"])
 class AudioLoader extends Loader<AudioClip> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AudioClip> {
     return new AssetPromise((resolve, reject) => {
-      const url = item.url;
+      const { url } = item;
       const requestConfig = <RequestConfig>{
         ...item,
         type: "arraybuffer"
@@ -24,7 +23,6 @@ class AudioLoader extends Loader<AudioClip> {
       // @ts-ignore
       resourceManager._request<ArrayBuffer>(url, requestConfig).then((arrayBuffer) => {
         const audioClip = new AudioClip(resourceManager.engine);
-        // @ts-ignore
         AudioManager.getContext()
           .decodeAudioData(arrayBuffer)
           .then((result: AudioBuffer) => {
