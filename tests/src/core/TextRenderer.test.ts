@@ -1,6 +1,6 @@
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { TextRenderer } from "@galacean/engine-core";
-import { expect } from "chai";
+import { describe, it, expect, beforeEach } from "vitest";
 
 describe("TextRenderer", async () => {
   const canvas = document.createElement("canvas");
@@ -91,4 +91,3 @@ describe("TextRenderer", async () => {
     textRenderer3.text = "hello world\nddl\nsdfjdslfsdfdssdfsdf";
   });
 });
-

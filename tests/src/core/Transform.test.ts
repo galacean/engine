@@ -1,7 +1,7 @@
 import { Entity, Scene } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
+import { describe, beforeAll, expect, it } from "vitest";
 
 const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
@@ -10,7 +10,7 @@ canvasDOM.height = 1024;
 describe("Transform test", function () {
   let entity: Entity;
   let scene: Scene;
-  before(async function () {
+  beforeAll(async function () {
     const engine = await WebGLEngine.create({ canvas: canvasDOM });
     scene = engine.sceneManager.scenes[0];
     entity = scene.createRootEntity();
@@ -24,6 +24,18 @@ describe("Transform test", function () {
     expect(transform.worldForward).to.deep.equal(new Vector3(-0.7071067811865476, -0, -0.7071067811865476));
     expect(transform.worldRight).to.deep.equal(new Vector3(0.7071067811865476, 0, -0.7071067811865476));
     expect(transform.worldUp).to.deep.equal(new Vector3(0, 1, 0));
+  });
+
+  it("World Scale", () => {
+    const root = scene.createRootEntity();
+    root.transform.setScale(1, 2, 3);
+    const entity = root.createChild();
+    const transform = entity.transform;
+    transform.setScale(4, 5, 6);
+    transform.setRotation(0, 0, 0);
+    expect(transform.lossyWorldScale).to.deep.equal(new Vector3(4, 10, 18));
+    transform.setRotation(90, 0, 0);
+    expect(transform.lossyWorldScale).to.deep.equal(new Vector3(4, 15, 12));
   });
 
   it("Parent Dirty", () => {

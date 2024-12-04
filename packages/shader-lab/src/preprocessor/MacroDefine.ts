@@ -1,49 +1,37 @@
 import { BaseToken } from "../common/BaseToken";
 import { ShaderRange } from "../common";
-import { ParserUtils } from "../Utils";
+import { ShaderLabUtils } from "../ShaderLabUtils";
+// #if _VERBOSE
+import { GSErrorName } from "../GSError";
+// #endif
 
 export class MacroDefine {
-  readonly location?: ShaderRange;
-  readonly macro: BaseToken;
-  readonly args?: BaseToken[];
-  readonly body?: BaseToken;
+  private _replaceRegex?: RegExp;
+  private readonly _argsLexemes: string[];
 
-  get isFunction() {
+  get isFunction(): boolean {
     return !!this.args?.length;
   }
 
-  get macroLexeme() {
-    return this.macro.lexeme;
-  }
-
-  constructor(macro: BaseToken, body?: BaseToken, loc?: ShaderRange, args?: BaseToken[]) {
-    this.location = loc;
-    this.macro = macro;
-    this.body = body;
-    this.args = args;
-  }
-
-  private _expand(...args: string[]): string {
-    if (this.isFunction) {
-      const argsTextList = this.args!.map((item) => item.lexeme);
-
-      // #if _EDITOR
-      if (args.length !== this.args?.length) {
-        ParserUtils.throw(this.location, "mismatched function macro");
-      }
-      // #endif
-      const replaceRegex = new RegExp(`\\b(${argsTextList.join("|")})\\b`, "g");
-      return this.body.lexeme.replaceAll(replaceRegex, (_, m) => {
-        const idx = argsTextList.findIndex((item) => item === m);
-        return args[idx];
-      });
+  constructor(
+    public readonly macro: BaseToken,
+    public readonly body?: BaseToken,
+    public readonly location?: ShaderRange,
+    public readonly args?: BaseToken[]
+  ) {
+    if (args) {
+      this._argsLexemes = this.args.map((item) => item.lexeme);
+      this._replaceRegex = new RegExp(`\\b(${this._argsLexemes.join("|")})\\b`, "g");
     }
-    return this.body.lexeme;
   }
 
-  expand(...args: string[]): string {
-    const ret = this._expand(...args);
-    // TODO: erase the comments, any more performant and lightweight solution?
-    return ret.replaceAll(/(\/\/[^\n]*|\/\*.*\*\/)/gs, "");
+  expandFunctionBody(args: string[]): string {
+    if (args.length !== this.args?.length) {
+      throw ShaderLabUtils.createGSError("mismatched function macro", GSErrorName.PreprocessorError, "", this.location);
+    }
+
+    return this.body.lexeme.replace(this._replaceRegex, (m) => {
+      return args[this._argsLexemes.indexOf(m)];
+    });
   }
 }

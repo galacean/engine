@@ -1,6 +1,6 @@
 import { Entity, Script } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import chai, { expect } from "chai";
+import { vi, describe, beforeEach, expect, it } from "vitest";
 
 class TestComponent extends Script {}
 
@@ -412,8 +412,8 @@ describe("Entity", async () => {
         onDisable(): void {}
         onDestroy(): void {}
       }
-      DestroyScript.prototype.onDisable = chai.spy(DestroyScript.prototype.onDisable);
-      DestroyScript.prototype.onDestroy = chai.spy(DestroyScript.prototype.onDestroy);
+      DestroyScript.prototype.onDisable = vi.fn(DestroyScript.prototype.onDisable);
+      DestroyScript.prototype.onDestroy = vi.fn(DestroyScript.prototype.onDestroy);
 
       const root = scene.createRootEntity("root");
       const entity = root.createChild("entity");
@@ -423,7 +423,7 @@ describe("Entity", async () => {
       expect(entity.isActiveInHierarchy).eq(false);
       expect(entity.parent).eq(null);
       expect(entity.scene).eq(null);
-      expect(script.onDisable).to.have.been.called.exactly(1);
+      expect(script.onDisable).toHaveBeenCalledTimes(1);
 
       expect(entity.createChild("child0").isActiveInHierarchy).eq(false);
       root.destroy();
@@ -432,7 +432,7 @@ describe("Entity", async () => {
       expect(root.createChild("child1").isActiveInHierarchy).eq(false);
 
       engine.update();
-      expect(script.onDestroy).to.have.been.called.exactly(1);
+      expect(script.onDestroy).toHaveBeenCalledTimes(1);
     });
   });
 });

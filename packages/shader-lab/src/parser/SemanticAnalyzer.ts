@@ -1,13 +1,14 @@
 import { ShaderRange } from "../common";
 import { TreeNode } from "./AST";
-// #if _EDITOR
-import { SemanticError } from "../Error";
-// #endif
+import { GSErrorName } from "../GSError";
 import { ShaderData } from "./ShaderInfo";
 import { SymbolInfo, SymbolTable } from "../parser/symbolTable";
 import { NodeChild } from "./types";
 import { SymbolTableStack } from "../common/BaseSymbolTable";
-import { Logger } from "@galacean/engine";
+import { ShaderLab } from "../ShaderLab";
+// #if _VERBOSE
+import { GSError } from "../GSError";
+// #endif
 
 export type TranslationRule<T = any> = (sa: SematicAnalyzer, ...tokens: NodeChild[]) => T;
 
@@ -22,8 +23,8 @@ export default class SematicAnalyzer {
   symbolTable: SymbolTableStack<SymbolInfo, SymbolTable> = new SymbolTableStack();
   private _shaderData = new ShaderData();
 
-  // #if _EDITOR
-  readonly errors: SemanticError[] = [];
+  // #if _VERBOSE
+  readonly errors: GSError[] = [];
   // #endif
 
   get shaderData() {
@@ -41,7 +42,7 @@ export default class SematicAnalyzer {
     this._shaderData = new ShaderData();
     this.symbolTable.clear();
     this.newScope();
-    // #if _EDITOR
+    // #if _VERBOSE
     this.errors.length = 0;
     // #endif
   }
@@ -63,13 +64,13 @@ export default class SematicAnalyzer {
     return this._translationRuleTable.get(pid);
   }
 
-  // #if _EDITOR
   error(loc: ShaderRange, ...param: any[]) {
-    Logger.error(loc, ...param);
-
-    const err = new SemanticError(param.join(""), loc);
+    // #if _VERBOSE
+    const err = new GSError(GSErrorName.CompilationError, param.join(""), loc, ShaderLab._processingPassText);
     this.errors.push(err);
     return err;
+    // #else
+    throw new Error(param.join(""));
+    // #endif
   }
-  // #endif
 }

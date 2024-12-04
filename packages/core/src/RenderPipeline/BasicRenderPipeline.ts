@@ -1,6 +1,7 @@
 import { Vector2 } from "@galacean/engine-math";
 import { Background } from "../Background";
 import { Camera } from "../Camera";
+import { Logger } from "../base/Logger";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
@@ -43,6 +44,9 @@ export class BasicRenderPipeline {
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
   private _opaqueTexturePass: OpaqueTexturePass;
+  private _grabTexture: Texture2D;
+  private _canUseBlitFrameBuffer = false;
+  private _shouldGrabColor = false;
 
   /**
    * Create a basic render pipeline.
@@ -77,10 +81,20 @@ export class BasicRenderPipeline {
 
     const camera = this._camera;
     const { scene, engine } = camera;
+    const rhi = engine._hardwareRenderer;
     const cullingResults = this._cullingResults;
     const sunlight = scene._lightManager._sunlight;
     const depthOnlyPass = this._depthOnlyPass;
     const depthPassEnabled = camera.depthTextureMode === DepthTextureMode.PrePass && depthOnlyPass._supportDepthTexture;
+    const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
+    const independentCanvasEnabled = camera.independentCanvasEnabled;
+    const msaaSamples = camera.renderTarget ? camera.renderTarget.antiAliasing : camera.msaaSamples;
+    this._shouldGrabColor = independentCanvasEnabled && !(finalClearFlags & CameraClearFlags.Color);
+    // 1. Only support blitFramebuffer in webgl2 context
+    // 2. Can't blit normal FBO to MSAA FBO
+    // 3. Can't blit screen MSAA FBO to normal FBO in mac safari platform and mobile, but mac chrome and firfox is OK
+    this._canUseBlitFrameBuffer =
+      rhi.isWebGL2 && msaaSamples === 1 && (!!camera.renderTarget || !rhi.context.antialias);
 
     if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
       this._cascadedShadowCasterPass.onRender(context);
@@ -106,9 +120,20 @@ export class BasicRenderPipeline {
       camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._basicResources.whiteTexture2D);
     }
 
-    // Check if need to create internal color texture
-    const independentCanvasEnabled = camera.independentCanvasEnabled;
+    // Check if need to create internal color texture or grab texture
     if (independentCanvasEnabled) {
+      let depthFormat: TextureFormat;
+      if (camera.renderTarget) {
+        depthFormat = camera.renderTarget._depthFormat;
+      } else if (rhi.context.depth && rhi.context.stencil) {
+        depthFormat = TextureFormat.Depth24Stencil8;
+      } else if (rhi.context.depth) {
+        depthFormat = TextureFormat.Depth24;
+      } else if (rhi.context.stencil) {
+        depthFormat = TextureFormat.Stencil;
+      } else {
+        depthFormat = null;
+      }
       const viewport = camera.pixelViewport;
       const internalColorTarget = PipelineUtils.recreateRenderTargetIfNeeded(
         engine,
@@ -116,32 +141,52 @@ export class BasicRenderPipeline {
         viewport.width,
         viewport.height,
         camera._getInternalColorTextureFormat(),
-        TextureFormat.Depth24Stencil8,
+        depthFormat,
         false,
         false,
-        camera.msaaSamples,
+        msaaSamples,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear
       );
+
+      if (!this._canUseBlitFrameBuffer && this._shouldGrabColor) {
+        const grabTexture = PipelineUtils.recreateTextureIfNeeded(
+          engine,
+          this._grabTexture,
+          viewport.width,
+          viewport.height,
+          camera.renderTarget?.getColorTexture(0).format ?? TextureFormat.R8G8B8A8,
+          false,
+          TextureWrapMode.Clamp,
+          TextureFilterMode.Bilinear
+        );
+        this._grabTexture = grabTexture;
+      }
+
       this._internalColorTarget = internalColorTarget;
     } else {
       const internalColorTarget = this._internalColorTarget;
+      const grabTexture = this._grabTexture;
       if (internalColorTarget) {
         internalColorTarget.getColorTexture(0)?.destroy(true);
         internalColorTarget.destroy(true);
         this._internalColorTarget = null;
       }
+      if (grabTexture) {
+        grabTexture.destroy(true);
+        this._grabTexture = null;
+      }
     }
 
-    this._drawRenderPass(context, camera, cubeFace, mipLevel, ignoreClear);
+    this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel);
   }
 
   private _drawRenderPass(
     context: RenderContext,
     camera: Camera,
+    finalClearFlags: CameraClearFlags,
     cubeFace?: TextureCubeFace,
-    mipLevel?: number,
-    ignoreClear?: CameraClearFlags
+    mipLevel?: number
   ) {
     const cullingResults = this._cullingResults;
     const { opaqueQueue, alphaTestQueue, transparentQueue } = cullingResults;
@@ -162,15 +207,54 @@ export class BasicRenderPipeline {
     }
 
     rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
-    const clearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
     const color = background.solidColor;
-    if (clearFlags !== CameraClearFlags.None) {
-      rhi.clearRenderTarget(camera.engine, clearFlags, color);
+
+    if (internalColorTarget && finalClearFlags !== CameraClearFlags.All) {
+      // Can use `blitFramebuffer` API to copy color/depth/stencil buffer from back buffer to internal RT
+      if (this._canUseBlitFrameBuffer) {
+        finalClearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(engine, finalClearFlags, color);
+        rhi.blitInternalRTByBlitFrameBuffer(camera.renderTarget, internalColorTarget, finalClearFlags, camera.viewport);
+      } else {
+        if (!(finalClearFlags & CameraClearFlags.Depth) || !(finalClearFlags & CameraClearFlags.Stencil)) {
+          Logger.warn(
+            "We clear all depth/stencil state cause of the internalRT can't copy depth/stencil buffer from back buffer when use copy plan"
+          );
+        }
+
+        if (this._shouldGrabColor) {
+          rhi.clearRenderTarget(engine, CameraClearFlags.DepthStencil);
+          // Copy RT's color buffer to grab texture
+          rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._grabTexture, camera.viewport);
+          // Then blit grab texture to internal RT's color buffer
+          PipelineUtils.blitTexture(
+            engine,
+            this._grabTexture,
+            internalColorTarget,
+            0,
+            undefined,
+            undefined,
+            undefined,
+            // Only flip Y axis in webgl context
+            !camera.renderTarget
+          );
+        } else {
+          rhi.clearRenderTarget(engine, CameraClearFlags.All, color);
+        }
+      }
+
+      rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
+    } else if (finalClearFlags !== CameraClearFlags.None) {
+      rhi.clearRenderTarget(engine, finalClearFlags, color);
+    }
+
+    const maskManager = scene._maskManager;
+    if (finalClearFlags & CameraClearFlags.Stencil) {
+      maskManager.hasStencilWritten = false;
     }
 
     opaqueQueue.render(context, PipelineStage.Forward);
     alphaTestQueue.render(context, PipelineStage.Forward);
-    if (clearFlags & CameraClearFlags.Color) {
+    if (finalClearFlags & CameraClearFlags.Color) {
       if (background.mode === BackgroundMode.Sky) {
         background.sky._render(context);
       } else if (background.mode === BackgroundMode.Texture && background.texture) {
@@ -194,6 +278,8 @@ export class BasicRenderPipeline {
     }
 
     transparentQueue.render(context, PipelineStage.Forward);
+    // Revert stencil buffer generated by mask
+    maskManager.clearMask(context, PipelineStage.Forward);
 
     const postProcessManager = scene._postProcessManager;
     const cameraRenderTarget = camera.renderTarget;
@@ -201,6 +287,7 @@ export class BasicRenderPipeline {
       postProcessManager._render(context, internalColorTarget, cameraRenderTarget);
     } else if (internalColorTarget) {
       internalColorTarget._blitRenderTarget();
+
       PipelineUtils.blitTexture(
         engine,
         <Texture2D>internalColorTarget.getColorTexture(0),

@@ -58,7 +58,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       // Create sprites.
       const sprite = new Sprite(engine, textures[0]);
       const maskSprite0 = new Sprite(engine, textures[1]);
-      const maksSprite1 = new Sprite(engine, textures[2]);
+      const maskSprite1 = new Sprite(engine, textures[2]);
 
       // Show inside mask.
       pos.set(-5, 0, 0);
@@ -82,7 +82,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
         SpriteMaskInteraction.VisibleOutsideMask,
         SpriteMaskLayer.Layer1
       );
-      addMask(pos, maksSprite1, SpriteMaskLayer.Layer1, RotationScript);
+      addMask(pos, maskSprite1, SpriteMaskLayer.Layer1, RotationScript);
     });
 
   engine.run();
@@ -114,7 +114,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   function addMask<T extends Script>(
     pos: Vector3,
     sprite: Sprite,
-    influenceLayers: number,
+    influenceLayers: SpriteMaskLayer,
     scriptType: new (entity: Entity) => T
   ): void {
     const entity = rootEntity.createChild("Mask");
