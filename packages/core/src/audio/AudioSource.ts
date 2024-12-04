@@ -24,7 +24,7 @@ export class AudioSource extends Component {
   @deepClone
   private _pausedTime: number = -1;
   @ignoreClone
-  private _absoluteStartTime: number = -1;
+  private _playTime: number = -1;
 
   @deepClone
   private _volume: number = 1;
@@ -48,6 +48,7 @@ export class AudioSource extends Component {
       lastClip && lastClip._addReferCount(-1);
       value && value._addReferCount(1);
       this._clip = value;
+      this.stop();
     }
   }
 
@@ -67,9 +68,7 @@ export class AudioSource extends Component {
 
   set volume(value: number) {
     this._volume = value;
-    if (this._isPlaying) {
-      this._gainNode.gain.setValueAtTime(value, AudioManager.getContext().currentTime);
-    }
+    this._gainNode.gain.setValueAtTime(value, AudioManager.getContext().currentTime);
   }
 
   /**
@@ -124,12 +123,11 @@ export class AudioSource extends Component {
    * Playback position in seconds.
    */
   get time(): number {
+    const currentTime = AudioManager.getContext().currentTime;
     if (this._isPlaying) {
-      return this._pausedTime > 0
-        ? this.engine.time.elapsedTime - this._absoluteStartTime + this._pausedTime
-        : this.engine.time.elapsedTime - this._absoluteStartTime;
+      return currentTime - this._playTime;
     } else {
-      return this._pausedTime > 0 ? this._pausedTime : 0;
+      return this._pausedTime > 0 ? currentTime - this._pausedTime : 0;
     }
   }
 
@@ -145,16 +143,18 @@ export class AudioSource extends Component {
   }
 
   /**
-   * Plays the clip.
+   * Play the clip.
    */
   play(): void {
     if (!this._canPlay()) {
       return;
     }
-    if (this._isPlaying) return;
-    this._initSourceNode();
-    this._startPlayback(this._pausedTime > 0 ? this._pausedTime : 0);
+    if (this._isPlaying) {
+      return;
+    }
+    this._initSourceNode(this._pausedTime > 0 ? this._pausedTime : 0);
 
+    this._playTime = AudioManager.getContext().currentTime;
     this._pausedTime = -1;
     this._isPlaying = true;
   }
@@ -168,7 +168,7 @@ export class AudioSource extends Component {
 
       this._isPlaying = false;
       this._pausedTime = -1;
-      this._absoluteStartTime = -1;
+      this._playTime = -1;
     }
   }
 
@@ -179,6 +179,7 @@ export class AudioSource extends Component {
     if (this._isPlaying) {
       this._clearSourceNode();
 
+      this._pausedTime = AudioManager.getContext().currentTime;
       this._isPlaying = false;
       this._pausedTime = this.time;
     }
@@ -203,44 +204,34 @@ export class AudioSource extends Component {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    if (this._clip) {
-      this._clip._addReferCount(-1);
-      this._clip = null;
-    }
+    this.stop();
+    this.clip = null;
   }
 
   private _onPlayEnd(): void {
     this.stop();
   }
 
-  private _initSourceNode(): void {
-    this._clearSourceNode();
+  private _initSourceNode(startTime: number): void {
     const context = AudioManager.getContext();
-    this._sourceNode = context.createBufferSource();
+    const sourceNode = context.createBufferSource();
 
-    const { _sourceNode: sourceNode } = this;
     sourceNode.buffer = this._clip._getAudioSource();
-    sourceNode.onended = this._onPlayEnd;
     sourceNode.playbackRate.value = this._playbackRate;
     sourceNode.loop = this._loop;
+    sourceNode.onended = this._onPlayEnd;
+    this._sourceNode = sourceNode;
 
-    this._gainNode.gain.setValueAtTime(this._volume, context.currentTime);
     sourceNode.connect(this._gainNode);
+
+    this._sourceNode.start(0, startTime);
   }
 
   private _clearSourceNode(): void {
-    if (!this._sourceNode) return;
-
     this._sourceNode.stop();
     this._sourceNode.disconnect();
     this._sourceNode.onended = null;
     this._sourceNode = null;
-  }
-
-  private _startPlayback(startTime: number): void {
-    this._sourceNode.start(0, startTime);
-    this._absoluteStartTime =
-      this._absoluteStartTime > 0 ? this.engine.time.elapsedTime - startTime : this.engine.time.elapsedTime;
   }
 
   private _canPlay(): boolean {
