@@ -32,7 +32,7 @@ export class AudioManager {
 
   static isAudioContextRunning(): boolean {
     if (AudioManager.getContext().state !== "running") {
-      console.warn("AudioContext is not running. User interaction required.");
+      console.warn("AudioContext is not running, user interaction required.");
       return false;
     }
     return true;
