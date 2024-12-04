@@ -53,14 +53,15 @@ export class AudioSource extends Component {
   }
 
   /**
-   * Whether the clip playing right now (Read Only).
+   * Whether the clip playing right now.
    */
   get isPlaying(): boolean {
     return this._isPlaying;
   }
 
   /**
-   * The volume of the audio source. 1.0 is origin volume.
+   * The volume of the audio source.
+   * @defaultValue `1`
    */
   get volume(): number {
     return this._volume;
@@ -72,7 +73,8 @@ export class AudioSource extends Component {
   }
 
   /**
-   * The playback rate of the audio source, 1.0 is normal playback speed.
+   * The playback rate of the audio source.
+   * @defaultValue `1`
    */
   get playbackRate(): number {
     return this._playbackRate;
@@ -86,7 +88,7 @@ export class AudioSource extends Component {
   }
 
   /**
-   * Mutes / Unmutes the AudioSource.
+   * Mutes or unmutes the audio source.
    * Mute sets volume as 0, Un-Mute restore volume.
    */
   get mute(): boolean {
@@ -103,7 +105,8 @@ export class AudioSource extends Component {
   }
 
   /**
-   * Whether the audio clip looping. Default false.
+   * Whether the audio clip looping.
+   * @defaultValue `false`
    */
   get loop(): boolean {
     return this._loop;
