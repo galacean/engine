@@ -149,7 +149,9 @@ export class AudioSource extends Component {
    * Plays the clip.
    */
   play(): void {
-    if (!this._canPlay()) return;
+    if (!this._canPlay()) {
+      return;
+    }
     if (this._isPlaying) return;
     this._initSourceNode();
     this._startPlayback(this._pausedTime > 0 ? this._pausedTime : 0);
@@ -243,14 +245,7 @@ export class AudioSource extends Component {
   }
 
   private _canPlay(): boolean {
-    return this._isValidClip() && AudioManager.isAudioContextRunning();
-  }
-
-  private _isValidClip(): boolean {
-    if (!this._clip || this._clip.duration <= 0) {
-      return false;
-    }
-
-    return true;
+    const isValidClip = this._clip?.getAudioSource() ? true : false;
+    return isValidClip && AudioManager.isAudioContextRunning();
   }
 }
