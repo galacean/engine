@@ -38,7 +38,7 @@ export class AudioClip extends ReferResource {
   constructor(engine: Engine, name: string = "") {
     super(engine);
     this.name = name;
-    this._context = AudioManager.context;
+    this._context = AudioManager.getContext();
   }
 
   /**

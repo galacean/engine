@@ -71,7 +71,7 @@ export class AudioSource extends Component {
   set volume(value: number) {
     this._volume = value;
     if (this._isPlaying) {
-      this._gainNode.gain.setValueAtTime(value, AudioManager.context.currentTime);
+      this._gainNode.gain.setValueAtTime(value, AudioManager.getContext().currentTime);
     }
   }
 
@@ -141,8 +141,8 @@ export class AudioSource extends Component {
     super(entity);
     this._onPlayEnd = this._onPlayEnd.bind(this);
 
-    this._gainNode = AudioManager.context.createGain();
-    this._gainNode.connect(AudioManager.gainNode);
+    this._gainNode = AudioManager.getContext().createGain();
+    this._gainNode.connect(AudioManager.getGainNode());
   }
 
   /**
@@ -214,7 +214,8 @@ export class AudioSource extends Component {
 
   private _initSourceNode(): void {
     this._clearSourceNode();
-    this._sourceNode = AudioManager.context.createBufferSource();
+    const context = AudioManager.getContext();
+    this._sourceNode = context.createBufferSource();
 
     const { _sourceNode: sourceNode } = this;
     sourceNode.buffer = this._clip.getAudioSource();
@@ -222,7 +223,7 @@ export class AudioSource extends Component {
     sourceNode.playbackRate.value = this._playbackRate;
     sourceNode.loop = this._loop;
 
-    this._gainNode.gain.setValueAtTime(this._volume, AudioManager.context.currentTime);
+    this._gainNode.gain.setValueAtTime(this._volume, context.currentTime);
     sourceNode.connect(this._gainNode);
   }
 
@@ -242,20 +243,11 @@ export class AudioSource extends Component {
   }
 
   private _canPlay(): boolean {
-    return this._isValidClip() && this._isAudioContextRunning();
+    return this._isValidClip() && AudioManager.isAudioContextRunning();
   }
 
   private _isValidClip(): boolean {
     if (!this._clip || this._clip.duration <= 0) {
-      return false;
-    }
-
-    return true;
-  }
-
-  private _isAudioContextRunning(): boolean {
-    if (AudioManager.context.state !== "running") {
-      console.warn("AudioContext is not running. User interaction required.");
       return false;
     }
 

@@ -5,46 +5,49 @@
 export class AudioManager {
   private static _context: AudioContext;
   private static _gainNode: GainNode;
-  private static _unlocked: boolean = false;
+  private static _isResuming = false;
 
-  /**
-   * Audio context
-   */
-  static get context(): AudioContext {
-    if (!AudioManager._context) {
-      AudioManager._context = new window.AudioContext();
+  static getContext(): AudioContext {
+    let context = AudioManager._context;
+    if (!context) {
+      AudioManager._context = context = new window.AudioContext();
+
+      // Safari can't resume audio context without element interaction
+      const document = window.document;
+      document.addEventListener("pointerdown", AudioManager._tryResume, true);
+      document.addEventListener("touchend", AudioManager._tryResume, true);
+      document.addEventListener("touchstart", AudioManager._tryResume, true);
     }
-    if (AudioManager._context.state !== "running") {
-      window.document.addEventListener("pointerdown", AudioManager._unlock, true);
-      window.document.addEventListener("touchend", AudioManager._unlock, true);
-      window.document.addEventListener("touchstart", AudioManager._unlock, true);
-    }
-    return AudioManager._context;
+    return context;
   }
 
-  /**
-   * Audio GainNode.
-   */
-  static get gainNode(): GainNode {
+  static getGainNode(): GainNode {
+    let gainNode = AudioManager._gainNode;
     if (!AudioManager._gainNode) {
-      const gain = AudioManager.context.createGain();
-      gain.connect(AudioManager.context.destination);
-      AudioManager._gainNode = gain;
+      AudioManager._gainNode = gainNode = AudioManager.getContext().createGain();
+      gainNode.connect(AudioManager.getContext().destination);
     }
-    return AudioManager._gainNode;
+    return gainNode;
   }
 
-  private static _unlock(): void {
-    if (AudioManager._unlocked) {
-      return;
+  static isAudioContextRunning(): boolean {
+    if (AudioManager.getContext().state !== "running") {
+      console.warn("AudioContext is not running. User interaction required.");
+      return false;
     }
-    AudioManager._context.resume().then(() => {
-      if (AudioManager._context.state === "running") {
-        window.document.removeEventListener("pointerdown", AudioManager._unlock, true);
-        window.document.removeEventListener("touchend", AudioManager._unlock, true);
-        window.document.removeEventListener("touchstart", AudioManager._unlock, true);
-        AudioManager._unlocked = true;
+    return true;
+  }
+
+  private static _tryResume(): void {
+    if (AudioManager._context.state !== "running") {
+      if (AudioManager._isResuming) {
+        return;
       }
-    });
+
+      AudioManager._isResuming = true;
+      AudioManager._context.resume().then(() => {
+        AudioManager._isResuming = false;
+      });
+    }
   }
 }

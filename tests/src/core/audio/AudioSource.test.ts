@@ -27,9 +27,7 @@ describe("AudioSource", () => {
     });
 
     expect(clip.duration).to.be.above(0);
-  });
 
-  it("start play", async () => {
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity();
     const audioEntity = rootEntity.createChild();
