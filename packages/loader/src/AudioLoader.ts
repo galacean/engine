@@ -5,7 +5,9 @@ import {
   AssetType,
   LoadItem,
   AudioClip,
-  ResourceManager
+  ResourceManager,
+  // @ts-ignore
+  AudioManager
 } from "@galacean/engine-core";
 import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { AudioContentRestorer } from "./AudioContentRestorer";
@@ -23,7 +25,7 @@ class AudioLoader extends Loader<AudioClip> {
       resourceManager._request<ArrayBuffer>(url, requestConfig).then((arrayBuffer) => {
         const audioClip = new AudioClip(resourceManager.engine);
         // @ts-ignore
-        audioClip._context
+        AudioManager.getContext()
           .decodeAudioData(arrayBuffer)
           .then((result: AudioBuffer) => {
             audioClip.setAudioSource(result);
