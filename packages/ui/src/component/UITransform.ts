@@ -30,9 +30,10 @@ export class UITransform extends Transform {
   constructor(entity: Entity) {
     super(entity);
     // @ts-ignore
-    entity._transform.destroy();
+    const preTransform = entity._transform;
     // @ts-ignore
     entity._transform = this;
+    preTransform.destroy();
     // @ts-ignore
     entity._inverseWorldMatFlag = this.registerWorldChangeFlag();
     // @ts-ignore
