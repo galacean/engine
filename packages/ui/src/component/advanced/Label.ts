@@ -4,6 +4,7 @@ import {
   Entity,
   Font,
   FontStyle,
+  ITextRenderer,
   OverflowMode,
   RenderQueueFlags,
   RendererUpdateFlags,
@@ -23,7 +24,7 @@ import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
 import { UIRenderer, UIRendererUpdateFlags } from "../UIRenderer";
 import { UITransform, UITransformModifyFlags } from "../UITransform";
 
-export class Label extends UIRenderer {
+export class Label extends UIRenderer implements ITextRenderer {
   private static _textTextureProperty = ShaderProperty.getByName("renderElement_TextTexture");
   private static _worldPositions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   private static _charRenderInfos: CharRenderInfo[] = [];

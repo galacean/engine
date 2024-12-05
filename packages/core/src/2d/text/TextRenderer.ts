@@ -18,13 +18,14 @@ import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAli
 import { OverflowMode } from "../enums/TextOverflow";
 import { CharRenderInfo } from "./CharRenderInfo";
 import { Font } from "./Font";
+import { ITextRenderer } from "./ITextRenderer";
 import { SubFont } from "./SubFont";
 import { TextUtils } from "./TextUtils";
 
 /**
  * Renders a text for 2D graphics.
  */
-export class TextRenderer extends Renderer {
+export class TextRenderer extends Renderer implements ITextRenderer {
   private static _textureProperty = ShaderProperty.getByName("renderElement_TextTexture");
   private static _tempVec30 = new Vector3();
   private static _tempVec31 = new Vector3();
