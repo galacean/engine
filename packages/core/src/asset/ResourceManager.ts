@@ -514,7 +514,7 @@ export class ResourceManager {
     let assetBaseURL = baseUrl;
     if (searchStr) {
       const params = searchStr.split("&");
-      for (let i = 0; i < params.length; i++) {
+      for (let i = params.length - 1; i >= 0; i--) {
         const param = params[i];
         if (param.startsWith(`q=`)) {
           queryPath = decodeURIComponent(param.split("=")[1]);
@@ -573,11 +573,9 @@ export class ResourceManager {
         Logger.warn(`refId:${refId} is not find in this._editorResourceConfig.`);
         return Promise.resolve(null);
       }
-      const remoteUrl = resourceConfig.path;
-      const queryPath = new URL(remoteUrl).search;
-      let url = resourceConfig.virtualPath + queryPath;
+      let url = resourceConfig.virtualPath;
       if (key) {
-        url += (url.indexOf("?") > -1 ? "&" : "?") + "q=" + key;
+        url += "?q=" + key;
       }
 
       promise = this.load<any>({

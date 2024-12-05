@@ -15,6 +15,7 @@
     "types/**/*"
   ],
   "dependencies": {
+    "@galacean/engine": "workspace:*",
     "@galacean/engine-core": "workspace:*",
     "@galacean/engine-loader": "workspace:*",
     "@galacean/engine-design": "workspace:*",
