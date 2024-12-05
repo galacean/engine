@@ -13,7 +13,6 @@ export class AudioManager {
       AudioManager._context = context = new window.AudioContext();
 
       // Safari can't resume audio context without element interaction
-      const document = window.document;
       document.addEventListener("pointerdown", AudioManager._tryResume, true);
       document.addEventListener("touchend", AudioManager._tryResume, true);
       document.addEventListener("touchstart", AudioManager._tryResume, true);
