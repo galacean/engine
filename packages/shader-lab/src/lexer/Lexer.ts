@@ -1,4 +1,3 @@
-import { ShaderRange, ShaderPosition } from "../common";
 import { ETokenType, KeywordTable } from "../common";
 import { EOF, BaseToken } from "../common/BaseToken";
 import LexerUtils from "./Utils";

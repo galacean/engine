@@ -187,10 +187,22 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ENonTerminal.type_specifier,
         ENonTerminal.struct_declarator_list,
         ETokenType.SEMICOLON
-      ]
+      ],
+      [ENonTerminal.layout_qualifier, ENonTerminal.type_specifier, ENonTerminal.struct_declarator, ETokenType.SEMICOLON]
     ],
     ASTNode.StructDeclaration.pool
   ),
+
+  ...GrammarUtils.createProductionWithOptions(ENonTerminal.layout_qualifier, [
+    [
+      EKeyword.LAYOUT,
+      ETokenType.LEFT_PAREN,
+      EKeyword.LOCATION,
+      ETokenType.EQUAL,
+      ETokenType.INT_CONSTANT,
+      ETokenType.RIGHT_PAREN
+    ]
+  ]),
 
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.struct_declarator_list,

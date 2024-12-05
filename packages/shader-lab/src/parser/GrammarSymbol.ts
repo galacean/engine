@@ -72,6 +72,7 @@ export enum ENonTerminal {
   struct_specifier,
   struct_declaration_list,
   struct_declaration,
+  layout_qualifier,
   struct_declarator_list,
   struct_declarator,
   identifier_list,
