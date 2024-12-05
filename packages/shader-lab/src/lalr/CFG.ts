@@ -193,16 +193,20 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     ASTNode.StructDeclaration.pool
   ),
 
-  ...GrammarUtils.createProductionWithOptions(ENonTerminal.layout_qualifier, [
+  ...GrammarUtils.createProductionWithOptions(
+    ENonTerminal.layout_qualifier,
     [
-      EKeyword.LAYOUT,
-      ETokenType.LEFT_PAREN,
-      EKeyword.LOCATION,
-      ETokenType.EQUAL,
-      ETokenType.INT_CONSTANT,
-      ETokenType.RIGHT_PAREN
-    ]
-  ]),
+      [
+        EKeyword.LAYOUT,
+        ETokenType.LEFT_PAREN,
+        EKeyword.LOCATION,
+        ETokenType.EQUAL,
+        ETokenType.INT_CONSTANT,
+        ETokenType.RIGHT_PAREN
+      ]
+    ],
+    ASTNode.LayoutQualifier.pool
+  ),
 
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.struct_declarator_list,

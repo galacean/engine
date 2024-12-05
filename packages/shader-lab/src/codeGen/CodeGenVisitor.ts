@@ -9,17 +9,16 @@ import { VisitorContext } from "./VisitorContext";
 import { ShaderLab } from "../ShaderLab";
 import { GSErrorName } from "../GSError";
 // #if _VERBOSE
-import { GSError } from "../GSError";
+import type { GSError } from "../GSError";
 // #endif
+import { ShaderLabUtils } from "../ShaderLabUtils";
 
 /**
  * @internal
  * The code generator
  */
 export class CodeGenVisitor {
-  // #if _VERBOSE
-  readonly errors: GSError[] = [];
-  // #endif
+  readonly errors: Error[] = [];
 
   defaultCodeGen(children: NodeChild[]) {
     let ret: string[] = [];
@@ -44,19 +43,21 @@ export class CodeGenVisitor {
       if (prop instanceof Token) {
         if (context.isAttributeStruct(<string>postExpr.type)) {
           const error = context.referenceAttribute(prop);
-          // #if _VERBOSE
           if (error) {
             this.errors.push(<GSError>error);
           }
-          // #endif
           return prop.lexeme;
         } else if (context.isVaryingStruct(<string>postExpr.type)) {
           const error = context.referenceVarying(prop);
-          // #if _VERBOSE
           if (error) {
             this.errors.push(<GSError>error);
           }
-          // #endif
+          return prop.lexeme;
+        } else if (context.isMRTStruct(<string>postExpr.type)) {
+          const error = context.referenceMRT(prop);
+          if (error) {
+            this.errors.push(<GSError>error);
+          }
           return prop.lexeme;
         }
 
@@ -127,12 +128,12 @@ export class CodeGenVisitor {
   }
 
   visitDeclaration(node: ASTNode.Declaration): string {
+    const { context } = VisitorContext;
     const child = node.children[0];
-    if (
-      child instanceof ASTNode.InitDeclaratorList &&
-      child.typeInfo.typeLexeme === VisitorContext.context.varyingStruct?.ident?.lexeme
-    ) {
-      return "";
+
+    if (child instanceof ASTNode.InitDeclaratorList) {
+      const typeLexeme = child.typeInfo.typeLexeme;
+      if (context.isVaryingStruct(typeLexeme) || context.isMRTStruct(typeLexeme)) return "";
     }
     return this.defaultCodeGen(node.children);
   }
@@ -191,11 +192,13 @@ export class CodeGenVisitor {
     return this.defaultCodeGen(node.children);
   }
 
+  visitLayoutQualifier(node: ASTNode.LayoutQualifier): string {
+    return this.defaultCodeGen(node.children);
+  }
+
   protected _reportError(loc: ShaderRange | ShaderPosition, message: string): void {
-    // #if _VERBOSE
-    this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderLab._processingPassText));
-    // #else
-    throw new Error(message);
-    // #endif
+    this.errors.push(
+      ShaderLabUtils.createGSError(message, GSErrorName.CompilationError, ShaderLab._processingPassText, loc)
+    );
   }
 }

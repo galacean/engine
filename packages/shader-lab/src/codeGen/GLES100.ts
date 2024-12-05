@@ -1,3 +1,5 @@
+import { BaseToken } from "../common/BaseToken";
+import { ASTNode } from "../parser/AST";
 import { GLESVisitor } from "./GLESVisitor";
 import { VisitorContext } from "./VisitorContext";
 import { ICodeSegment } from "./types";
@@ -41,5 +43,24 @@ export class GLES100Visitor extends GLESVisitor {
       });
     }
     return ret;
+  }
+
+  override getMRTDeclare(): ICodeSegment[] | undefined {
+    return;
+  }
+
+  override visitPostfixExpression(node: ASTNode.PostfixExpression): string {
+    const { children } = node;
+    const postExpr = children[0];
+    const { context } = VisitorContext;
+    if (postExpr instanceof ASTNode.PostfixExpression && context.isMRTStruct(<string>postExpr.type)) {
+      const propReferenced = children[2] as BaseToken;
+      const prop = context.mrtStruct!.propList.find((item) => item.ident.lexeme === propReferenced.lexeme);
+      if (!prop) {
+        this._reportError(propReferenced.location, `not found mrt property: ${propReferenced.lexeme}`);
+      }
+      return `gl_FragData[${prop.mrtIndex!}]`;
+    }
+    return super.visitPostfixExpression(node);
   }
 }

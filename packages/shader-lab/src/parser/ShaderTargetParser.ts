@@ -113,7 +113,6 @@ export class ShaderTargetParser {
         traceBackStack.push(nextState);
         continue;
       } else {
-        debugger;
         const error = ShaderLabUtils.createGSError(
           `Unexpected token ${token.lexeme}`,
           GSErrorName.CompilationError,

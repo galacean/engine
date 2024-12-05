@@ -46,6 +46,19 @@ export class GLES300Visitor extends GLESVisitor {
     return ret;
   }
 
+  override getMRTDeclare(): ICodeSegment[] {
+    const ret: ICodeSegment[] = [];
+    const referencedMRTList = VisitorContext.context._referencedMRTList;
+    for (let ident in referencedMRTList) {
+      const info = referencedMRTList[ident];
+      ret.push({
+        text: `layout(location = ${info.mrtIndex}) out ${info.typeInfo.typeLexeme} ${ident};`,
+        index: info.ident.location.start.index
+      });
+    }
+    return ret;
+  }
+
   override visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {
     const typeSpecifier = node.children[0] as ASTNode.TypeSpecifier;
     if (typeSpecifier.children.length !== 1) {
@@ -81,11 +94,15 @@ export class GLES300Visitor extends GLESVisitor {
   }
 
   override visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
-    if (VisitorContext.context.stage === EShaderStage.FRAGMENT && node.lexeme === "gl_FragColor") {
-      if (!VisitorContext.context._referencedVaryingList[V3_GL_FragColor]) {
+    const { context } = VisitorContext;
+    if (context.stage === EShaderStage.FRAGMENT && node.lexeme === "gl_FragColor") {
+      if (context.mrtStruct) {
+        this._reportError(node.location, "gl_FragColor cannot be used with MRT (Multiple Render Targets).");
+      }
+      if (!context._referencedVaryingList[V3_GL_FragColor]) {
         const token = Token.pool.get();
         token.set(ETokenType.ID, V3_GL_FragColor, ShaderLab.createPosition(0, 0, 0));
-        VisitorContext.context._referencedVaryingList[V3_GL_FragColor] = {
+        context._referencedVaryingList[V3_GL_FragColor] = {
           ident: token,
           typeInfo: new SymbolType(EKeyword.VEC4, "vec4"),
           qualifier: "out",

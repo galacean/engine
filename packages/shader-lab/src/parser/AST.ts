@@ -3,7 +3,7 @@ import { BuiltinFunction, BuiltinVariable, NonGenericGalaceanType } from "./buil
 // #endif
 import { CodeGenVisitor } from "../codeGen";
 import { ENonTerminal } from "./GrammarSymbol";
-import { BaseToken as Token } from "../common/BaseToken";
+import { BaseToken, BaseToken as Token } from "../common/BaseToken";
 import { EKeyword, ETokenType, TokenType, ShaderRange, GalaceanDataType, TypeAny } from "../common";
 import SematicAnalyzer from "./SemanticAnalyzer";
 import { ShaderData } from "./ShaderInfo";
@@ -13,7 +13,22 @@ import { IParamInfo, NodeChild, StructProp, SymbolType } from "./types";
 import { ClearableObjectPool, IPoolElement } from "@galacean/engine";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 
+function ASTNodeDecorator(nonterminal: ENonTerminal) {
+  return function <T extends { new (...args: any[]): TreeNode }>(ASTNode: T) {
+    const ASTNodeClass = class extends ASTNode {
+      override set(loc: ShaderRange, children: NodeChild[]): void {
+        super.set(loc, children, nonterminal);
+      }
+    };
+    // @ts-ignore
+    ASTNode.pool = ShaderLabUtils.createObjectPool(ASTNodeClass);
+    return ASTNodeClass;
+  };
+}
+
 export abstract class TreeNode implements IPoolElement {
+  static pool: ClearableObjectPool<TreeNode & { set: (loc: ShaderRange, children: NodeChild[]) => void }>;
+
   /** The non-terminal in grammar. */
   nt: ENonTerminal;
   private _children: NodeChild[];
@@ -62,45 +77,25 @@ export namespace ASTNode {
     sa.semanticStack.push(node);
   }
 
-  export class TrivialNode extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(TrivialNode);
+  @ASTNodeDecorator(ENonTerminal._ignore)
+  export class TrivialNode extends TreeNode {}
 
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal._ignore);
-    }
-  }
-
+  @ASTNodeDecorator(ENonTerminal.scope_brace)
   export class ScopeBrace extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(ScopeBrace);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.scope_brace);
-    }
-
     override semanticAnalyze(sa: SematicAnalyzer): void {
       sa.newScope();
     }
   }
 
+  @ASTNodeDecorator(ENonTerminal.scope_end_brace)
   export class ScopeEndBrace extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(ScopeEndBrace);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.scope_end_brace);
-    }
-
     override semanticAnalyze(sa: SematicAnalyzer): void {
       sa.dropScope();
     }
   }
 
+  @ASTNodeDecorator(ENonTerminal.jump_statement)
   export class JumpStatement extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(JumpStatement);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.jump_statement);
-    }
-
     // #if _VERBOSE
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (ASTNode._unwrapToken(this.children![0]).type === EKeyword.RETURN) {
@@ -115,61 +110,26 @@ export namespace ASTNode {
   }
 
   // #if _VERBOSE
-  export class ConditionOpt extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(ConditionOpt);
+  @ASTNodeDecorator(ENonTerminal.conditionopt)
+  export class ConditionOpt extends TreeNode {}
 
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.conditionopt);
-    }
-  }
+  @ASTNodeDecorator(ENonTerminal.for_rest_statement)
+  export class ForRestStatement extends TreeNode {}
 
-  export class ForRestStatement extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(ForRestStatement);
+  @ASTNodeDecorator(ENonTerminal.condition)
+  export class Condition extends TreeNode {}
 
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.for_rest_statement);
-    }
-  }
+  @ASTNodeDecorator(ENonTerminal.for_init_statement)
+  export class ForInitStatement extends TreeNode {}
 
-  export class Condition extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(Condition);
+  @ASTNodeDecorator(ENonTerminal.iteration_statement)
+  export class IterationStatement extends TreeNode {}
 
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.condition);
-    }
-  }
+  @ASTNodeDecorator(ENonTerminal.selection_statement)
+  export class SelectionStatement extends TreeNode {}
 
-  export class ForInitStatement extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(ForInitStatement);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.for_init_statement);
-    }
-  }
-
-  export class IterationStatement extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(IterationStatement);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.iteration_statement);
-    }
-  }
-
-  export class SelectionStatement extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(SelectionStatement);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.selection_statement);
-    }
-  }
-
-  export class ExpressionStatement extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(ExpressionStatement);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.expression_statement);
-    }
-  }
+  @ASTNodeDecorator(ENonTerminal.expression_statement)
+  export class ExpressionStatement extends TreeNode {}
   // #endif
 
   export abstract class ExpressionAstNode extends TreeNode {
@@ -188,27 +148,18 @@ export namespace ASTNode {
   }
 
   // #if _VERBOSE
+  @ASTNodeDecorator(ENonTerminal.initializer_list)
   export class InitializerList extends ExpressionAstNode {
-    static pool = ShaderLabUtils.createObjectPool(InitializerList);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.initializer_list);
-    }
-
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const init = this.children[0] as Initializer | InitializerList;
       this.type = init.type;
     }
   }
 
+  @ASTNodeDecorator(ENonTerminal.initializer)
   export class Initializer extends ExpressionAstNode {
-    static pool = ShaderLabUtils.createObjectPool(Initializer);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.initializer);
-    }
-
     override semanticAnalyze(sa: SematicAnalyzer): void {
+      debugger;
       if (this.children.length === 1) {
         this.type = (<AssignmentExpression>this.children[0]).type;
       } else {
@@ -219,7 +170,7 @@ export namespace ASTNode {
   // #endif
 
   export class SingleDeclaration extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(SingleDeclaration);
+    static override pool = ShaderLabUtils.createObjectPool(SingleDeclaration);
 
     typeSpecifier: TypeSpecifier;
     arraySpecifier?: ArraySpecifier;
@@ -257,9 +208,8 @@ export namespace ASTNode {
     }
   }
 
+  @ASTNodeDecorator(ENonTerminal.fully_specified_type)
   export class FullySpecifiedType extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(FullySpecifiedType);
-
     get qualifierList() {
       if (this.children.length > 1) {
         return (<TypeQualifier>this.children[0]).qualifierList;
@@ -273,20 +223,11 @@ export namespace ASTNode {
     get type() {
       return this.typeSpecifier.type;
     }
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.fully_specified_type);
-    }
   }
 
+  @ASTNodeDecorator(ENonTerminal.type_qualifier)
   export class TypeQualifier extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(TypeQualifier);
-
     qualifierList: EKeyword[];
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.type_qualifier);
-    }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length > 1) {
@@ -300,15 +241,10 @@ export namespace ASTNode {
     }
   }
 
+  @ASTNodeDecorator(ENonTerminal.single_type_qualifier)
   export class SingleTypeQualifier extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(SingleTypeQualifier);
-
     qualifier: EKeyword;
     lexeme: string;
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.single_type_qualifier);
-    }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const child = this.children[0];
@@ -336,42 +272,21 @@ export namespace ASTNode {
   }
 
   // #if _VERBOSE
-  export class StorageQualifier extends BasicTypeQualifier {
-    static pool = ShaderLabUtils.createObjectPool(StorageQualifier);
+  @ASTNodeDecorator(ENonTerminal.storage_qualifier)
+  export class StorageQualifier extends BasicTypeQualifier {}
 
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.storage_qualifier);
-    }
-  }
+  @ASTNodeDecorator(ENonTerminal.precision_qualifier)
+  export class PrecisionQualifier extends BasicTypeQualifier {}
 
-  export class PrecisionQualifier extends BasicTypeQualifier {
-    static pool = ShaderLabUtils.createObjectPool(PrecisionQualifier);
+  @ASTNodeDecorator(ENonTerminal.interpolation_qualifier)
+  export class InterpolationQualifier extends BasicTypeQualifier {}
 
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.precision_qualifier);
-    }
-  }
-
-  export class InterpolationQualifier extends BasicTypeQualifier {
-    static pool = ShaderLabUtils.createObjectPool(InterpolationQualifier);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.interpolation_qualifier);
-    }
-  }
-
-  export class InvariantQualifier extends BasicTypeQualifier {
-    static pool = ShaderLabUtils.createObjectPool(InvariantQualifier);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.invariant_qualifier);
-    }
-  }
+  @ASTNodeDecorator(ENonTerminal.invariant_qualifier)
+  export class InvariantQualifier extends BasicTypeQualifier {}
   // #endif
 
+  @ASTNodeDecorator(ENonTerminal.type_specifier)
   export class TypeSpecifier extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(TypeSpecifier);
-
     get type(): GalaceanDataType {
       return (this.children![0] as TypeSpecifierNonArray).type;
     }
@@ -385,35 +300,21 @@ export namespace ASTNode {
     get isCustom() {
       return typeof this.type === "string";
     }
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.type_specifier);
-    }
   }
 
+  @ASTNodeDecorator(ENonTerminal.array_specifier)
   export class ArraySpecifier extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(ArraySpecifier);
-
     get size(): number | undefined {
       const integerConstantExpr = this.children[1] as IntegerConstantExpression;
       return integerConstantExpr.value;
     }
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.array_specifier);
-    }
   }
 
+  @ASTNodeDecorator(ENonTerminal.integer_constant_expression_operator)
   export class IntegerConstantExpressionOperator extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(IntegerConstantExpressionOperator);
-
     compute: (a: number, b: number) => number;
     get lexeme(): string {
       return (this.children[0] as Token).lexeme;
-    }
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.integer_constant_expression_operator);
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
@@ -441,7 +342,7 @@ export namespace ASTNode {
   }
 
   export class IntegerConstantExpression extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(IntegerConstantExpression);
+    static override pool = ShaderLabUtils.createObjectPool(IntegerConstantExpression);
 
     value?: number;
     override set(loc: ShaderRange, children: NodeChild[]) {
@@ -472,7 +373,7 @@ export namespace ASTNode {
   }
 
   export class TypeSpecifierNonArray extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(TypeSpecifierNonArray);
+    static override pool = ShaderLabUtils.createObjectPool(TypeSpecifierNonArray);
 
     type: GalaceanDataType;
     lexeme: string;
@@ -490,7 +391,7 @@ export namespace ASTNode {
   }
 
   export class ExtBuiltinTypeSpecifierNonArray extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(ExtBuiltinTypeSpecifierNonArray);
+    static override pool = ShaderLabUtils.createObjectPool(ExtBuiltinTypeSpecifierNonArray);
 
     type: TokenType;
     lexeme: string;
@@ -503,9 +404,8 @@ export namespace ASTNode {
     }
   }
 
+  @ASTNodeDecorator(ENonTerminal.init_declarator_list)
   export class InitDeclaratorList extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(InitDeclaratorList);
-
     get typeInfo(): SymbolType {
       if (this.children.length === 1) {
         const singleDecl = this.children[0] as SingleDeclaration;
@@ -518,10 +418,6 @@ export namespace ASTNode {
 
       const initDeclList = this.children[0] as InitDeclaratorList;
       return initDeclList.typeInfo;
-    }
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.init_declarator_list);
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
@@ -546,36 +442,25 @@ export namespace ASTNode {
     }
   }
 
+  @ASTNodeDecorator(ENonTerminal.identifier_list)
   export class IdentifierList extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(IdentifierList);
-
     get idList(): Token[] {
       if (this.children.length === 2) {
         return [this.children[1] as Token];
       }
       return [...(<IdentifierList>this.children[0]).idList, this.children[2] as Token];
     }
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.identifier_list);
-    }
   }
 
+  @ASTNodeDecorator(ENonTerminal.declaration)
   export class Declaration extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(Declaration);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.declaration);
-    }
-
     override codeGen(visitor: CodeGenVisitor): string {
       return visitor.visitDeclaration(this);
     }
   }
 
+  @ASTNodeDecorator(ENonTerminal.function_prototype)
   export class FunctionProtoType extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(FunctionProtoType);
-
     private get declarator() {
       return this.children[0] as FunctionDeclarator;
     }
@@ -596,18 +481,13 @@ export namespace ASTNode {
       return this.declarator.paramSig;
     }
 
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.function_prototype);
-    }
-
     override codeGen(visitor: CodeGenVisitor): string {
       return visitor.visitFunctionProtoType(this);
     }
   }
 
+  @ASTNodeDecorator(ENonTerminal.function_declarator)
   export class FunctionDeclarator extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(FunctionDeclarator);
-
     private get header() {
       return this.children[0] as FunctionHeader;
     }
@@ -631,24 +511,15 @@ export namespace ASTNode {
     get paramSig() {
       return this.parameterList?.paramSig;
     }
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.function_declarator);
-    }
   }
 
+  @ASTNodeDecorator(ENonTerminal.function_header)
   export class FunctionHeader extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(FunctionHeader);
-
     get ident() {
       return this.children[1] as Token;
     }
     get returnType() {
       return this.children[0] as FullySpecifiedType;
-    }
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.function_header);
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
@@ -660,9 +531,8 @@ export namespace ASTNode {
     }
   }
 
+  @ASTNodeDecorator(ENonTerminal.function_parameter_list)
   export class FunctionParameterList extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(FunctionParameterList);
-
     get parameterInfoList(): IParamInfo[] {
       if (this.children.length === 1) {
         const decl = this.children[0] as ParameterDeclaration;
@@ -684,18 +554,13 @@ export namespace ASTNode {
       }
     }
 
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.function_parameter_list);
-    }
-
     override codeGen(visitor: CodeGenVisitor): string {
       return visitor.visitFunctionParameterList(this);
     }
   }
 
+  @ASTNodeDecorator(ENonTerminal.parameter_declaration)
   export class ParameterDeclaration extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(ParameterDeclaration);
-
     get typeQualifier() {
       if (this.children.length === 2) return this.children[0] as TypeQualifier;
     }
@@ -713,10 +578,6 @@ export namespace ASTNode {
       return this.parameterDeclarator.ident;
     }
 
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.parameter_declaration);
-    }
-
     override semanticAnalyze(sa: SematicAnalyzer): void {
       let declarator: ParameterDeclarator;
       if (this.children.length === 1) {
@@ -729,9 +590,8 @@ export namespace ASTNode {
     }
   }
 
+  @ASTNodeDecorator(ENonTerminal.parameter_declarator)
   export class ParameterDeclarator extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(ParameterDeclarator);
-
     get ident() {
       return this.children[1] as Token;
     }
@@ -741,73 +601,39 @@ export namespace ASTNode {
       const arraySpecifier = this.children[2] as ArraySpecifier;
       return new SymbolType(typeSpecifier.type, typeSpecifier.lexeme, arraySpecifier);
     }
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.parameter_declarator);
-    }
   }
 
   // #if _VERBOSE
-  export class SimpleStatement extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(SimpleStatement);
+  @ASTNodeDecorator(ENonTerminal.simple_statement)
+  export class SimpleStatement extends TreeNode {}
 
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.simple_statement);
-    }
-  }
-
-  export class CompoundStatement extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(CompoundStatement);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.compound_statement);
-    }
-  }
+  @ASTNodeDecorator(ENonTerminal.compound_statement)
+  export class CompoundStatement extends TreeNode {}
   // #endif
 
-  export class CompoundStatementNoScope extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(CompoundStatementNoScope);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.compound_statement_no_scope);
-    }
-  }
+  @ASTNodeDecorator(ENonTerminal.compound_statement_no_scope)
+  export class CompoundStatementNoScope extends TreeNode {}
 
   // #if _VERBOSE
-  export class Statement extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(Statement);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.statement);
-    }
-  }
+  @ASTNodeDecorator(ENonTerminal.statement)
+  export class Statement extends TreeNode {}
   // #endif
 
+  @ASTNodeDecorator(ENonTerminal.statement_list)
   export class StatementList extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(StatementList);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.statement_list);
-    }
-
     override codeGen(visitor: CodeGenVisitor): string {
       return visitor.visitStatementList(this);
     }
   }
 
+  @ASTNodeDecorator(ENonTerminal.function_definition)
   export class FunctionDefinition extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(FunctionDefinition);
-
     get protoType() {
       return this.children[0] as FunctionProtoType;
     }
 
     get statements() {
       return this.children[1] as CompoundStatementNoScope;
-    }
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.function_definition);
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
@@ -821,13 +647,8 @@ export namespace ASTNode {
     }
   }
 
+  @ASTNodeDecorator(ENonTerminal.function_call)
   export class FunctionCall extends ExpressionAstNode {
-    static pool = ShaderLabUtils.createObjectPool(FunctionCall);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.function_call);
-    }
-
     override semanticAnalyze(sa: SematicAnalyzer): void {
       this.type = (this.children[0] as FunctionCallGeneric).type;
     }
@@ -838,7 +659,7 @@ export namespace ASTNode {
   }
 
   export class FunctionCallGeneric extends ExpressionAstNode {
-    static pool = ShaderLabUtils.createObjectPool(FunctionCallGeneric);
+    static override pool = ShaderLabUtils.createObjectPool(FunctionCallGeneric);
 
     fnSymbol: FnSymbol | StructSymbol | undefined;
 
@@ -882,9 +703,8 @@ export namespace ASTNode {
     }
   }
 
+  @ASTNodeDecorator(ENonTerminal.function_call_parameter_list)
   export class FunctionCallParameterList extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(FunctionCallParameterList);
-
     get paramSig(): GalaceanDataType[] | undefined {
       if (this.children.length === 1) {
         const expr = this.children[0] as AssignmentExpression;
@@ -911,27 +731,17 @@ export namespace ASTNode {
         return list.paramNodes.concat([decl]);
       }
     }
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.function_call_parameter_list);
-    }
   }
 
+  @ASTNodeDecorator(ENonTerminal.precision_specifier)
   export class PrecisionSpecifier extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(PrecisionSpecifier);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.precision_specifier);
-    }
-
     override semanticAnalyze(sa: SematicAnalyzer): void {
       sa.shaderData.globalPrecisions.push(this);
     }
   }
 
+  @ASTNodeDecorator(ENonTerminal.function_identifier)
   export class FunctionIdentifier extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(FunctionIdentifier);
-
     get ident() {
       const ty = this.children[0] as TypeSpecifier;
       return ty.type;
@@ -946,10 +756,6 @@ export namespace ASTNode {
       return typeof this.ident !== "string";
     }
 
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.function_identifier);
-    }
-
     override semanticAnalyze(sa: SematicAnalyzer): void {}
 
     override codeGen(visitor: CodeGenVisitor): string {
@@ -957,13 +763,8 @@ export namespace ASTNode {
     }
   }
 
+  @ASTNodeDecorator(ENonTerminal.assignment_expression)
   export class AssignmentExpression extends ExpressionAstNode {
-    static pool = ShaderLabUtils.createObjectPool(AssignmentExpression);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.assignment_expression);
-    }
-
     // #if _VERBOSE
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
@@ -978,22 +779,12 @@ export namespace ASTNode {
   }
 
   // #if _VERBOSE
-  export class AssignmentOperator extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(AssignmentOperator);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.assignment_operator);
-    }
-  }
+  @ASTNodeDecorator(ENonTerminal.assignment_operator)
+  export class AssignmentOperator extends TreeNode {}
   // #endif
 
+  @ASTNodeDecorator(ENonTerminal.expression)
   export class Expression extends ExpressionAstNode {
-    static pool = ShaderLabUtils.createObjectPool(Expression);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.expression);
-    }
-
     // #if _VERBOSE
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
@@ -1007,13 +798,8 @@ export namespace ASTNode {
     // #endif
   }
 
+  @ASTNodeDecorator(ENonTerminal.primary_expression)
   export class PrimaryExpression extends ExpressionAstNode {
-    static pool = ShaderLabUtils.createObjectPool(PrimaryExpression);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.primary_expression);
-    }
-
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         const id = this.children[0];
@@ -1041,7 +827,7 @@ export namespace ASTNode {
   }
 
   export class PostfixExpression extends ExpressionAstNode {
-    static pool = ShaderLabUtils.createObjectPool(PostfixExpression);
+    static override pool = ShaderLabUtils.createObjectPool(PostfixExpression);
 
     override set(loc: ShaderRange, children: NodeChild[]) {
       super.set(loc, children, ENonTerminal.postfix_expression);
@@ -1057,29 +843,20 @@ export namespace ASTNode {
   }
 
   // #if _VERBOSE
-  export class UnaryOperator extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(UnaryOperator);
+  @ASTNodeDecorator(ENonTerminal.unary_operator)
+  export class UnaryOperator extends TreeNode {}
 
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.unary_operator);
-    }
-  }
-  // #endif
-
-  // #if _VERBOSE
   export class UnaryExpression extends ExpressionAstNode {
-    static pool = ShaderLabUtils.createObjectPool(UnaryExpression);
+    static override pool = ShaderLabUtils.createObjectPool(UnaryExpression);
 
     override set(loc: ShaderRange, children: NodeChild[]) {
       super.set(loc, children, ENonTerminal.unary_expression);
       this.type = (this.children[0] as PostfixExpression).type;
     }
   }
-  // #endif
 
-  // #if _VERBOSE
   export class MultiplicativeExpression extends ExpressionAstNode {
-    static pool = ShaderLabUtils.createObjectPool(MultiplicativeExpression);
+    static override pool = ShaderLabUtils.createObjectPool(MultiplicativeExpression);
 
     override set(loc: ShaderRange, children: NodeChild[]) {
       super.set(loc, children, ENonTerminal.multiplicative_expression);
@@ -1094,11 +871,9 @@ export namespace ASTNode {
       }
     }
   }
-  // #endif
 
-  // #if _VERBOSE
   export class AdditiveExpression extends ExpressionAstNode {
-    static pool = ShaderLabUtils.createObjectPool(AdditiveExpression);
+    static override pool = ShaderLabUtils.createObjectPool(AdditiveExpression);
 
     override set(loc: ShaderRange, children: NodeChild[]) {
       super.set(loc, children, ENonTerminal.additive_expression);
@@ -1113,31 +888,17 @@ export namespace ASTNode {
       }
     }
   }
-  // #endif
 
-  // #if _VERBOSE
+  @ASTNodeDecorator(ENonTerminal.shift_expression)
   export class ShiftExpression extends ExpressionAstNode {
-    static pool = ShaderLabUtils.createObjectPool(ShiftExpression);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.shift_expression);
-    }
-
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const expr = this.children[0] as ExpressionAstNode;
       this.type = expr.type;
     }
   }
-  // #endif
 
-  // #if _VERBOSE
+  @ASTNodeDecorator(ENonTerminal.relational_expression)
   export class RelationalExpression extends ExpressionAstNode {
-    static pool = ShaderLabUtils.createObjectPool(RelationalExpression);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.relational_expression);
-    }
-
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<ShiftExpression>this.children[0]).type;
@@ -1146,16 +907,9 @@ export namespace ASTNode {
       }
     }
   }
-  // #endif
 
-  // #if _VERBOSE
+  @ASTNodeDecorator(ENonTerminal.equality_expression)
   export class EqualityExpression extends ExpressionAstNode {
-    static pool = ShaderLabUtils.createObjectPool(EqualityExpression);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.equality_expression);
-    }
-
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<RelationalExpression>this.children[0]).type;
@@ -1164,16 +918,9 @@ export namespace ASTNode {
       }
     }
   }
-  // #endif
 
-  // #if _VERBOSE
+  @ASTNodeDecorator(ENonTerminal.and_expression)
   export class AndExpression extends ExpressionAstNode {
-    static pool = ShaderLabUtils.createObjectPool(AndExpression);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.and_expression);
-    }
-
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<AndExpression>this.children[0]).type;
@@ -1182,16 +929,9 @@ export namespace ASTNode {
       }
     }
   }
-  // #endif
 
-  // #if _VERBOSE
+  @ASTNodeDecorator(ENonTerminal.exclusive_or_expression)
   export class ExclusiveOrExpression extends ExpressionAstNode {
-    static pool = ShaderLabUtils.createObjectPool(ExclusiveOrExpression);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.exclusive_or_expression);
-    }
-
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<AndExpression>this.children[0]).type;
@@ -1200,16 +940,9 @@ export namespace ASTNode {
       }
     }
   }
-  // #endif
 
-  // #if _VERBOSE
+  @ASTNodeDecorator(ENonTerminal.inclusive_or_expression)
   export class InclusiveOrExpression extends ExpressionAstNode {
-    static pool = ShaderLabUtils.createObjectPool(InclusiveOrExpression);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.inclusive_or_expression);
-    }
-
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<ExclusiveOrExpression>this.children[0]).type;
@@ -1218,16 +951,9 @@ export namespace ASTNode {
       }
     }
   }
-  // #endif
 
-  // #if _VERBOSE
+  @ASTNodeDecorator(ENonTerminal.logical_and_expression)
   export class LogicalAndExpression extends ExpressionAstNode {
-    static pool = ShaderLabUtils.createObjectPool(LogicalAndExpression);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.logical_and_expression);
-    }
-
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<InclusiveOrExpression>this.children[0]).type;
@@ -1236,16 +962,9 @@ export namespace ASTNode {
       }
     }
   }
-  // #endif
 
-  // #if _VERBOSE
+  @ASTNodeDecorator(ENonTerminal.logical_xor_expression)
   export class LogicalXorExpression extends ExpressionAstNode {
-    static pool = ShaderLabUtils.createObjectPool(LogicalXorExpression);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.logical_xor_expression);
-    }
-
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<LogicalAndExpression>this.children[0]).type;
@@ -1254,16 +973,9 @@ export namespace ASTNode {
       }
     }
   }
-  // #endif
 
-  // #if _VERBOSE
+  @ASTNodeDecorator(ENonTerminal.logical_or_expression)
   export class LogicalOrExpression extends ExpressionAstNode {
-    static pool = ShaderLabUtils.createObjectPool(LogicalOrExpression);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.logical_or_expression);
-    }
-
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<LogicalXorExpression>this.children[0]).type;
@@ -1272,16 +984,9 @@ export namespace ASTNode {
       }
     }
   }
-  // #endif
 
-  // #if _VERBOSE
+  @ASTNodeDecorator(ENonTerminal.conditional_expression)
   export class ConditionalExpression extends ExpressionAstNode {
-    static pool = ShaderLabUtils.createObjectPool(ConditionalExpression);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.conditional_expression);
-    }
-
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<LogicalOrExpression>this.children[0]).type;
@@ -1290,18 +995,13 @@ export namespace ASTNode {
   }
   // #endif
 
+  @ASTNodeDecorator(ENonTerminal.struct_specifier)
   export class StructSpecifier extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(StructSpecifier);
-
     ident?: Token;
 
     get propList(): StructProp[] {
       const declList = (this.children.length === 6 ? this.children[3] : this.children[2]) as StructDeclarationList;
       return declList.propList;
-    }
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.struct_specifier);
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
@@ -1312,9 +1012,8 @@ export namespace ASTNode {
     }
   }
 
+  @ASTNodeDecorator(ENonTerminal.struct_declaration_list)
   export class StructDeclarationList extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(StructDeclarationList);
-
     get propList(): StructProp[] {
       if (this.children.length === 1) {
         return (<StructDeclaration>this.children[0]).propList;
@@ -1323,15 +1022,10 @@ export namespace ASTNode {
       const decl = this.children[1] as StructDeclaration;
       return [list.propList, decl.propList].flat();
     }
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.struct_declaration_list);
-    }
   }
 
+  @ASTNodeDecorator(ENonTerminal.struct_declaration)
   export class StructDeclaration extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(StructDeclaration);
-
     get typeSpecifier() {
       if (this.children.length === 3) {
         return this.children[0] as TypeSpecifier;
@@ -1348,23 +1042,42 @@ export namespace ASTNode {
 
     get propList(): StructProp[] {
       const ret: StructProp[] = [];
-      for (let i = 0; i < this.declaratorList.declaratorList.length; i++) {
-        const declarator = this.declaratorList.declaratorList[i];
-        const typeInfo = new SymbolType(this.typeSpecifier.type, this.typeSpecifier.lexeme, declarator.arraySpecifier);
-        const prop = new StructProp(typeInfo, declarator.ident);
+      const firstChild = this.children[0];
+      if (firstChild instanceof LayoutQualifier) {
+        const typeSpecifier = this.children[1] as TypeSpecifier;
+        const declarator = this.children[2] as StructDeclarator;
+        const typeInfo = new SymbolType(typeSpecifier.type, typeSpecifier.lexeme);
+        const prop = new StructProp(typeInfo, declarator.ident, firstChild.index);
         ret.push(prop);
+      } else {
+        for (let i = 0; i < this.declaratorList.declaratorList.length; i++) {
+          const declarator = this.declaratorList.declaratorList[i];
+          const typeInfo = new SymbolType(
+            this.typeSpecifier.type,
+            this.typeSpecifier.lexeme,
+            declarator.arraySpecifier
+          );
+          const prop = new StructProp(typeInfo, declarator.ident);
+          ret.push(prop);
+        }
       }
       return ret;
     }
+  }
 
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.struct_declaration);
+  @ASTNodeDecorator(ENonTerminal.layout_qualifier)
+  export class LayoutQualifier extends TreeNode {
+    get index(): number {
+      return Number((<BaseToken>this.children[4]).lexeme);
+    }
+
+    override codeGen(visitor: CodeGenVisitor): string {
+      return visitor.visitLayoutQualifier(this);
     }
   }
 
+  @ASTNodeDecorator(ENonTerminal.struct_declarator_list)
   export class StructDeclaratorList extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(StructDeclaratorList);
-
     get declaratorList(): StructDeclarator[] {
       if (this.children.length === 1) {
         return [this.children[0] as StructDeclarator];
@@ -1373,15 +1086,10 @@ export namespace ASTNode {
         return [...list.declaratorList, <StructDeclarator>this.children[1]];
       }
     }
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.struct_declarator_list);
-    }
   }
 
+  @ASTNodeDecorator(ENonTerminal.struct_declarator)
   export class StructDeclarator extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(StructDeclarator);
-
     get ident() {
       return this.children[0] as Token;
     }
@@ -1389,19 +1097,10 @@ export namespace ASTNode {
     get arraySpecifier(): ArraySpecifier | undefined {
       return this.children[1] as ArraySpecifier;
     }
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.struct_declarator);
-    }
   }
 
+  @ASTNodeDecorator(ENonTerminal.variable_declaration)
   export class VariableDeclaration extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(VariableDeclaration);
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.variable_declaration);
-    }
-
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const type = this.children[0] as FullySpecifiedType;
       const ident = this.children[1] as Token;
@@ -1416,9 +1115,8 @@ export namespace ASTNode {
     }
   }
 
+  @ASTNodeDecorator(ENonTerminal.variable_identifier)
   export class VariableIdentifier extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(VariableIdentifier);
-
     symbolInfo:
       | VarSymbol
       // #if _VERBOSE
@@ -1433,10 +1131,6 @@ export namespace ASTNode {
     get typeInfo(): GalaceanDataType {
       if (this.symbolInfo instanceof VarSymbol) return this.symbolInfo.dataType.type;
       return this.symbolInfo?.type;
-    }
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.variable_identifier);
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
@@ -1463,14 +1157,9 @@ export namespace ASTNode {
     }
   }
 
+  @ASTNodeDecorator(ENonTerminal.gs_shader_program)
   export class GLShaderProgram extends TreeNode {
-    static pool = ShaderLabUtils.createObjectPool(GLShaderProgram);
-
     shaderData: ShaderData;
-
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children, ENonTerminal.gs_shader_program);
-    }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
       this.shaderData = sa.shaderData;

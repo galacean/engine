@@ -27,6 +27,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
   abstract getAttributeDeclare(): ICodeSegment[];
   abstract getVaryingDeclare(): ICodeSegment[];
+  abstract getMRTDeclare(): ICodeSegment[] | undefined;
 
   visitShaderProgram(node: ASTNode.GLShaderProgram, vertexEntry: string, fragmentEntry: string): IShaderInfo {
     // #if _VERBOSE
@@ -58,7 +59,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
         VisitorContext.context.varyingStruct = varyStruct.astNode;
       }
     } else if (returnType.type !== EKeyword.VOID) {
-      this._reportError(returnType.location, "main entry can only return struct.");
+      this._reportError(returnType.location, "vertex main entry can only return struct.");
     }
 
     const paramList = fnNode.protoType.parameterList;
@@ -106,11 +107,25 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const fnNode = fnSymbol.astNode;
 
     VisitorContext.context.stage = EShaderStage.FRAGMENT;
+
+    const returnType = fnNode.protoType.returnType;
+    if (typeof returnType.type === "string") {
+      const mrtStruct = symbolTable.lookup<StructSymbol>({ ident: returnType.type, symbolType: ESymbolType.STRUCT });
+      if (!mrtStruct) {
+        this._reportError(returnType.location, `invalid mrt struct: ${returnType.type}`);
+      } else {
+        VisitorContext.context.mrtStruct = mrtStruct.astNode;
+      }
+    } else if (returnType.type !== EKeyword.VOID) {
+      this._reportError(returnType.location, "fragment main entry can only return struct.");
+    }
+
     const statements = fnNode.statements.codeGen(this);
     const globalText = this._getGlobalText(data);
     const varyingDeclare = this.getVaryingDeclare();
+    const mrtDeclare = this.getMRTDeclare() ?? [];
 
-    const globalCode = [...globalText, ...varyingDeclare]
+    const globalCode = [...globalText, ...varyingDeclare, ...mrtDeclare]
       .sort((a, b) => a.index - b.index)
       .map((item) => item.text)
       .join("\n");
