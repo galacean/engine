@@ -608,6 +608,22 @@ describe("Animator test", function () {
     expect(destPlayData.state?.name).to.eq("Run");
   });
 
+  it("transition to exit but no entry", () => {
+    const animatorLayerData = animator["_animatorLayersData"];
+
+    const walkState = animator.findAnimatorState("Walk");
+    walkState.wrapMode = WrapMode.Once;
+    walkState.clearTransitions();
+    walkState.addExitTransition();
+    animator.play("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(1);
+    const transition = animatorLayerData[0]?.crossFadeTransition;
+
+    expect(transition).to.be.oneOf([null, undefined]);
+  });
+
   it("change state in one update", () => {
     const animatorController = new AnimatorController(engine);
     const layer = new AnimatorControllerLayer("layer");
