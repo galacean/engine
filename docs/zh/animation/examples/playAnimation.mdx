@@ -1,0 +1,112 @@
+---
+order: 0
+title: 播放模型中的动画
+type: 动画
+group: 指南和示例
+label: Animation/Examples
+---
+
+本示例展示了如何在 Galacean 编辑器中播放模型自带的动画。通过简单的步骤，你将学习如何加载一个带有动画的 3D 模型，并控制其动画的播放。这个指南适合初学者了解 Galacean 编辑器的动画系统，也为更复杂的动画应用奠定基础。
+
+## 0. 准备工作
+
+在开始之前，我们需要有一个带动画的模型。如果你没有模型，可以在 [mixamo](https://www.mixamo.com/#/?page=1&query=&type=Character) 上下载一个。
+
+### 下载模型
+
+1. 在 [mixamo](https://www.mixamo.com/#/?page=1&query=&type=Character) 中选择一个模型
+
+![image](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*UF2BTbu598EAAAAAAAAAAAAADsJ_AQ/original) 
+
+2. 在 [动画Tab](https://www.mixamo.com/#/?page=1&query=&type=Motion%2CMotionPack) 中选择一个动画
+
+![image1](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*P_e2Q4D9AN4AAAAAAAAAAAAADsJ_AQ/original) 
+
+3. 下载模型
+
+![image2](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*wpW8TI138SMAAAAAAAAAAAAADsJ_AQ/original) 
+
+<Callout type="positive">
+  在实际项目中强烈建议将FBX模型通过Blender等第三方工具转换为GLB/GLTF格式。Galacean目前仅支持解析GLB/GLTF模型。虽然可以直接将FBX拖入编辑器进行自动转换，但这种方式可能会导致转换后的模型动画数据过大，并可能出现还原问题。使用专业工具进行转换可以更好地控制转换质量和文件大小。
+</Callout>
+
+### 导入模型
+有三种方式导入模型：
+1. 将模型文件拖入编辑器的 **[资产面板](/docs/assets/interface)** 中
+
+![image3](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*EZ5ZRqABz4sAAAAAAAAAAAAADsJ_AQ/original) 
+
+2. 右键点击 **[资产面板](/docs/assets/interface)** 中的空白处，选择 `Upload` -> `Model`
+
+![image4](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*ggJdTrF7xP0AAAAAAAAAAAAADsJ_AQ/original) 
+
+3. 点击上传按钮，选择 `Model`
+
+![image5](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*e5X6Tbeygi8AAAAAAAAAAAAADsJ_AQ/original) 
+
+
+## 1. 查看模型
+
+点击模型资产上的展开按钮
+
+![image6](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*NBuoSbwLWeEAAAAAAAAAAAAADsJ_AQ/original) 
+
+可以看到模型中包含了一个 `动画片段`（[详细介绍](/docs/animation/clip)）资产(如果模型中包含多个动画，这里会有多个 `动画片段` 资产)
+
+![image7](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*_k9iSJJckgAAAAAAAAAAAAAADsJ_AQ/original) 
+
+以及一个 `动画控制器`（[详细介绍](/docs/animation/animatorController/)）资产
+
+![image8](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*KCiLQbzUTp8AAAAAAAAAAAAADsJ_AQ/original) 
+
+## 2. 创建动画控制资产
+
+想要控制动画的播放，需要编辑 `动画控制器` 的内容，而模型中的 `动画控制器` 是只读的，所以需要我们自己创建一个 `动画控制器` 。
+
+创建 `动画控制器` 有两种方式：
+1. 右键点击 **[资产面板](/docs/assets/interface)** 中的空白处，选择 `Create` -> `Animation Controller`
+
+![image9](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*61Q7S62IZxQAAAAAAAAAAAAADsJ_AQ/original) 
+
+2. 点击添加资产按钮 `+`，选择 `Animation Controller`
+
+![image10](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QqpxS6I9D90AAAAAAAAAAAAADsJ_AQ/original) 
+
+## 3. 编辑动画控制器
+
+1. 双击 [动画控制器](/docs/animation/animatorController/) 资产，进入动画控制器编辑器（编辑器的各个功能介绍请参考 [动画控制器编辑器](/docs/animation/animatorController/) 文档）
+
+![image11](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*v8aUR4McTA4AAAAAAAAAAAAADsJ_AQ/original) 
+
+2. 点击添加动画状态按钮，添加一个动画状态
+
+![image12](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*G1moSpo20KcAAAAAAAAAAAAADsJ_AQ/original) 
+
+3. 点击动画状态（动画状态的属性介绍请参考 [动画状态机](/docs/animation/state-machine/#动画状态) 文档的动画状态部分），绑定动画片段。 
+
+![image13](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*GUdQQqCHE7cAAAAAAAAAAAAADsJ_AQ/original) 
+
+4. 从 `entry` 连接到此 `动画状态` 并点击连线，并将 `Duration` 改为0（动画过渡的详细介绍请参考 [动画状态机](/docs/animation/state-machine/) 文档），这样在这个动画控制器被应用时，就会立即自动播放此动画状态。
+
+![1.gif](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*wgBgQor0c5wAAAAAAAAAAAAADsJ_AQ/original)
+
+
+## 4. 使用动画控制器并预览
+
+1. 将模型拖入到场景中
+
+![2.gif](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*SMLQQLhOv-0AAAAAAAAAAAAADsJ_AQ/original)
+
+2. 找到`动画控制组件` （[详细介绍](/docs/animation/animator/) , 组件一般在模型实例的根 `实体` 上，也就是编辑器的模型 `实体` 下的第一个子 `实体` 上。
+![image14](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*IAAySr0iYkoAAAAAAAAAAAAADsJ_AQ/original) 
+
+
+3. 在动画控制器属性上替换为刚才创建的`动画控制器`
+
+![image15](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*yusHT5fj3r0AAAAAAAAAAAAADsJ_AQ/original) 
+
+
+4. 点击播放按钮，就可以看到模型开始播放动画了
+
+![3.gif](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*EeXDQp4PVRkAAAAAAAAAAAAADsJ_AQ/original) 
+
