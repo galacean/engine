@@ -4,7 +4,6 @@ import {
   AnimatorController,
   Buffer,
   Entity,
-  Logger,
   Material,
   ModelMesh,
   ResourceManager,
