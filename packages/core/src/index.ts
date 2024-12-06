@@ -20,6 +20,7 @@ export type { EngineSettings } from "./EngineSettings";
 export type { EngineConfiguration } from "./Engine";
 
 export { request } from "./asset/request";
+export type { RequestConfig } from "./asset/request";
 export { Loader } from "./asset/Loader";
 export { ContentRestorer } from "./asset/ContentRestorer";
 export { ResourceManager, resourceLoader } from "./asset/ResourceManager";

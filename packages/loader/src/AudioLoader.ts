@@ -3,12 +3,12 @@ import {
   AssetType,
   AudioClip,
   AudioManager,
-  Loader,
   LoadItem,
-  resourceLoader,
-  ResourceManager
+  Loader,
+  RequestConfig,
+  ResourceManager,
+  resourceLoader
 } from "@galacean/engine-core";
-import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 @resourceLoader(AssetType.Audio, ["mp3", "ogg", "wav"])
 class AudioLoader extends Loader<AudioClip> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AudioClip> {

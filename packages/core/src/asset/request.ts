@@ -16,6 +16,12 @@ const defaultRetryCount = 1;
 const defaultTimeout = Infinity;
 const defaultInterval = 500;
 
+/**
+ * Configuration options for `request`.
+ * @remarks 
+ * This type extends the standard `RequestInit` options with additional
+ * properties for handling retries, timeouts, and custom response types.
+ */
 export type RequestConfig = {
   type?: XMLHttpRequestResponseType | "image";
   retryCount?: number;
@@ -24,9 +30,10 @@ export type RequestConfig = {
 } & RequestInit;
 
 /**
- * Web request.
- * @param url - The link
- * @param config - Load configuration
+ * Sends a request to the specified URL and returns a promise for the response.
+ * @param url - The URL to send the request to
+ * @param config - Configuration options for the request
+ * @returns A promise that resolves with the response of type `T`
  */
 export function request<T>(url: string, config: RequestConfig = {}): AssetPromise<T> {
   return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
