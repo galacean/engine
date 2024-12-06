@@ -23,17 +23,18 @@ export class UIUtils {
     rhi.activeRenderTarget(null, viewport, renderContext.flipProjection, 0);
     for (let i = 0, n = uiCanvases.length; i < n; i++) {
       const uiCanvas = uiCanvases.get(i);
-      if (!uiCanvas) continue;
-      const transform = uiCanvas.entity.transform;
-      (viewE[12] = -transform.position.x), (viewE[13] = -transform.position.y);
-      Matrix.multiply(virtualCamera.projectionMatrix, virtualCamera.viewMatrix, virtualCamera.viewProjectionMatrix);
-      renderContext.applyVirtualCamera(virtualCamera, false);
-      renderContext.rendererUpdateFlag |= ContextRendererUpdateFlag.ProjectionMatrix;
-      uiRenderQueue.clear();
-      uiCanvas._prepareRender(renderContext);
-      uiRenderQueue.pushRenderElement(uiCanvas._renderElement);
-      batcherManager.batch(uiRenderQueue);
-      uiRenderQueue.render(renderContext, "Forward");
+      if (uiCanvas) {
+        const transform = uiCanvas.entity.transform;
+        (viewE[12] = -transform.position.x), (viewE[13] = -transform.position.y);
+        Matrix.multiply(virtualCamera.projectionMatrix, virtualCamera.viewMatrix, virtualCamera.viewProjectionMatrix);
+        renderContext.applyVirtualCamera(virtualCamera, false);
+        renderContext.rendererUpdateFlag |= ContextRendererUpdateFlag.ProjectionMatrix;
+        uiRenderQueue.clear();
+        uiCanvas._prepareRender(renderContext);
+        uiRenderQueue.pushRenderElement(uiCanvas._renderElement);
+        batcherManager.batch(uiRenderQueue);
+        uiRenderQueue.render(renderContext, "Forward");
+      }
     }
   }
 }
