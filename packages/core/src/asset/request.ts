@@ -18,7 +18,7 @@ const defaultInterval = 500;
 
 /**
  * Configuration options for `request`.
- * @remarks 
+ * @remarks
  * This type extends the standard `RequestInit` options with additional
  * properties for handling retries, timeouts, and custom response types.
  */
