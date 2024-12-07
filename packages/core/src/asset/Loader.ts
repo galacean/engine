@@ -1,7 +1,6 @@
 import { Engine, EngineConfiguration } from "../Engine";
 import { AssetPromise } from "./AssetPromise";
 import { LoadItem } from "./LoadItem";
-import { request, RequestConfig } from "./request";
 import { ResourceManager } from "./ResourceManager";
 /**
  * Loader abstract class.
