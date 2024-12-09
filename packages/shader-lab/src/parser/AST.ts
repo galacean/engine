@@ -159,7 +159,6 @@ export namespace ASTNode {
   @ASTNodeDecorator(ENonTerminal.initializer)
   export class Initializer extends ExpressionAstNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
-      debugger;
       if (this.children.length === 1) {
         this.type = (<AssignmentExpression>this.children[0]).type;
       } else {

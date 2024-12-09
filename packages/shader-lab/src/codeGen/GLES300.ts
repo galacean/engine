@@ -9,6 +9,7 @@ import { VisitorContext } from "./VisitorContext";
 import { ShaderLab } from "../ShaderLab";
 
 const V3_GL_FragColor = "GS_glFragColor";
+const V3_GL_FragData = "GS_glFragData";
 
 export class GLES300Visitor extends GLESVisitor {
   override _versionText: string = "#version 300 es";
@@ -19,6 +20,14 @@ export class GLES300Visitor extends GLESVisitor {
       this._singleton = new GLES300Visitor();
     }
     return this._singleton;
+  }
+
+  override getFragDataCodeGen(index: string | number): string {
+    return `${V3_GL_FragData}_${index}`;
+  }
+
+  override getReferencedMRTPropText(index: string | number, ident: string): string {
+    return `layout(location = ${index}) out vec4 ${ident};`;
   }
 
   override getAttributeDeclare(): ICodeSegment[] {
@@ -51,10 +60,17 @@ export class GLES300Visitor extends GLESVisitor {
     const referencedMRTList = VisitorContext.context._referencedMRTList;
     for (let ident in referencedMRTList) {
       const info = referencedMRTList[ident];
-      ret.push({
-        text: `layout(location = ${info.mrtIndex}) out ${info.typeInfo.typeLexeme} ${ident};`,
-        index: info.ident.location.start.index
-      });
+      if (typeof info === "string") {
+        ret.push({
+          text: info,
+          index: Number.MAX_SAFE_INTEGER
+        });
+      } else {
+        ret.push({
+          text: this.getReferencedMRTPropText(info.mrtIndex, ident),
+          index: info.ident.location.start.index
+        });
+      }
     }
     return ret;
   }

@@ -17,8 +17,12 @@ import { ShaderLabUtils } from "../ShaderLabUtils";
  * @internal
  * The code generator
  */
-export class CodeGenVisitor {
+export abstract class CodeGenVisitor {
   readonly errors: Error[] = [];
+
+  abstract getFragDataCodeGen(index: string | number): string;
+
+  abstract getReferencedMRTPropText(index: string | number, ident: string): string;
 
   defaultCodeGen(children: NodeChild[]) {
     let ret: string[] = [];
@@ -33,11 +37,11 @@ export class CodeGenVisitor {
   }
 
   visitPostfixExpression(node: ASTNode.PostfixExpression) {
-    if (node.children.length === 3) {
-      const context = VisitorContext.context;
+    const derivationLength = node.children.length;
+    const context = VisitorContext.context;
 
+    if (derivationLength === 3) {
       const postExpr = node.children[0] as ASTNode.PostfixExpression;
-
       const prop = node.children[2];
 
       if (prop instanceof Token) {
@@ -54,7 +58,7 @@ export class CodeGenVisitor {
           }
           return prop.lexeme;
         } else if (context.isMRTStruct(<string>postExpr.type)) {
-          const error = context.referenceMRT(prop);
+          const error = context.referenceMRTProp(prop);
           if (error) {
             this.errors.push(<GSError>error);
           }
@@ -65,6 +69,17 @@ export class CodeGenVisitor {
       } else {
         return `${postExpr.codeGen(this)}.${prop.codeGen(this)}`;
       }
+    } else if (derivationLength === 4) {
+      const identNode = node.children[0] as ASTNode.PostfixExpression;
+      const indexNode = node.children[2] as ASTNode.Expression;
+      const identLexeme = identNode.codeGen(this);
+      const indexLexeme = indexNode.codeGen(this);
+      if (identLexeme === "gl_FragData") {
+        const mrtLexeme = this.getFragDataCodeGen(indexLexeme);
+        context._referencedMRTList[mrtLexeme] = this.getReferencedMRTPropText(indexLexeme, mrtLexeme);
+        return mrtLexeme;
+      }
+      return `${identLexeme}[${indexLexeme}]`;
     }
     return this.defaultCodeGen(node.children);
   }

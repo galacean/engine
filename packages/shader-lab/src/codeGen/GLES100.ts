@@ -23,6 +23,14 @@ export class GLES100Visitor extends GLESVisitor {
     return this._singleton;
   }
 
+  override getFragDataCodeGen(index: string | number): string {
+    return `gl_FragData[${index}]`;
+  }
+
+  override getReferencedMRTPropText(index: string | number, ident: string): string {
+    return "";
+  }
+
   override getAttributeDeclare(): ICodeSegment[] {
     const ret: ICodeSegment[] = [];
     for (const item of Object.values(VisitorContext.context._referencedAttributeList)) {

@@ -34,7 +34,7 @@ export class VisitorContext {
   _referencedAttributeList: Record<string, IParamInfo & { qualifier?: string }> = Object.create(null);
   _referencedGlobals: Record<string, SymbolInfo | ASTNode.PrecisionSpecifier> = Object.create(null);
   _referencedVaryingList: Record<string, IParamInfo & { qualifier?: string }> = Object.create(null);
-  _referencedMRTList: Record<string, StructProp> = Object.create(null);
+  _referencedMRTList: Record<string, StructProp | string> = Object.create(null);
 
   _curFn?: ASTNode.FunctionProtoType;
 
@@ -96,7 +96,7 @@ export class VisitorContext {
     this._referencedVaryingList[ident.lexeme] = prop;
   }
 
-  referenceMRT(ident: BaseToken): Error | undefined {
+  referenceMRTProp(ident: BaseToken): Error | undefined {
     if (this._referencedMRTList[ident.lexeme]) return;
 
     const prop = this.mrtStruct?.propList.find((item) => item.ident.lexeme === ident.lexeme);
