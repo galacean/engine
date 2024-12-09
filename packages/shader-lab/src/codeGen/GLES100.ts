@@ -66,6 +66,7 @@ export class GLES100Visitor extends GLESVisitor {
       const prop = context.mrtStruct!.propList.find((item) => item.ident.lexeme === propReferenced.lexeme);
       if (!prop) {
         this._reportError(propReferenced.location, `not found mrt property: ${propReferenced.lexeme}`);
+        return "";
       }
       return `gl_FragData[${prop.mrtIndex!}]`;
     }
