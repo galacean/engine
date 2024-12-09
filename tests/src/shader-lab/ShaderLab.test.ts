@@ -1,4 +1,10 @@
-import { BlendOperation, CompareFunction, CullMode, RenderStateDataKey } from "@galacean/engine-core";
+import {
+  BlendOperation,
+  CompareFunction,
+  CullMode,
+  RenderStateDataKey,
+  ShaderPlatformTarget
+} from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
 import { ShaderLab as ShaderLabVerbose, GSError } from "@galacean/engine-shader-lab/verbose";
 import { ShaderLab as ShaderLabRelease } from "@galacean/engine-shader-lab";
@@ -255,5 +261,17 @@ describe("ShaderLab", () => {
     for (const err of shaderLabVerbose.errors) {
       console.log(err.toString());
     }
+  });
+
+  it("mrt-normal", async () => {
+    const shaderSource = await readFile("./shaders/mrt-webgl1-normal.shader");
+    glslValidate(shaderSource, shaderLabVerbose, {}, ShaderPlatformTarget.GLES100);
+    glslValidate(shaderSource, shaderLabVerbose, {}, ShaderPlatformTarget.GLES300);
+  });
+
+  it("mrt-struct", async () => {
+    const shaderSource = await readFile("./shaders/mrt-webgl1-struct.shader");
+    glslValidate(shaderSource, shaderLabVerbose, {}, ShaderPlatformTarget.GLES100);
+    glslValidate(shaderSource, shaderLabVerbose, {}, ShaderPlatformTarget.GLES300);
   });
 });

@@ -52,6 +52,7 @@ export class VisitorContext {
     this._referencedAttributeList = Object.create(null);
     this._referencedGlobals = Object.create(null);
     this._referencedVaryingList = Object.create(null);
+    this._referencedMRTList = Object.create(null);
   }
 
   isAttributeStruct(type: string) {
