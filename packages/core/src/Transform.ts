@@ -577,6 +577,24 @@ export class Transform extends Component {
     return isInvert;
   }
 
+  /**
+   * @internal
+   */
+  _generateTransitionState(state: TransformTransitionState): void {
+    state.position ? state.position.copyFrom(this._position) : (state.position = this._position.clone());
+    state.rotation ? state.rotation.copyFrom(this._rotation) : (state.rotation = this._rotation.clone());
+    state.scale ? state.scale.copyFrom(this._scale) : (state.scale = this._scale.clone());
+  }
+
+  /**
+   * @internal
+   */
+  _applyTransitionState(state: TransformTransitionState): void {
+    this._position.copyFrom(state.position);
+    this._rotation.copyFrom(state.rotation);
+    this._scale.copyFrom(state.scale);
+  }
+
   protected override _onDestroy(): void {
     super._onDestroy();
     //@ts-ignore
@@ -904,4 +922,15 @@ export enum TransformModifyFlags {
   WmWpWeWqWs = 0xbc,
   /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale | WorldUniformScaling */
   WmWpWeWqWsWus = 0x1bc
+}
+
+/**
+ * @remarks:
+ * The reason for not recording the world matrix is ​​that
+ * the matrix may get wrong local information when decomposing it.
+ */
+export interface TransformTransitionState {
+  position?: Vector3;
+  rotation?: Vector3;
+  scale?: Vector3;
 }

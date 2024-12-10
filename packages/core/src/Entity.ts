@@ -7,7 +7,7 @@ import { Engine } from "./Engine";
 import { Layer } from "./Layer";
 import { Scene } from "./Scene";
 import { Script } from "./Script";
-import { Transform } from "./Transform";
+import { Transform, TransformTransitionState } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
@@ -19,7 +19,10 @@ import { DisorderedArray } from "./utils/DisorderedArray";
  * Entity, be used as components container.
  */
 export class Entity extends EngineObject {
+  /** @internal */
   static _inheritedComponents: ComponentConstructor[] = [];
+  /** @internal */
+  static _matrix: Matrix = new Matrix();
 
   /**
    * @internal
@@ -103,6 +106,7 @@ export class Entity extends EngineObject {
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   private _transform: Transform;
+  private _transformTransitionState: TransformTransitionState;
   private _templateResource: ReferResource;
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
@@ -117,6 +121,14 @@ export class Entity extends EngineObject {
   set transform(value: Transform) {
     const pre = this._transform;
     if (value !== pre) {
+      let state = this._transformTransitionState;
+      if (pre) {
+        state ||= this._transformTransitionState = {};
+        pre._generateTransitionState(state);
+      }
+      if (value) {
+        state && value._applyTransitionState(state);
+      }
       this._transform = value;
     }
   }
