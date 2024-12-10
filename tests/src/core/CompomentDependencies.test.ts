@@ -26,7 +26,7 @@ describe("Component dependencies test", function () {
       const meshRenderer = entity.addComponent(MeshRenderer);
       entity.addComponent(CustomScriptB);
       meshRenderer.destroy();
-    }).throw("Should remove CustomScriptA before adding MeshRenderer");
+    }).throw("Should remove CustomScriptA before remove MeshRenderer");
   });
 });
 

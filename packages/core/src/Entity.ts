@@ -1,12 +1,14 @@
 import { Matrix } from "@galacean/engine-math";
+import { ignoreClone } from ".";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
-import { ComponentsDependencies } from "./ComponentsDependencies";
+import { ComponentConstructor, ComponentsDependencies } from "./ComponentsDependencies";
 import { Engine } from "./Engine";
 import { Layer } from "./Layer";
 import { Scene } from "./Scene";
 import { Script } from "./Script";
 import { Transform } from "./Transform";
+import { UpdateFlagManager } from "./UpdateFlagManager";
 import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
@@ -17,6 +19,8 @@ import { DisorderedArray } from "./utils/DisorderedArray";
  * Entity, be used as components container.
  */
 export class Entity extends EngineObject {
+  static _inheritedComponents: ComponentConstructor[] = [];
+
   /**
    * @internal
    */
@@ -73,8 +77,6 @@ export class Entity extends EngineObject {
   name: string;
   /** The layer the entity belongs to. */
   layer: Layer = Layer.Layer0;
-  /** Transform component. */
-  readonly transform: Transform;
 
   /** @internal */
   _isActiveInHierarchy: boolean = false;
@@ -94,13 +96,30 @@ export class Entity extends EngineObject {
   _isActive: boolean = true;
   /** @internal */
   _siblingIndex: number = -1;
-
   /** @internal */
   _isTemplate: boolean = false;
+  /** @internal */
+  @ignoreClone
+  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
+  private _transform: Transform;
   private _templateResource: ReferResource;
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
+
+  /**
+   * The transform of the entity.
+   */
+  get transform(): Transform {
+    return this._transform;
+  }
+
+  set transform(value: Transform) {
+    const pre = this._transform;
+    if (value !== pre) {
+      this._transform = value;
+    }
+  }
 
   /**
    * Whether to activate locally.
@@ -193,11 +212,17 @@ export class Entity extends EngineObject {
    * Create a entity.
    * @param engine - The engine the entity belongs to
    */
-  constructor(engine: Engine, name?: string) {
+  constructor(engine: Engine, name?: string, ...components: ComponentConstructor[]) {
     super(engine);
     this.name = name;
-    this.transform = this.addComponent(Transform);
-    this._inverseWorldMatFlag = this.transform.registerWorldChangeFlag();
+    for (let i = 0, n = components.length; i < n; i++) {
+      const type = components[i];
+      if (!Transform.prototype.isPrototypeOf(type.prototype) || !this.transform) {
+        this.addComponent(type);
+      }
+    }
+    this.transform || this.addComponent(Transform);
+    this._inverseWorldMatFlag = this.registerWorldChangeFlag();
   }
 
   /**
@@ -394,7 +419,9 @@ export class Entity extends EngineObject {
    * @returns The child entity
    */
   createChild(name?: string): Entity {
-    const child = new Entity(this.engine, name);
+    const inheritedComponents = Entity._inheritedComponents;
+    ComponentsDependencies._getInheritedComponents(this, inheritedComponents);
+    const child = new Entity(this.engine, name, ...inheritedComponents);
     child.layer = this.layer;
     child.parent = this;
     return child;
@@ -427,6 +454,14 @@ export class Entity extends EngineObject {
     const cloneEntity = this._createCloneEntity();
     this._parseCloneEntity(this, cloneEntity, this, cloneEntity, new Map<Object, Object>());
     return cloneEntity;
+  }
+
+  /**
+   * Register world transform change flag.
+   * @returns Change flag
+   */
+  registerWorldChangeFlag(): BoolUpdateFlag {
+    return this._updateFlagManager.createFlag(BoolUpdateFlag);
   }
 
   /**
@@ -478,7 +513,7 @@ export class Entity extends EngineObject {
     for (let i = 0, n = components.length; i < n; i++) {
       const sourceComp = components[i];
       if (!(sourceComp instanceof Transform)) {
-        const targetComp = target.addComponent(<new (entity: Entity) => Component>sourceComp.constructor);
+        const targetComp = target.addComponent(<ComponentConstructor>sourceComp.constructor);
         ComponentCloner.cloneComponent(sourceComp, targetComp, srcRoot, targetRoot, deepInstanceMap);
       }
     }

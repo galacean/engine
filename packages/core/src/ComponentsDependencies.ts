@@ -1,7 +1,7 @@
 import { Component } from "./Component";
 import { Entity } from "./Entity";
 
-type ComponentConstructor = new (entity: Entity) => Component;
+export type ComponentConstructor = new (entity: Entity) => Component;
 
 /**
  * @internal
@@ -11,6 +11,8 @@ export class ComponentsDependencies {
   private static _invDependenciesMap = new Map<ComponentConstructor, ComponentConstructor[]>();
 
   static _dependenciesMap = new Map<ComponentConstructor, DependentInfo>();
+  static _mutuallyExclusiveMap = new Map<ComponentConstructor, ComponentConstructor[]>();
+  static _inheritedComponents: ComponentConstructor[] = [];
 
   /**
    * @internal
@@ -31,6 +33,12 @@ export class ComponentsDependencies {
           }
         }
       }
+      const mutuallyExclusiveComponents = ComponentsDependencies._mutuallyExclusiveMap.get(type);
+      if (mutuallyExclusiveComponents) {
+        for (let i = 0, n = mutuallyExclusiveComponents.length; i < n; i++) {
+          entity.getComponent(mutuallyExclusiveComponents[i])?.destroy();
+        }
+      }
       type = Object.getPrototypeOf(type);
     }
   }
@@ -44,11 +52,30 @@ export class ComponentsDependencies {
       if (invDependencies) {
         for (let i = 0, len = invDependencies.length; i < len; i++) {
           if (entity.getComponent(invDependencies[i])) {
-            throw `Should remove ${invDependencies[i].name} before adding ${type.name}`;
+            throw `Should remove ${invDependencies[i].name} before remove ${type.name}`;
           }
         }
       }
       type = Object.getPrototypeOf(type);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  static _getInheritedComponents(entity: Entity, out: ComponentConstructor[]): void {
+    out.length = 0;
+    const components = entity._components;
+    const inheritedComponents = ComponentsDependencies._inheritedComponents;
+    const inheritedComponentsLength = inheritedComponents.length;
+    for (let i = 0, n = components.length; i < n; i++) {
+      const component = components[i];
+      for (let j = 0; j < inheritedComponentsLength; j++) {
+        if (component instanceof inheritedComponents[j]) {
+          out.push(component.constructor as ComponentConstructor);
+          break;
+        }
+      }
     }
   }
 
@@ -81,6 +108,23 @@ export class ComponentsDependencies {
     }
   }
 
+  static _markComponentsMutuallyExclusive(
+    target: ComponentConstructor,
+    componentOrComponents: ComponentConstructor | ComponentConstructor[]
+  ): void {
+    const components = Array.isArray(componentOrComponents) ? componentOrComponents : [componentOrComponents];
+    const map = ComponentsDependencies._mutuallyExclusiveMap;
+    const preComponents = map.get(target);
+    if (preComponents) {
+      for (let i = 0, n = components.length; i < n; i++) {
+        const component = components[i];
+        !preComponents.includes(component) && preComponents.push(component);
+      }
+    } else {
+      map.set(target, components);
+    }
+  }
+
   private constructor() {}
 }
 
@@ -107,6 +151,38 @@ export function dependentComponents(
   return function <T extends ComponentConstructor>(target: T): void {
     ComponentsDependencies._dependenciesMap.set(target, { mode: dependentMode, components });
     components.forEach((component) => ComponentsDependencies._addInvDependency(component, target));
+  };
+}
+
+/**
+ * Declare mutually exclusive components in an entity.
+ * @param component -  component
+ */
+export function mutuallyExclusiveComponents(component: ComponentConstructor);
+
+/**
+ * Declare mutually exclusive components in an entity.
+ * @param components -  components
+ */
+export function mutuallyExclusiveComponents(components: ComponentConstructor[]);
+
+export function mutuallyExclusiveComponents(componentOrComponents: ComponentConstructor | ComponentConstructor[]) {
+  const components = Array.isArray(componentOrComponents) ? componentOrComponents : [componentOrComponents];
+  return function <T extends ComponentConstructor>(target: T): void {
+    ComponentsDependencies._markComponentsMutuallyExclusive(target, components);
+    for (let i = 0, n = components.length; i < n; i++) {
+      ComponentsDependencies._markComponentsMutuallyExclusive(components[i], target);
+    }
+  };
+}
+
+/**
+ * Declare the components that child need to inherit.
+ */
+export function inherited() {
+  return function <T extends ComponentConstructor>(target: T): void {
+    const inheritedComponents = ComponentsDependencies._inheritedComponents;
+    inheritedComponents.includes(target) || inheritedComponents.push(target);
   };
 }
 

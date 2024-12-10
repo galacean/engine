@@ -2,7 +2,6 @@ import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@galacean/engi
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
-import { UpdateFlagManager } from "./UpdateFlagManager";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
 
 /**
@@ -55,10 +54,6 @@ export class Transform extends Component {
   @ignoreClone
   private _parentTransformCache: Transform = null;
   private _dirtyFlag: number = TransformModifyFlags.WmWpWeWqWs;
-
-  /** @internal */
-  @ignoreClone
-  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   /**
    * Local position.
@@ -345,6 +340,8 @@ export class Transform extends Component {
     this._worldRotationQuaternion._onValueChanged = this._onWorldRotationQuaternionChanged;
     //@ts-ignore
     this._scale._onValueChanged = this._onScaleChanged;
+
+    entity.transform = this;
   }
 
   /**
@@ -562,14 +559,6 @@ export class Transform extends Component {
   }
 
   /**
-   * Register world transform change flag.
-   * @returns Change flag
-   */
-  registerWorldChangeFlag(): BoolUpdateFlag {
-    return this._updateFlagManager.createFlag(BoolUpdateFlag);
-  }
-
-  /**
    * @internal
    */
   _parentChange(): void {
@@ -604,6 +593,8 @@ export class Transform extends Component {
     this._position._onValueChanged = null;
     //@ts-ignore
     this._scale._onValueChanged = null;
+
+    this._entity.transform = null;
   }
 
   /**
@@ -762,7 +753,7 @@ export class Transform extends Component {
 
   private _worldAssociatedChange(type: number): void {
     this._dirtyFlag |= type;
-    this._updateFlagManager.dispatch(type);
+    this._entity._updateFlagManager.dispatch(type);
   }
 
   private _rotateByQuat(rotateQuat: Quaternion, relativeToLocal: boolean): void {
