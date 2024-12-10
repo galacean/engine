@@ -99,7 +99,7 @@ export class UICanvas extends Component implements IElement {
   }
 
   set referenceResolution(val: Vector2) {
-    const { _referenceResolution: referenceResolution } = this;
+    const referenceResolution = this._referenceResolution;
     if (referenceResolution === val) return;
     (referenceResolution.x !== val.x || referenceResolution.y !== val.y) && referenceResolution.copyFrom(val);
   }
@@ -109,7 +109,7 @@ export class UICanvas extends Component implements IElement {
   }
 
   set renderMode(mode: CanvasRenderMode) {
-    let preMode = this._renderMode;
+    const preMode = this._renderMode;
     if (preMode !== mode) {
       this._renderMode = mode;
       this._updateCameraObserver();
@@ -336,7 +336,7 @@ export class UICanvas extends Component implements IElement {
     if (realRenderMode === CanvasRenderMode.ScreenSpaceCamera) {
       const { transform: cameraTransform } = this._renderCamera.entity;
       const { worldPosition: cameraWorldPosition, worldForward: cameraWorldForward } = cameraTransform;
-      const { _distance: distance } = this;
+      const distance = this._distance;
       transform.setWorldPosition(
         cameraWorldPosition.x + cameraWorldForward.x * distance,
         cameraWorldPosition.y + cameraWorldForward.y * distance,
@@ -345,7 +345,7 @@ export class UICanvas extends Component implements IElement {
       transform.worldRotationQuaternion.copyFrom(cameraTransform.worldRotationQuaternion);
     } else {
       const { canvas } = this.engine;
-      transform.setWorldPosition(canvas.width / 2, canvas.height / 2, 0);
+      transform.setWorldPosition(canvas.width * 0.5, canvas.height * 0.5, 0);
       transform.worldRotationQuaternion.set(0, 0, 0, 1);
     }
   }
@@ -359,7 +359,7 @@ export class UICanvas extends Component implements IElement {
       const renderCamera = this._renderCamera;
       curHeight = renderCamera.isOrthographic
         ? renderCamera.orthographicSize * 2
-        : 2 * (Math.tan(MathUtil.degreeToRadian(renderCamera.fieldOfView / 2)) * this._distance);
+        : 2 * (Math.tan(MathUtil.degreeToRadian(renderCamera.fieldOfView * 0.5)) * this._distance);
       curWidth = renderCamera.aspectRatio * curHeight;
     } else {
       const canvas = this.engine.canvas;
@@ -377,7 +377,7 @@ export class UICanvas extends Component implements IElement {
       case ResolutionAdaptationStrategy.BothAdaptation:
         expectX = curWidth / width;
         expectY = curHeight / height;
-        expectZ = (expectX + expectY) / 2;
+        expectZ = (expectX + expectY) * 0.5;
         break;
       case ResolutionAdaptationStrategy.ExpandAdaptation:
         expectX = expectY = expectZ = Math.min(curWidth / width, curHeight / height);
@@ -503,7 +503,7 @@ export class UICanvas extends Component implements IElement {
   @ignoreClone
   private _onCanvasSizeListener(): void {
     const { canvas } = this.engine;
-    this._transform.setWorldPosition(canvas.width / 2, canvas.height / 2, 0);
+    this._transform.setWorldPosition(canvas.width * 0.5, canvas.height * 0.5, 0);
     this._adapterSizeInScreenSpace();
   }
 
