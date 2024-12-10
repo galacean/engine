@@ -25,7 +25,7 @@ export class Lexer extends BaseScanner {
   }
 
   override skipSpace() {
-    while (/\s/.test(this.getCurChar())) {
+    while (LexerUtils.isSpace(this.getCurCharCode())) {
       this._advance();
     }
   }
@@ -36,20 +36,22 @@ export class Lexer extends BaseScanner {
       return EOF;
     }
 
-    if (LexerUtils.isAlpha(this.getCurChar())) {
+    if (LexerUtils.isAlpha(this.getCurCharCode())) {
       return this._scanWord();
     }
-    if (LexerUtils.isNum(this.getCurChar())) {
+    if (LexerUtils.isNum(this.getCurCharCode())) {
       return this._scanNum();
     }
 
     const start = this._getPosition();
     const token = BaseToken.pool.get();
+    let curChar: string;
 
     switch (this.getCurChar()) {
       case "<":
         this._advance();
-        if (this.getCurChar() === "<") {
+        curChar = this.getCurChar();
+        if (curChar === "<") {
           this._advance();
           if (this.getCurChar() === "=") {
             this._advance();
@@ -58,7 +60,7 @@ export class Lexer extends BaseScanner {
           }
           token.set(ETokenType.LEFT_OP, "<<", start);
           break;
-        } else if (this.getCurChar() === "=") {
+        } else if (curChar === "=") {
           this._advance();
           token.set(ETokenType.LE_OP, "<=", start);
           break;
@@ -68,7 +70,8 @@ export class Lexer extends BaseScanner {
 
       case ">":
         this._advance();
-        if (this.getCurChar() === ">") {
+        curChar = this.getCurChar();
+        if (curChar === ">") {
           this._advance();
           if (this.getCurChar() === "=") {
             this._advance();
@@ -77,7 +80,7 @@ export class Lexer extends BaseScanner {
           }
           token.set(ETokenType.RIGHT_OP, ">>", start);
           break;
-        } else if (this.getCurChar() === "=") {
+        } else if (curChar === "=") {
           this._advance();
           token.set(ETokenType.GE_OP, ">=", start);
           break;
@@ -87,11 +90,12 @@ export class Lexer extends BaseScanner {
 
       case "+":
         this._advance();
-        if (this.getCurChar() === "+") {
+        curChar = this.getCurChar();
+        if (curChar === "+") {
           this._advance();
           token.set(ETokenType.INC_OP, "++", start);
           break;
-        } else if (this.getCurChar() === "=") {
+        } else if (curChar === "=") {
           this._advance();
           token.set(ETokenType.ADD_ASSIGN, "+=", start);
           break;
@@ -101,11 +105,12 @@ export class Lexer extends BaseScanner {
 
       case "-":
         this._advance();
-        if (this.getCurChar() === "-") {
+        curChar = this.getCurChar();
+        if (curChar === "-") {
           this._advance();
           token.set(ETokenType.DEC_OP, "--", start);
           break;
-        } else if (this.getCurChar() === "=") {
+        } else if (curChar === "=") {
           this._advance();
           token.set(ETokenType.SUB_ASSIGN, "-=", start);
           break;
@@ -135,11 +140,12 @@ export class Lexer extends BaseScanner {
 
       case "&":
         this._advance();
-        if (this.getCurChar() === "&") {
+        curChar = this.getCurChar();
+        if (curChar === "&") {
           this._advance();
           token.set(ETokenType.AND_OP, "&&", start);
           break;
-        } else if (this.getCurChar() === "=") {
+        } else if (curChar === "=") {
           this._advance();
           token.set(ETokenType.ADD_ASSIGN, "&=", start);
           break;
@@ -149,11 +155,12 @@ export class Lexer extends BaseScanner {
 
       case "|":
         this._advance();
-        if (this.getCurChar() === "|") {
+        curChar = this.getCurChar();
+        if (curChar === "|") {
           this._advance();
           token.set(ETokenType.OR_OP, "||", start);
           break;
-        } else if (this.getCurChar() === "=") {
+        } else if (curChar === "=") {
           this._advance();
           token.set(ETokenType.OR_ASSIGN, "|=", start);
           break;
@@ -163,11 +170,12 @@ export class Lexer extends BaseScanner {
 
       case "^":
         this._advance();
-        if (this.getCurChar() === "^") {
+        curChar = this.getCurChar();
+        if (curChar === "^") {
           this._advance();
           token.set(ETokenType.XOR_OP, "^^", start);
           break;
-        } else if (this.getCurChar() === "=") {
+        } else if (curChar === "=") {
           this._advance();
           token.set(ETokenType.XOR_ASSIGN, "^=", start);
           break;
@@ -242,7 +250,7 @@ export class Lexer extends BaseScanner {
         break;
       case ".":
         this._advance();
-        if (LexerUtils.isNum(this.getCurChar())) {
+        if (LexerUtils.isNum(this.getCurCharCode())) {
           return this._scanNumAfterDot();
         }
 
@@ -300,7 +308,7 @@ export class Lexer extends BaseScanner {
 
   private _scanNumAfterDot() {
     const buffer = ["."];
-    while (LexerUtils.isNum(this.getCurChar())) {
+    while (LexerUtils.isNum(this.getCurCharCode())) {
       buffer.push(this.getCurChar());
       this._advance();
     }
@@ -324,7 +332,7 @@ export class Lexer extends BaseScanner {
     const buffer: string[] = [this.getCurChar()];
     const start = this._getPosition();
     this._advance();
-    while (LexerUtils.isLetter(this.getCurChar())) {
+    while (LexerUtils.isLetter(this.getCurCharCode())) {
       buffer.push(this.getCurChar());
       this._advance();
     }
@@ -343,14 +351,14 @@ export class Lexer extends BaseScanner {
 
   private _scanNum() {
     const buffer: string[] = [];
-    while (LexerUtils.isNum(this.getCurChar())) {
+    while (LexerUtils.isNum(this.getCurCharCode())) {
       buffer.push(this.getCurChar());
       this._advance();
     }
     if (this.getCurChar() === ".") {
       buffer.push(this.getCurChar());
       this._advance();
-      while (LexerUtils.isNum(this.getCurChar())) {
+      while (LexerUtils.isNum(this.getCurCharCode())) {
         buffer.push(this.getCurChar());
         this._advance();
       }
@@ -384,9 +392,9 @@ export class Lexer extends BaseScanner {
         buffer.push(this.getCurChar());
         this._advance();
       }
-      if (!LexerUtils.isNum(this.getCurChar()))
+      if (!LexerUtils.isNum(this.getCurCharCode()))
         this.throwError(this.getCurPosition(), "lexing error, invalid exponent suffix.");
-      while (LexerUtils.isNum(this.getCurChar())) {
+      while (LexerUtils.isNum(this.getCurCharCode())) {
         buffer.push(this.getCurChar());
         this._advance();
       }

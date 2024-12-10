@@ -17,6 +17,8 @@ import { RenderState } from "./state/RenderState";
  * Shader pass containing vertex and fragment source.
  */
 export class ShaderPass extends ShaderPart {
+  private testCount = 5;
+
   private static _shaderPassCounter: number = 0;
   /** @internal */
   static _shaderRootPath = "shaders://root/";
@@ -126,7 +128,7 @@ export class ShaderPass extends ShaderPart {
   _getShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
     const shaderProgramPool = engine._getShaderProgramPool(this);
     let shaderProgram = shaderProgramPool.get(macroCollection);
-    if (shaderProgram) {
+    if (shaderProgram && this.testCount-- <= 0) {
       return shaderProgram;
     }
 

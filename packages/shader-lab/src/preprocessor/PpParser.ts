@@ -126,7 +126,7 @@ export class PpParser {
     }
 
     scanner.scanToChar("\n");
-    const end = scanner.getShaderPosition();
+    const end = scanner.getShaderPosition(0);
     const chunk = this._includeMap[includedPath];
     if (!chunk) {
       this.reportError(id.location, `Shader slice "${includedPath}" not founded.`, scanner.source, scanner.file);
@@ -159,7 +159,7 @@ export class PpParser {
 
     const { token: bodyChunk, nextDirective } = scanner.scanMacroBranchChunk();
     if (!!macro) {
-      const end = nextDirective.type === EPpKeyword.endif ? scanner.getShaderPosition() : scanner.scanRemainMacro();
+      const end = nextDirective.type === EPpKeyword.endif ? scanner.getShaderPosition(0) : scanner.scanRemainMacro();
 
       const expanded = this._expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
 
@@ -202,7 +202,7 @@ export class PpParser {
       const block = new BlockInfo(scanner.file, scanner.blockRange, expanded.sourceMap);
       // #endif
       const startPosition = ShaderLab.createPosition(start);
-      const range = ShaderLab.createRange(startPosition, scanner.getShaderPosition());
+      const range = ShaderLab.createRange(startPosition, scanner.getShaderPosition(0));
       this.expandSegments.push({
         // #if _VERBOSE
         block,
@@ -299,7 +299,7 @@ export class PpParser {
     let operator = scanner.peek(2);
     if (operator[1] !== "=") operator = operator[0];
     if (operator && [">", "<", ">=", "<="].includes(operator)) {
-      const opPos = scanner.getShaderPosition();
+      const opPos = scanner.getShaderPosition(0);
       scanner.advance(operator.length);
       scanner.skipSpace(false);
       const operand2 = this._parseRelationalExpression(scanner) as number;
@@ -325,7 +325,7 @@ export class PpParser {
     const operand1 = this._parseAdditiveExpression(scanner) as number;
     const operator = scanner.peek(2);
     if (operator && [">>", "<<"].includes(operator)) {
-      const opPos = scanner.getShaderPosition();
+      const opPos = scanner.getShaderPosition(0);
       scanner.advance(2);
       scanner.skipSpace(false);
       const operand2 = this._parseShiftExpression(scanner) as number;
@@ -347,8 +347,8 @@ export class PpParser {
   private static _parseAdditiveExpression(scanner: PpScanner): PpConstant {
     const operand1 = this._parseMulticativeExpression(scanner) as number;
     if ([">", "<"].includes(scanner.getCurChar())) {
-      const opPos = scanner.getShaderPosition();
-      scanner._advance();
+      const opPos = scanner.getShaderPosition(0);
+      scanner.advance();
 
       const operator = scanner.getCurChar();
       scanner.skipSpace(false);
@@ -371,7 +371,7 @@ export class PpParser {
     const operand1 = this._parseUnaryExpression(scanner) as number;
     scanner.skipSpace(false);
     if (["*", "/", "%"].includes(scanner.getCurChar())) {
-      const opPos = scanner.getShaderPosition();
+      const opPos = scanner.getShaderPosition(0);
       const operator = scanner.getCurChar();
       scanner.skipSpace(false);
       const operand2 = this._parseMulticativeExpression(scanner) as number;
@@ -394,8 +394,8 @@ export class PpParser {
   private static _parseUnaryExpression(scanner: PpScanner) {
     const operator = scanner.getCurChar();
     if (["+", "-", "!"].includes(operator)) {
-      scanner._advance();
-      const opPos = scanner.getShaderPosition();
+      scanner.advance();
+      const opPos = scanner.getShaderPosition(0);
       const parenExpr = this._parseParenthesisExpression(scanner);
       if ((operator === "!" && typeof parenExpr !== "boolean") || (operator !== "!" && typeof parenExpr !== "number")) {
         this.reportError(opPos, "invalid operator.", scanner.source, scanner.file);
@@ -426,7 +426,7 @@ export class PpParser {
   }
 
   private static _parseConstant(scanner: PpScanner): PpConstant {
-    if (LexerUtils.isAlpha(scanner.getCurChar())) {
+    if (LexerUtils.isAlpha(scanner.getCurCharCode())) {
       const id = scanner.scanWord();
       if (id.type === EPpKeyword.defined) {
         const withParen = scanner.peekNonSpace() === "(";
@@ -452,12 +452,12 @@ export class PpParser {
         this._branchMacros.add(id.lexeme);
         return value;
       }
-    } else if (LexerUtils.isNum(scanner.getCurChar())) {
+    } else if (LexerUtils.isNum(scanner.getCurCharCode())) {
       const integer = scanner.scanInteger();
       return Number(integer.lexeme);
     } else {
       this.reportError(
-        scanner.getShaderPosition(),
+        scanner.getShaderPosition(0),
         `invalid token: ${scanner.getCurChar()}`,
         scanner.source,
         scanner.file
@@ -525,7 +525,7 @@ export class PpParser {
     const macro = this._definedMacros.get(id.lexeme);
     const { token: bodyChunk, nextDirective } = scanner.scanMacroBranchChunk();
     if (!macro) {
-      const end = nextDirective.type === EPpKeyword.endif ? scanner.getShaderPosition() : scanner.scanRemainMacro();
+      const end = nextDirective.type === EPpKeyword.endif ? scanner.getShaderPosition(0) : scanner.scanRemainMacro();
 
       const expanded = this._expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
       // #if _VERBOSE
@@ -571,7 +571,7 @@ export class PpParser {
 
     const { token: bodyChunk, nextDirective } = scanner.scanMacroBranchChunk();
     if (!!constantExpr) {
-      const end = nextDirective.type === EPpKeyword.endif ? scanner.getShaderPosition() : scanner.scanRemainMacro();
+      const end = nextDirective.type === EPpKeyword.endif ? scanner.getShaderPosition(0) : scanner.scanRemainMacro();
       const expanded = this._expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
       // #if _VERBOSE
       const block = new BlockInfo(scanner.file, scanner.blockRange, expanded.sourceMap);
@@ -604,7 +604,7 @@ export class PpParser {
     let macroArgs: BaseToken[] | undefined;
     if (scanner.getCurChar() === "(") {
       macroArgs = scanner.scanWordsUntilChar(")");
-      end = scanner.getShaderPosition();
+      end = scanner.getShaderPosition(0);
     }
     const macroBody = scanner.scanLineRemain();
     const range = ShaderLab.createRange(start, end);
