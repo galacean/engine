@@ -1,6 +1,6 @@
 import { IBoxColliderShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
-import { ignoreClone } from "../../clone/CloneManager";
+import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { PhysicsScene } from "../PhysicsScene";
 import { ColliderShape } from "./ColliderShape";
 
@@ -8,7 +8,7 @@ import { ColliderShape } from "./ColliderShape";
  * Physical collider shape for box.
  */
 export class BoxColliderShape extends ColliderShape {
-  @ignoreClone
+  @deepClone
   private _size: Vector3 = new Vector3(1, 1, 1);
 
   /**
@@ -32,17 +32,13 @@ export class BoxColliderShape extends ColliderShape {
       this._material._nativeMaterial
     );
 
-    this._setSize = this._setSize.bind(this);
     //@ts-ignore
-    this._size._onValueChanged = this._setSize;
+    this._size._onValueChanged = this._setSize.bind(this);
   }
 
-  /**
-   * @internal
-   */
-  override _cloneTo(target: BoxColliderShape) {
-    super._cloneTo(target);
-    target.size = this.size;
+  protected override _syncNative(): void {
+    super._syncNative();
+    this._setSize();
   }
 
   @ignoreClone

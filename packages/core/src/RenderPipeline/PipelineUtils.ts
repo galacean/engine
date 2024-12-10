@@ -1,7 +1,7 @@
 import { Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Material } from "../material";
-import { ShaderProperty } from "../shader";
+import { ShaderMacro, ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
@@ -15,6 +15,7 @@ export class PipelineUtils {
   private static _blitTextureProperty = ShaderProperty.getByName("renderer_BlitTexture");
   private static _blitMipLevelProperty = ShaderProperty.getByName("renderer_BlitMipLevel");
   private static _blitTexelSizeProperty = ShaderProperty.getByName("renderer_texelSize"); // x: 1/width, y: 1/height, z: width, w: height
+  private static _flipYTextureMacro = ShaderMacro.getByName("renderer_FlipYBlitTexture");
 
   private static _rendererShaderData = new ShaderData(ShaderDataGroup.Renderer);
   private static _texelSize = new Vector4();
@@ -150,6 +151,7 @@ export class PipelineUtils {
    * @param viewport - Viewport
    * @param material - The material to use when blitting
    * @param passIndex - Pass index to use of the provided material
+   * @param flipYOfSource - Whether flip Y axis of source texture
    */
   static blitTexture(
     engine: Engine,
@@ -158,7 +160,8 @@ export class PipelineUtils {
     mipLevel: number = 0,
     viewport: Vector4 = PipelineUtils.defaultViewport,
     material: Material = null,
-    passIndex = 0
+    passIndex = 0,
+    flipYOfSource = false
   ): void {
     const basicResources = engine._basicResources;
     const blitMesh = destination ? basicResources.flipYBlitMesh : basicResources.blitMesh;
@@ -177,15 +180,21 @@ export class PipelineUtils {
     rendererShaderData.setFloat(PipelineUtils._blitMipLevelProperty, mipLevel);
     PipelineUtils._texelSize.set(1 / source.width, 1 / source.height, source.width, source.height);
     rendererShaderData.setVector4(PipelineUtils._blitTexelSizeProperty, PipelineUtils._texelSize);
+    if (flipYOfSource) {
+      rendererShaderData.enableMacro(PipelineUtils._flipYTextureMacro);
+    } else {
+      rendererShaderData.disableMacro(PipelineUtils._flipYTextureMacro);
+    }
 
     const pass = blitMaterial.shader.subShaders[0].passes[passIndex];
     const compileMacros = Shader._compileMacros;
 
     ShaderMacroCollection.unionCollection(
       context.camera._globalShaderMacro,
-      blitMaterial.shaderData._macroCollection,
+      rendererShaderData._macroCollection,
       compileMacros
     );
+    ShaderMacroCollection.unionCollection(compileMacros, blitMaterial.shaderData._macroCollection, compileMacros);
     const program = pass._getShaderProgram(engine, compileMacros);
 
     program.bind();

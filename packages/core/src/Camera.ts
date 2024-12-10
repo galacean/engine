@@ -85,7 +85,7 @@ export class Camera extends Component {
   /**
    * Multi-sample anti-aliasing samples when use independent canvas mode.
    *
-   * @remarks The `independentCanvasEnabled` property should be `true` to take effect, otherwise it will be invalid.
+   * @remarks It will take effect when `independentCanvasEnabled` property is `true`, otherwise it will be invalid.
    */
   msaaSamples: MSAASamples = MSAASamples.None;
 
@@ -168,15 +168,19 @@ export class Camera extends Component {
 
   /**
    * Whether independent canvas is enabled.
-   *
    * @remarks If true, the msaa in viewport can turn or off independently by `msaaSamples` property.
    */
   get independentCanvasEnabled(): boolean {
-    if (this.enableHDR || (this.enablePostProcess && this.scene._postProcessManager.hasActiveEffect)) {
+    // Uber pass need internal RT
+    if (this.enablePostProcess && this.scene._postProcessManager.hasActiveEffect) {
       return true;
     }
 
-    return this.opaqueTextureEnabled && !this._renderTarget;
+    if (this.enableHDR || this.opaqueTextureEnabled) {
+      return this._getInternalColorTextureFormat() !== this.renderTarget?.getColorTexture(0).format;
+    }
+
+    return false;
   }
 
   /**
