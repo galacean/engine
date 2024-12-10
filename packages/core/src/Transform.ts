@@ -884,6 +884,14 @@ export class Transform extends Component {
     }
     return this._worldUniformScaling;
   }
+
+  //--------------------------------------------------------------deprecated----------------------------------------------------------------
+  /**
+   * @deprecated
+   */
+  registerWorldChangeFlag(): BoolUpdateFlag {
+    return this.entity._updateFlagManager.createFlag(BoolUpdateFlag);
+  }
 }
 
 /**

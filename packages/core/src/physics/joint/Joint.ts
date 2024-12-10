@@ -188,7 +188,7 @@ export abstract class Joint extends Component {
     this._onSelfTransformChanged = this._onSelfTransformChanged.bind(this);
     this._onConnectedTransformChanged = this._onConnectedTransformChanged.bind(this);
     // @ts-ignore
-    entity.transform?._updateFlagManager.addListener(this._onSelfTransformChanged);
+    entity._updateFlagManager.addListener(this._onSelfTransformChanged);
   }
 
   /**

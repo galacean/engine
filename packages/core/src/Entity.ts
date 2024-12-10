@@ -2,7 +2,7 @@ import { Matrix } from "@galacean/engine-math";
 import { ignoreClone } from ".";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
-import { ComponentConstructor, ComponentsDependencies } from "./ComponentsDependencies";
+import { ComponentsDependencies } from "./ComponentsDependencies";
 import { Engine } from "./Engine";
 import { Layer } from "./Layer";
 import { Scene } from "./Scene";
@@ -19,11 +19,6 @@ import { DisorderedArray } from "./utils/DisorderedArray";
  * Entity, be used as components container.
  */
 export class Entity extends EngineObject {
-  /** @internal */
-  static _inheritedComponents: ComponentConstructor[] = [];
-  /** @internal */
-  static _matrix: Matrix = new Matrix();
-
   /**
    * @internal
    */
@@ -247,6 +242,7 @@ export class Entity extends EngineObject {
     type: T,
     ...args: ComponentArguments<T>
   ): InstanceType<T> {
+    Transform.prototype.isPrototypeOf(type.prototype) && this.transform?.destroy();
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this, ...args) as InstanceType<T>;
     this._components.push(component);
@@ -431,9 +427,10 @@ export class Entity extends EngineObject {
    * @returns The child entity
    */
   createChild(name?: string): Entity {
-    const inheritedComponents = Entity._inheritedComponents;
-    ComponentsDependencies._getInheritedComponents(this, inheritedComponents);
-    const child = new Entity(this.engine, name, ...inheritedComponents);
+    const transform = this._transform;
+    const child = transform
+      ? new Entity(this.engine, name, transform.constructor as ComponentConstructor)
+      : new Entity(this.engine, name);
     child.layer = this.layer;
     child.parent = this;
     return child;
@@ -812,3 +809,5 @@ type ComponentArguments<T extends new (entity: Entity, ...args: any[]) => Compon
 ) => Component
   ? P
   : never;
+
+type ComponentConstructor = new (entity: Entity) => Component;
