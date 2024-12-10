@@ -53,6 +53,8 @@ export class Engine extends EventDispatcher {
   static _noDepthTextureMacro: ShaderMacro = ShaderMacro.getByName("ENGINE_NO_DEPTH_TEXTURE");
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
+  /** @internal */
+  static _physicalObjectsMap: Record<number, ColliderShape> = {};
 
   /** Input manager of Engine. */
   readonly inputManager: InputManager;
@@ -65,8 +67,6 @@ export class Engine extends EventDispatcher {
   _particleBufferUtils: ParticleBufferUtils;
   /** @internal */
   _physicsInitialized: boolean = false;
-  /** @internal */
-  _physicalObjectsMap: Record<number, ColliderShape> = {};
   /** @internal */
   _nativePhysicsManager: IPhysicsManager;
   /* @internal */
@@ -464,7 +464,7 @@ export class Engine extends EventDispatcher {
       if (length > shaderProgramPools.length) {
         shaderProgramPools.length = length;
       }
-      shaderProgramPools[index] = pool = new ShaderProgramPool();
+      shaderProgramPools[index] = pool = new ShaderProgramPool(this);
       shaderPass._shaderProgramPools.push(pool);
     }
     return pool;

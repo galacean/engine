@@ -5,8 +5,10 @@ import { AnimatorStateTransition } from "./AnimatorStateTransition";
  * @internal
  */
 export class AnimatorStateTransitionCollection {
-  /** @internal */
-  _transitions = new Array<AnimatorStateTransition>();
+  transitions = new Array<AnimatorStateTransition>();
+  noExitTimeCount = 0;
+  needResetCurrentCheckIndex = true;
+  currentCheckIndex: number;
 
   private _soloCount = 0;
 
@@ -15,15 +17,11 @@ export class AnimatorStateTransitionCollection {
   }
 
   get count(): number {
-    return this._transitions.length;
-  }
-
-  set count(value: number) {
-    this._transitions.length = value;
+    return this.transitions.length;
   }
 
   get(index: number): AnimatorStateTransition {
-    return this._transitions[index];
+    return this.transitions[index];
   }
 
   add(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
@@ -36,11 +34,7 @@ export class AnimatorStateTransitionCollection {
       transition = transitionOrAnimatorState;
     }
 
-    if (transition.hasExitTime) {
-      this._addHasExitTimeTransition(transition);
-    } else {
-      this._transitions.unshift(transition);
-    }
+    this._addTransition(transition);
 
     transition._collection = this;
     if (transition.solo) {
@@ -50,8 +44,15 @@ export class AnimatorStateTransitionCollection {
   }
 
   remove(transition: AnimatorStateTransition): void {
-    const index = this._transitions.indexOf(transition);
-    index !== -1 && this._transitions.splice(index, 1);
+    const transitions = this.transitions;
+    const index = transitions.indexOf(transition);
+    if (index !== -1) {
+      transitions.splice(index, 1);
+      if (!transition.hasExitTime) {
+        this.noExitTimeCount--;
+      }
+    }
+
     transition._collection = null;
     if (transition.solo) {
       this._soloCount--;
@@ -59,12 +60,14 @@ export class AnimatorStateTransitionCollection {
   }
 
   clear(): void {
-    for (let i = 0, n = this._transitions.length; i < n; i++) {
-      const transition = this._transitions[i];
+    const transitions = this.transitions;
+    for (let i = 0, n = transitions.length; i < n; i++) {
+      const transition = transitions[i];
       transition._collection = null;
     }
-    this._transitions.length = 0;
+    transitions.length = 0;
     this._soloCount = 0;
+    this.noExitTimeCount = 0;
   }
 
   updateTransitionSolo(isModifiedSolo: boolean): void {
@@ -72,17 +75,31 @@ export class AnimatorStateTransitionCollection {
   }
 
   updateTransitionsIndex(transition: AnimatorStateTransition, hasExitTime: boolean): void {
-    const transitions = this._transitions;
+    const transitions = this.transitions;
     transitions.splice(transitions.indexOf(transition), 1);
-    if (hasExitTime) {
-      this._addHasExitTimeTransition(transition);
-    } else {
-      transitions.unshift(transition);
-    }
+    this._addTransition(transition);
   }
 
-  private _addHasExitTimeTransition(transition: AnimatorStateTransition): void {
-    const transitions = this._transitions;
+  updateCurrentCheckIndex(isForward: boolean): void {
+    this.currentCheckIndex = isForward
+      ? Math.min(this.currentCheckIndex + 1, this.count - this.noExitTimeCount - 1)
+      : Math.max(this.currentCheckIndex - 1, 0);
+  }
+
+  resetCurrentCheckIndex(isForward: boolean): void {
+    this.currentCheckIndex = isForward ? 0 : this.count - this.noExitTimeCount - 1;
+    this.needResetCurrentCheckIndex = false;
+  }
+
+  private _addTransition(transition: AnimatorStateTransition): void {
+    const transitions = this.transitions;
+
+    if (!transition.hasExitTime) {
+      transitions.unshift(transition);
+      this.noExitTimeCount++;
+      return;
+    }
+
     const { exitTime } = transition;
     const count = transitions.length;
     const maxExitTime = count ? transitions[count - 1].exitTime : 0;

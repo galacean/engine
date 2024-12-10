@@ -91,11 +91,13 @@ export class ShaderLab implements IShaderLab {
     for (const err of parser.errors) {
       this.errors.push(err);
     }
+    // #endif
     if (!program) {
+      // #if _VERBOSE
       this._logErrors();
+      // #endif
       return undefined;
     }
-    // #endif
 
     const codeGen =
       backend === ShaderPlatformTarget.GLES100 ? GLES100Visitor.getVisitor() : GLES300Visitor.getVisitor();

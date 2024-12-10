@@ -77,6 +77,7 @@ export enum EKeyword {
   GS_RasterState,
   GS_EditorProperties,
   GS_EditorMacros,
+  GS_Editor,
   GS_Tags,
   GS_ReplacementTag,
   GS_LightMode,

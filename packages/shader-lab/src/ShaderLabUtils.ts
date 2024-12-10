@@ -27,11 +27,11 @@ export class ShaderLabUtils {
     source: string,
     location: ShaderRange | ShaderPosition,
     file?: string
-  ) {
+  ): Error {
     // #if _VERBOSE
     return new GSError(errorName, message, location, source, file);
     // #else
-    throw new Error(`[${errorName}]: ${message}`);
+    return new Error(`[${errorName}]: ${message}`);
     // #endif
   }
 }

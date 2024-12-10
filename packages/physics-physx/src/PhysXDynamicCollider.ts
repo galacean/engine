@@ -31,10 +31,24 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
+   * {@inheritDoc IDynamicCollider.getLinearDamping }
+   */
+  getLinearDamping(): number {
+    return this._pxActor.getLinearDamping();
+  }
+
+  /**
    * {@inheritDoc IDynamicCollider.setLinearDamping }
    */
   setLinearDamping(value: number): void {
     this._pxActor.setLinearDamping(value);
+  }
+
+  /**
+   * {@inheritDoc IDynamicCollider.getAngularDamping }
+   */
+  getAngularDamping(): number {
+    return this._pxActor.getAngularDamping();
   }
 
   /**
@@ -45,10 +59,26 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
+   * {@inheritDoc IDynamicCollider.getLinearVelocity }
+   */
+  getLinearVelocity(out: Vector3): Vector3 {
+    const velocity = this._pxActor.getLinearVelocity();
+    return out.set(velocity.x, velocity.y, velocity.z);
+  }
+
+  /**
    * {@inheritDoc IDynamicCollider.setLinearVelocity }
    */
   setLinearVelocity(value: Vector3): void {
     this._pxActor.setLinearVelocity(value, true);
+  }
+
+  /**
+   * {@inheritDoc IDynamicCollider.getAngularVelocity }
+   */
+  getAngularVelocity(out: Vector3): Vector3 {
+    const velocity = this._pxActor.getAngularVelocity();
+    return out.set(velocity.x, velocity.y, velocity.z);
   }
 
   /**
@@ -66,6 +96,14 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
+   * {@inheritDoc IDynamicCollider.getCenterOfMass }
+   */
+  getCenterOfMass(out: Vector3): Vector3 {
+    const { translation } = this._pxActor.getCMassLocalPose();
+    return out.set(translation.x, translation.y, translation.z);
+  }
+
+  /**
    * {@inheritDoc IDynamicCollider.setCenterOfMass }
    */
   setCenterOfMass(position: Vector3): void {
@@ -80,10 +118,32 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
+   * {@inheritDoc IDynamicCollider.getInertiaTensor }
+   */
+  getInertiaTensor(out: Vector3): Vector3 {
+    const inertia = this._pxActor.getMassSpaceInertiaTensor();
+    return out.set(inertia.x, inertia.y, inertia.z);
+  }
+
+  /**
+   * {@inheritDoc IDynamicCollider.setMassAndUpdateInertia }
+   */
+  setMassAndUpdateInertia(mass: number): void {
+    this._pxActor.setMassAndUpdateInertia(mass);
+  }
+
+  /**
    * {@inheritDoc IDynamicCollider.setMaxAngularVelocity }
    */
   setMaxAngularVelocity(value: number): void {
     this._pxActor.setMaxAngularVelocity(value);
+  }
+
+  /**
+   * {@inheritDoc IDynamicCollider.getMaxDepenetrationVelocity }
+   */
+  getMaxDepenetrationVelocity(): number {
+    return this._pxActor.getMaxDepenetrationVelocity();
   }
 
   /**
@@ -112,18 +172,21 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
    * {@inheritDoc IDynamicCollider.setCollisionDetectionMode }
    */
   setCollisionDetectionMode(value: number): void {
+    const physX = this._physXPhysics._physX;
+
     switch (value) {
       case CollisionDetectionMode.Continuous:
-        this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eENABLE_CCD, true);
+        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, true);
         break;
       case CollisionDetectionMode.ContinuousDynamic:
-        this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, true);
+        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, false);
+        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, true);
         break;
       case CollisionDetectionMode.ContinuousSpeculative:
-        this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, true);
+        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, false);
+        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, true);
         break;
       case CollisionDetectionMode.Discrete:
-        const physX = this._physXPhysics._physX;
         this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, false);
         this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, false);
         this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, false);
@@ -187,6 +250,13 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
    */
   sleep(): void {
     return this._pxActor.putToSleep();
+  }
+
+  /**
+   * {@inheritDoc IDynamicCollider.isSleeping }
+   */
+  isSleeping(): boolean {
+    return this._pxActor.isSleeping();
   }
 
   /**

@@ -33,7 +33,7 @@ export class AnimatorState {
    * The transitions that are going out of the state.
    */
   get transitions(): Readonly<AnimatorStateTransition[]> {
-    return this._transitionCollection._transitions;
+    return this._transitionCollection.transitions;
   }
 
   /**
@@ -64,7 +64,7 @@ export class AnimatorState {
   /**
    * The normalized start time of the clip, the range is 0 to 1, default is 0.
    */
-  get clipStartTime() {
+  get clipStartTime(): number {
     return this._clipStartTime;
   }
 
@@ -75,7 +75,7 @@ export class AnimatorState {
   /**
    * The normalized end time of the clip, the range is 0 to 1, default is 1.
    */
-  get clipEndTime() {
+  get clipEndTime(): number {
     return this._clipEndTime;
   }
 
@@ -153,7 +153,7 @@ export class AnimatorState {
    * Clears all transitions from the state.
    */
   clearTransitions(): void {
-    this._transitionCollection.count = 0;
+    this._transitionCollection.clear();
   }
 
   /**
@@ -190,5 +190,19 @@ export class AnimatorState {
    */
   _onClipChanged(): void {
     this._updateFlagManager.dispatch();
+  }
+
+  /**
+   * @internal
+   */
+  _getClipActualStartTime(): number {
+    return this._clipStartTime * this.clip.length;
+  }
+
+  /**
+   * @internal
+   */
+  _getClipActualEndTime(): number {
+    return this._clipEndTime * this.clip.length;
   }
 }
