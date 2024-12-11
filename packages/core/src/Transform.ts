@@ -887,6 +887,7 @@ export class Transform extends Component {
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
   /**
+   * Listen for changes in the world position of this `Transform`.
    * @deprecated
    */
   registerWorldChangeFlag(): BoolUpdateFlag {

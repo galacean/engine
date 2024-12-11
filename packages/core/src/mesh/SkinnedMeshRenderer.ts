@@ -266,6 +266,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         }
         break;
       case SkinUpdateFlag.RootBoneChanged:
+        this._setTransformEntity(<Entity>value);
         this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
         break;
     }

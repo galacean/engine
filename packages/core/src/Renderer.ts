@@ -68,6 +68,8 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected _dirtyUpdateFlag: number = 0;
   @ignoreClone
   protected _rendererLayer: Vector4 = new Vector4();
+  @ignoreClone
+  protected _transformEntity: Entity;
 
   @deepClone
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
@@ -170,7 +172,7 @@ export class Renderer extends Component implements IComponentCustomClone {
     this._addResourceReferCount(this.shaderData, 1);
 
     this._onTransformChanged = this._onTransformChanged.bind(this);
-    entity._updateFlagManager.addListener(this._onTransformChanged);
+    this._setTransformEntity(entity);
 
     shaderData.enableMacro(Renderer._receiveShadowMacro);
     shaderData.setVector4(Renderer._rendererLayerProperty, this._rendererLayer);
@@ -364,7 +366,7 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected override _onDestroy(): void {
     super._onDestroy();
 
-    this._entity._updateFlagManager.removeListener(this._onTransformChanged);
+    this._setTransformEntity(null);
     this._addResourceReferCount(this.shaderData, -1);
 
     const materials = this._materials;
@@ -457,6 +459,18 @@ export class Renderer extends Component implements IComponentCustomClone {
       const mvpMatrix = this._mvpMatrix;
       Matrix.multiply(context.viewProjectionMatrix, worldMatrix, mvpMatrix);
       this.shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  protected _setTransformEntity(entity: Entity): void {
+    const preEntity = this._transformEntity;
+    if (entity !== preEntity) {
+      preEntity?._updateFlagManager.removeListener(this._onTransformChanged);
+      entity?._updateFlagManager.addListener(this._onTransformChanged);
+      this._transformEntity = entity;
     }
   }
 

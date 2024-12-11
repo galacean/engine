@@ -783,7 +783,7 @@ export class Camera extends Component {
   private _updateShaderData(): void {
     const shaderData = this.shaderData;
 
-    const transform = this.entity.transform;
+    const transform = this._entity.transform;
     shaderData.setMatrix(Camera._inverseViewMatrixProperty, transform.worldMatrix);
     shaderData.setVector3(Camera._cameraPositionProperty, transform.worldPosition);
     shaderData.setVector3(Camera._cameraForwardProperty, transform.worldForward);

@@ -1,5 +1,4 @@
 import { Matrix } from "@galacean/engine-math";
-import { ignoreClone } from ".";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
 import { ComponentsDependencies } from "./ComponentsDependencies";
@@ -97,7 +96,6 @@ export class Entity extends EngineObject {
   /** @internal */
   _isTemplate: boolean = false;
   /** @internal */
-  @ignoreClone
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   private _transform: Transform;
@@ -224,7 +222,7 @@ export class Entity extends EngineObject {
     this.name = name;
     for (let i = 0, n = components.length; i < n; i++) {
       const type = components[i];
-      if (!Transform.prototype.isPrototypeOf(type.prototype) || !this.transform) {
+      if (!(type.prototype instanceof Transform) || !this.transform) {
         this.addComponent(type);
       }
     }
@@ -242,7 +240,7 @@ export class Entity extends EngineObject {
     type: T,
     ...args: ComponentArguments<T>
   ): InstanceType<T> {
-    Transform.prototype.isPrototypeOf(type.prototype) && this.transform?.destroy();
+    type.prototype instanceof Transform && this.transform?.destroy();
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this, ...args) as InstanceType<T>;
     this._components.push(component);
@@ -466,7 +464,7 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Register world transform change flag.
+   * Listen for changes in the world pose of this `Entity`.
    * @returns Change flag
    */
   registerWorldChangeFlag(): BoolUpdateFlag {
