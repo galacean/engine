@@ -246,7 +246,7 @@ export class ParticleGenerator {
       }
       const position = ParticleGenerator._tempVector30;
       const direction = ParticleGenerator._tempVector31;
-      const transform = this._renderer._entity.transform;
+      const transform = this._renderer.entity.transform;
       const shape = this.emission.shape;
       for (let i = 0; i < count; i++) {
         if (shape?.enabled) {

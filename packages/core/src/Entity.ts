@@ -219,11 +219,13 @@ export class Entity extends EngineObject {
     this.name = name;
     for (let i = 0, n = components.length; i < n; i++) {
       const type = components[i];
-      if (!(type.prototype instanceof Transform) || !this._transform) {
+      if (type.prototype instanceof Transform) {
+        !this._transform && this.addComponent(type);
+      } else {
         this.addComponent(type);
       }
     }
-    this._transform || this.addComponent(Transform);
+    !this._transform && this.addComponent(Transform);
     this._inverseWorldMatFlag = this.registerWorldChangeFlag();
   }
 
