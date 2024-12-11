@@ -256,7 +256,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
-   * SheenColor texture, multiply ‘sheenColor’.
+   * Sheen color texture, multiply ‘sheenColor’.
    */
   get sheenColorTexture(): Texture2D {
     return <Texture2D>this.shaderData.getTexture(PBRMaterial._sheenTextureProp);
@@ -272,7 +272,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
-   * SheenRoughness texture.
+   * Sheen roughness texture.
    * @remarks Use alpha channel, and multiply 'sheenRoughness'.
    */
   get sheenRoughnessTexture(): Texture2D {
@@ -301,18 +301,13 @@ export class PBRMaterial extends PBRBaseMaterial {
     shaderData.setFloat(PBRMaterial._iorProp, 1.5);
     shaderData.setVector3(PBRMaterial._anisotropyInfoProp, new Vector3(1, 0, 0));
     shaderData.setVector4(PBRMaterial._iridescenceInfoProp, new Vector4(0, 1.3, 100, 400));
-    shaderData.setColor(PBRMaterial._sheenColorProp, new Color(0, 0, 0));
+    const sheenColor = new Color(0, 0, 0);
+    shaderData.setColor(PBRMaterial._sheenColorProp, sheenColor);
     // @ts-ignore
     this._iridescenceRange._onValueChanged = this._onIridescenceRangeChanged.bind(this);
     // @ts-ignore
-    this.sheenColor._onValueChanged = () => {
-      const r = this.sheenColor.r;
-      const g = this.sheenColor.g;
-      const b = this.sheenColor.b;
-      /**
-       * The sheen layer switch.
-       */
-      const enableSheen = r + g + b > 0;
+    sheenColor._onValueChanged = () => {
+      const enableSheen = sheenColor.r + sheenColor.g + sheenColor.b > 0;
       if (enableSheen !== this._sheenEnabled) {
         this._sheenEnabled = enableSheen;
         if (enableSheen) {
