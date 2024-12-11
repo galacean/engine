@@ -116,8 +116,6 @@ export default class PpScanner extends BaseScanner {
    * @returns token split by space
    */
   override scanToken(onToken?: OnToken): BaseToken | undefined {
-    // this.skipSpace(true);
-    // this._skipComments();
     this.skipCommentsAndSpace();
     if (this.isEnd()) {
       return;
@@ -131,8 +129,6 @@ export default class PpScanner extends BaseScanner {
       } else if (i === start) {
         this._advance();
         this.skipCommentsAndSpace();
-        // this.skipSpace(true);
-        // this._skipComments();
         i = start = this._currentIndex;
       } else {
         break;
