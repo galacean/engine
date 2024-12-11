@@ -6,7 +6,7 @@ import { Engine } from "./Engine";
 import { Layer } from "./Layer";
 import { Scene } from "./Scene";
 import { Script } from "./Script";
-import { Transform, TransformTransitionState } from "./Transform";
+import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
@@ -99,13 +99,12 @@ export class Entity extends EngineObject {
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   private _transform: Transform;
-  private _transformTransitionState: TransformTransitionState;
   private _templateResource: ReferResource;
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
 
   /**
-   * The transform of the entity.
+   * The transform of this entity.
    */
   get transform(): Transform {
     return this._transform;
@@ -117,14 +116,7 @@ export class Entity extends EngineObject {
   set transform(value: Transform) {
     const pre = this._transform;
     if (value !== pre) {
-      let state = this._transformTransitionState;
-      if (pre) {
-        state ||= this._transformTransitionState = {};
-        pre._generateTransitionState(state);
-      }
-      if (value) {
-        state && value._applyTransitionState(state);
-      }
+      pre && value?._copyFrom(pre);
       this._transform = value;
     }
   }
@@ -220,18 +212,18 @@ export class Entity extends EngineObject {
    * Create a entity.
    * @param engine - The engine the entity belongs to
    * @param name - The name of the entity
-   * @param components - The components of the entity
+   * @param components - The types of components you wish to add
    */
   constructor(engine: Engine, name?: string, ...components: ComponentConstructor[]) {
     super(engine);
     this.name = name;
     for (let i = 0, n = components.length; i < n; i++) {
       const type = components[i];
-      if (!(type.prototype instanceof Transform) || !this.transform) {
+      if (!(type.prototype instanceof Transform) || !this._transform) {
         this.addComponent(type);
       }
     }
-    this.transform || this.addComponent(Transform);
+    this._transform || this.addComponent(Transform);
     this._inverseWorldMatFlag = this.registerWorldChangeFlag();
   }
 
@@ -501,11 +493,7 @@ export class Entity extends EngineObject {
 
     cloneEntity.layer = this.layer;
     cloneEntity._isActive = this._isActive;
-    const { transform: cloneTransform } = cloneEntity;
-    const { transform: srcTransform } = this;
-    const transitionState = (this._transformTransitionState ||= {});
-    srcTransform._generateTransitionState(transitionState);
-    cloneTransform._applyTransitionState(transitionState);
+    cloneEntity.transform._copyFrom(this.transform);
     const srcChildren = this._children;
     for (let i = 0, n = srcChildren.length; i < n; i++) {
       cloneEntity.addChild(srcChildren[i]._createCloneEntity());

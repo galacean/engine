@@ -118,27 +118,10 @@ class SubClassOfTransform extends Transform {
   /**
    * @internal
    */
-  _generateTransitionState(state: SubClassOfTransformTransitionState): void {
-    state.position ? state.position.copyFrom(this.position) : (state.position = this.position.clone());
-    state.rotation ? state.rotation.copyFrom(this.rotation) : (state.rotation = this.rotation.clone());
-    state.scale ? state.scale.copyFrom(this.scale) : (state.scale = this.scale.clone());
-    state.size ? state.size.copyFrom(this.size) : (state.size = this.size.clone());
+  _copyFrom(transform: SubClassOfTransform): void {
+    this.position.copyFrom(transform.position);
+    this.rotation.copyFrom(transform.rotation);
+    this.scale.copyFrom(transform.scale);
+    transform.size && this.size.copyFrom(transform.size);
   }
-
-  /**
-   * @internal
-   */
-  _applyTransitionState(state: SubClassOfTransformTransitionState): void {
-    this.position.copyFrom(state.position);
-    this.rotation.copyFrom(state.rotation);
-    this.scale.copyFrom(state.scale);
-    state.size && this.size.copyFrom(state.size);
-  }
-}
-
-interface SubClassOfTransformTransitionState {
-  size: Vector2;
-  position: Vector3;
-  rotation: Vector3;
-  scale: Vector3;
 }
