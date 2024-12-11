@@ -15,7 +15,8 @@ class KHR_materials_sheen extends GLTFExtensionParser {
       material.sheenColor.set(
         Color.linearToGammaSpace(sheenColorFactor[0]),
         Color.linearToGammaSpace(sheenColorFactor[1]),
-        Color.linearToGammaSpace(sheenColorFactor[2])
+        Color.linearToGammaSpace(sheenColorFactor[2]),
+        undefined
       );
     }
 

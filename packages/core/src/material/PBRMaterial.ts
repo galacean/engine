@@ -25,7 +25,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   private static _iridescenceTextureProp = ShaderProperty.getByName("material_IridescenceTexture");
   private _iridescenceRange = new Vector2(100, 400);
 
-  private _sheen: boolean = false;
+  private _sheenEnabled = false;
   private static _sheenColorProp = ShaderProperty.getByName("material_SheenColor");
   private static _sheenRoughnessProp = ShaderProperty.getByName("material_SheenRoughness");
   private static _sheenTextureProp = ShaderProperty.getByName("material_SheenTexture");
@@ -196,7 +196,7 @@ export class PBRMaterial extends PBRBaseMaterial {
 
   /**
    * The range of iridescence thickness, x is minimum, y is maximum.
-   *  @defaultValue `[100, 400]`.
+   *  @defaultValue `[100, 400]`
    */
   get iridescenceThicknessRange(): Vector2 {
     return this._iridescenceRange;
@@ -229,7 +229,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
-   * Sheen color
+   * Sheen color.
    * @defaultValue `[0,0,0]`
    */
   get sheenColor(): Color {
@@ -256,7 +256,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
-   * Sheencolor texture, multiply ‘sheencolor’.
+   * SheenColor texture, multiply ‘sheenColor’.
    */
   get sheenColorTexture(): Texture2D {
     return <Texture2D>this.shaderData.getTexture(PBRMaterial._sheenTextureProp);
@@ -272,6 +272,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
+   * SheenRoughness texture.
    * @remarks Use alpha channel, and multiply 'sheenRoughness'.
    */
   get sheenRoughnessTexture(): Texture2D {
@@ -300,7 +301,7 @@ export class PBRMaterial extends PBRBaseMaterial {
     shaderData.setFloat(PBRMaterial._iorProp, 1.5);
     shaderData.setVector3(PBRMaterial._anisotropyInfoProp, new Vector3(1, 0, 0));
     shaderData.setVector4(PBRMaterial._iridescenceInfoProp, new Vector4(0, 1.3, 100, 400));
-    shaderData.setColor(PBRMaterial._sheenColorProp, new Color(0, 0, 0, 0));
+    shaderData.setColor(PBRMaterial._sheenColorProp, new Color(0, 0, 0));
     // @ts-ignore
     this._iridescenceRange._onValueChanged = this._onIridescenceRangeChanged.bind(this);
     // @ts-ignore
@@ -308,13 +309,12 @@ export class PBRMaterial extends PBRBaseMaterial {
       const r = this.sheenColor.r;
       const g = this.sheenColor.g;
       const b = this.sheenColor.b;
-      const a = this.sheenColor.a;
       /**
        * The sheen layer switch.
        */
-      const enableSheen = (r + g + b) * a > 0;
-      if (enableSheen !== this._sheen) {
-        this._sheen = enableSheen;
+      const enableSheen = r + g + b > 0;
+      if (enableSheen !== this._sheenEnabled) {
+        this._sheenEnabled = enableSheen;
         if (enableSheen) {
           this.shaderData.enableMacro("MATERIAL_ENABLE_SHEEN");
         } else {
