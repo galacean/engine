@@ -132,7 +132,7 @@ class SubClassOfTransform extends Transform {
     this.position.copyFrom(state.position);
     this.rotation.copyFrom(state.rotation);
     this.scale.copyFrom(state.scale);
-    this.size && this.size.copyFrom(state.size);
+    state.size && this.size.copyFrom(state.size);
   }
 }
 

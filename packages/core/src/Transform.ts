@@ -340,8 +340,6 @@ export class Transform extends Component {
     this._worldRotationQuaternion._onValueChanged = this._onWorldRotationQuaternionChanged;
     //@ts-ignore
     this._scale._onValueChanged = this._onScaleChanged;
-
-    entity.transform = this;
   }
 
   /**
@@ -611,8 +609,6 @@ export class Transform extends Component {
     this._position._onValueChanged = null;
     //@ts-ignore
     this._scale._onValueChanged = null;
-
-    this._entity.transform = null;
   }
 
   /**
@@ -887,8 +883,9 @@ export class Transform extends Component {
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
   /**
-   * Listen for changes in the world position of this `Transform`.
    * @deprecated
+   * Listen for changes in the world pose of this `Entity`.
+   * @returns Change flag
    */
   registerWorldChangeFlag(): BoolUpdateFlag {
     return this.entity._updateFlagManager.createFlag(BoolUpdateFlag);

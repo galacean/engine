@@ -111,6 +111,9 @@ export class Entity extends EngineObject {
     return this._transform;
   }
 
+  /**
+   * @internal
+   */
   set transform(value: Transform) {
     const pre = this._transform;
     if (value !== pre) {
@@ -216,6 +219,8 @@ export class Entity extends EngineObject {
   /**
    * Create a entity.
    * @param engine - The engine the entity belongs to
+   * @param name - The name of the entity
+   * @param components - The components of the entity
    */
   constructor(engine: Engine, name?: string, ...components: ComponentConstructor[]) {
     super(engine);
@@ -240,11 +245,15 @@ export class Entity extends EngineObject {
     type: T,
     ...args: ComponentArguments<T>
   ): InstanceType<T> {
-    type.prototype instanceof Transform && this.transform?.destroy();
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this, ...args) as InstanceType<T>;
     this._components.push(component);
     component._setActive(true, ActiveChangeFlag.All);
+    if (component instanceof Transform) {
+      const preTransform = this._transform;
+      this.transform = component;
+      preTransform?.destroy();
+    }
     return component;
   }
 
