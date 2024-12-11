@@ -122,7 +122,8 @@ export default class PpScanner extends BaseScanner {
     }
     let start = this._currentIndex;
     const { _source: source } = this;
-    for (let i = start; i < source.length; ) {
+    const length = source.length;
+    for (let i = start; i < length; ) {
       if (LexerUtils.isPpCharactors(source.charCodeAt(i))) {
         this._advance();
         i++;
