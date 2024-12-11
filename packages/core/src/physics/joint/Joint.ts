@@ -34,10 +34,8 @@ export abstract class Joint extends Component {
 
   set connectedCollider(value: Collider) {
     if (this._connectedColliderInfo.collider !== value) {
-      this._connectedColliderInfo.collider?.entity.transform._updateFlagManager.removeListener(
-        this._onConnectedTransformChanged
-      );
-      value?.entity.transform._updateFlagManager.addListener(this._onConnectedTransformChanged);
+      this._connectedColliderInfo.collider?.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
+      value?.entity._updateFlagManager.addListener(this._onConnectedTransformChanged);
       this._connectedColliderInfo.collider = value;
       this._nativeJoint?.setConnectedCollider(value._nativeCollider);
       if (this._automaticConnectedAnchor) {
@@ -190,7 +188,7 @@ export abstract class Joint extends Component {
     this._onSelfTransformChanged = this._onSelfTransformChanged.bind(this);
     this._onConnectedTransformChanged = this._onConnectedTransformChanged.bind(this);
     // @ts-ignore
-    entity.transform?._updateFlagManager.addListener(this._onSelfTransformChanged);
+    entity._updateFlagManager.addListener(this._onSelfTransformChanged);
   }
 
   /**
