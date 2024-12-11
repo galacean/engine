@@ -96,19 +96,6 @@ describe("Transform test", function () {
     expect(entity5.transform.rotation).to.deep.include({ x: 0, y: 90, z: 0 });
     expect(entity5.transform.scale).to.deep.include({ x: 4, y: 5, z: 6 });
     expect((entity5.transform as SubClassOfTransform).size).to.deep.include({ x: 100, y: 100 });
-
-    // Add component
-    entity0.addComponent(SubClassOfTransform);
-    expect(entity0.transform instanceof SubClassOfTransform).to.equal(true);
-    expect(entity0.transform.position).to.deep.include({ x: 1, y: 2, z: 3 });
-    expect(entity0.transform.rotation).to.deep.include({ x: 0, y: 45, z: 0 });
-    expect(entity0.transform.scale).to.deep.include({ x: 1, y: 2, z: 3 });
-    entity1.addComponent(Transform);
-    expect(entity1.transform instanceof Transform).to.equal(true);
-    expect(entity1.transform instanceof SubClassOfTransform).to.equal(false);
-    expect(entity1.transform.position).to.deep.include({ x: 4, y: 5, z: 6 });
-    expect(entity1.transform.rotation).to.deep.include({ x: 0, y: 90, z: 0 });
-    expect(entity1.transform.scale).to.deep.include({ x: 4, y: 5, z: 6 });
   });
 });
 
