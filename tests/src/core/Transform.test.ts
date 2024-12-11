@@ -118,7 +118,7 @@ class SubClassOfTransform extends Transform {
   /**
    * @internal
    */
-  _generateTransitionState(state: any): void {
+  _generateTransitionState(state: SubClassOfTransformTransitionState): void {
     state.position ? state.position.copyFrom(this.position) : (state.position = this.position.clone());
     state.rotation ? state.rotation.copyFrom(this.rotation) : (state.rotation = this.rotation.clone());
     state.scale ? state.scale.copyFrom(this.scale) : (state.scale = this.scale.clone());
@@ -128,7 +128,7 @@ class SubClassOfTransform extends Transform {
   /**
    * @internal
    */
-  _applyTransitionState(state: any): void {
+  _applyTransitionState(state: SubClassOfTransformTransitionState): void {
     this.position.copyFrom(state.position);
     this.rotation.copyFrom(state.rotation);
     this.scale.copyFrom(state.scale);
