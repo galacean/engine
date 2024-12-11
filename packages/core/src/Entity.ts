@@ -111,17 +111,6 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * @internal
-   */
-  set transform(value: Transform) {
-    const pre = this._transform;
-    if (value !== pre) {
-      pre && value?._copyFrom(pre);
-      this._transform = value;
-    }
-  }
-
-  /**
    * Whether to activate locally.
    */
   get isActive(): boolean {
@@ -245,7 +234,7 @@ export class Entity extends EngineObject {
     component._setActive(true, ActiveChangeFlag.All);
     if (component instanceof Transform) {
       const preTransform = this._transform;
-      this.transform = component;
+      this._setTransform(component);
       preTransform?.destroy();
     }
     return component;
@@ -782,6 +771,14 @@ export class Entity extends EngineObject {
           child._siblingIndex = i;
         }
       }
+    }
+  }
+
+  private _setTransform(value: Transform) {
+    const pre = this._transform;
+    if (value !== pre) {
+      pre && value?._copyFrom(pre);
+      this._transform = value;
     }
   }
 
