@@ -12,7 +12,7 @@ import { GSErrorName } from "../GSError";
 import { GSError } from "../GSError";
 // #endif
 import { ShaderLabUtils } from "../ShaderLabUtils";
-import { ReturnableObjectPool } from "@galacean/engine";
+import { Logger, ReturnableObjectPool } from "@galacean/engine";
 import { TempArray } from "../TempArray";
 
 /**
@@ -20,7 +20,9 @@ import { TempArray } from "../TempArray";
  * The code generator
  */
 export abstract class CodeGenVisitor {
+  // #if _VERBOSE
   readonly errors: Error[] = [];
+  // #endif
   protected static _tmpArrayPool = new ReturnableObjectPool(TempArray<string>, 10);
 
   defaultCodeGen(children: NodeChild[]) {
@@ -200,7 +202,7 @@ export abstract class CodeGenVisitor {
     // #if _VERBOSE
     this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderLab._processingPassText));
     // #else
-    throw new Error(message);
+    Logger.error(message);
     // #endif
   }
 }
