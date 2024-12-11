@@ -96,6 +96,14 @@ describe("Transform test", function () {
     expect(entity5.transform.rotation).to.deep.include({ x: 0, y: 90, z: 0 });
     expect(entity5.transform.scale).to.deep.include({ x: 4, y: 5, z: 6 });
     expect((entity5.transform as SubClassOfTransform).size).to.deep.include({ x: 100, y: 100 });
+
+    // Add component
+    expect(() => {
+      entity0.addComponent(SubClassOfTransform);
+    }).to.throw("Entity already has a transform.");
+    expect(() => {
+      entity1.addComponent(Transform);
+    }).to.throw("Entity already has a transform.");
   });
 });
 
