@@ -8,7 +8,7 @@ export default class LexerUtils {
       charCode === 95 || // _
       (charCode >= 48 && charCode <= 57) || // 0 - 9
       (charCode >= 65 && charCode <= 90) || // A - Z
-      (charCode >= 97 && charCode <= 122) // a - z;
+      (charCode >= 97 && charCode <= 122) // a - z
     );
   }
 
@@ -16,7 +16,7 @@ export default class LexerUtils {
     return (
       charCode === 95 || // _
       (charCode >= 65 && charCode <= 90) || // A - Z
-      (charCode >= 97 && charCode <= 122) // a - z;
+      (charCode >= 97 && charCode <= 122) // a - z
     );
   }
 
@@ -33,9 +33,9 @@ export default class LexerUtils {
 
   static isSpace(charCode: number) {
     return (
-      charCode === 9 || // tab
-      charCode === 10 || // line break
-      charCode === 32 // space
+      charCode === 9 || // Tab
+      charCode === 10 || // Line break
+      charCode === 32 // Space
     );
   }
 }
