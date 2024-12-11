@@ -138,11 +138,7 @@ export default class PpScanner extends BaseScanner {
     const lexeme = source.slice(start, this._currentIndex);
     const ret = BaseToken.pool.get();
     const tokenType = PpKeyword.get(lexeme);
-    ret.set(
-      tokenType == undefined ? EPpToken.id : PpKeyword.get(lexeme),
-      lexeme,
-      this.getShaderPosition(this._currentIndex - start)
-    );
+    ret.set(tokenType ?? EPpToken.id, lexeme, this.getShaderPosition(this._currentIndex - start));
     onToken?.(ret, this);
     return ret;
   }
