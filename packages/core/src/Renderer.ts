@@ -59,6 +59,9 @@ export class Renderer extends Component implements IComponentCustomClone {
   /** @internal */
   @ignoreClone
   _batchedTransformShaderData: boolean = false;
+  /** @internal */
+  @ignoreClone
+  _transformEntity: Entity;
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;
@@ -68,8 +71,6 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected _dirtyUpdateFlag: number = 0;
   @ignoreClone
   protected _rendererLayer: Vector4 = new Vector4();
-  @ignoreClone
-  protected _transformEntity: Entity;
 
   @deepClone
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
@@ -392,7 +393,7 @@ export class Renderer extends Component implements IComponentCustomClone {
    * @internal
    */
   _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
-    const worldMatrix = this._entity.transform.worldMatrix;
+    const worldMatrix = this._transformEntity.transform.worldMatrix;
     if (onlyMVP) {
       this._updateProjectionRelatedShaderData(context, worldMatrix, batched);
     } else {
@@ -442,7 +443,7 @@ export class Renderer extends Component implements IComponentCustomClone {
       Matrix.invert(worldMatrix, normalMatrix);
       normalMatrix.transpose();
 
-      shaderData.setMatrix(Renderer._localMatrixProperty, this._entity.transform.localMatrix);
+      shaderData.setMatrix(Renderer._localMatrixProperty, this._transformEntity.transform.localMatrix);
       shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
       shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
       shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);

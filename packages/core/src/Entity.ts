@@ -480,8 +480,10 @@ export class Entity extends EngineObject {
   }
 
   private _createCloneEntity(): Entity {
-    const cloneEntity = new Entity(this._engine, this.name);
-
+    const transform = this._transform;
+    const cloneEntity = transform
+      ? new Entity(this.engine, this.name, transform.constructor as ComponentConstructor)
+      : new Entity(this.engine, this.name);
     const templateResource = this._templateResource;
     if (templateResource) {
       cloneEntity._templateResource = templateResource;
@@ -492,10 +494,9 @@ export class Entity extends EngineObject {
     cloneEntity._isActive = this._isActive;
     const { transform: cloneTransform } = cloneEntity;
     const { transform: srcTransform } = this;
-    cloneTransform.position = srcTransform.position;
-    cloneTransform.rotation = srcTransform.rotation;
-    cloneTransform.scale = srcTransform.scale;
-
+    const transitionState = (this._transformTransitionState ||= {});
+    srcTransform._generateTransitionState(transitionState);
+    cloneTransform._applyTransitionState(transitionState);
     const srcChildren = this._children;
     for (let i = 0, n = srcChildren.length; i < n; i++) {
       cloneEntity.addChild(srcChildren[i]._createCloneEntity());
