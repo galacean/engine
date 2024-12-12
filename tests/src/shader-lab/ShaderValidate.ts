@@ -33,7 +33,7 @@ function validateShaderPass(
     expect(!!shaderPass).to.be.true;
     return shaderPass;
   } else {
-    const gl = document.createElement("canvas").getContext("webgl2");
+    const gl = document.createElement("canvas").getContext("webgl2") as WebGL2RenderingContext;
     expect(!!gl, "Not support webgl").to.be.true;
 
     const vs = gl.createShader(gl.VERTEX_SHADER);

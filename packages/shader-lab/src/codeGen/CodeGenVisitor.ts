@@ -9,31 +9,38 @@ import { VisitorContext } from "./VisitorContext";
 import { ShaderLab } from "../ShaderLab";
 import { GSErrorName } from "../GSError";
 // #if _VERBOSE
-import type { GSError } from "../GSError";
+import { GSError } from "../GSError";
 // #endif
-import { ShaderLabUtils } from "../ShaderLabUtils";
+import { Logger, ReturnableObjectPool } from "@galacean/engine";
+import { TempArray } from "../TempArray";
 
 /**
  * @internal
  * The code generator
  */
 export abstract class CodeGenVisitor {
+  // #if _VERBOSE
   readonly errors: Error[] = [];
+  // #endif
 
   abstract getFragDataCodeGen(index: string | number): string;
 
   abstract getReferencedMRTPropText(index: string | number, ident: string): string;
+  protected static _tmpArrayPool = new ReturnableObjectPool(TempArray<string>, 10);
 
   defaultCodeGen(children: NodeChild[]) {
-    let ret: string[] = [];
+    const pool = CodeGenVisitor._tmpArrayPool;
+    let ret = pool.get();
+    ret.dispose();
     for (const child of children) {
       if (child instanceof Token) {
-        ret.push(child.lexeme);
+        ret.array.push(child.lexeme);
       } else {
-        ret.push(child.codeGen(this));
+        ret.array.push(child.codeGen(this));
       }
     }
-    return ret.join(" ");
+    pool.return(ret);
+    return ret.array.join(" ");
   }
 
   visitPostfixExpression(node: ASTNode.PostfixExpression) {
@@ -48,19 +55,25 @@ export abstract class CodeGenVisitor {
         if (context.isAttributeStruct(<string>postExpr.type)) {
           const error = context.referenceAttribute(prop);
           if (error) {
+            // #if _VERBOSE
             this.errors.push(<GSError>error);
+            // #endif
           }
           return prop.lexeme;
         } else if (context.isVaryingStruct(<string>postExpr.type)) {
           const error = context.referenceVarying(prop);
           if (error) {
+            // #if _VERBOSE
             this.errors.push(<GSError>error);
+            // #endif
           }
           return prop.lexeme;
         } else if (context.isMRTStruct(<string>postExpr.type)) {
           const error = context.referenceMRTProp(prop);
           if (error) {
+            // #if _VERBOSE
             this.errors.push(<GSError>error);
+            // #endif
           }
           return prop.lexeme;
         }
@@ -212,8 +225,10 @@ export abstract class CodeGenVisitor {
   }
 
   protected _reportError(loc: ShaderRange | ShaderPosition, message: string): void {
-    this.errors.push(
-      ShaderLabUtils.createGSError(message, GSErrorName.CompilationError, ShaderLab._processingPassText, loc)
-    );
+    // #if _VERBOSE
+    this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderLab._processingPassText));
+    // #else
+    Logger.error(message);
+    // #endif
   }
 }
