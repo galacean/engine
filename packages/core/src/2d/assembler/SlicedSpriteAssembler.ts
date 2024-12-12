@@ -12,7 +12,7 @@ export class SlicedSpriteAssembler {
     0, 1, 4, 1, 5, 4, 1, 2, 5, 2, 6, 5, 2, 3, 6, 3, 7, 6, 4, 5, 8, 5, 9, 8, 5, 6, 9, 6, 10, 9, 6, 7, 10, 7, 11, 10, 8,
     9, 12, 9, 13, 12, 9, 10, 13, 10, 14, 13, 10, 11, 14, 11, 15, 14
   ];
-  private static _worldMatrix = new Matrix();
+  private static _matrix = new Matrix();
   private static _row = new Array<number>(4);
   private static _column = new Array<number>(4);
 
@@ -27,6 +27,7 @@ export class SlicedSpriteAssembler {
 
   static updatePositions(
     renderer: ISpriteRenderer,
+    worldMatrix: Matrix,
     width: number,
     height: number,
     pivot: Vector2,
@@ -83,10 +84,9 @@ export class SlicedSpriteAssembler {
     const localTransX = width * pivotX;
     const localTransY = height * pivotY;
     // Renderer's worldMatrix.
-    const worldMatrix = SlicedSpriteAssembler._worldMatrix;
-    const { elements: wE } = worldMatrix;
+    const { elements: wE } = SlicedSpriteAssembler._matrix;
     // Parent's worldMatrix.
-    const { elements: pWE } = renderer._transform.worldMatrix;
+    const { elements: pWE } = worldMatrix;
     const sx = flipX ? -1 : 1;
     const sy = flipY ? -1 : 1;
     (wE[0] = pWE[0] * sx), (wE[1] = pWE[1] * sx), (wE[2] = pWE[2] * sx);

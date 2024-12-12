@@ -2,7 +2,6 @@ import {
   BatchUtils,
   Color,
   ComponentType,
-  DependentMode,
   Entity,
   EntityModifyFlags,
   HitResult,
@@ -25,7 +24,7 @@ import { EntityUIModifyFlags, UICanvas } from "./UICanvas";
 import { GroupModifyFlags, UIGroup } from "./UIGroup";
 import { UITransform } from "./UITransform";
 
-@dependentComponents(UITransform, DependentMode.AutoAdd)
+@dependentComponents(UITransform)
 export abstract class UIRenderer extends Renderer implements IGraphics {
   /** @internal */
   static _tempVec30: Vector3 = new Vector3();
@@ -246,7 +245,7 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
    */
   _raycast(ray: Ray, out: HitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
     const plane = UIRenderer._tempPlane;
-    const transform = this._transform;
+    const transform = <UITransform>this._transformEntity.transform;
     const normal = plane.normal.copyFrom(transform.worldForward);
     plane.distance = -Vector3.dot(normal, transform.worldPosition);
     const curDistance = ray.intersectPlane(plane);
@@ -270,7 +269,7 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
 
   protected _hitTest(localPosition: Vector3): boolean {
     const { x, y } = localPosition;
-    const uiTransform = <UITransform>this._transform;
+    const uiTransform = <UITransform>this._transformEntity.transform;
     const { x: width, y: height } = uiTransform.size;
     const { x: pivotX, y: pivotY } = uiTransform.pivot;
     const { x: paddingLeft, y: paddingBottom, z: paddingRight, w: paddingTop } = this.raycastPadding;

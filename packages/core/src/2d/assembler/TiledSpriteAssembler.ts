@@ -12,7 +12,7 @@ import { SimpleSpriteAssembler } from "./SimpleSpriteAssembler";
  */
 @StaticInterfaceImplement<ISpriteAssembler>()
 export class TiledSpriteAssembler {
-  private static _worldMatrix = new Matrix();
+  private static _matrix = new Matrix();
   private static _posRow = new DisorderedArray<number>();
   private static _posColumn = new DisorderedArray<number>();
   private static _uvRow = new DisorderedArray<number>();
@@ -35,6 +35,7 @@ export class TiledSpriteAssembler {
 
   static updatePositions(
     renderer: ISpriteRenderer,
+    worldMatrix: Matrix,
     width: number,
     height: number,
     pivot: Vector2,
@@ -53,10 +54,9 @@ export class TiledSpriteAssembler {
     const localTransX = width * pivotX;
     const localTransY = height * pivotY;
     // Renderer's worldMatrix
-    const { _worldMatrix: worldMatrix } = TiledSpriteAssembler;
-    const { elements: wE } = worldMatrix;
+    const { elements: wE } = TiledSpriteAssembler._matrix;
     // Parent's worldMatrix
-    const { elements: pWE } = renderer._transform.worldMatrix;
+    const { elements: pWE } = worldMatrix;
     const sx = flipX ? -1 : 1;
     const sy = flipY ? -1 : 1;
     let wE0: number, wE1: number, wE2: number;

@@ -274,7 +274,15 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
 
     // Update position
     if (this._dirtyUpdateFlag & RendererUpdateFlags.AllPositions) {
-      SimpleSpriteAssembler.updatePositions(this, this.width, this.height, sprite.pivot, this._flipX, this._flipY);
+      SimpleSpriteAssembler.updatePositions(
+        this,
+        this._transformEntity.transform.worldMatrix,
+        this.width,
+        this.height,
+        sprite.pivot,
+        this._flipX,
+        this._flipY
+      );
       this._dirtyUpdateFlag &= ~RendererUpdateFlags.AllPositions;
     }
 

@@ -382,7 +382,7 @@ export class Label extends UIRenderer implements ITextRenderer {
     const { min, max } = this._localBounds;
     const charRenderInfos = Label._charRenderInfos;
     const charFont = this._getSubFont();
-    const size = (<UITransform>this._transform).size;
+    const size = (<UITransform>this._transformEntity.transform).size;
     const rendererWidth = size.x;
     const rendererHeight = size.y;
     const textMetrics = this.enableWrapping
@@ -529,7 +529,7 @@ export class Label extends UIRenderer implements ITextRenderer {
   }
 
   private _isTextNoVisible(): boolean {
-    const size = (<UITransform>this._transform).size;
+    const size = (<UITransform>this._transformEntity.transform).size;
     return (
       this._text === "" ||
       this._fontSize === 0 ||

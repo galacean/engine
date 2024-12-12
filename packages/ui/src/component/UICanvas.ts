@@ -3,7 +3,6 @@ import {
   CameraModifyFlags,
   Component,
   ComponentType,
-  DependentMode,
   DisorderedArray,
   Entity,
   EntityModifyFlags,
@@ -26,7 +25,7 @@ import { UIGroup } from "./UIGroup";
 import { UIRenderer } from "./UIRenderer";
 import { UITransform } from "./UITransform";
 
-@dependentComponents(UITransform, DependentMode.AutoAdd)
+@dependentComponents(UITransform)
 export class UICanvas extends Component implements IElement {
   /** @internal */
   private static _tempGroupAbleList: IGroupAble[] = [];

@@ -186,7 +186,7 @@ export class RenderQueue {
 
         renderState._applyStates(
           engine,
-          renderer._transformEntity.transform._isFrontFaceInvert(),
+          renderer._isFrontFaceInvert(),
           shaderPass._renderStateDataMap,
           material.shaderData,
           customStates

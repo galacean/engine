@@ -349,6 +349,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
     if (this._dirtyUpdateFlag & RendererUpdateFlags.AllPositions) {
       this._assembler.updatePositions(
         this,
+        this._transformEntity.transform.worldMatrix,
         this.width,
         this.height,
         sprite.pivot,
