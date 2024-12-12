@@ -95,18 +95,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /**
    * @internal
    */
-  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
-    const worldMatrix = this._transform.worldMatrix;
-    if (onlyMVP) {
-      this._updateProjectionRelatedShaderData(context, worldMatrix, batched);
-    } else {
-      this._updateWorldViewRelatedShaderData(context, worldMatrix, batched);
-    }
-  }
-
-  /**
-   * @internal
-   */
   override _onDestroy(): void {
     super._onDestroy();
     this._jointDataCreateCache = null;
@@ -259,8 +247,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         }
         break;
       case SkinUpdateFlag.RootBoneChanged:
-        this._setTransform((<Entity>value).transform);
-        this._dirtyUpdateFlag |= RendererUpdateFlags.AllBounds;
+        this._setTransformEntity(<Entity>value);
+        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldBounds;
         break;
     }
   }

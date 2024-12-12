@@ -37,7 +37,7 @@ export class Collider extends Component implements ICustomClone {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._updateFlag = this.entity.transform.registerWorldChangeFlag();
+    this._updateFlag = entity.registerWorldChangeFlag();
   }
 
   /**
