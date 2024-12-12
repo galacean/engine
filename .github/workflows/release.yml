@@ -14,7 +14,9 @@ jobs:
     permissions:
       contents: write
       id-token: write
+
     steps:
+      - name: Checkout Engine repo
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -32,14 +34,94 @@ jobs:
           registry-url: https://registry.npmjs.org/
           cache: pnpm
 
-      - name: Build
+      - name: Build Engine
         run: pnpm b:all
 
-      - name: Release current monorepo
-        uses: galacean/publish@v0.2.0
+      - name: Cache Engine Package
+        uses: actions/cache@v3
+        with:
+          path: ./packages/galacean
+          key: ${{ runner.os }}-engine-${{ github.sha }}
+
+      - name: Checkout Sub-repositories
+        run: |
+          git clone https://github.com/galacean/engine-toolkit.git
+          git clone https://github.com/galacean/engine-lottie.git
+          git clone https://github.com/galacean/engine-spine.git
+
+      - name: Install and Link Engine for Toolkit
+        run: |
+          cd toolkit
+          pnpm install
+          pnpm link ../packages/galacean
+          pnpm b:all
+
+      - name: Install and Link Engine for Lottie
+        run: |
+          cd toolkit
+          pnpm install
+          pnpm link ../packages/galacean
+          pnpm build
+
+      - name: Install and Link Engine for Spine
+        run: |
+          cd toolkit
+          pnpm install
+          pnpm link ../packages/galacean
+          pnpm build
+
+      - name: Ensure Dist Directory Exists
+        run: mkdir -p ${{ github.workspace }}/platform-adapter/dist
+
+      # Create a mock package.json to specify the path and version of the adapter build result when syncing with the CDN later.
+      # name is set to @galacean/engine-platform-adapter-release to avoid conflicts with the real package.json
+      # version is set to the version of the engine package
+      - name: Create package.json in platform-adapter
+        run: |
+          VERSION=$(jq -r '.version' ${{ github.workspace }}/packages/galacean/package.json)
+          echo "{\"name\": \"@galacean/engine-platform-adapter-release\", \"version\": \"$VERSION\"}" > ${{ github.workspace }}/platform-adapter/package.json
+
+      - name: Bundle polyfill and engine
+        uses: galacean/platform-adapter@tag
         env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-          NPM_CONFIG_PROVENANCE: true
-          OASISBE_UPLOAD_URL: https://oasisbe.alipay.com/api/file/no-auth/crypto/upload
-          OASISBE_REQUEST_HEADER: ${{secrets.OASISBE_REQUEST_HEADER}}
-          OASISBE_PUBLIC_KEY: ${{secrets.OASISBE_PUBLIC_KEY}}
+          ADAPTER_BUNDLE_SETTINGS: |
+            {
+              "polyfill": true,
+              "engine": [
+                "${{ github.workspace }}/packages/galacean/dist/module.js",
+                "${{ github.workspace }}/packages/xr/dist/module.js",
+                "${{ github.workspace }}/packages/shader-lab/dist/module.js",
+                "${{ github.workspace }}/packages/physics-lite/dist/module.js",
+                "${{ github.workspace }}/packages/physics-physx/dist/module.js",
+                "${{ github.workspace }}/engine-lottie/dist/module.js",
+                "${{ github.workspace }}/engine-spine/dist/module.js",
+                "${{ github.workspace }}/engine-toolkit/galacean-engine-toolkit/dist/module.js"
+              ],
+              "jsWASMLoader": [
+                "${{ github.workspace }}/packages/physics-physx/libs/physx.release.js"
+              ],
+              "outputDir": "${{ github.workspace }}/platform-adapter/dist"
+            }
+
+        - name: Release engine packages and Sync to CDN
+          uses: galacean/publish@v0.2.0
+          env:
+            NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+            NPM_CONFIG_PROVENANCE: true
+            OASISBE_UPLOAD_URL: https://oasisbe.alipay.com/api/file/no-auth/crypto/upload
+            OASISBE_REQUEST_HEADER: ${{secrets.OASISBE_REQUEST_HEADER}}
+            OASISBE_PUBLIC_KEY: ${{secrets.OASISBE_PUBLIC_KEY}}
+
+        - name: Sync Platform Adapter to CDN
+          uses: galacean/publish@v0.2.0
+          with:
+            publish: false
+            packages: |
+              platform-adapter
+
+          env:
+            NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+            NPM_CONFIG_PROVENANCE: true
+            OASISBE_UPLOAD_URL: https://oasisbe.alipay.com/api/file/no-auth/crypto/upload
+            OASISBE_REQUEST_HEADER: ${{secrets.OASISBE_REQUEST_HEADER}}
+            OASISBE_PUBLIC_KEY: ${{secrets.OASISBE_PUBLIC_KEY}}
