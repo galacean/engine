@@ -252,6 +252,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   set sheenRoughness(value: number) {
+    value = Math.max(0, Math.min(1, value));
     this.shaderData.setFloat(PBRMaterial._sheenRoughnessProp, value);
   }
 
