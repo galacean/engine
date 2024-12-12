@@ -1,5 +1,5 @@
-import { Matrix, Ray, Vector3 } from "@galacean/engine";
-import { IColliderShape, IPhysicsMaterial } from "@galacean/engine-design";
+import { Matrix, Quaternion, Ray, Vector3 } from "@galacean/engine";
+import { IColliderShape, IPhysicsMaterial, IPointDistanceInfo } from "@galacean/engine-design";
 import { LiteCollider } from "../LiteCollider";
 import { LiteHitResult } from "../LiteHitResult";
 import { LiteTransform } from "../LiteTransform";
@@ -83,6 +83,14 @@ export abstract class LiteColliderShape implements IColliderShape {
    */
   setIsTrigger(value: boolean): void {
     console.log("Physics-lite don't support setIsTrigger. Use Physics-PhysX instead!");
+  }
+
+  /**
+   * {@inheritDoc IColliderShape.pointDistance }
+   */
+  pointDistance(position: Vector3, rotation: Quaternion, point: Vector3): IPointDistanceInfo {
+    console.error("Physics-lite don't support getInertiaTensor. Use Physics-PhysX instead!");
+    return null;
   }
 
   /**

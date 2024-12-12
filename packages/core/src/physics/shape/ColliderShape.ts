@@ -1,6 +1,6 @@
 import { IColliderShape } from "@galacean/engine-design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
-import { Vector3 } from "@galacean/engine-math";
+import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
@@ -11,6 +11,8 @@ import { Engine } from "../../Engine";
  */
 export abstract class ColliderShape implements ICustomClone {
   private static _idGenerator: number = 0;
+  private static _tempWorldPos: Vector3 = new Vector3();
+  private static _tempWorldRot: Quaternion = new Quaternion();
 
   /** @internal */
   @ignoreClone
@@ -131,6 +133,27 @@ export abstract class ColliderShape implements ICustomClone {
     this._position._onValueChanged = this._setPosition;
 
     Engine._physicalObjectsMap[this._id] = this;
+  }
+
+  /**
+   * Get the distance and the closest point on the shape from a point.
+   * @param point - The point
+   * @param closestPoint - The closest point on the shape
+   * @returns The distance between the point and the shape
+   */
+  getDistanceAndClosestPointFromPoint(point: Vector3, closestPoint: Vector3): number {
+    const tempQuat = ColliderShape._tempWorldRot;
+    const tempPos = ColliderShape._tempWorldPos;
+    Vector3.add(this._collider.entity.transform.position, this._position, tempPos);
+    Quaternion.fromAngle(this._rotation, tempQuat);
+    Quaternion.multiply(this._collider.entity.transform.rotationQuaternion, tempQuat, tempQuat);
+    const res = this._nativeShape.pointDistance(tempPos, tempQuat, point);
+    const distance = res.distance;
+    closestPoint.copyFrom(res.closestPoint);
+    if (distance > 0) {
+      closestPoint.subtract(tempPos);
+    }
+    return Math.sqrt(distance);
   }
 
   /**

@@ -1,5 +1,5 @@
 import { Quaternion, Vector3, DisorderedArray } from "@galacean/engine";
-import { IColliderShape } from "@galacean/engine-design";
+import { IColliderShape, IPointDistanceInfo } from "@galacean/engine-design";
 import { PhysXCharacterController } from "../PhysXCharacterController";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
@@ -123,6 +123,16 @@ export abstract class PhysXColliderShape implements IColliderShape {
     this._modifyFlag(ShapeFlag.SIMULATION_SHAPE, !value);
     this._modifyFlag(ShapeFlag.TRIGGER_SHAPE, value);
     this._setShapeFlags(this._shapeFlags);
+  }
+
+  /**
+   * {@inheritDoc IColliderShape.pointDistance }
+   */
+  pointDistance(translation: Vector3, rotation: Quaternion, point: Vector3): IPointDistanceInfo {
+    const transform = PhysXColliderShape.transform;
+    Vector3.multiply(translation, this._worldScale, transform.translation);
+    transform.rotation = rotation;
+    return this._pxGeometry.pointDistance(transform, point);
   }
 
   /**
