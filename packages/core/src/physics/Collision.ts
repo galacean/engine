@@ -5,15 +5,15 @@ import { ICollision } from "@galacean/engine-design";
 /**
  * Describes a contact point where the collision occurs.
  */
-export interface ContractPoint {
+export interface ContactPoint {
   /** The position of the contact point between the shapes, in world space. */
-  position: Vector3;
+  readonly position: Vector3;
   /** The normal of the contacting surfaces at the contact point. The normal direction points from the second shape to the first shape. */
-  normal: Vector3;
+  readonly normal: Vector3;
   /** The impulse applied at the contact point, in world space. Divide by the simulation time step to get a force value. */
-  impulse: Vector3;
+  readonly impulse: Vector3;
   /** The separation of the shapes at the contact point.  A negative separation denotes a penetration. */
-  separation: number;
+  readonly separation: number;
 }
 
 export class Collision {
@@ -32,22 +32,22 @@ export class Collision {
 
   /**
    * Get contact points.
-   * @param contacts - The result of contact points
+   * @param outContacts - The result of contact points
    * @returns The result of contact points
    */
-  getContacts(contacts: ContractPoint[]): ContractPoint[] {
-    const nativeContractPoints = this._nativeCollision.getContacts();
-    for (let i = 0, n = nativeContractPoints.size(); i < n; i++) {
-      const nativeContractPoint = nativeContractPoints.get(i);
+  getContacts(outContacts: ContactPoint[]): ContactPoint[] {
+    const nativeContactPoints = this._nativeCollision.getContacts();
+    for (let i = 0, n = nativeContactPoints.size(); i < n; i++) {
+      const nativeContractPoint = nativeContactPoints.get(i);
       const { position, normal, impulse, separation } = nativeContractPoint;
-      const contact: ContractPoint = {
+      const contact: ContactPoint = {
         position: new Vector3(position.x, position.y, position.z),
         normal: new Vector3(normal.x, normal.y, normal.z),
         impulse: new Vector3(impulse.x, impulse.y, impulse.z),
         separation: separation
       };
-      contacts.push(contact);
+      outContacts.push(contact);
     }
-    return contacts;
+    return outContacts;
   }
 }

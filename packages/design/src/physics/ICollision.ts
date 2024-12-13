@@ -14,10 +14,10 @@ export interface ICollision {
 
 interface PhysXVectorPxContactPairPoint {
   size(): number;
-  get(index: number): IContractPoint;
+  get(index: number): IContactPoint;
 }
 
-interface IContractPoint {
+interface IContactPoint {
   position: {
     x: number;
     y: number;

@@ -138,10 +138,10 @@ export abstract class ColliderShape implements ICustomClone {
   /**
    * Get the distance and the closest point on the shape from a point.
    * @param point - The point
-   * @param closestPoint - The closest point on the shape
+   * @param outClosestPoint - The result of the closest point on the shape
    * @returns The distance between the point and the shape
    */
-  getDistanceAndClosestPointFromPoint(point: Vector3, closestPoint: Vector3): number {
+  getDistanceAndClosestPointFromPoint(point: Vector3, outClosestPoint: Vector3): number {
     const tempQuat = ColliderShape._tempWorldRot;
     const tempPos = ColliderShape._tempWorldPos;
     Vector3.add(this._collider.entity.transform.position, this._position, tempPos);
@@ -149,9 +149,9 @@ export abstract class ColliderShape implements ICustomClone {
     Quaternion.multiply(this._collider.entity.transform.rotationQuaternion, tempQuat, tempQuat);
     const res = this._nativeShape.pointDistance(tempPos, tempQuat, point);
     const distance = res.distance;
-    closestPoint.copyFrom(res.closestPoint);
+    outClosestPoint.copyFrom(res.closestPoint);
     if (distance > 0) {
-      closestPoint.subtract(tempPos);
+      outClosestPoint.subtract(tempPos);
     }
     return Math.sqrt(distance);
   }
