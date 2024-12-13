@@ -97,9 +97,8 @@ export class Entity extends EngineObject {
   _isTemplate: boolean = false;
   /** @internal */
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
-  /** @internal */
-  _transform: Transform;
 
+  private _transform: Transform;
   private _templateResource: ReferResource;
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
@@ -227,6 +226,13 @@ export class Entity extends EngineObject {
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this, ...args) as InstanceType<T>;
     this._components.push(component);
+
+    // @todo: temporary solution
+    if (component instanceof Transform) {
+      const oldTransform = this._transform;
+      this._transform = component;
+      oldTransform && oldTransform.destroy();
+    }
     component._setActive(true, ActiveChangeFlag.All);
     return component;
   }
@@ -545,7 +551,7 @@ export class Entity extends EngineObject {
    * @internal
    */
   _removeComponent(component: Component): void {
-    ComponentsDependencies._removeCheck(this, component);
+    ComponentsDependencies._removeCheck(this, component.constructor as any);
     const components = this._components;
     components.splice(components.indexOf(component), 1);
   }

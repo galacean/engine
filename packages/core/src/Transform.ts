@@ -341,12 +341,6 @@ export class Transform extends Component {
     this._worldRotationQuaternion._onValueChanged = this._onWorldRotationQuaternionChanged;
     //@ts-ignore
     this._scale._onValueChanged = this._onScaleChanged;
-
-    if (entity._transform) {
-      Logger.warn("Entity already has a `Transform`, new `Transform` will replace the old one.");
-      entity._transform.destroy();
-    }
-    entity._transform = this;
   }
 
   /**

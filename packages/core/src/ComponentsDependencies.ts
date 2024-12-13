@@ -38,14 +38,13 @@ export class ComponentsDependencies {
   /**
    * @internal
    */
-  static _removeCheck(entity: Entity, component: Component): void {
+  static _removeCheck(entity: Entity, type: ComponentConstructor): void {
     const components = entity._components;
     const n = components.length;
-    let type = component.constructor as ComponentConstructor;
     while (type !== Component) {
+      let count = 0;
       for (let i = 0; i < n; i++) {
-        const comp = components[i];
-        if (comp instanceof type && comp !== component) return;
+        if (components[i] instanceof type && ++count > 1) return;
       }
       const invDependencies = ComponentsDependencies._invDependenciesMap.get(type);
       if (invDependencies) {
