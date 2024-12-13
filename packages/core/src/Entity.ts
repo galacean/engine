@@ -550,7 +550,7 @@ export class Entity extends EngineObject {
    * @internal
    */
   _removeComponent(component: Component): void {
-    ComponentsDependencies._removeCheck(this, component.constructor as any);
+    ComponentsDependencies._removeCheck(this, component);
     const components = this._components;
     components.splice(components.indexOf(component), 1);
   }
