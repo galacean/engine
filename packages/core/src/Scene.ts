@@ -27,6 +27,7 @@ import { ShadowType } from "./shadow/enum/ShadowType";
 export class Scene extends EngineObject {
   private static _fogColorProperty = ShaderProperty.getByName("scene_FogColor");
   private static _fogParamsProperty = ShaderProperty.getByName("scene_FogParams");
+  private static _prefilterdLUTProperty = ShaderProperty.getByName("scene_prefilteredLUT");
 
   /** Scene name. */
   name: string;
@@ -284,6 +285,7 @@ export class Scene extends EngineObject {
     shaderData.enableMacro("SCENE_SHADOW_CASCADED_COUNT", this.shadowCascades.toString());
     shaderData.setColor(Scene._fogColorProperty, this._fogColor);
     shaderData.setVector4(Scene._fogParamsProperty, this._fogParams);
+    shaderData.setTexture(Scene._prefilterdLUTProperty, engine._basicResources.prefilteredLUTTexture);
 
     this._computeLinearFogParams(this._fogStart, this._fogEnd);
     this._computeExponentialFogParams(this._fogDensity);

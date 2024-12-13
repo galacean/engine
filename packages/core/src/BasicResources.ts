@@ -9,6 +9,7 @@ import { BufferUsage } from "./graphic/enums/BufferUsage";
 import { MeshTopology } from "./graphic/enums/MeshTopology";
 import { VertexElementFormat } from "./graphic/enums/VertexElementFormat";
 import { Material } from "./material";
+import { getPrefilterdLUTTexture } from "./material/Utils/prefilteredLUT";
 import { ModelMesh } from "./mesh";
 import { Shader } from "./shader/Shader";
 import { BlendFactor } from "./shader/enums/BlendFactor";
@@ -116,6 +117,8 @@ export class BasicResources {
   readonly textDefaultMaterial: Material;
   readonly spriteMaskDefaultMaterial: Material;
 
+  readonly prefilteredLUTTexture: Texture2D;
+
   constructor(engine: Engine) {
     // prettier-ignore
     const vertices = new Float32Array([
@@ -162,6 +165,7 @@ export class BasicResources {
       );
     }
 
+    this.prefilteredLUTTexture = getPrefilterdLUTTexture(engine);
     this.spriteDefaultMaterial = this._create2DMaterial(engine, Shader.find("Sprite"));
     this.textDefaultMaterial = this._create2DMaterial(engine, Shader.find("Text"));
     this.spriteMaskDefaultMaterial = this._createSpriteMaskMaterial(engine);
