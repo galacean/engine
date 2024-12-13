@@ -38,27 +38,20 @@ export class ComponentsDependencies {
   /**
    * @internal
    */
-  static _removeCheck(entity: Entity, type: ComponentConstructor): void {
+  static _removeCheck(entity: Entity, component: Component): void {
     const components = entity._components;
     const n = components.length;
+    let type = component.constructor as ComponentConstructor;
     while (type !== Component) {
-      let occurrencesCount = 0;
       for (let i = 0; i < n; i++) {
-        const component = components[i];
-        if (component instanceof type) {
-          ++occurrencesCount;
-          if (occurrencesCount > 1) {
-            break;
-          }
-        }
+        const comp = components[i];
+        if (comp instanceof type && comp !== component) return;
       }
-      if (occurrencesCount <= 1) {
-        const invDependencies = ComponentsDependencies._invDependenciesMap.get(type);
-        if (invDependencies) {
-          for (let i = 0, len = invDependencies.length; i < len; i++) {
-            if (entity.getComponent(invDependencies[i])) {
-              throw `Should remove ${invDependencies[i].name} before remove ${type.name}`;
-            }
+      const invDependencies = ComponentsDependencies._invDependenciesMap.get(type);
+      if (invDependencies) {
+        for (let i = 0, len = invDependencies.length; i < len; i++) {
+          if (entity.getComponent(invDependencies[i])) {
+            throw `Should remove ${invDependencies[i].name} before remove ${type.name}`;
           }
         }
       }
