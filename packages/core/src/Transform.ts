@@ -3,6 +3,7 @@ import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
+import { Logger } from "./base";
 
 /**
  * Used to implement transformation related functions.
@@ -340,12 +341,6 @@ export class Transform extends Component {
     this._worldRotationQuaternion._onValueChanged = this._onWorldRotationQuaternionChanged;
     //@ts-ignore
     this._scale._onValueChanged = this._onScaleChanged;
-
-    if (entity._transform) {
-      throw `Entity already has a transform.`;
-    } else {
-      entity._transform = this;
-    }
   }
 
   /**
