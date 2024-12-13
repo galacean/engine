@@ -102,8 +102,7 @@ export class MeshRenderer extends Renderer {
     const mesh = this._mesh;
     if (mesh) {
       const localBounds = mesh.bounds;
-      const worldMatrix = this._entity.transform.worldMatrix;
-      BoundingBox.transform(localBounds, worldMatrix, worldBounds);
+      BoundingBox.transform(localBounds, this._transformEntity.transform.worldMatrix, worldBounds);
     } else {
       worldBounds.min.set(0, 0, 0);
       worldBounds.max.set(0, 0, 0);

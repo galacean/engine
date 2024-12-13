@@ -44,7 +44,7 @@ export class ShaderLab implements IShaderLab {
 
   // #if _VERBOSE
   /** Retrieve the compilation errors */
-  readonly errors: GSError[] = [];
+  readonly errors: Error[] = [];
   // #endif
 
   _parseShaderPass(

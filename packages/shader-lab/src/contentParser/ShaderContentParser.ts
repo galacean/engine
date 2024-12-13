@@ -222,6 +222,10 @@ export class ShaderContentParser {
     this._symbolTable.newScope(symbolTable);
   }
 
+  private static _dropScope() {
+    this._symbolTable.dropScope();
+  }
+
   private static _parseRenderStatePropList(state: string, scanner: Scanner): IRenderStates {
     const ret: IRenderStates = { constantMap: {}, variableMap: {} };
     while (scanner.getCurChar() !== "}") {
@@ -402,7 +406,7 @@ export class ShaderContentParser {
             braceLevel -= 1;
             if (braceLevel === 0) {
               this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
-              this._symbolTable.dropScope();
+              this._dropScope();
               return ret;
             }
           }
@@ -501,7 +505,7 @@ export class ShaderContentParser {
             braceLevel -= 1;
             if (braceLevel === 0) {
               this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
-              this._symbolTable.dropScope();
+              this._dropScope();
               return ret;
             }
           }

@@ -1,4 +1,4 @@
-import { MathUtil, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { MathUtil, Vector2, Vector3, Vector4, Color } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
@@ -24,6 +24,12 @@ export class PBRMaterial extends PBRBaseMaterial {
   private static _iridescenceThicknessTextureProp = ShaderProperty.getByName("material_IridescenceThicknessTexture");
   private static _iridescenceTextureProp = ShaderProperty.getByName("material_IridescenceTexture");
   private _iridescenceRange = new Vector2(100, 400);
+
+  private _sheenEnabled = false;
+  private static _sheenColorProp = ShaderProperty.getByName("material_SheenColor");
+  private static _sheenRoughnessProp = ShaderProperty.getByName("material_SheenRoughness");
+  private static _sheenTextureProp = ShaderProperty.getByName("material_SheenTexture");
+  private static _sheenRoughnessTextureProp = ShaderProperty.getByName("material_SheenRoughnessTexture");
 
   /**
    * Index Of Refraction.
@@ -190,7 +196,7 @@ export class PBRMaterial extends PBRBaseMaterial {
 
   /**
    * The range of iridescence thickness, x is minimum, y is maximum.
-   *  @defaultValue `[100, 400]`.
+   *  @defaultValue `[100, 400]`
    */
   get iridescenceThicknessRange(): Vector2 {
     return this._iridescenceRange;
@@ -223,6 +229,67 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
+   * Sheen color.
+   * @defaultValue `[0,0,0]`
+   */
+  get sheenColor(): Color {
+    return this.shaderData.getColor(PBRMaterial._sheenColorProp);
+  }
+
+  set sheenColor(value: Color) {
+    const sheenColor = this.shaderData.getColor(PBRMaterial._sheenColorProp);
+    if (value !== sheenColor) {
+      sheenColor.copyFrom(value);
+    }
+  }
+
+  /**
+   * Sheen roughness, from 0.0 to 1.0.
+   * @defaultValue `0.0`
+   */
+  get sheenRoughness(): number {
+    return this.shaderData.getFloat(PBRMaterial._sheenRoughnessProp);
+  }
+
+  set sheenRoughness(value: number) {
+    value = Math.max(0, Math.min(1, value));
+    this.shaderData.setFloat(PBRMaterial._sheenRoughnessProp, value);
+  }
+
+  /**
+   * Sheen color texture, multiply ‘sheenColor’.
+   */
+  get sheenColorTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._sheenTextureProp);
+  }
+
+  set sheenColorTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._sheenTextureProp, value);
+    if (value) {
+      this.shaderData.enableMacro("MATERIAL_HAS_SHEEN_TEXTURE");
+    } else {
+      this.shaderData.disableMacro("MATERIAL_HAS_SHEEN_TEXTURE");
+    }
+  }
+
+  /**
+   * Sheen roughness texture.
+   * @remarks Use alpha channel, and multiply 'sheenRoughness'.
+   */
+  get sheenRoughnessTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._sheenRoughnessTextureProp);
+  }
+
+  set sheenRoughnessTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._sheenRoughnessTextureProp, value);
+    if (value) {
+      this.shaderData.enableMacro("MATERIAL_HAS_SHEEN_ROUGHNESS_TEXTURE");
+    } else {
+      this.shaderData.disableMacro("MATERIAL_HAS_SHEEN_ROUGHNESS_TEXTURE");
+    }
+  }
+
+  /**
    * Create a pbr metallic-roughness workflow material instance.
    * @param engine - Engine to which the material belongs
    */
@@ -235,8 +302,22 @@ export class PBRMaterial extends PBRBaseMaterial {
     shaderData.setFloat(PBRMaterial._iorProp, 1.5);
     shaderData.setVector3(PBRMaterial._anisotropyInfoProp, new Vector3(1, 0, 0));
     shaderData.setVector4(PBRMaterial._iridescenceInfoProp, new Vector4(0, 1.3, 100, 400));
+    const sheenColor = new Color(0, 0, 0);
+    shaderData.setColor(PBRMaterial._sheenColorProp, sheenColor);
     // @ts-ignore
     this._iridescenceRange._onValueChanged = this._onIridescenceRangeChanged.bind(this);
+    // @ts-ignore
+    sheenColor._onValueChanged = () => {
+      const enableSheen = sheenColor.r + sheenColor.g + sheenColor.b > 0;
+      if (enableSheen !== this._sheenEnabled) {
+        this._sheenEnabled = enableSheen;
+        if (enableSheen) {
+          this.shaderData.enableMacro("MATERIAL_ENABLE_SHEEN");
+        } else {
+          this.shaderData.disableMacro("MATERIAL_ENABLE_SHEEN");
+        }
+      }
+    };
   }
 
   private _onIridescenceRangeChanged(): void {

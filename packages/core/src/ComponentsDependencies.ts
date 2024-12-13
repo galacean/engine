@@ -44,7 +44,7 @@ export class ComponentsDependencies {
       if (invDependencies) {
         for (let i = 0, len = invDependencies.length; i < len; i++) {
           if (entity.getComponent(invDependencies[i])) {
-            throw `Should remove ${invDependencies[i].name} before adding ${type.name}`;
+            throw `Should remove ${invDependencies[i].name} before remove ${type.name}`;
           }
         }
       }
