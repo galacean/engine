@@ -3,6 +3,7 @@ import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
+import { Logger } from "./base";
 
 /**
  * Used to implement transformation related functions.
@@ -341,6 +342,10 @@ export class Transform extends Component {
     //@ts-ignore
     this._scale._onValueChanged = this._onScaleChanged;
 
+    if (entity._transform) {
+      Logger.warn("Entity already has a `Transform`, new `Transform` will replace the old one.");
+      entity._transform.destroy();
+    }
     entity._transform = this;
   }
 
