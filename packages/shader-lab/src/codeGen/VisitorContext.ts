@@ -6,9 +6,6 @@ import { GSErrorName } from "../GSError";
 import { BaseToken } from "../common/BaseToken";
 import { ShaderLab } from "../ShaderLab";
 import { ShaderLabUtils } from "../ShaderLabUtils";
-// #if _VERBOSE
-import { GSError } from "../GSError";
-// #endif
 
 /** @internal */
 export class VisitorContext {

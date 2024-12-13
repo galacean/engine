@@ -1,5 +1,5 @@
 import { ShaderRange } from "../common";
-import { TreeNode } from "./AST";
+import { ASTNode, TreeNode } from "./AST";
 import { GSErrorName } from "../GSError";
 import { ShaderData } from "./ShaderInfo";
 import { SymbolInfo, SymbolTable } from "../parser/symbolTable";
@@ -8,11 +8,14 @@ import { SymbolTableStack } from "../common/BaseSymbolTable";
 import { ShaderLab } from "../ShaderLab";
 // #if _VERBOSE
 import { GSError } from "../GSError";
+// #else
+import { Logger } from "@galacean/engine";
 // #endif
 
 export type TranslationRule<T = any> = (sa: SematicAnalyzer, ...tokens: NodeChild[]) => T;
 
 /**
+ * @internal
  * The semantic analyzer of `ShaderLab` compiler.
  * - Build symbol table
  * - Static analysis
@@ -21,17 +24,20 @@ export default class SematicAnalyzer {
   semanticStack: TreeNode[] = [];
   acceptRule?: TranslationRule = undefined;
   symbolTable: SymbolTableStack<SymbolInfo, SymbolTable> = new SymbolTableStack();
+  curFunctionInfo: {
+    header?: ASTNode.FunctionDeclarator;
+    returnStatement?: ASTNode.JumpStatement;
+  } = {} as any;
   private _shaderData = new ShaderData();
+  private _translationRuleTable: Map<number /** production id */, TranslationRule> = new Map();
 
   // #if _VERBOSE
-  readonly errors: GSError[] = [];
+  readonly errors: Error[] = [];
   // #endif
 
   get shaderData() {
     return this._shaderData;
   }
-
-  private _translationRuleTable: Map<number /** production id */, TranslationRule> = new Map();
 
   constructor() {
     this.newScope();
@@ -64,13 +70,11 @@ export default class SematicAnalyzer {
     return this._translationRuleTable.get(pid);
   }
 
-  error(loc: ShaderRange, ...param: any[]) {
+  reportError(loc: ShaderRange, message: string): void {
     // #if _VERBOSE
-    const err = new GSError(GSErrorName.CompilationError, param.join(""), loc, ShaderLab._processingPassText);
-    this.errors.push(err);
-    return err;
+    this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderLab._processingPassText));
     // #else
-    throw new Error(param.join(""));
+    Logger.error(message);
     // #endif
   }
 }

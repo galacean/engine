@@ -72,4 +72,12 @@ export class GLES100Visitor extends GLESVisitor {
     }
     return super.visitPostfixExpression(node);
   }
+
+  override visitJumpStatement(node: ASTNode.JumpStatement): string {
+    if (node.isFragReturnStatement) {
+      const expression = node.children[1] as ASTNode.Expression;
+      return `gl_FragColor = ${expression.codeGen(this)}`;
+    }
+    return super.visitJumpStatement(node);
+  }
 }

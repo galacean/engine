@@ -96,13 +96,13 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(ENonTerminal.jump_statement)
   export class JumpStatement extends TreeNode {
-    // #if _VERBOSE
+    isFragReturnStatement = false;
+
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (ASTNode._unwrapToken(this.children![0]).type === EKeyword.RETURN) {
-        // TODO: check the equality of function return type declared and this type.
+        sa.curFunctionInfo.returnStatement = this;
       }
     }
-    // #endif
 
     override codeGen(visitor: CodeGenVisitor): string {
       return visitor.visitJumpStatement(this);
@@ -335,7 +335,7 @@ export namespace ASTNode {
           this.compute = (a, b) => a % b;
           break;
         default:
-          sa.error(operator.location, `not implemented operator ${operator.lexeme}`);
+          sa.reportError(operator.location, `not implemented operator ${operator.lexeme}`);
       }
     }
   }
@@ -359,10 +359,10 @@ export namespace ASTNode {
         else {
           const id = child as VariableIdentifier;
           if (!id.symbolInfo) {
-            sa.error(id.location, "Undeclared symbol:", id.lexeme);
+            sa.reportError(id.location, `Undeclared symbol: ${id.lexeme}`);
           }
           if (!ParserUtils.typeCompatible(EKeyword.INT, id.typeInfo)) {
-            sa.error(id.location, "Invalid integer.");
+            sa.reportError(id.location, "Invalid integer.");
             return;
           }
         }
@@ -430,7 +430,7 @@ export namespace ASTNode {
         const arraySpecifier = this.children[3] as ArraySpecifier;
         // #if _VERBOSE
         if (typeInfo.arraySpecifier && arraySpecifier) {
-          sa.error(arraySpecifier.location, "Array of array is not supported.");
+          sa.reportError(arraySpecifier.location, "Array of array is not supported.");
         }
         // #endif
         typeInfo.arraySpecifier = arraySpecifier;
@@ -509,6 +509,11 @@ export namespace ASTNode {
 
     get paramSig() {
       return this.parameterList?.paramSig;
+    }
+
+    override semanticAnalyze(sa: SematicAnalyzer): void {
+      sa.curFunctionInfo.returnStatement = null;
+      sa.curFunctionInfo.header = this;
     }
   }
 
@@ -627,6 +632,12 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(ENonTerminal.function_definition)
   export class FunctionDefinition extends TreeNode {
+    private _returnStatement?: ASTNode.JumpStatement;
+
+    get returnStatement(): ASTNode.JumpStatement | undefined {
+      return this._returnStatement;
+    }
+
     get protoType() {
       return this.children[0] as FunctionProtoType;
     }
@@ -639,6 +650,19 @@ export namespace ASTNode {
       sa.dropScope();
       const sm = new FnSymbol(this.protoType.ident.lexeme, this);
       sa.symbolTable.insert(sm);
+
+      const { header, returnStatement } = sa.curFunctionInfo;
+      if (header.returnType.type === EKeyword.VOID) {
+        if (returnStatement) {
+          sa.reportError(header.returnType.location, "Return in void function.");
+        }
+      } else {
+        if (!returnStatement) {
+          sa.reportError(header.returnType.location, `No return statement found.`);
+        } else {
+          this._returnStatement = returnStatement;
+        }
+      }
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
@@ -692,7 +716,7 @@ export namespace ASTNode {
         const fnSymbol = sa.symbolTable.lookup({ ident: fnIdent, symbolType: ESymbolType.FN, signature: paramSig });
         if (!fnSymbol) {
           // #if _VERBOSE
-          sa.error(this.location, "No overload function type found: ", functionIdentifier.ident);
+          sa.reportError(this.location, `No overload function type found: ${functionIdentifier.ident}`);
           // #endif
           return;
         }
@@ -1146,7 +1170,7 @@ export namespace ASTNode {
       this.symbolInfo = sa.symbolTable.lookup({ ident: token.lexeme, symbolType: ESymbolType.VAR }) as VarSymbol;
       // #if _VERBOSE
       if (!this.symbolInfo) {
-        sa.error(this.location, "undeclared identifier:", token.lexeme);
+        sa.reportError(this.location, `undeclared identifier: ${token.lexeme}`);
       }
       // #endif
     }

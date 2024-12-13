@@ -106,6 +106,11 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     if (!fnSymbol?.astNode) throw `no entry function found: ${entry}`;
     const fnNode = fnSymbol.astNode;
 
+    const { returnStatement } = fnNode;
+    if (returnStatement) {
+      returnStatement.isFragReturnStatement = true;
+    }
+
     VisitorContext.context.stage = EShaderStage.FRAGMENT;
 
     const returnType = fnNode.protoType.returnType;
@@ -116,8 +121,8 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       } else {
         VisitorContext.context.mrtStruct = mrtStruct.astNode;
       }
-    } else if (returnType.type !== EKeyword.VOID) {
-      this._reportError(returnType.location, "fragment main entry can only return struct.");
+    } else if (returnType.type !== EKeyword.VOID && returnType.type !== EKeyword.VEC4) {
+      this._reportError(returnType.location, "fragment main entry can only return struct or vec4.");
     }
 
     const statements = fnNode.statements.codeGen(this);

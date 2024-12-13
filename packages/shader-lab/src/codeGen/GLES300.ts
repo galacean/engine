@@ -129,4 +129,24 @@ export class GLES300Visitor extends GLESVisitor {
     }
     return super.visitVariableIdentifier(node);
   }
+
+  override visitJumpStatement(node: ASTNode.JumpStatement): string {
+    if (node.isFragReturnStatement) {
+      const { _referencedVaryingList } = VisitorContext.context;
+      if (!_referencedVaryingList[V3_GL_FragColor]) {
+        const token = Token.pool.get();
+        token.set(ETokenType.ID, V3_GL_FragColor, ShaderLab.createPosition(0, 0, 0));
+        _referencedVaryingList[V3_GL_FragColor] = {
+          ident: token,
+          typeInfo: new SymbolType(EKeyword.VEC4, "vec4"),
+          qualifier: "out",
+          astNode: node
+        };
+      }
+
+      const expression = node.children[1] as ASTNode.Expression;
+      return `${V3_GL_FragColor} = ${expression.codeGen(this)};`;
+    }
+    return super.visitJumpStatement(node);
+  }
 }
