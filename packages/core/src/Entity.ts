@@ -229,9 +229,9 @@ export class Entity extends EngineObject {
 
     // @todo: temporary solution
     if (component instanceof Transform) {
-      const oldTransform = this._transform;
+      const transform = this._transform;
       this._transform = component;
-      oldTransform && oldTransform.destroy();
+      transform?.destroy();
     }
     component._setActive(true, ActiveChangeFlag.All);
     return component;
