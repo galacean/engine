@@ -39,12 +39,26 @@ export class ComponentsDependencies {
    * @internal
    */
   static _removeCheck(entity: Entity, type: ComponentConstructor): void {
+    const components = entity._components;
+    const n = components.length;
     while (type !== Component) {
-      const invDependencies = ComponentsDependencies._invDependenciesMap.get(type);
-      if (invDependencies) {
-        for (let i = 0, len = invDependencies.length; i < len; i++) {
-          if (entity.getComponent(invDependencies[i])) {
-            throw `Should remove ${invDependencies[i].name} before remove ${type.name}`;
+      let occurrencesCount = 0;
+      for (let i = 0; i < n; i++) {
+        const component = components[i];
+        if (component instanceof type) {
+          ++occurrencesCount;
+          if (occurrencesCount > 1) {
+            break;
+          }
+        }
+      }
+      if (occurrencesCount <= 1) {
+        const invDependencies = ComponentsDependencies._invDependenciesMap.get(type);
+        if (invDependencies) {
+          for (let i = 0, len = invDependencies.length; i < len; i++) {
+            if (entity.getComponent(invDependencies[i])) {
+              throw `Should remove ${invDependencies[i].name} before remove ${type.name}`;
+            }
           }
         }
       }

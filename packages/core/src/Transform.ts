@@ -341,11 +341,7 @@ export class Transform extends Component {
     //@ts-ignore
     this._scale._onValueChanged = this._onScaleChanged;
 
-    if (entity._transform) {
-      throw `Entity already has a transform.`;
-    } else {
-      entity._transform = this;
-    }
+    entity._transform = this;
   }
 
   /**
