@@ -120,6 +120,14 @@ Shader "Water" {
           gl_FragColor = linearToGamma(gl_FragColor);
         #endif
 
+
+#define MATERIAL_ENABLE_SS_REFRACTION
+
+        #ifdef MATERIAL_ENABLE_SS_REFRACTION 
+
+    // last lint comment
+#endif
+
         // For testing only (macro)
         #if SCENE_SHADOW_TYPE == 2 || defined(XX_Macro)
           gl_FragColor = linearToGamma(gl_FragColor);
