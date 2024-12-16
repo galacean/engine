@@ -234,17 +234,23 @@ export namespace ASTNode {
       const fullyType = this.children[0] as FullySpecifiedType;
       const id = this.children[1] as Token;
       this.typeSpecifier = fullyType.typeSpecifier;
+      this.arraySpecifier = fullyType.typeSpecifier.arraySpecifier;
 
       let sm: VarSymbol;
       if (this.children.length === 2 || this.children.length === 4) {
-        const symbolType = new SymbolType(fullyType.type, fullyType.typeSpecifier.lexeme);
+        const symbolType = new SymbolType(fullyType.type, fullyType.typeSpecifier.lexeme, this.arraySpecifier);
         const initializer = this.children[3] as Initializer;
 
         sm = new VarSymbol(id.lexeme, symbolType, false, initializer);
       } else {
         const arraySpecifier = this.children[2] as ArraySpecifier;
+        // #if _VERBOSE
+        if (arraySpecifier && this.arraySpecifier) {
+          sa.error(arraySpecifier.location, "Array of array is not supported.");
+        }
+        // #endif
         this.arraySpecifier = arraySpecifier;
-        const symbolType = new SymbolType(fullyType.type, fullyType.typeSpecifier.lexeme, arraySpecifier);
+        const symbolType = new SymbolType(fullyType.type, fullyType.typeSpecifier.lexeme, this.arraySpecifier);
         const initializer = this.children[4] as Initializer;
 
         sm = new VarSymbol(id.lexeme, symbolType, false, initializer);
@@ -380,6 +386,9 @@ export namespace ASTNode {
     }
     get arraySize(): number {
       return (this.children?.[1] as ArraySpecifier)?.size;
+    }
+    get arraySpecifier(): ArraySpecifier {
+      return this.children[1] as ArraySpecifier;
     }
 
     get isCustom() {
@@ -531,6 +540,7 @@ export namespace ASTNode {
         sm = new VarSymbol(id.lexeme, this.typeInfo, false, this);
         sa.symbolTable.insert(sm);
       } else if (this.children.length === 4 || this.children.length === 6) {
+        debugger;
         const typeInfo = this.typeInfo;
         const arraySpecifier = this.children[3] as ArraySpecifier;
         // #if _VERBOSE
@@ -1398,6 +1408,8 @@ export namespace ASTNode {
   export class VariableDeclaration extends TreeNode {
     static pool = ShaderLabUtils.createObjectPool(VariableDeclaration);
 
+    type: FullySpecifiedType;
+
     override set(loc: ShaderRange, children: NodeChild[]) {
       super.set(loc, children, ENonTerminal.variable_declaration);
     }
@@ -1405,14 +1417,45 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const type = this.children[0] as FullySpecifiedType;
       const ident = this.children[1] as Token;
-      let sm: VarSymbol;
-      sm = new VarSymbol(ident.lexeme, new SymbolType(type.type, type.typeSpecifier.lexeme), true, this);
+      this.type = type;
+      const sm = new VarSymbol(ident.lexeme, new SymbolType(type.type, type.typeSpecifier.lexeme), true, this);
 
       sa.symbolTable.insert(sm);
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
-      return visitor.visitGlobalVariableDeclaration(this);
+      return visitor.visitVariableDeclaration(this) + ";";
+    }
+  }
+
+  export class VariableDeclarationList extends TreeNode {
+    static pool = ShaderLabUtils.createObjectPool(VariableDeclarationList);
+
+    type: FullySpecifiedType;
+
+    override set(loc: ShaderRange, children: NodeChild[]): void {
+      super.set(loc, children, ENonTerminal.variable_declaration_list);
+    }
+
+    override semanticAnalyze(sa: SematicAnalyzer): void {
+      const { children } = this;
+      const length = children.length;
+      this.type = (children[0] as VariableDeclaration | VariableDeclarationList).type;
+      if (length === 1) {
+        return;
+      }
+
+      const variableDeclation = children[0] as VariableDeclaration;
+      const type = variableDeclation.type;
+      const ident = children[2] as Token;
+
+      const newVariable = VariableDeclaration.pool.get();
+      if (length === 3) {
+        newVariable.set(ident.location, [type, ident]);
+      } else {
+        newVariable.set(ident.location, [type, ident, children[3] as ArraySpecifier]);
+      }
+      newVariable.semanticAnalyze(sa);
     }
   }
 

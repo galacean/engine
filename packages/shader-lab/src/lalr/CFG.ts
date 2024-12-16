@@ -16,7 +16,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
 
   ...GrammarUtils.createProductionWithOptions(ENonTerminal.global_declaration, [
     [ENonTerminal.precision_specifier],
-    [ENonTerminal.variable_declaration],
+    [ENonTerminal.variable_declaration_statement],
     [ENonTerminal.struct_specifier],
     [ENonTerminal.function_definition]
   ]),
@@ -24,12 +24,25 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.variable_declaration,
     [
-      [EKeyword.GS_RenderQueueType, ETokenType.ID, ETokenType.SEMICOLON],
-      [ENonTerminal.fully_specified_type, ETokenType.ID, ETokenType.SEMICOLON],
-      [ENonTerminal.fully_specified_type, ETokenType.ID, ENonTerminal.array_specifier, ETokenType.SEMICOLON]
+      [ENonTerminal.fully_specified_type, ETokenType.ID],
+      [ENonTerminal.fully_specified_type, ETokenType.ID, ENonTerminal.array_specifier]
     ],
     ASTNode.VariableDeclaration.pool
   ),
+
+  ...GrammarUtils.createProductionWithOptions(
+    ENonTerminal.variable_declaration_list,
+    [
+      [ENonTerminal.variable_declaration],
+      [ENonTerminal.variable_declaration_list, ETokenType.COMMA, ETokenType.ID],
+      [ENonTerminal.variable_declaration_list, ETokenType.COMMA, ETokenType.ID, ENonTerminal.array_specifier]
+    ],
+    ASTNode.VariableDeclarationList.pool
+  ),
+
+  ...GrammarUtils.createProductionWithOptions(ENonTerminal.variable_declaration_statement, [
+    [ENonTerminal.variable_declaration_list, ETokenType.SEMICOLON]
+  ]),
 
   ...GrammarUtils.createProductionWithOptions(
     ENonTerminal.ext_builtin_type_specifier_nonarray,

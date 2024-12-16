@@ -125,7 +125,7 @@ export abstract class CodeGenVisitor {
     return this.defaultCodeGen(node.children);
   }
 
-  visitGlobalVariableDeclaration(node: ASTNode.VariableDeclaration): string {
+  visitVariableDeclaration(node: ASTNode.VariableDeclaration): string {
     const fullType = node.children[0];
     if (fullType instanceof ASTNode.FullySpecifiedType && fullType.typeSpecifier.isCustom) {
       VisitorContext.context.referenceGlobal(<string>fullType.type, ESymbolType.STRUCT);

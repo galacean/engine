@@ -44,17 +44,6 @@ export default class GrammarUtils {
     return ret;
   }
 
-  static createProductionOptions(common: GrammarSymbol[], position: number, opts: GrammarSymbol[][]) {
-    const ret: GrammarSymbol[][] = [];
-    for (const opt of opts) {
-      const list = common.slice(0, position);
-      list.push(...opt);
-      list.push(...common.slice(position));
-      ret.push(list);
-    }
-    return ret;
-  }
-
   static addMapSetItem<K, T>(map: Map<K, Set<T>>, k: K, v: T) {
     const set = map.get(k) ?? new Set();
     set.add(v);

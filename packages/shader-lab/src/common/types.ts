@@ -132,6 +132,7 @@ export enum ETokenType {
   COLON,
   /** = */
   EQUAL,
+  /** ; */
   SEMICOLON,
   /** ! */
   BANG,

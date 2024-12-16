@@ -24,7 +24,7 @@ export default class SematicAnalyzer {
   private _shaderData = new ShaderData();
 
   // #if _VERBOSE
-  readonly errors: GSError[] = [];
+  readonly errors: Error[] = [];
   // #endif
 
   get shaderData() {
@@ -70,7 +70,7 @@ export default class SematicAnalyzer {
     this.errors.push(err);
     return err;
     // #else
-    throw new Error(param.join(""));
+    this.errors.push(new Error(param.join("")));
     // #endif
   }
 }
