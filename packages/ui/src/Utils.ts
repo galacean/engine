@@ -35,7 +35,7 @@ export class Utils {
     listeningEntities.length = 0;
   }
 
-  static getCanvasInParents(entity: Entity, root?: Entity): UICanvas {
+  static getRootCanvasInParents(entity: Entity, root?: Entity): UICanvas {
     entity = entity.parent;
     let rootCanvas: UICanvas = null;
     while (entity && entity !== root) {

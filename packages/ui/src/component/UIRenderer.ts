@@ -172,7 +172,7 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
    */
   _getCanvas(): UICanvas {
     if (this._isCanvasDirty) {
-      const curCanvas = Utils.getCanvasInParents(this.entity);
+      const curCanvas = Utils.getRootCanvasInParents(this.entity);
       Utils._registerElementToCanvas(this, this._canvas, curCanvas);
       Utils._registerElementToCanvasListener(this, curCanvas);
       this._isCanvasDirty = false;

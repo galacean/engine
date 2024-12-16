@@ -279,7 +279,7 @@ export class UICanvas extends Component implements IElement {
     const entity = this.entity;
     // @ts-ignore
     entity._dispatchModify(EntityUIModifyFlags.CanvasEnableInScene, this);
-    const rootCanvas = Utils.getCanvasInParents(entity);
+    const rootCanvas = Utils.getRootCanvasInParents(entity);
     if (rootCanvas) {
       this._setIsRootCanvas(false);
       Utils._registerElementToCanvas(this, null, rootCanvas);
@@ -302,8 +302,7 @@ export class UICanvas extends Component implements IElement {
   _canvasListener(flag: number, param: any): void {
     if (this._isRootCanvas) {
       if (flag === EntityModifyFlags.Parent) {
-        const entity = this.entity;
-        const rootCanvas = Utils.getCanvasInParents(entity);
+        const rootCanvas = Utils.getRootCanvasInParents(this.entity);
         if (rootCanvas) {
           this._setIsRootCanvas(false);
           Utils._registerElementToCanvas(this, null, rootCanvas);
@@ -317,7 +316,7 @@ export class UICanvas extends Component implements IElement {
       }
     } else {
       if (flag === EntityModifyFlags.Parent) {
-        const rootCanvas = Utils.getCanvasInParents(this.entity);
+        const rootCanvas = Utils.getRootCanvasInParents(this.entity);
         if (rootCanvas) {
           this._setIsRootCanvas(false);
           Utils._registerElementToCanvas(this, this._canvas, rootCanvas);
@@ -538,7 +537,7 @@ export class UICanvas extends Component implements IElement {
             const componentType = (element as unknown as Component)._componentType;
             if (componentType === ComponentType.UICanvas) {
               const canvas = element as unknown as UICanvas;
-              const rootCanvas = Utils.getCanvasInParents(element.entity, root);
+              const rootCanvas = Utils.getRootCanvasInParents(element.entity, root);
               if (rootCanvas) {
                 canvas._setIsRootCanvas(false);
                 Utils._registerElementToCanvas(canvas, this, rootCanvas);

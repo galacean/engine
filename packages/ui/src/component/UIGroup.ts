@@ -151,7 +151,7 @@ export class UIGroup extends Component implements IGroupAble {
    */
   _getCanvas(): UICanvas {
     if (this._isCanvasDirty) {
-      const curCanvas = Utils.getCanvasInParents(this.entity);
+      const curCanvas = Utils.getRootCanvasInParents(this.entity);
       Utils._registerElementToCanvas(this, this._canvas, curCanvas);
       Utils._registerElementToCanvasListener(this, curCanvas);
       this._isCanvasDirty = false;

@@ -210,7 +210,6 @@ export class Label extends UIRenderer implements ITextRenderer {
     // @ts-ignore
     this.setMaterial(engine._basicResources.textDefaultMaterial);
   }
-  z;
 
   /**
    * @internal

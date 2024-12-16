@@ -86,7 +86,6 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         }
       }
     }
-    return null;
   }
 
   override processDrag(pointer: Pointer): void {
