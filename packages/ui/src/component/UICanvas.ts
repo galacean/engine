@@ -3,6 +3,7 @@ import {
   CameraModifyFlags,
   Component,
   ComponentType,
+  DependentMode,
   DisorderedArray,
   Entity,
   EntityModifyFlags,
@@ -25,7 +26,7 @@ import { UIGroup } from "./UIGroup";
 import { UIRenderer } from "./UIRenderer";
 import { UITransform } from "./UITransform";
 
-@dependentComponents(UITransform)
+@dependentComponents(UITransform, DependentMode.AutoAdd)
 export class UICanvas extends Component implements IElement {
   /** @internal */
   private static _tempGroupAbleList: IGroupAble[] = [];
@@ -166,7 +167,10 @@ export class UICanvas extends Component implements IElement {
   set distance(val: number) {
     if (this._distance !== val) {
       this._distance = val;
-      this._realRenderMode === CanvasRenderMode.ScreenSpaceCamera && this._adapterPoseInScreenSpace();
+      if (this._realRenderMode === CanvasRenderMode.ScreenSpaceCamera) {
+        this._adapterPoseInScreenSpace();
+        this._adapterSizeInScreenSpace();
+      }
     }
   }
 
@@ -446,13 +450,13 @@ export class UICanvas extends Component implements IElement {
       this._cameraObserver = camera;
       if (preCamera) {
         // @ts-ignore
-        preCamera.entity.transform._updateFlagManager.removeListener(this._onCameraTransformListener);
+        preCamera.entity._updateFlagManager.removeListener(this._onCameraTransformListener);
         // @ts-ignore
         preCamera._unRegisterModifyListener(this._onCameraModifyListener);
       }
       if (camera) {
         // @ts-ignore
-        camera.entity.transform._updateFlagManager.addListener(this._onCameraTransformListener);
+        camera.entity._updateFlagManager.addListener(this._onCameraTransformListener);
         // @ts-ignore
         camera._registerModifyListener(this._onCameraModifyListener);
       }
@@ -620,5 +624,5 @@ enum CanvasRealRenderMode {
  */
 export enum EntityUIModifyFlags {
   CanvasEnableInScene = 0x4,
-  UIGroupEnableInScene = 0x8
+  GroupEnableInScene = 0x8
 }

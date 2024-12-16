@@ -226,7 +226,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     let { _dirtyUpdateFlag: dirtyUpdateFlag } = this;
     // Update position
     if (dirtyUpdateFlag & RendererUpdateFlags.AllPositions) {
-      this._assembler.updatePositions(this, width, height, transform.pivot);
+      this._assembler.updatePositions(this, transform.worldMatrix, width, height, transform.pivot);
       dirtyUpdateFlag &= ~RendererUpdateFlags.AllPositions;
     }
 

@@ -188,11 +188,11 @@ export class MeshRenderer extends Renderer {
 }
 
 /**
- * @remarks Extends `RendererUpdateFlag`.
+ * @remarks Extends `RendererUpdateFlags`.
  */
 enum MeshRendererUpdateFlags {
   /** VertexElementMacro. */
-  VertexElementMacro = 0x2,
+  VertexElementMacro = 0x10,
   /** All. */
-  All = 0x3
+  All = 0x1f
 }

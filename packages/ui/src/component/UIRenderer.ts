@@ -2,6 +2,7 @@ import {
   BatchUtils,
   Color,
   ComponentType,
+  DependentMode,
   Entity,
   EntityModifyFlags,
   HitResult,
@@ -24,7 +25,7 @@ import { EntityUIModifyFlags, UICanvas } from "./UICanvas";
 import { GroupModifyFlags, UIGroup } from "./UIGroup";
 import { UITransform } from "./UITransform";
 
-@dependentComponents(UITransform)
+@dependentComponents(UITransform, DependentMode.AutoAdd)
 export abstract class UIRenderer extends Renderer implements IGraphics {
   /** @internal */
   static _tempVec30: Vector3 = new Vector3();
@@ -118,7 +119,8 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
   get group(): UIGroup {
     if (this._isGroupDirty) {
       const canvas = this.canvas;
-      Utils._registerElementToGroup(this, this._group, Utils.getGroupInParents(this.entity, canvas?.entity));
+      const group = canvas ? Utils.getGroupInParents(this.entity, canvas.entity) : null;
+      Utils._registerElementToGroup(this, this._group, group);
       Utils._registerElementToGroupListener(this, canvas);
       this._isGroupDirty = false;
     }
@@ -198,7 +200,7 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
   @ignoreClone
   _groupListener(flag: number): void {
     if (this._isGroupDirty) return;
-    if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.UIGroupEnableInScene) {
+    if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.GroupEnableInScene) {
       Utils._onGroupDirty(this, this._group);
     }
   }
@@ -212,7 +214,7 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
     if (flag === EntityModifyFlags.SiblingIndex) {
       const rootCanvas = this._canvas;
       rootCanvas && (rootCanvas._hierarchyDirty = true);
-    } else if (flag === EntityModifyFlags.Parent) {
+    } else if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.CanvasEnableInScene) {
       Utils._onCanvasDirty(this, this._canvas, true);
       Utils._onGroupDirty(this, this._group);
     }

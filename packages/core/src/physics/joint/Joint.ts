@@ -1,11 +1,11 @@
 import { IJoint } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { Component } from "../../Component";
-import { dependentComponents, DependentMode } from "../../ComponentsDependencies";
+import { DependentMode, dependentComponents } from "../../ComponentsDependencies";
 import { Entity } from "../../Entity";
-import { Collider } from "../Collider";
 import { TransformModifyFlags } from "../../Transform";
+import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { Collider } from "../Collider";
 
 /**
  * A base class providing common functionality for joints.
@@ -33,8 +33,9 @@ export abstract class Joint extends Component {
   }
 
   set connectedCollider(value: Collider) {
-    if (this._connectedColliderInfo.collider !== value) {
-      this._connectedColliderInfo.collider?.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
+    const preCollider = this._connectedColliderInfo.collider;
+    if (preCollider !== value) {
+      preCollider?.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
       value?.entity._updateFlagManager.addListener(this._onConnectedTransformChanged);
       this._connectedColliderInfo.collider = value;
       this._nativeJoint?.setConnectedCollider(value._nativeCollider);

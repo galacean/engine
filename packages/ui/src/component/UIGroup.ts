@@ -40,8 +40,6 @@ export class UIGroup extends Component implements IGroupAble {
   private _interactive = true;
   @assignmentClone
   private _ignoreParentGroup = false;
-  @ignoreClone
-  private _entityListeners: Entity[] = [];
 
   /** @internal */
   @ignoreClone
@@ -58,40 +56,6 @@ export class UIGroup extends Component implements IGroupAble {
   /** @internal */
   @ignoreClone
   _groupDirtyFlags: number = GroupModifyFlags.None;
-
-  /**
-   * @internal
-   */
-  get canvas(): UICanvas {
-    if (this._isCanvasDirty) {
-      const curCanvas = Utils.getCanvasInParents(this.entity);
-      Utils._registerElementToCanvas(this, this._canvas, curCanvas);
-      Utils._registerElementToCanvasListener(this, curCanvas);
-      this._isCanvasDirty = false;
-    }
-    return this._canvas;
-  }
-
-  /**
-   * @internal
-   */
-  get group(): UIGroup {
-    if (this._isGroupDirty) {
-      const canvas = this.canvas;
-      Utils._registerElementToGroup(this, this._group, Utils.getGroupInParents(this.entity, canvas?.entity));
-      Utils._registerElementToGroupListener(this, canvas);
-      this._isGroupDirty = false;
-    }
-    return this._group;
-  }
-
-  constructor(entity: Entity) {
-    super(entity);
-    // @ts-ignore
-    this._componentType = ComponentType.UIGroup;
-    this._canvasListener = this._canvasListener.bind(this);
-    this._groupListener = this._groupListener.bind(this);
-  }
 
   get ignoreParentGroup(): boolean {
     return this._ignoreParentGroup;
@@ -129,8 +93,12 @@ export class UIGroup extends Component implements IGroupAble {
 
   get globalAlpha(): number {
     if (this._isContainDirtyFlag(GroupModifyFlags.GlobalAlpha)) {
-      const parentGroup = this.group;
-      this._globalAlpha = this._alpha * (parentGroup ? parentGroup.globalAlpha : 1);
+      if (this._ignoreParentGroup) {
+        this._globalAlpha = this._alpha;
+      } else {
+        const parentGroup = this.group;
+        this._globalAlpha = this._alpha * (parentGroup ? parentGroup.globalAlpha : 1);
+      }
       this._setDirtyFlagFalse(GroupModifyFlags.GlobalAlpha);
     }
     return this._globalAlpha;
@@ -138,19 +106,58 @@ export class UIGroup extends Component implements IGroupAble {
 
   get globalInteractive(): boolean {
     if (this._isContainDirtyFlag(GroupModifyFlags.GlobalInteractive)) {
-      const parentGroup = this.group;
-      this._globalInteractive = this._interactive && (!parentGroup || parentGroup.globalInteractive);
+      if (this._ignoreParentGroup) {
+        this._globalInteractive = this._interactive;
+      } else {
+        const parentGroup = this.group;
+        this._globalInteractive = this._interactive && (!parentGroup || parentGroup.globalInteractive);
+      }
       this._setDirtyFlagFalse(GroupModifyFlags.GlobalInteractive);
     }
     return this._globalInteractive;
   }
 
+  /**
+   * @internal
+   */
+  get canvas(): UICanvas {
+    if (this._isCanvasDirty) {
+      const curCanvas = Utils.getCanvasInParents(this.entity);
+      Utils._registerElementToCanvas(this, this._canvas, curCanvas);
+      Utils._registerElementToCanvasListener(this, curCanvas);
+      this._isCanvasDirty = false;
+    }
+    return this._canvas;
+  }
+
+  /**
+   * @internal
+   */
+  get group(): UIGroup {
+    if (this._isGroupDirty) {
+      const canvas = this.canvas;
+      const group = canvas ? Utils.getGroupInParents(this.entity.parent, canvas.entity) : null;
+      Utils._registerElementToGroup(this, this._group, group);
+      Utils._registerElementToGroupListener(this, canvas);
+      this._isGroupDirty = false;
+    }
+    return this._group;
+  }
+
+  constructor(entity: Entity) {
+    super(entity);
+    // @ts-ignore
+    this._componentType = ComponentType.UIGroup;
+    this._canvasListener = this._canvasListener.bind(this);
+    this._groupListener = this._groupListener.bind(this);
+  }
+
   // @ts-ignore
   override _onEnableInScene(): void {
-    Utils._onGroupDirty(this, this._group);
     Utils._onCanvasDirty(this, this._canvas);
+    Utils._onGroupDirty(this, this._group);
     // @ts-ignore
-    this.entity._dispatchModify(EntityUIModifyFlags.UIGroupEnableInScene);
+    this.entity._dispatchModify(EntityUIModifyFlags.GroupEnableInScene);
   }
 
   // @ts-ignore
@@ -172,7 +179,7 @@ export class UIGroup extends Component implements IGroupAble {
   @ignoreClone
   _groupListener(flag: number): void {
     if (this._isGroupDirty) return;
-    if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.UIGroupEnableInScene) {
+    if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.GroupEnableInScene) {
       Utils._onGroupDirty(this, this._group);
     }
   }
@@ -183,7 +190,7 @@ export class UIGroup extends Component implements IGroupAble {
   @ignoreClone
   _canvasListener(flag: number): void {
     if (this._isCanvasDirty) return;
-    if (flag === EntityModifyFlags.Parent) {
+    if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.CanvasEnableInScene) {
       Utils._onCanvasDirty(this, this._canvas);
       Utils._onGroupDirty(this, this._group);
     }
@@ -192,13 +199,13 @@ export class UIGroup extends Component implements IGroupAble {
   /**
    * @internal
    */
-  _onGroupModify(flags: GroupModifyFlags): void {
-    if (!this._isContainDirtyFlags(flags)) {
-      this._setDirtyFlagTrue(flags);
-      this._disorderedElements.forEach((element) => {
-        element._onGroupModify(flags);
-      });
-    }
+  _onGroupModify(flags: GroupModifyFlags, isPass: boolean = false): void {
+    if (isPass && this._ignoreParentGroup) return;
+    if (this._isContainDirtyFlags(flags)) return;
+    this._setDirtyFlagTrue(flags);
+    this._disorderedElements.forEach((element) => {
+      element._onGroupModify(flags, true);
+    });
   }
 
   private _isContainDirtyFlags(targetDirtyFlags: number): boolean {

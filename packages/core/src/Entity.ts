@@ -99,8 +99,9 @@ export class Entity extends EngineObject {
   /** @internal */
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
   /** @internal */
-  _transform: Transform;
+  _modifyFlagManager: UpdateFlagManager;
 
+  private _transform: Transform;
   private _templateResource: ReferResource;
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
@@ -228,6 +229,13 @@ export class Entity extends EngineObject {
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this, ...args) as InstanceType<T>;
     this._components.push(component);
+
+    // @todo: temporary solution
+    if (component instanceof Transform) {
+      const transform = this._transform;
+      this._transform = component;
+      transform?.destroy();
+    }
     component._setActive(true, ActiveChangeFlag.All);
     return component;
   }
@@ -550,7 +558,7 @@ export class Entity extends EngineObject {
    * @internal
    */
   _removeComponent(component: Component): void {
-    ComponentsDependencies._removeCheck(this, component);
+    ComponentsDependencies._removeCheck(this, component.constructor as ComponentConstructor);
     const components = this._components;
     components.splice(components.indexOf(component), 1);
   }
@@ -625,21 +633,21 @@ export class Entity extends EngineObject {
    * @internal
    */
   _registerModifyListener(onChange: (flag: EntityModifyFlags) => void): void {
-    (this._updateFlagManager ||= new UpdateFlagManager()).addListener(onChange);
+    (this._modifyFlagManager ||= new UpdateFlagManager()).addListener(onChange);
   }
 
   /**
    * @internal
    */
   _unRegisterModifyListener(onChange: (flag: EntityModifyFlags) => void): void {
-    this._updateFlagManager?.removeListener(onChange);
+    this._modifyFlagManager?.removeListener(onChange);
   }
 
   /**
    * @internal
    */
   _dispatchModify(flag: EntityModifyFlags, param?: any): void {
-    this._updateFlagManager?.dispatch(flag, param);
+    this._modifyFlagManager?.dispatch(flag, param);
   }
 
   private _addToChildrenList(index: number, child: Entity): void {

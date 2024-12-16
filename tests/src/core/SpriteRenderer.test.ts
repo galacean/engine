@@ -10,7 +10,7 @@ import {
 } from "@galacean/engine-core";
 import { Color, Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { describe, beforeEach, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 describe("SpriteRenderer", async () => {
   const canvas = document.createElement("canvas");
@@ -193,10 +193,9 @@ describe("SpriteRenderer", async () => {
     const uvs: Array<Vector2> = [];
     let index = subChunk.vertexArea.start;
     sprite.pivot = new Vector2(0.5, 0.5);
+    const context = { camera: { engine: engine, _renderPipeline: { pushRenderElement: () => {} } } };
     // @ts-ignore
-    spriteRenderer._assembler.updatePositions(spriteRenderer);
-    // @ts-ignore
-    spriteRenderer._assembler.updateUVs(spriteRenderer);
+    spriteRenderer._render(context);
     for (let i = 0; i < 4; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
@@ -213,9 +212,7 @@ describe("SpriteRenderer", async () => {
 
     sprite.pivot = new Vector2(1, 1);
     // @ts-ignore
-    spriteRenderer._assembler.updatePositions(spriteRenderer);
-    // @ts-ignore
-    spriteRenderer._assembler.updateUVs(spriteRenderer);
+    spriteRenderer._render(context);
     positions.length = 0;
     uvs.length = 0;
     index = subChunk.vertexArea.start;
@@ -235,9 +232,7 @@ describe("SpriteRenderer", async () => {
 
     sprite.pivot = new Vector2(0, 0);
     // @ts-ignore
-    spriteRenderer._assembler.updatePositions(spriteRenderer);
-    // @ts-ignore
-    spriteRenderer._assembler.updateUVs(spriteRenderer);
+    spriteRenderer._render(context);
     positions.length = 0;
     uvs.length = 0;
     index = subChunk.vertexArea.start;
@@ -273,10 +268,9 @@ describe("SpriteRenderer", async () => {
     sprite.border = new Vector4(0.3, 0.3, 0.3, 0.3);
     spriteRenderer.width = 0.5;
     spriteRenderer.height = 0.5;
+    const context = { camera: { engine: engine, _renderPipeline: { pushRenderElement: () => {} } } };
     // @ts-ignore
-    spriteRenderer._assembler.updatePositions(spriteRenderer);
-    // @ts-ignore
-    spriteRenderer._assembler.updateUVs(spriteRenderer);
+    spriteRenderer._render(context);
     for (let i = 0; i < 16; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
@@ -318,9 +312,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer.width = 15;
     spriteRenderer.height = 15;
     // @ts-ignore
-    spriteRenderer._assembler.updatePositions(spriteRenderer);
-    // @ts-ignore
-    spriteRenderer._assembler.updateUVs(spriteRenderer);
+    spriteRenderer._render(context);
     positions.length = 0;
     uvs.length = 0;
     index = subChunk.vertexArea.start;
@@ -381,10 +373,9 @@ describe("SpriteRenderer", async () => {
     sprite.pivot = new Vector2(0, 0);
     sprite.border = new Vector4(0.5, 0.3, 0.5, 0.3);
     spriteRenderer.tileMode = SpriteTileMode.Continuous;
+    const context = { camera: { engine: engine, _renderPipeline: { pushRenderElement: () => {} } } };
     // @ts-ignore
-    spriteRenderer._assembler.updatePositions(spriteRenderer);
-    // @ts-ignore
-    spriteRenderer._assembler.updateUVs(spriteRenderer);
+    spriteRenderer._render(context);
     for (let i = 0; i < 40; ++i) {
       positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
@@ -473,9 +464,7 @@ describe("SpriteRenderer", async () => {
 
     spriteRenderer.tileMode = SpriteTileMode.Adaptive;
     // @ts-ignore
-    spriteRenderer._assembler.updatePositions(spriteRenderer);
-    // @ts-ignore
-    spriteRenderer._assembler.updateUVs(spriteRenderer);
+    spriteRenderer._render(context);
     positions.length = 0;
     uvs.length = 0;
     index = subChunk.vertexArea.start;
@@ -484,6 +473,7 @@ describe("SpriteRenderer", async () => {
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
       index += 9;
     }
+    console.log("positions", JSON.stringify(positions));
     expect(Vector3.equals(positions[0], new Vector3(0, 0, 0))).to.eq(true);
     expect(Vector3.equals(positions[1], new Vector3(1, 0, 0))).to.eq(true);
     expect(Vector3.equals(positions[2], new Vector3(0, 0.8333333333333331, 0))).to.eq(true);
@@ -1574,10 +1564,8 @@ describe("SpriteRenderer", async () => {
     expect(uvs[1]).to.deep.eq(new Vector2(0, 0));
     expect(uvs[2]).to.deep.eq(new Vector2(0, 0));
     expect(uvs[3]).to.deep.eq(new Vector2(0, 0));
-    // @ts-ignore
-    const { min, max } = spriteRenderer._bounds;
-    expect(min).to.deep.eq(new Vector3(0, 0, 0));
-    expect(max).to.deep.eq(new Vector3(0, 0, 0));
+    expect(spriteRenderer.bounds.min).to.deep.eq(new Vector3(0, 0, 0));
+    expect(spriteRenderer.bounds.max).to.deep.eq(new Vector3(0, 0, 0));
 
     const sprite = new Sprite(engine, texture2d);
     spriteRenderer.sprite = sprite;
@@ -1600,8 +1588,7 @@ describe("SpriteRenderer", async () => {
     expect(uvs[1]).to.deep.eq(new Vector2(1, 1));
     expect(uvs[2]).to.deep.eq(new Vector2(0, 0));
     expect(uvs[3]).to.deep.eq(new Vector2(1, 0));
-    // @ts-ignore
-    expect(min).to.deep.eq(new Vector3(-0.5, -1, 0));
-    expect(max).to.deep.eq(new Vector3(0.5, 1, 0));
+    expect(spriteRenderer.bounds.min).to.deep.eq(new Vector3(-0.5, -1, 0));
+    expect(spriteRenderer.bounds.max).to.deep.eq(new Vector3(0.5, 1, 0));
   });
 });

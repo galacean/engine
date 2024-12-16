@@ -154,7 +154,10 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
         this.shaderData.setTexture(SpriteMask._textureProperty, null);
       }
       this._sprite = value;
-      this._calDefaultSize();
+      if (this._customWidth === undefined || this._customHeight === undefined) {
+        this._calDefaultSize();
+        this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
+      }
     }
   }
 

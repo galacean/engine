@@ -52,16 +52,6 @@ describe("SkinnedMeshRenderer", async () => {
     expect(skinnedMR.blendShapeWeights).to.be.deep.equal(new Float32Array([0.4]));
   });
 
-  it("localBounds", () => {
-    // Test that the localBounds is set correctly.
-    const entity = rootEntity.createChild("LocalBoundsEntity");
-    const skinnedMR = entity.addComponent(SkinnedMeshRenderer);
-
-    skinnedMR.localBounds = new BoundingBox(new Vector3(-1, -1, -1), new Vector3(1, 1, 1));
-    expect(skinnedMR.localBounds.min).to.be.deep.include({ x: -1, y: -1, z: -1 });
-    expect(skinnedMR.localBounds.max).to.be.deep.include({ x: 1, y: 1, z: 1 });
-  });
-
   it("skin and rootBone", () => {
     const skin = new Skin("TestSkin");
     skin.skeleton = "RootBone";

@@ -37,13 +37,13 @@ export class UITransform extends Transform {
   @ignoreClone
   private _onSizeChange(): void {
     // @ts-ignore
-    this._updateFlagManager.dispatch(UITransformModifyFlags.Size);
+    this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Size);
   }
 
   @ignoreClone
   private _onPivotChange(): void {
     // @ts-ignore
-    this._updateFlagManager.dispatch(UITransformModifyFlags.Pivot);
+    this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Pivot);
   }
 }
 

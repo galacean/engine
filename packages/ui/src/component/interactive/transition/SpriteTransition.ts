@@ -6,7 +6,8 @@ export class SpriteTransition extends Transition<Sprite, Image> {
   /**
    * @internal
    */
-  override _destroy(): void {
+  override destroy(): void {
+    super.destroy();
     if (this._normal) {
       // @ts-ignore
       this._normal._addReferCount(-1);

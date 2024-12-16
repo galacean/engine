@@ -56,8 +56,7 @@ export class Utils {
   }
 
   static getGroupInParents(entity: Entity, canvasEntity: Entity): UIGroup {
-    entity = entity.parent;
-    const root = canvasEntity?.parent;
+    const root = canvasEntity.parent;
     while (entity && entity !== root) {
       // @ts-ignore
       const components = entity._components;
