@@ -89,7 +89,7 @@ export abstract class LiteColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.pointDistance }
    */
   pointDistance(position: Vector3, rotation: Quaternion, point: Vector3): IPointDistanceInfo {
-    console.error("Physics-lite don't support getInertiaTensor. Use Physics-PhysX instead!");
+    console.error("Physics-lite don't support pointDistance. Use Physics-PhysX instead!");
     return null;
   }
 

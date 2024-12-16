@@ -36,14 +36,19 @@ export class Collision {
    * @returns The result of contact points
    */
   getContacts(outContacts: ContactPoint[]): ContactPoint[] {
+    const { shape0Id, shape1Id } = this._nativeCollision;
     const nativeContactPoints = this._nativeCollision.getContacts();
     for (let i = 0, n = nativeContactPoints.size(); i < n; i++) {
       const nativeContractPoint = nativeContactPoints.get(i);
       const { position, normal, impulse, separation } = nativeContractPoint;
+      let factor = 1;
+      if (shape0Id > shape1Id) {
+        factor = -1;
+      }
       const contact: ContactPoint = {
         position: new Vector3(position.x, position.y, position.z),
-        normal: new Vector3(normal.x, normal.y, normal.z),
-        impulse: new Vector3(impulse.x, impulse.y, impulse.z),
+        normal: new Vector3(normal.x, normal.y, normal.z).scale(factor),
+        impulse: new Vector3(impulse.x, impulse.y, impulse.z).scale(factor),
         separation: separation
       };
       outContacts.push(contact);

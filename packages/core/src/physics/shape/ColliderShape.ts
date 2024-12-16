@@ -142,6 +142,11 @@ export abstract class ColliderShape implements ICustomClone {
    * @returns The distance between the point and the shape
    */
   getDistanceAndClosestPointFromPoint(point: Vector3, outClosestPoint: Vector3): number {
+    const collider = this._collider;
+    if (collider.enabled === false || collider.entity._isActiveInHierarchy === false) {
+      console.warn("The collider is not active in scene.");
+      return -1;
+    }
     const tempQuat = ColliderShape._tempWorldRot;
     const tempPos = ColliderShape._tempWorldPos;
     Vector3.add(this._collider.entity.transform.position, this._position, tempPos);
@@ -149,10 +154,12 @@ export abstract class ColliderShape implements ICustomClone {
     Quaternion.multiply(this._collider.entity.transform.rotationQuaternion, tempQuat, tempQuat);
     const res = this._nativeShape.pointDistance(tempPos, tempQuat, point);
     const distance = res.distance;
-    outClosestPoint.copyFrom(res.closestPoint);
     if (distance > 0) {
-      outClosestPoint.subtract(tempPos);
+      outClosestPoint.copyFrom(res.closestPoint);
+    } else {
+      outClosestPoint.copyFrom(point);
     }
+    outClosestPoint.subtract(tempPos);
     return Math.sqrt(distance);
   }
 

@@ -240,6 +240,33 @@ describe("ColliderShape", () => {
     expect(sphereShape.rotation).to.deep.include({ x: 40, y: -182, z: 720 });
   });
 
+  it("getDistanceAndClosestPointFromPoint", () => {
+    const sphereShape = new BoxColliderShape();
+    dynamicCollider.addShape(sphereShape);
+
+    const point = new Vector3(2, 0, 0);
+    const closestPoint = new Vector3();
+    let distance = sphereShape.getDistanceAndClosestPointFromPoint(point, closestPoint);
+    expect(distance).to.eq(1.5);
+    expect(closestPoint).to.deep.include({ x: 0.5, y: 0, z: 0 });
+
+    point.set(0.1, 0, 0);
+    distance = sphereShape.getDistanceAndClosestPointFromPoint(point, closestPoint);
+    expect(distance).to.eq(0);
+    expect(closestPoint).to.deep.include({ x: 0.1, y: 0, z: 0 });
+  });
+
+  it("getDistanceAndClosestPointFromPoint with collider disabled", () => {
+    const sphereShape = new BoxColliderShape();
+    dynamicCollider.addShape(sphereShape);
+    dynamicCollider.enabled = false;
+
+    const point = new Vector3(2, 0, 0);
+    const closestPoint = new Vector3();
+    const distance = sphereShape.getDistanceAndClosestPointFromPoint(point, closestPoint);
+    expect(distance).to.eq(-1);
+  });
+
   it("clone", () => {
     // SphereColliderShape
     const sphereShape = new SphereColliderShape();
