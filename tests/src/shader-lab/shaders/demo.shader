@@ -90,9 +90,13 @@ Shader "Water" {
       v2f vert(a2v v) {
         v2f o;
 
-        float g1[2], g2, g3[3];
-        g1[0] = .1;
-        g3[2] = .1;
+        vec2 weights[2], offsets[2];
+        weights[0] = vec2(.1);
+        offsets[1] = vec2(.1);
+
+        float[2] c;
+        c[0] = 1.0;
+        c[1] = .4;
 
         o.v_uv = v.TEXCOORD_0;
         vec4 tmp = renderer_MVMat * v.POSITION;

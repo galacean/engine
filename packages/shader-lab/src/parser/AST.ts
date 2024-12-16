@@ -540,14 +540,8 @@ export namespace ASTNode {
         sm = new VarSymbol(id.lexeme, this.typeInfo, false, this);
         sa.symbolTable.insert(sm);
       } else if (this.children.length === 4 || this.children.length === 6) {
-        debugger;
         const typeInfo = this.typeInfo;
         const arraySpecifier = this.children[3] as ArraySpecifier;
-        // #if _VERBOSE
-        if (typeInfo.arraySpecifier && arraySpecifier) {
-          sa.error(arraySpecifier.location, "Array of array is not supported.");
-        }
-        // #endif
         typeInfo.arraySpecifier = arraySpecifier;
         const id = this.children[2] as Token;
         sm = new VarSymbol(id.lexeme, typeInfo, false, this);
