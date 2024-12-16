@@ -9,6 +9,7 @@ import { ShaderLab } from "../ShaderLab";
 // #if _VERBOSE
 import { GSError } from "../GSError";
 // #endif
+import { Logger } from "@galacean/engine";
 
 export type TranslationRule<T = any> = (sa: SematicAnalyzer, ...tokens: NodeChild[]) => T;
 
@@ -64,13 +65,13 @@ export default class SematicAnalyzer {
     return this._translationRuleTable.get(pid);
   }
 
-  error(loc: ShaderRange, ...param: any[]) {
+  error(loc: ShaderRange, message: string) {
     // #if _VERBOSE
-    const err = new GSError(GSErrorName.CompilationError, param.join(""), loc, ShaderLab._processingPassText);
+    const err = new GSError(GSErrorName.CompilationError, message, loc, ShaderLab._processingPassText);
     this.errors.push(err);
     return err;
     // #else
-    this.errors.push(new Error(param.join("")));
+    Logger.error(message);
     // #endif
   }
 }

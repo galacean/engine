@@ -468,7 +468,7 @@ export namespace ASTNode {
         else {
           const id = child as VariableIdentifier;
           if (!id.symbolInfo) {
-            sa.error(id.location, "Undeclared symbol:", id.lexeme);
+            sa.error(id.location, `Undeclared symbol: ${id.lexeme}`);
           }
           if (!ParserUtils.typeCompatible(EKeyword.INT, id.typeInfo)) {
             sa.error(id.location, "Invalid integer.");
@@ -876,7 +876,7 @@ export namespace ASTNode {
         const fnSymbol = sa.symbolTable.lookup({ ident: fnIdent, symbolType: ESymbolType.FN, signature: paramSig });
         if (!fnSymbol) {
           // #if _VERBOSE
-          sa.error(this.location, "No overload function type found: ", functionIdentifier.ident);
+          sa.error(this.location, `No overload function type found: ${functionIdentifier.ident}`);
           // #endif
           return;
         }
@@ -1434,19 +1434,22 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const { children } = this;
       const length = children.length;
-      this.type = (children[0] as VariableDeclaration | VariableDeclarationList).type;
+      const variableDeclation = children[0] as VariableDeclaration;
+      const type = variableDeclation.type;
+      this.type = type;
+
       if (length === 1) {
         return;
       }
 
-      const variableDeclation = children[0] as VariableDeclaration;
-      const type = variableDeclation.type;
       const ident = children[2] as Token;
 
       const newVariable = VariableDeclaration.pool.get();
       if (length === 3) {
+        // variable_declaration_list ',' id
         newVariable.set(ident.location, [type, ident]);
       } else {
+        // variable_declaration_list ',' id array_specifier
         newVariable.set(ident.location, [type, ident, children[3] as ArraySpecifier]);
       }
       newVariable.semanticAnalyze(sa);
@@ -1490,7 +1493,7 @@ export namespace ASTNode {
       this.symbolInfo = sa.symbolTable.lookup({ ident: token.lexeme, symbolType: ESymbolType.VAR }) as VarSymbol;
       // #if _VERBOSE
       if (!this.symbolInfo) {
-        sa.error(this.location, "undeclared identifier:", token.lexeme);
+        sa.error(this.location, `undeclared identifier: ${token.lexeme}`);
       }
       // #endif
     }
