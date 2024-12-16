@@ -245,7 +245,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     this._dirtyUpdateFlag = dirtyUpdateFlag;
     // Init sub render element.
     const { engine } = context.camera;
-    const canvas = this.canvas;
+    const canvas = this._getCanvas();
     const subRenderElement = engine._subRenderElementPool.get();
     const subChunk = this._subChunk;
     subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);

@@ -3,11 +3,10 @@ import { UICanvas } from "../component/UICanvas";
 
 export interface IElement {
   entity: Entity;
-  readonly canvas: UICanvas;
-
   _indexInCanvas: number;
   _isCanvasDirty: boolean;
-
   _canvasListeningEntities: Entity[];
+
+  _getCanvas(): UICanvas;
   _canvasListener: (flag: number, param?: any) => void;
 }

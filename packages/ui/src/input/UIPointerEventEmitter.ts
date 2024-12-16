@@ -226,7 +226,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
       path.length = 1;
       return path;
     } else {
-      const rootEntity = (element as unknown as IGraphics).canvas.entity;
+      const rootEntity = (element as unknown as IGraphics)._getCanvas().entity;
       for (; i < UIPointerEventEmitter._MAX_PATH_DEPTH && !!entity && entity !== rootEntity; i++) {
         entity = path[i] = entity.parent;
       }

@@ -65,33 +65,6 @@ export class UIInteractive extends Script implements IGroupAble {
     return this._globalInteractive;
   }
 
-  /**
-   * @internal
-   */
-  get canvas(): UICanvas {
-    if (this._isCanvasDirty) {
-      const curCanvas = Utils.getCanvasInParents(this.entity);
-      Utils._registerElementToCanvas(this, this._canvas, curCanvas);
-      Utils._registerElementToCanvasListener(this, curCanvas);
-      this._isCanvasDirty = false;
-    }
-    return this._canvas;
-  }
-
-  /**
-   * @internal
-   */
-  get group(): UIGroup {
-    if (this._isGroupDirty) {
-      const canvas = this.canvas;
-      const group = canvas ? Utils.getGroupInParents(this.entity, canvas.entity) : null;
-      Utils._registerElementToGroup(this, this._group, group);
-      Utils._registerElementToGroupListener(this, canvas);
-      this._isGroupDirty = false;
-    }
-    return this._group;
-  }
-
   constructor(entity: Entity) {
     super(entity);
     this._groupListener = this._groupListener.bind(this);
@@ -179,6 +152,33 @@ export class UIInteractive extends Script implements IGroupAble {
   /**
    * @internal
    */
+  _getCanvas(): UICanvas {
+    if (this._isCanvasDirty) {
+      const curCanvas = Utils.getCanvasInParents(this.entity);
+      Utils._registerElementToCanvas(this, this._canvas, curCanvas);
+      Utils._registerElementToCanvasListener(this, curCanvas);
+      this._isCanvasDirty = false;
+    }
+    return this._canvas;
+  }
+
+  /**
+   * @internal
+   */
+  _getGroup(): UIGroup {
+    if (this._isGroupDirty) {
+      const canvas = this._getCanvas();
+      const group = canvas ? Utils.getGroupInParents(this.entity, canvas.entity) : null;
+      Utils._registerElementToGroup(this, this._group, group);
+      Utils._registerElementToGroupListener(this, canvas);
+      this._isGroupDirty = false;
+    }
+    return this._group;
+  }
+
+  /**
+   * @internal
+   */
   _removeTransition(transition: Transition): void {
     const transitions = this._transitions;
     for (let i = transitions.length - 1; i >= 0; i--) {
@@ -224,7 +224,7 @@ export class UIInteractive extends Script implements IGroupAble {
 
   private _updateGlobalInteractive(): void {
     if (this._globalInteractiveDirty) {
-      const group = this.group;
+      const group = this._getGroup();
       const globalInteractive = this._interactive && (!group || group.globalInteractive);
       if (this._globalInteractive !== globalInteractive) {
         this._globalInteractive = globalInteractive;

@@ -103,33 +103,6 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
   /**
    * @internal
    */
-  get canvas(): UICanvas {
-    if (this._isCanvasDirty) {
-      const curCanvas = Utils.getCanvasInParents(this.entity);
-      Utils._registerElementToCanvas(this, this._canvas, curCanvas);
-      Utils._registerElementToCanvasListener(this, curCanvas);
-      this._isCanvasDirty = false;
-    }
-    return this._canvas;
-  }
-
-  /**
-   * @internal
-   */
-  get group(): UIGroup {
-    if (this._isGroupDirty) {
-      const canvas = this.canvas;
-      const group = canvas ? Utils.getGroupInParents(this.entity, canvas.entity) : null;
-      Utils._registerElementToGroup(this, this._group, group);
-      Utils._registerElementToGroupListener(this, canvas);
-      this._isGroupDirty = false;
-    }
-    return this._group;
-  }
-
-  /**
-   * @internal
-   */
   constructor(entity: Entity) {
     super(entity);
     // @ts-ignore
@@ -197,6 +170,33 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
   /**
    * @internal
    */
+  _getCanvas(): UICanvas {
+    if (this._isCanvasDirty) {
+      const curCanvas = Utils.getCanvasInParents(this.entity);
+      Utils._registerElementToCanvas(this, this._canvas, curCanvas);
+      Utils._registerElementToCanvasListener(this, curCanvas);
+      this._isCanvasDirty = false;
+    }
+    return this._canvas;
+  }
+
+  /**
+   * @internal
+   */
+  _getGroup(): UIGroup {
+    if (this._isGroupDirty) {
+      const canvas = this._getCanvas();
+      const group = canvas ? Utils.getGroupInParents(this.entity, canvas.entity) : null;
+      Utils._registerElementToGroup(this, this._group, group);
+      Utils._registerElementToGroupListener(this, canvas);
+      this._isGroupDirty = false;
+    }
+    return this._group;
+  }
+
+  /**
+   * @internal
+   */
   @ignoreClone
   _groupListener(flag: number): void {
     if (this._isGroupDirty) return;
@@ -212,7 +212,7 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
   _canvasListener(flag: number): void {
     if (this._isCanvasDirty) return;
     if (flag === EntityModifyFlags.SiblingIndex) {
-      const rootCanvas = this._canvas;
+      const rootCanvas = this._getCanvas();
       rootCanvas && (rootCanvas._hierarchyDirty = true);
     } else if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.CanvasEnableInScene) {
       Utils._onCanvasDirty(this, this._canvas, true);

@@ -96,7 +96,7 @@ export class UIGroup extends Component implements IGroupAble {
       if (this._ignoreParentGroup) {
         this._globalAlpha = this._alpha;
       } else {
-        const parentGroup = this.group;
+        const parentGroup = this._getGroup();
         this._globalAlpha = this._alpha * (parentGroup ? parentGroup.globalAlpha : 1);
       }
       this._setDirtyFlagFalse(GroupModifyFlags.GlobalAlpha);
@@ -109,39 +109,12 @@ export class UIGroup extends Component implements IGroupAble {
       if (this._ignoreParentGroup) {
         this._globalInteractive = this._interactive;
       } else {
-        const parentGroup = this.group;
+        const parentGroup = this._getGroup();
         this._globalInteractive = this._interactive && (!parentGroup || parentGroup.globalInteractive);
       }
       this._setDirtyFlagFalse(GroupModifyFlags.GlobalInteractive);
     }
     return this._globalInteractive;
-  }
-
-  /**
-   * @internal
-   */
-  get canvas(): UICanvas {
-    if (this._isCanvasDirty) {
-      const curCanvas = Utils.getCanvasInParents(this.entity);
-      Utils._registerElementToCanvas(this, this._canvas, curCanvas);
-      Utils._registerElementToCanvasListener(this, curCanvas);
-      this._isCanvasDirty = false;
-    }
-    return this._canvas;
-  }
-
-  /**
-   * @internal
-   */
-  get group(): UIGroup {
-    if (this._isGroupDirty) {
-      const canvas = this.canvas;
-      const group = canvas ? Utils.getGroupInParents(this.entity.parent, canvas.entity) : null;
-      Utils._registerElementToGroup(this, this._group, group);
-      Utils._registerElementToGroupListener(this, canvas);
-      this._isGroupDirty = false;
-    }
-    return this._group;
   }
 
   constructor(entity: Entity) {
@@ -171,6 +144,33 @@ export class UIGroup extends Component implements IGroupAble {
     disorderedElements.length = 0;
     disorderedElements.garbageCollection();
     this._isCanvasDirty = this._isGroupDirty = false;
+  }
+
+  /**
+   * @internal
+   */
+  _getCanvas(): UICanvas {
+    if (this._isCanvasDirty) {
+      const curCanvas = Utils.getCanvasInParents(this.entity);
+      Utils._registerElementToCanvas(this, this._canvas, curCanvas);
+      Utils._registerElementToCanvasListener(this, curCanvas);
+      this._isCanvasDirty = false;
+    }
+    return this._canvas;
+  }
+
+  /**
+   * @internal
+   */
+  _getGroup(): UIGroup {
+    if (this._isGroupDirty) {
+      const canvas = this._getCanvas();
+      const group = canvas ? Utils.getGroupInParents(this.entity.parent, canvas.entity) : null;
+      Utils._registerElementToGroup(this, this._group, group);
+      Utils._registerGroupToGroupListener(this, canvas);
+      this._isGroupDirty = false;
+    }
+    return this._group;
   }
 
   /**

@@ -92,6 +92,15 @@ export class Utils {
     Utils._registerListener(element.entity, canvas?.entity, element._canvasListener, element._canvasListeningEntities);
   }
 
+  static _registerCanvasToCanvasListener(canvas: UICanvas, rootCanvas: UICanvas): void {
+    Utils._registerListener(
+      canvas.entity.parent,
+      rootCanvas?.entity,
+      canvas._canvasListener,
+      canvas._canvasListeningEntities
+    );
+  }
+
   static _registerElementToGroup(element: IGroupAble, pre: UIGroup, cur: UIGroup): void {
     if (pre !== cur) {
       if (pre) {
@@ -111,6 +120,10 @@ export class Utils {
 
   static _registerElementToGroupListener(element: IGroupAble, canvas: UICanvas): void {
     Utils._registerListener(element.entity, canvas?.entity, element._groupListener, element._groupListeningEntities);
+  }
+
+  static _registerGroupToGroupListener(group: UIGroup, canvas: UICanvas): void {
+    Utils._registerListener(group.entity.parent, canvas?.entity, group._groupListener, group._groupListeningEntities);
   }
 
   static _onGroupDirty(element: IGroupAble, preGroup: UIGroup): void {
