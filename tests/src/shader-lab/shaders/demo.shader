@@ -84,8 +84,15 @@ Shader "Water" {
 
     /*Comment without leading space*/
 
+    // test global declaration list.
+    vec2 v1, v2[2], v3[3];
+
       v2f vert(a2v v) {
         v2f o;
+
+        float g1[2], g2, g3[3];
+        g1[0] = .1;
+        g3[2] = .1;
 
         o.v_uv = v.TEXCOORD_0;
         vec4 tmp = renderer_MVMat * v.POSITION;
