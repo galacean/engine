@@ -64,7 +64,7 @@ export class VisitorContext {
     return this.mrtStruct?.ident?.lexeme === type;
   }
 
-  referenceAttribute(ident: BaseToken): Error {
+  referenceAttribute(ident: BaseToken): Error | void {
     if (this._referencedAttributeList[ident.lexeme]) return;
 
     const prop = this.attributeList.find((item) => item.ident.lexeme === ident.lexeme);
@@ -79,7 +79,7 @@ export class VisitorContext {
     this._referencedAttributeList[ident.lexeme] = prop;
   }
 
-  referenceVarying(ident: BaseToken): Error | undefined {
+  referenceVarying(ident: BaseToken): Error | void {
     if (this._referencedVaryingList[ident.lexeme]) return;
 
     const prop = this.varyingStruct?.propList.find((item) => item.ident.lexeme === ident.lexeme);
@@ -94,7 +94,7 @@ export class VisitorContext {
     this._referencedVaryingList[ident.lexeme] = prop;
   }
 
-  referenceMRTProp(ident: BaseToken): Error | undefined {
+  referenceMRTProp(ident: BaseToken): Error | void {
     if (this._referencedMRTList[ident.lexeme]) return;
 
     const prop = this.mrtStruct?.propList.find((item) => item.ident.lexeme === ident.lexeme);

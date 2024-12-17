@@ -24,8 +24,8 @@ export abstract class CodeGenVisitor {
   // #endif
 
   abstract getFragDataCodeGen(index: string | number): string;
-
   abstract getReferencedMRTPropText(index: string | number, ident: string): string;
+
   protected static _tmpArrayPool = new ReturnableObjectPool(TempArray<string>, 10);
 
   defaultCodeGen(children: NodeChild[]) {
@@ -54,27 +54,27 @@ export abstract class CodeGenVisitor {
       if (prop instanceof Token) {
         if (context.isAttributeStruct(<string>postExpr.type)) {
           const error = context.referenceAttribute(prop);
+          // #if _VERBOSE
           if (error) {
-            // #if _VERBOSE
             this.errors.push(<GSError>error);
-            // #endif
           }
+          // #endif
           return prop.lexeme;
         } else if (context.isVaryingStruct(<string>postExpr.type)) {
           const error = context.referenceVarying(prop);
+          // #if _VERBOSE
           if (error) {
-            // #if _VERBOSE
             this.errors.push(<GSError>error);
-            // #endif
           }
+          // #endif
           return prop.lexeme;
         } else if (context.isMRTStruct(<string>postExpr.type)) {
           const error = context.referenceMRTProp(prop);
+          // #if _VERBOSE
           if (error) {
-            // #if _VERBOSE
             this.errors.push(<GSError>error);
-            // #endif
           }
+          // #endif
           return prop.lexeme;
         }
 
