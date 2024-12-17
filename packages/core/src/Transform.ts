@@ -3,6 +3,7 @@ import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
+import { Logger } from "./base";
 
 /**
  * Used to implement transformation related functions.
@@ -579,9 +580,9 @@ export class Transform extends Component {
    * @internal
    */
   _copyFrom(transform: Transform): void {
-    this._position.copyFrom(transform._position);
-    this._rotation.copyFrom(transform._rotation);
-    this._scale.copyFrom(transform._scale);
+    this._position.copyFrom(transform.position);
+    this._rotation.copyFrom(transform.rotation);
+    this._scale.copyFrom(transform.scale);
   }
 
   protected override _onDestroy(): void {
