@@ -11,7 +11,6 @@ export class ComponentsDependencies {
   private static _invDependenciesMap = new Map<ComponentConstructor, ComponentConstructor[]>();
 
   static _dependenciesMap = new Map<ComponentConstructor, DependentInfo>();
-  static _inheritedMap = new Map<ComponentConstructor, Boolean>();
 
   /**
    * @internal
@@ -40,7 +39,13 @@ export class ComponentsDependencies {
    * @internal
    */
   static _removeCheck(entity: Entity, type: ComponentConstructor): void {
+    const components = entity._components;
+    const n = components.length;
     while (type !== Component) {
+      let count = 0;
+      for (let i = 0; i < n; i++) {
+        if (components[i] instanceof type && ++count > 1) return;
+      }
       const invDependencies = ComponentsDependencies._invDependenciesMap.get(type);
       if (invDependencies) {
         for (let i = 0, len = invDependencies.length; i < len; i++) {
@@ -50,15 +55,6 @@ export class ComponentsDependencies {
         }
       }
       type = Object.getPrototypeOf(type);
-    }
-  }
-
-  /**
-   * @internal
-   */
-  static _createChildCheck(child: Entity, type: ComponentConstructor): void {
-    if (ComponentsDependencies._inheritedMap.get(type)) {
-      child.addComponent(type);
     }
   }
 
@@ -92,12 +88,6 @@ export class ComponentsDependencies {
   }
 
   private constructor() {}
-}
-
-export function markAsInherited() {
-  return function <T extends ComponentConstructor>(target: T): void {
-    ComponentsDependencies._inheritedMap.set(target, true);
-  };
 }
 
 /**

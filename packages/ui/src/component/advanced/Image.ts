@@ -152,7 +152,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
 
   protected override _hitTest(localPosition: Vector3): boolean {
     let { x, y } = localPosition;
-    const uiTransform = <UITransform>this._transform;
+    const uiTransform = <UITransform>this._transformEntity.transform;
     const { x: width, y: height } = uiTransform.size;
     const { x: pivotX, y: pivotY } = uiTransform.pivot;
     const { x: paddingLeft, y: paddingBottom, z: paddingRight, w: paddingTop } = this.raycastPadding;
@@ -187,7 +187,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
 
   protected override _updateLocalBounds(localBounds: BoundingBox): void {
     if (this._sprite) {
-      const transform = <UITransform>this._transform;
+      const transform = <UITransform>this._transformEntity.transform;
       const { x: width, y: height } = transform.size;
       const { x: pivotX, y: pivotY } = transform.pivot;
       localBounds.min.set(-width * pivotX, -height * pivotY, 0);
@@ -203,7 +203,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
    */
   protected override _render(context): void {
     const { _sprite: sprite } = this;
-    const transform = this._transform as UITransform;
+    const transform = <UITransform>this._transformEntity.transform;
     const { x: width, y: height } = transform.size;
     if (!sprite?.texture || !width || !height) {
       return;
@@ -226,7 +226,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     let { _dirtyUpdateFlag: dirtyUpdateFlag } = this;
     // Update position
     if (dirtyUpdateFlag & RendererUpdateFlags.AllPositions) {
-      this._assembler.updatePositions(this, width, height, transform.pivot);
+      this._assembler.updatePositions(this, transform.worldMatrix, width, height, transform.pivot);
       dirtyUpdateFlag &= ~RendererUpdateFlags.AllPositions;
     }
 
@@ -245,7 +245,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     this._dirtyUpdateFlag = dirtyUpdateFlag;
     // Init sub render element.
     const { engine } = context.camera;
-    const canvas = this.canvas;
+    const canvas = this._getCanvas();
     const subRenderElement = engine._subRenderElementPool.get();
     const subChunk = this._subChunk;
     subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
@@ -332,7 +332,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   }
 
   private _getUVByLocalPosition(position: Vector3, out: Vector2): boolean {
-    const { size, pivot } = <UITransform>this._transform;
+    const { size, pivot } = <UITransform>this._transformEntity.transform;
     return this._assembler.getUVByLocalPosition(this, size.x, size.y, pivot, position, out);
   }
 }

@@ -210,7 +210,6 @@ export class Label extends UIRenderer implements ITextRenderer {
     // @ts-ignore
     this.setMaterial(engine._basicResources.textDefaultMaterial);
   }
-  z;
 
   /**
    * @internal
@@ -294,7 +293,7 @@ export class Label extends UIRenderer implements ITextRenderer {
     const engine = context.camera.engine;
     const textSubRenderElementPool = engine._textSubRenderElementPool;
     const material = this.getMaterial();
-    const canvas = this.canvas;
+    const canvas = this._getCanvas();
     const renderElement = canvas._renderElement;
     const textChunks = this._textChunks;
     const isOverlay = canvas._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay;
@@ -382,7 +381,7 @@ export class Label extends UIRenderer implements ITextRenderer {
     const { min, max } = this._localBounds;
     const charRenderInfos = Label._charRenderInfos;
     const charFont = this._getSubFont();
-    const size = (<UITransform>this._transform).size;
+    const size = (<UITransform>this._transformEntity.transform).size;
     const rendererWidth = size.x;
     const rendererHeight = size.y;
     const textMetrics = this.enableWrapping
@@ -529,7 +528,7 @@ export class Label extends UIRenderer implements ITextRenderer {
   }
 
   private _isTextNoVisible(): boolean {
-    const size = (<UITransform>this._transform).size;
+    const size = (<UITransform>this._transformEntity.transform).size;
     return (
       this._text === "" ||
       this._fontSize === 0 ||

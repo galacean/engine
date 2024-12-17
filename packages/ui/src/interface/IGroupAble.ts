@@ -3,15 +3,13 @@ import { GroupModifyFlags, UIGroup } from "../component/UIGroup";
 import { IElement } from "./IElement";
 
 export interface IGroupAble extends IElement {
-  readonly group: UIGroup;
   _indexInGroup: number;
   _groupListeningEntities: Entity[];
   _isGroupDirty: boolean;
-  _onUIUpdateIndex?: number;
   _globalAlpha?: number;
   _globalInteractive?: boolean;
 
-  _onUpdate?(): void;
-  _onGroupModify(flag: GroupModifyFlags): void;
+  _getGroup(): UIGroup;
+  _onGroupModify(flag: GroupModifyFlags, isPass?: boolean): void;
   _groupListener: (flag: number) => void;
 }

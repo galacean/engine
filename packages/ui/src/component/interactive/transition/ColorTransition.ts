@@ -1,12 +1,12 @@
 import { Color } from "@galacean/engine";
 import { UIRenderer } from "../../UIRenderer";
 import { Transition } from "./Transition";
-import { InteractiveState } from "../UIInteractive";
+import { InteractiveState, UIInteractive } from "../UIInteractive";
 
 export class ColorTransition extends Transition<Color, UIRenderer> {
   private _color: Color = new Color();
-  constructor() {
-    super();
+  constructor(interactive: UIInteractive) {
+    super(interactive);
     this._normal = new Color(1, 1, 1, 1);
     this._hover = new Color(245 / 255, 245 / 255, 245 / 255, 1);
     this._pressed = new Color(200 / 255, 200 / 255, 200 / 255, 1);

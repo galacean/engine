@@ -1,6 +1,5 @@
-import { Entity, Transform, Vector2, deepClone, ignoreClone, markAsInherited } from "@galacean/engine";
+import { Entity, Transform, Vector2, deepClone, ignoreClone } from "@galacean/engine";
 
-@markAsInherited()
 export class UITransform extends Transform {
   @deepClone
   private _size: Vector2 = new Vector2(100, 100);
@@ -30,12 +29,6 @@ export class UITransform extends Transform {
   constructor(entity: Entity) {
     super(entity);
     // @ts-ignore
-    entity._transform.destroy();
-    // @ts-ignore
-    entity._transform = this;
-    // @ts-ignore
-    entity._inverseWorldMatFlag = this.registerWorldChangeFlag();
-    // @ts-ignore
     this._size._onValueChanged = this._onSizeChange.bind(this);
     // @ts-ignore
     this._pivot._onValueChanged = this._onPivotChange.bind(this);
@@ -44,13 +37,13 @@ export class UITransform extends Transform {
   @ignoreClone
   private _onSizeChange(): void {
     // @ts-ignore
-    this._updateFlagManager.dispatch(UITransformModifyFlags.Size);
+    this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Size);
   }
 
   @ignoreClone
   private _onPivotChange(): void {
     // @ts-ignore
-    this._updateFlagManager.dispatch(UITransformModifyFlags.Pivot);
+    this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Pivot);
   }
 }
 
@@ -60,7 +53,7 @@ export class UITransform extends Transform {
  */
 export enum UITransformModifyFlags {
   /** Size. */
-  Size = 0x100,
+  Size = 0x200,
   /** Pivot. */
-  Pivot = 0x200
+  Pivot = 0x400
 }

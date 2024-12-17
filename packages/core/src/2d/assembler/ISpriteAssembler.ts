@@ -1,4 +1,4 @@
-import { Vector2, Vector3 } from "@galacean/engine-math";
+import { Matrix, Vector2, Vector3 } from "@galacean/engine-math";
 import { ISpriteRenderer } from "./ISpriteRenderer";
 
 /**
@@ -8,6 +8,7 @@ export interface ISpriteAssembler {
   resetData(renderer: ISpriteRenderer, vertexCount?: number): void;
   updatePositions(
     renderer: ISpriteRenderer,
+    worldMatrix: Matrix,
     width: number,
     height: number,
     pivot: Vector2,

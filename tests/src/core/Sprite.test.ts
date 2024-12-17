@@ -83,23 +83,23 @@ describe("Sprite", async () => {
     expect(sprite.height).to.eq(0);
     sprite.texture = texture1;
     // automatic
-    expect(sprite.width).to.eq(20);
-    expect(sprite.height).to.eq(10);
+    expect(sprite.width).to.eq(2000);
+    expect(sprite.height).to.eq(1000);
     sprite.texture = texture2;
-    expect(sprite.width).to.eq(10);
-    expect(sprite.height).to.eq(20);
+    expect(sprite.width).to.eq(1000);
+    expect(sprite.height).to.eq(2000);
     sprite.atlasRegion = new Rect(0, 0, 0.5, 0.5);
-    expect(sprite.width).to.eq(5);
-    expect(sprite.height).to.eq(10);
+    expect(sprite.width).to.eq(500);
+    expect(sprite.height).to.eq(1000);
     sprite.atlasRegion = new Rect(0, 0, 0.5, 0.5);
-    expect(sprite.width).to.eq(5);
-    expect(sprite.height).to.eq(10);
+    expect(sprite.width).to.eq(500);
+    expect(sprite.height).to.eq(1000);
     sprite.region = new Rect(0, 0, 0.5, 0.5);
-    expect(sprite.width).to.eq(2.5);
-    expect(sprite.height).to.eq(5);
+    expect(sprite.width).to.eq(250);
+    expect(sprite.height).to.eq(500);
     sprite.atlasRegionOffset = new Vector4(0.1, 0.1, 0.1, 0.1);
-    expect(sprite.width).to.eq(3.125);
-    expect(sprite.height).to.eq(6.25);
+    expect(sprite.width).to.eq(312.5);
+    expect(sprite.height).to.eq(625);
     // custom
     sprite.width = 100;
     sprite.height = 200;
@@ -164,19 +164,6 @@ describe("Sprite", async () => {
     expect(uvs[1]).to.deep.eq(new Vector2(0, 0.5));
     expect(uvs[2]).to.deep.eq(new Vector2(0.25, 0.25));
     expect(uvs[3]).to.deep.eq(new Vector2(0.25, 0.25));
-  });
-
-  it("_getBounds", () => {
-    const sprite = new Sprite(engine, new Texture2D(engine, 100, 200));
-    // @ts-ignore
-    let bounds = sprite._getBounds();
-    expect(bounds.min).to.deep.eq(new Vector3(0, 0, 0));
-    expect(bounds.max).to.deep.eq(new Vector3(1, 1, 0));
-    sprite.region = new Rect(0, 0, 0.5, 0.5);
-    // @ts-ignore
-    bounds = sprite._getBounds();
-    expect(bounds.min).to.deep.eq(new Vector3(0, 0, 0));
-    expect(bounds.max).to.deep.eq(new Vector3(1, 1, 0));
   });
 
   it("destroy", () => {

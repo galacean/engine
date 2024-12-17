@@ -103,32 +103,6 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
   /**
    * @internal
    */
-  get canvas(): UICanvas {
-    if (this._isCanvasDirty) {
-      const curCanvas = Utils.getCanvasInParents(this.entity);
-      Utils._registerElementToCanvas(this, this._canvas, curCanvas);
-      Utils._registerElementToCanvasListener(this, curCanvas);
-      this._isCanvasDirty = false;
-    }
-    return this._canvas;
-  }
-
-  /**
-   * @internal
-   */
-  get group(): UIGroup {
-    if (this._isGroupDirty) {
-      const canvas = this.canvas;
-      Utils._registerElementToGroup(this, this._group, Utils.getGroupInParents(this.entity, canvas?.entity));
-      Utils._registerElementToGroupListener(this, canvas);
-      this._isGroupDirty = false;
-    }
-    return this._group;
-  }
-
-  /**
-   * @internal
-   */
   constructor(entity: Entity) {
     super(entity);
     // @ts-ignore
@@ -196,10 +170,37 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
   /**
    * @internal
    */
+  _getCanvas(): UICanvas {
+    if (this._isCanvasDirty) {
+      const curCanvas = Utils.getRootCanvasInParents(this.entity);
+      Utils._registerElementToCanvas(this, this._canvas, curCanvas);
+      Utils._registerElementToCanvasListener(this, curCanvas);
+      this._isCanvasDirty = false;
+    }
+    return this._canvas;
+  }
+
+  /**
+   * @internal
+   */
+  _getGroup(): UIGroup {
+    if (this._isGroupDirty) {
+      const canvas = this._getCanvas();
+      const group = canvas ? Utils.getGroupInParents(this.entity, canvas.entity) : null;
+      Utils._registerElementToGroup(this, this._group, group);
+      Utils._registerElementToGroupListener(this, canvas);
+      this._isGroupDirty = false;
+    }
+    return this._group;
+  }
+
+  /**
+   * @internal
+   */
   @ignoreClone
   _groupListener(flag: number): void {
     if (this._isGroupDirty) return;
-    if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.UIGroupEnableInScene) {
+    if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.GroupEnableInScene) {
       Utils._onGroupDirty(this, this._group);
     }
   }
@@ -211,9 +212,9 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
   _canvasListener(flag: number): void {
     if (this._isCanvasDirty) return;
     if (flag === EntityModifyFlags.SiblingIndex) {
-      const rootCanvas = this._canvas;
+      const rootCanvas = this._getCanvas();
       rootCanvas && (rootCanvas._hierarchyDirty = true);
-    } else if (flag === EntityModifyFlags.Parent) {
+    } else if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.CanvasEnableInScene) {
       Utils._onCanvasDirty(this, this._canvas, true);
       Utils._onGroupDirty(this, this._group);
     }
@@ -246,7 +247,7 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
    */
   _raycast(ray: Ray, out: HitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
     const plane = UIRenderer._tempPlane;
-    const transform = this._transform;
+    const transform = <UITransform>this._transformEntity.transform;
     const normal = plane.normal.copyFrom(transform.worldForward);
     plane.distance = -Vector3.dot(normal, transform.worldPosition);
     const curDistance = ray.intersectPlane(plane);
@@ -270,7 +271,7 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
 
   protected _hitTest(localPosition: Vector3): boolean {
     const { x, y } = localPosition;
-    const uiTransform = <UITransform>this._transform;
+    const uiTransform = <UITransform>this._transformEntity.transform;
     const { x: width, y: height } = uiTransform.size;
     const { x: pivotX, y: pivotY } = uiTransform.pivot;
     const { x: paddingLeft, y: paddingBottom, z: paddingRight, w: paddingTop } = this.raycastPadding;

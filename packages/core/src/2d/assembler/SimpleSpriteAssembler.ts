@@ -9,7 +9,7 @@ import { ISpriteRenderer } from "./ISpriteRenderer";
 @StaticInterfaceImplement<ISpriteAssembler>()
 export class SimpleSpriteAssembler {
   private static _rectangleTriangles = [0, 1, 2, 2, 1, 3];
-  private static _worldMatrix = new Matrix();
+  private static _matrix = new Matrix();
 
   static resetData(renderer: ISpriteRenderer): void {
     const manager = renderer._getChunkManager();
@@ -22,6 +22,7 @@ export class SimpleSpriteAssembler {
 
   static updatePositions(
     renderer: ISpriteRenderer,
+    worldMatrix: Matrix,
     width: number,
     height: number,
     pivot: Vector2,
@@ -31,10 +32,9 @@ export class SimpleSpriteAssembler {
     const { sprite } = renderer;
     const { x: pivotX, y: pivotY } = pivot;
     // Renderer's worldMatrix
-    const worldMatrix = SimpleSpriteAssembler._worldMatrix;
-    const { elements: wE } = worldMatrix;
+    const { elements: wE } = SimpleSpriteAssembler._matrix;
     // Parent's worldMatrix
-    const { elements: pWE } = renderer._transform.worldMatrix;
+    const { elements: pWE } = worldMatrix;
     const sx = flipX ? -width : width;
     const sy = flipY ? -height : height;
     (wE[0] = pWE[0] * sx), (wE[1] = pWE[1] * sx), (wE[2] = pWE[2] * sx);

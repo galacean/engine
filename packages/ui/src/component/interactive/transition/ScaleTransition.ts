@@ -1,9 +1,10 @@
 import { UIRenderer } from "../../UIRenderer";
+import { UIInteractive } from "../UIInteractive";
 import { Transition } from "./Transition";
 
 export class ScaleTransition extends Transition<number, UIRenderer> {
-  constructor() {
-    super();
+  constructor(interactive: UIInteractive) {
+    super(interactive);
     this._normal = 1;
     this._hover = 1;
     this._pressed = 1.2;

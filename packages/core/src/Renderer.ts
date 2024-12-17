@@ -55,9 +55,6 @@ export class Renderer extends Component implements IComponentCustomClone {
   /** @internal */
   @ignoreClone
   _batchedTransformShaderData: boolean = false;
-  /** @internal */
-  @ignoreClone
-  _transformEntity: Entity;
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;
@@ -71,6 +68,8 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected _localBounds: BoundingBox = new BoundingBox();
   @ignoreClone
   protected _bounds: BoundingBox = new BoundingBox();
+  @ignoreClone
+  protected _transformEntity: Entity;
 
   @deepClone
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
@@ -379,6 +378,13 @@ export class Renderer extends Component implements IComponentCustomClone {
   /**
    * @internal
    */
+  _isFrontFaceInvert(): boolean {
+    return this._transformEntity.transform._isFrontFaceInvert();
+  }
+
+  /**
+   * @internal
+   */
   protected override _onDestroy(): void {
     super._onDestroy();
 
@@ -494,7 +500,7 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected _updateLocalBounds(localBounds: BoundingBox): void {}
 
   protected _updateBounds(worldBounds: BoundingBox): void {
-    BoundingBox.transform(this.localBounds, this._transform.worldMatrix, worldBounds);
+    BoundingBox.transform(this.localBounds, this._transformEntity.transform.worldMatrix, worldBounds);
   }
 
   protected _render(context: RenderContext): void {

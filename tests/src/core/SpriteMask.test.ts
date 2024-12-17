@@ -195,10 +195,8 @@ describe("SpriteMask", async () => {
     expect(uvs[1]).to.deep.eq(new Vector2(0, 0));
     expect(uvs[2]).to.deep.eq(new Vector2(0, 0));
     expect(uvs[3]).to.deep.eq(new Vector2(0, 0));
-    // @ts-ignore
-    const { min, max } = spriteMask._bounds;
-    expect(min).to.deep.eq(new Vector3(0, 0, 0));
-    expect(max).to.deep.eq(new Vector3(0, 0, 0));
+    expect(spriteMask.bounds.min).to.deep.eq(new Vector3(0, 0, 0));
+    expect(spriteMask.bounds.max).to.deep.eq(new Vector3(0, 0, 0));
 
     const sprite = new Sprite(engine, texture2d);
     spriteMask.sprite = sprite;
@@ -212,7 +210,6 @@ describe("SpriteMask", async () => {
       uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
       index += 9;
     }
-    // @ts-ignore
     expect(positions[0]).to.deep.eq(new Vector3(-0.5, -1, 0));
     expect(positions[1]).to.deep.eq(new Vector3(0.5, -1, 0));
     expect(positions[2]).to.deep.eq(new Vector3(-0.5, 1, 0));
@@ -221,8 +218,7 @@ describe("SpriteMask", async () => {
     expect(uvs[1]).to.deep.eq(new Vector2(1, 1));
     expect(uvs[2]).to.deep.eq(new Vector2(0, 0));
     expect(uvs[3]).to.deep.eq(new Vector2(1, 0));
-    // @ts-ignore
-    expect(min).to.deep.eq(new Vector3(-0.5, -1, 0));
-    expect(max).to.deep.eq(new Vector3(0.5, 1, 0));
+    expect(spriteMask.bounds.min).to.deep.eq(new Vector3(-0.5, -1, 0));
+    expect(spriteMask.bounds.max).to.deep.eq(new Vector3(0.5, 1, 0));
   });
 });

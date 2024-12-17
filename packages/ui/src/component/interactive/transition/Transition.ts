@@ -1,6 +1,6 @@
 import { Color, ReferResource, Sprite } from "@galacean/engine";
 import { UIRenderer } from "../../UIRenderer";
-import { InteractiveState } from "../UIInteractive";
+import { InteractiveState, UIInteractive } from "../UIInteractive";
 
 export abstract class Transition<
   T extends TransitionValueType = TransitionValueType,
@@ -96,6 +96,20 @@ export abstract class Transition<
   /**
    * @internal
    */
+  constructor(protected _interactive: UIInteractive) {}
+
+  destroy(): void {
+    const interactive = this._interactive;
+    if (interactive) {
+      interactive._removeTransition(this);
+      this._interactive = null;
+    }
+    this._target = null;
+  }
+
+  /**
+   * @internal
+   */
   _setState(state: InteractiveState, instant: boolean) {
     this._finalState = state;
     const value = this._getValueByState(state);
@@ -118,13 +132,6 @@ export abstract class Transition<
       this._countDown -= delta;
       this._updateValue();
     }
-  }
-
-  /**
-   * @internal
-   */
-  _destroy(): void {
-    this._target = null;
   }
 
   protected abstract _getTargetValueCopy(): T;

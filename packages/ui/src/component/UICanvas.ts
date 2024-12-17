@@ -167,15 +167,11 @@ export class UICanvas extends Component implements IElement {
   set distance(val: number) {
     if (this._distance !== val) {
       this._distance = val;
-      this._realRenderMode === CanvasRenderMode.ScreenSpaceCamera && this._adapterPoseInScreenSpace();
+      if (this._realRenderMode === CanvasRenderMode.ScreenSpaceCamera) {
+        this._adapterPoseInScreenSpace();
+        this._adapterSizeInScreenSpace();
+      }
     }
-  }
-
-  /**
-   * @internal
-   */
-  get canvas(): UICanvas {
-    return this._canvas;
   }
 
   /**
@@ -209,6 +205,13 @@ export class UICanvas extends Component implements IElement {
     out.point.set(0, 0, 0);
     out.normal.set(0, 0, 0);
     return false;
+  }
+
+  /**
+   * @internal
+   */
+  _getCanvas(): UICanvas {
+    return this._canvas;
   }
 
   /**
@@ -276,14 +279,14 @@ export class UICanvas extends Component implements IElement {
     const entity = this.entity;
     // @ts-ignore
     entity._dispatchModify(EntityUIModifyFlags.CanvasEnableInScene, this);
-    const rootCanvas = Utils.getCanvasInParents(entity);
+    const rootCanvas = Utils.getRootCanvasInParents(entity);
     if (rootCanvas) {
       this._setIsRootCanvas(false);
       Utils._registerElementToCanvas(this, null, rootCanvas);
     } else {
       this._setIsRootCanvas(true);
     }
-    Utils._registerElementToCanvasListener(this, rootCanvas);
+    Utils._registerCanvasToCanvasListener(this, rootCanvas);
   }
 
   // @ts-ignore
@@ -299,29 +302,28 @@ export class UICanvas extends Component implements IElement {
   _canvasListener(flag: number, param: any): void {
     if (this._isRootCanvas) {
       if (flag === EntityModifyFlags.Parent) {
-        const entity = this.entity;
-        const rootCanvas = Utils.getCanvasInParents(entity);
+        const rootCanvas = Utils.getRootCanvasInParents(this.entity);
         if (rootCanvas) {
           this._setIsRootCanvas(false);
           Utils._registerElementToCanvas(this, null, rootCanvas);
         }
-        Utils._registerElementToCanvasListener(this, rootCanvas);
+        Utils._registerCanvasToCanvasListener(this, rootCanvas);
       } else if (flag === EntityUIModifyFlags.CanvasEnableInScene) {
         this._setIsRootCanvas(false);
         const rootCanvas = param as UICanvas;
         Utils._registerElementToCanvas(this, null, rootCanvas);
-        Utils._registerElementToCanvasListener(this, rootCanvas);
+        Utils._registerCanvasToCanvasListener(this, rootCanvas);
       }
     } else {
       if (flag === EntityModifyFlags.Parent) {
-        const rootCanvas = Utils.getCanvasInParents(this.entity);
+        const rootCanvas = Utils.getRootCanvasInParents(this.entity);
         if (rootCanvas) {
           this._setIsRootCanvas(false);
           Utils._registerElementToCanvas(this, this._canvas, rootCanvas);
         } else {
           this._setIsRootCanvas(true);
         }
-        Utils._registerElementToCanvasListener(this, rootCanvas);
+        Utils._registerCanvasToCanvasListener(this, rootCanvas);
       }
     }
   }
@@ -447,13 +449,13 @@ export class UICanvas extends Component implements IElement {
       this._cameraObserver = camera;
       if (preCamera) {
         // @ts-ignore
-        preCamera.entity.transform._updateFlagManager.removeListener(this._onCameraTransformListener);
+        preCamera.entity._updateFlagManager.removeListener(this._onCameraTransformListener);
         // @ts-ignore
         preCamera._unRegisterModifyListener(this._onCameraModifyListener);
       }
       if (camera) {
         // @ts-ignore
-        camera.entity.transform._updateFlagManager.addListener(this._onCameraTransformListener);
+        camera.entity._updateFlagManager.addListener(this._onCameraTransformListener);
         // @ts-ignore
         camera._registerModifyListener(this._onCameraModifyListener);
       }
@@ -535,7 +537,7 @@ export class UICanvas extends Component implements IElement {
             const componentType = (element as unknown as Component)._componentType;
             if (componentType === ComponentType.UICanvas) {
               const canvas = element as unknown as UICanvas;
-              const rootCanvas = Utils.getCanvasInParents(element.entity, root);
+              const rootCanvas = Utils.getRootCanvasInParents(element.entity, root);
               if (rootCanvas) {
                 canvas._setIsRootCanvas(false);
                 Utils._registerElementToCanvas(canvas, this, rootCanvas);
@@ -543,7 +545,7 @@ export class UICanvas extends Component implements IElement {
                 canvas._setIsRootCanvas(true);
                 Utils._registerElementToCanvas(canvas, this, null);
               }
-              Utils._registerElementToCanvasListener(canvas, rootCanvas);
+              Utils._registerCanvasToCanvasListener(canvas, rootCanvas);
             } else if (componentType === ComponentType.UIRenderer) {
               Utils._onCanvasDirty(element, this, true);
             } else {
@@ -621,5 +623,5 @@ enum CanvasRealRenderMode {
  */
 export enum EntityUIModifyFlags {
   CanvasEnableInScene = 0x4,
-  UIGroupEnableInScene = 0x8
+  GroupEnableInScene = 0x8
 }
