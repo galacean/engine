@@ -515,7 +515,7 @@ export class Engine extends EventDispatcher {
 
       const uiCanvas = componentsManager._overlayCanvases;
       if (uiCanvas.length > 0) {
-        componentsManager.sortUICanvases();
+        componentsManager.sortOverlayUICanvases();
         UIUtils.render(this, uiCanvas);
       }
     }

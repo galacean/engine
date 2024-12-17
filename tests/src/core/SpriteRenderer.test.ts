@@ -1577,3 +1577,22 @@ describe("SpriteRenderer", async () => {
     expect(spriteRenderer.bounds.max).to.deep.eq(new Vector3(0.5, 1, 0));
   });
 });
+
+function log(positions: Vector3[], uv: Vector2[]): void {
+  for (let i = 0; i < positions.length; i++) {
+    console.log(
+      "expect(Vector3.equals(positions[",
+      i,
+      "], new Vector3(",
+      positions[i].x,
+      ", ",
+      positions[i].y,
+      ", ",
+      positions[i].z,
+      "))).to.eq(true);"
+    );
+  }
+  for (let i = 0; i < uv.length; i++) {
+    console.log("expect(Vector2.equals(uvs[", i, "], new Vector2(", uv[i].x, ", ", uv[i].y, "))).to.eq(true);");
+  }
+}

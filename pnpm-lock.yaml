@@ -247,6 +247,12 @@ importers:
         specifier: workspace:*
         version: link:../design
 
+  packages/shader-shaderlab:
+    devDependencies:
+      '@galacean/engine':
+        specifier: workspace:*
+        version: link:../galacean
+
   packages/ui:
     devDependencies:
       '@galacean/engine':

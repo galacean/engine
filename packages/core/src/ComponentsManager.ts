@@ -20,7 +20,7 @@ export class ComponentsManager {
   /** @internal */
   _overlayCanvases: DisorderedArray<IUICanvas> = new DisorderedArray();
   /* @internal */
-  _overlayCanvasesSortingFlag: boolean = false;
+  _overlayCanvasesSortingDirty: boolean = false;
   /** @internal */
   _canvases: DisorderedArray<IUICanvas> = new DisorderedArray();
 
@@ -81,7 +81,7 @@ export class ComponentsManager {
     let canvases: DisorderedArray<IUICanvas>;
     if (isOverlay) {
       canvases = this._overlayCanvases;
-      this._overlayCanvasesSortingFlag = true;
+      this._overlayCanvasesSortingDirty = true;
     } else {
       canvases = this._canvases;
     }
@@ -93,7 +93,7 @@ export class ComponentsManager {
     let canvases: DisorderedArray<IUICanvas>;
     if (isOverlay) {
       canvases = this._overlayCanvases;
-      this._overlayCanvasesSortingFlag = true;
+      this._overlayCanvasesSortingDirty = true;
     } else {
       canvases = this._canvases;
     }
@@ -102,14 +102,14 @@ export class ComponentsManager {
     uiCanvas._canvasIndex = -1;
   }
 
-  sortUICanvases(): void {
-    if (this._overlayCanvasesSortingFlag) {
+  sortOverlayUICanvases(): void {
+    if (this._overlayCanvasesSortingDirty) {
       const overlayCanvases = this._overlayCanvases;
       overlayCanvases.sort((a, b) => a.sortOrder - b.sortOrder);
       for (let i = 0, n = overlayCanvases.length; i < n; i++) {
         overlayCanvases.get(i)._canvasIndex = i;
       }
-      this._overlayCanvasesSortingFlag = false;
+      this._overlayCanvasesSortingDirty = false;
     }
   }
 

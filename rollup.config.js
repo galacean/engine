@@ -28,14 +28,13 @@ const shaderLabPkg = pkgs.find((item) => item.pkgJson.name === "@galacean/engine
 pkgs.push({ ...shaderLabPkg, verboseMode: true });
 
 // toGlobalName
-
 const extensions = [".js", ".jsx", ".ts", ".tsx"];
 const mainFields = NODE_ENV === "development" ? ["debug", "module", "main"] : undefined;
 
 const commonPlugins = [
   resolve({ extensions, preferBuiltins: true, mainFields }),
   glslify({
-    include: [/\.glsl$/]
+    include: [/\.(glsl|gs)$/]
   }),
   swc(
     defineRollupSwcOption({
