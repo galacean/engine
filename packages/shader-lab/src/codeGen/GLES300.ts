@@ -132,7 +132,10 @@ export class GLES300Visitor extends GLESVisitor {
 
   override visitJumpStatement(node: ASTNode.JumpStatement): string {
     if (node.isFragReturnStatement) {
-      const { _referencedVaryingList } = VisitorContext.context;
+      const { _referencedVaryingList, mrtStruct } = VisitorContext.context;
+      if (mrtStruct) {
+        return "";
+      }
       if (!_referencedVaryingList[V3_GL_FragColor]) {
         const token = Token.pool.get();
         token.set(ETokenType.ID, V3_GL_FragColor, ShaderLab.createPosition(0, 0, 0));
