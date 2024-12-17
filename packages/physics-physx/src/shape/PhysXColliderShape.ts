@@ -130,7 +130,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
    */
   pointDistance(translation: Vector3, rotation: Quaternion, point: Vector3): IPointDistanceInfo {
     const transform = PhysXColliderShape.transform;
-    Vector3.multiply(translation, this._worldScale, transform.translation);
+    transform.translation = translation;
     transform.rotation = rotation;
     return this._pxGeometry.pointDistance(transform, point);
   }

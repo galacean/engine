@@ -1,4 +1,4 @@
-import { ISphereColliderShape } from "@galacean/engine-design";
+import { IPointDistanceInfo, ISphereColliderShape } from "@galacean/engine-design";
 import { LiteColliderShape } from "./LiteColliderShape";
 import { BoundingSphere, Quaternion, Ray, Vector3 } from "@galacean/engine";
 import { LiteHitResult } from "../LiteHitResult";
@@ -42,6 +42,30 @@ export class LiteSphereColliderShape extends LiteColliderShape implements ISpher
   override setWorldScale(scale: Vector3): void {
     super.setWorldScale(scale);
     this._maxScale = Math.max(Math.abs(scale.x), Math.abs(scale.y), Math.abs(scale.z));
+  }
+
+  /**
+   * {@inheritDoc IColliderShape.pointDistance }
+   */
+  override pointDistance(position: Vector3, rotation: Quaternion, point: Vector3): IPointDistanceInfo {
+    const p = LiteColliderShape._tempPoint;
+    Vector3.subtract(point, position, p);
+    const direction = p.normalize();
+
+    Vector3.scale(direction, this.worldRadius, p);
+    p.add(position);
+
+    if (Vector3.equals(p, point)) {
+      return {
+        distance: 0,
+        closestPoint: point
+      };
+    }
+
+    return {
+      distance: Vector3.distanceSquared(point, p),
+      closestPoint: p
+    };
   }
 
   /**

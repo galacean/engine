@@ -1,4 +1,4 @@
-import { Matrix, Quaternion, Ray, Vector3 } from "@galacean/engine";
+import { MathUtil, Matrix, Quaternion, Ray, Vector3 } from "@galacean/engine";
 import { IColliderShape, IPhysicsMaterial, IPointDistanceInfo } from "@galacean/engine-design";
 import { LiteCollider } from "../LiteCollider";
 import { LiteHitResult } from "../LiteHitResult";
@@ -9,8 +9,8 @@ import { LiteUpdateFlag } from "../LiteUpdateFlag";
  * Abstract class for collider shapes.
  */
 export abstract class LiteColliderShape implements IColliderShape {
+  protected static _tempPoint = new Vector3();
   private static _ray = new Ray();
-  private static _tempPoint = new Vector3();
 
   /** @internal */
   _id: number;
@@ -27,6 +27,8 @@ export abstract class LiteColliderShape implements IColliderShape {
   /** @internal */
   _inverseWorldMatFlag: LiteUpdateFlag;
 
+  private _rotation: Vector3 = new Vector3();
+
   protected constructor() {
     this._transform.owner = this;
     this._inverseWorldMatFlag = this._transform.registerWorldChangeFlag();
@@ -36,7 +38,15 @@ export abstract class LiteColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setRotation }
    */
   setRotation(rotation: Vector3): void {
-    console.log("Physics-lite don't support setRotation. Use Physics-PhysX instead!");
+    if (rotation !== this._rotation) {
+      this._rotation.copyFrom(rotation);
+      Quaternion.rotationEuler(
+        MathUtil.degreeToRadian(rotation.x),
+        MathUtil.degreeToRadian(rotation.y),
+        MathUtil.degreeToRadian(rotation.z),
+        this._transform.rotationQuaternion
+      );
+    }
   }
 
   /**
@@ -88,10 +98,7 @@ export abstract class LiteColliderShape implements IColliderShape {
   /**
    * {@inheritDoc IColliderShape.pointDistance }
    */
-  pointDistance(position: Vector3, rotation: Quaternion, point: Vector3): IPointDistanceInfo {
-    console.error("Physics-lite don't support pointDistance. Use Physics-PhysX instead!");
-    return null;
-  }
+  abstract pointDistance(position: Vector3, rotation: Quaternion, point: Vector3): IPointDistanceInfo;
 
   /**
    * {@inheritDoc IColliderShape.destroy }

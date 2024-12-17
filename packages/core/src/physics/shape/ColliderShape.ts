@@ -1,6 +1,6 @@
 import { IColliderShape } from "@galacean/engine-design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
-import { Quaternion, Vector3 } from "@galacean/engine-math";
+import { MathUtil, Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
@@ -13,6 +13,7 @@ export abstract class ColliderShape implements ICustomClone {
   private static _idGenerator: number = 0;
   private static _tempWorldPos: Vector3 = new Vector3();
   private static _tempWorldRot: Quaternion = new Quaternion();
+  private static _tempMatrix: Matrix = new Matrix();
 
   /** @internal */
   @ignoreClone
@@ -149,9 +150,17 @@ export abstract class ColliderShape implements ICustomClone {
     }
     const tempQuat = ColliderShape._tempWorldRot;
     const tempPos = ColliderShape._tempWorldPos;
-    Vector3.add(this._collider.entity.transform.position, this._position, tempPos);
-    Quaternion.fromAngle(this._rotation, tempQuat);
+    Vector3.transformCoordinate(this._position, collider.entity.transform.worldMatrix, tempPos);
+
+    const rotation = this._rotation;
+    Quaternion.rotationEuler(
+      MathUtil.degreeToRadian(rotation.x),
+      MathUtil.degreeToRadian(rotation.y),
+      MathUtil.degreeToRadian(rotation.z),
+      tempQuat
+    );
     Quaternion.multiply(this._collider.entity.transform.rotationQuaternion, tempQuat, tempQuat);
+
     const res = this._nativeShape.pointDistance(tempPos, tempQuat, point);
     const distance = res.distance;
     if (distance > 0) {
@@ -159,7 +168,15 @@ export abstract class ColliderShape implements ICustomClone {
     } else {
       outClosestPoint.copyFrom(point);
     }
-    outClosestPoint.subtract(tempPos);
+
+    const m = ColliderShape._tempMatrix;
+    Matrix.invert(collider.entity.transform.worldMatrix, m);
+    Vector3.transformCoordinate(outClosestPoint, m, outClosestPoint);
+
+    outClosestPoint.subtract(this._position);
+
+    Quaternion.invert(tempQuat, tempQuat);
+    Vector3.transformByQuat(outClosestPoint, tempQuat, outClosestPoint);
     return Math.sqrt(distance);
   }
 

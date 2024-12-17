@@ -413,16 +413,6 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     out._onValueChanged && out._onValueChanged();
   }
 
-  /**
-   * Create a quaternion from the specified angle.
-   * @param angle - The specified angle
-   * @param out - The calculated quaternion
-   */
-  static fromAngle(angle: Vector3, out: Quaternion): void {
-    const angleToRadian = Math.PI / 180;
-    Quaternion.rotationYawPitchRoll(angle.y * angleToRadian, angle.x * angleToRadian, angle.z * angleToRadian, out);
-  }
-
   /** @internal */
   _x: number;
   /** @internal */

@@ -5,7 +5,7 @@ import { Collider } from "./Collider";
 import { PhysicsScene } from "./PhysicsScene";
 import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
 import { ColliderShape } from "./shape";
-import { deepClone } from "../clone/CloneManager";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
 
 /**
  * The character controllers.
@@ -166,6 +166,7 @@ export class CharacterController extends Collider {
     (<ICharacterController>this._nativeCollider).getWorldPosition(this.entity.transform.worldPosition);
   }
 
+  @ignoreClone
   private _setUpDirection(): void {
     (<ICharacterController>this._nativeCollider).setUpDirection(this._upDirection);
   }
