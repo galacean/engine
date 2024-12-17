@@ -101,7 +101,7 @@ export default class BaseScanner {
       const start = this.curPosition;
       this.advance(2);
       // single line comments
-      while (this.getCurChar() !== "\n") this._advance();
+      while (this.getCurChar() !== "\n" && !this.isEnd()) this._advance();
       this.skipCommentsAndSpace();
       return ShaderLab.createRange(start, this.curPosition);
     } else if (this.peek(2) === "/*") {
