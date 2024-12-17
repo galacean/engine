@@ -1,7 +1,7 @@
 import { ASTNode } from "../parser/AST";
 import { SymbolType } from "../parser/types";
 import { BaseToken as Token } from "../common/BaseToken";
-import { EKeyword, ETokenType, ShaderPosition } from "../common";
+import { EKeyword, ETokenType } from "../common";
 import { GLESVisitor } from "./GLESVisitor";
 import { EShaderStage } from "../common/Enums";
 import { ICodeSegment } from "./types";
@@ -30,49 +30,43 @@ export class GLES300Visitor extends GLESVisitor {
     return `layout(location = ${index}) out vec4 ${ident};`;
   }
 
-  override getAttributeDeclare(): ICodeSegment[] {
-    const ret: ICodeSegment[] = [];
+  override getAttributeDeclare(out: ICodeSegment[]): void {
     for (const item of Object.values(VisitorContext.context._referencedAttributeList)) {
-      ret.push({
+      out.push({
         text: `in ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
         index: item.ident.location.start.index
       });
     }
-    return ret;
   }
 
-  override getVaryingDeclare(): ICodeSegment[] {
-    const ret: ICodeSegment[] = [];
+  override getVaryingDeclare(out: ICodeSegment[]): void {
     const qualifier = VisitorContext.context.stage === EShaderStage.FRAGMENT ? "in" : "out";
     const values = Object.values(VisitorContext.context._referencedVaryingList);
     for (let i = 0; i < values.length; i++) {
       const item = values[i];
-      ret.push({
+      out.push({
         text: `${item.qualifier ?? qualifier} ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
         index: item.ident.location.start.index
       });
     }
-    return ret;
   }
 
-  override getMRTDeclare(): ICodeSegment[] {
-    const ret: ICodeSegment[] = [];
+  override getMRTDeclare(out: ICodeSegment[]): void {
     const referencedMRTList = VisitorContext.context._referencedMRTList;
     for (let ident in referencedMRTList) {
       const info = referencedMRTList[ident];
       if (typeof info === "string") {
-        ret.push({
+        out.push({
           text: info,
           index: Number.MAX_SAFE_INTEGER
         });
       } else {
-        ret.push({
+        out.push({
           text: this.getReferencedMRTPropText(info.mrtIndex, ident),
           index: info.ident.location.start.index
         });
       }
     }
-    return ret;
   }
 
   override visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {

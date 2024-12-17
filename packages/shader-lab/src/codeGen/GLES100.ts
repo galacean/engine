@@ -31,29 +31,25 @@ export class GLES100Visitor extends GLESVisitor {
     return "";
   }
 
-  override getAttributeDeclare(): ICodeSegment[] {
-    const ret: ICodeSegment[] = [];
+  override getAttributeDeclare(out: ICodeSegment[]): void {
     for (const item of Object.values(VisitorContext.context._referencedAttributeList)) {
-      ret.push({
+      out.push({
         text: `attribute ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
         index: item.ident.location.start.index
       });
     }
-    return ret;
   }
 
-  override getVaryingDeclare(): ICodeSegment[] {
-    const ret: ICodeSegment[] = [];
+  override getVaryingDeclare(out: ICodeSegment[]): void {
     for (const item of Object.values(VisitorContext.context._referencedVaryingList)) {
-      ret.push({
+      out.push({
         text: `varying ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
         index: item.ident.location.start.index
       });
     }
-    return ret;
   }
 
-  override getMRTDeclare(): ICodeSegment[] | undefined {
+  override getMRTDeclare(out: ICodeSegment[]): void {
     return;
   }
 

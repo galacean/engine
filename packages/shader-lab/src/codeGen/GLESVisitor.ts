@@ -25,9 +25,9 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   protected _versionText: string = "";
   protected _extensions: string = "";
 
-  abstract getAttributeDeclare(): ICodeSegment[];
-  abstract getVaryingDeclare(): ICodeSegment[];
-  abstract getMRTDeclare(): ICodeSegment[] | undefined;
+  abstract getAttributeDeclare(out: ICodeSegment[]): void;
+  abstract getVaryingDeclare(out: ICodeSegment[]): void;
+  abstract getMRTDeclare(out: ICodeSegment[]): void;
 
   visitShaderProgram(node: ASTNode.GLShaderProgram, vertexEntry: string, fragmentEntry: string): IShaderInfo {
     // #if _VERBOSE
@@ -59,7 +59,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
         VisitorContext.context.varyingStruct = varyStruct.astNode;
       }
     } else if (returnType.type !== EKeyword.VOID) {
-      this._reportError(returnType.location, "vertex main entry can only return struct.");
+      this._reportError(returnType.location, "vertex main entry can only return struct or void.");
     }
 
     const paramList = fnNode.protoType.parameterList;
@@ -85,12 +85,13 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     }
 
     const statements = fnNode.statements.codeGen(this);
-    const globalText = this._getGlobalText(data);
+    const globalCodeArray: ICodeSegment[] = [];
 
-    const attributeDeclare = this.getAttributeDeclare();
-    const varyingDeclare = this.getVaryingDeclare();
+    this._getGlobalText(data, globalCodeArray);
+    this.getAttributeDeclare(globalCodeArray);
+    this.getVaryingDeclare(globalCodeArray);
 
-    const globalCode = [...globalText, ...attributeDeclare, ...varyingDeclare]
+    const globalCode = globalCodeArray
       .sort((a, b) => a.index - b.index)
       .map((item) => item.text)
       .join("\n");
@@ -111,37 +112,40 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       returnStatement.isFragReturnStatement = true;
     }
 
-    VisitorContext.context.stage = EShaderStage.FRAGMENT;
+    const { context } = VisitorContext;
+    context.stage = EShaderStage.FRAGMENT;
 
-    const returnType = fnNode.protoType.returnType;
-    if (typeof returnType.type === "string") {
-      const mrtStruct = symbolTable.lookup<StructSymbol>({ ident: returnType.type, symbolType: ESymbolType.STRUCT });
+    const { type: returnDataType, location: returnLocation } = fnNode.protoType.returnType;
+    if (typeof returnDataType === "string") {
+      const mrtStruct = symbolTable.lookup<StructSymbol>({ ident: returnDataType, symbolType: ESymbolType.STRUCT });
       if (!mrtStruct) {
-        this._reportError(returnType.location, `invalid mrt struct: ${returnType.type}`);
+        this._reportError(returnLocation, `invalid mrt struct: ${returnDataType}`);
       } else {
-        VisitorContext.context.mrtStruct = mrtStruct.astNode;
+        context.mrtStruct = mrtStruct.astNode;
       }
-    } else if (returnType.type !== EKeyword.VOID && returnType.type !== EKeyword.VEC4) {
-      this._reportError(returnType.location, "fragment main entry can only return struct or vec4.");
+    } else if (returnDataType !== EKeyword.VOID && returnDataType !== EKeyword.VEC4) {
+      this._reportError(returnLocation, "fragment main entry can only return struct or vec4.");
     }
 
     const statements = fnNode.statements.codeGen(this);
-    const globalText = this._getGlobalText(data);
-    const varyingDeclare = this.getVaryingDeclare();
-    const mrtDeclare = this.getMRTDeclare() ?? [];
+    const globalCodeArray: ICodeSegment[] = [];
 
-    const globalCode = [...globalText, ...varyingDeclare, ...mrtDeclare]
+    this._getGlobalText(data, globalCodeArray);
+    this.getVaryingDeclare(globalCodeArray);
+    this.getMRTDeclare(globalCodeArray);
+
+    const globalCode = globalCodeArray
       .sort((a, b) => a.index - b.index)
       .map((item) => item.text)
       .join("\n");
 
-    VisitorContext.context.reset();
+    context.reset();
     return `${this._versionText}\n${this._extensions}\n${defaultPrecision}\n${globalCode}\n\nvoid main() ${statements}`;
   }
 
   private _getGlobalText(
     data: ShaderData,
-    textList: ICodeSegment[] = [],
+    textList: ICodeSegment[],
     lastLength: number = 0,
     _serialized: Set<string> = new Set()
   ): ICodeSegment[] {
