@@ -220,10 +220,6 @@ export abstract class CodeGenVisitor {
     return this.defaultCodeGen(node.children);
   }
 
-  visitLayoutQualifier(node: ASTNode.LayoutQualifier): string {
-    return this.defaultCodeGen(node.children);
-  }
-
   protected _reportError(loc: ShaderRange | ShaderPosition, message: string): void {
     // #if _VERBOSE
     this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderLab._processingPassText));

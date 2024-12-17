@@ -1091,10 +1091,6 @@ export namespace ASTNode {
     get index(): number {
       return Number((<BaseToken>this.children[4]).lexeme);
     }
-
-    override codeGen(visitor: CodeGenVisitor): string {
-      return visitor.visitLayoutQualifier(this);
-    }
   }
 
   @ASTNodeDecorator(ENonTerminal.struct_declarator_list)
