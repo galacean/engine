@@ -313,8 +313,7 @@ export class Label extends UIRenderer implements ITextRenderer {
   }
 
   private _updatePosition(): void {
-    const { transform } = this.entity;
-    const e = transform.worldMatrix.elements;
+    const e = this._transformEntity.transform.worldMatrix.elements;
 
     // prettier-ignore
     const e0 = e[0], e1 = e[1], e2 = e[2],
