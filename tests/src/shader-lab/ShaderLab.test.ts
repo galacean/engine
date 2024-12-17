@@ -264,13 +264,13 @@ describe("ShaderLab", () => {
   });
 
   it("mrt-normal", async () => {
-    const shaderSource = await readFile("./shaders/mrt-webgl1-normal.shader");
+    const shaderSource = await readFile("./shaders/mrt-normal.shader");
     glslValidate(shaderSource, shaderLabVerbose, {}, ShaderPlatformTarget.GLES100);
     glslValidate(shaderSource, shaderLabVerbose, {}, ShaderPlatformTarget.GLES300);
   });
 
   it("mrt-struct", async () => {
-    const shaderSource = await readFile("./shaders/mrt-webgl1-struct.shader");
+    const shaderSource = await readFile("./shaders/mrt-struct.shader");
     glslValidate(shaderSource, shaderLabVerbose, {}, ShaderPlatformTarget.GLES100);
     glslValidate(shaderSource, shaderLabVerbose, {}, ShaderPlatformTarget.GLES300);
   });
