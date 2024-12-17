@@ -1,8 +1,8 @@
+import { ColliderShape } from "./ColliderShape";
 import { IBoxColliderShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { PhysicsScene } from "../PhysicsScene";
-import { ColliderShape } from "./ColliderShape";
+import { deepClone, ignoreClone } from "../../clone/CloneManager";
 
 /**
  * Physical collider shape for box.

@@ -25,35 +25,35 @@ export class Transform extends Component {
   @deepClone
   protected _rotationQuaternion: Quaternion = new Quaternion();
   @deepClone
-  private _scale: Vector3 = new Vector3(1, 1, 1);
+  protected _scale: Vector3 = new Vector3(1, 1, 1);
   @assignmentClone
-  private _localUniformScaling: boolean = true;
+  protected _localUniformScaling: boolean = true;
   @deepClone
   protected _worldPosition: Vector3 = new Vector3();
   @deepClone
   protected _worldRotation: Vector3 = new Vector3();
   @deepClone
-  private _worldRotationQuaternion: Quaternion = new Quaternion();
+  protected _worldRotationQuaternion: Quaternion = new Quaternion();
   @assignmentClone
-  private _worldUniformScaling: boolean = true;
+  protected _worldUniformScaling: boolean = true;
   @deepClone
-  private _lossyWorldScale: Vector3 = new Vector3(1, 1, 1);
+  protected _lossyWorldScale: Vector3 = new Vector3(1, 1, 1);
   @deepClone
   protected _localMatrix: Matrix = new Matrix();
   @deepClone
   protected _worldMatrix: Matrix = new Matrix();
   @ignoreClone
-  private _worldForward: Vector3 = null;
+  protected _worldForward: Vector3 = null;
   @ignoreClone
-  private _worldRight: Vector3 = null;
+  protected _worldRight: Vector3 = null;
   @ignoreClone
-  private _worldUp: Vector3 = null;
+  protected _worldUp: Vector3 = null;
 
   @ignoreClone
-  private _isParentDirty: boolean = true;
+  protected _isParentDirty: boolean = true;
   @ignoreClone
-  private _parentTransformCache: Transform = null;
-  private _dirtyFlag: number = TransformModifyFlags.WmWpWeWqWs;
+  protected _parentTransformCache: Transform = null;
+  protected _dirtyFlag: number = TransformModifyFlags.WmWpWeWqWs;
 
   /**
    * Local position.

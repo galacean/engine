@@ -67,6 +67,8 @@ export class Renderer extends Component implements IComponentCustomClone {
   @ignoreClone
   protected _localBounds: BoundingBox = new BoundingBox();
   @ignoreClone
+  protected _customLocalBounds: BoundingBox;
+  @ignoreClone
   protected _bounds: BoundingBox = new BoundingBox();
   @ignoreClone
   protected _transformEntity: Entity;
@@ -142,11 +144,21 @@ export class Renderer extends Component implements IComponentCustomClone {
    * The local bounding volume of the renderer.
    */
   get localBounds(): BoundingBox {
+    if (this._customLocalBounds) return this._customLocalBounds;
     if (this._dirtyUpdateFlag & RendererUpdateFlags.LocalBounds) {
       this._updateLocalBounds(this._localBounds);
       this._dirtyUpdateFlag &= ~RendererUpdateFlags.LocalBounds;
     }
     return this._localBounds;
+  }
+
+  set localBounds(value: BoundingBox) {
+    if (value) {
+      (this._customLocalBounds ||= new BoundingBox()).copyFrom(value);
+    } else {
+      this._customLocalBounds = null;
+    }
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldBounds;
   }
 
   /**
