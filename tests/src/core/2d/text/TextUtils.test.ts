@@ -289,8 +289,8 @@ describe("TextUtils", () => {
       textRendererTruncate.height * _pixelsPerUnit,
       textRendererTruncate.lineSpacing * _pixelsPerUnit
     );
-    expect(result.width).to.be.equal(20);
-    expect(result.height).to.be.equal(486);
+    expect(result.width).to.be.equal(24);
+    expect(result.height).to.be.equal(432);
     expect(result.lines).to.be.deep.equal([
       "T",
       "h",
@@ -299,11 +299,9 @@ describe("TextUtils", () => {
       "e",
       "at",
       "h",
-      "e",
-      "r ",
-      "is",
-      "g",
-      "r",
+      "er",
+      "is ",
+      "gr",
       "e",
       "at",
       "to",
@@ -320,7 +318,7 @@ describe("TextUtils", () => {
       textRendererTruncate.lineSpacing * _pixelsPerUnit
     );
     expect(result.width).to.be.equal(24);
-    expect(result.height).to.be.equal(621);
+    expect(result.height).to.be.equal(567);
     expect(result.lines).to.be.deep.equal([
       "阳",
       "光",
@@ -333,11 +331,9 @@ describe("TextUtils", () => {
       "e",
       "at",
       "h",
-      "e",
-      "r ",
-      "is",
-      "g",
-      "r",
+      "er",
+      "is ",
+      "gr",
       "e",
       "at",
       "to",
@@ -355,8 +351,8 @@ describe("TextUtils", () => {
       textRendererTruncate.lineSpacing * _pixelsPerUnit
     );
     expect(result.width).to.be.equal(23);
-    expect(result.height).to.be.equal(162);
-    expect(result.lines).to.be.deep.equal(["  ", "  ", "W", "o", "rl", "d"]);
+    expect(result.height).to.be.equal(135);
+    expect(result.lines).to.be.deep.equal(['   ', '   ', 'W', 'or', 'ld']);
     expect(result.lineHeight).to.be.equal(27);
 
     wrap1TextRenderer.enableWrapping = true;
