@@ -1,4 +1,5 @@
 import { PostProcess } from "./PostProcess";
+import { PostProcessEffectParameter } from "./PostProcessEffectParameter";
 
 /**
  * The base class for post process effect.
@@ -7,6 +8,27 @@ export class PostProcessEffect {
   private _phasedActive = false;
 
   private _enabled = true;
+  private _parameters: PostProcessEffectParameter<any>[] = [];
+  private _parameterInitialized = false;
+
+  /**
+   * Get all parameters of the post process effect.
+   * @remarks
+   * Only get the parameters that are initialized in the constructor.
+   * It will don't take effect if you add a new parameter after the post process effect is created, such as `effect.** = new PostProcessEffectParameter(1)`
+   */
+  get parameters(): PostProcessEffectParameter<any>[] {
+    if (!this._parameterInitialized) {
+      this._parameterInitialized = true;
+      for (let key in this) {
+        const value = this[key];
+        if (value instanceof PostProcessEffectParameter) {
+          this._parameters.push(value);
+        }
+      }
+    }
+    return this._parameters;
+  }
 
   /**
    * The engine the post process effect belongs to
@@ -63,11 +85,19 @@ export class PostProcessEffect {
   onDisable(): void {}
 
   /**
-   * Interpolates a post process effect with this effect by an interpolation.
-   * @param fromEffect - The effect to interpolate from, you must store the result of the interpolation in this same effect
-   * @param interpFactor - The interpolation factor in range [0,1]
+   * Interpolates from the current effect to the end effect by an interpolation factor.
+   * @param toEffect - The end effect
+  //  * @param interpFactor - The interpolation factor in range [0,1]
    */
-  lerp(fromEffect: PostProcessEffect, interpFactor: number): void {}
+  lerp(toEffect: PostProcessEffect, interpFactor: number): void {
+    const parameters = this.parameters;
+    for (let i = 0; i < parameters.length; i++) {
+      const targetParameter = toEffect.parameters[i];
+      if (targetParameter.enabled) {
+        parameters[i].lerp(targetParameter.value, interpFactor);
+      }
+    }
+  }
 
   /**
    * @internal

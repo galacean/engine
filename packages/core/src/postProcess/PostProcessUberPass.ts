@@ -66,7 +66,7 @@ export class PostProcessUberPass extends PostProcessPass {
     const bloomBlend = this.getBlendEffect(BloomEffect);
     const tonemappingBlend = this.getBlendEffect(TonemappingEffect);
 
-    if (bloomBlend && bloomBlend.enabled && bloomBlend.intensity > 0) {
+    if (bloomBlend && bloomBlend.enabled && bloomBlend.intensity.value > 0) {
       this._setupBloom(bloomBlend, camera, srcTexture);
       uberShaderData.enableMacro(BloomEffect._enableMacro);
     } else {
@@ -75,7 +75,7 @@ export class PostProcessUberPass extends PostProcessPass {
     }
 
     if (tonemappingBlend && tonemappingBlend.enabled) {
-      uberShaderData.enableMacro("TONEMAPPING_MODE", tonemappingBlend.mode.toString());
+      uberShaderData.enableMacro("TONEMAPPING_MODE", tonemappingBlend.mode.value.toString());
       uberShaderData.enableMacro(TonemappingEffect._enableMacro);
     } else {
       uberShaderData.disableMacro(TonemappingEffect._enableMacro);
@@ -104,26 +104,26 @@ export class PostProcessUberPass extends PostProcessPass {
       bloomBlend;
 
     // Update shaderData
-    const thresholdLinear = Color.gammaToLinearSpace(threshold);
+    const thresholdLinear = Color.gammaToLinearSpace(threshold.value);
     const thresholdKnee = thresholdLinear * 0.5; // Hardcoded soft knee
     const bloomParams = bloomShaderData.getVector4(BloomEffect._bloomParams);
-    const scatterLerp = MathUtil.lerp(0.05, 0.95, scatter);
-    bloomParams.x = threshold;
+    const scatterLerp = MathUtil.lerp(0.05, 0.95, scatter.value);
+    bloomParams.x = threshold.value;
     bloomParams.y = thresholdKnee;
     bloomParams.z = scatterLerp;
     const bloomIntensityParams = uberShaderData.getVector4(BloomEffect._bloomIntensityParams);
-    bloomIntensityParams.x = intensity;
-    bloomIntensityParams.y = dirtIntensity;
+    bloomIntensityParams.x = intensity.value;
+    bloomIntensityParams.y = dirtIntensity.value;
     const tintParam = uberShaderData.getColor(BloomEffect._tintProp);
-    tintParam.copyFrom(tint);
-    if (highQualityFiltering) {
+    tintParam.copyFrom(tint.value);
+    if (highQualityFiltering.value) {
       bloomShaderData.enableMacro(BloomEffect._hqMacro);
       uberShaderData.enableMacro(BloomEffect._hqMacro);
     } else {
       bloomShaderData.disableMacro(BloomEffect._hqMacro);
       uberShaderData.disableMacro(BloomEffect._hqMacro);
     }
-    uberShaderData.setTexture(BloomEffect._dirtTextureProp, dirtTexture);
+    uberShaderData.setTexture(BloomEffect._dirtTextureProp, dirtTexture.value);
     if (dirtTexture) {
       uberShaderData.enableMacro(BloomEffect._dirtMacro);
     } else {
@@ -131,7 +131,7 @@ export class PostProcessUberPass extends PostProcessPass {
     }
 
     // Determine the iteration count
-    const downRes = downScale === BloomDownScaleMode.Half ? 1 : 2;
+    const downRes = downScale.value === BloomDownScaleMode.Half ? 1 : 2;
     const pixelViewport = camera.pixelViewport;
     const tw = pixelViewport.width >> downRes;
     const th = pixelViewport.height >> downRes;
@@ -216,9 +216,9 @@ export class PostProcessUberPass extends PostProcessPass {
     }
 
     // Setup bloom on uber
-    if (dirtTexture) {
+    if (dirtTexture.value) {
       const dirtTilingOffset = uberShaderData.getVector4(BloomEffect._dirtTilingOffsetProp);
-      const dirtRatio = dirtTexture.width / dirtTexture.height;
+      const dirtRatio = dirtTexture.value.width / dirtTexture.value.height;
       const screenRatio = camera.aspectRatio;
       if (dirtRatio > screenRatio) {
         dirtTilingOffset.set(screenRatio / dirtRatio, 1, (1 - dirtTilingOffset.x) * 0.5, 0);

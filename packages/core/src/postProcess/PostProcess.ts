@@ -1,5 +1,5 @@
 import { Logger } from "../base";
-import { ignoreClone } from "../clone/CloneManager";
+import { deepClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Layer } from "../Layer";
 import { PostProcessEffect } from "./PostProcessEffect";
@@ -25,7 +25,7 @@ export class PostProcess extends Component {
   /**
    * @internal
    */
-  @ignoreClone
+  @deepClone
   _effects: PostProcessEffect[] = [];
 
   /**
@@ -121,16 +121,6 @@ export class PostProcess extends Component {
     const effects = this._effects;
     for (let i = 0, length = effects.length; i < length; i++) {
       effects[i]._setActive(isActive);
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _cloneTo(target: PostProcess): void {
-    const effects = this._effects;
-    for (let i = 0; i < effects.length; i++) {
-      target.addEffect(<typeof PostProcessEffect>effects[i].constructor);
     }
   }
 }

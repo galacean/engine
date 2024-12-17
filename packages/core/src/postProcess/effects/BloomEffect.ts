@@ -1,9 +1,10 @@
-import { Color, MathUtil } from "@galacean/engine-math";
+import { Color } from "@galacean/engine-math";
 import { Shader, ShaderMacro, ShaderPass, ShaderProperty } from "../../shader";
 import blitVs from "../../shaderlib/extra/Blit.vs.glsl";
-import { Texture2D } from "../../texture";
 
+import { Texture2D } from "../../texture";
 import { PostProcessEffect } from "../PostProcessEffect";
+import { PostProcessEffectParameter } from "../PostProcessEffectParameter";
 import fragBlurH from "../shaders/Bloom/BloomBlurH.glsl";
 import fragBlurV from "../shaders/Bloom/BloomBlurV.glsl";
 import fragPrefilter from "../shaders/Bloom/BloomPrefilter.glsl";
@@ -54,104 +55,47 @@ export class BloomEffect extends PostProcessEffect {
   /** @internal */
   static _dirtTilingOffsetProp = ShaderProperty.getByName("material_BloomDirtTilingOffset");
 
-  private _threshold = 0.9;
-  private _scatter = 0.7;
-  private _intensity = 0;
-  private _dirtIntensity = 1;
-  private _tint: Color = new Color(1, 1, 1, 1);
-
   /**
    * Controls whether to use bicubic sampling instead of bilinear sampling for the upSampling passes.
    * @remarks This is slightly more expensive but helps getting smoother visuals.
    */
-  highQualityFiltering = false;
+  highQualityFiltering = new PostProcessEffectParameter<boolean>(false);
 
   /**
    * Controls the starting resolution that this effect begins processing.
    */
-  downScale = BloomDownScaleMode.Half;
+  downScale = new PostProcessEffectParameter<BloomDownScaleMode>(BloomDownScaleMode.Half);
 
   /**
    * Specifies a Texture to add smudges or dust to the bloom effect.
    */
-  dirtTexture: Texture2D;
+  dirtTexture = new PostProcessEffectParameter<Texture2D>(null);
 
   /**
    * Set the level of brightness to filter out pixels under this level.
    * @remarks This value is expressed in gamma-space.
    */
-
-  get threshold(): number {
-    return this._threshold;
-  }
-
-  set threshold(value: number) {
-    this._threshold = Math.max(0, value);
-  }
+  threshold = new PostProcessEffectParameter<number>(0.9, true, 0);
 
   /**
    * Controls the radius of the bloom effect.
    */
-  get scatter(): number {
-    return this._scatter;
-  }
-
-  set scatter(value: number) {
-    this._scatter = MathUtil.clamp(value, 0, 1);
-  }
+  scatter = new PostProcessEffectParameter<number>(0.7, true, 0, 1);
 
   /**
    * Controls the strength of the bloom effect.
    */
-  get intensity(): number {
-    return this._intensity;
-  }
-
-  set intensity(value: number) {
-    this._intensity = Math.max(0, value);
-  }
+  intensity = new PostProcessEffectParameter<number>(0, true, 0);
 
   /**
    * Controls the strength of the lens dirt.
    */
-  get dirtIntensity(): number {
-    return this._dirtIntensity;
-  }
-
-  set dirtIntensity(value: number) {
-    value = Math.max(0, value);
-    this._dirtIntensity = value;
-  }
+  dirtIntensity = new PostProcessEffectParameter<number>(0, true, 0);
 
   /**
    * Specifies the tint of the bloom effect.
    */
-  get tint(): Color {
-    return this._tint;
-  }
-
-  set tint(value: Color) {
-    if (value !== this._tint) {
-      this._tint.copyFrom(value);
-    }
-  }
-
-  /**
-   * @inheritdoc
-   */
-  override lerp(fromEffect: BloomEffect, interpFactor: number): void {
-    fromEffect.highQualityFiltering = this.highQualityFiltering;
-    fromEffect.downScale = this.downScale;
-    fromEffect.threshold = MathUtil.lerp(fromEffect.threshold, this.threshold, interpFactor);
-    fromEffect.scatter = MathUtil.lerp(fromEffect.scatter, this.scatter, interpFactor);
-    fromEffect.intensity = MathUtil.lerp(fromEffect.intensity, this.intensity, interpFactor);
-    Color.lerp(fromEffect.tint, this.tint, interpFactor, fromEffect.tint);
-
-    if (this.dirtTexture) {
-      fromEffect.dirtTexture = this.dirtTexture;
-      fromEffect.dirtIntensity = MathUtil.lerp(fromEffect.dirtIntensity, this.dirtIntensity, interpFactor);
-    }
-  }
+  tint = new PostProcessEffectParameter<Color>(new Color(1, 1, 1, 1), true);
 }
 
 Shader.create(BloomEffect.SHADER_NAME, [

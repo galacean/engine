@@ -1,5 +1,6 @@
 import { ShaderMacro } from "../../shader";
 import { PostProcessEffect } from "../PostProcessEffect";
+import { PostProcessEffectParameter } from "../PostProcessEffectParameter";
 
 /**
  * Options to select a tonemapping algorithm to use.
@@ -27,12 +28,5 @@ export class TonemappingEffect extends PostProcessEffect {
   /**
    * Use this to select a tonemapping algorithm to use.
    */
-  mode: TonemappingMode = TonemappingMode.Neutral;
-
-  /**
-   * @inheritdoc
-   */
-  override lerp(fromEffect: TonemappingEffect): void {
-    fromEffect.mode = this.mode;
-  }
+  mode = new PostProcessEffectParameter<TonemappingMode>(TonemappingMode.Neutral, false);
 }

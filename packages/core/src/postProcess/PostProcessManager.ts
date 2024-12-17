@@ -213,7 +213,7 @@ export class PostProcessManager {
       }
 
       // Reset effectInstance's value by defaultEffect
-      defaultEffect.lerp(blendEffect, 1);
+      blendEffect.lerp(defaultEffect, 1);
       blendEffect.enabled = false;
     });
   }
@@ -253,7 +253,7 @@ export class PostProcessManager {
         blendEffect.enabled = true;
 
         // @todo: need `collider.ClosestPoint` to be implemented
-        effect.lerp(blendEffect, 1);
+        blendEffect.lerp(effect, 1);
       }
     }
   }
