@@ -205,7 +205,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * @internal
    */
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    BoundingBox.transform(this._localBounds, this._transformEntity.transform.worldMatrix, worldBounds);
+    const rootBone = this.skin?.rootBone;
+    if (rootBone) {
+      BoundingBox.transform(this._localBounds, this._transformEntity.transform.worldMatrix, worldBounds);
+    } else {
+      super._updateBounds(worldBounds);
+    }
   }
 
   private _checkBlendShapeWeightLength(): void {
