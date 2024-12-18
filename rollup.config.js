@@ -31,11 +31,14 @@ pkgs.push({ ...shaderLabPkg, verboseMode: true });
 const extensions = [".js", ".jsx", ".ts", ".tsx"];
 const mainFields = NODE_ENV === "development" ? ["debug", "module", "main"] : undefined;
 
+const glslifyPlugin = glslify({
+  include: [/\.(glsl|gs)$/],
+  compress: false
+});
+
 const commonPlugins = [
   resolve({ extensions, preferBuiltins: true, mainFields }),
-  glslify({
-    include: [/\.(glsl|gs)$/]
-  }),
+  glslifyPlugin,
   swc(
     defineRollupSwcOption({
       include: /\.[mc]?[jt]sx?$/,
@@ -90,6 +93,15 @@ function config({ location, pkgJson, verboseMode }) {
         }
       } else {
         if (compress) {
+          const glslifyPluginIdx = curPlugins.findIndex((item) => item === glslifyPlugin);
+          curPlugins.splice(
+            glslifyPluginIdx,
+            1,
+            glslify({
+              include: [/\.(glsl|gs)$/],
+              compress: true
+            })
+          );
           curPlugins.push(minify({ sourceMap: true }));
           file = path.join(location, "dist", "browser.min.js");
         } else {
