@@ -265,13 +265,22 @@ describe("ShaderLab", () => {
 
   it("mrt-normal", async () => {
     const shaderSource = await readFile("./shaders/mrt-normal.shader");
-    glslValidate(shaderSource, shaderLabVerbose, {}, ShaderPlatformTarget.GLES100);
-    glslValidate(shaderSource, shaderLabVerbose, {}, ShaderPlatformTarget.GLES300);
+    glslValidate(shaderSource, shaderLabVerbose, {});
+    glslValidate(shaderSource, shaderLabRelease, {});
   });
 
   it("mrt-struct", async () => {
     const shaderSource = await readFile("./shaders/mrt-struct.shader");
-    glslValidate(shaderSource, shaderLabVerbose, {}, ShaderPlatformTarget.GLES100);
-    glslValidate(shaderSource, shaderLabVerbose, {}, ShaderPlatformTarget.GLES300);
+    glslValidate(shaderSource, shaderLabVerbose, {});
+    glslValidate(shaderSource, shaderLabVerbose, {});
+  });
+
+  it("mrt-error1", async () => {
+    const shaderSource = await readFile("./shaders/mrt-error1.shader");
+    shaderParse.bind(shaderLabVerbose)(shaderSource, [], ShaderPlatformTarget.GLES300);
+    const errors = shaderLabVerbose.errors;
+    expect(errors.length).to.eq(1);
+    expect(errors[0]).to.be.a.instanceOf(GSError);
+    expect(errors[0].toString()).include("cannot use both gl_FragData and gl_FragColor");
   });
 });

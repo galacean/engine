@@ -7,9 +7,7 @@ import { EShaderStage } from "../common/Enums";
 import { ICodeSegment } from "./types";
 import { VisitorContext } from "./VisitorContext";
 import { ShaderLab } from "../ShaderLab";
-
-const V3_GL_FragColor = "GS_glFragColor";
-const V3_GL_FragData = "GS_glFragData";
+import { V3_GL_FragColor, V3_GL_FragData } from "./CodeGenVisitor";
 
 export class GLES300Visitor extends GLESVisitor {
   override _versionText: string = "#version 300 es";
@@ -106,9 +104,14 @@ export class GLES300Visitor extends GLESVisitor {
   override visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
     const { context } = VisitorContext;
     if (context.stage === EShaderStage.FRAGMENT && node.lexeme === "gl_FragColor") {
+      // #if _VERBOSE
+      if (context._referencedMRTList["gl_FragData"]) {
+        this._reportError(node.location, "cannot use both gl_FragData and gl_FragColor");
+      }
       if (context.mrtStruct) {
         this._reportError(node.location, "gl_FragColor cannot be used with MRT (Multiple Render Targets).");
       }
+      // #endif
       if (!context._referencedVaryingList[V3_GL_FragColor]) {
         const token = Token.pool.get();
         token.set(ETokenType.ID, V3_GL_FragColor, ShaderLab.createPosition(0, 0, 0));

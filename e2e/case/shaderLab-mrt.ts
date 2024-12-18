@@ -76,6 +76,8 @@ const shaderSource = `Shader "/custom.gs" {
                 
                 o.fragColor0 = baseColor;
                 o.fragColor1 = baseColor;
+
+                return o;
               }
           }
         }

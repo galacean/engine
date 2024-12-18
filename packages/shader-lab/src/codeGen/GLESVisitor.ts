@@ -24,6 +24,7 @@ const defaultPrecision = `
 export abstract class GLESVisitor extends CodeGenVisitor {
   protected _versionText: string = "";
   protected _extensions: string = "";
+  private _globalCodeArray: ICodeSegment[] = [];
 
   abstract getAttributeDeclare(out: ICodeSegment[]): void;
   abstract getVaryingDeclare(out: ICodeSegment[]): void;
@@ -85,7 +86,9 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     }
 
     const statements = fnNode.statements.codeGen(this);
-    const globalCodeArray: ICodeSegment[] = [];
+
+    const { _globalCodeArray: globalCodeArray } = this;
+    globalCodeArray.length = 0;
 
     this._getGlobalText(data, globalCodeArray);
     this.getAttributeDeclare(globalCodeArray);
@@ -128,7 +131,8 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     }
 
     const statements = fnNode.statements.codeGen(this);
-    const globalCodeArray: ICodeSegment[] = [];
+    const { _globalCodeArray: globalCodeArray } = this;
+    globalCodeArray.length = 0;
 
     this._getGlobalText(data, globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);

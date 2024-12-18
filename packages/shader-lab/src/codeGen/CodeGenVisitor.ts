@@ -14,6 +14,9 @@ import { GSError } from "../GSError";
 import { Logger, ReturnableObjectPool } from "@galacean/engine";
 import { TempArray } from "../TempArray";
 
+export const V3_GL_FragColor = "GS_glFragColor";
+export const V3_GL_FragData = "GS_glFragData";
+
 /**
  * @internal
  * The code generator
@@ -88,6 +91,11 @@ export abstract class CodeGenVisitor {
       const identLexeme = identNode.codeGen(this);
       const indexLexeme = indexNode.codeGen(this);
       if (identLexeme === "gl_FragData") {
+        // #if _VERBOSE
+        if (context._referencedVaryingList[V3_GL_FragColor]) {
+          this._reportError(identNode.location, "cannot use both gl_FragData and gl_FragColor");
+        }
+        // #endif
         const mrtLexeme = this.getFragDataCodeGen(indexLexeme);
         context._referencedMRTList[mrtLexeme] = this.getReferencedMRTPropText(indexLexeme, mrtLexeme);
         return mrtLexeme;

@@ -66,12 +66,7 @@ function validateShaderPass(
   }
 }
 
-export function glslValidate(
-  shaderSource,
-  _shaderLab?: ShaderLab,
-  includeMap = {},
-  codeGen = ShaderPlatformTarget.GLES300
-) {
+export function glslValidate(shaderSource, _shaderLab?: ShaderLab, includeMap = {}) {
   const shaderLab = _shaderLab ?? new ShaderLab();
   for (const key in includeMap) {
     ShaderFactory.registerInclude(key, includeMap[key]);
