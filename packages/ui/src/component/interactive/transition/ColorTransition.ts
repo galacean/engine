@@ -3,6 +3,9 @@ import { UIRenderer } from "../../UIRenderer";
 import { Transition } from "./Transition";
 import { InteractiveState, UIInteractive } from "../UIInteractive";
 
+/**
+ * Color transition.
+ */
 export class ColorTransition extends Transition<Color, UIRenderer> {
   private _color: Color = new Color();
   constructor(interactive: UIInteractive) {

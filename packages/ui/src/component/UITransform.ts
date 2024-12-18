@@ -1,11 +1,17 @@
 import { Entity, Transform, Vector2, deepClone, ignoreClone } from "@galacean/engine";
 
+/**
+ * The Transform component exclusive to the UI element.
+ */
 export class UITransform extends Transform {
   @deepClone
   private _size: Vector2 = new Vector2(100, 100);
   @deepClone
   private _pivot: Vector2 = new Vector2(0.5, 0.5);
 
+  /**
+   * Width and height of UI element.
+   */
   get size(): Vector2 {
     return this._size;
   }
@@ -16,6 +22,9 @@ export class UITransform extends Transform {
     (size.x !== val.x || size.y !== val.y) && size.copyFrom(val);
   }
 
+  /**
+   * Pivot of UI element.
+   */
   get pivot(): Vector2 {
     return this._pivot;
   }
@@ -26,6 +35,9 @@ export class UITransform extends Transform {
     (pivot.x !== val.x || pivot.y !== val.y) && pivot.copyFrom(val);
   }
 
+  /**
+   * @internal
+   */
   constructor(entity: Entity) {
     super(entity);
     // @ts-ignore

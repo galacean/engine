@@ -1446,54 +1446,54 @@ describe("SpriteRenderer", async () => {
     expect(spriteRenderer.shaderData.getTexture(property)).to.eq(texture2d);
 
     // @ts-ignore
-    spriteRenderer._dirtyUpdateFlag &= ~0x5;
+    spriteRenderer._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.AllPositionAndBounds;
     sprite.width = 10;
     // @ts-ignore
-    expect(!!(spriteRenderer._dirtyUpdateFlag & 0x5)).to.eq(true);
+    expect(!!(spriteRenderer._dirtyUpdateFlag & SpriteRendererUpdateFlags.AllPositionAndBounds)).to.eq(true);
 
     spriteRenderer.drawMode = SpriteDrawMode.Tiled;
     // @ts-ignore
-    spriteRenderer._dirtyUpdateFlag &= ~0x7;
+    spriteRenderer._dirtyUpdateFlag &= SpriteRendererUpdateFlags.AllPositionBoundsUVAndColor;
     sprite.width = 11;
     // @ts-ignore
-    expect(!!(spriteRenderer._dirtyUpdateFlag & 0x7)).to.eq(true);
+    expect(!!(spriteRenderer._dirtyUpdateFlag & SpriteRendererUpdateFlags.AllPositionBoundsUVAndColor)).to.eq(true);
 
     spriteRenderer.drawMode = SpriteDrawMode.Sliced;
     // @ts-ignore
-    spriteRenderer._dirtyUpdateFlag &= ~0x5;
+    spriteRenderer._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.AllPositionAndBounds;
     sprite.width = 12;
     // @ts-ignore
-    expect(!!(spriteRenderer._dirtyUpdateFlag & 0x5)).to.eq(true);
+    expect(!!(spriteRenderer._dirtyUpdateFlag & SpriteRendererUpdateFlags.AllPositionAndBounds)).to.eq(true);
 
     // @ts-ignore
-    spriteRenderer._dirtyUpdateFlag &= ~0x3;
+    spriteRenderer._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.AllPositionAndUV;
     sprite.border = new Vector4();
     // @ts-ignore
-    expect(!!(spriteRenderer._dirtyUpdateFlag & 0x3)).to.eq(true);
+    expect(!!(spriteRenderer._dirtyUpdateFlag & SpriteRendererUpdateFlags.AllPositionAndUV)).to.eq(true);
 
     // @ts-ignore
-    spriteRenderer._dirtyUpdateFlag &= ~0x3;
+    spriteRenderer._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.AllPositionAndUV;
     sprite.region = new Rect();
     // @ts-ignore
-    expect(!!(spriteRenderer._dirtyUpdateFlag & 0x3)).to.eq(true);
+    expect(!!(spriteRenderer._dirtyUpdateFlag & SpriteRendererUpdateFlags.AllPositionAndUV)).to.eq(true);
 
     // @ts-ignore
-    spriteRenderer._dirtyUpdateFlag &= ~0x3;
+    spriteRenderer._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.AllPositionAndUV;
     sprite.atlasRegionOffset = new Vector4();
     // @ts-ignore
-    expect(!!(spriteRenderer._dirtyUpdateFlag & 0x3)).to.eq(true);
+    expect(!!(spriteRenderer._dirtyUpdateFlag & SpriteRendererUpdateFlags.AllPositionAndUV)).to.eq(true);
 
     // @ts-ignore
-    spriteRenderer._dirtyUpdateFlag &= ~0x2;
+    spriteRenderer._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.UV;
     sprite.atlasRegion = new Rect();
     // @ts-ignore
-    expect(!!(spriteRenderer._dirtyUpdateFlag & 0x2)).to.eq(true);
+    expect(!!(spriteRenderer._dirtyUpdateFlag & SpriteRendererUpdateFlags.UV)).to.eq(true);
 
     // @ts-ignore
-    spriteRenderer._dirtyUpdateFlag &= ~0x1;
+    spriteRenderer._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.AllPositionAndBounds;
     sprite.pivot = new Vector2(0.3, 0.2);
     // @ts-ignore
-    expect(!!(spriteRenderer._dirtyUpdateFlag & 0x1)).to.eq(true);
+    expect(!!(spriteRenderer._dirtyUpdateFlag & SpriteRendererUpdateFlags.AllPositionAndBounds)).to.eq(true);
   });
 
   it("clone", () => {
@@ -1578,21 +1578,35 @@ describe("SpriteRenderer", async () => {
   });
 });
 
-function log(positions: Vector3[], uv: Vector2[]): void {
-  for (let i = 0; i < positions.length; i++) {
-    console.log(
-      "expect(Vector3.equals(positions[",
-      i,
-      "], new Vector3(",
-      positions[i].x,
-      ", ",
-      positions[i].y,
-      ", ",
-      positions[i].z,
-      "))).to.eq(true);"
-    );
-  }
-  for (let i = 0; i < uv.length; i++) {
-    console.log("expect(Vector2.equals(uvs[", i, "], new Vector2(", uv[i].x, ", ", uv[i].y, "))).to.eq(true);");
-  }
+/**
+ * @remarks Extends `RendererUpdateFlags`.
+ */
+enum SpriteRendererUpdateFlags {
+  None = 0x0,
+  LocalPosition = 0x1,
+  WorldPosition = 0x2,
+  LocalBounds = 0x4,
+  WorldBounds = 0x8,
+  UV = 0x10,
+  Color = 0x20,
+  AutomaticSize = 0x40,
+
+  /** LocalPosition | WorldPosition */
+  AllPositions = 0x3,
+  /** LocalPosition | LocalBounds */
+  LocalPositionAndBounds = 0x5,
+  /** WorldPosition | WorldBounds */
+  WorldPositionAndBounds = 0xa,
+  /** LocalBounds | WorldBounds */
+  AllBounds = 0xc,
+  /** LocalPosition | WorldPosition | LocalBounds | WorldBounds */
+  AllPositionAndBounds = 0xf,
+  /** LocalPosition | WorldPosition | UV */
+  AllPositionAndUV = 0x13,
+  /** LocalPosition | WorldPosition | UV | Color */
+  AllPositionUVAndColor = 0x33,
+  /** LocalPosition | WorldPosition | LocalBounds | WorldBounds | UV | Color */
+  AllPositionBoundsUVAndColor = 0x3f,
+  /** LocalPosition | WorldPosition | LocalBounds | WorldBounds | UV | Color | AutomaticSize */
+  All = 0x7f
 }

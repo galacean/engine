@@ -1,7 +1,5 @@
 import {
   CameraClearFlags,
-  Component,
-  ComponentType,
   Entity,
   Pointer,
   PointerEventData,
@@ -11,7 +9,7 @@ import {
   Script,
   registerPointerEventEmitter
 } from "@galacean/engine";
-import { IGraphics } from "../interface/IGraphics";
+import { UIRenderer } from "../component/UIRenderer";
 
 @registerPointerEventEmitter()
 export class UIPointerEventEmitter extends PointerEventEmitter {
@@ -19,9 +17,9 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
   private static _path0: Entity[] = [];
   private static _path1: Entity[] = [];
 
-  private _enteredElement: Component;
-  private _pressedElement: Component;
-  private _draggedElement: Component;
+  private _enteredElement: UIRenderer;
+  private _pressedElement: UIRenderer;
+  private _draggedElement: UIRenderer;
 
   override processRaycast(scenes: readonly Scene[], pointer: Pointer): void {
     const { _tempRay: ray } = PointerEventEmitter;
@@ -39,7 +37,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
       ray.direction.set(0, 0, -1);
       for (let j = canvasElements.length - 1; j >= 0; j--) {
         if (canvasElements.get(j).raycast(ray, hitResult)) {
-          this._updateRaycast(<Component>hitResult.component, pointer);
+          this._updateRaycast(<UIRenderer>hitResult.component, pointer);
           return;
         }
       }
@@ -76,7 +74,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
           const canvas = canvasElements.get(k);
           if (canvas.renderCamera !== camera) continue;
           if (canvas.raycast(ray, hitResult, farClipPlane)) {
-            this._updateRaycast(<Component>hitResult.component, pointer);
+            this._updateRaycast(<UIRenderer>hitResult.component, pointer);
             return;
           }
         }
@@ -165,7 +163,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
     this._enteredElement = this._pressedElement = this._draggedElement = null;
   }
 
-  private _updateRaycast(element: Component, pointer: Pointer = null): void {
+  private _updateRaycast(element: UIRenderer, pointer: Pointer = null): void {
     const enteredElement = this._enteredElement;
     if (element !== enteredElement) {
       let prePath = this._composedPath(enteredElement, UIPointerEventEmitter._path0);
@@ -213,22 +211,16 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
     );
   }
 
-  private _composedPath(element: Component, path: Entity[]): Entity[] {
+  private _composedPath(element: UIRenderer, path: Entity[]): Entity[] {
     if (!element) {
       path.length = 0;
       return path;
     }
     let entity = (path[0] = element.entity);
     let i = 1;
-    // @ts-ignore
-    if (element._componentType === ComponentType.UICanvas && element._isRootCanvas) {
-      path.length = 1;
-      return path;
-    } else {
-      const rootEntity = (element as unknown as IGraphics)._getCanvas().entity;
-      for (; i < UIPointerEventEmitter._MAX_PATH_DEPTH && !!entity && entity !== rootEntity; i++) {
-        entity = path[i] = entity.parent;
-      }
+    const rootEntity = element._getRootCanvas().entity;
+    for (; i < UIPointerEventEmitter._MAX_PATH_DEPTH && !!entity && entity !== rootEntity; i++) {
+      entity = path[i] = entity.parent;
     }
     path.length = i;
     return path;

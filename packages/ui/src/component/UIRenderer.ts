@@ -1,7 +1,6 @@
 import {
   BatchUtils,
   Color,
-  ComponentType,
   DependentMode,
   Entity,
   EntityModifyFlags,
@@ -38,9 +37,24 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_UITexture");
 
+  /**
+   * Custom boundary for raycast detection.
+   * @remarks this is based on `this.entity.transform`.
+   */
   @deepClone
   raycastPadding: Vector4 = new Vector4(0, 0, 0, 0);
-
+  /** @internal */
+  @ignoreClone
+  _rootCanvas: UICanvas;
+  /** @internal */
+  @ignoreClone
+  _indexInRootCanvas: number = -1;
+  /** @internal */
+  @ignoreClone
+  _isRootCanvasDirty: boolean = false;
+  /** @internal */
+  @ignoreClone
+  _rootCanvasListeningEntities: Entity[] = [];
   /** @internal */
   @ignoreClone
   _group: UIGroup;
@@ -49,28 +63,13 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
   _indexInGroup: number = -1;
   /** @internal */
   @ignoreClone
-  _canvas: UICanvas;
-  /** @internal */
-  @ignoreClone
-  _indexInCanvas: number = -1;
-  /** @internal */
-  @ignoreClone
-  _subChunk;
-  /** @internal */
-  @ignoreClone
   _isGroupDirty: boolean = false;
   /** @internal */
   @ignoreClone
-  _isCanvasDirty: boolean = false;
-  /** @internal */
-  @ignoreClone
-  _canvasListeningEntities: Entity[] = [];
-  /** @internal */
-  @ignoreClone
   _groupListeningEntities: Entity[] = [];
-  /**@internal */
+  /** @internal */
   @ignoreClone
-  _onUIUpdateIndex: number = 0;
+  _subChunk;
 
   @ignoreClone
   private _raycastEnable: boolean = true;
@@ -92,6 +91,9 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
     }
   }
 
+  /**
+   * Whether this renderer be picked up by raycast.
+   */
   get raycastEnable(): boolean {
     return this._raycastEnable;
   }
@@ -105,14 +107,12 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
    */
   constructor(entity: Entity) {
     super(entity);
-    // @ts-ignore
-    this._componentType = ComponentType.UIRenderer;
     this._dirtyUpdateFlag = RendererUpdateFlags.AllBounds | UIRendererUpdateFlags.Color;
     this._onColorChange = this._onColorChange.bind(this);
     //@ts-ignore
     this._color._onValueChanged = this._onColorChange;
     this._groupListener = this._groupListener.bind(this);
-    this._canvasListener = this._canvasListener.bind(this);
+    this._rootCanvasListener = this._rootCanvasListener.bind(this);
   }
 
   // @ts-ignore
@@ -154,30 +154,29 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
   override _onEnableInScene(): void {
     // @ts-ignore
     this._overrideUpdate && this.scene._componentsManager.addOnUpdateRenderers(this);
-    Utils._onCanvasDirty(this, this._canvas, true);
-    Utils._onGroupDirty(this, this._group);
+    this.entity._updateHierarchyVersion(this.engine.time.frameCount);
+    Utils.rootCanvasDirty(this);
+    Utils.groupDirty(this);
   }
 
   // @ts-ignore
   override _onDisableInScene(): void {
     // @ts-ignore
     this._overrideUpdate && this.scene._componentsManager.removeOnUpdateRenderers(this);
-    Utils._unRegisterListener(this._canvasListener, this._canvasListeningEntities);
-    Utils._unRegisterListener(this._groupListener, this._groupListeningEntities);
-    this._isCanvasDirty = this._isGroupDirty = false;
+    Utils.cancelRootCanvasLink(this);
+    Utils.cancelGroupLink(this);
   }
 
   /**
    * @internal
    */
-  _getCanvas(): UICanvas {
-    if (this._isCanvasDirty) {
-      const curCanvas = Utils.getRootCanvasInParents(this.entity);
-      Utils._registerElementToCanvas(this, this._canvas, curCanvas);
-      Utils._registerElementToCanvasListener(this, curCanvas);
-      this._isCanvasDirty = false;
+  _getRootCanvas(): UICanvas {
+    if (this._isRootCanvasDirty) {
+      Utils.linkToRootCanvas(this, Utils.searchRootCanvasInParents(this));
+      this._isRootCanvasDirty = false;
+      Utils.updateRootCanvasListener(this);
     }
-    return this._canvas;
+    return this._rootCanvas;
   }
 
   /**
@@ -185,11 +184,10 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
    */
   _getGroup(): UIGroup {
     if (this._isGroupDirty) {
-      const canvas = this._getCanvas();
-      const group = canvas ? Utils.getGroupInParents(this.entity, canvas.entity) : null;
-      Utils._registerElementToGroup(this, this._group, group);
-      Utils._registerElementToGroupListener(this, canvas);
+      Utils.linkToGroup(this, Utils.searchGroupInParents(this));
       this._isGroupDirty = false;
+      this._onGroupModify(GroupModifyFlags.All);
+      Utils.updateGroupListener(this);
     }
     return this._group;
   }
@@ -201,7 +199,7 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
   _groupListener(flag: number): void {
     if (this._isGroupDirty) return;
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.GroupEnableInScene) {
-      Utils._onGroupDirty(this, this._group);
+      Utils.groupDirty(this);
     }
   }
 
@@ -209,14 +207,17 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
    * @internal
    */
   @ignoreClone
-  _canvasListener(flag: number): void {
-    if (this._isCanvasDirty) return;
-    if (flag === EntityModifyFlags.SiblingIndex) {
-      const rootCanvas = this._getCanvas();
-      rootCanvas && (rootCanvas._hierarchyDirty = true);
-    } else if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.CanvasEnableInScene) {
-      Utils._onCanvasDirty(this, this._canvas, true);
-      Utils._onGroupDirty(this, this._group);
+  _rootCanvasListener(flag: number, entity: Entity): void {
+    if (this._isRootCanvasDirty) return;
+    switch (flag) {
+      case EntityModifyFlags.Parent:
+        Utils.rootCanvasDirty(this);
+        Utils.groupDirty(this);
+      case EntityModifyFlags.SiblingIndex:
+        entity._updateHierarchyVersion(this.engine.time.frameCount);
+        break;
+      default:
+        break;
     }
   }
 

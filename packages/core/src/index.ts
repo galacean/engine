@@ -37,7 +37,6 @@ export { BackgroundMode } from "./enums/BackgroundMode";
 export { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
 export { DepthTextureMode } from "./enums/DepthTextureMode";
 export { FogMode } from "./enums/FogMode";
-export { ComponentType } from "./enums/ComponentType";
 export { CameraClearFlags } from "./enums/CameraClearFlags";
 export { CameraType } from "./enums/CameraType";
 export { CameraModifyFlags } from "./enums/CameraModifyFlags";

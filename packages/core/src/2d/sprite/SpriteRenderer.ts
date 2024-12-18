@@ -8,7 +8,6 @@ import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
-import { ComponentType } from "../../enums/ComponentType";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ISpriteAssembler } from "../assembler/ISpriteAssembler";
 import { ISpriteRenderer } from "../assembler/ISpriteRenderer";
@@ -143,7 +142,6 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, null);
       }
       this._sprite = value;
-      this._calDefaultSize();
     }
   }
 
@@ -171,6 +169,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
     if (this._customWidth !== undefined) {
       return this._customWidth;
     } else {
+      this._dirtyUpdateFlag & SpriteRendererUpdateFlags.AutomaticSize && this._calDefaultSize();
       return this._automaticWidth;
     }
   }
@@ -180,7 +179,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
       this._customWidth = value;
       this._dirtyUpdateFlag |=
         this._drawMode === SpriteDrawMode.Tiled
-          ? SpriteRendererUpdateFlags.All
+          ? SpriteRendererUpdateFlags.AllPositionBoundsUVAndColor
           : RendererUpdateFlags.AllPositionAndBounds;
     }
   }
@@ -196,6 +195,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
     if (this._customHeight !== undefined) {
       return this._customHeight;
     } else {
+      this._dirtyUpdateFlag & SpriteRendererUpdateFlags.AutomaticSize && this._calDefaultSize();
       return this._automaticHeight;
     }
   }
@@ -205,7 +205,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
       this._customHeight = value;
       this._dirtyUpdateFlag |=
         this._drawMode === SpriteDrawMode.Tiled
-          ? SpriteRendererUpdateFlags.All
+          ? SpriteRendererUpdateFlags.AllPositionBoundsUVAndColor
           : RendererUpdateFlags.AllPositionAndBounds;
     }
   }
@@ -267,7 +267,6 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._componentType = ComponentType.SpriteRenderer;
     this.drawMode = SpriteDrawMode.Simple;
     this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Color;
     this.setMaterial(this._engine._basicResources.spriteDefaultMaterial);
@@ -410,6 +409,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
     } else {
       this._automaticWidth = this._automaticHeight = 0;
     }
+    this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.AutomaticSize;
   }
 
   @ignoreClone
@@ -419,8 +419,8 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
         break;
       case SpriteModifyFlags.size:
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AutomaticSize;
         if (this._customWidth === undefined || this._customHeight === undefined) {
-          this._calDefaultSize();
           this._dirtyUpdateFlag |= RendererUpdateFlags.AllBounds;
         }
         switch (this._drawMode) {
@@ -479,11 +479,14 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
 enum SpriteRendererUpdateFlags {
   UV = 0x10,
   Color = 0x20,
+  AutomaticSize = 0x40,
 
   /** LocalPosition | WorldPosition | UV */
   AllPositionAndUV = 0x13,
   /** LocalPosition | WorldPosition | UV | Color */
   AllPositionUVAndColor = 0x33,
-  /** LocalPosition | WorldPosition | UV | Color | LocalBounds | WorldBounds */
-  All = 0x3f
+  /** LocalPosition | WorldPosition | LocalBounds | WorldBounds | UV | Color */
+  AllPositionBoundsUVAndColor = 0x3f,
+  /** LocalPosition | WorldPosition | LocalBounds | WorldBounds | UV | Color | AutomaticSize */
+  All = 0x7f
 }
