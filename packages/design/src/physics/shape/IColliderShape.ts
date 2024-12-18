@@ -43,12 +43,10 @@ export interface IColliderShape {
 
   /**
    * Get the distance between a point and the shape.
-   * @param position - The position in world space
-   * @param rotation - The rotation in world space
    * @param point - The point
    * @returns The distance information
    */
-  pointDistance(position: Vector3, rotation: Quaternion, point: Vector3): Vector4;
+  pointDistance(point: Vector3): Vector4;
   /**
    * Decrements the reference count of a shape and releases it if the new reference count is zero.
    */

@@ -147,15 +147,8 @@ export abstract class ColliderShape implements ICustomClone {
       console.warn("The collider is not active in scene.");
       return -1;
     }
-    const tempQuat = ColliderShape._tempWorldRot;
-    const tempPos = ColliderShape._tempWorldPos;
-    Vector3.transformCoordinate(this._position, collider.entity.transform.worldMatrix, tempPos);
 
-    const rotation = this._rotation;
-    Quaternion.rotationEuler(rotation.x, rotation.y, rotation.z, tempQuat);
-    Quaternion.multiply(this._collider.entity.transform.rotationQuaternion, tempQuat, tempQuat);
-
-    const res = this._nativeShape.pointDistance(tempPos, tempQuat, point);
+    const res = this._nativeShape.pointDistance(point);
     const distance = res.w;
     if (distance > 0) {
       outClosestPoint.set(res.x, res.y, res.z);

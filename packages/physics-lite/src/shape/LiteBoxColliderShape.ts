@@ -60,7 +60,10 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
   /**
    * {@inheritDoc IColliderShape.pointDistance }
    */
-  override pointDistance(position: Vector3, rotation: Quaternion, point: Vector3): Vector4 {
+  override pointDistance(point: Vector3): Vector4 {
+    const position = LiteColliderShape._tempPos;
+    const rotation = LiteColliderShape._tempRot;
+    this._transform.worldMatrix.decompose(position, rotation, LiteColliderShape._tempScale);
     const { position: shapePosition } = this._transform;
     const m = LiteBoxColliderShape._tempMatrix;
     const invM = LiteBoxColliderShape._tempInvMatrix;
@@ -71,10 +74,12 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
     const { _boxMin, _boxMax } = this;
     p.copyFrom(_boxMin);
     p.subtract(shapePosition);
-    boundingBox.min.set(p.x / scale.x, p.y / scale.y, p.z / scale.z);
+    p.divide(scale);
+    boundingBox.min.copyFrom(p);
     p.copyFrom(_boxMax);
     p.subtract(shapePosition);
-    boundingBox.max.set(p.x / scale.x, p.y / scale.y, p.z / scale.z);
+    p.divide(scale);
+    boundingBox.max.copyFrom(p);
 
     Matrix.affineTransformation(scale, rotation, position, m);
     Matrix.invert(m, invM);

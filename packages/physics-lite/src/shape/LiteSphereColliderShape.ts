@@ -47,7 +47,9 @@ export class LiteSphereColliderShape extends LiteColliderShape implements ISpher
   /**
    * {@inheritDoc IColliderShape.pointDistance }
    */
-  override pointDistance(position: Vector3, rotation: Quaternion, point: Vector3): Vector4 {
+  override pointDistance(point: Vector3): Vector4 {
+    const position = LiteColliderShape._tempPos;
+    this._transform.worldMatrix.decompose(position, LiteColliderShape._tempRot, LiteColliderShape._tempScale);
     const p = LiteColliderShape._tempPoint;
     Vector3.subtract(point, position, p);
     const direction = p.normalize();

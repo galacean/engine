@@ -129,7 +129,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
   /**
    * {@inheritDoc IColliderShape.pointDistance }
    */
-  pointDistance(translation: Vector3, rotation: Quaternion, point: Vector3): Vector4 {
+  pointDistance(point: Vector3): Vector4 {
     const info = this._pxGeometry.pointDistance(this._pxShape.getGlobalPose(), point);
     const closestPoint = info.closestPoint;
     const res = PhysXColliderShape._tempVector4;

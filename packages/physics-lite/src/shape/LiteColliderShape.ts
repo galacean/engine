@@ -9,6 +9,9 @@ import { LiteUpdateFlag } from "../LiteUpdateFlag";
  * Abstract class for collider shapes.
  */
 export abstract class LiteColliderShape implements IColliderShape {
+  protected static _tempPos = new Vector3();
+  protected static _tempRot = new Quaternion();
+  protected static _tempScale = new Vector3();
   protected static _tempPoint = new Vector3();
   protected static _tempVector4 = new Vector4();
 
