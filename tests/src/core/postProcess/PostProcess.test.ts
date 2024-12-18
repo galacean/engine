@@ -2,7 +2,6 @@ import { Color, Vector3 } from "@galacean/engine";
 import {
   BloomDownScaleMode,
   BloomEffect,
-  BoxColliderShape,
   Camera,
   Engine,
   Entity,
@@ -10,11 +9,13 @@ import {
   PostProcessPass,
   RenderTarget,
   Scene,
+  SphereColliderShape,
   StaticCollider,
   Texture2D,
   TonemappingEffect
 } from "@galacean/engine-core";
 import { MathUtil } from "@galacean/engine-math";
+import { LitePhysics } from "@galacean/engine-physics-lite";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -212,6 +213,7 @@ describe("PostProcess", () => {
       const engine = await WebGLEngine.create({
         canvas: document.createElement("canvas"),
         physics: new PhysXPhysics()
+        // physics: new LitePhysics()
       });
       const scene = engine.sceneManager.scenes[0];
       const passes = scene.postProcessManager.postProcessPasses;
@@ -225,8 +227,10 @@ describe("PostProcess", () => {
       const pp2 = postEntity.addComponent(PostProcess);
       const bloom1 = pp1.addEffect(BloomEffect);
       const bloom2 = pp2.addEffect(BloomEffect);
+      const intensity2 = 10;
+
       pp2.priority = 10;
-      bloom2.intensity.value = 10;
+      bloom2.intensity.value = intensity2;
 
       engine.update();
       const bloomBlend = uberPass.getBlendEffect(BloomEffect);
@@ -234,56 +238,57 @@ describe("PostProcess", () => {
       expect(bloomBlend.intensity.value).to.equal(10);
 
       // Local mode
-      const cubeSize = 5;
+      const radius = 5;
       pp2.isGlobal = false;
-      pp2.blendDistance = cubeSize;
+      pp2.blendDistance = radius;
       const collider = postEntity.addComponent(StaticCollider);
-      const physicsBox = new BoxColliderShape();
-      physicsBox.size = new Vector3(cubeSize, cubeSize, cubeSize);
+      const physicsBox = new SphereColliderShape();
+      physicsBox.radius = radius;
       collider.addShape(physicsBox);
 
       // Inside
-      cameraEntity.transform.position.set(0, 0, 0);
+      cameraEntity.transform.position.set(radius / 2, 0, 0);
       engine.update();
-      expect(bloomBlend.intensity.value).to.equal(10);
+      expect(bloomBlend.intensity.value).to.equal(intensity2);
 
       // Edge
-      cameraEntity.transform.position.set(cubeSize / 2, 0, 0);
+      cameraEntity.transform.position.set(radius, 0, 0);
       engine.update();
-      expect(bloomBlend.intensity.value).to.equal(10);
+      expect(bloomBlend.intensity.value).to.equal(intensity2);
 
       // Outer half in blend distance
-      cameraEntity.transform.position.set(cubeSize / 2 + pp2.blendDistance / 2, 0, 0);
+      cameraEntity.transform.position.set(radius + pp2.blendDistance / 2, 0, 0);
       engine.update();
-      expect(bloomBlend.intensity.value).to.equal(5);
+      expect(bloomBlend.intensity.value).to.equal(intensity2 / 2);
 
       // Outside over blend distance
-      cameraEntity.transform.position.set(cubeSize / 2 + pp2.blendDistance, 0, 0);
+      cameraEntity.transform.position.set(radius + pp2.blendDistance, 0, 0);
       engine.update();
       expect(bloomBlend.intensity.value).to.equal(0);
 
       // Blend with local and global
-      bloom1.intensity.value = 1;
+      const intensity1 = 1;
+      bloom1.intensity.value = intensity1;
 
       // Inside
-      cameraEntity.transform.position.set(0, 0, 0);
+      cameraEntity.transform.position.set(radius / 2, 0, 0);
       engine.update();
-      expect(bloomBlend.intensity.value).to.equal(MathUtil.lerp(1, 10, 1));
+      expect(bloomBlend.intensity.value).to.equal(MathUtil.lerp(intensity1, intensity2, 1));
 
       // Edge
-      cameraEntity.transform.position.set(cubeSize / 2, 0, 0);
+      cameraEntity.transform.position.set(radius, 0, 0);
       engine.update();
-      expect(bloomBlend.intensity.value).to.equal(MathUtil.lerp(1, 10, 1));
+      expect(bloomBlend.intensity.value).to.equal(MathUtil.lerp(intensity1, intensity2, 1));
 
       // Outer half in blend distance
-      cameraEntity.transform.position.set(cubeSize / 2 + pp2.blendDistance / 2, 0, 0);
+      cameraEntity.transform.position.set(radius + pp2.blendDistance / 2, 0, 0);
       engine.update();
-      expect(bloomBlend.intensity.value).to.equal(MathUtil.lerp(1, 10, 0.5));
+      expect(bloomBlend.intensity.value).to.equal(MathUtil.lerp(intensity1, intensity2, 0.5));
 
       // Outside over blend distance
-      cameraEntity.transform.position.set(cubeSize / 2 + pp2.blendDistance, 0, 0);
+      cameraEntity.transform.position.set(radius + pp2.blendDistance, 0, 0);
       engine.update();
-      expect(bloomBlend.intensity.value).to.equal(MathUtil.lerp(1, 10, 0));
+      expect(bloomBlend.intensity.value).to.equal(MathUtil.lerp(intensity1, intensity2, 0));
 
       engine.destroy();
     }
