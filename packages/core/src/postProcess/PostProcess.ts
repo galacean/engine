@@ -8,25 +8,43 @@ import { PostProcessEffect } from "./PostProcessEffect";
  * PostProcess can be used to apply effects such as Bloom and Tonemapping to the Scene or Colliders.
  */
 export class PostProcess extends Component {
-  private _priority = 0;
-
   /**
    * The layer to which the PostProcess belongs.
    */
   layer = Layer.Layer0;
 
   /**
+   * The outer distance to start blending from, only takes effect when the `isGlobal` is false.
+   */
+  blendDistance = 0;
+
+  /** @internal */
+  @deepClone
+  _effects: PostProcessEffect[] = [];
+
+  private _priority = 0;
+  private _isGlobal = true;
+
+  /**
    * Whether the PostProcess is global.
    * @remarks
    * Specifies whether to apply the PostProcess to the entire Scene or in Colliders.
+   * Only support local PostProcess in physics enabled Scenes.
    */
-  readonly isGlobal = true;
+  get isGlobal(): boolean {
+    return this._isGlobal;
+  }
 
-  /**
-   * @internal
-   */
-  @deepClone
-  _effects: PostProcessEffect[] = [];
+  set isGlobal(value: boolean) {
+    if (value !== this._isGlobal) {
+      if (!value && !this.engine._physicsInitialized) {
+        Logger.warn("Only support local PostProcess in physics enabled Scenes.");
+        return;
+      }
+
+      this._isGlobal = value;
+    }
+  }
 
   /**
    * A value which determines which PostProcess is being used when PostProcess have an equal amount of influence on the Scene.

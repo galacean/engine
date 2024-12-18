@@ -1,8 +1,10 @@
+import { Vector3 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
-import { Layer } from "../Layer";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { Scene } from "../Scene";
+import { Logger } from "../base/Logger";
 import { Material } from "../material";
+import { Collider, ColliderShape } from "../physics";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 import { PostProcess } from "./PostProcess";
 import { PostProcessEffect } from "./PostProcessEffect";
@@ -33,6 +35,9 @@ export class PostProcessManager {
   private _blendEffectMap = new Map<typeof PostProcessEffect, PostProcessEffect>();
   private _defaultEffectMap = new Map<typeof PostProcessEffect, PostProcessEffect>();
   private _remainActivePassCount = 0;
+  private _tempColliders: Collider[] = [];
+  private _tempColliderShapes: ColliderShape[] = [];
+  private _tempVector3 = new Vector3();
 
   /**
    * Whether has any active pass and active effect.
@@ -157,7 +162,7 @@ export class PostProcessManager {
     // Should blit to resolve the MSAA
     srcRenderTarget._blitRenderTarget();
 
-    this._update(camera.postProcessMask);
+    this._update(camera);
 
     this._remainActivePassCount = this._activePostProcessPasses.length;
     this._initSwapRenderTarget(camera);
@@ -217,7 +222,7 @@ export class PostProcessManager {
     });
   }
 
-  private _update(postProcessMask: Layer): void {
+  private _update(camera: Camera): void {
     // Start by resetting post process effect instance to default values
     this._resetDefaultValue();
 
@@ -227,12 +232,60 @@ export class PostProcessManager {
 
     for (let i = 0; i < this._activePostProcesses.length; i++) {
       const postProcess = this._activePostProcesses[i];
+
       if (!postProcess.enabled) {
         continue;
       }
 
-      if (!(postProcessMask & postProcess.layer)) {
+      if (!(camera.postProcessMask & postProcess.layer)) {
         continue;
+      }
+
+      const isGlobal = postProcess.isGlobal;
+      let interpFactor = 1; // Global default value
+      if (!isGlobal) {
+        const currentColliders = this._tempColliders;
+        const currentShapes = this._tempColliderShapes;
+        currentShapes.length = 0;
+        postProcess.entity.getComponentsIncludeChildren(Collider, currentColliders);
+        for (let i = 0; i < currentColliders.length; i++) {
+          const collider = currentColliders[i];
+          if (!collider.enabled) {
+            continue;
+          }
+          const shapes = collider.shapes;
+          for (let j = 0; j < shapes.length; j++) {
+            currentShapes.push(shapes[j]);
+          }
+        }
+
+        if (!currentShapes.length) {
+          Logger.warn(
+            `No collider shape found in the entity:"${postProcess.entity.name}", the local mode of post process will not take effect.`
+          );
+          continue;
+        }
+
+        const cameraPosition = camera.entity.transform.worldPosition;
+        // Find closest distance to current postProcess, 0 means it's inside it
+        let closestDistance = Number.POSITIVE_INFINITY;
+        for (let k = 0; k < currentShapes.length; k++) {
+          const shape = currentShapes[k];
+          const distance = shape.getClosestPoint(cameraPosition, this._tempVector3);
+          if (distance < closestDistance) {
+            closestDistance = distance;
+          }
+        }
+
+        const blendDistance = postProcess.blendDistance;
+        // Post process has no influence, ignore it
+        if (closestDistance > blendDistance) {
+          continue;
+        }
+
+        if (blendDistance > 0) {
+          interpFactor = 1 - closestDistance / blendDistance;
+        }
       }
 
       const effects = postProcess._effects;
@@ -248,10 +301,8 @@ export class PostProcessManager {
           this._blendEffectMap.set(PostConstructor, blendEffect);
         }
 
+        blendEffect.lerp(effect, interpFactor);
         blendEffect.enabled = true;
-
-        // @todo: need `collider.ClosestPoint` implement local mode
-        blendEffect.lerp(effect, 1);
       }
     }
   }
