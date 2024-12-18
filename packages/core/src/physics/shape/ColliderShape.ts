@@ -80,7 +80,7 @@ export abstract class ColliderShape implements ICustomClone {
   }
 
   /**
-   * The local rotation of this ColliderShape.
+   * The local rotation of this ColliderShape, in radians.
    */
   get rotation(): Vector3 {
     return this._rotation;
@@ -131,6 +131,30 @@ export abstract class ColliderShape implements ICustomClone {
     this._position._onValueChanged = this._setPosition;
 
     Engine._physicalObjectsMap[this._id] = this;
+  }
+
+  /**
+   * Get the distance and the closest point on the shape from a point.
+   * @param point - Location in world space you want to find the closest point to
+   * @param outClosestPoint - The closest point on the shape in world space
+   * @returns The distance between the point and the shape
+   */
+  getClosestPoint(point: Vector3, outClosestPoint: Vector3): number {
+    const collider = this._collider;
+    if (collider.enabled === false || collider.entity._isActiveInHierarchy === false) {
+      console.warn("The collider is not active in scene.");
+      return -1;
+    }
+
+    const res = this._nativeShape.pointDistance(point);
+    const distance = res.w;
+    if (distance > 0) {
+      outClosestPoint.set(res.x, res.y, res.z);
+    } else {
+      outClosestPoint.copyFrom(point);
+    }
+
+    return Math.sqrt(distance);
   }
 
   /**
