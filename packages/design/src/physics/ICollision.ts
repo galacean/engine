@@ -9,10 +9,10 @@ export interface ICollision {
   /** Count of contact points. */
   contactCount: number;
   /** Get contact points. */
-  getContacts(): VectorPxContactPairPoint;
+  getContacts(): VectorContactPairPoint;
 }
 
-interface VectorPxContactPairPoint {
+interface VectorContactPairPoint {
   size(): number;
   get(index: number): IContactPoint;
 }
