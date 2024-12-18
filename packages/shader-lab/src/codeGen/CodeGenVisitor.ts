@@ -11,26 +11,33 @@ import { GSErrorName } from "../GSError";
 // #if _VERBOSE
 import { GSError } from "../GSError";
 // #endif
+import { ShaderLabUtils } from "../ShaderLabUtils";
+import { Logger, ReturnableObjectPool } from "@galacean/engine";
+import { TempArray } from "../TempArray";
 
 /**
  * @internal
  * The code generator
  */
-export class CodeGenVisitor {
+export abstract class CodeGenVisitor {
   // #if _VERBOSE
-  readonly errors: GSError[] = [];
+  readonly errors: Error[] = [];
   // #endif
+  protected static _tmpArrayPool = new ReturnableObjectPool(TempArray<string>, 10);
 
   defaultCodeGen(children: NodeChild[]) {
-    let ret: string[] = [];
+    const pool = CodeGenVisitor._tmpArrayPool;
+    let ret = pool.get();
+    ret.dispose();
     for (const child of children) {
       if (child instanceof Token) {
-        ret.push(child.lexeme);
+        ret.array.push(child.lexeme);
       } else {
-        ret.push(child.codeGen(this));
+        ret.array.push(child.codeGen(this));
       }
     }
-    return ret.join(" ");
+    pool.return(ret);
+    return ret.array.join(" ");
   }
 
   visitPostfixExpression(node: ASTNode.PostfixExpression) {
@@ -195,7 +202,7 @@ export class CodeGenVisitor {
     // #if _VERBOSE
     this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderLab._processingPassText));
     // #else
-    throw new Error(message);
+    Logger.error(message);
     // #endif
   }
 }

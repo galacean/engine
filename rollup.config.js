@@ -28,15 +28,17 @@ const shaderLabPkg = pkgs.find((item) => item.pkgJson.name === "@galacean/engine
 pkgs.push({ ...shaderLabPkg, verboseMode: true });
 
 // toGlobalName
-
 const extensions = [".js", ".jsx", ".ts", ".tsx"];
 const mainFields = NODE_ENV === "development" ? ["debug", "module", "main"] : undefined;
 
+const glslifyPlugin = glslify({
+  include: [/\.(glsl|gs)$/],
+  compress: false
+});
+
 const commonPlugins = [
   resolve({ extensions, preferBuiltins: true, mainFields }),
-  glslify({
-    include: [/\.glsl$/]
-  }),
+  glslifyPlugin,
   swc(
     defineRollupSwcOption({
       include: /\.[mc]?[jt]sx?$/,
@@ -82,20 +84,23 @@ function config({ location, pkgJson, verboseMode }) {
       const umdConfig = pkgJson.umd;
       let file = path.join(location, "dist", "browser.js");
 
+      if (compress) {
+        const glslifyPluginIdx = curPlugins.findIndex((item) => item === glslifyPlugin);
+        curPlugins.splice(
+          glslifyPluginIdx,
+          1,
+          glslify({
+            include: [/\.(glsl|gs)$/],
+            compress: true
+          })
+        );
+        curPlugins.push(minify({ sourceMap: true }));
+      }
+
       if (verboseMode) {
-        if (compress) {
-          curPlugins.push(minify({ sourceMap: true }));
-          file = path.join(location, "dist", "browser.verbose.min.js");
-        } else {
-          file = path.join(location, "dist", "browser.verbose.js");
-        }
+        file = path.join(location, "dist", compress ? "browser.verbose.min.js" : "browser.verbose.js");
       } else {
-        if (compress) {
-          curPlugins.push(minify({ sourceMap: true }));
-          file = path.join(location, "dist", "browser.min.js");
-        } else {
-          file = path.join(location, "dist", "browser.js");
-        }
+        file = path.join(location, "dist", compress ? "browser.min.js" : "browser.js");
       }
 
       const umdExternal = Object.keys(umdConfig.globals ?? {});

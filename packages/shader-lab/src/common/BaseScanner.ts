@@ -3,6 +3,7 @@ import { GSErrorName } from "../GSError";
 import { ShaderLab } from "../ShaderLab";
 import { BaseToken } from "./BaseToken";
 import { ShaderLabUtils } from "../ShaderLabUtils";
+import { Logger } from "@galacean/engine";
 
 export type OnToken = (token: BaseToken, scanner: BaseScanner) => void;
 
@@ -73,17 +74,21 @@ export default class BaseScanner {
     return this._source[this._currentIndex];
   }
 
+  getCurCharCode(): number {
+    return this._source.charCodeAt(this._currentIndex);
+  }
+
   advance(count = 1): void {
+    // #if _VERBOSE
     for (let i = 0; i < count; i++) {
       this._advance();
     }
+    // #else
+    this._currentIndex += count;
+    // #endif
   }
 
   _advance(): void {
-    if (this.isEnd()) {
-      return;
-    }
-
     // #if _VERBOSE
     if (this.getCurChar() === "\n") {
       this._line += 1;
@@ -142,6 +147,9 @@ export default class BaseScanner {
 
   throwError(pos: ShaderPosition | ShaderRange, ...msgs: any[]) {
     const error = ShaderLabUtils.createGSError(msgs.join(" "), GSErrorName.ScannerError, this._source, pos);
+    // #if _VERBOSE
+    Logger.error(error.toString());
+    // #endif
     throw error;
   }
 

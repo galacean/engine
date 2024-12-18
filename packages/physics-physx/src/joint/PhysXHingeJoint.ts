@@ -8,17 +8,20 @@ import { PhysXJoint } from "./PhysXJoint";
  * A joint which behaves in a similar way to a hinge or axle.
  */
 export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
+  protected static _xAxis = new Vector3(1, 0, 0);
+
+  private _anchor: Vector3;
+  private _connectedAnchor: Vector3;
   private _axisRotationQuaternion = new Quaternion();
-  private _swingOffset = new Vector3();
 
   constructor(physXPhysics: PhysXPhysics, collider: PhysXCollider) {
     super(physXPhysics);
     this._collider = collider;
     this._pxJoint = physXPhysics._pxPhysics.createRevoluteJoint(
-      null,
+      collider._pxActor,
       PhysXJoint._defaultVec,
       PhysXJoint._defaultQuat,
-      collider._pxActor,
+      null,
       PhysXJoint._defaultVec,
       PhysXJoint._defaultQuat
     );
@@ -28,23 +31,25 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
    * {@inheritDoc IHingeJoint.setAxis }
    */
   setAxis(value: Vector3): void {
-    const xAxis = PhysXJoint._xAxis;
+    const xAxis = PhysXHingeJoint._xAxis;
     const axisRotationQuaternion = this._axisRotationQuaternion;
     xAxis.set(1, 0, 0);
     value.normalize();
     const angle = Math.acos(Vector3.dot(xAxis, value));
     Vector3.cross(xAxis, value, xAxis);
     Quaternion.rotationAxisAngle(xAxis, angle, axisRotationQuaternion);
-
-    this._setLocalPose(0, this._swingOffset, axisRotationQuaternion);
+    this._setLocalPose(0, this._anchor, axisRotationQuaternion);
+    this._setLocalPose(1, this._connectedAnchor, axisRotationQuaternion);
   }
 
-  /**
-   * {@inheritDoc IHingeJoint.setSwingOffset }
-   */
-  setSwingOffset(value: Vector3): void {
-    this._swingOffset.copyFrom(value);
-    this._setLocalPose(1, this._swingOffset, this._axisRotationQuaternion);
+  override setAnchor(value: Vector3): void {
+    this._setLocalPose(0, value, this._axisRotationQuaternion);
+    this._anchor = value;
+  }
+
+  override setConnectedAnchor(value: Vector3): void {
+    this._setLocalPose(1, value, this._axisRotationQuaternion);
+    this._connectedAnchor = value;
   }
 
   /**

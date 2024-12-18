@@ -88,7 +88,7 @@ export class Camera extends Component {
   /**
    * Multi-sample anti-aliasing samples when use independent canvas mode.
    *
-   * @remarks The `independentCanvasEnabled` property should be `true` to take effect, otherwise it will be invalid.
+   * @remarks It will take effect when `independentCanvasEnabled` property is `true`, otherwise it will be invalid.
    */
   msaaSamples: MSAASamples = MSAASamples.None;
 
@@ -133,8 +133,6 @@ export class Camera extends Component {
   @ignoreClone
   private _frustumChangeFlag: BoolUpdateFlag;
   @ignoreClone
-  private _transform: Transform;
-  @ignoreClone
   private _isViewMatrixDirty: BoolUpdateFlag;
   @ignoreClone
   private _isInvViewProjDirty: BoolUpdateFlag;
@@ -167,15 +165,19 @@ export class Camera extends Component {
 
   /**
    * Whether independent canvas is enabled.
-   *
    * @remarks If true, the msaa in viewport can turn or off independently by `msaaSamples` property.
    */
   get independentCanvasEnabled(): boolean {
-    if (this.enableHDR || (this.enablePostProcess && this.scene.postProcessManager.isActive)) {
+    // Uber pass need internal RT
+    if (this.enablePostProcess && this.scene.postProcessManager.isActive) {
       return true;
     }
 
-    return this.opaqueTextureEnabled && !this._renderTarget;
+    if (this.enableHDR || this.opaqueTextureEnabled) {
+      return this._getInternalColorTextureFormat() !== this.renderTarget?.getColorTexture(0).format;
+    }
+
+    return false;
   }
 
   /**
@@ -316,7 +318,7 @@ export class Camera extends Component {
     this._isViewMatrixDirty.flag = false;
 
     // Ignore scale
-    const transform = this._transform;
+    const transform = this._entity.transform;
     Matrix.rotationTranslation(transform.worldRotationQuaternion, transform.worldPosition, viewMatrix);
     viewMatrix.invert();
     return viewMatrix;
@@ -424,11 +426,9 @@ export class Camera extends Component {
   constructor(entity: Entity) {
     super(entity);
 
-    const transform = this.entity.transform;
-    this._transform = transform;
-    this._isViewMatrixDirty = transform.registerWorldChangeFlag();
-    this._isInvViewProjDirty = transform.registerWorldChangeFlag();
-    this._frustumChangeFlag = transform.registerWorldChangeFlag();
+    this._isViewMatrixDirty = entity.registerWorldChangeFlag();
+    this._isInvViewProjDirty = entity.registerWorldChangeFlag();
+    this._frustumChangeFlag = entity.registerWorldChangeFlag();
     this._renderPipeline = new BasicRenderPipeline(this);
     this._addResourceReferCount(this.shaderData, 1);
     this._updatePixelViewport();
@@ -608,7 +608,7 @@ export class Camera extends Component {
     const context = engine._renderContext;
     const virtualCamera = this._virtualCamera;
 
-    const transform = this.entity.transform;
+    const transform = this._entity.transform;
     Matrix.multiply(this.projectionMatrix, this.viewMatrix, virtualCamera.viewProjectionMatrix);
     virtualCamera.position.copyFrom(transform.worldPosition);
     if (virtualCamera.isOrthographic) {
@@ -739,7 +739,6 @@ export class Camera extends Component {
     this._virtualCamera = null;
     this._shaderData = null;
     this._frustumChangeFlag = null;
-    this._transform = null;
     this._isViewMatrixDirty = null;
     this._isInvViewProjDirty = null;
     this._viewport = null;
@@ -789,7 +788,7 @@ export class Camera extends Component {
   private _updateShaderData(): void {
     const shaderData = this.shaderData;
 
-    const transform = this._transform;
+    const transform = this._entity.transform;
     shaderData.setMatrix(Camera._inverseViewMatrixProperty, transform.worldMatrix);
     shaderData.setVector3(Camera._cameraPositionProperty, transform.worldPosition);
     shaderData.setVector3(Camera._cameraForwardProperty, transform.worldForward);
@@ -807,7 +806,7 @@ export class Camera extends Component {
   private _getInvViewProjMat(): Matrix {
     if (this._isInvViewProjDirty.flag) {
       this._isInvViewProjDirty.flag = false;
-      Matrix.multiply(this._transform.worldMatrix, this._getInverseProjectionMatrix(), this._invViewProjMat);
+      Matrix.multiply(this._entity.transform.worldMatrix, this._getInverseProjectionMatrix(), this._invViewProjMat);
     }
     return this._invViewProjMat;
   }

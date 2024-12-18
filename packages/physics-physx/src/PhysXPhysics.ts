@@ -3,6 +3,7 @@ import {
   IBoxColliderShape,
   ICapsuleColliderShape,
   ICharacterController,
+  ICollision,
   IDynamicCollider,
   IFixedJoint,
   IHingeJoint,
@@ -91,7 +92,7 @@ export class PhysXPhysics implements IPhysics {
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
         script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*rnDeR58NNGoAAAAAAAAAAAAAARQnAQ/physx.release.js.js`;
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
-        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*nA97QLQehRMAAAAAAAAAAAAAARQnAQ/physx.release.js`;
+        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*04GyRKeSJw4AAAAAAAAAAAAAARQnAQ/physx.release.js`;
       }
     });
 
@@ -139,9 +140,9 @@ export class PhysXPhysics implements IPhysics {
    */
   createPhysicsScene(
     physicsManager: PhysXPhysicsManager,
-    onContactBegin?: (obj1: number, obj2: number) => void,
-    onContactEnd?: (obj1: number, obj2: number) => void,
-    onContactStay?: (obj1: number, obj2: number) => void,
+    onContactBegin?: (collision: ICollision) => void,
+    onContactEnd?: (collision: ICollision) => void,
+    onContactStay?: (collision: ICollision) => void,
     onTriggerBegin?: (obj1: number, obj2: number) => void,
     onTriggerEnd?: (obj1: number, obj2: number) => void,
     onTriggerStay?: (obj1: number, obj2: number) => void

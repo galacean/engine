@@ -7,6 +7,7 @@ import { Layer } from "./Layer";
 import { Scene } from "./Scene";
 import { Script } from "./Script";
 import { Transform } from "./Transform";
+import { UpdateFlagManager } from "./UpdateFlagManager";
 import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
@@ -73,8 +74,6 @@ export class Entity extends EngineObject {
   name: string;
   /** The layer the entity belongs to. */
   layer: Layer = Layer.Layer0;
-  /** Transform component. */
-  readonly transform: Transform;
 
   /** @internal */
   _isActiveInHierarchy: boolean = false;
@@ -94,13 +93,22 @@ export class Entity extends EngineObject {
   _isActive: boolean = true;
   /** @internal */
   _siblingIndex: number = -1;
-
   /** @internal */
   _isTemplate: boolean = false;
+  /** @internal */
+  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
+  private _transform: Transform;
   private _templateResource: ReferResource;
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
+
+  /**
+   * The transform of this entity.
+   */
+  get transform(): Transform {
+    return this._transform;
+  }
 
   /**
    * Whether to activate locally.
@@ -192,12 +200,17 @@ export class Entity extends EngineObject {
   /**
    * Create a entity.
    * @param engine - The engine the entity belongs to
+   * @param name - The name of the entity
+   * @param components - The types of components you wish to add
    */
-  constructor(engine: Engine, name?: string) {
+  constructor(engine: Engine, name?: string, ...components: ComponentConstructor[]) {
     super(engine);
     this.name = name;
-    this.transform = this.addComponent(Transform);
-    this._inverseWorldMatFlag = this.transform.registerWorldChangeFlag();
+    for (let i = 0, n = components.length; i < n; i++) {
+      this.addComponent(components[i]);
+    }
+    !this._transform && this.addComponent(Transform);
+    this._inverseWorldMatFlag = this.registerWorldChangeFlag();
   }
 
   /**
@@ -213,6 +226,13 @@ export class Entity extends EngineObject {
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this, ...args) as InstanceType<T>;
     this._components.push(component);
+
+    // @todo: temporary solution
+    if (component instanceof Transform) {
+      const transform = this._transform;
+      this._transform = component;
+      transform?.destroy();
+    }
     component._setActive(true, ActiveChangeFlag.All);
     return component;
   }
@@ -394,7 +414,10 @@ export class Entity extends EngineObject {
    * @returns The child entity
    */
   createChild(name?: string): Entity {
-    const child = new Entity(this.engine, name);
+    const transform = this._transform;
+    const child = transform
+      ? new Entity(this.engine, name, transform.constructor as ComponentConstructor)
+      : new Entity(this.engine, name);
     child.layer = this.layer;
     child.parent = this;
     return child;
@@ -430,6 +453,14 @@ export class Entity extends EngineObject {
   }
 
   /**
+   * Listen for changes in the world pose of this `Entity`.
+   * @returns Change flag
+   */
+  registerWorldChangeFlag(): BoolUpdateFlag {
+    return this._updateFlagManager.createFlag(BoolUpdateFlag);
+  }
+
+  /**
    * @internal
    */
   _markAsTemplate(templateResource: ReferResource): void {
@@ -438,8 +469,10 @@ export class Entity extends EngineObject {
   }
 
   private _createCloneEntity(): Entity {
-    const cloneEntity = new Entity(this._engine, this.name);
-
+    const transform = this._transform;
+    const cloneEntity = transform
+      ? new Entity(this.engine, this.name, transform.constructor as ComponentConstructor)
+      : new Entity(this.engine, this.name);
     const templateResource = this._templateResource;
     if (templateResource) {
       cloneEntity._templateResource = templateResource;
@@ -448,12 +481,7 @@ export class Entity extends EngineObject {
 
     cloneEntity.layer = this.layer;
     cloneEntity._isActive = this._isActive;
-    const { transform: cloneTransform } = cloneEntity;
-    const { transform: srcTransform } = this;
-    cloneTransform.position = srcTransform.position;
-    cloneTransform.rotation = srcTransform.rotation;
-    cloneTransform.scale = srcTransform.scale;
-
+    cloneEntity.transform._copyFrom(this.transform);
     const srcChildren = this._children;
     for (let i = 0, n = srcChildren.length; i < n; i++) {
       cloneEntity.addChild(srcChildren[i]._createCloneEntity());
@@ -478,7 +506,7 @@ export class Entity extends EngineObject {
     for (let i = 0, n = components.length; i < n; i++) {
       const sourceComp = components[i];
       if (!(sourceComp instanceof Transform)) {
-        const targetComp = target.addComponent(<new (entity: Entity) => Component>sourceComp.constructor);
+        const targetComp = target.addComponent(<ComponentConstructor>sourceComp.constructor);
         ComponentCloner.cloneComponent(sourceComp, targetComp, srcRoot, targetRoot, deepInstanceMap);
       }
     }
@@ -765,3 +793,5 @@ type ComponentArguments<T extends new (entity: Entity, ...args: any[]) => Compon
 ) => Component
   ? P
   : never;
+
+type ComponentConstructor = new (entity: Entity) => Component;

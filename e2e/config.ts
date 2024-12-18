@@ -119,6 +119,11 @@ export const E2E_CONFIG = {
       category: "Material",
       caseFileName: "material-unlit",
       threshold: 0.2
+    },
+    "shaderLab-renderState": {
+      category: "Material",
+      caseFileName: "shaderLab-renderState",
+      threshold: 0.2
     }
   },
   Shadow: {
@@ -237,6 +242,21 @@ export const E2E_CONFIG = {
       category: "Advance",
       caseFileName: "project-loader",
       threshold: 0.4
+    },
+    MultiSceneClear: {
+      category: "Advance",
+      caseFileName: "multi-scene-clear",
+      threshold: 0.2
+    },
+    MultiSceneNoClear: {
+      category: "Advance",
+      caseFileName: "multi-scene-no-clear",
+      threshold: 0.2
+    },
+    MultiCameraNoClear: {
+      category: "Advance",
+      caseFileName: "multi-camera-no-clear",
+      threshold: 0.2
     }
-  },
+  }
 };

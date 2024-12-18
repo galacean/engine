@@ -20,6 +20,7 @@ export type { EngineSettings } from "./EngineSettings";
 export type { EngineConfiguration } from "./Engine";
 
 export { request } from "./asset/request";
+export type { RequestConfig } from "./asset/request";
 export { Loader } from "./asset/Loader";
 export { ContentRestorer } from "./asset/ContentRestorer";
 export { ResourceManager, resourceLoader } from "./asset/ResourceManager";
@@ -65,7 +66,11 @@ export * from "./clone/CloneManager";
 export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
 export * from "./Utils";
+export * from "./audio/index";
+import { Polyfill } from "./Polyfill";
 
 export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 
 export * from "./postProcess";
+
+Polyfill.registerPolyfill();
