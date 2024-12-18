@@ -24,6 +24,7 @@ struct SurfaceData{
     float specularAO;
     float f0;
     float opacity;
+    float IOR;
 
     // geometry
     vec3 position;
@@ -64,6 +65,12 @@ struct SurfaceData{
         vec3  sheenColor;
     #endif
 
+    #ifdef MATERIAL_ENABLE_SS_REFRACTION 
+        vec3 attenuationColor;
+        float attenuationDistance;
+        float transmission;
+        float thickness;
+    #endif
 };
 
 

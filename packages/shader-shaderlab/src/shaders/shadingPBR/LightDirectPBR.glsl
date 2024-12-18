@@ -19,6 +19,7 @@
 #endif
 
 #include "BRDF.glsl"
+#include "BTDF.glsl"
 #include "Light.glsl"
 #include "ReflectionLobe.glsl"
 
@@ -37,6 +38,11 @@ void surfaceShading(Varyings varyings, SurfaceData surfaceData, BRDFData brdfDat
     FUNCTION_DIFFUSE_LOBE(varyings, surfaceData, brdfData, attenuationIrradiance, diffuseColor);
     // Specular Lobe
     FUNCTION_SPECULAR_LOBE(varyings, surfaceData, brdfData, incidentDirection, attenuationIrradiance, specularColor);
+     
+    #ifdef MATERIAL_ENABLE_SS_REFRACTION 
+        diffuseColor *= (1.0 - surfaceData.transmission);
+    #endif
+
     // Sheen Lobe
     FUNCTION_SHEEN_LOBE(varyings, surfaceData, brdfData, incidentDirection, attenuationIrradiance, diffuseColor, specularColor);
     

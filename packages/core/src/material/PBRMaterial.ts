@@ -1,6 +1,6 @@
 import { MathUtil, Vector2, Vector3, Vector4, Color } from "@galacean/engine-math";
 import { Engine } from "../Engine";
-import { ShaderProperty } from "../shader";
+import { ShaderMacro, ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { Texture2D } from "../texture/Texture2D";
 import { PBRBaseMaterial } from "./PBRBaseMaterial";
@@ -31,6 +31,14 @@ export class PBRMaterial extends PBRBaseMaterial {
   private static _sheenTextureProp = ShaderProperty.getByName("material_SheenTexture");
   private static _sheenRoughnessTextureProp = ShaderProperty.getByName("material_SheenRoughnessTexture");
 
+  private _refractionEnabled = false;
+  private static _refactionMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_ENABLE_SS_REFRACTION");
+  private static _transmissionProp = ShaderProperty.getByName("material_transmission");
+  private static _transmissionTextureProp = ShaderProperty.getByName("material_TransmissionTexture");
+  private static _attenuationColorProp = ShaderProperty.getByName("material_attenuationColor");
+  private static _attenuationDistanceProp = ShaderProperty.getByName("material_attenuationDistance");
+  private static _thicknessProp = ShaderProperty.getByName("material_thickness");
+  private static _thicknessTextureProp = ShaderProperty.getByName("material_ThicknessTexture");
   /**
    * Index Of Refraction.
    * @defaultValue `1.5`
@@ -290,6 +298,122 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
+   * Refraction switch.
+   */
+  get enableRefraction(): boolean {
+    return this._refractionEnabled;
+  }
+
+  set enableRefraction(value: boolean) {
+    if (value !== this._refractionEnabled) {
+      this._refractionEnabled = value;
+      if (value) {
+        this.shaderData.enableMacro(PBRMaterial._refactionMacro);
+      } else {
+        this.shaderData.enableMacro(PBRMaterial._refactionMacro);
+      }
+    }
+  }
+
+  /**
+   * Transmission factor.
+   * @defaultValue `0.0`
+   */
+  get transmission(): number {
+    return this.shaderData.getFloat(PBRMaterial._transmissionProp);
+  }
+
+  set transmission(value: number) {
+    this.shaderData.setFloat(PBRMaterial._transmissionProp, value);
+    if (value) {
+      this.shaderData.enableMacro("MATERIAL_HAS_TRANSMISSION");
+    } else {
+      this.shaderData.disableMacro("MATERIAL_HAS_TRANSMISSION");
+    }
+  }
+
+  /**
+   * Transmission texture.
+   * @remarks Use red channel, and multiply 'transmission'.
+   */
+  get transmissionTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._transmissionTextureProp);
+  }
+
+  set transmissionTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._transmissionTextureProp, value);
+    if (value) {
+      this.shaderData.enableMacro("MATERIAL_HAS_TRANSMISSION_TEXTURE");
+    } else {
+      this.shaderData.disableMacro("MATERIAL_HAS_TRANSMISSION_TEXTURE");
+    }
+  }
+
+  /**
+   * Attenuation color.
+   * @defaultValue `[1,1,1]`
+   */
+  get attenuationColor(): Color {
+    return this.shaderData.getColor(PBRMaterial._attenuationColorProp);
+  }
+
+  set attenuationColor(value: Color) {
+    const attenuationColor = this.shaderData.getColor(PBRMaterial._attenuationColorProp);
+    if (value !== attenuationColor) {
+      attenuationColor.copyFrom(value);
+    }
+  }
+
+  /**
+   * Attenuation distance, greater than 0.0.
+   * @defaultValue `infinity`
+   */
+  get attenuationDistance(): number {
+    return this.shaderData.getFloat(PBRMaterial._attenuationDistanceProp);
+  }
+
+  set attenuationDistance(value: number) {
+    if (value <= 0) {
+      throw new Error("attenuationDistance must be greater than 0.0");
+    }
+    this.shaderData.setFloat(PBRMaterial._attenuationDistanceProp, value);
+  }
+
+  /**
+   * Thickness, greater than or equal to 0.0.
+   * @defaultValue `0.0`
+   */
+  get thickness(): number {
+    return this.shaderData.getFloat(PBRMaterial._thicknessProp);
+  }
+
+  set thickness(value: number) {
+    value = Math.max(0, value);
+    this.shaderData.setFloat(PBRMaterial._thicknessProp, value);
+    if (value) {
+      this.shaderData.enableMacro("MATERIAL_HAS_THICKNESS");
+    } else {
+      this.shaderData.disableMacro("MATERIAL_HAS_THICKNESS");
+    }
+  }
+
+  /**
+   * Thickness texture.
+   * @remarks Use green channel, and multiply 'thickness', range is 0.0 to 1.0.
+   */
+  get thicknessTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._thicknessTextureProp);
+  }
+
+  set thicknessTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._thicknessTextureProp, value);
+    if (value) {
+      this.shaderData.enableMacro("MATERIAL_HAS_THICKNESS_TEXTURE");
+    } else {
+      this.shaderData.disableMacro("MATERIAL_HAS_THICKNESS_TEXTURE");
+    }
+  }
+  /**
    * Create a pbr metallic-roughness workflow material instance.
    * @param engine - Engine to which the material belongs
    */
@@ -304,6 +428,8 @@ export class PBRMaterial extends PBRBaseMaterial {
     shaderData.setVector4(PBRMaterial._iridescenceInfoProp, new Vector4(0, 1.3, 100, 400));
     const sheenColor = new Color(0, 0, 0);
     shaderData.setColor(PBRMaterial._sheenColorProp, sheenColor);
+    const attenuationColor = new Color(1, 1, 1);
+    shaderData.setColor(PBRMaterial._attenuationColorProp, attenuationColor);
     // @ts-ignore
     this._iridescenceRange._onValueChanged = this._onIridescenceRangeChanged.bind(this);
     // @ts-ignore
@@ -316,6 +442,15 @@ export class PBRMaterial extends PBRBaseMaterial {
         } else {
           this.shaderData.disableMacro("MATERIAL_ENABLE_SHEEN");
         }
+      }
+    };
+    // @ts-ignore
+    attenuationColor._onValueChanged = () => {
+      const enableAbsorption = attenuationColor.r + attenuationColor.g + attenuationColor.b > 1;
+      if (enableAbsorption) {
+        this.shaderData.enableMacro("MATERIAL_HAS_ABSORPTION");
+      } else {
+        this.shaderData.disableMacro("MATERIAL_HAS_ABSORPTION");
       }
     };
   }

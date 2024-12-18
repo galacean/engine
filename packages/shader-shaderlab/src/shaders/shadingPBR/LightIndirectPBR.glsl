@@ -105,7 +105,17 @@ void evaluateIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, 
     // IBL sheen
     FUNCTION_SHEEN_IBL(varyings, surfaceData, brdfData, radianceAttenuation, diffuseColor, specularColor);
     
+    #ifdef MATERIAL_ENABLE_SS_REFRACTION 
+        vec3 refractionTransmitted = evaluateRefraction(surfaceData, brdfData, specularColor);
+        refractionTransmitted *= surfaceData.transmission;
+        diffuseColor *= (1.0 - surfaceData.transmission);
+    #endif
+
     color += diffuseColor + specularColor;
+
+    #ifdef MATERIAL_ENABLE_SS_REFRACTION 
+        color.rgb += refractionTransmitted;
+    #endif
 
 }
 
