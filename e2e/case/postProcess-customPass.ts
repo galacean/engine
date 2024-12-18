@@ -77,12 +77,12 @@ initPostProcessEnv((camera: Camera, resArray) => {
   const postProcess = globalPostProcessEntity.addComponent(PostProcess);
   const bloomEffect = postProcess.addEffect(BloomEffect);
   const tonemappingEffect = postProcess.addEffect(TonemappingEffect);
-  tonemappingEffect.mode = TonemappingMode.ACES;
+  tonemappingEffect.mode.value = TonemappingMode.ACES;
 
-  bloomEffect.threshold = 0.5;
-  bloomEffect.intensity = 1;
-  bloomEffect.dirtTexture = dirtTexture;
-  tonemappingEffect.mode = TonemappingMode.Neutral;
+  bloomEffect.threshold.value = 0.5;
+  bloomEffect.intensity.value = 1;
+  bloomEffect.dirtTexture.value = dirtTexture;
+  tonemappingEffect.mode.value = TonemappingMode.Neutral;
 
   const customPass = new CustomPass(engine);
   postProcessManager.addPostProcessPass(customPass);

@@ -8,27 +8,8 @@ export class PostProcessEffect {
   private _phasedActive = false;
 
   private _enabled = true;
-  private _parameters: PostProcessEffectParameter<any>[] = [];
+  private __parameters: PostProcessEffectParameter<any>[] = [];
   private _parameterInitialized = false;
-
-  /**
-   * Get all parameters of the post process effect.
-   * @remarks
-   * Only get the parameters that are initialized in the constructor.
-   * It will don't take effect if you add a new parameter after the post process effect is created, such as `effect.** = new PostProcessEffectParameter(1)`
-   */
-  get parameters(): PostProcessEffectParameter<any>[] {
-    if (!this._parameterInitialized) {
-      this._parameterInitialized = true;
-      for (let key in this) {
-        const value = this[key];
-        if (value instanceof PostProcessEffectParameter) {
-          this._parameters.push(value);
-        }
-      }
-    }
-    return this._parameters;
-  }
 
   /**
    * The engine the post process effect belongs to
@@ -69,6 +50,25 @@ export class PostProcessEffect {
   }
 
   /**
+   * Get all parameters of the post process effect.
+   * @remarks
+   * Only get the parameters that are initialized in the constructor.
+   * It will don't take effect if you add a new parameter after the post process effect is created, such as `effect.** = new PostProcessEffectParameter(1)`
+   */
+  private get _parameters(): PostProcessEffectParameter<any>[] {
+    if (!this._parameterInitialized) {
+      this._parameterInitialized = true;
+      for (let key in this) {
+        const value = this[key];
+        if (value instanceof PostProcessEffectParameter) {
+          this.__parameters.push(value);
+        }
+      }
+    }
+    return this.__parameters;
+  }
+
+  /**
    * Create a post process effect.
    * @param postProcess - The post process being used
    */
@@ -90,9 +90,9 @@ export class PostProcessEffect {
   //  * @param interpFactor - The interpolation factor in range [0,1]
    */
   lerp(toEffect: PostProcessEffect, interpFactor: number): void {
-    const parameters = this.parameters;
+    const parameters = this._parameters;
     for (let i = 0; i < parameters.length; i++) {
-      const targetParameter = toEffect.parameters[i];
+      const targetParameter = toEffect._parameters[i];
       if (targetParameter.enabled) {
         parameters[i].lerp(targetParameter.value, interpFactor);
       }
@@ -116,7 +116,7 @@ export class PostProcessEffect {
         this.onEnable();
       }
     } else {
-      if (this._phasedActive && !this.enabled) {
+      if (this._phasedActive) {
         this._phasedActive = false;
         postProcessManager._activeStateChangeFlag = true;
         this.onDisable();

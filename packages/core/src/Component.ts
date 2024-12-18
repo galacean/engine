@@ -19,9 +19,7 @@ export class Component extends EngineObject {
   @ignoreClone
   protected _phasedActiveInScene: boolean = false;
 
-  /**
-   * @internal
-   */
+  /** @internal */
   @ignoreClone
   _phasedActive: boolean = false;
 

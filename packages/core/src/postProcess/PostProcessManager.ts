@@ -252,7 +252,7 @@ export class PostProcessManager {
 
         blendEffect.enabled = true;
 
-        // @todo: need `collider.ClosestPoint` to be implemented
+        // @todo: need `collider.ClosestPoint` implement local mode
         blendEffect.lerp(effect, 1);
       }
     }
