@@ -1,5 +1,4 @@
 import { Entity } from "@galacean/engine";
-
 export { UICanvas } from "./component/UICanvas";
 export { UIGroup } from "./component/UIGroup";
 export { UIRenderer } from "./component/UIRenderer";
@@ -16,12 +15,12 @@ export { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrate
 export { UIPointerEventEmitter } from "./input/UIPointerEventEmitter";
 
 export class EntityExtension {
-  _hierarchyVersion = 0;
-  _updateHierarchyVersion(version: number): void {
-    if (this._hierarchyVersion !== version) {
-      this._hierarchyVersion = version;
+  _uiHierarchyVersion = 0;
+  _updateUIHierarchyVersion(version: number): void {
+    if (this._uiHierarchyVersion !== version) {
+      this._uiHierarchyVersion = version;
       // @ts-ignore
-      this.parent?._updateHierarchyVersion(version);
+      this.parent?._updateUIHierarchyVersion(version);
     }
   }
 }
@@ -29,13 +28,12 @@ export class EntityExtension {
 declare module "@galacean/engine" {
   interface Entity {
     // @internal
-    _hierarchyVersion: number;
+    _uiHierarchyVersion: number;
     // @internal
-    _updateHierarchyVersion(version: number): void;
+    _updateUIHierarchyVersion(version: number): void;
   }
 }
 
-// 实现混入的函数
 function ApplyMixins(derivedCtor: any, baseCtors: any[]): void {
   baseCtors.forEach((baseCtor) => {
     Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {

@@ -117,19 +117,19 @@ export class UIGroup extends Component implements IGroupAble {
 
   // @ts-ignore
   override _onEnableInScene(): void {
-    Utils.rootCanvasDirty(this);
-    Utils.groupDirty(this);
+    Utils.setRootCanvasDirty(this);
+    Utils.setGroupDirty(this);
     // @ts-ignore
     this.entity._dispatchModify(EntityUIModifyFlags.GroupEnableInScene);
   }
 
   // @ts-ignore
   override _onDisableInScene(): void {
-    Utils.cancelRootCanvasLink(this);
-    Utils.cancelGroupLink(this);
+    Utils.cleanRootCanvas(this);
+    Utils.cleanGroup(this);
     const disorderedElements = this._disorderedElements;
     disorderedElements.forEach((element: IGroupAble) => {
-      Utils.groupDirty(element);
+      Utils.setGroupDirty(element);
     });
     disorderedElements.length = 0;
     disorderedElements.garbageCollection();
@@ -140,11 +140,7 @@ export class UIGroup extends Component implements IGroupAble {
    * @internal
    */
   _getRootCanvas(): UICanvas {
-    if (this._isRootCanvasDirty) {
-      Utils.linkToRootCanvas(this, Utils.searchRootCanvasInParents(this));
-      this._isRootCanvasDirty = false;
-      Utils.updateRootCanvasListener(this);
-    }
+    this._isRootCanvasDirty && Utils.setRootCanvas(this, Utils.searchRootCanvasInParents(this));
     return this._rootCanvas;
   }
 
@@ -152,12 +148,7 @@ export class UIGroup extends Component implements IGroupAble {
    * @internal
    */
   _getGroup(): UIGroup {
-    if (this._isGroupDirty) {
-      Utils.linkToGroup(this, Utils.searchGroupInParents(this));
-      this._isGroupDirty = false;
-      this._onGroupModify(GroupModifyFlags.All);
-      Utils.updateGroupListener(this);
-    }
+    this._isGroupDirty && Utils.setGroup(this, Utils.searchGroupInParents(this));
     return this._group;
   }
 
@@ -168,7 +159,7 @@ export class UIGroup extends Component implements IGroupAble {
   _groupListener(flag: number): void {
     if (this._isGroupDirty) return;
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.GroupEnableInScene) {
-      Utils.groupDirty(this);
+      Utils.setGroupDirty(this);
     }
   }
 
@@ -179,8 +170,8 @@ export class UIGroup extends Component implements IGroupAble {
   _rootCanvasListener(flag: number): void {
     if (this._isRootCanvasDirty) return;
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.CanvasEnableInScene) {
-      Utils.rootCanvasDirty(this);
-      Utils.groupDirty(this);
+      Utils.setRootCanvasDirty(this);
+      Utils.setGroupDirty(this);
     }
   }
 

@@ -154,28 +154,24 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
   override _onEnableInScene(): void {
     // @ts-ignore
     this._overrideUpdate && this.scene._componentsManager.addOnUpdateRenderers(this);
-    this.entity._updateHierarchyVersion(this.engine.time.frameCount);
-    Utils.rootCanvasDirty(this);
-    Utils.groupDirty(this);
+    this.entity._updateUIHierarchyVersion(this.engine.time.frameCount);
+    Utils.setRootCanvasDirty(this);
+    Utils.setGroupDirty(this);
   }
 
   // @ts-ignore
   override _onDisableInScene(): void {
     // @ts-ignore
     this._overrideUpdate && this.scene._componentsManager.removeOnUpdateRenderers(this);
-    Utils.cancelRootCanvasLink(this);
-    Utils.cancelGroupLink(this);
+    Utils.cleanRootCanvas(this);
+    Utils.cleanGroup(this);
   }
 
   /**
    * @internal
    */
   _getRootCanvas(): UICanvas {
-    if (this._isRootCanvasDirty) {
-      Utils.linkToRootCanvas(this, Utils.searchRootCanvasInParents(this));
-      this._isRootCanvasDirty = false;
-      Utils.updateRootCanvasListener(this);
-    }
+    this._isRootCanvasDirty && Utils.setRootCanvas(this, Utils.searchRootCanvasInParents(this));
     return this._rootCanvas;
   }
 
@@ -183,12 +179,7 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
    * @internal
    */
   _getGroup(): UIGroup {
-    if (this._isGroupDirty) {
-      Utils.linkToGroup(this, Utils.searchGroupInParents(this));
-      this._isGroupDirty = false;
-      this._onGroupModify(GroupModifyFlags.All);
-      Utils.updateGroupListener(this);
-    }
+    this._isGroupDirty && Utils.setGroup(this, Utils.searchGroupInParents(this));
     return this._group;
   }
 
@@ -199,7 +190,7 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
   _groupListener(flag: number): void {
     if (this._isGroupDirty) return;
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.GroupEnableInScene) {
-      Utils.groupDirty(this);
+      Utils.setGroupDirty(this);
     }
   }
 
@@ -211,10 +202,10 @@ export abstract class UIRenderer extends Renderer implements IGraphics {
     if (this._isRootCanvasDirty) return;
     switch (flag) {
       case EntityModifyFlags.Parent:
-        Utils.rootCanvasDirty(this);
-        Utils.groupDirty(this);
+        Utils.setRootCanvasDirty(this);
+        Utils.setGroupDirty(this);
       case EntityModifyFlags.SiblingIndex:
-        entity._updateHierarchyVersion(this.engine.time.frameCount);
+        entity._updateUIHierarchyVersion(this.engine.time.frameCount);
         break;
       default:
         break;

@@ -156,22 +156,19 @@ export class UIInteractive extends Script implements IGroupAble {
     this._transitions.forEach((transition) => transition.destroy());
   }
 
+  /**
+   * @internal
+   */
   _getRootCanvas(): UICanvas {
-    if (this._isRootCanvasDirty) {
-      Utils.linkToRootCanvas(this, Utils.searchRootCanvasInParents(this));
-      this._isRootCanvasDirty = false;
-      Utils.updateRootCanvasListener(this);
-    }
+    this._isRootCanvasDirty && Utils.setRootCanvas(this, Utils.searchRootCanvasInParents(this));
     return this._rootCanvas;
   }
 
+  /**
+   * @internal
+   */
   _getGroup(): UIGroup {
-    if (this._isGroupDirty) {
-      Utils.linkToGroup(this, Utils.searchGroupInParents(this));
-      this._isGroupDirty = false;
-      this._onGroupModify(GroupModifyFlags.All);
-      Utils.updateGroupListener(this);
-    }
+    this._isGroupDirty && Utils.setGroup(this, Utils.searchGroupInParents(this));
     return this._group;
   }
 
@@ -179,8 +176,8 @@ export class UIInteractive extends Script implements IGroupAble {
   override _onEnableInScene(): void {
     // @ts-ignore
     super._onEnableInScene();
-    Utils.rootCanvasDirty(this);
-    Utils.groupDirty(this);
+    Utils.setRootCanvasDirty(this);
+    Utils.setGroupDirty(this);
     this._updateState(true);
   }
 
@@ -188,8 +185,8 @@ export class UIInteractive extends Script implements IGroupAble {
   override _onDisableInScene(): void {
     // @ts-ignore
     super._onDisableInScene();
-    Utils.cancelRootCanvasLink(this);
-    Utils.cancelGroupLink(this);
+    Utils.cleanRootCanvas(this);
+    Utils.cleanGroup(this);
     this._isPointerInside = this._isPointerDragging = false;
   }
 
@@ -213,7 +210,7 @@ export class UIInteractive extends Script implements IGroupAble {
   _groupListener(flag: number): void {
     if (this._isGroupDirty) return;
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.GroupEnableInScene) {
-      Utils.groupDirty(this);
+      Utils.setGroupDirty(this);
     }
   }
 
@@ -224,8 +221,8 @@ export class UIInteractive extends Script implements IGroupAble {
   _rootCanvasListener(flag: number): void {
     if (this._isRootCanvasDirty) return;
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.CanvasEnableInScene) {
-      Utils.rootCanvasDirty(this);
-      Utils.groupDirty(this);
+      Utils.setRootCanvasDirty(this);
+      Utils.setGroupDirty(this);
     }
   }
 
