@@ -13,7 +13,6 @@ export abstract class ColliderShape implements ICustomClone {
   private static _idGenerator: number = 0;
   private static _tempWorldPos: Vector3 = new Vector3();
   private static _tempWorldRot: Quaternion = new Quaternion();
-  private static _tempMatrix: Matrix = new Matrix();
 
   /** @internal */
   @ignoreClone
@@ -83,7 +82,7 @@ export abstract class ColliderShape implements ICustomClone {
   }
 
   /**
-   * The local rotation of this ColliderShape.
+   * The local rotation of this ColliderShape, in radians.
    */
   get rotation(): Vector3 {
     return this._rotation;
@@ -138,11 +137,11 @@ export abstract class ColliderShape implements ICustomClone {
 
   /**
    * Get the distance and the closest point on the shape from a point.
-   * @param point - The point
-   * @param outClosestPoint - The result of the closest point on the shape
+   * @param point - Location in world space you want to find the closest point to
+   * @param outClosestPoint - The closest point on the shape in world space
    * @returns The distance between the point and the shape
    */
-  getDistanceAndClosestPointFromPoint(point: Vector3, outClosestPoint: Vector3): number {
+  getClosestPoint(point: Vector3, outClosestPoint: Vector3): number {
     const collider = this._collider;
     if (collider.enabled === false || collider.entity._isActiveInHierarchy === false) {
       console.warn("The collider is not active in scene.");
@@ -153,30 +152,17 @@ export abstract class ColliderShape implements ICustomClone {
     Vector3.transformCoordinate(this._position, collider.entity.transform.worldMatrix, tempPos);
 
     const rotation = this._rotation;
-    Quaternion.rotationEuler(
-      MathUtil.degreeToRadian(rotation.x),
-      MathUtil.degreeToRadian(rotation.y),
-      MathUtil.degreeToRadian(rotation.z),
-      tempQuat
-    );
+    Quaternion.rotationEuler(rotation.x, rotation.y, rotation.z, tempQuat);
     Quaternion.multiply(this._collider.entity.transform.rotationQuaternion, tempQuat, tempQuat);
 
     const res = this._nativeShape.pointDistance(tempPos, tempQuat, point);
-    const distance = res.distance;
+    const distance = res.w;
     if (distance > 0) {
-      outClosestPoint.copyFrom(res.closestPoint);
+      outClosestPoint.set(res.x, res.y, res.z);
     } else {
       outClosestPoint.copyFrom(point);
     }
 
-    const m = ColliderShape._tempMatrix;
-    Matrix.invert(collider.entity.transform.worldMatrix, m);
-    Vector3.transformCoordinate(outClosestPoint, m, outClosestPoint);
-
-    outClosestPoint.subtract(this._position);
-
-    Quaternion.invert(tempQuat, tempQuat);
-    Vector3.transformByQuat(outClosestPoint, tempQuat, outClosestPoint);
     return Math.sqrt(distance);
   }
 

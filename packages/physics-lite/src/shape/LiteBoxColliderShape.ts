@@ -1,5 +1,5 @@
-import { BoundingBox, Matrix, Quaternion, Ray, Vector3 } from "@galacean/engine";
-import { IBoxColliderShape, IPointDistanceInfo } from "@galacean/engine-design";
+import { BoundingBox, Matrix, Quaternion, Ray, Vector3, Vector4 } from "@galacean/engine";
+import { IBoxColliderShape } from "@galacean/engine-design";
 import { LiteHitResult } from "../LiteHitResult";
 import { LitePhysicsMaterial } from "../LitePhysicsMaterial";
 import { LiteColliderShape } from "./LiteColliderShape";
@@ -60,25 +60,25 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
   /**
    * {@inheritDoc IColliderShape.pointDistance }
    */
-  override pointDistance(position: Vector3, rotation: Quaternion, point: Vector3): IPointDistanceInfo {
+  override pointDistance(position: Vector3, rotation: Quaternion, point: Vector3): Vector4 {
     const { position: shapePosition } = this._transform;
     const m = LiteBoxColliderShape._tempMatrix;
     const invM = LiteBoxColliderShape._tempInvMatrix;
     const p = LiteColliderShape._tempPoint;
-
+    const scale = this._sizeScale;
     const boundingBox = LiteBoxColliderShape._tempBox;
+
     const { _boxMin, _boxMax } = this;
     p.copyFrom(_boxMin);
     p.subtract(shapePosition);
-    boundingBox.min.set(p.x, p.y, p.z);
+    boundingBox.min.set(p.x / scale.x, p.y / scale.y, p.z / scale.z);
     p.copyFrom(_boxMax);
     p.subtract(shapePosition);
-    boundingBox.max.set(p.x, p.y, p.z);
+    boundingBox.max.set(p.x / scale.x, p.y / scale.y, p.z / scale.z);
 
-    Matrix.affineTransformation(this._sizeScale, rotation, position, m);
+    Matrix.affineTransformation(scale, rotation, position, m);
     Matrix.invert(m, invM);
     Vector3.transformCoordinate(point, invM, p);
-
     const min = boundingBox.min;
     const max = boundingBox.max;
     p.x = Math.max(min.x, Math.min(p.x, max.x));
@@ -86,17 +86,14 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
     p.z = Math.max(min.z, Math.min(p.z, max.z));
     Vector3.transformCoordinate(p, m, p);
 
+    const res = LiteColliderShape._tempVector4;
     if (Vector3.equals(p, point)) {
-      return {
-        distance: 0,
-        closestPoint: point
-      };
+      res.set(point.x, point.y, point.z, 0);
+    } else {
+      res.set(p.x, p.y, p.z, Vector3.distanceSquared(p, point));
     }
 
-    return {
-      distance: Vector3.distanceSquared(p, point),
-      closestPoint: p
-    };
+    return res;
   }
 
   /**

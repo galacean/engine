@@ -5,26 +5,29 @@ import { ICollision } from "@galacean/engine-design";
 /**
  * Describes a contact point where the collision occurs.
  */
-export interface ContactPoint {
+export class ContactPoint {
   /** The position of the contact point between the shapes, in world space. */
-  readonly position: Vector3;
+  readonly position = new Vector3();
   /** The normal of the contacting surfaces at the contact point. The normal direction points from the second shape to the first shape. */
-  readonly normal: Vector3;
+  readonly normal = new Vector3();
   /** The impulse applied at the contact point, in world space. Divide by the simulation time step to get a force value. */
-  readonly impulse: Vector3;
+  readonly impulse = new Vector3();
   /** The separation of the shapes at the contact point.  A negative separation denotes a penetration. */
-  readonly separation: number;
+  separation: number;
 }
 
+/**
+ * Collision information between two shapes when they collide.
+ */
 export class Collision {
   /** @internal */
   _nativeCollision: ICollision;
 
-  /** The shape be collided. */
+  /** The target shape be collided. */
   shape: ColliderShape;
 
   /**
-   * Get count of contact points.
+   * Count of contact points.
    */
   get contactCount(): number {
     return this._nativeCollision.contactCount;
@@ -37,6 +40,7 @@ export class Collision {
    */
   getContacts(outContacts: ContactPoint[]): ContactPoint[] {
     const { shape0Id, shape1Id } = this._nativeCollision;
+    outContacts.length = 0;
     const nativeContactPoints = this._nativeCollision.getContacts();
     for (let i = 0, n = nativeContactPoints.size(); i < n; i++) {
       const nativeContractPoint = nativeContactPoints.get(i);
@@ -45,13 +49,12 @@ export class Collision {
       if (shape0Id > shape1Id) {
         factor = -1;
       }
-      const contact: ContactPoint = {
-        position: new Vector3(position.x, position.y, position.z),
-        normal: new Vector3(normal.x, normal.y, normal.z).scale(factor),
-        impulse: new Vector3(impulse.x, impulse.y, impulse.z).scale(factor),
-        separation: separation
-      };
-      outContacts.push(contact);
+
+      const contact = (outContacts[i] ||= new ContactPoint());
+      contact.position.set(position.x, position.y, position.z);
+      contact.normal.set(normal.x, normal.y, normal.z).scale(factor);
+      contact.impulse.set(impulse.x, impulse.y, impulse.z).scale(factor);
+      contact.separation = separation;
     }
     return outContacts;
   }

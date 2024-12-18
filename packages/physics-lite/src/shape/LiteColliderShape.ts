@@ -1,5 +1,5 @@
-import { MathUtil, Matrix, Quaternion, Ray, Vector3 } from "@galacean/engine";
-import { IColliderShape, IPhysicsMaterial, IPointDistanceInfo } from "@galacean/engine-design";
+import { Matrix, Quaternion, Ray, Vector3, Vector4 } from "@galacean/engine";
+import { IColliderShape, IPhysicsMaterial } from "@galacean/engine-design";
 import { LiteCollider } from "../LiteCollider";
 import { LiteHitResult } from "../LiteHitResult";
 import { LiteTransform } from "../LiteTransform";
@@ -10,6 +10,8 @@ import { LiteUpdateFlag } from "../LiteUpdateFlag";
  */
 export abstract class LiteColliderShape implements IColliderShape {
   protected static _tempPoint = new Vector3();
+  protected static _tempVector4 = new Vector4();
+
   private static _ray = new Ray();
 
   /** @internal */
@@ -40,12 +42,7 @@ export abstract class LiteColliderShape implements IColliderShape {
   setRotation(rotation: Vector3): void {
     if (rotation !== this._rotation) {
       this._rotation.copyFrom(rotation);
-      Quaternion.rotationEuler(
-        MathUtil.degreeToRadian(rotation.x),
-        MathUtil.degreeToRadian(rotation.y),
-        MathUtil.degreeToRadian(rotation.z),
-        this._transform.rotationQuaternion
-      );
+      Quaternion.rotationEuler(rotation.x, rotation.y, rotation.z, this._transform.rotationQuaternion);
     }
   }
 

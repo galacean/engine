@@ -1,4 +1,4 @@
-import { Quaternion, Vector3 } from "@galacean/engine-math";
+import { Quaternion, Vector3, Vector4 } from "@galacean/engine-math";
 import { IPhysicsMaterial } from "../IPhysicsMaterial";
 
 /**
@@ -48,24 +48,9 @@ export interface IColliderShape {
    * @param point - The point
    * @returns The distance information
    */
-  pointDistance(position: Vector3, rotation: Quaternion, point: Vector3): IPointDistanceInfo;
+  pointDistance(position: Vector3, rotation: Quaternion, point: Vector3): Vector4;
   /**
    * Decrements the reference count of a shape and releases it if the new reference count is zero.
    */
   destroy(): void;
-}
-
-/**
- * Distance information of a point to the shape.
- */
-export interface IPointDistanceInfo {
-  /**
-   * The distance between the point and the shape.
-   */
-  distance: number;
-
-  /**
-   * The closest point on the shape.
-   */
-  closestPoint: Vector3;
 }

@@ -18,7 +18,7 @@ describe("ColliderShape PhysX", () => {
   let dynamicCollider: DynamicCollider;
 
   function formatValue(value: number) {
-    return Math.round(value * 100000) / 100000;
+    return Math.round(value * 10000) / 10000;
   }
 
   beforeAll(async () => {
@@ -26,6 +26,7 @@ describe("ColliderShape PhysX", () => {
     engine.run();
 
     const scene = engine.sceneManager.activeScene;
+    scene.physics.gravity = new Vector3(0, 0, 0);
     const root = scene.createRootEntity("root");
 
     const roleEntity = root.createChild("role");
@@ -250,67 +251,80 @@ describe("ColliderShape PhysX", () => {
     expect(sphereShape.rotation).to.deep.include({ x: 40, y: -182, z: 720 });
   });
 
-  it("boxShape getDistanceAndClosestPointFromPoint", () => {
+  it("boxShape getClosestPoint", () => {
     const boxShape = new BoxColliderShape();
     boxShape.size.set(1, 2, 3);
     boxShape.position.set(2, 3, 4);
     boxShape.rotation.set(23, 45, 12);
     dynamicCollider.addShape(boxShape);
     const entity = dynamicCollider.entity;
+    const engine = entity.engine;
     entity.transform.setPosition(2, 3, 5);
     entity.transform.setScale(3, 4, 5);
     entity.transform.setRotation(13, -45, 38);
 
     const point = new Vector3(-9, 7, 6);
     const closestPoint = new Vector3();
-    let distance = boxShape.getDistanceAndClosestPointFromPoint(point, closestPoint);
-    expect(formatValue(distance)).to.eq(13.42755);
-    expect(formatValue(closestPoint.x)).to.eq(-0.20131);
-    expect(formatValue(closestPoint.y)).to.eq(0.11063);
-    expect(formatValue(closestPoint.z)).to.eq(-0.35453);
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    let distance = boxShape.getClosestPoint(point, closestPoint);
+    expect(formatValue(distance)).to.eq(10.492);
+    expect(formatValue(closestPoint.x)).to.eq(-16.0876);
+    expect(formatValue(closestPoint.y)).to.eq(10.7095);
+    expect(formatValue(closestPoint.z)).to.eq(12.7889);
 
     entity.transform.setScale(1, 1, 1);
     entity.transform.setRotation(0, 0, 0);
+
     point.set(4, 6, 9);
-    distance = boxShape.getDistanceAndClosestPointFromPoint(point, closestPoint);
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    distance = boxShape.getClosestPoint(point, closestPoint);
     expect(distance).to.eq(0);
-    expect(closestPoint).to.deep.include({ x: 0, y: 0, z: 0 });
+    expect(formatValue(closestPoint.x)).to.eq(4);
+    expect(formatValue(closestPoint.y)).to.eq(6);
+    expect(formatValue(closestPoint.z)).to.eq(9);
   });
 
-  it("sphereShape getDistanceAndClosestPointFromPoint", () => {
+  it("sphereShape getClosestPoint", () => {
     const sphereShape = new SphereColliderShape();
     sphereShape.radius = 2;
     sphereShape.position.set(2, 3, 4);
     dynamicCollider.addShape(sphereShape);
     const entity = dynamicCollider.entity;
+    const engine = entity.engine;
     entity.transform.setPosition(2, 3, 5);
     entity.transform.setScale(3, 4, 5);
     entity.transform.setRotation(13, -45, 38);
 
     const point = new Vector3(14, 8, 10);
     const closestPoint = new Vector3();
-    const distance = sphereShape.getDistanceAndClosestPointFromPoint(point, closestPoint);
-    expect(formatValue(distance)).to.eq(29.25711);
-    expect(formatValue(closestPoint.x)).to.eq(-0.31861);
-    expect(formatValue(closestPoint.y)).to.eq(-0.16817);
-    expect(formatValue(closestPoint.z)).to.eq(-0.25466);
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    const distance = sphereShape.getClosestPoint(point, closestPoint);
+    expect(formatValue(distance)).to.eq(21.2571);
+    expect(formatValue(closestPoint.x)).to.eq(-6.2337);
+    expect(formatValue(closestPoint.y)).to.eq(10.2538);
+    expect(formatValue(closestPoint.z)).to.eq(16.1142);
 
     entity.transform.setScale(1, 1, 1);
     entity.transform.setRotation(0, 0, 0);
     point.set(4, 6, 9);
-    const distance2 = sphereShape.getDistanceAndClosestPointFromPoint(point, closestPoint);
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    const distance2 = sphereShape.getClosestPoint(point, closestPoint);
     expect(distance2).to.eq(0);
-    expect(closestPoint).to.deep.include({ x: 0, y: 0, z: 0 });
+    expect(closestPoint).to.deep.include({ x: 4, y: 6, z: 9 });
   });
 
-  it("getDistanceAndClosestPointFromPoint with collider disabled", () => {
+  it("getClosestPoint with collider disabled", () => {
     const sphereShape = new BoxColliderShape();
     dynamicCollider.addShape(sphereShape);
     dynamicCollider.enabled = false;
 
     const point = new Vector3(2, 0, 0);
     const closestPoint = new Vector3();
-    const distance = sphereShape.getDistanceAndClosestPointFromPoint(point, closestPoint);
+    const distance = sphereShape.getClosestPoint(point, closestPoint);
     expect(distance).to.eq(-1);
   });
 
@@ -349,7 +363,7 @@ describe("ColliderShape Lite", () => {
   let dynamicCollider: DynamicCollider;
 
   function formatValue(value: number) {
-    return Math.round(value * 100000) / 100000;
+    return Math.round(value * 10000) / 10000;
   }
 
   beforeAll(async () => {
@@ -466,67 +480,80 @@ describe("ColliderShape Lite", () => {
     expect(sphereShape.rotation).to.deep.include({ x: 40, y: -182, z: 720 });
   });
 
-  it("boxShape getDistanceAndClosestPointFromPoint", () => {
+  it("boxShape getClosestPoint", () => {
     const boxShape = new BoxColliderShape();
     boxShape.size.set(1, 2, 3);
     boxShape.position.set(2, 3, 4);
     boxShape.rotation.set(23, 45, 12);
     dynamicCollider.addShape(boxShape);
     const entity = dynamicCollider.entity;
+    const engine = entity.engine;
     entity.transform.setPosition(2, 3, 5);
     entity.transform.setScale(3, 4, 5);
     entity.transform.setRotation(13, -45, 38);
 
     const point = new Vector3(-9, 7, 6);
     const closestPoint = new Vector3();
-    let distance = boxShape.getDistanceAndClosestPointFromPoint(point, closestPoint);
-    expect(formatValue(distance)).to.eq(13.42755);
-    expect(formatValue(closestPoint.x)).to.eq(-0.20131);
-    expect(formatValue(closestPoint.y)).to.eq(0.11063);
-    expect(formatValue(closestPoint.z)).to.eq(-0.35453);
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    let distance = boxShape.getClosestPoint(point, closestPoint);
+    expect(formatValue(distance)).to.eq(10.492);
+    expect(formatValue(closestPoint.x)).to.eq(-16.0876);
+    expect(formatValue(closestPoint.y)).to.eq(10.7095);
+    expect(formatValue(closestPoint.z)).to.eq(12.7889);
 
     entity.transform.setScale(1, 1, 1);
     entity.transform.setRotation(0, 0, 0);
+
     point.set(4, 6, 9);
-    distance = boxShape.getDistanceAndClosestPointFromPoint(point, closestPoint);
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    distance = boxShape.getClosestPoint(point, closestPoint);
     expect(distance).to.eq(0);
-    expect(closestPoint).to.deep.include({ x: 0, y: 0, z: 0 });
+    expect(formatValue(closestPoint.x)).to.eq(4);
+    expect(formatValue(closestPoint.y)).to.eq(6);
+    expect(formatValue(closestPoint.z)).to.eq(9);
   });
 
-  it("sphereShape getDistanceAndClosestPointFromPoint", () => {
+  it("sphereShape getClosestPoint", () => {
     const sphereShape = new SphereColliderShape();
     sphereShape.radius = 2;
     sphereShape.position.set(2, 3, 4);
     dynamicCollider.addShape(sphereShape);
     const entity = dynamicCollider.entity;
+    const engine = entity.engine;
     entity.transform.setPosition(2, 3, 5);
     entity.transform.setScale(3, 4, 5);
     entity.transform.setRotation(13, -45, 38);
 
     const point = new Vector3(14, 8, 10);
     const closestPoint = new Vector3();
-    const distance = sphereShape.getDistanceAndClosestPointFromPoint(point, closestPoint);
-    expect(formatValue(distance)).to.eq(29.25711);
-    expect(formatValue(closestPoint.x)).to.eq(-0.31861);
-    expect(formatValue(closestPoint.y)).to.eq(-0.16817);
-    expect(formatValue(closestPoint.z)).to.eq(-0.25466);
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    const distance = sphereShape.getClosestPoint(point, closestPoint);
+    expect(formatValue(distance)).to.eq(21.2571);
+    expect(formatValue(closestPoint.x)).to.eq(-6.2337);
+    expect(formatValue(closestPoint.y)).to.eq(10.2538);
+    expect(formatValue(closestPoint.z)).to.eq(16.1142);
 
     entity.transform.setScale(1, 1, 1);
     entity.transform.setRotation(0, 0, 0);
     point.set(4, 6, 9);
-    const distance2 = sphereShape.getDistanceAndClosestPointFromPoint(point, closestPoint);
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    const distance2 = sphereShape.getClosestPoint(point, closestPoint);
     expect(distance2).to.eq(0);
-    expect(closestPoint).to.deep.include({ x: 0, y: 0, z: 0 });
+    expect(closestPoint).to.deep.include({ x: 4, y: 6, z: 9 });
   });
 
-  it("getDistanceAndClosestPointFromPoint with collider disabled", () => {
+  it("getClosestPoint with collider disabled", () => {
     const sphereShape = new BoxColliderShape();
     dynamicCollider.addShape(sphereShape);
     dynamicCollider.enabled = false;
 
     const point = new Vector3(2, 0, 0);
     const closestPoint = new Vector3();
-    const distance = sphereShape.getDistanceAndClosestPointFromPoint(point, closestPoint);
+    const distance = sphereShape.getClosestPoint(point, closestPoint);
     expect(distance).to.eq(-1);
   });
 

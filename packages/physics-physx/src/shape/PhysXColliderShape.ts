@@ -1,5 +1,5 @@
-import { Quaternion, Vector3, DisorderedArray } from "@galacean/engine";
-import { IColliderShape, IPointDistanceInfo } from "@galacean/engine-design";
+import { Quaternion, Vector3, DisorderedArray, Vector4 } from "@galacean/engine";
+import { IColliderShape } from "@galacean/engine-design";
 import { PhysXCharacterController } from "../PhysXCharacterController";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
@@ -20,6 +20,7 @@ export enum ShapeFlag {
  * Abstract class for collider shapes.
  */
 export abstract class PhysXColliderShape implements IColliderShape {
+  protected static _tempVector4 = new Vector4();
   static readonly halfSqrt: number = 0.70710678118655;
   static transform = {
     translation: new Vector3(),
@@ -58,7 +59,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
    */
   setRotation(value: Vector3): void {
     this._rotation = value;
-    Quaternion.rotationYawPitchRoll(value.x, value.y, value.z, this._physXRotation);
+    Quaternion.rotationYawPitchRoll(value.y, value.x, value.z, this._physXRotation);
     this._axis && Quaternion.multiply(this._physXRotation, this._axis, this._physXRotation);
     this._physXRotation.normalize();
     this._setLocalPose();
@@ -128,11 +129,12 @@ export abstract class PhysXColliderShape implements IColliderShape {
   /**
    * {@inheritDoc IColliderShape.pointDistance }
    */
-  pointDistance(translation: Vector3, rotation: Quaternion, point: Vector3): IPointDistanceInfo {
-    const transform = PhysXColliderShape.transform;
-    transform.translation = translation;
-    transform.rotation = rotation;
-    return this._pxGeometry.pointDistance(transform, point);
+  pointDistance(translation: Vector3, rotation: Quaternion, point: Vector3): Vector4 {
+    const info = this._pxGeometry.pointDistance(this._pxShape.getGlobalPose(), point);
+    const closestPoint = info.closestPoint;
+    const res = PhysXColliderShape._tempVector4;
+    res.set(closestPoint.x, closestPoint.y, closestPoint.z, info.distance);
+    return res;
   }
 
   /**

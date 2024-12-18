@@ -11,8 +11,8 @@ export class PlaneColliderShape extends ColliderShape {
     this._nativeShape = PhysicsScene._nativePhysics.createPlaneColliderShape(this._id, this._material._nativeMaterial);
   }
 
-  override getDistanceAndClosestPointFromPoint(point: Vector3, closestPoint: Vector3): number {
-    console.error("PlaneColliderShape is not support getDistanceAndClosestPointFromPoint");
+  override getClosestPoint(point: Vector3, closestPoint: Vector3): number {
+    console.error("PlaneColliderShape is not support getClosestPoint");
     return -1;
   }
 }
