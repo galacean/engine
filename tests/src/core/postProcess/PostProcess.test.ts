@@ -1,7 +1,8 @@
-import { Color } from "@galacean/engine";
+import { Color, Vector3 } from "@galacean/engine";
 import {
   BloomDownScaleMode,
   BloomEffect,
+  BoxColliderShape,
   Camera,
   Engine,
   Entity,
@@ -9,9 +10,12 @@ import {
   PostProcessPass,
   RenderTarget,
   Scene,
+  StaticCollider,
   Texture2D,
   TonemappingEffect
 } from "@galacean/engine-core";
+import { MathUtil } from "@galacean/engine-math";
+import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -161,7 +165,7 @@ describe("PostProcess", () => {
     expect(activePostProcesses.length).to.equal(2);
   });
 
-  it("Blend global effect", () => {
+  it("Global mode", () => {
     const ppManager = scene.postProcessManager;
     const pp1 = postEntity.addComponent(PostProcess);
     const pp2 = postEntity.addComponent(PostProcess);
@@ -193,5 +197,95 @@ describe("PostProcess", () => {
     pp2.priority = 20;
     engine.update();
     expect(bloomBlend.intensity.value).to.equal(10);
+  });
+
+  it("Local mode", async () => {
+    const pp1 = postEntity.addComponent(PostProcess);
+    expect(pp1.blendDistance).to.equal(0);
+    expect(pp1.isGlobal).to.equal(true);
+
+    pp1.isGlobal = false;
+    // Only support local PostProcess in physics enabled Scenes.
+    expect(pp1.isGlobal).to.equal(true);
+
+    {
+      const engine = await WebGLEngine.create({
+        canvas: document.createElement("canvas"),
+        physics: new PhysXPhysics()
+      });
+      const scene = engine.sceneManager.scenes[0];
+      const passes = scene.postProcessManager.postProcessPasses;
+      uberPass = passes[0];
+      const cameraEntity = scene.createRootEntity("camera");
+      const camera = cameraEntity.addComponent(Camera);
+      camera.enablePostProcess = true;
+      const postEntity = scene.createRootEntity("post-process");
+
+      const pp1 = postEntity.addComponent(PostProcess);
+      const pp2 = postEntity.addComponent(PostProcess);
+      const bloom1 = pp1.addEffect(BloomEffect);
+      const bloom2 = pp2.addEffect(BloomEffect);
+      pp2.priority = 10;
+      bloom2.intensity.value = 10;
+
+      engine.update();
+      const bloomBlend = uberPass.getBlendEffect(BloomEffect);
+
+      expect(bloomBlend.intensity.value).to.equal(10);
+
+      // Local mode
+      const cubeSize = 5;
+      pp2.isGlobal = false;
+      pp2.blendDistance = cubeSize;
+      const collider = postEntity.addComponent(StaticCollider);
+      const physicsBox = new BoxColliderShape();
+      physicsBox.size = new Vector3(cubeSize, cubeSize, cubeSize);
+      collider.addShape(physicsBox);
+
+      // Inside
+      cameraEntity.transform.position.set(0, 0, 0);
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(10);
+
+      // Edge
+      cameraEntity.transform.position.set(cubeSize / 2, 0, 0);
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(10);
+
+      // Outer half in blend distance
+      cameraEntity.transform.position.set(cubeSize / 2 + pp2.blendDistance / 2, 0, 0);
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(5);
+
+      // Outside over blend distance
+      cameraEntity.transform.position.set(cubeSize / 2 + pp2.blendDistance, 0, 0);
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(0);
+
+      // Blend with local and global
+      bloom1.intensity.value = 1;
+
+      // Inside
+      cameraEntity.transform.position.set(0, 0, 0);
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(MathUtil.lerp(1, 10, 1));
+
+      // Edge
+      cameraEntity.transform.position.set(cubeSize / 2, 0, 0);
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(MathUtil.lerp(1, 10, 1));
+
+      // Outer half in blend distance
+      cameraEntity.transform.position.set(cubeSize / 2 + pp2.blendDistance / 2, 0, 0);
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(MathUtil.lerp(1, 10, 0.5));
+
+      // Outside over blend distance
+      cameraEntity.transform.position.set(cubeSize / 2 + pp2.blendDistance, 0, 0);
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(MathUtil.lerp(1, 10, 0));
+
+      engine.destroy();
+    }
   });
 });
