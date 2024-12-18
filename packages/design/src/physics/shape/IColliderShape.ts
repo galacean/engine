@@ -43,8 +43,9 @@ export interface IColliderShape {
 
   /**
    * Get the distance between a point and the shape.
-   * @param point - The point
-   * @returns The distance information
+   * @param point - Location in world space you want to find the closest point to
+   * @returns The x, y, and z components of the Vector4 represent the closest point on the shape in world space,
+   * and the w component represents the distance between the point and the shape
    */
   pointDistance(point: Vector3): Vector4;
   /**
