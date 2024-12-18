@@ -1,6 +1,6 @@
 import { IColliderShape } from "@galacean/engine-design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
-import { MathUtil, Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
+import { Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
@@ -11,8 +11,6 @@ import { Engine } from "../../Engine";
  */
 export abstract class ColliderShape implements ICustomClone {
   private static _idGenerator: number = 0;
-  private static _tempWorldPos: Vector3 = new Vector3();
-  private static _tempWorldRot: Quaternion = new Quaternion();
 
   /** @internal */
   @ignoreClone

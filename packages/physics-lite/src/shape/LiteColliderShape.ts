@@ -98,7 +98,7 @@ export abstract class LiteColliderShape implements IColliderShape {
   /**
    * {@inheritDoc IColliderShape.pointDistance }
    */
-  abstract pointDistance(position: Vector3, rotation: Quaternion, point: Vector3): IPointDistanceInfo;
+  abstract pointDistance(point: Vector3): Vector4;
 
   /**
    * {@inheritDoc IColliderShape.destroy }
