@@ -30,7 +30,9 @@ describe("PostProcess", () => {
     scene = engine.sceneManager.scenes[0];
     const passes = scene.postProcessManager.postProcessPasses;
     uberPass = passes[0];
-    engine.run();
+    const cameraEntity = scene.createRootEntity("camera");
+    const camera = cameraEntity.addComponent(Camera);
+    camera.enablePostProcess = true;
   });
 
   afterAll(() => {
@@ -134,28 +136,62 @@ describe("PostProcess", () => {
   it("Post Process", () => {
     const ppManager = scene.postProcessManager;
 
-    //@ts-ignore
-    expect(ppManager._activePostProcesses.length).to.equal(0);
+    // @ts-ignore
+    const activePostProcesses = ppManager._activePostProcesses;
+
+    expect(activePostProcesses.length).to.equal(0);
 
     const pp1 = postEntity.addComponent(PostProcess);
     const pp2 = postEntity.addComponent(PostProcess);
+    pp1.addEffect(BloomEffect);
+
     expect(pp1.priority).to.equal(0);
+    expect(activePostProcesses.length).to.equal(2);
+    expect(activePostProcesses[1]).to.eq(pp2);
 
-    //@ts-ignore
-    expect(ppManager._activePostProcesses.length).to.equal(2);
-
-    //@ts-ignore
-    expect(ppManager._activePostProcesses[1]).to.eq(pp2);
+    // Test priority
+    pp1.priority = 10;
+    engine.update();
+    expect(activePostProcesses[1]).to.eq(pp1);
 
     pp1.enabled = false;
-    //@ts-ignore
-    expect(ppManager._activePostProcesses.length).to.equal(1);
+    expect(activePostProcesses.length).to.equal(1);
 
     pp1.enabled = true;
-    //@ts-ignore
-    expect(ppManager._activePostProcesses.length).to.equal(2);
+    expect(activePostProcesses.length).to.equal(2);
+  });
 
-    //@ts-ignore
-    expect(ppManager._activePostProcesses[1]).to.eq(pp1);
+  it("Blend global effect", () => {
+    const ppManager = scene.postProcessManager;
+    const pp1 = postEntity.addComponent(PostProcess);
+    const pp2 = postEntity.addComponent(PostProcess);
+    const bloom1 = pp1.addEffect(BloomEffect);
+    const bloom2 = pp2.addEffect(BloomEffect);
+
+    engine.update();
+    expect(ppManager.isActive).to.true;
+    const bloomBlend = uberPass.getBlendEffect(BloomEffect);
+    expect(bloomBlend).to.instanceOf(BloomEffect);
+    expect(bloomBlend.intensity.value).to.equal(0);
+
+    bloom2.intensity.value = 10;
+    engine.update();
+    expect(bloomBlend.intensity.value).to.equal(10);
+
+    pp1.priority = 10;
+    engine.update();
+    expect(bloomBlend.intensity.value).to.equal(0);
+
+    pp1.enabled = false;
+    engine.update();
+    expect(bloomBlend.intensity.value).to.equal(10);
+
+    pp1.enabled = true;
+    engine.update();
+    expect(bloomBlend.intensity.value).to.equal(0);
+
+    pp2.priority = 20;
+    engine.update();
+    expect(bloomBlend.intensity.value).to.equal(10);
   });
 });

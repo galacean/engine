@@ -207,8 +207,7 @@ export class PostProcessManager {
       let defaultEffect = this._defaultEffectMap.get(typeofBlendEffect);
 
       if (!defaultEffect) {
-        defaultEffect = new typeofBlendEffect(blendEffect.postProcess);
-        defaultEffect._setActive(true);
+        defaultEffect = new typeofBlendEffect(null);
         this._defaultEffectMap.set(typeofBlendEffect, defaultEffect);
       }
 
@@ -245,8 +244,7 @@ export class PostProcessManager {
         const PostConstructor = effect.constructor as typeof PostProcessEffect;
         let blendEffect = this._blendEffectMap.get(PostConstructor);
         if (!blendEffect) {
-          blendEffect = new PostConstructor(postProcess);
-          blendEffect._setActive(true);
+          blendEffect = new PostConstructor(null);
           this._blendEffectMap.set(PostConstructor, blendEffect);
         }
 

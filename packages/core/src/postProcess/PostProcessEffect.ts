@@ -12,13 +12,6 @@ export class PostProcessEffect {
   private _parameterInitialized = false;
 
   /**
-   * The engine the post process effect belongs to
-   */
-  get engine() {
-    return this.postProcess.engine;
-  }
-
-  /**
    * Indicates whether the post process effect is enabled.
    */
   get enabled(): boolean {
@@ -32,7 +25,7 @@ export class PostProcessEffect {
 
     this._enabled = value;
 
-    if (!this.postProcess._phasedActive) {
+    if (!this.postProcess?._phasedActive) {
       return;
     }
 
@@ -70,9 +63,11 @@ export class PostProcessEffect {
 
   /**
    * Create a post process effect.
+   * @remarks
+   * postProcess can be null when the effect is just used to blend data, and will not post message to the post process manager.
    * @param postProcess - The post process being used
    */
-  constructor(public postProcess: PostProcess) {}
+  constructor(public postProcess?: PostProcess) {}
 
   /**
    * Called when be enabled.
@@ -87,7 +82,7 @@ export class PostProcessEffect {
   /**
    * Interpolates from the current effect to the end effect by an interpolation factor.
    * @param toEffect - The end effect
-  //  * @param interpFactor - The interpolation factor in range [0,1]
+   * @param interpFactor - The interpolation factor in range [0,1]
    */
   lerp(toEffect: PostProcessEffect, interpFactor: number): void {
     const parameters = this._parameters;
@@ -103,7 +98,7 @@ export class PostProcessEffect {
    * @internal
    */
   _setActive(value: boolean): void {
-    if (!this.postProcess._phasedActive) {
+    if (!this.postProcess?._phasedActive) {
       return;
     }
 
