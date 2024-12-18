@@ -36,12 +36,15 @@ export class Collision {
   /**
    * Get contact points.
    * @param outContacts - The result of contact points
-   * @returns The result of contact points
+   * @returns The actual count of contact points
+   * @remarks To optimize performance, the engine does not modify the length of the array you pass.
+   * You need to obtain the actual number of contact points from the function's return value.
    */
-  getContacts(outContacts: ContactPoint[]): ContactPoint[] {
+  getContacts(outContacts: ContactPoint[]): number {
     const { shape0Id, shape1Id } = this._nativeCollision;
     const nativeContactPoints = this._nativeCollision.getContacts();
-    for (let i = 0, n = nativeContactPoints.size(); i < n; i++) {
+    const length = nativeContactPoints.size();
+    for (let i = 0, n = length; i < n; i++) {
       const nativeContractPoint = nativeContactPoints.get(i);
       const { position, normal, impulse, separation } = nativeContractPoint;
       let factor = 1;
@@ -55,6 +58,6 @@ export class Collision {
       contact.impulse.set(impulse.x, impulse.y, impulse.z).scale(factor);
       contact.separation = separation;
     }
-    return outContacts;
+    return length;
   }
 }
