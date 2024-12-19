@@ -59,43 +59,43 @@ export class BloomEffect extends PostProcessEffect {
    * Controls whether to use bicubic sampling instead of bilinear sampling for the upSampling passes.
    * @remarks This is slightly more expensive but helps getting smoother visuals.
    */
-  highQualityFiltering = new PostProcessEffectParameter<boolean>(false);
+  highQualityFiltering = new PostProcessEffectParameter(false);
 
   /**
    * Controls the starting resolution that this effect begins processing.
    */
-  downScale = new PostProcessEffectParameter<BloomDownScaleMode>(BloomDownScaleMode.Half);
+  downScale = new PostProcessEffectParameter(BloomDownScaleMode.Half);
 
   /**
    * Specifies a Texture to add smudges or dust to the bloom effect.
    */
-  dirtTexture = new PostProcessEffectParameter<Texture2D>(null);
+  dirtTexture = new PostProcessEffectParameter(<Texture2D>null);
 
   /**
    * Set the level of brightness to filter out pixels under this level.
    * @remarks This value is expressed in gamma-space.
    */
-  threshold = new PostProcessEffectParameter<number>(0.9, 0, Number.POSITIVE_INFINITY, true);
+  threshold = new PostProcessEffectParameter(0.9, 0, Number.POSITIVE_INFINITY, true);
 
   /**
    * Controls the radius of the bloom effect.
    */
-  scatter = new PostProcessEffectParameter<number>(0.7, 0, 1, true);
+  scatter = new PostProcessEffectParameter(0.7, 0, 1, true);
 
   /**
    * Controls the strength of the bloom effect.
    */
-  intensity = new PostProcessEffectParameter<number>(0, 0, Number.POSITIVE_INFINITY, true);
+  intensity = new PostProcessEffectParameter(0, 0, Number.POSITIVE_INFINITY, true);
 
   /**
    * Controls the strength of the lens dirt.
    */
-  dirtIntensity = new PostProcessEffectParameter<number>(0, 0, Number.POSITIVE_INFINITY, true);
+  dirtIntensity = new PostProcessEffectParameter(0, 0, Number.POSITIVE_INFINITY, true);
 
   /**
    * Specifies the tint of the bloom effect.
    */
-  tint = new PostProcessEffectParameter<Color>(new Color(1, 1, 1, 1), true);
+  tint = new PostProcessEffectParameter(new Color(1, 1, 1, 1), true);
 }
 
 Shader.create(BloomEffect.SHADER_NAME, [

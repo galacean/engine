@@ -28,5 +28,5 @@ export class TonemappingEffect extends PostProcessEffect {
   /**
    * Use this to select a tonemapping algorithm to use.
    */
-  mode = new PostProcessEffectParameter<TonemappingMode>(TonemappingMode.Neutral, false);
+  mode = new PostProcessEffectParameter(TonemappingMode.Neutral, false);
 }
