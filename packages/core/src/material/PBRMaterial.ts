@@ -310,7 +310,7 @@ export class PBRMaterial extends PBRBaseMaterial {
       if (value) {
         this.shaderData.enableMacro(PBRMaterial._refactionMacro);
       } else {
-        this.shaderData.enableMacro(PBRMaterial._refactionMacro);
+        this.shaderData.disableMacro(PBRMaterial._refactionMacro);
       }
     }
   }
