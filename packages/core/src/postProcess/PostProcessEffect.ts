@@ -5,8 +5,7 @@ import { PostProcessEffectParameter } from "./PostProcessEffectParameter";
  * The base class for post process effect.
  */
 export class PostProcessEffect {
-  private _phasedActive = false;
-
+  private _phasedActiveInScene = false;
   private _enabled = true;
   private __parameters: PostProcessEffectParameter<any>[] = [];
   private _parameterInitialized = false;
@@ -25,18 +24,18 @@ export class PostProcessEffect {
 
     this._enabled = value;
 
-    if (!this.postProcess?._phasedActive) {
+    if (!this.postProcess?._phasedActiveInScene) {
       return;
     }
 
     const postProcessManager = this.postProcess.scene.postProcessManager;
 
-    if (value && !this._phasedActive) {
-      this._phasedActive = true;
+    if (value && !this._phasedActiveInScene) {
+      this._phasedActiveInScene = true;
       postProcessManager._activeStateChangeFlag = true;
       this.onEnable();
-    } else if (!value && this._phasedActive) {
-      this._phasedActive = false;
+    } else if (!value && this._phasedActiveInScene) {
+      this._phasedActiveInScene = false;
       postProcessManager._activeStateChangeFlag = true;
       this.onDisable();
     }
@@ -98,21 +97,21 @@ export class PostProcessEffect {
    * @internal
    */
   _setActive(value: boolean): void {
-    if (!this.postProcess?._phasedActive) {
+    if (!this.postProcess?._phasedActiveInScene) {
       return;
     }
 
     const postProcess = this.postProcess;
     const postProcessManager = postProcess.scene.postProcessManager;
     if (value) {
-      if (!this._phasedActive && this._enabled) {
-        this._phasedActive = true;
+      if (!this._phasedActiveInScene && this._enabled) {
+        this._phasedActiveInScene = true;
         postProcessManager._activeStateChangeFlag = true;
         this.onEnable();
       }
     } else {
-      if (this._phasedActive) {
-        this._phasedActive = false;
+      if (this._phasedActiveInScene) {
+        this._phasedActiveInScene = false;
         postProcessManager._activeStateChangeFlag = true;
         this.onDisable();
       }

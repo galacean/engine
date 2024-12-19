@@ -109,6 +109,13 @@ export class Engine extends EventDispatcher {
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
 
   /** @internal */
+  _postProcessPassNeedSorting = false;
+  /** @internal */
+  _postProcessPasses: PostProcessPass[] = [];
+  /** @internal */
+  _activePostProcessPasses: PostProcessPass[] = [];
+
+  /** @internal */
   protected _canvas: Canvas;
 
   private _settings: EngineSettings = {};
@@ -127,13 +134,6 @@ export class Engine extends EventDispatcher {
   private _waitingDestroy: boolean = false;
   private _isDeviceLost: boolean = false;
   private _waitingGC: boolean = false;
-
-  /** @internal */
-  _postProcessPassNeedSorting = false;
-  /** @internal */
-  _postProcessPasses: PostProcessPass[] = [];
-  /** @internal */
-  _activePostProcessPasses: PostProcessPass[] = [];
 
   private _animate = () => {
     if (this._vSyncCount) {

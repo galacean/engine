@@ -5,7 +5,7 @@ import { Layer } from "../Layer";
 import { PostProcessEffect } from "./PostProcessEffect";
 
 /**
- * PostProcess can be used to apply effects such as Bloom and Tonemapping to the Scene or Colliders.
+ * Post Process component can be used for global or local post-processing.
  */
 export class PostProcess extends Component {
   /**
@@ -104,19 +104,23 @@ export class PostProcess extends Component {
    */
   removeEffect<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
     const effects = this._effects;
-    const effectFind = this.getEffect(type) as InstanceType<T>;
+    const length = effects.length;
 
-    if (effectFind) {
-      effects.splice(effects.indexOf(effectFind), 1);
-      effectFind._setActive(false);
-      return effectFind;
+    for (let i = 0; i < length; i++) {
+      const effect = effects[i] as InstanceType<T>;
+      if (effect instanceof type) {
+        effects.splice(i, 1);
+        effect._setActive(false);
+
+        return effect;
+      }
     }
   }
 
   /**
    * @inheritdoc
    */
-  override _onEnable() {
+  override _onEnableInScene() {
     if (this._destroyed) {
       return;
     }
@@ -127,7 +131,7 @@ export class PostProcess extends Component {
   /**
    * @inheritdoc
    */
-  override _onDisable() {
+  override _onDisableInScene() {
     if (this._destroyed) {
       return;
     }
