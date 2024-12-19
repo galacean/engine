@@ -33,11 +33,11 @@ export class PBRMaterial extends PBRBaseMaterial {
 
   private _refractionEnabled = false;
   private static _refactionMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_ENABLE_SS_REFRACTION");
-  private static _transmissionProp = ShaderProperty.getByName("material_transmission");
+  private static _transmissionProp = ShaderProperty.getByName("material_Transmission");
   private static _transmissionTextureProp = ShaderProperty.getByName("material_TransmissionTexture");
-  private static _attenuationColorProp = ShaderProperty.getByName("material_attenuationColor");
-  private static _attenuationDistanceProp = ShaderProperty.getByName("material_attenuationDistance");
-  private static _thicknessProp = ShaderProperty.getByName("material_thickness");
+  private static _attenuationColorProp = ShaderProperty.getByName("material_AttenuationColor");
+  private static _attenuationDistanceProp = ShaderProperty.getByName("material_AttenuationDistance");
+  private static _thicknessProp = ShaderProperty.getByName("material_Thickness");
   private static _thicknessTextureProp = ShaderProperty.getByName("material_ThicknessTexture");
   /**
    * Index Of Refraction.

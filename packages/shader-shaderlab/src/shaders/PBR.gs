@@ -54,6 +54,15 @@ Shader "PBR.gs" {
         material_SheenTexture("ColorTexture", Texture2D);
         material_SheenRoughnessTexture("RoughnessTexture", Texture2D);
       }
+      
+      Header("Refraction"){
+        material_AttenuationColor("AttenuationColor", Color ) = (1, 1, 1, 1);
+        material_AttenuationDistance("AttenuationDistance", Range(0, 1, 0.01)) = 0;
+        material_Transmission("Transmission", Range(0, 1, 0.01)) = 0;
+        material_Thickness("Thickness", Range(0, 5, 0.01)) = 0;
+        material_TransmissionTexture("TransmissionTexture", Texture2D);
+        material_ThicknessTexture("ThicknessTexture", Texture2D);
+      }
 
       Header("Common") {
         material_AlphaCutoff( "AlphaCutoff", Range(0, 1, 0.01) ) = 0;
