@@ -1,4 +1,4 @@
-import { ASTNode } from "../parser/AST";
+import { ASTNode, TreeNode } from "../parser/AST";
 import { SymbolType } from "../parser/types";
 import { BaseToken as Token } from "../common/BaseToken";
 import { EKeyword, ETokenType } from "../common";
@@ -112,16 +112,7 @@ export class GLES300Visitor extends GLESVisitor {
         this._reportError(node.location, "gl_FragColor cannot be used with MRT (Multiple Render Targets).");
       }
       // #endif
-      if (!context._referencedVaryingList[V3_GL_FragColor]) {
-        const token = Token.pool.get();
-        token.set(ETokenType.ID, V3_GL_FragColor, ShaderLab.createPosition(0, 0, 0));
-        context._referencedVaryingList[V3_GL_FragColor] = {
-          ident: token,
-          typeInfo: new SymbolType(EKeyword.VEC4, "vec4"),
-          qualifier: "out",
-          astNode: node
-        };
-      }
+      this._registerFragColorVariable(node);
       return V3_GL_FragColor;
     }
     return super.visitVariableIdentifier(node);
@@ -129,24 +120,29 @@ export class GLES300Visitor extends GLESVisitor {
 
   override visitJumpStatement(node: ASTNode.JumpStatement): string {
     if (node.isFragReturnStatement) {
-      const { _referencedVaryingList, mrtStruct } = VisitorContext.context;
+      const { mrtStruct } = VisitorContext.context;
       if (mrtStruct) {
         return "";
       }
-      if (!_referencedVaryingList[V3_GL_FragColor]) {
-        const token = Token.pool.get();
-        token.set(ETokenType.ID, V3_GL_FragColor, ShaderLab.createPosition(0, 0, 0));
-        _referencedVaryingList[V3_GL_FragColor] = {
-          ident: token,
-          typeInfo: new SymbolType(EKeyword.VEC4, "vec4"),
-          qualifier: "out",
-          astNode: node
-        };
-      }
+      this._registerFragColorVariable(node);
 
       const expression = node.children[1] as ASTNode.Expression;
       return `${V3_GL_FragColor} = ${expression.codeGen(this)};`;
     }
     return super.visitJumpStatement(node);
+  }
+
+  private _registerFragColorVariable(node: TreeNode) {
+    const { _referencedVaryingList } = VisitorContext.context;
+    if (!_referencedVaryingList[V3_GL_FragColor]) {
+      const token = Token.pool.get();
+      token.set(ETokenType.ID, V3_GL_FragColor, ShaderLab.createPosition(0, 0, 0));
+      _referencedVaryingList[V3_GL_FragColor] = {
+        ident: token,
+        typeInfo: new SymbolType(EKeyword.VEC4, "vec4"),
+        qualifier: "out",
+        astNode: node
+      };
+    }
   }
 }
