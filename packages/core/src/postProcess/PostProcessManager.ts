@@ -8,7 +8,6 @@ import { Collider, ColliderShape } from "../physics";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 import { PostProcess } from "./PostProcess";
 import { PostProcessEffect } from "./PostProcessEffect";
-import { PostProcessPass } from "./PostProcessPass";
 
 /**
  * A global manager of the PostProcess.
@@ -23,9 +22,7 @@ export class PostProcessManager {
   /** @internal */
   _activeStateChangeFlag = false;
 
-  private _postProcessPasses: PostProcessPass[] = [];
   private _activePostProcesses: PostProcess[] = [];
-  private _activePostProcessPasses: PostProcessPass[] = [];
   private _isActive = false;
   private _swapRenderTarget: RenderTarget;
   private _srcRenderTarget: RenderTarget;
@@ -43,25 +40,22 @@ export class PostProcessManager {
    * Whether has any active pass and active effect.
    */
   get isActive(): boolean {
+    const passCount = this.scene.engine._activePostProcessPasses.length;
+    if (!passCount) {
+      return false;
+    }
+
     if (!this._activeStateChangeFlag) {
       return this._isActive;
     }
+
     this._activeStateChangeFlag = false;
 
-    this._isActive =
-      this._activePostProcessPasses.length > 0 &&
-      this._activePostProcesses.some(
-        (postProcess) => postProcess.enabled && postProcess._effects.some((effect) => effect.enabled)
-      );
+    this._isActive = this._activePostProcesses.some(
+      (postProcess) => postProcess.enabled && postProcess._effects.some((effect) => effect.enabled)
+    );
 
     return this._isActive;
-  }
-
-  /**
-   * Get all post process passes.
-   */
-  get postProcessPasses(): ReadonlyArray<PostProcessPass> {
-    return this._postProcessPasses;
   }
 
   /**
@@ -69,60 +63,6 @@ export class PostProcessManager {
    * @param scene - Scene to which the current PostProcessManager belongs
    */
   constructor(public readonly scene: Scene) {}
-
-  /**
-   * Add a post process pass to the manager.
-   * @param pass - Post process pass to add
-   */
-  addPostProcessPass(pass: PostProcessPass): void {
-    if (pass.engine !== this.scene.engine) {
-      throw "The pass is not belong to this engine.";
-    }
-
-    const passes = this._postProcessPasses;
-    const index = passes.indexOf(pass);
-
-    if (index === -1) {
-      pass._postProcessManager?._removePostProcessPass(pass);
-      pass._postProcessManager = this;
-      passes.push(pass);
-
-      pass.isActive && this._refreshActivePostProcessPasses();
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _removePostProcessPass(pass: PostProcessPass): void {
-    const passes = this._postProcessPasses;
-    const index = passes.indexOf(pass);
-
-    if (index !== -1) {
-      passes.splice(index, 1);
-      pass._postProcessManager = null;
-
-      pass.isActive && this._refreshActivePostProcessPasses();
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _refreshActivePostProcessPasses(): void {
-    const activePostProcesses = this._activePostProcessPasses;
-    activePostProcesses.length = 0;
-
-    for (let i = 0; i < this._postProcessPasses.length; i++) {
-      const pass = this._postProcessPasses[i];
-      if (pass.isActive) {
-        activePostProcesses.push(pass);
-      }
-    }
-
-    this._activeStateChangeFlag = true;
-    this._postProcessPassNeedSorting = true;
-  }
 
   /**
    * @internal
@@ -146,9 +86,13 @@ export class PostProcessManager {
   }
 
   /**
-   * @internal
+   * Get the blend effect by type.
+   * @remarks
+   * The blend effect is a post process effect that is used to blend all result of the effects by the type.
+   * @param type - The type of PostProcessEffect
+   * @returns The PostProcessEffect instance found
    */
-  _getBlendEffect<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
+  getBlendEffect<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
     return this._blendEffectMap.get(type) as InstanceType<T>;
   }
 
@@ -156,6 +100,7 @@ export class PostProcessManager {
    * @internal
    */
   _render(camera: Camera, srcRenderTarget: RenderTarget, destRenderTarget: RenderTarget): void {
+    const engine = this.scene.engine;
     this._srcRenderTarget = srcRenderTarget;
     this._destRenderTarget = destRenderTarget;
 
@@ -164,11 +109,11 @@ export class PostProcessManager {
 
     this._update(camera);
 
-    this._remainActivePassCount = this._activePostProcessPasses.length;
+    this._remainActivePassCount = engine._activePostProcessPasses.length;
     this._initSwapRenderTarget(camera);
 
-    for (let i = 0; i < this._activePostProcessPasses.length; i++) {
-      const pass = this._activePostProcessPasses[i];
+    for (let i = 0; i < engine._activePostProcessPasses.length; i++) {
+      const pass = engine._activePostProcessPasses[i];
       pass.onRender(camera, this._getCurrentSourceTexture(), this._currentDestRenderTarget);
       this._remainActivePassCount--;
       this._swapRT();
@@ -184,16 +129,6 @@ export class PostProcessManager {
       swapRenderTarget.getColorTexture(0)?.destroy(true);
       swapRenderTarget.destroy(true);
       this._swapRenderTarget = null;
-    }
-  }
-
-  private _sortActivePostProcessPass(): void {
-    if (this._postProcessPassNeedSorting) {
-      const passes = this._activePostProcessPasses;
-      if (passes.length) {
-        passes.sort((a, b) => a.event - b.event);
-      }
-      this._postProcessPassNeedSorting = false;
     }
   }
 
@@ -226,9 +161,8 @@ export class PostProcessManager {
     // Start by resetting post process effect instance to default values
     this._resetDefaultValue();
 
-    // Sort post process and post process pass
+    // Sort post process
     this._sortActivePostProcess();
-    this._sortActivePostProcessPass();
 
     for (let i = 0; i < this._activePostProcesses.length; i++) {
       const postProcess = this._activePostProcesses[i];

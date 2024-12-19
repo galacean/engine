@@ -1,8 +1,6 @@
 import { EngineObject } from "../base";
 import { Camera } from "../Camera";
 import { RenderTarget, Texture2D } from "../texture";
-import { PostProcessEffect } from "./PostProcessEffect";
-import { PostProcessManager } from "./PostProcessManager";
 
 /**
  * Controls when the post process pass executes.
@@ -17,11 +15,6 @@ export abstract class PostProcessPass extends EngineObject {
   private _isActive = true;
 
   /**
-   * @internal
-   */
-  _postProcessManager: PostProcessManager;
-
-  /**
    * When the post process pass is rendered.
    * @remarks
    * Users can also inject pass events in a specific point by doing PostProcessPassEvent + offset.
@@ -33,8 +26,8 @@ export abstract class PostProcessPass extends EngineObject {
   set event(value: PostProcessPassEvent) {
     if (value !== this._event) {
       this._event = value;
-      if (this._postProcessManager && this._isActive) {
-        this._postProcessManager._postProcessPassNeedSorting = true;
+      if (this._isActive) {
+        this.engine._postProcessPassNeedSorting = true;
       }
     }
   }
@@ -49,19 +42,8 @@ export abstract class PostProcessPass extends EngineObject {
   set isActive(value: boolean) {
     if (value !== this._isActive) {
       this._isActive = value;
-      this._postProcessManager?._refreshActivePostProcessPasses();
+      this.engine._refreshActivePostProcessPasses();
     }
-  }
-
-  /**
-   * Get the blend effect by type.
-   * @remarks
-   * The blend effect is a post process effect that is used to blend all result of the effects by the type.
-   * @param type - The type of PostProcessEffect
-   * @returns The PostProcessEffect instance found
-   */
-  getBlendEffect<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
-    return this._postProcessManager?._getBlendEffect(type);
   }
 
   /**
@@ -77,6 +59,6 @@ export abstract class PostProcessPass extends EngineObject {
    */
   override _onDestroy() {
     super._onDestroy();
-    this._postProcessManager?._removePostProcessPass(this);
+    this.engine._removePostProcessPass(this);
   }
 }

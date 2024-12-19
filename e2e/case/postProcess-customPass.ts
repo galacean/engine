@@ -68,7 +68,6 @@ initPostProcessEnv((camera: Camera, resArray) => {
   const [_, __, dirtTexture] = resArray;
   const scene = camera.scene;
   const engine = scene.engine;
-  const postProcessManager = scene.postProcessManager;
 
   camera.enablePostProcess = true;
   camera.enableHDR = true;
@@ -85,5 +84,5 @@ initPostProcessEnv((camera: Camera, resArray) => {
   tonemappingEffect.mode.value = TonemappingMode.Neutral;
 
   const customPass = new CustomPass(engine);
-  postProcessManager.addPostProcessPass(customPass);
+  engine.addPostProcessPass(customPass);
 });

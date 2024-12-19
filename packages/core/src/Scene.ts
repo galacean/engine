@@ -12,7 +12,7 @@ import { DirectLight } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
 import { LightManager } from "./lighting/LightManager";
 import { PhysicsScene } from "./physics/PhysicsScene";
-import { PostProcessManager, PostProcessUberPass } from "./postProcess";
+import { PostProcessManager } from "./postProcess";
 import { ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -81,7 +81,7 @@ export class Scene extends EngineObject {
   private _postProcessManager = new PostProcessManager(this);
 
   /**
-   * Get the post process manager.
+   * Post process manager.
    */
   get postProcessManager(): PostProcessManager {
     return this._postProcessManager;
@@ -293,9 +293,6 @@ export class Scene extends EngineObject {
 
     this._computeLinearFogParams(this._fogStart, this._fogEnd);
     this._computeExponentialFogParams(this._fogDensity);
-
-    const uberPass = new PostProcessUberPass(engine);
-    this._postProcessManager.addPostProcessPass(uberPass);
   }
 
   /**

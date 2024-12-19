@@ -29,6 +29,8 @@ import { Material } from "./material/Material";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
 import { PhysicsScene } from "./physics/PhysicsScene";
 import { ColliderShape } from "./physics/shape/ColliderShape";
+import { PostProcessPass } from "./postProcess/PostProcessPass";
+import { PostProcessUberPass } from "./postProcess/PostProcessUberPass";
 import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -126,6 +128,13 @@ export class Engine extends EventDispatcher {
   private _isDeviceLost: boolean = false;
   private _waitingGC: boolean = false;
 
+  /** @internal */
+  _postProcessPassNeedSorting = false;
+  /** @internal */
+  _postProcessPasses: PostProcessPass[] = [];
+  /** @internal */
+  _activePostProcessPasses: PostProcessPass[] = [];
+
   private _animate = () => {
     if (this._vSyncCount) {
       const raf = this.xrManager?._getRequestAnimationFrame() || requestAnimationFrame;
@@ -217,6 +226,13 @@ export class Engine extends EventDispatcher {
     return this._destroyed;
   }
 
+  /**
+   * Get all post process passes.
+   */
+  get postProcessPasses(): ReadonlyArray<PostProcessPass> {
+    return this._postProcessPasses;
+  }
+
   protected constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, configuration: EngineConfiguration) {
     super();
     this._hardwareRenderer = hardwareRenderer;
@@ -261,6 +277,9 @@ export class Engine extends EventDispatcher {
 
     this._basicResources = new BasicResources(this);
     this._particleBufferUtils = new ParticleBufferUtils(this);
+
+    const uberPass = new PostProcessUberPass(this);
+    this.addPostProcessPass(uberPass);
   }
 
   /**
@@ -315,6 +334,7 @@ export class Engine extends EventDispatcher {
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
     inputManager._update();
 
+    this._sortActivePostProcessPass();
     const scenes = this._sceneManager._scenes.getLoopArray();
     const sceneCount = scenes.length;
 
@@ -405,6 +425,54 @@ export class Engine extends EventDispatcher {
    */
   forceRestoreDevice(): void {
     this._hardwareRenderer.forceRestoreDevice();
+  }
+
+  /**
+   * Add a post process pass to the manager.
+   * @param pass - Post process pass to add
+   */
+  addPostProcessPass(pass: PostProcessPass): void {
+    if (pass.engine !== this) {
+      throw "The pass is not belong to this engine.";
+    }
+
+    const passes = this._postProcessPasses;
+    const index = passes.indexOf(pass);
+
+    if (index === -1) {
+      passes.push(pass);
+      pass.isActive && this._refreshActivePostProcessPasses();
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _removePostProcessPass(pass: PostProcessPass): void {
+    const passes = this._postProcessPasses;
+    const index = passes.indexOf(pass);
+
+    if (index !== -1) {
+      passes.splice(index, 1);
+      pass.isActive && this._refreshActivePostProcessPasses();
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _refreshActivePostProcessPasses(): void {
+    const activePostProcesses = this._activePostProcessPasses;
+    activePostProcesses.length = 0;
+
+    for (let i = 0; i < this._postProcessPasses.length; i++) {
+      const pass = this._postProcessPasses[i];
+      if (pass.isActive) {
+        activePostProcesses.push(pass);
+      }
+    }
+
+    this._postProcessPassNeedSorting = true;
   }
 
   private _destroy(): void {
@@ -591,6 +659,16 @@ export class Engine extends EventDispatcher {
     this._textSubRenderElementPool.garbageCollection();
     this._renderElementPool.garbageCollection();
     this._renderContext.garbageCollection();
+  }
+
+  private _sortActivePostProcessPass(): void {
+    if (this._postProcessPassNeedSorting) {
+      const passes = this._activePostProcessPasses;
+      if (passes.length) {
+        passes.sort((a, b) => a.event - b.event);
+      }
+      this._postProcessPassNeedSorting = false;
+    }
   }
 
   /**

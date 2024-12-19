@@ -62,9 +62,10 @@ export class PostProcessUberPass extends PostProcessPass {
    * @inheritdoc
    */
   onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void {
+    const postProcessManager = camera.scene.postProcessManager;
     const uberShaderData = this._uberMaterial.shaderData;
-    const bloomBlend = this.getBlendEffect(BloomEffect);
-    const tonemappingBlend = this.getBlendEffect(TonemappingEffect);
+    const bloomBlend = postProcessManager.getBlendEffect(BloomEffect);
+    const tonemappingBlend = postProcessManager.getBlendEffect(TonemappingEffect);
 
     if (bloomBlend && bloomBlend.enabled && bloomBlend.intensity.value > 0) {
       this._setupBloom(bloomBlend, camera, srcTexture);

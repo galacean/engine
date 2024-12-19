@@ -1,4 +1,4 @@
-import { Color, Vector3 } from "@galacean/engine";
+import { Color } from "@galacean/engine";
 import {
   BloomDownScaleMode,
   BloomEffect,
@@ -33,7 +33,7 @@ describe("PostProcess", () => {
   beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     scene = engine.sceneManager.scenes[0];
-    const passes = scene.postProcessManager.postProcessPasses;
+    const passes = engine.postProcessPasses;
     uberPass = passes[0];
     const cameraEntity = scene.createRootEntity("camera");
     const camera = cameraEntity.addComponent(Camera);
@@ -175,7 +175,8 @@ describe("PostProcess", () => {
 
     engine.update();
     expect(ppManager.isActive).to.true;
-    const bloomBlend = uberPass.getBlendEffect(BloomEffect);
+
+    const bloomBlend = ppManager.getBlendEffect(BloomEffect);
     expect(bloomBlend).to.instanceOf(BloomEffect);
     expect(bloomBlend.intensity.value).to.equal(0);
 
@@ -216,7 +217,8 @@ describe("PostProcess", () => {
         // physics: new LitePhysics()
       });
       const scene = engine.sceneManager.scenes[0];
-      const passes = scene.postProcessManager.postProcessPasses;
+      const passes = engine.postProcessPasses;
+      const ppManager = scene.postProcessManager;
       uberPass = passes[0];
       const cameraEntity = scene.createRootEntity("camera");
       const camera = cameraEntity.addComponent(Camera);
@@ -233,7 +235,7 @@ describe("PostProcess", () => {
       bloom2.intensity.value = intensity2;
 
       engine.update();
-      const bloomBlend = uberPass.getBlendEffect(BloomEffect);
+      const bloomBlend = ppManager.getBlendEffect(BloomEffect);
 
       expect(bloomBlend.intensity.value).to.equal(10);
 

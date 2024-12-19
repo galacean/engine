@@ -1,5 +1,4 @@
 import {
-  BloomEffect,
   Camera,
   Engine,
   PostProcessPass,
@@ -37,8 +36,8 @@ describe("PostProcessPass", () => {
   });
 
   it("internal uber pass", () => {
-    const passes1 = scene1.postProcessManager.postProcessPasses;
-    const passes2 = scene2.postProcessManager.postProcessPasses;
+    const passes1 = engine.postProcessPasses;
+    const passes2 = engine2.postProcessPasses;
     const uberPass1 = passes1[0];
     const uberPass2 = passes2[0];
 
@@ -49,84 +48,72 @@ describe("PostProcessPass", () => {
   });
 
   it("can't cross engine", () => {
-    const passes = scene1.postProcessManager.postProcessPasses;
+    const passes = engine.postProcessPasses;
     const uberPass = passes[0];
 
     expect(() => {
-      engine2.sceneManager.scenes[0].postProcessManager.addPostProcessPass(uberPass);
+      engine2.addPostProcessPass(uberPass);
     }).toThrowError();
   });
 
   it("add pass", () => {
-    const passes1 = scene1.postProcessManager.postProcessPasses;
-    const passes2 = scene2.postProcessManager.postProcessPasses;
-    const uberPass1 = passes1[0];
+    const passes = engine.postProcessPasses;
+    const customPass = new CustomPass(engine);
+    const uberPass = passes[0];
 
     // Add same pass should not work
-    scene1.postProcessManager.addPostProcessPass(uberPass1);
-    expect(passes1.length).to.eq(1);
+    engine.addPostProcessPass(uberPass);
+    expect(passes.length).to.eq(1);
 
-    // move uberPass from scene1 to scene2
-    scene2.postProcessManager.addPostProcessPass(uberPass1);
-    expect(passes1.length).to.eq(0);
-    expect(passes2.length).to.eq(2);
+    // Add custom pass
+    engine.addPostProcessPass(customPass);
+    expect(passes.length).to.eq(2);
 
-    // revert uberPass
-    scene1.postProcessManager.addPostProcessPass(uberPass1);
-    expect(passes1.length).to.eq(1);
-    expect(passes2.length).to.eq(1);
-  });
+    // Set isActive
+    customPass.isActive = false;
+    expect(passes.length).to.eq(2);
 
-  it("destroy", () => {
-    const passes1 = scene1.postProcessManager.postProcessPasses;
-    const customPass = new CustomPass(engine);
-
-    scene1.postProcessManager.addPostProcessPass(customPass);
-    expect(passes1.length).to.eq(2);
-
+    // Destroy
     customPass.destroy();
-    expect(passes1.length).to.eq(1);
+    expect(passes.length).to.eq(1);
   });
 
   it("active pass", () => {
     // @ts-ignore
-    const passes1 = scene1.postProcessManager._activePostProcessPasses;
+    const passes = engine._activePostProcessPasses;
     const customPass = new CustomPass(engine);
 
-    expect(passes1.length).to.eq(1);
-    scene1.postProcessManager.addPostProcessPass(customPass);
-    expect(passes1.length).to.eq(2);
+    expect(passes.length).to.eq(1);
+    engine.addPostProcessPass(customPass);
+    expect(passes.length).to.eq(2);
 
     customPass.isActive = false;
-    expect(passes1.length).to.eq(1);
+    expect(passes.length).to.eq(1);
 
     customPass.isActive = true;
-    expect(passes1.length).to.eq(2);
+    expect(passes.length).to.eq(2);
 
     customPass.isActive = false;
     customPass.destroy();
-    expect(passes1.length).to.eq(1);
+    expect(passes.length).to.eq(1);
   });
 
   it("pass event", () => {
     // @ts-ignore
-    const passes1 = scene1.postProcessManager._activePostProcessPasses;
-    const uberPass = scene1.postProcessManager.postProcessPasses[0];
+    const passes = engine._activePostProcessPasses;
+    const uberPass = engine.postProcessPasses[0];
     const customPass = new CustomPass(engine);
-    scene1.postProcessManager.addPostProcessPass(customPass);
+    engine.addPostProcessPass(customPass);
 
     expect(customPass.event).to.eq(PostProcessPassEvent.AfterUber);
-    expect(passes1[0] === uberPass).to.be.true;
+    expect(passes[0] === uberPass).to.be.true;
 
     customPass.event = PostProcessPassEvent.BeforeUber;
     // @ts-ignore
-    scene1.postProcessManager._sortActivePostProcessPass();
-    expect(passes1[0] === customPass).to.be.true;
+    engine.update();
+    expect(passes[0] === customPass).to.be.true;
 
     customPass.destroy();
-    expect(passes1[0] === uberPass).to.be.true;
-
-    const bloomBlend = customPass.getBlendEffect(BloomEffect);
-    expect(bloomBlend).toBeUndefined();
+    expect(passes[0] === uberPass).to.be.true;
   });
 });
