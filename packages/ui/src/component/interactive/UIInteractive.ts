@@ -6,13 +6,22 @@ import { EntityUIModifyFlags, UICanvas } from "../UICanvas";
 import { GroupModifyFlags } from "../UIGroup";
 import { Transition } from "./transition/Transition";
 
+/**
+ * Interactive component.
+ */
 export class UIInteractive extends Script implements IGroupAble {
   /** @internal */
   @ignoreClone
-  _canvas: UICanvas;
+  _rootCanvas: UICanvas;
   /** @internal */
   @ignoreClone
-  _indexInCanvas: number = -1;
+  _indexInRootCanvas: number = -1;
+  /** @internal */
+  @ignoreClone
+  _isRootCanvasDirty: boolean = false;
+  /** @internal */
+  @ignoreClone
+  _rootCanvasListeningEntities: Entity[] = [];
   /** @internal */
   @ignoreClone
   _group: UIGroup;
@@ -21,19 +30,11 @@ export class UIInteractive extends Script implements IGroupAble {
   _indexInGroup: number = -1;
   /** @internal */
   @ignoreClone
-  _canvasListeningEntities: Entity[] = [];
-  /** @internal */
-  @ignoreClone
-  _groupListeningEntities: Entity[] = [];
-  /**@internal */
-  @ignoreClone
-  _onUIUpdateIndex: number = 0;
-  /** @internal */
-  @ignoreClone
   _isGroupDirty: boolean = false;
   /** @internal */
   @ignoreClone
-  _isCanvasDirty: boolean = false;
+  _groupListeningEntities: Entity[] = [];
+
   /** @internal */
   @ignoreClone
   _globalInteractive: boolean = false;
@@ -49,6 +50,9 @@ export class UIInteractive extends Script implements IGroupAble {
   private _isPointerInside: boolean = false;
   private _isPointerDragging: boolean = false;
 
+  /**
+   * Whether the interactive is enabled.
+   */
   get interactive() {
     return this._interactive;
   }
@@ -60,17 +64,29 @@ export class UIInteractive extends Script implements IGroupAble {
     }
   }
 
+  /**
+   * Whether the interactive is enabled globally.
+   * @remarks The global interactive is determined by the interactive of itself and its group.
+   */
   get globalInteractive(): boolean {
     this._updateGlobalInteractive();
     return this._globalInteractive;
   }
 
+  /**
+   * @internal
+   */
   constructor(entity: Entity) {
     super(entity);
     this._groupListener = this._groupListener.bind(this);
-    this._canvasListener = this._canvasListener.bind(this);
+    this._rootCanvasListener = this._rootCanvasListener.bind(this);
   }
 
+  /**
+   * Get transition which match the type.
+   * @param type - The type of the transition
+   * @returns	Transitions which match type
+   */
   getTransitions<T extends Transition>(type: new (interactive: UIInteractive) => T, results: T[]): T[] {
     results.length = 0;
     const transitions = this._transitions;
@@ -83,6 +99,11 @@ export class UIInteractive extends Script implements IGroupAble {
     return results;
   }
 
+  /**
+   * Get transition which match the type.
+   * @param type - The type of the transition
+   * @returns	The first transition which match type
+   */
   getTransition<T extends Transition>(type: new (interactive: UIInteractive) => T): T | null {
     const transitions = this._transitions;
     for (let i = 0, n = transitions.length; i < n; i++) {
@@ -94,6 +115,11 @@ export class UIInteractive extends Script implements IGroupAble {
     return null;
   }
 
+  /**
+   * Add transition based on the transition type.
+   * @param type - The type of the transition
+   * @returns	The transition which has been added
+   */
   addTransition<T extends new (interactive: UIInteractive) => Transition>(type: T): InstanceType<T> {
     const transition = new type(this) as InstanceType<T>;
     this._transitions.push(transition);
@@ -130,12 +156,28 @@ export class UIInteractive extends Script implements IGroupAble {
     this._transitions.forEach((transition) => transition.destroy());
   }
 
+  /**
+   * @internal
+   */
+  _getRootCanvas(): UICanvas {
+    this._isRootCanvasDirty && Utils.setRootCanvas(this, Utils.searchRootCanvasInParents(this));
+    return this._rootCanvas;
+  }
+
+  /**
+   * @internal
+   */
+  _getGroup(): UIGroup {
+    this._isGroupDirty && Utils.setGroup(this, Utils.searchGroupInParents(this));
+    return this._group;
+  }
+
   // @ts-ignore
   override _onEnableInScene(): void {
     // @ts-ignore
     super._onEnableInScene();
-    Utils._onCanvasDirty(this, this._canvas);
-    Utils._onGroupDirty(this, this._group);
+    Utils.setRootCanvasDirty(this);
+    Utils.setGroupDirty(this);
     this._updateState(true);
   }
 
@@ -143,37 +185,9 @@ export class UIInteractive extends Script implements IGroupAble {
   override _onDisableInScene(): void {
     // @ts-ignore
     super._onDisableInScene();
-    Utils._unRegisterListener(this._canvasListener, this._canvasListeningEntities);
-    Utils._unRegisterListener(this._groupListener, this._groupListeningEntities);
+    Utils.cleanRootCanvas(this);
+    Utils.cleanGroup(this);
     this._isPointerInside = this._isPointerDragging = false;
-    this._isCanvasDirty = this._isGroupDirty = false;
-  }
-
-  /**
-   * @internal
-   */
-  _getCanvas(): UICanvas {
-    if (this._isCanvasDirty) {
-      const curCanvas = Utils.getRootCanvasInParents(this.entity);
-      Utils._registerElementToCanvas(this, this._canvas, curCanvas);
-      Utils._registerElementToCanvasListener(this, curCanvas);
-      this._isCanvasDirty = false;
-    }
-    return this._canvas;
-  }
-
-  /**
-   * @internal
-   */
-  _getGroup(): UIGroup {
-    if (this._isGroupDirty) {
-      const canvas = this._getCanvas();
-      const group = canvas ? Utils.getGroupInParents(this.entity, canvas.entity) : null;
-      Utils._registerElementToGroup(this, this._group, group);
-      Utils._registerElementToGroupListener(this, canvas);
-      this._isGroupDirty = false;
-    }
-    return this._group;
   }
 
   /**
@@ -196,7 +210,7 @@ export class UIInteractive extends Script implements IGroupAble {
   _groupListener(flag: number): void {
     if (this._isGroupDirty) return;
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.GroupEnableInScene) {
-      Utils._onGroupDirty(this, this._group);
+      Utils.setGroupDirty(this);
     }
   }
 
@@ -204,11 +218,11 @@ export class UIInteractive extends Script implements IGroupAble {
    * @internal
    */
   @ignoreClone
-  _canvasListener(flag: number): void {
-    if (this._isCanvasDirty) return;
+  _rootCanvasListener(flag: number): void {
+    if (this._isRootCanvasDirty) return;
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.CanvasEnableInScene) {
-      Utils._onCanvasDirty(this, this._canvas);
-      Utils._onGroupDirty(this, this._group);
+      Utils.setRootCanvasDirty(this);
+      Utils.setGroupDirty(this);
     }
   }
 

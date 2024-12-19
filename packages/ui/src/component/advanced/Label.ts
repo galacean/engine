@@ -24,6 +24,9 @@ import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
 import { UIRenderer, UIRendererUpdateFlags } from "../UIRenderer";
 import { UITransform, UITransformModifyFlags } from "../UITransform";
 
+/**
+ * UI component used to render text.
+ */
 export class Label extends UIRenderer implements ITextRenderer {
   private static _textTextureProperty = ShaderProperty.getByName("renderElement_TextTexture");
   private static _worldPositions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
@@ -293,7 +296,7 @@ export class Label extends UIRenderer implements ITextRenderer {
     const engine = context.camera.engine;
     const textSubRenderElementPool = engine._textSubRenderElementPool;
     const material = this.getMaterial();
-    const canvas = this._getCanvas();
+    const canvas = this._getRootCanvas();
     const renderElement = canvas._renderElement;
     const textChunks = this._textChunks;
     const isOverlay = canvas._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay;

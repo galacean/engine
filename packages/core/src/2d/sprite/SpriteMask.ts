@@ -70,6 +70,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
     if (this._customWidth !== undefined) {
       return this._customWidth;
     } else {
+      this._dirtyUpdateFlag & SpriteMaskUpdateFlags.AutomaticSize && this._calDefaultSize();
       return this._automaticWidth;
     }
   }
@@ -92,6 +93,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
     if (this._customHeight !== undefined) {
       return this._customHeight;
     } else {
+      this._dirtyUpdateFlag & SpriteMaskUpdateFlags.AutomaticSize && this._calDefaultSize();
       return this._automaticHeight;
     }
   }
@@ -336,6 +338,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
     } else {
       this._automaticWidth = this._automaticHeight = 0;
     }
+    this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.AutomaticSize;
   }
 
   @ignoreClone
@@ -345,9 +348,9 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
         this.shaderData.setTexture(SpriteMask._textureProperty, this.sprite.texture);
         break;
       case SpriteModifyFlags.size:
+        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.AutomaticSize;
         if (this._customWidth === undefined || this._customHeight === undefined) {
-          this._calDefaultSize();
-          this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
+          this._dirtyUpdateFlag |= RendererUpdateFlags.AllBounds;
         }
         break;
       case SpriteModifyFlags.region:
@@ -374,9 +377,10 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
  */
 enum SpriteMaskUpdateFlags {
   UV = 0x10,
+  AutomaticSize = 0x20,
 
   /** LocalPosition | WorldPosition | UV */
   AllPositionAndUV = 0x13,
   /** LocalPosition | WorldPosition | UV | LocalBounds | WorldBounds */
-  All = 0x1f
+  All = 0x3f
 }

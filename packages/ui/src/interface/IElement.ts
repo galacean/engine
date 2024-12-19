@@ -1,12 +1,13 @@
 import { Entity } from "@galacean/engine";
-import { UICanvas } from "../component/UICanvas";
+import { UICanvas } from "..";
 
 export interface IElement {
   entity: Entity;
-  _indexInCanvas: number;
-  _isCanvasDirty: boolean;
-  _canvasListeningEntities: Entity[];
+  _rootCanvas: UICanvas;
+  _indexInRootCanvas: number;
+  _rootCanvasListeningEntities: Entity[];
+  _isRootCanvasDirty: boolean;
 
-  _getCanvas(): UICanvas;
-  _canvasListener: (flag: number, param?: any) => void;
+  _getRootCanvas(): UICanvas;
+  _rootCanvasListener: (flag: number, param?: any) => void;
 }

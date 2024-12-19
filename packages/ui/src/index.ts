@@ -1,3 +1,4 @@
+import { Entity } from "@galacean/engine";
 export { UICanvas } from "./component/UICanvas";
 export { UIGroup } from "./component/UIGroup";
 export { UIRenderer } from "./component/UIRenderer";
@@ -12,3 +13,37 @@ export { Transition } from "./component/interactive/transition/Transition";
 export { CanvasRenderMode } from "./enums/CanvasRenderMode";
 export { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrategy";
 export { UIPointerEventEmitter } from "./input/UIPointerEventEmitter";
+
+export class EntityExtension {
+  _uiHierarchyVersion = 0;
+  _updateUIHierarchyVersion(version: number): void {
+    if (this._uiHierarchyVersion !== version) {
+      this._uiHierarchyVersion = version;
+      // @ts-ignore
+      this.parent?._updateUIHierarchyVersion(version);
+    }
+  }
+}
+
+declare module "@galacean/engine" {
+  interface Entity {
+    // @internal
+    _uiHierarchyVersion: number;
+    // @internal
+    _updateUIHierarchyVersion(version: number): void;
+  }
+}
+
+function ApplyMixins(derivedCtor: any, baseCtors: any[]): void {
+  baseCtors.forEach((baseCtor) => {
+    Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
+      Object.defineProperty(
+        derivedCtor.prototype,
+        name,
+        Object.getOwnPropertyDescriptor(baseCtor.prototype, name) || Object.create(null)
+      );
+    });
+  });
+}
+
+ApplyMixins(Entity, [EntityExtension]);

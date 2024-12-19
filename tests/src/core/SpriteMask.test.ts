@@ -1,7 +1,7 @@
 import { Sprite, SpriteMask, SpriteMaskLayer, Texture2D } from "@galacean/engine-core";
 import { Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { describe, beforeEach, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 describe("SpriteMask", async () => {
   const canvas = document.createElement("canvas");
@@ -118,34 +118,34 @@ describe("SpriteMask", async () => {
     expect(spriteMask.shaderData.getTexture(property)).to.eq(texture2d);
 
     // @ts-ignore
-    spriteMask._dirtyUpdateFlag &= ~0x5;
+    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.AllPositionAndBounds;
     sprite.width = 10;
     // @ts-ignore
-    expect(!!(spriteMask._dirtyUpdateFlag & 0x5)).to.eq(true);
+    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.AllPositionAndBounds)).to.eq(true);
 
     // @ts-ignore
-    spriteMask._dirtyUpdateFlag &= ~0x3;
+    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.AllPositionAndUV;
     sprite.region = new Rect();
     // @ts-ignore
-    expect(!!(spriteMask._dirtyUpdateFlag & 0x3)).to.eq(true);
+    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.AllPositionAndUV)).to.eq(true);
 
     // @ts-ignore
-    spriteMask._dirtyUpdateFlag &= ~0x3;
+    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.AllPositionAndUV;
     sprite.atlasRegionOffset = new Vector4();
     // @ts-ignore
-    expect(!!(spriteMask._dirtyUpdateFlag & 0x3)).to.eq(true);
+    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.AllPositionAndUV)).to.eq(true);
 
     // @ts-ignore
-    spriteMask._dirtyUpdateFlag &= ~0x2;
+    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.UV;
     sprite.atlasRegion = new Rect();
     // @ts-ignore
-    expect(!!(spriteMask._dirtyUpdateFlag & 0x2)).to.eq(true);
+    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.UV)).to.eq(true);
 
     // @ts-ignore
-    spriteMask._dirtyUpdateFlag &= ~0x1;
+    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.AllPositionAndBounds;
     sprite.pivot = new Vector2(0.3, 0.2);
     // @ts-ignore
-    expect(!!(spriteMask._dirtyUpdateFlag & 0x1)).to.eq(true);
+    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.AllPositionAndBounds)).to.eq(true);
   });
 
   it("clone", () => {
@@ -222,3 +222,31 @@ describe("SpriteMask", async () => {
     expect(spriteMask.bounds.max).to.deep.eq(new Vector3(0.5, 1, 0));
   });
 });
+
+/**
+ * @remarks Extends `RendererUpdateFlags`.
+ */
+enum SpriteMaskUpdateFlags {
+  None = 0x0,
+  LocalPosition = 0x1,
+  WorldPosition = 0x2,
+  LocalBounds = 0x4,
+  WorldBounds = 0x8,
+  UV = 0x10,
+  AutomaticSize = 0x20,
+
+  /** LocalPosition | WorldPosition */
+  AllPositions = 0x3,
+  /** LocalPosition | LocalBounds */
+  LocalPositionAndBounds = 0x5,
+  /** WorldPosition | WorldBounds */
+  WorldPositionAndBounds = 0xa,
+  /** LocalBounds | WorldBounds */
+  AllBounds = 0xc,
+  /** LocalPosition | WorldPosition | LocalBounds | WorldBounds */
+  AllPositionAndBounds = 0xf,
+  /** LocalPosition | WorldPosition | UV */
+  AllPositionAndUV = 0x13,
+  /** LocalPosition | WorldPosition | UV | LocalBounds | WorldBounds */
+  All = 0x3f
+}

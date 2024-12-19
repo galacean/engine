@@ -22,6 +22,9 @@ import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
 import { UIRenderer, UIRendererUpdateFlags } from "../UIRenderer";
 import { UITransform, UITransformModifyFlags } from "../UITransform";
 
+/**
+ * UI element that renders an image.
+ */
 export class Image extends UIRenderer implements ISpriteRenderer {
   private static _tempVec2: Vector2 = new Vector2();
   private static _tempUnit8Array: Uint8ClampedArray = new Uint8ClampedArray(4);
@@ -39,6 +42,11 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   @assignmentClone
   private _alphaHitTestMinimumThreshold: number = 0.0;
 
+  /**
+   *  When this value is greater than 0, raycast will perform pixel-level detection;
+   *  otherwise, it will only check the rectangular area of the UI element.
+   *  @remarks enabling this will decrease performance.
+   */
   get alphaHitTestMinimumThreshold(): number {
     return this._alphaHitTestMinimumThreshold;
   }
@@ -48,7 +56,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   }
 
   /**
-   * The draw mode of the sprite renderer.
+   * The draw mode of the image.
    */
   get drawMode(): SpriteDrawMode {
     return this._drawMode;
@@ -76,7 +84,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   }
 
   /**
-   * The tiling mode of the sprite renderer. (Only works in tiled mode.)
+   * The tiling mode of the image. (Only works in tiled mode.)
    */
   get tileMode(): SpriteTileMode {
     return this._tileMode;
@@ -245,7 +253,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     this._dirtyUpdateFlag = dirtyUpdateFlag;
     // Init sub render element.
     const { engine } = context.camera;
-    const canvas = this._getCanvas();
+    const canvas = this._getRootCanvas();
     const subRenderElement = engine._subRenderElementPool.get();
     const subChunk = this._subChunk;
     subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);

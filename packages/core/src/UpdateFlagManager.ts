@@ -57,13 +57,6 @@ export class UpdateFlagManager {
   }
 
   /**
-   * Remove all listeners.
-   */
-  removeAllListeners(): void {
-    this._listeners.length = 0;
-  }
-
-  /**
    * Dispatch a event.
    * @param type - Event type, usually in the form of enumeration
    * @param param - Event param

@@ -548,10 +548,7 @@ export class Entity extends EngineObject {
     }
 
     this.isActive = false;
-    if (this._updateFlagManager) {
-      this._updateFlagManager.removeAllListeners();
-      this._updateFlagManager = null;
-    }
+    this._updateFlagManager = null;
   }
 
   /**
@@ -626,7 +623,7 @@ export class Entity extends EngineObject {
    */
   _setParentChange() {
     this._transform._parentChange();
-    this._dispatchModify(EntityModifyFlags.Parent);
+    this._dispatchModify(EntityModifyFlags.Parent, this);
   }
 
   /**
@@ -792,7 +789,7 @@ export class Entity extends EngineObject {
         }
       }
     }
-    this._dispatchModify(EntityModifyFlags.SiblingIndex);
+    this._dispatchModify(EntityModifyFlags.SiblingIndex, this);
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------

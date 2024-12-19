@@ -2,6 +2,9 @@ import { Color, ReferResource, Sprite } from "@galacean/engine";
 import { UIRenderer } from "../../UIRenderer";
 import { InteractiveState, UIInteractive } from "../UIInteractive";
 
+/**
+ * The transition behavior of UIInteractive.
+ */
 export abstract class Transition<
   T extends TransitionValueType = TransitionValueType,
   K extends UIRenderer = UIRenderer
@@ -18,6 +21,9 @@ export abstract class Transition<
   protected _currentValue: T;
   protected _finalState: InteractiveState = InteractiveState.Normal;
 
+  /**
+   * The normal state of the transition.
+   */
   get normal(): T {
     return this._normal;
   }
@@ -30,6 +36,9 @@ export abstract class Transition<
     }
   }
 
+  /**
+   * The pressed state of the transition.
+   */
   get pressed(): T {
     return this._pressed;
   }
@@ -42,6 +51,9 @@ export abstract class Transition<
     }
   }
 
+  /**
+   * The hover state of the transition.
+   */
   get hover(): T {
     return this._hover;
   }
@@ -54,6 +66,9 @@ export abstract class Transition<
     }
   }
 
+  /**
+   * The disabled state of the transition.
+   */
   get disabled(): T {
     return this._disabled;
   }
@@ -66,6 +81,9 @@ export abstract class Transition<
     }
   }
 
+  /**
+   * The target of the transition.
+   */
   get target(): K {
     return this._target;
   }
@@ -77,6 +95,9 @@ export abstract class Transition<
     }
   }
 
+  /**
+   * The duration of the transition.
+   */
   get duration(): number {
     return this._duration;
   }

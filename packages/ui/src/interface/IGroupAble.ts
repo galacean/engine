@@ -3,9 +3,11 @@ import { GroupModifyFlags, UIGroup } from "../component/UIGroup";
 import { IElement } from "./IElement";
 
 export interface IGroupAble extends IElement {
+  _group: UIGroup;
   _indexInGroup: number;
   _groupListeningEntities: Entity[];
   _isGroupDirty: boolean;
+
   _globalAlpha?: number;
   _globalInteractive?: boolean;
 

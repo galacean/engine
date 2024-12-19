@@ -1,15 +1,14 @@
 import { ICharacterController, ICollider, IPhysics, IPhysicsScene } from "@galacean/engine-design";
 import { MathUtil, Ray, Vector3 } from "@galacean/engine-math";
-import { Engine } from "../Engine";
 import { Layer } from "../Layer";
 import { Scene } from "../Scene";
-import { Script } from "../Script";
-import { ignoreClone } from "../clone/CloneManager";
-import { DisorderedArray } from "../utils/DisorderedArray";
 import { CharacterController } from "./CharacterController";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
+import { Script } from "../Script";
+import { DisorderedArray } from "../utils/DisorderedArray";
+import { Engine } from "../Engine";
 
 /**
  * A physics scene is a collection of colliders and constraints which can interact.
@@ -437,7 +436,6 @@ export class PhysicsScene {
     this._colliders.garbageCollection();
   }
 
-  @ignoreClone
   private _setGravity(): void {
     this._nativePhysicsScene.setGravity(this._gravity);
   }

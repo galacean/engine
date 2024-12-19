@@ -1,10 +1,10 @@
 import { IColliderShape } from "@galacean/engine-design";
+import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Vector3 } from "@galacean/engine-math";
+import { Collider } from "../Collider";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Engine } from "../../Engine";
-import { Collider } from "../Collider";
-import { PhysicsMaterial } from "../PhysicsMaterial";
 
 /**
  * Abstract class for collider shapes.

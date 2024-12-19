@@ -2,6 +2,9 @@ import { Sprite } from "@galacean/engine";
 import { Image } from "../../advanced/Image";
 import { Transition } from "./Transition";
 
+/**
+ * Sprite transition.
+ */
 export class SpriteTransition extends Transition<Sprite, Image> {
   /**
    * @internal

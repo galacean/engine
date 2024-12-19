@@ -1,11 +1,125 @@
-import { ComponentType, Entity } from "@galacean/engine";
+import { Entity } from "@galacean/engine";
 import { UICanvas } from "./component/UICanvas";
 import { GroupModifyFlags, UIGroup } from "./component/UIGroup";
 import { IElement } from "./interface/IElement";
 import { IGroupAble } from "./interface/IGroupAble";
 
 export class Utils {
-  static _registerListener(
+  static setRootCanvasDirty(element: IElement): void {
+    if (element._isRootCanvasDirty) return;
+    element._isRootCanvasDirty = true;
+    this._registerRootCanvas(element, null);
+  }
+
+  static setRootCanvas(element: IElement, rootCanvas: UICanvas): void {
+    element._isRootCanvasDirty = false;
+    this._registerRootCanvas(element, rootCanvas);
+    const fromEntity = element instanceof UICanvas ? element.entity.parent : element.entity;
+    const toEntity = rootCanvas?.entity ?? null;
+    this._registerListener(fromEntity, toEntity, element._rootCanvasListener, element._rootCanvasListeningEntities);
+  }
+
+  static cleanRootCanvas(element: IElement): void {
+    this._registerRootCanvas(element, null);
+    this._unRegisterListener(element._rootCanvasListener, element._rootCanvasListeningEntities);
+  }
+
+  static searchRootCanvasInParents(element: IElement): UICanvas {
+    let entity = element instanceof UICanvas ? element.entity.parent : element.entity;
+    while (entity) {
+      // @ts-ignore
+      const components = entity._components;
+      for (let i = 0, n = components.length; i < n; i++) {
+        const component = components[i];
+        if (component.enabled && component instanceof UICanvas && component._isRootCanvas) {
+          return component;
+        }
+      }
+      entity = entity.parent;
+    }
+    return null;
+  }
+
+  static setGroupDirty(element: IGroupAble): void {
+    if (element._isGroupDirty) return;
+    element._isGroupDirty = true;
+    this._registerGroup(element, null);
+    element._onGroupModify(GroupModifyFlags.All);
+  }
+
+  static setGroup(element: IGroupAble, group: UIGroup): void {
+    element._isGroupDirty = false;
+    this._registerGroup(element, group);
+    const rootCanvas = element._getRootCanvas();
+    if (rootCanvas) {
+      const fromEntity = element instanceof UIGroup ? element.entity.parent : element.entity;
+      const toEntity = group?.entity ?? rootCanvas.entity.parent;
+      this._registerListener(fromEntity, toEntity, element._groupListener, element._groupListeningEntities);
+    } else {
+      this._unRegisterListener(element._groupListener, element._groupListeningEntities);
+    }
+  }
+
+  static cleanGroup(element: IGroupAble): void {
+    this._registerGroup(element, null);
+    this._unRegisterListener(element._groupListener, element._groupListeningEntities);
+  }
+
+  static searchGroupInParents(element: IGroupAble): UIGroup {
+    const rootCanvas = element._getRootCanvas();
+    if (!rootCanvas) return null;
+    let entity = element instanceof UIGroup ? element.entity.parent : element.entity;
+    const rootCanvasParent = rootCanvas.entity.parent;
+    while (entity && entity !== rootCanvasParent) {
+      // @ts-ignore
+      const components = entity._components;
+      for (let i = 0, n = components.length; i < n; i++) {
+        const component = components[i];
+        if (component.enabled && component instanceof UIGroup) {
+          return component;
+        }
+      }
+      entity = entity.parent;
+    }
+    return null;
+  }
+
+  private static _registerRootCanvas(element: IElement, canvas: UICanvas): void {
+    const preCanvas = element._rootCanvas;
+    if (preCanvas !== canvas) {
+      if (preCanvas) {
+        const replaced = preCanvas._disorderedElements.deleteByIndex(element._indexInRootCanvas);
+        replaced && (replaced._indexInRootCanvas = element._indexInRootCanvas);
+        element._indexInRootCanvas = -1;
+      }
+      if (canvas) {
+        const disorderedElements = canvas._disorderedElements;
+        element._indexInRootCanvas = disorderedElements.length;
+        disorderedElements.add(element);
+      }
+      element._rootCanvas = canvas;
+    }
+  }
+
+  private static _registerGroup(element: IGroupAble, group: UIGroup): void {
+    const preGroup = element._group;
+    if (preGroup !== group) {
+      if (preGroup) {
+        const replaced = preGroup._disorderedElements.deleteByIndex(element._indexInGroup);
+        replaced && (replaced._indexInGroup = element._indexInGroup);
+        element._indexInGroup = -1;
+      }
+      if (group) {
+        const disorderedElements = group._disorderedElements;
+        element._indexInGroup = disorderedElements.length;
+        disorderedElements.add(element);
+      }
+      element._group = group;
+      element._onGroupModify(GroupModifyFlags.All);
+    }
+  }
+
+  private static _registerListener(
     entity: Entity,
     root: Entity,
     listener: (flag: number, param?: any) => void,
@@ -27,124 +141,11 @@ export class Utils {
     listeningEntities.length = count;
   }
 
-  static _unRegisterListener(listener: (flag: number, param?: any) => void, listeningEntities: Entity[]): void {
+  private static _unRegisterListener(listener: (flag: number, param?: any) => void, listeningEntities: Entity[]): void {
     for (let i = 0, n = listeningEntities.length; i < n; i++) {
       // @ts-ignore
       listeningEntities[i]._unRegisterModifyListener(listener);
     }
     listeningEntities.length = 0;
-  }
-
-  static getRootCanvasInParents(entity: Entity, root?: Entity): UICanvas {
-    entity = entity.parent;
-    let rootCanvas: UICanvas = null;
-    while (entity && entity !== root) {
-      // @ts-ignore
-      const components = entity._components;
-      for (let i = 0, n = components.length; i < n; i++) {
-        const component = components[i];
-        if (component.enabled && component._componentType === ComponentType.UICanvas) {
-          rootCanvas = <UICanvas>component;
-          if (rootCanvas._isRootCanvas) {
-            return rootCanvas;
-          }
-        }
-      }
-      entity = entity.parent;
-    }
-    return rootCanvas;
-  }
-
-  static getGroupInParents(entity: Entity, canvasEntity: Entity): UIGroup {
-    const root = canvasEntity.parent;
-    while (entity && entity !== root) {
-      // @ts-ignore
-      const components = entity._components;
-      for (let i = 0, n = components.length; i < n; i++) {
-        const component = components[i];
-        if (component.enabled && component._componentType === ComponentType.UIGroup) {
-          return <UIGroup>component;
-        }
-      }
-      entity = entity.parent;
-    }
-    return null;
-  }
-
-  static _registerElementToCanvas(element: IElement, pre: UICanvas, cur: UICanvas): void {
-    if (pre !== cur) {
-      if (pre) {
-        const replaced = pre._disorderedElements.deleteByIndex(element._indexInCanvas);
-        replaced && (replaced._indexInCanvas = element._indexInCanvas);
-        element._indexInCanvas = -1;
-      }
-      if (cur) {
-        const disorderedElements = cur._disorderedElements;
-        element._indexInCanvas = disorderedElements.length;
-        disorderedElements.add(element);
-      }
-      // @ts-ignore
-      element._canvas = cur;
-    }
-  }
-
-  static _registerElementToCanvasListener(element: IElement, canvas: UICanvas): void {
-    Utils._registerListener(element.entity, canvas?.entity, element._canvasListener, element._canvasListeningEntities);
-  }
-
-  static _registerCanvasToCanvasListener(canvas: UICanvas, rootCanvas: UICanvas): void {
-    Utils._registerListener(
-      canvas.entity.parent,
-      rootCanvas?.entity,
-      canvas._canvasListener,
-      canvas._canvasListeningEntities
-    );
-  }
-
-  static _registerElementToGroup(element: IGroupAble, pre: UIGroup, cur: UIGroup): void {
-    if (pre !== cur) {
-      if (pre) {
-        const replaced = pre._disorderedElements.deleteByIndex(element._indexInGroup);
-        replaced && (replaced._indexInGroup = element._indexInGroup);
-        element._indexInGroup = -1;
-      }
-      if (cur) {
-        const disorderedElements = cur._disorderedElements;
-        element._indexInGroup = disorderedElements.length;
-        disorderedElements.add(element);
-      }
-      // @ts-ignore
-      element._group = cur;
-    }
-  }
-
-  static _registerElementToGroupListener(element: IGroupAble, canvas: UICanvas): void {
-    Utils._registerListener(element.entity, canvas?.entity, element._groupListener, element._groupListeningEntities);
-  }
-
-  static _registerGroupToGroupListener(group: UIGroup, canvas: UICanvas): void {
-    Utils._registerListener(group.entity.parent, canvas?.entity, group._groupListener, group._groupListeningEntities);
-  }
-
-  static _onGroupDirty(element: IGroupAble, preGroup: UIGroup): void {
-    if (element._isGroupDirty) return;
-    element._isGroupDirty = true;
-    if (preGroup) {
-      const replaced = preGroup._disorderedElements.deleteByIndex(element._indexInGroup);
-      replaced && (replaced._indexInGroup = element._indexInGroup);
-      element._indexInGroup = -1;
-    }
-    element._onGroupModify(GroupModifyFlags.All);
-  }
-
-  static _onCanvasDirty(element: IElement, preCanvas: UICanvas, isGraphics: boolean = false): void {
-    if (element._isCanvasDirty) return;
-    element._isCanvasDirty = true;
-    if (preCanvas) {
-      const replaced = preCanvas._disorderedElements.deleteByIndex(element._indexInCanvas);
-      replaced && (replaced._indexInCanvas = element._indexInCanvas);
-      element._indexInCanvas = -1;
-      isGraphics && (preCanvas._hierarchyDirty = true);
-    }
   }
 }
