@@ -1,9 +1,9 @@
-import { IUICanvas } from "@galacean/engine-design";
 import { Camera } from "./Camera";
 import { Component } from "./Component";
 import { Renderer } from "./Renderer";
 import { Script } from "./Script";
 import { Animator } from "./animation";
+import { IUICanvas } from "./ui/IUICanvas";
 import { DisorderedArray } from "./utils/DisorderedArray";
 
 /**

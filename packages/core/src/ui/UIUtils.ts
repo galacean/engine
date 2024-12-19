@@ -1,4 +1,3 @@
-import { IUICanvas } from "@galacean/engine-design";
 import { Matrix, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { RenderQueue } from "../RenderPipeline";
@@ -6,6 +5,7 @@ import { ContextRendererUpdateFlag } from "../RenderPipeline/RenderContext";
 import { VirtualCamera } from "../VirtualCamera";
 import { RenderQueueType } from "../shader";
 import { DisorderedArray } from "../utils/DisorderedArray";
+import { IUICanvas } from "./IUICanvas";
 
 export class UIUtils {
   private static _renderQueue: RenderQueue;

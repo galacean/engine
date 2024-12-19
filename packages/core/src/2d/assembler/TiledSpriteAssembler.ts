@@ -8,7 +8,7 @@ import { ISpriteRenderer } from "./ISpriteRenderer";
 import { SimpleSpriteAssembler } from "./SimpleSpriteAssembler";
 
 /**
- * @internal
+ * Assemble vertex data for the sprite renderer in tiled mode.
  */
 @StaticInterfaceImplement<ISpriteAssembler>()
 export class TiledSpriteAssembler {

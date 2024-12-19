@@ -3,5 +3,4 @@ export * from "./input/index";
 export * from "./physics/index";
 export * from "./renderingHardwareInterface/index";
 export * from "./shader-lab/index";
-export * from "./ui/index";
 export * from "./xr/index";

@@ -298,7 +298,7 @@ export class Camera extends Component {
       } else {
         this.shaderData.disableMacro("CAMERA_ORTHOGRAPHIC");
       }
-      this._dispatchModify(CameraModifyFlags.CameraType);
+      this._dispatchModify(CameraModifyFlags.ProjectionType);
     }
   }
 
@@ -654,7 +654,7 @@ export class Camera extends Component {
       Logger.error("mipLevel only take effect in WebGL2.0");
     }
     let ignoreClearFlags: CameraClearFlags;
-    if (this._cameraType === CameraType.XRCamera && !this._renderTarget && !this.independentCanvasEnabled) {
+    if (this._cameraType !== CameraType.Normal && !this._renderTarget && !this.independentCanvasEnabled) {
       ignoreClearFlags = engine.xrManager._getCameraIgnoreClearFlags(this._cameraType);
     }
     this._renderPipeline.render(context, cubeFace, mipLevel, ignoreClearFlags);

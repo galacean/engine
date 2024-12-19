@@ -5,6 +5,5 @@ export enum CameraType {
   Normal = 0x0,
   XRCenterCamera = 0x1,
   XRLeftCamera = 0x2,
-  XRRightCamera = 0x4,
-  XRCamera = CameraType.XRCenterCamera | CameraType.XRLeftCamera | CameraType.XRRightCamera
+  XRRightCamera = 0x4
 }

@@ -455,7 +455,7 @@ export class UICanvas extends Component implements IElement {
   private _onCameraModifyListener(flag: CameraModifyFlags): void {
     if (this._realRenderMode === CanvasRenderMode.ScreenSpaceCamera) {
       switch (flag) {
-        case CameraModifyFlags.CameraType:
+        case CameraModifyFlags.ProjectionType:
         case CameraModifyFlags.AspectRatio:
           this._adapterSizeInScreenSpace();
           break;

@@ -6,7 +6,7 @@ import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
-import { Transform } from "./Transform";
+import { Transform, TransformModifyFlags } from "./Transform";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
 import { IComponentCustomClone } from "./clone/ComponentCloner";
 import { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
@@ -550,7 +550,7 @@ export class Renderer extends Component implements IComponentCustomClone {
   }
 
   @ignoreClone
-  protected _onTransformChanged(type: number): void {
+  protected _onTransformChanged(type: TransformModifyFlags): void {
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldPositionAndBounds;
   }
 }
