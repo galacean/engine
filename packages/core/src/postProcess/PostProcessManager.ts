@@ -37,9 +37,16 @@ export class PostProcessManager {
   private _tempVector3 = new Vector3();
 
   /**
+   * Create a PostProcessManager.
+   * @param scene - Scene to which the current PostProcessManager belongs
+   */
+  constructor(public readonly scene: Scene) {}
+
+  /**
+   * @internal
    * Whether has any active pass and active effect.
    */
-  get isActive(): boolean {
+  _isValid(): boolean {
     const passCount = this.scene.engine._activePostProcessPasses.length;
     if (!passCount) {
       return false;
@@ -57,12 +64,6 @@ export class PostProcessManager {
 
     return this._isActive;
   }
-
-  /**
-   * Create a PostProcessManager.
-   * @param scene - Scene to which the current PostProcessManager belongs
-   */
-  constructor(public readonly scene: Scene) {}
 
   /**
    * @internal

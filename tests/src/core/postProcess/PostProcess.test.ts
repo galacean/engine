@@ -15,7 +15,6 @@ import {
   TonemappingEffect
 } from "@galacean/engine-core";
 import { MathUtil } from "@galacean/engine-math";
-import { LitePhysics } from "@galacean/engine-physics-lite";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -56,50 +55,62 @@ describe("PostProcess", () => {
     const ppManager = scene.postProcessManager;
     const pp = postEntity.addComponent(PostProcess);
 
-    expect(ppManager.isActive).to.false;
+    // @ts-ignore
+    expect(ppManager._isValid()).to.false;
 
     // Test effect
     const bloomEffect = pp.addEffect(BloomEffect);
-    expect(ppManager.isActive).to.true;
+    // @ts-ignore
+    expect(ppManager._isValid()).to.true;
 
     bloomEffect.enabled = false;
-    expect(ppManager.isActive).to.false;
+    // @ts-ignore
+    expect(ppManager._isValid()).to.false;
 
     bloomEffect.enabled = true;
-    expect(ppManager.isActive).to.true;
+    // @ts-ignore
+    expect(ppManager._isValid()).to.true;
 
     // Test PostProcess disable
     pp.enabled = false;
-    expect(ppManager.isActive).to.false;
+    // @ts-ignore
+    expect(ppManager._isValid()).to.false;
 
     pp.enabled = true;
-    expect(ppManager.isActive).to.true;
+    // @ts-ignore
+    expect(ppManager._isValid()).to.true;
 
     // Test pass isActive
     uberPass.isActive = false;
-    expect(ppManager.isActive).to.false;
+    // @ts-ignore
+    expect(ppManager._isValid()).to.false;
 
     uberPass.isActive = true;
-    expect(ppManager.isActive).to.true;
+    // @ts-ignore
+    expect(ppManager._isValid()).to.true;
 
     // Test effect remove
     const removedBloomEffect = pp.removeEffect(BloomEffect);
     expect(removedBloomEffect).to.instanceOf(BloomEffect);
-    expect(ppManager.isActive).to.false;
+    // @ts-ignore
+    expect(ppManager._isValid()).to.false;
 
     // Test component destroy
     pp.destroy();
-    expect(ppManager.isActive).to.false;
+    // @ts-ignore
+    expect(ppManager._isValid()).to.false;
 
     // Test entity destroy
     {
       const pp = postEntity.addComponent(PostProcess);
       pp.addEffect(TonemappingEffect);
 
-      expect(ppManager.isActive).to.true;
+      // @ts-ignore
+      expect(ppManager._isValid()).to.true;
 
       postEntity.destroy();
-      expect(ppManager.isActive).to.false;
+      // @ts-ignore
+      expect(ppManager._isValid()).to.false;
     }
   });
 
@@ -174,7 +185,8 @@ describe("PostProcess", () => {
     const bloom2 = pp2.addEffect(BloomEffect);
 
     engine.update();
-    expect(ppManager.isActive).to.true;
+    // @ts-ignore
+    expect(ppManager._isValid()).to.true;
 
     const bloomBlend = ppManager.getBlendEffect(BloomEffect);
     expect(bloomBlend).to.instanceOf(BloomEffect);
