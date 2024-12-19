@@ -1,7 +1,7 @@
 {
   "name": "@galacean/engine-tests",
   "private": true,
-  "version": "1.4.0-alpha.0",
+  "version": "1.4.0-alpha.1",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
@@ -15,6 +15,7 @@
     "types/**/*"
   ],
   "dependencies": {
+    "@galacean/engine": "workspace:*",
     "@galacean/engine-core": "workspace:*",
     "@galacean/engine-loader": "workspace:*",
     "@galacean/engine-design": "workspace:*",

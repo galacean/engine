@@ -5,13 +5,13 @@ import {
   Engine,
   LoadItem,
   Loader,
+  RequestConfig,
   ResourceManager,
   TextureCube,
   TextureCubeFace,
   request,
   resourceLoader
 } from "@galacean/engine-core";
-import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { Color, Vector3 } from "@galacean/engine-math";
 
 const PI = Math.PI;

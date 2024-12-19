@@ -240,7 +240,8 @@ export class ParticleGenerator {
   _emit(time: number, count: number): void {
     if (this.emission.enabled) {
       // Wait the existing particles to be retired
-      if (this.main._maxParticleBuffer < this._currentParticleCount) {
+      const notRetireParticleCount = this._getNotRetiredParticleCount();
+      if (notRetireParticleCount >= this.main.maxParticles) {
         return;
       }
       const position = ParticleGenerator._tempVector30;
