@@ -75,22 +75,22 @@ export class BloomEffect extends PostProcessEffect {
    * Set the level of brightness to filter out pixels under this level.
    * @remarks This value is expressed in gamma-space.
    */
-  threshold = new PostProcessEffectParameter<number>(0.9, true, 0);
+  threshold = new PostProcessEffectParameter<number>(0.9, 0, Number.POSITIVE_INFINITY, true);
 
   /**
    * Controls the radius of the bloom effect.
    */
-  scatter = new PostProcessEffectParameter<number>(0.7, true, 0, 1);
+  scatter = new PostProcessEffectParameter<number>(0.7, 0, 1, true);
 
   /**
    * Controls the strength of the bloom effect.
    */
-  intensity = new PostProcessEffectParameter<number>(0, true, 0);
+  intensity = new PostProcessEffectParameter<number>(0, 0, Number.POSITIVE_INFINITY, true);
 
   /**
    * Controls the strength of the lens dirt.
    */
-  dirtIntensity = new PostProcessEffectParameter<number>(0, true, 0);
+  dirtIntensity = new PostProcessEffectParameter<number>(0, 0, Number.POSITIVE_INFINITY, true);
 
   /**
    * Specifies the tint of the bloom effect.

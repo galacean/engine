@@ -26,6 +26,9 @@ export class PostProcessEffectParameter<T> {
   private readonly _canLerp: boolean;
 
   private _value: ValueType;
+  private _needLerp = false;
+  private _min = Number.NEGATIVE_INFINITY;
+  private _max = Number.POSITIVE_INFINITY;
 
   /**
    * The value of the parameter.
@@ -42,12 +45,10 @@ export class PostProcessEffectParameter<T> {
     }
   }
 
-  constructor(
-    value: ValueType,
-    private _needLerp = false,
-    private _min = Number.NEGATIVE_INFINITY,
-    private _max = Number.POSITIVE_INFINITY
-  ) {
+  constructor(value: ValueType, needLerp?: boolean);
+  constructor(value: ValueType, min?: number, max?: number, needLerp?: boolean);
+
+  constructor(value: ValueType, needLerpOrMin?: boolean | number, max?: number, needLerp?: boolean) {
     if (typeof value === "number") {
       this._valueType = ValueTypeEnum.Number;
     } else if (value instanceof Color) {
@@ -60,6 +61,14 @@ export class PostProcessEffectParameter<T> {
       this._valueType = ValueTypeEnum.Vector4;
     } else {
       this._valueType = ValueTypeEnum.Other;
+    }
+
+    if (typeof needLerpOrMin === "boolean") {
+      this._needLerp = needLerpOrMin;
+    } else if (typeof needLerpOrMin === "number" || typeof max === "number" || typeof needLerp === "boolean") {
+      this._min = needLerpOrMin ?? Number.NEGATIVE_INFINITY;
+      this._max = max ?? Number.POSITIVE_INFINITY;
+      this._needLerp = needLerp ?? false;
     }
 
     this._canLerp = this._valueType !== ValueTypeEnum.Other;
