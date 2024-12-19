@@ -2,7 +2,7 @@ import { Matrix, Vector2, Vector3 } from "@galacean/engine-math";
 import { ISpriteRenderer } from "./ISpriteRenderer";
 
 /**
- * @internal
+ * Interface for sprite assembler.
  */
 export interface ISpriteAssembler {
   resetData(renderer: ISpriteRenderer, vertexCount?: number): void;

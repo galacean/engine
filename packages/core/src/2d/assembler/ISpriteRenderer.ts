@@ -4,6 +4,9 @@ import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "../sprite";
 
+/**
+ * Interface for sprite renderer.
+ */
 export interface ISpriteRenderer {
   sprite: Sprite;
   color?: Color;

@@ -13,5 +13,5 @@ export interface IGroupAble extends IElement {
 
   _getGroup(): UIGroup;
   _onGroupModify(flag: GroupModifyFlags, isPass?: boolean): void;
-  _groupListener: (flag: number) => void;
+  _groupListener(flag: number): void;
 }
