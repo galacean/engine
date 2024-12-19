@@ -49,19 +49,21 @@ export class LiteSphereColliderShape extends LiteColliderShape implements ISpher
    */
   override pointDistance(point: Vector3): Vector4 {
     const position = LiteColliderShape._tempPos;
+    const worldRadius = this.worldRadius;
     this._transform.worldMatrix.decompose(position, LiteColliderShape._tempRot, LiteColliderShape._tempScale);
     const p = LiteColliderShape._tempPoint;
     Vector3.subtract(point, position, p);
     const direction = p.normalize();
 
-    Vector3.scale(direction, this.worldRadius, p);
+    Vector3.scale(direction, worldRadius, p);
     p.add(position);
 
     const res = LiteColliderShape._tempVector4;
-    if (Vector3.equals(p, point)) {
+    const distanceSquared = Vector3.distanceSquared(p, point);
+    if (distanceSquared <= worldRadius * worldRadius) {
       res.set(point.x, point.y, point.z, 0);
     } else {
-      res.set(p.x, p.y, p.z, Vector3.distanceSquared(p, point));
+      res.set(p.x, p.y, p.z, distanceSquared);
     }
 
     return res;
