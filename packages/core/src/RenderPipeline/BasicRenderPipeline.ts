@@ -1,4 +1,4 @@
-import { Vector2 } from "@galacean/engine-math";
+import { Vector2, Vector4 } from "@galacean/engine-math";
 import { Background } from "../Background";
 import { Camera } from "../Camera";
 import { Logger } from "../base/Logger";
@@ -48,6 +48,7 @@ export class BasicRenderPipeline {
   private _grabTexture: Texture2D;
   private _canUseBlitFrameBuffer = false;
   private _shouldGrabColor = false;
+  private _sourceScaleOffset = new Vector4(1, 1, 0, 0);
 
   /**
    * Create a basic render pipeline.
@@ -227,6 +228,9 @@ export class BasicRenderPipeline {
           // Copy RT's color buffer to grab texture
           rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._grabTexture, camera.viewport);
           // Then blit grab texture to internal RT's color buffer
+          this._sourceScaleOffset.y = camera.renderTarget ? 1 : -1;
+          this._sourceScaleOffset.w = camera.renderTarget ? 0 : 1;
+          // `uv.y = 1.0 - uv.y` if grab from screen
           Blitter.blitTexture(
             engine,
             this._grabTexture,
@@ -235,8 +239,7 @@ export class BasicRenderPipeline {
             undefined,
             undefined,
             undefined,
-            // Only flip Y axis in webgl context
-            !camera.renderTarget
+            this._sourceScaleOffset
           );
         } else {
           rhi.clearRenderTarget(engine, CameraClearFlags.All, color);
