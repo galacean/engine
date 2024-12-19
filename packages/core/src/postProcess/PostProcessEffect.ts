@@ -6,7 +6,7 @@ import { PostProcessEffectParameter } from "./PostProcessEffectParameter";
  */
 export class PostProcessEffect {
   private _enabled = true;
-  private __parameters: PostProcessEffectParameter<any>[] = [];
+  private _parameters: PostProcessEffectParameter<any>[] = [];
   private _parameterInitialized = false;
 
   /**
@@ -30,25 +30,6 @@ export class PostProcessEffect {
   }
 
   /**
-   * Get all parameters of the post process effect.
-   * @remarks
-   * Only get the parameters that are initialized in the constructor.
-   * It will don't take effect if you add a new parameter after the post process effect is created, such as `effect.** = new PostProcessEffectParameter(1)`
-   */
-  private get _parameters(): PostProcessEffectParameter<any>[] {
-    if (!this._parameterInitialized) {
-      this._parameterInitialized = true;
-      for (let key in this) {
-        const value = this[key];
-        if (value instanceof PostProcessEffectParameter) {
-          this.__parameters.push(value);
-        }
-      }
-    }
-    return this.__parameters;
-  }
-
-  /**
    * Create a post process effect.
    * @remarks
    * postProcess can be null when the effect is just used to blend data, and will not post message to the post process manager.
@@ -62,12 +43,33 @@ export class PostProcessEffect {
    * @param interpFactor - The interpolation factor in range [0,1]
    */
   lerp(toEffect: PostProcessEffect, interpFactor: number): void {
-    const parameters = this._parameters;
+    const parameters = this._getParameters();
+    const toParameters = toEffect._getParameters();
+
     for (let i = 0; i < parameters.length; i++) {
-      const targetParameter = toEffect._parameters[i];
+      const targetParameter = toParameters[i];
       if (targetParameter.enabled) {
         parameters[i].lerp(targetParameter.value, interpFactor);
       }
     }
+  }
+
+  /**
+   * Get all parameters of the post process effect.
+   * @remarks
+   * Only get the parameters that are initialized in the constructor.
+   * It will don't take effect if you add a new parameter after the post process effect is created, such as `effect.** = new PostProcessEffectParameter(1)`
+   */
+  private _getParameters(): PostProcessEffectParameter<any>[] {
+    if (!this._parameterInitialized) {
+      this._parameterInitialized = true;
+      for (let key in this) {
+        const value = this[key];
+        if (value instanceof PostProcessEffectParameter) {
+          this._parameters.push(value);
+        }
+      }
+    }
+    return this._parameters;
   }
 }
