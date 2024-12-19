@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-root",
-  "version": "1.4.0-alpha.0",
+  "version": "1.4.0-alpha.1",
   "packageManager": "pnpm@9.3.0",
   "private": true,
   "scripts": {
