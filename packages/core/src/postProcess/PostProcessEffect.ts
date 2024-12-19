@@ -5,7 +5,6 @@ import { PostProcessEffectParameter } from "./PostProcessEffectParameter";
  * The base class for post process effect.
  */
 export class PostProcessEffect {
-  private _phasedActiveInScene = false;
   private _enabled = true;
   private __parameters: PostProcessEffectParameter<any>[] = [];
   private _parameterInitialized = false;
@@ -24,20 +23,9 @@ export class PostProcessEffect {
 
     this._enabled = value;
 
-    if (!this.postProcess?._phasedActiveInScene) {
-      return;
-    }
-
-    const postProcessManager = this.postProcess.scene.postProcessManager;
-
-    if (value && !this._phasedActiveInScene) {
-      this._phasedActiveInScene = true;
-      postProcessManager._activeStateChangeFlag = true;
-      this.onEnable();
-    } else if (!value && this._phasedActiveInScene) {
-      this._phasedActiveInScene = false;
-      postProcessManager._activeStateChangeFlag = true;
-      this.onDisable();
+    const scene = this.postProcess?.scene;
+    if (scene) {
+      scene.postProcessManager._activeStateChangeFlag = true;
     }
   }
 
@@ -69,16 +57,6 @@ export class PostProcessEffect {
   constructor(public postProcess?: PostProcess) {}
 
   /**
-   * Called when be enabled.
-   */
-  onEnable(): void {}
-
-  /**
-   * Called when be disabled.
-   */
-  onDisable(): void {}
-
-  /**
    * Interpolates from the current effect to the end effect by an interpolation factor.
    * @param toEffect - The end effect
    * @param interpFactor - The interpolation factor in range [0,1]
@@ -89,31 +67,6 @@ export class PostProcessEffect {
       const targetParameter = toEffect._parameters[i];
       if (targetParameter.enabled) {
         parameters[i].lerp(targetParameter.value, interpFactor);
-      }
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _setActive(value: boolean): void {
-    if (!this.postProcess?._phasedActiveInScene) {
-      return;
-    }
-
-    const postProcess = this.postProcess;
-    const postProcessManager = postProcess.scene.postProcessManager;
-    if (value) {
-      if (!this._phasedActiveInScene && this._enabled) {
-        this._phasedActiveInScene = true;
-        postProcessManager._activeStateChangeFlag = true;
-        this.onEnable();
-      }
-    } else {
-      if (this._phasedActiveInScene) {
-        this._phasedActiveInScene = false;
-        postProcessManager._activeStateChangeFlag = true;
-        this.onDisable();
       }
     }
   }

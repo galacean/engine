@@ -93,7 +93,9 @@ export class PostProcess extends Component {
 
     const effect = new type(this) as InstanceType<T>;
     this._effects.push(effect);
-    effect._setActive(true);
+    if (this.scene) {
+      this.scene.postProcessManager._activeStateChangeFlag = true;
+    }
     return effect;
   }
 
@@ -110,7 +112,9 @@ export class PostProcess extends Component {
       const effect = effects[i] as InstanceType<T>;
       if (effect instanceof type) {
         effects.splice(i, 1);
-        effect._setActive(false);
+        if (this.scene) {
+          this.scene.postProcessManager._activeStateChangeFlag = true;
+        }
 
         return effect;
       }
@@ -125,7 +129,9 @@ export class PostProcess extends Component {
       return;
     }
     this.scene.postProcessManager._addPostProcess(this);
-    this._setActiveEffects(true);
+    if (this.scene) {
+      this.scene.postProcessManager._activeStateChangeFlag = true;
+    }
   }
 
   /**
@@ -136,13 +142,8 @@ export class PostProcess extends Component {
       return;
     }
     this.scene.postProcessManager._removePostProcess(this);
-    this._setActiveEffects(false);
-  }
-
-  private _setActiveEffects(isActive: boolean): void {
-    const effects = this._effects;
-    for (let i = 0, length = effects.length; i < length; i++) {
-      effects[i]._setActive(isActive);
+    if (this.scene) {
+      this.scene.postProcessManager._activeStateChangeFlag = true;
     }
   }
 }
