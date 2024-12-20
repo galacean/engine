@@ -79,7 +79,7 @@ export class PostProcessManager {
         const currentColliders = this._tempColliders;
         const currentShapes = this._tempColliderShapes;
         currentShapes.length = 0;
-        postProcess.entity.getComponentsIncludeChildren(Collider, currentColliders);
+        postProcess.entity.getComponents(Collider, currentColliders);
         for (let i = 0; i < currentColliders.length; i++) {
           const collider = currentColliders[i];
           if (!collider.enabled) {
