@@ -50,6 +50,9 @@ export class Scene extends EngineObject {
    */
   shadowFadeBorder: number = 0.1;
 
+  /** Post process manager. */
+  readonly postProcessManager = new PostProcessManager(this);
+
   /* @internal */
   _lightManager: LightManager = new LightManager();
   /* @internal */
@@ -78,14 +81,6 @@ export class Scene extends EngineObject {
   private _isActive: boolean = true;
   private _sun: DirectLight | null;
   private _enableTransparentShadow = false;
-  private _postProcessManager = new PostProcessManager(this);
-
-  /**
-   * Post process manager.
-   */
-  get postProcessManager(): PostProcessManager {
-    return this._postProcessManager;
-  }
 
   /**
    * Whether the scene is active.

@@ -14,13 +14,9 @@ import fragUpsample from "../shaders/Bloom/BloomUpsample.glsl";
  * This controls the size of the bloom texture.
  */
 export enum BloomDownScaleMode {
-  /**
-   *  Use this to select half size as the starting resolution.
-   */
+  /** Use this to select half size as the starting resolution. */
   Half,
-  /**
-   *  Use this to select quarter size as the starting resolution.
-   */
+  /** Use this to select quarter size as the starting resolution. */
   Quarter
 }
 

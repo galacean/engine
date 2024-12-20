@@ -7,7 +7,10 @@ import { PostProcessManager } from "./PostProcessManager";
  * Controls when the post process pass executes.
  */
 export enum PostProcessPassEvent {
+  /** Before the uber pass. */
   BeforeUber = 0,
+
+  /** After the uber pass. */
   AfterUber = 100
 }
 
