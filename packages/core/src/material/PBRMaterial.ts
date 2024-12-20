@@ -359,13 +359,11 @@ export class PBRMaterial extends PBRBaseMaterial {
 
   set transmission(value: number) {
     value = Math.max(0, Math.min(1, value));
+    this.shaderData.setFloat(PBRMaterial._transmissionProp, value);
     if (!!this.shaderData.getFloat(PBRMaterial._transmissionProp) !== !!value) {
-      if (value) {
-        this.shaderData.enableMacro(PBRMaterial._transmissionMacro);
-      } else {
-        this.shaderData.disableMacro(PBRMaterial._transmissionMacro);
-      }
-      this.shaderData.setFloat(PBRMaterial._transmissionProp, value);
+      this.shaderData.enableMacro(PBRMaterial._transmissionMacro);
+    } else {
+      this.shaderData.disableMacro(PBRMaterial._transmissionMacro);
     }
   }
 
@@ -424,13 +422,11 @@ export class PBRMaterial extends PBRBaseMaterial {
 
   set thickness(value: number) {
     value = Math.max(0, value);
+    this.shaderData.setFloat(PBRMaterial._thicknessProp, value);
     if (!!this.shaderData.getFloat(PBRMaterial._thicknessProp) !== !!value) {
-      if (value) {
-        this.shaderData.enableMacro(PBRMaterial._thicknessMacro);
-      } else {
-        this.shaderData.disableMacro(PBRMaterial._thicknessMacro);
-      }
-      this.shaderData.setFloat(PBRMaterial._thicknessProp, value);
+      this.shaderData.enableMacro(PBRMaterial._thicknessMacro);
+    } else {
+      this.shaderData.disableMacro(PBRMaterial._thicknessMacro);
     }
   }
 
