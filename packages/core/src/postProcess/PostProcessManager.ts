@@ -41,11 +41,10 @@ export class PostProcessManager {
 
   /**
    * @internal
-   * Whether has any valid post process pass in current render camera.
+   * Whether has any valid post process pass.
    */
-  _isValidInCamera(camera: Camera): boolean {
-    // Check if there is any active post process pass
-    return this.scene.engine._activePostProcessPasses.some((pass) => pass.isValid(camera.scene.postProcessManager));
+  _isValid(): boolean {
+    return this.scene.engine._activePostProcessPasses.some((pass) => pass.isValid(this.scene.postProcessManager));
   }
 
   /**

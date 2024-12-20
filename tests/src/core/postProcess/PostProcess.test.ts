@@ -58,63 +58,63 @@ describe("PostProcess", () => {
 
     engine.update();
     // @ts-ignore
-    expect(ppManager._isValidInCamera(camera)).to.false;
+    expect(ppManager._isValid()).to.false;
 
     // Test effect
     const bloomEffect = pp.addEffect(BloomEffect);
     engine.update();
     // @ts-ignore
-    expect(ppManager._isValidInCamera(camera)).to.false;
+    expect(ppManager._isValid()).to.false;
 
     bloomEffect.enabled = false;
     engine.update();
     // @ts-ignore
-    expect(ppManager._isValidInCamera(camera)).to.false;
+    expect(ppManager._isValid()).to.false;
 
     bloomEffect.enabled = true;
     engine.update();
     // @ts-ignore
-    expect(ppManager._isValidInCamera(camera)).to.false;
+    expect(ppManager._isValid()).to.false;
 
     bloomEffect.intensity.value = 1;
     engine.update();
     // @ts-ignore
-    expect(ppManager._isValidInCamera(camera)).to.true;
+    expect(ppManager._isValid()).to.true;
 
     // Test PostProcess disable
     pp.enabled = false;
     engine.update();
     // @ts-ignore
-    expect(ppManager._isValidInCamera(camera)).to.false;
+    expect(ppManager._isValid()).to.false;
 
     pp.enabled = true;
     engine.update();
     // @ts-ignore
-    expect(ppManager._isValidInCamera(camera)).to.true;
+    expect(ppManager._isValid()).to.true;
 
     // Test pass isActive
     uberPass.isActive = false;
     engine.update();
     // @ts-ignore
-    expect(ppManager._isValidInCamera(camera)).to.false;
+    expect(ppManager._isValid()).to.false;
 
     uberPass.isActive = true;
     engine.update();
     // @ts-ignore
-    expect(ppManager._isValidInCamera(camera)).to.true;
+    expect(ppManager._isValid()).to.true;
 
     // Test effect remove
     const removedBloomEffect = pp.removeEffect(BloomEffect);
     expect(removedBloomEffect).to.instanceOf(BloomEffect);
     engine.update();
     // @ts-ignore
-    expect(ppManager._isValidInCamera(camera)).to.false;
+    expect(ppManager._isValid()).to.false;
 
     // Test component destroy
     pp.destroy();
     engine.update();
     // @ts-ignore
-    expect(ppManager._isValidInCamera(camera)).to.false;
+    expect(ppManager._isValid()).to.false;
 
     // Test entity destroy
     {
@@ -122,12 +122,12 @@ describe("PostProcess", () => {
       pp.addEffect(TonemappingEffect);
       engine.update();
       // @ts-ignore
-      expect(ppManager._isValidInCamera(camera)).to.true;
+      expect(ppManager._isValid()).to.true;
 
       postEntity.destroy();
       engine.update();
       // @ts-ignore
-      expect(ppManager._isValidInCamera(camera)).to.false;
+      expect(ppManager._isValid()).to.false;
     }
   });
 

@@ -288,7 +288,7 @@ export class BasicRenderPipeline {
 
     const postProcessManager = scene.postProcessManager;
     const cameraRenderTarget = camera.renderTarget;
-    if (camera.enablePostProcess && postProcessManager._isValidInCamera(camera)) {
+    if (camera.enablePostProcess && postProcessManager._isValid()) {
       postProcessManager._render(camera, internalColorTarget, cameraRenderTarget);
     } else {
       postProcessManager._releaseSwapRenderTarget();

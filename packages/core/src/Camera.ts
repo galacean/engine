@@ -169,7 +169,7 @@ export class Camera extends Component {
    */
   get independentCanvasEnabled(): boolean {
     // Uber pass need internal RT
-    if (this.enablePostProcess && this.scene.postProcessManager._isValidInCamera(this)) {
+    if (this.enablePostProcess && this.scene.postProcessManager._isValid()) {
       return true;
     }
 

@@ -118,9 +118,6 @@ export class PostProcess extends Component {
    * @inheritdoc
    */
   override _onEnableInScene() {
-    if (this._destroyed) {
-      return;
-    }
     this.scene.postProcessManager._addPostProcess(this);
   }
 
@@ -128,9 +125,6 @@ export class PostProcess extends Component {
    * @inheritdoc
    */
   override _onDisableInScene() {
-    if (this._destroyed) {
-      return;
-    }
     this.scene.postProcessManager._removePostProcess(this);
   }
 }
