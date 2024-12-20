@@ -326,9 +326,9 @@ export class PBRMaterial extends PBRBaseMaterial {
         this.renderState.renderQueueType = RenderQueueType.Opaque;
         this.renderState.blendState.targetBlendState.enabled = true;
       }
+      this._refractionMode = value;
+      this.setRefractionMode(value);
     }
-    this._refractionMode = value;
-    this.setRefractionMode(value);
   }
 
   private setRefractionMode(refractionMode: RefractionMode): void {
