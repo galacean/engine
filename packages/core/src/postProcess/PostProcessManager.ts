@@ -30,7 +30,6 @@ export class PostProcessManager {
   private _defaultEffectMap = new Map<typeof PostProcessEffect, PostProcessEffect>();
   private _remainActivePassCount = 0;
   private _tempColliders: Collider[] = [];
-  private _tempColliderShapes: ColliderShape[] = [];
   private _tempVector3 = new Vector3();
 
   /**
@@ -77,8 +76,13 @@ export class PostProcessManager {
       let interpFactor = 1; // Global default value
       if (!isGlobal) {
         const currentColliders = this._tempColliders;
-        const currentShapes = this._tempColliderShapes;
-        currentShapes.length = 0;
+        const cameraPosition = camera.entity.transform.worldPosition;
+        const blendDistance = postProcess.blendDistance;
+
+        let hasColliderShape = false;
+        // Find closest distance to current postProcess, 0 means it's inside it
+        let closestDistance = Number.POSITIVE_INFINITY;
+
         postProcess.entity.getComponents(Collider, currentColliders);
         for (let i = 0; i < currentColliders.length; i++) {
           const collider = currentColliders[i];
@@ -87,29 +91,23 @@ export class PostProcessManager {
           }
           const shapes = collider.shapes;
           for (let j = 0; j < shapes.length; j++) {
-            currentShapes.push(shapes[j]);
+            const currentShape = shapes[j];
+            hasColliderShape = true;
+
+            const distance = currentShape.getClosestPoint(cameraPosition, this._tempVector3);
+            if (distance < closestDistance) {
+              closestDistance = distance;
+            }
           }
         }
 
-        if (!currentShapes.length) {
+        if (!hasColliderShape) {
           Logger.warn(
             `No collider shape found in the entity:"${postProcess.entity.name}", the local mode of post process will not take effect.`
           );
           continue;
         }
 
-        const cameraPosition = camera.entity.transform.worldPosition;
-        // Find closest distance to current postProcess, 0 means it's inside it
-        let closestDistance = Number.POSITIVE_INFINITY;
-        for (let k = 0; k < currentShapes.length; k++) {
-          const shape = currentShapes[k];
-          const distance = shape.getClosestPoint(cameraPosition, this._tempVector3);
-          if (distance < closestDistance) {
-            closestDistance = distance;
-          }
-        }
-
-        const blendDistance = postProcess.blendDistance;
         // Post process has no influence, ignore it
         if (closestDistance > blendDistance) {
           continue;

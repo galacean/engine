@@ -42,9 +42,7 @@ export class PostProcessEffectParameter<T extends Number | Boolean | Color | Vec
   );
 
   constructor(value: T, needLerpOrMin?: boolean | number, max?: number, needLerp?: boolean) {
-    if (typeof needLerpOrMin === "boolean") {
-      this._needLerp = needLerpOrMin;
-    } else if (typeof value === "number") {
+    if (typeof value === "number") {
       if (typeof needLerpOrMin === "boolean") {
         this._needLerp = needLerpOrMin;
         this._min = Number.NEGATIVE_INFINITY;
@@ -53,7 +51,12 @@ export class PostProcessEffectParameter<T extends Number | Boolean | Color | Vec
         this._min = needLerpOrMin;
         this._max = max ?? Number.POSITIVE_INFINITY;
         this._needLerp = needLerp ?? false;
+      } else if (needLerpOrMin == undefined) {
+        this._min = Number.NEGATIVE_INFINITY;
+        this._max = Number.POSITIVE_INFINITY;
       }
+    } else {
+      this._needLerp = <boolean>needLerpOrMin ?? false;
     }
 
     this.value = value;
