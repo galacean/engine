@@ -63,11 +63,9 @@ export class PostProcessEffectParameter<T extends Number | Boolean | Color | Vec
   }
 
   /**
-   * Interpolates from the current value to the end value by an interpolation factor.
-   * @param to - The end value
-   * @param factor - The interpolation factor in range [0,1]
+   * @internal
    */
-  lerp(to: T, factor: number) {
+  _lerp(to: T, factor: number) {
     if (this._needLerp) {
       switch (this.value?.constructor) {
         case Number:

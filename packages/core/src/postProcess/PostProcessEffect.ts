@@ -42,18 +42,16 @@ export class PostProcessEffect {
   }
 
   /**
-   * Interpolates from the current effect to the end effect by an interpolation factor.
-   * @param to - The end effect
-   * @param factor - The interpolation factor in range [0,1]
+   * @internal
    */
-  lerp(to: PostProcessEffect, factor: number): void {
+  _lerp(to: PostProcessEffect, factor: number): void {
     const parameters = this._getParameters();
     const toParameters = to._getParameters();
 
     for (let i = 0, n = parameters.length; i < n; i++) {
-      const targetParameter = toParameters[i];
-      if (targetParameter.enabled) {
-        parameters[i].lerp(targetParameter.value, factor);
+      const toParameter = toParameters[i];
+      if (toParameter.enabled) {
+        parameters[i]._lerp(toParameter.value, factor);
       }
     }
   }

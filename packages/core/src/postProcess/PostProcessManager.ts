@@ -4,7 +4,7 @@ import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { Scene } from "../Scene";
 import { Logger } from "../base/Logger";
 import { Material } from "../material";
-import { Collider, ColliderShape } from "../physics";
+import { Collider } from "../physics";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 import { PostProcess } from "./PostProcess";
 import { PostProcessEffect } from "./PostProcessEffect";
@@ -13,6 +13,9 @@ import { PostProcessEffect } from "./PostProcessEffect";
  * A global manager of the PostProcess.
  */
 export class PostProcessManager {
+  private static _tempColliders: Collider[] = [];
+  private static _tempVector3 = new Vector3();
+
   /** @internal */
   _uberMaterial: Material;
   /** @internal */
@@ -29,8 +32,6 @@ export class PostProcessManager {
   private _blendEffectMap = new Map<typeof PostProcessEffect, PostProcessEffect>();
   private _defaultEffectMap = new Map<typeof PostProcessEffect, PostProcessEffect>();
   private _remainActivePassCount = 0;
-  private _tempColliders: Collider[] = [];
-  private _tempVector3 = new Vector3();
 
   /**
    * Create a PostProcessManager.
@@ -75,7 +76,7 @@ export class PostProcessManager {
       const isGlobal = postProcess.isGlobal;
       let interpFactor = 1; // Global default value
       if (!isGlobal) {
-        const currentColliders = this._tempColliders;
+        const currentColliders = PostProcessManager._tempColliders;
         const cameraPosition = camera.entity.transform.worldPosition;
         const blendDistance = postProcess.blendDistance;
 
@@ -94,7 +95,7 @@ export class PostProcessManager {
             const currentShape = shapes[j];
             hasColliderShape = true;
 
-            const distance = currentShape.getClosestPoint(cameraPosition, this._tempVector3);
+            const distance = currentShape.getClosestPoint(cameraPosition, PostProcessManager._tempVector3);
             if (distance < closestDistance) {
               closestDistance = distance;
             }
@@ -132,7 +133,7 @@ export class PostProcessManager {
           this._blendEffectMap.set(PostConstructor, blendEffect);
         }
 
-        blendEffect.lerp(effect, interpFactor);
+        blendEffect._lerp(effect, interpFactor);
         blendEffect.enabled = true;
       }
     }
@@ -223,7 +224,7 @@ export class PostProcessManager {
       }
 
       // Reset effectInstance's value by defaultEffect
-      blendEffect.lerp(defaultEffect, 1);
+      blendEffect._lerp(defaultEffect, 1);
       blendEffect.enabled = false;
     });
   }
