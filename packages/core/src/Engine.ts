@@ -426,7 +426,7 @@ export class Engine extends EventDispatcher {
   }
 
   /**
-   * Add a post process pass to the manager.
+   * Add a post process pass.
    * @param pass - Post process pass to add
    */
   addPostProcessPass(pass: PostProcessPass): void {

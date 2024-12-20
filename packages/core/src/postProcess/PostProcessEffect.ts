@@ -1,4 +1,3 @@
-import { PostProcess } from "./PostProcess";
 import { PostProcessEffectParameter } from "./PostProcessEffectParameter";
 
 /**
@@ -23,14 +22,6 @@ export class PostProcessEffect {
 
     this._enabled = value;
   }
-
-  /**
-   * Create a post process effect.
-   * @remarks
-   * postProcess can be null when the effect is just used to blend data, and will not post message to the post process manager.
-   * @param postProcess - The post process being used
-   */
-  constructor(public postProcess?: PostProcess) {}
 
   /**
    * Whether the post process effect is valid.

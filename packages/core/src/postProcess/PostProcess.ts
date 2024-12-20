@@ -91,7 +91,7 @@ export class PostProcess extends Component {
       return;
     }
 
-    const effect = new type(this) as InstanceType<T>;
+    const effect = new type() as InstanceType<T>;
     this._effects.push(effect);
     return effect;
   }

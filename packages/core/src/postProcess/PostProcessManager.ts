@@ -65,10 +65,6 @@ export class PostProcessManager {
     for (let i = 0, n = activePostProcesses.length; i < n; i++) {
       const postProcess = activePostProcesses[i];
 
-      if (!postProcess.enabled) {
-        continue;
-      }
-
       if (!(camera.postProcessMask & postProcess.layer)) {
         continue;
       }
@@ -129,7 +125,7 @@ export class PostProcessManager {
 
         let blendEffect = this._blendEffectMap.get(PostConstructor);
         if (!blendEffect) {
-          blendEffect = new PostConstructor(null);
+          blendEffect = new PostConstructor();
           this._blendEffectMap.set(PostConstructor, blendEffect);
         }
 
@@ -219,7 +215,7 @@ export class PostProcessManager {
       let defaultEffect = this._defaultEffectMap.get(typeofBlendEffect);
 
       if (!defaultEffect) {
-        defaultEffect = new typeofBlendEffect(null);
+        defaultEffect = new typeofBlendEffect();
         this._defaultEffectMap.set(typeofBlendEffect, defaultEffect);
       }
 

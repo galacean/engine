@@ -14,6 +14,9 @@ export enum PostProcessPassEvent {
   AfterUber = 100
 }
 
+/**
+ * Post process pass.
+ */
 export abstract class PostProcessPass extends EngineObject {
   private _event = PostProcessPassEvent.AfterUber;
   private _isActive = true;
