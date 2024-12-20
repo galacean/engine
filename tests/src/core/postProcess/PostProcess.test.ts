@@ -6,6 +6,8 @@ import {
   Engine,
   Entity,
   PostProcess,
+  PostProcessEffect,
+  PostProcessEffectParameter,
   PostProcessPass,
   RenderTarget,
   Scene,
@@ -21,6 +23,10 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 
 class CustomPass extends PostProcessPass {
   onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void {}
+}
+
+export class CustomEffect extends PostProcessEffect {
+  intensity = new PostProcessEffectParameter(0, 0, 1, true);
 }
 
 describe("PostProcess", () => {
@@ -192,6 +198,54 @@ describe("PostProcess", () => {
 
     pp1.enabled = true;
     expect(activePostProcesses.length).to.equal(2);
+  });
+
+  it("Custom effect", () => {
+    const pp = postEntity.addComponent(PostProcess);
+    const customEffect = pp.addEffect(CustomEffect);
+
+    expect(customEffect).to.instanceOf(CustomEffect);
+    expect(customEffect.intensity.value).to.equal(0);
+
+    // Clamp
+    customEffect.intensity.value = 2;
+    expect(customEffect.intensity.value).to.equal(1);
+
+    customEffect.intensity.value = -2;
+    expect(customEffect.intensity.value).to.equal(0);
+
+    // isValid
+    expect(customEffect.isValid()).to.true;
+    customEffect.enabled = false;
+    expect(customEffect.isValid()).to.false;
+  });
+
+  it("Post process effect parameter", () => {
+    {
+      const p1 = new PostProcessEffectParameter(1);
+      const p2 = new PostProcessEffectParameter(2, 0, 1);
+      const p3 = new PostProcessEffectParameter(-2, 0, 1);
+      const p4 = new PostProcessEffectParameter(10, 0);
+      const p5 = new PostProcessEffectParameter(-10, 0);
+      const p6 = new PostProcessEffectParameter(0.5, 0, 1, true);
+
+      expect(p1.value).to.equal(1);
+      expect(p2.value).to.equal(1);
+      expect(p3.value).to.equal(0);
+      expect(p4.value).to.equal(10);
+      expect(p5.value).to.equal(0);
+      expect(p6.value).to.equal(0.5);
+    }
+
+    {
+      const p1 = new PostProcessEffectParameter(false);
+      const p2 = new PostProcessEffectParameter(true);
+      const p3 = new PostProcessEffectParameter(true, true);
+
+      expect(p1.value).to.equal(false);
+      expect(p2.value).to.equal(true);
+      expect(p3.value).to.equal(true);
+    }
   });
 
   it("Global mode", () => {

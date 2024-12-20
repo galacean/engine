@@ -25,7 +25,7 @@ export class PostProcessEffectParameter<T extends Number | Boolean | Color | Vec
   }
 
   set value(value: T) {
-    if (this.value?.constructor === Number) {
+    if (value?.constructor === Number) {
       this._value = <T>(<unknown>MathUtil.clamp(<number>value, this._min, this._max));
     } else {
       this._value = value;
