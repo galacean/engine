@@ -466,8 +466,13 @@ export class PBRMaterial extends PBRBaseMaterial {
     shaderData.setFloat(PBRMaterial._attenuationDistanceProp, Infinity);
     const attenuationColor = new Color(1, 1, 1);
     shaderData.setColor(PBRMaterial._attenuationColorProp, attenuationColor);
+
     // @ts-ignore
-    this._iridescenceRange._onValueChanged = this._onIridescenceRangeChanged.bind(this);
+    this._iridescenceRange._onValueChanged = () => {
+      const iridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp);
+      iridescenceInfo.z = this._iridescenceRange.x;
+      iridescenceInfo.w = this._iridescenceRange.y;
+    };
     // @ts-ignore
     sheenColor._onValueChanged = () => {
       const enableSheen = sheenColor.r + sheenColor.g + sheenColor.b > 0;
@@ -489,12 +494,6 @@ export class PBRMaterial extends PBRBaseMaterial {
         this.shaderData.disableMacro(PBRMaterial._absorptionMacro);
       }
     };
-  }
-
-  private _onIridescenceRangeChanged(): void {
-    const iridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp);
-    iridescenceInfo.z = this._iridescenceRange.x;
-    iridescenceInfo.w = this._iridescenceRange.y;
   }
 
   /**
