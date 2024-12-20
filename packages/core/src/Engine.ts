@@ -563,6 +563,10 @@ export class Engine extends EventDispatcher {
         (camera: Camera) => {
           const componentsManager = scene._componentsManager;
           componentsManager.callCameraOnBeginRender(camera);
+
+          // Update post process manager
+          scene.postProcessManager._update(camera);
+
           camera.render();
           componentsManager.callCameraOnEndRender(camera);
 

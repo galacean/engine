@@ -58,6 +58,18 @@ export class PostProcessUberPass extends PostProcessPass {
     uberShaderData.setColor(BloomEffect._tintProp, new Color());
   }
 
+  /** @inheritdoc */
+  override isValidInCamera(camera: Camera): boolean {
+    if (!this.isActive) {
+      return false;
+    }
+
+    const postProcessManager = camera.scene.postProcessManager;
+    const bloomBlend = postProcessManager.getBlendEffect(BloomEffect);
+    const tonemappingBlend = postProcessManager.getBlendEffect(TonemappingEffect);
+    return bloomBlend?.isValid() || tonemappingBlend?.isValid();
+  }
+
   /**
    * @inheritdoc
    */
@@ -67,7 +79,7 @@ export class PostProcessUberPass extends PostProcessPass {
     const bloomBlend = postProcessManager.getBlendEffect(BloomEffect);
     const tonemappingBlend = postProcessManager.getBlendEffect(TonemappingEffect);
 
-    if (bloomBlend && bloomBlend.enabled && bloomBlend.intensity.value > 0) {
+    if (bloomBlend?.isValid()) {
       this._setupBloom(bloomBlend, camera, srcTexture);
       uberShaderData.enableMacro(BloomEffect._enableMacro);
     } else {
@@ -75,7 +87,7 @@ export class PostProcessUberPass extends PostProcessPass {
       this._releaseBloomRenderTargets();
     }
 
-    if (tonemappingBlend && tonemappingBlend.enabled) {
+    if (tonemappingBlend?.isValid()) {
       uberShaderData.enableMacro("TONEMAPPING_MODE", tonemappingBlend.mode.value.toString());
       uberShaderData.enableMacro(TonemappingEffect._enableMacro);
     } else {

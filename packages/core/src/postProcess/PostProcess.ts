@@ -93,9 +93,6 @@ export class PostProcess extends Component {
 
     const effect = new type(this) as InstanceType<T>;
     this._effects.push(effect);
-    if (this.scene) {
-      this.scene.postProcessManager._isValidChangeFlag = true;
-    }
     return effect;
   }
 
@@ -112,10 +109,6 @@ export class PostProcess extends Component {
       const effect = effects[i] as InstanceType<T>;
       if (effect instanceof type) {
         effects.splice(i, 1);
-        if (this.scene) {
-          this.scene.postProcessManager._isValidChangeFlag = true;
-        }
-
         return effect;
       }
     }
@@ -129,9 +122,6 @@ export class PostProcess extends Component {
       return;
     }
     this.scene.postProcessManager._addPostProcess(this);
-    if (this.scene) {
-      this.scene.postProcessManager._isValidChangeFlag = true;
-    }
   }
 
   /**
@@ -142,8 +132,5 @@ export class PostProcess extends Component {
       return;
     }
     this.scene.postProcessManager._removePostProcess(this);
-    if (this.scene) {
-      this.scene.postProcessManager._isValidChangeFlag = true;
-    }
   }
 }

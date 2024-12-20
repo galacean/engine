@@ -22,11 +22,6 @@ export class PostProcessEffect {
     }
 
     this._enabled = value;
-
-    const scene = this.postProcess?.scene;
-    if (scene) {
-      scene.postProcessManager._isValidChangeFlag = true;
-    }
   }
 
   /**
@@ -36,6 +31,15 @@ export class PostProcessEffect {
    * @param postProcess - The post process being used
    */
   constructor(public postProcess?: PostProcess) {}
+
+  /**
+   * Whether the post process effect is valid.
+   * @remarks
+   * This method can be overridden to control the effect's real validity.
+   */
+  isValid(): boolean {
+    return this._enabled;
+  }
 
   /**
    * Interpolates from the current effect to the end effect by an interpolation factor.

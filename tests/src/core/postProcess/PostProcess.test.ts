@@ -28,6 +28,7 @@ describe("PostProcess", () => {
   let scene: Scene;
   let uberPass: PostProcessPass = null;
   let postEntity: Entity = null;
+  let camera: Camera;
 
   beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
@@ -35,7 +36,7 @@ describe("PostProcess", () => {
     const passes = engine.postProcessPasses;
     uberPass = passes[0];
     const cameraEntity = scene.createRootEntity("camera");
-    const camera = cameraEntity.addComponent(Camera);
+    camera = cameraEntity.addComponent(Camera);
     camera.enablePostProcess = true;
   });
 
@@ -55,62 +56,78 @@ describe("PostProcess", () => {
     const ppManager = scene.postProcessManager;
     const pp = postEntity.addComponent(PostProcess);
 
+    engine.update();
     // @ts-ignore
-    expect(ppManager._isValid()).to.false;
+    expect(ppManager._isValidInCamera(camera)).to.false;
 
     // Test effect
     const bloomEffect = pp.addEffect(BloomEffect);
+    engine.update();
     // @ts-ignore
-    expect(ppManager._isValid()).to.true;
+    expect(ppManager._isValidInCamera(camera)).to.false;
 
     bloomEffect.enabled = false;
+    engine.update();
     // @ts-ignore
-    expect(ppManager._isValid()).to.false;
+    expect(ppManager._isValidInCamera(camera)).to.false;
 
     bloomEffect.enabled = true;
+    engine.update();
     // @ts-ignore
-    expect(ppManager._isValid()).to.true;
+    expect(ppManager._isValidInCamera(camera)).to.false;
+
+    bloomEffect.intensity.value = 1;
+    engine.update();
+    // @ts-ignore
+    expect(ppManager._isValidInCamera(camera)).to.true;
 
     // Test PostProcess disable
     pp.enabled = false;
+    engine.update();
     // @ts-ignore
-    expect(ppManager._isValid()).to.false;
+    expect(ppManager._isValidInCamera(camera)).to.false;
 
     pp.enabled = true;
+    engine.update();
     // @ts-ignore
-    expect(ppManager._isValid()).to.true;
+    expect(ppManager._isValidInCamera(camera)).to.true;
 
     // Test pass isActive
     uberPass.isActive = false;
+    engine.update();
     // @ts-ignore
-    expect(ppManager._isValid()).to.false;
+    expect(ppManager._isValidInCamera(camera)).to.false;
 
     uberPass.isActive = true;
+    engine.update();
     // @ts-ignore
-    expect(ppManager._isValid()).to.true;
+    expect(ppManager._isValidInCamera(camera)).to.true;
 
     // Test effect remove
     const removedBloomEffect = pp.removeEffect(BloomEffect);
     expect(removedBloomEffect).to.instanceOf(BloomEffect);
+    engine.update();
     // @ts-ignore
-    expect(ppManager._isValid()).to.false;
+    expect(ppManager._isValidInCamera(camera)).to.false;
 
     // Test component destroy
     pp.destroy();
+    engine.update();
     // @ts-ignore
-    expect(ppManager._isValid()).to.false;
+    expect(ppManager._isValidInCamera(camera)).to.false;
 
     // Test entity destroy
     {
       const pp = postEntity.addComponent(PostProcess);
       pp.addEffect(TonemappingEffect);
-
+      engine.update();
       // @ts-ignore
-      expect(ppManager._isValid()).to.true;
+      expect(ppManager._isValidInCamera(camera)).to.true;
 
       postEntity.destroy();
+      engine.update();
       // @ts-ignore
-      expect(ppManager._isValid()).to.false;
+      expect(ppManager._isValidInCamera(camera)).to.false;
     }
   });
 
@@ -163,12 +180,12 @@ describe("PostProcess", () => {
 
     expect(pp1.priority).to.equal(0);
     expect(activePostProcesses.length).to.equal(2);
-    expect(activePostProcesses[1]).to.eq(pp2);
+    expect(activePostProcesses[1] === pp2).to.true;
 
     // Test priority
     pp1.priority = 10;
     engine.update();
-    expect(activePostProcesses[1]).to.eq(pp1);
+    expect(activePostProcesses[1] === pp1).to.true;
 
     pp1.enabled = false;
     expect(activePostProcesses.length).to.equal(1);
@@ -185,8 +202,6 @@ describe("PostProcess", () => {
     const bloom2 = pp2.addEffect(BloomEffect);
 
     engine.update();
-    // @ts-ignore
-    expect(ppManager._isValid()).to.true;
 
     const bloomBlend = ppManager.getBlendEffect(BloomEffect);
     expect(bloomBlend).to.instanceOf(BloomEffect);

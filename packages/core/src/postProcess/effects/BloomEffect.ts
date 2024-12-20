@@ -96,6 +96,11 @@ export class BloomEffect extends PostProcessEffect {
    * Specifies the tint of the bloom effect.
    */
   tint = new PostProcessEffectParameter(new Color(1, 1, 1, 1), true);
+
+  /** @inheritdoc */
+  override isValid(): boolean {
+    return this.enabled && this.intensity.value > 0;
+  }
 }
 
 Shader.create(BloomEffect.SHADER_NAME, [

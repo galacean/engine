@@ -47,6 +47,16 @@ export abstract class PostProcessPass extends EngineObject {
   }
 
   /**
+   * Whether the post process pass is valid in the current render camera
+   * @remarks
+   * This method can be overridden to control the pass's real validity.
+   * @param camera - The camera used to render
+   */
+  isValidInCamera(camera: Camera): boolean {
+    return this._isActive;
+  }
+
+  /**
    * Execute the post process pass if it is active.
    * @param camera - The camera used to render
    * @param srcTexture - The source texture from last render target

@@ -19,11 +19,8 @@ export class PostProcessManager {
   _postProcessNeedSorting = false;
   /** @internal */
   _postProcessPassNeedSorting = false;
-  /** @internal */
-  _isValidChangeFlag = false;
 
   private _activePostProcesses: PostProcess[] = [];
-  private _isActive = false;
   private _swapRenderTarget: RenderTarget;
   private _srcRenderTarget: RenderTarget;
   private _destRenderTarget: RenderTarget;
@@ -44,123 +41,17 @@ export class PostProcessManager {
 
   /**
    * @internal
-   * Whether has any enabled post process effect and has any post process pass active.
+   * Whether has any valid post process pass in current render camera.
    */
-  _isValid(): boolean {
-    // @todo: If A pass is active but no effect is enabled, B pass is inactive but effect is enabled,will cause the waste
-
+  _isValidInCamera(camera: Camera): boolean {
     // Check if there is any active post process pass
-    if (this.scene.engine._activePostProcessPasses.length === 0) {
-      return false;
-    }
-
-    // Check if there is any active post process effect
-    if (!this._isValidChangeFlag) {
-      return this._isActive;
-    }
-
-    this._isActive = this._activePostProcesses.some(
-      (postProcess) => postProcess.enabled && postProcess._effects.some((effect) => effect.enabled)
-    );
-    this._isValidChangeFlag = false;
-
-    return this._isActive;
+    return this.scene.engine._activePostProcessPasses.some((pass) => pass.isValidInCamera(camera));
   }
 
   /**
    * @internal
    */
-  _addPostProcess(postProcess: PostProcess): void {
-    this._activePostProcesses.push(postProcess);
-    this._isValidChangeFlag = true;
-    this._postProcessNeedSorting = true;
-  }
-
-  /**
-   * @internal
-   */
-  _removePostProcess(postProcess: PostProcess): void {
-    const index = this._activePostProcesses.indexOf(postProcess);
-    if (index >= 0) {
-      this._activePostProcesses.splice(index, 1);
-      this._isValidChangeFlag = true;
-      this._postProcessNeedSorting = true;
-    }
-  }
-
-  /**
-   * Get the blend effect by type.
-   * @remarks
-   * The blend effect is a post process effect that is used to blend all result of the effects by the type.
-   * @param type - The type of PostProcessEffect
-   * @returns The PostProcessEffect instance found
-   */
-  getBlendEffect<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
-    return this._blendEffectMap.get(type) as InstanceType<T>;
-  }
-
-  /**
-   * @internal
-   */
-  _render(camera: Camera, srcRenderTarget: RenderTarget, destRenderTarget: RenderTarget): void {
-    const engine = this.scene.engine;
-    this._srcRenderTarget = srcRenderTarget;
-    this._destRenderTarget = destRenderTarget;
-
-    // Should blit to resolve the MSAA
-    srcRenderTarget._blitRenderTarget();
-
-    this._update(camera);
-
-    this._remainActivePassCount = engine._activePostProcessPasses.length;
-    this._initSwapRenderTarget(camera);
-
-    for (let i = 0; i < engine._activePostProcessPasses.length; i++) {
-      const pass = engine._activePostProcessPasses[i];
-      pass.onRender(camera, this._getCurrentSourceTexture(), this._currentDestRenderTarget);
-      this._remainActivePassCount--;
-      this._swapRT();
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _releaseSwapRenderTarget(): void {
-    const swapRenderTarget = this._swapRenderTarget;
-    if (swapRenderTarget) {
-      swapRenderTarget.getColorTexture(0)?.destroy(true);
-      swapRenderTarget.destroy(true);
-      this._swapRenderTarget = null;
-    }
-  }
-
-  private _sortActivePostProcess(): void {
-    if (this._postProcessNeedSorting) {
-      const postProcesses = this._activePostProcesses;
-      if (postProcesses.length) {
-        postProcesses.sort((a, b) => a.priority - b.priority);
-      }
-      this._postProcessNeedSorting = false;
-    }
-  }
-
-  private _resetDefaultValue(): void {
-    this._blendEffectMap.forEach((blendEffect, typeofBlendEffect) => {
-      let defaultEffect = this._defaultEffectMap.get(typeofBlendEffect);
-
-      if (!defaultEffect) {
-        defaultEffect = new typeofBlendEffect(null);
-        this._defaultEffectMap.set(typeofBlendEffect, defaultEffect);
-      }
-
-      // Reset effectInstance's value by defaultEffect
-      blendEffect.lerp(defaultEffect, 1);
-      blendEffect.enabled = false;
-    });
-  }
-
-  private _update(camera: Camera): void {
+  _update(camera: Camera): void {
     // Start by resetting post process effect instance to default values
     this._resetDefaultValue();
 
@@ -243,6 +134,95 @@ export class PostProcessManager {
         blendEffect.enabled = true;
       }
     }
+  }
+
+  /**
+   * @internal
+   */
+  _addPostProcess(postProcess: PostProcess): void {
+    this._activePostProcesses.push(postProcess);
+    this._postProcessNeedSorting = true;
+  }
+
+  /**
+   * @internal
+   */
+  _removePostProcess(postProcess: PostProcess): void {
+    const index = this._activePostProcesses.indexOf(postProcess);
+    if (index >= 0) {
+      this._activePostProcesses.splice(index, 1);
+      this._postProcessNeedSorting = true;
+    }
+  }
+
+  /**
+   * Get the blend effect by type.
+   * @remarks
+   * The blend effect is a post process effect that is used to blend all result of the effects by the type.
+   * @param type - The type of PostProcessEffect
+   * @returns The PostProcessEffect instance found
+   */
+  getBlendEffect<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
+    return this._blendEffectMap.get(type) as InstanceType<T>;
+  }
+
+  /**
+   * @internal
+   */
+  _render(camera: Camera, srcRenderTarget: RenderTarget, destRenderTarget: RenderTarget): void {
+    const engine = this.scene.engine;
+    this._srcRenderTarget = srcRenderTarget;
+    this._destRenderTarget = destRenderTarget;
+
+    // Should blit to resolve the MSAA
+    srcRenderTarget._blitRenderTarget();
+
+    this._remainActivePassCount = engine._activePostProcessPasses.length;
+    this._initSwapRenderTarget(camera);
+
+    for (let i = 0; i < engine._activePostProcessPasses.length; i++) {
+      const pass = engine._activePostProcessPasses[i];
+      pass.onRender(camera, this._getCurrentSourceTexture(), this._currentDestRenderTarget);
+      this._remainActivePassCount--;
+      this._swapRT();
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _releaseSwapRenderTarget(): void {
+    const swapRenderTarget = this._swapRenderTarget;
+    if (swapRenderTarget) {
+      swapRenderTarget.getColorTexture(0)?.destroy(true);
+      swapRenderTarget.destroy(true);
+      this._swapRenderTarget = null;
+    }
+  }
+
+  private _sortActivePostProcess(): void {
+    if (this._postProcessNeedSorting) {
+      const postProcesses = this._activePostProcesses;
+      if (postProcesses.length) {
+        postProcesses.sort((a, b) => a.priority - b.priority);
+      }
+      this._postProcessNeedSorting = false;
+    }
+  }
+
+  private _resetDefaultValue(): void {
+    this._blendEffectMap.forEach((blendEffect, typeofBlendEffect) => {
+      let defaultEffect = this._defaultEffectMap.get(typeofBlendEffect);
+
+      if (!defaultEffect) {
+        defaultEffect = new typeofBlendEffect(null);
+        this._defaultEffectMap.set(typeofBlendEffect, defaultEffect);
+      }
+
+      // Reset effectInstance's value by defaultEffect
+      blendEffect.lerp(defaultEffect, 1);
+      blendEffect.enabled = false;
+    });
   }
 
   private _initSwapRenderTarget(camera: Camera): void {
