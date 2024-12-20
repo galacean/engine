@@ -3,14 +3,13 @@ uniform mediump sampler2D renderer_BlitTexture;
 	uniform float renderer_BlitMipLevel;
 #endif
 
+uniform vec4 renderer_SourceScaleOffset;
 
 varying vec2 v_uv;
 
 void main() {
 	vec2 uv = v_uv;
-	#ifdef renderer_FlipYBlitTexture
-		uv.y = 1.0 - uv.y;
-	#endif
+	uv = uv * renderer_SourceScaleOffset.xy + renderer_SourceScaleOffset.zw;
 
 	#ifdef HAS_TEX_LOD
 		gl_FragColor = texture2DLodEXT( renderer_BlitTexture, uv, renderer_BlitMipLevel );

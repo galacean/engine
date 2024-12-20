@@ -66,6 +66,11 @@ export class Camera extends Component {
   cullingMask: Layer = Layer.Everything;
 
   /**
+   * Determines which PostProcess to use.
+   */
+  postProcessMask: Layer = Layer.Everything;
+
+  /**
    * Depth texture mode.
    * If `DepthTextureMode.PrePass` is used, the depth texture can be accessed in the shader using `camera_DepthTexture`.
    *
@@ -164,7 +169,7 @@ export class Camera extends Component {
    */
   get independentCanvasEnabled(): boolean {
     // Uber pass need internal RT
-    if (this.enablePostProcess && this.scene._postProcessManager.hasActiveEffect) {
+    if (this.enablePostProcess && this.scene.postProcessManager._isValid()) {
       return true;
     }
 
