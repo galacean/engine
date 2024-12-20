@@ -1,6 +1,7 @@
 import { EngineObject } from "../base";
 import { Camera } from "../Camera";
 import { RenderTarget, Texture2D } from "../texture";
+import { PostProcessManager } from "./PostProcessManager";
 
 /**
  * Controls when the post process pass executes.
@@ -47,12 +48,12 @@ export abstract class PostProcessPass extends EngineObject {
   }
 
   /**
-   * Whether the post process pass is valid in the current render camera
+   * Whether the post process pass is valid in current post process manager.
    * @remarks
    * This method can be overridden to control the pass's real validity.
-   * @param camera - The camera used to render
+   * @param postProcessManager - The post process manager
    */
-  isValidInCamera(camera: Camera): boolean {
+  isValid(postProcessManager: PostProcessManager): boolean {
     return this._isActive;
   }
 

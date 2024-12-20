@@ -45,7 +45,7 @@ export class PostProcessManager {
    */
   _isValidInCamera(camera: Camera): boolean {
     // Check if there is any active post process pass
-    return this.scene.engine._activePostProcessPasses.some((pass) => pass.isValidInCamera(camera));
+    return this.scene.engine._activePostProcessPasses.some((pass) => pass.isValid(camera.scene.postProcessManager));
   }
 
   /**

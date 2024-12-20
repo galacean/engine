@@ -19,6 +19,7 @@ import RRT from "./shaders/Tonemapping/ACES/RRT.glsl";
 import Tonescale from "./shaders/Tonemapping/ACES/Tonescale.glsl";
 import NeutralTonemapping from "./shaders/Tonemapping/NeutralTonemapping.glsl";
 import UberPost from "./shaders/UberPost.glsl";
+import { PostProcessManager } from "./PostProcessManager";
 
 export class PostProcessUberPass extends PostProcessPass {
   static readonly UBER_SHADER_NAME = "UberPost";
@@ -59,12 +60,11 @@ export class PostProcessUberPass extends PostProcessPass {
   }
 
   /** @inheritdoc */
-  override isValidInCamera(camera: Camera): boolean {
+  override isValid(postProcessManager: PostProcessManager): boolean {
     if (!this.isActive) {
       return false;
     }
 
-    const postProcessManager = camera.scene.postProcessManager;
     const bloomBlend = postProcessManager.getBlendEffect(BloomEffect);
     const tonemappingBlend = postProcessManager.getBlendEffect(TonemappingEffect);
     return bloomBlend?.isValid() || tonemappingBlend?.isValid();
