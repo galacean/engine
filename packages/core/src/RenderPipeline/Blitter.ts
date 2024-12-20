@@ -20,6 +20,7 @@ export class Blitter {
 
   private static _rendererShaderData = new ShaderData(ShaderDataGroup.Renderer);
   private static _texelSize = new Vector4();
+  private static _defaultScaleOffset = new Vector4(1, 1, 0, 0);
 
   /**
    * Blit texture to destination render target using a triangle.
@@ -59,7 +60,7 @@ export class Blitter {
     rendererShaderData.setFloat(Blitter._blitMipLevelProperty, mipLevel);
     Blitter._texelSize.set(1 / source.width, 1 / source.height, source.width, source.height);
     rendererShaderData.setVector4(Blitter._blitTexelSizeProperty, Blitter._texelSize);
-    sourceScaleOffset && rendererShaderData.setVector4(Blitter._sourceScaleOffsetProperty, sourceScaleOffset);
+    rendererShaderData.setVector4(Blitter._sourceScaleOffsetProperty, sourceScaleOffset ?? Blitter._defaultScaleOffset);
 
     const pass = blitMaterial.shader.subShaders[0].passes[passIndex];
     const compileMacros = Shader._compileMacros;

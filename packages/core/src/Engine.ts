@@ -111,9 +111,9 @@ export class Engine extends EventDispatcher {
   /** @internal */
   _postProcessPassNeedSorting = false;
   /** @internal */
-  _postProcessPasses: PostProcessPass[] = [];
+  _postProcessPasses = new Array<PostProcessPass>();
   /** @internal */
-  _activePostProcessPasses: PostProcessPass[] = [];
+  _activePostProcessPasses = new Array<PostProcessPass>();
 
   /** @internal */
   protected _canvas: Canvas;
@@ -220,17 +220,17 @@ export class Engine extends EventDispatcher {
   }
 
   /**
+   * All post process passes.
+   */
+  get postProcessPasses(): ReadonlyArray<PostProcessPass> {
+    return this._postProcessPasses;
+  }
+
+  /**
    * Indicates whether the engine is destroyed.
    */
   get destroyed(): boolean {
     return this._destroyed;
-  }
-
-  /**
-   * Get all post process passes.
-   */
-  get postProcessPasses(): ReadonlyArray<PostProcessPass> {
-    return this._postProcessPasses;
   }
 
   protected constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, configuration: EngineConfiguration) {
@@ -437,9 +437,7 @@ export class Engine extends EventDispatcher {
     }
 
     const passes = this._postProcessPasses;
-    const index = passes.indexOf(pass);
-
-    if (index === -1) {
+    if (passes.indexOf(pass) === -1) {
       passes.push(pass);
       pass.isActive && this._refreshActivePostProcessPasses();
     }
@@ -451,7 +449,6 @@ export class Engine extends EventDispatcher {
   _removePostProcessPass(pass: PostProcessPass): void {
     const passes = this._postProcessPasses;
     const index = passes.indexOf(pass);
-
     if (index !== -1) {
       passes.splice(index, 1);
       pass.isActive && this._refreshActivePostProcessPasses();

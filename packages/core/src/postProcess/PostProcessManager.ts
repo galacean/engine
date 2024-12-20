@@ -20,7 +20,7 @@ export class PostProcessManager {
   /** @internal */
   _postProcessPassNeedSorting = false;
   /** @internal */
-  _activeStateChangeFlag = false;
+  _isValidChangeFlag = false;
 
   private _activePostProcesses: PostProcess[] = [];
   private _isActive = false;
@@ -44,23 +44,25 @@ export class PostProcessManager {
 
   /**
    * @internal
-   * Whether has any active pass and active effect.
+   * Whether has any enabled post process effect and has any post process pass active.
    */
   _isValid(): boolean {
-    const passCount = this.scene.engine._activePostProcessPasses.length;
-    if (!passCount) {
+    // @todo: If A pass is active but no effect is enabled, B pass is inactive but effect is enabled,will cause the waste
+
+    // Check if there is any active post process pass
+    if (this.scene.engine._activePostProcessPasses.length === 0) {
       return false;
     }
 
-    if (!this._activeStateChangeFlag) {
+    // Check if there is any active post process effect
+    if (!this._isValidChangeFlag) {
       return this._isActive;
     }
-
-    this._activeStateChangeFlag = false;
 
     this._isActive = this._activePostProcesses.some(
       (postProcess) => postProcess.enabled && postProcess._effects.some((effect) => effect.enabled)
     );
+    this._isValidChangeFlag = false;
 
     return this._isActive;
   }
@@ -70,7 +72,7 @@ export class PostProcessManager {
    */
   _addPostProcess(postProcess: PostProcess): void {
     this._activePostProcesses.push(postProcess);
-    this._activeStateChangeFlag = true;
+    this._isValidChangeFlag = true;
     this._postProcessNeedSorting = true;
   }
 
@@ -81,7 +83,7 @@ export class PostProcessManager {
     const index = this._activePostProcesses.indexOf(postProcess);
     if (index >= 0) {
       this._activePostProcesses.splice(index, 1);
-      this._activeStateChangeFlag = true;
+      this._isValidChangeFlag = true;
       this._postProcessNeedSorting = true;
     }
   }
@@ -230,6 +232,7 @@ export class PostProcessManager {
           continue;
         }
         const PostConstructor = effect.constructor as typeof PostProcessEffect;
+
         let blendEffect = this._blendEffectMap.get(PostConstructor);
         if (!blendEffect) {
           blendEffect = new PostConstructor(null);

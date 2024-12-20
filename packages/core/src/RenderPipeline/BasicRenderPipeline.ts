@@ -228,8 +228,9 @@ export class BasicRenderPipeline {
           // Copy RT's color buffer to grab texture
           rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._grabTexture, camera.viewport);
           // Then blit grab texture to internal RT's color buffer
-          this._sourceScaleOffset.y = camera.renderTarget ? 1 : -1;
-          this._sourceScaleOffset.w = camera.renderTarget ? 0 : 1;
+          const sourceScaleOffset = this._sourceScaleOffset;
+          sourceScaleOffset.y = camera.renderTarget ? 1 : -1;
+          sourceScaleOffset.w = camera.renderTarget ? 0 : 1;
           // `uv.y = 1.0 - uv.y` if grab from screen
           Blitter.blitTexture(
             engine,
@@ -239,7 +240,7 @@ export class BasicRenderPipeline {
             undefined,
             undefined,
             undefined,
-            this._sourceScaleOffset
+            sourceScaleOffset
           );
         } else {
           rhi.clearRenderTarget(engine, CameraClearFlags.All, color);

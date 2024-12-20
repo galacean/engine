@@ -25,7 +25,7 @@ export class PostProcessEffect {
 
     const scene = this.postProcess?.scene;
     if (scene) {
-      scene.postProcessManager._activeStateChangeFlag = true;
+      scene.postProcessManager._isValidChangeFlag = true;
     }
   }
 
