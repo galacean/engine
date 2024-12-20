@@ -538,7 +538,6 @@ describe("ColliderShape Lite", () => {
 
     entity.transform.setScale(1, 1, 1);
     entity.transform.setRotation(0, 0, 0);
-
     point.set(3, 6, 9);
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
