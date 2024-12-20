@@ -538,12 +538,20 @@ describe("ColliderShape Lite", () => {
 
     entity.transform.setScale(1, 1, 1);
     entity.transform.setRotation(0, 0, 0);
+
     point.set(3, 6, 9);
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
     const distance2 = sphereShape.getClosestPoint(point, closestPoint);
     expect(distance2).to.eq(0);
     expect(closestPoint).to.deep.include({ x: 3, y: 6, z: 9 });
+
+    point.set(8, 6, 9);
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    const distance3 = sphereShape.getClosestPoint(point, closestPoint);
+    expect(distance3).to.eq(2);
+    expect(closestPoint).to.deep.include({ x: 6, y: 6, z: 9 });
   });
 
   it("getClosestPoint with collider disabled", () => {
