@@ -31,7 +31,7 @@ export abstract class PostProcessPass extends EngineObject {
     if (value !== this._event) {
       this._event = value;
       if (this._isActive) {
-        this.engine._postProcessPassNeedSorting = true;
+        this.engine._postProcessPassNeedRefresh = true;
       }
     }
   }
@@ -46,7 +46,7 @@ export abstract class PostProcessPass extends EngineObject {
   set isActive(value: boolean) {
     if (value !== this._isActive) {
       this._isActive = value;
-      this.engine._refreshActivePostProcessPasses();
+      this.engine._postProcessPassNeedRefresh = true;
     }
   }
 

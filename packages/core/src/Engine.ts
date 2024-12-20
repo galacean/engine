@@ -109,11 +109,7 @@ export class Engine extends EventDispatcher {
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
 
   /** @internal */
-  _postProcessPassNeedSorting = false;
-  /** @internal */
-  _postProcessPasses = new Array<PostProcessPass>();
-  /** @internal */
-  _activePostProcessPasses = new Array<PostProcessPass>();
+  _postProcessPassNeedRefresh = false;
 
   /** @internal */
   protected _canvas: Canvas;
@@ -134,6 +130,8 @@ export class Engine extends EventDispatcher {
   private _waitingDestroy: boolean = false;
   private _isDeviceLost: boolean = false;
   private _waitingGC: boolean = false;
+  private _postProcessPasses = new Array<PostProcessPass>();
+  private _activePostProcessPasses = new Array<PostProcessPass>();
 
   private _animate = () => {
     if (this._vSyncCount) {
@@ -334,7 +332,7 @@ export class Engine extends EventDispatcher {
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
     inputManager._update();
 
-    this._sortActivePostProcessPass();
+    this._refreshActivePostProcessPasses();
     const scenes = this._sceneManager._scenes.getLoopArray();
     const sceneCount = scenes.length;
 
@@ -439,7 +437,7 @@ export class Engine extends EventDispatcher {
     const passes = this._postProcessPasses;
     if (passes.indexOf(pass) === -1) {
       passes.push(pass);
-      pass.isActive && this._refreshActivePostProcessPasses();
+      pass.isActive && (this._postProcessPassNeedRefresh = true);
     }
   }
 
@@ -451,7 +449,8 @@ export class Engine extends EventDispatcher {
     const index = passes.indexOf(pass);
     if (index !== -1) {
       passes.splice(index, 1);
-      pass.isActive && this._refreshActivePostProcessPasses();
+
+      pass.isActive && (this._postProcessPassNeedRefresh = true);
     }
   }
 
@@ -459,17 +458,34 @@ export class Engine extends EventDispatcher {
    * @internal
    */
   _refreshActivePostProcessPasses(): void {
-    const activePostProcesses = this._activePostProcessPasses;
-    activePostProcesses.length = 0;
+    if (this._postProcessPassNeedRefresh) {
+      this._postProcessPassNeedRefresh = false;
 
-    for (let i = 0; i < this._postProcessPasses.length; i++) {
-      const pass = this._postProcessPasses[i];
-      if (pass.isActive) {
-        activePostProcesses.push(pass);
+      const postProcessPasses = this._postProcessPasses;
+      const activePostProcesses = this._activePostProcessPasses;
+      activePostProcesses.length = 0;
+
+      // Filter
+      for (let i = 0, n = postProcessPasses.length; i < n; i++) {
+        const pass = postProcessPasses[i];
+        if (pass.isActive) {
+          activePostProcesses.push(pass);
+        }
+      }
+
+      // Sort
+      if (activePostProcesses.length) {
+        activePostProcesses.sort((a, b) => a.event - b.event);
       }
     }
+  }
 
-    this._postProcessPassNeedSorting = true;
+  /**
+   * @internal
+   */
+  _getActivePostProcessPasses(): ReadonlyArray<PostProcessPass> {
+    this._refreshActivePostProcessPasses();
+    return this._activePostProcessPasses;
   }
 
   private _destroy(): void {
@@ -660,16 +676,6 @@ export class Engine extends EventDispatcher {
     this._textSubRenderElementPool.garbageCollection();
     this._renderElementPool.garbageCollection();
     this._renderContext.garbageCollection();
-  }
-
-  private _sortActivePostProcessPass(): void {
-    if (this._postProcessPassNeedSorting) {
-      const passes = this._activePostProcessPasses;
-      if (passes.length) {
-        passes.sort((a, b) => a.event - b.event);
-      }
-      this._postProcessPassNeedSorting = false;
-    }
   }
 
   /**

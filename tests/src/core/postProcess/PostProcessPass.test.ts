@@ -79,41 +79,42 @@ describe("PostProcessPass", () => {
   });
 
   it("active pass", () => {
-    // @ts-ignore
-    const passes = engine._activePostProcessPasses;
     const customPass = new CustomPass(engine);
 
-    expect(passes.length).to.eq(1);
+    // @ts-ignore
+    expect(engine._getActivePostProcessPasses().length).to.eq(1);
     engine.addPostProcessPass(customPass);
-    expect(passes.length).to.eq(2);
+    // @ts-ignore
+    expect(engine._getActivePostProcessPasses().length).to.eq(2);
 
     customPass.isActive = false;
-    expect(passes.length).to.eq(1);
+    // @ts-ignore
+    expect(engine._getActivePostProcessPasses().length).to.eq(1);
 
     customPass.isActive = true;
-    expect(passes.length).to.eq(2);
+    // @ts-ignore
+    expect(engine._getActivePostProcessPasses().length).to.eq(2);
 
     customPass.isActive = false;
-    customPass.destroy();
-    expect(passes.length).to.eq(1);
+    // @ts-ignore
+    expect(engine._getActivePostProcessPasses().length).to.eq(1);
   });
 
   it("pass event", () => {
-    // @ts-ignore
-    const passes = engine._activePostProcessPasses;
     const uberPass = engine.postProcessPasses[0];
     const customPass = new CustomPass(engine);
     engine.addPostProcessPass(customPass);
 
     expect(customPass.event).to.eq(PostProcessPassEvent.AfterUber);
-    expect(passes[0] === uberPass).to.be.true;
+    // @ts-ignore
+    expect(engine._getActivePostProcessPasses()[0] === uberPass).to.be.true;
 
     customPass.event = PostProcessPassEvent.BeforeUber;
     // @ts-ignore
-    engine.update();
-    expect(passes[0] === customPass).to.be.true;
+    expect(engine._getActivePostProcessPasses()[0] === customPass).to.be.true;
 
     customPass.destroy();
-    expect(passes[0] === uberPass).to.be.true;
+    // @ts-ignore
+    expect(engine._getActivePostProcessPasses()[0] === uberPass).to.be.true;
   });
 });

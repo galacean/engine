@@ -44,7 +44,11 @@ export class PostProcessManager {
    * Whether has any valid post process pass.
    */
   _isValid(): boolean {
-    return this.scene.engine._activePostProcessPasses.some((pass) => pass.isValid(this.scene.postProcessManager));
+    const scene = this.scene;
+    const engine = scene.engine;
+
+    const activePasses = engine._getActivePostProcessPasses();
+    return activePasses.some((pass) => pass.isValid(scene.postProcessManager));
   }
 
   /**
@@ -56,9 +60,10 @@ export class PostProcessManager {
 
     // Sort post process
     this._sortActivePostProcess();
+    const activePostProcesses = this._activePostProcesses;
 
-    for (let i = 0; i < this._activePostProcesses.length; i++) {
-      const postProcess = this._activePostProcesses[i];
+    for (let i = 0, n = activePostProcesses.length; i < n; i++) {
+      const postProcess = activePostProcesses[i];
 
       if (!postProcess.enabled) {
         continue;
@@ -176,11 +181,12 @@ export class PostProcessManager {
     // Should blit to resolve the MSAA
     srcRenderTarget._blitRenderTarget();
 
-    this._remainActivePassCount = engine._activePostProcessPasses.length;
+    const activePasses = engine._getActivePostProcessPasses();
+    this._remainActivePassCount = activePasses.length;
     this._initSwapRenderTarget(camera);
 
-    for (let i = 0; i < engine._activePostProcessPasses.length; i++) {
-      const pass = engine._activePostProcessPasses[i];
+    for (let i = 0, n = activePasses.length; i < n; i++) {
+      const pass = activePasses[i];
       pass.onRender(camera, this._getCurrentSourceTexture(), this._currentDestRenderTarget);
       this._remainActivePassCount--;
       this._swapRT();
