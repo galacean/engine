@@ -1,6 +1,6 @@
 import { ISphereColliderShape } from "@galacean/engine-design";
 import { LiteColliderShape } from "./LiteColliderShape";
-import { BoundingSphere, Quaternion, Ray, Vector3, Vector4 } from "@galacean/engine";
+import { BoundingSphere, Ray, Vector3, Vector4 } from "@galacean/engine";
 import { LiteHitResult } from "../LiteHitResult";
 import { LitePhysicsMaterial } from "../LitePhysicsMaterial";
 
@@ -53,6 +53,7 @@ export class LiteSphereColliderShape extends LiteColliderShape implements ISpher
     this._transform.worldMatrix.decompose(position, LiteColliderShape._tempRot, LiteColliderShape._tempScale);
     const p = LiteColliderShape._tempPoint;
     Vector3.subtract(point, position, p);
+    const distanceFromCenter = p.lengthSquared();
     const direction = p.normalize();
 
     Vector3.scale(direction, worldRadius, p);
@@ -60,7 +61,8 @@ export class LiteSphereColliderShape extends LiteColliderShape implements ISpher
 
     const res = LiteColliderShape._tempVector4;
     const distanceSquared = Vector3.distanceSquared(p, point);
-    if (distanceSquared <= worldRadius * worldRadius) {
+
+    if (distanceFromCenter <= worldRadius * worldRadius) {
       res.set(point.x, point.y, point.z, 0);
     } else {
       res.set(p.x, p.y, p.z, distanceSquared);
