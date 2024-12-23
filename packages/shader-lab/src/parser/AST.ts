@@ -14,16 +14,9 @@ import { ESymbolType, FnSymbol, StructSymbol, VarSymbol } from "./symbolTable";
 import { IParamInfo, NodeChild, StructProp, SymbolType } from "./types";
 
 function ASTNodeDecorator(nonTerminal: NoneTerminal) {
-  return function <T extends { new (...args: any[]): TreeNode }>(ASTNode: T) {
-    const ASTNodeClass = class extends ASTNode {
-      constructor(...args: any[]) {
-        super();
-        this.nt = nonTerminal;
-      }
-    };
-    // @ts-ignore
-    ASTNode.pool = ShaderLabUtils.createObjectPool(ASTNodeClass);
-    return ASTNodeClass;
+  return function <T extends { new (): TreeNode }>(ASTNode: T) {
+    ASTNode.prototype.nt = nonTerminal;
+    (<any>ASTNode).pool = ShaderLabUtils.createObjectPool(ASTNode);
   };
 }
 
@@ -41,10 +34,6 @@ export abstract class TreeNode implements IPoolElement {
 
   get location() {
     return this._location;
-  }
-
-  constructor(nonTerminal: NoneTerminal) {
-    this.nt = nonTerminal;
   }
 
   set(loc: ShaderRange, children: NodeChild[]): void {
