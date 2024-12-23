@@ -7,13 +7,13 @@ import { EKeyword, ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny
 import { BaseToken, BaseToken as Token } from "../common/BaseToken";
 import { ParserUtils } from "../ParserUtils";
 import { ShaderLabUtils } from "../ShaderLabUtils";
-import { ENonTerminal } from "./GrammarSymbol";
+import { NoneTerminal } from "./GrammarSymbol";
 import SematicAnalyzer from "./SemanticAnalyzer";
 import { ShaderData } from "./ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, VarSymbol } from "./symbolTable";
 import { IParamInfo, NodeChild, StructProp, SymbolType } from "./types";
 
-function ASTNodeDecorator(nonTerminal: ENonTerminal) {
+function ASTNodeDecorator(nonTerminal: NoneTerminal) {
   return function <T extends { new (...args: any[]): TreeNode }>(ASTNode: T) {
     const ASTNodeClass = class extends ASTNode {
       constructor(...args: any[]) {
@@ -31,7 +31,7 @@ export abstract class TreeNode implements IPoolElement {
   static pool: ClearableObjectPool<TreeNode & { set: (loc: ShaderRange, children: NodeChild[]) => void }>;
 
   /** The non-terminal in grammar. */
-  nt: ENonTerminal;
+  nt: NoneTerminal;
   private _children: NodeChild[];
   private _location: ShaderRange;
 
@@ -43,7 +43,7 @@ export abstract class TreeNode implements IPoolElement {
     return this._location;
   }
 
-  constructor(nonTerminal: ENonTerminal) {
+  constructor(nonTerminal: NoneTerminal) {
     this.nt = nonTerminal;
   }
 
@@ -84,24 +84,24 @@ export namespace ASTNode {
     sa.semanticStack.push(node);
   }
 
-  @ASTNodeDecorator(ENonTerminal._ignore)
+  @ASTNodeDecorator(NoneTerminal._ignore)
   export class TrivialNode extends TreeNode {}
 
-  @ASTNodeDecorator(ENonTerminal.scope_brace)
+  @ASTNodeDecorator(NoneTerminal.scope_brace)
   export class ScopeBrace extends TreeNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       sa.newScope();
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.scope_end_brace)
+  @ASTNodeDecorator(NoneTerminal.scope_end_brace)
   export class ScopeEndBrace extends TreeNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       sa.dropScope();
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.jump_statement)
+  @ASTNodeDecorator(NoneTerminal.jump_statement)
   export class JumpStatement extends TreeNode {
     isFragReturnStatement: boolean;
 
@@ -121,25 +121,25 @@ export namespace ASTNode {
   }
 
   // #if _VERBOSE
-  @ASTNodeDecorator(ENonTerminal.conditionopt)
+  @ASTNodeDecorator(NoneTerminal.conditionopt)
   export class ConditionOpt extends TreeNode {}
 
-  @ASTNodeDecorator(ENonTerminal.for_rest_statement)
+  @ASTNodeDecorator(NoneTerminal.for_rest_statement)
   export class ForRestStatement extends TreeNode {}
 
-  @ASTNodeDecorator(ENonTerminal.condition)
+  @ASTNodeDecorator(NoneTerminal.condition)
   export class Condition extends TreeNode {}
 
-  @ASTNodeDecorator(ENonTerminal.for_init_statement)
+  @ASTNodeDecorator(NoneTerminal.for_init_statement)
   export class ForInitStatement extends TreeNode {}
 
-  @ASTNodeDecorator(ENonTerminal.iteration_statement)
+  @ASTNodeDecorator(NoneTerminal.iteration_statement)
   export class IterationStatement extends TreeNode {}
 
-  @ASTNodeDecorator(ENonTerminal.selection_statement)
+  @ASTNodeDecorator(NoneTerminal.selection_statement)
   export class SelectionStatement extends TreeNode {}
 
-  @ASTNodeDecorator(ENonTerminal.expression_statement)
+  @ASTNodeDecorator(NoneTerminal.expression_statement)
   export class ExpressionStatement extends TreeNode {}
   // #endif
 
@@ -158,7 +158,7 @@ export namespace ASTNode {
   }
 
   // #if _VERBOSE
-  @ASTNodeDecorator(ENonTerminal.initializer_list)
+  @ASTNodeDecorator(NoneTerminal.initializer_list)
   export class InitializerList extends ExpressionAstNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const init = this.children[0] as Initializer | InitializerList;
@@ -166,7 +166,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.initializer)
+  @ASTNodeDecorator(NoneTerminal.initializer)
   export class Initializer extends ExpressionAstNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
@@ -178,7 +178,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  @ASTNodeDecorator(ENonTerminal.single_declaration)
+  @ASTNodeDecorator(NoneTerminal.single_declaration)
   export class SingleDeclaration extends TreeNode {
     typeSpecifier: TypeSpecifier;
     arraySpecifier?: ArraySpecifier;
@@ -215,7 +215,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.fully_specified_type)
+  @ASTNodeDecorator(NoneTerminal.fully_specified_type)
   export class FullySpecifiedType extends TreeNode {
     get qualifierList() {
       if (this.children.length > 1) {
@@ -232,7 +232,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.type_qualifier)
+  @ASTNodeDecorator(NoneTerminal.type_qualifier)
   export class TypeQualifier extends TreeNode {
     qualifierList: EKeyword[];
 
@@ -248,7 +248,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.single_type_qualifier)
+  @ASTNodeDecorator(NoneTerminal.single_type_qualifier)
   export class SingleTypeQualifier extends TreeNode {
     qualifier: EKeyword;
     lexeme: string;
@@ -275,20 +275,20 @@ export namespace ASTNode {
   }
 
   // #if _VERBOSE
-  @ASTNodeDecorator(ENonTerminal.storage_qualifier)
+  @ASTNodeDecorator(NoneTerminal.storage_qualifier)
   export class StorageQualifier extends BasicTypeQualifier {}
 
-  @ASTNodeDecorator(ENonTerminal.precision_qualifier)
+  @ASTNodeDecorator(NoneTerminal.precision_qualifier)
   export class PrecisionQualifier extends BasicTypeQualifier {}
 
-  @ASTNodeDecorator(ENonTerminal.interpolation_qualifier)
+  @ASTNodeDecorator(NoneTerminal.interpolation_qualifier)
   export class InterpolationQualifier extends BasicTypeQualifier {}
 
-  @ASTNodeDecorator(ENonTerminal.invariant_qualifier)
+  @ASTNodeDecorator(NoneTerminal.invariant_qualifier)
   export class InvariantQualifier extends BasicTypeQualifier {}
   // #endif
 
-  @ASTNodeDecorator(ENonTerminal.type_specifier)
+  @ASTNodeDecorator(NoneTerminal.type_specifier)
   export class TypeSpecifier extends TreeNode {
     get type(): GalaceanDataType {
       return (this.children![0] as TypeSpecifierNonArray).type;
@@ -305,7 +305,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.array_specifier)
+  @ASTNodeDecorator(NoneTerminal.array_specifier)
   export class ArraySpecifier extends TreeNode {
     get size(): number | undefined {
       const integerConstantExpr = this.children[1] as IntegerConstantExpression;
@@ -313,7 +313,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.integer_constant_expression_operator)
+  @ASTNodeDecorator(NoneTerminal.integer_constant_expression_operator)
   export class IntegerConstantExpressionOperator extends TreeNode {
     compute: (a: number, b: number) => number;
     get lexeme(): string {
@@ -344,7 +344,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.integer_constant_expression)
+  @ASTNodeDecorator(NoneTerminal.integer_constant_expression)
   export class IntegerConstantExpression extends TreeNode {
     value?: number;
 
@@ -374,7 +374,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.type_specifier_nonarray)
+  @ASTNodeDecorator(NoneTerminal.type_specifier_nonarray)
   export class TypeSpecifierNonArray extends TreeNode {
     type: GalaceanDataType;
     lexeme: string;
@@ -391,7 +391,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.ext_builtin_type_specifier_nonarray)
+  @ASTNodeDecorator(NoneTerminal.ext_builtin_type_specifier_nonarray)
   export class ExtBuiltinTypeSpecifierNonArray extends TreeNode {
     type: TokenType;
     lexeme: string;
@@ -403,7 +403,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.init_declarator_list)
+  @ASTNodeDecorator(NoneTerminal.init_declarator_list)
   export class InitDeclaratorList extends TreeNode {
     get typeInfo(): SymbolType {
       if (this.children.length === 1) {
@@ -441,7 +441,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.identifier_list)
+  @ASTNodeDecorator(NoneTerminal.identifier_list)
   export class IdentifierList extends TreeNode {
     get idList(): Token[] {
       if (this.children.length === 2) {
@@ -451,14 +451,14 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.declaration)
+  @ASTNodeDecorator(NoneTerminal.declaration)
   export class Declaration extends TreeNode {
     override codeGen(visitor: CodeGenVisitor): string {
       return visitor.visitDeclaration(this);
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.function_prototype)
+  @ASTNodeDecorator(NoneTerminal.function_prototype)
   export class FunctionProtoType extends TreeNode {
     private get declarator() {
       return this.children[0] as FunctionDeclarator;
@@ -485,7 +485,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.function_declarator)
+  @ASTNodeDecorator(NoneTerminal.function_declarator)
   export class FunctionDeclarator extends TreeNode {
     private get header() {
       return this.children[0] as FunctionHeader;
@@ -517,7 +517,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.function_header)
+  @ASTNodeDecorator(NoneTerminal.function_header)
   export class FunctionHeader extends TreeNode {
     get ident() {
       return this.children[1] as Token;
@@ -535,7 +535,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.function_parameter_list)
+  @ASTNodeDecorator(NoneTerminal.function_parameter_list)
   export class FunctionParameterList extends TreeNode {
     get parameterInfoList(): IParamInfo[] {
       if (this.children.length === 1) {
@@ -563,7 +563,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.parameter_declaration)
+  @ASTNodeDecorator(NoneTerminal.parameter_declaration)
   export class ParameterDeclaration extends TreeNode {
     get typeQualifier() {
       if (this.children.length === 2) return this.children[0] as TypeQualifier;
@@ -594,7 +594,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.parameter_declarator)
+  @ASTNodeDecorator(NoneTerminal.parameter_declarator)
   export class ParameterDeclarator extends TreeNode {
     get ident() {
       return this.children[1] as Token;
@@ -608,29 +608,29 @@ export namespace ASTNode {
   }
 
   // #if _VERBOSE
-  @ASTNodeDecorator(ENonTerminal.simple_statement)
+  @ASTNodeDecorator(NoneTerminal.simple_statement)
   export class SimpleStatement extends TreeNode {}
 
-  @ASTNodeDecorator(ENonTerminal.compound_statement)
+  @ASTNodeDecorator(NoneTerminal.compound_statement)
   export class CompoundStatement extends TreeNode {}
   // #endif
 
-  @ASTNodeDecorator(ENonTerminal.compound_statement_no_scope)
+  @ASTNodeDecorator(NoneTerminal.compound_statement_no_scope)
   export class CompoundStatementNoScope extends TreeNode {}
 
   // #if _VERBOSE
-  @ASTNodeDecorator(ENonTerminal.statement)
+  @ASTNodeDecorator(NoneTerminal.statement)
   export class Statement extends TreeNode {}
   // #endif
 
-  @ASTNodeDecorator(ENonTerminal.statement_list)
+  @ASTNodeDecorator(NoneTerminal.statement_list)
   export class StatementList extends TreeNode {
     override codeGen(visitor: CodeGenVisitor): string {
       return visitor.visitStatementList(this);
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.function_definition)
+  @ASTNodeDecorator(NoneTerminal.function_definition)
   export class FunctionDefinition extends TreeNode {
     private _returnStatement?: ASTNode.JumpStatement;
 
@@ -677,7 +677,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.function_call)
+  @ASTNodeDecorator(NoneTerminal.function_call)
   export class FunctionCall extends ExpressionAstNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       this.type = (this.children[0] as FunctionCallGeneric).type;
@@ -688,7 +688,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.function_call_generic)
+  @ASTNodeDecorator(NoneTerminal.function_call_generic)
   export class FunctionCallGeneric extends ExpressionAstNode {
     fnSymbol: FnSymbol | StructSymbol | undefined;
 
@@ -732,7 +732,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.function_call_parameter_list)
+  @ASTNodeDecorator(NoneTerminal.function_call_parameter_list)
   export class FunctionCallParameterList extends TreeNode {
     get paramSig(): GalaceanDataType[] | undefined {
       if (this.children.length === 1) {
@@ -762,14 +762,14 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.precision_specifier)
+  @ASTNodeDecorator(NoneTerminal.precision_specifier)
   export class PrecisionSpecifier extends TreeNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       sa.shaderData.globalPrecisions.push(this);
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.function_identifier)
+  @ASTNodeDecorator(NoneTerminal.function_identifier)
   export class FunctionIdentifier extends TreeNode {
     get ident() {
       const ty = this.children[0] as TypeSpecifier;
@@ -792,7 +792,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.assignment_expression)
+  @ASTNodeDecorator(NoneTerminal.assignment_expression)
   export class AssignmentExpression extends ExpressionAstNode {
     // #if _VERBOSE
     override semanticAnalyze(sa: SematicAnalyzer): void {
@@ -808,11 +808,11 @@ export namespace ASTNode {
   }
 
   // #if _VERBOSE
-  @ASTNodeDecorator(ENonTerminal.assignment_operator)
+  @ASTNodeDecorator(NoneTerminal.assignment_operator)
   export class AssignmentOperator extends TreeNode {}
   // #endif
 
-  @ASTNodeDecorator(ENonTerminal.expression)
+  @ASTNodeDecorator(NoneTerminal.expression)
   export class Expression extends ExpressionAstNode {
     // #if _VERBOSE
     override semanticAnalyze(sa: SematicAnalyzer): void {
@@ -827,7 +827,7 @@ export namespace ASTNode {
     // #endif
   }
 
-  @ASTNodeDecorator(ENonTerminal.primary_expression)
+  @ASTNodeDecorator(NoneTerminal.primary_expression)
   export class PrimaryExpression extends ExpressionAstNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
@@ -855,7 +855,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.postfix_expression)
+  @ASTNodeDecorator(NoneTerminal.postfix_expression)
   export class PostfixExpression extends ExpressionAstNode {
     override init(): void {
       super.init();
@@ -871,17 +871,17 @@ export namespace ASTNode {
   }
 
   // #if _VERBOSE
-  @ASTNodeDecorator(ENonTerminal.unary_operator)
+  @ASTNodeDecorator(NoneTerminal.unary_operator)
   export class UnaryOperator extends TreeNode {}
 
-  @ASTNodeDecorator(ENonTerminal.unary_expression)
+  @ASTNodeDecorator(NoneTerminal.unary_expression)
   export class UnaryExpression extends ExpressionAstNode {
     override init(): void {
       this.type = (this.children[0] as PostfixExpression).type;
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.multiplicative_expression)
+  @ASTNodeDecorator(NoneTerminal.multiplicative_expression)
   export class MultiplicativeExpression extends ExpressionAstNode {
     override init(): void {
       super.init();
@@ -897,7 +897,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.additive_expression)
+  @ASTNodeDecorator(NoneTerminal.additive_expression)
   export class AdditiveExpression extends ExpressionAstNode {
     override init(): void {
       super.init();
@@ -913,7 +913,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.shift_expression)
+  @ASTNodeDecorator(NoneTerminal.shift_expression)
   export class ShiftExpression extends ExpressionAstNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const expr = this.children[0] as ExpressionAstNode;
@@ -921,7 +921,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.relational_expression)
+  @ASTNodeDecorator(NoneTerminal.relational_expression)
   export class RelationalExpression extends ExpressionAstNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
@@ -932,7 +932,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.equality_expression)
+  @ASTNodeDecorator(NoneTerminal.equality_expression)
   export class EqualityExpression extends ExpressionAstNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
@@ -943,7 +943,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.and_expression)
+  @ASTNodeDecorator(NoneTerminal.and_expression)
   export class AndExpression extends ExpressionAstNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
@@ -954,7 +954,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.exclusive_or_expression)
+  @ASTNodeDecorator(NoneTerminal.exclusive_or_expression)
   export class ExclusiveOrExpression extends ExpressionAstNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
@@ -965,7 +965,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.inclusive_or_expression)
+  @ASTNodeDecorator(NoneTerminal.inclusive_or_expression)
   export class InclusiveOrExpression extends ExpressionAstNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
@@ -976,7 +976,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.logical_and_expression)
+  @ASTNodeDecorator(NoneTerminal.logical_and_expression)
   export class LogicalAndExpression extends ExpressionAstNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
@@ -987,7 +987,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.logical_xor_expression)
+  @ASTNodeDecorator(NoneTerminal.logical_xor_expression)
   export class LogicalXorExpression extends ExpressionAstNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
@@ -998,7 +998,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.logical_or_expression)
+  @ASTNodeDecorator(NoneTerminal.logical_or_expression)
   export class LogicalOrExpression extends ExpressionAstNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
@@ -1009,7 +1009,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.conditional_expression)
+  @ASTNodeDecorator(NoneTerminal.conditional_expression)
   export class ConditionalExpression extends ExpressionAstNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 1) {
@@ -1019,7 +1019,7 @@ export namespace ASTNode {
   }
   // #endif
 
-  @ASTNodeDecorator(ENonTerminal.struct_specifier)
+  @ASTNodeDecorator(NoneTerminal.struct_specifier)
   export class StructSpecifier extends TreeNode {
     ident?: Token;
 
@@ -1036,7 +1036,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.struct_declaration_list)
+  @ASTNodeDecorator(NoneTerminal.struct_declaration_list)
   export class StructDeclarationList extends TreeNode {
     get propList(): StructProp[] {
       if (this.children.length === 1) {
@@ -1048,7 +1048,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.struct_declaration)
+  @ASTNodeDecorator(NoneTerminal.struct_declaration)
   export class StructDeclaration extends TreeNode {
     get typeSpecifier() {
       if (this.children.length === 3) {
@@ -1089,14 +1089,14 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.layout_qualifier)
+  @ASTNodeDecorator(NoneTerminal.layout_qualifier)
   export class LayoutQualifier extends TreeNode {
     get index(): number {
       return Number((<BaseToken>this.children[4]).lexeme);
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.struct_declarator_list)
+  @ASTNodeDecorator(NoneTerminal.struct_declarator_list)
   export class StructDeclaratorList extends TreeNode {
     get declaratorList(): StructDeclarator[] {
       if (this.children.length === 1) {
@@ -1108,7 +1108,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.struct_declarator)
+  @ASTNodeDecorator(NoneTerminal.struct_declarator)
   export class StructDeclarator extends TreeNode {
     get ident() {
       return this.children[0] as Token;
@@ -1119,7 +1119,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.variable_declaration)
+  @ASTNodeDecorator(NoneTerminal.variable_declaration)
   export class VariableDeclaration extends TreeNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       const type = this.children[0] as FullySpecifiedType;
@@ -1135,7 +1135,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.variable_identifier)
+  @ASTNodeDecorator(NoneTerminal.variable_identifier)
   export class VariableIdentifier extends TreeNode {
     symbolInfo:
       | VarSymbol
@@ -1177,7 +1177,7 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(ENonTerminal.gs_shader_program)
+  @ASTNodeDecorator(NoneTerminal.gs_shader_program)
   export class GLShaderProgram extends TreeNode {
     shaderData: ShaderData;
 

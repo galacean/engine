@@ -1,9 +1,9 @@
-import { ENonTerminal } from "./GrammarSymbol";
+import { NoneTerminal } from "./GrammarSymbol";
 import { BaseToken } from "../common/BaseToken";
 import { GalaceanDataType, ShaderRange } from "../common";
 import { ASTNode, TreeNode } from "./AST";
 
-export type TraceStackItem = ENonTerminal | BaseToken;
+export type TraceStackItem = NoneTerminal | BaseToken;
 
 export class SymbolType {
   constructor(

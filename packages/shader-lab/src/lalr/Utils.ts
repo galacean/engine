@@ -1,7 +1,7 @@
 import { EKeyword, ETokenType, ShaderRange } from "../common";
 import { ASTNode, TreeNode } from "../parser/AST";
 import { TranslationRule } from "../parser/SemanticAnalyzer";
-import { ENonTerminal, GrammarSymbol } from "../parser/GrammarSymbol";
+import { NoneTerminal, GrammarSymbol } from "../parser/GrammarSymbol";
 import Production from "./Production";
 import { ActionInfo, EAction } from "./types";
 import { ShaderLab } from "../ShaderLab";
@@ -10,18 +10,18 @@ import { NodeChild } from "../parser/types";
 
 export default class GrammarUtils {
   static isTerminal(sm: GrammarSymbol) {
-    return sm < ENonTerminal.START;
+    return sm < NoneTerminal.START;
   }
 
   static toString(sm: GrammarSymbol) {
     if (this.isTerminal(sm)) {
       return ETokenType[sm] ?? EKeyword[sm];
     }
-    return ENonTerminal[sm];
+    return NoneTerminal[sm];
   }
 
   static createProductionWithOptions(
-    goal: ENonTerminal,
+    goal: NoneTerminal,
     options: GrammarSymbol[][],
     /** the ast node */
     astTypePool?: ClearableObjectPool<
@@ -70,7 +70,7 @@ export default class GrammarUtils {
 
   static printProduction(production: Production) {
     const deriv = production.derivation.map((gs) => GrammarUtils.toString(gs)).join("|");
-    return `${ENonTerminal[production.goal]} :=> ${deriv}`;
+    return `${NoneTerminal[production.goal]} :=> ${deriv}`;
   }
   // #endif
 }

@@ -1,4 +1,4 @@
-import { ENonTerminal } from "../parser/GrammarSymbol";
+import { NoneTerminal } from "../parser/GrammarSymbol";
 import { BaseToken as Token } from "../common/BaseToken";
 import { EKeyword, ShaderPosition, ShaderRange } from "../common";
 import { ASTNode, TreeNode } from "../parser/AST";
@@ -210,12 +210,12 @@ export abstract class CodeGenVisitor {
       if (expr instanceof ASTNode.Expression) {
         const returnVar = ParserUtils.unwrapNodeByType<ASTNode.VariableIdentifier>(
           expr,
-          ENonTerminal.variable_identifier
+          NoneTerminal.variable_identifier
         );
         if (returnVar?.typeInfo === VisitorContext.context.varyingStruct?.ident?.lexeme) {
           return "";
         }
-        const returnFnCall = ParserUtils.unwrapNodeByType<ASTNode.FunctionCall>(expr, ENonTerminal.function_call);
+        const returnFnCall = ParserUtils.unwrapNodeByType<ASTNode.FunctionCall>(expr, NoneTerminal.function_call);
         if (returnFnCall?.type === VisitorContext.context.varyingStruct?.ident?.lexeme) {
           return `${expr.codeGen(this)};`;
         }
