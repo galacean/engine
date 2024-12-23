@@ -25,7 +25,7 @@ import { GroupModifyFlags, UIGroup } from "./UIGroup";
 import { UITransform } from "./UITransform";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
-export abstract class UIRenderer extends Renderer implements IGraphics {
+export class UIRenderer extends Renderer implements IGraphics {
   /** @internal */
   static _tempVec30: Vector3 = new Vector3();
   /** @internal */

@@ -449,6 +449,9 @@ export class BasicRenderPipeline {
       if (!(cullingMask & canvas.entity.layer)) {
         continue;
       }
+      if (!canvas._canRender(camera)) {
+        continue;
+      }
       canvas._prepareRender(context);
       this.pushRenderElement(context, canvas._renderElement);
     }

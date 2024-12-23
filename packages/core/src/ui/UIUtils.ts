@@ -32,8 +32,10 @@ export class UIUtils {
         uiRenderQueue.clear();
         uiCanvas._prepareRender(renderContext);
         uiRenderQueue.pushRenderElement(uiCanvas._renderElement);
-        batcherManager.batch(uiRenderQueue);
+        uiRenderQueue.batch(batcherManager);
+        batcherManager.uploadBuffer();
         uiRenderQueue.render(renderContext, "Forward");
+        engine._renderCount++;
       }
     }
   }

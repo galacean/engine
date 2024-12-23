@@ -73,7 +73,7 @@ export class UICanvas extends Component implements IElement {
   @ignoreClone
   private _cameraObserver: Camera;
   @ignoreClone
-  private _resolutionAdaptationStrategy = ResolutionAdaptationStrategy.BothAdaptation;
+  private _resolutionAdaptationStrategy = ResolutionAdaptationStrategy.HeightAdaptation;
   @ignoreClone
   private _sortOrder: number = 0;
   @ignoreClone
@@ -82,18 +82,6 @@ export class UICanvas extends Component implements IElement {
   private _referenceResolution: Vector2 = new Vector2(800, 600);
   @ignoreClone
   private _hierarchyVersion: number = -1;
-
-  /** @internal */
-  get renderers(): UIRenderer[] {
-    const { _orderedRenderers: renderers, entity } = this;
-    const uiHierarchyVersion = entity._uiHierarchyVersion;
-    if (this._hierarchyVersion !== uiHierarchyVersion) {
-      renderers.length = this._walk(this.entity, renderers);
-      UICanvas._tempGroupAbleList.length = 0;
-      this._hierarchyVersion = uiHierarchyVersion;
-    }
-    return renderers;
-  }
 
   /**
    * The reference resolution of the UI canvas in `ScreenSpaceCamera` and `ScreenSpaceOverlay` mode.
@@ -209,7 +197,7 @@ export class UICanvas extends Component implements IElement {
   }
 
   raycast(ray: Ray, out: HitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
-    const { renderers } = this;
+    const renderers = this._getRenderers();
     for (let i = renderers.length - 1; i >= 0; i--) {
       const element = renderers[i];
       if (element.raycastEnable && element._raycast(ray, out, distance)) {
@@ -234,8 +222,15 @@ export class UICanvas extends Component implements IElement {
   /**
    * @internal
    */
+  _canRender(camera: Camera): boolean {
+    return this._renderMode !== CanvasRenderMode.ScreenSpaceCamera || this._renderCamera === camera;
+  }
+
+  /**
+   * @internal
+   */
   _prepareRender(context): void {
-    const { engine, renderers, _realRenderMode: mode } = this;
+    const { engine, _realRenderMode: mode } = this;
     const { enableFrustumCulling, cullingMask, _frustum: frustum } = context.camera;
     const { frameCount } = engine.time;
     // @ts-ignore
@@ -243,7 +238,7 @@ export class UICanvas extends Component implements IElement {
     this._updateSortDistance(context.virtualCamera.position);
     renderElement.set(this.sortOrder, this._sortDistance);
     const { width, height } = engine.canvas;
-
+    const renderers = this._getRenderers();
     for (let i = 0, n = renderers.length; i < n; i++) {
       const renderer = renderers[i];
       // Filter by camera culling mask
@@ -328,6 +323,17 @@ export class UICanvas extends Component implements IElement {
         Utils.setRootCanvas(this, rootCanvas);
       }
     }
+  }
+
+  private _getRenderers(): UIRenderer[] {
+    const { _orderedRenderers: renderers, entity } = this;
+    const uiHierarchyVersion = entity._uiHierarchyVersion;
+    if (this._hierarchyVersion !== uiHierarchyVersion) {
+      renderers.length = this._walk(this.entity, renderers);
+      UICanvas._tempGroupAbleList.length = 0;
+      this._hierarchyVersion = uiHierarchyVersion;
+    }
+    return renderers;
   }
 
   private _adapterPoseInScreenSpace(): void {
