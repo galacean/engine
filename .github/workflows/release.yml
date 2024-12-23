@@ -48,23 +48,23 @@ jobs:
           git clone https://github.com/galacean/engine-lottie.git
           git clone https://github.com/galacean/engine-spine.git
 
-      - name: Install and Link Engine for Toolkit
+      - name: Install and Link Engine and Build for Toolkit
+        working-directory: ./engine-toolkit
         run: |
-          cd toolkit
           pnpm install
           pnpm link ../packages/galacean
           pnpm b:all
 
-      - name: Install and Link Engine for Lottie
+      - name: Install and Link Engine and Build for Lottie
+        working-directory: ./engine-lottie
         run: |
-          cd lottie
           pnpm install
           pnpm link ../packages/galacean
           pnpm build
 
-      - name: Install and Link Engine for Spine
+      - name: Install and Link Engine and Build for Spine
+        working-directory: ./engine-spine
         run: |
-          cd spine
           pnpm install
           pnpm link ../packages/galacean
           pnpm build
