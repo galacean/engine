@@ -58,14 +58,14 @@ jobs:
 
       - name: Install and Link Engine for Lottie
         run: |
-          cd toolkit
+          cd lottie
           pnpm install
           pnpm link ../packages/galacean
           pnpm build
 
       - name: Install and Link Engine for Spine
         run: |
-          cd toolkit
+          cd spine
           pnpm install
           pnpm link ../packages/galacean
           pnpm build
@@ -82,7 +82,7 @@ jobs:
           echo "{\"name\": \"@galacean/engine-platform-adapter-release\", \"version\": \"$VERSION\"}" > ${{ github.workspace }}/platform-adapter/package.json
 
       - name: Bundle polyfill and engine
-        uses: galacean/platform-adapter@tag
+        uses: galacean/platform-adapter@main
         env:
           ADAPTER_BUNDLE_SETTINGS: |
             {
@@ -103,25 +103,25 @@ jobs:
               "outputDir": "${{ github.workspace }}/platform-adapter/dist"
             }
 
-        - name: Release engine packages and Sync to CDN
-          uses: galacean/publish@v0.2.0
-          env:
-            NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-            NPM_CONFIG_PROVENANCE: true
-            OASISBE_UPLOAD_URL: https://oasisbe.alipay.com/api/file/no-auth/crypto/upload
-            OASISBE_REQUEST_HEADER: ${{secrets.OASISBE_REQUEST_HEADER}}
-            OASISBE_PUBLIC_KEY: ${{secrets.OASISBE_PUBLIC_KEY}}
+      - name: Release engine packages and Sync to CDN
+        uses: galacean/publish@v0.2.0
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          NPM_CONFIG_PROVENANCE: true
+          OASISBE_UPLOAD_URL: https://oasisbe.alipay.com/api/file/no-auth/crypto/upload
+          OASISBE_REQUEST_HEADER: ${{secrets.OASISBE_REQUEST_HEADER}}
+          OASISBE_PUBLIC_KEY: ${{secrets.OASISBE_PUBLIC_KEY}}
 
-        - name: Sync Platform Adapter to CDN
-          uses: galacean/publish@v0.2.0
-          with:
-            publish: false
-            packages: |
-              platform-adapter
+      - name: Sync Platform Adapter to CDN
+        uses: galacean/publish@v0.2.0
+        with:
+          publish: false
+          packages: |
+            platform-adapter
 
-          env:
-            NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-            NPM_CONFIG_PROVENANCE: true
-            OASISBE_UPLOAD_URL: https://oasisbe.alipay.com/api/file/no-auth/crypto/upload
-            OASISBE_REQUEST_HEADER: ${{secrets.OASISBE_REQUEST_HEADER}}
-            OASISBE_PUBLIC_KEY: ${{secrets.OASISBE_PUBLIC_KEY}}
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          NPM_CONFIG_PROVENANCE: true
+          OASISBE_UPLOAD_URL: https://oasisbe.alipay.com/api/file/no-auth/crypto/upload
+          OASISBE_REQUEST_HEADER: ${{secrets.OASISBE_REQUEST_HEADER}}
+          OASISBE_PUBLIC_KEY: ${{secrets.OASISBE_PUBLIC_KEY}}
