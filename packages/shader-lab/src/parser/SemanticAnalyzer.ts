@@ -27,7 +27,7 @@ export default class SematicAnalyzer {
   curFunctionInfo: {
     header?: ASTNode.FunctionDeclarator;
     returnStatement?: ASTNode.JumpStatement;
-  } = {} as any;
+  } = {};
   private _shaderData = new ShaderData();
   private _translationRuleTable: Map<number /** production id */, TranslationRule> = new Map();
 

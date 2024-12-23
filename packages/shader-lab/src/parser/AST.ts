@@ -13,12 +13,12 @@ import { IParamInfo, NodeChild, StructProp, SymbolType } from "./types";
 import { ClearableObjectPool, IPoolElement } from "@galacean/engine";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 
-function ASTNodeDecorator(nonterminal: ENonTerminal) {
+function ASTNodeDecorator(nonTerminal: ENonTerminal) {
   return function <T extends { new (...args: any[]): TreeNode }>(ASTNode: T) {
     const ASTNodeClass = class extends ASTNode {
-      override set(loc: ShaderRange, children: NodeChild[]): void {
-        super.set(loc, children, nonterminal);
-        super.init();
+      constructor(...args: any[]) {
+        super();
+        this.nt = nonTerminal;
       }
     };
     // @ts-ignore
@@ -43,10 +43,14 @@ export abstract class TreeNode implements IPoolElement {
     return this._location;
   }
 
+  constructor(nonTerminal: ENonTerminal) {
+    this.nt = nonTerminal;
+  }
+
   set(loc: ShaderRange, children: NodeChild[], nt: ENonTerminal) {
-    this.nt = nt;
     this._location = loc;
     this._children = children;
+    this.init();
   }
 
   init() {}
