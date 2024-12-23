@@ -58,7 +58,8 @@ jobs:
       - name: Install and Link Engine and Build for Lottie
         working-directory: ./engine-lottie
         run: |
-          pnpm install
+          pwd
+          pnpm install --dir ${{ github.workspace }}/engine-lottie
           pnpm link ../packages/galacean
           pnpm build
 
