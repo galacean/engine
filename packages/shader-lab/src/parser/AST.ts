@@ -1,17 +1,17 @@
 // #if _VERBOSE
 import { BuiltinFunction, BuiltinVariable, NonGenericGalaceanType } from "./builtin";
 // #endif
+import { ClearableObjectPool, IPoolElement } from "@galacean/engine";
 import { CodeGenVisitor } from "../codeGen";
-import { ENonTerminal } from "./GrammarSymbol";
+import { EKeyword, ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from "../common";
 import { BaseToken, BaseToken as Token } from "../common/BaseToken";
-import { EKeyword, ETokenType, TokenType, ShaderRange, GalaceanDataType, TypeAny } from "../common";
+import { ParserUtils } from "../ParserUtils";
+import { ShaderLabUtils } from "../ShaderLabUtils";
+import { ENonTerminal } from "./GrammarSymbol";
 import SematicAnalyzer from "./SemanticAnalyzer";
 import { ShaderData } from "./ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, VarSymbol } from "./symbolTable";
-import { ParserUtils } from "../ParserUtils";
 import { IParamInfo, NodeChild, StructProp, SymbolType } from "./types";
-import { ClearableObjectPool, IPoolElement } from "@galacean/engine";
-import { ShaderLabUtils } from "../ShaderLabUtils";
 
 function ASTNodeDecorator(nonTerminal: ENonTerminal) {
   return function <T extends { new (...args: any[]): TreeNode }>(ASTNode: T) {
@@ -47,7 +47,7 @@ export abstract class TreeNode implements IPoolElement {
     this.nt = nonTerminal;
   }
 
-  set(loc: ShaderRange, children: NodeChild[], nt: ENonTerminal) {
+  set(loc: ShaderRange, children: NodeChild[]): void {
     this._location = loc;
     this._children = children;
     this.init();
@@ -152,8 +152,8 @@ export namespace ASTNode {
       return this._type ?? TypeAny;
     }
 
-    override set(loc: ShaderRange, children: NodeChild[], nt: ENonTerminal) {
-      super.set(loc, children, nt);
+    override set(loc: ShaderRange, children: NodeChild[]) {
+      super.set(loc, children);
       this._type = undefined;
     }
   }
@@ -272,10 +272,6 @@ export namespace ASTNode {
     }
     get lexeme(): string {
       return (<Token>this.children[0]).lexeme;
-    }
-
-    override set(loc: ShaderRange, children: NodeChild[], nt: ENonTerminal) {
-      super.set(loc, children, nt);
     }
   }
 
