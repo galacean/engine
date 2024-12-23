@@ -152,8 +152,7 @@ export namespace ASTNode {
       return this._type ?? TypeAny;
     }
 
-    override set(loc: ShaderRange, children: NodeChild[]) {
-      super.set(loc, children);
+    override init(): void {
       this._type = undefined;
     }
   }
@@ -694,6 +693,7 @@ export namespace ASTNode {
     fnSymbol: FnSymbol | StructSymbol | undefined;
 
     override init(): void {
+      super.init();
       this.fnSymbol = undefined;
     }
 
@@ -858,6 +858,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(ENonTerminal.postfix_expression)
   export class PostfixExpression extends ExpressionAstNode {
     override init(): void {
+      super.init();
       if (this.children.length === 1) {
         const child = this.children[0] as PrimaryExpression | FunctionCall;
         this.type = child.type;
@@ -883,6 +884,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(ENonTerminal.multiplicative_expression)
   export class MultiplicativeExpression extends ExpressionAstNode {
     override init(): void {
+      super.init();
       if (this.children.length === 1) {
         this.type = (this.children[0] as UnaryExpression).type;
       } else {
@@ -898,6 +900,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(ENonTerminal.additive_expression)
   export class AdditiveExpression extends ExpressionAstNode {
     override init(): void {
+      super.init();
       if (this.children.length === 1) {
         this.type = (this.children[0] as MultiplicativeExpression).type;
       } else {
