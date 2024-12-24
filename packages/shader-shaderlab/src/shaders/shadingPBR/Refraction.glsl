@@ -10,7 +10,7 @@ struct RefractionModelResult{
 };
 
 //https://docs.unity3d.com/Packages/com.unity.render-pipelines.high-definition@15.0/manual/refraction-models.html
- void RefractionModelSphere(vec3 V, vec3 positionWS, vec3 normalWS, float ior, float thickness, out RefractionModelResult ray){
+ void refractionModelSphere(vec3 V, vec3 positionWS, vec3 normalWS, float ior, float thickness, out RefractionModelResult ray){
     // Refracted ray
     vec3 R1 = refract(V, normalWS, 1.0 / ior);
     // Center of the tangent sphere
@@ -30,7 +30,7 @@ struct RefractionModelResult{
     // ray.directionExit = R2; 
 }
 
-void RefractionModelBox(vec3 V, vec3 positionWS, vec3 normalWS, float ior, float thickness, out RefractionModelResult ray){
+void refractionModelBox(vec3 V, vec3 positionWS, vec3 normalWS, float ior, float thickness, out RefractionModelResult ray){
     // Refracted ray
     vec3 R = refract(V, normalWS, 1.0 / ior);
     // Optical depth within the thin plane

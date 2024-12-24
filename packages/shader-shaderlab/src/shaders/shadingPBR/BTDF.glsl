@@ -8,11 +8,11 @@
     vec3 evaluateRefraction(SurfaceData surfaceData, BRDFData brdfData) {
         RefractionModelResult ray;
         #if REFRACTION_MODE == SPHERE
-            RefractionModelSphere(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, surfaceData.thickness, ray);
+            refractionModelSphere(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, surfaceData.thickness, ray);
         #elif REFRACTION_MODE == PLANE
-            RefractionModelBox(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, surfaceData.thickness, ray);
+            refractionModelBox(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, surfaceData.thickness, ray);
         #elif REFRACTION_MODE == THIN
-            RefractionModelBox(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, surfaceData.thickness, ray);
+            refractionModelBox(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, surfaceData.thickness, ray);
         #endif
         //TODO: support cubemap refraction.
         vec3 refractedRayExit = ray.positionExit;

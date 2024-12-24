@@ -326,6 +326,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
 
         #ifdef MATERIAL_HAS_THICKNESS
             #if REFRACTION_MODE == THIN
+                //https://zh.wikipedia.org/wiki/%E8%96%84%E8%86%9C%E5%85%89%E5%AD%A6
                 surfaceData.thickness = 0.005;
             #else
                 surfaceData.thickness = max(material_Thickness, 0.0001);
