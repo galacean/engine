@@ -1,4 +1,4 @@
-import { Quaternion, Vector3, DisorderedArray } from "@galacean/engine";
+import { Quaternion, Vector3, DisorderedArray, Vector4 } from "@galacean/engine";
 import { IColliderShape } from "@galacean/engine-design";
 import { PhysXCharacterController } from "../PhysXCharacterController";
 import { PhysXPhysics } from "../PhysXPhysics";
@@ -20,6 +20,7 @@ export enum ShapeFlag {
  * Abstract class for collider shapes.
  */
 export abstract class PhysXColliderShape implements IColliderShape {
+  protected static _tempVector4 = new Vector4();
   static readonly halfSqrt: number = 0.70710678118655;
   static transform = {
     translation: new Vector3(),
@@ -58,7 +59,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
    */
   setRotation(value: Vector3): void {
     this._rotation = value;
-    Quaternion.rotationYawPitchRoll(value.x, value.y, value.z, this._physXRotation);
+    Quaternion.rotationYawPitchRoll(value.y, value.x, value.z, this._physXRotation);
     this._axis && Quaternion.multiply(this._physXRotation, this._axis, this._physXRotation);
     this._physXRotation.normalize();
     this._setLocalPose();
@@ -123,6 +124,17 @@ export abstract class PhysXColliderShape implements IColliderShape {
     this._modifyFlag(ShapeFlag.SIMULATION_SHAPE, !value);
     this._modifyFlag(ShapeFlag.TRIGGER_SHAPE, value);
     this._setShapeFlags(this._shapeFlags);
+  }
+
+  /**
+   * {@inheritDoc IColliderShape.pointDistance }
+   */
+  pointDistance(point: Vector3): Vector4 {
+    const info = this._pxGeometry.pointDistance(this._pxShape.getGlobalPose(), point);
+    const closestPoint = info.closestPoint;
+    const res = PhysXColliderShape._tempVector4;
+    res.set(closestPoint.x, closestPoint.y, closestPoint.z, info.distance);
+    return res;
   }
 
   /**

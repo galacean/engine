@@ -29,6 +29,8 @@ import { Material } from "./material/Material";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
 import { PhysicsScene } from "./physics/PhysicsScene";
 import { ColliderShape } from "./physics/shape/ColliderShape";
+import { PostProcessPass } from "./postProcess/PostProcessPass";
+import { PostProcessUberPass } from "./postProcess/PostProcessUberPass";
 import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -108,6 +110,9 @@ export class Engine extends EventDispatcher {
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
 
   /** @internal */
+  _postProcessPassNeedRefresh = false;
+
+  /** @internal */
   protected _canvas: Canvas;
 
   private _settings: EngineSettings = {};
@@ -126,6 +131,8 @@ export class Engine extends EventDispatcher {
   private _waitingDestroy: boolean = false;
   private _isDeviceLost: boolean = false;
   private _waitingGC: boolean = false;
+  private _postProcessPasses = new Array<PostProcessPass>();
+  private _activePostProcessPasses = new Array<PostProcessPass>();
 
   private _animate = () => {
     if (this._vSyncCount) {
@@ -212,6 +219,13 @@ export class Engine extends EventDispatcher {
   }
 
   /**
+   * All post process passes.
+   */
+  get postProcessPasses(): ReadonlyArray<PostProcessPass> {
+    return this._postProcessPasses;
+  }
+
+  /**
    * Indicates whether the engine is destroyed.
    */
   get destroyed(): boolean {
@@ -262,6 +276,9 @@ export class Engine extends EventDispatcher {
 
     this._basicResources = new BasicResources(this);
     this._particleBufferUtils = new ParticleBufferUtils(this);
+
+    const uberPass = new PostProcessUberPass(this);
+    this.addPostProcessPass(uberPass);
   }
 
   /**
@@ -316,6 +333,7 @@ export class Engine extends EventDispatcher {
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
     inputManager._update();
 
+    this._refreshActivePostProcessPasses();
     const scenes = this._sceneManager._scenes.getLoopArray();
     const sceneCount = scenes.length;
 
@@ -406,6 +424,69 @@ export class Engine extends EventDispatcher {
    */
   forceRestoreDevice(): void {
     this._hardwareRenderer.forceRestoreDevice();
+  }
+
+  /**
+   * Add a post process pass.
+   * @param pass - Post process pass to add
+   */
+  addPostProcessPass(pass: PostProcessPass): void {
+    if (pass.engine !== this) {
+      throw "The pass is not belong to this engine.";
+    }
+
+    const passes = this._postProcessPasses;
+    if (passes.indexOf(pass) === -1) {
+      passes.push(pass);
+      pass.isActive && (this._postProcessPassNeedRefresh = true);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _removePostProcessPass(pass: PostProcessPass): void {
+    const passes = this._postProcessPasses;
+    const index = passes.indexOf(pass);
+    if (index !== -1) {
+      passes.splice(index, 1);
+
+      pass.isActive && (this._postProcessPassNeedRefresh = true);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _refreshActivePostProcessPasses(): void {
+    if (this._postProcessPassNeedRefresh) {
+      this._postProcessPassNeedRefresh = false;
+
+      const postProcessPasses = this._postProcessPasses;
+      const activePostProcesses = this._activePostProcessPasses;
+      activePostProcesses.length = 0;
+
+      // Filter
+      for (let i = 0, n = postProcessPasses.length; i < n; i++) {
+        const pass = postProcessPasses[i];
+        if (pass.isActive) {
+          activePostProcesses.push(pass);
+        }
+      }
+
+      // Sort
+      if (activePostProcesses.length) {
+        activePostProcesses.sort((a, b) => a.event - b.event);
+      }
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _getActivePostProcessPasses(): ReadonlyArray<PostProcessPass> {
+    this._refreshActivePostProcessPasses();
+    return this._activePostProcessPasses;
   }
 
   private _destroy(): void {
@@ -500,6 +581,10 @@ export class Engine extends EventDispatcher {
       cameras.forEach(
         (camera: Camera) => {
           componentsManager.callCameraOnBeginRender(camera);
+
+          // Update post process manager
+          scene.postProcessManager._update(camera);
+
           camera.render();
           componentsManager.callCameraOnEndRender(camera);
 

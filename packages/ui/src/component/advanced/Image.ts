@@ -151,8 +151,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     super(entity);
 
     this.drawMode = SpriteDrawMode.Simple;
-    // @ts-ignore
-    this.setMaterial(this._engine._basicResources.uiDefaultMaterial);
+    this.setMaterial(this._engine._getUIDefaultMaterial());
     this._onSpriteChange = this._onSpriteChange.bind(this);
     //@ts-ignore
     this._color._onValueChanged = this._onColorChange.bind(this);
@@ -223,8 +222,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     }
     // @todo: This question needs to be raised rather than hidden.
     if (material.destroyed) {
-      // @ts-ignore
-      material = this._engine._basicResources.uiDefaultMaterial;
+      material = this._engine._getUIDefaultMaterial();
     }
 
     if (this._color.a * this._alpha <= 0) {
