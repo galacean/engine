@@ -118,6 +118,7 @@ jobs:
 
       - name: Sync Platform Adapter to CDN
         uses: galacean/publish@v0.2.0
+        if: success() || failure()
         with:
           publish: false
           packages: |
