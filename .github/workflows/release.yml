@@ -88,14 +88,14 @@ jobs:
             {
               "polyfill": true,
               "engine": [
-                "${{ github.workspace }}/packages/galacean/dist/module.js",
-                "${{ github.workspace }}/packages/xr/dist/module.js",
-                "${{ github.workspace }}/packages/shader-lab/dist/module.js",
-                "${{ github.workspace }}/packages/physics-lite/dist/module.js",
-                "${{ github.workspace }}/packages/physics-physx/dist/module.js",
-                "${{ github.workspace }}/engine-lottie/dist/module.js",
-                "${{ github.workspace }}/engine-spine/dist/module.js",
-                "${{ github.workspace }}/engine-toolkit/packages/galacean-engine-toolkit/dist/es/index.js"
+                "${{ github.workspace }}/packages/galacean/dist/browser.js",
+                "${{ github.workspace }}/packages/xr/dist/browser.js",
+                "${{ github.workspace }}/packages/shader-lab/dist/browser.js",
+                "${{ github.workspace }}/packages/physics-lite/dist/browser.js",
+                "${{ github.workspace }}/packages/physics-physx/dist/browser.js",
+                "${{ github.workspace }}/engine-lottie/dist/browser.js",
+                "${{ github.workspace }}/engine-spine/dist/browser.js",
+                "${{ github.workspace }}/engine-toolkit/packages/galacean-engine-toolkit/dist/umd/browser.js"
               ],
               "jsWASMLoader": [
                 "${{ github.workspace }}/packages/physics-physx/libs/physx.release.js"
@@ -104,7 +104,7 @@ jobs:
             }
       
       - name: Print Adapter Bundle
-        run: ls -l ${{ github.workspace }}/platform-adapter/dist
+        run: find ${{ github.workspace }}/platform-adapter -type f
 
       - name: Release engine packages and Sync to CDN
         uses: galacean/publish@main
