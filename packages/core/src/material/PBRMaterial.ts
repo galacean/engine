@@ -316,24 +316,21 @@ export class PBRMaterial extends PBRBaseMaterial {
 
   set refractionMode(value: RefractionMode) {
     if (value !== this._refractionMode) {
+      const prevState = {
+        isTransparent: this.isTransparent,
+        alphaCutoff: this.alphaCutoff,
+        renderFace: this.renderFace,
+        blendMode: this.blendMode
+      };
+
       if (value) {
         this.shaderData.enableMacro(PBRMaterial._refractionMacro);
-        this.renderState.renderQueueType = RenderQueueType.Transparent;
-        if (this.isTransparent) {
-          this.renderState.renderQueueType = RenderQueueType.Transparent;
-        } else {
-          if (this.alphaCutoff) {
-            this.renderState.renderQueueType = RenderQueueType.Transparent;
-          }
-        }
+        this.renderState.renderQueueType =
+          this.isTransparent || this.alphaCutoff ? RenderQueueType.Transparent : RenderQueueType.Opaque;
       } else {
         this.shaderData.disableMacro(PBRMaterial._refractionMacro);
-        this.isTransparent = this.isTransparent;
-        this.alphaCutoff = this.alphaCutoff;
+        Object.assign(this, prevState);
       }
-      this.renderFace = this.renderFace;
-      this.blendMode = this.blendMode;
-
       this._refractionMode = value;
       this.setRefractionMode(value);
     }
