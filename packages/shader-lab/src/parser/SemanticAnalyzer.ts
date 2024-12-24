@@ -2,10 +2,11 @@ import { ShaderRange } from "../common";
 import { ASTNode, TreeNode } from "./AST";
 import { GSErrorName } from "../GSError";
 import { ShaderData } from "./ShaderInfo";
-import { SymbolInfo, SymbolTable } from "../parser/symbolTable";
+import { ESymbolType, SymbolInfo, SymbolTable } from "../parser/symbolTable";
 import { NodeChild } from "./types";
 import { SymbolTableStack } from "../common/BaseSymbolTable";
 import { ShaderLab } from "../ShaderLab";
+import { NonGenericGalaceanType } from "./builtin";
 // #if _VERBOSE
 import { GSError } from "../GSError";
 // #else
@@ -23,7 +24,7 @@ export type TranslationRule<T = any> = (sa: SematicAnalyzer, ...tokens: NodeChil
 export default class SematicAnalyzer {
   semanticStack: TreeNode[] = [];
   acceptRule?: TranslationRule = undefined;
-  symbolTable: SymbolTableStack<SymbolInfo, SymbolTable> = new SymbolTableStack();
+  symbolTableStack: SymbolTableStack<SymbolInfo, SymbolTable> = new SymbolTableStack();
   curFunctionInfo: {
     header?: ASTNode.FunctionDeclarator;
     returnStatement?: ASTNode.JumpStatement;
@@ -46,7 +47,7 @@ export default class SematicAnalyzer {
   reset() {
     this.semanticStack.length = 0;
     this._shaderData = new ShaderData();
-    this.symbolTable.clear();
+    this.symbolTableStack.clear();
     this.newScope();
     // #if _VERBOSE
     this.errors.length = 0;
@@ -55,11 +56,11 @@ export default class SematicAnalyzer {
 
   newScope() {
     const scope = new SymbolTable();
-    this.symbolTable.newScope(scope);
+    this.symbolTableStack.newScope(scope);
   }
 
   dropScope() {
-    return this.symbolTable.dropScope();
+    return this.symbolTableStack.dropScope();
   }
 
   addTranslationRule(pid: number, rule: TranslationRule) {
@@ -68,6 +69,20 @@ export default class SematicAnalyzer {
 
   getTranslationRule(pid: number) {
     return this._translationRuleTable.get(pid);
+  }
+
+  lookupSymbolBy(
+    ident: string,
+    symbolType: ESymbolType,
+    signature?: NonGenericGalaceanType[],
+    astNode?: ASTNode.FunctionDefinition
+  ): SymbolInfo | undefined {
+    const stack = this.symbolTableStack.stack;
+    for (let length = stack.length, i = length - 1; i >= 0; i--) {
+      const symbolTable = stack[i];
+      const ret = symbolTable.lookupBy(ident, symbolType, signature, astNode);
+      if (ret) return ret;
+    }
   }
 
   reportError(loc: ShaderRange, message: string): void {

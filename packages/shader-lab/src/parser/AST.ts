@@ -196,7 +196,7 @@ export namespace ASTNode {
 
         sm = new VarSymbol(id.lexeme, symbolType, false, initializer);
       }
-      sa.symbolTable.insert(sm);
+      sa.symbolTableStack.insert(sm);
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
@@ -413,7 +413,7 @@ export namespace ASTNode {
       if (this.children.length === 3 || this.children.length === 5) {
         const id = this.children[2] as Token;
         sm = new VarSymbol(id.lexeme, this.typeInfo, false, this);
-        sa.symbolTable.insert(sm);
+        sa.symbolTableStack.insert(sm);
       } else if (this.children.length === 4 || this.children.length === 6) {
         const typeInfo = this.typeInfo;
         const arraySpecifier = this.children[3] as ArraySpecifier;
@@ -425,7 +425,7 @@ export namespace ASTNode {
         typeInfo.arraySpecifier = arraySpecifier;
         const id = this.children[2] as Token;
         sm = new VarSymbol(id.lexeme, typeInfo, false, this);
-        sa.symbolTable.insert(sm);
+        sa.symbolTableStack.insert(sm);
       }
     }
   }
@@ -579,7 +579,7 @@ export namespace ASTNode {
         declarator = this.children[1] as ParameterDeclarator;
       }
       const varSymbol = new VarSymbol(declarator.ident.lexeme, declarator.typeInfo, false, this);
-      sa.symbolTable.insert(varSymbol);
+      sa.symbolTableStack.insert(varSymbol);
     }
   }
 
@@ -642,7 +642,7 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       sa.dropScope();
       const sm = new FnSymbol(this.protoType.ident.lexeme, this);
-      sa.symbolTable.insert(sm);
+      sa.symbolTableStack.insert(sm);
 
       const { curFunctionInfo } = sa;
       const { header, returnStatement } = curFunctionInfo;
@@ -708,7 +708,7 @@ export namespace ASTNode {
         }
         // #endif
 
-        const fnSymbol = sa.symbolTable.lookup({ ident: fnIdent, symbolType: ESymbolType.FN, signature: paramSig });
+        const fnSymbol = sa.lookupSymbolBy(fnIdent, ESymbolType.FN, paramSig);
         if (!fnSymbol) {
           // #if _VERBOSE
           sa.reportError(this.location, `No overload function type found: ${functionIdentifier.ident}`);
@@ -1020,7 +1020,7 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SematicAnalyzer): void {
       if (this.children.length === 6) {
         this.ident = this.children[1] as Token;
-        sa.symbolTable.insert(new StructSymbol(this.ident.lexeme, this));
+        sa.symbolTableStack.insert(new StructSymbol(this.ident.lexeme, this));
       }
     }
   }
@@ -1116,7 +1116,7 @@ export namespace ASTNode {
       let sm: VarSymbol;
       sm = new VarSymbol(ident.lexeme, new SymbolType(type.type, type.typeSpecifier.lexeme), true, this);
 
-      sa.symbolTable.insert(sm);
+      sa.symbolTableStack.insert(sm);
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
@@ -1153,7 +1153,7 @@ export namespace ASTNode {
       }
       // #endif
 
-      this.symbolInfo = sa.symbolTable.lookup({ ident: token.lexeme, symbolType: ESymbolType.VAR }) as VarSymbol;
+      this.symbolInfo = sa.lookupSymbolBy(token.lexeme, ESymbolType.VAR) as VarSymbol;
       // #if _VERBOSE
       if (!this.symbolInfo) {
         sa.reportError(this.location, `undeclared identifier: ${token.lexeme}`);
@@ -1172,7 +1172,7 @@ export namespace ASTNode {
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
       this.shaderData = sa.shaderData;
-      this.shaderData.symbolTable = sa.symbolTable._scope;
+      this.shaderData.symbolTable = sa.symbolTableStack._scope;
     }
   }
 }

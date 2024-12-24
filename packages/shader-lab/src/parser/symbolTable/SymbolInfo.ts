@@ -9,7 +9,7 @@ export enum ESymbolType {
   STRUCT
 }
 
-type SymbolAstNode =
+export type SymbolAstNode =
   | ASTNode.Initializer
   | ASTNode.StructSpecifier
   | ASTNode.FunctionDefinition
