@@ -314,9 +314,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     #endif
 
     #ifdef MATERIAL_ENABLE_SS_REFRACTION 
-        surfaceData.attenuationColor = material_AttenuationColor;
-        surfaceData.attenuationDistance = material_AttenuationDistance;
-
+        surfaceData.absorptionCoefficient = -log(clamp(material_AttenuationColor, 1e-5f, 1.0f)) / max(1e-5f, material_AttenuationDistance);
         #ifdef MATERIAL_HAS_TRANSMISSION
             surfaceData.transmission = material_Transmission;
             #ifdef MATERIAL_HAS_TRANSMISSION_TEXTURE
@@ -327,14 +325,16 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
         #endif
 
         #ifdef MATERIAL_HAS_THICKNESS
-            surfaceData.thickness = max(material_Thickness, 0.0001);
-            #ifdef MATERIAL_HAS_THICKNESS_TEXTURE
-                surfaceData.thickness *= texture2D( material_ThicknessTexture, uv).g;
-            #endif
             #if defined(REFRACTION_THIN)
                 surfaceData.thickness = 0.005;
-            #endif    
-        #endif
+            #else
+                surfaceData.thickness = max(material_Thickness, 0.0001);
+                #ifdef MATERIAL_HAS_THICKNESS_TEXTURE
+                    surfaceData.thickness *= texture2D( material_ThicknessTexture, uv).g;
+                #endif
+            #endif
+        #endif    
+
     #endif
     // AO
     float diffuseAO = 1.0;

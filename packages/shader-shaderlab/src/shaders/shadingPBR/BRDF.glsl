@@ -66,8 +66,7 @@ struct SurfaceData{
     #endif
 
     #ifdef MATERIAL_ENABLE_SS_REFRACTION 
-        vec3 attenuationColor;
-        float attenuationDistance;
+        vec3 absorptionCoefficient;
         float transmission;
         float thickness;
     #endif

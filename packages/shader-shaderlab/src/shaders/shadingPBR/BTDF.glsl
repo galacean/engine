@@ -23,11 +23,10 @@
 
         // Absorption coefficient from Disney: http://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_notes.pdf
        #ifdef MATERIAL_HAS_ABSORPTION
-            vec3 absorptionCoefficient = -log(clamp(surfaceData.attenuationColor, 1e-5f, 1.0f)) / max(1e-5f, surfaceData.attenuationDistance);
             #ifdef MATERIAL_HAS_THICKNESS
-                vec3 transmittance = min(vec3(1.0), exp(-absorptionCoefficient * ray.transmissionLength));
+                vec3 transmittance = min(vec3(1.0), exp(-surfaceData.absorptionCoefficient * ray.transmissionLength));
             #else
-                vec3 transmittance = 1.0 - absorptionCoefficient;
+                vec3 transmittance = 1.0 - surfaceData.absorptionCoefficient;
             #endif
        #endif
 
