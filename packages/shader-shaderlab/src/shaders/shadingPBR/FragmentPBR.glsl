@@ -334,8 +334,8 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
                 #endif
             #endif
         #endif    
-
     #endif
+    
     // AO
     float diffuseAO = 1.0;
     float specularAO = 1.0;

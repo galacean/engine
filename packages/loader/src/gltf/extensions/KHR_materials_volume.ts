@@ -1,4 +1,4 @@
-import { PBRMaterial, Texture2D } from "@galacean/engine-core";
+import { PBRMaterial, Texture2D, RefractionMode } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
 import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
 import { registerGLTFExtension } from "../parser/GLTFParser";
@@ -10,6 +10,7 @@ import { IKHRMaterialsVolume } from "./GLTFExtensionSchema";
 class KHR_materials_volume extends GLTFExtensionParser {
   override additiveParse(context: GLTFParserContext, material: PBRMaterial, schema: IKHRMaterialsVolume): void {
     const { thicknessFactor = 0, thicknessTexture, attenuationDistance = Infinity, attenuationColor } = schema;
+    material.refractionMode = RefractionMode.Plane;
 
     material.thickness = thicknessFactor;
     material.attenuationDistance = attenuationDistance;
