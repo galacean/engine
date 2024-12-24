@@ -34,7 +34,7 @@ void RefractionModelBox(vec3 V, vec3 positionWS, vec3 normalWS, float ior, float
     // Refracted ray
     vec3 R = refract(V, normalWS, 1.0 / ior);
     // Optical depth within the thin plane
-    float dist = thickness / max(dot(-normalWS, R), 0.001);
+    float dist = thickness / max(dot(-normalWS, R), 1e-5f);
 
     ray.dist = dist;
     ray.position = vec3(positionWS + R * dist);
