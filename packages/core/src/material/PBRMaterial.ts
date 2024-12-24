@@ -42,12 +42,12 @@ export class PBRMaterial extends PBRBaseMaterial {
   private static _thicknessProp = ShaderProperty.getByName("material_Thickness");
   private static _thicknessTextureProp = ShaderProperty.getByName("material_ThicknessTexture");
 
-  protected _refractionMode: RefractionMode;
+  private _refractionMode: RefractionMode;
   private _anisotropyRotation: number = 0;
   private _iridescenceRange = new Vector2(100, 400);
   private _sheenEnabled = false;
   private _absorptionEnabled = true;
-  private _lastRenderQueueType: RenderQueueType;
+  private _lastRenderQueueType = RenderQueueType.Opaque;
 
   /**
    * Index Of Refraction.
@@ -320,7 +320,7 @@ export class PBRMaterial extends PBRBaseMaterial {
       if (value) {
         this.renderState.renderQueueType = RenderQueueType.Transparent;
       } else {
-        this.renderState.renderQueueType = this._lastRenderQueueType ?? RenderQueueType.Opaque;
+        this.renderState.renderQueueType = this._lastRenderQueueType;
       }
       this._refractionMode = value;
       this._setRefractionMode(value);
