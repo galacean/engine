@@ -19,7 +19,6 @@
 #endif
 
 #include "BRDF.glsl"
-#include "BTDF.glsl"
 #include "Light.glsl"
 #include "ReflectionLobe.glsl"
 

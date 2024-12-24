@@ -2,10 +2,12 @@
  * Refraction mode.
  */
 export enum RefractionMode {
-  /** Refraction shape is sphere */
+  /** No refraction. */
+  None,
+  /** Refraction shape is sphere. */
   Sphere,
-  /** Refraction shape is plane */
+  /** Refraction shape is plane. */
   Plane,
-  /** Refraction shape is thin */
+  /** Refraction shape is thin. */
   Thin
 }

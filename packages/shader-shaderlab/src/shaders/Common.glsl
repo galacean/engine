@@ -5,6 +5,7 @@
 #define RECIPROCAL_PI 0.31830988618
 #define EPSILON 1e-6
 #define LOG2 1.442695
+#define FLT_MIN  1.175494351e-38 // Minimum normalized positive floating-point number
 
 #define saturate( a ) clamp( a, 0.0, 1.0 )
 
@@ -97,5 +98,10 @@ float remapDepthBufferLinear01(float z){
 	#define INVERSE_MAT(mat) inverseMat(mat)
 #endif
 
+vec3 safeNormalize(vec3 inVec)
+{
+    float dp3 = max(float(FLT_MIN), dot(inVec, inVec));
+    return inVec * inversesqrt(dp3);
+}
 
 #endif

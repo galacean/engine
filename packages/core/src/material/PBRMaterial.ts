@@ -6,6 +6,8 @@ import { Texture2D } from "../texture/Texture2D";
 import { PBRBaseMaterial } from "./PBRBaseMaterial";
 import { RefractionMode } from "./enums/Refraction";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
+import { BlendMode } from "./enums/BlendMode";
+import { BaseMaterial } from "./BaseMaterial";
 
 /**
  * PBR (Metallic-Roughness Workflow) Material.
@@ -35,9 +37,6 @@ export class PBRMaterial extends PBRBaseMaterial {
 
   protected _refractionMode: RefractionMode;
   protected static _refractionMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_ENABLE_SS_REFRACTION");
-  private static _refractionSphereMacro: ShaderMacro = ShaderMacro.getByName("REFRACTION_SPHERE");
-  private static _refractionPlaneMacro: ShaderMacro = ShaderMacro.getByName("REFRACTION_PLANE");
-  private static _refractionThinMacro: ShaderMacro = ShaderMacro.getByName("REFRACTION_THIN");
   private static _transmissionMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_TRANSMISSION");
   private static _thicknessMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_THICKNESS");
   private static _absorptionMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_ABSORPTION");
@@ -320,31 +319,43 @@ export class PBRMaterial extends PBRBaseMaterial {
       if (value) {
         this.shaderData.enableMacro(PBRMaterial._refractionMacro);
         this.renderState.renderQueueType = RenderQueueType.Transparent;
-        this.renderState.blendState.targetBlendState.enabled = false;
+        if (this.isTransparent) {
+          this.renderState.renderQueueType = RenderQueueType.Transparent;
+        } else {
+          if (this.alphaCutoff) {
+            this.renderState.renderQueueType = RenderQueueType.Transparent;
+          }
+        }
       } else {
         this.shaderData.disableMacro(PBRMaterial._refractionMacro);
-        this.renderState.renderQueueType = RenderQueueType.Opaque;
-        this.renderState.blendState.targetBlendState.enabled = true;
+        this.isTransparent = this.isTransparent;
+        this.alphaCutoff = this.alphaCutoff;
       }
+      this.renderFace = this.renderFace;
+      this.blendMode = this.blendMode;
+
       this._refractionMode = value;
       this.setRefractionMode(value);
     }
   }
 
   private setRefractionMode(refractionMode: RefractionMode): void {
-    this.shaderData.disableMacro(PBRMaterial._refractionSphereMacro);
-    this.shaderData.disableMacro(PBRMaterial._refractionPlaneMacro);
-    this.shaderData.disableMacro(PBRMaterial._refractionThinMacro);
+    this.shaderData.disableMacro("REFRACTION_SPHERE");
+    this.shaderData.disableMacro("REFRACTION_PLANE");
+    this.shaderData.disableMacro("REFRACTION_THIN");
 
     switch (refractionMode) {
+      case RefractionMode.None:
+        this.shaderData.disableMacro(PBRMaterial._refractionMacro);
+        break;
       case RefractionMode.Sphere:
-        this.shaderData.enableMacro(PBRMaterial._refractionSphereMacro);
+        this.shaderData.enableMacro("REFRACTION_SPHERE");
         break;
       case RefractionMode.Plane:
-        this.shaderData.enableMacro(PBRMaterial._refractionPlaneMacro);
+        this.shaderData.enableMacro("REFRACTION_PLANE");
         break;
       case RefractionMode.Thin:
-        this.shaderData.enableMacro(PBRMaterial._refractionThinMacro);
+        this.shaderData.enableMacro("REFRACTION_THIN");
         break;
     }
   }
@@ -461,7 +472,7 @@ export class PBRMaterial extends PBRBaseMaterial {
     shaderData.setVector4(PBRMaterial._iridescenceInfoProp, new Vector4(0, 1.3, 100, 400));
     const sheenColor = new Color(0, 0, 0);
     shaderData.setColor(PBRMaterial._sheenColorProp, sheenColor);
-    this.refractionMode = RefractionMode.Plane;
+    this.refractionMode = RefractionMode.None;
     shaderData.setFloat(PBRMaterial._thicknessProp, 0);
     shaderData.setFloat(PBRMaterial._attenuationDistanceProp, Infinity);
     const attenuationColor = new Color(1, 1, 1);

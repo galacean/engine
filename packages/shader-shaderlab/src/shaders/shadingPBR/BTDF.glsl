@@ -6,7 +6,7 @@
 #ifdef MATERIAL_ENABLE_SS_REFRACTION 
     sampler2D camera_OpaqueTexture;
     vec3 evaluateRefraction(SurfaceData surfaceData, BRDFData brdfData, vec3 specularColor) {
-        RefractionModel ray;
+        RefractionModelResult ray;
         #if defined(REFRACTION_SPHERE) 
             RefractionModelSphere(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, surfaceData.thickness, ray);
         #elif defined(REFRACTION_PLANE)
