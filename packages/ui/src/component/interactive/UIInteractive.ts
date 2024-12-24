@@ -128,7 +128,12 @@ export class UIInteractive extends Script implements IGroupAble {
   }
 
   override onUpdate(deltaTime: number): void {
-    this.globalInteractive && this._transitions.forEach((transition) => transition._onUpdate(deltaTime));
+    if (this.globalInteractive) {
+      const transitions = this._transitions;
+      for (let i = 0, n = transitions.length; i < n; i++) {
+        transitions[i]._onUpdate(deltaTime);
+      }
+    }
   }
 
   override onPointerBeginDrag(): void {
@@ -153,7 +158,10 @@ export class UIInteractive extends Script implements IGroupAble {
 
   override onDestroy(): void {
     super.onDestroy();
-    this._transitions.forEach((transition) => transition.destroy());
+    const transitions = this._transitions;
+    for (let i = 0, n = transitions.length; i < n; i++) {
+      transitions[i].destroy();
+    }
   }
 
   /**
@@ -195,9 +203,11 @@ export class UIInteractive extends Script implements IGroupAble {
    */
   _removeTransition(transition: Transition): void {
     const transitions = this._transitions;
-    for (let i = transitions.length - 1; i >= 0; i--) {
+    const lastOneIndex = transitions.length - 1;
+    for (let i = lastOneIndex; i >= 0; i--) {
       if (transitions[i] === transition) {
-        transitions.splice(i, 1);
+        i !== lastOneIndex && (transitions[i] = transitions[lastOneIndex]);
+        transitions.length = lastOneIndex;
         break;
       }
     }
@@ -252,7 +262,10 @@ export class UIInteractive extends Script implements IGroupAble {
     const state = this._getInteractiveState();
     if (this._state !== state) {
       this._state = state;
-      this._transitions.forEach((transition) => transition._setState(state, instant));
+      const transitions = this._transitions;
+      for (let i = 0, n = transitions.length; i < n; i++) {
+        transitions[i]._setState(state, instant);
+      }
     }
   }
 
