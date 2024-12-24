@@ -102,9 +102,13 @@ jobs:
               ],
               "outputDir": "${{ github.workspace }}/platform-adapter/dist"
             }
+      
+      - name: Print Adapter Bundle
+        run: ls -l ${{ github.workspace }}/platform-adapter/dist
 
       - name: Release engine packages and Sync to CDN
         uses: galacean/publish@v0.2.0
+        if: success() || failure()
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
           NPM_CONFIG_PROVENANCE: true
@@ -118,7 +122,6 @@ jobs:
           publish: false
           packages: |
             platform-adapter
-
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
           NPM_CONFIG_PROVENANCE: true
