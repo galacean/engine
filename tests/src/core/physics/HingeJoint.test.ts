@@ -68,7 +68,7 @@ describe("HingeJoint", function () {
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(formatValue(joint.velocity)).eq(6.89082);
-    expect(formatValue(joint.angle)).eq(0.11485);
+    expect(formatValue(joint.angle)).eq(6.58019);
   });
 
   it("hardLimit", function () {
@@ -94,12 +94,12 @@ describe("HingeJoint", function () {
     collider2.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(joint.angle)).eq(1.5708);
+    expect(formatValue(joint.angle)).eq(1.57019);
 
     collider2.applyTorque(new Vector3(0, -1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(joint.angle)).eq(-1.5708);
+    expect(formatValue(joint.angle)).eq(-1.57019);
   });
 
   it("softLimit", function () {
@@ -121,8 +121,8 @@ describe("HingeJoint", function () {
     joint.useLimits = true;
     joint.useSpring = true;
     const limits = new JointLimits();
-    limits.min = -Math.PI / 2;
-    limits.max = Math.PI / 2;
+    limits.min = -90;
+    limits.max = 90;
     limits.stiffness = 1000;
     limits.damping = 30;
     joint.limits = limits;
@@ -132,7 +132,7 @@ describe("HingeJoint", function () {
     collider2.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(joint.angle)).eq(0.10957);
+    expect(formatValue(joint.angle)).eq(6.27762);
   });
 
   it("stiffness", function () {
@@ -153,8 +153,8 @@ describe("HingeJoint", function () {
     joint.useLimits = true;
     joint.useSpring = true;
     const limits = new JointLimits();
-    limits.min = -Math.PI / 2;
-    limits.max = Math.PI / 2;
+    limits.min = -90;
+    limits.max = 90;
     limits.stiffness = 2000;
     limits.damping = 30;
     joint.limits = limits;
@@ -164,7 +164,7 @@ describe("HingeJoint", function () {
     collider2.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(joint.angle)).eq(-0.22578);
+    expect(formatValue(joint.angle)).eq(-12.93617);
   });
 
   it("damping", function () {
@@ -185,8 +185,8 @@ describe("HingeJoint", function () {
     joint.useLimits = true;
     joint.useSpring = true;
     const limits = new JointLimits();
-    limits.min = -Math.PI / 2;
-    limits.max = Math.PI / 2;
+    limits.min = -90;
+    limits.max = 90;
     limits.stiffness = 1000;
     limits.damping = 100;
     joint.limits = limits;
@@ -196,7 +196,7 @@ describe("HingeJoint", function () {
     collider2.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(joint.angle)).eq(0.87375);
+    expect(formatValue(joint.angle)).eq(50.06221);
   });
 
   it("motor", function () {
@@ -219,7 +219,7 @@ describe("HingeJoint", function () {
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(joint.velocity)).eq(30);
-    expect(formatValue(joint.angle)).eq(4.86726);
+    expect(formatValue(joint.angle)).eq(278.87335);
   });
 
   it("forceLimit", function () {
@@ -304,18 +304,18 @@ describe("HingeJoint", function () {
     collider2.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(collider2.angularVelocity.y)).eq(30);
+    expect(formatValue(collider2.angularVelocity.y)).eq(1718.87328);
 
     motor.targetVelocity = 30;
     motor.freeSpin = true;
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(collider2.angularVelocity.y)).eq(30);
+    expect(formatValue(collider2.angularVelocity.y)).eq(1718.87328);
 
     collider2.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(collider2.angularVelocity.y)).eq(95.20031);
+    expect(formatValue(collider2.angularVelocity.y)).eq(5454.57596);
   });
 
   it("clone", function () {
@@ -355,7 +355,7 @@ describe("HingeJoint", function () {
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(formatValue(newJoint.velocity)).eq(6.89082);
-    expect(formatValue(newJoint.angle)).eq(0.11485);
+    expect(formatValue(newJoint.angle)).eq(6.58019);
   });
 
   it("inActive modification", function () {

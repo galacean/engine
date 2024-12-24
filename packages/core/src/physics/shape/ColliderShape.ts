@@ -83,7 +83,7 @@ export abstract class ColliderShape implements ICustomClone {
   }
 
   /**
-   * The local rotation of this ColliderShape, in radians.
+   * The local rotation of this ColliderShape, in degrees.
    */
   get rotation(): Vector3 {
     return this._rotation;

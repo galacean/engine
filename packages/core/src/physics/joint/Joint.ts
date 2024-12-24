@@ -24,6 +24,8 @@ export abstract class Joint extends Component {
   private _force = Infinity;
   private _torque = Infinity;
   private _automaticConnectedAnchor = true;
+  @ignoreClone
+  private _updateConnectedActualAnchor: Function;
 
   /**
    * The connected collider.
@@ -68,14 +70,15 @@ export abstract class Joint extends Component {
    * The connectedAnchor is automatically calculated, if you want to set it manually, please set automaticConnectedAnchor to false
    */
   get connectedAnchor(): Vector3 {
+    const connectedColliderAnchor = this._connectedColliderInfo.anchor;
     if (this._automaticConnectedAnchor) {
       //@ts-ignore
-      this._connectedColliderInfo.anchor._onValueChanged = null;
+      connectedColliderAnchor._onValueChanged = null;
       this._calculateConnectedAnchor();
       //@ts-ignore
-      this._connectedColliderInfo.anchor._onValueChanged = this._updateActualAnchor.bind(this, AnchorOwner.Connected);
+      connectedColliderAnchor._onValueChanged = this._updateConnectedActualAnchor;
     }
-    return this._connectedColliderInfo.anchor;
+    return connectedColliderAnchor;
   }
 
   set connectedAnchor(value: Vector3) {
@@ -190,8 +193,10 @@ export abstract class Joint extends Component {
     super(entity);
     //@ts-ignore
     this._colliderInfo.anchor._onValueChanged = this._updateActualAnchor.bind(this, AnchorOwner.Self);
+    this._updateConnectedActualAnchor = this._updateActualAnchor.bind(this, AnchorOwner.Connected);
     //@ts-ignore
-    this._connectedColliderInfo.anchor._onValueChanged = this._updateActualAnchor.bind(this, AnchorOwner.Connected);
+    this._connectedColliderInfo.anchor._onValueChanged = this._updateConnectedActualAnchor;
+
     this._onSelfTransformChanged = this._onSelfTransformChanged.bind(this);
     this._onConnectedTransformChanged = this._onConnectedTransformChanged.bind(this);
     // @ts-ignore
@@ -268,7 +273,6 @@ export abstract class Joint extends Component {
     }
   }
 
-  @ignoreClone
   private _updateActualAnchor(flag: AnchorOwner): void {
     if (flag & AnchorOwner.Self) {
       const worldScale = this.entity.transform.lossyWorldScale;

@@ -1,5 +1,5 @@
 import { IHingeJoint } from "@galacean/engine-design";
-import { Quaternion, Vector3 } from "@galacean/engine";
+import { MathUtil, Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXCollider } from "../PhysXCollider";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXJoint } from "./PhysXJoint";
@@ -56,7 +56,7 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
    * {@inheritDoc IHingeJoint.getAngle }
    */
   getAngle(): number {
-    return this._pxJoint.getAngle();
+    return MathUtil.radianToDegree(this._pxJoint.getAngle());
   }
 
   /**
@@ -70,14 +70,19 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
    * {@inheritDoc IHingeJoint.setHardLimitCone }
    */
   setHardLimit(lowerLimit: number, upperLimit: number, contactDist: number): void {
-    this._pxJoint.setHardLimit(lowerLimit, upperLimit, contactDist);
+    this._pxJoint.setHardLimit(MathUtil.degreeToRadian(lowerLimit), MathUtil.degreeToRadian(upperLimit), contactDist);
   }
 
   /**
    * {@inheritDoc IHingeJoint.setHardLimitCone }
    */
   setSoftLimit(lowerLimit: number, upperLimit: number, stiffness: number, damping: number): void {
-    this._pxJoint.setSoftLimit(lowerLimit, upperLimit, stiffness, damping);
+    this._pxJoint.setSoftLimit(
+      MathUtil.degreeToRadian(lowerLimit),
+      MathUtil.degreeToRadian(upperLimit),
+      stiffness,
+      damping
+    );
   }
 
   /**

@@ -5,15 +5,13 @@ import {
   AssetType,
   LoadItem,
   ResourceManager,
-  ModelMesh,
   PhysicsMaterial
 } from "@galacean/engine-core";
-import { decode } from "./resource-deserialize";
 
 @resourceLoader(AssetType.PhysicsMaterial, ["mesh"])
 class PhysicsMaterialLoader extends Loader<PhysicsMaterial> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<PhysicsMaterial> {
-    return new AssetPromise((resolve, reject) => {
+    return (
       resourceManager
         // @ts-ignore
         ._request<any>(item.url, {
@@ -30,10 +28,6 @@ class PhysicsMaterialLoader extends Loader<PhysicsMaterial> {
 
           return physicsMaterial;
         })
-        .then((mesh) => {
-          resolve(mesh);
-        })
-        .catch(reject);
-    });
+    );
   }
 }

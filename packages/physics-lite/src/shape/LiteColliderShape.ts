@@ -1,4 +1,4 @@
-import { Matrix, Quaternion, Ray, Vector3, Vector4 } from "@galacean/engine";
+import { MathUtil, Matrix, Quaternion, Ray, Vector3, Vector4 } from "@galacean/engine";
 import { IColliderShape, IPhysicsMaterial } from "@galacean/engine-design";
 import { LiteCollider } from "../LiteCollider";
 import { LiteHitResult } from "../LiteHitResult";
@@ -43,10 +43,17 @@ export abstract class LiteColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setRotation }
    */
   setRotation(rotation: Vector3): void {
-    if (rotation !== this._rotation) {
-      this._rotation.copyFrom(rotation);
-      Quaternion.rotationEuler(rotation.x, rotation.y, rotation.z, this._transform.rotationQuaternion);
-    }
+    const rotationInRadians = this._rotation.set(
+      MathUtil.degreeToRadian(rotation.x),
+      MathUtil.degreeToRadian(rotation.y),
+      MathUtil.degreeToRadian(rotation.z)
+    );
+    Quaternion.rotationEuler(
+      rotationInRadians.x,
+      rotationInRadians.y,
+      rotationInRadians.z,
+      this._transform.rotationQuaternion
+    );
   }
 
   /**

@@ -155,12 +155,12 @@ describe("DynamicCollider", function () {
     expect(formatValue(boxCollider.angularVelocity.y)).eq(0);
     expect(formatValue(box.transform.rotation.y)).eq(0);
 
-    boxCollider.angularVelocity = new Vector3(0, 1, 0);
+    boxCollider.angularVelocity = new Vector3(0, 45, 0);
     boxCollider.angularDamping = 0;
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
-    expect(formatValue(boxCollider.angularVelocity.y)).eq(1);
-    expect(formatValue(box.transform.rotation.y)).eq(57.29577);
+    expect(formatValue(boxCollider.angularVelocity.y)).eq(45);
+    expect(formatValue(box.transform.rotation.y)).closeTo(45, 0.0001);
   });
 
   it("mass", function () {
@@ -241,7 +241,7 @@ describe("DynamicCollider", function () {
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(boxCollider.inertiaTensor.y)).eq(1);
-    expect(formatValue(boxCollider.angularVelocity.y)).eq(0.15853);
+    expect(formatValue(boxCollider.angularVelocity.y)).eq(9.08338);
 
     boxCollider.inertiaTensor = new Vector3(0, 2, 0);
     boxCollider.angularVelocity.y = 0;
@@ -249,7 +249,7 @@ describe("DynamicCollider", function () {
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(boxCollider.inertiaTensor.y)).eq(2);
-    expect(formatValue(boxCollider.angularVelocity.y)).eq(0.07927);
+    expect(formatValue(boxCollider.angularVelocity.y)).eq(4.54169);
   });
 
   it("automaticInertiaTensor", function () {
