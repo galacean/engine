@@ -29,10 +29,11 @@ export abstract class BaseSymbolTable<T extends IBaseSymbol = IBaseSymbol> {
     this._table.set(sm.ident, entry);
   }
 
-  lookup<R = T>(sm: T & { signature?: GalaceanDataType[] }): R | undefined {
+  lookup<R = T>(sm: T): R | undefined {
     const entry = this._table.get(sm.ident);
     if (entry) {
-      for (const item of entry) {
+      for (let length = entry.length, i = 0; i < length; i++) {
+        const item = entry[i];
         if (this.symbolEqualCheck(item, sm)) return item as unknown as R;
       }
     }
@@ -62,7 +63,7 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends BaseSymbolTable<S
     this._scope.insert(sm);
   }
 
-  lookup(sm: S & { signature?: GalaceanDataType[] }) {
+  lookup(sm: S) {
     for (let i = this._stack.length - 1; i >= 0; i--) {
       const scope = this._stack[i];
       const ret = scope.lookup(sm);

@@ -1,11 +1,11 @@
-import { GalaceanDataType, TypeAny } from "../../common";
+import { TypeAny } from "../../common";
 import { BaseSymbolTable } from "../../common/BaseSymbolTable";
 import { ASTNode } from "../AST";
 import { FnSymbol } from "./FnSymbol";
 import { ESymbolType, SymbolInfo } from "./SymbolInfo";
 
 export class SymbolTable extends BaseSymbolTable<SymbolInfo> {
-  override symbolEqualCheck(exist: SymbolInfo, newSymbol: SymbolInfo & { signature?: GalaceanDataType[] }): boolean {
+  override symbolEqualCheck(exist: SymbolInfo, newSymbol: SymbolInfo): boolean {
     if (exist.symbolType !== newSymbol.symbolType) return false;
     if (newSymbol.symbolType === ESymbolType.FN) {
       if (!newSymbol.astNode && !newSymbol.signature) return true;
