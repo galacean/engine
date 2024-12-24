@@ -7,7 +7,7 @@ export interface ISymbol extends IBaseSymbol {
   value?: any;
 }
 
-export default class SymbolTable extends BaseSymbolTable<ISymbol> {
+export default class ContentSymbolTable extends BaseSymbolTable<ISymbol> {
   override insert(sm: ISymbol): void {
     const entry = this._table.get(sm.ident) ?? [];
     for (let i = 0; i < entry.length; i++) {
