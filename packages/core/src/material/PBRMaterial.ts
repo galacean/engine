@@ -325,8 +325,9 @@ export class PBRMaterial extends PBRBaseMaterial {
 
       if (value) {
         this.shaderData.enableMacro(PBRMaterial._refractionMacro);
-        this.renderState.renderQueueType =
-          this.isTransparent || this.alphaCutoff ? RenderQueueType.Transparent : RenderQueueType.Opaque;
+        if (this.isTransparent || this.alphaCutoff) {
+          this.renderState.renderQueueType = RenderQueueType.Transparent;
+        }
       } else {
         this.shaderData.disableMacro(PBRMaterial._refractionMacro);
         Object.assign(this, prevState);
