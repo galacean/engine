@@ -41,7 +41,7 @@ export class JointLimits {
 
   set min(value: number) {
     if (value > this._max) {
-      throw new Error("Min limit must be less than max limit");
+      this._max = value;
     }
     if (this._min !== value) {
       this._min = value;

@@ -66,13 +66,16 @@ export abstract class ColliderShape implements ICustomClone {
   }
 
   /**
-   * Physical material.
+   * Physical material, material can't be null.
    */
   get material(): PhysicsMaterial {
     return this._material;
   }
 
   set material(value: PhysicsMaterial) {
+    if (!value) {
+      throw new Error("The physics material of the shape can't be null.");
+    }
     if (this._material !== value) {
       this._material = value;
       this._nativeShape.setMaterial(value._nativeMaterial);

@@ -195,6 +195,13 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
+   * {@inheritDoc IDynamicCollider.setUseGravity }
+   */
+  setUseGravity(value: boolean): void {
+    this._pxActor.setActorFlag(this._physXPhysics._physX.PxActorFlag.eDISABLE_GRAVITY, !value);
+  }
+
+  /**
    * {@inheritDoc IDynamicCollider.setIsKinematic }
    */
   setIsKinematic(value: boolean): void {

@@ -23,6 +23,7 @@ export class DynamicCollider extends Collider {
   private _maxAngularVelocity = 100;
   private _maxDepenetrationVelocity = 1.0000000331813535e32;
   private _solverIterations = 4;
+  private _useGravity = true;
   private _isKinematic = false;
   private _constraints: DynamicColliderConstraints = 0;
   private _collisionDetectionMode: CollisionDetectionMode = CollisionDetectionMode.Discrete;
@@ -237,6 +238,20 @@ export class DynamicCollider extends Collider {
     if (this._solverIterations !== value) {
       this._solverIterations = value;
       (<IDynamicCollider>this._nativeCollider).setSolverIterations(value);
+    }
+  }
+
+  /**
+   * Controls whether gravity affects the dynamic collider.
+   */
+  get useGravity(): boolean {
+    return this._useGravity;
+  }
+
+  set useGravity(value: boolean) {
+    if (this._useGravity !== value) {
+      this._useGravity = value;
+      (<IDynamicCollider>this._nativeCollider).setUseGravity(value);
     }
   }
 

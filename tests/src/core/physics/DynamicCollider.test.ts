@@ -364,6 +364,21 @@ describe("DynamicCollider", function () {
     expect(Math.abs(formatValue(boxCollider2.linearVelocity.x))).lessThan(4);
   });
 
+  it("useGravity", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 10, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.useGravity = false;
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(formatValue(box.transform.position.y)).eq(10);
+
+    boxCollider.useGravity = true;
+    boxCollider.wakeUp();
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(formatValue(box.transform.position.y)).lessThan(10);
+  });
+
   it("isKinematic", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 1, 0));
     const boxCollider = box.getComponent(DynamicCollider);
