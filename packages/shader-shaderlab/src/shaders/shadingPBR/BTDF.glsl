@@ -37,9 +37,9 @@
          
         // Use specularFGD as an approximation of the fresnel effect
         // https://blog.selfshadow.com/publications/s2017-shading-course/imageworks/s2017_pbs_imageworks_slides_v2.pdf
-        vec3 specularFGD =  brdfData.specularDFG;
+        vec3 specularDFG =  brdfData.specularDFG;
 
-        refractionTransmitted *= (1.0 - specularFGD);
+        refractionTransmitted *= (1.0 - specularDFG);
 
        #ifdef MATERIAL_HAS_ABSORPTION
             refractionTransmitted *= transmittance;

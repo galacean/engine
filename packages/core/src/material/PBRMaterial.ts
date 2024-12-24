@@ -46,7 +46,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   private _anisotropyRotation: number = 0;
   private _iridescenceRange = new Vector2(100, 400);
   private _sheenEnabled = false;
-  private _absorptionEnabled = null;
+  private _absorptionEnabled = true;
   private _lastRenderQueueType: RenderQueueType;
 
   /**
@@ -354,9 +354,11 @@ export class PBRMaterial extends PBRBaseMaterial {
   set transmission(value: number) {
     value = MathUtil.clamp(value, 0, 1);
     if (!!this.shaderData.getFloat(PBRMaterial._transmissionProp) !== !!value) {
-      this.shaderData.enableMacro(PBRMaterial._transmissionMacro);
-    } else {
-      this.shaderData.disableMacro(PBRMaterial._transmissionMacro);
+      if (value > 0) {
+        this.shaderData.enableMacro(PBRMaterial._transmissionMacro);
+      } else {
+        this.shaderData.disableMacro(PBRMaterial._transmissionMacro);
+      }
     }
     this.shaderData.setFloat(PBRMaterial._transmissionProp, value);
   }
@@ -417,9 +419,11 @@ export class PBRMaterial extends PBRBaseMaterial {
   set thickness(value: number) {
     value = Math.max(0, value);
     if (!!this.shaderData.getFloat(PBRMaterial._thicknessProp) !== !!value) {
-      this.shaderData.enableMacro(PBRMaterial._thicknessMacro);
-    } else {
-      this.shaderData.disableMacro(PBRMaterial._thicknessMacro);
+      if (value > 0) {
+        this.shaderData.enableMacro(PBRMaterial._thicknessMacro);
+      } else {
+        this.shaderData.disableMacro(PBRMaterial._thicknessMacro);
+      }
     }
     this.shaderData.setFloat(PBRMaterial._thicknessProp, value);
   }
@@ -460,6 +464,7 @@ export class PBRMaterial extends PBRBaseMaterial {
     shaderData.setFloat(PBRMaterial._attenuationDistanceProp, Infinity);
     const attenuationColor = new Color(1, 1, 1);
     shaderData.setColor(PBRMaterial._attenuationColorProp, attenuationColor);
+    shaderData.enableMacro(PBRMaterial._absorptionMacro);
 
     // @ts-ignore
     this._iridescenceRange._onValueChanged = () => {

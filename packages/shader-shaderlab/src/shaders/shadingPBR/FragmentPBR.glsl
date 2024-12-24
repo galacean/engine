@@ -314,7 +314,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     #endif
 
     #ifdef MATERIAL_ENABLE_SS_REFRACTION 
-        surfaceData.absorptionCoefficient = -log(clamp(material_AttenuationColor, 1e-5f, 1.0f)) / max(1e-5f, material_AttenuationDistance);
+        surfaceData.absorptionCoefficient = -log(material_AttenuationColor + HALF_EPS) / max(HALF_EPS, material_AttenuationDistance);
         #ifdef MATERIAL_HAS_TRANSMISSION
             surfaceData.transmission = material_Transmission;
             #ifdef MATERIAL_HAS_TRANSMISSION_TEXTURE
