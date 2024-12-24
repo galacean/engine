@@ -28,23 +28,19 @@ export { CanvasRenderMode } from "./enums/CanvasRenderMode";
 export { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrategy";
 export { UIPointerEventEmitter } from "./input/UIPointerEventEmitter";
 
-export class EntityExtension {
-  _uiHierarchyVersion = 0;
-  _updateUIHierarchyVersion(version: number): void {
-    if (this._uiHierarchyVersion !== version) {
-      this._uiHierarchyVersion = version;
-      // @ts-ignore
-      this.parent?._updateUIHierarchyVersion(version);
-    }
-  }
-}
-
 export class EngineExtension {
   _uiDefaultMaterial: Material;
   _getUIDefaultMaterial(): Material {
     if (!this._uiDefaultMaterial) {
+      const shader =
+        Shader.find("ui") ??
+        Shader.create("ui", [
+          new ShaderPass("Forward", uiDefaultVs, uiDefaultFs, {
+            pipelineStage: PipelineStage.Forward
+          })
+        ]);
       // @ts-ignore
-      const material = new Material(this, Shader.find("ui"));
+      const material = new Material(this, shader);
       const renderState = material.renderState;
       const target = renderState.blendState.targetBlendState;
       target.enabled = true;
@@ -63,12 +59,14 @@ export class EngineExtension {
   }
 }
 
-declare module "@galacean/engine" {
-  interface Entity {
-    // @internal
-    _uiHierarchyVersion: number;
-    // @internal
-    _updateUIHierarchyVersion(version: number): void;
+export class EntityExtension {
+  _uiHierarchyVersion = 0;
+  _updateUIHierarchyVersion(version: number): void {
+    if (this._uiHierarchyVersion !== version) {
+      this._uiHierarchyVersion = version;
+      // @ts-ignore
+      this.parent?._updateUIHierarchyVersion(version);
+    }
   }
 }
 
@@ -78,6 +76,12 @@ declare module "@galacean/engine" {
     _uiDefaultMaterial: Material;
     // @internal
     _getUIDefaultMaterial(): Material;
+  }
+  interface Entity {
+    // @internal
+    _uiHierarchyVersion: number;
+    // @internal
+    _updateUIHierarchyVersion(version: number): void;
   }
 }
 
@@ -95,9 +99,3 @@ function ApplyMixins(derivedCtor: any, baseCtors: any[]): void {
 
 ApplyMixins(Engine, [EngineExtension]);
 ApplyMixins(Entity, [EntityExtension]);
-
-Shader.create("ui", [
-  new ShaderPass("Forward", uiDefaultVs, uiDefaultFs, {
-    pipelineStage: PipelineStage.Forward
-  })
-]);
