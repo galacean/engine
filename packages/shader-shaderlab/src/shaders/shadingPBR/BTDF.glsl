@@ -12,10 +12,10 @@
         #elif defined(REFRACTION_PLANE)
             RefractionModelBox(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, surfaceData.thickness, ray);
         #elif defined(REFRACTION_THIN)
-            RefractionModelBox(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, 0.005, ray);
+            RefractionModelBox(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, surfaceData.thickness, ray);
         #endif
         //TODO: support cubemap refraction.
-        vec3 refractedRayExit = ray.position;
+        vec3 refractedRayExit = ray.positionExit;
 
         // We calculate the screen space position of the refracted point
         vec4 samplingPositionNDC = camera_ProjMat * camera_ViewMat * vec4( refractedRayExit, 1.0 );
@@ -25,7 +25,7 @@
        #ifdef MATERIAL_HAS_ABSORPTION
             vec3 absorptionCoefficient = -log(clamp(surfaceData.attenuationColor, 1e-5f, 1.0f)) / max(1e-5f, surfaceData.attenuationDistance);
             #ifdef MATERIAL_HAS_THICKNESS
-                vec3 transmittance = min(vec3(1.0), exp(-absorptionCoefficient * ray.dist));
+                vec3 transmittance = min(vec3(1.0), exp(-absorptionCoefficient * ray.transmissionLength));
             #else
                 vec3 transmittance = 1.0 - absorptionCoefficient;
             #endif

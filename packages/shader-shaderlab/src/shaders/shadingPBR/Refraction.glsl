@@ -4,9 +4,9 @@
 #ifdef MATERIAL_ENABLE_SS_REFRACTION 
 
 struct RefractionModelResult{
-    float dist;         // length of the transmission during refraction through the shape
-    vec3 position;      // out ray position
-    vec3 direction;     // out ray direction
+    float transmissionLength;         // length of the transmission during refraction through the shape
+    vec3 positionExit;      // out ray position
+    vec3 directionExit;     // out ray direction
 };
 
 //https://docs.unity3d.com/Packages/com.unity.render-pipelines.high-definition@15.0/manual/refraction-models.html
@@ -25,9 +25,9 @@ struct RefractionModelResult{
     // Out refracted ray
     vec3 R2 = refract(R1, N1, ior);
 
-    ray.dist = dist;
-    ray.position = P1;
-    ray.direction = R2; 
+    ray.transmissionLength = dist;
+    ray.positionExit = P1;
+    ray.directionExit = R2; 
 }
 
 void RefractionModelBox(vec3 V, vec3 positionWS, vec3 normalWS, float ior, float thickness, out RefractionModelResult ray){
@@ -36,9 +36,9 @@ void RefractionModelBox(vec3 V, vec3 positionWS, vec3 normalWS, float ior, float
     // Optical depth within the thin plane
     float dist = thickness / max(dot(-normalWS, R), 1e-5f);
 
-    ray.dist = dist;
-    ray.position = vec3(positionWS + R * dist);
-    ray.direction = V;
+    ray.transmissionLength = dist;
+    ray.positionExit = vec3(positionWS + R * dist);
+    ray.directionExit = V;
 }
 #endif
 
