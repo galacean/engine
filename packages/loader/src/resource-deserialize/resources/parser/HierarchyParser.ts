@@ -98,6 +98,11 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
         promises.push(promise);
       }
     }
+
+    for (const waitingList of this.context.componentWaitingMap.values()) {
+      waitingList.forEach((resolve) => resolve(null));
+    }
+
     return Promise.all(promises);
   }
 
