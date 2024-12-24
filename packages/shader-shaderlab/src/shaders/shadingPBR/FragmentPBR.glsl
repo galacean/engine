@@ -325,7 +325,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
         #endif
 
         #ifdef MATERIAL_HAS_THICKNESS
-            #if defined(REFRACTION_THIN)
+            #if REFRACTION_MODE == THIN
                 surfaceData.thickness = 0.005;
             #else
                 surfaceData.thickness = max(material_Thickness, 0.0001);
@@ -335,7 +335,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
             #endif
         #endif    
     #endif
-    
+
     // AO
     float diffuseAO = 1.0;
     float specularAO = 1.0;
