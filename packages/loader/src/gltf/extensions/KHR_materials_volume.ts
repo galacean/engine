@@ -11,7 +11,6 @@ class KHR_materials_volume extends GLTFExtensionParser {
   override additiveParse(context: GLTFParserContext, material: PBRMaterial, schema: IKHRMaterialsVolume): void {
     const { thicknessFactor = 0, thicknessTexture, attenuationDistance = Infinity, attenuationColor } = schema;
     material.refractionMode = RefractionMode.Plane;
-
     material.thickness = thicknessFactor;
     material.attenuationDistance = attenuationDistance;
 
