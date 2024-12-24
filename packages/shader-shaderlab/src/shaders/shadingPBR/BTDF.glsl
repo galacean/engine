@@ -5,7 +5,7 @@
 
 #ifdef MATERIAL_ENABLE_SS_REFRACTION 
     sampler2D camera_OpaqueTexture;
-    vec3 evaluateRefraction(SurfaceData surfaceData, BRDFData brdfData, vec3 specularColor) {
+    vec3 evaluateRefraction(SurfaceData surfaceData, BRDFData brdfData) {
         RefractionModelResult ray;
         #if defined(REFRACTION_SPHERE) 
             RefractionModelSphere(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, surfaceData.thickness, ray);
@@ -32,13 +32,13 @@
 
         // Sample the opaque texture to get the transmitted light
 		vec4 getTransmission = texture2D(camera_OpaqueTexture, refractionCoords);
-		
         vec3 refractionTransmitted = getTransmission.rgb;
         refractionTransmitted *= brdfData.diffuseColor;
          
         // Use specularFGD as an approximation of the fresnel effect
         // https://blog.selfshadow.com/publications/s2017-shading-course/imageworks/s2017_pbs_imageworks_slides_v2.pdf
-        vec3 specularFGD = envBRDFApprox(specularColor, surfaceData.roughness, surfaceData.dotNV);
+        vec3 specularFGD =  brdfData.specularDFG;
+
         refractionTransmitted *= (1.0 - specularFGD);
 
        #ifdef MATERIAL_HAS_ABSORPTION
