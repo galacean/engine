@@ -57,7 +57,7 @@ export class ResourceManager {
    * Create a ResourceManager.
    * @param engine - Engine to which the current ResourceManager belongs
    */
-  constructor(public readonly engine: Engine) { }
+  constructor(public readonly engine: Engine) {}
 
   /**
    * Load asset asynchronously through the path.
@@ -608,7 +608,7 @@ export class ResourceManager {
  * @param extNames - Name of file extension
  */
 export function resourceLoader(assetType: string, extNames: string[], useCache: boolean = true) {
-  return <T extends Loader<any>>(Target: { new(useCache: boolean): T }) => {
+  return <T extends Loader<any>>(Target: { new (useCache: boolean): T }) => {
     const loader = new Target(useCache);
     ResourceManager._addLoader(assetType, loader, extNames);
   };
@@ -619,22 +619,28 @@ const reEscapeChar = /\\(\\)?/g;
 const rePropName = RegExp(
   // Match anything that isn't a dot or bracket.
   "[^.[\\]]+" +
-  "|" +
-  // Or match property names within brackets.
-  "\\[(?:" +
-  // Match a non-string expression.
-  "([^\"'][^[]*)" +
-  "|" +
-  // Or match strings (supports escaping characters).
-  "([\"'])((?:(?!\\2)[^\\\\]|\\\\.)*?)\\2" +
-  ")\\]" +
-  "|" +
-  // Or match "" as the space between consecutive dots or empty brackets.
-  "(?=(?:\\.|\\[\\])(?:\\.|\\[\\]|$))",
+    "|" +
+    // Or match property names within brackets.
+    "\\[(?:" +
+    // Match a non-string expression.
+    "([^\"'][^[]*)" +
+    "|" +
+    // Or match strings (supports escaping characters).
+    "([\"'])((?:(?!\\2)[^\\\\]|\\\\.)*?)\\2" +
+    ")\\]" +
+    "|" +
+    // Or match "" as the space between consecutive dots or empty brackets.
+    "(?=(?:\\.|\\[\\])(?:\\.|\\[\\]|$))",
   "g"
 );
 
-type EditorResourceItem = { virtualPath: string; path: string; type: string; id: string, depndentAssets: { [key: string]: string } };
+type EditorResourceItem = {
+  virtualPath: string;
+  path: string;
+  type: string;
+  id: string;
+  depndentAssets: { [key: string]: string };
+};
 type EditorResourceConfig = Record<string, EditorResourceItem>;
 type SubAssetPromiseCallbacks<T> = Record<
   // main asset url, ie. "https://***.glb"
