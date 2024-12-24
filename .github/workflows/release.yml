@@ -114,7 +114,7 @@ jobs:
                 "${{ github.workspace }}/temp/@galacean/engine-shader-lab/dist/browser.js",
                 "${{ github.workspace }}/temp/@galacean/engine-physics-lite/dist/browser.js",
                 "${{ github.workspace }}/temp/@galacean/engine-physics-physx/dist/browser.js",
-                "${{ github.workspace }}/temp/@galacean/engine-toolkit/dist/browser.js",
+                "${{ github.workspace }}/temp/@galacean/engine-toolkit/umd/browser.js",
                 "${{ github.workspace }}/temp/@galacean/engine-lottie/dist/browser.js",
                 "${{ github.workspace }}/temp/@galacean/engine-spine/dist/browser.js"
               ],
