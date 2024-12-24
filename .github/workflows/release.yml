@@ -95,7 +95,7 @@ jobs:
                 "${{ github.workspace }}/packages/physics-physx/dist/module.js",
                 "${{ github.workspace }}/engine-lottie/dist/module.js",
                 "${{ github.workspace }}/engine-spine/dist/module.js",
-                "${{ github.workspace }}/engine-toolkit/galacean-engine-toolkit/dist/module.js"
+                "${{ github.workspace }}/engine-toolkit/packages/galacean-engine-toolkit/dist/es/index.js"
               ],
               "jsWASMLoader": [
                 "${{ github.workspace }}/packages/physics-physx/libs/physx.release.js"
