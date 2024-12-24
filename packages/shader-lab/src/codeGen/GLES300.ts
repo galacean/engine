@@ -68,9 +68,10 @@ export class GLES300Visitor extends GLESVisitor {
   }
 
   override visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {
-    const typeSpecifier = node.children[0] as ASTNode.TypeSpecifier;
+    const children = node.children;
+    const typeSpecifier = children[0] as ASTNode.TypeSpecifier;
     if (typeSpecifier.children.length !== 1) {
-      return this.defaultCodeGen(node.children);
+      return this.defaultCodeGen(children);
     }
     let ident = node.lexeme;
     if (node.ident === "texture2D" || node.ident === "textureCube") {
