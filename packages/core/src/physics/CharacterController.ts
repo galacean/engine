@@ -15,7 +15,7 @@ export class CharacterController extends Collider {
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
   @deepClone
   private _upDirection = new Vector3(0, 1, 0);
-  private _slopeLimit = 0.707;
+  private _slopeLimit = 45;
 
   /**
    * The step offset for the controller, the value must be greater than or equal to 0.
@@ -61,8 +61,8 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * The slope limit for the controller, the value is the cosine value of the maximum slope angle.
-   * @defaultValue 0.707(the cosine value of 45 degrees)
+   * The slope limit in degrees for the controller, the value is the cosine value of the maximum slope angle.
+   * @defaultValue 45 degrees
    */
   get slopeLimit(): number {
     return this._slopeLimit;

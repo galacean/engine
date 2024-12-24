@@ -133,6 +133,11 @@ export interface IDynamicCollider extends ICollider {
   setCollisionDetectionMode(value: number): void;
 
   /**
+   * Whether the collider is affected by gravity.
+   */
+  setUseGravity(value: boolean): void;
+
+  /**
    * Controls whether physics affects the dynamic collider.
    * @param value - is or not
    */
