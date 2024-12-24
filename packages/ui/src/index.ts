@@ -1,4 +1,18 @@
-import { Entity } from "@galacean/engine";
+import {
+  BlendFactor,
+  BlendOperation,
+  CullMode,
+  Engine,
+  Entity,
+  Material,
+  PipelineStage,
+  RenderQueueType,
+  Shader,
+  ShaderPass
+} from "@galacean/engine";
+import uiDefaultFs from "./shader/uiDefault.fs.glsl";
+import uiDefaultVs from "./shader/uiDefault.vs.glsl";
+
 export { UICanvas } from "./component/UICanvas";
 export { UIGroup } from "./component/UIGroup";
 export { UIRenderer } from "./component/UIRenderer";
@@ -14,6 +28,37 @@ export { CanvasRenderMode } from "./enums/CanvasRenderMode";
 export { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrategy";
 export { UIPointerEventEmitter } from "./input/UIPointerEventEmitter";
 
+export class EngineExtension {
+  _uiDefaultMaterial: Material;
+  _getUIDefaultMaterial(): Material {
+    if (!this._uiDefaultMaterial) {
+      const shader =
+        Shader.find("ui") ??
+        Shader.create("ui", [
+          new ShaderPass("Forward", uiDefaultVs, uiDefaultFs, {
+            pipelineStage: PipelineStage.Forward
+          })
+        ]);
+      // @ts-ignore
+      const material = new Material(this, shader);
+      const renderState = material.renderState;
+      const target = renderState.blendState.targetBlendState;
+      target.enabled = true;
+      target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+      target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+      target.sourceAlphaBlendFactor = BlendFactor.One;
+      target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+      target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+      renderState.depthState.writeEnabled = false;
+      renderState.rasterState.cullMode = CullMode.Off;
+      renderState.renderQueueType = RenderQueueType.Transparent;
+      material.isGCIgnored = true;
+      this._uiDefaultMaterial = material;
+    }
+    return this._uiDefaultMaterial;
+  }
+}
+
 export class EntityExtension {
   _uiHierarchyVersion = 0;
   _updateUIHierarchyVersion(version: number): void {
@@ -26,6 +71,12 @@ export class EntityExtension {
 }
 
 declare module "@galacean/engine" {
+  interface Engine {
+    // @internal
+    _uiDefaultMaterial: Material;
+    // @internal
+    _getUIDefaultMaterial(): Material;
+  }
   interface Entity {
     // @internal
     _uiHierarchyVersion: number;
@@ -46,4 +97,5 @@ function ApplyMixins(derivedCtor: any, baseCtors: any[]): void {
   });
 }
 
+ApplyMixins(Engine, [EngineExtension]);
 ApplyMixins(Entity, [EntityExtension]);
