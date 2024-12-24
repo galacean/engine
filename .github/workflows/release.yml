@@ -109,14 +109,14 @@ jobs:
             {
               "polyfill": true,
               "engine": [
-                "${{ github.workspace }}/temp/@galacean/engine/dist/browsers.js",
-                "${{ github.workspace }}/temp/@galacean/engine-xr/dist/browsers.js",
-                "${{ github.workspace }}/temp/@galacean/engine-shader-lab/dist/browsers.js",
-                "${{ github.workspace }}/temp/@galacean/engine-physics-lite/dist/browsers.js",
-                "${{ github.workspace }}/temp/@galacean/engine-physics-physx/dist/browsers.js",
-                "${{ github.workspace }}/temp/@galacean/engine-toolkit/dist/browsers.js",
-                "${{ github.workspace }}/temp/@galacean/engine-lottie/dist/browsers.js",
-                "${{ github.workspace }}/temp/@galacean/engine-spine/dist/browsers.js"
+                "${{ github.workspace }}/temp/@galacean/engine/dist/browser.js",
+                "${{ github.workspace }}/temp/@galacean/engine-xr/dist/browser.js",
+                "${{ github.workspace }}/temp/@galacean/engine-shader-lab/dist/browser.js",
+                "${{ github.workspace }}/temp/@galacean/engine-physics-lite/dist/browser.js",
+                "${{ github.workspace }}/temp/@galacean/engine-physics-physx/dist/browser.js",
+                "${{ github.workspace }}/temp/@galacean/engine-toolkit/dist/browser.js",
+                "${{ github.workspace }}/temp/@galacean/engine-lottie/dist/browser.js",
+                "${{ github.workspace }}/temp/@galacean/engine-spine/dist/browser.js"
               ],
               "jsWASMLoader": [
                 "${{ github.workspace }}/packages/physics-physx/libs/physx.release.js"
