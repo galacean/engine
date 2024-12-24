@@ -2,7 +2,7 @@ import { ShaderRange } from "../common";
 import { ASTNode, TreeNode } from "./AST";
 import { GSErrorName } from "../GSError";
 import { ShaderData } from "./ShaderInfo";
-import { ESymbolType, SymbolInfo, SymbolTable } from "../parser/symbolTable";
+import { ESymbolType, SymbolInfo, TargetSymbolTable } from "../parser/symbolTable";
 import { NodeChild } from "./types";
 import { SymbolTableStack } from "../common/BaseSymbolTable";
 import { ShaderLab } from "../ShaderLab";
@@ -24,7 +24,7 @@ export type TranslationRule<T = any> = (sa: SematicAnalyzer, ...tokens: NodeChil
 export default class SematicAnalyzer {
   semanticStack: TreeNode[] = [];
   acceptRule?: TranslationRule = undefined;
-  symbolTableStack: SymbolTableStack<SymbolInfo, SymbolTable> = new SymbolTableStack();
+  symbolTableStack: SymbolTableStack<SymbolInfo, TargetSymbolTable> = new SymbolTableStack();
   curFunctionInfo: {
     header?: ASTNode.FunctionDeclarator;
     returnStatement?: ASTNode.JumpStatement;
@@ -55,7 +55,7 @@ export default class SematicAnalyzer {
   }
 
   newScope() {
-    const scope = new SymbolTable();
+    const scope = new TargetSymbolTable();
     this.symbolTableStack.newScope(scope);
   }
 

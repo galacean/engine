@@ -1,6 +1,6 @@
 import { EShaderStage } from "../common/Enums";
 import { ASTNode } from "../parser/AST";
-import { ESymbolType, SymbolTable, SymbolInfo } from "../parser/symbolTable";
+import { ESymbolType, TargetSymbolTable, SymbolInfo } from "../parser/symbolTable";
 import { IParamInfo, StructProp } from "../parser/types";
 import { GSErrorName } from "../GSError";
 import { BaseToken } from "../common/BaseToken";
@@ -35,7 +35,7 @@ export class VisitorContext {
 
   _curFn?: ASTNode.FunctionProtoType;
 
-  _passSymbolTable: SymbolTable;
+  _passSymbolTable: TargetSymbolTable;
 
   private constructor() {}
 

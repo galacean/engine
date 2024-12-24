@@ -7,7 +7,7 @@ import { StructSymbol } from "./StructSymbol";
 import { ESymbolType, SymbolAstNode, SymbolInfo } from "./SymbolInfo";
 import { VarSymbol } from "./VarSymbol";
 
-export class SymbolTable extends BaseSymbolTable<SymbolInfo> {
+export class TargetSymbolTable extends BaseSymbolTable<SymbolInfo> {
   override insert(sm: SymbolInfo): void {
     const entry = this._table.get(sm.ident) ?? [];
     for (let i = 0; i < entry.length; i++) {
