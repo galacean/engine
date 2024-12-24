@@ -117,7 +117,7 @@ export class ShaderContentParser {
     const stack = ShaderContentParser._symbolTableStack.stack;
     for (let length = stack.length, i = length - 1; i >= 0; i--) {
       const symbolTable = stack[i];
-      const ret = symbolTable.lookupByType(ident, type);
+      const ret = symbolTable.lookup(ident, type);
       if (ret) return ret;
     }
   }

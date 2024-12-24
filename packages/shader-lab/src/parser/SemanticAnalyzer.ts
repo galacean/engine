@@ -80,7 +80,7 @@ export default class SematicAnalyzer {
     const stack = this.symbolTableStack.stack;
     for (let length = stack.length, i = length - 1; i >= 0; i--) {
       const symbolTable = stack[i];
-      const ret = symbolTable.lookupBy(ident, symbolType, signature, astNode);
+      const ret = symbolTable.lookup(ident, symbolType, signature, astNode);
       if (ret) return ret;
     }
   }

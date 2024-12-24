@@ -121,7 +121,7 @@ export class VisitorContext {
       }
       return;
     }
-    const sm = this._passSymbolTable.lookupBy(ident, type);
+    const sm = this._passSymbolTable.lookup(ident, type);
     if (sm) {
       this._referencedGlobals[ident] = sm;
     }

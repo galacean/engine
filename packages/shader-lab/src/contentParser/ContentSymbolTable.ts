@@ -21,7 +21,7 @@ export default class ContentSymbolTable extends BaseSymbolTable<ISymbol> {
     this._table.set(sm.ident, entry);
   }
 
-  lookupByType(ident: string, type: TokenType): ISymbol | undefined {
+  lookup(ident: string, type: TokenType): ISymbol | undefined {
     const entry = this._table.get(ident);
     if (entry) {
       for (let length = entry.length, i = 0; i < length; i++) {

@@ -21,7 +21,7 @@ export class SymbolTable extends BaseSymbolTable<SymbolInfo> {
     this._table.set(sm.ident, entry);
   }
 
-  lookupBy<T extends ESymbolType>(
+  lookup<T extends ESymbolType>(
     ident: string,
     symbolType: T,
     signature?: GalaceanDataType[],
