@@ -107,7 +107,7 @@ jobs:
         run: ls -l ${{ github.workspace }}/platform-adapter/dist
 
       - name: Release engine packages and Sync to CDN
-        uses: galacean/publish@v0.2.0
+        uses: galacean/publish@main
         if: success() || failure()
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
@@ -117,7 +117,7 @@ jobs:
           OASISBE_PUBLIC_KEY: ${{secrets.OASISBE_PUBLIC_KEY}}
 
       - name: Sync Platform Adapter to CDN
-        uses: galacean/publish@v0.2.0
+        uses: galacean/publish@main
         if: success() || failure()
         with:
           publish: false
