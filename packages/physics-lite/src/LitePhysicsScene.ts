@@ -1,5 +1,5 @@
 import { BoundingBox, BoundingSphere, CollisionUtil, DisorderedArray, Ray, Vector3 } from "@galacean/engine";
-import { ICharacterController, IPhysicsScene } from "@galacean/engine-design";
+import { ICharacterController, ICollision, IPhysicsScene } from "@galacean/engine-design";
 import { LiteCollider } from "./LiteCollider";
 import { LiteDynamicCollider } from "./LiteDynamicCollider";
 import { LiteHitResult } from "./LiteHitResult";
@@ -17,9 +17,9 @@ export class LitePhysicsScene implements IPhysicsScene {
   private static _currentHit: LiteHitResult = new LiteHitResult();
   private static _hitResult: LiteHitResult = new LiteHitResult();
 
-  private readonly _onContactEnter?: (obj1: number, obj2: number) => void;
-  private readonly _onContactExit?: (obj1: number, obj2: number) => void;
-  private readonly _onContactStay?: (obj1: number, obj2: number) => void;
+  private readonly _onContactEnter?: (collision: ICollision) => void;
+  private readonly _onContactExit?: (collision: ICollision) => void;
+  private readonly _onContactStay?: (collision: ICollision) => void;
   private readonly _onTriggerEnter?: (obj1: number, obj2: number) => void;
   private readonly _onTriggerExit?: (obj1: number, obj2: number) => void;
   private readonly _onTriggerStay?: (obj1: number, obj2: number) => void;
@@ -34,9 +34,9 @@ export class LitePhysicsScene implements IPhysicsScene {
   private _eventPool: TriggerEvent[] = [];
 
   constructor(
-    onContactEnter?: (obj1: number, obj2: number) => void,
-    onContactExit?: (obj1: number, obj2: number) => void,
-    onContactStay?: (obj1: number, obj2: number) => void,
+    onContactEnter?: (collision: ICollision) => void,
+    onContactExit?: (collision: ICollision) => void,
+    onContactStay?: (collision: ICollision) => void,
     onTriggerEnter?: (obj1: number, obj2: number) => void,
     onTriggerExit?: (obj1: number, obj2: number) => void,
     onTriggerStay?: (obj1: number, obj2: number) => void

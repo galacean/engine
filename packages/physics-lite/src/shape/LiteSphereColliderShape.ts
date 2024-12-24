@@ -1,6 +1,6 @@
 import { ISphereColliderShape } from "@galacean/engine-design";
 import { LiteColliderShape } from "./LiteColliderShape";
-import { BoundingSphere, Quaternion, Ray, Vector3 } from "@galacean/engine";
+import { BoundingSphere, Ray, Vector3, Vector4 } from "@galacean/engine";
 import { LiteHitResult } from "../LiteHitResult";
 import { LitePhysicsMaterial } from "../LitePhysicsMaterial";
 
@@ -42,6 +42,33 @@ export class LiteSphereColliderShape extends LiteColliderShape implements ISpher
   override setWorldScale(scale: Vector3): void {
     super.setWorldScale(scale);
     this._maxScale = Math.max(Math.abs(scale.x), Math.abs(scale.y), Math.abs(scale.z));
+  }
+
+  /**
+   * {@inheritDoc IColliderShape.pointDistance }
+   */
+  override pointDistance(point: Vector3): Vector4 {
+    const position = LiteColliderShape._tempPos;
+    const worldRadius = this.worldRadius;
+    this._transform.worldMatrix.decompose(position, LiteColliderShape._tempRot, LiteColliderShape._tempScale);
+    const p = LiteColliderShape._tempPoint;
+    Vector3.subtract(point, position, p);
+    const distanceFromCenter = p.lengthSquared();
+    const direction = p.normalize();
+
+    Vector3.scale(direction, worldRadius, p);
+    p.add(position);
+
+    const res = LiteColliderShape._tempVector4;
+    const distanceSquared = Vector3.distanceSquared(p, point);
+
+    if (distanceFromCenter <= worldRadius * worldRadius) {
+      res.set(point.x, point.y, point.z, 0);
+    } else {
+      res.set(p.x, p.y, p.z, distanceSquared);
+    }
+
+    return res;
   }
 
   /**

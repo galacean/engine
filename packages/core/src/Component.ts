@@ -12,6 +12,7 @@ export class Component extends EngineObject {
   /** @internal */
   @ignoreClone
   _entity: Entity;
+
   /** @internal */
   @ignoreClone
   _awoken: boolean = false;
@@ -21,6 +22,7 @@ export class Component extends EngineObject {
 
   @ignoreClone
   private _phasedActive: boolean = false;
+
   @assignmentClone
   private _enabled: boolean = true;
 
