@@ -635,7 +635,7 @@ const rePropName = RegExp(
 );
 
 type EditorResourceItem = { virtualPath: string; path: string; type: string; id: string, depndentAssets: { [key: string]: string } };
-type EditorResourceConfig = Record<string, EditorResourceItem>;
+type EditorResourceConfig = Record< string, EditorResourceItem>;
 type SubAssetPromiseCallbacks<T> = Record<
   // main asset url, ie. "https://***.glb"
   string,
