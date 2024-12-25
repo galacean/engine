@@ -63,8 +63,8 @@ float material_OcclusionTextureCoord;
 #endif
 
 #ifdef MATERIAL_ENABLE_SS_REFRACTION 
-    vec3 material_AttenuationColor;
-    float material_AttenuationDistance;
+    // vec3 material_AttenuationColor;
+    // float material_AttenuationDistance;
    
     #ifdef MATERIAL_HAS_TRANSMISSION
         float material_Transmission;
@@ -73,12 +73,12 @@ float material_OcclusionTextureCoord;
         #endif
     #endif
 
-    #ifdef MATERIAL_HAS_THICKNESS
-        float material_Thickness;
-        #ifdef MATERIAL_HAS_THICKNESS_TEXTURE
-            sampler2D material_ThicknessTexture;
-        #endif
-    #endif
+    // #ifdef MATERIAL_HAS_THICKNESS
+    //     float material_Thickness;
+    //     #ifdef MATERIAL_HAS_THICKNESS_TEXTURE
+    //         sampler2D material_ThicknessTexture;
+    //     #endif
+    // #endif
 #endif
 
 // Texture
@@ -314,7 +314,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     #endif
 
     #ifdef MATERIAL_ENABLE_SS_REFRACTION 
-        surfaceData.absorptionCoefficient = -log(material_AttenuationColor + HALF_EPS) / max(HALF_EPS, material_AttenuationDistance);
+        // surfaceData.absorptionCoefficient = -log(material_AttenuationColor + HALF_EPS) / max(HALF_EPS, material_AttenuationDistance);
         #ifdef MATERIAL_HAS_TRANSMISSION
             surfaceData.transmission = material_Transmission;
             #ifdef MATERIAL_HAS_TRANSMISSION_TEXTURE
@@ -324,17 +324,17 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
             surfaceData.transmission = 1.0;
         #endif
 
-        #ifdef MATERIAL_HAS_THICKNESS
-            #if REFRACTION_MODE == THIN
-                //https://zh.wikipedia.org/wiki/%E8%96%84%E8%86%9C%E5%85%89%E5%AD%A6
-                surfaceData.thickness = 0.005;
-            #else
-                surfaceData.thickness = max(material_Thickness, 0.0001);
-                #ifdef MATERIAL_HAS_THICKNESS_TEXTURE
-                    surfaceData.thickness *= texture2D( material_ThicknessTexture, uv).g;
-                #endif
-            #endif
-        #endif    
+        // #ifdef MATERIAL_HAS_THICKNESS
+        //     #if REFRACTION_MODE == THIN
+        //         //https://zh.wikipedia.org/wiki/%E8%96%84%E8%86%9C%E5%85%89%E5%AD%A6
+        //         surfaceData.thickness = 0.005;
+        //     #else
+        //         surfaceData.thickness = max(material_Thickness, 0.0001);
+        //         #ifdef MATERIAL_HAS_THICKNESS_TEXTURE
+        //             surfaceData.thickness *= texture2D( material_ThicknessTexture, uv).g;
+        //         #endif
+        //     #endif
+        // #endif    
     #endif
 
     // AO
