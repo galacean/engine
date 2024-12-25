@@ -701,9 +701,9 @@ export namespace ASTNode {
           }
         }
         // #if _VERBOSE
-        const builtinFn = BuiltinFunction.getFn(fnIdent, ...(paramSig ?? []));
+        const builtinFn = BuiltinFunction.getFn(fnIdent, paramSig);
         if (builtinFn) {
-          this.type = BuiltinFunction.getReturnType(builtinFn.fun, builtinFn.genType);
+          this.type = builtinFn.realReturnType;
           return;
         }
         // #endif

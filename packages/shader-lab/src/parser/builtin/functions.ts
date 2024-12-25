@@ -32,6 +32,11 @@ export class BuiltinFunction {
   ident: string;
   readonly args: BuiltinType[];
   readonly scope: EShaderStage;
+  signatures: NonGenericGalaceanType[] = [];
+
+  get realReturnType(): NonGenericGalaceanType {
+    return this.signatures[0];
+  }
 
   private constructor(ident: string, returnType: BuiltinType, scope: EShaderStage, ...args: BuiltinType[]) {
     this.ident = ident;
@@ -59,33 +64,37 @@ export class BuiltinFunction {
     BuiltinFunctionTable.set(ident, list);
   }
 
-  static getFn(
-    ident: string,
-    ...args: BuiltinType[]
-  ): { fun: BuiltinFunction; genType: Exclude<GalaceanDataType, string> } | undefined {
+  static getFn(ident: string, parameterTypes: NonGenericGalaceanType[]): BuiltinFunction | undefined {
     const list = BuiltinFunctionTable.get(ident);
-    let realType = TypeAny;
-    if (list?.length) {
-      const fun = list.find((item) => {
-        if (item.args.length !== args.length) return false;
-        let genType = 0;
-        for (let i = 0; i < args.length; i++) {
-          if (args[i] === TypeAny) continue;
-          realType = args[i];
-          if (isGenericType(item.args[i])) {
-            if (genType === 0) {
-              genType = args[i];
-              continue;
-            } else {
-              realType = genType;
+    if (list) {
+      for (let length = list.length, i = 0; i < length; i++) {
+        const fn = list[i];
+        const fnArgs = fn.args;
+        const argLength = fnArgs.length;
+        if (argLength !== parameterTypes.length) continue;
+        // Try to match generic parameter type.
+        let returnType = TypeAny;
+        let found = true;
+        for (let i = 0; i < argLength; i++) {
+          const curFnArg = fnArgs[i];
+          if (isGenericType(curFnArg)) {
+            if (returnType === TypeAny) returnType = parameterTypes[i];
+          } else {
+            if (curFnArg !== parameterTypes[i] && parameterTypes[i] !== TypeAny) {
+              found = false;
+              break;
             }
           }
-          if (args[i] === TypeAny) continue;
-          if (args[i] !== realType) return false;
         }
-        return true;
-      });
-      if (fun) return { fun, genType: realType };
+        if (found) {
+          fn.signatures.length = 0;
+          fn.signatures.push(returnType);
+          for (let i = 0; i < argLength; i++) {
+            fn.signatures.push(parameterTypes[i]);
+          }
+          return fn;
+        }
+      }
     }
   }
 }
@@ -249,8 +258,8 @@ BuiltinFunction._create("textureSize", EKeyword.IVEC2, EKeyword.SAMPLER_CUBE_SHA
 BuiltinFunction._create("textureSize", EKeyword.IVEC3, EGenType.GSampler2DArray, EKeyword.INT);
 BuiltinFunction._create("textureSize", EKeyword.IVEC3, EKeyword.SAMPLER2D_ARRAY_SHADOW, EKeyword.INT);
 
-BuiltinFunction._create("texture2D", EKeyword.SAMPLER2D, EKeyword.VEC2);
-BuiltinFunction._create("texture2D", EKeyword.SAMPLER2D, EKeyword.VEC2, EKeyword.FLOAT);
+BuiltinFunction._create("texture2D", EKeyword.VEC4, EKeyword.SAMPLER2D, EKeyword.VEC2);
+BuiltinFunction._create("texture2D", EKeyword.VEC4, EKeyword.SAMPLER2D, EKeyword.VEC2, EKeyword.FLOAT);
 
 BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSampler2D, EKeyword.VEC2, EKeyword.FLOAT);
 BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSampler2D, EKeyword.VEC2);

@@ -9,6 +9,7 @@ import { Color } from "@galacean/engine-math";
 import { ShaderLab as ShaderLabVerbose, GSError } from "@galacean/engine-shader-lab/verbose";
 import { ShaderLab as ShaderLabRelease } from "@galacean/engine-shader-lab";
 import { glslValidate, shaderParse } from "./ShaderValidate";
+import { registerIncludes } from "@galacean/engine-shader-shaderlab";
 
 import { IShaderContent } from "@galacean/engine-design";
 import { describe, beforeAll, expect, assert, it } from "vitest";
@@ -16,6 +17,28 @@ import { server } from "@vitest/browser/context";
 const { readFile } = server.commands;
 
 const demoShader = await readFile("./shaders/demo.shader");
+
+const commonMacros = [
+  { name: "RENDERER_IS_RECEIVE_SHADOWS" },
+  { name: "MATERIAL_IS_TRANSPARENT" },
+  { name: "RENDERER_HAS_UV" },
+  { name: "RENDERER_HAS_NORMAL" },
+  { name: "RENDERER_HAS_TANGENT" },
+  { name: "SCENE_FOG_MODE", value: "0" },
+  { name: "SCENE_SHADOW_CASCADED_COUNT", value: "1" },
+  { name: "CAMERA_ORTHOGRAPHIC" },
+  { name: "MATERIAL_NEED_WORLD_POS" },
+  { name: "MATERIAL_NEED_TILING_OFFSET" },
+  { name: "SCENE_DIRECT_LIGHT_COUNT", value: "1" },
+  { name: "MATERIAL_ENABLE_SS_REFRACTION" },
+  { name: "MATERIAL_HAS_TRANSMISSION" },
+  { name: "MATERIAL_HAS_THICKNESS" },
+  { name: "MATERIAL_HAS_ABSORPTION" },
+  { name: "MATERIAL_HAS_TRANSMISSION_TEXTURE" },
+  { name: "REFRACTION_SPHERE" }
+]
+  .map((item) => `#define ${item.name} ${item.value ?? ""}`)
+  .join("\n");
 
 function toString(v: Color): string {
   return `Color(${v.r}, ${v.g}, ${v.b}, ${v.a})`;
@@ -124,6 +147,13 @@ describe("ShaderLab", () => {
     expect(passList[0].isUsePass).to.be.true;
     expect(passList[0].name).eq("pbr/Default/Forward");
     pass1 = passList[1];
+    registerIncludes();
+  });
+
+  it("builtin-function", async () => {
+    let shaderSource = await readFile("./shaders/builtin-function.shader");
+    shaderSource = shaderSource.replace("__$$insert_maros$$__", commonMacros);
+    glslValidate(shaderSource, shaderLabVerbose, {});
   });
 
   it("create shaderLab", async () => {
