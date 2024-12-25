@@ -84,29 +84,23 @@ function config({ location, pkgJson, verboseMode }) {
       const umdConfig = pkgJson.umd;
       let file = path.join(location, "dist", "browser.js");
 
+      if (compress) {
+        const glslifyPluginIdx = curPlugins.findIndex((item) => item === glslifyPlugin);
+        curPlugins.splice(
+          glslifyPluginIdx,
+          1,
+          glslify({
+            include: [/\.(glsl|gs)$/],
+            compress: true
+          })
+        );
+        curPlugins.push(minify({ sourceMap: true }));
+      }
+
       if (verboseMode) {
-        if (compress) {
-          curPlugins.push(minify({ sourceMap: true }));
-          file = path.join(location, "dist", "browser.verbose.min.js");
-        } else {
-          file = path.join(location, "dist", "browser.verbose.js");
-        }
+        file = path.join(location, "dist", compress ? "browser.verbose.min.js" : "browser.verbose.js");
       } else {
-        if (compress) {
-          const glslifyPluginIdx = curPlugins.findIndex((item) => item === glslifyPlugin);
-          curPlugins.splice(
-            glslifyPluginIdx,
-            1,
-            glslify({
-              include: [/\.(glsl|gs)$/],
-              compress: true
-            })
-          );
-          curPlugins.push(minify({ sourceMap: true }));
-          file = path.join(location, "dist", "browser.min.js");
-        } else {
-          file = path.join(location, "dist", "browser.js");
-        }
+        file = path.join(location, "dist", compress ? "browser.min.js" : "browser.js");
       }
 
       const umdExternal = Object.keys(umdConfig.globals ?? {});

@@ -4,14 +4,16 @@
  */
 import {
   BlinnPhongMaterial,
+  BloomEffect,
   Camera,
-  CameraClearFlags,
   Color,
   Engine,
   Logger,
   MeshRenderer,
+  PostProcess,
   PrimitiveMesh,
   Scene,
+  TonemappingEffect,
   WebGLEngine
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
@@ -60,15 +62,13 @@ function initSecondScene(engine: Engine): Camera {
   camera.enablePostProcess = true;
   // camera.clearFlags = CameraClearFlags.None;
 
-  // @ts-ignore
-  const bloomEffect = scene._postProcessManager._bloomEffect;
-  // @ts-ignore
-  const tonemappingEffect = scene._postProcessManager._tonemappingEffect;
+  const globalPostProcessEntity = scene.createRootEntity();
+  const postProcess = globalPostProcessEntity.addComponent(PostProcess);
+  const bloomEffect = postProcess.addEffect(BloomEffect);
+  postProcess.addEffect(TonemappingEffect);
 
-  bloomEffect.enabled = true;
-  tonemappingEffect.enabled = true;
-  bloomEffect.threshold = 0.1;
-  bloomEffect.intensity = 2;
+  bloomEffect.threshold.value = 0.1;
+  bloomEffect.intensity.value = 2;
   cameraEntity.transform.setPosition(0, 0, 20);
 
   // Create cube
