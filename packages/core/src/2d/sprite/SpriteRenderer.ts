@@ -272,7 +272,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
     this.setMaterial(this._engine._basicResources.spriteDefaultMaterial);
     this._onSpriteChange = this._onSpriteChange.bind(this);
     //@ts-ignore
-    this._color._onValueChanged = this._onColorChange.bind(this);
+    this._color._onValueChanged = this._onColorChanged.bind(this);
   }
 
   /**
@@ -469,7 +469,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   }
 
   @ignoreClone
-  private _onColorChange(): void {
+  private _onColorChanged(): void {
     this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Color;
   }
 }

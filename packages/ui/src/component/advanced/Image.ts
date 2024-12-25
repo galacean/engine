@@ -152,8 +152,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     this.drawMode = SpriteDrawMode.Simple;
     this.setMaterial(this._engine._getUIDefaultMaterial());
     this._onSpriteChange = this._onSpriteChange.bind(this);
-    //@ts-ignore
-    this._color._onValueChanged = this._onColorChange.bind(this);
   }
 
   protected override _hitTest(localPosition: Vector3): boolean {

@@ -108,9 +108,9 @@ export class UIRenderer extends Renderer implements IGraphics {
   constructor(entity: Entity) {
     super(entity);
     this._dirtyUpdateFlag = RendererUpdateFlags.WorldVolume | UIRendererUpdateFlags.Color;
-    this._onColorChange = this._onColorChange.bind(this);
+    this._onColorChanged = this._onColorChanged.bind(this);
     //@ts-ignore
-    this._color._onValueChanged = this._onColorChange;
+    this._color._onValueChanged = this._onColorChanged;
     this._groupListener = this._groupListener.bind(this);
     this._rootCanvasListener = this._rootCanvasListener.bind(this);
   }
@@ -222,7 +222,7 @@ export class UIRenderer extends Renderer implements IGraphics {
   }
 
   @ignoreClone
-  private _onColorChange(): void {
+  private _onColorChanged(): void {
     this._dirtyUpdateFlag |= UIRendererUpdateFlags.Color;
   }
 

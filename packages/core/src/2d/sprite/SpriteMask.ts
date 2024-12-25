@@ -8,7 +8,7 @@ import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
-import { Renderer, RendererUpdateFlags } from "../../Renderer";
+import { Renderer } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -156,10 +156,6 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
         this.shaderData.setTexture(SpriteMask._textureProperty, null);
       }
       this._sprite = value;
-      if (this._customWidth === undefined || this._customHeight === undefined) {
-        this._calDefaultSize();
-        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.WorldVolumeAndPosition;
-      }
     }
   }
 
@@ -351,7 +347,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
       case SpriteModifyFlags.size:
         this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.AutomaticSize;
         if (this._customWidth === undefined || this._customHeight === undefined) {
-          this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+          this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.WorldVolumeAndPosition;
         }
         break;
       case SpriteModifyFlags.region:
