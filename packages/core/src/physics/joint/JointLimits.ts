@@ -16,34 +16,34 @@ export class JointLimits {
   private _damping = 0;
 
   /**
-   * The upper angular limit (in radians) of the joint.
+   * The upper angular limit (in degrees) of the joint.
    */
   get max(): number {
     return this._max;
   }
 
   set max(value: number) {
-    if (value < this._min) {
-      throw new Error("Max limit must be greater than min limit");
-    }
     if (this._max !== value) {
+      if (value < this._min) {
+        this._min = value;
+      }
       this._max = value;
       this._updateFlagManager.dispatch();
     }
   }
 
   /**
-   * The lower angular limit (in radians) of the joint.
+   * The lower angular limit (in degrees) of the joint.
    */
   get min(): number {
     return this._min;
   }
 
   set min(value: number) {
-    if (value > this._max) {
-      throw new Error("Min limit must be less than max limit");
-    }
     if (this._min !== value) {
+      if (value > this._max) {
+        this._max = value;
+      }
       this._min = value;
       this._updateFlagManager.dispatch();
     }

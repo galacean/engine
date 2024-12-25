@@ -69,7 +69,28 @@ jobs:
           pnpm link ../packages/galacean
           pnpm build
 
-      - name: Ensure Dist Directory Exists
+      - name: Structure Temp Directory
+        run: |
+          mkdir -p ${{ github.workspace }}/temp
+          mkdir -p ${{ github.workspace }}/temp/@galacean/engine
+          cp -r ${{ github.workspace }}/packages/galacean/dist ${{ github.workspace }}/temp/@galacean/engine
+          mkdir -p ${{ github.workspace }}/temp/@galacean/engine-xr
+          cp -r ${{ github.workspace }}/packages/xr/dist ${{ github.workspace }}/temp/@galacean/engine-xr
+          mkdir -p ${{ github.workspace }}/temp/@galacean/engine-shader-lab
+          cp -r ${{ github.workspace }}/packages/shader-lab/dist ${{ github.workspace }}/temp/@galacean/engine-shader-lab
+          mkdir -p ${{ github.workspace }}/temp/@galacean/engine-physics-lite
+          cp -r ${{ github.workspace }}/packages/physics-lite/dist ${{ github.workspace }}/temp/@galacean/engine-physics-lite
+          mkdir -p ${{ github.workspace }}/temp/@galacean/engine-physics-physx
+          cp -r ${{ github.workspace }}/packages/physics-physx/dist ${{ github.workspace }}/temp/@galacean/engine-physics-physx
+          mkdir -p ${{ github.workspace }}/temp/@galacean/engine-toolkit
+          cp -r ${{ github.workspace }}/engine-toolkit/packages/galacean-engine-toolkit/dist/umd ${{ github.workspace }}/temp/@galacean/engine-toolkit
+          mkdir -p ${{ github.workspace }}/temp/@galacean/engine-lottie
+          cp -r ${{ github.workspace }}/engine-lottie/dist ${{ github.workspace }}/temp/@galacean/engine-lottie
+          mkdir -p ${{ github.workspace }}/temp/@galacean/engine-spine
+          cp -r ${{ github.workspace }}/engine-spine/dist ${{ github.workspace }}/temp/@galacean/engine-spine
+          find ${{ github.workspace }}/temp
+
+      - name: Ensure Adapter Directory Exists
         run: mkdir -p ${{ github.workspace }}/platform-adapter/dist
 
       # Create a mock package.json to specify the path and version of the adapter build result when syncing with the CDN later.
@@ -88,14 +109,14 @@ jobs:
             {
               "polyfill": true,
               "engine": [
-                "${{ github.workspace }}/packages/galacean/dist/browser.js",
-                "${{ github.workspace }}/packages/xr/dist/browser.js",
-                "${{ github.workspace }}/packages/shader-lab/dist/browser.js",
-                "${{ github.workspace }}/packages/physics-lite/dist/browser.js",
-                "${{ github.workspace }}/packages/physics-physx/dist/browser.js",
-                "${{ github.workspace }}/engine-lottie/dist/browser.js",
-                "${{ github.workspace }}/engine-spine/dist/browser.js",
-                "${{ github.workspace }}/engine-toolkit/packages/galacean-engine-toolkit/dist/umd/browser.js"
+                "${{ github.workspace }}/temp/@galacean/engine/dist/browser.js",
+                "${{ github.workspace }}/temp/@galacean/engine-xr/dist/browser.js",
+                "${{ github.workspace }}/temp/@galacean/engine-shader-lab/dist/browser.js",
+                "${{ github.workspace }}/temp/@galacean/engine-physics-lite/dist/browser.js",
+                "${{ github.workspace }}/temp/@galacean/engine-physics-physx/dist/browser.js",
+                "${{ github.workspace }}/temp/@galacean/engine-toolkit/umd/browser.js",
+                "${{ github.workspace }}/temp/@galacean/engine-lottie/dist/browser.js",
+                "${{ github.workspace }}/temp/@galacean/engine-spine/dist/browser.js"
               ],
               "jsWASMLoader": [
                 "${{ github.workspace }}/packages/physics-physx/libs/physx.release.js"

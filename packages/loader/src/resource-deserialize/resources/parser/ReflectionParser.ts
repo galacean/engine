@@ -1,5 +1,14 @@
-import { EngineObject, Entity, Loader, ReferResource } from "@galacean/engine-core";
-import type { IAssetRef, IBasicType, IClassObject, IEntity, IEntityRef, IHierarchyFile, IRefEntity } from "../schema";
+import { EngineObject, Entity, Loader } from "@galacean/engine-core";
+import type {
+  IAssetRef,
+  IBasicType,
+  IClassObject,
+  IEntity,
+  IEntityRef,
+  IComponentRef,
+  IHierarchyFile,
+  IRefEntity
+} from "../schema";
 import { ParserContext, ParserType } from "./ParserContext";
 
 export class ReflectionParser {
@@ -85,6 +94,8 @@ export class ReflectionParser {
           }
           return resource;
         });
+      } else if (ReflectionParser._isComponentRef(value)) {
+        return this._context.getComponentByRef(value);
       } else if (ReflectionParser._isEntityRef(value)) {
         // entity reference
         return Promise.resolve(this._context.entityMap.get(value.entityId));
@@ -144,14 +155,18 @@ export class ReflectionParser {
   }
 
   private static _isClass(value: any): value is IClassObject {
-    return value["class"] != undefined;
+    return value["class"] !== undefined;
   }
 
   private static _isAssetRef(value: any): value is IAssetRef {
-    return value["refId"] != undefined;
+    return value["refId"] !== undefined;
   }
 
   private static _isEntityRef(value: any): value is IEntityRef {
-    return value["entityId"] != undefined;
+    return value["entityId"] !== undefined;
+  }
+
+  private static _isComponentRef(value: any): value is IComponentRef {
+    return value["ownerId"] !== undefined && value["componentId"] !== undefined;
   }
 }
