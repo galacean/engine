@@ -5,7 +5,6 @@ import {
   ISpriteRenderer,
   MathUtil,
   RenderQueueFlags,
-  RendererUpdateFlags,
   SimpleSpriteAssembler,
   SlicedSpriteAssembler,
   Sprite,
@@ -79,7 +78,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
           break;
       }
       this._assembler.resetData(this);
-      this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionUVAndColor;
+      this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
     }
   }
 
@@ -94,7 +93,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     if (this._tileMode !== value) {
       this._tileMode = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionUVAndColor;
+        this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
       }
     }
   }
@@ -111,7 +110,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
       value = MathUtil.clamp(value, 0, 1);
       this._tiledAdaptiveThreshold = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionUVAndColor;
+        this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
       }
     }
   }
@@ -131,7 +130,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
         // @ts-ignore
         lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
       }
-      this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionUVAndColor;
+      this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
       if (value) {
         this._addResourceReferCount(value, 1);
         // @ts-ignore
@@ -153,8 +152,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     this.drawMode = SpriteDrawMode.Simple;
     this.setMaterial(this._engine._getUIDefaultMaterial());
     this._onSpriteChange = this._onSpriteChange.bind(this);
-    //@ts-ignore
-    this._color._onValueChanged = this._onColorChange.bind(this);
   }
 
   protected override _hitTest(localPosition: Vector3): boolean {
@@ -192,16 +189,18 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     }
   }
 
-  protected override _updateLocalBounds(localBounds: BoundingBox): void {
-    if (this._sprite) {
+  protected override _updateBounds(worldBounds: BoundingBox): void {
+    if (this.sprite) {
       const transform = <UITransform>this._transformEntity.transform;
       const { x: width, y: height } = transform.size;
       const { x: pivotX, y: pivotY } = transform.pivot;
-      localBounds.min.set(-width * pivotX, -height * pivotY, 0);
-      localBounds.max.set(width * (1 - pivotX), height * (1 - pivotY), 0);
+      worldBounds.min.set(-width * pivotX, -height * pivotY, 0);
+      worldBounds.max.set(width * (1 - pivotX), height * (1 - pivotY), 0);
+      BoundingBox.transform(worldBounds, this._transformEntity.transform.worldMatrix, worldBounds);
     } else {
-      localBounds.min.set(0, 0, 0);
-      localBounds.max.set(0, 0, 0);
+      const { x, y, z } = this._transformEntity.transform.worldPosition;
+      worldBounds.min.set(x, y, z);
+      worldBounds.max.set(x, y, z);
     }
   }
 
@@ -231,9 +230,9 @@ export class Image extends UIRenderer implements ISpriteRenderer {
 
     let { _dirtyUpdateFlag: dirtyUpdateFlag } = this;
     // Update position
-    if (dirtyUpdateFlag & RendererUpdateFlags.AllPositions) {
+    if (dirtyUpdateFlag & ImageUpdateFlags.Position) {
       this._assembler.updatePositions(this, transform.worldMatrix, width, height, transform.pivot);
-      dirtyUpdateFlag &= ~RendererUpdateFlags.AllPositions;
+      dirtyUpdateFlag &= ~ImageUpdateFlags.Position;
     }
 
     // Update uv
@@ -268,7 +267,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
       switch (this._drawMode) {
         case SpriteDrawMode.Simple:
         case SpriteDrawMode.Sliced:
-          this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
+          this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeAndPosition;
           break;
         case SpriteDrawMode.Tiled:
           this._dirtyUpdateFlag |= ImageUpdateFlags.All;
@@ -277,10 +276,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
           break;
       }
     }
-    if (type & UITransformModifyFlags.Pivot) {
-      this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositionAndBounds;
-    }
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldPositionAndBounds;
+    this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeAndPosition;
   }
 
   protected override _onDestroy(): void {
@@ -303,10 +299,10 @@ export class Image extends UIRenderer implements ISpriteRenderer {
       case SpriteModifyFlags.size:
         switch (this._drawMode) {
           case SpriteDrawMode.Sliced:
-            this._dirtyUpdateFlag |= RendererUpdateFlags.AllPositions;
+            this._dirtyUpdateFlag |= ImageUpdateFlags.Position;
             break;
           case SpriteDrawMode.Tiled:
-            this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionUVAndColor;
+            this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
             break;
           default:
             break;
@@ -315,10 +311,10 @@ export class Image extends UIRenderer implements ISpriteRenderer {
       case SpriteModifyFlags.border:
         switch (this._drawMode) {
           case SpriteDrawMode.Sliced:
-            this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionAndUV;
+            this._dirtyUpdateFlag |= ImageUpdateFlags.PositionAndUV;
             break;
           case SpriteDrawMode.Tiled:
-            this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionUVAndColor;
+            this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
             break;
           default:
             break;
@@ -326,7 +322,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:
-        this._dirtyUpdateFlag |= ImageUpdateFlags.AllPositionAndUV;
+        this._dirtyUpdateFlag |= ImageUpdateFlags.PositionAndUV;
         break;
       case SpriteModifyFlags.atlasRegion:
         this._dirtyUpdateFlag |= ImageUpdateFlags.UV;
@@ -347,12 +343,20 @@ export class Image extends UIRenderer implements ISpriteRenderer {
  * @remarks Extends `UIRendererUpdateFlags`.
  */
 enum ImageUpdateFlags {
-  UV = 0x20,
+  /** Position. */
+  Position = 0x4,
+  /** UV. */
+  UV = 0x8,
+  /** Automatic Size. */
+  AutomaticSize = 0x10,
 
-  /** LocalPosition | WorldPosition | UV */
-  AllPositionAndUV = 0x23,
-  /** LocalPosition | WorldPosition | UV | Color */
-  AllPositionUVAndColor = 0x33,
-  /** LocalPosition | WorldPosition | UV | Color | LocalBounds | WorldBounds */
-  All = 0x3f
+  /** WorldVolume and Position */
+  WorldVolumeAndPosition = 0x5,
+  /** Position and UV. */
+  PositionAndUV = 0xc,
+  /** Position, UV and Color. */
+  PositionUVAndColor = 0xe,
+  /** WorldVolume, Position, UV and Color */
+  WorldVolumePositionUVAndColor = 0xf,
+  All = 0x1f
 }

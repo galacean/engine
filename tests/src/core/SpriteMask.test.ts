@@ -118,22 +118,22 @@ describe("SpriteMask", async () => {
     expect(spriteMask.shaderData.getTexture(property)).to.eq(texture2d);
 
     // @ts-ignore
-    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.AllPositionAndBounds;
+    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.WorldVolumeAndPosition;
     sprite.width = 10;
     // @ts-ignore
-    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.AllPositionAndBounds)).to.eq(true);
+    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.WorldVolumeAndPosition)).to.eq(true);
 
     // @ts-ignore
-    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.AllPositionAndUV;
+    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.PositionAndUV;
     sprite.region = new Rect();
     // @ts-ignore
-    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.AllPositionAndUV)).to.eq(true);
+    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.PositionAndUV)).to.eq(true);
 
     // @ts-ignore
-    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.AllPositionAndUV;
+    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.PositionAndUV;
     sprite.atlasRegionOffset = new Vector4();
     // @ts-ignore
-    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.AllPositionAndUV)).to.eq(true);
+    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.PositionAndUV)).to.eq(true);
 
     // @ts-ignore
     spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.UV;
@@ -142,10 +142,10 @@ describe("SpriteMask", async () => {
     expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.UV)).to.eq(true);
 
     // @ts-ignore
-    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.AllPositionAndBounds;
+    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.WorldVolumeAndPosition;
     sprite.pivot = new Vector2(0.3, 0.2);
     // @ts-ignore
-    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.AllPositionAndBounds)).to.eq(true);
+    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.WorldVolumeAndPosition)).to.eq(true);
   });
 
   it("clone", () => {
@@ -227,26 +227,19 @@ describe("SpriteMask", async () => {
  * @remarks Extends `RendererUpdateFlags`.
  */
 enum SpriteMaskUpdateFlags {
-  None = 0x0,
-  LocalPosition = 0x1,
-  WorldPosition = 0x2,
-  LocalBounds = 0x4,
-  WorldBounds = 0x8,
-  UV = 0x10,
-  AutomaticSize = 0x20,
+  /** Position. */
+  Position = 0x2,
+  /** UV. */
+  UV = 0x4,
+  /** Automatic Size. */
+  AutomaticSize = 0x8,
 
-  /** LocalPosition | WorldPosition */
-  AllPositions = 0x3,
-  /** LocalPosition | LocalBounds */
-  LocalPositionAndBounds = 0x5,
-  /** WorldPosition | WorldBounds */
-  WorldPositionAndBounds = 0xa,
-  /** LocalBounds | WorldBounds */
-  AllBounds = 0xc,
-  /** LocalPosition | WorldPosition | LocalBounds | WorldBounds */
-  AllPositionAndBounds = 0xf,
-  /** LocalPosition | WorldPosition | UV */
-  AllPositionAndUV = 0x13,
-  /** LocalPosition | WorldPosition | UV | LocalBounds | WorldBounds */
-  All = 0x3f
+  /** WorldVolume and Position. */
+  WorldVolumeAndPosition = 0x3,
+  /** Position and UV. */
+  PositionAndUV = 0x6,
+  /** WorldVolume, Position and UV. */
+  WorldVolumePositionAndUV = 0xf,
+
+  All = 0xf
 }

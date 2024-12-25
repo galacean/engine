@@ -47,26 +47,23 @@ export class Renderer extends Component implements IComponentCustomClone {
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   @ignoreClone
   _renderFrameCount: number;
+  /** @internal */
   @assignmentClone
   _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
-  @assignmentClone
-  _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
   /** @internal */
   @ignoreClone
   _batchedTransformShaderData: boolean = false;
+  @assignmentClone
+  _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;
   @ignoreClone
   protected _materials: Material[] = [];
-  @assignmentClone
+  @ignoreClone
   protected _dirtyUpdateFlag: number = 0;
   @ignoreClone
   protected _rendererLayer: Vector4 = new Vector4();
-  @ignoreClone
-  protected _localBounds: BoundingBox = new BoundingBox();
-  @ignoreClone
-  protected _customLocalBounds: BoundingBox;
   @ignoreClone
   protected _bounds: BoundingBox = new BoundingBox();
   @ignoreClone
@@ -140,33 +137,12 @@ export class Renderer extends Component implements IComponentCustomClone {
   }
 
   /**
-   * The local bounding volume of the renderer.
-   */
-  get localBounds(): BoundingBox {
-    if (this._customLocalBounds) return this._customLocalBounds;
-    if (this._dirtyUpdateFlag & RendererUpdateFlags.LocalBounds) {
-      this._updateLocalBounds(this._localBounds);
-      this._dirtyUpdateFlag &= ~RendererUpdateFlags.LocalBounds;
-    }
-    return this._localBounds;
-  }
-
-  set localBounds(value: BoundingBox) {
-    if (value) {
-      (this._customLocalBounds ||= new BoundingBox()).copyFrom(value);
-    } else {
-      this._customLocalBounds = null;
-    }
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldBounds;
-  }
-
-  /**
    * The world bounding volume of the renderer.
    */
   get bounds(): BoundingBox {
-    if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldBounds) {
+    if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
       this._updateBounds(this._bounds);
-      this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldBounds;
+      this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     }
     return this._bounds;
   }
@@ -195,9 +171,6 @@ export class Renderer extends Component implements IComponentCustomClone {
 
     this._onTransformChanged = this._onTransformChanged.bind(this);
     this._setTransformEntity(entity);
-
-    // @ts-ignore
-    this._localBounds._onValueChanged = this._onLocalBoundsChanged.bind(this);
 
     shaderData.enableMacro(Renderer._receiveShadowMacro);
     shaderData.setVector4(Renderer._rendererLayerProperty, this._rendererLayer);
@@ -409,7 +382,6 @@ export class Renderer extends Component implements IComponentCustomClone {
 
     this._entity = null;
     this._globalShaderMacro = null;
-    this._localBounds = null;
     this._bounds = null;
     this._materials = null;
     this._shaderData = null;
@@ -507,19 +479,10 @@ export class Renderer extends Component implements IComponentCustomClone {
     }
   }
 
-  protected _updateLocalBounds(localBounds: BoundingBox): void {}
-
-  protected _updateBounds(worldBounds: BoundingBox): void {
-    BoundingBox.transform(this.localBounds, this._transformEntity.transform.worldMatrix, worldBounds);
-  }
+  protected _updateBounds(worldBounds: BoundingBox): void {}
 
   protected _render(context: RenderContext): void {
     throw "not implement";
-  }
-
-  @ignoreClone
-  private _onLocalBoundsChanged(): void {
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldBounds;
   }
 
   private _createInstanceMaterial(material: Material, index: number): Material {
@@ -551,25 +514,11 @@ export class Renderer extends Component implements IComponentCustomClone {
 
   @ignoreClone
   protected _onTransformChanged(type: TransformModifyFlags): void {
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldPositionAndBounds;
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 }
 
 export enum RendererUpdateFlags {
-  None = 0x0,
-  LocalPosition = 0x1,
-  WorldPosition = 0x2,
-  LocalBounds = 0x4,
-  WorldBounds = 0x8,
-
-  /** LocalPosition | WorldPosition */
-  AllPositions = 0x3,
-  /** LocalPosition | LocalBounds */
-  LocalPositionAndBounds = 0x5,
-  /** WorldPosition | WorldBounds */
-  WorldPositionAndBounds = 0xa,
-  /** LocalBounds | WorldBounds */
-  AllBounds = 0xc,
-  /** LocalPosition | WorldPosition | LocalBounds | WorldBounds */
-  AllPositionAndBounds = 0xf
+  /** Include world position and world bounds. */
+  WorldVolume = 0x1
 }

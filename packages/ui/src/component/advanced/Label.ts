@@ -38,6 +38,8 @@ export class Label extends UIRenderer implements ITextRenderer {
   private _subFont: SubFont = null;
   @assignmentClone
   private _text: string = "";
+  @ignoreClone
+  private _localBounds: BoundingBox = new BoundingBox();
   @assignmentClone
   private _font: Font = null;
   @assignmentClone
@@ -66,7 +68,7 @@ export class Label extends UIRenderer implements ITextRenderer {
     value = value || "";
     if (this._text !== value) {
       this._text = value;
-      this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -83,7 +85,7 @@ export class Label extends UIRenderer implements ITextRenderer {
       lastFont && this._addResourceReferCount(lastFont, -1);
       value && this._addResourceReferCount(value, 1);
       this._font = value;
-      this._setDirtyFlagTrue(UITextUpdateFlags.FontAllPositionAndBounds);
+      this._setDirtyFlagTrue(DirtyFlag.Font);
     }
   }
 
@@ -97,7 +99,7 @@ export class Label extends UIRenderer implements ITextRenderer {
   set fontSize(value: number) {
     if (this._fontSize !== value) {
       this._fontSize = value;
-      this._setDirtyFlagTrue(UITextUpdateFlags.FontAllPositionAndBounds);
+      this._setDirtyFlagTrue(DirtyFlag.Font);
     }
   }
 
@@ -111,7 +113,7 @@ export class Label extends UIRenderer implements ITextRenderer {
   set fontStyle(value: FontStyle) {
     if (this.fontStyle !== value) {
       this._fontStyle = value;
-      this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
+      this._setDirtyFlagTrue(DirtyFlag.Font);
     }
   }
 
@@ -125,7 +127,7 @@ export class Label extends UIRenderer implements ITextRenderer {
   set lineSpacing(value: number) {
     if (this._lineSpacing !== value) {
       this._lineSpacing = value;
-      this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -139,7 +141,7 @@ export class Label extends UIRenderer implements ITextRenderer {
   set horizontalAlignment(value: TextHorizontalAlignment) {
     if (this._horizontalAlignment !== value) {
       this._horizontalAlignment = value;
-      this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -153,7 +155,7 @@ export class Label extends UIRenderer implements ITextRenderer {
   set verticalAlignment(value: TextVerticalAlignment) {
     if (this._verticalAlignment !== value) {
       this._verticalAlignment = value;
-      this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -167,7 +169,7 @@ export class Label extends UIRenderer implements ITextRenderer {
   set enableWrapping(value: boolean) {
     if (this._enableWrapping !== value) {
       this._enableWrapping = value;
-      this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -181,7 +183,7 @@ export class Label extends UIRenderer implements ITextRenderer {
   set overflowMode(value: OverflowMode) {
     if (this._overflowMode !== value) {
       this._overflowMode = value;
-      this._setDirtyFlagTrue(RendererUpdateFlags.AllPositionAndBounds);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -196,13 +198,27 @@ export class Label extends UIRenderer implements ITextRenderer {
     this._maskLayer = value;
   }
 
-  protected override _updateLocalBounds(localBounds: BoundingBox): void {
+  /**
+   * The bounding volume of the TextRenderer.
+   */
+  override get bounds(): BoundingBox {
     if (this._isTextNoVisible()) {
-      localBounds.min.set(0, 0, 0);
-      localBounds.max.set(0, 0, 0);
-    } else {
-      this._updateLocalData();
+      if (this._isContainDirtyFlag(RendererUpdateFlags.WorldVolume)) {
+        const localBounds = this._localBounds;
+        localBounds.min.set(0, 0, 0);
+        localBounds.max.set(0, 0, 0);
+        this._updateBounds(this._bounds);
+        this._setDirtyFlagFalse(RendererUpdateFlags.WorldVolume);
+      }
+      return this._bounds;
     }
+    this._isContainDirtyFlag(DirtyFlag.SubFont) && this._resetSubFont();
+    this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds) && this._updateLocalData();
+    this._isContainDirtyFlag(DirtyFlag.WorldPosition) && this._updatePosition();
+    this._isContainDirtyFlag(RendererUpdateFlags.WorldVolume) && this._updateBounds(this._bounds);
+    this._setDirtyFlagFalse(DirtyFlag.Font);
+
+    return this._bounds;
   }
 
   constructor(entity: Entity) {
@@ -236,6 +252,7 @@ export class Label extends UIRenderer implements ITextRenderer {
     // @ts-ignore
     super._cloneTo(target, srcRoot, targetRoot);
     target.font = this._font;
+    target._subFont = this._subFont;
   }
 
   /**
@@ -263,12 +280,8 @@ export class Label extends UIRenderer implements ITextRenderer {
    * @internal
    */
   _getSubFont(): SubFont {
-    if (this._dirtyUpdateFlag & UITextUpdateFlags.SubFont) {
-      const { fontSize, fontStyle, _font: font } = this;
-      // @ts-ignore
-      this._subFont = font._getSubFont(fontSize, fontStyle);
-      this._subFont.nativeFontString = TextUtils.getNativeFontString(font.name, fontSize, fontStyle);
-      this._setDirtyFlagFalse(UITextUpdateFlags.SubFont);
+    if (!this._subFont) {
+      this._resetSubFont();
     }
     return this._subFont;
   }
@@ -278,14 +291,19 @@ export class Label extends UIRenderer implements ITextRenderer {
       return;
     }
 
-    if (this._isContainDirtyFlag(RendererUpdateFlags.LocalPosition)) {
-      this._updateLocalData();
-      this._setDirtyFlagFalse(RendererUpdateFlags.LocalPositionAndBounds);
+    if (this._isContainDirtyFlag(DirtyFlag.SubFont)) {
+      this._resetSubFont();
+      this._setDirtyFlagFalse(DirtyFlag.SubFont);
     }
 
-    if (this._isContainDirtyFlag(RendererUpdateFlags.WorldPosition)) {
+    if (this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds)) {
+      this._updateLocalData();
+      this._setDirtyFlagFalse(DirtyFlag.LocalPositionBounds);
+    }
+
+    if (this._isContainDirtyFlag(DirtyFlag.WorldPosition)) {
       this._updatePosition();
-      this._setDirtyFlagFalse(RendererUpdateFlags.WorldPosition);
+      this._setDirtyFlagFalse(DirtyFlag.WorldPosition);
     }
 
     if (this._isContainDirtyFlag(UIRendererUpdateFlags.Color)) {
@@ -313,6 +331,13 @@ export class Label extends UIRenderer implements ITextRenderer {
       }
       renderElement.addSubRenderElement(subRenderElement);
     }
+  }
+
+  private _resetSubFont(): void {
+    const font = this._font;
+    // @ts-ignore
+    this._subFont = font._getSubFont(this.fontSize, this.fontStyle);
+    this._subFont.nativeFontString = TextUtils.getNativeFontString(font.name, this.fontSize, this.fontStyle);
   }
 
   private _updatePosition(): void {
@@ -518,15 +543,16 @@ export class Label extends UIRenderer implements ITextRenderer {
       this._buildChunk(curTextChunk, charLength);
     }
     charRenderInfos.length = 0;
-    this._setDirtyFlagFalse(RendererUpdateFlags.LocalPositionAndBounds);
+    this._setDirtyFlagFalse(DirtyFlag.LocalPositionBounds);
   }
 
   @ignoreClone
   protected override _onTransformChanged(type: number): void {
     if (type & UITransformModifyFlags.Size || type & UITransformModifyFlags.Pivot) {
-      this._dirtyUpdateFlag |= RendererUpdateFlags.LocalPositionAndBounds;
+      this._dirtyUpdateFlag |= DirtyFlag.LocalPositionBounds;
     }
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldPositionAndBounds;
+    super._onTransformChanged(type);
+    this._setDirtyFlagTrue(DirtyFlag.WorldPosition);
   }
 
   private _isTextNoVisible(): boolean {
@@ -597,13 +623,14 @@ class TextChunk {
 }
 
 /**
- * @remarks Extends `RendererUpdateFlags`.
+ * @remarks Extends `UIRendererUpdateFlags`.
  */
-enum UITextUpdateFlags {
-  SubFont = 0x20,
+enum DirtyFlag {
+  SubFont = 0x4,
+  LocalPositionBounds = 0x8,
+  WorldPosition = 0x10,
 
-  /** SubFont | LocalPosition | WorldPosition | LocalBounds | WorldBounds */
-  FontAllPositionAndBounds = 0x2f,
-  /** SubFont | LocalPosition | WorldPosition | Color | LocalBounds | WorldBounds */
-  All = 0x3f
+  // LocalPositionBounds | WorldPosition | WorldVolume
+  Position = 0x19,
+  Font = SubFont | Position
 }
