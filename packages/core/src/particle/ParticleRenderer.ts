@@ -266,7 +266,7 @@ export class ParticleRenderer extends Renderer {
    * @internal
    */
   _onWorldVolumeChanged(): void {
-    this._dirtyUpdateFlag |= RendererUpdateFlags.AllBounds;
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 
   /**
@@ -275,7 +275,7 @@ export class ParticleRenderer extends Renderer {
   @ignoreClone
   _onGeneratorParamsChanged(): void {
     this._dirtyUpdateFlag |=
-      ParticleUpdateFlags.GeneratorVolume | ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.AllBounds;
+      ParticleUpdateFlags.GeneratorVolume | ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
   }
 
   /**
@@ -283,7 +283,7 @@ export class ParticleRenderer extends Renderer {
    */
   @ignoreClone
   override _onTransformChanged(type: TransformModifyFlags): void {
-    this._dirtyUpdateFlag |= ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.AllBounds;
+    this._dirtyUpdateFlag |= ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
   }
 }
 
@@ -292,7 +292,7 @@ export class ParticleRenderer extends Renderer {
  */
 export enum ParticleUpdateFlags {
   /** On World Transform Changed */
-  TransformVolume = 0x10,
+  TransformVolume = 0x2,
   /** On Generator Bounds Related Params Changed */
-  GeneratorVolume = 0x20
+  GeneratorVolume = 0x4
 }

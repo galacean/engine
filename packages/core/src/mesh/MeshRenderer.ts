@@ -98,13 +98,15 @@ export class MeshRenderer extends Renderer {
   /**
    * @internal
    */
-  protected override _updateLocalBounds(localBounds: BoundingBox): void {
+  protected override _updateBounds(worldBounds: BoundingBox): void {
     const mesh = this._mesh;
     if (mesh) {
-      localBounds.copyFrom(mesh.bounds);
+      const localBounds = mesh.bounds;
+      BoundingBox.transform(localBounds, this._transformEntity.transform.worldMatrix, worldBounds);
     } else {
-      localBounds.min.set(0, 0, 0);
-      localBounds.max.set(0, 0, 0);
+      const { x, y, z } = this._transformEntity.transform.worldPosition;
+      worldBounds.min.set(x, y, z);
+      worldBounds.max.set(x, y, z);
     }
   }
 
@@ -182,7 +184,7 @@ export class MeshRenderer extends Renderer {
 
   @ignoreClone
   private _onMeshChanged(type: MeshModifyFlags): void {
-    type & MeshModifyFlags.Bounds && (this._dirtyUpdateFlag |= RendererUpdateFlags.AllBounds);
+    type & MeshModifyFlags.Bounds && (this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume);
     type & MeshModifyFlags.VertexElements && (this._dirtyUpdateFlag |= MeshRendererUpdateFlags.VertexElementMacro);
   }
 }
@@ -192,7 +194,7 @@ export class MeshRenderer extends Renderer {
  */
 enum MeshRendererUpdateFlags {
   /** VertexElementMacro. */
-  VertexElementMacro = 0x10,
+  VertexElementMacro = 0x2,
   /** All. */
-  All = 0x1f
+  All = 0x3
 }

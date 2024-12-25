@@ -107,7 +107,7 @@ export class UIRenderer extends Renderer implements IGraphics {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._dirtyUpdateFlag = RendererUpdateFlags.AllBounds | UIRendererUpdateFlags.Color;
+    this._dirtyUpdateFlag = RendererUpdateFlags.WorldVolume | UIRendererUpdateFlags.Color;
     this._onColorChange = this._onColorChange.bind(this);
     //@ts-ignore
     this._color._onValueChanged = this._onColorChange;
@@ -291,5 +291,5 @@ export class UIRenderer extends Renderer implements IGraphics {
  * @remarks Extends `RendererUpdateFlags`.
  */
 export enum UIRendererUpdateFlags {
-  Color = 0x10
+  Color = 0x2
 }
