@@ -1,18 +1,22 @@
 import { ShaderRange } from "../common";
-import { TreeNode } from "./AST";
+import { ASTNode, TreeNode } from "./AST";
 import { GSErrorName } from "../GSError";
 import { ShaderData } from "./ShaderInfo";
-import { SymbolInfo, SymbolTable } from "../parser/symbolTable";
+import { ESymbolType, SymbolInfo, TargetSymbolTable } from "../parser/symbolTable";
 import { NodeChild } from "./types";
 import { SymbolTableStack } from "../common/BaseSymbolTable";
 import { ShaderLab } from "../ShaderLab";
+import { NonGenericGalaceanType } from "./builtin";
 // #if _VERBOSE
 import { GSError } from "../GSError";
+// #else
+import { Logger } from "@galacean/engine";
 // #endif
 
 export type TranslationRule<T = any> = (sa: SematicAnalyzer, ...tokens: NodeChild[]) => T;
 
 /**
+ * @internal
  * The semantic analyzer of `ShaderLab` compiler.
  * - Build symbol table
  * - Static analysis
@@ -20,18 +24,21 @@ export type TranslationRule<T = any> = (sa: SematicAnalyzer, ...tokens: NodeChil
 export default class SematicAnalyzer {
   semanticStack: TreeNode[] = [];
   acceptRule?: TranslationRule = undefined;
-  symbolTable: SymbolTableStack<SymbolInfo, SymbolTable> = new SymbolTableStack();
+  symbolTableStack: SymbolTableStack<SymbolInfo, TargetSymbolTable> = new SymbolTableStack();
+  curFunctionInfo: {
+    header?: ASTNode.FunctionDeclarator;
+    returnStatement?: ASTNode.JumpStatement;
+  } = {};
   private _shaderData = new ShaderData();
+  private _translationRuleTable: Map<number /** production id */, TranslationRule> = new Map();
 
   // #if _VERBOSE
-  readonly errors: GSError[] = [];
+  readonly errors: Error[] = [];
   // #endif
 
   get shaderData() {
     return this._shaderData;
   }
-
-  private _translationRuleTable: Map<number /** production id */, TranslationRule> = new Map();
 
   constructor() {
     this.newScope();
@@ -40,7 +47,7 @@ export default class SematicAnalyzer {
   reset() {
     this.semanticStack.length = 0;
     this._shaderData = new ShaderData();
-    this.symbolTable.clear();
+    this.symbolTableStack.clear();
     this.newScope();
     // #if _VERBOSE
     this.errors.length = 0;
@@ -48,12 +55,12 @@ export default class SematicAnalyzer {
   }
 
   newScope() {
-    const scope = new SymbolTable();
-    this.symbolTable.newScope(scope);
+    const scope = new TargetSymbolTable();
+    this.symbolTableStack.newScope(scope);
   }
 
   dropScope() {
-    return this.symbolTable.dropScope();
+    return this.symbolTableStack.dropScope();
   }
 
   addTranslationRule(pid: number, rule: TranslationRule) {
@@ -64,13 +71,25 @@ export default class SematicAnalyzer {
     return this._translationRuleTable.get(pid);
   }
 
-  error(loc: ShaderRange, ...param: any[]) {
+  lookupSymbolBy(
+    ident: string,
+    symbolType: ESymbolType,
+    signature?: NonGenericGalaceanType[],
+    astNode?: ASTNode.FunctionDefinition
+  ): SymbolInfo | undefined {
+    const stack = this.symbolTableStack.stack;
+    for (let length = stack.length, i = length - 1; i >= 0; i--) {
+      const symbolTable = stack[i];
+      const ret = symbolTable.lookup(ident, symbolType, signature, astNode);
+      if (ret) return ret;
+    }
+  }
+
+  reportError(loc: ShaderRange, message: string): void {
     // #if _VERBOSE
-    const err = new GSError(GSErrorName.CompilationError, param.join(""), loc, ShaderLab._processingPassText);
-    this.errors.push(err);
-    return err;
+    this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderLab._processingPassText));
     // #else
-    throw new Error(param.join(""));
+    Logger.error(message);
     // #endif
   }
 }
