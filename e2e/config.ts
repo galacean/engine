@@ -110,6 +110,11 @@ export const E2E_CONFIG = {
       caseFileName: "material-shaderLab",
       threshold: 0.2
     },
+    shaderLabMRT: {
+      category: "Material",
+      caseFileName: "shaderLab-mrt",
+      threshold: 0.2
+    },
     shaderReplacement: {
       category: "Material",
       caseFileName: "material-shaderReplacement",
@@ -215,6 +220,11 @@ export const E2E_CONFIG = {
     LDRBloomNeutral: {
       category: "PostProcess",
       caseFileName: "postProcess-LDR-bloom-neutral",
+      threshold: 0.2
+    },
+    customPass: {
+      category: "PostProcess",
+      caseFileName: "postProcess-customPass",
       threshold: 0.2
     }
   },

@@ -28,6 +28,8 @@
 %token PRECISION
 
 %token INVARIANT
+%token layout
+%token location
 
 %token or
 %token xor
@@ -115,8 +117,12 @@ struct_declaration_list:
 
 struct_declaration:
     type_specifier struct_declarator_list ';'
-    | type_qualifier type_specifier struct_declaration_list ';'
+    | type_qualifier type_specifier struct_declarator_list ';'
+    | layout_qualifier type_specifier struct_declarator ';'
     ;
+
+layout_qualifier:
+    layout '(' location '=' INT_CONSTANT ')'
 
 struct_declarator_list:
     struct_declarator

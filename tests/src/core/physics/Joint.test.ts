@@ -198,7 +198,7 @@ describe("Joint", function () {
     box2Collider.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
-    expect(formatValue(box2Collider.angularVelocity.y)).eq(8.32635);
+    expect(formatValue(box2Collider.angularVelocity.y)).eq(477.06462);
 
     box2.transform.rotation = new Vector3(0, 0, 0);
     box1Collider.angularVelocity = new Vector3(0, 0, 0);
@@ -211,7 +211,7 @@ describe("Joint", function () {
     box2Collider.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
-    expect(formatValue(box2Collider.angularVelocity.y)).closeTo(1.513, 0.001);
+    expect(formatValue(box2Collider.angularVelocity.y)).closeTo(86.74174, 0.01);
 
     box2.transform.rotation = new Vector3(0, 0, 0);
     box2Collider.inertiaTensor.y = 1;
@@ -226,7 +226,7 @@ describe("Joint", function () {
     box2Collider.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
-    expect(formatValue(box2Collider.angularVelocity.y)).closeTo(1.513, 0.001);
+    expect(formatValue(box2Collider.angularVelocity.y)).closeTo(86.74174, 0.01);
   });
 
   it("connectedInertiaScale", function () {
@@ -245,7 +245,7 @@ describe("Joint", function () {
     box2Collider.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
-    expect(formatValue(box2Collider.angularVelocity.y)).eq(8.32635);
+    expect(formatValue(box2Collider.angularVelocity.y)).eq(477.06451);
 
     box2.transform.rotation = new Vector3(0, 0, 0);
     box1Collider.angularVelocity = new Vector3(0, 0, 0);
@@ -258,7 +258,7 @@ describe("Joint", function () {
     box2Collider.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
-    expect(formatValue(box2Collider.angularVelocity.y)).closeTo(1.513, 0.001);
+    expect(formatValue(box2Collider.angularVelocity.y)).closeTo(86.74174, 0.01);
 
     box2.transform.rotation = new Vector3(0, 0, 0);
     box2Collider.inertiaTensor.y = 1;
@@ -273,7 +273,7 @@ describe("Joint", function () {
     box2Collider.applyTorque(new Vector3(0, 1000, 0));
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
-    expect(formatValue(box2Collider.angularVelocity.y)).closeTo(1.513, 0.001);
+    expect(formatValue(box2Collider.angularVelocity.y)).closeTo(86.74174, 0.01);
   });
 
   it("breakForce", function () {

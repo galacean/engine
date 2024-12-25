@@ -19,7 +19,8 @@ export default defineProject({
         launch: {
           args: ["--use-gl=egl", "--ignore-gpu-blocklist", "--use-gl=angle"]
         }
-      }
+      },
+      headless: true
     }
   }
 });

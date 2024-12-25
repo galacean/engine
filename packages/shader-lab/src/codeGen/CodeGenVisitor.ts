@@ -1,4 +1,4 @@
-import { ENonTerminal } from "../parser/GrammarSymbol";
+import { NoneTerminal } from "../parser/GrammarSymbol";
 import { BaseToken as Token } from "../common/BaseToken";
 import { EKeyword, ShaderPosition, ShaderRange } from "../common";
 import { ASTNode, TreeNode } from "../parser/AST";
@@ -11,9 +11,11 @@ import { GSErrorName } from "../GSError";
 // #if _VERBOSE
 import { GSError } from "../GSError";
 // #endif
-import { ShaderLabUtils } from "../ShaderLabUtils";
 import { Logger, ReturnableObjectPool } from "@galacean/engine";
 import { TempArray } from "../TempArray";
+
+export const V3_GL_FragColor = "GS_glFragColor";
+export const V3_GL_FragData = "GS_glFragData";
 
 /**
  * @internal
@@ -23,6 +25,10 @@ export abstract class CodeGenVisitor {
   // #if _VERBOSE
   readonly errors: Error[] = [];
   // #endif
+
+  abstract getFragDataCodeGen(index: string | number): string;
+  abstract getReferencedMRTPropText(index: string | number, ident: string): string;
+
   protected static _tmpArrayPool = new ReturnableObjectPool(TempArray<string>, 10);
 
   defaultCodeGen(children: NodeChild[]) {
@@ -41,12 +47,13 @@ export abstract class CodeGenVisitor {
   }
 
   visitPostfixExpression(node: ASTNode.PostfixExpression) {
-    if (node.children.length === 3) {
-      const context = VisitorContext.context;
+    const children = node.children;
+    const derivationLength = children.length;
+    const context = VisitorContext.context;
 
-      const postExpr = node.children[0] as ASTNode.PostfixExpression;
-
-      const prop = node.children[2];
+    if (derivationLength === 3) {
+      const postExpr = children[0] as ASTNode.PostfixExpression;
+      const prop = children[2];
 
       if (prop instanceof Token) {
         if (context.isAttributeStruct(<string>postExpr.type)) {
@@ -65,12 +72,36 @@ export abstract class CodeGenVisitor {
           }
           // #endif
           return prop.lexeme;
+        } else if (context.isMRTStruct(<string>postExpr.type)) {
+          const error = context.referenceMRTProp(prop);
+          // #if _VERBOSE
+          if (error) {
+            this.errors.push(<GSError>error);
+          }
+          // #endif
+          return prop.lexeme;
         }
 
         return `${postExpr.codeGen(this)}.${prop.lexeme}`;
       } else {
         return `${postExpr.codeGen(this)}.${prop.codeGen(this)}`;
       }
+    } else if (derivationLength === 4) {
+      const identNode = children[0] as ASTNode.PostfixExpression;
+      const indexNode = children[2] as ASTNode.Expression;
+      const identLexeme = identNode.codeGen(this);
+      const indexLexeme = indexNode.codeGen(this);
+      if (identLexeme === "gl_FragData") {
+        // #if _VERBOSE
+        if (context._referencedVaryingList[V3_GL_FragColor]) {
+          this._reportError(identNode.location, "cannot use both gl_FragData and gl_FragColor");
+        }
+        // #endif
+        const mrtLexeme = this.getFragDataCodeGen(indexLexeme);
+        context._referencedMRTList[mrtLexeme] = this.getReferencedMRTPropText(indexLexeme, mrtLexeme);
+        return mrtLexeme;
+      }
+      return `${identLexeme}[${indexLexeme}]`;
     }
     return this.defaultCodeGen(node.children);
   }
@@ -110,7 +141,7 @@ export abstract class CodeGenVisitor {
 
   visitStatementList(node: ASTNode.StatementList): string {
     const children = node.children as TreeNode[];
-    if (node.children.length === 1) {
+    if (children.length === 1) {
       return children[0].codeGen(this);
     } else {
       return `${children[0].codeGen(this)}\n${children[1].codeGen(this)}`;
@@ -125,23 +156,25 @@ export abstract class CodeGenVisitor {
     return this.defaultCodeGen(node.children);
   }
 
-  visitVariableDeclaration(node: ASTNode.VariableDeclaration): string {
-    const fullType = node.children[0];
+  visitGlobalVariableDeclaration(node: ASTNode.VariableDeclaration): string {
+    const children = node.children;
+    const fullType = children[0];
     if (fullType instanceof ASTNode.FullySpecifiedType && fullType.typeSpecifier.isCustom) {
       VisitorContext.context.referenceGlobal(<string>fullType.type, ESymbolType.STRUCT);
     }
-    return this.defaultCodeGen(node.children);
+    return this.defaultCodeGen(children);
   }
 
   visitDeclaration(node: ASTNode.Declaration): string {
-    const child = node.children[0];
-    if (
-      child instanceof ASTNode.InitDeclaratorList &&
-      child.typeInfo.typeLexeme === VisitorContext.context.varyingStruct?.ident?.lexeme
-    ) {
-      return "";
+    const { context } = VisitorContext;
+    const children = node.children;
+    const child = children[0];
+
+    if (child instanceof ASTNode.InitDeclaratorList) {
+      const typeLexeme = child.typeInfo.typeLexeme;
+      if (context.isVaryingStruct(typeLexeme) || context.isMRTStruct(typeLexeme)) return "";
     }
-    return this.defaultCodeGen(node.children);
+    return this.defaultCodeGen(children);
   }
 
   visitFunctionProtoType(node: ASTNode.FunctionProtoType): string {
@@ -174,24 +207,25 @@ export abstract class CodeGenVisitor {
   }
 
   visitJumpStatement(node: ASTNode.JumpStatement): string {
-    const cmd = node.children[0] as Token;
+    const children = node.children;
+    const cmd = children[0] as Token;
     if (cmd.type === EKeyword.RETURN) {
-      const expr = node.children[1];
+      const expr = children[1];
       if (expr instanceof ASTNode.Expression) {
         const returnVar = ParserUtils.unwrapNodeByType<ASTNode.VariableIdentifier>(
           expr,
-          ENonTerminal.variable_identifier
+          NoneTerminal.variable_identifier
         );
         if (returnVar?.typeInfo === VisitorContext.context.varyingStruct?.ident?.lexeme) {
           return "";
         }
-        const returnFnCall = ParserUtils.unwrapNodeByType<ASTNode.FunctionCall>(expr, ENonTerminal.function_call);
+        const returnFnCall = ParserUtils.unwrapNodeByType<ASTNode.FunctionCall>(expr, NoneTerminal.function_call);
         if (returnFnCall?.type === VisitorContext.context.varyingStruct?.ident?.lexeme) {
           return `${expr.codeGen(this)};`;
         }
       }
     }
-    return this.defaultCodeGen(node.children);
+    return this.defaultCodeGen(children);
   }
 
   visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {

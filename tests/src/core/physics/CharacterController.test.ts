@@ -100,7 +100,7 @@ describe("CharacterController", function () {
     expect(controller.stepOffset).eq(0.5);
     expect(controller.nonWalkableMode).eq(ControllerNonWalkableMode.PreventClimbing);
     expect(controller.upDirection).deep.include({ x: 0, y: 1, z: 0 });
-    expect(controller.slopeLimit).eq(0.707);
+    expect(controller.slopeLimit).eq(45);
   });
 
   it("addShape and removeShape", () => {
@@ -179,8 +179,8 @@ describe("CharacterController", function () {
     const { fixedTimeStep } = engine.sceneManager.activeScene.physics;
     const moveScript = roleEntity.getComponent(MoveScript);
     const controller = roleEntity.getComponent(CharacterController);
-    expect(controller.slopeLimit).eq(0.707);
-    controller.slopeLimit = 1;
+    expect(controller.slopeLimit).eq(45);
+    controller.slopeLimit = 0;
     const slope = addPlane(new Vector3(0, 0, 2), new Quaternion().rotateX(-Math.PI / 4));
     moveScript.moveTo(new Vector3(0, 0, 3), 50);
     // @ts-ignore
@@ -194,7 +194,7 @@ describe("CharacterController", function () {
     const { fixedTimeStep } = engine.sceneManager.activeScene.physics;
     const moveScript = roleEntity.getComponent(MoveScript);
     const controller = roleEntity.getComponent(CharacterController);
-    expect(controller.slopeLimit).eq(0.707);
+    expect(controller.slopeLimit).eq(45);
     const slope = addPlane(new Vector3(0, 0, 2), new Quaternion().rotateX(-Math.PI / 4));
     moveScript.moveTo(new Vector3(0, 0, 3), 50);
     // @ts-ignore
@@ -295,7 +295,7 @@ describe("CharacterController", function () {
     const { fixedTimeStep } = engine.sceneManager.activeScene.physics;
     const moveScript = newRole.getComponent(MoveScript);
     const controller = newRole.getComponent(CharacterController);
-    expect(controller.slopeLimit).eq(0.707);
+    expect(controller.slopeLimit).eq(45);
     const slope = addPlane(new Vector3(0, 0, 2), new Quaternion().rotateX(-Math.PI / 4));
     moveScript.moveTo(new Vector3(0, 0, 3), 50);
     // @ts-ignore
@@ -308,7 +308,6 @@ describe("CharacterController", function () {
   it("inActive modification", function () {
     roleEntity.isActive = false;
     const controller = roleEntity.getComponent(CharacterController);
-    controller.contactOffset = 0.1;
     controller.stepOffset = 1;
     controller.slopeLimit = 1;
     controller.nonWalkableMode = ControllerNonWalkableMode.PreventClimbingAndForceSliding;
