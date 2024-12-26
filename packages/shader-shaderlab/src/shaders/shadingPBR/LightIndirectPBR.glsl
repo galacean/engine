@@ -90,7 +90,7 @@ void evaluateSheenIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfD
     #endif
 }
 
-void evaluateIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, inout vec3 color){
+void evaluateIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, inout vec3 totalDiffuseColor, inout vec3 totalSpecularColor){
     vec3 diffuseColor = vec3(0);
     vec3 specularColor = vec3(0);
 
@@ -105,15 +105,10 @@ void evaluateIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, 
   
     // IBL sheen
     FUNCTION_SHEEN_IBL(varyings, surfaceData, brdfData, radianceAttenuation, diffuseColor, specularColor);
-    
-    #ifdef MATERIAL_ENABLE_TRANSMISSION 
-        vec3 refractionTransmitted = evaluateRefraction(surfaceData, brdfData);
-        diffuseColor = mix(diffuseColor, refractionTransmitted, surfaceData.transmission);
-    #endif
 
-    color += diffuseColor + specularColor;
+    totalDiffuseColor += diffuseColor;
+    totalSpecularColor += specularColor;
 
 }
-
 
 #endif

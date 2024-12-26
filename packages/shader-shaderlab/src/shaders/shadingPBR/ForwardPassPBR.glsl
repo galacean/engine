@@ -72,7 +72,9 @@ void PBRFragment(Varyings varyings) {
   // Can modify surfaceData here
   initBRDFData(surfaceData, brdfData);
 
-  vec4 color = vec4(0, 0, 0, surfaceData.opacity);
+
+  vec3 totalDiffuseColor = vec3(0, 0, 0);
+  vec3 totalSpecularColor = vec3(0, 0, 0);
 
   // Get shadow attenuation
   float shadowAttenuation = 1.0;
@@ -86,10 +88,18 @@ void PBRFragment(Varyings varyings) {
   #endif
 
   // Evaluate direct lighting
-  evaluateDirectRadiance(varyings, surfaceData, brdfData, shadowAttenuation, color.rgb);
+  evaluateDirectRadiance(varyings, surfaceData, brdfData, shadowAttenuation, totalDiffuseColor, totalSpecularColor);
 
   // IBL
-  evaluateIBL(varyings, surfaceData, brdfData, color.rgb);
+  evaluateIBL(varyings, surfaceData, brdfData, totalDiffuseColor, totalSpecularColor);
+
+  #ifdef MATERIAL_ENABLE_TRANSMISSION 
+      vec3 refractionTransmitted = evaluateRefraction(surfaceData, brdfData);
+      totalDiffuseColor = mix(totalDiffuseColor, refractionTransmitted, surfaceData.transmission);
+  #endif
+
+  // Final color
+  vec4 color = vec4((totalDiffuseColor + totalSpecularColor).rgb, surfaceData.opacity);
 
   // Emissive
   color.rgb += surfaceData.emissiveColor;
