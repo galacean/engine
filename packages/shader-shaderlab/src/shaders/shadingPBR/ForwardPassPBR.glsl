@@ -8,6 +8,7 @@
 #include "VaryingsPBR.glsl"
 #include "LightDirectPBR.glsl"
 #include "LightIndirectPBR.glsl"
+#include "BTDF.glsl"
 
 #include "VertexPBR.glsl"
 #include "FragmentPBR.glsl"
