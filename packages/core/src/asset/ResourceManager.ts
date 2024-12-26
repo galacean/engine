@@ -596,8 +596,8 @@ export class ResourceManager {
     config.forEach((element) => {
       this._virtualPathMap[element.virtualPath] = element.path;
       this._editorResourceConfig[element.id] = element;
-      if (element.dependentAssets) {
-        this._dependencyMap[element.virtualPath] = element.dependentAssets;
+      if (element.dependentAssetMap) {
+        this._dependencyMap[element.virtualPath] = element.dependentAssetMap;
       }
     });
   }
@@ -641,7 +641,7 @@ type EditorResourceItem = {
   path: string;
   type: string;
   id: string;
-  dependentAssets: { [key: string]: string };
+  dependentAssetMap: { [key: string]: string };
 };
 type EditorResourceConfig = Record<string, EditorResourceItem>;
 type SubAssetPromiseCallbacks<T> = Record<
