@@ -178,27 +178,31 @@ export namespace ASTNode {
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
-      const fullyType = this.children[0] as FullySpecifiedType;
-      const id = this.children[1] as Token;
-      this.typeSpecifier = fullyType.typeSpecifier;
-      this.arraySpecifier = fullyType.typeSpecifier.arraySpecifier;
+      const children = this.children;
+      const childrenLen = children.length;
+      const fullyType = children[0] as FullySpecifiedType;
+      const typeSpecifier = fullyType.typeSpecifier;
+      this.typeSpecifier = typeSpecifier;
+      this.arraySpecifier = typeSpecifier.arraySpecifier;
+
+      const id = children[1] as Token;
 
       let sm: VarSymbol;
-      if (this.children.length === 2 || this.children.length === 4) {
-        const symbolType = new SymbolType(fullyType.type, fullyType.typeSpecifier.lexeme, this.arraySpecifier);
-        const initializer = this.children[3] as Initializer;
+      if (childrenLen === 2 || childrenLen === 4) {
+        const symbolType = new SymbolType(fullyType.type, typeSpecifier.lexeme, this.arraySpecifier);
+        const initializer = children[3] as Initializer;
 
         sm = new VarSymbol(id.lexeme, symbolType, false, initializer);
       } else {
-        const arraySpecifier = this.children[2] as ArraySpecifier;
+        const arraySpecifier = children[2] as ArraySpecifier;
         // #if _VERBOSE
         if (arraySpecifier && this.arraySpecifier) {
           sa.reportError(arraySpecifier.location, "Array of array is not supported.");
         }
         // #endif
         this.arraySpecifier = arraySpecifier;
-        const symbolType = new SymbolType(fullyType.type, fullyType.typeSpecifier.lexeme, this.arraySpecifier);
-        const initializer = this.children[4] as Initializer;
+        const symbolType = new SymbolType(fullyType.type, typeSpecifier.lexeme, this.arraySpecifier);
+        const initializer = children[4] as Initializer;
 
         sm = new VarSymbol(id.lexeme, symbolType, false, initializer);
       }
