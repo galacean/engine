@@ -77,7 +77,7 @@ struct BRDFData{
     vec3  diffuseColor;
     vec3  specularColor;
     float roughness;
-    vec3 specularDFG;
+    vec3 envSpecularDFG;
 
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         vec3  clearCoatSpecularColor;
