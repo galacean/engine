@@ -316,11 +316,6 @@ export class PBRMaterial extends PBRBaseMaterial {
 
   set refractionMode(value: RefractionMode) {
     if (value !== this._refractionMode) {
-      if (value) {
-        this.renderState.renderQueueType = RenderQueueType.Transparent;
-      } else {
-        this.renderState.renderQueueType = this._lastRenderQueueType;
-      }
       this._refractionMode = value;
       this._setRefractionMode(value);
     }
@@ -328,7 +323,6 @@ export class PBRMaterial extends PBRBaseMaterial {
 
   override set isTransparent(value: boolean) {
     super.isTransparent = value;
-    this._lastRenderQueueType = this.renderState.renderQueueType;
     if (this.transmission > 0) {
       // If transmission enabled, always use transparent queue to ensure get correct opaque texture
       this.renderState.renderQueueType = RenderQueueType.Transparent;
@@ -337,7 +331,6 @@ export class PBRMaterial extends PBRBaseMaterial {
 
   override set alphaCutoff(value: number) {
     super.alphaCutoff = value;
-    this._lastRenderQueueType = this.renderState.renderQueueType;
     if (this.transmission > 0) {
       // If transmission enabled, always use transparent queue to ensure get correct opaque texture
       this.renderState.renderQueueType = RenderQueueType.Transparent;
