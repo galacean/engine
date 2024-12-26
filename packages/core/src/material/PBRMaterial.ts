@@ -1,11 +1,11 @@
-import { MathUtil, Vector2, Vector3, Vector4, Color } from "@galacean/engine-math";
+import { Color, MathUtil, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { ShaderMacro, ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
+import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { Texture2D } from "../texture/Texture2D";
 import { PBRBaseMaterial } from "./PBRBaseMaterial";
 import { RefractionMode } from "./enums/Refraction";
-import { RenderQueueType } from "../shader/enums/RenderQueueType";
 
 /**
  * PBR (Metallic-Roughness Workflow) Material.
@@ -46,7 +46,6 @@ export class PBRMaterial extends PBRBaseMaterial {
   private _iridescenceRange = new Vector2(100, 400);
   private _sheenEnabled = false;
   private _absorptionEnabled = true;
-  private _lastRenderQueueType = RenderQueueType.Opaque;
 
   /**
    * Index Of Refraction.
@@ -463,35 +462,11 @@ export class PBRMaterial extends PBRBaseMaterial {
     shaderData.enableMacro(PBRMaterial._absorptionMacro);
 
     // @ts-ignore
-    this._iridescenceRange._onValueChanged = () => {
-      const iridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp);
-      iridescenceInfo.z = this._iridescenceRange.x;
-      iridescenceInfo.w = this._iridescenceRange.y;
-    };
+    this._iridescenceRange._onValueChanged = this._onIridescenceRangeChanged.bind(this);
     // @ts-ignore
-    sheenColor._onValueChanged = () => {
-      const enableSheen = sheenColor.r + sheenColor.g + sheenColor.b > 0;
-      if (enableSheen !== this._sheenEnabled) {
-        this._sheenEnabled = enableSheen;
-        if (enableSheen) {
-          this.shaderData.enableMacro("MATERIAL_ENABLE_SHEEN");
-        } else {
-          this.shaderData.disableMacro("MATERIAL_ENABLE_SHEEN");
-        }
-      }
-    };
+    sheenColor._onValueChanged = this._onSheenColorChanged.bind(this);
     // @ts-ignore
-    attenuationColor._onValueChanged = () => {
-      const enableAbsorption = attenuationColor.r + attenuationColor.g + attenuationColor.b > 0;
-      if (enableAbsorption !== this._absorptionEnabled) {
-        this._absorptionEnabled = enableAbsorption;
-        if (enableAbsorption) {
-          this.shaderData.enableMacro(PBRMaterial._absorptionMacro);
-        } else {
-          this.shaderData.disableMacro(PBRMaterial._absorptionMacro);
-        }
-      }
-    };
+    attenuationColor._onValueChanged = this._attenuationColorChanged.bind(this);
   }
 
   /**
@@ -501,6 +476,38 @@ export class PBRMaterial extends PBRBaseMaterial {
     const dest = new PBRMaterial(this._engine);
     this.cloneTo(dest);
     return dest;
+  }
+
+  private _onIridescenceRangeChanged(): void {
+    const iridescenceInfo = this.shaderData.getVector4(PBRMaterial._iridescenceInfoProp);
+    iridescenceInfo.z = this._iridescenceRange.x;
+    iridescenceInfo.w = this._iridescenceRange.y;
+  }
+
+  private _onSheenColorChanged(): void {
+    const sheenColor = this.sheenColor;
+    const enableSheen = sheenColor.r + sheenColor.g + sheenColor.b > 0;
+    if (enableSheen !== this._sheenEnabled) {
+      this._sheenEnabled = enableSheen;
+      if (enableSheen) {
+        this.shaderData.enableMacro("MATERIAL_ENABLE_SHEEN");
+      } else {
+        this.shaderData.disableMacro("MATERIAL_ENABLE_SHEEN");
+      }
+    }
+  }
+
+  private _attenuationColorChanged(): void {
+    const attenuationColor = this.attenuationColor;
+    const enableAbsorption = attenuationColor.r + attenuationColor.g + attenuationColor.b > 0;
+    if (enableAbsorption !== this._absorptionEnabled) {
+      this._absorptionEnabled = enableAbsorption;
+      if (enableAbsorption) {
+        this.shaderData.enableMacro(PBRMaterial._absorptionMacro);
+      } else {
+        this.shaderData.disableMacro(PBRMaterial._absorptionMacro);
+      }
+    }
   }
 
   private _setRefractionMode(refractionMode: RefractionMode): void {
