@@ -4,8 +4,10 @@ import {
   CullMode,
   Engine,
   Entity,
+  IClassObject,
   Material,
   PipelineStage,
+  ReflectionParser,
   RenderQueueType,
   Shader,
   ShaderPass
@@ -13,10 +15,6 @@ import {
 import uiDefaultFs from "./shader/uiDefault.fs.glsl";
 import uiDefaultVs from "./shader/uiDefault.vs.glsl";
 
-export { UICanvas } from "./component/UICanvas";
-export { UIGroup } from "./component/UIGroup";
-export { UIRenderer } from "./component/UIRenderer";
-export { UITransform } from "./component/UITransform";
 export { Button } from "./component/advanced/Button";
 export { Image } from "./component/advanced/Image";
 export { Label } from "./component/advanced/Label";
@@ -24,6 +22,10 @@ export { ColorTransition } from "./component/interactive/transition/ColorTransit
 export { ScaleTransition } from "./component/interactive/transition/ScaleTransition";
 export { SpriteTransition } from "./component/interactive/transition/SpriteTransition";
 export { Transition } from "./component/interactive/transition/Transition";
+export { UICanvas } from "./component/UICanvas";
+export { UIGroup } from "./component/UIGroup";
+export { UIRenderer } from "./component/UIRenderer";
+export { UITransform } from "./component/UITransform";
 export { CanvasRenderMode } from "./enums/CanvasRenderMode";
 export { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrategy";
 export { UIPointerEventEmitter } from "./input/UIPointerEventEmitter";
@@ -99,3 +101,12 @@ function ApplyMixins(derivedCtor: any, baseCtors: any[]): void {
 
 ApplyMixins(Engine, [EngineExtension]);
 ApplyMixins(Entity, [EntityExtension]);
+
+ReflectionParser.registerCustomParseComponent("Label", async (instance: any, item: Omit<IClassObject, "class">) => {
+  const { props } = item;
+  if (!props.font) {
+    // @ts-ignore
+    instance.font = Font.createFromOS(instance.engine, props.fontFamily || "Arial");
+  }
+  return instance;
+});
