@@ -4,6 +4,7 @@ import { ShaderMacro, ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { Texture2D } from "../texture/Texture2D";
+import { BaseMaterial } from "./BaseMaterial";
 import { PBRBaseMaterial } from "./PBRBaseMaterial";
 import { RefractionMode } from "./enums/Refraction";
 
@@ -320,16 +321,30 @@ export class PBRMaterial extends PBRBaseMaterial {
     }
   }
 
+  /**
+   * @inheritdoc
+   */
+  override get isTransparent(): boolean {
+    return this._isTransparent;
+  }
+
   override set isTransparent(value: boolean) {
-    super.isTransparent = value;
+    this._seIsTransparent(value);
     if (this.transmission > 0) {
       // If transmission enabled, always use transparent queue to ensure get correct opaque texture
       this.renderState.renderQueueType = RenderQueueType.Transparent;
     }
   }
 
+  /**
+   * @inheritdoc
+   */
+  override get alphaCutoff(): number {
+    return this.shaderData.getFloat(BaseMaterial._alphaCutoffProp);
+  }
+
   override set alphaCutoff(value: number) {
-    super.alphaCutoff = value;
+    this._setAlphaCutoff(value);
     if (this.transmission > 0) {
       // If transmission enabled, always use transparent queue to ensure get correct opaque texture
       this.renderState.renderQueueType = RenderQueueType.Transparent;
