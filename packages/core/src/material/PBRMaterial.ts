@@ -329,7 +329,8 @@ export class PBRMaterial extends PBRBaseMaterial {
   override set isTransparent(value: boolean) {
     super.isTransparent = value;
     this._lastRenderQueueType = this.renderState.renderQueueType;
-    if (this.refractionMode !== RefractionMode.None) {
+    if (this.transmission > 0) {
+      // If transmission enabled, always use transparent queue to ensure get correct opaque texture
       this.renderState.renderQueueType = RenderQueueType.Transparent;
     }
   }
@@ -337,7 +338,8 @@ export class PBRMaterial extends PBRBaseMaterial {
   override set alphaCutoff(value: number) {
     super.alphaCutoff = value;
     this._lastRenderQueueType = this.renderState.renderQueueType;
-    if (this.refractionMode !== RefractionMode.None) {
+    if (this.transmission > 0) {
+      // If transmission enabled, always use transparent queue to ensure get correct opaque texture
       this.renderState.renderQueueType = RenderQueueType.Transparent;
     }
   }
@@ -355,6 +357,7 @@ export class PBRMaterial extends PBRBaseMaterial {
     if (!!this.shaderData.getFloat(PBRMaterial._transmissionProp) !== !!value) {
       if (value > 0) {
         this.shaderData.enableMacro(PBRMaterial._transmissionMacro);
+        this.renderState.renderQueueType = RenderQueueType.Transparent;
       } else {
         this.shaderData.disableMacro(PBRMaterial._transmissionMacro);
       }
