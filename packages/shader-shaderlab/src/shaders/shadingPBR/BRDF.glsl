@@ -65,7 +65,7 @@ struct SurfaceData{
         vec3  sheenColor;
     #endif
 
-    #ifdef MATERIAL_ENABLE_SS_REFRACTION 
+    #ifdef MATERIAL_ENABLE_TRANSMISSION 
         vec3 absorptionCoefficient;
         float transmission;
         float thickness;

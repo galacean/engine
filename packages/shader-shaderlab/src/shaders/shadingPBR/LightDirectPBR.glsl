@@ -38,7 +38,7 @@ void surfaceShading(Varyings varyings, SurfaceData surfaceData, BRDFData brdfDat
     // Specular Lobe
     FUNCTION_SPECULAR_LOBE(varyings, surfaceData, brdfData, incidentDirection, attenuationIrradiance, specularColor);
      
-    #if defined( MATERIAL_ENABLE_SS_REFRACTION ) && defined( MATERIAL_HAS_TRANSMISSION )
+    #ifdef MATERIAL_ENABLE_TRANSMISSION  
         diffuseColor *= (1.0 - surfaceData.transmission);
     #endif
 

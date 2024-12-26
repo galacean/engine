@@ -55,7 +55,7 @@ Shader "PBR.gs" {
         material_SheenRoughnessTexture("RoughnessTexture", Texture2D);
       }
       
-      Header("Refraction"){
+      Header("Transmission"){
         material_Transmission("Transmission", Range(0, 1, 0.01)) = 0;
         material_TransmissionTexture("TransmissionTexture", Texture2D);
       }

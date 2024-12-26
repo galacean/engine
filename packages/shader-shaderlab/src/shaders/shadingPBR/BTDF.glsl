@@ -3,7 +3,7 @@
 
 #include "Refraction.glsl"
 
-#ifdef MATERIAL_ENABLE_SS_REFRACTION 
+#ifdef MATERIAL_ENABLE_TRANSMISSION 
     sampler2D camera_OpaqueTexture;
     vec3 evaluateRefraction(SurfaceData surfaceData, BRDFData brdfData) {
         RefractionModelResult ray;

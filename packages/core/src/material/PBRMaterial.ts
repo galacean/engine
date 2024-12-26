@@ -29,7 +29,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   private static _sheenTextureProp = ShaderProperty.getByName("material_SheenTexture");
   private static _sheenRoughnessTextureProp = ShaderProperty.getByName("material_SheenRoughnessTexture");
 
-  private static _refractionMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_ENABLE_SS_REFRACTION");
+  private static _refractionMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_ENABLE_TRANSMISSION");
   private static _transmissionMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_TRANSMISSION");
   private static _thicknessMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_THICKNESS");
   private static _absorptionMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_ABSORPTION");

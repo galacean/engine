@@ -62,13 +62,11 @@ float material_OcclusionTextureCoord;
     #endif
 #endif
 
-#ifdef MATERIAL_ENABLE_SS_REFRACTION    
-    #ifdef MATERIAL_HAS_TRANSMISSION
+#ifdef MATERIAL_ENABLE_TRANSMISSION    
         float material_Transmission;
         #ifdef MATERIAL_HAS_TRANSMISSION_TEXTURE
             sampler2D material_TransmissionTexture;
         #endif
-    #endif
 #endif
 
 // Texture
@@ -303,16 +301,11 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
         #endif
     #endif
 
-    #ifdef MATERIAL_ENABLE_SS_REFRACTION 
-        #ifdef MATERIAL_HAS_TRANSMISSION
+    #ifdef MATERIAL_ENABLE_TRANSMISSION 
             surfaceData.transmission = material_Transmission;
             #ifdef MATERIAL_HAS_TRANSMISSION_TEXTURE
                 surfaceData.transmission *= texture2D(material_TransmissionTexture, uv).r;
             #endif
-        #else
-            surfaceData.transmission = 1.0;
-        #endif
-
     #endif
 
     // AO
