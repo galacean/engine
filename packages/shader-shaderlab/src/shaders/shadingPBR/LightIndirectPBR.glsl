@@ -108,15 +108,10 @@ void evaluateIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, 
     
     #ifdef MATERIAL_ENABLE_TRANSMISSION 
         vec3 refractionTransmitted = evaluateRefraction(surfaceData, brdfData);
-        refractionTransmitted *= surfaceData.transmission;
-        diffuseColor *= (1.0 - surfaceData.transmission);
+        diffuseColor = mix(diffuseColor, refractionTransmitted, surfaceData.transmission);
     #endif
 
     color += diffuseColor + specularColor;
-
-    #ifdef MATERIAL_ENABLE_TRANSMISSION 
-        color.rgb += refractionTransmitted;
-    #endif
 
 }
 
