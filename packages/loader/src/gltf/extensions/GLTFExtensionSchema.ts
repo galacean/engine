@@ -188,6 +188,16 @@ export interface IKHRMaterialsIridescence {
   iridescenceThicknessTexture?: ITextureInfo;
 }
 
+/**
+ * Interfaces from the KHR_materials_volume extension
+ */
+export interface IKHRMaterialsVolume {
+  thicknessFactor?: number;
+  thicknessTexture?: ITextureInfo;
+  attenuationDistance?: number;
+  attenuationColor?: number[];
+}
+
 export type GLTFExtensionSchema =
   | IKHRLightsPunctual_Light
   | IKHRMaterialsClearcoat
@@ -207,4 +217,5 @@ export type GLTFExtensionSchema =
   | IKHRXmp_Node
   | IGalaceanAnimation
   | IKHRMaterialsIridescence
+  | IKHRMaterialsVolume
   | Object;
