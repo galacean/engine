@@ -595,8 +595,10 @@ export class ResourceManager {
   initVirtualResources(config: EditorResourceItem[]): void {
     config.forEach((element) => {
       this._virtualPathMap[element.virtualPath] = element.path;
-      element.depndentAssets && this._dependencyMap[element.virtualPath] = element.depndentAssets;
       this._editorResourceConfig[element.id] = element;
+      if (element.depndentAssets) {
+        this._dependencyMap[element.virtualPath] = element.depndentAssets;
+      }
     });
   }
   //-----------------Editor temp solution-----------------
@@ -634,8 +636,14 @@ const rePropName = RegExp(
   "g"
 );
 
-type EditorResourceItem = { virtualPath: string; path: string; type: string; id: string, depndentAssets: { [key: string]: string } };
-type EditorResourceConfig = Record< string, EditorResourceItem >;
+type EditorResourceItem = {
+  virtualPath: string;
+  path: string;
+  type: string;
+  id: string;
+  depndentAssets: { [key: string]: string };
+};
+type EditorResourceConfig = Record<string, EditorResourceItem>;
 type SubAssetPromiseCallbacks<T> = Record<
   // main asset url, ie. "https://***.glb"
   string,
