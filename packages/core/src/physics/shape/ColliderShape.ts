@@ -66,13 +66,16 @@ export abstract class ColliderShape implements ICustomClone {
   }
 
   /**
-   * Physical material.
+   * Physical material, material can't be null.
    */
   get material(): PhysicsMaterial {
     return this._material;
   }
 
   set material(value: PhysicsMaterial) {
+    if (!value) {
+      throw new Error("The physics material of the shape can't be null.");
+    }
     if (this._material !== value) {
       this._material = value;
       this._nativeShape.setMaterial(value._nativeMaterial);
@@ -80,7 +83,7 @@ export abstract class ColliderShape implements ICustomClone {
   }
 
   /**
-   * The local rotation of this ColliderShape, in radians.
+   * The local rotation of this ColliderShape, in degrees.
    */
   get rotation(): Vector3 {
     return this._rotation;

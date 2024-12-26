@@ -20,9 +20,10 @@ export class DynamicCollider extends Collider {
   private _centerOfMass = new Vector3();
   @ignoreClone
   private _inertiaTensor = new Vector3(1, 1, 1);
-  private _maxAngularVelocity = 100;
+  private _maxAngularVelocity = 18000 / Math.PI;
   private _maxDepenetrationVelocity = 1.0000000331813535e32;
   private _solverIterations = 4;
+  private _useGravity = true;
   private _isKinematic = false;
   private _constraints: DynamicColliderConstraints = 0;
   private _collisionDetectionMode: CollisionDetectionMode = CollisionDetectionMode.Discrete;
@@ -77,7 +78,7 @@ export class DynamicCollider extends Collider {
   }
 
   /**
-   * The angular velocity vector of the dynamic collider measured in radians per second.
+   * The angular velocity vector of the dynamic collider measured in degrees per second.
    */
   get angularVelocity(): Vector3 {
     //@ts-ignore
@@ -185,7 +186,7 @@ export class DynamicCollider extends Collider {
   }
 
   /**
-   * The maximum angular velocity of the collider measured in radians per second. (Default 7) range { 0, infinity }.
+   * The maximum angular velocity of the collider measured in degrees per second.
    */
   get maxAngularVelocity(): number {
     return this._maxAngularVelocity;
@@ -237,6 +238,20 @@ export class DynamicCollider extends Collider {
     if (this._solverIterations !== value) {
       this._solverIterations = value;
       (<IDynamicCollider>this._nativeCollider).setSolverIterations(value);
+    }
+  }
+
+  /**
+   * Controls whether gravity affects the dynamic collider.
+   */
+  get useGravity(): boolean {
+    return this._useGravity;
+  }
+
+  set useGravity(value: boolean) {
+    if (this._useGravity !== value) {
+      this._useGravity = value;
+      (<IDynamicCollider>this._nativeCollider).setUseGravity(value);
     }
   }
 

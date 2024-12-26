@@ -1,4 +1,4 @@
-import { ENonTerminal, GrammarSymbol } from "./parser/GrammarSymbol";
+import { NoneTerminal, GrammarSymbol } from "./parser/GrammarSymbol";
 import { BaseToken as Token } from "./common/BaseToken";
 import { EKeyword, ETokenType, GalaceanDataType } from "./common";
 import { TreeNode } from "./parser/AST";
@@ -7,7 +7,7 @@ import State from "./lalr/State";
 // #endif
 
 export class ParserUtils {
-  static unwrapNodeByType<T = TreeNode>(node: TreeNode, type: ENonTerminal): T | undefined {
+  static unwrapNodeByType<T = TreeNode>(node: TreeNode, type: NoneTerminal): T | undefined {
     const child = node.children[0];
     if (child instanceof Token) return;
     if (child.nt === type) return child as T;
@@ -30,12 +30,12 @@ export class ParserUtils {
     if (this.isTerminal(sm)) {
       return ETokenType[sm] ?? EKeyword[sm];
     }
-    return ENonTerminal[sm];
+    return NoneTerminal[sm];
   }
   // #endif
 
   static isTerminal(sm: GrammarSymbol) {
-    return sm < ENonTerminal.START;
+    return sm < NoneTerminal.START;
   }
 
   /**

@@ -1,4 +1,5 @@
 import { IBaseSymbol } from "../../common/BaseSymbolTable";
+import { GalaceanDataType } from "../../common/types";
 import { ASTNode } from "../AST";
 import { SymbolDataType } from "./SymbolDataType";
 
@@ -8,7 +9,7 @@ export enum ESymbolType {
   STRUCT
 }
 
-type SymbolAstNode =
+export type SymbolAstNode =
   | ASTNode.Initializer
   | ASTNode.StructSpecifier
   | ASTNode.FunctionDefinition
@@ -21,6 +22,7 @@ export class SymbolInfo implements IBaseSymbol {
     public readonly ident: string,
     public readonly symbolType: ESymbolType,
     public readonly astNode?: SymbolAstNode,
-    public readonly dataType?: SymbolDataType
+    public readonly dataType?: SymbolDataType,
+    public readonly signature?: GalaceanDataType[]
   ) {}
 }
