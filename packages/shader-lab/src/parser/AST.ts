@@ -1126,8 +1126,9 @@ export namespace ASTNode {
     type: FullySpecifiedType;
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
-      const type = this.children[0] as FullySpecifiedType;
-      const ident = this.children[1] as Token;
+      const children = this.children;
+      const type = children[0] as FullySpecifiedType;
+      const ident = children[1] as Token;
       this.type = type;
       const sm = new VarSymbol(ident.lexeme, new SymbolType(type.type, type.typeSpecifier.lexeme), true, this);
 
