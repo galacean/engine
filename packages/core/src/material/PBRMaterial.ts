@@ -29,8 +29,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   private static _sheenTextureProp = ShaderProperty.getByName("material_SheenTexture");
   private static _sheenRoughnessTextureProp = ShaderProperty.getByName("material_SheenRoughnessTexture");
 
-  private static _refractionMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_ENABLE_TRANSMISSION");
-  private static _transmissionMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_TRANSMISSION");
+  private static _transmissionMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_ENABLE_TRANSMISSION");
   private static _thicknessMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_THICKNESS");
   private static _absorptionMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_ABSORPTION");
   private static _thicknessTextureMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_THICKNESS_TEXTURE");
@@ -459,6 +458,7 @@ export class PBRMaterial extends PBRBaseMaterial {
     shaderData.setVector4(PBRMaterial._iridescenceInfoProp, new Vector4(0, 1.3, 100, 400));
     const sheenColor = new Color(0, 0, 0);
     shaderData.setColor(PBRMaterial._sheenColorProp, sheenColor);
+    this.refractionMode = RefractionMode.Plane;
     shaderData.setFloat(PBRMaterial._transmissionProp, 0);
     shaderData.setFloat(PBRMaterial._thicknessProp, 0);
     shaderData.setFloat(PBRMaterial._attenuationDistanceProp, Infinity);
@@ -509,19 +509,13 @@ export class PBRMaterial extends PBRBaseMaterial {
 
   private _setRefractionMode(refractionMode: RefractionMode): void {
     switch (refractionMode) {
-      case RefractionMode.None:
-        this.shaderData.disableMacro(PBRMaterial._refractionMacro);
-        break;
       case RefractionMode.Sphere:
-        this.shaderData.enableMacro(PBRMaterial._refractionMacro);
         this.shaderData.enableMacro("REFRACTION_MODE", "SPHERE");
         break;
       case RefractionMode.Plane:
-        this.shaderData.enableMacro(PBRMaterial._refractionMacro);
         this.shaderData.enableMacro("REFRACTION_MODE", "PLANE");
         break;
       case RefractionMode.Thin:
-        this.shaderData.enableMacro(PBRMaterial._refractionMacro);
         this.shaderData.enableMacro("REFRACTION_MODE", "THIN");
         break;
     }
