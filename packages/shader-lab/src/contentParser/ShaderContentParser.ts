@@ -1,10 +1,10 @@
 import { SymbolTableStack } from "../common/BaseSymbolTable";
 import { BaseToken } from "../common/BaseToken";
-import { EKeyword, ETokenType } from "../common";
+import { EKeyword, ETokenType, TokenType } from "../common";
 import { ShaderPosition } from "../common";
 import { KeywordMap } from "./KeywordMap";
 import Scanner from "./Scanner";
-import SymbolTable, { ISymbol } from "./SymbolTable";
+import ContentSymbolTable, { ISymbol } from "./ContentSymbolTable";
 import {
   RenderStateDataKey,
   Color,
@@ -56,19 +56,11 @@ export class ShaderContentParser {
 
   static _errors: GSError[] = [];
 
-  private static _isRenderStateDeclarator(token: BaseToken) {
-    return RenderStateType.includes(token.type);
-  }
-
-  private static _isEngineType(token: BaseToken) {
-    return EngineType.includes(token.type);
-  }
-
-  private static _symbolTable: SymbolTableStack<ISymbol, SymbolTable> = new SymbolTableStack();
+  private static _symbolTableStack: SymbolTableStack<ISymbol, ContentSymbolTable> = new SymbolTableStack();
 
   static reset() {
     this._errors.length = 0;
-    this._symbolTable.clear();
+    this._symbolTableStack.clear();
     this._newScope();
   }
 
@@ -113,6 +105,23 @@ export class ShaderContentParser {
     return ret;
   }
 
+  private static _isRenderStateDeclarator(token: BaseToken) {
+    return RenderStateType.includes(token.type);
+  }
+
+  private static _isEngineType(token: BaseToken) {
+    return EngineType.includes(token.type);
+  }
+
+  private static _lookupSymbolByType(ident: string, type: TokenType): ISymbol | undefined {
+    const stack = ShaderContentParser._symbolTableStack.stack;
+    for (let length = stack.length, i = length - 1; i >= 0; i--) {
+      const symbolTable = stack[i];
+      const ret = symbolTable.lookup(ident, type);
+      if (ret) return ret;
+    }
+  }
+
   private static _parseShaderStatements(ret: IShaderContent, scanner: Scanner) {
     let braceLevel = 1;
     let start = scanner.getCurPosition();
@@ -147,7 +156,7 @@ export class ShaderContentParser {
             braceLevel -= 1;
             if (braceLevel === 0) {
               this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
-              this._symbolTable.dropScope();
+              this._symbolTableStack.dropScope();
               return;
             }
           }
@@ -183,7 +192,7 @@ export class ShaderContentParser {
     } else if (ident.lexeme === "=") {
       const variable = scanner.scanToken();
       scanner.scanText(";");
-      const sm = this._symbolTable.lookup({ type: stateToken.type, ident: variable.lexeme });
+      const sm = ShaderContentParser._lookupSymbolByType(variable.lexeme, stateToken.type);
       if (!sm?.value) {
         const error = ShaderLabUtils.createGSError(
           `Invalid "${stateToken.lexeme}" variable: ${variable.lexeme}`,
@@ -204,7 +213,7 @@ export class ShaderContentParser {
 
     const renderState = this._parseRenderStatePropList(stateToken.lexeme, scanner);
     if (isDeclaration) {
-      this._symbolTable.insert({ ident: ident.lexeme, type: stateToken.type, value: renderState });
+      this._symbolTableStack.insert({ ident: ident.lexeme, type: stateToken.type, value: renderState });
     } else {
       Object.assign(ret.renderStates.constantMap, renderState.constantMap);
       Object.assign(ret.renderStates.variableMap, renderState.variableMap);
@@ -214,16 +223,16 @@ export class ShaderContentParser {
   private static _parseVariableDeclaration(type: number, scanner: Scanner) {
     const token = scanner.scanToken();
     scanner.scanText(";");
-    this._symbolTable.insert({ type: token.type, ident: token.lexeme });
+    this._symbolTableStack.insert({ type: token.type, ident: token.lexeme });
   }
 
   private static _newScope() {
-    const symbolTable = new SymbolTable();
-    this._symbolTable.newScope(symbolTable);
+    const symbolTable = new ContentSymbolTable();
+    this._symbolTableStack.newScope(symbolTable);
   }
 
   private static _dropScope() {
-    this._symbolTable.dropScope();
+    this._symbolTableStack.dropScope();
   }
 
   private static _parseRenderStatePropList(state: string, scanner: Scanner): IRenderStates {

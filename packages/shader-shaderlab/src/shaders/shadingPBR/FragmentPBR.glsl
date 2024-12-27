@@ -62,6 +62,13 @@ float material_OcclusionTextureCoord;
     #endif
 #endif
 
+#ifdef MATERIAL_ENABLE_TRANSMISSION    
+        float material_Transmission;
+        #ifdef MATERIAL_HAS_TRANSMISSION_TEXTURE
+            sampler2D material_TransmissionTexture;
+        #endif
+#endif
+
 // Texture
 #ifdef MATERIAL_HAS_BASETEXTURE
     sampler2D material_BaseTexture;
@@ -167,6 +174,8 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     surfaceData.metallic = metallic;
     surfaceData.roughness = roughness;
     surfaceData.f0 = f0;
+    surfaceData.IOR = material_IOR;
+
 
     #ifdef MATERIAL_IS_TRANSPARENT
         surfaceData.opacity = baseColor.a;
@@ -290,6 +299,13 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
         #ifdef MATERIAL_HAS_SHEEN_ROUGHNESS_TEXTURE
             surfaceData.sheenRoughness *= texture2D(material_SheenRoughnessTexture, uv).a;
         #endif
+    #endif
+
+    #ifdef MATERIAL_ENABLE_TRANSMISSION 
+            surfaceData.transmission = material_Transmission;
+            #ifdef MATERIAL_HAS_TRANSMISSION_TEXTURE
+                surfaceData.transmission *= texture2D(material_TransmissionTexture, uv).r;
+            #endif
     #endif
 
     // AO
