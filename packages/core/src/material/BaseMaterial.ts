@@ -102,39 +102,7 @@ export class BaseMaterial extends Material {
   }
 
   set alphaCutoff(value: number) {
-    this.setAlphaCutoff(value);
-  }
-
-  protected setAlphaCutoff(value: number) {
-    const { shaderData } = this;
-    if (shaderData.getFloat(BaseMaterial._alphaCutoffProp) !== value) {
-      if (value) {
-        shaderData.enableMacro(BaseMaterial._alphaCutoffMacro);
-        shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
-      } else {
-        shaderData.disableMacro(BaseMaterial._alphaCutoffMacro);
-        if (this._isTransparent) {
-          shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
-        } else {
-          shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.Opaque);
-        }
-      }
-
-      const { renderStates } = this;
-      for (let i = 0, n = renderStates.length; i < n; i++) {
-        const renderState = renderStates[i];
-        if (value > 0) {
-          renderState.renderQueueType = renderState.blendState.targetBlendState.enabled
-            ? RenderQueueType.Transparent
-            : RenderQueueType.AlphaTest;
-        } else {
-          renderState.renderQueueType = renderState.blendState.targetBlendState.enabled
-            ? RenderQueueType.Transparent
-            : RenderQueueType.Opaque;
-        }
-      }
-      shaderData.setFloat(BaseMaterial._alphaCutoffProp, value);
-    }
+    this._setAlphaCutoff(value);
   }
 
   /**
