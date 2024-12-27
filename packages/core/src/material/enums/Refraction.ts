@@ -3,9 +3,9 @@
  */
 export enum RefractionMode {
   /** Refraction shape is sphere. */
-  Sphere,
+  Sphere = 0,
   /** Refraction shape is plane. */
-  Plane,
+  Plane = 1,
   /** Refraction shape is thin. */
-  Thin
+  Thin = 2
 }
