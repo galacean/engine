@@ -24,13 +24,13 @@
         vec2 refractionCoords = (samplingPositionNDC.xy / samplingPositionNDC.w) * 0.5 + 0.5;
 
         // Absorption coefficient from Disney: http://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_notes.pdf
-       #ifdef MATERIAL_HAS_ABSORPTION
+    //    #ifdef MATERIAL_HAS_ABSORPTION
             #ifdef MATERIAL_HAS_THICKNESS
                 vec3 transmittance = min(vec3(1.0), exp(-surfaceData.absorptionCoefficient * ray.transmissionLength));
             #else
-                vec3 transmittance = 1.0 - surfaceData.absorptionCoefficient;
+                vec3 transmittance = 1.0 ;
             #endif
-       #endif
+    //    #endif
 
         // Sample the opaque texture to get the transmitted light
 		vec4 getTransmission = texture2D(camera_OpaqueTexture, refractionCoords);
@@ -43,7 +43,7 @@
 
         refractionTransmitted *= (1.0 - specularDFG);
 
-       #ifdef MATERIAL_HAS_ABSORPTION
+       #ifdef MATERIAL_HAS_THICKNESS
             refractionTransmitted *= transmittance;
        #endif
         

@@ -32,7 +32,6 @@ export class PBRMaterial extends PBRBaseMaterial {
 
   private static _transmissionMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_ENABLE_TRANSMISSION");
   private static _thicknessMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_THICKNESS");
-  private static _absorptionMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_ABSORPTION");
   private static _thicknessTextureMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_THICKNESS_TEXTURE");
   private static _transmissionTextureMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_TRANSMISSION_TEXTURE");
   private static _transmissionProp = ShaderProperty.getByName("material_Transmission");
@@ -46,7 +45,6 @@ export class PBRMaterial extends PBRBaseMaterial {
   private _anisotropyRotation: number = 0;
   private _iridescenceRange = new Vector2(100, 400);
   private _sheenEnabled = false;
-  private _absorptionEnabled = true;
 
   /**
    * Index Of Refraction.
@@ -468,20 +466,17 @@ export class PBRMaterial extends PBRBaseMaterial {
     shaderData.setVector4(PBRMaterial._iridescenceInfoProp, new Vector4(0, 1.3, 100, 400));
     const sheenColor = new Color(0, 0, 0);
     shaderData.setColor(PBRMaterial._sheenColorProp, sheenColor);
-    this.refractionMode = RefractionMode.Plane;
+    this.refractionMode = RefractionMode.Planar;
     shaderData.setFloat(PBRMaterial._transmissionProp, 0);
     shaderData.setFloat(PBRMaterial._thicknessProp, 0);
     shaderData.setFloat(PBRMaterial._attenuationDistanceProp, Infinity);
     const attenuationColor = new Color(1, 1, 1);
     shaderData.setColor(PBRMaterial._attenuationColorProp, attenuationColor);
-    shaderData.enableMacro(PBRMaterial._absorptionMacro);
 
     // @ts-ignore
     this._iridescenceRange._onValueChanged = this._onIridescenceRangeChanged.bind(this);
     // @ts-ignore
     sheenColor._onValueChanged = this._onSheenColorChanged.bind(this);
-    // @ts-ignore
-    attenuationColor._onValueChanged = this._attenuationColorChanged.bind(this);
   }
 
   /**
@@ -508,19 +503,6 @@ export class PBRMaterial extends PBRBaseMaterial {
         this.shaderData.enableMacro("MATERIAL_ENABLE_SHEEN");
       } else {
         this.shaderData.disableMacro("MATERIAL_ENABLE_SHEEN");
-      }
-    }
-  }
-
-  private _attenuationColorChanged(): void {
-    const attenuationColor = this.attenuationColor;
-    const enableAbsorption = attenuationColor.r + attenuationColor.g + attenuationColor.b > 0;
-    if (enableAbsorption !== this._absorptionEnabled) {
-      this._absorptionEnabled = enableAbsorption;
-      if (enableAbsorption) {
-        this.shaderData.enableMacro(PBRMaterial._absorptionMacro);
-      } else {
-        this.shaderData.disableMacro(PBRMaterial._absorptionMacro);
       }
     }
   }
