@@ -319,7 +319,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
         surfaceData.absorptionCoefficient = -log(material_AttenuationColor + HALF_EPS) / max(HALF_EPS, material_AttenuationDistance);
 
         #ifdef MATERIAL_HAS_THICKNESS
-            #if REFRACTION_MODE == THIN
+            #if REFRACTION_MODE == 2
                 //https://zh.wikipedia.org/wiki/%E8%96%84%E8%86%9C%E5%85%89%E5%AD%A6
                 surfaceData.thickness = 0.005;
             #else
