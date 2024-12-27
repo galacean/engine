@@ -528,13 +528,13 @@ export class PBRMaterial extends PBRBaseMaterial {
   private _setRefractionMode(refractionMode: RefractionMode): void {
     switch (refractionMode) {
       case RefractionMode.Sphere:
-        this.shaderData.enableMacro("REFRACTION_MODE", "SPHERE");
+        this.shaderData.enableMacro("REFRACTION_MODE", "0");
         break;
       case RefractionMode.Plane:
-        this.shaderData.enableMacro("REFRACTION_MODE", "PLANE");
+        this.shaderData.enableMacro("REFRACTION_MODE", "1");
         break;
       case RefractionMode.Thin:
-        this.shaderData.enableMacro("REFRACTION_MODE", "THIN");
+        this.shaderData.enableMacro("REFRACTION_MODE", "2");
         break;
     }
   }

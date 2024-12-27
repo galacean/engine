@@ -7,10 +7,15 @@
     sampler2D camera_OpaqueTexture;
     vec3 evaluateRefraction(SurfaceData surfaceData, BRDFData brdfData) {
         RefractionModelResult ray;
-        #ifdef REFRACTION_MODE
-            refractionModelBox(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, 0.005, ray);
+        // '0' is refraction sphere, '1' is refraction plane, '2' is refraction thin
+        #if REFRACTION_MODE == 0
+          RefractionModelSphere(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, surfaceData.thickness, ray);
+        #elif REFRACTION_MODE == 1
+            RefractionModelBox(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, surfaceData.thickness, ray);
+        #elif REFRACTION_MODE == 2
+            RefractionModelBox(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, surfaceData.thickness, ray);
         #endif
-        //TODO: support cubemap refraction.
+
         vec3 refractedRayExit = ray.positionExit;
 
         // We calculate the screen space position of the refracted point
