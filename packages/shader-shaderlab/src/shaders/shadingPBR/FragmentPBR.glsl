@@ -62,11 +62,20 @@ float material_OcclusionTextureCoord;
     #endif
 #endif
 
-#ifdef MATERIAL_ENABLE_TRANSMISSION    
-        float material_Transmission;
-        #ifdef MATERIAL_HAS_TRANSMISSION_TEXTURE
-            sampler2D material_TransmissionTexture;
+#ifdef MATERIAL_ENABLE_TRANSMISSION
+    float material_Transmission;
+    #ifdef MATERIAL_HAS_TRANSMISSION_TEXTURE
+        sampler2D material_TransmissionTexture;
+    #endif
+
+    #ifdef MATERIAL_HAS_THICKNESS
+        vec3 material_AttenuationColor;
+        float material_AttenuationDistance;
+        float material_Thickness;
+        #ifdef MATERIAL_HAS_THICKNESS_TEXTURE
+            sampler2D material_ThicknessTexture;
         #endif
+    #endif
 #endif
 
 // Texture
@@ -302,10 +311,18 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     #endif
 
     #ifdef MATERIAL_ENABLE_TRANSMISSION 
-            surfaceData.transmission = material_Transmission;
-            #ifdef MATERIAL_HAS_TRANSMISSION_TEXTURE
-                surfaceData.transmission *= texture2D(material_TransmissionTexture, uv).r;
-            #endif
+        surfaceData.transmission = material_Transmission;
+        #ifdef MATERIAL_HAS_TRANSMISSION_TEXTURE
+            surfaceData.transmission *= texture2D(material_TransmissionTexture, uv).r;
+        #endif
+
+        #ifdef MATERIAL_HAS_THICKNESS
+                surfaceData.absorptionCoefficient = -log(material_AttenuationColor + HALF_EPS) / max(HALF_EPS, material_AttenuationDistance);
+                surfaceData.thickness = max(material_Thickness, 0.0001);
+                #ifdef MATERIAL_HAS_THICKNESS_TEXTURE
+                    surfaceData.thickness *= texture2D( material_ThicknessTexture, uv).g;
+                #endif
+        #endif    
     #endif
 
     // AO
