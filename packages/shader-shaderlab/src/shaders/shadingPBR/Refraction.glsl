@@ -14,14 +14,14 @@ struct RefractionModelResult{
     // Refracted ray
     vec3 R1 = refract(V, normalWS, 1.0 / ior);
     // Center of the tangent sphere
-    vec3 C = positionWS - normalWS * thickness * 0.5;
+    // vec3 C = positionWS - normalWS * thickness * 0.5;
 
     // Second refraction (tangent sphere out)
     float dist = dot(-normalWS, R1) * thickness;
     // Out hit point in the tangent sphere
     vec3 P1 = positionWS + R1 * dist;
     // Out normal
-    vec3 N1 = safeNormalize(C - P1);
+    // vec3 N1 = safeNormalize(C - P1);
     // Out refracted ray
     // vec3 R2 = refract(R1, N1, ior);
 
