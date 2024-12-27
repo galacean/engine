@@ -95,7 +95,7 @@ void PBRFragment(Varyings varyings) {
   evaluateIBL(varyings, surfaceData, brdfData, totalDiffuseColor, totalSpecularColor);
 
   #ifdef MATERIAL_ENABLE_TRANSMISSION 
-      vec3 refractionTransmitted = evaluateRefraction(surfaceData, brdfData);
+      vec3 refractionTransmitted = evaluateTransmission(surfaceData, brdfData);
       totalDiffuseColor = mix(totalDiffuseColor, refractionTransmitted, surfaceData.transmission);
   #endif
 

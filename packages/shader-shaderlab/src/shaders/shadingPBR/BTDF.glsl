@@ -5,12 +5,13 @@
 
 #ifdef MATERIAL_ENABLE_TRANSMISSION 
     sampler2D camera_OpaqueTexture;
-    vec3 evaluateRefraction(SurfaceData surfaceData, BRDFData brdfData) {
+    vec3 evaluateTransmission(SurfaceData surfaceData, BRDFData brdfData) {
         RefractionModelResult ray;
-        // '0' is refraction sphere, '1' is refraction plane, '2' is refraction thin
-        #if REFRACTION_MODE == 0
+        #if REFRACTION_MODE == 0  
+            // RefractionMode.Sphere
             refractionModelSphere(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, surfaceData.thickness, ray);
         #elif REFRACTION_MODE == 1
+            // RefractionMode.Plane
             refractionModelBox(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, surfaceData.thickness, ray);
         #endif
 
