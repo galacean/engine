@@ -2,8 +2,8 @@
  * Refraction mode.
  */
 export enum RefractionMode {
-  /** Refraction shape is sphere. */
+  /** Use the sphere refraction model when light passes through the surface. */
   Sphere = 0,
-  /** Refraction shape is planar. */
+  /** Use the planar refraction model when light passes through the surface. */
   Planar = 1
 }
