@@ -30,7 +30,7 @@ struct RefractionModelResult{
     // ray.directionExit = R2; 
 }
 
-void refractionModelBox(vec3 V, vec3 positionWS, vec3 normalWS, float ior, float thickness, out RefractionModelResult ray){
+void refractionModelPlanar(vec3 V, vec3 positionWS, vec3 normalWS, float ior, float thickness, out RefractionModelResult ray){
     // Refracted ray
     vec3 R = refract(V, normalWS, 1.0 / ior);
     // Optical depth within the thin plane
