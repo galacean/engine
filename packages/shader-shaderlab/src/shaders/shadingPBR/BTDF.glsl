@@ -24,15 +24,12 @@
         vec2 refractionCoords = (samplingPositionNDC.xy / samplingPositionNDC.w) * 0.5 + 0.5;
 
         // Sample the opaque texture to get the transmitted light
-		vec4 getTransmission = texture2D(camera_OpaqueTexture, refractionCoords);
-        vec3 refractionTransmitted = getTransmission.rgb;
+        vec3 refractionTransmitted = texture2D(camera_OpaqueTexture, refractionCoords).rgb;
         refractionTransmitted *= brdfData.diffuseColor;
          
         // Use specularFGD as an approximation of the fresnel effect
         // https://blog.selfshadow.com/publications/s2017-shading-course/imageworks/s2017_pbs_imageworks_slides_v2.pdf
-        vec3 specularDFG =  brdfData.envSpecularDFG;
-
-        refractionTransmitted *= (1.0 - specularDFG);
+        refractionTransmitted *= (1.0 - brdfData.envSpecularDFG);
 
        #ifdef MATERIAL_HAS_THICKNESS
             // Absorption coefficient from Disney: http://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_notes.pdf
