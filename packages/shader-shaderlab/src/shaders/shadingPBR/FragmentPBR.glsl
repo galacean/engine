@@ -62,7 +62,7 @@ float material_OcclusionTextureCoord;
     #endif
 #endif
 
-#ifdef MATERIAL_HAS_TRANSMISSION 
+#ifdef MATERIAL_ENABLE_TRANSMISSION
     vec3 material_AttenuationColor;
     float material_AttenuationDistance;
     float material_Transmission;
@@ -319,15 +319,10 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
         surfaceData.absorptionCoefficient = -log(material_AttenuationColor + HALF_EPS) / max(HALF_EPS, material_AttenuationDistance);
 
         #ifdef MATERIAL_HAS_THICKNESS
-            #if REFRACTION_MODE == 2
-                //https://zh.wikipedia.org/wiki/%E8%96%84%E8%86%9C%E5%85%89%E5%AD%A6
-                surfaceData.thickness = 0.005;
-            #else
                 surfaceData.thickness = max(material_Thickness, 0.0001);
                 #ifdef MATERIAL_HAS_THICKNESS_TEXTURE
                     surfaceData.thickness *= texture2D( material_ThicknessTexture, uv).g;
                 #endif
-            #endif
         #endif    
     #endif
 

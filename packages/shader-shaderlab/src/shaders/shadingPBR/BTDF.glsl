@@ -12,8 +12,6 @@
             refractionModelSphere(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, surfaceData.thickness, ray);
         #elif REFRACTION_MODE == 1
             refractionModelBox(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, surfaceData.thickness, ray);
-        #elif REFRACTION_MODE == 2
-            refractionModelBox(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, surfaceData.thickness, ray);
         #endif
 
         vec3 refractedRayExit = ray.positionExit;
