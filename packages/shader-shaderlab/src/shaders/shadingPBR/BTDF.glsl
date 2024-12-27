@@ -3,16 +3,12 @@
 
 #include "Refraction.glsl"
 
-#ifdef MATERIAL_ENABLE_SS_REFRACTION 
+#ifdef MATERIAL_ENABLE_TRANSMISSION 
     sampler2D camera_OpaqueTexture;
     vec3 evaluateRefraction(SurfaceData surfaceData, BRDFData brdfData) {
         RefractionModelResult ray;
-        #if REFRACTION_MODE == SPHERE
-            refractionModelSphere(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, surfaceData.thickness, ray);
-        #elif REFRACTION_MODE == PLANE
-            refractionModelBox(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, surfaceData.thickness, ray);
-        #elif REFRACTION_MODE == THIN
-            refractionModelBox(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, surfaceData.thickness, ray);
+        #ifdef REFRACTION_MODE
+            refractionModelBox(-surfaceData.viewDir, surfaceData.position, surfaceData.normal, surfaceData.IOR, 0.005, ray);
         #endif
         //TODO: support cubemap refraction.
         vec3 refractedRayExit = ray.positionExit;
@@ -37,7 +33,7 @@
          
         // Use specularFGD as an approximation of the fresnel effect
         // https://blog.selfshadow.com/publications/s2017-shading-course/imageworks/s2017_pbs_imageworks_slides_v2.pdf
-        vec3 specularDFG =  brdfData.specularDFG;
+        vec3 specularDFG =  brdfData.envSpecularDFG;
 
         refractionTransmitted *= (1.0 - specularDFG);
 

@@ -1,4 +1,4 @@
-import { EKeyword, GalaceanDataType } from "../../common";
+import { EKeyword, GalaceanDataType, TypeAny } from "../../common";
 import { EShaderStage } from "../../common/Enums";
 
 export const BuiltinVariableTable: Map<string, BuiltinVariable> = new Map();
@@ -34,6 +34,7 @@ BuiltinVariable.createVariable("gl_FrontFacing", EKeyword.BOOL, EShaderStage.FRA
 BuiltinVariable.createVariable("gl_FragDepth", EKeyword.FLOAT, EShaderStage.FRAGMENT);
 BuiltinVariable.createVariable("gl_PointCoord", EKeyword.VEC2, EShaderStage.FRAGMENT);
 BuiltinVariable.createVariable("gl_FragColor", EKeyword.VEC4, EShaderStage.FRAGMENT);
+BuiltinVariable.createVariable("gl_FragData", EKeyword.VEC4_ARRAY, EShaderStage.FRAGMENT);
 
 BuiltinVariable.createVariable("gl_MaxVertexAttribs", EKeyword.INT);
 BuiltinVariable.createVariable("gl_MaxVertexUniformVectors", EKeyword.INT);

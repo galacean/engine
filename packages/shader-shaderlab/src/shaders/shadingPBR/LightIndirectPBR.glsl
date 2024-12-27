@@ -77,7 +77,7 @@ void evaluateSpecularIBL(Varyings varyings, SurfaceData surfaceData, BRDFData br
         vec3 speculaColor = brdfData.specularColor;
     #endif
 
-    outSpecularColor += surfaceData.specularAO * radianceAttenuation * radiance * brdfData.specularDFG;
+    outSpecularColor += surfaceData.specularAO * radianceAttenuation * radiance * brdfData.envSpecularDFG;
 }
 
 void evaluateSheenIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData,  float radianceAttenuation, inout vec3 diffuseColor, inout vec3 specularColor){
@@ -90,7 +90,7 @@ void evaluateSheenIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfD
     #endif
 }
 
-void evaluateIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, inout vec3 color){
+void evaluateIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, inout vec3 totalDiffuseColor, inout vec3 totalSpecularColor){
     vec3 diffuseColor = vec3(0);
     vec3 specularColor = vec3(0);
 
@@ -105,20 +105,10 @@ void evaluateIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, 
   
     // IBL sheen
     FUNCTION_SHEEN_IBL(varyings, surfaceData, brdfData, radianceAttenuation, diffuseColor, specularColor);
-    
-    #ifdef MATERIAL_ENABLE_SS_REFRACTION 
-        vec3 refractionTransmitted = evaluateRefraction(surfaceData, brdfData);
-        refractionTransmitted *= surfaceData.transmission;
-        diffuseColor *= (1.0 - surfaceData.transmission);
-    #endif
 
-    color += diffuseColor + specularColor;
-
-    #ifdef MATERIAL_ENABLE_SS_REFRACTION 
-        color.rgb += refractionTransmitted;
-    #endif
+    totalDiffuseColor += diffuseColor;
+    totalSpecularColor += specularColor;
 
 }
-
 
 #endif

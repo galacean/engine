@@ -148,7 +148,7 @@ export default class BaseScanner {
   throwError(pos: ShaderPosition | ShaderRange, ...msgs: any[]) {
     const error = ShaderLabUtils.createGSError(msgs.join(" "), GSErrorName.ScannerError, this._source, pos);
     // #if _VERBOSE
-    Logger.error(error.toString());
+    Logger.error(error!.toString());
     // #endif
     throw error;
   }

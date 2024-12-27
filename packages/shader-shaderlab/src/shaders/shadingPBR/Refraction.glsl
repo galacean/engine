@@ -1,7 +1,7 @@
 #ifndef REFRACTION_INCLUDED
 #define REFRACTION_INCLUDED
 
-#ifdef MATERIAL_ENABLE_SS_REFRACTION 
+#ifdef MATERIAL_ENABLE_TRANSMISSION 
 
 struct RefractionModelResult{
     float transmissionLength;         // length of the transmission during refraction through the shape

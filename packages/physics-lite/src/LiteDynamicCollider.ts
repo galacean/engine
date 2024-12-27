@@ -134,6 +134,13 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
   }
 
   /**
+   * {@inheritDoc IDynamicCollider.setUseGravity }
+   */
+  setUseGravity(value: boolean): void {
+    throw "Physics-lite don't support setUseGravity. Use Physics-PhysX instead!";
+  }
+
+  /**
    * {@inheritDoc IDynamicCollider.setIsKinematic }
    */
   setIsKinematic(value: boolean): void {
