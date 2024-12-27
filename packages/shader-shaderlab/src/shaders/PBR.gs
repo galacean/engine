@@ -54,6 +54,11 @@ Shader "PBR.gs" {
         material_SheenTexture("ColorTexture", Texture2D);
         material_SheenRoughnessTexture("RoughnessTexture", Texture2D);
       }
+      
+      Header("Transmission"){
+        material_Transmission("Transmission", Range(0, 1, 0.01)) = 0;
+        material_TransmissionTexture("TransmissionTexture", Texture2D);
+      }
 
       Header("Common") {
         material_AlphaCutoff( "AlphaCutoff", Range(0, 1, 0.01) ) = 0;
