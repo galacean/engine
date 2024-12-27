@@ -317,7 +317,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   set refractionMode(value: RefractionMode) {
     if (value !== this._refractionMode) {
       this._refractionMode = value;
-      this._setRefractionMode(value);
+      this.shaderData.enableMacro("REFRACTION_MODE", value.toString());
     }
   }
 
@@ -522,20 +522,6 @@ export class PBRMaterial extends PBRBaseMaterial {
       } else {
         this.shaderData.disableMacro(PBRMaterial._absorptionMacro);
       }
-    }
-  }
-
-  private _setRefractionMode(refractionMode: RefractionMode): void {
-    switch (refractionMode) {
-      case RefractionMode.Sphere:
-        this.shaderData.enableMacro("REFRACTION_MODE", "0");
-        break;
-      case RefractionMode.Plane:
-        this.shaderData.enableMacro("REFRACTION_MODE", "1");
-        break;
-      case RefractionMode.Thin:
-        this.shaderData.enableMacro("REFRACTION_MODE", "2");
-        break;
     }
   }
 }
