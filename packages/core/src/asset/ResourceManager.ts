@@ -184,7 +184,7 @@ export class ResourceManager {
    * @internal
    */
   _getRemoteUrl(url: string): string {
-    return this._virtualPathMap[url].path ?? url;
+    return this._virtualPathMap[url]?.path ?? url;
   }
 
   /**
@@ -206,7 +206,7 @@ export class ResourceManager {
    * @internal
    */
   _onSubAssetSuccess<T>(assetBaseURL: string, assetSubPath: string, value: T): void {
-    const remoteAssetBaseURL = this._virtualPathMap[assetBaseURL] ?? assetBaseURL;
+    const remoteAssetBaseURL = this._virtualPathMap[assetBaseURL]?.path ?? assetBaseURL;
 
     const subPromiseCallback = this._subAssetPromiseCallbacks[remoteAssetBaseURL]?.[assetSubPath];
     if (subPromiseCallback) {
@@ -361,7 +361,7 @@ export class ResourceManager {
     const paths = queryPath ? this._parseQueryPath(queryPath) : [];
 
     // Get remote asset base url
-    const remoteAssetBaseURL = this._virtualPathMap[assetBaseURL] ?? assetBaseURL;
+    const remoteAssetBaseURL = this._virtualPathMap[assetBaseURL]?.path ?? assetBaseURL;
 
     // Check cache
     const cacheObject = this._assetUrlPool[remoteAssetBaseURL];
