@@ -60,5 +60,7 @@ export enum AssetType {
   /** AudioClip, include ogg, wav and mp3. */
   Audio = "Audio",
   /** Project asset. */
-  Project = "project"
+  Project = "project",
+  /** PhysicsMaterial. */
+  PhysicsMaterial = "PhysicsMaterial"
 }

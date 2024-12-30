@@ -47,7 +47,8 @@ export class GSError extends Error {
       if (i === start.line) {
         remarkStart = start.column;
         paddingLength += start.column;
-      } else if (i === end.line) {
+      }
+      if (i === end.line) {
         remarkEnd = end.column;
       }
       const remarkLength = Math.max(remarkEnd - remarkStart, 1);

@@ -6,12 +6,13 @@ import { Entity } from "../../Entity";
 import { TransformModifyFlags } from "../../Transform";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { Collider } from "../Collider";
+import { DynamicCollider } from "../DynamicCollider";
 
 /**
  * A base class providing common functionality for joints.
  * @decorator `@dependentComponents(Collider, DependentMode.CheckOnly)`
  */
-@dependentComponents(Collider, DependentMode.CheckOnly)
+@dependentComponents(DynamicCollider, DependentMode.AutoAdd)
 export abstract class Joint extends Component {
   private static _tempVector3 = new Vector3();
 
@@ -24,6 +25,8 @@ export abstract class Joint extends Component {
   private _force = Infinity;
   private _torque = Infinity;
   private _automaticConnectedAnchor = true;
+  @ignoreClone
+  private _updateConnectedActualAnchor: Function;
 
   /**
    * The connected collider.
@@ -38,7 +41,7 @@ export abstract class Joint extends Component {
       preCollider?.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
       value?.entity._updateFlagManager.addListener(this._onConnectedTransformChanged);
       this._connectedColliderInfo.collider = value;
-      this._nativeJoint?.setConnectedCollider(value._nativeCollider);
+      this._nativeJoint?.setConnectedCollider(value?._nativeCollider);
       if (this._automaticConnectedAnchor) {
         this._calculateConnectedAnchor();
       } else {
@@ -48,8 +51,7 @@ export abstract class Joint extends Component {
   }
 
   /**
-   * The connected anchor position.
-   * @remarks If connectedCollider is set, this anchor is relative offset, or the anchor is world position.
+   * The anchor position.
    */
   get anchor(): Vector3 {
     return this._colliderInfo.anchor;
@@ -67,13 +69,22 @@ export abstract class Joint extends Component {
   /**
    * The connected anchor position.
    * @remarks If connectedCollider is set, this anchor is relative offset, or the anchor is world position.
+   * The connectedAnchor is automatically calculated, if you want to set it manually, please set automaticConnectedAnchor to false
    */
   get connectedAnchor(): Vector3 {
-    return this._connectedColliderInfo.anchor;
+    const connectedColliderAnchor = this._connectedColliderInfo.anchor;
+    if (this._automaticConnectedAnchor) {
+      //@ts-ignore
+      connectedColliderAnchor._onValueChanged = null;
+      this._calculateConnectedAnchor();
+      //@ts-ignore
+      connectedColliderAnchor._onValueChanged = this._updateConnectedActualAnchor;
+    }
+    return connectedColliderAnchor;
   }
 
   set connectedAnchor(value: Vector3) {
-    if (this.automaticConnectedAnchor) {
+    if (this._automaticConnectedAnchor) {
       console.warn("Cannot set connectedAnchor when automaticConnectedAnchor is true.");
       return;
     }
@@ -97,7 +108,7 @@ export abstract class Joint extends Component {
   }
 
   /**
-   *  The scale to apply to the inverse mass of collider 0 for resolving this constraint.
+   *  The scale to apply to the mass of collider 0 for resolving this constraint.
    */
   get connectedMassScale(): number {
     return this._connectedColliderInfo.massScale;
@@ -111,7 +122,7 @@ export abstract class Joint extends Component {
   }
 
   /**
-   * The scale to apply to the inverse mass of collider 1 for resolving this constraint.
+   * The scale to apply to the mass of collider 1 for resolving this constraint.
    */
   get massScale(): number {
     return this._colliderInfo.massScale;
@@ -125,7 +136,7 @@ export abstract class Joint extends Component {
   }
 
   /**
-   * The scale to apply to the inverse inertia of collider0 for resolving this constraint.
+   * The scale to apply to the inertia of collider0 for resolving this constraint.
    */
   get connectedInertiaScale(): number {
     return this._connectedColliderInfo.inertiaScale;
@@ -139,7 +150,7 @@ export abstract class Joint extends Component {
   }
 
   /**
-   * The scale to apply to the inverse inertia of collider1 for resolving this constraint.
+   * The scale to apply to the inertia of collider1 for resolving this constraint.
    */
   get inertiaScale(): number {
     return this._colliderInfo.inertiaScale;
@@ -184,8 +195,10 @@ export abstract class Joint extends Component {
     super(entity);
     //@ts-ignore
     this._colliderInfo.anchor._onValueChanged = this._updateActualAnchor.bind(this, AnchorOwner.Self);
+    this._updateConnectedActualAnchor = this._updateActualAnchor.bind(this, AnchorOwner.Connected);
     //@ts-ignore
-    this._connectedColliderInfo.anchor._onValueChanged = this._updateActualAnchor.bind(this, AnchorOwner.Connected);
+    this._connectedColliderInfo.anchor._onValueChanged = this._updateConnectedActualAnchor;
+
     this._onSelfTransformChanged = this._onSelfTransformChanged.bind(this);
     this._onConnectedTransformChanged = this._onConnectedTransformChanged.bind(this);
     // @ts-ignore
@@ -262,7 +275,6 @@ export abstract class Joint extends Component {
     }
   }
 
-  @ignoreClone
   private _updateActualAnchor(flag: AnchorOwner): void {
     if (flag & AnchorOwner.Self) {
       const worldScale = this.entity.transform.lossyWorldScale;

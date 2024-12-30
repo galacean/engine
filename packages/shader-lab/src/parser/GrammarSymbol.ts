@@ -2,7 +2,7 @@ import { TokenType } from "../common";
 
 export type Terminal = TokenType;
 
-export enum ENonTerminal {
+export enum NoneTerminal {
   START = 2000,
   // galacean
   gs_shader_program,
@@ -72,6 +72,7 @@ export enum ENonTerminal {
   struct_specifier,
   struct_declaration_list,
   struct_declaration,
+  layout_qualifier,
   struct_declarator_list,
   struct_declarator,
   identifier_list,
@@ -107,6 +108,6 @@ export enum ENonTerminal {
   _ignore
 }
 
-export type GrammarSymbol = Terminal | ENonTerminal;
+export type GrammarSymbol = Terminal | NoneTerminal;
 
 export type Derivation = GrammarSymbol[];

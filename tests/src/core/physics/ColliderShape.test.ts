@@ -268,10 +268,10 @@ describe("ColliderShape PhysX", () => {
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
     let distance = boxShape.getClosestPoint(point, closestPoint);
-    expect(formatValue(distance)).to.eq(10.492);
-    expect(formatValue(closestPoint.x)).to.eq(-16.0876);
-    expect(formatValue(closestPoint.y)).to.eq(10.7095);
-    expect(formatValue(closestPoint.z)).to.eq(12.7889);
+    expect(formatValue(distance)).to.eq(6.897);
+    expect(formatValue(closestPoint.x)).to.eq(-12.3658);
+    expect(formatValue(closestPoint.y)).to.eq(10.107);
+    expect(formatValue(closestPoint.z)).to.eq(11.1562);
 
     entity.transform.setScale(1, 1, 1);
     entity.transform.setRotation(0, 0, 0);
@@ -497,10 +497,10 @@ describe("ColliderShape Lite", () => {
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);
     let distance = boxShape.getClosestPoint(point, closestPoint);
-    expect(formatValue(distance)).to.eq(10.492);
-    expect(formatValue(closestPoint.x)).to.eq(-16.0876);
-    expect(formatValue(closestPoint.y)).to.eq(10.7095);
-    expect(formatValue(closestPoint.z)).to.eq(12.7889);
+    expect(formatValue(distance)).to.eq(6.897);
+    expect(formatValue(closestPoint.x)).to.eq(-12.3658);
+    expect(formatValue(closestPoint.y)).to.eq(10.107);
+    expect(formatValue(closestPoint.z)).to.eq(11.1562);
 
     entity.transform.setScale(1, 1, 1);
     entity.transform.setRotation(0, 0, 0);

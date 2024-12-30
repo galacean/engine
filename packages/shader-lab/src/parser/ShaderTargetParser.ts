@@ -1,5 +1,5 @@
 import { Grammar } from "./Grammar";
-import { ENonTerminal, GrammarSymbol } from "./GrammarSymbol";
+import { NoneTerminal, GrammarSymbol } from "./GrammarSymbol";
 import { BaseToken } from "../common/BaseToken";
 import { ETokenType } from "../common";
 import { EAction, StateActionTable, StateGotoTable } from "../lalr/types";
@@ -131,7 +131,7 @@ export class ShaderTargetParser {
   private _printStack(nextToken: BaseToken) {
     let str = "";
     for (let i = 0; i < this._traceBackStack.length - 1; i++) {
-      const state = <ENonTerminal>this._traceBackStack[i++];
+      const state = <NoneTerminal>this._traceBackStack[i++];
       const token = this._traceBackStack[i];
       str += `State${state} - ${(<BaseToken>token).lexeme ?? ParserUtils.toString(token as GrammarSymbol)}; `;
     }

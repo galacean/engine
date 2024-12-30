@@ -104,7 +104,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
         break;
     }
     if (rotation) {
-      Quaternion.rotationYawPitchRoll(rotation.x, rotation.y, rotation.z, physXRotation);
+      Quaternion.rotationYawPitchRoll(rotation.y, rotation.x, rotation.z, physXRotation);
       Quaternion.multiply(physXRotation, axis, physXRotation);
     } else {
       physXRotation.copyFrom(axis);

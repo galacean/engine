@@ -286,6 +286,15 @@ export class Label extends UIRenderer implements ITextRenderer {
     return this._subFont;
   }
 
+  protected override _updateBounds(worldBounds: BoundingBox): void {
+    const transform = <UITransform>this._transformEntity.transform;
+    const { x: width, y: height } = transform.size;
+    const { x: pivotX, y: pivotY } = transform.pivot;
+    worldBounds.min.set(-width * pivotX, -height * pivotY, 0);
+    worldBounds.max.set(width * (1 - pivotX), height * (1 - pivotY), 0);
+    BoundingBox.transform(worldBounds, this._transformEntity.transform.worldMatrix, worldBounds);
+  }
+
   protected override _render(context): void {
     if (this._isTextNoVisible()) {
       return;
@@ -408,9 +417,11 @@ export class Label extends UIRenderer implements ITextRenderer {
     const { min, max } = this._localBounds;
     const charRenderInfos = Label._charRenderInfos;
     const charFont = this._getSubFont();
-    const size = (<UITransform>this._transformEntity.transform).size;
+    const { size, pivot } = <UITransform>this._transformEntity.transform;
     const rendererWidth = size.x;
     const rendererHeight = size.y;
+    const offsetWidth = rendererWidth * (0.5 - pivot.x);
+    const offsetHeight = rendererHeight * (0.5 - pivot.y);
     const textMetrics = this.enableWrapping
       ? TextUtils.measureTextWithWrap(this, rendererWidth, rendererHeight, this._lineSpacing)
       : TextUtils.measureTextWithoutWrap(this, rendererHeight, this._lineSpacing);
@@ -475,10 +486,10 @@ export class Label extends UIRenderer implements ITextRenderer {
               charRenderInfo.texture = charFont._getTextureByIndex(charInfo.index);
               charRenderInfo.uvs = charInfo.uvs;
               const { w, ascent, descent } = charInfo;
-              const left = startX;
-              const right = startX + w;
-              const top = startY + ascent;
-              const bottom = startY - descent;
+              const left = startX + offsetWidth;
+              const right = startX + w + offsetWidth;
+              const top = startY + ascent + offsetHeight;
+              const bottom = startY - descent + offsetHeight;
               localPositions.set(left, top, right, bottom);
               i === firstLine && (maxY = Math.max(maxY, top));
               minY = Math.min(minY, bottom);
