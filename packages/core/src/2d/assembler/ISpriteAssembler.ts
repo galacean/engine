@@ -1,4 +1,4 @@
-import { Matrix, Vector2, Vector3 } from "@galacean/engine-math";
+import { Matrix, Vector2 } from "@galacean/engine-math";
 import { ISpriteRenderer } from "./ISpriteRenderer";
 
 /**
@@ -18,12 +18,4 @@ export interface ISpriteAssembler {
   ): void;
   updateUVs(renderer: ISpriteRenderer): void;
   updateColor(renderer: ISpriteRenderer, alpha?: number): void;
-  getUVByLocalPosition(
-    renderer: ISpriteRenderer,
-    width: number,
-    height: number,
-    pivot: Vector2,
-    position: Vector3,
-    out: Vector2
-  ): boolean;
 }

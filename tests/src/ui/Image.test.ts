@@ -26,14 +26,6 @@ describe("Image", async () => {
     image.sprite = null;
     expect(image.sprite).to.eq(null);
 
-    // Alpha HitTest MinimumThreshold
-    image.alphaHitTestMinimumThreshold = 0.5;
-    expect(image.alphaHitTestMinimumThreshold).to.eq(0.5);
-    image.alphaHitTestMinimumThreshold = -0.5;
-    expect(image.alphaHitTestMinimumThreshold).to.eq(0);
-    image.alphaHitTestMinimumThreshold = 1.5;
-    expect(image.alphaHitTestMinimumThreshold).to.eq(1);
-
     // Draw Mode
     image.drawMode = SpriteDrawMode.Simple;
     expect(image.drawMode).to.eq(SpriteDrawMode.Simple);

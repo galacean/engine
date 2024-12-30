@@ -1,4 +1,4 @@
-import { Matrix, Vector2, Vector3 } from "@galacean/engine-math";
+import { Matrix, Vector2 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { ISpriteAssembler } from "./ISpriteAssembler";
 import { ISpriteRenderer } from "./ISpriteRenderer";
@@ -142,66 +142,6 @@ export class SlicedSpriteAssembler {
       vertices[o + 1] = g;
       vertices[o + 2] = b;
       vertices[o + 3] = finalAlpha;
-    }
-  }
-
-  static getUVByLocalPosition(
-    renderer: ISpriteRenderer,
-    width: number,
-    height: number,
-    pivot: Vector2,
-    position: Vector3,
-    out: Vector2
-  ): boolean {
-    const sprite = renderer.sprite;
-    const positions = sprite._getPositions();
-    const { x: left, y: bottom } = positions[0];
-    const { x: right, y: top } = positions[3];
-    const { border } = sprite;
-    const { width: expectWidth, height: expectHeight } = sprite;
-    const fixedLeft = expectWidth * border.x;
-    const fixedBottom = expectHeight * border.y;
-    const fixedRight = expectWidth * border.z;
-    const fixedTop = expectHeight * border.w;
-    const { _row: row, _column: column } = SlicedSpriteAssembler;
-    if (fixedLeft + fixedRight > width) {
-      const widthScale = width / (fixedLeft + fixedRight);
-      (row[0] = expectWidth * left * widthScale), (row[1] = row[2] = fixedLeft * widthScale);
-      row[3] = width - expectWidth * (1 - right) * widthScale;
-    } else {
-      (row[0] = expectWidth * left), (row[1] = fixedLeft), (row[2] = width - fixedRight);
-      row[3] = width - expectWidth * (1 - right);
-    }
-
-    if (fixedTop + fixedBottom > height) {
-      const heightScale = height / (fixedTop + fixedBottom);
-      (column[0] = expectHeight * bottom * heightScale), (column[1] = column[2] = fixedBottom * heightScale);
-      column[3] = height - expectHeight * (1 - top) * heightScale;
-    } else {
-      (column[0] = expectHeight * bottom), (column[1] = fixedBottom), (column[2] = height - fixedTop);
-      column[3] = height - expectHeight * (1 - top);
-    }
-
-    const x = position.x + width * pivot.x;
-    const y = position.y + height * pivot.y;
-    if (x >= row[0] && x <= row[3] && y >= column[0] && y <= column[3]) {
-      for (let i = row.length - 2; i >= 0; i--) {
-        if (x >= row[i]) {
-          for (let j = column.length - 2; j >= 0; j--) {
-            if (y >= column[j]) {
-              const uvs = sprite._getUVs();
-              const factorX = (x - row[i]) / (row[i + 1] - row[i]);
-              const factorY = (y - column[j]) / (column[j + 1] - column[j]);
-              const uvLeft = uvs[i].x;
-              const uvBottom = uvs[j].y;
-              out.set(uvLeft + (uvs[i + 1].x - uvLeft) * factorX, uvBottom + (uvs[j + 1].y - uvBottom) * factorY);
-              return true;
-            }
-          }
-        }
-      }
-    } else {
-      return false;
     }
   }
 }
