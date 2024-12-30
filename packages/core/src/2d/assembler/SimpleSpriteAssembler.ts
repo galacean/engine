@@ -1,4 +1,4 @@
-import { Matrix, Vector2, Vector3 } from "@galacean/engine-math";
+import { Matrix, Vector2 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { ISpriteAssembler } from "./ISpriteAssembler";
 import { ISpriteRenderer } from "./ISpriteRenderer";
@@ -88,33 +88,6 @@ export class SimpleSpriteAssembler {
       vertices[o + 1] = g;
       vertices[o + 2] = b;
       vertices[o + 3] = finalAlpha;
-    }
-  }
-
-  static getUVByLocalPosition(
-    renderer: ISpriteRenderer,
-    width: number,
-    height: number,
-    pivot: Vector2,
-    position: Vector3,
-    out: Vector2
-  ): boolean {
-    const sprite = renderer.sprite;
-    const normalizedX = position.x / width + pivot.x;
-    const normalizedY = position.y / height + pivot.y;
-    const positions = sprite._getPositions();
-    const { x: left, y: bottom } = positions[0];
-    const { x: right, y: top } = positions[3];
-    if (normalizedX >= left && normalizedX <= right && normalizedY >= bottom && normalizedY <= top) {
-      const uvs = sprite._getUVs();
-      const { x: uvLeft, y: uvBottom } = uvs[0];
-      const { x: uvRight, y: uvTop } = uvs[3];
-      const factorX = (normalizedX - left) / (right - left);
-      const factorY = (normalizedY - bottom) / (top - bottom);
-      out.set(uvLeft + (uvRight - uvLeft) * factorX, uvBottom + (uvTop - uvBottom) * factorY);
-      return true;
-    } else {
-      return false;
     }
   }
 }

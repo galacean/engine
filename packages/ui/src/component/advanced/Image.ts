@@ -13,7 +13,6 @@ import {
   SpriteTileMode,
   TiledSpriteAssembler,
   Vector2,
-  Vector3,
   assignmentClone,
   ignoreClone
 } from "@galacean/engine";
@@ -38,21 +37,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
   @assignmentClone
   private _tiledAdaptiveThreshold: number = 0.5;
-  @assignmentClone
-  private _alphaHitTestMinimumThreshold: number = 0.0;
-
-  /**
-   *  When this value is greater than 0, raycast will perform pixel-level detection;
-   *  otherwise, it will only check the rectangular area of the UI element.
-   *  @remarks enabling this will decrease performance.
-   */
-  get alphaHitTestMinimumThreshold(): number {
-    return this._alphaHitTestMinimumThreshold;
-  }
-
-  set alphaHitTestMinimumThreshold(value: number) {
-    this._alphaHitTestMinimumThreshold = MathUtil.clamp(value, 0, 1);
-  }
 
   /**
    * The draw mode of the image.
@@ -152,41 +136,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     this.drawMode = SpriteDrawMode.Simple;
     this.setMaterial(this._engine._getUIDefaultMaterial());
     this._onSpriteChange = this._onSpriteChange.bind(this);
-  }
-
-  protected override _hitTest(localPosition: Vector3): boolean {
-    let { x, y } = localPosition;
-    const uiTransform = <UITransform>this._transformEntity.transform;
-    const { x: width, y: height } = uiTransform.size;
-    const { x: pivotX, y: pivotY } = uiTransform.pivot;
-    const { x: paddingLeft, y: paddingBottom, z: paddingRight, w: paddingTop } = this.raycastPadding;
-    if (
-      x < -width * pivotX + paddingLeft ||
-      x > width * (1 - pivotX) - paddingRight ||
-      y < -height * pivotY + paddingTop ||
-      y > height * (1 - pivotY) - paddingBottom
-    ) {
-      return false;
-    }
-    const alphaHitTestMinimumThreshold = this._alphaHitTestMinimumThreshold;
-    if (alphaHitTestMinimumThreshold <= 0) {
-      return true;
-    }
-    const texture = this.sprite?.texture;
-    if (!texture) {
-      return false;
-    }
-    const uv = Image._tempVec2;
-    if (!this._getUVByLocalPosition(localPosition, uv)) {
-      return false;
-    }
-    const pixel = Image._tempUnit8Array;
-    texture.getPixelBuffer(Math.floor(uv.x * texture.width), Math.floor(uv.y * texture.height), 1, 1, 0, pixel);
-    if (pixel[3] >= alphaHitTestMinimumThreshold * 255) {
-      return true;
-    } else {
-      return false;
-    }
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
@@ -331,11 +280,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
         this.sprite = null;
         break;
     }
-  }
-
-  private _getUVByLocalPosition(position: Vector3, out: Vector2): boolean {
-    const { size, pivot } = <UITransform>this._transformEntity.transform;
-    return this._assembler.getUVByLocalPosition(this, size.x, size.y, pivot, position, out);
   }
 }
 
