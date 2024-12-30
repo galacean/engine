@@ -184,7 +184,7 @@ export class ResourceManager {
    * @internal
    */
   _getRemoteUrl(url: string): string {
-    return this._virtualPathMap[url] ?? url;
+    return this._virtualPathMap[url].path ?? url;
   }
 
   /**
@@ -555,7 +555,7 @@ export class ResourceManager {
   /** @internal */
   _editorResourceConfig: EditorResourceConfig = Object.create(null);
   /** @internal */
-  _virtualPathMap: Record<string, string> = Object.create(null);
+  _virtualPathMap: EditorResourceConfig = Object.create(null);
   /** @internal */
   _dependencyMap: Record<string, { [key: string]: string }> = Object.create(null);
 
@@ -594,7 +594,7 @@ export class ResourceManager {
    */
   initVirtualResources(config: EditorResourceItem[]): void {
     config.forEach((element) => {
-      this._virtualPathMap[element.virtualPath] = element.path;
+      this._virtualPathMap[element.virtualPath] = element;
       this._editorResourceConfig[element.id] = element;
       if (element.dependentAssetMap) {
         this._dependencyMap[element.virtualPath] = element.dependentAssetMap;
