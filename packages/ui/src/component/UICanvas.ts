@@ -90,10 +90,10 @@ export class UICanvas extends Component implements IElement {
     return this._referenceResolution;
   }
 
-  set referenceResolution(val: Vector2) {
+  set referenceResolution(value: Vector2) {
     const referenceResolution = this._referenceResolution;
-    if (referenceResolution === val) return;
-    (referenceResolution.x !== val.x || referenceResolution.y !== val.y) && referenceResolution.copyFrom(val);
+    if (referenceResolution === value) return;
+    (referenceResolution.x !== value.x || referenceResolution.y !== value.y) && referenceResolution.copyFrom(value);
   }
 
   /**
@@ -120,10 +120,10 @@ export class UICanvas extends Component implements IElement {
     return this._renderCamera;
   }
 
-  set renderCamera(val: Camera) {
+  set renderCamera(value: Camera) {
     const preCamera = this._renderCamera;
-    if (preCamera !== val) {
-      this._renderCamera = val;
+    if (preCamera !== value) {
+      this._renderCamera = value;
       this._updateCameraObserver();
       this._setRealRenderMode(this._getRealRenderMode());
     }
@@ -136,9 +136,9 @@ export class UICanvas extends Component implements IElement {
     return this._resolutionAdaptationStrategy;
   }
 
-  set resolutionAdaptationStrategy(val: ResolutionAdaptationStrategy) {
-    if (this._resolutionAdaptationStrategy !== val) {
-      this._resolutionAdaptationStrategy = val;
+  set resolutionAdaptationStrategy(value: ResolutionAdaptationStrategy) {
+    if (this._resolutionAdaptationStrategy !== value) {
+      this._resolutionAdaptationStrategy = value;
       const realRenderMode = this._realRenderMode;
       if (
         realRenderMode === CanvasRenderMode.ScreenSpaceCamera ||
@@ -156,9 +156,9 @@ export class UICanvas extends Component implements IElement {
     return this._sortOrder;
   }
 
-  set sortOrder(val: number) {
-    if (this._sortOrder !== val) {
-      this._sortOrder = val;
+  set sortOrder(value: number) {
+    if (this._sortOrder !== value) {
+      this._sortOrder = value;
       this._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay &&
         // @ts-ignore
         (this.scene._componentsManager._overlayCanvasesSortingFlag = true);
@@ -172,9 +172,9 @@ export class UICanvas extends Component implements IElement {
     return this._distance;
   }
 
-  set distance(val: number) {
-    if (this._distance !== val) {
-      this._distance = val;
+  set distance(value: number) {
+    if (this._distance !== value) {
+      this._distance = value;
       if (this._realRenderMode === CanvasRenderMode.ScreenSpaceCamera) {
         this._adapterPoseInScreenSpace();
         this._adapterSizeInScreenSpace();

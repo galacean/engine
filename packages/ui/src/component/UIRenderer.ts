@@ -98,8 +98,8 @@ export class UIRenderer extends Renderer implements IGraphics {
     return this._raycastEnable;
   }
 
-  set raycastEnable(val: boolean) {
-    this._raycastEnable = val;
+  set raycastEnable(value: boolean) {
+    this._raycastEnable = value;
   }
 
   /**

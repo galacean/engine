@@ -19,41 +19,41 @@ export class Transform extends Component {
   private static _tempMat42: Matrix = new Matrix();
 
   @deepClone
-  protected _position: Vector3 = new Vector3();
+  private _position: Vector3 = new Vector3();
   @deepClone
-  protected _rotation: Vector3 = new Vector3();
+  private _rotation: Vector3 = new Vector3();
   @deepClone
-  protected _rotationQuaternion: Quaternion = new Quaternion();
+  private _rotationQuaternion: Quaternion = new Quaternion();
   @deepClone
-  protected _scale: Vector3 = new Vector3(1, 1, 1);
+  private _scale: Vector3 = new Vector3(1, 1, 1);
   @assignmentClone
-  protected _localUniformScaling: boolean = true;
+  private _localUniformScaling: boolean = true;
   @deepClone
-  protected _worldPosition: Vector3 = new Vector3();
+  private _worldPosition: Vector3 = new Vector3();
   @deepClone
-  protected _worldRotation: Vector3 = new Vector3();
+  private _worldRotation: Vector3 = new Vector3();
   @deepClone
-  protected _worldRotationQuaternion: Quaternion = new Quaternion();
+  private _worldRotationQuaternion: Quaternion = new Quaternion();
   @assignmentClone
-  protected _worldUniformScaling: boolean = true;
+  private _worldUniformScaling: boolean = true;
   @deepClone
-  protected _lossyWorldScale: Vector3 = new Vector3(1, 1, 1);
+  private _lossyWorldScale: Vector3 = new Vector3(1, 1, 1);
   @deepClone
-  protected _localMatrix: Matrix = new Matrix();
+  private _localMatrix: Matrix = new Matrix();
   @deepClone
-  protected _worldMatrix: Matrix = new Matrix();
+  private _worldMatrix: Matrix = new Matrix();
   @ignoreClone
-  protected _worldForward: Vector3 = null;
+  private _worldForward: Vector3 = null;
   @ignoreClone
-  protected _worldRight: Vector3 = null;
+  private _worldRight: Vector3 = null;
   @ignoreClone
-  protected _worldUp: Vector3 = null;
+  private _worldUp: Vector3 = null;
 
   @ignoreClone
-  protected _isParentDirty: boolean = true;
+  private _isParentDirty: boolean = true;
   @ignoreClone
-  protected _parentTransformCache: Transform = null;
-  protected _dirtyFlag: number = TransformModifyFlags.WmWpWeWqWs;
+  private _parentTransformCache: Transform = null;
+  private _dirtyFlag: number = TransformModifyFlags.WmWpWeWqWs;
 
   /**
    * Local position.
