@@ -23,8 +23,10 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /** @internal */
   @ignoreClone
   _condensedBlendShapeWeights: Float32Array;
+
   @deepClone
   private _localBounds: BoundingBox = new BoundingBox();
+
   @ignoreClone
   private _jointDataCreateCache: Vector2 = new Vector2(-1, -1);
   @ignoreClone
@@ -105,7 +107,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     this._maxVertexUniformVectors = maxVertexUniformVectors;
 
     this._onLocalBoundsChanged = this._onLocalBoundsChanged.bind(this);
-
     this._onSkinUpdated = this._onSkinUpdated.bind(this);
 
     const localBounds = this._localBounds;

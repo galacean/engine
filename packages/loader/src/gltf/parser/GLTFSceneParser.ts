@@ -157,6 +157,7 @@ export class GLTFSceneParser extends GLTFParser {
           skinRenderer.mesh = mesh;
           if (skin) {
             this._computeLocalBounds(skinRenderer, mesh, skin.bones, skin.rootBone, skin.inverseBindMatrices);
+            skinRenderer.skin = skin;
           }
           if (blendShapeWeights) {
             skinRenderer.blendShapeWeights = new Float32Array(blendShapeWeights);

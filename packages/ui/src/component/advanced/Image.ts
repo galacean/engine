@@ -24,9 +24,6 @@ import { UITransform, UITransformModifyFlags } from "../UITransform";
  * UI element that renders an image.
  */
 export class Image extends UIRenderer implements ISpriteRenderer {
-  private static _tempVec2: Vector2 = new Vector2();
-  private static _tempUnit8Array: Uint8ClampedArray = new Uint8ClampedArray(4);
-
   @ignoreClone
   private _sprite: Sprite = null;
   @ignoreClone
