@@ -9,6 +9,9 @@ export abstract class Transition<
   T extends TransitionValueType = TransitionValueType,
   K extends UIRenderer = UIRenderer
 > {
+  /** @internal */
+  _interactive: UIInteractive;
+
   protected _target: K;
   protected _normal: T;
   protected _pressed: T;
@@ -114,17 +117,8 @@ export abstract class Transition<
     }
   }
 
-  /**
-   * @internal
-   */
-  constructor(protected _interactive: UIInteractive) {}
-
   destroy(): void {
-    const interactive = this._interactive;
-    if (interactive) {
-      interactive._removeTransition(this);
-      this._interactive = null;
-    }
+    this._interactive?.removeTransition(this);
     this._target = null;
   }
 

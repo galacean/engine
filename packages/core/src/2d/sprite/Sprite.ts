@@ -279,10 +279,15 @@ export class Sprite extends ReferResource {
   private _calDefaultSize(): void {
     if (this._texture) {
       const { _texture, _atlasRegion, _atlasRegionOffset, _region } = this;
+      const pixelsPerUnitReciprocal = 1.0 / Engine._pixelsPerUnit;
       this._automaticWidth =
-        ((_texture.width * _atlasRegion.width) / (1 - _atlasRegionOffset.x - _atlasRegionOffset.z)) * _region.width;
+        ((_texture.width * _atlasRegion.width) / (1 - _atlasRegionOffset.x - _atlasRegionOffset.z)) *
+        _region.width *
+        pixelsPerUnitReciprocal;
       this._automaticHeight =
-        ((_texture.height * _atlasRegion.height) / (1 - _atlasRegionOffset.y - _atlasRegionOffset.w)) * _region.height;
+        ((_texture.height * _atlasRegion.height) / (1 - _atlasRegionOffset.y - _atlasRegionOffset.w)) *
+        _region.height *
+        pixelsPerUnitReciprocal;
     } else {
       this._automaticWidth = this._automaticHeight = 0;
     }

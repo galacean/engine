@@ -79,7 +79,7 @@ export class UICanvas extends Component implements IElement {
   @ignoreClone
   private _distance: number = 10;
   @deepClone
-  private _referenceResolution: Vector2 = new Vector2(800, 600);
+  private _referenceResolution: Vector2 = new Vector2(8, 6);
   @ignoreClone
   private _hierarchyVersion: number = -1;
 

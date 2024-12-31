@@ -4,6 +4,7 @@ import { OverflowMode } from "../enums/TextOverflow";
 import { CharInfo } from "./CharInfo";
 import { ITextRenderer } from "./ITextRenderer";
 import { SubFont } from "./SubFont";
+import { Engine } from "../../Engine";
 
 /**
  * @internal
@@ -95,12 +96,7 @@ export class TextUtils {
     return <CharInfo>TextUtils._measureFontOrChar(fontString, char, true);
   }
 
-  static measureTextWithWrap(
-    renderer: ITextRenderer,
-    rendererWidth: number,
-    rendererHeight: number,
-    lineSpacing: number
-  ): TextMetrics {
+  static measureTextWithWrap(renderer: ITextRenderer, rendererWidth: number, rendererHeight: number): TextMetrics {
     const subFont = renderer._getSubFont();
     const fontString = subFont.nativeFontString;
     const fontSizeInfo = TextUtils.measureFont(fontString);
@@ -110,7 +106,8 @@ export class TextUtils {
     const lineWidths = new Array<number>();
     const lineMaxSizes = new Array<FontSizeInfo>();
 
-    const lineHeight = fontSizeInfo.size + lineSpacing;
+    const pixelsPerUnit = Engine._pixelsPerUnit;
+    const lineHeight = fontSizeInfo.size + renderer.lineSpacing * pixelsPerUnit;
     let textWidth = 0;
 
     subFont.nativeFontString = fontString;
@@ -272,7 +269,7 @@ export class TextUtils {
     };
   }
 
-  static measureTextWithoutWrap(renderer: ITextRenderer, rendererHeight: number, lineSpacing: number): TextMetrics {
+  static measureTextWithoutWrap(renderer: ITextRenderer, rendererHeight: number): TextMetrics {
     const subFont = renderer._getSubFont();
     const fontString = subFont.nativeFontString;
     const fontSizeInfo = TextUtils.measureFont(fontString);
@@ -281,7 +278,7 @@ export class TextUtils {
     const lines = new Array<string>();
     const lineWidths = new Array<number>();
     const lineMaxSizes = new Array<FontSizeInfo>();
-    const lineHeight = fontSizeInfo.size + lineSpacing;
+    const lineHeight = fontSizeInfo.size + renderer.lineSpacing;
 
     let width = 0;
     subFont.nativeFontString = fontString;

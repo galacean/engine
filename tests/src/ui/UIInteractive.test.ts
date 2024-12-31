@@ -52,15 +52,11 @@ describe("Button", async () => {
     expect(clickCount).to.eq(1);
 
     // Transition
-    const scaleTransition = button.addTransition(ScaleTransition);
-    expect(button.getTransition(ScaleTransition)).to.eq(scaleTransition);
-    const result = [];
-    button.getTransitions<ScaleTransition>(ScaleTransition, result);
-    expect(result.length).to.eq(1);
-    expect(result[0]).to.eq(scaleTransition);
+    const scaleTransition = new ScaleTransition();
+    button.addTransition(scaleTransition);
+    expect(button.transitions.length).to.eq(1);
     scaleTransition.destroy();
-    button.getTransitions<ScaleTransition>(ScaleTransition, result);
-    expect(result.length).to.eq(0);
+    expect(button.transitions.length).to.eq(0);
   });
 
   it("Interactive State", () => {

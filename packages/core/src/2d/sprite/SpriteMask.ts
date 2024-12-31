@@ -1,5 +1,4 @@
 import { BoundingBox } from "@galacean/engine-math";
-import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { RenderQueueFlags } from "../../RenderPipeline/BasicRenderPipeline";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
@@ -329,9 +328,8 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   private _calDefaultSize(): void {
     const sprite = this._sprite;
     if (sprite) {
-      const pixelsPerUnitReciprocal = 1 / Engine._pixelsPerUnit;
-      this._automaticWidth = sprite.width * pixelsPerUnitReciprocal;
-      this._automaticHeight = sprite.height * pixelsPerUnitReciprocal;
+      this._automaticWidth = sprite.width;
+      this._automaticHeight = sprite.height;
     } else {
       this._automaticWidth = this._automaticHeight = 0;
     }
