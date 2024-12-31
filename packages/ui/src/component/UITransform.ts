@@ -16,10 +16,10 @@ export class UITransform extends Transform {
     return this._size;
   }
 
-  set size(val: Vector2) {
+  set size(value: Vector2) {
     const { _size: size } = this;
-    if (size === val) return;
-    (size.x !== val.x || size.y !== val.y) && size.copyFrom(val);
+    if (size === value) return;
+    (size.x !== value.x || size.y !== value.y) && size.copyFrom(value);
   }
 
   /**
@@ -29,10 +29,10 @@ export class UITransform extends Transform {
     return this._pivot;
   }
 
-  set pivot(val: Vector2) {
+  set pivot(value: Vector2) {
     const { _pivot: pivot } = this;
-    if (pivot === val) return;
-    (pivot.x !== val.x || pivot.y !== val.y) && pivot.copyFrom(val);
+    if (pivot === value) return;
+    (pivot.x !== value.x || pivot.y !== value.y) && pivot.copyFrom(value);
   }
 
   /**

@@ -53,9 +53,9 @@ export class UIGroup extends Component implements IGroupAble {
     return this._ignoreParentGroup;
   }
 
-  set ignoreParentGroup(val: boolean) {
-    if (this._ignoreParentGroup !== val) {
-      this._ignoreParentGroup = val;
+  set ignoreParentGroup(value: boolean) {
+    if (this._ignoreParentGroup !== value) {
+      this._ignoreParentGroup = value;
       this._onGroupModify(GroupModifyFlags.All);
     }
   }
@@ -64,9 +64,9 @@ export class UIGroup extends Component implements IGroupAble {
     return this._interactive;
   }
 
-  set interactive(val: boolean) {
-    if (this._interactive !== val) {
-      this._interactive = val;
+  set interactive(value: boolean) {
+    if (this._interactive !== value) {
+      this._interactive = value;
       this._onGroupModify(GroupModifyFlags.GlobalInteractive);
     }
   }
@@ -75,10 +75,10 @@ export class UIGroup extends Component implements IGroupAble {
     return this._alpha;
   }
 
-  set alpha(val: number) {
-    val = Math.max(0, Math.min(val, 1));
-    if (this._alpha !== val) {
-      this._alpha = val;
+  set alpha(value: number) {
+    value = Math.max(0, Math.min(value, 1));
+    if (this._alpha !== value) {
+      this._alpha = value;
       this._onGroupModify(GroupModifyFlags.GlobalAlpha);
     }
   }
