@@ -12,7 +12,6 @@ import {
   SpriteModifyFlags,
   SpriteTileMode,
   TiledSpriteAssembler,
-  Vector2,
   assignmentClone,
   ignoreClone
 } from "@galacean/engine";

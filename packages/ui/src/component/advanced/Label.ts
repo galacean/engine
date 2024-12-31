@@ -1,6 +1,7 @@
 import {
   BoundingBox,
   CharRenderInfo,
+  Engine,
   Entity,
   Font,
   FontStyle,
@@ -414,17 +415,24 @@ export class Label extends UIRenderer implements ITextRenderer {
   }
 
   private _updateLocalData(): void {
+    // @ts-ignore
+    const pixelsPerUnit = Engine._pixelsPerUnit;
     const { min, max } = this._localBounds;
     const charRenderInfos = Label._charRenderInfos;
     const charFont = this._getSubFont();
     const { size, pivot } = <UITransform>this._transformEntity.transform;
-    const rendererWidth = size.x;
-    const rendererHeight = size.y;
+    let rendererWidth = size.x;
+    let rendererHeight = size.y;
     const offsetWidth = rendererWidth * (0.5 - pivot.x);
     const offsetHeight = rendererHeight * (0.5 - pivot.y);
     const textMetrics = this.enableWrapping
-      ? TextUtils.measureTextWithWrap(this, rendererWidth, rendererHeight, this._lineSpacing)
-      : TextUtils.measureTextWithoutWrap(this, rendererHeight, this._lineSpacing);
+      ? TextUtils.measureTextWithWrap(
+          this,
+          rendererWidth * pixelsPerUnit,
+          rendererHeight * pixelsPerUnit,
+          this._lineSpacing * pixelsPerUnit
+        )
+      : TextUtils.measureTextWithoutWrap(this, rendererHeight * pixelsPerUnit, this._lineSpacing * pixelsPerUnit);
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
     // @ts-ignore
     const charRenderInfoPool = this.engine._charRenderInfoPool;
@@ -433,6 +441,9 @@ export class Label extends UIRenderer implements ITextRenderer {
 
     if (linesLen > 0) {
       const { horizontalAlignment } = this;
+      const pixelsPerUnitReciprocal = 1.0 / pixelsPerUnit;
+      rendererWidth *= pixelsPerUnit;
+      rendererHeight *= pixelsPerUnit;
       const halfRendererWidth = rendererWidth * 0.5;
       const halfLineHeight = lineHeight * 0.5;
 
@@ -486,10 +497,10 @@ export class Label extends UIRenderer implements ITextRenderer {
               charRenderInfo.texture = charFont._getTextureByIndex(charInfo.index);
               charRenderInfo.uvs = charInfo.uvs;
               const { w, ascent, descent } = charInfo;
-              const left = startX + offsetWidth;
-              const right = startX + w + offsetWidth;
-              const top = startY + ascent + offsetHeight;
-              const bottom = startY - descent + offsetHeight;
+              const left = (startX + offsetWidth) * pixelsPerUnitReciprocal;
+              const right = (startX + w + offsetWidth) * pixelsPerUnitReciprocal;
+              const top = (startY + ascent + offsetHeight) * pixelsPerUnitReciprocal;
+              const bottom = (startY - descent + offsetHeight) * pixelsPerUnitReciprocal;
               localPositions.set(left, top, right, bottom);
               i === firstLine && (maxY = Math.max(maxY, top));
               minY = Math.min(minY, bottom);

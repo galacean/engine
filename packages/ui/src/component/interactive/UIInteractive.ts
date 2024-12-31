@@ -51,6 +51,13 @@ export class UIInteractive extends Script implements IGroupAble {
   private _isPointerDragging: boolean = false;
 
   /**
+   * The transitions of this interactive.
+   */
+  get transitions(): Readonly<Transition[]> {
+    return this._transitions;
+  }
+
+  /**
    * Whether the interactive is enabled.
    */
   get interactive() {
@@ -83,48 +90,45 @@ export class UIInteractive extends Script implements IGroupAble {
   }
 
   /**
-   * Get transition which match the type.
-   * @param type - The type of the transition
-   * @returns	Transitions which match type
+   * Add transition on this interactive.
+   * @param transition - The transition
    */
-  getTransitions<T extends Transition>(type: new (interactive: UIInteractive) => T, results: T[]): T[] {
-    results.length = 0;
-    const transitions = this._transitions;
-    for (let i = 0, n = transitions.length; i < n; i++) {
-      const transition = transitions[i];
-      if (transition instanceof type) {
-        results.push(transition);
-      }
+  addTransition(transition: Transition): void {
+    const interactive = transition._interactive;
+    if (interactive !== this) {
+      interactive?.removeTransition(transition);
+      this._transitions.push(transition);
+      transition._interactive = this;
+      transition._setState(this._state, true);
     }
-    return results;
   }
 
   /**
-   * Get transition which match the type.
-   * @param type - The type of the transition
-   * @returns	The first transition which match type
+   * Remove a transition.
+   * @param shape - The transition.
    */
-  getTransition<T extends Transition>(type: new (interactive: UIInteractive) => T): T | null {
+  removeTransition(transition: Transition): void {
     const transitions = this._transitions;
-    for (let i = 0, n = transitions.length; i < n; i++) {
-      const transition = transitions[i];
-      if (transition instanceof type) {
-        return transition;
+    const lastOneIndex = transitions.length - 1;
+    for (let i = lastOneIndex; i >= 0; i--) {
+      if (transitions[i] === transition) {
+        i !== lastOneIndex && (transitions[i] = transitions[lastOneIndex]);
+        transitions.length = lastOneIndex;
+        transition._interactive = null;
+        break;
       }
     }
-    return null;
   }
 
   /**
-   * Add transition based on the transition type.
-   * @param type - The type of the transition
-   * @returns	The transition which has been added
+   * Remove all transitions.
    */
-  addTransition<T extends new (interactive: UIInteractive) => Transition>(type: T): InstanceType<T> {
-    const transition = new type(this) as InstanceType<T>;
-    this._transitions.push(transition);
-    transition._setState(this._state, true);
-    return transition;
+  clearShapes(): void {
+    const transitions = this._transitions;
+    for (let i = 0, n = transitions.length; i < n; i++) {
+      transitions[i]._interactive = null;
+    }
+    transitions.length = 0;
   }
 
   override onUpdate(deltaTime: number): void {
@@ -196,21 +200,6 @@ export class UIInteractive extends Script implements IGroupAble {
     Utils.cleanRootCanvas(this);
     Utils.cleanGroup(this);
     this._isPointerInside = this._isPointerDragging = false;
-  }
-
-  /**
-   * @internal
-   */
-  _removeTransition(transition: Transition): void {
-    const transitions = this._transitions;
-    const lastOneIndex = transitions.length - 1;
-    for (let i = lastOneIndex; i >= 0; i--) {
-      if (transitions[i] === transition) {
-        i !== lastOneIndex && (transitions[i] = transitions[lastOneIndex]);
-        transitions.length = lastOneIndex;
-        break;
-      }
-    }
   }
 
   /**

@@ -1,5 +1,4 @@
 import { BoundingBox, Color, MathUtil } from "@galacean/engine-math";
-import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
@@ -354,8 +353,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
         this.height,
         sprite.pivot,
         this._flipX,
-        this._flipY,
-        Engine._pixelsPerUnit
+        this._flipY
       );
       this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.Position;
     }
@@ -404,9 +402,8 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   private _calDefaultSize(): void {
     const sprite = this._sprite;
     if (sprite) {
-      const pixelsPerUnitReciprocal = 1 / Engine._pixelsPerUnit;
-      this._automaticWidth = sprite.width * pixelsPerUnitReciprocal;
-      this._automaticHeight = sprite.height * pixelsPerUnitReciprocal;
+      this._automaticWidth = sprite.width;
+      this._automaticHeight = sprite.height;
     } else {
       this._automaticWidth = this._automaticHeight = 0;
     }

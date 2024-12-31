@@ -83,23 +83,23 @@ describe("Sprite", async () => {
     expect(sprite.height).to.eq(0);
     sprite.texture = texture1;
     // automatic
-    expect(sprite.width).to.eq(2000);
-    expect(sprite.height).to.eq(1000);
+    expect(sprite.width).to.eq(20);
+    expect(sprite.height).to.eq(10);
     sprite.texture = texture2;
-    expect(sprite.width).to.eq(1000);
-    expect(sprite.height).to.eq(2000);
+    expect(sprite.width).to.eq(10);
+    expect(sprite.height).to.eq(20);
     sprite.atlasRegion = new Rect(0, 0, 0.5, 0.5);
-    expect(sprite.width).to.eq(500);
-    expect(sprite.height).to.eq(1000);
+    expect(sprite.width).to.eq(5);
+    expect(sprite.height).to.eq(10);
     sprite.atlasRegion = new Rect(0, 0, 0.5, 0.5);
-    expect(sprite.width).to.eq(500);
-    expect(sprite.height).to.eq(1000);
+    expect(sprite.width).to.eq(5);
+    expect(sprite.height).to.eq(10);
     sprite.region = new Rect(0, 0, 0.5, 0.5);
-    expect(sprite.width).to.eq(250);
-    expect(sprite.height).to.eq(500);
+    expect(sprite.width).to.eq(2.5);
+    expect(sprite.height).to.eq(5);
     sprite.atlasRegionOffset = new Vector4(0.1, 0.1, 0.1, 0.1);
-    expect(sprite.width).to.eq(312.5);
-    expect(sprite.height).to.eq(625);
+    expect(sprite.width).to.eq(3.125);
+    expect(sprite.height).to.eq(6.25);
     // custom
     sprite.width = 100;
     sprite.height = 200;
