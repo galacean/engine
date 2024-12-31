@@ -426,8 +426,13 @@ export class Label extends UIRenderer implements ITextRenderer {
     const offsetWidth = rendererWidth * (0.5 - pivot.x);
     const offsetHeight = rendererHeight * (0.5 - pivot.y);
     const textMetrics = this.enableWrapping
-      ? TextUtils.measureTextWithWrap(this, rendererWidth, rendererHeight)
-      : TextUtils.measureTextWithoutWrap(this, rendererHeight);
+      ? TextUtils.measureTextWithWrap(
+          this,
+          rendererWidth * pixelsPerUnit,
+          rendererHeight * pixelsPerUnit,
+          this._lineSpacing * pixelsPerUnit
+        )
+      : TextUtils.measureTextWithoutWrap(this, rendererHeight * pixelsPerUnit, this._lineSpacing * pixelsPerUnit);
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
     // @ts-ignore
     const charRenderInfoPool = this.engine._charRenderInfoPool;

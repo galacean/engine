@@ -510,8 +510,13 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     const charRenderInfos = TextRenderer._charRenderInfos;
     const charFont = this._getSubFont();
     const textMetrics = this.enableWrapping
-      ? TextUtils.measureTextWithWrap(this, this.width, this.height)
-      : TextUtils.measureTextWithoutWrap(this, this.height);
+      ? TextUtils.measureTextWithWrap(
+          this,
+          this.width * _pixelsPerUnit,
+          this.height * _pixelsPerUnit,
+          this._lineSpacing * _pixelsPerUnit
+        )
+      : TextUtils.measureTextWithoutWrap(this, this.height * _pixelsPerUnit, this._lineSpacing * _pixelsPerUnit);
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
     const charRenderInfoPool = this.engine._charRenderInfoPool;
     const linesLen = lines.length;
