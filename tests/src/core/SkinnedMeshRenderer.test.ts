@@ -1,7 +1,7 @@
 import { BlendShape, Entity, ModelMesh, Skin, SkinnedMeshRenderer } from "@galacean/engine-core";
-import { Matrix, Vector3 } from "@galacean/engine-math";
+import { BoundingBox, Matrix, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, beforeAll, expect, it } from "vitest";
 
 describe("SkinnedMeshRenderer", async () => {
   let engine: WebGLEngine;
@@ -50,6 +50,16 @@ describe("SkinnedMeshRenderer", async () => {
     skinnedMR.blendShapeWeights = new Float32Array([0.4, 1, 0.5, 0.7, 0.8, 0.2]);
     expect(skinnedMR.blendShapeWeights.length).to.be.equal(1);
     expect(skinnedMR.blendShapeWeights).to.be.deep.equal(new Float32Array([0.4]));
+  });
+
+  it("localBounds", () => {
+    // Test that the localBounds is set correctly.
+    const entity = rootEntity.createChild("LocalBoundsEntity");
+    const skinnedMR = entity.addComponent(SkinnedMeshRenderer);
+
+    skinnedMR.localBounds = new BoundingBox(new Vector3(-1, -1, -1), new Vector3(1, 1, 1));
+    expect(skinnedMR.localBounds.min).to.be.deep.include({ x: -1, y: -1, z: -1 });
+    expect(skinnedMR.localBounds.max).to.be.deep.include({ x: 1, y: 1, z: 1 });
   });
 
   it("skin and rootBone", () => {
