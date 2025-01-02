@@ -14,6 +14,7 @@ import {
   ShaderProperty,
   Vector3,
   Vector4,
+  assignmentClone,
   deepClone,
   dependentComponents,
   ignoreClone
@@ -77,6 +78,8 @@ export class UIRenderer extends Renderer implements IGraphics {
   protected _alpha: number = 1;
   @deepClone
   protected _color: Color = new Color(1, 1, 1, 1);
+  @assignmentClone
+  protected _pixelsPerUnit: number = 1;
 
   /**
    * Rendering color for the ui renderer.
@@ -154,7 +157,7 @@ export class UIRenderer extends Renderer implements IGraphics {
   override _onEnableInScene(): void {
     // @ts-ignore
     this._overrideUpdate && this.scene._componentsManager.addOnUpdateRenderers(this);
-    this.entity._updateUIHierarchyVersion(this.engine.time.frameCount);
+    this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
     Utils.setRootCanvasDirty(this);
     Utils.setGroupDirty(this);
   }
@@ -163,6 +166,7 @@ export class UIRenderer extends Renderer implements IGraphics {
   override _onDisableInScene(): void {
     // @ts-ignore
     this._overrideUpdate && this.scene._componentsManager.removeOnUpdateRenderers(this);
+    this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
     Utils.cleanRootCanvas(this);
     Utils.cleanGroup(this);
   }
@@ -205,7 +209,7 @@ export class UIRenderer extends Renderer implements IGraphics {
         Utils.setRootCanvasDirty(this);
         Utils.setGroupDirty(this);
       case EntityModifyFlags.SiblingIndex:
-        entity._updateUIHierarchyVersion(this.engine.time.frameCount);
+        entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
         break;
       default:
         break;

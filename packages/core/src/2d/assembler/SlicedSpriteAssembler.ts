@@ -1,4 +1,5 @@
 import { Matrix, Vector2 } from "@galacean/engine-math";
+import { Engine } from "../../Engine";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { ISpriteAssembler } from "./ISpriteAssembler";
 import { ISpriteRenderer } from "./ISpriteRenderer";
@@ -32,7 +33,8 @@ export class SlicedSpriteAssembler {
     height: number,
     pivot: Vector2,
     flipX: boolean = false,
-    flipY: boolean = false
+    flipY: boolean = false,
+    pixelsPerUnit: number = 100
   ): void {
     const { sprite } = renderer;
     const { border } = sprite;
@@ -40,8 +42,9 @@ export class SlicedSpriteAssembler {
     const spritePositions = sprite._getPositions();
     const { x: left, y: bottom } = spritePositions[0];
     const { x: right, y: top } = spritePositions[3];
-    const expectWidth = sprite.width;
-    const expectHeight = sprite.height;
+    const pixelsPerUnitReciprocal = Engine._pixelsPerUnit / pixelsPerUnit;
+    const expectWidth = sprite.width * pixelsPerUnitReciprocal;
+    const expectHeight = sprite.height * pixelsPerUnitReciprocal;
     const fixedLeft = expectWidth * border.x;
     const fixedBottom = expectHeight * border.y;
     const fixedRight = expectWidth * border.z;

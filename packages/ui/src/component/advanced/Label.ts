@@ -306,9 +306,14 @@ export class Label extends UIRenderer implements ITextRenderer {
       this._setDirtyFlagFalse(DirtyFlag.SubFont);
     }
 
+    const canvas = this._getRootCanvas();
+    if (this._pixelsPerUnit !== canvas.referencePixelsPerUnit) {
+      this._pixelsPerUnit = canvas.referencePixelsPerUnit;
+      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
+    }
+
     if (this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds)) {
       this._updateLocalData();
-      this._setDirtyFlagFalse(DirtyFlag.LocalPositionBounds);
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.WorldPosition)) {
@@ -324,7 +329,6 @@ export class Label extends UIRenderer implements ITextRenderer {
     const engine = context.camera.engine;
     const textSubRenderElementPool = engine._textSubRenderElementPool;
     const material = this.getMaterial();
-    const canvas = this._getRootCanvas();
     const renderElement = canvas._renderElement;
     const textChunks = this._textChunks;
     const isOverlay = canvas._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay;
@@ -415,8 +419,7 @@ export class Label extends UIRenderer implements ITextRenderer {
   }
 
   private _updateLocalData(): void {
-    // @ts-ignore
-    const pixelsPerUnit = Engine._pixelsPerUnit;
+    const pixelsPerUnit = this._pixelsPerUnit;
     const { min, max } = this._localBounds;
     const charRenderInfos = Label._charRenderInfos;
     const charFont = this._getSubFont();
