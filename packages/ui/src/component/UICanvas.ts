@@ -32,6 +32,7 @@ import { UIInteractive } from "./interactive/UIInteractive";
 @dependentComponents(UITransform, DependentMode.AutoAdd)
 export class UICanvas extends Component implements IElement {
   /** @internal */
+  static _hierarchyCounter: number = 1;
   private static _tempGroupAbleList: IGroupAble[] = [];
 
   /** @internal */
@@ -79,9 +80,24 @@ export class UICanvas extends Component implements IElement {
   @ignoreClone
   private _distance: number = 10;
   @deepClone
-  private _referenceResolution: Vector2 = new Vector2(8, 6);
+  private _referenceResolution: Vector2 = new Vector2(800, 600);
+  @deepClone
+  private _referenceResolutionPerUnit: number = 100;
   @ignoreClone
   private _hierarchyVersion: number = -1;
+
+  /**
+   * The conversion ratio between reference resolution and unit for UI elements in this canvas.
+   */
+  get referenceResolutionPerUnit(): number {
+    return this._referenceResolutionPerUnit;
+  }
+
+  set referenceResolutionPerUnit(value: number) {
+    if (this._referenceResolutionPerUnit !== value) {
+      this._referenceResolutionPerUnit = value;
+    }
+  }
 
   /**
    * The reference resolution of the UI canvas in `ScreenSpaceCamera` and `ScreenSpaceOverlay` mode.
@@ -332,6 +348,7 @@ export class UICanvas extends Component implements IElement {
       renderers.length = this._walk(this.entity, renderers);
       UICanvas._tempGroupAbleList.length = 0;
       this._hierarchyVersion = uiHierarchyVersion;
+      ++UICanvas._hierarchyCounter;
     }
     return renderers;
   }
@@ -521,7 +538,7 @@ export class UICanvas extends Component implements IElement {
       this._updateCameraObserver();
       this._setRealRenderMode(this._getRealRenderMode());
       if (isRootCanvas) {
-        this.entity._updateUIHierarchyVersion(this.engine.time.frameCount);
+        this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
       } else {
         const { _disorderedElements: disorderedElements } = this;
         disorderedElements.forEach((element: IElement) => {

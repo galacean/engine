@@ -174,9 +174,24 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     }
 
     let { _dirtyUpdateFlag: dirtyUpdateFlag } = this;
+    const canvas = this._getRootCanvas();
+    if (this._referenceResolutionPerUnit !== canvas.referenceResolutionPerUnit) {
+      this._referenceResolutionPerUnit = canvas.referenceResolutionPerUnit;
+      dirtyUpdateFlag |= ImageUpdateFlags.Position;
+    }
+
     // Update position
     if (dirtyUpdateFlag & ImageUpdateFlags.Position) {
-      this._assembler.updatePositions(this, transform.worldMatrix, width, height, transform.pivot);
+      this._assembler.updatePositions(
+        this,
+        transform.worldMatrix,
+        width,
+        height,
+        transform.pivot,
+        false,
+        false,
+        this._referenceResolutionPerUnit
+      );
       dirtyUpdateFlag &= ~ImageUpdateFlags.Position;
     }
 
@@ -195,7 +210,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     this._dirtyUpdateFlag = dirtyUpdateFlag;
     // Init sub render element.
     const { engine } = context.camera;
-    const canvas = this._getRootCanvas();
     const subRenderElement = engine._subRenderElementPool.get();
     const subChunk = this._subChunk;
     subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);

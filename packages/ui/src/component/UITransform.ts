@@ -5,7 +5,7 @@ import { Entity, Transform, Vector2, deepClone, ignoreClone } from "@galacean/en
  */
 export class UITransform extends Transform {
   @deepClone
-  private _size: Vector2 = new Vector2(1, 1);
+  private _size: Vector2 = new Vector2(100, 100);
   @deepClone
   private _pivot: Vector2 = new Vector2(0.5, 0.5);
 
