@@ -37,7 +37,7 @@ export class Shader implements IReferable {
    * ShaderLab must be enabled first as follows:
    * ```ts
    * // Import shaderLab
-   * import { ShaderLab } from "@galacean/engine-shader-lab";
+   * import { ShaderLab } from "@galacean/engine-shaderlab";
    * // Create engine with shaderLab
    * const engine = await WebGLEngine.create({ canvas: "canvas", shader: new ShaderLab() });
    * ...

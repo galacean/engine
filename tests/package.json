@@ -1,7 +1,7 @@
 {
   "name": "@galacean/engine-tests",
   "private": true,
-  "version": "1.4.0-alpha.2",
+  "version": "1.4.0-alpha.3",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
@@ -22,7 +22,7 @@
     "@galacean/engine-math": "workspace:*",
     "@galacean/engine-rhi-webgl": "workspace:*",
     "@galacean/engine-physics-lite": "workspace:*",
-    "@galacean/engine-shader-lab": "workspace:*",
+    "@galacean/engine-shaderlab": "workspace:*",
     "@galacean/engine-physics-physx": "workspace:*"
   },
   "devDependencies": {
