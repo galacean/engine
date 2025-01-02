@@ -1,5 +1,5 @@
 {
-  "name": "@galacean/engine-shader-lab",
+  "name": "@galacean/engine-shaderlab",
   "version": "1.4.0-alpha.2",
   "publishConfig": {
     "access": "public",
