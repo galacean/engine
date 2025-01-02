@@ -175,8 +175,8 @@ export class Image extends UIRenderer implements ISpriteRenderer {
 
     let { _dirtyUpdateFlag: dirtyUpdateFlag } = this;
     const canvas = this._getRootCanvas();
-    if (this._pixelsPerUnit !== canvas.referencePixelsPerUnit) {
-      this._pixelsPerUnit = canvas.referencePixelsPerUnit;
+    if (this._referenceResolutionPerUnit !== canvas.referenceResolutionPerUnit) {
+      this._referenceResolutionPerUnit = canvas.referenceResolutionPerUnit;
       dirtyUpdateFlag |= ImageUpdateFlags.Position;
     }
 
@@ -190,7 +190,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
         transform.pivot,
         false,
         false,
-        this._pixelsPerUnit
+        this._referenceResolutionPerUnit
       );
       dirtyUpdateFlag &= ~ImageUpdateFlags.Position;
     }

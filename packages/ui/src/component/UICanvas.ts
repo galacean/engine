@@ -82,20 +82,20 @@ export class UICanvas extends Component implements IElement {
   @deepClone
   private _referenceResolution: Vector2 = new Vector2(800, 600);
   @deepClone
-  private _referencePixelsPerUnit: number = 1;
+  private _referenceResolutionPerUnit: number = 100;
   @ignoreClone
   private _hierarchyVersion: number = -1;
 
   /**
-   * The conversion ratio between pixels and unit for UI elements in this canvas.
+   * The conversion ratio between reference resolution and unit for UI elements in this canvas.
    */
-  get referencePixelsPerUnit(): number {
-    return this._referencePixelsPerUnit;
+  get referenceResolutionPerUnit(): number {
+    return this._referenceResolutionPerUnit;
   }
 
-  set referencePixelsPerUnit(value: number) {
-    if (this._referencePixelsPerUnit !== value) {
-      this._referencePixelsPerUnit = value;
+  set referenceResolutionPerUnit(value: number) {
+    if (this._referenceResolutionPerUnit !== value) {
+      this._referenceResolutionPerUnit = value;
     }
   }
 

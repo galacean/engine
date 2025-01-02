@@ -34,7 +34,7 @@ export class SlicedSpriteAssembler {
     pivot: Vector2,
     flipX: boolean = false,
     flipY: boolean = false,
-    pixelsPerUnit: number = 100
+    referenceResolutionPerUnit: number = 1
   ): void {
     const { sprite } = renderer;
     const { border } = sprite;
@@ -42,9 +42,8 @@ export class SlicedSpriteAssembler {
     const spritePositions = sprite._getPositions();
     const { x: left, y: bottom } = spritePositions[0];
     const { x: right, y: top } = spritePositions[3];
-    const pixelsPerUnitReciprocal = Engine._pixelsPerUnit / pixelsPerUnit;
-    const expectWidth = sprite.width * pixelsPerUnitReciprocal;
-    const expectHeight = sprite.height * pixelsPerUnitReciprocal;
+    const expectWidth = sprite.width * referenceResolutionPerUnit;
+    const expectHeight = sprite.height * referenceResolutionPerUnit;
     const fixedLeft = expectWidth * border.x;
     const fixedBottom = expectHeight * border.y;
     const fixedRight = expectWidth * border.z;

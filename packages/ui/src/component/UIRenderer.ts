@@ -79,7 +79,7 @@ export class UIRenderer extends Renderer implements IGraphics {
   @deepClone
   protected _color: Color = new Color(1, 1, 1, 1);
   @assignmentClone
-  protected _pixelsPerUnit: number = 1;
+  protected _referenceResolutionPerUnit: number = 100;
 
   /**
    * Rendering color for the ui renderer.

@@ -307,8 +307,8 @@ export class Label extends UIRenderer implements ITextRenderer {
     }
 
     const canvas = this._getRootCanvas();
-    if (this._pixelsPerUnit !== canvas.referencePixelsPerUnit) {
-      this._pixelsPerUnit = canvas.referencePixelsPerUnit;
+    if (this._referenceResolutionPerUnit !== canvas.referenceResolutionPerUnit) {
+      this._referenceResolutionPerUnit = canvas.referenceResolutionPerUnit;
       this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
     }
 
@@ -419,7 +419,8 @@ export class Label extends UIRenderer implements ITextRenderer {
   }
 
   private _updateLocalData(): void {
-    const pixelsPerUnit = this._pixelsPerUnit;
+    // @ts-ignore
+    const pixelsPerResolution = Engine._pixelsPerUnit / this._referenceResolutionPerUnit;
     const { min, max } = this._localBounds;
     const charRenderInfos = Label._charRenderInfos;
     const charFont = this._getSubFont();
@@ -431,11 +432,15 @@ export class Label extends UIRenderer implements ITextRenderer {
     const textMetrics = this.enableWrapping
       ? TextUtils.measureTextWithWrap(
           this,
-          rendererWidth * pixelsPerUnit,
-          rendererHeight * pixelsPerUnit,
-          this._lineSpacing * pixelsPerUnit
+          rendererWidth * pixelsPerResolution,
+          rendererHeight * pixelsPerResolution,
+          this._lineSpacing * pixelsPerResolution
         )
-      : TextUtils.measureTextWithoutWrap(this, rendererHeight * pixelsPerUnit, this._lineSpacing * pixelsPerUnit);
+      : TextUtils.measureTextWithoutWrap(
+          this,
+          rendererHeight * pixelsPerResolution,
+          this._lineSpacing * pixelsPerResolution
+        );
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
     // @ts-ignore
     const charRenderInfoPool = this.engine._charRenderInfoPool;
@@ -444,9 +449,9 @@ export class Label extends UIRenderer implements ITextRenderer {
 
     if (linesLen > 0) {
       const { horizontalAlignment } = this;
-      const pixelsPerUnitReciprocal = 1.0 / pixelsPerUnit;
-      rendererWidth *= pixelsPerUnit;
-      rendererHeight *= pixelsPerUnit;
+      const pixelsPerUnitReciprocal = 1.0 / pixelsPerResolution;
+      rendererWidth *= pixelsPerResolution;
+      rendererHeight *= pixelsPerResolution;
       const halfRendererWidth = rendererWidth * 0.5;
       const halfLineHeight = lineHeight * 0.5;
 
