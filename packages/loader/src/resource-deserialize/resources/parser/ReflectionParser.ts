@@ -74,20 +74,24 @@ export class ReflectionParser {
   parseMethod(instance: any, methodName: string, methodParams: Array<IBasicType>) {
     return Promise.all(methodParams.map((param) => this.parseBasicType(param))).then((result) => {
       const methodCallback = instance[methodName](...result);
-      const callbackProps = (methodParams?.[0] as IClassRealObject).callbackProps;
-      if (callbackProps) {
-        const promises = [];
-        for (let key in callbackProps) {
-          const value = callbackProps[key];
-          const promise = this.parseBasicType(value, methodCallback[key]).then((v) => {
-            if (methodCallback[key] !== v) {
-              methodCallback[key] = v;
-            }
-            return v;
-          });
-          promises.push(promise);
+      // @todo: Only parse first param to adapter original data format
+      const firstParam = methodParams?.[0] as IClassRealObject;
+      if (ReflectionParser._isRealClass(firstParam)) {
+        const callbackProps = firstParam?.callbackProps;
+        if (callbackProps) {
+          const promises = [];
+          for (let key in callbackProps) {
+            const value = callbackProps[key];
+            const promise = this.parseBasicType(value, methodCallback[key]).then((v) => {
+              if (methodCallback[key] !== v) {
+                methodCallback[key] = v;
+              }
+              return v;
+            });
+            promises.push(promise);
+          }
+          return Promise.all(promises);
         }
-        return Promise.all(promises);
       } else {
         return methodCallback;
       }
