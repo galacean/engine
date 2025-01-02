@@ -11,7 +11,6 @@ export type OnToken = (token: BaseToken, scanner: BaseScanner) => void;
  * @internal
  */
 export default class BaseScanner {
-  private static _spaceCharsWithBreak = [" ", "\t", "\n"];
   private static _spaceChars = [" ", "\t"];
   private static _checkIsIn(checked: string, chars: string[]): boolean {
     for (let i = 0; i < chars.length; i++) {
@@ -102,8 +101,19 @@ export default class BaseScanner {
   }
 
   skipSpace(includeLineBreak: boolean): void {
-    const spaceChars = includeLineBreak ? BaseScanner._spaceCharsWithBreak : BaseScanner._spaceChars;
-    let curChar = this.getCurChar();
+    const chars = this.peek(2);
+    let curChar = chars[0];
+
+    if (includeLineBreak) {
+      if (chars === "\r\n") {
+        this.advance(2);
+      } else if (curChar === "\n" || curChar === "\r") {
+        this.advance(1);
+      }
+    }
+
+    curChar = this.getCurChar();
+    const spaceChars = BaseScanner._spaceChars;
 
     while (BaseScanner._checkIsIn(curChar, spaceChars)) {
       this._advance();
