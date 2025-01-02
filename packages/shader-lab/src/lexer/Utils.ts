@@ -20,7 +20,7 @@ export default class LexerUtils {
     );
   }
 
-  static isPpCharactors(charCode: number) {
+  static isPpCharacters(charCode: number) {
     return (
       charCode === 35 || // #
       charCode === 46 || // .
