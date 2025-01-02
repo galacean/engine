@@ -78,6 +78,11 @@ export type IClassObject = {
   props?: { [key: string]: IBasicType | IMethodParams };
 };
 
+export type IClassRealObject = {
+  classReal: string;
+  callbackProps?: { [key: string]: IBasicType | IMethodParams };
+};
+
 export type IBasicType =
   | string
   | number
@@ -86,6 +91,7 @@ export type IBasicType =
   | undefined
   | IAssetRef
   | IClassObject
+  | IClassRealObject
   | IMethodParams
   | IEntityRef;
 

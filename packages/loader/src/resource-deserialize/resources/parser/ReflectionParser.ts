@@ -3,9 +3,10 @@ import type {
   IAssetRef,
   IBasicType,
   IClassObject,
+  IClassRealObject,
+  IComponentRef,
   IEntity,
   IEntityRef,
-  IComponentRef,
   IHierarchyFile,
   IRefEntity
 } from "../schema";
@@ -72,7 +73,24 @@ export class ReflectionParser {
 
   parseMethod(instance: any, methodName: string, methodParams: Array<IBasicType>) {
     return Promise.all(methodParams.map((param) => this.parseBasicType(param))).then((result) => {
-      return instance[methodName](...result);
+      const methodCallback = instance[methodName](...result);
+      const callbackProps = (methodParams?.[0] as IClassRealObject).callbackProps;
+      if (callbackProps) {
+        const promises = [];
+        for (let key in callbackProps) {
+          const value = callbackProps[key];
+          const promise = this.parseBasicType(value, methodCallback[key]).then((v) => {
+            if (methodCallback[key] !== v) {
+              methodCallback[key] = v;
+            }
+            return v;
+          });
+          promises.push(promise);
+        }
+        return Promise.all(promises);
+      } else {
+        return methodCallback;
+      }
     });
   }
 
@@ -80,7 +98,9 @@ export class ReflectionParser {
     if (Array.isArray(value)) {
       return Promise.all(value.map((item) => this.parseBasicType(item)));
     } else if (typeof value === "object" && value != null) {
-      if (ReflectionParser._isClass(value)) {
+      if (ReflectionParser._isRealClass(value)) {
+        return Promise.resolve(Loader.getClass(value["classReal"]));
+      } else if (ReflectionParser._isClass(value)) {
         // class object
         return this.parseClassObject(value);
       } else if (ReflectionParser._isAssetRef(value)) {
@@ -156,6 +176,10 @@ export class ReflectionParser {
 
   private static _isClass(value: any): value is IClassObject {
     return value["class"] !== undefined;
+  }
+
+  private static _isRealClass(value: any): value is IClassObject {
+    return value["classReal"] !== undefined;
   }
 
   private static _isAssetRef(value: any): value is IAssetRef {
