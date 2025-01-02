@@ -14,7 +14,7 @@ import {
   SubShader
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { ShaderLab } from "@galacean/engine-shader-lab";
+import { ShaderLab } from "@galacean/engine-shaderlab";
 import { vi, describe, expect, it } from "vitest";
 
 const shaderLab = new ShaderLab();

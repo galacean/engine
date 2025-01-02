@@ -24,7 +24,7 @@ const pkgs = fs
     };
   });
 
-const shaderLabPkg = pkgs.find((item) => item.pkgJson.name === "@galacean/engine-shader-lab");
+const shaderLabPkg = pkgs.find((item) => item.pkgJson.name === "@galacean/engine-shaderlab");
 pkgs.push({ ...shaderLabPkg, verboseMode: true });
 
 // toGlobalName

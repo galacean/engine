@@ -10,7 +10,7 @@
   "files": [],
   "dependencies": {
     "@galacean/engine-toolkit": "^1.3.9",
-    "@galacean/engine-shader-lab": "workspace:*",
+    "@galacean/engine-shaderlab": "workspace:*",
     "@galacean/engine": "workspace:*",
     "@galacean/engine-core": "workspace:*",
     "@galacean/engine-loader": "workspace:*",
