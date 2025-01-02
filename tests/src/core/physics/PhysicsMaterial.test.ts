@@ -486,4 +486,12 @@ describe("PhysicsMaterial", () => {
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(boxEntity2.transform.position.z)).eq(0.57139);
   });
+
+  it("destroy", () => {
+    const physicsMaterial = new PhysicsMaterial();
+    physicsMaterial.destroy();
+    expect(() => {
+      physicsMaterial.bounciness = 1;
+    }).toThrowError();
+  });
 });
