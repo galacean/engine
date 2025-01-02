@@ -24,6 +24,7 @@ struct SurfaceData{
     float specularAO;
     float f0;
     float opacity;
+    float IOR;
 
     // geometry
     vec3 position;
@@ -64,6 +65,11 @@ struct SurfaceData{
         vec3  sheenColor;
     #endif
 
+    #ifdef MATERIAL_ENABLE_TRANSMISSION 
+        vec3 absorptionCoefficient;
+        float transmission;
+        float thickness;
+    #endif
 };
 
 
@@ -71,6 +77,7 @@ struct BRDFData{
     vec3  diffuseColor;
     vec3  specularColor;
     float roughness;
+    vec3 envSpecularDFG;
 
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         vec3  clearCoatSpecularColor;
@@ -387,9 +394,9 @@ void initBRDFData(SurfaceData surfaceData, out BRDFData brdfData){
         brdfData.diffuseColor = albedoColor * ( 1.0 - specularStrength );
         brdfData.specularColor = specularColor;
     #endif
-
     brdfData.roughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(roughness + getAARoughnessFactor(surfaceData.normal), 1.0));
-
+    brdfData.envSpecularDFG = envBRDFApprox(brdfData.specularColor,  brdfData.roughness, surfaceData.dotNV);
+   
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         brdfData.clearCoatRoughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(surfaceData.clearCoatRoughness + getAARoughnessFactor(surfaceData.clearCoatNormal), 1.0));
         brdfData.clearCoatSpecularColor = vec3(0.04);
