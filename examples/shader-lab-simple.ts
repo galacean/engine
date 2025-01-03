@@ -4,8 +4,8 @@
  * @thumbnail https://mdn.alipayobjects.com/merchant_appfe/afts/img/A*C7Y1RaI_ZJEAAAAAAAAAAAAADiR2AQ/original
  */
 
-import { GUI } from 'dat.gui';
-import { OrbitControl } from '@galacean/engine-toolkit-controls';
+import { GUI } from "dat.gui";
+import { OrbitControl } from "@galacean/engine-toolkit-controls";
 import {
   BufferMesh,
   Camera,
@@ -19,9 +19,9 @@ import {
   MeshRenderer,
   Shader,
   Material,
-  Color,
-} from '@galacean/engine';
-import { ShaderLab } from '@galacean/engine-shader-lab';
+  Color
+} from "@galacean/engine";
+import { ShaderLab } from "@galacean/engine-shaderlab";
 
 const shaderLab = new ShaderLab();
 
@@ -108,59 +108,50 @@ Shader "Lines" {
 
 function createPlaneMesh(engine: WebGLEngine) {
   const mesh = new BufferMesh(engine);
-  const vertices = new Float32Array([
-    -1, -1, 1, 1, -1, 1, 1, 1, 1, 1, 1, 1, -1, 1, 1, -1, -1, 1,
-  ]);
-  const vertexBuffer = new Buffer(
-    engine,
-    BufferBindFlag.VertexBuffer,
-    vertices,
-    BufferUsage.Static
-  );
+  const vertices = new Float32Array([-1, -1, 1, 1, -1, 1, 1, 1, 1, 1, 1, 1, -1, 1, 1, -1, -1, 1]);
+  const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static);
   mesh.setVertexBufferBinding(vertexBuffer, 12);
-  mesh.setVertexElements([
-    new VertexElement('POSITION', 0, VertexElementFormat.Vector3, 0),
-  ]);
+  mesh.setVertexElements([new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0)]);
   mesh.addSubMesh(0, 6);
   return mesh;
 }
 
 Logger.enable();
-WebGLEngine.create({ canvas: 'canvas', shaderLab }).then((engine) => {
+WebGLEngine.create({ canvas: "canvas", shaderLab }).then((engine) => {
   engine.canvas.resizeByClientSize();
 
   const shaderMap = {
     normal: Shader.create(normalShaderSource),
-    lines: Shader.create(linesShaderSource),
+    lines: Shader.create(linesShaderSource)
   };
 
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
 
   // camera
-  const cameraEntity = rootEntity.createChild('cameraNode');
+  const cameraEntity = rootEntity.createChild("cameraNode");
   cameraEntity.transform.setPosition(0, 0, 5);
   cameraEntity.addComponent(Camera);
   cameraEntity.addComponent(OrbitControl);
 
   // create plane
-  const triangle = rootEntity.createChild('plane');
+  const triangle = rootEntity.createChild("plane");
   const renderer = triangle.addComponent(MeshRenderer);
   renderer.mesh = createPlaneMesh(engine);
   const shader = shaderMap.lines;
   const material = new Material(engine, shader);
-  material.shaderData.setColor('u_color', new Color(1.0, 1.0, 0));
+  material.shaderData.setColor("u_color", new Color(1.0, 1.0, 0));
   renderer.setMaterial(material);
 
   engine.run();
 
   const state = {
-    shader: 'lines',
+    shader: "lines"
   };
 
   function addGUI() {
-    const gui = new GUI({ name: 'Switch Shader' });
-    gui.add(state, 'shader', Object.keys(shaderMap)).onChange((v) => {
+    const gui = new GUI({ name: "Switch Shader" });
+    gui.add(state, "shader", Object.keys(shaderMap)).onChange((v) => {
       material.shader = shaderMap[v];
     });
   }
