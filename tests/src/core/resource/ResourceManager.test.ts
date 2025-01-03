@@ -1,4 +1,4 @@
-import { AssetPromise, ResourceManager, Texture2D } from "@galacean/engine-core";
+import { AssetPromise, AssetType, ResourceManager, Texture2D } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import chai, { expect } from "chai";
 import spies from "chai-spies";
@@ -80,5 +80,18 @@ describe("ResourceManager", () => {
 
       chai.spy.restore(glTFLoader, "load");
     });
+  });
+
+  describe("gltf subAsset load", () => {
+    it("invalid q case", async () => {
+      const loadRes = await engine.resourceManager.load({
+        // contains invalid q value cdn url.
+        url: "https://mdn.alipayobjects.com/huamei_aftkdx/afts/file/A*_Ao1QZtL9fMAAAAAAAAAAAAADteEAQ/mock-project.json",
+        type: AssetType.Project
+      });
+      expect(loadRes).to.equal(undefined);
+    });
+
+    // TODO: case for gltf loader load invalid q url, expect to throw
   });
 });
