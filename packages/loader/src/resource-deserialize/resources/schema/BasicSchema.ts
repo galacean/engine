@@ -28,7 +28,15 @@ export interface IHierarchyFile {
   entities: Array<IEntity>;
 }
 
-export type IMethodParams = Array<IBasicType>;
+export type ICanCallbackMethodObject = {
+  params: Array<IBasicType>;
+  callback?: {
+    methods?: { [methodName: string]: Array<IMethodParams> };
+    props?: { [key: string]: IBasicType | IMethodParams };
+  };
+};
+
+export type IMethodParams = Array<IBasicType> | ICanCallbackMethodObject;
 
 export interface IBasicEntity {
   name?: string;
@@ -73,14 +81,13 @@ export type IComponent = { id: string; refId?: string } & IClassObject;
 
 export type IClassObject = {
   class: string;
-  constructParams?: IMethodParams;
+  constructParams?: Array<IBasicType>;
   methods?: { [methodName: string]: Array<IMethodParams> };
   props?: { [key: string]: IBasicType | IMethodParams };
 };
 
-export type IClassRealObject = {
-  classReal: string;
-  callbackProps?: { [key: string]: IBasicType | IMethodParams };
+export type IClassTypeObject = {
+  classType: string;
 };
 
 export type IBasicType =
@@ -91,7 +98,7 @@ export type IBasicType =
   | undefined
   | IAssetRef
   | IClassObject
-  | IClassRealObject
+  | IClassTypeObject
   | IMethodParams
   | IEntityRef;
 
