@@ -4,6 +4,7 @@ import type {
   IBasicType,
   ICanCallbackMethodObject,
   IClassObject,
+  IClassTypeObject,
   IComponentRef,
   IEntity,
   IEntityRef,
@@ -170,7 +171,7 @@ export class ReflectionParser {
     return value["class"] !== undefined;
   }
 
-  private static _isClassType(value: any): value is IClassObject {
+  private static _isClassType(value: any): value is IClassTypeObject {
     return value["classType"] !== undefined;
   }
 
