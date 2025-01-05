@@ -97,9 +97,9 @@ export class PhysicsMaterial {
   }
 
   /**
-   * @internal
+   * Destroy the material when the material is no be used by any shape.
    */
-  _destroy() {
+  destroy() {
     !this._destroyed && this._nativeMaterial.destroy();
     this._destroyed = true;
   }

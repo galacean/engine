@@ -8,6 +8,8 @@ import LightIndirectPBR from "./LightIndirectPBR.glsl";
 import ReflectionLobe from "./ReflectionLobe.glsl";
 import VaryingsPBR from "./VaryingsPBR.glsl";
 import VertexPBR from "./VertexPBR.glsl";
+import Refraction from "./Refraction.glsl";
+import BTDF from "./BTDF.glsl";
 
 export default [
   { source: ForwardPassPBR, includeKey: "ForwardPassPBR.glsl" },
@@ -19,5 +21,7 @@ export default [
   { source: VertexPBR, includeKey: "VertexPBR.glsl" },
   { source: BRDF, includeKey: "BRDF.glsl" },
   { source: LightIndirectFunctions, includeKey: "LightIndirectFunctions.glsl" },
-  { source: ReflectionLobe, includeKey: "ReflectionLobe.glsl" }
+  { source: ReflectionLobe, includeKey: "ReflectionLobe.glsl" },
+  { source: Refraction, includeKey: "Refraction.glsl" },
+  { source: BTDF, includeKey: "BTDF.glsl" }
 ];

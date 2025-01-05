@@ -1,7 +1,7 @@
 import { testCaseList } from "./test-case";
 // @ts-ignore
 import { ShaderLib } from "@galacean/engine-core";
-import { Preprocessor } from "@galacean/engine-shader-lab/verbose";
+import { Preprocessor } from "@galacean/engine-shaderlab/verbose";
 import { describe, expect, it } from "vitest";
 import { server } from "@vitest/browser/context";
 const { readFile } = server.commands;
