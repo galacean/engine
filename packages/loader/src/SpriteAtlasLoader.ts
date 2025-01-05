@@ -104,8 +104,8 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
       }
       config.atlasRotated && (sprite.atlasRotated = true);
     }
-    isNaN(width) || (sprite.width = width);
-    isNaN(height) || (sprite.height = height);
+    width === undefined || sprite.width === width;
+    height === undefined || sprite.height === height;
     return sprite;
   }
 }

@@ -1,5 +1,4 @@
 import { Matrix, Vector2 } from "@galacean/engine-math";
-import { Engine } from "../../Engine";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { ISpriteAssembler } from "./ISpriteAssembler";
 import { ISpriteRenderer } from "./ISpriteRenderer";
@@ -32,8 +31,8 @@ export class SlicedSpriteAssembler {
     width: number,
     height: number,
     pivot: Vector2,
-    flipX: boolean = false,
-    flipY: boolean = false,
+    flipX: boolean,
+    flipY: boolean,
     referenceResolutionPerUnit: number = 1
   ): void {
     const { sprite } = renderer;
@@ -83,9 +82,10 @@ export class SlicedSpriteAssembler {
     const { x: pivotX, y: pivotY } = pivot;
     const localTransX = width * pivotX;
     const localTransY = height * pivotY;
+    // Position to World
+    const modelMatrix = SlicedSpriteAssembler._matrix;
+    const { elements: wE } = modelMatrix;
     // Renderer's worldMatrix.
-    const { elements: wE } = SlicedSpriteAssembler._matrix;
-    // Parent's worldMatrix.
     const { elements: pWE } = worldMatrix;
     const sx = flipX ? -1 : 1;
     const sy = flipY ? -1 : 1;
@@ -117,6 +117,12 @@ export class SlicedSpriteAssembler {
         vertices[o + 2] = wE[2] * rowValue + wE[6] * columnValue + wE[14];
       }
     }
+
+    // @ts-ignore
+    const bounds = renderer._bounds;
+    bounds.min.set(row[0], column[0], 0);
+    bounds.max.set(row[3], column[3], 0);
+    bounds.transform(modelMatrix);
   }
 
   static updateUVs(renderer: ISpriteRenderer): void {
@@ -132,7 +138,7 @@ export class SlicedSpriteAssembler {
     }
   }
 
-  static updateColor(renderer: ISpriteRenderer, alpha: number = 1): void {
+  static updateColor(renderer: ISpriteRenderer, alpha: number): void {
     const subChunk = renderer._subChunk;
     const { r, g, b, a } = renderer.color;
     const finalAlpha = a * alpha;

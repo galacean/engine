@@ -314,6 +314,7 @@ export class Label extends UIRenderer implements ITextRenderer {
 
     if (this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds)) {
       this._updateLocalData();
+      this._setDirtyFlagFalse(DirtyFlag.LocalPositionBounds);
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.WorldPosition)) {
@@ -573,7 +574,6 @@ export class Label extends UIRenderer implements ITextRenderer {
       this._buildChunk(curTextChunk, charLength);
     }
     charRenderInfos.length = 0;
-    this._setDirtyFlagFalse(DirtyFlag.LocalPositionBounds);
   }
 
   @ignoreClone

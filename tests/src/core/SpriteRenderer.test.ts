@@ -1,4 +1,5 @@
 import {
+  RendererUpdateFlags,
   Sprite,
   SpriteDrawMode,
   SpriteMaskInteraction,
@@ -10,6 +11,7 @@ import {
 } from "@galacean/engine-core";
 import { Color, Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { debug } from "console";
 import { beforeEach, describe, expect, it } from "vitest";
 
 describe("SpriteRenderer", async () => {
@@ -1446,42 +1448,42 @@ describe("SpriteRenderer", async () => {
     expect(spriteRenderer.shaderData.getTexture(property)).to.eq(texture2d);
 
     // @ts-ignore
-    spriteRenderer._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.AllPositionAndBounds;
+    spriteRenderer._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     sprite.width = 10;
     // @ts-ignore
-    expect(!!(spriteRenderer._dirtyUpdateFlag & SpriteRendererUpdateFlags.AllPositionAndBounds)).to.eq(true);
+    expect(!!(spriteRenderer._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume)).to.eq(true);
 
     spriteRenderer.drawMode = SpriteDrawMode.Tiled;
     // @ts-ignore
-    spriteRenderer._dirtyUpdateFlag &= SpriteRendererUpdateFlags.AllPositionBoundsUVAndColor;
+    spriteRenderer._dirtyUpdateFlag &= SpriteRendererUpdateFlags.WorldVolumeUVAndColor;
     sprite.width = 11;
     // @ts-ignore
-    expect(!!(spriteRenderer._dirtyUpdateFlag & SpriteRendererUpdateFlags.AllPositionBoundsUVAndColor)).to.eq(true);
+    expect(!!(spriteRenderer._dirtyUpdateFlag & SpriteRendererUpdateFlags.WorldVolumeUVAndColor)).to.eq(true);
 
     spriteRenderer.drawMode = SpriteDrawMode.Sliced;
     // @ts-ignore
-    spriteRenderer._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.AllPositionAndBounds;
+    spriteRenderer._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     sprite.width = 12;
     // @ts-ignore
-    expect(!!(spriteRenderer._dirtyUpdateFlag & SpriteRendererUpdateFlags.AllPositionAndBounds)).to.eq(true);
+    expect(!!(spriteRenderer._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume)).to.eq(true);
 
     // @ts-ignore
-    spriteRenderer._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.AllPositionAndUV;
+    spriteRenderer._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.WorldVolumeAndUV;
     sprite.border = new Vector4();
     // @ts-ignore
-    expect(!!(spriteRenderer._dirtyUpdateFlag & SpriteRendererUpdateFlags.AllPositionAndUV)).to.eq(true);
+    expect(!!(spriteRenderer._dirtyUpdateFlag & SpriteRendererUpdateFlags.WorldVolumeAndUV)).to.eq(true);
 
     // @ts-ignore
-    spriteRenderer._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.AllPositionAndUV;
+    spriteRenderer._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.WorldVolumeAndUV;
     sprite.region = new Rect();
     // @ts-ignore
-    expect(!!(spriteRenderer._dirtyUpdateFlag & SpriteRendererUpdateFlags.AllPositionAndUV)).to.eq(true);
+    expect(!!(spriteRenderer._dirtyUpdateFlag & SpriteRendererUpdateFlags.WorldVolumeAndUV)).to.eq(true);
 
     // @ts-ignore
-    spriteRenderer._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.AllPositionAndUV;
+    spriteRenderer._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.WorldVolumeAndUV;
     sprite.atlasRegionOffset = new Vector4();
     // @ts-ignore
-    expect(!!(spriteRenderer._dirtyUpdateFlag & SpriteRendererUpdateFlags.AllPositionAndUV)).to.eq(true);
+    expect(!!(spriteRenderer._dirtyUpdateFlag & SpriteRendererUpdateFlags.WorldVolumeAndUV)).to.eq(true);
 
     // @ts-ignore
     spriteRenderer._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.UV;
@@ -1490,10 +1492,10 @@ describe("SpriteRenderer", async () => {
     expect(!!(spriteRenderer._dirtyUpdateFlag & SpriteRendererUpdateFlags.UV)).to.eq(true);
 
     // @ts-ignore
-    spriteRenderer._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.AllPositionAndBounds;
+    spriteRenderer._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     sprite.pivot = new Vector2(0.3, 0.2);
     // @ts-ignore
-    expect(!!(spriteRenderer._dirtyUpdateFlag & SpriteRendererUpdateFlags.AllPositionAndBounds)).to.eq(true);
+    expect(!!(spriteRenderer._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume)).to.eq(true);
   });
 
   it("clone", () => {
@@ -1582,31 +1584,17 @@ describe("SpriteRenderer", async () => {
  * @remarks Extends `RendererUpdateFlags`.
  */
 enum SpriteRendererUpdateFlags {
-  None = 0x0,
-  LocalPosition = 0x1,
-  WorldPosition = 0x2,
-  LocalBounds = 0x4,
-  WorldBounds = 0x8,
-  UV = 0x10,
-  Color = 0x20,
-  AutomaticSize = 0x40,
+  /** UV. */
+  UV = 0x2,
+  /** Color. */
+  Color = 0x4,
+  /** Automatic Size. */
+  AutomaticSize = 0x8,
 
-  /** LocalPosition | WorldPosition */
-  AllPositions = 0x3,
-  /** LocalPosition | LocalBounds */
-  LocalPositionAndBounds = 0x5,
-  /** WorldPosition | WorldBounds */
-  WorldPositionAndBounds = 0xa,
-  /** LocalBounds | WorldBounds */
-  AllBounds = 0xc,
-  /** LocalPosition | WorldPosition | LocalBounds | WorldBounds */
-  AllPositionAndBounds = 0xf,
-  /** LocalPosition | WorldPosition | UV */
-  AllPositionAndUV = 0x13,
-  /** LocalPosition | WorldPosition | UV | Color */
-  AllPositionUVAndColor = 0x33,
-  /** LocalPosition | WorldPosition | LocalBounds | WorldBounds | UV | Color */
-  AllPositionBoundsUVAndColor = 0x3f,
-  /** LocalPosition | WorldPosition | LocalBounds | WorldBounds | UV | Color | AutomaticSize */
-  All = 0x7f
+  /** WorldVolume and UV. */
+  WorldVolumeAndUV = 0x3,
+  /** WorldVolume, UV and Color. */
+  WorldVolumeUVAndColor = 0x7,
+  /** All. */
+  All = 0xf
 }

@@ -7,7 +7,7 @@ import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
-import { Renderer } from "../../Renderer";
+import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -77,7 +77,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   set width(value: number) {
     if (this._customWidth !== value) {
       this._customWidth = value;
-      this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.WorldVolumeAndPosition;
+      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -100,7 +100,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   set height(value: number) {
     if (this._customHeight !== value) {
       this._customHeight = value;
-      this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.WorldVolumeAndPosition;
+      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -114,7 +114,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   set flipX(value: boolean) {
     if (this._flipX !== value) {
       this._flipX = value;
-      this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.WorldVolumeAndPosition;
+      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -128,7 +128,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   set flipY(value: boolean) {
     if (this._flipY !== value) {
       this._flipY = value;
-      this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.WorldVolumeAndPosition;
+      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -239,18 +239,21 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    if (this.sprite) {
-      const { width, height } = this;
-      let { x: pivotX, y: pivotY } = this.sprite.pivot;
-      pivotX = this.flipX ? 1 - pivotX : pivotX;
-      pivotY = this.flipY ? 1 - pivotY : pivotY;
-      worldBounds.min.set(-width * pivotX, -height * pivotY, 0);
-      worldBounds.max.set(width * (1 - pivotX), height * (1 - pivotY), 0);
-      BoundingBox.transform(worldBounds, this._transformEntity.transform.worldMatrix, worldBounds);
+    const sprite = this._sprite;
+    if (sprite) {
+      SimpleSpriteAssembler.updatePositions(
+        this,
+        this._transformEntity.transform.worldMatrix,
+        this.width,
+        this.height,
+        sprite.pivot,
+        this._flipX,
+        this._flipY
+      );
     } else {
-      const { x, y, z } = this._transformEntity.transform.worldPosition;
-      worldBounds.min.set(x, y, z);
-      worldBounds.max.set(x, y, z);
+      const { worldPosition } = this._transformEntity.transform;
+      worldBounds.min.copyFrom(worldPosition);
+      worldBounds.max.copyFrom(worldPosition);
     }
   }
 
@@ -274,7 +277,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
     }
 
     // Update position
-    if (this._dirtyUpdateFlag & SpriteMaskUpdateFlags.Position) {
+    if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
       SimpleSpriteAssembler.updatePositions(
         this,
         this._transformEntity.transform.worldMatrix,
@@ -284,7 +287,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
         this._flipX,
         this._flipY
       );
-      this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.Position;
+      this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     }
 
     // Update uv
@@ -345,18 +348,18 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
       case SpriteModifyFlags.size:
         this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.AutomaticSize;
         if (this._customWidth === undefined || this._customHeight === undefined) {
-          this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.WorldVolumeAndPosition;
+          this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
         }
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:
-        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.PositionAndUV;
+        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.WorldVolumeAndUV;
         break;
       case SpriteModifyFlags.atlasRegion:
         this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.UV;
         break;
       case SpriteModifyFlags.pivot:
-        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.WorldVolumeAndPosition;
+        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
         break;
       case SpriteModifyFlags.destroy:
         this.sprite = null;
@@ -371,19 +374,12 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
  * @remarks Extends `RendererUpdateFlags`.
  */
 enum SpriteMaskUpdateFlags {
-  /** Position. */
-  Position = 0x2,
   /** UV. */
-  UV = 0x4,
+  UV = 0x2,
   /** Automatic Size. */
-  AutomaticSize = 0x8,
-
-  /** WorldVolume and Position. */
-  WorldVolumeAndPosition = 0x3,
-  /** Position and UV. */
-  PositionAndUV = 0x6,
-  /** WorldVolume, Position and UV. */
-  WorldVolumePositionAndUV = 0xf,
-
-  All = 0xf
+  AutomaticSize = 0x4,
+  /** WorldVolume and UV. */
+  WorldVolumeAndUV = 0x3,
+  /** All. */
+  All = 0x7
 }
