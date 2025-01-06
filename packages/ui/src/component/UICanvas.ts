@@ -16,7 +16,7 @@ import {
 } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { CanvasRenderMode } from "../enums/CanvasRenderMode";
-import { ResolutionAdaptationStrategy } from "../enums/ResolutionAdaptationStrategy";
+import { ResolutionAdaptationMode } from "../enums/ResolutionAdaptationMode";
 import { UIHitResult } from "../input/UIHitResult";
 import { IElement } from "../interface/IElement";
 import { IGroupAble } from "../interface/IGroupAble";
@@ -77,7 +77,7 @@ export class UICanvas extends Component implements IElement {
   @ignoreClone
   private _cameraObserver: Camera;
   @ignoreClone
-  private _resolutionAdaptationStrategy = ResolutionAdaptationStrategy.HeightAdaptation;
+  private _resolutionAdaptationMode = ResolutionAdaptationMode.HeightAdaptation;
   @ignoreClone
   private _sortOrder: number = 0;
   @ignoreClone
@@ -152,15 +152,15 @@ export class UICanvas extends Component implements IElement {
   }
 
   /**
-   * The screen resolution adaptation strategy of the UI canvas in `ScreenSpaceCamera` and `ScreenSpaceOverlay` mode.
+   * The screen resolution adaptation mode of the UI canvas in `ScreenSpaceCamera` and `ScreenSpaceOverlay` mode.
    */
-  get resolutionAdaptationStrategy(): ResolutionAdaptationStrategy {
-    return this._resolutionAdaptationStrategy;
+  get resolutionAdaptationMode(): ResolutionAdaptationMode {
+    return this._resolutionAdaptationMode;
   }
 
-  set resolutionAdaptationStrategy(value: ResolutionAdaptationStrategy) {
-    if (this._resolutionAdaptationStrategy !== value) {
-      this._resolutionAdaptationStrategy = value;
+  set resolutionAdaptationMode(value: ResolutionAdaptationMode) {
+    if (this._resolutionAdaptationMode !== value) {
+      this._resolutionAdaptationMode = value;
       const realRenderMode = this._realRenderMode;
       if (
         realRenderMode === CanvasRenderMode.ScreenSpaceCamera ||
@@ -397,22 +397,22 @@ export class UICanvas extends Component implements IElement {
       curWidth = canvas.width;
     }
     let expectX: number, expectY: number, expectZ: number;
-    switch (this._resolutionAdaptationStrategy) {
-      case ResolutionAdaptationStrategy.WidthAdaptation:
+    switch (this._resolutionAdaptationMode) {
+      case ResolutionAdaptationMode.WidthAdaptation:
         expectX = expectY = expectZ = curWidth / width;
         break;
-      case ResolutionAdaptationStrategy.HeightAdaptation:
+      case ResolutionAdaptationMode.HeightAdaptation:
         expectX = expectY = expectZ = curHeight / height;
         break;
-      case ResolutionAdaptationStrategy.BothAdaptation:
+      case ResolutionAdaptationMode.BothAdaptation:
         expectX = curWidth / width;
         expectY = curHeight / height;
         expectZ = (expectX + expectY) * 0.5;
         break;
-      case ResolutionAdaptationStrategy.ExpandAdaptation:
+      case ResolutionAdaptationMode.ExpandAdaptation:
         expectX = expectY = expectZ = Math.min(curWidth / width, curHeight / height);
         break;
-      case ResolutionAdaptationStrategy.ShrinkAdaptation:
+      case ResolutionAdaptationMode.ShrinkAdaptation:
         expectX = expectY = expectZ = Math.max(curWidth / width, curHeight / height);
         break;
       default:

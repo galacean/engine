@@ -1,8 +1,8 @@
 import { WebGLEngine } from "@galacean/engine";
-import { Label, UITransform } from "@galacean/engine-ui";
+import { Text, UITransform } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
 
-describe("Label", async () => {
+describe("Text", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas: canvas });
   const webCanvas = engine.canvas;
@@ -12,10 +12,10 @@ describe("Label", async () => {
   const root = scene.createRootEntity("root");
 
   const canvasEntity = root.createChild("canvas");
-  const label = canvasEntity.addComponent(Label);
+  const label = canvasEntity.addComponent(Text);
 
   it("Constructor", () => {
-    expect(label instanceof Label).to.eq(true);
+    expect(label instanceof Text).to.eq(true);
     expect(label.text == "").to.eq(true);
     expect(label.fontSize).to.eq(24);
     expect(label.lineSpacing).to.eq(0);
@@ -45,34 +45,34 @@ describe("Label", async () => {
   it("emoji", () => {
     const textEntity = canvasEntity.createChild("text");
 
-    const label1 = textEntity.addComponent(Label);
+    const label1 = textEntity.addComponent(Text);
     label1.text = "͞**͟";
-    const label2 = textEntity.addComponent(Label);
+    const label2 = textEntity.addComponent(Text);
     label2.text = "😋月😜狮😝😋🌹❤️😘🎉🤪😍🎊🎵🇧🇸";
-    const label3 = textEntity.addComponent(Label);
+    const label3 = textEntity.addComponent(Text);
     label3.text = "️我们" + "️" + "hello";
-    const label4 = textEntity.addComponent(Label);
+    const label4 = textEntity.addComponent(Text);
     label4.text = "Ajkq趚喥嘟説孒汾掱湜徳弗里凘諴萉\n汸荖djp溮哋看琺湜獨竝房簡湜汏琺溮哋汸鉽哋汸";
   });
 
   it("wrap", () => {
     const textEntity = canvasEntity.createChild("text");
 
-    const label1 = textEntity.addComponent(Label);
+    const label1 = textEntity.addComponent(Text);
     const transform1 = <UITransform>label1.entity.transform;
     const size1 = transform1.size;
     size1.x = 2;
     size1.y = 3;
     label1.enableWrapping = true;
     label1.text = "helloworld dfd                       dlfgds    dd df\n    ds f";
-    const label2 = textEntity.addComponent(Label);
+    const label2 = textEntity.addComponent(Text);
     const transform2 = <UITransform>label2.entity.transform;
     const size2 = transform2.size;
     size2.x = 2;
     size2.y = 3;
     label2.enableWrapping = true;
     label2.text = "a a a a a a a a a b    a    a";
-    const label3 = textEntity.addComponent(Label);
+    const label3 = textEntity.addComponent(Text);
     const transform3 = <UITransform>label3.entity.transform;
     const size3 = transform3.size;
     size3.x = 2;

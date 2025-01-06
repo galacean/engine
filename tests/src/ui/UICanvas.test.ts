@@ -1,7 +1,7 @@
 import { Camera } from "@galacean/engine-core";
 import { Vector2 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { CanvasRenderMode, ResolutionAdaptationStrategy, UICanvas, UITransform } from "@galacean/engine-ui";
+import { CanvasRenderMode, ResolutionAdaptationMode, UICanvas, UITransform } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
 
 describe("UICanvas", async () => {
@@ -43,16 +43,16 @@ describe("UICanvas", async () => {
     expect(rootCanvas.renderCamera).to.eq(camera);
 
     // Resolution Adaptation Strategy
-    rootCanvas.resolutionAdaptationStrategy = ResolutionAdaptationStrategy.WidthAdaptation;
-    expect(rootCanvas.resolutionAdaptationStrategy).to.eq(ResolutionAdaptationStrategy.WidthAdaptation);
-    rootCanvas.resolutionAdaptationStrategy = ResolutionAdaptationStrategy.HeightAdaptation;
-    expect(rootCanvas.resolutionAdaptationStrategy).to.eq(ResolutionAdaptationStrategy.HeightAdaptation);
-    rootCanvas.resolutionAdaptationStrategy = ResolutionAdaptationStrategy.BothAdaptation;
-    expect(rootCanvas.resolutionAdaptationStrategy).to.eq(ResolutionAdaptationStrategy.BothAdaptation);
-    rootCanvas.resolutionAdaptationStrategy = ResolutionAdaptationStrategy.ShrinkAdaptation;
-    expect(rootCanvas.resolutionAdaptationStrategy).to.eq(ResolutionAdaptationStrategy.ShrinkAdaptation);
-    rootCanvas.resolutionAdaptationStrategy = ResolutionAdaptationStrategy.ExpandAdaptation;
-    expect(rootCanvas.resolutionAdaptationStrategy).to.eq(ResolutionAdaptationStrategy.ExpandAdaptation);
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.WidthAdaptation;
+    expect(rootCanvas.resolutionAdaptationMode).to.eq(ResolutionAdaptationMode.WidthAdaptation);
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.HeightAdaptation;
+    expect(rootCanvas.resolutionAdaptationMode).to.eq(ResolutionAdaptationMode.HeightAdaptation);
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.BothAdaptation;
+    expect(rootCanvas.resolutionAdaptationMode).to.eq(ResolutionAdaptationMode.BothAdaptation);
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.ShrinkAdaptation;
+    expect(rootCanvas.resolutionAdaptationMode).to.eq(ResolutionAdaptationMode.ShrinkAdaptation);
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.ExpandAdaptation;
+    expect(rootCanvas.resolutionAdaptationMode).to.eq(ResolutionAdaptationMode.ExpandAdaptation);
 
     // Sort Order
     rootCanvas.sortOrder = 0;
@@ -106,35 +106,35 @@ describe("UICanvas", async () => {
     const canvasSize = canvasTransform.size;
 
     camera.fieldOfView = 60;
-    rootCanvas.resolutionAdaptationStrategy = ResolutionAdaptationStrategy.WidthAdaptation;
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.WidthAdaptation;
     expect(Math.floor(canvasScale.x * 100000)).to.eq(811);
     expect(Math.floor(canvasScale.y * 100000)).to.eq(811);
     expect(Math.floor(canvasScale.z * 100000)).to.eq(811);
     expect(Math.floor(canvasSize.x)).to.eq(800);
     expect(Math.floor(canvasSize.y)).to.eq(1422);
 
-    rootCanvas.resolutionAdaptationStrategy = ResolutionAdaptationStrategy.HeightAdaptation;
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.HeightAdaptation;
     expect(Math.floor(canvasScale.x * 100000)).to.eq(1924);
     expect(Math.floor(canvasScale.y * 100000)).to.eq(1924);
     expect(Math.floor(canvasScale.z * 100000)).to.eq(1924);
     expect(Math.floor(canvasSize.x)).to.eq(337);
     expect(Math.floor(canvasSize.y)).to.eq(600);
 
-    rootCanvas.resolutionAdaptationStrategy = ResolutionAdaptationStrategy.BothAdaptation;
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.BothAdaptation;
     expect(Math.floor(canvasScale.x * 100000)).to.eq(811);
     expect(Math.floor(canvasScale.y * 100000)).to.eq(1924);
     expect(Math.floor(canvasScale.z * 100000)).to.eq(1367);
     expect(Math.floor(canvasSize.x)).to.eq(800);
     expect(Math.floor(canvasSize.y)).to.eq(600);
 
-    rootCanvas.resolutionAdaptationStrategy = ResolutionAdaptationStrategy.ExpandAdaptation;
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.ExpandAdaptation;
     expect(Math.floor(canvasScale.x * 100000)).to.eq(811);
     expect(Math.floor(canvasScale.y * 100000)).to.eq(811);
     expect(Math.floor(canvasScale.z * 100000)).to.eq(811);
     expect(Math.floor(canvasSize.x)).to.eq(800);
     expect(Math.floor(canvasSize.y)).to.eq(1422);
 
-    rootCanvas.resolutionAdaptationStrategy = ResolutionAdaptationStrategy.ShrinkAdaptation;
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.ShrinkAdaptation;
     expect(Math.floor(canvasScale.x * 100000)).to.eq(1924);
     expect(Math.floor(canvasScale.y * 100000)).to.eq(1924);
     expect(Math.floor(canvasScale.z * 100000)).to.eq(1924);
@@ -142,35 +142,35 @@ describe("UICanvas", async () => {
     expect(Math.floor(canvasSize.y)).to.eq(600);
 
     rootCanvas.distance = 100;
-    rootCanvas.resolutionAdaptationStrategy = ResolutionAdaptationStrategy.WidthAdaptation;
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.WidthAdaptation;
     expect(Math.floor(canvasScale.x * 100000)).to.eq(8114);
     expect(Math.floor(canvasScale.y * 100000)).to.eq(8114);
     expect(Math.floor(canvasScale.z * 100000)).to.eq(8114);
     expect(Math.floor(canvasSize.x)).to.eq(800);
     expect(Math.floor(canvasSize.y)).to.eq(1422);
 
-    rootCanvas.resolutionAdaptationStrategy = ResolutionAdaptationStrategy.HeightAdaptation;
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.HeightAdaptation;
     expect(Math.floor(canvasScale.x * 100000)).to.eq(19245);
     expect(Math.floor(canvasScale.y * 100000)).to.eq(19245);
     expect(Math.floor(canvasScale.z * 100000)).to.eq(19245);
     expect(Math.floor(canvasSize.x)).to.eq(337);
     expect(Math.floor(canvasSize.y)).to.eq(600);
 
-    rootCanvas.resolutionAdaptationStrategy = ResolutionAdaptationStrategy.BothAdaptation;
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.BothAdaptation;
     expect(Math.floor(canvasScale.x * 100000)).to.eq(8114);
     expect(Math.floor(canvasScale.y * 100000)).to.eq(19245);
     expect(Math.floor(canvasScale.z * 100000)).to.eq(13679);
     expect(Math.floor(canvasSize.x)).to.eq(800);
     expect(Math.floor(canvasSize.y)).to.eq(600);
 
-    rootCanvas.resolutionAdaptationStrategy = ResolutionAdaptationStrategy.ExpandAdaptation;
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.ExpandAdaptation;
     expect(Math.floor(canvasScale.x * 100000)).to.eq(8114);
     expect(Math.floor(canvasScale.y * 100000)).to.eq(8114);
     expect(Math.floor(canvasScale.z * 100000)).to.eq(8114);
     expect(Math.floor(canvasSize.x)).to.eq(800);
     expect(Math.floor(canvasSize.y)).to.eq(1422);
 
-    rootCanvas.resolutionAdaptationStrategy = ResolutionAdaptationStrategy.ShrinkAdaptation;
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.ShrinkAdaptation;
     expect(Math.floor(canvasScale.x * 100000)).to.eq(19245);
     expect(Math.floor(canvasScale.y * 100000)).to.eq(19245);
     expect(Math.floor(canvasScale.z * 100000)).to.eq(19245);
@@ -178,14 +178,14 @@ describe("UICanvas", async () => {
     expect(Math.floor(canvasSize.y)).to.eq(600);
 
     camera.fieldOfView = 90;
-    rootCanvas.resolutionAdaptationStrategy = ResolutionAdaptationStrategy.WidthAdaptation;
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.WidthAdaptation;
     expect(Math.floor(canvasScale.x * 100000)).to.eq(14055);
     expect(Math.floor(canvasScale.y * 100000)).to.eq(14055);
     expect(Math.floor(canvasScale.z * 100000)).to.eq(14055);
     expect(Math.floor(canvasSize.x)).to.eq(800);
     expect(Math.floor(canvasSize.y)).to.eq(1422);
 
-    rootCanvas.resolutionAdaptationStrategy = ResolutionAdaptationStrategy.HeightAdaptation;
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.HeightAdaptation;
     expect(Math.floor(canvasScale.x * 100000)).to.eq(33333);
     expect(Math.floor(canvasScale.y * 100000)).to.eq(33333);
     expect(Math.floor(canvasScale.z * 100000)).to.eq(33333);
@@ -193,14 +193,14 @@ describe("UICanvas", async () => {
     expect(Math.floor(canvasSize.y)).to.eq(600);
 
     camera.isOrthographic = true;
-    rootCanvas.resolutionAdaptationStrategy = ResolutionAdaptationStrategy.WidthAdaptation;
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.WidthAdaptation;
     expect(Math.floor(canvasScale.x * 100000)).to.eq(1405);
     expect(Math.floor(canvasScale.y * 100000)).to.eq(1405);
     expect(Math.floor(canvasScale.z * 100000)).to.eq(1405);
     expect(Math.floor(canvasSize.x)).to.eq(800);
     expect(Math.floor(canvasSize.y)).to.eq(1422);
 
-    rootCanvas.resolutionAdaptationStrategy = ResolutionAdaptationStrategy.HeightAdaptation;
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.HeightAdaptation;
     expect(Math.floor(canvasScale.x * 100000)).to.eq(3333);
     expect(Math.floor(canvasScale.y * 100000)).to.eq(3333);
     expect(Math.floor(canvasScale.z * 100000)).to.eq(3333);
@@ -208,14 +208,14 @@ describe("UICanvas", async () => {
     expect(Math.floor(canvasSize.y)).to.eq(600);
 
     camera.viewport.set(0, 0, 0.5, 1);
-    rootCanvas.resolutionAdaptationStrategy = ResolutionAdaptationStrategy.WidthAdaptation;
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.WidthAdaptation;
     expect(Math.floor(canvasScale.x * 100000)).to.eq(702);
     expect(Math.floor(canvasScale.y * 100000)).to.eq(702);
     expect(Math.floor(canvasScale.z * 100000)).to.eq(702);
     expect(Math.floor(canvasSize.x)).to.eq(800);
     expect(Math.floor(canvasSize.y)).to.eq(2845);
 
-    rootCanvas.resolutionAdaptationStrategy = ResolutionAdaptationStrategy.HeightAdaptation;
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.HeightAdaptation;
     expect(Math.floor(canvasScale.x * 100000)).to.eq(3333);
     expect(Math.floor(canvasScale.y * 100000)).to.eq(3333);
     expect(Math.floor(canvasScale.z * 100000)).to.eq(3333);

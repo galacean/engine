@@ -29,7 +29,7 @@ import { UITransform, UITransformModifyFlags } from "../UITransform";
 /**
  * UI component used to render text.
  */
-export class Label extends UIRenderer implements ITextRenderer {
+export class Text extends UIRenderer implements ITextRenderer {
   private static _textTextureProperty = ShaderProperty.getByName("renderElement_TextTexture");
   private static _worldPositions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   private static _charRenderInfos: CharRenderInfo[] = [];
@@ -250,7 +250,7 @@ export class Label extends UIRenderer implements ITextRenderer {
   }
 
   // @ts-ignore
-  override _cloneTo(target: Label, srcRoot: Entity, targetRoot: Entity): void {
+  override _cloneTo(target: Text, srcRoot: Entity, targetRoot: Entity): void {
     // @ts-ignore
     super._cloneTo(target, srcRoot, targetRoot);
     target.font = this._font;
@@ -344,7 +344,7 @@ export class Label extends UIRenderer implements ITextRenderer {
       subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
       // @ts-ignore
       subRenderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
-      subRenderElement.shaderData.setTexture(Label._textTextureProperty, texture);
+      subRenderElement.shaderData.setTexture(Text._textTextureProperty, texture);
       if (isOverlay) {
         subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
         subRenderElement.renderQueueFlags = RenderQueueFlags.All;
@@ -371,7 +371,7 @@ export class Label extends UIRenderer implements ITextRenderer {
     const up = UIRenderer._tempVec31.set(e4, e5, e6);
     const right = UIRenderer._tempVec30.set(e0, e1, e2);
 
-    const worldPositions = Label._worldPositions;
+    const worldPositions = Text._worldPositions;
     const [worldPosition0, worldPosition1, worldPosition2, worldPosition3] = worldPositions;
     const textChunks = this._textChunks;
     for (let i = 0, n = textChunks.length; i < n; ++i) {
@@ -428,7 +428,7 @@ export class Label extends UIRenderer implements ITextRenderer {
     // @ts-ignore
     const pixelsPerResolution = Engine._pixelsPerUnit / this._getRootCanvas().referenceResolutionPerUnit;
     const { min, max } = this._localBounds;
-    const charRenderInfos = Label._charRenderInfos;
+    const charRenderInfos = Text._charRenderInfos;
     const charFont = this._getSubFont();
     const { size, pivot } = <UITransform>this._transformEntity.transform;
     let rendererWidth = size.x;

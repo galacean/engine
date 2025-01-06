@@ -1,7 +1,7 @@
 import { Camera, PointerEventData, SpriteDrawMode } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { Button, Image, Label, ScaleTransition, UICanvas, UIGroup, UITransform } from "@galacean/engine-ui";
+import { Button, Image, ScaleTransition, Text, UICanvas, UIGroup, UITransform } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
 
 describe("Button", async () => {
@@ -33,7 +33,7 @@ describe("Button", async () => {
   (<UITransform>buttonEntity.transform).size.set(120, 40);
   const textEntity = buttonEntity.createChild("Text");
   (<UITransform>textEntity.transform).size.set(120, 40);
-  const text = textEntity.addComponent(Label);
+  const text = textEntity.addComponent(Text);
   text.text = "Button";
   text.color.set(0, 0, 0, 1);
   const button = buttonEntity.addComponent(Button);
