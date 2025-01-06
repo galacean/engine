@@ -9,6 +9,7 @@ import {
   Engine,
   Material,
   PostProcess,
+  PostProcessEffectFloatParameter,
   PostProcessPass,
   PostProcessPassEvent,
   RenderTarget,
@@ -43,9 +44,7 @@ void main() {
 class CustomPass extends PostProcessPass {
   private _blitMaterial: Material;
 
-  set intensity(value) {
-    this._blitMaterial.shaderData.setFloat("intensity", value);
-  }
+  intensity = new PostProcessEffectFloatParameter(0.7, 0, 1);
 
   constructor(engine: Engine) {
     super(engine);
