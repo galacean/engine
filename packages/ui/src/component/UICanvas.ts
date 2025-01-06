@@ -7,6 +7,7 @@ import {
   Entity,
   EntityModifyFlags,
   MathUtil,
+  Matrix,
   Ray,
   Vector2,
   Vector3,
@@ -34,6 +35,8 @@ export class UICanvas extends Component implements IElement {
   /** @internal */
   static _hierarchyCounter: number = 1;
   private static _tempGroupAbleList: IGroupAble[] = [];
+  private static _tempVec3: Vector3 = new Vector3();
+  private static _tempMat: Matrix = new Matrix();
 
   /** @internal */
   @ignoreClone
@@ -418,7 +421,15 @@ export class UICanvas extends Component implements IElement {
       default:
         break;
     }
-    transform.setScale(expectX, expectY, expectZ);
+
+    const worldMatrix = UICanvas._tempMat;
+    Matrix.affineTransformation(
+      UICanvas._tempVec3.set(expectX, expectY, expectZ),
+      transform.worldRotationQuaternion,
+      transform.worldPosition,
+      worldMatrix
+    );
+    transform.worldMatrix = worldMatrix;
     transform.size.set(curWidth / expectX, curHeight / expectY);
   }
 
