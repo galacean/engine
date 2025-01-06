@@ -31,6 +31,9 @@ export abstract class PostProcessEffectParameter<T> {
     this._value = value;
   }
 
+  /**
+   * @internal
+   */
   _lerp(to: T, factor: number) {
     if (factor > 0) {
       this.value = to;
