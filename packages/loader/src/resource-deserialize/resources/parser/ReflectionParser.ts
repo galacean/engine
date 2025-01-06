@@ -2,13 +2,13 @@ import { EngineObject, Entity, Loader } from "@galacean/engine-core";
 import type {
   IAssetRef,
   IBasicType,
-  ICanParseResultObject,
-  IClassObject,
-  IClassTypeObject,
+  IClass,
+  IClassType,
   IComponentRef,
   IEntity,
   IEntityRef,
   IHierarchyFile,
+  IMethod,
   IMethodParams,
   IRefEntity
 } from "../schema";
@@ -37,7 +37,7 @@ export class ReflectionParser {
     });
   }
 
-  parseClassObject(item: IClassObject) {
+  parseClassObject(item: IClass) {
     const Class = Loader.getClass(item.class);
     const params = item.constructParams ?? [];
     return Promise.all(params.map((param) => this.parseBasicType(param)))
@@ -45,7 +45,7 @@ export class ReflectionParser {
       .then((instance) => this.parsePropsAndMethods(instance, item));
   }
 
-  parsePropsAndMethods(instance: any, item: Omit<IClassObject, "class">) {
+  parsePropsAndMethods(instance: any, item: Omit<IClass, "class">) {
     const promises = [];
     if (item.methods) {
       for (let methodName in item.methods) {
@@ -74,12 +74,12 @@ export class ReflectionParser {
   }
 
   parseMethod(instance: any, methodName: string, methodParams: IMethodParams) {
-    const isCanParseResultObject = ReflectionParser._isCanParseResultObject(methodParams);
-    const params = isCanParseResultObject ? methodParams.params : methodParams;
+    const isMethodObject = ReflectionParser._isMethodObject(methodParams);
+    const params = isMethodObject ? methodParams.params : methodParams;
 
     return Promise.all(params.map((param) => this.parseBasicType(param))).then((result) => {
       const methodResult = instance[methodName](...result);
-      if (isCanParseResultObject && methodParams.result) {
+      if (isMethodObject && methodParams.result) {
         return this.parsePropsAndMethods(methodResult, methodParams.result);
       } else {
         return methodResult;
@@ -167,11 +167,11 @@ export class ReflectionParser {
     }
   }
 
-  private static _isClass(value: any): value is IClassObject {
+  private static _isClass(value: any): value is IClass {
     return value["class"] !== undefined;
   }
 
-  private static _isClassType(value: any): value is IClassTypeObject {
+  private static _isClassType(value: any): value is IClassType {
     return value["classType"] !== undefined;
   }
 
@@ -187,7 +187,7 @@ export class ReflectionParser {
     return value["ownerId"] !== undefined && value["componentId"] !== undefined;
   }
 
-  private static _isCanParseResultObject(value: any): value is ICanParseResultObject {
+  private static _isMethodObject(value: any): value is IMethod {
     return Array.isArray(value?.params);
   }
 }

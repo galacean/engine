@@ -14,7 +14,7 @@ import {
   Scene,
   TonemappingEffect
 } from "@galacean/engine-core";
-import { IClassObject, IScene, ReflectionParser, SceneParser, SpecularMode } from "./resource-deserialize";
+import { IClass, IScene, ReflectionParser, SceneParser, SpecularMode } from "./resource-deserialize";
 
 @resourceLoader(AssetType.Scene, ["scene"], true)
 class SceneLoader extends Loader<Scene> {
@@ -146,7 +146,7 @@ class SceneLoader extends Loader<Scene> {
 
 ReflectionParser.registerCustomParseComponent(
   "TextRenderer",
-  async (instance: any, item: Omit<IClassObject, "class">) => {
+  async (instance: any, item: Omit<IClass, "class">) => {
     const { props } = item;
     if (!props.font) {
       // @ts-ignore
