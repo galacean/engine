@@ -1,7 +1,7 @@
 {
   "name": "@galacean/engine-tests",
   "private": true,
-  "version": "1.4.0-alpha.1",
+  "version": "1.4.0-alpha.3",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",

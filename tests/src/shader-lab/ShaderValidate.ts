@@ -1,4 +1,4 @@
-import { ShaderLab } from "@galacean/engine-shader-lab";
+import { ShaderLab } from "@galacean/engine-shaderlab";
 import { Shader, ShaderFactory, ShaderPass, ShaderPlatformTarget, ShaderMacro } from "@galacean/engine-core";
 import { IShaderContent } from "@galacean/engine-design/src/shader-lab";
 import { expect } from "vitest";
