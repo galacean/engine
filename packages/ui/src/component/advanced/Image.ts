@@ -151,7 +151,8 @@ export class Image extends UIRenderer implements ISpriteRenderer {
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
     const sprite = this._sprite;
-    if (sprite) {
+    const rootCanvas = this._getRootCanvas();
+    if (sprite && rootCanvas) {
       const transform = <UITransform>this._transformEntity.transform;
       const { size } = transform;
       this._assembler.updatePositions(
@@ -162,7 +163,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
         transform.pivot,
         false,
         false,
-        this._getRootCanvas().referenceResolutionPerUnit
+        rootCanvas.referenceResolutionPerUnit
       );
     } else {
       const { worldPosition } = this._transformEntity.transform;
