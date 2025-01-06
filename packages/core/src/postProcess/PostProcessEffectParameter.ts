@@ -12,8 +12,6 @@ export abstract class PostProcessEffectParameter<T> {
    */
   enabled = true;
 
-  readonly type;
-
   protected _needLerp = false;
   protected _value: T;
 
@@ -28,8 +26,7 @@ export abstract class PostProcessEffectParameter<T> {
     this._value = value;
   }
 
-  constructor(type, value: T, needLerp = false) {
-    this.type = type;
+  constructor(value: T, needLerp = false) {
     this._needLerp = needLerp;
     this._value = value;
   }
@@ -50,7 +47,7 @@ export class PostProcessEffectFloatParameter extends PostProcessEffectParameter<
   }
 
   override set value(v: number) {
-    this._value = MathUtil.clamp(v, this._min, this._max);
+    this._value = MathUtil.clamp(v, this.min, this.max);
   }
 
   /**
@@ -62,11 +59,11 @@ export class PostProcessEffectFloatParameter extends PostProcessEffectParameter<
    */
   constructor(
     value: number,
-    private _min = Number.NEGATIVE_INFINITY,
-    private _max = Number.POSITIVE_INFINITY,
+    readonly min = Number.NEGATIVE_INFINITY,
+    readonly max = Number.POSITIVE_INFINITY,
     needLerp = true
   ) {
-    super(Number, value, needLerp);
+    super(value, needLerp);
     this.value = value;
   }
 
@@ -88,7 +85,7 @@ export class PostProcessEffectBoolParameter extends PostProcessEffectParameter<b
    * @param value - The default value of the parameter
    */
   constructor(value: boolean) {
-    super(Boolean, value, false);
+    super(value, false);
   }
 }
 
@@ -101,7 +98,7 @@ export class PostProcessEffectTextureParameter extends PostProcessEffectParamete
    * @param value - The default texture of the parameter
    */
   constructor(value: Texture) {
-    super(Texture, value, false);
+    super(value, false);
   }
 }
 
@@ -115,7 +112,7 @@ export class PostProcessEffectColorParameter extends PostProcessEffectParameter<
    * @param needLerp - Whether the parameter needs to be lerp, default is true
    */
   constructor(value: Color, needLerp = true) {
-    super(Color, value, needLerp);
+    super(value, needLerp);
   }
 
   override _lerp(to: Color, factor: number) {
@@ -137,7 +134,7 @@ export class PostProcessEffectVector2Parameter extends PostProcessEffectParamete
    * @param needLerp - Whether the parameter needs to be lerp, default is true
    */
   constructor(value: Vector2, needLerp = true) {
-    super(Vector2, value, needLerp);
+    super(value, needLerp);
   }
 
   override _lerp(to: Vector2, factor: number) {
@@ -159,7 +156,7 @@ export class PostProcessEffectVector3Parameter extends PostProcessEffectParamete
    * @param needLerp - Whether the parameter needs to be lerp, default is true
    */
   constructor(value: Vector3, needLerp = true) {
-    super(Vector3, value, needLerp);
+    super(value, needLerp);
   }
 
   override _lerp(to: Vector3, factor: number) {
@@ -181,7 +178,7 @@ export class PostProcessEffectVector4Parameter extends PostProcessEffectParamete
    * @param needLerp - Whether the parameter needs to be lerp, default is true
    */
   constructor(value: Vector4, needLerp = true) {
-    super(Vector4, value, needLerp);
+    super(value, needLerp);
   }
 
   override _lerp(to: Vector4, factor: number) {
@@ -196,13 +193,16 @@ export class PostProcessEffectVector4Parameter extends PostProcessEffectParamete
 /**
  * Represents a enum parameter of a post process effect.
  */
-export class PostProcessEffectEnumParameter<T> extends PostProcessEffectParameter<number> {
+export class PostProcessEffectEnumParameter<T> extends PostProcessEffectParameter<T> {
   /**
    * Create a new enum parameter.
-   * @param type - The type of the enum
+   * @param enumType - The type of the enum
    * @param value - The default enum value of the parameter
    */
-  constructor(type, value: number) {
-    super(type, value, false);
+  constructor(
+    readonly enumType: Record<string, number | string>,
+    value: T
+  ) {
+    super(value as T, false);
   }
 }
