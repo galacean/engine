@@ -17,6 +17,7 @@ import {
   ignoreClone
 } from "@galacean/engine";
 import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
+import { RootCanvasModifyFlags } from "../UICanvas";
 import { UIRenderer, UIRendererUpdateFlags } from "../UIRenderer";
 import { UITransform, UITransformModifyFlags } from "../UITransform";
 
@@ -134,6 +135,20 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     this._onSpriteChange = this._onSpriteChange.bind(this);
   }
 
+  /**
+   * @internal
+   */
+  _onRootCanvasModify(flag: RootCanvasModifyFlags): void {
+    if (flag & RootCanvasModifyFlags.ReferenceResolutionPerUnit) {
+      const drawMode = this._drawMode;
+      if (drawMode === SpriteDrawMode.Tiled) {
+        this._dirtyUpdateFlag |= ImageUpdateFlags.All;
+      } else if (drawMode === SpriteDrawMode.Sliced) {
+        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      }
+    }
+  }
+
   protected override _updateBounds(worldBounds: BoundingBox): void {
     const sprite = this._sprite;
     if (sprite) {
@@ -156,9 +171,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     }
   }
 
-  /**
-   * @internal
-   */
   protected override _render(context): void {
     const { _sprite: sprite } = this;
     const transform = <UITransform>this._transformEntity.transform;

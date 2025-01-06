@@ -291,7 +291,7 @@ export class Label extends UIRenderer implements ITextRenderer {
   /**
    * @internal
    */
-  override _onRootCanvasModify(flag: RootCanvasModifyFlags): void {
+  _onRootCanvasModify(flag: RootCanvasModifyFlags): void {
     if (flag === RootCanvasModifyFlags.ReferenceResolutionPerUnit) {
       this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
     }
@@ -319,7 +319,7 @@ export class Label extends UIRenderer implements ITextRenderer {
     const canvas = this._getRootCanvas();
     if (this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds)) {
       this._updateLocalData();
-      this._setDirtyFlagFalse(DirtyFlag.LocalPositionBounds);
+      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.WorldPosition)) {

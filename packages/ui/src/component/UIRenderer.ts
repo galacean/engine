@@ -20,7 +20,7 @@ import {
 import { Utils } from "../Utils";
 import { UIHitResult } from "../input/UIHitResult";
 import { IGraphics } from "../interface/IGraphics";
-import { EntityUIModifyFlags, RootCanvasModifyFlags, UICanvas } from "./UICanvas";
+import { EntityUIModifyFlags, UICanvas } from "./UICanvas";
 import { GroupModifyFlags, UIGroup } from "./UIGroup";
 import { UITransform } from "./UITransform";
 
@@ -210,15 +210,6 @@ export class UIRenderer extends Renderer implements IGraphics {
         break;
       default:
         break;
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _onRootCanvasModify(flag: RootCanvasModifyFlags): void {
-    if (flag === RootCanvasModifyFlags.ReferenceResolutionPerUnit) {
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
   }
 
