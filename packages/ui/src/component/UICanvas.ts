@@ -96,6 +96,9 @@ export class UICanvas extends Component implements IElement {
   set referenceResolutionPerUnit(value: number) {
     if (this._referenceResolutionPerUnit !== value) {
       this._referenceResolutionPerUnit = value;
+      this._disorderedElements.forEach((element) => {
+        element._onRootCanvasModify?.(RootCanvasModifyFlags.ReferenceResolutionPerUnit);
+      });
     }
   }
 
@@ -616,4 +619,10 @@ enum CanvasRealRenderMode {
 export enum EntityUIModifyFlags {
   CanvasEnableInScene = 0x4,
   GroupEnableInScene = 0x8
+}
+
+export enum RootCanvasModifyFlags {
+  None = 0x0,
+  ReferenceResolutionPerUnit = 0x1,
+  All = 0x1
 }

@@ -14,14 +14,13 @@ import {
   ShaderProperty,
   Vector3,
   Vector4,
-  assignmentClone,
   deepClone,
   dependentComponents,
   ignoreClone
 } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { IGraphics } from "../interface/IGraphics";
-import { EntityUIModifyFlags, UICanvas } from "./UICanvas";
+import { EntityUIModifyFlags, RootCanvasModifyFlags, UICanvas } from "./UICanvas";
 import { GroupModifyFlags, UIGroup } from "./UIGroup";
 import { UITransform } from "./UITransform";
 
@@ -78,8 +77,6 @@ export class UIRenderer extends Renderer implements IGraphics {
   protected _alpha: number = 1;
   @deepClone
   protected _color: Color = new Color(1, 1, 1, 1);
-  @assignmentClone
-  protected _referenceResolutionPerUnit: number = 100;
 
   /**
    * Rendering color for the ui renderer.
@@ -213,6 +210,15 @@ export class UIRenderer extends Renderer implements IGraphics {
         break;
       default:
         break;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _onRootCanvasModify(flag: RootCanvasModifyFlags): void {
+    if (flag === RootCanvasModifyFlags.ReferenceResolutionPerUnit) {
+      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
   }
 

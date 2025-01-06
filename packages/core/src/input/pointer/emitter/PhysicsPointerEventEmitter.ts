@@ -5,6 +5,9 @@ import { CameraClearFlags } from "../../../enums/CameraClearFlags";
 import { Pointer } from "../Pointer";
 import { PointerEventEmitter } from "./PointerEventEmitter";
 
+/**
+ * @internal
+ */
 export class PhysicsPointerEventEmitter extends PointerEventEmitter {
   protected _enteredEntity: Entity;
   protected _pressedEntity: Entity;
@@ -52,7 +55,7 @@ export class PhysicsPointerEventEmitter extends PointerEventEmitter {
     const entity = this._draggedEntity;
     if (entity) {
       this._invokeEntityScripts(entity, (script: Script) => {
-        script.onPointerDrag?.(this._createEventData(pointer, entity, entity));
+        script.onPointerDrag?.(this._createEventData(pointer, entity));
       });
     }
   }
@@ -61,8 +64,8 @@ export class PhysicsPointerEventEmitter extends PointerEventEmitter {
     const entity = (this._pressedEntity = this._draggedEntity = this._enteredEntity);
     if (entity) {
       this._invokeEntityScripts(entity, (script: Script) => {
-        script.onPointerDown?.(this._createEventData(pointer, entity, entity));
-        script.onPointerBeginDrag?.(this._createEventData(pointer, entity, entity));
+        script.onPointerDown?.(this._createEventData(pointer, entity));
+        script.onPointerBeginDrag?.(this._createEventData(pointer, entity));
       });
     }
   }
@@ -72,15 +75,15 @@ export class PhysicsPointerEventEmitter extends PointerEventEmitter {
     if (enteredEntity) {
       const sameTarget = this._pressedEntity === enteredEntity;
       this._invokeEntityScripts(enteredEntity, (script: Script) => {
-        script.onPointerUp?.(this._createEventData(pointer, enteredEntity, enteredEntity));
-        sameTarget && script.onPointerClick?.(this._createEventData(pointer, enteredEntity, enteredEntity));
-        script.onPointerDrop?.(this._createEventData(pointer, enteredEntity, enteredEntity));
+        script.onPointerUp?.(this._createEventData(pointer, enteredEntity));
+        sameTarget && script.onPointerClick?.(this._createEventData(pointer, enteredEntity));
+        script.onPointerDrop?.(this._createEventData(pointer, enteredEntity));
       });
     }
     this._pressedEntity = null;
     if (draggedEntity) {
       this._invokeEntityScripts(draggedEntity, (script: Script) => {
-        script.onPointerEndDrag?.(this._createEventData(pointer, draggedEntity, draggedEntity));
+        script.onPointerEndDrag?.(this._createEventData(pointer, draggedEntity));
       });
       this._draggedEntity = null;
     }
@@ -90,7 +93,7 @@ export class PhysicsPointerEventEmitter extends PointerEventEmitter {
     const enteredEntity = this._enteredEntity;
     if (enteredEntity) {
       this._invokeEntityScripts(enteredEntity, (script: Script) => {
-        script.onPointerExit?.(this._createEventData(pointer, enteredEntity, enteredEntity));
+        script.onPointerExit?.(this._createEventData(pointer, enteredEntity));
       });
       this._enteredEntity = null;
     }
@@ -98,7 +101,7 @@ export class PhysicsPointerEventEmitter extends PointerEventEmitter {
     const draggedEntity = this._draggedEntity;
     if (draggedEntity) {
       this._invokeEntityScripts(draggedEntity, (script: Script) => {
-        script.onPointerEndDrag?.(this._createEventData(pointer, draggedEntity, draggedEntity));
+        script.onPointerEndDrag?.(this._createEventData(pointer, draggedEntity));
       });
       this._draggedEntity = null;
     }
@@ -114,12 +117,12 @@ export class PhysicsPointerEventEmitter extends PointerEventEmitter {
     if (entity !== enteredEntity) {
       if (enteredEntity) {
         this._invokeEntityScripts(enteredEntity, (script: Script) => {
-          script.onPointerExit?.(this._createEventData(pointer, enteredEntity, enteredEntity));
+          script.onPointerExit?.(this._createEventData(pointer, enteredEntity));
         });
       }
       if (entity) {
         this._invokeEntityScripts(entity, (script: Script) => {
-          script.onPointerEnter?.(this._createEventData(pointer, entity, entity));
+          script.onPointerEnter?.(this._createEventData(pointer, entity));
         });
       }
       this._enteredEntity = entity;

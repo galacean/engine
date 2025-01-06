@@ -1,5 +1,5 @@
 import { Entity } from "@galacean/engine";
-import { UICanvas } from "./component/UICanvas";
+import { RootCanvasModifyFlags, UICanvas } from "./component/UICanvas";
 import { GroupModifyFlags, UIGroup } from "./component/UIGroup";
 import { IElement } from "./interface/IElement";
 import { IGroupAble } from "./interface/IGroupAble";
@@ -9,6 +9,7 @@ export class Utils {
     if (element._isRootCanvasDirty) return;
     element._isRootCanvasDirty = true;
     this._registerRootCanvas(element, null);
+    element._onRootCanvasModify?.(RootCanvasModifyFlags.All);
   }
 
   static setRootCanvas(element: IElement, rootCanvas: UICanvas): void {

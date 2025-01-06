@@ -28,12 +28,11 @@ export abstract class PointerEventEmitter {
 
   abstract dispose(): void;
 
-  protected _createEventData(pointer: Pointer, target: Entity = null, currentTarget: Entity = null): PointerEventData {
+  protected _createEventData(pointer: Pointer, target: Entity = null): PointerEventData {
     const data = this._pool.get();
     data.pointer = pointer;
-    data.position.copyFrom(this._hitResult.point);
+    data.worldPosition.copyFrom(this._hitResult.point);
     data.target = target;
-    data.currentTarget = currentTarget;
     return data;
   }
 }

@@ -22,6 +22,7 @@ import {
   ignoreClone
 } from "@galacean/engine";
 import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
+import { RootCanvasModifyFlags } from "../UICanvas";
 import { UIRenderer, UIRendererUpdateFlags } from "../UIRenderer";
 import { UITransform, UITransformModifyFlags } from "../UITransform";
 
@@ -287,6 +288,15 @@ export class Label extends UIRenderer implements ITextRenderer {
     return this._subFont;
   }
 
+  /**
+   * @internal
+   */
+  override _onRootCanvasModify(flag: RootCanvasModifyFlags): void {
+    if (flag === RootCanvasModifyFlags.ReferenceResolutionPerUnit) {
+      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
+    }
+  }
+
   protected override _updateBounds(worldBounds: BoundingBox): void {
     const transform = <UITransform>this._transformEntity.transform;
     const { x: width, y: height } = transform.size;
@@ -307,11 +317,6 @@ export class Label extends UIRenderer implements ITextRenderer {
     }
 
     const canvas = this._getRootCanvas();
-    if (this._referenceResolutionPerUnit !== canvas.referenceResolutionPerUnit) {
-      this._referenceResolutionPerUnit = canvas.referenceResolutionPerUnit;
-      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
-    }
-
     if (this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds)) {
       this._updateLocalData();
       this._setDirtyFlagFalse(DirtyFlag.LocalPositionBounds);
@@ -421,7 +426,7 @@ export class Label extends UIRenderer implements ITextRenderer {
 
   private _updateLocalData(): void {
     // @ts-ignore
-    const pixelsPerResolution = Engine._pixelsPerUnit / this._referenceResolutionPerUnit;
+    const pixelsPerResolution = Engine._pixelsPerUnit / this._getRootCanvas().referenceResolutionPerUnit;
     const { min, max } = this._localBounds;
     const charRenderInfos = Label._charRenderInfos;
     const charFont = this._getSubFont();

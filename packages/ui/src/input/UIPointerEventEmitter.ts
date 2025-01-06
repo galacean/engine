@@ -4,13 +4,15 @@ import {
   Pointer,
   PointerEventData,
   PointerEventEmitter,
-  PointerMethods,
   Scene,
   Script,
   registerPointerEventEmitter
 } from "@galacean/engine";
 import { UIRenderer } from "../component/UIRenderer";
 
+/**
+ * @internal
+ */
 @registerPointerEventEmitter()
 export class UIPointerEventEmitter extends PointerEventEmitter {
   private static _MAX_PATH_DEPTH = 2048;
@@ -88,11 +90,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
 
   override processDrag(pointer: Pointer): void {
     if (this._draggedElement) {
-      this._bubble(
-        this._composedPath(this._draggedElement, UIPointerEventEmitter._path0),
-        pointer,
-        PointerMethods.onPointerDrag
-      );
+      this._bubble(this._composedPath(this._draggedElement, UIPointerEventEmitter._path0), pointer, this._fireDrag);
     }
   }
 
@@ -100,8 +98,8 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
     const element = (this._pressedElement = this._draggedElement = this._enteredElement);
     if (element) {
       const path = this._composedPath(element, UIPointerEventEmitter._path0);
-      this._bubble(path, pointer, PointerMethods.onPointerDown);
-      this._bubble(path, pointer, PointerMethods.onPointerBeginDrag);
+      this._bubble(path, pointer, this._fireDown);
+      this._bubble(path, pointer, this._fireBeginDrag);
     }
   }
 
@@ -110,7 +108,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
     const enteredElement = this._enteredElement;
     if (enteredElement) {
       this._composedPath(enteredElement, liftedPath);
-      this._bubble(liftedPath, pointer, PointerMethods.onPointerUp);
+      this._bubble(liftedPath, pointer, this._fireUp);
       if (this._pressedElement) {
         const pressedPath = this._composedPath(this._pressedElement, UIPointerEventEmitter._path1);
         const enterLength = liftedPath.length;
@@ -125,34 +123,30 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         const targetIndex = enterLength - i;
         const event = this._createEventData(pointer, liftedPath[targetIndex]);
         for (let j = targetIndex; j < enterLength; j++) {
-          this._fireEvent(liftedPath[j], event, PointerMethods.onPointerClick);
+          this._fireClick(liftedPath[j], event);
         }
         this._pressedElement = null;
       }
     }
 
     if (this._draggedElement) {
-      this._bubble(
-        this._composedPath(this._draggedElement, UIPointerEventEmitter._path1),
-        pointer,
-        PointerMethods.onPointerEndDrag
-      );
+      this._bubble(this._composedPath(this._draggedElement, UIPointerEventEmitter._path1), pointer, this._fireEndDrag);
       this._draggedElement = null;
     }
 
     if (enteredElement) {
-      this._bubble(liftedPath, pointer, PointerMethods.onPointerDrop);
+      this._bubble(liftedPath, pointer, this._fireDrop);
     }
   }
 
   override processLeave(pointer: Pointer): void {
     const path = UIPointerEventEmitter._path0;
     if (this._enteredElement) {
-      this._bubble(this._composedPath(this._enteredElement, path), pointer, PointerMethods.onPointerExit);
+      this._bubble(this._composedPath(this._enteredElement, path), pointer, this._fireExit);
       this._enteredElement = null;
     }
     if (this._draggedElement) {
-      this._bubble(this._composedPath(this._draggedElement, path), pointer, PointerMethods.onPointerEndDrag);
+      this._bubble(this._composedPath(this._draggedElement, path), pointer, this._fireEndDrag);
       this._draggedElement = null;
     }
 
@@ -179,36 +173,13 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
       }
       const event = this._createEventData(pointer);
       for (let j = 0, n = preLength - i; j < n; j++) {
-        this._fireEvent(prePath[j], event, PointerMethods.onPointerExit);
+        this._fireExit(prePath[j], event);
       }
       for (let j = 0, n = curLength - i; j < n; j++) {
-        this._fireEvent(curPath[j], event, PointerMethods.onPointerEnter);
+        this._fireEnter(curPath[j], event);
       }
       this._enteredElement = element;
     }
-  }
-
-  private _bubble(path: Entity[], pointer: Pointer, methods: PointerMethods): void {
-    const length = path.length;
-    if (length <= 0) return;
-    const eventData = this._createEventData(pointer, path[0]);
-    for (let i = 0; i < length; i++) {
-      this._fireEvent(path[i], eventData, methods);
-    }
-  }
-
-  private _fireEvent(entity: Entity, eventData: PointerEventData, methods: PointerMethods): void {
-    eventData.currentTarget = entity;
-    // @ts-ignore
-    entity._scripts.forEach(
-      (script: Script) => {
-        script[methods]?.(eventData);
-      },
-      (script: Script, index: number) => {
-        // @ts-ignore
-        script._entityScriptsIndex = index;
-      }
-    );
   }
 
   private _composedPath(element: UIRenderer, path: Entity[]): Entity[] {
@@ -225,4 +196,132 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
     path.length = i;
     return path;
   }
+
+  private _bubble(path: Entity[], pointer: Pointer, fireEvent: FireEvent): void {
+    const length = path.length;
+    if (length <= 0) return;
+    const eventData = this._createEventData(pointer, path[0]);
+    for (let i = 0; i < length; i++) {
+      fireEvent(path[i], eventData);
+    }
+  }
+
+  private _fireDown(entity: Entity, eventData: PointerEventData): void {
+    // @ts-ignore
+    entity._scripts.forEach(
+      (script: Script) => {
+        script.onPointerDown?.(eventData);
+      },
+      (script: Script, index: number) => {
+        // @ts-ignore
+        script._entityScriptsIndex = index;
+      }
+    );
+  }
+
+  private _fireUp(entity: Entity, eventData: PointerEventData): void {
+    // @ts-ignore
+    entity._scripts.forEach(
+      (script: Script) => {
+        script.onPointerUp?.(eventData);
+      },
+      (script: Script, index: number) => {
+        // @ts-ignore
+        script._entityScriptsIndex = index;
+      }
+    );
+  }
+
+  private _fireClick(entity: Entity, eventData: PointerEventData): void {
+    // @ts-ignore
+    entity._scripts.forEach(
+      (script: Script) => {
+        script.onPointerClick?.(eventData);
+      },
+      (script: Script, index: number) => {
+        // @ts-ignore
+        script._entityScriptsIndex = index;
+      }
+    );
+  }
+
+  private _fireEnter(entity: Entity, eventData: PointerEventData): void {
+    // @ts-ignore
+    entity._scripts.forEach(
+      (script: Script) => {
+        script.onPointerEnter?.(eventData);
+      },
+      (script: Script, index: number) => {
+        // @ts-ignore
+        script._entityScriptsIndex = index;
+      }
+    );
+  }
+
+  private _fireExit(entity: Entity, eventData: PointerEventData): void {
+    // @ts-ignore
+    entity._scripts.forEach(
+      (script: Script) => {
+        script.onPointerExit?.(eventData);
+      },
+      (script: Script, index: number) => {
+        // @ts-ignore
+        script._entityScriptsIndex = index;
+      }
+    );
+  }
+
+  private _fireBeginDrag(entity: Entity, eventData: PointerEventData): void {
+    // @ts-ignore
+    entity._scripts.forEach(
+      (script: Script) => {
+        script.onPointerBeginDrag?.(eventData);
+      },
+      (script: Script, index: number) => {
+        // @ts-ignore
+        script._entityScriptsIndex = index;
+      }
+    );
+  }
+
+  private _fireDrag(entity: Entity, eventData: PointerEventData): void {
+    // @ts-ignore
+    entity._scripts.forEach(
+      (script: Script) => {
+        script.onPointerDrag?.(eventData);
+      },
+      (script: Script, index: number) => {
+        // @ts-ignore
+        script._entityScriptsIndex = index;
+      }
+    );
+  }
+
+  private _fireEndDrag(entity: Entity, eventData: PointerEventData): void {
+    // @ts-ignore
+    entity._scripts.forEach(
+      (script: Script) => {
+        script.onPointerEndDrag?.(eventData);
+      },
+      (script: Script, index: number) => {
+        // @ts-ignore
+        script._entityScriptsIndex = index;
+      }
+    );
+  }
+
+  private _fireDrop(entity: Entity, eventData: PointerEventData): void {
+    // @ts-ignore
+    entity._scripts.forEach(
+      (script: Script) => {
+        script.onPointerDrop?.(eventData);
+      },
+      (script: Script, index: number) => {
+        // @ts-ignore
+        script._entityScriptsIndex = index;
+      }
+    );
+  }
 }
+
+type FireEvent = (entity: Entity, eventData: PointerEventData) => void;

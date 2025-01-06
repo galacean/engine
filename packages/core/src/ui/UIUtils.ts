@@ -12,7 +12,7 @@ export class UIUtils {
   private static _virtualCamera: VirtualCamera;
   private static _viewport: Vector4;
 
-  static render(engine: Engine, uiCanvases: DisorderedArray<IUICanvas>): void {
+  static renderOverlay(engine: Engine, uiCanvases: DisorderedArray<IUICanvas>): void {
     const uiRenderQueue = (this._renderQueue ||= new RenderQueue(RenderQueueType.Transparent));
     const virtualCamera = (this._virtualCamera ||= new VirtualCamera());
     const viewport = (this._viewport ||= new Vector4(0, 0, 1, 1));

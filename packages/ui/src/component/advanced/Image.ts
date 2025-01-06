@@ -139,8 +139,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     if (sprite) {
       const transform = <UITransform>this._transformEntity.transform;
       const { size } = transform;
-      const canvas = this._getRootCanvas();
-      const referenceResolutionPerUnit = (this._referenceResolutionPerUnit = canvas.referenceResolutionPerUnit);
       this._assembler.updatePositions(
         this,
         transform.worldMatrix,
@@ -149,7 +147,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
         transform.pivot,
         false,
         false,
-        referenceResolutionPerUnit
+        this._getRootCanvas().referenceResolutionPerUnit
       );
     } else {
       const { worldPosition } = this._transformEntity.transform;
@@ -184,11 +182,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
 
     let { _dirtyUpdateFlag: dirtyUpdateFlag } = this;
     const canvas = this._getRootCanvas();
-    if (this._referenceResolutionPerUnit !== canvas.referenceResolutionPerUnit) {
-      this._referenceResolutionPerUnit = canvas.referenceResolutionPerUnit;
-      dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
-    }
-
     // Update position
     if (dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
       this._assembler.updatePositions(
@@ -199,7 +192,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
         transform.pivot,
         false,
         false,
-        this._referenceResolutionPerUnit
+        canvas.referenceResolutionPerUnit
       );
       dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     }
