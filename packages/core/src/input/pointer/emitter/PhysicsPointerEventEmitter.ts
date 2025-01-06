@@ -1,7 +1,7 @@
 import { Entity } from "../../../Entity";
 import { Scene } from "../../../Scene";
-import { Script } from "../../../Script";
 import { CameraClearFlags } from "../../../enums/CameraClearFlags";
+import { HitResult } from "../../../physics";
 import { Pointer } from "../Pointer";
 import { PointerEventEmitter } from "./PointerEventEmitter";
 
@@ -38,7 +38,7 @@ export class PhysicsPointerEventEmitter extends PointerEventEmitter {
           continue;
         }
         camera.screenPointToRay(pointer.position, ray);
-        if (scenePhysics.raycast(ray, camera.farClipPlane, camera.cullingMask, hitResult)) {
+        if (scenePhysics.raycast(ray, camera.farClipPlane, camera.cullingMask, <HitResult>hitResult)) {
           this._updateRaycast(hitResult.entity, pointer);
           return;
         }
@@ -53,20 +53,15 @@ export class PhysicsPointerEventEmitter extends PointerEventEmitter {
 
   override processDrag(pointer: Pointer): void {
     const entity = this._draggedEntity;
-    if (entity) {
-      this._invokeEntityScripts(entity, (script: Script) => {
-        script.onPointerDrag?.(this._createEventData(pointer, entity));
-      });
-    }
+    entity && this._fireDrag(entity, this._createEventData(pointer));
   }
 
   override processDown(pointer: Pointer): void {
     const entity = (this._pressedEntity = this._draggedEntity = this._enteredEntity);
     if (entity) {
-      this._invokeEntityScripts(entity, (script: Script) => {
-        script.onPointerDown?.(this._createEventData(pointer, entity));
-        script.onPointerBeginDrag?.(this._createEventData(pointer, entity));
-      });
+      const eventData = this._createEventData(pointer);
+      this._fireDown(entity, eventData);
+      this._fireBeginDrag(entity, eventData);
     }
   }
 
@@ -74,17 +69,14 @@ export class PhysicsPointerEventEmitter extends PointerEventEmitter {
     const { _enteredEntity: enteredEntity, _draggedEntity: draggedEntity } = this;
     if (enteredEntity) {
       const sameTarget = this._pressedEntity === enteredEntity;
-      this._invokeEntityScripts(enteredEntity, (script: Script) => {
-        script.onPointerUp?.(this._createEventData(pointer, enteredEntity));
-        sameTarget && script.onPointerClick?.(this._createEventData(pointer, enteredEntity));
-        script.onPointerDrop?.(this._createEventData(pointer, enteredEntity));
-      });
+      const eventData = this._createEventData(pointer);
+      this._fireUp(enteredEntity, eventData);
+      sameTarget && this._fireClick(enteredEntity, eventData);
+      this._fireDrop(enteredEntity, eventData);
     }
     this._pressedEntity = null;
     if (draggedEntity) {
-      this._invokeEntityScripts(draggedEntity, (script: Script) => {
-        script.onPointerEndDrag?.(this._createEventData(pointer, draggedEntity));
-      });
+      this._fireEndDrag(draggedEntity, this._createEventData(pointer));
       this._draggedEntity = null;
     }
   }
@@ -92,17 +84,13 @@ export class PhysicsPointerEventEmitter extends PointerEventEmitter {
   override processLeave(pointer: Pointer): void {
     const enteredEntity = this._enteredEntity;
     if (enteredEntity) {
-      this._invokeEntityScripts(enteredEntity, (script: Script) => {
-        script.onPointerExit?.(this._createEventData(pointer, enteredEntity));
-      });
+      this._fireExit(enteredEntity, this._createEventData(pointer));
       this._enteredEntity = null;
     }
 
     const draggedEntity = this._draggedEntity;
     if (draggedEntity) {
-      this._invokeEntityScripts(draggedEntity, (script: Script) => {
-        script.onPointerEndDrag?.(this._createEventData(pointer, draggedEntity));
-      });
+      this._fireEndDrag(draggedEntity, this._createEventData(pointer));
       this._draggedEntity = null;
     }
     this._pressedEntity = null;
@@ -112,26 +100,20 @@ export class PhysicsPointerEventEmitter extends PointerEventEmitter {
     this._enteredEntity = this._pressedEntity = this._draggedEntity = null;
   }
 
+  protected override _init(): void {
+    this._hitResult = new HitResult();
+  }
+
   private _updateRaycast(entity: Entity, pointer: Pointer): void {
     const enteredEntity = this._enteredEntity;
     if (entity !== enteredEntity) {
       if (enteredEntity) {
-        this._invokeEntityScripts(enteredEntity, (script: Script) => {
-          script.onPointerExit?.(this._createEventData(pointer, enteredEntity));
-        });
+        this._fireExit(enteredEntity, this._createEventData(pointer));
       }
       if (entity) {
-        this._invokeEntityScripts(entity, (script: Script) => {
-          script.onPointerEnter?.(this._createEventData(pointer, entity));
-        });
+        this._fireEnter(entity, this._createEventData(pointer));
       }
       this._enteredEntity = entity;
     }
-  }
-
-  private _invokeEntityScripts(entity: Entity, callback: (script: Script) => void): void {
-    entity._scripts.forEach(callback, (script: Script, index: number) => {
-      script._entityScriptsIndex = index;
-    });
   }
 }

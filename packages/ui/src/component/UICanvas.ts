@@ -6,7 +6,6 @@ import {
   DisorderedArray,
   Entity,
   EntityModifyFlags,
-  HitResult,
   MathUtil,
   Ray,
   Vector2,
@@ -18,6 +17,7 @@ import {
 import { Utils } from "../Utils";
 import { CanvasRenderMode } from "../enums/CanvasRenderMode";
 import { ResolutionAdaptationStrategy } from "../enums/ResolutionAdaptationStrategy";
+import { UIHitResult } from "../input/UIHitResult";
 import { IElement } from "../interface/IElement";
 import { IGroupAble } from "../interface/IGroupAble";
 import { UIGroup } from "./UIGroup";
@@ -35,6 +35,9 @@ export class UICanvas extends Component implements IElement {
   static _hierarchyCounter: number = 1;
   private static _tempGroupAbleList: IGroupAble[] = [];
 
+  /** @internal */
+  @ignoreClone
+  _canvasIndex: number = -1;
   /** @internal */
   @ignoreClone
   _rootCanvas: UICanvas;
@@ -215,7 +218,7 @@ export class UICanvas extends Component implements IElement {
     this._rootCanvasListener = this._rootCanvasListener.bind(this);
   }
 
-  raycast(ray: Ray, out: HitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
+  raycast(ray: Ray, out: UIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
     const renderers = this._getRenderers();
     for (let i = renderers.length - 1; i >= 0; i--) {
       const element = renderers[i];
@@ -223,8 +226,8 @@ export class UICanvas extends Component implements IElement {
         return true;
       }
     }
-    out.entity = null;
     out.component = null;
+    out.entity = null;
     out.distance = 0;
     out.point.set(0, 0, 0);
     out.normal.set(0, 0, 0);

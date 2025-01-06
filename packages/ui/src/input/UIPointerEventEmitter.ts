@@ -1,14 +1,16 @@
 import {
   CameraClearFlags,
+  DisorderedArray,
   Entity,
   Pointer,
   PointerEventData,
   PointerEventEmitter,
   Scene,
-  Script,
   registerPointerEventEmitter
 } from "@galacean/engine";
+import { UICanvas } from "..";
 import { UIRenderer } from "../component/UIRenderer";
+import { UIHitResult } from "./UIHitResult";
 
 /**
  * @internal
@@ -23,6 +25,10 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
   private _pressedElement: UIRenderer;
   private _draggedElement: UIRenderer;
 
+  _init(): void {
+    this._hitResult = new UIHitResult();
+  }
+
   override processRaycast(scenes: readonly Scene[], pointer: Pointer): void {
     const { _tempRay: ray } = PointerEventEmitter;
     const hitResult = this._hitResult;
@@ -34,12 +40,12 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
       // @ts-ignore
       const componentsManager = scene._componentsManager;
       /** Overlay Canvas */
-      let canvasElements = componentsManager._overlayCanvases;
+      let canvasElements: DisorderedArray<UICanvas> = componentsManager._overlayCanvases;
       ray.origin.set(position.x, position.y, 1);
       ray.direction.set(0, 0, -1);
       for (let j = canvasElements.length - 1; j >= 0; j--) {
         if (canvasElements.get(j).raycast(ray, hitResult)) {
-          this._updateRaycast(<UIRenderer>hitResult.component, pointer);
+          this._updateRaycast((<UIHitResult>hitResult).component, pointer);
           return;
         }
       }
@@ -76,7 +82,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
           const canvas = canvasElements.get(k);
           if (canvas.renderCamera !== camera) continue;
           if (canvas.raycast(ray, hitResult, farClipPlane)) {
-            this._updateRaycast(<UIRenderer>hitResult.component, pointer);
+            this._updateRaycast((<UIHitResult>hitResult).component, pointer);
             return;
           }
         }
@@ -121,9 +127,9 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
           }
         }
         const targetIndex = enterLength - i;
-        const event = this._createEventData(pointer, liftedPath[targetIndex]);
+        const eventData = this._createEventData(pointer);
         for (let j = targetIndex; j < enterLength; j++) {
-          this._fireClick(liftedPath[j], event);
+          this._fireClick(liftedPath[j], eventData);
         }
         this._pressedElement = null;
       }
@@ -171,12 +177,12 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
           break;
         }
       }
-      const event = this._createEventData(pointer);
+      const eventData = this._createEventData(pointer);
       for (let j = 0, n = preLength - i; j < n; j++) {
-        this._fireExit(prePath[j], event);
+        this._fireExit(prePath[j], eventData);
       }
       for (let j = 0, n = curLength - i; j < n; j++) {
-        this._fireEnter(curPath[j], event);
+        this._fireEnter(curPath[j], eventData);
       }
       this._enteredElement = element;
     }
@@ -200,127 +206,10 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
   private _bubble(path: Entity[], pointer: Pointer, fireEvent: FireEvent): void {
     const length = path.length;
     if (length <= 0) return;
-    const eventData = this._createEventData(pointer, path[0]);
+    const eventData = this._createEventData(pointer);
     for (let i = 0; i < length; i++) {
       fireEvent(path[i], eventData);
     }
-  }
-
-  private _fireDown(entity: Entity, eventData: PointerEventData): void {
-    // @ts-ignore
-    entity._scripts.forEach(
-      (script: Script) => {
-        script.onPointerDown?.(eventData);
-      },
-      (script: Script, index: number) => {
-        // @ts-ignore
-        script._entityScriptsIndex = index;
-      }
-    );
-  }
-
-  private _fireUp(entity: Entity, eventData: PointerEventData): void {
-    // @ts-ignore
-    entity._scripts.forEach(
-      (script: Script) => {
-        script.onPointerUp?.(eventData);
-      },
-      (script: Script, index: number) => {
-        // @ts-ignore
-        script._entityScriptsIndex = index;
-      }
-    );
-  }
-
-  private _fireClick(entity: Entity, eventData: PointerEventData): void {
-    // @ts-ignore
-    entity._scripts.forEach(
-      (script: Script) => {
-        script.onPointerClick?.(eventData);
-      },
-      (script: Script, index: number) => {
-        // @ts-ignore
-        script._entityScriptsIndex = index;
-      }
-    );
-  }
-
-  private _fireEnter(entity: Entity, eventData: PointerEventData): void {
-    // @ts-ignore
-    entity._scripts.forEach(
-      (script: Script) => {
-        script.onPointerEnter?.(eventData);
-      },
-      (script: Script, index: number) => {
-        // @ts-ignore
-        script._entityScriptsIndex = index;
-      }
-    );
-  }
-
-  private _fireExit(entity: Entity, eventData: PointerEventData): void {
-    // @ts-ignore
-    entity._scripts.forEach(
-      (script: Script) => {
-        script.onPointerExit?.(eventData);
-      },
-      (script: Script, index: number) => {
-        // @ts-ignore
-        script._entityScriptsIndex = index;
-      }
-    );
-  }
-
-  private _fireBeginDrag(entity: Entity, eventData: PointerEventData): void {
-    // @ts-ignore
-    entity._scripts.forEach(
-      (script: Script) => {
-        script.onPointerBeginDrag?.(eventData);
-      },
-      (script: Script, index: number) => {
-        // @ts-ignore
-        script._entityScriptsIndex = index;
-      }
-    );
-  }
-
-  private _fireDrag(entity: Entity, eventData: PointerEventData): void {
-    // @ts-ignore
-    entity._scripts.forEach(
-      (script: Script) => {
-        script.onPointerDrag?.(eventData);
-      },
-      (script: Script, index: number) => {
-        // @ts-ignore
-        script._entityScriptsIndex = index;
-      }
-    );
-  }
-
-  private _fireEndDrag(entity: Entity, eventData: PointerEventData): void {
-    // @ts-ignore
-    entity._scripts.forEach(
-      (script: Script) => {
-        script.onPointerEndDrag?.(eventData);
-      },
-      (script: Script, index: number) => {
-        // @ts-ignore
-        script._entityScriptsIndex = index;
-      }
-    );
-  }
-
-  private _fireDrop(entity: Entity, eventData: PointerEventData): void {
-    // @ts-ignore
-    entity._scripts.forEach(
-      (script: Script) => {
-        script.onPointerDrop?.(eventData);
-      },
-      (script: Script, index: number) => {
-        // @ts-ignore
-        script._entityScriptsIndex = index;
-      }
-    );
   }
 }
 

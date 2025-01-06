@@ -1,14 +1,14 @@
-import { ICharacterController, ICollider, IPhysics, IPhysicsScene, ICollision } from "@galacean/engine-design";
+import { ICharacterController, ICollider, ICollision, IPhysics, IPhysicsScene } from "@galacean/engine-design";
 import { MathUtil, Ray, Vector3 } from "@galacean/engine-math";
+import { Engine } from "../Engine";
 import { Layer } from "../Layer";
 import { Scene } from "../Scene";
+import { Script } from "../Script";
+import { DisorderedArray } from "../utils/DisorderedArray";
 import { CharacterController } from "./CharacterController";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
-import { Script } from "../Script";
-import { DisorderedArray } from "../utils/DisorderedArray";
-import { Engine } from "../Engine";
 
 /**
  * A physics scene is a collection of colliders and constraints which can interact.
@@ -320,7 +320,6 @@ export class PhysicsScene {
       const result = this._nativePhysicsScene.raycast(ray, distance, onRaycast, (idx, distance, position, normal) => {
         const hitShape = Engine._physicalObjectsMap[idx];
         hitResult.entity = hitShape._collider.entity;
-        hitResult.component = hitShape._collider;
         hitResult.shape = hitShape;
         hitResult.distance = distance;
         hitResult.normal.copyFrom(normal);
@@ -331,7 +330,6 @@ export class PhysicsScene {
         return true;
       } else {
         hitResult.entity = null;
-        hitResult.component = null;
         hitResult.shape = null;
         hitResult.distance = 0;
         hitResult.point.set(0, 0, 0);
