@@ -2,9 +2,14 @@ import { Color } from "@galacean/engine-math";
 import { Shader, ShaderMacro, ShaderPass, ShaderProperty } from "../../shader";
 import blitVs from "../../shaderlib/extra/Blit.vs.glsl";
 
-import { Texture2D } from "../../texture";
 import { PostProcessEffect } from "../PostProcessEffect";
-import { PostProcessEffectParameter } from "../PostProcessEffectParameter";
+import {
+  PostProcessEffectBoolParameter,
+  PostProcessEffectColorParameter,
+  PostProcessEffectEnumParameter,
+  PostProcessEffectFloatParameter,
+  PostProcessEffectTextureParameter
+} from "../PostProcessEffectParameter";
 import fragBlurH from "../shaders/Bloom/BloomBlurH.glsl";
 import fragBlurV from "../shaders/Bloom/BloomBlurV.glsl";
 import fragPrefilter from "../shaders/Bloom/BloomPrefilter.glsl";
@@ -55,43 +60,43 @@ export class BloomEffect extends PostProcessEffect {
    * Controls whether to use bicubic sampling instead of bilinear sampling for the upSampling passes.
    * @remarks This is slightly more expensive but helps getting smoother visuals.
    */
-  highQualityFiltering = new PostProcessEffectParameter(false);
+  highQualityFiltering = new PostProcessEffectBoolParameter(false);
 
   /**
    * Controls the starting resolution that this effect begins processing.
    */
-  downScale = new PostProcessEffectParameter(BloomDownScaleMode.Half);
+  downScale = new PostProcessEffectEnumParameter(BloomDownScaleMode, BloomDownScaleMode.Half);
 
   /**
    * Specifies a Texture to add smudges or dust to the bloom effect.
    */
-  dirtTexture = new PostProcessEffectParameter(<Texture2D>null);
+  dirtTexture = new PostProcessEffectTextureParameter(null);
 
   /**
    * Set the level of brightness to filter out pixels under this level.
    * @remarks This value is expressed in gamma-space.
    */
-  threshold = new PostProcessEffectParameter(0.9, 0, Number.POSITIVE_INFINITY, true);
+  threshold = new PostProcessEffectFloatParameter(0.9, 0);
 
   /**
    * Controls the radius of the bloom effect.
    */
-  scatter = new PostProcessEffectParameter(0.7, 0, 1, true);
+  scatter = new PostProcessEffectFloatParameter(0.7, 0, 1);
 
   /**
    * Controls the strength of the bloom effect.
    */
-  intensity = new PostProcessEffectParameter(0, 0, Number.POSITIVE_INFINITY, true);
+  intensity = new PostProcessEffectFloatParameter(0, 0);
 
   /**
    * Controls the strength of the lens dirt.
    */
-  dirtIntensity = new PostProcessEffectParameter(0, 0, Number.POSITIVE_INFINITY, true);
+  dirtIntensity = new PostProcessEffectFloatParameter(0, 0);
 
   /**
    * Specifies the tint of the bloom effect.
    */
-  tint = new PostProcessEffectParameter(new Color(1, 1, 1, 1), true);
+  tint = new PostProcessEffectColorParameter(new Color(1, 1, 1, 1));
 
   /** @inheritdoc */
   override isValid(): boolean {
