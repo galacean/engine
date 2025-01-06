@@ -28,15 +28,15 @@ export interface IHierarchyFile {
   entities: Array<IEntity>;
 }
 
-export type ICanCallbackMethodObject = {
+export type ICanParseResultObject = {
   params: Array<IBasicType>;
-  callback?: {
+  result?: {
     methods?: { [methodName: string]: Array<IMethodParams> };
     props?: { [key: string]: IBasicType | IMethodParams };
   };
 };
 
-export type IMethodParams = Array<IBasicType> | ICanCallbackMethodObject;
+export type IMethodParams = Array<IBasicType> | ICanParseResultObject;
 
 export interface IBasicEntity {
   name?: string;

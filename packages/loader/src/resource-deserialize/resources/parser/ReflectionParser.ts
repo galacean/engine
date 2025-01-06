@@ -2,7 +2,7 @@ import { EngineObject, Entity, Loader } from "@galacean/engine-core";
 import type {
   IAssetRef,
   IBasicType,
-  ICanCallbackMethodObject,
+  ICanParseResultObject,
   IClassObject,
   IClassTypeObject,
   IComponentRef,
@@ -74,15 +74,15 @@ export class ReflectionParser {
   }
 
   parseMethod(instance: any, methodName: string, methodParams: IMethodParams) {
-    const isCanCallbackMethodObject = ReflectionParser._isCanCallbackMethodObject(methodParams);
-    const params = isCanCallbackMethodObject ? methodParams.params : methodParams;
+    const isCanParseResultObject = ReflectionParser._isCanParseResultObject(methodParams);
+    const params = isCanParseResultObject ? methodParams.params : methodParams;
 
     return Promise.all(params.map((param) => this.parseBasicType(param))).then((result) => {
-      const methodCallback = instance[methodName](...result);
-      if (isCanCallbackMethodObject && methodParams.callback) {
-        return this.parsePropsAndMethods(methodCallback, methodParams.callback);
+      const methodResult = instance[methodName](...result);
+      if (isCanParseResultObject && methodParams.result) {
+        return this.parsePropsAndMethods(methodResult, methodParams.result);
       } else {
-        return methodCallback;
+        return methodResult;
       }
     });
   }
@@ -187,7 +187,7 @@ export class ReflectionParser {
     return value["ownerId"] !== undefined && value["componentId"] !== undefined;
   }
 
-  private static _isCanCallbackMethodObject(value: any): value is ICanCallbackMethodObject {
+  private static _isCanParseResultObject(value: any): value is ICanParseResultObject {
     return Array.isArray(value?.params);
   }
 }
