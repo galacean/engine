@@ -485,6 +485,9 @@ export class PBRMaterial extends PBRBaseMaterial {
   override clone(): PBRMaterial {
     const dest = new PBRMaterial(this._engine);
     this.cloneTo(dest);
+    // TODO: clone other properties which are specified in PBRMaterial.
+    dest.iridescenceThicknessRange = this.iridescenceThicknessRange;
+    dest.ior = this.ior;
     return dest;
   }
 
