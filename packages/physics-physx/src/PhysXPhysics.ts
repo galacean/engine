@@ -90,9 +90,9 @@ export class PhysXPhysics implements IPhysics {
       }
 
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
-        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*rnDeR58NNGoAAAAAAAAAAAAAARQnAQ/physx.release.js.js`;
+        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*yYWPSZFhS_0AAAAAAAAAAAAAARQnAQ/physx.no-wasm.js`;
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
-        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*04GyRKeSJw4AAAAAAAAAAAAAARQnAQ/physx.release.js`;
+        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*LRfCQ4VcCFQAAAAAAAAAAAAAARQnAQ/physx.release.js`;
       }
     });
 
