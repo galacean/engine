@@ -37,10 +37,10 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     }`,
     `
     varying vec2 v_uv;
-    uniform sampler2D scene_prefilteredLUT;
+    uniform sampler2D scene_PrefilteredDFG;
 
     void main(){
-      gl_FragColor = texture2D(scene_prefilteredLUT, v_uv);
+      gl_FragColor = texture2D(scene_PrefilteredDFG, v_uv);
     }
     `
   );
