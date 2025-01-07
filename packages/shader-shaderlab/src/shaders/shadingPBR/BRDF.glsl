@@ -55,8 +55,8 @@ struct SurfaceData{
     #endif
 
     #ifdef MATERIAL_ENABLE_IRIDESCENCE
-        float iridesceceIOR;
-        float iridesceceFactor;
+        float iridescenceIOR;
+        float iridescenceFactor;
         float iridescenceThickness;
     #endif
 
@@ -222,7 +222,7 @@ vec3 BRDF_Specular_GGX(vec3 incidentDirection, SurfaceData surfaceData, BRDFData
 
     vec3 F = F_Schlick( specularColor, dotLH );
     #ifdef MATERIAL_ENABLE_IRIDESCENCE
-        F = mix(F, brdfData.iridescenceSpecularColor, surfaceData.iridesceceFactor);
+        F = mix(F, brdfData.iridescenceSpecularColor, surfaceData.iridescenceFactor);
     #endif
 	
 
@@ -404,7 +404,7 @@ void initBRDFData(SurfaceData surfaceData, out BRDFData brdfData){
 
     #ifdef MATERIAL_ENABLE_IRIDESCENCE
         float topIOR = 1.0;
-        brdfData.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, surfaceData.dotNV, surfaceData.iridesceceIOR, brdfData.specularColor, surfaceData.iridescenceThickness);   
+        brdfData.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, surfaceData.dotNV, surfaceData.iridescenceIOR, brdfData.specularColor, surfaceData.iridescenceThickness);   
     #endif
 
     #ifdef MATERIAL_ENABLE_SHEEN
