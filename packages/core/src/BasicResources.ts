@@ -9,7 +9,7 @@ import { BufferUsage } from "./graphic/enums/BufferUsage";
 import { MeshTopology } from "./graphic/enums/MeshTopology";
 import { VertexElementFormat } from "./graphic/enums/VertexElementFormat";
 import { Material } from "./material";
-import { PrefilteredDFG } from "./material/Utils/PrefilteredDFG";
+import { PrefilteredDFG } from "./material/utils/PrefilteredDFG";
 import { ModelMesh } from "./mesh";
 import { Shader } from "./shader/Shader";
 import { BlendFactor } from "./shader/enums/BlendFactor";
