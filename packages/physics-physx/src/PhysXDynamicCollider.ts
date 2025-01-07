@@ -1,5 +1,5 @@
 import { IDynamicCollider } from "@galacean/engine-design";
-import { Quaternion, Vector3 } from "@galacean/engine";
+import { MathUtil, Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXCollider } from "./PhysXCollider";
 import { PhysXPhysics } from "./PhysXPhysics";
 
@@ -31,24 +31,10 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.getLinearDamping }
-   */
-  getLinearDamping(): number {
-    return this._pxActor.getLinearDamping();
-  }
-
-  /**
    * {@inheritDoc IDynamicCollider.setLinearDamping }
    */
   setLinearDamping(value: number): void {
     this._pxActor.setLinearDamping(value);
-  }
-
-  /**
-   * {@inheritDoc IDynamicCollider.getAngularDamping }
-   */
-  getAngularDamping(): number {
-    return this._pxActor.getAngularDamping();
   }
 
   /**
@@ -78,14 +64,23 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
    */
   getAngularVelocity(out: Vector3): Vector3 {
     const velocity = this._pxActor.getAngularVelocity();
-    return out.set(velocity.x, velocity.y, velocity.z);
+    return out.set(
+      MathUtil.radianToDegree(velocity.x),
+      MathUtil.radianToDegree(velocity.y),
+      MathUtil.radianToDegree(velocity.z)
+    );
   }
 
   /**
    * {@inheritDoc IDynamicCollider.setAngularVelocity }
    */
   setAngularVelocity(value: Vector3): void {
-    this._pxActor.setAngularVelocity(value, true);
+    PhysXDynamicCollider._tempTranslation.set(
+      MathUtil.degreeToRadian(value.x),
+      MathUtil.degreeToRadian(value.y),
+      MathUtil.degreeToRadian(value.z)
+    );
+    this._pxActor.setAngularVelocity(PhysXDynamicCollider._tempTranslation, true);
   }
 
   /**
@@ -136,14 +131,7 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
    * {@inheritDoc IDynamicCollider.setMaxAngularVelocity }
    */
   setMaxAngularVelocity(value: number): void {
-    this._pxActor.setMaxAngularVelocity(value);
-  }
-
-  /**
-   * {@inheritDoc IDynamicCollider.getMaxDepenetrationVelocity }
-   */
-  getMaxDepenetrationVelocity(): number {
-    return this._pxActor.getMaxDepenetrationVelocity();
+    this._pxActor.setMaxAngularVelocity(MathUtil.degreeToRadian(value));
   }
 
   /**
@@ -192,6 +180,13 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
         this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, false);
         break;
     }
+  }
+
+  /**
+   * {@inheritDoc IDynamicCollider.setUseGravity }
+   */
+  setUseGravity(value: boolean): void {
+    this._pxActor.setActorFlag(this._physXPhysics._physX.PxActorFlag.eDISABLE_GRAVITY, !value);
   }
 
   /**

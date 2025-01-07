@@ -1,7 +1,13 @@
-import { BlendOperation, CompareFunction, CullMode, RenderStateDataKey } from "@galacean/engine-core";
+import {
+  BlendOperation,
+  CompareFunction,
+  CullMode,
+  RenderStateDataKey,
+  ShaderPlatformTarget
+} from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
-import { ShaderLab as ShaderLabVerbose, GSError } from "@galacean/engine-shader-lab/verbose";
-import { ShaderLab as ShaderLabRelease } from "@galacean/engine-shader-lab";
+import { ShaderLab as ShaderLabVerbose, GSError } from "@galacean/engine-shaderlab/verbose";
+import { ShaderLab as ShaderLabRelease } from "@galacean/engine-shaderlab";
 import { glslValidate, shaderParse } from "./ShaderValidate";
 
 import { IShaderContent } from "@galacean/engine-design";
@@ -255,5 +261,26 @@ describe("ShaderLab", () => {
     for (const err of shaderLabVerbose.errors) {
       console.log(err.toString());
     }
+  });
+
+  it("mrt-normal", async () => {
+    const shaderSource = await readFile("./shaders/mrt-normal.shader");
+    glslValidate(shaderSource, shaderLabVerbose, {});
+    glslValidate(shaderSource, shaderLabRelease, {});
+  });
+
+  it("mrt-struct", async () => {
+    const shaderSource = await readFile("./shaders/mrt-struct.shader");
+    glslValidate(shaderSource, shaderLabVerbose, {});
+    glslValidate(shaderSource, shaderLabVerbose, {});
+  });
+
+  it("mrt-error1", async () => {
+    const shaderSource = await readFile("./shaders/mrt-error1.shader");
+    shaderParse.bind(shaderLabVerbose)(shaderSource, [], ShaderPlatformTarget.GLES300);
+    const errors = shaderLabVerbose.errors;
+    expect(errors.length).to.eq(1);
+    expect(errors[0]).to.be.a.instanceOf(GSError);
+    expect(errors[0].toString()).include("cannot use both gl_FragData and gl_FragColor");
   });
 });

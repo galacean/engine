@@ -24,11 +24,11 @@ export class BaseMaterial extends Material {
   protected static _emissiveColorProp: ShaderProperty = ShaderProperty.getByName("material_EmissiveColor");
   protected static _emissiveTextureProp: ShaderProperty = ShaderProperty.getByName("material_EmissiveTexture");
 
-  private static _alphaCutoffProp: ShaderProperty = ShaderProperty.getByName("material_AlphaCutoff");
+  protected static _alphaCutoffProp: ShaderProperty = ShaderProperty.getByName("material_AlphaCutoff");
   private static _alphaCutoffMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_IS_ALPHA_CUTOFF");
 
   private _renderFace: RenderFace = RenderFace.Front;
-  private _isTransparent: boolean = false;
+  protected _isTransparent: boolean = false;
   private _blendMode: BlendMode = BlendMode.Normal;
 
   /**
@@ -73,24 +73,7 @@ export class BaseMaterial extends Material {
   }
 
   set isTransparent(value: boolean) {
-    if (value !== this._isTransparent) {
-      this.setIsTransparent(0, value);
-
-      const { shaderData } = this;
-      if (value) {
-        // Use alpha test queue to simulate transparent shadow
-        shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
-      } else {
-        const alphaCutoff = shaderData.getFloat(BaseMaterial._alphaCutoffProp);
-        if (alphaCutoff) {
-          shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
-        } else {
-          shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.Opaque);
-        }
-      }
-
-      this._isTransparent = value;
-    }
+    this._seIsTransparent(value);
   }
 
   /**
@@ -119,35 +102,7 @@ export class BaseMaterial extends Material {
   }
 
   set alphaCutoff(value: number) {
-    const { shaderData } = this;
-    if (shaderData.getFloat(BaseMaterial._alphaCutoffProp) !== value) {
-      if (value) {
-        shaderData.enableMacro(BaseMaterial._alphaCutoffMacro);
-        shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
-      } else {
-        shaderData.disableMacro(BaseMaterial._alphaCutoffMacro);
-        if (this._isTransparent) {
-          shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
-        } else {
-          shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.Opaque);
-        }
-      }
-
-      const { renderStates } = this;
-      for (let i = 0, n = renderStates.length; i < n; i++) {
-        const renderState = renderStates[i];
-        if (value > 0) {
-          renderState.renderQueueType = renderState.blendState.targetBlendState.enabled
-            ? RenderQueueType.Transparent
-            : RenderQueueType.AlphaTest;
-        } else {
-          renderState.renderQueueType = renderState.blendState.targetBlendState.enabled
-            ? RenderQueueType.Transparent
-            : RenderQueueType.Opaque;
-        }
-      }
-      shaderData.setFloat(BaseMaterial._alphaCutoffProp, value);
-    }
+    this._setAlphaCutoff(value);
   }
 
   /**
@@ -278,5 +233,58 @@ export class BaseMaterial extends Material {
     target._renderFace = this._renderFace;
     target._isTransparent = this._isTransparent;
     target._blendMode = this._blendMode;
+  }
+
+  protected _seIsTransparent(value: boolean): void {
+    if (value !== this._isTransparent) {
+      this.setIsTransparent(0, value);
+
+      const { shaderData } = this;
+      if (value) {
+        // Use alpha test queue to simulate transparent shadow
+        shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
+      } else {
+        const alphaCutoff = shaderData.getFloat(BaseMaterial._alphaCutoffProp);
+        if (alphaCutoff) {
+          shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
+        } else {
+          shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.Opaque);
+        }
+      }
+
+      this._isTransparent = value;
+    }
+  }
+
+  protected _setAlphaCutoff(value: number): void {
+    const { shaderData } = this;
+    if (shaderData.getFloat(BaseMaterial._alphaCutoffProp) !== value) {
+      if (value) {
+        shaderData.enableMacro(BaseMaterial._alphaCutoffMacro);
+        shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
+      } else {
+        shaderData.disableMacro(BaseMaterial._alphaCutoffMacro);
+        if (this._isTransparent) {
+          shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
+        } else {
+          shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.Opaque);
+        }
+      }
+
+      const { renderStates } = this;
+      for (let i = 0, n = renderStates.length; i < n; i++) {
+        const renderState = renderStates[i];
+        if (value > 0) {
+          renderState.renderQueueType = renderState.blendState.targetBlendState.enabled
+            ? RenderQueueType.Transparent
+            : RenderQueueType.AlphaTest;
+        } else {
+          renderState.renderQueueType = renderState.blendState.targetBlendState.enabled
+            ? RenderQueueType.Transparent
+            : RenderQueueType.Opaque;
+        }
+      }
+      shaderData.setFloat(BaseMaterial._alphaCutoffProp, value);
+    }
   }
 }
