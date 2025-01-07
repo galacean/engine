@@ -117,7 +117,11 @@ export class BasicResources {
   readonly textDefaultMaterial: Material;
   readonly spriteMaskDefaultMaterial: Material;
 
-  prefilteredDFGTexture: Texture2D;
+  private _prefilteredDFGTexture: Texture2D;
+
+  get prefilteredDFGTexture(): Texture2D {
+    return this._prefilteredDFGTexture;
+  }
 
   constructor(public engine: Engine) {
     // prettier-ignore
@@ -177,7 +181,7 @@ export class BasicResources {
     return new Promise((resolve, reject) => {
       createPrefilterdDFGTexture(this.engine)
         .then((texture) => {
-          this.prefilteredDFGTexture = texture;
+          this._prefilteredDFGTexture = texture;
           resolve(this);
         })
         .catch(reject);
