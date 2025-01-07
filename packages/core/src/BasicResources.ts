@@ -9,7 +9,7 @@ import { BufferUsage } from "./graphic/enums/BufferUsage";
 import { MeshTopology } from "./graphic/enums/MeshTopology";
 import { VertexElementFormat } from "./graphic/enums/VertexElementFormat";
 import { Material } from "./material";
-import { getPrefilterdDFGTexture } from "./material/Utils/prefilteredDFG";
+import { createPrefilterdDFGTexture } from "./material/Utils/prefilteredDFG";
 import { ModelMesh } from "./mesh";
 import { Shader } from "./shader/Shader";
 import { BlendFactor } from "./shader/enums/BlendFactor";
@@ -165,7 +165,7 @@ export class BasicResources {
       );
     }
 
-    this.prefilteredDFGTexture = getPrefilterdDFGTexture(engine);
+    this.prefilteredDFGTexture = createPrefilterdDFGTexture(engine);
     this.spriteDefaultMaterial = this._create2DMaterial(engine, Shader.find("Sprite"));
     this.textDefaultMaterial = this._create2DMaterial(engine, Shader.find("Text"));
     this.spriteMaskDefaultMaterial = this._createSpriteMaskMaterial(engine);
