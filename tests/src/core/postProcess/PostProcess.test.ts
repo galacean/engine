@@ -7,7 +7,8 @@ import {
   Entity,
   PostProcess,
   PostProcessEffect,
-  PostProcessEffectParameter,
+  PostProcessEffectBoolParameter,
+  PostProcessEffectFloatParameter,
   PostProcessPass,
   RenderTarget,
   Scene,
@@ -26,7 +27,7 @@ class CustomPass extends PostProcessPass {
 }
 
 export class CustomEffect extends PostProcessEffect {
-  intensity = new PostProcessEffectParameter(0, 0, 1, true);
+  intensity = new PostProcessEffectFloatParameter(0, 0, 1);
 }
 
 describe("PostProcess", () => {
@@ -222,12 +223,12 @@ describe("PostProcess", () => {
 
   it("Post process effect parameter", () => {
     {
-      const p1 = new PostProcessEffectParameter(1);
-      const p2 = new PostProcessEffectParameter(2, 0, 1);
-      const p3 = new PostProcessEffectParameter(-2, 0, 1);
-      const p4 = new PostProcessEffectParameter(10, 0);
-      const p5 = new PostProcessEffectParameter(-10, 0);
-      const p6 = new PostProcessEffectParameter(0.5, 0, 1, true);
+      const p1 = new PostProcessEffectFloatParameter(1);
+      const p2 = new PostProcessEffectFloatParameter(2, 0, 1);
+      const p3 = new PostProcessEffectFloatParameter(-2, 0, 1);
+      const p4 = new PostProcessEffectFloatParameter(10, 0);
+      const p5 = new PostProcessEffectFloatParameter(-10, 0);
+      const p6 = new PostProcessEffectFloatParameter(0.5, 0, 1, true);
 
       expect(p1.value).to.equal(1);
       expect(p2.value).to.equal(1);
@@ -238,9 +239,9 @@ describe("PostProcess", () => {
     }
 
     {
-      const p1 = new PostProcessEffectParameter(false);
-      const p2 = new PostProcessEffectParameter(true);
-      const p3 = new PostProcessEffectParameter(true, true);
+      const p1 = new PostProcessEffectBoolParameter(false);
+      const p2 = new PostProcessEffectBoolParameter(true);
+      const p3 = new PostProcessEffectBoolParameter(true);
 
       expect(p1.value).to.equal(false);
       expect(p2.value).to.equal(true);

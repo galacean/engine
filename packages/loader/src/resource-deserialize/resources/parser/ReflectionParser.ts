@@ -2,11 +2,14 @@ import { EngineObject, Entity, Loader } from "@galacean/engine-core";
 import type {
   IAssetRef,
   IBasicType,
-  IClassObject,
+  IClass,
+  IClassType,
+  IComponentRef,
   IEntity,
   IEntityRef,
-  IComponentRef,
   IHierarchyFile,
+  IMethod,
+  IMethodParams,
   IRefEntity
 } from "../schema";
 import { ParserContext, ParserType } from "./ParserContext";
@@ -34,7 +37,7 @@ export class ReflectionParser {
     });
   }
 
-  parseClassObject(item: IClassObject) {
+  parseClassObject(item: IClass) {
     const Class = Loader.getClass(item.class);
     const params = item.constructParams ?? [];
     return Promise.all(params.map((param) => this.parseBasicType(param)))
@@ -42,7 +45,7 @@ export class ReflectionParser {
       .then((instance) => this.parsePropsAndMethods(instance, item));
   }
 
-  parsePropsAndMethods(instance: any, item: Omit<IClassObject, "class">) {
+  parsePropsAndMethods(instance: any, item: Omit<IClass, "class">) {
     const promises = [];
     if (item.methods) {
       for (let methodName in item.methods) {
@@ -70,9 +73,17 @@ export class ReflectionParser {
     });
   }
 
-  parseMethod(instance: any, methodName: string, methodParams: Array<IBasicType>) {
-    return Promise.all(methodParams.map((param) => this.parseBasicType(param))).then((result) => {
-      return instance[methodName](...result);
+  parseMethod(instance: any, methodName: string, methodParams: IMethodParams) {
+    const isMethodObject = ReflectionParser._isMethodObject(methodParams);
+    const params = isMethodObject ? methodParams.params : methodParams;
+
+    return Promise.all(params.map((param) => this.parseBasicType(param))).then((result) => {
+      const methodResult = instance[methodName](...result);
+      if (isMethodObject && methodParams.result) {
+        return this.parsePropsAndMethods(methodResult, methodParams.result);
+      } else {
+        return methodResult;
+      }
     });
   }
 
@@ -80,7 +91,9 @@ export class ReflectionParser {
     if (Array.isArray(value)) {
       return Promise.all(value.map((item) => this.parseBasicType(item)));
     } else if (typeof value === "object" && value != null) {
-      if (ReflectionParser._isClass(value)) {
+      if (ReflectionParser._isClassType(value)) {
+        return Promise.resolve(Loader.getClass(value["classType"]));
+      } else if (ReflectionParser._isClass(value)) {
         // class object
         return this.parseClassObject(value);
       } else if (ReflectionParser._isAssetRef(value)) {
@@ -154,8 +167,12 @@ export class ReflectionParser {
     }
   }
 
-  private static _isClass(value: any): value is IClassObject {
+  private static _isClass(value: any): value is IClass {
     return value["class"] !== undefined;
+  }
+
+  private static _isClassType(value: any): value is IClassType {
+    return value["classType"] !== undefined;
   }
 
   private static _isAssetRef(value: any): value is IAssetRef {
@@ -168,5 +185,9 @@ export class ReflectionParser {
 
   private static _isComponentRef(value: any): value is IComponentRef {
     return value["ownerId"] !== undefined && value["componentId"] !== undefined;
+  }
+
+  private static _isMethodObject(value: any): value is IMethod {
+    return Array.isArray(value?.params);
   }
 }
