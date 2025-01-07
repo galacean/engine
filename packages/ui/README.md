@@ -1,17 +1,17 @@
 # @galacean/engine-ui
 
-@galacean/engine-ui is a UI library designed for the @galacean/engine, this library enables developers to create and manage user interfaces efficiently within their Galacean-based applications. It is important to note that it is currently in an experimental version.
+`@galacean/engine-ui` is a UI library designed for the `@galacean/engine`, this library enables developers to create and manage user interfaces efficiently within their **Galacean-based** applications. It is important to note that it is currently in an **experimental version**.
 
 ## Features
 
 - **Rendering components**: Includes `Image` and `Text`.
-- **Interactive Components**: Include button, as well as other planned basic rendering components to be added in the future.
+- **Interactive Components**: Include `Button`, as well as other planned basic rendering components to be added in the future.
 - **Event Handling**: Supports the dispatch and bubbling of events such as `onPointerEnter`, `onPointerExit`,`onPointerDown`, `onPointerUp`, `onPointerClick`, `onPointerDrag` and `onPointerDrop`.
 - **Optimized Performance**: Designed to run smoothly with the Galacean engine.
 
 ## Installation
 
-To use @galacean/engine-ui in your project, install it via npm:
+To use `@galacean/engine-ui` in your project, install it via npm:
 
 ```bash
 npm install @galacean/engine-ui
