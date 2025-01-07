@@ -18,10 +18,10 @@ import {
   Shader,
   BaseMaterial,
   Script,
-  WebGLEngine,
-} from '@galacean/engine';
-import { OrbitControl } from '@galacean/engine-toolkit-controls';
-import { ShaderLab } from '@galacean/engine-shader-lab';
+  WebGLEngine
+} from "@galacean/engine";
+import { OrbitControl } from "@galacean/engine-toolkit-controls";
+import { ShaderLab } from "@galacean/engine-shaderlab";
 
 const shaderLab = new ShaderLab();
 
@@ -97,27 +97,27 @@ class ParticleMeshMaterial extends BaseMaterial {
   }
 
   get texture1(): Texture2D {
-    return <Texture2D>this.shaderData.getTexture('texture1');
+    return <Texture2D>this.shaderData.getTexture("texture1");
   }
 
   set texture1(value: Texture2D) {
-    this.shaderData.setTexture('texture1', value);
+    this.shaderData.setTexture("texture1", value);
   }
 
   get texture2(): Texture2D {
-    return <Texture2D>this.shaderData.getTexture('texture2');
+    return <Texture2D>this.shaderData.getTexture("texture2");
   }
 
   set texture2(value: Texture2D) {
-    this.shaderData.setTexture('texture2', value);
+    this.shaderData.setTexture("texture2", value);
   }
 
   get progress(): number {
-    return <number>this.shaderData.getFloat('progress');
+    return <number>this.shaderData.getFloat("progress");
   }
 
   set progress(value: number) {
-    this.shaderData.setFloat('progress', value);
+    this.shaderData.setFloat("progress", value);
   }
 }
 
@@ -125,9 +125,7 @@ class AnimationComponent extends Script {
   time = 0;
   mtl: ParticleMeshMaterial | undefined;
   onAwake() {
-    this.mtl = this.entity
-      .getComponent(MeshRenderer)!
-      .getMaterial() as ParticleMeshMaterial;
+    this.mtl = this.entity.getComponent(MeshRenderer)!.getMaterial() as ParticleMeshMaterial;
   }
   onUpdate(time: number) {
     this.time += time;
@@ -232,38 +230,38 @@ function createPlaneParticleMesh(
     new VertexBufferBinding(
       new Buffer(engine, BufferBindFlag.VertexBuffer, indexBuffer),
       3 * Float32Array.BYTES_PER_ELEMENT
-    ),
+    )
   ]);
 
   mesh.setVertexElements([
-    new VertexElement('POSITION', 0, VertexElementFormat.Vector3, 0),
-    new VertexElement('UV', 0, VertexElementFormat.Vector2, 1),
-    new VertexElement('INDEX', 0, VertexElementFormat.Vector3, 2),
+    new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
+    new VertexElement("UV", 0, VertexElementFormat.Vector2, 1),
+    new VertexElement("INDEX", 0, VertexElementFormat.Vector3, 2)
   ]);
 
   mesh.addSubMesh(0, vertexCount);
   return mesh;
 }
 
-WebGLEngine.create({ canvas: 'canvas', shaderLab }).then((engine) => {
+WebGLEngine.create({ canvas: "canvas", shaderLab }).then((engine) => {
   engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
 
   const particleMeshShader = Shader.create(shaderSource);
 
-  const cameraEntity = rootEntity.createChild('camera');
+  const cameraEntity = rootEntity.createChild("camera");
   cameraEntity.addComponent(Camera);
   cameraEntity.transform.position.set(0, 0, 50);
   cameraEntity.addComponent(OrbitControl);
 
   engine.resourceManager
     .load([
-      'https://gw.alipayobjects.com/zos/OasisHub/440001901/3736/spring.jpeg',
-      'https://gw.alipayobjects.com/zos/OasisHub/440001901/9546/winter.jpeg',
+      "https://gw.alipayobjects.com/zos/OasisHub/440001901/3736/spring.jpeg",
+      "https://gw.alipayobjects.com/zos/OasisHub/440001901/9546/winter.jpeg"
     ])
     .then((assets) => {
-      const entity = rootEntity.createChild('plane');
+      const entity = rootEntity.createChild("plane");
       const renderer = entity.addComponent(MeshRenderer);
       const mesh = createPlaneParticleMesh(engine, 20, 20, 80, 80, true);
       const mtl = new ParticleMeshMaterial(engine, particleMeshShader);
