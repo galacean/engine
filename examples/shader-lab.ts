@@ -18,32 +18,32 @@ import {
   AmbientLight,
   AssetType,
   SkyBoxMaterial,
-  BackgroundMode,
-} from '@galacean/engine';
-import { OrbitControl } from '@galacean/engine-toolkit-controls';
-import { ShaderLab } from '@galacean/engine-shader-lab';
+  BackgroundMode
+} from "@galacean/engine";
+import { OrbitControl } from "@galacean/engine-toolkit-controls";
+import { ShaderLab } from "@galacean/engine-shaderlab";
 
 // Create ShaderLab
 const shaderLab = new ShaderLab();
 
 Logger.enable();
-WebGLEngine.create({ canvas: 'canvas', shaderLab }).then((engine) => {
+WebGLEngine.create({ canvas: "canvas", shaderLab }).then((engine) => {
   engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const { background } = scene;
   const rootEntity = scene.createRootEntity();
 
-  const cameraEntity = rootEntity.createChild('camera_node');
+  const cameraEntity = rootEntity.createChild("camera_node");
   cameraEntity.transform.setPosition(5, 5, 10);
   cameraEntity.addComponent(Camera);
   cameraEntity.addComponent(OrbitControl).target = new Vector3(0, 1, 0);
 
-  const lightEntity = rootEntity.createChild('light_node');
+  const lightEntity = rootEntity.createChild("light_node");
   lightEntity.addComponent(DirectLight);
   lightEntity.transform.setPosition(-10, 10, 10);
   lightEntity.transform.lookAt(new Vector3(0, 0, 0));
 
-  const planeEntity = rootEntity.createChild('plane_node');
+  const planeEntity = rootEntity.createChild("plane_node");
   const renderer = planeEntity.addComponent(MeshRenderer);
   renderer.mesh = PrimitiveMesh.createPlane(engine, 10, 10);
   const planeMaterial = new BlinnPhongMaterial(engine);
@@ -60,9 +60,7 @@ WebGLEngine.create({ canvas: 'canvas', shaderLab }).then((engine) => {
 
   Promise.all([
     engine.resourceManager
-      .load<GLTFResource>(
-        'https://gw.alipayobjects.com/os/bmw-prod/150e44f6-7810-4c45-8029-3575d36aff30.gltf'
-      )
+      .load<GLTFResource>("https://gw.alipayobjects.com/os/bmw-prod/150e44f6-7810-4c45-8029-3575d36aff30.gltf")
       .then((asset) => {
         const { defaultSceneRoot } = asset;
         rootEntity.addChild(defaultSceneRoot);
@@ -74,7 +72,7 @@ WebGLEngine.create({ canvas: 'canvas', shaderLab }).then((engine) => {
         const renderers = new Array<MeshRenderer>();
         defaultSceneRoot.getComponentsIncludeChildren(MeshRenderer, renderers);
 
-        const shadowShader = Shader.find('PlanarShadow');
+        const shadowShader = Shader.find("PlanarShadow");
 
         for (let i = 0, n = renderers.length; i < n; i++) {
           const material = renderers[i].getMaterial();
@@ -82,22 +80,22 @@ WebGLEngine.create({ canvas: 'canvas', shaderLab }).then((engine) => {
           material.shader = shadowShader;
           const shaderData = material.shaderData;
 
-          shaderData.setFloat('u_planarShadowFalloff', 0.2);
-          shaderData.setFloat('u_planarHeight', 0.01);
-          shaderData.setColor('u_planarShadowColor', new Color(0, 0, 0, 1));
-          shaderData.setVector3('u_lightDir', lightDirection);
+          shaderData.setFloat("u_planarShadowFalloff", 0.2);
+          shaderData.setFloat("u_planarHeight", 0.01);
+          shaderData.setColor("u_planarShadowColor", new Color(0, 0, 0, 1));
+          shaderData.setVector3("u_lightDir", lightDirection);
         }
       }),
     engine.resourceManager
       .load<AmbientLight>({
         type: AssetType.Env,
-        url: 'https://gw.alipayobjects.com/os/bmw-prod/f369110c-0e33-47eb-8296-756e9c80f254.bin',
+        url: "https://gw.alipayobjects.com/os/bmw-prod/f369110c-0e33-47eb-8296-756e9c80f254.bin"
       })
       .then((ambientLight) => {
         scene.ambientLight = ambientLight;
         skyMaterial.texture = ambientLight.specularTexture;
         skyMaterial.textureDecodeRGBM = true;
-      }),
+      })
   ]);
 
   engine.run();

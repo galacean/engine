@@ -20,7 +20,7 @@ import {
   Vector4,
   WebGLEngine
 } from "@galacean/engine";
-import { ShaderLab } from "@galacean/engine-shader-lab";
+import { ShaderLab } from "@galacean/engine-shaderlab";
 import { OrbitControl } from "@galacean/engine-toolkit-controls";
 import * as dat from "dat.gui";
 
