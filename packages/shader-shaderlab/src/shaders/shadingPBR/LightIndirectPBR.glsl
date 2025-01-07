@@ -71,7 +71,7 @@ void evaluateSpecularIBL(Varyings varyings, SurfaceData surfaceData, BRDFData br
     vec3 radiance = getLightProbeRadiance(surfaceData, surfaceData.normal, brdfData.roughness);
   
     #ifdef MATERIAL_ENABLE_IRIDESCENCE
-        vec3 speculaColor = mix(brdfData.specularColor, brdfData.iridescenceSpecularColor, surfaceData.iridesceceFactor);
+        vec3 speculaColor = mix(brdfData.specularColor, brdfData.iridescenceSpecularColor, surfaceData.iridescenceFactor);
     #else
         vec3 speculaColor = brdfData.specularColor;
     #endif
