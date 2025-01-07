@@ -486,8 +486,6 @@ export class PBRMaterial extends PBRBaseMaterial {
     const dest = new PBRMaterial(this._engine);
     this.cloneTo(dest);
     dest.iridescenceThicknessRange = this.iridescenceThicknessRange;
-    dest.iridescence = this.iridescence;
-    dest.iridescenceIOR = this.iridescenceIOR;
     return dest;
   }
 
