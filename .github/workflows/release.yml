@@ -65,7 +65,7 @@ jobs:
       - name: Install and Link Engine and Build for Spine
         working-directory: ./engine-spine
         run: |
-          pnpm install --ignore-workspace --no-forzen-lockfile
+          pnpm install --ignore-workspace --frozen-lockfile=false
           pnpm link ../packages/galacean
           pnpm build
 
