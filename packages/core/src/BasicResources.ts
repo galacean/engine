@@ -9,7 +9,7 @@ import { BufferUsage } from "./graphic/enums/BufferUsage";
 import { MeshTopology } from "./graphic/enums/MeshTopology";
 import { VertexElementFormat } from "./graphic/enums/VertexElementFormat";
 import { Material } from "./material";
-import { createPrefilterdDFGTexture } from "./material/Utils/prefilteredDFG";
+import { PrefilteredDFG } from "./material/Utils/PrefilteredDFG";
 import { ModelMesh } from "./mesh";
 import { Shader } from "./shader/Shader";
 import { BlendFactor } from "./shader/enums/BlendFactor";
@@ -179,7 +179,7 @@ export class BasicResources {
    */
   _initialize(): Promise<BasicResources> {
     return new Promise((resolve, reject) => {
-      createPrefilterdDFGTexture(this.engine)
+      PrefilteredDFG.create(this.engine)
         .then((texture) => {
           this._prefilteredDFGTexture = texture;
           resolve(this);
