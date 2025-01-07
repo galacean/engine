@@ -22,6 +22,7 @@ import "./AudioLoader";
 import "./ktx2/KTX2Loader";
 import "./ShaderLoader";
 import "./ShaderChunkLoader";
+import "./PhysicsMaterialLoader";
 
 export { GLTFLoader } from "./GLTFLoader";
 export type { GLTFParams } from "./GLTFLoader";

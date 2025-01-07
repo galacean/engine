@@ -1,3 +1,4 @@
 export { BasicRenderPipeline } from "./BasicRenderPipeline";
-export { RenderQueue } from "./RenderQueue";
+export { Blitter } from "./Blitter";
 export { PipelineStage } from "./enums/PipelineStage";
+export { RenderQueue } from "./RenderQueue";

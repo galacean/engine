@@ -63,7 +63,9 @@ export const KeywordTable = new Map<string, EKeyword>([
   ["flat", EKeyword.FLAT],
   ["smooth", EKeyword.SMOOTH],
   ["noperspective", EKeyword.NOPERSPECTIVE],
-  ["centroid", EKeyword.CENTROID]
+  ["centroid", EKeyword.CENTROID],
+  ["layout", EKeyword.LAYOUT],
+  ["location", EKeyword.LOCATION]
 ]);
 
 export enum ETokenType {
@@ -209,6 +211,7 @@ export type GalaceanDataType =
   | EKeyword.U_SAMPLER3D
   | EKeyword.U_SAMPLER_CUBE
   | EKeyword.U_SAMPLER2D_ARRAY
+  | EKeyword.VEC4_ARRAY
   | typeof TypeAny
   | string;
 

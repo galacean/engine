@@ -22,8 +22,10 @@ export class JointMotor {
   }
 
   set targetVelocity(value: number) {
-    this._targetVelocity = value;
-    this._updateFlagManager.dispatch();
+    if (this._targetVelocity !== value) {
+      this._targetVelocity = value;
+      this._updateFlagManager.dispatch();
+    }
   }
 
   /**
@@ -34,8 +36,10 @@ export class JointMotor {
   }
 
   set forceLimit(value: number) {
-    this._forceLimit = value;
-    this._updateFlagManager.dispatch();
+    if (this._forceLimit !== value) {
+      this._forceLimit = value;
+      this._updateFlagManager.dispatch();
+    }
   }
 
   /**
@@ -46,8 +50,10 @@ export class JointMotor {
   }
 
   set gearRatio(value: number) {
-    this._gearRatio = value;
-    this._updateFlagManager.dispatch();
+    if (this._gearRatio !== value) {
+      this._gearRatio = value;
+      this._updateFlagManager.dispatch();
+    }
   }
 
   /**
@@ -58,7 +64,9 @@ export class JointMotor {
   }
 
   set freeSpin(value: boolean) {
-    this._freeSpin = value;
-    this._updateFlagManager.dispatch();
+    if (this._freeSpin !== value) {
+      this._freeSpin = value;
+      this._updateFlagManager.dispatch();
+    }
   }
 }

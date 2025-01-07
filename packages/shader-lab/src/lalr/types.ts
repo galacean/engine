@@ -1,9 +1,9 @@
-import { ENonTerminal, Terminal } from "../parser/GrammarSymbol";
+import { NoneTerminal, Terminal } from "../parser/GrammarSymbol";
 
 export type StateActionTable = Map<number /** state ID */, ActionTable>;
 export type ActionTable = Map<Terminal, ActionInfo>;
 export type StateGotoTable = Map<number /** state ID */, GotoTable>;
-export type GotoTable = Map<ENonTerminal, number /** state ID */>;
+export type GotoTable = Map<NoneTerminal, number /** state ID */>;
 
 export enum EAction {
   Shift = 0,

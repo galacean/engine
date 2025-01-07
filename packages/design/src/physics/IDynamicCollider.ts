@@ -20,20 +20,11 @@ export interface IDynamicCollider extends ICollider {
   getWorldTransform(outPosition: Vector3, outRotation: Quaternion): void;
 
   /**
-   * Get the linear damping coefficient.
-   */
-  getLinearDamping(): number;
-
-  /**
    * Sets the linear damping coefficient.
    * @param value - Linear damping coefficient
    */
   setLinearDamping(value: number): void;
 
-  /**
-   * Get the angular damping coefficient.
-   */
-  getAngularDamping(): number;
   /**
    * Sets the angular damping coefficient.
    * @param value - Angular damping coefficient
@@ -131,6 +122,11 @@ export interface IDynamicCollider extends ICollider {
    * @param value - rigid body flag
    */
   setCollisionDetectionMode(value: number): void;
+
+  /**
+   * Whether the collider is affected by gravity.
+   */
+  setUseGravity(value: boolean): void;
 
   /**
    * Controls whether physics affects the dynamic collider.

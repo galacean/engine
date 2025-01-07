@@ -98,12 +98,17 @@ describe("Transform test", function () {
     expect((entity5.transform as SubClassOfTransform).size).to.deep.include({ x: 100, y: 100 });
 
     // Add component
-    expect(() => {
-      entity0.addComponent(SubClassOfTransform);
-    }).to.throw("Entity already has a transform.");
-    expect(() => {
-      entity1.addComponent(Transform);
-    }).to.throw("Entity already has a transform.");
+    const preTransform0 = entity0.transform;
+    entity0.addComponent(SubClassOfTransform);
+    expect(preTransform0.destroyed).to.equal(true);
+    expect(entity0.transform instanceof Transform).to.equal(true);
+    expect(entity0.transform instanceof SubClassOfTransform).to.equal(true);
+
+    const preTransform1 = entity1.transform;
+    entity1.addComponent(Transform);
+    expect(preTransform1.destroyed).to.equal(true);
+    expect(entity1.transform instanceof Transform).to.equal(true);
+    expect(entity1.transform instanceof SubClassOfTransform).to.equal(false);
   });
 });
 
