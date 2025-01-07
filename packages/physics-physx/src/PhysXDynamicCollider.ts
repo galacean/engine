@@ -31,24 +31,10 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.getLinearDamping }
-   */
-  getLinearDamping(): number {
-    return this._pxActor.getLinearDamping();
-  }
-
-  /**
    * {@inheritDoc IDynamicCollider.setLinearDamping }
    */
   setLinearDamping(value: number): void {
     this._pxActor.setLinearDamping(value);
-  }
-
-  /**
-   * {@inheritDoc IDynamicCollider.getAngularDamping }
-   */
-  getAngularDamping(): number {
-    return this._pxActor.getAngularDamping();
   }
 
   /**
@@ -146,13 +132,6 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
    */
   setMaxAngularVelocity(value: number): void {
     this._pxActor.setMaxAngularVelocity(MathUtil.degreeToRadian(value));
-  }
-
-  /**
-   * {@inheritDoc IDynamicCollider.getMaxDepenetrationVelocity }
-   */
-  getMaxDepenetrationVelocity(): number {
-    return this._pxActor.getMaxDepenetrationVelocity();
   }
 
   /**
