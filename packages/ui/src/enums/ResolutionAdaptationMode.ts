@@ -1,8 +1,8 @@
 /**
- * Resolution adaptation strategy.
+ * Resolution adaptation mode.
  * @remarks Only effective in screen space.
  */
-export enum ResolutionAdaptationStrategy {
+export enum ResolutionAdaptationMode {
   /** Adapt based on width.(`referenceResolution.x`) */
   WidthAdaptation,
   /** Adapt based on height.(`referenceResolution.y`) */

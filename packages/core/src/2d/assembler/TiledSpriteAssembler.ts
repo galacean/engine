@@ -38,8 +38,8 @@ export class TiledSpriteAssembler {
     width: number,
     height: number,
     pivot: Vector2,
-    flipX: boolean = false,
-    flipY: boolean = false,
+    flipX: boolean,
+    flipY: boolean,
     referenceResolutionPerUnit: number = 1
   ): void {
     // Calculate row and column
@@ -52,9 +52,10 @@ export class TiledSpriteAssembler {
     const { x: pivotX, y: pivotY } = pivot;
     const localTransX = width * pivotX;
     const localTransY = height * pivotY;
+    // Position to World
+    const modelMatrix = TiledSpriteAssembler._matrix;
+    const { elements: wE } = modelMatrix;
     // Renderer's worldMatrix
-    const { elements: wE } = TiledSpriteAssembler._matrix;
-    // Parent's worldMatrix
     const { elements: pWE } = worldMatrix;
     const sx = flipX ? -1 : 1;
     const sy = flipY ? -1 : 1;
@@ -63,9 +64,9 @@ export class TiledSpriteAssembler {
     (wE0 = wE[0] = pWE[0] * sx), (wE1 = wE[1] = pWE[1] * sx), (wE2 = wE[2] = pWE[2] * sx);
     (wE4 = wE[4] = pWE[4] * sy), (wE5 = wE[5] = pWE[5] * sy), (wE6 = wE[6] = pWE[6] * sy);
     (wE[8] = pWE[8]), (wE[9] = pWE[9]), (wE[10] = pWE[10]);
-    const wE12 = (wE[12] = pWE[12] - localTransX * wE[0] - localTransY * wE[4]);
-    const wE13 = (wE[13] = pWE[13] - localTransX * wE[1] - localTransY * wE[5]);
-    const wE14 = (wE[14] = pWE[14] - localTransX * wE[2] - localTransY * wE[6]);
+    const wE12 = (wE[12] = pWE[12] - localTransX * wE0 - localTransY * wE4);
+    const wE13 = (wE[13] = pWE[13] - localTransX * wE1 - localTransY * wE5);
+    const wE14 = (wE[14] = pWE[14] - localTransX * wE2 - localTransY * wE6);
     // Assemble position and uv
     const rowLength = rPos.length - 1;
     const columnLength = cPos.length - 1;
@@ -77,12 +78,12 @@ export class TiledSpriteAssembler {
     let trianglesOffset = 0;
     for (let j = 0, o = subChunk.vertexArea.start; j < columnLength; j++) {
       const doubleJ = j << 1;
-      if (isNaN(cUV.get(doubleJ)) || isNaN(cUV.get(doubleJ + 1))) {
+      if (Number.isNaN(cUV.get(doubleJ)) || Number.isNaN(cUV.get(doubleJ + 1))) {
         continue;
       }
       for (let i = 0; i < rowLength; i++) {
         const doubleI = i << 1;
-        if (isNaN(rUV.get(doubleI)) || isNaN(rUV.get(doubleI + 1))) {
+        if (Number.isNaN(rUV.get(doubleI)) || Number.isNaN(rUV.get(doubleI + 1))) {
           continue;
         }
         indices[trianglesOffset++] = count;
@@ -116,6 +117,12 @@ export class TiledSpriteAssembler {
         o += 36;
       }
     }
+
+    // @ts-ignore
+    const bounds = renderer._bounds;
+    bounds.min.set(rPos.get(0), cPos.get(0), 0);
+    bounds.max.set(rPos.get(rowLength), cPos.get(columnLength), 0);
+    bounds.transform(modelMatrix);
   }
 
   static updateUVs(renderer: ISpriteRenderer): void {
@@ -131,7 +138,7 @@ export class TiledSpriteAssembler {
         const uvB = uvColumn.get(doubleJ);
         const uvR = uvRow.get(2 * i + 1);
         const uvT = uvColumn.get(doubleJ + 1);
-        if (isNaN(uvL) || isNaN(uvB) || isNaN(uvR) || isNaN(uvT)) {
+        if (Number.isNaN(uvL) || Number.isNaN(uvB) || Number.isNaN(uvR) || Number.isNaN(uvT)) {
           continue;
         }
 
@@ -152,7 +159,7 @@ export class TiledSpriteAssembler {
     }
   }
 
-  static updateColor(renderer: ISpriteRenderer, alpha: number = 1): void {
+  static updateColor(renderer: ISpriteRenderer, alpha: number): void {
     const subChunk = renderer._subChunk;
     const { r, g, b, a } = renderer.color;
     const finalAlpha = a * alpha;
@@ -176,7 +183,6 @@ export class TiledSpriteAssembler {
     cUV: DisorderedArray<number>,
     referenceResolutionPerUnit: number
   ): number {
-    rPos.length = cPos.length = rUV.length = cUV.length = 0;
     const { sprite, tiledAdaptiveThreshold: threshold } = renderer;
     const { border } = sprite;
     const spritePositions = sprite._getPositions();

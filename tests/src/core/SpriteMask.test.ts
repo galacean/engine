@@ -1,4 +1,4 @@
-import { Sprite, SpriteMask, SpriteMaskLayer, Texture2D } from "@galacean/engine-core";
+import { RendererUpdateFlags, Sprite, SpriteMask, SpriteMaskLayer, Texture2D } from "@galacean/engine-core";
 import { Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -118,22 +118,22 @@ describe("SpriteMask", async () => {
     expect(spriteMask.shaderData.getTexture(property)).to.eq(texture2d);
 
     // @ts-ignore
-    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.WorldVolumeAndPosition;
+    spriteMask._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     sprite.width = 10;
     // @ts-ignore
-    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.WorldVolumeAndPosition)).to.eq(true);
+    expect(!!(spriteMask._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume)).to.eq(true);
 
     // @ts-ignore
-    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.PositionAndUV;
+    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.WorldVolumeAndUV;
     sprite.region = new Rect();
     // @ts-ignore
-    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.PositionAndUV)).to.eq(true);
+    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.WorldVolumeAndUV)).to.eq(true);
 
     // @ts-ignore
-    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.PositionAndUV;
+    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.WorldVolumeAndUV;
     sprite.atlasRegionOffset = new Vector4();
     // @ts-ignore
-    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.PositionAndUV)).to.eq(true);
+    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.WorldVolumeAndUV)).to.eq(true);
 
     // @ts-ignore
     spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.UV;
@@ -142,10 +142,10 @@ describe("SpriteMask", async () => {
     expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.UV)).to.eq(true);
 
     // @ts-ignore
-    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.WorldVolumeAndPosition;
+    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.WorldVolumeAndUV;
     sprite.pivot = new Vector2(0.3, 0.2);
     // @ts-ignore
-    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.WorldVolumeAndPosition)).to.eq(true);
+    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.WorldVolumeAndUV)).to.eq(true);
   });
 
   it("clone", () => {
@@ -227,19 +227,12 @@ describe("SpriteMask", async () => {
  * @remarks Extends `RendererUpdateFlags`.
  */
 enum SpriteMaskUpdateFlags {
-  /** Position. */
-  Position = 0x2,
   /** UV. */
-  UV = 0x4,
+  UV = 0x2,
   /** Automatic Size. */
-  AutomaticSize = 0x8,
-
-  /** WorldVolume and Position. */
-  WorldVolumeAndPosition = 0x3,
-  /** Position and UV. */
-  PositionAndUV = 0x6,
-  /** WorldVolume, Position and UV. */
-  WorldVolumePositionAndUV = 0xf,
-
-  All = 0xf
+  AutomaticSize = 0x4,
+  /** WorldVolume and UV. */
+  WorldVolumeAndUV = 0x3,
+  /** All. */
+  All = 0x7
 }

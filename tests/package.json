@@ -22,7 +22,7 @@
     "@galacean/engine-math": "workspace:*",
     "@galacean/engine-rhi-webgl": "workspace:*",
     "@galacean/engine-physics-lite": "workspace:*",
-    "@galacean/engine-shader-lab": "workspace:*",
+    "@galacean/engine-shaderlab": "workspace:*",
     "@galacean/engine-physics-physx": "workspace:*",
     "@galacean/engine-ui": "workspace:*"
   },

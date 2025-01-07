@@ -132,10 +132,8 @@ export class Camera extends Component {
   private _enableHDR = false;
   private _enablePostProcess = false;
 
-  /** @internal */
   @ignoreClone
-  _updateFlagManager: UpdateFlagManager;
-
+  private _updateFlagManager: UpdateFlagManager;
   @ignoreClone
   private _frustumChangeFlag: BoolUpdateFlag;
   @ignoreClone
@@ -433,7 +431,6 @@ export class Camera extends Component {
       value && this._addResourceReferCount(value, 1);
       this._renderTarget = value;
       this._onPixelViewportChanged();
-      this._checkMainCanvasAntialiasWaste();
     }
   }
 

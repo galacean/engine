@@ -6,8 +6,8 @@ import {
   DisorderedArray,
   Entity,
   EntityModifyFlags,
-  HitResult,
   MathUtil,
+  Matrix,
   Ray,
   Vector2,
   Vector3,
@@ -17,7 +17,8 @@ import {
 } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { CanvasRenderMode } from "../enums/CanvasRenderMode";
-import { ResolutionAdaptationStrategy } from "../enums/ResolutionAdaptationStrategy";
+import { ResolutionAdaptationMode } from "../enums/ResolutionAdaptationMode";
+import { UIHitResult } from "../input/UIHitResult";
 import { IElement } from "../interface/IElement";
 import { IGroupAble } from "../interface/IGroupAble";
 import { UIGroup } from "./UIGroup";
@@ -34,7 +35,12 @@ export class UICanvas extends Component implements IElement {
   /** @internal */
   static _hierarchyCounter: number = 1;
   private static _tempGroupAbleList: IGroupAble[] = [];
+  private static _tempVec3: Vector3 = new Vector3();
+  private static _tempMat: Matrix = new Matrix();
 
+  /** @internal */
+  @ignoreClone
+  _canvasIndex: number = -1;
   /** @internal */
   @ignoreClone
   _rootCanvas: UICanvas;
@@ -74,7 +80,7 @@ export class UICanvas extends Component implements IElement {
   @ignoreClone
   private _cameraObserver: Camera;
   @ignoreClone
-  private _resolutionAdaptationStrategy = ResolutionAdaptationStrategy.HeightAdaptation;
+  private _resolutionAdaptationMode = ResolutionAdaptationMode.HeightAdaptation;
   @ignoreClone
   private _sortOrder: number = 0;
   @ignoreClone
@@ -96,6 +102,9 @@ export class UICanvas extends Component implements IElement {
   set referenceResolutionPerUnit(value: number) {
     if (this._referenceResolutionPerUnit !== value) {
       this._referenceResolutionPerUnit = value;
+      this._disorderedElements.forEach((element) => {
+        element._onRootCanvasModify?.(RootCanvasModifyFlags.ReferenceResolutionPerUnit);
+      });
     }
   }
 
@@ -146,15 +155,15 @@ export class UICanvas extends Component implements IElement {
   }
 
   /**
-   * The screen resolution adaptation strategy of the UI canvas in `ScreenSpaceCamera` and `ScreenSpaceOverlay` mode.
+   * The screen resolution adaptation mode of the UI canvas in `ScreenSpaceCamera` and `ScreenSpaceOverlay` mode.
    */
-  get resolutionAdaptationStrategy(): ResolutionAdaptationStrategy {
-    return this._resolutionAdaptationStrategy;
+  get resolutionAdaptationMode(): ResolutionAdaptationMode {
+    return this._resolutionAdaptationMode;
   }
 
-  set resolutionAdaptationStrategy(value: ResolutionAdaptationStrategy) {
-    if (this._resolutionAdaptationStrategy !== value) {
-      this._resolutionAdaptationStrategy = value;
+  set resolutionAdaptationMode(value: ResolutionAdaptationMode) {
+    if (this._resolutionAdaptationMode !== value) {
+      this._resolutionAdaptationMode = value;
       const realRenderMode = this._realRenderMode;
       if (
         realRenderMode === CanvasRenderMode.ScreenSpaceCamera ||
@@ -212,7 +221,7 @@ export class UICanvas extends Component implements IElement {
     this._rootCanvasListener = this._rootCanvasListener.bind(this);
   }
 
-  raycast(ray: Ray, out: HitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
+  raycast(ray: Ray, out: UIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
     const renderers = this._getRenderers();
     for (let i = renderers.length - 1; i >= 0; i--) {
       const element = renderers[i];
@@ -220,8 +229,8 @@ export class UICanvas extends Component implements IElement {
         return true;
       }
     }
-    out.entity = null;
     out.component = null;
+    out.entity = null;
     out.distance = 0;
     out.point.set(0, 0, 0);
     out.normal.set(0, 0, 0);
@@ -391,28 +400,36 @@ export class UICanvas extends Component implements IElement {
       curWidth = canvas.width;
     }
     let expectX: number, expectY: number, expectZ: number;
-    switch (this._resolutionAdaptationStrategy) {
-      case ResolutionAdaptationStrategy.WidthAdaptation:
+    switch (this._resolutionAdaptationMode) {
+      case ResolutionAdaptationMode.WidthAdaptation:
         expectX = expectY = expectZ = curWidth / width;
         break;
-      case ResolutionAdaptationStrategy.HeightAdaptation:
+      case ResolutionAdaptationMode.HeightAdaptation:
         expectX = expectY = expectZ = curHeight / height;
         break;
-      case ResolutionAdaptationStrategy.BothAdaptation:
+      case ResolutionAdaptationMode.BothAdaptation:
         expectX = curWidth / width;
         expectY = curHeight / height;
         expectZ = (expectX + expectY) * 0.5;
         break;
-      case ResolutionAdaptationStrategy.ExpandAdaptation:
+      case ResolutionAdaptationMode.ExpandAdaptation:
         expectX = expectY = expectZ = Math.min(curWidth / width, curHeight / height);
         break;
-      case ResolutionAdaptationStrategy.ShrinkAdaptation:
+      case ResolutionAdaptationMode.ShrinkAdaptation:
         expectX = expectY = expectZ = Math.max(curWidth / width, curHeight / height);
         break;
       default:
         break;
     }
-    transform.setScale(expectX, expectY, expectZ);
+
+    const worldMatrix = UICanvas._tempMat;
+    Matrix.affineTransformation(
+      UICanvas._tempVec3.set(expectX, expectY, expectZ),
+      transform.worldRotationQuaternion,
+      transform.worldPosition,
+      worldMatrix
+    );
+    transform.worldMatrix = worldMatrix;
     transform.size.set(curWidth / expectX, curHeight / expectY);
   }
 
@@ -616,4 +633,10 @@ enum CanvasRealRenderMode {
 export enum EntityUIModifyFlags {
   CanvasEnableInScene = 0x4,
   GroupEnableInScene = 0x8
+}
+
+export enum RootCanvasModifyFlags {
+  None = 0x0,
+  ReferenceResolutionPerUnit = 0x1,
+  All = 0x1
 }

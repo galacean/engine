@@ -648,7 +648,6 @@ export class TextRenderer extends Renderer implements ITextRenderer {
       this._buildChunk(curTextChunk, charLength);
     }
     charRenderInfos.length = 0;
-    this._setDirtyFlagFalse(DirtyFlag.LocalPositionBounds);
   }
 
   @ignoreClone

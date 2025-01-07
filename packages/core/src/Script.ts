@@ -1,7 +1,6 @@
 import { Camera } from "./Camera";
 import { Component } from "./Component";
 import { ignoreClone } from "./clone/CloneManager";
-import { PointerMethods } from "./input/enums/PointerMethods";
 import { PointerEventData } from "./input/pointer/PointerEventData";
 import { ColliderShape } from "./physics";
 import { Collision } from "./physics/Collision";
@@ -121,57 +120,57 @@ export class Script extends Component {
 
   /**
    * Called when the pointer is down while over the ColliderShape.
-   * @param event - The pointer event data that triggered this callback
+   * @param eventData - The pointer event data that triggered this callback
    */
-  onPointerDown(event: PointerEventData): void {}
+  onPointerDown(eventData: PointerEventData): void {}
 
   /**
    * Called when the pointer is up while over the ColliderShape.
-   * @param event - The pointer event data that triggered this callback
+   * @param eventData - The pointer event data that triggered this callback
    */
-  onPointerUp(event: PointerEventData): void {}
+  onPointerUp(eventData: PointerEventData): void {}
 
   /**
-   *  Called when the pointer is down and up with the same collider.
-   * @param event - The pointer event data that triggered this callback
+   * Called when the pointer is down and up with the same collider.
+   * @param eventData - The pointer event data that triggered this callback
    */
-  onPointerClick(event: PointerEventData): void {}
+  onPointerClick(eventData: PointerEventData): void {}
 
   /**
    *  Called when the pointer enters the ColliderShape.
-   * @param event - The pointer event data that triggered this callback
+   * @param eventData - The pointer event data that triggered this callback
    */
-  onPointerEnter(event: PointerEventData): void {}
+  onPointerEnter(eventData: PointerEventData): void {}
 
   /**
    * Called when the pointer exits the ColliderShape.
-   * @param event - The pointer event data that triggered this callback
+   * @param eventData - The pointer event data that triggered this callback
    */
-  onPointerExit(event: PointerEventData): void {}
+  onPointerExit(eventData: PointerEventData): void {}
 
   /**
    * This function will be called when the pointer is pressed on the collider.
-   * @param event - The pointer event data that triggered this callback
+   * @param eventData - The pointer event data that triggered this callback
    */
-  onPointerBeginDrag(event: PointerEventData): void {}
+  onPointerBeginDrag(eventData: PointerEventData): void {}
 
   /**
    *  When a drag collision occurs on the pointer, this function will be called every time it moves.
-   * @param event - The pointer event data that triggered this callback
+   * @param eventData - The pointer event data that triggered this callback
    */
-  onPointerDrag(event: PointerEventData): void {}
+  onPointerDrag(eventData: PointerEventData): void {}
 
   /**
    *  When dragging ends, this function will be called (Dragged object).
-   * @param event - The pointer event data that triggered this callback
+   * @param eventData - The pointer event data that triggered this callback
    */
-  onPointerEndDrag(event: PointerEventData): void {}
+  onPointerEndDrag(eventData: PointerEventData): void {}
 
   /**
    *  When dragging ends, this function will be called (Receiving object).
-   * @param event - The pointer event data that triggered this callback
+   * @param eventData - The pointer event data that triggered this callback
    */
-  onPointerDrop(event: PointerEventData): void {}
+  onPointerDrop(eventData: PointerEventData): void {}
 
   /**
    * Called when be disabled.
@@ -266,4 +265,16 @@ export class Script extends Component {
       this.onDestroy();
     }
   }
+}
+
+export enum PointerMethods {
+  onPointerDown = "onPointerDown",
+  onPointerUp = "onPointerUp",
+  onPointerClick = "onPointerClick",
+  onPointerEnter = "onPointerEnter",
+  onPointerExit = "onPointerExit",
+  onPointerBeginDrag = "onPointerBeginDrag",
+  onPointerDrag = "onPointerDrag",
+  onPointerEndDrag = "onPointerEndDrag",
+  onPointerDrop = "onPointerDrop"
 }

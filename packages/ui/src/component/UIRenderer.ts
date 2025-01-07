@@ -4,7 +4,6 @@ import {
   DependentMode,
   Entity,
   EntityModifyFlags,
-  HitResult,
   Matrix,
   Plane,
   Ray,
@@ -14,12 +13,12 @@ import {
   ShaderProperty,
   Vector3,
   Vector4,
-  assignmentClone,
   deepClone,
   dependentComponents,
   ignoreClone
 } from "@galacean/engine";
 import { Utils } from "../Utils";
+import { UIHitResult } from "../input/UIHitResult";
 import { IGraphics } from "../interface/IGraphics";
 import { EntityUIModifyFlags, UICanvas } from "./UICanvas";
 import { GroupModifyFlags, UIGroup } from "./UIGroup";
@@ -78,8 +77,6 @@ export class UIRenderer extends Renderer implements IGraphics {
   protected _alpha: number = 1;
   @deepClone
   protected _color: Color = new Color(1, 1, 1, 1);
-  @assignmentClone
-  protected _referenceResolutionPerUnit: number = 100;
 
   /**
    * Rendering color for the ui renderer.
@@ -241,7 +238,7 @@ export class UIRenderer extends Renderer implements IGraphics {
   /**
    * @internal
    */
-  _raycast(ray: Ray, out: HitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
+  _raycast(ray: Ray, out: UIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
     const plane = UIRenderer._tempPlane;
     const transform = <UITransform>this._transformEntity.transform;
     const normal = plane.normal.copyFrom(transform.worldForward);
@@ -254,9 +251,9 @@ export class UIRenderer extends Renderer implements IGraphics {
       const localPosition = UIRenderer._tempVec31;
       Vector3.transformCoordinate(hitPointWorld, worldMatrixInv, localPosition);
       if (this._hitTest(localPosition)) {
+        out.component = this;
         out.distance = curDistance;
         out.entity = this.entity;
-        out.component = this;
         out.normal.copyFrom(normal);
         out.point.copyFrom(hitPointWorld);
         return true;

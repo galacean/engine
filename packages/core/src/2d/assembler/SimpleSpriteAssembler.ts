@@ -1,4 +1,4 @@
-import { Matrix, Vector2 } from "@galacean/engine-math";
+import { BoundingBox, Matrix, Vector2 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { ISpriteAssembler } from "./ISpriteAssembler";
 import { ISpriteRenderer } from "./ISpriteRenderer";
@@ -26,14 +26,15 @@ export class SimpleSpriteAssembler {
     width: number,
     height: number,
     pivot: Vector2,
-    flipX: boolean = false,
-    flipY: boolean = false
+    flipX: boolean,
+    flipY: boolean
   ): void {
     const { sprite } = renderer;
     const { x: pivotX, y: pivotY } = pivot;
+    // Position to World
+    const modelMatrix = SimpleSpriteAssembler._matrix;
+    const { elements: wE } = modelMatrix;
     // Renderer's worldMatrix
-    const { elements: wE } = SimpleSpriteAssembler._matrix;
-    // Parent's worldMatrix
     const { elements: pWE } = worldMatrix;
     const sx = flipX ? -width : width;
     const sy = flipY ? -height : height;
@@ -59,6 +60,9 @@ export class SimpleSpriteAssembler {
       vertices[o + 1] = wE[1] * x + wE[5] * y + wE[13];
       vertices[o + 2] = wE[2] * x + wE[6] * y + wE[14];
     }
+
+    // @ts-ignore
+    BoundingBox.transform(sprite._getBounds(), modelMatrix, renderer._bounds);
   }
 
   static updateUVs(renderer: ISpriteRenderer): void {
@@ -78,7 +82,7 @@ export class SimpleSpriteAssembler {
     vertices[offset + 28] = top;
   }
 
-  static updateColor(renderer: ISpriteRenderer, alpha: number = 1): void {
+  static updateColor(renderer: ISpriteRenderer, alpha: number): void {
     const subChunk = renderer._subChunk;
     const { r, g, b, a } = renderer.color;
     const finalAlpha = a * alpha;

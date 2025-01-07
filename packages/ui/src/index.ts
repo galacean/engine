@@ -21,13 +21,13 @@ export { UIRenderer } from "./component/UIRenderer";
 export { UITransform } from "./component/UITransform";
 export { Button } from "./component/advanced/Button";
 export { Image } from "./component/advanced/Image";
-export { Label } from "./component/advanced/Label";
+export { Text } from "./component/advanced/Text";
 export { ColorTransition } from "./component/interactive/transition/ColorTransition";
 export { ScaleTransition } from "./component/interactive/transition/ScaleTransition";
 export { SpriteTransition } from "./component/interactive/transition/SpriteTransition";
 export { Transition } from "./component/interactive/transition/Transition";
 export { CanvasRenderMode } from "./enums/CanvasRenderMode";
-export { ResolutionAdaptationStrategy } from "./enums/ResolutionAdaptationStrategy";
+export { ResolutionAdaptationMode } from "./enums/ResolutionAdaptationMode";
 export { UIPointerEventEmitter } from "./input/UIPointerEventEmitter";
 
 export class EngineExtension {
@@ -102,7 +102,7 @@ function ApplyMixins(derivedCtor: any, baseCtors: any[]): void {
 ApplyMixins(Engine, [EngineExtension]);
 ApplyMixins(Entity, [EntityExtension]);
 
-ReflectionParser.registerCustomParseComponent("Label", async (instance: any, item: Omit<IClassObject, "class">) => {
+ReflectionParser.registerCustomParseComponent("Text", async (instance: any, item: Omit<IClassObject, "class">) => {
   const { props } = item;
   if (!props.font) {
     // @ts-ignore

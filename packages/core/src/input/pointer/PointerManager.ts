@@ -68,10 +68,16 @@ export class PointerManager implements IInput {
    * @internal
    */
   _update(): void {
-    const { _pointers, _nativeEvents, _htmlCanvas, _engine, _eventPool: eventPool } = this;
+    const {
+      _pointers: pointers,
+      _nativeEvents: nativeEvents,
+      _htmlCanvas: htmlCanvas,
+      _engine: engine,
+      _eventPool: eventPool
+    } = this;
     const { width, height } = this._canvas;
-    const { clientWidth, clientHeight } = _htmlCanvas;
-    const { left, top } = _htmlCanvas.getBoundingClientRect();
+    const { clientWidth, clientHeight } = htmlCanvas;
+    const { left, top } = htmlCanvas.getBoundingClientRect();
     const widthDPR = width / clientWidth;
     const heightDPR = height / clientHeight;
 
@@ -79,38 +85,38 @@ export class PointerManager implements IInput {
     eventPool.clear();
 
     // Clean up the pointer released in the previous frame
-    for (let i = _pointers.length - 1; i >= 0; i--) {
-      const pointer = _pointers[i];
+    for (let i = pointers.length - 1; i >= 0; i--) {
+      const pointer = pointers[i];
       if (pointer.phase === PointerPhase.Leave) {
         pointer._dispose();
-        _pointers.splice(i, 1);
+        pointers.splice(i, 1);
       } else {
         pointer._resetOnFrameBegin();
       }
     }
 
     // Generate the pointer received for this frame
-    for (let i = 0, n = _nativeEvents.length; i < n; i++) {
-      const evt = _nativeEvents[i];
+    for (let i = 0, n = nativeEvents.length; i < n; i++) {
+      const evt = nativeEvents[i];
       const { pointerId } = evt;
       let pointer = this._getPointerByID(pointerId);
       if (pointer) {
         pointer._events.push(evt);
       } else {
-        const lastCount = _pointers.length;
+        const lastCount = pointers.length;
         if (lastCount === 0 || this._multiPointerEnabled) {
           const { _pointerPool: pointerPool } = this;
           // Get Pointer smallest index
           let j = 0;
           for (; j < lastCount; j++) {
-            if (_pointers[j].id > j) {
+            if (pointers[j].id > j) {
               break;
             }
           }
           pointer = pointerPool[j];
           if (!pointer) {
             pointer = new Pointer(j);
-            _engine._physicsInitialized && pointer._addEmitters(PhysicsPointerEventEmitter, eventPool);
+            engine._physicsInitialized && pointer._addEmitters(PhysicsPointerEventEmitter, eventPool);
             PointerManager._pointerEventEmitters.forEach((emitter) => {
               pointer._addEmitters(emitter, eventPool);
             });
@@ -118,18 +124,18 @@ export class PointerManager implements IInput {
           pointer._uniqueID = pointerId;
           pointer._events.push(evt);
           pointer.position.set((evt.clientX - left) * widthDPR, (evt.clientY - top) * heightDPR);
-          _pointers.splice(j, 0, pointer);
+          pointers.splice(j, 0, pointer);
         }
       }
     }
-    _nativeEvents.length = 0;
+    nativeEvents.length = 0;
 
     this._upList.length = this._downList.length = 0;
     this._buttons = PointerButton.None;
     // Pointer handles its own events
-    const frameCount = _engine.time.frameCount;
-    for (let i = 0, n = _pointers.length; i < n; i++) {
-      const pointer = _pointers[i];
+    const frameCount = engine.time.frameCount;
+    for (let i = 0, n = pointers.length; i < n; i++) {
+      const pointer = pointers[i];
       this._updatePointerInfo(frameCount, pointer, left, top, widthDPR, heightDPR);
       this._buttons |= pointer.pressedButtons;
     }
@@ -143,17 +149,18 @@ export class PointerManager implements IInput {
     for (let i = 0, n = pointers.length; i < n; i++) {
       const pointer = pointers[i];
       const { _events: events, _emitters: emitters } = pointer;
-      emitters.forEach((emitter) => {
-        emitter.processRaycast(scenes, pointer);
-      });
+      const emittersLength = emitters.length;
+      for (let k = 0; k < emittersLength; k++) {
+        emitters[k].processRaycast(scenes, pointer);
+      }
       const length = events.length;
       if (length > 0) {
         if (pointer._frameEvents & PointerEventType.Move) {
           // `Drag` must be processed first, otherwise `EndDrag` may be triggered first.
           pointer.phase = PointerPhase.Move;
-          emitters.forEach((emitter) => {
-            emitter.processDrag(pointer);
-          });
+          for (let k = 0; k < emittersLength; k++) {
+            emitters[k].processDrag(pointer);
+          }
         }
         for (let j = 0; j < length; j++) {
           const event = events[j];
@@ -162,22 +169,22 @@ export class PointerManager implements IInput {
           switch (event.type) {
             case "pointerdown":
               pointer.phase = PointerPhase.Down;
-              emitters.forEach((emitter) => {
-                emitter.processDown(pointer);
-              });
+              for (let k = 0; k < emittersLength; k++) {
+                emitters[k].processDown(pointer);
+              }
               break;
             case "pointerup":
               pointer.phase = PointerPhase.Up;
-              emitters.forEach((emitter) => {
-                emitter.processUp(pointer);
-              });
+              for (let k = 0; k < emittersLength; k++) {
+                emitters[k].processUp(pointer);
+              }
               break;
             case "pointerleave":
             case "pointercancel":
               pointer.phase = PointerPhase.Leave;
-              emitters.forEach((emitter) => {
-                emitter.processLeave(pointer);
-              });
+              for (let k = 0; k < emittersLength; k++) {
+                emitters[k].processLeave(pointer);
+              }
               break;
           }
         }

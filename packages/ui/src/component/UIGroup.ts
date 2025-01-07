@@ -49,6 +49,11 @@ export class UIGroup extends Component implements IGroupAble {
   @ignoreClone
   _groupDirtyFlags: number = GroupModifyFlags.None;
 
+  /**
+   * Whether to ignore the parent group.
+   * @remarks If this parameter set to `true`,
+   * all settings of the parent group will be ignored.
+   */
   get ignoreParentGroup(): boolean {
     return this._ignoreParentGroup;
   }
@@ -60,6 +65,9 @@ export class UIGroup extends Component implements IGroupAble {
     }
   }
 
+  /**
+   * Whether the group is interactive.
+   */
   get interactive(): boolean {
     return this._interactive;
   }
@@ -71,6 +79,9 @@ export class UIGroup extends Component implements IGroupAble {
     }
   }
 
+  /**
+   * The alpha value of the group.
+   */
   get alpha(): number {
     return this._alpha;
   }
@@ -83,26 +94,32 @@ export class UIGroup extends Component implements IGroupAble {
     }
   }
 
-  get globalAlpha(): number {
+  /**
+   * @internal
+   */
+  _getGlobalAlpha(): number {
     if (this._isContainDirtyFlag(GroupModifyFlags.GlobalAlpha)) {
       if (this._ignoreParentGroup) {
         this._globalAlpha = this._alpha;
       } else {
         const parentGroup = this._getGroup();
-        this._globalAlpha = this._alpha * (parentGroup ? parentGroup.globalAlpha : 1);
+        this._globalAlpha = this._alpha * (parentGroup ? parentGroup._getGlobalAlpha() : 1);
       }
       this._setDirtyFlagFalse(GroupModifyFlags.GlobalAlpha);
     }
     return this._globalAlpha;
   }
 
-  get globalInteractive(): boolean {
+  /**
+   * @internal
+   */
+  _getGlobalInteractive(): boolean {
     if (this._isContainDirtyFlag(GroupModifyFlags.GlobalInteractive)) {
       if (this._ignoreParentGroup) {
         this._globalInteractive = this._interactive;
       } else {
         const parentGroup = this._getGroup();
-        this._globalInteractive = this._interactive && (!parentGroup || parentGroup.globalInteractive);
+        this._globalInteractive = this._interactive && (!parentGroup || parentGroup._getGlobalInteractive());
       }
       this._setDirtyFlagFalse(GroupModifyFlags.GlobalInteractive);
     }

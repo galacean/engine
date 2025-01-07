@@ -53,20 +53,27 @@ describe("UIGroup", async () => {
     // Alpha
     rootGroup.alpha = 0.5;
     group.alpha = 0.4;
-    expect(group.globalAlpha).to.eq(0.4);
+    // @ts-ignore
+    expect(group._getGlobalAlpha()).to.eq(0.4);
     root.addComponent(UICanvas);
-    expect(group.globalAlpha).to.eq(0.2);
+    // @ts-ignore
+    expect(group._getGlobalAlpha()).to.eq(0.2);
     rootGroup.enabled = false;
-    expect(group.globalAlpha).to.eq(0.4);
+    // @ts-ignore
+    expect(group._getGlobalAlpha()).to.eq(0.4);
     rootGroup.enabled = true;
-    expect(group.globalAlpha).to.eq(0.2);
+    // @ts-ignore
+    expect(group._getGlobalAlpha()).to.eq(0.2);
     group.ignoreParentGroup = true;
-    expect(group.globalAlpha).to.eq(0.4);
+    // @ts-ignore
+    expect(group._getGlobalAlpha()).to.eq(0.4);
 
     // Interactive
     rootGroup.interactive = false;
-    expect(group.globalInteractive).to.eq(true);
+    // @ts-ignore
+    expect(group._getGlobalInteractive()).to.eq(true);
     group.ignoreParentGroup = false;
-    expect(group.globalInteractive).to.eq(false);
+    // @ts-ignore
+    expect(group._getGlobalInteractive()).to.eq(false);
   });
 });

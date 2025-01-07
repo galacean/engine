@@ -104,9 +104,9 @@ export class MeshRenderer extends Renderer {
       const localBounds = mesh.bounds;
       BoundingBox.transform(localBounds, this._transformEntity.transform.worldMatrix, worldBounds);
     } else {
-      const { x, y, z } = this._transformEntity.transform.worldPosition;
-      worldBounds.min.set(x, y, z);
-      worldBounds.max.set(x, y, z);
+      const { worldPosition } = this._transformEntity.transform;
+      worldBounds.min.copyFrom(worldPosition);
+      worldBounds.max.copyFrom(worldPosition);
     }
   }
 

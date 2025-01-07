@@ -238,7 +238,7 @@ export class UIInteractive extends Script implements IGroupAble {
   private _updateGlobalInteractive(): void {
     if (this._globalInteractiveDirty) {
       const group = this._getGroup();
-      const globalInteractive = this._interactive && (!group || group.globalInteractive);
+      const globalInteractive = this._interactive && (!group || group._getGlobalInteractive());
       if (this._globalInteractive !== globalInteractive) {
         this._globalInteractive = globalInteractive;
         this._updateState(true);

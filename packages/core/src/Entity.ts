@@ -98,13 +98,12 @@ export class Entity extends EngineObject {
   _isTemplate: boolean = false;
   /** @internal */
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
-  /** @internal */
-  _modifyFlagManager: UpdateFlagManager;
 
   private _transform: Transform;
   private _templateResource: ReferResource;
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
+  private _modifyFlagManager: UpdateFlagManager;
 
   /**
    * The transform of this entity.
@@ -640,10 +639,7 @@ export class Entity extends EngineObject {
     this._modifyFlagManager?.removeListener(onChange);
   }
 
-  /**
-   * @internal
-   */
-  _dispatchModify(flag: EntityModifyFlags, param?: any): void {
+  private _dispatchModify(flag: EntityModifyFlags, param?: any): void {
     this._modifyFlagManager?.dispatch(flag, param);
   }
 

@@ -5,6 +5,7 @@ import {
   ISpriteRenderer,
   MathUtil,
   RenderQueueFlags,
+  RendererUpdateFlags,
   SimpleSpriteAssembler,
   SlicedSpriteAssembler,
   Sprite,
@@ -16,6 +17,7 @@ import {
   ignoreClone
 } from "@galacean/engine";
 import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
+import { RootCanvasModifyFlags } from "../UICanvas";
 import { UIRenderer, UIRendererUpdateFlags } from "../UIRenderer";
 import { UITransform, UITransformModifyFlags } from "../UITransform";
 
@@ -58,7 +60,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
           break;
       }
       this._assembler.resetData(this);
-      this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
+      this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeUVAndColor;
     }
   }
 
@@ -73,7 +75,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     if (this._tileMode !== value) {
       this._tileMode = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
+        this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeUVAndColor;
       }
     }
   }
@@ -90,7 +92,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
       value = MathUtil.clamp(value, 0, 1);
       this._tiledAdaptiveThreshold = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
+        this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeUVAndColor;
       }
     }
   }
@@ -110,7 +112,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
         // @ts-ignore
         lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
       }
-      this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
+      this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeUVAndColor;
       if (value) {
         this._addResourceReferCount(value, 1);
         // @ts-ignore
@@ -128,30 +130,48 @@ export class Image extends UIRenderer implements ISpriteRenderer {
    */
   constructor(entity: Entity) {
     super(entity);
-
     this.drawMode = SpriteDrawMode.Simple;
     this.setMaterial(this._engine._getUIDefaultMaterial());
     this._onSpriteChange = this._onSpriteChange.bind(this);
   }
 
-  protected override _updateBounds(worldBounds: BoundingBox): void {
-    if (this.sprite) {
-      const transform = <UITransform>this._transformEntity.transform;
-      const { x: width, y: height } = transform.size;
-      const { x: pivotX, y: pivotY } = transform.pivot;
-      worldBounds.min.set(-width * pivotX, -height * pivotY, 0);
-      worldBounds.max.set(width * (1 - pivotX), height * (1 - pivotY), 0);
-      BoundingBox.transform(worldBounds, this._transformEntity.transform.worldMatrix, worldBounds);
-    } else {
-      const { x, y, z } = this._transformEntity.transform.worldPosition;
-      worldBounds.min.set(x, y, z);
-      worldBounds.max.set(x, y, z);
-    }
-  }
-
   /**
    * @internal
    */
+  _onRootCanvasModify(flag: RootCanvasModifyFlags): void {
+    if (flag & RootCanvasModifyFlags.ReferenceResolutionPerUnit) {
+      const drawMode = this._drawMode;
+      if (drawMode === SpriteDrawMode.Tiled) {
+        this._dirtyUpdateFlag |= ImageUpdateFlags.All;
+      } else if (drawMode === SpriteDrawMode.Sliced) {
+        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      }
+    }
+  }
+
+  protected override _updateBounds(worldBounds: BoundingBox): void {
+    const sprite = this._sprite;
+    const rootCanvas = this._getRootCanvas();
+    if (sprite && rootCanvas) {
+      const transform = <UITransform>this._transformEntity.transform;
+      const { size } = transform;
+      this._assembler.updatePositions(
+        this,
+        transform.worldMatrix,
+        size.x,
+        size.y,
+        transform.pivot,
+        false,
+        false,
+        rootCanvas.referenceResolutionPerUnit
+      );
+    } else {
+      const { worldPosition } = this._transformEntity.transform;
+      worldBounds.min.copyFrom(worldPosition);
+      worldBounds.max.copyFrom(worldPosition);
+    }
+  }
+
   protected override _render(context): void {
     const { _sprite: sprite } = this;
     const transform = <UITransform>this._transformEntity.transform;
@@ -175,13 +195,8 @@ export class Image extends UIRenderer implements ISpriteRenderer {
 
     let { _dirtyUpdateFlag: dirtyUpdateFlag } = this;
     const canvas = this._getRootCanvas();
-    if (this._referenceResolutionPerUnit !== canvas.referenceResolutionPerUnit) {
-      this._referenceResolutionPerUnit = canvas.referenceResolutionPerUnit;
-      dirtyUpdateFlag |= ImageUpdateFlags.Position;
-    }
-
     // Update position
-    if (dirtyUpdateFlag & ImageUpdateFlags.Position) {
+    if (dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
       this._assembler.updatePositions(
         this,
         transform.worldMatrix,
@@ -190,9 +205,9 @@ export class Image extends UIRenderer implements ISpriteRenderer {
         transform.pivot,
         false,
         false,
-        this._referenceResolutionPerUnit
+        canvas.referenceResolutionPerUnit
       );
-      dirtyUpdateFlag &= ~ImageUpdateFlags.Position;
+      dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     }
 
     // Update uv
@@ -222,20 +237,10 @@ export class Image extends UIRenderer implements ISpriteRenderer {
 
   @ignoreClone
   protected override _onTransformChanged(type: number): void {
-    if (type & UITransformModifyFlags.Size) {
-      switch (this._drawMode) {
-        case SpriteDrawMode.Simple:
-        case SpriteDrawMode.Sliced:
-          this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeAndPosition;
-          break;
-        case SpriteDrawMode.Tiled:
-          this._dirtyUpdateFlag |= ImageUpdateFlags.All;
-          break;
-        default:
-          break;
-      }
+    if (type & UITransformModifyFlags.Size && this._drawMode === SpriteDrawMode.Tiled) {
+      this._dirtyUpdateFlag |= ImageUpdateFlags.All;
     }
-    this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeAndPosition;
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 
   protected override _onDestroy(): void {
@@ -258,10 +263,10 @@ export class Image extends UIRenderer implements ISpriteRenderer {
       case SpriteModifyFlags.size:
         switch (this._drawMode) {
           case SpriteDrawMode.Sliced:
-            this._dirtyUpdateFlag |= ImageUpdateFlags.Position;
+            this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
             break;
           case SpriteDrawMode.Tiled:
-            this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
+            this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeUVAndColor;
             break;
           default:
             break;
@@ -270,10 +275,10 @@ export class Image extends UIRenderer implements ISpriteRenderer {
       case SpriteModifyFlags.border:
         switch (this._drawMode) {
           case SpriteDrawMode.Sliced:
-            this._dirtyUpdateFlag |= ImageUpdateFlags.PositionAndUV;
+            this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeAndUV;
             break;
           case SpriteDrawMode.Tiled:
-            this._dirtyUpdateFlag |= ImageUpdateFlags.PositionUVAndColor;
+            this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeUVAndColor;
             break;
           default:
             break;
@@ -281,7 +286,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:
-        this._dirtyUpdateFlag |= ImageUpdateFlags.PositionAndUV;
+        this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeAndUV;
         break;
       case SpriteModifyFlags.atlasRegion:
         this._dirtyUpdateFlag |= ImageUpdateFlags.UV;
@@ -297,20 +302,14 @@ export class Image extends UIRenderer implements ISpriteRenderer {
  * @remarks Extends `UIRendererUpdateFlags`.
  */
 enum ImageUpdateFlags {
-  /** Position. */
-  Position = 0x4,
   /** UV. */
-  UV = 0x8,
+  UV = 0x4,
   /** Automatic Size. */
-  AutomaticSize = 0x10,
-
-  /** WorldVolume and Position */
-  WorldVolumeAndPosition = 0x5,
-  /** Position and UV. */
-  PositionAndUV = 0xc,
-  /** Position, UV and Color. */
-  PositionUVAndColor = 0xe,
-  /** WorldVolume, Position, UV and Color */
-  WorldVolumePositionUVAndColor = 0xf,
-  All = 0x1f
+  AutomaticSize = 0x8,
+  /** WorldVolume and UV. */
+  WorldVolumeAndUV = 0x5,
+  /** WorldVolume, UV and Color. */
+  WorldVolumeUVAndColor = 0x7,
+  /** All. */
+  All = 0xf
 }
