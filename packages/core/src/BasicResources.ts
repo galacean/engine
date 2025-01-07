@@ -117,9 +117,9 @@ export class BasicResources {
   readonly textDefaultMaterial: Material;
   readonly spriteMaskDefaultMaterial: Material;
 
-  readonly prefilteredDFGTexture: Texture2D;
+  prefilteredDFGTexture: Texture2D;
 
-  constructor(engine: Engine) {
+  constructor(public engine: Engine) {
     // prettier-ignore
     const vertices = new Float32Array([
       -1, -1, 0, 1, // left-bottom
@@ -165,10 +165,23 @@ export class BasicResources {
       );
     }
 
-    this.prefilteredDFGTexture = createPrefilterdDFGTexture(engine);
     this.spriteDefaultMaterial = this._create2DMaterial(engine, Shader.find("Sprite"));
     this.textDefaultMaterial = this._create2DMaterial(engine, Shader.find("Text"));
     this.spriteMaskDefaultMaterial = this._createSpriteMaskMaterial(engine);
+  }
+
+  /**
+   * @internal
+   */
+  _initialize(): Promise<BasicResources> {
+    return new Promise((resolve, reject) => {
+      createPrefilterdDFGTexture(this.engine)
+        .then((texture) => {
+          this.prefilteredDFGTexture = texture;
+          resolve(this);
+        })
+        .catch(reject);
+    });
   }
 
   private _createBlitMesh(engine: Engine, vertices: Float32Array): ModelMesh {

@@ -8,33 +8,38 @@ const base64 = `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAIAAADTED
 
 const size = 256;
 
-export function createPrefilterdDFGTexture(engine: Engine): Texture2D {
-  const texture = new Texture2D(engine, size, size, TextureFormat.R8G8B8, false);
-  texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Clamp;
-  texture.isGCIgnored = true;
+export function createPrefilterdDFGTexture(engine: Engine): Promise<Texture2D> {
+  return new Promise((resolve, reject) => {
+    const texture = new Texture2D(engine, size, size, TextureFormat.R8G8B8, false);
+    texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Clamp;
+    texture.isGCIgnored = true;
 
-  const image = new Image();
+    const image = new Image();
 
-  image.onload = () => {
-    texture.setImageSource(image);
-  };
+    image.onload = () => {
+      texture.setImageSource(image);
+      resolve(texture);
+    };
 
-  image.onerror = image.onabort = () => {
-    Logger.error("Failed to load prefiltered LUT image.");
-  };
+    image.onerror = image.onabort = () => {
+      const message = "Failed to load prefiltered LUT image.";
+      Logger.error(message);
+      reject(message);
+    };
 
-  image.src = base64;
+    image.src = base64;
 
-  engine.resourceManager.addContentRestorer(
-    new (class extends ContentRestorer<Texture2D> {
-      constructor() {
-        super(texture);
-      }
-      restoreContent() {
-        texture.setImageSource(image);
-      }
-    })()
-  );
+    engine.resourceManager.addContentRestorer(
+      new (class extends ContentRestorer<Texture2D> {
+        constructor() {
+          super(texture);
+        }
+        restoreContent() {
+          texture.setImageSource(image);
+        }
+      })()
+    );
 
-  return texture;
+    return texture;
+  });
 }
