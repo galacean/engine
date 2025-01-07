@@ -60,6 +60,7 @@ engine.resourceManager
 // Run the engine
 engine.run();
 ```
+Easier operations in the [Editor](https://galacean.antgroup.com/editor/).
 
 ## Documentation
 
