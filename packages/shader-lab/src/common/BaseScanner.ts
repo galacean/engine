@@ -11,6 +11,7 @@ export type OnToken = (token: BaseToken, scanner: BaseScanner) => void;
  * @internal
  */
 export default class BaseScanner {
+  private static _spaceCharsWithBreak = [" ", "\t", "\n", "\r"];
   private static _spaceChars = [" ", "\t"];
   private static _checkIsIn(checked: string, chars: string[]): boolean {
     for (let i = 0; i < chars.length; i++) {
@@ -101,27 +102,17 @@ export default class BaseScanner {
   }
 
   skipSpace(includeLineBreak: boolean): void {
-    let curChar: string;
-
-    while (includeLineBreak) {
-      const chars = this.peek(2);
-      curChar = chars[0];
-
-      if (chars === "\r\n") {
-        this.advance(2);
-      } else if (curChar === "\n" || curChar === "\r") {
-        this.advance(1);
-      } else {
-        break;
-      }
-    }
-
-    curChar = this.getCurChar();
-    const spaceChars = BaseScanner._spaceChars;
+    const spaceChars = includeLineBreak ? BaseScanner._spaceCharsWithBreak : BaseScanner._spaceChars;
+    let curChar = this.getCurChar();
 
     while (BaseScanner._checkIsIn(curChar, spaceChars)) {
       this._advance();
       curChar = this.getCurChar();
+      // Compatible with windows line break CRLF.
+      if (includeLineBreak && curChar === "\n") {
+        this._advance();
+        curChar = this.getCurChar();
+      }
     }
   }
 
@@ -131,7 +122,11 @@ export default class BaseScanner {
       const start = this.getCurPosition();
       this.advance(2);
       // single line comments
-      while (this.getCurChar() !== "\n" && !this.isEnd()) this._advance();
+      let curChar = this.getCurChar();
+      while (curChar !== "\n" && curChar !== "\r" && !this.isEnd()) {
+        this._advance();
+        curChar = this.getCurChar();
+      }
       this.skipCommentsAndSpace();
       return ShaderLab.createRange(start, this.getCurPosition());
     } else if (this.peek(2) === "/*") {

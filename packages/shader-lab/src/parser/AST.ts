@@ -51,6 +51,9 @@ export abstract class TreeNode implements IPoolElement {
     return visitor.defaultCodeGen(this.children);
   }
 
+  /**
+   * Do semantic analyze right after the ast node is generated.
+   */
   semanticAnalyze(sa: SematicAnalyzer) {}
 }
 
