@@ -189,7 +189,8 @@ export class Image extends UIRenderer implements ISpriteRenderer {
       material = this._engine._getUIDefaultMaterial();
     }
 
-    if (this._color.a * this._alpha <= 0) {
+    const alpha = this._getGlobalAlpha();
+    if (this._color.a * alpha <= 0) {
       return;
     }
 
@@ -218,7 +219,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
 
     // Update color
     if (dirtyUpdateFlag & UIRendererUpdateFlags.Color) {
-      this._assembler.updateColor(this, this._alpha);
+      this._assembler.updateColor(this, alpha);
       dirtyUpdateFlag &= ~UIRendererUpdateFlags.Color;
     }
 

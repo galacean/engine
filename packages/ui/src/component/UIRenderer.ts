@@ -73,8 +73,6 @@ export class UIRenderer extends Renderer implements IGraphics {
 
   @ignoreClone
   private _raycastEnabled: boolean = true;
-  @ignoreClone
-  protected _alpha: number = 1;
   @deepClone
   protected _color: Color = new Color(1, 1, 1, 1);
 
@@ -166,6 +164,14 @@ export class UIRenderer extends Renderer implements IGraphics {
     this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
     Utils.cleanRootCanvas(this);
     Utils.cleanGroup(this);
+  }
+
+  /**
+   * @internal
+   */
+  _getGlobalAlpha(): number {
+    const group = this._getGroup();
+    return !!group ? group._getGlobalAlpha() : 1;
   }
 
   /**
