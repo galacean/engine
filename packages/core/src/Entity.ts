@@ -591,7 +591,7 @@ export class Entity extends EngineObject {
       this._parent = null;
       this._siblingIndex = -1;
     }
-    this._dispatchModify(EntityModifyFlags.RemoveChild, oldParent);
+    this._dispatchModify(EntityModifyFlags.Child, oldParent);
   }
 
   /**
@@ -660,7 +660,7 @@ export class Entity extends EngineObject {
         children[i]._siblingIndex++;
       }
     }
-    this._dispatchModify(EntityModifyFlags.AddChild, this);
+    this._dispatchModify(EntityModifyFlags.Child, this);
   }
 
   private _setParent(parent: Entity, siblingIndex?: number): void {
@@ -787,7 +787,7 @@ export class Entity extends EngineObject {
         }
       }
     }
-    this._dispatchModify(EntityModifyFlags.SiblingIndex, this);
+    this._dispatchModify(EntityModifyFlags.Child, this);
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------

@@ -203,9 +203,7 @@ export class UIRenderer extends Renderer implements IGraphics {
       case EntityModifyFlags.Parent:
         Utils.setRootCanvasDirty(this);
         Utils.setGroupDirty(this);
-      case EntityModifyFlags.AddChild:
-      case EntityModifyFlags.RemoveChild:
-      case EntityModifyFlags.SiblingIndex:
+      case EntityModifyFlags.Child:
         entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
         break;
       default:
