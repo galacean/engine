@@ -182,7 +182,6 @@ export class BasicResources {
       PrefilteredDFG.create(this.engine)
         .then((texture) => {
           this._prefilteredDFGTexture = texture;
-          texture._addReferCount(1);
           resolve(this);
         })
         .catch(reject);
