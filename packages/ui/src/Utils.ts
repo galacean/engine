@@ -16,7 +16,7 @@ export class Utils {
     element._isRootCanvasDirty = false;
     this._registerRootCanvas(element, rootCanvas);
     const fromEntity = element instanceof UICanvas ? element.entity.parent : element.entity;
-    const toEntity = rootCanvas?.entity ?? null;
+    const toEntity = rootCanvas?.entity.parent ?? null;
     this._registerListener(fromEntity, toEntity, element._rootCanvasListener, element._rootCanvasListeningEntities);
   }
 

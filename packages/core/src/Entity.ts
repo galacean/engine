@@ -591,6 +591,7 @@ export class Entity extends EngineObject {
       this._parent = null;
       this._siblingIndex = -1;
     }
+    this._dispatchModify(EntityModifyFlags.RemoveChild, oldParent);
   }
 
   /**
@@ -659,6 +660,7 @@ export class Entity extends EngineObject {
         children[i]._siblingIndex++;
       }
     }
+    this._dispatchModify(EntityModifyFlags.AddChild, this);
   }
 
   private _setParent(parent: Entity, siblingIndex?: number): void {
