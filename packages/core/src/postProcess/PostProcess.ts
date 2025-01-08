@@ -127,4 +127,12 @@ export class PostProcess extends Component {
   override _onDisableInScene() {
     this.scene.postProcessManager._removePostProcess(this);
   }
+
+  /**
+   * @inheritdoc
+   */
+  override _onDestroy(): void {
+    super._onDestroy();
+    this._effects.length = 0;
+  }
 }
