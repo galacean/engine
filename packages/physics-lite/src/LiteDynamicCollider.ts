@@ -77,13 +77,6 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.getAngularDamping }
-   */
-  getAngularDamping(): number {
-    throw "Physics-lite don't support getAngularDamping. Use Physics-PhysX instead!";
-  }
-
-  /**
    * {@inheritDoc IDynamicCollider.setAngularDamping }
    */
   setAngularDamping(value: number): void {
@@ -150,12 +143,6 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
   /**
    * {@inheritDoc IDynamicCollider.setLinearDamping }
    */
-  getLinearDamping(): number {
-    throw "Physics-lite don't support getLinearDamping. Use Physics-PhysX instead!";
-  }
-  /**
-   * {@inheritDoc IDynamicCollider.setLinearDamping }
-   */
   setLinearDamping(value: number): void {
     Logger.error("Physics-lite don't support setLinearDamping. Use Physics-PhysX instead!");
   }
@@ -187,13 +174,6 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
    */
   setMaxAngularVelocity(value: number): void {
     Logger.error("Physics-lite don't support setMaxAngularVelocity. Use Physics-PhysX instead!");
-  }
-
-  /**
-   * {@inheritDoc IDynamicCollider.setMaxDepenetrationVelocity }
-   */
-  getMaxDepenetrationVelocity(): number {
-    throw "Physics-lite don't support getMaxDepenetrationVelocity. Use Physics-PhysX instead!";
   }
 
   /**

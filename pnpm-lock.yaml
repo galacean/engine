@@ -146,7 +146,7 @@ importers:
       '@galacean/engine-rhi-webgl':
         specifier: workspace:*
         version: link:../packages/rhi-webgl
-      '@galacean/engine-shader-lab':
+      '@galacean/engine-shaderlab':
         specifier: workspace:*
         version: link:../packages/shader-lab
       '@galacean/engine-toolkit':
@@ -301,7 +301,7 @@ importers:
       '@galacean/engine-rhi-webgl':
         specifier: workspace:*
         version: link:../packages/rhi-webgl
-      '@galacean/engine-shader-lab':
+      '@galacean/engine-shaderlab':
         specifier: workspace:*
         version: link:../packages/shader-lab
       '@galacean/engine-shader-shaderlab':

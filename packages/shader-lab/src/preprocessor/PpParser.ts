@@ -439,7 +439,7 @@ export class PpParser {
         return !!this._definedMacros.get(macro.lexeme);
       } else {
         const macro = this._definedMacros.get(id.lexeme);
-        if (!macro) {
+        if (!macro || !macro.body) {
           return false;
         }
         if (macro.isFunction) {

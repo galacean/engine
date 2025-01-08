@@ -10,7 +10,7 @@
 #endif
 
 #ifdef MATERIAL_ENABLE_SHEEN
-    sampler2D scene_prefilteredLUT;
+    sampler2D scene_PrefilteredDFG;
 #endif
 
 struct SurfaceData{
@@ -24,6 +24,7 @@ struct SurfaceData{
     float specularAO;
     float f0;
     float opacity;
+    float IOR;
 
     // geometry
     vec3 position;
@@ -54,8 +55,8 @@ struct SurfaceData{
     #endif
 
     #ifdef MATERIAL_ENABLE_IRIDESCENCE
-        float iridesceceIOR;
-        float iridesceceFactor;
+        float iridescenceIOR;
+        float iridescenceFactor;
         float iridescenceThickness;
     #endif
 
@@ -64,6 +65,11 @@ struct SurfaceData{
         vec3  sheenColor;
     #endif
 
+    #ifdef MATERIAL_ENABLE_TRANSMISSION 
+        vec3 absorptionCoefficient;
+        float transmission;
+        float thickness;
+    #endif
 };
 
 
@@ -71,6 +77,7 @@ struct BRDFData{
     vec3  diffuseColor;
     vec3  specularColor;
     float roughness;
+    vec3 envSpecularDFG;
 
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         vec3  clearCoatSpecularColor;
@@ -215,7 +222,7 @@ vec3 BRDF_Specular_GGX(vec3 incidentDirection, SurfaceData surfaceData, BRDFData
 
     vec3 F = F_Schlick( specularColor, dotLH );
     #ifdef MATERIAL_ENABLE_IRIDESCENCE
-        F = mix(F, brdfData.iridescenceSpecularColor, surfaceData.iridesceceFactor);
+        F = mix(F, brdfData.iridescenceSpecularColor, surfaceData.iridescenceFactor);
     #endif
 	
 
@@ -346,9 +353,9 @@ vec3 BRDF_Diffuse_Lambert(vec3 diffuseColor) {
 
     float prefilteredSheenDFG(float dotNV, float sheenRoughness) {
         #ifdef HAS_TEX_LOD
-            return texture2DLodEXT(scene_prefilteredLUT, vec2(dotNV, sheenRoughness), 0.0).b;
+            return texture2DLodEXT(scene_PrefilteredDFG, vec2(dotNV, sheenRoughness), 0.0).b;
         #else
-            return texture2D(scene_prefilteredLUT, vec2(dotNV, sheenRoughness),0.0).b;
+            return texture2D(scene_PrefilteredDFG, vec2(dotNV, sheenRoughness),0.0).b;
         #endif  
     }
 #endif
@@ -387,9 +394,9 @@ void initBRDFData(SurfaceData surfaceData, out BRDFData brdfData){
         brdfData.diffuseColor = albedoColor * ( 1.0 - specularStrength );
         brdfData.specularColor = specularColor;
     #endif
-
     brdfData.roughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(roughness + getAARoughnessFactor(surfaceData.normal), 1.0));
-
+    brdfData.envSpecularDFG = envBRDFApprox(brdfData.specularColor,  brdfData.roughness, surfaceData.dotNV);
+   
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         brdfData.clearCoatRoughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(surfaceData.clearCoatRoughness + getAARoughnessFactor(surfaceData.clearCoatNormal), 1.0));
         brdfData.clearCoatSpecularColor = vec3(0.04);
@@ -397,7 +404,7 @@ void initBRDFData(SurfaceData surfaceData, out BRDFData brdfData){
 
     #ifdef MATERIAL_ENABLE_IRIDESCENCE
         float topIOR = 1.0;
-        brdfData.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, surfaceData.dotNV, surfaceData.iridesceceIOR, brdfData.specularColor, surfaceData.iridescenceThickness);   
+        brdfData.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, surfaceData.dotNV, surfaceData.iridescenceIOR, brdfData.specularColor, surfaceData.iridescenceThickness);   
     #endif
 
     #ifdef MATERIAL_ENABLE_SHEEN

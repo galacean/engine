@@ -6,8 +6,8 @@ import {
   ShaderPlatformTarget
 } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
-import { ShaderLab as ShaderLabVerbose, GSError } from "@galacean/engine-shader-lab/verbose";
-import { ShaderLab as ShaderLabRelease } from "@galacean/engine-shader-lab";
+import { ShaderLab as ShaderLabVerbose, GSError } from "@galacean/engine-shaderlab/verbose";
+import { ShaderLab as ShaderLabRelease } from "@galacean/engine-shaderlab";
 import { glslValidate, shaderParse } from "./ShaderValidate";
 import { registerIncludes } from "@galacean/engine-shader-shaderlab";
 
