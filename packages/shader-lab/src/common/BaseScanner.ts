@@ -108,11 +108,6 @@ export default class BaseScanner {
     while (BaseScanner._checkIsIn(curChar, spaceChars)) {
       this._advance();
       curChar = this.getCurChar();
-      // Compatible with windows line break CRLF.
-      if (includeLineBreak && curChar === "\n") {
-        this._advance();
-        curChar = this.getCurChar();
-      }
     }
   }
 
