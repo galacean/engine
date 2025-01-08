@@ -33,7 +33,7 @@ describe("ResourceManager", () => {
   describe("findResourcesByType", () => {
     it("findResourcesByType", () => {
       const textures = engine.resourceManager.findResourcesByType(Texture2D);
-      expect(textures.length).equal(4);
+      expect(textures.length).equal(5);
     });
   });
 
