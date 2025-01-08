@@ -170,8 +170,7 @@ export class UIRenderer extends Renderer implements IGraphics {
    * @internal
    */
   _getGlobalAlpha(): number {
-    const group = this._getGroup();
-    return !!group ? group._getGlobalAlpha() : 1;
+    return this._getGroup()?._getGlobalAlpha() ?? 1;
   }
 
   /**
