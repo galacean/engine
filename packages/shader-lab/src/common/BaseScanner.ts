@@ -101,14 +101,18 @@ export default class BaseScanner {
   }
 
   skipSpace(includeLineBreak: boolean): void {
-    const chars = this.peek(2);
-    let curChar = chars[0];
+    let curChar: string;
 
-    if (includeLineBreak) {
+    while (includeLineBreak) {
+      const chars = this.peek(2);
+      curChar = chars[0];
+
       if (chars === "\r\n") {
         this.advance(2);
       } else if (curChar === "\n" || curChar === "\r") {
         this.advance(1);
+      } else {
+        break;
       }
     }
 
