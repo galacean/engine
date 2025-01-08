@@ -174,7 +174,6 @@ export class UIGroup extends Component implements IGroupAble {
    */
   @ignoreClone
   _groupListener(flag: number): void {
-    if (this._isGroupDirty) return;
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.GroupEnableInScene) {
       Utils.setGroupDirty(this);
     }
@@ -185,7 +184,6 @@ export class UIGroup extends Component implements IGroupAble {
    */
   @ignoreClone
   _rootCanvasListener(flag: number): void {
-    if (this._isRootCanvasDirty) return;
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.CanvasEnableInScene) {
       Utils.setRootCanvasDirty(this);
       Utils.setGroupDirty(this);
