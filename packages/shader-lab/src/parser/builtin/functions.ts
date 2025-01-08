@@ -28,14 +28,15 @@ function isGenericType(t: BuiltinType) {
 const BuiltinFunctionTable: Map<string, BuiltinFunction[]> = new Map();
 
 export class BuiltinFunction {
-  private _returnType: BuiltinType;
   ident: string;
   readonly args: BuiltinType[];
   readonly scope: EShaderStage;
-  signatures: NonGenericGalaceanType[] = [];
+
+  private _returnType: BuiltinType;
+  private _realReturnType: NonGenericGalaceanType;
 
   get realReturnType(): NonGenericGalaceanType {
-    return this.signatures[0];
+    return this._realReturnType;
   }
 
   private constructor(ident: string, returnType: BuiltinType, scope: EShaderStage, ...args: BuiltinType[]) {
@@ -87,11 +88,7 @@ export class BuiltinFunction {
           }
         }
         if (found) {
-          fn.signatures.length = 0;
-          fn.signatures.push(returnType);
-          for (let i = 0; i < argLength; i++) {
-            fn.signatures.push(parameterTypes[i]);
-          }
+          fn._realReturnType = returnType;
           return fn;
         }
       }
