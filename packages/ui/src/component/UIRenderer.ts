@@ -72,7 +72,7 @@ export class UIRenderer extends Renderer implements IGraphics {
   _subChunk;
 
   @ignoreClone
-  private _raycastEnable: boolean = true;
+  private _raycastEnabled: boolean = true;
   @ignoreClone
   protected _alpha: number = 1;
   @deepClone
@@ -94,12 +94,12 @@ export class UIRenderer extends Renderer implements IGraphics {
   /**
    * Whether this renderer be picked up by raycast.
    */
-  get raycastEnable(): boolean {
-    return this._raycastEnable;
+  get raycastEnabled(): boolean {
+    return this._raycastEnabled;
   }
 
-  set raycastEnable(value: boolean) {
-    this._raycastEnable = value;
+  set raycastEnabled(value: boolean) {
+    this._raycastEnabled = value;
   }
 
   /**
