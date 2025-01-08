@@ -10,7 +10,7 @@
 #endif
 
 #ifdef MATERIAL_ENABLE_SHEEN
-    sampler2D scene_prefilteredLUT;
+    sampler2D scene_PrefilteredDFG;
 #endif
 
 struct SurfaceData{
@@ -353,9 +353,9 @@ vec3 BRDF_Diffuse_Lambert(vec3 diffuseColor) {
 
     float prefilteredSheenDFG(float dotNV, float sheenRoughness) {
         #ifdef HAS_TEX_LOD
-            return texture2DLodEXT(scene_prefilteredLUT, vec2(dotNV, sheenRoughness), 0.0).b;
+            return texture2DLodEXT(scene_PrefilteredDFG, vec2(dotNV, sheenRoughness), 0.0).b;
         #else
-            return texture2D(scene_prefilteredLUT, vec2(dotNV, sheenRoughness),0.0).b;
+            return texture2D(scene_PrefilteredDFG, vec2(dotNV, sheenRoughness),0.0).b;
         #endif  
     }
 #endif
