@@ -121,11 +121,10 @@ Shader "Water" {
         #endif
 
 
-#define MATERIAL_ENABLE_SS_REFRACTION
+#define REFRACTION_MODE
 
-        #ifdef MATERIAL_ENABLE_SS_REFRACTION 
+#if REFRACTION_MODE == 1
 
-    // last lint comment
 #endif
 
         // For testing only (macro)

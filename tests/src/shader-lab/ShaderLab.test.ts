@@ -188,6 +188,7 @@ describe("ShaderLab", () => {
   });
 
   it("engine shader", async () => {
+    debugger;
     glslValidate(demoShader, shaderLabVerbose);
     glslValidate(demoShader, shaderLabRelease);
   });
