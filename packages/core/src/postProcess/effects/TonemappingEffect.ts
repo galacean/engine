@@ -1,6 +1,6 @@
 import { ShaderMacro } from "../../shader";
 import { PostProcessEffect } from "../PostProcessEffect";
-import { PostProcessEffectParameter } from "../PostProcessEffectParameter";
+import { PostProcessEffectEnumParameter } from "../PostProcessEffectParameter";
 
 /**
  * Options to select a tonemapping algorithm to use.
@@ -28,5 +28,5 @@ export class TonemappingEffect extends PostProcessEffect {
   /**
    * Use this to select a tonemapping algorithm to use.
    */
-  mode = new PostProcessEffectParameter(TonemappingMode.Neutral, false);
+  mode = new PostProcessEffectEnumParameter(TonemappingMode, TonemappingMode.Neutral);
 }
