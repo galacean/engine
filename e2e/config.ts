@@ -129,6 +129,11 @@ export const E2E_CONFIG = {
       category: "Material",
       caseFileName: "shaderLab-renderState",
       threshold: 0.2
+    },
+    LUT: {
+      category: "Material",
+      caseFileName: "material-LUT",
+      threshold: 0.2
     }
   },
   Shadow: {
