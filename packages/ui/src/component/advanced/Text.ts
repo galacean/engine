@@ -409,6 +409,7 @@ export class Text extends UIRenderer implements ITextRenderer {
 
   private _updateColor(): void {
     const { r, g, b, a } = this._color;
+    const finalAlpha = a * this._getGlobalAlpha();
     const textChunks = this._textChunks;
     for (let i = 0, n = textChunks.length; i < n; ++i) {
       const subChunk = textChunks[i].subChunk;
@@ -419,7 +420,7 @@ export class Text extends UIRenderer implements ITextRenderer {
         vertices[o] = r;
         vertices[o + 1] = g;
         vertices[o + 2] = b;
-        vertices[o + 3] = a;
+        vertices[o + 3] = finalAlpha;
       }
     }
   }

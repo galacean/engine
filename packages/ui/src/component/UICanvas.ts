@@ -225,7 +225,7 @@ export class UICanvas extends Component implements IElement {
     const renderers = this._getRenderers();
     for (let i = renderers.length - 1; i >= 0; i--) {
       const element = renderers[i];
-      if (element.raycastEnable && element._raycast(ray, out, distance)) {
+      if (element.raycastEnabled && element._raycast(ray, out, distance)) {
         return true;
       }
     }
