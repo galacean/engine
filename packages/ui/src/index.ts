@@ -4,7 +4,7 @@ import {
   CullMode,
   Engine,
   Entity,
-  IClassObject,
+  IClass,
   Material,
   PipelineStage,
   ReflectionParser,
@@ -102,7 +102,7 @@ function ApplyMixins(derivedCtor: any, baseCtors: any[]): void {
 ApplyMixins(Engine, [EngineExtension]);
 ApplyMixins(Entity, [EntityExtension]);
 
-ReflectionParser.registerCustomParseComponent("Text", async (instance: any, item: Omit<IClassObject, "class">) => {
+ReflectionParser.registerCustomParseComponent("Text", async (instance: any, item: Omit<IClass, "class">) => {
   const { props } = item;
   if (!props.font) {
     // @ts-ignore
