@@ -20,7 +20,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   static add(left: Vector2, right: Vector2, out: Vector2): void {
     out._x = left._x + right._x;
     out._y = left._y + right._y;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /**
@@ -32,7 +32,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   static subtract(left: Vector2, right: Vector2, out: Vector2): void {
     out._x = left._x - right._x;
     out._y = left._y - right._y;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /**
@@ -44,7 +44,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   static multiply(left: Vector2, right: Vector2, out: Vector2): void {
     out._x = left._x * right._x;
     out._y = left._y * right._y;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /**
@@ -56,7 +56,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   static divide(left: Vector2, right: Vector2, out: Vector2): void {
     out._x = left._x / right._x;
     out._y = left._y / right._y;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /**
@@ -114,7 +114,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
     const { _x, _y } = left;
     out._x = _x + (right._x - _x) * t;
     out._y = _y + (right._y - _y) * t;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /**
@@ -126,7 +126,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   static max(left: Vector2, right: Vector2, out: Vector2): void {
     out._x = Math.max(left._x, right._x);
     out._y = Math.max(left._y, right._y);
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /**
@@ -138,7 +138,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   static min(left: Vector2, right: Vector2, out: Vector2): void {
     out._x = Math.min(left._x, right._x);
     out._y = Math.min(left._y, right._y);
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /**
@@ -149,7 +149,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   static negate(left: Vector2, out: Vector2): void {
     out._x = -left._x;
     out._y = -left._y;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /**
@@ -164,7 +164,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
       len = 1 / len;
       out._x = _x * len;
       out._y = _y * len;
-      out._onValueChanged && out._onValueChanged();
+      out._onValueChanged?.();
     }
   }
 
@@ -177,7 +177,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   static scale(left: Vector2, s: number, out: Vector2): void {
     out._x = left._x * s;
     out._y = left._y * s;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /** @internal */

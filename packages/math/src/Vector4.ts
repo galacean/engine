@@ -24,7 +24,7 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
     out._y = left._y + right._y;
     out._z = left._z + right._z;
     out._w = left._w + right._w;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /**
@@ -38,7 +38,7 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
     out._y = left._y - right._y;
     out._z = left._z - right._z;
     out._w = left._w - right._w;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /**
@@ -52,7 +52,7 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
     out._y = left._y * right._y;
     out._z = left._z * right._z;
     out._w = left._w * right._w;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /**
@@ -66,7 +66,7 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
     out._y = left._y / right._y;
     out._z = left._z / right._z;
     out._w = left._w / right._w;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /**
@@ -135,7 +135,7 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
     out._y = _y + (end._y - _y) * t;
     out._z = _z + (end._z - _z) * t;
     out._w = _w + (end._w - _w) * t;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /**
@@ -149,7 +149,7 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
     out._y = Math.max(left._y, right._y);
     out._z = Math.max(left._z, right._z);
     out._w = Math.max(left._w, right._w);
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /**
@@ -163,7 +163,7 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
     out._y = Math.min(left._y, right._y);
     out._z = Math.min(left._z, right._z);
     out._w = Math.min(left._w, right._w);
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /**
@@ -176,7 +176,7 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
     out._y = -a._y;
     out._z = -a._z;
     out._w = -a._w;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /**
@@ -193,7 +193,7 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
       out._y = _y * len;
       out._z = _z * len;
       out._w = _w * len;
-      out._onValueChanged && out._onValueChanged();
+      out._onValueChanged?.();
     }
   }
 
@@ -208,7 +208,7 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
     out._y = a._y * s;
     out._z = a._z * s;
     out._w = a._w * s;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /**
@@ -224,7 +224,7 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
     out._y = _x * e[1] + _y * e[5] + _z * e[9] + _w * e[13];
     out._z = _x * e[2] + _y * e[6] + _z * e[10] + _w * e[14];
     out._w = _x * e[3] + _y * e[7] + _z * e[11] + _w * e[15];
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /**
@@ -251,7 +251,7 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
     out._y = iy * qw - iw * qy - iz * qx + ix * qz;
     out._z = iz * qw - iw * qz - ix * qy + iy * qx;
     out._w = w;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /** @internal */

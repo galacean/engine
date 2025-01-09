@@ -63,7 +63,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     out._g = left._g + right._g;
     out._b = left._b + right._b;
     out._a = left._a + right._a;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
 
     return out;
   }
@@ -79,7 +79,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     out._g = left._g - right._g;
     out._b = left._b - right._b;
     out._a = left._a - right._a;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /**
@@ -94,7 +94,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     out._g = left._g * s;
     out._b = left._b * s;
     out._a = left._a * s;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
 
     return out;
   }
@@ -112,7 +112,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     out._g = _g + (end._g - _g) * t;
     out._b = _b + (end._b - _b) * t;
     out._a = _a + (end._a - _a) * t;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
 
     return out;
   }
@@ -307,7 +307,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     out._r = Color.gammaToLinearSpace(this._r);
     out._g = Color.gammaToLinearSpace(this._g);
     out._b = Color.gammaToLinearSpace(this._b);
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
     return out;
   }
 
@@ -320,7 +320,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     out._r = Color.linearToGammaSpace(this._r);
     out._g = Color.linearToGammaSpace(this._g);
     out._b = Color.linearToGammaSpace(this._b);
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
     return out;
   }
 
