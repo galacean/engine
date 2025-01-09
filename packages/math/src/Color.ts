@@ -63,7 +63,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     out._g = left._g + right._g;
     out._b = left._b + right._b;
     out._a = left._a + right._a;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
 
     return out;
   }
@@ -79,7 +79,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     out._g = left._g - right._g;
     out._b = left._b - right._b;
     out._a = left._a - right._a;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
   }
 
   /**
@@ -94,7 +94,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     out._g = left._g * s;
     out._b = left._b * s;
     out._a = left._a * s;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
 
     return out;
   }
@@ -112,7 +112,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     out._g = _g + (end._g - _g) * t;
     out._b = _b + (end._b - _b) * t;
     out._a = _a + (end._a - _a) * t;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
 
     return out;
   }
@@ -137,7 +137,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
 
   public set r(value: number) {
     this._r = value;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged?.();
   }
 
   /**
@@ -149,7 +149,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
 
   public set g(value: number) {
     this._g = value;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged?.();
   }
 
   /**
@@ -161,7 +161,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
 
   public set b(value: number) {
     this._b = value;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged?.();
   }
 
   /**
@@ -173,7 +173,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
 
   public set a(value: number) {
     this._a = value;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged?.();
   }
 
   /**
@@ -203,7 +203,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     this._g = g;
     this._b = b;
     this._a = a;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged?.();
     return this;
   }
 
@@ -217,7 +217,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     this._g += color._g;
     this._b += color._b;
     this._a += color._a;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged?.();
     return this;
   }
 
@@ -231,7 +231,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     this._g *= s;
     this._b *= s;
     this._a *= s;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged?.();
     return this;
   }
 
@@ -254,7 +254,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     this._g = source.g;
     this._b = source.b;
     this._a = source.a;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged?.();
     return this;
   }
 
@@ -282,7 +282,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     this._g = source[offset + 1];
     this._b = source[offset + 2];
     this._a = source[offset + 3];
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged?.();
     return this;
   }
 
@@ -307,7 +307,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     out._r = Color.gammaToLinearSpace(this._r);
     out._g = Color.gammaToLinearSpace(this._g);
     out._b = Color.gammaToLinearSpace(this._b);
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
     return out;
   }
 
@@ -320,7 +320,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     out._r = Color.linearToGammaSpace(this._r);
     out._g = Color.linearToGammaSpace(this._g);
     out._b = Color.linearToGammaSpace(this._b);
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
     return out;
   }
 
