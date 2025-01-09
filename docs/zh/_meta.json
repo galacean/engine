@@ -59,6 +59,12 @@
       "collapse": true
     }
   },
+  "platform": {
+    "title": "多平台发布",
+    "theme": {
+      "collapse": true
+    }
+  },
   "device": {
     "title": "设备",
     "theme": {
