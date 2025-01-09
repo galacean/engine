@@ -46,7 +46,7 @@ jobs:
         run: |
           git clone https://github.com/galacean/engine-toolkit.git
           git clone https://github.com/galacean/engine-lottie.git
-          git clone https://github.com/galacean/engine-spine.git
+          git clone https://github.com/galacean/engine-spine.git -b dev/4.2
 
       - name: Install and Link Engine and Build for Toolkit
         working-directory: ./engine-toolkit
@@ -65,7 +65,7 @@ jobs:
       - name: Install and Link Engine and Build for Spine
         working-directory: ./engine-spine
         run: |
-          pnpm install --ignore-workspace
+          pnpm install --ignore-workspace --frozen-lockfile=false
           pnpm link ../packages/galacean
           pnpm build
 
@@ -120,6 +120,9 @@ jobs:
                 "${{ github.workspace }}/temp/@galacean/engine-toolkit/umd/browser.js",
                 "${{ github.workspace }}/temp/@galacean/engine-lottie/dist/browser.js",
                 "${{ github.workspace }}/temp/@galacean/engine-spine/dist/browser.js"
+              ],
+              "wasm": [
+                "${{ github.workspace }}/packages/physics-physx/libs/physx.release.wasm"
               ],
               "jsWASMLoader": [
                 "${{ github.workspace }}/packages/physics-physx/libs/physx.release.js"

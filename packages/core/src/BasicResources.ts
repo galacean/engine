@@ -9,6 +9,7 @@ import { BufferUsage } from "./graphic/enums/BufferUsage";
 import { MeshTopology } from "./graphic/enums/MeshTopology";
 import { VertexElementFormat } from "./graphic/enums/VertexElementFormat";
 import { Material } from "./material";
+import { PrefilteredDFG } from "./material/utils/PrefilteredDFG";
 import { ModelMesh } from "./mesh";
 import { Shader } from "./shader/Shader";
 import { BlendFactor } from "./shader/enums/BlendFactor";
@@ -116,7 +117,13 @@ export class BasicResources {
   readonly textDefaultMaterial: Material;
   readonly spriteMaskDefaultMaterial: Material;
 
-  constructor(engine: Engine) {
+  private _prefilteredDFGTexture: Texture2D;
+
+  get prefilteredDFGTexture(): Texture2D {
+    return this._prefilteredDFGTexture;
+  }
+
+  constructor(public engine: Engine) {
     // prettier-ignore
     const vertices = new Float32Array([
       -1, -1, 0, 1, // left-bottom
@@ -165,6 +172,20 @@ export class BasicResources {
     this.spriteDefaultMaterial = this._create2DMaterial(engine, Shader.find("Sprite"));
     this.textDefaultMaterial = this._create2DMaterial(engine, Shader.find("Text"));
     this.spriteMaskDefaultMaterial = this._createSpriteMaskMaterial(engine);
+  }
+
+  /**
+   * @internal
+   */
+  _initialize(): Promise<BasicResources> {
+    return new Promise((resolve, reject) => {
+      PrefilteredDFG.create(this.engine)
+        .then((texture) => {
+          this._prefilteredDFGTexture = texture;
+          resolve(this);
+        })
+        .catch(reject);
+    });
   }
 
   private _createBlitMesh(engine: Engine, vertices: Float32Array): ModelMesh {

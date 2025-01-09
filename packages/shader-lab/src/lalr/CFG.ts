@@ -16,7 +16,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
 
   ...GrammarUtils.createProductionWithOptions(NoneTerminal.global_declaration, [
     [NoneTerminal.precision_specifier],
-    [NoneTerminal.variable_declaration],
+    [NoneTerminal.variable_declaration_statement],
     [NoneTerminal.struct_specifier],
     [NoneTerminal.function_definition]
   ]),
@@ -24,12 +24,25 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.variable_declaration,
     [
-      [EKeyword.GS_RenderQueueType, ETokenType.ID, ETokenType.SEMICOLON],
-      [NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.SEMICOLON],
-      [NoneTerminal.fully_specified_type, ETokenType.ID, NoneTerminal.array_specifier, ETokenType.SEMICOLON]
+      [NoneTerminal.fully_specified_type, ETokenType.ID],
+      [NoneTerminal.fully_specified_type, ETokenType.ID, NoneTerminal.array_specifier]
     ],
     ASTNode.VariableDeclaration.pool
   ),
+
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.variable_declaration_list,
+    [
+      [NoneTerminal.variable_declaration],
+      [NoneTerminal.variable_declaration_list, ETokenType.COMMA, ETokenType.ID],
+      [NoneTerminal.variable_declaration_list, ETokenType.COMMA, ETokenType.ID, NoneTerminal.array_specifier]
+    ],
+    ASTNode.VariableDeclarationList.pool
+  ),
+
+  ...GrammarUtils.createProductionWithOptions(NoneTerminal.variable_declaration_statement, [
+    [NoneTerminal.variable_declaration_list, ETokenType.SEMICOLON]
+  ]),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.ext_builtin_type_specifier_nonarray,

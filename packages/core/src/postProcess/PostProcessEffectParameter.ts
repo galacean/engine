@@ -1,21 +1,19 @@
 import { Color, MathUtil, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { Texture } from "../texture/Texture";
+import { Texture } from "../texture";
 
 /**
  * Represents a parameter of a post process effect.
  * @remarks
  * The parameter will be mixed to a final value and be used in post process manager.
  */
-export class PostProcessEffectParameter<T extends Number | Boolean | Color | Vector2 | Vector3 | Vector4 | Texture> {
+export abstract class PostProcessEffectParameter<T> {
   /**
    * Whether the parameter is enabled.
    */
   enabled = true;
 
-  private _value: T;
-  private _needLerp = false;
-  private _min?: number;
-  private _max?: number;
+  protected _needLerp = false;
+  protected _value: T;
 
   /**
    * The value of the parameter.
@@ -25,71 +23,189 @@ export class PostProcessEffectParameter<T extends Number | Boolean | Color | Vec
   }
 
   set value(value: T) {
-    if (value?.constructor === Number) {
-      this._value = <T>(<unknown>MathUtil.clamp(<number>value, this._min, this._max));
-    } else {
-      this._value = value;
-    }
+    this._value = value;
   }
 
-  constructor(value: Exclude<T, number>, needLerp?: boolean);
-  constructor(value: Exclude<T, Boolean | Color | Vector2 | Vector3 | Vector4 | Texture>, needLerp?: boolean);
-  constructor(
-    value: Exclude<T, Boolean | Color | Vector2 | Vector3 | Vector4 | Texture>,
-    min?: number,
-    max?: number,
-    needLerp?: boolean
-  );
-
-  constructor(value: T, needLerpOrMin?: boolean | number, max?: number, needLerp?: boolean) {
-    if (typeof value === "number") {
-      if (typeof needLerpOrMin === "boolean") {
-        this._needLerp = needLerpOrMin;
-        this._min = Number.NEGATIVE_INFINITY;
-        this._max = Number.POSITIVE_INFINITY;
-      } else if (typeof needLerpOrMin === "number") {
-        this._min = needLerpOrMin;
-        this._max = max ?? Number.POSITIVE_INFINITY;
-        this._needLerp = needLerp ?? false;
-      } else if (needLerpOrMin == undefined) {
-        this._min = Number.NEGATIVE_INFINITY;
-        this._max = Number.POSITIVE_INFINITY;
-      }
-    } else {
-      this._needLerp = <boolean>needLerpOrMin ?? false;
-    }
-
-    this.value = value;
+  constructor(value: T, needLerp = false) {
+    this._needLerp = needLerp;
+    this._value = value;
   }
 
   /**
    * @internal
    */
   _lerp(to: T, factor: number) {
-    if (this._needLerp) {
-      switch (this.value?.constructor) {
-        case Number:
-          this.value = <T>(<unknown>MathUtil.lerp(<number>this.value, <number>to, factor));
-          break;
-        case Color:
-          Color.lerp(<Color>this.value, <Color>to, factor, <Color>this.value);
-          break;
-        case Vector2:
-          Vector2.lerp(<Vector2>this.value, <Vector2>to, factor, <Vector2>this.value);
-          break;
-        case Vector3:
-          Vector3.lerp(<Vector3>this.value, <Vector3>to, factor, <Vector3>this.value);
-          break;
-        case Vector4:
-          Vector4.lerp(<Vector4>this.value, <Vector4>to, factor, <Vector4>this.value);
-          break;
-        default:
-          if (factor > 0) {
-            this.value = to;
-          }
-      }
-    } else if (factor > 0) {
+    if (factor > 0) {
       this.value = to;
     }
+  }
+}
+
+/**
+ * Represents a float parameter of a post process effect.
+ */
+export class PostProcessEffectFloatParameter extends PostProcessEffectParameter<number> {
+  override get value(): number {
+    return this._value;
+  }
+
+  override set value(v: number) {
+    this._value = MathUtil.clamp(v, this.min, this.max);
+  }
+
+  /**
+   * Create a new float parameter.
+   * @param value - The default value of the parameter
+   * @param _min - The minimum value of the parameter, default is Number.NEGATIVE_INFINITY
+   * @param _max - The maximum value of the parameter, default is Number.POSITIVE_INFINITY
+   * @param needLerp - Whether the parameter needs to be lerp, default is true
+   */
+  constructor(
+    value: number,
+    readonly min = Number.NEGATIVE_INFINITY,
+    readonly max = Number.POSITIVE_INFINITY,
+    needLerp = true
+  ) {
+    super(value, needLerp);
+    this.value = value;
+  }
+
+  override _lerp(to: number, factor: number) {
+    if (this._needLerp) {
+      this.value = MathUtil.lerp(this.value, to, factor);
+    } else {
+      super._lerp(to, factor);
+    }
+  }
+}
+
+/**
+ * Represents a boolean parameter of a post process effect.
+ */
+export class PostProcessEffectBoolParameter extends PostProcessEffectParameter<boolean> {
+  /**
+   * Create a new boolean parameter.
+   * @param value - The default value of the parameter
+   */
+  constructor(value: boolean) {
+    super(value, false);
+  }
+}
+
+/**
+ * Represents a texture parameter of a post process effect.
+ */
+export class PostProcessEffectTextureParameter extends PostProcessEffectParameter<Texture> {
+  /**
+   * Create a new texture parameter.
+   * @param value - The default texture of the parameter
+   */
+  constructor(value: Texture) {
+    super(value, false);
+  }
+}
+
+/**
+ * Represents a color parameter of a post process effect.
+ */
+export class PostProcessEffectColorParameter extends PostProcessEffectParameter<Color> {
+  /**
+   * Create a new color parameter.
+   * @param value - The default color of the parameter
+   * @param needLerp - Whether the parameter needs to be lerp, default is true
+   */
+  constructor(value: Color, needLerp = true) {
+    super(value, needLerp);
+  }
+
+  override _lerp(to: Color, factor: number) {
+    if (this._needLerp) {
+      Color.lerp(this.value, to, factor, this.value);
+    } else {
+      super._lerp(to, factor);
+    }
+  }
+}
+
+/**
+ * Represents a vector2 parameter of a post process effect.
+ */
+export class PostProcessEffectVector2Parameter extends PostProcessEffectParameter<Vector2> {
+  /**
+   * Create a new vector2 parameter.
+   * @param value - The default vector2 of the parameter
+   * @param needLerp - Whether the parameter needs to be lerp, default is true
+   */
+  constructor(value: Vector2, needLerp = true) {
+    super(value, needLerp);
+  }
+
+  override _lerp(to: Vector2, factor: number) {
+    if (this._needLerp) {
+      Vector2.lerp(this.value, to, factor, this.value);
+    } else {
+      super._lerp(to, factor);
+    }
+  }
+}
+
+/**
+ * Represents a vector3 parameter of a post process effect.
+ */
+export class PostProcessEffectVector3Parameter extends PostProcessEffectParameter<Vector3> {
+  /**
+   * Create a new vector3 parameter.
+   * @param value - The default vector3 of the parameter
+   * @param needLerp - Whether the parameter needs to be lerp, default is true
+   */
+  constructor(value: Vector3, needLerp = true) {
+    super(value, needLerp);
+  }
+
+  override _lerp(to: Vector3, factor: number) {
+    if (this._needLerp) {
+      Vector3.lerp(this.value, to, factor, this.value);
+    } else {
+      super._lerp(to, factor);
+    }
+  }
+}
+
+/**
+ * Represents a vector4 parameter of a post process effect.
+ */
+export class PostProcessEffectVector4Parameter extends PostProcessEffectParameter<Vector4> {
+  /**
+   * Create a new vector4 parameter.
+   * @param value - The default vector4 of the parameter
+   * @param needLerp - Whether the parameter needs to be lerp, default is true
+   */
+  constructor(value: Vector4, needLerp = true) {
+    super(value, needLerp);
+  }
+
+  override _lerp(to: Vector4, factor: number) {
+    if (this._needLerp) {
+      Vector4.lerp(this.value, to, factor, this.value);
+    } else {
+      super._lerp(to, factor);
+    }
+  }
+}
+
+/**
+ * Represents a enum parameter of a post process effect.
+ */
+export class PostProcessEffectEnumParameter<T> extends PostProcessEffectParameter<T> {
+  /**
+   * Create a new enum parameter.
+   * @param enumType - The type of the enum
+   * @param value - The default enum value of the parameter
+   */
+  constructor(
+    readonly enumType: Record<string, number | string>,
+    value: T
+  ) {
+    super(value as T, false);
   }
 }

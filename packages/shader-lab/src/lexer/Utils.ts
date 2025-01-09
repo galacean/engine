@@ -34,7 +34,8 @@ export default class LexerUtils {
   static isSpace(charCode: number) {
     return (
       charCode === 9 || // Tab
-      charCode === 10 || // Line break
+      charCode === 10 || // Line break - /n
+      charCode === 13 || // Carriage return -/r
       charCode === 32 // Space
     );
   }

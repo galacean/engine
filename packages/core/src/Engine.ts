@@ -636,6 +636,8 @@ export class Engine extends EventDispatcher {
       const loader = loaders[key];
       if (loader.initialize) initializePromises.push(loader.initialize(this, configuration));
     }
+
+    initializePromises.push(this._basicResources._initialize());
     return Promise.all(initializePromises).then(() => this);
   }
 

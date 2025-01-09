@@ -2,7 +2,6 @@ import {
   AssetPromise,
   AssetType,
   BackgroundMode,
-  BloomEffect,
   DiffuseMode,
   Font,
   Loader,
@@ -11,10 +10,9 @@ import {
   Mesh,
   resourceLoader,
   ResourceManager,
-  Scene,
-  TonemappingEffect
+  Scene
 } from "@galacean/engine-core";
-import { IClassObject, IScene, ReflectionParser, SceneParser, SpecularMode } from "./resource-deserialize";
+import { IClass, IScene, ReflectionParser, SceneParser, SpecularMode } from "./resource-deserialize";
 
 @resourceLoader(AssetType.Scene, ["scene"], true)
 class SceneLoader extends Loader<Scene> {
@@ -144,14 +142,11 @@ class SceneLoader extends Loader<Scene> {
   }
 }
 
-ReflectionParser.registerCustomParseComponent(
-  "TextRenderer",
-  async (instance: any, item: Omit<IClassObject, "class">) => {
-    const { props } = item;
-    if (!props.font) {
-      // @ts-ignore
-      instance.font = Font.createFromOS(instance.engine, props.fontFamily || "Arial");
-    }
-    return instance;
+ReflectionParser.registerCustomParseComponent("TextRenderer", async (instance: any, item: Omit<IClass, "class">) => {
+  const { props } = item;
+  if (!props.font) {
+    // @ts-ignore
+    instance.font = Font.createFromOS(instance.engine, props.fontFamily || "Arial");
   }
-);
+  return instance;
+});
