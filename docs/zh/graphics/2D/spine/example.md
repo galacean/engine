@@ -1,10 +1,17 @@
 ---
 order: 3
-title: Spine 示例
+title: 示例与模板
 type: 图形
 group: Spine
 label: Graphics/2D/Spine/example
 ---
+
+## 模板
+
+
+
+
+## 示例
 
 **动画控制**
 

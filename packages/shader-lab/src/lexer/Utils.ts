@@ -1,28 +1,42 @@
-import { ETokenType, TokenType } from "../common/types";
-
 export default class LexerUtils {
-  static numRegex = /\d/;
-  static letterRegex = /\w/;
-  static alphaRegex = /[a-zA-Z_]/;
-  static numOrLetterRegex = /(\d|\w)/;
-
-  static isNum(char: string) {
-    return this.numRegex.test(char);
+  static isNum(charCode: number) {
+    return charCode >= 48 && charCode <= 57;
   }
 
-  static isLetter(char: string) {
-    return this.letterRegex.test(char);
+  static isLetter(charCode: number) {
+    return (
+      charCode === 95 || // _
+      (charCode >= 48 && charCode <= 57) || // 0 - 9
+      (charCode >= 65 && charCode <= 90) || // A - Z
+      (charCode >= 97 && charCode <= 122) // a - z
+    );
   }
 
-  static isAlpha(char: string) {
-    return this.alphaRegex.test(char);
+  static isAlpha(charCode: number) {
+    return (
+      charCode === 95 || // _
+      (charCode >= 65 && charCode <= 90) || // A - Z
+      (charCode >= 97 && charCode <= 122) // a - z
+    );
   }
 
-  static isNumOrLetter(char: string) {
-    return this.numOrLetterRegex.test(char);
+  static isPpCharactors(charCode: number) {
+    return (
+      charCode === 35 || // #
+      charCode === 46 || // .
+      charCode === 95 || // _
+      (charCode >= 48 && charCode <= 57) || // 0 - 9
+      (charCode >= 65 && charCode <= 90) || // A - Z
+      (charCode >= 97 && charCode <= 122) // a - z
+    );
   }
 
-  static isKeyword(tt: TokenType) {
-    return tt < ETokenType.ID;
+  static isSpace(charCode: number) {
+    return (
+      charCode === 9 || // Tab
+      charCode === 10 || // Line break - /n
+      charCode === 13 || // Carriage return -/r
+      charCode === 32 // Space
+    );
   }
 }

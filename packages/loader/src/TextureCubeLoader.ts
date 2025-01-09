@@ -1,14 +1,14 @@
 import {
   AssetPromise,
   AssetType,
-  Loader,
   LoadItem,
-  resourceLoader,
+  Loader,
+  RequestConfig,
   ResourceManager,
   TextureCube,
-  TextureCubeFace
+  TextureCubeFace,
+  resourceLoader
 } from "@galacean/engine-core";
-import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { TextureCubeContentRestorer } from "./TextureCubeContentRestorer";
 
 @resourceLoader(AssetType.TextureCube, [""])

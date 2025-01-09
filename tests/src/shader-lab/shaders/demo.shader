@@ -38,6 +38,8 @@ Shader "Water" {
     Pass "default" {
       Tags { ReplacementTag = "Opaque", pipelineStage = "DepthOnly"}
 
+      RenderQueueType = customRenderQueue;
+
       struct a2v {
        vec4 POSITION;
        vec2 TEXCOORD_0; 
@@ -75,10 +77,26 @@ Shader "Water" {
 
     RenderQueueType = Opaque;
 
+    /* First comment */
+      /* Second comment */
+
     #define SCENE_SHADOW_TYPE 3
+
+    /*Comment without leading space*/
+
+    // test global declaration list.
+    vec2 v1, v2[2], v3[3];
 
       v2f vert(a2v v) {
         v2f o;
+
+        vec2 weights[2], offsets[2];
+        weights[0] = vec2(.1);
+        offsets[1] = vec2(.1);
+
+        float[2] c;
+        c[0] = 1.0;
+        c[1] = .4;
 
         o.v_uv = v.TEXCOORD_0;
         vec4 tmp = renderer_MVMat * v.POSITION;
@@ -87,6 +105,9 @@ Shader "Water" {
         vec3 tangentW = v.TBN[0];
         return o;
       }
+
+      /* This is a
+      multi-line comment */
 
       void frag(v2f i) {
         vec4 color = texture2D(material_BaseTexture, i.v_uv) * u_color;
@@ -100,11 +121,10 @@ Shader "Water" {
         #endif
 
 
-#define MATERIAL_ENABLE_SS_REFRACTION
+#define REFRACTION_MODE
 
-        #ifdef MATERIAL_ENABLE_SS_REFRACTION 
+#if REFRACTION_MODE == 1
 
-    // last lint comment
 #endif
 
         // For testing only (macro)

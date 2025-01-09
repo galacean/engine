@@ -126,18 +126,16 @@ BuiltinFunction._create("ceil", EGenType.GenType, EGenType.GenType);
 BuiltinFunction._create("fract", EGenType.GenType, EGenType.GenType);
 BuiltinFunction._create("mod", EGenType.GenType, EGenType.GenType, EKeyword.FLOAT);
 BuiltinFunction._create("mod", EGenType.GenType, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("min", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("min", EGenType.GenType, EKeyword.FLOAT);
-BuiltinFunction._create("min", EGenType.GenIntType, EGenType.GenIntType);
-BuiltinFunction._create("min", EGenType.GenIntType, EKeyword.INT);
+BuiltinFunction._create("min", EGenType.GenType, EGenType.GenType, EGenType.GenType);
+BuiltinFunction._create("min", EGenType.GenType, EGenType.GenType, EKeyword.FLOAT);
+BuiltinFunction._create("min", EGenType.GenIntType, EGenType.GenIntType, EGenType.GenIntType);
+BuiltinFunction._create("min", EGenType.GenIntType, EGenType.GenIntType, EKeyword.INT);
 BuiltinFunction._create("min", EGenType.GenUintType, EGenType.GenUintType, EGenType.GenUintType);
 BuiltinFunction._create("min", EGenType.GenUintType, EGenType.GenUintType, EKeyword.UINT);
-BuiltinFunction._create("max", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("max", EGenType.GenType, EKeyword.FLOAT);
-BuiltinFunction._create("max", EGenType.GenIntType, EGenType.GenIntType);
-BuiltinFunction._create("max", EGenType.GenIntType, EKeyword.INT);
-BuiltinFunction._create("max", EGenType.GenUintType, EGenType.GenUintType, EGenType.GenUintType);
-BuiltinFunction._create("max", EGenType.GenUintType, EGenType.GenUintType, EKeyword.UINT);
+BuiltinFunction._create("max", EGenType.GenType, EGenType.GenType, EGenType.GenType);
+BuiltinFunction._create("max", EGenType.GenType, EGenType.GenType, EKeyword.FLOAT);
+BuiltinFunction._create("max", EGenType.GenIntType, EGenType.GenIntType, EGenType.GenIntType);
+BuiltinFunction._create("max", EGenType.GenIntType, EGenType.GenIntType, EKeyword.INT);
 BuiltinFunction._create("clamp", EGenType.GenType, EGenType.GenType, EGenType.GenType, EGenType.GenType);
 BuiltinFunction._create("clamp", EGenType.GenType, EGenType.GenType, EKeyword.FLOAT, EKeyword.FLOAT);
 BuiltinFunction._create("clamp", EGenType.GenIntType, EGenType.GenIntType, EGenType.GenIntType, EGenType.GenIntType);
@@ -288,10 +286,13 @@ BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSampler3D, EKeyw
 BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSamplerCube, EKeyword.VEC3, EKeyword.FLOAT);
 BuiltinFunction._create("textureLod", EKeyword.FLOAT, EKeyword.SAMPLER2D_SHADOW, EKeyword.VEC3, EKeyword.FLOAT);
 BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSampler2DArray, EKeyword.VEC3, EKeyword.FLOAT);
+BuiltinFunction._create("texture2DLodEXT", EGenType.GVec4, EGenType.GSampler2D, EKeyword.VEC2, EKeyword.FLOAT);
+BuiltinFunction._create("texture2DLodEXT", EGenType.GVec4, EGenType.GSampler3D, EKeyword.VEC3, EKeyword.FLOAT);
 
 BuiltinFunction._create("textureCube", EKeyword.SAMPLER_CUBE, EKeyword.VEC3);
 BuiltinFunction._create("textureCube", EKeyword.SAMPLER_CUBE, EKeyword.VEC3, EKeyword.FLOAT);
 BuiltinFunction._create("textureCubeLod", EKeyword.SAMPLER_CUBE, EKeyword.VEC3, EKeyword.FLOAT);
+BuiltinFunction._create("textureCubeLodEXT", EGenType.GVec4, EGenType.GSamplerCube, EKeyword.VEC3, EKeyword.FLOAT);
 
 BuiltinFunction._create(
   "textureOffset",

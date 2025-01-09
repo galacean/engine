@@ -64,16 +64,6 @@ export class SpotLight extends Light {
   /**
    * @internal
    */
-  override get _shadowProjectionMatrix(): Matrix {
-    const matrix = this._projectMatrix;
-    const fov = Math.min(Math.PI / 2, this.angle * 2 * Math.sqrt(2));
-    Matrix.perspective(fov, 1, this.shadowNearPlane, this.distance + this.shadowNearPlane, matrix);
-    return matrix;
-  }
-
-  /**
-   * @internal
-   */
   _appendData(lightIndex: number, data: ISpotLightShaderData): void {
     const cullingMaskStart = lightIndex * 2;
     const colorStart = lightIndex * 3;

@@ -20,6 +20,7 @@ export type { EngineSettings } from "./EngineSettings";
 export type { EngineConfiguration } from "./Engine";
 
 export { request } from "./asset/request";
+export type { RequestConfig } from "./asset/request";
 export { Loader } from "./asset/Loader";
 export { ContentRestorer } from "./asset/ContentRestorer";
 export { ResourceManager, resourceLoader } from "./asset/ResourceManager";
@@ -42,6 +43,7 @@ export { ReplacementFailureStrategy } from "./enums/ReplacementFailureStrategy";
 export { Downsampling } from "./enums/Downsampling";
 export { ColorSpace } from "./enums/ColorSpace";
 export { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
+export { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 export { XRManager } from "./xr/XRManager";
 export * from "./utils/index";
 export * from "./input/index";
@@ -64,6 +66,7 @@ export * from "./clone/CloneManager";
 export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
 export * from "./Utils";
+export * from "./audio/index";
 import { Polyfill } from "./Polyfill";
 
 export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";

@@ -1,6 +1,5 @@
 // @ts-ignore
 import { BoundingBox, Matrix, Vector3, Vector4 } from "@galacean/engine-math";
-import { SpriteMaskLayer } from "./2d";
 import { SpriteMaskInteraction } from "./2d/enums/SpriteMaskInteraction";
 import { Component } from "./Component";
 import { DependentMode, dependentComponents } from "./ComponentsDependencies";
@@ -10,6 +9,7 @@ import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Transform, TransformModifyFlags } from "./Transform";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
 import { IComponentCustomClone } from "./clone/ComponentCloner";
+import { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 import { Material } from "./material";
 import { ShaderMacro, ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
@@ -59,6 +59,9 @@ export class Renderer extends Component implements IComponentCustomClone {
   /** @internal */
   @ignoreClone
   _batchedTransformShaderData: boolean = false;
+  /** @internal */
+  @ignoreClone
+  _transformEntity: Entity;
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;
@@ -68,8 +71,6 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected _dirtyUpdateFlag: number = 0;
   @ignoreClone
   protected _rendererLayer: Vector4 = new Vector4();
-  @ignoreClone
-  protected _transform: Transform;
 
   @deepClone
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
@@ -172,7 +173,7 @@ export class Renderer extends Component implements IComponentCustomClone {
     this._addResourceReferCount(this.shaderData, 1);
 
     this._onTransformChanged = this._onTransformChanged.bind(this);
-    this._setTransform(entity.transform);
+    this._setTransformEntity(entity);
 
     shaderData.enableMacro(Renderer._receiveShadowMacro);
     shaderData.setVector4(Renderer._rendererLayerProperty, this._rendererLayer);
@@ -366,7 +367,7 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected override _onDestroy(): void {
     super._onDestroy();
 
-    this._setTransform(null);
+    this._setTransformEntity(null);
     this._addResourceReferCount(this.shaderData, -1);
 
     const materials = this._materials;
@@ -392,7 +393,7 @@ export class Renderer extends Component implements IComponentCustomClone {
    * @internal
    */
   _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
-    const worldMatrix = this._transform.worldMatrix;
+    const worldMatrix = this._transformEntity.transform.worldMatrix;
     if (onlyMVP) {
       this._updateProjectionRelatedShaderData(context, worldMatrix, batched);
     } else {
@@ -442,7 +443,7 @@ export class Renderer extends Component implements IComponentCustomClone {
       Matrix.invert(worldMatrix, normalMatrix);
       normalMatrix.transpose();
 
-      shaderData.setMatrix(Renderer._localMatrixProperty, this._transform.localMatrix);
+      shaderData.setMatrix(Renderer._localMatrixProperty, this._transformEntity.transform.localMatrix);
       shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
       shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
       shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
@@ -465,10 +466,13 @@ export class Renderer extends Component implements IComponentCustomClone {
   /**
    * @internal
    */
-  protected _setTransform(transform: Transform): void {
-    this._transform?._updateFlagManager.removeListener(this._onTransformChanged);
-    transform?._updateFlagManager.addListener(this._onTransformChanged);
-    this._transform = transform;
+  protected _setTransformEntity(entity: Entity): void {
+    const preEntity = this._transformEntity;
+    if (entity !== preEntity) {
+      preEntity?._updateFlagManager.removeListener(this._onTransformChanged);
+      entity?._updateFlagManager.addListener(this._onTransformChanged);
+      this._transformEntity = entity;
+    }
   }
 
   /**

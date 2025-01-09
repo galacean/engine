@@ -66,6 +66,11 @@ export class Camera extends Component {
   cullingMask: Layer = Layer.Everything;
 
   /**
+   * Determines which PostProcess to use.
+   */
+  postProcessMask: Layer = Layer.Everything;
+
+  /**
    * Depth texture mode.
    * If `DepthTextureMode.PrePass` is used, the depth texture can be accessed in the shader using `camera_DepthTexture`.
    *
@@ -128,8 +133,6 @@ export class Camera extends Component {
   @ignoreClone
   private _frustumChangeFlag: BoolUpdateFlag;
   @ignoreClone
-  private _transform: Transform;
-  @ignoreClone
   private _isViewMatrixDirty: BoolUpdateFlag;
   @ignoreClone
   private _isInvViewProjDirty: BoolUpdateFlag;
@@ -166,7 +169,7 @@ export class Camera extends Component {
    */
   get independentCanvasEnabled(): boolean {
     // Uber pass need internal RT
-    if (this.enablePostProcess && this.scene._postProcessManager.hasActiveEffect) {
+    if (this.enablePostProcess && this.scene.postProcessManager._isValid()) {
       return true;
     }
 
@@ -315,7 +318,7 @@ export class Camera extends Component {
     this._isViewMatrixDirty.flag = false;
 
     // Ignore scale
-    const transform = this._transform;
+    const transform = this._entity.transform;
     Matrix.rotationTranslation(transform.worldRotationQuaternion, transform.worldPosition, viewMatrix);
     viewMatrix.invert();
     return viewMatrix;
@@ -423,11 +426,9 @@ export class Camera extends Component {
   constructor(entity: Entity) {
     super(entity);
 
-    const transform = this.entity.transform;
-    this._transform = transform;
-    this._isViewMatrixDirty = transform.registerWorldChangeFlag();
-    this._isInvViewProjDirty = transform.registerWorldChangeFlag();
-    this._frustumChangeFlag = transform.registerWorldChangeFlag();
+    this._isViewMatrixDirty = entity.registerWorldChangeFlag();
+    this._isInvViewProjDirty = entity.registerWorldChangeFlag();
+    this._frustumChangeFlag = entity.registerWorldChangeFlag();
     this._renderPipeline = new BasicRenderPipeline(this);
     this._addResourceReferCount(this.shaderData, 1);
     this._updatePixelViewport();
@@ -607,7 +608,7 @@ export class Camera extends Component {
     const context = engine._renderContext;
     const virtualCamera = this._virtualCamera;
 
-    const transform = this.entity.transform;
+    const transform = this._entity.transform;
     Matrix.multiply(this.projectionMatrix, this.viewMatrix, virtualCamera.viewProjectionMatrix);
     virtualCamera.position.copyFrom(transform.worldPosition);
     if (virtualCamera.isOrthographic) {
@@ -738,7 +739,6 @@ export class Camera extends Component {
     this._virtualCamera = null;
     this._shaderData = null;
     this._frustumChangeFlag = null;
-    this._transform = null;
     this._isViewMatrixDirty = null;
     this._isInvViewProjDirty = null;
     this._viewport = null;
@@ -788,7 +788,7 @@ export class Camera extends Component {
   private _updateShaderData(): void {
     const shaderData = this.shaderData;
 
-    const transform = this._transform;
+    const transform = this._entity.transform;
     shaderData.setMatrix(Camera._inverseViewMatrixProperty, transform.worldMatrix);
     shaderData.setVector3(Camera._cameraPositionProperty, transform.worldPosition);
     shaderData.setVector3(Camera._cameraForwardProperty, transform.worldForward);
@@ -806,7 +806,7 @@ export class Camera extends Component {
   private _getInvViewProjMat(): Matrix {
     if (this._isInvViewProjDirty.flag) {
       this._isInvViewProjDirty.flag = false;
-      Matrix.multiply(this._transform.worldMatrix, this._getInverseProjectionMatrix(), this._invViewProjMat);
+      Matrix.multiply(this._entity.transform.worldMatrix, this._getInverseProjectionMatrix(), this._invViewProjMat);
     }
     return this._invViewProjMat;
   }

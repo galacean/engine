@@ -28,6 +28,8 @@
 %token PRECISION
 
 %token INVARIANT
+%token layout
+%token location
 
 %token or
 %token xor
@@ -64,15 +66,24 @@ gs_shader_program:
 
 global_declaration:
     precision_specifier
-    | variable_declaration
+    | variable_declaration_statement
     | struct_specifier
     | function_definition
     ;
 
 variable_declaration:
-    fully_specified_type id ';'
-    | fully_specified_type id array_specifier ';'
+    fully_specified_type id
+    | fully_specified_type id array_specifier
     ;
+
+variable_declaration_list:
+    variable_declaration
+    | variable_declaration_list ',' id
+    | variable_declaration_list ',' id array_specifier
+    ;
+
+variable_declaration_statement:
+    variable_declaration_list ';'
 
 variable_identifier:
     id
@@ -106,8 +117,12 @@ struct_declaration_list:
 
 struct_declaration:
     type_specifier struct_declarator_list ';'
-    | type_qualifier type_specifier struct_declaration_list ';'
+    | type_qualifier type_specifier struct_declarator_list ';'
+    | layout_qualifier type_specifier struct_declarator ';'
     ;
+
+layout_qualifier:
+    layout '(' location '=' INT_CONSTANT ')'
 
 struct_declarator_list:
     struct_declarator

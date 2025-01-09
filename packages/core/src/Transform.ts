@@ -2,8 +2,8 @@ import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@galacean/engi
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
-import { UpdateFlagManager } from "./UpdateFlagManager";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
+import { Logger } from "./base";
 
 /**
  * Used to implement transformation related functions.
@@ -55,10 +55,6 @@ export class Transform extends Component {
   @ignoreClone
   private _parentTransformCache: Transform = null;
   private _dirtyFlag: number = TransformModifyFlags.WmWpWeWqWs;
-
-  /** @internal */
-  @ignoreClone
-  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   /**
    * Local position.
@@ -562,14 +558,6 @@ export class Transform extends Component {
   }
 
   /**
-   * Register world transform change flag.
-   * @returns Change flag
-   */
-  registerWorldChangeFlag(): BoolUpdateFlag {
-    return this._updateFlagManager.createFlag(BoolUpdateFlag);
-  }
-
-  /**
    * @internal
    */
   _parentChange(): void {
@@ -586,6 +574,15 @@ export class Transform extends Component {
     scale.y < 0 && (isInvert = !isInvert);
     scale.z < 0 && (isInvert = !isInvert);
     return isInvert;
+  }
+
+  /**
+   * @internal
+   */
+  _copyFrom(transform: Transform): void {
+    this._position.copyFrom(transform.position);
+    this._rotation.copyFrom(transform.rotation);
+    this._scale.copyFrom(transform.scale);
   }
 
   protected override _onDestroy(): void {
@@ -762,7 +759,7 @@ export class Transform extends Component {
 
   private _worldAssociatedChange(type: number): void {
     this._dirtyFlag |= type;
-    this._updateFlagManager.dispatch(type);
+    this._entity._updateFlagManager.dispatch(type);
   }
 
   private _rotateByQuat(rotateQuat: Quaternion, relativeToLocal: boolean): void {
@@ -874,6 +871,16 @@ export class Transform extends Component {
       this._setDirtyFlagFalse(TransformModifyFlags.IsWorldUniformScaling);
     }
     return this._worldUniformScaling;
+  }
+
+  //--------------------------------------------------------------deprecated----------------------------------------------------------------
+  /**
+   * @deprecated
+   * Listen for changes in the world pose of this `Entity`.
+   * @returns Change flag
+   */
+  registerWorldChangeFlag(): BoolUpdateFlag {
+    return this.entity._updateFlagManager.createFlag(BoolUpdateFlag);
   }
 }
 

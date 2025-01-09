@@ -1,6 +1,6 @@
 import { Engine, Texture2D, TextureFormat } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
+import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
 describe("Texture2D", () => {
   const width = 1024;
@@ -11,7 +11,7 @@ describe("Texture2D", () => {
   let engine: Engine;
   let rhi: any;
   let isWebGL2: boolean;
-  before(async function () {
+  beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: canvas });
     // @ts-ignore
     rhi = engine._hardwareRenderer;

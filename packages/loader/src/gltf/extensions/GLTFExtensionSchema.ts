@@ -26,11 +26,11 @@ export interface IKHRLightsPunctual {
  * Interfaces from the KHR_materials_clearcoat extension
  */
 export interface IKHRMaterialsClearcoat {
-  clearcoatFactor: number;
-  clearcoatTexture: ITextureInfo;
-  clearcoatRoughnessFactor: number;
-  clearcoatRoughnessTexture: ITextureInfo;
-  clearcoatNormalTexture: IMaterialNormalTextureInfo;
+  clearcoatFactor?: number;
+  clearcoatTexture?: ITextureInfo;
+  clearcoatRoughnessFactor?: number;
+  clearcoatRoughnessTexture?: ITextureInfo;
+  clearcoatNormalTexture?: IMaterialNormalTextureInfo;
 }
 
 /**
@@ -176,6 +176,28 @@ export interface IGalaceanAnimation {
   }[];
 }
 
+/**
+ * Interfaces from the KHR_materials_iridescence extension
+ */
+export interface IKHRMaterialsIridescence {
+  iridescenceFactor?: number;
+  iridescenceTexture?: ITextureInfo;
+  iridescenceIor?: number;
+  iridescenceThicknessMinimum?: number;
+  iridescenceThicknessMaximum?: number;
+  iridescenceThicknessTexture?: ITextureInfo;
+}
+
+/**
+ * Interfaces from the KHR_materials_volume extension
+ */
+export interface IKHRMaterialsVolume {
+  thicknessFactor?: number;
+  thicknessTexture?: ITextureInfo;
+  attenuationDistance?: number;
+  attenuationColor?: number[];
+}
+
 export type GLTFExtensionSchema =
   | IKHRLightsPunctual_Light
   | IKHRMaterialsClearcoat
@@ -194,4 +216,6 @@ export type GLTFExtensionSchema =
   | IKHRXmp
   | IKHRXmp_Node
   | IGalaceanAnimation
+  | IKHRMaterialsIridescence
+  | IKHRMaterialsVolume
   | Object;

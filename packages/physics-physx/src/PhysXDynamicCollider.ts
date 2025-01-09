@@ -1,5 +1,5 @@
 import { IDynamicCollider } from "@galacean/engine-design";
-import { Quaternion, Vector3 } from "@galacean/engine";
+import { MathUtil, Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXCollider } from "./PhysXCollider";
 import { PhysXPhysics } from "./PhysXPhysics";
 
@@ -45,6 +45,14 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
+   * {@inheritDoc IDynamicCollider.getLinearVelocity }
+   */
+  getLinearVelocity(out: Vector3): Vector3 {
+    const velocity = this._pxActor.getLinearVelocity();
+    return out.set(velocity.x, velocity.y, velocity.z);
+  }
+
+  /**
    * {@inheritDoc IDynamicCollider.setLinearVelocity }
    */
   setLinearVelocity(value: Vector3): void {
@@ -52,10 +60,27 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
+   * {@inheritDoc IDynamicCollider.getAngularVelocity }
+   */
+  getAngularVelocity(out: Vector3): Vector3 {
+    const velocity = this._pxActor.getAngularVelocity();
+    return out.set(
+      MathUtil.radianToDegree(velocity.x),
+      MathUtil.radianToDegree(velocity.y),
+      MathUtil.radianToDegree(velocity.z)
+    );
+  }
+
+  /**
    * {@inheritDoc IDynamicCollider.setAngularVelocity }
    */
   setAngularVelocity(value: Vector3): void {
-    this._pxActor.setAngularVelocity(value, true);
+    PhysXDynamicCollider._tempTranslation.set(
+      MathUtil.degreeToRadian(value.x),
+      MathUtil.degreeToRadian(value.y),
+      MathUtil.degreeToRadian(value.z)
+    );
+    this._pxActor.setAngularVelocity(PhysXDynamicCollider._tempTranslation, true);
   }
 
   /**
@@ -63,6 +88,14 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
    */
   setMass(value: number): void {
     this._pxActor.setMass(value);
+  }
+
+  /**
+   * {@inheritDoc IDynamicCollider.getCenterOfMass }
+   */
+  getCenterOfMass(out: Vector3): Vector3 {
+    const { translation } = this._pxActor.getCMassLocalPose();
+    return out.set(translation.x, translation.y, translation.z);
   }
 
   /**
@@ -80,10 +113,25 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
+   * {@inheritDoc IDynamicCollider.getInertiaTensor }
+   */
+  getInertiaTensor(out: Vector3): Vector3 {
+    const inertia = this._pxActor.getMassSpaceInertiaTensor();
+    return out.set(inertia.x, inertia.y, inertia.z);
+  }
+
+  /**
+   * {@inheritDoc IDynamicCollider.setMassAndUpdateInertia }
+   */
+  setMassAndUpdateInertia(mass: number): void {
+    this._pxActor.setMassAndUpdateInertia(mass);
+  }
+
+  /**
    * {@inheritDoc IDynamicCollider.setMaxAngularVelocity }
    */
   setMaxAngularVelocity(value: number): void {
-    this._pxActor.setMaxAngularVelocity(value);
+    this._pxActor.setMaxAngularVelocity(MathUtil.degreeToRadian(value));
   }
 
   /**
@@ -112,23 +160,33 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
    * {@inheritDoc IDynamicCollider.setCollisionDetectionMode }
    */
   setCollisionDetectionMode(value: number): void {
+    const physX = this._physXPhysics._physX;
+
     switch (value) {
       case CollisionDetectionMode.Continuous:
-        this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eENABLE_CCD, true);
+        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, true);
         break;
       case CollisionDetectionMode.ContinuousDynamic:
-        this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, true);
+        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, false);
+        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, true);
         break;
       case CollisionDetectionMode.ContinuousSpeculative:
-        this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, true);
+        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, false);
+        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, true);
         break;
       case CollisionDetectionMode.Discrete:
-        const physX = this._physXPhysics._physX;
         this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, false);
         this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, false);
         this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, false);
         break;
     }
+  }
+
+  /**
+   * {@inheritDoc IDynamicCollider.setUseGravity }
+   */
+  setUseGravity(value: boolean): void {
+    this._pxActor.setActorFlag(this._physXPhysics._physX.PxActorFlag.eDISABLE_GRAVITY, !value);
   }
 
   /**
@@ -187,6 +245,13 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
    */
   sleep(): void {
     return this._pxActor.putToSleep();
+  }
+
+  /**
+   * {@inheritDoc IDynamicCollider.isSleeping }
+   */
+  isSleeping(): boolean {
+    return this._pxActor.isSleeping();
   }
 
   /**

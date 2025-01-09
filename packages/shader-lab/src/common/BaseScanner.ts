@@ -1,12 +1,17 @@
 import { ETokenType, ShaderRange, ShaderPosition } from ".";
+import { GSErrorName } from "../GSError";
 import { ShaderLab } from "../ShaderLab";
-import { ParserUtils } from "../Utils";
 import { BaseToken } from "./BaseToken";
+import { ShaderLabUtils } from "../ShaderLabUtils";
+import { Logger } from "@galacean/engine";
 
 export type OnToken = (token: BaseToken, scanner: BaseScanner) => void;
 
+/**
+ * @internal
+ */
 export default class BaseScanner {
-  private static _spaceCharsWithBreak = [" ", "\t", "\n"];
+  private static _spaceCharsWithBreak = [" ", "\t", "\n", "\r"];
   private static _spaceChars = [" ", "\t"];
   private static _checkIsIn(checked: string, chars: string[]): boolean {
     for (let i = 0; i < chars.length; i++) {
@@ -21,7 +26,7 @@ export default class BaseScanner {
   protected _currentIndex = 0;
   protected _source: string;
 
-  // #if _EDITOR
+  // #if _VERBOSE
   protected _column = 0;
   protected _line = 0;
   // #endif
@@ -34,15 +39,25 @@ export default class BaseScanner {
     return this._source;
   }
 
-  get curPosition(): ShaderPosition {
+  getCurPosition(): ShaderPosition {
     return ShaderLab.createPosition(
       this._currentIndex,
-      // #if _EDITOR
-      this._column,
-      this._line
+      // #if _VERBOSE
+      this._line,
+      this._column
       // #endif
     );
   }
+
+  // #if _VERBOSE
+  get line() {
+    return this._line;
+  }
+
+  get column() {
+    return this._column;
+  }
+  // #endif
 
   protected readonly _keywordsMap: Map<string, number>;
 
@@ -59,23 +74,22 @@ export default class BaseScanner {
     return this._source[this._currentIndex];
   }
 
+  getCurCharCode(): number {
+    return this._source.charCodeAt(this._currentIndex);
+  }
+
   advance(count = 1): void {
+    // #if _VERBOSE
     for (let i = 0; i < count; i++) {
       this._advance();
     }
+    // #else
+    this._currentIndex += count;
+    // #endif
   }
 
-  /**
-   * @internal
-   */
   _advance(): void {
-    if (this.isEnd()) {
-      return;
-    }
-
-    this._currentIndex++;
-
-    // #if _EDITOR
+    // #if _VERBOSE
     if (this.getCurChar() === "\n") {
       this._line += 1;
       this._column = 0;
@@ -83,6 +97,8 @@ export default class BaseScanner {
       this._column += 1;
     }
     // #endif
+
+    this._currentIndex++;
   }
 
   skipSpace(includeLineBreak: boolean): void {
@@ -98,20 +114,24 @@ export default class BaseScanner {
   skipCommentsAndSpace(): ShaderRange | undefined {
     this.skipSpace(true);
     if (this.peek(2) === "//") {
-      const start = this.curPosition;
+      const start = this.getCurPosition();
       this.advance(2);
       // single line comments
-      while (this.getCurChar() !== "\n" && !this.isEnd()) this._advance();
+      let curChar = this.getCurChar();
+      while (curChar !== "\n" && curChar !== "\r" && !this.isEnd()) {
+        this._advance();
+        curChar = this.getCurChar();
+      }
       this.skipCommentsAndSpace();
-      return ShaderLab.createRange(start, this.curPosition);
+      return ShaderLab.createRange(start, this.getCurPosition());
     } else if (this.peek(2) === "/*") {
-      const start = this.curPosition;
+      const start = this.getCurPosition();
       this.advance(2);
       //  multi-line comments
       while (this.peek(2) !== "*/" && !this.isEnd()) this._advance();
       this.advance(2);
       this.skipCommentsAndSpace();
-      return ShaderLab.createRange(start, this.curPosition);
+      return ShaderLab.createRange(start, this.getCurPosition());
     }
   }
 
@@ -124,9 +144,17 @@ export default class BaseScanner {
     this.skipCommentsAndSpace();
     const peek = this.peek(text.length);
     if (peek !== text) {
-      ParserUtils.throw(this._currentIndex, `Expect ${text}, got ${peek}`);
+      this.throwError(this.getCurPosition(), `Expect text "${text}", but got "${peek}"`);
     }
     this.advance(text.length);
+  }
+
+  throwError(pos: ShaderPosition | ShaderRange, ...msgs: any[]) {
+    const error = ShaderLabUtils.createGSError(msgs.join(" "), GSErrorName.ScannerError, this._source, pos);
+    // #if _VERBOSE
+    Logger.error(error!.toString());
+    // #endif
+    throw error;
   }
 
   scanPairedText(left: string, right: string, balanced = false, skipLeading = false) {
@@ -157,10 +185,10 @@ export default class BaseScanner {
 
   scanToken(onToken?: OnToken, splitCharRegex = /\w/) {
     this.skipCommentsAndSpace();
-    const start = this.curPosition;
+    const start = this.getCurPosition();
     if (this.isEnd()) return;
     while (splitCharRegex.test(this.getCurChar()) && !this.isEnd()) this._advance();
-    const end = this.curPosition;
+    const end = this.getCurPosition();
 
     if (start.index === end.index) {
       this._advance();

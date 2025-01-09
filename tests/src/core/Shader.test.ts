@@ -14,11 +14,8 @@ import {
   SubShader
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { ShaderLab } from "@galacean/engine-shader-lab";
-import chai, { expect } from "chai";
-import spies from "chai-spies";
-
-chai.use(spies);
+import { ShaderLab } from "@galacean/engine-shaderlab";
+import { vi, describe, expect, it } from "vitest";
 
 const shaderLab = new ShaderLab();
 
@@ -31,10 +28,10 @@ describe("Shader", () => {
       customShader = Shader.create("custom", [new SubShader("Default", [new ShaderPass(customVS, customFS)])]);
 
       // Create same name shader
-      const errorSpy = chai.spy.on(console, "error");
+      const errorSpy = vi.spyOn(console, "error");
       Shader.create("custom", [new SubShader("Default", [new ShaderPass(customVS, customFS)])]);
-      expect(errorSpy).to.have.been.called.with('Shader named "custom" already exists.');
-      chai.spy.restore(console, "error");
+      expect(errorSpy).toHaveBeenCalledWith('Shader named "custom" already exists.');
+      vi.resetAllMocks();
 
       // Create shader by empty SubShader array
       expect(() => {

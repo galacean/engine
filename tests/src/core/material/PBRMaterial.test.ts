@@ -1,10 +1,10 @@
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Texture2D, PBRMaterial } from "@galacean/engine-core";
-import { expect } from "chai";
+import { describe, beforeAll, expect, it } from "vitest";
 
-describe("PBRMaterial",  () => {
+describe("PBRMaterial", () => {
   let engine: WebGLEngine;
-  before(async function () {
+  beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   });
 

@@ -1,11 +1,10 @@
 import { ShaderRange, ShaderPosition } from "../common";
 import LexerUtils from "../lexer/Utils";
-// #if _EDITOR
+// #if _VERBOSE
 import PpSourceMap from "./sourceMap";
 // #endif
 import BaseScanner from "../common/BaseScanner";
 import { BaseToken, EOF } from "../common/BaseToken";
-import { ParserUtils } from "../Utils";
 import { EPpKeyword, EPpToken, PpKeyword } from "./constants";
 import { PpUtils } from "./Utils";
 import { ShaderLab } from "../ShaderLab";
@@ -13,14 +12,9 @@ import { ShaderLab } from "../ShaderLab";
 export type OnToken = (token: BaseToken, scanner: PpScanner) => void;
 
 export default class PpScanner extends BaseScanner {
-  private static _splitCharacters = /[\w#.]/;
-
-  private line: number = 0;
-  private column: number = 0;
-
   private macroLvl = 0;
 
-  // #if _EDITOR
+  // #if _VERBOSE
   readonly sourceMap = new PpSourceMap();
   readonly file: string;
   readonly blockRange?: ShaderRange;
@@ -28,13 +22,13 @@ export default class PpScanner extends BaseScanner {
 
   constructor(
     source: string,
-    // #if _EDITOR
+    // #if _VERBOSE
     file = "__main__",
     blockRange?: ShaderRange
     // #endif
   ) {
     super(source);
-    // #if _EDITOR
+    // #if _VERBOSE
     this.file = file;
     this.blockRange = blockRange;
     // #endif
@@ -61,21 +55,21 @@ export default class PpScanner extends BaseScanner {
     const ret: BaseToken[] = [];
     while (true) {
       this.skipSpace(true);
-      if (LexerUtils.isLetter(this.getCurChar())) {
+      if (LexerUtils.isLetter(this.getCurCharCode())) {
         ret.push(this.scanWord());
       } else if (this.getCurChar() === nonLetterChar) {
-        this.advance();
+        this._advance();
         return ret;
       } else {
-        this.advance();
+        this._advance();
       }
     }
   }
 
   scanWord(skipNonLetter = false): BaseToken {
     if (skipNonLetter) {
-      while (!LexerUtils.isLetter(this.getCurChar()) && !this.isEnd()) {
-        this.advance();
+      while (!LexerUtils.isLetter(this.getCurCharCode()) && !this.isEnd()) {
+        this._advance();
       }
     } else {
       this.skipSpace(true);
@@ -84,18 +78,18 @@ export default class PpScanner extends BaseScanner {
     if (this.isEnd()) return EOF;
 
     const start = this._currentIndex;
-    while (LexerUtils.isLetter(this.getCurChar()) && !this.isEnd()) {
-      this.advance();
+    while (LexerUtils.isLetter(this.getCurCharCode()) && !this.isEnd()) {
+      this._advance();
     }
     const end = this._currentIndex;
     const word = this._source.slice(start, end);
     if (end === start) {
-      ParserUtils.throw(this.getShaderPosition(), "no word found.");
+      this.throwError(this.getShaderPosition(0), "no word found.");
     }
     const kw = PpKeyword.get(word);
     if (kw) {
       const token = BaseToken.pool.get();
-      token.set(kw, word, this.getShaderPosition());
+      token.set(kw, word, this.getShaderPosition(0));
       return token;
     }
 
@@ -104,8 +98,17 @@ export default class PpScanner extends BaseScanner {
     return token;
   }
 
-  getShaderPosition(offset /** offset from starting point */ = 0) {
-    return ShaderLab.createPosition(this._currentIndex - offset, this.line, this.column - offset);
+  /**
+   * @param offset - Offset from starting point
+   */
+  getShaderPosition(offset: number) {
+    return ShaderLab.createPosition(
+      this._currentIndex - offset,
+      // #if _VERBOSE
+      this.line,
+      this.column - offset
+      // #endif
+    );
   }
 
   /**
@@ -113,30 +116,31 @@ export default class PpScanner extends BaseScanner {
    * @returns token split by space
    */
   override scanToken(onToken?: OnToken): BaseToken | undefined {
-    this.skipSpace(true);
-    this._skipComments();
+    this.skipCommentsAndSpace();
     if (this.isEnd()) {
       return;
     }
-    const start = this._currentIndex;
-    while (PpScanner._splitCharacters.test(this.getCurChar()) && !this.isEnd()) {
-      this._advance();
+    const { _source: source } = this;
+    let start = this._currentIndex;
+    let found = false;
+    for (var n = source.length; this._currentIndex < n; ) {
+      if (LexerUtils.isPpCharactors(source.charCodeAt(this._currentIndex))) {
+        this._advance();
+        found = true;
+      } else {
+        if (found) {
+          break;
+        }
+        this._advance();
+        this.skipCommentsAndSpace();
+        start = this._currentIndex;
+      }
     }
 
-    // Not advance
-    if (start === this._currentIndex) {
-      this._advance();
-      return this.scanToken(onToken);
-    }
-
-    const lexeme = this._source.slice(start, this._currentIndex);
-
+    const lexeme = source.slice(start, this._currentIndex);
     const ret = BaseToken.pool.get();
-    ret.set(
-      PpKeyword.has(lexeme) ? PpKeyword.get(lexeme) : EPpToken.id,
-      lexeme,
-      this.getShaderPosition(this._currentIndex - start)
-    );
+    const tokenType = PpKeyword.get(lexeme);
+    ret.set(tokenType ?? EPpToken.id, lexeme, this.getShaderPosition(this._currentIndex - start));
     onToken?.(ret, this);
     return ret;
   }
@@ -144,14 +148,14 @@ export default class PpScanner extends BaseScanner {
   scanQuotedString(): BaseToken<EPpToken.string_const> {
     this.skipSpace(true);
     if (this.getCurChar() !== '"') {
-      ParserUtils.throw(this.getShaderPosition(), "unexpected char, expected '\"'");
+      this.throwError(this.getShaderPosition(0), "unexpected char, expected '\"'");
     }
-    const ShaderPosition = this.getShaderPosition();
+    const ShaderPosition = this.getShaderPosition(0);
     this._advance();
     const start = this._currentIndex;
     while (this.getCurChar() !== '"' && !this.isEnd()) this._advance();
     if (this.isEnd()) {
-      ParserUtils.throw(this.getShaderPosition(), "unexpected char, expected '\"'");
+      this.throwError(this.getShaderPosition(0), "unexpected char, expected '\"'");
     }
     const word = this._source.slice(start, this._currentIndex);
 
@@ -163,7 +167,7 @@ export default class PpScanner extends BaseScanner {
   scanToChar(char: string) {
     const source = this._source;
     while (source[this._currentIndex] !== char && !this.isEnd()) {
-      this.advance();
+      this._advance();
     }
   }
 
@@ -172,7 +176,7 @@ export default class PpScanner extends BaseScanner {
     nextDirective: BaseToken;
   } {
     const start = this._currentIndex;
-    const ShaderPosition = this.getShaderPosition();
+    const ShaderPosition = this.getShaderPosition(0);
 
     const startLvl = this.macroLvl;
     let directive = this.scanDirective()!;
@@ -216,7 +220,7 @@ export default class PpScanner extends BaseScanner {
     while (!this.isEnd() && (directive.type !== EPpKeyword.endif || startLvl - 1 !== this.macroLvl)) {
       directive = this.scanDirective()!;
     }
-    return this.getShaderPosition();
+    return this.getShaderPosition(0);
   }
 
   peekNonSpace() {
@@ -229,16 +233,16 @@ export default class PpScanner extends BaseScanner {
 
   scanInteger() {
     const start = this._currentIndex;
-    while (LexerUtils.isNum(this.getCurChar())) {
-      this.advance();
+    while (LexerUtils.isNum(this.getCurCharCode())) {
+      this._advance();
     }
     if (this._currentIndex === start) {
-      ParserUtils.throw(this.getShaderPosition(), "no integer found");
+      this.throwError(this.getShaderPosition(0), "no integer found");
     }
     const integer = this._source.slice(start, this._currentIndex);
 
     const token = BaseToken.pool.get();
-    token.set(EPpToken.int_constant, integer, this.getShaderPosition());
+    token.set(EPpToken.int_constant, integer, this.getShaderPosition(0));
     return token;
   }
 
@@ -259,7 +263,7 @@ export default class PpScanner extends BaseScanner {
         token.set(EPpToken.line_remain, line, this.getShaderPosition(line.length));
         return token;
       }
-      this.advance();
+      this._advance();
       const commentRange = this._skipComments();
       if (commentRange) {
         commentRange.start.index -= start;
@@ -291,21 +295,21 @@ export default class PpScanner extends BaseScanner {
 
   private _skipComments(): ShaderRange | undefined {
     if (this.peek(2) === "//") {
-      const start = this.getShaderPosition();
+      const start = this.getShaderPosition(0);
       // single line comments
       while (this.getCurChar() !== "\n" && !this.isEnd()) {
         this._advance();
       }
-      return ShaderLab.createRange(start, this.curPosition);
+      return ShaderLab.createRange(start, this.getCurPosition());
     } else if (this.peek(2) === "/*") {
-      const start = this.getShaderPosition();
+      const start = this.getShaderPosition(0);
       //  multi-line comments
       this.advance(2);
       while (this.peek(2) !== "*/" && !this.isEnd()) {
         this._advance();
       }
       this.advance(2);
-      return ShaderLab.createRange(start, this.getShaderPosition());
+      return ShaderLab.createRange(start, this.getShaderPosition(0));
     }
   }
 }
