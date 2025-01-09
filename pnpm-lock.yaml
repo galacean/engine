@@ -316,9 +316,6 @@ importers:
       '@galacean/engine-ui':
         specifier: workspace:*
         version: link:../packages/ui
-      '@galacean/engine-shader-shaderlab':
-        specifier: workspace:*
-        version: link:../packages/shader-shaderlab
     devDependencies:
       '@vitest/browser':
         specifier: 2.1.3
