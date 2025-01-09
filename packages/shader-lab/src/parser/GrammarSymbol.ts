@@ -10,6 +10,8 @@ export enum NoneTerminal {
   // glsl
   global_declaration,
   variable_declaration,
+  variable_declaration_list,
+  variable_declaration_statement,
   array_specifier_list,
   array_specifier,
   ext_builtin_type_specifier_nonarray,

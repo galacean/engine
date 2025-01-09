@@ -21,7 +21,7 @@ export class Button extends UIInteractive {
   }
 
   override onPointerClick(event: PointerEventData): void {
-    if (!this.globalInteractive) return;
+    if (!this._getGlobalInteractive()) return;
     const listeners = this._listeners.getLoopArray();
     for (let i = 0, n = listeners.length; i < n; i++) {
       const listener = listeners[i];
