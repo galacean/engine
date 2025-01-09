@@ -5,6 +5,7 @@ export { CompareFunction } from "./enums/CompareFunction";
 export { CullMode } from "./enums/CullMode";
 export { RenderStateElementKey as RenderStateDataKey } from "./enums/RenderStateElementKey";
 export { RenderQueueType } from "./enums/RenderQueueType";
+export { ShaderDataGroup } from "./enums/ShaderDataGroup";
 export { ShaderPropertyType } from "./enums/ShaderPropertyType";
 export { StencilOperation } from "./enums/StencilOperation";
 export { ShaderPlatformTarget } from "./enums/ShaderPlatformTarget";

@@ -2,9 +2,10 @@ import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@galacean/engine-
 import { Engine } from "../../Engine";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { ReferResource } from "../../asset/ReferResource";
+import { ignoreClone } from "../../clone/CloneManager";
 import { Texture2D } from "../../texture/Texture2D";
-import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { SpriteAtlas } from "../atlas/SpriteAtlas";
+import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 
 /**
  * 2D sprite.
@@ -60,7 +61,7 @@ export class Sprite extends ReferResource {
    *
    * @remarks
    * If width is set, return the set value,
-   * otherwise return the width calculated according to `Texture.width`, `Sprite.region`, `Sprite.atlasRegion`, `Sprite.atlasRegionOffset` and `Engine._pixelsPerUnit`.
+   * otherwise return the width calculated according to `Texture.width`, `Sprite.region`, `Sprite.atlasRegion` and `Sprite.atlasRegionOffset`.
    */
   get width(): number {
     if (this._customWidth !== undefined) {
@@ -83,7 +84,7 @@ export class Sprite extends ReferResource {
    *
    * @remarks
    * If height is set, return the set value,
-   * otherwise return the height calculated according to `Texture.height`, `Sprite.region`, `Sprite.atlasRegion`, `Sprite.atlasRegionOffset` and `Engine._pixelsPerUnit`.
+   * otherwise return the height calculated according to `Texture.height`, `Sprite.region`, `Sprite.atlasRegion` and `Sprite.atlasRegionOffset`.
    */
   get height(): number {
     if (this._customHeight !== undefined) {
@@ -325,9 +326,9 @@ export class Sprite extends ReferResource {
     positions[2].set(left, top);
     positions[3].set(right, top);
 
-    const { min, max } = this._bounds;
-    min.set(left, bottom, 0);
-    max.set(right, top, 0);
+    const bounds = this._bounds;
+    bounds.min.set(left, bottom, 0);
+    bounds.max.set(right, top, 0);
     this._dirtyUpdateFlag &= ~SpriteUpdateFlags.positions;
   }
 
@@ -382,6 +383,7 @@ export class Sprite extends ReferResource {
     this._updateFlagManager.dispatch(type);
   }
 
+  @ignoreClone
   private _onRegionChange(): void {
     const { _region: region } = this;
     // @ts-ignore
@@ -397,10 +399,12 @@ export class Sprite extends ReferResource {
     region._onValueChanged = this._onRegionChange;
   }
 
+  @ignoreClone
   private _onPivotChange(): void {
     this._dispatchSpriteChange(SpriteModifyFlags.pivot);
   }
 
+  @ignoreClone
   private _onBorderChange(): void {
     const { _border: border } = this;
     // @ts-ignore

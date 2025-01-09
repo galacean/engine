@@ -45,23 +45,16 @@ export class Renderer extends Component implements IComponentCustomClone {
   /** @internal */
   @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
-  /** @internal */
-  @ignoreClone
-  _bounds: BoundingBox = new BoundingBox();
   @ignoreClone
   _renderFrameCount: number;
   /** @internal */
   @assignmentClone
   _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
   /** @internal */
-  @assignmentClone
-  _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
-  /** @internal */
   @ignoreClone
   _batchedTransformShaderData: boolean = false;
-  /** @internal */
-  @ignoreClone
-  _transformEntity: Entity;
+  @assignmentClone
+  _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;
@@ -71,6 +64,10 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected _dirtyUpdateFlag: number = 0;
   @ignoreClone
   protected _rendererLayer: Vector4 = new Vector4();
+  @ignoreClone
+  protected _bounds: BoundingBox = new BoundingBox();
+  @ignoreClone
+  protected _transformEntity: Entity;
 
   @deepClone
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
@@ -140,7 +137,7 @@ export class Renderer extends Component implements IComponentCustomClone {
   }
 
   /**
-   * The bounding volume of the renderer.
+   * The world bounding volume of the renderer.
    */
   get bounds(): BoundingBox {
     if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
@@ -364,6 +361,13 @@ export class Renderer extends Component implements IComponentCustomClone {
   /**
    * @internal
    */
+  _isFrontFaceInvert(): boolean {
+    return this._transformEntity.transform._isFrontFaceInvert();
+  }
+
+  /**
+   * @internal
+   */
   protected override _onDestroy(): void {
     super._onDestroy();
 
@@ -475,21 +479,12 @@ export class Renderer extends Component implements IComponentCustomClone {
     }
   }
 
-  /**
-   * @internal
-   */
   protected _updateBounds(worldBounds: BoundingBox): void {}
 
-  /**
-   * @internal
-   */
   protected _render(context: RenderContext): void {
     throw "not implement";
   }
 
-  /**
-   * @internal
-   */
   private _createInstanceMaterial(material: Material, index: number): Material {
     const insMaterial: Material = material.clone();
     insMaterial.name = insMaterial.name + "(Instance)";
@@ -517,18 +512,12 @@ export class Renderer extends Component implements IComponentCustomClone {
     }
   }
 
-  /**
-   * @internal
-   */
   @ignoreClone
   protected _onTransformChanged(type: TransformModifyFlags): void {
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 }
 
-/**
- * @internal
- */
 export enum RendererUpdateFlags {
   /** Include world position and world bounds. */
   WorldVolume = 0x1

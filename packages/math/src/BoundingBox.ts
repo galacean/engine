@@ -127,7 +127,11 @@ export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, Boun
     const centerX = max._x + min._x;
     const centerY = max._y + min._y;
     const centerZ = max._z + min._z;
-    out.set(isNaN(centerX) ? 0 : centerX * 0.5, isNaN(centerY) ? 0 : centerY * 0.5, isNaN(centerZ) ? 0 : centerZ * 0.5);
+    out.set(
+      Number.isNaN(centerX) ? 0 : centerX * 0.5,
+      Number.isNaN(centerY) ? 0 : centerY * 0.5,
+      Number.isNaN(centerZ) ? 0 : centerZ * 0.5
+    );
     return out;
   }
 
@@ -141,7 +145,11 @@ export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, Boun
     const extentX = max._x - min._x;
     const extentY = max._y - min._y;
     const extentZ = max._z - min._z;
-    out.set(isNaN(extentX) ? 0 : extentX * 0.5, isNaN(extentY) ? 0 : extentY * 0.5, isNaN(extentZ) ? 0 : extentZ * 0.5);
+    out.set(
+      Number.isNaN(extentX) ? 0 : extentX * 0.5,
+      Number.isNaN(extentY) ? 0 : extentY * 0.5,
+      Number.isNaN(extentZ) ? 0 : extentZ * 0.5
+    );
     return out;
   }
 
