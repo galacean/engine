@@ -245,7 +245,7 @@ export class GradientColorKey {
 
   set time(value: number) {
     this._time = value;
-   this._onValueChanged?.();
+    this._onValueChanged?.();
   }
 
   /**
@@ -293,7 +293,7 @@ export class GradientAlphaKey {
 
   set time(value: number) {
     this._time = value;
-   this._onValueChanged?.();
+    this._onValueChanged?.();
   }
 
   /**
@@ -305,7 +305,7 @@ export class GradientAlphaKey {
 
   set alpha(value: number) {
     this._alpha = value;
-   this._onValueChanged?.();
+    this._onValueChanged?.();
   }
 
   /**

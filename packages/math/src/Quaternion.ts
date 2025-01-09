@@ -433,7 +433,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
 
   public set x(value: number) {
     this._x = value;
-   this._onValueChanged?.();
+    this._onValueChanged?.();
   }
 
   /**
@@ -445,7 +445,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
 
   public set y(value: number) {
     this._y = value;
-   this._onValueChanged?.();
+    this._onValueChanged?.();
   }
 
   /**
@@ -457,7 +457,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
 
   public set z(value: number) {
     this._z = value;
-   this._onValueChanged?.();
+    this._onValueChanged?.();
   }
 
   /**
@@ -479,7 +479,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
 
   public set w(value: number) {
     this._w = value;
-   this._onValueChanged?.();
+    this._onValueChanged?.();
   }
 
   /**
@@ -509,7 +509,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     this._y = y;
     this._z = z;
     this._w = w;
-   this._onValueChanged?.();
+    this._onValueChanged?.();
     return this;
   }
 
@@ -521,7 +521,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     this._x *= -1;
     this._y *= -1;
     this._z *= -1;
-   this._onValueChanged?.();
+    this._onValueChanged?.();
     return this;
   }
 
@@ -559,7 +559,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     this._y = 0;
     this._z = 0;
     this._w = 1;
-   this._onValueChanged?.();
+    this._onValueChanged?.();
     return this;
   }
 
@@ -726,7 +726,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     this._y = source.y;
     this._z = source.z;
     this._w = source.w;
-   this._onValueChanged?.();
+    this._onValueChanged?.();
     return this;
   }
 
@@ -754,7 +754,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     this._y = array[offset + 1];
     this._z = array[offset + 2];
     this._w = array[offset + 3];
-   this._onValueChanged?.();
+    this._onValueChanged?.();
     return this;
   }
 
