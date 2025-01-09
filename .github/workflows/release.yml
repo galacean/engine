@@ -107,7 +107,7 @@ jobs:
           cat ${{ github.workspace }}/platform-adapter/package.json
 
       - name: Bundle polyfill and engine
-        uses: galacean/platform-adapter@main
+        uses: galacean/platform-adapter@0.0
         env:
           ADAPTER_BUNDLE_SETTINGS: |
             {
