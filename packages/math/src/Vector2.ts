@@ -196,7 +196,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
 
   public set x(value: number) {
     this._x = value;
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
   }
 
   /**
@@ -208,7 +208,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
 
   public set y(value: number) {
     this._y = value;
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
   }
 
   /**
@@ -230,7 +230,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   set(x: number, y: number): Vector2 {
     this._x = x;
     this._y = y;
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
     return this;
   }
 
@@ -242,7 +242,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   add(right: Vector2): Vector2 {
     this._x += right._x;
     this._y += right._y;
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
     return this;
   }
 
@@ -254,7 +254,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   subtract(right: Vector2): Vector2 {
     this._x -= right._x;
     this._y -= right._y;
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
     return this;
   }
 
@@ -266,7 +266,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   multiply(right: Vector2): Vector2 {
     this._x *= right._x;
     this._y *= right._y;
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
     return this;
   }
 
@@ -278,7 +278,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   divide(right: Vector2): Vector2 {
     this._x /= right._x;
     this._y /= right._y;
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
     return this;
   }
 
@@ -307,7 +307,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   negate(): Vector2 {
     this._x = -this._x;
     this._y = -this._y;
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
     return this;
   }
 
@@ -328,7 +328,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   scale(s: number): Vector2 {
     this._x *= s;
     this._y *= s;
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
     return this;
   }
 
@@ -348,7 +348,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   copyFrom(source: Vector2Like): Vector2 {
     this._x = source.x;
     this._y = source.y;
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
     return this;
   }
 
@@ -372,7 +372,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   copyFromArray(array: ArrayLike<number>, offset: number = 0): Vector2 {
     this._x = array[offset];
     this._y = array[offset + 1];
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
     return this;
   }
 

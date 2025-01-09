@@ -330,7 +330,7 @@ export class Vector3 implements IClone<Vector3>, ICopy<Vector3Like, Vector3> {
 
   public set x(value: number) {
     this._x = value;
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
   }
 
   /**
@@ -342,7 +342,7 @@ export class Vector3 implements IClone<Vector3>, ICopy<Vector3Like, Vector3> {
 
   public set y(value: number) {
     this._y = value;
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
   }
 
   /**
@@ -354,7 +354,7 @@ export class Vector3 implements IClone<Vector3>, ICopy<Vector3Like, Vector3> {
 
   public set z(value: number) {
     this._z = value;
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
   }
 
   /**
@@ -380,7 +380,7 @@ export class Vector3 implements IClone<Vector3>, ICopy<Vector3Like, Vector3> {
     this._x = x;
     this._y = y;
     this._z = z;
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
     return this;
   }
 
@@ -393,7 +393,7 @@ export class Vector3 implements IClone<Vector3>, ICopy<Vector3Like, Vector3> {
     this._x += right._x;
     this._y += right._y;
     this._z += right._z;
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
     return this;
   }
 
@@ -406,7 +406,7 @@ export class Vector3 implements IClone<Vector3>, ICopy<Vector3Like, Vector3> {
     this._x -= right._x;
     this._y -= right._y;
     this._z -= right._z;
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
     return this;
   }
 
@@ -419,7 +419,7 @@ export class Vector3 implements IClone<Vector3>, ICopy<Vector3Like, Vector3> {
     this._x *= right._x;
     this._y *= right._y;
     this._z *= right._z;
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
     return this;
   }
 
@@ -432,7 +432,7 @@ export class Vector3 implements IClone<Vector3>, ICopy<Vector3Like, Vector3> {
     this._x /= right._x;
     this._y /= right._y;
     this._z /= right._z;
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
     return this;
   }
 
@@ -462,7 +462,7 @@ export class Vector3 implements IClone<Vector3>, ICopy<Vector3Like, Vector3> {
     this._x = -this._x;
     this._y = -this._y;
     this._z = -this._z;
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
     return this;
   }
 
@@ -484,7 +484,7 @@ export class Vector3 implements IClone<Vector3>, ICopy<Vector3Like, Vector3> {
     this._x *= s;
     this._y *= s;
     this._z *= s;
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
     return this;
   }
 
@@ -557,7 +557,7 @@ export class Vector3 implements IClone<Vector3>, ICopy<Vector3Like, Vector3> {
     this._x = source.x;
     this._y = source.y;
     this._z = source.z;
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
     return this;
   }
 
@@ -583,7 +583,7 @@ export class Vector3 implements IClone<Vector3>, ICopy<Vector3Like, Vector3> {
     this._x = array[offset];
     this._y = array[offset + 1];
     this._z = array[offset + 2];
-    this._onValueChanged && this._onValueChanged();
+   this._onValueChanged?.();
     return this;
   }
 
