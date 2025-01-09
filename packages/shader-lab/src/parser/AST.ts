@@ -51,6 +51,9 @@ export abstract class TreeNode implements IPoolElement {
     return visitor.defaultCodeGen(this.children);
   }
 
+  /**
+   * Do semantic analyze right after the ast node is generated.
+   */
   semanticAnalyze(sa: SematicAnalyzer) {}
 }
 
@@ -178,21 +181,31 @@ export namespace ASTNode {
     }
 
     override semanticAnalyze(sa: SematicAnalyzer): void {
-      const fullyType = this.children[0] as FullySpecifiedType;
-      const id = this.children[1] as Token;
-      this.typeSpecifier = fullyType.typeSpecifier;
+      const children = this.children;
+      const childrenLen = children.length;
+      const fullyType = children[0] as FullySpecifiedType;
+      const typeSpecifier = fullyType.typeSpecifier;
+      this.typeSpecifier = typeSpecifier;
+      this.arraySpecifier = typeSpecifier.arraySpecifier;
+
+      const id = children[1] as Token;
 
       let sm: VarSymbol;
-      if (this.children.length === 2 || this.children.length === 4) {
-        const symbolType = new SymbolType(fullyType.type, fullyType.typeSpecifier.lexeme);
-        const initializer = this.children[3] as Initializer;
+      if (childrenLen === 2 || childrenLen === 4) {
+        const symbolType = new SymbolType(fullyType.type, typeSpecifier.lexeme, this.arraySpecifier);
+        const initializer = children[3] as Initializer;
 
         sm = new VarSymbol(id.lexeme, symbolType, false, initializer);
       } else {
-        const arraySpecifier = this.children[2] as ArraySpecifier;
+        const arraySpecifier = children[2] as ArraySpecifier;
+        // #if _VERBOSE
+        if (arraySpecifier && this.arraySpecifier) {
+          sa.reportError(arraySpecifier.location, "Array of array is not supported.");
+        }
+        // #endif
         this.arraySpecifier = arraySpecifier;
-        const symbolType = new SymbolType(fullyType.type, fullyType.typeSpecifier.lexeme, arraySpecifier);
-        const initializer = this.children[4] as Initializer;
+        const symbolType = new SymbolType(fullyType.type, typeSpecifier.lexeme, this.arraySpecifier);
+        const initializer = children[4] as Initializer;
 
         sm = new VarSymbol(id.lexeme, symbolType, false, initializer);
       }
@@ -287,6 +300,9 @@ export namespace ASTNode {
     }
     get arraySize(): number {
       return (this.children?.[1] as ArraySpecifier)?.size;
+    }
+    get arraySpecifier(): ArraySpecifier {
+      return this.children[1] as ArraySpecifier;
     }
 
     get isCustom() {
@@ -701,9 +717,9 @@ export namespace ASTNode {
           }
         }
         // #if _VERBOSE
-        const builtinFn = BuiltinFunction.getFn(fnIdent, ...(paramSig ?? []));
+        const builtinFn = BuiltinFunction.getFn(fnIdent, paramSig);
         if (builtinFn) {
-          this.type = BuiltinFunction.getReturnType(builtinFn.fun, builtinFn.genType);
+          this.type = builtinFn.realReturnType;
           return;
         }
         // #endif
@@ -1110,17 +1126,49 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.variable_declaration)
   export class VariableDeclaration extends TreeNode {
+    type: FullySpecifiedType;
+
     override semanticAnalyze(sa: SematicAnalyzer): void {
-      const type = this.children[0] as FullySpecifiedType;
-      const ident = this.children[1] as Token;
-      let sm: VarSymbol;
-      sm = new VarSymbol(ident.lexeme, new SymbolType(type.type, type.typeSpecifier.lexeme), true, this);
+      const children = this.children;
+      const type = children[0] as FullySpecifiedType;
+      const ident = children[1] as Token;
+      this.type = type;
+      const sm = new VarSymbol(ident.lexeme, new SymbolType(type.type, type.typeSpecifier.lexeme), true, this);
 
       sa.symbolTableStack.insert(sm);
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
-      return visitor.visitGlobalVariableDeclaration(this);
+      return visitor.visitGlobalVariableDeclaration(this) + ";";
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.variable_declaration_list)
+  export class VariableDeclarationList extends TreeNode {
+    type: FullySpecifiedType;
+
+    override semanticAnalyze(sa: SematicAnalyzer): void {
+      const { children } = this;
+      const length = children.length;
+      const variableDeclaration = children[0] as VariableDeclaration;
+      const type = variableDeclaration.type;
+      this.type = type;
+
+      if (length === 1) {
+        return;
+      }
+
+      const ident = children[2] as Token;
+
+      const newVariable = VariableDeclaration.pool.get();
+      if (length === 3) {
+        // variable_declaration_list ',' id
+        newVariable.set(ident.location, [type, ident]);
+      } else {
+        // variable_declaration_list ',' id array_specifier
+        newVariable.set(ident.location, [type, ident, children[3] as ArraySpecifier]);
+      }
+      newVariable.semanticAnalyze(sa);
     }
   }
 

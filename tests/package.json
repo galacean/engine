@@ -24,7 +24,8 @@
     "@galacean/engine-physics-lite": "workspace:*",
     "@galacean/engine-shaderlab": "workspace:*",
     "@galacean/engine-physics-physx": "workspace:*",
-    "@galacean/engine-ui": "workspace:*"
+    "@galacean/engine-ui": "workspace:*",
+    "@galacean/engine-shader-shaderlab": "workspace:*"
   },
   "devDependencies": {
     "@vitest/browser": "2.1.3"

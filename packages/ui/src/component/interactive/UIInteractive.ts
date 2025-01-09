@@ -72,15 +72,6 @@ export class UIInteractive extends Script implements IGroupAble {
   }
 
   /**
-   * Whether the interactive is enabled globally.
-   * @remarks The global interactive is determined by the interactive of itself and its group.
-   */
-  get globalInteractive(): boolean {
-    this._updateGlobalInteractive();
-    return this._globalInteractive;
-  }
-
-  /**
    * @internal
    */
   constructor(entity: Entity) {
@@ -132,7 +123,7 @@ export class UIInteractive extends Script implements IGroupAble {
   }
 
   override onUpdate(deltaTime: number): void {
-    if (this.globalInteractive) {
+    if (this._getGlobalInteractive()) {
       const transitions = this._transitions;
       for (let i = 0, n = transitions.length; i < n; i++) {
         transitions[i]._onUpdate(deltaTime);
@@ -233,7 +224,10 @@ export class UIInteractive extends Script implements IGroupAble {
     }
   }
 
-  private _updateGlobalInteractive(): void {
+  /**
+   * @internal
+   */
+  _getGlobalInteractive(): boolean {
     if (this._globalInteractiveDirty) {
       const group = this._getGroup();
       const globalInteractive = this._interactive && (!group || group._getGlobalInteractive());
@@ -243,6 +237,7 @@ export class UIInteractive extends Script implements IGroupAble {
       }
       this._globalInteractiveDirty = false;
     }
+    return this._globalInteractive;
   }
 
   private _updateState(instant: boolean): void {
@@ -257,7 +252,7 @@ export class UIInteractive extends Script implements IGroupAble {
   }
 
   private _getInteractiveState(): InteractiveState {
-    if (!this.globalInteractive) {
+    if (!this._getGlobalInteractive()) {
       return InteractiveState.Disable;
     }
     if (this._isPointerDragging) {
