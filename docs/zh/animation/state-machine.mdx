@@ -6,12 +6,12 @@ label: Animation
 ---
 ## 简介
 
-动画状态机（[API](/apis/core/#AnimatorStateMachine)）是一种用于控制和管理动画切换的工具，你可以用它添加各种动画状态及其之间的转换规则，使角色或动画对象能够在不同动作之间自然的切换。
+动画状态机（[AnimatorStateMachine](/apis/core/#AnimatorStateMachine)）是一种用于控制和管理动画切换的工具，你可以用它添加各种动画状态及其之间的转换规则，使角色或动画对象能够在不同动作之间自然的切换。
 
 ### 主要组成部分
 
-#### 动画状态
-代表 `动画状态机` 中的一个单独状态，即某一时刻动画系统中播放的动画。，比如“站立”、“跑步”或“跳跃”。每个状态都有一个对应的 `动画片段` 。完整的API请参考[AnimatorState](/apis/core/#AnimatorState)。
+#### 动画状态（[AnimatorState](/apis/core/#AnimatorState)）
+代表动画状态机中的一个单独状态，即某一时刻动画系统中播放的动画。，比如“站立”、“跑步”或“跳跃”。每个状态都有一个对应的动画片段。
 
 | 属性 | 功能说明 |
 | :------- | :------------------------------------------------------------------- |
@@ -26,17 +26,17 @@ label: Animation
 ##### 在编辑器中有三个特殊的动画状态
 `entry`： 用于表示动画状态机的进入点。进入动画状态机时，总是先进入 `entry`，然后根据定义的转换条件跳转到其他状态。 `entry` 本身不会播放动画，它主要用于连接状态机的起点到初始动画状态。通常情况，你应该将它连接到角色或动画对象的默认状态，比如角色的 `Idle（站立）` 状态。
 
-`any`：允许动画状态机中任意状态发生特定条件时跳转到目标状态，这对于处理全局事件或紧急动画（如受伤、死亡）非常有用。
 
+`any`：允许动画状态机中任意状态发生特定条件时跳转到目标状态，这对于处理全局事件或紧急动画（如受伤、死亡）非常有用。
 <Callout type="info">
 `any` 状态具有最高的优先级，因此使用 `any` 需要谨慎，因为它可以打破当前动画的正常流转，可能会导致动画过渡不自然的情况。开发者需要确保只有在明确的条件下才使用 `any` 进行转换。
 </Callout>
-
 `exit`：表示动画状态机的退出点。当状态机进入 `exit` 时，通常意味着状态机结束。状态机将重新进入 `entry` 状态。
 
 
-#### 动画过渡
-用于定义 `动画状态机` 中两个 `动画状态` 之间的转换规则和条件。它决定了何时以及如何从一个 `动画状态` 切换到另一个 `动画状态` 。完整的API请参考[AnimatorStateTransition](/apis/core/#AnimatorStateTransition)。
+#### 动画过渡（[AnimatorStateTransition](/apis/core/#AnimatorStateTransition)）
+用于定义动画状态机中两个状态之间的转换规则和条件。它决定了何时以及如何从一个 AnimatorState 切换到另一个 AnimatorState。
+
 
 | 属性 | 功能说明 |
 | :------- | :---------------------------------------------------------|
@@ -45,21 +45,21 @@ label: Animation
 | ExitTime | 起始状态过渡开始时间，时间为相对起始状态的归一化时间，默认值为 0.75  |
 | Solo     | 使选定的动画过渡成为唯一活动的状态。其它动画过渡将被忽略。 |
 | Mute     | 禁用选定的动画过渡 |
-| Conditions | 过渡通过的条件，如果有多个条件，只有所有条件都满足时，才会开始过渡。 |
 
-Solo 和 Mute 通常用于调试，用于帮助开发者更高效地测试和调试 `动画状态机` 。
+Solo 和 Mute 通常用于调试，用于帮助开发者更高效地测试和调试动画状态机。
 
 ## 使用动画状态机
 ### 默认播放
 
 #### 编辑器使用
-将 `动画状态` 连接到`entry`上你导出的项目运行时就会自动播放其上的动画，而不需再调用 `animator.play`。点击 `动画控制组件`（[详细介绍](/docs/animation/animator)）绑定的 `实体` ，即可预览动画。
+将动画状态（[AnimatorState](/apis/core/#AnimatorState)）连接到`entry`上你导出的项目运行时就会自动播放其上的动画，而不需再调用 `animator.play`。点击动画控制组件（[Animator](/docs/animation/animator)）绑定的实体，即可预览动画。
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*0_DkSoSAhmUAAAAAAAAAAAAADsJ_AQ/original)
 
+
 #### 脚本使用
 
-你可以通过 [animatorStateMachine.addEntryStateTransition](/apis/core/#AnimatorStateMachine-addEntryStateTransition) 方法让 `动画状态` 连接到 `动画状态机` 的 `entry`
+你可以通过 [animatorStateMachine.addEntryStateTransition](/apis/core/#AnimatorStateMachine-addEntryStateTransition) 方法让动画状态连接动画状态机的 `entry`
 
 ```typescript
 const animatorStateMachine = animator.animatorController.layers[0].stateMachine;
@@ -69,11 +69,11 @@ animatorStateMachine.addEntryStateTransition('Idle');
 ### 动画过渡
 
 #### 编辑器使用
-将两个想要过渡的 `动画状态` 连接即可实现动画过渡的效果, 点击两个 `动画状态` 间的连线，可以修改动画过渡的参数调整效果。
+将两个想要过渡的 `AnimatorState` 连接即可实现动画过渡的效果, 点击两个动画间的连线，可以修改动画过渡的参数调整效果。
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*h3I4TZoxtnYAAAAAAAAAAAAADsJ_AQ/original)
 
-点击连线你可以设置 `动画过渡` 的参数，如添加条件：
+点击连线你可以设置动画过渡（[AnimatorStateTransition](/apis/core/#AnimatorStateTransition)）的参数，如添加条件：
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*vlmLQqR2k7QAAAAAAAAAAAAADsJ_AQ/original)
 
@@ -83,7 +83,7 @@ animatorStateMachine.addEntryStateTransition('Idle');
 
 #### 脚本使用
 
-你可以通过为 `动画状态` 添加 `动画过渡` 实现 `动画状态` 间切换的过渡效果。
+你可以通过为 `AnimatorState` 添加 `AnimatorTransition` 实现动画状态间的过渡。
 
 ```typescript
 const walkState = animatorStateMachine.addState('walk');
@@ -98,10 +98,10 @@ transition.destinationState = runState;
 walkState.addTransition(transition);
 animator.play("walk");
 ```
-通过这样的方式你之后每次在该 `动画状态机` 所在的 `动画层`（[详细介绍](/docs/animation/layer)） 播放 `walk` 动画时都会在播放一半时开始过渡到 `run` 动画。
+通过这样的方式你之后每次在该动画状态机所在的层播放 `walk` 动画时都会在播放一半时开始过渡到 `run` 动画。
 
 ##### 为动画过渡添加条件
-你可以通过 [animatorStateTransition.addCondition](/apis/core/#AnimatorStateTransition-addCondition) 方法为 `动画过渡` 添加 `过渡条件`
+你可以通过 [animatorStateTransition.addCondition](/apis/core/#AnimatorStateTransition-addCondition) 方法为动画过渡添加条件
 
 ```typescript
 const idleState = animatorStateMachine.addState('idle');
@@ -114,12 +114,10 @@ transition.addCondition(AnimatorConditionMode.Greater, 'speed', 0);
 transition.destinationState = walkState;
 idleState.addTransition(transition);
 ```
-通过这样的方式你之后每次在该 `动画状态机` 所在的层播放 `idle` 动画时并且 `speed` 参数大于 `0` 时，动画将过渡到 `walk` 动画。
+通过这样的方式你之后每次在该动画状态机所在的层播放 `idle` 动画时并且 `speed` 参数大于 `0` 时，动画将过渡到 `walk` 动画。
 
-##### 添加/删除动画参数
-`动画参数` 用于控制 `动画状态机` 的 `动画状态` 切换，通过设置 `动画参数` 的值满足 `动画过渡` 的条件时，`动画过渡` 会触发，从而切换到目标 `动画状态`。
-
-你可以通过 [animatorController.addParameter](/apis/core/#AnimatorController-addParametere) 方法来添加 `动画参数`，[animatorController.removeParameter](/apis/core/#AnimatorController-removeParametere) 方法来删除 `动画参数` 。
+##### 添加参数/删除参数
+你可以通过 [animatorController.addParameter](/apis/core/#AnimatorController-addParametere) 方法来添加参数,[animatorController.removeParameter](/apis/core/#AnimatorController-removeParametere) 方法来添加参数
 
 ```typescript
 const animatorController = animator.animatorController;
@@ -128,8 +126,8 @@ animatorController.addParameter('speed', 0);
 animatorController.removeParameter('speed');
 ```
 
-##### 设置动画参数值
-你可以通过 [animator.setParameterValue](/apis/core/#Animator-setParameterValue) 方法来设置 `动画参数` 的值
+##### 设置参数值
+你可以通过 [animator.setParameterValue](/apis/core/#Animator-setParameterValue) 方法来设置参数的值
 
 ```typescript
 class AnimationScriptExample extends Script {
@@ -153,8 +151,8 @@ class AnimationScriptExample extends Script {
 }
 ```
 
-##### 获取动画参数值
-你可以通过 [animator.getParameterValue](/apis/core/#Animator-getParameterValue) 方法来获取 `动画参数` 的值：
+##### 获取参数值
+你可以通过 [animator.getParameterValue](/apis/core/#Animator-getParameterValue) 方法来获取参数的值：
 ```typescript
 class AnimationScriptExample extends Script {
   animator: Animator;
@@ -172,8 +170,8 @@ class AnimationScriptExample extends Script {
 }
 ```
 
-##### 获取动画参数对象
-你可以通过 [animator.getParameter](/apis/core/#Animator-getParameter) 方法来获取 `动画参数` 对象：
+##### 获取参数对象
+你可以通过 [animator.getParameter](/apis/core/#Animator-getParameter) 方法来获取参数对象：
 
 ```typescript
 class AnimationScriptExample extends Script {
@@ -189,31 +187,31 @@ class AnimationScriptExample extends Script {
 ```
 
 ### 动画状态机动画循环
-将 `动画状态` 连接到 `exit` 状态，`动画状态机` 会退出并重新进入 `entry`，使得整体流程循环
+将动画状态连接到 `exit` 状态，状态机会退出并重新进入 `entry`，使得整体流程循环
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*1AfgS6S88SYAAAAAAAAAAAAADsJ_AQ/original) 
 
 
 #### 脚本使用
 
-你可以通过 [state.addExitTransition](/apis/core/#AnimatorState-addExitTransition) 方法让 `动画状态` 连接到 `动画状态机` 的 `exit`
+你可以通过 [state.addExitTransition](/apis/core/#AnimatorState-addExitTransition) 方法让动画状态连接动画状态机的 `exit`
 
 ```typescript
 const runState = animatorStateMachine.addState('run');
 runState.addExitTransition();
 ```
-通过这样的方式你之后每次在该 `动画状态机` 所在的 `动画层` 播放 `Run` 动画时都会播放结束就会进入 `exit` 状态之后重新从 `entry` 开始。
+通过这样的方式你之后每次在该动画状态机所在的层播放 `Run` 动画时都会播放结束就会进入 `exit` 状态之后重新从 `entry` 开始。
 
 
 
 ### 状态机脚本
-你可以为每个 `动画状态` 添加 `状态机脚本` ，它可以让你在 `动画状态机` 的不同事件（如状态进入、退出、更新等）中接收到回调[详见](/apis/core/#StateMachineScript)。
+你可以为每个动画状态添加状态机脚本，它可以让你在动画状态机的不同事件（如状态进入、退出、更新等）中接收到回调[详见](/apis/core/#StateMachineScript)。
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*VrCXQqS3w7QAAAAAAAAAAAAADsJ_AQ/original)
 
 ![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*A7I7QqiDCfkAAAAAAAAAAAAADsJ_AQ/original)
 
 #### 脚本使用
-`状态机脚本` 提供了三个动画状态周期：
+状态机脚本提供了三个动画状态周期：
 
 - `onStateEnter`：动画状态开始播放时回调。
 - `onStateUpdate`：动画状态更新时回调。
@@ -273,4 +271,4 @@ state.addStateMachineScript(
 ```
 
 ## 多层动画状态机混合
-每个 `动画层` 都有一个 `动画状态机` ，动画最终的表现由多个 `动画层` 进行混合而成，如何使用 `动画层` 可以参考[动画层](/docs/animation/layer)文档。
+每个动画层（[AnimatorControllerLayer](/apis/core/#AnimatorControllerLayer)）都有一个状态机，动画最终的表现由多个层进行混合而成，如何使用动画层（AnimatorControllerLayer）[详见](/docs/animation/layer)
