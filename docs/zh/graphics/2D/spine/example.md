@@ -7,9 +7,29 @@ label: Graphics/2D/Spine/example
 ---
 
 ## 模板
+Galacean 编辑器提供了一系列教学模板，帮助大家更快的上手 Spine 动画的使用。
+进入[编辑器](https://galacean.antgroup.com/editor/projects) 后，你可以点击左侧的 Templates Tab 进入查看这些模板。
+</br></br>
 
+**动画控制**
 
+该模板通过展示了如何通过 setAnimation 与 addAnimation API 来编排 spine 动画队列：
+<img src="https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*lURjS6FeAD8AAAAAAAAAAAAADsp6AQ/original" alt="spine-animation" />
 
+**动画过渡与混合**
+
+该模板通过展示了 Spine 动画如何设置过渡以及不同轨道之间的动画混合：
+<img src="https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*IqzeRpvI-V4AAAAAAAAAAAAADsp6AQ/original" alt="spine-mix-blend" />
+
+**混搭换装**
+
+该模板展示了 Spine 混搭换装的能力，通过自由组合不同皮肤的附件，能够将不同皮肤的配件混搭起来：
+<img src="https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*AEsoSLT7cqUAAAAAAAAAAAAADsp6AQ/original" alt="mix-and-match" />
+
+**动态局部换肤**
+
+该模板展示了动态局部换肤的能力。我们能够基于一个额外上传的图集创建新的附件并进行替换。
+<img src="https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*sFQzT64KWEoAAAAAAAAAAAAADsp6AQ/original" alt="spine-dynamic-change" />
 
 ## 示例
 
