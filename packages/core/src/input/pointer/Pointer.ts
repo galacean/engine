@@ -1,9 +1,10 @@
 import { Vector2 } from "@galacean/engine-math";
-import { Entity } from "../../Entity";
-import { Script } from "../../Script";
+import { ClearableObjectPool } from "../../utils/ClearableObjectPool";
+import { DisorderedArray } from "../../utils/DisorderedArray";
 import { PointerButton } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
-import { DisorderedArray } from "../../utils/DisorderedArray";
+import { PointerEventData } from "./PointerEventData";
+import { PointerEventEmitter } from "./emitter/PointerEventEmitter";
 
 /**
  * Pointer.
@@ -36,91 +37,10 @@ export class Pointer {
   _upList: DisorderedArray<PointerButton> = new DisorderedArray();
   /** @internal */
   _downList: DisorderedArray<PointerButton> = new DisorderedArray();
-
-  private _currentPressedEntity: Entity;
-  private _currentEnteredEntity: Entity;
-
-  /**
-   * @internal
-   */
-  _firePointerExitAndEnter(rayCastEntity: Entity): void {
-    if (this._currentEnteredEntity !== rayCastEntity) {
-      if (this._currentEnteredEntity) {
-        this._currentEnteredEntity._scripts.forEach(
-          (element: Script) => {
-            element.onPointerExit(this);
-          },
-          (element: Script, index: number) => {
-            element._entityScriptsIndex = index;
-          }
-        );
-      }
-      if (rayCastEntity) {
-        rayCastEntity._scripts.forEach(
-          (element: Script) => {
-            element.onPointerEnter(this);
-          },
-          (element: Script, index: number) => {
-            element._entityScriptsIndex = index;
-          }
-        );
-      }
-      this._currentEnteredEntity = rayCastEntity;
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _firePointerDown(rayCastEntity: Entity): void {
-    if (rayCastEntity) {
-      rayCastEntity._scripts.forEach(
-        (element: Script) => {
-          element.onPointerDown(this);
-        },
-        (element: Script, index: number) => {
-          element._entityScriptsIndex = index;
-        }
-      );
-    }
-    this._currentPressedEntity = rayCastEntity;
-  }
-
-  /**
-   * @internal
-   */
-  _firePointerDrag(): void {
-    if (this._currentPressedEntity) {
-      this._currentPressedEntity._scripts.forEach(
-        (element: Script) => {
-          element.onPointerDrag(this);
-        },
-        (element: Script, index: number) => {
-          element._entityScriptsIndex = index;
-        }
-      );
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _firePointerUpAndClick(rayCastEntity: Entity): void {
-    const { _currentPressedEntity: pressedEntity } = this;
-    if (pressedEntity) {
-      const sameTarget = pressedEntity === rayCastEntity;
-      pressedEntity._scripts.forEach(
-        (element: Script) => {
-          sameTarget && element.onPointerClick(this);
-          element.onPointerUp(this);
-        },
-        (element: Script, index: number) => {
-          element._entityScriptsIndex = index;
-        }
-      );
-      this._currentPressedEntity = null;
-    }
-  }
+  /** @internal */
+  _frameEvents: PointerEventType = PointerEventType.None;
+  /** @internal */
+  _emitters: PointerEventEmitter[] = [];
 
   /**
    * @internal
@@ -128,4 +48,42 @@ export class Pointer {
   constructor(id: number) {
     this.id = id;
   }
+
+  /**
+   * @internal
+   */
+  _addEmitters<T extends new (pool: ClearableObjectPool<PointerEventData>) => PointerEventEmitter>(
+    type: T,
+    pool: ClearableObjectPool<PointerEventData>
+  ) {
+    this._emitters.push(new type(pool));
+  }
+
+  /**
+   * @internal
+   */
+  _resetOnFrameBegin(): void {
+    this._frameEvents = PointerEventType.None;
+    this._events.length = this._upList.length = this._downList.length = 0;
+  }
+
+  /**
+   * @internal
+   */
+  _dispose(): void {
+    const emitters = this._emitters;
+    for (let i = 0, n = emitters.length; i < n; i++) {
+      emitters[i].dispose();
+    }
+    this._events.length = this._upList.length = this._downList.length = 0;
+  }
+}
+
+export enum PointerEventType {
+  None = 0x0,
+  Down = 0x1,
+  Up = 0x2,
+  Leave = 0x4,
+  Move = 0x8,
+  Cancel = 0x10
 }

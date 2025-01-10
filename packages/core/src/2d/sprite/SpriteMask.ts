@@ -11,6 +11,7 @@ import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { ShaderProperty } from "../../shader/ShaderProperty";
+import { ISpriteRenderer } from "../assembler/ISpriteRenderer";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
@@ -18,7 +19,7 @@ import { Sprite } from "./Sprite";
 /**
  * A component for masking Sprites.
  */
-export class SpriteMask extends Renderer {
+export class SpriteMask extends Renderer implements ISpriteRenderer {
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskTexture");
   /** @internal */
@@ -238,11 +239,21 @@ export class SpriteMask extends Renderer {
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    if (this.sprite) {
-      SimpleSpriteAssembler.updatePositions(this);
+    const sprite = this._sprite;
+    if (sprite) {
+      SimpleSpriteAssembler.updatePositions(
+        this,
+        this._transformEntity.transform.worldMatrix,
+        this.width,
+        this.height,
+        sprite.pivot,
+        this._flipX,
+        this._flipY
+      );
     } else {
-      worldBounds.min.set(0, 0, 0);
-      worldBounds.max.set(0, 0, 0);
+      const { worldPosition } = this._transformEntity.transform;
+      worldBounds.min.copyFrom(worldPosition);
+      worldBounds.max.copyFrom(worldPosition);
     }
   }
 
@@ -250,7 +261,8 @@ export class SpriteMask extends Renderer {
    * @inheritdoc
    */
   protected override _render(context: RenderContext): void {
-    if (!this.sprite?.texture || !this.width || !this.height) {
+    const { _sprite: sprite } = this;
+    if (!sprite?.texture || !this.width || !this.height) {
       return;
     }
 
@@ -266,7 +278,15 @@ export class SpriteMask extends Renderer {
 
     // Update position
     if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
-      SimpleSpriteAssembler.updatePositions(this);
+      SimpleSpriteAssembler.updatePositions(
+        this,
+        this._transformEntity.transform.worldMatrix,
+        this.width,
+        this.height,
+        sprite.pivot,
+        this._flipX,
+        this._flipY
+      );
       this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     }
 
@@ -333,7 +353,7 @@ export class SpriteMask extends Renderer {
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:
-        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.RenderData;
+        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.WorldVolumeAndUV;
         break;
       case SpriteModifyFlags.atlasRegion:
         this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.UV;
@@ -351,15 +371,15 @@ export class SpriteMask extends Renderer {
 }
 
 /**
- * @remarks Extends `RendererUpdateFlag`.
+ * @remarks Extends `RendererUpdateFlags`.
  */
 enum SpriteMaskUpdateFlags {
   /** UV. */
   UV = 0x2,
-  /** WorldVolume and UV . */
-  RenderData = 0x3,
   /** Automatic Size. */
   AutomaticSize = 0x4,
+  /** WorldVolume and UV. */
+  WorldVolumeAndUV = 0x3,
   /** All. */
   All = 0x7
 }
