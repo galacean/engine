@@ -3,7 +3,6 @@ import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
-import { Logger } from "./base";
 
 /**
  * Used to implement transformation related functions.

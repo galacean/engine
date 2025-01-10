@@ -1,7 +1,7 @@
 {
   "name": "@galacean/engine-tests",
   "private": true,
-  "version": "1.4.0-alpha.3",
+  "version": "1.4.0-beta.1",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
@@ -23,7 +23,9 @@
     "@galacean/engine-rhi-webgl": "workspace:*",
     "@galacean/engine-physics-lite": "workspace:*",
     "@galacean/engine-shaderlab": "workspace:*",
-    "@galacean/engine-physics-physx": "workspace:*"
+    "@galacean/engine-physics-physx": "workspace:*",
+    "@galacean/engine-ui": "workspace:*",
+    "@galacean/engine-shader-shaderlab": "workspace:*"
   },
   "devDependencies": {
     "@vitest/browser": "2.1.3"

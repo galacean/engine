@@ -1,0 +1,37 @@
+{
+  "name": "@galacean/engine-ui",
+  "version": "1.4.0-beta.1",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "repository": {
+    "url": "https://github.com/galacean/engine.git"
+  },
+  "license": "MIT",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "debug": "src/index.ts",
+  "browser": "dist/browser.js",
+  "types": "types/index.d.ts",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "umd": {
+    "name": "Galacean.UI",
+    "globals": {
+      "@galacean/engine": "Galacean"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "libs/**/*",
+    "types/**/*"
+  ],
+  "devDependencies": {
+    "@galacean/engine": "workspace:*"
+  },
+  "peerDependencies": {
+    "@galacean/engine": "workspace:*"
+  }
+}

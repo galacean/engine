@@ -104,8 +104,9 @@ export class MeshRenderer extends Renderer {
       const localBounds = mesh.bounds;
       BoundingBox.transform(localBounds, this._transformEntity.transform.worldMatrix, worldBounds);
     } else {
-      worldBounds.min.set(0, 0, 0);
-      worldBounds.max.set(0, 0, 0);
+      const { worldPosition } = this._transformEntity.transform;
+      worldBounds.min.copyFrom(worldPosition);
+      worldBounds.max.copyFrom(worldPosition);
     }
   }
 
@@ -189,7 +190,7 @@ export class MeshRenderer extends Renderer {
 }
 
 /**
- * @remarks Extends `RendererUpdateFlag`.
+ * @remarks Extends `RendererUpdateFlags`.
  */
 enum MeshRendererUpdateFlags {
   /** VertexElementMacro. */

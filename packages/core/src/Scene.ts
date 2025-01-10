@@ -330,7 +330,7 @@ export class Scene extends EngineObject {
     if (!isRoot) {
       entity._isRoot = true;
       entity._removeFromParent();
-      entity._setTransformDirty();
+      entity._setParentChange();
     }
 
     // Add or remove from scene's rootEntities

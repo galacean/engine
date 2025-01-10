@@ -281,6 +281,7 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
+  @ignoreClone
   override _onTransformChanged(type: TransformModifyFlags): void {
     this._dirtyUpdateFlag |= ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
   }

@@ -76,6 +76,8 @@ jobs:
           cp -r ${{ github.workspace }}/packages/galacean/dist ${{ github.workspace }}/temp/@galacean/engine
           mkdir -p ${{ github.workspace }}/temp/@galacean/engine-xr
           cp -r ${{ github.workspace }}/packages/xr/dist ${{ github.workspace }}/temp/@galacean/engine-xr
+          mkdir -p ${{ github.workspace }}/temp/@galacean/engine-ui
+          cp -r ${{ github.workspace }}/packages/ui/dist ${{ github.workspace }}/temp/@galacean/engine-ui
           mkdir -p ${{ github.workspace }}/temp/@galacean/engine-shaderlab
           cp -r ${{ github.workspace }}/packages/shader-lab/dist ${{ github.workspace }}/temp/@galacean/engine-shaderlab
           mkdir -p ${{ github.workspace }}/temp/@galacean/engine-shader-shaderlab
@@ -113,6 +115,7 @@ jobs:
               "engine": [
                 "${{ github.workspace }}/temp/@galacean/engine/dist/browser.js",
                 "${{ github.workspace }}/temp/@galacean/engine-xr/dist/browser.js",
+                "${{ github.workspace }}/temp/@galacean/engine-ui/dist/browser.js",
                 "${{ github.workspace }}/temp/@galacean/engine-shaderlab/dist/browser.js",
                 "${{ github.workspace }}/temp/@galacean/engine-shader-shaderlab/dist/browser.js",
                 "${{ github.workspace }}/temp/@galacean/engine-physics-lite/dist/browser.js",

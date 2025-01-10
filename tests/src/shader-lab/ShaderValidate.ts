@@ -90,6 +90,11 @@ export function glslValidate(shaderSource, _shaderLab?: ShaderLab, includeMap = 
         // @ts-ignore
         ShaderPass._shaderRootPath
       );
+      if (shaderLab.errors) {
+        for (const error of shaderLab.errors) {
+          console.error(error.toString());
+        }
+      }
       validateShaderPass(pass, compiledPass.vertex, compiledPass.fragment);
     });
   });

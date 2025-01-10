@@ -12,6 +12,7 @@ import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
+import { EntityModifyFlags } from "./enums/EntityModifyFlags";
 import { DisorderedArray } from "./utils/DisorderedArray";
 
 /**
@@ -102,6 +103,7 @@ export class Entity extends EngineObject {
   private _templateResource: ReferResource;
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
+  private _modifyFlagManager: UpdateFlagManager;
 
   /**
    * The transform of this entity.
@@ -345,7 +347,7 @@ export class Entity extends EngineObject {
       }
       activeChangeFlag && child._processActive(activeChangeFlag);
 
-      child._setTransformDirty();
+      child._setParentChange();
     } else {
       child._setParent(this, index);
     }
@@ -545,13 +547,14 @@ export class Entity extends EngineObject {
     }
 
     this.isActive = false;
+    this._updateFlagManager = null;
   }
 
   /**
    * @internal
    */
   _removeComponent(component: Component): void {
-    ComponentsDependencies._removeCheck(this, component.constructor as any);
+    ComponentsDependencies._removeCheck(this, component.constructor as ComponentConstructor);
     const components = this._components;
     components.splice(components.indexOf(component), 1);
   }
@@ -588,6 +591,7 @@ export class Entity extends EngineObject {
       this._parent = null;
       this._siblingIndex = -1;
     }
+    this._dispatchModify(EntityModifyFlags.Child, oldParent);
   }
 
   /**
@@ -617,14 +621,27 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  _setTransformDirty() {
-    if (this.transform) {
-      this.transform._parentChange();
-    } else {
-      for (let i = 0, len = this._children.length; i < len; i++) {
-        this._children[i]._setTransformDirty();
-      }
-    }
+  _setParentChange() {
+    this._transform._parentChange();
+    this._dispatchModify(EntityModifyFlags.Parent, this);
+  }
+
+  /**
+   * @internal
+   */
+  _registerModifyListener(onChange: (flag: EntityModifyFlags) => void): void {
+    (this._modifyFlagManager ||= new UpdateFlagManager()).addListener(onChange);
+  }
+
+  /**
+   * @internal
+   */
+  _unRegisterModifyListener(onChange: (flag: EntityModifyFlags) => void): void {
+    this._modifyFlagManager?.removeListener(onChange);
+  }
+
+  private _dispatchModify(flag: EntityModifyFlags, param?: any): void {
+    this._modifyFlagManager?.dispatch(flag, param);
   }
 
   private _addToChildrenList(index: number, child: Entity): void {
@@ -643,6 +660,7 @@ export class Entity extends EngineObject {
         children[i]._siblingIndex++;
       }
     }
+    this._dispatchModify(EntityModifyFlags.Child, this);
   }
 
   private _setParent(parent: Entity, siblingIndex?: number): void {
@@ -693,7 +711,7 @@ export class Entity extends EngineObject {
           Entity._traverseSetOwnerScene(this, null);
         }
       }
-      this._setTransformDirty();
+      this._setParentChange();
     }
   }
 
@@ -769,6 +787,7 @@ export class Entity extends EngineObject {
         }
       }
     }
+    this._dispatchModify(EntityModifyFlags.Child, this);
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
@@ -780,7 +799,7 @@ export class Entity extends EngineObject {
    */
   getInvModelMatrix(): Matrix {
     if (this._inverseWorldMatFlag.flag) {
-      Matrix.invert(this.transform.worldMatrix, this._invModelMatrix);
+      Matrix.invert(this._transform.worldMatrix, this._invModelMatrix);
       this._inverseWorldMatFlag.flag = false;
     }
     return this._invModelMatrix;
