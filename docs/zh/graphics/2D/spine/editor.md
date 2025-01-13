@@ -125,7 +125,7 @@ SpineAnimationRenderer 组件的配置如下：
 - Priority：渲染优先级
 
 ## 4. 项目导出
-最终，完成场景编辑器后，可以参考[项目导出](/docs/assets/build/)流程，导出编辑器项目。
+最终，完成场景编辑器后，可以参考[项目导出](/docs/platform/platform/)流程，导出编辑器项目。
 
 </br></br></br></br>
 下一章节：[在代码中使用 Galacean Spine 运行时](/docs/graphics/2D/spine/runtime)
