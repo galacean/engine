@@ -194,10 +194,17 @@ setAnimation 函数接受三个参数：
 
 后两个参数很好理解，第一个参数则包含了 Spine 动画的一个概念：**Track** （轨道）
 > Spine 动画在播放时，需要指定一个动画轨道。借助动画轨道，Spine 能够分层应用动画，每一个轨道都能够存储动画与播放参数，轨道的编号从 0 开始累加。在动画应用后，Spine 会从低轨道到高轨道依次应用动画，高轨道上的动画将会覆盖低轨道上的动画。<br>
-动画轨道有很多用途，例如，轨道 0 可以有行走、奔跑、游泳或其他动画，轨道 1 可以有一个只为手臂和开枪设置了关键帧的射击动画。此外，为高层轨道设置TrackEntry alpha可使其与下面的轨道混合。例如，轨道 0 可以有一个行走动画，轨道 1 可以有一个跛行动画。当玩家受伤时，增加轨道 1 的alpha值，跛行就会加重。
 
+#### **动画混合**
+上面提到的轨道覆盖机制，大有用途。例如，轨道 0 可以有行走、奔跑、游泳或其他动画，轨道 1 可以有一个只为手臂和开枪设置了关键帧的射击动画。此外，为高层轨道设置TrackEntry alpha可使其与下面的轨道混合。例如，轨道 0 可以有一个行走动画，轨道 1 可以有一个跛行动画。当玩家受伤时，增加轨道 1 的alpha值，跛行就会加重。
+比如：
+```typescript
+// 此时动画会变走路，边射击
+state.setAnimation(0, 'walk', true);
+state.setAnimation(1, 'shoot', true);
+```
 
-#### **设置过渡**
+#### **动画过渡**
 调用 setAnimation 方法后，会立即切换当前轨道的动画。如果你需要动画切换时有过渡效果，需要设置过渡的持续时间。可以通过 [AnimationStateData](https://zh.esotericsoftware.com/spine-api-reference#AnimationStateData) 的 API 来进行设置：
 ```typescript
 class YourAmazingScript {
