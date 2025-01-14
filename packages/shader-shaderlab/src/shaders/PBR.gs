@@ -64,7 +64,7 @@ Shader "PBR.gs" {
         material_TransmissionTexture("TransmissionTexture", Texture2D);
         material_Thickness("Thickness", Range(0, 5, 0.01)) = 0;
         material_ThicknessTexture("ThicknessTexture", Texture2D);
-        refractionMode("refractionMode", Enum(Sphere:0, Planar:1)) = 1;
+        refractionMode("RefractionMode", Enum(Sphere:0, Planar:1)) = 1;
         material_AttenuationColor("AttenuationColor", Color ) = (1, 1, 1, 1);
         material_AttenuationDistance("AttenuationDistance", Range(0, 1, 0.01)) = 0;
       }
@@ -78,6 +78,7 @@ Shader "PBR.gs" {
       }
     }
       
+    UIScript "uiScriptPath";
   }
         
     SubShader "Default" {
@@ -85,6 +86,24 @@ Shader "PBR.gs" {
 
       Pass "Forward Pass" {
         Tags { pipelineStage = "Forward"} 
+
+        DepthState {
+          WriteEnabled = depthWriteEnabled;
+        }
+
+        BlendState {
+          Enabled = blendEnabled;
+          SourceColorBlendFactor = sourceColorBlendFactor;
+          DestinationColorBlendFactor = destinationColorBlendFactor;
+          SourceAlphaBlendFactor = sourceAlphaBlendFactor;
+          DestinationAlphaBlendFactor = destinationAlphaBlendFactor;
+        }
+
+        RasterState{
+          CullMode = rasterStateCullMode;
+        }
+
+        RenderQueueType = renderQueueType;
 
         #define IS_METALLIC_WORKFLOW
         
