@@ -130,6 +130,9 @@ describe("InputManager", async () => {
     expect(script.onPointerClick).toHaveBeenCalledTimes(0);
     expect(script.onPointerDrag).toHaveBeenCalledTimes(0);
     expect(script.onPointerUp).toHaveBeenCalledTimes(0);
+    expect(inputManager.isPointerUp()).to.eq(false);
+    expect(inputManager.isPointerDown()).to.eq(true);
+    expect(inputManager.isPointerHeldDown()).to.eq(true);
 
     target.dispatchEvent(generatePointerEvent("pointermove", 2, left + 2, top + 2));
     target.dispatchEvent(generatePointerEvent("pointerup", 2, left + 2, top + 2, 0, 0));
@@ -141,6 +144,9 @@ describe("InputManager", async () => {
     expect(script.onPointerClick).toHaveBeenCalledTimes(1);
     expect(script.onPointerDrag).toHaveBeenCalledTimes(1);
     expect(script.onPointerUp).toHaveBeenCalledTimes(1);
+    expect(inputManager.isPointerUp()).to.eq(true);
+    expect(inputManager.isPointerDown()).to.eq(false);
+    expect(inputManager.isPointerHeldDown()).to.eq(false);
 
     target.dispatchEvent(generatePointerEvent("pointerdown", 3, left + 200, top + 200));
     target.dispatchEvent(generatePointerEvent("pointerup", 3, left + 200, top + 200, 0, 0));
