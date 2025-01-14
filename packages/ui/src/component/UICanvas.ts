@@ -305,7 +305,7 @@ export class UICanvas extends Component implements IElement {
   /**
    * @internal
    */
-  _updateSortDistance(isOrthographic: Boolean, cameraPosition: Vector3, cameraForward: Vector3): void {
+  _updateSortDistance(isOrthographic: boolean, cameraPosition: Vector3, cameraForward: Vector3): void {
     switch (this._realRenderMode) {
       case CanvasRenderMode.ScreenSpaceOverlay:
         this._sortDistance = 0;
