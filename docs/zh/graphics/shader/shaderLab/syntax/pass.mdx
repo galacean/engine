@@ -94,8 +94,35 @@ material.renderQueueType = RenderQueueType.Opaque;
 
 // 渲染状态设置 const renderState = material.renderState.depthState; depthState.writeEnabled = false;
 
-```
+````
 当 ShaderLab 中声明了渲染状态和渲染队列，材质相应的设置会被忽略。
 </Callout>
 
+
+## MRT(多目标渲染)
+
+ShaderLab 同时兼容 GLSL 100 和 GLSL 300 语法，因此你可以使用两种语法进行 MRT 指定。
+
+1. 通过 `gl_FragData[i]` 进行指定 MRT 指定
+```glsl
+void main(v2f input) {
+  gl_FragData[0] = vec4(1.,0.,0.,1.);     // render target 0
+  gl_FragData[1] = vec4(1.,0.,0.,1.);     // render target 1
+}
+````
+
+2. 通过入口函数返回结构体指定
+
+```glsl
+struct mrt {
+  layout(location = 0) vec4 fragColor0;   // render target 0
+  layout(location = 1) vec4 fragColor1;   // render target 1
+}
+
+mrt main(v2f input) {
+  mrt output;
+  output.fragColor0 = vec4(1.,0.,0.,1.);
+  output.fragColor1 = vec4(1.,0.,0.,1.);
+  return output;
+}
 ```
