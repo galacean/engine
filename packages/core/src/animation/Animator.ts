@@ -1268,14 +1268,12 @@ export class Animator extends Component {
     layerData: AnimatorLayerData,
     transition: AnimatorStateTransition,
     aniUpdate: boolean
-  ): AnimatorStateTransition {
-    // Need prepare first, it should crossFade when to exit
-    const success = this._prepareCrossFadeByTransition(transition, layerData.layerIndex);
+  ): boolean {
     if (transition.isExit) {
       this._checkAnyAndEntryState(layerData, 0, aniUpdate);
-      return transition;
+      return false;
     }
-    return success ? transition : null;
+    return this._prepareCrossFadeByTransition(transition, layerData.layerIndex);
   }
 
   private _checkConditions(transition: AnimatorStateTransition): boolean {
