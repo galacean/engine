@@ -66,10 +66,8 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         camera.screenPointToRay(pointer.position, ray);
 
         /** Other canvases */
-        const cameraTransform = camera.entity.transform;
         const isOrthographic = camera.isOrthographic;
-        const cameraPosition = cameraTransform.worldPosition;
-        const cameraForward = cameraTransform.worldForward;
+        const { worldPosition: cameraPosition, worldForward: cameraForward } = camera.entity.transform;
         /** Sort by rendering order */
         canvasElements = componentsManager._canvases;
         for (let k = 0, n = canvasElements.length; k < n; k++) {
