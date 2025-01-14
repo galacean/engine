@@ -33,19 +33,31 @@ export class ColorTransition extends Transition<Color, UIRenderer> {
   }
 
   private _onNormalValueChanged(): void {
-    this._finalState === InteractiveState.Normal && this._updateValue();
+    if (this._finalState === InteractiveState.Normal) {
+      this._finalValue ||= this._normal;
+      this._updateValue();
+    }
   }
 
   private _onHoverValueChanged(): void {
-    this._finalState === InteractiveState.Hover && this._updateValue();
+    if (this._finalState === InteractiveState.Hover) {
+      this._finalValue ||= this._hover;
+      this._updateValue();
+    }
   }
 
   private _onPressedValueChanged(): void {
-    this._finalState === InteractiveState.Pressed && this._updateValue();
+    if (this._finalState === InteractiveState.Pressed) {
+      this._finalValue ||= this._pressed;
+      this._updateValue();
+    }
   }
 
   private _onDisabledValueChanged(): void {
-    this._finalState === InteractiveState.Disable && this._updateValue();
+    if (this._finalState === InteractiveState.Disable) {
+      this._finalValue ||= this._disabled;
+      this._updateValue();
+    }
   }
 
   protected _getTargetValueCopy(): Color {

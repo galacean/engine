@@ -4,7 +4,9 @@ import {
   CullMode,
   Engine,
   Entity,
+  Font,
   IClass,
+  Loader,
   Material,
   PipelineStage,
   ReflectionParser,
@@ -12,6 +14,15 @@ import {
   Shader,
   ShaderPass
 } from "@galacean/engine";
+import { UICanvas } from ".";
+import { UIGroup } from "./component/UIGroup";
+import { UITransform } from "./component/UITransform";
+import { Button } from "./component/advanced/Button";
+import { Image } from "./component/advanced/Image";
+import { Text } from "./component/advanced/Text";
+import { ColorTransition } from "./component/interactive/transition/ColorTransition";
+import { ScaleTransition } from "./component/interactive/transition/ScaleTransition";
+import { SpriteTransition } from "./component/interactive/transition/SpriteTransition";
 import uiDefaultFs from "./shader/uiDefault.fs.glsl";
 import uiDefaultVs from "./shader/uiDefault.vs.glsl";
 
@@ -110,3 +121,18 @@ ReflectionParser.registerCustomParseComponent("Text", async (instance: any, item
   }
   return instance;
 });
+
+/**
+ * Register GUI components for the editor.
+ */
+export function registerGUI() {
+  Loader.registerClass("Text", Text);
+  Loader.registerClass("Image", Image);
+  Loader.registerClass("Button", Button);
+  Loader.registerClass("UIGroup", UIGroup);
+  Loader.registerClass("UICanvas", UICanvas);
+  Loader.registerClass("UITransform", UITransform);
+  Loader.registerClass("ScaleTransition", ScaleTransition);
+  Loader.registerClass("ColorTransition", ColorTransition);
+  Loader.registerClass("SpriteTransition", SpriteTransition);
+}

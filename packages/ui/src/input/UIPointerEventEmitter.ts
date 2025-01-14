@@ -66,11 +66,14 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         camera.screenPointToRay(pointer.position, ray);
 
         /** Other canvases */
-        const cameraPosition = camera.entity.transform.position;
+        const cameraTransform = camera.entity.transform;
+        const isOrthographic = camera.isOrthographic;
+        const cameraPosition = cameraTransform.worldPosition;
+        const cameraForward = cameraTransform.worldForward;
         /** Sort by rendering order */
         canvasElements = componentsManager._canvases;
         for (let k = 0, n = canvasElements.length; k < n; k++) {
-          canvasElements.get(k)._updateSortDistance(cameraPosition);
+          canvasElements.get(k)._updateSortDistance(isOrthographic, cameraPosition, cameraForward);
         }
         canvasElements.sort((a, b) => a.sortOrder - b.sortOrder || a._sortDistance - b._sortDistance);
         for (let k = 0, n = canvasElements.length; k < n; k++) {
@@ -80,7 +83,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         /** Post-rendering first detection */
         for (let k = 0, n = canvasElements.length; k < n; k++) {
           const canvas = canvasElements.get(k);
-          if (canvas.renderCamera !== camera) continue;
+          if (!canvas._canRender(camera)) continue;
           if (canvas.raycast(ray, hitResult, farClipPlane)) {
             this._updateRaycast((<UIHitResult>hitResult).component, pointer);
             return;

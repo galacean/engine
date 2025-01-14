@@ -44,6 +44,6 @@ export class SpriteTransition extends Transition<Sprite, Image> {
   }
 
   protected override _applyValue(value: Sprite): void {
-    this._target.sprite = value || this._normal;
+    this._target.sprite = value;
   }
 }
