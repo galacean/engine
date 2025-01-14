@@ -592,9 +592,8 @@ export class UICanvas extends Component implements IElement {
     if (this._centerDirtyFlag.flag) {
       const center = this._center;
       const uiTransform = <UITransform>this.entity.transform;
-      const { x: pivotX, y: pivotY } = uiTransform.pivot;
-      const { x: width, y: height } = uiTransform.size;
-      center.set((1 - 2 * pivotX) * width, (1 - 2 * pivotY) * height, 0);
+      const { pivot, size } = uiTransform;
+      center.set((0.5 - pivot.x) * size.x, (0.5 - pivot.y) * size.y, 0);
       Vector3.transformCoordinate(center, uiTransform.worldMatrix, center);
       this._centerDirtyFlag.flag = false;
     }
