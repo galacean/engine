@@ -4,7 +4,9 @@ import {
   CullMode,
   Engine,
   Entity,
+  Font,
   IClass,
+  Loader,
   Material,
   PipelineStage,
   ReflectionParser,
@@ -12,20 +14,10 @@ import {
   Shader,
   ShaderPass
 } from "@galacean/engine";
+import * as GUIComponent from "./component";
 import uiDefaultFs from "./shader/uiDefault.fs.glsl";
 import uiDefaultVs from "./shader/uiDefault.vs.glsl";
-
-export { UICanvas } from "./component/UICanvas";
-export { UIGroup } from "./component/UIGroup";
-export { UIRenderer } from "./component/UIRenderer";
-export { UITransform } from "./component/UITransform";
-export { Button } from "./component/advanced/Button";
-export { Image } from "./component/advanced/Image";
-export { Text } from "./component/advanced/Text";
-export { ColorTransition } from "./component/interactive/transition/ColorTransition";
-export { ScaleTransition } from "./component/interactive/transition/ScaleTransition";
-export { SpriteTransition } from "./component/interactive/transition/SpriteTransition";
-export { Transition } from "./component/interactive/transition/Transition";
+export * from "./component";
 export { CanvasRenderMode } from "./enums/CanvasRenderMode";
 export { ResolutionAdaptationMode } from "./enums/ResolutionAdaptationMode";
 export { UIPointerEventEmitter } from "./input/UIPointerEventEmitter";
@@ -110,3 +102,12 @@ ReflectionParser.registerCustomParseComponent("Text", async (instance: any, item
   }
   return instance;
 });
+
+/**
+ * Register GUI components for the editor.
+ */
+export function registerGUI() {
+  for (let key in GUIComponent) {
+    Loader.registerClass(key, GUIComponent[key]);
+  }
+}

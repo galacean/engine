@@ -38,6 +38,7 @@ export type IMethodParams = Array<IBasicType> | IMethod;
 export interface IBasicEntity {
   name?: string;
   id?: string;
+  transform?: IComponent;
   components?: Array<IComponent>;
   isActive?: boolean;
   position?: IVector3;

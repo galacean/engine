@@ -1,4 +1,4 @@
-import { EngineObject, Entity, Loader } from "@galacean/engine-core";
+import { EngineObject, Entity, Loader, Transform } from "@galacean/engine-core";
 import type {
   IAssetRef,
   IBasicType,
@@ -26,10 +26,16 @@ export class ReflectionParser {
   parseEntity(entityConfig: IEntity): Promise<Entity> {
     return this._getEntityByConfig(entityConfig).then((entity) => {
       entity.isActive = entityConfig.isActive ?? true;
-      const { position, rotation, scale } = entityConfig;
-      if (position) entity.transform.position.copyFrom(position);
-      if (rotation) entity.transform.rotation.copyFrom(rotation);
-      if (scale) entity.transform.scale.copyFrom(scale);
+      const transform = entity.transform;
+      const transformConfig = entityConfig.transform;
+      if (transformConfig) {
+        this.parsePropsAndMethods(transform, transformConfig);
+      } else {
+        const { position, rotation, scale } = entityConfig;
+        if (position) transform.position.copyFrom(position);
+        if (rotation) transform.rotation.copyFrom(rotation);
+        if (scale) transform.scale.copyFrom(scale);
+      }
       entity.layer = entityConfig.layer ?? entity.layer;
       // @ts-ignore
       this._context.type === ParserType.Prefab && entity._markAsTemplate(this._context.resource);
@@ -162,7 +168,8 @@ export class ReflectionParser {
           })
       );
     } else {
-      const entity = new Entity(engine, entityConfig.name);
+      const transform = entityConfig.transform;
+      const entity = new Entity(engine, entityConfig.name, transform ? Loader.getClass(transform.class) : Transform);
       return Promise.resolve(entity);
     }
   }

@@ -1,4 +1,5 @@
 import {
+  BoolUpdateFlag,
   Camera,
   CameraModifyFlags,
   Component,
@@ -91,6 +92,10 @@ export class UICanvas extends Component implements IElement {
   private _referenceResolutionPerUnit: number = 100;
   @ignoreClone
   private _hierarchyVersion: number = -1;
+  @ignoreClone
+  private _center: Vector3 = new Vector3();
+  @ignoreClone
+  private _centerDirtyFlag: BoolUpdateFlag;
 
   /**
    * The conversion ratio between reference resolution and unit for UI elements in this canvas.
@@ -219,6 +224,7 @@ export class UICanvas extends Component implements IElement {
     // @ts-ignore
     this._referenceResolution._onValueChanged = this._onReferenceResolutionChanged;
     this._rootCanvasListener = this._rootCanvasListener.bind(this);
+    this._centerDirtyFlag = entity.registerWorldChangeFlag();
   }
 
   raycast(ray: Ray, out: UIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
@@ -260,7 +266,8 @@ export class UICanvas extends Component implements IElement {
     const { frameCount } = engine.time;
     // @ts-ignore
     const renderElement = (this._renderElement = engine._renderElementPool.get());
-    this._updateSortDistance(context.virtualCamera.position);
+    const virtualCamera = context.virtualCamera;
+    this._updateSortDistance(virtualCamera.isOrthographic, virtualCamera.position, virtualCamera.forward);
     renderElement.set(this.sortOrder, this._sortDistance);
     const { width, height } = engine.canvas;
     const renderers = this._getRenderers();
@@ -297,7 +304,7 @@ export class UICanvas extends Component implements IElement {
   /**
    * @internal
    */
-  _updateSortDistance(cameraPosition: Vector3): void {
+  _updateSortDistance(isOrthographic: boolean, cameraPosition: Vector3, cameraForward: Vector3): void {
     switch (this._realRenderMode) {
       case CanvasRenderMode.ScreenSpaceOverlay:
         this._sortDistance = 0;
@@ -306,7 +313,13 @@ export class UICanvas extends Component implements IElement {
         this._sortDistance = this._distance;
         break;
       case CanvasRenderMode.WorldSpace:
-        this._sortDistance = Vector3.distance(cameraPosition, this.entity.transform.worldPosition);
+        const boundsCenter = this._getCenter();
+        if (isOrthographic) {
+          Vector3.subtract(boundsCenter, cameraPosition, boundsCenter);
+          this._sortDistance = Vector3.dot(boundsCenter, cameraForward);
+        } else {
+          this._sortDistance = Vector3.distanceSquared(boundsCenter, cameraPosition);
+        }
         break;
     }
   }
@@ -573,6 +586,18 @@ export class UICanvas extends Component implements IElement {
         this._orderedRenderers.length = 0;
       }
     }
+  }
+
+  private _getCenter(): Vector3 {
+    if (this._centerDirtyFlag.flag) {
+      const center = this._center;
+      const uiTransform = <UITransform>this.entity.transform;
+      const { pivot, size } = uiTransform;
+      center.set((0.5 - pivot.x) * size.x, (0.5 - pivot.y) * size.y, 0);
+      Vector3.transformCoordinate(center, uiTransform.worldMatrix, center);
+      this._centerDirtyFlag.flag = false;
+    }
+    return this._center;
   }
 
   private _getRealRenderMode(): number {
