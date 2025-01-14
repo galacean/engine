@@ -1,5 +1,5 @@
 import { ShaderFactory } from "@galacean/engine";
-import { fragmentList } from "./shaders";
+import { PBRSource, fragmentList } from "./shaders";
 
 let includeRegistered = false;
 
@@ -13,7 +13,4 @@ export function registerIncludes() {
   includeRegistered = true;
 }
 
-/**
- * @internal
- */
-export { fragmentList };
+export { PBRSource, fragmentList };

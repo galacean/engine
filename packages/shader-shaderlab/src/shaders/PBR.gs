@@ -78,7 +78,7 @@ Shader "PBR.gs" {
       }
     }
       
-    UIScript "uiScriptPath";
+    UIScript "UIScriptPath";
   }
         
     SubShader "Default" {
