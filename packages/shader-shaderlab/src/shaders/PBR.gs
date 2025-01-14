@@ -1,4 +1,4 @@
-Shader "PBR.gs" {
+Shader "PBRShaderName" {
   Editor {
     Properties{
       Header("Base"){
