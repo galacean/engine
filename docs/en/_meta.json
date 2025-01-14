@@ -59,6 +59,12 @@
       "collapse": true
     }
   },
+  "platform": {
+    "title": "Platform",
+    "theme": {
+      "collapse": true
+    }
+  },
   "device": {
     "title": "Device",
     "theme": {
