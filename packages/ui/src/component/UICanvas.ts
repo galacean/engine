@@ -1,6 +1,5 @@
 import {
   BoolUpdateFlag,
-  BoundingBox,
   Camera,
   CameraModifyFlags,
   Component,
@@ -94,9 +93,9 @@ export class UICanvas extends Component implements IElement {
   @ignoreClone
   private _hierarchyVersion: number = -1;
   @ignoreClone
-  private _bounds: BoundingBox = new BoundingBox();
+  private _center: Vector3 = new Vector3();
   @ignoreClone
-  private _boundsDirtyFlag: BoolUpdateFlag;
+  private _centerDirtyFlag: BoolUpdateFlag;
 
   /**
    * The conversion ratio between reference resolution and unit for UI elements in this canvas.
@@ -225,7 +224,7 @@ export class UICanvas extends Component implements IElement {
     // @ts-ignore
     this._referenceResolution._onValueChanged = this._onReferenceResolutionChanged;
     this._rootCanvasListener = this._rootCanvasListener.bind(this);
-    this._boundsDirtyFlag = entity.registerWorldChangeFlag();
+    this._centerDirtyFlag = entity.registerWorldChangeFlag();
   }
 
   raycast(ray: Ray, out: UIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
@@ -314,7 +313,7 @@ export class UICanvas extends Component implements IElement {
         this._sortDistance = this._distance;
         break;
       case CanvasRenderMode.WorldSpace:
-        const boundsCenter = this._getBounds().getCenter(UICanvas._tempVec3);
+        const boundsCenter = this._getCenter();
         if (isOrthographic) {
           Vector3.subtract(boundsCenter, cameraPosition, boundsCenter);
           this._sortDistance = Vector3.dot(boundsCenter, cameraForward);
@@ -589,19 +588,17 @@ export class UICanvas extends Component implements IElement {
     }
   }
 
-  private _getBounds(): BoundingBox {
-    if (this._boundsDirtyFlag.flag) {
-      const bounds = this._bounds;
-      const { min, max } = bounds;
+  private _getCenter(): Vector3 {
+    if (this._centerDirtyFlag.flag) {
+      const center = this._center;
       const uiTransform = <UITransform>this.entity.transform;
-      const { x: width, y: height } = uiTransform.size;
       const { x: pivotX, y: pivotY } = uiTransform.pivot;
-      min.set(-width * pivotX, -height * pivotY, 0);
-      max.set(width * (1 - pivotX), height * (1 - pivotY), 0);
-      bounds.transform(uiTransform.worldMatrix);
-      this._boundsDirtyFlag.flag = false;
+      const { x: width, y: height } = uiTransform.size;
+      center.set((1 - 2 * pivotX) * width, (1 - 2 * pivotY) * height, 0);
+      Vector3.transformCoordinate(center, uiTransform.worldMatrix, center);
+      this._centerDirtyFlag.flag = false;
     }
-    return this._bounds;
+    return this._center;
   }
 
   private _getRealRenderMode(): number {
