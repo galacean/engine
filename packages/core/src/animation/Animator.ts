@@ -1236,7 +1236,7 @@ export class Animator extends Component {
       if (transitionCollection.isSoloMode && !transition.solo) continue;
 
       if (this._checkConditions(transition)) {
-        return this._applyTransition(layerData, transition, aniUpdate)
+        return this._applyTransition(layerData, transition, aniUpdate);
       }
     }
   }
