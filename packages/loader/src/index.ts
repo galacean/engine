@@ -18,9 +18,11 @@ import "./SpriteAtlasLoader";
 import "./SpriteLoader";
 import "./Texture2DLoader";
 import "./TextureCubeLoader";
+import "./AudioLoader";
 import "./ktx2/KTX2Loader";
 import "./ShaderLoader";
 import "./ShaderChunkLoader";
+import "./PhysicsMaterialLoader";
 
 export { GLTFLoader } from "./GLTFLoader";
 export type { GLTFParams } from "./GLTFLoader";

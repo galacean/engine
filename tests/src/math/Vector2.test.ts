@@ -1,5 +1,5 @@
 import { MathUtil, Vector2 } from "@galacean/engine-math";
-import { expect } from "chai";
+import { describe, expect, it } from "vitest";
 
 function toString(v: Vector2): string {
   return `vec2(${v.x}, ${v.y})`;

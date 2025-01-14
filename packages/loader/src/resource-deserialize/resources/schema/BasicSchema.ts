@@ -28,11 +28,17 @@ export interface IHierarchyFile {
   entities: Array<IEntity>;
 }
 
-export type IMethodParams = Array<IBasicType>;
+export type IMethod = {
+  params: Array<IBasicType>;
+  result?: IInstance;
+};
+
+export type IMethodParams = Array<IBasicType> | IMethod;
 
 export interface IBasicEntity {
   name?: string;
   id?: string;
+  transform?: IComponent;
   components?: Array<IComponent>;
   isActive?: boolean;
   position?: IVector3;
@@ -49,11 +55,9 @@ export interface IRefEntity extends IBasicEntity {
   assetRefId: string;
   key?: string;
   isClone?: boolean;
-  modifications: {
+  modifications: (IInstance & {
     target: IPrefabModifyTarget;
-    methods?: { [methodName: string]: Array<IMethodParams> };
-    props?: { [key: string]: IBasicType | IMethodParams };
-  }[];
+  })[];
   removedEntities: IPrefabModifyTarget[];
   removedComponents: IPrefabModifyTarget[];
 }
@@ -69,13 +73,20 @@ export interface IStrippedEntity extends IBasicEntity {
   prefabSource: { assetId: string; entityId: string };
 }
 
-export type IComponent = { id: string; refId?: string } & IClassObject;
+export type IComponent = { id: string; refId?: string } & IClass;
 
-export type IClassObject = {
+export type IClass = {
   class: string;
-  constructParams?: IMethodParams;
+  constructParams?: Array<IBasicType>;
+} & IInstance;
+
+export interface IInstance {
   methods?: { [methodName: string]: Array<IMethodParams> };
   props?: { [key: string]: IBasicType | IMethodParams };
+}
+
+export type IClassType = {
+  classType: string;
 };
 
 export type IBasicType =
@@ -85,10 +96,16 @@ export type IBasicType =
   | null
   | undefined
   | IAssetRef
-  | IClassObject
+  | IClass
+  | IClassType
   | IMethodParams
   | IEntityRef;
 
 export type IAssetRef = { key?: string; refId: string };
 
 export type IEntityRef = { entityId: string };
+
+export type IComponentRef = {
+  ownerId: string;
+  componentId: string;
+};

@@ -1,4 +1,4 @@
-import { Entity, Engine, Loader, Scene } from "@galacean/engine-core";
+import { Engine, Entity, Loader, Scene, Transform } from "@galacean/engine-core";
 import type { IEntity, IHierarchyFile, IRefEntity, IStrippedEntity } from "../schema";
 import { ReflectionParser } from "./ReflectionParser";
 import { ParserContext, ParserType } from "./ParserContext";
@@ -84,7 +84,6 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   private _parseComponents(): Promise<any[]> {
     const entitiesConfig = this.data.entities;
     const entityMap = this.context.entityMap;
-    const components = this.context.components;
 
     const promises = [];
     for (let i = 0, l = entitiesConfig.length; i < l; i++) {
@@ -94,11 +93,16 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
         const componentConfig = entityConfig.components[i];
         const key = !componentConfig.refId ? componentConfig.class : componentConfig.refId;
         const component = entity.addComponent(Loader.getClass(key));
-        components.set(componentConfig.id, component);
+        this.context.addComponent(componentConfig.id, component);
         const promise = this._reflectionParser.parsePropsAndMethods(component, componentConfig);
         promises.push(promise);
       }
     }
+
+    for (const waitingList of this.context.componentWaitingMap.values()) {
+      waitingList.forEach((resolve) => resolve(null));
+    }
+
     return Promise.all(promises);
   }
 
@@ -216,7 +220,8 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   }
 
   private _parseEntity(entityConfig: IEntity, engine: Engine): Promise<Entity> {
-    const entity = new Entity(engine, entityConfig.name);
+    const transform = entityConfig.transform;
+    const entity = new Entity(engine, entityConfig.name, transform ? Loader.getClass(transform.class) : Transform);
     if (!entityConfig.parent) this.context.rootIds.push(entityConfig.id);
 
     return Promise.resolve(entity);
@@ -284,11 +289,17 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   private _applyEntityData(entity: Entity, entityConfig: IEntity = {}): Entity {
     entity.isActive = entityConfig.isActive ?? entity.isActive;
     entity.name = entityConfig.name ?? entity.name;
-    const { position, rotation, scale, layer } = entityConfig;
-    if (position) entity.transform.position.copyFrom(position);
-    if (rotation) entity.transform.rotation.copyFrom(rotation);
-    if (scale) entity.transform.scale.copyFrom(scale);
-    if (layer) entity.layer = layer;
+    const transform = entity.transform;
+    const transformConfig = entityConfig.transform;
+    if (transformConfig) {
+      this._reflectionParser.parsePropsAndMethods(transform, transformConfig);
+    } else {
+      const { position, rotation, scale } = entityConfig;
+      if (position) transform.position.copyFrom(position);
+      if (rotation) transform.rotation.copyFrom(rotation);
+      if (scale) transform.scale.copyFrom(scale);
+    }
+    if (entityConfig.layer) entity.layer = entityConfig.layer;
     return entity;
   }
 

@@ -1,10 +1,10 @@
 import { SymbolTableStack } from "../common/BaseSymbolTable";
 import { BaseToken } from "../common/BaseToken";
-import { EKeyword, ETokenType } from "../common";
+import { EKeyword, ETokenType, TokenType } from "../common";
 import { ShaderPosition } from "../common";
 import { KeywordMap } from "./KeywordMap";
 import Scanner from "./Scanner";
-import SymbolTable, { ISymbol } from "./SymbolTable";
+import ContentSymbolTable, { ISymbol } from "./ContentSymbolTable";
 import {
   RenderStateDataKey,
   Color,
@@ -23,7 +23,11 @@ import {
   IShaderPassContent,
   IRenderStates
 } from "@galacean/engine-design";
-import { ParserUtils } from "../Utils";
+import { GSErrorName } from "../GSError";
+// #if _VERBOSE
+import { GSError } from "../GSError";
+// #endif
+import { ShaderLabUtils } from "../ShaderLabUtils";
 
 const EngineType = [
   EKeyword.GS_RenderQueueType,
@@ -44,20 +48,19 @@ const RenderStateType = [
   EKeyword.GS_StencilState
 ];
 
+/**
+ * @internal
+ */
 export class ShaderContentParser {
   static _engineType = { RenderQueueType, CompareFunction, StencilOperation, BlendOperation, BlendFactor, CullMode };
-  private static _isRenderStateDeclarator(token: BaseToken) {
-    return RenderStateType.includes(token.type);
-  }
 
-  private static _isEngineType(token: BaseToken) {
-    return EngineType.includes(token.type);
-  }
+  static _errors: GSError[] = [];
 
-  private static _symbolTable: SymbolTableStack<ISymbol, SymbolTable> = new SymbolTableStack();
+  private static _symbolTableStack: SymbolTableStack<ISymbol, ContentSymbolTable> = new SymbolTableStack();
 
   static reset() {
-    this._symbolTable.clear();
+    this._errors.length = 0;
+    this._symbolTableStack.clear();
     this._newScope();
   }
 
@@ -88,7 +91,6 @@ export class ShaderContentParser {
 
       for (let i = 0; i < subShader.passes.length; i++) {
         const pass = subShader.passes[i];
-        // for (const pass of subShader.passes) {
         Object.assign(pass.renderStates.constantMap, constMap);
         Object.assign(pass.renderStates.variableMap, variableMap);
         if (pass.isUsePass) continue;
@@ -103,9 +105,26 @@ export class ShaderContentParser {
     return ret;
   }
 
+  private static _isRenderStateDeclarator(token: BaseToken) {
+    return RenderStateType.includes(token.type);
+  }
+
+  private static _isEngineType(token: BaseToken) {
+    return EngineType.includes(token.type);
+  }
+
+  private static _lookupSymbolByType(ident: string, type: TokenType): ISymbol | undefined {
+    const stack = ShaderContentParser._symbolTableStack.stack;
+    for (let length = stack.length, i = length - 1; i >= 0; i--) {
+      const symbolTable = stack[i];
+      const ret = symbolTable.lookup(ident, type);
+      if (ret) return ret;
+    }
+  }
+
   private static _parseShaderStatements(ret: IShaderContent, scanner: Scanner) {
     let braceLevel = 1;
-    let start = scanner.curPosition;
+    let start = scanner.getCurPosition();
 
     while (true) {
       const word = scanner.scanToken();
@@ -114,20 +133,21 @@ export class ShaderContentParser {
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           const subShader = this._parseSubShader(scanner);
           ret.subShaders.push(subShader);
-          start = scanner.curPosition;
+          start = scanner.getCurPosition();
           break;
 
         case EKeyword.GS_EditorProperties:
         case EKeyword.GS_EditorMacros:
+        case EKeyword.GS_Editor:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           scanner.scanPairedText("{", "}", true);
-          start = scanner.curPosition;
+          start = scanner.getCurPosition();
           break;
 
         case EKeyword.GS_RenderQueueType:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           this._parseRenderQueueAssignment(ret, scanner);
-          start = scanner.curPosition;
+          start = scanner.getCurPosition();
           break;
 
         case ETokenType.NOT_WORD:
@@ -136,7 +156,7 @@ export class ShaderContentParser {
             braceLevel -= 1;
             if (braceLevel === 0) {
               this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
-              this._symbolTable.dropScope();
+              this._symbolTableStack.dropScope();
               return;
             }
           }
@@ -145,12 +165,12 @@ export class ShaderContentParser {
           if (ShaderContentParser._isRenderStateDeclarator(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
             this._parseRenderStateDeclarationOrAssignment(ret, word, scanner);
-            start = scanner.curPosition;
+            start = scanner.getCurPosition();
             break;
           } else if (ShaderContentParser._isEngineType(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
             this._parseVariableDeclaration(word.type, scanner);
-            start = scanner.curPosition;
+            start = scanner.getCurPosition();
             break;
           }
       }
@@ -172,9 +192,18 @@ export class ShaderContentParser {
     } else if (ident.lexeme === "=") {
       const variable = scanner.scanToken();
       scanner.scanText(";");
-      const sm = this._symbolTable.lookup({ type: stateToken.type, ident: variable.lexeme });
+      const sm = ShaderContentParser._lookupSymbolByType(variable.lexeme, stateToken.type);
       if (!sm?.value) {
-        ParserUtils.throw(scanner.current, `Invalid ${stateToken.lexeme} variable:`, variable.lexeme);
+        const error = ShaderLabUtils.createGSError(
+          `Invalid "${stateToken.lexeme}" variable: ${variable.lexeme}`,
+          GSErrorName.CompilationError,
+          scanner.source,
+          variable.location
+        );
+        // #if _VERBOSE
+        this._errors.push(<GSError>error);
+        return;
+        // #endif
       }
       const renderState = sm.value as IRenderStates;
       Object.assign(ret.renderStates.constantMap, renderState.constantMap);
@@ -184,7 +213,7 @@ export class ShaderContentParser {
 
     const renderState = this._parseRenderStatePropList(stateToken.lexeme, scanner);
     if (isDeclaration) {
-      this._symbolTable.insert({ ident: ident.lexeme, type: stateToken.type, value: renderState });
+      this._symbolTableStack.insert({ ident: ident.lexeme, type: stateToken.type, value: renderState });
     } else {
       Object.assign(ret.renderStates.constantMap, renderState.constantMap);
       Object.assign(ret.renderStates.variableMap, renderState.variableMap);
@@ -194,12 +223,16 @@ export class ShaderContentParser {
   private static _parseVariableDeclaration(type: number, scanner: Scanner) {
     const token = scanner.scanToken();
     scanner.scanText(";");
-    this._symbolTable.insert({ type: token.type, ident: token.lexeme });
+    this._symbolTableStack.insert({ type: token.type, ident: token.lexeme });
   }
 
   private static _newScope() {
-    const symbolTable = new SymbolTable();
-    this._symbolTable.newScope(symbolTable);
+    const symbolTable = new ContentSymbolTable();
+    this._symbolTableStack.newScope(symbolTable);
+  }
+
+  private static _dropScope() {
+    this._symbolTableStack.dropScope();
   }
 
   private static _parseRenderStatePropList(state: string, scanner: Scanner): IRenderStates {
@@ -222,15 +255,36 @@ export class ShaderContentParser {
         scanner.scanText("]");
         scanner.scanText("=");
       } else if (op.lexeme !== "=") {
-        ParserUtils.throw(scanner.current, "Invalid syntax, expect character '=', but got", op.lexeme);
+        const error = ShaderLabUtils.createGSError(
+          `Invalid syntax, expect character '=', but got ${op.lexeme}`,
+          GSErrorName.CompilationError,
+          scanner.source,
+          scanner.getCurPosition()
+        );
+        // #if _VERBOSE
+        this._errors.push(<GSError>error);
+        scanner.scanToCharacter(";");
+        return;
+        // #endif
       }
       renderStateProp += idx;
     }
 
     renderStateProp = state + renderStateProp;
     const renderStateElementKey = RenderStateDataKey[renderStateProp];
-    if (renderStateElementKey == undefined)
-      ParserUtils.throw(scanner.current, "Invalid render state element", renderStateProp);
+    if (renderStateElementKey == undefined) {
+      const error = ShaderLabUtils.createGSError(
+        `Invalid render state element ${renderStateProp}`,
+        GSErrorName.CompilationError,
+        scanner.source,
+        scanner.getCurPosition()
+      );
+      // #if _VERBOSE
+      this._errors.push(<GSError>error);
+      scanner.scanToCharacter(";");
+      return;
+      // #endif
+    }
 
     scanner.skipCommentsAndSpace();
     let value: any;
@@ -258,8 +312,19 @@ export class ShaderContentParser {
         scanner._advance();
         const engineTypeProp = scanner.scanToken();
         value = ShaderContentParser._engineType[token.lexeme]?.[engineTypeProp.lexeme];
-        if (value == undefined)
-          ParserUtils.throw(scanner.current, "Invalid engine constant:", `${token.lexeme}.${engineTypeProp.lexeme}`);
+        if (value == undefined) {
+          const error = ShaderLabUtils.createGSError(
+            `Invalid engine constant: ${token.lexeme}.${engineTypeProp.lexeme}`,
+            GSErrorName.CompilationError,
+            scanner.source,
+            engineTypeProp.location
+          );
+          // #if _VERBOSE
+          this._errors.push(<GSError>error);
+          scanner.scanToCharacter(";");
+          return;
+          // #endif
+        }
       } else {
         value = token.lexeme;
       }
@@ -277,11 +342,12 @@ export class ShaderContentParser {
     const word = scanner.scanToken();
     scanner.scanText(";");
     const value = ShaderContentParser._engineType.RenderQueueType[word.lexeme];
-    if (value == undefined) {
-      ParserUtils.throw(scanner.current, "Invalid render queue", word.lexeme);
-    }
     const key = RenderStateDataKey.RenderQueueType;
-    ret.renderStates.constantMap[key] = value;
+    if (value == undefined) {
+      ret.renderStates.variableMap[key] = word.lexeme;
+    } else {
+      ret.renderStates.constantMap[key] = value;
+    }
   }
 
   private static _addGlobalStatement(
@@ -292,7 +358,7 @@ export class ShaderContentParser {
   ) {
     if (scanner.current > start.index + offset) {
       ret.globalContents.push({
-        range: { start, end: { ...scanner.curPosition, index: scanner.current - offset - 1 } },
+        range: { start, end: { ...scanner.getCurPosition(), index: scanner.current - offset - 1 } },
         content: scanner.source.substring(start.index, scanner.current - offset - 1)
       });
     }
@@ -311,7 +377,7 @@ export class ShaderContentParser {
     scanner.scanText("{");
 
     scanner.skipCommentsAndSpace();
-    let start = scanner.curPosition;
+    let start = scanner.getCurPosition();
 
     while (true) {
       const word = scanner.scanToken();
@@ -320,13 +386,13 @@ export class ShaderContentParser {
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           const pass = this._parsePass(scanner);
           ret.passes.push(pass);
-          start = scanner.curPosition;
+          start = scanner.getCurPosition();
           break;
 
         case EKeyword.GS_RenderQueueType:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           this._parseRenderQueueAssignment(ret, scanner);
-          start = scanner.curPosition;
+          start = scanner.getCurPosition();
           break;
 
         case EKeyword.GS_UsePass:
@@ -334,13 +400,13 @@ export class ShaderContentParser {
           const name = scanner.scanPairedText('"', '"');
           // @ts-ignore
           ret.passes.push({ name, isUsePass: true, renderStates: { constantMap: {}, variableMap: {} }, tags: {} });
-          start = scanner.curPosition;
+          start = scanner.getCurPosition();
           break;
 
         case EKeyword.GS_Tags:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           this._parseTags(ret, scanner);
-          start = scanner.curPosition;
+          start = scanner.getCurPosition();
           break;
 
         case ETokenType.NOT_WORD:
@@ -349,7 +415,7 @@ export class ShaderContentParser {
             braceLevel -= 1;
             if (braceLevel === 0) {
               this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
-              this._symbolTable.dropScope();
+              this._dropScope();
               return ret;
             }
           }
@@ -358,12 +424,12 @@ export class ShaderContentParser {
           if (ShaderContentParser._isRenderStateDeclarator(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
             this._parseRenderStateDeclarationOrAssignment(ret, word, scanner);
-            start = scanner.curPosition;
+            start = scanner.getCurPosition();
             break;
           } else if (ShaderContentParser._isEngineType(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
             this._parseVariableDeclaration(word.type, scanner);
-            start = scanner.curPosition;
+            start = scanner.getCurPosition();
             break;
           }
       }
@@ -402,7 +468,7 @@ export class ShaderContentParser {
     let braceLevel = 1;
 
     scanner.skipCommentsAndSpace();
-    let start = scanner.curPosition;
+    let start = scanner.getCurPosition();
 
     while (true) {
       const word = scanner.scanToken();
@@ -410,13 +476,13 @@ export class ShaderContentParser {
         case EKeyword.GS_RenderQueueType:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           this._parseRenderQueueAssignment(ret, scanner);
-          start = scanner.curPosition;
+          start = scanner.getCurPosition();
           break;
 
         case EKeyword.GS_Tags:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           this._parseTags(ret, scanner);
-          start = scanner.curPosition;
+          start = scanner.getCurPosition();
           break;
 
         case EKeyword.GS_VertexShader:
@@ -424,15 +490,22 @@ export class ShaderContentParser {
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           scanner.scanText("=");
           const entry = scanner.scanToken();
-          // #if _EDITOR
           if (ret[word.lexeme]) {
-            ParserUtils.throw(scanner.current, "reassign main entry");
+            const error = ShaderLabUtils.createGSError(
+              "reassign main entry",
+              GSErrorName.CompilationError,
+              scanner.source,
+              scanner.getCurPosition()
+            );
+            // #if _VERBOSE
+            Logger.error(error.toString());
+            throw error;
+            // #endif
           }
-          // #endif
           const key = word.type === EKeyword.GS_VertexShader ? "vertexEntry" : "fragmentEntry";
           ret[key] = entry.lexeme;
           scanner.scanText(";");
-          start = scanner.curPosition;
+          start = scanner.getCurPosition();
           break;
 
         case ETokenType.NOT_WORD:
@@ -441,7 +514,7 @@ export class ShaderContentParser {
             braceLevel -= 1;
             if (braceLevel === 0) {
               this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
-              this._symbolTable.dropScope();
+              this._dropScope();
               return ret;
             }
           }
@@ -450,12 +523,12 @@ export class ShaderContentParser {
           if (ShaderContentParser._isRenderStateDeclarator(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
             this._parseRenderStateDeclarationOrAssignment(ret, word, scanner);
-            start = scanner.curPosition;
+            start = scanner.getCurPosition();
             break;
           } else if (ShaderContentParser._isEngineType(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
             this._parseVariableDeclaration(word.type, scanner);
-            start = scanner.curPosition;
+            start = scanner.getCurPosition();
             break;
           }
       }

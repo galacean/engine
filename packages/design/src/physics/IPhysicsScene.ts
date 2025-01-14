@@ -14,18 +14,6 @@ export interface IPhysicsScene {
   setGravity(gravity: Vector3): void;
 
   /**
-   * Add IColliderShape into the manager.
-   * @param colliderShape - The Collider Shape.
-   */
-  addColliderShape(colliderShape: IColliderShape): void;
-
-  /**
-   * Remove IColliderShape.
-   * @param colliderShape - The Collider Shape.
-   */
-  removeColliderShape(colliderShape: IColliderShape): void;
-
-  /**
    * Add ICollider into the manager.
    * @param collider - StaticCollider or DynamicCollider.
    */

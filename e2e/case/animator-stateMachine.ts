@@ -60,19 +60,19 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       const toWalkTransition = new AnimatorStateTransition();
       toWalkTransition.destinationState = walkState;
       toWalkTransition.duration = 0.2;
-      toWalkTransition.addCondition(AnimatorConditionMode.Greater, "playerSpeed", 0);
+      toWalkTransition.addCondition("playerSpeed", AnimatorConditionMode.Greater, 0);
       idleState.addTransition(toWalkTransition);
       idleToWalkTime =
         //@ts-ignore
         toWalkTransition.exitTime * idleState._getDuration() + toWalkTransition.duration * walkState._getDuration();
 
       const exitTransition = idleState.addExitTransition();
-      exitTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
+      exitTransition.addCondition("playerSpeed", AnimatorConditionMode.Equals, 0);
       // to walk state
       const toRunTransition = new AnimatorStateTransition();
       toRunTransition.destinationState = runState;
       toRunTransition.duration = 0.3;
-      toRunTransition.addCondition(AnimatorConditionMode.Greater, "playerSpeed", 0.5);
+      toRunTransition.addCondition("playerSpeed", AnimatorConditionMode.Greater, 0.5);
       walkState.addTransition(toRunTransition);
       walkToRunTime =
         //@ts-ignore
@@ -82,7 +82,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       const toIdleTransition = new AnimatorStateTransition();
       toIdleTransition.destinationState = idleState;
       toIdleTransition.duration = 0.3;
-      toIdleTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
+      toIdleTransition.addCondition("playerSpeed", AnimatorConditionMode.Equals, 0);
       walkState.addTransition(toIdleTransition);
       walkToIdleTime =
         //@ts-ignore
@@ -94,7 +94,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       const RunToWalkTransition = new AnimatorStateTransition();
       RunToWalkTransition.destinationState = walkState;
       RunToWalkTransition.duration = 0.3;
-      RunToWalkTransition.addCondition(AnimatorConditionMode.Less, "playerSpeed", 0.5);
+      RunToWalkTransition.addCondition("playerSpeed", AnimatorConditionMode.Less, 0.5);
       runState.addTransition(RunToWalkTransition);
       runToWalkTime =
         //@ts-ignore
@@ -105,7 +105,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       stateMachine.addEntryStateTransition(idleState);
 
       const anyTransition = stateMachine.addAnyStateTransition(idleState);
-      anyTransition.addCondition(AnimatorConditionMode.Equals, "playerSpeed", 0);
+      anyTransition.addCondition("playerSpeed", AnimatorConditionMode.Equals, 0);
       anyTransition.duration = 0.3;
       let anyToIdleTime =
         // @ts-ignore

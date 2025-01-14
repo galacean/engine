@@ -2,7 +2,6 @@ import {
   AssetPromise,
   AssetType,
   BackgroundMode,
-  BloomEffect,
   DiffuseMode,
   Font,
   Loader,
@@ -11,10 +10,9 @@ import {
   Mesh,
   resourceLoader,
   ResourceManager,
-  Scene,
-  TonemappingEffect
+  Scene
 } from "@galacean/engine-core";
-import { IClassObject, IScene, ReflectionParser, SceneParser, SpecularMode } from "./resource-deserialize";
+import { IClass, IScene, ReflectionParser, SceneParser, SpecularMode } from "./resource-deserialize";
 
 @resourceLoader(AssetType.Scene, ["scene"], true)
 class SceneLoader extends Loader<Scene> {
@@ -129,29 +127,9 @@ class SceneLoader extends Loader<Scene> {
             // Post Process
             const postProcessData = data.scene.postProcess;
             if (postProcessData) {
-              // @ts-ignore
-              const postProcessManager = scene._postProcessManager;
-              const bloomEffect = postProcessManager._bloomEffect as BloomEffect;
-              const tonemappingEffect = postProcessManager._tonemappingEffect as TonemappingEffect;
-
-              postProcessManager.isActive = postProcessData.isActive;
-              bloomEffect.enabled = postProcessData.bloom.enabled;
-              bloomEffect.downScale = postProcessData.bloom.downScale;
-              bloomEffect.threshold = postProcessData.bloom.threshold;
-              bloomEffect.scatter = postProcessData.bloom.scatter;
-              bloomEffect.intensity = postProcessData.bloom.intensity;
-              bloomEffect.tint.copyFrom(postProcessData.bloom.tint);
-              bloomEffect.dirtIntensity = postProcessData.bloom.dirtIntensity;
-              tonemappingEffect.enabled = postProcessData.tonemapping.enabled;
-              tonemappingEffect.mode = postProcessData.tonemapping.mode;
-              if (postProcessData.bloom.dirtTexture) {
-                // @ts-ignore
-                // prettier-ignore
-                const dirtTexturePromise = resourceManager.getResourceByRef<any>(postProcessData.bloom.dirtTexture).then((texture) => {
-                    bloomEffect.dirtTexture = texture;
-                });
-                promises.push(dirtTexturePromise);
-              }
+              Logger.warn(
+                "Post Process is not supported in scene yet, please add PostProcess component in entity instead."
+              );
             }
 
             return Promise.all(promises).then(() => {
@@ -164,14 +142,11 @@ class SceneLoader extends Loader<Scene> {
   }
 }
 
-ReflectionParser.registerCustomParseComponent(
-  "TextRenderer",
-  async (instance: any, item: Omit<IClassObject, "class">) => {
-    const { props } = item;
-    if (!props.font) {
-      // @ts-ignore
-      instance.font = Font.createFromOS(instance.engine, props.fontFamily || "Arial");
-    }
-    return instance;
+ReflectionParser.registerCustomParseComponent("TextRenderer", async (instance: any, item: Omit<IClass, "class">) => {
+  const { props } = item;
+  if (!props.font) {
+    // @ts-ignore
+    instance.font = Font.createFromOS(instance.engine, props.fontFamily || "Arial");
   }
-);
+  return instance;
+});

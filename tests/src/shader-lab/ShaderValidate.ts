@@ -1,7 +1,7 @@
-import { expect } from "chai";
-import { ShaderLab } from "@galacean/engine-shader-lab";
-import { Shader, ShaderFactory, ShaderPass, ShaderPlatformTarget } from "@galacean/engine-core";
+import { ShaderLab } from "@galacean/engine-shaderlab";
+import { Shader, ShaderFactory, ShaderPass, ShaderPlatformTarget, ShaderMacro } from "@galacean/engine-core";
 import { IShaderContent } from "@galacean/engine-design/src/shader-lab";
+import { expect } from "vitest";
 
 function addLineNum(str: string) {
   const lines = str.split("\n");
@@ -33,7 +33,7 @@ function validateShaderPass(
     expect(!!shaderPass).to.be.true;
     return shaderPass;
   } else {
-    const gl = document.createElement("canvas").getContext("webgl2");
+    const gl = document.createElement("canvas").getContext("webgl2") as WebGL2RenderingContext;
     expect(!!gl, "Not support webgl").to.be.true;
 
     const vs = gl.createShader(gl.VERTEX_SHADER);
@@ -90,7 +90,39 @@ export function glslValidate(shaderSource, _shaderLab?: ShaderLab, includeMap = 
         // @ts-ignore
         ShaderPass._shaderRootPath
       );
+      if (shaderLab.errors) {
+        for (const error of shaderLab.errors) {
+          console.error(error.toString());
+        }
+      }
       validateShaderPass(pass, compiledPass.vertex, compiledPass.fragment);
     });
   });
+}
+
+export function shaderParse(
+  shaderSource: string,
+  macros: ShaderMacro[] = [],
+  backend: ShaderPlatformTarget = ShaderPlatformTarget.GLES100
+): (ReturnType<ShaderLab["_parseShaderPass"]> & { name: string })[] {
+  const structInfo = this._parseShaderContent(shaderSource);
+  const passResult = [] as any;
+  for (const subShader of structInfo.subShaders) {
+    for (const pass of subShader.passes) {
+      if (pass.isUsePass) continue;
+      const passInfo = this._parseShaderPass(
+        pass.contents,
+        pass.vertexEntry,
+        pass.fragmentEntry,
+        macros,
+        backend,
+        [],
+        // @ts-ignore
+        new URL(pass.name, ShaderPass._shaderRootPath).href
+      ) as any;
+      passInfo.name = pass.name;
+      passResult.push(passInfo);
+    }
+  }
+  return passResult;
 }

@@ -10,7 +10,6 @@ import { Renderer } from "../../Renderer";
 import { TransformModifyFlags } from "../../Transform";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderData, ShaderProperty } from "../../shader";
-import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { ShaderDataGroup } from "../../shader/enums/ShaderDataGroup";
 import { Texture2D } from "../../texture";
 import { FontStyle } from "../enums/FontStyle";
@@ -19,29 +18,28 @@ import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAli
 import { OverflowMode } from "../enums/TextOverflow";
 import { CharRenderInfo } from "./CharRenderInfo";
 import { Font } from "./Font";
+import { ITextRenderer } from "./ITextRenderer";
 import { SubFont } from "./SubFont";
 import { TextUtils } from "./TextUtils";
 
 /**
  * Renders a text for 2D graphics.
  */
-export class TextRenderer extends Renderer {
+export class TextRenderer extends Renderer implements ITextRenderer {
   private static _textureProperty = ShaderProperty.getByName("renderElement_TextTexture");
   private static _tempVec30 = new Vector3();
   private static _tempVec31 = new Vector3();
   private static _worldPositions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   private static _charRenderInfos: CharRenderInfo[] = [];
 
-  /** @internal */
   @ignoreClone
-  _textChunks = Array<TextChunk>();
+  private _textChunks = Array<TextChunk>();
   /** @internal */
   @assignmentClone
   _subFont: SubFont = null;
   /** @internal */
   @ignoreClone
   _dirtyFlag: number = DirtyFlag.Font;
-
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
   @assignmentClone
@@ -250,7 +248,6 @@ export class TextRenderer extends Renderer {
   set maskInteraction(value: SpriteMaskInteraction) {
     if (this._maskInteraction !== value) {
       this._maskInteraction = value;
-      this._setDirtyFlagTrue(DirtyFlag.MaskInteraction);
     }
   }
 
@@ -294,7 +291,7 @@ export class TextRenderer extends Renderer {
     const { engine } = this;
     this._font = engine._textDefaultFont;
     this._addResourceReferCount(this._font, 1);
-    this.setMaterial(engine._textDefaultMaterial);
+    this.setMaterial(engine._basicResources.textDefaultMaterial);
     //@ts-ignore
     this._color._onValueChanged = this._onColorChanged.bind(this);
   }
@@ -394,11 +391,6 @@ export class TextRenderer extends Renderer {
       return;
     }
 
-    if (this._isContainDirtyFlag(DirtyFlag.MaskInteraction)) {
-      this._updateStencilState();
-      this._setDirtyFlagFalse(DirtyFlag.MaskInteraction);
-    }
-
     if (this._isContainDirtyFlag(DirtyFlag.SubFont)) {
       this._resetSubFont();
       this._setDirtyFlagFalse(DirtyFlag.SubFont);
@@ -435,29 +427,6 @@ export class TextRenderer extends Renderer {
       renderElement.addSubRenderElement(subRenderElement);
     }
     camera._renderPipeline.pushRenderElement(context, renderElement);
-  }
-
-  private _updateStencilState(): void {
-    const material = this.getInstanceMaterial();
-    const stencilState = material.renderState.stencilState;
-    const maskInteraction = this._maskInteraction;
-
-    if (maskInteraction === SpriteMaskInteraction.None) {
-      stencilState.enabled = false;
-      stencilState.writeMask = 0xff;
-      stencilState.referenceValue = 0;
-      stencilState.compareFunctionFront = stencilState.compareFunctionBack = CompareFunction.Always;
-    } else {
-      stencilState.enabled = true;
-      stencilState.writeMask = 0x00;
-      stencilState.referenceValue = 1;
-      const compare =
-        maskInteraction === SpriteMaskInteraction.VisibleInsideMask
-          ? CompareFunction.LessEqual
-          : CompareFunction.Greater;
-      stencilState.compareFunctionFront = compare;
-      stencilState.compareFunctionBack = compare;
-    }
   }
 
   private _resetSubFont(): void {
@@ -501,13 +470,10 @@ export class TextRenderer extends Renderer {
 
         // Right offset
         Vector3.scale(right, localPositions.z - topLeftX, worldPosition1);
-
         // Top-Right
         Vector3.add(worldPosition0, worldPosition1, worldPosition1);
-
         // Up offset
         Vector3.scale(up, localPositions.w - topLeftY, worldPosition2);
-
         // Bottom-Left
         Vector3.add(worldPosition0, worldPosition2, worldPosition3);
         // Bottom-Right
@@ -539,19 +505,24 @@ export class TextRenderer extends Renderer {
   }
 
   private _updateLocalData(): void {
+    const { _pixelsPerUnit } = Engine;
     const { min, max } = this._localBounds;
     const charRenderInfos = TextRenderer._charRenderInfos;
-    const charFont = this._subFont;
+    const charFont = this._getSubFont();
     const textMetrics = this.enableWrapping
-      ? TextUtils.measureTextWithWrap(this)
-      : TextUtils.measureTextWithoutWrap(this);
+      ? TextUtils.measureTextWithWrap(
+          this,
+          this.width * _pixelsPerUnit,
+          this.height * _pixelsPerUnit,
+          this._lineSpacing * _pixelsPerUnit
+        )
+      : TextUtils.measureTextWithoutWrap(this, this.height * _pixelsPerUnit, this._lineSpacing * _pixelsPerUnit);
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
     const charRenderInfoPool = this.engine._charRenderInfoPool;
     const linesLen = lines.length;
     let renderElementCount = 0;
 
     if (linesLen > 0) {
-      const { _pixelsPerUnit } = Engine;
       const { horizontalAlignment } = this;
       const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
       const rendererWidth = this.width * _pixelsPerUnit;
@@ -679,9 +650,7 @@ export class TextRenderer extends Renderer {
     charRenderInfos.length = 0;
   }
 
-  /**
-   * @internal
-   */
+  @ignoreClone
   protected override _onTransformChanged(bit: TransformModifyFlags): void {
     super._onTransformChanged(bit);
     this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
@@ -762,8 +731,7 @@ enum DirtyFlag {
   LocalPositionBounds = 0x2,
   WorldPosition = 0x4,
   WorldBounds = 0x8,
-  MaskInteraction = 0x10,
-  Color = 0x20,
+  Color = 0x10,
 
   Position = LocalPositionBounds | WorldPosition | WorldBounds,
   Font = SubFont | Position

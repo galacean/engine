@@ -1066,7 +1066,7 @@ export class Matrix implements IClone<Matrix>, ICopy<Matrix, Matrix> {
       out._z = 0.25 * s;
     }
 
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged?.();
     return out;
   }
 

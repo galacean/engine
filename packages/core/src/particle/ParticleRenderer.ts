@@ -240,11 +240,11 @@ export class ParticleRenderer extends Renderer {
   }
 
   protected override _onDestroy(): void {
-    super._onDestroy();
     const mesh = this._mesh;
     if (mesh) {
       mesh.destroyed || this._addResourceReferCount(mesh, -1);
     }
+    super._onDestroy();
     this.generator._destroy();
   }
 
@@ -281,6 +281,7 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
+  @ignoreClone
   override _onTransformChanged(type: TransformModifyFlags): void {
     this._dirtyUpdateFlag |= ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
   }

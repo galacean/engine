@@ -1,6 +1,6 @@
 {
-  "name": "@galacean/engine-shader-lab",
-  "version": "1.3.25",
+  "name": "@galacean/engine-shaderlab",
+  "version": "1.4.0-beta.1",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -25,7 +25,8 @@
   },
   "files": [
     "dist/**/*",
-    "types/**/*"
+    "types/**/*",
+    "verbose/package.json"
   ],
   "devDependencies": {
     "@galacean/engine-design": "workspace:*",

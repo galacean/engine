@@ -48,8 +48,8 @@ class SpriteLoader extends Loader<Sprite> {
           .then((texture: Texture2D) => {
             const sprite = new Sprite(resourceManager.engine, texture, data.region, data.pivot, data.border);
             const { width, height } = data;
-            isNaN(width) || (sprite.width = width);
-            isNaN(height) || (sprite.height = height);
+            width === undefined || (sprite.width = width);
+            height === undefined || (sprite.height = height);
             return sprite;
           })
       );
@@ -57,8 +57,8 @@ class SpriteLoader extends Loader<Sprite> {
       return new AssetPromise((resolve) => {
         const sprite = new Sprite(resourceManager.engine, null, data.region, data.pivot, data.border);
         const { width, height } = data;
-        isNaN(width) || (sprite.width = width);
-        isNaN(height) || (sprite.height = height);
+        width === undefined || (sprite.width = width);
+        height === undefined || (sprite.height = height);
         resolve(sprite);
       });
     }

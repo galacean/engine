@@ -1,10 +1,9 @@
 import { Ray, Vector3, DisorderedArray } from "@galacean/engine";
-import { IPhysicsScene } from "@galacean/engine-design";
+import { ICollision, IPhysicsScene } from "@galacean/engine-design";
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXCollider } from "./PhysXCollider";
 import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
-import { PhysXColliderShape } from "./shape/PhysXColliderShape";
 
 /**
  * A manager is a collection of colliders and constraints which can interact.
@@ -23,12 +22,12 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
   private _pxScene: any;
 
-  private readonly _onContactEnter?: (obj1: number, obj2: number) => void;
-  private readonly _onContactExit?: (obj1: number, obj2: number) => void;
-  private readonly _onContactStay?: (obj1: number, obj2: number) => void;
-  private readonly _onTriggerEnter?: (obj1: number, obj2: number) => void;
-  private readonly _onTriggerExit?: (obj1: number, obj2: number) => void;
-  private readonly _onTriggerStay?: (obj1: number, obj2: number) => void;
+  private readonly _onContactEnter?: (collision: ICollision) => void;
+  private readonly _onContactExit?: (collision: ICollision) => void;
+  private readonly _onContactStay?: (collision: ICollision) => void;
+  private readonly _onTriggerEnter?: (index1: number, index2: number) => void;
+  private readonly _onTriggerExit?: (index1: number, index2: number) => void;
+  private readonly _onTriggerStay?: (index1: number, index2: number) => void;
 
   private _currentEvents: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
 
@@ -37,9 +36,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   constructor(
     physXPhysics: PhysXPhysics,
     physicsManager: PhysXPhysicsManager,
-    onContactEnter?: (obj1: number, obj2: number) => void,
-    onContactExit?: (obj1: number, obj2: number) => void,
-    onContactStay?: (obj1: number, obj2: number) => void,
+    onContactEnter?: (collision: ICollision) => void,
+    onContactExit?: (collision: ICollision) => void,
+    onContactStay?: (collision: ICollision) => void,
     onTriggerEnter?: (obj1: number, obj2: number) => void,
     onTriggerExit?: (obj1: number, obj2: number) => void,
     onTriggerStay?: (obj1: number, obj2: number) => void
@@ -61,14 +60,14 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     this._onTriggerStay = onTriggerStay;
 
     const triggerCallback = {
-      onContactBegin: (index1, index2) => {
-        this._onContactEnter(index1, index2);
+      onContactBegin: (collision) => {
+        this._onContactEnter(collision);
       },
-      onContactEnd: (index1, index2) => {
-        this._onContactExit(index1, index2);
+      onContactEnd: (collision) => {
+        this._onContactExit(collision);
       },
-      onContactPersist: (index1, index2) => {
-        this._onContactStay(index1, index2);
+      onContactPersist: (collision) => {
+        this._onContactStay(collision);
       },
       onTriggerBegin: (index1, index2) => {
         const event = index1 < index2 ? this._getTrigger(index1, index2) : this._getTrigger(index2, index1);
@@ -104,51 +103,35 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.addColliderShape }
-   */
-  addColliderShape(colliderShape: PhysXColliderShape) {
-    this._physXManager._eventMap[colliderShape._id] = {};
-  }
-
-  /**
-   * {@inheritDoc IPhysicsManager.removeColliderShape }
-   */
-  removeColliderShape(colliderShape: PhysXColliderShape) {
-    const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    const { _id: id } = colliderShape;
-    const { _eventMap: eventMap } = this._physXManager;
-    currentEvents.forEach((event, i) => {
-      if (event.index1 == id) {
-        currentEvents.deleteByIndex(i);
-        eventPool.push(event);
-      } else if (event.index2 == id) {
-        currentEvents.deleteByIndex(i);
-        eventPool.push(event);
-        // If the shape is big index, should clear from the small index shape subMap
-        eventMap[event.index1][id] = undefined;
-      }
-    });
-    delete eventMap[id];
-  }
-
-  /**
    * {@inheritDoc IPhysicsManager.addCollider }
    */
   addCollider(collider: PhysXCollider): void {
+    collider._scene = this;
     this._pxScene.addActor(collider._pxActor, null);
+    const shapes = collider._shapes;
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      this._addColliderShape(shapes[i]._id);
+    }
   }
 
   /**
    * {@inheritDoc IPhysicsManager.removeCollider }
    */
   removeCollider(collider: PhysXCollider): void {
+    collider._scene = null;
     this._pxScene.removeActor(collider._pxActor, true);
+    const shapes = collider._shapes;
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      this._removeColliderShape(shapes[i]._id);
+    }
   }
 
   /**
    * {@inheritDoc IPhysicsManager.addCharacterController }
    */
   addCharacterController(characterController: PhysXCharacterController): void {
+    characterController._scene = this;
+
     // Physx have no API to remove/readd cct into scene.
     if (!characterController._pxController) {
       const shape = characterController._shape;
@@ -158,6 +141,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
           lastPXManager && characterController._destroyPXController();
           characterController._createPXController(this, shape);
         }
+        this._addColliderShape(shape._id);
       }
     }
     characterController._pxManager = this;
@@ -167,7 +151,11 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsManager.removeCharacterController }
    */
   removeCharacterController(characterController: PhysXCharacterController): void {
+    characterController._scene = null;
     characterController._pxManager = null;
+    characterController._destroyPXController();
+    const shape = characterController._shape;
+    shape && this._removeColliderShape(shape._id);
   }
 
   /**
@@ -231,6 +219,33 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       this._pxControllerManager = pxControllerManager = this._pxScene.createControllerManager();
     }
     return pxControllerManager;
+  }
+
+  /**
+   * @internal
+   */
+  _addColliderShape(id: number) {
+    this._physXManager._eventMap[id] = {};
+  }
+
+  /**
+   * @internal
+   */
+  _removeColliderShape(id: number) {
+    const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
+    const { _eventMap: eventMap } = this._physXManager;
+    currentEvents.forEach((event, i) => {
+      if (event.index1 == id) {
+        currentEvents.deleteByIndex(i);
+        eventPool.push(event);
+      } else if (event.index2 == id) {
+        currentEvents.deleteByIndex(i);
+        eventPool.push(event);
+        // If the shape is big index, should clear from the small index shape subMap
+        eventMap[event.index1][id] = undefined;
+      }
+    });
+    delete eventMap[id];
   }
 
   private _simulate(elapsedTime: number): void {

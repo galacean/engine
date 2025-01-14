@@ -11,8 +11,7 @@ import {
   AnimatorState,
   AnimatorConditionMode,
   AnimatorControllerParameterValue,
-  WrapMode,
-  AnimatorControllerParameter
+  WrapMode
 } from "@galacean/engine-core";
 
 @resourceLoader(AssetType.AnimatorController, ["json"], false)
@@ -102,7 +101,11 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
             animatorController.addLayer(layer);
           });
           parameters.forEach((parameterData) => {
-            animatorController.addParameter(parameterData.name, parameterData.defaultValue);
+            if (parameterData.isTrigger) {
+              animatorController.addTriggerParameter(parameterData.name);
+            } else {
+              animatorController.addParameter(parameterData.name, parameterData.defaultValue);
+            }
           });
           Promise.all(promises).then((clipData) => {
             clipData.forEach((data) => {
@@ -118,6 +121,8 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
 
   private _createTransition(transitionData: ITransitionData, destinationState: AnimatorState): AnimatorStateTransition {
     const transition = new AnimatorStateTransition();
+    transition.hasExitTime = transitionData.hasExitTime;
+    transition.isFixedDuration = transitionData.isFixedDuration;
     transition.duration = transitionData.duration;
     transition.offset = transitionData.offset;
     transition.exitTime = transitionData.exitTime;
@@ -127,7 +132,7 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
     transition._isExit = transitionData.isExit;
     transition.destinationState = destinationState;
     transitionData.conditions.forEach((conditionData) => {
-      transition.addCondition(conditionData.mode, conditionData.parameterName, conditionData.threshold);
+      transition.addCondition(conditionData.parameterName, conditionData.mode, conditionData.threshold);
     });
     return transition;
   }
@@ -158,6 +163,8 @@ interface ITransitionData {
   mute: boolean;
   isExit: boolean;
   conditions: IConditionData[];
+  hasExitTime: boolean;
+  isFixedDuration: boolean;
 }
 
 interface IConditionData {

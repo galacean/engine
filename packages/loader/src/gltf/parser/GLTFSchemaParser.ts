@@ -1,5 +1,4 @@
-import { Utils, request } from "@galacean/engine-core";
-import { RequestConfig } from "@galacean/engine-core/types/asset/request";
+import { RequestConfig, Utils } from "@galacean/engine-core";
 import { BufferRequestInfo } from "../../GLTFContentRestorer";
 import { IGLTF } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";

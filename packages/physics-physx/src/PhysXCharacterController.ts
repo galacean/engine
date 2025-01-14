@@ -12,6 +12,8 @@ import { PhysXColliderShape } from "./shape/PhysXColliderShape";
 export class PhysXCharacterController implements ICharacterController {
   private static _tempVec = new Vector3();
 
+  /** @internal  */
+  _scene: PhysXPhysicsScene = null;
   /** @internal */
   _id: number;
   /** @internal */
@@ -79,7 +81,7 @@ export class PhysXCharacterController implements ICharacterController {
    * {@inheritDoc ICharacterController.setSlopeLimit }
    */
   setSlopeLimit(slopeLimit: number): void {
-    this._pxController?.setSlopeLimit(slopeLimit);
+    this._pxController?.setSlopeLimit(Math.cos((slopeLimit * Math.PI) / 180));
   }
 
   /**
@@ -90,6 +92,8 @@ export class PhysXCharacterController implements ICharacterController {
     this._pxManager && this._createPXController(this._pxManager, shape);
     this._shape = shape;
     shape._controllers.add(this);
+    this._pxController?.setContactOffset(shape._contractOffset);
+    this._scene?._addColliderShape(shape._id);
   }
 
   /**
@@ -99,6 +103,7 @@ export class PhysXCharacterController implements ICharacterController {
     this._destroyPXController();
     this._shape = null;
     shape._controllers.delete(this);
+    this._scene?._removeColliderShape(shape._id);
   }
 
   /**

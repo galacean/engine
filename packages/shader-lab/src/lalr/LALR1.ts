@@ -1,5 +1,5 @@
 import { Grammar } from "../parser/Grammar";
-import { ENonTerminal, GrammarSymbol, Terminal } from "../parser/GrammarSymbol";
+import { NoneTerminal, GrammarSymbol, Terminal } from "../parser/GrammarSymbol";
 import State from "./State";
 import StateItem from "./StateItem";
 import GrammarUtils from "./Utils";
@@ -11,15 +11,15 @@ import { ActionInfo, ActionTable, EAction, GotoTable, StateActionTable, StateGot
  * The [LALR1](https://web.stanford.edu/class/archive/cs/cs143/cs143.1128/handouts/140%20LALR%20Parsing.pdf) Parser generator
  */
 export class LALR1 {
-  readonly firstSetMap: Map<ENonTerminal, Set<Terminal>> = new Map();
-  readonly followSetMap: Map<ENonTerminal, Set<Terminal>> = new Map();
+  readonly firstSetMap: Map<NoneTerminal, Set<Terminal>> = new Map();
+  readonly followSetMap: Map<NoneTerminal, Set<Terminal>> = new Map();
 
   readonly actionTable: StateActionTable = new Map();
   readonly gotoTable: StateGotoTable = new Map();
   private grammar: Grammar;
 
   /** For circle detect */
-  private _firstSetNTStack: ENonTerminal[] = [];
+  private _firstSetNTStack: NoneTerminal[] = [];
 
   constructor(grammar: Grammar) {
     this.grammar = grammar;
@@ -58,7 +58,7 @@ export class LALR1 {
   private _extendStateItem(state: State, item: StateItem) {
     if (GrammarUtils.isTerminal(item.curSymbol)) return;
 
-    const productionList = this.grammar.getProductionList(<ENonTerminal>item.curSymbol);
+    const productionList = this.grammar.getProductionList(<NoneTerminal>item.curSymbol);
 
     if (item.nextSymbol) {
       let newLookaheadSet = new Set<Terminal>();
@@ -72,7 +72,7 @@ export class LALR1 {
           terminalExist = true;
           break;
         }
-        lastFirstSet = this.firstSetMap.get(<ENonTerminal>nextSymbol)!;
+        lastFirstSet = this.firstSetMap.get(<NoneTerminal>nextSymbol)!;
         for (const t of lastFirstSet) {
           newLookaheadSet.add(t);
         }
@@ -115,7 +115,7 @@ export class LALR1 {
     for (const stateItem of state.items) {
       if (stateItem.canReduce()) {
         let action: ActionInfo;
-        if (stateItem.production.goal !== ENonTerminal.START) {
+        if (stateItem.production.goal !== NoneTerminal.START) {
           action = {
             action: EAction.Reduce,
             target: stateItem.production.id
@@ -144,7 +144,7 @@ export class LALR1 {
           target: newState.id
         });
       } else {
-        stateGotoTable.set(<ENonTerminal>gs, newState.id);
+        stateGotoTable.set(<NoneTerminal>gs, newState.id);
       }
 
       newStates.add(newState);
@@ -161,7 +161,7 @@ export class LALR1 {
       if (terminal === EKeyword.ELSE && exist.action === EAction.Shift && action.action === EAction.Reduce) {
         return;
       } else {
-        // #if _EDITOR
+        // #if _VERBOSE
         console.warn(
           `conflict detect: <Terminal ${GrammarUtils.toString(terminal)}>`,
           Utils.printAction(exist),
@@ -181,7 +181,7 @@ export class LALR1 {
     }
   }
 
-  private _computeFirstSetForNT(NT: ENonTerminal) {
+  private _computeFirstSetForNT(NT: NoneTerminal) {
     // circle detect
     const idx = this._firstSetNTStack.findIndex((item) => item === NT);
     if (idx !== -1) {
@@ -209,12 +209,12 @@ export class LALR1 {
           break;
         }
 
-        const succeedFirstSet = this._computeFirstSetForNT(<ENonTerminal>gs);
+        const succeedFirstSet = this._computeFirstSetForNT(<NoneTerminal>gs);
 
         for (const item of succeedFirstSet) {
           if (item !== ETokenType.EPSILON) firstSet.add(item);
         }
-        if (!this.grammar.isNullableNT(<ENonTerminal>gs)) break;
+        if (!this.grammar.isNullableNT(<NoneTerminal>gs)) break;
       }
       if (i === production.derivation.length) firstSet.add(ETokenType.EPSILON);
     }

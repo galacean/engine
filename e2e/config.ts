@@ -110,6 +110,11 @@ export const E2E_CONFIG = {
       caseFileName: "material-shaderLab",
       threshold: 0.2
     },
+    shaderLabMRT: {
+      category: "Material",
+      caseFileName: "shaderLab-mrt",
+      threshold: 0.2
+    },
     shaderReplacement: {
       category: "Material",
       caseFileName: "material-shaderReplacement",
@@ -123,6 +128,11 @@ export const E2E_CONFIG = {
     "shaderLab-renderState": {
       category: "Material",
       caseFileName: "shaderLab-renderState",
+      threshold: 0.2
+    },
+    LUT: {
+      category: "Material",
+      caseFileName: "material-LUT",
       threshold: 0.2
     }
   },
@@ -216,6 +226,18 @@ export const E2E_CONFIG = {
       category: "PostProcess",
       caseFileName: "postProcess-LDR-bloom-neutral",
       threshold: 0.2
+    },
+    customPass: {
+      category: "PostProcess",
+      caseFileName: "postProcess-customPass",
+      threshold: 0.2
+    }
+  },
+  SpriteMask: {
+    CustomStencil: {
+      category: "SpriteMask",
+      caseFileName: "spriteMask-customStencil",
+      threshold: 0.3
     }
   },
   Text: {

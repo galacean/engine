@@ -9,16 +9,17 @@ import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
+import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { ShaderProperty } from "../../shader/ShaderProperty";
+import { ISpriteRenderer } from "../assembler/ISpriteRenderer";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
-import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
 
 /**
  * A component for masking Sprites.
  */
-export class SpriteMask extends Renderer {
+export class SpriteMask extends Renderer implements ISpriteRenderer {
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskTexture");
   /** @internal */
@@ -26,7 +27,7 @@ export class SpriteMask extends Renderer {
 
   /** The mask layers the sprite mask influence to. */
   @assignmentClone
-  influenceLayers: number = SpriteMaskLayer.Everything;
+  influenceLayers: SpriteMaskLayer = SpriteMaskLayer.Everything;
   /** @internal */
   @ignoreClone
   _renderElement: RenderElement;
@@ -177,7 +178,7 @@ export class SpriteMask extends Renderer {
   constructor(entity: Entity) {
     super(entity);
     SimpleSpriteAssembler.resetData(this);
-    this.setMaterial(this._engine._spriteMaskDefaultMaterial);
+    this.setMaterial(this._engine._basicResources.spriteMaskDefaultMaterial);
     this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, this._alphaCutoff);
     this._renderElement = new RenderElement();
     this._renderElement.addSubRenderElement(new SubRenderElement());
@@ -238,11 +239,21 @@ export class SpriteMask extends Renderer {
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    if (this.sprite) {
-      SimpleSpriteAssembler.updatePositions(this);
+    const sprite = this._sprite;
+    if (sprite) {
+      SimpleSpriteAssembler.updatePositions(
+        this,
+        this._transformEntity.transform.worldMatrix,
+        this.width,
+        this.height,
+        sprite.pivot,
+        this._flipX,
+        this._flipY
+      );
     } else {
-      worldBounds.min.set(0, 0, 0);
-      worldBounds.max.set(0, 0, 0);
+      const { worldPosition } = this._transformEntity.transform;
+      worldBounds.min.copyFrom(worldPosition);
+      worldBounds.max.copyFrom(worldPosition);
     }
   }
 
@@ -250,7 +261,8 @@ export class SpriteMask extends Renderer {
    * @inheritdoc
    */
   protected override _render(context: RenderContext): void {
-    if (!this.sprite?.texture || !this.width || !this.height) {
+    const { _sprite: sprite } = this;
+    if (!sprite?.texture || !this.width || !this.height) {
       return;
     }
 
@@ -261,12 +273,20 @@ export class SpriteMask extends Renderer {
     const { _engine: engine } = this;
     // @todo: This question needs to be raised rather than hidden.
     if (material.destroyed) {
-      material = engine._spriteMaskDefaultMaterial;
+      material = engine._basicResources.spriteMaskDefaultMaterial;
     }
 
     // Update position
     if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
-      SimpleSpriteAssembler.updatePositions(this);
+      SimpleSpriteAssembler.updatePositions(
+        this,
+        this._transformEntity.transform.worldMatrix,
+        this.width,
+        this.height,
+        sprite.pivot,
+        this._flipX,
+        this._flipY
+      );
       this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     }
 
@@ -333,7 +353,7 @@ export class SpriteMask extends Renderer {
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:
-        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.RenderData;
+        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.WorldVolumeAndUV;
         break;
       case SpriteModifyFlags.atlasRegion:
         this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.UV;
@@ -351,15 +371,15 @@ export class SpriteMask extends Renderer {
 }
 
 /**
- * @remarks Extends `RendererUpdateFlag`.
+ * @remarks Extends `RendererUpdateFlags`.
  */
 enum SpriteMaskUpdateFlags {
   /** UV. */
   UV = 0x2,
-  /** WorldVolume and UV . */
-  RenderData = 0x3,
   /** Automatic Size. */
   AutomaticSize = 0x4,
+  /** WorldVolume and UV. */
+  WorldVolumeAndUV = 0x3,
   /** All. */
   All = 0x7
 }

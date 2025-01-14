@@ -1,6 +1,5 @@
 // @ts-ignore
 import { BoundingBox, Matrix, Vector3, Vector4 } from "@galacean/engine-math";
-import { SpriteMaskLayer } from "./2d";
 import { SpriteMaskInteraction } from "./2d/enums/SpriteMaskInteraction";
 import { Component } from "./Component";
 import { DependentMode, dependentComponents } from "./ComponentsDependencies";
@@ -10,6 +9,7 @@ import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Transform, TransformModifyFlags } from "./Transform";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
 import { IComponentCustomClone } from "./clone/ComponentCloner";
+import { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 import { Material } from "./material";
 import { ShaderMacro, ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
@@ -45,20 +45,16 @@ export class Renderer extends Component implements IComponentCustomClone {
   /** @internal */
   @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
-  /** @internal */
-  @ignoreClone
-  _bounds: BoundingBox = new BoundingBox();
   @ignoreClone
   _renderFrameCount: number;
   /** @internal */
   @assignmentClone
   _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
   /** @internal */
-  @assignmentClone
-  _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
-  /** @internal */
   @ignoreClone
   _batchedTransformShaderData: boolean = false;
+  @assignmentClone
+  _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;
@@ -69,7 +65,9 @@ export class Renderer extends Component implements IComponentCustomClone {
   @ignoreClone
   protected _rendererLayer: Vector4 = new Vector4();
   @ignoreClone
-  protected _transform: Transform;
+  protected _bounds: BoundingBox = new BoundingBox();
+  @ignoreClone
+  protected _transformEntity: Entity;
 
   @deepClone
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
@@ -139,7 +137,7 @@ export class Renderer extends Component implements IComponentCustomClone {
   }
 
   /**
-   * The bounding volume of the renderer.
+   * The world bounding volume of the renderer.
    */
   get bounds(): BoundingBox {
     if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
@@ -172,7 +170,7 @@ export class Renderer extends Component implements IComponentCustomClone {
     this._addResourceReferCount(this.shaderData, 1);
 
     this._onTransformChanged = this._onTransformChanged.bind(this);
-    this._setTransform(entity.transform);
+    this._setTransformEntity(entity);
 
     shaderData.enableMacro(Renderer._receiveShadowMacro);
     shaderData.setVector4(Renderer._rendererLayerProperty, this._rendererLayer);
@@ -363,10 +361,17 @@ export class Renderer extends Component implements IComponentCustomClone {
   /**
    * @internal
    */
+  _isFrontFaceInvert(): boolean {
+    return this._transformEntity.transform._isFrontFaceInvert();
+  }
+
+  /**
+   * @internal
+   */
   protected override _onDestroy(): void {
     super._onDestroy();
 
-    this._setTransform(null);
+    this._setTransformEntity(null);
     this._addResourceReferCount(this.shaderData, -1);
 
     const materials = this._materials;
@@ -392,7 +397,7 @@ export class Renderer extends Component implements IComponentCustomClone {
    * @internal
    */
   _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
-    const worldMatrix = this._transform.worldMatrix;
+    const worldMatrix = this._transformEntity.transform.worldMatrix;
     if (onlyMVP) {
       this._updateProjectionRelatedShaderData(context, worldMatrix, batched);
     } else {
@@ -442,7 +447,7 @@ export class Renderer extends Component implements IComponentCustomClone {
       Matrix.invert(worldMatrix, normalMatrix);
       normalMatrix.transpose();
 
-      shaderData.setMatrix(Renderer._localMatrixProperty, this._transform.localMatrix);
+      shaderData.setMatrix(Renderer._localMatrixProperty, this._transformEntity.transform.localMatrix);
       shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
       shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
       shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
@@ -465,27 +470,21 @@ export class Renderer extends Component implements IComponentCustomClone {
   /**
    * @internal
    */
-  protected _setTransform(transform: Transform): void {
-    this._transform?._updateFlagManager.removeListener(this._onTransformChanged);
-    transform?._updateFlagManager.addListener(this._onTransformChanged);
-    this._transform = transform;
+  protected _setTransformEntity(entity: Entity): void {
+    const preEntity = this._transformEntity;
+    if (entity !== preEntity) {
+      preEntity?._updateFlagManager.removeListener(this._onTransformChanged);
+      entity?._updateFlagManager.addListener(this._onTransformChanged);
+      this._transformEntity = entity;
+    }
   }
 
-  /**
-   * @internal
-   */
   protected _updateBounds(worldBounds: BoundingBox): void {}
 
-  /**
-   * @internal
-   */
   protected _render(context: RenderContext): void {
     throw "not implement";
   }
 
-  /**
-   * @internal
-   */
   private _createInstanceMaterial(material: Material, index: number): Material {
     const insMaterial: Material = material.clone();
     insMaterial.name = insMaterial.name + "(Instance)";
@@ -513,18 +512,12 @@ export class Renderer extends Component implements IComponentCustomClone {
     }
   }
 
-  /**
-   * @internal
-   */
   @ignoreClone
   protected _onTransformChanged(type: TransformModifyFlags): void {
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 }
 
-/**
- * @internal
- */
 export enum RendererUpdateFlags {
   /** Include world position and world bounds. */
   WorldVolume = 0x1
