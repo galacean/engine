@@ -1,5 +1,6 @@
-Shader "PBR.gs" {
-    EditorProperties {
+Shader "PBRShaderName" {
+  Editor {
+    Properties{
       Header("Base"){
         material_IOR("IOR", Range(0, 5, 0.01)) = 1.5;
         material_BaseColor("BaseColor", Color) = (1, 1, 1, 1);
@@ -13,8 +14,9 @@ Shader "PBR.gs" {
       }
 
       Header("Anisotropy") {
-        material_AnisotropyInfo("AnisotropyInfo", Vector3) = (1, 0, 0);
-        material_AnisotropyTexture("AnisotropyTexture", Texture2D);
+        anisotropy("Intensity", Range(0, 1, 0.01)) = 0;
+        anisotropyRotation("Rotation", Range(0, 360, 1)) = 0;
+        material_AnisotropyTexture("Texture", Texture2D);
       }
 
       Header("Normal") {
@@ -42,39 +44,66 @@ Shader "PBR.gs" {
       }
 
       Header("Thin Film Iridescence"){
-        material_IridescenceInfo("IridescenceInfo", Vector4) = (0, 1.3, 100, 400);
-        material_IridescenceThicknessTexture("IridescenceThicknessTexture", Texture2D);
+        material_Iridescence("Iridescence", Range(0, 1, 0.01)) = 0;
+        material_IridescenceIOR("IOR", Range(1, 5, 0.01)) = 1.3;
+        material_IridescenceRange("ThicknessRange", Vector2) = (100,400);
+        material_IridescenceThicknessTexture("ThicknessTexture", Texture2D);
         material_IridescenceTexture("IridescenceTexture", Texture2D);
       }
 
       Header("Sheen"){
-        ui_SheenIntensity("Intensity", Range(0, 1, 0.01)) = 0;
-        ui_SheenColor("Color", Color ) = (0, 0, 0, 0);
+        sheenColor("Color", Color ) = (0, 0, 0, 1);
+        sheenIntensity("Intensity", Range(0, 1, 0.01)) = 1;
         material_SheenRoughness("Roughness", Range(0, 1, 0.01)) = 0;
         material_SheenTexture("ColorTexture", Texture2D);
         material_SheenRoughnessTexture("RoughnessTexture", Texture2D);
       }
-      
-      Header("Transmission"){
+
+      Header("Transmission") {
         material_Transmission("Transmission", Range(0, 1, 0.01)) = 0;
         material_TransmissionTexture("TransmissionTexture", Texture2D);
-        material_AttenuationColor("AttenuationColor", Color ) = (1, 1, 1, 1);
-        material_AttenuationDistance("AttenuationDistance", Range(0, 1, 0.01)) = 0;
         material_Thickness("Thickness", Range(0, 5, 0.01)) = 0;
         material_ThicknessTexture("ThicknessTexture", Texture2D);
+        refractionMode("RefractionMode", Enum(Sphere:0, Planar:1)) = 1;
+        material_AttenuationColor("AttenuationColor", Color ) = (1, 1, 1, 1);
+        material_AttenuationDistance("AttenuationDistance", Range(0, 1, 0.01)) = 0;
       }
 
       Header("Common") {
+        isTransparent("Transparent", Boolean) = false;
+        renderFace("Render Face", Enum(Front:0, Back:1, Double:2)) = 0;
+        blendMode("Blend Mode", Enum(Normal:0, Additive:1)) = 0;
         material_AlphaCutoff( "AlphaCutoff", Range(0, 1, 0.01) ) = 0;
         material_TilingOffset("TilingOffset", Vector4) = (1, 1, 0, 0);
       }
     }
+      
+    UIScript "UIScriptPath";
+  }
         
     SubShader "Default" {
       UsePass "pbr/Default/ShadowCaster"
 
       Pass "Forward Pass" {
         Tags { pipelineStage = "Forward"} 
+
+        DepthState {
+          WriteEnabled = depthWriteEnabled;
+        }
+
+        BlendState {
+          Enabled = blendEnabled;
+          SourceColorBlendFactor = sourceColorBlendFactor;
+          DestinationColorBlendFactor = destinationColorBlendFactor;
+          SourceAlphaBlendFactor = sourceAlphaBlendFactor;
+          DestinationAlphaBlendFactor = destinationAlphaBlendFactor;
+        }
+
+        RasterState{
+          CullMode = rasterStateCullMode;
+        }
+
+        RenderQueueType = renderQueueType;
 
         #define IS_METALLIC_WORKFLOW
         

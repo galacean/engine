@@ -228,6 +228,7 @@ export class Text extends UIRenderer implements ITextRenderer {
     const { engine } = this;
     // @ts-ignore
     this.font = engine._textDefaultFont;
+    this.raycastEnabled = false;
     // @ts-ignore
     this.setMaterial(engine._basicResources.textDefaultMaterial);
   }

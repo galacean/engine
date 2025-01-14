@@ -154,7 +154,7 @@ export class UIInteractive extends Script implements IGroupAble {
   override onDestroy(): void {
     super.onDestroy();
     const transitions = this._transitions;
-    for (let i = 0, n = transitions.length; i < n; i++) {
+    for (let i = transitions.length - 1; i >= 0; i--) {
       transitions[i].destroy();
     }
   }
