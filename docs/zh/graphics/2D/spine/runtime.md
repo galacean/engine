@@ -85,7 +85,7 @@ const resource = await engine.resourceManager.load(
       'https://ahother-path1.spineboy.altas',
       'https://ahother-path2.spineboy.png',
     ],
-    type: 'spine',// 指定加载器类型为 Spine
+    type: 'Spine',// 指定加载器类型为 Spine
   },
 );
 ```
@@ -105,7 +105,7 @@ const resource = await engine.resourceManager.load(
       'https://your.spineboy1.png', // 对应 a.png
       'https://your.spineboy2.png' // 对应 b.png
     ],
-    type: 'spine',// 指定加载器类型为 Spine
+    type: 'Spine',// 指定加载器类型为 Spine
   },
 );
 ```
@@ -153,7 +153,7 @@ class YourAmazingScript {
     const spineResource = await engine.resourceManager.load(
       {
         url: 'https://your.spineboy.json',
-        type: 'spine',
+        type: 'Spine',
       },
     );
     const spineEntity = spineResource.instantiate();

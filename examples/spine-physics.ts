@@ -27,7 +27,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
         "https://mdn.alipayobjects.com/portal_h1wdez/afts/file/A*CnqHS5nRzTIAAAAAAAAAAAAAAQAAAQ?b=.atlas",
         "https://mdn.alipayobjects.com/portal_h1wdez/afts/img/A*WDXeRIpd-lAAAAAAAAAAAAAAAQAAAQ/original?c=.png"
       ],
-      type: "spine",
+      type: "Spine",
     })
     .then((spineResource: any) => {
       const spineEntity = spineResource.instantiate();

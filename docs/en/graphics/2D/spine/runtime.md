@@ -60,7 +60,7 @@ If your Spine assets were not uploaded via the Galacean editor but through a thi
 ```typescript
 const resource = await engine.resourceManager.load({
   url: 'https://your.spineboy.json', // Custom uploaded asset
-  type: 'spine', // Specify the loader type as Spine
+  type: 'Spine', // Specify the loader type as Spine
 });
 ```
 
@@ -78,7 +78,7 @@ const resource = await engine.resourceManager.load({
     'https://ahother-path1.spineboy.atlas',
     'https://ahother-path2.spineboy.png',
   ],
-  type: 'spine', // Specify the loader type as Spine
+  type: 'Spine', // Specify the loader type as Spine
 });
 ```
 
@@ -96,7 +96,7 @@ const resource = await engine.resourceManager.load({
     'https://your.spineboy1.png', // Corresponds to a.png
     'https://your.spineboy2.png'  // Corresponds to b.png
   ],
-  type: 'spine', // Specify the loader type as Spine
+  type: 'Spine', // Specify the loader type as Spine
 });
 ```
 
@@ -138,7 +138,7 @@ class YourAmazingScript {
   async onStart() {
     const spineResource = await engine.resourceManager.load({
       url: 'https://your.spineboy.json',
-      type: 'spine',
+      type: 'Spine',
     });
     const spineEntity = spineResource.instantiate();
     const spine = spineEntity.getComponent(SpineAnimationRenderer);

@@ -26,7 +26,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   engine.resourceManager
     .load({
       url: "https://mdn.alipayobjects.com/huamei_kz4wfo/uri/file/as/2/kz4wfo/4/mp/24ejL92gvbWxsXRi/mix-and-match/mix-and-match.json",
-      type: "spine",
+      type: "Spine",
     })
     .then((spineResource: any) => {
       const spineEntity = spineResource.instantiate();
