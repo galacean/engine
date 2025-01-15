@@ -762,9 +762,6 @@ export class Camera extends Component {
     //@ts-ignore
     this._viewport._onValueChanged = null;
     this.engine.canvas._sizeUpdateFlagManager.removeListener(this._onPixelViewportChanged);
-    this._updateFlagManager = null;
-
-    this._entity = null;
     this._globalShaderMacro = null;
     this._frustum = null;
     this._renderPipeline = null;
