@@ -3,7 +3,7 @@
  * @category 2D
  * @thumbnail https://mdn.alipayobjects.com/merchant_appfe/afts/img/A*IALeTYOXMXwAAAAAAAAAAAAADiR2AQ/original
  */
-import { Camera, Entity, Logger, Vector3, WebGLEngine } from "@galacean/engine";
+import { Camera, Logger, Vector3, WebGLEngine } from "@galacean/engine";
 import { SpineAnimationRenderer } from "@galacean/engine-spine";
 
 Logger.enable();
@@ -18,9 +18,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   // camera
   const cameraEntity = rootEntity.createChild("camera_node");
   const camera = cameraEntity.addComponent(Camera);
-  cameraEntity.transform.position = new Vector3(0, 0, 100);
-  camera.nearClipPlane = 0.001;
-  camera.farClipPlane = 20000;
+  cameraEntity.transform.position = new Vector3(0, 0, 20);
 
   engine.resourceManager
     .load({
@@ -28,13 +26,11 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       type: "spine",
     })
     .then((spineResource: any) => {
-      const spineEntity = new Entity(engine);
-      spineEntity.transform.setPosition(0, -18, 0);
-      const spine = spineEntity.addComponent(SpineAnimationRenderer);
-      spine.resource = spineResource;
-      spine.defaultState.scale = 0.05;
-      spine.defaultState.skinName = 'full-skins/girl';
-      spine.defaultState.animationName = 'idle';
+      const spineEntity = spineResource.instantiate();
+      spineEntity.transform.setPosition(0, -1.8, 0);
+      const spine = spineEntity.getComponent(SpineAnimationRenderer);
+      spine.defaultConfig.skinName = 'full-skins/girl';
+      spine.defaultConfig.animationName = 'idle';
       rootEntity.addChild(spineEntity);
       const { skeleton } = spine;
       const slot = skeleton.findSlot('body')!;
