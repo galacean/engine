@@ -5,70 +5,70 @@ type: Platform
 label: Platform
 ---
 
-## 平台配置说明
+## Platform Configuration Instructions
 
-在导出到微信小游戏平台的时候，有以下这些配置项：
+When exporting to the WeChat Mini Game platform, there are the following configuration items:
 
 <image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*natiS7i3cvUAAAAAAAAAAAAADjCHAQ/fmt.webp" />
 
-| 配置          | 描述                                                                                                                              | 对应到微信小游戏的配置文件 | 对应到微信小游戏中的字段
+| Configuration          | Describe                                                                                                                              | Corresponding to the configuration file of WeChat Mini Games | Corresponding to the fields in WeChat Mini Games
 | ------------- | ------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| AppId | 微信小游戏的 AppId，必填，截图中的 wxdf8199565c509fb9 为测试账号 | project.config.json | appid |
-| Orientation | 设置游戏屏幕方向： Landscape（横屏）、Portrait（竖屏）| game.json | deviceOrientation |
-| Request | wx.request 的超时时间，单位：毫秒 | game.json | networkTimeout.request |
-| Connect Socket | wx.connectSocket 的超时时间，单位：毫秒 | game.json | networkTimeout.connectSocket |
-| Upload File | wx.uploadFile 的超时时间，单位：毫秒 | game.json | networkTimeout.uploadFile |
-| Download File | wx.downloadFile 的超时时间，单位：毫秒 | game.json | networkTimeout.downloadFile |
+| AppId | AppId of WeChat Mini Game, required. The wxdf8199565c509fb9 in the screenshot is a test account. | project.config.json | appid |
+| Orientation | Set the game screen orientation: Landscape, Portrait| game.json | deviceOrientation |
+| Request | wx.request timeout, unit: milliseconds | game.json | networkTimeout.request |
+| Connect Socket | wx.connectSocket timeout, unit: milliseconds | game.json | networkTimeout.connectSocket |
+| Upload File | wx.uploadFile timeout, unit: milliseconds | game.json | networkTimeout.uploadFile |
+| Download File | wx.downloadFile timeout, unit: milliseconds | game.json | networkTimeout.downloadFile |
 
-更多配置详见：[project.config.json](https://developers.weixin.qq.com/minigame/dev/devtools/projectconfig.html)、[game.json](https://developers.weixin.qq.com/minigame/dev/reference/configuration/app.html)
+For more configuration details, see: [project.config.json](https://developers.weixin.qq.com/minigame/dev/devtools/projectconfig.html)、[game.json](https://developers.weixin.qq.com/minigame/dev/reference/configuration/app.html)
 
-## 导出
+## Export
 
-选择好微信小游戏平台后，点击导出面板最下方的下载按钮，即可导出所需工程：
+After selecting the WeChat Mini Game platform, click the download button at the bottom of the export panel to export the required project:
 
 <image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*a1-PQIsWlgIAAAAAAAAAAAAADjCHAQ/fmt.webp" />
 
-## 调试
+## Debug
 
-1、工程导出到本地后，先进入到根目录执行以下命令进行依赖包的安装：
+1、After exporting the project to the local computer, first go to the root directory and execute the following command to install the dependent packages:
 
 ```bash
 npm i
 ```
 
-2、打开**微信开发者工具** ，选择小游戏，并导入刚才的工程，如下：
+2、Open **WeChat Developer Tools**, select Mini Game, and import the project just now, as follows:
 
 <image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*gCnXSqRgLnMAAAAAAAAAAAAADjCHAQ/fmt.webp" />
 
-3、在微信开发者工具中，点击**工具->构建 npm**，如下：
+3、In WeChat Developer Tools, click **Tools->Build** npm, as follows:
 
 <image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*G5aBQKNFdV8AAAAAAAAAAAAADjCHAQ/fmt.webp" />
 
-4、完成上述 3 后，即可在微信开发者工具中预览最终的结果，如下：
+4、After completing the above 3, you can preview the final result in the WeChat developer tool as follows:
 
 <image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*JyoIS54k3uYAAAAAAAAAAAAADjCHAQ/fmt.webp" />
 
-5、在微信开发者工具中的调试，详见：[微信小游戏调试](https://developers.weixin.qq.com/minigame/dev/guide/runtime/debug/)
+5、For debugging in WeChat developer tools, see: [WeChat Mini Game Debugging](https://developers.weixin.qq.com/minigame/dev/guide/runtime/debug/)
 
-## 发布
+## Publish
 
-本地完成调试后，即可进行发布，具体发布流程详见：[微信小游戏发布](https://developers.weixin.qq.com/minigame/introduction/guide/)
+After local debugging is completed, you can publish it. For details on the publishing process, see: [WeChat Mini Games Publish](https://developers.weixin.qq.com/minigame/introduction/guide/)
 
-## 导出工程目录说明
+## Export Project Directory Description
 
-导出到本地的工程目录如下：
+The project directory exported to the local is as follows:
 
 <image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*3jBDQYE5T9AAAAAAAAAAAAAADjCHAQ/fmt.webp" />
 
-**工程目录说明**
-|目录或文件|说明|
+**Project Catalog Description**
+|Directory or file|Describe|
 |-------------|-------------|
-|adapters|项目用到的引擎相关的包，按需导出|
-|public|资产目录，编辑器所有资产导出到这个目录下，资产的 path 为 /public/xxx|
-|scripts|开发者在编辑器中添加的脚本组件，导出到本地后，开发者可以在里面的脚本组件中进行二次开发|
-|game.json|对应微信小游戏工程所需要的 [game.json](https://developers.weixin.qq.com/minigame/dev/reference/configuration/app.html)|
-|game.ts|入口文件，初始化的逻辑都放在这里|
-|package.json|主要存放项目依赖包|
-|polyfill.js|平台 DOM 适配代码和全局变量适配代码，开发者无需关心|
-|project.config.json|对应微信小游戏工程所需要的 [project.config.json](https://developers.weixin.qq.com/minigame/dev/devtools/projectconfig.html)|
-|project.ts|Galacean 的工程文件，在初始化的时候会解析|
+|adapters|Engine-related packages used in the project, exported on demand|
+|public|Asset directory. All assets of the editor are exported to this directory. The path of the asset is /public/xxx|
+|scripts|After the script components added by the developer in the editor are exported to the local computer, the developer can perform secondary development in the script components inside.|
+|game.json|Corresponding to the requirements of WeChat mini-game projects [game.json](https://developers.weixin.qq.com/minigame/dev/reference/configuration/app.html)|
+|game.ts|Entry file, the initialization logic is placed here|
+|package.json|Mainly store project dependency packages|
+|polyfill.js|Developers do not need to worry about platform DOM adaptation code and global variable adaptation code|
+|project.config.json|Corresponding to the requirements of WeChat mini-game projects [project.config.json](https://developers.weixin.qq.com/minigame/dev/devtools/projectconfig.html)|
+|project.ts|Galacean project files are parsed during initialization|

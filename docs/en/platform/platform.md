@@ -5,48 +5,48 @@ type: Platform
 label: Platform
 ---
 
-为了满足广大开发者对各个平台上线的诉求，真正做到一处开发，处处运行，Galacean 1.4 版本开始支持多平台导出。开发者通过编辑器制作的项目，可以快速的导出到不同的平台所需的工程。
+In order to meet the demands of developers for launching on various platforms and truly achieve development in one place and running everywhere, Galacean 1.4 version began to support multi-platform export. Projects created by developers through the editor can be quickly exported to the projects required by different platforms.
 
-## 前置准备
-项目在编辑器中开发完成后，就可以导出各个平台的工程并进行发布了。在导出之前，我们先来了解一下导出面板和导出设置。
+## Prepare in Advance
+After the project is developed in the editor, you can export the project for each platform and publish it. Before exporting, let's first understand the export panel and export settings.
 
-### 导出面板
-当我们完成项目开发，需要导出到某个平台（以导出至微信小游戏平台为例）的时候，可以按如下步骤操作：
+### Export Panel
+When we complete the project development and need to export it to a certain platform (taking exporting to the WechatMiniGame platform as an example), we can follow the steps below:
 
-1、点击编辑器左侧的导出按钮：
+1、Click the Export button on the left side of the editor:
 
 <img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*U2RuQLwwNXIAAAAAAAAAAAAADjCHAQ/fmt.webp" />
 
-2、在唤出的导出面板的左侧，选择导出平台：
+2、On the left side of the export panel that appears, select the export platform:
 
 <img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*50WSQoBlxpcAAAAAAAAAAAAADjCHAQ/fmt.webp" />
 
-3、导出面板的右侧为项目相关的一些导出配置，主要分为 2 块：**通用配置**（红色框内）和**平台相关配置**（黄色框内）：
+3、On the right side of the export panel are some project-related export configurations, which are mainly divided into two parts: **General configuration** (in the red box) and **Platform-related configuration** (in the yellow box):
 
 <img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*aCiZTLygoQwAAAAAAAAAAAAADjCHAQ/fmt.webp"/>
 
-### 导出配置说明
+### Export Configuration Instructions
 
-平台相关的导出配置将在平台导出的文档里单独说明，这里重点介绍下和平台无关的**通用配置**。
+The platform-related export configuration will be described separately in the platform export document. Here we focus on the **general configuration** that is independent of the platform.
 
-| 配置          | 描述                                                                                                                              |
+| Configuration          | Describe                                                                                                                              |
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Project Name | 项目名称，导出到本地的根目录名就是项目名称 |
-| Main Scene | 项目主场景 |
-| Engine version | 项目使用的引擎版本号 |
-| Upload to CDN | 是否将资产上传至 CDN |
-| Texture Type | 纹理类型，支持 KTX2 和 Original：<br> **Original**：不对纹理做任何处理 <br> **KTX2**：开启纹理压缩 <image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*yHPrSrhyo0sAAAAAAAAAAAAADjCHAQ/fmt.webp" /> 选择 KTX2 可以选择不同的压缩格式：<br> **ETC1S：** 尺寸小，内存极小，但是质量较低，适合 albedo, specular 等贴图 <br> **UASTC：** 尺寸大，质量高，适合 normal 这类贴图 <br> <image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*_Ga2SKIDvv0AAAAAAAAAAAAADjCHAQ/fmt.webp" /> 如果选择了 ETC1S 压缩格式，可以通过 Quality 来设置压缩质量(值越大，渲染质量越好)：<image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*ZhviTYuo7A4AAAAAAAAAAAAADjCHAQ/fmt.webp" />|
-| Tree shaking | 是否对导出的资产进行裁剪： <br>  **None:** 不进行裁剪，导出所有资产 <br> **Current Scene:** 只导出当前场景用到的资产 <br> **All Scene:** 对所有场景 treeshaking，导出全量场景用到的资产 <image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*BJbwQrdlghwAAAAAAAAAAAAADjCHAQ/fmt.webp" />|
-| WebGL Mode | 选择使用 WebGL 的版本：<br> **Auto：** 优先使用 WebGL2.0, 如果运行环境不支持自动切到 WebGL1.0 <br> **WebGL1.0：** 使用 WebGL1.0 <br>  **WebGL2.0：**  使用 WebGL2.0 <image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*HszfTJChrdEAAAAAAAAAAAAADjCHAQ/fmt.webp" />|
-| Anti-Alias | 是否开启抗锯齿 |
-| Alpha | 画布是否支持透明背景，如果希望画布下方的内容可以透出可以开启 |
-| Preserve Drawing Buffer | 用于控制在调用 gl.clear() 方法后，绘图缓冲区是否保留其内容 |
-| DPR Mode | [设备的像素比](/en/docs/core/canvas)，通过调用 engine.canvas.resizeByClientSize 来控制画布的尺寸 <br> **Auto：** 自动适配，即参数为 window.devicePixelRatio <br> **Fixed：** 开发者自行设置参数 <image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*EQOxSI8I8awAAAAAAAAAAAAADjCHAQ/fmt.webp" /> 选择 Fixed 后，开发者可以自行输入需要设置的参数 <image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*-7YfTLegt_AAAAAAAAAAAAAADjCHAQ/fmt.webp" />| 
+| Project Name | Project name. The root directory name exported to the local computer is the project name. |
+| Main Scene | Project main scene |
+| Engine version | The engine version number used by the project |
+| Upload to CDN | Whether to upload assets to CDN |
+| Texture Type | Texture type, supports KTX2 and Original:<br> **Original**：No processing is done on the texture <br> **KTX2**：Enable texture compression <image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*yHPrSrhyo0sAAAAAAAAAAAAADjCHAQ/fmt.webp" /> Selecting KTX2 allows you to choose different compression formats:<br> **ETC1S：** Small size, very small memory, but low quality, suitable for albedo, specular and other textures <br> **UASTC：** Large size, high quality, suitable for normal textures <br> <image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*_Ga2SKIDvv0AAAAAAAAAAAAADjCHAQ/fmt.webp" /> If the ETC1S compression format is selected, you can set the compression quality through Quality (the larger the value, the better the rendering quality):<image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*ZhviTYuo7A4AAAAAAAAAAAAADjCHAQ/fmt.webp" />|
+| Tree shaking | Whether to crop the exported assets: <br>  **None:** Export all assets without cropping <br> **Current Scene:** Export only the assets used in the current scene <br> **All Scene:** Treeshaking all scenes, exporting all the assets used by the scenes <image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*BJbwQrdlghwAAAAAAAAAAAAADjCHAQ/fmt.webp" />|
+| WebGL Mode | Select the version to use with WebGL:<br> **Auto：** WebGL2.0 is preferred. If the operating environment does not support it, it will automatically switch to WebGL1.0 <br> **WebGL1.0：** Using WebGL1.0 <br>  **WebGL2.0：**  Using WebGL2.0 <image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*HszfTJChrdEAAAAAAAAAAAAADjCHAQ/fmt.webp" />|
+| Anti-Alias | Whether to enable anti-aliasing |
+| Alpha | Whether the canvas supports transparent background. If you want the content below the canvas to be visible, you can turn it on. |
+| Preserve Drawing Buffer | Controls whether the drawing buffer retains its contents after calling the gl.clear() method. |
+| DPR Mode | [The pixel ratio of the device](/en/docs/core/canvas)，Control the size of the canvas by calling engine.canvas.resizeByClientSize: <br> **Auto：** Automatic adaptation, that is, the parameter is window.devicePixelRatio <br> **Fixed：** Developers set their own parameters <image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*EQOxSI8I8awAAAAAAAAAAAAADjCHAQ/fmt.webp" /> After selecting Fixed, developers can enter the parameters they need to set. <image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*-7YfTLegt_AAAAAAAAAAAAAADjCHAQ/fmt.webp" />| 
 
-## 支持的导出平台
-目前 Galacean 支持导出的平台如下：
+## Supported export platforms
+Currently, Galacean supports exporting to the following platforms:
 
-[导出至 H5 平台](/en/docs/platform/h5/)
+[Export to H5 platform](/en/docs/platform/h5/)
 
-[导出至微信小游戏平台](/en/docs/platform/wechatMiniGame/)
+[Export to WeChat Mini Game Platform](/en/docs/platform/wechatMiniGame/)
 
