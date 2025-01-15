@@ -283,6 +283,9 @@ describe("CharacterController", function () {
     capsuleColliderShape.contactOffset = 0.1;
     capsuleColliderShape.radius = 0.2;
     capsuleColliderShape.height = 1;
+
+    controller.enabled = true;
+
     expect(capsuleColliderShape.contactOffset).eq(0.1);
     expect(capsuleColliderShape.radius).eq(0.2);
     expect(capsuleColliderShape.height).eq(1);
