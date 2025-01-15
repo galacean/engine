@@ -41,7 +41,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
       const componentsManager = scene._componentsManager;
       // Overlay Canvas
       let canvasElements: DisorderedArray<UICanvas> = componentsManager._overlayCanvases;
-      // Screen to world ( need flip y)
+      // Screen to world ( Assume that world units have a one-to-one relationship with pixel units )
       ray.origin.set(position.x, scene.engine.canvas.height - position.y, 1);
       ray.direction.set(0, 0, -1);
       for (let j = canvasElements.length - 1; j >= 0; j--) {
