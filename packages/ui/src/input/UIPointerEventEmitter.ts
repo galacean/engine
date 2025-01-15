@@ -34,14 +34,16 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
     const hitResult = this._hitResult;
     const { position } = pointer;
     const { x, y } = position;
+    const engineCanvasHeight = scenes[0]?.engine.canvas.height;
     for (let i = scenes.length - 1; i >= 0; i--) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
       // @ts-ignore
       const componentsManager = scene._componentsManager;
-      /** Overlay Canvas */
+      // Overlay Canvas
       let canvasElements: DisorderedArray<UICanvas> = componentsManager._overlayCanvases;
-      ray.origin.set(position.x, position.y, 1);
+      // Screen to world ( need flip y)
+      ray.origin.set(position.x, engineCanvasHeight - position.y, 1);
       ray.direction.set(0, 0, -1);
       for (let j = canvasElements.length - 1; j >= 0; j--) {
         if (canvasElements.get(j).raycast(ray, hitResult)) {
@@ -65,10 +67,10 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         }
         camera.screenPointToRay(pointer.position, ray);
 
-        /** Other canvases */
+        // Other canvases
         const isOrthographic = camera.isOrthographic;
         const { worldPosition: cameraPosition, worldForward: cameraForward } = camera.entity.transform;
-        /** Sort by rendering order */
+        // Sort by rendering order
         canvasElements = componentsManager._canvases;
         for (let k = 0, n = canvasElements.length; k < n; k++) {
           canvasElements.get(k)._updateSortDistance(isOrthographic, cameraPosition, cameraForward);
@@ -78,7 +80,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
           canvasElements.get(k)._canvasIndex = k;
         }
         const farClipPlane = camera.farClipPlane;
-        /** Post-rendering first detection */
+        // Post-rendering first detection
         for (let k = 0, n = canvasElements.length; k < n; k++) {
           const canvas = canvasElements.get(k);
           if (!canvas._canRender(camera)) continue;
