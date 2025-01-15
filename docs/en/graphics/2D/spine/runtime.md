@@ -23,7 +23,7 @@ The Galacean Spine loader supports both assets uploaded via the editor and custo
 ## Load Assets and Add Them to the Scene
 
 ### Load Assets Uploaded via the Galacean Editor
-[After exporting the editor project](/docs/assets/build/), `Spine animations already added to the scene will automatically load when the scene file is loaded`:
+[After exporting the editor project](/docs/platform/platform/), `Spine animations already added to the scene will automatically load when the scene file is loaded`:
 
 ```typescript
 // Spine animations already added to the scene will automatically load when loading the scene file

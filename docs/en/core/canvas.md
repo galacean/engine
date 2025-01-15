@@ -41,7 +41,7 @@ flowchart TD
     C[HtmlCanvas.clientHeight] -->|pixelRatio| D[WebCanvas.height]
 ```
 
-If developing by exporting an **NPM package** through the editor, you only need to control the **device pixel ratio** in the [project export](/en/docs/assets/build) rendering export configuration.
+If developing by exporting an **NPM package** through the editor, you only need to control the **device pixel ratio** in the [project export](/en/docs/platform/platform) rendering export configuration.
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*afw5QrbrxkQAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
 
