@@ -547,7 +547,6 @@ export class Entity extends EngineObject {
     }
 
     this.isActive = false;
-    this._updateFlagManager = null;
   }
 
   /**

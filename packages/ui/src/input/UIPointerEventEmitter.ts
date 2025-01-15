@@ -93,6 +93,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
           return;
         }
       }
+      this._updateRaycast(null);
     }
   }
 

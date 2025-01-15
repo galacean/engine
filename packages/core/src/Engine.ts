@@ -575,33 +575,32 @@ export class Engine extends EventDispatcher {
 
       if (cameras.length === 0) {
         Logger.debug("No active camera in scene.");
-        continue;
-      }
+      } else {
+        cameras.forEach(
+          (camera: Camera) => {
+            componentsManager.callCameraOnBeginRender(camera);
 
-      cameras.forEach(
-        (camera: Camera) => {
-          componentsManager.callCameraOnBeginRender(camera);
+            // Update post process manager
+            scene.postProcessManager._update(camera);
 
-          // Update post process manager
-          scene.postProcessManager._update(camera);
+            camera.render();
+            componentsManager.callCameraOnEndRender(camera);
 
-          camera.render();
-          componentsManager.callCameraOnEndRender(camera);
-
-          // Temp solution for webgl implement bug
-          if (this._hardwareRenderer._options._forceFlush) {
-            this._hardwareRenderer.flush();
+            // Temp solution for webgl implement bug
+            if (this._hardwareRenderer._options._forceFlush) {
+              this._hardwareRenderer.flush();
+            }
+          },
+          (camera: Camera, index: number) => {
+            camera._cameraIndex = index;
           }
-        },
-        (camera: Camera, index: number) => {
-          camera._cameraIndex = index;
-        }
-      );
+        );
+      }
 
       const uiCanvas = componentsManager._overlayCanvases;
       if (uiCanvas.length > 0) {
         componentsManager.sortOverlayUICanvases();
-        UIUtils.renderOverlay(this, uiCanvas);
+        UIUtils.renderOverlay(this, scene, uiCanvas);
       }
     }
   }
