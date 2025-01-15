@@ -45,7 +45,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
       ray.origin.set(position.x, scene.engine.canvas.height - position.y, 1);
       ray.direction.set(0, 0, -1);
       for (let j = canvasElements.length - 1; j >= 0; j--) {
-        if (canvasElements.get(j).raycast(ray, hitResult)) {
+        if (canvasElements.get(j)._raycast(ray, hitResult)) {
           this._updateRaycast((<UIHitResult>hitResult).component, pointer);
           return;
         }
@@ -83,7 +83,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         for (let k = 0, n = canvasElements.length; k < n; k++) {
           const canvas = canvasElements.get(k);
           if (!canvas._canRender(camera)) continue;
-          if (canvas.raycast(ray, hitResult, farClipPlane)) {
+          if (canvas._raycast(ray, hitResult, farClipPlane)) {
             this._updateRaycast((<UIHitResult>hitResult).component, pointer);
             return;
           }
