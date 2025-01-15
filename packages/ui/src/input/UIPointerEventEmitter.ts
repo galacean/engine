@@ -34,7 +34,6 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
     const hitResult = this._hitResult;
     const { position } = pointer;
     const { x, y } = position;
-    const engineCanvasHeight = scenes[0]?.engine.canvas.height;
     for (let i = scenes.length - 1; i >= 0; i--) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
@@ -43,7 +42,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
       // Overlay Canvas
       let canvasElements: DisorderedArray<UICanvas> = componentsManager._overlayCanvases;
       // Screen to world ( need flip y)
-      ray.origin.set(position.x, engineCanvasHeight - position.y, 1);
+      ray.origin.set(position.x, scene.engine.canvas.height - position.y, 1);
       ray.direction.set(0, 0, -1);
       for (let j = canvasElements.length - 1; j >= 0; j--) {
         if (canvasElements.get(j).raycast(ray, hitResult)) {
