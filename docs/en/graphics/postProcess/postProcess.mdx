@@ -3,95 +3,77 @@ order: 0
 title: Post Process Overview
 ---
 
-The post-processing system can "process" the results of scene rendering.
+The post-processing system can "process" the results rendered by the camera.
 
-<Image
-  src="https://gw.alipayobjects.com/zos/OasisHub/3a50ed18-c2d4-4b33-a4e6-af79f2c273f8/2024-07-18%25252018.08.30.gif"
-  figcaption="Close post-processing"
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/3a50ed18-c2d4-4b33-a4e6-af79f2c273f8/2024-07-18%25252018.08.30.gif"
+  leftText="OFF"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/4bd5f985-1b82-4aca-b6fa-fd521aab8f57/2024-07-18%25252018.15.30.gif"
+  rightText="ON"
 />
 
-<Image
-  src="https://gw.alipayobjects.com/zos/OasisHub/4bd5f985-1b82-4aca-b6fa-fd521aab8f57/2024-07-18%25252018.15.30.gif"
-  figcaption="Open post-processing"
-/>
+## Post-Processing Configuration
 
-## Use post-processing
+There are two modes for post-processing:
 
-### 1. Post-processing configuration
+- Global Mode: Affects all cameras in the current scene.
+- Local Mode: Only effective when the camera is within the collision range of the post-processing entity.
 
-Post-processing configuration is uniformly placed in [scene](/en/docs/core/scene) panel, in order to prevent performance waste, the default **turn off**, users only need to turn on the main switch to activate all post-processing effects:
+The post-processing component has the following properties to control effects, modes, blending distances, etc.:
 
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/50f6a2aa-0463-4b66-b54e-edff71187077/image-20240718193530098.png" />
+| Property | Description |
+| :-- | :-- |
+| [isGlobal](/apis/core/#PostProcess-isGlobal) | Controls whether this post-processing component is in global or local mode. |
+| [Blend Distance](/apis/core/#PostProcess-blendDistance) | In local mode, controls how close the camera must be to the collider before blending effects begins. |
+| [Priority](/apis/core/#PostProcess-priority) | When there are multiple post-processing components in the scene, a higher priority means blending/overriding starts later. |
+| [Layer](/apis/core/#PostProcess-layer) | Used with the camera's [post-processing mask](/apis/core/#Camera-postProcessMask) to determine which post-processing components are effective. |
+| [Add Effect](/apis/core/#PostProcess-addEffect) | Adds post-processing effects. |
+
+## Using Post-Processing
+
+### 1. Adding a Post-Processing Component
+
+In the hierarchy panel, several modes for global and local post-processing are preset; simply select and add to use.
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/a6e9a327-1823-4dde-94a8-89bb4bf02e3a/2025-01-15%25252011.59.50.gif" />
+
+Of course, you can also manually add post-processing components. Local mode needs to be used with colliders:
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/6eb3b8d5-27d1-419d-8bf6-65371861fb97/2025-01-15%25252014.51.12.gif" />
 
 <Callout type="info">
-  For specific post-processing effect configuration, please refer to [Post-processing Effect
+  For specific post-processing effects configuration, please refer to the [Post-Processing Effects
   List](/en/docs/graphics/postProcess/effects)
 </Callout>
 
-<Callout type="warning">
-  As of version 1.3, the engine does not expose public APIs (because after supporting post-processing extensions, the
-  APIs may change). We recommend that users perform post-processing operations in the editor. If you want to use the
-  internal experimental interface, you can call the following code:
-</Callout>
+### 2. Camera Switch
 
-```typescript
-// Get the post-processing manager
-// @ts-ignore
-const postProcessManager = scene._postProcessManager;
-// Get BloomEffect
-const bloomEffect = postProcessManager._bloomEffect as BloomEffect;
-// Get TonemappingEffect
-const tonemappingEffect = postProcessManager._tonemappingEffect as TonemappingEffect;
+The camera preview area is controlled by the **Camera Component**. In the camera component, the following properties will also affect the post-processing effects:
 
-// Activate the main switch
-postProcessManager.isActive = true;
-
-// Adjust BloomEffect properties
-bloomEffect.enabled = true;
-bloomEffect.downScale = BloomDownScaleMode.Half;
-bloomEffect.threshold = 0.9;
-bloomEffect.scatter = 0.7;
-bloomEffect.intensity = 1;
-bloomEffect.tint.set(1, 1, 1, 1);
-
-// Adjust TonemappingEffect properties
-tonemappingEffect.enabled = true;
-tonemappingEffect.mode = TonemappingMode.ACES;
-```
-
-### 2. Camera switch
-
-The camera preview area is controlled by the **camera component**. In the camera component, the following properties will affect the post-processing effect:
-
-- **Post-processing switch**: You can turn on or off the camera's post-processing effect. The overall switch and specific configuration of post-processing are in the [scene](/en/docs/core/scene) panel.
-
-- **HDR switch**: In HDR mode, the output color is allowed to be stored using floating point numbers, which can obtain a wider range of values ​​for scenes such as [bloom effects](/en/docs/graphics/postProcess/effects).
-
-- **MSAA configuration**: You can adjust the settings of multi-sampling anti-aliasing to improve the quality of the picture such as aliasing.
-
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/3232935d-a765-4da4-b08e-021aac61458e/image-20240718210947199.png" />
+| Property | Description |
+| :-- | :-- |
+| [Post-Processing Switch](/apis/core/#Camera-enablePostProcess) | Enables or disables the post-processing effects of the camera. |
+| [HDR Switch](/apis/core/#Camera-enableHDR) | In HDR mode, allows output colors to be stored using floating-point numbers, providing a broader range of values for [bloom effects](/en/docs/graphics/postProcess/effects) and other scenarios. |
+| [MSAA Configuration](/apis/core/#Camera-msaaSamples) | Adjusts the multi-sampling anti-aliasing settings to improve image quality, such as reducing jagged edges. |
+| [Post-Processing Mask](/apis/core/#Camera-postProcessMask) | Works with the post-processing component's [layer](/apis/core/#PostProcess-layer) to determine which post-processing components are effective. |
 
 <Callout type="info">
-  For more camera configurations, refer to [Camera Component](/en/docs/graphics/camera/component)
+  For more camera configurations, refer to the [Camera Component](/en/docs/graphics/camera/component)
 </Callout>
 
 ### 3. Viewport Switch
 
-In addition to the camera preview area, the viewport can also see the post-processing effect. The camera in the viewport is independent, but it also has post-processing switches like the camera component (same as above, also pay attention to the switches in the post-processing configuration); the switches in the viewport only affect the view window and do not affect the actual effect of the project export:
+In addition to the camera preview area, the viewport can also display post-processing effects. The camera in the viewport is independent but has post-processing configurations similar to the camera component.
 
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/f9f13d02-931f-4638-af91-4a007007c99f/image-20240718193359413.png" />
+<Callout type="warning">
+  The switch in the viewport only affects the view window and does not impact the actual effect exported in the project.
+</Callout>
 
-## Recommended configuration for mobile
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/e3c55184-f51c-4a7a-9a12-ad490774dc26/image-20250115151324628-20250115151336116.png" />
 
-Generally speaking, some post-processing configurations in the red box in the figure below will affect performance:
+## Best Practices
 
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/7e5e272c-fc1e-45cd-92b0-a687c58826c7/image-20240719104328198.png" />
-
-And some camera configurations:
-
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/5d96cd31-2e12-43eb-8493-f8751e40eb82/image-20240719112101652.png" />
-
-- Regarding the `HDR` switch in the camera, if most of the pixel calculations in the scene do not exceed 1 (for example, HDR maps are not used), try not to turn on HDR. After turning it on, the engine will first render to `R11G11B10_UFloat` format In RenderTarget, rendering to the screen again has performance overhead.
-- Regarding the `MSAA` option in the camera, it is recommended to adjust this value only when post-processing is turned on and the anti-aliasing performance is strictly required. The larger the value, the greater the performance overhead.
-- In the bloom effect, `Down Scale` defaults to `Half`, that is, the initial downsampling resolution is half of the canvas. If the accuracy requirement is not so high, you can switch to `Quarter` and save 1/4 of the canvas.
-- In the tone mapping effect, although `ACES` has better color contrast and saturation, the calculation is more complicated, which may cause serious frame drops on low-end models. You can try to use `Neutral` as an alternative.
+- Regarding the `HDR` switch in the camera, if the majority of pixels in the scene do not exceed 1 (e.g., no HDR textures used), avoid enabling HDR. When enabled, the engine first renders to a `R11G11B10_UFloat` format RenderTarget before rendering to the screen, incurring performance overhead.
+- Regarding the `MSAA` option in the camera, only adjust this value when post-processing is enabled and strict on anti-aliasing performance. The higher the value, the greater the performance overhead.
+- In bloom effects, `Down Scale` defaults to `Half`, meaning the initial downsampled resolution is half that of the canvas. If high precision is not required, switch to `Quarter`, saving to a quarter of the canvas.
+- In tone mapping effects, while `ACES` offers better color contrast and saturation, it is computationally complex and may cause significant frame drops on low-end devices. Consider using `Neutral` as an alternative.

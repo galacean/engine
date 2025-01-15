@@ -3,82 +3,68 @@ order: 0
 title: 后处理总览
 ---
 
-后处理系统可以对场景渲染的结果进行“加工”。
+后处理系统可以对相机渲染的结果进行“加工”。
 
 <Comparison
   leftSrc="https://gw.alipayobjects.com/zos/OasisHub/3a50ed18-c2d4-4b33-a4e6-af79f2c273f8/2024-07-18%25252018.08.30.gif"
-  leftText="关闭后处理"
+  leftText="OFF"
   rightSrc="https://gw.alipayobjects.com/zos/OasisHub/4bd5f985-1b82-4aca-b6fa-fd521aab8f57/2024-07-18%25252018.15.30.gif"
-  rightText="开启后处理"
+  rightText="ON"
 />
+
+## 后处理配置
+
+后处理有两种模式：
+
+- 全局模式：影响当前场景中的所有相机。
+- 局部模式：只有当相机靠近后处理实体的碰撞体范围时才生效。
+
+后处理组件拥有以下属性，可以控制后处理的特效、模式、混合距离等：
+
+| 属性 | 作用 |
+| :-- | :-- |
+| [全局模式](/apis/core/#PostProcess-isGlobal) | 控制这个后处理组件是全局还是局部模式。 |
+| [混合距离](/apis/core/#PostProcess-blendDistance) | 局部模式时，用来控制相机靠近碰撞体多少距离时，开始混合特效。 |
+| [优先级](/apis/core/#PostProcess-priority) | 当场景中有多个后处理组件时，优先级越高，越后面开始覆盖/混合。 |
+| [层级](/apis/core/#PostProcess-layer) | 配合相机的[后处理遮罩](/apis/core/#Camera-postProcessMask) 使用，决定生效的后处理组件。 |
+| [添加特效](/apis/core/#PostProcess-addEffect) | 添加后处理特效。 |
 
 ## 使用后处理
 
-### 1.后处理配置
+### 1.添加后处理组件
 
-后处理配置统一放在 [场景](/docs/core/scene) 面板下，为了防止性能浪费，默认**关闭总开关**，用户只需要打开总开关，就能激活所有后处理效果：
+在层级面板，预设了全局、局部后处理的几种模式，选择添加即可直接使用。
 
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/50f6a2aa-0463-4b66-b54e-edff71187077/image-20240718193530098.png" />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/a6e9a327-1823-4dde-94a8-89bb4bf02e3a/2025-01-15%25252011.59.50.gif" />
+
+当然，也可以手动添加后处理组件，局部模式需要搭配碰撞体进行使用：
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/6eb3b8d5-27d1-419d-8bf6-65371861fb97/2025-01-15%25252014.51.12.gif" />
 
 <Callout type="info">具体的后处理效果配置，请参考 [后处理效果列表](/docs/graphics/postProcess/effects)</Callout>
 
-<Callout type="warning">
-  截止 1.3 版本，引擎没有暴露公共 API（因为支持后处理拓展后，API
-  可能会产生变动），我们建议用户在编辑器进行后处理操作。如果想使用内部实验接口，可以调用以下代码：
-</Callout>
-
-```typescript
-// 获取后处理管理器
-// @ts-ignore
-const postProcessManager = scene._postProcessManager;
-// 获取 BloomEffect
-const bloomEffect = postProcessManager._bloomEffect as BloomEffect;
-// 获取 TonemappingEffect
-const tonemappingEffect = postProcessManager._tonemappingEffect as TonemappingEffect;
-
-// 激活总开关
-postProcessManager.isActive = true;
-
-// 调整 BloomEffect 属性
-bloomEffect.enabled = true;
-bloomEffect.downScale = BloomDownScaleMode.Half;
-bloomEffect.threshold = 0.9;
-bloomEffect.scatter = 0.7;
-bloomEffect.intensity = 1;
-bloomEffect.tint.set(1, 1, 1, 1);
-
-// 调整 TonemappingEffect 属性
-tonemappingEffect.enabled = true;
-tonemappingEffect.mode = TonemappingMode.ACES;
-```
-
 ### 2.相机开关
 
-相机预览区受**相机组件**控制，相机组件中，以下属性会影响后处理效果：
+相机预览区受**相机组件**控制，在相机组件中，以下属性也会影响后处理效果：
 
-- **后处理开关**：可以开启或关闭相机的后期处理效果，后处理的总开关和具体配置在 [场景](/docs/core/scene) 面板。
-- **HDR 开关**：HDR 模式下，允许输出颜色使用浮点数进行存储，可以得到更大范围的值，用于[泛光特效](/docs/graphics/postProcess/effects)等场景。
-- **MSAA 配置**：可以调整多重采样抗锯齿的设置,改善锯齿等画面质量。
-
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/3232935d-a765-4da4-b08e-021aac61458e/image-20240718210947199.png" />
+| 属性 | 作用 |
+| :-- | :-- |
+| [后处理开关](/apis/core/#Camera-enablePostProcess) | 可以开启或关闭相机的后期处理效果。 |
+| [HDR 开关](/apis/core/#Camera-enableHDR) | HDR 模式下，允许输出颜色使用浮点数进行存储，可以得到更大范围的值，用于[泛光特效](/docs/graphics/postProcess/effects)等场景。 |
+| [MSAA 配置](/apis/core/#Camera-msaaSamples) | 可以调整多重采样抗锯齿的设置，改善锯齿等画面质量。 |
+| [后处理遮罩](/apis/core/#Camera-postProcessMask) | 配合后处理组件的[层级](/apis/core/#PostProcess-layer) 使用，决定生效的后处理组件。 |
 
 <Callout type="info">相机更多配置参考 [相机组件](/docs/graphics/camera/component)</Callout>
 
 ### 3.视图区开关
 
-除了相机预览区，视图区也能看到后处理效果。视图区的相机是独立的，但是也和相机组件一样拥有后处理等开关（同上，也要注意后处理配置中的开关）；视图区的开关只会影响视图窗口，并不会影响项目导出的真实效果：
+除了相机预览区，视图区也能看到后处理效果。视图区的相机是独立的，但是也和相机组件一样拥有后处理等配置。
 
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/f9f13d02-931f-4638-af91-4a007007c99f/image-20240718193359413.png" />
+<Callout type="warning">视图区的开关只会影响视图窗口，并不会影响项目导出的真实效果</Callout>
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/e3c55184-f51c-4a7a-9a12-ad490774dc26/image-20250115151324628-20250115151336116.png" />
 
 ## 最佳实践
-
-一般来说，下图红框内的一些后处理配置会影响到性能：
-
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/7e5e272c-fc1e-45cd-92b0-a687c58826c7/image-20240719104328198.png" />
-
-以及相机的部分配置：
-
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/5d96cd31-2e12-43eb-8493-f8751e40eb82/image-20240719112101652.png" />
 
 - 关于相机中 `HDR` 开关，如果场景中绝大部分像素计算没有超过 1（比如没有使用 HDR 贴图）, 尽量别开启 HDR，开启后引擎会先渲染到 `R11G11B10_UFloat` 格式的 RenderTarget 中，再渲染到屏幕上，有性能开销。
 - 关于相机中的 `MSAA` 选项，仅当开启了后处理，且对锯齿表现要求严格的情况下，才建议调整这个值，值越大，性能开销越大。

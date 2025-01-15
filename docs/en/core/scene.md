@@ -19,7 +19,7 @@ Right-click in the **[Assets Panel](/en/docs/assets/interface)** (or the + sign 
 
 ### Properties Panel
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/2eaad4b1-d3e3-4c17-ae7f-58b488cd3606/image-20240718190944508.png" alt="image-20240718190944508" style="zoom:50%;" />
+<img src="https://gw.alipayobjects.com/zos/OasisHub/d3f073e5-dbd3-4345-a1ca-d4f3adf6000a/image-20250114194404516.png" alt="image-20240718190944508" style="zoom:50%;" />
 
 ### Ambient Light
 
@@ -33,29 +33,24 @@ For details, please refer to the [Background Tutorial](/en/docs/graphics/backgro
 
 For details, please refer to the [Shadow Tutorial](/en/docs/graphics/light/shadow/).
 
-### Post-Processing
-
-For details, please refer to the [Post-Processing Tutorial](/en/docs/graphics/postProcess/postProcess/).
-
 ### Fog
 
 You can add **linear, exponential, exponential squared** 3 types of fog to the entire scene:
 
 ![Fog](https://gw.alipayobjects.com/zos/OasisHub/224fbc16-e60c-47ca-845b-5f7c09563c83/2024-03-19%25252018.08.23.gif)
 
-
 ## Script Usage
 
-| Property Name                                 | Description |
-| :-------------------------------------------- | :---------- |
-| [scenes](/apis/core/#SceneManager-scenes)  | Scene list  |
+| Property Name                             | Description |
+| :---------------------------------------- | :---------- |
+| [scenes](/apis/core/#SceneManager-scenes) | Scene list  |
 
-| Method Name                                           | Description |
-| :--------------------------------------------------- | :---------- |
-| [addScene](/apis/core/#SceneManager-addScene)       | Add scene   |
-| [removeScene](/apis/core/#SceneManager-removeScene) | Remove scene|
-| [mergeScenes](/apis/core/#SceneManager-mergeScenes) | Merge scenes|
-| [loadScene](/apis/core/#SceneManager-loadScene)     | Load scene  |
+| Method Name                                         | Description  |
+| :-------------------------------------------------- | :----------- |
+| [addScene](/apis/core/#SceneManager-addScene)       | Add scene    |
+| [removeScene](/apis/core/#SceneManager-removeScene) | Remove scene |
+| [mergeScenes](/apis/core/#SceneManager-mergeScenes) | Merge scenes |
+| [loadScene](/apis/core/#SceneManager-loadScene)     | Load scene   |
 
 ### Loading a Scene
 
@@ -64,11 +59,9 @@ If you want to load a **Scene** asset as a scene in the application, you can use
 ```typescript
 const sceneUrl = "...";
 
-engine.resourceManager
-  .load({ type: AssetType.Scene, url: "..." })
-  .then((scene) => {
-    engine.sceneManager.addScene(scene);
-  });
+engine.resourceManager.load({ type: AssetType.Scene, url: "..." }).then((scene) => {
+  engine.sceneManager.addScene(scene);
+});
 ```
 
 ### Getting Scene Objects
@@ -126,12 +119,12 @@ Call `scene.destroy()` to destroy a scene. The destroyed scene will also be auto
 
 ### Entity Tree Management
 
-| Method Name                                              | Description                                                                                                 |
-| :------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------- |
-| [createRootEntity](/apis/core/#Scene-createRootEntity) | The newly created _scene_ does not have a root entity by default and needs to be created manually            |
-| [addRootEntity](/apis/core/#Scene-addRootEntity)       | You can directly create a new entity or add an existing entity                                               |
-| [removeRootEntity](/apis/core/#Scene-removeRootEntity) | Remove the root entity                                                                                       |
-| [getRootEntity](/apis/core/#Scene-getRootEntity)       | Find the root entity, you can get all root entities or a single entity object. Note that all entities are read-only arrays and cannot change length or order |
+| Method Name | Description |
+| :-- | :-- |
+| [createRootEntity](/apis/core/#Scene-createRootEntity) | The newly created _scene_ does not have a root entity by default and needs to be created manually |
+| [addRootEntity](/apis/core/#Scene-addRootEntity) | You can directly create a new entity or add an existing entity |
+| [removeRootEntity](/apis/core/#Scene-removeRootEntity) | Remove the root entity |
+| [getRootEntity](/apis/core/#Scene-getRootEntity) | Find the root entity, you can get all root entities or a single entity object. Note that all entities are read-only arrays and cannot change length or order |
 
 ```typescript
 const engine = await WebGLEngine.create({ canvas: "demo" });
@@ -161,4 +154,7 @@ const cameraEntity = rootEntity.createChild("camera");
 
 cameraEntity.addComponent(Camera);
 ```
+
+```
+
 ```
