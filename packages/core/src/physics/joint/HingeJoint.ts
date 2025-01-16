@@ -142,8 +142,9 @@ export class HingeJoint extends Joint {
     super(entity);
     this._onMotorChanged = this._onMotorChanged.bind(this);
     this._onLimitsChanged = this._onLimitsChanged.bind(this);
+    this._onAxisChanged = this._onAxisChanged.bind(this);
     //@ts-ignore
-    this._axis._onValueChanged = this._setAxis.bind(this);
+    this._axis._onValueChanged = this._onAxisChanged;
   }
 
   /**
@@ -200,12 +201,12 @@ export class HingeJoint extends Joint {
   }
 
   @ignoreClone
-  private _setAxis(): void {
+  private _onAxisChanged(): void {
     //@ts-ignore
     this._axis._onValueChanged = null;
     this._axis.normalize();
     (<IHingeJoint>this._nativeJoint)?.setAxis(this._axis);
     //@ts-ignore
-    this._axis._onValueChanged = this._setAxis.bind(this);
+    this._axis._onValueChanged = this._onAxisChanged;
   }
 }
