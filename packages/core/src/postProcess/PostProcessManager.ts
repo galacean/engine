@@ -106,8 +106,11 @@ export class PostProcessManager {
         }
 
         // Post process has no influence, ignore it
-        if (closestDistance <= blendDistance && blendDistance > 0) {
-          interpFactor = 1 - closestDistance / blendDistance;
+        if (closestDistance <= blendDistance) {
+          interpFactor = 1;
+          if (blendDistance > 0) {
+            interpFactor = 1 - closestDistance / blendDistance;
+          }
         }
       }
 
