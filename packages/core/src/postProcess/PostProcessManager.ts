@@ -70,8 +70,9 @@ export class PostProcessManager {
       }
 
       const isGlobal = postProcess.isGlobal;
-      let interpFactor = 1; // Global default value
+      let interpFactor = 1; // default value in global mode
       if (!isGlobal) {
+        interpFactor = 0; // default value in local mode
         const currentColliders = PostProcessManager._tempColliders;
         const cameraPosition = camera.entity.transform.worldPosition;
         const blendDistance = postProcess.blendDistance;
@@ -102,15 +103,10 @@ export class PostProcessManager {
           Logger.warn(
             `No collider shape found in the entity:"${postProcess.entity.name}", the local mode of post process will not take effect.`
           );
-          continue;
         }
 
         // Post process has no influence, ignore it
-        if (closestDistance > blendDistance) {
-          continue;
-        }
-
-        if (blendDistance > 0) {
+        if (closestDistance <= blendDistance && blendDistance > 0) {
           interpFactor = 1 - closestDistance / blendDistance;
         }
       }
