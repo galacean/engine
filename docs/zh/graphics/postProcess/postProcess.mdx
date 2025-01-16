@@ -29,6 +29,21 @@ title: 后处理总览
 | [层级](/apis/core/#PostProcess-layer) | 配合相机的[后处理遮罩](/apis/core/#Camera-postProcessMask) 使用，决定生效的后处理组件。 |
 | [添加特效](/apis/core/#PostProcess-addEffect) | 添加后处理特效。 |
 
+## 混合规则
+
+- 全局模式时，混合规则是以优先级大的后处理组件为准。
+
+- 局部模式时，会从相机距离碰撞体的 **混合距离** 开始， 从上一个后处理组件混合后的值过渡到当前后处理组件的值，如果没有上一个，则以后处理特效的定义值作为起始值。
+
+举一个例子，强度的定义值为 `0`, 即通过 [PostProcessEffectFloatParameter](/apis/core/#PostProcessEffectFloatParameter) 定义了这个强度：
+
+- 后处理组件 1：全局模式，强度为 `0.5`，混合后为 `0.5`
+- 后处理组件 2：局部模式，强度为 `1`， 相机距离碰撞体为混合距离的一半，混合后为 `mix( 0.5, 1, 1 - distance / blendDistance)` = `0.75`
+
+<Callout type="info">
+  如果想要自定义后处理，请参考 [文档](/docs/graphics/postProcess/customPostProcess/#3-融合数据)
+</Callout>
+
 ## 使用后处理
 
 ### 1.添加后处理组件

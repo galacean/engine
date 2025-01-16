@@ -29,6 +29,23 @@ The post-processing component has the following properties to control effects, m
 | [Layer](/apis/core/#PostProcess-layer) | Used with the camera's [post-processing mask](/apis/core/#Camera-postProcessMask) to determine which post-processing components are effective. |
 | [Add Effect](/apis/core/#PostProcess-addEffect) | Adds post-processing effects. |
 
+## Mixing rules
+
+- In global mode, the mixing rules are based on the post-processing component with the highest priority.
+
+- In local mode, it will start from the **mixing distance** of the camera from the collision body, and transition from the mixed value of the previous post-processing component to the value of the current post-processing component. If there is no previous one, the defined value of the post-processing effect will be used as the starting value.
+
+For example, the intensity is defined as `0`, which is defined by [PostProcessEffectFloatParameter](/apis/core/#PostProcessEffectFloatParameter):
+
+- PostProcessing Component 1: Global mode, intensity is `0.5`, after blending it is `0.5`
+
+- PostProcessing Component 2: Local mode, intensity is `1`, the camera distance to the collider is half of the blend distance, after blending it is `mix( 0.5, 1, 1 - distance / blendDistance)` = `0.75`
+
+<Callout type="info">
+  If you want to customize post-processing, please refer to
+  [Documentation](/en/docs/graphics/postProcess/customPostProcess/#3-blend-data)
+</Callout>
+
 ## Using Post-Processing
 
 ### 1. Adding a Post-Processing Component
