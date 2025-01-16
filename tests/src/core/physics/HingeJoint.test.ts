@@ -60,8 +60,8 @@ describe("HingeJoint", function () {
     joint.automaticConnectedAnchor = true;
     joint.connectedCollider = boxEntity2.getComponent(DynamicCollider);
     joint.anchor = new Vector3(0.5, 0, 0);
-    joint.axis = new Vector3(0, 1, 0);
-
+    joint.axis.x = 0;
+    joint.axis.y = 1;
     expect(formatValue(joint.angle)).eq(0);
 
     collider2.applyTorque(new Vector3(0, 1000, 0));
