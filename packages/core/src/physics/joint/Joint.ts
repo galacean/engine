@@ -25,8 +25,6 @@ export abstract class Joint extends Component {
   private _force = Infinity;
   private _torque = Infinity;
   private _automaticConnectedAnchor = true;
-  @ignoreClone
-  private _updateConnectedActualAnchor: Function;
 
   /**
    * The connected collider.
@@ -72,26 +70,13 @@ export abstract class Joint extends Component {
    * The connectedAnchor is automatically calculated, if you want to set it manually, please set automaticConnectedAnchor to false
    */
   get connectedAnchor(): Vector3 {
-    const connectedColliderAnchor = this._connectedColliderInfo.anchor;
-    if (this._automaticConnectedAnchor) {
-      //@ts-ignore
-      connectedColliderAnchor._onValueChanged = null;
-      this._calculateConnectedAnchor();
-      //@ts-ignore
-      connectedColliderAnchor._onValueChanged = this._updateConnectedActualAnchor;
-    }
-    return connectedColliderAnchor;
+    return this._connectedColliderInfo.anchor;
   }
 
   set connectedAnchor(value: Vector3) {
-    if (this._automaticConnectedAnchor) {
-      console.warn("Cannot set connectedAnchor when automaticConnectedAnchor is true.");
-      return;
-    }
     const connectedAnchor = this._connectedColliderInfo.anchor;
     if (value !== connectedAnchor) {
       connectedAnchor.copyFrom(value);
-      this._updateActualAnchor(AnchorOwner.Connected);
     }
   }
 
@@ -195,9 +180,9 @@ export abstract class Joint extends Component {
     super(entity);
     //@ts-ignore
     this._colliderInfo.anchor._onValueChanged = this._updateActualAnchor.bind(this, AnchorOwner.Self);
-    this._updateConnectedActualAnchor = this._updateActualAnchor.bind(this, AnchorOwner.Connected);
+    this._handleConnectedAnchorChanged = this._handleConnectedAnchorChanged.bind(this);
     //@ts-ignore
-    this._connectedColliderInfo.anchor._onValueChanged = this._updateConnectedActualAnchor;
+    this._connectedColliderInfo.anchor._onValueChanged = this._handleConnectedAnchorChanged.bind(this);
 
     this._onSelfTransformChanged = this._onSelfTransformChanged.bind(this);
     this._onConnectedTransformChanged = this._onConnectedTransformChanged.bind(this);
@@ -250,6 +235,8 @@ export abstract class Joint extends Component {
     const connectedActualAnchor = connectedColliderInfo.actualAnchor;
     const connectedCollider = connectedColliderInfo.collider;
 
+    // @ts-ignore
+    connectedAnchor._onValueChanged = null;
     if (connectedCollider) {
       const { worldPosition: connectedPos, lossyWorldScale: connectedWorldScale } = connectedCollider.entity.transform;
       Vector3.subtract(selfPos, connectedPos, Joint._tempVector3);
@@ -258,6 +245,18 @@ export abstract class Joint extends Component {
     } else {
       Vector3.add(selfPos, selfActualAnchor, connectedActualAnchor);
       connectedAnchor.copyFrom(connectedActualAnchor);
+    }
+    // @ts-ignore
+    connectedAnchor._onValueChanged = this._handleConnectedAnchorChanged;
+    this._updateActualAnchor(AnchorOwner.Connected);
+  }
+
+  @ignoreClone
+  private _handleConnectedAnchorChanged(): void {
+    if (this._automaticConnectedAnchor) {
+      console.warn("Cannot set connectedAnchor when automaticConnectedAnchor is true.");
+    } else {
+      this._updateActualAnchor(AnchorOwner.Connected);
     }
   }
 
