@@ -1,4 +1,9 @@
 #include <normal_get>
+#include <brdf>
+
+// direct + indirect
+#include <direct_irradiance_frag_define>
+#include <ibl_frag_define>
 
 
 float computeSpecularOcclusion(float ambientOcclusion, float roughness, float dotNV ) {
@@ -156,9 +161,51 @@ void initMaterial(out Material material, inout Geometry geometry){
             geometry.anisotropicN = getAnisotropicBentNormal(geometry, geometry.normal, material.roughness);
         #endif
 
+        material.envSpecularDFG = envBRDFApprox(material.specularColor, material.roughness, geometry.dotNV );
+
+        // AO
+        float diffuseAO = 1.0;
+        float specularAO = 1.0;
+
+        #ifdef MATERIAL_HAS_OCCLUSION_TEXTURE
+            vec2 aoUV = v_uv;
+            #ifdef RENDERER_HAS_UV1
+                if(material_OcclusionTextureCoord == 1.0){
+                    aoUV = v_uv1;
+                }
+            #endif
+            diffuseAO = ((texture2D(material_OcclusionTexture, aoUV)).r - 1.0) * material_OcclusionIntensity + 1.0;
+        #endif
+
+        #if defined(MATERIAL_HAS_OCCLUSION_TEXTURE) && defined(SCENE_USE_SPECULAR_ENV) 
+            specularAO = saturate( pow( geometry.dotNV + diffuseAO, exp2( - 16.0 * material.roughness - 1.0 ) ) - 1.0 + diffuseAO );
+        #endif
+
+        material.diffuseAO = diffuseAO;
+        material.specularAO = specularAO;
+
+        // Sheen
+        #ifdef MATERIAL_ENABLE_SHEEN
+            vec3 sheenColor = material_SheenColor;
+            #ifdef MATERIAL_HAS_SHEEN_TEXTURE
+                vec4 sheenTextureColor = texture2D(material_SheenTexture, v_uv);
+                #ifndef ENGINE_IS_COLORSPACE_GAMMA
+                    sheenTextureColor = gammaToLinear(sheenTextureColor);
+                #endif
+                sheenColor *= sheenTextureColor.rgb;
+            #endif
+            material.sheenColor = sheenColor;
+
+            material.sheenRoughness = material_SheenRoughness;
+            #ifdef MATERIAL_HAS_SHEEN_ROUGHNESS_TEXTURE
+                material.sheenRoughness *= texture2D(material_SheenRoughnessTexture, v_uv).a;
+            #endif
+
+            material.sheenRoughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(material.sheenRoughness + getAARoughnessFactor(geometry.normal), 1.0));
+            material.approxIBLSheenDG = prefilteredSheenDFG(geometry.dotNV, material.sheenRoughness);
+            material.sheenScaling = 1.0 - material.approxIBLSheenDG * max(max(material.sheenColor.r, material.sheenColor.g), material.sheenColor.b);
+        #endif
+
 }
 
-// direct + indirect
-#include <brdf>
-#include <direct_irradiance_frag_define>
-#include <ibl_frag_define>
+

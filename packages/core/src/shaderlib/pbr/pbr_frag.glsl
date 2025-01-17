@@ -20,37 +20,25 @@ addTotalDirectRadiance(geometry, material, reflectedLight);
    irradiance *= PI;
 #endif
 
-reflectedLight.indirectDiffuse += irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
+reflectedLight.indirectDiffuse += material.diffuseAO * irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
 
 // IBL specular
 vec3 radiance = getLightProbeRadiance(geometry, geometry.normal, material.roughness, int(scene_EnvMapLight.mipMapLevel), scene_EnvMapLight.specularIntensity);
 float radianceAttenuation = 1.0;
 
+// IBL Clear Coat
 #ifdef MATERIAL_ENABLE_CLEAR_COAT
     vec3 clearCoatRadiance = getLightProbeRadiance( geometry, geometry.clearCoatNormal, material.clearCoatRoughness, int(scene_EnvMapLight.mipMapLevel), scene_EnvMapLight.specularIntensity );
 
-    reflectedLight.indirectSpecular += clearCoatRadiance * material.clearCoat * envBRDFApprox(vec3( 0.04 ), material.clearCoatRoughness, geometry.clearCoatDotNV);
+    reflectedLight.indirectSpecular += material.specularAO * clearCoatRadiance * material.clearCoat * envBRDFApprox(vec3( 0.04 ), material.clearCoatRoughness, geometry.clearCoatDotNV);
     radianceAttenuation -= material.clearCoat * F_Schlick(material.f0, geometry.clearCoatDotNV);
 #endif
 
-reflectedLight.indirectSpecular += radianceAttenuation * radiance * envBRDFApprox(material.specularColor, material.roughness, geometry.dotNV );
+reflectedLight.indirectSpecular += material.specularAO * radianceAttenuation * radiance * material.envSpecularDFG;
 
 
-// Occlusion
-#ifdef MATERIAL_HAS_OCCLUSION_TEXTURE
-    vec2 aoUV = v_uv;
-    #ifdef RENDERER_HAS_UV1
-        if(material_OcclusionTextureCoord == 1.0){
-            aoUV = v_uv1;
-        }
-    #endif
-    float ambientOcclusion = (texture2D(material_OcclusionTexture, aoUV).r - 1.0) * material_OcclusionIntensity + 1.0;
-    reflectedLight.indirectDiffuse *= ambientOcclusion;
-    #ifdef SCENE_USE_SPECULAR_ENV
-        reflectedLight.indirectSpecular *= computeSpecularOcclusion(ambientOcclusion, material.roughness, geometry.dotNV);
-    #endif
-#endif
-
+// IBL Sheen
+evaluateSheenIBL(geometry, material, radianceAttenuation, reflectedLight.indirectDiffuse, reflectedLight.indirectSpecular);
 
 // Emissive
 vec3 emissiveRadiance = material_EmissiveColor;

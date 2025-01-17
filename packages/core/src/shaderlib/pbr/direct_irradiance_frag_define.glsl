@@ -1,5 +1,14 @@
 #include <ShadowFragmentDeclaration>
 
+void sheenLobe(Geometry geometry, Material material, vec3 incidentDirection, vec3 attenuationIrradiance, inout vec3 diffuseColor, inout vec3 specularColor){
+    #ifdef MATERIAL_ENABLE_SHEEN
+        diffuseColor *= material.sheenScaling;
+        specularColor *= material.sheenScaling;
+
+        specularColor += attenuationIrradiance * sheenBRDF(incidentDirection, geometry, material.sheenColor, material.sheenRoughness);
+    #endif
+}
+
 void addDirectRadiance(vec3 incidentDirection, vec3 color, Geometry geometry, Material material, inout ReflectedLight reflectedLight) {
     float attenuation = 1.0;
 
@@ -16,6 +25,9 @@ void addDirectRadiance(vec3 incidentDirection, vec3 color, Geometry geometry, Ma
 
     reflectedLight.directSpecular += attenuation * irradiance * BRDF_Specular_GGX( incidentDirection, geometry, geometry.normal, material.specularColor, material.roughness);
     reflectedLight.directDiffuse += attenuation * irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
+
+    // Sheen Lobe
+    sheenLobe(geometry, material, incidentDirection, attenuation * irradiance, reflectedLight.directDiffuse, reflectedLight.directSpecular);
 
 }
 

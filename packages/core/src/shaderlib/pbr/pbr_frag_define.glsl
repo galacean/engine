@@ -63,6 +63,19 @@ uniform float material_OcclusionTextureCoord;
     uniform sampler2D material_OcclusionTexture;
 #endif
 
+
+#ifdef MATERIAL_ENABLE_SHEEN
+    uniform float material_SheenRoughness;
+    uniform vec3 material_SheenColor;
+    #ifdef MATERIAL_HAS_SHEEN_TEXTURE
+       uniform sampler2D material_SheenTexture;
+    #endif
+
+    #ifdef MATERIAL_HAS_SHEEN_ROUGHNESS_TEXTURE
+       uniform sampler2D material_SheenRoughnessTexture;
+    #endif
+#endif
+
 // Runtime
 struct ReflectedLight {
     vec3 directDiffuse;
@@ -96,9 +109,19 @@ struct Material {
     vec3  specularColor;
     float opacity;
     float f0;
+    float diffuseAO;
+    float specularAO;
+    vec3 envSpecularDFG;
+
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         float clearCoat;
         float clearCoatRoughness;
     #endif
 
+    #ifdef MATERIAL_ENABLE_SHEEN
+        float sheenRoughness;
+        vec3  sheenColor;
+        float sheenScaling;
+        float approxIBLSheenDG;
+    #endif
 };

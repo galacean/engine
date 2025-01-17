@@ -1,4 +1,8 @@
 
+#ifdef MATERIAL_ENABLE_SHEEN
+    uniform sampler2D scene_PrefilteredDFG;
+#endif
+
 float F_Schlick(float f0, float dotLH) {
 	return f0 + 0.96 * (pow(1.0 - dotLH, 5.0));
 }
@@ -52,6 +56,39 @@ float D_GGX(float alpha, float dotNH ) {
 	return RECIPROCAL_PI * a2 / pow2( denom );
 
 }
+
+#ifdef MATERIAL_ENABLE_SHEEN
+    // http://www.aconty.com/pdf/s2017_pbs_imageworks_sheen.pdf
+    float D_Charlie(float roughness, float dotNH) {
+        float invAlpha  = 1.0 / roughness;
+        float cos2h = dotNH * dotNH;
+        float sin2h = max(1.0 - cos2h, 0.0078125); // 2^(-14/2), so sin2h^2 > 0 in fp16
+        return (2.0 + invAlpha) * pow(sin2h, invAlpha * 0.5) / (2.0 * PI);
+    }
+
+    // Neubelt and Pettineo 2013, "Crafting a Next-gen Material Pipeline for The Order: 1886".
+    float V_Neubelt(float NoV, float NoL) {
+        return saturate(1.0 / (4.0 * (NoL + NoV - NoL * NoV)));
+    }
+
+    vec3 sheenBRDF(vec3 incidentDirection, Geometry geometry, vec3 sheenColor, float sheenRoughness) {
+        vec3 halfDir = normalize(incidentDirection + geometry.viewDir);
+        float dotNL = saturate(dot(geometry.normal, incidentDirection));
+        float dotNH = saturate(dot(geometry.normal, halfDir));
+        float D = D_Charlie(sheenRoughness, dotNH);
+        float V = V_Neubelt(geometry.dotNV, dotNL);
+        vec3 F = sheenColor;
+        return  D * V * F;
+    }
+
+    float prefilteredSheenDFG(float dotNV, float sheenRoughness) {
+        #ifdef HAS_TEX_LOD
+            return texture2DLodEXT(scene_PrefilteredDFG, vec2(dotNV, sheenRoughness), 0.0).b;
+        #else
+            return texture2D(scene_PrefilteredDFG, vec2(dotNV, sheenRoughness),0.0).b;
+        #endif  
+    }
+#endif
 
 #ifdef MATERIAL_ENABLE_ANISOTROPY
     // GGX Distribution Anisotropic
