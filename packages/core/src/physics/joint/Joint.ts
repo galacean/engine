@@ -70,15 +70,7 @@ export abstract class Joint extends Component {
    * The connectedAnchor is automatically calculated, if you want to set it manually, please set automaticConnectedAnchor to false
    */
   get connectedAnchor(): Vector3 {
-    const connectedColliderAnchor = this._connectedColliderInfo.anchor;
-    if (this._automaticConnectedAnchor) {
-      //@ts-ignore
-      connectedColliderAnchor._onValueChanged = null;
-      this._calculateConnectedAnchor(false);
-      //@ts-ignore
-      connectedColliderAnchor._onValueChanged = this._handleConnectedAnchorChanged;
-    }
-    return connectedColliderAnchor;
+    return this._connectedColliderInfo.anchor;
   }
 
   set connectedAnchor(value: Vector3) {
@@ -234,7 +226,7 @@ export abstract class Joint extends Component {
     }
   }
 
-  private _calculateConnectedAnchor(syncNative: boolean = true): void {
+  private _calculateConnectedAnchor(): void {
     const colliderInfo = this._colliderInfo;
     const connectedColliderInfo = this._connectedColliderInfo;
     const { worldPosition: selfPos } = this.entity.transform;
@@ -256,7 +248,7 @@ export abstract class Joint extends Component {
     }
     // @ts-ignore
     connectedAnchor._onValueChanged = this._handleConnectedAnchorChanged;
-    syncNative && this._updateActualAnchor(AnchorOwner.Connected);
+    this._updateActualAnchor(AnchorOwner.Connected);
   }
 
   @ignoreClone

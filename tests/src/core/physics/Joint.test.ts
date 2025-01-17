@@ -97,6 +97,8 @@ describe("Joint", function () {
     expect(consoleWarnSpy).toBeCalledTimes(1);
     joint.connectedAnchor.y = 3;
     expect(consoleWarnSpy).toBeCalledTimes(2);
+    joint.automaticConnectedAnchor = false;
+    joint.automaticConnectedAnchor = true;
     expect(joint.connectedAnchor).deep.include({ x: 4, y: 4, z: 4 });
 
     // @ts-ignore
