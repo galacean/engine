@@ -24,6 +24,7 @@ AUTHORS
 stats.html
 tsconfig.tsbuildinfo
 api
+docs/api
 yarn.lock
 e2e/videos/*
 e2e/screenshots/*
