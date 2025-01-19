@@ -1,7 +1,15 @@
+#!/bin/bash
+set -euo pipefail
+
 # generate declaration files via typedoc
 
-ENGINE_PATH=$(pwd)
+ENGINE_PATH="$(pwd)"
 
+# Validate required environment variable
+if [ -z "${TYPEDOC:-}" ]; then
+  echo "Error: TYPEDOC environment variable is not set" >&2
+  exit 1
+fi
 for directory in ${ENGINE_PATH}/packages/*
 do
   if [ -d $directory ]; then
