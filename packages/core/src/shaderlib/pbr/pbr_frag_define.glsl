@@ -88,6 +88,23 @@ uniform float material_OcclusionTextureCoord;
     #endif
 #endif
 
+#ifdef MATERIAL_ENABLE_TRANSMISSION
+    uniform float material_Transmission;
+    #ifdef MATERIAL_HAS_TRANSMISSION_TEXTURE
+        uniform sampler2D material_TransmissionTexture;
+    #endif
+
+    #ifdef MATERIAL_HAS_THICKNESS
+        uniform vec3 material_AttenuationColor;
+        uniform float material_AttenuationDistance;
+        uniform float material_Thickness;
+
+        #ifdef MATERIAL_HAS_THICKNESS_TEXTURE
+            uniform sampler2D material_ThicknessTexture;
+        #endif
+    #endif
+#endif
+
 // Runtime
 struct ReflectedLight {
     vec3 directDiffuse;
@@ -123,7 +140,8 @@ struct Material {
     float f0;
     float diffuseAO;
     float specularAO;
-    vec3 envSpecularDFG;
+    vec3  envSpecularDFG;
+    float IOR;
 
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         float clearCoat;
@@ -142,5 +160,11 @@ struct Material {
         vec3  sheenColor;
         float sheenScaling;
         float approxIBLSheenDG;
+    #endif
+
+    #ifdef MATERIAL_ENABLE_TRANSMISSION 
+        vec3 absorptionCoefficient;
+        float transmission;
+        float thickness;
     #endif
 };

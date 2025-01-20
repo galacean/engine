@@ -46,6 +46,19 @@ reflectedLight.indirectSpecular += material.specularAO * radianceAttenuation * r
 // IBL Sheen
 evaluateSheenIBL(geometry, material, radianceAttenuation, reflectedLight.indirectDiffuse, reflectedLight.indirectSpecular);
 
+
+// Final color
+vec3 totalDiffuseColor = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse;
+vec3 totalSpecularColor = reflectedLight.directSpecular + reflectedLight.indirectSpecular;
+
+#ifdef MATERIAL_ENABLE_TRANSMISSION 
+    vec3 refractionTransmitted = evaluateTransmission(geometry, material);
+    totalDiffuseColor = mix(totalDiffuseColor, refractionTransmitted, material.transmission);
+#endif
+
+vec4 finalColor = vec4(totalDiffuseColor + totalSpecularColor, material.opacity);
+
+
 // Emissive
 vec3 emissiveRadiance = material_EmissiveColor;
 #ifdef MATERIAL_HAS_EMISSIVETEXTURE
@@ -56,12 +69,7 @@ vec3 emissiveRadiance = material_EmissiveColor;
     emissiveRadiance *= emissiveColor.rgb;
 #endif
 
-// Total
-vec3 totalRadiance =    reflectedLight.directDiffuse + 
-                        reflectedLight.indirectDiffuse + 
-                        reflectedLight.directSpecular + 
-                        reflectedLight.indirectSpecular + 
-                        emissiveRadiance;
+finalColor.rgb += emissiveRadiance;
 
-vec4 targetColor =vec4(totalRadiance, material.opacity);
-gl_FragColor = targetColor;
+
+gl_FragColor = finalColor;

@@ -1,5 +1,6 @@
 #include <normal_get>
 #include <brdf>
+#include <btdf>
 
 // direct + indirect
 #include <direct_irradiance_frag_define>
@@ -90,6 +91,7 @@ void initMaterial(out Material material, inout Geometry geometry){
         float f0 = pow2( (material_IOR - 1.0) / (material_IOR + 1.0) );
 
         material.f0 = f0;
+        material.IOR = material_IOR;
 
         #ifdef MATERIAL_HAS_BASETEXTURE
             vec4 baseTextureColor = texture2D(material_BaseTexture, v_uv);
@@ -226,6 +228,22 @@ void initMaterial(out Material material, inout Geometry geometry){
                 float topIOR = 1.0;
                 material.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, geometry.dotNV, material.iridescenceIOR, material.specularColor, material.iridescenceThickness);   
             #endif
+        #endif
+
+        // Transmission
+        #ifdef MATERIAL_ENABLE_TRANSMISSION 
+            material.transmission = material_Transmission;
+            #ifdef MATERIAL_HAS_TRANSMISSION_TEXTURE
+                material.transmission *= texture2D(material_TransmissionTexture, v_uv).r;
+            #endif
+
+            #ifdef MATERIAL_HAS_THICKNESS
+                material.absorptionCoefficient = -log(material_AttenuationColor + HALF_EPS) / max(HALF_EPS, material_AttenuationDistance);
+                material.thickness = max(material_Thickness, 0.0001);
+                #ifdef MATERIAL_HAS_THICKNESS_TEXTURE
+                    material.thickness *= texture2D( material_ThicknessTexture, v_uv).g;
+                #endif
+            #endif    
         #endif
 
 }

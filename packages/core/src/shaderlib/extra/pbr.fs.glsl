@@ -1,6 +1,7 @@
 #define IS_METALLIC_WORKFLOW
 #include <common>
 #include <camera_declare>
+#include <transform_declare>
 
 #include <FogFragmentDeclaration>
 
