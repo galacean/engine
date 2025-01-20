@@ -45,7 +45,7 @@ export class PrefabResource extends ReferResource {
     this._dependenceAssets.forEach((asset) => {
       if (asset instanceof ReferResource) {
         // @ts-ignore
-        asset?._disassociationSuperResource(this);
+        asset._disassociationSuperResource(this);
       }
     });
   }
