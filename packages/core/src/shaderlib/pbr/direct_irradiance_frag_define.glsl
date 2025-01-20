@@ -1,5 +1,14 @@
 #include <ShadowFragmentDeclaration>
 
+void sheenLobe(Geometry geometry, Material material, vec3 incidentDirection, vec3 attenuationIrradiance, inout vec3 diffuseColor, inout vec3 specularColor){
+    #ifdef MATERIAL_ENABLE_SHEEN
+        diffuseColor *= material.sheenScaling;
+        specularColor *= material.sheenScaling;
+
+        specularColor += attenuationIrradiance * sheenBRDF(incidentDirection, geometry, material.sheenColor, material.sheenRoughness);
+    #endif
+}
+
 void addDirectRadiance(vec3 incidentDirection, vec3 color, Geometry geometry, Material material, inout ReflectedLight reflectedLight) {
     float attenuation = 1.0;
 
@@ -7,15 +16,18 @@ void addDirectRadiance(vec3 incidentDirection, vec3 color, Geometry geometry, Ma
         float clearCoatDotNL = saturate( dot( geometry.clearCoatNormal, incidentDirection ) );
         vec3 clearCoatIrradiance = clearCoatDotNL * color;
 
-        reflectedLight.directSpecular += material.clearCoat * clearCoatIrradiance * BRDF_Specular_GGX( incidentDirection, geometry, geometry.clearCoatNormal, vec3( 0.04 ), material.clearCoatRoughness );
+        reflectedLight.directSpecular += material.clearCoat * clearCoatIrradiance * BRDF_Specular_GGX( incidentDirection, geometry, material, geometry.clearCoatNormal, vec3( 0.04 ), material.clearCoatRoughness );
         attenuation -= material.clearCoat * F_Schlick(material.f0, geometry.clearCoatDotNV);
     #endif
 
     float dotNL = saturate( dot( geometry.normal, incidentDirection ) );
     vec3 irradiance = dotNL * color * PI;
 
-    reflectedLight.directSpecular += attenuation * irradiance * BRDF_Specular_GGX( incidentDirection, geometry, geometry.normal, material.specularColor, material.roughness);
+    reflectedLight.directSpecular += attenuation * irradiance * BRDF_Specular_GGX( incidentDirection, geometry, material, geometry.normal, material.specularColor, material.roughness);
     reflectedLight.directDiffuse += attenuation * irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
+
+    // Sheen Lobe
+    sheenLobe(geometry, material, incidentDirection, attenuation * irradiance, reflectedLight.directDiffuse, reflectedLight.directSpecular);
 
 }
 

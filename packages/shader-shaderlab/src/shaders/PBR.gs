@@ -44,9 +44,9 @@ Shader "PBRShaderName" {
       }
 
       Header("Thin Film Iridescence"){
-        material_Iridescence("Iridescence", Range(0, 1, 0.01)) = 0;
-        material_IridescenceIOR("IOR", Range(1, 5, 0.01)) = 1.3;
-        material_IridescenceRange("ThicknessRange", Vector2) = (100,400);
+        iridescence("Iridescence", Range(0, 1, 0.01)) = 0;
+        iridescenceIOR("IOR", Range(1, 5, 0.01)) = 1.3;
+        iridescenceRange("ThicknessRange", Vector2) = (100, 400);
         material_IridescenceThicknessTexture("ThicknessTexture", Texture2D);
         material_IridescenceTexture("IridescenceTexture", Texture2D);
       }
