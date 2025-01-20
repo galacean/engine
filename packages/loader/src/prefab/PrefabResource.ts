@@ -33,16 +33,20 @@ export class PrefabResource extends ReferResource {
    */
   _addDependenceAsset(resource: ReferResource) {
     this._dependenceAssets.add(resource);
-    // @ts-ignore
-    resource._associationSuperResource(this);
+    if (resource instanceof ReferResource) {
+      // @ts-ignore
+      resource._associationSuperResource(this);
+    }
   }
 
   protected override _onDestroy(): void {
     super._onDestroy();
     this._root.destroy();
     this._dependenceAssets.forEach((asset) => {
-      // @ts-ignore
-      asset._disassociationSuperResource(this);
+      if (asset instanceof ReferResource) {
+        // @ts-ignore
+        asset?._disassociationSuperResource(this);
+      }
     });
   }
 }
