@@ -76,7 +76,7 @@ void evaluateSpecularIBL(Varyings varyings, SurfaceData surfaceData, BRDFData br
         vec3 speculaColor = brdfData.specularColor;
     #endif
 
-    outSpecularColor += surfaceData.specularAO * radianceAttenuation * radiance * brdfData.envSpecularDFG;
+    outSpecularColor += surfaceData.specularAO * radianceAttenuation * radiance * envBRDFApprox(speculaColor, brdfData.roughness, surfaceData.dotNV);
 }
 
 void evaluateSheenIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData,  float radianceAttenuation, inout vec3 diffuseColor, inout vec3 specularColor){

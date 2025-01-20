@@ -76,6 +76,18 @@ uniform float material_OcclusionTextureCoord;
     #endif
 #endif
 
+
+#ifdef MATERIAL_ENABLE_IRIDESCENCE
+    uniform vec4 material_IridescenceInfo;
+    #ifdef MATERIAL_HAS_IRIDESCENCE_THICKNESS_TEXTURE
+       uniform sampler2D material_IridescenceThicknessTexture;
+    #endif
+
+    #ifdef MATERIAL_HAS_IRIDESCENCE_TEXTURE
+       uniform sampler2D material_IridescenceTexture;
+    #endif
+#endif
+
 // Runtime
 struct ReflectedLight {
     vec3 directDiffuse;
@@ -116,6 +128,13 @@ struct Material {
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         float clearCoat;
         float clearCoatRoughness;
+    #endif
+
+    #ifdef MATERIAL_ENABLE_IRIDESCENCE
+        float iridescenceIOR;
+        float iridescenceFactor;
+        float iridescenceThickness;
+        vec3 iridescenceSpecularColor;
     #endif
 
     #ifdef MATERIAL_ENABLE_SHEEN

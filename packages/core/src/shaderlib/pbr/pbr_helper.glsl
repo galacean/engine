@@ -206,6 +206,28 @@ void initMaterial(out Material material, inout Geometry geometry){
             material.sheenScaling = 1.0 - material.approxIBLSheenDG * max(max(material.sheenColor.r, material.sheenColor.g), material.sheenColor.b);
         #endif
 
+        // Iridescence
+        #ifdef MATERIAL_ENABLE_IRIDESCENCE
+            material.iridescenceFactor = material_IridescenceInfo.x;
+            material.iridescenceIOR = material_IridescenceInfo.y;
+
+            #ifdef MATERIAL_HAS_IRIDESCENCE_THICKNESS_TEXTURE
+               float iridescenceThicknessWeight = texture2D( material_IridescenceThicknessTexture, v_uv).g;
+               material.iridescenceThickness = mix(material_IridescenceInfo.z, material_IridescenceInfo.w, iridescenceThicknessWeight);
+            #else
+               material.iridescenceThickness = material_IridescenceInfo.w;
+            #endif
+
+            #ifdef MATERIAL_HAS_IRIDESCENCE_TEXTURE
+               material.iridescenceFactor *= texture2D( material_IridescenceTexture, v_uv).r;
+            #endif
+             
+            #ifdef MATERIAL_ENABLE_IRIDESCENCE
+                float topIOR = 1.0;
+                material.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, geometry.dotNV, material.iridescenceIOR, material.specularColor, material.iridescenceThickness);   
+            #endif
+        #endif
+
 }
 
 
