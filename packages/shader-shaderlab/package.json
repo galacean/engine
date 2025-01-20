@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-shader-shaderlab",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"

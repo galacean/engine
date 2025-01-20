@@ -1,7 +1,7 @@
 {
   "name": "@galacean/engine-e2e",
   "private": true,
-  "version": "1.4.1",
+  "version": "1.4.2",
   "license": "MIT",
   "scripts": {
     "case": "vite serve .dev --config .dev/vite.config.js",
