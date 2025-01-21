@@ -6,12 +6,15 @@ import { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
 import { AnimationCurve } from "./animationCurve/AnimationCurve";
 import { AnimationEvent } from "./AnimationEvent";
 import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
+import { AnimationPropertyReferenceManager } from "./internal/AnimationPropertyReferenceManager";
 import { KeyframeValueType } from "./Keyframe";
 
 /**
  * Stores keyframe based animations.
  */
 export class AnimationClip extends EngineObject {
+  private static _tempReferenceManager: AnimationPropertyReferenceManager;
+
   /** @internal */
   _curveBindings: AnimationClipCurveBinding[] = [];
 
@@ -193,7 +196,20 @@ export class AnimationClip extends EngineObject {
     }
 
     this._length = Math.max(this._length, curveBinding.curve.length);
-    this._curveBindings.push(curveBinding);
+
+    const curveBindings = this._curveBindings;
+    const count = curveBindings.length;
+    const propertyPathLength = curveBinding.property.split(".").length;
+    curveBinding._pathLength = propertyPathLength;
+
+    const maxPropertyPathLength = count ? curveBindings[count - 1]._pathLength : 0;
+    if (propertyPathLength > maxPropertyPathLength) {
+      curveBindings.push(curveBinding);
+    } else {
+      let index = count;
+      while (--index >= 0 && propertyPathLength < curveBindings[index]._pathLength);
+      curveBindings.splice(index + 1, 0, curveBinding);
+    }
   }
 
   /**
@@ -211,6 +227,12 @@ export class AnimationClip extends EngineObject {
    * @param time - The time to sample an animation
    */
   _sampleAnimation(entity: Entity, time: number): void {
+    if (!AnimationClip._tempReferenceManager) {
+      AnimationClip._tempReferenceManager = new AnimationPropertyReferenceManager();
+    }
+
+    AnimationClip._tempReferenceManager.clear();
+
     const { _curveBindings: curveBindings } = this;
     for (let i = curveBindings.length - 1; i >= 0; i--) {
       const curve = curveBindings[i];
@@ -223,7 +245,7 @@ export class AnimationClip extends EngineObject {
         if (!component) {
           continue;
         }
-        const curveOwner = curve._getTempCurveOwner(targetEntity, component);
+        const curveOwner = curve._getTempCurveOwner(AnimationClip._tempReferenceManager, targetEntity, component);
         if (curveOwner && curve.curve.keys.length) {
           const value = curveOwner.evaluateValue(curve.curve, time, false);
           curveOwner.applyValue(value, 1, false);

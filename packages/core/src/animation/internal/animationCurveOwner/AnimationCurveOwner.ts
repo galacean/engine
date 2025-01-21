@@ -3,6 +3,7 @@ import { Entity } from "../../../Entity";
 import { AnimationCurve } from "../../animationCurve/AnimationCurve";
 import { IAnimationCurveCalculator } from "../../animationCurve/interfaces/IAnimationCurveCalculator";
 import { KeyframeValueType } from "../../Keyframe";
+import { AnimationPropertyReferenceManager } from "../AnimationPropertyReferenceManager";
 import { IAnimationCurveOwnerAssembler } from "./assembler/IAnimationCurveOwnerAssembler";
 import { UniversalAnimationCurveOwnerAssembler } from "./assembler/UniversalAnimationCurveOwnerAssembler";
 
@@ -34,18 +35,20 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   readonly property: string;
   readonly getProperty?: string;
   readonly component: Component;
+  readonly referenceManager: AnimationPropertyReferenceManager;
 
   defaultValue: V;
   fixedPoseValue: V;
   baseEvaluateData: IEvaluateData<V> = { curKeyframeIndex: 0, value: null };
   crossEvaluateData: IEvaluateData<V> = { curKeyframeIndex: 0, value: null };
-  referenceTargetValue: V;
   cureType: IAnimationCurveCalculator<V>;
   updateMark: number = 0;
 
-  private _assembler: IAnimationCurveOwnerAssembler<V>;
+  /** @internal */
+  _assembler: IAnimationCurveOwnerAssembler<V>;
 
   constructor(
+    referenceManager: AnimationPropertyReferenceManager,
     target: Entity,
     type: new (entity: Entity) => Component,
     component: Component,
@@ -53,6 +56,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     getProperty: string,
     cureType: IAnimationCurveCalculator<V>
   ) {
+    this.referenceManager = referenceManager;
     this.target = target;
     this.property = property;
     this.getProperty = getProperty;
@@ -62,10 +66,6 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     const assemblerType = AnimationCurveOwner.getAssemblerType(type, property);
     this._assembler = <IAnimationCurveOwnerAssembler<V>>new assemblerType();
     this._assembler.initialize(this);
-
-    if (cureType._isCopyMode) {
-      this.referenceTargetValue = this._assembler.getTargetValue();
-    }
   }
 
   evaluateValue(curve: AnimationCurve<V>, time: number, additive: boolean): KeyframeValueType {
@@ -147,7 +147,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
 
   saveDefaultValue(): void {
     if (this.cureType._isCopyMode) {
-      this.cureType._setValue(this.referenceTargetValue, this.defaultValue);
+      this.cureType._setValue(this._assembler.getTargetValue(), this.defaultValue);
     } else {
       this.defaultValue = this._assembler.getTargetValue();
     }
@@ -155,7 +155,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
 
   saveFixedPoseValue(): void {
     if (this.cureType._isCopyMode) {
-      this.cureType._setValue(this.referenceTargetValue, this.fixedPoseValue);
+      this.cureType._setValue(this._assembler.getTargetValue(), this.fixedPoseValue);
     } else {
       this.fixedPoseValue = this._assembler.getTargetValue();
     }
@@ -163,12 +163,13 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
 
   applyValue(value: V, weight: number, additive: boolean): void {
     const cureType = this.cureType;
+    const referenceTargetValue = cureType._isCopyMode ? this._assembler.getTargetValue() : null;
 
     if (additive) {
       const assembler = this._assembler;
 
       if (cureType._isCopyMode) {
-        cureType._additiveValue(value, weight, this.referenceTargetValue);
+        cureType._additiveValue(value, weight, referenceTargetValue);
       } else {
         const originValue = assembler.getTargetValue();
         const additiveValue = cureType._additiveValue(value, weight, originValue);
@@ -177,14 +178,13 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     } else {
       if (weight === 1.0) {
         if (cureType._isCopyMode) {
-          cureType._setValue(value, this.referenceTargetValue);
+          cureType._setValue(value, referenceTargetValue);
         } else {
           this._assembler.setTargetValue(value);
         }
       } else {
         if (cureType._isCopyMode) {
-          const targetValue = this.referenceTargetValue;
-          cureType._lerpValue(targetValue, value, weight, targetValue);
+          cureType._lerpValue(referenceTargetValue, value, weight, referenceTargetValue);
         } else {
           const originValue = this._assembler.getTargetValue();
           const lerpValue = cureType._lerpValue(originValue, value, weight);
