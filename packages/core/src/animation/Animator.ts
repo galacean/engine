@@ -1236,11 +1236,7 @@ export class Animator extends Component {
       if (transitionCollection.isSoloMode && !transition.solo) continue;
 
       if (this._checkConditions(transition)) {
-        if (this._applyTransition(layerData, transition, aniUpdate)) {
-          return transition;
-        } else {
-          return null;
-        }
+        return this._applyTransition(layerData, transition, aniUpdate);
       }
     }
   }
@@ -1269,13 +1265,11 @@ export class Animator extends Component {
     transition: AnimatorStateTransition,
     aniUpdate: boolean
   ): AnimatorStateTransition {
-    // Need prepare first, it should crossFade when to exit
-    const success = this._prepareCrossFadeByTransition(transition, layerData.layerIndex);
     if (transition.isExit) {
       this._checkAnyAndEntryState(layerData, 0, aniUpdate);
-      return transition;
+      return null;
     }
-    return success ? transition : null;
+    return this._prepareCrossFadeByTransition(transition, layerData.layerIndex) ? transition : null;
   }
 
   private _checkConditions(transition: AnimatorStateTransition): boolean {

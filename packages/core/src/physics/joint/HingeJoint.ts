@@ -25,7 +25,7 @@ export class HingeJoint extends Joint {
   private _velocity = 0;
 
   /**
-   * The anchor rotation.
+   * The Direction of the axis around which the hingeJoint.
    */
   get axis(): Vector3 {
     return this._axis;
@@ -35,7 +35,6 @@ export class HingeJoint extends Joint {
     const axis = this._axis;
     if (value !== axis) {
       axis.copyFrom(value);
-      (<IHingeJoint>this._nativeJoint)?.setAxis(axis);
     }
   }
 
@@ -143,6 +142,9 @@ export class HingeJoint extends Joint {
     super(entity);
     this._onMotorChanged = this._onMotorChanged.bind(this);
     this._onLimitsChanged = this._onLimitsChanged.bind(this);
+    this._onAxisChanged = this._onAxisChanged.bind(this);
+    //@ts-ignore
+    this._axis._onValueChanged = this._onAxisChanged;
   }
 
   /**
@@ -196,5 +198,15 @@ export class HingeJoint extends Joint {
         (<IHingeJoint>this._nativeJoint).setHardLimit(limits.min, limits.max, limits.contactDistance);
       }
     }
+  }
+
+  @ignoreClone
+  private _onAxisChanged(): void {
+    //@ts-ignore
+    this._axis._onValueChanged = null;
+    this._axis.normalize();
+    (<IHingeJoint>this._nativeJoint)?.setAxis(this._axis);
+    //@ts-ignore
+    this._axis._onValueChanged = this._onAxisChanged;
   }
 }
