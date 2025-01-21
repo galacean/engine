@@ -1,6 +1,6 @@
 import { Entity, Script } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { vi, describe, beforeEach, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 class TestComponent extends Script {}
 
@@ -232,6 +232,11 @@ describe("Entity", async () => {
       parent.addChild(child);
       expect(child.parent).eq(parent);
       expect(child.scene).eq(scene);
+
+      const childAno = new Entity(engine, "childAno");
+      childAno.parent = parent;
+      parent.addChild(0, childAno);
+      expect(childAno.siblingIndex).eq(0);
     });
 
     it("removeChild", () => {
