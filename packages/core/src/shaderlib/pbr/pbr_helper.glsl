@@ -1,4 +1,10 @@
 #include <normal_get>
+#include <brdf>
+#include <btdf>
+
+// direct + indirect
+#include <direct_irradiance_frag_define>
+#include <ibl_frag_define>
 
 
 float computeSpecularOcclusion(float ambientOcclusion, float roughness, float dotNV ) {
@@ -85,6 +91,7 @@ void initMaterial(out Material material, inout Geometry geometry){
         float f0 = pow2( (material_IOR - 1.0) / (material_IOR + 1.0) );
 
         material.f0 = f0;
+        material.IOR = material_IOR;
 
         #ifdef MATERIAL_HAS_BASETEXTURE
             vec4 baseTextureColor = texture2D(material_BaseTexture, v_uv);
@@ -156,9 +163,89 @@ void initMaterial(out Material material, inout Geometry geometry){
             geometry.anisotropicN = getAnisotropicBentNormal(geometry, geometry.normal, material.roughness);
         #endif
 
+        material.envSpecularDFG = envBRDFApprox(material.specularColor, material.roughness, geometry.dotNV );
+
+        // AO
+        float diffuseAO = 1.0;
+        float specularAO = 1.0;
+
+        #ifdef MATERIAL_HAS_OCCLUSION_TEXTURE
+            vec2 aoUV = v_uv;
+            #ifdef RENDERER_HAS_UV1
+                if(material_OcclusionTextureCoord == 1.0){
+                    aoUV = v_uv1;
+                }
+            #endif
+            diffuseAO = ((texture2D(material_OcclusionTexture, aoUV)).r - 1.0) * material_OcclusionIntensity + 1.0;
+        #endif
+
+        #if defined(MATERIAL_HAS_OCCLUSION_TEXTURE) && defined(SCENE_USE_SPECULAR_ENV) 
+            specularAO = saturate( pow( geometry.dotNV + diffuseAO, exp2( - 16.0 * material.roughness - 1.0 ) ) - 1.0 + diffuseAO );
+        #endif
+
+        material.diffuseAO = diffuseAO;
+        material.specularAO = specularAO;
+
+        // Sheen
+        #ifdef MATERIAL_ENABLE_SHEEN
+            vec3 sheenColor = material_SheenColor;
+            #ifdef MATERIAL_HAS_SHEEN_TEXTURE
+                vec4 sheenTextureColor = texture2D(material_SheenTexture, v_uv);
+                #ifndef ENGINE_IS_COLORSPACE_GAMMA
+                    sheenTextureColor = gammaToLinear(sheenTextureColor);
+                #endif
+                sheenColor *= sheenTextureColor.rgb;
+            #endif
+            material.sheenColor = sheenColor;
+
+            material.sheenRoughness = material_SheenRoughness;
+            #ifdef MATERIAL_HAS_SHEEN_ROUGHNESS_TEXTURE
+                material.sheenRoughness *= texture2D(material_SheenRoughnessTexture, v_uv).a;
+            #endif
+
+            material.sheenRoughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(material.sheenRoughness + getAARoughnessFactor(geometry.normal), 1.0));
+            material.approxIBLSheenDG = prefilteredSheenDFG(geometry.dotNV, material.sheenRoughness);
+            material.sheenScaling = 1.0 - material.approxIBLSheenDG * max(max(material.sheenColor.r, material.sheenColor.g), material.sheenColor.b);
+        #endif
+
+        // Iridescence
+        #ifdef MATERIAL_ENABLE_IRIDESCENCE
+            material.iridescenceFactor = material_IridescenceInfo.x;
+            material.iridescenceIOR = material_IridescenceInfo.y;
+
+            #ifdef MATERIAL_HAS_IRIDESCENCE_THICKNESS_TEXTURE
+               float iridescenceThicknessWeight = texture2D( material_IridescenceThicknessTexture, v_uv).g;
+               material.iridescenceThickness = mix(material_IridescenceInfo.z, material_IridescenceInfo.w, iridescenceThicknessWeight);
+            #else
+               material.iridescenceThickness = material_IridescenceInfo.w;
+            #endif
+
+            #ifdef MATERIAL_HAS_IRIDESCENCE_TEXTURE
+               material.iridescenceFactor *= texture2D( material_IridescenceTexture, v_uv).r;
+            #endif
+             
+            #ifdef MATERIAL_ENABLE_IRIDESCENCE
+                float topIOR = 1.0;
+                material.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, geometry.dotNV, material.iridescenceIOR, material.specularColor, material.iridescenceThickness);   
+            #endif
+        #endif
+
+        // Transmission
+        #ifdef MATERIAL_ENABLE_TRANSMISSION 
+            material.transmission = material_Transmission;
+            #ifdef MATERIAL_HAS_TRANSMISSION_TEXTURE
+                material.transmission *= texture2D(material_TransmissionTexture, v_uv).r;
+            #endif
+
+            #ifdef MATERIAL_HAS_THICKNESS
+                material.absorptionCoefficient = -log(material_AttenuationColor + HALF_EPS) / max(HALF_EPS, material_AttenuationDistance);
+                material.thickness = max(material_Thickness, 0.0001);
+                #ifdef MATERIAL_HAS_THICKNESS_TEXTURE
+                    material.thickness *= texture2D( material_ThicknessTexture, v_uv).g;
+                #endif
+            #endif    
+        #endif
+
 }
 
-// direct + indirect
-#include <brdf>
-#include <direct_irradiance_frag_define>
-#include <ibl_frag_define>
+

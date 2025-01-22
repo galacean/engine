@@ -63,6 +63,48 @@ uniform float material_OcclusionTextureCoord;
     uniform sampler2D material_OcclusionTexture;
 #endif
 
+
+#ifdef MATERIAL_ENABLE_SHEEN
+    uniform float material_SheenRoughness;
+    uniform vec3 material_SheenColor;
+    #ifdef MATERIAL_HAS_SHEEN_TEXTURE
+       uniform sampler2D material_SheenTexture;
+    #endif
+
+    #ifdef MATERIAL_HAS_SHEEN_ROUGHNESS_TEXTURE
+       uniform sampler2D material_SheenRoughnessTexture;
+    #endif
+#endif
+
+
+#ifdef MATERIAL_ENABLE_IRIDESCENCE
+    uniform vec4 material_IridescenceInfo;
+    #ifdef MATERIAL_HAS_IRIDESCENCE_THICKNESS_TEXTURE
+       uniform sampler2D material_IridescenceThicknessTexture;
+    #endif
+
+    #ifdef MATERIAL_HAS_IRIDESCENCE_TEXTURE
+       uniform sampler2D material_IridescenceTexture;
+    #endif
+#endif
+
+#ifdef MATERIAL_ENABLE_TRANSMISSION
+    uniform float material_Transmission;
+    #ifdef MATERIAL_HAS_TRANSMISSION_TEXTURE
+        uniform sampler2D material_TransmissionTexture;
+    #endif
+
+    #ifdef MATERIAL_HAS_THICKNESS
+        uniform vec3 material_AttenuationColor;
+        uniform float material_AttenuationDistance;
+        uniform float material_Thickness;
+
+        #ifdef MATERIAL_HAS_THICKNESS_TEXTURE
+            uniform sampler2D material_ThicknessTexture;
+        #endif
+    #endif
+#endif
+
 // Runtime
 struct ReflectedLight {
     vec3 directDiffuse;
@@ -96,9 +138,33 @@ struct Material {
     vec3  specularColor;
     float opacity;
     float f0;
+    float diffuseAO;
+    float specularAO;
+    vec3  envSpecularDFG;
+    float IOR;
+
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         float clearCoat;
         float clearCoatRoughness;
     #endif
 
+    #ifdef MATERIAL_ENABLE_IRIDESCENCE
+        float iridescenceIOR;
+        float iridescenceFactor;
+        float iridescenceThickness;
+        vec3 iridescenceSpecularColor;
+    #endif
+
+    #ifdef MATERIAL_ENABLE_SHEEN
+        float sheenRoughness;
+        vec3  sheenColor;
+        float sheenScaling;
+        float approxIBLSheenDG;
+    #endif
+
+    #ifdef MATERIAL_ENABLE_TRANSMISSION 
+        vec3 absorptionCoefficient;
+        float transmission;
+        float thickness;
+    #endif
 };
