@@ -34,7 +34,6 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
     const xAxis = PhysXHingeJoint._xAxis;
     const axisRotationQuaternion = this._axisRotationQuaternion;
     xAxis.set(1, 0, 0);
-    value.normalize();
     const angle = Math.acos(Vector3.dot(xAxis, value));
     Vector3.cross(xAxis, value, xAxis);
     Quaternion.rotationAxisAngle(xAxis, angle, axisRotationQuaternion);

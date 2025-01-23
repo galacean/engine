@@ -4,6 +4,7 @@ import {
   Keys,
   Pointer,
   PointerButton,
+  PointerEventData,
   PointerPhase,
   Script,
   StaticCollider
@@ -88,27 +89,27 @@ describe("InputManager", async () => {
     collider.addShape(boxShape);
 
     class TestScript extends Script {
-      onPointerEnter(pointer: Pointer): void {
+      onPointerEnter(eventData: PointerEventData): void {
         console.log("onPointerEnter");
       }
 
-      onPointerExit(pointer: Pointer): void {
+      onPointerExit(eventData: PointerEventData): void {
         console.log("onPointerExit");
       }
 
-      onPointerDown(pointer: Pointer): void {
+      onPointerDown(eventData: PointerEventData): void {
         console.log("onPointerDown");
       }
 
-      onPointerClick(pointer: Pointer): void {
+      onPointerClick(eventData: PointerEventData): void {
         console.log("onPointerClick");
       }
 
-      onPointerDrag(pointer: Pointer): void {
+      onPointerDrag(eventData: PointerEventData): void {
         console.log("onPointerDrag");
       }
 
-      onPointerUp(pointer: Pointer): void {
+      onPointerUp(eventData: PointerEventData): void {
         console.log("onPointerUp");
       }
     }
@@ -130,6 +131,9 @@ describe("InputManager", async () => {
     expect(script.onPointerClick).toHaveBeenCalledTimes(0);
     expect(script.onPointerDrag).toHaveBeenCalledTimes(0);
     expect(script.onPointerUp).toHaveBeenCalledTimes(0);
+    expect(inputManager.isPointerUp()).to.eq(false);
+    expect(inputManager.isPointerDown()).to.eq(true);
+    expect(inputManager.isPointerHeldDown()).to.eq(true);
 
     target.dispatchEvent(generatePointerEvent("pointermove", 2, left + 2, top + 2));
     target.dispatchEvent(generatePointerEvent("pointerup", 2, left + 2, top + 2, 0, 0));
@@ -141,6 +145,9 @@ describe("InputManager", async () => {
     expect(script.onPointerClick).toHaveBeenCalledTimes(1);
     expect(script.onPointerDrag).toHaveBeenCalledTimes(1);
     expect(script.onPointerUp).toHaveBeenCalledTimes(1);
+    expect(inputManager.isPointerUp()).to.eq(true);
+    expect(inputManager.isPointerDown()).to.eq(false);
+    expect(inputManager.isPointerHeldDown()).to.eq(false);
 
     target.dispatchEvent(generatePointerEvent("pointerdown", 3, left + 200, top + 200));
     target.dispatchEvent(generatePointerEvent("pointerup", 3, left + 200, top + 200, 0, 0));
@@ -152,6 +159,9 @@ describe("InputManager", async () => {
     expect(script.onPointerClick).toHaveBeenCalledTimes(1);
     expect(script.onPointerDrag).toHaveBeenCalledTimes(1);
     expect(script.onPointerUp).toHaveBeenCalledTimes(1);
+    expect(inputManager.isPointerUp()).to.eq(true);
+    expect(inputManager.isPointerDown()).to.eq(true);
+    expect(inputManager.isPointerHeldDown()).to.eq(false);
 
     target.dispatchEvent(generatePointerEvent("pointerdown", 4, 0, 0));
     engine.update();

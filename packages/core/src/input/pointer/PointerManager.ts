@@ -232,6 +232,8 @@ export class PointerManager implements IInput {
       const currY = (latestEvent.clientY - top) * heightPixelRatio;
       pointer.deltaPosition.set(currX - position.x, currY - position.y);
       position.set(currX, currY);
+      pointer.button = _pointerDec2BinMap[latestEvent.button] || PointerButton.None;
+      pointer.pressedButtons = latestEvent.buttons;
       for (let i = 0; i < length; i++) {
         const event = events[i];
         switch (event.type) {

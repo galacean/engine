@@ -2,6 +2,8 @@
 #define RECIPROCAL_PI 0.31830988618
 #define EPSILON 1e-6
 #define LOG2 1.442695
+#define HALF_MIN 6.103515625e-5  // 2^-14, the same value for 10, 11 and 16-bit: https://www.khronos.org/opengl/wiki/Small_Float_Formats
+#define HALF_EPS 4.8828125e-4    // 2^-11, machine epsilon: 1 + EPS = 1 (half of the ULP for 1.0f)
 
 #define saturate( a ) clamp( a, 0.0, 1.0 )
 
@@ -93,3 +95,9 @@ float remapDepthBufferLinear01(float z){
 
 	#define INVERSE_MAT(mat) inverseMat(mat)
 #endif
+
+
+vec3 safeNormalize(vec3 inVec) {
+    float dp3 = max(float(HALF_MIN), dot(inVec, inVec));
+    return inVec * inversesqrt(dp3);
+}

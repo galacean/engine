@@ -95,6 +95,11 @@ describe("Joint", function () {
     joint.automaticConnectedAnchor = true;
     joint.connectedAnchor = new Vector3(1, 1, 1);
     expect(consoleWarnSpy).toBeCalledTimes(1);
+    joint.connectedAnchor.y = 3;
+    expect(consoleWarnSpy).toBeCalledTimes(2);
+    joint.automaticConnectedAnchor = false;
+    joint.automaticConnectedAnchor = true;
+    expect(joint.connectedAnchor).deep.include({ x: 4, y: 4, z: 4 });
 
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1 / 60);

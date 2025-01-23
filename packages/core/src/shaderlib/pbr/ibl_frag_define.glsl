@@ -84,3 +84,14 @@ vec3 getLightProbeRadiance(Geometry geometry, vec3 normal, float roughness, int 
     #endif
 
 }
+
+
+void evaluateSheenIBL(Geometry geometry, Material material, float radianceAttenuation, inout vec3 diffuseColor, inout vec3 specularColor){
+    #ifdef MATERIAL_ENABLE_SHEEN
+        diffuseColor *= material.sheenScaling;
+        specularColor *= material.sheenScaling;
+
+        vec3 reflectance = material.specularAO * radianceAttenuation * material.approxIBLSheenDG * material.sheenColor;
+        specularColor += reflectance;
+    #endif
+}
