@@ -1,6 +1,7 @@
 {
   "intro": "总览",
   "shader": "Shader",
+  "editor": "Editor",
   "subShader": "SubShader",
   "pass": "Pass",
   "macro": "宏"
