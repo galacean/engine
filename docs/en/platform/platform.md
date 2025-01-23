@@ -5,7 +5,7 @@ type: Platform
 label: Platform
 ---
 
-In order to meet the demands of developers for launching on various platforms and truly achieve development in one place and running everywhere, Galacean 1.4 version began to support multi-platform export. Projects created by developers through the editor can be quickly exported to the projects required by different platforms.
+In order to meet the demands of developers for launching on various platforms and truly achieve development in one place and running everywhere, 1.4 version began to support multi-platform export. Projects created by developers through the editor can be quickly exported to the projects required by different platforms.
 
 ## Prepare in Advance
 After the project is developed in the editor, you can export the project for each platform and publish it. Before exporting, let's first understand the export panel and export settings.
