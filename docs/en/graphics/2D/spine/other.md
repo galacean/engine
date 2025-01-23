@@ -6,27 +6,32 @@ group: Spine
 label: Graphics/2D/Spine/other
 ---
 
-### Spine Version
-@galacen/engine-spine has supported spine 4.x versions since version 1.2.<br>
-From version 1.2 onwards, the major version and minor version of the @galacen/engine-spine package correspond exactly to the spine version, as follows:<br>
-- @galacean/engine-spine <= 1.2 corresponds to spine version 3.8
-- @galacean/engine-spine  4.0 corresponds to spine version 4.0
-- @galacean/engine-spine  4.1 corresponds to spine version 4.1
-- @galacean/engine-spine  4.2 corresponds to spine version 4.2
-- .....
+### Upgrades and Changes in 1.4
+After upgrading to Editor version 1.4, besides updating the engine version in the editor's [Project Settings](/docs/interface/menu/#project-settings), please note the following changes to the 1.4 Spine API:
 
-Currently, the 4.2 beta version has been released, and versions 4.1 and 4.0 will be released gradually.
+1. We no longer recommend creating Spine animations using the method: adding the `SpineAnimationRenderer` component via `addComponent` + setting the resource using `set SpineResource`.</br>
+In version 1.4, we introduced an instantiation method `instantiate` for SpineResource. The `instantiate` method returns a Spine animation entity that uses the resource, making the creation process much faster and more convenient.
 
-### Version Upgrade
-After upgrading to editor version 1.3, besides upgrading the engine version in the editor's [project settings](/en/docs/interface/menu/#项目设置), since the exported JSON or binary Spine editor version needs to [stay consistent](https://zh.esotericsoftware.com/spine-versioning#%E5%90%8C%E6%AD%A5%E7%89%88%E6%9C%AC) with the runtime version, after upgrading the editor to 1.3, `you also need to re-export the Spine assets of version 4.2 and upload them to the editor, completing the asset update by file overwrite`.
+2. `defaultState` has been renamed to `defaultConfig`. This parameter represents the default configuration of the Spine animation. The renamed parameter makes its purpose clearer.
 
-### Performance Suggestions
-Here are some methods to optimize spine animation performance:
+3. The `scale` configuration for default states has been removed. Previously, the `scale` parameter was used to handle the pixel ratio of Spine animations to keep their size consistent with other objects in the engine. In version 1.4, Spine animations no longer require setting a default scale to correct their size. We recommend adjusting the Spine animation scale by modifying the entity's `scale` parameter.
 
-1. Export the skeleton in binary file (.skel) format, as binary files are smaller and load faster.
-2. It is recommended to pack attachments into as few atlas pages as possible, and group attachments into atlas pages according to the drawing order to prevent unnecessary material switching. Please refer to: [Spine Texture Packer: Folder Structure](https://zh.esotericsoftware.com/spine-texture-packer#%E6%96%87%E4%BB%B6%E5%A4%B9%E7%BB%93%E6%9E%84) to learn how to arrange atlas regions in your Spine atlas.
-3. Use the clipping feature sparingly. Spine's clipping implementation is done through dynamic triangle clipping, which is very performance-intensive.
-4. Minimize the use of atlas page textures. That is, try to control the number of textures exported to one.
+4. A new `premultipliedAlpha` parameter has been added in version 1.4 for enabling premultiplied alpha rendering. When exporting animations from the Spine Editor, if premultiplication is checked during texture packing, enable the `premultipliedAlpha` option.
+
+
+### Performance Recommendations
+Here are some tips to optimize the performance of Spine animations:
+
+1. Export skeletons in binary file format (.skel), which results in smaller file sizes and faster loading.
+
+2. Minimize the number of atlas pages by packing attachments into as few atlas pages as possible and grouping attachments in the atlas according to the draw order to avoid unnecessary material switches. Refer to [Spine Texture Packer: Folder Structure](https://zh.esotericsoftware.com/spine-texture-packer#%E6%96%87%E4%BB%B6%E5%A4%B9%E7%BB%93%E6%9E%84) for details on how to arrange atlas regions in your Spine atlas.
+
+3. Avoid excessive use of clipping. Spine implements clipping by dynamically cutting triangles, which is very resource-intensive.
+
+4. Minimize the use of atlas page textures. When exporting, aim to keep the number of texture pages as low as possible.
+
+5. Try to use a single atlas texture for multiple skeletons. For example, add multiple skeletons in the same Spine project and select a single atlas during export. This way, multiple skeletons will share the same atlas texture.
+
 
 ### Questions
-For any questions about Spine, feel free to [create an issue](https://github.com/galacean/engine-spine/issues/new) on @galacean/engine-spine.
+If you have any questions about Spine, feel free to [create an issue](https://github.com/galacean/engine-spine/issues/new) in the @galacean/engine-spine repository.

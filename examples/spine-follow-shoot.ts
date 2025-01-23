@@ -3,7 +3,7 @@
  * @category 2D
  * @thumbnail https://mdn.alipayobjects.com/merchant_appfe/afts/img/A*IALeTYOXMXwAAAAAAAAAAAAADiR2AQ/original
  */
-import { Camera, Entity, Logger, Script, Vector3, WebGLEngine } from "@galacean/engine";
+import { Camera, Logger, Script, Vector3, WebGLEngine } from "@galacean/engine";
 import { Bone, SpineAnimationRenderer } from "@galacean/engine-spine";
 
 Logger.enable();
@@ -18,21 +18,17 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   // camera
   const cameraEntity = rootEntity.createChild("camera_node");
   const camera = cameraEntity.addComponent(Camera);
-  cameraEntity.transform.position = new Vector3(0, 0, 100);
-  camera.nearClipPlane = 0.001;
-  camera.farClipPlane = 20000;
+  cameraEntity.transform.position = new Vector3(0, 0, 20);
 
   engine.resourceManager
     .load({
       url: "https://mdn.alipayobjects.com/huamei_kz4wfo/uri/file/as/2/kz4wfo/4/mp/yKbdfgijyLGzQDyQ/spineboy/spineboy.json",
-      type: "spine",
+      type: "Spine",
     })
     .then((spineResource: any) => {
-      const spineEntity = new Entity(engine);
-      spineEntity.transform.setPosition(0, -18, 0);
-      const spine = spineEntity.addComponent(SpineAnimationRenderer);
-      spine.resource = spineResource;
-      spine.defaultState.scale = 0.05;
+      const spineEntity = spineResource.instantiate();
+      spineEntity.transform.setPosition(0, -1.8, 0);
+      const spine = spineEntity.getComponent(SpineAnimationRenderer);
       rootEntity.addChild(spineEntity);
       const { state, skeleton } = spine;
       state.setAnimation(0, 'idle', true);
@@ -49,16 +45,16 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
             const { position } = pointers[0];
             const worldPos = this._vec3;
             camera.screenToWorldPoint(
-              new Vector3(position.x, position.y, 2000),
+              new Vector3(position.x, position.y, 20),
               worldPos,
             );
-            const targetBone = skeleton.findBone('crosshair') as Bone;targetBone.y = worldPos.y + 380;
-            targetBone.y = worldPos.y + 380;
+            const targetBone = skeleton.findBone('crosshair') as Bone;
+            targetBone.y = worldPos.y + 1.9;
             if (worldPos.x < 0) {
-              skeleton.scaleX = -0.05;
+              skeleton.scaleX = -1;
               targetBone.x = -worldPos.x;
             } else {
-              skeleton.scaleX = 0.05;
+              skeleton.scaleX = 1;
               targetBone.x = worldPos.x;
             }
           }
@@ -71,5 +67,3 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   engine.run();
 });
-
-

@@ -6,7 +6,7 @@ group: Spine
 label: Graphics/2D/Spine/runtime
 ---
 
-本章节为大家介绍如何在代码中使用 Galacean Spine 运行时。
+本章节为大家介绍如何在代码中使用 Galacean Spine
 
 
 ## 安装
@@ -18,13 +18,12 @@ npm install @galacean/engine-spine --save
 ```typescript
 import { SpineAnimationRenderer } from "@galacean/engine-spine";
 ```
-安装并导入 `@galacean/engine-spine` 后，编辑器的 resourceManager 才能识别并加载 Spine 动画资产。
-Galacean spine 加载器既能加载编辑器上传的资产，也能过加载自定义上传的资产。
+安装并导入 `@galacean/engine-spine` 后，编辑器的 `ResourceManager` 才能识别并加载 Spine 动画资产。
+
 
 ## 加载资产并添加至场景
 
-### 加载 Galacean 编辑器中的上传的资产
-[导出编辑器项目后](/docs/assets/build/)，`已添加至场景中的 Spine 动画，会在加载场景文件时，自动完成加载`：
+### 加载编辑器中的上传的资产
 
 ```typescript
 // 加载场景文件时，已添加至场景中的 Spine 动画会自行完成加载
@@ -35,64 +34,47 @@ await engine.resourceManager.load({
 ```
 
 <b>若未添加至场景中，则需要在代码中手动加载</b>，步骤如下：
-1. 首先下载编辑器项目
-
-注意：`Uploadd Assets to CDN` 选项，如果勾选，则是通过 cdn 链接来加载动画；如果未勾选，则是通过本地文件相对路径加载动画。
-
-<img src="https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*0rZJQJRNamIAAAAAAAAAAAAADsp6AQ/original" width="260" alt="Project export panel">
-
-2. 找到 spine 资产文件
-
-下载项目到本地后，打开 project.json 文件，找到 url 属性并打开。
-如果上一步勾选了`Uploadd Assets to CDN`选项，那么可以在 json 文件中找到 spine 资产链接：
-
-<img src="https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*-eG9RafXm64AAAAAAAAAAAAADsp6AQ/original" width="630" alt="Find spine assset">
-
-如果上一步未勾选`Uploadd Assets to CDN`选项，可以在本地 `public 文件夹`中找到 spine 资产。加载时，使用<b>相对路径</b>作为链接即可。
-
-<img src="https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*KT9yTZWQ2C8AAAAAAAAAAAAADsp6AQ/original" width="300" alt="Find spine assset">
+1. 拷贝 SkeletonDataAsset 资产链接
+右键点击 SkeletonDataAsset 资产，点选 `Copy relative path` 拷贝资产路径
+<img src="https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*muomS5hICRYAAAAAAAAAAAAADsp6AQ/original" />
 
 
-2. 使用 resourceManager 加载
+2. 使用 ResourceManager 加载
 
-得到 spine 的骨骼文件资产链接后，需要使用 resourceManager 进行加载。手动加载时，添加 Spine 至场景中，需要创建一个新的实体并添加 SpineAnimationRenderer 组件，代码如下：
+得到资产路径后，需要使用 resourceManager 进行加载，代码如下：
 ```typescript
 import { SpineAnimationRenderer } from '@galacean/engine-spine';
 
 // 加载并得到 spine 资源
 const spineResource = await engine.resourceManager.load(
   {
-    url: 'https://galacean.raptor.json', // 或者是文件的相对路径 url: '../public/raptor.json"'
-    type: 'spine', // 必须指定加载器类型为 spine
+    url: '/raptor.json', // 拷贝得到的相对路径
+    type: 'Spine', // 指定加载器类型为 Spine
   },
 );
-// 创建一个新的实体
-const spineEntity = new Entity(engine);
-// 添加 SpineAnimationRenderer 组件
-const spine = spineEntity.addComponent(SpineAnimationRenderer);
-// 设置动画资源
-spine.resource = spineResource;
+// 实例化一个 Spine 动画实体
+const spineEntity = spineResource.instantiate();
 // 添加至场景
 root.addChild(spineEntity);
 ```
 ### 加载自定义上传的资产
-1. 加载资产
+#### 1. 加载资产
 
 如果你的 Spine 资产未通过 Galacean 编辑器进行上传，而是通过三方平台上传至 CDN，同样能够通过 Galacean Spine 运行时加载器进行加载。
 ```typescript
 const resource = await engine.resourceManager.load(
   {
     url: 'https://your.spineboy.json', // 自定义上传的资产
-    type: 'spine', // 必须指定加载器类型为 spine
+    type: 'pine', // 指定加载器类型为 Spine
   },
 );
 ```
 加载自定义上传的资产时：
-- 当传递参数为 url 时，`需要保证 atlas 和 texture 资源与骨骼文件在相同目录下`，即：<br>
+- 当传递参数为 url 时，<b>需要保证文件在相同目录下</b>，即：<br>
 https://your.spineboy.json <br>
 https://your.spineboy.atlas <br>
 https://your.spineboy.png <br>
-三个文件相同目录
+
 
 - 当传递参数为 urls (多链接)时，则无需满足相同目录的条件：
 ```typescript
@@ -102,108 +84,68 @@ const resource = await engine.resourceManager.load(
       'https://your.spineboy.json',
       'https://ahother-path1.spineboy.altas',
       'https://ahother-path2.spineboy.png',
-    ], // 自定义上传的资产
-    type: 'spine',// 必须指定加载器类型为 spine
+    ],
+    type: 'Spine',// 指定加载器类型为 Spine
   },
 );
 ```
-- 若不传递 texture 地址，那么加载器会从 atlas 文件中读取 texture 的图片名称，并从 atlas 文件的相对路径下查找 texture 资源。<br>
-- 若自定上传的资产没有文件后缀（比如 blob 协议的 URL），则可以通过给链接添加 URL query 参数，例如：<br>
-https://your.spineboyjson?ext=.json<br>
+
+- 若不传递 texture 地址，那么加载器会从 atlas 文件中读取 texture 的图片名称，并从 atlas 文件的目录下查找 texture 资源。<br>
+- 若自定上传的资产没有文件后缀，可以通过给链接添加 URL query 参数，例如：<br>
+https://your.spineboyjson?ext=.json,
 https://your.spineboyatlas?ext=.atlas <br>
-或者添加 fileExtensions 参数来指定资源后缀类型：
+
+- 如果 Spine 动画的 atlas 包含多张图片（如 a.png 和 b.png），则需要按照 atlas 文件中记录的图片顺序传入图片地址:
 ```typescript
 const resource = await engine.resourceManager.load(
   {
     urls: [
-      'https://your.spineboyjson',
-      'https://ahother-path1.spineboyatlas',
-      'https://ahother-path2.spineboypng',
-    ], // 自定义上传的资产
-    type: 'spine',
-    fileExtensions: [
-      'json', // 指定第一个文件为 json 后缀
-      'atlas', // 指定第二个文件为 atlas 后缀
-      'png', // // 指定第三个文件为 atlas 后缀
-    ]
+      'https://your.spineboy.json',
+      'https://your.spineboy.atlas',
+      'https://your.spineboy1.png', // 对应 a.png
+      'https://your.spineboy2.png' // 对应 b.png
+    ],
+    type: 'Spine',// 指定加载器类型为 Spine
   },
 );
 ```
-- 若 Spine 动画的 texure atlas 包含多张图片，则需要按照 atlas 文件中图片的顺序传入图片地址。
 
-2. 添加至场景
+#### 2. 添加至场景
 
-加载完毕后，需要手动创建实体，并添加 SpineAnimationRenderer 组件：
+加载完毕后， 实例化一个 Spine 动画实体并添加至场景：
 ```typescript
 import { SpineAnimationRenderer } from '@galacean/engine-spine';
 
 const spineResource = await engine.resourceManager.load(
   {
     url: 'https://your.spineboy.json', // 自定义上传的资产
-    type: 'spine',
+    type: 'Spine',
   },
 );
-// 创建实体
-const spineEntity = new Entity(engine);
-// 添加 SpineAnimationRenderer 组件
-const spine = spineEntity.addComponent(SpineAnimationRenderer);
-// 设置动画资源
-spine.resource = spineResource;
+// 实例化一个 Spine 动画实体
+const spineEntity = spineResource.instantiate();
 // 添加至场景
 root.addChild(spineEntity);
 ```
 
 
-## 使用运行时 API 
+## 更多运行时 API 
 
 在[前一个章节](/docs/graphics/2D/spine/editor)中，为大家介绍了编辑器中 SpineAnimationRenderer 组件的配置项。
 本小节会更加详细介绍在代码中如何使用 SpineAnimationRenderer 组件的各个 API。
 
 SpineAnimationRenderer 组件继承于 Renderer，除了暴露 Renderer 的通用方法外，还提供了以下属性：
 
-| 属性                                                                                         | 解释                   | 
-| :--------------------------------------------------------------------------------------------- | :--------------------- |
-| resource                             | Spine 动画资源。设置了资源后，SpineAnimationRenderer 组件会读取资源数据，并渲染出 Spine 动画 | 
-| setting   | 渲染设置。用于控制开启裁减和调整图层间隔         |
-| defaultState | 默认状态。与编辑器的配置项对应，用于设置默认状态下 Spine 动画的动画，皮肤，缩放         | 
-| state                 | 动画状态对象。用于进行更加复杂动画控制，如：队列播放，循环控制等         |
-| skeleton                 | 骨架对象。用于进行更加复杂的骨架操作，如：附件替换，换肤等        |
+| 属性            | 解释                                                                                               |
+| :------------- | :------------------------------------------------------------------------------------------------- |
+| defaultConfig  | 默认配置。与编辑器的配置项对应，用于设置默认状态下 Spine 的动画和皮肤                        |
+| state          | 动画状态对象。用于进行更加复杂的动画控制，例如：队列播放、循环控制等                                |
+| skeleton       | 骨架对象。用于进行更加复杂的骨架操作，例如：附件替换、换肤等                                      |
+| premultipliedAlpha | 预乘 Alpha 设置。用于控制渲染时是否启用预乘 Alpha模式进行渲染                           |
 
-下面是更详细的使用介绍：
 
-### 资源设置
-首先是资源的设置。SpineAnimationRenderer 组件需要设置资源后，才能完成 Spine动画的渲染。在上一个章节，「加载资产并添加至场景」中，已经为大家展示了设置资产的方式：
-```typescript
-import { SpineAnimationRenderer } from '@galacean/engine-spine';
-
-const spineResource = await engine.resourceManager.load(
-  {
-    url: 'https://your.spineboy.json',
-    type: 'spine',
-  },
-);
-const spineEntity = new Entity(engine);
-const spine = spineEntity.addComponent(SpineAnimationRenderer);
-spine.resource = spineResource; // 设置 Spine 资产
-root.addChild(spineEntity);
-```
-
-### 渲染设置
-在脚本中，你可以通过以下方式修改 Spine 的渲染设置，一般情况下，使用默认值即可。
-```typescript
-class YourAmazingScript {
-
-  onStart() {
-    const spine = this.entity.getComponent(SpineAnimationRenderer);
-    spine.setting.zSpacing = 0.01; // 设置图层间隔
-    spine.setting.useClipping = true; // 开启或关闭裁减，默认开启
-  }
-
-}
-``` 
-
-### 默认状态
-在脚本中，你可以通过以下方式修改 Spine 动画的默认状态:
+### 默认配置
+在脚本中，你可以通过 `defaultConfig`参数设置默认状态下 Spine 的动画和皮肤
 ```typescript
 class YourAmazingScript {
 
@@ -211,22 +153,20 @@ class YourAmazingScript {
     const spineResource = await engine.resourceManager.load(
       {
         url: 'https://your.spineboy.json',
-        type: 'spine',
+        type: 'Spine',
       },
     );
-    const spineEntity = new Entity(engine);
-    const spine = spineEntity.addComponent(SpineAnimationRenderer);
+    const spineEntity = spineResource.instantiate();
+    const spine = spineEntity.getComponent(SpineAnimationRenderer);
     spine.defaultState.animationName = 'your-default-animation-name'; // 默认播放的动画名称
     spine.defaultState.loop = true; // 默认播放的动画是否循环
     spine.defaultState.skinName = 'default'; // 默认皮肤名称
-    spine.defaultState.scale = 0.02; // 默认缩放
-    spine.resource = spineResource; // 设置资源
-    rootEntity.addChild(spineEntity); // 添加至场景，此时组件激活
+    rootEntity.addChild(spineEntity); // 添加至场景
   }
 
 }
 ``` 
-注意：默认状态仅在 SpineAnimationRenderer 组件激活和资源设置时生效。动态修改动画、皮肤、缩放请使用 state 与 skeleton 属性中的方法（见下面的章节）。
+注意：默认配置仅在 SpineAnimationRenderer 组件激活时生效。动态修改动画、皮肤请使用 state 与 skeleton 属性中的方法（见下面的章节）。
 
 
 ### 动画控制
@@ -254,10 +194,17 @@ setAnimation 函数接受三个参数：
 
 后两个参数很好理解，第一个参数则包含了 Spine 动画的一个概念：**Track** （轨道）
 > Spine 动画在播放时，需要指定一个动画轨道。借助动画轨道，Spine 能够分层应用动画，每一个轨道都能够存储动画与播放参数，轨道的编号从 0 开始累加。在动画应用后，Spine 会从低轨道到高轨道依次应用动画，高轨道上的动画将会覆盖低轨道上的动画。<br>
-动画轨道有很多用途，例如，轨道 0 可以有行走、奔跑、游泳或其他动画，轨道 1 可以有一个只为手臂和开枪设置了关键帧的射击动画。此外，为高层轨道设置TrackEntry alpha可使其与下面的轨道混合。例如，轨道 0 可以有一个行走动画，轨道 1 可以有一个跛行动画。当玩家受伤时，增加轨道 1 的alpha值，跛行就会加重。
 
+#### **动画混合**
+上面提到的轨道覆盖机制，大有用途。例如，轨道 0 可以有行走、奔跑、游泳或其他动画，轨道 1 可以有一个只为手臂和开枪设置了关键帧的射击动画。此外，为高层轨道设置TrackEntry alpha可使其与下面的轨道混合。例如，轨道 0 可以有一个行走动画，轨道 1 可以有一个跛行动画。当玩家受伤时，增加轨道 1 的alpha值，跛行就会加重。
+比如：
+```typescript
+// 此时动画会边走路，边射击
+state.setAnimation(0, 'walk', true);
+state.setAnimation(1, 'shoot', true);
+```
 
-#### **设置过渡**
+#### **动画过渡**
 调用 setAnimation 方法后，会立即切换当前轨道的动画。如果你需要动画切换时有过渡效果，需要设置过渡的持续时间。可以通过 [AnimationStateData](https://zh.esotericsoftware.com/spine-api-reference#AnimationStateData) 的 API 来进行设置：
 ```typescript
 class YourAmazingScript {
@@ -457,6 +404,54 @@ class YourAmazingScript {
 
 }
 ```
-代码中皮肤的名称来自 mix-and-match 示例。
+代码中皮肤的名称来自 mix-and-match 示例，在下一个章节中能够看到。
 
-下一个章节会给大家展示全部的 [Spine 示例](/docs/graphics/2D/spine/example)
+
+#### **动态加载图集并替换附件**
+在传统 Spine 项目中，不同的皮肤通常会被打包到同一个图集中。但是，随着皮肤数量的不断增加，图集纹理数量的增长会导致加载耗时不断上涨。为了解决这一问题，可以通过在运行时加载额外的 Atlas 文件，并基于新图集创建附件并替换原有附件，从而灵活支持大规模皮肤扩展，同时避免对初始加载性能的影响。</br></br>
+比如，我们可以把不同皮肤的武器，头饰，眼镜等配件打包到一个额外的图集中，在运行时进行替换。
+
+```typescript
+class extends YourAmazingScript {
+  async onStart() 
+    // 加载额外的图集文件
+    const extraAtlas = await this.engine.resourceManager.load('/extra.atlas') as TextureAtlas;
+    const { skeleton } = this.entity.getComponent(SpineAnimationRenderer);
+    // 待替换附件所在的插槽
+    const slot = skeleton.findSlot(slotName);
+    // 用于创建新附件的图集区域
+    const region = extraAtlas.findRegion(regionName);
+    // 基于原本的附件进行克隆出新附件，新附件的图集区域来自于额外的图集文件
+    const clone = this.cloneAttachmentWithRegion(slot.attachment, region);
+    // 替换附件
+    slot.attachment = clone;
+  }
+
+  // 附件克隆方法
+  cloneAttachmentWithRegion(
+    attachment: RegionAttachment | MeshAttachment | Attachment,
+    atlasRegion: TextureAtlasRegion,
+  ): Attachment {
+    let newAttachment: RegionAttachment | MeshAttachment;
+    switch (attachment.constructor) {
+      case RegionAttachment:
+        newAttachment = attachment.copy() as RegionAttachment;
+        newAttachment.region = atlasRegion;
+        newAttachment.updateRegion();
+        break;
+      case MeshAttachment:
+        const meshAttachment = attachment as MeshAttachment;
+        newAttachment = meshAttachment.newLinkedMesh();
+        newAttachment.region = atlasRegion;
+        newAttachment.updateRegion();
+        break;
+      default:
+        return attachment.copy();
+    }
+    return newAttachment;
+  }
+```
+</br></br>
+
+
+下一个章节会给大家展示 [Spine的示例与模板](/docs/graphics/2D/spine/example)
