@@ -23,7 +23,8 @@ import { SpineAnimationRenderer } from "@galacean/engine-spine";
 
 ## 加载资产并添加至场景
 
-### 加载编辑器中的上传的资产
+### 加载 Galacean 编辑器中的上传的资产
+[导出编辑器项目后](/docs/platform/platform/)，`已添加至场景中的 Spine 动画，会在加载场景文件时，自动完成加载`：
 
 ```typescript
 // 加载场景文件时，已添加至场景中的 Spine 动画会自行完成加载

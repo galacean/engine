@@ -22,7 +22,8 @@ After installing and importing `@galacean/engine-spine`, the editor's `ResourceM
 
 ## Load Assets and Add to Scene
 
-### Load assets uploaded via the editor
+### Load Assets Uploaded via the Galacean Editor
+[After exporting the editor project](/docs/platform/platform/), `Spine animations already added to the scene will automatically load when the scene file is loaded`:
 
 ```typescript
 // When loading scene files, Spine animations already added to the scene will be loaded automatically.

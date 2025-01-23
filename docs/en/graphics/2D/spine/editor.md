@@ -130,7 +130,8 @@ Using the SpineAnimationRenderer component, you can configure the Spine animatio
 
 ## 4. Project Export
 
-Finally, after completing scene editing, you can refer to the [Project Export](/docs/assets/build/) process to export the editor project.
+Finally, after completing scene editing, you can refer to the [Project Export](/en/docs/platform/platform/) process to export the editor project.
 
+Next section: [Using Galacean Spine Runtime in Your Code](/en/docs/graphics/2D/spine/runtime)
 </br></br></br></br>
 Next Chapter: [Using in Code](/en/docs/graphics/2D/spine/runtime)
