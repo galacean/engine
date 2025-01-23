@@ -106,11 +106,34 @@ Shader "Water" {
         return o;
       }
 
+      struct FsphericalGaussian {
+            vec3 Axis;  //u
+            vec3 Sharpness; //L
+            vec3 Amplitude; //a
+        };
+
+        // Normalized sg
+        FsphericalGaussian makeNormalizedSG(vec3 lightdir , vec3 sharpness)
+        {
+          FsphericalGaussian sg;
+          sg.Axis = lightdir;
+          sg.Sharpness = sharpness;
+          sg.Amplitude = sg.Sharpness /((2.0 * 1.) * (1.0 - exp(-2.0 * sg.Sharpness)));
+          return sg;
+        }
+          
+        vec3 sgdiffuseLighting(vec3 light ,vec3 normal ,vec3 scatterAmt)
+        {
+          FsphericalGaussian Kernel = makeNormalizedSG(light, 1.0 / max(scatterAmt.xyz,0.0001));
+          return vec3(1.0);
+        }
+
       /* This is a
       multi-line comment */
 
       void frag(v2f i) {
         vec4 color = texture2D(material_BaseTexture, i.v_uv) * u_color;
+
         float fogDistance = length(i.v_position);
         float fogAmount = 1.0 - exp2(-u_fogDensity * u_fogDensity * fogDistance * fogDistance * 1.442695);
         fogAmount = clamp(fogAmount, 0.0, 1.0);
@@ -139,7 +162,7 @@ Shader "Water" {
         #undef SCENE_SHADOW_TYPE
 
         #ifndef SCENE_SHADOW_TYPE
-          gl_FragColor = linearToGamma(gl_FragColor);
+          gl_FragColor = vec4(sgdiffuseLighting(vec3(1.0), vec3(1.0), vec3(1.0)), 1.0);
         #else
           gl_FragColor = vec4(1.0, 1.0, 0.0, 0.0);
         #endif 
