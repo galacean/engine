@@ -13,4 +13,4 @@ let mode = "Release";
 mode = "Verbose";
 // #endif
 
-console.log(`Galacean ShaderLab version: ${version}. mode: ${mode}`);
+console.log(`Galacean Engine ShaderLab Version: ${version} | Mode: ${mode}`);

@@ -65,6 +65,9 @@ export class BuiltinFunction {
     BuiltinFunctionTable.set(ident, list);
   }
 
+  // TODO: correct the type deduce, consider the following case:
+  // It incorrectly inferred the type of the following expression as float, which should be vec3.
+  // max(scatterAmt.xyz,0.0001)
   static getFn(ident: string, parameterTypes: NonGenericGalaceanType[]): BuiltinFunction | undefined {
     const list = BuiltinFunctionTable.get(ident);
     if (list) {

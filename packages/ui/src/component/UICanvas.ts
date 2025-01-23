@@ -227,7 +227,10 @@ export class UICanvas extends Component implements IElement {
     this._centerDirtyFlag = entity.registerWorldChangeFlag();
   }
 
-  raycast(ray: Ray, out: UIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
+  /**
+   * @internal
+   */
+  _raycast(ray: Ray, out: UIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
     const renderers = this._getRenderers();
     for (let i = renderers.length - 1; i >= 0; i--) {
       const element = renderers[i];

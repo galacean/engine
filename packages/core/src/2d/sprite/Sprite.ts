@@ -283,7 +283,6 @@ export class Sprite extends ReferResource {
     this._bounds = null;
     this._atlas = null;
     this._texture = null;
-    this._updateFlagManager = null;
   }
 
   private _calDefaultSize(): void {

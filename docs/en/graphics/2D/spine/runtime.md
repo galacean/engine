@@ -6,242 +6,201 @@ group: Spine
 label: Graphics/2D/Spine/runtime
 ---
 
-This chapter introduces how to use the Galacean Spine runtime in your code.
+This chapter introduces how to use Galacean Spine in your code.
 
 ## Installation
-Whether the project is exported from the editor or a procode project, you need to install `@galacean/engine-spine` (the Galacean Spine runtime) to load and render Spine animations.
+
+Whether you are working with an exported project from the editor or a procode project, you need to install `@galacean/engine-spine` (the Galacean Spine runtime) to load and render Spine animations.
 ```typescript
 npm install @galacean/engine-spine --save
 ```
-After installation, import it in your code:
+After a successful installation, import it in your code:
 ```typescript
 import { SpineAnimationRenderer } from "@galacean/engine-spine";
 ```
-Once `@galacean/engine-spine` is installed and imported, the editor's `resourceManager` can recognize and load Spine animation assets.
-The Galacean Spine loader supports both assets uploaded via the editor and custom-uploaded assets.
+After installing and importing `@galacean/engine-spine`, the editor's `ResourceManager` will be able to recognize and load Spine animation assets.
 
-## Load Assets and Add Them to the Scene
+## Load Assets and Add to Scene
 
 ### Load Assets Uploaded via the Galacean Editor
 [After exporting the editor project](/docs/platform/platform/), `Spine animations already added to the scene will automatically load when the scene file is loaded`:
 
 ```typescript
-// Spine animations already added to the scene will automatically load when loading the scene file
+// When loading scene files, Spine animations already added to the scene will be loaded automatically.
 await engine.resourceManager.load({
   url: projectInfo.url,
   type: AssetType.Project,
-})
+});
 ```
 
-<b>If not added to the scene, you need to load it manually in the code</b>, as follows:
-1. First, download the editor project.
+<b>If not added to the scene, you need to load it manually in the code</b>. Follow these steps:
+1. Copy the SkeletonDataAsset link.
+Right-click on the SkeletonDataAsset, select `Copy relative path` to copy the asset path.
+<img src="https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*muomS5hICRYAAAAAAAAAAAAADsp6AQ/original" />
 
-Note: The `Upload Assets to CDN` option determines whether the animation is loaded via a CDN link or using a local file's relative path.
+2. Use ResourceManager to load
 
-<img src="https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*0rZJQJRNamIAAAAAAAAAAAAADsp6AQ/original" width="260" alt="Project export panel">
-
-2. Locate the Spine asset file.
-
-After downloading the project locally, open the `project.json` file and find the `url` property.
-
-If `Upload Assets to CDN` was checked, you can find the Spine asset link in the JSON file:
-<img src="https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*-eG9RafXm64AAAAAAAAAAAAADsp6AQ/original" width="630" alt="Find Spine asset">
-
-If not checked, you can find the Spine asset in the local `public` folder. Use the <b>relative path</b> as the link when loading.
-<img src="https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*KT9yTZWQ2C8AAAAAAAAAAAAADsp6AQ/original" width="300" alt="Find Spine asset">
-
-2. Load using `resourceManager`.
-
-After obtaining the Spine skeleton file's asset link, use `resourceManager` to load it. To manually add Spine to the scene, create a new entity and add the `SpineAnimationRenderer` component, as follows:
+After obtaining the asset path, use the `resourceManager` to load it as shown below:
 ```typescript
 import { SpineAnimationRenderer } from '@galacean/engine-spine';
 
-// Load and obtain the Spine resource
+// Load and obtain the spine resource
 const spineResource = await engine.resourceManager.load({
-  url: 'https://galacean.raptor.json', // Or the relative file path, e.g., '../public/raptor.json"'
-  type: 'spine', // The loader type must be specified as 'spine'
+  url: '/raptor.json', // The copied relative path
+  type: 'Spine', // Specify the loader type as Spine
 });
-// Create a new entity
-const spineEntity = new Entity(engine);
-// Add the SpineAnimationRenderer component
-const spine = spineEntity.addComponent(SpineAnimationRenderer);
-// Set the animation resource
-spine.resource = spineResource;
+// Instantiate a Spine animation entity
+const spineEntity = spineResource.instantiate();
 // Add to the scene
 root.addChild(spineEntity);
 ```
-### Load Custom Uploaded Assets
-1. Load the asset
+### Load custom uploaded assets
+#### 1. Load assets
 
-If your Spine asset was not uploaded via the Galacean editor but uploaded to a CDN through a third-party platform, you can still load it using the Galacean Spine runtime loader.
+If your Spine assets were not uploaded via the Galacean editor but through a third-party platform to a CDN, you can still load them using the Galacean Spine runtime loader.
 ```typescript
 const resource = await engine.resourceManager.load({
   url: 'https://your.spineboy.json', // Custom uploaded asset
-  type: 'spine', // The loader type must be specified as 'spine'
+  type: 'Spine', // Specify the loader type as Spine
 });
 ```
-When loading custom uploaded assets:
-- If passing a `url`, `ensure that the atlas and texture resources are in the same directory as the skeleton file`, e.g.:
-<br>https://your.spineboy.json<br>https://your.spineboy.atlas<br>https://your.spineboy.png<br>
-All three files must be in the same directory.
 
-- If passing `urls` (multiple links), the same directory condition is not required:
+When loading custom uploaded assets:
+- If passing the parameter as `url`, <b>ensure the files are in the same directory</b>, such as:<br>
+https://your.spineboy.json <br>
+https://your.spineboy.atlas <br>
+https://your.spineboy.png <br>
+
+- If passing the parameter as `urls` (multiple links), the files do not need to be in the same directory:
 ```typescript
 const resource = await engine.resourceManager.load({
   urls: [
     'https://your.spineboy.json',
-    'https://another-path1.spineboy.altas',
-    'https://another-path2.spineboy.png',
-  ], // Custom uploaded asset
-  type: 'spine', // The loader type must be specified as 'spine'
+    'https://ahother-path1.spineboy.atlas',
+    'https://ahother-path2.spineboy.png',
+  ],
+  type: 'Spine', // Specify the loader type as Spine
 });
 ```
-- If no texture address is provided, the loader will read the texture's image name from the atlas file and look for the texture resource relative to the atlas file's path.
-<br>
-- If the custom uploaded asset has no file extension (e.g., blob protocol URLs), you can add a URL query parameter, e.g.:
-<br>https://your.spineboyjson?ext=.json<br>https://your.spineboyatlas?ext=.atlas<br>
-Alternatively, use the `fileExtensions` parameter to specify resource suffix types:
+
+- If no texture URL is provided, the loader will read the texture image name from the atlas file and look for the texture in the same directory as the atlas file.<br>
+- If the custom uploaded asset lacks file extensions, you can add URL query parameters to the links, e.g.:<br>
+https://your.spineboyjson?ext=.json, <br>
+https://your.spineboyatlas?ext=.atlas <br>
+
+- If the Spine animation atlas includes multiple images (e.g., a.png and b.png), follow the order recorded in the atlas file to pass the image URLs:
 ```typescript
 const resource = await engine.resourceManager.load({
   urls: [
-    'https://your.spineboyjson',
-    'https://another-path1.spineboyatlas',
-    'https://another-path2.spineboypng',
-  ], // Custom uploaded asset
-  type: 'spine',
-  fileExtensions: [
-    'json', // Specify the first file as having a '.json' extension
-    'atlas', // Specify the second file as having a '.atlas' extension
-    'png', // Specify the third file as having a '.png' extension
-  ]
+    'https://your.spineboy.json',
+    'https://your.spineboy.atlas',
+    'https://your.spineboy1.png', // Corresponds to a.png
+    'https://your.spineboy2.png'  // Corresponds to b.png
+  ],
+  type: 'Spine', // Specify the loader type as Spine
 });
 ```
-- If the Spine animation's texture atlas contains multiple images, pass the image addresses in the order they appear in the atlas file.
 
-2. Add to the scene
+#### 2. Add to the scene
 
-After loading, manually create an entity and add the `SpineAnimationRenderer` component:
+After loading, instantiate a Spine animation entity and add it to the scene:
 ```typescript
 import { SpineAnimationRenderer } from '@galacean/engine-spine';
 
 const spineResource = await engine.resourceManager.load({
   url: 'https://your.spineboy.json', // Custom uploaded asset
-  type: 'spine',
+  type: 'Spine',
 });
-// Create an entity
-const spineEntity = new Entity(engine);
-// Add the SpineAnimationRenderer component
-const spine = spineEntity.addComponent(SpineAnimationRenderer);
-// Set the animation resource
-spine.resource = spineResource;
+// Instantiate a Spine animation entity
+const spineEntity = spineResource.instantiate();
 // Add to the scene
 root.addChild(spineEntity);
 ```
 
-## Using the Runtime API
+## More Runtime APIs
 
-In the [previous chapter](/docs/graphics/2D/spine/editor), we introduced the configuration options for the `SpineAnimationRenderer` component in the editor.  
-This section provides a more detailed introduction to using various APIs of the `SpineAnimationRenderer` component in code.
+In the [previous chapter](/docs/graphics/2D/spine/editor), we introduced the configuration options of the SpineAnimationRenderer component in the editor.
+This section will explain in detail how to use each API of the SpineAnimationRenderer component in code.
 
-The `SpineAnimationRenderer` component inherits from `Renderer`. In addition to exposing general methods of `Renderer`, it provides the following properties:
+The SpineAnimationRenderer component inherits from Renderer. In addition to exposing the common methods of Renderer, it provides the following properties:
 
-| Property          | Description                                                                                       | 
-| :---------------- | :------------------------------------------------------------------------------------------------ | 
-| resource          | Spine animation resource. After setting the resource, the `SpineAnimationRenderer` component reads the resource data and renders the Spine animation. | 
-| setting           | Rendering settings. Used to enable clipping and adjust layer spacing.                              |
-| defaultState      | Default state. Corresponding to the editor configuration options, used to set the default animation, skin, and scaling for Spine animation. | 
-| state             | Animation state object. Enables advanced animation control, such as queued playback and loop control. | 
-| skeleton          | Skeleton object. Used for advanced skeletal operations, such as attachment replacement and skin switching. |
+| Property          | Description                                                                 |
+| :---------------- | :-------------------------------------------------------------------------- |
+| defaultConfig     | Default configuration. Corresponds to the editor's configuration options and is used to set the default animation and skin of Spine |
+| state             | Animation state object. Used for more complex animation controls, such as queue playback, loop control, etc. |
+| skeleton          | Skeleton object. Used for more complex skeleton operations, such as attachment replacement, skin switching, etc. |
+| premultipliedAlpha | Premultiplied Alpha setting. Controls whether to enable premultiplied alpha mode during rendering |
 
-Below is a more detailed usage introduction:
+### Default Configuration
 
-### Resource Setting
-First, you need to set the resource. The `SpineAnimationRenderer` component can only render the Spine animation after setting the resource.  
-In the previous chapter, "Loading Assets and Adding Them to the Scene", we already demonstrated how to set the resource:
-```typescript
-import { SpineAnimationRenderer } from '@galacean/engine-spine';
-
-const spineResource = await engine.resourceManager.load({
-  url: 'https://your.spineboy.json',
-  type: 'spine',
-});
-const spineEntity = new Entity(engine);
-const spine = spineEntity.addComponent(SpineAnimationRenderer);
-spine.resource = spineResource; // Set Spine resource
-root.addChild(spineEntity);
-```
-
-### Rendering Settings
-In your script, you can modify the rendering settings of Spine as follows. Generally, the default values are sufficient:
+In the script, you can use the `defaultConfig` parameter to set the default animation and skin for Spine:
 ```typescript
 class YourAmazingScript {
-
-  onStart() {
-    const spine = this.entity.getComponent(SpineAnimationRenderer);
-    spine.setting.zSpacing = 0.01; // Set layer spacing
-    spine.setting.useClipping = true; // Enable or disable clipping, enabled by default
-  }
-
-}
-``` 
-
-### Default State
-In your script, you can modify the default state of the Spine animation as follows:
-```typescript
-class YourAmazingScript {
-
   async onStart() {
     const spineResource = await engine.resourceManager.load({
       url: 'https://your.spineboy.json',
-      type: 'spine',
+      type: 'Spine',
     });
-    const spineEntity = new Entity(engine);
-    const spine = spineEntity.addComponent(SpineAnimationRenderer);
+    const spineEntity = spineResource.instantiate();
+    const spine = spineEntity.getComponent(SpineAnimationRenderer);
     spine.defaultState.animationName = 'your-default-animation-name'; // Default animation name
-    spine.defaultState.loop = true; // Whether the default animation loops
-    spine.defaultState.skinName = 'default'; // Default skin name
-    spine.defaultState.scale = 0.02; // Default scaling
-    spine.resource = spineResource; // Set the resource
-    rootEntity.addChild(spineEntity); // Add to the scene, activating the component
+    spine.defaultState.loop = true;  // Whether the default animation loops
+    spine.defaultState.skinName = 'default';  // Default skin name
+    rootEntity.addChild(spineEntity);  // Add to the scene
   }
-
 }
-``` 
-Note: The default state only takes effect when the `SpineAnimationRenderer` component is activated and the resource is set. To dynamically modify the animation, skin, or scaling, use the `state` and `skeleton` properties (see later sections).
+```
+
+Note: Default configuration only takes effect when the SpineAnimationRenderer component is active. To dynamically modify animations and skins, use the `state` and `skeleton` properties (explained in the following sections).
+
+...
 
 ### Animation Control
-In your script, you can access the [AnimationState](https://zh.esotericsoftware.com/spine-api-reference#AnimationState) object for advanced animation operations:
+
+In the script, you can obtain the [AnimationState](https://zh.esotericsoftware.com/spine-api-reference#AnimationState) object in the following way, which allows for more complex animation operations:
+
 ```typescript
 class YourAmazingScript {
-
   onStart() {
     const spine = this.entity.getComponent(SpineAnimationRenderer);
     const { state } = spine; // AnimationState object
   }
-  
 }
 ```
-#### **Playing Animations**
-Let's first introduce the most commonly used API: [setAnimation](https://zh.esotericsoftware.com/spine-api-reference#AnimationState-setAnimation)
+
+#### **Play Animation**
+
+First, let's introduce the most commonly used API: [setAnimation](https://zh.esotericsoftware.com/spine-api-reference#AnimationState-setAnimation)
 ```typescript
-state.setAnimation(0, 'animationName', true)
+state.setAnimation(0, 'animationName', true);
 ```
-The `setAnimation` function accepts three parameters:
+The `setAnimation` function takes three parameters:
 
-- `TrackIndex`: The track index of the animation.
-- `animationName`: The name of the animation.
-- `loop`: Whether to loop the animation.
+- `TrackIndex`: Animation track index
+- `animationName`: Name of the animation
+- `loop`: Whether to loop the animation
 
-The last two parameters are self-explanatory, but the first parameter introduces the concept of **Track** in Spine animation:
-> In Spine animations, you need to specify a track for playing animations. Tracks allow Spine to apply animations in layers. Each track stores animations and playback parameters, with track numbers starting from 0. When applying animations, Spine applies them from the lowest to the highest track. Higher tracks override animations on lower tracks.
+The second and third parameters are straightforward, while the first parameter introduces a concept in Spine animations: **Track**.
 
-Animation tracks have many uses. For example, track 0 can hold walking, running, or swimming animations, while track 1 can hold a shooting animation with keyframes for just the arms and shooting action. Additionally, setting the `TrackEntry` alpha for higher tracks allows blending with lower tracks. For instance, track 0 can have a walking animation, and track 1 can have a limping animation. When the player is injured, increasing the alpha value of track 1 intensifies the limp.
+> When playing a Spine animation, an animation track must be specified. Using animation tracks, Spine can apply animations in layers. Each track stores animation and playback parameters, with track numbers starting from 0. When applying animations, Spine processes from lower to higher tracks, with higher tracks overriding animations on lower tracks.
 
-#### **Setting Transitions**
-Calling `setAnimation` immediately switches the current track's animation. To add a transition effect, set the transition duration using the [AnimationStateData](https://zh.esotericsoftware.com/spine-api-reference#AnimationStateData) API:
+#### **Animation Blending**
+
+The above track override mechanism has many applications. For example, track 0 can have animations for walking, running, or swimming, while track 1 can contain a shooting animation that only has keyframes for the arms and firing. Additionally, setting the `TrackEntry.alpha` for higher tracks can blend them with lower tracks. For instance, track 0 could have a walking animation, and track 1 could have a limping animation. When the player is injured, increasing the `alpha` value of track 1 will intensify the limp.
+
+For example:
+```typescript
+// The animation will now be walking while shooting
+state.setAnimation(0, 'walk', true);
+state.setAnimation(1, 'shoot', true);
+```
+
+#### **Animation Mixing**
+
+Calling the `setAnimation` method switches the animation on the current track immediately. If you want a transition effect between animations, you need to set the duration of the transition. This can be done using the [AnimationStateData](https://zh.esotericsoftware.com/spine-api-reference#AnimationStateData) API:
+
 ```typescript
 class YourAmazingScript {
-
   onStart() {
     const spine = this.entity.getComponent(SpineAnimationRenderer);
     const { state } = spine; // AnimationState object
@@ -249,76 +208,84 @@ class YourAmazingScript {
     data.defaultMix = 0.2; // Set default transition duration
     data.setMix('animationA', 'animationB', 0.3); // Set transition duration between two specific animations
   }
-
 }
 ```
 
-- `defaultMix` is the default transition duration when no specific duration is defined between two animations.
-- The `setMix` function accepts three parameters: the names of the two animations and the transition duration.
+- `defaultMix`: Default duration for transitions between animations without a defined duration
+- `setMix`: Takes three parameters: the names of the two animations to set the transition duration, and the duration of the animation blend
+
+...
+
 
 #### **Animation Queue**
-Spine also provides the [addAnimation](https://zh.esotericsoftware.com/spine-api-reference#AnimationState-addAnimation2) method for queuing animations:
+
+Spine also provides the [addAnimation](https://zh.esotericsoftware.com/spine-api-reference#AnimationState-addAnimation2) method to implement animation queue playback:
 ```typescript
 state.setAnimation(0, 'animationA', false); // Play animation A on track 0
-state.addAnimation(0, 'animationB', true, 0); // Queue animation B after animation A and loop it
+state.addAnimation(0, 'animationB', true, 0); // After animation A, add animation B and play it in a loop
 ```
+The `addAnimation` method takes four parameters:
 
-addAnimation accepts four parameters:
+- `TrackIndex`: Animation track
+- `animationName`: Name of the animation
+- `loop`: Whether to play the animation in a loop
+- `delay`: Delay time
 
-- `TrackIndex`: The animation track.
-- `animationName`: The name of the animation.
-- `loop`: Whether to loop the animation.
-- `delay`: The delay time.
+The first three parameters are easy to understand, so let’s focus on the fourth parameter:
+`delay` represents the duration of the preceding animation.
 
-The first three parameters are straightforward; let's explain the fourth parameter, `delay`.  
-`delay` represents the time duration from when the previous animation starts playing.
+When `delay > 0` (e.g., `delay` is 1), the preceding animation switches to the next animation after playing for 1 second, as shown below:
 
-When `delay > 0` (e.g., `delay` is 1), the next animation starts 1 second after the current animation begins, as shown below:
 <img src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*-sY9TrNI8L8AAAAAAAAAAAAADvX8AQ/original" width="350" alt="animation delay > 0">
 
-If the duration of animation A is less than 1 second, depending on whether it loops, it will either loop until 1 second or stay in its completed state until 1 second.
+If animation A’s duration is less than 1 second, it will either loop until 1 second or remain in its finished state until 1 second, depending on whether looping is enabled.
 
-When `delay = 0`, the next animation starts after the current animation finishes, as shown below:
+When `delay = 0`, the next animation plays immediately after the preceding animation finishes, as shown below:
+
 <img src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*jk2VRaHwUXMAAAAAAAAAAAAADvX8AQ/original" width="350" alt="animation delay = 0">
 
-Assuming the duration of animation A is 1 second and the transition duration is 0.2 seconds, when `delay` is set to 0, animation B will transition at 0.8 seconds into animation B.
+Assuming animation A lasts 1 second and the transition duration is 0.2 seconds, animation B will transition starting at 0.8 seconds (1 - 0.2).
 
-When `delay < 0`, the next animation starts playing before the current animation finishes, as shown below:
-Similarly, assuming the duration of animation A is 1 second and the transition duration is 0.2 seconds, animation B will transition from 0.6 seconds into animation B.
+When `delay < 0`, the next animation begins before the preceding animation finishes, as shown below:
+Similarly, if animation A lasts 1 second with a 0.2-second transition, animation B will begin transitioning at 0.6 seconds.
+
 <img src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*1xJDTLr0ygAAAAAAAAAAAAAADvX8AQ/original" width="350" alt="animation delay < 0">
 
-In addition to `addAnimation`, you can also use the [addEmptyAnimation](https://zh.esotericsoftware.com/spine-api-reference#AnimationState-addEmptyAnimation) method to add an empty animation.  
-Empty animations allow animations to return to their initial state.
+Besides `addAnimation`, the [addEmptyAnimation](https://zh.esotericsoftware.com/spine-api-reference#AnimationState-addEmptyAnimation) method can add an empty animation. Empty animations reset animations to their initial state.
 
-`addEmptyAnimation` accepts three parameters: `TrackIndex`, `mixDuration`, and `delay`.  
-`TrackIndex` and `delay` work the same as in `addAnimation`.  
-`mixDuration` is the transition duration, during which the animation gradually returns to its initial state. The image below (the brown area on the right represents the empty animation) illustrates this:
-<img src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*UdLBR4xoXAEAAAAAAAAAAAAADvX8AQ/original" width="267" alt="Add empty animation API">
+`addEmptyAnimation` takes three parameters: `TrackIndex`, `mixDuration`, and `delay`. The `TrackIndex` and `delay` parameters are the same as those in `addAnimation`. The `mixDuration` parameter specifies the transition duration, and the animation will reset to its initial state over this duration. As shown below (the brown area on the right represents the empty animation):
+
+<img src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*UdLBR4xoXAEAAAAAAAAAAAAADvX8AQ/original" width="267" alt="Add empty animation api">
+
+...
+
 
 #### **Track Parameters**
-Both `setAnimation` and `addAnimation` methods return an object: `TrackEntry`.  
-`TrackEntry` provides additional parameters for animation control, such as:
 
-- `timeScale`: Controls the playback speed of the animation.
-- `animationStart`: Controls the start time of the animation.
-- `alpha`: The blending coefficient for applying the current animation to the track.
+The `setAnimation` and `addAnimation` methods both return an object called `TrackEntry`. The `TrackEntry` object provides additional parameters for animation control. For example:
 
-For more parameters, refer to the [TrackEntry official documentation](https://zh.esotericsoftware.com/spine-api-reference#TrackEntry).
+- `timeScale`: Controls the playback speed of the animation
+- `animationStart`: Controls the start time of the animation
+- `alpha`: Blending factor for the current animation on the track
+- ...
+
+For more details on these parameters, refer to the [TrackEntry official documentation](https://zh.esotericsoftware.com/spine-api-reference#TrackEntry).
 
 #### **Animation Events**
+
 <img src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*j4SmSKjherYAAAAAAAAAAAAADvX8AQ/original" width="681" alt="Animation event diagram">
 
-When using the `AnimationState` API for animation control, events are triggered as shown in the diagram above.  
-A `Start` event is triggered when a new animation begins playing.  
-An `End` event is triggered when an animation is removed or interrupted from the queue.  
-A `Complete` event is triggered when an animation finishes playing, regardless of whether it loops.
+When controlling animations via the `AnimationState` API, various events, as shown above, can be triggered.
+- When a new animation starts, the `Start` event is triggered.
+- When an animation is removed from the queue or interrupted, the `End` event is triggered.
+- When an animation finishes, regardless of whether it loops, the `Complete` event is triggered.
 
-For a full list of events and detailed explanations, refer to the [Spine Animation Events official documentation](https://zh.esotericsoftware.com/spine-unity-events).
+For a complete list of events and detailed explanations, refer to the [Spine animation events official documentation](https://zh.esotericsoftware.com/spine-unity-events).
 
-These events can be listened to using the [AnimationState.addListener](https://zh.esotericsoftware.com/spine-api-reference#AnimationState-addListener) method:
+These events can be listened to using the [AnimationState.addListener](https://zh.esotericsoftware.com/spine-api-reference#AnimationState-addListener) method.
+
 ```typescript
 class YourAmazingScript {
-
   onStart() {
     const spine = this.entity.getComponent(SpineAnimationRenderer);
     const { state } = spine; // AnimationState object
@@ -343,29 +310,30 @@ class YourAmazingScript {
       },
     });
   }
-
 }
 ```
 
 ### Skeleton Operations
-In your script, you can access the [Skeleton](https://zh.esotericsoftware.com/spine-api-reference#Skeleton) object to manipulate bones, slots, attachments, and more for advanced skeleton operations.
+
+In your script, you can access the [Skeleton](https://zh.esotericsoftware.com/spine-api-reference#Skeleton) object to manipulate bones, slots, attachments, etc.
+
 ```typescript
 class YourAmazingScript {
-
   onStart() {
     const spine = this.entity.getComponent(SpineAnimationRenderer);
     const { skeleton } = spine; // Skeleton object
   }
-  
 }
 ```
-Below are some common operations:
 
-#### **Modifying Bone Positions**
-Using the Skeleton API, you can modify the position of Spine bones. A typical use case is setting the target bone of an IK to achieve aiming or tracking effects.
+The following are some common operations:
+
+#### **Modify Bone Position**
+
+The `Skeleton` API allows you to modify the positions of Spine bones, which can be useful for implementing effects like aiming or following by setting the target bone for IK.
+
 ```typescript
 class YourAmazingScript {
-
   onStart() {
     const spine = this.entity.getComponent(SpineAnimationRenderer);
     const { skeleton } = spine; // Skeleton object
@@ -373,57 +341,62 @@ class YourAmazingScript {
     bone.x = targetX;
     bone.y = targetY;
   }
-  
 }
 ```
-Note: Since playing animations can modify bone positions, if Spine is playing an animation, changes to bone positions must be done after the animation is applied, which means performing these operations in the `onLateUpdate` lifecycle of your script.
 
-#### **Attachment Replacement**
-Using the Skeleton API, you can replace [attachments](https://zh.esotericsoftware.com/spine-attachments) within [slots](https://zh.esotericsoftware.com/spine-slots). Attachment replacement can be used for effects like equipping different items or changing appearances locally.
+Note: Since animations affect bone positions, modifications to bone positions should be made after the animation is applied, such as in the `onLateUpdate` lifecycle of your script.
+
+#### **Replace Attachments**
+
+The `Skeleton` API also allows you to replace [attachments](https://zh.esotericsoftware.com/spine-attachments) within [slots](https://zh.esotericsoftware.com/spine-slots). By switching attachments, you can achieve localized outfit changes.
+
 ```typescript
 class YourAmazingScript {
-
   onStart() {
     const spine = this.entity.getComponent(SpineAnimationRenderer);
     const { skeleton } = spine; // Skeleton object
-    // Find a slot by name
+    // Find slot by name
     const slot = skeleton.findSlot('slotName');
-    // Get an attachment by name from the skeleton's skin or default skin
+    // Get attachment by name from the skeleton's skin or default skin
     const attachment = skeleton.getAttachment(slot.index, 'attachmentName');
-    // Set the slot's attachment
+    // Set the attachment for the slot
     slot.attachment = attachment;
-    // Or set the attachment via the skeleton's setAttachment method
+    // Or set the slot attachment using the skeleton's setAttachment method
     skeleton.setAttachment('slotName', 'attachmentName');
   }
 }
 ```
-Note: Since playing animations can modify attachments within slots, attachment replacement must be done after the animation is applied, which means performing these operations in the `onLateUpdate` lifecycle of your script.
+
+Note: Similar to bone positions, attachment replacement should occur after the animation is applied, such as in the `onLateUpdate` lifecycle.
+
+...
+
 
 #### **Skin Switching and Mixing**
+
 **Skin Switching**
 
-You can use the Skeleton's [setSkin](https://zh.esotericsoftware.com/spine-api-reference#Skeleton-setSkin) API to switch the entire skin based on its name.
+You can switch the entire skin using the [setSkin](https://zh.esotericsoftware.com/spine-api-reference#Skeleton-setSkin) API of the `Skeleton`.
+
 ```typescript
 class YourAmazingScript {
-
   onStart() {
     const spine = this.entity.getComponent(SpineAnimationRenderer);
     const { skeleton } = spine; // Skeleton object
     // Set the skin by name
     skeleton.setSkinByName("full-skins/girl");
-    // Reset to the initial pose (must call this to avoid rendering issues)
+    // Reset to the initial position (this must be called, or rendering might appear incorrect)
     skeleton.setSlotsToSetupPose();
   }
-
 }
 ```
 
 **Skin Mixing**
 
-In the Spine editor, designers can prepare skins for each appearance and equipment, which can then be combined at runtime to create a new skin. The following code demonstrates how to add selected skins using `addSkin`:
+In the Spine editor, designers can prepare skins for each appearance and equipment item, then combine them into a new skin at runtime. The following code demonstrates how to add selected skins using `addSkin`:
+
 ```typescript
 class YourAmazingScript {
-
   onStart() {
     const spine = this.entity.getComponent(SpineAnimationRenderer);
     const { skeleton } = spine; // Skeleton object
@@ -439,10 +412,57 @@ class YourAmazingScript {
     mixAndMatchSkin.addSkin(skeletonData.findSkin("accessories/hat-red-yellow"));
     this.skeleton.setSkin(mixAndMatchSkin);
   }
-
 }
 ```
-The skin names used in the code come from the mix-and-match example.
 
-In the next chapter, we will show you all [Spine Examples](/docs/graphics/2D/spine/example).
+The skin names used in the code come from the mix-and-match example, which you can see in the next chapter.
 
+#### **Dynamically Load Atlases and Replace Attachments**
+
+In traditional Spine projects, different skins are usually packed into the same atlas. However, as the number of skins increases, the growing number of textures in the atlas can lead to longer loading times. To address this issue, you can dynamically load additional atlas files at runtime and create new attachments based on the new atlas to replace the original attachments. This approach supports large-scale skin expansions while avoiding initial load performance issues.
+
+For example, you can pack weapons, headgear, and glasses into a separate atlas and replace them at runtime.
+
+```typescript
+class YourAmazingScript {
+  async onStart() {
+    // Load additional atlas files
+    const extraAtlas = await this.engine.resourceManager.load('/extra.atlas') as TextureAtlas;
+    const { skeleton } = this.entity.getComponent(SpineAnimationRenderer);
+    // The slot containing the attachment to be replaced
+    const slot = skeleton.findSlot(slotName);
+    // The region in the new atlas used to create a new attachment
+    const region = extraAtlas.findRegion(regionName);
+    // Clone a new attachment from the original, using the region from the new atlas
+    const clone = this.cloneAttachmentWithRegion(slot.attachment, region);
+    // Replace the attachment
+    slot.attachment = clone;
+  }
+
+  // Attachment cloning method
+  cloneAttachmentWithRegion(
+    attachment: RegionAttachment | MeshAttachment | Attachment,
+    atlasRegion: TextureAtlasRegion,
+  ): Attachment {
+    let newAttachment: RegionAttachment | MeshAttachment;
+    switch (attachment.constructor) {
+      case RegionAttachment:
+        newAttachment = attachment.copy() as RegionAttachment;
+        newAttachment.region = atlasRegion;
+        newAttachment.updateRegion();
+        break;
+      case MeshAttachment:
+        const meshAttachment = attachment as MeshAttachment;
+        newAttachment = meshAttachment.newLinkedMesh();
+        newAttachment.region = atlasRegion;
+        newAttachment.updateRegion();
+        break;
+      default:
+        return attachment.copy();
+    }
+    return newAttachment;
+  }
+}
+```
+
+The next chapter will showcase [Spine Examples and Templates](/en/docs/graphics/2D/spine/example).

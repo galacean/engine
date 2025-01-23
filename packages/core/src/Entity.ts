@@ -547,7 +547,6 @@ export class Entity extends EngineObject {
     }
 
     this.isActive = false;
-    this._updateFlagManager = null;
   }
 
   /**
@@ -590,8 +589,8 @@ export class Entity extends EngineObject {
       }
       this._parent = null;
       this._siblingIndex = -1;
+      this._dispatchModify(EntityModifyFlags.Child, oldParent);
     }
-    this._dispatchModify(EntityModifyFlags.Child, oldParent);
   }
 
   /**
@@ -712,6 +711,10 @@ export class Entity extends EngineObject {
         }
       }
       this._setParentChange();
+    } else {
+      if (parent && siblingIndex !== undefined) {
+        this.siblingIndex = siblingIndex;
+      }
     }
   }
 

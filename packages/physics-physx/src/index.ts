@@ -4,4 +4,4 @@ export { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
 //@ts-ignore
 export const version = `__buildVersion`;
 
-console.log(`Galacean PhysX version: ${version}`);
+console.log(`Galacean Engine Physics PhysX Version: ${version}`);

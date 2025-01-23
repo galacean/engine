@@ -380,7 +380,6 @@ export class Renderer extends Component implements IComponentCustomClone {
       material && this._addResourceReferCount(material, -1);
     }
 
-    this._entity = null;
     this._globalShaderMacro = null;
     this._bounds = null;
     this._materials = null;

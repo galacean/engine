@@ -3,7 +3,7 @@ import { Loader } from "@galacean/engine-core";
 //@ts-ignore
 export const version = `__buildVersion`;
 
-console.log(`Galacean engine version: ${version}`);
+console.log(`Galacean Engine Version: ${version}`);
 
 export * from "@galacean/engine-core";
 export * from "@galacean/engine-loader";
