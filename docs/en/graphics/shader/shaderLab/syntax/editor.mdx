@@ -9,7 +9,6 @@ Editor {
     Properties {
         material_BaseColor("Offset unit scale", Color) = (1,1,1,1);
         ...
-
         Header("Emissive")
         {
             material_EmissiveColor("Emissive color", Color) = (1,1,1,1);
@@ -17,36 +16,31 @@ Editor {
         }
         ...
     }
-
     ...
-
     Macros {
         [On] UV_OFFSET("UV Offset", Range(1,100)) = 10;
         ...
-
         Header("") {
             SOME_MACRO("label", Int) = 1;
         }
     }
-
     ...
-
-    // 指定 Shader 绑定的 UIScript 编辑器项目路径。
+    // Specify the path of bound UIScript.
     UIScript "./shaderScript.ts";
 }
 ```
 
-## Properties 属性
+## Properties
 
-可用于定义绑定了该 Shader 自定义材质的属性，在编辑器中开发者可以通过自定义材质 Inspector 面板对定义的属性进行调整。
+It can be used to define properties bound to the Shader's custom material, allowing developers to adjust the defined properties through the custom material Inspector panel in the editor.
 
 <Image
   src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*1mjVR5GXXOkAAAAAAAAAAAAADteEAQ/fmt.webp"
-  figcaption="材质 Inspector 面板"
+  figcaption="Material Inspector"
   width="200px"
 />
 
-### 属性定义
+### Property Definition
 
 ```glsl
 /**
@@ -63,7 +57,7 @@ propertyName("Description", EditType) = [DefaultValue];
 
 <Callout type="info">
 
-1. 可以使用 `Header` 指令将有关联的属性组织起来，Inspector 对应的面板中也会有相应的层级分类:
+1. You can use the `Header` directive to organize related properties, and the corresponding Inspector will have the appropriate hierarchical categorization.
 
 ```
 Header("Emissive") {
@@ -72,17 +66,17 @@ Header("Emissive") {
 }
 ```
 
-2. 通过注释标注 Inspector Hover 提示内容，支持使用 @language 指令进行多语言指定。
+2. Annotate Inspector Hover tooltip content through comments, supporting multilingual specification using the `@language` directive.
 
 </Callout>
 
-当前支持的 EditType 列表如下:
+The currently supported list of EditTypes is as follows::
 
 | EditType | Example |
 | :-: | :-- |
 | Bool | propertyName("Property Description", Boolean) = true; |
-| Int | propertyName("Property Description", Int) = 1; <br/>propertyName("Property Description", Range(0,8)) = 1 <br/> propertyName("Property Description", Enum(Item1: 1, Item2: 2, Item3: 3)) = 1 // 枚举 |
-| Float | propertyName("Property Description", FLoat) = 0.5; <br/>propertyName("Property Description", Range(0.0, 1.0)) = 0.5; <br/> propertyName("Property Description", Enum(Item1: 1.0, Item2: 2.0, Item3: 3.0)) = 1.0; // 枚举 |
+| Int | propertyName("Property Description", Int) = 1; <br/>propertyName("Property Description", Range(0,8)) = 1 <br/> propertyName("Property Description", Enum(Item1: 1, Item2: 2, Item3: 3)) = 1 // Enumeration |
+| Float | propertyName("Property Description", FLoat) = 0.5; <br/>propertyName("Property Description", Range(0.0, 1.0)) = 0.5; <br/> propertyName("Property Description", Enum(Item1: 1.0, Item2: 2.0, Item3: 3.0)) = 1.0; // Enumeration |
 | Texture2D | propertyName("Property Description", Texture2D); |
 | TextureCube | propertyName("Property Description", TextureCube); |
 | Color | propertyName("Property Description", Color) = (0.25, 0.5, 0.5, 1); |
@@ -90,31 +84,31 @@ Header("Emissive") {
 | Vector3 | propertyName("Property Description", Vector3) = (0.25, 0.5, 0.5); |
 | Vector4 | propertyName("Property Description", Vector4) = (0.25, 0.5, 0.5, 1.0); |
 
-#### 枚举类型
+#### Enumeration
 
 ```glsl
 propertyName("Property Description", Enum(Item1: 1, Item2: 2, Item3: 3)) = 1;
 ```
 
 <Callout typ="warning">
-  当前只有 Int 和 Float 类型支持枚举，且不支持类型混合，比如下面的枚举混合了Float和Int，将不会被正确解析 ```glsl
-  propertyName("Property Description", Enum("Item1":1, "Item2":2.0, "Item3": 3)) = 2.0; ```
+  Currently, only Int and Float types support enumeration, and type mixing is not supported. For example, the following
+  enumeration mixes Float and Int, and will not be correctly parsed. ```glsl propertyName("Property Description",
+  Enum("Item1":1, "Item2":2.0, "Item3": 3)) = 2.0; ```
 </Callout>
 
 ## Macros
 
-用于将 Shader 中用到的宏反射到 Inspector 中，从而在编辑器中对 Shader 依赖的宏进行灵活的调整。
+It is used to reflect macros utilized in the Shader to the Inspector, allowing for flexible adjustments of the macros on which the Shader depends within the editor.
 
 ```
-// 开启/关闭
 [On/Off]macroName("MacroLabel", EditType) = [DefaultValue];
 ```
 
-通过`[On/Off]`指令指定宏的默认开关，当前编辑器支持的宏类型如下:
+Specify the default state of a macro using the [On/Off] directive. The types of macros currently supported by the editor are as follows:
 
 |  Type   | Example                                                                                                   |
 | :-----: | :-------------------------------------------------------------------------------------------------------- |
-| 无值宏  | macroName("Macro Description");                                                                           |
+|         | macroName("Macro Description");                                                                           |
 |  Bool   | macroName("Macro Description", Boolean) = true;                                                           |
 |   Int   | macroName("Macro Description", Int) = 1; <br/> macroName("Macro Description", Range(0,8)) = 1;            |
 |  Float  | macroName("Macro Description", FLoat) = 0.5; <br/> macroName("Macro Description", Range(0.0, 1.0)) = 0.5; |
@@ -125,9 +119,9 @@ propertyName("Property Description", Enum(Item1: 1, Item2: 2, Item3: 3)) = 1;
 
 ## UIScript
 
-开发者使用编辑器对自定义材质属性进行调节的同时，还可以通过`UIScript`指定数据变更的回调行为。
+While developers adjust custom material properties using the editor, they can also specify data change callback behavior through `UIScript`.
 
-- 在 ShaderLab 中绑定 `UIScript`:
+- Bind `UIScript` in ShaderLab:
 
 ```
 Editor {
@@ -141,12 +135,12 @@ Editor {
   src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*t4LFQ4KEL6kAAAAAAAAAAAAADteEAQ/fmt.webp"
   width="70%"
 />
-绑定的`UIScript`脚本路径支持相对路径和绝对路径，以上图项目根目录为例，绝对路径为
-`/PBRScript1.ts`，相对路径为`./PBRScript1.ts`
+The bound UIScript script path supports both relative and absolute paths. Taking the project root directory in the above
+image as an example, the absolute path is `/PBRScript1.ts`, and the relative path is `./PBRScript1.ts`.
 
 ### UIScript API
 
-编辑器通过内置`ShaderUIScript`类暴露相关API
+The editor exposes relevant APIs through the built-in `ShaderUIScript` class.
 
 ```ts
 import { Color, Material, Texture, Vector2, Vector3, Vector4 } from "@galacean/engine";
@@ -196,17 +190,17 @@ export abstract class ShaderUIScript {
 }
 ```
 
-### UIScript 编写
+### Edit UIScript
 
-1. 在编辑器中创建 UIScript 脚本
+1. Create UIScript in Editor
 
 <Image
   src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*Qh4UTZgaY7MAAAAAAAAAAAAADteEAQ/fmt.webp"
   width="60%"
-  figcaption="创建UIScript"
+  figcaption="create UIScript"
 />
 
-2. 通过继承 ShaderUIScript 类指定属性变更回调。
+2. Specify property change callbacks by inheriting from the `ShaderUIScript` class.
 
 ```ts
 import { Material, RenderQueueType, Vector3, BlendFactor, RenderFace, CullMode, BlendMode } from "@galacean/engine";
@@ -216,7 +210,7 @@ export default class extends ShaderUIScript {
     super();
 
     ......
-    // 在构造函数中注册监听属性回调
+    // Register change callbacks in constructor.
     this.onPropertyChanged("material_NormalTexture", (material: Material, value) => {
       const shaderData = material.shaderData;
       if (value) {
@@ -230,7 +224,7 @@ export default class extends ShaderUIScript {
 
   }
 
-  // 指定 shader 绑定的回调
+  // Specify callback on shader switch.
   override onMaterialShaderSwitched(material: Material) {
     const shaderData = material.shaderData;
 
@@ -255,6 +249,8 @@ export default class extends ShaderUIScript {
 ```
 
 <Callout info="warning">
-  注意，当前版本 ShaderLab 材质属性模块只是定义了绑定该 Shader 的材质在编辑器中的 Inspector
-  UI面板，并不会替你在`ShaderPass`中声明对应的全局变量，如果`ShaderPass`代码中引用了该变量需在[全局变量](./shader/#全局变量)模块中明确声明补充。
+  Note that the current version of the ShaderLab material properties module only defines the Inspector UI panel for the
+  material bound to the Shader in the editor. It does not declare the corresponding global variables in the ShaderPass
+  for you. If the ShaderPass code references this variable, you must explicitly declare it in the Global Variables
+  module.
 </Callout>
