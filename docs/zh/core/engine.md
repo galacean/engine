@@ -5,68 +5,38 @@ type: 核心
 label: Core
 ---
 
-`Engine` 在 Galacean Engine 中扮演着总控制器的角色，主要包含了**画布**、**渲染控制**和**引擎子系统管理**等功能：
+`Engine` 在扮演着总控制器的角色，主要包含了**画布**、**渲染控制**和**引擎子系统管理**等功能：
 
 - **[画布](/docs/core/canvas)**：主画布相关的操作，如修改画布宽高等。
 - **渲染控制**： 控制渲染的执行/暂停/继续、垂直同步等功能。
-- **引擎子系统管理**：
-  - [场景管理](/docs/core/scene)
-  - [资源管理](/docs/assets/overall)
-  - [物理系统](/docs/physics/overall)
-  - [交互系统](/docs/input/input/)
-  - [XR 系统](/docs/xr/overall)
+- **引擎子系统管理**： [场景管理](/docs/core/scene)、[资源管理](/docs/assets/overall)、[物理系统](/docs/physics/overall) 、[交互系统](/docs/input/input/)、[XR 系统](/docs/xr/overall)
 - **执行环境的上下文管理**：控制 WebGL 等执行环境的上下文管理。
 
 ## 初始化
 
-为了方便用户直接创建 web 端 engine，Galacean 提供了 [WebGLEngine](/apis/rhi-webgl/#WebGLEngine) ：
-
-```typescript
-const engine = await WebGLEngine.create({ canvas: "canvas" });
-```
-
-`WebGLEngine` 支持 WebGL1.0 和 WebGL2.0，它能够控制画布的一切行为，此外还有资源管理、场景管理、执行/暂停/继续、垂直同步等功能。`WebGLEngine.create` 。下方是创建引擎时传入配置的类型说明：
-
-```mermaid
----
-title: WebGLEngineConfiguration Interface
----
-classDiagram
-    EngineConfiguration <|-- WebGLEngineConfiguration
-    class EngineConfiguration {
-       <<interface>>
-       +IPhysics physics
-       +IXRDevice xrDevice
-       +ColorSpace colorSpace
-       +IShaderLab shaderLab
-       +IInputOptions input
-    }
-
-    class WebGLEngineConfiguration{
-        <<interface>>
-        +HTMLCanvasElement | OffscreenCanvas | string canvas
-        +WebGLGraphicDeviceOptions graphicDeviceOptions
-    }
-```
-
-编辑器导出的项目通常自动设置了编辑器配置的相关选项，比如开发者可以在 [导出界面](/docs/platform/platform) 设置上下文的渲染配置：
-
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*WZHzRYIpUzQAAAAAAAAAAAAADhuCAQ/original" style="zoom:50%;" />
-
-又或者在编辑器的项目设置界面选择物理后端与 XR 后端：
-
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*iBDlTbGGuroAAAAAAAAAAAAADhuCAQ/original" style="zoom:50%;" />
-
-您也可以修改代码变更引擎配置，拿**画布透明**来举例，引擎默认是将画布的透明通道开启的，即画布会和背后的网页元素混合，如果需要关闭透明，可以这样设置：
+为了方便用户直接创建 web 端 engine，我们提供了 [WebGLEngine](/apis/rhi-webgl/#WebGLEngine)，支持 WebGL1.0 和 WebGL2.0。
 
 ```typescript
 const engine = await WebGLEngine.create({
-  canvas: htmlCanvas,
-  graphicDeviceOptions: { alpha: false }
+  canvas: "canvas-id",
+  colorSpace: {...},
+  graphicDeviceOptions: {...}，
+  gltf: {...},
+  ktx2Loader: {...}                                   
 });
 ```
 
-类似的，可以用 `webGLMode` 控制 WebGL1/2，除 `webGLMode` 外的属性将透传给上下文，详情可参考 [getContext 参数释义](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext#parameters)。
+下方是创建引擎时传入[配置](/apis/galacean/#WebGLEngineConfiguration)的类型说明：
+
+| 配置                                                         | 解释                                                         |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| canvas                                                       | 可以是画布 ID（ `string`） 或画布对象（`HTMLCanvasElement |OffscreenCanvas`）。 |
+| [graphicDeviceOptions](/apis/galacean/#WebGLGraphicDeviceOptions) | 图形设备相关配置，比如 `webGLMode` 可以用 控制 WebGL1/2。除 `webGLMode` 外的属性将透传给上下文，详情可参考 [getContext 参数释义](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext#parameters)。 |
+| [colorSpace](/apis/galacean/#ColorSpace)                     | 颜色空间, `ColorSpace.Gamma` 或 `ColorSpace.Linear`。        |
+| gltf                                                         | gltf Loader 配置，`workerCount` 用来配置 meshOpt 的 worker 数量：`{ meshOpt: { workerCount: number } }` 。 |
+| ktx2Loader                                                   | KTX2 Loader 配置，`workerCount` 用来配置 ktx2 解码器的worker 数量：`{ priorityFormats: Array<KTX2TargetFormat>; transcoder: KTX2Transcoder; workerCount: number }`。如果 workCount 大于 0，将会创建 worker 线程，等于 0 则只用主线程。 |
+
+
 
 更多相关配置信息，可参考[物理系统](/docs/physics/overall)、[交互系统](/docs/input/input/)、[XR 系统](/docs/xr/overall)。
 
