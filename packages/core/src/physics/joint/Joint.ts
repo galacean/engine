@@ -243,7 +243,7 @@ export abstract class Joint extends Component {
       const tempVector3 = Joint._tempVector3;
       const tempMatrix = Joint._tempMatrix;
       Vector3.transformCoordinate(colliderInfo.anchor, this.entity.transform.worldMatrix, tempVector3);
-      tempMatrix.copyFrom(connectedCollider.entity.transform.worldMatrix).invert();
+      Matrix.invert(connectedCollider.entity.transform.worldMatrix, tempMatrix);
       Vector3.transformCoordinate(tempVector3, tempMatrix, connectedAnchor);
     } else {
       Vector3.transformCoordinate(colliderInfo.anchor, this.entity.transform.worldMatrix, connectedActualAnchor);
