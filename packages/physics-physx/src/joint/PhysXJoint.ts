@@ -48,8 +48,8 @@ export class PhysXJoint implements IJoint {
   }
 
   setRotation(value: Quaternion): void {
-    this._rotation.copyFrom(value);
     this._setLocalPose(1, this._connectedAnchor, value);
+    this._rotation.copyFrom(value);
   }
 
   /**

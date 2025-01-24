@@ -28,8 +28,9 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   }
 
   override setRotation(value: Quaternion): void {
+    const axis = this._axis;
     this._rotation.copyFrom(value);
-    this._axis && this.setAxis(this._axis);
+    axis && this.setAxis(axis);
   }
 
   /**
