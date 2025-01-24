@@ -25,7 +25,7 @@ title: 数字人项目
 
 ### 2. 编辑器项目
 
-你可以按照 [导入教程](/docs/graphics/model/importGlTF/) 等一步步实现编辑器的预览，最后进行[项目导出](/docs/assets/build/)到需要的平台。
+你可以按照 [导入教程](/docs/graphics/model/importGlTF/) 等一步步实现编辑器的预览，最后进行[项目导出](/docs/platform/platform/)到需要的平台。
 
 ### 3. 高级动画定制
 

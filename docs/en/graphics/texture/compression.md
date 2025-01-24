@@ -34,7 +34,7 @@ KTX2 can be generated using:
 
 ### Editor
 
-When packaging the project, the editor can configure options to generate KTX2. Refer to the '[Project Release](/en/docs/assets/build/)' document. The project export is a global configuration, and different compression formats can be configured independently for different texture resources. Check overwrite in the texture panel of the editor to override the global configuration:
+When packaging the project, the editor can configure options to generate KTX2. Refer to the '[Project Release](/en/docs/platform/platform/)' document. The project export is a global configuration, and different compression formats can be configured independently for different texture resources. Check overwrite in the texture panel of the editor to override the global configuration:
 
 <img src="https://mdn.alipayobjects.com/rms/afts/img/A*fmURSZ4HwKUAAAAAAAAAAAAAARQnAQ/original/image-20240705112419249.png" alt="image-20240705112419249" style="zoom:50%;" />
 

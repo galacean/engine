@@ -1,6 +1,7 @@
 {
   "intro": "Introduction",
   "shader": "Shader",
+  "editor": "Editor",
   "subShader": "SubShader",
   "pass": "Pass",
   "macro": "Macro"

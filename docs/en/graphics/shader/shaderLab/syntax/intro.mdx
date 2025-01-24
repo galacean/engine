@@ -8,7 +8,10 @@ Double-click the shader asset we created in the previous step to jump to the cod
 
 > A future version will release the Galacean VSCode plugin, which will provide syntax checking, auto-completion, and code synchronization features for `ShaderLab`. Stay tuned.
 
-  <Image src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*Djs2RJsoPawAAAAAAAAAAAAADteEAQ/original" style={{zoom:"50%"}}/>
+<Image
+  src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*c4yyRboqBSwAAAAAAAAAAAAADteEAQ/fmt.webp"
+  style={{ zoom: "50%" }}
+/>
 
 ## Syntax Standard
 
@@ -17,6 +20,9 @@ The `ShaderLab` syntax framework is as follows:
 ```glsl
 Shader "ShaderName" {
   ...
+  Editor {
+    ...
+  }
   SubShader "SubShaderName" {
     ...
     Pass "PassName" {

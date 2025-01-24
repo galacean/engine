@@ -20,5 +20,5 @@ Spine 动画是一款针对游戏开发的 2D 骨骼动画，它通过将图片�
 本章节会为大家介绍，
 - [如何在 Galacean 编辑器中使用 Spine 动画](/docs/graphics/2D/spine/editor)
 - [如何在代码中使用 Galacean spine 运行时](/docs/graphics/2D/spine/runtime)
-- [Spine 动画示例](/docs/graphics/2D/spine/example)
+- [示例与模板](/docs/graphics/2D/spine/example)
 - [其他内容(版本，性能)](/docs/graphics/2D/spine/other)

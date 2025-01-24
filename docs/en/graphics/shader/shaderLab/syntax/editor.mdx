@@ -1,0 +1,256 @@
+import { Image } from "@/mdx";
+
+---
+
+# Editor
+
+```glsl
+Editor {
+    Properties {
+        material_BaseColor("Offset unit scale", Color) = (1,1,1,1);
+        ...
+        Header("Emissive")
+        {
+            material_EmissiveColor("Emissive color", Color) = (1,1,1,1);
+            ...
+        }
+        ...
+    }
+    ...
+    Macros {
+        [On] UV_OFFSET("UV Offset", Range(1,100)) = 10;
+        ...
+        Header("") {
+            SOME_MACRO("label", Int) = 1;
+        }
+    }
+    ...
+    // Specify the path of bound UIScript.
+    UIScript "./shaderScript.ts";
+}
+```
+
+## Properties
+
+It can be used to define properties bound to the Shader's custom material, allowing developers to adjust the defined properties through the custom material Inspector panel in the editor.
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*1mjVR5GXXOkAAAAAAAAAAAAADteEAQ/fmt.webp"
+  figcaption="Material Inspector"
+  width="200px"
+/>
+
+### Property Definition
+
+```glsl
+/**
+ * @language zh
+ * Comments description
+ */
+
+/**
+ * @language en
+ * 注释描述
+ */
+propertyName("Description", EditType) = [DefaultValue];
+```
+
+<Callout type="info">
+
+1. You can use the `Header` directive to organize related properties, and the corresponding Inspector will have the appropriate hierarchical categorization.
+
+```
+Header("Emissive") {
+    material_EmissiveColor("Emissive color", Color) = (1,1,1,1);
+    ...
+}
+```
+
+2. Annotate Inspector Hover tooltip content through comments, supporting multilingual specification using the `@language` directive.
+
+</Callout>
+
+The currently supported list of EditTypes is as follows::
+
+| EditType | Example |
+| :-: | :-- |
+| Bool | propertyName("Property Description", Boolean) = true; |
+| Int | propertyName("Property Description", Int) = 1; <br/>propertyName("Property Description", Range(0,8)) = 1 <br/> propertyName("Property Description", Enum(Item1: 1, Item2: 2, Item3: 3)) = 1 // Enumeration |
+| Float | propertyName("Property Description", FLoat) = 0.5; <br/>propertyName("Property Description", Range(0.0, 1.0)) = 0.5; <br/> propertyName("Property Description", Enum(Item1: 1.0, Item2: 2.0, Item3: 3.0)) = 1.0; // Enumeration |
+| Texture2D | propertyName("Property Description", Texture2D); |
+| TextureCube | propertyName("Property Description", TextureCube); |
+| Color | propertyName("Property Description", Color) = (0.25, 0.5, 0.5, 1); |
+| Vector2 | propertyName("Property Description", Vector2) = (0.25, 0.5); |
+| Vector3 | propertyName("Property Description", Vector3) = (0.25, 0.5, 0.5); |
+| Vector4 | propertyName("Property Description", Vector4) = (0.25, 0.5, 0.5, 1.0); |
+
+#### Enumeration
+
+```glsl
+propertyName("Property Description", Enum(Item1: 1, Item2: 2, Item3: 3)) = 1;
+```
+
+<Callout typ="warning">
+  Currently, only Int and Float types support enumeration, and type mixing is not supported. For example, the following
+  enumeration mixes Float and Int, and will not be correctly parsed. ```glsl propertyName("Property Description",
+  Enum("Item1":1, "Item2":2.0, "Item3": 3)) = 2.0; ```
+</Callout>
+
+## Macros
+
+It is used to reflect macros utilized in the Shader to the Inspector, allowing for flexible adjustments of the macros on which the Shader depends within the editor.
+
+```
+[On/Off]macroName("MacroLabel", EditType) = [DefaultValue];
+```
+
+Specify the default state of a macro using the [On/Off] directive. The types of macros currently supported by the editor are as follows:
+
+|  Type   | Example                                                                                                   |
+| :-----: | :-------------------------------------------------------------------------------------------------------- |
+|         | macroName("Macro Description");                                                                           |
+|  Bool   | macroName("Macro Description", Boolean) = true;                                                           |
+|   Int   | macroName("Macro Description", Int) = 1; <br/> macroName("Macro Description", Range(0,8)) = 1;            |
+|  Float  | macroName("Macro Description", FLoat) = 0.5; <br/> macroName("Macro Description", Range(0.0, 1.0)) = 0.5; |
+|  Color  | macroName("Macro Description", Color) = (0.25, 0.5, 0.5, 1);                                              |
+| Vector2 | macroName("Macro Description", Vector2) = (0.25, 0.5);                                                    |
+| Vector3 | macroName("Macro Description", Vector3) = (0.25, 0.5, 0.5);                                               |
+| Vector4 | macroName("Macro Description", Vector4) = (0.25, 0.5, 0.5, 1.0);                                          |
+
+## UIScript
+
+While developers adjust custom material properties using the editor, they can also specify data change callback behavior through `UIScript`.
+
+- Bind `UIScript` in ShaderLab:
+
+```
+Editor {
+    ...
+    UIScript "/path/to/script";
+    ...
+}
+```
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*t4LFQ4KEL6kAAAAAAAAAAAAADteEAQ/fmt.webp"
+  width="70%"
+/>
+The bound UIScript script path supports both relative and absolute paths. Taking the project root directory in the above
+image as an example, the absolute path is `/PBRScript1.ts`, and the relative path is `./PBRScript1.ts`.
+
+### UIScript API
+
+The editor exposes relevant APIs through the built-in `ShaderUIScript` class.
+
+```ts
+import { Color, Material, Texture, Vector2, Vector3, Vector4 } from "@galacean/engine";
+
+type ShaderPropertyValue = number | Vector2 | Vector3 | Vector4 | Color | Texture;
+type ShaderMacroValue = number | Vector2 | Vector3 | Vector4 | Color;
+
+/**
+ * Script for extending `Shader` UI logic.
+ */
+export abstract class ShaderUIScript {
+  /** @internal */
+  _propertyCallBacks: Map<string, (material: Material, value: ShaderPropertyValue) => void> = new Map();
+
+  /** @internal */
+  _macroCallBacks: Map<string, (material: Material, defined: boolean, value: ShaderMacroValue) => void> = new Map();
+
+  /**
+   * The method is called when then shader is switched.
+   * @param material - The material which the shader is bound to
+   */
+  onMaterialShaderSwitched(material: Material): void {}
+
+  /**
+   * Register property change callback.
+   * @parma propertyName - Property name
+   * @parma onChanged - Fired on property changed
+   */
+  protected onPropertyChanged(
+    propertyName: string,
+    onChanged: (material: Material, value: ShaderPropertyValue) => void
+  ): void {
+    this._propertyCallBacks.set(propertyName, onChanged);
+  }
+
+  /**
+   * Register macro change callback.
+   * @parma macroName - Macro name
+   * @parma onChanged - Fired on macro changed
+   */
+  protected onMacroChanged(
+    macroName: string,
+    onChanged: (material: Material, defined: boolean, value: ShaderMacroValue) => void
+  ): void {
+    this._macroCallBacks.set(macroName, onChanged);
+  }
+}
+```
+
+### Edit UIScript
+
+1. Create UIScript in Editor
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*Qh4UTZgaY7MAAAAAAAAAAAAADteEAQ/fmt.webp"
+  width="60%"
+  figcaption="create UIScript"
+/>
+
+2. Specify property change callbacks by inheriting from the `ShaderUIScript` class.
+
+```ts
+import { Material, RenderQueueType, Vector3, BlendFactor, RenderFace, CullMode, BlendMode } from "@galacean/engine";
+
+export default class extends ShaderUIScript {
+  constructor() {
+    super();
+
+    ......
+    // Register change callbacks in constructor.
+    this.onPropertyChanged("material_NormalTexture", (material: Material, value) => {
+      const shaderData = material.shaderData;
+      if (value) {
+        shaderData.enableMacro("MATERIAL_HAS_NORMALTEXTURE");
+      } else {
+        shaderData.disableMacro("MATERIAL_HAS_NORMALTEXTURE");
+      }
+    })
+
+    ......
+
+  }
+
+  // Specify callback on shader switch.
+  override onMaterialShaderSwitched(material: Material) {
+    const shaderData = material.shaderData;
+
+    shaderData.disableMacro("MATERIAL_OMIT_NORMAL");
+    shaderData.enableMacro("MATERIAL_NEED_WORLD_POS");
+    shaderData.enableMacro("MATERIAL_NEED_TILING_OFFSET");
+
+    // default value
+    const anisotropyInfo = shaderData.getVector3("material_AnisotropyInfo");
+
+    if (!anisotropyInfo) {
+      shaderData.setVector3("material_AnisotropyInfo", new Vector3(1, 0, 0));
+    } else {
+      shaderData.setFloat("anisotropy", anisotropyInfo.z);
+      const PI2 = Math.PI * 2;
+      const rotationRad = (Math.atan2(anisotropyInfo.y, anisotropyInfo.x) + PI2 ) % PI2;
+      shaderData.setFloat("anisotropyRotation", rotationRad * (180 / Math.PI))
+    }
+  }
+}
+
+```
+
+<Callout info="warning">
+  Note that the current version of the ShaderLab material properties module only defines the Inspector UI panel for the
+  material bound to the Shader in the editor. It does not declare the corresponding global variables in the ShaderPass
+  for you. If the ShaderPass code references this variable, you must explicitly declare it in the Global Variables
+  module.
+</Callout>
