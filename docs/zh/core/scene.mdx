@@ -5,6 +5,8 @@ type: 核心概念
 label: Core
 ---
 
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/cbcc9725-811d-4203-a65d-b4a430083db3/image-20250124154359477.png" />
+
 Scene 作为场景单元，可以方便的进行实体树管理，尤其是大型游戏场景。如: **scene1** 和 **scene2** 作为两个不同的场景，可以各自独立管理其拥有的 **Entity** 树，因此场景下的光照组件、渲染组件和物理组件之间也互相隔离，互不影响。我们可以同时渲染一个或多个 Scene，也可以在特定时机下根据项目逻辑动态切换当前 Scene。
 
 从结构上每个 Engine 下可以包含一个和多个激活的场景（目前编辑器还不支持多个）。每个 Scene 可以有多个根实体。
@@ -16,10 +18,6 @@ Scene 作为场景单元，可以方便的进行实体树管理，尤其是大�
 在 **[资产面板](/docs/assets/interface)** 右键（或资产面板右上角 + 号）创建场景，双击场景可以切换过去：
 
 <Image src="https://gw.alipayobjects.com/zos/OasisHub/eef870a7-2630-4f74-8c0e-478696a553b0/2024-03-19%25252018.04.02.gif" />
-
-### 属性面板
-
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/5770f3d1-6840-438b-adf0-d759048fac6b/image-20250124110620126.png" />
 
 ### 环境光
 
