@@ -1,0 +1,176 @@
+---
+title: PBR
+---
+PBR, short for Physically Based Rendering, is a rendering method first introduced by Disney in 2012 and later widely adopted by the gaming industry. Compared to traditional rendering methods like Blinn-Phong, PBR adheres to energy conservation and follows physical principles. Artists only need to adjust a few simple parameters to achieve accurate rendering results, even in complex scenes. PBR incorporates energy conservation, is physically-based, and introduces IBL (Image-Based Lighting) to simulate global illumination. By using parameters such as metallic and roughness, it allows for more convenient adjustment of rendering effects.
+
+## Introduction to Basic PBR Parameters
+
+| Parameter | Application |
+| :-- | :-- |
+| [metallic](/apis/core/#PBRMaterial-metallic) | Metallic Level: Simulates the metallic nature of a material. The higher the metallic value, the stronger the specular reflection, allowing more surrounding environment to be reflected. |
+| [roughness](/apis/core/#PBRMaterial-roughness) | Roughness: Simulates the material's roughness. The higher the roughness, the less smooth the micro-surface becomes, resulting in more diffuse specular reflections. |
+| [roughnessMetallicTexture](/apis/core/#PBRMaterial-roughnessMetallicTexture) | Metallic-Roughness Texture: Works in conjunction with metallic and roughness values, using a multiplicative relationship. |
+| [baseColor](/apis/core/#PBRBaseMaterial-baseColor) | Base Color: Base Color × Base Color Texture = Final Base Color. Base color represents the material's reflectance value. Unlike traditional diffuse colors, it contributes to both specular and diffuse reflections. You can adjust the metallic and roughness properties to control the ratio of these contributions.|
+| [emissiveColor](/apis/core/#PBRBaseMaterial-emissiveColor) | Emissive Color: Allows materials to emit light, rendering colors even without illumination.|
+| [baseTexture](/apis/core/#PBRBaseMaterial-baseTexture) | Base Color Texture: Works with base color in a multiplicative relationship. |
+| [normalTexture](/apis/core/#PBRBaseMaterial-normalTexture) | 	Normal Map Texture: Simulates surface bumps visually using a normal map, with adjustable strength to control the intensity of the effect. |
+| [emissiveTexture](/apis/core/#PBRBaseMaterial-emissiveTexture) | Emissive Texture: Used in conjunction with emissive color（[emissiveFactor](/apis/core/#PBRBaseMaterial-emissiveTexture)）to achieve self-emitting effects. |
+| [occlusionTexture](/apis/core/#PBRBaseMaterial-occlusionTexture) | Occlusion Texture: Enhances shadow detail using an occlusion map. |
+| [tilingOffset](/apis/core/#PBRBaseMaterial-tilingOffset) | Texture Tiling and Offset: A Vector4 controlling the tiling and offset of the texture in the UV directions，See [example](${examples}tiling-offset) |
+| [clearCoat](/apis/core/#PBRBaseMaterial-clearCoat) | Clear Coat Intensity: Default is 0, meaning the clear coat effect is disabled. See [example] (${examples}pbr-clearcoat) 。 |
+| [clearCoatTexture](/apis/core/#PBRBaseMaterial-clearCoatTexture) | Clear Coat Intensity Texture: Works multiplicatively with clearCoat. |
+| [clearCoatRoughness](/apis/core/#PBRBaseMaterial-clearCoatRoughness) | Clear Coat Roughness: Determines the roughness of the clear coat layer. |
+| [clearCoatRoughnessTexture](/apis/core/#PBRBaseMaterial-clearCoatRoughnessTexture) | Clear Coat Roughness Texture: Works multiplicatively with clearCoatRoughness. |
+| [clearCoatNormalTexture](/apis/core/#PBRBaseMaterial-clearCoatNormalTexture) | Clear Coat Normal Texture: If not set, it defaults to using the base material's normal texture. |
+
+Adjusting the metallic property reveals that higher metallic values make the environment reflection more vivid, transitioning from pure white to colored. This happens because fully metallic surfaces (metallic = 1) reflect 100% of the light, including the surrounding environment:
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/711f8b97-247c-465e-8cf2-4896b0c78534/metal.gif" />
+
+
+<Callout type="warning">
+Beyond these general parameters, PBR supports two workflows:  **Metallic-Roughness** and **Specular-Glossiness**, corresponding to [PBRMaterial](/apis/core/#PBRMaterial) and [PBRSpecularMaterial](/apis/core/#PBRSpecularMaterial)。
+</Callout>
+
+## PBRMaterial
+
+#### Anisotropy
+<Callout type="info"> Anisotropy refers to the material's property of reflecting light differently in various directions, often seen in materials like metals, fabrics, and hair. </Callout>
+
+| Parameter | Application |
+| :-- | :-- |
+| [anisotropy](/apis/core/#PBRMaterial-anisotropy) | Anisotropy Strength: Default is 0, disabling anisotropic effects. See [example](${examples}pbr-anisotropy) 。 |
+| [anisotropyRotation](/apis/core/#PBRMaterial-anisotropyRotation) | Anisotropy Rotation: Rotates the effect in tangent space. |
+| [anisotropyTexture](/apis/core/#PBRMaterial-anisotropyTexture) | 	Anisotropy Texture: The RG channels store direction information (combined with anisotropyRotation), while the B channel stores anisotropy strength (multiplied by anisotropy). |
+
+To enable anisotropy
+- Navigate to the Inspector Enable [anisotropy](/apis/core/#PBRMaterial-anisotropy) and adjust its parameters:
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*j0jGRZL3iBsAAAAAAAAAAAAADgDwAQ/original"
+/>
+
+#### Sheen
+
+<Callout type="info">
+Typically used to simulate the subtle glossy effect of surfaces like fabrics, this effect is usually visible at certain viewing angles. It mimics the light-scattering characteristics of materials like silk, velvet, or other finely textured surfaces. 
+</Callout>
+
+| Parameter | Description |
+| :-- | :-- |
+| [sheenColor](/apis/core/#PBRMaterial-sheenColor) | Base sheen color of the surface. This property determines the observed glossy color when light interacts with the surface.|
+| [sheenColorTexture](/apis/core/#PBRMaterial-sheenColorTexture) | Adds more complex and detailed variations to the sheen color. Using this texture allows different areas of the surface to exhibit distinct glossy colors. |
+| [sheenRoughness](/apis/core/#PBRMaterial-sheenRoughness) | Defines the surface roughness. Lower values indicate smoother surfaces with more concentrated gloss, while higher values create rougher surfaces with softer, more diffused gloss. |
+| [sheenRoughnessTexture](/apis/core/#PBRMaterial-sheenRoughnessTexture) | Allows variations in roughness across the surface using a texture, enabling detailed roughness patterns for more realistic effects. |
+
+<Image
+  figcaption="Glossy variations on fabric surfaces at different angles"
+  src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*mQ5UT7TnFrEAAAAAAAAAAAAADgDwAQ/original"
+/>
+
+Enable sheen
+
+- Select the material and adjust the corresponding parameters to achieve the desired effect:
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*ID62RJf8sFYAAAAAAAAAAAAADgDwAQ/original"
+/>
+
+#### Thin Film Iridescence
+<Callout type="info"> This effect causes surface colors to change based on the viewing and lighting angles. It's commonly seen in natural phenomena like soap bubbles, insect wings, pearls, and more. </Callout>
+| Parameter | Description |
+| :-- | :-- |
+| [iridescence](/apis/core/#PBRMaterial-iridescence) | Intensity of the thin-film iridescence, ranging from 0 to 1. |
+| [iridescenceTexture](/apis/core/#PBRMaterial-iridescenceTexture) | Texture controlling the intensity of the thin-film iridescence. |
+| [iridescenceIOR](/apis/core/#PBRMaterial-iridescenceIOR) | Index of refraction for the thin-film effect, influencing the degree of light bending and resulting colors. |
+| [iridescenceThicknessRange](/apis/core/#PBRMaterial-iridescenceThicknessRange) | Defines the thickness range of the thin film, determining the color variation caused by the iridescence effect. |
+| [iridescenceThicknessTexture](/apis/core/#PBRMaterial-iridescenceThicknessTexture) | Texture defining the thickness variation of the thin film, influencing the final colors. |
+<Image
+  figcaption="Thin film iridescence effect"
+  src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*GEksSY3q1qUAAAAAAAAAAAAADgDwAQ/original"
+/>
+
+Enable Iridescence
+
+- Select the material, ensure [iridescence](/apis/core/#PBRMaterial-iridescence) is greater than 0, and enable the thin-film effect
+- Adjust parameters like [metallic](/apis/core/#PBRMaterial-metallic) ， [roughness](/apis/core/#PBRMaterial-roughness) ，[iridescenceIOR](/apis/core/#PBRMaterial-iridescenceIOR) to achieve the desired result
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*GJU9Ra9ZWUIAAAAAAAAAAAAADgDwAQ/original"
+/>
+
+
+#### Transmission
+<Callout type="info">Describes the portion of light passing through an object rather than being reflected or absorbed. This phenomenon occurs in transparent or translucent materials when part of the light passes through the surface.</Callout>
+
+<Image
+  figcaption="Variation of transmission from 0 to 1"
+  src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*P7XpSoWpRdQAAAAAAAAAAAAADgDwAQ/original"
+/>
+
+| Parameter | Description |
+| :-- | :-- |
+| [transmission](/apis/core/#PBRMaterial-transmission) | Controls the intensity of light transmission through the material, ranging from 0 (opaque) to 1 (fully transparent). |
+| [transmissionTexture](/apis/core/#PBRMaterial-transmissionTexture) | A texture that multiplies with the transmission value, sampled from the R channel, to control varying transmission intensities across the surface. |
+
+Enable transmission
+
+- First, enable the Opaque Texture option in both the Camera and Scene settings:
+
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*_tBbRYNaBPMAAAAAAAAAAAAADgDwAQ/original"
+/>
+
+- Select the material and adjust the related transmission parameters:
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*tTT_TbnawQQAAAAAAAAAAAAADgDwAQ/original"
+/>
+
+<Callout type="warning">
+`Refraction` occurs based on the physical principle that it requires `transmission`. This means `refraction` effects only apply when [transmission](/apis/core/#PBRMaterial-transmission) is greater than 0.
+</Callout>
+
+#### Refraction
+| Parameter | Description |
+| :-- | :-- |
+| [attenuationColor](/apis/core/#PBRMaterial-attenuationColor) | Absorption color, determining the color change of light as it travels through the object. Useful for simulating colored glass, liquids, or gemstone effects. |
+| [attenuationDistance](/apis/core/#PBRMaterial-attenuationDistance) | The distance over which light diminishes within the object. Shorter distances result in denser appearances with more pronounced color changes, while longer distances produce more gradual changes. A value of 0 means no attenuation. |
+| [thickness](/apis/core/#PBRMaterial-thickness) | Refraction thickness, controlling the bending of light as it passes through the object. Higher values produce more pronounced refraction, while smaller values create straighter light paths. |
+| [thicknessTexture](/apis/core/#PBRMaterial-thicknessTexture) | 	A texture sampled from the G channel to define thickness variations. White areas represent greater thickness, black areas represent less, and it multiplies with the [thickness](/apis/core/#PBRMaterial-thickness) value. |
+
+<Image
+  figcaption="Changes in attenuationDistance and resulting color variations"
+  src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*TSZlQ7HOaS4AAAAAAAAAAAAADgDwAQ/original"
+/>
+
+Enable Refraction
+- After enabling [transmission](/apis/core/#PBRMaterial-transmission), set [thickness](/apis/core/#PBRMaterial-thickness) to a value greater than 0 to activate refraction.
+- Adjust attenuation color, attenuation distance, and other parameters to fine-tune the effect.
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*yKNsQpiPQxoAAAAAAAAAAAAADgDwAQ/original"
+/>
+
+> Assumptions made for implementing the refraction algorithm:
+> 
+> A simple geometric approximation is used to simulate the surface characteristics of the object. The material's refraction mode is determined using [refractionMode](/apis/core/#PBRMaterial-refractionMode).
+
+| refractionMode | Description |
+| :-- | :-- |
+| [Sphere](/apis/core/#PBRMaterial-Sphere) | Uses a sphere as the geometric approximation for the surface, efficiently handling light refraction on curved surfaces. |
+| [Planar](/apis/core/#PBRMaterial-Planar) | Uses a plane as the geometric approximation for the surface, suitable for simulating transmission and refraction on flat materials. |
+
+
+## PBRSpecularMaterial
+
+| Parameter | Application |
+| :-- | :-- |
+| [specularColor](/apis/core/#PBRMaterial-specularColor) | Specifies the specular highlight color directly instead of deriving it from metallic and base color values (only effective when the metallic-roughness workflow is disabled).|
+| [glossiness](/apis/core/#PBRMaterial-glossiness) | Simulates surface smoothness, opposite to roughness (only effective when the metallic-roughness workflow is disabled). |
+| [specularGlossinessTexture](/apis/core/#PBRMaterial-specularGlossinessTexture) | A texture for combining specular color and glossiness, with the values being multiplied together. |
+
+> **Note**：PBR require [ambient lighting](/docs/graphics-light-ambient) to be enabled.
+
+For scripting materials,refer to the [Material Usage Guide](/docs/graphics-material-script).

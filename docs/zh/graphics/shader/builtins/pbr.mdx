@@ -1,0 +1,175 @@
+---
+title: PBR
+---
+PBR 全称是 **Physically Based Rendering**，中文意思是**基于物理的渲染**，最早由迪士尼在 2012 年提出，后来被游戏界广泛使用。跟传统的 **Blinn-Phong** 等渲染方法相比，PBR 遵循能量守恒，符合物理规则，美术们只需要调整几个简单的参数，即使在复杂的场景中也能保证正确的渲染效果。PBR 遵循能量守恒，是基于物理的渲染，并且引入了 [IBL](/docs/graphics-light-ambient) 模拟全局光照，通过金属度、粗糙度等参数，更加方便地调节渲染效果。
+
+## PBR 基础参数介绍
+
+| 参数 | 应用 |
+| :-- | :-- |
+| [metallic](/apis/core/#PBRMaterial-metallic) | 金属度。模拟材质的金属程度，金属值越大，镜面反射越强，即能反射更多周边环境。 |
+| [roughness](/apis/core/#PBRMaterial-roughness) | 粗糙度。模拟材质的粗糙程度，粗糙度越大，微表面越不平坦，镜面反射越模糊。 |
+| [roughnessMetallicTexture](/apis/core/#PBRMaterial-roughnessMetallicTexture) | 金属粗糙度纹理。搭配金属粗糙度使用，是相乘的关系。 |
+| [baseColor](/apis/core/#PBRBaseMaterial-baseColor) | 基础颜色。**基础颜色** \* **基础颜色纹理** = **最后的基础颜色**。基础颜色是物体的反照率值,与传统的漫反射颜色不同，它会同时贡献镜面反射和漫反射的颜色，我们可以通过上面提到过的金属度、粗糙度，来控制贡献比。 |
+| [emissiveColor](/apis/core/#PBRBaseMaterial-emissiveColor) | 自发光颜色。使得即使没有光照也能渲染出颜色。 |
+| [baseTexture](/apis/core/#PBRBaseMaterial-baseTexture) | 基础颜色纹理。搭配基础颜色使用，是个相乘的关系。 |
+| [normalTexture](/apis/core/#PBRBaseMaterial-normalTexture) | 法线纹理。可以设置法线纹理 ，在视觉上造成一种凹凸感，还可以通过法线强度来控制凹凸程度。 |
+| [emissiveTexture](/apis/core/#PBRBaseMaterial-emissiveTexture) | 自发射光纹理。我们可以设置自发光纹理和自发光颜色（[emissiveFactor](/apis/core/#PBRBaseMaterial-emissiveTexture)）达到自发光的效果，即使没有光照也能渲染出颜色。 |
+| [occlusionTexture](/apis/core/#PBRBaseMaterial-occlusionTexture) | 阴影遮蔽纹理。我们可以设置阴影遮蔽纹理来提升物体的阴影细节。 |
+| [tilingOffset](/apis/core/#PBRBaseMaterial-tilingOffset) | 纹理坐标的缩放与偏移。是一个 Vector4 数据，分别控制纹理坐标在 uv 方向上的缩放和偏移，参考 [案例](${examples}tiling-offset) |
+| [clearCoat](/apis/core/#PBRBaseMaterial-clearCoat) | 透明涂层的强度，默认为 0，既不开启透明涂层效果，参考 [案例](${examples}pbr-clearcoat) 。 |
+| [clearCoatTexture](/apis/core/#PBRBaseMaterial-clearCoatTexture) | 透明涂层强度纹理，和 clearCoat 是相乘的关系。 |
+| [clearCoatRoughness](/apis/core/#PBRBaseMaterial-clearCoatRoughness) | 透明涂层的粗糙度。 |
+| [clearCoatRoughnessTexture](/apis/core/#PBRBaseMaterial-clearCoatRoughnessTexture) | 透明涂层粗糙度纹理，和 clearCoatRoughness 是相乘的关系。 |
+| [clearCoatNormalTexture](/apis/core/#PBRBaseMaterial-clearCoatNormalTexture) | 透明涂层法线纹理，如果没有设置则会共用原材质的法线。 |
+
+我们调节材质的金属度，可以发现，金属度越大，周围的环境越清晰，并且开始从白色纯色变成彩色。这是因为电介质（即金属度为 1 时）材质会将光线 100% 全部反射出物体表面，即反射出彩色的周边环境：
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/711f8b97-247c-465e-8cf2-4896b0c78534/metal.gif" />
+
+
+<Callout type="warning">
+除了以上通用参数，PBR 提供了 **金属-粗糙度** 和 **高光-光泽度** 两种工作流，分别对应 [PBRMaterial](/apis/core/#PBRMaterial) 和 [PBRSpecularMaterial](/apis/core/#PBRSpecularMaterial)。
+</Callout>
+
+## PBRMaterial
+
+#### Anisotropy
+<Callout type="info">指表面材料在不同方向上的光反射特性不同，通常表现为材料表面呈现出不同的光泽或反射效果。这种效应在许多真实世界的材质中都有出现，尤其是金属、织物、头发等材料。</Callout>
+
+| 参数 | 应用 |
+| :-- | :-- |
+| [anisotropy](/apis/core/#PBRMaterial-anisotropy) | 各向异性强度。默认为 0，关闭各项异性计算。参考 [案例](${examples}pbr-anisotropy) 。 |
+| [anisotropyRotation](/apis/core/#PBRMaterial-anisotropyRotation) | 各向异性旋转角度。沿切线、副切线空间旋转相应角度。 |
+| [anisotropyTexture](/apis/core/#PBRMaterial-anisotropyTexture) | 各向异性纹理。RG 通道保存着各向异性方向，会和 anisotropyRotation 计算结果相乘；B 通道保存着各向异性强度，会和 anisotropy 相乘。 |
+
+启用 Anisotropy
+- 导航到 Inspector ，打开 [anisotropy](/apis/core/#PBRMaterial-anisotropy) 后调节对应的参数获取想要的效果：
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*j0jGRZL3iBsAAAAAAAAAAAAADgDwAQ/original"
+/>
+
+#### Sheen
+
+<Callout type="info">
+通常用于模拟织物等材质表面微小的光泽效果，这种光泽一般在一定的观察角度下可以看到，类似于一些丝绸、天鹅绒或其他细致纤维材料表面的光散射特性。
+</Callout>
+
+| 参数 | 描述 |
+| :-- | :-- |
+| [sheenColor](/apis/core/#PBRMaterial-sheenColor) | 物体表面基础光泽颜色，此属性决定了当光线与表面交互时，表面上观察到的光泽颜色。|
+| [sheenColorTexture](/apis/core/#PBRMaterial-sheenColorTexture) | 用于为光泽效果提供更复杂和细致的颜色变化，通过使用该纹理，可以实现光泽颜色在表面上的不同区域具有不同的表现。 |
+| [sheenRoughness](/apis/core/#PBRMaterial-sheenRoughness) | 定义表面粗糙度，较低的数值表示表面更光滑，光泽更集中；较高的数值意味着表面更粗糙，光泽更柔和且扩散。 |
+| [sheenRoughnessTexture](/apis/core/#PBRMaterial-sheenRoughnessTexture) | 允许粗糙度在不同区域具有不同的特性，通过纹理来定义这种变化，这样可以在同一表面上实现复杂的粗糙度表现。 |
+
+<Image
+  figcaption="不同角度下织物表面的光泽变化"
+  src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*mQ5UT7TnFrEAAAAAAAAAAAAADgDwAQ/original"
+/>
+
+启用 sheen
+
+- 选中 material ，调节对应的参数获取想要的效果：
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*ID62RJf8sFYAAAAAAAAAAAAADgDwAQ/original"
+/>
+
+#### Thin Film Iridescence
+<Callout type="info">通常表现为物体表面颜色随着观察角度和光照角度的变化而变化，这种效应在自然界中可以于肥皂泡、昆虫翅膀、珍珠等地方看到。</Callout>
+| 参数 | 描述 |
+| :-- | :-- |
+| [iridescence](/apis/core/#PBRMaterial-iridescence) | 薄膜干涉强度，范围从 0 到 1。|
+| [iridescenceTexture](/apis/core/#PBRMaterial-iridescenceTexture) | 指定一张纹理，用于控制薄膜干涉效果的强度。 |
+| [iridescenceIOR](/apis/core/#PBRMaterial-iridescenceIOR) | 薄膜干涉折射率，该值决定了光线的弯曲程度，对于薄膜干涉而言，它影响所得光线的颜色。 |
+| [iridescenceThicknessRange](/apis/core/#PBRMaterial-iridescenceThicknessRange) | 用于控制薄膜干涉厚度，决定了最终薄膜干涉的颜色变化。 |
+| [iridescenceThicknessTexture](/apis/core/#PBRMaterial-iridescenceThicknessTexture) | 指定一张纹理，用于控制薄膜干涉效果的厚度，同时也会影响到最终效果颜色。 |
+<Image
+  figcaption="薄膜干涉效果"
+  src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*GEksSY3q1qUAAAAAAAAAAAAADgDwAQ/original"
+/>
+
+启用 Iridescence
+
+- 选中 material ，确保 [iridescence](/apis/core/#PBRMaterial-iridescence) 大于 0， 打开薄膜干涉
+- 调节 [metallic](/apis/core/#PBRMaterial-metallic) ， [roughness](/apis/core/#PBRMaterial-roughness) ，[iridescenceIOR](/apis/core/#PBRMaterial-iridescenceIOR) 等参数实现想要的效果
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*GJU9Ra9ZWUIAAAAAAAAAAAAADgDwAQ/original"
+/>
+
+
+#### Transmission
+<Callout type="info">描述了光线穿过物体而不是被反射或吸收的部分，当一个光照到透明或半透明物体时，部分光会穿过该物体，这就是透射的基本表现。</Callout>
+
+<Image
+  figcaption="transmission 从 0 到 1 的变化"
+  src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*P7XpSoWpRdQAAAAAAAAAAAAADgDwAQ/original"
+/>
+
+| 参数 | 描述 |
+| :-- | :-- |
+| [transmission](/apis/core/#PBRMaterial-transmission) | 控制材质的透射强度，范围为 0 到 1 之间，0 表示不透射，1 表示完全透射。 |
+| [transmissionTexture](/apis/core/#PBRMaterial-transmissionTexture) | 透射纹理，采样 R 通道，与 [transmission](/apis/core/#PBRMaterial-transmission) 相乘，用于控制材质表面不同区域的透射强度。 |
+
+启用 transmission
+
+- 首先需要分别打开 Camera 下和场景中的 Opaque Texture：
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*_tBbRYNaBPMAAAAAAAAAAAAADgDwAQ/original"
+/>
+
+- 然后选中 material 调节 transmission 相关的参数：
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*tTT_TbnawQQAAAAAAAAAAAAADgDwAQ/original"
+/>
+
+<Callout type="warning">
+根据物理规律，我们认为 `折射` 是建立在 `透射` 的基础上，这意味着只有当光线穿过材质 `透射` 时， `折射` 现象才会发生，即 [transmission](/apis/core/#PBRMaterial-transmission) 大于 0 ， `折射` 才会生效。
+</Callout>
+
+#### Refraction
+| 参数 | 描述 |
+| :-- | :-- |
+| [attenuationColor](/apis/core/#PBRMaterial-attenuationColor) | 吸收颜色，决定光线在物体内部传播时颜色的变化，通过设置该颜色，可以模拟如彩色玻璃、液体或宝石内部的光学吸收效果。 |
+| [attenuationDistance](/apis/core/#PBRMaterial-attenuationDistance) | 衰减距离，定义光线在物体内部传播时衰减的距离范围，当衰减距离较短时，材质会显得更浓密，颜色变化更明显；当衰减距离较长时，光线穿透距离更大，颜色变化较缓，值为 0 时，表示光线不会随距离衰减。 |
+| [thickness](/apis/core/#PBRMaterial-thickness) | 折射厚度，用于控制光线通过物体时的折射效果，较大的厚度值会导致光线发生更明显的弯曲，而较小的值则让光线更加直线传播。 |
+| [thicknessTexture](/apis/core/#PBRMaterial-thicknessTexture) | 折射厚度纹理，采样 G 通道，白色区域表示较大的厚度，黑色区域表示较小的厚度，与 [thickness](/apis/core/#PBRMaterial-thickness) 相乘。 |
+
+<Image
+  figcaption="attenuationDistance 逐渐增大，颜色的变化"
+  src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*TSZlQ7HOaS4AAAAAAAAAAAAADgDwAQ/original"
+/>
+
+启用 Refraction
+- 确保 [transmission](/apis/core/#PBRMaterial-transmission) 打开后，将 [thickness](/apis/core/#PBRMaterial-thickness) 设置为大于 0，即可打开折射
+- 可以调整衰减颜色、衰减距离等参数配合折射使用
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*yKNsQpiPQxoAAAAAAAAAAAAADgDwAQ/original"
+/>
+
+> 我们为了实现折射算法，做了以下假设：
+> 
+> 用一个简单的几何形状近似模拟物体表面特性，并使用 [refractionMode](/apis/core/#PBRMaterial-refractionMode) 表示材质的折射模式。
+
+| refractionMode | 描述 |
+| :-- | :-- |
+| [Sphere](/apis/core/#PBRMaterial-Sphere) | 使用球体作为几何形状近似模拟物体的表面，可以高效地处理光线在曲面上的折射行为。 |
+| [Planar](/apis/core/#PBRMaterial-Planar) | 使用平面作为几何形状近似模拟物体的表面，适合处理光线在平坦材质上的透射和折射行为。 |
+
+
+## PBRSpecularMaterial
+
+| 参数 | 应用 |
+| :-- | :-- |
+| [specularColor](/apis/core/#PBRMaterial-specularColor) | 高光度。不同于金属粗糙度工作流的根据金属度和基础颜色计算镜面反射，而是直接使用高光度来表示镜面反射颜色。(注，只有关闭金属粗糙工作流才生效) 。|
+| [glossiness](/apis/core/#PBRMaterial-glossiness) | 光泽度。模拟光滑程度，与粗糙度相反。(注，只有关闭金属粗糙工作流才生效)。 |
+| [specularGlossinessTexture](/apis/core/#PBRMaterial-specularGlossinessTexture) | 高光光泽度纹理。搭配高光光泽度使用，是相乘的关系。 |
+
+> **注**：PBR 必须开启[环境光](/docs/graphics-light-ambient)
+
+如果需要通过脚本使用材质，可以前往[材质的使用教程](/docs/graphics-material-script)。
