@@ -5,7 +5,25 @@ title: Custom Post-Processing
 
 In the post-processing system, the effect ([Effect](/apis/core/#PostProcessEffect)) is responsible for maintaining the data layer, and the pipeline ([Pass](/apis/core/#PostProcessPass)) is responsible for writing the rendering logic. In the pipeline, calling the [getBlendEffect](/apis/core/#PostProcessManager-getBlendEffect) method can get the final post-processing data after **global/local** mixing.
 
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/d8b0e2e8-76d7-49d5-ae61-3889cdba011d/image-20250115155920429.png" />
+```mermaid
+graph TD;
+    subgraph Pass
+        A1[Custom Pass ...]
+        A2[Uber Pass]
+        A3[Custom Pass ...]
+    end
+
+    subgraph Effect
+        B1[Bloom Effect]
+        B2[Tonemapping Effect]
+        B3[Custom Effect]
+    end
+
+    A1 --> A2 --> A3
+    B1 --> B2 --> B3
+
+    A1 ---|Blend| B1
+```
 
 The engine has built-in [PostProcessUberPass](/apis/core/#PostProcessUberPass), which is used with [BloomEffect](/apis/core/#BloomEffect) and [TonemappingEffect](/apis/core/#TonemappingEffect) data. If you want to customize post-processing effects, we need to create a new Pass and then create an Effect based on whether the data needs to be fused.
 
@@ -20,11 +38,21 @@ Here we will simply implement a grayscale image post-processing effect~
   rightText="Uber Pass + Custom Pass"
 />
 
-### 1. Shader Writing
+### 1. Add script
+
+Let's create a script first. Next, we will write our custom post-processing Shader and Pass in this script file.
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/6df5fd1c-a24c-4e32-a62e-841b61fe76c7/image-20250124111456360.png" />
+
+We refer to [Adding post-processing methods](/en/docs/graphics/postProcess/postProcess/#1-adding-a-post-processing-component) to add global or local post-processing components, and hang the script on this entity:
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/62a36df2-fdc5-4c13-9a32-c41f963d18b5/image-20250124112043221.png" />
+
+### 2. Shader Writing
 
 The algorithm is not special, but you need to pay attention to `renderer_BlitTexture` This built-in variable is the post-processing rendering result of the previous Pass. Here it is the result after Bloom and Tonemapping. We display this result in grayscale.
 
-```ts showLineNumbers {14}
+```ts showLineNumbers {14} filename="CustomPostProcessPass.ts"
 const customShader = Shader.create(
   "Gray Scale Shader",
   `
@@ -49,11 +77,11 @@ const customShader = Shader.create(
 );
 ```
 
-### 2. Create a new Pass
+### 3. Create a new Pass
 
 We create a new Pass, directly [Blitter](/apis/core/#Blitter) to the screen in the [onRender hook](/apis/core/#PostProcessUberPass-onRender), and then add this Pass to the engine.
 
-```ts showLineNumbers {10,15}
+```ts showLineNumbers {10,15} filename="CustomPostProcessPass.ts"
 class CustomPass extends PostProcessPass {
   private _blitMaterial: Material;
 
@@ -73,13 +101,13 @@ engine.addPostProcessPass(customPass);
 
 The execution order of Pass is executed after Uber Pass by default, that is [`PostProcessPassEvent.AfterUber`](/apis/core/#PostProcessPassEvent-AfterUber), we can also manually modify the execution order of the pipeline:
 
-```ts
+```ts filename="CustomPostProcessPass.ts"
 customPass.event = PostProcessPassEvent.BeforeUber;
 ```
 
 Whether the Pass is effective is determined by the Pass's [isActive](/apis/core/#PostProcessUberPass-isActive) by default. We can also modify the effectiveness logic, such as whether the intensity is greater than 0:
 
-```ts showLineNumbers {2-9}
+```ts showLineNumbers {2-9} filename="CustomPostProcessPass.ts"
 class CustomPass extends PostProcessPass {
   override isValid(postProcessManager: PostProcessManager): boolean {
     if (!this.isActive) {
@@ -92,13 +120,13 @@ class CustomPass extends PostProcessPass {
 }
 ```
 
-### 3. Blend data
+### 4. Blend data
 
-The above steps 1 and 2 can already customize the post-processing effect. Here is an advanced version of Blend data.
+The above steps 2 and 3 can already customize the post-processing effect. Here is an advanced version of Blend data.
 
 Take `intensity` as an example. We define a `CustomEffect`, which is specifically used to fuse intensity. The data to be fused is also very simple. The engine has encapsulated a series of post-processing parameters, such as [floating point type parameters](/apis/core/#PostProcessEffectFloatParameter).
 
-```ts showLineNumbers {2,7}
+```ts showLineNumbers {2,7} filename="CustomPostProcessPass.ts"
 class CustomEffect extends PostProcessEffect {
   intensity = new PostProcessEffectFloatParameter(0.8);
 }
@@ -110,7 +138,7 @@ postProcess.addEffect(CustomEffect);
 
 After defining the data, you need to change the `onRender` hook of the custom Pass to get the Blend data:
 
-```ts showLineNumbers {3-6}
+```ts showLineNumbers {3-6} filename="CustomPostProcessPass.ts"
 class CustomPass extends PostProcessPass {
   onRender(camera: Camera, srcTexture: Texture2D, dst: RenderTarget): void {
     const postProcessManager = camera.scene.postProcessManager;
@@ -126,7 +154,7 @@ class CustomPass extends PostProcessPass {
 
 As you can see, we continuously set the fused intensity in the `onRender` hook of the custom pipeline, and then consume this data in the shader:
 
-```ts showLineNumbers {8,12}
+```ts showLineNumbers {8,12} filename="CustomPostProcessPass.ts"
 const customShader = Shader.create(
   "Gray Scale Shader",
   `
