@@ -1,0 +1,98 @@
+---
+order: 4
+title: Components
+type: Core
+label: Core
+---
+
+An [Entity](/apis/core/#Entity) does not have actual functionalities such as rendering models. These functionalities are achieved by loading [Component](/apis/core/#Component) classes. For example, if you want an _Entity_ to become a camera, you simply add a camera component [Camera](/apis/core/#Camera) to the _Entity_. This component-based extension approach focuses on encapsulating functionalities independently and combining them as needed, which is very beneficial for reducing program coupling and enhancing code reusability.
+
+Common Components:
+
+| Name                                               | Description      |
+| :------------------------------------------------- | :--------------- |
+| [Camera](/apis/core/#Camera)                       | Camera           |
+| [MeshRenderer](/apis/core/#MeshRenderer)           | Static model renderer |
+| [SkinnedMeshRenderer](/apis/core/#SkinnedMeshRenderer) | Skinned model renderer |
+| [Animator](/apis/core/#Animator)                   | Animation control component |
+| [DirectLight](/apis/core/#DirectLight)             | Directional light |
+| [PointLight](/apis/core/#PointLight)               | Point light      |
+| [SpotLight](/apis/core/#SpotLight)                 | Spotlight        |
+| [ParticleRenderer](/apis/core/#ParticleRenderer)   | Particle system  |
+| [BoxCollider](/apis/core/#BoxCollider)             | Box collider     |
+| [SphereCollider](/apis/core/#SphereCollider)       | Sphere collider  |
+| [PlaneCollider](/apis/core/#PlaneCollider)         | Plane collider   |
+| [Script](/apis/core/#Script)                       | Script           |
+
+## Using the Editor
+
+After selecting an entity from the **[Hierarchy Panel](/docs/interface/hierarchy)** or the scene, the inspector will display all the components mounted on the currently selected node, with the component name displayed in the top left corner.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*tZcpRrrYQcMAAAAAAAAAAAAADsJ_AQ/original" alt="Name" style={{zoom: "50%"}} />
+
+You can control whether it is enabled in the inspector.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QRG8TZ1IorQAAAAAAAAAAAAADsJ_AQ/original" alt="Enable" style={{zoom: "50%"}} />
+
+If you don't need it, you can also delete it.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*uqFGQIHyLAwAAAAAAAAAAAAADsJ_AQ/original" alt="Delete" style={{zoom: "50%"}} />
+
+Or edit its various properties.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*IFnGRYHdi7gAAAAAAAAAAAAADsJ_AQ/original" alt="Edit" style={{zoom: "50%"}} />
+
+If it's an empty node, you can click the `Add Component` button to add new components to the current entity.
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/95d58dde-109f-44b2-89ef-2959ad8b4fe3/image-20230926112713126.png" alt="image-20230926112713126" style={{zoom: "50%"}} />
+
+## Using Scripts
+
+### Adding a Component
+
+We use [addComponent(Component)](/apis/core/#Entity-addComponent) to add components. For example, to add a "parallel light" component ([DirectLight](/apis/core/#DirectLight)) to an `Entity`:
+
+```typescript
+const lightEntity = rootEntity.createChild("light");
+const directLight = lightEntity.addComponent(DirectLight);
+directLight.color = new Color(0.3, 0.3, 1);
+directLight.intensity = 1;
+```
+
+### Finding Components on an Entity
+
+When we need to get a component on an entity, the [getComponent](/apis/core/#Entity-getComponent) API will help you find the target component.
+
+```typescript
+const component = newEntity.getComponent(Animator);
+```
+
+Sometimes there may be multiple components of the same type, and the above method will only return the first found component. If you need to find all components, you can use [getComponents](/apis/core/#Entity-getComponents):
+
+```typescript
+const components = [];
+newEntity.getComponents(Animator, components);
+```
+
+In entities obtained from assets like glTF, we might not know which entity contains the target component. In this case, you can use [getComponentsIncludeChildren](/apis/core/#Entity-getComponentsIncludeChildren) to search.
+
+```typescript
+const components = [];
+newEntity.getComponentsIncludeChildren(Animator, components);
+```
+
+### Obtaining the Entity of a Component
+
+Continuing from the example of adding a component at the beginning, you can directly obtain the entity of a component:
+
+```typescript
+const entity = directLight.entity;
+```
+
+### State
+
+When you temporarily do not need a component, you can actively call the component's [enabled](/apis/core/#Component-enabled).
+
+```typescript
+directLight.enabled = false;
+```

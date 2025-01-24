@@ -5,6 +5,8 @@ type: Core Concept
 label: Core
 ---
 
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/cbcc9725-811d-4203-a65d-b4a430083db3/image-20250124154359477.png" />
+
 Scene, as a scene unit, can facilitate entity tree management, especially for large game scenes. For example: **scene1** and **scene2** as two different scenes can independently manage their own **Entity** trees. Therefore, the lighting components, rendering components, and physical components under the scenes are also isolated from each other and do not affect each other. We can render one or more Scenes simultaneously, or dynamically switch the current Scene according to project logic at specific times.
 
 Structurally, each Engine can contain one or more active scenes (currently the editor does not support multiple). Each Scene can have multiple root entities.
@@ -16,10 +18,6 @@ Structurally, each Engine can contain one or more active scenes (currently the e
 Right-click in the **[Assets Panel](/en/docs/assets/interface)** (or the + sign at the top right of the assets panel) to create a scene, double-click the scene to switch to it:
 
 <Image src="https://gw.alipayobjects.com/zos/OasisHub/eef870a7-2630-4f74-8c0e-478696a553b0/2024-03-19%25252018.04.02.gif" />
-
-### Properties Panel
-
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/cbcc9725-811d-4203-a65d-b4a430083db3/image-20250124154359477.png" />
 
 ### Ambient Light
 
