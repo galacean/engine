@@ -16,8 +16,8 @@ PBR, short for Physically Based Rendering, is a rendering method first introduce
 | [normalTexture](/apis/core/#PBRBaseMaterial-normalTexture) | 	Normal Map Texture: Simulates surface bumps visually using a normal map, with adjustable strength to control the intensity of the effect. |
 | [emissiveTexture](/apis/core/#PBRBaseMaterial-emissiveTexture) | Emissive Texture: Used in conjunction with emissive color（[emissiveFactor](/apis/core/#PBRBaseMaterial-emissiveTexture)）to achieve self-emitting effects. |
 | [occlusionTexture](/apis/core/#PBRBaseMaterial-occlusionTexture) | Occlusion Texture: Enhances shadow detail using an occlusion map. |
-| [tilingOffset](/apis/core/#PBRBaseMaterial-tilingOffset) | Texture Tiling and Offset: A Vector4 controlling the tiling and offset of the texture in the UV directions，See [example](${examples}tiling-offset) |
-| [clearCoat](/apis/core/#PBRBaseMaterial-clearCoat) | Clear Coat Intensity: Default is 0, meaning the clear coat effect is disabled. See [example] (${examples}pbr-clearcoat) 。 |
+| [tilingOffset](/apis/core/#PBRBaseMaterial-tilingOffset) | Texture Tiling and Offset: A Vector4 controlling the tiling and offset of the texture in the UV directions，See [example](/examples/tiling-offset) |
+| [clearCoat](/apis/core/#PBRBaseMaterial-clearCoat) | Clear Coat Intensity: Default is 0, meaning the clear coat effect is disabled. See [example](/examples/pbr-clearcoat) 。 |
 | [clearCoatTexture](/apis/core/#PBRBaseMaterial-clearCoatTexture) | Clear Coat Intensity Texture: Works multiplicatively with clearCoat. |
 | [clearCoatRoughness](/apis/core/#PBRBaseMaterial-clearCoatRoughness) | Clear Coat Roughness: Determines the roughness of the clear coat layer. |
 | [clearCoatRoughnessTexture](/apis/core/#PBRBaseMaterial-clearCoatRoughnessTexture) | Clear Coat Roughness Texture: Works multiplicatively with clearCoatRoughness. |
@@ -39,7 +39,7 @@ Beyond these general parameters, PBR supports two workflows:  **Metallic-Roughne
 
 | Parameter | Application |
 | :-- | :-- |
-| [anisotropy](/apis/core/#PBRMaterial-anisotropy) | Anisotropy Strength: Default is 0, disabling anisotropic effects. See [example](${examples}pbr-anisotropy) 。 |
+| [anisotropy](/apis/core/#PBRMaterial-anisotropy) | Anisotropy Strength: Default is 0, disabling anisotropic effects. See [example](/examples/pbr-anisotropy) 。 |
 | [anisotropyRotation](/apis/core/#PBRMaterial-anisotropyRotation) | Anisotropy Rotation: Rotates the effect in tangent space. |
 | [anisotropyTexture](/apis/core/#PBRMaterial-anisotropyTexture) | 	Anisotropy Texture: The RG channels store direction information (combined with anisotropyRotation), while the B channel stores anisotropy strength (multiplied by anisotropy). |
 
