@@ -49,7 +49,7 @@ classDiagram
     }
 ```
 
-编辑器导出的项目通常自动设置了编辑器配置的相关选项，比如开发者可以在 [导出界面](/docs/assets/build) 设置上下文的渲染配置：
+编辑器导出的项目通常自动设置了编辑器配置的相关选项，比如开发者可以在 [导出界面](/docs/platform/platform) 设置上下文的渲染配置：
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*WZHzRYIpUzQAAAAAAAAAAAAADhuCAQ/original" style="zoom:50%;" />
 

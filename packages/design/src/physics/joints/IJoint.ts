@@ -1,4 +1,4 @@
-import { Vector3 } from "@galacean/engine-math";
+import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { ICollider } from "../ICollider";
 
 /**
@@ -25,6 +25,12 @@ export interface IJoint {
    *  The scale to apply to the inverse mass of collider1 for resolving this constraint.
    */
   setConnectedMassScale(value: number): void;
+
+  /**
+   * The rotation of the joint.
+   * @param value The rotation of the joint.
+   */
+  setRotation(value: Quaternion): void;
 
   /**
    * The scale to apply to the inverse mass of collider0 for resolving this constraint.

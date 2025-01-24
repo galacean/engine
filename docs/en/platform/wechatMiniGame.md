@@ -1,0 +1,74 @@
+---
+order: 2
+title: Export To WechatMiniGame
+type: Platform
+label: Platform
+---
+
+## Platform Configuration Instructions
+
+When exporting to the WeChat Mini Game platform, there are the following configuration items:
+
+<image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*natiS7i3cvUAAAAAAAAAAAAADjCHAQ/fmt.webp" />
+
+| Configuration          | Describe                                                                                                                              | Corresponding to the configuration file of WeChat Mini Games | Corresponding to the fields in WeChat Mini Games
+| ------------- | ------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| AppId | AppId of WeChat Mini Game, required. The wxdf8199565c509fb9 in the screenshot is a test account. | project.config.json | appid |
+| Orientation | Set the game screen orientation: Landscape, Portrait| game.json | deviceOrientation |
+| Request | wx.request timeout, unit: milliseconds | game.json | networkTimeout.request |
+| Connect Socket | wx.connectSocket timeout, unit: milliseconds | game.json | networkTimeout.connectSocket |
+| Upload File | wx.uploadFile timeout, unit: milliseconds | game.json | networkTimeout.uploadFile |
+| Download File | wx.downloadFile timeout, unit: milliseconds | game.json | networkTimeout.downloadFile |
+
+For more configuration details, see: [project.config.json](https://developers.weixin.qq.com/minigame/dev/devtools/projectconfig.html)、[game.json](https://developers.weixin.qq.com/minigame/dev/reference/configuration/app.html)
+
+## Export
+
+After selecting the WeChat Mini Game platform, click the download button at the bottom of the export panel to export the required project:
+
+<image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*a1-PQIsWlgIAAAAAAAAAAAAADjCHAQ/fmt.webp" />
+
+## Debug
+
+1、After exporting the project to the local computer, first go to the root directory and execute the following command to install the dependent packages:
+
+```bash
+npm i
+```
+
+2、Open **WeChat Developer Tools**, select Mini Game, and import the project just now, as follows:
+
+<image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*gCnXSqRgLnMAAAAAAAAAAAAADjCHAQ/fmt.webp" />
+
+3、In WeChat Developer Tools, click **Tools->Build** npm, as follows:
+
+<image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*G5aBQKNFdV8AAAAAAAAAAAAADjCHAQ/fmt.webp" />
+
+4、After completing the above 3, you can preview the final result in the WeChat developer tool as follows:
+
+<image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*JyoIS54k3uYAAAAAAAAAAAAADjCHAQ/fmt.webp" />
+
+5、For debugging in WeChat developer tools, see: [WeChat Mini Game Debugging](https://developers.weixin.qq.com/minigame/dev/guide/runtime/debug/)
+
+## Publish
+
+After local debugging is completed, you can publish it. For details on the publishing process, see: [WeChat Mini Games Publish](https://developers.weixin.qq.com/minigame/introduction/guide/)
+
+## Export Project Directory Description
+
+The project directory exported to the local is as follows:
+
+<image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*3jBDQYE5T9AAAAAAAAAAAAAADjCHAQ/fmt.webp" />
+
+**Project Catalog Description**
+|Directory or file|Describe|
+|-------------|-------------|
+|adapters|Engine-related packages used in the project, exported on demand|
+|public|Asset directory. All assets of the editor are exported to this directory. The path of the asset is /public/xxx|
+|scripts|After the script components added by the developer in the editor are exported to the local computer, the developer can perform secondary development in the script components inside.|
+|game.json|Corresponding to the requirements of WeChat mini-game projects [game.json](https://developers.weixin.qq.com/minigame/dev/reference/configuration/app.html)|
+|game.ts|Entry file, the initialization logic is placed here|
+|package.json|Mainly store project dependency packages|
+|polyfill.js|Developers do not need to worry about platform DOM adaptation code and global variable adaptation code|
+|project.config.json|Corresponding to the requirements of WeChat mini-game projects [project.config.json](https://developers.weixin.qq.com/minigame/dev/devtools/projectconfig.html)|
+|project.ts|Galacean project files are parsed during initialization|

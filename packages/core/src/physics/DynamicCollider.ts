@@ -9,6 +9,9 @@ import { PhysicsScene } from "./PhysicsScene";
  * A dynamic collider can act with self-defined movement or physical force.
  */
 export class DynamicCollider extends Collider {
+  private static _tempVector3 = new Vector3();
+  private static _tempQuat = new Quaternion();
+
   private _linearDamping = 0;
   private _angularDamping = 0.05;
   @ignoreClone
@@ -390,7 +393,16 @@ export class DynamicCollider extends Collider {
   override _onLateUpdate(): void {
     const { transform } = this.entity;
     const { worldPosition, worldRotationQuaternion } = transform;
-    (<IDynamicCollider>this._nativeCollider).getWorldTransform(worldPosition, worldRotationQuaternion);
+    const outPosition = DynamicCollider._tempVector3;
+    const outRotation = DynamicCollider._tempQuat;
+    (<IDynamicCollider>this._nativeCollider).getWorldTransform(outPosition, outRotation);
+    // To resolve the issue where onValueChanged is triggered even though the values are equal
+    if (!Vector3.equals(outPosition, worldPosition)) {
+      worldPosition.copyFrom(outPosition);
+    }
+    if (!Quaternion.equals(outRotation, worldRotationQuaternion)) {
+      worldRotationQuaternion.copyFrom(outRotation);
+    }
     this._updateFlag.flag = false;
   }
 

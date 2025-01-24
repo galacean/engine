@@ -81,6 +81,7 @@ The functionality corresponding to each property is as follows:
 |  | [msaaSamples](/apis/core/#Camera-msaaSamples) | Number of samples for multi-sample anti-aliasing, effective only when the standalone canvas is enabled, such as `enableHDR`, `enablePostProcess`, `opaqueTextureEnabled`. |
 |  | [enableHDR](/apis/core/#Camera-enableHDR) | Whether to enable HDR rendering, allowing the shader's output color to be stored using floating-point numbers, providing a wider range of values for post-processing and other scenarios. |
 |  | [enablePostProcess](/apis/core/#Camera-enablePostProcess) | Whether to enable post-processing. For post-processing configuration, see [Post-Processing Tutorial](/en/docs/graphics/postProcess/postProcess). |
+|  | [postProcessMask](/apis/core/#Camera-postProcessMask) | Post-processing mask, which determines the effective post-processing components. For post-processing configuration, [Post-Processing Tutorial](/en/docs/graphics/postProcess/postProcess). |
 
 ### Culling Mask
 

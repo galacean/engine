@@ -1,5 +1,5 @@
 import { IJoint } from "@galacean/engine-design";
-import { Vector3 } from "@galacean/engine-math";
+import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Component } from "../../Component";
 import { DependentMode, dependentComponents } from "../../ComponentsDependencies";
 import { Entity } from "../../Entity";
@@ -15,6 +15,8 @@ import { DynamicCollider } from "../DynamicCollider";
 @dependentComponents(DynamicCollider, DependentMode.AutoAdd)
 export abstract class Joint extends Component {
   private static _tempVector3 = new Vector3();
+  private static _tempQuat = new Quaternion();
+  private static _tempMatrix = new Matrix();
 
   @deepClone
   protected _colliderInfo = new JointColliderInfo();
@@ -40,6 +42,7 @@ export abstract class Joint extends Component {
       value?.entity._updateFlagManager.addListener(this._onConnectedTransformChanged);
       this._connectedColliderInfo.collider = value;
       this._nativeJoint?.setConnectedCollider(value?._nativeCollider);
+      this._updateRotation();
       if (this._automaticConnectedAnchor) {
         this._calculateConnectedAnchor();
       } else {
@@ -196,6 +199,7 @@ export abstract class Joint extends Component {
   override _onEnableInScene(): void {
     this._createJoint();
     this._syncNative();
+    this._updateRotation();
   }
 
   /**
@@ -229,8 +233,6 @@ export abstract class Joint extends Component {
   private _calculateConnectedAnchor(): void {
     const colliderInfo = this._colliderInfo;
     const connectedColliderInfo = this._connectedColliderInfo;
-    const { worldPosition: selfPos } = this.entity.transform;
-    const selfActualAnchor = colliderInfo.actualAnchor;
     const connectedAnchor = connectedColliderInfo.anchor;
     const connectedActualAnchor = connectedColliderInfo.actualAnchor;
     const connectedCollider = connectedColliderInfo.collider;
@@ -238,12 +240,13 @@ export abstract class Joint extends Component {
     // @ts-ignore
     connectedAnchor._onValueChanged = null;
     if (connectedCollider) {
-      const { worldPosition: connectedPos, lossyWorldScale: connectedWorldScale } = connectedCollider.entity.transform;
-      Vector3.subtract(selfPos, connectedPos, Joint._tempVector3);
-      Vector3.add(Joint._tempVector3, selfActualAnchor, connectedActualAnchor);
-      Vector3.divide(connectedActualAnchor, connectedWorldScale, connectedAnchor);
+      const tempVector3 = Joint._tempVector3;
+      const tempMatrix = Joint._tempMatrix;
+      Vector3.transformCoordinate(colliderInfo.anchor, this.entity.transform.worldMatrix, tempVector3);
+      Matrix.invert(connectedCollider.entity.transform.worldMatrix, tempMatrix);
+      Vector3.transformCoordinate(tempVector3, tempMatrix, connectedAnchor);
     } else {
-      Vector3.add(selfPos, selfActualAnchor, connectedActualAnchor);
+      Vector3.transformCoordinate(colliderInfo.anchor, this.entity.transform.worldMatrix, connectedActualAnchor);
       connectedAnchor.copyFrom(connectedActualAnchor);
     }
     // @ts-ignore
@@ -272,6 +275,17 @@ export abstract class Joint extends Component {
     if (type & TransformModifyFlags.WorldScale) {
       this._updateActualAnchor(AnchorOwner.Connected);
     }
+  }
+
+  private _updateRotation(): void {
+    const quat = Joint._tempQuat;
+    const connectedColliderInfo = this._connectedColliderInfo;
+    const connectedCollider = connectedColliderInfo.collider;
+    if (connectedCollider) {
+      Quaternion.invert(connectedCollider.entity.transform.worldRotationQuaternion, quat);
+    }
+    Quaternion.multiply(quat, this.entity.transform.worldRotationQuaternion, quat);
+    this._nativeJoint?.setRotation(quat);
   }
 
   private _updateActualAnchor(flag: AnchorOwner): void {

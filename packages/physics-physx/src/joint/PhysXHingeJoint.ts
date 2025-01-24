@@ -10,9 +10,9 @@ import { PhysXJoint } from "./PhysXJoint";
 export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   protected static _xAxis = new Vector3(1, 0, 0);
 
-  private _anchor: Vector3;
-  private _connectedAnchor: Vector3;
+  private _axis: Vector3;
   private _axisRotationQuaternion = new Quaternion();
+  private _connectedAxisRotationQuaternion = new Quaternion();
 
   constructor(physXPhysics: PhysXPhysics, collider: PhysXCollider) {
     super(physXPhysics);
@@ -27,10 +27,17 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
     );
   }
 
+  override setRotation(value: Quaternion): void {
+    const axis = this._axis;
+    this._rotation.copyFrom(value);
+    axis && this.setAxis(axis);
+  }
+
   /**
    * {@inheritDoc IHingeJoint.setAxis }
    */
   setAxis(value: Vector3): void {
+    this._axis = value;
     const xAxis = PhysXHingeJoint._xAxis;
     const axisRotationQuaternion = this._axisRotationQuaternion;
     xAxis.set(1, 0, 0);
@@ -38,7 +45,9 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
     Vector3.cross(xAxis, value, xAxis);
     Quaternion.rotationAxisAngle(xAxis, angle, axisRotationQuaternion);
     this._setLocalPose(0, this._anchor, axisRotationQuaternion);
-    this._setLocalPose(1, this._connectedAnchor, axisRotationQuaternion);
+    const connectedAxisRotationQuaternion = this._connectedAxisRotationQuaternion;
+    Quaternion.multiply(this._rotation, axisRotationQuaternion, connectedAxisRotationQuaternion);
+    this._setLocalPose(1, this._connectedAnchor, connectedAxisRotationQuaternion);
   }
 
   override setAnchor(value: Vector3): void {
@@ -46,8 +55,11 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
     this._anchor = value;
   }
 
+  /**
+   * {@inheritDoc IJoint.setConnectedAnchor }
+   */
   override setConnectedAnchor(value: Vector3): void {
-    this._setLocalPose(1, value, this._axisRotationQuaternion);
+    this._setLocalPose(1, value, this._connectedAxisRotationQuaternion);
     this._connectedAnchor = value;
   }
 

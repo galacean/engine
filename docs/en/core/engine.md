@@ -49,7 +49,7 @@ classDiagram
     }
 ```
 
-Projects exported by the editor usually automatically set the relevant options configured by the editor. For example, developers can set the rendering configuration of the context in the [export interface](/en/docs/assets/build):
+Projects exported by the editor usually automatically set the relevant options configured by the editor. For example, developers can set the rendering configuration of the context in the [export interface](/en/docs/platform/platform):
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*WZHzRYIpUzQAAAAAAAAAAAAADhuCAQ/original" style="zoom:50%;" />
 

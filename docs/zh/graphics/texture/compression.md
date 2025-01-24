@@ -36,7 +36,7 @@ KTX2 的生成可以使用：
 
 ### 编辑器
 
-编辑器在项目打包时，可以配置选项生成 KTX2，可以参考『[项目发布](/docs/assets/build/)』文档。项目导出是全局的配置，也可以独立给不同的纹理资源配置不同的压缩格式。在编辑器的纹理面板下勾选 overwrite 可以覆盖全局配置：
+编辑器在项目打包时，可以配置选项生成 KTX2，可以参考『[项目发布](/docs/platform/platform/)』文档。项目导出是全局的配置，也可以独立给不同的纹理资源配置不同的压缩格式。在编辑器的纹理面板下勾选 overwrite 可以覆盖全局配置：
 
 <img src="https://mdn.alipayobjects.com/rms/afts/img/A*fmURSZ4HwKUAAAAAAAAAAAAAARQnAQ/original/image-20240705112419249.png" alt="image-20240705112419249" style="zoom:50%;" />
 

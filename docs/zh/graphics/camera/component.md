@@ -81,6 +81,7 @@ camera.enableHDR = true;
 |  | [msaaSamples](/apis/core/#Camera-msaaSamples) | 多样本抗锯齿采样样本数量，仅当独立画布开启时才能生效，如 `enableHDR`、`enablePostProcess`、`opaqueTextureEnabled`。 |
 |  | [enableHDR](/apis/core/#Camera-enableHDR) | 是否启用 HDR 渲染，允许 shader 输出的颜色使用浮点数进行存储，可以得到更大范围的值，用于后处理等场景。 |
 |  | [enablePostProcess](/apis/core/#Camera-enablePostProcess) | 是否启用后处理，后处理配置详见[后处理教程](/docs/graphics/postProcess/postProcess)。 |
+|  | [postProcessMask](/apis/core/#Camera-postProcessMask) | 后处理遮罩，决定生效的后处理组件，后处理配置详见[后处理教程](/docs/graphics/postProcess/postProcess)。 |
 
 ### 裁剪遮罩
 

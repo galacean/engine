@@ -98,3 +98,32 @@ material.renderQueueType = RenderQueueType.Opaque;
 When render states and render queues are declared in ShaderLab, the corresponding settings in the material will be ignored."
 </Callout>
 ```
+
+## MRT(Multiple Render Targets)
+
+ShaderLab is compatible with both GLSL 100 and GLSL 300 syntax, allowing you to specify MRT using either syntax.
+
+1. Specify MRT using `gl_FragData[i]`.
+
+```glsl
+void main(v2f input) {
+  gl_FragData[0] = vec4(1.,0.,0.,1.);     // render target 0
+  gl_FragData[1] = vec4(1.,0.,0.,1.);     // render target 1
+}
+```
+
+2. Specify by returning a struct from the entry function
+
+```glsl
+struct mrt {
+  layout(location = 0) vec4 fragColor0;   // render target 0
+  layout(location = 1) vec4 fragColor1;   // render target 1
+}
+
+mrt main(v2f input) {
+  mrt output;
+  output.fragColor0 = vec4(1.,0.,0.,1.);
+  output.fragColor1 = vec4(1.,0.,0.,1.);
+  return output;
+}
+```

@@ -41,7 +41,7 @@ flowchart TD
     C[HtmlCanvas.clientHeight] -->|pixelRatio| D[WebCanvas.height]
 ```
 
-若通过编辑器导出 **NPM package** 进行开发，只需在[项目导出](/docs/assets/build)渲染导出配置处控制**设备像素比**即可。
+若通过编辑器导出 **NPM package** 进行开发，只需在[项目导出](/docs/platform/platform)渲染导出配置处控制**设备像素比**即可。
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*afw5QrbrxkQAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
 

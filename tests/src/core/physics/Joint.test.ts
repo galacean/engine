@@ -134,6 +134,37 @@ describe("Joint", function () {
     expect(box.transform.position).deep.include({ x: 4, y: 4, z: 4 });
   });
 
+  it("rotated", function () {
+    const box = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(4, 4, 4));
+    box.transform.rotation = new Vector3(30, 45, 0);
+    box.addComponent(FixedJoint);
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(formatValue(box.transform.rotation.x)).eq(30);
+    expect(formatValue(box.transform.rotation.y)).eq(45);
+    expect(formatValue(box.transform.rotation.z)).eq(0);
+  });
+
+  it("rotated with connectedCollider", function () {
+    const box = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(4, 4, 4));
+    const box2 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(4, 4, 4));
+    const connectedCollider = box2.getComponent(DynamicCollider);
+    box.getComponent(DynamicCollider).useGravity = false;
+    connectedCollider.useGravity = false;
+    box.transform.rotation = new Vector3(30, 45, 0);
+    box2.transform.rotation = new Vector3(20, 45, 50);
+    const joint = box.addComponent(FixedJoint);
+    joint.connectedCollider = connectedCollider;
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    expect(formatValue(box.transform.rotation.x)).eq(30);
+    expect(formatValue(box.transform.rotation.y)).eq(45);
+    expect(formatValue(box.transform.rotation.z)).eq(0);
+    expect(formatValue(box2.transform.rotation.x)).eq(20);
+    expect(formatValue(box2.transform.rotation.y)).eq(45);
+    expect(formatValue(box2.transform.rotation.z)).eq(50);
+  });
+
   it("massScale", function () {
     engine.sceneManager.activeScene.physics.gravity = new Vector3(0, -1, 0);
     const box1 = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 5, 0));
