@@ -15,6 +15,7 @@ import { DynamicCollider } from "../DynamicCollider";
 @dependentComponents(DynamicCollider, DependentMode.AutoAdd)
 export abstract class Joint extends Component {
   private static _tempVector3 = new Vector3();
+  private static _tempQuat = new Quaternion();
   private static _tempMatrix = new Matrix();
 
   @deepClone
@@ -242,7 +243,7 @@ export abstract class Joint extends Component {
       const tempVector3 = Joint._tempVector3;
       const tempMatrix = Joint._tempMatrix;
       Vector3.transformCoordinate(colliderInfo.anchor, this.entity.transform.worldMatrix, tempVector3);
-      tempMatrix.copyFrom(connectedCollider.entity.transform.worldMatrix).invert();
+      Matrix.invert(connectedCollider.entity.transform.worldMatrix, tempMatrix);
       Vector3.transformCoordinate(tempVector3, tempMatrix, connectedAnchor);
     } else {
       Vector3.transformCoordinate(colliderInfo.anchor, this.entity.transform.worldMatrix, connectedActualAnchor);
@@ -277,7 +278,7 @@ export abstract class Joint extends Component {
   }
 
   private _updateRotation(): void {
-    const quat = new Quaternion();
+    const quat = Joint._tempQuat;
     const connectedColliderInfo = this._connectedColliderInfo;
     const connectedCollider = connectedColliderInfo.collider;
     if (connectedCollider) {

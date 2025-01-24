@@ -396,7 +396,7 @@ export class DynamicCollider extends Collider {
     const outPosition = DynamicCollider._tempVector3;
     const outRotation = DynamicCollider._tempQuat;
     (<IDynamicCollider>this._nativeCollider).getWorldTransform(outPosition, outRotation);
-    // To resolve the issue where onValueChanged is triggered even though the values are equal.
+    // To resolve the issue where onValueChanged is triggered even though the values are equal
     if (!Vector3.equals(outPosition, worldPosition)) {
       worldPosition.copyFrom(outPosition);
     }
