@@ -5,11 +5,7 @@ group: 基础
 label: Core
 ---
 
-Galacean Engine 封装了不同平台的画布，如 [WebCanvas](/apis/rhi-webgl/#WebCanvas)  支持用 [Engine](/apis/core/#Engine) 控制 [HTMLCanvasElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement) 或者 [OffscreenCanvas](https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvas) 。
-
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*ZC9gRY-KCTgAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
-
-> 若无特殊说明，文档中画布一般都为 `WebCanvas` 。
+引擎封装了不同平台的画布，如 [WebCanvas](/apis/rhi-webgl/#WebCanvas) 支持用 [Engine](/apis/core/#Engine) 控制 [HTMLCanvasElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement) 或者 [OffscreenCanvas](https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvas) 。若无特殊说明，文档中画布一般都为 `WebCanvas` 。
 
 ## 基础使用
 
@@ -41,11 +37,7 @@ flowchart TD
     C[HtmlCanvas.clientHeight] -->|pixelRatio| D[WebCanvas.height]
 ```
 
-若通过编辑器导出 **NPM package** 进行开发，只需在[项目导出](/docs/platform/platform)渲染导出配置处控制**设备像素比**即可。
-
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*afw5QrbrxkQAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
-
-或在代码中主动调用 `resizeByClientSize` 适配画布。
+调用 `resizeByClientSize` 适配画布：
 
 ```typescript
 // 使用设备像素比（ window.devicePixelRatio ）调整画布尺寸，
@@ -54,7 +46,7 @@ engine.canvas.resizeByClientSize();
 engine.canvas.resizeByClientSize(1.5);
 ```
 
-> 当画布的显示尺寸发生变化时（比如浏览器窗口发生变化时），画面可能出现拉伸或压缩，可以通过调用 `resizeByClientSize` 来恢复正常。一般情况下这行代码已经可以满足适配的需求，如果你有更复杂的适配需求，请阅读“高级使用”部分。
+当画布的显示尺寸发生变化时（比如浏览器窗口发生变化时），画面可能出现拉伸或压缩，可以通过调用 `resizeByClientSize` 来恢复正常。一般情况下这行代码已经可以满足适配的需求，如果你有更复杂的适配需求，请阅读“高级使用”部分。
 
 ## 高级使用
 
