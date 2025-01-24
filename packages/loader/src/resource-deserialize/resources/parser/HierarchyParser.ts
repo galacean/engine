@@ -35,6 +35,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     this._organizeEntities = this._organizeEntities.bind(this);
     this._parseComponents = this._parseComponents.bind(this);
     this._parsePrefabModification = this._parsePrefabModification.bind(this);
+    this._parseAddedComponents = this._parseAddedComponents.bind(this);
     this._parsePrefabRemovedEntities = this._parsePrefabRemovedEntities.bind(this);
     this._parsePrefabRemovedComponents = this._parsePrefabRemovedComponents.bind(this);
     this._clearAndResolve = this._clearAndResolve.bind(this);
@@ -51,6 +52,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       .then(this._organizeEntities)
       .then(this._parseComponents)
       .then(this._parsePrefabModification)
+      .then(this._parseAddedComponents)
       .then(this._parsePrefabRemovedEntities)
       .then(this._parsePrefabRemovedComponents)
       .then(this._clearAndResolve)
@@ -88,19 +90,11 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     const promises = [];
     for (let i = 0, l = entitiesConfig.length; i < l; i++) {
       const entityConfig = entitiesConfig[i];
-      const entity = entityMap.get(entityConfig.id);
-      for (let i = 0; i < entityConfig.components.length; i++) {
-        const componentConfig = entityConfig.components[i];
-        const key = !componentConfig.refId ? componentConfig.class : componentConfig.refId;
-        const component = entity.addComponent(Loader.getClass(key));
-        this.context.addComponent(componentConfig.id, component);
-        const promise = this._reflectionParser.parsePropsAndMethods(component, componentConfig);
-        promises.push(promise);
+      if ((entityConfig as IStrippedEntity).strippedId) {
+        continue;
       }
-    }
-
-    for (const waitingList of this.context.componentWaitingMap.values()) {
-      waitingList.forEach((resolve) => resolve(null));
+      const entity = entityMap.get(entityConfig.id);
+      this._addComponents(entity, entityConfig.components, promises);
     }
 
     return Promise.all(promises);
@@ -135,6 +129,25 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
           })
         );
       }
+    }
+
+    return Promise.all(promises);
+  }
+
+  private _parseAddedComponents() {
+    const entityMap = this.context.entityMap;
+    const entityConfigMap = this.context.entityConfigMap;
+    const strippedIds = this.context.strippedIds;
+    const promises = [];
+
+    for (let i = 0, n = strippedIds.length; i < n; i++) {
+      const entityConfig = entityConfigMap.get(strippedIds[i]) as IStrippedEntity;
+      const prefabContext = this._prefabContextMap.get(entityMap.get(entityConfig.prefabInstanceId));
+      const entity = prefabContext.entityMap.get(entityConfig.prefabSource.entityId);
+      this._addComponents(entity, entityConfig.components, promises);
+    }
+    for (const waitingList of this.context.componentWaitingMap.values()) {
+      waitingList.forEach((resolve) => resolve(null));
     }
 
     return Promise.all(promises);
@@ -284,6 +297,22 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
         this._parseChildren(childId);
       }
     }
+  }
+
+  private _addComponents(
+    entity: Entity,
+    components: IEntity["components"],
+    promises: Promise<void>[]
+  ): Promise<void>[] {
+    for (let i = 0, n = components.length; i < n; i++) {
+      const componentConfig = components[i];
+      const key = !componentConfig.refId ? componentConfig.class : componentConfig.refId;
+      const component = entity.addComponent(Loader.getClass(key));
+      this.context.addComponent(componentConfig.id, component);
+      const promise = this._reflectionParser.parsePropsAndMethods(component, componentConfig);
+      promises.push(promise);
+    }
+    return promises;
   }
 
   private _applyEntityData(entity: Entity, entityConfig: IEntity = {}): Entity {

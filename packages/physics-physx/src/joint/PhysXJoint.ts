@@ -11,6 +11,9 @@ export class PhysXJoint implements IJoint {
   protected static _defaultQuat = new Quaternion();
 
   protected _pxJoint: any;
+  protected _anchor: Vector3;
+  protected _connectedAnchor: Vector3;
+  protected _rotation: Quaternion = new Quaternion();
   protected _collider: PhysXCollider;
   private _breakForce: number = Number.MAX_VALUE;
   private _breakTorque: number = Number.MAX_VALUE;
@@ -33,13 +36,20 @@ export class PhysXJoint implements IJoint {
    */
   setAnchor(value: Vector3): void {
     this._setLocalPose(0, value, PhysXJoint._defaultQuat);
+    this._anchor = value;
   }
 
   /**
    * {@inheritDoc IJoint.setConnectedAnchor }
    */
   setConnectedAnchor(value: Vector3): void {
-    this._setLocalPose(1, value, PhysXJoint._defaultQuat);
+    this._setLocalPose(1, value, this._rotation);
+    this._connectedAnchor = value;
+  }
+
+  setRotation(value: Quaternion): void {
+    this._rotation.copyFrom(value);
+    this._setLocalPose(1, this._connectedAnchor, value);
   }
 
   /**
