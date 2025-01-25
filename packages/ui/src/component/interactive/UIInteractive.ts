@@ -114,7 +114,7 @@ export class UIInteractive extends Script implements IGroupAble {
   /**
    * Remove all transitions.
    */
-  clearShapes(): void {
+  clearTransitions(): void {
     const transitions = this._transitions;
     for (let i = 0, n = transitions.length; i < n; i++) {
       transitions[i]._interactive = null;
