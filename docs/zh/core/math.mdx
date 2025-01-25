@@ -1,34 +1,35 @@
 ---
 order: 8
-title: Math Library
-type: Core
+title: 数学库
+type: 核心
 label: Core
 ---
 
-In a rendering scene, we often perform operations such as translation, rotation, scaling, etc. on objects (we collectively refer to these operations as [transform](/en/docs/core/transform)) to achieve the interactive effects we want. These transformations are generally achieved through vectors, quaternions, matrices, etc. For this purpose, we provide a math library to perform operations related to *vectors*, *quaternions*, *matrices*, etc. In addition, the math library also offers more classes to help us describe *points*, *lines*, *planes*, and *geometric bodies* in space, as well as determine their intersections and positional relationships in three-dimensional space. It can even describe color values.
+在一个渲染场景中，我们经常会对物体进行平移、旋转、缩放等操作（这些操作我们统一称为 [变换](/docs/core/transform) ），从而达到我们想要的互动效果。而这些变换的计算，我们一般都是通过向量、四元数、矩阵等来实现的，为此我们提供一个数学库来完成 *向量* 、*四元数* 、*矩阵* 等相关运算。除此之外，数学库还提供了更为丰富的类来帮助我们描述空间中的 *点* *线* *面* *几何体*，以及判断它们在三维空间中的相交、位置关系，甚至也可以描述颜色值。
 
-| Type | Description |
+
+| 类型 | 解释 |
 | :--- | :--- |
-| [BoundingBox](/apis/math/#BoundingBox) | AABB Bounding Box |
-| [BoundingFrustum](/apis/math/#BoundingFrustum) | View Frustum |
-| [BoundingSphere](/apis/math/#BoundingSphere) | Bounding Sphere |
-| [CollisionUtil](/apis/math/#CollisionUtil) | Provides many static methods to determine intersections and positional relationships between objects in space |
-| [Color](/apis/math/#Color) | Color class, described using RGBA |
-| [MathUtil](/apis/math/#MathUtil) | Utility class, provides common calculations such as comparisons, angle-radian conversions, etc. |
-| [Matrix](/apis/math/#Matrix) | Default 4x4 matrix, provides basic matrix operations and transformation-related operations |
-| [Matrix3x3](/apis/math/#Matrix3x3) | 3x3 matrix, provides basic matrix operations and transformation-related operations |
-| [Plane](/apis/math/#Plane) | Plane class, used to describe planes in three-dimensional space |
-| [Quaternion](/apis/math/#Quaternion) | Quaternion, contains x, y, z, w components, responsible for rotation-related operations |
-| [Ray](/apis/math/#Ray) | Ray class, used to describe rays in three-dimensional space |
-| [Vector2](/apis/math/#Vector2) | Two-dimensional vector, contains x, y components |
-| [Vector3](/apis/math/#Vector3) | Three-dimensional vector, contains x, y, z components |
-| [Vector4](/apis/math/#Vector4) | Four-dimensional vector, contains x, y, z, w components |
+| [BoundingBox](/apis/math/#BoundingBox) | AABB 包围盒 |
+| [BoundingFrustum](/apis/math/#BoundingFrustum) | 视锥体 |
+| [BoundingSphere](/apis/math/#BoundingSphere) | 包围球 |
+| [CollisionUtil](/apis/math/#CollisionUtil) | 提供很多静态方式，用来判断空间中各个物体之间的相交、位置关系等 |
+| [Color](/apis/math/#Color) | 颜色类，使用 RGBA 描述 |
+| [MathUtil](/apis/math/#MathUtil) | 工具类，提供比较、角度弧度转换等常用计算 |
+| [Matrix](/apis/math/#Matrix) | 默认的4x4矩阵，提供矩阵基本运算，变换相关运算 |
+| [Matrix3x3](/apis/math/#Matrix3x3) | 3x3矩阵，提供矩阵基本运算，变换相关运算 |
+| [Plane](/apis/math/#Plane) | 平面类，用来描述三维空间中的平面 |
+| [Quaternion](/apis/math/#Quaternion) | 四元数，包含x、y、z、w分量，负责旋转相关的运算 |
+| [Ray](/apis/math/#Ray) | 射线类，用来描述三维空间中的射线 |
+| [Vector2](/apis/math/#Vector2) | 二维向量，包含x、y分量 |
+| [Vector3](/apis/math/#Vector3) | 三维向量，包含x、y、z分量 |
+| [Vector4](/apis/math/#Vector4) | 四维向量，包含x、y、z、w分量 |
 
-## Vectors
+## 向量
 
-The most basic definition of a vector is a direction. More formally, a vector has a direction and a magnitude (also called strength or length). You can think of a vector as an instruction on a treasure map: "Walk 10 steps to the left, 3 steps north, then 5 steps to the right"; "left" is the direction, "10 steps" is the length of the vector. So, the instructions on this treasure map consist of 3 vectors. Vectors can exist in any dimension, but we usually use 2 to 4 dimensions. If a vector has 2 dimensions, it represents a direction on a plane (imagine a 2D image). When it has 3 dimensions, it can express a direction in a 3D world.
+向量最基本的定义就是一个方向。或者更正式的说，向量有一个方向（Direction）和大小（Magnitude，也叫做强度或长度）。你可以把向量想像成一个藏宝图上的指示：“向左走10步，向北走3步，然后向右走5步”；“左”就是方向，“10步”就是向量的长度。那么这个藏宝图的指示一共有3个向量。向量可以在任意维度（Dimension）上，但是我们通常只使用2至4维。如果一个向量有2个维度，它表示一个平面的方向（想象一下2D的图像），当它有3个维度的时候它可以表达一个3D世界的方向。
 
-In the Galacean engine, vectors are used to represent object coordinates (position), rotation, scaling, and color.
+在 Galacean 引擎中，向量用来表示物体坐标（position）、旋转（rotation）、缩放（scale）、颜色（color）。
 
 ```typescript
 import { Vector3 } from '@galacean/engine-math';
@@ -68,15 +69,15 @@ const c2 = new Vector3();
 v1.cloneTo(c2);
 
 ```
-## Quaternions
+## 四元数
 
-Quaternions are simple hypercomplex numbers, and in graphics engines, quaternions are mainly used for three-dimensional rotations ([relationship between quaternions and three-dimensional rotations](https://krasjet.github.io/quaternion/quaternion.pdf)). Besides quaternions, Euler angles, axis angles, matrices, etc., can also represent rotations. The main advantages of choosing quaternions are:
+四元数是简单的超复数，而在图形引擎中，四元数主要用于三维旋转([四元数于三维旋转的关系](https://krasjet.github.io/quaternion/quaternion.pdf))，能够表示旋转的不止四元数，还有欧拉角、轴角、矩阵等形式，之所以选择四元数，主要有以下几个优势：
 
-- Solves the gimbal lock problem
-- Only requires storing 4 floating-point numbers, making it lighter compared to matrices
-- Operations such as inversion and concatenation are more efficient compared to matrices
+- 解决了万向节死锁的问题
+- 只需要存储4个浮点数，相比矩阵来说更轻量
+- 无论是求逆、串联等操作，相比矩阵更为高效
 
-In the Galacean engine, quaternions are also used for rotation-related operations, and APIs are provided for converting Euler angles and matrices to quaternions.
+在 Galacean 引擎中，也是使用四元数来进行旋转相关运算，并提供欧拉角、矩阵等到四元数的转换API。
 
 ```typescript
 import { Vector3, Quaternion, MathUtil } from '@galacean/engine-math';
@@ -122,16 +123,16 @@ q3.toEuler(eulerV);
 eulerV.scale(MathUtil.radToDegreeFactor); 
 ```
 
-## Matrices
+## 矩阵
 
-In a 3D graphics engine, calculations can be performed in multiple different Cartesian coordinate spaces. Transforming from one coordinate space to another requires the use of transformation matrices, and the Matrix module in our math library exists to provide this capability.
+在 3D 图形引擎中，计算可以在多个不同的笛卡尔坐标空间中执行，从一个坐标空间到另一个坐标空间需要使用变换矩阵，而我们数学库中的Matrix模块正是为提供这种能力而存在的。
 
-In Galacean, matrices are column-major, just like the WebGL standard. For a 4x4 matrix, the 16 elements are stored in an array as follows:
+在 Galacean 中，矩阵采用的是和 webgl 标准一样的列矩阵，以 4*4 矩阵为例，16 个元素我们存储在一个如下数组中：
 
 ```typescript
 const elements: Float32Array = new Float32Array(16);
 ```
-The final matrix is as follows:
+最终的矩阵如下：
 $$
 \begin{bmatrix}
 elements[0] & elements[4] & elements[8] & elements[12] \\
@@ -141,13 +142,13 @@ elements[3] & elements[7] & elements[11] & elements[15]
 \end{bmatrix}
 $$
 
-In the Galacean engine, there are local coordinates, global coordinates, view coordinates, clip coordinates, etc. The transformation of objects between these coordinates is accomplished through transformation matrices.
+在 Galacean 引擎中，有局部坐标、全局坐标、观察坐标、裁剪坐标等，而物体在这些坐标之间的转换，正是通过转换矩阵来完成的。
 
-The order of matrix multiplication is from right to left. For example, if we want to calculate the MV matrix using the model matrix and view matrix, the code is as follows:
+矩阵相乘的顺序为从右到左，比如我们想通过 model 矩阵和 view 矩阵计算 MV 矩阵，写法如下：
 ```typescript
 Matrix.multiply(viewMatrix, modelMatrix, mvMatrix);
 ```
-Below are some commonly used functions in matrices:
+下面是一些矩阵中比较常用的功能说明：
 
 ```typescript
 import { Vector3, Matrix3x3, Matrix } from '@galacean/engine-math';
@@ -252,18 +253,18 @@ const linearColor = new Color();
 color2.toLinear(linearColor);
 ```
 
-## Plane
-We can define a plane using a vector (normal) and a distance. The normal represents the direction of the plane based on the coordinate origin, and the plane is perpendicular to the normal. The distance represents the distance of the plane from the coordinate origin along the normal direction. For example, a plane perpendicular to the Y-axis with a distance of 5 is illustrated as follows:
+## 平面
+我们可以通过一个向量(normal)和距离(distance)来确定一个平面，normal 表示平面基于坐标原点的方向，平面和 normal 垂直，distance 表示平面沿着 normal 方向距离坐标原点的距离。我们以垂直 Y 轴的平面，并且距离为 5 为例，图示如下：
 
-![plane](https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*1HMeRbPQv1kAAAAAAAAAAAAADjCHAQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*1HMeRbPQv1kAAAAAAAAAAAAADjCHAQ/original" style={{zoom: "30%"}} />
 
-The code to create it is as follows:
+代码创建方式如下：
 ```typescript
 const normal = new Vector3(0, 1, 0);
 const distance = 5;
 const plane = new Plane(normal, distance);
 ```
-Other usages:
+其他用法：
 
 ```typescript
 import { Plane, Vector3 } from "@galacean/engine-math";
@@ -278,8 +279,8 @@ Plane.fromPoints(point1, point2, point3, plane1);
 const plane2 = new Plane(new Vector3(0, 1, 0), -1);
 ```
 
-## Bounding Box
-In Galacean, BoundingBox represents an AABB (Axis-Aligned Bounding Box), which is a simple and efficient type of bounding box commonly used in computer graphics and collision detection. It is defined by a minimum point and a maximum point, forming a rectangle or cuboid aligned with the coordinate axes (in 3D space).
+## 包围盒
+Galacean 里面 BoundingBox 表示的是 AABB 包围盒（AABB（Axis-Aligned Bounding Box，轴对齐包围盒）是一种在计算机图形学和碰撞检测中常用的简单且高效的包围盒类型。它由一个最小点和一个最大点定义，这两个点构成一个与坐标轴对齐的矩形或长方体（在三维空间中））
 
 ```typescript
 import { BoundingBox, BoundingSphere, Matrix, Vector3 } from "@galacean/engine-math";
@@ -339,7 +340,7 @@ const corners = [
 box.getCorners(corners);
 ```
 
-## Bounding Sphere
+## 包围球
 ```typescript
 import { BoundingBox, BoundingSphere, Vector3 } from "@galacean/engine-math";
 
@@ -367,7 +368,7 @@ const box = new BoundingBox(new Vector3(-1, -1, -1), new Vector3(1, 1, 1));
 BoundingSphere.fromBox(box, sphere2);
 ```
 
-## Frustum
+## 视锥体
 ```typescript
 import { BoundingBox, BoundingSphere, BoundingFrustum,Matrix, Vector3 } from "@galacean/engine-math";
 
@@ -392,16 +393,17 @@ const sphere2 = new BoundingSphere();
 BoundingSphere.fromBox(box2, sphere2);
 const isIntersect4 = frustum.intersectsSphere(sphere2);
 ```
-## Ray
-A ray represents a line that starts from a point (origin) and extends infinitely in a specified direction (direct), as shown below:
-![alt text](https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*w2XVQL-K4UEAAAAAAAAAAAAADjCHAQ/original)
+## 射线
+射线表示从一个点（origin）出发，往指定方向（direct）发射的一个可以无限延伸的线，如下：
 
-The types of detection supported by rays are as follows:
-| Type | Description |
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*w2XVQL-K4UEAAAAAAAAAAAAADjCHAQ/original" style={{zoom: "50%"}} />
+
+射线支持的检测类型如下：
+| 类型 | 解释 |
 | :--- | :--- |
-| [Plane](/apis/math/#Plane) | Detects the distance from the ray to the plane. If -1, the ray and the plane do not intersect. |
-| [BoundingSphere](/apis/math/#BoundingSphere) | Detects the distance from the ray to the sphere. If -1, the ray and the sphere do not intersect. |
-| [BoundingBox](/apis/math/#BoundingBox) | Detects the distance from the ray to the box. If -1, the ray and the box do not intersect. |
+| [Plane](/apis/math/#Plane) | 检测射线到平面的距离，如果 -1 表示射线和平面不相交 |
+| [BoundingSphere](/apis/math/#BoundingSphere) | 检测射线到球体的距离，如果 -1 表示射线和球体不相交 |
+| [BoundingBox](/apis/math/#BoundingBox) | 检测射线到盒子的距离，如果 -1 表示射线和盒子不相交 |
 
 ```typescript
 import { BoundingBox, BoundingSphere, Plane, Ray, Vector3 } from "@galacean/engine-math";
@@ -429,7 +431,7 @@ ray.getPoint(10, out);
 
 ## Rand
 
-The math library has added a random number generator `Rand`, which is based on the `xorshift128+` algorithm (also used in V8, Safari, and Firefox). It is a fast, high-quality, and full-period pseudo-random number generation algorithm.
+数学库新增了随机数生成器 `Rand` ，他基于 `xorshift128+` 算法实现（被同样应用在 V8，Safari 与 Firefox 中），是一种快速、高质量且周期完整的伪随机数生成算法。
 
 ```typescript
 // 初始化随机数生成器实例
@@ -450,24 +452,25 @@ rand.reset(0, 0x96aa4de3);
 ```
 
 ## CollisionUtil
-CollisionUtil provides a large number of functions for collision and intersection detection, as follows:
-| Function | Description |
+CollisionUtil 中提供了大量用于碰撞、相交检测的函数，如下：
+| 函数 | 解释 |
 | :--- | :--- |
-| intersectionPointThreePlanes | Calculates the intersection point of 3 planes |
-| distancePlaneAndPoint | Calculates the distance from a point to a plane |
-| intersectsPlaneAndPoint | Detects the spatial relationship between a point and a plane: in front of the plane (normal direction is front), behind the plane, on the plane |
-| intersectsPlaneAndBox | Detects the spatial relationship between an AABB bounding box and a plane: in front of the plane (normal direction is front), behind the plane, intersects the plane |
-| intersectsPlaneAndSphere | Detects the spatial relationship between a sphere and a plane: in front of the plane (normal direction is front), behind the plane, intersects the plane |
-| intersectsRayAndPlane | Detects the distance between a plane and a ray. If they do not intersect, returns -1 |
-| intersectsRayAndBox | Detects the distance between an AABB bounding box and a ray. If they do not intersect, returns -1 |
-| intersectsRayAndSphere | Detects the distance between a sphere and a ray. If they do not intersect, returns -1 |
-| intersectsBoxAndBox | Detects whether two AABB bounding boxes intersect |
-| intersectsSphereAndSphere | Detects whether two spheres intersect |
-| intersectsSphereAndBox | Detects whether a sphere and an AABB bounding box intersect |
-| intersectsFrustumAndBox | Detects whether a frustum and an AABB bounding box intersect |
-| frustumContainsPoint | Detects the spatial relationship between a point and a frustum: inside the frustum, intersects the frustum, outside the frustum |
-| frustumContainsBox | Detects the spatial relationship between an AABB bounding box and a frustum: inside the frustum, intersects the frustum, outside the frustum |
-| frustumContainsSphere | Detects the spatial relationship between a sphere and a frustum: inside the frustum, intersects the frustum, outside the frustum |
+| intersectionPointThreePlanes | 计算 3 个平面相交的点 |
+| distancePlaneAndPoint | 计算点到面的距离 |
+| intersectsPlaneAndPoint | 检测点和面的空间位置关系：在平面的前面（法线方向为前）、在平面的后面、在平面上 |
+| intersectsPlaneAndBox | 检测AABB包围盒和面的空间位置关系：在平面的前面（法线方向为前）、在平面的后面、和平面相交 |
+| intersectsPlaneAndSphere | 检测球体和面的空间位置关系：在平面的前面（法线方向为前）、在平面的后面、和平面相交 |
+| intersectsRayAndPlane | 检测平面和射线的距离，如果不相交，返回 -1 |
+| intersectsRayAndBox | 检测AABB包围盒和射线的距离，如果不相交，返回 -1 |
+| intersectsRayAndSphere | 检测球体和射线的距离，如果不相交，返回 -1 |
+| intersectsBoxAndBox | 检测两个AABB包围盒是否相交 |
+| intersectsSphereAndSphere | 检测两个球体是否相交 |
+| intersectsSphereAndBox | 检测球体和AABB包围盒是否相交 |
+| intersectsFrustumAndBox | 检测视锥体和AABB包围盒是否相交 |
+| frustumContainsPoint | 检测点和视锥体的空间位置关系：在视锥体内部，和视锥体相交，在视锥体外部 |
+| frustumContainsBox | 检测AABB包围盒和视锥体的空间位置关系：在视锥体内部，和视锥体相交，在视锥体外部 |
+| frustumContainsSphere | 检测球体和视锥体的空间位置关系：在视锥体内部，和视锥体相交，在视锥体外部 |
+
 
 ```typescript
 import { 

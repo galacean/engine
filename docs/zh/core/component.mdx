@@ -5,7 +5,7 @@ type: 核心
 label: Core
 ---
 
-在 Galacean 引擎中，[Entity](/apis/core/#Entity) 不具备渲染模型等实际的功能，这些功能是通过加载 [Component](/apis/core/#Component) 组件类来实现的。例如，如果想让一个 _Entity_ 变成一个相机，只需要在该 _Entity_ 上添加相机组件 [Camera](/apis/core/#Camera)。这种基于组件的功能扩展方式注重将程序按照功能独立封装，在使用的时候按照需要组合添加，非常有利于降低程序耦合度并提升代码复用率。
+[Entity](/apis/core/#Entity) 不具备渲染模型等实际的功能，这些功能是通过加载 [Component](/apis/core/#Component) 组件类来实现的。例如，如果想让一个 _Entity_ 变成一个相机，只需要在该 _Entity_ 上添加相机组件 [Camera](/apis/core/#Camera)。这种基于组件的功能扩展方式注重将程序按照功能独立封装，在使用的时候按照需要组合添加，非常有利于降低程序耦合度并提升代码复用率。
 
 常用组件：
 
@@ -28,23 +28,23 @@ label: Core
 
 从 **[层级面板](/docs/interface/hierarchy)** 或场景中选择一个实体后，检查器将显示出当前选中节点挂载的所有组件，组件名显示在左上角
 
-<img src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*tZcpRrrYQcMAAAAAAAAAAAAADsJ_AQ/original" alt="Name" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*tZcpRrrYQcMAAAAAAAAAAAAADsJ_AQ/original" alt="Name" style={{zoom: "50%"}} />
 
 你可以在检查器中控制它是否 enabled
 
-<img src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QRG8TZ1IorQAAAAAAAAAAAAADsJ_AQ/original" alt="Enable" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QRG8TZ1IorQAAAAAAAAAAAAADsJ_AQ/original" alt="Enable" style={{zoom: "50%"}} />
 
 如果不需要它也可以将它删除
 
-<img src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*uqFGQIHyLAwAAAAAAAAAAAAADsJ_AQ/original" alt="Delete" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*uqFGQIHyLAwAAAAAAAAAAAAADsJ_AQ/original" alt="Delete" style={{zoom: "50%"}} />
 
 或者编辑它的各种属性
 
-<img src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*IFnGRYHdi7gAAAAAAAAAAAAADsJ_AQ/original" alt="Edit" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*IFnGRYHdi7gAAAAAAAAAAAAADsJ_AQ/original" alt="Edit" style={{zoom: "50%"}} />
 
 如果是个空节点，你可以点击 `Add Component` 按钮来为当前实体添加新的组件。
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/95d58dde-109f-44b2-89ef-2959ad8b4fe3/image-20230926112713126.png" alt="image-20230926112713126" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/95d58dde-109f-44b2-89ef-2959ad8b4fe3/image-20230926112713126.png" alt="image-20230926112713126" style={{zoom: "50%"}} />
 
 ## 脚本使用
 

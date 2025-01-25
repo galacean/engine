@@ -1,0 +1,101 @@
+---
+order: 6
+title: Viewport
+type: Basics
+group: Interface
+label: Basics/Interface
+---
+
+## Introduction
+
+The view window is an interactive interface used for selecting, positioning, and changing various types of entities and components in the current scene.
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/561da75f-74e2-4fb3-842c-fb7e43819cfe/image-20250124173601599.png" />
+
+## Browsing the Scene
+
+There are two ways to browse the scene: standard mode and flying mode. Standard mode revolves around the central viewpoint, while flying mode is suitable for browsing large scenes, allowing the scene camera to move forward, backward, left, right, up, and down in 3D space.
+
+| Mode          | Action                | Shortcut Keys                                                      |
+| :------------ | :-------------------- | ------------------------------------------------------------------ |
+| **Standard**  | Orbit rotation        | `alt` + Left Mouse Button                                          |
+|               | Panning               | `alt` + `command` + Left Mouse Button, or press the mouse wheel    |
+|               | Zooming               | `alt` + `control` + Left Mouse Button, or scroll mouse wheel, or swipe with two fingers on a trackpad |
+| **Flying**    | Look around camera    | alt + Right Mouse Button                                           |
+|               | Move forward          | Up Arrow or Right Mouse Button + `W`                               |
+|               | Move backward         | Down Arrow or Right Mouse Button + `S`                             |
+|               | Strafe left           | Left Arrow or Right Mouse Button + `A`                             |
+|               | Strafe right          | Right Arrow or Right Mouse Button + `D`                            |
+|               | Move up               | Right Mouse Button + `E`                                           |
+|               | Move down             | Right Mouse Button + `Q`                                           |
+|               | Change flying speed   | Right Mouse Button + Mouse Wheel                                   |
+
+## Toolbar
+
+The toolbar is located at the top of the view window. Hovering the mouse over each item will show the shortcut keys or description.
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/ddaa0d5e-25e4-40ba-ba20-92a0205d538e/image-20250124173818912.png" alt="image-20240131181207870" style={{zoom:"50%"}} />
+
+| Icon | Name | Description | Shortcut |
+| --- | --- | --- | --- |
+| <img src="https://gw.alipayobjects.com/zos/OasisHub/305d83a5-5ed8-4651-81cc-4cf4688a5dd3/image-20250124173959148.png" style={{zoom:"50%"}} /> | Drag | Drag the screen |  |
+| <img src="https://gw.alipayobjects.com/zos/OasisHub/e394dc30-4c43-47b7-8f86-583b4d084be6/image-20250124174121219.png" style={{zoom:"50%"}} /><br /><img src="https://gw.alipayobjects.com/zos/OasisHub/96e3c7d0-f60f-42e8-b8f4-f7abaf220bd6/image-20250124174235448.png" style={{zoom:"50%"}} /><br /><img src="https://gw.alipayobjects.com/zos/OasisHub/aa7f328b-6947-4216-92c8-7c869ff3e340/image-20250124174327332.png" style={{zoom:"50%"}} /> | Move<br />Rotate<br />Scale | Transform the selected entity | `W` <br /> `E` <br />`R` |
+| <img src="https://gw.alipayobjects.com/zos/OasisHub/37eec76d-a1f5-4687-862b-656bc59b781b/image-20250124174459582.png" style={{zoom:"50%"}} /> | Rect Edit Tool | Drag and scale sprites, GUI elements |  |
+| <img src="https://gw.alipayobjects.com/zos/OasisHub/33b47020-ab3d-4acd-baa9-b7d111e1c5d0/image-20240131180403373.png" style={{zoom:"50%"}} /><br /><img src="https://gw.alipayobjects.com/zos/OasisHub/40faa545-0352-47c6-a704-880821e542ca/image-20240131180513384.png" style={{zoom:"50%"}} /> | Center Anchor/Hub Anchor | Switch the anchor point of the selected entity |  |
+| <img src="https://gw.alipayobjects.com/zos/OasisHub/acc22d85-df2a-4cf7-bd59-f66430bbfef8/image-20250124175035351.png" style={{zoom:"50%"}} /><br /><img src="https://gw.alipayobjects.com/zos/OasisHub/664c3454-9c2c-4932-a6e1-841e20cef76d/image-20240131180731465.png" style={{zoom:"50%"}} /> | Local/World Coordinates | Switch the coordinates of the selected entity |  |
+| <img src="https://gw.alipayobjects.com/zos/OasisHub/1b57725d-900e-4911-9524-449df488cfe0/image-20250124175401106.png" style={{zoom:"50%"}} /> | Focus | Focus the scene camera on the selected entity | `F` |
+| <img src="https://gw.alipayobjects.com/zos/OasisHub/2170327b-38b6-408c-81fd-cacb6b2f9f6d/image-20250124175517475.png" style={{zoom:"50%"}} /> | Scene Camera | The scene camera menu contains options for configuring the scene camera, mainly to solve issues where objects are not visible because the clipping plane is too far or too near. These adjustments do not affect settings of entities with camera components in the scene. |  |
+| <img src="https://gw.alipayobjects.com/zos/OasisHub/cf528af5-d928-4eb5-94b3-849d7c561524/image-20240131181144755.png" style={{zoom:"50%"}} /> | Settings | The settings menu contains options to adjust view auxiliary displays, including grids, auxiliary icons (graphics associated with specific components in the scene, including camera, direct light, point light, spotlight), and auxiliary wireframes. |  |
+| <img src="https://gw.alipayobjects.com/zos/OasisHub/f05e1699-9495-49fd-b123-6e501af0e023/image-20240131181242445.png" style={{zoom:"50%"}} /><br /><img src="https://gw.alipayobjects.com/zos/OasisHub/739fb9f1-309b-497a-86b6-f3d4ef89d7ee/image-20240131181524219.png" style={{zoom:"50%"}} /> | Scene Camera Type | Switch between perspective/orthographic camera |  |
+| <img src="https://gw.alipayobjects.com/zos/OasisHub/8a596654-17f6-4c97-b18e-b0188b05220d/image-20240131181459432.png" style={{zoom:"50%"}} /><br /><img src="https://gw.alipayobjects.com/zos/OasisHub/7f101795-7966-40b8-a61a-1504a3224e7a/image-20240131181607999.png" style={{zoom:"50%"}} /> | Mode | Conveniently switch between 2D/3D scene modes. In 2D mode, navigation components, and perspective/orthographic toggle are disabled, and orbit rotation in navigation is no longer effective. |  |
+| <img src="https://gw.alipayobjects.com/zos/OasisHub/1d338399-5da9-4589-a6fa-07e6d2d28f9c/image-20250124175716190.png" style={{zoom:"50%"}} /> | Fullscreen/Restore | Maximize the view window, minimize hierarchy, assets, inspector |  |
+| <img src="https://gw.alipayobjects.com/zos/OasisHub/eabb81ce-57f1-4761-bd32-cb5ae22c952e/image-20250124175804174.png" style={{zoom:"50%"}} /> | Play | Play all particles and animations in the scene ||
+| <img src="https://gw.alipayobjects.com/zos/OasisHub/18aa192b-0a68-4f18-9b8f-771e01ad429a/image-20250124175846556.png" style={{zoom:"50%"}} /> | Screenshot | Take a snapshot of the current scene. Only user-created entities in the scene are shown, and a series of auxiliary tools like icons, grids, gizmo won't be included. After taking a screenshot, the snapshot will be used as the project thumbnail on the homepage. ||
+
+### Auxiliary Element Settings Interface
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/c3a62155-693d-4f8d-9fb1-79c3da94a4c6/image-20250124180009153.png" style={{zoom:"50%"}} />
+
+| Property | Description |
+| --- | --- |
+| Grid | Whether the grid is displayed in the view |
+| 3D Icons | Whether auxiliary icons scale based on their distance from the camera |
+| Navigation Gizmo | Used to display the current direction of the scene camera and can be quickly modified by mouse operation to adjust the view and projection mode (orthographic/perspective). It will appear at the bottom right corner of the screen when open.<br /><Image src="https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*tooGS4MTpTUAAAAAAAAAAAAADtKFAQ/original" style={{zoom:"50%"}} /> |
+| Outline | Whether outlines are displayed when an entity is selected. The outline of the selected entity is orange, and child nodes are blue. |
+| Camera | Display the selected camera component as a cone |
+| Light | Display light source components |
+| Static Collider | Show static collider shapes |
+| Dynamic Collider | Show dynamic collider shapes |
+| Emission Shape | Show particle emitter shapes |
+
+### Scene Camera Settings Interface
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/5d0577f7-8402-4a8c-b219-8ec36578bd05/image-20250124180220754.png" style={{zoom:"50%"}} />
+
+| Property                       | Description                                            | Default Value        |
+| :----------------------------- | :----------------------------------------------------- | :------------------- |
+| Fov                            | Field of view of the scene camera                      | 60                   |
+| Dynamic Clipping               | Automatically calculates near and far clipping planes relative to the selected entity and scene camera position | Off                  |
+| Near Plane                     | Manually adjust the nearest point relative to the scene camera | Enabled when dynamic clipping is unchecked |
+| Far Plane                      | Manually adjust the farthest point relative to the scene camera | Enabled when dynamic clipping is unchecked |
+| Speed                          | Movement speed of the camera in flying mode            | 10                   |
+| Opaque Texture                 | Enable opaque texture for the scene camera             | Off                  |
+| HDR                            | Enable HDR for the scene camera                        | Off                  |
+| Post Process                   | Enable post-processing for the scene camera            | On                   |
+
+## Preview
+
+When an entity with a camera component is selected, the real-time preview of that camera will be displayed at the bottom left of the view window. This helps users adjust the camera and scene position in real-time. The preview window can be dragged, locked, and switched between different device proportions.
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/1fe28869-7719-4387-b2fb-7299cfa87b69/image-20250124180405339.png" style={{zoom:"50%"}} />
+
+| Property     | Description                       |
+| :----------- | :-------------------------------- |
+| Drag         | Freely drag the preview window    |
+| Position     | Locate this camera in the scene   |
+| Switch Ratio | Switch between different device and ratio windows |
+| Lock         | Lock the camera preview window    |
+
+Objects containing camera components in the hierarchy tree can directly sync the scene camera's attributes, making position and view adjustments convenient.
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/8a066115-69e2-4010-92cd-dbcdf663011c/image-20250124180616875.png" style={{zoom:"50%"}} />

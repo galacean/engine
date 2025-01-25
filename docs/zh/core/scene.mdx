@@ -5,6 +5,8 @@ type: 核心概念
 label: Core
 ---
 
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/cbcc9725-811d-4203-a65d-b4a430083db3/image-20250124154359477.png" />
+
 Scene 作为场景单元，可以方便的进行实体树管理，尤其是大型游戏场景。如: **scene1** 和 **scene2** 作为两个不同的场景，可以各自独立管理其拥有的 **Entity** 树，因此场景下的光照组件、渲染组件和物理组件之间也互相隔离，互不影响。我们可以同时渲染一个或多个 Scene，也可以在特定时机下根据项目逻辑动态切换当前 Scene。
 
 从结构上每个 Engine 下可以包含一个和多个激活的场景（目前编辑器还不支持多个）。每个 Scene 可以有多个根实体。
@@ -15,11 +17,7 @@ Scene 作为场景单元，可以方便的进行实体树管理，尤其是大�
 
 在 **[资产面板](/docs/assets/interface)** 右键（或资产面板右上角 + 号）创建场景，双击场景可以切换过去：
 
-![scene-switch](https://gw.alipayobjects.com/zos/OasisHub/eef870a7-2630-4f74-8c0e-478696a553b0/2024-03-19%25252018.04.02.gif)
-
-### 属性面板
-
-<img src="https://gw.alipayobjects.com/zos/OasisHub/2eaad4b1-d3e3-4c17-ae7f-58b488cd3606/image-20240718190944508.png" alt="image-20240718190944508" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/eef870a7-2630-4f74-8c0e-478696a553b0/2024-03-19%25252018.04.02.gif" />
 
 ### 环境光
 
@@ -33,25 +31,20 @@ Scene 作为场景单元，可以方便的进行实体树管理，尤其是大�
 
 详情请参照[阴影教程](/docs/graphics/light/shadow/)。
 
-### 后处理
-
-详情请参照[后处理教程](/docs/graphics/postProcess/postProcess/)。
-
 ### 雾化
 
 可以给整个场景增加 **线性、指数、指数平方** 3 种雾化：
 
-![Fog](https://gw.alipayobjects.com/zos/OasisHub/224fbc16-e60c-47ca-845b-5f7c09563c83/2024-03-19%25252018.08.23.gif)
-
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/224fbc16-e60c-47ca-845b-5f7c09563c83/2024-03-19%25252018.08.23.gif" />
 
 ## 脚本使用
 
-| 属性名称                                 | 解释     |
-| :--------------------------------------- | :------- |
+| 属性名称                                  | 解释     |
+| :---------------------------------------- | :------- |
 | [scenes](/apis/core/#SceneManager-scenes) | 场景列表 |
 
-| 方法名称                                           | 解释     |
-| :------------------------------------------------- | :------- |
+| 方法名称                                            | 解释     |
+| :-------------------------------------------------- | :------- |
 | [addScene](/apis/core/#SceneManager-addScene)       | 添加场景 |
 | [removeScene](/apis/core/#SceneManager-removeScene) | 移除场景 |
 | [mergeScenes](/apis/core/#SceneManager-mergeScenes) | 合并场景 |
@@ -64,11 +57,9 @@ Scene 作为场景单元，可以方便的进行实体树管理，尤其是大�
 ```typescript
 const sceneUrl = "...";
 
-engine.resourceManager
-  .load({ type: AssetType.Scene, url: "..." })
-  .then((scene) => {
-    engine.sceneManager.addScene(scene);
-  });
+engine.resourceManager.load({ type: AssetType.Scene, url: "..." }).then((scene) => {
+  engine.sceneManager.addScene(scene);
+});
 ```
 
 ### 获取场景对象
@@ -126,12 +117,12 @@ engine.sceneManager.addScene(destScene);
 
 ### 实体树管理
 
-| 方法名称                                              | 解释                                                                                                 |
-| :---------------------------------------------------- | :--------------------------------------------------------------------------------------------------- |
-| [createRootEntity](/apis/core/#Scene-createRootEntity) | 新创建的 _scene_ 默认没有根实体，需要手动创建                                                        |
-| [addRootEntity](/apis/core/#Scene-addRootEntity)       | 可以直接新建实体，或者添加已经存在的实体                                                             |
-| [removeRootEntity](/apis/core/#Scene-removeRootEntity) | 删除根实体                                                                                           |
-| [getRootEntity](/apis/core/#Scene-getRootEntity)       | 查找根实体，可以拿到全部根实体，或者单独的某个实体对象。注意，全部实体是只读数组，不能改变长度和顺序 |
+| 方法名称 | 解释 |
+| :-- | :-- |
+| [createRootEntity](/apis/core/#Scene-createRootEntity) | 新创建的 _scene_ 默认没有根实体，需要手动创建 |
+| [addRootEntity](/apis/core/#Scene-addRootEntity) | 可以直接新建实体，或者添加已经存在的实体 |
+| [removeRootEntity](/apis/core/#Scene-removeRootEntity) | 删除根实体 |
+| [getRootEntity](/apis/core/#Scene-getRootEntity) | 查找根实体，可以拿到全部根实体，或者单独的某个实体对象。注意，全部实体是只读数组，不能改变长度和顺序 |
 
 ```typescript
 const engine = await WebGLEngine.create({ canvas: "demo" });

@@ -3,7 +3,9 @@ title: Shader API【Experimental】
 ---
 
 <Callout type="warning">
-  This version is currently experimental and can only be used in the `editor`. If you want to use it in `Pro Code`, you need to import the `@galacean/engine-toolkit` package. Please note that the API may change in the next version, and we will notify you in time.
+  This version is currently experimental and can only be used in the `editor`. If you want to use it in `Pro Code`, you
+  need to import the `@galacean/engine-shader-shaderlab` package. Please note that the API may change in the next
+  version, and we will notify you in time.
 </Callout>
 
 Similar to functions, classes, and properties in Typescript, Shader code also has its own set of APIs. This article can help you write your own Shader based on these APIs and `ShaderLab` syntax.
@@ -96,10 +98,6 @@ SubShader "Default" {
 
 2. Modify the lighting model in `DemoPass.glsl`. As a demo, we only demonstrate modifying the direct light part:
 
-<Callout type="warning">
-  The editor currently does not support displaying the contents of `ForwardPassPBR.glsl` because it is in another repository. However, you can copy the `/Internal/Shader/Advanced/IridescenceForwardPass` file for modification.
-</Callout>
-
 ```ts showLineNumbers {7-8}
 // DemoPass.glsl
 #include "Common.glsl"
@@ -151,7 +149,7 @@ float f2 = pow2(0.5);
 
 ### Common
 
-Provides common macros like `PI`, and general methods like `gammaToLinear`, `pow2`, etc. See [source code](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/Common.glsl) for details.
+Provides common macros like `PI`, and general methods like `gammaToLinear`, `pow2`, etc. See [source code](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/Common.glsl) for details.
 
 ### Fog
 
@@ -215,7 +213,7 @@ mat3 getTBNByDerivatives(vec2 uv, vec3 normal, vec3 position, bool isFrontFacing
 
 ### Shadow
 
-Provides shadow-related functions. See [source code](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/Shadow.glsl) for details.
+Provides shadow-related functions. See [source code](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/Shadow.glsl) for details.
 
 ```glsl
 // 获取级联阴影所属层级，比如级联数量设为4，则返回 0～3
@@ -252,23 +250,24 @@ In addition to the general API, PBR also encapsulates a series of APIs such as t
 
 ### AttributesPBR
 
-Encapsulates all the Attribute variables needed for PBR. See [source code](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/AttributesPBR.glsl) for details.
+Encapsulates all the Attribute variables needed for PBR. See [source code](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/AttributesPBR.glsl) for details.
 
 ### VaryingsPBR
 
-Encapsulates all the Varyings variables needed for PBR. See [source code](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/VaryingsPBR.glsl) for details.
+Encapsulates all the Varyings variables needed for PBR. See [source code](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/VaryingsPBR.glsl) for details.
 
 ### LightDirectPBR
-```
 
-Encapsulates direct light calculations based on the BRDF lighting model. For more details, see [source code](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/LightDirectPBR.glsl).
+````
+
+Encapsulates direct light calculations based on the BRDF lighting model. For more details, see [source code](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/LightDirectPBR.glsl).
 
 Generally, you can call it directly:
 
 ```glsl
 // Evaluate direct lighting
 evaluateDirectRadiance(varyings, surfaceData, brdfData, shadowAttenuation, color.rgb);
-```
+````
 
 The following function overload macros are provided to override key calculations of the lighting model:
 
@@ -277,18 +276,20 @@ The following function overload macros are provided to override key calculations
 #define FUNCTION_DIFFUSE_LOBE diffuseLobe
 #define FUNCTION_SPECULAR_LOBE specularLobe
 #define FUNCTION_CLEAR_COAT_LOBE clearCoatLobe
+#define FUNCTION_SHEEN_LOBE sheenLobe
 
-void surfaceShading(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, vec3 incidentDirection, vec3 lightColor, inout vec3 color);
+void surfaceShading(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, vec3 incidentDirection, vec3 lightColor, inout vec3 totalDiffuseColor, inout vec3 totalSpecularColor);
 void diffuseLobe(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, vec3 attenuationIrradiance, inout vec3 diffuseColor);
 void specularLobe(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, vec3 incidentDirection, vec3 attenuationIrradiance, inout vec3 specularColor);
 float clearCoatLobe(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, vec3 incidentDirection, vec3 color, inout vec3 specularColor);
+void sheenLobe(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, vec3 incidentDirection, vec3 attenuationIrradiance, inout vec3 diffuseColor, inout vec3 specularColor);
 ```
 
 <Callout type="info">Refer to the PBR template extension above for the overload method.</Callout>
 
 ### LightInDirectPBR
 
-Encapsulates [ambient light](/en/docs/graphics/light/ambient) calculations based on the BRDF lighting model. For more details, see [source code](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/LightInDirectPBR.glsl).
+Encapsulates [ambient light](/en/docs/graphics/light/ambient) calculations based on the BRDF lighting model. For more details, see [source code](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/LightIndirectPBR.glsl).
 
 Generally, you can call it directly:
 
@@ -303,15 +304,17 @@ The following function overload macros are provided to override key calculations
 #define FUNCTION_DIFFUSE_IBL evaluateDiffuseIBL
 #define FUNCTION_SPECULAR_IBL evaluateSpecularIBL
 #define FUNCTION_CLEAR_COAT_IBL evaluateClearCoatIBL
+#define FUNCTION_SHEEN_IBL evaluateSheenIBL
 
 void evaluateDiffuseIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, inout vec3 diffuseColor);
 void evaluateSpecularIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, float radianceAttenuation, inout vec3 specularColor);
 float evaluateClearCoatIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, inout vec3 specularColor);
+void evaluateSheenIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData,  float radianceAttenuation, inout vec3 diffuseColor, inout vec3 specularColor);
 ```
 
 ### VertexPBR
 
-Some methods required by the PBR vertex shader, such as obtaining UV coordinates after TilingOffset, obtaining world coordinates, normals, tangents after skeletal and BS operations, etc. For more details, see [source code](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/VertexPBR.glsl).
+Some methods required by the PBR vertex shader, such as obtaining UV coordinates after TilingOffset, obtaining world coordinates, normals, tangents after skeletal and BS operations, etc. For more details, see [source code](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/VertexPBR.glsl).
 
 ```glsl showLineNumbers {2, 4}
 Varyings varyings;
@@ -336,11 +339,15 @@ gl_Position = renderer_MVPMat * vertexInputs.positionOS;
 
 ### BRDF
 
-The key file of the PBR lighting model, encapsulating general calculation functions related to BRDF, as well as the `SurfaceData` structure and `BRDFData` structure used for subsequent lighting model calculations. For more details, see [source code](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/BRDF.glsl).
+The key file of the PBR lighting model, encapsulating general calculation functions related to BRDF, as well as the `SurfaceData` structure and `BRDFData` structure used for subsequent lighting model calculations. For more details, see [source code](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/BRDF.glsl).
+
+### BTDF
+
+Provides transmission and refraction related functions, see [source code](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/BTDF.glsl)。
 
 ### FragmentPBR
 
-Contains a large number of variables passed from the CPU, such as metallic, roughness, maps, etc., and initializes the `SurfaceData` structure through `getSurfaceData`. For more details, see [source code](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/FragmentPBR.glsl).
+Contains a large number of variables passed from the CPU, such as metallic, roughness, maps, etc., and initializes the `SurfaceData` structure through `getSurfaceData`. For more details, see [source code](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/FragmentPBR.glsl).
 
 ```glsl showLineNumbers
 BRDFData brdfData;
@@ -354,4 +361,4 @@ initBRDFData(surfaceData, brdfData);
 
 ### Finally
 
-In addition to the functionality and calling methods of key APIs, you can refer to the [ForwardPassPBR](https://github.com/galacean/engine-toolkit/blob/main/packages/shaderlab/src/shaders/shadingPBR/ForwardPassPBR.glsl) on the official website for the organization of the entire file.
+In addition to the functionality and calling methods of key APIs, you can refer to the [ForwardPassPBR](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/ForwardPassPBR.glsl) on the official website for the organization of the entire file.
