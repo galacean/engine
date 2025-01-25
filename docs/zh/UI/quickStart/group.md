@@ -1,11 +1,17 @@
 ---
-order: 1
+order: 5
 title: UIGroup
 type: UI
 label: UI
 ---
 
-通过 [UIGroup] 组件，可以继承或忽略**透明度**，**是否可交互**等属性。
+通过 `UIGroup` 组件，可以继承或忽略**透明度**，**是否可交互**等属性。
+
+## 编辑器使用
+
+选中节点，在 **[检查器面板](/docs/interface/inspector)** 点击 **添加组件** 并选择 **UIGroup**，即可通过修改设置控制多个 UI 元素的透明度。
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*PWGYRb7MJs4AAAAAAAAAAAAAehuCAQ/original" style="zoom:50%;" />
 
 ## 属性
 
@@ -16,10 +22,6 @@ label: UI
 | `ignoreParentGroup` | 是否忽略上层 Group 的设置 |
 
 > UIGroup 解决了 UI 元素的属性无法由父传递给子的问题。
-
-## 编辑器
-
-
 
 ## 脚本开发
 

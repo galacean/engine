@@ -1,11 +1,31 @@
 ---
 order: 0
 title: 创建根画布
-type: XR
-label: XR
+type: UI
+label: UI
 ---
 
 根画布是 UI 的基础，但不是所有的 `UICanvas` 都是根画布，接下来为大家演示如何在场景中创建根画布。
+
+## 编辑器使用
+
+### 添加 UICanvas 节点
+
+在 **[层级面板](/docs/interface/hierarchy/)** 添加 Canvas 节点
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*ZFO6Q7P7NwQAAAAAAAAAAAAAehuCAQ/original" style="zoom:50%;" />
+
+### 设置属性
+
+选中添加了 `Canvas` 组件的节点，可以在 **[检查器面板](/docs/interface/inspector)** 设置相关的属性
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*4nbARKclT8sAAAAAAAAAAAAAehuCAQ/original" style="zoom:50%;" />
+
+### 根画布
+
+如果新添加的画布节点的父亲或祖先节点已经包含激活的 `UICanvas` 组件，那么此画布不包含任何渲染与交互的功能。
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*9CxZQ5t6GVEAAAAAAAAAAAAAehuCAQ/original" style="zoom:50%;" />
 
 ## 属性
 
@@ -18,26 +38,6 @@ label: XR
 | `referenceResolution`        | 画布在做尺寸适配时，依据的设计分辨率                          |
 | `referenceResolutionPerUnit` | 画布中的单位与世界空间中单位的比例关系                        |
 | `sortOrder`                  | 画布的渲染排序优先级                                          |
-
-## 编辑器使用
-
-### 添加 UICanvas 节点
-
-在 **[层级面板](/docs/interface/hierarchy/)** 添加 Canvas 节点
-
-<img src="![alt text](<2025-01-24 15.50.47.gif>)" style="zoom:50%;" />
-
-### 设置属性
-
-选中添加了 `Canvas` 组件的节点，可以在 **[检查器面板](/docs/interface/inspector)** 设置相关的属性
-
-![alt text](<2025-01-24 23.01.32.gif>)
-
-### 根画布
-
-如果新添加的画布节点的父亲或祖先节点已经包含激活的 `UICanvas` 组件，那么此画布不包含任何渲染与交互的功能。
-
-![alt text](<2025-01-24 23.03.11.gif>)
 
 ## 脚本开发
 

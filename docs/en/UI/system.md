@@ -1,11 +1,11 @@
 ---
 order: 2
-title: 架构
+title: Architecture
 type: UI
 label: UI
 ---
 
-## 系统设计
+## System Design
 
 ```mermaid
 ---
@@ -97,12 +97,12 @@ classDiagram
     }
 ```
 
-## 模块管理
+## Module Management
 
-| 包                                                                       | 解释         | 相关文档              |
-| :----------------------------------------------------------------------- | :----------- | --------------------- |
-| [@galacean/engine-ui](https://www.npmjs.com/package/@galacean/engine-xr) | 核心架构逻辑 | [API](/apis/galacean) |
+| Package                                                                 | Description     | Related Documentation   |
+| :--------------------------------------------------------------------- | :------------- | ----------------------- |
+| [@galacean/engine-ui](https://www.npmjs.com/package/@galacean/engine-xr) | Core architecture logic | [API](/apis/galacean)    |
 
-> `@galacean/engine-ui` 是实现 **UI** 必须引入的依赖
+> `@galacean/engine-ui` is a dependency that must be included to implement **UI**.
 
-> 需遵守[版本依赖规则](/docs/basics/version/#版本依赖)，即 `@galacean/engine-ui` 的版本需与 `@galacean/engine` 保持一致。
+> The [version dependency rules](/docs/basics/version/#version-dependency) must be followed, meaning the version of `@galacean/engine-ui` should match the version of `@galacean/engine`.

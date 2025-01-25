@@ -1,11 +1,41 @@
 ---
-order: 2
+order: 3
 title: 创建文字
 type: UI
 label: UI
 ---
 
-[Text](/apis/core/#SpriteRenderer) 组件用于在 UICanvas 中显示文字。
+`Text` 组件用于在 `UICanvas` 中显示文字。
+
+## 编辑器使用
+
+### 添加 Text 节点
+
+在 **[层级面板](/docs/interface/hierarchy/)** 添加 `Text` 节点
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*yklkSI-wIq0AAAAAAAAAAAAAehuCAQ/original" style="zoom:50%;" />
+
+> 若父亲或祖先节点没有画布组件，会自动添加上根画布节点。
+
+### 设置文本内容
+
+选中添加了 `Text` 组件的节点，在 **[检查器面板](/docs/interface/inspector)** 修改 `text` 属性可以改变 `Text` 元素的显示内容。
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*j46eSYWAfVYAAAAAAAAAAAAAehuCAQ/original" style="zoom:50%;" />
+
+### 设置字体
+
+选中添加了 `Text` 组件的节点，在 **[检查器面板](/docs/interface/inspector)** 修改 `font` 属性可以改变 `Text` 元素的字体类型。
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*vR-rR7eGHZkAAAAAAAAAAAAAehuCAQ/original" style="zoom:50%;" />
+
+### 修改字体大小
+
+`Text` 组件可以通过调整 `FontSize` 修改渲染尺寸
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*DcrDR6Y_fKAAAAAAAAAAAAAAehuCAQ/original" style="zoom:50%;" />
+
+> 修改 `UITransform` 的 `size` 不会改变 `Text` 的渲染尺寸。
 
 ## 属性
 
@@ -25,38 +55,6 @@ label: UI
 | `Mask Layer` | 文本所属遮罩层，用于和 SpriteMask 进行匹配，默认为 Everything，表示可以和任何 SpriteMask 发生遮罩 |
 | `priority` | 渲染优先级，值越小，渲染优先级越高，越优先被渲染 |
 
-## 编辑器
-
-### 添加 Text 节点
-
-在 **[层级面板](/docs/interface/hierarchy/)** 添加 Text 节点
-
-<img src="![alt text](<2025-01-24 17.58.43.gif>)" style="zoom:50%;" />
-
-> 若父亲或祖先节点没有画布组件，会自动添加上根画布节点。
-
-### 设置文本内容
-
-选中添加了 `Text` 组件的节点，在 **[检查器面板](/docs/interface/inspector)** 修改 `text` 属性可以改变 Text 元素的显示内容。
-
-<img src="![alt text](<2025-01-24 18.52.57-1.gif>)" style="zoom:50%;" />
-
-### 设置字体
-
-选中添加了 `Text` 组件的节点，在 **[检查器面板](/docs/interface/inspector)** 修改 `font` 属性可以改变 Text 元素的字体类型。
-
-<img src="![alt text](<2025-01-24 20.08.26.gif>)" style="zoom:50%;" />
-
-### 修改字体大小
-
-`Text` 组件可以通过调整 FontSize 修改渲染尺寸
-
-<img src="![alt text](<2025-01-24 20.05.54.gif>)" style="zoom:50%;" />
-
-> 修改 `UITransform` 的 `size` 不会改变 `Text` 的渲染尺寸。
-
-其他属性含义详见[Text]()
-
 ## 脚本开发
 
-<playground src="xr-ar-simple.ts"></playground>
+<playground src="ui-Text.ts"></playground>

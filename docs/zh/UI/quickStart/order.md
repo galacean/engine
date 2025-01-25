@@ -1,9 +1,8 @@
 ---
-order: 2
+order: 6
 title: 渲染顺序
 type: UI
-group: quickStart
-label: UI/quickStart
+label: UI
 ---
 
 UI 组件的渲染顺序遵从两个规则：
