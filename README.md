@@ -85,7 +85,7 @@ Prerequisites:
 Clone this repository:
 
 ```sh
-git clone git@github.com:galacean/runtime.git
+git clone git@github.com:galacean/engine.git
 ```
 
 ## Build
