@@ -29,8 +29,7 @@ We recommend using [**Editor**](https://galacean.antgroup.com/editor) for a fast
 
 
 ### Pure Code Approach
-
-The engine is published on npm with full typing support. To install, use:
+If you want to build your project using pure code via runtime, simply install the engine from npm:
 
 ```sh
 npm install @galacean/engine
