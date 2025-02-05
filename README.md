@@ -22,14 +22,13 @@
 ## Usage
 
 ### Using Editor
-
-We recommend using [**Editor**](https://galacean.antgroup.com/editor) for a faster, **streamlined workflow** that enables seamless integration between artists and developers. Its intuitive visual tools allow artists to quickly **create scenes** and allow developers to **write custom logic**, with convenient **platform export**. You can even create projects based on pre-built case templates.
+We recommend using [**Editor**](https://galacean.antgroup.com/editor)  for a streamlined workflow that enables seamless integration between artists and developers. Its intuitive visual tools allow artists to quickly create scenes and enable developers to write custom logic, with convenient platform export. You can even create projects based on pre-built case templates.
 
 ![image](https://github.com/user-attachments/assets/18f63fef-696c-4f9f-b44a-d8b7af481a3e)
 
 
 ### Using Pure Code
-If you want to build your project using pure code via runtime, simply install the engine from npm:
+If you want to build your project using pure code via runtime, install the engine from npm:
 
 ```sh
 npm install @galacean/engine
