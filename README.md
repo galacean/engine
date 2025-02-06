@@ -15,32 +15,30 @@
 - 🔮 &nbsp;**Graphics** - Advanced 2D + 3D graphics engine
 - 🏃 &nbsp;**Animation** - Powerful animation system
 - 🧱 &nbsp;**Physics** - Powerful and easy-to-use physical features
+- 🎨 &nbsp;**GUI** - Flexible UI system with drag-and-drop and dynamic interactions
 - 👆 &nbsp;**Input** - Easy-to-use interactive capabilities
 - 📑 &nbsp;**Scripts** - Use TypeScript to write logic efficiently
 
-## npm
+## Usage
 
-The engine is published on npm with full typing support. To install, use:
+### Using Editor
+We recommend using [**Editor**](https://galacean.antgroup.com/editor)  for a streamlined workflow that enables seamless integration between artists and developers. Its intuitive visual tools allow artists to quickly create scenes and enable developers to write custom logic, with convenient platform export. You can even create projects based on pre-built case templates.
+
+![image](https://github.com/user-attachments/assets/18f63fef-696c-4f9f-b44a-d8b7af481a3e)
+
+
+### Using Pure Code
+If you want to build your project using pure code via runtime, install the engine from npm:
 
 ```sh
 npm install @galacean/engine
 ```
 
-This will allow you to import engine entirely using:
-
-```javascript
-import * as GALACEAN from "@galacean/engine";
-```
-
-or individual classes using:
-
-```javascript
-import { Engine, Scene, Entity } from "@galacean/engine";
-```
-
-## Usage
+Create a simple scene:
 
 ```typescript
+import { BlinnPhongMaterial, Camera, DirectLight, MeshRenderer, WebGLEngine, PrimitiveMesh } from "@galacean/engine";
+
 // Create engine by passing in the HTMLCanvasElement id and adjust canvas size
 const engine = await WebGLEngine.create({ canvas: "canvas-id" });
 engine.canvas.resizeByClientSize();
@@ -73,18 +71,20 @@ engine.run();
 
 ## Contributing
 
-Everyone is welcome to join us! Whether you find a bug, have a great feature request or you fancy owning a task from the road map feel free to get in touch.
+This repository contains the runtime's source code and documentation. Everyone is welcome to contribute—whether you find a bug, have a feature request, or want to tackle a task from our roadmap, please get in touch.
 
 Make sure to read the [Contributing Guide](.github/HOW_TO_CONTRIBUTE.md) / [贡献指南](https://github.com/galacean/engine/wiki/%E5%A6%82%E4%BD%95%E4%B8%8E%E6%88%91%E4%BB%AC%E5%85%B1%E5%BB%BA-Oasis-%E5%BC%80%E6%BA%90%E4%BA%92%E5%8A%A8%E5%BC%95%E6%93%8E) before submitting changes.
 
 ## Clone
+
 Prerequisites:
+
 - [git-lfs](https://git-lfs.com/) (Install by official website)
-  
+
 Clone this repository:
 
 ```sh
-git clone git@github.com:galacean/runtime.git
+git clone git@github.com:galacean/engine.git
 ```
 
 ## Build
