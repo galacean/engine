@@ -422,8 +422,13 @@ export class Scene extends EngineObject {
       return null;
     }
 
+    const searchRootName = splits.shift();
     for (let i = 0, n = this.rootEntitiesCount; i < n; i++) {
       let rootEntity = this.getRootEntity(i);
+      if (rootEntity.name != searchRootName) {
+        continue;
+      }
+
       const target = Entity._findChildByName(rootEntity, 0, splits, 0);
       if (target) {
         return target;
