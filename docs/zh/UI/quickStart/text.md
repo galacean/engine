@@ -41,19 +41,16 @@ label: UI
 
 | 属性名 | 描述 |
 | :-- | :-- |
-| `Text` | 需要显示的文本 |
-| `Color` | 文本颜色 |
-| `FontSize` | 文本的字体大小 |
-| `Font` | 自定义字体 |
-| `LineSpacing` | 行间距 |
-| `FontStyle` | 字体样式设置：是否加粗/是否斜体 |
-| `HorizontalAlignment` | 水平对齐方式，可选值有：Left/Center/Right |
-| `VerticalAlignment` | 竖直对齐方式，可选值有：Top/Center/Bottom |
-| `EnableWrapping` | 是否开启换行模式，打开换行模式后，会根据设置的宽来进行换行，如果这时候宽设置为 0，那么文本将不渲染 |
-| `OverflowMode` | 当文本总高度超出设置的高的时候的处理方式，可选值有：Overflow/Truncate， Overflow 表示直接溢出显示， Truncate 表示只保留设置高度以内的内容显示，具体显示内容还和文本在竖直方向上的对齐方式有关 |
-| `Mask Interaction` | 遮罩类型，用于设置文本是否需要遮罩，以及需要遮罩的情况下，是显示遮罩内还是遮罩外的内容 |
-| `Mask Layer` | 文本所属遮罩层，用于和 SpriteMask 进行匹配，默认为 Everything，表示可以和任何 SpriteMask 发生遮罩 |
-| `priority` | 渲染优先级，值越小，渲染优先级越高，越优先被渲染 |
+| `text` | 需要显示的文本 |
+| `color` | 文本颜色 |
+| `font` | 自定义字体 |
+| `fontSize` | 文本的字体大小 |
+| `fontStyle` | 字体样式设置：是否加粗/是否斜体 |
+| `lineSpacing` | 行间距 |
+| `horizontalAlignment` | 水平对齐方式，可选值有：Left/Center/Right |
+| `verticalAlignment` | 竖直对齐方式，可选值有：Top/Center/Bottom |
+| `enableWrapping` | 是否开启换行模式，打开换行模式后，会根据设置的宽来进行换行，如果这时候宽设置为 0，那么文本将不渲染 |
+| `overflowMode` | 当文本总高度超出设置的高的时候的处理方式，可选值有：Overflow/Truncate， Overflow 表示直接溢出显示， Truncate 表示只保留设置高度以内的内容显示，具体显示内容还和文本在竖直方向上的对齐方式有关 |
 
 ## 脚本开发
 
