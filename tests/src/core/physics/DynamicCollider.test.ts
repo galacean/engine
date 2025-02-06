@@ -368,9 +368,13 @@ describe("DynamicCollider", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 10, 0));
     const boxCollider = box.getComponent(DynamicCollider);
     boxCollider.useGravity = false;
+    const boxClone = box.clone();
+    boxClone.transform.position.x = 5;
+    box.parent.addChild(boxClone);
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(box.transform.position.y)).eq(10);
+    expect(formatValue(boxClone.transform.position.y)).eq(10);
 
     boxCollider.useGravity = true;
     boxCollider.wakeUp();
