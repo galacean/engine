@@ -1,0 +1,60 @@
+---
+order: 3
+title: Text
+type: UI
+label: UI
+---
+
+The `Text` component is used to display text within a `UICanvas`.
+
+## Editor Usage
+
+### Add Text Node
+
+Add a `Text` node in the **[Hierarchy Panel](/docs/interface/hierarchy/)**.
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*yklkSI-wIq0AAAAAAAAAAAAAehuCAQ/original" style="zoom:50%;" />
+
+> If the parent or ancestor node does not have a Canvas component, a root canvas node will be automatically added.
+
+### Set Text Content
+
+Select the node with the `Text` component, and in the **[Inspector Panel](/docs/interface/inspector)**, modify the `text` property to change the content of the `Text` element.
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*j46eSYWAfVYAAAAAAAAAAAAAehuCAQ/original" style="zoom:50%;" />
+
+### Set Font
+
+Select the node with the `Text` component, and in the **[Inspector Panel](/docs/interface/inspector)**, modify the `font` property to change the font type of the `Text` element.
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*vR-rR7eGHZkAAAAAAAAAAAAAehuCAQ/original" style="zoom:50%;" />
+
+### Modify Font Size
+
+The `Text` component can modify the rendering size by adjusting the `FontSize`.
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*DcrDR6Y_fKAAAAAAAAAAAAAAehuCAQ/original" style="zoom:50%;" />
+
+> Changing the `size` in `UITransform` will not affect the rendering size of `Text`.
+
+## Properties
+
+| Property Name       | Description                                                                                       |
+| :------------------ | :------------------------------------------------------------------------------------------------ |
+| `Text`              | The text to be displayed                                                                          |
+| `Color`             | The color of the text                                                                             |
+| `FontSize`          | The font size of the text                                                                         |
+| `Font`              | Custom font for the text                                                                           |
+| `LineSpacing`       | The line spacing between text lines                                                                |
+| `FontStyle`         | Font style settings: whether to apply bold or italic styles                                        |
+| `HorizontalAlignment` | Horizontal alignment of the text, with options: Left/Center/Right                                 |
+| `VerticalAlignment`   | Vertical alignment of the text, with options: Top/Center/Bottom                                  |
+| `EnableWrapping`    | Whether to enable word wrapping; when enabled, text will wrap based on the set width. If width is set to 0, the text will not render |
+| `OverflowMode`      | How to handle overflow when the text exceeds the set height: options are Overflow/Truncate. Overflow means the text will overflow and display; Truncate means only the content within the set height will be displayed, depending on the vertical alignment of the text. |
+| `Mask Interaction`  | Mask type for text, specifying whether the text needs masking, and whether the content inside or outside the mask should be shown |
+| `Mask Layer`        | The mask layer for the text, used for matching with SpriteMask. Default is Everything, meaning it can interact with any SpriteMask |
+| `priority`          | Rendering priority; the lower the value, the higher the priority, meaning it will be rendered first |
+
+## Script Development
+
+<playground src="ui-Text.ts"></playground>

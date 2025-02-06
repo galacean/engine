@@ -145,7 +145,8 @@ Thanks to the unified architecture of the Galacean Engine 2D/3D engine, 3D trans
 | Engine Version |  Lottie Version |
 | :--- | :--- |
 | 1.2.x | 1.1.0-beta.0 |
-| 1.3.x | 1.1.0-beta.0 |
+| 1.3.x | engine-1.3 |
+| 1.4.x | engine-1.4 |
 
 ## Performance Recommendations
 

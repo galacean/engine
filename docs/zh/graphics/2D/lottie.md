@@ -148,7 +148,8 @@ engine.resourceManager.load({
 | 引擎版本 |  Lottie 版本 |
 | :--- | :--- |
 | 1.2.x | 1.1.0-beta.0 |
-| 1.3.x | 1.1.0-beta.0 |
+| 1.3.x | engine-1.3 |
+| 1.4.x | engine-1.4 |
 
 ## 性能方面的建议
 
