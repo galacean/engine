@@ -418,14 +418,16 @@ export class Scene extends EngineObject {
    */
   findEntityByPath(path: string): Entity | null {
     const splits = path.split("/").filter(Boolean);
+    if (!splits.length) {
+      return null;
+    }
+
     for (let i = 0, n = this.rootEntitiesCount; i < n; i++) {
-      let findEntity = this.getRootEntity(i);
-      if (findEntity.name != splits[0]) continue;
-      for (let j = 1, m = splits.length; j < m; ++j) {
-        findEntity = Entity._findChildByName(findEntity, splits[j]);
-        if (!findEntity) break;
+      let rootEntity = this.getRootEntity(i);
+      const target = Entity._findChildByName(rootEntity, 0, splits, 0);
+      if (target) {
+        return target;
       }
-      return findEntity;
     }
     return null;
   }

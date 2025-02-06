@@ -22,15 +22,22 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  static _findChildByName(root: Entity, name: string): Entity {
-    const children = root._children;
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      if (child.name === name) {
-        return child;
+  static _findChildByName(entity: Entity, childIndex: number, paths: string[], pathIndex: number): Entity {
+    const searchPath = paths[pathIndex];
+    const isEndPath = pathIndex === paths.length - 1;
+    const children = entity._children;
+    for (const n = children.length; childIndex < n; childIndex++) {
+      const child = children[childIndex];
+      if (child.name === searchPath) {
+        // Search success if end path, or downward search
+        return isEndPath ? child : Entity._findChildByName(child, 0, paths, pathIndex + 1);
       }
     }
-    return null;
+
+    // Search failed if first path, or upward search
+    return pathIndex === 0
+      ? null
+      : Entity._findChildByName(entity.parent, entity.siblingIndex + 1, paths, pathIndex - 1);
   }
 
   /**
@@ -392,22 +399,16 @@ export class Entity extends EngineObject {
 
   /**
    * Find the entity by path.
-   * @param path - The path fo the entity eg: /entity
+   * @param path - The path of the entity eg: /entity
    * @returns The component which be found
    */
   findByPath(path: string): Entity {
-    const splits = path.split("/");
-    let entity: Entity = this;
-    for (let i = 0, length = splits.length; i < length; ++i) {
-      const split = splits[i];
-      if (split) {
-        entity = Entity._findChildByName(entity, split);
-        if (!entity) {
-          return null;
-        }
-      }
+    const splits = path.split("/").filter(Boolean);
+    if (!splits.length) {
+      return this;
     }
-    return entity;
+
+    return Entity._findChildByName(this, 0, splits, 0);
   }
 
   /**
