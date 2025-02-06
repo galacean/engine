@@ -56,6 +56,7 @@ module.exports = {
       "@galacean/engine-draco",
       "@galacean/engine-lottie",
       "@galacean/engine-spine",
+      "@galacean/engine-shaderlab",
       "@galacean/tools-baker",
       "@galacean/engine-toolkit",
       "@galacean/engine-toolkit-auxiliary-lines",

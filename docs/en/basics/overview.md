@@ -35,7 +35,7 @@ Includes the following sub-packages:
 | [@galacean/engine](https://www.npmjs.com/package/@galacean/engine) | Core architecture logic and core functionalities | [API](/apis/galacean) |
 | [@galacean/engine-physics-lite](https://www.npmjs.com/package/@galacean/engine-physics-lite) | Lightweight physics engine | [Doc](/en/docs/physics/overall) |
 | [@galacean/engine-physics-physx](https://www.npmjs.com/package/@galacean/engine-physics-physx) | Full-featured physics engine | [Doc](/en/docs/physics/overall) |
-| [@galacean/engine-shader-lab](https://www.npmjs.com/package/@galacean/engine-shader-lab) | Galacean Shader compiler | [Doc](/en/docs/graphics/shader/lab) |
+| [@galacean/engine-shaderlab](https://www.npmjs.com/package/@galacean/engine-shaderlab) | Galacean Shader compiler | [Doc](/en/docs/graphics/shader/lab) |
 | [@galacean/engine-xr](https://www.npmjs.com/package/@galacean/engine-xr) | XR logic package | [Doc](/en/docs/xr/overall) |
 | [@galacean/engine-xr-webxr](https://www.npmjs.com/package/@galacean/engine-xr-webxr) | WebXR backend | [Doc](/en/docs/xr/overall) |
 
