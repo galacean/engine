@@ -1,0 +1,44 @@
+---
+order: 4
+title: Button
+type: UI
+label: UI
+---
+
+`Button` can be used to create interactive buttons within a UICanvas.
+
+## Editor Usage
+
+### Add Button Node
+
+Add a `Button` node in the **[Hierarchy Panel](/docs/interface/hierarchy/)**.
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Zjn4QbY0B-IAAAAAAAAAAAAAehuCAQ/original" style="zoom:50%;" />
+
+> If the parent or ancestor node does not have a Canvas component, a root Canvas node will be automatically added.
+
+### Set Transition
+
+In the editor, you can easily set the button's transition effects for different states.
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*IFiaSLZqIWYAAAAAAAAAAAAAehuCAQ/original" style="zoom:50%;" />
+
+## Properties
+
+| Property Name   | Description                       |
+| :-------------- | :-------------------------------- |
+| `transitions`   | All the transition effects of the button |
+| `interactive`   | Whether the button is interactive   |
+
+## Methods
+
+| Method Name         | Description                           |
+| :------------------ | :------------------------------------ |
+| `addTransition`     | Add a transition effect to the button |
+| `removeTransition`  | Remove a transition effect from the button |
+| `addClicked`        | Add a click callback function         |
+| `removeClicked`     | Remove a click callback function      |
+
+## Script Development
+
+<playground src="ui-Button.ts"></playground>

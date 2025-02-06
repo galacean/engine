@@ -21,7 +21,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     Pointer: true,
     Keyboard: true,
     Size: 1,
-    Color: [255, 255, 255],
+    Color: [255, 0, 0],
     OffsetX: 0,
     OffsetY: 0,
   };
@@ -53,5 +53,6 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     inputLogger.color.set(v[0] / 255, v[1] / 255, v[2] / 255, 1);
   });
 
+  inputLogger.color.set(1, 0, 0, 1);
   textFolder.open();
 });

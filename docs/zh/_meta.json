@@ -47,6 +47,12 @@
       "collapse": true
     }
   },
+  "UI": {
+    "title": "UI",
+    "theme": {
+      "collapse": true
+    }
+  },
   "xr": {
     "title": "XR",
     "theme": {
