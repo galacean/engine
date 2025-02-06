@@ -35,7 +35,7 @@ flowchart LR
 | [@galacean/engine](https://www.npmjs.com/package/@galacean/engine) | 核心架构逻辑和核心功能 | [API](/apis/galacean) |
 | [@galacean/engine-physics-lite](https://www.npmjs.com/package/@galacean/engine-physics-lite) | 轻量级物理引擎 | [Doc](/docs/physics/overall) |
 | [@galacean/engine-physics-physx](https://www.npmjs.com/package/@galacean/engine-physics-physx) | 全功能物理引擎 | [Doc](/docs/physics/overall) |
-| [@galacean/engine-shader-lab](https://www.npmjs.com/package/@galacean/engine-shader-lab) | Galacean Shader 编译器 | [Doc](/docs/graphics/shader/shaderLab/intro/) |
+| [@galacean/engine-shaderlab](https://www.npmjs.com/package/@galacean/engine-shaderlab) | Galacean Shader 编译器 | [Doc](/docs/graphics/shader/shaderLab/intro/) |
 | [@galacean/engine-xr](https://www.npmjs.com/package/@galacean/engine-xr) | XR 逻辑包 | [Doc](/docs/xr/overall) |
 | [@galacean/engine-xr-webxr](https://www.npmjs.com/package/@galacean/engine-xr-webxr) | WebXR 后端 | [Doc](/docs/xr/overall) |
 

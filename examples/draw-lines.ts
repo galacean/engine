@@ -131,7 +131,7 @@ class DrawScript extends Script {
     }
   }
 
-  onPointerDown(): void {
+  onPointerBeginDrag(): void {
     // Screen pointer to world pointer.
     this._preDrawTime = this.engine.time.elapsedTime;
     const { x: screenX, y: screenY } =
