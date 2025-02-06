@@ -443,6 +443,7 @@ export class DynamicCollider extends Collider {
     (<IDynamicCollider>this._nativeCollider).setMaxDepenetrationVelocity(this._maxDepenetrationVelocity);
     (<IDynamicCollider>this._nativeCollider).setSleepThreshold(this._sleepThreshold);
     (<IDynamicCollider>this._nativeCollider).setSolverIterations(this._solverIterations);
+    (<IDynamicCollider>this._nativeCollider).setUseGravity(this._useGravity);
     (<IDynamicCollider>this._nativeCollider).setIsKinematic(this._isKinematic);
     (<IDynamicCollider>this._nativeCollider).setConstraints(this._constraints);
     (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(this._collisionDetectionMode);
