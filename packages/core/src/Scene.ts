@@ -424,15 +424,18 @@ export class Scene extends EngineObject {
 
     const searchRootName = splits.shift();
     for (let i = 0, n = this.rootEntitiesCount; i < n; i++) {
-      let rootEntity = this.getRootEntity(i);
-      if (rootEntity.name != searchRootName) {
+      let findEntity = this.getRootEntity(i);
+      if (findEntity.name !== searchRootName) {
         continue;
       }
 
-      const target = Entity._findChildByName(rootEntity, 0, splits, 0);
-      if (target) {
-        return target;
+      if (splits.length) {
+        findEntity = Entity._findChildByName(findEntity, 0, splits, 0);
+        if (!findEntity) {
+          continue;
+        }
       }
+      return findEntity;
     }
     return null;
   }
