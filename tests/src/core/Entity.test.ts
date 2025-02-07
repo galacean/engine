@@ -42,7 +42,6 @@ describe("Entity", async () => {
       expect(scene.findEntityByPath("root/parent/child1")).eq(child1);
       expect(scene.findEntityByPath("root/parent/child")).eq(child);
       expect(scene.findEntityByPath("root/parent/child2")).eq(child2);
-      debugger;
     });
     it("not found", () => {
       const parent = new Entity(engine, "parent");
