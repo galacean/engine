@@ -219,7 +219,6 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.fully_specified_type)
   export class FullySpecifiedType extends TreeNode {
-    qualifierList: EKeyword[] = [];
     typeSpecifier: TypeSpecifier;
     type: GalaceanDataType;
 
@@ -230,27 +229,13 @@ export namespace ASTNode {
         this.typeSpecifier = children[0] as TypeSpecifier;
       } else {
         this.typeSpecifier = children[1] as TypeSpecifier;
-        this.qualifierList = (<TypeQualifier>children[0]).qualifierList;
       }
       this.type = this.typeSpecifier.type;
     }
   }
 
   @ASTNodeDecorator(NoneTerminal.type_qualifier)
-  export class TypeQualifier extends TreeNode {
-    qualifierList: EKeyword[];
-
-    override semanticAnalyze(sa: SematicAnalyzer): void {
-      if (this.children.length > 1) {
-        this.qualifierList = [
-          ...(<TypeQualifier>this.children[0]).qualifierList,
-          (<SingleTypeQualifier>this.children[1]).qualifier
-        ];
-      } else {
-        this.qualifierList = [(<SingleTypeQualifier>this.children[0]).qualifier];
-      }
-    }
-  }
+  export class TypeQualifier extends TreeNode {}
 
   @ASTNodeDecorator(NoneTerminal.single_type_qualifier)
   export class SingleTypeQualifier extends TreeNode {
