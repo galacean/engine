@@ -37,6 +37,8 @@ describe("Entity", async () => {
 
       expect(scene.findEntityByPath("root/parent")).eq(parentX);
 
+      expect(scene.findEntityByPath("root/parent/null")).eq(null);
+
       expect(scene.findEntityByPath("root/parent/child1")).eq(child1);
       expect(scene.findEntityByPath("root/parent/child")).eq(child);
       expect(scene.findEntityByPath("root/parent/child2")).eq(child2);
