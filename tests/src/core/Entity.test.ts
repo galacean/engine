@@ -15,11 +15,19 @@ describe("Entity", async () => {
   describe("scene.findByPath", () => {
     it("normal", () => {
       const parent = new Entity(engine, "parent");
+      const parentX = new Entity(engine, "parent");
+      const parentY = new Entity(engine, "parent");
 
       parent.parent = scene.getRootEntity();
+      parentX.parent = scene.getRootEntity();
+      parentY.parent = scene.getRootEntity();
+
       const child = new Entity(engine, "child");
       child.parent = parent;
-
+      const child1 = new Entity(engine, "child1");
+      child1.parent = parent;
+      const child2 = new Entity(engine, "child2");
+      child2.parent = parent;
 
       expect(scene.findEntityByPath("")).eq(null);
 
@@ -27,10 +35,9 @@ describe("Entity", async () => {
 
       expect(scene.findEntityByPath("root/parent")).eq(parent);
 
+      expect(scene.findEntityByPath("root/parent/child1")).eq(child1);
       expect(scene.findEntityByPath("root/parent/child")).eq(child);
-
-
-
+      expect(scene.findEntityByPath("root/parent/child2")).eq(child2);
     });
     it("not found", () => {
       const parent = new Entity(engine, "parent");
@@ -303,7 +310,6 @@ describe("Entity", async () => {
       grandson.parent = child;
       const grandson2 = new Entity(engine, "grandson");
       grandson2.parent = child2;
-
 
       expect(parent.findByPath("/child")).eq(child);
       expect(parent.findByPath("child/grandson")).eq(grandson2);
