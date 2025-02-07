@@ -755,21 +755,17 @@ export class ParticleGenerator {
     }
 
     // Start rotation
-    const startRotationRand = main._startRotationRand;
+    const { _startRotationRand: startRotationRand, flipRotation } = main;
+    const isOpposite = flipRotation < startRotationRand.random();
+    const rotationZ = MathUtil.degreeToRadian(main.startRotationZ.evaluate(undefined, startRotationRand.random()));
     if (main.startRotation3D) {
-      instanceVertices[offset + 15] = MathUtil.degreeToRadian(
-        main.startRotationX.evaluate(undefined, startRotationRand.random())
-      );
-      instanceVertices[offset + 16] = MathUtil.degreeToRadian(
-        main.startRotationY.evaluate(undefined, startRotationRand.random())
-      );
-      instanceVertices[offset + 17] = MathUtil.degreeToRadian(
-        main.startRotationZ.evaluate(undefined, startRotationRand.random())
-      );
+      const rotationX = MathUtil.degreeToRadian(main.startRotationX.evaluate(undefined, startRotationRand.random()));
+      const rotationY = MathUtil.degreeToRadian(main.startRotationY.evaluate(undefined, startRotationRand.random()));
+      instanceVertices[offset + 15] = isOpposite ? -rotationX : rotationX;
+      instanceVertices[offset + 16] = isOpposite ? -rotationY : rotationY;
+      instanceVertices[offset + 17] = isOpposite ? -rotationZ : rotationZ;
     } else {
-      instanceVertices[offset + 15] = MathUtil.degreeToRadian(
-        main.startRotationZ.evaluate(undefined, startRotationRand.random())
-      );
+      instanceVertices[offset + 15] = isOpposite ? -rotationZ : rotationZ;
     }
 
     // Start speed
