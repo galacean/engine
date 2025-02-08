@@ -10,7 +10,7 @@ label: Basics
 
 Flappy Bird 是一个 2D 项目，编辑器首页自带的 2D 模版便是按照此文档一步一步实现的，我们先通过编辑器的 `New Project` 创建一个 `2D Project`。（若遇到问题，可参照**首页**->**模版**->**像素小鸟**）
 
-<img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*tzD2TKk9f9gAAAAAAAAAAAAADleLAQ/original" alt="image-20231007170002181" />
+<Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*tzD2TKk9f9gAAAAAAAAAAAAADleLAQ/original" alt="image-20231007170002181" />
 
 ## 准备资源
 
@@ -22,25 +22,25 @@ Flappy Bird 依赖的资源是一堆图片，点击[这里](https://github.com/g
 - 草地、管道
 - 游戏重新开始按钮
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/154a2280-92d5-465e-8501-4ecc3f01c9d1/image-20231007170002181.png" alt="image-20231007170002181" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/154a2280-92d5-465e-8501-4ecc3f01c9d1/image-20231007170002181.png" alt="image-20231007170002181" style={{zoom:"50%"}} />
 
 ### 上传资源
 
-回到场景编辑器，点击资源面板上的上传按钮 <img src="https://gw.alipayobjects.com/zos/OasisHub/07b876d3-462b-4a06-a2da-ce68d2932034/image-20231007145111353.png" alt="image-20231007145111353" style="zoom:50%;" />，选择 `Sprite`，此时会唤起操作系统的文件查看器，选中所有 FlappyBird 目录下的图片。上传之后，如下图所示，编辑器为每张图片创建了一个 [Texture](/docs/graphics/texture/texture/) 资源和 一个 [Sprite](/docs/graphics/2D/sprite) 资源（为了和 Texture 资源作区分，Sprite 对象带灰色圆角矩形背景）。在接下来的操作中，我们只需要关心 Sprite 资源。
+回到场景编辑器，点击资源面板上的上传按钮 <img src="https://gw.alipayobjects.com/zos/OasisHub/07b876d3-462b-4a06-a2da-ce68d2932034/image-20231007145111353.png" alt="image-20231007145111353" style={{zoom:"50%"}} />，选择 `Sprite`，此时会唤起操作系统的文件查看器，选中所有 FlappyBird 目录下的图片。上传之后，如下图所示，编辑器为每张图片创建了一个 [Texture](/docs/graphics/texture/texture/) 资源和 一个 [Sprite](/docs/graphics/2D/sprite) 资源（为了和 Texture 资源作区分，Sprite 对象带灰色圆角矩形背景）。在接下来的操作中，我们只需要关心 Sprite 资源。
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/7f13679f-de18-4621-81b1-5834b5d00bd7/image-20231007145451371.png" alt="image-20231007145451371" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/7f13679f-de18-4621-81b1-5834b5d00bd7/image-20231007145451371.png" alt="image-20231007145451371" style={{zoom:"50%"}} />
 
 到这里，我们已经把资源上传完，但是有洁癖的你看到这散乱的资源可能已经按耐不住整理的冲动了。让我们创建一个文件夹，并重命名为 _Sprites_，把刚上传的资源批量选中后拖到 _Sprites_ 目录中。这样做的目的不仅是让资源面板更加整洁，还为我们下一步创建 [Atlas 图集](/docs/graphics/2D/spriteAtlas)资源做好了准备。
 
 ### 创建图集
 
-为了达到更好的运行时性能，我们选择把这些 Sprite 资源打包到一个 Atlas 资源。我们点击 <img src="https://gw.alipayobjects.com/zos/OasisHub/16aa674c-1bee-49d7-a516-21c591a4ce36/image-20231007152415467.png" alt="image-20231007152415467" style="zoom:50%;" /> 按钮选择 `Sprite Atlas`，创建后选中它，通过 **[检查器面板](/docs/interface/inspector)** 上的 `Add to List` 按钮把所有 Sprite 资源都添加到列表中。
+为了达到更好的运行时性能，我们选择把这些 Sprite 资源打包到一个 Atlas 资源。我们点击 <img src="https://gw.alipayobjects.com/zos/OasisHub/16aa674c-1bee-49d7-a516-21c591a4ce36/image-20231007152415467.png" alt="image-20231007152415467" style={{zoom:"50%"}} /> 按钮选择 `Sprite Atlas`，创建后选中它，通过 **[检查器面板](/docs/interface/inspector)** 上的 `Add to List` 按钮把所有 Sprite 资源都添加到列表中。
 
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*1YsTTZdjmm4AAAAAAAAAAAAADhuCAQ/original" alt="image-20231007171348757" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*1YsTTZdjmm4AAAAAAAAAAAAADhuCAQ/original" alt="image-20231007171348757" style={{zoom:"50%"}} />
 
 点击 `Pack and Preview` 按钮可以看到 Atlas 创建成功：
 
-<img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*Xc0ZR71aXdMAAAAAAAAAAAAADleLAQ/original" alt="image-20231007153448666" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*Xc0ZR71aXdMAAAAAAAAAAAAADleLAQ/original" alt="image-20231007153448666" style={{zoom:"50%"}} />
 
 恭喜你，到这里你已经完成了资源上传和管理的操作。接下去我们进行游戏场景搭建的环节。
 
@@ -54,7 +54,7 @@ Flappy Bird 依赖的资源是一堆图片，点击[这里](https://github.com/g
 
 > 如果你发现画面太大或太小，可以调整正交相机的 `Orthographic Size` 来实现缩放。
 
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*XRceR5mdqLgAAAAAAAAAAAAADhuCAQ/original" alt="image-20231007162550749" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*XRceR5mdqLgAAAAAAAAAAAAADhuCAQ/original" alt="image-20231007162550749" style={{zoom:"50%"}} />
 
 ### 加上小鸟
 
@@ -64,19 +64,19 @@ Flappy Bird 依赖的资源是一堆图片，点击[这里](https://github.com/g
 
 随着游戏的进行，管道会在画面中重复出现，并且是上下成对出现。这里有个小技巧，可以把上面的管道的 `Scale` 值设成 `-1`，这样就优雅地实现了翻转。
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/c4e2cf84-3834-4178-86d0-3ad9faa7bd28/image-20231007163240028.png" alt="image-20231007163240028" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/c4e2cf84-3834-4178-86d0-3ad9faa7bd28/image-20231007163240028.png" alt="image-20231007163240028" style={{zoom:"50%"}} />
 
 在游戏过程中，产生管道的高度也是随机的，但是我们手上的资产高度却是固定的。不用急，只需要调整一下`精灵渲染模式`即可，这样可以让我们`无损`拉伸某些资产哦。
 
-<img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*ZDSZTaXK-RIAAAAAAAAAAAAADleLAQ/original"/>
+<Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*ZDSZTaXK-RIAAAAAAAAAAAAADleLAQ/original"/>
 
 这里有个小技巧，将引用 `sprite` 资产的 `pivot` 属性设置为 `buttom` 就可以避免每次调整高度的时候重新锚定位置了。
 
-<img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*MQqKTK0BAFAAAAAAAAAAAAAADleLAQ/original" alt="image-20231007163240028" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*MQqKTK0BAFAAAAAAAAAAAAAADleLAQ/original" alt="image-20231007163240028" style={{zoom:"50%"}} />
 
 考虑到管道会重复出现，我们在节点树中把一对管道设置成一个 `PipeMother` 的组，并把它放到 `Pipe` 节点下。这样，后面通过在 Pipe 上绑定脚本组件就可以获取 `PipeMother` 以实现管道的复用。
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/ef20415a-aa57-4236-b29e-e4df88f7e747/image-20231007163400680.png" alt="image-20231007163400680" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/ef20415a-aa57-4236-b29e-e4df88f7e747/image-20231007163400680.png" alt="image-20231007163400680" style={{zoom:"50%"}} />
 
 ### 加上草地
 
@@ -88,23 +88,23 @@ Flappy Bird 依赖的资源是一堆图片，点击[这里](https://github.com/g
 
 2. 在 **[检查器面板](/docs/interface/inspector)** 中通过 `Add Component` 按钮添加 `Sprite Renderer` 组件，并且把 `SpriteRenderer DrawMode Info` 属性设置成 `Tiled`，并将宽度设置为 `8.14`
 
-   <img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*pDBbTp6a78oAAAAAAAAAAAAADleLAQ/original" alt="image-20231007173243980" style="zoom:50%;" />
+   <Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*pDBbTp6a78oAAAAAAAAAAAAADleLAQ/original" alt="image-20231007173243980" style={{zoom:"50%"}} />
 
 3. 此时就得到了一个平铺完毕的地面，接下来我们可以通过创建动画片段来让它动起来！详见[动画片段编辑](/docs/animation/clip)。
 
-   <img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*3d2GSINL_8IAAAAAAAAAAAAADleLAQ/original" />
+   <Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*3d2GSINL_8IAAAAAAAAAAAAADleLAQ/original" />
 
 ### 添加遮罩
 
 添加完地面后发现，左右显示好像穿帮了！对于这种情况，只需要为精灵渲染器增加遮罩就好了，详见[精灵遮罩组件](/docs/graphics/2D/spriteMask)
 
-   <img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*d_ZBS6zxOjQAAAAAAAAAAAAADleLAQ/original" />
+   <Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*d_ZBS6zxOjQAAAAAAAAAAAAADleLAQ/original" />
 
 ### 加上 GUI
 
 GUI 包括分数显示和重新开始按钮。我们分数（ `0.png`） 和重新开始按钮（ `restart.png`） 两个精灵拖到场景中，并放到新建的 `GUI` 节点下。
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/2f443e5f-1523-4341-8f10-4c85c421fb50/image-20231007180819265.png" alt="image-20231007180819265" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/2f443e5f-1523-4341-8f10-4c85c421fb50/image-20231007180819265.png" alt="image-20231007180819265" style={{zoom:"50%"}} />
 
 至此，界面搭建完毕！观察一下左侧的节点树的完整结构，好的树结构对复杂场景管理来说很重要。
 
@@ -121,7 +121,7 @@ GUI 包括分数显示和重新开始按钮。我们分数（ `0.png`） 和重�
 
 碰撞体描述了事物的位姿形态，因此在添加碰撞体时应该尽量贴合物体实际显示的大小。关于碰撞器的使用详见[碰撞器](/docs/physics/collider)，此处演示为小鸟添加碰撞体。
 
-<img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*_szwQL3V1AQAAAAAAAAAAAAADleLAQ/original" />
+<Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*_szwQL3V1AQAAAAAAAAAAAAADleLAQ/original" />
 
 #### 处理碰撞回调
 
@@ -255,7 +255,7 @@ timeline
 
 经过拆解可以发现，如果我们简单地将动画分类为待机动画，飞行动画与坠落动画，考虑到待机的时候要播放精灵切换和上下缓动的动画，飞行的时候也需要播放精灵切换与抬头坠落的动画，他们重合的部分不仅会增加动画编辑时的工作量，还需要额外考虑这两个动画衔接时其中的精灵切换动画是否自然，因此我们更进一步，将各个动画状态原子化，拆分其中精灵切换与坐标改变的部分，并分别设置在不同的 `Layer` 中，不同的 `Layer` 相互独立，并可同时播放各自的动画，设置各自的叠加模式与权重，详情可参考[动画组件](/docs/animation/system/)。
 
-<img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*1cXjQIJAgZoAAAAAAAAAAAAADleLAQ/original" alt="image-20231007180819265" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*1cXjQIJAgZoAAAAAAAAAAAAADleLAQ/original" alt="image-20231007180819265" style={{zoom:"50%"}} />
 
 让各个 `Layer` 分别控制各自的动画状态，可以逻辑更加清晰。
 
@@ -344,7 +344,7 @@ class Bird extends Script {
 
 由于动画片段编辑只能编辑绝对的坐标或旋转变化，例如每次飞行的动画，他的旋转变化是绝对的，但坐标却是相对的，因此我们可以在 `StateMachineScript` 中实现，以 `Fly` 动画为例：
 
-<img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*T_stQakEWT0AAAAAAAAAAAAADleLAQ/original"/>
+<Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*T_stQakEWT0AAAAAAAAAAAAADleLAQ/original"/>
 
 然后打开这个脚本，并在其中添加上自由落体的坐标变化：
 
