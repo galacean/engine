@@ -64,12 +64,15 @@ timeline
 
 | 接口                                               | 触发时机与频率                                                             |
 | :------------------------------------------------- | :------------------------------------------------------------------------- |
-| [onPointerEnter](/apis/core/#Script-onPointerEnter) | 当触控点进入 Entity 的碰撞体范围时触发一次                                 |
-| [onPointerExit](/apis/core/#Script-onPointerExit)   | 当触控点离开 Entity 的碰撞体范围时触发一次                                 |
-| [onPointerDown](/apis/core/#Script-onPointerDown)   | 当触控点在 Entity 的碰撞体范围内按下时触发一次                             |
-| [onPointerUp](/apis/core/#Script-onPointerUp)       | 当触控点在 Entity 的碰撞体范围内松开时触发一次                             |
-| [onPointerClick](/apis/core/#Script-onPointerClick) | 当触控点在 Entity 的碰撞体范围内按下并松开，在松开时触发一次               |
-| [onPointerDrag](/apis/core/#Script-onPointerDrag)   | 当触控点在 Entity 的碰撞体范围内按下时**持续**触发，直至触控点解除按下状态 |
+| [onPointerEnter](/apis/core/#Script-onPointerEnter) | 当触控点进入 Entity 的碰撞范围时触发一次                                 |
+| [onPointerExit](/apis/core/#Script-onPointerExit)   | 当触控点离开 Entity 的碰撞范围时触发一次                                 |
+| [onPointerDown](/apis/core/#Script-onPointerDown)   | 当触控点在 Entity 的碰撞范围内按下时触发一次                             |
+| [onPointerUp](/apis/core/#Script-onPointerUp)       | 当触控点在 Entity 的碰撞范围内松开时触发一次                             |
+| [onPointerClick](/apis/core/#Script-onPointerClick) | 当触控点在 Entity 的碰撞范围内按下并松开，在松开时触发一次               |
+| [onPointerBeginDrag](/apis/core/#Script-onPointerBeginDrag)   | 当触控点在 Entity 的碰撞范围内按下时触发，表示开始拖动 |
+| [onPointerDrag](/apis/core/#Script-onPointerDrag)   | 开始拖动后，触控点发生移动时触发 |
+| [onPointerEndDrag](/apis/core/#Script-onPointerEndDrag)   | 开始拖动后，触控点松开时触发 |
+| [onPointerDrop](/apis/core/#Script-onPointerDrop)   | 开始拖动后，当触控点在某个 Entity 的碰撞范围内松开时触发 |
 
 > ⚠️ 触控回调**依赖物理引擎**，使用此功能前请确保物理引擎已初始化完毕。
 

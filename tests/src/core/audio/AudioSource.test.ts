@@ -1,4 +1,4 @@
-import { AssetType, AudioClip, AudioSource, Engine } from "@galacean/engine-core";
+import { AssetType, AudioClip, AudioManager, AudioSource, Engine } from "@galacean/engine-core";
 import "@galacean/engine-loader";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -54,7 +54,11 @@ describe("AudioSource", () => {
     audioSource.stop();
     audioSource.play();
 
-    // Because the audio play should interaction
-    expect(audioSource.isPlaying).to.be.false;
+    if (AudioManager.isAudioContextRunning()) {
+      expect(audioSource.isPlaying).to.be.true;
+    } else {
+      // Because the audio play should interaction
+      expect(audioSource.isPlaying).to.be.false;
+    }
   });
 });
