@@ -11,7 +11,7 @@ label: Resource
 
 例如下图展示的实体包含 [MeshRenderer](/apis/core/#MeshRenderer) 组件，依赖于 [Material](/apis/core/#Material)， _Material_ 可能被多个 _MeshRenderer_ 引用，如果释放 _Material_ ，那么引用此的其他 _MeshRenderer_ 则会找不到该 _Material_ 而报错。
 
-![image.png](https://gw.alipayobjects.com/mdn/mybank_yulibao/afts/img/A*wXmqRIwqI18AAAAAAAAAAAAAARQnAQ)
+<Image src="https://gw.alipayobjects.com/mdn/mybank_yulibao/afts/img/A*wXmqRIwqI18AAAAAAAAAAAAAARQnAQ" />
 
 > 注意：JavaScript 无法追踪对象的引用。 一般在 JavaScript 等弱类型语言中，是没有提供给开发者内存管理的功能的，所有对象的内存都是通过垃圾回收机制来管理，你没有办法去判断对象什么时候会被释放，所以没有[析构函数(destructor)](https://zh.wikipedia.org/wiki/%E8%A7%A3%E6%A7%8B%E5%AD%90)去调用引用资源的释放。
 
@@ -32,6 +32,6 @@ engine.resourceManager.gc();
 1. gc 前： **开发者工具** -> **内存** -> **拍摄堆快照**
 2. gc 后： **开发者工具** -> **内存** -> **拍摄堆快照** -> **比较** -> **选择 gc 前快照**
 
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*CtRmTqXDgt0AAAAAAAAAAAAADhuCAQ/original" alt="image-1" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*CtRmTqXDgt0AAAAAAAAAAAAADhuCAQ/original" alt="image-1" style={{zoom:"50%"}} />
 
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*E5PwQ7ocw2EAAAAAAAAAAAAADhuCAQ/original" alt="image-1" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*E5PwQ7ocw2EAAAAAAAAAAAAADhuCAQ/original" alt="image-1" style={{zoom:"50%"}} />
