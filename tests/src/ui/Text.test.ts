@@ -42,6 +42,26 @@ describe("Text", async () => {
     expect(label.enableWrapping).to.eq(true);
   });
 
+  it("get bounds", () => {
+    const textWithoutCanvas = root.addComponent(Text);
+    textWithoutCanvas.text = "hello world";
+    const bounds = textWithoutCanvas.bounds;
+    expect(bounds.min).to.deep.include({ x: -50, y: -50, z: 0 });
+    expect(bounds.max).to.deep.include({ x: 50, y: 50, z: 0 });
+
+    const labelBounds = label.bounds;
+    expect(labelBounds.min).to.deep.include({ x: -50, y: -50, z: 0 });
+    expect(labelBounds.max).to.deep.include({ x: 50, y: 50, z: 0 });
+    label.text = "hello world";
+    const labelBounds2 = label.bounds;
+    expect(labelBounds2.min).to.deep.include({ x: -50, y: -50, z: 0 });
+    expect(labelBounds2.max).to.deep.include({ x: 50, y: 50, z: 0 });
+    (<UITransform>label.entity.transform).size.x = 200;
+    const labelBounds3 = label.bounds;
+    expect(labelBounds3.min).to.deep.include({ x: -100, y: -50, z: 0 });
+    expect(labelBounds3.max).to.deep.include({ x: 100, y: 50, z: 0 });
+  });
+
   it("emoji", () => {
     const textEntity = canvasEntity.createChild("text");
 

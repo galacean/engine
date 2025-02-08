@@ -598,7 +598,8 @@ export class Text extends UIRenderer implements ITextRenderer {
       this._text === "" ||
       this._fontSize === 0 ||
       (this.enableWrapping && size.x <= 0) ||
-      (this.overflowMode === OverflowMode.Truncate && size.y <= 0)
+      (this.overflowMode === OverflowMode.Truncate && size.y <= 0) ||
+      !this._getRootCanvas()
     );
   }
 
