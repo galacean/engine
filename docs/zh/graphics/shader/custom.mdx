@@ -111,7 +111,7 @@ const material = new Material(engine, Shader.find("demo"));
 
 除了内置的变量，我们可以在着色器中上传任何自定义名字的变量，我们唯一要做的就是根据着色器数据类型，使用正确的接口。上传的接口全部保存在 [ShaderData](/apis/core/#ShaderData) 中，而 shaderData 实例对象又分别保存在引擎的四大类 [Scene](/apis/core/#Scene)、[Camera](/apis/core/#Camera)、[Renderer](/apis/core/#Renderer)、[Material](/apis/core/#Material) 中，我们只需要分别往这些 shaderData 中调用接口，上传变量，引擎便会在底层自动帮我们组装这些数据，并进行判重等性能的优化。
 
-![](https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*ijQMQJM_Vy0AAAAAAAAAAAAADleLAQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*ijQMQJM_Vy0AAAAAAAAAAAAADleLAQ/original" />
 
 ### 着色器数据分开的好处
 

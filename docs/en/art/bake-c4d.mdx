@@ -13,11 +13,11 @@ Baking is the process of expressing all the rendered material color information 
 
 Baking requires two sets of models: a high-poly model and a low-poly model. The high-poly model is used to bake more detailed textures, while the low-poly model is used in the engine with the textures. Both models must have consistent UVs, so the low-poly model is created first with UVs laid out, then detailed to create the high-poly model. The high-poly model can have more details to bake richer textures.
 
-![1.gif](https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*pbduQosyOJwAAAAAAAAAAAAAARQnAQ)
+<Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*pbduQosyOJwAAAAAAAAAAAAAARQnAQ" />
 
 The left is the low-poly model, and the right is the high-poly model. The wiring information shows that the high-poly model has more details.
 
-![2.gif](https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*SgbzSKngA2IAAAAAAAAAAAAAARQnAQ)
+<Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*SgbzSKngA2IAAAAAAAAAAAAAARQnAQ" />
 
 Although the wiring details differ, the visible parts of both models must be consistent. The covered parts are not considered, so the high-poly model must be derived from the low-poly model to ensure UV consistency.
 

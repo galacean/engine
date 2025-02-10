@@ -8,13 +8,13 @@ label: Graphics/Texture
 
 The difference between a cube texture ([TextureCube](/apis/core/#TextureCube)) and a 2D texture is that it has 6 faces, which means a cube texture is composed of 6 2D textures.
 
-![image.png](https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*Omw8Qo0WzfYAAAAAAAAAAAAAARQnAQ)
+<Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*Omw8Qo0WzfYAAAAAAAAAAAAAARQnAQ" />
 
-![image.png](https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*r-XPSaUTEnEAAAAAAAAAAAAAARQnAQ)
+<Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*r-XPSaUTEnEAAAAAAAAAAAAAARQnAQ" />
 
 The underlying sampling method of cube textures is slightly different from that of 2D textures. Textures use two-dimensional coordinates for sampling, while cube textures use three-dimensional coordinates, i.e., _direction vectors_ for sampling. For example, using an orange direction vector to sample a texture value from a cube texture would look like this:
 
-![image.png](https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*X752S5pQSB0AAAAAAAAAAAAAARQnAQ)
+<Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*X752S5pQSB0AAAAAAAAAAAAAARQnAQ" />
 
 Because of this sampling characteristic, cube textures can be used to achieve effects such as skyboxes and environment reflections.
 
@@ -24,7 +24,7 @@ Because of this sampling characteristic, cube textures can be used to achieve ef
 
 After preparing the HDR, follow the path **[Asset Panel](/en/docs/assets/interface)** -> **Right-click Upload** -> **Select TextureCube(.hdr)** -> **Choose the corresponding HDR map** -> **Cube texture asset creation completed**.
 
-![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Oi3FSLEEaYgAAAAAAAAAAAAADhuCAQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Oi3FSLEEaYgAAAAAAAAAAAAADhuCAQ/original" />
 
 Similarly, in the script, you can also get the corresponding cube texture by loading six textures in the correct order.
 

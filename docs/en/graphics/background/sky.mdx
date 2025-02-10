@@ -20,19 +20,19 @@ In the editor, simply follow these steps to set the skybox for the background:
 
 A skybox texture is a [cube texture](/en/docs/graphics/texture/cube/). After preparing the HDR, follow the path **[Asset Panel](/en/docs/assets/interface)** -> **Right-click Upload** -> **Select TextureCube(.hdr)** -> **Choose the corresponding HDR map** -> **Cube texture asset creation complete**.
 
-![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Oi3FSLEEaYgAAAAAAAAAAAAADhuCAQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Oi3FSLEEaYgAAAAAAAAAAAAADhuCAQ/original" />
 
 ### 2. Create Skybox Material
 
 After creating the cube texture asset, follow the path **[Asset Panel](/en/docs/assets/interface)** -> **Right-click Create** -> **Select Material** -> **Select the generated asset** -> **[Inspector Panel](/en/docs/interface/inspector)** -> **Click the Shader property in the Base section** -> **Select Sky Box** -> **Click HDR in the Base section** -> **Choose the cube texture created in the first step** to create the skybox material.
 
-![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*9j2eSYkwg8MAAAAAAAAAAAAADhuCAQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*9j2eSYkwg8MAAAAAAAAAAAAADhuCAQ/original" />
 
 ### 3. Set the Skybox
 
 Finally, follow the path **[Hierarchy Panel](/en/docs/interface/hierarchy)** -> **Select Scene** -> **[Inspector Panel](/en/docs/interface/inspector)** -> **Background section** -> **Set Mode to Sky** -> **Select the material created in the second step** -> **Set Mesh to the built-in Cuboid** to see the background of the scene change to the skybox.
 
-![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*rqvsSpkGJ6UAAAAAAAAAAAAADhuCAQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*rqvsSpkGJ6UAAAAAAAAAAAAADhuCAQ/original" />
 
 ### Code to Set Skybox
 
@@ -63,7 +63,7 @@ background.sky.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
 
 Procedural sky is the default background in 3D projects in the editor. You can also follow the path **[Hierarchy Panel](/en/docs/interface/hierarchy)** -> **Select Scene** -> **[Inspector Panel](/en/docs/interface/inspector)** -> **Background section** -> **Set Mode to Sky** -> **Select the built-in SkyMat material** -> **Set Mesh to the built-in Sphere**
 
-![image.png](https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Qe3IRJ9ciNoAAAAAAAAAAAAADhuCAQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Qe3IRJ9ciNoAAAAAAAAAAAAADhuCAQ/original" />
 
 ### Code to Set Procedural Sky
 

@@ -6,7 +6,7 @@ group: Model
 label: Graphics/Model
 ---
 
-![image.png](https://gw.alipayobjects.com/zos/OasisHub/5dd84590-7c37-4156-bb1a-498207880c75/1635493348596-92184a82-6aaa-4ab8-95e5-2d88762df213.png)
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/5dd84590-7c37-4156-bb1a-498207880c75/1635493348596-92184a82-6aaa-4ab8-95e5-2d88762df213.png" />
 
 ## Background
 
@@ -46,25 +46,25 @@ Currently, the most widely used algorithm in real-time rendering is the PBR algo
 
 It is worth mentioning that although different algorithms can cause some visual differences, their physical principles are consistent. For example, the higher the metallicity, the stronger the environmental reflection and the weaker the diffuse reflection; the higher the roughness, the more blurred the environmental reflection, as shown below:
 
-![image.png](https://gw.alipayobjects.com/zos/OasisHub/ddfe44e2-c9ab-4692-b62f-b43b8965ee4c/1635432936926-b26c9652-6d95-4160-9743-b954025dfe32.png)
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/ddfe44e2-c9ab-4692-b62f-b43b8965ee4c/1635432936926-b26c9652-6d95-4160-9743-b954025dfe32.png" />
 
 ### Differences in Lighting
 
 Like the real world, 3D scenes can also add [direct and ambient light](/en/docs/graphics/light/light/). By default, Galacean scenes have **no** light sources, only a blue-tinted [solid color diffuse](/apis/core/#AmbientLight-diffuseSolidColor), as shown in the first image on the left; whereas many modeling software come with built-in light sources:
 
-![image.png](https://gw.alipayobjects.com/zos/OasisHub/391e9bd9-945d-474d-b3fb-8cb0490e2b6f/1635434650361-60d7f40f-9f22-4e48-8865-141415d638f9.png)
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/391e9bd9-945d-474d-b3fb-8cb0490e2b6f/1635434650361-60d7f40f-9f22-4e48-8865-141415d638f9.png" />
 
 Ambient light based on [cube textures](/en/docs/graphics/texture/cube) enables IBL mode, requiring an HDRI map to simulate the surrounding environment, which can be [downloaded online](https://polyhaven.com/hdris). By default, Galacean scenes do not have an HDRI map bound, whereas many modeling software come with a visually appealing surrounding environment:
 
-![image.png](https://gw.alipayobjects.com/zos/OasisHub/61c2287b-0793-4763-a5f5-70567fcdf106/1635477315862-08b0c680-029b-400b-8600-1d8cf7a20c60.png)
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/61c2287b-0793-4763-a5f5-70567fcdf106/1635477315862-08b0c680-029b-400b-8600-1d8cf7a20c60.png" />
 
 ### Differences in glTF Support
 
 The connection channel between the Galacean engine and modeling software is the [glTF file](/en/docs/graphics/model/glTF/). glTF supports standard [PBR properties](https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#reference-material-pbrmetallicroughness) and [general material properties](https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#reference-material), and supports plugins like [ClearCoat](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_clearcoat), as shown below. Therefore, as long as the operations in the modeling software can be exported to glTF, the engine can load them through the loader. However, those additional operations, such as some parameters of [vRay](https://www.chaosgroup.com/cn/vray/3ds-max) materials, cannot be exported to glTF files.
 
-![image.png](https://gw.alipayobjects.com/zos/OasisHub/2010b748-ab8b-4e46-8b15-3aee4daa71f9/1635434775734-f8454efe-d268-4f80-87ab-40f1cddf96ea.png)
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/2010b748-ab8b-4e46-8b15-3aee4daa71f9/1635434775734-f8454efe-d268-4f80-87ab-40f1cddf96ea.png" />
 
-![image.png](https://gw.alipayobjects.com/zos/OasisHub/acd35018-dc09-404b-a735-85a981384df1/1635434736607-cc408f27-a7d7-4a30-a7ea-e083f209d2c9.png)
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/acd35018-dc09-404b-a735-85a981384df1/1635434736607-cc408f27-a7d7-4a30-a7ea-e083f209d2c9.png" />
 
 ## Solution
 
@@ -112,7 +112,7 @@ You can refer to the [Blender official tutorial](https://docs.blender.org/manual
 
 Another relatively simple reference method is to import the glTF demo in the modeling software ([click to download](https://gw.alipayobjects.com/os/bmw-prod/85faf9f8-8030-45b2-8ba3-09a61b3db0c3.glb)). The PBR properties in this demo are quite comprehensive and can be used as a reference for debugging. For example, after importing into Blender, the material panel displays as follows:
 
-![image.png](https://gw.alipayobjects.com/zos/OasisHub/6643f12a-6226-490f-b853-f962a38cb09b/1635499476109-753aae7a-5ffa-4d52-ace1-4eaaef81919f.png)
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/6643f12a-6226-490f-b853-f962a38cb09b/1635499476109-753aae7a-5ffa-4d52-ace1-4eaaef81919f.png" />
 
 - Export Verification
 

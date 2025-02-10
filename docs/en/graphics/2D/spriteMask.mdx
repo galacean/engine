@@ -31,25 +31,25 @@ In the image above, the spriteMask affects sprites in `Layer1` and `Layer30`. sp
 
 When we need to mask a sprite, we first need to create an entity and add a sprite mask component, as shown below:
 
-![mask-create](https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*GYVBTbTvqU4AAAAAAAAAAAAADjCHAQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*GYVBTbTvqU4AAAAAAAAAAAAADjCHAQ/original" />
 
 ### Setting the Mask Area
 
 The sprite mask component uses an image to represent the mask area. We set the sprite resource through the component's `sprite` parameter, as shown below:
 
-![mask-sprite](https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*k5GsSYqQTKoAAAAAAAAAAAAADjCHAQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*k5GsSYqQTKoAAAAAAAAAAAAADjCHAQ/original" />
 
 ### Setting the Sprite's Mask Type
 
 After the above two steps, you may find that the mask still has no effect. This is because the current sprite's mask type is still the default (None). We set the `mask interaction` of the sprite in the scene to the inner mask type, as shown below:
 
-![mask-interaction](https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*GdxhSYLY4EIAAAAAAAAAAAAADjCHAQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*GdxhSYLY4EIAAAAAAAAAAAAADjCHAQ/original" />
 
 ### Setting alpha cutoff
 
 This parameter represents the lower limit of the effective `alpha` value for the current mask (range: `0~1`). In other words, any alpha value in the sprite's texture that is less than the alpha cutoff will be discarded (i.e., it will not be considered as a mask area). We can dynamically adjust the value of this property to see the actual effect, as shown below:
 
-![mask-alpha](https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*2CLjT7UTVa8AAAAAAAAAAAAADjCHAQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*2CLjT7UTVa8AAAAAAAAAAAAADjCHAQ/original" />
 
 Similarly, in the script, we can use the following code to apply the sprite mask:
 

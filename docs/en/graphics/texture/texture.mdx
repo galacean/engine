@@ -99,7 +99,7 @@ Anisotropic filtering technology can make textures appear clearer when viewed at
 
 **The engine enables [mipmap](/apis/core/#Texture-generateMipmaps)** (multi-level texture gradient) by default. Mipmap is used to solve the precision and performance issues when sampling high-resolution textures on low-resolution screens, allowing the selection of different resolution textures at appropriate distances, as shown below:
 
-![image.png](https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*mTBvTJ7Czt4AAAAAAAAAAAAAARQnAQ)
+<Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*mTBvTJ7Czt4AAAAAAAAAAAAAARQnAQ" />
 
 It should be noted that WebGL2.0 supports textures of **any resolution** and will generate mip levels based on the [mipmap](http://download.nvidia.com/developer/Papers/2005/NP2_Mipmapping/NP2_Mipmap_Creation.pdf) algorithm. However, if your environment is WebGL1.0, please ensure to upload **power-of-two textures**, such as textures with a resolution of 1024 \* 512. Otherwise, Galacean will detect that the environment cannot use mipmap and will automatically downgrade to disable the mipmap function, which may cause some unexpected visual effects.
 

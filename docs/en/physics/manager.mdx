@@ -49,7 +49,7 @@ When the physical scene is updated, in addition to calling this function, it wil
 
 A ray can be understood as an infinite line emitted from a point in a certain direction in the 3D world. Raycasting is very widely used in 3D applications. Through raycasting, you can pick objects in the 3D scene when the user clicks the screen; it can also be used in shooting games to determine whether a bullet can hit the target.
 
-![image.png](https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*SHM1RI49Bd4AAAAAAAAAAAAAARQnAQ)
+<Image src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*SHM1RI49Bd4AAAAAAAAAAAAAARQnAQ" />
 (_Image source: Internet_)
 
 To use raycasting, you first need to import the [Ray](/apis/math/#Ray) module in the code; then generate a ray, which can be custom-generated or converted from screen input through the camera ([camera](/apis/core/#Camera-viewportPointToRay)); finally, call the [PhysicsManager.raycast](/apis/core/#PhysicsManager-raycast) method to detect the collision body hit by the ray. The code is as follows:

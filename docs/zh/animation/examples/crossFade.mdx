@@ -27,11 +27,11 @@ label: Animation/Examples
 ## 1. 查看模型
 点击模型资产上的展开按钮
 
-![image](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*uMXwRZDzOwkAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*uMXwRZDzOwkAAAAAAAAAAAAADsJ_AQ/original" />
 
 可以看到模型中包含了三个 [动画片段](/docs/animation/clip) 资产, 以及一个 [动画控制器](/docs/animation/animatorController/) 资产
 
-![image-1](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*kyhMRYgmJJwAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*kyhMRYgmJJwAAAAAAAAAAAAADsJ_AQ/original" />
 
 
 ## 2. 创建动画控制资产
@@ -42,22 +42,22 @@ label: Animation/Examples
 
 1. 打开动画控制器编辑器，添加三个 `动画状态` ，分别绑定模型中的三个 `动画片段`
 
-![image-2](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*YQ8-S5XcK-wAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*YQ8-S5XcK-wAAAAAAAAAAAAADsJ_AQ/original" />
 
 如果你不知道如何创建 `动画状态` 并绑定 `动画片段` ，请参考：[编辑动画控制器](/docs/animation/examples/playAnimation/#3-编辑动画控制器)
 
 2. 创建 `动画过渡`（关于动画过渡的详细介绍请参考 [动画状态机](/docs/animation/state-machine/#动画过渡) 文档的动画过渡部分）：将 `idle` 动画连接到 `entry`，并点击连线将 `Duration` 改为 0，这样在这个动画控制器被应用时，角色就会播放 `idle` 动画。
 
-![2024-11-07 16.04.32](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*xONyQ76QzkMAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*xONyQ76QzkMAAAAAAAAAAAAADsJ_AQ/original" />
 
 3. 以同样的方式将 `idle` 连接到 `walk`，将 `walk` 连接到 `run`， 将 `run` 连接到 `exit`, 这样角色就会在播完 `idle` 动画后，自动过渡到 `walk` 动画，再过渡到 `run` 动画，最后到 `exit` 退出，重新进入 `entry`，来循环播放这段动画。
 
-![2024-11-07 16.11.51](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*LSECTqsXywUAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*LSECTqsXywUAAAAAAAAAAAAADsJ_AQ/original" />
 
 ## 4. 使用动画控制器并预览
 绑定 `动画控制器`（如果你不知道如何绑定 `动画控制器` ，请参考：[使用动画控制器](/docs/animation/examples/playAnimation/#4-使用动画控制器)文档）之后点击播放按钮，可以看到模型从 `idle` 过渡到 `walk`，再过渡到 `run`，最后退出，重新回到 `idle` 状态。
 
-![2024-11-07 16.16.07](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*flHoR7W2aiwAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*flHoR7W2aiwAAAAAAAAAAAAADsJ_AQ/original" />
 
 <Callout type="positive">
   实际项目中，将 `run` 连接到 `idle` 可能是更好的选择，这样角色在播完 `run` 动画后，会过渡到 `idle` 动画，而不是直接重新播放，本示例仅是为了演示 `exit` 的效果。

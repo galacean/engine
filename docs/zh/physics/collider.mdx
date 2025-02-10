@@ -16,7 +16,7 @@ label: Physics
 
 为一个物体添加物理组件之前，首先需要考虑的是，碰撞器是静态的还是动态的，然后添加对应的碰撞器组件，静态碰撞器 [StaticCollider](/apis/core/#StaticCollider) 或者 [DynamicCollider](/apis/core/#DynamicCollider)
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*-E4USbdiH6sAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*-E4USbdiH6sAAAAAAAAAAAAADsJ_AQ/original" />
 
 ### 选择碰撞器的外形
 
@@ -35,11 +35,11 @@ label: Physics
 
 这里特别强调的是 `Collider` 与 `ColliderShape` 的位置关系。每一个 `Collider` 的姿态和其挂载的 `Entity` 是一致的，每一帧两者都会进行同步。而 `ColliderShape` 上则可以通过 `position` 属性设置 **相对于** `Entity` 的偏移。
 
-![table](https://mdn.alipayobjects.com/huamei_vvspai/afts/img/A*erlGRKk7dNMAAAAAAAAAAAAADsqFAQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_vvspai/afts/img/A*erlGRKk7dNMAAAAAAAAAAAAADsqFAQ/original" />
 
 在加入碰撞器组件后，不会默认添加碰撞器外形，因此需要点击 Add Item 进行添加，添加后会在视口中看到碰撞器的辅助渲染出现。
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*OUr-SIejEkoAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*OUr-SIejEkoAAAAAAAAAAAAADsJ_AQ/original" />
 
 对于每一个碰撞器外形，都可以设计对应的一些大小属性。例如
 
@@ -47,7 +47,7 @@ label: Physics
 
 无论哪个碰撞器外形，都可以设置 Local Position，即相对于 Entity 坐标的局部偏移
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*p8UcRJ9Q0EIAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*p8UcRJ9Q0EIAAAAAAAAAAAAADsJ_AQ/original" />
 
 `ColliderShape` 上还有一个值得注意的属性 `Trigger`，它可以将这个 `ColliderShape` 由 `碰撞器模式` 转为 `触发器模式`。
 

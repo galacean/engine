@@ -6,7 +6,7 @@ group: 模型
 label: Graphics/Model
 ---
 
-![image.png](https://gw.alipayobjects.com/zos/OasisHub/5dd84590-7c37-4156-bb1a-498207880c75/1635493348596-92184a82-6aaa-4ab8-95e5-2d88762df213.png)
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/5dd84590-7c37-4156-bb1a-498207880c75/1635493348596-92184a82-6aaa-4ab8-95e5-2d88762df213.png" />
 
 ## 背景
 
@@ -46,25 +46,25 @@ Galacean 引擎目前有 3 种方式调试材质：
 
 值得一提的是，虽然算法不同会造成一定的视觉差异，但是其物理规律还是一致的。比如，金属度越大，环境反射越强，漫反射越弱；粗糙度越大，环境反射越模糊，如下图：
 
-![image.png](https://gw.alipayobjects.com/zos/OasisHub/ddfe44e2-c9ab-4692-b62f-b43b8965ee4c/1635432936926-b26c9652-6d95-4160-9743-b954025dfe32.png)
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/ddfe44e2-c9ab-4692-b62f-b43b8965ee4c/1635432936926-b26c9652-6d95-4160-9743-b954025dfe32.png" />
 
 ### 光照差异
 
 跟现实世界一样，3D 场景也可以添加[直接光与环境光](/docs/graphics/light/light/)。Galacean 场景中默认是**没有**光源的，只有一个偏向蓝色的[纯色漫反射](/apis/core/#AmbientLight-diffuseSolidColor)，如下图左一；而很多建模软件中是自带光源的：
 
-![image.png](https://gw.alipayobjects.com/zos/OasisHub/391e9bd9-945d-474d-b3fb-8cb0490e2b6f/1635434650361-60d7f40f-9f22-4e48-8865-141415d638f9.png)
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/391e9bd9-945d-474d-b3fb-8cb0490e2b6f/1635434650361-60d7f40f-9f22-4e48-8865-141415d638f9.png" />
 
 环境光基于 [立方纹理](/docs/graphics/texture/cube) 开启 IBL 模式，需要绑定一张 HDRI 贴图用来模拟周边环境，可以从[网上下载](https://polyhaven.com/hdris)。Galacean 场景中默认是没有绑定 HDRI 贴图的，而很多建模软件是自带了一张比较好看的周边环境的：
 
-![image.png](https://gw.alipayobjects.com/zos/OasisHub/61c2287b-0793-4763-a5f5-70567fcdf106/1635477315862-08b0c680-029b-400b-8600-1d8cf7a20c60.png)
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/61c2287b-0793-4763-a5f5-70567fcdf106/1635477315862-08b0c680-029b-400b-8600-1d8cf7a20c60.png" />
 
 ### glTF 支持度差异
 
 Galacean 引擎和建模软件的连通渠道是 [glTF 文件](/docs/graphics/model/glTF/)。glTF 支持标准的 [PBR 属性](https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#reference-material-pbrmetallicroughness)和[通用材质属性](https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#reference-material)，并支持 [ClearCoat](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_clearcoat) 等插件，如下图。因此建模软件中的操作只要能导出到 glTF，引擎都能通过加载器加载，而那些额外的操作，比如 [vRay](https://www.chaosgroup.com/cn/vray/3ds-max) 材质的一些参数，是无法导出到 glTF 文件的。
 
-![image.png](https://gw.alipayobjects.com/zos/OasisHub/2010b748-ab8b-4e46-8b15-3aee4daa71f9/1635434775734-f8454efe-d268-4f80-87ab-40f1cddf96ea.png)
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/2010b748-ab8b-4e46-8b15-3aee4daa71f9/1635434775734-f8454efe-d268-4f80-87ab-40f1cddf96ea.png" />
 
-![image.png](https://gw.alipayobjects.com/zos/OasisHub/acd35018-dc09-404b-a735-85a981384df1/1635434736607-cc408f27-a7d7-4a30-a7ea-e083f209d2c9.png)
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/acd35018-dc09-404b-a735-85a981384df1/1635434736607-cc408f27-a7d7-4a30-a7ea-e083f209d2c9.png" />
 
 ## 解决方法
 
@@ -112,7 +112,7 @@ Galacean 引擎和建模软件的连通渠道是 [glTF 文件](/docs/graphics/mo
 
 还有一个比较简便的参考方式，就是在建模软件里面导入 glTF demo（[点击下载](https://gw.alipayobjects.com/os/bmw-prod/85faf9f8-8030-45b2-8ba3-09a61b3db0c3.glb)），这个 demo 里面的 PBR 属性比较全面，可以参考着调试，比如 Blender 导入后，材质面板显示如下：
 
-![image.png](https://gw.alipayobjects.com/zos/OasisHub/6643f12a-6226-490f-b853-f962a38cb09b/1635499476109-753aae7a-5ffa-4d52-ace1-4eaaef81919f.png)
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/6643f12a-6226-490f-b853-f962a38cb09b/1635499476109-753aae7a-5ffa-4d52-ace1-4eaaef81919f.png" />
 
 - 校验导出
 

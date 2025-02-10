@@ -16,7 +16,7 @@ The biggest advantage of introducing a physics engine is that it allows objects 
 
 Before adding a physics component to an object, the first thing to consider is whether the collider is static or dynamic, and then add the corresponding collider component, either a static collider [StaticCollider](/apis/core/#StaticCollider) or a dynamic collider [DynamicCollider](/apis/core/#DynamicCollider).
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*-E4USbdiH6sAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*-E4USbdiH6sAAAAAAAAAAAAADsJ_AQ/original" />
 
 ### Selecting the Shape of the Collider
 
@@ -35,11 +35,11 @@ The engine supports composite collider shapes, meaning the collider itself can b
 
 It is particularly emphasized here the positional relationship between `Collider` and `ColliderShape`. The posture of each `Collider` is consistent with the `Entity` it is attached to, and they are synchronized every frame. The `ColliderShape` can set an offset **relative to** the `Entity` through the `position` property.
 
-![table](https://mdn.alipayobjects.com/huamei_vvspai/afts/img/A*erlGRKk7dNMAAAAAAAAAAAAADsqFAQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_vvspai/afts/img/A*erlGRKk7dNMAAAAAAAAAAAAADsqFAQ/original" />
 
 After adding the collider component, the collider shape is not added by default, so you need to click Add Item to add it. After adding, you will see the auxiliary rendering of the collider appear in the viewport.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*OUr-SIejEkoAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*OUr-SIejEkoAAAAAAAAAAAAADsJ_AQ/original" />
 
 For each collider shape, you can design corresponding size properties. For example:
 
@@ -47,7 +47,7 @@ For each collider shape, you can design corresponding size properties. For examp
 
 No matter which collider shape is used, you can set the Local Position, which is the local offset relative to the Entity coordinates.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*p8UcRJ9Q0EIAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*p8UcRJ9Q0EIAAAAAAAAAAAAADsJ_AQ/original" />
 
 The `ColliderShape` also has a noteworthy property called `Trigger`, which can switch this `ColliderShape` from `collider mode` to `trigger mode`.
 
