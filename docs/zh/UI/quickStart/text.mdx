@@ -1,0 +1,57 @@
+---
+order: 3
+title: 创建文字
+type: UI
+label: UI
+---
+
+`Text` 组件用于在 `UICanvas` 中显示文字。
+
+## 编辑器使用
+
+### 添加 Text 节点
+
+在 **[层级面板](/docs/interface/hierarchy/)** 添加 `Text` 节点
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*yklkSI-wIq0AAAAAAAAAAAAAehuCAQ/original" style={{zoom:"50%"}} />
+
+> 若父亲或祖先节点没有画布组件，会自动添加上根画布节点。
+
+### 设置文本内容
+
+选中添加了 `Text` 组件的节点，在 **[检查器面板](/docs/interface/inspector)** 修改 `text` 属性可以改变 `Text` 元素的显示内容。
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*j46eSYWAfVYAAAAAAAAAAAAAehuCAQ/original" style={{zoom:"50%"}} />
+
+### 设置字体
+
+选中添加了 `Text` 组件的节点，在 **[检查器面板](/docs/interface/inspector)** 修改 `font` 属性可以改变 `Text` 元素的字体类型。
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*vR-rR7eGHZkAAAAAAAAAAAAAehuCAQ/original" style={{zoom:"50%"}} />
+
+### 修改字体大小
+
+`Text` 组件可以通过调整 `FontSize` 修改渲染尺寸
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*DcrDR6Y_fKAAAAAAAAAAAAAAehuCAQ/original" style={{zoom:"50%"}} />
+
+> 修改 `UITransform` 的 `size` 不会改变 `Text` 的渲染尺寸。
+
+## 属性
+
+| 属性名 | 描述 |
+| :-- | :-- |
+| `text` | 需要显示的文本 |
+| `color` | 文本颜色 |
+| `font` | 自定义字体 |
+| `fontSize` | 文本的字体大小 |
+| `fontStyle` | 字体样式设置：是否加粗/是否斜体 |
+| `lineSpacing` | 行间距 |
+| `horizontalAlignment` | 水平对齐方式，可选值有：Left/Center/Right |
+| `verticalAlignment` | 竖直对齐方式，可选值有：Top/Center/Bottom |
+| `enableWrapping` | 是否开启换行模式，打开换行模式后，会根据设置的宽来进行换行，如果这时候宽设置为 0，那么文本将不渲染 |
+| `overflowMode` | 当文本总高度超出设置的高的时候的处理方式，可选值有：Overflow/Truncate， Overflow 表示直接溢出显示， Truncate 表示只保留设置高度以内的内容显示，具体显示内容还和文本在竖直方向上的对齐方式有关 |
+
+## 脚本开发
+
+<Playground href="/embed/ui-Text" />

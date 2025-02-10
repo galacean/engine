@@ -1,0 +1,37 @@
+---
+order: 4
+title: 资产的释放
+type: 资产工作流
+label: Resource
+---
+
+为了避免重复加载资源，当资源被加载完成之后，会被缓存在 _ResourceManager_ 内。缓存本身会占用内存和显存，当开发者不再需要缓存的内容时，需要手动去释放缓存的内容。
+
+> 注意：资源之间是相互依赖的。
+
+例如下图展示的实体包含 [MeshRenderer](/apis/core/#MeshRenderer) 组件，依赖于 [Material](/apis/core/#Material)， _Material_ 可能被多个 _MeshRenderer_ 引用，如果释放 _Material_ ，那么引用此的其他 _MeshRenderer_ 则会找不到该 _Material_ 而报错。
+
+<Image src="https://gw.alipayobjects.com/mdn/mybank_yulibao/afts/img/A*wXmqRIwqI18AAAAAAAAAAAAAARQnAQ" />
+
+> 注意：JavaScript 无法追踪对象的引用。 一般在 JavaScript 等弱类型语言中，是没有提供给开发者内存管理的功能的，所有对象的内存都是通过垃圾回收机制来管理，你没有办法去判断对象什么时候会被释放，所以没有[析构函数(destructor)](https://zh.wikipedia.org/wiki/%E8%A7%A3%E6%A7%8B%E5%AD%90)去调用引用资源的释放。
+
+`ResourceManager` 提供了一套基于引用计数的资源释放，需要开发者手动调用 [gc](/apis/core/#ResourceManager-gc)：
+
+```typescript
+engine.resourceManager.gc();
+```
+
+## 验证资产释放
+
+如果您需要验证资产是否释放成功，可按照以下步骤，在空白页打开以下示例：
+
+<Playground href="/embed/assets-gc" />
+
+该示例在初始化时会通过创建 `Texture2D` 和 `Sprite` 渲染 2D 精灵，当点击右上角 GC 按钮后，`root` 节点被销毁，纹理和精灵资产的引用计数都被清空，此时这些资产会被真正销毁，分别在 `gc` 前后拍摄内存快照可以更直观地感受这个过程
+
+1. gc 前： **开发者工具** -> **内存** -> **拍摄堆快照**
+2. gc 后： **开发者工具** -> **内存** -> **拍摄堆快照** -> **比较** -> **选择 gc 前快照**
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*CtRmTqXDgt0AAAAAAAAAAAAADhuCAQ/original" alt="image-1" style={{zoom:"50%"}} />
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*E5PwQ7ocw2EAAAAAAAAAAAAADhuCAQ/original" alt="image-1" style={{zoom:"50%"}} />

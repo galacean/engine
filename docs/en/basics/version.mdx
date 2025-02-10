@@ -1,0 +1,71 @@
+---
+order: 0
+title: Version Management
+label: Basics
+---
+
+Galacean has a mature version management scheme. This article will take `@galacean/engine` as an example to introduce Galacean's management tools, naming conventions, release strategies, and dependency management.
+
+## Version Management Tools
+
+The version management tool used by Galacean is [Git](https://git-scm.com/). The code is hosted on [GitHub](https://github.com/galacean/), and all development processes, including [planning](https://github.com/galacean/engine/projects?query=is%3Aopen), [milestones](https://github.com/galacean/engine/milestones), and [architecture design](https://github.com/galacean/engine/wiki/Physical-system-design), are publicly available in GitHub's project management. You can participate in the construction of the engine by [creating an issue](https://docs.github.com/zh/issues/tracking-your-work-with-issues/creating-an-issue) and [submitting a PR](https://docs.github.com/zh/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork).
+
+## Package Management Tools
+
+The package management tool used by Galacean is [NPM](https://www.npmjs.com/). You can install [@galacean/engine](https://www.npmjs.com/package/@galacean/engine?activeTab=versions) using the npm command:
+
+```bash
+npm install --save @galacean/engine
+```
+
+Then import it in your project:
+
+```typescript
+import { WebGLEngine, Camera } from "@galacean/engine";
+```
+
+## Version Naming Conventions and Release Strategy
+
+Galacean version numbers follow the format `MAJOR.MINOR.PATCH-TAG.X`. `MAJOR.MINOR` represents milestone versions, usually accompanied by significant feature updates. `PATCH` versions indicate backward-compatible bug fixes, and the `TAG` label marks the purpose of the release version.
+
+| TAG | Meaning |
+| :-- | :-- |
+| **alpha** | Internal test version, used for early feature development, includes new features within the milestone but is less stable, e.g., [1.3.0-alpha.3](https://www.npmjs.com/package/@galacean/engine/v/1.3.0-alpha.3) |
+| **beta** | Public test version, internal testing is mostly complete, more stable but may still have minor issues and defects, e.g., [1.2.0-beta.7](https://www.npmjs.com/package/@galacean/engine/v/1.2.0-beta.7) |
+| **latest** | Official stable version, thoroughly tested and verified, no major defects, recommended for production use, e.g., [1.1.3](https://www.npmjs.com/package/@galacean/engine/v/1.1.3) |
+| **custom** | Released internally for testing specific features, e.g., [0.0.0-experimental-1.3-xr.9](https://www.npmjs.com/package/@galacean/engine/v/0.0.0-experimental-1.3-xr.9) |
+
+> You can view all available versions on [Github](https://github.com/galacean/engine/releases) or [NPM](https://www.npmjs.com/package/@galacean/engine?activeTab=versions).
+
+## Version Upgrade
+
+Each milestone version update will be accompanied by a [version upgrade guide](https://github.com/galacean/engine/wiki/Migration-Guide), which includes the contents of the update and BreakChange. You can refer to this document for version updates.
+
+## Version Dependencies
+
+| Situation | Rule |
+| :-- | :-- |
+| **Core Package** | Ensure consistent versions among core packages |
+| **Tool Package** depends on **Core Package** | Ensure the tool package version is consistent with the major version of the core engine package. For example, the 1.3.x version of the tool package depends on the 1.3.y version of the core package |
+| **Secondary Package** depends on **Core Package** | The dependency relationship of secondary ecosystem packages on the engine version should refer to the corresponding documentation, such as [Lottie](/en/docs/graphics/2D/lottie/#lottie-使用版本说明) |
+
+> The basic rules are as above. If there are special instructions, please follow them to choose dependencies.
+
+## Others
+
+### Editor Upgrade Engine Version
+
+In [Project Settings](/en/docs/interface/menu/#项目设置), you can control the runtime engine version.
+
+### Runtime Output Version Information
+
+Most Galacean packages will output version information in the `Console` at runtime.
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*6UM6TZ4IVYAAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom:"50%"}} />
+
+This is usually used to determine if there are issues with package version dependencies:
+
+- Do the version dependencies not meet the rules?
+- Are there multiple different versions of the same dependency?
+
+If you encounter the above issues, please check the project and resolve the dependency issues.
