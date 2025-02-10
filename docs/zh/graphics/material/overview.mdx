@@ -12,40 +12,7 @@ title: 材质概述
 
 ## 着色器数据
 
-我们在写着色器过程中会用到很多变量，我们可以参考 [内置变量文档](/docs/graphics/material/variables/) 查找想要的内置变量。当然你也可以手动上传着色器数据和宏开关：
-
-```ts showLineNumbers
-// shaderData 可以分别保存在 scene 、camera 、renderer、 material 中。
-const shaderData = material.shaderData;
-
-// 上传不同类型的着色器数据
-shaderData.setFloat("u_float", 1.5);
-shaderData.setInt("u_int", 1);
-shaderData.setInt("u_bool", 1);
-shaderData.setVector2("u_vec2", new Vector2(1, 1));
-shaderData.setVector3("u_vec3", new Vector3(1, 1, 1));
-shaderData.setVector4("u_vec4", new Vector4(1, 1, 1, 1));
-shaderData.setMatrix("u_matrix", new Matrix());
-shaderData.setIntArray("u_intArray", new Int32Array(10));
-shaderData.setFloatArray("u_floatArray", new Float32Array(10));
-shaderData.setTexture("u_sampler2D", texture2D);
-shaderData.setTexture("u_samplerCube", textureCube);
-shaderData.setTextureArray("u_samplerArray", [texture2D, textureCube]);
-
-// 开启宏开关
-shaderData.enableMacro("DISCARD");
-// 关闭宏开关
-shaderData.disableMacro("DISCARD");
-
-// 开启变量宏
-shaderData.enableMacro("LIGHT_COUNT", "3");
-
-// 切换变量宏。这里底层会自动 disable 上一个宏，即 “LIGHT_COUNT 3”
-shaderData.enableMacro("LIGHT_COUNT", "2");
-
-// 关闭变量宏
-shaderData.disableMacro("LIGHT_COUNT");
-```
+跟别的编程语言一样，我们在写着色器过程中也会用到很多变量，我们可以参考 [内置变量文档](/docs/graphics/material/variables/) 查找想要的内置变量；也可以通过 [使用着色器数据教程](/docs/graphics/material/examples/shaderData) 手动上传着色器数据和宏开关：
 
 ## 渲染状态
 

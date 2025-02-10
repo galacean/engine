@@ -1,5 +1,6 @@
 {
   "create": { "title": "创建材质" },
   "builtin": { "title": "使用内置着色器" },
-  "custom": { "title": "自定义着色器" }
+  "custom": { "title": "自定义着色器" },
+  "shaderData": { "title": "使用着色器数据" }
 }
