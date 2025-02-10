@@ -25,7 +25,7 @@ engine.resourceManager.gc();
 
 If you need to verify whether assets have been successfully released, you can follow the steps below and open the following example on a blank page:
 
-<playground src="assets-gc.ts"></playground>
+<Playground href="/embed/assets-gc" />
 
 In this example, `Texture2D` and `Sprite` are created to render 2D sprites during initialization. When you click the GC button in the upper right corner, the `root` node is destroyed, and the reference counts of the texture and sprite assets are cleared. At this point, these assets will be truly destroyed. Taking memory snapshots before and after `gc` can give a more intuitive understanding of this process.
 

@@ -66,7 +66,7 @@ The texture sampling range is `[0,1]`. When the texture UV coordinates exceed th
 | Repeat             | Resamples from [0,1] when out of range |
 | Mirror             | Mirrors sampling from [1,0] when out of range |
 
-<playground src="wrap-mode.ts"></playground>
+<Playground href="/embed/wrap-mode" />
 
 ### Filter Mode
 
@@ -78,13 +78,13 @@ Generally, texels and screen pixels do not correspond exactly. We can control th
 | Bilinear             | Uses the average value of the nearest 2\*2 texel matrix       |
 | Trilinear            | Applies average filtering to the mipmap levels based on bilinear filtering |
 
-<playground src="filter-mode.ts"></playground>
+<Playground href="/embed/filter-mode" />
 
 ### Anisotropic Filtering Level
 
 Anisotropic filtering technology can make textures appear clearer when viewed at oblique angles. As shown in the figure below, the end of the texture becomes clearer as the anisotropic filtering level increases. However, use it with caution; the higher the value, the greater the GPU computation.
 
-<playground src="texture-aniso.ts"></playground>
+<Playground href="/embed/texture-aniso" />
 
 ## General Settings
 
@@ -126,7 +126,7 @@ const cubeTexture = new TextureCube(
 ); // 第 4 个参数
 ```
 
-<playground src="texture-mipmap.ts"></playground>
+<Playground href="/embed/texture-mipmap" />
 
 ### flipY
 

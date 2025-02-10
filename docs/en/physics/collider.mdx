@@ -99,7 +99,7 @@ For trigger mode, you first need to add a `Collider` to the `Entity` in the scen
 
 You can enable trigger mode through the `isTrigger` property on `ColliderShape`, but it is particularly emphasized that **trigger events will not be called between two StaticColliders**, unless one of them is a `DynamicCollider`.
 
-<playground src="physx-collision-detection.ts"></playground>
+<Playground href="/embed/physx-collision-detection" />
 
 ### Collider Script Functions
 
@@ -108,4 +108,4 @@ For collider mode, when `DynamicColliders` interact, three collision-related scr
 2. [onCollisionStay](/en/docs/script#$1-oncollisionstay): *Loop* called during the collision.
 3. [onCollisionExit](/en/docs/script#$1-oncollisionexit): Called when the collision ends.
 
-<playground src="physx-compound.ts"></playground>
+<Playground href="/embed/physx-compound" />

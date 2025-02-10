@@ -8,7 +8,7 @@ label: Graphics/Mesh
 
 [ModelMesh](/apis/core/#ModelMesh) 是一个用于描述几何体轮廓的网状渲染数据类，主要包含了顶点（位置、法线和 UV 等）、索引和混合形状等数据。不仅可以使用建模软件制作并导出 glTF 在引擎中解析还原，还可以方便的使用脚本直接写入数据创建。
 
-<playground src="obj-loader.ts"></playground>
+<Playground href="/embed/obj-loader" />
 
 ## 代码示例
 
@@ -134,7 +134,7 @@ modelMesh.uploadData(true);
 modelMesh.uploadData(false);
 ```
 
-<playground src="model-mesh.ts"></playground>
+<Playground href="/embed/model-mesh" />
 
 ### **读取高级数据**
 
@@ -173,10 +173,10 @@ const result = mesh.getPositions();
 `BlendShape` 通常用于制作精细程度非常高的动画，比如表情动画等。其原理也比较简单，主要通过权重混合基础形状和目标形状的网格数据来表现形状之间过渡的动画效果。
 
 **glTF 导入 BlendShape 动画案例：**
-<playground src="skeleton-animation-blendShape.ts"></playground>
+<Playground href="/embed/skeleton-animation-blendShape" />
 
 **脚本自定义 BlendShape 动画案例：**
-<playground src="skeleton-animation-customBlendShape.ts"></playground>
+<Playground href="/embed/skeleton-animation-customBlendShape" />
 
 ### 详细步骤
 

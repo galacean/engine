@@ -66,7 +66,7 @@ label: Graphics/Texture
 | Repeat       | 超出范围从 [0,1] 开始重新采样 |
 | Mirror       | 超出范围从 [1,0] 开始镜像采样 |
 
-<playground src="wrap-mode.ts"></playground>
+<Playground href="/embed/wrap-mode" />
 
 ### 过滤模式
 
@@ -78,13 +78,13 @@ label: Graphics/Texture
 | Bilinear     | 使用距离最近的 2\*2 纹素矩阵的平均值                   |
 | Trilinear    | 在双线性过滤的基础上，对 mipmap 层级也进行了平均值过滤 |
 
-<playground src="filter-mode.ts"></playground>
+<Playground href="/embed/filter-mode" />
 
 ### 各向异性过滤等级
 
 各向异性过滤技术可以使纹理在倾斜角度下观看会更加清晰。如下图，纹理的尽头随着各向异性过滤等级的增加会愈加清晰。但请慎重使用，数值越大，GPU 的计算量就会越大。
 
-<playground src="texture-aniso.ts"></playground>
+<Playground href="/embed/texture-aniso" />
 
 ## 通用设置
 
@@ -126,7 +126,7 @@ const cubeTexture = new TextureCube(
 ); // 第 4 个参数
 ```
 
-<playground src="texture-mipmap.ts"></playground>
+<Playground href="/embed/texture-mipmap" />
 
 ### flipY
 

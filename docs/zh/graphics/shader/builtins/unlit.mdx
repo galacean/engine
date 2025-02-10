@@ -4,7 +4,7 @@ title: Unlit
 
 在一些简单的场景中，可能不希望计算光照，引擎提供了 [UnlitMaterial](/apis/core/#UnlitMaterial)，使用了最精简的 shader 代码，只需要提供颜色或者纹理即可渲染。Unlit 材质适用于烘焙好的模型渲染，它只需要设置一张基本纹理或者颜色，即可展现离线渲染得到的高质量渲染结果，但是缺点是无法实时展现光影交互，因为 Unlit 由纹理决定渲染，不受任何光照影响。
 
-<playground src="unlit-material.ts"></playground>
+<Playground href="/embed/unlit-material" />
 
 ## 编辑器使用
 

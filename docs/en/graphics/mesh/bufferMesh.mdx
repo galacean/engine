@@ -30,7 +30,7 @@ Here are some common use cases of [MeshRenderer](/apis/core/#MeshRenderer) and [
 
 ### Interleaved Vertex Buffer
 
-<playground src="buffer-mesh-interleaved.ts"></playground>
+<Playground href="/embed/buffer-mesh-interleaved" />
 
 A common method, such as custom Mesh, Particle implementation, has the advantages of compact video memory and fewer CPU data uploads to the GPU per frame. The main feature of this case is that multiple [VertexElement](/apis/core/#VertexElement) correspond to one *VertexBuffer* ([Buffer](/apis/core/#Buffer)), and only one *VertexBuffer* is used to associate different vertex elements with the Shader.
 
@@ -65,7 +65,7 @@ renderer.mesh = mesh;
 
 ### Independent Vertex Buffer
 
-<playground src="buffer-mesh-independent.ts"></playground>
+<Playground href="/embed/buffer-mesh-independent" />
 
 It has advantages when mixing dynamic vertex buffers and static vertex buffers, such as _position_ being static but _color_ being dynamic. Independent vertex buffers can update only the color data to the GPU. The main feature of this case is that one [VertexElement](/apis/core/#VertexElement) corresponds to one _VertexBuffer_, and the [setData](/apis/core/#Buffer-setData) method of the [Buffer](/apis/core/#Buffer) object can be called separately to update the data independently.
 
@@ -109,7 +109,7 @@ renderer.mesh = mesh;
 
 ### Instance Rendering
 
-<playground src="buffer-mesh-instance.ts"></playground>
+<Playground href="/embed/buffer-mesh-instance" />
 
 GPU Instance rendering is a common technique in 3D engines. For example, it allows rendering objects with the same geometric shape at different positions in one go, significantly improving rendering performance. The main feature of this example is the use of the instance functionality of [VertexElement](/apis/core/#VertexElement). The last parameter of its constructor indicates the instance step rate (the number of instances drawn per vertex advance in the buffer, non-instance elements must be 0). The [instanceCount](/apis/core/#BufferMesh-instanceCount) of [BufferMesh](/apis/core/#BufferMesh) indicates the number of instances.
 

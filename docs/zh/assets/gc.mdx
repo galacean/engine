@@ -25,7 +25,7 @@ engine.resourceManager.gc();
 
 如果您需要验证资产是否释放成功，可按照以下步骤，在空白页打开以下示例：
 
-<playground src="assets-gc.ts"></playground>
+<Playground href="/embed/assets-gc" />
 
 该示例在初始化时会通过创建 `Texture2D` 和 `Sprite` 渲染 2D 精灵，当点击右上角 GC 按钮后，`root` 节点被销毁，纹理和精灵资产的引用计数都被清空，此时这些资产会被真正销毁，分别在 `gc` 前后拍摄内存快照可以更直观地感受这个过程
 

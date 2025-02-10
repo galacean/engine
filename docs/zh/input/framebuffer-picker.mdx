@@ -9,7 +9,7 @@ label: Interact
 
 当拾取频率不高时，可以考虑使用**像素级精度**的 `FramebufferPicker` 组件；当拾取频率过高时，需要开发者评估好性能开销是否适合业务场景，因为该组件底层会进行 CPU-GPU 通信，即调用 `gl.readPixels` 。
 
-<playground src="framebuffer-picker.ts"></playground>
+<Playground href="/embed/framebuffer-picker" />
 
 ## 创建帧缓冲拾取
 
