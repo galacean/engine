@@ -1,8 +1,8 @@
 ---
 order: 1
-title: 2D 纹理
-type: 图形
-group: 纹理
+title: 2D Texture
+type: Graphics
+group: Texture
 label: Graphics/Texture
 ---
 
@@ -12,7 +12,7 @@ label: Graphics/Texture
 
 In the editor, you can easily import a 2D texture by following the path **[Asset Panel](/en/docs/assets/interface)** -> **Right-click Upload** -> **Select Texture2D** -> **Choose the corresponding texture** -> **2D texture asset creation complete**.
 
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*71QKTYuRSyAAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*71QKTYuRSyAAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom: "50%"}} />
 
 Similarly, in the script, you can load an image through [ResourceManager](/apis/core/#ResourceManager) to get the corresponding 2D texture:
 
@@ -85,7 +85,7 @@ texture.getPixelBuffer(0, 0, width, height, 0, data);
 
 Assigning the texture to the corresponding property of the material ball can enable different rendering functions. For example, adding a base color texture can determine the basic tone of the model. In the editor, you only need to select the corresponding texture in the corresponding property.
 
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*toooTZvkC60AAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*toooTZvkC60AAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom: "50%"}} />
 
 Similarly, in the script, you can set it like this:
 
@@ -98,7 +98,7 @@ material.baseTexture = texture;
 
 ## Color Expansion
 
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*ACbwSKO2LHwAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*ACbwSKO2LHwAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom: "50%"}} />
 
 To solve the problem of black edges appearing at the abrupt changes in Alpha values in images with transparent pixels, the editor has a built-in color expansion function. This function removes the black edges of the image by rewriting the RGB values of all transparent pixels in the image to the RGB values of the nearest non-fully transparent pixels.
 
@@ -109,6 +109,6 @@ To solve the problem of black edges appearing at the abrupt changes in Alpha val
 
 ## Export Configuration
 
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*_aepTLE47-gAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*_aepTLE47-gAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom: "50%"}} />
 
 The [Project Release](/en/docs/platform/platform) document explains the **global configuration** for texture export in detail. If the Overwrite option is selected here, this asset will follow the **custom configuration** instead of the **global configuration** during export.
