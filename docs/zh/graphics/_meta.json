@@ -20,9 +20,6 @@
   "material": {
     "title": "材质"
   },
-  "shader": {
-    "title": "着色器"
-  },
   "texture": {
     "title": "纹理"
   },

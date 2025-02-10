@@ -1,6 +1,7 @@
 {
-  "material": { "title": "材质总览" },
-  "composition": { "title": "材质组成" },
-  "editor": { "title": "编辑器使用" },
-  "script": { "title": "脚本使用" }
+  "overview": { "title": "材质概述" },
+  "examples": { "title": "指南和示例" },
+  "builtinShaders": { "title": "内置着色器" },
+  "shaderLab": { "title": "ShaderLab 语法" },
+  "variables": "内置变量"
 }

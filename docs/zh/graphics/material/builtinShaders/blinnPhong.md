@@ -25,4 +25,4 @@ title: Blinn Phong
 | [shininess](/apis/core/#BlinnPhongMaterial-shininess) | 镜面反射系数。值越大镜面反射效果越聚拢。 |
 | [tilingOffset](/apis/core/#BlinnPhongMaterial-tilingOffset) | 纹理坐标的缩放与偏移。是一个 Vector4 数据，分别控制纹理坐标在 uv 方向上的缩放和偏移，参考 [案例](/embed/tiling-offset) |
 
-如果需要通过脚本使用材质，可以前往[材质的使用教程](/docs/graphics/material/script)。
+如果需要通过脚本使用材质，可以前往[材质的使用教程](/docs/graphics/material/examples/create/#3-脚本方式)。
