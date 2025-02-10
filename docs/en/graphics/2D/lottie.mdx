@@ -16,7 +16,7 @@ It is recommended that designers use base64 format for images when exporting Lot
 
 After obtaining the `.json` file, developers need to upload the `.json` file to the Galacean Editor. Use the upload button in the asset panel to select the "lottie" asset, choose a local [lottie json](https://github.com/galacean/galacean.github.io/files/14106485/_Lottie.3.json) file, and then upload it:
 
-<img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*UQ1LTI_mYv4AAAAAAAAAAAAADjCHAQ/original"   />
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*UQ1LTI_mYv4AAAAAAAAAAAAADjCHAQ/original"   />
 
 ### Add Component
 
@@ -76,7 +76,7 @@ The editor provides an animation slicing function, allowing you to cut the entir
 
 <playground src="lottie-clips.ts"></playground>
 
-<img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*skjbSZjSpYoAAAAAAAAAAAAADjCHAQ/original" style="zoom:100%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*skjbSZjSpYoAAAAAAAAAAAAADjCHAQ/original" />
 
 This operation will add the `lolitaAnimations` field in the Lottie protocol to implement animation slicing:
 
@@ -135,7 +135,7 @@ engine.resourceManager.load({
 
 In business scenarios, there is often a need for 3D transformations, such as entrance animations for pop-ups. For example, with rotation, traditional lottie-web solutions can only rotate along the **Z-axis** (i.e., perpendicular to the screen's normal direction). Even if we achieve rotation along the **X-axis** or **Y-axis** in AE, it will be ignored when played with lottie-web.
 
-<img src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*qVYxTaEdVBgAAAAAAAAAAAAAARQnAQ" alt="3D rotation" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*qVYxTaEdVBgAAAAAAAAAAAAAARQnAQ" alt="3D rotation" style={{zoom: "50%"}} />
 
 Thanks to the unified architecture of the Galacean Engine 2D/3D engine, 3D transformation functions can be easily implemented.
 

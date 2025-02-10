@@ -21,7 +21,7 @@ Control the interaction with [Sprite](/en/docs/graphics/2D/sprite/) using parame
 
 The `influenceLayers` of `SpriteMask` indicates which mask layers the mask will affect for `SpriteRenderer`. The `maskLayer` of `SpriteRenderer` indicates which mask layers the sprite belongs to, as shown below:
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/09abdf57-84b8-4aa9-b785-822f858fb4f9/070C8B9F-14E2-4A9A-BFEC-4BC3F2BB564F.png" alt="070C8B9F-14E2-4A9A-BFEC-4BC3F2BB564F" style="zoom: 67%;" />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/09abdf57-84b8-4aa9-b785-822f858fb4f9/070C8B9F-14E2-4A9A-BFEC-4BC3F2BB564F.png" alt="070C8B9F-14E2-4A9A-BFEC-4BC3F2BB564F" style={{zoom:"67%"}} />
 
 In the image above, the spriteMask affects sprites in `Layer1` and `Layer30`. spriteRenderer0 is in `Layer2`, so there is no intersection, and spriteRenderer0 does not interact with spriteMask. spriteRenderer1 is in `Layer1`, which intersects with the mask layers affected by spriteMask, so spriteRenderer1 interacts with spriteMask.
 

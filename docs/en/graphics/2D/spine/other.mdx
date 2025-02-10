@@ -9,7 +9,7 @@ label: Graphics/2D/Spine/other
 ### Upgrades and Changes in 1.4
 After upgrading to Editor version 1.4, besides updating the engine version in the editor's [Project Settings](/docs/interface/menu/#project-settings), please note the following changes to the 1.4 Spine API:
 
-1. We no longer recommend creating Spine animations using the method: adding the `SpineAnimationRenderer` component via `addComponent` + setting the resource using `set SpineResource`.</br>
+1. We no longer recommend creating Spine animations using the method: adding the `SpineAnimationRenderer` component via `addComponent` + setting the resource using `set SpineResource`.<br/>
 In version 1.4, we introduced an instantiation method `instantiate` for SpineResource. The `instantiate` method returns a Spine animation entity that uses the resource, making the creation process much faster and more convenient.
 
 2. `defaultState` has been renamed to `defaultConfig`. This parameter represents the default configuration of the Spine animation. The renamed parameter makes its purpose clearer.

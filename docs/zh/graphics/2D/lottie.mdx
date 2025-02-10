@@ -16,17 +16,17 @@ label: Graphics/2D
 
 开发者拿到 `.json` 文件后，首先需要把 `.json` 文件上传到 Galacean Editor。通过资产面板的上传按钮选择 “lottie” 资产，选择本地一个 [lottie json](https://github.com/galacean/galacean.github.io/files/14106485/_Lottie.3.json) 文件，然后上传：
 
-<img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*UQ1LTI_mYv4AAAAAAAAAAAAADjCHAQ/original"   />
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*UQ1LTI_mYv4AAAAAAAAAAAAADjCHAQ/original"   />
 
 ### 添加组件
 
 选择一个实体，添加 Lottie 组件，选择 resource 为上一步上传的资产，即可显示并且播放 Lottie 特效：
 
-![lottie](https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*ehFMT7vBaCAAAAAAAAAAAAAADjCHAQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*ehFMT7vBaCAAAAAAAAAAAAAADjCHAQ/original" />
 
 开发者可以通过调整属性面板中的各个参数来对 Lottie 进行相关设置：
 
-![lottie](https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*OswOQI837OkAAAAAAAAAAAAADjCHAQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*OswOQI837OkAAAAAAAAAAAAADjCHAQ/original" />
 
 
 | 属性 | 功能说明 |
@@ -77,7 +77,7 @@ await lottie.play();
 
 <playground src="lottie-clips.ts"></playground>
 
-<img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*skjbSZjSpYoAAAAAAAAAAAAADjCHAQ/original" style="zoom:100%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*skjbSZjSpYoAAAAAAAAAAAAADjCHAQ/original" />
 
 该操作会在 Lottie 协议中添加 `lolitaAnimations` 字段实现动画的切片：
 
@@ -138,7 +138,7 @@ engine.resourceManager.load({
 
 业务场景中经常会出现 3D 变换的需求，比如一些弹窗的入场动画。以旋转为例，由于传统的 lottie-web 方案只能沿着 **Z轴** 旋转（也就是说垂直于屏幕法线方向旋转），即使我们在 AE 中实现了沿着 **X轴** 或 **Y轴** 的旋转效果，使用 lottie-web  播放时也会被忽略。
 
-<img src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*qVYxTaEdVBgAAAAAAAAAAAAAARQnAQ" alt="3D rotation" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*qVYxTaEdVBgAAAAAAAAAAAAAARQnAQ" alt="3D rotation" style={{zoom:"50%"}} />
 
 得益于 Galacean Engine 2D/3D 引擎统一架构的优势，轻松地实现 3D 变换功能。
 

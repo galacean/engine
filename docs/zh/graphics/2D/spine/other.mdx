@@ -8,7 +8,7 @@ label: Graphics/2D/Spine/other
 
 ### 版本升级与变更 （1.4）
 升级到编辑器 1.4 版本后。除了需要在编辑器的[项目设置](/docs/interface/menu/#项目设置)中升级引擎版本外，还需要注意 1.4 Spine API 的修改：
-1. 我们不再推荐使用：添加组件`addComponent(SpineAnimationRenderer)` + 设置资源`set SpineResource` 的方式创建 Spine 动画了。</br>
+1. 我们不再推荐使用：添加组件`addComponent(SpineAnimationRenderer)` + 设置资源`set SpineResource` 的方式创建 Spine 动画了。<br/>
 1.4 版本，我们给 SpineResource 添加了一个实例化方法 `instantiate`。`instantiate`方法返回一个使用了该资源的 Spine 动画实体。这比过去的创建方式更加快捷方便～
 2. `defaultState` 更名为 `defaultConfig`。该参数的含义是 Spine 动画默认状态下的配置项。我们调整了参数命名，使其更加便于理解。
 3. 删除了默认状态下的缩放`scale`配置。过去 scale 参数的目的其实是为了处理 Spine 动画的像素比例，让 Spine 动画大小与引擎中其他物体保持一致。1.4 版本，Spine 无需再通过设置默认缩放来修正其尺寸了。我们推荐大家通过修改 Entity 的 `scale`参数，来缩放 Spine 动画。

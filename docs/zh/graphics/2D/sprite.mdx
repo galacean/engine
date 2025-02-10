@@ -21,11 +21,11 @@ label: Graphics/2D
 
 region 决定精灵的显示内容，可以在纹理中选择一个矩形区域进行显示，超出部分会自动过滤掉，如下：
 
-<img src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*ABvvTJnUgpsAAAAAAAAAAAAAARQnAQ" alt="avatar" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*ABvvTJnUgpsAAAAAAAAAAAAAARQnAQ" alt="avatar" style={{zoom:"50%"}} />
 
 pivot 代表精灵中心在 region 中的位置，如下：
 
-<img src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*6RyQTpqE4dMAAAAAAAAAAAAAARQnAQ" alt="avatar" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*6RyQTpqE4dMAAAAAAAAAAAAAARQnAQ" alt="avatar" style={{zoom:"50%"}} />
 
 ## 使用
 
@@ -35,13 +35,13 @@ pivot 代表精灵中心在 region 中的位置，如下：
 
 在 **[资产面板](/docs/assets/interface/)** 空白处依次 **右键** → **Upload** → **Sprite** → **选中对应图片** 即可上传精灵资产，上传成功后当前资产列表会同步添加一份名为 `图片名.png` 的纹理资产和一份 `图片名-spr.png` 的精灵资产
 
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*bRghQqoN1GAAAAAAAAAAAAAADhuCAQ/original" alt="avatar"  />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*bRghQqoN1GAAAAAAAAAAAAAADhuCAQ/original" alt="avatar"  />
 
 #### 创建空白精灵
 
 在 **[资产面板](/docs/assets/interface/)** 空白处依次 **右键** → **Create** → **Sprite** 即可创建一份空白的精灵资产。
 
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Gv96TrKvRkEAAAAAAAAAAAAADhuCAQ/original" alt="avatar"  />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Gv96TrKvRkEAAAAAAAAAAAAADhuCAQ/original" alt="avatar"  />
 
 #### 脚本创建
 
@@ -58,8 +58,8 @@ const spriteWithTexture = new Sprite(engine, texture2D);
 
 这里特别说明下 pivot 在编辑器中的设置。对于 pivot 来说，纹理左下角为 `(0, 0)`，X 轴从左到右，Y 轴从下到上。编辑器中内置了一些常用的 pivot 快捷值，如下：
 
-<img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*ZKFJR5LdJA0AAAAAAAAAAAAADjCHAQ/original" alt="avatar" style="zoom:100%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*ZKFJR5LdJA0AAAAAAAAAAAAADjCHAQ/original" alt="avatar" />
 
 如果内置值无法满足需求，可以自定义自己的 pivot，如下：
 
-<img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*tuZ7QJEl_wsAAAAAAAAAAAAADjCHAQ/original" alt="avatar" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*tuZ7QJEl_wsAAAAAAAAAAAAADjCHAQ/original" alt="avatar" style={{zoom:"50%"}} />

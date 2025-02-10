@@ -21,11 +21,11 @@ label: Graphics/2D
 
 The region determines the display content of the sprite. You can select a rectangular area in the texture to display, and the excess part will be automatically filtered out, as shown below:
 
-<img src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*ABvvTJnUgpsAAAAAAAAAAAAAARQnAQ" alt="avatar" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*ABvvTJnUgpsAAAAAAAAAAAAAARQnAQ" alt="avatar" style={{zoom:"50%"}} />
 
 The pivot represents the position of the sprite's center in the region, as shown below:
 
-<img src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*6RyQTpqE4dMAAAAAAAAAAAAAARQnAQ" alt="avatar" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*6RyQTpqE4dMAAAAAAAAAAAAAARQnAQ" alt="avatar" style={{zoom:"50%"}} />
 
 ## Usage
 
@@ -35,13 +35,13 @@ The pivot represents the position of the sprite's center in the region, as shown
 
 In the **[Assets Panel](/en/docs/assets/interface/)**, right-click on the blank area and select **Upload** → **Sprite** → **Select the corresponding image** to upload the sprite asset. After a successful upload, the current asset list will synchronously add a texture asset named `image_name.png` and a sprite asset named `image_name-spr.png`.
 
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*bRghQqoN1GAAAAAAAAAAAAAADhuCAQ/original" alt="avatar"  />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*bRghQqoN1GAAAAAAAAAAAAAADhuCAQ/original" alt="avatar"  />
 
 #### Create Blank Sprite
 
 In the **[Assets Panel](/en/docs/assets/interface/)**, right-click on the blank area and select **Create** → **Sprite** to create a blank sprite asset.
 
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Gv96TrKvRkEAAAAAAAAAAAAADhuCAQ/original" alt="avatar"  />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Gv96TrKvRkEAAAAAAAAAAAAADhuCAQ/original" alt="avatar"  />
 
 #### Script Creation
 
@@ -58,8 +58,8 @@ const spriteWithTexture = new Sprite(engine, texture2D);
 
 Here, we specifically explain the setting of the pivot in the editor. For the pivot, the bottom-left corner of the texture is `(0, 0)`, the X-axis goes from left to right, and the Y-axis goes from bottom to top. The editor has some built-in common pivot shortcut values, as shown below:
 
-<img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*ZKFJR5LdJA0AAAAAAAAAAAAADjCHAQ/original" alt="avatar" style="zoom:100%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*ZKFJR5LdJA0AAAAAAAAAAAAADjCHAQ/original" alt="avatar" />
 
 If the built-in values do not meet your needs, you can customize your own pivot, as shown below:
 
-<img src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*tuZ7QJEl_wsAAAAAAAAAAAAADjCHAQ/original" alt="avatar" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*tuZ7QJEl_wsAAAAAAAAAAAAADjCHAQ/original" alt="avatar" style={{zoom:"50%"}} />

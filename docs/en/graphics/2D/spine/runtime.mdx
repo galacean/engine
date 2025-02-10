@@ -36,7 +36,7 @@ await engine.resourceManager.load({
 <b>If not added to the scene, you need to load it manually in the code</b>. Follow these steps:
 1. Copy the SkeletonDataAsset link.
 Right-click on the SkeletonDataAsset, select `Copy relative path` to copy the asset path.
-<img src="https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*muomS5hICRYAAAAAAAAAAAAADsp6AQ/original" />
+<Image src="https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*muomS5hICRYAAAAAAAAAAAAADsp6AQ/original" />
 
 2. Use ResourceManager to load
 
@@ -66,10 +66,10 @@ const resource = await engine.resourceManager.load({
 ```
 
 When loading custom uploaded assets:
-- If passing the parameter as `url`, <b>ensure the files are in the same directory</b>, such as:<br>
-https://your.spineboy.json <br>
-https://your.spineboy.atlas <br>
-https://your.spineboy.png <br>
+- If passing the parameter as `url`, <b>ensure the files are in the same directory</b>, such as:<br/>
+https://your.spineboy.json <br/>
+https://your.spineboy.atlas <br/>
+https://your.spineboy.png <br/>
 
 - If passing the parameter as `urls` (multiple links), the files do not need to be in the same directory:
 ```typescript
@@ -83,10 +83,10 @@ const resource = await engine.resourceManager.load({
 });
 ```
 
-- If no texture URL is provided, the loader will read the texture image name from the atlas file and look for the texture in the same directory as the atlas file.<br>
-- If the custom uploaded asset lacks file extensions, you can add URL query parameters to the links, e.g.:<br>
-https://your.spineboyjson?ext=.json, <br>
-https://your.spineboyatlas?ext=.atlas <br>
+- If no texture URL is provided, the loader will read the texture image name from the atlas file and look for the texture in the same directory as the atlas file.<br/>
+- If the custom uploaded asset lacks file extensions, you can add URL query parameters to the links, e.g.:<br/>
+https://your.spineboyjson?ext=.json, <br/>
+https://your.spineboyatlas?ext=.atlas <br/>
 
 - If the Spine animation atlas includes multiple images (e.g., a.png and b.png), follow the order recorded in the atlas file to pass the image URLs:
 ```typescript
@@ -236,26 +236,26 @@ The first three parameters are easy to understand, so let’s focus on the fourt
 
 When `delay > 0` (e.g., `delay` is 1), the preceding animation switches to the next animation after playing for 1 second, as shown below:
 
-<img src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*-sY9TrNI8L8AAAAAAAAAAAAADvX8AQ/original" width="350" alt="animation delay > 0">
+<Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*-sY9TrNI8L8AAAAAAAAAAAAADvX8AQ/original" width="350" />
 
 If animation A’s duration is less than 1 second, it will either loop until 1 second or remain in its finished state until 1 second, depending on whether looping is enabled.
 
 When `delay = 0`, the next animation plays immediately after the preceding animation finishes, as shown below:
 
-<img src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*jk2VRaHwUXMAAAAAAAAAAAAADvX8AQ/original" width="350" alt="animation delay = 0">
+<Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*jk2VRaHwUXMAAAAAAAAAAAAADvX8AQ/original" width="350" />
 
 Assuming animation A lasts 1 second and the transition duration is 0.2 seconds, animation B will transition starting at 0.8 seconds (1 - 0.2).
 
 When `delay < 0`, the next animation begins before the preceding animation finishes, as shown below:
 Similarly, if animation A lasts 1 second with a 0.2-second transition, animation B will begin transitioning at 0.6 seconds.
 
-<img src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*1xJDTLr0ygAAAAAAAAAAAAAADvX8AQ/original" width="350" alt="animation delay < 0">
+<Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*1xJDTLr0ygAAAAAAAAAAAAAADvX8AQ/original" width="350" />
 
 Besides `addAnimation`, the [addEmptyAnimation](https://zh.esotericsoftware.com/spine-api-reference#AnimationState-addEmptyAnimation) method can add an empty animation. Empty animations reset animations to their initial state.
 
 `addEmptyAnimation` takes three parameters: `TrackIndex`, `mixDuration`, and `delay`. The `TrackIndex` and `delay` parameters are the same as those in `addAnimation`. The `mixDuration` parameter specifies the transition duration, and the animation will reset to its initial state over this duration. As shown below (the brown area on the right represents the empty animation):
 
-<img src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*UdLBR4xoXAEAAAAAAAAAAAAADvX8AQ/original" width="267" alt="Add empty animation api">
+<Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*UdLBR4xoXAEAAAAAAAAAAAAADvX8AQ/original" width="267" alt="Add empty animation api" />
 
 ...
 
@@ -273,7 +273,7 @@ For more details on these parameters, refer to the [TrackEntry official document
 
 #### **Animation Events**
 
-<img src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*j4SmSKjherYAAAAAAAAAAAAADvX8AQ/original" width="681" alt="Animation event diagram">
+<Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*j4SmSKjherYAAAAAAAAAAAAADvX8AQ/original" width="681" alt="Animation event diagram" />
 
 When controlling animations via the `AnimationState` API, various events, as shown above, can be triggered.
 - When a new animation starts, the `Start` event is triggered.
