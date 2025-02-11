@@ -1,8 +1,7 @@
-import { Camera, PointerEventData, Script } from "@galacean/engine-core";
-import { Vector3 } from "@galacean/engine-math";
+import { PointerEventData, Script } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { UICanvas, UIGroup, CanvasRenderMode, Image, UITransform } from "@galacean/engine-ui";
-import { describe, expect, it, vi } from "vitest";
+import { CanvasRenderMode, Image, UICanvas, UITransform } from "@galacean/engine-ui";
+import { describe, expect, it } from "vitest";
 
 describe("UIEvent", async () => {
   const body = document.getElementsByTagName("body")[0];
@@ -75,20 +74,17 @@ describe("UIEvent", async () => {
 
   // Add Image
   const imageEntity1 = canvasEntity.createChild("Image1");
-  const image1 = imageEntity1.addComponent(Image);
-  image1.color.set(1, 0, 0, 1);
+  imageEntity1.addComponent(Image);
   (<UITransform>imageEntity1.transform).size.set(300, 300);
   const script1 = imageEntity1.addComponent(TestScript);
 
   const imageEntity2 = imageEntity1.createChild("Image2");
-  const image2 = imageEntity2.addComponent(Image);
-  image2.color.set(0, 1, 0, 1);
+  imageEntity2.addComponent(Image);
   (<UITransform>imageEntity2.transform).size.set(200, 200);
   const script2 = imageEntity2.addComponent(TestScript);
 
   const imageEntity3 = imageEntity2.createChild("Image3");
   const image3 = imageEntity3.addComponent(Image);
-  image3.color.set(0, 0, 1, 1);
   (<UITransform>imageEntity3.transform).size.set(100, 100);
   const script3 = imageEntity3.addComponent(TestScript);
 
