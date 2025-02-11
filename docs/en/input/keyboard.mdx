@@ -1,0 +1,66 @@
+---
+order: 2
+title: Keyboard
+type: Interact
+label: Interact
+---
+
+Galacean supports developers to query the current keyboard interaction status at any time, and the interface is very simple to call.
+
+## Methods
+
+| Method Name                                               | Description                |
+| --------------------------------------------------------- | -------------------------- |
+| [isKeyHeldDown](/apis/core/#InputManager-isKeyHeldDown) | Returns whether the key is being held down |
+| [isKeyDown](/apis/core/#InputManager-isKeyDown)         | Returns whether the key was pressed in the current frame |
+| [isKeyUp](/apis/core/#InputManager-isKeyUp)             | Returns whether the key was released in the current frame |
+
+## Quick Start
+
+Below is a simple example of detecting key states.
+
+```typescript
+class KeyScript extends Script {
+  onUpdate() {
+    const { inputManager } = this.engine;
+    if (inputManager.isKeyHeldDown(Keys.Space)) {
+      // 现在还按着空格键
+    }
+    if (inputManager.isKeyDown(Keys.Space)) {
+      // 这帧按下过空格键
+    }
+    if (inputManager.isKeyUp(Keys.Space)) {
+      // 这帧抬起过空格键
+    }
+  }
+}
+```
+
+## Practical Example
+
+This time, let's use the spacebar to control Angry Birds.
+
+<Playground href="/embed/flappy-bird" />
+
+## State Dictionary
+
+| Key State                   | isKeyHeldDown | isKeyDown | isKeyUp |
+| --------------------------- | ------------- | --------- | ------- |
+| The key has been held down since the last frame | true          | false     | false   |
+| The key was pressed in the current frame and not released | true          | true      | false   |
+| The key was released and pressed again in the current frame | true          | true      | true    |
+| The key was pressed and released in the current frame | false         | true      | true    |
+| The key was released in the current frame | false         | false     | true    |
+| The key was not pressed and had no interaction | false         | false     | false   |
+| This situation will not occur | true          | false     | true    |
+| This situation will not occur | false         | true      | false   |
+
+## Keys
+
+The keyboard Keys enumerated by Galacean correspond one-to-one with the physical keyboard, following W3C standards, and are compatible with various special keys on different hardware.
+
+Keys Enumeration: https://github.com/galacean/engine/blob/main/packages/core/src/input/enums/Keys.ts
+
+W3C Standard: https://www.w3.org/TR/2017/CR-uievents-code-20170601/
+
+Keyboard Input Design Philosophy: https://github.com/galacean/engine/wiki/Keyboard-Input-design

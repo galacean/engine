@@ -11,7 +11,7 @@ There are two common ways to obtain animation clips:
 
 1. Import models with animations created using third-party tools (such as Autodesk® 3ds Max®, Autodesk® Maya®, Blender). See [Creating Animation Clips for Artists](/en/docs/animation/clip-for-artist)
 
-![1](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Qc8sQ6iJd8IAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Qc8sQ6iJd8IAAAAAAAAAAAAADsJ_AQ/original" />
 
 2. Create animation clips in Galacean (the editor and script creation methods will be introduced below).
 
@@ -19,7 +19,7 @@ There are two common ways to obtain animation clips:
 
 The animation clip editor currently supports editing all interpolable properties except for physics-related components. If you need to edit other properties, you need to add the corresponding components to the entity.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*3SAjRb60cfoAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*3SAjRb60cfoAAAAAAAAAAAAADsJ_AQ/original" />
 
 > Note: The Galacean animation editor defaults to 60FPS. The time `0:30` shown in the figure above is at the 30th frame. If the timeline scale is `1:30`, it is at the 90th frame.
 
@@ -29,49 +29,49 @@ The animation clip editor currently supports editing all interpolable properties
 
 1. In the **[Assets Panel](/en/docs/assets/interface)**, right-click/click + to create an `Animation Clip` asset.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*j4FMRKx91nEAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*j4FMRKx91nEAAAAAAAAAAAAADsJ_AQ/original" />
 
 2. Double-click the `Animation Clip` asset and select an entity as the editing object for the `Animation Clip`.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*_E1kRqt8LroAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*_E1kRqt8LroAAAAAAAAAAAAADsJ_AQ/original" />
 
 Clicking the `Create` button will automatically add the [Animation Control Component](/en/docs/animation/animator) to your entity and add the animation clip to the [Animation Controller](/en/docs/animation/animatorController/).
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*q46SRrV6WfsAAAAAAAAAAAAADsJ_AQ/original)
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*C2a4SZDGG_4AAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*q46SRrV6WfsAAAAAAAAAAAAADsJ_AQ/original" />
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*C2a4SZDGG_4AAAAAAAAAAAAADsJ_AQ/original" />
 
 3. Add the properties to animate (here I added two).
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*69xIS7ABJJkAAAAAAAAAAAAADsJ_AQ/original)
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*-4bnQI-LcLsAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*69xIS7ABJJkAAAAAAAAAAAAADsJ_AQ/original" />
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*-4bnQI-LcLsAAAAAAAAAAAAADsJ_AQ/original" />
 
 4. Add keyframes to the properties.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QnQwR6tLRYMAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QnQwR6tLRYMAAAAAAAAAAAAADsJ_AQ/original" />
 When we click the add keyframe button, the keyframe will store the current value of the specified property. So when we haven't changed anything, the keyframe stores the `position` value of the entity at that moment. We want it to move to the position (3, 0, 0) after 60 frames, so first modify the cube to (3, 0, 0) through the property panel and then add a keyframe.
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*ClTgSriu4-8AAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*ClTgSriu4-8AAAAAAAAAAAAADsJ_AQ/original" />
 Similarly, we also add keyframes for the `rotation` property.
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*hOkoRKlNfeYAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*hOkoRKlNfeYAAAAAAAAAAAAADsJ_AQ/original" />
 
 ##### Recording Mode
 
 We provide a recording mode to facilitate developers in quickly adding keyframes. When recording mode is enabled, keyframes are automatically added when the corresponding properties are modified.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*sFwtSLOlyhoAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*sFwtSLOlyhoAAAAAAAAAAAAADsJ_AQ/original" />
 
 ### Text Animation Example
 
 First, you need an entity with a TextRender component.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*VGEGS6kOBqkAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*VGEGS6kOBqkAAAAAAAAAAAAADsJ_AQ/original" />
 
 When we add properties at this point, we can see that the properties that can add keyframes have increased with the interpolable properties related to the `TextRenderer` component.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*X5YxQb_HieUAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*X5YxQb_HieUAAAAAAAAAAAAADsJ_AQ/original" />
 
 We add keyframes using recording mode as described above.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*tsTqSqZVsdUAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*tsTqSqZVsdUAAAAAAAAAAAAADsJ_AQ/original" />
 
 ### Frame Animation Example
 
@@ -81,16 +81,16 @@ In addition to numerical types, Galacean also supports animation curves of refer
 
 Galacean also supports animation editing of asset properties within components. If there are material assets in the component, there will be additional asset property editing in the `Inspector`.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*ctbcSKqHmIAAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*ctbcSKqHmIAAAAAAAAAAAAAADsJ_AQ/original" />
 
 It should be noted that the default [material](/en/docs/graphics/material/material/) in the editor is not editable.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*SNRHQbOcqhAAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*SNRHQbOcqhAAAAAAAAAAAAAADsJ_AQ/original" />
 
 So, if we want to animate the material of this cube, we need to create a new material and replace it. Then, just like above, enable recording mode and directly modify the properties.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*uEQOS52hXpUAAAAAAAAAAAAADsJ_AQ/original)
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*TGDFTrXZbAEAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*uEQOS52hXpUAAAAAAAAAAAAADsJ_AQ/original" />
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*TGDFTrXZbAEAAAAAAAAAAAAADsJ_AQ/original" />
 
 ## More Operations
 
@@ -100,23 +100,23 @@ So, if we want to animate the material of this cube, we need to create a new mat
 
 Select the keyframe and drag it.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*_vZSR4YEDqMAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*_vZSR4YEDqMAAAAAAAAAAAAADsJ_AQ/original" />
 
 You can zoom the timeline by scrolling the `mouse wheel`.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*BTgPS45hkNYAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*BTgPS45hkNYAAAAAAAAAAAAADsJ_AQ/original" />
 
 #### Modify Keyframe Value
 
 Enable recording mode, move the timeline to the specified keyframe, and then re-enter the value. If recording mode is not enabled, you need to click the add keyframe button again.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*MiSXQZ4q7DMAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*MiSXQZ4q7DMAAAAAAAAAAAAADsJ_AQ/original" />
 
 #### Delete Keyframe
 
 Select the keyframe, right-click and choose delete, or press the delete/backspace key on the keyboard.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*MpPMRK2WaEMAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*MpPMRK2WaEMAAAAAAAAAAAAADsJ_AQ/original" />
 
 ### Editing Child Entities
 
@@ -124,43 +124,43 @@ Select the keyframe, right-click and choose delete, or press the delete/backspac
 
 1. We add a child entity to the cube we just created.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*6RYIQpG7DPwAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*6RYIQpG7DPwAAAAAAAAAAAAADsJ_AQ/original" />
 
 2. We can see that the properties of the child entity can be added by clicking "Add Property" again.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*j7rfRq0REKIAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*j7rfRq0REKIAAAAAAAAAAAAADsJ_AQ/original" />
 
 3. Enable recording mode, edit the child entity and add keyframes.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*j7rfRq0REKIAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*j7rfRq0REKIAAAAAAAAAAAAADsJ_AQ/original" />
 
 
 ### Edit Animation Curves
 
 The `Animation Clip Editor` supports animation curve editing. Click the curve icon in the upper right corner to switch.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*luV0QaDUAQAAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*luV0QaDUAQAAAAAAAAAAAAAADsJ_AQ/original" />
 
 The vertical axis in curve mode represents the value of the property.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*luV0QaDUAQAAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*luV0QaDUAQAAAAAAAAAAAAAADsJ_AQ/original" />
 
 
 You can adjust the vertical axis scale by pressing `shift + mouse wheel`.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*SjO2TaubiuIAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*SjO2TaubiuIAAAAAAAAAAAAADsJ_AQ/original" />
 
 The color of the curve corresponding to the property is the same as the color of the button.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*OS3uSbdB36AAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*OS3uSbdB36AAAAAAAAAAAAAADsJ_AQ/original" />
 
 Selecting a keyframe will show two control points. Adjusting the control points will adjust the curve.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*kikYQoiYMLoAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*kikYQoiYMLoAAAAAAAAAAAAADsJ_AQ/original" />
 
 You can also set built-in preset values directly by right-clicking the keyframe.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*KRzoT5Pocc4AAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*KRzoT5Pocc4AAAAAAAAAAAAADsJ_AQ/original" />
 
 Selecting a property in the property panel allows you to edit the curve of the specified property only.
 

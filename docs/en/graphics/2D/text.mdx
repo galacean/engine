@@ -1,0 +1,186 @@
+---
+order: 4
+title: Text Renderer
+type: Graphics
+group: 2D
+label: Graphics/2D
+---
+
+[TextRenderer](/apis/core/#TextRenderer) component is used to display text in 3D/2D scenes.
+
+## Editor Usage
+
+### Add Text Component
+
+To display text, you need to add a text component to an entity, as shown below:
+
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*3d5AQYTtcNkAAAAAAAAAAAAADjCHAQ/original" />
+
+### Parameter Description
+
+Select an entity with the TextRenderer component, and you can set all related properties in the inspector on the right to configure the text component:
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*9XKjSYHZQWsAAAAAAAAAAAAADjCHAQ/original" />
+
+The property descriptions are as follows:
+| Property | Description |
+| :--- | :--- |
+| `Text` | The text to be displayed |
+| `Color` | Text color |
+| `FontSize` | Font size of the text |
+| `Font` | Custom font |
+| `Width` | The width of the text in 3D space, used for bounding box calculation and determining line breaks when multi-line text is needed |
+| `Height` | The height of the text in 3D space, used for bounding box calculation and determining line breaks when multi-line text is needed |
+| `LineSpacing` | Line spacing |
+| `FontStyle` | Font style settings: bold/italic |
+| `HorizontalAlignment` | Horizontal alignment options: Left/Center/Right |
+| `VerticalAlignment` | Vertical alignment options: Top/Center/Bottom |
+| `EnableWrapping` | Whether to enable wrapping mode. When wrapping mode is enabled, the text will wrap according to the set width. If the width is set to 0, the text will not render |
+| `OverflowMode` | Handling method when the total height of the text exceeds the set height. Options: Overflow/Truncate. Overflow means the text will overflow and display, Truncate means only the content within the set height will be displayed. The specific display content is also related to the vertical alignment of the text |
+| `Mask Interaction` | Mask type, used to set whether the text needs a mask, and if so, whether to display the content inside or outside the mask |
+| `Mask Layer` | The mask layer to which the text belongs, used to match with SpriteMask. The default is Everything, meaning it can be masked by any SpriteMask |
+| `priority` | Rendering priority. The smaller the value, the higher the rendering priority, and the earlier it will be rendered |
+
+### Set Display Text
+
+After adding the text component, you can set the Text property to display the desired text, as shown below:
+
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*J6nKTJOOm4kAAAAAAAAAAAAADjCHAQ/original" />
+
+### Set Custom Font
+
+To make the text display more diverse, developers can upload their own font files. The editor currently supports the following font file formats: **.ttf**, **.otf**, **.woff**
+
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*CgA5S5vneeMAAAAAAAAAAAAADjCHAQ/original" />
+
+## Script Usage
+
+<Playground href="/embed/text-renderer" />
+
+1. Create a [TextRenderer](/apis/core/#TextRenderer) component to display text  
+2. Set the [Font](/apis/core/#Font) object through the font property  
+3. Set the text to be displayed through the text property  
+3. Set the font size through the fontSize property  
+4. Set the text color through the color property
+
+```typescript
+import {
+  Camera,
+  Color,
+  Font,
+  FontStyle,
+  TextRenderer,
+  Vector3,
+  WebGLEngine,
+} from "@galacean/engine";
+
+const textEntity = rootEntity.createChild("text");
+// 给实体添加 TextRenderer 组件
+const textRenderer = textEntity.addComponent(TextRenderer);
+// 通过 font 设置 Font 对象
+textRenderer.font = Font.createFromOS(engine, "Arial");
+// 通过 text 设置需要显示的文本
+textRenderer.text = "Galacean 会写字了！";
+// 通过 fontSize 设置字体大小
+textRenderer.fontSize = 36;
+// 通过 color 设置文本颜色
+textRenderer.color.set(1, 0, 0, 1);
+```
+
+### Set Width and Height
+
+You can set the size of the text in 3D space through width/height, which mainly has the following uses:  
+1. Used for bounding box calculation  
+2. When multi-line text is needed, the width and height will be used to determine the line break principle
+
+```typescript
+// 设置宽
+textRenderer.width = 10;
+// 设置高
+textRenderer.height = 10;
+```
+
+### Set Line Spacing
+
+When you need to display multiple lines of text, you can set the vertical spacing between two lines of text through `lineSpacing`.
+
+```typescript
+// Set line spacing
+textRenderer.lineSpacing = 0.1;
+```
+
+### Multi-line Text Display
+
+When the text is too long, you may want the text to be displayed in multiple lines. At this time, you can set the `enableWrapping` field to enable the wrapping mode. After turning on the wrapping mode, it will wrap according to the width set earlier. If the width is set to 0 at this time, the text will not be rendered.
+
+```typescript
+// Turn on wrapping mode
+textRenderer.enableWrapping = true;
+```
+
+### Text Truncation
+
+When displaying multiple lines of text, there may be too many lines of text. At this time, you can set the `overflowMode` field to determine whether to truncate part of the display, only retaining the content within the set height. The specific display content is also related to the vertical alignment of the text (see: Text Alignment), as follows:
+
+```typescript
+// 文本溢出
+textRenderer.overflowMode = OverflowMode.Overflow;
+// 文本截取
+textRenderer.overflowMode = OverflowMode.Truncate;
+```
+
+### Text Alignment
+
+Text alignment is used to set how the text is displayed within the specified width and height, as follows:
+
+| Property Name                                                        | Property Type                                                   | Description                                                                 |
+| :------------------------------------------------------------------- | :-------------------------------------------------------------- | :-------------------------------------------------------------------------- |
+| [horizontalAlignment](/apis/core/#TextRenderer-horizontalAlignment) | [TextHorizontalAlignment](/apis/core/#TextHorizontalAlignment) | Horizontal alignment: Left/Center/Right represent left-aligned/center-aligned/right-aligned display respectively |
+| [verticalAlignment](/apis/core/#TextRenderer-horizontalAlignment)   | [TextVerticalAlignment](/apis/core/#TextVerticalAlignment)     | Vertical alignment: Top/Center/Bottom represent top-aligned/center-aligned/bottom-aligned display respectively   |
+
+### Text Font Style
+
+The text font style is used to set whether the text is displayed in bold or italic, as follows:
+
+| Property Name                                      | Property Type                   | Description                                      |
+| :------------------------------------------------- | :------------------------------ | :------------------------------------------------ |
+| [fontStyle](/apis/core/#TextRenderer-fontStyle) | [FontStyle](/apis/core/#FontStyle) | Font style: None/Bold/Italic represent normal/bold/italic display respectively |
+
+Usage is as follows:
+
+```typescript
+// 正常显示
+textRenderer.fontStyle = FontStyle.None;
+// 加粗显示
+textRenderer.fontStyle = FontStyle.Bold;
+// 斜体显示
+textRenderer.fontStyle = FontStyle.Italic;
+// 既加粗又斜体显示
+textRenderer.fontStyle = FontStyle.Bold | FontStyle.Italic;
+```
+
+### Multi-line Text
+
+<Playground href="/embed/text-wrap-alignment" />
+
+### Custom Fonts
+
+[Font](/apis/core/#Font) is a font resource used to represent the font used by the text.
+
+| Property Name                        | Property Type | Description                                                                 |
+| :----------------------------------- | :------------ | :-------------------------------------------------------------------------- |
+| [name](/apis/core/#Sprite-name)   | string        | Font resource name, used to uniquely identify a font resource. Currently, this field is used to represent the required system font |
+
+```typescript
+const font = Font.createFromOS(engine, "Arial");
+```
+
+Currently supported formats: ttf/otf/woff
+
+```typescript
+const font = await engine.resourceManager.load({
+  url: "https://lg-2fw0hhsc-1256786476.cos.ap-shanghai.myqcloud.com/Avelia.otf",
+});
+```
+
+<Playground href="/embed/text-renderer-font" />
+```
