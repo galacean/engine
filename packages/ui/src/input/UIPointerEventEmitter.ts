@@ -18,12 +18,14 @@ import { UIHitResult } from "./UIHitResult";
 @registerPointerEventEmitter()
 export class UIPointerEventEmitter extends PointerEventEmitter {
   private static _MAX_PATH_DEPTH = 2048;
-  private static _path0: Entity[] = [];
-  private static _path1: Entity[] = [];
+  private static _tempSet: Set<number> = new Set();
+  private static _path: Entity[] = [];
+  private static _tempArray0: Entity[] = [];
+  private static _tempArray1: Entity[] = [];
 
-  private _enteredElement: UIRenderer;
-  private _pressedElement: UIRenderer;
-  private _draggedElement: UIRenderer;
+  private _enteredPath: Entity[] = [];
+  private _pressedPath: Entity[] = [];
+  private _draggedPath: Entity[] = [];
 
   _init(): void {
     this._hitResult = new UIHitResult();
@@ -98,96 +100,94 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
   }
 
   override processDrag(pointer: Pointer): void {
-    if (this._draggedElement) {
-      this._bubble(this._composedPath(this._draggedElement, UIPointerEventEmitter._path0), pointer, this._fireDrag);
+    const draggedPath = this._draggedPath;
+    if (draggedPath.length > 0) {
+      this._bubble(draggedPath, pointer, this._fireDrag);
+      draggedPath.length = 0;
     }
   }
 
   override processDown(pointer: Pointer): void {
-    const element = (this._pressedElement = this._draggedElement = this._enteredElement);
-    if (element) {
-      const path = this._composedPath(element, UIPointerEventEmitter._path0);
-      this._bubble(path, pointer, this._fireDown);
-      this._bubble(path, pointer, this._fireBeginDrag);
+    const enteredPath = this._enteredPath;
+    const pressedPath = this._pressedPath;
+    const draggedPath = this._draggedPath;
+    const length = (draggedPath.length = pressedPath.length = enteredPath.length);
+    if (length > 0) {
+      for (let i = 0; i < length; i++) {
+        pressedPath[i] = draggedPath[i] = enteredPath[i];
+      }
+      this._bubble(pressedPath, pointer, this._fireDown);
+      this._bubble(draggedPath, pointer, this._fireBeginDrag);
     }
   }
 
   override processUp(pointer: Pointer): void {
-    const liftedPath = UIPointerEventEmitter._path0;
-    const enteredElement = this._enteredElement;
-    if (enteredElement) {
-      this._composedPath(enteredElement, liftedPath);
-      this._bubble(liftedPath, pointer, this._fireUp);
-      if (this._pressedElement) {
-        const pressedPath = this._composedPath(this._pressedElement, UIPointerEventEmitter._path1);
-        const enterLength = liftedPath.length;
-        const pressLength = pressedPath.length;
-        const minLength = Math.min(enterLength, pressLength);
-        let i = 0;
-        for (; i < minLength; i++) {
-          if (liftedPath[enterLength - 1 - i] !== pressedPath[pressLength - 1 - i]) {
-            break;
+    const enteredPath = this._enteredPath;
+    const pressedPath = this._pressedPath;
+    if (enteredPath.length > 0) {
+      this._bubble(enteredPath, pointer, this._fireUp);
+      if (pressedPath.length > 0) {
+        const common = UIPointerEventEmitter._tempArray0;
+        if (this._findCommonInPath(enteredPath, pressedPath, common)) {
+          const eventData = this._createEventData(pointer);
+          for (let i = 0, n = common.length; i < n; i++) {
+            this._fireClick(common[i], eventData);
           }
         }
-        const targetIndex = enterLength - i;
-        const eventData = this._createEventData(pointer);
-        for (let j = targetIndex; j < enterLength; j++) {
-          this._fireClick(liftedPath[j], eventData);
-        }
-        this._pressedElement = null;
       }
     }
 
-    if (this._draggedElement) {
-      this._bubble(this._composedPath(this._draggedElement, UIPointerEventEmitter._path1), pointer, this._fireEndDrag);
-      this._draggedElement = null;
+    pressedPath.length = 0;
+
+    const draggedPath = this._draggedPath;
+    if (draggedPath.length > 0) {
+      this._bubble(draggedPath, pointer, this._fireEndDrag);
+      draggedPath.length = 0;
     }
 
-    if (enteredElement) {
-      this._bubble(liftedPath, pointer, this._fireDrop);
+    if (enteredPath.length > 0) {
+      this._bubble(enteredPath, pointer, this._fireDrop);
     }
   }
 
   override processLeave(pointer: Pointer): void {
-    const path = UIPointerEventEmitter._path0;
-    if (this._enteredElement) {
-      this._bubble(this._composedPath(this._enteredElement, path), pointer, this._fireExit);
-      this._enteredElement = null;
-    }
-    if (this._draggedElement) {
-      this._bubble(this._composedPath(this._draggedElement, path), pointer, this._fireEndDrag);
-      this._draggedElement = null;
+    const enteredPath = this._enteredPath;
+    if (enteredPath.length > 0) {
+      this._bubble(enteredPath, pointer, this._fireExit);
+      enteredPath.length = 0;
     }
 
-    this._pressedElement = null;
+    const draggedPath = this._draggedPath;
+    if (draggedPath.length > 0) {
+      this._bubble(draggedPath, pointer, this._fireEndDrag);
+      draggedPath.length = 0;
+    }
+
+    this._pressedPath.length = 0;
   }
 
   override dispose(): void {
-    this._enteredElement = this._pressedElement = this._draggedElement = null;
+    this._enteredPath.length = this._pressedPath.length = this._draggedPath.length = 0;
   }
 
   private _updateRaycast(element: UIRenderer, pointer: Pointer = null): void {
-    const enteredElement = this._enteredElement;
-    if (element !== enteredElement) {
-      let prePath = this._composedPath(enteredElement, UIPointerEventEmitter._path0);
-      let curPath = this._composedPath(element, UIPointerEventEmitter._path1);
-      const preLength = prePath.length;
-      const curLength = curPath.length;
-      const minLength = Math.min(preLength, curLength);
-      let i = 0;
-      for (; i < minLength; i++) {
-        if (prePath[preLength - i - 1] !== curPath[curLength - i - 1]) {
-          break;
-        }
-      }
+    const enteredPath = this._enteredPath;
+    const curPath = this._composedPath(element, UIPointerEventEmitter._path);
+    const add = UIPointerEventEmitter._tempArray0;
+    const del = UIPointerEventEmitter._tempArray1;
+    if (this._findDiffInPath(enteredPath, curPath, add, del)) {
       const eventData = this._createEventData(pointer);
-      for (let j = 0, n = preLength - i; j < n; j++) {
-        this._fireExit(prePath[j], eventData);
+      for (let i = 0, n = add.length; i < n; i++) {
+        this._fireEnter(add[i], eventData);
       }
-      for (let j = 0, n = curLength - i; j < n; j++) {
-        this._fireEnter(curPath[j], eventData);
+      for (let i = 0, n = del.length; i < n; i++) {
+        this._fireExit(del[i], eventData);
       }
-      this._enteredElement = element;
+
+      const length = (enteredPath.length = curPath.length);
+      for (let i = 0; i < length; i++) {
+        enteredPath[i] = curPath[i];
+      }
     }
   }
 
@@ -204,6 +204,53 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
     }
     path.length = i;
     return path;
+  }
+
+  private _findCommonInPath(prePath: Entity[], curPath: Entity[], common: Entity[]): boolean {
+    common.length = 0;
+    const idSet = UIPointerEventEmitter._tempSet;
+    idSet.clear();
+    for (let i = 0, n = prePath.length; i < n; i++) {
+      idSet.add(prePath[i].instanceId);
+    }
+    let hasCommon = false;
+    for (let i = 0, n = curPath.length; i < n; i++) {
+      const entity = curPath[i];
+      if (idSet.has(entity.instanceId)) {
+        common.push(entity);
+        hasCommon = true;
+      }
+    }
+    return hasCommon;
+  }
+
+  private _findDiffInPath(prePath: Entity[], curPath: Entity[], add: Entity[], del: Entity[]): boolean {
+    add.length = del.length = 0;
+    const idSet = UIPointerEventEmitter._tempSet;
+    idSet.clear();
+    let changed = false;
+    for (let i = 0, n = prePath.length; i < n; i++) {
+      idSet.add(prePath[i].instanceId);
+    }
+    for (let i = 0, n = curPath.length; i < n; i++) {
+      const entity = curPath[i];
+      if (!idSet.has(entity.instanceId)) {
+        add.push(entity);
+        changed = true;
+      }
+    }
+    idSet.clear();
+    for (let i = 0, n = curPath.length; i < n; i++) {
+      idSet.add(curPath[i].instanceId);
+    }
+    for (let i = 0, n = prePath.length; i < n; i++) {
+      const entity = prePath[i];
+      if (!idSet.has(entity.instanceId)) {
+        del.push(entity);
+        changed = true;
+      }
+    }
+    return changed;
   }
 
   private _bubble(path: Entity[], pointer: Pointer, fireEvent: FireEvent): void {
