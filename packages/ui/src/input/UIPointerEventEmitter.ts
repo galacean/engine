@@ -133,6 +133,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
           for (let i = 0, n = common.length; i < n; i++) {
             this._fireClick(common[i], eventData);
           }
+          common.length = 0;
         }
       }
     }
@@ -188,6 +189,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
       for (let i = 0; i < length; i++) {
         enteredPath[i] = curPath[i];
       }
+      add.length = del.length = 0;
     }
   }
 
@@ -207,7 +209,6 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
   }
 
   private _findCommonInPath(prePath: Entity[], curPath: Entity[], common: Entity[]): boolean {
-    common.length = 0;
     const idSet = UIPointerEventEmitter._tempSet;
     idSet.clear();
     for (let i = 0, n = prePath.length; i < n; i++) {
@@ -225,7 +226,6 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
   }
 
   private _findDiffInPath(prePath: Entity[], curPath: Entity[], add: Entity[], del: Entity[]): boolean {
-    add.length = del.length = 0;
     const idSet = UIPointerEventEmitter._tempSet;
     idSet.clear();
     let changed = false;
