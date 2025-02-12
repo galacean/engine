@@ -1,0 +1,200 @@
+---
+order: 1
+title: 碰撞器概述
+type: 物理
+label: Physics
+---
+
+碰撞器（[Collider](/apis/core/#Collider)）是一种用于检测和响应物理碰撞的组件。引擎提供以下几种碰撞器：
+
+| 类型 | 描述 | 适用场景 |
+| --- | --- | --- |
+| [**StaticCollider**](/apis/core/#StaticCollider) | 静态碰撞器，不会移动但可与其他物体碰撞 | 地面、墙壁等静态物体 |
+| [**DynamicCollider**](/apis/core/#DynamicCollider) | 动态碰撞器，受物理引擎影响可自由运动 | 可移动物体、射弹等 |
+| [**CharacterController**](/apis/core/#CharacterController) | 专门用于角色控制的碰撞器 | 玩家角色、NPC等 |
+
+碰撞器组件用于定义物体的物理属性和碰撞行为。Galacean 物理系统提供了三种类型的碰撞器:
+
+1. [动态碰撞器](/docs/physics/collider/dynamicCollider)  
+   动态碰撞器可以自由运动并受物理力的影响,适用于需要物理模拟的可移动物体,如投掷物、可推动的箱子等。
+
+2. [静态碰撞器](/docs/physics/collider/staticCollider)  
+   静态碰撞器固定在场景中不会移动,通常用于创建固定的物理障碍物,如地面、墙壁等。
+
+3. [角色控制器](/docs/physics/collider/characterController)  
+   角色控制器是专门为角色移动设计的碰撞器,支持斜坡行走、台阶攀爬等特性,适用于第一人称或第三人称游戏中的角色控制。
+
+## 基本概念
+
+所有碰撞器类型都具有以下共同特征：
+
+1. **形状管理**：每个碰撞器可以包含多个[碰撞形状](/docs/physics/collider/colliderShape) (角色控制器只能添加一个)。关于碰撞形状的详细说明请参考[碰撞形状](/docs/physics/collider/colliderShape)文档。
+
+目前支持了四种 `碰撞形状`，但不同的后端物理包支持程度不同，具体如下：
+
+| 名称                                                     | 解释             | 支持的后端物理包             |
+| :------------------------------------------------------- | :--------------- | :--------------------------- |
+| [BoxColliderShape](/apis/core/#BoxColliderShape)         | 盒形碰撞外形     | physics-lite， physics-physx |
+| [SphereColliderShape](/apis/core/#SphereColliderShape)   | 球形碰撞外形     | physics-lite， physics-physx |
+| [PlaneColliderShape](/apis/core/#PlaneColliderShape)     | 无界平面碰撞外形 | physics-physx                |
+| [CapsuleColliderShape](/apis/core/#CapsuleColliderShape) | 胶囊碰撞外形     | physics-physx                |
+
+2. **变换同步**：
+
+   - 碰撞器会自动同步实体的世界变换，包括位置、旋转和缩放的同步
+   - `碰撞形状` 可以设置相对于实体的局部偏移和旋转
+
+3. **触发器模式**：可以将 `碰撞形状` 设置为触发器模式，设置后发生重叠时不会产生物理反应，但会触发相应的触发器事件
+
+- 通过设置 `碰撞形状` 的 isTrigger 属性来开启/关闭触发器模式
+
+4. **碰撞器模式 VS 触发器模式**：
+   - 碰撞器模式：触发碰撞器事件，具有实际的物理碰撞效果
+   - 触发器模式：仅触发触发器事件回调，不产生物理碰撞
+
+<Callout type="positive">
+碰撞器模式和触发器模式是碰撞形状的属性，一个碰撞器可以包含多个碰撞形状，每个形状都可以独立设置是否为触发器。这意味着：
+一个碰撞器可以同时具备两种模式，可以添加多个碰撞形状，有的设为碰撞器模式，有的设为触发器模式，这样可以同时实现物理碰撞和区域检测的功能
+</Callout>
+
+详细的事件触发关系如下： ![table](https://mdn.alipayobjects.com/huamei_vvspai/afts/img/A*erlGRKk7dNMAAAAAAAAAAAAADsqFAQ/original)
+
+## 共有属性
+
+| 属性                                      | 描述         |
+| ----------------------------------------- | ------------ |
+| [**shapes**](/apis/core/#Collider-shapes) | 碰撞形状集合 |
+
+## 共有方法
+
+| 方法名                                              | 描述             |
+| --------------------------------------------------- | ---------------- |
+| [**addShape**](/apis/core/#Collider-addShape)       | 添加碰撞形状     |
+| [**removeShape**](/apis/core/#Collider-removeShape) | 移除指定碰撞形状 |
+| [**clearShapes**](/apis/core/#Collider-clearShapes) | 清空所有碰撞形状 |
+
+## 共有事件
+
+| 事件名                                                      | 触发时机             |
+| ----------------------------------------------------------- | -------------------- |
+| [**onCollisionEnter**](/apis/core/#Script-onCollisionEnter) | 开始碰撞时触发       |
+| [**onCollisionExit**](/apis/core/#Script-onCollisionExit)   | 结束碰撞时触发       |
+| [**onCollisionStay**](/apis/core/#Script-onCollisionStay)   | 碰撞持续时触发       |
+| [**onTriggerEnter**](/apis/core/#Script-onTriggerEnter)     | 进入触发器时触发     |
+| [**onTriggerExit**](/apis/core/#Script-onTriggerExit)       | 离开触发器时触发     |
+| [**onTriggerStay**](/apis/core/#Script-onTriggerStay)       | 在触发器内时持续触发 |
+
+## 最佳实践
+
+1. **合理使用形状**
+
+- 保持碰撞形状数量最小化，仅在必要时添加额外形状，以减少性能开销
+- 避免使用过多的碰撞形状
+- 对于复杂模型，使用简化的碰撞形状代替精确网格
+- 角色控制器推荐使用胶囊体形状，可以更好地处理台阶和斜坡
+
+2. **性能优化**
+
+   - 将不会移动的物体设置为静态碰撞器
+   - 合并相邻的静态碰撞器
+   - 适当调整动态碰撞器的 solverIterations，在性能和精度间取得平衡
+   - 合理使用 CollisionDetectionMode，只在必要时启用连续碰撞检测
+
+3. **动态碰撞器设置**
+
+   - 根据物体质量调整 linearDamping 和 angularDamping，避免物体运动不自然
+   - 使用 constraints 限制不需要的自由度，提高稳定性
+   - 适当设置 sleepThreshold，让静止物体及时进入休眠状态
+
+4. **角色控制器配置**
+
+   - 根据游戏类型设置合适的 stepOffset，避免卡住或跨越不合理
+   - 设置适当的 slopeLimit，需要考虑游戏场景中的斜坡角度
+   - 选择合适的 nonWalkableMode，考虑是否需要滑落效果
+   - 保持碰撞形状与角色视觉模型的合理匹配
+
+5. **使用场景**
+   - 静态碰撞器：场景边界、地形、建筑等固定物体
+   - 动态碰撞器：可推动物体、物理道具、破坏物等
+   - 角色控制器：玩家角色、NPC 等需要特殊移动控制的对象
+
+## 脚本使用
+
+### 添加碰撞器
+
+```typescript
+// 添加静态碰撞器
+const staticCollider = entity.addComponent(StaticCollider);
+
+// 添加动态碰撞器
+const dynamicCollider = entity.addComponent(DynamicCollider);
+
+// 添加角色控制器
+const characterController = entity.addComponent(CharacterController);
+```
+
+### 碰撞/触发事件
+当碰撞器是碰撞器模式时，会触发碰撞事件；当碰撞器是触发器模式时，会触发触发器事件，如果碰撞器同时是碰撞器和触发器，会同时触发碰撞和触发器事件。
+
+```typescript
+class CollisionScript extends Script {
+  // 碰撞器事件
+  onCollisionEnter(other: Collider) {
+    console.log("碰撞开始");
+  }
+
+  onCollisionStay(other: Collider) {
+    console.log("碰撞持续中");
+  }
+
+  onCollisionExit(other: Collider) {
+    console.log("碰撞结束");
+  }
+
+  // 触发器事件
+  onTriggerEnter(other: Collider) {
+    console.log("触发器进入");
+  }
+
+  onTriggerStay(other: Collider) {
+    console.log("触发器停留");
+  }
+
+  onTriggerExit(other: Collider) {
+    console.log("触发器退出");
+  }
+}
+```
+
+### 形状管理
+
+```typescript
+// 获取所有形状
+const shapes = staticCollider.shapes;
+
+// 增加形状
+const boxShape = new BoxColliderShape();
+staticCollider.addShape(boxShape);
+
+// 移除特定形状
+staticCollider.removeShape(boxShape);
+
+// 清空所有形状
+staticCollider.clearShapes();
+```
+
+复合碰撞形状的物理碰撞示例：
+
+<Playground href="/embed/physx-compound" />
+
+物理触发检测示例可以参考：
+
+<Playground href="/embed/physx-collision-detection" />
+
+## 更多信息
+
+有关各类型碰撞器的详细用法请参考各自的文档:
+
+- [动态碰撞器详细说明](/docs/physics/collider/dynamicCollider)
+- [静态碰撞器详细说明](/docs/physics/collider/staticCollider)
+- [角色控制器详细说明](/docs/physics/collider/characterController)

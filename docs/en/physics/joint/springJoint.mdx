@@ -1,0 +1,102 @@
+---
+order: 2
+title: Spring Joint
+type: Physics
+label: Physics
+---
+
+Spring joints are used to maintain distance constraints between two objects by controlling their relative motion through spring force and damping. They can set minimum and maximum distance ranges and apply elastic constraint forces when objects exceed these ranges.
+
+## Usage
+
+1. Select the target entity and click the add component button in the inspector to add the SpringJoint component.
+<Callout type="info">
+When adding a joint component, make sure the target entity already has a `Dynamic Collider Component` attached. If not, the editor will automatically add a `Dynamic Collider Component` for you.
+</Callout>
+
+![Spring Joint Component](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Jy9kSaMDsJoAAAAAAAAAAAAAesJ_AQ/original)
+
+2. Use the connectedCollider property of the component to set the target collider to connect to (if not needed, keep it as null, which means connecting to a point in world space).
+<Callout type="positive">
+If the target is a collider, the target entity needs to have a collider component (Dynamic Collider, Static Collider, Character Controller) attached.
+</Callout>
+
+![Set Connected Collider](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*JRtfRoM1vS4AAAAAAAAAAAAAesJ_AQ/original)
+
+3. Adjust the joint's properties as needed to modify its behavior. Refer to the descriptions below for the meaning and function of each property.
+
+## Property Descriptions
+
+### Collider Settings
+- [**connectedCollider**](/apis/core/#SpringJoint-connectedCollider)  
+  Specifies the target collider to connect to. When set to null, the joint connects to a fixed point in world space, allowing you to fix the object at a specific position in space.
+
+### Anchor Settings
+- [**anchor**](/apis/core/#SpringJoint-anchor)  
+  Defines the anchor point on the main collider using local coordinates. This point defines the connection position of the joint.
+
+- [**connectedAnchor**](/apis/core/#SpringJoint-connectedAnchor)  
+  Defines the connection point position. Its meaning depends on the connectedCollider setting:
+  - When connectedCollider is null, it represents an absolute position in world space
+  - When connectedCollider is not null, it represents a relative position in the local space of the target collider
+
+- **automaticConnectedAnchor**  
+  Whether to automatically calculate the value of connectedAnchor. When enabled, the system automatically sets the connection point to ensure the initial position relationship between objects. If you need precise manual control of the connection point, set this property to false.
+
+### Distance Constraints
+- [**minDistance**](/apis/core/#SpringJoint-minDistance)  
+  The minimum allowed distance. When the distance between objects is less than this value, the joint applies a pushing force.
+
+- [**maxDistance**](/apis/core/#SpringJoint-maxDistance)  
+  The maximum allowed distance. When the distance between objects exceeds this value, the joint applies a pulling force.
+
+- [**tolerance**](/apis/core/#SpringJoint-tolerance)  
+  The tolerance range value, default is 0.25. This value determines when the joint starts to apply constraint forces:
+  - The joint starts to apply constraint forces only when the actual distance between objects exceeds the allowed range by the tolerance value
+  - For example: if maxDistance = 10 and tolerance = 0.25, the joint starts to apply pulling force only when the distance exceeds 10.25
+  - A larger tolerance value makes the joint's constraint behavior softer, while a smaller value makes the constraint stricter
+
+### Spring Characteristics
+- [**stiffness**](/apis/core/#SpringJoint-stiffness)  
+  The spring stiffness coefficient. A higher value produces a stronger restoring force, making the spring behave "stiffer".
+
+- [**damping**](/apis/core/#SpringJoint-damping)  
+  The damping coefficient. Used to suppress spring oscillations, a higher value makes the motion stop faster.
+
+### Break Thresholds
+- [**breakForce**](/apis/core/#SpringJoint-breakForce)  
+  The maximum force the joint can withstand before breaking. Setting it to Infinity means the joint will never break due to force. This property can be used to simulate destructible connections between objects.
+
+- [**breakTorque**](/apis/core/#SpringJoint-breakTorque)  
+  The maximum torque the joint can withstand before breaking. Setting it to Infinity means the joint will never break due to torque. Used in conjunction with breakForce to more realistically simulate the destruction of connections.
+
+### Mass Calculation Intervention
+- [**connectedMassScale**](/apis/core/#SpringJoint-connectedMassScale) and [**massScale**](/apis/core/#SpringJoint-massScale)  
+  Used to adjust the mass influence of the connected collider and the main collider, respectively. These scaling values affect the joint constraint calculations, allowing you to fine-tune the joint's physical behavior. The default value is 1.0. Increasing the value increases the "importance" of the corresponding collider in constraint solving.
+
+## Script Usage
+
+### Basic Usage
+
+```typescript
+// Add Spring Joint component
+const springJoint = entity.addComponent(SpringJoint);
+
+// Set the connected object
+springJoint.connectedCollider = targetEntity.getComponent(Collider);
+
+// Set distance range
+springJoint.minDistance = 1;
+springJoint.maxDistance = 5;
+```
+
+### Spring Settings
+
+```typescript
+// Configure spring properties
+springJoint.stiffness = 50; // Spring stiffness
+springJoint.damping = 0.2;  // Damping coefficient
+
+// Set tolerance
+springJoint.tolerance = 0.25;
+```

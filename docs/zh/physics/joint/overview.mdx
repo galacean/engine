@@ -1,0 +1,107 @@
+---
+order: 0
+title: 总览
+type: 物理
+label: Physics
+---
+
+关节组件用于模拟碰撞体之间或碰撞体与世界空间任意点之间的连接关系。通过施加力来限制运动自由度，从而实现特定的物理效果。目前，Galacean支持以下三种关节组件：
+
+1. [固定关节](/docs/physics/joint/fixedJoint)（[FixedJoint](/apis/core/#FixedJoint)）  
+   固定关节完全限制了两个碰撞体之间的相对运动，使其保持固定的相对位置和方向。当需要实现能够分离的物体，或在无需层级父子结构的情况下实现同步移动时，这种关节十分适用。
+
+   ![fixedJoint](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*h050RoMxg8sAAAAAAAAAAAAAesJ_AQ/original)
+
+2. [弹性关节](/docs/physics/joint/springJoint)（[SpringJoint](/apis/core/#SpringJoint)）  
+   弹性关节通过设定的弹簧力和阻尼来维持两个物体之间的距离。它允许物体在一定范围内自由运动，并在超出范围时施加弹性约束力，类似于两者间存在一根弹簧。
+
+   ![springJoint](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*eWoxQ57nWeEAAAAAAAAAAAAAesJ_AQ/original)
+
+3. [铰链关节](/docs/physics/joint/hingeJoint)（[HingeJoint](/apis/core/#HingeJoint)）  
+   铰链关节允许物体绕着固定的轴自由旋转，常用于实现门铰链、车轮、钟摆等需要绕固定轴旋转的物理效果。
+
+   ![hingeJoint](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*yZPrRohs-VcAAAAAAAAAAAAAesJ_AQ/original)
+
+## 属性说明
+
+所有关节类型都具有以下共同特征：
+
+1. **关节端点**：每个关节都包含两个作用对象：
+
+   - 主体碰撞体：挂载关节组件的碰撞体
+   - 连接对象：通过 `connectedCollider` 属性指定的目标碰撞体或世界空间中的点
+
+2. **锚点设置**：
+
+   - `anchor`：在主体碰撞体上的连接点
+   - `connectedAnchor`：在目标对象上的连接点
+
+3. **断裂阈值**：
+
+   - `breakForce`：关节能承受的最大力
+   - `breakTorque`：关节能承受的最大扭矩
+
+4. **质量计算干预**：
+   - `connectedMassScale` 和 `massScale`：用于调整连接碰撞体和主体碰撞体的质量影响
+
+## 脚本使用
+
+### 创建关节
+
+通过脚本可以动态创建和配置关节组件：
+
+```typescript
+// 创建固定关节
+const fixedJoint = entity.addComponent(FixedJoint);
+
+// 创建弹性关节
+const springJoint = entity.addComponent(SpringJoint);
+
+// 创建铰链关节
+const hingeJoint = entity.addComponent(HingeJoint);
+```
+
+### 设置连接对象
+
+所有关节都可以设置连接目标和锚点:
+
+```typescript
+// 设置连接的目标碰撞体
+joint.connectedCollider = targetEntity.getComponent(Collider);
+
+// 设置关节在自身碰撞体上的锚点
+joint.anchor.setValue(0, 1, 0);
+
+// 手动设置关节在目标碰撞体上的连接点
+fixedJoint.automaticConnectedAnchor = false;
+joint.connectedAnchor.setValue(0, 0, 0);
+```
+
+### 通用属性配置
+
+所有类型的关节都支持以下设置：
+
+```typescript
+// 设置断裂力和扭矩
+joint.breakForce = 1000;
+joint.breakTorque = 1000;
+
+// 设置质量影响
+joint.massScale = 1.0;
+joint.connectedMassScale = 1.0;
+
+// 设置是否自动计算连接点
+joint.automaticConnectedAnchor = true;
+```
+
+上述物理约束组件的使用，可以参照：
+
+<Playground href="/embed/physx-joint-basic" />
+
+## 更多信息
+
+有关各类型关节的具体使用方法，请参考对应文档:
+
+- [固定关节](/docs/physics/joint/fixedJoint)
+- [弹性关节](/docs/physics/joint/springJoint)
+- [铰链关节](/docs/physics/joint/hingeJoint)

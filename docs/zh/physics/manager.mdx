@@ -1,0 +1,112 @@
+---
+order: 2
+title: 物理场景
+type: 物理
+label: Physics
+---
+
+物理场景（[PhysicsScene](/apis/core/#PhysicsScene)）用于管理场景中所有的物理组件，并且负责与物理后端通信，实现有关物理场景的全局操作，例如更新和射线检测等等。在多场景项目中，每个[Scene](/apis/core/Scene)都有自己的物理场景，Scene之间的物理系统是相互隔离互不影响的。
+
+## 物理更新
+
+物理场景和渲染场景相互独立，但在程序运行过程中不断同步各自的数据。因此，和[脚本](/docs/script/script)一样，同步的时序也非常重要。物理场景的更新频率和渲染场景不同，通过以下参数进行控制：
+```typescript
+/** 物理场景的固定更新时间步长(秒) */
+fixedTimeStep: number = 1 / 60;
+```
+
+### 更新机制
+
+- 每个渲染帧中,物理引擎会按照固定时间步长 [fixedTimeStep](/apis/core/#PhysicsScene-fixedTimeStep) 进行更新
+- 如果实际帧间隔大于 `fixedTimeStep`:
+  - 会执行多次物理更新直到追赶上实际时间
+  - 单帧最大更新时间由 `engine.time.maximumDeltaTime` 限制
+- 如果实际帧间隔小于 `fixedTimeStep`,则累积到下一帧处理
+
+### 物理更新回调
+
+针对物理组件的更新，需要使用[脚本](/docs/script/script)中专门的回调函数:
+```typescript
+export class Script extends Component {
+  /**
+   * 在物理计算前调用,调用次数取决于物理更新频率
+   */
+  onPhysicsUpdate(): void {}
+}
+```
+
+物理更新在整个更新流程中的位置可以参考下图 ![image.png](https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*_8C-TJP2UIgAAAAAAAAAAAAAARQnAQ)
+
+### 物理系统内部更新流程
+
+物理场景在更新时的执行顺序:
+
+1. 执行 `onPhysicsUpdate` 中的用户逻辑
+2. `callColliderOnUpdate` 将被修改的 [实体](/apis/core/#Entity) `Transform` 数据同步给物理碰撞器
+3. 更新物理场景
+4. `callColliderOnLateUpdate` 将所有 [碰撞器](/docs/physics/collider/overview) 更新后的位置同步给对应的 `实体`
+
+## 设置场景重力
+
+物理场景允许自定义重力方向和大小。重力会影响场景中所有启用重力的[动态碰撞器](/docs/physics/collider/dynamicCollider)。
+
+```typescript
+// 获取物理场景的重力值
+const gravity = scene.physics.gravity;
+
+// 修改重力 - 将重力改为 0
+scene.physics.gravity.set(0, 0, 0);
+
+// 修改重力 - 设置为地球重力加速度 (默认值)
+scene.physics.gravity.set(0, -9.81, 0);
+```
+
+## 使用射线检测
+
+<Playground href="/embed/physx-raycast" />
+
+射线可以理解成 3D 世界中一个点向一个方向发射的一条无终点的线。射线投射在 3D 应用中应用非常广泛：
+
+- 在用户点击屏幕时,用于拾取3D场景中的物体
+- 在射击游戏中,用于判断子弹能否射中目标
+- 检测物体之间的可视性和遮挡关系
+
+![image.png](https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*SHM1RI49Bd4AAAAAAAAAAAAAARQnAQ) （_图片来源于网络_）
+
+### 射线检测示例
+
+使用射线检测需要以下步骤:
+
+1. 引入 [Ray](/apis/math/Ray) 等必要的模块
+2. 创建射线(可以自定义或通过 [camera.screenPointToRay](/apis/core/#Camera-screenPointToRay) 生成)
+3. 调用 [`raycast`](/apis/core/#PhysicsScene-raycast) 方法检测碰撞
+
+```typescript
+// 加载 Raycast 模块
+import { WebGLEngine, HitResult, Ray } from "@galacean/engine";
+import { LitePhysics } from "@galacean/engine-physics-lite";
+
+const engine = await WebGLEngine.create({
+  canvas: "canvas",
+  physics: new LitePhysics()
+});
+engine.canvas.resizeByClientSize();
+
+// 将屏幕输入转换成Ray
+document.getElementById("canvas").addEventListener("click", (e) => {
+  const ratio = window.devicePixelRatio;
+  let ray = new Ray();
+  camera.screenPointToRay(new Vector2(e.offsetX, e.offsetY).scale(ratio), ray);
+  const hit = new HitResult();
+  result = engine.physicsManager.raycast(ray, Number.MAX_VALUE, Layer.Everything, hit);
+  if (result) {
+    console.log(hit.entity.name);
+  }
+});
+```
+
+### 注意事项
+
+- Entity 必须添加 [碰撞器](/docs/physics/collider/overview) 组件才能被射线检测到
+- 当射线命中多个相同距离的 [碰撞形状](/docs/physics/collider/colliderShape) 时,会返回先添加的碰撞形状所在的 Entity
+- 建议使用 [InputManager](/docs/input/input/) 来处理输入,它提供了更便捷的输入处理方式

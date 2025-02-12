@@ -1,0 +1,280 @@
+---
+order: 2
+title: Dynamic Collider
+type: Physics
+label: Physics
+---
+
+Dynamic Collider ([DynamicCollider](/apis/core/#DynamicCollider)) is used to simulate objects that can move freely and are affected by physical forces. It can respond to gravity, forces, collisions, and other physical effects, suitable for game objects that require realistic physical simulation.
+
+## Usage
+
+1. Select the target entity and click the Add Component button in the inspector to add the DynamicCollider component.
+
+![Add Dynamic Collider](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Ep4xTqWpligAAAAAAAAAAAAAesJ_AQ/original)
+
+2. Add a collision shape to the collider. Dynamic colliders support adding multiple collision shapes. For detailed instructions on collision shapes, please refer to the [Collision Shape](/docs/physics/collider/colliderShape) documentation. Currently, the following types are supported:
+
+![Add Collision Shape](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*np90QZkKqXUAAAAAAAAAAAAAesJ_AQ/original)
+
+3. Adjust the position, size, and other properties of the collision shape to match the scene elements.
+
+![Shape Matching](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QthGTLWFSh8AAAAAAAAAAAAAesJ_AQ/original)
+
+4. Adjust the properties of the collider as needed to modify the physical behavior of the object. The meaning and function of each property are explained below.
+
+## Property Explanation
+In addition to the common collider properties (see [Collider Overview](/docs/physics/collider/overview)), the dynamic collider has the following specific properties:
+
+### Basic Properties
+
+| Property            | Description                                                      | Default Value |
+| --------------- | --------------------------------------------------------- | ------ |
+| [**mass**](/apis/core/#DynamicCollider-mass)        | Mass of the collider. The larger the mass, the harder it is to change the object's motion state                 | 1.0    |
+| [**useGravity**](/apis/core/#DynamicCollider-useGravity)  | Whether to be affected by gravity                                            | true   |
+| [**isKinematic**](/apis/core/#DynamicCollider-isKinematic) | Whether it is a kinematic object. Kinematic objects are not affected by physics but can affect other objects | false  |
+
+### Velocity Settings
+
+| Property                         | Description                                        | Default Value  |
+| ---------------------------- | ------------------------------------------- | ------- |
+| [**linearVelocity**](/apis/core/#DynamicCollider-linearVelocity)           | Linear velocity vector (world units/second)                   | (0,0,0) |
+| [**angularVelocity**](/apis/core/#DynamicCollider-angularVelocity)          | Angular velocity vector (degrees/second)                           | (0,0,0) |
+| [**maxAngularVelocity**](/apis/core/#DynamicCollider-maxAngularVelocity)       | Maximum angular velocity limit (degrees/second)                       | 18000/π |
+| [**maxDepenetrationVelocity**](/apis/core/#DynamicCollider-maxDepenetrationVelocity) | Maximum separation velocity when colliders overlap, used to prevent objects from penetrating | 1e32    |
+
+### Damping
+
+| Property               | Description             | Default Value |
+| ------------------ | ---------------- | ------ |
+| [**linearDamping**](/apis/core/#DynamicCollider-linearDamping)  | Linear motion damping coefficient | 0      |
+| [**angularDamping**](/apis/core/#DynamicCollider-angularDamping) | Angular velocity damping coefficient   | 0.05   |
+
+### Mass/Inertia Tensor
+
+| Property                       | Description                     | Default Value  |
+| -------------------------- | ------------------------ | ------- |
+| [**centerOfMass**](/apis/core/#DynamicCollider-centerOfMass)           | Position of the center of mass relative to the transform origin | (0,0,0) |
+| [**automaticCenterOfMass**](/apis/core/#DynamicCollider-automaticCenterOfMass)  | Whether to automatically calculate the center of mass     | true    |
+| [**inertiaTensor**](/apis/core/#DynamicCollider-inertiaTensor)          | Inertia tensor of the object relative to the center of mass | (1,1,1) |
+| [**automaticInertiaTensor**](/apis/core/#DynamicCollider-automaticInertiaTensor) | Whether to automatically calculate the inertia tensor     | true    |
+
+### Performance Optimization Settings
+
+| Property                 | Description                                    | Default Value |
+| -------------------- | --------------------------------------- | ------ |
+| [**sleepThreshold**](/apis/core/#DynamicCollider-sleepThreshold)   | Sleep threshold. Objects enter sleep mode when their motion energy falls below this value | 0.005  |
+| [**solverIterations**](/apis/core/#DynamicCollider-solverIterations) | Constraint solver iteration count                        | 4      |
+
+<Callout type="info">
+Constraint solving is the process used by the physics engine to resolve collisions and constraints between objects. Each iteration attempts to adjust the positions and velocities of objects to satisfy all physical constraints (such as collisions, joints, etc.).
+- More iterations result in more accurate physical behavior but higher computational cost
+- Too few iterations may cause objects to jitter or penetrate
+- It is recommended to balance accuracy and performance based on actual needs:
+  - General objects: Use the default value of 4
+  - Precise physics: Increase to 6-8
+  - Performance priority: Reduce to 2-3
+</Callout>
+
+### Motion Constraints
+
+- [**constraints**](/apis/core/#DynamicCollider-constraints)  
+  Used to restrict the object's movement along specific axes. You can lock position and rotation along the X, Y, and Z axes.
+  ```typescript
+  // Lock Y-axis position and all rotations
+  collider.constraints =
+    DynamicColliderConstraints.FreezePositionY |
+    DynamicColliderConstraints.FreezeRotationX |
+    DynamicColliderConstraints.FreezeRotationY |
+    DynamicColliderConstraints.FreezeRotationZ;
+  ```
+
+### Collision Detection Mode
+
+- [**collisionDetectionMode**](/apis/core/#DynamicCollider-collisionDetectionMode)  
+   Controls the precision of collision detection:
+
+| Mode | Description | Applicable Scenarios | Performance Cost |
+| ---- | ---- | -------- | -------- |
+| **Discrete** | Basic detection mode, detects collisions at fixed time steps, may cause tunneling at high speeds | Low-speed objects | Lowest |
+| **Continuous** | Continuous detection for static colliders, prevents high-speed objects from tunneling through static objects | High-speed projectiles | Moderate |
+| **ContinuousDynamic** | Continuous detection for all colliders, prevents high-speed objects from tunneling through each other | Precise physical simulations | High |
+| **ContinuousSpeculative** | Uses speculative algorithms for continuous detection, performance cost between Discrete and Continuous | General game scenarios | Moderate |
+
+#### Example of Setting Collision Detection Mode
+
+```typescript
+// 1. Use discrete detection for normal objects
+normalObject.collisionDetectionMode = CollisionDetectionMode.Discrete;
+
+// 2. Use continuous detection for projectiles to prevent tunneling
+projectile.collisionDetectionMode = CollisionDetectionMode.Continuous;
+
+// 3. Use fully continuous detection for important physical interactions
+importantPhysicsObject.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+
+// 4. Use speculative detection for general game objects
+gameObject.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+```
+
+#### Selection Recommendations
+
+1. **Based on Object Speed**
+
+   - Low-speed objects: Use Discrete
+   - Medium-speed objects: Use ContinuousSpeculative
+   - High-speed objects: Use Continuous or ContinuousDynamic
+
+2. **Based on Importance**
+
+   - Normal scene objects: Use Discrete
+   - Critical game objects: Use ContinuousSpeculative
+   - Precise physical interactions: Use ContinuousDynamic
+
+3. **Based on Performance**
+   - Performance priority: Use Discrete
+   - Balance between performance and precision: Use ContinuousSpeculative
+   - Precision priority: Use ContinuousDynamic
+
+## Public Methods
+In addition to the common collider methods (see [Collider Overview](/docs/physics/collider/overview)), the dynamic collider has the following specific methods:
+
+| Method Name          | Description               |
+| --------------- | ------------------ |
+| [**applyForce**](/apis/core/#DynamicCollider-applyForce)  | Apply force             |
+| [**applyTorque**](/apis/core/#DynamicCollider-applyTorque) | Apply torque           |
+| [**move**](/apis/core/#DynamicCollider-move)        | Kinematic move         |
+| [**sleep**](/apis/core/#DynamicCollider-sleep)       | Force sleep           |
+| [**wakeUp**](/apis/core/#DynamicCollider-wakeUp)      | Wake up the object           |
+| [**isSleeping**](/apis/core/#DynamicCollider-isSleeping)  | Check if the object is sleeping |
+
+## Script Usage
+
+### Basic Configuration
+
+```typescript
+// Create dynamic collider
+const dynamicCollider = entity.addComponent(DynamicCollider);
+
+// Add collision shape
+const boxShape = new BoxColliderShape();
+boxShape.size = new Vector3(1, 1, 1);
+dynamicCollider.addShape(boxShape);
+
+// Configure basic physical properties
+dynamicCollider.mass = 1.0; // Set mass
+dynamicCollider.useGravity = true; // Enable gravity
+dynamicCollider.isKinematic = false; // Set to dynamic mode
+```
+
+### Motion Control
+
+```typescript
+class PhysicsController extends Script {
+  private _collider: DynamicCollider;
+
+  onAwake() {
+    // Get dynamic collider reference
+    this._collider = this.entity.getComponent(DynamicCollider);
+
+    // Configure motion damping
+    this._collider.linearDamping = 0.1; // Set linear damping
+    this._collider.angularDamping = 0.1; // Set angular damping
+
+    // Set motion constraints
+    this._collider.constraints =
+      DynamicColliderConstraints.FreezeRotationX | // Lock X-axis rotation
+      DynamicColliderConstraints.FreezeRotationZ; // Lock Z-axis rotation
+  }
+
+  onUpdate() {
+    // Get current velocity
+    const velocity = this._collider.linearVelocity;
+
+    // Set velocity
+    this._collider.linearVelocity = new Vector3(5, velocity.y, 0);
+
+    // Apply continuous force (e.g., thrust)
+    if (this.engine.inputManager.isKeyHeldDown(Keys.W)) {
+      this._collider.applyForce(new Vector3(0, 0, 10));
+    }
+
+    // Apply instantaneous force (e.g., jump)
+    if (this.engine.inputManager.isKeyDown(Keys.Space)) {
+      this._collider.applyForce(new Vector3(0, 500, 0));
+    }
+
+    // Apply torque (e.g., rotation)
+    if (this.engine.inputManager.isKeyHeldDown(Keys.R)) {
+      this._collider.applyTorque(new Vector3(0, 10, 0));
+    }
+  }
+}
+```
+
+### Kinematic Control
+
+```typescript
+class KinematicController extends Script {
+  private _collider: DynamicCollider;
+
+  onAwake() {
+    this._collider = this.entity.getComponent(DynamicCollider);
+    this._collider.isKinematic = true; // Set to kinematic mode
+  }
+
+  // Implement elevator movement
+  onUpdate() {
+    const time = this.engine.time.elapsedTime;
+    const position = new Vector3(0, Math.sin(time) * 2, 0);
+    this._collider.move(position);
+  }
+}
+```
+
+### Sleep Management
+
+```typescript
+class SleepController extends Script {
+  private _collider: DynamicCollider;
+
+  onAwake() {
+    this._collider = this.entity.getComponent(DynamicCollider);
+
+    // Configure sleep parameters
+    this._collider.sleepThreshold = 0.005; // Set sleep threshold
+  }
+
+  onUpdate() {
+    // Check if the object is sleeping
+    if (this._collider.isSleeping()) {
+      console.log("Object is sleeping");
+    }
+
+    // Manually control sleep
+    if (this.engine.inputManager.isKeyDown(Keys.S)) {
+      this._collider.sleep(); // Force sleep
+    }
+
+    if (this.engine.inputManager.isKeyDown(Keys.W)) {
+      this._collider.wakeUp(); // Wake up the object
+    }
+  }
+}
+```
+
+### Mass/Inertia Tensor Settings
+
+```typescript
+// Automatic calculation
+const collider = entity.addComponent(DynamicCollider);
+collider.mass = 1.0;
+collider.automaticCenterOfMass = true; // Automatically calculate center of mass
+collider.automaticInertiaTensor = true; // Automatically calculate inertia tensor
+
+// Manual settings
+const customCollider = entity.addComponent(DynamicCollider);
+customCollider.automaticCenterOfMass = false;
+customCollider.automaticInertiaTensor = false;
+customCollider.centerOfMass = new Vector3(0, 0.5, 0); // Manually set center of mass
+customCollider.inertiaTensor = new Vector3(1, 1, 1); // Manually set inertia tensor

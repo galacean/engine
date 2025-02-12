@@ -1,0 +1,316 @@
+---
+order: 4
+title: Collision Shapes
+type: Physics
+label: Physics
+---
+
+Collision shapes ([ColliderShape](/apis/core/#ColliderShape)) define the physical form of colliders. Galacean provides several basic collision shapes that can be combined to create complex collision areas.
+
+## Supported Shape Types
+
+![Shape Types](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*jsEBTIs9C_MAAAAAAAAAAAAAesJ_AQ/original)
+
+| Shape Type | Features | Backend Support |
+| -------- | ---- | -------- |
+| [**BoxColliderShape**](/apis/core/#BoxColliderShape) | Most fundamental collision shape<br/>Ideal for box-like objects<br/>Size adjustable along all three axes using size property | All physics backends |
+| [**SphereColliderShape**](/apis/core/#SphereColliderShape) | Perfect for spherical collision detection<br/>Single radius parameter for simple configuration | All physics backends |
+| [**PlaneColliderShape**](/apis/core/#PlaneColliderShape) | Infinite plane collision surface<br/>Ideal for ground planes | PhysX physics backend only |
+| [**CapsuleColliderShape**](/apis/core/#CapsuleColliderShape) | Combination of cylinder and hemispheres<br/>Perfect for character controllers<br/>Configurable radius and height | PhysX physics backend only |
+
+## Basic Properties
+
+### Transform Properties
+- [**position**](/apis/core/#ColliderShape-position)  
+  Local position offset relative to the collider entity.
+
+- [**rotation**](/apis/core/#ColliderShape-rotation)  
+  Local rotation relative to the collider entity.
+
+### Physics Material
+- [**material**](/apis/core/#ColliderShape-material)  
+  Defines the physical material properties of the shape. Each collision shape needs a physical material to define its physical characteristics:
+
+| Property | Description | Default Value |
+| ---- | ---- | ------ |
+| [**staticFriction**](/apis/core/#PhysicsMaterial-staticFriction) | Friction when the object is stationary. Higher values increase starting resistance | 0.6 |
+| [**dynamicFriction**](/apis/core/#PhysicsMaterial-dynamicFriction) | Friction when the object is moving. Higher values increase movement resistance | 0.6 |
+| [**bounciness**](/apis/core/#PhysicsMaterial-bounciness) | Controls collision restitution. Range: 0-1 (0 = no bounce, 1 = perfect bounce) | 0 |
+| [**bounceCombine**](/apis/core/#PhysicsMaterial-bounceCombine) | How bounce combines between objects: <ul><li>Average: Mean of both values (default)</li><li>Minimum: Lower of both values</li><li>Maximum: Higher of both values</li><li>Multiply: Product of both values</li></ul> | Average |
+| [**frictionCombine**](/apis/core/#PhysicsMaterial-frictionCombine) | How friction combines between objects: <ul><li>Average: Mean of both values (default)</li><li>Minimum: Lower of both values</li><li>Maximum: Higher of both values</li><li>Multiply: Product of both values</li></ul> | Average |
+
+### Trigger Settings
+- [**isTrigger**](/apis/core/#ColliderShape-isTrigger)  
+  Enable trigger mode:
+  - true: Event triggers only, no physics
+  - false: Normal physical collisions (default)
+
+#### Collider Mode VS Trigger Mode:
+| Mode | Description | Applicable Scenarios |
+| ---- | ---- | -------- |
+| **Collider Mode** | Triggers collider events and has actual physical collision effects | Objects requiring real physical interaction |
+| **Trigger Mode** | Only triggers event callbacks, no physical collision | Area detection, trigger mechanisms, etc. |
+
+<Callout type="positive">
+Collider mode and trigger mode are properties of collision shapes. A collider can contain multiple collision shapes, each of which can be independently set as a trigger. This means:
+A collider can have both modes simultaneously, with some shapes set to collider mode and others to trigger mode, allowing for both physical collisions and area detection
+</Callout>
+
+The detailed event trigger relationship is as follows: ![table](https://mdn.alipayobjects.com/huamei_vvspai/afts/img/A*erlGRKk7dNMAAAAAAAAAAAAADsqFAQ/original)
+
+## Script Usage
+
+### Creating Basic Shapes
+
+```typescript
+// Create box collider
+const boxShape = new BoxColliderShape();
+boxShape.size = new Vector3(1, 1, 1);
+boxShape.position = new Vector3(0, 0.5, 0);
+
+// Create sphere collider
+const sphereShape = new SphereColliderShape();
+sphereShape.radius = 0.5;
+sphereShape.position = new Vector3(0, 1, 0);
+
+// Create capsule collider
+const capsuleShape = new CapsuleColliderShape();
+capsuleShape.radius = 0.5;
+capsuleShape.height = 2;
+
+// Create plane collider
+const planeShape = new PlaneColliderShape();
+```
+
+### Setting Physics Material
+
+```typescript
+// Create and configure physics material
+const material = new PhysicsMaterial();
+material.staticFriction = 0.6;    // Static friction coefficient
+material.dynamicFriction = 0.4;   // Dynamic friction coefficient
+material.bounciness = 0.5;        // Restitution coefficient
+
+// Set material combine modes
+material.frictionCombine = PhysicsMaterialCombineMode.Average;  // Friction combine mode
+material.bounceCombine = PhysicsMaterialCombineMode.Maximum;    // Bounce combine mode
+
+// Apply material to collision shape
+const shape = new BoxColliderShape();
+shape.material = material;
+
+// Set different materials for different shapes
+const iceShape = new BoxColliderShape();
+const iceMaterial = new PhysicsMaterial();
+iceMaterial.staticFriction = 0.1;
+iceMaterial.dynamicFriction = 0.05;
+iceMaterial.bounciness = 0;
+iceShape.material = iceMaterial;
+
+const bounceShape = new SphereColliderShape();
+const bounceMaterial = new PhysicsMaterial();
+bounceMaterial.bounciness = 0.8;
+bounceMaterial.bounceCombine = PhysicsMaterialCombineMode.Maximum;
+bounceShape.material = bounceMaterial;
+
+// Destroy materials when no longer needed
+material.destroy();
+iceMaterial.destroy();
+bounceMaterial.destroy();
+```
+
+### Creating Compound Shapes
+
+```typescript
+// Create an entity with multiple collision shapes
+function createCompoundCollider(entity: Entity) {
+    const collider = entity.addComponent(DynamicCollider);
+    
+    // Main shape
+    const mainShape = new BoxColliderShape();
+    mainShape.size = new Vector3(2, 1, 1);
+    collider.addShape(mainShape);
+    
+    // Top shape
+    const topShape = new BoxColliderShape();
+    topShape.size = new Vector3(1, 1, 1);
+    topShape.position = new Vector3(0, 1, 0);
+    collider.addShape(topShape);
+    
+    return collider;
+}
+```
+
+#### Example Reference
+<Playground href="/embed/physx-compound" />
+
+### Collision/Trigger Events
+When the collider is in collider mode, collision events are triggered; when the collider is in trigger mode, trigger events are triggered. If the collider is both a collider and a trigger, both collision and trigger events are triggered.
+
+```typescript
+class CollisionScript extends Script {
+  // Collider events
+  onCollisionEnter(other: Collider) {
+    console.log("Collision started");
+  }
+
+  onCollisionStay(other: Collider) {
+    console.log("Collision ongoing");
+  }
+
+  onCollisionExit(other: Collider) {
+    console.log("Collision ended");
+  }
+
+  // Trigger events
+  onTriggerEnter(other: Collider) {
+    console.log("Trigger entered");
+  }
+
+  onTriggerStay(other: Collider) {
+    console.log("Trigger staying");
+  }
+
+  onTriggerExit(other: Collider) {
+    console.log("Trigger exited");
+  }
+}
+```
+
+### Common Scenarios
+
+1. **Creating Ground**
+```typescript
+// Create a simple ground
+function createGround(width: number, length: number): Entity {
+    const entity = new Entity();
+    const collider = entity.addComponent(StaticCollider);
+    
+    const groundShape = new BoxColliderShape();
+    groundShape.size = new Vector3(width, 0.1, length);
+    
+    // Set ground material
+    const material = new PhysicsMaterial();
+    material.staticFriction = 0.6;
+    material.dynamicFriction = 0.6;
+    material.bounciness = 0.0;
+    groundShape.material = material;
+    
+    collider.addShape(groundShape);
+    return entity;
+}
+
+// Create an infinite plane ground
+function createInfinitePlane(): Entity {
+    const entity = new Entity();
+    const collider = entity.addComponent(StaticCollider);
+    
+    const planeShape = new PlaneColliderShape();
+    // Set ground material
+    const material = new PhysicsMaterial();
+    material.staticFriction = 0.6;
+    material.dynamicFriction = 0.6;
+    planeShape.material = material;
+    
+    collider.addShape(planeShape);
+    return entity;
+}
+```
+
+2. **Creating Walls**
+```typescript
+// Create a configurable wall
+function createWall(width: number, height: number, depth: number, friction: number = 0.6): Entity {
+    const entity = new Entity();
+    const collider = entity.addComponent(StaticCollider);
+    
+    const wallShape = new BoxColliderShape();
+    wallShape.size = new Vector3(width, height, depth);
+    
+    // Set wall material
+    const material = new PhysicsMaterial();
+    material.staticFriction = friction;
+    material.dynamicFriction = friction;
+    material.bounciness = 0.0;
+    wallShape.material = material;
+    
+    collider.addShape(wallShape);
+    return entity;
+}
+```
+
+3. **Creating Slopes**
+```typescript
+// Create a slope with friction
+function createSlope(width: number, height: number, angle: number): Entity {
+    const entity = new Entity();
+    const collider = entity.addComponent(StaticCollider);
+    
+    const slopeShape = new BoxColliderShape();
+    slopeShape.size = new Vector3(width, 0.1, height);
+    slopeShape.rotation = new Vector3(0, 0, angle);
+    
+    // Set slope material
+    const material = new PhysicsMaterial();
+    material.staticFriction = 0.8;  // Higher friction to prevent sliding
+    material.dynamicFriction = 0.8;
+    material.bounciness = 0.0;
+    slopeShape.material = material;
+    
+    collider.addShape(slopeShape);
+    return entity;
+}
+```
+
+4. **Creating Compound Shapes with Different Materials**
+```typescript
+// Create a mixed-material platform
+function createMixedPlatform(): Entity {
+    const entity = new Entity();
+    const collider = entity.addComponent(StaticCollider);
+    
+    // Create main platform (normal friction)
+    const platformShape = new BoxColliderShape();
+    platformShape.size = new Vector3(10, 0.5, 10);
+    const normalMaterial = new PhysicsMaterial();
+    normalMaterial.staticFriction = 0.6;
+    normalMaterial.dynamicFriction = 0.6;
+    platformShape.material = normalMaterial;
+    collider.addShape(platformShape);
+    
+    // Add ice area (low friction)
+    const iceShape = new BoxColliderShape();
+    iceShape.size = new Vector3(3, 0.51, 3);
+    iceShape.position = new Vector3(3, 0, 0);
+    const iceMaterial = new PhysicsMaterial();
+    iceMaterial.staticFriction = 0.1;
+    iceMaterial.dynamicFriction = 0.05;
+    iceShape.material = iceMaterial;
+    collider.addShape(iceShape);
+    
+    // Add bouncy area
+    const bounceShape = new BoxColliderShape();
+    bounceShape.size = new Vector3(3, 0.51, 3);
+    bounceShape.position = new Vector3(-3, 0, 0);
+    const bounceMaterial = new PhysicsMaterial();
+    bounceMaterial.bounciness = 0.8;
+    bounceMaterial.bounceCombine = PhysicsMaterialCombineMode.Maximum;
+    bounceShape.material = bounceMaterial;
+    collider.addShape(bounceShape);
+    
+    return entity;
+}
+```
+
+## Best Practices
+
+1. **Shape Selection**
+   - Use multiple basic shapes for complex objects
+   - Avoid using too many collision shapes (affects performance)
+   - Choose capsule shapes for character controllers
+
+2. **Performance Optimization**
+   - Use the simplest possible collision shapes
+   - Set reasonable local offsets to avoid excessive overlap of collision shapes
+   - Use triggers instead of actual physical collisions when appropriate
+   - Destroy unused collision shapes and physical materials in time

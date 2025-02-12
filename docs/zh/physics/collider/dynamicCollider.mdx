@@ -1,0 +1,283 @@
+---
+order: 2
+title: 动态碰撞器
+type: 物理
+label: Physics
+---
+
+动态碰撞器（[DynamicCollider](/apis/core/#DynamicCollider)）用于模拟可以自由运动并受物理影响的物体。它可以响应重力、受力、碰撞等物理作用，适用于需要真实物理模拟的游戏物体。
+
+## 使用方法
+
+1. 选中目标实体，并在检查器中点击添加组件按钮，添加 DynamicCollider 组件。
+
+![添加动态碰撞器](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Ep4xTqWpligAAAAAAAAAAAAAesJ_AQ/original)
+
+2. 为碰撞器添加碰撞形状。动态碰撞器支持添加多个碰撞形状，关于碰撞形状的详细说明请参考[碰撞形状](/docs/physics/collider/colliderShape)文档。目前支持以下类型：
+
+![添加碰撞形状](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*np90QZkKqXUAAAAAAAAAAAAAesJ_AQ/original)
+
+3. 调整碰撞形状的位置、大小等属性，使其与场景元素匹配。
+
+![形状匹配](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QthGTLWFSh8AAAAAAAAAAAAAesJ_AQ/original)
+
+4. 根据需要设置碰撞器的属性调整物体的物理行为，各属性的含义和作用请参考下文。
+
+## 属性说明
+除了碰撞器的通用属性外（见[碰撞器概览文档](/docs/physics/collider/overview)），动态碰撞器的自身属性如下：
+
+### 基础属性
+
+| 属性            | 描述                                                      | 默认值 |
+| --------------- | --------------------------------------------------------- | ------ |
+| [**mass**](/apis/core/#DynamicCollider-mass)        | 碰撞器的质量,质量越大物体运动状态越难改变                 | 1.0    |
+| [**useGravity**](/apis/core/#DynamicCollider-useGravity)  | 是否受重力影响                                            | true   |
+| [**isKinematic**](/apis/core/#DynamicCollider-isKinematic) | 是否为运动学物体,运动学物体不受物理影响但可以影响其他物体 | false  |
+
+### 速度设置
+
+| 属性                         | 描述                                        | 默认值  |
+| ---------------------------- | ------------------------------------------- | ------- |
+| [**linearVelocity**](/apis/core/#DynamicCollider-linearVelocity)           | 线性速度向量(世界单位/秒)                   | (0,0,0) |
+| [**angularVelocity**](/apis/core/#DynamicCollider-angularVelocity)          | 角速度向量(度/秒)                           | (0,0,0) |
+| [**maxAngularVelocity**](/apis/core/#DynamicCollider-maxAngularVelocity)       | 最大角速度限制(度/秒)                       | 18000/π |
+| [**maxDepenetrationVelocity**](/apis/core/#DynamicCollider-maxDepenetrationVelocity) | 碰撞体重叠时的最大分离速度,用于防止物体穿透 | 1e32    |
+
+### 阻尼
+
+| 属性               | 描述             | 默认值 |
+| ------------------ | ---------------- | ------ |
+| [**linearDamping**](/apis/core/#DynamicCollider-linearDamping)  | 线性运动阻尼系数 | 0      |
+| [**angularDamping**](/apis/core/#DynamicCollider-angularDamping) | 角速度阻尼系数   | 0.05   |
+
+### 质量/惯性张量
+
+| 属性                       | 描述                     | 默认值  |
+| -------------------------- | ------------------------ | ------- |
+| [**centerOfMass**](/apis/core/#DynamicCollider-centerOfMass)           | 质心相对于变换原点的位置 | (0,0,0) |
+| [**automaticCenterOfMass**](/apis/core/#DynamicCollider-automaticCenterOfMass)  | 是否自动计算质心位置     | true    |
+| [**inertiaTensor**](/apis/core/#DynamicCollider-inertiaTensor)          | 物体相对于质心的惯性张量 | (1,1,1) |
+| [**automaticInertiaTensor**](/apis/core/#DynamicCollider-automaticInertiaTensor) | 是否自动计算惯性张量     | true    |
+
+### 性能优化设置
+
+| 属性                 | 描述                                    | 默认值 |
+| -------------------- | --------------------------------------- | ------ |
+| [**sleepThreshold**](/apis/core/#DynamicCollider-sleepThreshold)   | 休眠阈值,物体运动能量低于此值时进入休眠 | 0.005  |
+| [**solverIterations**](/apis/core/#DynamicCollider-solverIterations) | 约束求解迭代次数                        | 4      |
+
+<Callout type="info">
+约束求解是物理引擎用来解决物体之间碰撞和约束的计算过程。每次迭代都会尝试调整物体的位置和速度，使其满足所有的物理约束（如碰撞、关节等）。
+- 迭代次数越多，物理表现越准确，但计算开销也越大
+- 迭代次数过少可能导致物体出现抖动或穿透
+- 建议根据实际需求平衡精度和性能：
+  - 一般物体：使用默认值 4
+  - 精确物理：可以增加到 6-8
+  - 性能优先：可以降低到 2-3
+</Callout>
+
+### 运动约束
+
+- [**constraints**](/apis/core/#DynamicCollider-constraints)  
+  用于限制物体在特定轴向上的运动。可以分别锁定位置和旋转的X、Y、Z轴向运动。
+  ```typescript
+  // 限制Y轴位置和所有旋转
+  collider.constraints =
+    DynamicColliderConstraints.FreezePositionY |
+    DynamicColliderConstraints.FreezeRotationX |
+    DynamicColliderConstraints.FreezeRotationY |
+    DynamicColliderConstraints.FreezeRotationZ;
+  ```
+
+### 碰撞检测模式
+
+- [**collisionDetectionMode**](/apis/core/#DynamicCollider-collisionDetectionMode)  
+   用于控制物体碰撞检测的精确程度：
+
+| 模式 | 描述 | 适用场景 | 性能消耗 |
+| ---- | ---- | -------- | -------- |
+| **Discrete** | 最基础的检测模式，按固定的时间步长检测碰撞，可能在高速运动时发生穿透 | 低速物体 | 最低 |
+| **Continuous** | 对静态碰撞体使用连续碰撞检测，可以防止高速物体穿透静态物体 | 高速投射物 | 中等 |
+| **ContinuousDynamic** | 对所有碰撞体使用连续碰撞检测，可以防止高速物体之间的相互穿透 | 精确物理模拟 | 较高 |
+| **ContinuousSpeculative** | 使用推测算法进行连续碰撞检测，性能消耗介于 Discrete 和 Continuous 之间 | 一般游戏场景 | 中等 |
+
+#### 设置碰撞检测模式示例
+
+```typescript
+// 1. 普通物体使用离散检测
+normalObject.collisionDetectionMode = CollisionDetectionMode.Discrete;
+
+// 2. 投射物使用连续检测防止穿墙
+projectile.collisionDetectionMode = CollisionDetectionMode.Continuous;
+
+// 3. 重要物理交互使用完全连续检测
+importantPhysicsObject.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+
+// 4. 一般游戏物体使用推测性检测
+gameObject.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+```
+
+#### 选择建议
+
+1. **基于物体速度选择**
+
+   - 低速物体：使用 Discrete
+   - 中速物体：使用 ContinuousSpeculative
+   - 高速物体：使用 Continuous 或 ContinuousDynamic
+
+2. **基于重要性选择**
+
+   - 普通场景物体：使用 Discrete
+   - 游戏关键物体：使用 ContinuousSpeculative
+   - 必须精确的物理交互：使用 ContinuousDynamic
+
+3. **基于性能选择**
+   - 性能优先：使用 Discrete
+   - 性能与精度平衡：使用 ContinuousSpeculative
+   - 精度优先：使用 ContinuousDynamic
+
+
+## 公开方法
+除了碰撞器的通用方法外（见[碰撞器概览文档](/docs/physics/collider/overview)），动态碰撞器的自身公开方法如下：
+
+| 方法名          | 描述               |
+| --------------- | ------------------ |
+| [**applyForce**](/apis/core/#DynamicCollider-applyForce)  | 施加力             |
+| [**applyTorque**](/apis/core/#DynamicCollider-applyTorque) | 施加扭矩           |
+| [**move**](/apis/core/#DynamicCollider-move)        | 运动学移动         |
+| [**sleep**](/apis/core/#DynamicCollider-sleep)       | 强制休眠           |
+| [**wakeUp**](/apis/core/#DynamicCollider-wakeUp)      | 唤醒物体           |
+| [**isSleeping**](/apis/core/#DynamicCollider-isSleeping)  | 检查是否在休眠状态 |
+
+## 脚本使用
+
+### 基础配置
+
+```typescript
+// 创建动态碰撞器
+const dynamicCollider = entity.addComponent(DynamicCollider);
+
+// 添加碰撞形状
+const boxShape = new BoxColliderShape();
+boxShape.size = new Vector3(1, 1, 1);
+dynamicCollider.addShape(boxShape);
+
+// 配置基本物理属性
+dynamicCollider.mass = 1.0; // 设置质量
+dynamicCollider.useGravity = true; // 启用重力
+dynamicCollider.isKinematic = false; // 设置为动力学模式
+```
+
+### 运动控制
+
+```typescript
+class PhysicsController extends Script {
+  private _collider: DynamicCollider;
+
+  onAwake() {
+    // 获取动态碰撞器引用
+    this._collider = this.entity.getComponent(DynamicCollider);
+
+    // 配置运动阻尼
+    this._collider.linearDamping = 0.1; // 设置线性阻尼
+    this._collider.angularDamping = 0.1; // 设置角速度阻尼
+
+    // 设置运动约束
+    this._collider.constraints =
+      DynamicColliderConstraints.FreezeRotationX | // 锁定X轴旋转
+      DynamicColliderConstraints.FreezeRotationZ; // 锁定Z轴旋转
+  }
+
+  onUpdate() {
+    // 获取当前速度
+    const velocity = this._collider.linearVelocity;
+
+    // 设置速度
+    this._collider.linearVelocity = new Vector3(5, velocity.y, 0);
+
+    // 施加持续力（如推力）
+    if (this.engine.inputManager.isKeyHeldDown(Keys.W)) {
+      this._collider.applyForce(new Vector3(0, 0, 10));
+    }
+
+    // 施加瞬时力（如跳跃）
+    if (this.engine.inputManager.isKeyDown(Keys.Space)) {
+      this._collider.applyForce(new Vector3(0, 500, 0));
+    }
+
+    // 施加扭矩（使物体旋转）
+    if (this.engine.inputManager.isKeyHeldDown(Keys.R)) {
+      this._collider.applyTorque(new Vector3(0, 10, 0));
+    }
+  }
+}
+```
+
+### 运动学控制
+
+```typescript
+class KinematicController extends Script {
+  private _collider: DynamicCollider;
+
+  onAwake() {
+    this._collider = this.entity.getComponent(DynamicCollider);
+    this._collider.isKinematic = true; // 设置为运动学模式
+  }
+
+  // 实现电梯运动
+  onUpdate() {
+    const time = this.engine.time.elapsedTime;
+    const position = new Vector3(0, Math.sin(time) * 2, 0);
+    this._collider.move(position);
+  }
+}
+```
+
+### 休眠管理
+
+```typescript
+class SleepController extends Script {
+  private _collider: DynamicCollider;
+
+  onAwake() {
+    this._collider = this.entity.getComponent(DynamicCollider);
+
+    // 配置休眠参数
+    this._collider.sleepThreshold = 0.005; // 设置休眠阈值
+  }
+
+  onUpdate() {
+    // 检查是否处于休眠状态
+    if (this._collider.isSleeping()) {
+      console.log("物体已休眠");
+    }
+
+    // 手动控制休眠
+    if (this.engine.inputManager.isKeyDown(Keys.S)) {
+      this._collider.sleep(); // 强制休眠
+    }
+
+    if (this.engine.inputManager.isKeyDown(Keys.W)) {
+      this._collider.wakeUp(); // 唤醒物体
+    }
+  }
+}
+```
+
+### 质量/惯性张量设置
+
+```typescript
+// 自动计算
+const collider = entity.addComponent(DynamicCollider);
+collider.mass = 1.0;
+collider.automaticCenterOfMass = true; // 自动计算质心
+collider.automaticInertiaTensor = true; // 自动计算惯性张量
+
+// 手动设置
+const customCollider = entity.addComponent(DynamicCollider);
+customCollider.automaticCenterOfMass = false;
+customCollider.automaticInertiaTensor = false;
+customCollider.centerOfMass = new Vector3(0, 0.5, 0); // 手动设置质心
+customCollider.inertiaTensor = new Vector3(1, 1, 1); // 手动设置惯性张量
+```
+````

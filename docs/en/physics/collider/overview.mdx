@@ -1,0 +1,200 @@
+---
+order: 1
+title: Collider Overview
+type: Physics
+label: Physics
+---
+
+Collider ([Collider](/apis/core/#Collider)) is a component used to detect and respond to physical collisions. The engine provides the following types of colliders:
+
+| Type | Description | Applicable Scenarios |
+| --- | --- | --- |
+| [**StaticCollider**](/apis/core/#StaticCollider) | Static collider, does not move but can collide with other objects | Ground, walls, and other static objects |
+| [**DynamicCollider**](/apis/core/#DynamicCollider) | Dynamic collider, affected by the physics engine and can move freely | Movable objects, projectiles, etc. |
+| [**CharacterController**](/apis/core/#CharacterController) | Collider specifically for character control | Player characters, NPCs, etc. |
+
+Collider components are used to define the physical properties and collision behavior of objects. The Galacean physics system provides three types of colliders:
+
+1. [Dynamic Collider](/docs/physics/collider/dynamicCollider)  
+   Dynamic colliders can move freely and are affected by physical forces, suitable for movable objects that require physical simulation, such as projectiles and pushable boxes.
+
+2. [Static Collider](/docs/physics/collider/staticCollider)  
+   Static colliders are fixed in the scene and do not move, typically used to create fixed physical obstacles such as ground and walls.
+
+3. [Character Controller](/docs/physics/collider/characterController)  
+   Character controllers are colliders specifically designed for character movement, supporting features such as walking on slopes and climbing steps, suitable for character control in first-person or third-person games.
+
+## Basic Concepts
+
+All collider types have the following common features:
+
+1. **Shape Management**: Each collider can contain multiple [collision shapes](/docs/physics/collider/colliderShape) (character controllers can only add one). For detailed instructions on collision shapes, please refer to the [Collision Shape](/docs/physics/collider/colliderShape) documentation.
+
+Currently, four types of `collision shapes` are supported, but the support varies among different backend physics packages, as shown below:
+
+| Name                                                     | Description             | Supported Backend Physics Packages             |
+| :------------------------------------------------------- | :--------------- | :--------------------------- |
+| [BoxColliderShape](/apis/core/#BoxColliderShape)         | Box-shaped collision shape     | physics-lite, physics-physx |
+| [SphereColliderShape](/apis/core/#SphereColliderShape)   | Sphere-shaped collision shape     | physics-lite, physics-physx |
+| [PlaneColliderShape](/apis/core/#PlaneColliderShape)     | Infinite plane collision shape | physics-physx                |
+| [CapsuleColliderShape](/apis/core/#CapsuleColliderShape) | Capsule-shaped collision shape     | physics-physx                |
+
+2. **Transform Synchronization**:
+
+   - Colliders automatically synchronize the world transform of the entity, including position, rotation, and scale
+   - `Collision shapes` can be set with local offsets and rotations relative to the entity
+
+3. **Trigger Mode**: `Collision shapes` can be set to trigger mode, where overlapping does not produce physical reactions but triggers corresponding trigger events
+
+- Trigger mode can be enabled/disabled by setting the isTrigger property of the `collision shape`
+
+4. **Collider Mode VS Trigger Mode**:
+   - Collider Mode: Triggers collider events and has actual physical collision effects
+   - Trigger Mode: Only triggers trigger event callbacks without physical collision
+
+<Callout type="positive">
+Collider mode and trigger mode are properties of collision shapes. A collider can contain multiple collision shapes, each of which can be independently set as a trigger. This means:
+A collider can have both modes simultaneously, with some shapes set to collider mode and others to trigger mode, allowing for both physical collisions and area detection
+</Callout>
+
+The detailed event trigger relationship is as follows: ![table](https://mdn.alipayobjects.com/huamei_vvspai/afts/img/A*erlGRKk7dNMAAAAAAAAAAAAADsqFAQ/original)
+
+## Common Properties
+
+| Property                                  | Description       |
+| ----------------------------------------- | ----------------- |
+| [**shapes**](/apis/core/#Collider-shapes) | Collection of collision shapes |
+
+## Common Methods
+
+| Method Name                                          | Description       |
+| --------------------------------------------------- | ----------------- |
+| [**addShape**](/apis/core/#Collider-addShape)       | Add a collision shape     |
+| [**removeShape**](/apis/core/#Collider-removeShape) | Remove a specified collision shape |
+| [**clearShapes**](/apis/core/#Collider-clearShapes) | Clear all collision shapes |
+
+## Common Events
+
+| Event Name                                                  | Trigger Timing       |
+| ----------------------------------------------------------- | -------------------- |
+| [**onCollisionEnter**](/apis/core/#Script-onCollisionEnter) | Triggered when collision starts       |
+| [**onCollisionExit**](/apis/core/#Script-onCollisionExit)   | Triggered when collision ends       |
+| [**onCollisionStay**](/apis/core/#Script-onCollisionStay)   | Triggered when collision continues       |
+| [**onTriggerEnter**](/apis/core/#Script-onTriggerEnter)     | Triggered when entering the trigger     |
+| [**onTriggerExit**](/apis/core/#Script-onTriggerExit)       | Triggered when exiting the trigger     |
+| [**onTriggerStay**](/apis/core/#Script-onTriggerStay)       | Triggered when staying inside the trigger |
+
+## Best Practices
+
+1. **Reasonable Use of Shapes**
+
+- Minimize the number of collision shapes, adding additional shapes only when necessary to reduce performance overhead
+- Avoid using too many collision shapes
+- Use simplified collision shapes instead of precise meshes for complex models
+- Capsule shapes are recommended for character controllers as they handle steps and slopes better
+
+2. **Performance Optimization**
+
+   - Set immovable objects as static colliders
+   - Merge adjacent static colliders
+   - Adjust the solverIterations of dynamic colliders appropriately to balance performance and accuracy
+   - Use CollisionDetectionMode wisely, enabling continuous collision detection only when necessary
+
+3. **Dynamic Collider Settings**
+
+   - Adjust linearDamping and angularDamping based on the object's mass to avoid unnatural movement
+   - Use constraints to restrict unnecessary degrees of freedom and improve stability
+   - Set sleepThreshold appropriately to let stationary objects enter sleep mode in time
+
+4. **Character Controller Configuration**
+
+   - Set an appropriate stepOffset based on the game type to avoid getting stuck or crossing unreasonable steps
+   - Set an appropriate slopeLimit considering the slope angles in the game scene
+   - Choose a suitable nonWalkableMode considering whether sliding effects are needed
+   - Ensure the collision shape matches the character's visual model reasonably
+
+5. **Usage Scenarios**
+   - Static Colliders: Scene boundaries, terrain, buildings, and other fixed objects
+   - Dynamic Colliders: Pushable objects, physical props, destructible objects, etc.
+   - Character Controllers: Player characters, NPCs, and other objects requiring special movement control
+
+## Script Usage
+
+### Adding Colliders
+
+```typescript
+// Add a static collider
+const staticCollider = entity.addComponent(StaticCollider);
+
+// Add a dynamic collider
+const dynamicCollider = entity.addComponent(DynamicCollider);
+
+// Add a character controller
+const characterController = entity.addComponent(CharacterController);
+```
+
+### Collision/Trigger Events
+When the collider is in collider mode, collision events are triggered; when the collider is in trigger mode, trigger events are triggered. If the collider is both a collider and a trigger, both collision and trigger events are triggered.
+
+```typescript
+class CollisionScript extends Script {
+  // Collider events
+  onCollisionEnter(other: Collider) {
+    console.log("Collision started");
+  }
+
+  onCollisionStay(other: Collider) {
+    console.log("Collision ongoing");
+  }
+
+  onCollisionExit(other: Collider) {
+    console.log("Collision ended");
+  }
+
+  // Trigger events
+  onTriggerEnter(other: Collider) {
+    console.log("Trigger entered");
+  }
+
+  onTriggerStay(other: Collider) {
+    console.log("Trigger staying");
+  }
+
+  onTriggerExit(other: Collider) {
+    console.log("Trigger exited");
+  }
+}
+```
+
+### Shape Management
+
+```typescript
+// Get all shapes
+const shapes = staticCollider.shapes;
+
+// Add a shape
+const boxShape = new BoxColliderShape();
+staticCollider.addShape(boxShape);
+
+// Remove a specific shape
+staticCollider.removeShape(boxShape);
+
+// Clear all shapes
+staticCollider.clearShapes();
+```
+
+Examples of physical collisions with composite collision shapes:
+
+<Playground href="/embed/physx-compound" />
+
+Examples of physical trigger detection can be found at:
+
+<Playground href="/embed/physx-collision-detection" />
+
+## More Information
+
+For detailed usage of each type of collider, please refer to their respective documentation:
+
+- [Dynamic Collider Detailed Explanation](/docs/physics/collider/dynamicCollider)
+- [Static Collider Detailed Explanation](/docs/physics/collider/staticCollider)
+- [Character Controller Detailed Explanation](/docs/physics/collider/characterController)

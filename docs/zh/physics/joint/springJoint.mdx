@@ -1,0 +1,103 @@
+---
+order: 2
+title: 弹性关节
+type: 物理
+label: Physics
+---
+
+弹性关节用于维持两个物体之间的距离约束，通过弹簧力和阻尼来控制物体间的相对运动。它可以设置最小和最大距离范围，并在物体超出范围时施加弹性约束力。
+
+## 使用方法
+
+1. 选中目标实体，并在检查器中点击添加组件按钮，添加 SpringJoint 组件。
+<Callout type="info">
+添加关节组件时，需要确保目标实体上已经挂载了一个 `动态碰撞器组件`，如果你未添加，编辑器会自动为你添加一个`动态碰撞器组件`。
+</Callout>
+
+![弹性关节组件](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Jy9kSaMDsJoAAAAAAAAAAAAAesJ_AQ/original)
+
+2. 通过组件属性 connectedCollider 设置连接的目标碰撞体（若不需要，可保持为 null，即连接到世界空间中的一点）。
+<Callout type="positive">
+如果连接的目标是碰撞体，则目标实体需要挂载碰撞体组件（动态碰撞器，静态碰撞器，角色控制器）。
+</Callout>
+
+![设置连接碰撞体](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*JRtfRoM1vS4AAAAAAAAAAAAAesJ_AQ/original)
+
+3. 根据需要设置关节的属性调整关节的表现，各属性的含义和作用请参考下文。
+
+## 属性说明
+
+### 碰撞体设置
+- [**connectedCollider**](/apis/core/#SpringJoint-connectedCollider)  
+  指定要连接的目标碰撞体。当设置为 null 时，关节会连接到世界空间中的一个固定点。这允许你将物体固定在空间中的特定位置。
+
+### 锚点设置
+- [**anchor**](/apis/core/#SpringJoint-anchor)  
+  在自身碰撞体上定义的锚点位置，使用局部坐标。这个点定义了关节的连接位置。
+
+- [**connectedAnchor**](/apis/core/#SpringJoint-connectedAnchor)  
+  定义连接点的位置。其含义取决于 connectedCollider 的设置：
+  - 当 connectedCollider 为 null 时，表示世界空间中的绝对位置
+  - 当 connectedCollider 不为 null 时，表示目标碰撞体局部空间中的相对位置
+
+- **automaticConnectedAnchor**  
+  是否自动计算 connectedAnchor 的值。启用时，系统会自动设置连接点以确保物体间的初始位置关系。如需手动精确控制连接点，可将此属性设为 false。
+
+### 距离约束
+- [**minDistance**](/apis/core/#SpringJoint-minDistance)  
+  允许的最小距离。当物体间距离小于此值时，关节会施加推开力。
+
+- [**maxDistance**](/apis/core/#SpringJoint-maxDistance)  
+  允许的最大距离。当物体间距离大于此值时，关节会施加拉近力。
+
+- [**tolerance**](/apis/core/#SpringJoint-tolerance)  
+  容差范围值，默认为 0.25。这个值决定了关节开始产生约束力的时机：
+  - 当物体实际距离超出允许范围的 tolerance 值时，关节才会开始施加约束力
+  - 例如：如果 maxDistance = 10，tolerance = 0.25，则只有当距离超过 10.25 时才会开始施加拉近力
+  - 较大的容差值可以让关节的约束表现更柔和，较小的值则会使约束更严格
+
+### 弹簧特性
+- [**stiffness**](/apis/core/#SpringJoint-stiffness)  
+  弹簧刚度系数。较高的值会产生更强的回复力，使弹簧表现更"硬"。
+
+- [**damping**](/apis/core/#SpringJoint-damping)  
+  阻尼系数。用于抑制弹簧振动，较高的值会使运动更快停止。
+
+### 断裂阈值
+- [**breakForce**](/apis/core/#SpringJoint-breakForce)  
+  关节能承受的最大力，超过此值时关节会断裂。设置为 Infinity 表示关节永远不会因受力而断裂。该属性可用于模拟物体间的可破坏连接。
+
+- [**breakTorque**](/apis/core/#SpringJoint-breakTorque)  
+  关节能承受的最大扭矩，超过此值时关节会断裂。设置为 Infinity 表示关节永远不会因扭转而断裂。与 breakForce 配合使用可以更真实地模拟连接的破坏过程。
+
+### 质量计算干预
+- [**connectedMassScale**](/apis/core/#SpringJoint-connectedMassScale) 和 [**massScale**](/apis/core/#SpringJoint-massScale)  
+  分别用于调整连接碰撞体和自身碰撞体的质量影响。这些缩放值会影响关节约束的计算，允许你微调关节的物理行为。默认值为 1.0，增大数值会增加对应碰撞体在约束求解中的"重要性"。
+
+## 脚本使用
+
+### 基础使用
+
+```typescript
+// 添加弹性关节组件
+const springJoint = entity.addComponent(SpringJoint);
+
+// 设置连接对象
+springJoint.connectedCollider = targetEntity.getComponent(Collider);
+
+// 设置距离范围
+springJoint.minDistance = 1;
+springJoint.maxDistance = 5;
+```
+
+### 弹性设置
+
+```typescript
+// 配置弹簧属性
+springJoint.stiffness = 50; // 弹簧刚度
+springJoint.damping = 0.2;  // 阻尼系数
+
+// 设置容差
+springJoint.tolerance = 0.25;
+```
+

@@ -1,0 +1,145 @@
+---
+order: 3
+title: 铰链关节
+type: 物理
+label: Physics
+---
+
+铰链关节用于模拟两个物体通过一个轴连接的情况，允许物体绕着这个轴自由旋转。这种关节常用于实现门铰链、车轮、钟摆等需要绕固定轴旋转的物理效果。
+
+## 使用方法
+
+1. 选中目标实体，并在检查器中点击添加组件按钮，添加 HingeJoint 组件。
+<Callout type="info">
+添加关节组件时，需要确保目标实体上已经挂载了一个 `动态碰撞器组件`，如果你未添加，编辑器会自动为你添加一个`动态碰撞器组件`。
+</Callout>
+
+![铰链关节组件](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*SL8YQLNbsJwAAAAAAAAAAAAAesJ_AQ/original)
+
+2. 通过组件属性 connectedCollider 设置连接的目标碰撞体（若不需要，可保持为 null，即连接到世界空间中的一点）。
+<Callout type="positive">
+如果连接的目标是碰撞体，则目标实体需要挂载碰撞体组件（动态碰撞器，静态碰撞器，角色控制器）。
+</Callout>
+
+![设置连接碰撞体](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*SwsmS572tcAAAAAAAAAAAAAAesJ_AQ/original)
+
+3. 根据需要设置关节的属性调整关节的表现，各属性的含义和作用请参考下文。
+
+## 属性说明
+
+### 碰撞体设置
+- [**connectedCollider**](/apis/core/#HingeJoint-connectedCollider)  
+  指定要连接的目标碰撞体。当设置为 null 时，关节会连接到世界空间中的一个固定点。
+
+### 锚点设置
+- [**anchor**](/apis/core/#HingeJoint-anchor)  
+  在自身碰撞体上定义的锚点位置（局部坐标）。这个点是铰链的旋转中心。
+
+- [**connectedAnchor**](/apis/core/#HingeJoint-connectedAnchor)  
+  定义连接点的位置：
+  - 当 connectedCollider 为 null 时，表示世界空间中的固定点
+  - 当 connectedCollider 不为 null 时，表示目标碰撞体局部空间中的连接点
+
+- [**automaticConnectedAnchor**](/apis/core/#HingeJoint-automaticConnectedAnchor)  
+  是否自动计算连接点位置。启用时会自动保持物体的初始相对位置。
+
+### 旋转设置
+- [**axis**](/apis/core/#HingeJoint-axis)  
+  定义铰链的旋转轴方向。物体将沿着这个轴进行旋转。
+
+### 运动限制
+- [**useLimits**](/apis/core/#HingeJoint-useLimits)  
+  是否启用角度限制。启用后可以限制铰链的转动范围。
+
+- [**limits**](/apis/core/#HingeJoint-limits)  
+  设置铰链的转动范围：
+
+| 属性            | 描述                                                                 |
+| --------------- | -------------------------------------------------------------------- |
+| **min**         | 最小角度限制（度）                                                  |
+| **max**         | 最大角度限制（度）                                                  |
+| **contactDistance** | 接触距离，定义限制器开始生效的距离                               |
+| **stiffness**   | 弹簧刚度（仅在 useSpring 为 true 时生效）                           |
+| **damping**     | 阻尼系数（仅在 useSpring 为 true 时生效）                           |
+
+### 马达驱动
+- [**useMotor**](/apis/core/#HingeJoint-useMotor)  
+  是否启用马达功能。启用后可以主动驱动铰链转动。
+
+- [**motor**](/apis/core/#HingeJoint-motor)  
+  马达的参数设置：
+
+| 属性            | 描述                                                                 |
+| --------------- | -------------------------------------------------------------------- |
+| **targetVelocity** | 目标角速度（度/秒）                                               |
+| **forceLimit**  | 最大扭矩限制                                                        |
+| **freeSpin**    | 是否允许自由旋转                                                    |
+| **gearRatio**   | 齿轮比，用于调整实际输出的角速度                                    |
+
+### 弹性设置
+- [**useSpring**](/apis/core/#HingeJoint-useSpring)  
+  是否启用弹簧效果。启用后，限制器会表现出弹性特征。
+
+### 断裂阈值
+- [**breakForce**](/apis/core/#HingeJoint-breakForce)  
+  关节能承受的最大力。超过此值时关节会断裂。
+
+- [**breakTorque**](/apis/core/#HingeJoint-breakTorque)  
+  关节能承受的最大扭矩。超过此值时关节会断裂。
+
+### 质量计算干预
+- [**connectedMassScale**](/apis/core/#HingeJoint-connectedMassScale) 和 [**massScale**](/apis/core/#HingeJoint-massScale)  
+  调整连接碰撞体和自身碰撞体的质量影响。默认值为 1.0。
+
+## 脚本使用
+
+### 基础使用
+
+```typescript
+// 添加铰链关节组件
+const hingeJoint = entity.addComponent(HingeJoint);
+
+// 设置连接对象
+hingeJoint.connectedCollider = targetEntity.getComponent(Collider);
+
+// 设置旋转轴
+hingeJoint.axis.setValue(0, 1, 0); // Y轴旋转
+```
+
+### 运动限制
+
+```typescript
+// 启用角度限制
+hingeJoint.useLimits = true;
+hingeJoint.limits = new JointLimits();
+hingeJoint.limits.min = -45;         // 最小角度
+hingeJoint.limits.max = 45;          // 最大角度
+hingeJoint.limits.contactDistance = 5; // 接触距离
+
+// 启用弹性限制
+hingeJoint.useSpring = true;
+hingeJoint.limits.stiffness = 100;  // 弹簧刚度
+hingeJoint.limits.damping = 0.2;    // 阻尼系数
+```
+
+### 马达驱动
+
+```typescript
+// 启用马达
+hingeJoint.useMotor = true;
+hingeJoint.motor = new JointMotor();
+hingeJoint.motor.targetVelocity = 180;  // 目标角速度(度/秒)
+hingeJoint.motor.forceLimit = 500;      // 最大扭矩
+hingeJoint.motor.freeSpin = false;      // 自由旋转
+hingeJoint.motor.gearRatio = 1;         // 齿轮比
+```
+
+### 获取运动信息
+
+```typescript
+// 获取当前角度
+const currentAngle = hingeJoint.angle;
+
+// 获取当前角速度
+const angularVelocity = hingeJoint.velocity;
+```

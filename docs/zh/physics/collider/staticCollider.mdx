@@ -1,0 +1,122 @@
+---
+order: 1
+title: 静态碰撞器
+type: 物理
+label: Physics
+---
+
+静态碰撞器（[StaticCollider](/apis/core/#StaticCollider)）用于创建固定在场景中不会移动的物理对象。它不受物理引擎施加的力的影响，但可以与其他动态物体产生碰撞和触发响应，常用于创建地面、墙壁等静态场景元素。
+
+## 使用方法
+
+1. 选中目标实体，并在检查器中点击添加组件按钮，添加 StaticCollider 组件。
+
+![添加静态碰撞器](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*g5RMQJwnSZsAAAAAAAAAAAAAesJ_AQ/original)
+
+
+2. 为碰撞器添加碰撞形状。关于碰撞形状的详细说明请参考[碰撞形状](/docs/physics/collider/colliderShape)文档。
+  
+![添加碰撞形状](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*UcaRSb0nahcAAAAAAAAAAAAAesJ_AQ/original)
+
+3. 调整碰撞形状的位置、大小等属性，使其与场景元素匹配。
+
+![形状匹配](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*g5RMQJwnSZsAAAAAAAAAAAAAesJ_AQ/original)
+
+## 属性
+
+| 属性                                      | 描述         |
+| ----------------------------------------- | ------------ |
+| [**shapes**](/apis/core/#Collider-shapes) | 碰撞形状集合 |
+
+## 方法
+
+| 方法名                                              | 描述             |
+| --------------------------------------------------- | ---------------- |
+| [**addShape**](/apis/core/#Collider-addShape)       | 添加碰撞形状     |
+| [**removeShape**](/apis/core/#Collider-removeShape) | 移除指定碰撞形状 |
+| [**clearShapes**](/apis/core/#Collider-clearShapes) | 清空所有碰撞形状 |
+
+## 事件
+
+| 事件名                                                      | 触发时机             |
+| ----------------------------------------------------------- | -------------------- |
+| [**onCollisionEnter**](/apis/core/#Script-onCollisionEnter) | 开始碰撞时触发       |
+| [**onCollisionExit**](/apis/core/#Script-onCollisionExit)   | 结束碰撞时触发       |
+| [**onCollisionStay**](/apis/core/#Script-onCollisionStay)   | 碰撞持续时触发       |
+| [**onTriggerEnter**](/apis/core/#Script-onTriggerEnter)     | 进入触发器时触发     |
+| [**onTriggerExit**](/apis/core/#Script-onTriggerExit)       | 离开触发器时触发     |
+| [**onTriggerStay**](/apis/core/#Script-onTriggerStay)       | 在触发器内时持续触发 |
+
+
+## 脚本使用
+
+### 基础配置
+
+```typescript
+// 创建静态碰撞器
+const staticCollider = entity.addComponent(StaticCollider);
+
+// 添加盒形碰撞形状
+const boxShape = new BoxColliderShape();
+boxShape.size = new Vector3(1, 1, 1);
+boxShape.position = new Vector3(0, 0.5, 0);
+staticCollider.addShape(boxShape);
+```
+
+### 形状管理
+
+```typescript
+// 获取所有形状
+const shapes = staticCollider.shapes;
+
+// 增加形状
+const boxShape = new BoxColliderShape();
+staticCollider.addShape(boxShape);
+
+// 移除特定形状
+staticCollider.removeShape(boxShape);
+
+// 清空所有形状
+staticCollider.clearShapes();
+```
+
+
+### 触发器设置
+
+```typescript
+// 设置为触发器
+const triggerShape = new BoxColliderShape();
+triggerShape.isTrigger = true;
+staticCollider.addShape(triggerShape);
+
+// 添加触发器响应脚本
+class TriggerHandler extends Script {
+  onTriggerEnter(other: Collider) {
+    console.log("触发器被触发");
+  }
+}
+entity.addComponent(TriggerHandler);
+```
+
+### 复合形状
+
+```typescript
+// 创建L形墙
+function createLWall() {
+  const entity = new Entity();
+  const collider = entity.addComponent(StaticCollider);
+  
+  // 主墙
+  const wall1 = new BoxColliderShape();
+  wall1.size = new Vector3(5, 3, 0.5);
+  collider.addShape(wall1);
+  
+  // 侧墙
+  const wall2 = new BoxColliderShape();
+  wall2.size = new Vector3(0.5, 3, 3);
+  wall2.position = new Vector3(2.25, 0, 1.25);
+  collider.addShape(wall2);
+  
+  return entity;
+}
+```

@@ -1,0 +1,145 @@
+---
+order: 3
+title: Hinge Joint
+type: Physics
+label: Physics
+---
+
+Hinge joints are used to simulate the connection of two objects through an axis, allowing them to rotate freely around this axis. This type of joint is commonly used to implement door hinges, wheels, pendulums, and other physical effects that require rotation around a fixed axis.
+
+## Usage
+
+1. Select the target entity and click the add component button in the inspector to add the HingeJoint component.
+<Callout type="info">
+When adding a joint component, make sure the target entity already has a `Dynamic Collider Component` attached. If not, the editor will automatically add a `Dynamic Collider Component` for you.
+</Callout>
+
+![Hinge Joint Component](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*SL8YQLNbsJwAAAAAAAAAAAAAesJ_AQ/original)
+
+2. Use the connectedCollider property of the component to set the target collider to connect to (if not needed, keep it as null, which means connecting to a point in world space).
+<Callout type="positive">
+If the target is a collider, the target entity needs to have a collider component (Dynamic Collider, Static Collider, Character Controller) attached.
+</Callout>
+
+![Set Connected Collider](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*SwsmS572tcAAAAAAAAAAAAAAesJ_AQ/original)
+
+3. Adjust the joint's properties as needed to modify its behavior. Refer to the descriptions below for the meaning and function of each property.
+
+## Property Descriptions
+
+### Collider Settings
+- [**connectedCollider**](/apis/core/#HingeJoint-connectedCollider)  
+  Specifies the target collider to connect to. When set to null, the joint connects to a fixed point in world space.
+
+### Anchor Settings
+- [**anchor**](/apis/core/#HingeJoint-anchor)  
+  Defines the anchor point on the main collider (local coordinates). This point is the rotation center of the hinge.
+
+- [**connectedAnchor**](/apis/core/#HingeJoint-connectedAnchor)  
+  Defines the connection point position:
+  - When connectedCollider is null, it represents a fixed point in world space
+  - When connectedCollider is not null, it represents the connection point in the local space of the target collider
+
+- [**automaticConnectedAnchor**](/apis/core/#HingeJoint-automaticConnectedAnchor)  
+  Whether to automatically calculate the connection point position. When enabled, it automatically maintains the initial relative position of the objects.
+
+### Rotation Settings
+- [**axis**](/apis/core/#HingeJoint-axis)  
+  Defines the direction of the hinge's rotation axis. Objects will rotate along this axis.
+
+### Motion Limits
+- [**useLimits**](/apis/core/#HingeJoint-useLimits)  
+  Whether to enable angle limits. When enabled, the rotation range of the hinge can be limited.
+
+- [**limits**](/apis/core/#HingeJoint-limits)  
+  Sets the rotation range of the hinge:
+
+| Property            | Description                                                                 |
+| --------------- | -------------------------------------------------------------------- |
+| **min**         | Minimum angle limit (degrees)                                                  |
+| **max**         | Maximum angle limit (degrees)                                                  |
+| **contactDistance** | Contact distance, defines the distance at which the limit starts to take effect                               |
+| **stiffness**   | Spring stiffness (only effective when useSpring is true)                           |
+| **damping**     | Damping coefficient (only effective when useSpring is true)                           |
+
+### Motor Drive
+- [**useMotor**](/apis/core/#HingeJoint-useMotor)  
+  Whether to enable the motor function. When enabled, the hinge can be actively driven to rotate.
+
+- [**motor**](/apis/core/#HingeJoint-motor)  
+  Motor parameter settings:
+
+| Property            | Description                                                                 |
+| --------------- | -------------------------------------------------------------------- |
+| **targetVelocity** | Target angular velocity (degrees/second)                                               |
+| **forceLimit**  | Maximum torque limit                                                        |
+| **freeSpin**    | Whether to allow free spin                                                    |
+| **gearRatio**   | Gear ratio, used to adjust the actual output angular velocity                                    |
+
+### Spring Settings
+- [**useSpring**](/apis/core/#HingeJoint-useSpring)  
+  Whether to enable the spring effect. When enabled, the limiter will exhibit elastic characteristics.
+
+### Break Thresholds
+- [**breakForce**](/apis/core/#HingeJoint-breakForce)  
+  The maximum force the joint can withstand before breaking.
+
+- [**breakTorque**](/apis/core/#HingeJoint-breakTorque)  
+  The maximum torque the joint can withstand before breaking.
+
+### Mass Calculation Intervention
+- [**connectedMassScale**](/apis/core/#HingeJoint-connectedMassScale) and [**massScale**](/apis/core/#HingeJoint-massScale)  
+  Adjust the mass influence of the connected collider and the main collider. The default value is 1.0.
+
+## Script Usage
+
+### Basic Usage
+
+```typescript
+// Add Hinge Joint component
+const hingeJoint = entity.addComponent(HingeJoint);
+
+// Set the connected object
+hingeJoint.connectedCollider = targetEntity.getComponent(Collider);
+
+// Set the rotation axis
+hingeJoint.axis.setValue(0, 1, 0); // Rotate around Y-axis
+```
+
+### Motion Limits
+
+```typescript
+// Enable angle limits
+hingeJoint.useLimits = true;
+hingeJoint.limits = new JointLimits();
+hingeJoint.limits.min = -45;         // Minimum angle
+hingeJoint.limits.max = 45;          // Maximum angle
+hingeJoint.limits.contactDistance = 5; // Contact distance
+
+// Enable elastic limits
+hingeJoint.useSpring = true;
+hingeJoint.limits.stiffness = 100;  // Spring stiffness
+hingeJoint.limits.damping = 0.2;    // Damping coefficient
+```
+
+### Motor Drive
+
+```typescript
+// Enable motor
+hingeJoint.useMotor = true;
+hingeJoint.motor = new JointMotor();
+hingeJoint.motor.targetVelocity = 180;  // Target angular velocity (degrees/second)
+hingeJoint.motor.forceLimit = 500;      // Maximum torque
+hingeJoint.motor.freeSpin = false;      // Free spin
+hingeJoint.motor.gearRatio = 1;         // Gear ratio
+```
+
+### Get Motion Information
+
+```typescript
+// Get current angle
+const currentAngle = hingeJoint.angle;
+
+// Get current angular velocity
+const angularVelocity = hingeJoint.velocity;
+```

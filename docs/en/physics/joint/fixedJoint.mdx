@@ -1,0 +1,94 @@
+---
+order: 1
+title: Fixed Joint
+type: Physics
+label: Physics
+---
+
+[Fixed Joint](/apis/core/#FixedJoint) is a rigid constraint component that completely restricts the relative motion between two colliders. When two objects are connected by a fixed joint, they maintain their relative position and orientation as if glued together rigidly.
+
+## Usage
+
+1. Select the target entity and click the add component button in the inspector to add the FixedJoint component.
+<Callout type="info">
+When adding a joint component, make sure the target entity already has a [Dynamic Collider](/docs/physics/collider/dynamicCollider) component attached. If not, the editor will automatically add a `Dynamic Collider Component` for you.
+</Callout>
+
+![Add Component](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*x3SBT4XKDUcAAAAAAAAAAAAAesJ_AQ/original)
+
+2. Use the connectedCollider property of the component to set the target collider to connect to (if not needed, keep it as null, which means connecting to a point in world space).
+<Callout type="positive">
+If the target is a collider, the target entity needs to have a collider component ([Dynamic Collider](/docs/physics/collider/dynamicCollider), [Static Collider](/docs/physics/collider/staticCollider), [Character Controller](/docs/physics/collider/characterController)) attached.
+</Callout>
+
+![Set Connected Collider](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*ARu_S7PhgiMAAAAAAAAAAAAAesJ_AQ/original)
+
+3. Configure the joint's properties as needed. See below for detailed property descriptions.
+
+## Property Description
+
+### Collider Settings
+- **connectedCollider**  
+  Specifies the target collider to connect to. When set to null, the joint connects to a fixed point in world space, allowing you to fix objects at specific positions in space.
+
+### Anchor Settings
+- **anchor**  
+  Defines the anchor point position on the main collider, using local coordinates. This point defines the joint's connection position.
+
+- **connectedAnchor**  
+  Defines the connection point position. Its meaning depends on the connectedCollider setting:
+  - When connectedCollider is null, represents an absolute position in world space
+  - When connectedCollider is not null, represents a relative position in the target collider's local space
+
+- **automaticConnectedAnchor**  
+  Whether to automatically calculate the connectedAnchor value. When enabled, the system automatically sets the connection point to maintain initial relative positions. Set to false for manual precise control of the connection point.
+
+### Break Thresholds
+- **breakForce**  
+  Maximum force the joint can withstand before breaking. Set to Infinity for an unbreakable joint. This property can be used to simulate destructible connections between objects.
+
+- **breakTorque**  
+  Maximum torque the joint can withstand before breaking. Set to Infinity for an unbreakable joint. Used in conjunction with breakForce to simulate more realistic connection destruction.
+
+### Physics Calculation Intervention
+- **connectedMassScale** and **massScale**  
+  Used to adjust the mass influence of the connected and main colliders respectively. These scaling values affect joint constraint calculations, allowing fine-tuning of joint physics behavior. Default value is 1.0, increasing values increases the corresponding collider's "importance" in constraint solving.
+
+## Script Usage
+
+### Basic Usage
+
+```typescript
+// Add fixed joint component
+const fixedJoint = entity.addComponent(FixedJoint);
+
+// Set the connected collider
+fixedJoint.connectedCollider = targetEntity.getComponent(Collider);
+
+// Set anchor point
+fixedJoint.anchor.setValue(0, 1, 0);
+
+// Set connection point
+fixedJoint.automaticConnectedAnchor = false;
+fixedJoint.connectedAnchor.setValue(0, 0, 0);
+```
+
+### Break Settings
+
+```typescript
+// Set break conditions
+fixedJoint.breakForce = 1000; // Break force
+fixedJoint.breakTorque = 1000; // Break torque
+
+// Set as unbreakable
+fixedJoint.breakForce = Infinity;
+fixedJoint.breakTorque = Infinity;
+```
+
+### Mass Influence
+
+```typescript
+// Adjust mass influence
+fixedJoint.massScale = 1.5; // Increase own mass influence
+fixedJoint.connectedMassScale = 0.5; // Decrease connected object's mass influence
+```

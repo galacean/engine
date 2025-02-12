@@ -1,0 +1,162 @@
+---
+order: 3
+title: Character Controller
+type: Physics
+label: Physics
+---
+
+Character Controller ([CharacterController](/apis/core/#CharacterController)) is a special type of collider component specifically designed for handling character movement. It provides specialized movement algorithms and collision detection, capable of handling steps, slopes, and other complex terrains, making it particularly suitable for first-person or third-person game character control.
+
+## Usage
+
+1. Select the target entity and click the Add Component button in the inspector to add the CharacterController component.
+
+![Add Character Controller](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*nEMXRKiqpy8AAAAAAAAAAAAAesJ_AQ/original)
+
+2. Set the collision shape of the controller to match the character's appearance as closely as possible. For detailed instructions on collision shapes, please refer to the [Collision Shape](/docs/physics/collider/colliderShape) documentation.
+
+<Callout type="positive">
+Unlike other colliders, the character controller can only add one collision shape. It is generally recommended to use a capsule shape (CapsuleColliderShape) as the character's collision shape.
+</Callout>
+
+![Configure Collision Shape](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*4QvUTI4D89EAAAAAAAAAAAAAesJ_AQ/original)
+
+![Match Shape](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*aRGqSIMqDmsAAAAAAAAAAAAAesJ_AQ/original)
+
+3. Adjust the properties of the collider as needed to modify the physical behavior of the object. The meaning and function of each property are explained below.
+
+## Property Explanation
+In addition to the common collider properties (see [Collider Overview](/docs/physics/collider/overview)), the character controller has the following specific properties:
+
+### Basic Properties
+
+| Property | Description | Default Value |
+| ---- | ---- | ------ |
+| [**stepOffset**](/apis/core/#CharacterController-stepOffset) | The maximum step height the character can automatically step over. <ul><li>Must be greater than or equal to 0</li><li>Actual step height = stepOffset + contact offset of the collision shape</li></ul> | 0.5 |
+| [**slopeLimit**](/apis/core/#CharacterController-slopeLimit) | The maximum slope angle (degrees) the character can walk on. <ul><li>Slopes steeper than this angle will be treated as walls</li><li>Affects the character's ability to climb slopes</li></ul> | 45° |
+| [**nonWalkableMode**](/apis/core/#CharacterController-nonWalkableMode) | Defines how to handle non-walkable surfaces. <ul><li>PreventClimbing: Prevents the character from climbing non-walkable slopes but does not force other movements (default)</li><li>PreventClimbingAndForceSliding: Prevents the character from climbing non-walkable slopes and forces the character to slide down the slope</li></ul> | PreventClimbing |
+| [**upDirection**](/apis/core/#CharacterController-upDirection) | Defines the upward direction of the character. The default is (0, 1, 0), which is the Y-axis in world space. Affects the direction determination for movement and collision detection | (0, 1, 0) |
+
+## Methods
+In addition to the common collider methods (see [Collider Overview](/docs/physics/collider/overview)), the character controller has the following specific methods:
+
+| Method Name | Description |
+| ---- | ---- |
+| [**move**](/apis/core/#CharacterController-move) | Moves the character controller. Returns a collision flag value indicating the collision state. <ul><li>displacement: Movement vector</li><li>minDist: Minimum movement distance</li><li>elapsedTime: Elapsed time</li></ul> |
+
+### Collision Flags
+
+The `move()` function returns a collision flag value that indicates the collision state of the character controller with the environment. These flags can be checked using bitwise AND operations (&):
+
+| Flag Name | Value | Description |
+|---------|----|----|
+| None | 0 | No collision occurred |
+| Sides | 1 | Collided with sides |
+| Up | 2 | Collided with the top (e.g., ceiling) |
+| Down | 4 | Collided with the bottom (e.g., ground) |
+
+## Script Usage
+
+### Basic Configuration
+```typescript
+// Create character controller
+const controller = entity.addComponent(CharacterController);
+
+// Add capsule shape
+const capsule = new CapsuleColliderShape();
+capsule.radius = 0.5;
+capsule.height = 2;
+controller.addShape(capsule);
+
+// Configure controller properties
+controller.stepOffset = 0.5;      // Set step height
+controller.slopeLimit = 45;       // Set maximum walkable slope angle
+controller.upDirection = new Vector3(0, 1, 0); // Set upward direction
+```
+
+### Using the Move Function
+```typescript
+class CharacterMovement extends Script {
+  private _velocity = new Vector3();
+  
+  onUpdate() {
+    const controller = this.entity.getComponent(CharacterController);
+    const deltaTime = engine.deltaTime;
+
+    // Create displacement vector
+    const displacement = new Vector3();
+    Vector3.scale(this._velocity, deltaTime, displacement);
+
+    // Execute movement and get collision flags
+    // minDist: Minimum movement distance, usually set to 0
+    // deltaTime: Elapsed time for physics calculations
+    const collisionFlags = controller.move(displacement, 0, deltaTime);
+    
+    // Handle collision response
+    if (collisionFlags & ControllerCollisionFlag.Down) {
+      // Character is on the ground
+    }
+  }
+}
+```
+
+### Collision Flags
+
+The `move()` function returns a collision flag value indicating the character controller's collision state with the environment. These flags can be checked using bitwise AND (&) operations:
+
+| Flag Name | Value | Description |
+|---------|----|----|
+| None | 0 | No collision occurred |
+| Sides | 1 | Collision with sides |
+| Up | 2 | Collision with ceiling |
+| Down | 4 | Collision with ground |
+
+Usage example:
+```typescript
+const flags = controller.move(displacement, 0, deltaTime);
+
+// Check if touching ground
+if (flags & ControllerCollisionFlag.Down) {
+    // Character is on ground
+    this._isGrounded = true;
+}
+
+// Check if hitting ceiling
+if (flags & ControllerCollisionFlag.Up) {
+    // Character hit ceiling
+    this._velocity.y = 0;
+}
+
+// Check if hitting walls
+if (flags & ControllerCollisionFlag.Sides) {
+    // Character hit wall
+    this._handleWallCollision();
+}
+
+// Check multiple flags
+if ((flags & ControllerCollisionFlag.Down) && 
+    (flags & ControllerCollisionFlag.Sides)) {
+    // Character is touching both ground and wall
+}
+```
+
+### Walking on Slopes/Steps
+
+1. **Walking on Slopes**
+```typescript
+// Control the walkable slope angle by setting slopeLimit
+controller.slopeLimit = 60; // Allow steeper slopes
+
+// Set the handling method for non-walkable slopes
+controller.nonWalkableMode = ControllerNonWalkableMode.PreventClimbingAndForceSliding; // Slide down steep slopes
+```
+
+2. **Adjusting Step Height**
+```typescript
+// Adjust stepOffset to control the maximum step height
+controller.stepOffset = 0.3; // Lower steps
+controller.stepOffset = 0.5; // Higher steps
+```
+
+For a complete example, refer to:
+<Playground href="/embed/physx-controller" />

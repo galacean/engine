@@ -1,0 +1,121 @@
+---
+order: 0
+title: 物理总览 
+type: 物理
+label: Physics
+---
+
+物理引擎是游戏引擎中非常重要的组成部分，主要负责以下功能：
+- 物理碰撞检测
+- 刚体动力学模拟
+- 关节约束系统
+- 物理事件响应
+
+为了满足不同应用场景的需求，Galacean 采用了多后端设计：
+
+- **Lite**: 针对简单交互场景优化，体积小巧
+- **PhysX**: 基于 physX物理引擎 提供完整物理特性
+
+两个后端实现了统一的 [物理系统 API](https://github.com/galacean/engine/tree/main/packages/design/src/physics)，开发者可以根据项目需求灵活选择。有关物理系统的详细设计说明，请参考 [设计文档](https://github.com/galacean/engine/wiki/Physical-system-design).
+
+<Callout type="info">
+对于需要使用物理组件或 `InputManager` 等需要 Raycast 拾取的场景，都需要在使用之前初始化物理引擎。
+</Callout>
+
+目前 Galacean 引擎提供两种内置的物理引擎后端实现：
+
+1. [Lite](/apis/physics-lite)（[physics-lite](https://github.com/galacean/engine/tree/main/packages/physics-lite)）
+   - 轻量级物理引擎实现
+   - 仅支持基础的碰撞检测
+   - 适用于简单交互场景
+
+2. [PhysX](/apis/physics-physx)（[physics-physx](https://github.com/galacean/engine/tree/main/packages/physics-physx)）
+   - 基于physX物理引擎，通过WebAssembly编译
+   - 支持高级物理特性和精确模拟
+   - 适用于复杂物理交互场景
+
+## 选择物理后端
+
+选择物理后端需要考虑功能，性能和包尺寸这三个因素：
+
+### 1. 功能支持
+
+| 功能 | physics-lite | physics-physx |
+|------|-------------|--------------|
+| 碰撞检测 | ✓ | ✓ |
+| 物理效果及反馈 | × | ✓ |
+| 连续碰撞检测 | × | ✓ |
+| 关节系统 | × | ✓ |
+
+### 2. 性能表现
+- **PhysX**: 
+  - WebAssembly 平台下性能最佳
+  - 自动降级为 JavaScript 实现
+  - 内置场景加速结构
+  
+- **Lite**: 
+  - 轻量实现，性能开销小
+  - 适合简单场景
+
+### 3. 包体积
+- **PhysX**: 约 2.5MB（wasm/js）
+- **Lite**: 轻量级，几乎无额外开销
+
+## 使用方法
+
+### 在编辑器中配置
+
+开发者可以在 [主菜单](/docs/interface/menu) 界面打开的 **项目设置** 面板中设置物理后端。
+
+![物理引擎设置](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*LO_FRIsaIzIAAAAAAAAAAAAADsJ_AQ/original)
+![选择物理引擎](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*ZvWdQqEfIKoAAAAAAAAAAAAADsJ_AQ/original)
+
+### 脚本使用
+
+若通过脚本初始化引擎，只需要将物理后端对象传入 `Engine` 中即可：
+
+#### 使用 Lite 物理引擎
+
+```typescript
+import {LitePhysics} from "@galacean/engine-physics-lite";
+
+const engine = await WebGLEngine.create({
+  canvas: htmlCanvas,
+  physics: new LitePhysics(),
+});
+```
+
+#### 使用 PhysX 物理引擎
+
+```typescript
+import { PhysXPhysics } from "@galacean/engine-physics-physx";
+
+const engine = await WebGLEngine.create({
+  canvas: htmlCanvas,
+  physics: new PhysXPhysics(),
+});
+```
+
+## 更多信息
+
+有关物理系统的详细使用，请参考以下文档：
+
+### 碰撞器
+- [碰撞器概述](/docs/physics/collider/overview)
+  - [动态碰撞器](/docs/physics/collider/dynamicCollider) - 可自由运动的物理对象
+  - [静态碰撞器](/docs/physics/collider/staticCollider) - 固定在场景中的物理对象
+  - [角色控制器](/docs/physics/collider/characterController) - 专用于角色控制的碰撞器
+  - [碰撞形状](/docs/physics/collider/colliderShape) - 碰撞器的形状定义
+
+### 关节系统
+- [关节系统概述](/docs/physics/joint/overview)
+  - [固定关节](/docs/physics/joint/fixedJoint) - 完全限制物体间相对运动
+  - [弹性关节](/docs/physics/joint/springJoint) - 弹簧式距离约束
+  - [铰链关节](/docs/physics/joint/hingeJoint) - 轴向旋转约束
+
+### 物理场景
+- [物理场景](/docs/physics/manager) - 场景中的物理系统管理器
+
+### 物理调试
+- [物理调试](/docs/physics/debug) - 物理系统调试工具
+```

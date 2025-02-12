@@ -1,0 +1,14 @@
+{
+  "overall": {
+    "title": "物理总览",
+    "order": 0
+  },
+  "collider": {
+    "title": "碰撞器",
+    "order": 1
+  },
+  "joint": {
+    "title": "关节",
+    "order": 2
+  }
+}

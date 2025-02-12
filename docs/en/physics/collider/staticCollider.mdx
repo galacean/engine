@@ -1,0 +1,119 @@
+---
+order: 1
+title: Static Collider
+type: Physics
+label: Physics
+---
+
+Static Collider ([StaticCollider](/apis/core/#StaticCollider)) is used to create physical objects that are fixed in the scene and do not move. It is not affected by forces applied by the physics engine but can collide and trigger responses with other dynamic objects. It is commonly used to create static scene elements such as ground and walls.
+
+## Usage
+
+1. Select the target entity and click the Add Component button in the inspector to add the StaticCollider component.
+
+![Add Static Collider](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*g5RMQJwnSZsAAAAAAAAAAAAAesJ_AQ/original)
+
+2. Add a collision shape to the collider. For detailed instructions on collision shapes, please refer to the [Collision Shape](/docs/physics/collider/colliderShape) documentation.
+
+![Add Collision Shape](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*UcaRSb0nahcAAAAAAAAAAAAAesJ_AQ/original)
+
+3. Adjust the position, size, and other properties of the collision shape to match the scene elements.
+
+![Shape Matching](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*g5RMQJwnSZsAAAAAAAAAAAAAesJ_AQ/original)
+
+## Properties
+
+| Property                                  | Description       |
+| ----------------------------------------- | ----------------- |
+| [**shapes**](/apis/core/#Collider-shapes) | Collection of collision shapes |
+
+## Methods
+
+| Method Name                                          | Description       |
+| --------------------------------------------------- | ----------------- |
+| [**addShape**](/apis/core/#Collider-addShape)       | Add a collision shape     |
+| [**removeShape**](/apis/core/#Collider-removeShape) | Remove a specified collision shape |
+| [**clearShapes**](/apis/core/#Collider-clearShapes) | Clear all collision shapes |
+
+## Events
+
+| Event Name                                                  | Trigger Timing       |
+| ----------------------------------------------------------- | -------------------- |
+| [**onCollisionEnter**](/apis/core/#Script-onCollisionEnter) | Triggered when collision starts       |
+| [**onCollisionExit**](/apis/core/#Script-onCollisionExit)   | Triggered when collision ends       |
+| [**onCollisionStay**](/apis/core/#Script-onCollisionStay)   | Triggered when collision continues       |
+| [**onTriggerEnter**](/apis/core/#Script-onTriggerEnter)     | Triggered when entering the trigger     |
+| [**onTriggerExit**](/apis/core/#Script-onTriggerExit)       | Triggered when exiting the trigger     |
+| [**onTriggerStay**](/apis/core/#Script-onTriggerStay)       | Triggered when staying inside the trigger |
+
+## Script Usage
+
+### Basic Configuration
+
+```typescript
+// Create a static collider
+const staticCollider = entity.addComponent(StaticCollider);
+
+// Add a box collision shape
+const boxShape = new BoxColliderShape();
+boxShape.size = new Vector3(1, 1, 1);
+boxShape.position = new Vector3(0, 0.5, 0);
+staticCollider.addShape(boxShape);
+```
+
+### Shape Management
+
+```typescript
+// Get all shapes
+const shapes = staticCollider.shapes;
+
+// Add a shape
+const boxShape = new BoxColliderShape();
+staticCollider.addShape(boxShape);
+
+// Remove a specific shape
+staticCollider.removeShape(boxShape);
+
+// Clear all shapes
+staticCollider.clearShapes();
+```
+
+### Trigger Settings
+
+```typescript
+// Set as a trigger
+const triggerShape = new BoxColliderShape();
+triggerShape.isTrigger = true;
+staticCollider.addShape(triggerShape);
+
+// Add a trigger response script
+class TriggerHandler extends Script {
+  onTriggerEnter(other: Collider) {
+    console.log("Trigger activated");
+  }
+}
+entity.addComponent(TriggerHandler);
+```
+
+### Composite Shapes
+
+```typescript
+// Create an L-shaped wall
+function createLWall() {
+  const entity = new Entity();
+  const collider = entity.addComponent(StaticCollider);
+  
+  // Main wall
+  const wall1 = new BoxColliderShape();
+  wall1.size = new Vector3(5, 3, 0.5);
+  collider.addShape(wall1);
+  
+  // Side wall
+  const wall2 = new BoxColliderShape();
+  wall2.size = new Vector3(0.5, 3, 3);
+  wall2.position = new Vector3(2.25, 0, 1.25);
+  collider.addShape(wall2);
+  
+  return entity;
+}
+```

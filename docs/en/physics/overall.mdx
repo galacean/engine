@@ -1,0 +1,117 @@
+---
+order: 0
+title: Physics Overview
+type: Physics
+label: Physics
+---
+
+The physics engine is a crucial component of game engines, primarily responsible for the following functions:
+- Physical collision detection
+- Rigid body dynamics simulation  
+- Joint constraint system
+- Physics event response
+
+To meet the needs of different application scenarios, Galacean adopts a multi-backend design:
+
+- **Lite**: Optimized for simple interaction scenarios, lightweight
+- **PhysX**: Provides complete physics features based on PhysX physics engine
+
+Both backends implement a unified [Physics System API](https://github.com/galacean/engine/tree/main/packages/design/src/physics), allowing developers to flexibly choose based on project requirements. For detailed design specifications of the physics system, please refer to the [Design Document](https://github.com/galacean/engine/wiki/Physical-system-design).
+
+<Callout type="info">
+For scenarios requiring physics components or Raycast picking like `InputManager`, the physics engine needs to be initialized before use.
+</Callout>
+
+Currently, Galacean Engine provides two built-in physics engine backend implementations:
+
+1. [Lite](/apis/physics-lite)([physics-lite](https://github.com/galacean/engine/tree/main/packages/physics-lite))
+   - Lightweight physics engine implementation
+   - Only supports basic collision detection
+   - Suitable for simple interaction scenarios
+
+2. [PhysX](/apis/physics-physx)([physics-physx](https://github.com/galacean/engine/tree/main/packages/physics-physx))
+   - Based on PhysX physics engine, compiled through WebAssembly
+   - Supports advanced physics features and accurate simulation
+   - Suitable for complex physical interaction scenarios
+
+## Choosing a Physics Backend
+
+When choosing a physics backend, three factors need to be considered: functionality, performance, and package size:
+
+### 1. Feature Support
+
+| Feature | physics-lite | physics-physx |
+|---------|-------------|---------------|
+| Collision Detection | ✓ | ✓ |
+| Physics Effects and Feedback | × | ✓ |
+| Continuous Collision Detection | × | ✓ |
+| Joint System | × | ✓ |
+
+### 2. Performance
+- **PhysX**: 
+  - Best performance on WebAssembly platform
+  - Automatically falls back to JavaScript implementation
+  - Built-in scene acceleration structure
+  
+- **Lite**: 
+  - Lightweight implementation, low performance overhead
+  - Suitable for simple scenarios
+
+### 3. Package Size
+- **PhysX**: About 2.5MB (wasm/js)
+- **Lite**: Lightweight, almost no additional overhead
+
+## Usage
+
+### Configuration in Editor
+
+Developers can set the physics backend in the **Project Settings** panel accessed through the [Main Menu](/docs/interface/menu).
+
+![Physics Engine Settings](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*LO_FRIsaIzIAAAAAAAAAAAAADsJ_AQ/original)
+![Select Physics Engine](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*ZvWdQqEfIKoAAAAAAAAAAAAADsJ_AQ/original)
+
+### Script Usage
+
+When initializing the engine through scripts, simply pass the physics backend object to the `Engine`:
+
+#### Using Lite Physics Engine
+```typescript
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { LitePhysics } from "@galacean/engine-physics-lite";
+
+const engine = await WebGLEngine.create({ canvas: "canvas" });
+engine.physicsManager.initialize(LitePhysics);
+```
+
+#### Using PhysX Physics Engine
+```typescript
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { PhysXPhysics } from "@galacean/engine-physics-physx";
+
+const engine = await WebGLEngine.create({ canvas: "canvas" });
+await engine.physicsManager.initialize(PhysXPhysics);
+```
+
+## More Information
+
+For detailed usage of the physics system, please refer to the following documentation:
+
+### Colliders
+- [Collider Overview](/docs/physics/collider/overview)
+  - [DynamicCollider](/docs/physics/collider/dynamicCollider) - Freely moving physical objects
+  - [StaticCollider](/docs/physics/collider/staticCollider) - Fixed physical objects in the scene
+  - [CharacterController](/docs/physics/collider/characterController) - Collider dedicated to character control
+  - [ColliderShape](/docs/physics/collider/colliderShape) - Shape definition for colliders
+
+### Joint System
+- [Joint System Overview](/docs/physics/joint/overview)
+  - [FixedJoint](/docs/physics/joint/fixedJoint) - Completely restricts relative motion between objects
+  - [SpringJoint](/docs/physics/joint/springJoint) - Spring-like distance constraints
+  - [HingeJoint](/docs/physics/joint/hingeJoint) - Axial rotation constraints
+
+### PhysicsScene
+- [PhysicsScene](/docs/physics/manager) - Physics system manager in the scene
+
+
+### Physics Debugging
+- [Physics Debug](/docs/physics/debug) - Physics system debugging tools
