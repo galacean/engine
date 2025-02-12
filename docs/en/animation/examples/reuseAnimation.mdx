@@ -44,7 +44,7 @@ Import the character model and animation model into the editor.
 
 ## 1. Create AnimatorController Asset
 To play animations from other models, we need to edit the content of the `AnimatorController`. The `AnimatorController` in the model is read-only, so we need to create an `AnimatorController` ourselves.
-If you don't know how to create an `AnimatorController`, please refer to: [Create AnimatorController](/docs/animation/examples/playAnimation/#2-创建动画控制资产)
+If you don't know how to create an `AnimatorController`, please refer to: [Create AnimatorController](/docs/animation/examples/playAnimation/#2-create-animatorcontroller-asset)
 
 ## 2. Edit AnimatorController
 
@@ -52,15 +52,15 @@ If you don't know how to create an `AnimatorController`, please refer to: [Creat
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*v8aUR4McTA4AAAAAAAAAAAAADsJ_AQ/original" /> 
 
-2. Click the `Add Animation State` button to add an `Animation State`
+2. Click the `Add Animation State` button to add an `AnimatorState`
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*G1moSpo20KcAAAAAAAAAAAAADsJ_AQ/original" /> 
 
-3. Click the `Animation State` (for an introduction to the properties of the Animation State, please refer to the [AnimatorState](/docs/animation/animatorState/) document), and bind the `AnimationClip` from the animation model.
+3. Click the `AnimatorState` (for an introduction to the properties of the Animation State, please refer to the [AnimatorState](/docs/animation/animatorState/) document), and bind the `AnimationClip` from the animation model.
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*72LhQ5gOBmgAAAAAAAAAAAAADsJ_AQ/original" />
 
-4. Connect from `entry` to this `Animation State` and click the connection line to change the `Duration` to 0 (for a detailed introduction to Animation State and Animation Transition, please refer to the [AnimatorStateMachine](/docs/animation/state-machine/) document). This way, when this AnimatorController is applied, it will immediately play this `Animation State`.
+4. Connect from `entry` to this `AnimatorState` and click the connection line to change the `Duration` to 0 (for a detailed introduction to `AnimatorState` and Animation Transition, please refer to the [AnimatorStateMachine](/docs/animation/state-machine/) document). This way, when this AnimatorController is applied, it will immediately play this `AnimatorState` .
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*wgBgQor0c5wAAAAAAAAAAAAADsJ_AQ/original" />
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*NgW5QZ4vaFEAAAAAAAAAAAAADsJ_AQ/original" />

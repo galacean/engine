@@ -13,7 +13,7 @@ The `AnimatorController` ([API](/apis/core/#AnimatorController)) helps you organ
 `AnimatorControllerLayer` are used to organize and manage `AnimatorStateMachines` within an `AnimatorController`. Each `AnimatorControllerLayer` has its own `AnimatorStateMachine`. When the `Animator` component runs, all `AnimatorControllerLayer` run simultaneously, and multiple `AnimatorControllerLayer` achieve animation blending through different weights and blending modes. For detailed usage of `AnimatorControllerLayer`, please refer to the [AnimatorControllerLayer](/docs/animation/layer/) document.
 
 #### AnimatorControllerParameter
-`AnimatorControllerParameter` are used to control the switching of `AnimatorState` in the `AnimatorStateMachine`. When the conditions of the `AnimatorStateTransition` are met by setting the values of the `AnimatorControllerParameter`, the `AnimatorStateTransition` will trigger, switching to the target `Animation State`. For detailed usage of `AnimatorControllerParameter`, please refer to the [AnimatorStateMachine](/docs/animation/state-machine/) document.
+`AnimatorControllerParameter` are used to control the switching of `AnimatorState` in the `AnimatorStateMachine`. When the conditions of the `AnimatorStateTransition` are met by setting the values of the `AnimatorControllerParameter`, the `AnimatorStateTransition` will trigger, switching to the target `AnimatorState`. For detailed usage of `AnimatorControllerParameter`, please refer to the [AnimatorStateMachine](/docs/animation/state-machine/) document.
 
 ## Editor Usage
 
@@ -32,11 +32,11 @@ Through the `AnimatorController` editor, users can organize the playback logic o
 
       <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QqpxS6I9D90AAAAAAAAAAAAADsJ_AQ/original" /> 
 
-3. The newly created `AnimatorController` has no data. We need to edit it, double-click the asset, and add an `Animation State` ([detailed introduction](/docs/animation/state-machine/#动画状态)).
+3. The newly created `AnimatorController` has no data. We need to edit it, double-click the asset, and add an `AnimatorState` ([detailed introduction](/docs/animation/state-machine/#动画状态)).
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*7bZmS4iZ10gAAAAAAAAAAAAADsJ_AQ/original" />
 
-4. Click the added `Animation State` to bind an `AnimationClip` ([detailed introduction](/docs/animation/clip)).
+4. Click the added `AnimatorState` to bind an `AnimationClip` ([detailed introduction](/docs/animation/clip)).
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*xfPTRJg-hOMAAAAAAAAAAAAADsJ_AQ/original" />
 

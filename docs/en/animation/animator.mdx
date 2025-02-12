@@ -56,7 +56,7 @@ Before using scripts, it is recommended to read the following documents:
 
 ### Play Specified Animation State
 
-You can use the [animator.play](/apis/core/#Animator-play) method to play the specified `Animation State`. For parameter descriptions, see the [API documentation](/apis/core/#Animator-play).
+You can use the [animator.play](/apis/core/#Animator-play) method to play the specified `AnimatorState` . For parameter descriptions, see the [API documentation](/apis/core/#Animator-play).
 
 ```typescript
 import { Script, Animator, Keys } from '@galacean/engine';
@@ -113,7 +113,7 @@ animator.speed = 0;
 animator.speed = 1;
 ```
 
-If you only want to pause a specific `Animation State`, you can do so by setting its speed to 0.
+If you only want to pause a specific `AnimatorState` , you can do so by setting its speed to 0.
 
 ```typescript
 const state = animator.findAnimatorState("xxx");
@@ -122,7 +122,7 @@ state.speed = 0;
 
 ### Transition to Specified Animation State
 
-You can use the [animator.crossfade](/apis/core/#Animator-crossfade) method to transition to the specified `Animation State`. For parameter descriptions, see the [API documentation](/apis/core/#Animator-crossFade).
+You can use the [animator.crossfade](/apis/core/#Animator-crossfade) method to transition to the specified `AnimatorState` . For parameter descriptions, see the [API documentation](/apis/core/#Animator-crossFade).
 
 ```typescript
 animator.crossFade("OtherStateName", 0.3);
@@ -130,7 +130,7 @@ animator.crossFade("OtherStateName", 0.3);
 
 ### Get Current Playing Animation State
 
-You can use the [getCurrentAnimatorState](/apis/core/#Animator-getCurrentAnimatorState) method to get the currently playing `Animation State`. The parameter is the index `layerIndex` of the `AnimatorControllerLayer` where the `Animation State` is located. For details, see the [API documentation](/apis/core/#Animator-getCurrentAnimatorState). After obtaining it, you can set the properties of the `Animation State`, such as changing the default loop playback to play once.
+You can use the [getCurrentAnimatorState](/apis/core/#Animator-getCurrentAnimatorState) method to get the currently playing `AnimatorState` . The parameter is the index `layerIndex` of the `AnimatorControllerLayer` where the `AnimatorState` is located. For details, see the [API documentation](/apis/core/#Animator-getCurrentAnimatorState). After obtaining it, you can set the properties of the `AnimatorState` , such as changing the default loop playback to play once.
 
 ```typescript
 const currentState = animator.getCurrentAnimatorState(0);
@@ -142,7 +142,7 @@ currentState.wrapMode = WrapMode.Loop;
 
 ### Get Animation State
 
-You can use the [findAnimatorState](/apis/core/#Animator-findAnimatorState) method to get the specified `Animation State`. After obtaining it, you can set the properties of the animation state, such as changing the default loop playback to play once.
+You can use the [findAnimatorState](/apis/core/#Animator-findAnimatorState) method to get the specified `AnimatorState` . After obtaining it, you can set the properties of the  `AnimatorState` , such as changing the default loop playback to play once.
 
 ```typescript
 const state = animator.findAnimatorState("xxx");

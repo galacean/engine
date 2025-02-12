@@ -24,7 +24,7 @@ Represents a single state in the `AnimatorStateMachine`, i.e., the animation bei
 | [StateMachineScripts](/apis/core/#StateMachineScript)| Allows developers to write custom script logic to execute specific code during different events (such as state enter, exit, update, etc.) of the AnimatorStateMachine. It is similar to Script but specifically for the AnimatorStateMachine. |
 
 ##### Three Special AnimatorState in the Editor
-`entry`: Represents the entry point of the AnimatorStateMachine. When entering the AnimatorStateMachine, it always enters `entry` first, and then jumps to other states according to the defined transition conditions. `entry` itself does not play animations; it mainly connects the starting point of the state machine to the initial animation state. Typically, you should connect it to the default state of the character or animated object, such as the character's `Idle` state.
+`entry`: Represents the entry point of the AnimatorStateMachine. When entering the AnimatorStateMachine, it always enters `entry` first, and then jumps to other states according to the defined transition conditions. `entry` itself does not play animations; it mainly connects the starting point of the state machine to the initial  `AnimatorState` . Typically, you should connect it to the default state of the character or animated object, such as the character's `Idle` state.
 
 `any`: Allows any state in the AnimatorStateMachine to transition to the target state when specific conditions are met. This is useful for handling global events or emergency animations (such as being injured or dying).
 
@@ -210,11 +210,11 @@ You can add `State Machine Scripts` to each `AnimatorState`, allowing you to rec
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*A7I7QqiDCfkAAAAAAAAAAAAADsJ_AQ/original" />
 
 #### Script Usage
-`StateMachineScript` provide three animation state cycles:
+`StateMachineScript` provide three  `AnimatorState`  cycles:
 
-- `onStateEnter`: Callback when the animation state starts playing.
-- `onStateUpdate`: Callback when the animation state updates.
-- `onStateExit`: Callback when the animation state ends.
+- `onStateEnter`: Callback when the  `AnimatorState`  starts playing.
+- `onStateUpdate`: Callback when the  `AnimatorState`  updates.
+- `onStateExit`: Callback when the  `AnimatorState`  ends.
 
 ```typescript
 class theScript extends StateMachineScript {
