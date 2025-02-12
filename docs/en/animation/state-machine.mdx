@@ -51,7 +51,7 @@ Solo and Mute are usually used for debugging, helping developers test and debug 
 #### Editor Usage
 Connect the animation state ([AnimatorState](/apis/core/#AnimatorState)) to `entry`, and the animation on it will automatically play when you run the exported project, without needing to call `animator.play`. Click on the entity bound to the animation control component ([Animator](/en/docs/animation/animator)) to preview the animation.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*0_DkSoSAhmUAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*0_DkSoSAhmUAAAAAAAAAAAAADsJ_AQ/original" />
 
 #### Script Usage
 
@@ -67,11 +67,11 @@ animatorStateMachine.addEntryStateTransition('Idle');
 #### Editor Usage
 Connect the two `AnimatorState` you want to transition between to achieve the animation transition effect. Click on the line between the two animations to modify the animation transition parameters and adjust the effect.
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*h3I4TZoxtnYAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*h3I4TZoxtnYAAAAAAAAAAAAADsJ_AQ/original" />
 
 Click on the line to set the parameters of the animation transition ([AnimatorStateTransition](/apis/core/#AnimatorStateTransition)), such as adding conditions:
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*vlmLQqR2k7QAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*vlmLQqR2k7QAAAAAAAAAAAAADsJ_AQ/original" />
 
 <Callout type="info">
   If multiple conditions are added, the transition will only start when all conditions are met.
@@ -184,7 +184,7 @@ class AnimationScriptExample extends Script {
 
 ### Animation State Machine Animation Loop
 Connect the animation state to the `exit` state, and the state machine will exit and re-enter `entry`, making the overall process loop.
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*1AfgS6S88SYAAAAAAAAAAAAADsJ_AQ/original) 
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*1AfgS6S88SYAAAAAAAAAAAAADsJ_AQ/original" /> 
 
 
 #### Script Usage
@@ -202,9 +202,9 @@ In this way, every time you play the `Run` animation on the layer where the anim
 ### State Machine Script
 You can add state machine scripts to each animation state, which allows you to receive callbacks in different events of the animation state machine (such as state entry, exit, update, etc.) [see details](/apis/core/#StateMachineScript).
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*VrCXQqS3w7QAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*VrCXQqS3w7QAAAAAAAAAAAAADsJ_AQ/original" />
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*A7I7QqiDCfkAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*A7I7QqiDCfkAAAAAAAAAAAAADsJ_AQ/original" />
 
 #### Script Usage
 The state machine script provides three animation state cycles:

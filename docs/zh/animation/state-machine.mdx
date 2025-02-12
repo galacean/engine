@@ -55,7 +55,7 @@ Solo 和 Mute 通常用于调试，用于帮助开发者更高效地测试和调
 #### 编辑器使用
 将 `动画状态` 连接到`entry`上你导出的项目运行时就会自动播放其上的动画，而不需再调用 `animator.play`。点击 `动画控制组件`（[详细介绍](/docs/animation/animator)）绑定的 `实体` ，即可预览动画。
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*0_DkSoSAhmUAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*0_DkSoSAhmUAAAAAAAAAAAAADsJ_AQ/original" />
 
 #### 脚本使用
 
@@ -71,11 +71,11 @@ animatorStateMachine.addEntryStateTransition('Idle');
 #### 编辑器使用
 将两个想要过渡的 `动画状态` 连接即可实现动画过渡的效果, 点击两个 `动画状态` 间的连线，可以修改动画过渡的参数调整效果。
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*h3I4TZoxtnYAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*h3I4TZoxtnYAAAAAAAAAAAAADsJ_AQ/original" />
 
 点击连线你可以设置 `动画过渡` 的参数，如添加条件：
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*vlmLQqR2k7QAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*vlmLQqR2k7QAAAAAAAAAAAAADsJ_AQ/original" />
 
 <Callout type="info">
   若添加多个条件，只有所有条件都满足时，才会开始过渡。
@@ -190,7 +190,7 @@ class AnimationScriptExample extends Script {
 
 ### 动画状态机动画循环
 将 `动画状态` 连接到 `exit` 状态，`动画状态机` 会退出并重新进入 `entry`，使得整体流程循环
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*1AfgS6S88SYAAAAAAAAAAAAADsJ_AQ/original) 
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*1AfgS6S88SYAAAAAAAAAAAAADsJ_AQ/original" /> 
 
 
 #### 脚本使用
@@ -208,9 +208,9 @@ runState.addExitTransition();
 ### 状态机脚本
 你可以为每个 `动画状态` 添加 `状态机脚本` ，它可以让你在 `动画状态机` 的不同事件（如状态进入、退出、更新等）中接收到回调[详见](/apis/core/#StateMachineScript)。
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*VrCXQqS3w7QAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*VrCXQqS3w7QAAAAAAAAAAAAADsJ_AQ/original" />
 
-![alt text](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*A7I7QqiDCfkAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*A7I7QqiDCfkAAAAAAAAAAAAADsJ_AQ/original" />
 
 #### 脚本使用
 `状态机脚本` 提供了三个动画状态周期：

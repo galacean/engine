@@ -1,0 +1,20 @@
+---
+order: 2
+title: 统计面板
+type: 性能
+label: Performance
+---
+
+[@galacean/engine-toolkit-stats](https://www.npmjs.com/package/@galacean/engine-toolkit-stats) 包主要用来显示相机的渲染状态，只需要为相机节点添加 `Stats` 组件：
+
+```typescript
+import { Engine } from "@galacean/engine";
+import { Stats } from "@galacean/engine-toolkit-stats";
+
+cameraEntity.addComponent(Camera);
+cameraEntity.addComponent(Stats);
+```
+
+## 示例
+
+<Playground href="/embed/text-barrage" />

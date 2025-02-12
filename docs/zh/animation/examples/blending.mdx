@@ -22,9 +22,9 @@ label: Animation/Examples
 
 2. 我们要有一个已编辑好的 `动画控制器` 。请参考：[编辑动画控制器](/docs/animation/examples/crossFade/#3-编辑动画控制器)。
 
-![image-1](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*dsGnQ4JIC7MAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*dsGnQ4JIC7MAAAAAAAAAAAAADsJ_AQ/original" />
 
-![image](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*1x7zS7WqTasAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*1x7zS7WqTasAAAAAAAAAAAAADsJ_AQ/original" />
 
 ## 1. 添加一个动画层
 
@@ -33,28 +33,28 @@ label: Animation/Examples
 
 在 `Layers` 面板点击 `+` 添加一个 `动画层`
 
-![2024-11-08 16.31.39.gif](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*GWQ4Tr2rhY4AAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*GWQ4Tr2rhY4AAAAAAAAAAAAADsJ_AQ/original" />
 
 
 ## 2. 编辑动画层
 添加一个 `动画状态`（如果你不知道如何添加，请参考：[播放模型中的动画](/docs/animation/examples/playAnimation/)），绑定模型中的 **"shakeHead"** `动画片段`，并从 `entry` 连接到这个 `动画状态`，可以根据需要调整 `entry` 到这个 `动画状态`的过渡时间。
 
-![2024-11-08 16.44.11.gif](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*sdC9TbG6-VgAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*sdC9TbG6-VgAAAAAAAAAAAAADsJ_AQ/original" />
 
 编辑之后为模型绑定此 `动画控制器` 。
 
-![image](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*mUWWRqdmjAAAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*mUWWRqdmjAAAAAAAAAAAAAAADsJ_AQ/original" />
 
 
 ## 3. 调整动画层权重
 
 新添加的 `动画层` 的默认混合模式是 `Override`，我们先预览下效果。
 
-![2024-11-08 16.53.23.gif](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*37UZRpesQywAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*37UZRpesQywAAAAAAAAAAAAADsJ_AQ/original" />
 
 可以看到我们之前在 `Base` 动画层添加的 `动画状态` 都失效了，因为混合模式是 `Override`，它会覆盖掉它下面的所有 `动画层` ，我们可以调整 `Layer1` 的权重看看权重对其的影响。
 
-![2024-11-08 17.02.30.gif](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*fI18TKITqSUAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*fI18TKITqSUAAAAAAAAAAAAADsJ_AQ/original" />
 
 可以看到随着权重减少 `Layer1` 对动画的影响越小，而 `Base` 对动画的影响越大。
 
@@ -62,10 +62,10 @@ label: Animation/Examples
 
 在本示例中，我们不希望 `Layer1` 的权重影响到 `Base` 动画层，因此我们将 `Layer1` 的混合模式修改为 `Additive`。
 
-![image-2](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Tt8sQKnTDq4AAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Tt8sQKnTDq4AAAAAAAAAAAAADsJ_AQ/original" />
 
 这样 `Layer1` 的动画会叠加到 `Base` 动画层上，它的权重修改只影响自身，而不会影响 `Base` 层的动画。
 为了更好的观察 `Additve` 的效果，我们删掉 `Base` 层 `run` 到 `exit` 的过渡。
 
-![2024-11-08 17.20.12.gif](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*oZY8RaivVWMAAAAAAAAAAAAADsJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*oZY8RaivVWMAAAAAAAAAAAAADsJ_AQ/original" />
 

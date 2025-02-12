@@ -1,0 +1,114 @@
+---
+order: 1
+title: 2D Texture
+type: Graphics
+group: Texture
+label: Graphics/Texture
+---
+
+2D textures ([Texture2D](/apis/core/#Texture2D)) are the most commonly used art resources, sampled using two-dimensional UV coordinates.
+
+## Creation
+
+In the editor, you can easily import a 2D texture by following the path **[Asset Panel](/en/docs/assets/interface)** -> **Right-click Upload** -> **Select Texture2D** -> **Choose the corresponding texture** -> **2D texture asset creation complete**.
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*71QKTYuRSyAAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom: "50%"}} />
+
+Similarly, in the script, you can load an image through [ResourceManager](/apis/core/#ResourceManager) to get the corresponding 2D texture:
+
+```typescript
+const textureResource = {
+  type: AssetType.Texture2D,
+  url: `图片url`,
+};
+
+engine.resourceManager
+  .load(textureResource, cubeTextureResource)
+  .then((resource) => {
+    // 引擎支持的2D纹理
+    const texture = resource;
+    // 接下来可以将纹理应用到材质上或者进行其他操作
+  });
+```
+
+## Methods
+
+| Method          | Description              |
+| :-------------- | :----------------------- |
+| setImageSource  | Sets the image data source of the texture |
+| setPixelBuffer  | Modifies the image data of the texture object |
+| getPixelBuffer  | Retrieves the image data of the texture object |
+
+### setImageSource
+
+As mentioned earlier, image-related data sources such as images, canvas, and videos can be used as textures. For example, a video can be uploaded to the texture through the [setImageSource](/apis/core/#Texture2D-setImageSource) interface:
+
+```typescript
+// 拿到视频标签，即 HTMLVideoElement
+const video = document.getElementsByTagName("video")[0];
+
+// 加载到纹理
+texture.setImageSource(video);
+```
+
+> `setImageSource` can only synchronize the data of that frame, but the video changes every frame. If you need the texture to change synchronously, you need to execute it in the script's onUpdate hook.
+
+For scenarios where the texture content needs to be frequently updated, such as videos, you need to disable mipmap and set the texture usage to Dynamic when creating the texture to achieve better performance. The sample code is as follows:
+
+<Playground href="/embed/benchmark-video" />
+
+### setPixelBuffer
+
+The underlying texture corresponds to the color value of each pixel, i.e., the RGBA channels. We can manually fill in the color values of these channels and then pass them to the texture through the [setPixelBuffer](/apis/core/#Texture2D-setPixelBuffer) interface:
+
+```typescript
+const texture = new Texture2D(engine, 1, 1);
+// 将该像素设置为红色，即 R 通道为 255。
+const data = new Uint8Array([255, 0, 0, 255]);
+texture.setPixelBuffer(data);
+```
+
+### getPixelBuffer
+
+Similarly, we can read the color data of these channels:
+
+```typescript
+const texture = new Texture2D(engine, width, height);
+// 对纹理做了一系列处理
+// ···
+// 用来保存颜色信息的数组，它的大小和要读取的数据量相等
+const data = new Uint8Array(width * height * 4);
+texture.getPixelBuffer(0, 0, width, height, 0, data);
+```
+
+## Usage
+
+Assigning the texture to the corresponding property of the material ball can enable different rendering functions. For example, adding a base color texture can determine the basic tone of the model. In the editor, you only need to select the corresponding texture in the corresponding property.
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*toooTZvkC60AAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom: "50%"}} />
+
+Similarly, in the script, you can set it like this:
+
+```typescript
+const material = new PBRMaterial(engine);
+const texture = 生成纹理(); // 上文所示，不再赘述
+
+material.baseTexture = texture;
+```
+
+## Color Expansion
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*ACbwSKO2LHwAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom: "50%"}} />
+
+To solve the problem of black edges appearing at the abrupt changes in Alpha values in images with transparent pixels, the editor has a built-in color expansion function. This function removes the black edges of the image by rewriting the RGB values of all transparent pixels in the image to the RGB values of the nearest non-fully transparent pixels.
+
+| Option           | Description                                      |
+| :--------------- | :----------------------------------------------- |
+| Alpha Range      | Threshold, transparent pixel Alpha value less than this threshold, RGB value is modified |
+| Alpha Value      | Alpha value after filling transparent pixels     |
+
+## Export Configuration
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*_aepTLE47-gAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom: "50%"}} />
+
+The [Project Release](/en/docs/platform/platform) document explains the **global configuration** for texture export in detail. If the Overwrite option is selected here, this asset will follow the **custom configuration** instead of the **global configuration** during export.

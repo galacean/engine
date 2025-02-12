@@ -1,0 +1,64 @@
+---
+order: 1
+title: Export To H5
+type: Platform
+label: Platform
+---
+
+## Platform Configuration Instructions
+
+When exporting to the H5 platform, there is no additional platform-related export configuration except for the general export configuration, so no configuration is required
+
+## Export
+
+After selecting the H5 platform, click the download button at the bottom of the export panel to export the required project:
+
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*jINgTIhAuDgAAAAAAAAAAAAADjCHAQ/fmt.webp" />
+
+After exporting to the local computer, the directory structure is as follows:
+
+```shell
+├── public # 📁 Public resource directory
+│		├── scene.json # Scene File
+│   └── ... # Other
+├── src # 📁 Source code directory
+│   └── ... # Other
+├── index.html # ⚙️ Example project entry file
+├── main.js # ⚙️ Component code entry
+├── package.json # ⚙️ Project Configuration File
+├── project.json # ⚙️ Editor export project configuration
+├── tsconfig.json # ⚙️ TypeScript configuration files
+├── vite.config.ts # ⚙️ vite configuration files
+└── ... # Other
+```
+
+**Remark:** Because React/Vue/Vanilla JS all belong to the H5 platform and are similar, the document is explained in React.
+
+## Debug
+
+1、Enter the root directory of the exported project and execute the installation command as follows:
+```bash
+npm i 或者 pnpm i
+```
+
+2、Execute the dev command to run the project locally, as follows:
+```bash
+npm run dev
+```
+After executing the above command, if successful, the following will appear:
+
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*FJI5Q7qhFu4AAAAAAAAAAAAADjCHAQ/fmt.webp" />
+
+3、In the browser, enter the above Local or Network URL to preview the actual running effect, as follows:
+
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*Q9qwQqivKp8AAAAAAAAAAAAADjCHAQ/fmt.webp" />
+
+## Build
+
+After completing development and debugging locally, execute the build command to build, as follows:
+```bash
+npm run build
+```
+If the command is executed successfully, a **dist** folder will be generated in the root directory, which contains the build products. The products can be uploaded to CDN as dynamically loaded content, or published to NPM if the project is treated as a React component.
+
+> Export to various React/Vue/Vanilla JS projects on the H5 platform and deploy them according to the instructions of their respective frameworks

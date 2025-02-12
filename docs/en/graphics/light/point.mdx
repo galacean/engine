@@ -1,0 +1,34 @@
+---
+order: 2
+title: Point Light
+type: Graphics
+group: Lighting
+label: Graphics/Light
+---
+
+A **point light** is a light source located at a point in space that emits light rays in all directions, similar to a light bulb in real life.
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/3eb4bc88-fc7e-4957-83a4-dfb7dd678af5/image-20240319174317201.png" alt="image-20240319174317201" style={{ zoom: "50%" }} />
+
+Point lights have 3 main characteristics: _color_ ([color](/apis/core/#PointLight-color)), _intensity_ ([intensity](/apis/core/#PointLight-intensity)), and _range_ ([distance](/apis/core/#PointLight-distance)). Areas beyond the range will not receive light from the point light, and the intensity of the light decreases as the distance from the light source increases.
+
+| Property      | Description                                                              |
+| :------------ | :----------------------------------------------------------------------- |
+| Intensity     | Controls the intensity of the point light, **higher values mean brighter light** |
+| Color         | Controls the color of the point light, default is white                   |
+| Distance      | Range within which the light affects, light intensity decreases with distance |
+| Culling Mask  | Controls which objects the light should illuminate, default is Everything. Needs to be used with the Layer of the Entity |
+
+### Script Usage
+
+```typescript
+const lightEntity = rootEntity.createChild("light");
+const pointLight = lightEntity.addComponent(PointLight);
+
+// 调整距离
+pointLight.distance = 100;
+// 调整颜色
+pointLight.color.set(0.3, 0.3, 1, 1);
+// 调整点光源位置
+lightEntity.transform.setPosition(-10, 10, 10);
+```
