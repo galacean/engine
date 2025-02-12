@@ -174,14 +174,14 @@ const engine = await WebGLEngine.create({
   physics: new LitePhysics()
 });
 engine.canvas.resizeByClientSize();
-
+const scene = engine.scenes[0];
 // Convert screen input to Ray
 document.getElementById("canvas").addEventListener("click", (e) => {
   const ratio = window.devicePixelRatio;
   let ray = new Ray();
   camera.screenPointToRay(new Vector2(e.offsetX, e.offsetY).scale(ratio), ray);
   const hit = new HitResult();
-  result = engine.physicsManager.raycast(ray, Number.MAX_VALUE, Layer.Everything, hit);
+  result = scene.physics.raycast(ray, Number.MAX_VALUE, Layer.Everything, hit);
   if (result) {
     console.log(hit.entity.name);
   }
