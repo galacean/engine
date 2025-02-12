@@ -1,0 +1,70 @@
+---
+order: 3
+title: Animation Blending
+type: Animation
+group: Guide and Examples
+label: Animation/Examples
+---
+
+This example demonstrates how to achieve multi-layer animation blending in the Galacean editor. Through simple steps, you will learn how to blend multiple animations for a model.
+If this is your first time using the animation editor, it is recommended to read the previous documents:
+
+[1. Play Animation in Model](/docs/animation/examples/playAnimation/)
+
+[2. Reuse Animation](/docs/animation/examples/reuseAnimation/)
+
+[3. Animation Transition](/docs/animation/examples/crossFade/)
+
+## 0. Preparation
+
+1. Before starting, we need a model with animations, and it should contain an animation suitable for blending. If you don't have a model, you can download the [model](https://mdn.alipayobjects.com/oasis_be/afts/file/A*N99IQYh_g5YAAAAAAAAAAAAADkp5AQ/player.glb) here.
+Then drag it into the scene.
+
+2. We need an edited `AnimatorController`. Please refer to: [Edit AnimatorController](/docs/animation/examples/crossFade/#3-edit-animator-controller).
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*dsGnQ4JIC7MAAAAAAAAAAAAADsJ_AQ/original" />
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*1x7zS7WqTasAAAAAAAAAAAAADsJ_AQ/original" />
+
+## 1. Add an AnimatorControllerLayer
+
+To blend animations, we need to add an `AnimatorControllerLayer` in the AnimatorController. When the `Animator` component runs, all `Animation Layers` will run together, and multiple `Animation Layers` achieve animation blending through different weights.
+For a detailed introduction to `AnimatorControllerLayer`, please refer to the [AnimatorControllerLayer](/docs/animation/layer) document.
+
+Click `+` in the `Layers` panel to add an `AnimatorControllerLayer`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*GWQ4Tr2rhY4AAAAAAAAAAAAADsJ_AQ/original" />
+
+
+## 2. Edit AnimatorControllerLayer
+Add an `Animation State` (if you don't know how to add it, please refer to: [Play Animation in Model](/docs/animation/examples/playAnimation/)), bind the **"shakeHead"** `AnimationClip` in the model, and connect it from `entry` to this `Animation State`. You can adjust the transition time from `entry` to this `Animation State` as needed.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*sdC9TbG6-VgAAAAAAAAAAAAADsJ_AQ/original" />
+
+Edit and bind this `AnimatorController` to the model.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*mUWWRqdmjAAAAAAAAAAAAAAADsJ_AQ/original" />
+
+
+## 3. Adjust AnimatorControllerLayer Weight
+
+The default blending mode of the newly added `AnimatorControllerLayer` is `Override`. Let's preview the effect first.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*37UZRpesQywAAAAAAAAAAAAADsJ_AQ/original" />
+
+We can see that the `AnimatorState` added in the `Base` animation layer are all invalid because the blending mode is `Override`, which will override all the `Animation Layers` below it. We can adjust the weight of `Layer1` to see the impact of the weight.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*fI18TKITqSUAAAAAAAAAAAAADsJ_AQ/original" />
+
+We can see that as the weight decreases, the influence of `Layer1` on the animation becomes smaller, while the influence of `Base` on the animation becomes larger.
+
+## 4. Adjust Blending Mode
+
+In this example, we do not want the weight of `Layer1` to affect the `Base` animation layer, so we change the blending mode of `Layer1` to `Additive`.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Tt8sQKnTDq4AAAAAAAAAAAAADsJ_AQ/original" />
+
+In this way, the animation of `Layer1` will be superimposed on the `Base` animation layer, and its weight modification will only affect itself without affecting the animation of the `Base` layer.
+To better observe the effect of `Additive`, we delete the transition from `run` to `exit` in the `Base` layer.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*oZY8RaivVWMAAAAAAAAAAAAADsJ_AQ/original" />

@@ -1,0 +1,144 @@
+---
+order: 6
+title: 2D Frame Animation
+type: Animation
+group: Guide and Examples
+label: Animation/Examples
+---
+
+This example demonstrates how to create 2D frame animations in the Galacean editor. Through simple steps, you will learn how to create an animation clip for frame animation. If this is your first time using the animation editor, it is recommended to read the previous documents:
+
+[1. Play Animation in Model](/docs/animation/examples/playAnimation/)
+
+[2. Reuse Animation](/docs/animation/examples/reuseAnimation/)
+
+## 0. Preparation
+Before starting, we need to have the sequence frame images required for creating frame animations. Both sprite sheets and single-frame images can be used. This example uses a sprite sheet. If you don't have one, you can download the [sprite sheet](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*DmSyQZQCnrEAAAAAAAAAAAAADsJ_AQ/original) here.
+
+## 1. Import Texture
+There are three ways to import `textures`:
+1. Drag the image into the **[Asset Panel](/docs/assets/interface)** of the editor
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*U0uYR4_jFpAAAAAAAAAAAAAADsJ_AQ/original" />
+
+2. Right-click on the blank space in the **[Asset Panel](/docs/assets/interface)** and select `Upload` -> `Texture2D`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*t_1vQ4RIz_AAAAAAAAAAAAAADsJ_AQ/original" />
+
+3. Click the upload button and select `Texture2D`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*yr_xSL2Q7qkAAAAAAAAAAAAADsJ_AQ/original" />
+
+## 2. Create Sprite
+For a detailed introduction to `Sprite`, please refer to the [Sprite](/docs/graphics/2D/sprite) document.
+
+There are three ways to create a `Sprite`:
+1. Right-click on the blank space in the **[Asset Panel](/docs/assets/interface)** and select `Create` -> `Sprite`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*oTfKT4VB5Y8AAAAAAAAAAAAADsJ_AQ/original" />
+
+2. Click the add asset button `+` and select `Sprite`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*f-JyT63i3tcAAAAAAAAAAAAADsJ_AQ/original" />
+
+3. If you are using single-frame images, you can right-click on the blank space in the **[Asset Panel](/docs/assets/interface)**, select `Upload` -> `Sprite`, and then choose your single-frame image. This method will automatically create a `Sprite` asset and bind the image as its `texture` while importing the texture.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*1S9rTIEEL0IAAAAAAAAAAAAADsJ_AQ/original" />
+
+Create three `Sprite` assets, each corresponding to one frame in the sprite sheet.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Nd7CT7mgWm8AAAAAAAAAAAAADsJ_AQ/original" />
+
+## 3. Bind Texture to Sprite
+If you are using a sprite sheet, you need to configure the appropriate `Region` based on the number of frames. If you are using single-frame images, simply bind the texture as described in the first step.
+
+1. Click the `Sprite` asset, click the `Texture` property, and select the corresponding texture.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*XmbZRZsFutQAAAAAAAAAAAAADsJ_AQ/original" />
+
+2. Configure the appropriate `Region` based on the number of frames. This example has three frames and only one row, so the `Region` for each frame has a `W` of 1/3 (the texture `width` is also changed to 1/3 of the original) and an `H` of 1.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Yu3oRr7qbrUAAAAAAAAAAAAADsJ_AQ/original" />
+
+3. Modify the `Region` for the other two `Sprites`. The difference from the first `Sprite` is that their `Region` `X` values are different, set to 0, 1/3, and 2/3, respectively.
+
+`Sprite1`:
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*XuJNTqF1e-IAAAAAAAAAAAAADsJ_AQ/original" />
+
+`Sprite2`:
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*AhPpTrX9d78AAAAAAAAAAAAADsJ_AQ/original" />
+
+After binding the textures, the `Sprite` assets will display the corresponding images as shown:
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Mf9-T79bofkAAAAAAAAAAAAADsJ_AQ/original" />
+
+## 4. Create AnimationClip
+After preparing the `Sprites`, we need to create an `AnimationClip` (for an introduction to AnimationClip, please refer to the [AnimationClip](/docs/animation/clip) document). There are two ways to create an `AnimationClip`:
+1. Right-click on the blank space in the **[Asset Panel](/docs/assets/interface)** and select `Create` -> `Animation Clip`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*OKfsTatDPfsAAAAAAAAAAAAADsJ_AQ/original" />
+
+2. Click the add asset button `+` and select `Animation Clip`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*BhZVSaZgC9kAAAAAAAAAAAAADsJ_AQ/original" />
+
+## 5. Open AnimationClip Editor
+
+1. Double-click the newly created `AnimationClip` asset
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*521gRYB-O0IAAAAAAAAAAAAADsJ_AQ/original" />
+
+2. Select an `entity`. According to the prompt, we need to select an `entity` in the **[Hierarchy Panel](/docs/interface/hierarchy)** as the target for editing the animation.
+
+Select the default `entity` created by the editor (you can also click the `+` button in the hierarchy panel to create a new one)
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*zRAgTYOTU70AAAAAAAAAAAAADsJ_AQ/original" />
+
+3. Click the `Create` button in the AnimationClip editor. The editor will prepare some work for you. In this example, you can ignore the understanding of these concepts for now.
+
+<Callout type="info">
+The preparation work includes:
+1. Creating an `Animator` component ([detailed introduction](/docs/animation/animator/)) for the selected `entity` and creating an `AnimatorController` ([detailed introduction](/docs/animation/animatorController/)) asset.
+2. The `AnimatorController` will contain an `Animation State`, and the `Animation State` will automatically bind the selected `AnimationClip` and connect to the `entry` node (for a detailed introduction to the `entry` node, please refer to the [AnimatorStateMachine](/docs/animation/state-machine/) document).
+3. The `Animator` component will automatically bind the `AnimatorController`.
+</Callout>
+
+After creation, you will open the AnimationClip editor as shown below:
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*dWJDSbxaYCYAAAAAAAAAAAAADsJ_AQ/original" />
+
+## 6. Set Entity and Switch to 2D View
+
+1. Delete the default `MeshRenderer` component (if you created it yourself, ignore this step). Add a `SpriteRenderer` component to the selected `entity`.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*MsS8SZ1eNdQAAAAAAAAAAAAADsJ_AQ/original" />
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*b-M1TbX4e18AAAAAAAAAAAAADsJ_AQ/original" />
+
+2. Bind one of the `Sprite` assets we just created to the `Sprite` property of the `SpriteRenderer` component as the default `Sprite`.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*PkbjSYreGcYAAAAAAAAAAAAADsJ_AQ/original" />
+
+3. Reset the default rotation of the `entity` and switch to the `2D` view
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*rNXqRLdzDKEAAAAAAAAAAAAADsJ_AQ/original" />
+
+## 7. Edit AnimationClip
+
+1. Enable recording mode in the `AnimationClip` editor
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*S4jNRZ-Ia7AAAAAAAAAAAAAADsJ_AQ/original" />
+
+2. Move the timeline to `0:00`, then switch the `Sprite` property of the `SpriteRenderer` component to the first frame's `Sprite` asset. Since our first frame is the same as the default `Sprite` of the `SpriteRenderer` component, we still select this `Sprite`. In recording mode, the editor will automatically add the corresponding property and keyframe.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*wFl9RphUx1gAAAAAAAAAAAAADsJ_AQ/original" />
+
+3. At `0:20` and `0:40`, switch the `Sprite` property of the `SpriteRenderer` component to the second and third frame's `Sprite` assets, respectively. At `1:00`, switch back to the first frame's `Sprite` asset. The first and last keyframes are the same, so the animation will not jitter when looping. Click the play button to preview this `AnimationClip`.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*TgLySYjLljAAAAAAAAAAAAAADsJ_AQ/original" />
+
+This completes the creation of the frame animation `AnimationClip`. For more operations on the animation editor, please refer to the [AnimationClip](/docs/animation/clip) document.
+
+To learn how to use this `AnimationClip` in your project, refer to the two documents listed at the top of the article.

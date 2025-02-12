@@ -1,0 +1,111 @@
+---
+order: 0
+title: Play Animation in Model
+type: Animation
+group: Guide and Examples
+label: Animation/Examples
+---
+
+This example demonstrates how to play animations in a model in the Galacean editor. Through simple steps, you will learn how to load a 3D model with animations and control its animation playback. This guide is suitable for beginners to understand the animation system of the Galacean editor and lays the foundation for more complex animation applications.
+
+## 0. Preparation
+
+Before starting, we need a model with animations. If you don't have a model, you can download one from [mixamo](https://www.mixamo.com/#/?page=1&query=&type=Character).
+
+### Download Model
+
+1. Select a model in [mixamo](https://www.mixamo.com/#/?page=1&query=&type=Character)
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*UF2BTbu598EAAAAAAAAAAAAADsJ_AQ/original" /> 
+
+2. Select an animation in the [Animation Tab](https://www.mixamo.com/#/?page=1&query=&type=Motion%2CMotionPack)
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*P_e2Q4D9AN4AAAAAAAAAAAAADsJ_AQ/original" /> 
+
+3. Download the model
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*wpW8TI138SMAAAAAAAAAAAAADsJ_AQ/original" /> 
+
+<Callout type="positive">
+  It is strongly recommended to convert FBX models to GLB/GLTF format using third-party tools such as Blender in actual projects. Galacean currently only supports parsing GLB/GLTF models. Although you can directly drag FBX into the editor for automatic conversion, this method may result in excessively large animation data in the converted model and may cause restoration issues. Using professional tools for conversion allows better control over conversion quality and file size.
+</Callout>
+
+### Import Model
+There are three ways to import models:
+1. Drag the model file into the **[Asset Panel](/docs/assets/interface)** of the editor
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*EZ5ZRqABz4sAAAAAAAAAAAAADsJ_AQ/original" /> 
+
+2. Right-click on the blank space in the **[Asset Panel](/docs/assets/interface)** and select `Upload` -> `Model`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*ggJdTrF7xP0AAAAAAAAAAAAADsJ_AQ/original" /> 
+
+3. Click the upload button and select `Model`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*e5X6Tbeygi8AAAAAAAAAAAAADsJ_AQ/original" /> 
+
+
+## 1. View Model
+
+Click the expand button on the model asset
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*NBuoSbwLWeEAAAAAAAAAAAAADsJ_AQ/original" /> 
+
+You can see that the model contains an `AnimationClip` ([detailed introduction](/docs/animation/clip)) asset (if the model contains multiple animations, there will be multiple `AnimationClip` assets here)
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*_k9iSJJckgAAAAAAAAAAAAAADsJ_AQ/original" /> 
+
+And an `AnimatorController` ([detailed introduction](/docs/animation/animatorController/)) asset
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*KCiLQbzUTp8AAAAAAAAAAAAADsJ_AQ/original" /> 
+
+## 2. Create AnimatorController Asset
+
+To control the playback of animations, we need to edit the content of the `AnimatorController`. The `AnimatorController` in the model is read-only, so we need to create an `AnimatorController` ourselves.
+
+There are two ways to create an `AnimatorController`:
+1. Right-click on the blank space in the **[Asset Panel](/docs/assets/interface)** and select `Create` -> `Animation Controller`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*61Q7S62IZxQAAAAAAAAAAAAADsJ_AQ/original" /> 
+
+2. Click the add asset button `+` and select `Animation Controller`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QqpxS6I9D90AAAAAAAAAAAAADsJ_AQ/original" /> 
+
+## 3. Edit AnimatorController
+
+1. Double-click the [AnimatorController](/docs/animation/animatorController/) asset to enter the AnimatorController editor (for an introduction to the functions of the editor, please refer to the [AnimatorController Editor](/docs/animation/animatorController/) document)
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*v8aUR4McTA4AAAAAAAAAAAAADsJ_AQ/original" /> 
+
+2. Click the add animation state button to add an animation state
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*G1moSpo20KcAAAAAAAAAAAAADsJ_AQ/original" /> 
+
+3. Click the animation state (for an introduction to the properties of the Animation State, please refer to the [AnimatorStateMachine](/docs/animation/state-machine/#动画状态) document), and bind the AnimationClip.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*GUdQQqCHE7cAAAAAAAAAAAAADsJ_AQ/original" /> 
+
+4. Connect from `entry` to this `Animation State` and click the connection line to change the `Duration` to 0 (for a detailed introduction to Animation Transition, please refer to the [AnimatorStateMachine](/docs/animation/state-machine/) document). This way, when this AnimatorController is applied, it will immediately play this animation state.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*wgBgQor0c5wAAAAAAAAAAAAADsJ_AQ/original" />
+
+
+## 4. Use AnimatorController and Preview
+
+1. Drag the model into the scene
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*SMLQQLhOv-0AAAAAAAAAAAAADsJ_AQ/original" />
+
+2. Find the `Animator` component ([detailed introduction](/docs/animation/animator/)). The component is generally on the root entity of the model instance, which is the first child entity under the model entity in the editor.
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*IAAySr0iYkoAAAAAAAAAAAAADsJ_AQ/original" /> 
+
+
+3. Replace the AnimatorController property with the `AnimatorController` we just created
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*yusHT5fj3r0AAAAAAAAAAAAADsJ_AQ/original" /> 
+
+
+4. Click the play button, and you will see the model start playing the animation
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*EeXDQp4PVRkAAAAAAAAAAAAADsJ_AQ/original" />

@@ -1,0 +1,90 @@
+---
+order: 1
+title: Reuse Animation
+type: Animation
+group: Guide and Examples
+label: Animation/Examples
+---
+
+This example demonstrates how to play animations from other models in the Galacean editor. Through simple steps, you will learn how to let one model reuse the animations of another model. This guide is suitable for beginners to understand the animation system of the Galacean editor and lays the foundation for more complex animation applications.
+If this is your first time using the animation editor, it is recommended to read this document first:
+
+[Play Animation in Model](/docs/animation/examples/playAnimation/)
+
+## 0. Preparation
+
+Before starting, we need a model without animations and a model with only animations (the character model must contain entities with the same names as the animation model). If you don't have models, you can download one from [mixamo](https://www.mixamo.com/#/?page=1&query=&type=Character).
+
+### Download Model
+
+1. Select a model in [mixamo](https://www.mixamo.com/#/?page=1&query=&type=Character)
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*UF2BTbu598EAAAAAAAAAAAAADsJ_AQ/original" /> 
+
+Click download directly
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*m9xuR4QewBEAAAAAAAAAAAAADsJ_AQ/original" />
+
+2. Select an animation in the [Animation Tab](https://www.mixamo.com/#/?page=1&query=&type=Motion%2CMotionPack)
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*P_e2Q4D9AN4AAAAAAAAAAAAADsJ_AQ/original" /> 
+
+Select the `Without Skin` option, then click download
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*ktbtQrG9rNEAAAAAAAAAAAAADsJ_AQ/original" />
+
+<Callout type="positive">
+  It is strongly recommended to convert FBX models to GLB/GLTF format using third-party tools such as Blender in actual projects. Galacean currently only supports parsing GLB/GLTF models. Although you can directly drag FBX into the editor for automatic conversion, this method may result in excessively large animation data in the converted model and may cause restoration issues. Using professional tools for conversion allows better control over conversion quality and file size.
+</Callout>
+
+### Import Model
+If you don't know how to import models, please refer to: [Import Model](/docs/animation/examples/playAnimation/#导入模型)
+
+Import the character model and animation model into the editor.  
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*xApDR4D-Ed0AAAAAAAAAAAAADsJ_AQ/original" />
+
+
+## 1. Create AnimatorController Asset
+To play animations from other models, we need to edit the content of the `AnimatorController`. The `AnimatorController` in the model is read-only, so we need to create an `AnimatorController` ourselves.
+If you don't know how to create an `AnimatorController`, please refer to: [Create AnimatorController](/docs/animation/examples/playAnimation/#2-创建动画控制资产)
+
+## 2. Edit AnimatorController
+
+1. Double-click the [AnimatorController](/docs/animation/animatorController/) asset to enter the AnimatorController editor (for an introduction to the functions of the editor, please refer to the [AnimatorController Editor](/docs/animation/animatorController/) document)
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*v8aUR4McTA4AAAAAAAAAAAAADsJ_AQ/original" /> 
+
+2. Click the `Add Animation State` button to add an `Animation State`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*G1moSpo20KcAAAAAAAAAAAAADsJ_AQ/original" /> 
+
+3. Click the `Animation State` (for an introduction to the properties of the Animation State, please refer to the [AnimatorState](/docs/animation/animatorState/) document), and bind the `AnimationClip` from the animation model.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*72LhQ5gOBmgAAAAAAAAAAAAADsJ_AQ/original" />
+
+4. Connect from `entry` to this `Animation State` and click the connection line to change the `Duration` to 0 (for a detailed introduction to Animation State and Animation Transition, please refer to the [AnimatorStateMachine](/docs/animation/state-machine/) document). This way, when this AnimatorController is applied, it will immediately play this `Animation State`.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*wgBgQor0c5wAAAAAAAAAAAAADsJ_AQ/original" />
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*NgW5QZ4vaFEAAAAAAAAAAAAADsJ_AQ/original" />
+
+## 3. Use AnimatorController and Preview
+
+1. Drag the model into the scene
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*uEGPTZfKEZwAAAAAAAAAAAAADsJ_AQ/original" />
+
+2. Unlike directly playing animations in the model, we need to find the `Animator` component ([detailed introduction](/docs/animation/animator/)) of the animation model. The component is generally on the root entity of the model instance, which is the first child entity under the model entity in the editor. Therefore, we need to drag the model containing the animation into the node tree as well.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*kjmDSZeyq4QAAAAAAAAAAAAADsJ_AQ/original" />
+
+We find that the `Animator` component is on the `mixamorig:Hips` entity of the animation model, so we need to add the `Animator` component to the `mixamorig:Hips` entity of the character model.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*HCzWTrsp1isAAAAAAAAAAAAADsJ_AQ/original" />
+
+
+3. Replace the AnimatorController property with the `AnimatorController` we just created
+
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*dFGgRqk0tvgAAAAAAAAAAAAADsJ_AQ/original" />
+
+4. Click the play button, and you will see the model start playing the animation
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*EeXDQp4PVRkAAAAAAAAAAAAADsJ_AQ/original" />
