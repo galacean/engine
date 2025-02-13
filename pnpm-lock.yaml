@@ -32,6 +32,9 @@ importers:
       '@swc/helpers':
         specifier: ^0.5.1
         version: 0.5.15
+      '@types/dom-webcodecs':
+        specifier: ^0.1.13
+        version: 0.1.13
       '@types/node':
         specifier: ^18.7.16
         version: 18.19.64
@@ -1246,6 +1249,9 @@ packages:
 
   '@types/cookie@0.6.0':
     resolution: {integrity: sha512-4Kh9a6B2bQciAhf7FSuMRRkUWecJgJu9nPnx3yzpsfXX/c50REIqpHY4C82bXP90qrLtXtkDxTZosYO3UpOwlA==}
+
+  '@types/dom-webcodecs@0.1.13':
+    resolution: {integrity: sha512-O5hkiFIcjjszPIYyUSyvScyvrBoV3NOEEZx/pMlsu44TKzWNkLVBBxnxJz42in5n3QIolYOcBYFCPZZ0h8SkwQ==}
 
   '@types/estree@0.0.39':
     resolution: {integrity: sha512-EYNwp3bU+98cpU4lAWYYL7Zz+2gryWH1qbdDTidVd6hkiR6weksdbMadyXKXNPEkQFhXM+hVO9ZygomHXp+AIw==}
@@ -5170,6 +5176,8 @@ snapshots:
   '@types/aria-query@5.0.4': {}
 
   '@types/cookie@0.6.0': {}
+
+  '@types/dom-webcodecs@0.1.13': {}
 
   '@types/estree@0.0.39': {}
 

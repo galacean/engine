@@ -14,8 +14,8 @@ do
   if [ -d $directory ]; then
     bn=`basename $directory`;
     echo "typedoc compiling $directory"
-    npx $TYPEDOC --version
-    npx $TYPEDOC --json ${OUTPUT_DIR}/$bn.json --tsconfig $directory/tsconfig.json $directory/src/index.ts;
+    pnpx $TYPEDOC --version
+    pnpx $TYPEDOC --json ${OUTPUT_DIR}/$bn.json --tsconfig $directory/tsconfig.json $directory/src/index.ts;
     SUCCESS+=("${OUTPUT_DIR}/$bn.json")
   fi
 done
