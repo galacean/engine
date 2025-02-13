@@ -48,6 +48,7 @@ export class Blitter {
     const blitMaterial = material || basicResources.blitMaterial;
     const rhi = engine._hardwareRenderer;
     const context = engine._renderContext;
+    const camera = context.camera;
 
     // We not use projection matrix when blit, but we must modify flipProjection to make front face correct
     context.flipProjection = !!destination;
@@ -66,7 +67,7 @@ export class Blitter {
     const compileMacros = Shader._compileMacros;
 
     ShaderMacroCollection.unionCollection(
-      context.camera._globalShaderMacro,
+      camera._globalShaderMacro,
       blitMaterial.shaderData._macroCollection,
       compileMacros
     );
@@ -74,6 +75,8 @@ export class Blitter {
 
     program.bind();
     program.groupingOtherUniformBlock();
+    program.uploadAll(program.sceneUniformBlock, camera.scene.shaderData);
+    program.uploadAll(program.cameraUniformBlock, camera.shaderData);
     program.uploadAll(program.rendererUniformBlock, rendererShaderData);
     program.uploadAll(program.materialUniformBlock, blitMaterial.shaderData);
     program.uploadUnGroupTextures();
