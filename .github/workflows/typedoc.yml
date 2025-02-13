@@ -33,6 +33,9 @@ jobs:
           registry-url: https://registry.npmjs.org/
           cache: pnpm
 
+      - name: Build Engine
+        run: pnpm b:all
+
       - name: Ensure TypeDoc Directory Exists
         run: mkdir -p ${{ github.workspace }}/galacean-typedoc/dist
 

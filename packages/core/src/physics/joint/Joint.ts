@@ -285,7 +285,7 @@ export abstract class Joint extends Component {
       Quaternion.invert(connectedCollider.entity.transform.worldRotationQuaternion, quat);
     }
     Quaternion.multiply(quat, this.entity.transform.worldRotationQuaternion, quat);
-    // this._nativeJoint?.setRotation(quat);
+    this._nativeJoint?.setRotation(quat);
   }
 
   private _updateActualAnchor(flag: AnchorOwner): void {
