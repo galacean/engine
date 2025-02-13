@@ -16,7 +16,7 @@ Flappy Bird is a 2D project. The 2D template provided on the editor's homepage i
 
 ## Prepare Resources
 
-Flappy Bird relies on a set of images. You can download the image package to your local machine by clicking [here](https://github.com/galacean/galacean.github.io/files/13161928/fb.zip). After extracting, you will see the following images:
+Flappy Bird relies on a set of images. You can download the image package to your local machine by clicking [here](https://github.com/user-attachments/files/18703749/fbAsset.zip). After extracting, you will see the following images:
 
 - Number images from 0 to 9 for scores
 - Game background image
