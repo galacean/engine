@@ -49,7 +49,7 @@ jobs:
         run: chmod +x ./scripts/typedoc.sh
 
       - name: Generate TypeDoc Json
-        run: ./scripts/typedoc.sh galacean-typedoc
+        run: ./scripts/typedoc.sh galacean-typedoc/dist
 
       - name: Upload Typedoc JSON to CDN
         uses: galacean/publish@main
