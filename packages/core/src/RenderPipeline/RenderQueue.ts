@@ -212,9 +212,12 @@ export class RenderQueue {
     const engine = camera.engine;
     camera.scene._maskManager.buildMaskRenderElement(master, incrementMaskQueue, decrementMaskQueue);
 
+    const primitiveChunkManagerMask = engine._batcherManager.primitiveChunkManagerMask;
     incrementMaskQueue._batch(engine._batcherManager);
+    primitiveChunkManagerMask.uploadBuffer();
     incrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Increment);
     decrementMaskQueue._batch(engine._batcherManager);
+    primitiveChunkManagerMask.uploadBuffer();
     decrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Decrement);
   }
 }
