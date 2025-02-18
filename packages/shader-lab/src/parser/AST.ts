@@ -222,14 +222,9 @@ export namespace ASTNode {
     typeSpecifier: TypeSpecifier;
     type: GalaceanDataType;
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(_: SematicAnalyzer): void {
       const children = this.children;
-      const childrenLength = children.length;
-      if (childrenLength === 1) {
-        this.typeSpecifier = children[0] as TypeSpecifier;
-      } else {
-        this.typeSpecifier = children[1] as TypeSpecifier;
-      }
+      this.typeSpecifier = (children.length === 1 ? children[0] : children[1]) as TypeSpecifier;
       this.type = this.typeSpecifier.type;
     }
   }
