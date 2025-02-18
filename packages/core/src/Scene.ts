@@ -376,7 +376,6 @@ export class Scene extends EngineObject {
   removeRootEntity(entity: Entity): void {
     if (entity._isRoot && entity._scene == this) {
       Entity._removeFormChildren(this._rootEntities, entity);
-
       entity._isRoot = false;
       let inActiveChangeFlag = ActiveChangeFlag.None;
       this._isActiveInEngine && entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
