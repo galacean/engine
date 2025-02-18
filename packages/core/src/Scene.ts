@@ -337,7 +337,7 @@ export class Scene extends EngineObject {
     const oldScene = entity._scene;
     if (oldScene !== this) {
       if (oldScene && isRoot) {
-        Entity._removeFormChildren(oldScene._rootEntities, entity);
+        Entity._removeFromChildren(oldScene._rootEntities, entity);
       }
       Entity._addToChildren(this._rootEntities, entity, index);
     } else if (!isRoot) {
@@ -375,7 +375,7 @@ export class Scene extends EngineObject {
    */
   removeRootEntity(entity: Entity): void {
     if (entity._isRoot && entity._scene == this) {
-      Entity._removeFormChildren(this._rootEntities, entity);
+      Entity._removeFromChildren(this._rootEntities, entity);
       entity._isRoot = false;
       let inActiveChangeFlag = ActiveChangeFlag.None;
       this._isActiveInEngine && entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);

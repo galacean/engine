@@ -81,7 +81,7 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  static _removeFormChildren(children: Entity[], entity: Entity): void {
+  static _removeFromChildren(children: Entity[], entity: Entity): void {
     const count = children.length - 1;
     for (let i = entity._siblingIndex; i < count; i++) {
       const child = children[i + 1];
@@ -353,7 +353,7 @@ export class Entity extends EngineObject {
 
     if (child._isRoot) {
       const oldScene = child._scene;
-      Entity._removeFormChildren(oldScene._rootEntities, child);
+      Entity._removeFromChildren(oldScene._rootEntities, child);
       child._isRoot = false;
 
       this._addToChildrenList(index, child);
@@ -619,7 +619,7 @@ export class Entity extends EngineObject {
   _removeFromParent(): void {
     const oldParent = this._parent;
     if (oldParent != null) {
-      Entity._removeFormChildren(oldParent._children, this);
+      Entity._removeFromChildren(oldParent._children, this);
       this._parent = null;
       this._dispatchModify(EntityModifyFlags.Child, oldParent);
     }
