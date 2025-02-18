@@ -78,6 +78,43 @@ export class Entity extends EngineObject {
     return entity;
   }
 
+  /**
+   * @internal
+   */
+  static _removeFormChildren(children: Entity[], entity: Entity): void {
+    const count = children.length - 1;
+    for (let i = entity._siblingIndex; i < count; i++) {
+      const child = children[i + 1];
+      children[i] = child;
+      child._siblingIndex = i;
+    }
+    children.length = count;
+    entity._siblingIndex = -1;
+  }
+
+  /**
+   * @internal
+   */
+  static _addToChildren(children: Entity[], entity: Entity, index?: number): void {
+    const childCount = children.length;
+    children.length = childCount + 1;
+    if (index === undefined) {
+      children[childCount] = entity;
+      entity._siblingIndex = childCount;
+    } else {
+      if (index < 0 || index > childCount) {
+        throw `The index ${index} is out of child list bounds ${childCount}`;
+      }
+      for (let i = childCount; i > index; i--) {
+        const swapChild = children[i - 1];
+        swapChild._siblingIndex = i;
+        children[i] = swapChild;
+      }
+      entity._siblingIndex = index;
+      children[index] = entity;
+    }
+  }
+
   /** The name of entity. */
   name: string;
   /** The layer the entity belongs to. */
@@ -315,13 +352,13 @@ export class Entity extends EngineObject {
     }
 
     if (child._isRoot) {
-      child._scene._removeFromEntityList(child);
+      const oldScene = child._scene;
+      Entity._removeFormChildren(oldScene._rootEntities, child);
       child._isRoot = false;
 
       this._addToChildrenList(index, child);
       child._parent = this;
 
-      const oldScene = child._scene;
       const newScene = this._scene;
 
       let inActiveChangeFlag = ActiveChangeFlag.None;
@@ -582,14 +619,8 @@ export class Entity extends EngineObject {
   _removeFromParent(): void {
     const oldParent = this._parent;
     if (oldParent != null) {
-      const oldSibling = oldParent._children;
-      let index = this._siblingIndex;
-      oldSibling.splice(index, 1);
-      for (let n = oldSibling.length; index < n; index++) {
-        oldSibling[index]._siblingIndex--;
-      }
+      Entity._removeFormChildren(oldParent._children, this);
       this._parent = null;
-      this._siblingIndex = -1;
       this._dispatchModify(EntityModifyFlags.Child, oldParent);
     }
   }
@@ -645,21 +676,7 @@ export class Entity extends EngineObject {
   }
 
   private _addToChildrenList(index: number, child: Entity): void {
-    const children = this._children;
-    const childCount = children.length;
-    if (index === undefined) {
-      child._siblingIndex = childCount;
-      children.push(child);
-    } else {
-      if (index < 0 || index > childCount) {
-        throw `The index ${index} is out of child list bounds ${childCount}`;
-      }
-      child._siblingIndex = index;
-      children.splice(index, 0, child);
-      for (let i = index + 1, n = childCount + 1; i < n; i++) {
-        children[i]._siblingIndex++;
-      }
-    }
+    Entity._addToChildren(this._children, child, index);
     this._dispatchModify(EntityModifyFlags.Child, this);
   }
 
