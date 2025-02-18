@@ -110,9 +110,7 @@ void PBRFragment(Varyings varyings) {
       color = fog(color, varyings.positionVS);
   #endif
 
-  #ifndef ENGINE_IS_COLORSPACE_GAMMA
-      color = linearToGamma(color);
-  #endif
+  color = linearToGamma(color);
 
   gl_FragColor = color;
 }

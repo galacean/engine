@@ -139,9 +139,7 @@ Shader "Water" {
         fogAmount = clamp(fogAmount, 0.0, 1.0);
         gl_FragColor = mix(color, u_fogColor, fogAmount); 
   
-        #ifndef ENGINE_IS_COLORSPACE_GAMMA
-          gl_FragColor = linearToGamma(gl_FragColor);
-        #endif
+        gl_FragColor = linearToGamma(gl_FragColor);
 
 
 #define REFRACTION_MODE

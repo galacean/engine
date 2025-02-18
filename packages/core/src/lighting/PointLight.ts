@@ -1,5 +1,4 @@
 import { Color, Vector3 } from "@galacean/engine-math";
-import { ColorSpace } from "../enums/ColorSpace";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
@@ -49,15 +48,10 @@ export class PointLight extends Light {
     data.cullingMask[cullingMaskStart] = cullingMask & 65535;
     data.cullingMask[cullingMaskStart + 1] = (cullingMask >>> 16) & 65535;
 
-    if (this.engine.settings.colorSpace === ColorSpace.Linear) {
-      data.color[colorStart] = Color.gammaToLinearSpace(lightColor.r);
-      data.color[colorStart + 1] = Color.gammaToLinearSpace(lightColor.g);
-      data.color[colorStart + 2] = Color.gammaToLinearSpace(lightColor.b);
-    } else {
-      data.color[colorStart] = lightColor.r;
-      data.color[colorStart + 1] = lightColor.g;
-      data.color[colorStart + 2] = lightColor.b;
-    }
+    data.color[colorStart] = Color.gammaToLinearSpace(lightColor.r);
+    data.color[colorStart + 1] = Color.gammaToLinearSpace(lightColor.g);
+    data.color[colorStart + 2] = Color.gammaToLinearSpace(lightColor.b);
+
     data.position[positionStart] = lightPosition.x;
     data.position[positionStart + 1] = lightPosition.y;
     data.position[positionStart + 2] = lightPosition.z;

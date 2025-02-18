@@ -1,7 +1,6 @@
 import { BoundingBox, Color, MathUtil, Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
-import { ColorSpace } from "../enums/ColorSpace";
 import { Primitive } from "../graphic/Primitive";
 import { SubMesh } from "../graphic/SubMesh";
 import { SubPrimitive } from "../graphic/SubPrimitive";
@@ -732,10 +731,8 @@ export class ParticleGenerator {
     // Color
     const startColor = ParticleGenerator._tempColor0;
     main.startColor.evaluate(undefined, main._startColorRand.random(), startColor);
-    if (this._renderer.engine.settings.colorSpace === ColorSpace.Linear) {
-      startColor.toLinear(startColor);
-    }
-
+    
+    startColor.toLinear(startColor);
     instanceVertices[offset + 8] = startColor.r;
     instanceVertices[offset + 9] = startColor.g;
     instanceVertices[offset + 10] = startColor.b;

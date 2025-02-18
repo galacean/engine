@@ -14,9 +14,7 @@ void main() {
 
     #ifdef MATERIAL_HAS_BASETEXTURE
         vec4 textureColor = texture2D(material_BaseTexture, v_uv);
-        #ifndef ENGINE_IS_COLORSPACE_GAMMA
-            textureColor = gammaToLinear(textureColor);
-        #endif
+        textureColor = gammaToLinear(textureColor);
         baseColor *= textureColor;
     #endif
 
@@ -34,7 +32,5 @@ void main() {
 
     #include <FogFragment>
 
-     #ifndef ENGINE_IS_COLORSPACE_GAMMA
-        gl_FragColor = linearToGamma(gl_FragColor);
-    #endif
+    gl_FragColor = linearToGamma(gl_FragColor);
 }

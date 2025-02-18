@@ -18,11 +18,7 @@ float log10(float x){
 
 vec4 sampleTexture(sampler2D tex, vec2 uv){
     vec4 color = texture2D(tex, uv);
-
-    #ifndef ENGINE_IS_COLORSPACE_GAMMA
-      color = gammaToLinear(color);
-    #endif 
-
+    color = gammaToLinear(color);
     return color;
 }
 
