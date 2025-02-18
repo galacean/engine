@@ -8,7 +8,7 @@ import { BaseToken, BaseToken as Token } from "../common/BaseToken";
 import { ParserUtils } from "../ParserUtils";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 import { NoneTerminal } from "./GrammarSymbol";
-import SematicAnalyzer from "./SemanticAnalyzer";
+import SemanticAnalyzer from "./SemanticAnalyzer";
 import { ShaderData } from "./ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, VarSymbol } from "./symbolTable";
 import { IParamInfo, NodeChild, StructProp, SymbolType } from "./types";
@@ -54,7 +54,7 @@ export abstract class TreeNode implements IPoolElement {
   /**
    * Do semantic analyze right after the ast node is generated.
    */
-  semanticAnalyze(sa: SematicAnalyzer) {}
+  semanticAnalyze(sa: SemanticAnalyzer) {}
 }
 
 export namespace ASTNode {
@@ -69,7 +69,7 @@ export namespace ASTNode {
     throw "not token";
   }
 
-  export function get(pool: ASTNodePool, sa: SematicAnalyzer, loc: ShaderRange, children: NodeChild[]) {
+  export function get(pool: ASTNodePool, sa: SemanticAnalyzer, loc: ShaderRange, children: NodeChild[]) {
     const node = pool.get();
     node.set(loc, children);
     node.semanticAnalyze(sa);
@@ -81,14 +81,14 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.scope_brace)
   export class ScopeBrace extends TreeNode {
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       sa.newScope();
     }
   }
 
   @ASTNodeDecorator(NoneTerminal.scope_end_brace)
   export class ScopeEndBrace extends TreeNode {
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       sa.dropScope();
     }
   }
@@ -101,7 +101,7 @@ export namespace ASTNode {
       this.isFragReturnStatement = false;
     }
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (ASTNode._unwrapToken(this.children![0]).type === EKeyword.RETURN) {
         sa.curFunctionInfo.returnStatement = this;
       }
@@ -152,7 +152,7 @@ export namespace ASTNode {
   // #if _VERBOSE
   @ASTNodeDecorator(NoneTerminal.initializer_list)
   export class InitializerList extends ExpressionAstNode {
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const init = this.children[0] as Initializer | InitializerList;
       this.type = init.type;
     }
@@ -160,7 +160,7 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.initializer)
   export class Initializer extends ExpressionAstNode {
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<AssignmentExpression>this.children[0]).type;
       } else {
@@ -180,7 +180,7 @@ export namespace ASTNode {
       this.arraySpecifier = undefined;
     }
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
       const childrenLen = children.length;
       const fullyType = children[0] as FullySpecifiedType;
@@ -222,7 +222,7 @@ export namespace ASTNode {
     typeSpecifier: TypeSpecifier;
     type: GalaceanDataType;
 
-    override semanticAnalyze(_: SematicAnalyzer): void {
+    override semanticAnalyze(_: SemanticAnalyzer): void {
       const children = this.children;
       this.typeSpecifier = (children.length === 1 ? children[0] : children[1]) as TypeSpecifier;
       this.type = this.typeSpecifier.type;
@@ -237,7 +237,7 @@ export namespace ASTNode {
     qualifier: EKeyword;
     lexeme: string;
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const child = this.children[0];
       if (child instanceof Token) {
         this.qualifier = child.type as EKeyword;
@@ -253,7 +253,7 @@ export namespace ASTNode {
     qualifier: EKeyword;
     lexeme: string;
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const token = this.children[0] as Token;
       this.qualifier = token.type as EKeyword;
       this.lexeme = token.lexeme;
@@ -288,7 +288,7 @@ export namespace ASTNode {
       return this.children[1] as ArraySpecifier;
     }
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
       const firstChild = children[0] as TypeSpecifierNonArray;
       this.type = firstChild.type;
@@ -301,7 +301,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.array_specifier)
   export class ArraySpecifier extends TreeNode {
     size: number | undefined;
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const integerConstantExpr = this.children[1] as IntegerConstantExpression;
       this.size = integerConstantExpr.value;
     }
@@ -312,7 +312,7 @@ export namespace ASTNode {
     compute: (a: number, b: number) => number;
     lexeme: string;
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const operator = this.children[0] as Token;
       this.lexeme = operator.lexeme;
       switch (operator.type) {
@@ -345,7 +345,7 @@ export namespace ASTNode {
       this.value = undefined;
     }
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         const child = this.children[0];
         if (child instanceof Token) {
@@ -400,7 +400,7 @@ export namespace ASTNode {
   export class InitDeclaratorList extends TreeNode {
     typeInfo: SymbolType;
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       let sm: VarSymbol;
       const children = this.children;
       const childrenLength = children.length;
@@ -440,17 +440,20 @@ export namespace ASTNode {
       this.idList.length = 0;
     }
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
-      const { children, idList } = this;
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      const { children, idList: curIdList } = this;
       if (children.length === 2) {
-        idList.push(children[1] as Token);
+        curIdList.push(children[1] as Token);
       } else {
         const list = children[0] as IdentifierList;
         const id = children[2] as Token;
-        for (let i = 0, len = list.idList.length; i < len; i++) {
-          idList.push(list.idList[i]);
+        const listIdLength = list.idList.length;
+        curIdList.length = listIdLength + 1;
+
+        for (let i = 0; i < listIdLength; i++) {
+          curIdList[i] = list.idList[i];
         }
-        idList.push(id);
+        curIdList[listIdLength] = id;
       }
     }
   }
@@ -469,7 +472,7 @@ export namespace ASTNode {
     parameterList: IParamInfo[];
     paramSig: GalaceanDataType[];
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const declarator = this.children[0] as FunctionDeclarator;
       this.ident = declarator.ident;
       this.returnType = declarator.returnType;
@@ -489,7 +492,7 @@ export namespace ASTNode {
     parameterInfoList: IParamInfo[] | undefined;
     paramSig: GalaceanDataType[] | undefined;
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       sa.curFunctionInfo.returnStatement = null;
       sa.curFunctionInfo.header = this;
 
@@ -508,7 +511,7 @@ export namespace ASTNode {
     ident: Token;
     returnType: FullySpecifiedType;
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       sa.newScope();
       const children = this.children;
       this.ident = children[1] as Token;
@@ -530,7 +533,7 @@ export namespace ASTNode {
       this.paramSig.length = 0;
     }
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
       const childrenLength = children.length;
       const { parameterInfoList, paramSig } = this;
@@ -541,12 +544,16 @@ export namespace ASTNode {
       } else {
         const list = children[0] as FunctionParameterList;
         const decl = children[2] as ParameterDeclaration;
-        for (let i = 0, len = list.parameterInfoList.length; i < len; i++) {
-          parameterInfoList.push(list.parameterInfoList[i]);
-          paramSig.push(list.paramSig[i]);
+        const listParamLength = list.parameterInfoList.length;
+        parameterInfoList.length = listParamLength + 1;
+        paramSig.length = listParamLength + 1;
+
+        for (let i = 0; i < listParamLength; i++) {
+          parameterInfoList[i] = list.parameterInfoList[i];
+          paramSig[i] = list.paramSig[i];
         }
-        parameterInfoList.push({ ident: decl.ident, typeInfo: decl.typeInfo, astNode: decl });
-        paramSig.push(decl.typeInfo.type);
+        parameterInfoList[listParamLength] = { ident: decl.ident, typeInfo: decl.typeInfo, astNode: decl };
+        paramSig[listParamLength] = decl.typeInfo.type;
       }
     }
 
@@ -565,7 +572,7 @@ export namespace ASTNode {
       this.typeQualifier = undefined;
     }
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
       const childrenLength = children.length;
       let parameterDeclarator: ParameterDeclarator;
@@ -590,7 +597,7 @@ export namespace ASTNode {
     ident: Token;
     typeInfo: SymbolType;
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
       this.ident = children[1] as Token;
       const typeSpecifier = children[0] as TypeSpecifier;
@@ -632,7 +639,7 @@ export namespace ASTNode {
       this.returnStatement = undefined;
     }
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
       this.protoType = children[0] as FunctionProtoType;
       this.statements = children[1] as CompoundStatementNoScope;
@@ -665,7 +672,7 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.function_call)
   export class FunctionCall extends ExpressionAstNode {
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       this.type = (this.children[0] as FunctionCallGeneric).type;
     }
 
@@ -683,7 +690,7 @@ export namespace ASTNode {
       this.fnSymbol = undefined;
     }
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const functionIdentifier = this.children[0] as FunctionIdentifier;
       if (functionIdentifier.isBuiltin) {
         this.type = functionIdentifier.ident;
@@ -728,7 +735,7 @@ export namespace ASTNode {
       this.paramNodes.length = 0;
     }
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const { children, paramSig, paramNodes } = this;
       if (children.length === 1) {
         const expr = children[0] as AssignmentExpression;
@@ -745,12 +752,16 @@ export namespace ASTNode {
         if (list.paramSig.length === 0 || decl.type == undefined) {
           this.paramSig.push(TypeAny);
         } else {
-          for (let i = 0, length = list.paramSig.length; i < length; i++) {
-            paramSig.push(list.paramSig[i]);
-            paramNodes.push(list.paramNodes[i]);
+          const listParamLength = list.paramSig.length;
+          paramSig.length = listParamLength + 1;
+          paramNodes.length = listParamLength + 1;
+
+          for (let i = 0; i < listParamLength; i++) {
+            paramSig[i] = list.paramSig[i];
+            paramNodes[i] = list.paramNodes[i];
           }
-          paramSig.push(decl.type);
-          paramNodes.push(decl);
+          paramSig[listParamLength] = decl.type;
+          paramNodes[listParamLength] = decl;
         }
       }
     }
@@ -758,7 +769,7 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.precision_specifier)
   export class PrecisionSpecifier extends TreeNode {
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       sa.shaderData.globalPrecisions.push(this);
     }
   }
@@ -769,7 +780,7 @@ export namespace ASTNode {
     lexeme: string;
     isBuiltin: boolean;
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const typeSpecifier = this.children[0] as TypeSpecifier;
       this.ident = typeSpecifier.type;
       this.lexeme = typeSpecifier.lexeme;
@@ -784,7 +795,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.assignment_expression)
   export class AssignmentExpression extends ExpressionAstNode {
     // #if _VERBOSE
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         const expr = this.children[0] as ConditionalExpression;
         this.type = expr.type ?? TypeAny;
@@ -804,7 +815,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.expression)
   export class Expression extends ExpressionAstNode {
     // #if _VERBOSE
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         const expr = this.children[0] as AssignmentExpression;
         this.type = expr.type;
@@ -818,7 +829,7 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.primary_expression)
   export class PrimaryExpression extends ExpressionAstNode {
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         const id = this.children[0];
         if (id instanceof VariableIdentifier) {
@@ -904,7 +915,7 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.shift_expression)
   export class ShiftExpression extends ExpressionAstNode {
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const expr = this.children[0] as ExpressionAstNode;
       this.type = expr.type;
     }
@@ -912,7 +923,7 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.relational_expression)
   export class RelationalExpression extends ExpressionAstNode {
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<ShiftExpression>this.children[0]).type;
       } else {
@@ -923,7 +934,7 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.equality_expression)
   export class EqualityExpression extends ExpressionAstNode {
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<RelationalExpression>this.children[0]).type;
       } else {
@@ -934,7 +945,7 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.and_expression)
   export class AndExpression extends ExpressionAstNode {
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<AndExpression>this.children[0]).type;
       } else {
@@ -945,7 +956,7 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.exclusive_or_expression)
   export class ExclusiveOrExpression extends ExpressionAstNode {
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<AndExpression>this.children[0]).type;
       } else {
@@ -956,7 +967,7 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.inclusive_or_expression)
   export class InclusiveOrExpression extends ExpressionAstNode {
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<ExclusiveOrExpression>this.children[0]).type;
       } else {
@@ -967,7 +978,7 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.logical_and_expression)
   export class LogicalAndExpression extends ExpressionAstNode {
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<InclusiveOrExpression>this.children[0]).type;
       } else {
@@ -978,7 +989,7 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.logical_xor_expression)
   export class LogicalXorExpression extends ExpressionAstNode {
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<LogicalAndExpression>this.children[0]).type;
       } else {
@@ -989,7 +1000,7 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.logical_or_expression)
   export class LogicalOrExpression extends ExpressionAstNode {
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<LogicalXorExpression>this.children[0]).type;
       } else {
@@ -1000,7 +1011,7 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.conditional_expression)
   export class ConditionalExpression extends ExpressionAstNode {
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<LogicalOrExpression>this.children[0]).type;
       }
@@ -1017,7 +1028,7 @@ export namespace ASTNode {
       this.ident = undefined;
     }
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
       if (children.length === 6) {
         this.ident = children[1] as Token;
@@ -1038,22 +1049,28 @@ export namespace ASTNode {
       this.propList.length = 0;
     }
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
-      const children = this.children;
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      const { children, propList } = this;
 
       if (children.length === 1) {
         const props = (children[0] as StructDeclaration).props;
-        for (let i = 0, length = props.length; i < length; i++) {
-          this.propList.push(props[i]);
+        const propsLength = props.length;
+        propList.length = propsLength;
+        for (let i = 0; i < propsLength; i++) {
+          propList[i] = props[i];
         }
       } else {
         const listProps = (children[0] as StructDeclarationList).propList;
         const declProps = (children[1] as StructDeclaration).props;
-        for (let i = 0, length = listProps.length; i < length; i++) {
-          this.propList.push(listProps[i]);
+        const listPropLength = listProps.length;
+        const declPropLength = declProps.length;
+        propList.length = listPropLength + declPropLength;
+
+        for (let i = 0; i < listPropLength; i++) {
+          propList[i] = listProps[i];
         }
-        for (let i = 0, length = declProps.length; i < length; i++) {
-          this.propList.push(declProps[i]);
+        for (let i = 0; i < declPropLength; i++) {
+          propList[i + listPropLength] = declProps[i];
         }
       }
     }
@@ -1071,8 +1088,8 @@ export namespace ASTNode {
       this.props.length = 0;
     }
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
-      const children = this.children;
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      const { children, props } = this;
       if (children.length === 3) {
         this.typeSpecifier = children[0] as TypeSpecifier;
         this.declaratorList = children[1] as StructDeclaratorList;
@@ -1087,14 +1104,16 @@ export namespace ASTNode {
         const declarator = children[2] as StructDeclarator;
         const typeInfo = new SymbolType(type, lexeme);
         const prop = new StructProp(typeInfo, declarator.ident, firstChild.index);
-        this.props.push(prop);
+        props.push(prop);
       } else {
         const declaratorList = this.declaratorList.declaratorList;
-        for (let i = 0, length = declaratorList.length; i < length; i++) {
+        const declaratorListLength = declaratorList.length;
+        props.length = declaratorListLength;
+        for (let i = 0; i < declaratorListLength; i++) {
           const declarator = declaratorList[i];
           const typeInfo = new SymbolType(type, lexeme, declarator.arraySpecifier);
           const prop = new StructProp(typeInfo, declarator.ident);
-          this.props.push(prop);
+          props[i] = prop;
         }
       }
     }
@@ -1104,7 +1123,7 @@ export namespace ASTNode {
   export class LayoutQualifier extends TreeNode {
     index: number;
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       this.index = Number((<BaseToken>this.children[4]).lexeme);
     }
   }
@@ -1117,17 +1136,19 @@ export namespace ASTNode {
       this.declaratorList.length = 0;
     }
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
-      const children = this.children;
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      const { children, declaratorList } = this;
       if (children.length === 1) {
-        this.declaratorList.push(children[0] as StructDeclarator);
+        declaratorList.push(children[0] as StructDeclarator);
       } else {
         const list = children[0] as StructDeclaratorList;
         const declarator = children[1] as StructDeclarator;
-        for (let i = 0, length = list.declaratorList.length; i < length; i++) {
-          this.declaratorList.push(list.declaratorList[i]);
+        const listLength = list.declaratorList.length;
+        declaratorList.length = listLength + 1;
+        for (let i = 0; i < listLength; i++) {
+          declaratorList[i] = list.declaratorList[i];
         }
-        this.declaratorList.push(declarator);
+        declaratorList[listLength] = declarator;
       }
     }
   }
@@ -1141,7 +1162,7 @@ export namespace ASTNode {
       this.arraySpecifier = undefined;
     }
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
       this.ident = children[0] as Token;
       this.arraySpecifier = children[1] as ArraySpecifier;
@@ -1152,7 +1173,7 @@ export namespace ASTNode {
   export class VariableDeclaration extends TreeNode {
     type: FullySpecifiedType;
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
       const type = children[0] as FullySpecifiedType;
       const ident = children[1] as Token;
@@ -1171,7 +1192,7 @@ export namespace ASTNode {
   export class VariableDeclarationList extends TreeNode {
     type: FullySpecifiedType;
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const { children } = this;
       const length = children.length;
       const variableDeclaration = children[0] as VariableDeclaration;
@@ -1208,7 +1229,7 @@ export namespace ASTNode {
     lexeme: string;
     typeInfo: GalaceanDataType;
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const token = this.children[0] as Token;
       this.lexeme = token.lexeme;
 
@@ -1239,7 +1260,7 @@ export namespace ASTNode {
   export class GLShaderProgram extends TreeNode {
     shaderData: ShaderData;
 
-    override semanticAnalyze(sa: SematicAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       this.shaderData = sa.shaderData;
       this.shaderData.symbolTable = sa.symbolTableStack._scope;
     }
