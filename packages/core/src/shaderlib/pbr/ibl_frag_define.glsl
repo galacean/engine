@@ -35,7 +35,6 @@ vec3 envBRDFApprox(vec3 specularColor,float roughness, float dotNV ) {
     vec2 AB = vec2( -1.04, 1.04 ) * a004 + r.zw;
 
     return specularColor * AB.x + AB.y;
-
 }
 
 
@@ -84,4 +83,15 @@ vec3 getLightProbeRadiance(Geometry geometry, vec3 normal, float roughness, int 
 
     #endif
 
+}
+
+
+void evaluateSheenIBL(Geometry geometry, Material material, float radianceAttenuation, inout vec3 diffuseColor, inout vec3 specularColor){
+    #ifdef MATERIAL_ENABLE_SHEEN
+        diffuseColor *= material.sheenScaling;
+        specularColor *= material.sheenScaling;
+
+        vec3 reflectance = material.specularAO * radianceAttenuation * material.approxIBLSheenDG * material.sheenColor;
+        specularColor += reflectance;
+    #endif
 }

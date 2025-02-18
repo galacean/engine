@@ -215,10 +215,12 @@ export class ParticleGradient {
     keys.splice(index, 1);
   }
 
+  @ignoreClone
   private _setColorTypeArrayDirty(): void {
     this._colorTypeArrayDirty = true;
   }
 
+  @ignoreClone
   private _setAlphaTypeArrayDirty(): void {
     this._alphaTypeArrayDirty = true;
   }
@@ -243,7 +245,7 @@ export class GradientColorKey {
 
   set time(value: number) {
     this._time = value;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged?.();
   }
 
   /**
@@ -291,7 +293,7 @@ export class GradientAlphaKey {
 
   set time(value: number) {
     this._time = value;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged?.();
   }
 
   /**
@@ -303,7 +305,7 @@ export class GradientAlphaKey {
 
   set alpha(value: number) {
     this._alpha = value;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged?.();
   }
 
   /**

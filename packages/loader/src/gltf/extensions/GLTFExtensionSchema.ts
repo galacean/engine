@@ -23,24 +23,14 @@ export interface IKHRLightsPunctual {
 }
 
 /**
- * Interfaces from the KHR_draco_mesh_compression extension
- */
-export interface IKHRDracoMeshCompression {
-  bufferView: number;
-  attributes: {
-    [name: string]: number;
-  };
-}
-
-/**
  * Interfaces from the KHR_materials_clearcoat extension
  */
 export interface IKHRMaterialsClearcoat {
-  clearcoatFactor: number;
-  clearcoatTexture: ITextureInfo;
-  clearcoatRoughnessFactor: number;
-  clearcoatRoughnessTexture: ITextureInfo;
-  clearcoatNormalTexture: IMaterialNormalTextureInfo;
+  clearcoatFactor?: number;
+  clearcoatTexture?: ITextureInfo;
+  clearcoatRoughnessFactor?: number;
+  clearcoatRoughnessTexture?: ITextureInfo;
+  clearcoatNormalTexture?: IMaterialNormalTextureInfo;
 }
 
 /**
@@ -162,6 +152,16 @@ export interface IKHRXmp_Node {
   packet: number;
 }
 
+export interface IEXTMeshoptCompressionSchema {
+  buffer: number;
+  byteOffset?: number;
+  byteLength: number;
+  byteStride: number;
+  mode: "ATTRIBUTES" | "TRIANGLES" | "INDICES";
+  count: number;
+  filter?: "NONE" | "OCTAHEDRAL" | "QUATERNION" | "EXPONENTIAL";
+}
+
 export interface IGalaceanMaterialRemap {
   refId: string;
   key?: string;
@@ -176,9 +176,30 @@ export interface IGalaceanAnimation {
   }[];
 }
 
+/**
+ * Interfaces from the KHR_materials_iridescence extension
+ */
+export interface IKHRMaterialsIridescence {
+  iridescenceFactor?: number;
+  iridescenceTexture?: ITextureInfo;
+  iridescenceIor?: number;
+  iridescenceThicknessMinimum?: number;
+  iridescenceThicknessMaximum?: number;
+  iridescenceThicknessTexture?: ITextureInfo;
+}
+
+/**
+ * Interfaces from the KHR_materials_volume extension
+ */
+export interface IKHRMaterialsVolume {
+  thicknessFactor?: number;
+  thicknessTexture?: ITextureInfo;
+  attenuationDistance?: number;
+  attenuationColor?: number[];
+}
+
 export type GLTFExtensionSchema =
   | IKHRLightsPunctual_Light
-  | IKHRDracoMeshCompression
   | IKHRMaterialsClearcoat
   | IKHRMaterialsIor
   | IKHRMaterialsUnlit
@@ -195,4 +216,6 @@ export type GLTFExtensionSchema =
   | IKHRXmp
   | IKHRXmp_Node
   | IGalaceanAnimation
+  | IKHRMaterialsIridescence
+  | IKHRMaterialsVolume
   | Object;

@@ -1,6 +1,6 @@
 import { Entity, Script } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import chai, { expect } from "chai";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 class TestComponent extends Script {}
 
@@ -14,20 +14,39 @@ describe("Entity", async () => {
 
   describe("scene.findByPath", () => {
     it("normal", () => {
+      const parentX = new Entity(engine, "parent");
       const parent = new Entity(engine, "parent");
+      const parentY = new Entity(engine, "parent");
 
-      parent.parent = scene.getRootEntity();
+      const root = scene.getRootEntity();
+      parentX.parent = root;
+      parent.parent = root;
+      parentY.parent = root;
+
       const child = new Entity(engine, "child");
-      child.parent = parent;
+      child.parent = parentX;
+      const child1 = new Entity(engine, "child1");
+      child1.parent = parent;
+      const child2 = new Entity(engine, "child2");
+      child2.parent = parentY;
 
-      expect(scene.findEntityByPath("root/parent")).eq(parent);
+     
+      expect(scene.findEntityByPath("")).eq(null);
 
+      expect(scene.findEntityByPath("root")).eq(root);
+
+      expect(scene.findEntityByPath("root/parent")).eq(parentX);
+
+      expect(scene.findEntityByPath("root/parent/null")).eq(null);
+
+      expect(scene.findEntityByPath("root/parent/child1")).eq(child1);
       expect(scene.findEntityByPath("root/parent/child")).eq(child);
+      expect(scene.findEntityByPath("root/parent/child2")).eq(child2);
     });
     it("not found", () => {
       const parent = new Entity(engine, "parent");
-
       parent.parent = scene.getRootEntity();
+
       const child = new Entity(engine, "child");
       child.parent = parent;
 
@@ -232,6 +251,11 @@ describe("Entity", async () => {
       parent.addChild(child);
       expect(child.parent).eq(parent);
       expect(child.scene).eq(scene);
+
+      const childAno = new Entity(engine, "childAno");
+      childAno.parent = parent;
+      parent.addChild(0, childAno);
+      expect(childAno.siblingIndex).eq(0);
     });
 
     it("removeChild", () => {
@@ -281,10 +305,18 @@ describe("Entity", async () => {
       parent.parent = scene.getRootEntity();
       const child = new Entity(engine, "child");
       child.parent = parent;
-      const child2 = new Entity(engine, "child2");
+      const child2 = new Entity(engine, "child");
       child2.parent = parent;
+      const child3 = new Entity(engine, "child");
+      child3.parent = parent;
+
+      const grandson = new Entity(engine, "grandsonX");
+      grandson.parent = child;
+      const grandson2 = new Entity(engine, "grandson");
+      grandson2.parent = child2;
+
       expect(parent.findByPath("/child")).eq(child);
-      expect(parent.findByPath("child2")).eq(child2);
+      expect(parent.findByPath("child/grandson")).eq(grandson2);
     });
 
     it("clearChildren", () => {
@@ -412,8 +444,8 @@ describe("Entity", async () => {
         onDisable(): void {}
         onDestroy(): void {}
       }
-      DestroyScript.prototype.onDisable = chai.spy(DestroyScript.prototype.onDisable);
-      DestroyScript.prototype.onDestroy = chai.spy(DestroyScript.prototype.onDestroy);
+      DestroyScript.prototype.onDisable = vi.fn(DestroyScript.prototype.onDisable);
+      DestroyScript.prototype.onDestroy = vi.fn(DestroyScript.prototype.onDestroy);
 
       const root = scene.createRootEntity("root");
       const entity = root.createChild("entity");
@@ -423,7 +455,7 @@ describe("Entity", async () => {
       expect(entity.isActiveInHierarchy).eq(false);
       expect(entity.parent).eq(null);
       expect(entity.scene).eq(null);
-      expect(script.onDisable).to.have.been.called.exactly(1);
+      expect(script.onDisable).toHaveBeenCalledTimes(1);
 
       expect(entity.createChild("child0").isActiveInHierarchy).eq(false);
       root.destroy();
@@ -432,7 +464,7 @@ describe("Entity", async () => {
       expect(root.createChild("child1").isActiveInHierarchy).eq(false);
 
       engine.update();
-      expect(script.onDestroy).to.have.been.called.exactly(1);
+      expect(script.onDestroy).toHaveBeenCalledTimes(1);
     });
   });
 });

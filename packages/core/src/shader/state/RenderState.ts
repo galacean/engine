@@ -1,4 +1,5 @@
 import { ShaderData, ShaderProperty } from "..";
+import { RenderStateElementMap } from "../../BasicResources";
 import { Engine } from "../../Engine";
 import { deepClone } from "../../clone/CloneManager";
 import { RenderQueueType } from "../enums/RenderQueueType";
@@ -30,35 +31,50 @@ export class RenderState {
 
   /**
    * @internal
-   * @todo Should merge when we can delete material render state.
    */
-  _applyShaderDataValue(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
-    this.blendState._applyShaderDataValue(renderStateDataMap, shaderData);
-    this.depthState._applyShaderDataValue(renderStateDataMap, shaderData);
-    this.stencilState._applyShaderDataValue(renderStateDataMap, shaderData);
-    this.rasterState._applyShaderDataValue(renderStateDataMap, shaderData);
-
-    const renderQueueType = renderStateDataMap[RenderStateElementKey.RenderQueueType];
-    if (renderQueueType !== undefined) {
-      this.renderQueueType = shaderData.getFloat(renderQueueType) ?? RenderQueueType.Opaque;
-    }
+  _applyStates(
+    engine: Engine,
+    frontFaceInvert: boolean,
+    renderStateDataMap: Record<number, ShaderProperty>,
+    shaderData: ShaderData,
+    customRenderStates?: RenderStateElementMap
+  ): void {
+    // @todo: Should merge when we can delete material render state
+    renderStateDataMap && this._applyStatesByShaderData(renderStateDataMap, shaderData);
+    const hardwareRenderer = engine._hardwareRenderer;
+    const lastRenderState = engine._lastRenderState;
+    const context = engine._renderContext;
+    this.blendState._apply(hardwareRenderer, lastRenderState, customRenderStates);
+    this.depthState._apply(hardwareRenderer, lastRenderState, customRenderStates);
+    this.stencilState._apply(hardwareRenderer, lastRenderState, customRenderStates);
+    this.rasterState._apply(
+      hardwareRenderer,
+      lastRenderState,
+      context.flipProjection ? !frontFaceInvert : frontFaceInvert,
+      customRenderStates
+    );
   }
 
   /**
    * @internal
+   * @todo Should merge when we can delete material render state
    */
-  _apply(
-    engine: Engine,
-    frontFaceInvert: boolean,
+  _getRenderQueueByShaderData(
     renderStateDataMap: Record<number, ShaderProperty>,
     shaderData: ShaderData
-  ): void {
-    renderStateDataMap && this._applyShaderDataValue(renderStateDataMap, shaderData);
-    const hardwareRenderer = engine._hardwareRenderer;
-    const lastRenderState = engine._lastRenderState;
-    this.blendState._apply(hardwareRenderer, lastRenderState);
-    this.depthState._apply(hardwareRenderer, lastRenderState);
-    this.stencilState._apply(hardwareRenderer, lastRenderState);
-    this.rasterState._apply(hardwareRenderer, lastRenderState, frontFaceInvert);
+  ): RenderQueueType {
+    const renderQueueType = renderStateDataMap[RenderStateElementKey.RenderQueueType];
+    if (renderQueueType === undefined) {
+      return this.renderQueueType;
+    } else {
+      return shaderData.getFloat(renderQueueType) ?? RenderQueueType.Opaque;
+    }
+  }
+
+  private _applyStatesByShaderData(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
+    this.blendState._applyShaderDataValue(renderStateDataMap, shaderData);
+    this.depthState._applyShaderDataValue(renderStateDataMap, shaderData);
+    this.stencilState._applyShaderDataValue(renderStateDataMap, shaderData);
+    this.rasterState._applyShaderDataValue(renderStateDataMap, shaderData);
   }
 }

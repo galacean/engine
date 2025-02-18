@@ -1,9 +1,12 @@
 {
   "name": "@galacean/engine-xr-webxr",
-  "version": "1.2.0-alpha.0",
+  "version": "1.4.9",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
+  },
+  "repository": {
+    "url": "https://github.com/galacean/engine"
   },
   "license": "MIT",
   "main": "dist/main.js",

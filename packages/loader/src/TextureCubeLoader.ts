@@ -1,14 +1,14 @@
 import {
   AssetPromise,
   AssetType,
-  Loader,
   LoadItem,
-  resourceLoader,
+  Loader,
+  RequestConfig,
   ResourceManager,
   TextureCube,
-  TextureCubeFace
+  TextureCubeFace,
+  resourceLoader
 } from "@galacean/engine-core";
-import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { TextureCubeContentRestorer } from "./TextureCubeContentRestorer";
 
 @resourceLoader(AssetType.TextureCube, [""])
@@ -21,7 +21,8 @@ class TextureCubeLoader extends Loader<TextureCube> {
         type: "image"
       };
 
-      Promise.all(urls.map((url) => this.request<HTMLImageElement>(url, requestConfig)))
+      // @ts-ignore
+      Promise.all(urls.map((url) => resourceManager._request<HTMLImageElement>(url, requestConfig)))
         .then((images) => {
           const { width, height } = images[0];
 

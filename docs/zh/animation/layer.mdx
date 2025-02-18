@@ -1,0 +1,63 @@
+---
+order: 5
+title: 动画层
+type: 动画
+label: Animation
+---
+
+`动画层`（[API](/apis/core/#AnimatorControllerLayer)）用于在一个 `动画控制器`（[详细介绍](/docs/animation/animatorController)） 中组织和管理 `动画状态机`（[详见](/docs/animation/state-machine/)）。
+每个 `动画层` 都有其自己的 `动画状态机`。在 `动画控制组件` 运行时所有的 `动画层` 同时运行，通过 `混合权重` 及 `混合模式` 控制各个 `动画层` 对整体动画的影响。
+
+| 属性     | 功能说明                                                                           |
+| :------- | :--------------------------------------------------------------------------------- |
+| Name     | 该层的名字。                                                                       |
+| Weight   | 该层的混合权重，默认值为 1.0 。                                                    |
+| Blending | 该层的混合模式，`Additive` 为叠加模式， `Override` 为覆盖模式，默认值为 `Override` |
+| StateMachine | 该层的动画状态机，[详细介绍](/docs/animation/state-machine/) |
+
+### 叠加模式
+叠加模式下，较高层的动画会在较低层动画的基础上叠加。这个模式下先计算动画关键帧的差异，将这些差异应用到较低层动画上，从而实现动画的叠加效果(随着权重的增加，不会减少下层对动画的影响)， 它常用于在基础动作上添加细节或调整。例如，角色在行走时可以使用 `Additive` 模式叠加一个呼吸动画，或在攻击时增加一个表情变化。
+
+#### 使用示例
+我们在编辑器添加一个 `动画层`，并将 `Blending` 选为 `Additive` 即可
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*JyqiQ6kvqBcAAAAAAAAAAAAADsJ_AQ/original" />
+
+### 覆盖模式
+覆盖模式下，较高层的动画会完全覆盖较低层的动画。这意味着在最终的动画输出中，较高层的动画会优先显示并替代较低层的动画效果(随着权重的增加，减少下层对动画的影响)。它常用于动画的分层控制。例如，你可能需要对不同身体部位的动作进行单独控制。`Override` 模式可以分离地控制各个部分，比如在跑步的同时调整上半身的姿势或动作。
+<Callout type="info">
+第一层的混合模式始终是覆盖模式。
+</Callout>
+
+#### 使用示例
+将 `Blending` 选为 `Override` 即可
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*5TfbQJjPZDMAAAAAAAAAAAAADsJ_AQ/original" />
+
+可以看到角色的动画完全替换掉了第一层的动画
+
+### 混合权重
+它用于控制特定 `动画层` 对最终动画结果的影响程度，是一个介于 0 到 1 之间的浮点值，决定了该层动画在最终动画中的混合比例。例如，叠加模式的层会使角色的头转90度，如果该层的混合权重是0.5，则角色只会旋转45度。
+<Callout type="info">
+第一层的权重始终是1.0。
+</Callout>
+
+#### 使用示例
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*HSxgTZIDqQ0AAAAAAAAAAAAADsJ_AQ/original" />
+
+可以看到 `动画层` 的权重越高对动画效果的影响越大。
+
+
+## 脚本使用
+
+```typescript
+const layers = animator.animatorController.layers;
+const baseLayer = layers[0];
+const additiveLayer = layers[1];
+// 叠加模式
+additiveLayer.blendingMode = AnimatorLayerBlendingMode.Additive;
+// 覆盖模式
+additiveLayer.blendingMode = AnimatorLayerBlendingMode.Override;
+additiveLayer.weight = 0.5;
+```
+<Playground href="/embed/skeleton-animation-additive" />

@@ -71,7 +71,7 @@ Shader "Waterfull" {
         vec2 TEXCOORD_0;
         vec3 NORMAL;
         vec4 TANGENT;
-      }
+      };
       struct v2f {
         mat4 v_ProjectionInvMat;
         vec2 v_uv;
@@ -83,7 +83,7 @@ Shader "Waterfull" {
         vec3 v_defaultNormalWS;
         vec3 v_defaultTangentWS;
         vec3 v_defaultBinormalWS;
-      }
+      };
       vec3 GerstnerOffset4( vec2 xzVtx, vec4 steepness, vec4 amp, vec4 freq, vec4 speed, vec4 dirAB, vec4 dirCD ) {
         vec3 offsets;
         vec4 AB = steepness.xxyy * dirAB.xyzw * amp.xxyy;
@@ -145,10 +145,12 @@ Shader "Waterfull" {
         positionWSOffset = positionOffset;
       }
       v2f vert( a2v v ) {
-        v2f out;
-        out.v_ProjectionInvMat = inverse( camera_ProjMat );
+
+        v2f o;
+
+        o.v_ProjectionInvMat = inverse( camera_ProjMat );
         mat4 WorldToObjectMat = inverse( renderer_ModelMat );
-        out.v_uv = v.TEXCOORD_0;
+        o.v_uv = v.TEXCOORD_0;
         vec3 defaultPosWS = ( renderer_ModelMat * vec4( v.POSITION, 1.0 ) ).xyz;
         vec3 defaultNormalWS = normalize( mat3( renderer_NormalMat ) * v.NORMAL.xyz );
         vec3 defaultTangentWS = normalize( mat3( renderer_NormalMat ) * v.TANGENT.xyz );
@@ -168,19 +170,18 @@ Shader "Waterfull" {
         // #endif
         vec3 posWS = ( renderer_ModelMat * vec4( waveVertexPos, 1.0 ) ).xyz;
         vec4 posCS = camera_VPMat * vec4( posWS, 1.0 );
-        out.v_waveY = waveY;
-        out.v_posOS = waveVertexPos;
-        out.v_posWS = posWS;
-        out.v_posCS = posCS;
-        out.v_normalOS = waveVertexNormal;
-        out.v_defaultNormalWS = defaultNormalWS;
-        out.v_defaultBinormalWS = defaultBinormalWS;
-        out.v_defaultTangentWS = defaultTangentWS;
+        o.v_waveY = waveY;
+        o.v_posOS = waveVertexPos;
+        o.v_posWS = posWS;
+        o.v_posCS = posCS;
+        o.v_normalOS = waveVertexNormal;
+        o.v_defaultNormalWS = defaultNormalWS;
+        o.v_defaultBinormalWS = defaultBinormalWS;
+        o.v_defaultTangentWS = defaultTangentWS;
         gl_Position = posCS;
-        return out;
+        return o;
       }
-      VertexShader = vert;
-      vec4 scene_ElapsedTime;
+      
       sampler2D camera_DepthTexture;
       vec3 _ShallowColor;
       vec3 _DeepColor;
@@ -239,7 +240,7 @@ Shader "Waterfull" {
           vec4 texel = texture2D( camera_DepthTexture, screenUV );
           float depth = texel.r;
           vec3 underwaterPosNDC = vec3( screenUV, depth ) * 2.0 - 1.0;
-          vec4 underwaterPosWSFromDepth = camera_ViewInvMat * v_ProjectionInvMat * vec4( underwaterPosNDC, 1.0 );
+          vec4 underwaterPosWSFromDepth = camera_ViewInvMat * i.v_ProjectionInvMat * vec4( underwaterPosNDC, 1.0 );
           UnderwaterPosWS = underwaterPosWSFromDepth.xyz / underwaterPosWSFromDepth.w;
           WaterDepth = posWS.y - UnderwaterPosWS.y;
           WaterDepth *= 1.0;
@@ -359,7 +360,7 @@ Shader "Waterfull" {
         float FoamAlpha = 0.0;
         {
           float foamDepth = clamp( WaterDepth / _FoamRange, 0.0, 1.0 );
-          vec2 uv = scene_ElapsedTime.x * _FoamNoiseSpeed + vec2( _XTilling * v_uv.x, foamDepth * _YTilling );
+          vec2 uv = scene_ElapsedTime.x * _FoamNoiseSpeed + vec2( _XTilling * i.v_uv.x, foamDepth * _YTilling );
           vec4 pixel = texture2D( _FoamNoise, uv );
           float foamNoise = pixel.r;
           float foamRange = 1.0 - clamp( ( _FoamOffset + foamDepth ), 0.0, 1.0 );
@@ -394,6 +395,7 @@ Shader "Waterfull" {
         // gl_FragColor = vec4( FinalColor, 1.0 );
       }
       FragmentShader = frag;
+      VertexShader = vert;
     }
   }
 }

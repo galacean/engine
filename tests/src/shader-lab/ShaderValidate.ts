@@ -1,7 +1,7 @@
-import { expect } from "chai";
-import { ShaderLab } from "@galacean/engine-shader-lab";
-import { Shader, ShaderFactory } from "@galacean/engine-core";
-import { ISubShaderInfo } from "@galacean/engine-design";
+import { ShaderLab } from "@galacean/engine-shaderlab";
+import { Shader, ShaderFactory, ShaderPass, ShaderPlatformTarget, ShaderMacro } from "@galacean/engine-core";
+import { IShaderContent } from "@galacean/engine-design/src/shader-lab";
+import { expect } from "vitest";
 
 function addLineNum(str: string) {
   const lines = str.split("\n");
@@ -19,41 +19,39 @@ function addLineNum(str: string) {
     .join("\n");
 }
 
-function validateShaderPass(pass: ISubShaderInfo["passes"][number]) {
-  if (typeof pass === "string") {
+function validateShaderPass(
+  pass: IShaderContent["subShaders"][number]["passes"][number],
+  vertexSource: string,
+  fragmentSource: string
+) {
+  if (pass.isUsePass) {
     // builtin shader pass
-    const paths = pass.split("/");
+    const paths = pass.name.split("/");
     const shaderPass = Shader.find(paths[0])
       ?.subShaders.find((subShader) => subShader.name === paths[1])
       ?.passes.find((pass) => pass.name === paths[2]);
     expect(!!shaderPass).to.be.true;
     return shaderPass;
   } else {
-    const gl = document.createElement("canvas").getContext("webgl2");
+    const gl = document.createElement("canvas").getContext("webgl2") as WebGL2RenderingContext;
     expect(!!gl, "Not support webgl").to.be.true;
 
     const vs = gl.createShader(gl.VERTEX_SHADER);
     const fs = gl.createShader(gl.FRAGMENT_SHADER);
 
-    const fsPrefix = `#version 300 es\nprecision mediump float;
-  precision mediump int;
-`;
-    const fsSource = fsPrefix + pass.fragmentSource;
-    const vsSource = "#version 300 es\nprecision mediump float;\n" + pass.vertexSource;
-
-    gl.shaderSource(vs, ShaderFactory.convertTo300(vsSource));
+    gl.shaderSource(vs, vertexSource);
     gl.compileShader(vs);
 
-    gl.shaderSource(fs, ShaderFactory.convertTo300(fsSource, true));
+    gl.shaderSource(fs, ShaderFactory.convertTo300(fragmentSource, true));
     gl.compileShader(fs);
 
     expect(
       gl.getShaderParameter(vs, gl.COMPILE_STATUS),
-      `Error compiling vertex shader: ${gl.getShaderInfoLog(vs)}\n\n${addLineNum(vsSource)}`
+      `Error compiling vertex shader: ${gl.getShaderInfoLog(vs)}\n\n${addLineNum(vertexSource)}`
     ).to.be.true;
     expect(
       gl.getShaderParameter(fs, gl.COMPILE_STATUS),
-      `Error compiling fragment shader: ${gl.getShaderInfoLog(fs)}\n\n${addLineNum(fsSource)}`
+      `Error compiling fragment shader: ${gl.getShaderInfoLog(fs)}\n\n${addLineNum(fragmentSource)}`
     ).to.be.true;
 
     const program = gl.createProgram();
@@ -68,12 +66,63 @@ function validateShaderPass(pass: ISubShaderInfo["passes"][number]) {
   }
 }
 
-export function glslValidate(shaderSource, _shaderLab?: ShaderLab) {
+export function glslValidate(shaderSource, _shaderLab?: ShaderLab, includeMap = {}) {
   const shaderLab = _shaderLab ?? new ShaderLab();
+  for (const key in includeMap) {
+    ShaderFactory.registerInclude(key, includeMap[key]);
+  }
 
-  const shader = shaderLab.parseShader(shaderSource);
+  const start = performance.now();
+  // @ts-ignore
+  const shader = shaderLab._parseShaderContent(shaderSource);
+  console.log("struct compilation time: ", (performance.now() - start).toFixed(2), "ms");
   expect(shader).not.be.null;
   shader.subShaders.forEach((subShader) => {
-    subShader.passes.map((pass) => validateShaderPass(pass));
+    subShader.passes.forEach((pass) => {
+      if (pass.isUsePass) return;
+      const compiledPass = shaderLab._parseShaderPass(
+        pass.contents,
+        pass.vertexEntry,
+        pass.fragmentEntry,
+        [],
+        ShaderPlatformTarget.GLES300,
+        [],
+        // @ts-ignore
+        ShaderPass._shaderRootPath
+      );
+      if (shaderLab.errors) {
+        for (const error of shaderLab.errors) {
+          console.error(error.toString());
+        }
+      }
+      validateShaderPass(pass, compiledPass.vertex, compiledPass.fragment);
+    });
   });
+}
+
+export function shaderParse(
+  shaderSource: string,
+  macros: ShaderMacro[] = [],
+  backend: ShaderPlatformTarget = ShaderPlatformTarget.GLES100
+): (ReturnType<ShaderLab["_parseShaderPass"]> & { name: string })[] {
+  const structInfo = this._parseShaderContent(shaderSource);
+  const passResult = [] as any;
+  for (const subShader of structInfo.subShaders) {
+    for (const pass of subShader.passes) {
+      if (pass.isUsePass) continue;
+      const passInfo = this._parseShaderPass(
+        pass.contents,
+        pass.vertexEntry,
+        pass.fragmentEntry,
+        macros,
+        backend,
+        [],
+        // @ts-ignore
+        new URL(pass.name, ShaderPass._shaderRootPath).href
+      ) as any;
+      passInfo.name = pass.name;
+      passResult.push(passInfo);
+    }
+  }
+  return passResult;
 }

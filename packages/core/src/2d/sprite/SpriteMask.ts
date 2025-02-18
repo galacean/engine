@@ -1,20 +1,25 @@
 import { BoundingBox } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
+import { RenderQueueFlags } from "../../RenderPipeline/BasicRenderPipeline";
+import { BatchUtils } from "../../RenderPipeline/BatchUtils";
+import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
+import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
+import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
+import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { ShaderProperty } from "../../shader/ShaderProperty";
+import { ISpriteRenderer } from "../assembler/ISpriteRenderer";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
-import { VertexData2D } from "../data/VertexData2D";
-import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
 
 /**
  * A component for masking Sprites.
  */
-export class SpriteMask extends Renderer {
+export class SpriteMask extends Renderer implements ISpriteRenderer {
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskTexture");
   /** @internal */
@@ -22,12 +27,17 @@ export class SpriteMask extends Renderer {
 
   /** The mask layers the sprite mask influence to. */
   @assignmentClone
-  influenceLayers: number = SpriteMaskLayer.Everything;
+  influenceLayers: SpriteMaskLayer = SpriteMaskLayer.Everything;
   /** @internal */
-  _maskElement: RenderElement;
+  @ignoreClone
+  _renderElement: RenderElement;
 
   /** @internal */
-  _verticesData: VertexData2D;
+  @ignoreClone
+  _subChunk: SubPrimitiveChunk;
+  /** @internal */
+  @ignoreClone
+  _maskIndex: number = -1;
 
   @ignoreClone
   private _sprite: Sprite = null;
@@ -167,11 +177,20 @@ export class SpriteMask extends Renderer {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._verticesData = new VertexData2D(4, [], []);
     SimpleSpriteAssembler.resetData(this);
-    this.setMaterial(this._engine._spriteMaskDefaultMaterial);
+    this.setMaterial(this._engine._basicResources.spriteMaskDefaultMaterial);
     this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, this._alphaCutoff);
+    this._renderElement = new RenderElement();
+    this._renderElement.addSubRenderElement(new SubRenderElement());
     this._onSpriteChange = this._onSpriteChange.bind(this);
+  }
+
+  /**
+   * @internal
+   */
+  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+    //@todo: Always update world positions to buffer, should opt
+    super._updateTransformShaderData(context, onlyMVP, true);
   }
 
   /**
@@ -185,27 +204,89 @@ export class SpriteMask extends Renderer {
   /**
    * @internal
    */
-  protected override _updateBounds(worldBounds: BoundingBox): void {
-    if (this.sprite) {
-      SimpleSpriteAssembler.updatePositions(this);
-    } else {
-      worldBounds.min.set(0, 0, 0);
-      worldBounds.max.set(0, 0, 0);
-    }
+  override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
+    return BatchUtils.canBatchSpriteMask(elementA, elementB);
   }
 
   /**
    * @internal
+   */
+  override _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {
+    BatchUtils.batchFor2D(elementA, elementB);
+  }
+
+  /**
+   * @internal
+   */
+  override _onEnableInScene(): void {
+    super._onEnableInScene();
+    this.scene._maskManager.addSpriteMask(this);
+  }
+
+  /**
+   * @internal
+   */
+  override _onDisableInScene(): void {
+    super._onDisableInScene();
+    this.scene._maskManager.removeSpriteMask(this);
+  }
+
+  /**
+   * @internal
+   */
+  _getChunkManager(): PrimitiveChunkManager {
+    return this.engine._batcherManager.primitiveChunkManagerMask;
+  }
+
+  protected override _updateBounds(worldBounds: BoundingBox): void {
+    const sprite = this._sprite;
+    if (sprite) {
+      SimpleSpriteAssembler.updatePositions(
+        this,
+        this._transformEntity.transform.worldMatrix,
+        this.width,
+        this.height,
+        sprite.pivot,
+        this._flipX,
+        this._flipY
+      );
+    } else {
+      const { worldPosition } = this._transformEntity.transform;
+      worldBounds.min.copyFrom(worldPosition);
+      worldBounds.max.copyFrom(worldPosition);
+    }
+  }
+
+  /**
    * @inheritdoc
    */
   protected override _render(context: RenderContext): void {
-    if (!this.sprite?.texture || !this.width || !this.height) {
+    const { _sprite: sprite } = this;
+    if (!sprite?.texture || !this.width || !this.height) {
       return;
+    }
+
+    let material = this.getMaterial();
+    if (!material) {
+      return;
+    }
+    const { _engine: engine } = this;
+    // @todo: This question needs to be raised rather than hidden.
+    if (material.destroyed) {
+      material = engine._basicResources.spriteMaskDefaultMaterial;
     }
 
     // Update position
     if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
-      SimpleSpriteAssembler.updatePositions(this);
+      SimpleSpriteAssembler.updatePositions(
+        this,
+        this._transformEntity.transform.worldMatrix,
+        this.width,
+        this.height,
+        sprite.pivot,
+        this._flipX,
+        this._flipY
+      );
       this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     }
 
@@ -215,19 +296,18 @@ export class SpriteMask extends Renderer {
       this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.UV;
     }
 
-    context.camera._renderPipeline._allSpriteMasks.add(this);
+    const renderElement = this._renderElement;
+    const subRenderElement = renderElement.subRenderElements[0];
+    renderElement.set(this.priority, this._distanceForSort);
 
-    const renderData = this._engine._spriteMaskRenderDataPool.getFromPool();
-    const material = this.getMaterial();
-    renderData.set(this, material, this._verticesData);
-
-    const renderElement = this._engine._renderElementPool.getFromPool();
-    renderElement.set(renderData, material.shader.subShaders[0].passes);
-    this._maskElement = renderElement;
+    const subChunk = this._subChunk;
+    subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
+    subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
+    subRenderElement.renderQueueFlags = RenderQueueFlags.All;
+    renderElement.addSubRenderElement(subRenderElement);
   }
 
   /**
-   * @internal
    * @inheritdoc
    */
   protected override _onDestroy(): void {
@@ -240,7 +320,12 @@ export class SpriteMask extends Renderer {
     super._onDestroy();
 
     this._sprite = null;
-    this._verticesData = null;
+    if (this._subChunk) {
+      this._getChunkManager().freeSubChunk(this._subChunk);
+      this._subChunk = null;
+    }
+
+    this._renderElement = null;
   }
 
   private _calDefaultSize(): void {
@@ -268,7 +353,7 @@ export class SpriteMask extends Renderer {
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:
-        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.RenderData;
+        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.WorldVolumeAndUV;
         break;
       case SpriteModifyFlags.atlasRegion:
         this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.UV;
@@ -286,15 +371,15 @@ export class SpriteMask extends Renderer {
 }
 
 /**
- * @remarks Extends `RendererUpdateFlag`.
+ * @remarks Extends `RendererUpdateFlags`.
  */
 enum SpriteMaskUpdateFlags {
   /** UV. */
   UV = 0x2,
-  /** WorldVolume and UV . */
-  RenderData = 0x3,
   /** Automatic Size. */
   AutomaticSize = 0x4,
+  /** WorldVolume and UV. */
+  WorldVolumeAndUV = 0x3,
   /** All. */
   All = 0x7
 }

@@ -1,5 +1,5 @@
 import { Color } from "@galacean/engine-math";
-import { expect } from "chai";
+import { describe, expect, it } from "vitest";
 
 describe("Color test", () => {
   it("Constructor", () => {
@@ -55,6 +55,14 @@ describe("Color test", () => {
     const out = new Color();
 
     out.copyFrom(a);
+    expect(Color.equals(a, out)).to.eq(true);
+  });
+
+  it("copyTo", () => {
+    const a = new Color(1, 0, 0, 1);
+    const out = new Color();
+
+    a.copyTo(out);
     expect(Color.equals(a, out)).to.eq(true);
   });
 

@@ -1,16 +1,16 @@
 import {
   AssetPromise,
   AssetType,
-  Loader,
   LoadItem,
-  resourceLoader,
+  Loader,
+  RequestConfig,
   ResourceManager,
   Texture2D,
   TextureFilterMode,
   TextureFormat,
-  TextureWrapMode
+  TextureWrapMode,
+  resourceLoader
 } from "@galacean/engine-core";
-import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { Texture2DContentRestorer } from "./Texture2DContentRestorer";
 
 @resourceLoader(AssetType.Texture2D, ["png", "jpg", "webp", "jpeg"])
@@ -22,7 +22,9 @@ class Texture2DLoader extends Loader<Texture2D> {
         ...item,
         type: "image"
       };
-      this.request<HTMLImageElement>(url, requestConfig)
+      resourceManager
+        // @ts-ignore
+        ._request<HTMLImageElement>(url, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((image) => {
           const { format, mipmap, anisoLevel, wrapModeU, wrapModeV, filterMode } =

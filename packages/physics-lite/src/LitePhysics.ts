@@ -3,6 +3,7 @@ import {
   IBoxColliderShape,
   ICapsuleColliderShape,
   ICharacterController,
+  ICollision,
   IDynamicCollider,
   IFixedJoint,
   IHingeJoint,
@@ -43,9 +44,9 @@ export class LitePhysics implements IPhysics {
    */
   createPhysicsScene(
     physicsManager: LitePhysicsManager,
-    onContactBegin?: (obj1: number, obj2: number) => void,
-    onContactEnd?: (obj1: number, obj2: number) => void,
-    onContactPersist?: (obj1: number, obj2: number) => void,
+    onContactBegin?: (collision: ICollision) => void,
+    onContactEnd?: (collision: ICollision) => void,
+    onContactPersist?: (collision: ICollision) => void,
     onTriggerBegin?: (obj1: number, obj2: number) => void,
     onTriggerEnd?: (obj1: number, obj2: number) => void,
     onTriggerPersist?: (obj1: number, obj2: number) => void

@@ -1,5 +1,5 @@
 import { BoundingBox, BoundingFrustum, BoundingSphere, Matrix, Vector3 } from "@galacean/engine-math";
-import { expect } from "chai";
+import { describe, expect, it } from "vitest";
 
 describe("BoundingFrustum test", () => {
   const viewMatrix = new Matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, -20, 1);

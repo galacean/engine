@@ -1,11 +1,11 @@
 import { Color } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Texture2D, PBRSpecularMaterial } from "@galacean/engine-core";
-import { expect } from "chai";
+import { describe, beforeAll, expect, it } from "vitest";
 
-describe("PBRSpecularMaterial",  () => {
+describe("PBRSpecularMaterial", () => {
   let engine: WebGLEngine;
-  before(async function () {
+  beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   });
 

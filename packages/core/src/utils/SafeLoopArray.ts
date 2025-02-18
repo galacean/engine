@@ -39,6 +39,17 @@ export class SafeLoopArray<T> {
   }
 
   /**
+   * Remove item from array that pass the specified comparison function.
+   * @param filter - The comparison function
+   */
+  findAndRemove(filter: (value: T) => boolean): void {
+    const array = this._array;
+    for (let i = array.length - 1; i >= 0; i--) {
+      filter(array[i]) && this.removeByIndex(i);
+    }
+  }
+
+  /**
    * The index of the item.
    * @param item - The item which want to get the index
    * @returns Index of the item

@@ -3,6 +3,7 @@ import { Background } from "./Background";
 import { ComponentsManager } from "./ComponentsManager";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
+import { MaskManager } from "./RenderPipeline/MaskManager";
 import { SceneManager } from "./SceneManager";
 import { EngineObject, Logger } from "./base";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
@@ -11,6 +12,7 @@ import { DirectLight } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
 import { LightManager } from "./lighting/LightManager";
 import { PhysicsScene } from "./physics/PhysicsScene";
+import { PostProcessManager } from "./postProcess";
 import { ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -25,6 +27,7 @@ import { ShadowType } from "./shadow/enum/ShadowType";
 export class Scene extends EngineObject {
   private static _fogColorProperty = ShaderProperty.getByName("scene_FogColor");
   private static _fogParamsProperty = ShaderProperty.getByName("scene_FogParams");
+  private static _prefilterdDFGProperty = ShaderProperty.getByName("scene_PrefilteredDFG");
 
   /** Scene name. */
   name: string;
@@ -42,11 +45,21 @@ export class Scene extends EngineObject {
   shadowFourCascadeSplits: Vector3 = new Vector3(1.0 / 15, 3.0 / 15.0, 7.0 / 15.0);
   /** Max Shadow distance. */
   shadowDistance: number = 50;
+  /**
+   * Last shadow fade distance in percentage, range [0,1].
+   * @remarks Value 0 is used for no shadow fade.
+   */
+  shadowFadeBorder: number = 0.1;
+
+  /** Post process manager. */
+  readonly postProcessManager = new PostProcessManager(this);
 
   /* @internal */
   _lightManager: LightManager = new LightManager();
   /* @internal */
   _componentsManager: ComponentsManager = new ComponentsManager();
+  /** @internal */
+  _maskManager: MaskManager = new MaskManager();
   /** @internal */
   _isActiveInEngine: boolean = false;
   /** @internal */
@@ -68,6 +81,7 @@ export class Scene extends EngineObject {
   private _fogParams: Vector4 = new Vector4();
   private _isActive: boolean = true;
   private _sun: DirectLight | null;
+  private _enableTransparentShadow = false;
 
   /**
    * Whether the scene is active.
@@ -237,6 +251,24 @@ export class Scene extends EngineObject {
   }
 
   /**
+   * Whether to enable transparent shadow.
+   */
+  get enableTransparentShadow(): boolean {
+    return this._enableTransparentShadow;
+  }
+
+  set enableTransparentShadow(value: boolean) {
+    if (value !== this._enableTransparentShadow) {
+      this._enableTransparentShadow = value;
+      if (value) {
+        this.shaderData.enableMacro("SCENE_ENABLE_TRANSPARENT_SHADOW");
+      } else {
+        this.shaderData.disableMacro("SCENE_ENABLE_TRANSPARENT_SHADOW");
+      }
+    }
+  }
+
+  /**
    * Create scene.
    * @param engine - Engine
    * @param name - Name
@@ -254,6 +286,7 @@ export class Scene extends EngineObject {
     shaderData.enableMacro("SCENE_SHADOW_CASCADED_COUNT", this.shadowCascades.toString());
     shaderData.setColor(Scene._fogColorProperty, this._fogColor);
     shaderData.setVector4(Scene._fogParamsProperty, this._fogParams);
+    shaderData.setTexture(Scene._prefilterdDFGProperty, engine._basicResources.prefilteredDFGTexture);
 
     this._computeLinearFogParams(this._fogStart, this._fogEnd);
     this._computeExponentialFogParams(this._fogDensity);
@@ -297,6 +330,7 @@ export class Scene extends EngineObject {
     if (!isRoot) {
       entity._isRoot = true;
       entity._removeFromParent();
+      entity._setParentChange();
     }
 
     // Add or remove from scene's rootEntities
@@ -384,12 +418,22 @@ export class Scene extends EngineObject {
    */
   findEntityByPath(path: string): Entity | null {
     const splits = path.split("/").filter(Boolean);
+    if (!splits.length) {
+      return null;
+    }
+
+    const searchRootName = splits.shift();
     for (let i = 0, n = this.rootEntitiesCount; i < n; i++) {
       let findEntity = this.getRootEntity(i);
-      if (findEntity.name != splits[0]) continue;
-      for (let j = 1, m = splits.length; j < m; ++j) {
-        findEntity = Entity._findChildByName(findEntity, splits[j]);
-        if (!findEntity) break;
+      if (findEntity.name !== searchRootName) {
+        continue;
+      }
+
+      if (splits.length) {
+        findEntity = Entity._findChildByName(findEntity, 0, splits, 0);
+        if (!findEntity) {
+          continue;
+        }
       }
       return findEntity;
     }
@@ -482,6 +526,7 @@ export class Scene extends EngineObject {
     this._ambientLight && this._ambientLight._removeFromScene(this);
     this.shaderData._addReferCount(-1);
     this._componentsManager.handlingInvalidScripts();
+    this._maskManager.destroy();
 
     const allCreatedScenes = sceneManager._allCreatedScenes;
     allCreatedScenes.splice(allCreatedScenes.indexOf(this), 1);

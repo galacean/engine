@@ -7,17 +7,18 @@ import {
   Matrix,
   Plane,
   Vector2,
-  Vector3
+  Vector3,
+  Vector4
 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
-import { DirectLight, Light } from "../lighting";
-import { Renderer } from "../Renderer";
 import { RenderContext } from "../RenderPipeline/RenderContext";
-import { TextureFormat } from "../texture";
+import { Renderer } from "../Renderer";
 import { Utils } from "../Utils";
+import { DirectLight, Light } from "../lighting";
+import { TextureFormat } from "../texture";
+import { ShadowSliceData } from "./ShadowSliceData";
 import { ShadowResolution } from "./enum/ShadowResolution";
 import { ShadowType } from "./enum/ShadowType";
-import { ShadowSliceData } from "./ShadowSliceData";
 
 /**
  * @internal
@@ -44,7 +45,7 @@ export class ShadowUtils {
   /** @internal */
   private static _shadowMapCoordMatrix: Matrix = new Matrix(
     0.5, 0.0, 0.0, 0.0,
-    0.0, 0.5, 0.0, 0.0,
+    0.0, -0.5, 0.0, 0.0,
     0.0, 0.0, 0.5, 0.0,
     0.5, 0.5, 0.5, 1.0
   );
@@ -186,8 +187,8 @@ export class ShadowUtils {
         renderer.castShadows &&
         ShadowUtils.cullingRenderBounds(renderer.bounds, shadowSliceData.cullPlaneCount, shadowSliceData.cullPlanes)
       ) {
-        renderer._renderFrameCount = renderer.engine.time.frameCount;
         renderer._prepareRender(context);
+        renderer._renderFrameCount = renderer.engine.time.frameCount;
       }
     }
   }
@@ -438,5 +439,30 @@ export class ShadowUtils {
 
     const offset = cascadeIndex * 16;
     Utils._floatMatrixMultiply(sliceMatrix, outShadowMatrices, offset, outShadowMatrices, offset);
+  }
+
+  /**
+   * Extract scale and bias from a fade distance to achieve a linear fading of the fade distance.
+   */
+  static getScaleAndBiasForLinearDistanceFade(fadeDistance: number, border: number, outInfo: Vector4): void {
+    // (P^2-N^2)/(F^2-N^2)
+
+    // To avoid division from zero
+    // This values ensure that fade within cascade will be 0 and outside 1
+    if (border < 0.0001) {
+      const multiplier = 1000; // To avoid blending if difference is in fractions
+      outInfo.z = multiplier;
+      outInfo.w = -fadeDistance * multiplier;
+      return;
+    }
+
+    border = 1 - border;
+    border *= border;
+
+    // Fade with distance calculation is just a linear fade from 90% of fade distance to fade distance. 90% arbitrarily chosen but should work well enough.
+    const distanceFadeNear = border * fadeDistance;
+    const fadeRange = fadeDistance - distanceFadeNear;
+    outInfo.z = 1.0 / fadeRange;
+    outInfo.w = -distanceFadeNear / fadeRange;
   }
 }

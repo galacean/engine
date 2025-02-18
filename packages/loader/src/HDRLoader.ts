@@ -1,12 +1,16 @@
 import {
   AssetPromise,
   AssetType,
-  Loader,
+  ContentRestorer,
+  Engine,
   LoadItem,
-  resourceLoader,
+  Loader,
+  RequestConfig,
   ResourceManager,
   TextureCube,
-  TextureCubeFace
+  TextureCubeFace,
+  request,
+  resourceLoader
 } from "@galacean/engine-core";
 import { Color, Vector3 } from "@galacean/engine-math";
 
@@ -27,6 +31,7 @@ interface IHDRHeader {
   dataPosition: number;
 }
 
+// referenece: https://www.flipcode.com/archives/HDR_Image_Reader.shtml
 @resourceLoader(AssetType.HDR, ["hdr"])
 class HDRLoader extends Loader<TextureCube> {
   private static _rightBottomBack = new Vector3(1.0, -1.0, -1.0);
@@ -80,6 +85,23 @@ class HDRLoader extends Loader<TextureCube> {
   private static _temp3Vector3 = new Vector3();
   private static _temp4Vector3 = new Vector3();
   private static _temp5Vector3 = new Vector3();
+
+  /**
+   * @internal
+   */
+  static _setTextureByBuffer(engine: Engine, buffer: ArrayBuffer, texture?: TextureCube) {
+    const bufferArray = new Uint8Array(buffer);
+    const { width, height, dataPosition } = HDRLoader._parseHeader(bufferArray);
+    const cubeSize = height >> 1;
+    texture ||= new TextureCube(engine, cubeSize);
+    const pixels = HDRLoader._readPixels(bufferArray.subarray(dataPosition), width, height);
+    const cubeMapData = HDRLoader._convertToCubemap(pixels, width, height, cubeSize);
+    for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
+      texture.setPixelBuffer(TextureCubeFace.PositiveX + faceIndex, cubeMapData[faceIndex], 0);
+    }
+    texture.generateMipmaps();
+    return texture;
+  }
 
   private static _convertToCubemap(
     pixels: Uint8Array,
@@ -282,17 +304,23 @@ class HDRLoader extends Loader<TextureCube> {
     let offset = 0,
       pos = 0;
     const ptrEnd = 4 * scanLineWidth;
-    const rgbeStart = new Uint8Array(4);
     const scanLineBuffer = new Uint8Array(ptrEnd);
     let numScanLines = height; // read in each successive scanLine
 
     while (numScanLines > 0 && pos < byteLength) {
-      rgbeStart[0] = buffer[pos++];
-      rgbeStart[1] = buffer[pos++];
-      rgbeStart[2] = buffer[pos++];
-      rgbeStart[3] = buffer[pos++];
+      const a = buffer[pos++];
+      const b = buffer[pos++];
+      const c = buffer[pos++];
+      const d = buffer[pos++];
 
-      if (2 != rgbeStart[0] || 2 != rgbeStart[1] || ((rgbeStart[2] << 8) | rgbeStart[3]) != scanLineWidth) {
+      if (a != 2 || b != 2 || c & 0x80 || width < 8 || width > 32767) {
+        // this file is not run length encoded
+        // read values sequentially
+        return buffer;
+      }
+
+      if (((c << 8) | d) != scanLineWidth) {
+        // eslint-disable-next-line no-throw-literal
         throw "HDR Bad header format, wrong scan line width";
       }
 
@@ -369,26 +397,41 @@ class HDRLoader extends Loader<TextureCube> {
     color.b *= scaleFactor;
     color.a *= M;
   }
-
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCube> {
     return new AssetPromise((resolve, reject) => {
       const engine = resourceManager.engine;
-
-      this.request<ArrayBuffer>(item.url, { type: "arraybuffer" })
+      const requestConfig = { ...item, type: "arraybuffer" } as RequestConfig;
+      resourceManager
+        // @ts-ignore
+        ._request<ArrayBuffer>(item.url, requestConfig)
         .then((buffer) => {
-          const uint8Array = new Uint8Array(buffer);
-          const { width, height, dataPosition } = HDRLoader._parseHeader(uint8Array);
-          const pixels = HDRLoader._readPixels(uint8Array.subarray(dataPosition), width, height);
-          const cubeSize = height >> 1;
-
-          const cubeMapData = HDRLoader._convertToCubemap(pixels, width, height, cubeSize);
-          const texture = new TextureCube(engine, cubeSize);
-
-          for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
-            texture.setPixelBuffer(TextureCubeFace.PositiveX + faceIndex, cubeMapData[faceIndex], 0);
-          }
-          texture.generateMipmaps();
+          const texture = HDRLoader._setTextureByBuffer(engine, buffer);
+          engine.resourceManager.addContentRestorer(new HDRContentRestorer(texture, item.url, requestConfig));
           resolve(texture);
+        })
+        .catch(reject);
+    });
+  }
+}
+
+/**
+ * @internal
+ */
+class HDRContentRestorer extends ContentRestorer<TextureCube> {
+  constructor(
+    resource: TextureCube,
+    public url: string,
+    public requestConfig: RequestConfig
+  ) {
+    super(resource);
+  }
+
+  override restoreContent(): AssetPromise<TextureCube> {
+    return new AssetPromise((resolve, reject) => {
+      request<ArrayBuffer>(this.url, this.requestConfig)
+        .then((buffer) => {
+          HDRLoader._setTextureByBuffer(this.resource.engine, buffer, this.resource);
+          resolve(this.resource);
         })
         .catch(reject);
     });

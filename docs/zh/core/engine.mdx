@@ -1,0 +1,78 @@
+---
+order: 0
+title: 引擎
+type: 核心
+label: Core
+---
+
+`Engine` 在扮演着总控制器的角色，主要包含了**画布**、**渲染控制**和**引擎子系统管理**等功能：
+
+- **[画布](/docs/core/canvas)**：主画布相关的操作，如修改画布宽高等。
+- **渲染控制**： 控制渲染的执行/暂停/继续、垂直同步等功能。
+- **引擎子系统管理**： [场景管理](/docs/core/scene)、[资源管理](/docs/assets/overall)、[物理系统](/docs/physics/overall) 、[交互系统](/docs/input/input/)、[XR 系统](/docs/xr/overall)
+- **执行环境的上下文管理**：控制 WebGL 等执行环境的上下文管理。
+
+## 初始化
+
+为了方便用户直接创建 web 端 engine，我们提供了 [WebGLEngine](/apis/rhi-webgl/#WebGLEngine)，支持 WebGL1.0 和 WebGL2.0。
+
+```typescript
+const engine = await WebGLEngine.create({
+  canvas: "canvas-id",
+  colorSpace: {...},
+  graphicDeviceOptions: {...}，
+  gltf: {...},
+  ktx2Loader: {...}                                   
+});
+```
+
+下方是创建引擎时传入[配置](/apis/galacean/#WebGLEngineConfiguration)的类型说明：
+
+| 配置                                                         | 解释                                                         |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| canvas                                                       | 可以是画布 ID（ `string`） 或画布对象（`HTMLCanvasElement |OffscreenCanvas`）。 |
+| [graphicDeviceOptions](/apis/galacean/#WebGLGraphicDeviceOptions) | 图形设备相关配置，比如 `webGLMode` 可以用 控制 WebGL1/2。除 `webGLMode` 外的属性将透传给上下文，详情可参考 [getContext 参数释义](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext#parameters)。 |
+| [colorSpace](/apis/galacean/#ColorSpace)                     | 颜色空间, `ColorSpace.Gamma` 或 `ColorSpace.Linear`。        |
+| gltf                                                         | gltf Loader 配置，`workerCount` 用来配置 meshOpt 的 worker 数量：`{ meshOpt: { workerCount: number } }` 。 |
+| ktx2Loader                                                   | KTX2 Loader 配置，`workerCount` 用来配置 ktx2 解码器的worker 数量：`{ priorityFormats: Array<KTX2TargetFormat>; transcoder: KTX2Transcoder; workerCount: number }`。如果 workCount 大于 0，将会创建 worker 线程，等于 0 则只用主线程。 |
+
+
+
+更多相关配置信息，可参考[物理系统](/docs/physics/overall)、[交互系统](/docs/input/input/)、[XR 系统](/docs/xr/overall)。
+
+## 属性
+
+| 属性名称 | 属性释义 |
+| --- | --- |
+| [time](/apis/core/#Engine-time) | 引擎时间相关信息，详情可参考[时间](/docs/core/time/) |
+| [vSyncCount](/apis/core/#Engine-vSyncCount) | 垂直同步刷新率，引擎默认开启[垂直同步](https://baike.baidu.com/item/%E5%9E%82%E7%9B%B4%E5%90%8C%E6%AD%A5/7263524?fromtitle=V-Sync&fromid=691778)且刷新率 `vSyncCount` 为`1` （与屏幕刷新率保持一致）。若 `vSyncCount` 设置为`2`，则屏幕每刷新 2 帧，引擎更新 1 次。 |
+| [resourceManager](/apis/core/#Engine-resourceManager) | 资源管理器，一般通过它进行资产的[加载](/docs/assets/load/)和[释放](/docs/assets/gc/) |
+| [sceneManager](/apis/core/#Engine-sceneManager) | 场景管理器。Galacean 支持多场景同时渲染，通过场景管理器可以方便地管理当前场景的增删改查，详情可参考[场景](/docs/core/scene/) |
+| [inputManager](/apis/core/#Engine-inputManager) | 交互管理器，一般通过它获取键盘，触控与滚轮信息，详情可参考[交互](/docs/input/input/) |
+
+### 刷新率
+
+默认情况下引擎采用垂直同步模式并使用 [vSyncCount](/apis/core/#Engine-vSyncCount) 控制渲染刷新率，该模式才渲染帧会等待屏幕的垂直同步信号， [vSyncCount](/apis/core/#Engine-vSyncCount) 代表了渲染帧之间期望的屏幕同步信号次数，默认值为 1，该属性的值必须为整数，例如我们想在一个屏幕刷新率为 60 帧的设备上期望每秒渲染 30 帧，则可以将该值设置为 2。
+
+另外用户还可以关闭垂直同步，即将 [vSyncCount](/apis/core/#Engine-vSyncCount) 设置为 0，然后设置 [targetFrameRate](/apis/core/#Engine-targetFrameRate) 为期望的帧数值，该模式下的渲染不考虑垂直同步信号，而是，如 120 表示 120 帧，即每秒期望刷新 120 次。
+
+```typescript
+// 垂直同步
+engine.vSyncCount = 1;
+engine.vSyncCount = 2;
+
+// 非垂直同步
+engine.vSyncCount = 0;
+engine.targetFrameRate = 120;
+```
+
+> ⚠️ 不建议使用非垂直同步
+
+## 方法
+
+| 方法名称                              | 方法释义           |
+| ------------------------------------- | ------------------ |
+| [run](/apis/core/#Engine-run)         | 执行引擎渲染帧循环 |
+| [pause](/apis/core/#Engine-pause)     | 暂停引擎渲染帧循环 |
+| [resume](/apis/core/#Engine-resume)   | 恢复引擎渲渲染循环 |
+| [destroy](/apis/core/#Engine-destroy) | 销毁引擎           |

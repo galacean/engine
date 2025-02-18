@@ -1,5 +1,5 @@
 import { Color, Vector2, Vector3 } from "@galacean/engine-math";
-import { CompareFunction, Material, ModelMesh, Shader } from ".";
+import { CompareFunction, ContentRestorer, Material, ModelMesh, Shader } from ".";
 import { Engine } from "./Engine";
 import { BackgroundMode } from "./enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
@@ -134,7 +134,20 @@ export class Background {
   }
 
   private _initMesh(engine: Engine): void {
-    this._mesh = this._createPlane(engine);
+    const mesh = (this._mesh = this._createPlane(engine));
+    engine.resourceManager.addContentRestorer(
+      new (class extends ContentRestorer<ModelMesh> {
+        constructor() {
+          super(mesh);
+        }
+        restoreContent() {
+          mesh.setPositions(mesh.getPositions());
+          mesh.setUVs(mesh.getUVs());
+          mesh.setIndices(mesh.getIndices());
+          mesh.uploadData(false);
+        }
+      })()
+    );
     this._mesh._addReferCount(1);
   }
 
@@ -146,7 +159,6 @@ export class Background {
 
   private _createPlane(engine: Engine): ModelMesh {
     const mesh = new ModelMesh(engine);
-    mesh.isGCIgnored = true;
     const indices = new Uint8Array([1, 2, 0, 1, 3, 2]);
 
     const positions: Vector3[] = new Array(4);

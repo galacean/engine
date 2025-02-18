@@ -1,4 +1,6 @@
 import { AnimatorState } from "./AnimatorState";
+import { AnimatorStateTransition } from "./AnimatorStateTransition";
+import { AnimatorStateTransitionCollection } from "./AnimatorStateTransitionCollection";
 export interface AnimatorStateMap {
   [key: string]: AnimatorState;
 }
@@ -17,7 +19,25 @@ export class AnimatorStateMachine {
   defaultState: AnimatorState;
 
   /** @internal */
-  _statesMap: AnimatorStateMap = {};
+  _entryTransitionCollection = new AnimatorStateTransitionCollection();
+  /** @internal */
+  _anyStateTransitionCollection = new AnimatorStateTransitionCollection();
+
+  private _statesMap: AnimatorStateMap = {};
+
+  /**
+   * The list of entry transitions in the state machine.
+   */
+  get entryTransitions(): Readonly<AnimatorStateTransition[]> {
+    return this._entryTransitionCollection.transitions;
+  }
+
+  /**
+   * The list of AnyState transitions.
+   */
+  get anyStateTransitions(): Readonly<AnimatorStateTransition[]> {
+    return this._anyStateTransitionCollection.transitions;
+  }
 
   /**
    * Add a state to the state machine.
@@ -70,5 +90,66 @@ export class AnimatorStateMachine {
       index++;
     }
     return name;
+  }
+
+  /**
+   * Add an entry transition.
+   * @param transition - The transition
+   */
+  addEntryStateTransition(transition: AnimatorStateTransition): AnimatorStateTransition;
+  /**
+   * Add an entry transition to the destination state, the default value of entry transition's hasExitTime is false.
+   * @param animatorState - The destination state
+   */
+
+  addEntryStateTransition(animatorState: AnimatorState): AnimatorStateTransition;
+
+  addEntryStateTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
+    return this._entryTransitionCollection.add(transitionOrAnimatorState);
+  }
+
+  /**
+   * Remove an entry transition.
+   * @param transition - The transition
+   */
+  removeEntryStateTransition(transition: AnimatorStateTransition): void {
+    this._entryTransitionCollection.remove(transition);
+  }
+
+  /**
+   * Add an any transition.
+   * @param transition - The transition
+   */
+  addAnyStateTransition(transition: AnimatorStateTransition): AnimatorStateTransition;
+  /**
+   * Add an any transition to the destination state, the default value of any transition's hasExitTime is false.
+   * @param animatorState - The destination state
+   */
+  addAnyStateTransition(animatorState: AnimatorState): AnimatorStateTransition;
+
+  addAnyStateTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
+    return this._anyStateTransitionCollection.add(transitionOrAnimatorState);
+  }
+
+  /**
+   * Remove an any transition.
+   * @param transition - The transition
+   */
+  removeAnyStateTransition(transition: AnimatorStateTransition): void {
+    this._anyStateTransitionCollection.remove(transition);
+  }
+
+  /**
+   * Clear all entry state transitions.
+   */
+  clearEntryStateTransitions(): void {
+    this._entryTransitionCollection.clear();
+  }
+
+  /**
+   * Clear all any state transitions.
+   */
+  clearAnyStateTransitions(): void {
+    this._anyStateTransitionCollection.clear();
   }
 }

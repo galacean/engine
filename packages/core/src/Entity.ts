@@ -2,16 +2,18 @@ import { Matrix } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
 import { ComponentsDependencies } from "./ComponentsDependencies";
-import { DisorderedArray } from "./DisorderedArray";
 import { Engine } from "./Engine";
 import { Layer } from "./Layer";
 import { Scene } from "./Scene";
 import { Script } from "./Script";
 import { Transform } from "./Transform";
+import { UpdateFlagManager } from "./UpdateFlagManager";
 import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
+import { EntityModifyFlags } from "./enums/EntityModifyFlags";
+import { DisorderedArray } from "./utils/DisorderedArray";
 
 /**
  * Entity, be used as components container.
@@ -20,15 +22,22 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  static _findChildByName(root: Entity, name: string): Entity {
-    const children = root._children;
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      if (child.name === name) {
-        return child;
+  static _findChildByName(entity: Entity, childIndex: number, paths: string[], pathIndex: number): Entity {
+    const searchPath = paths[pathIndex];
+    const isEndPath = pathIndex === paths.length - 1;
+    const children = entity._children;
+    for (const n = children.length; childIndex < n; childIndex++) {
+      const child = children[childIndex];
+      if (child.name === searchPath) {
+        // Search success if end path, or downward search
+        return isEndPath ? child : Entity._findChildByName(child, 0, paths, pathIndex + 1);
       }
     }
-    return null;
+
+    // Search failed if first path, or upward search
+    return pathIndex === 0
+      ? null
+      : Entity._findChildByName(entity.parent, entity.siblingIndex + 1, paths, pathIndex - 1);
   }
 
   /**
@@ -42,12 +51,37 @@ export class Entity extends EngineObject {
     }
   }
 
+  /**
+   * @internal
+   */
+  static _getEntityHierarchyPath(rootEntity: Entity, searchEntity: Entity, inversePath: number[]): boolean {
+    inversePath.length = 0;
+    while (searchEntity !== rootEntity) {
+      const parent = searchEntity.parent;
+      if (!parent) {
+        return false;
+      }
+      inversePath.push(searchEntity.siblingIndex);
+      searchEntity = parent;
+    }
+    return true;
+  }
+
+  /**
+   * @internal
+   */
+  static _getEntityByHierarchyPath(rootEntity: Entity, inversePath: number[]): Entity {
+    let entity = rootEntity;
+    for (let i = inversePath.length - 1; i >= 0; i--) {
+      entity = entity.children[inversePath[i]];
+    }
+    return entity;
+  }
+
   /** The name of entity. */
   name: string;
   /** The layer the entity belongs to. */
   layer: Layer = Layer.Layer0;
-  /** Transform component. */
-  readonly transform: Transform;
 
   /** @internal */
   _isActiveInHierarchy: boolean = false;
@@ -67,13 +101,23 @@ export class Entity extends EngineObject {
   _isActive: boolean = true;
   /** @internal */
   _siblingIndex: number = -1;
-
   /** @internal */
   _isTemplate: boolean = false;
+  /** @internal */
+  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
+  private _transform: Transform;
   private _templateResource: ReferResource;
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
+  private _modifyFlagManager: UpdateFlagManager;
+
+  /**
+   * The transform of this entity.
+   */
+  get transform(): Transform {
+    return this._transform;
+  }
 
   /**
    * Whether to activate locally.
@@ -165,23 +209,39 @@ export class Entity extends EngineObject {
   /**
    * Create a entity.
    * @param engine - The engine the entity belongs to
+   * @param name - The name of the entity
+   * @param components - The types of components you wish to add
    */
-  constructor(engine: Engine, name?: string) {
+  constructor(engine: Engine, name?: string, ...components: ComponentConstructor[]) {
     super(engine);
     this.name = name;
-    this.transform = this.addComponent(Transform);
-    this._inverseWorldMatFlag = this.transform.registerWorldChangeFlag();
+    for (let i = 0, n = components.length; i < n; i++) {
+      this.addComponent(components[i]);
+    }
+    !this._transform && this.addComponent(Transform);
+    this._inverseWorldMatFlag = this.registerWorldChangeFlag();
   }
 
   /**
    * Add component based on the component type.
    * @param type - The type of the component
+   * @param args - The arguments of the component
    * @returns	The component which has been added
    */
-  addComponent<T extends Component>(type: new (entity: Entity) => T): T {
+  addComponent<T extends new (entity: Entity, ...args: any[]) => Component>(
+    type: T,
+    ...args: ComponentArguments<T>
+  ): InstanceType<T> {
     ComponentsDependencies._addCheck(this, type);
-    const component = new type(this);
+    const component = new type(this, ...args) as InstanceType<T>;
     this._components.push(component);
+
+    // @todo: temporary solution
+    if (component instanceof Transform) {
+      const transform = this._transform;
+      this._transform = component;
+      transform?.destroy();
+    }
     component._setActive(true, ActiveChangeFlag.All);
     return component;
   }
@@ -294,7 +354,7 @@ export class Entity extends EngineObject {
       }
       activeChangeFlag && child._processActive(activeChangeFlag);
 
-      child._setTransformDirty();
+      child._setParentChange();
     } else {
       child._setParent(this, index);
     }
@@ -339,22 +399,16 @@ export class Entity extends EngineObject {
 
   /**
    * Find the entity by path.
-   * @param path - The path fo the entity eg: /entity
+   * @param path - The path of the entity eg: /entity
    * @returns The component which be found
    */
   findByPath(path: string): Entity {
-    const splits = path.split("/");
-    let entity: Entity = this;
-    for (let i = 0, length = splits.length; i < length; ++i) {
-      const split = splits[i];
-      if (split) {
-        entity = Entity._findChildByName(entity, split);
-        if (!entity) {
-          return null;
-        }
-      }
+    const splits = path.split("/").filter(Boolean);
+    if (!splits.length) {
+      return this;
     }
-    return entity;
+
+    return Entity._findChildByName(this, 0, splits, 0);
   }
 
   /**
@@ -363,7 +417,10 @@ export class Entity extends EngineObject {
    * @returns The child entity
    */
   createChild(name?: string): Entity {
-    const child = new Entity(this.engine, name);
+    const transform = this._transform;
+    const child = transform
+      ? new Entity(this.engine, name, transform.constructor as ComponentConstructor)
+      : new Entity(this.engine, name);
     child.layer = this.layer;
     child.parent = this;
     return child;
@@ -389,14 +446,21 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Clone.
+   * Clone this entity include children and components.
    * @returns Cloned entity
    */
   clone(): Entity {
-    const cloneEntity = this._createCloneEntity(this);
-    this._parseCloneEntity(this, cloneEntity, this, cloneEntity);
-
+    const cloneEntity = this._createCloneEntity();
+    this._parseCloneEntity(this, cloneEntity, this, cloneEntity, new Map<Object, Object>());
     return cloneEntity;
+  }
+
+  /**
+   * Listen for changes in the world pose of this `Entity`.
+   * @returns Change flag
+   */
+  registerWorldChangeFlag(): BoolUpdateFlag {
+    return this._updateFlagManager.createFlag(BoolUpdateFlag);
   }
 
   /**
@@ -407,43 +471,46 @@ export class Entity extends EngineObject {
     this._templateResource = templateResource;
   }
 
-  private _createCloneEntity(srcEntity: Entity): Entity {
-    const cloneEntity = new Entity(srcEntity._engine, srcEntity.name);
-
+  private _createCloneEntity(): Entity {
+    const transform = this._transform;
+    const cloneEntity = transform
+      ? new Entity(this.engine, this.name, transform.constructor as ComponentConstructor)
+      : new Entity(this.engine, this.name);
     const templateResource = this._templateResource;
     if (templateResource) {
       cloneEntity._templateResource = templateResource;
       templateResource._addReferCount(1);
     }
 
-    cloneEntity.layer = srcEntity.layer;
-    cloneEntity._isActive = srcEntity._isActive;
-    const { transform: cloneTransform } = cloneEntity;
-    const { transform: srcTransform } = srcEntity;
-    cloneTransform.position = srcTransform.position;
-    cloneTransform.rotation = srcTransform.rotation;
-    cloneTransform.scale = srcTransform.scale;
-
-    const children = srcEntity._children;
-    for (let i = 0, n = srcEntity._children.length; i < n; i++) {
-      cloneEntity.addChild(this._createCloneEntity(children[i]));
+    cloneEntity.layer = this.layer;
+    cloneEntity._isActive = this._isActive;
+    cloneEntity.transform._copyFrom(this.transform);
+    const srcChildren = this._children;
+    for (let i = 0, n = srcChildren.length; i < n; i++) {
+      cloneEntity.addChild(srcChildren[i]._createCloneEntity());
     }
     return cloneEntity;
   }
 
-  private _parseCloneEntity(srcEntity: Entity, targetEntity: Entity, srcRoot: Entity, targetRoot: Entity): void {
-    const srcChildren = srcEntity._children;
-    const targetChildren = targetEntity._children;
+  private _parseCloneEntity(
+    src: Entity,
+    target: Entity,
+    srcRoot: Entity,
+    targetRoot: Entity,
+    deepInstanceMap: Map<Object, Object>
+  ): void {
+    const srcChildren = src._children;
+    const targetChildren = target._children;
     for (let i = 0, n = srcChildren.length; i < n; i++) {
-      this._parseCloneEntity(srcChildren[i], targetChildren[i], srcRoot, targetRoot);
+      this._parseCloneEntity(srcChildren[i], targetChildren[i], srcRoot, targetRoot, deepInstanceMap);
     }
 
-    const components = srcEntity._components;
+    const components = src._components;
     for (let i = 0, n = components.length; i < n; i++) {
       const sourceComp = components[i];
       if (!(sourceComp instanceof Transform)) {
-        const targetComp = targetEntity.addComponent(<new (entity: Entity) => Component>sourceComp.constructor);
-        ComponentCloner.cloneComponent(sourceComp, targetComp, srcRoot, targetRoot);
+        const targetComp = target.addComponent(<ComponentConstructor>sourceComp.constructor);
+        ComponentCloner.cloneComponent(sourceComp, targetComp, srcRoot, targetRoot, deepInstanceMap);
       }
     }
   }
@@ -487,7 +554,7 @@ export class Entity extends EngineObject {
    * @internal
    */
   _removeComponent(component: Component): void {
-    ComponentsDependencies._removeCheck(this, component.constructor as any);
+    ComponentsDependencies._removeCheck(this, component.constructor as ComponentConstructor);
     const components = this._components;
     components.splice(components.indexOf(component), 1);
   }
@@ -525,6 +592,7 @@ export class Entity extends EngineObject {
       oldSibling.length = count;
       this._parent = null;
       this._siblingIndex = -1;
+      this._dispatchModify(EntityModifyFlags.Child, oldParent);
     }
   }
 
@@ -552,6 +620,32 @@ export class Entity extends EngineObject {
     this._setActiveComponents(false, activeChangeFlag);
   }
 
+  /**
+   * @internal
+   */
+  _setParentChange() {
+    this._transform._parentChange();
+    this._dispatchModify(EntityModifyFlags.Parent, this);
+  }
+
+  /**
+   * @internal
+   */
+  _registerModifyListener(onChange: (flag: EntityModifyFlags) => void): void {
+    (this._modifyFlagManager ||= new UpdateFlagManager()).addListener(onChange);
+  }
+
+  /**
+   * @internal
+   */
+  _unRegisterModifyListener(onChange: (flag: EntityModifyFlags) => void): void {
+    this._modifyFlagManager?.removeListener(onChange);
+  }
+
+  private _dispatchModify(flag: EntityModifyFlags, param?: any): void {
+    this._modifyFlagManager?.dispatch(flag, param);
+  }
+
   private _addToChildrenList(index: number, child: Entity): void {
     const children = this._children;
     const childCount = children.length;
@@ -572,6 +666,7 @@ export class Entity extends EngineObject {
       child._siblingIndex = index;
       children[index] = child;
     }
+    this._dispatchModify(EntityModifyFlags.Child, this);
   }
 
   private _setParent(parent: Entity, siblingIndex?: number): void {
@@ -622,7 +717,11 @@ export class Entity extends EngineObject {
           Entity._traverseSetOwnerScene(this, null);
         }
       }
-      this._setTransformDirty();
+      this._setParentChange();
+    } else {
+      if (parent && siblingIndex !== undefined) {
+        this.siblingIndex = siblingIndex;
+      }
     }
   }
 
@@ -677,16 +776,6 @@ export class Entity extends EngineObject {
     }
   }
 
-  private _setTransformDirty() {
-    if (this.transform) {
-      this.transform._parentChange();
-    } else {
-      for (let i = 0, len = this._children.length; i < len; i++) {
-        this._children[i]._setTransformDirty();
-      }
-    }
-  }
-
   private _setSiblingIndex(sibling: Entity[], target: number): void {
     target = Math.min(target, sibling.length - 1);
     if (target < 0) {
@@ -708,6 +797,7 @@ export class Entity extends EngineObject {
         }
       }
     }
+    this._dispatchModify(EntityModifyFlags.Child, this);
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
@@ -719,9 +809,18 @@ export class Entity extends EngineObject {
    */
   getInvModelMatrix(): Matrix {
     if (this._inverseWorldMatFlag.flag) {
-      Matrix.invert(this.transform.worldMatrix, this._invModelMatrix);
+      Matrix.invert(this._transform.worldMatrix, this._invModelMatrix);
       this._inverseWorldMatFlag.flag = false;
     }
     return this._invModelMatrix;
   }
 }
+
+type ComponentArguments<T extends new (entity: Entity, ...args: any[]) => Component> = T extends new (
+  entity: Entity,
+  ...args: infer P
+) => Component
+  ? P
+  : never;
+
+type ComponentConstructor = new (entity: Entity) => Component;

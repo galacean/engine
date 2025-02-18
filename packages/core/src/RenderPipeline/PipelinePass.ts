@@ -6,11 +6,7 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
  * PipelinePass is a base class for all pipeline passes.
  */
 export abstract class PipelinePass {
-  protected _engine: Engine;
-
-  constructor(engine: Engine) {
-    this._engine = engine;
-  }
+  constructor(public readonly engine: Engine) {}
 
   /**
    * Called before rendering a camera, override this method to configure the camera If you need to configure the camera clear flag or render target.

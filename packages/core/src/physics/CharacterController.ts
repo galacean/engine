@@ -5,24 +5,28 @@ import { Collider } from "./Collider";
 import { PhysicsScene } from "./PhysicsScene";
 import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
 import { ColliderShape } from "./shape";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
 
 /**
  * The character controllers.
  */
 export class CharacterController extends Collider {
-  private _stepOffset: number = 0.5;
+  private _stepOffset = 0.5;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
+  @deepClone
   private _upDirection = new Vector3(0, 1, 0);
-  private _slopeLimit: number = 0.707;
+  private _slopeLimit = 45;
 
   /**
-   * The step offset for the controller.
+   * The step offset for the controller, the value must be greater than or equal to 0.
+   * @remarks Character can overcome obstacle less than the height(stepOffset + contractOffset of the shape).
    */
   get stepOffset(): number {
     return this._stepOffset;
   }
 
   set stepOffset(value: number) {
+    value = Math.max(0, value);
     if (this._stepOffset !== value) {
       this._stepOffset = value;
       (<ICharacterController>this._nativeCollider).setStepOffset(value);
@@ -57,7 +61,8 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * The slope limit for the controller.
+   * The slope limit in degrees for the controller, the value is the cosine value of the maximum slope angle.
+   * @defaultValue 45 degrees
    */
   get slopeLimit(): number {
     return this._slopeLimit;
@@ -80,6 +85,9 @@ export class CharacterController extends Collider {
     this._setUpDirection = this._setUpDirection.bind(this);
     //@ts-ignore
     this._upDirection._onValueChanged = this._setUpDirection;
+
+    // sync world position to physical space
+    this._onUpdate();
   }
 
   /**
@@ -90,7 +98,9 @@ export class CharacterController extends Collider {
    * @return flags - The ControllerCollisionFlag
    */
   move(disp: Vector3, minDist: number, elapsedTime: number): number {
-    return (<ICharacterController>this._nativeCollider).move(disp, minDist, elapsedTime);
+    const flags = (<ICharacterController>this._nativeCollider).move(disp, minDist, elapsedTime);
+    this._syncWorldPositionFromPhysicalSpace();
+    return flags;
   }
 
   /**
@@ -103,15 +113,6 @@ export class CharacterController extends Collider {
     }
     super.addShape(shape);
     this._updateFlag.flag = true;
-  }
-
-  /**
-   * Remove all shape attached.
-   */
-  override clearShapes(): void {
-    if (this._shapes.length > 0) {
-      super.removeShape(this._shapes[0]);
-    }
   }
 
   /**
@@ -135,8 +136,7 @@ export class CharacterController extends Collider {
    * @internal
    */
   override _onLateUpdate() {
-    const position = this.entity.transform.worldPosition;
-    (<ICharacterController>this._nativeCollider).getWorldPosition(position);
+    this._syncWorldPositionFromPhysicalSpace();
     this._updateFlag.flag = false;
   }
 
@@ -144,26 +144,29 @@ export class CharacterController extends Collider {
    * @internal
    */
   override _onEnableInScene() {
-    const physics = this.scene.physics;
-    physics._addCharacterController(this);
-    const shapes = this.shapes;
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      physics._addColliderShape(shapes[i]);
-    }
+    this.scene.physics._addCharacterController(this);
   }
 
   /**
    * @internal
    */
   override _onDisableInScene() {
-    const physics = this.scene.physics;
-    physics._removeCharacterController(this);
-    const shapes = this.shapes;
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      physics._removeColliderShape(shapes[i]);
-    }
+    this.scene.physics._removeCharacterController(this);
   }
 
+  protected override _syncNative(): void {
+    super._syncNative();
+    (<ICharacterController>this._nativeCollider).setStepOffset(this._stepOffset);
+    (<ICharacterController>this._nativeCollider).setNonWalkableMode(this._nonWalkableMode);
+    (<ICharacterController>this._nativeCollider).setUpDirection(this._upDirection);
+    (<ICharacterController>this._nativeCollider).setSlopeLimit(this._slopeLimit);
+  }
+
+  private _syncWorldPositionFromPhysicalSpace(): void {
+    (<ICharacterController>this._nativeCollider).getWorldPosition(this.entity.transform.worldPosition);
+  }
+
+  @ignoreClone
   private _setUpDirection(): void {
     (<ICharacterController>this._nativeCollider).setUpDirection(this._upDirection);
   }

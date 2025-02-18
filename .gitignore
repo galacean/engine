@@ -7,13 +7,13 @@ tmp
 /packages/*/types
 /packages/*/doc
 /tests/node_modules
+/e2e/node_modules
 /playground/node_modules
 types
 /packages/*/test/fixtures/**/node_modules
 /boilerplates/*/node_modules
 lib
 dist
-dist-miniprogram
 coverage
 .nyc_output
 npm-debug.log*
@@ -24,4 +24,18 @@ AUTHORS
 stats.html
 tsconfig.tsbuildinfo
 api
+docs/api
 yarn.lock
+e2e/videos/*
+e2e/screenshots/*
+e2e/downloads/*
+e2e/diff/*
+e2e/.dev/mpa
+.husky/post-checkout
+.husky/post-commit
+.husky/pre-push
+.husky/post-merge
+
+# For bison generated files used by ShaderLab
+*.tab.c
+*.output

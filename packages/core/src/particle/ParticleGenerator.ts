@@ -1,4 +1,4 @@
-import { Color, MathUtil, Quaternion, Vector3 } from "@galacean/engine-math";
+import { BoundingBox, Color, MathUtil, Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ColorSpace } from "../enums/ColorSpace";
@@ -14,7 +14,8 @@ import { SetDataOptions } from "../graphic/enums/SetDataOptions";
 import { VertexAttribute } from "../mesh";
 import { ShaderData } from "../shader";
 import { Buffer } from "./../graphic/Buffer";
-import { ParticleRenderer } from "./ParticleRenderer";
+import { ParticleBufferUtils } from "./ParticleBufferUtils";
+import { ParticleRenderer, ParticleUpdateFlags } from "./ParticleRenderer";
 import { ParticleCurveMode } from "./enums/ParticleCurveMode";
 import { ParticleGradientMode } from "./enums/ParticleGradientMode";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
@@ -23,6 +24,7 @@ import { ParticleStopMode } from "./enums/ParticleStopMode";
 import { ColorOverLifetimeModule } from "./modules/ColorOverLifetimeModule";
 import { EmissionModule } from "./modules/EmissionModule";
 import { MainModule } from "./modules/MainModule";
+import { ParticleCompositeCurve } from "./modules/ParticleCompositeCurve";
 import { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule";
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
@@ -32,31 +34,33 @@ import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule
  * Particle Generator.
  */
 export class ParticleGenerator {
-  /** @internal */
+  private static _tempVector20 = new Vector2();
+  private static _tempVector21 = new Vector2();
+  private static _tempVector22 = new Vector2();
   private static _tempVector30 = new Vector3();
-  /** @internal */
   private static _tempVector31 = new Vector3();
-  /** @internal */
+  private static _tempMat = new Matrix();
   private static _tempColor0 = new Color();
-  /** @internal */
   private static _tempParticleRenderers = new Array<ParticleRenderer>();
+
   private static readonly _particleIncreaseCount = 128;
+  private static readonly _transformedBoundsIncreaseCount = 16;
 
   /** Use auto random seed. */
   useAutoRandomSeed = true;
 
   /** Main module. */
   @deepClone
-  readonly main = new MainModule(this);
+  readonly main: MainModule;
   /** Emission module. */
   @deepClone
   readonly emission = new EmissionModule(this);
   /** Velocity over lifetime module. */
   @deepClone
-  readonly velocityOverLifetime = new VelocityOverLifetimeModule(this);
+  readonly velocityOverLifetime: VelocityOverLifetimeModule;
   /** Size over lifetime module. */
   @deepClone
-  readonly sizeOverLifetime = new SizeOverLifetimeModule(this);
+  readonly sizeOverLifetime: SizeOverLifetimeModule;
   /** Rotation over lifetime module. */
   @deepClone
   readonly rotationOverLifetime = new RotationOverLifetimeModule(this);
@@ -109,6 +113,16 @@ export class ParticleGenerator {
   @ignoreClone
   private _instanceVertices: Float32Array;
   private _randomSeed = 0;
+  @ignoreClone
+  private _transformedBoundsArray: Float32Array;
+  @ignoreClone
+  private _transformedBoundsCount = 0;
+  @ignoreClone
+  private _firstActiveTransformedBoundingBox = 0;
+  @ignoreClone
+  private _firstFreeTransformedBoundingBox = 0;
+  @ignoreClone
+  private _playStartDelay = 0;
 
   /**
    * Whether the particle generator is contain alive or is still creating particles.
@@ -149,6 +163,10 @@ export class ParticleGenerator {
     this._reorganizeGeometryBuffers();
     this._resizeInstanceBuffer(true, ParticleGenerator._particleIncreaseCount);
 
+    this.main = new MainModule(this);
+    this.velocityOverLifetime = new VelocityOverLifetimeModule(this);
+    this.sizeOverLifetime = new SizeOverLifetimeModule(this);
+
     this.emission.enabled = true;
   }
 
@@ -171,6 +189,8 @@ export class ParticleGenerator {
       if (this.useAutoRandomSeed) {
         this._resetGlobalRandSeed(Math.floor(Math.random() * 0xffffffff)); // 2^32 - 1
       }
+
+      this._playStartDelay = this.main.startDelay.evaluate(undefined, this.main._startDelayRand.random());
     }
   }
 
@@ -199,6 +219,8 @@ export class ParticleGenerator {
         this._firstNewElement = firstFreeElement;
         this._playTime = 0;
 
+        this._firstActiveTransformedBoundingBox = this._firstFreeTransformedBoundingBox;
+
         this.emission._reset();
       }
     }
@@ -218,7 +240,8 @@ export class ParticleGenerator {
   _emit(time: number, count: number): void {
     if (this.emission.enabled) {
       // Wait the existing particles to be retired
-      if (this.main._maxParticleBuffer < this._currentParticleCount) {
+      const notRetireParticleCount = this._getNotRetiredParticleCount();
+      if (notRetireParticleCount >= this.main.maxParticles) {
         return;
       }
       const position = ParticleGenerator._tempVector30;
@@ -226,7 +249,7 @@ export class ParticleGenerator {
       const transform = this._renderer.entity.transform;
       const shape = this.emission.shape;
       for (let i = 0; i < count; i++) {
-        if (shape) {
+        if (shape?.enabled) {
           shape._generatePositionAndDirection(this.emission._shapeRand, time, position, direction);
           const positionScale = this.main._getPositionScale();
           position.multiply(positionScale);
@@ -244,14 +267,31 @@ export class ParticleGenerator {
    * @internal
    */
   _update(elapsedTime: number): void {
+    const lastAlive = this.isAlive;
     const { main, emission } = this;
     const duration = main.duration;
     const lastPlayTime = this._playTime;
+    const deltaTime = elapsedTime * main.simulationSpeed;
 
-    this._playTime += elapsedTime * main.simulationSpeed;
+    // Process start delay time
+    if (this._playStartDelay > 0) {
+      const remainingDelay = (this._playStartDelay -= deltaTime);
+      if (remainingDelay < 0) {
+        this._playTime -= remainingDelay;
+        this._playStartDelay = 0;
+      } else {
+        return;
+      }
+    }
+
+    this._playTime += deltaTime;
 
     this._retireActiveParticles();
     this._freeRetiredParticles();
+
+    if (main.simulationSpace === ParticleSimulationSpace.World) {
+      this._retireTransformedBounds();
+    }
 
     if (emission.enabled && this._isPlaying) {
       // If maxParticles is changed dynamically, currentParticleCount may be greater than maxParticles
@@ -261,19 +301,25 @@ export class ParticleGenerator {
           this._resizeInstanceBuffer(false);
         }
       }
-
       emission._emit(lastPlayTime, this._playTime);
-
       if (!main.isLoop && this._playTime > duration) {
         this._isPlaying = false;
       }
     }
 
-    // Reset play time when is not playing and no active particles to avoid potential precision problems in GPU
-    if (!this.isAlive) {
+    if (this.isAlive) {
+      if (main.simulationSpace === ParticleSimulationSpace.World) {
+        this._generateTransformedBounds();
+      }
+    } else {
+      // Reset play time when is not playing and no active particles to avoid potential precision problems in GPU
       const discardTime = Math.min(emission._frameRateTime, Math.floor(this._playTime / duration) * duration);
       this._playTime -= discardTime;
       emission._frameRateTime -= discardTime;
+    }
+
+    if (this.isAlive !== lastAlive) {
+      this._renderer._onWorldVolumeChanged();
     }
 
     // Add new particles to vertex buffer when has wait process retired element or new particle
@@ -342,7 +388,7 @@ export class ParticleGenerator {
       primitive.addVertexElement(particleUtils.billboardVertexElement);
       vertexBufferBindings.push(particleUtils.billboardVertexBufferBinding);
       primitive.setIndexBufferBinding(particleUtils.billboardIndexBufferBinding);
-      this._subPrimitive.count = particleUtils.billboardIndexCount;
+      this._subPrimitive.count = ParticleBufferUtils.billboardIndexCount;
     }
     primitive.setVertexBufferBindings(vertexBufferBindings);
 
@@ -362,8 +408,7 @@ export class ParticleGenerator {
   _resizeInstanceBuffer(isIncrease: boolean, increaseCount?: number): void {
     this._instanceVertexBufferBinding?.buffer.destroy();
 
-    const particleUtils = this._renderer.engine._particleBufferUtils;
-    const stride = particleUtils.instanceVertexStride;
+    const stride = ParticleBufferUtils.instanceVertexStride;
     const newParticleCount = isIncrease ? this._currentParticleCount + increaseCount : this.main._maxParticleBuffer;
     const newByteLength = stride * newParticleCount;
     const engine = this._renderer.engine;
@@ -380,17 +425,22 @@ export class ParticleGenerator {
     const vertexBufferBinding = new VertexBufferBinding(vertexInstanceBuffer, stride);
 
     const instanceVertices = new Float32Array(newByteLength / 4);
+
     const lastInstanceVertices = this._instanceVertices;
     if (lastInstanceVertices) {
-      const floatStride = particleUtils.instanceVertexFloatStride;
+      const floatStride = ParticleBufferUtils.instanceVertexFloatStride;
 
       const firstFreeElement = this._firstFreeElement;
       const firstRetiredElement = this._firstRetiredElement;
       if (isIncrease) {
-        const freeOffset = this._firstFreeElement * floatStride;
-        instanceVertices.set(new Float32Array(lastInstanceVertices.buffer, 0, freeOffset));
-        const freeEndOffset = (this._firstFreeElement + increaseCount) * floatStride;
-        instanceVertices.set(new Float32Array(lastInstanceVertices.buffer, freeOffset * 4), freeEndOffset);
+        instanceVertices.set(new Float32Array(lastInstanceVertices.buffer, 0, firstFreeElement * floatStride));
+
+        const nextFreeElement = firstFreeElement + 1;
+        const freeEndOffset = (nextFreeElement + increaseCount) * floatStride;
+        instanceVertices.set(
+          new Float32Array(lastInstanceVertices.buffer, nextFreeElement * floatStride * 4),
+          freeEndOffset
+        );
 
         // Maintain expanded pointers
         this._firstNewElement > firstFreeElement && (this._firstNewElement += increaseCount);
@@ -501,6 +551,122 @@ export class ParticleGenerator {
   _destroy(): void {
     this._instanceVertexBufferBinding.buffer.destroy();
     this._primitive.destroy();
+    this.emission._destroy();
+  }
+
+  /**
+   * @internal
+   */
+  _updateBoundsSimulationLocal(bounds: BoundingBox): void {
+    const renderer = this._renderer;
+    // Get longest Lifetime
+    const maxLifetime = this.main.startLifetime._getMax();
+
+    const { _generatorBounds: generatorBounds, _transformedBounds: transformedBounds } = renderer;
+    if (renderer._isContainDirtyFlag(ParticleUpdateFlags.GeneratorVolume)) {
+      this._calculateGeneratorBounds(maxLifetime, generatorBounds);
+      renderer._setDirtyFlagFalse(ParticleUpdateFlags.GeneratorVolume);
+    }
+
+    if (renderer._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
+      this._calculateTransformedBounds(maxLifetime, generatorBounds, transformedBounds);
+      renderer._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
+    }
+
+    this._addGravityToBounds(maxLifetime, transformedBounds, bounds);
+  }
+
+  /**
+   * @internal
+   */
+  _updateBoundsSimulationWorld(bounds: BoundingBox): void {
+    const boundsArray = this._transformedBoundsArray;
+    const firstActiveElement = this._firstActiveTransformedBoundingBox;
+    const firstFreeElement = this._firstFreeTransformedBoundingBox;
+
+    const index = firstActiveElement * ParticleBufferUtils.boundsFloatStride;
+    bounds.min.copyFromArray(boundsArray, index);
+    bounds.max.copyFromArray(boundsArray, index + 3);
+
+    if (firstActiveElement < firstFreeElement) {
+      for (let i = firstActiveElement + 1; i < firstFreeElement; i++) {
+        this._mergeTransformedBounds(i, bounds);
+      }
+    } else {
+      for (let i = firstActiveElement + 1, n = this._transformedBoundsCount; i < n; i++) {
+        this._mergeTransformedBounds(i, bounds);
+      }
+      if (firstFreeElement > 0) {
+        for (let i = 0; i < firstFreeElement; i++) {
+          this._mergeTransformedBounds(i, bounds);
+        }
+      }
+    }
+
+    const maxLifetime = this.main.startLifetime._getMax();
+    this._addGravityToBounds(maxLifetime, bounds, bounds);
+  }
+
+  /**
+   * @internal
+   */
+  _freeBoundsArray(): void {
+    this._transformedBoundsArray = null;
+
+    this._transformedBoundsCount = 0;
+    this._firstActiveTransformedBoundingBox = 0;
+    this._firstFreeTransformedBoundingBox = 0;
+  }
+
+  /**
+   * @internal
+   */
+  _generateTransformedBounds(): void {
+    const renderer = this._renderer;
+    // Get longest Lifetime
+    const maxLifetime = this.main.startLifetime._getMax();
+
+    const generatorBounds = renderer._generatorBounds;
+    if (renderer._isContainDirtyFlag(ParticleUpdateFlags.GeneratorVolume)) {
+      this._calculateGeneratorBounds(maxLifetime, generatorBounds);
+      renderer._setDirtyFlagFalse(ParticleUpdateFlags.GeneratorVolume);
+    }
+
+    const { boundsFloatStride, boundsTimeOffset, boundsMaxLifetimeOffset } = ParticleBufferUtils;
+    const firstFreeElement = this._firstFreeTransformedBoundingBox;
+    if (renderer._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
+      // Resize transformed bounds if needed
+      let nextFreeElement = firstFreeElement + 1;
+      if (nextFreeElement >= this._transformedBoundsCount) {
+        nextFreeElement = 0;
+      }
+      if (nextFreeElement === this._firstActiveTransformedBoundingBox) {
+        this._resizeTransformedBoundsArray();
+        nextFreeElement = firstFreeElement + 1;
+      }
+
+      // Generate transformed bounds
+      const transformedBounds = renderer._transformedBounds;
+      this._calculateTransformedBounds(maxLifetime, generatorBounds, transformedBounds);
+
+      const boundsOffset = firstFreeElement * boundsFloatStride;
+      const boundsArray = this._transformedBoundsArray;
+      transformedBounds.min.copyToArray(boundsArray, boundsOffset);
+      transformedBounds.max.copyToArray(boundsArray, boundsOffset + 3);
+
+      boundsArray[boundsOffset + boundsTimeOffset] = this._playTime;
+      boundsArray[boundsOffset + boundsMaxLifetimeOffset] = maxLifetime;
+
+      this._firstFreeTransformedBoundingBox = nextFreeElement;
+      renderer._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
+    } else {
+      let previousFreeElement = this._firstFreeTransformedBoundingBox - 1;
+      if (previousFreeElement < 0) {
+        previousFreeElement = this._transformedBoundsCount;
+      }
+      this._transformedBoundsArray[previousFreeElement * ParticleBufferUtils.boundsFloatStride + boundsTimeOffset] =
+        this._playTime;
+    }
   }
 
   private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform, time: number): void {
@@ -512,6 +678,12 @@ export class ParticleGenerator {
 
     const main = this.main;
     // Check if can be expanded
+
+    // Using 'nextFreeElement' instead of 'freeElement' when comparing with '_firstRetiredElement'
+    // aids in definitively identifying the head and tail of the circular queue.
+
+    // Failure to adopt this approach may impede growth initiation
+    // due to the initial alignment of 'freeElement' and 'firstRetiredElement'.
     if (nextFreeElement === this._firstRetiredElement) {
       const increaseCount = Math.min(
         ParticleGenerator._particleIncreaseCount,
@@ -533,11 +705,10 @@ export class ParticleGenerator {
       rot = transform.worldRotationQuaternion;
     }
 
-    const particleUtils = this._renderer.engine._particleBufferUtils;
     const startSpeed = main.startSpeed.evaluate(undefined, main._startSpeedRand.random());
 
     const instanceVertices = this._instanceVertices;
-    const offset = firstFreeElement * particleUtils.instanceVertexFloatStride;
+    const offset = firstFreeElement * ParticleBufferUtils.instanceVertexFloatStride;
 
     // Position
     instanceVertices[offset] = position.x;
@@ -545,7 +716,7 @@ export class ParticleGenerator {
     instanceVertices[offset + 2] = position.z;
 
     // Start life time
-    instanceVertices[offset + particleUtils.startLifeTimeOffset] = main.startLifetime.evaluate(
+    instanceVertices[offset + ParticleBufferUtils.startLifeTimeOffset] = main.startLifetime.evaluate(
       undefined,
       main._startLifeTimeRand.random()
     );
@@ -556,7 +727,7 @@ export class ParticleGenerator {
     instanceVertices[offset + 6] = direction.z;
 
     // Time
-    instanceVertices[offset + particleUtils.timeOffset] = time;
+    instanceVertices[offset + ParticleBufferUtils.timeOffset] = time;
 
     // Color
     const startColor = ParticleGenerator._tempColor0;
@@ -584,28 +755,32 @@ export class ParticleGenerator {
     }
 
     // Start rotation
-    const startRotationRand = main._startRotationRand;
+    const { _startRotationRand: startRotationRand, flipRotation } = main;
+    const isOpposite = flipRotation < startRotationRand.random();
+    const rotationZ = MathUtil.degreeToRadian(main.startRotationZ.evaluate(undefined, startRotationRand.random()));
     if (main.startRotation3D) {
-      instanceVertices[offset + 15] = MathUtil.degreeToRadian(
-        main.startRotationX.evaluate(undefined, startRotationRand.random())
-      );
-      instanceVertices[offset + 16] = MathUtil.degreeToRadian(
-        main.startRotationY.evaluate(undefined, startRotationRand.random())
-      );
-      instanceVertices[offset + 17] = MathUtil.degreeToRadian(
-        main.startRotationZ.evaluate(undefined, startRotationRand.random())
-      );
+      const rotationX = MathUtil.degreeToRadian(main.startRotationX.evaluate(undefined, startRotationRand.random()));
+      const rotationY = MathUtil.degreeToRadian(main.startRotationY.evaluate(undefined, startRotationRand.random()));
+      instanceVertices[offset + 15] = isOpposite ? -rotationX : rotationX;
+      instanceVertices[offset + 16] = isOpposite ? -rotationY : rotationY;
+      instanceVertices[offset + 17] = isOpposite ? -rotationZ : rotationZ;
     } else {
-      instanceVertices[offset + 15] = MathUtil.degreeToRadian(
-        main.startRotationZ.evaluate(undefined, startRotationRand.random())
-      );
+      instanceVertices[offset + 15] = isOpposite ? -rotationZ : rotationZ;
     }
 
     // Start speed
     instanceVertices[offset + 18] = startSpeed;
 
-    // Unused, Color, size, rotation,
-    // instanceVertices[offset + 19] = rand.random();
+    // Gravity, unused, size, rotation
+    switch (main.gravityModifier.mode) {
+      case ParticleCurveMode.Constant:
+        instanceVertices[offset + 19] = main.gravityModifier.constant;
+        break;
+      case ParticleCurveMode.TwoConstants:
+        instanceVertices[offset + 19] = main.gravityModifier.evaluate(undefined, main._gravityModifierRand.random());
+        break;
+    }
+
     const colorOverLifetime = this.colorOverLifetime;
     if (colorOverLifetime.enabled && colorOverLifetime.color.mode === ParticleGradientMode.TwoGradients) {
       instanceVertices[offset + 20] = colorOverLifetime._colorGradientRand.random();
@@ -652,14 +827,23 @@ export class ParticleGenerator {
     }
 
     // Simulation UV
-    if (this.textureSheetAnimation.enabled) {
-      const tillingInfo = this.textureSheetAnimation._tillingInfo;
-      instanceVertices[offset + particleUtils.simulationUVOffset] = tillingInfo.x;
-      instanceVertices[offset + 35] = tillingInfo.y;
-      instanceVertices[offset + 36] = 0;
-      instanceVertices[offset + 37] = 0;
+    if (textureSheetAnimation.enabled) {
+      const { frameOverTime } = textureSheetAnimation;
+      const { x, y, z } = textureSheetAnimation._tillingInfo;
+
+      let tileRow = 0;
+      if (frameOverTime.mode === ParticleCurveMode.Constant || frameOverTime.mode === ParticleCurveMode.TwoConstants) {
+        tileRow =
+          Math.floor(frameOverTime.evaluate(undefined, textureSheetAnimation._frameOverTimeRand.random()) * z) * x;
+      }
+      const tileRowIndex = Math.floor(tileRow);
+
+      instanceVertices[offset + ParticleBufferUtils.simulationUVOffset] = x;
+      instanceVertices[offset + 35] = y;
+      instanceVertices[offset + 36] = tileRow - tileRowIndex;
+      instanceVertices[offset + 37] = tileRowIndex * y;
     } else {
-      instanceVertices[offset + particleUtils.simulationUVOffset] = 1;
+      instanceVertices[offset + ParticleBufferUtils.simulationUVOffset] = 1;
       instanceVertices[offset + 35] = 1;
       instanceVertices[offset + 36] = 0;
       instanceVertices[offset + 37] = 0;
@@ -670,18 +854,17 @@ export class ParticleGenerator {
 
   private _retireActiveParticles(): void {
     const engine = this._renderer.engine;
-    const particleUtils = engine._particleBufferUtils;
 
     const frameCount = engine.time.frameCount;
     const instanceVertices = this._instanceVertices;
 
     while (this._firstActiveElement !== this._firstNewElement) {
-      const activeParticleOffset = this._firstActiveElement * particleUtils.instanceVertexFloatStride;
-      const activeParticleTimeOffset = activeParticleOffset + particleUtils.timeOffset;
+      const activeParticleOffset = this._firstActiveElement * ParticleBufferUtils.instanceVertexFloatStride;
+      const activeParticleTimeOffset = activeParticleOffset + ParticleBufferUtils.timeOffset;
 
       const particleAge = this._playTime - instanceVertices[activeParticleTimeOffset];
       // Use `Math.fround` to ensure the precision of comparison is same
-      if (Math.fround(particleAge) < instanceVertices[activeParticleOffset + particleUtils.startLifeTimeOffset]) {
+      if (Math.fround(particleAge) < instanceVertices[activeParticleOffset + ParticleBufferUtils.startLifeTimeOffset]) {
         break;
       }
 
@@ -697,12 +880,12 @@ export class ParticleGenerator {
   }
 
   private _freeRetiredParticles(): void {
-    const particleUtils = this._renderer.engine._particleBufferUtils;
     const frameCount = this._renderer.engine.time.frameCount;
 
     while (this._firstRetiredElement !== this._firstActiveElement) {
       const offset =
-        this._firstRetiredElement * particleUtils.instanceVertexFloatStride + particleUtils.startLifeTimeOffset;
+        this._firstRetiredElement * ParticleBufferUtils.instanceVertexFloatStride +
+        ParticleBufferUtils.startLifeTimeOffset;
       const age = frameCount - this._instanceVertices[offset];
 
       // WebGL don't support map buffer range, so off this optimization
@@ -725,7 +908,7 @@ export class ParticleGenerator {
       return;
     }
 
-    const byteStride = this._renderer.engine._particleBufferUtils.instanceVertexStride;
+    const byteStride = ParticleBufferUtils.instanceVertexStride;
     const start = firstActiveElement * byteStride;
     const instanceBuffer = this._instanceVertexBufferBinding.buffer;
     const dataBuffer = this._instanceVertices.buffer;
@@ -763,5 +946,235 @@ export class ParticleGenerator {
     }
     out.push(vertexBufferBinding);
     return index;
+  }
+
+  private _resizeTransformedBoundsArray(): void {
+    const floatStride = ParticleBufferUtils.boundsFloatStride;
+    const increaseCount = ParticleGenerator._transformedBoundsIncreaseCount;
+
+    this._transformedBoundsCount += increaseCount;
+    const lastBoundsArray = this._transformedBoundsArray;
+    const boundsArray = new Float32Array(this._transformedBoundsCount * floatStride);
+
+    if (lastBoundsArray) {
+      const firstFreeElement = this._firstFreeTransformedBoundingBox;
+      boundsArray.set(new Float32Array(lastBoundsArray.buffer, 0, firstFreeElement * floatStride));
+
+      const nextFreeElement = firstFreeElement + 1;
+      const freeEndOffset = (nextFreeElement + increaseCount) * floatStride;
+      boundsArray.set(new Float32Array(lastBoundsArray.buffer, nextFreeElement * floatStride * 4), freeEndOffset);
+
+      const firstActiveElement = this._firstActiveTransformedBoundingBox;
+      if (firstActiveElement > firstFreeElement) {
+        this._firstActiveTransformedBoundingBox += increaseCount;
+      }
+    }
+
+    this._transformedBoundsArray = boundsArray;
+  }
+
+  private _retireTransformedBounds(): void {
+    const { boundsFloatStride, boundsTimeOffset, boundsMaxLifetimeOffset } = ParticleBufferUtils;
+    const boundsArray = this._transformedBoundsArray;
+    const firstFreeElement = this._firstFreeTransformedBoundingBox;
+    const count = this._transformedBoundsCount;
+
+    while (this._firstActiveTransformedBoundingBox !== firstFreeElement) {
+      const index = this._firstActiveTransformedBoundingBox * boundsFloatStride;
+      const age = this._playTime - boundsArray[index + boundsTimeOffset];
+      if (age <= boundsArray[index + boundsMaxLifetimeOffset]) {
+        break;
+      }
+
+      if (++this._firstActiveTransformedBoundingBox >= count) {
+        this._firstActiveTransformedBoundingBox = 0;
+      }
+      this._renderer._onWorldVolumeChanged();
+    }
+  }
+
+  private _calculateGeneratorBounds(maxLifetime: number, bounds: BoundingBox): void {
+    const { _tempVector30: directionMax, _tempVector31: directionMin, _tempVector20: speedMinMax } = ParticleGenerator;
+    const { min, max } = bounds;
+    const { main } = this;
+
+    // StartSpeed's impact
+    const { shape } = this.emission;
+    if (shape?.enabled) {
+      shape._getPositionRange(min, max);
+      shape._getDirectionRange(directionMin, directionMax);
+    } else {
+      min.set(0, 0, 0);
+      max.set(0, 0, 0);
+      directionMin.set(0, 0, -1);
+      directionMax.set(0, 0, 0);
+    }
+    this._getExtremeValueFromZero(main.startSpeed, speedMinMax);
+
+    const { x: speedMin, y: speedMax } = speedMinMax;
+    const { x: dirMinX, y: dirMinY, z: dirMinZ } = directionMin;
+    const { x: dirMaxX, y: dirMaxY, z: dirMaxZ } = directionMax;
+
+    min.set(
+      min.x + Math.min(dirMinX * speedMax, dirMaxX * speedMin) * maxLifetime,
+      min.y + Math.min(dirMinY * speedMax, dirMaxY * speedMin) * maxLifetime,
+      min.z + Math.min(dirMinZ * speedMax, dirMaxZ * speedMin) * maxLifetime
+    );
+
+    max.set(
+      max.x + Math.max(dirMinX * speedMin, dirMaxX * speedMax) * maxLifetime,
+      max.y + Math.max(dirMinY * speedMin, dirMaxY * speedMax) * maxLifetime,
+      max.z + Math.max(dirMinZ * speedMin, dirMaxZ * speedMax) * maxLifetime
+    );
+
+    // StartSize's impact
+    let maxSize = main.startSize._getMax();
+
+    if (main.startSize3D) {
+      const startSizeYMax = main.startSizeY._getMax();
+      if (
+        this._renderer.renderMode === ParticleRenderMode.Billboard ||
+        ParticleRenderMode.StretchBillboard ||
+        ParticleRenderMode.HorizontalBillboard
+      ) {
+        maxSize = Math.max(maxSize, startSizeYMax);
+      } else {
+        const startSizeZMax = main.startSizeZ._getMax();
+        maxSize = Math.max(maxSize, startSizeYMax, startSizeZMax);
+      }
+    }
+
+    // Use diagonal for potential rotation
+    maxSize *= 1.414;
+
+    // SizeOverLifetime impact
+    const { sizeOverLifetime } = this;
+    if (sizeOverLifetime.enabled) {
+      let maxSizeOverLifetime = sizeOverLifetime.size._getMax();
+      if (sizeOverLifetime.separateAxes) {
+        const maxSizeOverLifetimeY = sizeOverLifetime.sizeY._getMax();
+        const maxSizeOverLifetimeZ = sizeOverLifetime.sizeZ._getMax();
+        maxSizeOverLifetime = Math.max(maxSizeOverLifetime, maxSizeOverLifetimeY, maxSizeOverLifetimeZ);
+      }
+
+      maxSize *= maxSizeOverLifetime;
+    }
+
+    min.set(min.x - maxSize, min.y - maxSize, min.z - maxSize);
+    max.set(max.x + maxSize, max.y + maxSize, max.z + maxSize);
+  }
+
+  private _mergeTransformedBounds(index: number, bounds: BoundingBox): void {
+    const { min, max } = bounds;
+    const boundsArray = this._transformedBoundsArray;
+
+    const offset = index * ParticleBufferUtils.boundsFloatStride;
+
+    min.set(
+      Math.min(min.x, boundsArray[offset]),
+      Math.min(min.y, boundsArray[offset + 1]),
+      Math.min(min.z, boundsArray[offset + 2])
+    );
+
+    max.set(
+      Math.max(max.x, boundsArray[offset + 3]),
+      Math.max(max.y, boundsArray[offset + 4]),
+      Math.max(max.z, boundsArray[offset + 5])
+    );
+  }
+
+  private _calculateTransformedBounds(maxLifetime: number, origin: BoundingBox, out: BoundingBox): void {
+    const {
+      _tempVector20: velMinMaxX,
+      _tempVector21: velMinMaxY,
+      _tempVector22: velMinMaxZ,
+      _tempMat: rotateMat
+    } = ParticleGenerator;
+    const { transform } = this._renderer.entity;
+    const worldPosition = transform.worldPosition;
+    Matrix.rotationQuaternion(transform.worldRotationQuaternion, rotateMat);
+
+    const { min: originMin, max: originMax } = origin;
+    const { min, max } = out;
+
+    const { velocityOverLifetime } = this;
+    if (velocityOverLifetime.enabled) {
+      this._getExtremeValueFromZero(velocityOverLifetime.velocityX, velMinMaxX);
+      this._getExtremeValueFromZero(velocityOverLifetime.velocityY, velMinMaxY);
+      this._getExtremeValueFromZero(velocityOverLifetime.velocityZ, velMinMaxZ);
+
+      if (velocityOverLifetime.space === ParticleSimulationSpace.Local) {
+        min.set(
+          originMin.x + velMinMaxX.x * maxLifetime,
+          originMin.y + velMinMaxY.x * maxLifetime,
+          originMin.z + velMinMaxZ.x * maxLifetime
+        );
+        max.set(
+          originMax.x + velMinMaxX.y * maxLifetime,
+          originMax.y + velMinMaxY.y * maxLifetime,
+          originMax.z + velMinMaxZ.y * maxLifetime
+        );
+
+        out.transform(rotateMat);
+      } else {
+        out.transform(rotateMat);
+
+        min.set(
+          originMin.x + velMinMaxX.x * maxLifetime,
+          originMin.y + velMinMaxY.x * maxLifetime,
+          originMin.z + velMinMaxZ.x * maxLifetime
+        );
+        max.set(
+          originMax.x + velMinMaxX.y * maxLifetime,
+          originMax.y + velMinMaxY.y * maxLifetime,
+          originMax.z + velMinMaxZ.y * maxLifetime
+        );
+      }
+    } else {
+      BoundingBox.transform(origin, rotateMat, out);
+    }
+
+    min.add(worldPosition);
+    max.add(worldPosition);
+  }
+
+  private _addGravityToBounds(maxLifetime: number, origin: BoundingBox, out: BoundingBox): void {
+    const { min: originMin, max: originMax } = origin;
+    const modifierMinMax = ParticleGenerator._tempVector20;
+
+    // Gravity modifier impact
+    this._getExtremeValueFromZero(this.main.gravityModifier, modifierMinMax);
+    const { x, y, z } = this._renderer.scene.physics.gravity;
+
+    const coefficient = 0.5 * maxLifetime * maxLifetime;
+    const minGravityEffect = modifierMinMax.x * coefficient;
+    const maxGravityEffect = modifierMinMax.y * coefficient;
+
+    const gravityEffectMinX = x * minGravityEffect;
+    const gravityEffectMaxX = x * maxGravityEffect;
+
+    const gravityEffectMinY = y * minGravityEffect;
+    const gravityEffectMaxY = y * maxGravityEffect;
+
+    const gravityEffectMinZ = z * minGravityEffect;
+    const gravityEffectMaxZ = z * maxGravityEffect;
+
+    out.min.set(
+      Math.min(gravityEffectMinX, gravityEffectMaxX) + originMin.x,
+      Math.min(gravityEffectMinY, gravityEffectMaxY) + originMin.y,
+      Math.min(gravityEffectMinZ, gravityEffectMaxZ) + originMin.z
+    );
+
+    out.max.set(
+      Math.max(gravityEffectMinX, gravityEffectMaxX) + originMax.x,
+      Math.max(gravityEffectMinY, gravityEffectMaxY) + originMax.y,
+      Math.max(gravityEffectMinZ, gravityEffectMaxZ) + originMax.z
+    );
+  }
+
+  private _getExtremeValueFromZero(curve: ParticleCompositeCurve, out: Vector2): void {
+    curve._getMinMax(out);
+    out.x = Math.min(0, out.x);
+    out.y = Math.max(0, out.y);
   }
 }

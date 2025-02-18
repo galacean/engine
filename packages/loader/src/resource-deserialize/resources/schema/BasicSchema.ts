@@ -1,3 +1,5 @@
+import { Layer } from "@galacean/engine-core";
+
 export interface IVector3 {
   x: number;
   y: number;
@@ -22,15 +24,21 @@ export interface IColor {
   a: number;
 }
 
-export interface IPrefabFile {
+export interface IHierarchyFile {
   entities: Array<IEntity>;
 }
 
-export type IMethodParams = Array<IBasicType>;
+export type IMethod = {
+  params: Array<IBasicType>;
+  result?: IInstance;
+};
+
+export type IMethodParams = Array<IBasicType> | IMethod;
 
 export interface IBasicEntity {
   name?: string;
   id?: string;
+  transform?: IComponent;
   components?: Array<IComponent>;
   isActive?: boolean;
   position?: IVector3;
@@ -38,23 +46,47 @@ export interface IBasicEntity {
   scale?: IVector3;
   children?: Array<string>;
   parent?: string;
+  layer?: Layer;
 }
 
-export type IEntity = IBasicEntity | IRefEntity;
+export type IEntity = IBasicEntity | IRefEntity | IStrippedEntity;
 
 export interface IRefEntity extends IBasicEntity {
   assetRefId: string;
   key?: string;
   isClone?: boolean;
+  modifications: (IInstance & {
+    target: IPrefabModifyTarget;
+  })[];
+  removedEntities: IPrefabModifyTarget[];
+  removedComponents: IPrefabModifyTarget[];
 }
 
-export type IComponent = { id: string; refId?: string } & IClassObject;
+export interface IPrefabModifyTarget {
+  entityId?: string;
+  componentId?: string;
+}
 
-export type IClassObject = {
+export interface IStrippedEntity extends IBasicEntity {
+  strippedId: string;
+  prefabInstanceId: string;
+  prefabSource: { assetId: string; entityId: string };
+}
+
+export type IComponent = { id: string; refId?: string } & IClass;
+
+export type IClass = {
   class: string;
-  constructParams?: IMethodParams;
+  constructParams?: Array<IBasicType>;
+} & IInstance;
+
+export interface IInstance {
   methods?: { [methodName: string]: Array<IMethodParams> };
   props?: { [key: string]: IBasicType | IMethodParams };
+}
+
+export type IClassType = {
+  classType: string;
 };
 
 export type IBasicType =
@@ -64,10 +96,16 @@ export type IBasicType =
   | null
   | undefined
   | IAssetRef
-  | IClassObject
+  | IClass
+  | IClassType
   | IMethodParams
   | IEntityRef;
 
 export type IAssetRef = { key?: string; refId: string };
 
 export type IEntityRef = { entityId: string };
+
+export type IComponentRef = {
+  ownerId: string;
+  componentId: string;
+};

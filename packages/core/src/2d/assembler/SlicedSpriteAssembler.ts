@@ -1,40 +1,48 @@
-import { Matrix, Vector2, Vector3 } from "@galacean/engine-math";
+import { Matrix, Vector2 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { SpriteRenderer } from "../sprite/SpriteRenderer";
-import { IAssembler } from "./IAssembler";
-import { SimpleSpriteAssembler } from "./SimpleSpriteAssembler";
+import { ISpriteAssembler } from "./ISpriteAssembler";
+import { ISpriteRenderer } from "./ISpriteRenderer";
 
 /**
- * @internal
+ * Assemble vertex data for the sprite renderer in sliced mode.
  */
-@StaticInterfaceImplement<IAssembler>()
+@StaticInterfaceImplement<ISpriteAssembler>()
 export class SlicedSpriteAssembler {
-  static _rectangleTriangles: number[] = [
+  private static _rectangleTriangles = [
     0, 1, 4, 1, 5, 4, 1, 2, 5, 2, 6, 5, 2, 3, 6, 3, 7, 6, 4, 5, 8, 5, 9, 8, 5, 6, 9, 6, 10, 9, 6, 7, 10, 7, 11, 10, 8,
     9, 12, 9, 13, 12, 9, 10, 13, 10, 14, 13, 10, 11, 14, 11, 15, 14
   ];
-  static _worldMatrix: Matrix = new Matrix();
-  static resetData(renderer: SpriteRenderer): void {
-    const { _verticesData: verticesData } = renderer;
-    const { positions, uvs } = verticesData;
-    verticesData.vertexCount = positions.length = uvs.length = 16;
-    for (let i = 0; i < 16; i++) {
-      positions[i] ||= new Vector3();
-      uvs[i] ||= new Vector2();
-    }
-    verticesData.triangles = SlicedSpriteAssembler._rectangleTriangles;
+  private static _matrix = new Matrix();
+  private static _row = new Array<number>(4);
+  private static _column = new Array<number>(4);
+
+  static resetData(renderer: ISpriteRenderer): void {
+    const manager = renderer._getChunkManager();
+    const lastSubChunk = renderer._subChunk;
+    lastSubChunk && manager.freeSubChunk(lastSubChunk);
+    const subChunk = manager.allocateSubChunk(16);
+    subChunk.indices = SlicedSpriteAssembler._rectangleTriangles;
+    renderer._subChunk = subChunk;
   }
 
-  static updatePositions(renderer: SpriteRenderer): void {
-    const { width, height, sprite } = renderer;
-    const { positions, uvs } = renderer._verticesData;
+  static updatePositions(
+    renderer: ISpriteRenderer,
+    worldMatrix: Matrix,
+    width: number,
+    height: number,
+    pivot: Vector2,
+    flipX: boolean,
+    flipY: boolean,
+    referenceResolutionPerUnit: number = 1
+  ): void {
+    const { sprite } = renderer;
     const { border } = sprite;
-    const spriteUVs = sprite._getUVs();
     // Update local positions.
     const spritePositions = sprite._getPositions();
     const { x: left, y: bottom } = spritePositions[0];
     const { x: right, y: top } = spritePositions[3];
-    const { width: expectWidth, height: expectHeight } = sprite;
+    const expectWidth = sprite.width * referenceResolutionPerUnit;
+    const expectHeight = sprite.height * referenceResolutionPerUnit;
     const fixedLeft = expectWidth * border.x;
     const fixedBottom = expectHeight * border.y;
     const fixedRight = expectWidth * border.z;
@@ -51,42 +59,36 @@ export class SlicedSpriteAssembler {
     //    column
     // ------------------------
     // Calculate row and column.
-    let row: number[], column: number[];
+    const { _row: row, _column: column } = SlicedSpriteAssembler;
     if (fixedLeft + fixedRight > width) {
       const widthScale = width / (fixedLeft + fixedRight);
-      row = [
-        expectWidth * left * widthScale,
-        fixedLeft * widthScale,
-        fixedLeft * widthScale,
-        width - expectWidth * (1 - right) * widthScale
-      ];
+      (row[0] = expectWidth * left * widthScale), (row[1] = row[2] = fixedLeft * widthScale);
+      row[3] = width - expectWidth * (1 - right) * widthScale;
     } else {
-      row = [expectWidth * left, fixedLeft, width - fixedRight, width - expectWidth * (1 - right)];
+      (row[0] = expectWidth * left), (row[1] = fixedLeft), (row[2] = width - fixedRight);
+      row[3] = width - expectWidth * (1 - right);
     }
 
     if (fixedTop + fixedBottom > height) {
       const heightScale = height / (fixedTop + fixedBottom);
-      column = [
-        expectHeight * bottom * heightScale,
-        fixedBottom * heightScale,
-        fixedBottom * heightScale,
-        height - expectHeight * (1 - top) * heightScale
-      ];
+      (column[0] = expectHeight * bottom * heightScale), (column[1] = column[2] = fixedBottom * heightScale);
+      column[3] = height - expectHeight * (1 - top) * heightScale;
     } else {
-      column = [expectHeight * bottom, fixedBottom, height - fixedTop, height - expectHeight * (1 - top)];
+      (column[0] = expectHeight * bottom), (column[1] = fixedBottom), (column[2] = height - fixedTop);
+      column[3] = height - expectHeight * (1 - top);
     }
 
     // Update renderer's worldMatrix.
-    const { x: pivotX, y: pivotY } = renderer.sprite.pivot;
-    const localTransX = renderer.width * pivotX;
-    const localTransY = renderer.height * pivotY;
+    const { x: pivotX, y: pivotY } = pivot;
+    const localTransX = width * pivotX;
+    const localTransY = height * pivotY;
+    // Position to World
+    const modelMatrix = SlicedSpriteAssembler._matrix;
+    const { elements: wE } = modelMatrix;
     // Renderer's worldMatrix.
-    const { _worldMatrix: worldMatrix } = SlicedSpriteAssembler;
-    const { elements: wE } = worldMatrix;
-    // Parent's worldMatrix.
-    const { elements: pWE } = renderer.entity.transform.worldMatrix;
-    const sx = renderer.flipX ? -1 : 1;
-    const sy = renderer.flipY ? -1 : 1;
+    const { elements: pWE } = worldMatrix;
+    const sx = flipX ? -1 : 1;
+    const sy = flipY ? -1 : 1;
     (wE[0] = pWE[0] * sx), (wE[1] = pWE[1] * sx), (wE[2] = pWE[2] * sx);
     (wE[4] = pWE[4] * sy), (wE[5] = pWE[5] * sy), (wE[6] = pWE[6] * sy);
     (wE[8] = pWE[8]), (wE[9] = pWE[9]), (wE[10] = pWE[10]);
@@ -104,26 +106,48 @@ export class SlicedSpriteAssembler {
     //  0 - 4 - 8  - 12
     // ------------------------
     // Assemble position and uv.
-    for (let i = 0; i < 4; i++) {
+    const subChunk = renderer._subChunk;
+    const vertices = subChunk.chunk.vertices;
+    for (let i = 0, o = subChunk.vertexArea.start; i < 4; i++) {
       const rowValue = row[i];
-      const rowU = spriteUVs[i].x;
-      for (let j = 0; j < 4; j++) {
+      for (let j = 0; j < 4; j++, o += 9) {
         const columnValue = column[j];
-        const idx = i * 4 + j;
-        positions[idx].set(
-          wE[0] * rowValue + wE[4] * columnValue + wE[12],
-          wE[1] * rowValue + wE[5] * columnValue + wE[13],
-          wE[2] * rowValue + wE[6] * columnValue + wE[14]
-        );
-        uvs[idx].set(rowU, spriteUVs[j].y);
+        vertices[o] = wE[0] * rowValue + wE[4] * columnValue + wE[12];
+        vertices[o + 1] = wE[1] * rowValue + wE[5] * columnValue + wE[13];
+        vertices[o + 2] = wE[2] * rowValue + wE[6] * columnValue + wE[14];
       }
     }
 
-    const { min, max } = renderer._bounds;
-    min.set(row[0], column[0], 0);
-    max.set(row[3], column[3], 0);
-    renderer._bounds.transform(worldMatrix);
+    // @ts-ignore
+    const bounds = renderer._bounds;
+    bounds.min.set(row[0], column[0], 0);
+    bounds.max.set(row[3], column[3], 0);
+    bounds.transform(modelMatrix);
   }
 
-  static updateUVs(renderer: SpriteRenderer): void {}
+  static updateUVs(renderer: ISpriteRenderer): void {
+    const subChunk = renderer._subChunk;
+    const vertices = subChunk.chunk.vertices;
+    const spriteUVs = renderer.sprite._getUVs();
+    for (let i = 0, o = subChunk.vertexArea.start + 3; i < 4; i++) {
+      const rowU = spriteUVs[i].x;
+      for (let j = 0; j < 4; j++, o += 9) {
+        vertices[o] = rowU;
+        vertices[o + 1] = spriteUVs[j].y;
+      }
+    }
+  }
+
+  static updateColor(renderer: ISpriteRenderer, alpha: number): void {
+    const subChunk = renderer._subChunk;
+    const { r, g, b, a } = renderer.color;
+    const finalAlpha = a * alpha;
+    const vertices = subChunk.chunk.vertices;
+    for (let i = 0, o = subChunk.vertexArea.start + 5; i < 16; ++i, o += 9) {
+      vertices[o] = r;
+      vertices[o + 1] = g;
+      vertices[o + 2] = b;
+      vertices[o + 3] = finalAlpha;
+    }
+  }
 }

@@ -1,0 +1,130 @@
+---
+order: 7
+title: Transform
+type: Core
+label: Core
+---
+
+## Basic Concepts
+
+`Transform` is a basic component that comes with an `Entity`. Developers can use it to manage the position, rotation, and scale of an `Entity` in **local space** and **world space**.
+
+> For a deeper understanding, refer to Galacean's **[Coordinate System](/docs/core/space)**.
+
+<Playground href="/embed/transform-basic" />
+
+## Editor Usage
+
+<Image src="https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*vU40Rb-2s5QAAAAAAAAAAAAADtKFAQ/original" alt="merge" style={{zoom: "50%"}} />
+
+Change the visualization transform component of the selected entity by directly using the mouse to manipulate the helper gizmo axes.
+
+<h3 id='1'> Move </h3>
+
+| Icon                                                                                                                              | Action               | Shortcut |
+| :-------------------------------------------------------------------------------------------------------------------------------- | :------------------- | :------- |
+| <img src="https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*s6H2RIawrzgAAAAAAAAAAAAADtKFAQ/original" width="24" height="24" /> | `Switch to Move Mode` | W        |
+
+Click the helper axis to drag the selected entity in a single direction. Click the helper plane to drag the selected entity in a single plane.
+
+<h3 id='2'> Rotate </h3>
+
+| Icon                                                                                                                              | Action                | Shortcut |
+| :-------------------------------------------------------------------------------------------------------------------------------- | :-------------------- | :------- |
+| <img src="https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*lwdcRK3MAUIAAAAAAAAAAAAADtKFAQ/original" width="24" height="24" /> | `Switch to Rotate Mode` | E        |
+
+Click and drag to change the rotation of the selected entity. Red represents rotation around the X-axis, green represents rotation around the Y-axis, and blue represents rotation around the Z-axis.
+
+<h3 id='3'> Scale </h3>
+
+| Icon                                                                                                                              | Action               | Shortcut |
+| :-------------------------------------------------------------------------------------------------------------------------------- | :------------------- | :------- |
+| <img src="https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*r7RiRpAiJm0AAAAAAAAAAAAADtKFAQ/original" width="24" height="24" /> | `Switch to Scale Mode` | R        |
+
+Click the center cube to uniformly scale the selected entity on all axes. Click the helper axis to scale the selected entity in a single direction.
+
+Through the **[Inspector Panel](/docs/interface/inspector)**, you can set more precise position, rotation, and scale information for nodes.
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Y0qPTptpIBoAAAAAAAAAAAAADhuCAQ/original" alt="image.png"  />
+
+## Script Usage
+
+```typescript
+// Create a node
+const scene = engine.sceneManager.activeScene;
+const root = scene.createRootEntity("root");
+const cubeEntity = root.createChild("cube");
+
+// An entity comes with a transform component by default upon creation
+// The transform component allows for geometric transformations on the entity
+
+// Modify node translation, rotation, and scale
+transform.position = new Vector3();
+// Alternatively, use transform.setPosition(0, 0, 0);
+
+transform.rotation = new Vector3(90, 0, 0);
+// Alternatively, use transform.setRotation(90, 0, 0);
+
+// You can also access the transform component via the entity's properties
+cubeEntity.transform.scale = new Vector3(2, 1, 1);
+// Alternatively, use cubeEntity.transform.setScale(2, 1, 1);
+
+// Translate the cube entity locally
+cubeEntity.transform.translate(new Vector3(10, 0, 0), true);
+
+// Rotate the cube entity locally
+cubeEntity.transform.rotate(new Vector3(45, 0, 0), true);
+```
+
+## Component Properties
+
+| Property Name                                                        | Description                                                                                                            |
+| :------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------- |
+| [position](/apis/core/#Transform-position)                           | Local translation                                                                                                      |
+| [rotation](/apis/core/#Transform-rotation)                           | Local rotation - Euler angles                                                                                          |
+| [rotationQuaternion](/apis/core/#Transform-rotationquaternion)       | Local rotation - Quaternion                                                                                            |
+| [scale](/apis/core/#Transform-scale)                                 | Local scale                                                                                                            |
+| [worldPosition](/apis/core/#Transform-worldPosition)                 | World translation                                                                                                      |
+| [worldRotation](/apis/core/#Transform-worldRotation)                 | World rotation - Euler angles                                                                                          |
+| [worldRotationQuaternion](/apis/core/#Transform-worldRotationQuaternion) | World rotation - Quaternion                                                                                       |
+| [lossyWorldScale](/apis/core/#Transform-lossyWorldScale)             | World lossy scale - When the parent node scales and the child node rotates, the scale becomes skewed and cannot be accurately represented by Vector3, requiring a Matrix3x3 for correct representation |
+| [localMatrix](/apis/core/#Transform-localMatrix)                     | Local matrix                                                                                                           |
+| [worldMatrix](/apis/core/#Transform-worldMatrix)                     | World matrix                                                                                                           |
+| [worldForward](/apis/core/#Transform-worldMatrix)                    | Forward vector (unit vector in world space)                                                                            |
+| [worldRight](/apis/core/#Transform-worldMatrix)                      | Right vector (unit vector in world space)                                                                              |
+| [worldUp](/apis/core/#Transform-worldMatrix)                         | Up vector (unit vector in world space)                                                                                 |
+
+## Component Methods
+
+| Method Name                                                          | Description                             |
+| --------------------------------------------------------------------- | --------------------------------------- |
+| [getWorldUp](/apis/core/#Transform-getWorldUp)                       | Get the up vector from the world matrix |
+| [getWorldRight](/apis/core/#Transform-getWorldRight)                 | Get the right vector from the world matrix |
+| [getWorldForward](/apis/core/#Transform-getWorldForward)             | Get the forward vector from the world matrix |
+| [lookAt](/apis/core/#Transform-lookAt)                               | Rotate and ensure the world forward vector points to the target world position |
+| [registerWorldChangeFlag](/apis/core/#Transform-registerWorldChangeFlag) | Register a flag for world transformation changes |
+| [rotate](/apis/core/#Transform-rotate)                               | Rotate by a specified Euler angle       |
+| [rotateByAxis](/apis/core/#Transform-rotateByAxis)                   | Rotate by a specified angle around a specified axis |
+| [translate](/apis/core/#Transform-translate)                         | Translate by a specified direction and distance |
+
+### Purpose of `registerWorldChangeFlag`
+
+The `transform` component internally uses a dirty flag for a lot of computational optimization. Since the `worldMatrix` property of `transform` is also optimized with a dirty flag, if external components need to track whether the current `transform`'s `worldMatrix` has changed, the state of its dirty flag needs to be obtained. The `transform` component provides the `registerWorldChangeFlag` method: this method returns an update flag, which will be triggered when the `worldMatrix` of the current `transform` is modified. For specific usage, refer to the camera component:
+
+```typescript
+class Camera {
+  onAwake() {
+    this._transform = this.entity.transform;
+    // Register the update flag
+    this._isViewMatrixDirty = this._transform.registerWorldChangeFlag();
+  }
+  get viewMatrix() {
+    // When the flag is updated, derive the viewMatrix from the worldMatrix
+    if (this._isViewMatrixDirty.flag) {
+      this._isViewMatrixDirty.flag = false;
+      Matrix.invert(this._transform.worldMatrix, this._viewMatrix);
+    }
+    return this._viewMatrix;
+  }
+}
+```

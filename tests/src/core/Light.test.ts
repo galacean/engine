@@ -1,4 +1,3 @@
-import { expect } from "chai";
 import {
   Layer,
   DirectLight,
@@ -13,11 +12,13 @@ import {
   Scene,
   Engine
 } from "@galacean/engine-core";
+import "@galacean/engine-loader";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Color, SphericalHarmonics3, Vector3 } from "@galacean/engine-math";
 
 import { lightResource } from "./model/ambientLight";
 import { ColorSpace, ShadowType } from "@galacean/engine-core";
+import { describe, beforeAll, it, expect, afterAll } from "vitest";
 
 const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
@@ -35,7 +36,7 @@ describe("Light test", function () {
   let ambientLightA: AmbientLight;
   let ambientLightB: AmbientLight;
 
-  before(async () => {
+  beforeAll(async () => {
     engine = await WebGLEngine.create({ canvas: canvasDOM, colorSpace: ColorSpace.Gamma });
     const rootEntity = engine.sceneManager.activeScene.createRootEntity();
     scene = engine.sceneManager.activeScene;
@@ -155,9 +156,14 @@ describe("Light test", function () {
   });
 
   it("update shadow strength", function () {
-    const expectShadowStrength = 0.8;
-    directLight.shadowStrength = expectShadowStrength;
-    expect(directLight.shadowStrength).to.equal(expectShadowStrength);
+    directLight.shadowStrength = 0.8;
+    expect(directLight.shadowStrength).to.equal(0.8);
+
+    directLight.shadowStrength = 2;
+    expect(directLight.shadowStrength).to.equal(1);
+
+    directLight.shadowStrength = -2;
+    expect(directLight.shadowStrength).to.equal(0);
   });
 
   it("multiple directlight or sunlight", function () {
@@ -291,7 +297,7 @@ describe("Light test", function () {
     expect(currentDecodeRGBM).to.eq(!expectDecodeRGBM);
   });
 
-  after(function () {
+  afterAll(function () {
     engine.resourceManager.gc();
     engine.destroy();
   });

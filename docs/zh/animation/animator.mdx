@@ -1,0 +1,163 @@
+---
+order: 3
+title: 动画控制组件
+type: 动画
+label: Animation
+---
+
+## 简介
+`动画控制组件`（[API](/apis/core/#Animator)）的作用是读取 `动画控制器`（[详细介绍](/docs/animation/animatorController/)）的数据，并播放其内容。
+
+### 参数说明
+
+| 属性               | 功能说明                       |
+| :----------------- | :----------------------------- |
+| animatorController | 绑定 `AnimatorController` 资产 |
+
+## 编辑器使用
+
+当把模型拖入到场景中，模型以初始姿态展示，并不会播放任何动画，这时需要在模型实体上找到 `动画控制组件` 并为它绑定一个 `动画控制器` 资产。
+
+
+1. 找到或者创建 `动画控制组件`
+
+
+<Callout type="info">
+模型的 `动画控制组件` 在glTF实例的根实体上，也就是编辑器的模型实体下的第一个子 `实体` 上。
+
+如果模型内有动画，会为你自动绑定一个只读的 `动画控制器`。
+</Callout>
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*WkafRagPFo8AAAAAAAAAAAAADsJ_AQ/original" />
+
+如果没有 `动画控制组件` 可以按下图方式创建
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*WFRXQIjZa0MAAAAAAAAAAAAADsJ_AQ/original" />
+
+2. 创建一个 `动画控制器` 资产并绑定到模型上，创建 `动画控制器` 有两种方式：
+    1. 右键点击 **[资产面板](/docs/assets/interface)** 中的空白处，选择 `Create` -> `Animation Controller`
+
+      <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*61Q7S62IZxQAAAAAAAAAAAAADsJ_AQ/original" /> 
+
+    2. 点击添加资产按钮 `+`，选择 `Animation Controller`
+
+      <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QqpxS6I9D90AAAAAAAAAAAAADsJ_AQ/original" /> 
+
+3. 在`动画控制组件` 的动画控制器属性上替换为刚才创建的 `动画控制器`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Y0pBQae4UWQAAAAAAAAAAAAADsJ_AQ/original" />
+
+4. 编辑 `动画控制器` 后（可以参考[动画控制器](/docs/animation/animatorController)文档）你就可以播放其中的动画了
+
+## 脚本使用
+
+在使用脚本之前，建议先阅读以下文档：
+
+- [脚本](/docs/script/script)
+- [动画系统构成](/docs/animation/system)
+
+
+### 播放指定动画状态
+
+你可以使用 [animator.play](/apis/core/#Animator-play) 方法来播放指定的 `动画状态`，参数说明详见[API 文档](/apis/core/#Animator-play)。
+
+```typescript
+import { Script, Animator, Keys } from '@galacean/engine';
+
+export default class extends Script {
+  onStart() {
+    const animator = this.entity.getComponent(Animator);
+    animator.play("State Name");
+  }
+}
+```
+
+如果需要在动画中的某一时刻开始播放可以通过以下方式
+
+```typescript
+import { Script, Animator, Keys } from '@galacean/engine';
+
+export default class extends Script {
+  onStart() {
+    const animator = this.entity.getComponent(Animator);
+    const layerIndex = 0;
+    const normalizedTimeOffset = 0.5; // 归一化的时间
+    animator.play("State Name", layerIndex, normalizedTimeOffset);
+  }
+}
+```
+
+### 控制播放速度
+
+你可以通过 [speed](/apis/core/#Animator-speed)  属性来控制动画的播放速度。 `speed`  默认值为 `1.0` ，值越大播放的越快，越小播放的越慢。当值为负数时，进行倒播。
+
+```typescript
+animator.speed = 2.0；
+```
+
+### 停止/重新播放
+
+你可以通过设置 [animator.enabled](/apis/core/#Animator-enabled) 来停止和重新播放动画
+
+```typescript
+// 停止
+animator.enabled = false;
+// 重新播放
+animator.enabled = true;
+```
+
+### 暂停/恢复播放
+你可以通过设置 [animator.speed](/apis/core/#Animator-speed) 暂停和恢复播放
+
+```typescript
+// 暂停
+animator.speed = 0;
+// 恢复
+animator.speed = 1;
+```
+
+
+如果你只想针对某一个 `动画状态` 进行暂停，可以通过将它的速度设置为 0 来实现。
+
+```typescript
+const state = animator.findAnimatorState("xxx");
+state.speed = 0;
+```
+
+### 过渡指定动画状态
+
+你可以使用 [animator.crossfade](/apis/core/#Animator-crossfade) 方法来将动画过渡到指定的 `动画状态`，参数说明详见[API 文档](/apis/core/#Animator-crossFade)。
+
+```typescript
+animator.crossFade("OtherStateName", 0.3);
+```
+
+
+### 获取当前在播放的动画状态
+
+你可以使用 [getCurrentAnimatorState](/apis/core/#Animator-getCurrentAnimatorState)  方法来获取当前正在播放的 `动画状态`。参数为 `动画状态` 所在 `动画层` 的序号`layerIndex`, 详见[API 文档](/apis/core/#Animator-getCurrentAnimatorState)。获取之后可以设置 `动画状态` 的属性，比如将默认的循环播放改为一次。
+
+```typescript
+const currentState = animator.getCurrentAnimatorState(0);
+// 播放一次
+currentState.wrapMode = WrapMode.Once;
+// 循环播放
+currentState.wrapMode = WrapMode.Loop;
+```
+
+### 获取动画状态
+
+你可以使用 [findAnimatorState](/apis/core/#Animator-findAnimatorState)  方法来获取指定名称的 `动画状态` 。获取之后可以设置动画状态的属性，比如将默认的循环播放改为一次。
+
+```typescript
+const state = animator.findAnimatorState("xxx");
+// 播放一次
+state.wrapMode = WrapMode.Once;
+// 循环播放
+state.wrapMode = WrapMode.Loop;
+```
+
+### 动画裁剪
+你可以通过设置 `动画控制组件` 的 [cullingMode](/apis/core/#Animator-cullingMode) 来设置当 `实体` 不可见时动画是否进行计算。在动画被裁剪时，动画不会进行计算并应用到 `实体` 上，但动画的状态仍然会随着时间更新，使其再可见时是正确地表现。
+
+

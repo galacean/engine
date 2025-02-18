@@ -1,0 +1,129 @@
+---
+title: Pass
+---
+
+```glsl
+Pass "PassName" {
+  Tag {PipelineStage = "ShadowCaster"}
+
+  ...
+  // Glbals
+  ...
+
+  // Render pipeline and render state settings
+
+  // Specify the entry function of shader
+  VertexShader = vert;
+
+  // Specify render queue
+  RenderQueueType = Transparent;
+}
+```
+
+`Pass` is the basic element of a `Shader` object. A simple shader object may contain only one `Pass`, but more complex shaders can contain multiple `Pass`es. It defines the operations performed at specific stages of the rendering pipeline, such as the shader programs running on the GPU, rendering states, and settings related to the rendering pipeline.
+
+## Rendering State
+
+It can be specified in the following two ways:
+
+1. Explicit assignment
+
+```
+BlendState = blendState;
+```
+
+2. Declaration in the global variable domain of Pass
+
+```
+BlendState {
+  Rendering state property = Property value;
+}
+```
+
+## Specifying uniform Variables
+
+Directly declare them as global variables
+
+```glsl
+mediump vec4 u_color;
+float material_AlphaCutoff;
+mat4 renderer_ModelMat;
+vec3 u_lightDir;
+```
+
+## Declaring varying Variables
+
+Specify by defining the output [structure](/en/docs/graphics/shader/shaderLab/syntax/shader/#structs-functions) of the vertex shader and the input structure of the fragment shader
+
+```glsl
+struct v2f {
+  vec3 color;
+};
+
+v2f vert(a2v o) {
+  ...
+}
+
+void frag(v2f i) {
+  ...
+}
+```
+
+## Specifying Vertex and Fragment Shaders
+
+Explicitly specify the shader entry functions using `VertexShader` and `FragmentShader`
+
+```
+VertexShader = vert;
+FragmentShader = frag;
+```
+
+## Setting the Render Queue
+
+Specify using the `RenderQueueType` directive, which is equivalent to the engine API.
+
+```
+RenderQueueType = Transparent;
+```
+
+<Callout type="info">
+In addition to setting the render state and render queue in ShaderLab, developers can also configure these settings through the material API, such as:
+```ts
+// Render queue setting
+material.renderQueueType = RenderQueueType.Opaque;
+
+// Render state setting const renderState = material.renderState.depthState; depthState.writeEnabled = false;
+
+```
+When render states and render queues are declared in ShaderLab, the corresponding settings in the material will be ignored."
+</Callout>
+```
+
+## MRT(Multiple Render Targets)
+
+ShaderLab is compatible with both GLSL 100 and GLSL 300 syntax, allowing you to specify MRT using either syntax.
+
+1. Specify MRT using `gl_FragData[i]`.
+
+```glsl
+void main(v2f input) {
+  gl_FragData[0] = vec4(1.,0.,0.,1.);     // render target 0
+  gl_FragData[1] = vec4(1.,0.,0.,1.);     // render target 1
+}
+```
+
+2. Specify by returning a struct from the entry function
+
+```glsl
+struct mrt {
+  layout(location = 0) vec4 fragColor0;   // render target 0
+  layout(location = 1) vec4 fragColor1;   // render target 1
+}
+
+mrt main(v2f input) {
+  mrt output;
+  output.fragColor0 = vec4(1.,0.,0.,1.);
+  output.fragColor1 = vec4(1.,0.,0.,1.);
+  return output;
+}
+```

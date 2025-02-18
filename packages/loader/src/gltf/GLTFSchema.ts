@@ -443,7 +443,7 @@ export interface IBufferView extends IChildRootProperty {
    */
   byteOffset?: number;
   /**
-   * The lenth of the bufferView in bytes
+   * The length of the bufferView in bytes
    */
   byteLength: number;
   /**
@@ -731,7 +731,7 @@ export interface IScene extends IChildRootProperty {
   /**
    * The indices of each root node
    */
-  nodes: number[];
+  nodes?: number[];
 }
 
 /**
@@ -763,7 +763,7 @@ export interface ITexture extends IChildRootProperty {
   /**
    * The index of the image used by this texture
    */
-  source: number;
+  source?: number;
 }
 
 /**

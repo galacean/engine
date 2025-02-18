@@ -1,12 +1,12 @@
 import { Camera, GLCapabilityType, PrimitiveMesh } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Vector3 } from "@galacean/engine-math";
-import { expect } from "chai";
+import { describe, beforeAll, expect, it } from "vitest";
 
 describe("PrimitiveMesh", () => {
   let engine: WebGLEngine;
 
-  before(async () => {
+  beforeAll(async () => {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     engine.canvas.resizeByClientSize();
 
@@ -33,7 +33,18 @@ describe("PrimitiveMesh", () => {
     expect(sphereMesh.bounds.max).to.deep.include({ x: radius, y: radius, z: radius });
     expect(sphereMesh.getIndices().length).equal(floorSegments * floorSegments * 6);
     expect(sphereMesh.vertexBufferBindings.length).equal(2);
-  
+  });
+
+  it("createSubdivisionSurfaceSphere", () => {
+    // Test that createSphere works correctly.
+    const radius = 2.333;
+    const steps = 3.2;
+    const sphereMesh = PrimitiveMesh.createSubdivisionSurfaceSphere(engine, radius, steps, false);
+
+    expect(sphereMesh.vertexCount).equal(417);
+    expect(sphereMesh.bounds.min).to.deep.include({ x: -radius, y: -radius, z: -radius });
+    expect(sphereMesh.bounds.max).to.deep.include({ x: radius, y: radius, z: radius });
+    expect(sphereMesh.getIndices().length).equal(2304);
   });
 
   it("createCuboid", () => {
@@ -168,7 +179,6 @@ describe("PrimitiveMesh", () => {
   });
 
   it("test limit vertex count", function () {
-    this.timeout(5000);
     const radius = 1;
     const segments = 256;
     const floorSegments = Math.floor(segments);

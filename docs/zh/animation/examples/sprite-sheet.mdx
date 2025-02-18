@@ -1,0 +1,157 @@
+---
+order: 6
+title: 2D 帧动画
+type: 动画
+group: 指南和示例
+label: Animation/Examples
+---
+
+本示例展示了如何在 Galacean 编辑器中实现 2D 帧动画。通过简单的步骤，你将学习如何制作一个帧动画[动画片段](/docs/animation/clip)。
+如果你是第一次使用动画编辑器，建议先阅读前面几篇文档：
+
+[1.播放模型中的动画](/docs/animation/examples/playAnimation/)
+
+[2.动画复用](/docs/animation/examples/reuseAnimation/)
+
+## 0. 准备工作
+在开始之前，我们需要有制作帧动画所需的序列帧图片，雪碧图和单帧图片都可以。本示例使用雪碧图，如果你没有，可以在这里下载 [雪碧图](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*DmSyQZQCnrEAAAAAAAAAAAAADsJ_AQ/original)。
+
+## 1. 导入纹理
+有三种方式导入 `纹理` ：
+1. 将图片拖入编辑器的 **[资产面板](/docs/assets/interface)** 中
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*U0uYR4_jFpAAAAAAAAAAAAAADsJ_AQ/original" />
+
+2. 右键点击 **[资产面板](/docs/assets/interface)** 中的空白处，选择 `Upload` -> `Texture2D` 
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*t_1vQ4RIz_AAAAAAAAAAAAAADsJ_AQ/original" />
+
+3. 点击上传按钮，选择 `Texture2D`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*yr_xSL2Q7qkAAAAAAAAAAAAADsJ_AQ/original" />
+
+## 2. 创建精灵
+关于 `精灵` 的详细介绍请参考 [精灵](/docs/graphics/2D/sprite) 文档
+
+创建 `精灵` 有三种方式：
+1. 右键点击 **[资产面板](/docs/assets/interface)** 中的空白处，选择 `Create` -> `Sprite`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*oTfKT4VB5Y8AAAAAAAAAAAAADsJ_AQ/original" />
+
+2. 点击添加资产按钮 `+`，选择 `Sprite`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*f-JyT63i3tcAAAAAAAAAAAAADsJ_AQ/original" />
+
+3. 如果你是单帧图片，可以右键点击 **[资产面板](/docs/assets/interface)** 中的空白处，选择 `Upload` -> `Sprite`，然后选择你的单帧图片。
+这种方式，在导入 `纹理` 的同时会自动创建一个 `精灵` 资产并绑定此图片作为其 `纹理` 。
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*1S9rTIEEL0IAAAAAAAAAAAAADsJ_AQ/original" />
+
+
+创建三个 `精灵` 资产，分别对应雪碧图中的三帧。
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Nd7CT7mgWm8AAAAAAAAAAAAADsJ_AQ/original" />
+
+
+## 3. 为精灵绑定纹理
+如果你使用雪碧图的话，需要根据帧数，配置合适的 `Region`。如果你使用单帧图片的话，直接按第一步绑定即可。
+
+1. 点击 `精灵` 资产，点击 `纹理` 属性，选择对应的纹理。
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*XmbZRZsFutQAAAAAAAAAAAAADsJ_AQ/original" />
+
+2. 根据帧数，配置合适的 `Region`，本示例共有三帧，并且只有一排， 所以每帧的 `Region` 的 `W` 为 1/3 (对应的纹理 `width` 也改为原来的1/3) `H` 为 1。
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Yu3oRr7qbrUAAAAAAAAAAAAADsJ_AQ/original" />
+
+3. 修改另外两个 `精灵` 的 `Region`，与第一个 `精灵` 的 `Region` 不同的是，它们的 `Region` 的 `X` 值不同，分别为 0, 1/3, 2/3。
+
+`Sprite1` :
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*XuJNTqF1e-IAAAAAAAAAAAAADsJ_AQ/original" />
+
+`Sprite2` :
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*AhPpTrX9d78AAAAAAAAAAAAADsJ_AQ/original" />
+
+全部绑定好纹理后，`精灵` 资产会展示对应的图片，如图所示：
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Mf9-T79bofkAAAAAAAAAAAAADsJ_AQ/original" />
+
+
+## 4. 创建动画片段
+准备好 `精灵` 后， 我们需要创建一个 `动画片段`（关于动画片段的介绍，请参考 [动画片段](/docs/animation/clip) 文档）创建 `动画片段` 有两种方式：
+1. 右键点击 **[资产面板](/docs/assets/interface)** 中的空白处，选择 `Create` -> `Animation Clip`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*OKfsTatDPfsAAAAAAAAAAAAADsJ_AQ/original" />
+
+2. 点击添加资产按钮 `+`，选择 `Animation Clip`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*BhZVSaZgC9kAAAAAAAAAAAAADsJ_AQ/original" />
+
+## 5. 打开动画片段编辑器
+
+1. 双击刚刚创建的 `动画片段` 资产
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*521gRYB-O0IAAAAAAAAAAAAADsJ_AQ/original" />
+
+2. 选择 `实体`，根据提示，我们需要在 **[层级面板](/docs/interface/hierarchy)** 选择一个 `实体` 作为编辑动画的目标。
+
+选择编辑器默认创建的 `实体`（你也可以点击层级面板的 `+` 按钮创建一个新的）
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*zRAgTYOTU70AAAAAAAAAAAAADsJ_AQ/original" />
+
+3. 点击动画片段编辑器的 `Create` 按钮，编辑器会为你做好一些准备工作，本示例你可以先忽略对这些概念的理解。
+
+<Callout type="info">
+上述的准备工作包含：
+1. 为你选择的 `实体` 创建一个 `动画控制组件`（[详细介绍](/docs/animation/animator/)），以及创建一个 `动画控制器` （[详细介绍](/docs/animation/animatorController/)） 资产。
+2. `动画控制器` 内会包含一个 `动画状态`，并且 `动画状态` 会自动绑定你选择的 `动画片段`，并连接到 `entry` 节点上（关于 `entry` 节点的详细介绍请参考 [动画状态机](/docs/animation/state-machine/) 文档）。
+3. `动画控制组件` 会自动绑定 `动画控制器`。
+</Callout>
+
+创建完成之后，你会打开动画片段编辑器，如图所示：
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*dWJDSbxaYCYAAAAAAAAAAAAADsJ_AQ/original" />
+
+## 6. 设置实体并切换到2D视图
+
+1. 删掉默认的 `网格渲染器` 组件（如果你是自己创建的, 忽略）。为选择的 `实体` 添加一个 `精灵渲染器` 组件，
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*MsS8SZ1eNdQAAAAAAAAAAAAADsJ_AQ/original" />
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*b-M1TbX4e18AAAAAAAAAAAAADsJ_AQ/original" />
+
+
+2. 为 `精灵渲染器` 组件的 `精灵` 属性绑定一个我们刚刚创建的 `精灵` 资产， 作为默认的 `精灵`。
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*PkbjSYreGcYAAAAAAAAAAAAADsJ_AQ/original" />
+
+3. 将 `实体` 默认的旋转重制，并切换到 `2D` 视图
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*rNXqRLdzDKEAAAAAAAAAAAAADsJ_AQ/original" />
+
+## 7. 编辑动画片段
+
+1. 开启 `动画片段` 编辑器的录制模式
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*S4jNRZ-Ia7AAAAAAAAAAAAAADsJ_AQ/original" />
+
+2. 将时间线调到 `0:00`， 然后将 `精灵渲染器` 组件的 `精灵` 属性切换到第一帧的 `精灵` 资产。因为我们的第一帧与 `精灵渲染器` 组件的默认 `精灵` 相同，所以仍然选择此 `精灵`。
+在录制模式下，编辑器会自动添加对应的属性及关键帧。
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*wFl9RphUx1gAAAAAAAAAAAAADsJ_AQ/original" />
+
+3. 分别在 `0:20`, `0:40` 处，将 `精灵渲染器` 组件的 `精灵` 属性切换到第二帧，第三帧的 `精灵` 资产。在 `1:00` 处，再切换回第一帧的 `精灵` 资产。
+首尾的关键帧相同，在循环播放时动画就不会出现抖动了，点击播放按钮，可以预览这个 `动画片段`。
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*TgLySYjLljAAAAAAAAAAAAAADsJ_AQ/original" />
+
+这样我们的帧动画 `动画片段` 就制作完成了。关于动画编辑器的更多操作，请参考 [动画片段](/docs/animation/clip) 文档。
+
+关于如何应用这个 `动画片段` 到你的项目中，可以参考文章顶部列出的两篇文档。
+
+
+
+
+

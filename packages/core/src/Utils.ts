@@ -44,7 +44,16 @@ export class Utils {
    * @returns Whether the url is absolute url.
    */
   static isAbsoluteUrl(url: string): boolean {
-    return /^(?:http|blob|data:|\/)/.test(url);
+    return /^([a-z][a-z\d\+\-\.]*:)?\/\//i.test(url);
+  }
+
+  /**
+   * Judge whether the url is base64 url.
+   * @param url - The url to be judged.
+   * @returns Whether the url is base64 url.
+   */
+  static isBase64Url(url: string): boolean {
+    return /^data:.*,.*$/i.test(url);
   }
 
   /**
@@ -65,7 +74,17 @@ export class Utils {
       return relativeUrl;
     }
 
-    return baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + this._formatRelativePath(relativeUrl);
+    if (Utils.isBase64Url(relativeUrl)) {
+      return relativeUrl;
+    }
+
+    if (!/^https?:/.test(baseUrl)) {
+      const fileSchema = "files://";
+      baseUrl = fileSchema + baseUrl;
+      return new URL(relativeUrl, baseUrl).href.substring(fileSchema.length);
+    }
+
+    return relativeUrl ? new URL(relativeUrl, baseUrl).href : baseUrl;
   }
 
   /**
@@ -229,19 +248,6 @@ export class Utils {
       result.push(key);
     });
     return result;
-  }
-
-  private static _formatRelativePath(path: string): string {
-    // For example input is "a/b", "/a/b", "./a/b", "./a/./b", "./a/../a/b", output is "a/b"
-    return path
-      .split("/")
-      .filter(Boolean)
-      .reduce((acc, cur) => {
-        if (cur === "..") acc.pop();
-        else if (cur !== ".") acc.push(cur);
-        return acc;
-      }, [])
-      .join("/");
   }
 
   private static _insertionSort<T>(a: T[], from: number, to: number, compareFunc: Function): void {

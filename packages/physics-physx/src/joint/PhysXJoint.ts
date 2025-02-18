@@ -7,13 +7,14 @@ import { PhysXPhysics } from "../PhysXPhysics";
  * a base interface providing common functionality for PhysX joints
  */
 export class PhysXJoint implements IJoint {
-  protected static _xAxis = new Vector3(1, 0, 0);
   protected static _defaultVec = new Vector3();
   protected static _defaultQuat = new Quaternion();
 
   protected _pxJoint: any;
+  protected _anchor: Vector3;
+  protected _connectedAnchor: Vector3;
+  protected _rotation: Quaternion = new Quaternion();
   protected _collider: PhysXCollider;
-  private _connectedAnchor = new Vector3();
   private _breakForce: number = Number.MAX_VALUE;
   private _breakTorque: number = Number.MAX_VALUE;
 
@@ -27,35 +28,41 @@ export class PhysXJoint implements IJoint {
    * {@inheritDoc IJoint.setConnectedCollider }
    */
   setConnectedCollider(value: PhysXCollider): void {
-    this._pxJoint.setActors(value?._pxActor || null, this._collider?._pxActor || null);
+    this._pxJoint.setActors(this._collider?._pxActor || null, value?._pxActor || null);
+  }
+
+  /**
+   * {@inheritDoc IJoint.setConnectedAnchor }
+   */
+  setAnchor(value: Vector3): void {
+    this._setLocalPose(0, value, PhysXJoint._defaultQuat);
+    this._anchor = value;
   }
 
   /**
    * {@inheritDoc IJoint.setConnectedAnchor }
    */
   setConnectedAnchor(value: Vector3): void {
-    this._connectedAnchor.copyFrom(value);
-    this._setLocalPose(0, value, PhysXJoint._defaultQuat);
+    this._setLocalPose(1, value, this._rotation);
+    this._connectedAnchor = value;
   }
 
-  /**
-   * {@inheritDoc IJoint.setConnectedMassScale }
-   */
-  setConnectedMassScale(value: number): void {
-    this._pxJoint.setInvMassScale0(1 / value);
-  }
-
-  /**
-   * {@inheritDoc IJoint.setConnectedInertiaScale }
-   */
-  setConnectedInertiaScale(value: number): void {
-    this._pxJoint.setInvInertiaScale0(1 / value);
+  setRotation(value: Quaternion): void {
+    this._setLocalPose(1, this._connectedAnchor, value);
+    this._rotation.copyFrom(value);
   }
 
   /**
    * {@inheritDoc IJoint.setMassScale }
    */
   setMassScale(value: number): void {
+    this._pxJoint.setInvMassScale0(1 / value);
+  }
+
+  /**
+   * {@inheritDoc IJoint.setConnectedMassScale }
+   */
+  setConnectedMassScale(value: number): void {
     this._pxJoint.setInvMassScale1(1 / value);
   }
 
@@ -63,7 +70,14 @@ export class PhysXJoint implements IJoint {
    * {@inheritDoc IJoint.setInertiaScale }
    */
   setInertiaScale(value: number): void {
-    this._pxJoint.setInvInertiaScale1(1 / value);
+    this._pxJoint.setInvInertiaScale0(value);
+  }
+
+  /**
+   * {@inheritDoc IJoint.setConnectedInertiaScale }
+   */
+  setConnectedInertiaScale(value: number): void {
+    this._pxJoint.setInvInertiaScale1(value);
   }
 
   /**
@@ -82,6 +96,15 @@ export class PhysXJoint implements IJoint {
     this._pxJoint.setBreakForce(this._breakForce, this._breakTorque);
   }
 
+  /**
+   * {@inheritDoc IJoint.destroy }
+   */
+  destroy(): void {
+    if (!this._pxJoint) return;
+    this._pxJoint.release();
+    this._pxJoint = null;
+    this._collider = null;
+  }
   /**
    * Set the joint local pose for an actor.
    * @param actor 0 for the first actor, 1 for the second actor.

@@ -1,6 +1,7 @@
 import { EngineObject } from "../base/EngineObject";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
+import { UpdateFlagManager } from "../UpdateFlagManager";
 import { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
 import { AnimationCurve } from "./animationCurve/AnimationCurve";
 import { AnimationEvent } from "./AnimationEvent";
@@ -13,6 +14,9 @@ import { KeyframeValueType } from "./Keyframe";
 export class AnimationClip extends EngineObject {
   /** @internal */
   _curveBindings: AnimationClipCurveBinding[] = [];
+
+  /** @internal */
+  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   private _length: number = 0;
   private _events: AnimationEvent[] = [];
@@ -81,6 +85,8 @@ export class AnimationClip extends EngineObject {
       while (--index >= 0 && eventTime < events[index].time);
       events.splice(index + 1, 0, newEvent);
     }
+
+    this._updateFlagManager.dispatch();
   }
 
   /**
@@ -88,6 +94,7 @@ export class AnimationClip extends EngineObject {
    */
   clearEvents(): void {
     this._events.length = 0;
+    this._updateFlagManager.dispatch();
   }
 
   /**

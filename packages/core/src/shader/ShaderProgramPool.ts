@@ -1,3 +1,4 @@
+import { Engine } from "../Engine";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderProgram } from "./ShaderProgram";
 
@@ -10,6 +11,8 @@ export class ShaderProgramPool {
   private _cacheMap: Tree<ShaderProgram> = Object.create(null);
   private _lastQueryMap: Record<number, ShaderProgram>;
   private _lastQueryKey: number;
+
+  constructor(public engine: Engine) {}
 
   /**
    * Get shader program by macro collection.
@@ -71,8 +74,9 @@ export class ShaderProgramPool {
       }
       return;
     }
+    ++hierarchy;
     for (let k in cacheMap) {
-      this._recursiveDestroy(++hierarchy, <Tree<ShaderProgram>>cacheMap[k]);
+      this._recursiveDestroy(hierarchy, <Tree<ShaderProgram>>cacheMap[k]);
     }
   }
 

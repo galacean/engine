@@ -1,0 +1,44 @@
+---
+order: 4
+title: 创建按钮
+type: UI
+label: UI
+---
+
+`Button` 可以在 UICanvas 中构建交互按钮。
+
+## 编辑器使用
+
+### 添加 Button 节点
+
+在 **[层级面板](/docs/interface/hierarchy/)** 添加 `Button` 节点
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Zjn4QbY0B-IAAAAAAAAAAAAAehuCAQ/original" style={{zoom:"50%"}} />
+
+> 若父亲或祖先节点没有画布组件，会自动添加上根画布节点。
+
+### 设置 Transition
+
+在编辑器中可以方便地设置按钮在不同状态下的过渡表现
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*IFiaSLZqIWYAAAAAAAAAAAAAehuCAQ/original" style={{zoom:"50%"}} />
+
+## 属性
+
+| 属性名        | 描述               |
+| :------------ | :----------------- |
+| `transitions` | 按钮的所有过渡表现 |
+| `interactive` | 按钮是否可交互     |
+
+## 方法
+
+| 方法名             | 描述                 |
+| :----------------- | :------------------- |
+| `addTransition`    | 添加一个按钮过渡表现 |
+| `removeTransition` | 移除某个按钮过渡表现 |
+| `addClicked`       | 添加一个点击回调函数 |
+| `removeClicked`    | 移除某个点击回调函数 |
+
+## 脚本开发
+
+<Playground href="/embed/ui-Button" />

@@ -3,7 +3,6 @@ import {
   AssetType,
   BackgroundMode,
   DiffuseMode,
-  Engine,
   Font,
   Loader,
   LoadItem,
@@ -13,21 +12,23 @@ import {
   ResourceManager,
   Scene
 } from "@galacean/engine-core";
-import { IClassObject, IScene, ReflectionParser, SceneParser } from "./resource-deserialize";
+import { IClass, IScene, ReflectionParser, SceneParser, SpecularMode } from "./resource-deserialize";
 
 @resourceLoader(AssetType.Scene, ["scene"], true)
 class SceneLoader extends Loader<Scene> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Scene> {
     const { engine } = resourceManager;
     return new AssetPromise((resolve, reject) => {
-      this.request<IScene>(item.url, { type: "json" })
+      resourceManager
+        // @ts-ignore
+        ._request<IScene>(item.url, { ...item, type: "json" })
         .then((data) => {
           return SceneParser.parse(engine, data).then((scene) => {
             const promises = [];
             // parse ambient light
             const ambient = data.scene.ambient;
             if (ambient) {
-              const useCustomAmbient = ambient.specularMode === "Custom";
+              const useCustomAmbient = ambient.specularMode === SpecularMode.Custom;
               const useSH = ambient.diffuseMode === DiffuseMode.SphericalHarmonics;
 
               scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
@@ -61,6 +62,7 @@ class SceneLoader extends Loader<Scene> {
               }
             }
 
+            // parse background
             const background = data.scene.background;
             scene.background.mode = background.mode;
 
@@ -92,6 +94,7 @@ class SceneLoader extends Loader<Scene> {
                     scene.background.texture = texture;
                   });
                   promises.push(backgroundPromise);
+                  scene.background.textureFillMode = background.textureFillMode ?? scene.background.textureFillMode;
                 }
                 break;
             }
@@ -103,8 +106,30 @@ class SceneLoader extends Loader<Scene> {
               if (shadow.shadowResolution != undefined) scene.shadowResolution = shadow.shadowResolution;
               if (shadow.shadowDistance != undefined) scene.shadowDistance = shadow.shadowDistance;
               if (shadow.shadowCascades != undefined) scene.shadowCascades = shadow.shadowCascades;
+              if (shadow.enableTransparentShadow != undefined) {
+                scene.enableTransparentShadow = shadow.enableTransparentShadow;
+              }
               scene.shadowTwoCascadeSplits = shadow.shadowTwoCascadeSplits ?? scene.shadowTwoCascadeSplits;
               shadow.shadowFourCascadeSplits && scene.shadowFourCascadeSplits.copyFrom(shadow.shadowFourCascadeSplits);
+              scene.shadowFadeBorder = shadow.shadowFadeBorder ?? scene.shadowFadeBorder;
+            }
+
+            // parse fog
+            const fog = data.scene.fog;
+            if (fog) {
+              if (fog.fogMode != undefined) scene.fogMode = fog.fogMode;
+              if (fog.fogStart != undefined) scene.fogStart = fog.fogStart;
+              if (fog.fogEnd != undefined) scene.fogEnd = fog.fogEnd;
+              if (fog.fogDensity != undefined) scene.fogDensity = fog.fogDensity;
+              if (fog.fogColor != undefined) scene.fogColor.copyFrom(fog.fogColor);
+            }
+
+            // Post Process
+            const postProcessData = data.scene.postProcess;
+            if (postProcessData) {
+              Logger.warn(
+                "Post Process is not supported in scene yet, please add PostProcess component in entity instead."
+              );
             }
 
             return Promise.all(promises).then(() => {
@@ -117,14 +142,11 @@ class SceneLoader extends Loader<Scene> {
   }
 }
 
-ReflectionParser.registerCustomParseComponent(
-  "TextRenderer",
-  async (instance: any, item: Omit<IClassObject, "class">) => {
-    const { props } = item;
-    if (!props.font) {
-      // @ts-ignore
-      instance.font = Font.createFromOS(instance.engine, props.fontFamily || "Arial");
-    }
-    return instance;
+ReflectionParser.registerCustomParseComponent("TextRenderer", async (instance: any, item: Omit<IClass, "class">) => {
+  const { props } = item;
+  if (!props.font) {
+    // @ts-ignore
+    instance.font = Font.createFromOS(instance.engine, props.fontFamily || "Arial");
   }
-);
+  return instance;
+});

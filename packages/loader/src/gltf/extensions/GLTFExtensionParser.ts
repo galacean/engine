@@ -26,7 +26,7 @@ export abstract class GLTFExtensionParser {
     extensionSchema: GLTFExtensionSchema,
     extensionOwnerSchema: GLTFExtensionOwnerSchema,
     ...extra
-  ): EngineObject | Promise<EngineObject> {
+  ): EngineObject | Promise<EngineObject | Uint8Array> {
     throw "Not implemented.";
   }
 

@@ -1,7 +1,7 @@
 import { Engine } from "../../Engine";
-import { DisorderedArray } from "../../DisorderedArray";
 import { Platform } from "../../Platform";
 import { SystemInfo } from "../../SystemInfo";
+import { DisorderedArray } from "../../utils/DisorderedArray";
 import { Keys } from "../enums/Keys";
 import { IInput } from "../interface/IInput";
 
@@ -24,25 +24,20 @@ export class KeyboardManager implements IInput {
   /** @internal */
   _curFrameUpList: DisorderedArray<Keys> = new DisorderedArray();
 
+  // @internal
+  _target: EventTarget;
   private _engine: Engine;
-  private _htmlCanvas: HTMLCanvasElement;
   private _nativeEvents: KeyboardEvent[] = [];
-  private _hadListener: boolean = false;
 
   /**
-   * Create a KeyboardManager.
+   * @internal
    */
-  constructor(engine: Engine) {
-    // @ts-ignore
-    const htmlCanvas = engine._canvas._webCanvas;
+  constructor(engine: Engine, target: EventTarget) {
     this._engine = engine;
-    this._htmlCanvas = htmlCanvas;
-    // Need to set tabIndex to make the canvas focus.
-    htmlCanvas.tabIndex = htmlCanvas.tabIndex;
+    this._onBlur = this._onBlur.bind(this);
     this._onKeyEvent = this._onKeyEvent.bind(this);
-    htmlCanvas.addEventListener("keydown", this._onKeyEvent);
-    htmlCanvas.addEventListener("keyup", this._onKeyEvent);
-    this._hadListener = true;
+    this._target = target;
+    this._addEventListener();
   }
 
   /**
@@ -104,39 +99,8 @@ export class KeyboardManager implements IInput {
   /**
    * @internal
    */
-  _onFocus(): void {
-    if (!this._hadListener) {
-      this._htmlCanvas.addEventListener("keydown", this._onKeyEvent);
-      this._htmlCanvas.addEventListener("keyup", this._onKeyEvent);
-      this._hadListener = true;
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _onBlur(): void {
-    if (this._hadListener) {
-      this._htmlCanvas.removeEventListener("keydown", this._onKeyEvent);
-      this._htmlCanvas.removeEventListener("keyup", this._onKeyEvent);
-      this._curHeldDownKeyToIndexMap.length = 0;
-      this._curFrameHeldDownList.length = 0;
-      this._curFrameDownList.length = 0;
-      this._curFrameUpList.length = 0;
-      this._nativeEvents.length = 0;
-      this._hadListener = false;
-    }
-  }
-
-  /**
-   * @internal
-   */
   _destroy(): void {
-    if (this._hadListener) {
-      this._htmlCanvas.removeEventListener("keydown", this._onKeyEvent);
-      this._htmlCanvas.removeEventListener("keyup", this._onKeyEvent);
-      this._hadListener = false;
-    }
+    this._removeEventListener();
     this._curHeldDownKeyToIndexMap.length = 0;
     this._curHeldDownKeyToIndexMap = null;
     this._upKeyToFrameCountMap.length = 0;
@@ -151,11 +115,32 @@ export class KeyboardManager implements IInput {
     this._curFrameDownList = null;
     this._curFrameUpList.length = 0;
     this._curFrameUpList = null;
-    this._htmlCanvas = null;
     this._engine = null;
+  }
+
+  private _onBlur() {
+    this._curHeldDownKeyToIndexMap.length = 0;
+    this._curFrameHeldDownList.length = 0;
+    this._curFrameDownList.length = 0;
+    this._curFrameUpList.length = 0;
+    this._nativeEvents.length = 0;
   }
 
   private _onKeyEvent(evt: KeyboardEvent): void {
     this._nativeEvents.push(evt);
+  }
+
+  private _addEventListener(): void {
+    const { _target: target } = this;
+    target.addEventListener("keydown", this._onKeyEvent);
+    target.addEventListener("keyup", this._onKeyEvent);
+    target.addEventListener("blur", this._onBlur);
+  }
+
+  private _removeEventListener(): void {
+    const { _target: target } = this;
+    target.removeEventListener("keydown", this._onKeyEvent);
+    target.removeEventListener("keyup", this._onKeyEvent);
+    target.removeEventListener("blur", this._onBlur);
   }
 }

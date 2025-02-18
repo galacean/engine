@@ -1,0 +1,96 @@
+---
+order: 7
+title: 材质动画
+type: 动画
+group: 指南和示例
+label: Animation/Examples
+---
+
+本示例展示了如何在 Galacean 编辑器中实现材质的动画。通过简单的步骤，你将学习如何制作一个材质动画的[动画片段](/docs/animation/clip)。
+如果你是第一次使用动画编辑器，建议先阅读前面几篇文档：
+
+[1.播放模型中的动画](/docs/animation/examples/playAnimation/)
+
+[2.动画复用](/docs/animation/examples/reuseAnimation/)
+
+## 0. 准备工作
+在开始之前，我们需要在 `实体` 上添加一个 `网格渲染器` 组件，刚创建的项目中默认会有一个立方体，它已经包含了 `网格渲染器` 组件。
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*pN-yRK0i-OIAAAAAAAAAAAAADsJ_AQ/original" />
+
+除此以外，因为默认的 `材质` 是只读的，所以需要我们还需要创建一个 `材质`。
+
+创建 `材质` 有两种方式：
+1. 右键点击 **[资产面板](/docs/assets/interface)** 中的空白处，选择 `Create` -> `Material`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*1ox2RKV31u4AAAAAAAAAAAAADsJ_AQ/original" />
+
+2. 点击添加资产按钮 `+`，选择 `Material`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*zt3PRb2LsagAAAAAAAAAAAAADsJ_AQ/original" />
+
+将 `网格渲染器` 的 `材质` 属性替换为刚刚创建的 `材质`。
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*vISSRpxf6PUAAAAAAAAAAAAADsJ_AQ/original" />
+
+## 1. 创建动画片段
+添加好组件后， 我们需要创建一个 `动画片段`（关于动画片段的介绍，请参考 [动画片段](/docs/animation/clip) 文档）创建 `动画片段` 有两种方式：
+1. 右键点击 **[资产面板](/docs/assets/interface)** 中的空白处，选择 `Create` -> `Animation Clip`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*XK28Qr2GX6UAAAAAAAAAAAAADsJ_AQ/original" />
+
+2. 点击添加资产按钮 `+`，选择 `Animation Clip`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Dws0TriVVakAAAAAAAAAAAAADsJ_AQ/original" />
+
+## 2. 打开动画片段编辑器
+
+1. 双击刚刚创建的 `动画片段` 资产
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*w4ReS7ijXgcAAAAAAAAAAAAADsJ_AQ/original" />
+
+2. 选择 `实体`，根据提示，我们需要在 **[层级面板](/docs/interface/hierarchy)** 选择一个 `实体` 作为编辑动画的目标。
+
+选择编辑器默认创建的 `实体`（你也可以点击层级面板的 `+` 按钮创建一个新的）
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*zRAgTYOTU70AAAAAAAAAAAAADsJ_AQ/original" />
+
+3. 点击动画片段编辑器的 `Create` 按钮，编辑器会为你做好一些准备工作，本示例你可以先忽略对这些概念的理解。
+
+<Callout type="info">
+上述的准备工作包含：
+1. 为你选择的 `实体` 创建一个 `动画控制组件` （[详细介绍](/docs/animation/animator/)），以及创建一个 `动画控制器` （[详细介绍]((/docs/animation/animatorController/))） 资产。
+2. `动画控制器` 内会包含一个 `动画状态`，并且 `动画状态` 会自动绑定你选择的 `动画片段`，并连接到 `entry` 节点上（关于 `entry` 节点的详细介绍请参考 [动画状态机](/docs/animation/state-machine/) 文档）。
+3. `动画控制组件` 会自动绑定 `动画控制器`。
+</Callout>
+
+创建完成之后，你会打开动画片段编辑器，如图所示：
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*dWJDSbxaYCYAAAAAAAAAAAAADsJ_AQ/original" />
+
+
+## 3. 编辑动画片段
+
+1. 开启 `动画片段` 编辑器的录制模式
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*S4jNRZ-Ia7AAAAAAAAAAAAAADsJ_AQ/original" />
+
+2. 将时间线调到 `0:00`， 然后将 `网格渲染器` 组件的 `材质` 的颜色属性设置为红色，在录制模式下，编辑器会自动添加对应的属性及关键帧。
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*N6WqR4SRxCgAAAAAAAAAAAAADsJ_AQ/original" />
+
+3. 分别在 `0:20`，`0:40` 处，将 `网格渲染器` 组件的 `材质` 的颜色属性设置为绿色， 蓝色。在 `1:00` 处，再设置回红色。
+首尾的关键帧相同，动画就可以自然的循环播放了，点击播放按钮，可以预览这个 `动画片段`。
+
+![2024-11-20 17.43.50.gif](<https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*mQOgR6L3NjYAAAAAAAAAAAAADsJ_AQ/original>)
+
+这样我们的材质颜色变化 `动画片段` 就制作完成了。关于动画编辑器的更多操作，请参考 [动画片段](/docs/animation/clip) 文档。
+
+关于如何使用这个 `动画片段` 到你的项目中，可以参考文章顶部列出的两篇文档。
+
+
+
+
+
+
+

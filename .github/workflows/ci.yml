@@ -19,7 +19,7 @@ jobs:
       - uses: pnpm/action-setup@v2
       - uses: actions/setup-node@v3
         with:
-          node-version: 16.x
+          node-version: 22.x
           cache: pnpm
 
       - name: Install
@@ -33,7 +33,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16.x]
+        node-version: [22.x]
         os: [ubuntu-latest, macos-latest, windows-latest]
       fail-fast: false
 
@@ -60,16 +60,64 @@ jobs:
       - uses: pnpm/action-setup@v2
       - uses: actions/setup-node@v3
         with:
-          node-version: 16.x
+          node-version: 22.x
           cache: pnpm
 
       - name: Install
         run: pnpm install
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
       - name: Build
         run: npm run build
       - name: Test
-        run: npm run test-cov
-      - run: pnpm install codecov -w
+        run: npm run coverage
       - name: Upload coverage to Codecov
-        run: ./node_modules/.bin/codecov
-      - run: curl -s https://codecov.io/bash
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}
+          fail_ci_if_error: true
+          flags: unittests
+
+  e2e:
+    runs-on: macos-latest
+
+    strategy:
+      matrix:
+        node-version: [22.x]
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          lfs: true
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Run Cypress Tests
+        uses: cypress-io/github-action@v5
+        with:
+          build: npm run build
+          start: npm run e2e:case
+          wait-on: "http://localhost:5175"
+          wait-on-timeout: 120
+          browser: chrome
+      - name: Upload Diff
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-diff
+          path: e2e/diff/
+      - name: Upload Origin
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-origin
+          path: e2e/fixtures/originImage
+      - name: Upload Screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots
+          path: e2e/downloads/

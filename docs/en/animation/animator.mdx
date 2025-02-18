@@ -1,0 +1,155 @@
+---
+order: 3
+title: Animation Control Component
+type: Animation
+label: Animation
+---
+
+## Introduction
+The Animation Control Component ([Animator](/apis/core/#Animator)) is responsible for reading data from the [Animation Controller](/en/docs/animation/animatorController/) ([AnimatorController](/apis/core/#AnimatorController)) and playing its content.
+
+### Parameter Description
+
+| Attribute          | Function Description            |
+| :----------------- | :----------------------------- |
+| animatorController | Bind `AnimatorController` asset |
+
+## Editor Usage
+
+When you drag a model into the scene, the model is displayed in its initial pose and does not play any animation. At this point, you need to find the Animation Control Component ([Animator](/apis/core/#Animator)) on the model entity and bind an [Animation Controller](/en/docs/animation/animatorController/) asset to it.
+
+1. Find or create an Animation Control Component ([Animator](/apis/core/#Animator))
+
+<Callout type="info">
+The Animation Control Component ([Animator](/apis/core/#Animator)) of the model is on the root entity of the glTF instance, which is the first child entity under the model entity in the editor.
+
+If the model contains animations, a read-only [Animation Controller](/en/docs/animation/animatorController/) will be automatically bound for you.
+</Callout>
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*WkafRagPFo8AAAAAAAAAAAAADsJ_AQ/original" />
+
+If there is no Animation Control Component ([Animator](/apis/core/#Animator)), you can create one as shown below
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*uOuPT5cFwx4AAAAAAAAAAAAADsJ_AQ/original" />
+
+2. Create an [Animation Controller](/en/docs/animation/animatorController/) asset and bind it to the model
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*PxHwTrU58yAAAAAAAAAAAAAADsJ_AQ/original" />
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Ds5TTosYiDYAAAAAAAAAAAAADsJ_AQ/original" />
+
+3. After editing the Animation Controller ([see details](/en/docs/animation/animatorController/)), you can play the animations according to the logic of the [Animation Controller](/en/docs/animation/animatorController/)
+
+## Script Usage
+<Callout type="positive">
+Before using scripts, it is best to read the [Animation System Composition](/en/docs/animation/system) document to help you better understand the operating logic of the animation system.
+</Callout>
+
+### Play Animation
+
+After loading the GLTF model, the engine will automatically add an Animator component to the model and include the animation clips from the model. You can directly get the Animator component on the root entity of the model and play the specified animation.
+
+```typescript
+engine.resourceManager
+  .load<GLTFResource>(
+    "https://gw.alipayobjects.com/os/bmw-prod/5e3c1e4e-496e-45f8-8e05-f89f2bd5e4a4.glb"
+  )
+  .then((asset) => {
+    const { defaultSceneRoot } = asset;
+    rootEntity.addChild(defaultSceneRoot);
+    const animator = defaultSceneRoot.getComponent(Animator);
+    animator.play("run");
+  });
+```
+
+#### Control Playback Speed
+
+You can control the animation playback speed through the [speed](/apis/core/#Animator-speed) property. The default value of `speed` is `1.0`. The larger the value, the faster the playback; the smaller the value, the slower the playback. When the value is negative, it plays in reverse.
+
+```typescript
+animator.speed = 2.0;
+```
+
+#### Stop/Replay
+
+You can stop and replay the animation by setting the [enabled](/apis/core/#Animator-enabled) property of the Animator.
+
+```typescript
+// 停止
+animator.enabled = false;
+// 重新播放
+animator.enabled = true;
+```
+
+#### Pause/Resume Playback
+You can pause and resume playback by setting the [speed](/apis/core/#Animator-speed) property of the Animator.
+
+```typescript
+// 暂停
+animator.speed = 0;
+// 恢复
+animator.speed = 1;
+```
+
+If you only want to pause a specific animation state, you can do so by setting its speed to 0.
+
+```typescript
+const state = animator.findAnimatorState("xxx");
+state.speed = 0;
+```
+
+#### Play a Specific Animation State
+
+You can use the [animator.play](/apis/core/#Animator-play) method to play a specific `AnimatorState`. For parameter details, see the [API documentation](/apis/core/#Animator-play).
+
+```typescript
+animator.play("run");
+```
+
+If you need to start playing at a specific moment in the animation, you can do so as follows:
+
+```typescript
+const layerIndex = 0;
+const normalizedTimeOffset = 0.5; // Normalized time
+animator.play("run", layerIndex, normalizedTimeOffset);
+```
+
+<Playground href="/embed/skeleton-animation-play" />
+
+#### Transition to a Specific Animation State
+
+You can use the [animator.crossfade](/apis/core/#Animator-crossfade) method to transition the animation to a specified `AnimatorState`. For parameter details, see the [API documentation](/apis/core/#Animator-crossFade).
+
+```typescript
+animator.crossFade("run", 0.3);
+```
+
+<Playground href="/embed/skeleton-animation-crossfade" />
+
+### Get the Currently Playing Animation State
+
+You can use the [getCurrentAnimatorState](/apis/core/#Animator-getCurrentAnimatorState) method to get the currently playing AnimatorState. The parameter is the index of the layer where the animation state is located, `layerIndex`. For details, see the [API documentation](/apis/core/#Animator-getCurrentAnimatorState). After obtaining it, you can set the properties of the animation state, such as changing the default loop playback to play once.
+
+```typescript
+const currentState = animator.getCurrentAnimatorState(0);
+// 播放一次
+currentState.wrapMode = WrapMode.Once;
+// 循环播放
+currentState.wrapMode = WrapMode.Loop;
+```
+
+### Get an Animation State
+
+You can use the [findAnimatorState](/apis/core/#Animator-findAnimatorState) method to get an AnimatorState by its specified name. For details, see the [API documentation](/apis/core/#Animator-getCurrentAnimatorState). After obtaining it, you can set the properties of the animation state, such as changing the default loop playback to play once.
+
+```typescript
+const state = animator.findAnimatorState("xxx");
+// 播放一次
+state.wrapMode = WrapMode.Once;
+// 循环播放
+state.wrapMode = WrapMode.Loop;
+```
+
+### Animation Culling
+
+You can set the [cullingMode](/apis/core/#Animator-cullingMode) of the [Animator](/apis/core/#Animator) to determine whether the animation should be calculated when the entity bound to the Animator is not visible. When the animation is culled, it will not be calculated or applied to the entity, but the animation state will still update over time, ensuring it behaves correctly when it becomes visible again.
+```

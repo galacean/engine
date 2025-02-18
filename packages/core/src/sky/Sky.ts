@@ -100,6 +100,10 @@ export class Sky {
     // view-proj matrix
     Matrix.multiply(projectionMatrix, viewProjMatrix, viewProjMatrix);
     const originViewProjMatrix = cameraShaderData.getMatrix(RenderContext.vpMatrixProperty);
+
+    if (context.flipProjection) {
+      Matrix.multiply(RenderContext._flipYMatrix, viewProjMatrix, viewProjMatrix);
+    }
     cameraShaderData.setMatrix(RenderContext.vpMatrixProperty, viewProjMatrix);
 
     const compileMacros = Shader._compileMacros;
@@ -118,7 +122,7 @@ export class Sky {
     program.uploadAll(program.materialUniformBlock, materialShaderData);
     program.uploadUnGroupTextures();
 
-    renderState._apply(engine, false, pass._renderStateDataMap, materialShaderData);
+    renderState._applyStates(engine, false, pass._renderStateDataMap, materialShaderData);
     rhi.drawPrimitive(mesh._primitive, mesh.subMesh, program);
     cameraShaderData.setMatrix(RenderContext.vpMatrixProperty, originViewProjMatrix);
   }

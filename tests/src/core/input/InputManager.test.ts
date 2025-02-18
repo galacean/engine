@@ -1,20 +1,18 @@
 import {
+  BoxColliderShape,
+  Camera,
+  Keys,
+  Pointer,
   PointerButton,
+  PointerEventData,
   PointerPhase,
   Script,
-  Keys,
-  Camera,
-  StaticCollider,
-  BoxColliderShape,
-  Pointer
+  StaticCollider
 } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Vector2, Vector3 } from "@galacean/engine-math";
 import { LitePhysics } from "@galacean/engine-physics-lite";
-import chai, { expect } from "chai";
-import spies from "chai-spies";
-
-chai.use(spies);
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { vi, describe, expect, it } from "vitest";
 
 const body = document.getElementsByTagName("body")[0];
 const canvasDOM = document.createElement("canvas");
@@ -51,12 +49,13 @@ describe("InputManager", async () => {
 
   it("pointer", () => {
     // @ts-ignore
-    inputManager._onFocus();
-    canvasDOM.dispatchEvent(generatePointerEvent("pointerdown", 1, 1, 1));
-    canvasDOM.dispatchEvent(generatePointerEvent("pointermove", 1, 1, 1));
-    canvasDOM.dispatchEvent(generatePointerEvent("pointerup", 1, 1, 1, 0, 0));
-    canvasDOM.dispatchEvent(generatePointerEvent("pointerleave", 1, 1, 1, -1, 0));
-    canvasDOM.dispatchEvent(generatePointerEvent("pointercancel", 1, 1, 1, -1, 0));
+    const { _pointerManager: pointerManager } = inputManager;
+    const { _target: target } = pointerManager;
+    target.dispatchEvent(generatePointerEvent("pointerdown", 1, 1, 1));
+    target.dispatchEvent(generatePointerEvent("pointermove", 1, 1, 1));
+    target.dispatchEvent(generatePointerEvent("pointerup", 1, 1, 1, 0, 0));
+    target.dispatchEvent(generatePointerEvent("pointerleave", 1, 1, 1, -1, 0));
+    target.dispatchEvent(generatePointerEvent("pointercancel", 1, 1, 1, -1, 0));
     engine.update();
     const pointers = inputManager.pointers;
     expect(pointers.length).to.eq(1);
@@ -68,7 +67,7 @@ describe("InputManager", async () => {
       expect(pointer._uniqueID).to.eq(1);
       expect(pointer.button).to.eq(PointerButton.None);
       expect(pointer.pressedButtons).to.eq(PointerButton.None);
-      const { left, top } = canvasDOM.getBoundingClientRect();
+      const { left, top } = target.getBoundingClientRect();
       expect(pointer.position).to.deep.eq(new Vector2((1 - left) * 2, (1 - top) * 2));
       expect(pointer.phase).to.eq(PointerPhase.Leave);
       expect(inputManager.isPointerDown()).to.eq(true);
@@ -90,91 +89,95 @@ describe("InputManager", async () => {
     collider.addShape(boxShape);
 
     class TestScript extends Script {
-      onPointerEnter(pointer: Pointer): void {
+      onPointerEnter(eventData: PointerEventData): void {
         console.log("onPointerEnter");
       }
 
-      onPointerExit(pointer: Pointer): void {
+      onPointerExit(eventData: PointerEventData): void {
         console.log("onPointerExit");
       }
 
-      onPointerDown(pointer: Pointer): void {
+      onPointerDown(eventData: PointerEventData): void {
         console.log("onPointerDown");
       }
 
-      onPointerClick(pointer: Pointer): void {
+      onPointerClick(eventData: PointerEventData): void {
         console.log("onPointerClick");
       }
 
-      onPointerDrag(pointer: Pointer): void {
+      onPointerDrag(eventData: PointerEventData): void {
         console.log("onPointerDrag");
       }
 
-      onPointerUp(pointer: Pointer): void {
+      onPointerUp(eventData: PointerEventData): void {
         console.log("onPointerUp");
       }
     }
-    TestScript.prototype.onPointerEnter = chai.spy(TestScript.prototype.onPointerEnter);
-    TestScript.prototype.onPointerExit = chai.spy(TestScript.prototype.onPointerExit);
-    TestScript.prototype.onPointerDown = chai.spy(TestScript.prototype.onPointerDown);
-    TestScript.prototype.onPointerClick = chai.spy(TestScript.prototype.onPointerClick);
-    TestScript.prototype.onPointerDrag = chai.spy(TestScript.prototype.onPointerDrag);
-    TestScript.prototype.onPointerUp = chai.spy(TestScript.prototype.onPointerUp);
+    TestScript.prototype.onPointerEnter = vi.fn(TestScript.prototype.onPointerEnter);
+    TestScript.prototype.onPointerExit = vi.fn(TestScript.prototype.onPointerExit);
+    TestScript.prototype.onPointerDown = vi.fn(TestScript.prototype.onPointerDown);
+    TestScript.prototype.onPointerClick = vi.fn(TestScript.prototype.onPointerClick);
+    TestScript.prototype.onPointerDrag = vi.fn(TestScript.prototype.onPointerDrag);
+    TestScript.prototype.onPointerUp = vi.fn(TestScript.prototype.onPointerUp);
     const script = boxEntity.addComponent(TestScript);
 
-    // @ts-ignore
-    inputManager._onFocus();
-    const { left, top } = canvasDOM.getBoundingClientRect();
-    canvasDOM.dispatchEvent(generatePointerEvent("pointerdown", 2, left + 2, top + 2));
+    const { left, top } = target.getBoundingClientRect();
+    target.dispatchEvent(generatePointerEvent("pointerdown", 2, left + 2, top + 2));
     engine.update();
 
-    expect(script.onPointerEnter).to.have.been.called.exactly(1);
-    expect(script.onPointerExit).to.have.been.called.exactly(0);
-    expect(script.onPointerDown).to.have.been.called.exactly(1);
-    expect(script.onPointerClick).to.have.been.called.exactly(0);
-    expect(script.onPointerDrag).to.have.been.called.exactly(0);
-    expect(script.onPointerUp).to.have.been.called.exactly(0);
+    expect(script.onPointerEnter).toHaveBeenCalledTimes(1);
+    expect(script.onPointerExit).toHaveBeenCalledTimes(0);
+    expect(script.onPointerDown).toHaveBeenCalledTimes(1);
+    expect(script.onPointerClick).toHaveBeenCalledTimes(0);
+    expect(script.onPointerDrag).toHaveBeenCalledTimes(0);
+    expect(script.onPointerUp).toHaveBeenCalledTimes(0);
+    expect(inputManager.isPointerUp()).to.eq(false);
+    expect(inputManager.isPointerDown()).to.eq(true);
+    expect(inputManager.isPointerHeldDown()).to.eq(true);
 
-    // @ts-ignore
-    inputManager._onFocus();
-    canvasDOM.dispatchEvent(generatePointerEvent("pointermove", 2, left + 2, top + 2));
-    canvasDOM.dispatchEvent(generatePointerEvent("pointerup", 2, left + 2, top + 2, 0, 0));
-    canvasDOM.dispatchEvent(generatePointerEvent("pointerleave", 2, left + 2, top + 2, -1, 0));
+    target.dispatchEvent(generatePointerEvent("pointermove", 2, left + 2, top + 2));
+    target.dispatchEvent(generatePointerEvent("pointerup", 2, left + 2, top + 2, 0, 0));
+    target.dispatchEvent(generatePointerEvent("pointerleave", 2, left + 2, top + 2, -1, 0));
     engine.update();
-    expect(script.onPointerEnter).to.have.been.called.exactly(1);
-    expect(script.onPointerExit).to.have.been.called.exactly(1);
-    expect(script.onPointerDown).to.have.been.called.exactly(1);
-    expect(script.onPointerClick).to.have.been.called.exactly(1);
-    expect(script.onPointerDrag).to.have.been.called.exactly(1);
-    expect(script.onPointerUp).to.have.been.called.exactly(1);
+    expect(script.onPointerEnter).toHaveBeenCalledTimes(1);
+    expect(script.onPointerExit).toHaveBeenCalledTimes(1);
+    expect(script.onPointerDown).toHaveBeenCalledTimes(1);
+    expect(script.onPointerClick).toHaveBeenCalledTimes(1);
+    expect(script.onPointerDrag).toHaveBeenCalledTimes(1);
+    expect(script.onPointerUp).toHaveBeenCalledTimes(1);
+    expect(inputManager.isPointerUp()).to.eq(true);
+    expect(inputManager.isPointerDown()).to.eq(false);
+    expect(inputManager.isPointerHeldDown()).to.eq(false);
 
-    // @ts-ignore
-    inputManager._onFocus();
-    canvasDOM.dispatchEvent(generatePointerEvent("pointerdown", 3, left + 200, top + 200));
-    canvasDOM.dispatchEvent(generatePointerEvent("pointerup", 3, left + 200, top + 200, 0, 0));
-    canvasDOM.dispatchEvent(generatePointerEvent("pointerleave", 3, left + 200, top + 200, -1, 0));
+    target.dispatchEvent(generatePointerEvent("pointerdown", 3, left + 200, top + 200));
+    target.dispatchEvent(generatePointerEvent("pointerup", 3, left + 200, top + 200, 0, 0));
+    target.dispatchEvent(generatePointerEvent("pointerleave", 3, left + 200, top + 200, -1, 0));
     engine.update();
-    expect(script.onPointerEnter).to.have.been.called.exactly(1);
-    expect(script.onPointerExit).to.have.been.called.exactly(1);
-    expect(script.onPointerDown).to.have.been.called.exactly(1);
-    expect(script.onPointerClick).to.have.been.called.exactly(1);
-    expect(script.onPointerDrag).to.have.been.called.exactly(1);
-    expect(script.onPointerUp).to.have.been.called.exactly(1);
+    expect(script.onPointerEnter).toHaveBeenCalledTimes(1);
+    expect(script.onPointerExit).toHaveBeenCalledTimes(1);
+    expect(script.onPointerDown).toHaveBeenCalledTimes(1);
+    expect(script.onPointerClick).toHaveBeenCalledTimes(1);
+    expect(script.onPointerDrag).toHaveBeenCalledTimes(1);
+    expect(script.onPointerUp).toHaveBeenCalledTimes(1);
+    expect(inputManager.isPointerUp()).to.eq(true);
+    expect(inputManager.isPointerDown()).to.eq(true);
+    expect(inputManager.isPointerHeldDown()).to.eq(false);
 
-    // @ts-ignore
-    inputManager._onFocus();
-    canvasDOM.dispatchEvent(generatePointerEvent("pointerdown", 4, 0, 0));
+    target.dispatchEvent(generatePointerEvent("pointerdown", 4, 0, 0));
     engine.update();
     const deltaPosition = engine.inputManager.pointers[0].deltaPosition;
     expect(deltaPosition).deep.equal(new Vector2(0, 0));
+    target.dispatchEvent(generatePointerEvent("pointerleave", 4, 0, 0));
+    engine.update();
   });
 
   it("keyboard", () => {
     // @ts-ignore
-    inputManager._onFocus();
-    canvasDOM.dispatchEvent(generateKeyboardEvent("keydown", "KeyA"));
-    canvasDOM.dispatchEvent(generateKeyboardEvent("keydown", "KeyB"));
-    canvasDOM.dispatchEvent(generateKeyboardEvent("keyup", "KeyA"));
+    const { _keyboardManager: keyboardManager } = inputManager;
+    const { _target: target } = keyboardManager;
+    target.dispatchEvent(generateKeyboardEvent("keydown", "KeyA"));
+    target.dispatchEvent(generateKeyboardEvent("keydown", "KeyB"));
+    target.dispatchEvent(generateKeyboardEvent("keyup", "KeyA"));
     engine.update();
     expect(inputManager.isKeyDown()).to.eq(true);
     expect(inputManager.isKeyUp()).to.eq(true);
@@ -185,90 +188,69 @@ describe("InputManager", async () => {
     expect(inputManager.isKeyDown(Keys.KeyB)).to.eq(true);
     expect(inputManager.isKeyUp(Keys.KeyB)).to.eq(false);
     expect(inputManager.isKeyHeldDown(Keys.KeyB)).to.eq(true);
-    // @ts-ignore
-    inputManager._onFocus();
-    canvasDOM.dispatchEvent(generateKeyboardEvent("keyup", "KeyB"));
+    target.dispatchEvent(generateKeyboardEvent("keyup", "KeyB"));
     engine.update();
     expect(inputManager.isKeyUp(Keys.KeyB)).to.eq(true);
     expect(inputManager.isKeyHeldDown(Keys.KeyB)).to.eq(false);
 
-    canvasDOM.dispatchEvent(generateKeyboardEvent("keydown", "KeyA"));
-    canvasDOM.dispatchEvent(generateKeyboardEvent("keyup", "MetaRight"));
+    target.dispatchEvent(generateKeyboardEvent("keydown", "KeyA"));
+    target.dispatchEvent(generateKeyboardEvent("keyup", "MetaRight"));
     expect(inputManager.isKeyHeldDown(Keys.KeyA)).to.eq(false);
   });
 
   it("wheel", () => {
     // @ts-ignore
-    inputManager._onFocus();
-    canvasDOM.dispatchEvent(generateWheelEvent(1, 2, 3));
+    const { _wheelManager: wheelManager } = inputManager;
+    const { _target: target } = wheelManager;
+    target.dispatchEvent(generateWheelEvent(1, 2, 3));
     engine.update();
     expect(inputManager.wheelDelta).to.deep.eq(new Vector3(1, 2, 3));
   });
 
   it("blur and focus", () => {
     // @ts-ignore
-    inputManager._onFocus();
-    window.dispatchEvent(new Event("blur"));
-    // @ts-ignore
-    expect(inputManager._pointerManager._hadListener).to.eq(false);
-    // @ts-ignore
-    expect(inputManager._wheelManager._hadListener).to.eq(false);
-    // @ts-ignore
-    expect(inputManager._keyboardManager._hadListener).to.eq(false);
+    const { _keyboardManager: keyboardManager } = inputManager;
+    const { _target: target } = keyboardManager;
+    target.dispatchEvent(generateKeyboardEvent("keydown", "KeyA"));
+    engine.update();
+    expect(inputManager.isKeyDown(Keys.KeyA)).to.eq(true);
+    target.dispatchEvent(new Event("blur"));
+    expect(inputManager.isKeyDown()).to.eq(false);
+  });
 
-    window.dispatchEvent(new Event("focus"));
-    // @ts-ignore
-    expect(inputManager._pointerManager._hadListener).to.eq(true);
-    // @ts-ignore
-    expect(inputManager._wheelManager._hadListener).to.eq(true);
-    // @ts-ignore
-    expect(inputManager._keyboardManager._hadListener).to.eq(true);
+  it("change listener target", () => {
+    window.dispatchEvent(generatePointerEvent("pointerdown", 1, 1, 1));
+    engine.update();
+    expect(inputManager.pointers.length).to.eq(0);
+    canvasDOM.dispatchEvent(generatePointerEvent("pointerdown", 1, 1, 1));
+    engine.update();
+    expect(inputManager.pointers.length).to.eq(1);
+    window.dispatchEvent(generatePointerEvent("pointerleave", 1, 1, 1));
+    canvasDOM.dispatchEvent(generatePointerEvent("pointerleave", 1, 1, 1));
+
+    canvasDOM.dispatchEvent(generateKeyboardEvent("keydown", "KeyA"));
+    engine.update();
+    expect(inputManager.isKeyDown()).to.eq(false);
+    window.dispatchEvent(generateKeyboardEvent("keydown", "KeyA"));
+    engine.update();
+    expect(inputManager.isKeyDown()).to.eq(true);
+
+    window.dispatchEvent(generateWheelEvent(1, 2, 3));
+    engine.update();
+    expect(inputManager.wheelDelta).to.deep.eq(new Vector3(0, 0, 0));
+    canvasDOM.dispatchEvent(generateWheelEvent(1, 2, 3));
+    engine.update();
+    expect(inputManager.wheelDelta).to.deep.eq(new Vector3(1, 2, 3));
   });
 
   it("destroy", () => {
-    // @ts-ignore
-    const wheel = inputManager._wheelManager;
-    // @ts-ignore
-    const pointer = inputManager._pointerManager;
-    // @ts-ignore
-    const keyboard = inputManager._keyboardManager;
-
     engine.destroy();
-    window.dispatchEvent(new Event("focus"));
-    expect(pointer._hadListener).to.eq(false);
-    expect(wheel._hadListener).to.eq(false);
-    expect(keyboard._hadListener).to.eq(false);
     // @ts-ignore
     expect(inputManager._pointerManager).to.eq(null);
     // @ts-ignore
     expect(inputManager._wheelManager).to.eq(null);
     // @ts-ignore
     expect(inputManager._keyboardManager).to.eq(null);
-
-    expect(pointer._pointerPool).to.eq(null);
-    expect(pointer._pointers).to.eq(null);
-    expect(pointer._downList).to.eq(null);
-    expect(pointer._upList).to.eq(null);
-    expect(pointer._nativeEvents).to.eq(null);
-    expect(pointer._upMap).to.eq(null);
-    expect(pointer._downMap).to.eq(null);
-    expect(pointer._htmlCanvas).to.eq(null);
-    expect(pointer._canvas).to.eq(null);
-    expect(pointer._engine).to.eq(null);
-
-    expect(wheel._delta).to.eq(null);
-    expect(wheel._nativeEvents).to.eq(null);
-    expect(wheel._canvas).to.eq(null);
-
-    expect(keyboard._curHeldDownKeyToIndexMap).to.eq(null);
-    expect(keyboard._upKeyToFrameCountMap).to.eq(null);
-    expect(keyboard._downKeyToFrameCountMap).to.eq(null);
-    expect(keyboard._nativeEvents).to.eq(null);
-    expect(keyboard._curFrameHeldDownList).to.eq(null);
-    expect(keyboard._curFrameDownList).to.eq(null);
-    expect(keyboard._curFrameUpList).to.eq(null);
-    expect(keyboard._htmlCanvas).to.eq(null);
-    expect(keyboard._engine).to.eq(null);
   });
 });
 

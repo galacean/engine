@@ -2,23 +2,22 @@ import {
   BlinnPhongMaterial,
   Camera,
   DirectLight,
+  Material,
   MeshRenderer,
   PrimitiveMesh,
   Shader,
+  ShaderFactory,
   ShaderMacro,
   ShaderPass,
   ShaderProperty,
   ShaderTagKey,
-  SubShader,
-  RenderQueueType,
-  Material
+  SubShader
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { ShaderLab } from "@galacean/engine-shader-lab";
-import chai, { expect } from "chai";
-import spies from "chai-spies";
+import { ShaderLab } from "@galacean/engine-shaderlab";
+import { vi, describe, expect, it } from "vitest";
 
-chai.use(spies);
+const shaderLab = new ShaderLab();
 
 describe("Shader", () => {
   describe("Custom Shader", () => {
@@ -29,9 +28,10 @@ describe("Shader", () => {
       customShader = Shader.create("custom", [new SubShader("Default", [new ShaderPass(customVS, customFS)])]);
 
       // Create same name shader
-      expect(() => {
-        Shader.create("custom", [new SubShader("Default", [new ShaderPass(customVS, customFS)])]);
-      }).throw();
+      const errorSpy = vi.spyOn(console, "error");
+      Shader.create("custom", [new SubShader("Default", [new ShaderPass(customVS, customFS)])]);
+      expect(errorSpy).toHaveBeenCalledWith('Shader named "custom" already exists.');
+      vi.resetAllMocks();
 
       // Create shader by empty SubShader array
       expect(() => {
@@ -150,16 +150,17 @@ describe("Shader", () => {
     });
 
     it("ShaderLab", async function () {
-      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), shaderLab: new ShaderLab() });
+      const engine = await WebGLEngine.create({
+        canvas: document.createElement("canvas"),
+        shaderLab
+      });
 
       // Test that shader created successfully, if use shaderLab.
       let shader = Shader.create(testShaderLabCode);
       expect(shader).to.be.an.instanceOf(Shader);
       expect(shader.subShaders.length).to.equal(1);
       expect(shader.subShaders[0].passes.length).to.equal(3);
-      expect(shader.subShaders[0].getTagValue("RenderType")).to.equal("transparent");
-      expect(shader.subShaders[0].passes[1].getTagValue("MyCustomTag")).to.equal("MyCustomValue");
-      expect(shader.subShaders[0].passes[2].getTagValue("MyCustomTag2")).to.equal("MyCustomValue2");
+      expect(shader.subShaders[0].getTagValue("ReplacementTag")).to.equal("transparent");
 
       // Test that throw error, if shader was created with same name in shaderLab.
       // expect(() => {
@@ -196,6 +197,145 @@ describe("Shader", () => {
 
       // Test get macro is same as ShaderMacro.getByName
       expect(Shader.getMacroByName("SET_TEXTURE_GRAY")).to.be.equal(macro);
+    });
+  });
+
+  describe("GLSL Convert test", () => {
+    it("Shader api vertex replace test", async () => {
+      expect(
+        ShaderFactory.convertTo300(
+          `
+        attribute vec3 POSITION;
+        attribute vec2 TEXCOORD_0;
+        varying vec2 v_uv;
+        uniform sampler2D u_texture;
+        uniform samplerCube u_textureCube;
+
+        void main(){
+          gl_Position = vec4(POSITION, 1.0);
+          v_uv = TEXCOORD_0;
+          vec4 color1 = texture2D(u_texture, TEXCOORD_0);
+          vec4 color2 = textureCube(u_textureCube, POSITION);
+          vec4 color3 = texture2DProj(u_texture, POSITION);
+        }
+    `
+        )
+      ).to.be.equal(`
+        in vec3 POSITION;
+        in vec2 TEXCOORD_0;
+        out vec2 v_uv;
+        uniform sampler2D u_texture;
+        uniform samplerCube u_textureCube;
+
+        void main(){
+          gl_Position = vec4(POSITION, 1.0);
+          v_uv = TEXCOORD_0;
+          vec4 color1 = texture(u_texture, TEXCOORD_0);
+          vec4 color2 = texture(u_textureCube, POSITION);
+          vec4 color3 = textureProj(u_texture, POSITION);
+        }
+    `);
+    });
+
+    it("Shader api fragment replace test", async () => {
+      expect(
+        ShaderFactory.convertTo300(
+          `
+        varying vec2 v_uv; 
+        uniform sampler2D u_texture;
+        uniform samplerCube u_textureCube;
+
+        void main(){
+          gl_FragColor = texture2D(u_texture, v_uv);
+          vec4 color1 = textureCube(u_textureCube, vec3(1));
+          vec4 color2 = texture2DProj(u_textureCube, vec3(1));
+          vec4 color3 = texture2DLodEXT(u_texture, v_uv, 1.0);
+          vec4 color4 = textureCubeLodEXT(u_textureCube, vec3(1), 1.0);
+          vec4 color5 = texture2DGradEXT(u_texture, v_uv, vec2(1), vec2(1));
+          vec4 color6 = textureCubeGradEXT(u_textureCube, v_uv, vec2(1), vec2(1));
+          vec4 color7 = texture2DProjGradEXT(u_texture, vec3(1), vec2(1), vec2(1));
+          vec4 color8 = texture2DProjLodEXT(u_texture, vec3(1), 1.0);
+          gl_FragDepthEXT = 0.5;
+        }
+    `,
+          true
+        )
+      ).to.be.equal(
+        `
+        in vec2 v_uv; 
+        uniform sampler2D u_texture;
+        uniform samplerCube u_textureCube;\n
+        out vec4 glFragColor;\nvoid main(){
+          glFragColor = texture(u_texture, v_uv);
+          vec4 color1 = texture(u_textureCube, vec3(1));
+          vec4 color2 = textureProj(u_textureCube, vec3(1));
+          vec4 color3 = textureLod(u_texture, v_uv, 1.0);
+          vec4 color4 = textureLod(u_textureCube, vec3(1), 1.0);
+          vec4 color5 = textureGrad(u_texture, v_uv, vec2(1), vec2(1));
+          vec4 color6 = textureGrad(u_textureCube, v_uv, vec2(1), vec2(1));
+          vec4 color7 = textureProjGrad(u_texture, vec3(1), vec2(1), vec2(1));
+          vec4 color8 = textureProjLod(u_texture, vec3(1), 1.0);
+          gl_FragDepth = 0.5;
+        }
+    `
+      );
+    });
+
+    it("Shader api fragment layout test", async () => {
+      // original shader has out
+      expect(
+        ShaderFactory.convertTo300(
+          `
+        varying vec2 v_uv; 
+        uniform sampler2D u_texture;
+
+        out vec4 color;
+        void main(){
+          color = texture2D(u_texture, v_uv);
+        }
+    `,
+          true
+        )
+      ).to.be.equal(
+        `
+        in vec2 v_uv; 
+        uniform sampler2D u_texture;
+
+        out vec4 color;
+        void main(){
+          color = texture(u_texture, v_uv);
+        }
+    `
+      );
+
+      // mrt
+      expect(
+        ShaderFactory.convertTo300(
+          `
+        varying vec2 v_uv; 
+        uniform sampler2D u_texture;
+
+        void main(){
+          gl_FragData[0] = texture2D(u_texture, v_uv);
+          gl_FragColor.rgb += vec3(0.1);
+          gl_FragData[1] = texture2D(u_texture, v_uv);
+          gl_FragData[2] = texture2D(u_texture, v_uv);
+        }
+    `,
+          true
+        )
+      ).to.be.equal(
+        `
+        in vec2 v_uv; 
+        uniform sampler2D u_texture;\n
+        layout(location=0) out vec4 fragOutColor0;\nlayout(location=1) out vec4 fragOutColor1;\nlayout(location=2) out vec4 fragOutColor2;\nvoid main(){
+          fragOutColor0 = texture(u_texture, v_uv);
+          fragOutColor0.rgb += vec3(0.1);
+          fragOutColor1 = texture(u_texture, v_uv);
+          fragOutColor2 = texture(u_texture, v_uv);
+        }
+    `
+      );
     });
   });
 });
@@ -265,27 +405,22 @@ void main() {
 const testShaderLabCode = `
   Shader "Test-Default" {
     SubShader "Default" {
-      Tags { RenderType = "transparent" }
+      Tags { ReplacementTag = "transparent" }
 
       UsePass "pbr-specular/Default/Forward"
 
       Pass "test" {
-        Tags { MyCustomTag = "MyCustomValue" }
-
-        RenderQueueType = RenderQueueType.Opaque;
+        RenderQueueType = Opaque;
 
         mat4 renderer_MVPMat;
 
         struct a2v {
           vec4 POSITION;
-        }
+        };
 
         struct v2f {
           vec2 uv;
-        }
-
-        VertexShader = vert;
-        FragmentShader = frag;
+        };
 
         v2f vert(a2v v) {
           gl_Position = renderer_MVPMat * v.POSITION;
@@ -297,10 +432,11 @@ const testShaderLabCode = `
         void frag(v2f i) {
           gl_FragColor = mix(gl_FragColor, vec4(i.uv, 0, 1), 0.5);
         }
+
+        VertexShader = vert;
+        FragmentShader = frag;
       }
       Pass "1" {
-        Tags { MyCustomTag2 = "MyCustomValue2" }
-
         DepthState depthState {
           Enabled = true;
           WriteEnabled = true;
@@ -316,7 +452,7 @@ const testShaderLabCode = `
           DestinationColorBlendFactor = BlendFactor.BlendColor;
           DestinationAlphaBlendFactor = BlendFactor.OneMinusBlendColor;
           ColorWriteMask = 16777130;
-          BlendColor = vec4(1, 1, 1, 0);
+          BlendColor = Color(1, 1, 1, 0);
           AlphaToCoverage = true;
         }
 
@@ -350,14 +486,11 @@ const testShaderLabCode = `
         struct a2v {
           vec4 POSITION;
           vec2 TEXCOORD_0;
-        }
+        };
 
         struct v2f {
           vec2 uv;
-        }
-
-        VertexShader = vert;
-        FragmentShader = frag;
+        };
 
         v2f vert(a2v v) {
           gl_Position = renderer_MVPMat * (v.POSITION + vec4(0, 2, 0, 0));
@@ -375,6 +508,9 @@ const testShaderLabCode = `
             gl_FragColor = texture2D(tex2d, i.uv);
           #endif
         }
+
+        VertexShader = vert;
+        FragmentShader = frag;
       }
     }
   }

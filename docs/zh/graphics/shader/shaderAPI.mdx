@@ -1,0 +1,361 @@
+---
+title: Shader API【实验】
+---
+
+<Callout type="warning">
+  目前这个版本还处于实验性质,仅可在`编辑器`中使用。如果您想在 `Pro Code` 中使用，需要引入
+  `@galacean/engine-shader-shaderlab` 包。请注意，下个版本的 API 可能会发生变更，届时我们会及时通知您。
+</Callout>
+
+类似于 Typescript 中的函数、类、属性， Shader 代码也有一套自己的 API。本文可以帮助你如何基于这些 API 和 `ShaderLab` 语法，编写自己的 Shader。
+
+## 快速上手
+
+我们先从 `Unlit 模板`开始简单介绍我们的 Shader API，先按照下图创建一个 Unlit Shader：
+
+<img
+  src="https://gw.alipayobjects.com/zos/OasisHub/9abd1026-4e4d-4994-b36a-f964375c38cb/image-20240731105324320.png"
+  style={{ zoom: "50%" }}
+/>
+
+默认的 Unlit 模板已经内置了蒙皮计算和 Shadow Pass，可以看到骨骼动画和阴影都能正常渲染：
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/6e7f7d40-e54c-45bc-a915-dfbfb26c2c74/2024-08-01%25252017.01.06.gif" />
+
+关键代码如下，我们通过调用 `UsePass "pbr/Default/ShadowCaster"` 使物体能够渲染到 Shadowmap；通过`getSkinMatrix` 这个 API 可以得到骨骼矩阵，使物体动起来。
+
+```ts showLineNumbers {1,11-15} /getSkinMatrix/
+UsePass "pbr/Default/ShadowCaster"
+
+Pass "Example" {
+	#include "Skin.glsl"
+
+	Varyings vert(Attributes attr) {
+		Varyings v;
+
+		vec4 position = vec4(attr.POSITION, 1.0);
+
+		// Skin
+		#ifdef RENDERER_HAS_SKIN
+		  mat4 skinMatrix = getSkinMatrix(attr);
+		  position = skinMatrix * position;
+		#endif
+
+		gl_Position = renderer_MVPMat * position;
+		v.uv = attr.TEXCOORD_0;
+
+		return v;
+	}
+}
+```
+
+Unlit Shader 默认是不受光照影响的，我们可以调用 `Light.glsl` 提供的 API，让 Shader 的输出受光照影响：
+
+```ts showLineNumbers {1,4} /getDirectLight/
+#include "Light.glsl"
+
+// Demo 演示，我们只简单计算第 1 盏方向光。
+DirectLight light = getDirectLight(0);
+// 衰减系数，光线越垂直照射的地方越亮
+float dotNL = saturate( dot( v.normalWS, -light.direction ) );
+baseColor.rgb *= dotNL * light.color;
+```
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/a552c86f-6a59-4765-89ff-fac3b38aa9d2/2024-08-01%25252017.06.14.gif" />
+
+当然，除此之外，你还可以进行顶点色的计算、法线贴图的计算、[环境光](/docs/graphics/light/ambient)计算等操作，但是我们不建议你基于 `Unlit 模板`做这些操作。`PBR 模板` 已经内置了这些计算，且提供了更加全面的光照模型，比如各向异性、 Clear Coat 等，且提供了函数重载宏来实现快速拓展。
+
+## PBR 模板
+
+我们重新创建一个 `PBR Shader 模板`，将它绑定到刚才的材质球上，可以看到材质面板已经内置了基础属性、金属粗糙度、各向异性、法线、自发射、阴影遮蔽、Clear Coat 等配置，并能受到直接光、环境光的影响：
+
+<img
+  src="https://gw.alipayobjects.com/zos/OasisHub/1bb43cac-ca21-4342-a6ea-a19324eaf12d/image-20240801174338560.png"
+  style={{ zoom: "50%" }}
+/>
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/f8f09e89-e14d-481e-a328-eed491f41e79/image-20240801174216595.png" />
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/65a7f2ec-ffd5-45cf-9508-8d951b995e3d/2024-08-01%25252017.40.02.gif" />
+
+接下来我们参考`薄膜干涉`的算法，看看如何重载光照模型的实现：
+
+1. 先创建一个 `DemoPass.glsl` 并在刚才的主 Shader 文件中引入:
+
+```ts showLineNumbers {7-8}
+// PBRShader.gs
+SubShader "Default" {
+	Pass "Forward Pass" {
+	  VertexShader = PBRVertex;
+	  FragmentShader = PBRFragment;
+
+	  // #include "ForwardPassPBR.glsl"
+	  #include "./DemoPass.glsl"
+	}
+
+```
+
+2. 修改 `DemoPass.glsl` 中的光照模型，作为 Demo，我们只演示修改直接光部分：
+
+```ts showLineNumbers {7-8}
+// DemoPass.glsl
+#include "Common.glsl"
+#include "Fog.glsl"
+
+#include "AttributesPBR.glsl"
+#include "VaryingsPBR.glsl"
+// #include "LightDirectPBR.glsl"
+#include "DemoLight.glsl"
+
+#include "LightIndirectPBR.glsl"
+
+#include "VertexPBR.glsl"
+#include "FragmentPBR.glsl"
+```
+
+3. 利用 `FUNCTION_SPECULAR_LOBE` 宏重载`直接光镜面反射光照模型`，算法部分这里拷贝的薄膜干涉，不用过多关心。重载后，`LightDirectPBR.glsl` 能够识别到这个函数，从而替换光照模型的实现。直接光和间接光的关键函数都提供了相应的重载宏，会在下文 API 文档详细介绍：
+
+```ts showLineNumbers {2,5,16} /specularLobe_iridescence/
+// DemoLight.glsl
+#define FUNCTION_SPECULAR_LOBE specularLobe_iridescence
+
+#include "BRDF.glsl"
+#include "./IridescenceFunction.glsl"
+
+void specularLobe_iridescence(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, vec3 incidentDirection, vec3 attenuationIrradiance, inout vec3 specularColor){
+
+ vec3 thin = DirectBDRFIridescence(surfaceData, incidentDirection, brdfData);
+ vec3 BRDF_Specular = BRDF_Specular_GGX( incidentDirection, surfaceData, surfaceData.normal, brdfData.specularColor, brdfData.roughness);
+ vec3 factor =mix(BRDF_Specular,thin,material_Iridescence);
+
+ specularColor += attenuationIrradiance * factor;
+}
+
+#include "LightDirectPBR.glsl"
+```
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/ad18c98d-d1a5-47fd-b5c8-882908c249a2/2024-08-01%25252018.51.36.gif" />
+
+## 通用 API
+
+API 调用方式如下：
+
+```glsl
+#include "Common.glsl"
+
+float f2 = pow2(0.5);
+```
+
+### Common
+
+提供了`PI` 等常用宏，`gammaToLinear`、`pow2` 等通用方法，详见[源码](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/Common.glsl)。
+
+### Fog
+
+提供了深度雾化方法:
+
+```glsl
+vec4 fog(vec4 color, vec3 positionVS);
+```
+
+### Transform
+
+提供了模型空间、视图空间、世界空间、相机坐标等[系统变量](/docs/graphics/shader/custom/#属性):
+
+```glsl
+mat4 renderer_LocalMat;
+mat4 renderer_ModelMat;
+mat4 camera_ViewMat;
+mat4 camera_ProjMat;
+mat4 renderer_MVMat;
+mat4 renderer_MVPMat;
+mat4 renderer_NormalMat;
+
+vec3 camera_Position;
+vec3 camera_Forward;
+vec4 camera_ProjectionParams;
+```
+
+### Light
+
+提供了获取[引擎光照](/docs/graphics/light/light)，包括直接光、间接光的方法:
+
+```glsl
+// 直接光
+DirectLight getDirectLight(int index);
+PointLight getPointLight(int index);
+SpotLight getSpotLight(int index);
+
+// 间接光
+EnvMapLight scene_EnvMapLight;
+
+#ifdef SCENE_USE_SH
+    vec3 scene_EnvSH[9];
+#endif
+
+#ifdef SCENE_USE_SPECULAR_ENV
+    samplerCube scene_EnvSpecularSampler;
+#endif
+```
+
+### Normal
+
+提供了法线计算的一些通用方法：
+
+```glsl
+// 在切线空间进行法线贴图运算后的法线
+vec3 getNormalByNormalTexture(mat3 tbn, sampler2D normalTexture, float normalIntensity, vec2 uv, bool isFrontFacing);
+
+// 利用导数计算切线，针对本身没有切线的模型
+mat3 getTBNByDerivatives(vec2 uv, vec3 normal, vec3 position, bool isFrontFacing);
+```
+
+### Shadow
+
+提供了阴影相关的函数，详见[源码](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/Shadow.glsl)。
+
+```glsl
+// 获取级联阴影所属层级，比如级联数量设为4，则返回 0～3
+int computeCascadeIndex(vec3 positionWS);
+
+// 获取 shadowmap 中的坐标
+vec3 getShadowCoord(vec3 positionWS);
+
+// 获取阴影强度，包含采样方式、阴影衰减
+float sampleShadowMap(vec3 positionWS, vec3 shadowCoord);
+```
+
+### Skin
+
+提供骨骼计算方法：
+
+```glsl
+mat4 getSkinMatrix(Attributes attributes);
+```
+
+### BlendShape
+
+提供 BS 计算方法：
+
+```glsl
+void calculateBlendShape(Attributes attributes, inout vec4 position, inout vec3 normal, inout vec4 tangent);
+```
+
+## PBR API
+
+除了通用 API，PBR 也封装了一些列如 BRDF 光照模型的 API，这是 `ForwardPassPBR` 的一些核心链路，用户拓展别的材质，比如 SSS，薄膜干涉等时候，有时候也需要这些功能，可以尝试 `#include` 复用这些 API。
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/dd9af974-f4d2-4ef5-845a-732f39492bc0/yuque_diagram.jpg" />
+
+### AttributesPBR
+
+封装了 PBR 所需要的所有 Attribute 变量，详见[源码](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/AttributesPBR.glsl)。
+
+### VaryingsPBR
+
+封装了 PBR 所需要的所有 Varyings 变量，详见[源码](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/VaryingsPBR.glsl)。
+
+### LightDirectPBR
+
+封装了基于 BRDF 光照模型的直接光计算，详见[源码](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/LightDirectPBR.glsl)。
+
+一般来说，直接调用即可：
+
+```glsl
+// Evaluate direct lighting
+evaluateDirectRadiance(varyings, surfaceData, brdfData, shadowAttenuation, color.rgb);
+```
+
+提供了以下函数重载宏覆盖光照模型的关键计算：
+
+```glsl
+#define FUNCTION_SURFACE_SHADING surfaceShading
+#define FUNCTION_DIFFUSE_LOBE diffuseLobe
+#define FUNCTION_SPECULAR_LOBE specularLobe
+#define FUNCTION_CLEAR_COAT_LOBE clearCoatLobe
+#define FUNCTION_SHEEN_LOBE sheenLobe
+
+void surfaceShading(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, vec3 incidentDirection, vec3 lightColor, inout vec3 totalDiffuseColor, inout vec3 totalSpecularColor);
+void diffuseLobe(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, vec3 attenuationIrradiance, inout vec3 diffuseColor);
+void specularLobe(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, vec3 incidentDirection, vec3 attenuationIrradiance, inout vec3 specularColor);
+float clearCoatLobe(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, vec3 incidentDirection, vec3 color, inout vec3 specularColor);
+void sheenLobe(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, vec3 incidentDirection, vec3 attenuationIrradiance, inout vec3 diffuseColor, inout vec3 specularColor);
+```
+
+<Callout type="info">重载方式参考上文的 PBR 模板拓展。</Callout>
+
+### LightInDirectPBR
+
+封装了基于 BRDF 光照模型的[环境光](/docs/graphics/light/ambient)计算，详见[源码](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/LightIndirectPBR.glsl)。
+
+一般来说，直接调用即可：
+
+```glsl
+// IBL
+evaluateIBL(varyings, surfaceData, brdfData, color.rgb);
+```
+
+提供了以下函数重载宏覆盖光照模型的关键计算：
+
+```glsl
+#define FUNCTION_DIFFUSE_IBL evaluateDiffuseIBL
+#define FUNCTION_SPECULAR_IBL evaluateSpecularIBL
+#define FUNCTION_CLEAR_COAT_IBL evaluateClearCoatIBL
+#define FUNCTION_SHEEN_IBL evaluateSheenIBL
+
+void evaluateDiffuseIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, inout vec3 diffuseColor);
+void evaluateSpecularIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, float radianceAttenuation, inout vec3 specularColor);
+float evaluateClearCoatIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, inout vec3 specularColor);
+void evaluateSheenIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData,  float radianceAttenuation, inout vec3 diffuseColor, inout vec3 specularColor);
+```
+
+### VertexPBR
+
+PBR 顶点着色器所需要的一些方法，比如获取 TilingOffset 之后的 UV 坐标，获取骨骼、BS运算过后的世界坐标、法线、切线等，详见[源码](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/VertexPBR.glsl)。
+
+```glsl showLineNumbers {2, 4}
+Varyings varyings;
+varyings.uv = getUV0(attributes);
+
+VertexInputs vertexInputs = getVertexInputs(attributes);
+
+// positionWS
+varyings.positionWS = vertexInputs.positionWS;
+
+// normalWS、tangentWS、bitangentWS
+#ifdef RENDERER_HAS_NORMAL
+  varyings.normalWS = vertexInputs.normalWS;
+  #ifdef RENDERER_HAS_TANGENT
+    varyings.tangentWS = vertexInputs.tangentWS;
+    varyings.bitangentWS = vertexInputs.bitangentWS;
+  #endif
+#endif
+
+gl_Position = renderer_MVPMat * vertexInputs.positionOS;
+```
+
+### BRDF
+
+PBR 光照模型关键文件，封装了 BRDF 相关的通用计算函数， 以及用于后续光照模型计算的 `SurfaceData` 结构体和 `BRDFData` 结构体，详见[源码](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/BRDF.glsl)。
+
+### BTDF
+
+提供了透射和折射相关函数，详见[源码](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/BTDF.glsl)。
+
+### FragmentPBR
+
+包含了大量 CPU 传过来的金属度、粗糙度、贴图等变量，通过 `getSurfaceData` 初始化 `SurfaceData` 结构体，详见[源码](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/FragmentPBR.glsl)。
+
+```glsl showLineNumbers
+BRDFData brdfData;
+
+// 初始化 SurfaceData 结构体
+SurfaceData surfaceData = getSurfaceData(varyings, aoUV, gl_FrontFacing);
+
+// 可以在这加工 SurfaceData 里面的数据
+initBRDFData(surfaceData, brdfData);
+```
+
+### 最后
+
+除了关键 API 的功能和调用方式，关于整个文件的组织方式可以参考官网的 [ForwardPassPBR](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/ForwardPassPBR.glsl)。

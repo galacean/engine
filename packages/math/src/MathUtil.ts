@@ -57,4 +57,15 @@ export class MathUtil {
   static degreeToRadian(d: number): number {
     return d * MathUtil.degreeToRadFactor;
   }
+
+  /**
+   * Linearly interpolate between two values
+   * @param start - Specify the start of the range in which to interpolate
+   * @param end - Specify the end of the range in which to interpolate
+   * @param t - The blend amount where 0 returns start and 1 end
+   * @returns The result of linear blending between start and end
+   */
+  static lerp(start: number, end: number, t: number): number {
+    return start + (end - start) * t;
+  }
 }

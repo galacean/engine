@@ -5,10 +5,9 @@ import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import glslify from "rollup-plugin-glslify";
 import serve from "rollup-plugin-serve";
-import miniProgramPlugin from "./rollup.miniprogram.plugin";
 import replace from "@rollup/plugin-replace";
 import { swc, defineRollupSwcOption, minify } from "rollup-plugin-swc3";
-import modify from "rollup-plugin-modify";
+import jscc from "rollup-plugin-jscc";
 
 const { BUILD_TYPE, NODE_ENV } = process.env;
 
@@ -25,16 +24,21 @@ const pkgs = fs
     };
   });
 
-// toGlobalName
+const shaderLabPkg = pkgs.find((item) => item.pkgJson.name === "@galacean/engine-shaderlab");
+pkgs.push({ ...shaderLabPkg, verboseMode: true });
 
+// toGlobalName
 const extensions = [".js", ".jsx", ".ts", ".tsx"];
 const mainFields = NODE_ENV === "development" ? ["debug", "module", "main"] : undefined;
 
+const glslifyPlugin = glslify({
+  include: [/\.(glsl|gs)$/],
+  compress: false
+});
+
 const commonPlugins = [
   resolve({ extensions, preferBuiltins: true, mainFields }),
-  glslify({
-    include: [/\.glsl$/]
-  }),
+  glslifyPlugin,
   swc(
     defineRollupSwcOption({
       include: /\.[mc]?[jt]sx?$/,
@@ -56,11 +60,19 @@ const commonPlugins = [
     : null
 ];
 
-function config({ location, pkgJson }) {
+function config({ location, pkgJson, verboseMode }) {
   const input = path.join(location, "src", "index.ts");
   const dependencies = Object.assign({}, pkgJson.dependencies ?? {}, pkgJson.peerDependencies ?? {});
+  const curPlugins = Array.from(commonPlugins);
+
+  curPlugins.push(
+    jscc({
+      values: { _VERBOSE: verboseMode }
+    })
+  );
+
   const external = Object.keys(dependencies);
-  commonPlugins.push(
+  curPlugins.push(
     replace({
       preventAssignment: true,
       __buildVersion: pkgJson.version
@@ -72,16 +84,23 @@ function config({ location, pkgJson }) {
       const umdConfig = pkgJson.umd;
       let file = path.join(location, "dist", "browser.js");
 
-      const plugins = [
-        modify({
-          find: "chevrotain",
-          replace: path.join(process.cwd(), "packages", "shader-lab", `./node_modules/chevrotain/lib/chevrotain.js`)
-        }),
-        ...commonPlugins
-      ];
       if (compress) {
-        plugins.push(minify());
-        file = path.join(location, "dist", "browser.min.js");
+        const glslifyPluginIdx = curPlugins.findIndex((item) => item === glslifyPlugin);
+        curPlugins.splice(
+          glslifyPluginIdx,
+          1,
+          glslify({
+            include: [/\.(glsl|gs)$/],
+            compress: true
+          })
+        );
+        curPlugins.push(minify({ sourceMap: true }));
+      }
+
+      if (verboseMode) {
+        file = path.join(location, "dist", compress ? "browser.verbose.min.js" : "browser.verbose.js");
+      } else {
+        file = path.join(location, "dist", compress ? "browser.min.js" : "browser.js");
       }
 
       const umdExternal = Object.keys(umdConfig.globals ?? {});
@@ -94,52 +113,36 @@ function config({ location, pkgJson }) {
             file,
             name: umdConfig.name,
             format: "umd",
-            sourcemap: false,
+            sourcemap: true,
             globals: umdConfig.globals
           }
         ],
-        plugins
-      };
-    },
-    mini: () => {
-      const plugins = [...commonPlugins, ...miniProgramPlugin];
-      return {
-        input,
-        output: [
-          {
-            format: "cjs",
-            file: path.join(location, "dist/miniprogram.js"),
-            sourcemap: false
-          }
-        ],
-        external: external.concat("@galacean/engine-miniprogram-adapter").map((name) => `${name}/dist/miniprogram`),
-        plugins
+        plugins: curPlugins
       };
     },
     module: () => {
-      const plugins = [
-        modify({
-          find: "chevrotain",
-          replace: path.join(process.cwd(), "packages", "shader-lab", `./node_modules/chevrotain/lib/chevrotain.js`)
-        }),
-        ...commonPlugins
-      ];
+      let esFile = path.join(location, pkgJson.module);
+      let mainFile = path.join(location, pkgJson.main);
+      if (verboseMode) {
+        esFile = path.join(location, "dist", "module.verbose.js");
+        mainFile = path.join(location, "dist", "main.verbose.js");
+      }
       return {
         input,
         external,
         output: [
           {
-            file: path.join(location, pkgJson.module),
+            file: esFile,
             format: "es",
             sourcemap: true
           },
           {
-            file: path.join(location, pkgJson.main),
+            file: mainFile,
             sourcemap: true,
             format: "commonjs"
           }
         ],
-        plugins
+        plugins: curPlugins
       };
     }
   };
@@ -157,9 +160,6 @@ switch (BUILD_TYPE) {
     break;
   case "MODULE":
     promises.push(...getModule());
-    break;
-  case "MINI":
-    promises.push(...getMini());
     break;
   case "ALL":
     promises.push(...getAll());
@@ -189,13 +189,8 @@ function getModule() {
   return configs.map((config) => makeRollupConfig({ ...config, type: "module" }));
 }
 
-function getMini() {
-  const configs = [...pkgs];
-  return configs.map((config) => makeRollupConfig({ ...config, type: "mini" }));
-}
-
 function getAll() {
-  return [...getModule(), ...getMini(), ...getUMD()];
+  return [...getModule(), ...getUMD()];
 }
 
 export default Promise.all(promises);

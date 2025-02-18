@@ -1,4 +1,4 @@
-import { Matrix, Ray, Vector3 } from "@galacean/engine";
+import { MathUtil, Matrix, Quaternion, Ray, Vector3, Vector4 } from "@galacean/engine";
 import { IColliderShape, IPhysicsMaterial } from "@galacean/engine-design";
 import { LiteCollider } from "../LiteCollider";
 import { LiteHitResult } from "../LiteHitResult";
@@ -9,8 +9,13 @@ import { LiteUpdateFlag } from "../LiteUpdateFlag";
  * Abstract class for collider shapes.
  */
 export abstract class LiteColliderShape implements IColliderShape {
+  protected static _tempPos = new Vector3();
+  protected static _tempRot = new Quaternion();
+  protected static _tempScale = new Vector3();
+  protected static _tempPoint = new Vector3();
+  protected static _tempVector4 = new Vector4();
+
   private static _ray = new Ray();
-  private static _tempPoint = new Vector3();
 
   /** @internal */
   _id: number;
@@ -27,6 +32,8 @@ export abstract class LiteColliderShape implements IColliderShape {
   /** @internal */
   _inverseWorldMatFlag: LiteUpdateFlag;
 
+  private _rotation: Vector3 = new Vector3();
+
   protected constructor() {
     this._transform.owner = this;
     this._inverseWorldMatFlag = this._transform.registerWorldChangeFlag();
@@ -36,7 +43,17 @@ export abstract class LiteColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setRotation }
    */
   setRotation(rotation: Vector3): void {
-    console.log("Physics-lite don't support setRotation. Use Physics-PhysX instead!");
+    const rotationInRadians = this._rotation.set(
+      MathUtil.degreeToRadian(rotation.x),
+      MathUtil.degreeToRadian(rotation.y),
+      MathUtil.degreeToRadian(rotation.z)
+    );
+    Quaternion.rotationEuler(
+      rotationInRadians.x,
+      rotationInRadians.y,
+      rotationInRadians.z,
+      this._transform.rotationQuaternion
+    );
   }
 
   /**
@@ -53,9 +70,7 @@ export abstract class LiteColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setWorldScale }
    */
   setWorldScale(scale: Vector3): void {
-    if (scale !== this._worldScale) {
-      this._worldScale.copyFrom(scale);
-    }
+    this._worldScale.copyFrom(scale);
     this._setLocalPose();
   }
 
@@ -86,6 +101,11 @@ export abstract class LiteColliderShape implements IColliderShape {
   setIsTrigger(value: boolean): void {
     console.log("Physics-lite don't support setIsTrigger. Use Physics-PhysX instead!");
   }
+
+  /**
+   * {@inheritDoc IColliderShape.pointDistance }
+   */
+  abstract pointDistance(point: Vector3): Vector4;
 
   /**
    * {@inheritDoc IColliderShape.destroy }

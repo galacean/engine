@@ -51,9 +51,10 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   };
 
   /**
-   * Destroy ktx2 transcoder worker.
+   * Release ktx2 transcoder worker.
+   * @remarks If use loader after releasing, we should release again.
    */
-  static destroy(): void {
+  static release(): void {
     if (this._binomialLLCTranscoder) this._binomialLLCTranscoder.destroy();
     if (this._khronosTranscoder) this._khronosTranscoder.destroy();
     this._binomialLLCTranscoder = null;
@@ -220,7 +221,9 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     resourceManager: ResourceManager
   ): AssetPromise<Texture2D | TextureCube> {
     return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
-      this.request<ArrayBuffer>(item.url, { type: "arraybuffer" })
+      resourceManager
+        // @ts-ignore
+        ._request<ArrayBuffer>(item.url, { type: "arraybuffer" })
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((buffer) =>
           KTX2Loader._parseBuffer(new Uint8Array(buffer), resourceManager.engine, item.params).then(
@@ -253,7 +256,7 @@ export enum KTX2Transcoder {
 
 declare module "@galacean/engine-core" {
   interface EngineConfiguration {
-    /** KTX2 loader options. */
+    /** KTX2 loader options. If set this option and workCount is great than 0, workers will be created. */
     ktx2Loader?: {
       /** Worker count for transcoder, default is 4. */
       workerCount?: number;

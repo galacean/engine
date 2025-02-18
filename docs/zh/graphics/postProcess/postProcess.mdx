@@ -1,0 +1,87 @@
+---
+order: 0
+title: 后处理总览
+---
+
+后处理系统可以对相机渲染的结果进行“加工”。
+
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/3a50ed18-c2d4-4b33-a4e6-af79f2c273f8/2024-07-18%25252018.08.30.gif"
+  leftText="OFF"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/4bd5f985-1b82-4aca-b6fa-fd521aab8f57/2024-07-18%25252018.15.30.gif"
+  rightText="ON"
+/>
+
+## 后处理配置
+
+后处理有两种模式：
+
+- 全局模式：影响当前场景中的所有相机。
+- 局部模式：只有当相机靠近后处理实体的碰撞体范围时才生效。
+
+后处理组件拥有以下属性，可以控制后处理的特效、模式、混合距离等：
+
+| 属性 | 作用 |
+| :-- | :-- |
+| [全局模式](/apis/core/#PostProcess-isGlobal) | 控制这个后处理组件是全局还是局部模式。 |
+| [混合距离](/apis/core/#PostProcess-blendDistance) | 局部模式时，用来控制相机靠近碰撞体多少距离时，开始混合特效。 |
+| [优先级](/apis/core/#PostProcess-priority) | 当场景中有多个后处理组件时，优先级越高，越后面开始覆盖/混合。 |
+| [层级](/apis/core/#PostProcess-layer) | 配合相机的[后处理遮罩](/apis/core/#Camera-postProcessMask) 使用，决定生效的后处理组件。 |
+| [添加特效](/apis/core/#PostProcess-addEffect) | 添加后处理特效。 |
+
+## 混合规则
+
+- 全局模式时，混合规则是以优先级大的后处理组件为准。
+
+- 局部模式时，会从相机距离碰撞体的 **混合距离** 开始， 从上一个后处理组件混合后的值过渡到当前后处理组件的值，如果没有上一个，则以后处理特效的定义值作为起始值。
+
+举一个例子，强度的定义值为 `0`, 即通过 [PostProcessEffectFloatParameter](/apis/core/#PostProcessEffectFloatParameter) 定义了这个强度：
+
+- 后处理组件 1：全局模式，强度为 `0.5`，混合后为 `0.5`
+- 后处理组件 2：局部模式，强度为 `1`， 相机距离碰撞体为混合距离的一半，混合后为 `mix( 0.5, 1, 1 - distance / blendDistance)` = `0.75`
+
+<Callout type="info">
+  如果想要自定义后处理，请参考 [文档](/docs/graphics/postProcess/customPostProcess/#3-融合数据)
+</Callout>
+
+## 使用后处理
+
+### 1.添加后处理组件
+
+在层级面板，预设了全局、局部后处理的几种模式，选择添加即可直接使用。
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/a6e9a327-1823-4dde-94a8-89bb4bf02e3a/2025-01-15%25252011.59.50.gif" />
+
+当然，也可以手动添加后处理组件，局部模式需要搭配碰撞体进行使用：
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/6eb3b8d5-27d1-419d-8bf6-65371861fb97/2025-01-15%25252014.51.12.gif" />
+
+<Callout type="info">具体的后处理效果配置，请参考 [后处理效果列表](/docs/graphics/postProcess/effects)</Callout>
+
+### 2.相机开关
+
+相机预览区受**相机组件**控制，在相机组件中，以下属性也会影响后处理效果：
+
+| 属性 | 作用 |
+| :-- | :-- |
+| [后处理开关](/apis/core/#Camera-enablePostProcess) | 可以开启或关闭相机的后期处理效果。 |
+| [HDR 开关](/apis/core/#Camera-enableHDR) | HDR 模式下，允许输出颜色使用浮点数进行存储，可以得到更大范围的值，用于[泛光特效](/docs/graphics/postProcess/effects)等场景。 |
+| [MSAA 配置](/apis/core/#Camera-msaaSamples) | 可以调整多重采样抗锯齿的设置，改善锯齿等画面质量。 |
+| [后处理遮罩](/apis/core/#Camera-postProcessMask) | 配合后处理组件的[层级](/apis/core/#PostProcess-layer) 使用，决定生效的后处理组件。 |
+
+<Callout type="info">相机更多配置参考 [相机组件](/docs/graphics/camera/component)</Callout>
+
+### 3.视图区开关
+
+除了相机预览区，视图区也能看到后处理效果。视图区的相机是独立的，但是也和相机组件一样拥有后处理等配置。
+
+<Callout type="warning">视图区的开关只会影响视图窗口，并不会影响项目导出的真实效果</Callout>
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/e3c55184-f51c-4a7a-9a12-ad490774dc26/image-20250115151324628-20250115151336116.png" />
+
+## 最佳实践
+
+- 关于相机中 `HDR` 开关，如果场景中绝大部分像素计算没有超过 1（比如没有使用 HDR 贴图）, 尽量别开启 HDR，开启后引擎会先渲染到 `R11G11B10_UFloat` 格式的 RenderTarget 中，再渲染到屏幕上，有性能开销。
+- 关于相机中的 `MSAA` 选项，仅当开启了后处理，且对锯齿表现要求严格的情况下，才建议调整这个值，值越大，性能开销越大。
+- 泛光特效中，`Down Scale` 默认为 `Half`，即初始降采样的分辨率为画布的一半，如果对精度要求没那么高，可以切换为 `Quarter`，节省为画布的 1/4。
+- 色调映射特效中， 虽然 `ACES` 拥有更好的色彩对比度和饱和度，但是计算比较复杂，在低端机型可能导致降帧严重，可以尝试使用 `Neutral` 作为替代方案。

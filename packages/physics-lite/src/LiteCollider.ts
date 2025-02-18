@@ -3,11 +3,17 @@ import { Quaternion, Ray, Vector3 } from "@galacean/engine";
 import { LiteHitResult } from "./LiteHitResult";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
 import { LiteTransform } from "./LiteTransform";
+import { LitePhysicsScene } from "./LitePhysicsScene";
 
 /**
  * Abstract class of physical collider.
  */
 export abstract class LiteCollider implements ICollider {
+  /** @internal */
+  abstract readonly _isStaticCollider: boolean;
+
+  /** @internal  */
+  _scene: LitePhysicsScene;
   /** @internal */
   _shapes: LiteColliderShape[] = [];
   /** @internal */
@@ -28,6 +34,7 @@ export abstract class LiteCollider implements ICollider {
       }
       this._shapes.push(shape);
       shape._collider = this;
+      this._scene?._addColliderShape(shape);
     }
   }
 
@@ -39,6 +46,7 @@ export abstract class LiteCollider implements ICollider {
     if (index !== -1) {
       this._shapes.splice(index, 1);
       shape._collider = null;
+      this._scene?._removeColliderShape(shape);
     }
   }
 

@@ -74,7 +74,7 @@ void main() {
             lifeVelocity = computeParticleLifeVelocity(normalizedAge); 
         #endif
         
-        vec3 gravityVelocity = renderer_Gravity * age;
+        vec3 gravityVelocity = renderer_Gravity * a_Random0.x * age;
 
         vec4 worldRotation;
         if (renderer_SimulationSpace == 0) {

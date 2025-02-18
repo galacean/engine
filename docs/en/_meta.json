@@ -1,0 +1,95 @@
+{
+  "basics": {
+    "title": "Basics",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "interface": {
+    "title": "Interface",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "core": {
+    "title": "Core",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "assets": {
+    "title": "Assets",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "graphics": {
+    "title": "Graphics",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "animation": {
+    "title": "Animation",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "physics": {
+    "title": "Physics",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "script": {
+    "title": "Script",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "UI": {
+    "title": "UI",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "xr": {
+    "title": "XR",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "input": {
+    "title": "Input",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "platform": {
+    "title": "Platform",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "device": {
+    "title": "Device",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "performance": {
+    "title": "Performance",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "art": {
+    "title": "Art",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "en": {
+    "display": "hidden"
+  }
+}

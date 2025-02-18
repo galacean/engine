@@ -1,6 +1,9 @@
 {
   "name": "@galacean/engine-rhi-webgl",
-  "version": "1.2.0-alpha.0",
+  "version": "1.4.9",
+  "repository": {
+    "url": "https://github.com/galacean/engine.git"
+  },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"

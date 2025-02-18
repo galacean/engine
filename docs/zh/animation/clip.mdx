@@ -1,0 +1,217 @@
+---
+order: 1
+title: 动画片段
+type: 动画
+label: Animation
+---
+
+`动画片段`（[API](/apis/core/#AnimationClip)）是 Galacean 动画系统的核心元素之一，Galacean 支持导入外部设计软件设计的模型动画，设计师输出的带动画的模型中的每个动画在 Galacean 中会被解析成一个个的 `动画片段` 资产，我们也可以通过动画片段编辑器创作额外的动画。
+
+有两种常用的方式得到 `动画片段`
+
+1. 导入用第三方工具（例如 Autodesk® 3ds Max®， Autodesk® Maya®， Blender）创建的带动画的模型，详见[美术制作动画片段](/docs/animation/clip-for-artist)
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Qc8sQ6iJd8IAAAAAAAAAAAAADsJ_AQ/original" />
+
+2. 在 Galacean 中创建 `动画片段`（下文会介绍编辑器和脚本这两种创建方式）
+
+## 动画面板介绍
+
+动画片段编辑器目前支持除物理相关组件的所有可插值属性的编辑，如果你需要编辑其他属性，要在实体上添加对应的组件。
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*NRHNTIhBA18AAAAAAAAAAAAADsJ_AQ/original" />
+
+| 序号  | 说明                     | 备注     |
+| ---- | -------------------------| ------- |
+| 1    | 切换动画片段      |                  |
+| 2    | 开启/关闭录制模式  |                  |
+| 3    | 播放/暂停动画片段  |                  |
+| 4    | 重新播放动画片段   |                  |
+| 5    | 添加动画事件      |                  |
+| 6    | 当前帧           | 时间线所在帧数     |
+| 7    | 切换到关键帧模式   |                 |
+| 8    | 切换到曲线模式     | 曲线模式用于调整关键帧间如何变化 |
+| 9    | 已添加动画属性     |                             |
+| 10   | 添加关键帧        |                                           |
+| 11   | 添加动画属性      |                                           |
+| 12   | 关键帧           | 关键帧用于描述在指定帧数时动画属性的值应是多少    |
+| 13   | 时间线           | 添加关键帧或动画事件时，它们的时间为时间线所在帧数 |
+| 14   | 帧数            | `:` 左侧为秒数，右侧为不到 1 秒的帧数。动画编辑器以 60FPS 为基准， 上图所示时间`0:30`为 30 帧处， 若时间轴刻度为`1:30`则为 90 帧处 |
+
+## 使用介绍
+
+1. 在 **[资产面板](/docs/assets/interface)** 中 右键或者点击 `+` 创建 `动画片段` 资产
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*j4FMRKx91nEAAAAAAAAAAAAADsJ_AQ/original" />
+
+2. 双击 `动画片段` 资产,并选择一个实体作为 `动画片段` 的编辑对象
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*_E1kRqt8LroAAAAAAAAAAAAADsJ_AQ/original" />
+
+点击 `创建` 按钮编辑器会自动为你的 `实体` 添加 `动画控制组件`（[详细介绍](/docs/animation/animator)）并将该 `动画片段` 添加到 `动画控制器` 中
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*q46SRrV6WfsAAAAAAAAAAAAADsJ_AQ/original" />
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*C2a4SZDGG_4AAAAAAAAAAAAADsJ_AQ/original" />
+
+3. 添加要做动画的属性(这里我添加了两个)
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*69xIS7ABJJkAAAAAAAAAAAAADsJ_AQ/original" />
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*-4bnQI-LcLsAAAAAAAAAAAAADsJ_AQ/original" />
+
+4. 给属性添加关键帧
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QnQwR6tLRYMAAAAAAAAAAAAADsJ_AQ/original" />
+
+当我们点击添加关键帧按钮时，关键帧会存入当前指定属性的值，所以当我们什么都未改变时，关键帧存入的是此刻这个实体的 `position` 值。我们希望他 60 帧后移动到 (3, 0, 0)的位置，所以先将这个正方体通过属性面板修改到(3, 0, 0) 再添加关键帧
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*ClTgSriu4-8AAAAAAAAAAAAADsJ_AQ/original" />
+同理我们也为 `rotation` 属性添加关键帧
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*hOkoRKlNfeYAAAAAAAAAAAAADsJ_AQ/original" />
+
+
+### 录制模式
+
+我们提供了录制模式以方便开发者快速的添加关键帧。开启录制模式，当对应的属性修改时就会自动添加关键帧
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*sFwtSLOlyhoAAAAAAAAAAAAADsJ_AQ/original" />
+
+
+### 操作关键帧
+
+#### 修改关键帧时间
+
+选中关键帧并拖动即可
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*_vZSR4YEDqMAAAAAAAAAAAAADsJ_AQ/original" />
+
+可以滑动 `鼠标滚轮` 缩放时间轴
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*BTgPS45hkNYAAAAAAAAAAAAADsJ_AQ/original" />
+
+#### 修改关键帧的值
+
+开启录制模式，把时间线移动到指定关键帧上，然后重新输入值即可, 在不开启录制模式的情况，需要重新点击添加关键帧按钮。
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*MiSXQZ4q7DMAAAAAAAAAAAAADsJ_AQ/original" />
+
+#### 删除关键帧
+
+选中关键帧右键选择删除，也可以按键盘上的删除键/退格键删除
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*MpPMRK2WaEMAAAAAAAAAAAAADsJ_AQ/original" />
+
+### 编辑子实体
+
+`动画片段` 不仅可以作用于添加`动画控制组件`（[详细介绍](/docs/animation/animator)）的 `实体` 上，还可以作用于它的子`实体` 上。
+
+1. 我们为刚才的立方体添加一个子`实体`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*6RYIQpG7DPwAAAAAAAAAAAAADsJ_AQ/original" />
+
+2. 我们再点击添加属性就可以看到子`实体`的属性可以添加了
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*j7rfRq0REKIAAAAAAAAAAAAADsJ_AQ/original" />
+
+3. 开启录制模式，编辑子`实体`添加关键帧即可
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*j7rfRq0REKIAAAAAAAAAAAAADsJ_AQ/original" />
+
+
+### 编辑动画曲线
+
+`动画片段编辑器` 支持动画曲线编辑，点击右上角的曲线Icon即可切换
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*luV0QaDUAQAAAAAAAAAAAAAADsJ_AQ/original" />
+
+曲线模式的纵轴为属性的数值
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*luV0QaDUAQAAAAAAAAAAAAAADsJ_AQ/original" />
+
+
+你可以按 `shift+鼠标滚轮` 调整纵轴的比例
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*SjO2TaubiuIAAAAAAAAAAAAADsJ_AQ/original" />
+
+属性对应曲线的颜色与按钮的颜色相同
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*OS3uSbdB36AAAAAAAAAAAAAADsJ_AQ/original" />
+
+选择关键帧会出现两个控制点，调整控制点即可调整曲线
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*kikYQoiYMLoAAAAAAAAAAAAADsJ_AQ/original" />
+
+也可以通过右键关键帧直接设置内置的预设值
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*KRzoT5Pocc4AAAAAAAAAAAAADsJ_AQ/original" />
+
+选择属性面板的属性可以仅编辑指定属性的曲线
+
+## 更多示例
+
+- **文字动画**：除了 `Transform` 组件，Galacean 还支持编辑其他组件的动画，可以阅读[文字动画](/docs/animation/examples/text-animation)文档来了解。
+- **帧动画** ：除了数值类型，Galacean 还支持引用类型的 `动画曲线`， 可以阅读[帧动画](/docs/animation/examples/sprite-sheet)文档来了解。
+- **材质动画** ：Galacean 还支持组件中的资产属性的动画编辑，可以阅读[材质动画](/docs/animation/examples/material-animation)文档来了解。
+
+## 脚本使用
+
+在使用脚本之前，建议先阅读以下文档：
+
+- [脚本](/docs/script/script)
+- [动画系统构成](/docs/animation/system)
+
+你可以自己创建一个 `动画片段`（[API](/apis/core/#AnimationClip)）并通过 [addCurveBinding](/apis/core/#AnimationClip-addCurveBinding) 为它添加 `动画曲线`（[API](/apis/core/#AnimationCurve)）。
+
+```typescript
+//custom rotate clip
+const rotateClip = new AnimationClip("rotate");
+const rotateState =
+  animator.animatorController.layers[0].stateMachine.addState("rotate");
+rotateState.clip = rotateClip;
+
+const rotateCurve = new AnimationVector3Curve();
+const key1 = new Keyframe<Vector3>();
+key1.time = 0;
+key1.value = new Vector3(0, 0, 0);
+const key2 = new Keyframe<Vector3>();
+key2.time = 10;
+key2.value = new Vector3(0, 360, 0);
+rotateCurve.addKey(key1);
+rotateCurve.addKey(key2);
+rotateClip.addCurveBinding("", Transform, "rotation", rotateCurve);
+
+//custom color clip
+const colorClip = new AnimationClip("color");
+const colorState =
+  animator.animatorController.layers[0].stateMachine.addState("color");
+colorState.clip = colorClip;
+
+const colorCurve = new AnimationFloatCurve();
+const key1 = new Keyframe<number>();
+key1.time = 0;
+key1.value = 0;
+const key2 = new Keyframe<number>();
+key2.time = 10;
+key2.value = 1;
+colorCurve.addKey(key1);
+colorCurve.addKey(key2);
+colorClip.addCurveBinding("/light", DirectLight, "color.r", colorCurve);
+```
+
+你同样可以为你的子实体 `/light` 添加 `AnimationCurve` ，就像上面的代码示例，同时 `addCurveBinding` 的第三个参数并不局限于组件的属性，它是一个能索引到值的路径。
+
+<Playground href="/embed/animation-customAnimationClip" />
+
+### 动画事件
+
+你可以使用 [AnimationEvent](/apis/core/#AnimationEvent)  来为 AnimationClip 添加事件，动画事件将在指定时间调用你在同一实体上绑定组件的指定回调函数。
+
+```typescript
+const event = new AnimationEvent();
+event.functionName = "test";
+event.time = 0.5;
+clip.addEvent(event);
+```
+
+<Playground href="/embed/animation-event" />
+

@@ -1,9 +1,10 @@
 import { Camera } from "./Camera";
 import { Component } from "./Component";
-import { DisorderedArray } from "./DisorderedArray";
 import { Renderer } from "./Renderer";
 import { Script } from "./Script";
 import { Animator } from "./animation";
+import { IUICanvas } from "./ui/IUICanvas";
+import { DisorderedArray } from "./utils/DisorderedArray";
 
 /**
  * The manager of the components.
@@ -15,6 +16,13 @@ export class ComponentsManager {
   _activeCameras: DisorderedArray<Camera> = new DisorderedArray();
   /** @internal */
   _renderers: DisorderedArray<Renderer> = new DisorderedArray();
+
+  /** @internal */
+  _overlayCanvases: DisorderedArray<IUICanvas> = new DisorderedArray();
+  /* @internal */
+  _overlayCanvasesSortingDirty: boolean = false;
+  /** @internal */
+  _canvases: DisorderedArray<IUICanvas> = new DisorderedArray();
 
   // Script
   private _onStartScripts: DisorderedArray<Script> = new DisorderedArray();
@@ -67,6 +75,42 @@ export class ComponentsManager {
     const replaced = this._renderers.deleteByIndex(renderer._rendererIndex);
     replaced && (replaced._rendererIndex = renderer._rendererIndex);
     renderer._rendererIndex = -1;
+  }
+
+  addUICanvas(uiCanvas: IUICanvas, isOverlay: boolean) {
+    let canvases: DisorderedArray<IUICanvas>;
+    if (isOverlay) {
+      canvases = this._overlayCanvases;
+      this._overlayCanvasesSortingDirty = true;
+    } else {
+      canvases = this._canvases;
+    }
+    uiCanvas._canvasIndex = canvases.length;
+    canvases.add(uiCanvas);
+  }
+
+  removeUICanvas(uiCanvas: IUICanvas, isOverlay: boolean) {
+    let canvases: DisorderedArray<IUICanvas>;
+    if (isOverlay) {
+      canvases = this._overlayCanvases;
+      this._overlayCanvasesSortingDirty = true;
+    } else {
+      canvases = this._canvases;
+    }
+    const replaced = canvases.deleteByIndex(uiCanvas._canvasIndex);
+    replaced && (replaced._canvasIndex = uiCanvas._canvasIndex);
+    uiCanvas._canvasIndex = -1;
+  }
+
+  sortOverlayUICanvases(): void {
+    if (this._overlayCanvasesSortingDirty) {
+      const overlayCanvases = this._overlayCanvases;
+      overlayCanvases.sort((a, b) => a.sortOrder - b.sortOrder);
+      for (let i = 0, n = overlayCanvases.length; i < n; i++) {
+        overlayCanvases.get(i)._canvasIndex = i;
+      }
+      this._overlayCanvasesSortingDirty = false;
+    }
   }
 
   addOnStartScript(script: Script) {
@@ -143,11 +187,16 @@ export class ComponentsManager {
     const onStartScripts = this._onStartScripts;
     if (onStartScripts.length > 0) {
       // The 'onStartScripts.length' maybe add if you add some Script with addComponent() in some Script's onStart()
-      onStartScripts.forEachAndClean((script: Script) => {
-        script._started = true;
-        this.removeOnStartScript(script);
-        script.onStart();
-      });
+      onStartScripts.forEachAndClean(
+        (script: Script) => {
+          script._started = true;
+          this.removeOnStartScript(script);
+          script.onStart();
+        },
+        (element: Script, index: number) => {
+          element._onStartIndex = index;
+        }
+      );
     }
   }
 
@@ -187,7 +236,7 @@ export class ComponentsManager {
   callAnimationUpdate(deltaTime: number): void {
     this._onUpdateAnimations.forEach(
       (element: Animator) => {
-        element.engine.time.frameCount > element._playFrameCount && element.update(deltaTime);
+        element.update(deltaTime);
       },
       (element: Animator, index: number) => {
         element._onUpdateIndex = index;
@@ -262,5 +311,7 @@ export class ComponentsManager {
     this._onUpdateAnimations.garbageCollection();
     this._onUpdateRenderers.garbageCollection();
     this._activeCameras.garbageCollection();
+    this._overlayCanvases.garbageCollection();
+    this._canvases.garbageCollection();
   }
 }

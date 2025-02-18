@@ -1,7 +1,7 @@
-import { Sprite, SpriteMask, SpriteMaskLayer, Texture2D } from "@galacean/engine-core";
+import { RendererUpdateFlags, Sprite, SpriteMask, SpriteMaskLayer, Texture2D } from "@galacean/engine-core";
 import { Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
+import { beforeEach, describe, expect, it } from "vitest";
 
 describe("SpriteMask", async () => {
   const canvas = document.createElement("canvas");
@@ -118,34 +118,34 @@ describe("SpriteMask", async () => {
     expect(spriteMask.shaderData.getTexture(property)).to.eq(texture2d);
 
     // @ts-ignore
-    spriteMask._dirtyUpdateFlag &= ~0x5;
+    spriteMask._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     sprite.width = 10;
     // @ts-ignore
-    expect(!!(spriteMask._dirtyUpdateFlag & 0x5)).to.eq(true);
+    expect(!!(spriteMask._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume)).to.eq(true);
 
     // @ts-ignore
-    spriteMask._dirtyUpdateFlag &= ~0x3;
+    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.WorldVolumeAndUV;
     sprite.region = new Rect();
     // @ts-ignore
-    expect(!!(spriteMask._dirtyUpdateFlag & 0x3)).to.eq(true);
+    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.WorldVolumeAndUV)).to.eq(true);
 
     // @ts-ignore
-    spriteMask._dirtyUpdateFlag &= ~0x3;
+    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.WorldVolumeAndUV;
     sprite.atlasRegionOffset = new Vector4();
     // @ts-ignore
-    expect(!!(spriteMask._dirtyUpdateFlag & 0x3)).to.eq(true);
+    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.WorldVolumeAndUV)).to.eq(true);
 
     // @ts-ignore
-    spriteMask._dirtyUpdateFlag &= ~0x2;
+    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.UV;
     sprite.atlasRegion = new Rect();
     // @ts-ignore
-    expect(!!(spriteMask._dirtyUpdateFlag & 0x2)).to.eq(true);
+    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.UV)).to.eq(true);
 
     // @ts-ignore
-    spriteMask._dirtyUpdateFlag &= ~0x1;
+    spriteMask._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.WorldVolumeAndUV;
     sprite.pivot = new Vector2(0.3, 0.2);
     // @ts-ignore
-    expect(!!(spriteMask._dirtyUpdateFlag & 0x1)).to.eq(true);
+    expect(!!(spriteMask._dirtyUpdateFlag & SpriteMaskUpdateFlags.WorldVolumeAndUV)).to.eq(true);
   });
 
   it("clone", () => {
@@ -166,19 +166,26 @@ describe("SpriteMask", async () => {
     spriteMask.sprite = new Sprite(engine, new Texture2D(engine, 100, 200));
     spriteMask.destroy();
     expect(spriteMask.sprite).to.eq(null);
-    // @ts-ignore
-    expect(spriteMask._verticesData).to.eq(null);
   });
 
   it("_render", () => {
     const rootEntity = scene.getRootEntity();
     const spriteMask = rootEntity.addComponent(SpriteMask);
     const texture2d = new Texture2D(engine, 100, 200);
-    const context = { camera: { _renderPipeline: { _allSpriteMasks: { add: () => {} } } } };
+    const context = { camera: { engine: { _maskManager: { addSpriteMask: () => {} } } } };
     // @ts-ignore
     spriteMask._render(context);
     // @ts-ignore
-    let { positions, uvs } = spriteMask._verticesData;
+    const subChunk = spriteMask._subChunk;
+    const vertices = subChunk.chunk.vertices;
+    const positions: Array<Vector3> = [];
+    const uvs: Array<Vector2> = [];
+    let index = subChunk.vertexArea.start;
+    for (let i = 0; i < 4; ++i) {
+      positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
+      uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
+      index += 9;
+    }
     expect(positions[0]).to.deep.eq(new Vector3(0, 0, 0));
     expect(positions[1]).to.deep.eq(new Vector3(0, 0, 0));
     expect(positions[2]).to.deep.eq(new Vector3(0, 0, 0));
@@ -188,16 +195,21 @@ describe("SpriteMask", async () => {
     expect(uvs[1]).to.deep.eq(new Vector2(0, 0));
     expect(uvs[2]).to.deep.eq(new Vector2(0, 0));
     expect(uvs[3]).to.deep.eq(new Vector2(0, 0));
-    // @ts-ignore
-    const { min, max } = spriteMask._bounds;
-    expect(min).to.deep.eq(new Vector3(0, 0, 0));
-    expect(max).to.deep.eq(new Vector3(0, 0, 0));
+    expect(spriteMask.bounds.min).to.deep.eq(new Vector3(0, 0, 0));
+    expect(spriteMask.bounds.max).to.deep.eq(new Vector3(0, 0, 0));
 
     const sprite = new Sprite(engine, texture2d);
     spriteMask.sprite = sprite;
     // @ts-ignore
     spriteMask._render(context);
-    // @ts-ignore
+    positions.length = 0;
+    uvs.length = 0;
+    index = subChunk.vertexArea.start;
+    for (let i = 0; i < 4; ++i) {
+      positions.push(new Vector3(vertices[index], vertices[index + 1], vertices[index + 2]));
+      uvs.push(new Vector2(vertices[index + 3], vertices[index + 4]));
+      index += 9;
+    }
     expect(positions[0]).to.deep.eq(new Vector3(-0.5, -1, 0));
     expect(positions[1]).to.deep.eq(new Vector3(0.5, -1, 0));
     expect(positions[2]).to.deep.eq(new Vector3(-0.5, 1, 0));
@@ -206,8 +218,21 @@ describe("SpriteMask", async () => {
     expect(uvs[1]).to.deep.eq(new Vector2(1, 1));
     expect(uvs[2]).to.deep.eq(new Vector2(0, 0));
     expect(uvs[3]).to.deep.eq(new Vector2(1, 0));
-    // @ts-ignore
-    expect(min).to.deep.eq(new Vector3(-0.5, -1, 0));
-    expect(max).to.deep.eq(new Vector3(0.5, 1, 0));
+    expect(spriteMask.bounds.min).to.deep.eq(new Vector3(-0.5, -1, 0));
+    expect(spriteMask.bounds.max).to.deep.eq(new Vector3(0.5, 1, 0));
   });
 });
+
+/**
+ * @remarks Extends `RendererUpdateFlags`.
+ */
+enum SpriteMaskUpdateFlags {
+  /** UV. */
+  UV = 0x2,
+  /** Automatic Size. */
+  AutomaticSize = 0x4,
+  /** WorldVolume and UV. */
+  WorldVolumeAndUV = 0x3,
+  /** All. */
+  All = 0x7
+}

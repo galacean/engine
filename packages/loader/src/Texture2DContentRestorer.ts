@@ -1,5 +1,4 @@
-import { AssetPromise, ContentRestorer, request, Texture2D } from "@galacean/engine-core";
-import { RequestConfig } from "@galacean/engine-core/types/asset/request";
+import { AssetPromise, ContentRestorer, RequestConfig, Texture2D, request } from "@galacean/engine-core";
 
 /**
  * @internal
