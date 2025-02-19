@@ -10,5 +10,13 @@
   "joint": {
     "title": "关节",
     "order": 2
+  },
+  "manager": {
+    "title": "物理场景",
+    "order": 3
+  },
+  "debug": {
+    "title": "物理调试",
+    "order": 4
   }
 }
