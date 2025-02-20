@@ -1,62 +1,83 @@
 ---
 order: 2
-title: Animation Controller
+title: AnimatorController
 type: Animation
 label: Animation
 ---
+## Introduction
 
-The Animation Controller ([AnimatorController](/apis/core/#AnimatorController)) helps you organize a set of animations for characters or other animated objects. It visualizes the animation playback logic of animated objects like a flowchart through the [Animation State Machine](/en/docs/animation/state-machine/) ([AnimatorStateMachine](/apis/core/#AnimatorStateMachine)) and automatically switches animation states ([AnimatorState](/apis/core/#AnimatorState)) and plays the referenced [Animation Clips](/en/docs/animation/clip) ([AnimationClip](/apis/core/#AnimationClip)) when conditions are met.
+The `AnimatorController` ([API](/apis/core/#AnimatorController)) helps you organize a set of animations for a character or other animated object. It visualizes the animation playback logic of animated objects like a flowchart through the `AnimatorStateMachine` ([detailed introduction](/docs/animation/state-machine/)) and automatically switches `AnimatorState` and plays the referenced `AnimationClips` ([detailed introduction](/docs/animation/clip/)) when conditions are met.
+
+### Main Components
+#### AnimatorControllerLayer
+`AnimatorControllerLayer` are used to organize and manage `AnimatorStateMachines` within an `AnimatorController`. Each `AnimatorControllerLayer` has its own `AnimatorStateMachine`. When the `Animator` component runs, all `AnimatorControllerLayer` run simultaneously, and multiple `AnimatorControllerLayer` achieve animation blending through different weights and blending modes. For detailed usage of `AnimatorControllerLayer`, please refer to the [AnimatorControllerLayer](/docs/animation/layer/) document.
+
+#### AnimatorControllerParameter
+`AnimatorControllerParameter` are used to control the switching of `AnimatorState` in the `AnimatorStateMachine`. When the conditions of the `AnimatorStateTransition` are met by setting the values of the `AnimatorControllerParameter`, the `AnimatorStateTransition` will trigger, switching to the target `AnimatorState`. For detailed usage of `AnimatorControllerParameter`, please refer to the [AnimatorStateMachine](/docs/animation/state-machine/) document.
 
 ## Editor Usage
 
-Through the Animation Controller editor, users can organize the playback logic of [Animation Clips](/en/docs/animation/clip).
+Through the `AnimatorController` editor, users can organize the playback logic of `AnimationClips` ([detailed introduction](/docs/animation/clip)).
 
-1. Prepare the Animation Clips ([Create Animation Clips](/en/docs/animation/clip)).
+1. Prepare the `AnimationClips` ([detailed introduction](/docs/animation/clip)).
 
-<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Wl35T7U_zg8AAAAAAAAAAAAADsJ_AQ/original" />
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*lq8jQIgm_-cAAAAAAAAAAAAADsJ_AQ/original" />
 
-2. To organize the playback of these Animation Clips, we need to create an Animation Controller ([AnimatorController](/apis/core/#AnimatorController)) asset.
+2. To organize the playback of these `AnimationClips`, we need to create an `AnimatorController` asset. There are two ways to create an `AnimatorController`:
+    1. Right-click on the blank space in the **[Asset Panel](/docs/assets/interface)** and select `Create` -> `Animation Controller`.
 
-<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*PxHwTrU58yAAAAAAAAAAAAAADsJ_AQ/original" />
+      <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*61Q7S62IZxQAAAAAAAAAAAAADsJ_AQ/original" /> 
 
-3. The newly created Animation Controller has no data. We need to edit it, double-click the asset, and add an Animation State ([AnimatorState](/apis/core/#AnimatorState)) to it.
-<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*V0n1TJMquGYAAAAAAAAAAAAADsJ_AQ/original" />
+    2. Click the add asset button `+` and select `Animation Controller`.
 
-4. Click AnimatorState to bind an [Animation Clip](/en/docs/animation/clip) ([AnimationClip](/apis/core/#AnimationClip)) to it.
+      <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QqpxS6I9D90AAAAAAAAAAAAADsJ_AQ/original" /> 
+
+3. The newly created `AnimatorController` has no data. We need to edit it, double-click the asset, and add an `AnimatorState` ([detailed introduction](/docs/animation/state-machine/#动画状态)).
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*7bZmS4iZ10gAAAAAAAAAAAAADsJ_AQ/original" />
+
+4. Click the added `AnimatorState` to bind an `AnimationClip` ([detailed introduction](/docs/animation/clip)).
+
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*xfPTRJg-hOMAAAAAAAAAAAAADsJ_AQ/original" />
 
-5. Bind the Animation Controller ([AnimatorController](/apis/core/#AnimatorController)) asset to the [Animation Control Component](/en/docs/animation/animator).
-<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Ds5TTosYiDYAAAAAAAAAAAAADsJ_AQ/original" />
+5. Bind the `AnimatorController` asset to the `Animator` component ([detailed introduction](/docs/animation/animator)).
 
-6. At this point, you can play the `Idle` animation in the exported project through `animator.play("New State")`.
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*H_ShSaWEXtIAAAAAAAAAAAAADsJ_AQ/original" />
+
+6. Now you can play the `Idle` animation in the exported project by calling `animator.play("New State")`.
 
 <Callout type="info">
-For further usage of the Animation Controller editor, please refer to the [Animation State Machine](/en/docs/animation/state-machine/) documentation.
+For further usage of the AnimatorController editor, please refer to the [AnimatorStateMachine](/docs/animation/state-machine/) document.
 </Callout>
 
 ## Script Usage
 
-<Callout type="positive">
-  Before using scripts, it is best to read the [Animation System Composition](/en/docs/animation/system) documentation to help you better understand the operation logic of the animation system.
+Before using scripts, it is recommended to read the following documents:
+
+- [Script](/docs/script/script)
+- [Animation System Composition](/docs/animation/system)
+
+### Bind AnimatorController
+
+You can bind the `AnimatorController` to the [Animator](/apis/core/#Animator) through the [animator.animatorController](/apis/core/#Animator-animatorController) property.
+
+<Callout type="info">
+If the loaded glTF model has animation data, the engine will automatically bind a default `AnimatorController` to each glTF instance, and you can directly use it to play the animations within it.
 </Callout>
-
-### Binding the Animation Controller
-
-You can bind the Animation Controller to the [Animator](/apis/core/#Animator) through the [animator.animatorController](/apis/core/#Animator-animatorController) property. If the loaded glTF model has animation data, it will automatically bind a default AnimatorController to each glTF instance.
 
 ```typescript
 animator.animatorController = new AnimatorController(engine);
 animator.play("New State");
 ```
 
-#### Reusing Animation Data
+#### Reuse Animation Data
 
-The [animatorController](/apis/core/#AnimatorController) of the Animator is a data storage class and does not contain runtime data. Based on this design, as long as the hierarchical structure and naming of the skeletal nodes of the model bound to the Animator component are the same, we can reuse the animation data of this model.
+The `AnimatorController` is a data storage class and does not contain runtime data. Based on this design, as long as the skeletal node hierarchy and naming of the model bound to the `Animator` component are the same, we can reuse the animation data of this model.
 
 ```typescript
 const animator = model1.getComponent(Animator);
-// 获取动画模型的动画控制器
+// Get the AnimatorController of the animation model
 animator.animatorController = animationGLTF.getComponent(Animator).animatorController;
-// 播放 animationGLTF 的动画
+// Play the animation of animationGLTF
 animator.play("anim from animationGLTF");
 ```

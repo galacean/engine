@@ -4,7 +4,7 @@ import { Grammar } from "../parser/Grammar";
 import { NoneTerminal, GrammarSymbol } from "../parser/GrammarSymbol";
 import GrammarUtils from "./Utils";
 import { EKeyword, ETokenType } from "../common";
-import SematicAnalyzer, { TranslationRule } from "../parser/SemanticAnalyzer";
+import SemanticAnalyzer, { TranslationRule } from "../parser/SemanticAnalyzer";
 import { ASTNode } from "../parser/AST";
 
 const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
@@ -849,7 +849,7 @@ const createGrammar = () =>
     productionAndRules.map((item) => item[0])
   );
 
-const addTranslationRule = (sa: SematicAnalyzer) => {
+const addTranslationRule = (sa: SemanticAnalyzer) => {
   for (let i = 0; i < productionAndRules.length; i++) {
     const rule = productionAndRules[i][1];
     if (rule) {

@@ -1,52 +1,50 @@
 ---
 order: 5
-title: Animation Layer
+title: AnimatorControllerLayer
 type: Animation
 label: Animation
 ---
 
-## Introduction
-Animation layers ([AnimatorControllerLayer](/apis/core/#AnimatorControllerLayer)) are used to organize and manage animation state machines within an animation controller ([AnimatorController](/apis/core/#AnimatorController)). By using animation layers, developers can combine different animation state machines, making complex animation logic easier to manage and control. Each layer has its own animation state machine, weight, and blending mode.
+`AnimatorControllerLayer` ([API](/apis/core/#AnimatorControllerLayer)) is used to organize and manage `AnimatorStateMachine` ([see details](/docs/animation/state-machine/)) in an `Animation Controller` ([detailed introduction](/docs/animation/animatorController)). Each `AnimatorControllerLayer` has its own `AnimatorStateMachine`. When the `Animator` Component runs, all `AnimatorControllerLayer` run simultaneously, controlling the overall animation effect through `blendingWeight` and `blendingMode`.
 
-| Property | Description                                                                        |
+| Property     | Description                                                                           |
 | :------- | :--------------------------------------------------------------------------------- |
-| Name     | The name of the layer.                                                             |
-| Weight   | The blending weight of the layer, default value is 1.0.                            |
-| Blending | The blending mode of the layer, `Additive` for additive mode, `Override` for override mode, default is `Override`. |
+| Name     | The name of the layer.                                                                       |
+| Weight   | The blending weight of the layer, the default value is 1.0.                                                    |
+| Blending | The blending mode of the layer, `Additive` is additive mode, `Override` is override mode, the default value is `Override`. |
+| StateMachine | The animation state machine of the layer, [detailed introduction](/docs/animation/state-machine/) |
 
 ### Additive Mode
-In additive mode, the animation of the higher layer will be added on top of the animation of the lower layer. This mode calculates the differences in animation keyframes and applies these differences to the lower layer animation, achieving an additive effect. It is often used to add details or adjustments to basic actions. For example, a character can use the `Additive` mode to add a breathing animation while walking or add a facial expression change while attacking.
+In additive mode, the higher layer's animation will be added on top of the lower layer's animation. This mode calculates the differences in animation keyframes and applies these differences to the lower layer's animation, achieving an additive effect (increasing the weight will not reduce the influence of the lower layer). It is often used to add details or adjustments to basic actions. For example, a breathing animation can be added on top of a walking animation using the `Additive` mode, or a facial expression change can be added during an attack.
+
+#### Usage Example
+We add an `AnimatorControllerLayer` in the editor and set `Blending` to `Additive`.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*JyqiQ6kvqBcAAAAAAAAAAAAADsJ_AQ/original" />
 
 ### Override Mode
-In override mode, the animation of the higher layer will completely override the animation of the lower layer. This means that in the final animation output, the higher layer animation will take precedence and replace the lower layer animation effect. It is often used for layered control of animations. For example, you might need to control the actions of different body parts separately. The `Override` mode can control each part separately, such as adjusting the posture or actions of the upper body while running.
+In override mode, the higher layer's animation will completely override the lower layer's animation. This means that in the final animation output, the higher layer's animation will take precedence and replace the lower layer's animation effect (increasing the weight will reduce the influence of the lower layer). It is often used for layered control of animations. For example, you may need to control different body parts' actions separately. The `Override` mode can control each part independently, such as adjusting the upper body's posture or actions while running.
 <Callout type="info">
 The blending mode of the first layer is always override mode.
 </Callout>
 
+#### Usage Example
+Set `Blending` to `Override`.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*5TfbQJjPZDMAAAAAAAAAAAAADsJ_AQ/original" />
+
+You can see that the character's animation completely replaces the animation of the first layer.
+
 ### Blending Weight
-It is used to control the influence of a specific animation layer on the final animation result. It is a floating-point value between 0 and 1, determining the blending ratio of the layer's animation in the final animation. For example, if a layer in additive mode makes the character's head turn 90 degrees, and the blending weight of that layer is 0.5, the character will only turn 45 degrees.
+It is used to control the influence of a specific `AnimatorControllerLayer` on the final animation result. It is a floating-point value between 0 and 1, determining the blending ratio of the layer's animation in the final animation. For example, an additive layer will rotate the character's head by 90 degrees. If the layer's blending weight is 0.5, the character will only rotate 45 degrees.
 <Callout type="info">
 The weight of the first layer is always 1.0.
 </Callout>
 
-
-
-
-## Editor Usage
-### Additive Mode
-We add an animation layer in the editor and set `Blending` to `Additive`.
-<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*JyqiQ6kvqBcAAAAAAAAAAAAADsJ_AQ/original" />
-You can see that this character has added a `head shaking` animation on top of the original animation.
-
-### Override Mode
-Set `Blending` to `Override`.
-<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*5TfbQJjPZDMAAAAAAAAAAAAADsJ_AQ/original" />
-You can see that the character's animation completely replaces the animation of the first layer.
-
-### Blending Weight
+#### Usage Example
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*HSxgTZIDqQ0AAAAAAAAAAAAADsJ_AQ/original" />
-You can see that the higher the weight of the animation layer, the greater the impact on the animation effect.
 
+You can see that the higher the weight of the `AnimatorControllerLayer`, the greater its influence on the animation effect.
 
 ## Script Usage
 
@@ -54,9 +52,9 @@ You can see that the higher the weight of the animation layer, the greater the i
 const layers = animator.animatorController.layers;
 const baseLayer = layers[0];
 const additiveLayer = layers[1];
-// 叠加模式
+// Additive mode
 additiveLayer.blendingMode = AnimatorLayerBlendingMode.Additive;
-// 覆盖模式
+// Override mode
 additiveLayer.blendingMode = AnimatorLayerBlendingMode.Override;
 additiveLayer.weight = 0.5;
 ```

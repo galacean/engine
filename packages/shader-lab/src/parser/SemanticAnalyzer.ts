@@ -13,7 +13,7 @@ import { GSError } from "../GSError";
 import { Logger } from "@galacean/engine";
 // #endif
 
-export type TranslationRule<T = any> = (sa: SematicAnalyzer, ...tokens: NodeChild[]) => T;
+export type TranslationRule<T = any> = (sa: SemanticAnalyzer, ...tokens: NodeChild[]) => T;
 
 /**
  * @internal
@@ -21,7 +21,7 @@ export type TranslationRule<T = any> = (sa: SematicAnalyzer, ...tokens: NodeChil
  * - Build symbol table
  * - Static analysis
  */
-export default class SematicAnalyzer {
+export default class SemanticAnalyzer {
   semanticStack: TreeNode[] = [];
   acceptRule?: TranslationRule = undefined;
   symbolTableStack: SymbolTableStack<SymbolInfo, TargetSymbolTable> = new SymbolTableStack();

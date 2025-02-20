@@ -337,11 +337,11 @@ export class Scene extends EngineObject {
     const oldScene = entity._scene;
     if (oldScene !== this) {
       if (oldScene && isRoot) {
-        oldScene._removeFromEntityList(entity);
+        Entity._removeFromChildren(oldScene._rootEntities, entity);
       }
-      this._addToRootEntityList(index, entity);
+      Entity._addToChildren(this._rootEntities, entity, index);
     } else if (!isRoot) {
-      this._addToRootEntityList(index, entity);
+      Entity._addToChildren(this._rootEntities, entity, index);
     }
 
     // Process entity active/inActive
@@ -375,9 +375,8 @@ export class Scene extends EngineObject {
    */
   removeRootEntity(entity: Entity): void {
     if (entity._isRoot && entity._scene == this) {
-      this._removeFromEntityList(entity);
+      Entity._removeFromChildren(this._rootEntities, entity);
       entity._isRoot = false;
-
       let inActiveChangeFlag = ActiveChangeFlag.None;
       this._isActiveInEngine && entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
       entity._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
@@ -497,19 +496,6 @@ export class Scene extends EngineObject {
   /**
    * @internal
    */
-  _removeFromEntityList(entity: Entity): void {
-    const rootEntities = this._rootEntities;
-    let index = entity._siblingIndex;
-    rootEntities.splice(index, 1);
-    for (let n = rootEntities.length; index < n; index++) {
-      rootEntities[index]._siblingIndex--;
-    }
-    entity._siblingIndex = -1;
-  }
-
-  /**
-   * @internal
-   */
   protected override _onDestroy(): void {
     super._onDestroy();
 
@@ -528,24 +514,6 @@ export class Scene extends EngineObject {
 
     const allCreatedScenes = sceneManager._allCreatedScenes;
     allCreatedScenes.splice(allCreatedScenes.indexOf(this), 1);
-  }
-
-  private _addToRootEntityList(index: number, rootEntity: Entity): void {
-    const rootEntities = this._rootEntities;
-    const rootEntityCount = rootEntities.length;
-    if (index === undefined) {
-      rootEntity._siblingIndex = rootEntityCount;
-      rootEntities.push(rootEntity);
-    } else {
-      if (index < 0 || index > rootEntityCount) {
-        throw `The index ${index} is out of child list bounds ${rootEntityCount}`;
-      }
-      rootEntity._siblingIndex = index;
-      rootEntities.splice(index, 0, rootEntity);
-      for (let i = index + 1, n = rootEntityCount + 1; i < n; i++) {
-        rootEntities[i]._siblingIndex++;
-      }
-    }
   }
 
   private _computeLinearFogParams(fogStart: number, fogEnd: number): void {

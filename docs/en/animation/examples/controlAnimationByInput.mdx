@@ -1,0 +1,135 @@
+---
+order: 4
+title: Control Animation by User Input
+type: Animation
+group: Guide and Examples
+label: Animation/Examples
+---
+
+This example demonstrates how to control animations with user input in the Galacean editor. Through simple steps, you will learn how to switch animations based on user input, allowing the character to transition accordingly based on user interactions.
+If this is your first time using the animation editor, it is recommended to read the previous documents:
+
+[1. Play Animation in Model](/docs/animation/examples/playAnimation/)
+
+[2. Reuse Animation](/docs/animation/examples/reuseAnimation/)
+
+[3. Animation Transition](/docs/animation/examples/crossFade/)
+
+## 0. Preparation
+
+1. Before starting, we need a model with multiple animations and drag it into the scene. If you don't have a model, you can download the [model](https://mdn.alipayobjects.com/oasis_be/afts/file/A*N99IQYh_g5YAAAAAAAAAAAAADkp5AQ/player.glb) here.
+
+2. We need an edited `AnimatorController` with animation transitions. Please refer to: [Edit AnimatorController](/docs/animation/examples/crossFade/#3-edit-animator-controller).
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*WUbLQbY8qiAAAAAAAAAAAAAADsJ_AQ/original" />
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*1x7zS7WqTasAAAAAAAAAAAAADsJ_AQ/original" />
+
+## 1. Add AnimatorControllerParameter
+
+To control animations based on user input, we first need to add some parameters to the `AnimatorController` to switch `AnimatorState` based on these parameters.
+
+1. Switch to the `Parameters` panel
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*rzRbRoI8_zEAAAAAAAAAAAAADsJ_AQ/original" />
+
+2. Click `+` to add a float parameter `speed` and set the default value to 0.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*o6IhT6KdSZoAAAAAAAAAAAAADsJ_AQ/original" />
+
+## 2. Add Transition Conditions
+
+Previously, we introduced how to add `AnimatorStateTransition` in the `AnimatorStateMachine` ([detailed introduction](/docs/animation/examples/crossFade/)). In the previous example, transitions were triggered when the time exceeded `ExitTime`. Here, we need to trigger transitions based on user input, so we need to add a `Transition Condition`.
+
+1. In the `AnimatorStateMachine`, select the transition from `idle` to `walk`, and click `Add Condition` to add a `Condition`.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Z-P8SqQynhMAAAAAAAAAAAAADsJ_AQ/original" />
+
+The default value of the `Condition` meets our needs. When `speed` is greater than 0, it will transition from `idle` to `walk`.
+
+2. Similarly, select the transition from `walk` to `run`, add a `Condition`, and set it to transition from `walk` to `run` when `speed` is greater than 5.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*an4WR66LO9kAAAAAAAAAAAAADsJ_AQ/original" />
+
+3. Select the transition from `run` to `exit`, add a `Condition`, and set it to transition from `run` to `exit` when `speed` is 0, returning to `idle`.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*YjqXSb1EDaIAAAAAAAAAAAAADsJ_AQ/original" />
+
+### 3. Add Script
+We need a script to receive user input and modify the `speed` parameter value based on user input to trigger `AnimatorStateTransition`.
+There are two ways to add a script:
+
+1. Right-click on the blank space in the **[Asset Panel](/docs/assets/interface)** and select `Create` -> `New Empty Script`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*vcaYR6cXhyAAAAAAAAAAAAAADsJ_AQ/original" />
+
+2. Click the add asset button `+` and select `New Empty Script`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*ukTPS6vXR54AAAAAAAAAAAAADsJ_AQ/original" />
+
+### 4. Edit and Bind Script
+1. Double-click the script to open the script editor and enter the following code:
+
+```typescript
+import { Script, Animator, Keys } from '@galacean/engine';
+
+export default class extends Script {
+  animator: Animator;
+  onStart() {
+    this.animator = this.entity.getComponent(Animator);
+  }
+
+  onUpdate(deltaTime: number) {
+    const inputManager = this.engine.inputManager;
+    if (inputManager.isKeyHeldDown(Keys.KeyW)) {
+        // If the user presses the W + Shift keys, set the speed parameter value to 6
+      if (inputManager.isKeyHeldDown(Keys.ShiftLeft)) {
+        this.animator.setParameterValue('speed', 6);
+      } else {
+        // If the user only holds down the W key, set the speed parameter value to 1
+        this.animator.setParameterValue('speed', 1);
+      }
+    }
+
+    // If the user releases the W key, set the speed parameter value to 0
+    if (inputManager.isKeyUp(Keys.KeyW)) {
+      this.animator.setParameterValue('speed', 0);
+    }
+  }
+}
+```
+
+For detailed instructions on scripts, please refer to: [Script](/docs/script/script)
+
+For detailed instructions on user input, please refer to: [Input Overview](/docs/input/input)
+
+2. Find the entity with the `Animator` component and add the newly created script to it.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*MOlaTKEGBYEAAAAAAAAAAAAADsJ_AQ/original" />
+
+### 5. Preview Animation
+Unlike previous tutorials, since we added a script to the entity, simply clicking the preview animation button will not make the script code take effect. We need to click the project preview (project preview will compile the script files) button to preview the animation.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*lAeHQITR98QAAAAAAAAAAAAADsJ_AQ/original" />
+
+When the character is in the `idle` state, press the `W` key, and the character will transition from `idle` to `walk`. Hold down the `Shift` key, and the character will transition from `walk` to `run`. Release the `W` key, and the character will exit the animation from `run` and return to `idle`.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*RQLbRZPlfUEAAAAAAAAAAAAADsJ_AQ/original" />
+
+### 6. Optimize Animation
+When previewing, we find that if we release the `W` key while in the `walk` state, the character does not switch to the `idle` state but continues to play the `walk` animation. This is because we do not have a transition from `walk` to `idle`.
+Also, there is no transition effect from `run` to `idle`. Since we switch to `idle` by re-entering `entry`, the transition `Duration` from `entry` to `idle` is 0. To transition from `run` to `idle`, we can connect `run` to `idle`.
+Similarly, to transition from `run` to `walk`, we also need to add a transition.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*M-JsSawhoXUAAAAAAAAAAAAADsJ_AQ/original" />
+
+Preview again, and we find that the transition effects from `walk` to `idle` and `run` to `walk` have taken effect.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*b3b1QrhhzqkAAAAAAAAAAAAADsJ_AQ/original" />
+
+However, the transition effect from `run` to `idle` has not taken effect. Instead, it first transitions to `walk` and then from `walk` to `idle`. This is because when the `speed` parameter is 0, both the `run` to `walk` and `run` to `idle` `Conditions` are satisfied.
+To avoid this situation, we can add another `Condition` to the `run` to `walk` transition and set it to `speed` greater than 0.
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*uqwGQb4AHeUAAAAAAAAAAAAADsJ_AQ/original" />
+
+This way, when we release both the `W` key and the `Shift` key, the character will transition directly from `run` to `idle`.
