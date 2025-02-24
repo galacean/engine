@@ -741,14 +741,15 @@ export class ParticleGenerator {
     instanceVertices[offset + 10] = startColor.b;
     instanceVertices[offset + 11] = startColor.a;
 
+    const normalizedEmitTime = time / this.main.duration;
     // Start size
     const startSizeRand = main._startSizeRand;
     if (main.startSize3D) {
-      instanceVertices[offset + 12] = main.startSizeX.evaluate(undefined, startSizeRand.random());
-      instanceVertices[offset + 13] = main.startSizeY.evaluate(undefined, startSizeRand.random());
-      instanceVertices[offset + 14] = main.startSizeZ.evaluate(undefined, startSizeRand.random());
+      instanceVertices[offset + 12] = main.startSizeX.evaluate(normalizedEmitTime, startSizeRand.random());
+      instanceVertices[offset + 13] = main.startSizeY.evaluate(normalizedEmitTime, startSizeRand.random());
+      instanceVertices[offset + 14] = main.startSizeZ.evaluate(normalizedEmitTime, startSizeRand.random());
     } else {
-      const size = main.startSize.evaluate(undefined, startSizeRand.random());
+      const size = main.startSize.evaluate(normalizedEmitTime, startSizeRand.random());
       instanceVertices[offset + 12] = size;
       instanceVertices[offset + 13] = size;
       instanceVertices[offset + 14] = size;

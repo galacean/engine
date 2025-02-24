@@ -89,6 +89,34 @@ export class ParticleCurve {
   /**
    * @internal
    */
+  _evaluate(normalizedAge: number): number {
+    const { keys } = this;
+    const count = keys.length;
+
+    for (let i = 0; i < count; i++) {
+      const key = keys[i];
+      const { time } = key;
+      if (normalizedAge <= time) {
+        if (i === 0) {
+          // Small than first key
+          return key[0].value;
+        } else {
+          // Between two keys
+          const lastKey = keys[i - 1];
+          const { time: lastTime, value: lastValue } = lastKey;
+          const age = (normalizedAge - lastTime) / (time - lastTime);
+          const value = lastValue + (key.value - lastValue) * age;
+          return value;
+        }
+      }
+    }
+    // Large than last key
+    return keys[count - 1].value;
+  }
+
+  /**
+   * @internal
+   */
   _getTypeArray(): Float32Array {
     const typeArray = (this._typeArray ||= new Float32Array(4 * 2));
     if (this._typeArrayDirty) {
