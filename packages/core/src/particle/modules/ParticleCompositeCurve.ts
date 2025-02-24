@@ -1,8 +1,8 @@
 import { Vector2 } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { CurveKey, ParticleCurve } from "./ParticleCurve";
-import { UpdateFlagManager } from "../../UpdateFlagManager";
 
 /**
  * Particle composite curve.
@@ -175,6 +175,11 @@ export class ParticleCompositeCurve {
         return this.constant;
       case ParticleCurveMode.TwoConstants:
         return this.constantMin + (this.constantMax - this.constantMin) * lerpFactor;
+      case ParticleCurveMode.Curve:
+        return this.curve._evaluate(time);
+      case ParticleCurveMode.TwoCurves:
+        const min = this.curveMin._evaluate(time);
+        return min + (this.curveMax._evaluate(time) - min) * lerpFactor;
       default:
         break;
     }
