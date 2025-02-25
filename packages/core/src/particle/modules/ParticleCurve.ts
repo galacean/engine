@@ -102,11 +102,9 @@ export class ParticleCurve {
           return key.value;
         } else {
           // Between two keys
-          const lastKey = keys[i - 1];
-          const { time: lastTime, value: lastValue } = lastKey;
+          const { time: lastTime, value: lastValue } = keys[i - 1];
           const age = (normalizedAge - lastTime) / (time - lastTime);
-          const value = lastValue + (key.value - lastValue) * age;
-          return value;
+          return lastValue + (key.value - lastValue) * age;
         }
       }
     }
