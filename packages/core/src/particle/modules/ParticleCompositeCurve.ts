@@ -176,10 +176,10 @@ export class ParticleCompositeCurve {
       case ParticleCurveMode.TwoConstants:
         return this.constantMin + (this.constantMax - this.constantMin) * lerpFactor;
       case ParticleCurveMode.Curve:
-        return this.curve._evaluate(time);
+        return this.curve?._evaluate(time);
       case ParticleCurveMode.TwoCurves:
-        const min = this.curveMin._evaluate(time);
-        return min + (this.curveMax._evaluate(time) - min) * lerpFactor;
+        const min = this.curveMin?._evaluate(time);
+        return min + (this.curveMax?._evaluate(time) - min) * lerpFactor;
       default:
         break;
     }

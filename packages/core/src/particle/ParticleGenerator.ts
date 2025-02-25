@@ -237,7 +237,7 @@ export class ParticleGenerator {
   /**
    * @internal
    */
-  _emit(time: number, count: number): void {
+  _emit(playTime: number, count: number): void {
     if (this.emission.enabled) {
       // Wait the existing particles to be retired
       const notRetireParticleCount = this._getNotRetiredParticleCount();
@@ -250,7 +250,7 @@ export class ParticleGenerator {
       const shape = this.emission.shape;
       for (let i = 0; i < count; i++) {
         if (shape?.enabled) {
-          shape._generatePositionAndDirection(this.emission._shapeRand, time, position, direction);
+          shape._generatePositionAndDirection(this.emission._shapeRand, playTime, position, direction);
           const positionScale = this.main._getPositionScale();
           position.multiply(positionScale);
           direction.normalize().multiply(positionScale);
@@ -258,7 +258,7 @@ export class ParticleGenerator {
           position.set(0, 0, 0);
           direction.set(0, 0, -1);
         }
-        this._addNewParticle(position, direction, transform, time);
+        this._addNewParticle(position, direction, transform, playTime);
       }
     }
   }
@@ -669,7 +669,7 @@ export class ParticleGenerator {
     }
   }
 
-  private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform, time: number): void {
+  private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform, playTime: number): void {
     const firstFreeElement = this._firstFreeElement;
     let nextFreeElement = firstFreeElement + 1;
     if (nextFreeElement >= this._currentParticleCount) {
@@ -711,9 +711,7 @@ export class ParticleGenerator {
     const offset = firstFreeElement * ParticleBufferUtils.instanceVertexFloatStride;
 
     // Position
-    instanceVertices[offset] = position.x;
-    instanceVertices[offset + 1] = position.y;
-    instanceVertices[offset + 2] = position.z;
+    position.copyToArray(instanceVertices, offset);
 
     // Start life time
     instanceVertices[offset + ParticleBufferUtils.startLifeTimeOffset] = main.startLifetime.evaluate(
@@ -722,12 +720,10 @@ export class ParticleGenerator {
     );
 
     // Direction
-    instanceVertices[offset + 4] = direction.x;
-    instanceVertices[offset + 5] = direction.y;
-    instanceVertices[offset + 6] = direction.z;
+    direction.copyToArray(instanceVertices, offset + 4);
 
     // Time
-    instanceVertices[offset + ParticleBufferUtils.timeOffset] = time;
+    instanceVertices[offset + ParticleBufferUtils.timeOffset] = playTime;
 
     // Color
     const startColor = ParticleGenerator._tempColor0;
@@ -736,20 +732,19 @@ export class ParticleGenerator {
       startColor.toLinear(startColor);
     }
 
-    instanceVertices[offset + 8] = startColor.r;
-    instanceVertices[offset + 9] = startColor.g;
-    instanceVertices[offset + 10] = startColor.b;
-    instanceVertices[offset + 11] = startColor.a;
+    startColor.copyToArray(instanceVertices, offset + 8);
 
-    const normalizedEmitTime = time / this.main.duration;
+    const duration = this.main.duration;
+    const normalizedEmitAge = (playTime % duration) / duration;
+
     // Start size
     const startSizeRand = main._startSizeRand;
     if (main.startSize3D) {
-      instanceVertices[offset + 12] = main.startSizeX.evaluate(normalizedEmitTime, startSizeRand.random());
-      instanceVertices[offset + 13] = main.startSizeY.evaluate(normalizedEmitTime, startSizeRand.random());
-      instanceVertices[offset + 14] = main.startSizeZ.evaluate(normalizedEmitTime, startSizeRand.random());
+      instanceVertices[offset + 12] = main.startSizeX.evaluate(normalizedEmitAge, startSizeRand.random());
+      instanceVertices[offset + 13] = main.startSizeY.evaluate(normalizedEmitAge, startSizeRand.random());
+      instanceVertices[offset + 14] = main.startSizeZ.evaluate(normalizedEmitAge, startSizeRand.random());
     } else {
-      const size = main.startSize.evaluate(normalizedEmitTime, startSizeRand.random());
+      const size = main.startSize.evaluate(normalizedEmitAge, startSizeRand.random());
       instanceVertices[offset + 12] = size;
       instanceVertices[offset + 13] = size;
       instanceVertices[offset + 14] = size;
@@ -816,15 +811,10 @@ export class ParticleGenerator {
 
     if (this.main.simulationSpace === ParticleSimulationSpace.World) {
       // Simulation world position
-      instanceVertices[offset + 27] = pos.x;
-      instanceVertices[offset + 28] = pos.y;
-      instanceVertices[offset + 29] = pos.z;
+      pos.copyToArray(instanceVertices, offset + 27);
 
       // Simulation world position
-      instanceVertices[offset + 30] = rot.x;
-      instanceVertices[offset + 31] = rot.y;
-      instanceVertices[offset + 32] = rot.z;
-      instanceVertices[offset + 33] = rot.w;
+      rot.copyToArray(instanceVertices, offset + 30);
     }
 
     // Simulation UV
