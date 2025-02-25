@@ -91,9 +91,9 @@ export class ParticleCurve {
    */
   _evaluate(normalizedAge: number): number {
     const { keys } = this;
-    const count = keys.length;
+    const { length } = keys;
 
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < length; i++) {
       const key = keys[i];
       const { time } = key;
       if (normalizedAge <= time) {
@@ -109,7 +109,7 @@ export class ParticleCurve {
       }
     }
     // Large than last key
-    return keys[count - 1].value;
+    return keys[length - 1].value;
   }
 
   /**
