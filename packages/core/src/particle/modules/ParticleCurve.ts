@@ -99,7 +99,7 @@ export class ParticleCurve {
       if (normalizedAge <= time) {
         if (i === 0) {
           // Small than first key
-          return key[0].value;
+          return key.value;
         } else {
           // Between two keys
           const lastKey = keys[i - 1];
