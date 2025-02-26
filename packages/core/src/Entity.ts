@@ -251,7 +251,7 @@ export class Entity extends EngineObject {
    */
   constructor(engine: Engine, name?: string, ...components: ComponentConstructor[]) {
     super(engine);
-    this.name = name;
+    this.name = name ?? "New Entity";
     for (let i = 0, n = components.length; i < n; i++) {
       this.addComponent(components[i]);
     }
