@@ -22,7 +22,5 @@ void main(){
                 + c4 * 0.22702703
                 + c5 * 0.19459459 + c6 * 0.12162162 + c7 * 0.05405405 + c8 * 0.01621622;
 
-    #ifndef ENGINE_IS_COLORSPACE_GAMMA
-      gl_FragColor = linearToGamma(gl_FragColor);
-    #endif
+    gl_FragColor = linearToGamma(gl_FragColor);
 }

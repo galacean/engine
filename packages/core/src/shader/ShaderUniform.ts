@@ -1,7 +1,6 @@
 import { IHardwareRenderer } from "@galacean/engine-design";
 import { Color, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
-import { ColorSpace } from "../enums/ColorSpace";
 import { Texture } from "../texture/Texture";
 import { ShaderPropertyValueType } from "./ShaderData";
 
@@ -21,13 +20,11 @@ export class ShaderUniform {
 
   private _rhi: IHardwareRenderer;
   private _gl: WebGLRenderingContext;
-  private _colorSpace: ColorSpace;
 
   constructor(engine: Engine) {
     const rhi = engine._hardwareRenderer;
     this._rhi = rhi;
     this._gl = rhi.gl;
-    this._colorSpace = engine.settings.colorSpace;
   }
 
   upload1f(shaderUniform: ShaderUniform, value: number): void {
@@ -45,15 +42,11 @@ export class ShaderUniform {
     const cacheValue = <Vector2>this.cacheValue;
     if ((<Color>value).r !== undefined) {
       if (cacheValue.x !== (<Color>value).r || cacheValue.y !== (<Color>value).g) {
-        if (this._colorSpace === ColorSpace.Linear) {
-          this._gl.uniform2f(
-            shaderUniform.location,
-            Color.gammaToLinearSpace((<Color>value).r),
-            Color.gammaToLinearSpace((<Color>value).g)
-          );
-        } else {
-          this._gl.uniform2f(shaderUniform.location, (<Color>value).r, (<Color>value).g);
-        }
+        this._gl.uniform2f(
+          shaderUniform.location,
+          Color.gammaToLinearSpace((<Color>value).r),
+          Color.gammaToLinearSpace((<Color>value).g)
+        );
         cacheValue.x = (<Color>value).r;
         cacheValue.y = (<Color>value).g;
       }
@@ -74,16 +67,12 @@ export class ShaderUniform {
     const cacheValue = <Vector3>this.cacheValue;
     if ((<Color>value).r !== undefined) {
       if (cacheValue.x !== (<Color>value).r || cacheValue.y !== (<Color>value).g || cacheValue.z !== (<Color>value).b) {
-        if (this._colorSpace === ColorSpace.Linear) {
-          this._gl.uniform3f(
-            shaderUniform.location,
-            Color.gammaToLinearSpace((<Color>value).r),
-            Color.gammaToLinearSpace((<Color>value).g),
-            Color.gammaToLinearSpace((<Color>value).b)
-          );
-        } else {
-          this._gl.uniform3f(shaderUniform.location, (<Color>value).r, (<Color>value).g, (<Color>value).b);
-        }
+        this._gl.uniform3f(
+          shaderUniform.location,
+          Color.gammaToLinearSpace((<Color>value).r),
+          Color.gammaToLinearSpace((<Color>value).g),
+          Color.gammaToLinearSpace((<Color>value).b)
+        );
         cacheValue.x = (<Color>value).r;
         cacheValue.y = (<Color>value).g;
         cacheValue.z = (<Color>value).b;
@@ -115,23 +104,13 @@ export class ShaderUniform {
         cacheValue.z !== (<Color>value).b ||
         cacheValue.w !== (<Color>value).a
       ) {
-        if (this._colorSpace === ColorSpace.Linear) {
-          this._gl.uniform4f(
-            shaderUniform.location,
-            Color.gammaToLinearSpace((<Color>value).r),
-            Color.gammaToLinearSpace((<Color>value).g),
-            Color.gammaToLinearSpace((<Color>value).b),
-            (<Color>value).a
-          );
-        } else {
-          this._gl.uniform4f(
-            shaderUniform.location,
-            (<Color>value).r,
-            (<Color>value).g,
-            (<Color>value).b,
-            (<Color>value).a
-          );
-        }
+        this._gl.uniform4f(
+          shaderUniform.location,
+          Color.gammaToLinearSpace((<Color>value).r),
+          Color.gammaToLinearSpace((<Color>value).g),
+          Color.gammaToLinearSpace((<Color>value).b),
+          (<Color>value).a
+        );
         cacheValue.x = (<Color>value).r;
         cacheValue.y = (<Color>value).g;
         cacheValue.z = (<Color>value).b;

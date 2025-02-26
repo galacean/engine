@@ -129,9 +129,7 @@ const renderDepthFS = `
 
         #include <FogFragment>
 
-        #ifndef ENGINE_IS_COLORSPACE_GAMMA
-            gl_FragColor = linearToGamma(gl_FragColor);
-        #endif
+        gl_FragColor = linearToGamma(gl_FragColor);
     }`;
 
 Shader.create("RenderDepthTexture", renderDepthVS, renderDepthFS);

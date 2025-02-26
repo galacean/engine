@@ -23,7 +23,6 @@ import { SceneManager } from "./SceneManager";
 import { ResourceManager } from "./asset/ResourceManager";
 import { EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
-import { ColorSpace } from "./enums/ColorSpace";
 import { InputManager } from "./input";
 import { Material } from "./material/Material";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
@@ -50,8 +49,6 @@ ShaderPool.init();
  * Engine.
  */
 export class Engine extends EventDispatcher {
-  /** @internal */
-  static _gammaMacro: ShaderMacro = ShaderMacro.getByName("ENGINE_IS_COLORSPACE_GAMMA");
   /** @internal */
   static _noDepthTextureMacro: ShaderMacro = ShaderMacro.getByName("ENGINE_NO_DEPTH_TEXTURE");
   /** @internal Conversion of space units to pixel units for 2D. */
@@ -268,11 +265,6 @@ export class Engine extends EventDispatcher {
     particleMagentaMaterial.isGCIgnored = true;
     particleMagentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
     this._particleMagentaMaterial = particleMagentaMaterial;
-
-    const innerSettings = this._settings;
-    const colorSpace = configuration.colorSpace || ColorSpace.Linear;
-    colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
-    innerSettings.colorSpace = colorSpace;
 
     this._basicResources = new BasicResources(this);
     this._particleBufferUtils = new ParticleBufferUtils(this);
@@ -704,8 +696,6 @@ export interface EngineConfiguration {
   physics?: IPhysics;
   /** XR Device. */
   xrDevice?: IXRDevice;
-  /** Color space. */
-  colorSpace?: ColorSpace;
   /** Shader lab. */
   shaderLab?: IShaderLab;
   /** Input options. */

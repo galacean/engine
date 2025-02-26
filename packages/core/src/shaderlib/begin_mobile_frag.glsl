@@ -7,18 +7,14 @@
 
     #ifdef MATERIAL_HAS_EMISSIVETEXTURE
         vec4 emissiveTextureColor = texture2D(material_EmissiveTexture, v_uv);
-        #ifndef ENGINE_IS_COLORSPACE_GAMMA
-            emissiveTextureColor = gammaToLinear(emissiveTextureColor);
-        #endif
+        emissiveTextureColor = gammaToLinear(emissiveTextureColor);
         emission *= emissiveTextureColor;
 
     #endif
 
     #ifdef MATERIAL_HAS_BASETEXTURE
         vec4 diffuseTextureColor = texture2D(material_BaseTexture, v_uv);
-        #ifndef ENGINE_IS_COLORSPACE_GAMMA
-            diffuseTextureColor = gammaToLinear(diffuseTextureColor);
-        #endif
+        diffuseTextureColor = gammaToLinear(diffuseTextureColor);
         diffuse *= diffuseTextureColor;
 
     #endif
@@ -31,9 +27,7 @@
 
     #ifdef MATERIAL_HAS_SPECULAR_TEXTURE
         vec4 specularTextureColor = texture2D(material_SpecularTexture, v_uv);
-        #ifndef ENGINE_IS_COLORSPACE_GAMMA
-            specularTextureColor = gammaToLinear(specularTextureColor);
-        #endif
+        specularTextureColor = gammaToLinear(specularTextureColor);
         specular *= specularTextureColor;
 
     #endif

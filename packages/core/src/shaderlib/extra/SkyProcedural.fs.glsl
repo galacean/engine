@@ -27,10 +27,6 @@ varying vec3 v_SkyColor;
 	varying vec3 v_SunColor;
 #endif
 
-#if defined(ENGINE_IS_COLORSPACE_GAMMA)
-	#define LINEAR_2_OUTPUT(color) sqrt(color)
-#endif
-
 // Calculates the Mie phase function
 float getMiePhase(float eyeCos, float eyeCos2) {
 	float temp = 1.0 + MIE_G2 - 2.0 * MIE_G * eyeCos;
@@ -77,14 +73,9 @@ void main() {
 			col += v_SunColor * calcSunAttenuation(-scene_SunlightDirection, -ray);
 	#endif
 
-    #ifdef ENGINE_IS_COLORSPACE_GAMMA
-		col = LINEAR_2_OUTPUT(col); // linear space convert to gamma space
-	#endif
 
 	gl_FragColor = vec4(col,1.0);
 
-	#ifndef ENGINE_IS_COLORSPACE_GAMMA
-        gl_FragColor = linearToGamma(gl_FragColor);
-    #endif
+	gl_FragColor = linearToGamma(gl_FragColor);
 }
 

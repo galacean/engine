@@ -10,7 +10,7 @@ void main() {
 
     #ifdef MATERIAL_IS_DECODE_SKY_RGBM
         textureColor = RGBMToLinear(textureColor, 5.0);
-    #elif !defined(ENGINE_IS_COLORSPACE_GAMMA)
+    #else
         textureColor = gammaToLinear(textureColor);
     #endif
 
@@ -18,7 +18,7 @@ void main() {
     
     gl_FragColor = textureColor;
 
-    #if defined(MATERIAL_IS_DECODE_SKY_RGBM) || !defined(ENGINE_IS_COLORSPACE_GAMMA)
+    #if defined(MATERIAL_IS_DECODE_SKY_RGBM)
         gl_FragColor = linearToGamma(gl_FragColor);
     #endif
 }

@@ -115,9 +115,7 @@ float sampleShadowMapFiltered4(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoo
         fogAmount = clamp(fogAmount, 0.0, 1.0);
         gl_FragColor = mix(color, u_fogColor, fogAmount); 
   
-        #ifndef ENGINE_IS_COLORSPACE_GAMMA
-          gl_FragColor = linearToGamma(gl_FragColor);
-        #endif
+        gl_FragColor = linearToGamma(gl_FragColor);
 
         // For testing only (macro)
         #if SCENE_SHADOW_TYPE == 2 || defined(XX_Macro)

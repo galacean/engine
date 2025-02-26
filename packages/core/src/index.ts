@@ -43,7 +43,6 @@ export { EntityModifyFlags } from "./enums/EntityModifyFlags";
 export { MSAASamples } from "./enums/MSAASamples";
 export { ReplacementFailureStrategy } from "./enums/ReplacementFailureStrategy";
 export { Downsampling } from "./enums/Downsampling";
-export { ColorSpace } from "./enums/ColorSpace";
 export { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
 export { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 export { XRManager } from "./xr/XRManager";

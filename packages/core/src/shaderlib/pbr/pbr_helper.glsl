@@ -95,9 +95,7 @@ void initMaterial(out Material material, inout Geometry geometry){
 
         #ifdef MATERIAL_HAS_BASETEXTURE
             vec4 baseTextureColor = texture2D(material_BaseTexture, v_uv);
-            #ifndef ENGINE_IS_COLORSPACE_GAMMA
-                baseTextureColor = gammaToLinear(baseTextureColor);
-            #endif
+            baseTextureColor = gammaToLinear(baseTextureColor);
             baseColor *= baseTextureColor;
         #endif
 
@@ -120,9 +118,7 @@ void initMaterial(out Material material, inout Geometry geometry){
 
         #ifdef MATERIAL_HAS_SPECULAR_GLOSSINESS_TEXTURE
             vec4 specularGlossinessColor = texture2D(material_SpecularGlossinessTexture, v_uv );
-            #ifndef ENGINE_IS_COLORSPACE_GAMMA
-                specularGlossinessColor = gammaToLinear(specularGlossinessColor);
-            #endif
+            specularGlossinessColor = gammaToLinear(specularGlossinessColor);
             specularColor *= specularGlossinessColor.rgb;
             glossiness *= specularGlossinessColor.a;
         #endif
@@ -191,9 +187,7 @@ void initMaterial(out Material material, inout Geometry geometry){
             vec3 sheenColor = material_SheenColor;
             #ifdef MATERIAL_HAS_SHEEN_TEXTURE
                 vec4 sheenTextureColor = texture2D(material_SheenTexture, v_uv);
-                #ifndef ENGINE_IS_COLORSPACE_GAMMA
-                    sheenTextureColor = gammaToLinear(sheenTextureColor);
-                #endif
+                sheenTextureColor = gammaToLinear(sheenTextureColor);
                 sheenColor *= sheenTextureColor.rgb;
             #endif
             material.sheenColor = sheenColor;

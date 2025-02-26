@@ -77,9 +77,7 @@ Shader "custom/pbr" {
 
                 #ifdef MATERIAL_HAS_BASETEXTURE
                     vec4 textureColor = texture2D(material_BaseTexture, v.v_uv);
-                    #ifndef ENGINE_IS_COLORSPACE_GAMMA
-                        textureColor = gammaToLinear(textureColor);
-                    #endif
+                    textureColor = gammaToLinear(textureColor);
                     baseColor *= textureColor;
                 #endif
             
