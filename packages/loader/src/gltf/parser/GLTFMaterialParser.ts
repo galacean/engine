@@ -28,7 +28,7 @@ export class GLTFMaterialParser extends GLTFParser {
    */
   static _checkOtherTextureTransform(texture: ITextureInfo, textureName: string): void {
     if (texture.extensions?.KHR_texture_transform) {
-      Logger.warn(`${textureName} texture always use the KHR_texture_transform of the base texture.`);
+      Logger.warn(`${textureName} texture ignore KHR_texture_transform extension.`);
     }
   }
 
