@@ -52,9 +52,20 @@ describe("ParticleCurve tests", () => {
 
   it("Add and remove", () => {
     const curve = new ParticleCurve(new CurveKey(0, 0.3), new CurveKey(0.6, 0.7));
+ +  expect(curve.keys.length).to.equal(2);
+ +  
     curve.addKey(new CurveKey(0, 0.4));
+ +  expect(curve.keys.length).to.equal(3);
+ +  expect(curve.keys[0].value).to.equal(0.4);
+ +  
     curve.removeKey(2);
+ +  expect(curve.keys.length).to.equal(2);
+ +  
     curve.removeKey(0);
+ +  expect(curve.keys.length).to.equal(1);
+ +  expect(curve.keys[0].time).to.equal(0.6);
+ +  
     curve.removeKey(0);
+ +  expect(curve.keys.length).to.equal(0);
   });
 });
