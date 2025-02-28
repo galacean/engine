@@ -41,14 +41,20 @@ describe("ParticleCurve tests", () => {
     expect(compositeCurve.evaluate(0.9, 0.0)).to.equal(0.7);
     expect(compositeCurve.evaluate(1.0, 0.0)).to.equal(0.7);
 
-
     expect(compositeCurve.evaluate(0.0, 1.0)).to.equal(0.5);
     expect(compositeCurve.evaluate(0.5, 1.0)).to.equal(0.55);
     expect(compositeCurve.evaluate(0.6, 1.0)).to.equal(0.6);
     expect(compositeCurve.evaluate(0.9, 1.0)).to.equal(0.75);
     expect(compositeCurve.evaluate(1.0, 1.0)).to.equal(0.8);
 
-
     expect(compositeCurve.evaluate(0.6, 0.5)).to.equal(0.6499999999999999);
+  });
+
+  it("Add and remove", () => {
+    const curve = new ParticleCurve(new CurveKey(0, 0.3), new CurveKey(0.6, 0.7));
+    curve.addKey(new CurveKey(0, 0.4));
+    curve.removeKey(2);
+    curve.removeKey(0);
+    curve.removeKey(0);
   });
 });
