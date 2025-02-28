@@ -67,9 +67,10 @@ export class ParticleCurve {
    * @param index - The remove key index
    */
   removeKey(index: number): void {
-    this._keys.splice(index, 1);
+    const keys = this._keys;
+    const removeKey = keys[index];
+    keys.splice(index, 1);
     this._typeArrayDirty = true;
-    const removeKey = this._keys[index];
     removeKey._unRegisterOnValueChanged(this._updateDispatch);
     this._updateDispatch();
   }
