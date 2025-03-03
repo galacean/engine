@@ -196,7 +196,6 @@ describe("MeshRenderer", async function () {
     // Test that getInstanceMaterial works correctly.
     const material = mr.getInstanceMaterial();
     expect(material).to.be.instanceOf(UnlitMaterial);
-    console.log(material.name);
     expect(material.name).to.be.equal("unlit(Instance)");
 
     // Test that material0 is same as material.
