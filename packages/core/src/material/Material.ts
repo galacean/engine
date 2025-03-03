@@ -84,6 +84,7 @@ export class Material extends ReferResource implements IClone {
   constructor(engine: Engine, shader: Shader) {
     super(engine);
     this.shader = shader;
+    this.name = shader.name;
   }
 
   /**

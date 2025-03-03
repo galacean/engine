@@ -196,7 +196,8 @@ describe("MeshRenderer", async function () {
     // Test that getInstanceMaterial works correctly.
     const material = mr.getInstanceMaterial();
     expect(material).to.be.instanceOf(UnlitMaterial);
-    expect(material.name).to.be.equal("undefined(Instance)");
+    console.log(material.name);
+    expect(material.name).to.be.equal("unlit(Instance)");
 
     // Test that material0 is same as material.
     const material0 = mr.getInstanceMaterial(0);
@@ -204,7 +205,7 @@ describe("MeshRenderer", async function () {
 
     const material2 = mr.getInstanceMaterial(2);
     expect(material2).to.be.instanceOf(PBRMaterial);
-    expect(material2.name).to.be.equal("undefined(Instance)");
+    expect(material2.name).to.be.equal("pbr(Instance)");
 
     expect(mr.getInstanceMaterial(1)).to.be.null;
 
@@ -220,9 +221,9 @@ describe("MeshRenderer", async function () {
     // Test that getInstanceMaterials works correctly.
     const materials = mr.getInstanceMaterials();
     expect(materials[0]).to.be.instanceOf(UnlitMaterial);
-    expect(materials[0].name).to.be.equal("undefined(Instance)");
+    expect(materials[0].name).to.be.equal("unlit(Instance)");
     expect(materials[1]).to.be.instanceOf(PBRMaterial);
-    expect(materials[1].name).to.be.equal("undefined(Instance)");
+    expect(materials[1].name).to.be.equal("pbr(Instance)");
   });
 
   it("priority", () => {
