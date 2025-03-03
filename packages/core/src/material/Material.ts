@@ -91,7 +91,7 @@ export class Material extends ReferResource implements IClone {
    */
   clone(): Material {
     const dest = new Material(this._engine, this.shader);
-    this.cloneTo(dest);
+    this._cloneToAndModifyName(dest);
     return dest;
   }
 
@@ -110,6 +110,11 @@ export class Material extends ReferResource implements IClone {
     super._addReferCount(value);
     this.shaderData._addReferCount(value);
     this._shader._addReferCount(value);
+  }
+
+  protected _cloneToAndModifyName(target: Material): void {
+    this.cloneTo(target);
+    target.name = this.name + "(Clone)";
   }
 
   /**
