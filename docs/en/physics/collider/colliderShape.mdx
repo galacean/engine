@@ -83,6 +83,23 @@ capsuleShape.height = 2;
 const planeShape = new PlaneColliderShape();
 ```
 
+### Shape Management
+
+```typescript
+// Get all shapes
+const shapes = staticCollider.shapes;
+
+// Add a shape
+const boxShape = new BoxColliderShape();
+staticCollider.addShape(boxShape);
+
+// Remove a specific shape
+staticCollider.removeShape(boxShape);
+
+// Clear all shapes
+staticCollider.clearShapes();
+```
+
 ### Setting Physics Material
 
 ```typescript
@@ -177,6 +194,9 @@ class CollisionScript extends Script {
   }
 }
 ```
+
+#### Event Trigger Example
+<Playground href="/embed/physx-collision-detection" />
 
 ### Common Scenarios
 

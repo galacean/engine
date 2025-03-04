@@ -130,63 +130,6 @@ const dynamicCollider = entity.addComponent(DynamicCollider);
 const characterController = entity.addComponent(CharacterController);
 ```
 
-### 碰撞/触发事件
-当碰撞器是碰撞器模式时，会触发碰撞事件；当碰撞器是触发器模式时，会触发触发器事件，如果碰撞器同时是碰撞器和触发器，会同时触发碰撞和触发器事件。
-
-```typescript
-class CollisionScript extends Script {
-  // 碰撞器事件
-  onCollisionEnter(other: Collider) {
-    console.log("碰撞开始");
-  }
-
-  onCollisionStay(other: Collider) {
-    console.log("碰撞持续中");
-  }
-
-  onCollisionExit(other: Collider) {
-    console.log("碰撞结束");
-  }
-
-  // 触发器事件
-  onTriggerEnter(other: Collider) {
-    console.log("触发器进入");
-  }
-
-  onTriggerStay(other: Collider) {
-    console.log("触发器停留");
-  }
-
-  onTriggerExit(other: Collider) {
-    console.log("触发器退出");
-  }
-}
-```
-
-### 形状管理
-
-```typescript
-// 获取所有形状
-const shapes = staticCollider.shapes;
-
-// 增加形状
-const boxShape = new BoxColliderShape();
-staticCollider.addShape(boxShape);
-
-// 移除特定形状
-staticCollider.removeShape(boxShape);
-
-// 清空所有形状
-staticCollider.clearShapes();
-```
-
-复合碰撞形状的物理碰撞示例：
-
-<Playground href="/embed/physx-compound" />
-
-物理触发检测示例可以参考：
-
-<Playground href="/embed/physx-collision-detection" />
 
 ## 更多信息
 

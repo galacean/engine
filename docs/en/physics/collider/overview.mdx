@@ -129,64 +129,6 @@ const dynamicCollider = entity.addComponent(DynamicCollider);
 const characterController = entity.addComponent(CharacterController);
 ```
 
-### Collision/Trigger Events
-When the collider is in collider mode, collision events are triggered; when the collider is in trigger mode, trigger events are triggered. If the collider is both a collider and a trigger, both collision and trigger events are triggered.
-
-```typescript
-class CollisionScript extends Script {
-  // Collider events
-  onCollisionEnter(other: Collider) {
-    console.log("Collision started");
-  }
-
-  onCollisionStay(other: Collider) {
-    console.log("Collision ongoing");
-  }
-
-  onCollisionExit(other: Collider) {
-    console.log("Collision ended");
-  }
-
-  // Trigger events
-  onTriggerEnter(other: Collider) {
-    console.log("Trigger entered");
-  }
-
-  onTriggerStay(other: Collider) {
-    console.log("Trigger staying");
-  }
-
-  onTriggerExit(other: Collider) {
-    console.log("Trigger exited");
-  }
-}
-```
-
-### Shape Management
-
-```typescript
-// Get all shapes
-const shapes = staticCollider.shapes;
-
-// Add a shape
-const boxShape = new BoxColliderShape();
-staticCollider.addShape(boxShape);
-
-// Remove a specific shape
-staticCollider.removeShape(boxShape);
-
-// Clear all shapes
-staticCollider.clearShapes();
-```
-
-Examples of physical collisions with composite collision shapes:
-
-<Playground href="/embed/physx-compound" />
-
-Examples of physical trigger detection can be found at:
-
-<Playground href="/embed/physx-collision-detection" />
-
 ## More Information
 
 For detailed usage of each type of collider, please refer to their respective documentation:

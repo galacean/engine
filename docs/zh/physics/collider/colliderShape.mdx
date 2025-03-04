@@ -83,6 +83,26 @@ capsuleShape.height = 2;
 const planeShape = new PlaneColliderShape();
 ```
 
+
+
+### 形状管理
+
+```typescript
+// 获取所有形状
+const shapes = staticCollider.shapes;
+
+// 增加形状
+const boxShape = new BoxColliderShape();
+staticCollider.addShape(boxShape);
+
+// 移除特定形状
+staticCollider.removeShape(boxShape);
+
+// 清空所有形状
+staticCollider.clearShapes();
+```
+
+
 ### 设置物理材质
 
 ```typescript
@@ -179,6 +199,10 @@ class CollisionScript extends Script {
   }
 }
 ```
+
+#### 事件触发示例
+<Playground href="/embed/physx-collision-detection" />
+
 
 ### 常用场景示例
 
