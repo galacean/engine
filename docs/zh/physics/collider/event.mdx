@@ -1,0 +1,88 @@
+---
+order: 5
+title: 碰撞事件
+type: 物理
+label: Physics
+---
+
+碰撞事件是物理系统的重要组成部分，允许脚本响应物体之间的物理交互。Galacean 物理系统提供了两种类型的事件：碰撞事件和触发器事件。
+
+## 事件类型
+
+### 碰撞事件
+碰撞事件在两个处于碰撞器模式的碰撞器物理交互时触发。这些事件提供了关于碰撞的信息，如接触点、法线和涉及的另一个碰撞器。
+
+### 触发器事件
+触发器事件在碰撞器进入、停留或离开触发区域时触发。触发器是将 `isTrigger` 属性设置为 true 的碰撞形状。它们检测重叠而不引起物理反应。
+
+## 事件触发关系
+
+碰撞器和触发器之间的详细事件触发关系如下图所示：
+
+<Image src="https://mdn.alipayobjects.com/huamei_vvspai/afts/img/A*erlGRKk7dNMAAAAAAAAAAAAADsqFAQ/original" />
+
+## 碰撞器模式 VS 触发器模式
+
+| 模式 | 描述 | 使用场景 |
+| ---- | ---- | -------- |
+| **碰撞器模式** | 触发碰撞器事件，具有实际的物理碰撞效果 | 需要真实物理交互的物体 |
+| **触发器模式** | 仅触发事件回调，不产生物理碰撞 | 检测区域、触发机关等 |
+
+<Callout type="positive">
+碰撞器模式和触发器模式是碰撞形状的属性，一个碰撞器可以包含多个碰撞形状，每个形状都可以独立设置是否为触发器。这意味着：
+一个碰撞器可以同时具备两种模式，可以添加多个碰撞形状，有的设为碰撞器模式，有的设为触发器模式，这样可以同时实现物理碰撞和区域检测的功能
+</Callout>
+
+## 事件回调
+
+当两个碰撞器发生碰撞或触发器重叠时，会触发碰撞器所属实体上挂载的[脚本](/docs/script/script)中的回调函数。
+
+### 碰撞器事件回调
+| 事件名 | 触发时机 |
+| --- | --- |
+| [**onCollisionEnter**](/apis/core/#Script-onCollisionEnter) | 开始碰撞时触发 |
+| [**onCollisionExit**](/apis/core/#Script-onCollisionExit) | 结束碰撞时触发 |
+| [**onCollisionStay**](/apis/core/#Script-onCollisionStay) | 碰撞持续时触发 |
+
+### 触发器事件回调
+| 事件名 | 触发时机 |
+| --- | --- |
+| [**onTriggerEnter**](/apis/core/#Script-onTriggerEnter) | 进入触发器时触发 |
+| [**onTriggerExit**](/apis/core/#Script-onTriggerExit) | 离开触发器时触发 |
+| [**onTriggerStay**](/apis/core/#Script-onTriggerStay) | 在触发器内时持续触发 |
+
+## 脚本使用
+
+```typescript
+class EventHandler extends Script {
+  // 碰撞器事件
+  onCollisionEnter(other: Collider) {
+    console.log("碰撞开始，对象：", other.entity.name);
+  }
+
+  onCollisionStay(other: Collider) {
+    console.log("碰撞持续中，对象：", other.entity.name);
+  }
+
+  onCollisionExit(other: Collider) {
+    console.log("碰撞结束，对象：", other.entity.name);
+  }
+
+  // 触发器事件
+  onTriggerEnter(other: Collider) {
+    console.log("触发器开始，对象：", other.entity.name);
+  }
+
+  onTriggerStay(other: Collider) {
+    console.log("触发器持续中，对象：", other.entity.name);
+  }
+
+  onTriggerExit(other: Collider) {
+    console.log("触发器结束，对象：", other.entity.name);
+  }
+}
+```
+
+### 示例
+
+<Playground href="/embed/physx-collision-detection" />

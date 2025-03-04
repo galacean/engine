@@ -45,19 +45,8 @@ Collision shapes ([ColliderShape](/apis/core/#ColliderShape)) define the physica
   - true: Event triggers only, no physics
   - false: Normal physical collisions (default)
 
-#### Collider Mode VS Trigger Mode:
-| Mode | Description | Applicable Scenarios |
-| ---- | ---- | -------- |
-| **Collider Mode** | Triggers collider events and has actual physical collision effects | Objects requiring real physical interaction |
-| **Trigger Mode** | Only triggers event callbacks, no physical collision | Area detection, trigger mechanisms, etc. |
 
-<Callout type="positive">
-Collider mode and trigger mode are properties of collision shapes. A collider can contain multiple collision shapes, each of which can be independently set as a trigger. This means:
-A collider can have both modes simultaneously, with some shapes set to collider mode and others to trigger mode, allowing for both physical collisions and area detection
-</Callout>
-
-The detailed event trigger relationship is as follows: 
-<Image src="https://mdn.alipayobjects.com/huamei_vvspai/afts/img/A*erlGRKk7dNMAAAAAAAAAAAAADsqFAQ/original" />
+For detailed information about collision and trigger events, please refer to the [Collision Events](/docs/physics/collider/event) documentation.
 
 ## Script Usage
 
@@ -161,42 +150,6 @@ function createCompoundCollider(entity: Entity) {
 
 #### Example Reference
 <Playground href="/embed/physx-compound" />
-
-### Collision/Trigger Events
-When the collider is in collider mode, collision events are triggered; when the collider is in trigger mode, trigger events are triggered. If the collider is both a collider and a trigger, both collision and trigger events are triggered.
-
-```typescript
-class CollisionScript extends Script {
-  // Collider events
-  onCollisionEnter(other: Collider) {
-    console.log("Collision started");
-  }
-
-  onCollisionStay(other: Collider) {
-    console.log("Collision ongoing");
-  }
-
-  onCollisionExit(other: Collider) {
-    console.log("Collision ended");
-  }
-
-  // Trigger events
-  onTriggerEnter(other: Collider) {
-    console.log("Trigger entered");
-  }
-
-  onTriggerStay(other: Collider) {
-    console.log("Trigger staying");
-  }
-
-  onTriggerExit(other: Collider) {
-    console.log("Trigger exited");
-  }
-}
-```
-
-#### Event Trigger Example
-<Playground href="/embed/physx-collision-detection" />
 
 ### Common Scenarios
 

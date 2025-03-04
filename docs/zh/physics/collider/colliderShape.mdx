@@ -45,19 +45,8 @@ label: Physics
   - true：只触发触发器事件，不产生物理反应
   - false：正常的物理碰撞（默认）
 
-#### 碰撞器模式 VS 触发器模式:
-| 模式 | 描述 | 使用场景 |
-| ---- | ---- | -------- |
-| **碰撞器模式** | 触发碰撞器事件，具有实际的物理碰撞效果 | 需要真实物理交互的物体 |
-| **触发器模式** | 仅触发事件回调，不产生物理碰撞 | 检测区域、触发机关等 |
 
-<Callout type="positive">
-碰撞器模式和触发器模式是碰撞形状的属性，一个碰撞器可以包含多个碰撞形状，每个形状都可以独立设置是否为触发器。这意味着：
-一个碰撞器可以同时具备两种模式，可以添加多个碰撞形状，有的设为碰撞器模式，有的设为触发器模式，这样可以同时实现物理碰撞和区域检测的功能
-</Callout>
-
-详细的事件触发关系如下：
-<Image src="https://mdn.alipayobjects.com/huamei_vvspai/afts/img/A*erlGRKk7dNMAAAAAAAAAAAAADsqFAQ/original" />
+有关碰撞和触发器事件的详细信息，请参阅[碰撞事件](/docs/physics/collider/event)文档。
 
 ## 脚本使用
 
@@ -166,44 +155,6 @@ function createCompoundCollider(entity: Entity) {
 #### 示例参考
 <Playground href="/embed/physx-compound" />
 
-
-### 碰撞/触发事件
-当碰撞器是碰撞器模式时，会触发碰撞事件；当碰撞器是触发器模式时，会触发触发器事件，如果碰撞器同时是碰撞器和触发器，会同时触发碰撞和触发器事件。
-
-```typescript
-class CollisionScript extends Script {
-  // 碰撞器事件
-  onCollisionEnter(other: Collider) {
-    console.log("碰撞开始");
-  }
-
-  onCollisionStay(other: Collider) {
-    console.log("碰撞持续中");
-  }
-
-  onCollisionExit(other: Collider) {
-    console.log("碰撞结束");
-  }
-
-  // 触发器事件
-  onTriggerEnter(other: Collider) {
-    console.log("触发器进入");
-  }
-
-  onTriggerStay(other: Collider) {
-    console.log("触发器停留");
-  }
-
-  onTriggerExit(other: Collider) {
-    console.log("触发器退出");
-  }
-}
-```
-
-#### 事件触发示例
-<Playground href="/embed/physx-collision-detection" />
-
-
 ### 常用场景示例
 
 1. **创建地面**
@@ -268,7 +219,7 @@ function createWall(width: number, height: number, depth: number, friction: numb
 
 3. **创建斜坡**
 ```typescript
-// 创建一个带有摩擦力的斜坡
+// 创建一个带摩擦力的斜坡
 function createSlope(width: number, height: number, angle: number): Entity {
     const entity = new Entity();
     const collider = entity.addComponent(StaticCollider);
@@ -289,7 +240,7 @@ function createSlope(width: number, height: number, angle: number): Entity {
 }
 ```
 
-4. **创建带有不同材质的复合形状**
+4. **创建不同材质的复合形状**
 ```typescript
 // 创建一个混合材质的平台
 function createMixedPlatform(): Entity {

@@ -40,46 +40,10 @@ label: Physics
 | [CapsuleColliderShape](/apis/core/#CapsuleColliderShape) | 胶囊碰撞外形     | physics-physx                |
 
 2. **变换同步**：
-
    - 碰撞器会自动同步实体的世界变换，包括位置、旋转和缩放的同步
    - `碰撞形状` 可以设置相对于实体的局部偏移和旋转
 
-3. **触发器模式**：可以将 `碰撞形状` 设置为触发器模式，设置后发生重叠时不会产生物理反应，但会触发相应的触发器事件
-
-- 通过设置 `碰撞形状` 的 isTrigger 属性来开启/关闭触发器模式
-
-4. **碰撞器模式 VS 触发器模式**：
-   - 碰撞器模式：触发碰撞器事件，具有实际的物理碰撞效果
-   - 触发器模式：仅触发触发器事件回调，不产生物理碰撞
-
-<Callout type="positive">
-碰撞器模式和触发器模式是碰撞形状的属性，一个碰撞器可以包含多个碰撞形状，每个形状都可以独立设置是否为触发器。这意味着：
-一个碰撞器可以同时具备两种模式，可以添加多个碰撞形状，有的设为碰撞器模式，有的设为触发器模式，这样可以同时实现物理碰撞和区域检测的功能
-</Callout>
-
-### 碰撞/触发器事件回调
-当两个碰撞器发生碰撞或触发器重叠时，会触发碰撞器所属实体上挂载的[脚本](/docs/script/script)中的回调函数，具体如下：
-
-#### 碰撞器事件回调
-| 事件名                                                      | 触发时机             |
-| ----------------------------------------------------------- | -------------------- |
-| [**onCollisionEnter**](/apis/core/#Script-onCollisionEnter) | 开始碰撞时触发       |
-| [**onCollisionExit**](/apis/core/#Script-onCollisionExit)   | 结束碰撞时触发       |
-| [**onCollisionStay**](/apis/core/#Script-onCollisionStay)   | 碰撞持续时触发       |
-
-#### 触发器事件回调
-| 事件名                                                      | 触发时机             |
-| ----------------------------------------------------------- | -------------------- |
-| [**onTriggerEnter**](/apis/core/#Script-onTriggerEnter)     | 进入触发器时触发     |
-| [**onTriggerExit**](/apis/core/#Script-onTriggerExit)       | 离开触发器时触发     |
-| [**onTriggerStay**](/apis/core/#Script-onTriggerStay)       | 在触发器内时持续触发 |
-
-
-事件触发关系如下：
-<Image src="https://mdn.alipayobjects.com/huamei_vvspai/afts/img/A*erlGRKk7dNMAAAAAAAAAAAAADsqFAQ/original" />
-
-#### 示例
-<Playground href="/embed/physx-collision-detection" />
+3. **碰撞/触发事件**：碰撞器在与其他碰撞器交互时可以生成碰撞和触发器事件。有关这些事件的详细信息以及如何处理它们，请参阅[碰撞事件](/docs/physics/collider/event)文档。
 
 ## 最佳实践
 
@@ -133,8 +97,7 @@ const characterController = entity.addComponent(CharacterController);
 
 ## 更多信息
 
-有关各类型碰撞器的详细用法请参考各自的文档:
-
-- [动态碰撞器详细说明](/docs/physics/collider/dynamicCollider)
-- [静态碰撞器详细说明](/docs/physics/collider/staticCollider)
-- [角色控制器详细说明](/docs/physics/collider/characterController)
+- [动态碰撞器文档](/docs/physics/collider/dynamicCollider)
+- [静态碰撞器文档](/docs/physics/collider/staticCollider)
+- [角色控制器文档](/docs/physics/collider/characterController)
+- [碰撞事件文档](/docs/physics/collider/event)

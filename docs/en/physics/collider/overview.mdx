@@ -40,46 +40,10 @@ Currently, four types of `collision shapes` are supported, but the support varie
 | [CapsuleColliderShape](/apis/core/#CapsuleColliderShape) | Capsule-shaped collision shape     | physics-physx                |
 
 2. **Transform Synchronization**:
-
    - Colliders automatically synchronize the world transform of the entity, including position, rotation, and scale
    - `Collision shapes` can be set with local offsets and rotations relative to the entity
 
-3. **Trigger Mode**: `Collision shapes` can be set to trigger mode, where overlapping does not produce physical reactions but triggers corresponding trigger events
-
-- Trigger mode can be enabled/disabled by setting the isTrigger property of the `collision shape`
-
-4. **Collider Mode VS Trigger Mode**:
-   - Collider Mode: Triggers collider events and has actual physical collision effects
-   - Trigger Mode: Only triggers trigger event callbacks without physical collision
-
-<Callout type="positive">
-Collider mode and trigger mode are properties of collision shapes. A collider can contain multiple collision shapes, each of which can be independently set as a trigger. This means:
-A collider can have both modes simultaneously, with some shapes set to collider mode and others to trigger mode, allowing for both physical collisions and area detection
-</Callout>
-
-### Collision/Trigger Event Callbacks
-When two colliders collide or trigger overlaps occur, callback functions in [scripts](/docs/script/script) attached to the entity owning the collider will be triggered, as follows:
-
-#### Collider Event Callbacks
-| Event Name                                                  | Trigger Timing       |
-| ----------------------------------------------------------- | -------------------- |
-| [**onCollisionEnter**](/apis/core/#Script-onCollisionEnter) | Triggered when collision starts       |
-| [**onCollisionExit**](/apis/core/#Script-onCollisionExit)   | Triggered when collision ends       |
-| [**onCollisionStay**](/apis/core/#Script-onCollisionStay)   | Triggered when collision continues       |
-
-#### Trigger Event Callbacks
-| Event Name                                                  | Trigger Timing       |
-| ----------------------------------------------------------- | -------------------- |
-| [**onTriggerEnter**](/apis/core/#Script-onTriggerEnter)     | Triggered when entering the trigger     |
-| [**onTriggerExit**](/apis/core/#Script-onTriggerExit)       | Triggered when exiting the trigger     |
-| [**onTriggerStay**](/apis/core/#Script-onTriggerStay)       | Triggered when staying inside the trigger |
-
-The detailed event trigger relationship is as follows: 
-<Image src="https://mdn.alipayobjects.com/huamei_vvspai/afts/img/A*erlGRKk7dNMAAAAAAAAAAAAADsqFAQ/original" />
-
-#### Example
-<Playground href="/embed/physx-collision-detection" />
-
+3. **Collision/Trigger Events**: Colliders can generate collision and trigger events when interacting with other colliders. For detailed information on these events and how to handle them, please refer to the [Collision Events](/docs/physics/collider/event) documentation.
 ## Best Practices
 
 1. **Reasonable Use of Shapes**
@@ -131,8 +95,7 @@ const characterController = entity.addComponent(CharacterController);
 
 ## More Information
 
-For detailed usage of each type of collider, please refer to their respective documentation:
-
-- [Dynamic Collider Detailed Explanation](/docs/physics/collider/dynamicCollider)
-- [Static Collider Detailed Explanation](/docs/physics/collider/staticCollider)
-- [Character Controller Detailed Explanation](/docs/physics/collider/characterController)
+- [Dynamic Collider Documentation](/docs/physics/collider/dynamicCollider)
+- [Static Collider Documentation](/docs/physics/collider/staticCollider)
+- [Character Controller Documentation](/docs/physics/collider/characterController)
+- [Collision Events Documentation](/docs/physics/collider/event)
