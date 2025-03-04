@@ -11,7 +11,7 @@ Character Controller ([CharacterController](/apis/core/#CharacterController)) is
 
 1. Select the target entity and click the Add Component button in the inspector to add the CharacterController component.
 
-![Add Character Controller](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*nEMXRKiqpy8AAAAAAAAAAAAAesJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*nEMXRKiqpy8AAAAAAAAAAAAAesJ_AQ/original" />
 
 2. Set the collision shape of the controller to match the character's appearance as closely as possible. For detailed instructions on collision shapes, please refer to the [Collision Shape](/docs/physics/collider/colliderShape) documentation.
 
@@ -19,17 +19,21 @@ Character Controller ([CharacterController](/apis/core/#CharacterController)) is
 Unlike other colliders, the character controller can only add one collision shape. It is generally recommended to use a capsule shape (CapsuleColliderShape) as the character's collision shape.
 </Callout>
 
-![Configure Collision Shape](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*4QvUTI4D89EAAAAAAAAAAAAAesJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*4QvUTI4D89EAAAAAAAAAAAAAesJ_AQ/original" />
 
-![Match Shape](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*aRGqSIMqDmsAAAAAAAAAAAAAesJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*aRGqSIMqDmsAAAAAAAAAAAAAesJ_AQ/original" />
 
 3. Adjust the properties of the collider as needed to modify the physical behavior of the object. The meaning and function of each property are explained below.
 
 ## Property Explanation
-In addition to the common collider properties (see [Collider Overview](/docs/physics/collider/overview)), the character controller has the following specific properties:
 
-### Basic Properties
 
+### Inherited from Collider
+| Property                                  | Description       |
+| ----------------------------------------- | ----------------- |
+| [**shapes**](/apis/core/#Collider-shapes) | Collection of collision shapes |
+
+### CharacterController Specific Properties
 | Property | Description | Default Value |
 | ---- | ---- | ------ |
 | [**stepOffset**](/apis/core/#CharacterController-stepOffset) | The maximum step height the character can automatically step over. <ul><li>Must be greater than or equal to 0</li><li>Actual step height = stepOffset + contact offset of the collision shape</li></ul> | 0.5 |
@@ -38,8 +42,16 @@ In addition to the common collider properties (see [Collider Overview](/docs/phy
 | [**upDirection**](/apis/core/#CharacterController-upDirection) | Defines the upward direction of the character. The default is (0, 1, 0), which is the Y-axis in world space. Affects the direction determination for movement and collision detection | (0, 1, 0) |
 
 ## Methods
-In addition to the common collider methods (see [Collider Overview](/docs/physics/collider/overview)), the character controller has the following specific methods:
 
+
+### Inherited from Collider
+| Method Name                                          | Description       |
+| --------------------------------------------------- | ----------------- |
+| [**addShape**](/apis/core/#Collider-addShape)       | Add a collision shape     |
+| [**removeShape**](/apis/core/#Collider-removeShape) | Remove a specified collision shape |
+| [**clearShapes**](/apis/core/#Collider-clearShapes) | Clear all collision shapes |
+
+### CharacterController Specific Methods
 | Method Name | Description |
 | ---- | ---- |
 | [**move**](/apis/core/#CharacterController-move) | Moves the character controller. Returns a collision flag value indicating the collision state. <ul><li>displacement: Movement vector</li><li>minDist: Minimum movement distance</li><li>elapsedTime: Elapsed time</li></ul> |

@@ -11,22 +11,27 @@ Dynamic Collider ([DynamicCollider](/apis/core/#DynamicCollider)) is used to sim
 
 1. Select the target entity and click the Add Component button in the inspector to add the DynamicCollider component.
 
-![Add Dynamic Collider](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Ep4xTqWpligAAAAAAAAAAAAAesJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Ep4xTqWpligAAAAAAAAAAAAAesJ_AQ/original" />
 
 2. Add a collision shape to the collider. Dynamic colliders support adding multiple collision shapes. For detailed instructions on collision shapes, please refer to the [Collision Shape](/docs/physics/collider/colliderShape) documentation. Currently, the following types are supported:
 
-![Add Collision Shape](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*np90QZkKqXUAAAAAAAAAAAAAesJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*np90QZkKqXUAAAAAAAAAAAAAesJ_AQ/original" />
 
 3. Adjust the position, size, and other properties of the collision shape to match the scene elements.
 
-![Shape Matching](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QthGTLWFSh8AAAAAAAAAAAAAesJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QthGTLWFSh8AAAAAAAAAAAAAesJ_AQ/original" />
 
 4. Adjust the properties of the collider as needed to modify the physical behavior of the object. The meaning and function of each property are explained below.
 
 ## Property Explanation
-In addition to the common collider properties (see [Collider Overview](/docs/physics/collider/overview)), the dynamic collider has the following specific properties:
 
-### Basic Properties
+
+### Inherited from Collider
+| Property                                  | Description       |
+| ----------------------------------------- | ----------------- |
+| [**shapes**](/apis/core/#Collider-shapes) | Collection of collision shapes |
+
+### DynamicCollider Specific Properties
 
 | Property            | Description                                                      | Default Value |
 | --------------- | --------------------------------------------------------- | ------ |
@@ -136,9 +141,16 @@ gameObject.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative
    - Balance between performance and precision: Use ContinuousSpeculative
    - Precision priority: Use ContinuousDynamic
 
-## Public Methods
-In addition to the common collider methods (see [Collider Overview](/docs/physics/collider/overview)), the dynamic collider has the following specific methods:
+## Methods
 
+### Inherited from Collider
+| Method Name                                          | Description       |
+| --------------------------------------------------- | ----------------- |
+| [**addShape**](/apis/core/#Collider-addShape)       | Add a collision shape     |
+| [**removeShape**](/apis/core/#Collider-removeShape) | Remove a specified collision shape |
+| [**clearShapes**](/apis/core/#Collider-clearShapes) | Clear all collision shapes |
+
+### DynamicCollider Specific Methods
 | Method Name          | Description               |
 | --------------- | ------------------ |
 | [**applyForce**](/apis/core/#DynamicCollider-applyForce)  | Apply force             |
@@ -278,3 +290,4 @@ customCollider.automaticCenterOfMass = false;
 customCollider.automaticInertiaTensor = false;
 customCollider.centerOfMass = new Vector3(0, 0.5, 0); // Manually set center of mass
 customCollider.inertiaTensor = new Vector3(1, 1, 1); // Manually set inertia tensor
+```

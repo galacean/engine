@@ -11,7 +11,7 @@ label: Physics
 
 1. 选中目标实体，并在检查器中点击添加组件按钮，添加 CharacterController 组件。
 
-![添加角色控制器](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*nEMXRKiqpy8AAAAAAAAAAAAAesJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*nEMXRKiqpy8AAAAAAAAAAAAAesJ_AQ/original" />
 
 2. 设置控制器的碰撞形状，使碰撞形状与角色的外形相尽量匹配。关于碰撞形状的详细说明请参考[碰撞形状](/docs/physics/collider/colliderShape)文档。
 
@@ -19,15 +19,22 @@ label: Physics
 与其他碰撞器不同，角色控制器只能添加一个碰撞形状。通常建议使用胶囊体（CapsuleColliderShape）作为角色的碰撞形状。
 </Callout>
 
-![配置碰撞外形](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*4QvUTI4D89EAAAAAAAAAAAAAesJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*4QvUTI4D89EAAAAAAAAAAAAAesJ_AQ/original" />
 
-![匹配外形](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*aRGqSIMqDmsAAAAAAAAAAAAAesJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*aRGqSIMqDmsAAAAAAAAAAAAAesJ_AQ/original" />
 
 3. 根据需要设置碰撞器的属性调整物体的物理行为，各属性的含义和作用请参考下文。
 
-## 属性说明
-除了碰撞器的通用属性外（见[碰撞器概览文档](/docs/physics/collider/overview)），角色控制器的自身属性如下：
 
+
+## 属性说明
+
+### 继承自 Collider 的属性
+| 属性                                      | 描述         |
+| ----------------------------------------- | ------------ |
+| [**shapes**](/apis/core/#Collider-shapes) | 碰撞形状集合 |
+
+### 特有属性
 | 属性 | 描述 | 默认值 |
 | ---- | ---- | ------ |
 | [**stepOffset**](/apis/core/#CharacterController-stepOffset) | 角色可以自动跨越的最大台阶高度。<ul><li>必须大于等于 0</li><li>实际可跨越高度 = stepOffset + 碰撞形状的接触偏移</li></ul> | 0.5 |
@@ -36,8 +43,15 @@ label: Physics
 | [**upDirection**](/apis/core/#CharacterController-upDirection) | 定义角色的向上方向。默认为 (0, 1, 0)，即世界空间的 Y 轴向上。影响移动和碰撞检测的方向判定 | (0, 1, 0) |
 
 ## 公开方法
-除了碰撞器的通用属性外（见[碰撞器概览文档](/docs/physics/collider/overview)），角色控制器的自身公开方法如下：
 
+### 继承自 Collider 的方法
+| 方法名                                              | 描述             |
+| --------------------------------------------------- | ---------------- |
+| [**addShape**](/apis/core/#Collider-addShape)       | 添加碰撞形状     |
+| [**removeShape**](/apis/core/#Collider-removeShape) | 移除指定碰撞形状 |
+| [**clearShapes**](/apis/core/#Collider-clearShapes) | 清空所有碰撞形状 |
+
+### 特有方法
 | 方法名 | 描述 |
 | ---- | ---- |
 | [**move**](/apis/core/#CharacterController-move) | 移动角色控制器。返回一个碰撞标志值，标识碰撞状态。<ul><li>displacement：移动向量</li><li>minDist：最小移动距离</li><li>elapsedTime：经过的时间</li></ul> |

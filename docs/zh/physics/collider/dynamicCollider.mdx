@@ -11,22 +11,26 @@ label: Physics
 
 1. 选中目标实体，并在检查器中点击添加组件按钮，添加 DynamicCollider 组件。
 
-![添加动态碰撞器](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Ep4xTqWpligAAAAAAAAAAAAAesJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Ep4xTqWpligAAAAAAAAAAAAAesJ_AQ/original" />
 
 2. 为碰撞器添加碰撞形状。动态碰撞器支持添加多个碰撞形状，关于碰撞形状的详细说明请参考[碰撞形状](/docs/physics/collider/colliderShape)文档。目前支持以下类型：
 
-![添加碰撞形状](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*np90QZkKqXUAAAAAAAAAAAAAesJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*np90QZkKqXUAAAAAAAAAAAAAesJ_AQ/original" />
 
 3. 调整碰撞形状的位置、大小等属性，使其与场景元素匹配。
 
-![形状匹配](https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QthGTLWFSh8AAAAAAAAAAAAAesJ_AQ/original)
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QthGTLWFSh8AAAAAAAAAAAAAesJ_AQ/original" />
 
 4. 根据需要设置碰撞器的属性调整物体的物理行为，各属性的含义和作用请参考下文。
 
 ## 属性说明
-除了碰撞器的通用属性外（见[碰撞器概览文档](/docs/physics/collider/overview)），动态碰撞器的自身属性如下：
 
-### 基础属性
+### 继承自 Collider 的属性
+| 属性                                      | 描述         |
+| ----------------------------------------- | ------------ |
+| [**shapes**](/apis/core/#Collider-shapes) | 碰撞形状集合 |
+
+### 特有属性
 
 | 属性            | 描述                                                      | 默认值 |
 | --------------- | --------------------------------------------------------- | ------ |
@@ -138,8 +142,15 @@ gameObject.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative
 
 
 ## 公开方法
-除了碰撞器的通用方法外（见[碰撞器概览文档](/docs/physics/collider/overview)），动态碰撞器的自身公开方法如下：
 
+### 继承自 Collider 的方法
+| 方法名                                              | 描述             |
+| --------------------------------------------------- | ---------------- |
+| [**addShape**](/apis/core/#Collider-addShape)       | 添加碰撞形状     |
+| [**removeShape**](/apis/core/#Collider-removeShape) | 移除指定碰撞形状 |
+| [**clearShapes**](/apis/core/#Collider-clearShapes) | 清空所有碰撞形状 |
+
+### 特有方法
 | 方法名          | 描述               |
 | --------------- | ------------------ |
 | [**applyForce**](/apis/core/#DynamicCollider-applyForce)  | 施加力             |
@@ -280,4 +291,3 @@ customCollider.automaticInertiaTensor = false;
 customCollider.centerOfMass = new Vector3(0, 0.5, 0); // 手动设置质心
 customCollider.inertiaTensor = new Vector3(1, 1, 1); // 手动设置惯性张量
 ```
-````

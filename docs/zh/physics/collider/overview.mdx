@@ -1,6 +1,6 @@
 ---
 order: 1
-title: 碰撞器概述
+title: 碰撞器
 type: 物理
 label: Physics
 ---
@@ -57,32 +57,29 @@ label: Physics
 一个碰撞器可以同时具备两种模式，可以添加多个碰撞形状，有的设为碰撞器模式，有的设为触发器模式，这样可以同时实现物理碰撞和区域检测的功能
 </Callout>
 
-详细的事件触发关系如下： ![table](https://mdn.alipayobjects.com/huamei_vvspai/afts/img/A*erlGRKk7dNMAAAAAAAAAAAAADsqFAQ/original)
+### 碰撞/触发器事件回调
+当两个碰撞器发生碰撞或触发器重叠时，会触发碰撞器所属实体上挂载的[脚本](/docs/script/script)中的回调函数，具体如下：
 
-## 共有属性
-
-| 属性                                      | 描述         |
-| ----------------------------------------- | ------------ |
-| [**shapes**](/apis/core/#Collider-shapes) | 碰撞形状集合 |
-
-## 共有方法
-
-| 方法名                                              | 描述             |
-| --------------------------------------------------- | ---------------- |
-| [**addShape**](/apis/core/#Collider-addShape)       | 添加碰撞形状     |
-| [**removeShape**](/apis/core/#Collider-removeShape) | 移除指定碰撞形状 |
-| [**clearShapes**](/apis/core/#Collider-clearShapes) | 清空所有碰撞形状 |
-
-## 共有事件
-
+#### 碰撞器事件回调
 | 事件名                                                      | 触发时机             |
 | ----------------------------------------------------------- | -------------------- |
 | [**onCollisionEnter**](/apis/core/#Script-onCollisionEnter) | 开始碰撞时触发       |
 | [**onCollisionExit**](/apis/core/#Script-onCollisionExit)   | 结束碰撞时触发       |
 | [**onCollisionStay**](/apis/core/#Script-onCollisionStay)   | 碰撞持续时触发       |
+
+#### 触发器事件回调
+| 事件名                                                      | 触发时机             |
+| ----------------------------------------------------------- | -------------------- |
 | [**onTriggerEnter**](/apis/core/#Script-onTriggerEnter)     | 进入触发器时触发     |
 | [**onTriggerExit**](/apis/core/#Script-onTriggerExit)       | 离开触发器时触发     |
 | [**onTriggerStay**](/apis/core/#Script-onTriggerStay)       | 在触发器内时持续触发 |
+
+
+事件触发关系如下：
+<Image src="https://mdn.alipayobjects.com/huamei_vvspai/afts/img/A*erlGRKk7dNMAAAAAAAAAAAAADsqFAQ/original" />
+
+#### 示例
+<Playground href="/embed/physx-collision-detection" />
 
 ## 最佳实践
 

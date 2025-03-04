@@ -1,6 +1,6 @@
 ---
 order: 1
-title: Collider Overview
+title: Collider
 type: Physics
 label: Physics
 ---
@@ -57,32 +57,28 @@ Collider mode and trigger mode are properties of collision shapes. A collider ca
 A collider can have both modes simultaneously, with some shapes set to collider mode and others to trigger mode, allowing for both physical collisions and area detection
 </Callout>
 
-The detailed event trigger relationship is as follows: ![table](https://mdn.alipayobjects.com/huamei_vvspai/afts/img/A*erlGRKk7dNMAAAAAAAAAAAAADsqFAQ/original)
+### Collision/Trigger Event Callbacks
+When two colliders collide or trigger overlaps occur, callback functions in [scripts](/docs/script/script) attached to the entity owning the collider will be triggered, as follows:
 
-## Common Properties
-
-| Property                                  | Description       |
-| ----------------------------------------- | ----------------- |
-| [**shapes**](/apis/core/#Collider-shapes) | Collection of collision shapes |
-
-## Common Methods
-
-| Method Name                                          | Description       |
-| --------------------------------------------------- | ----------------- |
-| [**addShape**](/apis/core/#Collider-addShape)       | Add a collision shape     |
-| [**removeShape**](/apis/core/#Collider-removeShape) | Remove a specified collision shape |
-| [**clearShapes**](/apis/core/#Collider-clearShapes) | Clear all collision shapes |
-
-## Common Events
-
+#### Collider Event Callbacks
 | Event Name                                                  | Trigger Timing       |
 | ----------------------------------------------------------- | -------------------- |
 | [**onCollisionEnter**](/apis/core/#Script-onCollisionEnter) | Triggered when collision starts       |
 | [**onCollisionExit**](/apis/core/#Script-onCollisionExit)   | Triggered when collision ends       |
 | [**onCollisionStay**](/apis/core/#Script-onCollisionStay)   | Triggered when collision continues       |
+
+#### Trigger Event Callbacks
+| Event Name                                                  | Trigger Timing       |
+| ----------------------------------------------------------- | -------------------- |
 | [**onTriggerEnter**](/apis/core/#Script-onTriggerEnter)     | Triggered when entering the trigger     |
 | [**onTriggerExit**](/apis/core/#Script-onTriggerExit)       | Triggered when exiting the trigger     |
 | [**onTriggerStay**](/apis/core/#Script-onTriggerStay)       | Triggered when staying inside the trigger |
+
+The detailed event trigger relationship is as follows: 
+<Image src="https://mdn.alipayobjects.com/huamei_vvspai/afts/img/A*erlGRKk7dNMAAAAAAAAAAAAADsqFAQ/original" />
+
+#### Example
+<Playground href="/embed/physx-collision-detection" />
 
 ## Best Practices
 
