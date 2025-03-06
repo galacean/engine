@@ -156,14 +156,14 @@ export class UICanvas extends Component implements IElement {
       this._renderCamera = value;
       this._updateCameraObserver();
       const preRenderMode = this._realRenderMode;
-      if (preRenderMode === CanvasRenderMode.ScreenSpaceCamera) {
-        const curRenderMode = this._getRealRenderMode();
+      const curRenderMode = this._getRealRenderMode();
+      if (preRenderMode === curRenderMode) {
         if (curRenderMode === CanvasRenderMode.ScreenSpaceCamera) {
           this._adapterPoseInScreenSpace();
           this._adapterSizeInScreenSpace();
         }
       } else {
-        this._setRealRenderMode(this._getRealRenderMode());
+        this._setRealRenderMode(curRenderMode);
       }
     }
   }
