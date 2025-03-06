@@ -155,7 +155,16 @@ export class UICanvas extends Component implements IElement {
     if (preCamera !== value) {
       this._renderCamera = value;
       this._updateCameraObserver();
-      this._setRealRenderMode(this._getRealRenderMode());
+      const preRenderMode = this._realRenderMode;
+      if (preRenderMode === CanvasRenderMode.ScreenSpaceCamera) {
+        const curRenderMode = this._getRealRenderMode();
+        if (curRenderMode === CanvasRenderMode.ScreenSpaceCamera) {
+          this._adapterPoseInScreenSpace();
+          this._adapterSizeInScreenSpace();
+        }
+      } else {
+        this._setRealRenderMode(this._getRealRenderMode());
+      }
     }
   }
 
@@ -318,8 +327,9 @@ export class UICanvas extends Component implements IElement {
       case CanvasRenderMode.WorldSpace:
         const boundsCenter = this._getCenter();
         if (isOrthographic) {
-          Vector3.subtract(boundsCenter, cameraPosition, boundsCenter);
-          this._sortDistance = Vector3.dot(boundsCenter, cameraForward);
+          const tempVec3 = UICanvas._tempVec3;
+          Vector3.subtract(boundsCenter, cameraPosition, tempVec3);
+          this._sortDistance = Vector3.dot(tempVec3, cameraForward);
         } else {
           this._sortDistance = Vector3.distanceSquared(boundsCenter, cameraPosition);
         }
@@ -382,15 +392,18 @@ export class UICanvas extends Component implements IElement {
     const transform = this.entity.transform;
     const realRenderMode = this._realRenderMode;
     if (realRenderMode === CanvasRenderMode.ScreenSpaceCamera) {
-      const { transform: cameraTransform } = this._renderCamera.entity;
-      const { worldPosition: cameraWorldPosition, worldForward: cameraWorldForward } = cameraTransform;
-      const distance = this._distance;
-      transform.setWorldPosition(
-        cameraWorldPosition.x + cameraWorldForward.x * distance,
-        cameraWorldPosition.y + cameraWorldForward.y * distance,
-        cameraWorldPosition.z + cameraWorldForward.z * distance
-      );
-      transform.worldRotationQuaternion.copyFrom(cameraTransform.worldRotationQuaternion);
+      const cameraEntity = this._renderCamera.entity;
+      if (!this._isSameOrChildEntity(cameraEntity)) {
+        const { transform: cameraTransform } = cameraEntity;
+        const { worldPosition: cameraWorldPosition, worldForward: cameraWorldForward } = cameraTransform;
+        const distance = this._distance;
+        transform.setWorldPosition(
+          cameraWorldPosition.x + cameraWorldForward.x * distance,
+          cameraWorldPosition.y + cameraWorldForward.y * distance,
+          cameraWorldPosition.z + cameraWorldForward.z * distance
+        );
+        transform.worldRotationQuaternion.copyFrom(cameraTransform.worldRotationQuaternion);
+      }
     } else {
       const { canvas } = this.engine;
       transform.setWorldPosition(canvas.width * 0.5, canvas.height * 0.5, 0);
@@ -645,6 +658,15 @@ export class UICanvas extends Component implements IElement {
           break;
       }
     }
+  }
+
+  private _isSameOrChildEntity(cameraEntity: Entity): boolean {
+    const canvasEntity = this.entity;
+    while (cameraEntity) {
+      if (cameraEntity === canvasEntity) return true;
+      cameraEntity = cameraEntity.parent;
+    }
+    return false;
   }
 }
 
