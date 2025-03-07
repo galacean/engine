@@ -1,0 +1,89 @@
+---
+order: 5
+title: Collision Events
+type: Physics
+label: Physics
+---
+
+Collision events are an important part of the physics system, allowing scripts to respond to physical interactions between objects. The Galacean physics system provides two types of events: collision events and trigger events.
+
+## Event Types
+
+### Collision Events
+Collision events are triggered when two colliders in collider mode physically interact with each other. These events provide information about the collision, such as the contact point, normal, and the other collider involved.
+
+### Trigger Events
+Trigger events are triggered when a collider enters, stays in, or exits a trigger area. Triggers are collision shapes with the `isTrigger` property set to true. They detect overlaps without causing physical reactions.
+
+## Event Trigger Relationship
+
+The detailed event trigger relationship between colliders and triggers is illustrated below:
+
+<Image src="https://mdn.alipayobjects.com/huamei_vvspai/afts/img/A*erlGRKk7dNMAAAAAAAAAAAAADsqFAQ/original" />
+
+## Collider Mode VS Trigger Mode
+
+| Mode | Description | Applicable Scenarios |
+| ---- | ---- | -------- |
+| **Collider Mode** | Triggers collider events and has actual physical collision effects | Objects requiring real physical interaction |
+| **Trigger Mode** | Only triggers event callbacks, no physical collision | Area detection, trigger mechanisms, etc. |
+
+<Callout type="positive">
+Collider mode and trigger mode are properties of collision shapes. A collider can contain multiple collision shapes, each of which can be independently set as a trigger. This means:
+A collider can have both modes simultaneously, with some shapes set to collider mode and others to trigger mode, allowing for both physical collisions and area detection
+</Callout>
+
+## Event Callbacks
+
+When two colliders collide or trigger overlaps occur, callback functions in [scripts](/docs/script/script) attached to the entity owning the collider will be triggered.
+
+### Collider Event Callbacks
+| Event Name | Trigger Timing |
+| --- | --- |
+| [**onCollisionEnter**](/apis/core/#Script-onCollisionEnter) | Triggered when collision starts |
+| [**onCollisionExit**](/apis/core/#Script-onCollisionExit) | Triggered when collision ends |
+| [**onCollisionStay**](/apis/core/#Script-onCollisionStay) | Triggered when collision continues |
+
+### Trigger Event Callbacks
+| Event Name | Trigger Timing |
+| --- | --- |
+| [**onTriggerEnter**](/apis/core/#Script-onTriggerEnter) | Triggered when entering the trigger |
+| [**onTriggerExit**](/apis/core/#Script-onTriggerExit) | Triggered when exiting the trigger |
+| [**onTriggerStay**](/apis/core/#Script-onTriggerStay) | Triggered when staying inside the trigger |
+
+
+## Script Usage
+
+```typescript
+class EventHandler extends Script {
+  // Collider events
+  onCollisionEnter(other: Collider) {
+    console.log("Collision started, object:", other.entity.name);
+  }
+
+  onCollisionStay(other: Collider) {
+    console.log("Collision ongoing, object:", other.entity.name);
+  }
+
+  onCollisionExit(other: Collider) {
+    console.log("Collision ended, object:", other.entity.name);
+  }
+
+  // Trigger events
+  onTriggerEnter(other: Collider) {
+    console.log("Trigger started, object:", other.entity.name);
+  }
+
+  onTriggerStay(other: Collider) {
+    console.log("Trigger ongoing, object:", other.entity.name);
+  }
+
+  onTriggerExit(other: Collider) {
+    console.log("Trigger ended, object:", other.entity.name);
+  }
+}
+```
+
+### Example
+
+<Playground href="/embed/physx-collision-detection" />

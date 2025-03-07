@@ -1,0 +1,296 @@
+---
+order: 4
+title: 碰撞形状
+type: 物理
+label: Physics
+---
+
+碰撞形状（[ColliderShape](/apis/core/#ColliderShape)）定义了碰撞器的物理外形。Galacean 提供了多种基础碰撞形状，可以通过组合这些形状来构建复杂的碰撞区域。
+
+## 支持的形状类型
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*jsEBTIs9C_MAAAAAAAAAAAAAesJ_AQ/original" />
+
+| 形状类型 | 特点 | 后端支持 |
+| -------- | ---- | -------- |
+| [**BoxColliderShape**](/apis/core/#BoxColliderShape) | 最基础的碰撞形状<br/>适用于方形、矩形物体<br/>可以通过 size 属性调整三个轴向的大小 | 所有物理后端 |
+| [**SphereColliderShape**](/apis/core/#SphereColliderShape) | 用于球形物体的碰撞检测<br/>通过 radius 属性设置半径 | 所有物理后端 |
+| [**PlaneColliderShape**](/apis/core/#PlaneColliderShape) | 无限大的平面碰撞体<br/>通常用作地面 | 仅 physics-physx 后端 |
+| [**CapsuleColliderShape**](/apis/core/#CapsuleColliderShape) | 由圆柱体和两个半球组成<br/>适用于角色碰撞器<br/>可以设置 radius 和 height | 仅 physics-physx 后端 |
+
+## 基本属性
+
+### 变换属性
+- [**position**](/apis/core/#ColliderShape-position)  
+  形状相对于碰撞器实体的局部位置偏移。
+
+- [**rotation**](/apis/core/#ColliderShape-rotation)  
+  形状相对于碰撞器实体的局部旋转。
+
+### 物理材质
+- [**material**](/apis/core/#ColliderShape-material)  
+  定义形状的物理材质属性。每个碰撞形状都需要有一个物理材质，用于定义其物理特性：
+
+| 属性 | 描述 | 默认值 |
+| ---- | ---- | ------ |
+| [**staticFriction**](/apis/core/#PhysicsMaterial-staticFriction) | 物体静止时的摩擦系数，值越大物体越难开始移动 | 0.6 |
+| [**dynamicFriction**](/apis/core/#PhysicsMaterial-dynamicFriction) | 物体运动时的摩擦系数，值越大物体移动时受到的阻力越大 | 0.6 |
+| [**bounciness**](/apis/core/#PhysicsMaterial-bounciness) | 碰撞反弹程度，取值范围 0-1，0 表示完全不反弹，1 表示完全弹性碰撞 | 0 |
+| [**bounceCombine**](/apis/core/#PhysicsMaterial-bounceCombine) | 定义两个碰撞物体的弹性系数如何组合: <ul><li>Average: 取两者平均值（默认）</li><li>Minimum: 取两者中的最小值</li><li>Maximum: 取两者中的最大值</li><li>Multiply: 将两者相乘</li></ul> | Average |
+| [**frictionCombine**](/apis/core/#PhysicsMaterial-frictionCombine) | 定义两个碰撞物体的摩擦系数如何组合: <ul><li>Average: 取两者平均值（默认）</li><li>Minimum: 取两者中的最小值</li><li>Maximum: 取两者中的最大值</li><li>Multiply: 将两者相乘</li></ul> | Average |
+
+### 触发器设置
+- [**isTrigger**](/apis/core/#ColliderShape-isTrigger)  
+  是否作为触发器使用：
+  - true：只触发触发器事件，不产生物理反应
+  - false：正常的物理碰撞（默认）
+
+
+有关碰撞和触发器事件的详细信息，请参阅[碰撞事件](/docs/physics/collider/event)文档。
+
+## 脚本使用
+
+### 创建基础形状
+
+```typescript
+// 创建盒形碰撞器
+const boxShape = new BoxColliderShape();
+boxShape.size = new Vector3(1, 1, 1);
+boxShape.position = new Vector3(0, 0.5, 0);
+
+// 创建球形碰撞器
+const sphereShape = new SphereColliderShape();
+sphereShape.radius = 0.5;
+sphereShape.position = new Vector3(0, 1, 0);
+
+// 创建胶囊体碰撞器
+const capsuleShape = new CapsuleColliderShape();
+capsuleShape.radius = 0.5;
+capsuleShape.height = 2;
+
+// 创建平面碰撞器
+const planeShape = new PlaneColliderShape();
+```
+
+
+
+### 形状管理
+
+```typescript
+// 获取所有形状
+const shapes = staticCollider.shapes;
+
+// 增加形状
+const boxShape = new BoxColliderShape();
+staticCollider.addShape(boxShape);
+
+// 移除特定形状
+staticCollider.removeShape(boxShape);
+
+// 清空所有形状
+staticCollider.clearShapes();
+```
+
+
+### 设置物理材质
+
+```typescript
+// 创建物理材质并配置属性
+const material = new PhysicsMaterial();
+material.staticFriction = 0.6;    // 静摩擦系数
+material.dynamicFriction = 0.4;   // 动摩擦系数
+material.bounciness = 0.5;        // 弹性系数
+
+// 设置材质的组合模式
+material.frictionCombine = PhysicsMaterialCombineMode.Average;  // 摩擦力组合方式
+material.bounceCombine = PhysicsMaterialCombineMode.Maximum;    // 弹性组合方式
+
+// 将材质应用到碰撞形状
+const shape = new BoxColliderShape();
+shape.material = material;
+
+// 为不同的形状设置不同的材质
+const iceShape = new BoxColliderShape();
+const iceMaterial = new PhysicsMaterial();
+iceMaterial.staticFriction = 0.1;
+iceMaterial.dynamicFriction = 0.05;
+iceMaterial.bounciness = 0;
+iceShape.material = iceMaterial;
+
+const bounceShape = new SphereColliderShape();
+const bounceMaterial = new PhysicsMaterial();
+bounceMaterial.bounciness = 0.8;
+bounceMaterial.bounceCombine = PhysicsMaterialCombineMode.Maximum;
+bounceShape.material = bounceMaterial;
+
+// 不再使用时记得销毁材质
+material.destroy();
+iceMaterial.destroy();
+bounceMaterial.destroy();
+```
+
+### 创建复合形状
+
+```typescript
+// 创建带有多个碰撞形状的物体
+function createCompoundCollider(entity: Entity) {
+    const collider = entity.addComponent(DynamicCollider);
+    
+    // 主体形状
+    const mainShape = new BoxColliderShape();
+    mainShape.size = new Vector3(2, 1, 1);
+    collider.addShape(mainShape);
+    
+    // 顶部形状
+    const topShape = new BoxColliderShape();
+    topShape.size = new Vector3(1, 1, 1);
+    topShape.position = new Vector3(0, 1, 0);
+    collider.addShape(topShape);
+    
+    return collider;
+}
+```
+
+
+#### 示例参考
+<Playground href="/embed/physx-compound" />
+
+### 常用场景示例
+
+1. **创建地面**
+```typescript
+// 创建一个简单的地面
+function createGround(width: number, length: number): Entity {
+    const entity = new Entity();
+    const collider = entity.addComponent(StaticCollider);
+    
+    const groundShape = new BoxColliderShape();
+    groundShape.size = new Vector3(width, 0.1, length);
+    
+    // 设置地面的物理材质
+    const material = new PhysicsMaterial();
+    material.staticFriction = 0.6;
+    material.dynamicFriction = 0.6;
+    material.bounciness = 0.0;
+    groundShape.material = material;
+    
+    collider.addShape(groundShape);
+    return entity;
+}
+
+// 创建一个无限平面地面
+function createInfinitePlane(): Entity {
+    const entity = new Entity();
+    const collider = entity.addComponent(StaticCollider);
+    
+    const planeShape = new PlaneColliderShape();
+    // 设置地面材质
+    const material = new PhysicsMaterial();
+    material.staticFriction = 0.6;
+    material.dynamicFriction = 0.6;
+    planeShape.material = material;
+    
+    collider.addShape(planeShape);
+    return entity;
+}
+```
+
+2. **创建墙壁**
+```typescript
+// 创建一个可配置的墙壁
+function createWall(width: number, height: number, depth: number, friction: number = 0.6): Entity {
+    const entity = new Entity();
+    const collider = entity.addComponent(StaticCollider);
+    
+    const wallShape = new BoxColliderShape();
+    wallShape.size = new Vector3(width, height, depth);
+    
+    // 设置墙壁的物理材质
+    const material = new PhysicsMaterial();
+    material.staticFriction = friction;
+    material.dynamicFriction = friction;
+    material.bounciness = 0.0;
+    wallShape.material = material;
+    
+    collider.addShape(wallShape);
+    return entity;
+}
+```
+
+3. **创建斜坡**
+```typescript
+// 创建一个带摩擦力的斜坡
+function createSlope(width: number, height: number, angle: number): Entity {
+    const entity = new Entity();
+    const collider = entity.addComponent(StaticCollider);
+    
+    const slopeShape = new BoxColliderShape();
+    slopeShape.size = new Vector3(width, 0.1, height);
+    slopeShape.rotation = new Vector3(0, 0, angle);
+    
+    // 设置斜坡的物理材质
+    const material = new PhysicsMaterial();
+    material.staticFriction = 0.8;  // 较大的摩擦力防止物体滑落
+    material.dynamicFriction = 0.8;
+    material.bounciness = 0.0;
+    slopeShape.material = material;
+    
+    collider.addShape(slopeShape);
+    return entity;
+}
+```
+
+4. **创建不同材质的复合形状**
+```typescript
+// 创建一个混合材质的平台
+function createMixedPlatform(): Entity {
+    const entity = new Entity();
+    const collider = entity.addComponent(StaticCollider);
+    
+    // 创建主平台（普通摩擦力）
+    const platformShape = new BoxColliderShape();
+    platformShape.size = new Vector3(10, 0.5, 10);
+    const normalMaterial = new PhysicsMaterial();
+    normalMaterial.staticFriction = 0.6;
+    normalMaterial.dynamicFriction = 0.6;
+    platformShape.material = normalMaterial;
+    collider.addShape(platformShape);
+    
+    // 添加冰面区域（低摩擦力）
+    const iceShape = new BoxColliderShape();
+    iceShape.size = new Vector3(3, 0.51, 3);
+    iceShape.position = new Vector3(3, 0, 0);
+    const iceMaterial = new PhysicsMaterial();
+    iceMaterial.staticFriction = 0.1;
+    iceMaterial.dynamicFriction = 0.05;
+    iceShape.material = iceMaterial;
+    collider.addShape(iceShape);
+    
+    // 添加弹性区域
+    const bounceShape = new BoxColliderShape();
+    bounceShape.size = new Vector3(3, 0.51, 3);
+    bounceShape.position = new Vector3(-3, 0, 0);
+    const bounceMaterial = new PhysicsMaterial();
+    bounceMaterial.bounciness = 0.8;
+    bounceMaterial.bounceCombine = PhysicsMaterialCombineMode.Maximum;
+    bounceShape.material = bounceMaterial;
+    collider.addShape(bounceShape);
+    
+    return entity;
+}
+```
+
+## 最佳实践
+
+1. **形状选择**
+   - 复杂物体使用多个基础形状组合
+   - 避免使用过多的碰撞形状（影响性能）
+   - 为角色控制器选择胶囊体形状
+
+2. **性能优化**
+   - 使用尽可能简单的碰撞形状
+   - 合理设置局部偏移，避免碰撞形状过度重叠
+   - 适当使用触发器代替实际的物理碰撞
+   - 及时销毁不再使用的碰撞形状及物理材质
+
+
