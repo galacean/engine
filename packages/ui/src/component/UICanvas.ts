@@ -327,9 +327,9 @@ export class UICanvas extends Component implements IElement {
       case CanvasRenderMode.WorldSpace:
         const boundsCenter = this._getCenter();
         if (isOrthographic) {
-          const tempVec3 = UICanvas._tempVec3;
-          Vector3.subtract(boundsCenter, cameraPosition, tempVec3);
-          this._sortDistance = Vector3.dot(tempVec3, cameraForward);
+          const distance = UICanvas._tempVec3;
+          Vector3.subtract(boundsCenter, cameraPosition, distance);
+          this._sortDistance = Vector3.dot(distance, cameraForward);
         } else {
           this._sortDistance = Vector3.distanceSquared(boundsCenter, cameraPosition);
         }
