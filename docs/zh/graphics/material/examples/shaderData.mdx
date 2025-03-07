@@ -1,0 +1,104 @@
+---
+title: 使用着色器数据
+---
+
+跟别的编程语言一样，我们在写着色器过程中也会用到很多变量，首先引擎有很多 [内置变量](/docs/graphics/material/variables)，这部分的变量我们是不需要手动设置的，可以直接在 shader 中使用。接下来我们看看如何设置和使用自定义数据。
+
+### 设置数据
+
+我们推荐使用 [ShaderLab](/docs/graphics/material/shaderLab/intro) 语法来声明和使用着色器数据：
+
+```glsl showLineNumbers {3,8,17,21}
+Editor {
+    Properties {
+        material_BaseColor("Offset unit scale", Color) = (1,1,1,1);
+        ...
+
+        Header("Emissive")
+        {
+            material_EmissiveColor("Emissive color", Color) = (1,1,1,1);
+            ...
+        }
+        ...
+    }
+
+    ...
+
+    Macros {
+        [On] UV_OFFSET("UV Offset", Range(1,100)) = 10;
+        ...
+
+        Header("Common") {
+            SOME_MACRO("label", Int) = 1;
+        }
+    }
+
+    ...
+
+    // 指定 Shader 绑定的 UIScript 编辑器项目路径。
+    UIScript "./shaderScript.ts";
+}
+```
+
+<Callout type="positive">
+  参考 [ShaderLab 语法](/docs/graphics/material/shaderLab/editor/#properties-属性) 使用更多类型的数据。
+</Callout>
+
+当然，我们也可以通过代码设置着色器数据:
+
+```ts showLineNumbers
+// shaderData 可以分别保存在 scene 、camera 、renderer、 material 中。
+const shaderData = material.shaderData;
+
+// 上传不同类型的着色器数据
+shaderData.setFloat("u_float", 1.5);
+shaderData.setInt("u_int", 1);
+shaderData.setInt("u_bool", 1);
+shaderData.setVector2("u_vec2", new Vector2(1, 1));
+shaderData.setVector3("u_vec3", new Vector3(1, 1, 1));
+shaderData.setVector4("u_vec4", new Vector4(1, 1, 1, 1));
+shaderData.setMatrix("u_matrix", new Matrix());
+shaderData.setIntArray("u_intArray", new Int32Array(10));
+shaderData.setFloatArray("u_floatArray", new Float32Array(10));
+shaderData.setTexture("u_sampler2D", texture2D);
+shaderData.setTexture("u_samplerCube", textureCube);
+shaderData.setTextureArray("u_samplerArray", [texture2D, textureCube]);
+
+// 开启宏开关
+shaderData.enableMacro("DISCARD");
+// 关闭宏开关
+shaderData.disableMacro("DISCARD");
+
+// 开启变量宏
+shaderData.enableMacro("LIGHT_COUNT", "3");
+
+// 切换变量宏。这里底层会自动 disable 上一个宏，即 “LIGHT_COUNT 3”
+shaderData.enableMacro("LIGHT_COUNT", "2");
+
+// 关闭变量宏
+shaderData.disableMacro("LIGHT_COUNT");
+```
+
+### 获取数据
+
+当你设置完数据后，你已经可以在 Shader 中直接使用，如下：
+
+```glsl showLineNumbers filename="test.glsl"
+float test = u_float;
+int test = u_int;
+bool test = u_bool;
+vec2 test = u_vec2;
+mat4 test = u_matrix;
+sampler2D test = u_sampler2D;
+...
+```
+
+你也可以通过代码获取这个变量的值：
+
+```ts showLineNumbers filename="test.ts"
+const test = shaderData.getFloat("u_float");
+const test = shaderData.getInt("u_int");
+const test = shaderData.getVector2("u_vec2");
+const test = shaderData.getMatrix("u_matrix");
+const test = shaderData.getTexture("u_sampler2D");
+```

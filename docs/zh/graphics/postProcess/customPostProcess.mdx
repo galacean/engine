@@ -81,13 +81,18 @@ const customShader = Shader.create(
 
 我们新建一个 Pass，在 [onRender 钩子](/apis/core/#PostProcessUberPass-onRender) 里面直接 [Blitter](/apis/core/#Blitter) 到屏幕，然后将这个 Pass 添加到引擎中。
 
-```ts showLineNumbers {10,15} filename="CustomPostProcessPass.ts"
+```ts showLineNumbers {15,20} filename="CustomPostProcessPass.ts"
 class CustomPass extends PostProcessPass {
   private _blitMaterial: Material;
 
   constructor(engine: Engine) {
     super(engine);
     this._blitMaterial = new Material(this.engine, customShader);
+
+    // 我们这里关掉深度测试和深度写入，保证每次 Blit 都能覆盖到屏幕上。
+    const depthState = this._blitMaterial.renderState.depthState;
+    depthState.enabled = false;
+    depthState.writeEnabled = false;
   }
 
   onRender(_, srcTexture: Texture2D, dst: RenderTarget): void {
