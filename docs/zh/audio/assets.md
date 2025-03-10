@@ -1,0 +1,30 @@
+---
+order: 1
+title: 音频资产
+type: 音频
+label: Audio
+---
+
+音频资产是 Galacean 中用于存储和管理音频文件的核心组件。通过音频资产，开发者可以方便地上传、管理和使用各种音频文件。
+
+## 支持的音频格式
+
+Galacean引擎支持多种常见的音频格式，包括但不限于：
+- MP3
+- WAV
+- OGG
+
+## 上传和管理音频文件
+
+开发者可以通过资产选择器轻松上传音频文件，上传的音频文件会自动存储在资产库中，方便后续使用。
+
+**视频演示**：  
+<video src="https://gw.alipayobjects.com/v/huamei_edbbqz/afts/video/dXVsQboyhYwAAAAAAAAAAAAADoY9AQFr" autoPlay loop muted />
+
+
+## 音频预览
+
+在资产库中，开发者可以预览播放音频文件，确保音频文件符合游戏需求。
+
+**视频演示**：  
+<video src="https://gw.alipayobjects.com/v/huamei_edbbqz/afts/video/sZwaQr6CuAMAAAAAAAAAAAAADoY9AQFr" autoPlay loop muted />
