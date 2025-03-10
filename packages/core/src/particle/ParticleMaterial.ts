@@ -56,7 +56,7 @@ export class ParticleMaterial extends BaseMaterial {
    */
   override clone(): ParticleMaterial {
     const dest = new ParticleMaterial(this._engine);
-    this.cloneTo(dest);
+    this._cloneToAndModifyName(dest);
     return dest;
   }
 }

@@ -220,7 +220,7 @@ export class BaseMaterial extends Material {
    */
   override clone(): BaseMaterial {
     const dest = new BaseMaterial(this._engine, this.shader);
-    this.cloneTo(dest);
+    this._cloneToAndModifyName(dest);
     return dest;
   }
 

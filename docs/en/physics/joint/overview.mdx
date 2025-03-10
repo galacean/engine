@@ -1,0 +1,99 @@
+---
+order: 0
+title: Overview
+type: Physics
+label: Physics
+---
+
+Joint components are used to simulate connections between colliders or between a collider and an arbitrary point in world space. By applying forces to restrict degrees of freedom, they achieve specific physical effects. Currently, Galacean supports three types of joint components:
+
+1. [Fixed Joint](/docs/physics/joint/fixedJoint)  
+   A fixed joint completely restricts the relative motion between two colliders, maintaining their fixed relative position and orientation. This type of joint is particularly useful when you need separable objects or synchronized motion without a hierarchical structure.
+
+   <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*h050RoMxg8sAAAAAAAAAAAAAesJ_AQ/original" />
+
+2. [Spring Joint](/docs/physics/joint/springJoint)  
+   A spring joint uses spring force and damping to maintain the distance between two objects. It allows objects to move freely within a certain range and applies elastic constraint forces when they exceed that range, similar to having a spring between them.
+
+   <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*eWoxQ57nWeEAAAAAAAAAAAAAesJ_AQ/original" />
+
+3. [Hinge Joint](/docs/physics/joint/hingeJoint)  
+   A hinge joint allows objects to rotate freely around a fixed axis, commonly used for implementing door hinges, wheels, pendulums, and other physical effects requiring rotation around a fixed axis.
+
+   <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*yZPrRohs-VcAAAAAAAAAAAAAesJ_AQ/original" />
+
+## Basic Concepts
+
+All joint types share the following common characteristics:
+
+1. **Joint Endpoints**: Each joint involves two acting objects:
+   - Main collider: The collider with the joint component attached
+   - Connected object: The target collider specified by the `connectedCollider` property or a point in world space
+
+2. **Anchor Settings**:
+   - `anchor`: The connection point on the main collider
+   - `connectedAnchor`: The connection point on the target object
+
+3. **Break Thresholds**:
+   - `breakForce`: Maximum force the joint can withstand
+   - `breakTorque`: Maximum torque the joint can withstand
+
+4. **Physics Calculation Intervention**:
+    - `connectedMassScale` and `massScale`: Used to adjust the mass influence of connected and main colliders
+
+## Script Usage
+
+### Creating Joints
+
+You can dynamically create and configure joint components through scripts:
+
+```typescript
+// Create a fixed joint
+const fixedJoint = entity.addComponent(FixedJoint);
+
+// Create a spring joint
+const springJoint = entity.addComponent(SpringJoint);
+
+// Create a hinge joint
+const hingeJoint = entity.addComponent(HingeJoint);
+```
+
+### Setting Connection Objects
+
+All joints can set connection targets and anchor points:
+
+```typescript
+// Set the target collider to connect to
+joint.connectedCollider = targetEntity.getComponent(Collider);
+
+// Set the joint's anchor point on the main collider
+joint.anchor.setValue(0, 1, 0);
+
+// Set the joint's connection point on the target collider
+joint.connectedAnchor.setValue(0, 0, 0);
+```
+
+### Common Property Configuration
+
+All joint types support the following settings:
+
+```typescript
+// Set break force and torque
+joint.breakForce = 1000;
+joint.breakTorque = 1000;
+
+// Set mass influence
+joint.massScale = 1.0;
+joint.connectedMassScale = 1.0;
+
+// Set whether to automatically calculate connection points
+joint.automaticConnectedAnchor = true;
+```
+
+For example of using these physical constraint components, see:
+<playground src="physx-joint-basic.ts"></playground>
+
+For detailed script usage of each joint type, please refer to their respective documentation:
+- [FixedJoint](/docs/physics/joint/fixedJoint)
+- [SpringJoint](/docs/physics/joint/springJoint)
+- [HingeJoint](/docs/physics/joint/hingeJoint)

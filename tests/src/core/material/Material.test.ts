@@ -91,4 +91,12 @@ describe("Material", () => {
       }
     }
   });
+
+  it("clone", () => {
+    const material = new Material(engine, Shader.find("blinn-phong"));
+    expect(material.name).to.equal("blinn-phong");
+
+    const clone = material.clone();
+    expect(clone.name).to.equal("blinn-phong(Clone)");
+  });
 });
