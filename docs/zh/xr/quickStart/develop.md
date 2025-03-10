@@ -18,7 +18,7 @@ flowchart LR
 
 ### 创建项目
 
-在 **[首页](/docs/interface/intro/#%E9%A6%96%E9%A1%B5)** 点击 **创建项目** ，随后在 **[项目设置](/docs/interface/menu/#项目设置)** 中选择物理后端为 `WebXR`
+在 **[首页](/docs/interface/intro/#%E9%A6%96%E9%A1%B5)** 点击 **创建项目** ，随后在 **[项目设置](/docs/interface/sidebar/#项目设置)** 中选择物理后端为 `WebXR`
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*n0b_Sa89AKoAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
 
