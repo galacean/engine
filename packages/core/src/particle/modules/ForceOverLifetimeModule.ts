@@ -1,0 +1,171 @@
+import { Rand, Vector3 } from "@galacean/engine-math";
+import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ShaderData, ShaderMacro, ShaderProperty } from "../../shader";
+import { ParticleCurveMode } from "../enums/ParticleCurveMode";
+import { ParticleGenerator } from "../ParticleGenerator";
+import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
+import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
+import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
+import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
+
+export class ForceOverLifetimeModule extends ParticleGeneratorModule {
+  static readonly _constantMacro = ShaderMacro.getByName("RENDERER_FOL_CONSTANT");
+  static readonly _curveMacro = ShaderMacro.getByName("RENDERER_FOL_CURVE");
+  static readonly _randomConstantMacro = ShaderMacro.getByName("RENDERER_FOL_RANDOM_CONSTANT");
+  static readonly _randomCurveMacro = ShaderMacro.getByName("RENDERER_FOL_RANDOM_CURVE");
+
+  static readonly _minConstantProperty = ShaderProperty.getByName("renderer_FOLMinConst");
+  static readonly _maxConstantProperty = ShaderProperty.getByName("renderer_FOLMaxConst");
+  static readonly _minGradientXProperty = ShaderProperty.getByName("renderer_FOLMinGradientX");
+  static readonly _minGradientYProperty = ShaderProperty.getByName("renderer_FOLMinGradientY");
+  static readonly _minGradientZProperty = ShaderProperty.getByName("renderer_FOLMinGradientZ");
+  static readonly _maxGradientXProperty = ShaderProperty.getByName("renderer_FOLMaxGradientX");
+  static readonly _maxGradientYProperty = ShaderProperty.getByName("renderer_FOLMaxGradientY");
+  static readonly _maxGradientZProperty = ShaderProperty.getByName("renderer_FOLMaxGradientZ");
+  static readonly _spaceProperty = ShaderProperty.getByName("renderer_FOLSpace");
+
+  // @deepClone
+  // _forceRand = new Rand(0, ParticleRandomSubSeeds.ForceOverLifetime);
+
+  @ignoreClone
+  private _forceMinConstant = new Vector3();
+  @ignoreClone
+  private _forceMaxConstant = new Vector3();
+  @ignoreClone
+  private _forceMacro: ShaderMacro;
+
+  @deepClone
+  private _forceX: ParticleCompositeCurve;
+  @deepClone
+  private _forceY: ParticleCompositeCurve;
+  @deepClone
+  private _forceZ: ParticleCompositeCurve;
+  private _space = ParticleSimulationSpace.Local;
+
+  get forceX(): ParticleCompositeCurve {
+    return this._forceX;
+  }
+
+  set forceX(value: ParticleCompositeCurve) {
+    const lastValue = this._forceX;
+    if (value !== lastValue) {
+      this._forceX = value;
+      this._onCompositeCurveChange(lastValue, value);
+    }
+  }
+
+  get forceY(): ParticleCompositeCurve {
+    return this._forceY;
+  }
+
+  set forceY(value: ParticleCompositeCurve) {
+    const lastValue = this._forceY;
+    if (value !== lastValue) {
+      this._forceX = value;
+      this._onCompositeCurveChange(lastValue, value);
+    }
+  }
+
+  get forceZ(): ParticleCompositeCurve {
+    return this._forceZ;
+  }
+
+  set forceZ(value: ParticleCompositeCurve) {
+    const lastValue = this._forceZ;
+    if (value !== lastValue) {
+      this._forceX = value;
+      this._onCompositeCurveChange(lastValue, value);
+    }
+  }
+
+  /**
+   * Force space.
+   */
+  get space(): ParticleSimulationSpace {
+    return this._space;
+  }
+
+  set space(value: ParticleSimulationSpace) {
+    if (value !== this._space) {
+      this._space = value;
+      this._generator._renderer._onGeneratorParamsChanged();
+    }
+  }
+
+  constructor(generator: ParticleGenerator) {
+    super(generator);
+
+    this._forceX = new ParticleCompositeCurve(0);
+    this._forceY = new ParticleCompositeCurve(0);
+    this._forceZ = new ParticleCompositeCurve(0);
+  }
+
+  /**
+   * @internal
+   */
+  _updateShaderData(shaderData: ShaderData): void {
+    let forceModeMacro = <ShaderMacro>null;
+    if (this.enabled) {
+      const forceX = this._forceX;
+      const forceY = this._forceY;
+      const forceZ = this._forceZ;
+
+      const isRandomCurveMode =
+        forceX.mode === ParticleCurveMode.TwoCurves &&
+        forceY.mode === ParticleCurveMode.TwoCurves &&
+        forceZ.mode === ParticleCurveMode.TwoCurves;
+
+      if (
+        isRandomCurveMode ||
+        (forceX.mode === ParticleCurveMode.Curve &&
+          forceY.mode === ParticleCurveMode.Curve &&
+          forceZ.mode === ParticleCurveMode.Curve)
+      ) {
+        shaderData.setFloatArray(ForceOverLifetimeModule._maxGradientXProperty, forceX.curveMax._getTypeArray());
+        shaderData.setFloatArray(ForceOverLifetimeModule._maxGradientYProperty, forceY.curveMax._getTypeArray());
+        shaderData.setFloatArray(ForceOverLifetimeModule._maxGradientZProperty, forceZ.curveMax._getTypeArray());
+        if (isRandomCurveMode) {
+          shaderData.setFloatArray(ForceOverLifetimeModule._minGradientXProperty, forceX.curveMin._getTypeArray());
+          shaderData.setFloatArray(ForceOverLifetimeModule._minGradientYProperty, forceY.curveMin._getTypeArray());
+          shaderData.setFloatArray(ForceOverLifetimeModule._minGradientZProperty, forceZ.curveMin._getTypeArray());
+          forceModeMacro = ForceOverLifetimeModule._randomCurveMacro;
+        } else {
+          forceModeMacro = ForceOverLifetimeModule._curveMacro;
+        }
+      } else {
+        const constantMax = this._forceMaxConstant;
+        constantMax.set(forceX.constantMax, forceY.constantMax, forceZ.constantMax);
+        shaderData.setVector3(ForceOverLifetimeModule._maxConstantProperty, constantMax);
+        if (
+          forceX.mode === ParticleCurveMode.TwoConstants &&
+          forceY.mode === ParticleCurveMode.TwoConstants &&
+          forceZ.mode === ParticleCurveMode.TwoConstants
+        ) {
+          const constantMin = this._forceMinConstant;
+          constantMin.set(forceX.constantMin, forceY.constantMin, forceZ.constantMin);
+          shaderData.setVector3(ForceOverLifetimeModule._minConstantProperty, constantMin);
+          forceModeMacro = ForceOverLifetimeModule._randomConstantMacro;
+        } else {
+          forceModeMacro = ForceOverLifetimeModule._constantMacro;
+        }
+      }
+
+      shaderData.setInt(ForceOverLifetimeModule._spaceProperty, this._space);
+    }
+    this._forceMacro = this._enableMacro(shaderData, this._forceMacro, forceModeMacro);
+  }
+
+  // /**
+  //  * @internal
+  //  */
+  // _resetRandomSeed(seed: number): void {
+  //   this._forceRand.reset(seed, ParticleRandomSubSeeds.VelocityOverLifetime);
+  // }
+
+  private _onCompositeCurveChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {
+    const renderer = this._generator._renderer;
+    lastValue?._unRegisterOnValueChanged(renderer._onGeneratorParamsChanged);
+    value?._registerOnValueChanged(renderer._onGeneratorParamsChanged);
+    renderer._onGeneratorParamsChanged();
+  }
+}
