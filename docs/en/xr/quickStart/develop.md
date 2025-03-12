@@ -18,7 +18,7 @@ flowchart LR
 
 ### Create Project
 
-On the **[Home Page](/en/docs/interface/intro/#%E9%A6%96%E9%A1%B5)** click **Create Project**, then in **[Project Settings](/en/docs/interface/menu/#项目设置)** select the physics backend as `WebXR`.
+On the **[Home Page](/en/docs/interface/intro/#%E9%A6%96%E9%A1%B5)** click **Create Project**, then in **[Project Settings](/en/docs/interface/sidebar/#project-settings)** select the physics backend as `WebXR`.
 
 <img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*n0b_Sa89AKoAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
 
