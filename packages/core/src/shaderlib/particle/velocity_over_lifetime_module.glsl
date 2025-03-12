@@ -114,7 +114,7 @@ vec3 computeParticlePosition(in vec3 startVelocity, in vec3 lifeVelocity, in flo
                 forcePosition = vec3(
                     mix(evaluateParticleCurveSquareCumulative(renderer_FOLMinGradientX, normalizedAge), forcePosition.x, a_Random1.y),
                     mix(evaluateParticleCurveSquareCumulative(renderer_FOLMinGradientY, normalizedAge), forcePosition.y, a_Random1.z),
-                    mix(evaluateParticleCurveSquareCumulative(renderer_FOLMinGradientZ, normalizedAge), forcePosition.z, a_Random1.w),
+                    mix(evaluateParticleCurveSquareCumulative(renderer_FOLMinGradientZ, normalizedAge), forcePosition.z, a_Random1.w)
                 );
             #endif
             forcePosition *= vec3(a_ShapePositionStartLifeTime.w * a_ShapePositionStartLifeTime.w);
