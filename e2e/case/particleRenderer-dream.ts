@@ -90,7 +90,8 @@ function createDebrisParticle(engine: Engine, texture: Texture2D): Entity {
 
   particleRenderer.generator.useAutoRandomSeed = false;
 
-  const { main, emission, sizeOverLifetime, colorOverLifetime, velocityOverLifetime } = particleRenderer.generator;
+  const { main, emission, sizeOverLifetime, colorOverLifetime, velocityOverLifetime, forceOverLifetime } =
+    particleRenderer.generator;
 
   // Main module
   main.startSpeed.constant = 0;
@@ -143,6 +144,20 @@ function createDebrisParticle(engine: Engine, texture: Texture2D): Entity {
   velocityOverLifetime.velocityZ.constantMin = 0;
   velocityOverLifetime.velocityZ.constantMax = 0;
   velocityOverLifetime.velocityZ.mode = ParticleCurveMode.TwoConstants;
+
+  forceOverLifetime.enabled = true;
+  const { forceX, forceY, forceZ } = forceOverLifetime;
+  forceX.mode = ParticleCurveMode.TwoConstants;
+  forceX.constantMax = 0;
+  forceX.constantMin = -10;
+
+  forceY.mode = ParticleCurveMode.TwoConstants;
+  forceY.constantMax = 10;
+  forceY.constantMin = 0;
+
+  forceZ.mode = ParticleCurveMode.TwoConstants;
+  forceZ.constantMax = 0;
+  forceZ.constantMin = 0;
 
   return particleEntity;
 }
@@ -221,7 +236,7 @@ function createSparksParticle(fireEntity: Entity, texture: Texture2D): void {
   particleRenderer.setMaterial(material);
   particleRenderer.priority = 0;
 
-  const { main, emission, colorOverLifetime, velocityOverLifetime } = particleRenderer.generator;
+  const { main, emission, colorOverLifetime, velocityOverLifetime, forceOverLifetime } = particleRenderer.generator;
   particleRenderer.generator.useAutoRandomSeed = false;
 
   // Main module
@@ -268,6 +283,20 @@ function createSparksParticle(fireEntity: Entity, texture: Texture2D): void {
   gradient.alphaKeys[1].alpha = 0;
   gradient.addAlphaKey(0.2, 1.0);
   gradient.addAlphaKey(0.8, 1.0);
+
+  forceOverLifetime.enabled = true;
+  const { forceX, forceY, forceZ } = forceOverLifetime;
+  forceX.mode = ParticleCurveMode.TwoConstants;
+  forceX.constantMax = 10;
+  forceX.constantMin = 0;
+
+  forceY.mode = ParticleCurveMode.TwoConstants;
+  forceY.constantMax = 8;
+  forceY.constantMin = 0;
+
+  forceZ.mode = ParticleCurveMode.TwoConstants;
+  forceZ.constantMax = 0;
+  forceZ.constantMin = 0;
 }
 
 function createHighlightsParticle(fireEntity: Entity, texture: Texture2D): void {
@@ -283,7 +312,7 @@ function createHighlightsParticle(fireEntity: Entity, texture: Texture2D): void 
   particleRenderer.priority = 3;
 
   const generator = particleRenderer.generator;
-  const { main, emission, sizeOverLifetime, colorOverLifetime, velocityOverLifetime } = generator;
+  const { main, emission, sizeOverLifetime, colorOverLifetime, velocityOverLifetime, forceOverLifetime } = generator;
   generator.useAutoRandomSeed = false;
 
   // Main module
@@ -338,4 +367,18 @@ function createHighlightsParticle(fireEntity: Entity, texture: Texture2D): void 
   sizeOverLifetime.size.mode = ParticleCurveMode.Curve;
   curve.keys[0].value = 1;
   curve.keys[1].value = 0;
+
+  forceOverLifetime.enabled = true;
+  const { forceX, forceY, forceZ } = forceOverLifetime;
+  forceX.mode = ParticleCurveMode.TwoConstants;
+  forceX.constantMax = 10;
+  forceX.constantMin = -10;
+
+  forceY.mode = ParticleCurveMode.TwoConstants;
+  forceY.constantMax = 3;
+  forceY.constantMin = 0;
+
+  forceZ.mode = ParticleCurveMode.TwoConstants;
+  forceZ.constantMax = 0;
+  forceZ.constantMin = 0;
 }
