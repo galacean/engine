@@ -61,7 +61,7 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
   set forceY(value: ParticleCompositeCurve) {
     const lastValue = this._forceY;
     if (value !== lastValue) {
-      this._forceX = value;
+      this._forceY = value;
       this._onCompositeCurveChange(lastValue, value);
     }
   }
@@ -73,7 +73,7 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
   set forceZ(value: ParticleCompositeCurve) {
     const lastValue = this._forceZ;
     if (value !== lastValue) {
-      this._forceX = value;
+      this._forceZ = value;
       this._onCompositeCurveChange(lastValue, value);
     }
   }
@@ -95,9 +95,9 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
   constructor(generator: ParticleGenerator) {
     super(generator);
 
-    this._forceX = new ParticleCompositeCurve(0);
-    this._forceY = new ParticleCompositeCurve(0);
-    this._forceZ = new ParticleCompositeCurve(0);
+    this.forceX = new ParticleCompositeCurve(0);
+    this.forceY = new ParticleCompositeCurve(0);
+    this.forceZ = new ParticleCompositeCurve(0);
   }
 
   /**

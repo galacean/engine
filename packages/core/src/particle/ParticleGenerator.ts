@@ -39,6 +39,8 @@ export class ParticleGenerator {
   private static _tempVector22 = new Vector2();
   private static _tempVector30 = new Vector3();
   private static _tempVector31 = new Vector3();
+  private static _tempVector32 = new Vector3();
+  private static _tempVector33 = new Vector3();
   private static _tempMat = new Matrix();
   private static _tempColor0 = new Color();
   private static _tempParticleRenderers = new Array<ParticleRenderer>();
@@ -1091,14 +1093,24 @@ export class ParticleGenerator {
       _tempVector20: velMinMaxX,
       _tempVector21: velMinMaxY,
       _tempVector22: velMinMaxZ,
+      _tempVector30: localOffsetMin,
+      _tempVector31: localOffsetMax,
+      _tempVector32: worldOffsetMin,
+      _tempVector33: worldOffsetMax,
       _tempMat: rotateMat
     } = ParticleGenerator;
+    localOffsetMin.set(0, 0, 0);
+    localOffsetMax.set(0, 0, 0);
+    worldOffsetMin.set(0, 0, 0);
+    worldOffsetMax.set(0, 0, 0);
+
     const { transform } = this._renderer.entity;
     const worldPosition = transform.worldPosition;
     Matrix.rotationQuaternion(transform.worldRotationQuaternion, rotateMat);
 
-    const { min: originMin, max: originMax } = origin;
     const { min, max } = out;
+    min.copyFrom(origin.min);
+    max.copyFrom(origin.max);
 
     const { velocityOverLifetime } = this;
     if (velocityOverLifetime.enabled) {
@@ -1107,35 +1119,64 @@ export class ParticleGenerator {
       this._getExtremeValueFromZero(velocityOverLifetime.velocityZ, velMinMaxZ);
 
       if (velocityOverLifetime.space === ParticleSimulationSpace.Local) {
-        min.set(
-          originMin.x + velMinMaxX.x * maxLifetime,
-          originMin.y + velMinMaxY.x * maxLifetime,
-          originMin.z + velMinMaxZ.x * maxLifetime
-        );
-        max.set(
-          originMax.x + velMinMaxX.y * maxLifetime,
-          originMax.y + velMinMaxY.y * maxLifetime,
-          originMax.z + velMinMaxZ.y * maxLifetime
-        );
+        localOffsetMin.x += velMinMaxX.x * maxLifetime;
+        localOffsetMin.y += velMinMaxY.x * maxLifetime;
+        localOffsetMin.z += velMinMaxZ.x * maxLifetime;
 
-        out.transform(rotateMat);
+        localOffsetMax.x += velMinMaxX.y * maxLifetime;
+        localOffsetMax.y += velMinMaxY.y * maxLifetime;
+        localOffsetMax.z += velMinMaxZ.y * maxLifetime;
       } else {
-        out.transform(rotateMat);
+        worldOffsetMin.x += velMinMaxX.x * maxLifetime;
+        worldOffsetMin.y += velMinMaxY.x * maxLifetime;
+        worldOffsetMin.z += velMinMaxZ.x * maxLifetime;
 
-        min.set(
-          originMin.x + velMinMaxX.x * maxLifetime,
-          originMin.y + velMinMaxY.x * maxLifetime,
-          originMin.z + velMinMaxZ.x * maxLifetime
-        );
-        max.set(
-          originMax.x + velMinMaxX.y * maxLifetime,
-          originMax.y + velMinMaxY.y * maxLifetime,
-          originMax.z + velMinMaxZ.y * maxLifetime
-        );
+        worldOffsetMax.x += velMinMaxX.y * maxLifetime;
+        worldOffsetMax.y += velMinMaxY.y * maxLifetime;
+        worldOffsetMax.z += velMinMaxZ.y * maxLifetime;
       }
-    } else {
-      BoundingBox.transform(origin, rotateMat, out);
     }
+
+    const {
+      forceOverLifetime,
+      forceOverLifetime: { forceX, forceY, forceZ, space }
+    } = this;
+    if (forceOverLifetime.enabled) {
+      const {
+        _tempVector20: forceMinMaxX,
+        _tempVector21: forceMinMaxY,
+        _tempVector22: forceMinMaxZ
+      } = ParticleGenerator;
+      this._getExtremeValueFromZero(forceX, forceMinMaxX);
+      this._getExtremeValueFromZero(forceY, forceMinMaxY);
+      this._getExtremeValueFromZero(forceZ, forceMinMaxZ);
+
+      const coefficient = 0.5 * maxLifetime * maxLifetime;
+
+      if (space === ParticleSimulationSpace.Local) {
+        localOffsetMin.x += forceMinMaxX.x * coefficient;
+        localOffsetMin.y += forceMinMaxY.x * coefficient;
+        localOffsetMin.z += forceMinMaxZ.x * coefficient;
+
+        localOffsetMax.x += forceMinMaxX.y * coefficient;
+        localOffsetMax.y += forceMinMaxY.y * coefficient;
+        localOffsetMax.z += forceMinMaxZ.y * coefficient;
+      } else {
+        worldOffsetMin.x += forceMinMaxX.x * coefficient;
+        worldOffsetMin.y += forceMinMaxY.x * coefficient;
+        worldOffsetMin.z += forceMinMaxZ.x * coefficient;
+
+        worldOffsetMax.x += forceMinMaxX.y * coefficient;
+        worldOffsetMax.y += forceMinMaxY.y * coefficient;
+        worldOffsetMax.z += forceMinMaxZ.y * coefficient;
+      }
+    }
+
+    min.add(localOffsetMin);
+    max.add(localOffsetMax);
+    out.transform(rotateMat);
+    min.add(worldOffsetMin);
+    max.add(worldOffsetMax);
 
     min.add(worldPosition);
     max.add(worldPosition);
@@ -1143,6 +1184,7 @@ export class ParticleGenerator {
 
   private _addGravityToBounds(maxLifetime: number, origin: BoundingBox, out: BoundingBox): void {
     const { min: originMin, max: originMax } = origin;
+    const { min, max } = out;
     const modifierMinMax = ParticleGenerator._tempVector20;
 
     // Gravity modifier impact
@@ -1150,6 +1192,7 @@ export class ParticleGenerator {
     const { x, y, z } = this._renderer.scene.physics.gravity;
 
     const coefficient = 0.5 * maxLifetime * maxLifetime;
+
     const minGravityEffect = modifierMinMax.x * coefficient;
     const maxGravityEffect = modifierMinMax.y * coefficient;
 
@@ -1162,17 +1205,20 @@ export class ParticleGenerator {
     const gravityEffectMinZ = z * minGravityEffect;
     const gravityEffectMaxZ = z * maxGravityEffect;
 
-    out.min.set(
-      Math.min(gravityEffectMinX, gravityEffectMaxX) + originMin.x,
-      Math.min(gravityEffectMinY, gravityEffectMaxY) + originMin.y,
-      Math.min(gravityEffectMinZ, gravityEffectMaxZ) + originMin.z
+    min.set(
+      Math.min(gravityEffectMinX, gravityEffectMaxX),
+      Math.min(gravityEffectMinY, gravityEffectMaxY),
+      Math.min(gravityEffectMinZ, gravityEffectMaxZ)
     );
 
-    out.max.set(
-      Math.max(gravityEffectMinX, gravityEffectMaxX) + originMax.x,
-      Math.max(gravityEffectMinY, gravityEffectMaxY) + originMax.y,
-      Math.max(gravityEffectMinZ, gravityEffectMaxZ) + originMax.z
+    max.set(
+      Math.max(gravityEffectMinX, gravityEffectMaxX),
+      Math.max(gravityEffectMinY, gravityEffectMaxY),
+      Math.max(gravityEffectMinZ, gravityEffectMaxZ)
     );
+
+    min.add(originMin);
+    max.add(originMax);
   }
 
   private _getExtremeValueFromZero(curve: ParticleCompositeCurve, out: Vector2): void {
