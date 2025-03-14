@@ -1,26 +1,28 @@
-import { Rand, Vector3 } from "@galacean/engine-math";
+import { Rand, Vector2, Vector3 } from "@galacean/engine-math";
 import { TypedArray } from "../../../base";
 import { ignoreClone } from "../../../clone/CloneManager";
 import { Entity } from "../../../Entity";
-import { VertexElement } from "../../../graphic";
 import { MeshModifyFlags } from "../../../graphic/Mesh";
 import { ModelMesh, VertexAttribute } from "../../../mesh";
 import { BaseShape } from "./BaseShape";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
 
+/**
+ * Particle shape that emits particles from a mesh.
+ */
 export class MeshShape extends BaseShape {
   readonly shapeType = ParticleShapeType.Mesh;
 
   @ignoreClone
   private _mesh: ModelMesh;
   @ignoreClone
-  private _positionVertexElement: VertexElement;
-  @ignoreClone
-  private _normalVertexElement: VertexElement;
-  @ignoreClone
   private _positionBuffer: TypedArray;
   @ignoreClone
   private _normalBuffer: TypedArray;
+  @ignoreClone
+  private _positionOffset: Vector2 = new Vector2(); // x:offset, y:stride
+  @ignoreClone
+  private _normalOffset: Vector2 = new Vector2(); // x:offset, y:stride
 
   /**
    * Mesh to emit particles from.
@@ -53,25 +55,19 @@ export class MeshShape extends BaseShape {
    */
   _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     const {
-      _mesh: mesh,
       _positionBuffer: positions,
-      _positionVertexElement: positionVertexElement,
+      _positionOffset: positionOffset,
       _normalBuffer: normals,
-      _normalVertexElement: normalVertexElement
+      _normalOffset: normalOffset
     } = this;
 
-    const randomIndex = Math.floor(rand.random() * mesh.vertexCount);
+    const randomIndex = Math.floor(rand.random() * this._mesh.vertexCount);
 
-    const positionByteStride = mesh.vertexBufferBindings[positionVertexElement.bindingIndex].stride;
-    const positionByteOffset = positionVertexElement.offset;
-
-    const normalByteStride = this._mesh.vertexBufferBindings[normalVertexElement.bindingIndex].stride;
-    const normalByteOffset = normalVertexElement.offset;
-
-    const positionOffset = (randomIndex * positionByteStride + positionByteOffset) / positions.BYTES_PER_ELEMENT;
-    const normalOffset = (randomIndex * normalByteStride + normalByteOffset) / normals.BYTES_PER_ELEMENT;
-    position.set(positions[positionOffset], positions[positionOffset + 1], positions[positionOffset + 2]);
-    direction.set(normals[normalOffset], normals[normalOffset + 1], normals[normalOffset + 2]);
+    // index = randomIndex * stride + offset
+    const positionIndex = randomIndex * positionOffset.y + positionOffset.x;
+    const normalIndex = randomIndex * normalOffset.y + normalOffset.x;
+    position.set(positions[positionIndex], positions[positionIndex + 1], positions[positionIndex + 2]);
+    direction.set(normals[normalIndex], normals[normalIndex + 1], normals[normalIndex + 2]);
   }
 
   /**
@@ -93,17 +89,14 @@ export class MeshShape extends BaseShape {
     bounds.max.copyTo(outMax);
   }
 
-  private _getAttributeData(
-    mesh: ModelMesh,
-    attribute: VertexAttribute,
-    out: (buffer: TypedArray, vertexElement: VertexElement) => void
-  ): void {
+  private _getAttributeData(mesh: ModelMesh, attribute: VertexAttribute, outVertexOffset: Vector2): TypedArray {
     const vertexElement = mesh.getVertexElement(attribute);
     if (!vertexElement) {
       throw `Mesh must have ${attribute} attribute.`;
     }
 
-    const buffer = mesh.vertexBufferBindings[vertexElement.bindingIndex]?.buffer;
+    const vertexBufferBinding = mesh.vertexBufferBindings[vertexElement.bindingIndex];
+    const buffer = vertexBufferBinding?.buffer;
     if (!buffer) {
       throw `${attribute} buffer not found.`;
     }
@@ -112,7 +105,13 @@ export class MeshShape extends BaseShape {
     }
 
     const typedBuffer = mesh._getVertexTypedArray(buffer.data.buffer, vertexElement._formatMetaInfo.type);
-    out(typedBuffer, vertexElement);
+
+    outVertexOffset.set(
+      vertexElement.offset / typedBuffer.BYTES_PER_ELEMENT,
+      vertexBufferBinding.stride / typedBuffer.BYTES_PER_ELEMENT
+    );
+
+    return typedBuffer;
   }
 
   @ignoreClone
@@ -120,19 +119,12 @@ export class MeshShape extends BaseShape {
     if (type & MeshModifyFlags.VertexElements) {
       const mesh = this._mesh;
       if (mesh) {
-        this._getAttributeData(mesh, VertexAttribute.Position, (typedBuffer, vertexElement) => {
-          this._positionVertexElement = vertexElement;
-          this._positionBuffer = typedBuffer;
-        });
-
-        this._getAttributeData(mesh, VertexAttribute.Normal, (typedBuffer, vertexElement) => {
-          this._normalVertexElement = vertexElement;
-          this._normalBuffer = typedBuffer;
-        });
+        this._positionBuffer = this._getAttributeData(mesh, VertexAttribute.Position, this._positionOffset);
+        this._normalBuffer = this._getAttributeData(mesh, VertexAttribute.Normal, this._normalOffset);
       } else {
-        this._positionVertexElement = null;
+        this._positionOffset.set(-1, -1);
         this._positionBuffer = null;
-        this._normalVertexElement = null;
+        this._normalOffset.set(-1, -1);
         this._normalBuffer = null;
       }
     }
