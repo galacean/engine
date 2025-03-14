@@ -1,4 +1,4 @@
-import { Rand, Vector2, Vector3 } from "@galacean/engine-math";
+import { Rand, Vector3, Vector4 } from "@galacean/engine-math";
 import { TypedArray } from "../../../base";
 import { ignoreClone } from "../../../clone/CloneManager";
 import { Entity } from "../../../Entity";
@@ -21,9 +21,9 @@ export class MeshShape extends BaseShape {
   @ignoreClone
   private _normalBuffer: TypedArray;
   @ignoreClone
-  private _positionOffset: Vector2 = new Vector2(); // x:offset, y:stride
+  private _positionElementInfo: Vector4 = new Vector4(); // x:offset, y:stride, z:isNormalized, w:normalizedScaleFactor
   @ignoreClone
-  private _normalOffset: Vector2 = new Vector2(); // x:offset, y:stride
+  private _normalElementInfo: Vector4 = new Vector4(); // x:offset, y:stride, z:isNormalized, w:normalizedScaleFactor
 
   /**
    * Mesh to emit particles from.
@@ -57,18 +57,22 @@ export class MeshShape extends BaseShape {
   _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     const {
       _positionBuffer: positions,
-      _positionOffset: positionOffset,
+      _positionElementInfo: positionInfo,
       _normalBuffer: normals,
-      _normalOffset: normalOffset
+      _normalElementInfo: normalInfo
     } = this;
 
     const randomIndex = Math.floor(rand.random() * this._mesh.vertexCount);
 
     // index = randomIndex * stride + offset
-    const positionIndex = randomIndex * positionOffset.y + positionOffset.x;
-    const normalIndex = randomIndex * normalOffset.y + normalOffset.x;
+    const positionIndex = randomIndex * positionInfo.y + positionInfo.x;
+    const normalIndex = randomIndex * normalInfo.y + normalInfo.x;
+
     position.set(positions[positionIndex], positions[positionIndex + 1], positions[positionIndex + 2]);
+    positionInfo.z && position.scale(positionInfo.w);
+    
     direction.set(normals[normalIndex], normals[normalIndex + 1], normals[normalIndex + 2]);
+    normalInfo.z && direction.scale(normalInfo.w);
   }
 
   /**
@@ -95,13 +99,14 @@ export class MeshShape extends BaseShape {
     attribute: VertexAttribute,
     vertexElement: VertexElement,
     reusePositionBuffer: boolean,
-    outVertexOffset: Vector2
+    outVertexElementInfo: Vector4
   ): TypedArray {
     if (!vertexElement) {
       throw `Mesh must have ${attribute} attribute.`;
     }
 
     const vertexBufferBinding = mesh.vertexBufferBindings[vertexElement.bindingIndex];
+    const formatMetaInfo = vertexElement._formatMetaInfo;
 
     let typedBuffer: TypedArray;
     if (reusePositionBuffer) {
@@ -112,7 +117,6 @@ export class MeshShape extends BaseShape {
         throw `${attribute} buffer not found.`;
       }
 
-      const formatMetaInfo = vertexElement._formatMetaInfo;
       if (buffer.readable) {
         // If buffer is readable, we can get the data directly
         typedBuffer = mesh._getVertexTypedArray(buffer.data.buffer, formatMetaInfo.type);
@@ -124,9 +128,11 @@ export class MeshShape extends BaseShape {
       }
     }
 
-    outVertexOffset.set(
+    outVertexElementInfo.set(
       vertexElement.offset / typedBuffer.BYTES_PER_ELEMENT,
-      vertexBufferBinding.stride / typedBuffer.BYTES_PER_ELEMENT
+      vertexBufferBinding.stride / typedBuffer.BYTES_PER_ELEMENT,
+      formatMetaInfo.normalized ? 1 : 0,
+      formatMetaInfo.normalizedScaleFactor
     );
 
     return typedBuffer;
@@ -144,7 +150,7 @@ export class MeshShape extends BaseShape {
           VertexAttribute.Position,
           positionElement,
           false,
-          this._positionOffset
+          this._positionElementInfo
         );
         // If the position and normal use the same buffer, we can reuse the position buffer
         const reusePositionBuffer = positionElement.bindingIndex === normalElement.bindingIndex;
@@ -153,12 +159,12 @@ export class MeshShape extends BaseShape {
           VertexAttribute.Normal,
           normalElement,
           reusePositionBuffer,
-          this._normalOffset
+          this._normalElementInfo
         );
       } else {
-        this._positionOffset.set(-1, -1);
+        this._positionElementInfo.set(-1, -1, -1, -1);
         this._positionBuffer = null;
-        this._normalOffset.set(-1, -1);
+        this._normalElementInfo.set(-1, -1, -1, -1);
         this._normalBuffer = null;
       }
     }
