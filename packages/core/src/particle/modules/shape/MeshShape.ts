@@ -2,6 +2,7 @@ import { Rand, Vector2, Vector3 } from "@galacean/engine-math";
 import { TypedArray } from "../../../base";
 import { ignoreClone } from "../../../clone/CloneManager";
 import { Entity } from "../../../Entity";
+import { VertexElement } from "../../../graphic";
 import { MeshModifyFlags } from "../../../graphic/Mesh";
 import { ModelMesh, VertexAttribute } from "../../../mesh";
 import { BaseShape } from "./BaseShape";
@@ -89,22 +90,39 @@ export class MeshShape extends BaseShape {
     bounds.max.copyTo(outMax);
   }
 
-  private _getAttributeData(mesh: ModelMesh, attribute: VertexAttribute, outVertexOffset: Vector2): TypedArray {
-    const vertexElement = mesh.getVertexElement(attribute);
+  private _getAttributeBuffer(
+    mesh: ModelMesh,
+    attribute: VertexAttribute,
+    vertexElement: VertexElement,
+    reusePositionBuffer: boolean,
+    outVertexOffset: Vector2
+  ): TypedArray {
     if (!vertexElement) {
       throw `Mesh must have ${attribute} attribute.`;
     }
 
     const vertexBufferBinding = mesh.vertexBufferBindings[vertexElement.bindingIndex];
-    const buffer = vertexBufferBinding?.buffer;
-    if (!buffer) {
-      throw `${attribute} buffer not found.`;
-    }
-    if (!buffer.readable) {
-      throw `${attribute} buffer must be readable.`;
-    }
 
-    const typedBuffer = mesh._getVertexTypedArray(buffer.data.buffer, vertexElement._formatMetaInfo.type);
+    let typedBuffer: TypedArray;
+    if (reusePositionBuffer) {
+      return this._positionBuffer;
+    } else {
+      const buffer = vertexBufferBinding?.buffer;
+      if (!buffer) {
+        throw `${attribute} buffer not found.`;
+      }
+
+      const formatMetaInfo = vertexElement._formatMetaInfo;
+      if (buffer.readable) {
+        // If buffer is readable, we can get the data directly
+        typedBuffer = mesh._getVertexTypedArray(buffer.data.buffer, formatMetaInfo.type);
+      } else {
+        // Must read from GPU
+        const unit8Buffer = new Uint8Array(buffer.byteLength);
+        typedBuffer = mesh._getVertexTypedArray(unit8Buffer.buffer, formatMetaInfo.type);
+        buffer.getData(typedBuffer);
+      }
+    }
 
     outVertexOffset.set(
       vertexElement.offset / typedBuffer.BYTES_PER_ELEMENT,
@@ -119,8 +137,24 @@ export class MeshShape extends BaseShape {
     if (type & MeshModifyFlags.VertexElements) {
       const mesh = this._mesh;
       if (mesh) {
-        this._positionBuffer = this._getAttributeData(mesh, VertexAttribute.Position, this._positionOffset);
-        this._normalBuffer = this._getAttributeData(mesh, VertexAttribute.Normal, this._normalOffset);
+        const positionElement = mesh.getVertexElement(VertexAttribute.Position);
+        const normalElement = mesh.getVertexElement(VertexAttribute.Normal);
+        this._positionBuffer = this._getAttributeBuffer(
+          mesh,
+          VertexAttribute.Position,
+          positionElement,
+          false,
+          this._positionOffset
+        );
+        // If the position and normal use the same buffer, we can reuse the position buffer
+        const reusePositionBuffer = positionElement.bindingIndex === normalElement.bindingIndex;
+        this._normalBuffer = this._getAttributeBuffer(
+          mesh,
+          VertexAttribute.Normal,
+          normalElement,
+          reusePositionBuffer,
+          this._normalOffset
+        );
       } else {
         this._positionOffset.set(-1, -1);
         this._positionBuffer = null;
