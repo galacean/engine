@@ -6,4 +6,3 @@ export { ParticleShapeType } from "./enums/ParticleShapeType";
 export { HemisphereShape } from "./HemisphereShape";
 export { MeshShape } from "./MeshShape";
 export { SphereShape } from "./SphereShape";
-
