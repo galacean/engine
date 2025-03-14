@@ -113,3 +113,26 @@ float evaluateParticleCurveCumulative(in vec2 keys[4], in float normalizedAge){
 	}
     return cumulativeValue;
 }
+
+float evaluateParticleCurveSquareCumulative(in vec2 keys[4], in float normalizedAge) {
+    float cumulativeValue = 0.0;
+    for (int i = 1; i < 4; i++){
+	    vec2 key = keys[i];
+	    float time = key.x;
+	    vec2 lastKey = keys[i - 1];
+	    float lastValue = lastKey.y;
+
+	    if (time >= normalizedAge){
+		    float lastTime = lastKey.x;
+            float offsetTime = normalizedAge - lastTime;
+		    float age = offsetTime / (time - lastTime);
+		    cumulativeValue += (lastValue + mix(lastValue, key.y, age)) * 0.5 * offsetTime * offsetTime;
+		    break;
+		}
+	    else{
+            float offsetTime = (time - lastKey.x);
+		    cumulativeValue += (lastValue + key.y) * 0.5 * offsetTime * offsetTime;
+		}
+	}
+    return cumulativeValue;
+}

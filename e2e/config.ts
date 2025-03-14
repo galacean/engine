@@ -205,6 +205,11 @@ export const E2E_CONFIG = {
       caseFileName: "particleRenderer-dream",
       threshold: 0.3
     },
+    forceOverLifetime: {
+      category: "Particle",
+      caseFileName: "particleRenderer-force",
+      threshold: 0.3
+    },
     textureSheetAnimation: {
       category: "Particle",
       caseFileName: "particleRenderer-textureSheetAnimation",
