@@ -81,10 +81,10 @@ function createDebrisParticle(engine: Engine, texture: Texture2D, glTFResource: 
   const { main, emission, sizeOverLifetime, colorOverLifetime, velocityOverLifetime } = particleRenderer.generator;
 
   // Main module
-  main.startSpeed.constant = 0.05;
+  main.startSpeed.constant = 0.1;
 
-  main.startSize.constantMin = 0.1;
-  main.startSize.constantMax = 0.2;
+  main.startSize.constantMin = 0.01;
+  main.startSize.constantMax = 0.1;
   main.startSize.mode = ParticleCurveMode.TwoConstants;
 
   main.startRotationZ.constantMin = 0;
