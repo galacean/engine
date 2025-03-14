@@ -200,7 +200,7 @@ export const E2E_CONFIG = {
     }
   },
   Particle: {
-    particle: {
+    particleDream: {
       category: "Particle",
       caseFileName: "particleRenderer-dream",
       threshold: 0.3
@@ -208,6 +208,11 @@ export const E2E_CONFIG = {
     textureSheetAnimation: {
       category: "Particle",
       caseFileName: "particleRenderer-textureSheetAnimation",
+      threshold: 0.3
+    },
+    particleShapeMesh: {
+      category: "Particle",
+      caseFileName: "particleRenderer-shape-mesh",
       threshold: 0.3
     }
   },
