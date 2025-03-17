@@ -12,10 +12,9 @@ import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
  * Force over lifetime module.
  */
 export class ForceOverLifetimeModule extends ParticleGeneratorModule {
-  static readonly _constantMacro = ShaderMacro.getByName("RENDERER_FOL_CONSTANT");
-  static readonly _curveMacro = ShaderMacro.getByName("RENDERER_FOL_CURVE");
-  static readonly _randomConstantMacro = ShaderMacro.getByName("RENDERER_FOL_RANDOM_CONSTANT");
-  static readonly _randomCurveMacro = ShaderMacro.getByName("RENDERER_FOL_RANDOM_CURVE");
+  static readonly _modeConstantMacro = ShaderMacro.getByName("RENDERER_FOL_CONSTANT_MODE");
+  static readonly _modeCurveMacro = ShaderMacro.getByName("RENDERER_FOL_CURVE_MODE");
+  static readonly _modeRandomMacro = ShaderMacro.getByName("RENDERER_FOL_IS_RANDOM_TWO");
 
   static readonly _minConstantProperty = ShaderProperty.getByName("renderer_FOLMinConst");
   static readonly _maxConstantProperty = ShaderProperty.getByName("renderer_FOLMaxConst");
@@ -28,7 +27,7 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _spaceProperty = ShaderProperty.getByName("renderer_FOLSpace");
 
   // @deepClone
-  // _forceRand = new Rand(0, ParticleRandomSubSeeds.ForceOverLifetime);
+  _forceRand = new Rand(0, ParticleRandomSubSeeds.ForceOverLifetime);
 
   @ignoreClone
   private _forceMinConstant = new Vector3();
@@ -36,6 +35,8 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
   private _forceMaxConstant = new Vector3();
   @ignoreClone
   private _forceMacro: ShaderMacro;
+  @ignoreClone
+  private _randomModeMacro: ShaderMacro;
 
   @deepClone
   private _forceX: ParticleCompositeCurve;
@@ -117,6 +118,8 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
    */
   _updateShaderData(shaderData: ShaderData): void {
     let forceModeMacro = <ShaderMacro>null;
+    let isRandomModeMacro = <ShaderMacro>null;
+
     if (this.enabled) {
       const forceX = this._forceX;
       const forceY = this._forceY;
@@ -136,18 +139,18 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
         shaderData.setFloatArray(ForceOverLifetimeModule._maxGradientXProperty, forceX.curveMax._getTypeArray());
         shaderData.setFloatArray(ForceOverLifetimeModule._maxGradientYProperty, forceY.curveMax._getTypeArray());
         shaderData.setFloatArray(ForceOverLifetimeModule._maxGradientZProperty, forceZ.curveMax._getTypeArray());
+        forceModeMacro = ForceOverLifetimeModule._modeCurveMacro;
         if (isRandomCurveMode) {
           shaderData.setFloatArray(ForceOverLifetimeModule._minGradientXProperty, forceX.curveMin._getTypeArray());
           shaderData.setFloatArray(ForceOverLifetimeModule._minGradientYProperty, forceY.curveMin._getTypeArray());
           shaderData.setFloatArray(ForceOverLifetimeModule._minGradientZProperty, forceZ.curveMin._getTypeArray());
-          forceModeMacro = ForceOverLifetimeModule._randomCurveMacro;
-        } else {
-          forceModeMacro = ForceOverLifetimeModule._curveMacro;
+          isRandomModeMacro = ForceOverLifetimeModule._modeRandomMacro;
         }
       } else {
         const constantMax = this._forceMaxConstant;
         constantMax.set(forceX.constantMax, forceY.constantMax, forceZ.constantMax);
         shaderData.setVector3(ForceOverLifetimeModule._maxConstantProperty, constantMax);
+        forceModeMacro = ForceOverLifetimeModule._modeConstantMacro;
         if (
           forceX.mode === ParticleCurveMode.TwoConstants &&
           forceY.mode === ParticleCurveMode.TwoConstants &&
@@ -156,23 +159,23 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
           const constantMin = this._forceMinConstant;
           constantMin.set(forceX.constantMin, forceY.constantMin, forceZ.constantMin);
           shaderData.setVector3(ForceOverLifetimeModule._minConstantProperty, constantMin);
-          forceModeMacro = ForceOverLifetimeModule._randomConstantMacro;
-        } else {
-          forceModeMacro = ForceOverLifetimeModule._constantMacro;
+          isRandomModeMacro = ForceOverLifetimeModule._modeRandomMacro;
         }
       }
 
       shaderData.setInt(ForceOverLifetimeModule._spaceProperty, this._space);
     }
-    this._forceMacro = this._enableMacro(shaderData, this._forceMacro, forceModeMacro);
+    const { _enableMacro: enableMacro } = this;
+    this._forceMacro = enableMacro(shaderData, this._forceMacro, forceModeMacro);
+    this._randomModeMacro = enableMacro(shaderData, this._randomModeMacro, isRandomModeMacro);
   }
 
-  // /**
-  //  * @internal
-  //  */
-  // _resetRandomSeed(seed: number): void {
-  //   this._forceRand.reset(seed, ParticleRandomSubSeeds.VelocityOverLifetime);
-  // }
+  /**
+   * @internal
+   */
+  _resetRandomSeed(seed: number): void {
+    this._forceRand.reset(seed, ParticleRandomSubSeeds.ForceOverLifetime);
+  }
 
   private _onCompositeCurveChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {
     const renderer = this._generator._renderer;

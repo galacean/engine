@@ -60,7 +60,7 @@ export class ParticleGenerator {
   /** Velocity over lifetime module. */
   @deepClone
   readonly velocityOverLifetime: VelocityOverLifetimeModule;
-  /** Force over lifetime module */
+  /** Force over lifetime module. */
   @deepClone
   readonly forceOverLifetime: ForceOverLifetimeModule;
   /** Size over lifetime module. */
@@ -518,6 +518,7 @@ export class ParticleGenerator {
     this.emission._resetRandomSeed(seed);
     this.textureSheetAnimation._resetRandomSeed(seed);
     this.velocityOverLifetime._resetRandomSeed(seed);
+    this.forceOverLifetime._resetRandomSeed(seed);
     this.rotationOverLifetime._resetRandomSeed(seed);
     this.colorOverLifetime._resetRandomSeed(seed);
   }
@@ -776,7 +777,7 @@ export class ParticleGenerator {
     // Start speed
     instanceVertices[offset + 18] = startSpeed;
 
-    // Gravity, unused, size, rotation
+    // Gravity, color, size, rotation
     switch (main.gravityModifier.mode) {
       case ParticleCurveMode.Constant:
         instanceVertices[offset + 19] = main.gravityModifier.constant;
@@ -852,6 +853,14 @@ export class ParticleGenerator {
       instanceVertices[offset + 35] = 1;
       instanceVertices[offset + 36] = 0;
       instanceVertices[offset + 37] = 0;
+    }
+
+    const { forceOverLifetime } = this;
+    if (forceOverLifetime.enabled) {
+      const rand = forceOverLifetime._forceRand;
+      instanceVertices[offset + 38] = rand.random();
+      instanceVertices[offset + 39] = rand.random();
+      instanceVertices[offset + 40] = rand.random();
     }
 
     this._firstFreeElement = nextFreeElement;
