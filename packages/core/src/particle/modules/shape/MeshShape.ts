@@ -70,7 +70,7 @@ export class MeshShape extends BaseShape {
 
     position.set(positions[positionIndex], positions[positionIndex + 1], positions[positionIndex + 2]);
     positionInfo.z && position.scale(positionInfo.w);
-    
+
     direction.set(normals[normalIndex], normals[normalIndex + 1], normals[normalIndex + 2]);
     normalInfo.z && direction.scale(normalInfo.w);
   }
