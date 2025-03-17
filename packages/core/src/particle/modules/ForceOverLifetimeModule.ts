@@ -8,6 +8,9 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 
+/**
+ * Force over lifetime module.
+ */
 export class ForceOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _constantMacro = ShaderMacro.getByName("RENDERER_FOL_CONSTANT");
   static readonly _curveMacro = ShaderMacro.getByName("RENDERER_FOL_CURVE");
@@ -46,6 +49,9 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
     return this._forceX;
   }
 
+  /**
+   * Force over lifetime for x axis.
+   */
   set forceX(value: ParticleCompositeCurve) {
     const lastValue = this._forceX;
     if (value !== lastValue) {
@@ -58,6 +64,9 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
     return this._forceY;
   }
 
+  /**
+   * Force over lifetime for y axis.
+   */
   set forceY(value: ParticleCompositeCurve) {
     const lastValue = this._forceY;
     if (value !== lastValue) {
@@ -66,6 +75,9 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
     }
   }
 
+  /**
+   * Force over lifetime for z axis.
+   */
   get forceZ(): ParticleCompositeCurve {
     return this._forceZ;
   }
