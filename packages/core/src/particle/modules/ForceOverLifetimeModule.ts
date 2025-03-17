@@ -45,13 +45,13 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
   private _forceZ: ParticleCompositeCurve;
   private _space = ParticleSimulationSpace.Local;
 
+  /**
+   * Force over lifetime for x axis.
+   */
   get forceX(): ParticleCompositeCurve {
     return this._forceX;
   }
 
-  /**
-   * Force over lifetime for x axis.
-   */
   set forceX(value: ParticleCompositeCurve) {
     const lastValue = this._forceX;
     if (value !== lastValue) {
@@ -60,13 +60,13 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
     }
   }
 
+  /**
+   * Force over lifetime for y axis.
+   */
   get forceY(): ParticleCompositeCurve {
     return this._forceY;
   }
 
-  /**
-   * Force over lifetime for y axis.
-   */
   set forceY(value: ParticleCompositeCurve) {
     const lastValue = this._forceY;
     if (value !== lastValue) {
