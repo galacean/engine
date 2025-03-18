@@ -95,6 +95,49 @@ describe("UICanvas", async () => {
     expect(rootCanvas._isRootCanvas).to.eq(true);
   });
 
+  // Pose
+  it("Pose Fit", () => {
+    const canvasTransform = <UITransform>canvasEntity.transform;
+    const canvasPosition = canvasTransform.position;
+    rootCanvas.referenceResolution = new Vector2(800, 600);
+    rootCanvas.renderMode = CanvasRenderMode.ScreenSpaceCamera;
+    rootCanvas.distance = 10;
+    canvasPosition.set(0, 0, 0);
+    expect(canvasPosition.x).to.eq(0);
+    expect(canvasPosition.y).to.eq(0);
+    expect(canvasPosition.z).to.eq(0);
+
+    // Same entity
+    const cameraSame = canvasEntity.addComponent(Camera);
+    rootCanvas.renderCamera = cameraSame;
+    expect(canvasPosition.x).to.eq(0);
+    expect(canvasPosition.y).to.eq(0);
+    expect(canvasPosition.z).to.eq(0);
+    rootCanvas.distance = 100;
+    expect(canvasPosition.x).to.eq(0);
+    expect(canvasPosition.y).to.eq(0);
+    expect(canvasPosition.z).to.eq(0);
+
+    // Not same entity or child entity
+    rootCanvas.renderCamera = camera;
+    expect(canvasPosition.x).to.eq(0);
+    expect(canvasPosition.y).to.eq(0);
+    expect(canvasPosition.z).to.eq(-100);
+    rootCanvas.distance = 10;
+    expect(canvasPosition.x).to.eq(0);
+    expect(canvasPosition.y).to.eq(0);
+    expect(canvasPosition.z).to.eq(-10);
+
+    // Child entity
+    const cameraEntityChild = canvasEntity.createChild("cameraChild");
+    const cameraChild = cameraEntityChild.addComponent(Camera);
+    cameraEntityChild.transform.setPosition(2, 2, 2);
+    rootCanvas.renderCamera = cameraChild;
+    expect(canvasPosition.x).to.eq(0);
+    expect(canvasPosition.y).to.eq(0);
+    expect(canvasPosition.z).to.eq(-10);
+  });
+
   // Size
   it("Size Fit", () => {
     rootCanvas.referenceResolution = new Vector2(800, 600);

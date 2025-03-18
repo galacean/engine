@@ -1,0 +1,163 @@
+---
+order: 3
+title: 角色控制器
+type: 物理
+label: Physics
+---
+
+角色控制器（[CharacterController](/apis/core/#CharacterController)）是一种特殊的碰撞器组件，专门用于处理角色的物理运动。它提供了专门的移动算法和碰撞检测，能够处理台阶、斜坡等复杂地形，特别适合第一人称或第三人称游戏中的角色控制。
+
+## 使用方法
+
+1. 选中目标实体，并在检查器中点击添加组件按钮，添加 CharacterController 组件。
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*nEMXRKiqpy8AAAAAAAAAAAAAesJ_AQ/original" />
+
+2. 设置控制器的碰撞形状，使碰撞形状与角色的外形相尽量匹配。关于碰撞形状的详细说明请参考[碰撞形状](/docs/physics/collider/colliderShape)文档。
+
+<Callout type="positive">
+与其他碰撞器不同，角色控制器只能添加一个碰撞形状。通常建议使用胶囊体（CapsuleColliderShape）作为角色的碰撞形状。
+</Callout>
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*4QvUTI4D89EAAAAAAAAAAAAAesJ_AQ/original" />
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*aRGqSIMqDmsAAAAAAAAAAAAAesJ_AQ/original" />
+
+3. 根据需要设置碰撞器的属性调整物体的物理行为，各属性的含义和作用请参考下文。
+
+
+
+## 属性说明
+
+### 继承自 Collider 的属性
+| 属性                                      | 描述         |
+| ----------------------------------------- | ------------ |
+| [**shapes**](/apis/core/#Collider-shapes) | 碰撞形状集合 |
+
+### 特有属性
+| 属性 | 描述 | 默认值 |
+| ---- | ---- | ------ |
+| [**stepOffset**](/apis/core/#CharacterController-stepOffset) | 角色可以自动跨越的最大台阶高度。<ul><li>必须大于等于 0</li><li>实际可跨越高度 = stepOffset + 碰撞形状的接触偏移</li></ul> | 0.5 |
+| [**slopeLimit**](/apis/core/#CharacterController-slopeLimit) | 角色可以行走的最大斜坡角度（度）。<ul><li>超过此角度的斜面将被视为不可行走的墙壁</li><li>影响角色的爬坡能力</li></ul> | 45° |
+| [**nonWalkableMode**](/apis/core/#CharacterController-nonWalkableMode) | 定义如何处理不可行走的表面。<ul><li>PreventClimbing：阻止角色攀爬不可行走的斜坡，但不会强制其他移动（默认）</li><li>PreventClimbingAndForceSliding：阻止角色攀爬不可行走的斜坡，并强制角色沿斜坡滑下</li></ul> | PreventClimbing |
+| [**upDirection**](/apis/core/#CharacterController-upDirection) | 定义角色的向上方向。默认为 (0, 1, 0)，即世界空间的 Y 轴向上。影响移动和碰撞检测的方向判定 | (0, 1, 0) |
+
+## 公开方法
+
+### 继承自 Collider 的方法
+| 方法名                                              | 描述             |
+| --------------------------------------------------- | ---------------- |
+| [**addShape**](/apis/core/#Collider-addShape)       | 添加碰撞形状     |
+| [**removeShape**](/apis/core/#Collider-removeShape) | 移除指定碰撞形状 |
+| [**clearShapes**](/apis/core/#Collider-clearShapes) | 清空所有碰撞形状 |
+
+### 特有方法
+| 方法名 | 描述 |
+| ---- | ---- |
+| [**move**](/apis/core/#CharacterController-move) | 移动角色控制器。返回一个碰撞标志值，标识碰撞状态。<ul><li>displacement：移动向量</li><li>minDist：最小移动距离</li><li>elapsedTime：经过的时间</li></ul> |
+
+### 碰撞标志说明
+
+移动函数 `move()` 会返回一个碰撞标志值，用于表示角色控制器与环境的碰撞状态。这些标志可以通过按位与运算(&)来检测：
+
+| 标志名称 | 值 | 说明 |
+|---------|----|----|
+| None | 0 | 没有发生任何碰撞 |
+| Sides | 1 | 与侧面发生碰撞 |
+| Up | 2 | 与上方发生碰撞（如天花板） |
+| Down | 4 | 与下方发生碰撞（如地面） |
+
+## 脚本使用
+
+### 基础配置
+```typescript
+// 创建角色控制器
+const controller = entity.addComponent(CharacterController);
+
+// 添加胶囊体形状
+const capsule = new CapsuleColliderShape();
+capsule.radius = 0.5;
+capsule.height = 2;
+controller.addShape(capsule);
+
+// 配置控制器属性
+controller.stepOffset = 0.5;      // 设置台阶高度
+controller.slopeLimit = 45;       // 设置最大可行走斜坡角度
+controller.upDirection = new Vector3(0, 1, 0); // 设置向上方向
+```
+
+### 使用移动函数
+```typescript
+class CharacterMovement extends Script {
+  private _velocity = new Vector3();
+  
+  onUpdate() {
+    const controller = this.entity.getComponent(CharacterController);
+    const deltaTime = engine.deltaTime;
+
+    // 创建位移向量
+    const displacement = new Vector3();
+    Vector3.scale(this._velocity, deltaTime, displacement);
+
+    // 执行移动并获取碰撞标志
+    // minDist: 最小移动距离，通常设为0
+    // deltaTime: 经过的时间，用于物理计算
+    const collisionFlags = controller.move(displacement, 0, deltaTime);
+    
+    // 处理碰撞响应
+    if (collisionFlags & ControllerCollisionFlag.Down) {
+      // 角色接触地面
+    }
+  }
+}
+```
+
+使用示例：
+```typescript
+const flags = controller.move(displacement, 0, deltaTime);
+
+// 检查是否接触地面
+if (flags & ControllerCollisionFlag.Down) {
+    // 角色在地面上
+    this._isGrounded = true;
+}
+
+// 检查是否撞到天花板
+if (flags & ControllerCollisionFlag.Up) {
+    // 角色撞到头部
+    this._velocity.y = 0;
+}
+
+// 检查是否撞到墙壁
+if (flags & ControllerCollisionFlag.Sides) {
+    // 角色撞到墙壁
+    this._handleWallCollision();
+}
+
+// 可以同时检查多个标志
+if ((flags & ControllerCollisionFlag.Down) && 
+    (flags & ControllerCollisionFlag.Sides)) {
+    // 角色同时接触地面和墙壁
+}
+```
+
+### 斜坡/台阶行走
+
+1. **斜坡行走**
+```typescript
+// 通过设置 slopeLimit 控制可行走的斜坡角度
+controller.slopeLimit = 60; // 允许更陡的斜坡
+
+// 设置不可行走斜面的处理方式
+controller.nonWalkableMode = ControllerNonWalkableMode.PreventClimbingAndForceSliding; // 在太陡的斜面上会滑下
+```
+
+2. **台阶行走调整**
+```typescript
+// 调整 stepOffset 来控制可跨越的台阶高度
+controller.stepOffset = 0.3; // 较低的台阶
+controller.stepOffset = 0.5; // 较高的台阶
+```
+
+完整的示例效果可以参考：
+<Playground href="/embed/physx-controller" />
