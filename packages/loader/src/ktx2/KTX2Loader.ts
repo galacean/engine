@@ -19,13 +19,10 @@ import { KTX2Container } from "./KTX2Container";
 import { KTX2TargetFormat } from "./KTX2TargetFormat";
 import { TranscodeResult } from "./transcoder/AbstractTranscoder";
 import { BinomialLLCTranscoder } from "./transcoder/BinomialLLCTranscoder";
-import { KhronosTranscoder } from "./transcoder/KhronosTranscoder";
 
 @resourceLoader(AssetType.KTX2, ["ktx2"])
 export class KTX2Loader extends Loader<Texture2D | TextureCube> {
-  private static _isBinomialInit: boolean = false;
   private static _binomialLLCTranscoder: BinomialLLCTranscoder;
-  private static _khronosTranscoder: KhronosTranscoder;
   private static _priorityFormats = {
     etc1s: [
       KTX2TargetFormat.ETC,
@@ -40,12 +37,14 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       KTX2TargetFormat.ETC,
       KTX2TargetFormat.BC1_BC3,
       KTX2TargetFormat.PVRTC
-    ]
+    ],
+    hdr: [KTX2TargetFormat.BC6H, KTX2TargetFormat.RGBA16]
   };
   private static _supportedMap = {
     [KTX2TargetFormat.ASTC]: [GLCapabilityType.astc],
     [KTX2TargetFormat.ETC]: [GLCapabilityType.etc],
     [KTX2TargetFormat.BC7]: [GLCapabilityType.bptc],
+    [KTX2TargetFormat.BC6H]: [GLCapabilityType.bptc],
     [KTX2TargetFormat.BC1_BC3]: [GLCapabilityType.s3tc],
     [KTX2TargetFormat.PVRTC]: [GLCapabilityType.pvrtc, GLCapabilityType.pvrtc_webkit]
   };
@@ -56,29 +55,21 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
    */
   static release(): void {
     if (this._binomialLLCTranscoder) this._binomialLLCTranscoder.destroy();
-    if (this._khronosTranscoder) this._khronosTranscoder.destroy();
     this._binomialLLCTranscoder = null;
-    this._khronosTranscoder = null;
-    this._isBinomialInit = false;
   }
 
   /** @internal */
   static _parseBuffer(buffer: Uint8Array, engine: Engine, params?: KTX2Params) {
     const ktx2Container = new KTX2Container(buffer);
-    const formatPriorities =
-      params?.priorityFormats ?? KTX2Loader._priorityFormats[ktx2Container.isUASTC ? "uastc" : "etc1s"];
+    const formatPriorities = params?.priorityFormats ?? KTX2Loader._priorityFormats[ktx2Container.colorModel];
     const targetFormat = KTX2Loader._decideTargetFormat(engine, ktx2Container, formatPriorities);
-    let transcodeResultPromise: Promise<TranscodeResult>;
-    if (KTX2Loader._isBinomialInit || !KhronosTranscoder.transcoderMap[targetFormat] || !ktx2Container.isUASTC) {
-      const binomialLLCWorker = KTX2Loader._getBinomialLLCTranscoder();
-      transcodeResultPromise = binomialLLCWorker.init().then(() => binomialLLCWorker.transcode(buffer, targetFormat));
-    } else {
-      const khronosWorker = KTX2Loader._getKhronosTranscoder();
-      transcodeResultPromise = khronosWorker.init().then(() => khronosWorker.transcode(ktx2Container));
-    }
-    return transcodeResultPromise.then((result) => {
-      return { engine, result, targetFormat, params: ktx2Container.keyValue["GalaceanTextureParams"] as Uint8Array };
-    });
+    const binomialLLCWorker = KTX2Loader._getBinomialLLCTranscoder();
+    return binomialLLCWorker
+      .init()
+      .then(() => binomialLLCWorker.transcode(buffer, targetFormat))
+      .then((result) => {
+        return { engine, result, targetFormat, params: ktx2Container.keyValue["GalaceanTextureParams"] as Uint8Array };
+      });
   }
 
   /** @internal */
@@ -168,12 +159,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   }
 
   private static _getBinomialLLCTranscoder(workerCount: number = 4) {
-    KTX2Loader._isBinomialInit = true;
     return (this._binomialLLCTranscoder ??= new BinomialLLCTranscoder(workerCount));
-  }
-
-  private static _getKhronosTranscoder(workerCount: number = 4) {
-    return (this._khronosTranscoder ??= new KhronosTranscoder(workerCount, KTX2TargetFormat.ASTC));
   }
 
   private static _getEngineTextureFormat(
@@ -194,6 +180,10 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         return hasAlpha ? TextureFormat.PVRTC_RGBA4 : TextureFormat.PVRTC_RGB4;
       case KTX2TargetFormat.R8G8B8A8:
         return TextureFormat.R8G8B8A8;
+      case KTX2TargetFormat.BC6H:
+        return TextureFormat.BC6H;
+      case KTX2TargetFormat.RGBA16:
+        return TextureFormat.R16G16B16A16;
     }
   }
 
@@ -205,11 +195,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         KTX2Loader._priorityFormats["uastc"] = options.priorityFormats;
       }
 
-      if (options.transcoder === KTX2Transcoder.Khronos) {
-        return KTX2Loader._getKhronosTranscoder(options.workerCount).init();
-      } else {
-        return KTX2Loader._getBinomialLLCTranscoder(options.workerCount).init();
-      }
+      return KTX2Loader._getBinomialLLCTranscoder(options.workerCount).init();
     }
   }
 
