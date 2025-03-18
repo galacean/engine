@@ -16,9 +16,5 @@ void main() {
 
     textureColor.rgb *= material_Exposure * material_TintColor.rgb;
     
-    gl_FragColor = textureColor;
-
-    #if defined(MATERIAL_IS_DECODE_SKY_RGBM)
-        gl_FragColor = linearToGamma(gl_FragColor);
-    #endif
+    gl_FragColor = linearToGamma(textureColor);
 }
