@@ -26,7 +26,8 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _maxGradientZProperty = ShaderProperty.getByName("renderer_FOLMaxGradientZ");
   static readonly _spaceProperty = ShaderProperty.getByName("renderer_FOLSpace");
 
-  // @deepClone
+  /** @internal */
+  @ignoreClone
   _forceRand = new Rand(0, ParticleRandomSubSeeds.ForceOverLifetime);
 
   @ignoreClone
@@ -175,5 +176,20 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
    */
   _resetRandomSeed(seed: number): void {
     this._forceRand.reset(seed, ParticleRandomSubSeeds.ForceOverLifetime);
+  }
+
+  /**
+   * @internal
+   */
+  _isRandomMode(): boolean {
+    const { forceX, forceY, forceZ } = this;
+    return (
+      (forceX.mode === ParticleCurveMode.TwoCurves &&
+        forceY.mode === ParticleCurveMode.TwoCurves &&
+        forceZ.mode === ParticleCurveMode.TwoCurves) ||
+      (forceX.mode === ParticleCurveMode.TwoConstants &&
+        forceY.mode === ParticleCurveMode.TwoConstants &&
+        forceZ.mode === ParticleCurveMode.TwoConstants)
+    );
   }
 }

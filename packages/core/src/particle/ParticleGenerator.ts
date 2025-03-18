@@ -854,7 +854,7 @@ export class ParticleGenerator {
     }
 
     const { forceOverLifetime } = this;
-    if (forceOverLifetime.enabled) {
+    if (forceOverLifetime.enabled && forceOverLifetime._isRandomMode()) {
       const rand = forceOverLifetime._forceRand;
       instanceVertices[offset + 38] = rand.random();
       instanceVertices[offset + 39] = rand.random();
