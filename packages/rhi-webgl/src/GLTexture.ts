@@ -161,6 +161,11 @@ export class GLTexture implements IPlatformTexture {
             : GLCompressedTextureInternalFormat.RGBA_BPTC_UNORM_EXT,
           isCompressed: true
         };
+      case TextureFormat.BC6H:
+        return {
+          internalFormat: gl.getExtension("EXT_texture_compression_bptc").COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_EXT,
+          isCompressed: true
+        };
       case TextureFormat.ETC1_RGB:
         return {
           internalFormat: GLCompressedTextureInternalFormat.RGB_ETC1_WEBGL,

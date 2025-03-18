@@ -80,9 +80,15 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
     PVRTC1_4_RGB = 8,
     PVRTC1_4_RGBA = 9,
     ASTC_4x4 = 10,
-    RGBA8 = 13
+    RGBA8 = 13,
+    BC6H = 22,
+    RGB_HALF = 24,
+    RGBA_HALF = 25
   }
 
+  /**
+   * A copy of `KTX2TargetFormat`, which need be to specify in the worker.
+   */
   enum TargetFormat {
     ASTC,
     BC7,
@@ -91,7 +97,8 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
     ETC,
     R8,
     RG8,
-    RGBA8
+    RGBA8,
+    BC6H
   }
 
   function getTranscodeFormatFromTarget(target: TargetFormat, hasAlpha: boolean) {
@@ -102,6 +109,8 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
         return hasAlpha ? BasisFormat.ETC2 : BasisFormat.ETC1;
       case TargetFormat.PVRTC:
         return hasAlpha ? BasisFormat.PVRTC1_4_RGBA : BasisFormat.PVRTC1_4_RGB;
+      case TargetFormat.BC6H:
+        return BasisFormat.BC6H;
       case TargetFormat.RGBA8:
         return BasisFormat.RGBA8;
       case TargetFormat.ASTC:
