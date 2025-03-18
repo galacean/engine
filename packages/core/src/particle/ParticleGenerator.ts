@@ -39,8 +39,6 @@ export class ParticleGenerator {
   private static _tempVector22 = new Vector2();
   private static _tempVector30 = new Vector3();
   private static _tempVector31 = new Vector3();
-  private static _tempVector32 = new Vector3();
-  private static _tempVector33 = new Vector3();
   private static _tempMat = new Matrix();
   private static _tempColor0 = new Color();
   private static _tempParticleRenderers = new Array<ParticleRenderer>();
@@ -1102,14 +1100,10 @@ export class ParticleGenerator {
       _tempVector20: velMinMaxX,
       _tempVector21: velMinMaxY,
       _tempVector22: velMinMaxZ,
-      _tempVector30: localOffsetMin,
-      _tempVector31: localOffsetMax,
-      _tempVector32: worldOffsetMin,
-      _tempVector33: worldOffsetMax,
+      _tempVector30: worldOffsetMin,
+      _tempVector31: worldOffsetMax,
       _tempMat: rotateMat
     } = ParticleGenerator;
-    localOffsetMin.set(0, 0, 0);
-    localOffsetMax.set(0, 0, 0);
     worldOffsetMin.set(0, 0, 0);
     worldOffsetMax.set(0, 0, 0);
 
@@ -1127,22 +1121,24 @@ export class ParticleGenerator {
       this._getExtremeValueFromZero(velocityOverLifetime.velocityY, velMinMaxY);
       this._getExtremeValueFromZero(velocityOverLifetime.velocityZ, velMinMaxZ);
 
+      velMinMaxX.scale(maxLifetime);
+      velMinMaxY.scale(maxLifetime);
+      velMinMaxZ.scale(maxLifetime);
+
       if (velocityOverLifetime.space === ParticleSimulationSpace.Local) {
-        localOffsetMin.x += velMinMaxX.x * maxLifetime;
-        localOffsetMin.y += velMinMaxY.x * maxLifetime;
-        localOffsetMin.z += velMinMaxZ.x * maxLifetime;
-
-        localOffsetMax.x += velMinMaxX.y * maxLifetime;
-        localOffsetMax.y += velMinMaxY.y * maxLifetime;
-        localOffsetMax.z += velMinMaxZ.y * maxLifetime;
+        min.set(min.x + velMinMaxX.x, min.y + velMinMaxY.x, min.z + velMinMaxZ.x);
+        max.set(max.x + velMinMaxX.y, max.y + velMinMaxY.y, max.z + velMinMaxZ.y);
       } else {
-        worldOffsetMin.x += velMinMaxX.x * maxLifetime;
-        worldOffsetMin.y += velMinMaxY.x * maxLifetime;
-        worldOffsetMin.z += velMinMaxZ.x * maxLifetime;
-
-        worldOffsetMax.x += velMinMaxX.y * maxLifetime;
-        worldOffsetMax.y += velMinMaxY.y * maxLifetime;
-        worldOffsetMax.z += velMinMaxZ.y * maxLifetime;
+        worldOffsetMin.set(
+          worldOffsetMin.x + velMinMaxX.x,
+          worldOffsetMin.y + velMinMaxY.x,
+          worldOffsetMin.z + velMinMaxZ.x
+        );
+        worldOffsetMax.set(
+          worldOffsetMax.x + velMinMaxX.y,
+          worldOffsetMax.y + velMinMaxY.y,
+          worldOffsetMax.z + velMinMaxZ.y
+        );
       }
     }
 
@@ -1161,28 +1157,27 @@ export class ParticleGenerator {
       this._getExtremeValueFromZero(forceZ, forceMinMaxZ);
 
       const coefficient = 0.5 * maxLifetime * maxLifetime;
+      forceMinMaxX.scale(coefficient);
+      forceMinMaxY.scale(coefficient);
+      forceMinMaxZ.scale(coefficient);
 
       if (space === ParticleSimulationSpace.Local) {
-        localOffsetMin.x += forceMinMaxX.x * coefficient;
-        localOffsetMin.y += forceMinMaxY.x * coefficient;
-        localOffsetMin.z += forceMinMaxZ.x * coefficient;
-
-        localOffsetMax.x += forceMinMaxX.y * coefficient;
-        localOffsetMax.y += forceMinMaxY.y * coefficient;
-        localOffsetMax.z += forceMinMaxZ.y * coefficient;
+        min.set(min.x + forceMinMaxX.x, min.y + forceMinMaxY.x, min.z + forceMinMaxZ.x);
+        max.set(max.x + forceMinMaxX.y, max.y + forceMinMaxY.y, max.z + forceMinMaxZ.y);
       } else {
-        worldOffsetMin.x += forceMinMaxX.x * coefficient;
-        worldOffsetMin.y += forceMinMaxY.x * coefficient;
-        worldOffsetMin.z += forceMinMaxZ.x * coefficient;
-
-        worldOffsetMax.x += forceMinMaxX.y * coefficient;
-        worldOffsetMax.y += forceMinMaxY.y * coefficient;
-        worldOffsetMax.z += forceMinMaxZ.y * coefficient;
+        worldOffsetMin.set(
+          worldOffsetMin.x + forceMinMaxX.x,
+          worldOffsetMin.y + forceMinMaxY.x,
+          worldOffsetMin.z + forceMinMaxZ.x
+        );
+        worldOffsetMax.set(
+          worldOffsetMax.x + forceMinMaxX.y,
+          worldOffsetMax.y + forceMinMaxY.y,
+          worldOffsetMax.z + forceMinMaxZ.y
+        );
       }
     }
 
-    min.add(localOffsetMin);
-    max.add(localOffsetMax);
     out.transform(rotateMat);
     min.add(worldOffsetMin);
     max.add(worldOffsetMax);

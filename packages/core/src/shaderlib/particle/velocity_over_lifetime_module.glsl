@@ -1,10 +1,10 @@
 #include <force_over_lifetime_module>
 
 #if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE)
-    #define _PARTICLE_VOL_MODULE_ENABLED
+    #define _VOL_MODULE_ENABLED
 #endif
 
-#ifdef _PARTICLE_VOL_MODULE_ENABLED
+#ifdef _VOL_MODULE_ENABLED
     uniform int renderer_VOLSpace;
 
     #if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_RANDOM_CONSTANT)
@@ -29,7 +29,7 @@
 #endif
 
 
-#ifdef _PARTICLE_VOL_MODULE_ENABLED
+#ifdef _VOL_MODULE_ENABLED
     vec3 computeParticleLifeVelocity(in float normalizedAge) {
         vec3 velocity;
         #if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_RANDOM_CONSTANT)
@@ -68,7 +68,7 @@ vec3 computeParticlePosition(in vec3 startVelocity, in vec3 lifeVelocity, in flo
     vec3 localPositionOffset = startPosition;
     vec3 worldPositionOffset;
 
-    #ifdef _PARTICLE_VOL_MODULE_ENABLED
+    #ifdef _VOL_MODULE_ENABLED
         vec3 lifeVelocityPosition;
         #if defined(RENDERER_VOL_CONSTANT)|| defined(RENDERER_VOL_RANDOM_CONSTANT)
             // @todo:just RENDERER_VOL_CONSTANT and RENDERER_VOL_RANDOM_CONSTANT need `lifeVelocity`
@@ -77,15 +77,15 @@ vec3 computeParticlePosition(in vec3 startVelocity, in vec3 lifeVelocity, in flo
 
         #if defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CURVE)
             lifeVelocityPosition = vec3(
-            evaluateParticleCurveCumulative(renderer_VOLMaxGradientX, normalizedAge),
-            evaluateParticleCurveCumulative(renderer_VOLMaxGradientY, normalizedAge),
-            evaluateParticleCurveCumulative(renderer_VOLMaxGradientZ, normalizedAge));
+            evaluateParticleCurveCumulative(renderer_VOLMaxGradientX, normalizedAge, 1),
+            evaluateParticleCurveCumulative(renderer_VOLMaxGradientY, normalizedAge, 1),
+            evaluateParticleCurveCumulative(renderer_VOLMaxGradientZ, normalizedAge, 1));
 
             #ifdef RENDERER_VOL_RANDOM_CURVE
                 lifeVelocityPosition = vec3(
-                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientX, normalizedAge), lifeVelocityPosition.x, a_Random1.y),
-                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientY, normalizedAge), lifeVelocityPosition.y, a_Random1.z),
-                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientZ, normalizedAge), lifeVelocityPosition.z, a_Random1.w));
+                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientX, normalizedAge, 1), lifeVelocityPosition.x, a_Random1.y),
+                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientY, normalizedAge, 1), lifeVelocityPosition.y, a_Random1.z),
+                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientZ, normalizedAge, 1), lifeVelocityPosition.z, a_Random1.w));
             #endif
 
             lifeVelocityPosition *= vec3(a_ShapePositionStartLifeTime.w);
@@ -98,7 +98,7 @@ vec3 computeParticlePosition(in vec3 startVelocity, in vec3 lifeVelocity, in flo
         }
     #endif
 
-    #ifdef _PARTICLE_FOL_MODULE_ENABLED
+    #ifdef _FOL_MODULE_ENABLED
         vec3 forcePosition;
 
         #if defined(RENDERER_FOL_CONSTANT_MODE)
@@ -106,15 +106,15 @@ vec3 computeParticlePosition(in vec3 startVelocity, in vec3 lifeVelocity, in flo
             forcePosition = 0.5 * forceAcceleration * age * age;
         #elif defined(RENDERER_FOL_CURVE_MODE)
             forcePosition = vec3(
-                evaluateParticleCurveSquareCumulative(renderer_FOLMaxGradientX, normalizedAge),
-                evaluateParticleCurveSquareCumulative(renderer_FOLMaxGradientY, normalizedAge),
-                evaluateParticleCurveSquareCumulative(renderer_FOLMaxGradientZ, normalizedAge)
+                evaluateParticleCurveCumulative(renderer_FOLMaxGradientX, normalizedAge, 2),
+                evaluateParticleCurveCumulative(renderer_FOLMaxGradientY, normalizedAge, 2),
+                evaluateParticleCurveCumulative(renderer_FOLMaxGradientZ, normalizedAge, 2)
             );
             #ifdef RENDERER_FOL_RANDOM_CURVE
                 forcePosition = vec3(
-                    mix(evaluateParticleCurveSquareCumulative(renderer_FOLMinGradientX, normalizedAge), forcePosition.x, a_Random2.x),
-                    mix(evaluateParticleCurveSquareCumulative(renderer_FOLMinGradientY, normalizedAge), forcePosition.y, a_Random2.y),
-                    mix(evaluateParticleCurveSquareCumulative(renderer_FOLMinGradientZ, normalizedAge), forcePosition.z, a_Random2.z)
+                    mix(evaluateParticleCurveCumulative(renderer_FOLMinGradientX, normalizedAge, 2), forcePosition.x, a_Random2.x),
+                    mix(evaluateParticleCurveCumulative(renderer_FOLMinGradientY, normalizedAge, 2), forcePosition.y, a_Random2.y),
+                    mix(evaluateParticleCurveCumulative(renderer_FOLMinGradientZ, normalizedAge, 2), forcePosition.z, a_Random2.z)
                 );
             #endif
             forcePosition *= vec3(a_ShapePositionStartLifeTime.w * a_ShapePositionStartLifeTime.w);

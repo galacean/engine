@@ -1,8 +1,8 @@
 #if defined(RENDERER_FOL_CONSTANT_MODE) || defined(RENDERER_FOL_CURVE_MODE)
-    #define _PARTICLE_FOL_MODULE_ENABLED
+    #define _FOL_MODULE_ENABLED
 #endif
 
-#ifdef _PARTICLE_FOL_MODULE_ENABLED
+#ifdef _FOL_MODULE_ENABLED
     attribute vec4 a_Random2;
 
     uniform int renderer_FOLSpace;
