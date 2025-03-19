@@ -182,14 +182,16 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
    * @internal
    */
   _isRandomMode(): boolean {
-    const { forceX, forceY, forceZ } = this;
+    const modeX = this.forceX.mode;
+    const modeY = this.forceY.mode;
+    const modeZ = this.forceZ.mode;
     return (
-      (forceX.mode === ParticleCurveMode.TwoCurves &&
-        forceY.mode === ParticleCurveMode.TwoCurves &&
-        forceZ.mode === ParticleCurveMode.TwoCurves) ||
-      (forceX.mode === ParticleCurveMode.TwoConstants &&
-        forceY.mode === ParticleCurveMode.TwoConstants &&
-        forceZ.mode === ParticleCurveMode.TwoConstants)
+      (modeX === ParticleCurveMode.TwoCurves &&
+        modeY === ParticleCurveMode.TwoCurves &&
+        modeZ === ParticleCurveMode.TwoCurves) ||
+      (modeX === ParticleCurveMode.TwoConstants &&
+        modeY === ParticleCurveMode.TwoConstants &&
+        modeZ === ParticleCurveMode.TwoConstants)
     );
   }
 }

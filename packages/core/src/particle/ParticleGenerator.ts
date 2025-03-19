@@ -1142,26 +1142,23 @@ export class ParticleGenerator {
       }
     }
 
-    const {
-      forceOverLifetime,
-      forceOverLifetime: { forceX, forceY, forceZ, space }
-    } = this;
+    const { forceOverLifetime } = this;
     if (forceOverLifetime.enabled) {
       const {
         _tempVector20: forceMinMaxX,
         _tempVector21: forceMinMaxY,
         _tempVector22: forceMinMaxZ
       } = ParticleGenerator;
-      this._getExtremeValueFromZero(forceX, forceMinMaxX);
-      this._getExtremeValueFromZero(forceY, forceMinMaxY);
-      this._getExtremeValueFromZero(forceZ, forceMinMaxZ);
+      this._getExtremeValueFromZero(forceOverLifetime.forceX, forceMinMaxX);
+      this._getExtremeValueFromZero(forceOverLifetime.forceY, forceMinMaxY);
+      this._getExtremeValueFromZero(forceOverLifetime.forceZ, forceMinMaxZ);
 
       const coefficient = 0.5 * maxLifetime * maxLifetime;
       forceMinMaxX.scale(coefficient);
       forceMinMaxY.scale(coefficient);
       forceMinMaxZ.scale(coefficient);
 
-      if (space === ParticleSimulationSpace.Local) {
+      if (forceOverLifetime.space === ParticleSimulationSpace.Local) {
         min.set(min.x + forceMinMaxX.x, min.y + forceMinMaxY.x, min.z + forceMinMaxZ.x);
         max.set(max.x + forceMinMaxX.y, max.y + forceMinMaxY.y, max.z + forceMinMaxZ.y);
       } else {
