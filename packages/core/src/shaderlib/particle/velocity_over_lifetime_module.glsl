@@ -110,7 +110,7 @@ vec3 computeParticlePosition(in vec3 startVelocity, in vec3 lifeVelocity, in flo
                 evaluateForceParticleCurveCumulative(renderer_FOLMaxGradientY, normalizedAge),
                 evaluateForceParticleCurveCumulative(renderer_FOLMaxGradientZ, normalizedAge)
             );
-            #ifdef RENDERER_FOL_RANDOM_CURVE
+            #ifdef RENDERER_FOL_IS_RANDOM_TWO
                 forcePosition = vec3(
                     mix(evaluateForceParticleCurveCumulative(renderer_FOLMinGradientX, normalizedAge), forcePosition.x, a_Random2.x),
                     mix(evaluateForceParticleCurveCumulative(renderer_FOLMinGradientY, normalizedAge), forcePosition.y, a_Random2.y),
