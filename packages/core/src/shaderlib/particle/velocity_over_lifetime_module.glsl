@@ -99,27 +99,7 @@ vec3 computeParticlePosition(in vec3 startVelocity, in vec3 lifeVelocity, in flo
     #endif
 
     #ifdef _FOL_MODULE_ENABLED
-        vec3 forcePosition;
-
-        #if defined(RENDERER_FOL_CONSTANT_MODE)
-            vec3 forceAcceleration = computeParticleLifeForce(normalizedAge);
-            forcePosition = 0.5 * forceAcceleration * age * age;
-        #elif defined(RENDERER_FOL_CURVE_MODE)
-            forcePosition = vec3(
-                evaluateForceParticleCurveCumulative(renderer_FOLMaxGradientX, normalizedAge),
-                evaluateForceParticleCurveCumulative(renderer_FOLMaxGradientY, normalizedAge),
-                evaluateForceParticleCurveCumulative(renderer_FOLMaxGradientZ, normalizedAge)
-            );
-            #ifdef RENDERER_FOL_IS_RANDOM_TWO
-                forcePosition = vec3(
-                    mix(evaluateForceParticleCurveCumulative(renderer_FOLMinGradientX, normalizedAge), forcePosition.x, a_Random2.x),
-                    mix(evaluateForceParticleCurveCumulative(renderer_FOLMinGradientY, normalizedAge), forcePosition.y, a_Random2.y),
-                    mix(evaluateForceParticleCurveCumulative(renderer_FOLMinGradientZ, normalizedAge), forcePosition.z, a_Random2.z)
-                );
-            #endif
-            forcePosition *= vec3(a_ShapePositionStartLifeTime.w * a_ShapePositionStartLifeTime.w);
-        #endif
-
+        vec3 forcePosition = computeForcePositionOffset(normalizedAge, age);
         if (renderer_FOLSpace == 0) {
             localPositionOffset += forcePosition;
         } else {

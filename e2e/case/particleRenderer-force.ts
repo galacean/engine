@@ -8,9 +8,11 @@ import {
   BoxShape,
   Camera,
   Color,
+  CurveKey,
   Engine,
   Entity,
   Logger,
+  ParticleCurve,
   ParticleCurveMode,
   ParticleGradientMode,
   ParticleMaterial,
@@ -147,15 +149,15 @@ function createDebrisParticle(engine: Engine, texture: Texture2D): Entity {
 
   forceOverLifetime.enabled = true;
   const { forceX, forceY, forceZ } = forceOverLifetime;
-  forceX.mode = ParticleCurveMode.TwoConstants;
+  forceX.mode = ParticleCurveMode.Constant;
   forceX.constantMax = 0;
   forceX.constantMin = -10;
 
-  forceY.mode = ParticleCurveMode.TwoConstants;
+  forceY.mode = ParticleCurveMode.Constant;
   forceY.constantMax = 10;
   forceY.constantMin = 0;
 
-  forceZ.mode = ParticleCurveMode.TwoConstants;
+  forceZ.mode = ParticleCurveMode.Constant;
   forceZ.constantMax = 0;
   forceZ.constantMin = 0;
 
@@ -178,7 +180,7 @@ function createGlowParticle(fireEntity: Entity, texture: Texture2D): void {
 
   const generator = particleRenderer.generator;
   generator.useAutoRandomSeed = false;
-  const { main, emission, velocityOverLifetime, colorOverLifetime } = generator;
+  const { main, emission, velocityOverLifetime, colorOverLifetime, forceOverLifetime } = generator;
 
   // Main module
   main.startSpeed.constant = 0.0;
@@ -224,6 +226,20 @@ function createGlowParticle(fireEntity: Entity, texture: Texture2D): void {
   gradient.alphaKeys[0].alpha = 0;
   gradient.alphaKeys[1].alpha = 0;
   gradient.addAlphaKey(0.2, 1.0);
+
+  forceOverLifetime.enabled = true;
+  const { forceX, forceY, forceZ } = forceOverLifetime;
+  forceX.mode = ParticleCurveMode.TwoConstants;
+  forceX.constantMax = 0;
+  forceX.constantMin = -10;
+
+  forceY.mode = ParticleCurveMode.TwoConstants;
+  forceY.constantMax = 10;
+  forceY.constantMin = 0;
+
+  forceZ.mode = ParticleCurveMode.TwoConstants;
+  forceZ.constantMax = 0;
+  forceZ.constantMin = 0;
 }
 
 function createSparksParticle(fireEntity: Entity, texture: Texture2D): void {
@@ -286,17 +302,14 @@ function createSparksParticle(fireEntity: Entity, texture: Texture2D): void {
 
   forceOverLifetime.enabled = true;
   const { forceX, forceY, forceZ } = forceOverLifetime;
-  forceX.mode = ParticleCurveMode.TwoConstants;
-  forceX.constantMax = 10;
-  forceX.constantMin = 0;
+  forceX.mode = ParticleCurveMode.Curve;
+  forceX.curveMax = new ParticleCurve(new CurveKey(0, 0.2), new CurveKey(0.5, 8), new CurveKey(1, 0.8));
 
-  forceY.mode = ParticleCurveMode.TwoConstants;
-  forceY.constantMax = 8;
-  forceY.constantMin = 0;
+  forceY.mode = ParticleCurveMode.Curve;
+  forceY.curveMax = new ParticleCurve(new CurveKey(0, 0.2), new CurveKey(0.5, 8), new CurveKey(1, 0.8));
 
-  forceZ.mode = ParticleCurveMode.TwoConstants;
-  forceZ.constantMax = 0;
-  forceZ.constantMin = 0;
+  forceZ.mode = ParticleCurveMode.Curve;
+  forceZ.curveMax = new ParticleCurve(new CurveKey(0, 0.2), new CurveKey(0.5, 8), new CurveKey(1, 0.8));
 }
 
 function createHighlightsParticle(fireEntity: Entity, texture: Texture2D): void {
@@ -370,15 +383,15 @@ function createHighlightsParticle(fireEntity: Entity, texture: Texture2D): void 
 
   forceOverLifetime.enabled = true;
   const { forceX, forceY, forceZ } = forceOverLifetime;
-  forceX.mode = ParticleCurveMode.TwoConstants;
-  forceX.constantMax = 10;
-  forceX.constantMin = -10;
+  forceX.mode = ParticleCurveMode.TwoCurves;
+  forceX.curveMax = new ParticleCurve(new CurveKey(0, 0.2), new CurveKey(0.5, 8), new CurveKey(1, 0.8));
+  forceX.curveMin = new ParticleCurve(new CurveKey(0, 0), new CurveKey(0.5, 2), new CurveKey(1, 0));
 
-  forceY.mode = ParticleCurveMode.TwoConstants;
-  forceY.constantMax = 3;
-  forceY.constantMin = 0;
+  forceY.mode = ParticleCurveMode.TwoCurves;
+  forceY.curveMax = new ParticleCurve(new CurveKey(0, 0.2), new CurveKey(0.5, 8), new CurveKey(1, 0.8));
+  forceY.curveMin = new ParticleCurve(new CurveKey(0, 0), new CurveKey(0.5, 2), new CurveKey(1, 0));
 
-  forceZ.mode = ParticleCurveMode.TwoConstants;
-  forceZ.constantMax = 0;
-  forceZ.constantMin = 0;
+  forceZ.mode = ParticleCurveMode.TwoCurves;
+  forceZ.curveMax = new ParticleCurve(new CurveKey(0, 0.2), new CurveKey(0.5, 8), new CurveKey(1, 0.8));
+  forceZ.curveMin = new ParticleCurve(new CurveKey(0, 0), new CurveKey(0.5, 2), new CurveKey(1, 0));
 }
