@@ -28,30 +28,30 @@
         #endif
     #endif
 
+    // (tHat - t1) * (tHat - t1) * (tHat - t1) * (a2 - a1) / ((t2 - t1) * 6.0) + a1 * (tHat - t1) * (tHat - t1) * 0.5 + v1 * (tHat - t1);
+    float computeIntegral(in float tHat, in float t1, in float t2, in float a1, in float a2, in float v1) {
+        float temp1 = tHat - t1;
+        return temp1 * temp1 * temp1 * (a2 - a1) / ((t2 - t1) * 6.0) + a1 * temp1 * temp1 * 0.5 + v1 * temp1;
+    }
+
     float evaluateForceParticleCurveCumulative(in vec2 keys[4], in float normalizedAge) {
         float cumulativeValue = 0.0;
         float lastVelocity = 0.0;
         for (int i = 1; i < 4; i++){
             vec2 key = keys[i];
-            float time = key.x;
-            float currentValue = key.y;
             vec2 lastKey = keys[i - 1];
-            float lastValue = lastKey.y;
 
-            if (time >= normalizedAge){
-                float lastTime = lastKey.x;
-                float offsetTime = normalizedAge - lastTime;
-                float age = offsetTime / (time - lastTime);
-                float finalValue = mix(lastValue, currentValue, age);
-
-                cumulativeValue += (lastValue + finalValue) * 0.5 * offsetTime * offsetTime + lastVelocity * offsetTime;
+            if (key.x >= normalizedAge){
+                float tHat = normalizedAge * a_ShapePositionStartLifeTime.w;
+                float t1 = lastKey.x * a_ShapePositionStartLifeTime.w;
+                float t2 = key.x * a_ShapePositionStartLifeTime.w;
+                cumulativeValue += computeIntegral(tHat, t1, t2, lastKey.y, key.y, lastVelocity);
                 break;
-            }
-            else{
-                float offsetTime = time - lastKey.x;
-                float incrementAverageVelocity = (lastValue + currentValue) * 0.5 * offsetTime;
-                cumulativeValue += incrementAverageVelocity * offsetTime + lastVelocity * offsetTime;
-                lastVelocity += incrementAverageVelocity;
+            } else {
+                float t2 = key.x * a_ShapePositionStartLifeTime.w;
+                float t1 = lastKey.x * a_ShapePositionStartLifeTime.w;
+                cumulativeValue += computeIntegral(t2, t1, t2, lastKey.y, key.y, lastVelocity);
+                lastVelocity += 0.5 * (t2 - t1) * (lastKey.y + key.y);
             }
         }
         return cumulativeValue;
@@ -80,7 +80,6 @@
                     mix(evaluateForceParticleCurveCumulative(renderer_FOLMinGradientZ, normalizedAge), forcePosition.z, a_Random2.z)
                 );
             #endif
-            forcePosition *= vec3(a_ShapePositionStartLifeTime.w * a_ShapePositionStartLifeTime.w);
         #endif
         return forcePosition;
     }
