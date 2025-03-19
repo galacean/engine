@@ -28,21 +28,22 @@ export class GLTexture implements IPlatformTexture {
    */
   static _getFormatDetail(
     format: TextureFormat,
+    isSRGBColorSpace: boolean,
     gl: WebGLRenderingContext & WebGL2RenderingContext,
     isWebGL2: boolean
   ): TextureFormatDetail {
     switch (format) {
       case TextureFormat.R8G8B8:
         return {
-          internalFormat: isWebGL2 ? gl.RGB8 : gl.RGB,
-          baseFormat: gl.RGB,
+          internalFormat: isSRGBColorSpace ? gl.SRGB8 : isWebGL2 ? gl.RGB8 : gl.RGB,
+          baseFormat: isWebGL2 ? gl.RGB : isSRGBColorSpace ? gl.SRGB8 : gl.RGB,
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false
         };
       case TextureFormat.R8G8B8A8:
         return {
-          internalFormat: isWebGL2 ? gl.RGBA8 : gl.RGBA,
-          baseFormat: gl.RGBA,
+          internalFormat: isSRGBColorSpace ? gl.SRGB8_ALPHA8 : isWebGL2 ? gl.RGBA8 : gl.RGBA,
+          baseFormat: isWebGL2 ? gl.RGBA : isSRGBColorSpace ? gl.SRGB8_ALPHA8 : gl.RGBA,
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false
         };
@@ -652,6 +653,52 @@ export class GLTexture implements IPlatformTexture {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
+  protected _getReadFrameBuffer(): WebGLFramebuffer {
+    let frameBuffer = this._rhi._readFrameBuffer;
+    if (!frameBuffer) {
+      this._rhi._readFrameBuffer = frameBuffer = this._gl.createFramebuffer();
+    }
+    return frameBuffer;
+  }
+
+  protected _validate(texture: Texture, rhi: WebGLGraphicDevice): void {
+    const isWebGL2 = rhi.isWebGL2;
+    const { format, width, height, isSRGBColorSpace } = texture;
+    // @ts-ignore
+    const mipmap = texture._mipmap;
+
+    if (!GLTexture._supportTextureFormat(format, rhi)) {
+      throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
+    }
+
+    if (mipmap && !isWebGL2 && (!GLTexture._isPowerOf2(width) || !GLTexture._isPowerOf2(height))) {
+      Logger.warn(
+        "non-power-2 texture is not supported for mipmap in WebGL1, and has automatically downgraded to non-mipmap"
+      );
+      /** @ts-ignore */
+      texture._mipmap = false;
+      /** @ts-ignore */
+      texture._mipmapCount = texture._getMipmapCount();
+    }
+
+    if (
+      mipmap &&
+      isSRGBColorSpace &&
+      // Only support sRGB in RGB8 or RGBA8
+      (format === TextureFormat.R8G8B8A8 || format === TextureFormat.R8G8B8) &&
+      // Auto-generating mipmaps for sRGB textures is only supported in [WebGL2 + RGBA]
+      (!isWebGL2 || format === TextureFormat.R8G8B8)
+    ) {
+      Logger.warn(
+        "Auto-generating mipmaps for sRGB textures is only supported in [WebGL2 + R8G8B8A8], and has automatically downgraded to non-mipmap"
+      );
+      /** @ts-ignore */
+      texture._mipmap = false;
+      /** @ts-ignore */
+      texture._mipmapCount = texture._getMipmapCount();
+    }
+  }
+
   private _setWrapMode(value: TextureWrapMode, pname: GLenum): void {
     const gl = this._gl;
     const isWebGL2 = this._isWebGL2;
@@ -680,13 +727,5 @@ export class GLTexture implements IPlatformTexture {
         gl.texParameteri(target, pname, gl.MIRRORED_REPEAT);
         break;
     }
-  }
-
-  protected _getReadFrameBuffer(): WebGLFramebuffer {
-    let frameBuffer = this._rhi._readFrameBuffer;
-    if (!frameBuffer) {
-      this._rhi._readFrameBuffer = frameBuffer = this._gl.createFramebuffer();
-    }
-    return frameBuffer;
   }
 }

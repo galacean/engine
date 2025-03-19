@@ -1,4 +1,4 @@
-import { IPlatformTextureCube, Logger, TextureCube, TextureCubeFace, TextureFormat } from "@galacean/engine-core";
+import { IPlatformTextureCube, TextureCube, TextureCubeFace } from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
@@ -12,27 +12,12 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
   constructor(rhi: WebGLGraphicDevice, textureCube: TextureCube) {
     super(rhi, textureCube, rhi.gl.TEXTURE_CUBE_MAP);
 
-    /** @ts-ignore */
-    const { format, _mipmap, width: size } = textureCube;
+    const { format, isSRGBColorSpace } = textureCube;
     const isWebGL2 = this._isWebGL2;
 
-    /** @ts-ignore */
-    if (!GLTexture._supportTextureFormat(format, rhi)) {
-      throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
-    }
+    this._validate(textureCube, rhi);
 
-    if (_mipmap && !isWebGL2 && !GLTexture._isPowerOf2(size)) {
-      Logger.warn(
-        "non-power-2 texture is not supported for mipmap in WebGL1,and has automatically downgraded to non-mipmap"
-      );
-
-      /** @ts-ignore */
-      textureCube._mipmap = false;
-      /** @ts-ignore */
-      textureCube._mipmapCount = textureCube._getMipmapCount();
-    }
-
-    this._formatDetail = GLTexture._getFormatDetail(format, this._gl, isWebGL2);
+    this._formatDetail = GLTexture._getFormatDetail(format, isSRGBColorSpace, this._gl, isWebGL2);
     (this._formatDetail.isCompressed && !isWebGL2) || this._init(true);
   }
 

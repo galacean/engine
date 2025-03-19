@@ -1,4 +1,4 @@
-import { IPlatformTexture2D, Logger, Texture2D, TextureFormat, TextureUsage } from "@galacean/engine-core";
+import { IPlatformTexture2D, Texture2D, TextureUsage } from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
@@ -12,27 +12,12 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
   constructor(rhi: WebGLGraphicDevice, texture2D: Texture2D) {
     super(rhi, texture2D, rhi.gl.TEXTURE_2D);
 
-    /** @ts-ignore */
-    const { format, _mipmap, width, height } = texture2D;
+    const { format, isSRGBColorSpace } = texture2D;
     const isWebGL2 = this._isWebGL2;
 
-    /** @ts-ignore */
-    if (!GLTexture._supportTextureFormat(format, rhi)) {
-      throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
-    }
+    this._validate(texture2D, rhi);
 
-    if (_mipmap && !isWebGL2 && (!GLTexture._isPowerOf2(width) || !GLTexture._isPowerOf2(height))) {
-      Logger.warn(
-        "non-power-2 texture is not supported for mipmap in WebGL1,and has automatically downgraded to non-mipmap"
-      );
-
-      /** @ts-ignore */
-      texture2D._mipmap = false;
-      /** @ts-ignore */
-      texture2D._mipmapCount = texture2D._getMipmapCount();
-    }
-
-    this._formatDetail = GLTexture._getFormatDetail(format, this._gl, isWebGL2);
+    this._formatDetail = GLTexture._getFormatDetail(format, isSRGBColorSpace, this._gl, isWebGL2);
     (this._formatDetail.isCompressed && !isWebGL2) || this._init(false);
   }
 

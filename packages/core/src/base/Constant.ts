@@ -123,7 +123,9 @@ export enum GLCapabilityType {
 
   bptc = "EXT_texture_compression_bptc",
 
-  WEBGL_lose_context = "WEBGL_lose_context"
+  WEBGL_lose_context = "WEBGL_lose_context",
+
+  sRGB = "EXT_sRGB"
 }
 
 export type TypedArray =

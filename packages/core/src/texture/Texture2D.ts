@@ -15,17 +15,19 @@ export class Texture2D extends Texture {
    * @param engine - Define the engine to use to render this texture
    * @param width - Texture width
    * @param height - Texture height
-   * @param format - Texture format. default  `TextureFormat.R8G8B8A8`
+   * @param format - Texture format. default `TextureFormat.R8G8B8A8`
    * @param mipmap - Whether to use multi-level texture
    * @param usage - Texture usage
+   * @param isSRGBColorSpace - Whether to use sRGB color space, default is false
    */
   constructor(
     engine: Engine,
     width: number,
     height: number,
-    format: TextureFormat = TextureFormat.R8G8B8A8,
-    mipmap: boolean = true,
-    usage: TextureUsage = TextureUsage.Static
+    format = TextureFormat.R8G8B8A8,
+    mipmap = true,
+    usage = TextureUsage.Static,
+    isSRGBColorSpace = false
   ) {
     super(engine);
     this._mipmap = mipmap;
@@ -34,15 +36,9 @@ export class Texture2D extends Texture {
     this._usage = usage;
     this._format = format;
     this._mipmapCount = this._getMipmapCount();
+    this._isSRGBColorSpace = isSRGBColorSpace;
 
-    this._isDepthTexture =
-      format == TextureFormat.Depth ||
-      format == TextureFormat.DepthStencil ||
-      format == TextureFormat.Depth16 ||
-      format == TextureFormat.Depth24 ||
-      format == TextureFormat.Depth32 ||
-      format == TextureFormat.Depth24Stencil8 ||
-      format == TextureFormat.Depth32Stencil8;
+    this._isDepthTexture = format >= TextureFormat.Depth && format <= TextureFormat.Depth32Stencil8;
 
     this._platformTexture = engine._hardwareRenderer.createPlatformTexture2D(this);
 
