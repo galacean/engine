@@ -135,9 +135,9 @@ float evaluateForceParticleCurveCumulative(in vec2 keys[4], in float normalizedA
 		}
 	    else{
             float offsetTime = time - lastKey.x;
-            float halfAT = (lastValue + currentValue) * 0.5 * offsetTime;
-		    cumulativeValue += halfAT * offsetTime + lastVelocity * offsetTime;
-            lastVelocity += halfAT;
+            float incrementAverageVelocity = (lastValue + currentValue) * 0.5 * offsetTime;
+		    cumulativeValue += incrementAverageVelocity * offsetTime + lastVelocity * offsetTime;
+            lastVelocity += incrementAverageVelocity;
 		}
 	}
     return cumulativeValue;
