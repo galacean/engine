@@ -51,6 +51,8 @@ ShaderPool.init();
 export class Engine extends EventDispatcher {
   /** @internal */
   static _noDepthTextureMacro: ShaderMacro = ShaderMacro.getByName("ENGINE_NO_DEPTH_TEXTURE");
+  /** @internal */
+  static _noSRGBSupportMacro: ShaderMacro = ShaderMacro.getByName("ENGINE_NO_SRGB");
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
   /** @internal */
@@ -254,6 +256,10 @@ export class Engine extends EventDispatcher {
       const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false);
       depthTexture2D.isGCIgnored = true;
       this._depthTexture2D = depthTexture2D;
+    }
+
+    if (!hardwareRenderer.canIUse(GLCapabilityType.sRGB)) {
+      this._macroCollection.enable(Engine._noSRGBSupportMacro);
     }
 
     const meshMagentaMaterial = new Material(this, Shader.find("unlit"));

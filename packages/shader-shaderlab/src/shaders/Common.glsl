@@ -27,6 +27,15 @@ vec4 linearToGamma(vec4 linearIn){
     return vec4( pow(linearIn.rgb, vec3(1.0 / 2.2)), linearIn.a);
 }
 
+// Compatible with devices that do not even support EXT_sRGB in WebGL1.0.
+vec4 texture2D_SRGB(sampler2D tex, vec2 uv) {
+	vec4 color = texture2D(tex, uv);
+	#ifdef ENGINE_NO_SRGB
+		color = gammaToLinear(color);
+	#endif
+	return color;
+}
+
 vec4 camera_DepthBufferParams;
 
 float remapDepthBufferLinear01(float z){
