@@ -10,7 +10,7 @@ void main() {
 
     #ifdef MATERIAL_IS_DECODE_SKY_RGBM
         textureColor = RGBMToLinear(textureColor, 5.0);
-    #else
+    #elif defined(ENGINE_NO_SRGB)
         textureColor = gammaToLinear(textureColor);
     #endif
 

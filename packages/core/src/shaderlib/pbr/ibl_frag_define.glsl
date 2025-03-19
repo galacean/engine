@@ -70,7 +70,7 @@ vec3 getLightProbeRadiance(Geometry geometry, vec3 normal, float roughness, int 
 
         #ifdef SCENE_IS_DECODE_ENV_RGBM
             envMapColor.rgb = RGBMToLinear(envMapColor, 5.0).rgb;
-        #else
+        #elif defined(ENGINE_NO_SRGB)
             envMapColor = gammaToLinear(envMapColor);
         #endif
         
