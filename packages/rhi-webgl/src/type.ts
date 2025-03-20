@@ -51,9 +51,6 @@ export interface TextureFormatDetail {
   attachment?: GLenum;
 }
 
-/**
- * @deprecated
- */
 export enum GLCompressedTextureInternalFormat {
   // astc
   RGBA_ASTC_4X4_KHR = 0x93b0,
@@ -111,6 +108,12 @@ export enum GLCompressedTextureInternalFormat {
   RGBA_S3TC_DXT1_EXT = 0x83f1,
   RGBA_S3TC_DXT3_EXT = 0x83f2,
   RGBA_S3TC_DXT5_EXT = 0x83f3,
+
+  // s3tc + WEBGL_compressed_texture_s3tc_srgb
+  SRGB_S3TC_DXT1_EXT = 0x8c4c,
+  SRGB_ALPHA_S3TC_DXT1_EXT = 0x8c4d,
+  SRGB_ALPHA_S3TC_DXT3_EXT = 0x8c4e,
+  SRGB_ALPHA_S3TC_DXT5_EXT = 0x8c4f,
 
   // bptc
   RGBA_BPTC_UNORM_EXT = 0x8e8c,

@@ -167,6 +167,7 @@ export class GLCapability {
       s3tc,
       s3tc_webkit,
       bptc,
+      s3tc_srgb,
 
       textureFloat,
       textureHalfFloat,
@@ -210,6 +211,7 @@ export class GLCapability {
     cap.set(etc1, !!(requireExtension(etc1) || requireExtension(etc1_webkit)));
     cap.set(pvrtc, !!(requireExtension(pvrtc) || requireExtension(pvrtc_webkit)));
     cap.set(s3tc, !!(requireExtension(s3tc) || requireExtension(s3tc_webkit)));
+    cap.set(s3tc_srgb, !!requireExtension(s3tc_srgb));
     cap.set(bptc, !!requireExtension(bptc));
 
     cap.set(sRGB, isWebGL2 || !!requireExtension(sRGB));

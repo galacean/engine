@@ -77,17 +77,25 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       transcodeResultPromise = khronosWorker.init().then(() => khronosWorker.transcode(ktx2Container));
     }
     return transcodeResultPromise.then((result) => {
-      return { engine, result, targetFormat, params: ktx2Container.keyValue["GalaceanTextureParams"] as Uint8Array };
+      return {
+        ktx2Container,
+        engine,
+        result,
+        targetFormat,
+        params: ktx2Container.keyValue["GalaceanTextureParams"] as Uint8Array
+      };
     });
   }
 
   /** @internal */
   static _createTextureByBuffer(
+    ktx2Container: KTX2Container,
     engine: Engine,
     transcodeResult: TranscodeResult,
     targetFormat: KTX2TargetFormat,
     params?: Uint8Array
   ): Texture2D | TextureCube {
+    const { isSRGB } = ktx2Container;
     const { width, height, faces } = transcodeResult;
     const faceCount = faces.length;
     const mipmaps = faces[0];
@@ -95,13 +103,13 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     const engineFormat = this._getEngineTextureFormat(targetFormat, transcodeResult);
     let texture: Texture2D | TextureCube;
     if (faceCount !== 6) {
-      texture = new Texture2D(engine, width, height, engineFormat, mipmap);
+      texture = new Texture2D(engine, width, height, engineFormat, mipmap, undefined, isSRGB);
       for (let mipLevel = 0; mipLevel < mipmaps.length; mipLevel++) {
         const { data } = mipmaps[mipLevel];
         texture.setPixelBuffer(data, mipLevel);
       }
     } else {
-      texture = new TextureCube(engine, height, engineFormat, mipmap);
+      texture = new TextureCube(engine, height, engineFormat, mipmap, isSRGB);
       for (let i = 0; i < faces.length; i++) {
         const faceData = faces[i];
         for (let mipLevel = 0; mipLevel < mipmaps.length; mipLevel++) {
@@ -124,7 +132,6 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     priorityFormats?: KTX2TargetFormat[]
   ): KTX2TargetFormat {
     const renderer = (engine as any)._hardwareRenderer;
-
     const targetFormat = this._detectSupportedFormat(renderer, priorityFormats) as KTX2TargetFormat;
 
     if (
@@ -227,8 +234,8 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((buffer) =>
           KTX2Loader._parseBuffer(new Uint8Array(buffer), resourceManager.engine, item.params).then(
-            ({ engine, result, targetFormat, params }) =>
-              KTX2Loader._createTextureByBuffer(engine, result, targetFormat, params)
+            ({ ktx2Container, engine, result, targetFormat, params }) =>
+              KTX2Loader._createTextureByBuffer(ktx2Container, engine, result, targetFormat, params)
           )
         )
         .then(resolve)

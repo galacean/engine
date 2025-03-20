@@ -112,17 +112,23 @@ export class GLTexture implements IPlatformTexture {
         };
       case TextureFormat.BC1:
         return {
-          internalFormat: GLCompressedTextureInternalFormat.RGB_S3TC_DXT1_EXT,
+          internalFormat: isSRGBColorSpace
+            ? GLCompressedTextureInternalFormat.SRGB_S3TC_DXT1_EXT
+            : GLCompressedTextureInternalFormat.RGB_S3TC_DXT1_EXT,
           isCompressed: true
         };
       case TextureFormat.BC3:
         return {
-          internalFormat: GLCompressedTextureInternalFormat.RGBA_S3TC_DXT5_EXT,
+          internalFormat: isSRGBColorSpace
+            ? GLCompressedTextureInternalFormat.SRGB_ALPHA_S3TC_DXT5_EXT
+            : GLCompressedTextureInternalFormat.RGBA_S3TC_DXT5_EXT,
           isCompressed: true
         };
       case TextureFormat.BC7:
         return {
-          internalFormat: GLCompressedTextureInternalFormat.RGBA_BPTC_UNORM_EXT,
+          internalFormat: isSRGBColorSpace
+            ? GLCompressedTextureInternalFormat.SRGB_ALPHA_BPTC_UNORM_EXT
+            : GLCompressedTextureInternalFormat.RGBA_BPTC_UNORM_EXT,
           isCompressed: true
         };
       case TextureFormat.ETC1_RGB:
@@ -132,7 +138,9 @@ export class GLTexture implements IPlatformTexture {
         };
       case TextureFormat.ETC2_RGB:
         return {
-          internalFormat: GLCompressedTextureInternalFormat.RGB8_ETC2,
+          internalFormat: isSRGBColorSpace
+            ? GLCompressedTextureInternalFormat.SRGB8_ETC2
+            : GLCompressedTextureInternalFormat.RGB8_ETC2,
           isCompressed: true
         };
       case TextureFormat.ETC2_RGBA5:
@@ -142,7 +150,9 @@ export class GLTexture implements IPlatformTexture {
         };
       case TextureFormat.ETC2_RGBA8:
         return {
-          internalFormat: GLCompressedTextureInternalFormat.RGBA8_ETC2_EAC,
+          internalFormat: isSRGBColorSpace
+            ? GLCompressedTextureInternalFormat.SRGB8_ALPHA8_ETC2_EAC
+            : GLCompressedTextureInternalFormat.RGBA8_ETC2_EAC,
           isCompressed: true
         };
       case TextureFormat.PVRTC_RGB2:
@@ -167,7 +177,9 @@ export class GLTexture implements IPlatformTexture {
         };
       case TextureFormat.ASTC_4x4:
         return {
-          internalFormat: GLCompressedTextureInternalFormat.RGBA_ASTC_4X4_KHR,
+          internalFormat: isSRGBColorSpace
+            ? GLCompressedTextureInternalFormat.SRGB8_ALPHA8_ASTC_4X4_KHR
+            : GLCompressedTextureInternalFormat.RGBA_ASTC_4X4_KHR,
           isCompressed: true
         };
       case TextureFormat.ASTC_5x5:

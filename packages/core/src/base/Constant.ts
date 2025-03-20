@@ -118,8 +118,7 @@ export enum GLCapabilityType {
   pvrtc_webkit = "WEBKIT_WEBGL_compressed_texture_pvrtc",
   s3tc = "WEBGL_compressed_texture_s3tc",
   s3tc_webkit = "WEBKIT_WEBGL_compressed_texture_s3tc",
-  // atc = "WEBGL_compressed_texture_atc",
-  // s3tc_srgb = "WEBGL_compressed_texture_s3tc_srgb"
+  s3tc_srgb = "WEBGL_compressed_texture_s3tc_srgb",
 
   bptc = "EXT_texture_compression_bptc",
 
