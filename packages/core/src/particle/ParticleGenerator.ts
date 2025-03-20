@@ -734,6 +734,7 @@ export class ParticleGenerator {
     // Color
     const startColor = ParticleGenerator._tempColor0;
     main.startColor.evaluate(undefined, main._startColorRand.random(), startColor);
+
     startColor.toLinear(startColor);
     startColor.copyToArray(instanceVertices, offset + 8);
 
