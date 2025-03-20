@@ -1,85 +1,114 @@
 ---
 order: 2
-title: 物理管理器
+title: 物理场景
 type: 物理
 label: Physics
 ---
 
-物理管理器（PhysicsManager）用于管理场景中所有的物理组件，并且负责与物理后端通信，实现有关物理场景的全局操作，例如更新和射线检测等等。在多场景项目中，每个Scene都有自己的PhysicsManager，Scene之间的物理系统是相互隔离互不影响的。
+物理场景（[PhysicsScene](/apis/core/#PhysicsScene)）用于管理场景中所有的物理组件，并且负责与物理后端通信，实现有关物理场景的全局操作，例如更新和射线检测等等。在多场景项目中，每个[Scene](/apis/core/Scene)都有自己的物理场景，Scene之间的物理系统是相互隔离互不影响的。
 
 ## 物理更新
 
-物理场景和渲染场景相互独立，但在程序运行过程中不断同步各自的数据。因此，和脚本一样，同步的时序也非常重要。一般来说，物理场景的更新频率和渲染场景不同，在物理管理器中可以对其进行设置：
-
+物理场景和渲染场景相互独立，但在程序运行过程中不断同步各自的数据。因此，和[脚本](/docs/script/script)一样，同步的时序也非常重要。物理场景的更新频率和渲染场景不同，通过以下参数进行控制：
 ```typescript
-/** The fixed time step in seconds at which physics are performed. */
+/** 物理场景的固定更新时间步长(秒) */
 fixedTimeStep: number = 1 / 60;
-
-/** The max sum of time step in seconds one frame. */
-maxSumTimeStep: number = 1 / 3;
 ```
 
-每一个渲染帧中，物理引擎都会按照固定时间步长进行更新 `fixedTimeStep`。
+### 更新机制
 
-如果时时间间隔大于 `fixedTimeStep`，则单步模拟的最大时间步长由 `maxSumTimeStep` 确定。此时，如果按照上面列出的默认参数，有可能会发生追帧现象。
-这时候可以通过调节 `maxSumTimeStep` 降低每帧物理模拟的更新次数。
+- 每个渲染帧中,物理引擎会按照固定时间步长 [fixedTimeStep](/apis/core/#PhysicsScene-fixedTimeStep) 进行更新
+- 如果实际帧间隔大于 `fixedTimeStep`:
+  - 会执行多次物理更新直到追赶上实际时间
+  - 单帧最大更新时间由 `engine.time.maximumDeltaTime` 限制
+- 如果实际帧间隔小于 `fixedTimeStep`,则累积到下一帧处理
 
-如果不满一个 `fixedTimeStep`，则顺延到下一帧再处理。因此，每一个渲染帧，物理场景可能会更新多次，也可能只更新一次，因此对于有关物理组件更新，都需要放在特定的更新函数，`Script`
-提供了这一接口：
+### 物理更新回调
 
+针对物理组件的更新，需要使用[脚本](/docs/script/script)中专门的回调函数:
 ```typescript
 export class Script extends Component {
   /**
-   * Called before physics calculations, the number of times is related to the physical update frequency.
+   * 在物理计算前调用,调用次数取决于物理更新频率
    */
-  onPhysicsUpdate(): void {
-  }
+  onPhysicsUpdate(): void {}
 }
 ```
 
-物理场景在更新时，除了调用该函数，还会同步 Collider 和其所挂载的 Entity 的姿态。物理更新的时序如下：
+物理更新在整个更新流程中的位置可以参考下图
+<Image src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*_8C-TJP2UIgAAAAAAAAAAAAAARQnAQ" />
 
-1. 调用 `onPhysicsUpdate` 中的用户逻辑
-2. `callColliderOnUpdate` 将被修改的 Entity 新姿态同步给物理碰撞器
+### 物理系统内部更新流程
+
+物理场景在更新时的执行顺序:
+
+1. 执行 `onPhysicsUpdate` 中的用户逻辑
+2. `callColliderOnUpdate` 将被修改的 [实体](/apis/core/#Entity) `Transform` 数据同步给物理碰撞器
 3. 更新物理场景
-4. `callColliderOnLateUpdate` 将所有 DynamicCollider 更新后的位置同步给对应的 Entity
+4. `callColliderOnLateUpdate` 将所有 [碰撞器](/docs/physics/collider/overview) 更新后的位置同步给对应的 `实体`
+
+## 设置场景重力
+
+物理场景允许自定义重力方向和大小。重力会影响场景中所有启用重力的[动态碰撞器](/docs/physics/collider/dynamicCollider)。
+
+```typescript
+// 获取物理场景的重力值
+const gravity = scene.physics.gravity;
+
+// 修改重力 - 将重力改为 0
+scene.physics.gravity.set(0, 0, 0);
+
+// 修改重力 - 设置为地球重力加速度 (默认值)
+scene.physics.gravity.set(0, -9.81, 0);
+```
 
 ## 使用射线检测
 
 <Playground href="/embed/physx-raycast" />
 
-射线可以理解成 3D 世界中一个点向一个方向发射的一条无终点的线。射线投射在 3D 应用中非常广泛。通过射线投射，可以在用户点击屏幕时，拾取 3D 场景中的物体；也可以在射击游戏中，判断子弹能否射中目标。
+射线可以理解成 3D 世界中一个点向一个方向发射的一条无终点的线。射线投射在 3D 应用中应用非常广泛：
 
-<Image src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*SHM1RI49Bd4AAAAAAAAAAAAAARQnAQ" />
+- 在用户点击屏幕时,用于拾取3D场景中的物体
+- 在射击游戏中,用于判断子弹能否射中目标
+- 检测物体之间的可视性和遮挡关系
+
+<Image src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*SHM1RI49Bd4AAAAAAAAAAAAAARQnAQ" /> 
 （_图片来源于网络_）
 
-在使用射线投射，首先要在代码中引入 [Ray](/apis/math/#Ray) 模块；然后生成射线，射线可以自定义生成，也可以通过相机（[camera](/apis/core/#Camera-viewportPointToRay)
-）将屏幕输入转化成射线；最后调用 [PhysicsManager.raycast](/apis/core/#PhysicsManager-raycast) 方法即可检测射线投射命中的碰撞体。代码如下：
+### 射线检测示例
+
+使用射线检测需要以下步骤:
+
+1. 引入 [Ray](/apis/math/Ray) 等必要的模块
+2. 创建射线(可以自定义或通过 [camera.screenPointToRay](/apis/core/#Camera-screenPointToRay) 生成)
+3. 调用 [`raycast`](/apis/core/#PhysicsScene-raycast) 方法检测碰撞
 
 ```typescript
 // 加载 Raycast 模块
-import {WebGLEngine, HitResult, Ray} from "@galacean/engine";
-import {LitePhysics} from "@galacean/engine-physics-lite";
+import { WebGLEngine, HitResult, Ray } from "@galacean/engine";
+import { LitePhysics } from "@galacean/engine-physics-lite";
 
 const engine = await WebGLEngine.create({
   canvas: "canvas",
-  physics: new LitePhysics(),
+  physics: new LitePhysics()
 });
 engine.canvas.resizeByClientSize();
-
+const scene = engine.scenes[0];
 // 将屏幕输入转换成Ray
-document.getElementById('canvas').addEventListener('click', (e) => {
+document.getElementById("canvas").addEventListener("click", (e) => {
   const ratio = window.devicePixelRatio;
   let ray = new Ray();
   camera.screenPointToRay(new Vector2(e.offsetX, e.offsetY).scale(ratio), ray);
   const hit = new HitResult();
-  result = engine.physicsManager.raycast(ray, Number.MAX_VALUE, Layer.Everything, hit);
+  result = scene.physics.raycast(ray, Number.MAX_VALUE, Layer.Everything, hit);
   if (result) {
     console.log(hit.entity.name);
   }
 });
 ```
 
-需要特别指出，如果想要对 Entity 启用射线投射，该 Entity 就必须拥有 **Collider** ，否则无法触发。若射线命中的Collider的Shape距离相同，则返回先被添加的Shape（举个例子：有两个Collider相同的Entity完全重合，则会返回先添加Collider，更准确的说是先添加Shape的Entity）。
+### 注意事项
 
-同时，在 Galacean 当中，还提供了 InputManager，该管理器将输入源做了封装，提供了更加易用的逻辑，使用方式可以[参考](/docs/input/input/) .
+- Entity 必须添加 [碰撞器](/docs/physics/collider/overview) 组件才能被射线检测到
+- 当射线命中多个相同距离的 [碰撞形状](/docs/physics/collider/colliderShape) 时,会返回先添加的碰撞形状所在的 Entity
+- 建议使用 [InputManager](/docs/input/input/) 来处理输入,它提供了更便捷的输入处理方式

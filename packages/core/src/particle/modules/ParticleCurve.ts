@@ -67,9 +67,10 @@ export class ParticleCurve {
    * @param index - The remove key index
    */
   removeKey(index: number): void {
-    this._keys.splice(index, 1);
+    const keys = this._keys;
+    const removeKey = keys[index];
+    keys.splice(index, 1);
     this._typeArrayDirty = true;
-    const removeKey = this._keys[index];
     removeKey._unRegisterOnValueChanged(this._updateDispatch);
     this._updateDispatch();
   }
@@ -84,6 +85,32 @@ export class ParticleCurve {
       this.addKey(keys[i]);
     }
     this._typeArrayDirty = true;
+  }
+
+  /**
+   * @internal
+   */
+  _evaluate(normalizedAge: number): number {
+    const { keys } = this;
+    const { length } = keys;
+
+    for (let i = 0; i < length; i++) {
+      const key = keys[i];
+      const { time } = key;
+      if (normalizedAge <= time) {
+        if (i === 0) {
+          // Small than first key
+          return key.value;
+        } else {
+          // Between two keys
+          const { time: lastTime, value: lastValue } = keys[i - 1];
+          const age = (normalizedAge - lastTime) / (time - lastTime);
+          return lastValue + (key.value - lastValue) * age;
+        }
+      }
+    }
+    // Large than last key
+    return keys[length - 1].value;
   }
 
   /**

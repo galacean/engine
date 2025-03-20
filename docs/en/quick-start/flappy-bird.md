@@ -257,11 +257,11 @@ timeline
 ```
 ```
 
-After disassembling, it can be found that if we simply classify animations as idle animation, flying animation, and falling animation, considering that when idle, we need to play sprite switching and vertical easing animations, and when flying, we also need to play sprite switching and upward falling animations. The overlapping parts not only increase the workload during animation editing but also require additional consideration of whether the sprite switching animations between these two animations are natural. Therefore, we further atomize each animation state, split the parts of sprite switching and coordinate changes, and set them in different `Layers` separately. Different `Layers` are independent of each other and can play their animations simultaneously, set their overlay modes and weights. For more details, refer to the [animation component](/en/docs/animation/system/).
+After disassembling, it can be found that if we simply classify animations as idle animation, flying animation, and falling animation, considering that when idle, we need to play sprite switching and vertical easing animations, and when flying, we also need to play sprite switching and upward falling animations. The overlapping parts not only increase the workload during animation editing but also require additional consideration of whether the sprite switching animations between these two animations are natural. Therefore, we further atomize each  `AnimatorState` , split the parts of sprite switching and coordinate changes, and set them in different `Layers` separately. Different `Layers` are independent of each other and can play their animations simultaneously, set their overlay modes and weights. For more details, refer to the [animation component](/en/docs/animation/system/).
 
 <img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*1cXjQIJAgZoAAAAAAAAAAAAADleLAQ/original" alt="image-20231007180819265" style="zoom:50%;" />
 
-Let each `Layer` control its own animation state separately for clearer logic.
+Let each `Layer` control its own  `AnimatorState`  separately for clearer logic.
 
 ```mermaid
 timeline

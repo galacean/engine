@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-loader",
-  "version": "1.4.9",
+  "version": "1.4.12",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"

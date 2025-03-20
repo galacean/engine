@@ -486,7 +486,7 @@ export class Renderer extends Component implements IComponentCustomClone {
 
   private _createInstanceMaterial(material: Material, index: number): Material {
     const insMaterial: Material = material.clone();
-    insMaterial.name = insMaterial.name + "(Instance)";
+    insMaterial.name = material.name + "(Instance)";
     this._addResourceReferCount(material, -1);
     this._addResourceReferCount(insMaterial, 1);
     this._materialsInstanced[index] = true;
