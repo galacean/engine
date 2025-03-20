@@ -95,9 +95,7 @@ const renderOpaqueFS = `
 
     void main() {
         vec4 baseColor = texture2D(camera_OpaqueTexture, v_uv);
-        #ifndef ENGINE_IS_COLORSPACE_GAMMA
-            baseColor = gammaToLinear(baseColor);
-        #endif
+        baseColor = gammaToLinear(baseColor);
 
         gl_FragColor = baseColor;
 
@@ -107,9 +105,7 @@ const renderOpaqueFS = `
 
         #include <FogFragment>
 
-        #ifndef ENGINE_IS_COLORSPACE_GAMMA
-            gl_FragColor = linearToGamma(gl_FragColor);
-        #endif
+        gl_FragColor = linearToGamma(gl_FragColor);
     }`;
 
 Shader.create("RenderOpaqueTexture", renderOpaqueVS, renderOpaqueFS);
