@@ -1,4 +1,10 @@
+#include <force_over_lifetime_module>
+
 #if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE)
+    #define _VOL_MODULE_ENABLED
+#endif
+
+#ifdef _VOL_MODULE_ENABLED
     uniform int renderer_VOLSpace;
 
     #if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_RANDOM_CONSTANT)
@@ -23,7 +29,7 @@
 #endif
 
 
-#if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE)
+#ifdef _VOL_MODULE_ENABLED
     vec3 computeParticleLifeVelocity(in float normalizedAge) {
         vec3 velocity;
         #if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_RANDOM_CONSTANT)
@@ -57,38 +63,51 @@ vec3 getStartPosition(vec3 startVelocity, float age, vec3 dragData) {
 
 vec3 computeParticlePosition(in vec3 startVelocity, in vec3 lifeVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, vec3 dragData) {
     vec3 startPosition = getStartPosition(startVelocity, age, dragData);
-    vec3 lifePosition;
-    #if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE)
+
+    vec3 finalPosition;
+    vec3 localPositionOffset = startPosition;
+    vec3 worldPositionOffset;
+
+    #ifdef _VOL_MODULE_ENABLED
+        vec3 lifeVelocityPosition;
         #if defined(RENDERER_VOL_CONSTANT)|| defined(RENDERER_VOL_RANDOM_CONSTANT)
             // @todo:just RENDERER_VOL_CONSTANT and RENDERER_VOL_RANDOM_CONSTANT need `lifeVelocity`
-            lifePosition = lifeVelocity * age;
+            lifeVelocityPosition = lifeVelocity * age;
         #endif
 
         #if defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CURVE)
-            lifePosition = vec3(
+            lifeVelocityPosition = vec3(
             evaluateParticleCurveCumulative(renderer_VOLMaxGradientX, normalizedAge),
             evaluateParticleCurveCumulative(renderer_VOLMaxGradientY, normalizedAge),
             evaluateParticleCurveCumulative(renderer_VOLMaxGradientZ, normalizedAge));
 
             #ifdef RENDERER_VOL_RANDOM_CURVE
-                lifePosition = vec3(
-                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientX, normalizedAge), lifePosition.x, a_Random1.y),
-                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientY, normalizedAge), lifePosition.y, a_Random1.z),
-                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientZ, normalizedAge), lifePosition.z, a_Random1.w));
+                lifeVelocityPosition = vec3(
+                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientX, normalizedAge), lifeVelocityPosition.x, a_Random1.y),
+                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientY, normalizedAge), lifeVelocityPosition.y, a_Random1.z),
+                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientZ, normalizedAge), lifeVelocityPosition.z, a_Random1.w));
             #endif
 
-            lifePosition *= vec3(a_ShapePositionStartLifeTime.w);
+            lifeVelocityPosition *= vec3(a_ShapePositionStartLifeTime.w);
         #endif
       
-        vec3 finalPosition;
         if (renderer_VOLSpace == 0) {
-            finalPosition = rotationByQuaternions(a_ShapePositionStartLifeTime.xyz + startPosition + lifePosition, worldRotation);
+            localPositionOffset += lifeVelocityPosition;
         } else {
-            finalPosition = rotationByQuaternions(a_ShapePositionStartLifeTime.xyz + startPosition, worldRotation) + lifePosition;
+            worldPositionOffset += lifeVelocityPosition;
         }
-    #else
-        vec3 finalPosition = rotationByQuaternions(a_ShapePositionStartLifeTime.xyz + startPosition, worldRotation);
     #endif
+
+    #ifdef _FOL_MODULE_ENABLED
+        vec3 forcePosition = computeForcePositionOffset(normalizedAge, age);
+        if (renderer_FOLSpace == 0) {
+            localPositionOffset += forcePosition;
+        } else {
+            worldPositionOffset += forcePosition;
+        }
+    #endif
+
+    finalPosition = rotationByQuaternions(a_ShapePositionStartLifeTime.xyz + localPositionOffset, worldRotation) + worldPositionOffset;
 
     if (renderer_SimulationSpace == 0) {
         finalPosition = finalPosition + renderer_WorldPosition;
