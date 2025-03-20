@@ -93,7 +93,7 @@ export class SubFont {
   private _createFontAtlas(): FontAtlas {
     const { _engine: engine } = this;
     const fontAtlas = new FontAtlas(engine);
-    const texture = new Texture2D(engine, 256, 256, TextureFormat.R8G8B8A8, false);
+    const texture = new Texture2D(engine, 256, 256, TextureFormat.R8G8B8A8, false, undefined, true);
     texture.filterMode = TextureFilterMode.Bilinear;
     fontAtlas.texture = texture;
     fontAtlas.isGCIgnored = texture.isGCIgnored = true;
