@@ -29,7 +29,7 @@
     #endif
 
     // (tHat - t1) * (tHat - t1) * (tHat - t1) * (a2 - a1) / ((t2 - t1) * 6.0) + a1 * (tHat - t1) * (tHat - t1) * 0.5 + v1 * (tHat - t1);
-    float computeIntegral(in float tHat, in float t1, in float t2, in float a1, in float a2, in float v1) {
+    float computeDisplacementIntegral(in float tHat, in float t1, in float t2, in float a1, in float a2, in float v1) {
         float temp1 = tHat - t1;
         return temp1 * temp1 * temp1 * (a2 - a1) / ((t2 - t1) * 6.0) + a1 * temp1 * temp1 * 0.5 + v1 * temp1;
     }
@@ -40,17 +40,15 @@
         for (int i = 1; i < 4; i++){
             vec2 key = keys[i];
             vec2 lastKey = keys[i - 1];
+            float t1 = lastKey.x * a_ShapePositionStartLifeTime.w;
+            float t2 = key.x * a_ShapePositionStartLifeTime.w;
 
             if (key.x >= normalizedAge){
                 float tHat = normalizedAge * a_ShapePositionStartLifeTime.w;
-                float t1 = lastKey.x * a_ShapePositionStartLifeTime.w;
-                float t2 = key.x * a_ShapePositionStartLifeTime.w;
-                cumulativeValue += computeIntegral(tHat, t1, t2, lastKey.y, key.y, lastVelocity);
+                cumulativeValue += computeDisplacementIntegral(tHat, t1, t2, lastKey.y, key.y, lastVelocity);
                 break;
-            } else {
-                float t2 = key.x * a_ShapePositionStartLifeTime.w;
-                float t1 = lastKey.x * a_ShapePositionStartLifeTime.w;
-                cumulativeValue += computeIntegral(t2, t1, t2, lastKey.y, key.y, lastVelocity);
+            } else {  
+                cumulativeValue += computeDisplacementIntegral(t2, t1, t2, lastKey.y, key.y, lastVelocity);
                 lastVelocity += 0.5 * (t2 - t1) * (lastKey.y + key.y);
             }
         }
