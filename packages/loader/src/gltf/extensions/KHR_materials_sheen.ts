@@ -25,7 +25,7 @@ class KHR_materials_sheen extends GLTFExtensionParser {
     if (sheenColorTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(sheenColorTexture, "Sheen texture");
 
-      context.get<Texture2D>(GLTFParserType.Texture, sheenColorTexture.index).then((texture) => {
+      context.get<Texture2D>(GLTFParserType.Texture, sheenColorTexture.index, true).then((texture) => {
         material.sheenColorTexture = texture;
       });
     }

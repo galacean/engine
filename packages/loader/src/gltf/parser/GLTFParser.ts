@@ -130,7 +130,7 @@ export abstract class GLTFParser {
     }
   }
 
-  abstract parse(context: GLTFParserContext, index?: number);
+  abstract parse(context: GLTFParserContext, index?: number, ...extra);
 }
 
 /**
