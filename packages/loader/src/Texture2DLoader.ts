@@ -27,10 +27,18 @@ class Texture2DLoader extends Loader<Texture2D> {
         ._request<HTMLImageElement>(url, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((image) => {
-          const { format, mipmap, anisoLevel, wrapModeU, wrapModeV, filterMode } =
+          const { format, mipmap, anisoLevel, wrapModeU, wrapModeV, filterMode, isSRGBColorSpace } =
             (item.params as Partial<Texture2DParams>) ?? {};
 
-          const texture = new Texture2D(resourceManager.engine, image.width, image.height, format, mipmap);
+          const texture = new Texture2D(
+            resourceManager.engine,
+            image.width,
+            image.height,
+            format,
+            mipmap,
+            undefined,
+            isSRGBColorSpace
+          );
 
           texture.anisoLevel = anisoLevel ?? texture.anisoLevel;
           texture.filterMode = filterMode ?? texture.filterMode;
@@ -71,4 +79,6 @@ export interface Texture2DParams {
   filterMode: TextureFilterMode;
   /** Anisotropic level for texture. */
   anisoLevel: number;
+  /**  Whether to use sRGB color space, default is false */
+  isSRGBColorSpace: boolean;
 }

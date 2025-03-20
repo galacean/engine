@@ -31,7 +31,13 @@ class TextureCubeLoader extends Loader<TextureCube> {
             return;
           }
 
-          const texture = new TextureCube(resourceManager.engine, width);
+          const texture = new TextureCube(
+            resourceManager.engine,
+            width,
+            undefined,
+            undefined,
+            item.params?.isSRGBColorSpace ?? false
+          );
           for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
             texture.setImageSource(TextureCubeFace.PositiveX + faceIndex, images[faceIndex], 0);
           }
