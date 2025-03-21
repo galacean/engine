@@ -109,6 +109,7 @@ export class GLTFParserContext {
       return Promise.all([
         this.get<void>(GLTFParserType.Validator),
         this.get<Material>(GLTFParserType.Material),
+        this.get<Material>(GLTFParserType.Texture),
         this.get<ModelMesh[]>(GLTFParserType.Mesh),
         this.get<Skin>(GLTFParserType.Skin),
         this.get<AnimationClip>(GLTFParserType.Animation),
