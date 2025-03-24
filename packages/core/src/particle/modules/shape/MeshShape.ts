@@ -96,13 +96,12 @@ export class MeshShape extends BaseShape {
 
   private _getAttributeBuffer(
     mesh: ModelMesh,
-    attribute: VertexAttribute,
     vertexElement: VertexElement,
     reusePositionBuffer: boolean,
     outVertexElementInfo: Vector4
   ): TypedArray {
     if (!vertexElement) {
-      throw `Mesh must have ${attribute} attribute.`;
+      throw `Mesh must have ${vertexElement.attribute} attribute.`;
     }
 
     const vertexBufferBinding = mesh.vertexBufferBindings[vertexElement.bindingIndex];
@@ -114,7 +113,7 @@ export class MeshShape extends BaseShape {
     } else {
       const buffer = vertexBufferBinding?.buffer;
       if (!buffer) {
-        throw `${attribute} buffer not found.`;
+        throw `${vertexElement.attribute} buffer not found.`;
       }
 
       if (buffer.readable) {
@@ -145,18 +144,11 @@ export class MeshShape extends BaseShape {
       if (mesh) {
         const positionElement = mesh.getVertexElement(VertexAttribute.Position);
         const normalElement = mesh.getVertexElement(VertexAttribute.Normal);
-        this._positionBuffer = this._getAttributeBuffer(
-          mesh,
-          VertexAttribute.Position,
-          positionElement,
-          false,
-          this._positionElementInfo
-        );
+        this._positionBuffer = this._getAttributeBuffer(mesh, positionElement, false, this._positionElementInfo);
         // If the position and normal use the same buffer, we can reuse the position buffer
         const reusePositionBuffer = positionElement.bindingIndex === normalElement.bindingIndex;
         this._normalBuffer = this._getAttributeBuffer(
           mesh,
-          VertexAttribute.Normal,
           normalElement,
           reusePositionBuffer,
           this._normalElementInfo
@@ -173,7 +165,7 @@ export class MeshShape extends BaseShape {
   /**
    * @internal
    */
-  _cloneTo(target: MeshShape, srcRoot: Entity, targetRoot: Entity): void {
+  _cloneTo(target: MeshShape, _: Entity, __: Entity): void {
     target.mesh = this._mesh;
   }
 }
