@@ -88,7 +88,7 @@ export class MeshShape extends BaseShape {
    * @internal
    */
   _getDirectionRange(outMin: Vector3, outMax: Vector3): void {
-    // Should use min and max of normal, use bounds is worst, but we can't get the min and max of normal by fast way.
+    // @todo: Should use min and max of normal, use bounds is worst, but we can't get the min and max of normal by fast way.
     const { bounds } = this._mesh;
     bounds.min.copyTo(outMin);
     bounds.max.copyTo(outMax);
