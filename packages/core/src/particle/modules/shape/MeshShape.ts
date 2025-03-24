@@ -21,9 +21,9 @@ export class MeshShape extends BaseShape {
   @ignoreClone
   private _normalBuffer: TypedArray;
   @ignoreClone
-  private _positionElementInfo: Vector4 = new Vector4(); // x:offset, y:stride, z:isNormalized, w:normalizedScaleFactor
+  private _positionElementInfo = new Vector4(); // x:offset, y:stride, z:isNormalized, w:normalizedScaleFactor
   @ignoreClone
-  private _normalElementInfo: Vector4 = new Vector4(); // x:offset, y:stride, z:isNormalized, w:normalizedScaleFactor
+  private _normalElementInfo = new Vector4(); // x:offset, y:stride, z:isNormalized, w:normalizedScaleFactor
 
   /**
    * Mesh to emit particles from.
