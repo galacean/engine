@@ -1,6 +1,6 @@
 import { AssetType, Texture, Texture2D, TextureWrapMode, Utils } from "@galacean/engine-core";
 import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
-import { TextureWrapMode as GLTFTextureWrapMode } from "../GLTFSchema";
+import { TextureWrapMode as GLTFTextureWrapMode, IMaterial } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
@@ -86,10 +86,11 @@ export class GLTFTextureParser extends GLTFParser {
     return texture;
   }
 
-  parse(context: GLTFParserContext, textureIndex: number, isSRGBColorSpace: boolean): Promise<Texture> {
+  parse(context: GLTFParserContext, textureIndex: number): Promise<Texture> {
     const textureInfo = context.glTF.textures[textureIndex];
     const glTFResource = context.glTFResource;
     const { sampler, source: imageIndex = 0, name: textureName, extensions } = textureInfo;
+    const isSRGBColorSpace = this._isSRGBColorSpace(textureIndex, context.glTF.materials);
 
     let texture = <Texture | Promise<Texture>>(
       GLTFParser.executeExtensionsCreateAndParse(extensions, context, textureInfo, textureIndex, isSRGBColorSpace)
@@ -111,6 +112,30 @@ export class GLTFTextureParser extends GLTFParser {
       // @ts-ignore
       texture._associationSuperResource(glTFResource);
       return texture;
+    });
+  }
+
+  private _isSRGBColorSpace(textureIndex: number, materials?: IMaterial[]): boolean {
+    return materials?.some((material) => {
+      if (material.emissiveTexture?.index === textureIndex) {
+        return true;
+      }
+
+      if (material.pbrMetallicRoughness?.baseColorTexture?.index === textureIndex) {
+        return true;
+      }
+
+      if (material.extensions?.KHR_materials_sheen?.sheenColorTexture?.index === textureIndex) {
+        return true;
+      }
+
+      if (material.extensions?.KHR_materials_pbrSpecularGlossiness?.diffuseTexture?.index === textureIndex) {
+        return true;
+      }
+
+      if (material.extensions?.KHR_materials_pbrSpecularGlossiness?.specularGlossinessTexture?.index === textureIndex) {
+        return true;
+      }
     });
   }
 }

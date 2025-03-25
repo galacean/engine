@@ -64,7 +64,7 @@ export class GLTFMaterialParser extends GLTFParser {
         );
       }
       if (baseColorTexture) {
-        context.get<Texture2D>(GLTFParserType.Texture, baseColorTexture.index, true).then((texture) => {
+        context.get<Texture2D>(GLTFParserType.Texture, baseColorTexture.index).then((texture) => {
           material.baseTexture = texture;
           GLTFParser.executeExtensionsAdditiveAndParse(
             baseColorTexture.extensions,
@@ -92,7 +92,7 @@ export class GLTFMaterialParser extends GLTFParser {
       if (emissiveTexture) {
         GLTFMaterialParser._checkOtherTextureTransform(emissiveTexture, "Emissive");
 
-        context.get<Texture2D>(GLTFParserType.Texture, emissiveTexture.index, true).then((texture) => {
+        context.get<Texture2D>(GLTFParserType.Texture, emissiveTexture.index).then((texture) => {
           material.emissiveTexture = texture;
         });
       }

@@ -57,9 +57,9 @@ export class GLTFParserContext {
   get<T>(type: GLTFParserType.Schema): Promise<T>;
   get<T>(type: GLTFParserType.Validator): Promise<T>;
   get<T>(type: GLTFParserType.AnimatorController): Promise<T>;
-  get<T>(type: GLTFParserType, index: number, ...extra): Promise<T>;
+  get<T>(type: GLTFParserType, index: number): Promise<T>;
   get<T>(type: GLTFParserType): Promise<T[]>;
-  get<T>(type: GLTFParserType, index?: number, ...extra): Entity | Entity[] | Promise<T> | Promise<T[]> {
+  get<T>(type: GLTFParserType, index?: number): Entity | Entity[] | Promise<T> | Promise<T[]> {
     const parser = GLTFParserContext._parsers[type];
 
     if (!parser) {
@@ -84,16 +84,16 @@ export class GLTFParserContext {
           resource =
             type === GLTFParserType.Entity
               ? <Entity[]>glTFItems.map((_, index) => this.get<Entity>(type, index))
-              : Promise.all<T>(glTFItems.map((_, index) => this.get<T>(type, index, ...extra)));
+              : Promise.all<T>(glTFItems.map((_, index) => this.get<T>(type, index)));
         } else {
-          resource = parser.parse(this, index, ...extra);
+          resource = parser.parse(this, index);
           isSubAsset && this._handleSubAsset(resource, type, index);
         }
       } else {
         resource = Promise.resolve<T>(null);
       }
     } else {
-      resource = parser.parse(this, index, ...extra);
+      resource = parser.parse(this, index);
       isSubAsset && this._handleSubAsset(resource, type, index);
     }
 
@@ -108,8 +108,8 @@ export class GLTFParserContext {
 
       return Promise.all([
         this.get<void>(GLTFParserType.Validator),
-        this.get<Material>(GLTFParserType.Material),
         this.get<Material>(GLTFParserType.Texture),
+        this.get<Material>(GLTFParserType.Material),
         this.get<ModelMesh[]>(GLTFParserType.Mesh),
         this.get<Skin>(GLTFParserType.Skin),
         this.get<AnimationClip>(GLTFParserType.Animation),
