@@ -6,18 +6,17 @@ import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
+import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
-import { ParticleGenerator } from "../ParticleGenerator";
 
 /**
  * Velocity over lifetime module.
  */
 export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
-  static readonly _constantMacro = ShaderMacro.getByName("RENDERER_VOL_CONSTANT");
-  static readonly _curveMacro = ShaderMacro.getByName("RENDERER_VOL_CURVE");
-  static readonly _randomConstantMacro = ShaderMacro.getByName("RENDERER_VOL_RANDOM_CONSTANT");
-  static readonly _randomCurveMacro = ShaderMacro.getByName("RENDERER_VOL_RANDOM_CURVE");
+  static readonly _constantModeMacro = ShaderMacro.getByName("RENDERER_VOL_CONSTANT_MODE");
+  static readonly _curveModeMacro = ShaderMacro.getByName("RENDERER_VOL_CURVE_MODE");
+  static readonly _isRandomMacro = ShaderMacro.getByName("RENDERER_VOL_IS_RANDOM_TWO");
 
   static readonly _minConstantProperty = ShaderProperty.getByName("renderer_VOLMinConst");
   static readonly _maxConstantProperty = ShaderProperty.getByName("renderer_VOLMaxConst");
@@ -39,6 +38,8 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   private _velocityMaxConstant = new Vector3();
   @ignoreClone
   private _velocityMacro: ShaderMacro;
+  @ignoreClone
+  private _randomModeMacro: ShaderMacro;
 
   @deepClone
   private _velocityX: ParticleCompositeCurve;
@@ -131,6 +132,8 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
    */
   _updateShaderData(shaderData: ShaderData): void {
     let velocityMacro = <ShaderMacro>null;
+    let isRandomModeMacro = <ShaderMacro>null;
+
     if (this.enabled) {
       const velocityX = this.velocityX;
       const velocityY = this.velocityY;
@@ -150,6 +153,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
         shaderData.setFloatArray(VelocityOverLifetimeModule._maxGradientXProperty, velocityX.curveMax._getTypeArray());
         shaderData.setFloatArray(VelocityOverLifetimeModule._maxGradientYProperty, velocityY.curveMax._getTypeArray());
         shaderData.setFloatArray(VelocityOverLifetimeModule._maxGradientZProperty, velocityZ.curveMax._getTypeArray());
+        velocityMacro = VelocityOverLifetimeModule._curveModeMacro;
         if (isRandomCurveMode) {
           shaderData.setFloatArray(
             VelocityOverLifetimeModule._minGradientXProperty,
@@ -163,14 +167,13 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
             VelocityOverLifetimeModule._minGradientZProperty,
             velocityZ.curveMin._getTypeArray()
           );
-          velocityMacro = VelocityOverLifetimeModule._randomCurveMacro;
-        } else {
-          velocityMacro = VelocityOverLifetimeModule._curveMacro;
+          isRandomModeMacro = VelocityOverLifetimeModule._isRandomMacro;
         }
       } else {
         const constantMax = this._velocityMaxConstant;
         constantMax.set(velocityX.constantMax, velocityY.constantMax, velocityZ.constantMax);
         shaderData.setVector3(VelocityOverLifetimeModule._maxConstantProperty, constantMax);
+        velocityMacro = VelocityOverLifetimeModule._constantModeMacro;
         if (
           velocityX.mode === ParticleCurveMode.TwoConstants &&
           velocityY.mode === ParticleCurveMode.TwoConstants &&
@@ -179,15 +182,14 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
           const constantMin = this._velocityMinConstant;
           constantMin.set(velocityX.constantMin, velocityY.constantMin, velocityZ.constantMin);
           shaderData.setVector3(VelocityOverLifetimeModule._minConstantProperty, constantMin);
-          velocityMacro = VelocityOverLifetimeModule._randomConstantMacro;
-        } else {
-          velocityMacro = VelocityOverLifetimeModule._constantMacro;
+          isRandomModeMacro = VelocityOverLifetimeModule._isRandomMacro;
         }
       }
 
       shaderData.setInt(VelocityOverLifetimeModule._spaceProperty, this.space);
     }
     this._velocityMacro = this._enableMacro(shaderData, this._velocityMacro, velocityMacro);
+    this._randomModeMacro = this._enableMacro(shaderData, this._randomModeMacro, isRandomModeMacro);
   }
 
   /**

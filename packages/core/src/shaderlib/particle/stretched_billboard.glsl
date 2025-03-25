@@ -1,7 +1,7 @@
 #ifdef RENDERER_MODE_STRETCHED_BILLBOARD
 	vec2 corner = a_CornerTextureCoordinate.xy + renderer_PivotOffset.xy;
 	vec3 velocity;
-    #if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE)
+    #ifdef _VOL_MODULE_ENABLED
         if (renderer_VOLSpace == 0){
             velocity = rotationByQuaternions(renderer_SizeScale * (startVelocity + lifeVelocity),
                    worldRotation)
