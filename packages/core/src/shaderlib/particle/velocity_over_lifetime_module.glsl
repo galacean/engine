@@ -29,7 +29,7 @@
     vec3 computeVelocityPositionOffset(in float normalizedAge, in float age, out vec3 currentVelocity) {
         vec3 velocityPosition;
 
-        #ifdef RENDERER_FOL_CONSTANT_MODE
+        #ifdef RENDERER_VOL_CONSTANT_MODE
             currentVelocity = renderer_VOLMaxConst;
             #ifdef RENDERER_VOL_IS_RANDOM_TWO
                 currentVelocity = mix(renderer_VOLMinConst, currentVelocity, a_Random1.yzw);
