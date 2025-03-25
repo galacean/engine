@@ -29,7 +29,7 @@ void main(){
     	color += bloom * material_BloomTint;
 
     	#ifdef BLOOM_DIRT
-    	  mediump vec4 dirt = sampleTexture(material_BloomDirtTexture, v_uv * material_BloomDirtTilingOffset.xy + material_BloomDirtTilingOffset.zw);
+    	  mediump vec4 dirt = texture2D_SRGB(material_BloomDirtTexture, v_uv * material_BloomDirtTilingOffset.xy + material_BloomDirtTilingOffset.zw);
     	  dirt *= material_BloomIntensityParams.y;
     	  // Additive bloom (artist friendly)
     	  color += dirt * bloom;
