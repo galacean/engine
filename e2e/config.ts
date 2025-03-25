@@ -136,6 +136,13 @@ export const E2E_CONFIG = {
       threshold: 0.2
     }
   },
+  Texture: {
+    sRGB: {
+      category: "Texture",
+      caseFileName: "texture-sRGB-KTX2",
+      threshold: 0.2
+    }
+  },
   Shadow: {
     basic: {
       category: "Shadow",

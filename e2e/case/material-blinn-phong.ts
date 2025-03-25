@@ -40,7 +40,10 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     .load([
       {
         type: AssetType.Texture2D,
-        url: "https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*g_HIRqQdNUcAAAAAAAAAAAAAARQnAQ"
+        url: "https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*g_HIRqQdNUcAAAAAAAAAAAAAARQnAQ",
+        params: {
+          isSRGBColorSpace: true
+        }
       },
       {
         type: AssetType.Texture2D,

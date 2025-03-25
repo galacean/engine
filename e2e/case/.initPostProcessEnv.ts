@@ -54,7 +54,10 @@ export async function initPostProcessEnv(
         }),
       engine.resourceManager.load<Texture2D>({
         type: AssetType.Texture2D,
-        url: "https://mdn.alipayobjects.com/huamei_dmxymu/afts/img/A*tMeTQ4Mx60oAAAAAAAAAAAAADuuHAQ/original"
+        url: "https://mdn.alipayobjects.com/huamei_dmxymu/afts/img/A*tMeTQ4Mx60oAAAAAAAAAAAAADuuHAQ/original",
+        params: {
+          isSRGBColorSpace: true
+        }
       })
     ]).then((resArray) => {
       callback(camera, resArray);
