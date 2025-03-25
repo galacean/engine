@@ -72,7 +72,7 @@ vec3 getStartPosition(vec3 startVelocity, float age, vec3 dragData) {
     return startPosition;
 }
 
-vec3 computeParticlePosition(in vec3 startVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, vec3 dragData) {
+vec3 computeParticlePosition(in vec3 startVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, vec3 dragData, out vec3 lifeVelocity) {
     vec3 startPosition = getStartPosition(startVelocity, age, dragData);
 
     vec3 finalPosition;
@@ -80,7 +80,7 @@ vec3 computeParticlePosition(in vec3 startVelocity, in float age, in float norma
     vec3 worldPositionOffset;
 
     #ifdef _VOL_MODULE_ENABLED      
-        vec3 velocityPositionOffset = computeVelocityPositionOffset(normalizedAge, age);
+        vec3 velocityPositionOffset = computeVelocityPositionOffset(normalizedAge, age, lifeVelocity);
         if (renderer_VOLSpace == 0) {
             localPositionOffset += velocityPositionOffset;
         } else {
@@ -124,9 +124,10 @@ void main() {
             worldRotation = a_SimulationWorldRotation;
         }
 
+        vec3 lifeVelocity;
         //drag
         vec3 dragData = a_DirectionTime.xyz * mix(u_DragConstant.x, u_DragConstant.y, a_Random0.x);
-        vec3 center = computeParticlePosition(startVelocity, age, normalizedAge, gravityVelocity, worldRotation, dragData);
+        vec3 center = computeParticlePosition(startVelocity, age, normalizedAge, gravityVelocity, worldRotation, dragData, lifeVelocity);
 
         #include <sphere_billboard>
         #include <stretched_billboard>

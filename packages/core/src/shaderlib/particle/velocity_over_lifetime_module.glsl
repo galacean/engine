@@ -26,29 +26,32 @@
     #endif
 
 
-    vec3 computeVelocityPositionOffset(in float normalizedAge, in float age) {
+    vec3 computeVelocityPositionOffset(in float normalizedAge, in float age, out vec3 currentVelocity) {
         vec3 velocityPosition;
 
         #ifdef RENDERER_FOL_CONSTANT_MODE
-            vec3 lifeVelocity = renderer_VOLMaxConst;
+            currentVelocity = renderer_VOLMaxConst;
             #ifdef RENDERER_VOL_IS_RANDOM_TWO
-                lifeVelocity = mix(renderer_VOLMinConst, lifeVelocity, vec3(a_Random1.y, a_Random1.z, a_Random1.w));
+                currentVelocity = mix(renderer_VOLMinConst, currentVelocity, vec3(a_Random1.y, a_Random1.z, a_Random1.w));
             #endif
 
-            velocityPosition = lifeVelocity * age;
+            velocityPosition = currentVelocity * age;
         #endif
 
         #ifdef RENDERER_VOL_CURVE_MODE
             velocityPosition = vec3(
-            evaluateParticleCurveCumulative(renderer_VOLMaxGradientX, normalizedAge),
-            evaluateParticleCurveCumulative(renderer_VOLMaxGradientY, normalizedAge),
-            evaluateParticleCurveCumulative(renderer_VOLMaxGradientZ, normalizedAge));
+            evaluateParticleCurveCumulative(renderer_VOLMaxGradientX, normalizedAge, currentVelocity.x),
+            evaluateParticleCurveCumulative(renderer_VOLMaxGradientY, normalizedAge, currentVelocity.y),
+            evaluateParticleCurveCumulative(renderer_VOLMaxGradientZ, normalizedAge, currentVelocity.z));
 
             #ifdef RENDERER_VOL_IS_RANDOM_TWO
+                vec3 minCurrentVelocity;
                 velocityPosition = vec3(
-                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientX, normalizedAge), velocityPosition.x, a_Random1.y),
-                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientY, normalizedAge), velocityPosition.y, a_Random1.z),
-                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientZ, normalizedAge), velocityPosition.z, a_Random1.w));
+                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientX, normalizedAge, minCurrentVelocity.x), velocityPosition.x, a_Random1.y),
+                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientY, normalizedAge, minCurrentVelocity.y), velocityPosition.y, a_Random1.z),
+                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientZ, normalizedAge, minCurrentVelocity.z), velocityPosition.z, a_Random1.w));
+
+                currentVelocity = mix(minCurrentVelocity, currentVelocity, a_Random1.yzw);
             #endif
 
             velocityPosition *= vec3(a_ShapePositionStartLifeTime.w);
