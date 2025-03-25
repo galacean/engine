@@ -32,7 +32,7 @@
         #ifdef RENDERER_FOL_CONSTANT_MODE
             currentVelocity = renderer_VOLMaxConst;
             #ifdef RENDERER_VOL_IS_RANDOM_TWO
-                currentVelocity = mix(renderer_VOLMinConst, currentVelocity, vec3(a_Random1.y, a_Random1.z, a_Random1.w));
+                currentVelocity = mix(renderer_VOLMinConst, currentVelocity, a_Random1.yzw);
             #endif
 
             velocityPosition = currentVelocity * age;
@@ -46,12 +46,13 @@
 
             #ifdef RENDERER_VOL_IS_RANDOM_TWO
                 vec3 minCurrentVelocity;
-                velocityPosition = vec3(
-                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientX, normalizedAge, minCurrentVelocity.x), velocityPosition.x, a_Random1.y),
-                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientY, normalizedAge, minCurrentVelocity.y), velocityPosition.y, a_Random1.z),
-                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientZ, normalizedAge, minCurrentVelocity.z), velocityPosition.z, a_Random1.w));
+                vec3 minVelocityPosition = vec3(
+                    evaluateParticleCurveCumulative(renderer_VOLMinGradientX, normalizedAge, minCurrentVelocity.x),
+                    evaluateParticleCurveCumulative(renderer_VOLMinGradientY, normalizedAge, minCurrentVelocity.y),
+                    evaluateParticleCurveCumulative(renderer_VOLMinGradientZ, normalizedAge, minCurrentVelocity.z));
 
                 currentVelocity = mix(minCurrentVelocity, currentVelocity, a_Random1.yzw);
+                velocityPosition = mix(minVelocityPosition, velocityPosition, a_Random1.yzw);
             #endif
 
             velocityPosition *= vec3(a_ShapePositionStartLifeTime.w);
