@@ -20,7 +20,5 @@ void main() {
 		color *= texture2D_SRGB(material_BaseTexture, v_TextureCoordinate);
 	#endif
 	
-	gl_FragColor = color; 
-
-    gl_FragColor = linearToGamma(gl_FragColor);
+	gl_FragColor = outputTransform(color);
 }

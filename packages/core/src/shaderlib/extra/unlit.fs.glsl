@@ -30,5 +30,5 @@ void main() {
 
     #include <FogFragment>
 
-    gl_FragColor = linearToGamma(gl_FragColor);
+    gl_FragColor = outputTransform(gl_FragColor);
 }

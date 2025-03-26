@@ -33,6 +33,16 @@ vec4 texture2D_SRGB(sampler2D tex, vec2 uv) {
 	return color;
 }
 
+vec4 outputTransform(vec4 linearIn){
+    #ifdef CAMERA_OUTPUT_GAMMACORRECT
+    	// render in linear, output gamma
+    	return linearToGamma(linearIn);
+    #else 
+    	return linearIn;
+    #endif
+}
+
+
 uniform vec4 camera_DepthBufferParams;
 
 float remapDepthBufferLinear01(float z){

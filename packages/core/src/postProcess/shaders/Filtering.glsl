@@ -30,7 +30,7 @@ void bicubicFilter(vec2 fracCoord, out vec2 weights[2], out vec2 offsets[2]){
 
 
 // texSize: (1/width, 1/height, width, height)
-vec4 sampleTexture2DBicubic(sampler2D tex, vec2 coord, vec4 texSize){
+vec4 texture2D2DBicubic(sampler2D tex, vec2 coord, vec4 texSize){
 	vec2 xy = coord * texSize.zw + 0.5;
     vec2 ic = floor(xy);
     vec2 fc = fract(xy);
@@ -38,10 +38,10 @@ vec4 sampleTexture2DBicubic(sampler2D tex, vec2 coord, vec4 texSize){
     vec2 weights[2], offsets[2];
     bicubicFilter(fc, weights, offsets);
 
-    return weights[0].y * (weights[0].x * sampleTexture(tex, (ic + vec2(offsets[0].x, offsets[0].y) - 0.5) * texSize.xy)  +
-                        	weights[1].x * sampleTexture(tex, (ic + vec2(offsets[1].x, offsets[0].y) - 0.5) * texSize.xy)) +
-            weights[1].y * (weights[0].x * sampleTexture(tex, (ic + vec2(offsets[0].x, offsets[1].y) - 0.5) * texSize.xy)  +
-                            weights[1].x * sampleTexture(tex, (ic + vec2(offsets[1].x, offsets[1].y) - 0.5) * texSize.xy));
+    return weights[0].y * (weights[0].x * texture2D(tex, (ic + vec2(offsets[0].x, offsets[0].y) - 0.5) * texSize.xy)  +
+                        	weights[1].x * texture2D(tex, (ic + vec2(offsets[1].x, offsets[0].y) - 0.5) * texSize.xy)) +
+            weights[1].y * (weights[0].x * texture2D(tex, (ic + vec2(offsets[0].x, offsets[1].y) - 0.5) * texSize.xy)  +
+                            weights[1].x * texture2D(tex, (ic + vec2(offsets[1].x, offsets[1].y) - 0.5) * texSize.xy));
 }
 
 

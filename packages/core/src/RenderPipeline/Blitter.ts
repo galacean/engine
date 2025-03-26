@@ -1,4 +1,5 @@
 import { Vector4 } from "@galacean/engine-math";
+import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Material } from "../material";
 import { ShaderProperty } from "../shader";
@@ -71,6 +72,13 @@ export class Blitter {
       blitMaterial.shaderData._macroCollection,
       compileMacros
     );
+
+    if (destination) {
+      compileMacros.disable(Camera._cameraOutputGammaCorrectMacro);
+    } else {
+      compileMacros.enable(Camera._cameraOutputGammaCorrectMacro);
+    }
+
     const program = pass._getShaderProgram(engine, compileMacros);
 
     program.bind();

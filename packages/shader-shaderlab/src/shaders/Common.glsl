@@ -27,6 +27,16 @@ vec4 linearToGamma(vec4 linearIn){
     return vec4( pow(linearIn.rgb, vec3(1.0 / 2.2)), linearIn.a);
 }
 
+vec4 outputTransform(vec4 linearIn){
+    #ifdef CAMERA_OUTPUT_GAMMACORRECT
+    	// render in linear, output gamma
+    	return linearToGamma(linearIn);
+    #else 
+    	return linearIn;
+    #endif
+}
+
+
 // Compatible with devices that do not even support EXT_sRGB in WebGL1.0.
 vec4 texture2D_SRGB(sampler2D tex, vec2 uv) {
 	vec4 color = texture2D(tex, uv);

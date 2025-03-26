@@ -16,12 +16,4 @@ float log10(float x){
 }
 
 
-vec4 sampleTexture(sampler2D tex, vec2 uv){
-    vec4 color = texture2D(tex, uv);
-    color = gammaToLinear(color);
-    return color;
-}
-
-
-
 #endif

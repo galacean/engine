@@ -1,3 +1,5 @@
+#include <common>
+
 uniform mediump sampler2D renderer_BlitTexture;
 #ifdef HAS_TEX_LOD
 	uniform float renderer_BlitMipLevel;
@@ -16,5 +18,7 @@ void main() {
 	#else
 		gl_FragColor = texture2D( renderer_BlitTexture, uv );
 	#endif
+
+	gl_FragColor = outputTransform(gl_FragColor);
 }
 
