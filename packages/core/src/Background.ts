@@ -18,13 +18,6 @@ export class Background {
   mode: BackgroundMode = BackgroundMode.SolidColor;
 
   /**
-   * Background solid color.
-   * @defaultValue `new Color(0.25, 0.25, 0.25, 1.0)`
-   * @remarks When `mode` is `BackgroundMode.SolidColor`, the property will take effects.
-   */
-  solidColor: Color = new Color(0.25, 0.25, 0.25, 1.0);
-
-  /**
    * Background sky.
    * @remarks When `mode` is `BackgroundMode.Sky`, the property will take effects.
    */
@@ -38,7 +31,26 @@ export class Background {
   /** @internal */
   _material: Material;
 
+  /** @internal */
+  _linearSolidColor: Color;
+
+  private _solidColor: Color = new Color(0.25, 0.25, 0.25, 1.0);
   private _texture: Texture2D = null;
+
+  /**
+   * Background solid color.
+   * @defaultValue `new Color(0.25, 0.25, 0.25, 1.0)`
+   * @remarks When `mode` is `BackgroundMode.SolidColor`, the property will take effects.
+   */
+  get solidColor(): Color {
+    return this._solidColor;
+  }
+
+  set solidColor(value: Color) {
+    if (value !== this._solidColor) {
+      this._solidColor.copyFrom(value);
+    }
+  }
 
   /**
    * Background texture.
@@ -84,6 +96,7 @@ export class Background {
     this._material._addReferCount(-1);
     this._material = null;
     this.solidColor = null;
+    this._linearSolidColor = null;
     this.sky.destroy();
   }
 
@@ -94,6 +107,12 @@ export class Background {
   constructor(private _engine: Engine) {
     this._initMesh(_engine);
     this._initMaterial(_engine);
+
+    this._linearSolidColor = this._solidColor.toLinear(this.solidColor.clone());
+    // @ts-ignore
+    this.solidColor._onValueChanged = () => {
+      this.solidColor.toLinear(this._linearSolidColor);
+    };
   }
 
   /**

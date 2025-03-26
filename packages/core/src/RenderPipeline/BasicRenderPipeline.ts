@@ -212,7 +212,7 @@ export class BasicRenderPipeline {
     rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
     context.setRenderTarget(colorTarget);
 
-    const color = background.solidColor;
+    const color = colorTarget ? background._linearSolidColor : background.solidColor;
 
     if (internalColorTarget && finalClearFlags !== CameraClearFlags.All) {
       // Can use `blitFramebuffer` API to copy color/depth/stencil buffer from back buffer to internal RT
