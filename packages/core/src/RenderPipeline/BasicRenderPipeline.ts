@@ -147,12 +147,13 @@ export class BasicRenderPipeline {
         depthFormat,
         false,
         false,
+        false,
         msaaSamples,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear
       );
 
-      if (!this._canUseBlitFrameBuffer && this._shouldGrabColor) {
+      if (this._shouldGrabColor) {
         const grabTexture = PipelineUtils.recreateTextureIfNeeded(
           engine,
           this._grabTexture,
@@ -160,6 +161,7 @@ export class BasicRenderPipeline {
           viewport.height,
           camera.renderTarget?.getColorTexture(0).format ?? TextureFormat.R8G8B8A8,
           false,
+          camera.renderTarget?.getColorTexture(0).isSRGBColorSpace ?? false,
           TextureWrapMode.Clamp,
           TextureFilterMode.Bilinear
         );
@@ -215,8 +217,12 @@ export class BasicRenderPipeline {
     const color = colorTarget ? background._linearSolidColor : background.solidColor;
 
     if (internalColorTarget && finalClearFlags !== CameraClearFlags.All) {
-      // Can use `blitFramebuffer` API to copy color/depth/stencil buffer from back buffer to internal RT
-      if (this._canUseBlitFrameBuffer) {
+      // 1. Can use `blitFramebuffer` API to copy color/depth/stencil buffer from back buffer to internal RT
+      // 2. Must be the same color space
+      const srcIsSRGB = !camera.renderTarget || camera.renderTarget.getColorTexture(0).isSRGBColorSpace;
+      // const dstIsSRGB = internalColorTarget.getColorTexture(0).isSRGBColorSpace;
+      const dstIsSRGB = false; // Use linear color space always at present
+      if (this._canUseBlitFrameBuffer && srcIsSRGB === dstIsSRGB) {
         finalClearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(engine, finalClearFlags, color);
         rhi.blitInternalRTByBlitFrameBuffer(camera.renderTarget, internalColorTarget, finalClearFlags, camera.viewport);
       } else {
@@ -243,7 +249,8 @@ export class BasicRenderPipeline {
             undefined,
             undefined,
             undefined,
-            sourceScaleOffset
+            sourceScaleOffset,
+            !camera.renderTarget
           );
         } else {
           rhi.clearRenderTarget(engine, CameraClearFlags.All, color);

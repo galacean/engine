@@ -166,6 +166,7 @@ export class PostProcessUberPass extends PostProcessPass {
         null,
         false,
         false,
+        false,
         1,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear
@@ -177,6 +178,7 @@ export class PostProcessUberPass extends PostProcessPass {
         mipHeight,
         internalColorTextureFormat,
         null,
+        false,
         false,
         false,
         1,

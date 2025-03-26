@@ -237,6 +237,7 @@ export class PostProcessManager {
         TextureFormat.Depth24Stencil8,
         false,
         false,
+        false,
         1,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear

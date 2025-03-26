@@ -38,6 +38,7 @@ export class OpaqueTexturePass extends PipelinePass {
       null,
       false,
       false,
+      false,
       1,
       TextureWrapMode.Clamp,
       isNoDownsampling ? TextureFilterMode.Point : TextureFilterMode.Bilinear

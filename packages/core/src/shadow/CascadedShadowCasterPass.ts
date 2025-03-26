@@ -119,6 +119,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
         format,
         true,
         false,
+        false,
         1,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear
@@ -132,6 +133,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
         height,
         format,
         null,
+        false,
         false,
         false,
         1,

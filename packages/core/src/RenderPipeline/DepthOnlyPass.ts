@@ -37,6 +37,7 @@ export class DepthOnlyPass extends PipelinePass {
       TextureFormat.Depth16,
       true,
       false,
+      false,
       1,
       TextureWrapMode.Clamp,
       TextureFilterMode.Point

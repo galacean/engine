@@ -1,8 +1,7 @@
 import { Vector4 } from "@galacean/engine-math";
-import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Material } from "../material";
-import { ShaderProperty } from "../shader";
+import { ShaderMacro, ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
@@ -22,6 +21,7 @@ export class Blitter {
   private static _rendererShaderData = new ShaderData(ShaderDataGroup.Renderer);
   private static _texelSize = new Vector4();
   private static _defaultScaleOffset = new Vector4(1, 1, 0, 0);
+  private static _blitFromScreenMacro = ShaderMacro.getByName("BLITFROMSCREEN");
 
   /**
    * Blit texture to destination render target using a triangle.
@@ -33,6 +33,7 @@ export class Blitter {
    * @param material - The material to use when blit
    * @param passIndex - Pass index to use of the provided material
    * @param flipYOfSource - Whether flip Y axis of source texture
+   * @param blitFromScreen - Whether blit from screen
    */
   static blitTexture(
     engine: Engine,
@@ -42,7 +43,8 @@ export class Blitter {
     viewport: Vector4 = PipelineUtils.defaultViewport,
     material: Material = null,
     passIndex = 0,
-    sourceScaleOffset?: Vector4
+    sourceScaleOffset?: Vector4,
+    blitFromScreen = false
   ): void {
     const basicResources = engine._basicResources;
     const blitMesh = destination ? basicResources.flipYBlitMesh : basicResources.blitMesh;
@@ -75,6 +77,12 @@ export class Blitter {
     );
 
     ShaderMacroCollection.unionCollection(compileMacros, context._globalShaderMacro, compileMacros);
+
+    if (blitFromScreen) {
+      compileMacros.enable(Blitter._blitFromScreenMacro);
+    } else {
+      compileMacros.disable(Blitter._blitFromScreenMacro);
+    }
 
     const program = pass._getShaderProgram(engine, compileMacros);
 

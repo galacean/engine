@@ -19,6 +19,10 @@ void main() {
 		gl_FragColor = texture2D( renderer_BlitTexture, uv );
 	#endif
 
+	#ifdef BLITFROMSCREEN
+		gl_FragColor = gammaToLinear(gl_FragColor);
+	#endif
+
 	gl_FragColor = outputTransform(gl_FragColor);
 }
 
