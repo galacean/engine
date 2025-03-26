@@ -51,6 +51,7 @@ export class DepthOnlyPass extends PipelinePass {
     const camera = context.camera;
     const rhi = engine._hardwareRenderer;
     rhi.activeRenderTarget(renderTarget, PipelineUtils.defaultViewport, context.flipProjection, 0);
+    context.setRenderTarget(renderTarget);
     rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
 
     engine._renderCount++;

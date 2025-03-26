@@ -55,6 +55,7 @@ export class Blitter {
     context.flipProjection = !!destination;
 
     rhi.activeRenderTarget(destination, viewport, context.flipProjection, 0);
+    context.setRenderTarget(destination);
 
     const rendererShaderData = Blitter._rendererShaderData;
 
@@ -73,11 +74,7 @@ export class Blitter {
       compileMacros
     );
 
-    if (destination) {
-      compileMacros.disable(Camera._cameraOutputGammaCorrectMacro);
-    } else {
-      compileMacros.enable(Camera._cameraOutputGammaCorrectMacro);
-    }
+    ShaderMacroCollection.unionCollection(compileMacros, context._globalShaderMacro, compileMacros);
 
     const program = pass._getShaderProgram(engine, compileMacros);
 

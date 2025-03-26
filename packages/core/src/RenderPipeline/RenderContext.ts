@@ -3,7 +3,9 @@ import { Camera } from "../Camera";
 import { VirtualCamera } from "../VirtualCamera";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
 import { Shader, ShaderProperty } from "../shader";
+import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { ShaderTagKey } from "../shader/ShaderTagKey";
+import { RenderTarget } from "../texture";
 
 /**
  * @internal
@@ -14,6 +16,8 @@ export class RenderContext {
 
   /** @internal */
   static _flipYMatrix = new Matrix(1, 0, 0, 0, 0, -1);
+  /** @internal */
+  _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
 
   private static _cameraProjectionProperty = ShaderProperty.getByName("camera_ProjectionParams");
   private static _viewMatrixProperty = ShaderProperty.getByName("camera_ViewMat");
@@ -62,6 +66,14 @@ export class RenderContext {
     const projectionParams = this._projectionParams;
     projectionParams.set(flipProjection ? -1 : 1, virtualCamera.nearClipPlane, virtualCamera.farClipPlane, 0);
     shaderData.setVector4(RenderContext._cameraProjectionProperty, projectionParams);
+  }
+
+  setRenderTarget(destination: RenderTarget | null) {
+    if (destination) {
+      this._globalShaderMacro.disable(Camera._cameraOutputGammaCorrectMacro);
+    } else {
+      this._globalShaderMacro.enable(Camera._cameraOutputGammaCorrectMacro);
+    }
   }
 
   garbageCollection(): void {

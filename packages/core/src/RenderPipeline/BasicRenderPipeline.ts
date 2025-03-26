@@ -30,6 +30,7 @@ import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
 import { PipelineStage } from "./enums/PipelineStage";
+import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 
 /**
  * Basic render pipeline.
@@ -209,6 +210,8 @@ export class BasicRenderPipeline {
     }
 
     rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
+    context.setRenderTarget(colorTarget);
+
     const color = background.solidColor;
 
     if (internalColorTarget && finalClearFlags !== CameraClearFlags.All) {
@@ -248,6 +251,7 @@ export class BasicRenderPipeline {
       }
 
       rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
+      context.setRenderTarget(colorTarget);
     } else if (finalClearFlags !== CameraClearFlags.None) {
       rhi.clearRenderTarget(engine, finalClearFlags, color);
     }
@@ -263,7 +267,7 @@ export class BasicRenderPipeline {
       if (background.mode === BackgroundMode.Sky) {
         background.sky._render(context);
       } else if (background.mode === BackgroundMode.Texture && background.texture) {
-        this._drawBackgroundTexture(camera, background);
+        this._drawBackgroundTexture(context, camera, background);
       }
     }
 
@@ -278,6 +282,7 @@ export class BasicRenderPipeline {
 
       // Should revert to original render target
       rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
+      context.setRenderTarget(colorTarget);
     } else {
       camera.shaderData.setTexture(Camera._cameraOpaqueTextureProperty, null);
     }
@@ -395,7 +400,7 @@ export class BasicRenderPipeline {
     }
   }
 
-  private _drawBackgroundTexture(camera: Camera, background: Background) {
+  private _drawBackgroundTexture(context: RenderContext, camera: Camera, background: Background) {
     const engine = camera.engine;
     const rhi = engine._hardwareRenderer;
     const { canvas } = engine;
@@ -410,7 +415,9 @@ export class BasicRenderPipeline {
     }
 
     const pass = material.shader.subShaders[0].passes[0];
-    const program = pass._getShaderProgram(engine, Shader._compileMacros);
+    const compileMacros = Shader._compileMacros;
+    ShaderMacroCollection.unionCollection(compileMacros, context._globalShaderMacro, compileMacros);
+    const program = pass._getShaderProgram(engine, compileMacros);
     program.bind();
     program.uploadAll(program.materialUniformBlock, material.shaderData);
     program.uploadAll(program.cameraUniformBlock, camera.shaderData);
