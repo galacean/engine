@@ -95,8 +95,6 @@ export class Background {
     this._mesh = null;
     this._material._addReferCount(-1);
     this._material = null;
-    this._solidColor = null;
-    this._linearSolidColor = null;
     this.sky.destroy();
   }
 
