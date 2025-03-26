@@ -61,7 +61,10 @@ async function main() {
       },
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*Q60vQ40ZERsAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D
+        type: AssetType.Texture2D,
+        params: {
+          isSRGBColorSpace: true
+        }
       }
     ])
     .then((resources) => {
@@ -150,7 +153,7 @@ function initShader() {
   
   void main() {
     vec4 textureColor = texture2D(u_UVCheckTexture, v_uv);
-    gl_FragColor = textureColor;
+    gl_FragColor = outputTransform(textureColor);
   }
   `;
 

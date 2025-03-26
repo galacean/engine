@@ -40,7 +40,7 @@ export function initScreenshot(
 
   const cameras = Array.isArray(camera) ? camera : [camera];
   const callbacks = [];
-  const renderColorTexture = new Texture2D(engine, width, height);
+  const renderColorTexture = new Texture2D(engine, width, height, undefined, undefined, undefined, true);
   const renderTargetData = new Uint8Array(width * height * 4);
   const renderTarget = new RenderTarget(engine, width, height, renderColorTexture, TextureFormat.Depth24Stencil8, 1);
 
