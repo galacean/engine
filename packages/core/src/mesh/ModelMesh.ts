@@ -792,7 +792,7 @@ export class ModelMesh extends Mesh {
   /**
    * @internal
    */
-  _getVertexTypedArray(vertexDataBuffer: ArrayBuffer, dataType: DataType): TypedArray {
+  _getVertexTypedArray(vertexDataBuffer: ArrayBufferLike, dataType: DataType): TypedArray {
     switch (dataType) {
       case DataType.BYTE:
         return new Int8Array(vertexDataBuffer);

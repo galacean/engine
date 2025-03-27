@@ -70,7 +70,7 @@ void main() {
     vec3 lifeVelocity;
     if (normalizedAge < 1.0) {
         vec3 startVelocity = a_DirectionTime.xyz * a_StartSpeed;
-        #if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE)
+        #ifdef _VOL_MODULE_ENABLED
             lifeVelocity = computeParticleLifeVelocity(normalizedAge); 
         #endif
         

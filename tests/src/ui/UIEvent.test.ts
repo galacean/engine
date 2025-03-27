@@ -126,6 +126,75 @@ describe("UIEvent", async () => {
     expect(script3.upCount).toBe(0);
     expect(script3.dropCount).toBe(0);
 
+    target.dispatchEvent(generatePointerEvent("pointermove", 2, left + 5, top + 5));
+    engine.update();
+
+
+    expect(script1.enterCount).toBe(1);
+    expect(script1.exitCount).toBe(0);
+    expect(script1.downCount).toBe(1);
+    expect(script1.clickCount).toBe(0);
+    expect(script1.beginDragCount).toBe(1);
+    expect(script1.dragCount).toBe(1);
+    expect(script1.endDragCount).toBe(0);
+    expect(script1.upCount).toBe(0);
+    expect(script1.dropCount).toBe(0);
+
+    expect(script2.enterCount).toBe(1);
+    expect(script2.exitCount).toBe(0);
+    expect(script2.downCount).toBe(0);
+    expect(script2.clickCount).toBe(0);
+    expect(script2.beginDragCount).toBe(0);
+    expect(script2.dragCount).toBe(0);
+    expect(script2.endDragCount).toBe(0);
+    expect(script2.upCount).toBe(0);
+    expect(script2.dropCount).toBe(0);
+
+    expect(script3.enterCount).toBe(0);
+    expect(script3.exitCount).toBe(0);
+    expect(script3.downCount).toBe(0);
+    expect(script3.clickCount).toBe(0);
+    expect(script3.beginDragCount).toBe(0);
+    expect(script3.dragCount).toBe(0);
+    expect(script3.endDragCount).toBe(0);
+    expect(script3.upCount).toBe(0);
+    expect(script3.dropCount).toBe(0);
+
+
+    target.dispatchEvent(generatePointerEvent("pointermove", 2, left + 5, top + 5));
+    engine.update();
+
+
+    expect(script1.enterCount).toBe(1);
+    expect(script1.exitCount).toBe(0);
+    expect(script1.downCount).toBe(1);
+    expect(script1.clickCount).toBe(0);
+    expect(script1.beginDragCount).toBe(1);
+    expect(script1.dragCount).toBe(2);
+    expect(script1.endDragCount).toBe(0);
+    expect(script1.upCount).toBe(0);
+    expect(script1.dropCount).toBe(0);
+
+    expect(script2.enterCount).toBe(1);
+    expect(script2.exitCount).toBe(0);
+    expect(script2.downCount).toBe(0);
+    expect(script2.clickCount).toBe(0);
+    expect(script2.beginDragCount).toBe(0);
+    expect(script2.dragCount).toBe(0);
+    expect(script2.endDragCount).toBe(0);
+    expect(script2.upCount).toBe(0);
+    expect(script2.dropCount).toBe(0);
+
+    expect(script3.enterCount).toBe(0);
+    expect(script3.exitCount).toBe(0);
+    expect(script3.downCount).toBe(0);
+    expect(script3.clickCount).toBe(0);
+    expect(script3.beginDragCount).toBe(0);
+    expect(script3.dragCount).toBe(0);
+    expect(script3.endDragCount).toBe(0);
+    expect(script3.upCount).toBe(0);
+    expect(script3.dropCount).toBe(0);
+
     target.dispatchEvent(generatePointerEvent("pointerup", 2, left + 5, top + 5));
     engine.update();
 
@@ -134,7 +203,7 @@ describe("UIEvent", async () => {
     expect(script1.downCount).toBe(1);
     expect(script1.clickCount).toBe(1);
     expect(script1.beginDragCount).toBe(1);
-    expect(script1.dragCount).toBe(0);
+    expect(script1.dragCount).toBe(2);
     expect(script1.endDragCount).toBe(1);
     expect(script1.upCount).toBe(1);
     expect(script1.dropCount).toBe(1);
@@ -167,7 +236,7 @@ describe("UIEvent", async () => {
     expect(script1.downCount).toBe(1);
     expect(script1.clickCount).toBe(1);
     expect(script1.beginDragCount).toBe(1);
-    expect(script1.dragCount).toBe(0);
+    expect(script1.dragCount).toBe(2);
     expect(script1.endDragCount).toBe(1);
     expect(script1.upCount).toBe(1);
     expect(script1.dropCount).toBe(1);
@@ -199,7 +268,7 @@ describe("UIEvent", async () => {
     expect(script1.downCount).toBe(1);
     expect(script1.clickCount).toBe(1);
     expect(script1.beginDragCount).toBe(1);
-    expect(script1.dragCount).toBe(0);
+    expect(script1.dragCount).toBe(2);
     expect(script1.endDragCount).toBe(1);
     expect(script1.upCount).toBe(1);
     expect(script1.dropCount).toBe(1);

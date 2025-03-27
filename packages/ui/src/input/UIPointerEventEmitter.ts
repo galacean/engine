@@ -103,7 +103,6 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
     const draggedPath = this._draggedPath;
     if (draggedPath.length > 0) {
       this._bubble(draggedPath, pointer, this._fireDrag);
-      draggedPath.length = 0;
     }
   }
 

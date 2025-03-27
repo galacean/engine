@@ -196,11 +196,4 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   _resetRandomSeed(seed: number): void {
     this._velocityRand.reset(seed, ParticleRandomSubSeeds.VelocityOverLifetime);
   }
-
-  private _onCompositeCurveChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {
-    const renderer = this._generator._renderer;
-    lastValue?._unRegisterOnValueChanged(renderer._onGeneratorParamsChanged);
-    value?._registerOnValueChanged(renderer._onGeneratorParamsChanged);
-    renderer._onGeneratorParamsChanged();
-  }
 }
