@@ -37,6 +37,7 @@ export class GLTexture implements IPlatformTexture {
         return {
           internalFormat: isSRGBColorSpace ? gl.SRGB8 : isWebGL2 ? gl.RGB8 : gl.RGB,
           baseFormat: isWebGL2 ? gl.RGB : isSRGBColorSpace ? gl.SRGB8 : gl.RGB,
+          readFormat: gl.RGB,
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false
         };
@@ -44,6 +45,7 @@ export class GLTexture implements IPlatformTexture {
         return {
           internalFormat: isSRGBColorSpace ? gl.SRGB8_ALPHA8 : isWebGL2 ? gl.RGBA8 : gl.RGBA,
           baseFormat: isWebGL2 ? gl.RGBA : isSRGBColorSpace ? gl.SRGB8_ALPHA8 : gl.RGBA,
+          readFormat: gl.RGBA,
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false
         };
@@ -640,7 +642,7 @@ export class GLTexture implements IPlatformTexture {
     out: ArrayBufferView
   ): void {
     const gl = this._gl;
-    const { baseFormat, dataType } = this._formatDetail;
+    const { baseFormat, dataType, readFormat } = this._formatDetail;
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._getReadFrameBuffer());
 
@@ -660,7 +662,8 @@ export class GLTexture implements IPlatformTexture {
     } else {
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._glTexture, mipLevel);
     }
-    gl.readPixels(x, y, width, height, baseFormat, dataType, out);
+
+    gl.readPixels(x, y, width, height, readFormat ?? baseFormat, dataType, out);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
