@@ -608,5 +608,33 @@ describe("Entity", async () => {
       entity.destroy();
       expect(entity.children.length).eq(0);
     });
+
+    it("addChildAfterDestroy", () => {
+      class DestroyScript extends Script {
+        onDisable(): void {}
+        onDestroy(): void {}
+      }
+      DestroyScript.prototype.onDisable = vi.fn(DestroyScript.prototype.onDisable);
+      DestroyScript.prototype.onDestroy = vi.fn(DestroyScript.prototype.onDestroy);
+
+      const root = scene.createRootEntity("root");
+      const entity = root.createChild("entity");
+      const script = entity.addComponent(DestroyScript);
+      entity.destroy();
+      expect(entity.isActive).eq(false);
+      expect(entity.isActiveInHierarchy).eq(false);
+      expect(entity.parent).eq(null);
+      expect(entity.scene).eq(null);
+      expect(script.onDisable).toHaveBeenCalledTimes(1);
+
+      expect(entity.createChild("child0").isActiveInHierarchy).eq(false);
+      root.destroy();
+      expect(root.isActive).eq(false);
+      expect(root.isActiveInHierarchy).eq(false);
+      expect(root.createChild("child1").isActiveInHierarchy).eq(false);
+
+      engine.update();
+      expect(script.onDestroy).toHaveBeenCalledTimes(1);
+    });
   });
 });
