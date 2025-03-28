@@ -22,6 +22,110 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
+  static _moveEntityTo(entity: Entity, parent: Entity = null, scene: Scene = null, index?: number): void {
+    const { _parent: oldParent, _scene: oldScene } = entity;
+    if (oldScene !== scene) {
+      if (oldParent) {
+        Entity._removeFromChildren(oldParent._children, entity);
+      } else if (oldScene) {
+        Entity._removeFromChildren(oldScene._rootEntities, entity);
+      }
+      const isActiveInHierarchy = entity._isActiveInHierarchy;
+      const isActiveInScene = entity._isActiveInScene;
+      let inActiveChangeFlag = isActiveInScene ? ActiveChangeFlag.Scene : ActiveChangeFlag.None;
+      let activeChangeFlag = ActiveChangeFlag.None;
+      if (parent) {
+        entity._isRoot = false;
+        Entity._addToChildren(parent._children, entity, index);
+        if (isActiveInHierarchy && !parent._isActiveInHierarchy) {
+          inActiveChangeFlag |= ActiveChangeFlag.Hierarchy;
+        }
+        if (entity._isActive) {
+          if (parent._isActiveInHierarchy && !isActiveInHierarchy) {
+            activeChangeFlag |= ActiveChangeFlag.Hierarchy;
+          }
+          if (parent._isActiveInScene && !isActiveInScene) {
+            activeChangeFlag |= ActiveChangeFlag.Scene;
+          }
+        }
+      } else if (scene) {
+        entity._isRoot = true;
+        Entity._addToChildren(scene._rootEntities, entity, index);
+        if (isActiveInHierarchy && !scene._isActiveInEngine) {
+          inActiveChangeFlag |= ActiveChangeFlag.Hierarchy;
+        }
+        if (entity._isActive) {
+          if (scene._isActiveInEngine && !isActiveInHierarchy) {
+            activeChangeFlag |= ActiveChangeFlag.Hierarchy;
+          }
+          if (!isActiveInScene) {
+            activeChangeFlag |= ActiveChangeFlag.Scene;
+          }
+        }
+      } else {
+        if (isActiveInHierarchy) {
+          inActiveChangeFlag |= ActiveChangeFlag.Hierarchy;
+        }
+        entity._isRoot = false;
+      }
+      inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
+      Entity._traverseSetOwnerScene(entity, scene);
+      entity._parent = parent;
+      entity._onParentChange();
+      activeChangeFlag && entity._processActive(activeChangeFlag);
+    } else {
+      if (oldParent !== parent) {
+        if (oldParent) {
+          Entity._removeFromChildren(oldParent._children, entity);
+        }
+        const isActiveInHierarchy = entity._isActiveInHierarchy;
+        const isActiveInScene = entity._isActiveInScene;
+        let inActiveChangeFlag = ActiveChangeFlag.None;
+        let activeChangeFlag = ActiveChangeFlag.None;
+        if (parent) {
+          entity._isRoot = false;
+          Entity._addToChildren(parent._children, entity, index);
+          if (isActiveInHierarchy && !parent._isActiveInHierarchy) {
+            inActiveChangeFlag |= ActiveChangeFlag.Hierarchy;
+          }
+          if (entity._isActive) {
+            if (parent._isActiveInHierarchy && !isActiveInHierarchy) {
+              activeChangeFlag |= ActiveChangeFlag.Hierarchy;
+            }
+            if (parent._isActiveInScene && !isActiveInScene) {
+              activeChangeFlag |= ActiveChangeFlag.Scene;
+            }
+          }
+        } else if (scene) {
+          entity._isRoot = true;
+          Entity._addToChildren(scene._rootEntities, entity, index);
+          if (isActiveInHierarchy && !scene._isActiveInEngine) {
+            inActiveChangeFlag |= ActiveChangeFlag.Hierarchy;
+          }
+          if (entity._isActive) {
+            if (scene._isActiveInEngine && !isActiveInHierarchy) {
+              activeChangeFlag |= ActiveChangeFlag.Hierarchy;
+            }
+            if (!isActiveInScene) {
+              activeChangeFlag |= ActiveChangeFlag.Scene;
+            }
+          }
+        } else {
+          entity._isRoot = false;
+        }
+        inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
+        entity._parent = parent;
+        entity._onParentChange();
+        activeChangeFlag && entity._processActive(activeChangeFlag);
+      } else {
+        !!parent && index !== undefined && (entity.siblingIndex = index);
+      }
+    }
+  }
+
+  /**
+   * @internal
+   */
   static _findChildByName(entity: Entity, childIndex: number, paths: string[], pathIndex: number): Entity {
     const searchPath = paths[pathIndex];
     const isEndPath = pathIndex === paths.length - 1;
@@ -203,7 +307,7 @@ export class Entity extends EngineObject {
   }
 
   set parent(value: Entity) {
-    this._setParent(value);
+    Entity._moveEntityTo(this, value, value?._scene);
   }
 
   /**
@@ -343,57 +447,10 @@ export class Entity extends EngineObject {
   addChild(index: number, child: Entity): void;
 
   addChild(indexOrChild: number | Entity, child?: Entity): void {
-    let index: number;
     if (typeof indexOrChild === "number") {
-      index = indexOrChild;
+      Entity._moveEntityTo(child, this, this._scene, indexOrChild);
     } else {
-      index = undefined;
-      child = indexOrChild;
-    }
-
-    if (child._isRoot) {
-      const oldScene = child._scene;
-      Entity._removeFromChildren(oldScene._rootEntities, child);
-      child._isRoot = false;
-
-      this._addToChildrenList(index, child);
-      child._parent = this;
-
-      const newScene = this._scene;
-
-      let inActiveChangeFlag = ActiveChangeFlag.None;
-      if (!this._isActiveInHierarchy) {
-        child._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
-      }
-      if (child._isActiveInScene) {
-        if (this._isActiveInScene) {
-          // Cross scene should inActive first and then active
-          oldScene !== newScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-        } else {
-          inActiveChangeFlag |= ActiveChangeFlag.Scene;
-        }
-      }
-
-      inActiveChangeFlag && child._processInActive(inActiveChangeFlag);
-
-      if (child._scene !== newScene) {
-        Entity._traverseSetOwnerScene(child, newScene);
-      }
-
-      let activeChangeFlag = ActiveChangeFlag.None;
-      if (child._isActive) {
-        if (this._isActiveInHierarchy) {
-          !child._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
-        }
-        if (this._isActiveInScene) {
-          (!child._isActiveInScene || oldScene !== newScene) && (activeChangeFlag |= ActiveChangeFlag.Scene);
-        }
-      }
-      activeChangeFlag && child._processActive(activeChangeFlag);
-
-      child._setParentChange();
-    } else {
-      child._setParent(this, index);
+      Entity._moveEntityTo(indexOrChild, this, this._scene);
     }
   }
 
@@ -402,7 +459,8 @@ export class Entity extends EngineObject {
    * @param child - The child entity which want to be removed
    */
   removeChild(child: Entity): void {
-    child._setParent(null);
+    if (child._parent !== this) return;
+    Entity._moveEntityTo(child);
   }
 
   /**
@@ -459,7 +517,7 @@ export class Entity extends EngineObject {
       ? new Entity(this.engine, name, transform.constructor as ComponentConstructor)
       : new Entity(this.engine, name);
     child.layer = this.layer;
-    child.parent = this;
+    Entity._moveEntityTo(child, this, this._scene);
     return child;
   }
 
@@ -471,13 +529,12 @@ export class Entity extends EngineObject {
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
       child._parent = null;
-
-      let activeChangeFlag = ActiveChangeFlag.None;
-      child._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
-      child._isActiveInScene && (activeChangeFlag |= ActiveChangeFlag.Scene);
-      activeChangeFlag && child._processInActive(activeChangeFlag);
-
-      Entity._traverseSetOwnerScene(child, null); // Must after child._processInActive().
+      let inActiveChangeFlag = ActiveChangeFlag.None;
+      child._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
+      child._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+      inActiveChangeFlag && child._processInActive(inActiveChangeFlag);
+      // Must after child._processInActive().
+      Entity._traverseSetOwnerScene(child, null);
     }
     children.length = 0;
   }
@@ -578,12 +635,7 @@ export class Entity extends EngineObject {
       children[0].destroy();
     }
 
-    if (this._isRoot) {
-      this._scene.removeRootEntity(this);
-    } else {
-      this._setParent(null);
-    }
-
+    Entity._moveEntityTo(this);
     this.isActive = false;
   }
 
@@ -616,18 +668,6 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  _removeFromParent(): void {
-    const oldParent = this._parent;
-    if (oldParent != null) {
-      Entity._removeFromChildren(oldParent._children, this);
-      this._parent = null;
-      this._dispatchModify(EntityModifyFlags.Child, oldParent);
-    }
-  }
-
-  /**
-   * @internal
-   */
   _processActive(activeChangeFlag: ActiveChangeFlag): void {
     if (this._activeChangedComponents) {
       throw "Note: can't set the 'main inActive entity' active in hierarchy, if the operation is in main inActive entity or it's children script's onDisable Event.";
@@ -652,7 +692,7 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  _setParentChange() {
+  _onParentChange() {
     this._transform._parentChange();
     this._dispatchModify(EntityModifyFlags.Parent, this);
   }
@@ -673,67 +713,6 @@ export class Entity extends EngineObject {
 
   private _dispatchModify(flag: EntityModifyFlags, param?: any): void {
     this._modifyFlagManager?.dispatch(flag, param);
-  }
-
-  private _addToChildrenList(index: number, child: Entity): void {
-    Entity._addToChildren(this._children, child, index);
-    this._dispatchModify(EntityModifyFlags.Child, this);
-  }
-
-  private _setParent(parent: Entity, siblingIndex?: number): void {
-    const oldParent = this._parent;
-    if (parent !== oldParent) {
-      this._removeFromParent();
-      this._parent = parent;
-      if (parent) {
-        parent._addToChildrenList(siblingIndex, this);
-
-        const oldScene = this._scene;
-        const parentScene = parent._scene;
-
-        let inActiveChangeFlag = ActiveChangeFlag.None;
-        if (!parent._isActiveInHierarchy) {
-          this._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
-        }
-        if (parent._isActiveInScene) {
-          // cross scene should inActive first and then active
-          this._isActiveInScene && oldScene !== parentScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-        } else {
-          this._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-        }
-        inActiveChangeFlag && this._processInActive(inActiveChangeFlag);
-
-        if (oldScene !== parentScene) {
-          Entity._traverseSetOwnerScene(this, parentScene);
-        }
-
-        let activeChangeFlag = ActiveChangeFlag.None;
-
-        if (this._isActive) {
-          if (parent._isActiveInHierarchy) {
-            !this._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
-          }
-          if (parent._isActiveInScene) {
-            (!this._isActiveInScene || oldScene !== parentScene) && (activeChangeFlag |= ActiveChangeFlag.Scene);
-          }
-        }
-
-        activeChangeFlag && this._processActive(activeChangeFlag);
-      } else {
-        let inActiveChangeFlag = ActiveChangeFlag.None;
-        this._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
-        this._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-        inActiveChangeFlag && this._processInActive(inActiveChangeFlag);
-        if (oldParent) {
-          Entity._traverseSetOwnerScene(this, null);
-        }
-      }
-      this._setParentChange();
-    } else {
-      if (parent && siblingIndex !== undefined) {
-        this.siblingIndex = siblingIndex;
-      }
-    }
   }
 
   private _getComponentsInChildren<T extends Component>(type: new (entity: Entity) => T, results: T[]): void {
