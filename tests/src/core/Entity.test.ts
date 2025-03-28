@@ -1,6 +1,5 @@
 import { Entity, EntityModifyFlags, Scene, Script } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import exp from "constants";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 class TestComponent extends Script {}
