@@ -1,5 +1,6 @@
-import { Entity, Script } from "@galacean/engine-core";
+import { Entity, EntityModifyFlags, Scene, Script } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import exp from "constants";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 class TestComponent extends Script {}
@@ -30,7 +31,6 @@ describe("Entity", async () => {
       const child2 = new Entity(engine, "child2");
       child2.parent = parentY;
 
-     
       expect(scene.findEntityByPath("")).eq(null);
 
       expect(scene.findEntityByPath("root")).eq(root);
@@ -465,6 +465,175 @@ describe("Entity", async () => {
 
       engine.update();
       expect(script.onDestroy).toHaveBeenCalledTimes(1);
+    });
+
+    it("EntityModify", () => {
+      const parentA = scene.createRootEntity("parentA");
+      const parentB = scene.createRootEntity("parentB");
+      const child = new Entity(engine, "child");
+
+      let modifyParentACount = [0, 0, 0];
+      let modifyParentBCount = [0, 0, 0];
+      let modifyChildCount = [0, 0, 0];
+
+      const modifyParentA = (flag: EntityModifyFlags, child: Entity) => {
+        ++modifyParentACount[flag];
+      };
+      const modifyParentB = (flag: EntityModifyFlags, child: Entity) => {
+        ++modifyParentBCount[flag];
+      };
+      const modifyChild = (flag: EntityModifyFlags, child: Entity) => {
+        ++modifyChildCount[flag];
+      };
+      // @ts-ignore
+      parentA._registerModifyListener(modifyParentA);
+      // @ts-ignore
+      parentB._registerModifyListener(modifyParentB);
+      // @ts-ignore
+      child._registerModifyListener(modifyChild);
+
+      expect(modifyParentACount[EntityModifyFlags.Child]).eq(0);
+      expect(modifyParentACount[EntityModifyFlags.Parent]).eq(0);
+      expect(modifyParentBCount[EntityModifyFlags.Child]).eq(0);
+      expect(modifyParentBCount[EntityModifyFlags.Parent]).eq(0);
+      expect(modifyChildCount[EntityModifyFlags.Child]).eq(0);
+      expect(modifyChildCount[EntityModifyFlags.Parent]).eq(0);
+      parentA.addChild(child);
+
+      expect(modifyParentACount[EntityModifyFlags.Child]).eq(1);
+      expect(modifyParentACount[EntityModifyFlags.Parent]).eq(0);
+      expect(modifyParentBCount[EntityModifyFlags.Child]).eq(0);
+      expect(modifyParentBCount[EntityModifyFlags.Parent]).eq(0);
+      expect(modifyChildCount[EntityModifyFlags.Child]).eq(0);
+      expect(modifyChildCount[EntityModifyFlags.Parent]).eq(1);
+
+      child.siblingIndex = 2;
+      expect(modifyParentACount[EntityModifyFlags.Child]).eq(2);
+      expect(modifyParentACount[EntityModifyFlags.Parent]).eq(0);
+      expect(modifyParentBCount[EntityModifyFlags.Child]).eq(0);
+      expect(modifyParentBCount[EntityModifyFlags.Parent]).eq(0);
+      expect(modifyChildCount[EntityModifyFlags.Child]).eq(0);
+      expect(modifyChildCount[EntityModifyFlags.Parent]).eq(1);
+
+      parentB.addChild(child);
+      expect(modifyParentACount[EntityModifyFlags.Child]).eq(3);
+      expect(modifyParentACount[EntityModifyFlags.Parent]).eq(0);
+      expect(modifyParentBCount[EntityModifyFlags.Child]).eq(1);
+      expect(modifyParentBCount[EntityModifyFlags.Parent]).eq(0);
+      expect(modifyChildCount[EntityModifyFlags.Child]).eq(0);
+      expect(modifyChildCount[EntityModifyFlags.Parent]).eq(2);
+    });
+
+    it("InActiveAndActive", () => {
+      const parentA = scene.createRootEntity("parentA");
+      const parentB = new Entity(engine, "parentB");
+      const parentC = scene.createRootEntity("parentC");
+      const sceneA = new Scene(engine, "sceneA");
+      const sceneB = new Scene(engine, "sceneB");
+      const child = new Entity(engine, "child");
+
+      let enableCount = 0;
+      let disableCount = 0;
+      let enableInSceneCount = 0;
+      let disableInSceneCount = 0;
+
+      child.addComponent(
+        class extends Script {
+          _onEnable(): void {
+            ++enableCount;
+          }
+
+          _onDisable(): void {
+            ++disableCount;
+          }
+
+          _onEnableInScene(): void {
+            ++enableInSceneCount;
+          }
+
+          _onDisableInScene(): void {
+            ++disableInSceneCount;
+          }
+        }
+      );
+
+      expect(child.isActive).eq(true);
+      expect(child.isActiveInHierarchy).eq(false);
+      child.isActive = false;
+      expect(child.isActive).eq(false);
+
+      parentB.addChild(child);
+      expect(child.isActive).eq(false);
+      expect(child.isActiveInHierarchy).eq(false);
+      expect(enableCount).eq(0);
+      expect(disableCount).eq(0);
+      expect(enableInSceneCount).eq(0);
+      expect(disableInSceneCount).eq(0);
+      child.isActive = true;
+      expect(child.isActive).eq(true);
+      expect(child.isActiveInHierarchy).eq(false);
+      expect(enableCount).eq(0);
+      expect(disableCount).eq(0);
+      expect(enableInSceneCount).eq(0);
+      expect(disableInSceneCount).eq(0);
+
+      parentA.addChild(child);
+      expect(child.isActiveInHierarchy).eq(true);
+      expect(enableCount).eq(1);
+      expect(disableCount).eq(0);
+      expect(enableInSceneCount).eq(1);
+      expect(disableInSceneCount).eq(0);
+
+      parentA.addChild(child);
+      expect(child.isActiveInHierarchy).eq(true);
+      expect(enableCount).eq(1);
+      expect(disableCount).eq(0);
+      expect(enableInSceneCount).eq(1);
+      expect(disableInSceneCount).eq(0);
+
+      parentC.addChild(child);
+      expect(child.isActiveInHierarchy).eq(true);
+      expect(enableCount).eq(1);
+      expect(disableCount).eq(0);
+      expect(enableInSceneCount).eq(1);
+      expect(disableInSceneCount).eq(0);
+
+      sceneA.addRootEntity(child);
+      expect(child.isActiveInHierarchy).eq(false);
+      expect(enableCount).eq(1);
+      expect(disableCount).eq(1);
+      expect(enableInSceneCount).eq(2);
+      expect(disableInSceneCount).eq(1);
+
+      engine.sceneManager.addScene(sceneB);
+      sceneB.addRootEntity(child);
+      expect(child.isActiveInHierarchy).eq(true);
+      expect(enableCount).eq(2);
+      expect(disableCount).eq(1);
+      expect(enableInSceneCount).eq(3);
+      expect(disableInSceneCount).eq(2);
+
+      sceneB.removeRootEntity(child);
+      expect(child.isActiveInHierarchy).eq(false);
+      expect(enableCount).eq(2);
+      expect(disableCount).eq(2);
+      expect(enableInSceneCount).eq(3);
+      expect(disableInSceneCount).eq(3);
+    });
+
+    it("isRoot", () => {
+      const parent = scene.createRootEntity("parent");
+      const child = scene.createRootEntity("child");
+      parent.addChild(child);
+      scene.addRootEntity(child);
+      // @ts-ignore
+      expect(child._isRoot).eq(true);
+      child.parent = parent;
+      // @ts-ignore
+      expect(child._isRoot).eq(false);
+      scene.addRootEntity(child);
+      // @ts-ignore
+      expect(child._isRoot).eq(true);
     });
   });
 });

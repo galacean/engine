@@ -27,6 +27,7 @@ export class Entity extends EngineObject {
     if (oldScene !== scene) {
       if (oldParent) {
         Entity._removeFromChildren(oldParent._children, entity);
+        oldParent._dispatchModify(EntityModifyFlags.Child, oldParent);
       } else if (oldScene) {
         Entity._removeFromChildren(oldScene._rootEntities, entity);
       }
@@ -38,6 +39,7 @@ export class Entity extends EngineObject {
       if (parent) {
         entity._isRoot = false;
         Entity._addToChildren(parent._children, entity, index);
+        parent._dispatchModify(EntityModifyFlags.Child, parent);
         if (isActiveInHierarchy && !parent._isActiveInHierarchy) {
           inActiveChangeFlag |= ActiveChangeFlag.Hierarchy;
         }
@@ -62,10 +64,10 @@ export class Entity extends EngineObject {
           activeChangeFlag |= ActiveChangeFlag.Scene;
         }
       } else {
+        entity._isRoot = false;
         if (isActiveInHierarchy) {
           inActiveChangeFlag |= ActiveChangeFlag.Hierarchy;
         }
-        entity._isRoot = false;
       }
       inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
       Entity._traverseSetOwnerScene(entity, scene);
@@ -76,6 +78,7 @@ export class Entity extends EngineObject {
       if (oldParent !== parent) {
         if (oldParent) {
           Entity._removeFromChildren(oldParent._children, entity);
+          oldParent._dispatchModify(EntityModifyFlags.Child, oldParent);
         }
         const isActiveInHierarchy = entity._isActiveInHierarchy;
         const isActiveInScene = entity._isActiveInScene;
@@ -84,6 +87,7 @@ export class Entity extends EngineObject {
         if (parent) {
           entity._isRoot = false;
           Entity._addToChildren(parent._children, entity, index);
+          parent._dispatchModify(EntityModifyFlags.Child, parent);
           if (isActiveInHierarchy && !parent._isActiveInHierarchy) {
             inActiveChangeFlag |= ActiveChangeFlag.Hierarchy;
           }
@@ -304,7 +308,7 @@ export class Entity extends EngineObject {
   }
 
   set parent(value: Entity) {
-    Entity._moveEntityTo(this, value, value?._scene);
+    this.parent !== value && Entity._moveEntityTo(this, value, value?._scene);
   }
 
   /**
@@ -340,8 +344,13 @@ export class Entity extends EngineObject {
     if (this._siblingIndex === -1) {
       throw `The entity ${this.name} is not in the hierarchy`;
     }
-
-    this._setSiblingIndex(this._isRoot ? this._scene._rootEntities : this._parent._children, value);
+    if (this._isRoot) {
+      this._setSiblingIndex(this._scene._rootEntities, value);
+    } else {
+      const parent = this._parent;
+      this._setSiblingIndex(parent._children, value);
+      parent._dispatchModify(EntityModifyFlags.Child, parent);
+    }
   }
 
   /**
@@ -784,7 +793,6 @@ export class Entity extends EngineObject {
         }
       }
     }
-    this._dispatchModify(EntityModifyFlags.Child, this);
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
