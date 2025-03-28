@@ -2,19 +2,19 @@ import { Rand, Vector3 } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderData, ShaderMacro, ShaderProperty } from "../../shader";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
+import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
+import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
-import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
-import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 
 /**
  * Force over lifetime module.
  */
 export class ForceOverLifetimeModule extends ParticleGeneratorModule {
-  static readonly _modeConstantMacro = ShaderMacro.getByName("RENDERER_FOL_CONSTANT_MODE");
-  static readonly _modeCurveMacro = ShaderMacro.getByName("RENDERER_FOL_CURVE_MODE");
-  static readonly _modeRandomMacro = ShaderMacro.getByName("RENDERER_FOL_IS_RANDOM_TWO");
+  static readonly _constantModeMacro = ShaderMacro.getByName("RENDERER_FOL_CONSTANT_MODE");
+  static readonly _curveModeMacro = ShaderMacro.getByName("RENDERER_FOL_CURVE_MODE");
+  static readonly _isRandomMacro = ShaderMacro.getByName("RENDERER_FOL_IS_RANDOM_TWO");
 
   static readonly _minConstantProperty = ShaderProperty.getByName("renderer_FOLMinConst");
   static readonly _maxConstantProperty = ShaderProperty.getByName("renderer_FOLMaxConst");
@@ -140,18 +140,18 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
         shaderData.setFloatArray(ForceOverLifetimeModule._maxGradientXProperty, forceX.curveMax._getTypeArray());
         shaderData.setFloatArray(ForceOverLifetimeModule._maxGradientYProperty, forceY.curveMax._getTypeArray());
         shaderData.setFloatArray(ForceOverLifetimeModule._maxGradientZProperty, forceZ.curveMax._getTypeArray());
-        forceModeMacro = ForceOverLifetimeModule._modeCurveMacro;
+        forceModeMacro = ForceOverLifetimeModule._curveModeMacro;
         if (isRandomCurveMode) {
           shaderData.setFloatArray(ForceOverLifetimeModule._minGradientXProperty, forceX.curveMin._getTypeArray());
           shaderData.setFloatArray(ForceOverLifetimeModule._minGradientYProperty, forceY.curveMin._getTypeArray());
           shaderData.setFloatArray(ForceOverLifetimeModule._minGradientZProperty, forceZ.curveMin._getTypeArray());
-          isRandomModeMacro = ForceOverLifetimeModule._modeRandomMacro;
+          isRandomModeMacro = ForceOverLifetimeModule._isRandomMacro;
         }
       } else {
         const constantMax = this._forceMaxConstant;
         constantMax.set(forceX.constantMax, forceY.constantMax, forceZ.constantMax);
         shaderData.setVector3(ForceOverLifetimeModule._maxConstantProperty, constantMax);
-        forceModeMacro = ForceOverLifetimeModule._modeConstantMacro;
+        forceModeMacro = ForceOverLifetimeModule._constantModeMacro;
         if (
           forceX.mode === ParticleCurveMode.TwoConstants &&
           forceY.mode === ParticleCurveMode.TwoConstants &&
@@ -160,15 +160,14 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
           const constantMin = this._forceMinConstant;
           constantMin.set(forceX.constantMin, forceY.constantMin, forceZ.constantMin);
           shaderData.setVector3(ForceOverLifetimeModule._minConstantProperty, constantMin);
-          isRandomModeMacro = ForceOverLifetimeModule._modeRandomMacro;
+          isRandomModeMacro = ForceOverLifetimeModule._isRandomMacro;
         }
       }
 
       shaderData.setInt(ForceOverLifetimeModule._spaceProperty, this._space);
     }
-    const { _enableMacro: enableMacro } = this;
-    this._forceMacro = enableMacro(shaderData, this._forceMacro, forceModeMacro);
-    this._randomModeMacro = enableMacro(shaderData, this._randomModeMacro, isRandomModeMacro);
+    this._forceMacro = this._enableMacro(shaderData, this._forceMacro, forceModeMacro);
+    this._randomModeMacro = this._enableMacro(shaderData, this._randomModeMacro, isRandomModeMacro);
   }
 
   /**

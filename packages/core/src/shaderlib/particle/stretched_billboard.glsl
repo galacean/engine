@@ -1,18 +1,6 @@
 #ifdef RENDERER_MODE_STRETCHED_BILLBOARD
 	vec2 corner = a_CornerTextureCoordinate.xy + renderer_PivotOffset.xy;
-	vec3 velocity;
-    #if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE)
-        if (renderer_VOLSpace == 0){
-            velocity = rotationByQuaternions(renderer_SizeScale * (startVelocity + lifeVelocity),
-                   worldRotation)
-            + gravityVelocity;
-		}
-        else{
-            velocity = rotationByQuaternions(renderer_SizeScale * startVelocity, worldRotation) + lifeVelocity + gravityVelocity;
-		}
-    #else
-	    velocity = rotationByQuaternions(renderer_SizeScale * startVelocity, worldRotation) + gravityVelocity;
-    #endif
+	vec3 velocity = rotationByQuaternions(renderer_SizeScale * localVelocity, worldRotation) + worldVelocity;
 	vec3 cameraUpVector = normalize(velocity);
 	vec3 direction = normalize(center - camera_Position);
 	vec3 sideVector = normalize(cross(direction, normalize(velocity)));
