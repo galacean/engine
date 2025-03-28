@@ -686,6 +686,7 @@ export class Entity extends EngineObject {
       this._removeFromParent();
       this._parent = parent;
       if (parent) {
+        this._isRoot = false;
         parent._addToChildrenList(siblingIndex, this);
 
         const oldScene = this._scene;
