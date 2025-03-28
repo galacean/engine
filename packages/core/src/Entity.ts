@@ -240,7 +240,13 @@ export class Entity extends EngineObject {
       throw `The entity ${this.name} is not in the hierarchy`;
     }
 
-    this._setSiblingIndex(this._isRoot ? this._scene._rootEntities : this._parent._children, value);
+    if (this._isRoot) {
+      this._setSiblingIndex(this._scene._rootEntities, value);
+    } else {
+      const parent = this._parent;
+      this._setSiblingIndex(parent._children, value);
+      parent._dispatchModify(EntityModifyFlags.Child, parent);
+    }
   }
 
   /**
@@ -621,7 +627,7 @@ export class Entity extends EngineObject {
     if (oldParent != null) {
       Entity._removeFromChildren(oldParent._children, this);
       this._parent = null;
-      this._dispatchModify(EntityModifyFlags.Child, oldParent);
+      oldParent._dispatchModify(EntityModifyFlags.Child, oldParent);
     }
   }
 
@@ -809,7 +815,6 @@ export class Entity extends EngineObject {
         }
       }
     }
-    this._dispatchModify(EntityModifyFlags.Child, this);
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
