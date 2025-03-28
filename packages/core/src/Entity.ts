@@ -32,6 +32,7 @@ export class Entity extends EngineObject {
       }
       const isActiveInHierarchy = entity._isActiveInHierarchy;
       const isActiveInScene = entity._isActiveInScene;
+      // Cross scene should inActive first and then active
       let inActiveChangeFlag = isActiveInScene ? ActiveChangeFlag.Scene : ActiveChangeFlag.None;
       let activeChangeFlag = ActiveChangeFlag.None;
       if (parent) {
@@ -41,10 +42,10 @@ export class Entity extends EngineObject {
           inActiveChangeFlag |= ActiveChangeFlag.Hierarchy;
         }
         if (entity._isActive) {
-          if (parent._isActiveInHierarchy && !isActiveInHierarchy) {
+          if (!isActiveInHierarchy && parent._isActiveInHierarchy) {
             activeChangeFlag |= ActiveChangeFlag.Hierarchy;
           }
-          if (parent._isActiveInScene && !isActiveInScene) {
+          if (parent._isActiveInScene) {
             activeChangeFlag |= ActiveChangeFlag.Scene;
           }
         }
@@ -55,12 +56,10 @@ export class Entity extends EngineObject {
           inActiveChangeFlag |= ActiveChangeFlag.Hierarchy;
         }
         if (entity._isActive) {
-          if (scene._isActiveInEngine && !isActiveInHierarchy) {
+          if (!isActiveInHierarchy && scene._isActiveInEngine) {
             activeChangeFlag |= ActiveChangeFlag.Hierarchy;
           }
-          if (!isActiveInScene) {
-            activeChangeFlag |= ActiveChangeFlag.Scene;
-          }
+          activeChangeFlag |= ActiveChangeFlag.Scene;
         }
       } else {
         if (isActiveInHierarchy) {
@@ -88,11 +87,14 @@ export class Entity extends EngineObject {
           if (isActiveInHierarchy && !parent._isActiveInHierarchy) {
             inActiveChangeFlag |= ActiveChangeFlag.Hierarchy;
           }
+          if (isActiveInScene && !parent._isActiveInScene) {
+            inActiveChangeFlag |= ActiveChangeFlag.Scene;
+          }
           if (entity._isActive) {
-            if (parent._isActiveInHierarchy && !isActiveInHierarchy) {
+            if (!isActiveInHierarchy && parent._isActiveInHierarchy) {
               activeChangeFlag |= ActiveChangeFlag.Hierarchy;
             }
-            if (parent._isActiveInScene && !isActiveInScene) {
+            if (!isActiveInScene && parent._isActiveInScene) {
               activeChangeFlag |= ActiveChangeFlag.Scene;
             }
           }
@@ -102,13 +104,8 @@ export class Entity extends EngineObject {
           if (isActiveInHierarchy && !scene._isActiveInEngine) {
             inActiveChangeFlag |= ActiveChangeFlag.Hierarchy;
           }
-          if (entity._isActive) {
-            if (scene._isActiveInEngine && !isActiveInHierarchy) {
-              activeChangeFlag |= ActiveChangeFlag.Hierarchy;
-            }
-            if (!isActiveInScene) {
-              activeChangeFlag |= ActiveChangeFlag.Scene;
-            }
+          if (entity._isActive && !isActiveInHierarchy && scene._isActiveInEngine) {
+            activeChangeFlag |= ActiveChangeFlag.Hierarchy;
           }
         } else {
           entity._isRoot = false;
