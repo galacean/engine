@@ -253,7 +253,7 @@ export class Engine extends EventDispatcher {
     if (!hardwareRenderer.canIUse(GLCapabilityType.depthTexture)) {
       this._macroCollection.enable(Engine._noDepthTextureMacro);
     } else {
-      const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false);
+      const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false, undefined, false);
       depthTexture2D.isGCIgnored = true;
       this._depthTexture2D = depthTexture2D;
     }

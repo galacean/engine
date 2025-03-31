@@ -39,15 +39,15 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       {
         // Sprite texture
         url: "https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*rgNGR4Vb7lQAAAAAAAAAAAAAARQnAQ",
-        type: AssetType.Texture2D,
-        params: {
-          isSRGBColorSpace: true
-        }
+        type: AssetType.Texture2D
       },
       {
         // Mask texture
         url: "https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*qyhFT5Un5AgAAAAAAAAAAAAAARQnAQ",
-        type: AssetType.Texture2D
+        type: AssetType.Texture2D,
+        params: {
+          isSRGBColorSpace: false
+        }
       }
     ])
     .then((textures: Texture2D[]) => {

@@ -36,7 +36,7 @@ class TextureCubeLoader extends Loader<TextureCube> {
             width,
             undefined,
             undefined,
-            item.params?.isSRGBColorSpace ?? false
+            item.params?.isSRGBColorSpace
           );
           for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
             texture.setImageSource(TextureCubeFace.PositiveX + faceIndex, images[faceIndex], 0);

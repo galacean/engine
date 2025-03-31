@@ -79,6 +79,6 @@ export interface Texture2DParams {
   filterMode: TextureFilterMode;
   /** Anisotropic level for texture. */
   anisoLevel: number;
-  /**  Whether to use sRGB color space, default is false */
+  /**  Whether to use sRGB color space, default is true. */
   isSRGBColorSpace: boolean;
 }

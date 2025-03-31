@@ -27,7 +27,7 @@ describe("SpriteMask", async () => {
   it("get set sprite", () => {
     const rootEntity = scene.getRootEntity();
     const spriteMask = rootEntity.addComponent(SpriteMask);
-    const texture = new Texture2D(engine, 100, 100);
+    const texture = new Texture2D(engine, 100, 100, undefined, undefined, undefined, false);
     const sprite = new Sprite(engine, texture);
     spriteMask.sprite = sprite;
     expect(spriteMask.sprite).to.eq(sprite);
@@ -43,7 +43,7 @@ describe("SpriteMask", async () => {
     expect(spriteMask.width).to.eq(0);
     expect(spriteMask.height).to.eq(0);
 
-    const texture2d = new Texture2D(engine, 100, 200);
+    const texture2d = new Texture2D(engine, 100, 200, undefined, undefined, undefined, false);
     const sprite = new Sprite(engine, texture2d);
     spriteMask.sprite = sprite;
     expect(spriteMask.width).to.eq(1);
@@ -86,7 +86,7 @@ describe("SpriteMask", async () => {
 
   it("get spriteMask bounds", () => {
     const rootEntity = scene.getRootEntity();
-    const texture2D = new Texture2D(engine, 200, 300);
+    const texture2D = new Texture2D(engine, 200, 300, undefined, undefined, undefined, false);
     const sprite = new Sprite(engine, texture2D);
     const spriteMask = rootEntity.addComponent(SpriteMask);
     expect(Vector3.equals(spriteMask.bounds.min, new Vector3(0, 0, 0))).to.eq(true);
@@ -108,7 +108,7 @@ describe("SpriteMask", async () => {
   it("DirtyFlag", () => {
     const rootEntity = scene.getRootEntity();
     const spriteMask = rootEntity.addComponent(SpriteMask);
-    const texture2d = new Texture2D(engine, 100, 200);
+    const texture2d = new Texture2D(engine, 100, 200, undefined, undefined, undefined, false);
     const sprite = new Sprite(engine);
     spriteMask.sprite = sprite;
     // @ts-ignore
@@ -151,7 +151,7 @@ describe("SpriteMask", async () => {
   it("clone", () => {
     const rootEntity = scene.getRootEntity();
     const spriteMask = rootEntity.addComponent(SpriteMask);
-    const texture2d = new Texture2D(engine, 100, 200);
+    const texture2d = new Texture2D(engine, 100, 200, undefined, undefined, undefined, false);
     const sprite = new Sprite(engine, texture2d);
     spriteMask.sprite = sprite;
 
@@ -163,7 +163,7 @@ describe("SpriteMask", async () => {
   it("destroy", () => {
     const rootEntity = scene.getRootEntity();
     const spriteMask = rootEntity.addComponent(SpriteMask);
-    spriteMask.sprite = new Sprite(engine, new Texture2D(engine, 100, 200));
+    spriteMask.sprite = new Sprite(engine, new Texture2D(engine, 100, 200, undefined, undefined, undefined, false));
     spriteMask.destroy();
     expect(spriteMask.sprite).to.eq(null);
   });
@@ -171,7 +171,7 @@ describe("SpriteMask", async () => {
   it("_render", () => {
     const rootEntity = scene.getRootEntity();
     const spriteMask = rootEntity.addComponent(SpriteMask);
-    const texture2d = new Texture2D(engine, 100, 200);
+    const texture2d = new Texture2D(engine, 100, 200, undefined, undefined, undefined, false);
     const context = { camera: { engine: { _maskManager: { addSpriteMask: () => {} } } } };
     // @ts-ignore
     spriteMask._render(context);

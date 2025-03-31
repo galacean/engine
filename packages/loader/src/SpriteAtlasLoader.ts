@@ -52,7 +52,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                   .load<Texture2D>({
                     url: Utils.resolveAbsoluteUrl(item.url, atlasItem.img),
                     type: atlasItem.type ?? AssetType.Texture2D,
-                    params: { format, mipmap, isSRGBColorSpace: true }
+                    params: { format, mipmap }
                   })
                   .then((texture: Texture2D) => {
                     anisoLevel && (texture.anisoLevel = anisoLevel);

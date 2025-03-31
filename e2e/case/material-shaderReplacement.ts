@@ -61,10 +61,7 @@ async function main() {
       },
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*Q60vQ40ZERsAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D,
-        params: {
-          isSRGBColorSpace: true
-        }
+        type: AssetType.Texture2D
       }
     ])
     .then((resources) => {

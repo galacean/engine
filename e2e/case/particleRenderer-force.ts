@@ -49,31 +49,19 @@ WebGLEngine.create({
     .load([
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*JPsCSK5LtYkAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D,
-        params: {
-          isSRGBColorSpace: true
-        }
+        type: AssetType.Texture2D
       },
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*eWTFRZPqfDMAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D,
-        params: {
-          isSRGBColorSpace: true
-        }
+        type: AssetType.Texture2D
       },
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*J8uhRoxJtYgAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D,
-        params: {
-          isSRGBColorSpace: true
-        }
+        type: AssetType.Texture2D
       },
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*Ea3qRb1yCQMAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D,
-        params: {
-          isSRGBColorSpace: true
-        }
+        type: AssetType.Texture2D
       }
     ])
     .then((textures) => {

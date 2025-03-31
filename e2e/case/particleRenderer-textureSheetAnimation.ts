@@ -45,10 +45,7 @@ WebGLEngine.create({
   engine.resourceManager
     .load({
       url: "https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*5EyLSqmA7q0AAAAAAAAAAAAADtKFAQ/original",
-      type: AssetType.Texture2D,
-      params: {
-        isSRGBColorSpace: true
-      }
+      type: AssetType.Texture2D
     })
     .then((texture) => {
       const particleEntity = new Entity(engine);

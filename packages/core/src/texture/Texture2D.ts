@@ -18,7 +18,7 @@ export class Texture2D extends Texture {
    * @param format - Texture format. default `TextureFormat.R8G8B8A8`
    * @param mipmap - Whether to use multi-level texture
    * @param usage - Texture usage
-   * @param isSRGBColorSpace - Whether to use sRGB color space, default is false
+   * @param isSRGBColorSpace - Whether to use sRGB color space, default is true
    */
   constructor(
     engine: Engine,
@@ -27,7 +27,7 @@ export class Texture2D extends Texture {
     format = TextureFormat.R8G8B8A8,
     mipmap = true,
     usage = TextureUsage.Static,
-    isSRGBColorSpace = false
+    isSRGBColorSpace = true
   ) {
     super(engine);
     this._mipmap = mipmap;
