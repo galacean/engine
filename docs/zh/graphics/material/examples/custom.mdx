@@ -1,13 +1,8 @@
 ---
-title: Shader API【实验】
+title: 自定义着色器
 ---
 
-<Callout type="warning">
-  目前这个版本还处于实验性质,仅可在`编辑器`中使用。如果您想在 `Pro Code` 中使用，需要引入
-  `@galacean/engine-shader-shaderlab` 包。请注意，下个版本的 API 可能会发生变更，届时我们会及时通知您。
-</Callout>
-
-类似于 Typescript 中的函数、类、属性， Shader 代码也有一套自己的 API。本文可以帮助你如何基于这些 API 和 `ShaderLab` 语法，编写自己的 Shader。
+类似于 Typescript 中的函数、类、属性， Shader 代码也有一套自己的 API 和配套的 [UIScript](/docs/graphics/material/shaderLab/editor/#uiscript)。本文可以帮助你如何基于这些 API 和 [ShaderLab](/docs/graphics/material/shaderLab/intro) 语法，自定义自己的 Shader。
 
 ## 快速上手
 
@@ -15,6 +10,13 @@ title: Shader API【实验】
 
 <img
   src="https://gw.alipayobjects.com/zos/OasisHub/9abd1026-4e4d-4994-b36a-f964375c38cb/image-20240731105324320.png"
+  style={{ zoom: "50%" }}
+/>
+
+引擎会自动帮我们创建好 Shader 文件和 [UIScript](/docs/graphics/material/shaderLab/editor/#uiscript) 文件
+
+<img
+  src="https://gw.alipayobjects.com/zos/OasisHub/6351fa81-5159-4469-bd95-8f21a8f2f4ac/image-20250124162909194.png"
   style={{ zoom: "50%" }}
 />
 
@@ -160,7 +162,7 @@ vec4 fog(vec4 color, vec3 positionVS);
 
 ### Transform
 
-提供了模型空间、视图空间、世界空间、相机坐标等[系统变量](/docs/graphics/shader/custom/#属性):
+提供了模型空间、视图空间、世界空间、相机坐标等[系统变量](/docs/graphics/material/variables/):
 
 ```glsl
 mat4 renderer_LocalMat;
@@ -243,9 +245,7 @@ void calculateBlendShape(Attributes attributes, inout vec4 position, inout vec3 
 
 ## PBR API
 
-除了通用 API，PBR 也封装了一些列如 BRDF 光照模型的 API，这是 `ForwardPassPBR` 的一些核心链路，用户拓展别的材质，比如 SSS，薄膜干涉等时候，有时候也需要这些功能，可以尝试 `#include` 复用这些 API。
-
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/dd9af974-f4d2-4ef5-845a-732f39492bc0/yuque_diagram.jpg" />
+除了通用 API，PBR 也封装了一些列如 `BRDF` 光照模型的 API，用户拓展别的材质时可以尝试 `#include` 复用这些 API。
 
 ### AttributesPBR
 

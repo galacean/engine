@@ -1,0 +1,135 @@
+---
+title: ShaderLab 语法标准
+---
+
+## 语法标准
+
+`ShaderLab` 语法骨架如下:
+
+```glsl
+Shader "ShaderName" {
+  ...
+  Editor {
+    ...
+  }
+  ...
+  SubShader "SubShaderName" {
+    ...
+    Pass "PassName" {
+      ...
+    }
+    ...
+  }
+  ...
+}
+```
+
+## Unlit Demo
+
+```ts showLineNumbers {2,18,21}
+Shader "ShaderName" {
+    Editor {
+      Properties {
+        material_BaseColor("Main Color", Color) = (0, 0, 0, 1);
+        material_BaseTexture("Texture", Texture2D);
+        material_AlphaCutoff("Alpha Cutoff", Range(0, 1, 0.01)) = 0;
+
+        Header("Common"){
+          isTransparent("Transparent", Boolean) = false;
+          renderFace("Render Face", Enum(Front:0, Back:1, Double:2)) = 0;
+          blendMode("Blend Mode", Enum(Normal:0, Additive:1)) = 0;
+        }
+      }
+
+      UIScript "${uiScriptPath}";
+    }
+
+    SubShader "Default" {
+      UsePass "pbr/Default/ShadowCaster"
+
+      Pass "Pass0" {
+        DepthState {
+          WriteEnabled = depthWriteEnabled;
+        }
+
+        BlendState {
+          Enabled = blendEnabled;
+          SourceColorBlendFactor = sourceColorBlendFactor;
+          DestinationColorBlendFactor = destinationColorBlendFactor;
+          SourceAlphaBlendFactor = sourceAlphaBlendFactor;
+          DestinationAlphaBlendFactor = destinationAlphaBlendFactor;
+        }
+
+        RasterState{
+          CullMode = rasterStateCullMode;
+        }
+
+        RenderQueueType = renderQueueType;
+
+        struct Attributes {
+          vec3 POSITION;
+          vec2 TEXCOORD_0;
+          vec4 JOINTS_0;
+          vec4 WEIGHTS_0;
+        };
+
+        struct Varyings {
+          vec2 uv;
+        };
+
+        #include "Common.glsl"
+        #include "Skin.glsl"
+        #include "Transform.glsl"
+
+        vec4 material_BaseColor;
+        float material_AlphaCutoff;
+        sampler2D material_BaseTexture;
+
+        VertexShader = vert;
+        FragmentShader = frag;
+
+        Varyings vert(Attributes attr) {
+          Varyings v;
+
+          vec4 position = vec4(attr.POSITION, 1.0);
+
+          // Skin
+          #ifdef RENDERER_HAS_SKIN
+            mat4 skinMatrix = getSkinMatrix(attr);
+            position = skinMatrix * position;
+          #endif
+
+          gl_Position = renderer_MVPMat * position;
+          v.uv = attr.TEXCOORD_0;
+
+          return v;
+        }
+
+        void frag(Varyings v) {
+          vec4 baseColor = material_BaseColor;
+
+          #ifdef MATERIAL_HAS_BASETEXTURE
+              vec4 textureColor = texture2D(material_BaseTexture, v.uv);
+              #ifndef ENGINE_IS_COLORSPACE_GAMMA
+                  textureColor = gammaToLinear(textureColor);
+              #endif
+              baseColor *= textureColor;
+          #endif
+
+          #ifdef MATERIAL_IS_ALPHA_CUTOFF
+              if( baseColor.a < material_AlphaCutoff ) {
+                  discard;
+              }
+          #endif
+
+          gl_FragColor = baseColor;
+
+          #ifndef ENGINE_IS_COLORSPACE_GAMMA
+              gl_FragColor = linearToGamma(gl_FragColor);
+          #endif
+
+        }
+    }
+  }
+}
+```

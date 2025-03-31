@@ -1,0 +1,44 @@
+---
+title: 材质概述
+---
+
+<Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*Iq8iRKWPAqgAAAAAAAAAAAAADgDwAQ/original" />
+
+材质包含 **着色器（shader）、着色器数据（shaderData）、渲染状态（renderStates）**。
+
+## 着色器
+
+着色器(Shader)是一段运行在GPU中的程序，通常由顶点着色器和片元着色器组成，我们可以借助 [ShaderLab 语法](/docs/graphics/material/shaderLab/intro/) 很方便地书写这部分代码。
+
+## 着色器数据
+
+跟别的编程语言一样，我们在写着色器过程中也会用到很多变量，我们可以参考 [内置变量文档](/docs/graphics/material/variables/) 查找想要的内置变量；也可以通过 [使用着色器数据教程](/docs/graphics/material/examples/shaderData) 手动上传着色器数据和宏开关：
+
+## 渲染状态
+
+Galacean 支持对[混合状态（BlendState）](/apis/core/#RenderState-BlendState)、[深度状态（DepthState）](/apis/core/#RenderState-DepthState)、[模版状态（StencilState）](/apis/core/#RenderState-StencilState)、[光栅状态（RasterState）](/apis/core/#RenderState-RasterState)进行配置。
+
+我们拿一个透明物体的标准渲染流程来举例，我们希望开启透明混合，并且因为透明物体是叠加渲染的，所以我们还要关闭深度写入，并设置为透明队列;
+
+```ts showLineNumbers {3,7-12,14}
+Pass "Pass0" {
+    DepthState {
+      WriteEnabled = false;
+    }
+
+    BlendState {
+      Enabled = true;
+      SourceColorBlendFactor = BlendFactor.SourceAlpha;
+      DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+      SourceAlphaBlendFactor = BlendFactor.One;
+      DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    }
+
+    RenderQueueType = Transparent;
+}
+```
+
+<Callout type="info">
+  渲染状态还可以设置为变量，然后通过着色器数据来控制，详情参考 [ShaderLab
+  文档](/docs/graphics/material/shaderLab/shader)。
+</Callout>

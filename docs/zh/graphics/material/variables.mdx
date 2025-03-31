@@ -1,0 +1,60 @@
+---
+title: 内置变量
+---
+
+Shader 代码中会经常用到内置变量，一种是**逐顶点**的 `attribute` 变量，另一种是**逐 shader** 的 `uniform` 变量。
+
+下面是引擎内置变量，可以在写 Shader 的时候进行参考：
+
+### 顶点输入
+
+| 逐顶点数据     | attribute name | 数据类型 |
+| :------------- | :------------- | :------- |
+| 顶点           | POSITION       | vec3     |
+| 法线           | NORMAL         | vec3     |
+| 切线           | TANGENT        | vec4     |
+| 顶点颜色       | COLOR_0        | vec4     |
+| 骨骼索引       | JOINTS_0       | vec4     |
+| 骨骼权重       | WEIGHTS_0      | vec4     |
+| 第一套纹理坐标 | TEXCOORD_0     | vec2     |
+| 第二套纹理坐标 | TEXCOORD_1     | vec2     |
+
+### 属性
+
+#### 渲染器
+
+| 名字               | 类型 | 解释               |
+| :----------------- | :--- | ------------------ |
+| renderer_LocalMat  | mat4 | 模型本地坐标系矩阵 |
+| renderer_ModelMat  | mat4 | 模型世界坐标系矩阵 |
+| renderer_MVMat     | mat4 | 模型视口矩阵       |
+| renderer_MVPMat    | mat4 | 模型视口投影矩阵   |
+| renderer_NormalMat | mat4 | 法线矩阵           |
+
+#### 相机
+
+| 名字                     | 类型      | 解释                                                                  |
+| :----------------------- | :-------- | --------------------------------------------------------------------- |
+| camera_ViewMat           | mat4      | 视口矩阵                                                              |
+| camera_ProjMat           | mat4      | 投影矩阵                                                              |
+| camera_VPMat             | mat4      | 视口投影矩阵                                                          |
+| camera_ViewInvMat        | mat4      | 视口逆矩阵                                                            |
+| camera_Position          | vec3      | 相机位置                                                              |
+| camera_DepthTexture      | sampler2D | 深度信息纹理                                                          |
+| camera_OpaqueTexture     | sampler2D | 非透明纹理                                                          |
+| camera_DepthBufferParams | Vec4      | 相机深度缓冲参数：(x: 1.0 - far / near, y: far / near, z: 0, w: 0)    |
+| camera_ProjectionParams  | Vec4      | 投影矩阵相关参数：(x: flipProjection ? -1 : 1, y: near, z: far, w: 0) |
+
+#### 时间
+
+| 名字              | 类型 | 解释                                                      |
+| :---------------- | :--- | :-------------------------------------------------------- |
+| scene_ElapsedTime | vec4 | 引擎启动后经过的总时间：(x: t, y: sin(t), z:cos(t), w: 0) |
+| scene_DeltaTime   | vec4 | 距离上一帧的间隔时间：(x: dt, y: 0, z:0, w: 0)            |
+
+#### 雾
+
+| 名字 | 类型 | 解释 |
+| :-- | :-- | :-- |
+| scene_FogColor | vec4 | 雾的颜色 |
+| scene_FogParams | vec4 | 雾的参数：(x: -1/(end-start), y: end/(end-start), z: density / ln(2), w: density / sqr(ln(2)) |
