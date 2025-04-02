@@ -20,8 +20,8 @@ vec4 gammaToLinear(vec4 srgbIn){
 }
 
 vec4 linearToGamma(vec4 linearIn){
-	linearIn = max(linearIn, 0.0);
-    return vec4( pow(linearIn.rgb, vec3(1.0 / 2.2)), linearIn.a);
+	vec3 c = linearIn.rgb;
+    return vec4(mix(c * 12.92, pow(c, vec3(0.41666)) * 1.055 - vec3(0.055), step(vec3(0.003130), c)), linearIn.a);
 }
 
 // Compatible with devices that do not even support EXT_sRGB in WebGL1.0.
