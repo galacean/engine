@@ -50,9 +50,11 @@ ShaderPool.init();
  */
 export class Engine extends EventDispatcher {
   /** @internal */
-  static _noDepthTextureMacro: ShaderMacro = ShaderMacro.getByName("ENGINE_NO_DEPTH_TEXTURE");
+  static _noDepthTextureMacro = ShaderMacro.getByName("ENGINE_NO_DEPTH_TEXTURE");
   /** @internal */
-  static _noSRGBSupportMacro: ShaderMacro = ShaderMacro.getByName("ENGINE_NO_SRGB");
+  static _noSRGBSupportMacro = ShaderMacro.getByName("ENGINE_NO_SRGB");
+  /** @internal */
+  static _gammaCorrectMacro = ShaderMacro.getByName("ENGINE_GAMMACORRECT");
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
   /** @internal */
@@ -105,8 +107,8 @@ export class Engine extends EventDispatcher {
   _shaderProgramPools: ShaderProgramPool[] = [];
   /** @internal */
   _fontMap: Record<string, Font> = {};
-  /** @internal @todo: temporary solution */
-  _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
+  /** @internal */
+  _macroCollection = new ShaderMacroCollection();
 
   /** @internal */
   _postProcessPassNeedRefresh = false;

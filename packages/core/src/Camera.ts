@@ -46,9 +46,6 @@ export class Camera extends Component {
   /** @internal */
   static _cameraOpaqueTextureProperty = ShaderProperty.getByName("camera_OpaqueTexture");
 
-  /** @internal */
-  static _cameraOutputGammaCorrectMacro = ShaderMacro.getByName("CAMERA_OUTPUT_GAMMACORRECT");
-
   private static _inverseViewMatrixProperty = ShaderProperty.getByName("camera_ViewInvMat");
   private static _cameraPositionProperty = ShaderProperty.getByName("camera_Position");
   private static _cameraForwardProperty = ShaderProperty.getByName("camera_Forward");
@@ -650,7 +647,7 @@ export class Camera extends Component {
 
     // union scene and camera macro.
     ShaderMacroCollection.unionCollection(
-      this.scene._globalShaderMacro,
+      this.scene.shaderData._macroCollection,
       this.shaderData._macroCollection,
       this._globalShaderMacro
     );

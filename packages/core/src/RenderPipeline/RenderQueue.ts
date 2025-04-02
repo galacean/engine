@@ -99,7 +99,7 @@ export class RenderQueue {
 
       // Union render global macro and material self macro
       ShaderMacroCollection.unionCollection(renderer._globalShaderMacro, materialData._macroCollection, compileMacros);
-      ShaderMacroCollection.unionCollection(compileMacros, context._globalShaderMacro, compileMacros);
+      ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
 
       for (let j = 0, m = shaderPasses.length; j < m; j++) {
         const shaderPass = shaderPasses[j];

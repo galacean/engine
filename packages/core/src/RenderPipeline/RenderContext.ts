@@ -1,9 +1,9 @@
 import { Matrix, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
+import { Engine } from "../Engine";
 import { VirtualCamera } from "../VirtualCamera";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
 import { Shader, ShaderProperty } from "../shader";
-import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { ShaderTagKey } from "../shader/ShaderTagKey";
 import { RenderTarget } from "../texture";
 
@@ -16,8 +16,6 @@ export class RenderContext {
 
   /** @internal */
   static _flipYMatrix = new Matrix(1, 0, 0, 0, 0, -1);
-  /** @internal */
-  _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
 
   private static _cameraProjectionProperty = ShaderProperty.getByName("camera_ProjectionParams");
   private static _viewMatrixProperty = ShaderProperty.getByName("camera_ViewMat");
@@ -69,10 +67,11 @@ export class RenderContext {
   }
 
   setRenderTarget(destination: RenderTarget | null) {
+    const engine = this.camera.engine;
     if (destination) {
-      this._globalShaderMacro.disable(Camera._cameraOutputGammaCorrectMacro);
+      engine._macroCollection.disable(Engine._gammaCorrectMacro);
     } else {
-      this._globalShaderMacro.enable(Camera._cameraOutputGammaCorrectMacro);
+      engine._macroCollection.enable(Engine._gammaCorrectMacro);
     }
   }
 

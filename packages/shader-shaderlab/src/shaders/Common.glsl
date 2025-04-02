@@ -28,7 +28,7 @@ vec4 linearToGamma(vec4 linearIn){
 }
 
 vec4 outputTransform(vec4 linearIn){
-    #ifdef CAMERA_OUTPUT_GAMMACORRECT
+    #ifdef ENGINE_GAMMACORRECT
     	// render in linear, output gamma
     	return linearToGamma(linearIn);
     #else 

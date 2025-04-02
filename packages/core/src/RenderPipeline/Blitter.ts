@@ -68,7 +68,7 @@ export class Blitter {
       compileMacros
     );
 
-    ShaderMacroCollection.unionCollection(compileMacros, context._globalShaderMacro, compileMacros);
+    ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
 
     const program = pass._getShaderProgram(engine, compileMacros);
 

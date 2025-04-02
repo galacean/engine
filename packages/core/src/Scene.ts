@@ -65,8 +65,6 @@ export class Scene extends EngineObject {
   /** @internal */
   _sceneManager: SceneManager;
   /** @internal */
-  _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
-  /** @internal */
   _rootEntities: Entity[] = [];
 
   private _background: Background = new Background(this._engine);
@@ -484,13 +482,6 @@ export class Scene extends EngineObject {
     } else {
       shaderData.disableMacro("SCENE_SHADOW_TYPE");
     }
-
-    // union scene and camera macro.
-    ShaderMacroCollection.unionCollection(
-      this.engine._macroCollection,
-      shaderData._macroCollection,
-      this._globalShaderMacro
-    );
   }
 
   /**
