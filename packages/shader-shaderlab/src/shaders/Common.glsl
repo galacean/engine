@@ -23,14 +23,18 @@ vec4 gammaToLinear(vec4 srgbIn){
 }
 
 vec4 linearToGamma(vec4 linearIn){
+    return vec4( pow(linearIn.rgb, vec3(1.0 / 2.2)), linearIn.a);
+}
+
+vec4 linearToSRGB(vec4 linearIn){
 	vec3 c = linearIn.rgb;
     return vec4(mix(c * 12.92, pow(c, vec3(0.41666)) * 1.055 - vec3(0.055), step(vec3(0.003130), c)), linearIn.a);
 }
 
 vec4 outputTransform(vec4 linearIn){
-    #ifdef ENGINE_GAMMA_CORRECT
-    	// render in linear, output gamma
-    	return linearToGamma(linearIn);
+    #ifdef ENGINE_SRGB_CORRECT
+    	// render in linear, output sRGB
+    	return linearToSRGB(linearIn);
     #else 
     	return linearIn;
     #endif
