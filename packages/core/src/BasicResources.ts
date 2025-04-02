@@ -107,6 +107,7 @@ export class BasicResources {
   readonly blitMesh: ModelMesh;
   readonly flipYBlitMesh: ModelMesh;
   readonly blitMaterial: Material;
+  readonly blitScreenMaterial: Material;
 
   readonly whiteTexture2D: Texture2D;
   readonly whiteTextureCube: TextureCube;
@@ -141,9 +142,16 @@ export class BasicResources {
     blitMaterial.renderState.depthState.enabled = false;
     blitMaterial.renderState.depthState.writeEnabled = false;
 
+    const blitScreenMaterial = new Material(engine, Shader.find("blit-screen"));
+    blitScreenMaterial._addReferCount(1);
+    blitScreenMaterial.renderState.depthState.enabled = false;
+    blitScreenMaterial.renderState.depthState.writeEnabled = false;
+
+    this.blitMaterial = blitMaterial;
+    this.blitScreenMaterial = blitScreenMaterial;
+
     this.blitMesh = this._createBlitMesh(engine, vertices);
     this.flipYBlitMesh = this._createBlitMesh(engine, flipYVertices);
-    this.blitMaterial = blitMaterial;
 
     // Create white and magenta textures
     const whitePixel = new Uint8Array([255, 255, 255, 255]);

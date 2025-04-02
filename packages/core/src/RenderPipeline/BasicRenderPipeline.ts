@@ -1,4 +1,4 @@
-import { Vector2, Vector4 } from "@galacean/engine-math";
+import { Vector2 } from "@galacean/engine-math";
 import { Background } from "../Background";
 import { Camera } from "../Camera";
 import { Logger } from "../base/Logger";
@@ -8,6 +8,7 @@ import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DepthTextureMode } from "../enums/DepthTextureMode";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
 import { Shader } from "../shader/Shader";
+import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { ShaderPass } from "../shader/ShaderPass";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { RenderState } from "../shader/state/RenderState";
@@ -30,7 +31,6 @@ import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
 import { PipelineStage } from "./enums/PipelineStage";
-import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 
 /**
  * Basic render pipeline.
@@ -49,7 +49,6 @@ export class BasicRenderPipeline {
   private _grabTexture: Texture2D;
   private _canUseBlitFrameBuffer = false;
   private _shouldGrabColor = false;
-  private _sourceScaleOffset = new Vector4(1, 1, 0, 0);
 
   /**
    * Create a basic render pipeline.
@@ -237,20 +236,13 @@ export class BasicRenderPipeline {
           // Copy RT's color buffer to grab texture
           rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._grabTexture, camera.viewport);
           // Then blit grab texture to internal RT's color buffer
-          const sourceScaleOffset = this._sourceScaleOffset;
-          sourceScaleOffset.y = camera.renderTarget ? 1 : -1;
-          sourceScaleOffset.w = camera.renderTarget ? 0 : 1;
-          // `uv.y = 1.0 - uv.y` if grab from screen
           Blitter.blitTexture(
             engine,
             this._grabTexture,
             internalColorTarget,
             0,
             undefined,
-            undefined,
-            undefined,
-            sourceScaleOffset,
-            !camera.renderTarget
+            camera.renderTarget ? undefined : engine._basicResources.blitScreenMaterial
           );
         } else {
           rhi.clearRenderTarget(engine, CameraClearFlags.All, color);

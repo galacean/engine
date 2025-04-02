@@ -1,7 +1,7 @@
 import { Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Material } from "../material";
-import { ShaderMacro, ShaderProperty } from "../shader";
+import { ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
@@ -16,12 +16,9 @@ export class Blitter {
   private static _blitTextureProperty = ShaderProperty.getByName("renderer_BlitTexture");
   private static _blitMipLevelProperty = ShaderProperty.getByName("renderer_BlitMipLevel");
   private static _blitTexelSizeProperty = ShaderProperty.getByName("renderer_texelSize"); // x: 1/width, y: 1/height, z: width, w: height
-  private static _sourceScaleOffsetProperty = ShaderProperty.getByName("renderer_SourceScaleOffset");
 
   private static _rendererShaderData = new ShaderData(ShaderDataGroup.Renderer);
   private static _texelSize = new Vector4();
-  private static _defaultScaleOffset = new Vector4(1, 1, 0, 0);
-  private static _blitFromScreenMacro = ShaderMacro.getByName("BLITFROMSCREEN");
 
   /**
    * Blit texture to destination render target using a triangle.
@@ -32,8 +29,6 @@ export class Blitter {
    * @param viewport - Viewport
    * @param material - The material to use when blit
    * @param passIndex - Pass index to use of the provided material
-   * @param flipYOfSource - Whether flip Y axis of source texture
-   * @param blitFromScreen - Whether blit from screen
    */
   static blitTexture(
     engine: Engine,
@@ -42,9 +37,7 @@ export class Blitter {
     mipLevel: number = 0,
     viewport: Vector4 = PipelineUtils.defaultViewport,
     material: Material = null,
-    passIndex = 0,
-    sourceScaleOffset?: Vector4,
-    blitFromScreen = false
+    passIndex = 0
   ): void {
     const basicResources = engine._basicResources;
     const blitMesh = destination ? basicResources.flipYBlitMesh : basicResources.blitMesh;
@@ -65,7 +58,6 @@ export class Blitter {
     rendererShaderData.setFloat(Blitter._blitMipLevelProperty, mipLevel);
     Blitter._texelSize.set(1 / source.width, 1 / source.height, source.width, source.height);
     rendererShaderData.setVector4(Blitter._blitTexelSizeProperty, Blitter._texelSize);
-    rendererShaderData.setVector4(Blitter._sourceScaleOffsetProperty, sourceScaleOffset ?? Blitter._defaultScaleOffset);
 
     const pass = blitMaterial.shader.subShaders[0].passes[passIndex];
     const compileMacros = Shader._compileMacros;
@@ -77,12 +69,6 @@ export class Blitter {
     );
 
     ShaderMacroCollection.unionCollection(compileMacros, context._globalShaderMacro, compileMacros);
-
-    if (blitFromScreen) {
-      compileMacros.enable(Blitter._blitFromScreenMacro);
-    } else {
-      compileMacros.disable(Blitter._blitFromScreenMacro);
-    }
 
     const program = pass._getShaderProgram(engine, compileMacros);
 
