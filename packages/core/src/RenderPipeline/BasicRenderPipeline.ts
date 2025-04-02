@@ -225,27 +225,20 @@ export class BasicRenderPipeline {
     if (internalColorTarget && finalClearFlags !== CameraClearFlags.All) {
       // Can use `blitFramebuffer` API to copy color/depth/stencil buffer from back buffer to internal RT
       if (this._canUseBlitFrameBuffer) {
-        rhi.blitInternalRTByBlitFrameBuffer(
-          camera.renderTarget,
-          internalColorTarget,
-          finalClearFlags | (this._shouldCopyBackgroundColor ? CameraClearFlags.Color : CameraClearFlags.None),
-          camera.viewport
-        );
+        const blitClearFlags =
+          finalClearFlags | (this._shouldCopyBackgroundColor ? CameraClearFlags.Color : CameraClearFlags.None);
+        rhi.blitInternalRTByBlitFrameBuffer(camera.renderTarget, internalColorTarget, blitClearFlags, camera.viewport);
       } else {
+        if (!(finalClearFlags & CameraClearFlags.Depth) || !(finalClearFlags & CameraClearFlags.Stencil)) {
+          Logger.warn(
+            "We clear all depth/stencil state cause of the internalRT can't copy depth/stencil buffer from back buffer when use copy plan"
+          );
+        }
         // We must clear depth/stencil buffer manually if current context don't support `blitFramebuffer` API
         rhi.clearRenderTarget(engine, CameraClearFlags.DepthStencil);
       }
 
       if (this._shouldCopyBackgroundColor) {
-        if (
-          (Logger.isEnabled && !this._canUseBlitFrameBuffer && !(finalClearFlags & CameraClearFlags.Depth)) ||
-          !(finalClearFlags & CameraClearFlags.Stencil)
-        ) {
-          Logger.warn(
-            "We clear all depth/stencil state cause of the internalRT can't copy depth/stencil buffer from back buffer when use copy plan"
-          );
-        }
-
         // Copy RT's color buffer to grab texture
         rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._copyBackgroundTexture, camera.viewport);
         // Then blit grab texture to internal RT's color buffer
