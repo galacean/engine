@@ -219,6 +219,7 @@ export class BasicRenderPipeline {
     rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
     context.setRenderTarget(colorTarget);
 
+    // If color target is null, hardware will not convert linear color space to sRGB
     const color = colorTarget ? background._linearSolidColor : background.solidColor;
     finalClearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(engine, finalClearFlags, color);
 
