@@ -5,7 +5,7 @@ import { VirtualCamera } from "../VirtualCamera";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
 import { Shader, ShaderProperty } from "../shader";
 import { ShaderTagKey } from "../shader/ShaderTagKey";
-import { RenderTarget } from "../texture";
+import { RenderTarget, TextureCubeFace } from "../texture";
 
 /**
  * @internal
@@ -66,8 +66,11 @@ export class RenderContext {
     shaderData.setVector4(RenderContext._cameraProjectionProperty, projectionParams);
   }
 
-  setRenderTarget(destination: RenderTarget | null) {
+  setRenderTarget(destination: RenderTarget | null, viewport: Vector4, mipLevel?: number, faceIndex?: TextureCubeFace) {
     const engine = this.camera.engine;
+    const rhi = engine._hardwareRenderer;
+    rhi.activeRenderTarget(destination, viewport, this.flipProjection, mipLevel, faceIndex);
+
     if (destination) {
       engine._macroCollection.disable(Engine._sRGBCorrectMacro);
     } else {

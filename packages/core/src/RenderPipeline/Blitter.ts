@@ -49,8 +49,7 @@ export class Blitter {
     // We not use projection matrix when blit, but we must modify flipProjection to make front face correct
     context.flipProjection = !!destination;
 
-    rhi.activeRenderTarget(destination, viewport, context.flipProjection, 0);
-    context.setRenderTarget(destination);
+    context.setRenderTarget(destination, viewport, 0);
 
     const rendererShaderData = Blitter._rendererShaderData;
 

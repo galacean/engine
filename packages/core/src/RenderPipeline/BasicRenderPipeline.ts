@@ -216,8 +216,7 @@ export class BasicRenderPipeline {
       context.applyVirtualCamera(camera._virtualCamera, needFlipProjection);
     }
 
-    rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
-    context.setRenderTarget(colorTarget);
+    context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
 
     // If color target is null, hardware will not convert linear color space to sRGB
     const color = colorTarget ? background._linearSolidColor : background.solidColor;
@@ -260,8 +259,7 @@ export class BasicRenderPipeline {
         );
       }
 
-      rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
-      context.setRenderTarget(colorTarget);
+      context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
     }
 
     const maskManager = scene._maskManager;
@@ -289,8 +287,7 @@ export class BasicRenderPipeline {
       opaqueTexturePass.onRender(context);
 
       // Should revert to original render target
-      rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
-      context.setRenderTarget(colorTarget);
+      context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
     } else {
       camera.shaderData.setTexture(Camera._cameraOpaqueTextureProperty, null);
     }
