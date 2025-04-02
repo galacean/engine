@@ -34,7 +34,7 @@ vec4 texture2D_SRGB(sampler2D tex, vec2 uv) {
 }
 
 vec4 outputTransform(vec4 linearIn){
-    #ifdef ENGINE_GAMMACORRECT
+    #ifdef ENGINE_GAMMA_CORRECT
     	// render in linear, output gamma
     	return linearToGamma(linearIn);
     #else 
