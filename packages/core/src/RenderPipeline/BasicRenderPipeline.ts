@@ -46,9 +46,9 @@ export class BasicRenderPipeline {
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
   private _opaqueTexturePass: OpaqueTexturePass;
-  private _grabTexture: Texture2D;
+  private _copyBackgroundTexture: Texture2D;
   private _canUseBlitFrameBuffer = false;
-  private _shouldGrabColor = false;
+  private _shouldCopyBackgroundColor = false;
 
   /**
    * Create a basic render pipeline.
@@ -82,28 +82,26 @@ export class BasicRenderPipeline {
     context.rendererUpdateFlag = ContextRendererUpdateFlag.All;
 
     const camera = this._camera;
-    const { scene, engine } = camera;
+    const { scene, engine, renderTarget, independentCanvasEnabled } = camera;
     const rhi = engine._hardwareRenderer;
     const cullingResults = this._cullingResults;
     const sunlight = scene._lightManager._sunlight;
     const depthOnlyPass = this._depthOnlyPass;
     const depthPassEnabled = camera.depthTextureMode === DepthTextureMode.PrePass && depthOnlyPass._supportDepthTexture;
     const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
-    const independentCanvasEnabled = camera.independentCanvasEnabled;
-    const msaaSamples = camera.renderTarget ? camera.renderTarget.antiAliasing : camera.msaaSamples;
+    const msaaSamples = renderTarget ? renderTarget.antiAliasing : camera.msaaSamples;
 
     // 1. Only support blitFramebuffer in webgl2 context
     // 2. Can't blit normal FBO to MSAA FBO
     // 3. Can't blit screen MSAA FBO to normal FBO in mac safari platform and mobile, but mac chrome and firfox is OK
-    this._canUseBlitFrameBuffer =
-      rhi.isWebGL2 && msaaSamples === 1 && (!!camera.renderTarget || !rhi.context.antialias);
+    this._canUseBlitFrameBuffer = rhi.isWebGL2 && msaaSamples === 1 && (!!renderTarget || !rhi.context.antialias);
 
-    // Grab from screen must be the same with internal RT's linear color space, and we force use linear color space in internal RT
-    const sameLinearColorSpace = camera.renderTarget && !camera.renderTarget.getColorTexture(0).isSRGBColorSpace;
-    this._shouldGrabColor =
+    // Because internal render target is linear color space, so we should convert srgb background color to linear color space
+    const isSRGBBackground = !renderTarget || renderTarget.getColorTexture(0).isSRGBColorSpace;
+    this._shouldCopyBackgroundColor =
       independentCanvasEnabled &&
       !(finalClearFlags & CameraClearFlags.Color) &&
-      (!this._canUseBlitFrameBuffer || !sameLinearColorSpace);
+      (!this._canUseBlitFrameBuffer || isSRGBBackground);
 
     if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
       this._cascadedShadowCasterPass.onRender(context);
@@ -159,25 +157,26 @@ export class BasicRenderPipeline {
         TextureFilterMode.Bilinear
       );
 
-      if (this._shouldGrabColor) {
-        const grabTexture = PipelineUtils.recreateTextureIfNeeded(
+      if (this._shouldCopyBackgroundColor) {
+        const colorTexture = camera.renderTarget?.getColorTexture(0);
+        const copyBackgroundTexture = PipelineUtils.recreateTextureIfNeeded(
           engine,
-          this._grabTexture,
+          this._copyBackgroundTexture,
           viewport.width,
           viewport.height,
-          camera.renderTarget?.getColorTexture(0).format ?? TextureFormat.R8G8B8A8,
+          colorTexture?.format ?? TextureFormat.R8G8B8A8,
           false,
-          camera.renderTarget?.getColorTexture(0).isSRGBColorSpace ?? false,
+          colorTexture?.isSRGBColorSpace ?? false,
           TextureWrapMode.Clamp,
           TextureFilterMode.Bilinear
         );
-        this._grabTexture = grabTexture;
+        this._copyBackgroundTexture = copyBackgroundTexture;
       }
 
       this._internalColorTarget = internalColorTarget;
     } else {
       const internalColorTarget = this._internalColorTarget;
-      const grabTexture = this._grabTexture;
+      const grabTexture = this._copyBackgroundTexture;
       if (internalColorTarget) {
         internalColorTarget.getColorTexture(0)?.destroy(true);
         internalColorTarget.destroy(true);
@@ -185,7 +184,7 @@ export class BasicRenderPipeline {
       }
       if (grabTexture) {
         grabTexture.destroy(true);
-        this._grabTexture = null;
+        this._copyBackgroundTexture = null;
       }
     }
 
@@ -229,7 +228,7 @@ export class BasicRenderPipeline {
         rhi.blitInternalRTByBlitFrameBuffer(
           camera.renderTarget,
           internalColorTarget,
-          finalClearFlags & ~(this._shouldGrabColor ? CameraClearFlags.Color : CameraClearFlags.None),
+          finalClearFlags & ~(this._shouldCopyBackgroundColor ? CameraClearFlags.Color : CameraClearFlags.None),
           camera.viewport
         );
       } else {
@@ -237,7 +236,7 @@ export class BasicRenderPipeline {
         rhi.clearRenderTarget(engine, CameraClearFlags.DepthStencil);
       }
 
-      if (this._shouldGrabColor) {
+      if (this._shouldCopyBackgroundColor) {
         if (
           (Logger.isEnabled && !this._canUseBlitFrameBuffer && !(finalClearFlags & CameraClearFlags.Depth)) ||
           !(finalClearFlags & CameraClearFlags.Stencil)
@@ -248,11 +247,11 @@ export class BasicRenderPipeline {
         }
 
         // Copy RT's color buffer to grab texture
-        rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._grabTexture, camera.viewport);
+        rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._copyBackgroundTexture, camera.viewport);
         // Then blit grab texture to internal RT's color buffer
         Blitter.blitTexture(
           engine,
-          this._grabTexture,
+          this._copyBackgroundTexture,
           internalColorTarget,
           0,
           undefined,
