@@ -54,7 +54,7 @@ export class Engine extends EventDispatcher {
   /** @internal */
   static _noSRGBSupportMacro = ShaderMacro.getByName("ENGINE_NO_SRGB");
   /** @internal */
-  static _gammaCorrectMacro = ShaderMacro.getByName("ENGINE_SRGB_CORRECT");
+  static _sRGBCorrectMacro = ShaderMacro.getByName("ENGINE_SRGB_CORRECT");
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
   /** @internal */

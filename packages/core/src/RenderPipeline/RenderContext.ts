@@ -69,9 +69,9 @@ export class RenderContext {
   setRenderTarget(destination: RenderTarget | null) {
     const engine = this.camera.engine;
     if (destination) {
-      engine._macroCollection.disable(Engine._gammaCorrectMacro);
+      engine._macroCollection.disable(Engine._sRGBCorrectMacro);
     } else {
-      engine._macroCollection.enable(Engine._gammaCorrectMacro);
+      engine._macroCollection.enable(Engine._sRGBCorrectMacro);
     }
   }
 
