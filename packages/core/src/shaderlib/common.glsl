@@ -15,24 +15,38 @@ vec4 RGBMToLinear(vec4 value, float maxRange ) {
     return vec4( value.rgb * value.a * maxRange, 1.0 );
 }
 
-vec4 gammaToLinear(vec4 srgbIn){
-    return vec4( pow(srgbIn.rgb, vec3(2.2)), srgbIn.a);
+vec4 gammaToLinear(vec4 value){
+    return vec4( pow(value.rgb, vec3(2.2)), value.a);
 }
 
-vec4 linearToGamma(vec4 linearIn){
-    return vec4( pow(linearIn.rgb, vec3(1.0 / 2.2)), linearIn.a);
+vec4 linearToGamma(vec4 value){
+    return vec4( pow(value.rgb, vec3(1.0 / 2.2)), value.a);
 }
 
-vec4 linearToSRGB(vec4 linearIn){
-	vec3 c = linearIn.rgb;
-    return vec4(mix(c * 12.92, pow(c, vec3(0.41666)) * 1.055 - vec3(0.055), step(vec3(0.003130), c)), linearIn.a);
+float sRGBToLinear(float value){
+    float linearRGBLo  = value / 12.92;
+    float linearRGBHi  = pow((value + 0.055) / 1.055, 2.4);
+    float linearRGB    = (value <= 0.04045) ? linearRGBLo : linearRGBHi;
+    return linearRGB;
+}
+
+vec4 sRGBToLinear(vec4 value){
+   return vec4(sRGBToLinear(value.r), sRGBToLinear(value.g), sRGBToLinear(value.b), value.a);
+}
+
+float linearToSRGB(float value){
+    return (value <= 0.0031308) ? (value * 12.9232102) : 1.055 * pow(value, 1.0 / 2.4) - 0.055;
+}
+
+vec4 linearToSRGB(vec4 value){
+    return vec4(linearToSRGB(value.r), linearToSRGB(value.g), linearToSRGB(value.b), value.a);
 }
 
 // Compatible with devices that do not even support EXT_sRGB in WebGL1.0.
 vec4 texture2D_SRGB(sampler2D tex, vec2 uv) {
 	vec4 color = texture2D(tex, uv);
 	#ifdef ENGINE_NO_SRGB
-		color = gammaToLinear(color);
+		color = sRGBToLinear(color);
 	#endif
 	return color;
 }

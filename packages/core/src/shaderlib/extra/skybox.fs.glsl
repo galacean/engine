@@ -11,7 +11,7 @@ void main() {
     #ifdef MATERIAL_IS_DECODE_SKY_RGBM
         textureColor = RGBMToLinear(textureColor, 5.0);
     #elif defined(ENGINE_NO_SRGB)
-        textureColor = gammaToLinear(textureColor);
+        textureColor = sRGBToLinear(textureColor);
     #endif
 
     textureColor.rgb *= material_Exposure * material_TintColor.rgb;
