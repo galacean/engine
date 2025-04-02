@@ -176,14 +176,14 @@ export class BasicRenderPipeline {
       this._internalColorTarget = internalColorTarget;
     } else {
       const internalColorTarget = this._internalColorTarget;
-      const grabTexture = this._copyBackgroundTexture;
+      const copyBackgroundTexture = this._copyBackgroundTexture;
       if (internalColorTarget) {
         internalColorTarget.getColorTexture(0)?.destroy(true);
         internalColorTarget.destroy(true);
         this._internalColorTarget = null;
       }
-      if (grabTexture) {
-        grabTexture.destroy(true);
+      if (copyBackgroundTexture) {
+        copyBackgroundTexture.destroy(true);
         this._copyBackgroundTexture = null;
       }
     }
