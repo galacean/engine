@@ -228,7 +228,7 @@ export class BasicRenderPipeline {
         rhi.blitInternalRTByBlitFrameBuffer(
           camera.renderTarget,
           internalColorTarget,
-          finalClearFlags & ~(this._shouldCopyBackgroundColor ? CameraClearFlags.Color : CameraClearFlags.None),
+          finalClearFlags | (this._shouldCopyBackgroundColor ? CameraClearFlags.Color : CameraClearFlags.None),
           camera.viewport
         );
       } else {
