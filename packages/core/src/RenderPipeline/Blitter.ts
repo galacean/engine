@@ -30,8 +30,8 @@ export class Blitter {
    * @param mipLevel - Mip level to blit
    * @param viewport - Viewport
    * @param material - The material to use when blit
-   * @param sourceScaleOffset - Source scale and offset
    * @param passIndex - Pass index to use of the provided material
+   * @param sourceScaleOffset - Source scale and offset
    */
   static blitTexture(
     engine: Engine,
