@@ -229,7 +229,7 @@ export class BasicRenderPipeline {
           finalClearFlags | (this._shouldCopyBackgroundColor ? CameraClearFlags.Color : CameraClearFlags.None);
         rhi.blitInternalRTByBlitFrameBuffer(camera.renderTarget, internalColorTarget, blitClearFlags, camera.viewport);
       } else {
-        if (!(finalClearFlags & CameraClearFlags.Depth) || !(finalClearFlags & CameraClearFlags.Stencil)) {
+        if (!(finalClearFlags & CameraClearFlags.DepthStencil)) {
           Logger.warn(
             "We clear all depth/stencil state cause of the internalRT can't copy depth/stencil buffer from back buffer when use copy plan"
           );
