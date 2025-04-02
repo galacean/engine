@@ -91,12 +91,19 @@ export class BasicRenderPipeline {
     const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
     const independentCanvasEnabled = camera.independentCanvasEnabled;
     const msaaSamples = camera.renderTarget ? camera.renderTarget.antiAliasing : camera.msaaSamples;
-    this._shouldGrabColor = independentCanvasEnabled && !(finalClearFlags & CameraClearFlags.Color);
+
     // 1. Only support blitFramebuffer in webgl2 context
     // 2. Can't blit normal FBO to MSAA FBO
     // 3. Can't blit screen MSAA FBO to normal FBO in mac safari platform and mobile, but mac chrome and firfox is OK
     this._canUseBlitFrameBuffer =
       rhi.isWebGL2 && msaaSamples === 1 && (!!camera.renderTarget || !rhi.context.antialias);
+
+    // Grab from screen must be the same with internal RT's linear color space, and we force use linear color space in internal RT
+    const sameLinearColorSpace = camera.renderTarget && !camera.renderTarget.getColorTexture(0).isSRGBColorSpace;
+    this._shouldGrabColor =
+      independentCanvasEnabled &&
+      !(finalClearFlags & CameraClearFlags.Color) &&
+      (!this._canUseBlitFrameBuffer || !sameLinearColorSpace);
 
     if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
       this._cascadedShadowCasterPass.onRender(context);
@@ -214,45 +221,47 @@ export class BasicRenderPipeline {
     context.setRenderTarget(colorTarget);
 
     const color = colorTarget ? background._linearSolidColor : background.solidColor;
+    finalClearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(engine, finalClearFlags, color);
 
     if (internalColorTarget && finalClearFlags !== CameraClearFlags.All) {
-      // 1. Can use `blitFramebuffer` API to copy color/depth/stencil buffer from back buffer to internal RT
-      // 2. Must be the same color space
-      const srcIsSRGB = !camera.renderTarget || camera.renderTarget.getColorTexture(0).isSRGBColorSpace;
-      // const dstIsSRGB = internalColorTarget.getColorTexture(0).isSRGBColorSpace;
-      const dstIsSRGB = false; // Use linear color space always at present
-      if (this._canUseBlitFrameBuffer && srcIsSRGB === dstIsSRGB) {
-        finalClearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(engine, finalClearFlags, color);
-        rhi.blitInternalRTByBlitFrameBuffer(camera.renderTarget, internalColorTarget, finalClearFlags, camera.viewport);
+      // Can use `blitFramebuffer` API to copy color/depth/stencil buffer from back buffer to internal RT
+      if (this._canUseBlitFrameBuffer) {
+        rhi.blitInternalRTByBlitFrameBuffer(
+          camera.renderTarget,
+          internalColorTarget,
+          finalClearFlags & ~(this._shouldGrabColor ? CameraClearFlags.Color : CameraClearFlags.None),
+          camera.viewport
+        );
       } else {
-        if (!(finalClearFlags & CameraClearFlags.Depth) || !(finalClearFlags & CameraClearFlags.Stencil)) {
+        // We must clear depth/stencil buffer manually if current context don't support `blitFramebuffer` API
+        rhi.clearRenderTarget(engine, CameraClearFlags.DepthStencil);
+      }
+
+      if (this._shouldGrabColor) {
+        if (
+          (Logger.isEnabled && !this._canUseBlitFrameBuffer && !(finalClearFlags & CameraClearFlags.Depth)) ||
+          !(finalClearFlags & CameraClearFlags.Stencil)
+        ) {
           Logger.warn(
             "We clear all depth/stencil state cause of the internalRT can't copy depth/stencil buffer from back buffer when use copy plan"
           );
         }
 
-        if (this._shouldGrabColor) {
-          rhi.clearRenderTarget(engine, CameraClearFlags.DepthStencil);
-          // Copy RT's color buffer to grab texture
-          rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._grabTexture, camera.viewport);
-          // Then blit grab texture to internal RT's color buffer
-          Blitter.blitTexture(
-            engine,
-            this._grabTexture,
-            internalColorTarget,
-            0,
-            undefined,
-            camera.renderTarget ? undefined : engine._basicResources.blitScreenMaterial
-          );
-        } else {
-          rhi.clearRenderTarget(engine, CameraClearFlags.All, color);
-        }
+        // Copy RT's color buffer to grab texture
+        rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._grabTexture, camera.viewport);
+        // Then blit grab texture to internal RT's color buffer
+        Blitter.blitTexture(
+          engine,
+          this._grabTexture,
+          internalColorTarget,
+          0,
+          undefined,
+          camera.renderTarget ? undefined : engine._basicResources.blitScreenMaterial
+        );
       }
 
       rhi.activeRenderTarget(colorTarget, colorViewport, context.flipProjection, mipLevel, cubeFace);
       context.setRenderTarget(colorTarget);
-    } else if (finalClearFlags !== CameraClearFlags.None) {
-      rhi.clearRenderTarget(engine, finalClearFlags, color);
     }
 
     const maskManager = scene._maskManager;
