@@ -20,6 +20,7 @@ vec4 gammaToLinear(vec4 value){
 }
 
 vec4 linearToGamma(vec4 value){
+	value = max(value, 0.0);
     return vec4( pow(value.rgb, vec3(1.0 / 2.2)), value.a);
 }
 
@@ -35,6 +36,7 @@ vec4 sRGBToLinear(vec4 value){
 }
 
 float linearToSRGB(float value){
+	value = max(value, 0.0);
     return (value <= 0.0031308) ? (value * 12.9232102) : 1.055 * pow(value, 1.0 / 2.4) - 0.055;
 }
 
