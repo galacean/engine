@@ -31,7 +31,7 @@ export class Blitter {
    * @param viewport - Viewport
    * @param material - The material to use when blit
    * @param passIndex - Pass index to use of the provided material
-   * @param flipYOfSource - Whether flip Y axis of source texture
+   * @param sourceScaleOffset - Source scale and offset
    */
   static blitTexture(
     engine: Engine,
@@ -53,7 +53,7 @@ export class Blitter {
     // We not use projection matrix when blit, but we must modify flipProjection to make front face correct
     context.flipProjection = !!destination;
 
-    rhi.activeRenderTarget(destination, viewport, context.flipProjection, 0);
+    context.setRenderTarget(destination, viewport, 0);
 
     const rendererShaderData = Blitter._rendererShaderData;
 
@@ -71,6 +71,9 @@ export class Blitter {
       blitMaterial.shaderData._macroCollection,
       compileMacros
     );
+
+    ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
+
     const program = pass._getShaderProgram(engine, compileMacros);
 
     program.bind();

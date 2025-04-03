@@ -646,7 +646,7 @@ export class Camera extends Component {
 
     // union scene and camera macro.
     ShaderMacroCollection.unionCollection(
-      this.scene._globalShaderMacro,
+      this.scene.shaderData._macroCollection,
       this.shaderData._macroCollection,
       this._globalShaderMacro
     );

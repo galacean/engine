@@ -171,7 +171,15 @@ export class SkinnedMeshRenderer extends MeshRenderer {
           if (engine._hardwareRenderer.canIUseMoreJoints) {
             if (boneCountChange) {
               this._jointTexture?.destroy();
-              this._jointTexture = new Texture2D(engine, 4, boneCount, TextureFormat.R32G32B32A32, false);
+              this._jointTexture = new Texture2D(
+                engine,
+                4,
+                boneCount,
+                TextureFormat.R32G32B32A32,
+                false,
+                undefined,
+                false
+              );
               this._jointTexture.filterMode = TextureFilterMode.Point;
               this._jointTexture.isGCIgnored = true;
             }

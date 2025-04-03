@@ -113,6 +113,8 @@ export class Sky {
       compileMacros
     );
 
+    ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
+
     const pass = shader.subShaders[0].passes[0];
     const program = pass._getShaderProgram(engine, compileMacros);
     program.bind();

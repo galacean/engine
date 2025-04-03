@@ -35,8 +35,8 @@ vec3 getLightProbeRadiance(SurfaceData surfaceData, vec3 normal, float roughness
 
         #ifdef SCENE_IS_DECODE_ENV_RGBM
             envMapColor.rgb = (RGBMToLinear(envMapColor, 5.0)).rgb;
-        #else
-            envMapColor = gammaToLinear(envMapColor);
+        #elif defined(ENGINE_NO_SRGB)
+            envMapColor = sRGBToLinear(envMapColor);
         #endif
         
         return envMapColor.rgb * scene_EnvMapLight.specularIntensity;

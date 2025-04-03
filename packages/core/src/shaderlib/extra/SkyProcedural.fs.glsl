@@ -74,8 +74,6 @@ void main() {
 	#endif
 
 
-	gl_FragColor = vec4(col,1.0);
-
-	gl_FragColor = linearToGamma(gl_FragColor);
+	gl_FragColor = outputTransform(vec4(col, 1.0));
 }
 

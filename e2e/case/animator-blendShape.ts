@@ -39,11 +39,10 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       rootEntity.addChild(defaultSceneRoot);
       const animator = defaultSceneRoot.getComponent(Animator);
       const skinMeshRenderer = defaultSceneRoot.getComponent(SkinnedMeshRenderer);
-
       skinMeshRenderer.blendShapeWeights[0] = 1.0;
       animator.play("TheWave");
-      updateForE2E(engine);
 
+      updateForE2E(engine);
       initScreenshot(engine, camera);
     });
 });

@@ -25,6 +25,7 @@ export abstract class Texture extends GraphicsResource {
   protected _height: number;
   protected _usage: TextureUsage;
   protected _mipmapCount: number;
+  protected _isSRGBColorSpace: boolean;
 
   private _wrapModeU: TextureWrapMode;
   private _wrapModeV: TextureWrapMode;
@@ -32,6 +33,11 @@ export abstract class Texture extends GraphicsResource {
   private _anisoLevel: number = 1;
   private _depthCompareFunction: TextureDepthCompareFunction;
   private _useDepthCompareMode: boolean = false;
+
+  // Whether the texture is in the sRGB color space.
+  get isSRGBColorSpace() {
+    return this._isSRGBColorSpace;
+  }
 
   /**
    * Texture format.

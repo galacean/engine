@@ -13,8 +13,6 @@ let originSetPixelBuffer = Texture2D.prototype.setPixelBuffer;
 
 const astcResult =
   "data:application/octet-stream;base64,QgT3K7eLaAV/u18ZbQJmhEJIBrCsvey1672rBQmJKqdCyAmwb7U77Smv6AsdWKnWQgTvopfX/JOZsX+3KnnoBkLIHrAstWizqr1pFYCfKNdCyAlwbL15td11LBOdaAlqQsgJsJh9PL2cfaoLpkeZpEICpQMhA9ACJ9K/lJtcDd1CBCuqmfp5RP9Xm6ohAiGAQgTrq7W5SlT3399lbYZuCkICycM435pJBHE+P3c7t3NCArE6CF2ASg6SzOrWd/e3QigCkNn4AsaarCYb/wol/0IoAlCcooS+XnXqC9iqJ6pCKAJQqbhHtVptKgs6Z1ygQgItL7CX2Er7v7f9/bdg+0IEbzPX6ekTW+XrW8mbQaFCiAKwrL1vu2unOQ1M7edDQqgDkOi6VNcJJMELEjisxUICbYqwo4A+7fmEGBENf6JCBNtDvQkWjmjwaA1Vppd1QigC0BrqAmqJr2Ye94kbVkKIO5CNcoTdDLQFHnLSSixCAqWTEBGICGf5F/I7HLuNQgRnMpnoSwsRxpaZXrt3d0KoA7Bqr63zmb63Cxxc3NZC6CyQ2vLQ1qrkxR6bq7MzQgJ1AkDXgBmO2s/aINlJ3kIoAtAMdBGVjLoBDjKSCf9CAmsDwCcAFtez8/3TsT8QQog70B/6gHwIv9EOZLxsdkKIA9CNbjOdmWRVA+vr6+tCaA0QPNBHFCOQBQ6nIkv5QgLNLymrAloOunb33/sgREIC0QMpD4gN/92MzAaeTYhCyFZwS28gm8qqAhR1oAl2QgLRDyBlAFxGEJLt93+rZEIoAvCc5AF0TrfTHF8A8Z9CCAnQDXqE3QykgR5DI3J0QogDkEpsYNObdvcZS8vr40ICSRMRG4AYY7oOc9JXZP5CAmUDpEuAFpkV0z5/rR8EQugEcByvpT4OOW8RTgobfUICzQM0yYAKQpWQM/H///9CAjUfIR2AF3P7ijlTDLu8QgLhAj2Vwhg/m64oqBbTV0IC5ZI8k4Axfz293zeOa+BC6Cyw2X05g2u85hsNj0WHQogD0Nj6gH/Mt2MOSK5JyUIC9QM5G8QbX9AL1MCZ3p1CiAPwHKREbkn3IAStjSVwQogDcEq/1d7q2kQOYzuZKUICux5SH/FSbPrm1EzYYZhCArOTUtf5Eh8hDGZtoQLqQqgDcM9l+3UabesFsd/LNUIC2R9NUahE/aKzZLNk2xBCKALQ2bQhhU16xwf9YAWtQsgJ0A96RYWYqkUF/aiNRUICzQ4sJQAbfo33Y7svMwtCqAOQSbhH1+j80x4ylmPjQgK7FtPV9RGmksD+HmLmrEIC8Rthl6QTqLN3P9O7OztCAkWKvU2WSe0CwtZ2O789QgIhIxxTlkVxe2Df3M/zoQ==";
-const pvrtcResult =
-  "data:application/octet-stream;base64,qqqqqnTKt9aqmqqqdNK32qqqqqpyzrfaqqrqqpTS19ZqempqdMrY1qrmla9yzvnel6u7unLO+N5re3p6zsna6q/qGrlSyhvj6/5uR+agG+O+q/qqkM4Y3/5vBUYgmBrnkjAYSMKc+/+IiNSUoqSP5vWoAZvAtPH6ihvXRuC4U/8AgESgIIjt0SduS5ZApDT3AO9/R6Ckrerk/aeqgLC1/6KhtaHArLH2taBWv8KgGPNqGsLi4Lgy/+KxFb+CnPjqwEpF+6Komf////9WSt68/1nqBf6ApJn//78qSsCku/9ZpLG14MCN/qz9+XigpO76WVpeS8C0r/6HlmkIQKCw/lpa+qqUzhrj/6RQqkCgGOuqqWr+stIa46r+VRZgnFvvqqptZwbm7P7rgElcwKx2/6/uUJqAtA/74aq76uDIy/6qquaqks5b66+/plhAkFvviuLy1oSQ/v8bv/v/xpRa6zVWS16gpBX/aysuO+Cw7f744ufbYpic99fXx8esuXzzkf5pQYCk7vryoEq7YJg08/qvAKrgwKv+/hZR7gC1VP/7q1tbsuIW86urW5uw4lf3q+pF6bDmV/eqqv4aiLlW8y5OxMLArBX/0fS++uCwd/fH19PSCKWc/+Lj4uJKqXzn7uf67m7eOPP7f1aQ5KCb++Lx8fUorX3z9Cwev2SQffM=";
 
 async function encode(array: ArrayBuffer): Promise<string> {
   return new Promise((resolve) => {
@@ -85,22 +83,23 @@ describe("ktx2 Loader test", function () {
     expect(texture2d.width).to.be.equal(32);
     expect(texture2d.height).to.be.equal(32);
     expect(texture2d.mipmapCount).to.be.equal(6);
-    // @ts-ignore
-    const base64 = await encode(texture2d.mipmapData[0]);
-    expect(base64).to.be.equal(pvrtcResult);
+
+    // pbrtc don't support sRGB, should downgrade to R8G8B8A8
+    expect(texture2d.format).to.be.equal(TextureFormat.R8G8B8A8);
     texture2d.destroy();
   });
 
   it("dxt transcoder", async () => {
     // @ts-ignore
     engine._hardwareRenderer.canIUse = (cap: GLCapabilityType) => {
-      return cap === GLCapabilityType.s3tc;
+      return cap === GLCapabilityType.s3tc_srgb;
     };
     const texture2d = await engine.resourceManager.load<Texture2D>(texture2dKtx2Url);
     expect(texture2d.width).to.be.equal(32);
     expect(texture2d.height).to.be.equal(32);
     expect(texture2d.mipmapCount).to.be.equal(6);
     expect(texture2d.format).to.be.equal(TextureFormat.BC1);
+    texture2d.destroy();
   });
 });
 

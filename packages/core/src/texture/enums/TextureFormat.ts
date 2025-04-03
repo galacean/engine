@@ -62,20 +62,20 @@ export enum TextureFormat {
 
   /** Automatic depth format, engine will automatically select the supported precision. */
   Depth = 27,
-  /** Render to stencil buffer. */
-  Stencil = 28,
   /** Automatic depth stencil format, engine will automatically select the supported precision. */
-  DepthStencil = 29,
+  DepthStencil = 28,
   /** 16-bit depth format. */
-  Depth16 = 30,
+  Depth16 = 29,
   /** 24-bit depth format. */
-  Depth24 = 31,
+  Depth24 = 30,
   /** 32-bit depth format. */
-  Depth32 = 32,
+  Depth32 = 31,
   /** 16-bit depth + 8-bit stencil format. */
-  Depth24Stencil8 = 33,
+  Depth24Stencil8 = 32,
   /** 32-bit depth + 8-bit stencil format. */
-  Depth32Stencil8 = 34,
+  Depth32Stencil8 = 33,
+  /** Render to stencil buffer. */
+  Stencil = 34,
 
   /** @deprecated Use `TextureFormat.BC1` instead. */
   DXT1 = 10,

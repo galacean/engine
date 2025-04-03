@@ -16,6 +16,7 @@ export class PipelineUtils {
    * @param height - Need texture height
    * @param format - Need texture format
    * @param mipmap - Need texture mipmap
+   * @param isSRGBColorSpace - Whether to use sRGB color space
    * @param textureWrapMode - Texture wrap mode
    * @param textureFilterMode - Texture filter mode
    * @returns Texture
@@ -27,6 +28,7 @@ export class PipelineUtils {
     height: number,
     format: TextureFormat,
     mipmap: boolean,
+    isSRGBColorSpace: boolean,
     textureWrapMode: TextureWrapMode,
     textureFilterMode: TextureFilterMode
   ): Texture2D {
@@ -35,14 +37,15 @@ export class PipelineUtils {
         currentTexture.width !== width ||
         currentTexture.height !== height ||
         currentTexture.format !== format ||
+        currentTexture.isSRGBColorSpace !== isSRGBColorSpace ||
         currentTexture.mipmapCount > 1 !== mipmap
       ) {
         currentTexture.destroy(true);
-        currentTexture = new Texture2D(engine, width, height, format, mipmap);
+        currentTexture = new Texture2D(engine, width, height, format, mipmap, undefined, isSRGBColorSpace);
         currentTexture.isGCIgnored = true;
       }
     } else {
-      currentTexture = new Texture2D(engine, width, height, format, mipmap);
+      currentTexture = new Texture2D(engine, width, height, format, mipmap, undefined, isSRGBColorSpace);
       currentTexture.isGCIgnored = true;
     }
 
@@ -61,6 +64,7 @@ export class PipelineUtils {
    * @param colorFormat - Need render target color format
    * @param depthFormat - Need render target depth format
    * @param mipmap - Need render target mipmap
+   * @param isSRGBColorSpace - Whether to use sRGB color space
    * @param antiAliasing - Need render target anti aliasing
    * @param textureWrapMode - Texture wrap mode
    * @param textureFilterMode - Texture filter mode
@@ -75,6 +79,7 @@ export class PipelineUtils {
     depthFormat: TextureFormat | null,
     needDepthTexture: boolean,
     mipmap: boolean,
+    isSRGBColorSpace: boolean,
     antiAliasing: number,
     textureWrapMode: TextureWrapMode,
     textureFilterMode: TextureFilterMode
@@ -88,6 +93,7 @@ export class PipelineUtils {
           height,
           colorFormat,
           mipmap,
+          isSRGBColorSpace,
           textureWrapMode,
           textureFilterMode
         )
@@ -103,6 +109,7 @@ export class PipelineUtils {
             height,
             depthFormat,
             mipmap,
+            isSRGBColorSpace,
             textureWrapMode,
             textureFilterMode
           )

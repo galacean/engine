@@ -37,6 +37,7 @@ export class DepthOnlyPass extends PipelinePass {
       TextureFormat.Depth16,
       true,
       false,
+      false,
       1,
       TextureWrapMode.Clamp,
       TextureFilterMode.Point
@@ -50,7 +51,7 @@ export class DepthOnlyPass extends PipelinePass {
     const renderTarget = this._renderTarget;
     const camera = context.camera;
     const rhi = engine._hardwareRenderer;
-    rhi.activeRenderTarget(renderTarget, PipelineUtils.defaultViewport, context.flipProjection, 0);
+    context.setRenderTarget(renderTarget, PipelineUtils.defaultViewport, 0);
     rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
 
     engine._renderCount++;

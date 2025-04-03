@@ -1,7 +1,7 @@
 import { Utils } from "@galacean/engine-core";
 import { BufferReader } from "../resource-deserialize/utils/BufferReader";
 
-enum DFDTransferFunction {
+export enum DFDTransferFunction {
   linear = 1,
   sRGB = 2
 }

@@ -15,7 +15,7 @@ import {
   resourceLoader
 } from "@galacean/engine-core";
 import { MathUtil } from "@galacean/engine-math";
-import { KTX2Container } from "./KTX2Container";
+import { DFDTransferFunction, KTX2Container } from "./KTX2Container";
 import { KTX2TargetFormat } from "./KTX2TargetFormat";
 import { TranscodeResult } from "./transcoder/AbstractTranscoder";
 import { BinomialLLCTranscoder } from "./transcoder/BinomialLLCTranscoder";
@@ -43,11 +43,23 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     ]
   };
   private static _supportedMap = {
-    [KTX2TargetFormat.ASTC]: [GLCapabilityType.astc],
-    [KTX2TargetFormat.ETC]: [GLCapabilityType.etc],
-    [KTX2TargetFormat.BC7]: [GLCapabilityType.bptc],
-    [KTX2TargetFormat.BC1_BC3]: [GLCapabilityType.s3tc],
-    [KTX2TargetFormat.PVRTC]: [GLCapabilityType.pvrtc, GLCapabilityType.pvrtc_webkit]
+    [KTX2TargetFormat.ASTC]: {
+      [DFDTransferFunction.linear]: [GLCapabilityType.astc, GLCapabilityType.astc_webkit],
+      [DFDTransferFunction.sRGB]: [GLCapabilityType.astc, GLCapabilityType.astc_webkit]
+    },
+    [KTX2TargetFormat.ETC]: {
+      [DFDTransferFunction.linear]: [GLCapabilityType.etc, GLCapabilityType.etc_webkit],
+      [DFDTransferFunction.sRGB]: [GLCapabilityType.etc, GLCapabilityType.etc_webkit]
+    },
+    [KTX2TargetFormat.BC7]: {
+      [DFDTransferFunction.linear]: [GLCapabilityType.bptc],
+      [DFDTransferFunction.sRGB]: [GLCapabilityType.bptc]
+    },
+    [KTX2TargetFormat.BC1_BC3]: {
+      [DFDTransferFunction.linear]: [GLCapabilityType.s3tc],
+      [DFDTransferFunction.sRGB]: [GLCapabilityType.s3tc_srgb]
+    },
+    [KTX2TargetFormat.PVRTC]: { [DFDTransferFunction.linear]: [GLCapabilityType.pvrtc, GLCapabilityType.pvrtc_webkit] }
   };
 
   /**
@@ -77,17 +89,25 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       transcodeResultPromise = khronosWorker.init().then(() => khronosWorker.transcode(ktx2Container));
     }
     return transcodeResultPromise.then((result) => {
-      return { engine, result, targetFormat, params: ktx2Container.keyValue["GalaceanTextureParams"] as Uint8Array };
+      return {
+        ktx2Container,
+        engine,
+        result,
+        targetFormat,
+        params: ktx2Container.keyValue["GalaceanTextureParams"] as Uint8Array
+      };
     });
   }
 
   /** @internal */
   static _createTextureByBuffer(
+    ktx2Container: KTX2Container,
     engine: Engine,
     transcodeResult: TranscodeResult,
     targetFormat: KTX2TargetFormat,
     params?: Uint8Array
   ): Texture2D | TextureCube {
+    const { isSRGB } = ktx2Container;
     const { width, height, faces } = transcodeResult;
     const faceCount = faces.length;
     const mipmaps = faces[0];
@@ -95,13 +115,13 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     const engineFormat = this._getEngineTextureFormat(targetFormat, transcodeResult);
     let texture: Texture2D | TextureCube;
     if (faceCount !== 6) {
-      texture = new Texture2D(engine, width, height, engineFormat, mipmap);
+      texture = new Texture2D(engine, width, height, engineFormat, mipmap, undefined, isSRGB);
       for (let mipLevel = 0; mipLevel < mipmaps.length; mipLevel++) {
         const { data } = mipmaps[mipLevel];
         texture.setPixelBuffer(data, mipLevel);
       }
     } else {
-      texture = new TextureCube(engine, height, engineFormat, mipmap);
+      texture = new TextureCube(engine, height, engineFormat, mipmap, isSRGB);
       for (let i = 0; i < faces.length; i++) {
         const faceData = faces[i];
         for (let mipLevel = 0; mipLevel < mipmaps.length; mipLevel++) {
@@ -124,14 +144,12 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     priorityFormats?: KTX2TargetFormat[]
   ): KTX2TargetFormat {
     const renderer = (engine as any)._hardwareRenderer;
-
-    const targetFormat = this._detectSupportedFormat(renderer, priorityFormats) as KTX2TargetFormat;
+    const { isSRGB, pixelWidth, pixelHeight } = ktx2Container;
+    const targetFormat = this._detectSupportedFormat(renderer, priorityFormats, isSRGB) as KTX2TargetFormat;
 
     if (
       targetFormat === KTX2TargetFormat.PVRTC &&
-      (!MathUtil.isPowerOf2(ktx2Container.pixelWidth) ||
-        !MathUtil.isPowerOf2(ktx2Container.pixelHeight) ||
-        ktx2Container.pixelWidth !== ktx2Container.pixelHeight)
+      (!MathUtil.isPowerOf2(pixelWidth) || !MathUtil.isPowerOf2(pixelHeight) || pixelWidth !== pixelHeight)
     ) {
       Logger.warn("PVRTC image need power of 2 and width===height, downgrade to RGBA8");
       return KTX2TargetFormat.R8G8B8A8;
@@ -144,10 +162,14 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     return targetFormat;
   }
 
-  private static _detectSupportedFormat(renderer: any, priorityFormats: KTX2TargetFormat[]): KTX2TargetFormat | null {
+  private static _detectSupportedFormat(
+    renderer: any,
+    priorityFormats: KTX2TargetFormat[],
+    isSRGB: boolean
+  ): KTX2TargetFormat | null {
     for (let i = 0; i < priorityFormats.length; i++) {
       const format = priorityFormats[i];
-      const capabilities = this._supportedMap[format];
+      const capabilities = this._supportedMap[format]?.[isSRGB ? DFDTransferFunction.sRGB : DFDTransferFunction.linear];
       if (capabilities) {
         for (let j = 0; j < capabilities.length; j++) {
           if (renderer.canIUse(capabilities[j])) {
@@ -227,8 +249,8 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((buffer) =>
           KTX2Loader._parseBuffer(new Uint8Array(buffer), resourceManager.engine, item.params).then(
-            ({ engine, result, targetFormat, params }) =>
-              KTX2Loader._createTextureByBuffer(engine, result, targetFormat, params)
+            ({ ktx2Container, engine, result, targetFormat, params }) =>
+              KTX2Loader._createTextureByBuffer(ktx2Container, engine, result, targetFormat, params)
           )
         )
         .then(resolve)
