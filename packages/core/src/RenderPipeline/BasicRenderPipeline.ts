@@ -225,9 +225,9 @@ export class BasicRenderPipeline {
     if (internalColorTarget && finalClearFlags !== CameraClearFlags.All) {
       // Can use `blitFramebuffer` API to copy color/depth/stencil buffer from back buffer to internal RT
       if (this._canUseBlitFrameBuffer) {
-        const blitClearFlags =
+        const blitIgnoreFlags =
           finalClearFlags | (this._shouldCopyBackgroundColor ? CameraClearFlags.Color : CameraClearFlags.None);
-        rhi.blitInternalRTByBlitFrameBuffer(camera.renderTarget, internalColorTarget, blitClearFlags, camera.viewport);
+        rhi.blitInternalRTByBlitFrameBuffer(camera.renderTarget, internalColorTarget, blitIgnoreFlags, camera.viewport);
       } else {
         if (!(finalClearFlags & CameraClearFlags.DepthStencil)) {
           Logger.warn(
