@@ -38,7 +38,7 @@ renderState.renderQueueType = RenderQueueType.Transparent;
 其中渲染队列可以决定这个材质在当前场景中的渲染顺序，引擎底层会对不同范围的渲染队列进行一些特殊处理，如 [RenderQueueType.Transparent](/apis/core/#RenderQueueType-transparent) 会从远到近进行渲染, [RenderQueueType.Opaque](/apis/core/#RenderQueueType-Opaque) 则会从近到远进行渲染。
 
 ```typescript
-material.renderQueueType = RenderQueueType.Opaque;
+renderState.renderQueueType = RenderQueueType.Opaque;
 ```
 
 针对相同的渲染队列，我们还可以设置 [Renderer](/apis/core/#Renderer) 的 `priority` 属性来强制决定渲染顺序，默认为 0，数字越大越后面渲染，如：

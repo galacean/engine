@@ -90,7 +90,7 @@ RenderQueueType = Transparent;
 除了可以在 ShaderLab 中对渲染状态和渲染队列进行设置，开发者同样可以通过材质的API进行设置，如
 ```ts
 // 渲染队列设置
-material.renderQueueType = RenderQueueType.Opaque;
+material.renderState.renderQueueType = RenderQueueType.Opaque;
 
 // 渲染状态设置 const renderState = material.renderState.depthState; depthState.writeEnabled = false;
 
