@@ -1,0 +1,19 @@
+name: Trigger Website Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  trigger-website:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Trigger website build
+      run: |
+        curl -X POST -H "Accept: application/vnd.github.everest-preview+json" \
+        -H "Authorization: token ${{ secrets.WEBSITE_TRIGGER_TOKEN }}" \
+        --data '{"event_type": "engine_update"}' \
+        https://api.github.com/repos/galacean/website/dispatches
