@@ -27,6 +27,8 @@ vec4 linearToGamma(vec4 value){
     return vec4( pow(value.rgb, vec3(1.0 / 2.2)), value.a);
 }
 
+// https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_framebuffer_sRGB.txt
+// https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_texture_sRGB_decode.txt
 float sRGBToLinear(float value){
     float linearRGBLo  = value / 12.92;
     float linearRGBHi  = pow((value + 0.055) / 1.055, 2.4);
