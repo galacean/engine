@@ -27,7 +27,7 @@ import { UITransform, UITransformModifyFlags } from "../UITransform";
 export class Image extends UIRenderer implements ISpriteRenderer {
   @ignoreClone
   private _sprite: Sprite = null;
-  @ignoreClone
+  @assignmentClone
   private _drawMode: SpriteDrawMode;
   @assignmentClone
   private _assembler: ISpriteAssembler;
@@ -147,6 +147,17 @@ export class Image extends UIRenderer implements ISpriteRenderer {
         this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
       }
     }
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: Image, srcRoot: Entity, targetRoot: Entity): void {
+    // @ts-ignore
+    super._cloneTo(target, srcRoot, targetRoot);
+    target.sprite = this._sprite;
+    target._assembler.resetData(target);
+    target._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeUVAndColor;
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {

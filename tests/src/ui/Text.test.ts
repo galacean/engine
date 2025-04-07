@@ -1,4 +1,4 @@
-import { WebGLEngine } from "@galacean/engine";
+import { Font, WebGLEngine } from "@galacean/engine";
 import { Text, UITransform } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
 
@@ -99,5 +99,24 @@ describe("Text", async () => {
     size3.y = 3;
     label3.enableWrapping = true;
     label3.text = "hello world\nddl\nsdfjdslfsdfdssdfsdf";
+  });
+
+  it("Clone", () => {
+    const textEntity = canvasEntity.createChild("Image");
+    const text = textEntity.addComponent(Text);
+    text.text = "hello world";
+    text.fontSize = 30;
+    text.lineSpacing = 1;
+    text.enableWrapping = true;
+    text.font = Font.createFromOS(engine, "AlibabaSans");
+
+    const cloneEntity = textEntity.clone();
+    const cloneText = cloneEntity.getComponent(Text);
+
+    expect(cloneText.text).to.eq("hello world");
+    expect(cloneText.fontSize).to.eq(30);
+    expect(cloneText.lineSpacing).to.eq(1);
+    expect(cloneText.enableWrapping).to.eq(true);
+    expect(cloneText.font).to.eq(text.font);
   });
 });
