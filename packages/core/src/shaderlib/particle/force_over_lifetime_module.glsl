@@ -29,33 +29,34 @@
     #endif
 
     // (tHat - t1) * (tHat - t1) * (tHat - t1) * (a2 - a1) / ((t2 - t1) * 6.0) + a1 * (tHat - t1) * (tHat - t1) * 0.5 + v1 * (tHat - t1);
-    float computeDisplacementIntegral(in float tHat, in float t1, in float t2, in float a1, in float a2, in float v1) {
-        float tHatSubT1 = tHat - t1;
-        return tHatSubT1 * tHatSubT1 * tHatSubT1 * (a2 - a1) / ((t2 - t1) * 6.0) + a1 * tHatSubT1 * tHatSubT1 * 0.5 + v1 * tHatSubT1;
+    // to = tHat - t1; tr = t2 - t1
+    float computeDisplacementIntegral(in float to, in float tr, in float a1, in float a2, in float v1) {
+        return to * to * to * (a2 - a1) / (tr * 6.0) + a1 * to * to * 0.5 + v1 * to;
     }
+    // float computeDisplacementIntegral(in float tHat, in float t1, in float t2, in float a1, in float a2, in float v1) {
+    //     float tHatSubT1 = tHat - t1;
+    //     return tHatSubT1 * tHatSubT1 * tHatSubT1 * (a2 - a1) / ((t2 - t1) * 6.0) + a1 * tHatSubT1 * tHatSubT1 * 0.5 + v1 * tHatSubT1;
+    // }
 
-    float evaluateForceParticleCurveCumulative(in vec2 keys[4], in float normalizedAge, out float velocityOffsetComponent) {
+    float evaluateForceParticleCurveCumulative(in vec2 keys[4], in float normalizedAge, out float velocityCumulative) {
         float cumulativeValue = 0.0;
-        velocityOffsetComponent = 0.0;
+        velocityCumulative = 0.0;
 
         for (int i = 1; i < 4; i++){
             vec2 key = keys[i];
             vec2 lastKey = keys[i - 1];
-            float t1 = lastKey.x * a_ShapePositionStartLifeTime.w;
-            float t2 = key.x * a_ShapePositionStartLifeTime.w;
+            float timeRange = (key.x - lastKey.x) * a_ShapePositionStartLifeTime.w;
 
             if (key.x >= normalizedAge){
-                float tHat = normalizedAge * a_ShapePositionStartLifeTime.w;
-                cumulativeValue += computeDisplacementIntegral(tHat, t1, t2, lastKey.y, key.y, velocityOffsetComponent);
+                float timeOffset = (normalizedAge - lastKey.x) * a_ShapePositionStartLifeTime.w;
+                cumulativeValue += computeDisplacementIntegral(timeOffset, timeRange, lastKey.y, key.y, velocityCumulative);
 
-                float timeOffset = normalizedAge - lastKey.x;
-                float ratio = timeOffset / (key.x - lastKey.x);
-                float finalAcceleration = mix(lastKey.y, key.y, ratio);
-                velocityOffsetComponent += 0.5 * timeOffset * (finalAcceleration + lastKey.y);
+                float finalAcceleration = mix(lastKey.y, key.y, timeOffset / timeRange);
+                velocityCumulative += 0.5 * timeOffset * (finalAcceleration + lastKey.y);
                 break;
             } else {  
-                cumulativeValue += computeDisplacementIntegral(t2, t1, t2, lastKey.y, key.y, velocityOffsetComponent);
-                velocityOffsetComponent += 0.5 * (t2 - t1) * (lastKey.y + key.y);
+                cumulativeValue += computeDisplacementIntegral(timeRange, timeRange, lastKey.y, key.y, velocityCumulative);
+                velocityCumulative += 0.5 * timeRange * (lastKey.y + key.y);
             }
         }
         return cumulativeValue;
