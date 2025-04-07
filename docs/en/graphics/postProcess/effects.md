@@ -5,6 +5,8 @@ title: Post Process Effects
 
 ## Bloom
 
+[API](/apis/core/#BloomEffect)
+
 <img src="https://gw.alipayobjects.com/zos/OasisHub/99928a81-72c2-45f3-90ba-b51117e01715/image-20240719122439611.png" style="zoom:50%;" />
 
 - **Down Scale**: Controls the starting resolution that this effect begins processing, you can choose `Half`, `Quarter`.
@@ -57,6 +59,8 @@ title: Post Process Effects
 </figure>
 
 ## Tonemapping
+
+[API](/apis/core/#TonemappingEffect)
 
 <img src="https://gw.alipayobjects.com/zos/OasisHub/d326f3fb-0d04-493c-8714-93cd4c5924ae/image-20240719122505552.png" style="zoom:50%;" />
 
