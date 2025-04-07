@@ -38,7 +38,7 @@ renderState.renderQueueType = RenderQueueType.Transparent;
 The render queue can determine the rendering order of this material in the current scene. The engine will handle different ranges of render queues differently, such as [RenderQueueType.Transparent](/apis/core/#RenderQueueType-transparent) rendering from far to near, while [RenderQueueType.Opaque](/apis/core/#RenderQueueType-Opaque) rendering from near to far.
 
 ```typescript
-material.renderQueueType = RenderQueueType.Opaque;
+renderState.renderQueueType = RenderQueueType.Opaque;
 ```
 
 For the same render queue, we can also set the `priority` property of the [Renderer](/apis/core/#Renderer) to forcibly determine the rendering order, defaulting to 0, where a higher number means rendering later, for example:

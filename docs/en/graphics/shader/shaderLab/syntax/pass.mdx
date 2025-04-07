@@ -90,7 +90,7 @@ RenderQueueType = Transparent;
 In addition to setting the render state and render queue in ShaderLab, developers can also configure these settings through the material API, such as:
 ```ts
 // Render queue setting
-material.renderQueueType = RenderQueueType.Opaque;
+material.renderState.renderQueueType = RenderQueueType.Opaque;
 
 // Render state setting const renderState = material.renderState.depthState; depthState.writeEnabled = false;
 
