@@ -12,7 +12,7 @@ title: 后处理总览
   rightText="ON"
 />
 
-## 后处理配置
+## 后处理组件
 
 后处理有两种模式：
 
@@ -78,6 +78,35 @@ title: 后处理总览
 <Callout type="warning">视图区的开关只会影响视图窗口，并不会影响项目导出的真实效果</Callout>
 
 <Image src="https://gw.alipayobjects.com/zos/OasisHub/e3c55184-f51c-4a7a-9a12-ad490774dc26/image-20250115151324628-20250115151336116.png" />
+
+### 4. Pro code
+```ts
+// 获取后处理组件
+const postProcessComponent = entity.getComponent(PostProcess);
+
+// 设置后处理组件的一些属性
+postProcessComponent.isGlobal = false;
+
+// 获取已有的后处理特效
+const bloomEffect = postProcessComponent.getEffect(BloomEffect);
+
+// 也可以手动添加后处理特效
+const bloomEffect = postProcessComponent.addEffect(BloomEffect);
+
+// 设置后处理特效的属性
+bloomEffect.intensity.value = 1;
+bloomEffect.threshold.value = 0.5;
+```
+<Callout type="info">具体的后处理效果配置，请参考 [后处理效果列表](/docs/graphics/postProcess/effects)</Callout>
+
+
+## 后处理遮罩
+前面提到，后处理组件有一个属性叫做[层级](/apis/core/#PostProcess-layer)，当场景中有多个后处理组件时，可以配合相机的[后处理遮罩](/apis/core/#Camera-postProcessMask)使用，来决定生效的后处理组件；
+此功能只是用来决定数据融合的来源，如果你只想要某些物体具有后处理，可以使用多场景方案，将不需要后处理的 Entity 添加到另外一个 Scene 下面。
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/ad36f45d-8e15-4fab-8ce9-dc0641a812d4/image-20250407183538658.png" />
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/d578cdb0-5f96-496b-91d6-8fedca938a3b/image-20250407183445964.png" />
 
 ## 最佳实践
 

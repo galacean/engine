@@ -12,7 +12,7 @@ The post-processing system can "process" the results rendered by the camera.
   rightText="ON"
 />
 
-## Post-Processing Configuration
+## Post-Processing Component
 
 There are two modes for post-processing:
 
@@ -87,6 +87,40 @@ In addition to the camera preview area, the viewport can also display post-proce
 </Callout>
 
 <Image src="https://gw.alipayobjects.com/zos/OasisHub/e3c55184-f51c-4a7a-9a12-ad490774dc26/image-20250115151324628-20250115151336116.png" />
+
+
+### 4. Pro code
+```ts
+// Get post-processing component
+const postProcessComponent = entity.getComponent(PostProcess);
+
+// Set properties for component
+postProcessComponent.isGlobal = false;
+
+// Get post-processing effect
+const bloomEffect = postProcessComponent.getEffect(BloomEffect);
+
+// You can also add post-processing effects manually
+const bloomEffect = postProcessComponent.addEffect(BloomEffect);
+
+// Setting properties of post-processing effects
+bloomEffect.intensity.value = 1;
+bloomEffect.threshold.value = 0.5;
+```
+<Callout type="info">
+  For specific post-processing effects configuration, please refer to the [Post-Processing Effects
+  List](/en/docs/graphics/postProcess/effects)
+</Callout>
+
+
+## Post-processing mask
+As mentioned above, the post-processing component has a property called [layer](/apis/core/#PostProcess-layer). When there are multiple post-processing components in the scene, you can use it with the camera's [post-processing mask](/apis/core/#Camera-postProcessMask) to determine the effective post-processing component;
+This method is only used to determine the source of data blend. If you only want certain entities to have post-processing, you can use the multi-scene solution and add the Entity that does not need post-processing to another Scene.
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/ad36f45d-8e15-4fab-8ce9-dc0641a812d4/image-20250407183538658.png" />
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/d578cdb0-5f96-496b-91d6-8fedca938a3b/image-20250407183445964.png" />
+
 
 ## Best Practices
 
