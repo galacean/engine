@@ -17,7 +17,7 @@ void main() {
 	#endif
 
 	#ifdef MATERIAL_HAS_BASETEXTURE
-		color *= texture2D_SRGB(material_BaseTexture, v_TextureCoordinate);
+		color *= texture2DSRGB(material_BaseTexture, v_TextureCoordinate);
 	#endif
 	
 	gl_FragColor = outputSRGBCorrection(color);

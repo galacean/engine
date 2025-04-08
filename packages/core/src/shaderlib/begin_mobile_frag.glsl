@@ -6,11 +6,11 @@
     
 
     #ifdef MATERIAL_HAS_EMISSIVETEXTURE
-        emission *= texture2D_SRGB(material_EmissiveTexture, v_uv);
+        emission *= texture2DSRGB(material_EmissiveTexture, v_uv);
     #endif
 
     #ifdef MATERIAL_HAS_BASETEXTURE
-        diffuse *= texture2D_SRGB(material_BaseTexture, v_uv);
+        diffuse *= texture2DSRGB(material_BaseTexture, v_uv);
     #endif
 
      #ifdef RENDERER_ENABLE_VERTEXCOLOR
@@ -18,7 +18,7 @@
     #endif
 
     #ifdef MATERIAL_HAS_SPECULAR_TEXTURE
-        specular *= texture2D_SRGB(material_SpecularTexture, v_uv);
+        specular *= texture2DSRGB(material_SpecularTexture, v_uv);
     #endif
 
     ambient = vec4(scene_EnvMapLight.diffuse * scene_EnvMapLight.diffuseIntensity, 1.0) * diffuse;

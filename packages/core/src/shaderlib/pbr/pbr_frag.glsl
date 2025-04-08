@@ -59,7 +59,7 @@ vec4 finalColor = vec4(totalDiffuseColor + totalSpecularColor, material.opacity)
 // Emissive
 vec3 emissiveRadiance = material_EmissiveColor;
 #ifdef MATERIAL_HAS_EMISSIVETEXTURE
-    emissiveRadiance *= texture2D_SRGB(material_EmissiveTexture, v_uv).rgb;
+    emissiveRadiance *= texture2DSRGB(material_EmissiveTexture, v_uv).rgb;
 #endif
 
 finalColor.rgb += emissiveRadiance;

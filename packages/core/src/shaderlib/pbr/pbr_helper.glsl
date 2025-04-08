@@ -94,7 +94,7 @@ void initMaterial(out Material material, inout Geometry geometry){
         material.IOR = material_IOR;
 
         #ifdef MATERIAL_HAS_BASETEXTURE
-            baseColor *= texture2D_SRGB(material_BaseTexture, v_uv);
+            baseColor *= texture2DSRGB(material_BaseTexture, v_uv);
         #endif
 
         #ifdef RENDERER_ENABLE_VERTEXCOLOR
@@ -115,7 +115,7 @@ void initMaterial(out Material material, inout Geometry geometry){
         #endif
 
         #ifdef MATERIAL_HAS_SPECULAR_GLOSSINESS_TEXTURE
-            vec4 specularGlossinessColor = texture2D_SRGB(material_SpecularGlossinessTexture, v_uv);
+            vec4 specularGlossinessColor = texture2DSRGB(material_SpecularGlossinessTexture, v_uv);
             specularColor *= specularGlossinessColor.rgb;
             glossiness *= specularGlossinessColor.a;
         #endif
@@ -183,7 +183,7 @@ void initMaterial(out Material material, inout Geometry geometry){
         #ifdef MATERIAL_ENABLE_SHEEN
             vec3 sheenColor = material_SheenColor;
             #ifdef MATERIAL_HAS_SHEEN_TEXTURE
-                sheenColor *= texture2D_SRGB(material_SheenTexture, v_uv).rgb;
+                sheenColor *= texture2DSRGB(material_SheenTexture, v_uv).rgb;
             #endif
             material.sheenColor = sheenColor;
 

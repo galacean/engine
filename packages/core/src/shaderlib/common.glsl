@@ -48,7 +48,7 @@ vec4 linearToSRGB(vec4 value){
 }
 
 // Compatible with devices that do not even support EXT_sRGB in WebGL1.0.
-vec4 texture2D_SRGB(sampler2D tex, vec2 uv) {
+vec4 texture2DSRGB(sampler2D tex, vec2 uv) {
 	vec4 color = texture2D(tex, uv);
 	#ifdef ENGINE_NO_SRGB
 		color = sRGBToLinear(color);
