@@ -208,7 +208,7 @@ export const E2E_CONFIG = {
     forceOverLifetime: {
       category: "Particle",
       caseFileName: "particleRenderer-force",
-      threshold: 0.3
+      threshold: 0.1
     },
     textureSheetAnimation: {
       category: "Particle",

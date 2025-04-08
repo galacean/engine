@@ -247,6 +247,7 @@ function createSparksParticle(fireEntity: Entity, texture: Texture2D): void {
   particleEntity.transform.position.set(-1.54, 0, 0);
 
   const particleRenderer = particleEntity.addComponent(ParticleRenderer);
+  particleRenderer.renderMode = ParticleRenderMode.StretchBillboard;
   const material = new ParticleMaterial(fireEntity.engine);
   material.baseTexture = texture;
   particleRenderer.setMaterial(material);

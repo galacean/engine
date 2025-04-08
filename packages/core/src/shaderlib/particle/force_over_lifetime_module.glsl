@@ -33,10 +33,6 @@
     float computeDisplacementIntegral(in float to, in float tr, in float a1, in float a2, in float v1) {
         return to * to * to * (a2 - a1) / (tr * 6.0) + a1 * to * to * 0.5 + v1 * to;
     }
-    // float computeDisplacementIntegral(in float tHat, in float t1, in float t2, in float a1, in float a2, in float v1) {
-    //     float tHatSubT1 = tHat - t1;
-    //     return tHatSubT1 * tHatSubT1 * tHatSubT1 * (a2 - a1) / ((t2 - t1) * 6.0) + a1 * tHatSubT1 * tHatSubT1 * 0.5 + v1 * tHatSubT1;
-    // }
 
     float evaluateForceParticleCurveCumulative(in vec2 keys[4], in float normalizedAge, out float velocityCumulative) {
         float cumulativeValue = 0.0;
