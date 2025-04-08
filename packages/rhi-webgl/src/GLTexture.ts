@@ -433,6 +433,24 @@ export class GLTexture implements IPlatformTexture {
     return true;
   }
 
+  /**
+   * @internal
+   */
+  static _supportSRGB(format: TextureFormat) {
+    switch (format) {
+      case TextureFormat.R8G8B8:
+      case TextureFormat.R8G8B8A8:
+      case TextureFormat.BC1:
+      case TextureFormat.BC3:
+      case TextureFormat.BC7:
+      case TextureFormat.ETC2_RGB:
+      case TextureFormat.ETC2_RGBA8:
+      case TextureFormat.ASTC_4x4:
+        return true;
+      default:
+        return false;
+    }
+  }
   /** @internal */
   _texture: Texture;
   /** @internal */
@@ -565,8 +583,20 @@ export class GLTexture implements IPlatformTexture {
    * Generate multi-level textures based on the 0th level data.
    */
   generateMipmaps(): void {
+    const texture = this._texture;
+    // @ts-ignore
+    const { _mipmap, isSRGBColorSpace, format } = texture;
+
+    // Auto-generating mipmaps for sRGB textures is only supported in [WebGL2 + RGBA]
+    if (_mipmap && isSRGBColorSpace && !(this._isWebGL2 && format === TextureFormat.R8G8B8)) {
+      Logger.warn(
+        "Auto-generating mipmaps for sRGB textures is only supported in [WebGL2 + R8G8B8A8], you must generate mipmaps manually."
+      );
+      return;
+    }
+
     // @todo (1x1).generateMipmap() will flash back in uc.
-    if (this._texture.width !== 1 || this._texture.height !== 1) {
+    if (texture.width !== 1 || texture.height !== 1) {
       this._bind();
       this._gl.generateMipmap(this._target);
     }
@@ -678,35 +708,28 @@ export class GLTexture implements IPlatformTexture {
   }
 
   protected _validate(texture: Texture, rhi: WebGLGraphicDevice): void {
-    const isWebGL2 = rhi.isWebGL2;
-    const { format, width, height, isSRGBColorSpace } = texture;
-    // @ts-ignore
-    const mipmap = texture._mipmap;
+    const { format, width, height } = texture;
 
+    // Validate format
     if (!GLTexture._supportTextureFormat(format, rhi)) {
       throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
     }
 
-    if (mipmap && !isWebGL2 && (!GLTexture._isPowerOf2(width) || !GLTexture._isPowerOf2(height))) {
-      Logger.warn(
-        "non-power-2 texture is not supported for mipmap in WebGL1, and has automatically downgraded to non-mipmap"
-      );
-      /** @ts-ignore */
-      texture._mipmap = false;
-      /** @ts-ignore */
-      texture._mipmapCount = texture._getMipmapCount();
+    // Validate sRGB format
+    if (!GLTexture._supportSRGB(format)) {
+      Logger.warn("Only support sRGB color space in RGB8 or RGBA8 or some compressed texture format");
+      // @ts-ignore
+      texture._isSRGBColorSpace = isSRGBColorSpace = false;
     }
 
-    if (
-      mipmap &&
-      isSRGBColorSpace &&
-      // Only support sRGB in RGB8 or RGBA8
-      (format === TextureFormat.R8G8B8A8 || format === TextureFormat.R8G8B8) &&
-      // Auto-generating mipmaps for sRGB textures is only supported in [WebGL2 + RGBA]
-      (!isWebGL2 || format === TextureFormat.R8G8B8)
-    ) {
+    const isWebGL2 = rhi.isWebGL2;
+    // @ts-ignore
+    const mipmap = texture._mipmap;
+
+    // Validate mipmap
+    if (mipmap && !isWebGL2 && (!GLTexture._isPowerOf2(width) || !GLTexture._isPowerOf2(height))) {
       Logger.warn(
-        "Auto-generating mipmaps for sRGB textures is only supported in [WebGL2 + R8G8B8A8], and has automatically downgraded to non-mipmap"
+        "Non-power-2 texture is not supported for mipmap in WebGL1, and has automatically downgraded to non-mipmap"
       );
       /** @ts-ignore */
       texture._mipmap = false;

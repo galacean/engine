@@ -12,11 +12,10 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
   constructor(rhi: WebGLGraphicDevice, textureCube: TextureCube) {
     super(rhi, textureCube, rhi.gl.TEXTURE_CUBE_MAP);
 
-    const { format, isSRGBColorSpace } = textureCube;
-    const isWebGL2 = this._isWebGL2;
-
     this._validate(textureCube, rhi);
 
+    const { format, isSRGBColorSpace } = textureCube;
+    const isWebGL2 = this._isWebGL2;
     this._formatDetail = GLTexture._getFormatDetail(format, isSRGBColorSpace, this._gl, isWebGL2);
     (this._formatDetail.isCompressed && !isWebGL2) || this._init(true);
   }

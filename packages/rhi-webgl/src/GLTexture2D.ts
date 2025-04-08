@@ -12,11 +12,10 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
   constructor(rhi: WebGLGraphicDevice, texture2D: Texture2D) {
     super(rhi, texture2D, rhi.gl.TEXTURE_2D);
 
-    const { format, isSRGBColorSpace } = texture2D;
-    const isWebGL2 = this._isWebGL2;
-
     this._validate(texture2D, rhi);
 
+    const { format, isSRGBColorSpace } = texture2D;
+    const isWebGL2 = this._isWebGL2;
     this._formatDetail = GLTexture._getFormatDetail(format, isSRGBColorSpace, this._gl, isWebGL2);
     (this._formatDetail.isCompressed && !isWebGL2) || this._init(false);
   }
