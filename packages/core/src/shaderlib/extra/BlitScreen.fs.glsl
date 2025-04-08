@@ -13,7 +13,7 @@ void main() {
 	uv.y = 1.0 - uv.y;
 
 	#ifdef HAS_TEX_LOD
-		gl_FragColor = texture2DLodEXT( renderer_BlitTexture, uv, renderer_BlitMipLevel );
+		gl_FragColor = texture2DLodSRGB( renderer_BlitTexture, uv, renderer_BlitMipLevel );
 	#else
 		gl_FragColor = texture2D( renderer_BlitTexture, uv );
 	#endif

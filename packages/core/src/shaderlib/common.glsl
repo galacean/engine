@@ -56,6 +56,14 @@ vec4 texture2DSRGB(sampler2D tex, vec2 uv) {
 	return color;
 }
 
+vec4 texture2DLodSRGB(sampler2D tex, vec2 uv, float lod) {
+	vec4 color = texture2DLodEXT(tex, uv, lod);
+	#ifdef ENGINE_NO_SRGB
+		color = sRGBToLinear(color);
+	#endif
+	return color;
+}
+
 vec4 outputSRGBCorrection(vec4 linearIn){
     #ifdef ENGINE_OUTPUT_SRGB_CORRECT
     	return linearToSRGB(linearIn);
