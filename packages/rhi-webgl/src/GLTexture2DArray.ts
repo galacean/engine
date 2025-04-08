@@ -33,7 +33,7 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
     if (!GLTexture._supportSRGB(format)) {
       Logger.warn("Only support sRGB color space in RGB8 or RGBA8 or some compressed texture format");
       // @ts-ignore
-      texture._isSRGBColorSpace = isSRGBColorSpace = false;
+      texture._isSRGBColorSpace = false;
     }
   }
 

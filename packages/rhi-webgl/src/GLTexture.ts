@@ -588,7 +588,7 @@ export class GLTexture implements IPlatformTexture {
     const { _mipmap, isSRGBColorSpace, format } = texture;
 
     // Auto-generating mipmaps for sRGB textures is only supported in [WebGL2 + RGBA]
-    if (_mipmap && isSRGBColorSpace && !(this._isWebGL2 && format === TextureFormat.R8G8B8)) {
+    if (_mipmap && isSRGBColorSpace && !(this._isWebGL2 && format === TextureFormat.R8G8B8A8)) {
       Logger.warn(
         "Auto-generating mipmaps for sRGB textures is only supported in [WebGL2 + R8G8B8A8], you must generate mipmaps manually."
       );
@@ -719,7 +719,7 @@ export class GLTexture implements IPlatformTexture {
     if (!GLTexture._supportSRGB(format)) {
       Logger.warn("Only support sRGB color space in RGB8 or RGBA8 or some compressed texture format");
       // @ts-ignore
-      texture._isSRGBColorSpace = isSRGBColorSpace = false;
+      texture._isSRGBColorSpace = false;
     }
 
     const isWebGL2 = rhi.isWebGL2;
