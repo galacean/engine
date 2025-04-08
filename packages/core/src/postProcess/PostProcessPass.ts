@@ -11,7 +11,10 @@ export enum PostProcessPassEvent {
   BeforeUber = 0,
 
   /** After the uber pass. */
-  AfterUber = 100
+  AfterUber = 100,
+
+  /** Always keep the last pass. */
+  Final = Number.MAX_SAFE_INTEGER
 }
 
 /**

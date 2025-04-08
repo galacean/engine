@@ -30,6 +30,7 @@ import { PhysicsScene } from "./physics/PhysicsScene";
 import { ColliderShape } from "./physics/shape/ColliderShape";
 import { PostProcessPass } from "./postProcess/PostProcessPass";
 import { PostProcessUberPass } from "./postProcess/PostProcessUberPass";
+import { PostProcessFinalPass } from "./postProcess/PostProcessFinalPass";
 import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -271,6 +272,9 @@ export class Engine extends EventDispatcher {
 
     const uberPass = new PostProcessUberPass(this);
     this.addPostProcessPass(uberPass);
+
+    const finalPass = new PostProcessFinalPass(this);
+    this.addPostProcessPass(finalPass);
   }
 
   /**

@@ -17,6 +17,7 @@ import { CameraType } from "./enums/CameraType";
 import { DepthTextureMode } from "./enums/DepthTextureMode";
 import { Downsampling } from "./enums/Downsampling";
 import { MSAASamples } from "./enums/MSAASamples";
+import { AntiAliasing } from "./enums/AntiAliasing";
 import { ReplacementFailureStrategy } from "./enums/ReplacementFailureStrategy";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
@@ -93,6 +94,13 @@ export class Camera extends Component {
    * @remarks It will take effect when `independentCanvasEnabled` property is `true`, otherwise it will be invalid.
    */
   msaaSamples: MSAASamples = MSAASamples.None;
+
+  /**
+   * Select anti-aliasing.
+   *
+   * @defaultValue `AntiAliasing.None`
+   */
+  antiAliasing: AntiAliasing = AntiAliasing.None;
 
   /** @internal */
   _cameraType: CameraType = CameraType.Normal;
