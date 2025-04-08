@@ -35,7 +35,9 @@ export abstract class Texture extends GraphicsResource {
   private _depthCompareFunction: TextureDepthCompareFunction;
   private _useDepthCompareMode: boolean = false;
 
-  // Whether the texture is in the sRGB color space.
+  /**
+   * Whether the texture is in the sRGB color space.
+   */
   get isSRGBColorSpace() {
     return this._isSRGBColorSpace;
   }
