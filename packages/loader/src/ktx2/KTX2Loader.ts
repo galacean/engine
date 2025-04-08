@@ -42,7 +42,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       KTX2TargetFormat.PVRTC
     ]
   };
-  private static _supportedMap = {
+  private static _capabilityMap = {
     [KTX2TargetFormat.ASTC]: {
       [DFDTransferFunction.linear]: [GLCapabilityType.astc, GLCapabilityType.astc_webkit],
       [DFDTransferFunction.sRGB]: [GLCapabilityType.astc, GLCapabilityType.astc_webkit]
@@ -101,13 +101,12 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
 
   /** @internal */
   static _createTextureByBuffer(
-    ktx2Container: KTX2Container,
     engine: Engine,
+    isSRGB: boolean,
     transcodeResult: TranscodeResult,
     targetFormat: KTX2TargetFormat,
     params?: Uint8Array
   ): Texture2D | TextureCube {
-    const { isSRGB } = ktx2Container;
     const { width, height, faces } = transcodeResult;
     const faceCount = faces.length;
     const mipmaps = faces[0];
@@ -169,7 +168,8 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   ): KTX2TargetFormat | null {
     for (let i = 0; i < priorityFormats.length; i++) {
       const format = priorityFormats[i];
-      const capabilities = this._supportedMap[format]?.[isSRGB ? DFDTransferFunction.sRGB : DFDTransferFunction.linear];
+      const capabilities =
+        this._capabilityMap[format]?.[isSRGB ? DFDTransferFunction.sRGB : DFDTransferFunction.linear];
       if (capabilities) {
         for (let j = 0; j < capabilities.length; j++) {
           if (renderer.canIUse(capabilities[j])) {
@@ -250,7 +250,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         .then((buffer) =>
           KTX2Loader._parseBuffer(new Uint8Array(buffer), resourceManager.engine, item.params).then(
             ({ ktx2Container, engine, result, targetFormat, params }) =>
-              KTX2Loader._createTextureByBuffer(ktx2Container, engine, result, targetFormat, params)
+              KTX2Loader._createTextureByBuffer(engine, ktx2Container.isSRGB, result, targetFormat, params)
           )
         )
         .then(resolve)

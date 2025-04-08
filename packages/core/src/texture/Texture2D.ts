@@ -18,7 +18,7 @@ export class Texture2D extends Texture {
    * @param format - Texture format. default `TextureFormat.R8G8B8A8`
    * @param mipmap - Whether to use multi-level texture
    * @param usage - Texture usage
-   * @param isSRGBColorSpace - Whether to use sRGB color space, default is true
+   * @param isSRGBColorSpace - Whether the texture data is in sRGB color space. @defaultValue `true`
    */
   constructor(
     engine: Engine,

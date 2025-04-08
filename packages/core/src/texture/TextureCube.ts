@@ -16,7 +16,7 @@ export class TextureCube extends Texture {
    * @param size - Texture size. texture width must be equal to height in cube texture
    * @param format - Texture format,default TextureFormat.R8G8B8A8
    * @param mipmap - Whether to use multi-level texture
-   * @param isSRGBColorSpace - Whether to use sRGB color space, default is true
+   * @param isSRGBColorSpace - Whether the texture data is in sRGB color space. @defaultValue `true`
    */
   constructor(engine: Engine, size: number, format = TextureFormat.R8G8B8A8, mipmap = true, isSRGBColorSpace = true) {
     super(engine);
