@@ -26,7 +26,7 @@ export class Texture2DArray extends Texture {
    * @param length - Texture length
    * @param format - Texture format. default `TextureFormat.R8G8B8A8`
    * @param mipmap - Whether to use multi-level texture
-   * @param isSRGBColorSpace - Whether the texture data is in sRGB color space. @defaultValue `true`
+   * @param isSRGBColorSpace - Whether the texture data is in sRGB color space, otherwise is linear color space. @defaultValue `true`
    */
   constructor(
     engine: Engine,
