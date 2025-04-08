@@ -74,6 +74,6 @@ void main() {
 	#endif
 
 
-	gl_FragColor = outputTransform(vec4(col, 1.0));
+	gl_FragColor = outputSRGBCorrection(vec4(col, 1.0));
 }
 

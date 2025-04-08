@@ -18,5 +18,5 @@ void main(){
     
     gl_FragColor = mix(highMip, lowMip, material_BloomParams.z);
   
-    gl_FragColor = outputTransform(gl_FragColor);
+    gl_FragColor = outputSRGBCorrection(gl_FragColor);
 }

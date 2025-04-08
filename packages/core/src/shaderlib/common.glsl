@@ -56,7 +56,7 @@ vec4 texture2D_SRGB(sampler2D tex, vec2 uv) {
 	return color;
 }
 
-vec4 outputTransform(vec4 linearIn){
+vec4 outputSRGBCorrection(vec4 linearIn){
     #ifdef ENGINE_SRGB_CORRECT
     	// render in linear, output sRGB
     	return linearToSRGB(linearIn);

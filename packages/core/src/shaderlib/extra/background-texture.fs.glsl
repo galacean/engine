@@ -5,5 +5,5 @@ varying vec2 v_uv;
 
 void main() {
   gl_FragColor = texture2D_SRGB(material_BaseTexture, v_uv);
-  gl_FragColor = outputTransform(gl_FragColor);
+  gl_FragColor = outputSRGBCorrection(gl_FragColor);
 }

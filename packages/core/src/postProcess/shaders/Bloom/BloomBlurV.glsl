@@ -18,5 +18,5 @@ void main(){
                         + c2 * 0.22702703
                         + c3 * 0.31621622 + c4 * 0.07027027;
 
-    gl_FragColor = outputTransform(gl_FragColor);
+    gl_FragColor = outputSRGBCorrection(gl_FragColor);
 }

@@ -19,6 +19,6 @@ void main() {
 		gl_FragColor = texture2D( renderer_BlitTexture, uv );
 	#endif
 
-	gl_FragColor = outputTransform(gl_FragColor);
+	gl_FragColor = outputSRGBCorrection(gl_FragColor);
 }
 

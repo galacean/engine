@@ -53,5 +53,5 @@ void main(){
 
     gl_FragColor = vec4(color, samplerColor.a);
     
-    gl_FragColor = outputTransform(gl_FragColor);
+    gl_FragColor = outputSRGBCorrection(gl_FragColor);
 }
