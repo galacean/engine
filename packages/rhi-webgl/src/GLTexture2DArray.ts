@@ -21,22 +21,6 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
     this._gl.texStorage3D(this._target, mipmapCount, this._formatDetail.internalFormat, width, height, length);
   }
 
-  protected override _validate(texture: Texture2DArray, rhi: WebGLGraphicDevice): void {
-    const { format } = texture;
-
-    // Validate format
-    if (!GLTexture._supportTextureFormat(format, rhi)) {
-      throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
-    }
-
-    // Validate sRGB format
-    if (!GLTexture._supportSRGB(format)) {
-      Logger.warn("Only support sRGB color space in RGB8 or RGBA8 or some compressed texture format");
-      // @ts-ignore
-      texture._isSRGBColorSpace = false;
-    }
-  }
-
   /**
    * {@inheritDoc IPlatformTexture2DArray.setPixelBuffer}
    */
@@ -134,5 +118,21 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
     gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, this._glTexture, mipLevel, elementIndex);
     gl.readPixels(x, y, width, height, formatDetail.baseFormat, formatDetail.dataType, out);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  protected override _validate(texture: Texture2DArray, rhi: WebGLGraphicDevice): void {
+    const { format } = texture;
+
+    // Validate format
+    if (!GLTexture._supportTextureFormat(format, rhi)) {
+      throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
+    }
+
+    // Validate sRGB format
+    if (!GLTexture._supportSRGB(format)) {
+      Logger.warn("Only support sRGB color space in RGB8 or RGBA8 or some compressed texture format");
+      // @ts-ignore
+      texture._isSRGBColorSpace = false;
+    }
   }
 }
