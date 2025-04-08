@@ -9,10 +9,6 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
   constructor(rhi: WebGLGraphicDevice, texture2DArray: Texture2DArray) {
     super(rhi, texture2DArray, (<WebGL2RenderingContext>rhi.gl).TEXTURE_2D_ARRAY);
 
-    if (!this._isWebGL2) {
-      throw new Error(`Texture2D Array is not supported in WebGL1.0`);
-    }
-
     this._validate(texture2DArray, rhi);
 
     const { format, width, height, length, mipmapCount, isSRGBColorSpace } = texture2DArray;
@@ -121,6 +117,10 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
   }
 
   protected override _validate(texture: Texture2DArray, rhi: WebGLGraphicDevice): void {
+    if (!this._isWebGL2) {
+      throw new Error(`Texture2D Array is not supported in WebGL1.0`);
+    }
+
     const { format } = texture;
 
     // Validate format
@@ -129,7 +129,8 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
     }
 
     // Validate sRGB format
-    if (!GLTexture._supportSRGB(format)) {
+    // @ts-ignore
+    if (texture._isSRGBColorSpace && !GLTexture._supportSRGB(format)) {
       Logger.warn("Only support sRGB color space in RGB8 or RGBA8 or some compressed texture format");
       // @ts-ignore
       texture._isSRGBColorSpace = false;

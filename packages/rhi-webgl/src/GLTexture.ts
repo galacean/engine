@@ -716,18 +716,18 @@ export class GLTexture implements IPlatformTexture {
     }
 
     // Validate sRGB format
-    if (!GLTexture._supportSRGB(format)) {
+    // @ts-ignore
+    if (texture._isSRGBColorSpace && !GLTexture._supportSRGB(format)) {
       Logger.warn("Only support sRGB color space in RGB8 or RGBA8 or some compressed texture format");
       // @ts-ignore
       texture._isSRGBColorSpace = false;
     }
 
     const isWebGL2 = rhi.isWebGL2;
-    // @ts-ignore
-    const mipmap = texture._mipmap;
 
     // Validate mipmap
-    if (mipmap && !isWebGL2 && (!GLTexture._isPowerOf2(width) || !GLTexture._isPowerOf2(height))) {
+    // @ts-ignore
+    if (texture._mipmap && !isWebGL2 && (!GLTexture._isPowerOf2(width) || !GLTexture._isPowerOf2(height))) {
       Logger.warn(
         "Non-power-2 texture is not supported for mipmap in WebGL1, and has automatically downgraded to non-mipmap"
       );
