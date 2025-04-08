@@ -41,11 +41,11 @@ export class PipelineUtils {
         currentTexture.mipmapCount > 1 !== mipmap
       ) {
         currentTexture.destroy(true);
-        currentTexture = new Texture2D(engine, width, height, format, mipmap, undefined, isSRGBColorSpace);
+        currentTexture = new Texture2D(engine, width, height, format, mipmap, isSRGBColorSpace);
         currentTexture.isGCIgnored = true;
       }
     } else {
-      currentTexture = new Texture2D(engine, width, height, format, mipmap, undefined, isSRGBColorSpace);
+      currentTexture = new Texture2D(engine, width, height, format, mipmap, isSRGBColorSpace);
       currentTexture.isGCIgnored = true;
     }
 

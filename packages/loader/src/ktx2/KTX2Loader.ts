@@ -114,7 +114,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     const engineFormat = this._getEngineTextureFormat(targetFormat, transcodeResult);
     let texture: Texture2D | TextureCube;
     if (faceCount !== 6) {
-      texture = new Texture2D(engine, width, height, engineFormat, mipmap, undefined, isSRGB);
+      texture = new Texture2D(engine, width, height, engineFormat, mipmap, isSRGB);
       for (let mipLevel = 0; mipLevel < mipmaps.length; mipLevel++) {
         const { data } = mipmaps[mipLevel];
         texture.setPixelBuffer(data, mipLevel);

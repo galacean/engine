@@ -66,7 +66,6 @@ export class GLTFTextureParser extends GLTFParser {
             image.height,
             undefined,
             samplerInfo?.mipmap,
-            undefined,
             isSRGBColorSpace
           );
           texture.setImageSource(image);

@@ -16,7 +16,6 @@ export class PrefilteredDFG {
         PrefilteredDFG._size,
         TextureFormat.R8G8B8,
         false,
-        undefined,
         false
       );
       texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Clamp;

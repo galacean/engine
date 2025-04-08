@@ -36,7 +36,6 @@ class Texture2DLoader extends Loader<Texture2D> {
             image.height,
             format,
             mipmap,
-            undefined,
             isSRGBColorSpace
           );
 
