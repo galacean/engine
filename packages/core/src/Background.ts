@@ -32,9 +32,9 @@ export class Background {
   _material: Material;
 
   /** @internal */
-  _linearSolidColor: Color;
+  _linearSolidColor = new Color();
 
-  private _solidColor: Color = new Color(0.25, 0.25, 0.25, 1.0);
+  private _solidColor = new Color(0.25, 0.25, 0.25, 1.0);
   private _texture: Texture2D = null;
 
   /**
@@ -106,7 +106,7 @@ export class Background {
     this._initMesh(_engine);
     this._initMaterial(_engine);
 
-    this._linearSolidColor = this._solidColor.toLinear(this.solidColor.clone());
+    this._solidColor.toLinear(this._linearSolidColor);
     // @ts-ignore
     this.solidColor._onValueChanged = () => {
       this.solidColor.toLinear(this._linearSolidColor);
