@@ -22,7 +22,6 @@ export class TextureCube extends Texture {
     super(engine, size, size, format, mipmap, isSRGBColorSpace);
 
     this._platformTexture = engine._hardwareRenderer.createPlatformTextureCube(this);
-
     this.filterMode = TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp;
   }

@@ -30,12 +30,10 @@ export class Texture2D extends Texture {
     isSRGBColorSpace = true
   ) {
     super(engine, width, height, format, mipmap, isSRGBColorSpace);
+
     this._usage = usage;
-
     this._isDepthTexture = format >= TextureFormat.Depth && format <= TextureFormat.Depth32Stencil8;
-
     this._platformTexture = engine._hardwareRenderer.createPlatformTexture2D(this);
-
     this.filterMode = this._isIntFormat() ? TextureFilterMode.Point : TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Repeat;
   }

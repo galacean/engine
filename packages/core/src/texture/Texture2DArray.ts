@@ -38,10 +38,9 @@ export class Texture2DArray extends Texture {
     isSRGBColorSpace = true
   ) {
     super(engine, width, height, format, mipmap, isSRGBColorSpace);
+
     this._length = length;
-
     this._platformTexture = engine._hardwareRenderer.createPlatformTexture2DArray(this);
-
     this.filterMode = TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Repeat;
   }
