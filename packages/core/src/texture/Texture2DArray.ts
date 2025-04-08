@@ -37,14 +37,8 @@ export class Texture2DArray extends Texture {
     mipmap: boolean = true,
     isSRGBColorSpace = true
   ) {
-    super(engine);
-    this._mipmap = mipmap;
-    this._width = width;
-    this._height = height;
+    super(engine, width, height, format, mipmap, isSRGBColorSpace);
     this._length = length;
-    this._format = format;
-    this._mipmapCount = this._getMipmapCount();
-    this._isSRGBColorSpace = isSRGBColorSpace;
 
     this._platformTexture = engine._hardwareRenderer.createPlatformTexture2DArray(this);
 

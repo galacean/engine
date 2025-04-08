@@ -19,14 +19,7 @@ export class TextureCube extends Texture {
    * @param isSRGBColorSpace - Whether the texture data is in sRGB color space. @defaultValue `true`
    */
   constructor(engine: Engine, size: number, format = TextureFormat.R8G8B8A8, mipmap = true, isSRGBColorSpace = true) {
-    super(engine);
-
-    this._mipmap = mipmap;
-    this._width = size;
-    this._height = size;
-    this._format = format;
-    this._mipmapCount = this._getMipmapCount();
-    this._isSRGBColorSpace = isSRGBColorSpace;
+    super(engine, size, size, format, mipmap, isSRGBColorSpace);
 
     this._platformTexture = engine._hardwareRenderer.createPlatformTextureCube(this);
 

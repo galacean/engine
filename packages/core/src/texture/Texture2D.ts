@@ -29,14 +29,8 @@ export class Texture2D extends Texture {
     usage = TextureUsage.Static,
     isSRGBColorSpace = true
   ) {
-    super(engine);
-    this._mipmap = mipmap;
-    this._width = width;
-    this._height = height;
+    super(engine, width, height, format, mipmap, isSRGBColorSpace);
     this._usage = usage;
-    this._format = format;
-    this._mipmapCount = this._getMipmapCount();
-    this._isSRGBColorSpace = isSRGBColorSpace;
 
     this._isDepthTexture = format >= TextureFormat.Depth && format <= TextureFormat.Depth32Stencil8;
 

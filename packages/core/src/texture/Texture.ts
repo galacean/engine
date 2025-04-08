@@ -1,5 +1,6 @@
 import { GraphicsResource } from "../asset/GraphicsResource";
 import { Logger } from "../base/Logger";
+import { Engine } from "../Engine";
 import { IPlatformTexture } from "../renderingHardwareInterface";
 import { TextureDepthCompareFunction } from "./enums/TextureDepthCompareFunction";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
@@ -168,6 +169,25 @@ export abstract class Texture extends GraphicsResource {
       this._depthCompareFunction = value;
       this._platformTexture.depthCompareFunction = value;
     }
+  }
+
+  constructor(
+    engine: Engine,
+    width: number,
+    height: number,
+    format: TextureFormat,
+    mipmap: boolean,
+    isSRGBColorSpace: boolean
+  ) {
+    super(engine);
+
+    this._width = width;
+    this._height = height;
+    this._format = format;
+    this._mipmap = mipmap;
+    this._isSRGBColorSpace = isSRGBColorSpace;
+
+    this._mipmapCount = this._getMipmapCount();
   }
 
   /**
