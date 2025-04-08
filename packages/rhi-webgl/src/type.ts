@@ -111,7 +111,7 @@ export enum GLCompressedTextureInternalFormat {
   RGBA_S3TC_DXT3_EXT = 0x83f2,
   RGBA_S3TC_DXT5_EXT = 0x83f3,
 
-  // s3tc + WEBGL_compressed_texture_s3tc_srgb
+  // s3tc sRGB
   SRGB_S3TC_DXT1_EXT = 0x8c4c,
   SRGB_ALPHA_S3TC_DXT1_EXT = 0x8c4d,
   SRGB_ALPHA_S3TC_DXT3_EXT = 0x8c4e,
