@@ -663,6 +663,7 @@ export class GLTexture implements IPlatformTexture {
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._glTexture, mipLevel);
     }
 
+    // Base format is different from read format in webgl1.0 with sRGB
     gl.readPixels(x, y, width, height, readFormat ?? baseFormat, dataType, out);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
