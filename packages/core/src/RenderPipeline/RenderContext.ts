@@ -72,9 +72,9 @@ export class RenderContext {
     rhi.activeRenderTarget(destination, viewport, this.flipProjection, mipLevel, faceIndex);
 
     if (destination) {
-      engine._macroCollection.disable(Engine._sRGBCorrectMacro);
+      engine._macroCollection.disable(Engine._outputSRGBCorrectMacro);
     } else {
-      engine._macroCollection.enable(Engine._sRGBCorrectMacro);
+      engine._macroCollection.enable(Engine._outputSRGBCorrectMacro);
     }
   }
 

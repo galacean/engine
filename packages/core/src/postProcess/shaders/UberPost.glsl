@@ -16,13 +16,13 @@ uniform vec4 renderer_texelSize;    // x: 1/width, y: 1/height, z: width, w: hei
 
 
 void main(){
-	mediump vec4 color = texture2D(renderer_BlitTexture, v_uv);
+	mediump vec4 color = texture2DSRGB(renderer_BlitTexture, v_uv);
 
 	#ifdef ENABLE_EFFECT_BLOOM
     	#ifdef BLOOM_HQ
     	  mediump vec4 bloom = sampleTexture2DBicubic(material_BloomTexture, v_uv, renderer_texelSize);
     	#else
-    	  mediump vec4 bloom = texture2D(material_BloomTexture, v_uv);
+    	  mediump vec4 bloom = texture2DSRGB(material_BloomTexture, v_uv);
     	#endif
 
     	bloom *= material_BloomIntensityParams.x;
