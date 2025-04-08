@@ -36,7 +36,7 @@ export class GLTexture implements IPlatformTexture {
       case TextureFormat.R8G8B8:
         return {
           internalFormat: isSRGBColorSpace ? gl.SRGB8 : isWebGL2 ? gl.RGB8 : gl.RGB,
-          baseFormat: isWebGL2 ? gl.RGB : isSRGBColorSpace ? gl.SRGB8 : gl.RGB,
+          baseFormat: isSRGBColorSpace ? (isWebGL2 ? gl.RGB : gl.SRGB8) : gl.RGB,
           readFormat: gl.RGB,
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false
@@ -44,7 +44,7 @@ export class GLTexture implements IPlatformTexture {
       case TextureFormat.R8G8B8A8:
         return {
           internalFormat: isSRGBColorSpace ? gl.SRGB8_ALPHA8 : isWebGL2 ? gl.RGBA8 : gl.RGBA,
-          baseFormat: isWebGL2 ? gl.RGBA : isSRGBColorSpace ? gl.SRGB8_ALPHA8 : gl.RGBA,
+          baseFormat: isSRGBColorSpace ? (isWebGL2 ? gl.RGBA : gl.SRGB8_ALPHA8) : gl.RGBA,
           readFormat: gl.RGBA,
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false
