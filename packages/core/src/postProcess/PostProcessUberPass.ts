@@ -117,7 +117,7 @@ export class PostProcessUberPass extends PostProcessPass {
       bloomBlend;
 
     // Update shaderData
-    const thresholdLinear = Color.gammaToLinearSpace(threshold.value);
+    const thresholdLinear = Color.sRGBToLinearSpace(threshold.value);
     const thresholdKnee = thresholdLinear * 0.5; // Hardcoded soft knee
     const bloomParams = bloomShaderData.getVector4(BloomEffect._bloomParams);
     const scatterLerp = MathUtil.lerp(0.05, 0.95, scatter.value);

@@ -20,9 +20,9 @@ class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
 
     if (diffuseFactor) {
       material.baseColor = new Color(
-        Color.linearToGammaSpace(diffuseFactor[0]),
-        Color.linearToGammaSpace(diffuseFactor[1]),
-        Color.linearToGammaSpace(diffuseFactor[2]),
+        Color.linearToSRGBSpace(diffuseFactor[0]),
+        Color.linearToSRGBSpace(diffuseFactor[1]),
+        Color.linearToSRGBSpace(diffuseFactor[2]),
         diffuseFactor[3]
       );
     }
@@ -36,9 +36,9 @@ class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
 
     if (specularFactor) {
       material.specularColor = new Color(
-        Color.linearToGammaSpace(specularFactor[0]),
-        Color.linearToGammaSpace(specularFactor[1]),
-        Color.linearToGammaSpace(specularFactor[2])
+        Color.linearToSRGBSpace(specularFactor[0]),
+        Color.linearToSRGBSpace(specularFactor[1]),
+        Color.linearToSRGBSpace(specularFactor[2])
       );
     }
 
