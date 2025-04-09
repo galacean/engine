@@ -7,6 +7,7 @@ import {
   ResourceManager,
   TextureCube,
   TextureCubeFace,
+  TextureFormat,
   TextureUtils,
   resourceLoader
 } from "@galacean/engine-core";
@@ -25,7 +26,15 @@ class TextureCubeLoader extends Loader<TextureCube> {
       // @ts-ignore
       Promise.all(urls.map((url) => resourceManager._request<HTMLImageElement>(url, requestConfig)))
         .then((images) => {
-          const { format, anisoLevel, wrapModeU, wrapModeV, filterMode, isSRGBColorSpace, mipmap } = item.params ?? {};
+          const {
+            format = TextureFormat.R8G8B8A8,
+            anisoLevel,
+            wrapModeU,
+            wrapModeV,
+            filterMode,
+            isSRGBColorSpace = true,
+            mipmap = true
+          } = item.params ?? {};
           const { width, height } = images[0];
           // @ts-ignore
           const isWebGL2 = resourceManager.engine._hardwareRenderer._isWebGL2;

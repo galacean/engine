@@ -28,8 +28,15 @@ class Texture2DLoader extends Loader<Texture2D> {
         ._request<HTMLImageElement>(url, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((image) => {
-          const { format, anisoLevel, wrapModeU, wrapModeV, filterMode, isSRGBColorSpace, mipmap } =
-            (item.params as Partial<Texture2DParams>) ?? {};
+          const {
+            format = TextureFormat.R8G8B8A8,
+            anisoLevel,
+            wrapModeU,
+            wrapModeV,
+            filterMode,
+            isSRGBColorSpace = true,
+            mipmap = true
+          } = (item.params as Partial<Texture2DParams>) ?? {};
           const { width, height } = image;
           // @ts-ignore
           const isWebGL2 = resourceManager.engine._hardwareRenderer._isWebGL2;
