@@ -313,11 +313,11 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
   }
 
   /**
-   * Modify components (r, g, b) of this color from linear space to gamma space.
-   * @param out - The color in gamma space
-   * @returns The color in gamma space
+   * Modify components (r, g, b) of this color from linear space to sRGB space.
+   * @param out - The color in sRGB space
+   * @returns The color in sRGB space
    */
-  toGamma(out: Color): Color {
+  toSRGB(out: Color): Color {
     out._r = Color.linearToSRGBSpace(this._r);
     out._g = Color.linearToSRGBSpace(this._g);
     out._b = Color.linearToSRGBSpace(this._b);
@@ -367,6 +367,11 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
   /** @deprecated Please use `linearToSRGBSpace` instead. */
   static linearToGammaSpace(value: number): number {
     return Color.linearToSRGBSpace(value);
+  }
+
+  /** @deprecated Please use `toSRGB` instead. */
+  toGamma(out: Color): Color {
+    return this.toSRGB(out);
   }
 }
 
