@@ -210,22 +210,22 @@ export const E2E_CONFIG = {
     particleDream: {
       category: "Particle",
       caseFileName: "particleRenderer-dream",
-      threshold: 0.3
+      threshold: 0.1
     },
     forceOverLifetime: {
       category: "Particle",
       caseFileName: "particleRenderer-force",
-      threshold: 0.3
+      threshold: 0.1
     },
     textureSheetAnimation: {
       category: "Particle",
       caseFileName: "particleRenderer-textureSheetAnimation",
-      threshold: 0.3
+      threshold: 0.1
     },
     particleShapeMesh: {
       category: "Particle",
       caseFileName: "particleRenderer-shape-mesh",
-      threshold: 0.3
+      threshold: 0.1
     }
   },
   PostProcess: {
@@ -268,7 +268,7 @@ export const E2E_CONFIG = {
     ProjectLoader: {
       category: "Advance",
       caseFileName: "project-loader",
-      threshold: 0.4
+      threshold: 0.1
     },
     MultiSceneClear: {
       category: "Advance",

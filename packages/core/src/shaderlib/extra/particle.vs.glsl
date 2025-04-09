@@ -92,10 +92,13 @@ vec3 computeParticlePosition(in vec3 startVelocity, in float age, in float norma
     #endif
 
     #ifdef _FOL_MODULE_ENABLED
-        vec3 forcePositionOffset = computeForcePositionOffset(normalizedAge, age);
+        vec3 forceVelocity;
+        vec3 forcePositionOffset = computeForcePositionOffset(normalizedAge, age, forceVelocity);
         if (renderer_FOLSpace == 0) {
+            localVelocity += forceVelocity;
             localPositionOffset += forcePositionOffset;
         } else {
+            worldVelocity += forceVelocity;
             worldPositionOffset += forcePositionOffset;
         }
     #endif
