@@ -123,8 +123,8 @@ describe("Texture2D", () => {
       const RGBTexture = new Texture2D(engine, width, height, TextureFormat.R8G8B8, true, true);
       expect(RGBTexture.isSRGBColorSpace).to.true;
 
-      // downgrade mipmap
-      expect(RGBTexture.mipmapCount).to.eq(1);
+      // no downgrade mipmap
+      expect(RGBTexture.mipmapCount).to.eq(11);
     });
   });
 });

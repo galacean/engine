@@ -8,8 +8,10 @@ import {
   TextureFilterMode,
   TextureFormat,
   TextureUsage,
+  TextureUtils,
   TextureWrapMode
 } from "@galacean/engine-core";
+import { MathUtil } from "@galacean/engine-math";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "./type";
 
@@ -17,11 +19,6 @@ import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "./type";
  * Texture in WebGL platform.
  */
 export class GLTexture implements IPlatformTexture {
-  /** @internal */
-  static _isPowerOf2(v: number): boolean {
-    return (v & (v - 1)) === 0;
-  }
-
   /**
    * Get more texture info from TextureFormat.
    * @internal
@@ -433,24 +430,6 @@ export class GLTexture implements IPlatformTexture {
     return true;
   }
 
-  /**
-   * @internal
-   */
-  static _supportSRGB(format: TextureFormat) {
-    switch (format) {
-      case TextureFormat.R8G8B8:
-      case TextureFormat.R8G8B8A8:
-      case TextureFormat.BC1:
-      case TextureFormat.BC3:
-      case TextureFormat.BC7:
-      case TextureFormat.ETC2_RGB:
-      case TextureFormat.ETC2_RGBA8:
-      case TextureFormat.ASTC_4x4:
-        return true;
-      default:
-        return false;
-    }
-  }
   /** @internal */
   _texture: Texture;
   /** @internal */
@@ -584,11 +563,10 @@ export class GLTexture implements IPlatformTexture {
    */
   generateMipmaps(): void {
     const texture = this._texture;
-    // @ts-ignore
-    const { _mipmap, isSRGBColorSpace, format } = texture;
+    //@ts-ignore
+    const mipmap = texture._mipmap;
 
-    // Auto-generating mipmaps for sRGB textures is only supported in [WebGL2 + RGBA]
-    if (_mipmap && isSRGBColorSpace && !(this._isWebGL2 && format === TextureFormat.R8G8B8A8)) {
+    if (!TextureUtils.supportGenerateMipmaps(texture.format, mipmap, texture.isSRGBColorSpace, this._isWebGL2)) {
       Logger.warn(
         "Auto-generating mipmaps for sRGB textures is only supported in [WebGL2 + R8G8B8A8], you must generate mipmaps manually."
       );
@@ -717,7 +695,8 @@ export class GLTexture implements IPlatformTexture {
 
     // Validate sRGB format
     // @ts-ignore
-    if (texture._isSRGBColorSpace && !GLTexture._supportSRGB(format)) {
+    const isSRGBColorSpace = texture._isSRGBColorSpace;
+    if (isSRGBColorSpace && !TextureUtils.supportSRGB(format)) {
       Logger.warn("Only support sRGB color space in RGB8 or RGBA8 or some compressed texture format");
       // @ts-ignore
       texture._isSRGBColorSpace = false;
@@ -727,7 +706,8 @@ export class GLTexture implements IPlatformTexture {
 
     // Validate mipmap
     // @ts-ignore
-    if (texture._mipmap && !isWebGL2 && (!GLTexture._isPowerOf2(width) || !GLTexture._isPowerOf2(height))) {
+    const mipmap = texture._mipmap;
+    if (mipmap && !TextureUtils.supportMipmaps(width, height, isWebGL2)) {
       Logger.warn(
         "Non-power-2 texture is not supported for mipmap in WebGL1, and has automatically downgraded to non-mipmap"
       );
@@ -744,11 +724,7 @@ export class GLTexture implements IPlatformTexture {
     const target = this._target;
     const { width, height } = this._texture;
 
-    if (
-      !isWebGL2 &&
-      value !== TextureWrapMode.Clamp &&
-      (!GLTexture._isPowerOf2(width) || !GLTexture._isPowerOf2(height))
-    ) {
+    if (!isWebGL2 && value !== TextureWrapMode.Clamp && (!MathUtil.isPowerOf2(width) || !MathUtil.isPowerOf2(height))) {
       Logger.warn(
         "non-power-2 texture is not supported for REPEAT or MIRRORED_REPEAT in WebGL1,and has automatically downgraded to CLAMP_TO_EDGE"
       );

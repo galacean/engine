@@ -8,6 +8,7 @@ import {
   Texture2D,
   TextureFilterMode,
   TextureFormat,
+  TextureUtils,
   TextureWrapMode,
   resourceLoader
 } from "@galacean/engine-core";
@@ -27,15 +28,27 @@ class Texture2DLoader extends Loader<Texture2D> {
         ._request<HTMLImageElement>(url, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((image) => {
-          const { format, mipmap, anisoLevel, wrapModeU, wrapModeV, filterMode, isSRGBColorSpace } =
+          const { format, anisoLevel, wrapModeU, wrapModeV, filterMode, isSRGBColorSpace, mipmap } =
             (item.params as Partial<Texture2DParams>) ?? {};
+          const { width, height } = image;
+          // @ts-ignore
+          const isWebGL2 = resourceManager.engine._hardwareRenderer._isWebGL2;
+
+          const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
+            width,
+            height,
+            format,
+            mipmap,
+            isSRGBColorSpace,
+            isWebGL2
+          );
 
           const texture = new Texture2D(
             resourceManager.engine,
-            image.width,
-            image.height,
+            width,
+            height,
             format,
-            mipmap,
+            generateMipmap,
             isSRGBColorSpace
           );
 
@@ -45,7 +58,7 @@ class Texture2DLoader extends Loader<Texture2D> {
           texture.wrapModeV = wrapModeV ?? texture.wrapModeV;
 
           texture.setImageSource(image);
-          texture.generateMipmaps();
+          generateMipmap && texture.generateMipmaps();
 
           if (url.indexOf("data:") !== 0) {
             const index = url.lastIndexOf("/");

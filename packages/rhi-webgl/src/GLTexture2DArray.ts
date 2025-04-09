@@ -1,4 +1,4 @@
-import { IPlatformTexture2DArray, Logger, Texture2DArray, TextureFormat } from "@galacean/engine-core";
+import { IPlatformTexture2DArray, Logger, Texture2DArray, TextureFormat, TextureUtils } from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
@@ -130,7 +130,8 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
 
     // Validate sRGB format
     // @ts-ignore
-    if (texture._isSRGBColorSpace && !GLTexture._supportSRGB(format)) {
+    const isSRGBColorSpace = texture._isSRGBColorSpace;
+    if (isSRGBColorSpace && !TextureUtils.supportSRGB(format)) {
       Logger.warn("Only support sRGB color space in RGB8 or RGBA8 or some compressed texture format");
       // @ts-ignore
       texture._isSRGBColorSpace = false;
