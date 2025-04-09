@@ -93,7 +93,7 @@ class HDRLoader extends Loader<TextureCube> {
     const bufferArray = new Uint8Array(buffer);
     const { width, height, dataPosition } = HDRLoader._parseHeader(bufferArray);
     const cubeSize = height >> 1;
-    texture ||= new TextureCube(engine, cubeSize);
+    texture ||= new TextureCube(engine, cubeSize, undefined, undefined, false);
     const pixels = HDRLoader._readPixels(bufferArray.subarray(dataPosition), width, height);
     const cubeMapData = HDRLoader._convertToCubemap(pixels, width, height, cubeSize);
     for (let faceIndex = 0; faceIndex < 6; faceIndex++) {

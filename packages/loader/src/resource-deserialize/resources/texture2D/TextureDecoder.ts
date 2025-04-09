@@ -16,11 +16,12 @@ export class Texture2DDecoder {
       const width = bufferReader.nextUint16();
       const height = bufferReader.nextUint16();
       const isPixelBuffer = bufferReader.nextUint8();
+      const isSRGBColorSpace = !!bufferReader.nextUint8();
 
       const mipCount = bufferReader.nextUint8();
       const imagesData = bufferReader.nextImagesData(mipCount);
 
-      const texture2D = new Texture2D(engine, width, height, format, mipmap);
+      const texture2D = new Texture2D(engine, width, height, format, mipmap, isSRGBColorSpace);
       texture2D.filterMode = filterMode;
       texture2D.anisoLevel = anisoLevel;
       texture2D.wrapModeU = wrapModeU;

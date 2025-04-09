@@ -17,11 +17,8 @@ void main() {
 	#endif
 
 	#ifdef MATERIAL_HAS_BASETEXTURE
-		vec4 textureColor = texture2D(material_BaseTexture,v_TextureCoordinate);
-        textureColor = gammaToLinear(textureColor);
-		color *= textureColor;
+		color *= texture2DSRGB(material_BaseTexture, v_TextureCoordinate);
 	#endif
-	gl_FragColor = color; 
-
-    gl_FragColor = linearToGamma(gl_FragColor);
+	
+	gl_FragColor = outputSRGBCorrection(color);
 }

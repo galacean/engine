@@ -44,7 +44,10 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       {
         // Mask texture
         url: "https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*qyhFT5Un5AgAAAAAAAAAAAAAARQnAQ",
-        type: AssetType.Texture2D
+        type: AssetType.Texture2D,
+        params: {
+          isSRGBColorSpace: false
+        }
       }
     ])
     .then((textures: Texture2D[]) => {

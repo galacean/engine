@@ -150,7 +150,7 @@ function initShader() {
   
   void main() {
     vec4 textureColor = texture2D(u_UVCheckTexture, v_uv);
-    gl_FragColor = textureColor;
+    gl_FragColor = outputSRGBCorrection(textureColor);
   }
   `;
 

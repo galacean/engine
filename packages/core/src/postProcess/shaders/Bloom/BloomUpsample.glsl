@@ -8,15 +8,15 @@ uniform vec4 material_BloomParams;        // x: threshold (linear), y: threshold
 uniform vec4 material_lowMipTexelSize;    // x: 1/width, y: 1/height, z: width, w: height
 
 void main(){
-    mediump vec4 highMip = sampleTexture(renderer_BlitTexture, v_uv);
+    mediump vec4 highMip = texture2DSRGB(renderer_BlitTexture, v_uv);
 
     #ifdef BLOOM_HQ
       mediump vec4 lowMip = sampleTexture2DBicubic(material_lowMipTexture, v_uv, material_lowMipTexelSize);
     #else
-      mediump vec4 lowMip = sampleTexture(material_lowMipTexture, v_uv);
+      mediump vec4 lowMip = texture2DSRGB(material_lowMipTexture, v_uv);
     #endif
     
     gl_FragColor = mix(highMip, lowMip, material_BloomParams.z);
   
-    gl_FragColor = linearToGamma(gl_FragColor);
+    gl_FragColor = outputSRGBCorrection(gl_FragColor);
 }

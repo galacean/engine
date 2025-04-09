@@ -107,6 +107,7 @@ export class BasicResources {
   readonly blitMesh: ModelMesh;
   readonly flipYBlitMesh: ModelMesh;
   readonly blitMaterial: Material;
+  readonly blitScreenMaterial: Material;
 
   readonly whiteTexture2D: Texture2D;
   readonly whiteTextureCube: TextureCube;
@@ -141,15 +142,34 @@ export class BasicResources {
     blitMaterial.renderState.depthState.enabled = false;
     blitMaterial.renderState.depthState.writeEnabled = false;
 
+    const blitScreenMaterial = new Material(engine, Shader.find("blit-screen"));
+    blitScreenMaterial._addReferCount(1);
+    blitScreenMaterial.renderState.depthState.enabled = false;
+    blitScreenMaterial.renderState.depthState.writeEnabled = false;
+
+    this.blitMaterial = blitMaterial;
+    this.blitScreenMaterial = blitScreenMaterial;
+
     this.blitMesh = this._createBlitMesh(engine, vertices);
     this.flipYBlitMesh = this._createBlitMesh(engine, flipYVertices);
-    this.blitMaterial = blitMaterial;
 
     // Create white and magenta textures
     const whitePixel = new Uint8Array([255, 255, 255, 255]);
 
-    this.whiteTexture2D = this._create1x1Texture(engine, TextureType.Texture2D, TextureFormat.R8G8B8A8, whitePixel);
-    this.whiteTextureCube = this._create1x1Texture(engine, TextureType.TextureCube, TextureFormat.R8G8B8A8, whitePixel);
+    this.whiteTexture2D = this._create1x1Texture(
+      engine,
+      TextureType.Texture2D,
+      TextureFormat.R8G8B8A8,
+      whitePixel,
+      true
+    );
+    this.whiteTextureCube = this._create1x1Texture(
+      engine,
+      TextureType.TextureCube,
+      TextureFormat.R8G8B8A8,
+      whitePixel,
+      true
+    );
 
     const isWebGL2 = engine._hardwareRenderer.isWebGL2;
     if (isWebGL2) {
@@ -157,7 +177,8 @@ export class BasicResources {
         engine,
         TextureType.Texture2DArray,
         TextureFormat.R8G8B8A8,
-        whitePixel
+        whitePixel,
+        true
       );
 
       const whitePixel32 = new Uint32Array([255, 255, 255, 255]);
@@ -165,7 +186,8 @@ export class BasicResources {
         engine,
         TextureType.Texture2D,
         TextureFormat.R32G32B32A32_UInt,
-        whitePixel32
+        whitePixel32,
+        false
       );
     }
 
@@ -212,23 +234,24 @@ export class BasicResources {
     engine: Engine,
     type: TextureType,
     format: TextureFormat,
-    pixel: Uint8Array | Uint32Array
+    pixel: Uint8Array | Uint32Array,
+    isSRGBColorSpace: boolean
   ): T {
     let texture: Texture;
 
     switch (type) {
       case TextureType.Texture2D:
-        const texture2D = new Texture2D(engine, 1, 1, format, false);
+        const texture2D = new Texture2D(engine, 1, 1, format, false, isSRGBColorSpace);
         texture2D.setPixelBuffer(pixel);
         texture = texture2D;
         break;
       case TextureType.Texture2DArray:
-        const texture2DArray = new Texture2DArray(engine, 1, 1, 1, format, false);
+        const texture2DArray = new Texture2DArray(engine, 1, 1, 1, format, false, isSRGBColorSpace);
         texture2DArray.setPixelBuffer(0, pixel);
         texture = texture2DArray;
         break;
       case TextureType.TextureCube:
-        const textureCube = new TextureCube(engine, 1, format, false);
+        const textureCube = new TextureCube(engine, 1, format, false, isSRGBColorSpace);
         for (let i = 0; i < 6; i++) {
           textureCube.setPixelBuffer(TextureCubeFace.PositiveX + i, pixel);
         }
