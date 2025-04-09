@@ -7,11 +7,11 @@ import { MathUtil } from "./MathUtil";
  */
 export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
   /**
-   * Modify a value from the gamma space to the linear space.
-   * @param value - The value in gamma space
+   * Modify a value from the sRGB space to the linear space.
+   * @param value - The value in sRGB space
    * @returns The value in linear space
    */
-  static gammaToLinearSpace(value: number): number {
+  static sRGBToLinearSpace(value: number): number {
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_framebuffer_sRGB.txt
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_texture_sRGB_decode.txt
 
@@ -22,11 +22,11 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
   }
 
   /**
-   * Modify a value from the linear space to the gamma space.
+   * Modify a value from the linear space to the sRGB space.
    * @param value - The value in linear space
-   * @returns The value in gamma space
+   * @returns The value in sRGB space
    */
-  static linearToGammaSpace(value: number): number {
+  static linearToSRGBSpace(value: number): number {
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_framebuffer_sRGB.txt
     // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_texture_sRGB_decode.txt
 
@@ -304,9 +304,9 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
    * @returns The color in linear space
    */
   toLinear(out: Color): Color {
-    out._r = Color.gammaToLinearSpace(this._r);
-    out._g = Color.gammaToLinearSpace(this._g);
-    out._b = Color.gammaToLinearSpace(this._b);
+    out._r = Color.sRGBToLinearSpace(this._r);
+    out._g = Color.sRGBToLinearSpace(this._g);
+    out._b = Color.sRGBToLinearSpace(this._b);
     out._a = this._a;
     out._onValueChanged?.();
     return out;
@@ -318,9 +318,9 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
    * @returns The color in gamma space
    */
   toGamma(out: Color): Color {
-    out._r = Color.linearToGammaSpace(this._r);
-    out._g = Color.linearToGammaSpace(this._g);
-    out._b = Color.linearToGammaSpace(this._b);
+    out._r = Color.linearToSRGBSpace(this._r);
+    out._g = Color.linearToSRGBSpace(this._g);
+    out._b = Color.linearToSRGBSpace(this._b);
     out._a = this._a;
     out._onValueChanged?.();
     return out;
@@ -357,6 +357,16 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
       b: this._b,
       a: this._a
     };
+  }
+
+  /** @deprecated Please use `sRGBToLinearSpace` instead. */
+  static gammaToLinearSpace(value: number): number {
+    return Color.sRGBToLinearSpace(value);
+  }
+
+  /** @deprecated Please use `linearToSRGBSpace` instead. */
+  static linearToGammaSpace(value: number): number {
+    return Color.linearToSRGBSpace(value);
   }
 }
 
