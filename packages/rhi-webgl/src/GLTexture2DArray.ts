@@ -1,4 +1,4 @@
-import { IPlatformTexture2DArray, Texture2DArray, TextureFormat } from "@galacean/engine-core";
+import { IPlatformTexture2DArray, Logger, Texture2DArray, TextureFormat, TextureUtils } from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
@@ -9,19 +9,11 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
   constructor(rhi: WebGLGraphicDevice, texture2DArray: Texture2DArray) {
     super(rhi, texture2DArray, (<WebGL2RenderingContext>rhi.gl).TEXTURE_2D_ARRAY);
 
-    const { format, width, height, length, mipmapCount } = texture2DArray;
+    this._validate(texture2DArray, rhi);
 
-    if (!this._isWebGL2) {
-      throw new Error(`Texture2D Array is not supported in WebGL1.0`);
-    }
-
-    /** @ts-ignore */
-    if (!GLTexture._supportTextureFormat(format, rhi)) {
-      throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
-    }
-
+    const { format, width, height, length, mipmapCount, isSRGBColorSpace } = texture2DArray;
     this._bind();
-    this._formatDetail = GLTexture._getFormatDetail(format, this._gl, true);
+    this._formatDetail = GLTexture._getFormatDetail(format, isSRGBColorSpace, this._gl, true);
     this._gl.texStorage3D(this._target, mipmapCount, this._formatDetail.internalFormat, width, height, length);
   }
 
@@ -122,5 +114,27 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
     gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, this._glTexture, mipLevel, elementIndex);
     gl.readPixels(x, y, width, height, formatDetail.baseFormat, formatDetail.dataType, out);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  protected override _validate(texture: Texture2DArray, rhi: WebGLGraphicDevice): void {
+    if (!this._isWebGL2) {
+      throw new Error(`Texture2D Array is not supported in WebGL1.0`);
+    }
+
+    const { format } = texture;
+
+    // Validate format
+    if (!GLTexture._supportTextureFormat(format, rhi)) {
+      throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
+    }
+
+    // Validate sRGB format
+    // @ts-ignore
+    const isSRGBColorSpace = texture._isSRGBColorSpace;
+    if (isSRGBColorSpace && !TextureUtils.supportSRGB(format)) {
+      Logger.warn("Only support sRGB color space in RGB8 or RGBA8 or some compressed texture format");
+      // @ts-ignore
+      texture._isSRGBColorSpace = false;
+    }
   }
 }

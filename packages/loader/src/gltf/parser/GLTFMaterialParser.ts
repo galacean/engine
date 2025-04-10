@@ -57,9 +57,9 @@ export class GLTFMaterialParser extends GLTFParser {
 
       if (baseColorFactor) {
         material.baseColor = new Color(
-          Color.linearToGammaSpace(baseColorFactor[0]),
-          Color.linearToGammaSpace(baseColorFactor[1]),
-          Color.linearToGammaSpace(baseColorFactor[2]),
+          Color.linearToSRGBSpace(baseColorFactor[0]),
+          Color.linearToSRGBSpace(baseColorFactor[1]),
+          Color.linearToSRGBSpace(baseColorFactor[2]),
           baseColorFactor[3]
         );
       }
@@ -99,9 +99,9 @@ export class GLTFMaterialParser extends GLTFParser {
 
       if (emissiveFactor) {
         material.emissiveColor = new Color(
-          Color.linearToGammaSpace(emissiveFactor[0]),
-          Color.linearToGammaSpace(emissiveFactor[1]),
-          Color.linearToGammaSpace(emissiveFactor[2])
+          Color.linearToSRGBSpace(emissiveFactor[0]),
+          Color.linearToSRGBSpace(emissiveFactor[1]),
+          Color.linearToSRGBSpace(emissiveFactor[2])
         );
       }
 

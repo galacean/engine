@@ -19,5 +19,5 @@ void main() {
     #include <pbr_frag>
     #include <FogFragment>
     
-    gl_FragColor = linearToGamma(gl_FragColor);
+    gl_FragColor = outputSRGBCorrection(gl_FragColor);
 }

@@ -10,7 +10,14 @@ export class PrefilteredDFG {
 
   static create(engine: Engine): Promise<Texture2D> {
     return new Promise((resolve, reject) => {
-      const texture = new Texture2D(engine, PrefilteredDFG._size, PrefilteredDFG._size, TextureFormat.R8G8B8, false);
+      const texture = new Texture2D(
+        engine,
+        PrefilteredDFG._size,
+        PrefilteredDFG._size,
+        TextureFormat.R8G8B8,
+        false,
+        false
+      );
       texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Clamp;
       texture.isGCIgnored = true;
 

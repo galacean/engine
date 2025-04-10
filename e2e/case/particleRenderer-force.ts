@@ -18,6 +18,7 @@ import {
   ParticleMaterial,
   ParticleRenderMode,
   ParticleRenderer,
+  Scene,
   Texture2D,
   Vector3,
   WebGLEngine,
@@ -33,15 +34,28 @@ WebGLEngine.create({
   Logger.enable();
   engine.canvas.resizeByClientSize();
 
-  const scene = engine.sceneManager.activeScene;
-  const rootEntity = scene.createRootEntity();
-  scene.background.solidColor = new Color(15 / 255, 38 / 255, 18 / 255, 1);
+  const leftScene = engine.sceneManager.activeScene;
+  const leftRootEntity = leftScene.createRootEntity();
+  leftScene.background.solidColor = new Color(15 / 255, 38 / 255, 18 / 255, 1);
+
+  const rightScene = new Scene(engine);
+  engine.sceneManager.addScene(rightScene);
+  const rightRootEntity = rightScene.createRootEntity();
+  rightScene.background.solidColor = new Color(15 / 255, 38 / 255, 18 / 255, 1);
 
   // Create camera
-  const cameraEntity = rootEntity.createChild("camera_entity");
-  cameraEntity.transform.position = new Vector3(0, 1, 3);
-  const camera = cameraEntity.addComponent(Camera);
-  camera.fieldOfView = 60;
+  const leftCameraEntity = leftRootEntity.createChild("left-camera");
+  leftCameraEntity.transform.position = new Vector3(0, 1, 3);
+  const leftCamera = leftCameraEntity.addComponent(Camera);
+  leftCamera.viewport.set(0, 0, 0.5, 1);
+  leftCamera.fieldOfView = 60;
+
+  const rightCameraEntity = rightRootEntity.createChild("right-camera");
+  const rightCamera = rightCameraEntity.addComponent(Camera);
+  rightCamera.viewport.set(0.5, 0, 0.5, 1);
+  rightCamera.fieldOfView = 60;
+  rightCameraEntity.transform.setPosition(10, 10, 20);
+  rightCameraEntity.transform.lookAt(new Vector3(0, 0, 0));
 
   engine.run();
 
@@ -65,23 +79,37 @@ WebGLEngine.create({
       }
     ])
     .then((textures) => {
-      const fireEntity = createDebrisParticle(engine, <Texture2D>textures[0]);
-      createGlowParticle(fireEntity, <Texture2D>textures[1]);
-      createSparksParticle(fireEntity, <Texture2D>textures[2]);
-      createHighlightsParticle(fireEntity, <Texture2D>textures[3]);
+      const leftFireEntity = createDebrisParticle(engine, <Texture2D>textures[0]);
+      createGlowParticle(leftFireEntity, <Texture2D>textures[1]);
+      createSparksParticle(leftFireEntity, <Texture2D>textures[2]);
+      createHighlightsParticle(leftFireEntity, <Texture2D>textures[3]);
+      leftCameraEntity.addChild(leftFireEntity);
 
-      cameraEntity.addChild(fireEntity);
+      const rightFireEntity = createDebrisParticle(engine, <Texture2D>textures[0], true, 2);
+      createGlowParticle(rightFireEntity, <Texture2D>textures[1], true, 3);
+      createSparksParticle(rightFireEntity, <Texture2D>textures[2], true, 4);
+      createHighlightsParticle(rightFireEntity, <Texture2D>textures[3], true, 5);
+      rightCameraEntity.addChild(rightFireEntity);
 
       updateForE2E(engine, 500);
-      initScreenshot(engine, camera);
+      initScreenshot(engine, [leftCamera, rightCamera]);
     });
 });
 
-function createDebrisParticle(engine: Engine, texture: Texture2D): Entity {
+function createDebrisParticle(
+  engine: Engine,
+  texture: Texture2D,
+  stretch: boolean = false,
+  lengthScale: number = 2
+): Entity {
   const particleEntity = new Entity(engine, "Debris");
   particleEntity.transform.position.set(0, -7.5, -8);
 
   const particleRenderer = particleEntity.addComponent(ParticleRenderer);
+  if (stretch) {
+    particleRenderer.renderMode = ParticleRenderMode.StretchBillboard;
+    particleRenderer.lengthScale = lengthScale;
+  }
 
   const material = new ParticleMaterial(engine);
   material.baseColor = new Color(1.0, 1.0, 1.0, 1.0);
@@ -150,27 +178,34 @@ function createDebrisParticle(engine: Engine, texture: Texture2D): Entity {
   forceOverLifetime.enabled = true;
   const { forceX, forceY, forceZ } = forceOverLifetime;
   forceX.mode = ParticleCurveMode.Constant;
-  forceX.constantMax = 0;
+  forceX.constantMax = 2;
   forceX.constantMin = -10;
 
   forceY.mode = ParticleCurveMode.Constant;
-  forceY.constantMax = 10;
+  forceY.constantMax = 2;
   forceY.constantMin = 0;
 
   forceZ.mode = ParticleCurveMode.Constant;
-  forceZ.constantMax = 0;
+  forceZ.constantMax = 2;
   forceZ.constantMin = 0;
 
   return particleEntity;
 }
 
-function createGlowParticle(fireEntity: Entity, texture: Texture2D): void {
+function createGlowParticle(
+  fireEntity: Entity,
+  texture: Texture2D,
+  stretch: boolean = false,
+  lengthScale: number = 2
+): void {
   const particleEntity = fireEntity.createChild("Glow");
   particleEntity.transform.position.set(-1.88, 0, 0);
 
   const particleRenderer = particleEntity.addComponent(ParticleRenderer);
-  particleRenderer.renderMode = ParticleRenderMode.StretchBillboard;
-  particleRenderer.lengthScale = 2;
+  if (stretch) {
+    particleRenderer.renderMode = ParticleRenderMode.StretchBillboard;
+    particleRenderer.lengthScale = lengthScale;
+  }
 
   const material = new ParticleMaterial(fireEntity.engine);
   material.blendMode = BlendMode.Additive;
@@ -179,8 +214,8 @@ function createGlowParticle(fireEntity: Entity, texture: Texture2D): void {
   particleRenderer.priority = 1;
 
   const generator = particleRenderer.generator;
-  generator.useAutoRandomSeed = false;
   const { main, emission, velocityOverLifetime, colorOverLifetime, forceOverLifetime } = generator;
+  particleRenderer.generator.useAutoRandomSeed = false;
 
   // Main module
   main.startSpeed.constant = 0.0;
@@ -242,11 +277,16 @@ function createGlowParticle(fireEntity: Entity, texture: Texture2D): void {
   forceZ.constantMin = 0;
 }
 
-function createSparksParticle(fireEntity: Entity, texture: Texture2D): void {
+function createSparksParticle(fireEntity: Entity, texture: Texture2D, stretch = false, lengthScale = 2): void {
   const particleEntity = fireEntity.createChild("Sparks");
   particleEntity.transform.position.set(-1.54, 0, 0);
 
   const particleRenderer = particleEntity.addComponent(ParticleRenderer);
+  if (stretch) {
+    particleRenderer.renderMode = ParticleRenderMode.StretchBillboard;
+    particleRenderer.lengthScale = lengthScale;
+  }
+
   const material = new ParticleMaterial(fireEntity.engine);
   material.baseTexture = texture;
   particleRenderer.setMaterial(material);
@@ -312,21 +352,25 @@ function createSparksParticle(fireEntity: Entity, texture: Texture2D): void {
   forceZ.curveMax = new ParticleCurve(new CurveKey(0, 0.2), new CurveKey(0.5, 8), new CurveKey(1, 0.8));
 }
 
-function createHighlightsParticle(fireEntity: Entity, texture: Texture2D): void {
+function createHighlightsParticle(fireEntity: Entity, texture: Texture2D, stretch = false, lengthScale = 2): void {
   const particleEntity = fireEntity.createChild("Highlights");
   particleEntity.transform.position.set(-5.31, 0, 0);
 
   const particleRenderer = particleEntity.addComponent(ParticleRenderer);
+  if (stretch) {
+    particleRenderer.renderMode = ParticleRenderMode.StretchBillboard;
+    particleRenderer.lengthScale = lengthScale;
+  }
 
   const material = new ParticleMaterial(fireEntity.engine);
   material.blendMode = BlendMode.Additive;
   material.baseTexture = texture;
   particleRenderer.setMaterial(material);
   particleRenderer.priority = 3;
+  particleRenderer.generator.useAutoRandomSeed = false;
 
   const generator = particleRenderer.generator;
   const { main, emission, sizeOverLifetime, colorOverLifetime, velocityOverLifetime, forceOverLifetime } = generator;
-  generator.useAutoRandomSeed = false;
 
   // Main module
   main.startSpeed.constant = 0;

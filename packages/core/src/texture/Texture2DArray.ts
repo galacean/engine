@@ -26,6 +26,7 @@ export class Texture2DArray extends Texture {
    * @param length - Texture length
    * @param format - Texture format. default `TextureFormat.R8G8B8A8`
    * @param mipmap - Whether to use multi-level texture
+   * @param isSRGBColorSpace - Whether the texture data is in sRGB color space, otherwise is linear color space. @defaultValue `true`
    */
   constructor(
     engine: Engine,
@@ -33,18 +34,13 @@ export class Texture2DArray extends Texture {
     height: number,
     length: number,
     format: TextureFormat = TextureFormat.R8G8B8A8,
-    mipmap: boolean = true
+    mipmap: boolean = true,
+    isSRGBColorSpace = true
   ) {
-    super(engine);
-    this._mipmap = mipmap;
-    this._width = width;
-    this._height = height;
+    super(engine, width, height, format, mipmap, isSRGBColorSpace);
+
     this._length = length;
-    this._format = format;
-    this._mipmapCount = this._getMipmapCount();
-
     this._platformTexture = engine._hardwareRenderer.createPlatformTexture2DArray(this);
-
     this.filterMode = TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Repeat;
   }

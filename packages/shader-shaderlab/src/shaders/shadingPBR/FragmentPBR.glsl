@@ -135,9 +135,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     vec3 emissiveRadiance = material_EmissiveColor;
 
     #ifdef MATERIAL_HAS_BASETEXTURE
-        vec4 baseTextureColor = texture2D(material_BaseTexture, uv);
-        baseTextureColor = gammaToLinear(baseTextureColor);
-        baseColor *= baseTextureColor;
+        baseColor *= texture2DSRGB(material_BaseTexture, uv);
     #endif
 
     #ifdef RENDERER_ENABLE_VERTEXCOLOR
@@ -158,17 +156,14 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     #endif
 
     #ifdef MATERIAL_HAS_SPECULAR_GLOSSINESS_TEXTURE
-        vec4 specularGlossinessColor = texture2D(material_SpecularGlossinessTexture, uv );
-        specularGlossinessColor = gammaToLinear(specularGlossinessColor);
+        vec4 specularGlossinessColor = texture2DSRGB(material_SpecularGlossinessTexture, uv);
         specularColor *= specularGlossinessColor.rgb;
         glossiness *= specularGlossinessColor.a;
         roughness =  1.0 - glossiness;
     #endif
 
     #ifdef MATERIAL_HAS_EMISSIVETEXTURE
-        vec4 emissiveColor = texture2D(material_EmissiveTexture, uv);
-        emissiveColor = gammaToLinear(emissiveColor);
-        emissiveRadiance *= emissiveColor.rgb;
+        emissiveRadiance *= texture2DSRGB(material_EmissiveTexture, uv).rgb;
     #endif
 
     surfaceData.albedoColor = baseColor.rgb;
@@ -290,9 +285,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     #ifdef MATERIAL_ENABLE_SHEEN
         vec3 sheenColor = material_SheenColor;
         #ifdef MATERIAL_HAS_SHEEN_TEXTURE
-            vec4 sheenTextureColor = texture2D(material_SheenTexture, uv);
-            sheenTextureColor = gammaToLinear(sheenTextureColor);
-            sheenColor *= sheenTextureColor.rgb;
+            sheenColor *= texture2DSRGB(material_SheenTexture, uv).rgb;
         #endif
         surfaceData.sheenColor = sheenColor;
 

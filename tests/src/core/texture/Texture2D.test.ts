@@ -26,12 +26,12 @@ describe("Texture2D", () => {
     it("不支持浮点纹理", () => {
       expect(() => {
         rhi.canIUse.mockReturnValueOnce(false);
-        new Texture2D(engine, width, height, TextureFormat.R32G32B32A32);
+        new Texture2D(engine, width, height, TextureFormat.R32G32B32A32, undefined, false);
       }).to.throw;
     });
     it("引擎不支持的格式", () => {
       expect(() => {
-        new Texture2D(engine, width, height, 1234567 as any);
+        new Texture2D(engine, width, height, 1234567 as any, undefined, false);
       }).to.throw;
     });
   });
@@ -110,6 +110,21 @@ describe("Texture2D", () => {
       expect(buffer[1]).to.eq(2);
       expect(buffer[2]).to.eq(3);
       expect(buffer[3]).to.eq(4);
+    });
+  });
+
+  describe("sRGB", () => {
+    it("默认 sRGB", () => {
+      const texture = new Texture2D(engine, width, height);
+
+      expect(texture.isSRGBColorSpace).to.true;
+      expect(texture.mipmapCount).not.to.eq(1);
+
+      const RGBTexture = new Texture2D(engine, width, height, TextureFormat.R8G8B8, true, true);
+      expect(RGBTexture.isSRGBColorSpace).to.true;
+
+      // no downgrade mipmap
+      expect(RGBTexture.mipmapCount).to.eq(11);
     });
   });
 });

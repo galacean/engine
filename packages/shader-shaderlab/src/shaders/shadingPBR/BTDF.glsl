@@ -22,8 +22,7 @@
         vec2 refractionCoords = (samplingPositionNDC.xy / samplingPositionNDC.w) * 0.5 + 0.5;
 
         // Sample the opaque texture to get the transmitted light
-        vec3 refractionTransmitted = texture2D(camera_OpaqueTexture, refractionCoords).rgb;
-        refractionTransmitted = gammaToLinear(vec4(refractionTransmitted, 1.0)).rgb;
+        vec3 refractionTransmitted = texture2DSRGB(camera_OpaqueTexture, refractionCoords).rgb;
         
         refractionTransmitted *= brdfData.diffuseColor;
          

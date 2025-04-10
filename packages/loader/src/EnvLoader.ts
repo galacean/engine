@@ -25,7 +25,7 @@ class EnvLoader extends Loader<AmbientLight> {
   static _setTextureByBuffer(engine: Engine, buffer: ArrayBuffer, texture?: TextureCube) {
     const shByteLength = 27 * 4;
     const size = new Uint16Array(buffer, shByteLength, 1)?.[0];
-    texture ||= new TextureCube(engine, size);
+    texture ||= new TextureCube(engine, size, undefined, undefined, false);
     texture.filterMode = TextureFilterMode.Trilinear;
     const mipmapCount = texture.mipmapCount;
     let offset = shByteLength + 2;

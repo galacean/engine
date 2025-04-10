@@ -350,7 +350,7 @@ export class GLTFUtils {
   /**
    * Load image buffer
    */
-  static loadImageBuffer(imageBuffer: ArrayBuffer, type: string): Promise<HTMLImageElement> {
+  static loadImageBuffer(imageBuffer: TypedArray, type: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
       const blob = new window.Blob([imageBuffer], { type });
       const img = new Image();

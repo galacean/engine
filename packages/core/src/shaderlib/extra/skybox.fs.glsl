@@ -10,15 +10,11 @@ void main() {
 
     #ifdef MATERIAL_IS_DECODE_SKY_RGBM
         textureColor = RGBMToLinear(textureColor, 5.0);
-    #else
-        textureColor = gammaToLinear(textureColor);
+    #elif defined(ENGINE_NO_SRGB)
+        textureColor = sRGBToLinear(textureColor);
     #endif
 
     textureColor.rgb *= material_Exposure * material_TintColor.rgb;
     
-    gl_FragColor = textureColor;
-
-    #if defined(MATERIAL_IS_DECODE_SKY_RGBM)
-        gl_FragColor = linearToGamma(gl_FragColor);
-    #endif
+    gl_FragColor = outputSRGBCorrection(textureColor);
 }

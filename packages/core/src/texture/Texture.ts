@@ -1,5 +1,6 @@
 import { GraphicsResource } from "../asset/GraphicsResource";
 import { Logger } from "../base/Logger";
+import { Engine } from "../Engine";
 import { IPlatformTexture } from "../renderingHardwareInterface";
 import { TextureDepthCompareFunction } from "./enums/TextureDepthCompareFunction";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
@@ -25,6 +26,7 @@ export abstract class Texture extends GraphicsResource {
   protected _height: number;
   protected _usage: TextureUsage;
   protected _mipmapCount: number;
+  protected _isSRGBColorSpace: boolean;
 
   private _wrapModeU: TextureWrapMode;
   private _wrapModeV: TextureWrapMode;
@@ -32,6 +34,13 @@ export abstract class Texture extends GraphicsResource {
   private _anisoLevel: number = 1;
   private _depthCompareFunction: TextureDepthCompareFunction;
   private _useDepthCompareMode: boolean = false;
+
+  /**
+   * Whether the texture data is in sRGB color space, otherwise is linear color space.
+   */
+  get isSRGBColorSpace() {
+    return this._isSRGBColorSpace;
+  }
 
   /**
    * Texture format.
@@ -162,6 +171,25 @@ export abstract class Texture extends GraphicsResource {
       this._depthCompareFunction = value;
       this._platformTexture.depthCompareFunction = value;
     }
+  }
+
+  constructor(
+    engine: Engine,
+    width: number,
+    height: number,
+    format: TextureFormat,
+    mipmap: boolean,
+    isSRGBColorSpace: boolean
+  ) {
+    super(engine);
+
+    this._width = width;
+    this._height = height;
+    this._format = format;
+    this._mipmap = mipmap;
+    this._isSRGBColorSpace = isSRGBColorSpace;
+
+    this._mipmapCount = this._getMipmapCount();
   }
 
   /**
