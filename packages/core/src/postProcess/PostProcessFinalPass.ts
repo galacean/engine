@@ -34,6 +34,7 @@ export class PostProcessFinalPass extends PostProcessPass {
     if (!this.isActive) {
       return false;
     }
+    return true;
   }
 
   override onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void {
