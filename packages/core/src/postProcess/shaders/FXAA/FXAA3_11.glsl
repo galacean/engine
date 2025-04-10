@@ -465,35 +465,32 @@ FxaaFloat4 FxaaPixelShader(
     FxaaFloat fxaaConsoleEdgeThreshold,
     FxaaFloat fxaaConsoleEdgeThresholdMin,
     FxaaFloat4 fxaaConsole360ConstDir
-    // FxaaFloat2 fxaaHDROutputPaperWhiteNits
 ) {
-// #ifdef HDR_INPUT
-//     // The pixel values we have are already tonemapped but in the range [0, 10000] nits. To run FXAA properly, we need to convert them
-//     // to a SDR range [0; 1]. Since the tonemapped values are not evenly distributed and mostly close to the paperWhite nits value, we can
-//     // normalize by paperWhite to get most of the scene in [0; 1] range. For the remaining pixels, we can use the fastTonemap() to remap
-//     // them to [0, 1] range.
-//     FxaaFloat4 colorNw = FxaaTexTop(tex, fxaaConsolePosPos.xy);
-//     FxaaFloat4 colorSw = FxaaTexTop(tex, fxaaConsolePosPos.xw);
-//     FxaaFloat4 colorNe = FxaaTexTop(tex, fxaaConsolePosPos.zy);
-//     FxaaFloat4 colorSe = FxaaTexTop(tex, fxaaConsolePosPos.zw);
-//     FxaaFloat4 rgbyM_tmp = rgbyM;
-//     colorNw.xyz = fastTonemap(colorNw.xyz * fxaaHDROutputPaperWhiteNits.y);
-//     colorSw.xyz = fastTonemap(colorSw.xyz * fxaaHDROutputPaperWhiteNits.y);
-//     colorNe.xyz = fastTonemap(colorNe.xyz * fxaaHDROutputPaperWhiteNits.y);
-//     colorSe.xyz = fastTonemap(colorSe.xyz * fxaaHDROutputPaperWhiteNits.y);
-//     rgbyM_tmp.xyz = fastTonemap(rgbyM_tmp.xyz * fxaaHDROutputPaperWhiteNits.y);
-//     FxaaFloat lumaNw = FxaaLuma(colorNw);
-//     FxaaFloat lumaSw = FxaaLuma(colorSw);
-//     FxaaFloat lumaNe = FxaaLuma(colorNe);
-//     FxaaFloat lumaSe = FxaaLuma(colorSe);
-//     FxaaFloat lumaM = FxaaLuma(rgbyM_tmp);
-// #else
+#ifdef HDR_INPUT
+    // After HDR processing, pixel values can exceed 1. 
+    // To ensure FXAA works properly, we need to remap values greater than 1 into the [0, 1] range.
+    FxaaFloat4 colorNw = FxaaTexTop(tex, fxaaConsolePosPos.xy);
+    FxaaFloat4 colorSw = FxaaTexTop(tex, fxaaConsolePosPos.xw);
+    FxaaFloat4 colorNe = FxaaTexTop(tex, fxaaConsolePosPos.zy);
+    FxaaFloat4 colorSe = FxaaTexTop(tex, fxaaConsolePosPos.zw);
+    FxaaFloat4 rgbyM_tmp = rgbyM;
+    colorNw.xyz = fastTonemap(colorNw.xyz );
+    colorSw.xyz = fastTonemap(colorSw.xyz );
+    colorNe.xyz = fastTonemap(colorNe.xyz );
+    colorSe.xyz = fastTonemap(colorSe.xyz );
+    rgbyM_tmp.xyz = fastTonemap(rgbyM_tmp.xyz );
+    FxaaFloat lumaNw = FxaaLuma(colorNw);
+    FxaaFloat lumaSw = FxaaLuma(colorSw);
+    FxaaFloat lumaNe = FxaaLuma(colorNe);
+    FxaaFloat lumaSe = FxaaLuma(colorSe);
+    FxaaFloat lumaM = FxaaLuma(rgbyM_tmp);
+#else
     FxaaFloat lumaNw = FxaaLuma(FxaaTexTop(tex, fxaaConsolePosPos.xy));
     FxaaFloat lumaSw = FxaaLuma(FxaaTexTop(tex, fxaaConsolePosPos.xw));
     FxaaFloat lumaNe = FxaaLuma(FxaaTexTop(tex, fxaaConsolePosPos.zy));
     FxaaFloat lumaSe = FxaaLuma(FxaaTexTop(tex, fxaaConsolePosPos.zw));
     FxaaFloat lumaM = FxaaLuma(rgbyM);
-// #endif
+#endif
 /*--------------------------------------------------------------------------*/
     FxaaFloat lumaMaxNwSw = max(lumaNw, lumaSw);
     lumaNe += 1.0/384.0;
@@ -533,21 +530,21 @@ FxaaFloat4 FxaaPixelShader(
 /*--------------------------------------------------------------------------*/
     FxaaFloat4 rgbyN2 = FxaaTexTop(tex, pos.xy - dir2 * fxaaConsoleRcpFrameOpt2.zw);
     FxaaFloat4 rgbyP2 = FxaaTexTop(tex, pos.xy + dir2 * fxaaConsoleRcpFrameOpt2.zw);
-// #ifdef HDR_INPUT
-//     rgbyN1.xyz = fastTonemap(rgbyN1.xyz * fxaaHDROutputPaperWhiteNits.y);
-//     rgbyP1.xyz = fastTonemap(rgbyP1.xyz * fxaaHDROutputPaperWhiteNits.y);
-//     rgbyN2.xyz = fastTonemap(rgbyN2.xyz * fxaaHDROutputPaperWhiteNits.y);
-//     rgbyP2.xyz = fastTonemap(rgbyP2.xyz * fxaaHDROutputPaperWhiteNits.y);
-// #endif
+#ifdef HDR_INPUT
+    rgbyN1.xyz = fastTonemap(rgbyN1.xyz );
+    rgbyP1.xyz = fastTonemap(rgbyP1.xyz );
+    rgbyN2.xyz = fastTonemap(rgbyN2.xyz );
+    rgbyP2.xyz = fastTonemap(rgbyP2.xyz );
+#endif
 /*--------------------------------------------------------------------------*/
     FxaaFloat4 rgbyA = rgbyN1 + rgbyP1;
     FxaaFloat4 rgbyB = ((rgbyN2 + rgbyP2) * 0.25) + (rgbyA * 0.25);
 /*--------------------------------------------------------------------------*/
     FxaaBool twoTap = (FxaaLuma(rgbyB) < lumaMin) || (FxaaLuma(rgbyB) > lumaMax);
     if (twoTap) { rgbyB.xyz = rgbyA.xyz * 0.5; }
-// #ifdef HDR_INPUT
-//     rgbyB.xyz = fastTonemapInvert(rgbyB.xyz) * fxaaHDROutputPaperWhiteNits.x;
-// #endif
+#ifdef HDR_INPUT
+    rgbyB.xyz = fastTonemapInvert(rgbyB.xyz);
+#endif
     return rgbyB; 
 }
 /*==========================================================================*/

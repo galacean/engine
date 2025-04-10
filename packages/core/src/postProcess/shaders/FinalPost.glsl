@@ -16,12 +16,12 @@ uniform sampler2D renderer_BlitTexture;
 uniform vec4 renderer_texelSize;    // x: 1/width, y: 1/height, z: width, w: height
 
 #ifdef ENABLE_FXAA
-	const FxaaFloat kSubpixelBlendAmount = 0.65;
-	const FxaaFloat kRelativeContrastThreshold = 0.15;
-	const FxaaFloat kAbsoluteContrastThreshold = 0.03;
+	const FxaaFloat FXAA_SUBPIXEL_BLEND_AMOUNT = 0.65;
+	const FxaaFloat FXAA_RELATIVE_CONTRAST_THRESHOLD = 0.15;
+	const FxaaFloat FXAA_ABSOLUTE_CONTRAST_THRESHOLD = 0.03;
 #endif
 
-vec3 ApplyFXAA(vec3 color, vec2 positionNDC, vec4 sourceSize, sampler2D inputTexture)
+vec3 applyFXAA(vec3 color, vec2 positionNDC, vec4 sourceSize, sampler2D inputTexture)
 {
 #ifdef ENABLE_FXAA
     vec4 pixelShader = vec4(color,1);
@@ -46,16 +46,15 @@ vec3 ApplyFXAA(vec3 color, vec2 positionNDC, vec4 sourceSize, sampler2D inputTex
         kFxaaConsoleRcpFrameOpt,
         kFxasaConsoleRcpFrameOpt2,
         kUnusedFloat4,
-        kSubpixelBlendAmount,
-        kRelativeContrastThreshold,
-        kAbsoluteContrastThreshold,
+        FXAA_SUBPIXEL_BLEND_AMOUNT,
+        FXAA_RELATIVE_CONTRAST_THRESHOLD,
+        FXAA_ABSOLUTE_CONTRAST_THRESHOLD,
         kFxaaConsoleEdgeSharpness,
         kFxaaConsoleEdgeThreshold,
         kFxaaConsoleEdgeThresholdMin,
         kUnusedFloat4
         );
     #endif
-    // fxaaHDROutputPaperWhiteNits = FxaaFloat2(paperWhite, oneOverPaperWhite);
     return pixelShader.rgb;
 #else
     return color;
@@ -63,14 +62,12 @@ vec3 ApplyFXAA(vec3 color, vec2 positionNDC, vec4 sourceSize, sampler2D inputTex
 }
 
 void main(){
-	mediump vec4 color = sampleTexture(renderer_BlitTexture, v_uv);
+	mediump vec4 color = texture2DSRGB(renderer_BlitTexture, v_uv);
 
-    gl_FragColor = color;
-
-    gl_FragColor = linearToGamma(gl_FragColor);
-    
     #ifdef ENABLE_FXAA
-        gl_FragColor.rgb = ApplyFXAA(gl_FragColor.rgb, v_uv, renderer_texelSize, renderer_BlitTexture);
-    # endif
-
+        color.rgb = applyFXAA(color.rgb, v_uv, renderer_texelSize, renderer_BlitTexture);
+    #endif    
+   
+   gl_FragColor = outputSRGBCorrection(color);
+    
 }

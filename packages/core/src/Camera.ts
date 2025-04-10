@@ -97,8 +97,8 @@ export class Camera extends Component {
 
   /**
    * Select anti-aliasing.
-   *
    * @defaultValue `AntiAliasing.None`
+   * @remarks If set antiAliasing mode, the`enablePostProcess` must is `true`.
    */
   antiAliasing: AntiAliasing = AntiAliasing.None;
 
