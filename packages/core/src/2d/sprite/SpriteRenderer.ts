@@ -30,9 +30,9 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   @ignoreClone
   _subChunk: SubPrimitiveChunk;
 
-  @assignmentClone
+  @ignoreClone
   private _drawMode: SpriteDrawMode;
-  @assignmentClone
+  @ignoreClone
   private _assembler: ISpriteAssembler;
   @assignmentClone
   private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
@@ -288,8 +288,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   override _cloneTo(target: SpriteRenderer, srcRoot: Entity, targetRoot: Entity): void {
     super._cloneTo(target, srcRoot, targetRoot);
     target.sprite = this._sprite;
-    target._assembler.resetData(target);
-    target._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeUVAndColor;
+    target.drawMode = this._drawMode;
   }
 
   /**
