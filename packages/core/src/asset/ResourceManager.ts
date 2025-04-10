@@ -349,73 +349,85 @@ export class ResourceManager {
     return assetInfo;
   }
 
+  private _loadSubpackage(itemOrURL: LoadItem | string): AssetPromise<void> {
+    return;
+  }
+
   private _loadSingleItem<T>(itemOrURL: LoadItem | string): AssetPromise<T> {
-    const item = this._assignDefaultOptions(typeof itemOrURL === "string" ? { url: itemOrURL } : itemOrURL);
-    let { url } = item;
+    return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
+      this._loadSubpackage(itemOrURL)
+        .then(() => {
+          const item = this._assignDefaultOptions(typeof itemOrURL === "string" ? { url: itemOrURL } : itemOrURL);
+          let { url } = item;
 
-    // Not absolute and base url is set
-    if (!Utils.isAbsoluteUrl(url) && this.baseUrl) url = Utils.resolveAbsoluteUrl(this.baseUrl, url);
+          // Not absolute and base url is set
+          if (!Utils.isAbsoluteUrl(url) && this.baseUrl) url = Utils.resolveAbsoluteUrl(this.baseUrl, url);
 
-    // Parse url
-    const { assetBaseURL, queryPath } = this._parseURL(url);
-    const paths = queryPath ? this._parseQueryPath(queryPath) : [];
+          // Parse url
+          const { assetBaseURL, queryPath } = this._parseURL(url);
+          const paths = queryPath ? this._parseQueryPath(queryPath) : [];
 
-    // Get remote asset base url
-    const remoteAssetBaseURL = this._virtualPathResourceMap[assetBaseURL]?.path ?? assetBaseURL;
+          // Get remote asset base url
+          const remoteAssetBaseURL = this._virtualPathResourceMap[assetBaseURL]?.path ?? assetBaseURL;
 
-    // Check cache
-    const cacheObject = this._assetUrlPool[remoteAssetBaseURL];
-    if (cacheObject) {
-      return new AssetPromise((resolve) => {
-        resolve(this._getResolveResource(cacheObject, paths) as T);
-      });
-    }
+          // Check cache
+          const cacheObject = this._assetUrlPool[remoteAssetBaseURL];
+          if (cacheObject) {
+            resolve(this._getResolveResource(cacheObject, paths) as T);
+            return;
+          }
 
-    // Get asset url
-    let remoteAssetURL = remoteAssetBaseURL;
-    if (queryPath) {
-      remoteAssetURL += "?q=" + paths.shift();
-      let index: string;
-      while ((index = paths.shift())) {
-        remoteAssetURL += `[${index}]`;
-      }
-    }
+          // Get asset url
+          let remoteAssetURL = remoteAssetBaseURL;
+          if (queryPath) {
+            remoteAssetURL += "?q=" + paths.shift();
+            let index: string;
+            while ((index = paths.shift())) {
+              remoteAssetURL += `[${index}]`;
+            }
+          }
 
-    // Check is loading
-    const loadingPromises = this._loadingPromises;
-    const loadingPromise = loadingPromises[remoteAssetURL];
-    if (loadingPromise) {
-      return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
-        loadingPromise
-          .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
-          .then((resource: EngineObject) => {
-            resolve(resource as T);
-          })
-          .catch((error: Error) => {
-            reject(error);
-          });
-      });
-    }
+          // Check is loading
+          const loadingPromises = this._loadingPromises;
+          const loadingPromise = loadingPromises[remoteAssetURL];
+          if (loadingPromise) {
+            loadingPromise
+              .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
+              .then((resource: EngineObject) => {
+                resolve(resource as T);
+              })
+              .catch((error: Error) => {
+                reject(error);
+              });
+            return;
+          }
 
-    // Check loader
-    const loader = <Loader<T>>ResourceManager._loaders[item.type];
-    if (!loader) {
-      throw `loader not found: ${item.type}`;
-    }
+          // Check loader
+          const loader = <Loader<T>>ResourceManager._loaders[item.type];
+          if (!loader) {
+            reject(new Error("loader not found: " + item.type));
+          }
 
-    // Check sub asset
-    if (queryPath) {
-      // Check whether load main asset
-      const mainPromise =
-        loadingPromises[remoteAssetBaseURL] || this._loadMainAsset(loader, item, remoteAssetBaseURL, assetBaseURL);
-      mainPromise.catch((e) => {
-        this._onSubAssetFail(remoteAssetBaseURL, queryPath, e);
-      });
+          // Check sub asset
+          if (queryPath) {
+            // Check whether load main asset
+            const mainPromise =
+              loadingPromises[remoteAssetBaseURL] ||
+              this._loadMainAsset(loader, item, remoteAssetBaseURL, assetBaseURL);
+            mainPromise.catch((e) => {
+              this._onSubAssetFail(remoteAssetBaseURL, queryPath, e);
+            });
 
-      return this._createSubAssetPromiseCallback<T>(remoteAssetBaseURL, remoteAssetURL, queryPath);
-    }
+            resolve(this._createSubAssetPromiseCallback<T>(remoteAssetBaseURL, remoteAssetURL, queryPath));
+            return;
+          }
 
-    return this._loadMainAsset(loader, item, remoteAssetBaseURL, assetBaseURL);
+          resolve(this._loadMainAsset(loader, item, remoteAssetBaseURL, assetBaseURL));
+        })
+        .catch((error) => {
+          reject(error);
+        });
+    });
   }
 
   private _loadMainAsset<T>(
@@ -599,6 +611,13 @@ export class ResourceManager {
       }
     });
   }
+
+  /**
+   * @internal
+   * @beta Just for internal editor, not recommended for developers.
+   */
+  initSubpackages(data: any): void {}
+
   //-----------------Editor temp solution-----------------
 }
 

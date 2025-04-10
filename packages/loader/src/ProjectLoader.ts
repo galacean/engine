@@ -19,6 +19,8 @@ class ProjectLoader extends Loader<void> {
         ._request<IProject>(item.url, { ...item, type: "json" })
         .then((data) => {
           // @ts-ignore
+          engine.resourceManager.initSubpackages(data);
+          // @ts-ignore
           engine.resourceManager.initVirtualResources(data.files);
           return resourceManager.load<Scene>({ type: AssetType.Scene, url: data.scene }).then((scene) => {
             engine.sceneManager.activeScene = scene;
