@@ -265,4 +265,30 @@ describe("UICanvas", async () => {
     expect(Math.floor(canvasSize.x)).to.eq(168);
     expect(Math.floor(canvasSize.y)).to.eq(600);
   });
+
+  it("Clone", () => {
+    rootCanvas.renderMode = CanvasRenderMode.ScreenSpaceCamera;
+    rootCanvas.renderCamera = camera;
+    rootCanvas.distance = 10;
+    rootCanvas.referenceResolution = new Vector2(800, 600);
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.WidthAdaptation;
+    rootCanvas.referenceResolutionPerUnit = 100;
+    rootCanvas.sortOrder = 10;
+    const cloneEntity = canvasEntity.clone();
+    const cloneCanvas = cloneEntity.getComponent(UICanvas);
+    console.log(cloneCanvas.entity.parent);
+
+    expect(cloneCanvas.renderMode).to.eq(CanvasRenderMode.ScreenSpaceCamera);
+    expect(cloneCanvas.renderCamera).to.eq(camera);
+    expect(cloneCanvas.distance).to.eq(10);
+    expect(cloneCanvas.referenceResolution).to.deep.include({ x: 800, y: 600 });
+    expect(cloneCanvas.resolutionAdaptationMode).to.eq(ResolutionAdaptationMode.WidthAdaptation);
+    expect(cloneCanvas.referenceResolutionPerUnit).to.eq(100);
+    expect(cloneCanvas.sortOrder).to.eq(10);
+    // @ts-ignore
+    expect(cloneCanvas._isRootCanvas).to.eq(false);
+    root.addChild(cloneEntity);
+    // @ts-ignore
+    expect(cloneCanvas._isRootCanvas).to.eq(true);
+  });
 });

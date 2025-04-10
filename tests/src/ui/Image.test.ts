@@ -48,4 +48,18 @@ describe("Image", async () => {
     image.tiledAdaptiveThreshold = 1.5;
     expect(image.tiledAdaptiveThreshold).to.eq(1);
   });
+
+  it("Clone", () => {
+    const imageEntity = canvasEntity.createChild("Image");
+    const image = imageEntity.addComponent(Image);
+    const sprite = new Sprite(engine, new Texture2D(engine, 100, 100));
+    image.sprite = sprite;
+    image.drawMode = SpriteDrawMode.Sliced;
+
+    const cloneEntity = imageEntity.clone();
+    const cloneImage = cloneEntity.getComponent(Image);
+
+    expect(cloneImage.sprite).to.eq(sprite);
+    expect(cloneImage.drawMode).to.eq(SpriteDrawMode.Sliced);
+  });
 });
