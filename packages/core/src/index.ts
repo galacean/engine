@@ -74,4 +74,6 @@ export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 
 export * from "./postProcess";
 
+export { AntiAliasing } from "./enums/AntiAliasing";
+
 Polyfill.registerPolyfill();
