@@ -1,20 +1,26 @@
----
-title: 宏
----
+import { Image } from "@/mdx";
 
-ShaderLab 支持 GLSL 标准语法中的部分宏和宏操作符：
-- `#define`
-- `#undef`
-- `#if`
-- `#ifdef`
-- `#ifndef`
-- `#else`
-- `#elif`
-- `#endif`
-- `defined` 
+<br/>
+
+# 宏
+
+当前 `ShaderLab` 仅支持 GLSL 标准语法中的以下部分宏和宏操作函数：
+
+| 宏 | 描述 |
+| :-: | :- |
+| `#define` | 等同 GLSL 用法 |
+| `#undef` |等同 GLSL 用法 |
+|`#if` | 等同 GLSL 用法 |
+| `#ifdef`| 等同 GLSL 用法 |
+| `#ifndef` | 等同 GLSL 用法 |
+| `#else` | 等同 GLSL 用法 |
+| `#elif` | 等同 GLSL 用法 |
+| `#endif` | 等同 GLSL 用法 |
+| `defined` | 等同 GLSL 用法 |
+| `#include` | `ShaderLab` 特有，用于代码段引用 |
+
+除了 `#include`，其它的宏使用同 GLSL 标准一致，详细用法参考 [GLSL 语法标准](https://registry.khronos.org/OpenGL/specs/es/3.0/GLSL_ES_Specification_3.00.pdf)。
   
-以及额外引入的 `#include` 宏。
-
 <Callout type="warning">
 ShaderLab 宏会在预处理器阶段被展开，因此宏不能影响 ShaderLab 结构解析，即 `Shader`，`SubShader`，`Pass`，`EditorProperties`，`EditorMacros` 关键字不能被包含在类似 `#ifdef` 这样的分支宏内。
 </Callout>
@@ -23,23 +29,55 @@ ShaderLab 宏会在预处理器阶段被展开，因此宏不能影响 ShaderLab
 
 为了方便代码段复用，ShaderLab 中可以如下使用 `include` 宏进行代码段引用，后续编译过程中会被自动扩展替换。
 
-```glsl
+```glsl showLineNumbers
 #include "{includeKey}"
 ```
 
 为了能使代码段可以通过 `include` 宏进行引用，我们有 2 种方式进行代码段声明：
 
-1. 编辑器中创建 着色器 / 着色器片段
+### 1. 编辑器中创建 着色器 / 着色器片段
 
-创建的代码段 `includeKey` 为该文件在工程中的文件路径，比如 `/Root/Effect.glsl`
+创建的代码段 `includeKey` 为该文件在工程中的文件路径，比如下图中，如果想在 Shader 资产 `UnlitShader` 中引用 `ShaderChunk` 代码段，分别可以通过绝对路径和相对路径引用：
+```glsl showLineNumbers
+// 相对路径
+#include "./ShaderChunk.glsl"
 
-2. 脚本中显示注册代码段
+// 编辑器解决路径
+#include "/ShaderChunk.glsl"  // 项目资产根目录
+```
 
-```ts
+<Image src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*3UDUS6OtbPUAAAAAAAAAAAAAeteEAQ/fmt.webp"  />
+
+### 2. 脚本中显示注册代码段
+
+```ts showLineNumbers
 import { ShaderFactory } from '@galacean/engine';
 
 const commonSource = `// shader chunk`;
 ShaderFactory.registerInclude('includeKey', commonSource);
 ```
+ShaderLab 中引用
+```glsl showLineNumbers
+#include "includeKey"
+```
 
-Shader 文件引入代码段支持相对路径引用，所有相对路径都基于主 Shader 文件路径进行转换。如Shader文件路径为`/root/hair/shader.gs`，引入代码段路径为`/root/hair/common.glsl`，则引入的相对路径为 `#include "./common.glsl"`。
+<Callout>
+
+当前版本中，引擎提供了 `PBR` ShaderLab 内置代码段，开发者可以通过这些内置代码段对 `PBR` Shader 进行自定义扩展。需要注意的是，需要对引擎内置 ShaderLab 代码段进行注册后才可使用。
+
+```ts showLineNumbers {4}
+import { registerIncludes } from "@galacean/engine-shader-shaderlab";
+
+// 对内置 ShaderLab 代码段注册。
+registerIncludes();
+```
+
+```glsl showLineNumbers
+// ShaderLab
+...
+#include "Common.glsl"
+#include "BRDF.glsl"
+...
+```
+官方内置 `PBR` ShaderLab 代码段源码 [参考](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/PBR.gs)
+</Callout>

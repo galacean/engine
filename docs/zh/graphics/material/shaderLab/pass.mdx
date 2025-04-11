@@ -2,7 +2,11 @@
 title: Pass
 ---
 
-```glsl
+在 [SubShader](/subShader/#pass) 中我们讲到 `Pass` 代表了一次 GPU 绘制过程。开发者在 `Pass` 模块中可以使用 [GLSL 100](https://www.khronos.org/files/opengles_shading_language.pdf) 和 [GLSL 300](https://registry.khronos.org/OpenGL/specs/es/3.0/GLSL_ES_Specification_3.00.pdf) 语法进行绘制程序的编写，即顶点着色器和片元着色器。此外开发者还可以设置该 `Pass` 的渲染状态，渲染队列等。
+
+`Pass` 模块语法骨架如下：
+
+```glsl showLineNumbers
 Pass "PassName" {
   Tag {PipelineStage = "ShadowCaster"}
 
@@ -12,39 +16,62 @@ Pass "PassName" {
 
   // 渲染管线和渲染状态设置
 
-  // 指定顶点着色器和片元着色器  强调glsl语言
+  // 指定顶点着色器和片元着色器
   VertexShader = vert;
+  FragmentShader = frag;
 
   // 指定渲染队列
   RenderQueueType = Transparent;
 }
 ```
 
-`Pass` 是 `Shader` 对象的基本元素。简单的着色器对象可能只包含一个 `Pass`，但更复杂的着色器可以包含多个 `Pass`。 它定义了渲染管线特定阶段执行的操作，例如在 GPU 上运行的着色器程序，渲染状态，以及渲染管线相关设置。
 
 ## 渲染状态
 
 可以通过以下两种方式指定
 
-1. 显示赋值
+### 显示赋值
 
-```
-BlendState = blendState;
-```
+```glsl showLineNumbers {4, 10}
+...
+Pass "0" {
+  ...
+  BlendState blendState {
+    Enabled = true;
+    ColorBlendOperation = BlendOperation.Add;
+    ...
+  }
 
-2. Pass 全局变量域中声明指定
-
-```
-BlendState {
-  渲染状态属性 = 属性值;
+  BlendState = blendState;
+  ...
 }
+...
 ```
+
+### Pass 全局变量域中声明指定
+
+```glsl showLineNumbers {4}
+...
+Pass "0" {
+  ...
+  BlendState {
+    Enabled = true;
+    ColorBlendOperation = BlendOperation.Add;
+    ...
+  }
+
+  ...
+}
+...
+```
+
+渲染状态属性设置也分为 **常量赋值** 和 **变量赋值**，样例[参考](./shader/#在-shaderlab-中设置-blendstate-示例)
 
 ## uniform 变量指定
 
-直接声明成全局变量
+在 `ShaderLab` 中，所有使用 GLSL 语法声明的全局变量都被视为 Shader 的 Uniform 变量。
 
-```glsl
+```glsl showLineNumbers
 mediump vec4 u_color;
 float material_AlphaCutoff;
 mat4 renderer_ModelMat;
@@ -55,35 +82,60 @@ vec3 u_lightDir;
 
 通过定义顶点着色器出参[结构体](/docs/graphics/material/shaderLab/shader/#结构体函数)和片元着色器入参结构体指定
 
-```glsl
+```glsl showLineNumbers {9, 15}
 struct v2f {
+  ...
   vec3 color;
+  ...
 };
 
 v2f vert(a2v o) {
   ...
+  o.color = vec3(1.0);
+  ...
 }
 
 void frag(v2f i) {
+  ...
+  gl_FragColor = i.color;
   ...
 }
 ```
 
 ## 顶点、片元着色器指定
 
-通过`VertexShader`和`FragmentShader`指定显示指定着色器入口函数
+通过`VertexShader`和`FragmentShader`指定显示指定着色器入口函数。
 
-```
-VertexShader = vert;
-FragmentShader = frag;
+```glsl showLineNumbers {4-5}
+...
+Pass "0" {
+  ...
+  VertexShader = vert;
+  FragmentShader = frag;
+
+  v2f vert(a2v o) {
+    ...
+  }
+
+  ...
+
+  void frag(v2f i) {
+    ...
+  }
+  ...
+}
 ```
 
 ## 渲染队列设置
 
-通过`RenderQueueType`指令指定，`RenderQueueType`等同与引擎 API。
+通过`RenderQueueType`指令指定，`RenderQueueType`枚举值等同于引擎 [API](/apis/galacean/#RenderQueueType)。
 
-```
-RenderQueueType = Transparent;
+```glsl showLineNumbers {3}
+Pass "0" {
+  ...
+  RenderQueueType = Transparent;
+  ...
+}
 ```
 
 <Callout type="info">
@@ -92,28 +144,31 @@ RenderQueueType = Transparent;
 // 渲染队列设置
 material.renderQueueType = RenderQueueType.Opaque;
 
-// 渲染状态设置 const renderState = material.renderState.depthState; depthState.writeEnabled = false;
+// 渲染状态设置 
+const renderState = material.renderState.depthState; 
+depthState.writeEnabled = false;
 
 ````
-当 ShaderLab 中声明了渲染状态和渲染队列，材质相应的设置会被忽略。
+<Callout type="warning">当 ShaderLab 中声明了渲染状态和渲染队列，材质相应的设置不会生效。</Callout>
 </Callout>
 
 
 ## MRT(多目标渲染)
 
-ShaderLab 同时兼容 GLSL 100 和 GLSL 300 语法，因此你可以使用两种语法进行 MRT 指定。
+`ShaderLab` 同时兼容 `GLSL 100` 和 `GLSL 300` 语法，因此你可以使用两种语法进行 `MRT` 指定。
 
-1. 通过 `gl_FragData[i]` 进行指定 MRT 指定
-```glsl
+### 1. 通过 `gl_FragData[i]` 进行指定 MRT 指定
+
+```glsl showLineNumbers {2-3}
 void main(v2f input) {
   gl_FragData[0] = vec4(1.,0.,0.,1.);     // render target 0
   gl_FragData[1] = vec4(1.,0.,0.,1.);     // render target 1
 }
 ```
 
-2. 通过入口函数返回结构体指定
+### 2. 通过入口函数返回结构体指定
 
-```glsl
+```glsl showLineNumbers {1-4}
 struct mrt {
   layout(location = 0) vec4 fragColor0;   // render target 0
   layout(location = 1) vec4 fragColor1;   // render target 1
@@ -126,4 +181,4 @@ mrt main(v2f input) {
   return output;
 }
 ```
-````
+

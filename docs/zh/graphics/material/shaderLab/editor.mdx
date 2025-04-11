@@ -1,8 +1,10 @@
 import { Image } from "@/mdx";
 
----
+<br/>
 
 # Editor
+
+开发者可以通过 `Editor` 指令对绑定了该 Shader 的材质进行 Inspector 面板定制。Editor 模块语法骨架如下
 
 ```glsl
 Editor {
@@ -40,13 +42,16 @@ Editor {
 
 可用于定义绑定了该 Shader 自定义材质的属性，在编辑器中开发者可以通过自定义材质 Inspector 面板对定义的属性进行调整。
 
-<Image
-  src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*1mjVR5GXXOkAAAAAAAAAAAAADteEAQ/fmt.webp"
-  figcaption="材质 Inspector 面板"
-  width="200px"
-/>
+<div style={{display: "flex"}}>
 
-### 属性定义
+  <Image src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*mwAxRr45kE8AAAAAAAAAAAAAeteEAQ/fmt.webp" width="435px" />
+
+  <Image src= "https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*7MrxTIG5fpkAAAAAAAAAAAAAeteEAQ/fmt.webp" width="200px" />
+
+</div>
+
+
+### 属性定义语法
 
 ```glsl
 /**
@@ -96,7 +101,7 @@ Header("Emissive") {
 propertyName("Property Description", Enum(Item1: 1, Item2: 2, Item3: 3)) = 1;
 ```
 
-<Callout typ="warning">
+<Callout type="warning">
   当前只有 Int 和 Float 类型支持枚举，且不支持类型混合，比如下面的枚举混合了Float和Int，将不会被正确解析 ```glsl
   propertyName("Property Description", Enum("Item1":1, "Item2":2.0, "Item3": 3)) = 2.0; ```
 </Callout>
@@ -105,7 +110,7 @@ propertyName("Property Description", Enum(Item1: 1, Item2: 2, Item3: 3)) = 1;
 
 用于将 Shader 中用到的宏反射到 Inspector 中，从而在编辑器中对 Shader 依赖的宏进行灵活的调整。
 
-```
+```glsl showLineNumbers
 // 开启/关闭
 [On/Off]macroName("MacroLabel", EditType) = [DefaultValue];
 ```
@@ -125,11 +130,11 @@ propertyName("Property Description", Enum(Item1: 1, Item2: 2, Item3: 3)) = 1;
 
 ## UIScript
 
-开发者使用编辑器对自定义材质属性进行调节的同时，还可以通过`UIScript`指定数据变更的回调行为。
+开发者使用编辑器对自定义材质属性进行调节的同时，还可以通过 `UIScript` 指令指定数据变更的回调行为。通过 UIScript 暴露的 hook 函数，开发者可以实现属性联动，从而减少声明属性的数量，达到简化 Inspector 面板的目的。
 
-- 在 ShaderLab 中绑定 `UIScript`:
+### 在 ShaderLab 中绑定 `UIScript`:
 
-```
+```glsl showLineNumbers
 Editor {
     ...
     UIScript "/path/to/script";
@@ -137,16 +142,17 @@ Editor {
 }
 ```
 
+绑定的`UIScript`脚本路径支持相对路径和绝对路径，以下图项目根目录为例，绝对路径为
+`/PBRScript1.ts`，相对路径为`./PBRScript1.ts`
+
 <Image
   src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*t4LFQ4KEL6kAAAAAAAAAAAAADteEAQ/fmt.webp"
   width="70%"
 />
-绑定的`UIScript`脚本路径支持相对路径和绝对路径，以上图项目根目录为例，绝对路径为
-`/PBRScript1.ts`，相对路径为`./PBRScript1.ts`
 
-### UIScript API
+### UIScript 接口
 
-编辑器通过内置`ShaderUIScript`类暴露相关API
+编辑器通过内置 `ShaderUIScript` 类暴露相关 API，`ShaderUIScript` 的类型定义已经内嵌至 Galacean Web 端脚本编辑器中，详细定义如下：
 
 ```ts
 import { Color, Material, Texture, Vector2, Vector3, Vector4 } from "@galacean/engine";

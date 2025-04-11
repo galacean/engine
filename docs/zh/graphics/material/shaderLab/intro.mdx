@@ -24,6 +24,16 @@ Shader "ShaderName" {
 }
 ```
 
+## ShaderLab 语法模块参考
+
+| 语法模块 | 描述 |
+| :- | :-- |
+| [Shader](./shader) | ShaderLab 中通过 `Shader` 模块声明一个 Shader 对象，开发者可以在该模块中添加材质属性、绑定 [Shader UI 脚本]()、[声明全局变量]()等 |
+| [Editor](./ediotr) | 开发者通过 `Editor` 模块对材质 Inspector 面板进行定制 |
+| [SubShader](./subShader) | 在 `SubShader` 中指定 [Tag](/apis/galacean/#SubShader-setTag)，添加 ShaderPass，使用 `UsePass` 指令 |
+| [Pass](./pass) | 开发者通过 `Pass` 模块声明 [ShaderPass](/apis/galacean/#ShaderPass) 对象 |
+| [宏和自定义 ShaderLab 代码段](./macro) | 描述 ShaderLab 中对宏的支持，以及如何通过 `#include` 宏对自定义 ShaderLab 代码段进行引用 |
+
 ## Unlit Demo
 
 ```ts showLineNumbers {2,18,21}
