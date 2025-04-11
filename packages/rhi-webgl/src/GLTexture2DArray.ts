@@ -1,4 +1,4 @@
-import { IPlatformTexture2DArray, Logger, Texture2DArray, TextureFormat, TextureUtils } from "@galacean/engine-core";
+import { IPlatformTexture2DArray, Logger, Texture2DArray, TextureUtils } from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
@@ -117,16 +117,7 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
   }
 
   protected override _validate(texture: Texture2DArray, rhi: WebGLGraphicDevice): void {
-    if (!this._isWebGL2) {
-      throw new Error(`Texture2D Array is not supported in WebGL1.0`);
-    }
-
     const { format } = texture;
-
-    // Validate format
-    if (!GLTexture._supportTextureFormat(format, rhi)) {
-      throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
-    }
 
     // Validate sRGB format
     // @ts-ignore

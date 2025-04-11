@@ -49,8 +49,8 @@ export interface TextureFormatDetail {
   dataType?: GLenum;
   isCompressed: boolean;
   attachment?: GLenum;
-  // Read format are different in readPixels at some cases.
-  readFormat?: GLenum;
+  readFormat?: GLenum; // Read format are different in readPixels at some cases
+  unpackAlignment?: number; // Uncompressed texture data alignment
 }
 
 export enum GLCompressedTextureInternalFormat {

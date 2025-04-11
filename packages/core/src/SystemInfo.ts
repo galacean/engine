@@ -1,7 +1,10 @@
+import { GLCapabilityType } from "./base/Constant";
+import { Engine } from "./Engine";
 import { Platform } from "./Platform";
+import { TextureFormat } from "./texture";
 
 /**
- * System info.
+ * Access operating system, platform and hardware information.
  */
 export class SystemInfo {
   /** The platform is running on. */
@@ -79,6 +82,46 @@ export class SystemInfo {
       );
     }
     return this._simdSupported;
+  }
+
+  /**
+   * Checks whether the system supports the given texture format.
+   * @param format - The texture format
+   * @returns Whether support the texture format
+   */
+  static supportsTextureFormat(engine: Engine, format: TextureFormat): boolean {
+    const rhi = engine._hardwareRenderer;
+    rhi.canIUse(GLCapabilityType.depthTexture);
+    switch (format) {
+      case TextureFormat.R16G16B16A16:
+        if (!rhi.canIUse(GLCapabilityType.textureHalfFloat)) {
+          return false;
+        }
+        break;
+      case TextureFormat.R32G32B32A32:
+        if (!rhi.canIUse(GLCapabilityType.textureFloat)) {
+          return false;
+        }
+        break;
+      case TextureFormat.Depth16:
+      case TextureFormat.Depth24Stencil8:
+      case TextureFormat.Depth:
+      case TextureFormat.DepthStencil:
+        if (!rhi.canIUse(GLCapabilityType.depthTexture)) {
+          return false;
+        }
+        break;
+      case TextureFormat.R11G11B10_UFloat:
+      case TextureFormat.R32G32B32A32_UInt:
+      case TextureFormat.Depth24:
+      case TextureFormat.Depth32:
+      case TextureFormat.Depth32Stencil8:
+      case TextureFormat.R8:
+      case TextureFormat.R8G8:
+        return rhi.isWebGL2;
+    }
+
+    return true;
   }
 }
 

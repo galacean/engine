@@ -36,7 +36,8 @@ export class GLTexture implements IPlatformTexture {
           baseFormat: isSRGBColorSpace ? (isWebGL2 ? gl.RGB : gl.SRGB8) : gl.RGB,
           readFormat: gl.RGB,
           dataType: gl.UNSIGNED_BYTE,
-          isCompressed: false
+          isCompressed: false,
+          unpackAlignment: 1
         };
       case TextureFormat.R8G8B8A8:
         return {
@@ -44,70 +45,100 @@ export class GLTexture implements IPlatformTexture {
           baseFormat: isSRGBColorSpace ? (isWebGL2 ? gl.RGBA : gl.SRGB8_ALPHA8) : gl.RGBA,
           readFormat: gl.RGBA,
           dataType: gl.UNSIGNED_BYTE,
-          isCompressed: false
+          isCompressed: false,
+          unpackAlignment: 4
         };
       case TextureFormat.R4G4B4A4:
         return {
           internalFormat: isWebGL2 ? gl.RGBA4 : gl.RGBA,
           baseFormat: gl.RGBA,
           dataType: gl.UNSIGNED_SHORT_4_4_4_4,
-          isCompressed: false
+          isCompressed: false,
+          unpackAlignment: 2
         };
       case TextureFormat.R5G5B5A1:
         return {
           internalFormat: isWebGL2 ? gl.RGB5_A1 : gl.RGBA,
           baseFormat: gl.RGBA,
           dataType: gl.UNSIGNED_SHORT_5_5_5_1,
-          isCompressed: false
+          isCompressed: false,
+          unpackAlignment: 2
         };
       case TextureFormat.R5G6B5:
         return {
           internalFormat: isWebGL2 ? gl.RGB565 : gl.RGB,
           baseFormat: gl.RGB,
           dataType: gl.UNSIGNED_SHORT_5_6_5,
-          isCompressed: false
+          isCompressed: false,
+          unpackAlignment: 2
         };
       case TextureFormat.Alpha8:
         return {
           internalFormat: gl.ALPHA,
           baseFormat: gl.ALPHA,
           dataType: gl.UNSIGNED_BYTE,
-          isCompressed: false
+          isCompressed: false,
+          unpackAlignment: 1
         };
       case TextureFormat.LuminanceAlpha:
         return {
           internalFormat: gl.LUMINANCE_ALPHA,
           baseFormat: gl.LUMINANCE_ALPHA,
           dataType: gl.UNSIGNED_BYTE,
-          isCompressed: false
-        };
-      case TextureFormat.R11G11B10_UFloat:
-        return {
-          internalFormat: isWebGL2 ? gl.R11F_G11F_B10F : gl.NONE,
-          baseFormat: gl.RGB,
-          dataType: gl.FLOAT,
-          isCompressed: false
+          isCompressed: false,
+          unpackAlignment: 2
         };
       case TextureFormat.R16G16B16A16:
         return {
           internalFormat: isWebGL2 ? gl.RGBA16F : gl.RGBA,
           baseFormat: gl.RGBA,
           dataType: gl.HALF_FLOAT,
-          isCompressed: false
+          isCompressed: false,
+          unpackAlignment: 8
         };
       case TextureFormat.R32G32B32A32:
         return {
           internalFormat: isWebGL2 ? gl.RGBA32F : gl.RGBA,
           baseFormat: gl.RGBA,
           dataType: gl.FLOAT,
-          isCompressed: false
+          isCompressed: false,
+          unpackAlignment: 8
         };
+      // Only WebGL2 support
+      case TextureFormat.R11G11B10_UFloat:
+        return {
+          internalFormat: gl.R11F_G11F_B10F,
+          baseFormat: gl.RGB,
+          dataType: gl.FLOAT,
+          isCompressed: false,
+          unpackAlignment: 4
+        };
+      // Only WebGL2 support
       case TextureFormat.R32G32B32A32_UInt:
         return {
-          internalFormat: isWebGL2 ? gl.RGBA32UI : gl.NONE,
+          internalFormat: gl.RGBA32UI,
           baseFormat: gl.RGBA_INTEGER,
           dataType: gl.UNSIGNED_INT,
-          isCompressed: false
+          isCompressed: false,
+          unpackAlignment: 8
+        };
+      // Only WebGL2 support
+      case TextureFormat.R8:
+        return {
+          internalFormat: gl.R8,
+          baseFormat: gl.RED,
+          dataType: gl.UNSIGNED_BYTE,
+          isCompressed: false,
+          unpackAlignment: 1
+        };
+      // Only WebGL2 support
+      case TextureFormat.R8G8:
+        return {
+          internalFormat: gl.RG8,
+          baseFormat: gl.RG,
+          dataType: gl.UNSIGNED_BYTE,
+          isCompressed: false,
+          unpackAlignment: 2
         };
       case TextureFormat.BC1:
         return {
@@ -239,6 +270,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
+      // Only WebGL2 support
       case TextureFormat.Depth24:
         return {
           internalFormat: gl.DEPTH_COMPONENT24,
@@ -247,6 +279,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
+      // Only WebGL2 support
       case TextureFormat.Depth32:
         return {
           internalFormat: gl.DEPTH_COMPONENT32F,
@@ -255,6 +288,7 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
+      // Only WebGL2 support
       case TextureFormat.Depth32Stencil8:
         return {
           internalFormat: gl.DEPTH32F_STENCIL8,
@@ -348,40 +382,6 @@ export class GLTexture implements IPlatformTexture {
     }
   }
 
-  /**
-   * Check whether the corresponding texture format is supported.
-   * @internal
-   */
-  static _supportTextureFormat(format: TextureFormat, rhi: WebGLGraphicDevice): boolean {
-    switch (format) {
-      case TextureFormat.R16G16B16A16:
-        if (!rhi.canIUse(GLCapabilityType.textureHalfFloat)) {
-          return false;
-        }
-        break;
-      case TextureFormat.R32G32B32A32:
-        if (!rhi.canIUse(GLCapabilityType.textureFloat)) {
-          return false;
-        }
-        break;
-      case TextureFormat.Depth16:
-      case TextureFormat.Depth24Stencil8:
-      case TextureFormat.Depth:
-      case TextureFormat.DepthStencil:
-        if (!rhi.canIUse(GLCapabilityType.depthTexture)) {
-          return false;
-        }
-        break;
-      case TextureFormat.R11G11B10_UFloat:
-      case TextureFormat.R32G32B32A32_UInt:
-      case TextureFormat.Depth24:
-      case TextureFormat.Depth32:
-      case TextureFormat.Depth32Stencil8:
-        return rhi.isWebGL2;
-    }
-
-    return true;
-  }
   /**
    * @internal
    */
@@ -650,7 +650,7 @@ export class GLTexture implements IPlatformTexture {
     out: ArrayBufferView
   ): void {
     const gl = this._gl;
-    const { baseFormat, dataType, readFormat } = this._formatDetail;
+    const { baseFormat, dataType, readFormat, unpackAlignment } = this._formatDetail;
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._getReadFrameBuffer());
 
@@ -671,6 +671,7 @@ export class GLTexture implements IPlatformTexture {
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._glTexture, mipLevel);
     }
 
+    gl.pixelStorei(gl.PACK_ALIGNMENT, unpackAlignment);
     // Base format is different from read format in webgl1.0 with sRGB
     gl.readPixels(x, y, width, height, readFormat ?? baseFormat, dataType, out);
 
@@ -687,11 +688,6 @@ export class GLTexture implements IPlatformTexture {
 
   protected _validate(texture: Texture, rhi: WebGLGraphicDevice): void {
     const { format, width, height } = texture;
-
-    // Validate format
-    if (!GLTexture._supportTextureFormat(format, rhi)) {
-      throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
-    }
 
     // Validate sRGB format
     // @ts-ignore

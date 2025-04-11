@@ -19,14 +19,12 @@ import {
   ParticleRenderer,
   Texture2D,
   Vector3,
-  WebGLEngine,
-  WebGLMode,
+  WebGLEngine
 } from "@galacean/engine";
 
 // Create engine
 WebGLEngine.create({
-  canvas: "canvas",
-  graphicDeviceOptions: { webGLMode: WebGLMode.WebGL1 },
+  canvas: "canvas"
 }).then((engine) => {
   Logger.enable();
   engine.canvas.resizeByClientSize();
@@ -47,20 +45,20 @@ WebGLEngine.create({
     .load([
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*JPsCSK5LtYkAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D,
+        type: AssetType.Texture2D
       },
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*eWTFRZPqfDMAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D,
+        type: AssetType.Texture2D
       },
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*J8uhRoxJtYgAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D,
+        type: AssetType.Texture2D
       },
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*Ea3qRb1yCQMAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D,
-      },
+        type: AssetType.Texture2D
+      }
     ])
     .then((textures) => {
       const fireEntity = createDebrisParticle(engine, <Texture2D>textures[0]);
@@ -85,13 +83,7 @@ function createDebrisParticle(engine: Engine, texture: Texture2D): Entity {
   particleRenderer.setMaterial(material);
   particleRenderer.priority = 2;
 
-  const {
-    main,
-    emission,
-    sizeOverLifetime,
-    colorOverLifetime,
-    velocityOverLifetime,
-  } = particleRenderer.generator;
+  const { main, emission, sizeOverLifetime, colorOverLifetime, velocityOverLifetime } = particleRenderer.generator;
 
   // Main module
   main.startSpeed.constant = 0;
@@ -176,18 +168,8 @@ function createGlowParticle(fireEntity: Entity, texture: Texture2D): void {
   main.startRotationZ.constantMax = 360;
   main.startRotationZ.mode = ParticleCurveMode.TwoConstants;
 
-  main.startColor.constantMin = new Color(
-    0 / 255,
-    157 / 255,
-    255 / 255,
-    64 / 255
-  );
-  main.startColor.constantMax = new Color(
-    13 / 255,
-    255 / 255,
-    0 / 255,
-    128 / 255
-  );
+  main.startColor.constantMin = new Color(0 / 255, 157 / 255, 255 / 255, 64 / 255);
+  main.startColor.constantMax = new Color(13 / 255, 255 / 255, 0 / 255, 128 / 255);
   main.startColor.mode = ParticleGradientMode.TwoConstants;
 
   // Emission module
@@ -232,8 +214,7 @@ function createSparksParticle(fireEntity: Entity, texture: Texture2D): void {
   particleRenderer.setMaterial(material);
   particleRenderer.priority = 0;
 
-  const { main, emission, colorOverLifetime, velocityOverLifetime } =
-    particleRenderer.generator;
+  const { main, emission, colorOverLifetime, velocityOverLifetime } = particleRenderer.generator;
 
   // Main module
   main.startLifetime.constant = 5;
@@ -247,12 +228,7 @@ function createSparksParticle(fireEntity: Entity, texture: Texture2D): void {
   main.startRotationZ.constantMax = 360;
   main.startRotationZ.mode = ParticleCurveMode.TwoConstants;
 
-  main.startColor.constant = new Color(
-    37 / 255,
-    133 / 255,
-    255 / 255,
-    255 / 255
-  );
+  main.startColor.constant = new Color(37 / 255, 133 / 255, 255 / 255, 255 / 255);
 
   // Emission module
   emission.rateOverTime.constant = 30;
@@ -286,10 +262,7 @@ function createSparksParticle(fireEntity: Entity, texture: Texture2D): void {
   gradient.addAlphaKey(0.8, 1.0);
 }
 
-function createHighlightsParticle(
-  fireEntity: Entity,
-  texture: Texture2D
-): void {
+function createHighlightsParticle(fireEntity: Entity, texture: Texture2D): void {
   const particleEntity = fireEntity.createChild("Highlights");
   particleEntity.transform.position.set(-5.31, 0, 0);
 
@@ -302,13 +275,7 @@ function createHighlightsParticle(
   particleRenderer.priority = 3;
 
   const generator = particleRenderer.generator;
-  const {
-    main,
-    emission,
-    sizeOverLifetime,
-    colorOverLifetime,
-    velocityOverLifetime,
-  } = generator;
+  const { main, emission, sizeOverLifetime, colorOverLifetime, velocityOverLifetime } = generator;
 
   // Main module
   main.startSpeed.constant = 0;

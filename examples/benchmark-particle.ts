@@ -29,14 +29,13 @@ import {
   Vector2,
   Vector3,
   WebGLEngine,
-  WebGLMode,
+  WebGLMode
 } from "@galacean/engine";
 import { Stats } from "@galacean/engine-toolkit";
 
 // Create engine
 WebGLEngine.create({
-  canvas: "canvas",
-  graphicDeviceOptions: { webGLMode: WebGLMode.WebGL1 },
+  canvas: "canvas"
 }).then((engine) => {
   Logger.enable();
   engine.canvas.resizeByClientSize();
@@ -58,20 +57,20 @@ WebGLEngine.create({
     .load([
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*yu-DSb0surwAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D,
+        type: AssetType.Texture2D
       },
       {
         url: " https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*JlayRa2WltYAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D,
+        type: AssetType.Texture2D
       },
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*cFafRr6WaWUAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D,
+        type: AssetType.Texture2D
       },
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*TASTTpESkIIAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D,
-      },
+        type: AssetType.Texture2D
+      }
     ])
     .then((textures) => {
       const fireEntity = createFireParticle(engine, <Texture2D>textures[0]);
@@ -104,13 +103,7 @@ function createFireParticle(engine: Engine, texture: Texture2D): Entity {
   particleRenderer.priority = 2;
 
   const generator = particleRenderer.generator;
-  const {
-    main,
-    emission,
-    textureSheetAnimation,
-    sizeOverLifetime,
-    colorOverLifetime,
-  } = generator;
+  const { main, emission, textureSheetAnimation, sizeOverLifetime, colorOverLifetime } = generator;
 
   // Main module
   main.startLifetime.constantMin = 0.2;
@@ -202,12 +195,7 @@ function createFireGlowParticle(fireEntity: Entity, texture: Texture2D): void {
   main.startRotationZ.constantMax = 360;
   main.startRotationZ.mode = ParticleCurveMode.TwoConstants;
 
-  main.startColor.constant = new Color(
-    255 / 255,
-    100 / 255,
-    0 / 255,
-    168 / 255
-  );
+  main.startColor.constant = new Color(255 / 255, 100 / 255, 0 / 255, 168 / 255);
 
   main.simulationSpace = ParticleSimulationSpace.World;
 
@@ -258,13 +246,7 @@ function createFireSmokeParticle(fireEntity: Entity, texture: Texture2D): void {
   particleRenderer.priority = 0;
 
   const generator = particleRenderer.generator;
-  const {
-    main,
-    emission,
-    sizeOverLifetime,
-    colorOverLifetime,
-    textureSheetAnimation,
-  } = generator;
+  const { main, emission, sizeOverLifetime, colorOverLifetime, textureSheetAnimation } = generator;
 
   // Main module
   main.startLifetime.constantMin = 1;
@@ -279,12 +261,7 @@ function createFireSmokeParticle(fireEntity: Entity, texture: Texture2D): void {
   main.startRotationZ.constantMax = 360;
   main.startRotationZ.mode = ParticleCurveMode.TwoConstants;
 
-  main.startColor.constant = new Color(
-    255 / 255,
-    255 / 255,
-    255 / 255,
-    84 / 255
-  );
+  main.startColor.constant = new Color(255 / 255, 255 / 255, 255 / 255, 84 / 255);
 
   main.gravityModifier.constant = -0.05;
 
@@ -335,10 +312,7 @@ function createFireSmokeParticle(fireEntity: Entity, texture: Texture2D): void {
   frameOverTime.curveMax.keys[1].value = 0.382;
 }
 
-function createFireEmbersParticle(
-  fireEntity: Entity,
-  texture: Texture2D
-): void {
+function createFireEmbersParticle(fireEntity: Entity, texture: Texture2D): void {
   const particleEntity = fireEntity.createChild("FireEmbers");
 
   const particleRenderer = particleEntity.addComponent(ParticleRenderer);
@@ -350,14 +324,7 @@ function createFireEmbersParticle(
   particleRenderer.priority = 3;
 
   const generator = particleRenderer.generator;
-  const {
-    main,
-    emission,
-    sizeOverLifetime,
-    colorOverLifetime,
-    velocityOverLifetime,
-    rotationOverLifetime,
-  } = generator;
+  const { main, emission, sizeOverLifetime, colorOverLifetime, velocityOverLifetime, rotationOverLifetime } = generator;
 
   // Main module
   main.duration = 3;
