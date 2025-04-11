@@ -99,7 +99,7 @@ describe("Texture2D", () => {
         texture.getPixelBuffer(0, 0, 1, 1, buffer);
       }).to.throw;
     });
-    it("读取成功", () => {
+    it("读取 R8G8B8A8 成功", () => {
       const texture = new Texture2D(engine, width, height);
       const buffer = new Uint8Array(4);
 
@@ -109,6 +109,36 @@ describe("Texture2D", () => {
       expect(buffer[0]).to.eq(1);
       expect(buffer[1]).to.eq(2);
       expect(buffer[2]).to.eq(3);
+      expect(buffer[3]).to.eq(4);
+    });
+
+    it.only("读取 R8G8 成功", () => {
+      const texture = new Texture2D(engine, width, height, TextureFormat.R8G8);
+      const buffer = new Uint8Array(8);
+
+      texture.setPixelBuffer(new Uint8Array([1, 2, 3, 4, 7, 4, 3, 3]), 0, 5, 0, 2, 2);
+      texture.getPixelBuffer(5, 0, 2, 2, buffer);
+
+      expect(buffer[0]).to.eq(1);
+      expect(buffer[1]).to.eq(2);
+      expect(buffer[2]).to.eq(3);
+      expect(buffer[3]).to.eq(4);
+      expect(buffer[4]).to.eq(7);
+      expect(buffer[5]).to.eq(4);
+      expect(buffer[6]).to.eq(3);
+      expect(buffer[7]).to.eq(3);
+    });
+
+    it.only("读取 R8 成功", () => {
+      const texture = new Texture2D(engine, width, height, TextureFormat.R8);
+      const buffer = new Uint8Array(4);
+
+      texture.setPixelBuffer(new Uint8Array([1, 6, 8, 4]), 0, 5, 0, 2, 2);
+      texture.getPixelBuffer(5, 0, 2, 2, buffer);
+
+      expect(buffer[0]).to.eq(1);
+      expect(buffer[1]).to.eq(6);
+      expect(buffer[2]).to.eq(8);
       expect(buffer[3]).to.eq(4);
     });
   });
