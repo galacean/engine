@@ -39,17 +39,14 @@ export class PostProcessFinalPass extends PostProcessPass {
 
   override onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void {
     const material = this._finalMaterial;
-    const enableFXAA = camera.antiAliasing === AntiAliasing.FastApproximateAntiAliasing;
 
-    if (enableFXAA) {
-      material.shaderData.enableMacro(PostProcessFinalPass._fxaaEnabledMacro);
-      if (camera.enableHDR) {
-        material.shaderData.enableMacro(PostProcessFinalPass._hdrInputMacro);
-      } else {
-        material.shaderData.disableMacro(PostProcessFinalPass._hdrInputMacro);
-      }
+    if (camera.antiAliasing !== AntiAliasing.FastApproximateAntiAliasing) {
+      return;
+    }
+    material.shaderData.enableMacro(PostProcessFinalPass._fxaaEnabledMacro);
+    if (camera.enableHDR) {
+      material.shaderData.enableMacro(PostProcessFinalPass._hdrInputMacro);
     } else {
-      material.shaderData.disableMacro(PostProcessFinalPass._fxaaEnabledMacro);
       material.shaderData.disableMacro(PostProcessFinalPass._hdrInputMacro);
     }
 
