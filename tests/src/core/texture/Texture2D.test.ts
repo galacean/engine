@@ -112,7 +112,7 @@ describe("Texture2D", () => {
       expect(buffer[3]).to.eq(4);
     });
 
-    it.only("读取 R8G8 成功", () => {
+    it("读取 R8G8 成功", () => {
       const texture = new Texture2D(engine, width, height, TextureFormat.R8G8);
       const buffer = new Uint8Array(8);
 
@@ -129,7 +129,7 @@ describe("Texture2D", () => {
       expect(buffer[7]).to.eq(3);
     });
 
-    it.only("读取 R8 成功", () => {
+    it("读取 R8 成功", () => {
       const texture = new Texture2D(engine, width, height, TextureFormat.R8);
       const buffer = new Uint8Array(4);
 
