@@ -41,6 +41,7 @@ export class PostProcessFinalPass extends PostProcessPass {
 
   override onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void {
     const material = this._finalMaterial;
+    this._camera = camera;
     const enableFXAA = this._camera?.antiAliasing === AntiAliasing.FastApproximateAntiAliasing;
 
     if (enableFXAA) {
