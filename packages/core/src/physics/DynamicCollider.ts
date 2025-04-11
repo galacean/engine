@@ -310,6 +310,7 @@ export class DynamicCollider extends Collider {
       transform.worldPosition,
       transform.worldRotationQuaternion
     );
+    this._setCollisionGroupByLayer(entity.layer);
 
     this._setLinearVelocity = this._setLinearVelocity.bind(this);
     this._setAngularVelocity = this._setAngularVelocity.bind(this);
@@ -421,6 +422,8 @@ export class DynamicCollider extends Collider {
    * @internal
    */
   override _handleShapesChanged(): void {
+    super._handleShapesChanged();
+
     if (this._automaticCenterOfMass || this._automaticInertiaTensor) {
       this._setMassAndUpdateInertia();
     }

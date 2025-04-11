@@ -51,7 +51,7 @@ export abstract class ColliderShape implements ICustomClone {
   }
 
   /**
-   * Contact offset for this shape, the value must be greater than or equal to 0.
+   * Contact offset for this shape, the value must be greater than or equal to 0, default is 0.02.
    */
   get contactOffset(): number {
     return this._contactOffset;

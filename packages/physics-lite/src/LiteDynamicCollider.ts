@@ -1,7 +1,7 @@
 import { LiteCollider } from "./LiteCollider";
 import { IDynamicCollider } from "@galacean/engine-design";
 import { Logger, Quaternion, Vector3 } from "@galacean/engine";
-
+import { LitePhysics } from "./LitePhysics";
 /**
  * A dynamic collider can act with self-defined movement or physical force
  */
@@ -13,8 +13,8 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
    * @param position - The global position
    * @param rotation - The global rotation
    */
-  constructor(position: Vector3, rotation: Quaternion) {
-    super();
+  constructor(litePhysics: LitePhysics, position: Vector3, rotation: Quaternion) {
+    super(litePhysics);
     this._transform.setPosition(position.x, position.y, position.z);
     this._transform.setRotationQuaternion(rotation.x, rotation.y, rotation.z, rotation.w);
   }

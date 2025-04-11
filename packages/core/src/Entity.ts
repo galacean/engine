@@ -117,8 +117,6 @@ export class Entity extends EngineObject {
 
   /** The name of entity. */
   name: string;
-  /** The layer the entity belongs to. */
-  layer: Layer = Layer.Layer0;
 
   /** @internal */
   _isActiveInHierarchy: boolean = false;
@@ -144,6 +142,7 @@ export class Entity extends EngineObject {
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   private _transform: Transform;
+  private _layer: Layer = Layer.Layer0;
   private _templateResource: ReferResource;
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
@@ -246,6 +245,20 @@ export class Entity extends EngineObject {
       const parent = this._parent;
       this._setSiblingIndex(parent._children, value);
       parent._dispatchModify(EntityModifyFlags.Child, parent);
+    }
+  }
+
+  /**
+   * The layer the entity belongs to.
+   */
+  get layer(): Layer {
+    return this._layer;
+  }
+
+  set layer(value: Layer) {
+    if (this._layer !== value) {
+      this._layer = value;
+      this._dispatchModify(EntityModifyFlags.Layer, this);
     }
   }
 

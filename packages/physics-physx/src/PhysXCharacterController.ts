@@ -107,6 +107,17 @@ export class PhysXCharacterController implements ICharacterController {
   }
 
   /**
+   * {@inheritDoc ICollider.setCollisionGroup }
+   */
+  setCollisionGroup(group: number): void {
+    const actor = this._pxController?.getActor();
+
+    if (actor) {
+      this._physXPhysics._physX.setGroup(actor, group);
+    }
+  }
+
+  /**
    * {@inheritDoc ICharacterController.destroy }
    */
   destroy(): void {
@@ -136,6 +147,7 @@ export class PhysXCharacterController implements ICharacterController {
 
     this._pxController = pxManager._getControllerManager().createController(desc);
     this._pxController.setUUID(shape._id);
+    this._pxController.setPosition(this._worldPosition);
   }
 
   /**

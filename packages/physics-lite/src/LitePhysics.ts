@@ -1,8 +1,9 @@
-import { Quaternion, Vector3 } from "@galacean/engine";
+import { Quaternion, Vector3, Layer } from "@galacean/engine";
 import {
   IBoxColliderShape,
   ICapsuleColliderShape,
   ICharacterController,
+  ICollider,
   ICollision,
   IDynamicCollider,
   IFixedJoint,
@@ -25,6 +26,8 @@ import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
 import { LitePhysicsManager } from "./LitePhysicsManager";
 
 export class LitePhysics implements IPhysics {
+  private _groupCollisionMatrix: boolean[] = [];
+
   /**
    * {@inheritDoc IPhysics.initialize }
    */
@@ -52,6 +55,7 @@ export class LitePhysics implements IPhysics {
     onTriggerPersist?: (obj1: number, obj2: number) => void
   ): LitePhysicsScene {
     return new LitePhysicsScene(
+      this,
       onContactBegin,
       onContactEnd,
       onContactPersist,
@@ -65,14 +69,14 @@ export class LitePhysics implements IPhysics {
    * {@inheritDoc IPhysics.createStaticCollider }
    */
   createStaticCollider(position: Vector3, rotation: Quaternion): IStaticCollider {
-    return new LiteStaticCollider(position, rotation);
+    return new LiteStaticCollider(this, position, rotation);
   }
 
   /**
    * {@inheritDoc IPhysics.createDynamicCollider }
    */
   createDynamicCollider(position: Vector3, rotation: Quaternion): IDynamicCollider {
-    return new LiteDynamicCollider(position, rotation);
+    return new LiteDynamicCollider(this, position, rotation);
   }
 
   /**
@@ -147,5 +151,54 @@ export class LitePhysics implements IPhysics {
    */
   createSpringJoint(collider: LiteCollider): ISpringJoint {
     throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+  }
+
+  /**
+   * {@inheritDoc IPhysics.setColliderGroup }
+   */
+  setColliderGroup(collider: LiteCollider, group: Layer): void {
+    collider._collisionGroup = group;
+  }
+
+  /**
+   * {@inheritDoc IPhysics.getColliderGroup }
+   */
+  getColliderGroup(collider: LiteCollider): number {
+    return collider._collisionGroup;
+  }
+
+  /**
+   * {@inheritDoc IPhysics.setColliderGroupCollision }
+   */
+  setColliderGroupCollision(group1: number, group2: number, collide: boolean): void {
+    const index = this._getColliderGroupIndex(group1, group2);
+    if (index > -1) {
+      this._groupCollisionMatrix[index] = collide;
+    }
+  }
+
+  /**
+   * {@inheritDoc IPhysics.getColliderGroupCollision }
+   */
+  getColliderGroupCollision(group1: number, group2: number): boolean {
+    const index = this._getColliderGroupIndex(group1, group2);
+    if (index > -1) {
+      return this._groupCollisionMatrix[index] ?? true;
+    }
+    // If either layer is Layer.Nothing, they can collide
+    return true;
+  }
+
+  private _getColliderGroupIndex(group1: number, group2: number): number {
+    if (group1 === -1 || group2 === -1) {
+      return -1;
+    }
+
+    const min = Math.min(group1, group2);
+    const max = Math.max(group1, group2);
+
+    // Calculate a unique index for the layer pair using the triangular number formula
+    // This ensures that each layer combination maps to a unique index in the collision matrix
+    return (max * (max + 1)) / 2 + min;
   }
 }
