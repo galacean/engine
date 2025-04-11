@@ -350,7 +350,7 @@ export class ResourceManager {
   }
 
   private _loadSubpackage(itemOrURL: LoadItem | string): AssetPromise<void> {
-    return;
+    return new AssetPromise((resolve) => resolve());
   }
 
   private _loadSingleItem<T>(itemOrURL: LoadItem | string): AssetPromise<T> {
