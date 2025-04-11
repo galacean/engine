@@ -24,6 +24,10 @@ export enum TextureFormat {
   R32G32B32A32_UInt = 9,
   /** RGB unsigned float format, 11 bits in R channel, 11 bits in G channel, 10 bits in B channel. */
   R11G11B10_UFloat = 35,
+  /** R float format, 8 bits. */
+  R8 = 36,
+  /** RG float format, 8 bits per channel. */
+  R8G8 = 37,
 
   /** RGB compressed format, 4 bits per pixel. */
   BC1 = 10,

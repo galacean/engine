@@ -32,8 +32,8 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
     height?: number
   ): void {
     const gl = this._gl;
-    const isWebGL2: boolean = this._isWebGL2;
-    const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
+
+    const formatDetail = this._formatDetail;
     const mipWidth = Math.max(1, this._texture.width >> mipLevel);
     const mipHeight = Math.max(1, this._texture.height >> mipLevel);
 
@@ -42,10 +42,9 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
 
     this._bind();
 
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
-    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
-
-    if (isCompressed) {
+    if (formatDetail.isCompressed) {
+      const isWebGL2 = this._isWebGL2;
+      const { internalFormat } = formatDetail;
       const mipBit = 1 << mipLevel;
       if (isWebGL2 || this._compressedMipFilled & mipBit) {
         gl.compressedTexSubImage2D(this._target, mipLevel, x, y, width, height, internalFormat, colorBuffer);
@@ -54,6 +53,10 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
         this._compressedMipFilled |= mipBit;
       }
     } else {
+      const { baseFormat, dataType } = formatDetail;
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, formatDetail.unpackAlignment);
       gl.texSubImage2D(this._target, mipLevel, x, y, width, height, baseFormat, dataType, colorBuffer);
     }
   }
