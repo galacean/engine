@@ -15,6 +15,7 @@ export class PostProcessFinalPass extends PostProcessPass {
   static readonly FINAL_SHADER_NAME = "FinalPost";
   static _fxaaEnabledMacro: ShaderMacro = ShaderMacro.getByName("ENABLE_FXAA");
   static _hdrInputMacro: ShaderMacro = ShaderMacro.getByName("HDR_INPUT");
+  static _camera: Camera;
   private _finalMaterial: Material;
 
   constructor(engine: Engine) {
@@ -34,15 +35,12 @@ export class PostProcessFinalPass extends PostProcessPass {
     if (!this.isActive) {
       return false;
     }
-    return true;
+    return PostProcessFinalPass._camera?.antiAliasing === AntiAliasing.FastApproximateAntiAliasing;
   }
 
   override onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void {
     const material = this._finalMaterial;
 
-    if (camera.antiAliasing !== AntiAliasing.FastApproximateAntiAliasing) {
-      return;
-    }
     material.shaderData.enableMacro(PostProcessFinalPass._fxaaEnabledMacro);
     if (camera.enableHDR) {
       material.shaderData.enableMacro(PostProcessFinalPass._hdrInputMacro);
