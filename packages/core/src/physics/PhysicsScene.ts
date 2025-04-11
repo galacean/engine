@@ -232,6 +232,26 @@ export class PhysicsScene {
   }
 
   /**
+   * Get whether two colliders can collide with each other.
+   * @param group1 - The first collision group
+   * @param group2 - The second collision group
+   * @returns Whether the colliders can collide
+   */
+  getColliderGroupCollision(group1: number, group2: number): boolean {
+    return PhysicsScene._nativePhysics.getColliderGroupCollision(group1, group2);
+  }
+
+  /**
+   * Set whether two colliders can collide with each other.
+   * @param group1 - The first collision group
+   * @param group2 - The second collision group
+   * @param collide - Whether the colliders should collide
+   */
+  setColliderGroupCollision(group1: number, group2: number, collide: boolean): void {
+    PhysicsScene._nativePhysics.setColliderGroupCollision(group1, group2, collide);
+  }
+
+  /**
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @returns Returns True if the ray intersects with a collider, otherwise false

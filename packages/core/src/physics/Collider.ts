@@ -7,6 +7,8 @@ import { Transform } from "../Transform";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ColliderShape } from "./shape/ColliderShape";
 import { ICustomClone } from "../clone/ComponentCloner";
+import { EntityModifyFlags } from "../enums/EntityModifyFlags";
+import { Layer } from "../Layer";
 
 /**
  * Base class for all colliders.
@@ -24,6 +26,8 @@ export class Collider extends Component implements ICustomClone {
   protected _updateFlag: BoolUpdateFlag;
   @deepClone
   protected _shapes: ColliderShape[] = [];
+  protected _collisionGroup: number;
+  protected _syncCollisionGroupByLayer = true;
 
   /**
    * The shapes of this collider.
@@ -32,12 +36,48 @@ export class Collider extends Component implements ICustomClone {
     return this._shapes;
   }
 
+  get syncCollisionGroupByLayer(): boolean {
+    return this._syncCollisionGroupByLayer;
+  }
+
+  set syncCollisionGroupByLayer(value: boolean) {
+    if (this._syncCollisionGroupByLayer !== value) {
+      this._syncCollisionGroupByLayer = value;
+      if (value) {
+        this._setCollisionGroupByLayer(this.entity.layer);
+        this.entity._registerModifyListener(this._onEntityModified);
+      } else {
+        this.entity._unRegisterModifyListener(this._onEntityModified);
+      }
+    }
+  }
+
+  get collisionGroup(): number {
+    return this._collisionGroup;
+  }
+
+  set collisionGroup(value: number) {
+    if (value < 0 || value > 31) {
+      throw new Error("Collision group must be between 0 and 31");
+    }
+    if (this._syncCollisionGroupByLayer) {
+      console.warn(
+        "Collision group is synced with layer, you can set syncCollisionGroupByLayer to false, and set collisionGroup manually"
+      );
+    } else {
+      this._collisionGroup = value;
+      this._nativeCollider.setCollisionGroup(value);
+    }
+  }
+
   /**
    * @internal
    */
   constructor(entity: Entity) {
     super(entity);
     this._updateFlag = entity.registerWorldChangeFlag();
+    this._onEntityModified = this._onEntityModified.bind(this);
+    entity._registerModifyListener(this._onEntityModified);
   }
 
   /**
@@ -129,12 +169,16 @@ export class Collider extends Component implements ICustomClone {
   /**
    * @internal
    */
-  _handleShapesChanged(): void {}
+  _handleShapesChanged(): void {
+    // need to set collision group again, when shapes changed
+    this._nativeCollider.setCollisionGroup(this.collisionGroup);
+  }
 
   protected _syncNative(): void {
     for (let i = 0, n = this.shapes.length; i < n; i++) {
       this._addNativeShape(this.shapes[i]);
     }
+    this._setCollisionGroupByLayer(this.collisionGroup);
   }
 
   /**
@@ -150,6 +194,7 @@ export class Collider extends Component implements ICustomClone {
     }
     shapes.length = 0;
     this._nativeCollider.destroy();
+    this.entity._unRegisterModifyListener(this._onEntityModified);
   }
 
   protected _addNativeShape(shape: ColliderShape): void {
@@ -160,5 +205,32 @@ export class Collider extends Component implements ICustomClone {
   protected _removeNativeShape(shape: ColliderShape): void {
     shape._collider = null;
     this._nativeCollider.removeShape(shape._nativeShape);
+  }
+
+  protected _setCollisionGroupByLayer(layer: Layer): void {
+    if (layer === Layer.Nothing) {
+      // Nothing layer can collide with everything
+      return;
+    }
+
+    if ((layer & (layer - 1)) !== 0) {
+      console.warn(
+        "Combined layers are not supported for collision groups, you can set syncCollisionGroupByLayer to false, and set collisionGroup manually"
+      );
+      return;
+    }
+
+    let newGroup = Math.log2(layer);
+    if (newGroup !== this._collisionGroup) {
+      this._collisionGroup = newGroup;
+      this._nativeCollider.setCollisionGroup(this._collisionGroup);
+    }
+  }
+
+  @ignoreClone
+  protected _onEntityModified(flag: EntityModifyFlags): void {
+    if (flag & EntityModifyFlags.Layer) {
+      this._setCollisionGroupByLayer(this.entity.layer);
+    }
   }
 }

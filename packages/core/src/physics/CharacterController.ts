@@ -81,7 +81,7 @@ export class CharacterController extends Collider {
   constructor(entity: Entity) {
     super(entity);
     (<ICharacterController>this._nativeCollider) = PhysicsScene._nativePhysics.createCharacterController();
-
+    this._setCollisionGroupByLayer(entity.layer);
     this._setUpDirection = this._setUpDirection.bind(this);
     //@ts-ignore
     this._upDirection._onValueChanged = this._setUpDirection;
