@@ -49,6 +49,7 @@ export class UIUtils {
         engine._renderCount++;
       }
     }
+    renderContext.camera = null;
   }
 }
 

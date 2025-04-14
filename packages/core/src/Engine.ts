@@ -492,9 +492,8 @@ export class Engine extends EventDispatcher {
   private _destroy(): void {
     this._sceneManager._destroyAllScene();
 
+    Shader._clearShaderProgramPools(this);
     this._resourceManager._destroy();
-    this._textDefaultFont = null;
-    this._fontMap = null;
 
     this.inputManager._destroy();
     this._batcherManager.destroy();
@@ -507,12 +506,6 @@ export class Engine extends EventDispatcher {
     this._hardwareRenderer.destroy();
 
     this.removeAllEventListeners();
-
-    this._animate = null;
-    this._sceneManager = null;
-    this._resourceManager = null;
-    this._canvas = null;
-    this._time = null;
 
     this._waitingDestroy = false;
     this._destroyed = true;
@@ -684,7 +677,6 @@ export class Engine extends EventDispatcher {
     this._subRenderElementPool.garbageCollection();
     this._textSubRenderElementPool.garbageCollection();
     this._renderElementPool.garbageCollection();
-    this._renderContext.garbageCollection();
   }
 
   /**

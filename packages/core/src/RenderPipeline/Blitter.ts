@@ -89,5 +89,6 @@ export class Blitter {
     );
 
     rhi.drawPrimitive(blitMesh._primitive, blitMesh.subMesh, program);
+    rendererShaderData.setTexture(Blitter._blitTextureProperty, null);
   }
 }
