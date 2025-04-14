@@ -2,6 +2,7 @@ import { LiteCollider } from "./LiteCollider";
 import { IDynamicCollider } from "@galacean/engine-design";
 import { Logger, Quaternion, Vector3 } from "@galacean/engine";
 import { LitePhysics } from "./LitePhysics";
+
 /**
  * A dynamic collider can act with self-defined movement or physical force
  */

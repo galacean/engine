@@ -2,6 +2,7 @@ import { IStaticCollider } from "@galacean/engine-design";
 import { LiteCollider } from "./LiteCollider";
 import { Quaternion, Vector3 } from "@galacean/engine";
 import { LitePhysics } from "./LitePhysics";
+
 /**
  * A static collider component that will not move.
  * @remarks Mostly used for object which always stays at the same place and never moves around.

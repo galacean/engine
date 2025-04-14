@@ -256,6 +256,7 @@ export class LitePhysicsScene implements IPhysicsScene {
         for (let j = 0, len = colliders.length; j < len; j++) {
           const collider = colliders[j];
           const colliderShape = collider._shapes;
+
           // Skip collision check if layers can't collide
           if (!this._checkColliderCollide(collider, myCollider)) {
             continue;

@@ -259,8 +259,8 @@ export class PhysXPhysics implements IPhysics {
   /**
    * {@inheritDoc IPhysics.setColliderGroup }
    */
-  setColliderGroup(collider: PhysXCollider, layer: Layer): void {
-    this._physX.setGroup(collider._pxActor, Math.log2(layer));
+  setColliderGroup(collider: PhysXCollider, group: number): void {
+    this._physX.setGroup(collider._pxActor, group);
   }
 
   private _init(physX: any): void {
