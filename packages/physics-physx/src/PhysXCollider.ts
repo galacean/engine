@@ -62,6 +62,13 @@ export abstract class PhysXCollider implements ICollider {
   }
 
   /**
+   * {@inheritDoc ICollider.setCollisionGroup }
+   */
+  setCollisionGroup(group: number): void {
+    this._physXPhysics.setColliderGroup(this, group);
+  }
+
+  /**
    * {@inheritDoc ICollider.destroy }
    */
   destroy(): void {

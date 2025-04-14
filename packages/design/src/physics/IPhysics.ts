@@ -134,4 +134,19 @@ export interface IPhysics {
    * @param collider - Affector of joint
    */
   createSpringJoint(collider: ICollider): ISpringJoint;
+
+  /**
+   * Set whether two collision groups can collide with each other.
+   * @param group1 - The first collision group
+   * @param group2 - The second collision group
+   * @param collide - Whether the groups should collide
+   */
+  setColliderGroupCollision(group1: number, group2: number, collide: boolean): void;
+
+  /**
+   * Set the collision group for a collider.
+   * @param collider - The collider to set the group for
+   * @param group - The group to set
+   */
+  setColliderGroup(collider: ICollider, group: number): void;
 }
