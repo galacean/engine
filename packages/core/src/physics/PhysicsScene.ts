@@ -357,6 +357,7 @@ export class PhysicsScene {
    */
   _update(deltaTime: number): void {
     const { _fixedTimeStep: fixedTimeStep, _nativePhysicsScene: nativePhysicsManager } = this;
+    const componentsManager = this._scene._componentsManager;
 
     const simulateTime = this._restTime + deltaTime;
     const step = Math.floor(simulateTime / fixedTimeStep);

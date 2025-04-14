@@ -52,6 +52,9 @@ export class Collider extends Component implements ICustomClone {
     }
   }
 
+  /**
+   * The collision group of this collider, only support 0-31.
+   */
   get collisionGroup(): number {
     return this._collisionGroup;
   }
