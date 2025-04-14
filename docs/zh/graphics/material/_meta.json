@@ -2,6 +2,6 @@
   "overview": { "title": "材质概述" },
   "examples": { "title": "指南和示例" },
   "builtinShaders": { "title": "内置着色器" },
-  "shaderLab": { "title": "ShaderLab 语法" },
+  "shaderLab": { "title": "ShaderLab" },
   "variables": "内置变量"
 }

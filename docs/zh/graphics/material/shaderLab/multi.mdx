@@ -1,0 +1,49 @@
+---
+title: 多 Pass Shader 编写
+---
+
+有时我们想要绘制一个复杂特效通常需要在一次渲染主循环中渲染多次，因此我们可以将这些关联的 Pass 放到同一个 SubShader 下统一管理起来。通常我们称含有多个 Pass 的 Shader 为 `多-Pass-Shader`。
+
+如下所示，在 SubShader 中声明渲染所需的多个 Pass，引擎会根据声明顺序依次渲染 Pass。
+
+```glsl showLineNumbers {6-8}
+SubShader "SubShaderName" {
+  ...
+  // 全局变量区：变量声明，结构体声明，渲染状态声明
+  ...
+ 
+  Pass "Pass0" { ... }
+  Pass "Pass1" { ... }
+  Pass "Pass2" { ... }
+
+  ...
+}
+```
+
+## UsePass
+
+开发者可以通过 `UsePass` 指令复用引擎内置的 Shader Pass，比如引擎内置的 PBR Pass: `UsePass "pbr/Default/Forward"`。目前可服用的引擎内置 `Pass` 如下：
+
+|   内置 Shader   |            Pass 路径            |
+| :-------------: | :-----------------------------: |
+|       PBR       |       pbr/Default/Forward       |
+|      Unlit      |      unlit/Default/Forward      |
+|     Skybox      |     skybox/Default/Forward      |
+| Particle-shader | particle-shader/Default/Forward |
+|   SpriteMask    |   SpriteMask/Default/Forward    |
+|     Sprite      |     Sprite/Default/Forward      |
+
+<Callout>
+SubShader 除了用于组织多 Pass，还可以设置 `Tag`，作用相当于引擎 [setTag](/apis/galacean/#SubShader-setTag) API。比如设置 `ReplaceTag`:
+
+```glsl showLineNumbers
+SubShader "SubShaderName" {
+  ...
+  Tags {ReplaceTag = "opaque"}
+
+  Pass "PassName" {
+    ...
+  }
+}
+```
+</Callout>

@@ -1,0 +1,113 @@
+---
+title: 顶点、片元着色器程序编写
+---
+
+`Pass` 代表一次 GPU 绘制过程，因此每个 `Pass` 必须包含一个顶点着色器和片元着色器。ShaderLab 中通过 `VertexShader` 和 `FragmentShader` 分别指定其入口函数。
+
+```glsl showLineNumbers {4-5}
+...
+Pass "0" {
+  ...
+  VertexShader = vert;
+  FragmentShader = frag;
+
+  v2f vert(a2v o) {
+    ...
+  }
+
+  ...
+
+  void frag(v2f i) {
+    ...
+  }
+  ...
+}
+```
+
+## Attribute 和 Varying 变量声明
+
+跟传统 GLSL Shader 程序一样，ShaderLab 通过 Attribute 和 Uniform 变量接收来自 CPU 的渲染数据，同时顶点着色器和片元着色器通过 Varying 变量进行数据传递。不同的是，ShaderLab 是通过结构体和着色器入口函数签名来完成对 Attribute 和 Varying 变量的声明。
+
+```glsl showLineNumbers {13, 16, 21, 27-28}
+struct Attributes {
+  vec3 POSITION;
+  vec4 COLOR_0;
+  ...
+}
+
+struct Varyings {
+    vec2 uv;
+    vec3 position;
+    ...
+}
+...
+Varyings vert(Attributes attr) {
+    Varyings vary;
+    ...
+    vary.position = attr.Position;
+    ...
+    return vary;
+}
+
+void frag(Varyings vary) {
+    ...
+    gl_FragColor = vary.COLOR_0;
+}
+
+...
+VertexShader = vert;
+FragmentShader = frag;
+```
+
+## MRT(多目标渲染)
+
+`ShaderLab` 同时兼容 `GLSL 100` 和 `GLSL 300` 语法，因此你可以使用两种语法进行 `MRT` 指定。
+
+### 1. 通过 `gl_FragData[i]` 进行指定 MRT 指定
+
+```glsl showLineNumbers {2-3}
+void main(v2f input) {
+  gl_FragData[0] = vec4(1.,0.,0.,1.);     // render target 0
+  gl_FragData[1] = vec4(1.,0.,0.,1.);     // render target 1
+}
+```
+
+### 2. 通过入口函数返回结构体指定
+
+```glsl showLineNumbers {1-4}
+struct mrt {
+  layout(location = 0) vec4 fragColor0;   // render target 0
+  layout(location = 1) vec4 fragColor1;   // render target 1
+}
+
+mrt main(v2f input) {
+  mrt output;
+  output.fragColor0 = vec4(1.,0.,0.,1.);
+  output.fragColor1 = vec4(1.,0.,0.,1.);
+  return output;
+}
+```
+
+## 宏
+
+当前 `ShaderLab` 仅支持 GLSL 标准语法中的以下部分宏和宏操作函数：
+
+| 宏 | 描述 |
+| :-: | :- |
+| `#define` | 等同 GLSL 用法 |
+| `#undef` |等同 GLSL 用法 |
+|`#if` | 等同 GLSL 用法 |
+| `#ifdef`| 等同 GLSL 用法 |
+| `#ifndef` | 等同 GLSL 用法 |
+| `#else` | 等同 GLSL 用法 |
+| `#elif` | 等同 GLSL 用法 |
+| `#endif` | 等同 GLSL 用法 |
+| `defined` | 等同 GLSL 用法 |
+| `#include` | `ShaderLab` 特有，用于代码段引用，详细使用参考[文档](./chunk) |
+
+除了 `#include`，其它的宏使用同 GLSL 标准一致，详细用法参考 [GLSL 语法标准](https://registry.khronos.org/OpenGL/specs/es/3.0/GLSL_ES_Specification_3.00.pdf)。
+  
+<Callout type="warning">
+ShaderLab 宏会在预处理器阶段被展开，因此宏不能影响 ShaderLab 结构解析，即 `Shader`，`SubShader`，`Pass`，`EditorProperties`，`EditorMacros` 关键字不能被包含在类似 `#ifdef` 这样的分支宏内。
+</Callout>
+

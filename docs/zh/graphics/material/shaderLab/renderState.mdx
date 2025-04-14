@@ -1,0 +1,101 @@
+---
+title: 渲染状态设置
+---
+
+在 Galacean 引擎中，每个 Shader `Pass` 代表一次 GPU 绘制过程，因此我们可以对每个 `Pass`
+的渲染状态进行单独设置。在 ShaderLab 中我们有2种设置方式。
+
+### 1. 显示赋值
+
+```glsl showLineNumbers {4, 10}
+...
+Pass "0" {
+  ...
+  BlendState blendState {
+    Enabled = true;
+    ColorBlendOperation = BlendOperation.Add;
+    ...
+  }
+
+  BlendState = blendState;
+  ...
+}
+...
+```
+
+如全局变量[章节](./global)所示，通过在各个层级全局变量域中声明渲染状态变量，然后通过 `BlendState = blendState` 进行指定。
+
+### 2. 全局变量域中声明指定
+
+```glsl showLineNumbers {4}
+...
+Pass "0" {
+  ...
+  BlendState {
+    Enabled = true;
+    ColorBlendOperation = BlendOperation.Add;
+    ...
+  }
+
+  ...
+}
+...
+```
+
+<Callout type="info">
+1. `DepthState`、`StencilState` 和 `RasterState` 的设置同理。
+
+2. 全局变量域也可以是 `SubShader` 或`Shader` 层级，其作用域跟其他全局变量遵循同一[规则](./global/#全局变量作用域)。即如果是在 `SubShader` 层级全局变量域中设置的渲染状态，会对该 `SubShader` 下所有 `Pass` 生效。
+</Callout>
+
+## 渲染状态属性设置
+
+单个渲染状态属性设置同样也有2种方式。
+
+```glsl showLineNumbers {7,9}
+Shader "Demo" {
+  ...
+  BlendState customBlendState
+  {
+    Enabled = true;
+    // 常量复制方式
+    SourceColorBlendFactor = BlendFactor.SourceColor;
+    // 变量赋值方式
+    DestinationColorBlendFactor = material_DstBlend;
+  }
+  ...
+  Pass "0" {
+    ...
+    BlendState = customBlendState;
+    ...
+  }
+}
+```
+
+上述案例中对于 `BlendState` 属性赋值展示了 2 种方式: **常量赋值** 和 **变量赋值** 方式:
+
+### 常量赋值
+
+赋值语句右端为指定的对应引擎枚举变量，譬如：BlendFactor.SourceColor。
+
+<Callout type="warning">
+渲染队列的设置例外: `RenderQueueType = Transparent;`
+</Callout>
+
+### 变量赋值
+
+赋值语句右端为任一变量名，变量具体值可由开发者通过脚本方式在运行时通过 `ShaderData.setInt("material_DstBlend", BlendFactor.SourceColor)` API 进行指定。
+
+<Callout type="positive">
+除了可以在 ShaderLab 中对渲染状态和渲染队列进行设置，开发者同样可以通过材质的API进行设置，如
+```ts
+// 渲染队列设置
+material.renderQueueType = RenderQueueType.Opaque;
+
+// 渲染状态设置 
+const renderState = material.renderState.depthState; 
+depthState.writeEnabled = false;
+
+````
+<Callout type="warning">当 ShaderLab 中声明了渲染状态和渲染队列，通过材质 API 进行的相应设置不会生效。</Callout>
+</Callout>
