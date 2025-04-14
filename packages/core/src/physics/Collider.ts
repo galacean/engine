@@ -241,6 +241,6 @@ export class Collider extends Component implements ICustomClone {
   }
 
   protected _setCollisionGroup(): void {
-    this._nativeCollider.setCollisionGroup(this.collisionGroup);
+    this._nativeCollider.setCollisionGroup(this._collisionGroup);
   }
 }
