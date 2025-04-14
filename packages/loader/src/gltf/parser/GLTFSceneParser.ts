@@ -1,4 +1,5 @@
 import {
+  BlinnPhongMaterial,
   Camera,
   Entity,
   Material,
@@ -11,7 +12,6 @@ import {
 import { BoundingBox, Matrix } from "@galacean/engine-math";
 import { GLTFResource } from "../GLTFResource";
 import { CameraType, ICamera, INode } from "../GLTFSchema";
-import { GLTFMaterialParser } from "./GLTFMaterialParser";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
 
@@ -146,7 +146,7 @@ export class GLTFSceneParser extends GLTFParser {
       Promise.all(materialPromises)
     ]).then(([meshes, skin, materials]) => {
       for (let i = 0; i < rendererCount; i++) {
-        const material = materials[i] || GLTFMaterialParser._getDefaultMaterial(context.glTFResource.engine);
+        const material = materials[i] || new BlinnPhongMaterial(context.glTFResource.engine);
         const glTFPrimitive = glTFMeshPrimitives[i];
         const mesh = meshes[i];
 
