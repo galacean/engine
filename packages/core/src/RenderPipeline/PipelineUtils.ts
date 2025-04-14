@@ -211,5 +211,6 @@ export class PipelineUtils {
     );
 
     rhi.drawPrimitive(blitMesh._primitive, blitMesh.subMesh, program);
+    rendererShaderData.setTexture(PipelineUtils._blitTextureProperty, null);
   }
 }
