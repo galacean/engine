@@ -244,7 +244,7 @@ export const E2E_CONFIG = {
     TypedText: {
       category: "Text",
       caseFileName: "text-typed",
-      threshold: 0.4
+      threshold: 0.1
     }
   },
   Other: {
