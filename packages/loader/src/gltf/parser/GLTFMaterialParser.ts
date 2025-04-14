@@ -17,12 +17,6 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 
 @registerGLTFParser(GLTFParserType.Material)
 export class GLTFMaterialParser extends GLTFParser {
-  /** @internal */
-  static _getDefaultMaterial(engine: Engine): BlinnPhongMaterial {
-    return (GLTFMaterialParser._defaultMaterial ||= new BlinnPhongMaterial(engine));
-  }
-  private static _defaultMaterial: BlinnPhongMaterial;
-
   /**
    * @internal
    */
@@ -172,7 +166,7 @@ export class GLTFMaterialParser extends GLTFParser {
     }
 
     return Promise.resolve(material).then((material) => {
-      material ||= GLTFMaterialParser._getDefaultMaterial(engine);
+      material ||= new BlinnPhongMaterial(engine);
       GLTFParser.executeExtensionsAdditiveAndParse(materialInfo.extensions, context, material, materialInfo);
       // @ts-ignore
       material._associationSuperResource(glTFResource);

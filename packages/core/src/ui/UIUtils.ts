@@ -51,6 +51,13 @@ export class UIUtils {
     }
     renderContext.camera = null;
   }
+
+  /**
+   * @internal
+   */
+  static _clear(): void {
+    this._renderQueue?.clear();
+  }
 }
 
 class OverlayCamera {

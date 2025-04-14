@@ -43,6 +43,8 @@ import { UIUtils } from "./ui/UIUtils";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
+import { AnimationCurveOwner } from "./animation/internal/animationCurveOwner/AnimationCurveOwner";
+import { MaskManager } from "./RenderPipeline/MaskManager";
 
 ShaderPool.init();
 
@@ -491,14 +493,17 @@ export class Engine extends EventDispatcher {
 
   private _destroy(): void {
     this._sceneManager._destroyAllScene();
-
-    Shader._clearShaderProgramPools(this);
     this._resourceManager._destroy();
 
     this.inputManager._destroy();
     this._batcherManager.destroy();
     this.xrManager?._destroy();
     this.dispatch("shutdown", this);
+
+    Shader._clear(this);
+    UIUtils._clear();
+    MaskManager._clear();
+    AnimationCurveOwner._components.length = 0;
 
     // Cancel animation
     this.pause();

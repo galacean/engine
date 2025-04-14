@@ -25,6 +25,14 @@ export class MaskManager {
     return (MaskManager._maskDecrementRenderQueue ||= new RenderQueue(RenderQueueType.Transparent));
   }
 
+  /**
+   * @internal
+   */
+  static _clear(): void {
+    MaskManager._maskIncrementRenderQueue?.clear();
+    MaskManager._maskDecrementRenderQueue?.clear();
+  }
+
   hasStencilWritten = false;
 
   private _preMaskLayer = SpriteMaskLayer.Nothing;

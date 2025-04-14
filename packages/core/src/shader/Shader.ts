@@ -177,7 +177,7 @@ export class Shader implements IReferable {
   /**
    * @internal
    */
-  static _clearShaderProgramPools(engine: Engine): void {
+  static _clear(engine: Engine): void {
     const shaderMap = Shader._shaderMap;
     const engineShaderProgramPools = engine._shaderProgramPools;
     for (const key in shaderMap) {
