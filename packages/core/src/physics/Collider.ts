@@ -170,8 +170,7 @@ export class Collider extends Component implements ICustomClone {
    * @internal
    */
   _handleShapesChanged(): void {
-    // need to set collision group again, when shapes changed
-    this._nativeCollider.setCollisionGroup(this.collisionGroup);
+    this._setCollisionGroup();
   }
 
   protected _syncNative(): void {
@@ -209,7 +208,8 @@ export class Collider extends Component implements ICustomClone {
 
   protected _setCollisionGroupByLayer(layer: Layer): void {
     if (layer === Layer.Nothing) {
-      // Nothing layer can collide with everything
+      // Only support 0-31, 32 will skip collision check
+      this._collisionGroup = 32;
       return;
     }
 
@@ -223,7 +223,7 @@ export class Collider extends Component implements ICustomClone {
     let newGroup = Math.log2(layer);
     if (newGroup !== this._collisionGroup) {
       this._collisionGroup = newGroup;
-      this._nativeCollider.setCollisionGroup(this._collisionGroup);
+      this._setCollisionGroup();
     }
   }
 
@@ -232,5 +232,9 @@ export class Collider extends Component implements ICustomClone {
     if (flag & EntityModifyFlags.Layer) {
       this._setCollisionGroupByLayer(this.entity.layer);
     }
+  }
+
+  protected _setCollisionGroup(): void {
+    this._nativeCollider.setCollisionGroup(this.collisionGroup);
   }
 }

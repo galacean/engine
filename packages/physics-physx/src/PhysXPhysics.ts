@@ -3,6 +3,7 @@ import {
   IBoxColliderShape,
   ICapsuleColliderShape,
   ICharacterController,
+  ICollider,
   ICollision,
   IDynamicCollider,
   IFixedJoint,
@@ -92,7 +93,7 @@ export class PhysXPhysics implements IPhysics {
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
         script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*PXxaQrGL0XsAAAAAAAAAAAAAARQnAQ/physx.release.downgrade.js`;
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
-        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*vdhFQpagse8AAAAAAAAAAAAAARQnAQ/physx.release.js`;
+        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*H4ElTYwBxwgAAAAAAAAAAAAAARQnAQ/physx.release.js`;
       }
     });
 
@@ -256,24 +257,10 @@ export class PhysXPhysics implements IPhysics {
   }
 
   /**
-   * {@inheritDoc IPhysics.getColliderGroupCollision }
-   */
-  getColliderGroupCollision(group1: number, group2: number): boolean {
-    return this._physX.getGroupCollisionFlag(group1, group2);
-  }
-
-  /**
    * {@inheritDoc IPhysics.setColliderGroup }
    */
   setColliderGroup(collider: PhysXCollider, layer: Layer): void {
     this._physX.setGroup(collider._pxActor, Math.log2(layer));
-  }
-
-  /**
-   * {@inheritDoc IPhysics.getColliderGroup }
-   */
-  getColliderGroup(collider: PhysXCollider): number {
-    return this._physX.getGroup(collider);
   }
 
   private _init(physX: any): void {

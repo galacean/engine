@@ -161,13 +161,6 @@ export class LitePhysics implements IPhysics {
   }
 
   /**
-   * {@inheritDoc IPhysics.getColliderGroup }
-   */
-  getColliderGroup(collider: LiteCollider): number {
-    return collider._collisionGroup;
-  }
-
-  /**
    * {@inheritDoc IPhysics.setColliderGroupCollision }
    */
   setColliderGroupCollision(group1: number, group2: number, collide: boolean): void {
@@ -185,12 +178,12 @@ export class LitePhysics implements IPhysics {
     if (index > -1) {
       return this._groupCollisionMatrix[index] ?? true;
     }
-    // If either layer is Layer.Nothing, they can collide
-    return true;
+    // If either layer is Layer.Nothing, they cant collide
+    return false;
   }
 
   private _getColliderGroupIndex(group1: number, group2: number): number {
-    if (group1 === -1 || group2 === -1) {
+    if (group1 === 32 || group2 === 32) {
       return -1;
     }
 

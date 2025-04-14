@@ -21,7 +21,7 @@ export abstract class LiteCollider implements ICollider {
   /** @internal */
   _transform: LiteTransform = new LiteTransform();
   /** @internal */
-  _collisionGroup: Layer = Layer.Everything;
+  _collisionGroup: number;
 
   protected constructor(litePhysics: LitePhysics) {
     this._transform.owner = this;
