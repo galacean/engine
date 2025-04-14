@@ -180,7 +180,7 @@ export class Collider extends Component implements ICustomClone {
     for (let i = 0, n = this.shapes.length; i < n; i++) {
       this._addNativeShape(this.shapes[i]);
     }
-    this._setCollisionGroupByLayer(this.collisionGroup);
+    this._setCollisionGroup();
   }
 
   /**
