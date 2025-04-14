@@ -211,8 +211,11 @@ export class Collider extends Component implements ICustomClone {
 
   protected _setCollisionGroupByLayer(layer: Layer): void {
     if (layer === Layer.Nothing) {
-      // Only support 0-31, 32 will skip collision check
-      this._collisionGroup = 32;
+      if (this._collisionGroup !== 32) {
+        // Only support 0-31, 32 will skip collision check
+        this._collisionGroup = 32;
+        this._setCollisionGroup();
+      }
       return;
     }
 
