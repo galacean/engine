@@ -40,23 +40,16 @@ export class UIUtils {
         Matrix.multiply(virtualCamera.projectionMatrix, virtualCamera.viewMatrix, virtualCamera.viewProjectionMatrix);
         renderContext.applyVirtualCamera(virtualCamera, false);
         renderContext.rendererUpdateFlag |= ContextRendererUpdateFlag.ProjectionMatrix;
-        uiRenderQueue.clear();
         uiCanvas._prepareRender(renderContext);
         uiRenderQueue.pushRenderElement(uiCanvas._renderElement);
         uiRenderQueue.batch(batcherManager);
         batcherManager.uploadBuffer();
         uiRenderQueue.render(renderContext, "Forward");
+        uiRenderQueue.clear();
         engine._renderCount++;
       }
     }
     renderContext.camera = null;
-  }
-
-  /**
-   * @internal
-   */
-  static _clear(): void {
-    this._renderQueue?.clear();
   }
 }
 

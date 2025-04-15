@@ -315,18 +315,26 @@ export class PhysicsScene {
       }
       return shape.collider.entity.layer & layerMask && shape.isSceneQuery;
     };
+    let $idx: number;
+    let $distance: number;
+    let $position: Vector3;
+    let $normal: Vector3;
 
     if (hitResult != undefined) {
       const result = this._nativePhysicsScene.raycast(ray, distance, onRaycast, (idx, distance, position, normal) => {
-        const hitShape = Engine._physicalObjectsMap[idx];
-        hitResult.entity = hitShape._collider.entity;
-        hitResult.shape = hitShape;
-        hitResult.distance = distance;
-        hitResult.normal.copyFrom(normal);
-        hitResult.point.copyFrom(position);
+        $idx = idx;
+        $distance = distance;
+        $position = position;
+        $normal = normal;
       });
 
       if (result) {
+        const hitShape = Engine._physicalObjectsMap[$idx];
+        hitResult.entity = hitShape._collider.entity;
+        hitResult.shape = hitShape;
+        hitResult.distance = $distance;
+        hitResult.point.copyFrom($position);
+        hitResult.normal.copyFrom($normal);
         return true;
       } else {
         hitResult.entity = null;
