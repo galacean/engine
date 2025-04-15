@@ -4,7 +4,6 @@ import {
   AnimatorController,
   BlinnPhongMaterial,
   Buffer,
-  Engine,
   Entity,
   Material,
   ModelMesh,
@@ -134,13 +133,6 @@ export class GLTFParserContext {
 
     this._addTaskCompletePromise(promise);
     return promise;
-  }
-
-  /**
-   * @internal
-   */
-  _getDefaultMaterial(engine: Engine): BlinnPhongMaterial {
-    return (this._defaultMaterial ||= new BlinnPhongMaterial(engine));
   }
 
   /**

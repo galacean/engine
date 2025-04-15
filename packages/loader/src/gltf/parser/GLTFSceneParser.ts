@@ -144,8 +144,10 @@ export class GLTFSceneParser extends GLTFParser {
       skinID !== undefined && context.get<Skin>(GLTFParserType.Skin, skinID),
       Promise.all(materialPromises)
     ]).then(([meshes, skin, materials]) => {
+      // @ts-ignore
+      const basicResources = context.glTFResource.engine._basicResources;
       for (let i = 0; i < rendererCount; i++) {
-        const material = materials[i] || context._getDefaultMaterial(context.glTFResource.engine);
+        const material = materials[i] || basicResources._getBlinnPhongMaterial();
         const glTFPrimitive = glTFMeshPrimitives[i];
         const mesh = meshes[i];
 
