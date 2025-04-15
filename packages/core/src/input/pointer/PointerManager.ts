@@ -115,7 +115,7 @@ export class PointerManager implements IInput {
           }
           pointer = pointerPool[j];
           if (!pointer) {
-            pointer = new Pointer(j);
+            pointer = pointerPool[j] = new Pointer(j);
             engine._physicsInitialized && pointer._addEmitters(PhysicsPointerEventEmitter, eventPool);
             PointerManager._pointerEventEmitters.forEach((emitter) => {
               pointer._addEmitters(emitter, eventPool);

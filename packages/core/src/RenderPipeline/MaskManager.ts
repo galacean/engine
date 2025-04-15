@@ -43,9 +43,7 @@ export class MaskManager {
 
   drawMask(context: RenderContext, pipelineStageTagValue: string, maskLayer: SpriteMaskLayer): void {
     const incrementMaskQueue = MaskManager.getMaskIncrementRenderQueue();
-    incrementMaskQueue.clear();
     const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
-    decrementMaskQueue.clear();
 
     this._buildMaskRenderElement(maskLayer, incrementMaskQueue, decrementMaskQueue);
 
@@ -53,9 +51,11 @@ export class MaskManager {
     incrementMaskQueue.batch(batcherManager);
     batcherManager.uploadBuffer();
     incrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Increment);
+    incrementMaskQueue.clear();
     decrementMaskQueue.batch(batcherManager);
     batcherManager.uploadBuffer();
     decrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Decrement);
+    decrementMaskQueue.clear();
   }
 
   clearMask(context: RenderContext, pipelineStageTagValue: string): void {
@@ -63,8 +63,6 @@ export class MaskManager {
     if (preMaskLayer !== SpriteMaskLayer.Nothing) {
       if (this.hasStencilWritten) {
         const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
-        decrementMaskQueue.clear();
-
         const masks = this._allSpriteMasks;
         for (let i = 0, n = masks.length; i < n; i++) {
           const mask = masks.get(i);
@@ -75,6 +73,7 @@ export class MaskManager {
         decrementMaskQueue.batch(batcherManager);
         batcherManager.uploadBuffer();
         decrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Decrement);
+        decrementMaskQueue.clear();
       } else {
         const engine = context.camera.engine;
         engine._hardwareRenderer.clearRenderTarget(engine, CameraClearFlags.Stencil, null);

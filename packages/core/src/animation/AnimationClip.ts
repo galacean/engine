@@ -212,14 +212,16 @@ export class AnimationClip extends EngineObject {
    */
   _sampleAnimation(entity: Entity, time: number): void {
     const { _curveBindings: curveBindings } = this;
+    const components = AnimationCurveOwner._components;
     for (let i = curveBindings.length - 1; i >= 0; i--) {
       const curve = curveBindings[i];
       const targetEntity = entity.findByPath(curve.relativePath);
       if (targetEntity) {
         const component =
           curve.typeIndex > 0
-            ? targetEntity.getComponents(curve.type, AnimationCurveOwner._components)[curve.typeIndex]
+            ? targetEntity.getComponents(curve.type, components)[curve.typeIndex]
             : targetEntity.getComponent(curve.type);
+        components.length = 0;
         if (!component) {
           continue;
         }

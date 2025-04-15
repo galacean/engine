@@ -661,6 +661,7 @@ export class Camera extends Component {
     }
     this._renderPipeline.render(context, cubeFace, mipLevel, ignoreClearFlags);
     engine._renderCount++;
+    context.camera = null;
   }
 
   /**

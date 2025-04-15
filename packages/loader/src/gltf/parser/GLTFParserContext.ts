@@ -2,6 +2,7 @@ import {
   AnimationClip,
   Animator,
   AnimatorController,
+  BlinnPhongMaterial,
   Buffer,
   Entity,
   Material,
@@ -38,6 +39,7 @@ export class GLTFParserContext {
     taskDetail: {},
     taskComplete: { loaded: 0, total: 0 }
   };
+  private _defaultMaterial: BlinnPhongMaterial;
 
   /** @internal */
   _setTaskCompleteProgress: (loaded: number, total: number) => void;
