@@ -361,8 +361,8 @@ export class ResourceManager {
     const paths = queryPath ? this._parseQueryPath(queryPath) : [];
 
     // Get remote asset base url
-    const editorResourceItem = this._virtualPathResourceMap[assetBaseURL];
-    const remoteAssetBaseURL = editorResourceItem?.path ?? assetBaseURL;
+    const remoteConfig = this._virtualPathResourceMap[assetBaseURL];
+    const remoteAssetBaseURL = remoteConfig?.path ?? assetBaseURL;
 
     // Check cache
     const cacheObject = this._assetUrlPool[remoteAssetBaseURL];
@@ -404,7 +404,7 @@ export class ResourceManager {
       throw `loader not found: ${item.type}`;
     }
 
-    const subpackageName = editorResourceItem?.subpackageName ?? "";
+    const subpackageName = remoteConfig?.subpackageName;
 
     // Check sub asset
     if (queryPath) {
