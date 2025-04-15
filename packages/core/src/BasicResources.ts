@@ -8,7 +8,7 @@ import { BufferBindFlag } from "./graphic/enums/BufferBindFlag";
 import { BufferUsage } from "./graphic/enums/BufferUsage";
 import { MeshTopology } from "./graphic/enums/MeshTopology";
 import { VertexElementFormat } from "./graphic/enums/VertexElementFormat";
-import { Material } from "./material";
+import { BlinnPhongMaterial, Material } from "./material";
 import { PrefilteredDFG } from "./material/utils/PrefilteredDFG";
 import { ModelMesh } from "./mesh";
 import { Shader } from "./shader/Shader";
@@ -117,6 +117,7 @@ export class BasicResources {
   readonly textDefaultMaterial: Material;
   readonly spriteMaskDefaultMaterial: Material;
 
+  private _blinnPhongMaterial: BlinnPhongMaterial;
   private _prefilteredDFGTexture: Texture2D;
 
   get prefilteredDFGTexture(): Texture2D {
@@ -172,6 +173,13 @@ export class BasicResources {
     this.spriteDefaultMaterial = this._create2DMaterial(engine, Shader.find("Sprite"));
     this.textDefaultMaterial = this._create2DMaterial(engine, Shader.find("Text"));
     this.spriteMaskDefaultMaterial = this._createSpriteMaskMaterial(engine);
+  }
+
+  /**
+   * @internal
+   */
+  _getBlinnPhongMaterial(): BlinnPhongMaterial {
+    return (this._blinnPhongMaterial ||= new BlinnPhongMaterial(this.engine));
   }
 
   /**
