@@ -1,5 +1,4 @@
 import {
-  BlinnPhongMaterial,
   Camera,
   Entity,
   Material,
@@ -146,7 +145,7 @@ export class GLTFSceneParser extends GLTFParser {
       Promise.all(materialPromises)
     ]).then(([meshes, skin, materials]) => {
       for (let i = 0; i < rendererCount; i++) {
-        const material = materials[i] || new BlinnPhongMaterial(context.glTFResource.engine);
+        const material = materials[i] || context._getDefaultMaterial(context.glTFResource.engine);
         const glTFPrimitive = glTFMeshPrimitives[i];
         const mesh = meshes[i];
 

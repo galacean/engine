@@ -1,6 +1,4 @@
 import {
-  BlinnPhongMaterial,
-  Engine,
   Logger,
   Material,
   PBRMaterial,
@@ -166,7 +164,7 @@ export class GLTFMaterialParser extends GLTFParser {
     }
 
     return Promise.resolve(material).then((material) => {
-      material ||= new BlinnPhongMaterial(engine);
+      material ||= context._getDefaultMaterial(engine);
       GLTFParser.executeExtensionsAdditiveAndParse(materialInfo.extensions, context, material, materialInfo);
       // @ts-ignore
       material._associationSuperResource(glTFResource);
