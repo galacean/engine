@@ -109,7 +109,7 @@ export class MeshShape extends BaseShape {
 
     let typedBuffer: TypedArray;
     if (reusePositionBuffer) {
-      return this._positionBuffer;
+      typedBuffer = this._positionBuffer;
     } else {
       const buffer = vertexBufferBinding?.buffer;
       if (!buffer) {
