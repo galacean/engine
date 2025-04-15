@@ -652,6 +652,7 @@ export class Engine extends EventDispatcher {
     this._hardwareRenderer.resetState();
     this._lastRenderState = new RenderState();
     // Clear shader pools
+    Shader._clear(this);
     this._shaderProgramPools.length = 0;
 
     const { resourceManager } = this;
