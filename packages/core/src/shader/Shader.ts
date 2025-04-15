@@ -178,7 +178,6 @@ export class Shader implements IReferable {
    */
   static _clear(engine: Engine): void {
     const shaderMap = Shader._shaderMap;
-    const engineShaderProgramPools = engine._shaderProgramPools;
     for (const key in shaderMap) {
       const shader = shaderMap[key];
       if (!shader) continue;
@@ -192,7 +191,6 @@ export class Shader implements IReferable {
             const shaderProgramPool = passShaderProgramPools[i];
             if (shaderProgramPool.engine !== engine) continue;
             shaderProgramPool._destroy();
-            delete engineShaderProgramPools[pass._shaderPassId];
             passShaderProgramPools.splice(k, 1);
           }
         }
