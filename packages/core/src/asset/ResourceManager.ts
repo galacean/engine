@@ -612,12 +612,6 @@ export class ResourceManager {
     });
   }
 
-  /**
-   * @internal
-   * @beta Just for internal editor, not recommended for developers.
-   */
-  initSubpackages(data: any): void {}
-
   //-----------------Editor temp solution-----------------
 }
 
@@ -661,6 +655,7 @@ type EditorResourceItem = {
   type: string;
   id: string;
   dependentAssetMap?: { [key: string]: string };
+  subpackageName?: string;
 };
 type SubAssetPromiseCallbacks<T> = Record<
   // main asset url, ie. "https://***.glb"
