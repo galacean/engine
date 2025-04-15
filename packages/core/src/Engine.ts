@@ -47,7 +47,6 @@ import { Texture2D, TextureFormat } from "./texture";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
-import { MaskManager } from "./RenderPipeline/MaskManager";
 
 ShaderPool.init();
 
@@ -444,13 +443,10 @@ export class Engine extends EventDispatcher {
     this.xrManager?._destroy();
     this.dispatch("shutdown", this);
 
-    Shader._clear(this);
-    UIUtils._clear();
-    MaskManager._clear();
-
     // Cancel animation
     this.pause();
 
+    Shader._clear(this);
     this._hardwareRenderer.destroy();
 
     this.removeAllEventListeners();
