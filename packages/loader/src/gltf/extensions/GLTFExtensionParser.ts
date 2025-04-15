@@ -1,4 +1,4 @@
-import { EngineObject } from "@galacean/engine-core";
+import { AssetPromise, EngineObject } from "@galacean/engine-core";
 import { GLTFExtensionOwnerSchema } from "../GLTFSchema";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionSchema } from "./GLTFExtensionSchema";
@@ -26,7 +26,7 @@ export abstract class GLTFExtensionParser {
     extensionSchema: GLTFExtensionSchema,
     extensionOwnerSchema: GLTFExtensionOwnerSchema,
     ...extra
-  ): EngineObject | Promise<EngineObject | Uint8Array> {
+  ): EngineObject | AssetPromise<EngineObject | Uint8Array> {
     throw "Not implemented.";
   }
 
@@ -44,7 +44,7 @@ export abstract class GLTFExtensionParser {
     extensionSchema: GLTFExtensionSchema,
     extensionOwnerSchema: GLTFExtensionOwnerSchema,
     ...extra
-  ): void | Promise<void> {
+  ): void | AssetPromise<void> {
     throw "Not implemented.";
   }
 }

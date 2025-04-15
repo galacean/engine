@@ -1,11 +1,11 @@
-import { AssetType, Texture2D, Utils } from "@galacean/engine-core";
+import { AssetPromise, AssetType, Texture2D, Utils } from "@galacean/engine-core";
+import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
+import { KTX2Loader } from "../../ktx2/KTX2Loader";
 import type { ITexture } from "../GLTFSchema";
+import { GLTFUtils } from "../GLTFUtils";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext, GLTFParserType } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
-import { GLTFUtils } from "../GLTFUtils";
-import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
-import { KTX2Loader } from "../../ktx2/KTX2Loader";
 
 interface KHRBasisSchema {
   source: number;
@@ -13,11 +13,11 @@ interface KHRBasisSchema {
 
 @registerGLTFExtension("KHR_texture_basisu", GLTFExtensionMode.CreateAndParse)
 class KHR_texture_basisu extends GLTFExtensionParser {
-  override async createAndParse(
+  override createAndParse(
     context: GLTFParserContext,
     schema: KHRBasisSchema,
     textureInfo: ITexture
-  ): Promise<Texture2D> {
+  ): AssetPromise<Texture2D> {
     const { glTF, glTFResource } = context;
     const { engine, url } = glTFResource;
 

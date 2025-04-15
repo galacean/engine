@@ -1,4 +1,5 @@
 import {
+  AssetPromise,
   IndexFormat,
   Texture2D,
   TextureFilterMode,
@@ -140,7 +141,7 @@ export class GLTFUtils {
     const elementStride = dataElementSize * dataElementBytes;
     const accessorCount = accessor.count;
 
-    let promise: Promise<BufferInfo>;
+    let promise: AssetPromise<BufferInfo>;
 
     if (accessor.bufferView !== undefined) {
       const bufferViewIndex = accessor.bufferView;
@@ -189,7 +190,7 @@ export class GLTFUtils {
         new RestoreDataAccessor(undefined, TypedArray, undefined, count)
       );
 
-      promise = Promise.resolve(bufferInfo);
+      promise = AssetPromise.resolve(bufferInfo);
     }
 
     return accessor.sparse
@@ -240,7 +241,11 @@ export class GLTFUtils {
     const indicesBufferView = bufferViews[indices.bufferView];
     const valuesBufferView = bufferViews[values.bufferView];
 
-    return Promise.all([
+    AssetPromise.all([context.get<Uint8Array>(GLTFParserType.BufferView, indices.bufferView)]).then((a)=>{
+      
+    })
+
+    return AssetPromise.all([
       context.get<Uint8Array>(GLTFParserType.BufferView, indices.bufferView),
       context.get<Uint8Array>(GLTFParserType.BufferView, values.bufferView)
     ]).then(([indicesUint8Array, valuesUin8Array]) => {

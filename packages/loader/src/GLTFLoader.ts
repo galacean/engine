@@ -8,9 +8,9 @@ import {
   resourceLoader,
   ResourceManager
 } from "@galacean/engine-core";
+import { getMeshoptDecoder, ready } from "./gltf/extensions/MeshoptDecoder";
 import { GLTFResource } from "./gltf/GLTFResource";
 import { GLTFParserContext } from "./gltf/parser";
-import { getMeshoptDecoder, ready } from "./gltf/extensions/MeshoptDecoder";
 
 @resourceLoader(AssetType.GLTF, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
@@ -44,7 +44,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
       ...params
     });
 
-    return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
+    return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress, onCancel) => {
       context._setTaskCompleteProgress = setTaskCompleteProgress;
       context._setTaskDetailProgress = setTaskDetailProgress;
       context.parse().then(resolve).catch(reject);

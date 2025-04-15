@@ -1,3 +1,4 @@
+import { AssetPromise } from "@galacean/engine-core";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext, GLTFParserType } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
@@ -6,7 +7,7 @@ import { getMeshoptDecoder } from "./MeshoptDecoder";
 
 @registerGLTFExtension("EXT_meshopt_compression", GLTFExtensionMode.CreateAndParse)
 class EXT_meshopt_compression extends GLTFExtensionParser {
-  override createAndParse(context: GLTFParserContext, schema: IEXTMeshoptCompressionSchema): Promise<Uint8Array> {
+  override createAndParse(context: GLTFParserContext, schema: IEXTMeshoptCompressionSchema): AssetPromise<Uint8Array> {
     return context.get<ArrayBuffer>(GLTFParserType.Buffer, schema.buffer).then((arrayBuffer) => {
       return getMeshoptDecoder().then((decoder) =>
         decoder.decodeGltfBuffer(

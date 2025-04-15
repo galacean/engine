@@ -1,4 +1,4 @@
-import { AssetType, Texture, Texture2D, TextureWrapMode, Utils } from "@galacean/engine-core";
+import { AssetPromise, AssetType, Texture, Texture2D, TextureWrapMode, Utils } from "@galacean/engine-core";
 import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
 import { TextureWrapMode as GLTFTextureWrapMode } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
@@ -21,14 +21,14 @@ export class GLTFTextureParser extends GLTFParser {
     textureIndex: number,
     sampler?: number,
     textureName?: string
-  ): Promise<Texture2D> {
+  ): AssetPromise<Texture2D> {
     const { glTFResource, glTF } = context;
     const { engine, url } = glTFResource;
     const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = glTF.images[imageIndex];
 
     const useSampler = sampler !== undefined;
     const samplerInfo = useSampler && GLTFUtils.getSamplerInfo(glTF.samplers[sampler]);
-    let texture: Promise<Texture2D>;
+    let texture: AssetPromise<Texture2D>;
 
     if (uri) {
       const extIndex = uri.lastIndexOf(".");

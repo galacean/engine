@@ -1,13 +1,14 @@
-import { registerGLTFParser, GLTFParserType, GLTFParserContext } from "./GLTFParserContext";
+import { AssetPromise } from "@galacean/engine-core";
 import { GLTFParser } from "./GLTFParser";
+import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
 
 @registerGLTFParser(GLTFParserType.BufferView)
 export class GLTFBufferViewParser extends GLTFParser {
-  parse(context: GLTFParserContext, index: number): Promise<Uint8Array> {
+  parse(context: GLTFParserContext, index: number): AssetPromise<Uint8Array> {
     const bufferView = context.glTF.bufferViews[index];
     const { extensions, byteOffset = 0, byteLength, buffer: bufferIndex } = bufferView;
     return extensions
-      ? <Promise<Uint8Array>>GLTFParser.executeExtensionsCreateAndParse(extensions, context, bufferView)
+      ? <AssetPromise<Uint8Array>>GLTFParser.executeExtensionsCreateAndParse(extensions, context, bufferView)
       : context
           .get<ArrayBuffer>(GLTFParserType.Buffer, bufferIndex)
           .then((buffer) => new Uint8Array(buffer, byteOffset, byteLength));
