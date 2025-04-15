@@ -1,4 +1,12 @@
-import { BlendShape, Buffer, BufferBindFlag, BufferUsage, ModelMesh, VertexElement } from "@galacean/engine-core";
+import {
+  AssetPromise,
+  BlendShape,
+  Buffer,
+  BufferBindFlag,
+  BufferUsage,
+  ModelMesh,
+  VertexElement
+} from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import {
   BlendShapeDataRestoreInfo,
@@ -155,7 +163,7 @@ export class GLTFMeshParser extends GLTFParser {
     context: GLTFParserContext,
     glTF: IGLTF,
     accessor: IAccessor
-  ): Promise<{ vertices: Vector3[]; restoreInfo: BlendShapeDataRestoreInfo }> {
+  ): AssetPromise<{ vertices: Vector3[]; restoreInfo: BlendShapeDataRestoreInfo }> {
     return GLTFUtils.getAccessorBuffer(context, glTF.bufferViews, accessor).then((bufferInfo) => {
       const buffer = bufferInfo.data;
       const byteOffset = bufferInfo.interleaved ? (accessor.byteOffset ?? 0) % bufferInfo.stride : 0;

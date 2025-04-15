@@ -1,3 +1,5 @@
+type UnwrapPromise<T> = T extends PromiseLike<infer U> ? U : T;
+
 /**
  * Asset Loading Promise.
  */
@@ -14,14 +16,14 @@ export class AssetPromise<T> implements PromiseLike<T> {
    * @param - Promise Collection
    * @returns AssetPromise
    */
-  static all<T = any>(promises: (PromiseLike<T> | T)[]) {
-    return new AssetPromise<T[]>((resolve, reject, setTaskCompleteProgress) => {
+  static all<T extends any[]>(promises: [...T]): AssetPromise<{ [K in keyof T]: UnwrapPromise<T[K]> }> {
+    return new AssetPromise<{ [K in keyof T]: UnwrapPromise<T[K]> }>((resolve, reject, setTaskCompleteProgress) => {
       const count = promises.length;
       const results: T[] = new Array(count);
       let completed = 0;
 
       if (count === 0) {
-        return resolve(results);
+        return resolve(results as { [K in keyof T]: UnwrapPromise<T[K]> });
       }
 
       function onComplete(index: number, resultValue: T) {
@@ -30,18 +32,18 @@ export class AssetPromise<T> implements PromiseLike<T> {
 
         setTaskCompleteProgress(completed, count);
         if (completed === count) {
-          resolve(results);
+          resolve(results as { [K in keyof T]: UnwrapPromise<T[K]> });
         }
       }
 
-      function onProgress(promise: PromiseLike<T> | T, index: number) {
+      function onProgress(promise: any, index: number) {
         if (promise instanceof Promise || promise instanceof AssetPromise) {
           promise.then(function (value) {
             onComplete(index, value);
           }, reject);
         } else {
           Promise.resolve().then(() => {
-            onComplete(index, promise as T);
+            onComplete(index, promise);
           });
         }
       }

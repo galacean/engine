@@ -112,7 +112,7 @@ export abstract class GLTFParser {
 
     if (parser) {
       const chainPromise = parser.createAndParse(context, extensionSchema, ownerSchema, ...extra);
-      context.chainPromises.push(chainPromise);
+      chainPromise instanceof AssetPromise && context.chainPromises.push(chainPromise);
       return chainPromise;
     }
   }
@@ -129,7 +129,7 @@ export abstract class GLTFParser {
 
     if (parser) {
       const chainPromise = parser.additiveParse(context, parseResource, extensionSchema, ownerSchema, ...extra);
-      context.chainPromises.push(chainPromise);
+      chainPromise && context.chainPromises.push(chainPromise);
     }
   }
 
