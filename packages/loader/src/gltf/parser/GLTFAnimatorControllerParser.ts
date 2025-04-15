@@ -2,16 +2,17 @@ import {
   AnimationClip,
   AnimatorController,
   AnimatorControllerLayer,
-  AnimatorStateMachine
+  AnimatorStateMachine,
+  AssetPromise
 } from "@galacean/engine-core";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
 
 @registerGLTFParser(GLTFParserType.AnimatorController)
 export class GLTFAnimatorControllerParser extends GLTFParser {
-  parse(context: GLTFParserContext): Promise<AnimatorController> {
+  parse(context: GLTFParserContext): AssetPromise<AnimatorController> {
     if (!context.needAnimatorController) {
-      return Promise.resolve(null);
+      return AssetPromise.resolve(null);
     }
 
     return context.get<AnimationClip>(GLTFParserType.Animation).then((animations) => {

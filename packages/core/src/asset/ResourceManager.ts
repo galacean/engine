@@ -94,7 +94,7 @@ export class ResourceManager {
     }
     // multi items
     const promises = assetInfo.map((item) => this._loadSingleItem<T>(item));
-    return AssetPromise.all(promises);
+    return AssetPromise.all(promises) as AssetPromise<T | Object[]>;
   }
 
   /**

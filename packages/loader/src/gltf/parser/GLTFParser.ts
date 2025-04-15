@@ -1,4 +1,4 @@
-import { AnimationClip, EngineObject, Material, Mesh } from "@galacean/engine-core";
+import { AssetPromise, EngineObject } from "@galacean/engine-core";
 import type { GLTFExtensionOwnerSchema } from "../GLTFSchema";
 import { GLTFExtensionMode, GLTFExtensionParser } from "../extensions/GLTFExtensionParser";
 import { GLTFExtensionSchema } from "../extensions/GLTFExtensionSchema";
@@ -23,15 +23,15 @@ export abstract class GLTFParser {
     context: GLTFParserContext,
     ownerSchema: GLTFExtensionOwnerSchema,
     ...extra
-  ): EngineObject | void | Promise<EngineObject | Uint8Array | void> {
-    let resource: EngineObject | Promise<EngineObject> = null;
+  ): EngineObject | void | AssetPromise<EngineObject | Uint8Array | void> {
+    let resource: EngineObject | AssetPromise<EngineObject> = null;
 
     const extensionArray = Object.keys(extensions);
     for (let i = extensionArray.length - 1; i >= 0; --i) {
       const extensionName = extensionArray[i];
       const extensionSchema = extensions[extensionName];
 
-      resource = <EngineObject | Promise<EngineObject>>(
+      resource = <EngineObject | AssetPromise<EngineObject>>(
         GLTFParser._createAndParse(extensionName, context, extensionSchema, ownerSchema, ...extra)
       );
       if (resource) {
@@ -107,11 +107,13 @@ export abstract class GLTFParser {
     extensionSchema: GLTFExtensionSchema,
     ownerSchema: GLTFExtensionOwnerSchema,
     ...extra
-  ): EngineObject | Uint8Array | Promise<EngineObject | Uint8Array> {
+  ): EngineObject | Uint8Array | AssetPromise<EngineObject | Uint8Array> {
     const parser = GLTFParser.getExtensionParser(extensionName, GLTFExtensionMode.CreateAndParse);
 
     if (parser) {
-      return parser.createAndParse(context, extensionSchema, ownerSchema, ...extra);
+      const chainPromise = parser.createAndParse(context, extensionSchema, ownerSchema, ...extra);
+      context.chainPromises.push(chainPromise);
+      return chainPromise;
     }
   }
 
@@ -126,7 +128,8 @@ export abstract class GLTFParser {
     const parser = GLTFParser.getExtensionParser(extensionName, GLTFExtensionMode.AdditiveParse);
 
     if (parser) {
-      parser.additiveParse(context, parseResource, extensionSchema, ownerSchema, ...extra);
+      const chainPromise = parser.additiveParse(context, parseResource, extensionSchema, ownerSchema, ...extra);
+      context.chainPromises.push(chainPromise);
     }
   }
 

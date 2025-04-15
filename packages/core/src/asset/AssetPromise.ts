@@ -2,6 +2,12 @@
  * Asset Loading Promise.
  */
 export class AssetPromise<T> implements PromiseLike<T> {
+  static resolve<T = any>(value?: T | PromiseLike<T>): AssetPromise<T> {
+    return new AssetPromise<T>((resolve) => {
+      resolve(value);
+    });
+  }
+
   /**
    * Return a new resource Promise through the provided asset promise collection.
    * The resolved of the new AssetPromise will be triggered when all the Promises in the provided set are completed.
