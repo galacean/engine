@@ -422,7 +422,7 @@ export class ResourceManager {
     return this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, assetBaseURL, subpackageName);
   }
 
-  // For adapter mini-game platform.
+  // For adapter mini-game platform
   private _loadSubpackageAndMainAsset<T>(
     loader: Loader<T>,
     item: LoadItem,
