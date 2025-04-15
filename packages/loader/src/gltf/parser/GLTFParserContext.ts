@@ -2,7 +2,9 @@ import {
   AnimationClip,
   Animator,
   AnimatorController,
+  BlinnPhongMaterial,
   Buffer,
+  Engine,
   Entity,
   Material,
   ModelMesh,
@@ -38,6 +40,7 @@ export class GLTFParserContext {
     taskDetail: {},
     taskComplete: { loaded: 0, total: 0 }
   };
+  private _defaultMaterial: BlinnPhongMaterial;
 
   /** @internal */
   _setTaskCompleteProgress: (loaded: number, total: number) => void;
@@ -131,6 +134,13 @@ export class GLTFParserContext {
 
     this._addTaskCompletePromise(promise);
     return promise;
+  }
+
+  /**
+   * @internal
+   */
+  _getDefaultMaterial(engine: Engine): BlinnPhongMaterial {
+    return (this._defaultMaterial ||= new BlinnPhongMaterial(engine));
   }
 
   /**
