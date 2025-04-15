@@ -673,6 +673,7 @@ export class Engine extends EventDispatcher {
     this._subRenderElementPool.garbageCollection();
     this._textSubRenderElementPool.garbageCollection();
     this._renderElementPool.garbageCollection();
+    this._renderContext.garbageCollection();
   }
 
   /**
