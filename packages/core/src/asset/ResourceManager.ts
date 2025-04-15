@@ -361,7 +361,8 @@ export class ResourceManager {
     const paths = queryPath ? this._parseQueryPath(queryPath) : [];
 
     // Get remote asset base url
-    const remoteAssetBaseURL = this._virtualPathResourceMap[assetBaseURL]?.path ?? assetBaseURL;
+    const remoteConfig = this._virtualPathResourceMap[assetBaseURL];
+    const remoteAssetBaseURL = remoteConfig?.path ?? assetBaseURL;
 
     // Check cache
     const cacheObject = this._assetUrlPool[remoteAssetBaseURL];
@@ -403,11 +404,14 @@ export class ResourceManager {
       throw `loader not found: ${item.type}`;
     }
 
+    const subpackageName = remoteConfig?.subpackageName;
+
     // Check sub asset
     if (queryPath) {
       // Check whether load main asset
       const mainPromise =
-        loadingPromises[remoteAssetBaseURL] || this._loadMainAsset(loader, item, remoteAssetBaseURL, assetBaseURL);
+        loadingPromises[remoteAssetBaseURL] ||
+        this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, assetBaseURL, subpackageName);
       mainPromise.catch((e) => {
         this._onSubAssetFail(remoteAssetBaseURL, queryPath, e);
       });
@@ -415,6 +419,17 @@ export class ResourceManager {
       return this._createSubAssetPromiseCallback<T>(remoteAssetBaseURL, remoteAssetURL, queryPath);
     }
 
+    return this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, assetBaseURL, subpackageName);
+  }
+
+  // For adapter mini-game platform
+  private _loadSubpackageAndMainAsset<T>(
+    loader: Loader<T>,
+    item: LoadItem,
+    remoteAssetBaseURL: string,
+    assetBaseURL: string,
+    subpackageName: string
+  ): AssetPromise<T> {
     return this._loadMainAsset(loader, item, remoteAssetBaseURL, assetBaseURL);
   }
 
@@ -599,6 +614,7 @@ export class ResourceManager {
       }
     });
   }
+
   //-----------------Editor temp solution-----------------
 }
 
@@ -642,6 +658,7 @@ type EditorResourceItem = {
   type: string;
   id: string;
   dependentAssetMap?: { [key: string]: string };
+  subpackageName?: string;
 };
 type SubAssetPromiseCallbacks<T> = Record<
   // main asset url, ie. "https://***.glb"
