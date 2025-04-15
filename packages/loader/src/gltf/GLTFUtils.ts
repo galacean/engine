@@ -133,7 +133,7 @@ export class GLTFUtils {
     context: GLTFParserContext,
     bufferViews: IBufferView[],
     accessor: IAccessor
-  ): Promise<BufferInfo> {
+  ): AssetPromise<BufferInfo> {
     const componentType = accessor.componentType;
     const TypedArray = GLTFUtils.getComponentType(componentType);
     const dataElementSize = GLTFUtils.getAccessorTypeSize(accessor.type);
@@ -241,10 +241,6 @@ export class GLTFUtils {
     const indicesBufferView = bufferViews[indices.bufferView];
     const valuesBufferView = bufferViews[values.bufferView];
 
-    AssetPromise.all([context.get<Uint8Array>(GLTFParserType.BufferView, indices.bufferView)]).then((a)=>{
-      
-    })
-
     return AssetPromise.all([
       context.get<Uint8Array>(GLTFParserType.BufferView, indices.bufferView),
       context.get<Uint8Array>(GLTFParserType.BufferView, values.bufferView)
@@ -258,7 +254,6 @@ export class GLTFUtils {
       restoreInfo.sparseCount = count;
 
       const IndexTypeArray = GLTFUtils.getComponentType(indices.componentType);
-
       const indexLength = indicesByteLength / IndexTypeArray.BYTES_PER_ELEMENT;
       const indicesArray = new IndexTypeArray(indicesUint8Array.buffer, indicesByteOffset, indexLength);
       restoreInfo.sparseIndices = new RestoreDataAccessor(
