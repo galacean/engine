@@ -47,7 +47,6 @@ import { Texture2D, TextureFormat } from "./texture";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
-import { AnimationCurveOwner } from "./animation/internal/animationCurveOwner/AnimationCurveOwner";
 import { MaskManager } from "./RenderPipeline/MaskManager";
 
 ShaderPool.init();
@@ -448,7 +447,6 @@ export class Engine extends EventDispatcher {
     Shader._clear(this);
     UIUtils._clear();
     MaskManager._clear();
-    AnimationCurveOwner._components.length = 0;
 
     // Cancel animation
     this.pause();

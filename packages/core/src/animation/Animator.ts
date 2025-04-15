@@ -345,7 +345,7 @@ export class Animator extends Component {
     const { _curveBindings: curves } = animatorState.clip;
 
     const { curveOwnerPool: layerCurveOwnerPool } = animatorLayerData;
-
+    const components = AnimationCurveOwner._components;
     for (let i = curves.length - 1; i >= 0; i--) {
       const curve = curves[i];
       const { relativePath } = curve;
@@ -353,9 +353,9 @@ export class Animator extends Component {
       if (targetEntity) {
         const component =
           curve.typeIndex > 0
-            ? targetEntity.getComponents(curve.type, AnimationCurveOwner._components)[curve.typeIndex]
+            ? targetEntity.getComponents(curve.type, components)[curve.typeIndex]
             : targetEntity.getComponent(curve.type);
-
+        components.length = 0;
         if (!component) {
           continue;
         }
