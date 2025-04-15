@@ -14,7 +14,6 @@ import {
   ShaderProperty,
   SubFont,
   TextHorizontalAlignment,
-  TextRenderer,
   TextUtils,
   TextVerticalAlignment,
   Texture2D,
@@ -33,6 +32,7 @@ import { UITransform, UITransformModifyFlags } from "../UITransform";
 export class Text extends UIRenderer implements ITextRenderer {
   private static _textTextureProperty = ShaderProperty.getByName("renderElement_TextTexture");
   private static _worldPositions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
+  private static _charRenderInfos: CharRenderInfo[] = [];
 
   @ignoreClone
   private _textChunks = Array<TextChunk>();
@@ -430,8 +430,7 @@ export class Text extends UIRenderer implements ITextRenderer {
     // @ts-ignore
     const pixelsPerResolution = Engine._pixelsPerUnit / this._getRootCanvas().referenceResolutionPerUnit;
     const { min, max } = this._localBounds;
-    // @ts-ignore
-    const charRenderInfos = TextRenderer._charRenderInfos;
+    const charRenderInfos = Text._charRenderInfos;
     const charFont = this._getSubFont();
     const { size, pivot } = <UITransform>this._transformEntity.transform;
     let rendererWidth = size.x;

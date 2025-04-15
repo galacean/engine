@@ -63,6 +63,10 @@ export class RenderContext {
     projectionParams.set(flipProjection ? -1 : 1, virtualCamera.nearClipPlane, virtualCamera.farClipPlane, 0);
     shaderData.setVector4(RenderContext._cameraProjectionProperty, projectionParams);
   }
+
+  garbageCollection(): void {
+    this.camera = null;
+  }
 }
 
 /**

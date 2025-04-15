@@ -40,7 +40,6 @@ export class PhysicsPointerEventEmitter extends PointerEventEmitter {
         camera.screenPointToRay(pointer.position, ray);
         if (scenePhysics.raycast(ray, camera.farClipPlane, camera.cullingMask, <HitResult>hitResult)) {
           this._updateRaycast(hitResult.entity, pointer);
-          (<HitResult>hitResult).entity = (<HitResult>hitResult).shape = null;
           return;
         }
         if (camera.clearFlags & CameraClearFlags.Color) {
