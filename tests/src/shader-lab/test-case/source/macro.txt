@@ -1,0 +1,4 @@
+#define fragCoord vec2(uv.x * iResolution.x, uv.y * iResolution.y)
+
+vec2 q = fragCoord.xy / iResolution.xy;
+vec2 p = ( 2.0 * fragCoord.xy - iResolution.xy ) / min( iResolution.y, iResolution.x );
