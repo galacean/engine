@@ -45,7 +45,7 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
 
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
-    gl.pixelStorei(gl.UNPACK_ALIGNMENT, formatDetail.unpackAlignment);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, formatDetail.alignment);
 
     if (isCompressed) {
       const mipBit = 1 << mipLevel;

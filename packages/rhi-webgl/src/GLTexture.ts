@@ -37,7 +37,7 @@ export class GLTexture implements IPlatformTexture {
           readFormat: gl.RGB,
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false,
-          unpackAlignment: 1
+          alignment: 1
         };
       case TextureFormat.R8G8B8A8:
         return {
@@ -46,7 +46,7 @@ export class GLTexture implements IPlatformTexture {
           readFormat: gl.RGBA,
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false,
-          unpackAlignment: 4
+          alignment: 4
         };
       case TextureFormat.R4G4B4A4:
         return {
@@ -54,7 +54,7 @@ export class GLTexture implements IPlatformTexture {
           baseFormat: gl.RGBA,
           dataType: gl.UNSIGNED_SHORT_4_4_4_4,
           isCompressed: false,
-          unpackAlignment: 2
+          alignment: 2
         };
       case TextureFormat.R5G5B5A1:
         return {
@@ -62,7 +62,7 @@ export class GLTexture implements IPlatformTexture {
           baseFormat: gl.RGBA,
           dataType: gl.UNSIGNED_SHORT_5_5_5_1,
           isCompressed: false,
-          unpackAlignment: 2
+          alignment: 2
         };
       case TextureFormat.R5G6B5:
         return {
@@ -70,7 +70,7 @@ export class GLTexture implements IPlatformTexture {
           baseFormat: gl.RGB,
           dataType: gl.UNSIGNED_SHORT_5_6_5,
           isCompressed: false,
-          unpackAlignment: 2
+          alignment: 2
         };
       case TextureFormat.Alpha8:
         return {
@@ -78,7 +78,7 @@ export class GLTexture implements IPlatformTexture {
           baseFormat: gl.ALPHA,
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false,
-          unpackAlignment: 1
+          alignment: 1
         };
       case TextureFormat.LuminanceAlpha:
         return {
@@ -86,7 +86,7 @@ export class GLTexture implements IPlatformTexture {
           baseFormat: gl.LUMINANCE_ALPHA,
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false,
-          unpackAlignment: 2
+          alignment: 2
         };
       case TextureFormat.R16G16B16A16:
         return {
@@ -94,7 +94,7 @@ export class GLTexture implements IPlatformTexture {
           baseFormat: gl.RGBA,
           dataType: gl.HALF_FLOAT,
           isCompressed: false,
-          unpackAlignment: 8
+          alignment: 8
         };
       case TextureFormat.R32G32B32A32:
         return {
@@ -102,7 +102,7 @@ export class GLTexture implements IPlatformTexture {
           baseFormat: gl.RGBA,
           dataType: gl.FLOAT,
           isCompressed: false,
-          unpackAlignment: 8
+          alignment: 8
         };
       // Only WebGL2 support
       case TextureFormat.R11G11B10_UFloat:
@@ -111,7 +111,7 @@ export class GLTexture implements IPlatformTexture {
           baseFormat: gl.RGB,
           dataType: gl.FLOAT,
           isCompressed: false,
-          unpackAlignment: 4
+          alignment: 4
         };
       // Only WebGL2 support
       case TextureFormat.R32G32B32A32_UInt:
@@ -120,7 +120,7 @@ export class GLTexture implements IPlatformTexture {
           baseFormat: gl.RGBA_INTEGER,
           dataType: gl.UNSIGNED_INT,
           isCompressed: false,
-          unpackAlignment: 8
+          alignment: 8
         };
       // Only WebGL2 support
       case TextureFormat.R8:
@@ -129,7 +129,7 @@ export class GLTexture implements IPlatformTexture {
           baseFormat: gl.RED,
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false,
-          unpackAlignment: 1
+          alignment: 1
         };
       // Only WebGL2 support
       case TextureFormat.R8G8:
@@ -138,7 +138,7 @@ export class GLTexture implements IPlatformTexture {
           baseFormat: gl.RG,
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false,
-          unpackAlignment: 2
+          alignment: 2
         };
       case TextureFormat.BC1:
         return {
@@ -650,7 +650,7 @@ export class GLTexture implements IPlatformTexture {
     out: ArrayBufferView
   ): void {
     const gl = this._gl;
-    const { baseFormat, dataType, readFormat, unpackAlignment } = this._formatDetail;
+    const { baseFormat, dataType, readFormat, alignment } = this._formatDetail;
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._getReadFrameBuffer());
 
@@ -671,7 +671,7 @@ export class GLTexture implements IPlatformTexture {
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._glTexture, mipLevel);
     }
 
-    gl.pixelStorei(gl.PACK_ALIGNMENT, unpackAlignment);
+    gl.pixelStorei(gl.PACK_ALIGNMENT, alignment);
     // Base format is different from read format in webgl1.0 with sRGB
     gl.readPixels(x, y, width, height, readFormat ?? baseFormat, dataType, out);
 

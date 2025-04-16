@@ -56,7 +56,7 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
       const { baseFormat, dataType } = formatDetail;
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
       gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
-      gl.pixelStorei(gl.UNPACK_ALIGNMENT, formatDetail.unpackAlignment);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, formatDetail.alignment);
       gl.texSubImage2D(this._target, mipLevel, x, y, width, height, baseFormat, dataType, colorBuffer);
     }
   }
