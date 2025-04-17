@@ -3,7 +3,6 @@ import {
   Animator,
   AnimatorController,
   AssetPromise,
-  BlinnPhongMaterial,
   Buffer,
   Entity,
   Logger,
@@ -36,12 +35,14 @@ export class GLTFParserContext {
   buffers?: ArrayBuffer[];
   needAnimatorController = false;
 
+  /** @internal */
+  _chainPromises: AssetPromise<any>[] = [];
+
   private _resourceCache = new Map<string, any>();
   private _progress = {
     taskDetail: {},
     taskComplete: { loaded: 0, total: 0 }
   };
-  private _defaultMaterial: BlinnPhongMaterial;
 
   /** @internal */
   _setTaskCompleteProgress: (loaded: number, total: number) => void;
@@ -101,9 +102,8 @@ export class GLTFParserContext {
       isSubAsset && this._handleSubAsset(resource, type, index);
     }
 
-    if (type !== GLTFParserType.Entity) {
-      // @ts-ignore
-      this.resourceManager._addLoadingPromise(this.glTFResource.url, resource);
+    if (resource instanceof AssetPromise) {
+      this._chainPromises.push(resource);
     }
     cache.set(cacheKey, resource);
     return resource;
