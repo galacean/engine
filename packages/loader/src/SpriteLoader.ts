@@ -13,12 +13,19 @@ import {
 @resourceLoader(AssetType.Sprite, ["sprite"], false)
 class SpriteLoader extends Loader<Sprite> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Sprite> {
-    // @ts-ignore
-    return resourceManager._request<any>(item.url, { ...item, type: "json" }).then((data) => {
-      return data.belongToAtlas
-        ? this._loadFromAtlas(resourceManager, data)
-        : this._loadFromTexture(resourceManager, data);
-    });
+    return (
+      resourceManager
+        // @ts-ignore
+        ._request<any>(item.url, {
+          ...item,
+          type: "json"
+        })
+        .then((data) => {
+          return data.belongToAtlas
+            ? this._loadFromAtlas(resourceManager, data)
+            : this._loadFromTexture(resourceManager, data);
+        })
+    );
   }
 
   private _loadFromAtlas(resourceManager: ResourceManager, data: any): AssetPromise<Sprite> {
