@@ -38,7 +38,7 @@ export class ResourceManager {
   /** Base url for loading assets. */
   baseUrl: string | null = null;
 
-  private _loadingPromises: Record<string, AssetPromise<any>[]> = {};
+  private _loadingPromises: Record<string, AssetPromise<any>> = {};
 
   /** Asset path pool, key is the `instanceID` of resource, value is asset path. */
   private _assetPool: Record<number, string> = Object.create(null);
@@ -94,7 +94,7 @@ export class ResourceManager {
     }
     // multi items
     const promises = assetInfo.map((item) => this._loadSingleItem<T>(item));
-    return AssetPromise.all(promises) as AssetPromise<T | Object[]>;
+    return AssetPromise.all(promises);
   }
 
   /**
@@ -150,24 +150,16 @@ export class ResourceManager {
   cancelNotLoaded(urls: string[]): void;
 
   cancelNotLoaded(url?: string | string[]): void {
-    const loadingPromises = this._loadingPromises;
     if (!url) {
-      const keys = Object.keys(loadingPromises);
-      for (let i = 0, n = keys.length; i < n; i++) {
-        this.cancelNotLoaded(keys[i]);
-      }
+      Utils.objectValues(this._loadingPromises).forEach((promise) => {
+        promise.cancel();
+      });
     } else if (typeof url === "string") {
-      const promises = loadingPromises[url];
-      if (promises) {
-        for (let i = 0, n = promises.length; i < n; i++) {
-          promises[i].cancel();
-        }
-        delete loadingPromises[url];
-      }
+      this._loadingPromises[url]?.cancel();
     } else {
-      for (let i = 0, n = url.length; i < n; i++) {
-        this.cancelNotLoaded(url[i]);
-      }
+      url.forEach((p) => {
+        this._loadingPromises[p]?.cancel();
+      });
     }
   }
 
@@ -334,42 +326,6 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addLoadingPromise(url: string, promise: AssetPromise<any>, isMain: boolean = false): void {
-    const loadingPromises = this._loadingPromises;
-    if (!loadingPromises) return;
-    const remoteUrl = this._getRemoteUrl(url);
-    if (!loadingPromises[remoteUrl]) {
-      loadingPromises[remoteUrl] = [promise];
-    } else {
-      if (isMain) {
-        loadingPromises[remoteUrl].unshift(promise);
-      } else {
-        loadingPromises[remoteUrl].push(promise);
-      }
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _delLoadingPromise(url: string): void {
-    const loadingPromises = this._loadingPromises;
-    if (!loadingPromises) return;
-    const remoteUrl = this._getRemoteUrl(url);
-    delete this._loadingPromises[remoteUrl];
-  }
-
-  /**
-   * @internal
-   */
-  _getLoadingPromise<T = any>(url: string): AssetPromise<T> {
-    const remoteUrl = this._getRemoteUrl(url);
-    return this._loadingPromises[remoteUrl]?.[0];
-  }
-
-  /**
-   * @internal
-   */
   _destroy(): void {
     this.cancelNotLoaded();
     this._gc(true);
@@ -427,7 +383,8 @@ export class ResourceManager {
     }
 
     // Check is loading
-    const loadingPromise = this._getLoadingPromise(remoteAssetURL);
+    const loadingPromises = this._loadingPromises;
+    const loadingPromise = loadingPromises[remoteAssetURL];
     if (loadingPromise) {
       return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
         loadingPromise
@@ -453,7 +410,7 @@ export class ResourceManager {
     if (queryPath) {
       // Check whether load main asset
       const mainPromise =
-        this._getLoadingPromise(remoteAssetBaseURL) ||
+        loadingPromises[remoteAssetBaseURL] ||
         this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, assetBaseURL, subpackageName);
       mainPromise.catch((e) => {
         this._onSubAssetFail(remoteAssetBaseURL, queryPath, e);
@@ -483,18 +440,20 @@ export class ResourceManager {
     assetBaseURL: string
   ): AssetPromise<T> {
     item.url = assetBaseURL;
+    const loadingPromises = this._loadingPromises;
     const promise = loader.load(item, this);
-    this._addLoadingPromise(remoteAssetBaseURL, promise, true);
+    loadingPromises[remoteAssetBaseURL] = promise;
+
     promise.then(
       (resource: T) => {
         if (loader.useCache) {
           this._addAsset(remoteAssetBaseURL, resource as EngineObject);
         }
-        this._delLoadingPromise(remoteAssetBaseURL);
+        delete loadingPromises[remoteAssetBaseURL];
         this._releaseSubAssetPromiseCallback(remoteAssetBaseURL);
       },
       () => {
-        this._delLoadingPromise(remoteAssetBaseURL);
+        delete loadingPromises[remoteAssetBaseURL];
         this._releaseSubAssetPromiseCallback(remoteAssetBaseURL);
       }
     );
@@ -507,6 +466,7 @@ export class ResourceManager {
     remoteAssetURL: string,
     assetSubPath: string
   ): AssetPromise<T> {
+    const loadingPromises = this._loadingPromises;
     const subPromiseCallback = this._subAssetPromiseCallbacks[remoteAssetBaseURL]?.[assetSubPath];
     const resolvedValue = subPromiseCallback?.resolvedValue;
     const rejectedValue = subPromiseCallback?.rejectedValue;
@@ -530,15 +490,13 @@ export class ResourceManager {
       };
     });
 
-    this._addLoadingPromise(remoteAssetURL, promise, true);
+    loadingPromises[remoteAssetURL] = promise;
 
     promise.then(
       () => {
-        this._delLoadingPromise(remoteAssetBaseURL);
+        delete loadingPromises[remoteAssetURL];
       },
-      () => {
-        this._delLoadingPromise(remoteAssetBaseURL);
-      }
+      () => delete loadingPromises[remoteAssetURL]
     );
 
     return promise;

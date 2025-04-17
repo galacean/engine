@@ -1,5 +1,3 @@
-type UnwrapPromise<T> = T extends PromiseLike<infer U> ? U : T;
-
 /**
  * Asset Loading Promise.
  */
@@ -223,3 +221,4 @@ type TaskCompleteProgress = {
 };
 type TaskCompleteCallback = (loaded: number, total: number) => void;
 type TaskDetailCallback = (url: string, loaded: number, total: number) => void;
+type UnwrapPromise<T> = T extends PromiseLike<infer U> ? U : T;
