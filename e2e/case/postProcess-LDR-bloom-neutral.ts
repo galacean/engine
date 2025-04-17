@@ -21,5 +21,6 @@ initPostProcessEnv((camera: Camera, resArray) => {
   bloomEffect.threshold.value = 0.5;
   bloomEffect.intensity.value = 1;
   bloomEffect.dirtTexture.value = dirtTexture;
+  bloomEffect.dirtIntensity.value = 5;
   tonemappingEffect.mode.value = TonemappingMode.Neutral;
 });
