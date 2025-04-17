@@ -1,12 +1,12 @@
 import {
-  AnimationClip,
+  resourceLoader,
+  Loader,
   AssetPromise,
   AssetType,
-  Loader,
   LoadItem,
-  ReferResource,
-  resourceLoader,
-  ResourceManager
+  ResourceManager,
+  AnimationClip,
+  ReferResource
 } from "@galacean/engine-core";
 import { decode } from "./resource-deserialize";
 
