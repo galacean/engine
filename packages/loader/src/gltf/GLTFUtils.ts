@@ -359,8 +359,8 @@ export class GLTFUtils {
   /**
    * Load image buffer
    */
-  static loadImageBuffer(imageBuffer: ArrayBuffer, type: string): AssetPromise<HTMLImageElement> {
-    return new AssetPromise((resolve, reject) => {
+  static loadImageBuffer(imageBuffer: ArrayBuffer, type: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
       const blob = new window.Blob([imageBuffer], { type });
       const img = new Image();
       img.onerror = function () {
