@@ -48,6 +48,19 @@ jobs:
           git clone https://github.com/galacean/engine-lottie.git
           git clone https://github.com/galacean/engine-spine.git -b 4.2
 
+      - name: Checkout editor repository
+        uses: actions/checkout@v4
+        with:
+          repository: galacean/editor
+          path: editor
+          token: ${{ secrets.CLONE_EDITOR_TOKEN }}
+
+      - name: Install and Build for editor
+        working-directory: ./editor
+        run: |
+          pnpm install
+          pnpm build:decorators
+
       - name: Install and Link Engine and Build for Toolkit
         working-directory: ./engine-toolkit
         run: |
@@ -92,6 +105,8 @@ jobs:
           cp -r ${{ github.workspace }}/engine-lottie/dist ${{ github.workspace }}/temp/@galacean/engine-lottie
           mkdir -p ${{ github.workspace }}/temp/@galacean/engine-spine
           cp -r ${{ github.workspace }}/engine-spine/dist ${{ github.workspace }}/temp/@galacean/engine-spine
+          mkdir -p ${{ github.workspace }}/temp/@galacean/editor-decorators
+          cp -r ${{ github.workspace }}/editor/packages/decorators/dist ${{ github.workspace }}/temp/@galacean/editor-decorators
           find ${{ github.workspace }}/temp
 
       - name: Ensure Adapter Directory Exists
@@ -123,6 +138,7 @@ jobs:
                 "${{ github.workspace }}/temp/@galacean/engine-toolkit/umd/browser.js",
                 "${{ github.workspace }}/temp/@galacean/engine-lottie/dist/browser.js",
                 "${{ github.workspace }}/temp/@galacean/engine-spine/dist/browser.js"
+                "${{ github.workspace }}/temp/@galacean/editor-decorators/dist/browser.js"
               ],
               "wasm": [
                 "${{ github.workspace }}/packages/physics-physx/libs/physx.release.wasm"
