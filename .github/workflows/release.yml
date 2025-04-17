@@ -58,7 +58,7 @@ jobs:
       - name: Install and Build for editor
         working-directory: ./editor
         run: |
-          pnpm install
+          pnpm install --no-frozen-lockfile
           pnpm build:decorators
 
       - name: Install and Link Engine and Build for Toolkit
