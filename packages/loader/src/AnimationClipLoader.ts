@@ -42,18 +42,21 @@ class AnimationClipLoader extends Loader<AnimationClip> {
     });
   }
 
-  private _parseKeyframeValue(keyframe: any, resourceManager: ResourceManager): AssetPromise<any> {
+  private _parseKeyframeValue(keyframe: any, resourceManager: ResourceManager): Promise<any> {
     const value = keyframe.value;
 
     if (typeof value === "object" && (value as any)?.refId) {
-      return (
+      return new Promise((resolve) => {
         resourceManager
           // @ts-ignore
           .getResourceByRef<ReferResource>(value as any)
-          .then((asset: ReferResource) => (keyframe.value = asset))
-      );
+          .then((asset: ReferResource) => {
+            keyframe.value = asset;
+            resolve(keyframe.value);
+          });
+      });
     } else {
-      return AssetPromise.resolve(keyframe.value);
+      return Promise.resolve(keyframe.value);
     }
   }
 }

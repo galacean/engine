@@ -2,6 +2,7 @@ import {
   AssetPromise,
   Camera,
   Entity,
+  Logger,
   Material,
   Mesh,
   MeshRenderer,
@@ -184,7 +185,7 @@ export class GLTFSceneParser extends GLTFParser {
         }
       })
       .catch((e) => {
-        console.error("GLTFSceneParser: create renderer error", e);
+        Logger.error("GLTFSceneParser: create renderer error", e);
       });
   }
 
