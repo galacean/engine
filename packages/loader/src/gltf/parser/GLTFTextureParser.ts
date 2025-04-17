@@ -84,7 +84,7 @@ export class GLTFTextureParser extends GLTFParser {
     const glTFResource = context.glTFResource;
     const { sampler, source: imageIndex = 0, name: textureName, extensions } = textureInfo;
 
-    let texture = <Texture | Promise<Texture>>(
+    let texture = <Texture | AssetPromise<Texture>>(
       GLTFParser.executeExtensionsCreateAndParse(extensions, context, textureInfo, textureIndex)
     );
 
