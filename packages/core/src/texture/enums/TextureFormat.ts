@@ -12,10 +12,6 @@ export enum TextureFormat {
   R5G5B5A1 = 3,
   /** RGB format, 5 bits in R channel, 6 bits in G channel, 5 bits in B channel. */
   R5G6B5 = 4,
-  /** Transparent format, 8 bits. */
-  Alpha8 = 5,
-  /** Luminance/alpha in RGB channel, alpha in A channel. */
-  LuminanceAlpha = 6,
   /** RGBA format, 16 bits per channel. */
   R16G16B16A16 = 7,
   /** RGBA format, 32 bits per channel. */
@@ -24,6 +20,10 @@ export enum TextureFormat {
   R32G32B32A32_UInt = 9,
   /** RGB unsigned float format, 11 bits in R channel, 11 bits in G channel, 10 bits in B channel. */
   R11G11B10_UFloat = 35,
+  /** R float format, 8 bits. */
+  R8 = 36,
+  /** RG float format, 8 bits per channel. */
+  R8G8 = 37,
 
   /** RGB compressed format, 4 bits per pixel. */
   BC1 = 10,
@@ -77,6 +77,10 @@ export enum TextureFormat {
   /** 32-bit depth + 8-bit stencil format. */
   Depth32Stencil8 = 34,
 
+  /** @deprecated Use 'TextureFormat.R8' instead. */
+  Alpha8 = 5,
+  /** @deprecated Use 'TextureFormat.R8G8' instead. */
+  LuminanceAlpha = 6,
   /** @deprecated Use `TextureFormat.BC1` instead. */
   DXT1 = 10,
   /** @deprecated Use `TextureFormat.BC3` instead. */

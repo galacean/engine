@@ -1,4 +1,4 @@
-import { IPlatformTexture2DArray, Logger, Texture2DArray, TextureFormat, TextureUtils } from "@galacean/engine-core";
+import { IPlatformTexture2DArray, Logger, Texture2DArray, TextureUtils } from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
@@ -31,7 +31,8 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
     length?: number
   ): void {
     const { _target: target, _gl: gl } = this;
-    const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
+    const formatDetail = this._formatDetail;
+    const { internalFormat, baseFormat, dataType, isCompressed } = formatDetail;
 
     width = width || Math.max(1, this._texture.width >> mipLevel) - x;
     height = height || Math.max(1, this._texture.height >> mipLevel) - y;
@@ -40,6 +41,7 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
     this._bind();
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, formatDetail.alignment);
 
     if (isCompressed) {
       gl.compressedTexSubImage3D(
@@ -110,6 +112,7 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
       throw new Error("Unable to read compressed texture");
     }
 
+    gl.pixelStorei(gl.PACK_ALIGNMENT, formatDetail.alignment);
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._getReadFrameBuffer());
     gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, this._glTexture, mipLevel, elementIndex);
     gl.readPixels(x, y, width, height, formatDetail.baseFormat, formatDetail.dataType, out);
@@ -117,16 +120,7 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
   }
 
   protected override _validate(texture: Texture2DArray, rhi: WebGLGraphicDevice): void {
-    if (!this._isWebGL2) {
-      throw new Error(`Texture2D Array is not supported in WebGL1.0`);
-    }
-
     const { format } = texture;
-
-    // Validate format
-    if (!GLTexture._supportTextureFormat(format, rhi)) {
-      throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
-    }
 
     // Validate sRGB format
     // @ts-ignore

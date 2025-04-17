@@ -141,6 +141,11 @@ export const E2E_CONFIG = {
       category: "Texture",
       caseFileName: "texture-sRGB-KTX2",
       threshold: 0.2
+    },
+    R8G8: {
+      category: "Texture",
+      caseFileName: "texture-R8G8",
+      threshold: 0.1
     }
   },
   Shadow: {
