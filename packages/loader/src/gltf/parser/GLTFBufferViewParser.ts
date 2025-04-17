@@ -1,4 +1,4 @@
-import { AssetPromise } from "@galacean/engine-core";
+import { AssetPromise, Logger } from "@galacean/engine-core";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
 
@@ -11,6 +11,9 @@ export class GLTFBufferViewParser extends GLTFParser {
       ? <AssetPromise<Uint8Array>>GLTFParser.executeExtensionsCreateAndParse(extensions, context, bufferView)
       : context
           .get<ArrayBuffer>(GLTFParserType.Buffer, bufferIndex)
-          .then((buffer) => new Uint8Array(buffer, byteOffset, byteLength));
+          .then((buffer) => new Uint8Array(buffer, byteOffset, byteLength))
+          .catch((e) => {
+            Logger.error("GLTFBufferViewParser: buffer error", e);
+          });
   }
 }

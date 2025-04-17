@@ -1,4 +1,4 @@
-import { AssetPromise, AssetType, Texture, Texture2D, TextureWrapMode, Utils } from "@galacean/engine-core";
+import { AssetPromise, AssetType, Logger, Texture, Texture2D, TextureWrapMode, Utils } from "@galacean/engine-core";
 import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
 import { TextureWrapMode as GLTFTextureWrapMode } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
@@ -52,31 +52,34 @@ export class GLTFTextureParser extends GLTFParser {
       context._addTaskCompletePromise(texture);
     } else {
       const bufferView = glTF.bufferViews[bufferViewIndex];
+      texture = context
+        .get<ArrayBuffer>(GLTFParserType.Buffer)
+        .then((buffers) => {
+          const buffer = buffers[bufferView.buffer];
+          const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
+          return GLTFUtils.loadImageBuffer(imageBuffer, mimeType).then((image) => {
+            const texture = new Texture2D(engine, image.width, image.height, undefined, samplerInfo?.mipmap);
+            texture.setImageSource(image);
+            texture.generateMipmaps();
 
-      texture = context.get<ArrayBuffer>(GLTFParserType.Buffer).then((buffers) => {
-        const buffer = buffers[bufferView.buffer];
-        const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
+            texture.name = textureName || imageName || `texture_${textureIndex}`;
+            useSampler && GLTFUtils.parseSampler(texture, samplerInfo);
 
-        return GLTFUtils.loadImageBuffer(imageBuffer, mimeType).then((image) => {
-          const texture = new Texture2D(engine, image.width, image.height, undefined, samplerInfo?.mipmap);
-          texture.setImageSource(image);
-          texture.generateMipmaps();
+            const bufferTextureRestoreInfo = new BufferTextureRestoreInfo(texture, bufferView, mimeType);
+            context.contentRestorer.bufferTextures.push(bufferTextureRestoreInfo);
 
-          texture.name = textureName || imageName || `texture_${textureIndex}`;
-          useSampler && GLTFUtils.parseSampler(texture, samplerInfo);
-
-          const bufferTextureRestoreInfo = new BufferTextureRestoreInfo(texture, bufferView, mimeType);
-          context.contentRestorer.bufferTextures.push(bufferTextureRestoreInfo);
-
-          return texture;
+            return texture;
+          });
+        })
+        .catch((e) => {
+          Logger.error("GLTFTextureParser: image buffer error", e);
         });
-      });
     }
 
     return texture;
   }
 
-  parse(context: GLTFParserContext, textureIndex: number): Promise<Texture> {
+  parse(context: GLTFParserContext, textureIndex: number): AssetPromise<Texture> {
     const textureInfo = context.glTF.textures[textureIndex];
     const glTFResource = context.glTFResource;
     const { sampler, source: imageIndex = 0, name: textureName, extensions } = textureInfo;
@@ -89,7 +92,7 @@ export class GLTFTextureParser extends GLTFParser {
       texture = GLTFTextureParser._parseTexture(context, imageIndex, textureIndex, sampler, textureName);
     }
 
-    return Promise.resolve(texture).then((texture) => {
+    return AssetPromise.resolve(texture).then((texture) => {
       GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, texture, textureInfo);
       // @ts-ignore
       texture._associationSuperResource(glTFResource);

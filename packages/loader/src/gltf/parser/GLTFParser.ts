@@ -111,9 +111,11 @@ export abstract class GLTFParser {
     const parser = GLTFParser.getExtensionParser(extensionName, GLTFExtensionMode.CreateAndParse);
 
     if (parser) {
-      const chainPromise = parser.createAndParse(context, extensionSchema, ownerSchema, ...extra);
-      chainPromise instanceof AssetPromise && context.chainPromises.push(chainPromise);
-      return chainPromise;
+      const subPromise = parser.createAndParse(context, extensionSchema, ownerSchema, ...extra);
+      subPromise instanceof AssetPromise &&
+        // @ts-ignore
+        context.resourceManager._addLoadingPromise(context.glTFResource.url, subPromise);
+      return subPromise;
     }
   }
 
@@ -126,11 +128,7 @@ export abstract class GLTFParser {
     ...extra
   ): void {
     const parser = GLTFParser.getExtensionParser(extensionName, GLTFExtensionMode.AdditiveParse);
-
-    if (parser) {
-      const chainPromise = parser.additiveParse(context, parseResource, extensionSchema, ownerSchema, ...extra);
-      chainPromise && context.chainPromises.push(chainPromise);
-    }
+    parser?.additiveParse(context, parseResource, extensionSchema, ownerSchema, ...extra);
   }
 
   abstract parse(context: GLTFParserContext, index?: number);

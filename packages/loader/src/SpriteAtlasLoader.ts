@@ -20,52 +20,41 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
   private _tempVec2: Vector2 = new Vector2();
   private _tempVec4: Vector4 = new Vector4();
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<SpriteAtlas> {
-    return new AssetPromise<SpriteAtlas>((resolve, reject, _, __, onCancel) => {
-      const chainPromises = [];
-      onCancel(() => {
-        for (let i = 0; i < chainPromises.length; i++) {
-          chainPromises[i].cancel();
-        }
-      });
-      // @ts-ignore
-      const configPromise = resourceManager._request<AtlasConfig>(item.url, {
-        ...item,
-        type: "json"
-      });
-      chainPromises.push(configPromise);
-      configPromise
+    const url = item.url;
+    return (
+      resourceManager
+        // @ts-ignore
+        ._request<AtlasConfig>(url, {
+          ...item,
+          type: "json"
+        })
         .then((atlasData) => {
           const { atlasItems, mipmap, anisoLevel, filterMode, wrapModeU, wrapModeV, format } = atlasData;
           const atlasItemsLen = atlasItems ? atlasItems.length : 0;
           const { engine } = resourceManager;
           const spriteAtlas = new SpriteAtlas(engine);
-          if (atlasItemsLen <= 0) {
-            resolve(spriteAtlas);
-            return;
-          }
-          chainPromises.length = 0;
+          if (atlasItemsLen <= 0) return spriteAtlas;
+          const promises = [];
           for (let i = 0; i < atlasItemsLen; i++) {
             const atlasItem = atlasItems[i];
             if (atlasItem.img) {
-              chainPromises.push(
-                resourceManager
-                  .load<Texture2D>({
-                    url: Utils.resolveAbsoluteUrl(item.url, atlasItem.img),
-                    type: atlasItem.type ?? AssetType.Texture2D,
-                    params: { format, mipmap }
-                  })
-                  .then((texture: Texture2D) => {
-                    anisoLevel && (texture.anisoLevel = anisoLevel);
-                    filterMode !== undefined && (texture.filterMode = filterMode);
-                    wrapModeU !== undefined && (texture.wrapModeU = wrapModeU);
-                    wrapModeV !== undefined && (texture.wrapModeV = wrapModeV);
-                    for (let i = 0; i < atlasItem.sprites.length; i++) {
-                      // @ts-ignore
-                      spriteAtlas._addSprite(this._makeSprite(engine, atlasItem.sprites[i], texture));
-                    }
-                  })
-                  .catch(reject)
-              );
+              const promise = resourceManager
+                .load<Texture2D>({
+                  url: Utils.resolveAbsoluteUrl(url, atlasItem.img),
+                  type: atlasItem.type ?? AssetType.Texture2D,
+                  params: { format, mipmap }
+                })
+                .then((texture: Texture2D) => {
+                  anisoLevel && (texture.anisoLevel = anisoLevel);
+                  filterMode !== undefined && (texture.filterMode = filterMode);
+                  wrapModeU !== undefined && (texture.wrapModeU = wrapModeU);
+                  wrapModeV !== undefined && (texture.wrapModeV = wrapModeV);
+                  for (let i = 0; i < atlasItem.sprites.length; i++) {
+                    // @ts-ignore
+                    spriteAtlas._addSprite(this._makeSprite(engine, atlasItem.sprites[i], texture));
+                  }
+                });
+              promises.push(promise);
             } else {
               for (let i = 0; i < atlasItem.sprites.length; i++) {
                 // @ts-ignore
@@ -73,14 +62,9 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
               }
             }
           }
-          AssetPromise.all(chainPromises)
-            .then(() => {
-              resolve(spriteAtlas);
-            })
-            .catch(reject);
+          return AssetPromise.all(promises).then(() => spriteAtlas);
         })
-        .catch(reject);
-    });
+    );
   }
 
   private _makeSprite(engine: Engine, config: AtlasSprite, texture?: Texture2D): Sprite {

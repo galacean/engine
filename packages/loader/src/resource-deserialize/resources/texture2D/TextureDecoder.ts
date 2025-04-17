@@ -1,11 +1,11 @@
-import { Engine, Texture2D } from "@galacean/engine-core";
+import { AssetPromise, Engine, Texture2D } from "@galacean/engine-core";
 import { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
 
 @decoder("Texture2D")
 export class Texture2DDecoder {
-  static decode(engine: Engine, bufferReader: BufferReader): Promise<Texture2D> {
-    return new Promise((resolve, reject) => {
+  static decode(engine: Engine, bufferReader: BufferReader): AssetPromise<Texture2D> {
+    return new AssetPromise((resolve, reject) => {
       const objectId = bufferReader.nextStr();
       const mipmap = !!bufferReader.nextUint8();
       const filterMode = bufferReader.nextUint8();
