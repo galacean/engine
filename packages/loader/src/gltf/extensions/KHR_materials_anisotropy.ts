@@ -16,11 +16,14 @@ class KHR_materials_anisotropy extends GLTFExtensionParser {
     if (anisotropyTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(anisotropyTexture, "Anisotropy texture");
 
-      context.get<Texture2D>(GLTFParserType.Texture, anisotropyTexture.index).then((texture) => {
-        material.anisotropyTexture = texture;
-      }).catch((e) => {
-        Logger.error("KHR_materials_anisotropy: anisotropy texture error", e);
-      })
+      context
+        .get<Texture2D>(GLTFParserType.Texture, anisotropyTexture.index)
+        .then((texture) => {
+          material.anisotropyTexture = texture;
+        })
+        .catch((e) => {
+          Logger.error("KHR_materials_anisotropy: anisotropy texture error", e);
+        });
     }
   }
 }
