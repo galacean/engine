@@ -138,7 +138,7 @@ jobs:
                 "${{ github.workspace }}/temp/@galacean/engine-physics-physx/dist/browser.js",
                 "${{ github.workspace }}/temp/@galacean/engine-toolkit/umd/browser.js",
                 "${{ github.workspace }}/temp/@galacean/engine-lottie/dist/browser.js",
-                "${{ github.workspace }}/temp/@galacean/engine-spine/dist/browser.js"
+                "${{ github.workspace }}/temp/@galacean/engine-spine/dist/browser.js",
                 "${{ github.workspace }}/temp/@galacean/editor-decorators/dist/browser.js"
               ],
               "wasm": [
