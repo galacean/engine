@@ -3,7 +3,8 @@ import {
   AnimatorController,
   AnimatorControllerLayer,
   AnimatorStateMachine,
-  AssetPromise
+  AssetPromise,
+  Logger
 } from "@galacean/engine-core";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
@@ -15,10 +16,15 @@ export class GLTFAnimatorControllerParser extends GLTFParser {
       return AssetPromise.resolve(null);
     }
 
-    return context.get<AnimationClip>(GLTFParserType.Animation).then((animations) => {
-      const animatorController = this._createAnimatorController(context, animations);
-      return Promise.resolve(animatorController);
-    });
+    return context
+      .get<AnimationClip>(GLTFParserType.Animation)
+      .then((animations) => {
+        const animatorController = this._createAnimatorController(context, animations);
+        return AssetPromise.resolve(animatorController);
+      })
+      .catch((e) => {
+        Logger.error("GLTFAnimatorControllerParser: animator controller error", e);
+      });
   }
 
   private _createAnimatorController(context: GLTFParserContext, animations: AnimationClip[]): AnimatorController {

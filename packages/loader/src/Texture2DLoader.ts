@@ -16,41 +16,31 @@ import { Texture2DContentRestorer } from "./Texture2DContentRestorer";
 @resourceLoader(AssetType.Texture2D, ["png", "jpg", "webp", "jpeg"])
 class Texture2DLoader extends Loader<Texture2D> {
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
-    return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
-      const url = item.url;
-      const requestConfig = <RequestConfig>{
-        ...item,
-        type: "image"
-      };
-      resourceManager
-        // @ts-ignore
-        ._request<HTMLImageElement>(url, requestConfig)
-        .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
-        .then((image) => {
-          const { format, mipmap, anisoLevel, wrapModeU, wrapModeV, filterMode } =
-            (item.params as Partial<Texture2DParams>) ?? {};
+    const url = item.url;
+    const requestConfig = <RequestConfig>{
+      ...item,
+      type: "image"
+    };
+    // @ts-ignore
+    return resourceManager._request(url, requestConfig).then((image) => {
+      const { format, mipmap, anisoLevel, wrapModeU, wrapModeV, filterMode } =
+        (item.params as Partial<Texture2DParams>) ?? {};
+      const texture = new Texture2D(resourceManager.engine, image.width, image.height, format, mipmap);
+      texture.anisoLevel = anisoLevel ?? texture.anisoLevel;
+      texture.filterMode = filterMode ?? texture.filterMode;
+      texture.wrapModeU = wrapModeU ?? texture.wrapModeU;
+      texture.wrapModeV = wrapModeV ?? texture.wrapModeV;
 
-          const texture = new Texture2D(resourceManager.engine, image.width, image.height, format, mipmap);
+      texture.setImageSource(image);
+      texture.generateMipmaps();
 
-          texture.anisoLevel = anisoLevel ?? texture.anisoLevel;
-          texture.filterMode = filterMode ?? texture.filterMode;
-          texture.wrapModeU = wrapModeU ?? texture.wrapModeU;
-          texture.wrapModeV = wrapModeV ?? texture.wrapModeV;
+      if (url.indexOf("data:") !== 0) {
+        const index = url.lastIndexOf("/");
+        texture.name = url.substring(index + 1);
+      }
 
-          texture.setImageSource(image);
-          texture.generateMipmaps();
-
-          if (url.indexOf("data:") !== 0) {
-            const index = url.lastIndexOf("/");
-            texture.name = url.substring(index + 1);
-          }
-
-          resourceManager.addContentRestorer(new Texture2DContentRestorer(texture, url, requestConfig));
-          resolve(texture);
-        })
-        .catch((e) => {
-          reject(e);
-        });
+      resourceManager.addContentRestorer(new Texture2DContentRestorer(texture, url, requestConfig));
+      return texture;
     });
   }
 }

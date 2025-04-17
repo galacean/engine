@@ -1,4 +1,4 @@
-import { AssetPromise, AssetType, Texture2D, Utils } from "@galacean/engine-core";
+import { AssetPromise, AssetType, Logger, Texture2D, Utils } from "@galacean/engine-core";
 import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
 import { KTX2Loader } from "../../ktx2/KTX2Loader";
 import type { ITexture } from "../GLTFSchema";
@@ -48,23 +48,28 @@ class KHR_texture_basisu extends GLTFExtensionParser {
     } else {
       const bufferView = glTF.bufferViews[bufferViewIndex];
 
-      return context.get<ArrayBuffer>(GLTFParserType.Buffer, bufferView.buffer).then((buffer) => {
-        const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
+      return context
+        .get<ArrayBuffer>(GLTFParserType.Buffer, bufferView.buffer)
+        .then((buffer) => {
+          const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
 
-        return KTX2Loader._parseBuffer(imageBuffer, engine)
-          .then(({ engine, result, targetFormat, params }) =>
-            KTX2Loader._createTextureByBuffer(engine, result, targetFormat, params)
-          )
-          .then((texture: Texture2D) => {
-            texture.name = textureName || imageName || `texture_${bufferViewIndex}`;
-            if (sampler !== undefined) {
-              GLTFUtils.parseSampler(texture, samplerInfo);
-            }
-            const bufferTextureRestoreInfo = new BufferTextureRestoreInfo(texture, bufferView, mimeType);
-            context.contentRestorer.bufferTextures.push(bufferTextureRestoreInfo);
-            return texture;
-          });
-      });
+          return KTX2Loader._parseBuffer(imageBuffer, engine)
+            .then(({ engine, result, targetFormat, params }) =>
+              KTX2Loader._createTextureByBuffer(engine, result, targetFormat, params)
+            )
+            .then((texture: Texture2D) => {
+              texture.name = textureName || imageName || `texture_${bufferViewIndex}`;
+              if (sampler !== undefined) {
+                GLTFUtils.parseSampler(texture, samplerInfo);
+              }
+              const bufferTextureRestoreInfo = new BufferTextureRestoreInfo(texture, bufferView, mimeType);
+              context.contentRestorer.bufferTextures.push(bufferTextureRestoreInfo);
+              return texture;
+            });
+        })
+        .catch((e) => {
+          Logger.error("KHR_texture_basisu: buffer error", e);
+        });
     }
   }
 }

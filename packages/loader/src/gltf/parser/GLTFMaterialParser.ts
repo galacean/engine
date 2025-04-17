@@ -1,4 +1,7 @@
 import {
+  AssetPromise,
+  BlinnPhongMaterial,
+  Engine,
   Logger,
   Material,
   PBRMaterial,
@@ -56,15 +59,20 @@ export class GLTFMaterialParser extends GLTFParser {
         );
       }
       if (baseColorTexture) {
-        context.get<Texture2D>(GLTFParserType.Texture, baseColorTexture.index).then((texture) => {
-          material.baseTexture = texture;
-          GLTFParser.executeExtensionsAdditiveAndParse(
-            baseColorTexture.extensions,
-            context,
-            material,
-            baseColorTexture
-          );
-        });
+        context
+          .get<Texture2D>(GLTFParserType.Texture, baseColorTexture.index)
+          .then((texture) => {
+            material.baseTexture = texture;
+            GLTFParser.executeExtensionsAdditiveAndParse(
+              baseColorTexture.extensions,
+              context,
+              material,
+              baseColorTexture
+            );
+          })
+          .catch((e) => {
+            Logger.error("GLTFMaterialParser: baseColorTexture error", e);
+          });
       }
 
       if (material.constructor === PBRMaterial) {
@@ -72,10 +80,14 @@ export class GLTFMaterialParser extends GLTFParser {
         material.roughness = roughnessFactor ?? 1;
         if (metallicRoughnessTexture) {
           GLTFMaterialParser._checkOtherTextureTransform(metallicRoughnessTexture, "Roughness metallic");
-
-          context.get<Texture2D>(GLTFParserType.Texture, metallicRoughnessTexture.index).then((texture) => {
-            material.roughnessMetallicTexture = texture;
-          });
+          context
+            .get<Texture2D>(GLTFParserType.Texture, metallicRoughnessTexture.index)
+            .then((texture) => {
+              material.roughnessMetallicTexture = texture;
+            })
+            .catch((e) => {
+              Logger.error("GLTFMaterialParser: metallicRoughnessTexture error", e);
+            });
         }
       }
     }
@@ -83,10 +95,14 @@ export class GLTFMaterialParser extends GLTFParser {
     if (material.constructor === PBRMaterial || material.constructor === PBRSpecularMaterial) {
       if (emissiveTexture) {
         GLTFMaterialParser._checkOtherTextureTransform(emissiveTexture, "Emissive");
-
-        context.get<Texture2D>(GLTFParserType.Texture, emissiveTexture.index).then((texture) => {
-          material.emissiveTexture = texture;
-        });
+        context
+          .get<Texture2D>(GLTFParserType.Texture, emissiveTexture.index)
+          .then((texture) => {
+            material.emissiveTexture = texture;
+          })
+          .catch((e) => {
+            Logger.error("GLTFMaterialParser: emissiveTexture error", e);
+          });
       }
 
       if (emissiveFactor) {
@@ -101,9 +117,14 @@ export class GLTFMaterialParser extends GLTFParser {
         const { index, scale } = normalTexture;
         GLTFMaterialParser._checkOtherTextureTransform(normalTexture, "Normal");
 
-        context.get<Texture2D>(GLTFParserType.Texture, index).then((texture) => {
-          material.normalTexture = texture;
-        });
+        context
+          .get<Texture2D>(GLTFParserType.Texture, index)
+          .then((texture) => {
+            material.normalTexture = texture;
+          })
+          .catch((e) => {
+            Logger.error("GLTFMaterialParser: emissiveTexture error", e);
+          });
 
         if (scale !== undefined) {
           material.normalTextureIntensity = scale;
@@ -114,9 +135,14 @@ export class GLTFMaterialParser extends GLTFParser {
         const { index, strength, texCoord } = occlusionTexture;
         GLTFMaterialParser._checkOtherTextureTransform(occlusionTexture, "Occlusion");
 
-        context.get<Texture2D>(GLTFParserType.Texture, index).then((texture) => {
-          material.occlusionTexture = texture;
-        });
+        context
+          .get<Texture2D>(GLTFParserType.Texture, index)
+          .then((texture) => {
+            material.occlusionTexture = texture;
+          })
+          .catch((e) => {
+            Logger.error("GLTFMaterialParser: occlusionTexture error", e);
+          });
 
         if (strength !== undefined) {
           material.occlusionTextureIntensity = strength;
@@ -148,7 +174,7 @@ export class GLTFMaterialParser extends GLTFParser {
     }
   }
 
-  parse(context: GLTFParserContext, index: number): Promise<Material> {
+  parse(context: GLTFParserContext, index: number): AssetPromise<Material> {
     const materialInfo = context.glTF.materials[index];
     const glTFResource = context.glTFResource;
     const engine = glTFResource.engine;
@@ -163,9 +189,8 @@ export class GLTFMaterialParser extends GLTFParser {
       GLTFMaterialParser._parseStandardProperty(context, material as PBRMaterial, materialInfo);
     }
 
-    return Promise.resolve(material).then((material) => {
-      // @ts-ignore
-      material ||= engine._basicResources._getBlinnPhongMaterial();
+    return AssetPromise.resolve(material).then((material) => {
+      material ||= GLTFMaterialParser._getDefaultMaterial(engine);
       GLTFParser.executeExtensionsAdditiveAndParse(materialInfo.extensions, context, material, materialInfo);
       // @ts-ignore
       material._associationSuperResource(glTFResource);

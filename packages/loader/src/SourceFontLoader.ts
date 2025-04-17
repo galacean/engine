@@ -11,23 +11,19 @@ import {
 @resourceLoader(AssetType.SourceFont, ["ttf", "otf", "woff"], false)
 class SourceFontLoader extends Loader<Font> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Font> {
-    return new AssetPromise((resolve, reject) => {
-      // @ts-ignore
-      const url = resourceManager._getRemoteUrl(item.url);
-      this._registerFont(url, url)
-        .then(() => {
-          const font = new Font(resourceManager.engine, url);
-          resolve(font);
-        })
-        .catch((e) => {
-          reject(`load font ${url} fail`);
-        });
-    });
+    const url = item.url;
+    // @ts-ignore
+    const remoteUrl = resourceManager._getRemoteUrl(url);
+    return this._registerFont(remoteUrl, remoteUrl).then(() => new Font(resourceManager.engine, remoteUrl));
   }
 
-  private async _registerFont(fontName: string, fontUrl: string): Promise<void> {
-    const fontFace = new FontFace(fontName, `url(${fontUrl})`);
-    await fontFace.load();
-    document.fonts.add(fontFace);
+  private _registerFont(fontName: string, fontUrl: string): AssetPromise<void> {
+    return new AssetPromise((resolve, reject) => {
+      const fontFace = new FontFace(fontName, `url(${fontUrl})`);
+      fontFace.load().then(() => {
+        document.fonts.add(fontFace);
+        resolve();
+      }, reject);
+    });
   }
 }

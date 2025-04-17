@@ -6,6 +6,7 @@ import {
   BlinnPhongMaterial,
   Buffer,
   Entity,
+  Logger,
   Material,
   ModelMesh,
   ResourceManager,
@@ -34,7 +35,6 @@ export class GLTFParserContext {
   contentRestorer: GLTFContentRestorer;
   buffers?: ArrayBuffer[];
   needAnimatorController = false;
-  chainPromises: AssetPromise<any>[] = [];
 
   private _resourceCache = new Map<string, any>();
   private _progress = {
@@ -101,6 +101,10 @@ export class GLTFParserContext {
       isSubAsset && this._handleSubAsset(resource, type, index);
     }
 
+    if (type !== GLTFParserType.Entity) {
+      // @ts-ignore
+      this.resourceManager._addLoadingPromise(this.glTFResource.url, resource);
+    }
     cache.set(cacheKey, resource);
     return resource;
   }
@@ -171,33 +175,37 @@ export class GLTFParserContext {
     } else {
       const url = this.glTFResource.url;
 
-      (<AssetPromise<T>>resource).then((item: T) => {
-        if (index == undefined) {
-          this.glTFResource[glTFResourceKey] = item;
-        } else {
-          (this.glTFResource[glTFResourceKey] ||= [])[index] = item;
-        }
-
-        if (type === GLTFParserType.Mesh) {
-          for (let i = 0, length = (<ModelMesh[]>item).length; i < length; i++) {
-            const mesh = item[i] as ModelMesh;
-            // @ts-ignore
-            this.resourceManager._onSubAssetSuccess<ModelMesh>(url, `${glTFResourceKey}[${index}][${i}]`, mesh);
+      (<AssetPromise<T>>resource)
+        .then((item: T) => {
+          if (index == undefined) {
+            this.glTFResource[glTFResourceKey] = item;
+          } else {
+            (this.glTFResource[glTFResourceKey] ||= [])[index] = item;
           }
-        } else {
-          // @ts-ignore
-          this.resourceManager._onSubAssetSuccess<T>(
-            url,
-            `${glTFResourceKey}${index === undefined ? "" : `[${index}]`}`,
-            item
-          );
 
-          if (type === GLTFParserType.Scene && (this.glTF.scene ?? 0) === index) {
+          if (type === GLTFParserType.Mesh) {
+            for (let i = 0, length = (<ModelMesh[]>item).length; i < length; i++) {
+              const mesh = item[i] as ModelMesh;
+              // @ts-ignore
+              this.resourceManager._onSubAssetSuccess<ModelMesh>(url, `${glTFResourceKey}[${index}][${i}]`, mesh);
+            }
+          } else {
             // @ts-ignore
-            this.resourceManager._onSubAssetSuccess<Entity>(url, `defaultSceneRoot`, item as Entity);
+            this.resourceManager._onSubAssetSuccess<T>(
+              url,
+              `${glTFResourceKey}${index === undefined ? "" : `[${index}]`}`,
+              item
+            );
+
+            if (type === GLTFParserType.Scene && (this.glTF.scene ?? 0) === index) {
+              // @ts-ignore
+              this.resourceManager._onSubAssetSuccess<Entity>(url, `defaultSceneRoot`, item as Entity);
+            }
           }
-        }
-      });
+        })
+        .catch((e) => {
+          Logger.error("GLTFParserContext", `Failed to load ${glTFResourceKey} ${index}: ${e}`);
+        });
     }
   }
 }

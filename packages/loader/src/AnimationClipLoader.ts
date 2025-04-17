@@ -1,12 +1,12 @@
 import {
-  resourceLoader,
-  Loader,
+  AnimationClip,
   AssetPromise,
   AssetType,
+  Loader,
   LoadItem,
-  ResourceManager,
-  AnimationClip,
-  ReferResource
+  ReferResource,
+  resourceLoader,
+  ResourceManager
 } from "@galacean/engine-core";
 import { decode } from "./resource-deserialize";
 
@@ -42,21 +42,18 @@ class AnimationClipLoader extends Loader<AnimationClip> {
     });
   }
 
-  private _parseKeyframeValue(keyframe: any, resourceManager: ResourceManager): Promise<any> {
+  private _parseKeyframeValue(keyframe: any, resourceManager: ResourceManager): AssetPromise<any> {
     const value = keyframe.value;
 
     if (typeof value === "object" && (value as any)?.refId) {
-      return new Promise((resolve) => {
+      return (
         resourceManager
           // @ts-ignore
           .getResourceByRef<ReferResource>(value as any)
-          .then((asset: ReferResource) => {
-            keyframe.value = asset;
-            resolve(keyframe.value);
-          });
-      });
+          .then((asset: ReferResource) => (keyframe.value = asset))
+      );
     } else {
-      return Promise.resolve(keyframe.value);
+      return AssetPromise.resolve(keyframe.value);
     }
   }
 }
