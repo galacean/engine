@@ -32,11 +32,7 @@ export class PostProcessFinalPass extends PostProcessPass {
 
   /** @inheritdoc */
   override isValid(): boolean {
-    if (!this.isActive) {
-      return false;
-    }
-
-    return this._camera?.antiAliasing === AntiAliasing.FastApproximateAntiAliasing;
+    return true;
   }
 
   override onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void {
