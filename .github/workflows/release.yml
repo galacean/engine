@@ -52,6 +52,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: galacean/editor
+          submodules: true
           path: editor
           token: ${{ secrets.CLONE_EDITOR_TOKEN }}
 
