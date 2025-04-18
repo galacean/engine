@@ -14,7 +14,6 @@ import { AntiAliasing } from "../enums/AntiAliasing";
 export class FinalPass extends PostProcessPass {
   public static readonly _finalShaderName = "FinalPost";
   private static _fxaaEnabledMacro: ShaderMacro = ShaderMacro.getByName("ENABLE_FXAA");
-  private static _hdrInputMacro: ShaderMacro = ShaderMacro.getByName("HDR_INPUT");
   private _finalMaterial: Material;
 
   constructor(engine: Engine) {
@@ -40,14 +39,8 @@ export class FinalPass extends PostProcessPass {
 
     if (enableFXAA) {
       finalShaderData.enableMacro(FinalPass._fxaaEnabledMacro);
-      if (camera.enableHDR) {
-        finalShaderData.enableMacro(FinalPass._hdrInputMacro);
-      } else {
-        finalShaderData.disableMacro(FinalPass._hdrInputMacro);
-      }
     } else {
       finalShaderData.disableMacro(FinalPass._fxaaEnabledMacro);
-      finalShaderData.disableMacro(FinalPass._hdrInputMacro);
     }
 
     Blitter.blitTexture(camera.engine, srcTexture, destTarget, 0, camera.viewport, material);

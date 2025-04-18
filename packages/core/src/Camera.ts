@@ -28,6 +28,7 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { TextureFormat } from "./texture";
 import { RenderTarget } from "./texture/RenderTarget";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
+import { FinalPass } from "./postProcess/PostProcessFinalPass";
 
 class MathTemp {
   static tempVec4 = new Vector4();
@@ -139,6 +140,7 @@ export class Camera extends Component {
   private _opaqueTextureEnabled: boolean = false;
   private _enableHDR = false;
   private _enablePostProcess = false;
+  private _FinalPass: FinalPass;
 
   @ignoreClone
   private _updateFlagManager: UpdateFlagManager;
@@ -185,7 +187,7 @@ export class Camera extends Component {
       return true;
     }
 
-    if (this.enableHDR || this.opaqueTextureEnabled) {
+    if (this._FinalPass || this.enableHDR || this.opaqueTextureEnabled) {
       return this._getInternalColorTextureFormat() !== this.renderTarget?.getColorTexture(0).format;
     }
 
