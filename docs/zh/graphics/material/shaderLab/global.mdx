@@ -25,21 +25,19 @@ title: 全局变量声明
 
   ```glsl
   BlendState state {
-    Enabled[n]: bool;
-    ColorBlendOperation[n]: BlendOperation.XXX;
-    AlphaBlendOperation[n]: BlendOperation.XXX;
-    SourceColorBlendFactor[n]: BlendFactor.XXX;
-    SourceAlphaBlendFactor[n]: BlendFactor.XXX;
-    DestinationColorBlendFactor[n]: BlendFactor.XXX;
-    DestinationAlphaBlendFactor[n]: BlendFactor.XXX;
-    ColorWriteMask[n]: float // 0xffffffff
+    Enabled: bool;
+    ColorBlendOperation: BlendOperation.XXX;
+    AlphaBlendOperation: BlendOperation.XXX;
+    SourceColorBlendFactor: BlendFactor.XXX;
+    SourceAlphaBlendFactor: BlendFactor.XXX;
+    DestinationColorBlendFactor: BlendFactor.XXX;
+    DestinationAlphaBlendFactor: BlendFactor.XXX;
+    ColorWriteMask: float // 0xffffffff
     BlendColor: vec4;
     AlphaToCoverage: bool;
   }
   ```
   <Callout>
-  `[n]` 为 ShaderLab 预留语法，为在 [MRT](./pass/#mrt多目标渲染) 多目标渲染下对渲染目标索引的指定。当前引擎尚不支持对 MRT 下各个渲染目标的 `BlendState` 进行单独设置，因此`n` 只能是0，或者省略。
-  <br/>
   [BlendOperation](/apis/galacean/#BlendOperation) 和 [BlendFactor](/apis/galacean/#BlendFactor) 枚举等同引擎 API。
   </Callout>
 
