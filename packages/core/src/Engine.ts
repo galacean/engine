@@ -42,6 +42,7 @@ import { UIUtils } from "./ui/UIUtils";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
+import { FinalPass } from "./postProcess/PostProcessFinalPass";
 
 ShaderPool.init();
 
@@ -279,6 +280,9 @@ export class Engine extends EventDispatcher {
 
     const uberPass = new PostProcessUberPass(this);
     this.addPostProcessPass(uberPass);
+
+    const finalPass = new FinalPass(this);
+    this.addPostProcessPass(finalPass);
   }
 
   /**

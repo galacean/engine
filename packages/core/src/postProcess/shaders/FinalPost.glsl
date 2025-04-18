@@ -65,12 +65,10 @@ vec3 applyFXAA(vec3 color, vec2 positionNDC, vec4 sourceSize, sampler2D inputTex
 void main(){
 	mediump vec4 color = texture2DSRGB(renderer_BlitTexture, v_uv);
 
-    color = outputSRGBCorrection(color);
-
     #ifdef ENABLE_FXAA
         color.rgb = applyFXAA(color.rgb, v_uv, renderer_texelSize, renderer_BlitTexture);
     #endif    
-   
-   gl_FragColor = color;
+
+    gl_FragColor = outputSRGBCorrection(color);
     
 }
