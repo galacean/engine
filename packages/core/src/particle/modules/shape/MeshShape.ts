@@ -100,16 +100,12 @@ export class MeshShape extends BaseShape {
     reusePositionBuffer: boolean,
     outVertexElementInfo: Vector4
   ): TypedArray {
-    if (!vertexElement) {
-      throw `Mesh must have ${vertexElement.attribute} attribute.`;
-    }
-
     const vertexBufferBinding = mesh.vertexBufferBindings[vertexElement.bindingIndex];
     const formatMetaInfo = vertexElement._formatMetaInfo;
 
     let typedBuffer: TypedArray;
     if (reusePositionBuffer) {
-      return this._positionBuffer;
+      typedBuffer = this._positionBuffer;
     } else {
       const buffer = vertexBufferBinding?.buffer;
       if (!buffer) {
@@ -144,6 +140,11 @@ export class MeshShape extends BaseShape {
       if (mesh) {
         const positionElement = mesh.getVertexElement(VertexAttribute.Position);
         const normalElement = mesh.getVertexElement(VertexAttribute.Normal);
+
+        if (!positionElement || !normalElement) {
+          throw `Mesh must have both ${VertexAttribute.Position} and ${VertexAttribute.Normal} attribute.`;
+        }
+
         this._positionBuffer = this._getAttributeBuffer(mesh, positionElement, false, this._positionElementInfo);
         // If the position and normal use the same buffer, we can reuse the position buffer
         const reusePositionBuffer = positionElement.bindingIndex === normalElement.bindingIndex;

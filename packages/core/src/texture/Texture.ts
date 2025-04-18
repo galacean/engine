@@ -2,6 +2,7 @@ import { GraphicsResource } from "../asset/GraphicsResource";
 import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
 import { IPlatformTexture } from "../renderingHardwareInterface";
+import { SystemInfo } from "../SystemInfo";
 import { TextureDepthCompareFunction } from "./enums/TextureDepthCompareFunction";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
@@ -181,6 +182,10 @@ export abstract class Texture extends GraphicsResource {
     mipmap: boolean,
     isSRGBColorSpace: boolean
   ) {
+    if (!SystemInfo.supportsTextureFormat(engine, format)) {
+      throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
+    }
+
     super(engine);
 
     this._width = width;
