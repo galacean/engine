@@ -1,0 +1,124 @@
+---
+title: 材质属性定义
+---
+
+开发者通过 `Editor` 模块定制绑定该 `Shader` 的材质属性，`Galacean` 编辑器可以自动将材质属性反射到材质资产的 Inspector 面板上。
+
+<div style={{display: "flex"}}>
+
+  <Image src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*mwAxRr45kE8AAAAAAAAAAAAAeteEAQ/fmt.webp" width="435px" />
+
+  <Image src= "https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*7MrxTIG5fpkAAAAAAAAAAAAAeteEAQ/fmt.webp" width="200px" />
+
+</div>
+
+## Editor 模块语法骨架
+
+```glsl showLineNumbers
+Editor {
+    Properties {
+        material_BaseColor("Offset unit scale", Color) = (1,1,1,1);
+        ...
+
+        Header("Emissive")
+        {
+            material_EmissiveColor("Emissive color", Color) = (1,1,1,1);
+            ...
+        }
+        ...
+    }
+
+    ...
+
+    Macros {
+        [On] UV_OFFSET("UV Offset", Range(1,100)) = 10;
+        ...
+
+        Header("") {
+            SOME_MACRO("label", Int) = 1;
+        }
+    }
+
+    ...
+
+    // 指定 Shader 绑定的 UIScript 编辑器项目路径。
+    UIScript "./shaderScript.ts";
+}
+```
+
+### 材质属性定义
+
+```glsl
+/**
+ * @language zh
+ * Comments description
+ */
+
+/**
+ * @language en
+ * 注释描述
+ */
+propertyName("Description", EditType) = [DefaultValue];
+```
+
+<Callout type="info">
+
+1. 可以使用 `Header` 指令将有关联的属性组织起来，Inspector 对应的面板中也会有相应的层级分类:
+
+```
+Header("Emissive") {
+    material_EmissiveColor("Emissive color", Color) = (1,1,1,1);
+    ...
+}
+```
+
+2. 通过注释标注 Inspector Hover 提示内容，支持使用 @language 指令进行多语言指定。
+
+</Callout>
+
+当前支持的 EditType 列表如下:
+
+| EditType | Example |
+| :-: | :-- |
+| Bool | propertyName("Property Description", Boolean) = true; |
+| Int | propertyName("Property Description", Int) = 1; <br/>propertyName("Property Description", Range(0,8)) = 1 <br/> propertyName("Property Description", Enum(Item1: 1, Item2: 2, Item3: 3)) = 1 // 枚举 |
+| Float | propertyName("Property Description", FLoat) = 0.5; <br/>propertyName("Property Description", Range(0.0, 1.0)) = 0.5; <br/> propertyName("Property Description", Enum(Item1: 1.0, Item2: 2.0, Item3: 3.0)) = 1.0; // 枚举 |
+| Texture2D | propertyName("Property Description", Texture2D); |
+| TextureCube | propertyName("Property Description", TextureCube); |
+| Color | propertyName("Property Description", Color) = (0.25, 0.5, 0.5, 1); |
+| Vector2 | propertyName("Property Description", Vector2) = (0.25, 0.5); |
+| Vector3 | propertyName("Property Description", Vector3) = (0.25, 0.5, 0.5); |
+| Vector4 | propertyName("Property Description", Vector4) = (0.25, 0.5, 0.5, 1.0); |
+
+#### 枚举类型
+
+```glsl showLineNumbers
+propertyName("Property Description", Enum(Item1: 1, Item2: 2, Item3: 3)) = 1;
+```
+
+<Callout type="warning">
+  当前只有 Int 和 Float 类型支持枚举，且不支持类型混合，比如下面的枚举混合了Float和Int，将不会被正确解析 ```glsl
+  propertyName("Property Description", Enum("Item1":1, "Item2":2.0, "Item3": 3)) = 2.0; ```
+</Callout>
+
+### 材质宏属性定义
+
+用于将 Shader 中用到的宏反射到 Inspector 中，从而在编辑器中对 Shader 依赖的宏进行灵活的调整。
+
+```glsl showLineNumbers
+// 开启/关闭
+[On/Off]macroName("MacroLabel", EditType) = [DefaultValue];
+```
+
+通过`[On/Off]`指令指定宏的默认开关，当前编辑器支持的宏类型如下:
+
+|  Type   | Example                                                                                                   |
+| :-----: | :-------------------------------------------------------------------------------------------------------- |
+| 无值宏  | macroName("Macro Description");                                                                           |
+|  Bool   | macroName("Macro Description", Boolean) = true;                                                           |
+|   Int   | macroName("Macro Description", Int) = 1; <br/> macroName("Macro Description", Range(0,8)) = 1;            |
+|  Float  | macroName("Macro Description", FLoat) = 0.5; <br/> macroName("Macro Description", Range(0.0, 1.0)) = 0.5; |
+|  Color  | macroName("Macro Description", Color) = (0.25, 0.5, 0.5, 1);                                              |
+| Vector2 | macroName("Macro Description", Vector2) = (0.25, 0.5);                                                    |
+| Vector3 | macroName("Macro Description", Vector3) = (0.25, 0.5, 0.5);                                               |
+| Vector4 | macroName("Macro Description", Vector4) = (0.25, 0.5, 0.5, 1.0);                         

@@ -1,8 +1,10 @@
 {
-  "intro": "总览",
-  "shader": "Shader",
-  "editor": "Editor",
-  "subShader": "SubShader",
-  "pass": "Pass",
-  "macro": "宏"
+  "overview": "总览介绍",
+  "property": "材质属性定义",
+  "script": "UIScript 的使用和绑定",
+  "global": "全局变量声明",
+  "renderState": "渲染状态设置",
+  "entry": "顶点、片元着色器程序编写",
+  "multi": "多 Pass Shader 编写",
+  "chunk": "Shader 代码段引用"
 }
