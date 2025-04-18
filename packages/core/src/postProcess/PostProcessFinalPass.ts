@@ -6,24 +6,22 @@ import { ShaderLib } from "../shaderlib";
 import { Blitter } from "../RenderPipeline/Blitter";
 import blitVs from "../shaderlib/extra/Blit.vs.glsl";
 import { RenderTarget, Texture2D } from "../texture";
-import { PostProcessPass, PostProcessPassEvent } from "./PostProcessPass";
+import { PostProcessPass } from "./PostProcessPass";
 import FXAA3_11 from "./shaders/FXAA/FXAA3_11.glsl";
 import FinalPost from "./shaders/FinalPost.glsl";
 import { AntiAliasing } from "../enums/AntiAliasing";
 
-export class PostProcessFinalPass extends PostProcessPass {
-  static readonly FINAL_SHADER_NAME = "FinalPost";
-  static _fxaaEnabledMacro: ShaderMacro = ShaderMacro.getByName("ENABLE_FXAA");
-  static _hdrInputMacro: ShaderMacro = ShaderMacro.getByName("HDR_INPUT");
-  private _camera: Camera;
+export class FinalPass extends PostProcessPass {
+  public static readonly _finalShaderName = "FinalPost";
+  private static _fxaaEnabledMacro: ShaderMacro = ShaderMacro.getByName("ENABLE_FXAA");
+  private static _hdrInputMacro: ShaderMacro = ShaderMacro.getByName("HDR_INPUT");
   private _finalMaterial: Material;
 
   constructor(engine: Engine) {
     super(engine);
-    this.event = PostProcessPassEvent.Final;
 
     // Final Material
-    const finalMaterial = new Material(engine, Shader.find(PostProcessFinalPass.FINAL_SHADER_NAME));
+    const finalMaterial = new Material(engine, Shader.find(FinalPass._finalShaderName));
     const finalDepthState = finalMaterial.renderState.depthState;
     finalDepthState.enabled = false;
     finalDepthState.writeEnabled = false;
@@ -37,19 +35,19 @@ export class PostProcessFinalPass extends PostProcessPass {
 
   override onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void {
     const material = this._finalMaterial;
-    this._camera = camera;
-    const enableFXAA = this._camera?.antiAliasing === AntiAliasing.FastApproximateAntiAliasing;
+    const finalShaderData = material.shaderData;
+    const enableFXAA = camera?.antiAliasing === AntiAliasing.FXAA;
 
     if (enableFXAA) {
-      material.shaderData.enableMacro(PostProcessFinalPass._fxaaEnabledMacro);
+      finalShaderData.enableMacro(FinalPass._fxaaEnabledMacro);
       if (camera.enableHDR) {
-        material.shaderData.enableMacro(PostProcessFinalPass._hdrInputMacro);
+        finalShaderData.enableMacro(FinalPass._hdrInputMacro);
       } else {
-        material.shaderData.disableMacro(PostProcessFinalPass._hdrInputMacro);
+        finalShaderData.disableMacro(FinalPass._hdrInputMacro);
       }
     } else {
-      material.shaderData.disableMacro(PostProcessFinalPass._fxaaEnabledMacro);
-      material.shaderData.disableMacro(PostProcessFinalPass._hdrInputMacro);
+      finalShaderData.disableMacro(FinalPass._fxaaEnabledMacro);
+      finalShaderData.disableMacro(FinalPass._hdrInputMacro);
     }
 
     Blitter.blitTexture(camera.engine, srcTexture, destTarget, 0, camera.viewport, material);
@@ -60,4 +58,4 @@ Object.assign(ShaderLib, {
   FXAA3_11
 });
 
-Shader.create(PostProcessFinalPass.FINAL_SHADER_NAME, blitVs, FinalPost);
+Shader.create(FinalPass._finalShaderName, blitVs, FinalPost);

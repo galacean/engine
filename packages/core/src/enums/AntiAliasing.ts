@@ -5,5 +5,5 @@ export enum AntiAliasing {
   /* Disable anti-aliasing. */
   None,
   /* Fast approximate anti-aliasing. */
-  FastApproximateAntiAliasing
+  FXAA
 }

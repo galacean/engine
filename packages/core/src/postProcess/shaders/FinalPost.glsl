@@ -2,6 +2,7 @@
     #if defined(GRAPHICS_API_WEBGL2)
       #define FXAA_GLSL_130 1
       #define FXAA_PC_CONSOLE 1
+      #define FXAA_GREEN_AS_LUMA 0
     #elif defined(GRAPHICS_API_WEBGL1)
       #define FXAA_GLSL_120 1
     #endif
@@ -64,10 +65,12 @@ vec3 applyFXAA(vec3 color, vec2 positionNDC, vec4 sourceSize, sampler2D inputTex
 void main(){
 	mediump vec4 color = texture2DSRGB(renderer_BlitTexture, v_uv);
 
+    color = outputSRGBCorrection(color);
+
     #ifdef ENABLE_FXAA
         color.rgb = applyFXAA(color.rgb, v_uv, renderer_texelSize, renderer_BlitTexture);
     #endif    
    
-   gl_FragColor = outputSRGBCorrection(color);
+   gl_FragColor = color;
     
 }

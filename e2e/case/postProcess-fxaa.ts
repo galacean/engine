@@ -21,8 +21,8 @@ initPostProcessEnv((camera: Camera, resArray) => {
   Logger.enable();
 
   camera.enableHDR = false;
-  camera.enablePostProcess = true;
-  camera.antiAliasing = AntiAliasing.FastApproximateAntiAliasing;
+  // camera.enablePostProcess = true;
+  camera.antiAliasing = AntiAliasing.FXAA;
 
   const globalPostProcessEntity = scene.createRootEntity("FXAA_PostProcess");
   const postProcess = globalPostProcessEntity.addComponent(PostProcess);
