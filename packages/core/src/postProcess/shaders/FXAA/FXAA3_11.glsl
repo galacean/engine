@@ -428,11 +428,11 @@ NOTE the other tuning knobs are now in the shader function inputs!
 #if (FXAA_GREEN_AS_LUMA == 0)
 //    FxaaFloat FxaaLuma(FxaaFloat4 rgba) { return rgba.w; }
 //    #define FxaaLuma(rgba) (rgba).w
-    FxaaFloat FxaaLuma(FxaaFloat4 rgba)
-    {
+    // FxaaFloat FxaaLuma(FxaaFloat4 rgba)
+    // {
         // rgba.xyz = FastTonemap(rgba.xyz * g_fxaaHDROutputPaperWhiteNits.y);
-        return dot(rgba.xyz, FxaaFloat3(0.299, 0.587, 0.114));
-    }
+        #define FxaaLuma(rgba) (rgba).w
+    // }
 #else
 //    FxaaFloat FxaaLuma(FxaaFloat4 rgba) { return rgba.y; }
     #define FxaaLuma(rgba) (rgba).y
