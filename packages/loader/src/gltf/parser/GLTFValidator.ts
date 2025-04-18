@@ -1,10 +1,10 @@
-import { Logger } from "@galacean/engine-core";
+import { AssetPromise, Logger } from "@galacean/engine-core";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
 
 @registerGLTFParser(GLTFParserType.Validator)
 export class GLTFValidator extends GLTFParser {
-  parse(context: GLTFParserContext): Promise<void> {
+  parse(context: GLTFParserContext): AssetPromise<void> {
     const {
       asset: { version },
       extensionsUsed,
@@ -37,6 +37,6 @@ export class GLTFValidator extends GLTFParser {
       }
     }
 
-    return Promise.resolve(null);
+    return AssetPromise.resolve(null);
   }
 }

@@ -1,4 +1,4 @@
-import { PBRMaterial, Texture2D } from "@galacean/engine-core";
+import { Logger, PBRMaterial, Texture2D } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
 import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
 import { registerGLTFExtension } from "../parser/GLTFParser";
@@ -25,17 +25,27 @@ class KHR_materials_sheen extends GLTFExtensionParser {
     if (sheenColorTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(sheenColorTexture, "Sheen texture");
 
-      context.get<Texture2D>(GLTFParserType.Texture, sheenColorTexture.index).then((texture) => {
-        material.sheenColorTexture = texture;
-      });
+      context
+        .get<Texture2D>(GLTFParserType.Texture, sheenColorTexture.index)
+        .then((texture) => {
+          material.sheenColorTexture = texture;
+        })
+        .catch((e) => {
+          Logger.error("KHR_materials_sheen: sheenColorTexture error", e);
+        });
     }
 
     if (sheenRoughnessTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(sheenRoughnessTexture, "SheenRoughness texture");
 
-      context.get<Texture2D>(GLTFParserType.Texture, sheenRoughnessTexture.index).then((texture) => {
-        material.sheenRoughnessTexture = texture;
-      });
+      context
+        .get<Texture2D>(GLTFParserType.Texture, sheenRoughnessTexture.index)
+        .then((texture) => {
+          material.sheenRoughnessTexture = texture;
+        })
+        .catch((e) => {
+          Logger.error("KHR_materials_sheen: sheenRoughnessTexture error", e);
+        });
     }
   }
 }

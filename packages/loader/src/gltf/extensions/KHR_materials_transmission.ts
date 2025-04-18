@@ -1,4 +1,4 @@
-import { PBRMaterial, Texture2D } from "@galacean/engine-core";
+import { Logger, PBRMaterial, Texture2D } from "@galacean/engine-core";
 import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext, GLTFParserType } from "../parser/GLTFParserContext";
@@ -13,9 +13,14 @@ class KHR_materials_transmission extends GLTFExtensionParser {
     if (transmissionTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(transmissionTexture, "Transmission texture");
 
-      context.get<Texture2D>(GLTFParserType.Texture, transmissionTexture.index).then((texture) => {
-        material.transmissionTexture = texture;
-      });
+      context
+        .get<Texture2D>(GLTFParserType.Texture, transmissionTexture.index)
+        .then((texture) => {
+          material.transmissionTexture = texture;
+        })
+        .catch((e) => {
+          Logger.error("KHR_materials_transmission: transmission texture error", e);
+        });
     }
   }
 }

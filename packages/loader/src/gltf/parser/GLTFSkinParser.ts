@@ -1,4 +1,4 @@
-import { Entity, Skin } from "@galacean/engine-core";
+import { AssetPromise, Entity, Skin } from "@galacean/engine-core";
 import { Matrix } from "@galacean/engine-math";
 import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
@@ -6,7 +6,7 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 
 @registerGLTFParser(GLTFParserType.Skin)
 export class GLTFSkinParser extends GLTFParser {
-  parse(context: GLTFParserContext, index: number): Promise<Skin> {
+  parse(context: GLTFParserContext, index: number): AssetPromise<Skin> {
     const glTF = context.glTF;
     const skinInfo = glTF.skins[index];
     const { inverseBindMatrices, skeleton, joints, name = `SKIN_${index}` } = skinInfo;
@@ -50,7 +50,7 @@ export class GLTFSkinParser extends GLTFParser {
       return skin;
     });
 
-    return Promise.resolve(skinPromise);
+    return AssetPromise.resolve(skinPromise);
   }
 
   private _findSkeletonRootBone(joints: number[], entities: Entity[]): Entity {

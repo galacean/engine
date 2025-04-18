@@ -1,4 +1,4 @@
-import { PBRMaterial, Texture2D } from "@galacean/engine-core";
+import { Logger, PBRMaterial, Texture2D } from "@galacean/engine-core";
 import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext, GLTFParserType } from "../parser/GLTFParserContext";
@@ -24,16 +24,26 @@ class KHR_materials_iridescence extends GLTFExtensionParser {
     if (iridescenceTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(iridescenceTexture, "Iridescence texture");
 
-      context.get<Texture2D>(GLTFParserType.Texture, iridescenceTexture.index).then((texture) => {
-        material.iridescenceTexture = texture;
-      });
+      context
+        .get<Texture2D>(GLTFParserType.Texture, iridescenceTexture.index)
+        .then((texture) => {
+          material.iridescenceTexture = texture;
+        })
+        .catch((e) => {
+          Logger.error("KHR_materials_iridescence: iridescence texture error", e);
+        });
     }
     if (iridescenceThicknessTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(iridescenceThicknessTexture, "IridescenceThickness texture");
 
-      context.get<Texture2D>(GLTFParserType.Texture, iridescenceThicknessTexture.index).then((texture) => {
-        material.iridescenceThicknessTexture = texture;
-      });
+      context
+        .get<Texture2D>(GLTFParserType.Texture, iridescenceThicknessTexture.index)
+        .then((texture) => {
+          material.iridescenceThicknessTexture = texture;
+        })
+        .catch((e) => {
+          Logger.error("KHR_materials_iridescence: iridescence thickness error", e);
+        });
     }
   }
 }

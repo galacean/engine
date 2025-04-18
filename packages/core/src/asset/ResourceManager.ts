@@ -576,17 +576,17 @@ export class ResourceManager {
    * @internal
    * @beta Just for internal editor, not recommended for developers.
    */
-  getResourceByRef<T>(ref: { refId: string; key?: string; isClone?: boolean }): Promise<T> {
+  getResourceByRef<T>(ref: { refId: string; key?: string; isClone?: boolean }): AssetPromise<T> {
     const { refId, key, isClone } = ref;
     const obj = this._objectPool[refId];
     let promise;
     if (obj) {
-      promise = Promise.resolve(obj);
+      promise = AssetPromise.resolve(obj);
     } else {
       const resourceConfig = this._idResourceMap[refId];
       if (!resourceConfig) {
         Logger.warn(`refId:${refId} is not find in this._idResourceMap.`);
-        return Promise.resolve(null);
+        return AssetPromise.resolve(null);
       }
       let url = resourceConfig.virtualPath;
       if (key) {

@@ -2,20 +2,26 @@
  * Asset Loading Promise.
  */
 export class AssetPromise<T> implements PromiseLike<T> {
+  static resolve<T = any>(value?: T | PromiseLike<T>): AssetPromise<T> {
+    return new AssetPromise<T>((resolve) => {
+      resolve(value);
+    });
+  }
+
   /**
    * Return a new resource Promise through the provided asset promise collection.
    * The resolved of the new AssetPromise will be triggered when all the Promises in the provided set are completed.
    * @param - Promise Collection
    * @returns AssetPromise
    */
-  static all<T = any>(promises: (PromiseLike<T> | T)[]) {
-    return new AssetPromise<T[]>((resolve, reject, setTaskCompleteProgress) => {
+  static all<T extends any[]>(promises: [...T]): AssetPromise<{ [K in keyof T]: UnwrapPromise<T[K]> }> {
+    return new AssetPromise<{ [K in keyof T]: UnwrapPromise<T[K]> }>((resolve, reject, setTaskCompleteProgress) => {
       const count = promises.length;
       const results: T[] = new Array(count);
       let completed = 0;
 
       if (count === 0) {
-        return resolve(results);
+        return resolve(results as { [K in keyof T]: UnwrapPromise<T[K]> });
       }
 
       function onComplete(index: number, resultValue: T) {
@@ -24,18 +30,18 @@ export class AssetPromise<T> implements PromiseLike<T> {
 
         setTaskCompleteProgress(completed, count);
         if (completed === count) {
-          resolve(results);
+          resolve(results as { [K in keyof T]: UnwrapPromise<T[K]> });
         }
       }
 
-      function onProgress(promise: PromiseLike<T> | T, index: number) {
+      function onProgress(promise: any, index: number) {
         if (promise instanceof Promise || promise instanceof AssetPromise) {
           promise.then(function (value) {
             onComplete(index, value);
           }, reject);
         } else {
           Promise.resolve().then(() => {
-            onComplete(index, promise as T);
+            onComplete(index, promise);
           });
         }
       }
@@ -215,3 +221,4 @@ type TaskCompleteProgress = {
 };
 type TaskCompleteCallback = (loaded: number, total: number) => void;
 type TaskDetailCallback = (url: string, loaded: number, total: number) => void;
+type UnwrapPromise<T> = T extends PromiseLike<infer U> ? U : T;

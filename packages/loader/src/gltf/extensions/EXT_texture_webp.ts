@@ -1,4 +1,4 @@
-import { SystemInfo, Texture2D } from "@galacean/engine-core";
+import { AssetPromise, SystemInfo, Texture2D } from "@galacean/engine-core";
 import type { ITexture } from "../GLTFSchema";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
@@ -26,12 +26,12 @@ class EXT_texture_webp extends GLTFExtensionParser {
     }
   }
 
-  override async createAndParse(
+  override createAndParse(
     context: GLTFParserContext,
     schema: EXTWebPSchema,
     textureInfo: ITexture,
     textureIndex: number
-  ): Promise<Texture2D> {
+  ): AssetPromise<Texture2D> {
     const webPIndex = schema.source;
     const { sampler, source: fallbackIndex = 0, name: textureName } = textureInfo;
     const texture = GLTFTextureParser._parseTexture(
