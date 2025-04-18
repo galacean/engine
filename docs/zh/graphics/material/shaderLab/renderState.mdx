@@ -85,17 +85,3 @@ Shader "Demo" {
 ### 变量赋值
 
 赋值语句右端为任一变量名，变量具体值可由开发者通过脚本方式在运行时通过 `ShaderData.setInt("material_DstBlend", BlendFactor.SourceColor)` API 进行指定。
-
-<Callout type="positive">
-除了可以在 ShaderLab 中对渲染状态和渲染队列进行设置，开发者同样可以通过材质的API进行设置，如
-```ts
-// 渲染队列设置
-material.renderQueueType = RenderQueueType.Opaque;
-
-// 渲染状态设置 
-const renderState = material.renderState.depthState; 
-depthState.writeEnabled = false;
-
-````
-<Callout type="warning">当 ShaderLab 中声明了渲染状态和渲染队列，通过材质 API 进行的相应设置不会生效。</Callout>
-</Callout>
