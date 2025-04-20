@@ -6,10 +6,10 @@ export enum DFDTransferFunction {
   sRGB = 2
 }
 
-enum ColorModel {
+export enum ColorModel {
   ETC1S = 163,
-  UASTC = 166,
-  HDR = 167
+  UASTC_LDR_4X4 = 166,
+  UASTC_HDR_4X4 = 167
 }
 
 export enum SupercompressionScheme {
@@ -53,15 +53,8 @@ export class KTX2Container {
     return this.dataFormatDescriptor.transferFunction === DFDTransferFunction.sRGB;
   }
 
-  get colorModel() {
-    switch (this.dataFormatDescriptor.colorModel) {
-      case ColorModel.ETC1S:
-        return "etc1s";
-      case ColorModel.UASTC:
-        return "uastc";
-      case ColorModel.HDR:
-        return "hdr";
-    }
+  get colorModel(): ColorModel {
+    return this.dataFormatDescriptor.colorModel;
   }
 
   private parse(data: Uint8Array) {

@@ -18,8 +18,8 @@ export enum KTX2TargetFormat {
   R8G8,
   /** RGBA format, 32 bits per pixel. */
   R8G8B8A8,
-  /** The BC6H format is a texture compression format designed to support high-dynamic range (HDR) color spaces in source data. */
+  /** RGB HDR compressed format, 8 bits per pixel. */
   BC6H,
-  /** Half float type. */
-  RGBA16
+  /** RGBA format, 16 bits per channel. */
+  R16G16B16A16
 }

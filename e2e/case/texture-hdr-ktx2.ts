@@ -3,12 +3,15 @@
  * @category Texture
  */
 import {
+  BloomEffect,
   Camera,
   DirectLight,
   Logger,
   MeshRenderer,
+  PostProcess,
   PrimitiveMesh,
   Texture2D,
+  TonemappingEffect,
   UnlitMaterial,
   Vector3,
   WebGLEngine
@@ -39,6 +42,9 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   meshRenderer.mesh = PrimitiveMesh.createCuboid(engine);
   const mtl = new UnlitMaterial(engine);
   meshRenderer.setMaterial(mtl);
+  const postProcess = rootEntity.addComponent(PostProcess);
+  postProcess.addEffect(BloomEffect);
+  postProcess.addEffect(TonemappingEffect);
 
   engine.resourceManager.load<Texture2D>("/autumn_field_puresky_1k.ktx2").then((tex) => {
     mtl.baseTexture = tex;

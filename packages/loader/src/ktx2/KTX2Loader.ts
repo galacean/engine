@@ -15,7 +15,7 @@ import {
   resourceLoader
 } from "@galacean/engine-core";
 import { MathUtil } from "@galacean/engine-math";
-import { DFDTransferFunction, KTX2Container } from "./KTX2Container";
+import { DFDTransferFunction, KTX2Container, ColorModel } from "./KTX2Container";
 import { KTX2TargetFormat } from "./KTX2TargetFormat";
 import { TranscodeResult } from "./transcoder/AbstractTranscoder";
 import { BinomialLLCTranscoder } from "./transcoder/BinomialLLCTranscoder";
@@ -24,21 +24,21 @@ import { BinomialLLCTranscoder } from "./transcoder/BinomialLLCTranscoder";
 export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   private static _binomialLLCTranscoder: BinomialLLCTranscoder;
   private static _priorityFormats = {
-    etc1s: [
+    [ColorModel.ETC1S]: [
       KTX2TargetFormat.ETC,
       KTX2TargetFormat.BC7,
       KTX2TargetFormat.ASTC,
       KTX2TargetFormat.BC1_BC3,
       KTX2TargetFormat.PVRTC
     ],
-    uastc: [
+    [ColorModel.UASTC_LDR_4X4]: [
       KTX2TargetFormat.ASTC,
       KTX2TargetFormat.BC7,
       KTX2TargetFormat.ETC,
       KTX2TargetFormat.BC1_BC3,
       KTX2TargetFormat.PVRTC
     ],
-    hdr: [KTX2TargetFormat.BC6H, KTX2TargetFormat.RGBA16]
+    [ColorModel.UASTC_HDR_4X4]: [KTX2TargetFormat.BC6H, KTX2TargetFormat.R16G16B16A16]
   };
   private static _capabilityMap = {
     [KTX2TargetFormat.ASTC]: {
@@ -200,7 +200,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         return TextureFormat.R8G8B8A8;
       case KTX2TargetFormat.BC6H:
         return TextureFormat.BC6H;
-      case KTX2TargetFormat.RGBA16:
+      case KTX2TargetFormat.R16G16B16A16:
         return TextureFormat.R16G16B16A16;
     }
   }
@@ -250,14 +250,6 @@ export interface KTX2Params {
   priorityFormats: KTX2TargetFormat[];
 }
 
-/** Used for initialize KTX2 transcoder. */
-export enum KTX2Transcoder {
-  /** BinomialLLC transcoder. */
-  BinomialLLC,
-  /** Khronos transcoder. */
-  Khronos
-}
-
 declare module "@galacean/engine-core" {
   interface EngineConfiguration {
     /** KTX2 loader options. If set this option and workCount is great than 0, workers will be created. */
@@ -267,8 +259,6 @@ declare module "@galacean/engine-core" {
       /** Global transcoding format queue which will be used if not specified in per-instance param, default is BC7/ASTC/BC3_BC1/ETC/PVRTC/R8G8B8A8. */
       /** @deprecated */
       priorityFormats?: KTX2TargetFormat[];
-      /** Used for initialize KTX2 transcoder, default is BinomialLLC. */
-      transcoder?: KTX2Transcoder;
     };
   }
 }

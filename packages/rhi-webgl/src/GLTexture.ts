@@ -163,7 +163,7 @@ export class GLTexture implements IPlatformTexture {
         };
       case TextureFormat.BC6H:
         return {
-          internalFormat: gl.getExtension("EXT_texture_compression_bptc").COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_EXT,
+          internalFormat: GLCompressedTextureInternalFormat.RGB_BPTC_UNSIGNED_FLOAT_EXT,
           isCompressed: true
         };
       case TextureFormat.ETC1_RGB:
