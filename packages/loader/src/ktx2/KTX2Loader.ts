@@ -79,15 +79,18 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     const formatPriorities = params?.priorityFormats ?? KTX2Loader._priorityFormats[ktx2Container.colorModel];
     const targetFormat = KTX2Loader._decideTargetFormat(engine, ktx2Container, formatPriorities);
     const binomialLLCWorker = KTX2Loader._getBinomialLLCTranscoder();
-    return binomialLLCWorker.init().then(() => binomialLLCWorker.transcode(buffer, targetFormat)).then((result) => {
-      return {
-        ktx2Container,
-        engine,
-        result,
-        targetFormat,
-        params: ktx2Container.keyValue["GalaceanTextureParams"] as Uint8Array
-      };
-    });
+    return binomialLLCWorker
+      .init()
+      .then(() => binomialLLCWorker.transcode(buffer, targetFormat))
+      .then((result) => {
+        return {
+          ktx2Container,
+          engine,
+          result,
+          targetFormat,
+          params: ktx2Container.keyValue["GalaceanTextureParams"] as Uint8Array
+        };
+      });
   }
 
   /** @internal */
