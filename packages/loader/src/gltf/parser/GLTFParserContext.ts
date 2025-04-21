@@ -36,7 +36,7 @@ export class GLTFParserContext {
   needAnimatorController = false;
 
   /** @internal */
-  _chainPromises: AssetPromise<any>[] = [];
+  _cancellablePromises: AssetPromise<unknown>[] = [];
 
   private _resourceCache = new Map<string, any>();
   private _progress = {
@@ -89,7 +89,7 @@ export class GLTFParserContext {
           resource =
             type === GLTFParserType.Entity
               ? <Entity[]>glTFItems.map((_, index) => this.get<T>(type, index))
-              : (AssetPromise.all(glTFItems.map((_, index) => this.get<T>(type, index))) as AssetPromise<T[]>);
+              : (AssetPromise.all<T>(glTFItems.map((_, index) => this.get<T>(type, index))));
         } else {
           resource = parser.parse(this, index);
           isSubAsset && this._handleSubAsset(resource, type, index);
@@ -103,7 +103,7 @@ export class GLTFParserContext {
     }
 
     if (resource instanceof AssetPromise) {
-      this._chainPromises.push(resource);
+      this._cancellablePromises.push(resource);
     }
     cache.set(cacheKey, resource);
     return resource;
@@ -158,9 +158,18 @@ export class GLTFParserContext {
   _addTaskCompletePromise(taskPromise: PromiseLike<any>): void {
     const task = this._progress.taskComplete;
     task.total += 1;
+<<<<<<< HEAD
     taskPromise.then(() => {
       this._setTaskCompleteProgress(++task.loaded, task.total);
     });
+=======
+    taskPromise.then(
+      () => {
+        this._setTaskCompleteProgress(++task.loaded, task.total);
+      },
+      () => { }
+    );
+>>>>>>> af7a7b6e (fix: update asset promise)
   }
 
   private _handleSubAsset<T>(
@@ -222,7 +231,7 @@ export class BufferInfo {
     public data: TypedArray,
     public interleaved: boolean,
     public stride: number
-  ) {}
+  ) { }
 }
 
 export enum GLTFParserType {
