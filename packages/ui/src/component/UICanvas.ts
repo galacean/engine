@@ -155,7 +155,7 @@ export class UICanvas extends Component implements IElement {
   set renderCamera(value: Camera) {
     const preCamera = this._renderCamera;
     if (preCamera !== value) {
-      this._isSameOrChildEntity(value.entity) &&
+      value && this._isSameOrChildEntity(value.entity) &&
         Logger.warn(
           "Camera entity matching or nested within the canvas entity disables canvas auto-adaptation in ScreenSpaceCamera mode."
         );
