@@ -2,21 +2,57 @@
  * Asset Loading Promise.
  */
 export class AssetPromise<T> implements PromiseLike<T> {
-  static resolve<T = any>(value?: T | PromiseLike<T>): AssetPromise<T> {
-    return new AssetPromise<T>((resolve) => {
-      resolve(value);
-    });
+  /**
+   * Creates a new resolved AssetPromise.
+   * @returns A resolved AssetPromise.
+   */
+  static resolve(): AssetPromise<void>;
+
+  /**
+   * Creates a new resolved AssetPromise fork the provided value.
+   * @param value - A promise
+   * @returns A AssetPromise whose internal state matches the provided promise.
+   */
+  static resolve<T>(value: T): AssetPromise<Awaited<T>>;
+
+  /**
+   * Creates a new resolved AssetPromise for the provided value.
+   * @param value - A promise
+   * @returns A AssetPromise whose internal state matches the provided promise.
+   */
+  static resolve<T>(value: T | PromiseLike<T>): AssetPromise<Awaited<T>>;
+
+  static resolve<T>(value?: T | PromiseLike<T>): AssetPromise<Awaited<T>> | AssetPromise<void> {
+    if (value === undefined) {
+      return new AssetPromise<void>((resolve) => resolve());
+    } else if (value instanceof AssetPromise || value instanceof Promise) {
+      return new AssetPromise<Awaited<T>>((resolve, reject) => {
+        value.then((resolved) => resolve(resolved as Awaited<T>), reject);
+      });
+    } else {
+      return new AssetPromise<Awaited<T>>((resolve) => resolve(value as Awaited<T>));
+    }
   }
 
   /**
-   * Return a new resource Promise through the provided asset promise collection.
-   * The resolved of the new AssetPromise will be triggered when all the Promises in the provided set are completed.
-   * @param - Promise Collection
-   * @returns AssetPromise
+   * Creates a AssetPromise that is resolved with an array of results when all of the provided PromiseLike resolve, or rejected when any PromiseLike is rejected.
+   * @param values An array of PromiseLikes.
+   * @returns A new AssetPromise.
    */
-  static all<T extends any[]>(promises: [...T]): AssetPromise<{ [K in keyof T]: UnwrapPromise<T[K]> }> {
+  static all<T extends [] | unknown[]>(
+    values: T extends [] ? [...T] : readonly [...T]
+  ): AssetPromise<{ [K in keyof T]: UnwrapPromise<T[K]> }>;
+
+  /**
+   * Creates a AssetPromise that is resolved with an array of results when all of the provided PromiseLikes resolve, or rejected when any PromiseLikes is rejected.
+   * @param values An iterable of PromiseLikes.
+   * @returns A new AssetPromise.
+   */
+  static all<T>(values: Iterable<T | PromiseLike<T>>): AssetPromise<Awaited<T>[]>;
+
+  static all<T extends any[]>(values: [...T]): AssetPromise<{ [K in keyof T]: UnwrapPromise<T[K]> }> {
     return new AssetPromise<{ [K in keyof T]: UnwrapPromise<T[K]> }>((resolve, reject, setTaskCompleteProgress) => {
-      const count = promises.length;
+      const count = Array.from(values).length;
       const results: T[] = new Array(count);
       let completed = 0;
 
@@ -35,7 +71,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
       }
 
       function onProgress(promise: any, index: number) {
-        if (promise instanceof Promise || promise instanceof AssetPromise) {
+        if (promise instanceof AssetPromise || promise instanceof Promise) {
           promise.then(function (value) {
             onComplete(index, value);
           }, reject);
@@ -47,7 +83,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
       }
 
       for (let i = 0; i < count; i++) {
-        onProgress(promises[i], i);
+        onProgress(values[i], i);
       }
     });
   }
