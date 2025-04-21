@@ -49,9 +49,9 @@ export class GLTFLoader extends Loader<GLTFResource> {
       context._setTaskDetailProgress = setTaskDetailProgress;
       context.parse().then(resolve).catch(reject);
       onTaskCancel(() => {
-        const chainPromises = context._chainPromises;
-        for (let i = 0, n = chainPromises.length; i < n; i++) {
-          chainPromises[i].cancel();
+        const cancellablePromises = context._cancellablePromises;
+        for (let i = 0, n = cancellablePromises.length; i < n; i++) {
+          cancellablePromises[i].cancel();
         }
       });
     });
