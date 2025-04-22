@@ -1,10 +1,19 @@
 #ifdef ENABLE_FXAA
     #if defined(GRAPHICS_API_WEBGL2)
-      #define FXAA_GLSL_130 1
-      #define FXAA_PC_CONSOLE 1
-      #define FXAA_GREEN_AS_LUMA 0
+        #define FXAA_GLSL_130 1
+        #define FXAA_PC 1
+        #define FXAA_QUALITY_PRESET 12
+        #define FXAA_GREEN_AS_LUMA 0
     #elif defined(GRAPHICS_API_WEBGL1)
-      #define FXAA_GLSL_120 1
+        #define FXAA_GLSL_120 1
+        #define FXAA_PC_CONSOLE 1
+        #define FXAA_FAST_PIXEL_OFFSET 1
+    #endif
+#else
+    #if defined(GRAPHICS_API_WEBGL2)
+        #define FXAA_GLSL_130 1
+    #elif defined(GRAPHICS_API_WEBGL1)
+        #define FXAA_GLSL_120 1
     #endif
 #endif
 
@@ -22,40 +31,44 @@ uniform vec4 renderer_texelSize;    // x: 1/width, y: 1/height, z: width, w: hei
 	const FxaaFloat FXAA_ABSOLUTE_CONTRAST_THRESHOLD = 0.03;
 #endif
 
-vec3 applyFXAA(vec3 color, vec2 positionNDC, vec4 sourceSize, sampler2D inputTexture)
+vec3 applyFXAA(vec3 color, vec2 positionNDC, vec4 sourceSize, sampler2D blitTexture)
 {
 #ifdef ENABLE_FXAA
-    vec4 pixelShader = vec4(color,1);
+        vec4 pixelShader = vec4(color,1);
+        
+        FxaaFloat4 fxaaConsolePos = FxaaFloat4(0);
+        FxaaFloat4 kFxaaConsoleRcpFrameOpt = FxaaFloat4(0);
+        FxaaFloat4 kFxaaConsoleRcpFrameOpt2 = FxaaFloat4(0);
+        FxaaFloat kFxaaConsoleEdgeSharpness = 0.0;
+        FxaaFloat kFxaaConsoleEdgeThreshold = 0.0;
+        FxaaFloat kFxaaConsoleEdgeThresholdMin = 0.0;
 
     #if FXAA_PC_CONSOLE == 1
-        FxaaFloat4 kUnusedFloat4 = vec4(0);
-        FxaaFloat4 fxaaConsolePos = FxaaFloat4(positionNDC.xy - 0.5 * sourceSize.xy, positionNDC.xy + 0.5 * sourceSize.xy);
-        FxaaFloat4 kFxaaConsoleRcpFrameOpt = 0.5 * FxaaFloat4(sourceSize.xy, -sourceSize.xy);
-        FxaaFloat4 kFxasaConsoleRcpFrameOpt2 = 2.0 * FxaaFloat4(-sourceSize.xy, sourceSize.xy);
-        FxaaFloat  kFxaaConsoleEdgeSharpness = 8.0;
-        FxaaFloat  kFxaaConsoleEdgeThreshold = 0.125;
-        FxaaFloat  kFxaaConsoleEdgeThresholdMin = 0.05;
+        fxaaConsolePos = FxaaFloat4(positionNDC.xy - 0.5 * sourceSize.xy, positionNDC.xy + 0.5 * sourceSize.xy);
+        kFxaaConsoleRcpFrameOpt = 0.5 * FxaaFloat4(sourceSize.xy, -sourceSize.xy);
+        kFxaaConsoleRcpFrameOpt2 = 2.0 * FxaaFloat4(-sourceSize.xy, sourceSize.xy);
+        kFxaaConsoleEdgeSharpness = 8.0;
+        kFxaaConsoleEdgeThreshold = 0.125;
+        kFxaaConsoleEdgeThresholdMin = 0.05;
+    #endif
 
         pixelShader = FxaaPixelShader(
         positionNDC,
         FxaaFloat4(color, 0),
         fxaaConsolePos,
-        inputTexture,
-        inputTexture,
-        inputTexture,
+        blitTexture,
+        blitTexture,
+        blitTexture,
         sourceSize.xy,
         kFxaaConsoleRcpFrameOpt,
-        kFxasaConsoleRcpFrameOpt2,
-        kUnusedFloat4,
+        kFxaaConsoleRcpFrameOpt2,
         FXAA_SUBPIXEL_BLEND_AMOUNT,
         FXAA_RELATIVE_CONTRAST_THRESHOLD,
         FXAA_ABSOLUTE_CONTRAST_THRESHOLD,
         kFxaaConsoleEdgeSharpness,
         kFxaaConsoleEdgeThreshold,
-        kFxaaConsoleEdgeThresholdMin,
-        kUnusedFloat4
+        kFxaaConsoleEdgeThresholdMin
         );
-    #endif
     return pixelShader.rgb;
 #else
     return color;

@@ -15,13 +15,11 @@ import {
 import { initPostProcessEnv } from "./.initPostProcessEnv";
 
 initPostProcessEnv((camera: Camera, resArray) => {
-  const [_, __, dirtTexture] = resArray;
   const scene = camera.scene;
 
   Logger.enable();
 
   camera.enableHDR = false;
-  camera.enablePostProcess = true;
   camera.antiAliasing = AntiAliasing.FXAA;
 
   const globalPostProcessEntity = scene.createRootEntity("FXAA_PostProcess");

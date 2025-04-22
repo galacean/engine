@@ -31,7 +31,6 @@ import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
 import { PipelineStage } from "./enums/PipelineStage";
-import { FinalPass } from "../postProcess/PostProcessFinalPass";
 /**
  * Basic render pipeline.
  */
@@ -49,7 +48,6 @@ export class BasicRenderPipeline {
   private _copyBackgroundTexture: Texture2D;
   private _canUseBlitFrameBuffer = false;
   private _shouldCopyBackgroundColor = false;
-  private _finalPass: FinalPass;
 
   /**
    * Create a basic render pipeline.
@@ -62,7 +60,6 @@ export class BasicRenderPipeline {
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
     this._opaqueTexturePass = new OpaqueTexturePass(engine);
-    this._finalPass = new FinalPass(engine);
   }
 
   /**
@@ -293,21 +290,8 @@ export class BasicRenderPipeline {
 
     const postProcessManager = scene.postProcessManager;
     const cameraRenderTarget = camera.renderTarget;
-    if (this._finalPass && camera.enablePostProcess && postProcessManager._isValid()) {
-      postProcessManager._render(camera, internalColorTarget, cameraRenderTarget);
-    } else {
-      postProcessManager._releaseSwapRenderTarget();
-      if (internalColorTarget) {
-        internalColorTarget._blitRenderTarget();
-        Blitter.blitTexture(
-          engine,
-          <Texture2D>internalColorTarget.getColorTexture(0),
-          cameraRenderTarget,
-          0,
-          camera.viewport
-        );
-      }
-    }
+
+    postProcessManager._render(camera, internalColorTarget, cameraRenderTarget);
 
     cameraRenderTarget?._blitRenderTarget();
     cameraRenderTarget?.generateMipmaps();

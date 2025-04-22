@@ -6,7 +6,7 @@ import { ShaderLib } from "../shaderlib";
 import { Blitter } from "../RenderPipeline/Blitter";
 import blitVs from "../shaderlib/extra/Blit.vs.glsl";
 import { RenderTarget, Texture2D } from "../texture";
-import { PostProcessPass } from "./PostProcessPass";
+import { PostProcessPass, PostProcessPassEvent } from "./PostProcessPass";
 import FXAA3_11 from "./shaders/FXAA/FXAA3_11.glsl";
 import FinalPost from "./shaders/FinalPost.glsl";
 import { AntiAliasing } from "../enums/AntiAliasing";
@@ -25,11 +25,7 @@ export class FinalPass extends PostProcessPass {
     finalDepthState.enabled = false;
     finalDepthState.writeEnabled = false;
     this._finalMaterial = finalMaterial;
-  }
-
-  /** @inheritdoc */
-  override isValid(): boolean {
-    return true;
+    this.event = PostProcessPassEvent.AfterUber + 1;
   }
 
   override onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void {
