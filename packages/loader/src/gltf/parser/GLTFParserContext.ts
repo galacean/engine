@@ -158,18 +158,9 @@ export class GLTFParserContext {
   _addTaskCompletePromise(taskPromise: PromiseLike<any>): void {
     const task = this._progress.taskComplete;
     task.total += 1;
-<<<<<<< HEAD
     taskPromise.then(() => {
       this._setTaskCompleteProgress(++task.loaded, task.total);
     });
-=======
-    taskPromise.then(
-      () => {
-        this._setTaskCompleteProgress(++task.loaded, task.total);
-      },
-      () => {}
-    );
->>>>>>> af7a7b6e (fix: update asset promise)
   }
 
   private _handleSubAsset<T>(
@@ -231,7 +222,7 @@ export class BufferInfo {
     public data: TypedArray,
     public interleaved: boolean,
     public stride: number
-  ) {}
+  ) { }
 }
 
 export enum GLTFParserType {
