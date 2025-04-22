@@ -85,7 +85,6 @@ export class BasicResources {
     return (this._blinnPhongMaterial ||= new BlinnPhongMaterial(this.engine));
   }
 
-
   private _createBlitMesh(engine: Engine, vertices: Float32Array): ModelMesh {
     const mesh = new ModelMesh(engine);
     mesh._addReferCount(1);

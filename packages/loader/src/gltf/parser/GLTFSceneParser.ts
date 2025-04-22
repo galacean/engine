@@ -1,6 +1,8 @@
 import {
+  AssetPromise,
   Camera,
   Entity,
+  Logger,
   Material,
   Mesh,
   MeshRenderer,
@@ -16,7 +18,7 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 
 @registerGLTFParser(GLTFParserType.Scene)
 export class GLTFSceneParser extends GLTFParser {
-  parse(context: GLTFParserContext, index: number): Promise<Entity> {
+  parse(context: GLTFParserContext, index: number): AssetPromise<Entity> {
     const {
       glTF: { scenes, scene = 0 },
       glTFResource
@@ -45,24 +47,24 @@ export class GLTFSceneParser extends GLTFParser {
       glTFResource._defaultSceneRoot = sceneRoot;
     }
 
-    const promises = new Array<Promise<void[]>>();
+    const promises = new Array<AssetPromise<void[]>>();
 
     for (let i = 0; i < sceneNodes.length; i++) {
       promises.push(this._parseEntityComponent(context, sceneNodes[i]));
     }
 
-    return Promise.all(promises).then(() => {
+    return AssetPromise.all(promises).then(() => {
       GLTFParser.executeExtensionsAdditiveAndParse(sceneExtensions, context, sceneRoot, sceneInfo);
       return sceneRoot;
     });
   }
 
-  private _parseEntityComponent(context: GLTFParserContext, index: number): Promise<void[]> {
+  private _parseEntityComponent(context: GLTFParserContext, index: number): AssetPromise<void[]> {
     const { glTF, glTFResource } = context;
     const entityInfo = glTF.nodes[index];
     const { camera: cameraID, mesh: meshID } = entityInfo;
     const entity = context.get<Entity>(GLTFParserType.Entity, index);
-    let promise: Promise<void>;
+    let promise: AssetPromise<void>;
 
     if (cameraID !== undefined) {
       this._createCamera(glTFResource, glTF.cameras[cameraID], entity);
@@ -72,7 +74,7 @@ export class GLTFSceneParser extends GLTFParser {
       promise = this._createRenderer(context, entityInfo, entity);
     }
 
-    return Promise.resolve(promise).then(() => {
+    return AssetPromise.resolve(promise).then(() => {
       const promises = [];
       const children = entityInfo.children;
 
@@ -82,7 +84,7 @@ export class GLTFSceneParser extends GLTFParser {
         }
       }
 
-      return Promise.all(promises);
+      return AssetPromise.all(promises);
     });
   }
 
@@ -126,61 +128,64 @@ export class GLTFSceneParser extends GLTFParser {
     camera.enabled = false;
   }
 
-  private _createRenderer(context: GLTFParserContext, entityInfo: INode, entity: Entity): Promise<void> {
+  private _createRenderer(context: GLTFParserContext, entityInfo: INode, entity: Entity): AssetPromise<void> {
     const { mesh: meshID, skin: skinID } = entityInfo;
     const glTFMesh = context.glTF.meshes[meshID];
 
     const glTFMeshPrimitives = glTFMesh.primitives;
     const rendererCount = glTFMeshPrimitives.length;
     const blendShapeWeights = entityInfo.weights || glTFMesh.weights;
-    const materialPromises = new Array<Promise<Material>>(rendererCount);
+    const materialPromises = new Array<AssetPromise<Material>>(rendererCount);
 
     for (let i = 0; i < rendererCount; i++) {
       materialPromises[i] = context.get<Material>(GLTFParserType.Material, glTFMeshPrimitives[i].material ?? -1);
     }
 
-    return Promise.all([
+    return AssetPromise.all([
       context.get<ModelMesh[]>(GLTFParserType.Mesh, meshID),
       skinID !== undefined && context.get<Skin>(GLTFParserType.Skin, skinID),
-      Promise.all(materialPromises)
-    ]).then(([meshes, skin, materials]) => {
-      // @ts-ignore
-      const basicResources = context.glTFResource.engine._basicResources;
-      for (let i = 0; i < rendererCount; i++) {
-        const material = materials[i] || basicResources._getBlinnPhongMaterial();
-        const glTFPrimitive = glTFMeshPrimitives[i];
-        const mesh = meshes[i];
+      AssetPromise.all(materialPromises)
+    ])
+      .then(([meshes, skin, materials]) => {
+        for (let i = 0; i < rendererCount; i++) {
+          // @ts-ignore
+          const material = materials[i] || context.glTFResource.engine._basicResources._getBlinnPhongMaterial();
+          const glTFPrimitive = glTFMeshPrimitives[i];
+          const mesh = meshes[i];
 
-        let renderer: MeshRenderer | SkinnedMeshRenderer;
+          let renderer: MeshRenderer | SkinnedMeshRenderer;
 
-        if (skin || blendShapeWeights) {
-          const skinRenderer = entity.addComponent(SkinnedMeshRenderer);
-          skinRenderer.mesh = mesh;
-          if (skin) {
-            this._computeLocalBounds(skinRenderer, mesh, skin.bones, skin.rootBone, skin.inverseBindMatrices);
-            skinRenderer.skin = skin;
+          if (skin || blendShapeWeights) {
+            const skinRenderer = entity.addComponent(SkinnedMeshRenderer);
+            skinRenderer.mesh = mesh;
+            if (skin) {
+              this._computeLocalBounds(skinRenderer, mesh, skin.bones, skin.rootBone, skin.inverseBindMatrices);
+              skinRenderer.skin = skin;
+            }
+            if (blendShapeWeights) {
+              skinRenderer.blendShapeWeights = new Float32Array(blendShapeWeights);
+            }
+            renderer = skinRenderer;
+          } else {
+            renderer = entity.addComponent(MeshRenderer);
+            renderer.mesh = mesh;
           }
-          if (blendShapeWeights) {
-            skinRenderer.blendShapeWeights = new Float32Array(blendShapeWeights);
-          }
-          renderer = skinRenderer;
-        } else {
-          renderer = entity.addComponent(MeshRenderer);
-          renderer.mesh = mesh;
+
+          renderer.setMaterial(material);
+
+          // Enable vertex color if mesh has COLOR_0 vertex element
+          mesh.vertexElements.forEach((element) => {
+            if (element.semantic === "COLOR_0") {
+              renderer.enableVertexColor = true;
+            }
+          });
+
+          GLTFParser.executeExtensionsAdditiveAndParse(glTFPrimitive.extensions, context, renderer, glTFPrimitive);
         }
-
-        renderer.setMaterial(material);
-
-        // Enable vertex color if mesh has COLOR_0 vertex element
-        mesh.vertexElements.forEach((element) => {
-          if (element.semantic === "COLOR_0") {
-            renderer.enableVertexColor = true;
-          }
-        });
-
-        GLTFParser.executeExtensionsAdditiveAndParse(glTFPrimitive.extensions, context, renderer, glTFPrimitive);
-      }
-    });
+      })
+      .catch((e) => {
+        Logger.error("GLTFSceneParser: create renderer error", e);
+      });
   }
 
   private _computeLocalBounds(

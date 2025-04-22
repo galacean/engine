@@ -1,11 +1,11 @@
-import { AssetType, Texture2D, Utils } from "@galacean/engine-core";
+import { AssetPromise, AssetType, Logger, Texture2D, Utils } from "@galacean/engine-core";
+import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
+import { KTX2Loader } from "../../ktx2/KTX2Loader";
 import type { ITexture } from "../GLTFSchema";
+import { GLTFUtils } from "../GLTFUtils";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext, GLTFParserType } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
-import { GLTFUtils } from "../GLTFUtils";
-import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
-import { KTX2Loader } from "../../ktx2/KTX2Loader";
 
 interface KHRBasisSchema {
   source: number;
@@ -13,11 +13,11 @@ interface KHRBasisSchema {
 
 @registerGLTFExtension("KHR_texture_basisu", GLTFExtensionMode.CreateAndParse)
 class KHR_texture_basisu extends GLTFExtensionParser {
-  override async createAndParse(
+  override createAndParse(
     context: GLTFParserContext,
     schema: KHRBasisSchema,
     textureInfo: ITexture
-  ): Promise<Texture2D> {
+  ): AssetPromise<Texture2D> {
     const { glTF, glTFResource } = context;
     const { engine, url } = glTFResource;
 
@@ -48,21 +48,26 @@ class KHR_texture_basisu extends GLTFExtensionParser {
     } else {
       const bufferView = glTF.bufferViews[bufferViewIndex];
 
-      return context.get<ArrayBuffer>(GLTFParserType.Buffer, bufferView.buffer).then((buffer) => {
-        const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
-
-        return KTX2Loader._parseBuffer(imageBuffer, engine)
-          .then(({ engine, result, targetFormat, params }) =>
-            KTX2Loader._createTextureByBuffer(engine, result, targetFormat, params)
-          )
-          .then((texture: Texture2D) => {
-            texture.name = textureName || imageName || `texture_${bufferViewIndex}`;
-            if (sampler !== undefined) {
-              GLTFUtils.parseSampler(texture, samplerInfo);
-            }
-            const bufferTextureRestoreInfo = new BufferTextureRestoreInfo(texture, bufferView, mimeType);
-            context.contentRestorer.bufferTextures.push(bufferTextureRestoreInfo);
-            return texture;
+      return new AssetPromise<Texture2D>((resolve, reject) => {
+        context
+          .get<ArrayBuffer>(GLTFParserType.Buffer, bufferView.buffer)
+          .then((buffer) => {
+            const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
+            KTX2Loader._parseBuffer(imageBuffer, engine)
+              .then(({ engine, result, targetFormat, params }) => {
+                const texture = <Texture2D>KTX2Loader._createTextureByBuffer(engine, result, targetFormat, params);
+                texture.name = textureName || imageName || `texture_${bufferViewIndex}`;
+                if (sampler !== undefined) {
+                  GLTFUtils.parseSampler(texture, samplerInfo);
+                }
+                const bufferTextureRestoreInfo = new BufferTextureRestoreInfo(texture, bufferView, mimeType);
+                context.contentRestorer.bufferTextures.push(bufferTextureRestoreInfo);
+                resolve(texture);
+              })
+              .catch(reject);
+          })
+          .catch((e) => {
+            Logger.error("KHR_texture_basisu: buffer error", e);
           });
       });
     }
