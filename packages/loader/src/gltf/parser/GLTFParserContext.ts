@@ -36,7 +36,7 @@ export class GLTFParserContext {
   needAnimatorController = false;
 
   /** @internal */
-  _cancellablePromises: AssetPromise<unknown>[] = [];
+  _getPromises: AssetPromise<unknown>[] = [];
 
   private _resourceCache = new Map<string, any>();
   private _progress = {
@@ -103,7 +103,7 @@ export class GLTFParserContext {
     }
 
     if (resource instanceof AssetPromise) {
-      this._cancellablePromises.push(resource);
+      this._getPromises.push(resource);
     }
     cache.set(cacheKey, resource);
     return resource;
