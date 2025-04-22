@@ -53,7 +53,10 @@ export class GLTFLoader extends Loader<GLTFResource> {
           cancellablePromises[i].cancel();
         }
       });
-      context.parse().then(resolve).catch(reject).finally(() => {
+      context.parse().then(resolve).catch((e) => {
+        glTFResource.destroy();
+        reject(e);
+      }).finally(() => {
         cancellablePromises.length = 0;
       })
     });
