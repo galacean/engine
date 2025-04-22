@@ -20,7 +20,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
    * @param value - A promise
    * @returns A AssetPromise whose internal state matches the provided promise.
    */
-  static resolve<T>(value: T | PromiseLike<T>): AssetPromise<Awaited<T>>;
+  static resolve<T>(value: PromiseLike<T>): AssetPromise<Awaited<T>>;
 
   static resolve<T>(value?: T | PromiseLike<T>): AssetPromise<Awaited<T>> | AssetPromise<void> {
     if (value === undefined) {

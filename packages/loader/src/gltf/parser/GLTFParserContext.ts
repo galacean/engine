@@ -89,7 +89,7 @@ export class GLTFParserContext {
           resource =
             type === GLTFParserType.Entity
               ? <Entity[]>glTFItems.map((_, index) => this.get<T>(type, index))
-              : (AssetPromise.all<T>(glTFItems.map((_, index) => this.get<T>(type, index))));
+              : AssetPromise.all<T>(glTFItems.map((_, index) => this.get<T>(type, index)));
         } else {
           resource = parser.parse(this, index);
           isSubAsset && this._handleSubAsset(resource, type, index);
@@ -167,7 +167,7 @@ export class GLTFParserContext {
       () => {
         this._setTaskCompleteProgress(++task.loaded, task.total);
       },
-      () => { }
+      () => {}
     );
 >>>>>>> af7a7b6e (fix: update asset promise)
   }
@@ -231,7 +231,7 @@ export class BufferInfo {
     public data: TypedArray,
     public interleaved: boolean,
     public stride: number
-  ) { }
+  ) {}
 }
 
 export enum GLTFParserType {
