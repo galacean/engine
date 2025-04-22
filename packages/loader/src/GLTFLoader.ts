@@ -47,10 +47,10 @@ export class GLTFLoader extends Loader<GLTFResource> {
     return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress, onTaskCancel) => {
       context._setTaskCompleteProgress = setTaskCompleteProgress;
       context._setTaskDetailProgress = setTaskDetailProgress;
-      const cancellablePromises = context._cancellablePromises;
       onTaskCancel(() => {
-        for (let i = 0, n = cancellablePromises.length; i < n; i++) {
-          cancellablePromises[i].cancel();
+        const getPromises = context._getPromises;
+        for (let i = 0, n = getPromises.length; i < n; i++) {
+          getPromises[i].cancel();
         }
       });
       context
@@ -60,9 +60,6 @@ export class GLTFLoader extends Loader<GLTFResource> {
           glTFResource.destroy();
           reject(e);
         })
-        .finally(() => {
-          cancellablePromises.length = 0;
-        });
     });
   }
 }
