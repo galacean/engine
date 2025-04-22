@@ -98,7 +98,7 @@ export class Camera extends Component {
   /**
    * Select anti-aliasing mode.
    * @defaultValue `AntiAliasing.None`
-   * @remarks This mode is anti-aliasing for pixels.
+   * @remarks This mode is anti-aliasing for pixels, if set antiAliasing mode, the`enablePostProcess` must be `true`.
    */
   antiAliasing: AntiAliasing = AntiAliasing.None;
 
@@ -180,7 +180,16 @@ export class Camera extends Component {
    * @remarks If true, the msaa in viewport can turn or off independently by `msaaSamples` property.
    */
   get independentCanvasEnabled(): boolean {
-    return true;
+    // Uber pass need internal RT
+    if (this.enablePostProcess && this.scene.postProcessManager._isValid()) {
+      return true;
+    }
+
+    if (this.enableHDR || this.opaqueTextureEnabled) {
+      return this._getInternalColorTextureFormat() !== this.renderTarget?.getColorTexture(0).format;
+    }
+
+    return false;
   }
 
   /**

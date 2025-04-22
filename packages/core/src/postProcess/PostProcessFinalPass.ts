@@ -15,6 +15,7 @@ export class FinalPass extends PostProcessPass {
   public static readonly _finalShaderName = "FinalPost";
   private static _fxaaEnabledMacro: ShaderMacro = ShaderMacro.getByName("ENABLE_FXAA");
   private _finalMaterial: Material;
+  private _camera: Camera;
 
   constructor(engine: Engine) {
     super(engine);
@@ -26,6 +27,14 @@ export class FinalPass extends PostProcessPass {
     finalDepthState.writeEnabled = false;
     this._finalMaterial = finalMaterial;
     this.event = PostProcessPassEvent.AfterUber + 1;
+  }
+
+  /** @inheritdoc */
+  override isValid(): boolean {
+    if (!this.isActive) {
+      return false;
+    }
+    return this._camera?.antiAliasing === AntiAliasing.FXAA;
   }
 
   override onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void {

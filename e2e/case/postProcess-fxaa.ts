@@ -14,12 +14,13 @@ import {
 } from "@galacean/engine";
 import { initPostProcessEnv } from "./.initPostProcessEnv";
 
-initPostProcessEnv((camera: Camera, resArray) => {
+initPostProcessEnv((camera: Camera) => {
   const scene = camera.scene;
 
   Logger.enable();
 
   camera.enableHDR = false;
+  camera.enablePostProcess = true;
   camera.antiAliasing = AntiAliasing.FXAA;
 
   const globalPostProcessEntity = scene.createRootEntity("FXAA_PostProcess");

@@ -290,8 +290,21 @@ export class BasicRenderPipeline {
 
     const postProcessManager = scene.postProcessManager;
     const cameraRenderTarget = camera.renderTarget;
-
-    postProcessManager._render(camera, internalColorTarget, cameraRenderTarget);
+    if (camera.enablePostProcess && postProcessManager._isValid()) {
+      postProcessManager._render(camera, internalColorTarget, cameraRenderTarget);
+    } else {
+      postProcessManager._releaseSwapRenderTarget();
+      if (internalColorTarget) {
+        internalColorTarget._blitRenderTarget();
+        Blitter.blitTexture(
+          engine,
+          <Texture2D>internalColorTarget.getColorTexture(0),
+          cameraRenderTarget,
+          0,
+          camera.viewport
+        );
+      }
+    }
 
     cameraRenderTarget?._blitRenderTarget();
     cameraRenderTarget?.generateMipmaps();
