@@ -41,6 +41,10 @@ describe("UICanvas", async () => {
     expect(!!rootCanvas.renderCamera).to.eq(false);
     rootCanvas.renderCamera = camera;
     expect(rootCanvas.renderCamera).to.eq(camera);
+    rootCanvas.renderCamera = null;
+    expect(!!rootCanvas.renderCamera).to.eq(false);
+    rootCanvas.renderCamera = camera;
+    expect(rootCanvas.renderCamera).to.eq(camera);
 
     // Resolution Adaptation Strategy
     rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.WidthAdaptation;
