@@ -202,11 +202,9 @@ export class RenderQueue {
   private _drawMask(context: RenderContext, pipelineStageTagValue: string, master: SubRenderElement): void {
     const incrementMaskQueue = MaskManager.getMaskIncrementRenderQueue();
     incrementMaskQueue.renderQueueType = this.renderQueueType;
-    incrementMaskQueue.clear();
 
     const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
     decrementMaskQueue.renderQueueType = this.renderQueueType;
-    decrementMaskQueue.clear();
 
     const camera = context.camera;
     const engine = camera.engine;
@@ -216,9 +214,11 @@ export class RenderQueue {
     incrementMaskQueue._batch(engine._batcherManager);
     primitiveChunkManagerMask.uploadBuffer();
     incrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Increment);
+    incrementMaskQueue.clear();
     decrementMaskQueue._batch(engine._batcherManager);
     primitiveChunkManagerMask.uploadBuffer();
     decrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Decrement);
+    decrementMaskQueue.clear();
   }
 }
 

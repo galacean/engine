@@ -6,7 +6,7 @@ import { BufferBindFlag } from "./graphic/enums/BufferBindFlag";
 import { BufferUsage } from "./graphic/enums/BufferUsage";
 import { MeshTopology } from "./graphic/enums/MeshTopology";
 import { VertexElementFormat } from "./graphic/enums/VertexElementFormat";
-import { Material } from "./material";
+import { BlinnPhongMaterial, Material } from "./material";
 import { ModelMesh } from "./mesh";
 import { Shader } from "./shader/Shader";
 import { Texture, Texture2D, TextureCube, TextureCubeFace } from "./texture";
@@ -29,12 +29,14 @@ export class BasicResources {
   readonly whiteTexture2DArray: Texture2DArray;
   readonly uintWhiteTexture2D: Texture2D;
 
-  constructor(engine: Engine) {
+  private _blinnPhongMaterial: BlinnPhongMaterial;
+
+  constructor(public engine: Engine) {
     // prettier-ignore
     const vertices = new Float32Array([
       -1, -1, 0, 1, // left-bottom
       3, -1, 2, 1,  // right-bottom
-      -1, 3, 0, -1 ]); // left-top
+      -1, 3, 0, -1]); // left-top
 
     // prettier-ignore
     const flipYVertices = new Float32Array([
@@ -75,6 +77,14 @@ export class BasicResources {
       );
     }
   }
+
+  /**
+   * @internal
+   */
+  _getBlinnPhongMaterial(): BlinnPhongMaterial {
+    return (this._blinnPhongMaterial ||= new BlinnPhongMaterial(this.engine));
+  }
+
 
   private _createBlitMesh(engine: Engine, vertices: Float32Array): ModelMesh {
     const mesh = new ModelMesh(engine);
