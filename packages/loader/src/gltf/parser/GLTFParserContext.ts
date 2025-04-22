@@ -222,7 +222,7 @@ export class BufferInfo {
     public data: TypedArray,
     public interleaved: boolean,
     public stride: number
-  ) { }
+  ) {}
 }
 
 export enum GLTFParserType {
