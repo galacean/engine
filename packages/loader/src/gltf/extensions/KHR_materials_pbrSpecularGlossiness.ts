@@ -1,4 +1,4 @@
-import { PBRSpecularMaterial, Texture2D } from "@galacean/engine-core";
+import { Logger, PBRSpecularMaterial, Texture2D } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
 import type { IMaterial } from "../GLTFSchema";
 import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
@@ -28,10 +28,15 @@ class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
     }
 
     if (diffuseTexture) {
-      context.get<Texture2D>(GLTFParserType.Texture, diffuseTexture.index).then((texture) => {
-        material.baseTexture = texture;
-        GLTFParser.executeExtensionsAdditiveAndParse(diffuseTexture.extensions, context, material, diffuseTexture);
-      });
+      context
+        .get<Texture2D>(GLTFParserType.Texture, diffuseTexture.index)
+        .then((texture) => {
+          material.baseTexture = texture;
+          GLTFParser.executeExtensionsAdditiveAndParse(diffuseTexture.extensions, context, material, diffuseTexture);
+        })
+        .catch((e) => {
+          Logger.error("KHR_materials_pbrSpecularGlossiness: diffuse texture error", e);
+        });
     }
 
     if (specularFactor) {
@@ -49,9 +54,14 @@ class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
     if (specularGlossinessTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(specularGlossinessTexture, "Specular glossiness");
 
-      context.get<Texture2D>(GLTFParserType.Texture, specularGlossinessTexture.index).then((texture) => {
-        material.specularGlossinessTexture = texture;
-      });
+      context
+        .get<Texture2D>(GLTFParserType.Texture, specularGlossinessTexture.index)
+        .then((texture) => {
+          material.specularGlossinessTexture = texture;
+        })
+        .catch((e) => {
+          Logger.error("KHR_materials_pbrSpecularGlossiness: specular glossiness texture error", e);
+        });
     }
 
     material.name = ownerSchema.name;

@@ -1,3 +1,4 @@
+import { IClone } from "@galacean/engine-design";
 import { ContentRestorer, Engine, EngineObject, Logger, Utils } from "..";
 import { AssetPromise } from "./AssetPromise";
 import { GraphicsResource } from "./GraphicsResource";
@@ -576,29 +577,29 @@ export class ResourceManager {
    * @internal
    * @beta Just for internal editor, not recommended for developers.
    */
-  getResourceByRef<T>(ref: { refId: string; key?: string; isClone?: boolean }): Promise<T> {
+  getResourceByRef<T>(ref: { refId: string; key?: string; isClone?: boolean }): AssetPromise<T> {
     const { refId, key, isClone } = ref;
     const obj = this._objectPool[refId];
-    let promise;
+    let promise: AssetPromise<T>;
     if (obj) {
-      promise = Promise.resolve(obj);
+      promise = AssetPromise.resolve(obj);
     } else {
       const resourceConfig = this._idResourceMap[refId];
       if (!resourceConfig) {
         Logger.warn(`refId:${refId} is not find in this._idResourceMap.`);
-        return Promise.resolve(null);
+        return AssetPromise.resolve(null);
       }
       let url = resourceConfig.virtualPath;
       if (key) {
         url += "?q=" + key;
       }
 
-      promise = this.load<any>({
+      promise = this.load<T>({
         url,
         type: resourceConfig.type
       });
     }
-    return promise.then((item) => (isClone ? item.clone() : item));
+    return promise.then((item) => (isClone ? <T>(<IClone>item).clone() : item));
   }
 
   /**
