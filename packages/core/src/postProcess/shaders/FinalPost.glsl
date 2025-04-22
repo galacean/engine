@@ -1,12 +1,11 @@
 #ifdef ENABLE_FXAA
+    #define FXAA_PC 1
+    #define FXAA_QUALITY_PRESET 12
+    #define FXAA_GREEN_AS_LUMA 0
     #if defined(GRAPHICS_API_WEBGL2)
         #define FXAA_GLSL_130 1
-        #define FXAA_PC 1
-        #define FXAA_QUALITY_PRESET 12
-        #define FXAA_GREEN_AS_LUMA 0
     #elif defined(GRAPHICS_API_WEBGL1)
         #define FXAA_GLSL_120 1
-        #define FXAA_PC_CONSOLE 1
         #define FXAA_FAST_PIXEL_OFFSET 1
     #endif
 #else
