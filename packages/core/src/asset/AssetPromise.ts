@@ -10,14 +10,14 @@ export class AssetPromise<T> implements PromiseLike<T> {
 
   /**
    * Creates a new resolved AssetPromise fork the provided value.
-   * @param value - A promise
+   * @param value - A value
    * @returns A AssetPromise whose internal state matches the provided promise.
    */
   static resolve<T>(value: T): AssetPromise<Awaited<T>>;
 
   /**
    * Creates a new resolved AssetPromise for the provided value.
-   * @param value - A promise
+   * @param value - A PromiseLike
    * @returns A AssetPromise whose internal state matches the provided promise.
    */
   static resolve<T>(value: PromiseLike<T>): AssetPromise<Awaited<T>>;
@@ -36,7 +36,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
 
   /**
    * Creates a AssetPromise that is resolved with an array of results when all of the provided PromiseLike resolve, or rejected when any PromiseLike is rejected.
-   * @param values An array of PromiseLikes.
+   * @param values An array of PromiseLikes
    * @returns A new AssetPromise.
    */
   static all<T extends [] | unknown[]>(
@@ -45,7 +45,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
 
   /**
    * Creates a AssetPromise that is resolved with an array of results when all of the provided PromiseLikes resolve, or rejected when any PromiseLikes is rejected.
-   * @param values An iterable of PromiseLikes.
+   * @param values An iterable of PromiseLikes
    * @returns A new AssetPromise.
    */
   static all<T>(values: Iterable<T | PromiseLike<T>>): AssetPromise<Awaited<T>[]>;
