@@ -96,9 +96,9 @@ export class Camera extends Component {
   msaaSamples: MSAASamples = MSAASamples.None;
 
   /**
-   * anti-aliasing mode.
+   * Anti-aliasing mode.
    * @defaultValue `AntiAliasing.None`
-   * @remarks This mode is anti-aliasing for pixels, if set antiAliasing mode, the`enablePostProcess` must be `true`.
+   * @remarks If set antiAliasing mode, the`enablePostProcess` must be `true`.
    */
   antiAliasing: AntiAliasing = AntiAliasing.None;
 

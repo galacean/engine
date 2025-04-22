@@ -17,9 +17,7 @@ import { initPostProcessEnv } from "./.initPostProcessEnv";
 initPostProcessEnv((camera: Camera) => {
   const scene = camera.scene;
 
-  Logger.enable();
-
-  camera.enableHDR = false;
+  camera.enableHDR = true;
   camera.enablePostProcess = true;
   camera.antiAliasing = AntiAliasing.FXAA;
 
