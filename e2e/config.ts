@@ -231,6 +231,11 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-shape-mesh",
       threshold: 0.1
+    },
+    particleEmissive: {
+      category: "Particle",
+      caseFileName: "particleRenderer-emissive",
+      threshold: 0.1
     }
   },
   PostProcess: {
