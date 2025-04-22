@@ -59,7 +59,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
         .catch((e) => {
           glTFResource.destroy();
           reject(e);
-        })
+        });
     });
   }
 }
