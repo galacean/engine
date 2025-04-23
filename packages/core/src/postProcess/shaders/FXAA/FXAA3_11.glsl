@@ -1,4 +1,10 @@
-
+//----------------------------------------------------------------------------------
+//  This file was obatined from: https://github.com/hghdev/NVIDIAGameWorks-GraphicsSamples/blob/master/samples/es3-kepler/FXAA/FXAA3_11.h
+//
+//  Modifications to this file done by Galacean:
+//  * Deleted the algorithms except for 'FXAA_PC == 1' 
+//  * Changed the 'FXAA_GREEN_AS_LUMA == 0' code-path to compute Luma 
+//----------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------
 // File:        es3-kepler\FXAA/FXAA3_11.h

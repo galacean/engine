@@ -29,10 +29,10 @@ export class TargetSymbolTable extends BaseSymbolTable<SymbolInfo> {
   ): T extends ESymbolType.FN
     ? FnSymbol
     : T extends ESymbolType.STRUCT
-      ? StructSymbol
-      : T extends ESymbolType.VAR
-        ? VarSymbol
-        : SymbolInfo {
+    ? StructSymbol
+    : T extends ESymbolType.VAR
+    ? VarSymbol
+    : SymbolInfo {
     const entry = this._table.get(ident);
     if (entry) {
       for (let length = entry.length, i = 0; i < length; i++) {
