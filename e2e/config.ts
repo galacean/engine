@@ -202,6 +202,11 @@ export const E2E_CONFIG = {
       category: "Camera",
       caseFileName: "camera-opaque-texture",
       threshold: 0.1
+    },
+    fxaa: {
+      category: "Camera",
+      caseFileName: "camera-fxaa",
+      threshold: 0.1
     }
   },
   Physics: {
@@ -252,11 +257,6 @@ export const E2E_CONFIG = {
     customPass: {
       category: "PostProcess",
       caseFileName: "postProcess-customPass",
-      threshold: 0.1
-    },
-    fxaa: {
-      category: "PostProcess",
-      caseFileName: "postProcess-fxaa",
       threshold: 0.1
     }
   },
