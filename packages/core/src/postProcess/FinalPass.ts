@@ -49,8 +49,8 @@ export class FinalPass extends PostProcessPass {
         this._swapRenderTarget,
         camera.pixelViewport.width,
         camera.pixelViewport.height,
-        camera._getInternalColorTextureFormat(),
-        TextureFormat.Depth24Stencil8,
+        camera._getInternalColorTextureFormat(), //TODO: use camera target format
+        null,
         false,
         false,
         false,
@@ -71,6 +71,7 @@ export class FinalPass extends PostProcessPass {
         this._fxaaMaterial
       );
     } else {
+      // TODO: srgb conversion is only required when drawing to the screen
       Blitter.blitTexture(engine, srcTexture, destTarget, 0, camera.viewport, sRGBMaterial);
     }
   }
