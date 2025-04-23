@@ -19,9 +19,7 @@ uniform vec4 renderer_texelSize;    // x: 1/width, y: 1/height, z: width, w: hei
 
 vec3 applyFXAA(vec3 color, vec2 positionNDC, vec4 sourceSize, sampler2D blitTexture)
 {
-    vec4 pixelShader = vec4(color,1);
-
-    pixelShader = FxaaPixelShader(
+    return FxaaPixelShader(
     positionNDC,
     FxaaFloat4(color, 0),
     blitTexture,
@@ -29,8 +27,7 @@ vec3 applyFXAA(vec3 color, vec2 positionNDC, vec4 sourceSize, sampler2D blitText
     FXAA_SUBPIXEL_BLEND_AMOUNT,
     FXAA_RELATIVE_CONTRAST_THRESHOLD,
     FXAA_ABSOLUTE_CONTRAST_THRESHOLD
-    );
-return pixelShader.rgb;
+    ).rgb;
 }
 
 void main(){
