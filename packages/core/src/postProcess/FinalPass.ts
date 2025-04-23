@@ -21,7 +21,7 @@ export class FinalPass extends PostProcessPass {
   constructor(engine: Engine) {
     super(engine);
 
-    // sRGB Material
+    // SRGB Material
     const sRGBmaterial = new Material(engine, Shader.find("FinalSRGB"));
     const sRGBdepthState = sRGBmaterial.renderState.depthState;
     sRGBdepthState.enabled = false;
