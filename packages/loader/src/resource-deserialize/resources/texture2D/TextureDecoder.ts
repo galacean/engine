@@ -47,14 +47,14 @@ export class Texture2DDecoder {
             resolve(texture2D);
           }
         };
-        this.loadImageBuffer(imagesData[0]).then((img) => {
+        this._loadImageBuffer(imagesData[0]).then((img) => {
           texture2D.setImageSource(img);
           onComplete();
         }, reject).catch(reject);
         if (mipmap) {
           texture2D.generateMipmaps();
           for (let i = 1; i < mipCount; i++) {
-            this.loadImageBuffer(imagesData[i]).then((img) => {
+            this._loadImageBuffer(imagesData[i]).then((img) => {
               texture2D.setImageSource(img, i);
               onComplete();
             }, reject).catch(reject);
@@ -64,7 +64,7 @@ export class Texture2DDecoder {
     })
   }
 
-  static loadImageBuffer(imageBuffer: ArrayBuffer): Promise<HTMLImageElement> {
+  private static _loadImageBuffer(imageBuffer: ArrayBuffer): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
       const blob = new window.Blob([imageBuffer]);
       const img = new Image();
