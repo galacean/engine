@@ -16,7 +16,7 @@ import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 Shader.create("FinalSRGB", blitVs, sRGBFs);
 
 export class FinalPass extends PostProcessPass {
-  public static readonly _finalShaderName = "FinalPost";
+  private static readonly _finalShaderName = "FinalPost";
   private static _fxaaEnabledMacro: ShaderMacro = ShaderMacro.getByName("ENABLE_FXAA");
   private _finalMaterial: Material;
 
@@ -86,4 +86,4 @@ Object.assign(ShaderLib, {
   FXAA3_11
 });
 
-Shader.create(FinalPass._finalShaderName, blitVs, FinalPost);
+Shader.create("FinalPost", blitVs, FinalPost);

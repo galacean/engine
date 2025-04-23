@@ -42,7 +42,7 @@ import { UIUtils } from "./ui/UIUtils";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
-import { FinalPass } from "./postProcess/PostProcessFinalPass";
+import { FinalPass } from "./postProcess/FinalPass";
 
 ShaderPool.init();
 

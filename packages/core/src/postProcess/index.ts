@@ -16,4 +16,4 @@ export {
 export { PostProcessManager } from "./PostProcessManager";
 export { PostProcessPass, PostProcessPassEvent } from "./PostProcessPass";
 export { PostProcessUberPass } from "./PostProcessUberPass";
-export { FinalPass } from "./PostProcessFinalPass";
+export { FinalPass } from "./FinalPass";
