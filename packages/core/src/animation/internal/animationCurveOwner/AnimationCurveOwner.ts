@@ -92,8 +92,8 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
           ? srcCurve._evaluateAdditive(srcTime, this.baseEvaluateData)
           : srcCurve._evaluate(srcTime, this.baseEvaluateData)
         : additive
-        ? this.cureType._getZeroValue(this.baseEvaluateData.value)
-        : this.defaultValue;
+          ? this.cureType._getZeroValue(this.baseEvaluateData.value)
+          : this.defaultValue;
 
     const destValue =
       destCurve && destCurve.keys.length
@@ -101,8 +101,8 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
           ? destCurve._evaluateAdditive(destTime, this.crossEvaluateData)
           : destCurve._evaluate(destTime, this.crossEvaluateData)
         : additive
-        ? this.cureType._getZeroValue(this.crossEvaluateData.value)
-        : this.defaultValue;
+          ? this.cureType._getZeroValue(this.crossEvaluateData.value)
+          : this.defaultValue;
 
     return this._lerpValue(srcValue, destValue, crossWeight);
   }
@@ -126,8 +126,8 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
           ? destCurve._evaluateAdditive(destTime, this.crossEvaluateData)
           : destCurve._evaluate(destTime, this.crossEvaluateData)
         : additive
-        ? this.cureType._getZeroValue(this.crossEvaluateData.value)
-        : this.defaultValue;
+          ? this.cureType._getZeroValue(this.crossEvaluateData.value)
+          : this.defaultValue;
 
     return this._lerpValue(srcValue, destValue, crossWeight);
   }
