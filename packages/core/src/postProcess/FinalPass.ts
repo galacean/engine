@@ -21,17 +21,20 @@ export class FinalPass extends PostProcessPass {
   constructor(engine: Engine) {
     super(engine);
 
-    // Final sRGB Material
-    this._sRGBmaterial = new Material(engine, Shader.find("FinalSRGB"));
-    const depthState = this._sRGBmaterial.renderState.depthState;
-    depthState.enabled = false;
-    depthState.writeEnabled = false;
+    // sRGB Material
+    const sRGBmaterial = new Material(engine, Shader.find("FinalSRGB"));
+    const sRGBdepthState = sRGBmaterial.renderState.depthState;
+    sRGBdepthState.enabled = false;
+    sRGBdepthState.writeEnabled = false;
+    sRGBmaterial._addReferCount(1);
+    this._sRGBmaterial = sRGBmaterial;
 
     // FXAA Material
     const fxaaMaterial = new Material(engine, Shader.find("FinalPost"));
     const finalDepthState = fxaaMaterial.renderState.depthState;
     finalDepthState.enabled = false;
     finalDepthState.writeEnabled = false;
+    fxaaMaterial._addReferCount(1);
     this._fxaaMaterial = fxaaMaterial;
     this.event = PostProcessPassEvent.AfterUber + 1;
   }
