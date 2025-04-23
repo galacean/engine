@@ -3,6 +3,7 @@
 //
 //  Modifications to this file done by Galacean:
 //  * Deleted the algorithms except for 'FXAA_PC == 1' 
+//  * Deleted the useless parameters in 'FxaaPixelShader' 
 //  * Changed the 'FXAA_GREEN_AS_LUMA == 0' code-path to compute Luma 
 //----------------------------------------------------------------------------------
 
@@ -651,7 +652,6 @@ NOTE the other tuning knobs are now in the shader function inputs!
 #if (FXAA_PC == 1)
 /*--------------------------------------------------------------------------*/
 FxaaFloat4 FxaaPixelShader(
-    //
     // Use noperspective interpolation here (turn off perspective interpolation).
     // {xy} = center of pixel
     FxaaFloat2 pos,
@@ -660,65 +660,17 @@ FxaaFloat4 FxaaPixelShader(
     // {rgb_} = the color of the center pixel (alpha won't be used)
     FxaaFloat4 rgbyM,
     //
-    // Used only for FXAA Console, and not used on the 360 version.
-    // Use noperspective interpolation here (turn off perspective interpolation).
-    // {xy_} = upper left of pixel
-    // {_zw} = lower right of pixel
-    FxaaFloat4 fxaaConsolePosPos,
-    //
     // Input color texture.
     // {rgb_} = color in linear or perceptual color space
     // if (FXAA_GREEN_AS_LUMA == 0)
     //     {__a} = luma in perceptual color space (not linear)
     FxaaTex tex,
     //
-    // Only used on the optimized 360 version of FXAA Console.
-    // For everything but 360, just use the same input here as for "tex".
-    // For 360, same texture, just alias with a 2nd sampler.
-    // This sampler needs to have an exponent bias of -1.
-    FxaaTex fxaaConsole360TexExpBiasNegOne,
-    //
-    // Only used on the optimized 360 version of FXAA Console.
-    // For everything but 360, just use the same input here as for "tex".
-    // For 360, same texture, just alias with a 3nd sampler.
-    // This sampler needs to have an exponent bias of -2.
-    FxaaTex fxaaConsole360TexExpBiasNegTwo,
-    //
     // Only used on FXAA Quality.
     // This must be from a constant/uniform.
     // {x_} = 1.0/screenWidthInPixels
     // {_y} = 1.0/screenHeightInPixels
     FxaaFloat2 fxaaQualityRcpFrame,
-    //
-    // Only used on FXAA Console.
-    // This must be from a constant/uniform.
-    // This effects sub-pixel AA quality and inversely sharpness.
-    //   Where N ranges between,
-    //     N = 0.50 (default)
-    //     N = 0.33 (sharper)
-    // {x__} = -N/screenWidthInPixels
-    // {_y_} = -N/screenHeightInPixels
-    // {_z_} =  N/screenWidthInPixels
-    // {__w} =  N/screenHeightInPixels
-    FxaaFloat4 fxaaConsoleRcpFrameOpt,
-    //
-    // Only used on FXAA Console.
-    // Not used on 360, but used on PS3 and PC.
-    // This must be from a constant/uniform.
-    // {x__} = -2.0/screenWidthInPixels
-    // {_y_} = -2.0/screenHeightInPixels
-    // {_z_} =  2.0/screenWidthInPixels
-    // {__w} =  2.0/screenHeightInPixels
-    FxaaFloat4 fxaaConsoleRcpFrameOpt2,
-    //
-    // Only used on FXAA Console.
-    // Only used on 360 in place of fxaaConsoleRcpFrameOpt2.
-    // This must be from a constant/uniform.
-    // {x__} =  8.0/screenWidthInPixels
-    // {_y_} =  8.0/screenHeightInPixels
-    // {_z_} = -4.0/screenWidthInPixels
-    // {__w} = -4.0/screenHeightInPixels
-    // FxaaFloat4 fxaaConsole360RcpFrameOpt2,
     //
     // Only used on FXAA Quality.
     // This used to be the FXAA_QUALITY_SUBPIX define.
@@ -756,61 +708,7 @@ FxaaFloat4 FxaaPixelShader(
     //   will appear very dark in the green channel!
     //   Tune by looking at mostly non-green content,
     //   then start at zero and increase until aliasing is a problem.
-    FxaaFloat fxaaQualityEdgeThresholdMin,
-    //
-    // Only used on FXAA Console.
-    // This used to be the FXAA_CONSOLE_EDGE_SHARPNESS define.
-    // It is here now to allow easier tuning.
-    // This does not effect PS3, as this needs to be compiled in.
-    //   Use FXAA_CONSOLE_PS3_EDGE_SHARPNESS for PS3.
-    //   Due to the PS3 being ALU bound,
-    //   there are only three safe values here: 2 and 4 and 8.
-    //   These options use the shaders ability to a free *|/ by 2|4|8.
-    // For all other platforms can be a non-power of two.
-    //   8.0 is sharper (default!!!)
-    //   4.0 is softer
-    //   2.0 is really soft (good only for vector graphics inputs)
-    FxaaFloat fxaaConsoleEdgeSharpness,
-    //
-    // Only used on FXAA Console.
-    // This used to be the FXAA_CONSOLE_EDGE_THRESHOLD define.
-    // It is here now to allow easier tuning.
-    // This does not effect PS3, as this needs to be compiled in.
-    //   Use FXAA_CONSOLE_PS3_EDGE_THRESHOLD for PS3.
-    //   Due to the PS3 being ALU bound,
-    //   there are only two safe values here: 1/4 and 1/8.
-    //   These options use the shaders ability to a free *|/ by 2|4|8.
-    // The console setting has a different mapping than the quality setting.
-    // Other platforms can use other values.
-    //   0.125 leaves less aliasing, but is softer (default!!!)
-    //   0.25 leaves more aliasing, and is sharper
-    FxaaFloat fxaaConsoleEdgeThreshold,
-    //
-    // Only used on FXAA Console.
-    // This used to be the FXAA_CONSOLE_EDGE_THRESHOLD_MIN define.
-    // It is here now to allow easier tuning.
-    // Trims the algorithm from processing darks.
-    // The console setting has a different mapping than the quality setting.
-    // This only applies when FXAA_EARLY_EXIT is 1.
-    // This does not apply to PS3,
-    // PS3 was simplified to avoid more shader instructions.
-    //   0.06 - faster but more aliasing in darks
-    //   0.05 - default
-    //   0.04 - slower and less aliasing in darks
-    // Special notes when using FXAA_GREEN_AS_LUMA,
-    //   Likely want to set this to zero.
-    //   As colors that are mostly not-green
-    //   will appear very dark in the green channel!
-    //   Tune by looking at mostly non-green content,
-    //   then start at zero and increase until aliasing is a problem.
-    FxaaFloat fxaaConsoleEdgeThresholdMin
-    //
-    // Extra constants for 360 FXAA Console only.
-    // Use zeros or anything else for other platforms.
-    // These must be in physical constant registers and NOT immedates.
-    // Immedates will result in compiler un-optimizing.
-    // {xyzw} = float4(1.0, -1.0, 0.25, -0.25)
-    // FxaaFloat4 fxaaConsole360ConstDir
+    FxaaFloat fxaaQualityEdgeThresholdMin
 ) {
 /*--------------------------------------------------------------------------*/
     FxaaFloat2 posM;

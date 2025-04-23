@@ -9,41 +9,26 @@
 
 #include <FXAA3_11>
 
-varying vec2 v_uv;
-uniform sampler2D renderer_BlitTexture;
-uniform vec4 renderer_texelSize;    // x: 1/width, y: 1/height, z: width, w: height
-
 const FxaaFloat FXAA_SUBPIXEL_BLEND_AMOUNT = 0.65;
 const FxaaFloat FXAA_RELATIVE_CONTRAST_THRESHOLD = 0.15;
 const FxaaFloat FXAA_ABSOLUTE_CONTRAST_THRESHOLD = 0.03;
 
+varying vec2 v_uv;
+uniform sampler2D renderer_BlitTexture;
+uniform vec4 renderer_texelSize;    // x: 1/width, y: 1/height, z: width, w: height
+
 vec3 applyFXAA(vec3 color, vec2 positionNDC, vec4 sourceSize, sampler2D blitTexture)
 {
     vec4 pixelShader = vec4(color,1);
-    
-    FxaaFloat4 fxaaConsolePos = FxaaFloat4(0);
-    FxaaFloat4 kFxaaConsoleRcpFrameOpt = FxaaFloat4(0);
-    FxaaFloat4 kFxaaConsoleRcpFrameOpt2 = FxaaFloat4(0);
-    FxaaFloat kFxaaConsoleEdgeSharpness = 0.0;
-    FxaaFloat kFxaaConsoleEdgeThreshold = 0.0;
-    FxaaFloat kFxaaConsoleEdgeThresholdMin = 0.0;
 
     pixelShader = FxaaPixelShader(
     positionNDC,
     FxaaFloat4(color, 0),
-    fxaaConsolePos,
-    blitTexture,
-    blitTexture,
     blitTexture,
     sourceSize.xy,
-    kFxaaConsoleRcpFrameOpt,
-    kFxaaConsoleRcpFrameOpt2,
     FXAA_SUBPIXEL_BLEND_AMOUNT,
     FXAA_RELATIVE_CONTRAST_THRESHOLD,
-    FXAA_ABSOLUTE_CONTRAST_THRESHOLD,
-    kFxaaConsoleEdgeSharpness,
-    kFxaaConsoleEdgeThreshold,
-    kFxaaConsoleEdgeThresholdMin
+    FXAA_ABSOLUTE_CONTRAST_THRESHOLD
     );
 return pixelShader.rgb;
 }
