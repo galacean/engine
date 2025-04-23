@@ -2,7 +2,8 @@
 //  This file was obatined from: https://github.com/hghdev/NVIDIAGameWorks-GraphicsSamples/blob/master/samples/es3-kepler/FXAA/FXAA3_11.h
 //
 //  Modifications to this file done by Galacean:
-//  * Deleted the algorithms except for 'FXAA_PC == 1' 
+//  * Deleted the marcos and function except for 'FXAA_PC == 1' 
+//  * Deleted the marcos and function except for 'FXAA_GLSL_130 == 1' and 'FXAA_GLSL_120 == 1' 
 //  * Deleted the useless parameters in 'FxaaPixelShader' 
 //  * Changed the 'FXAA_GREEN_AS_LUMA == 0' code-path to compute Luma 
 //----------------------------------------------------------------------------------
@@ -211,33 +212,12 @@ A. Or use FXAA_GREEN_AS_LUMA.
     #define FXAA_PC 0
 #endif
 /*--------------------------------------------------------------------------*/
-#ifndef FXAA_PC_CONSOLE
-    //
-    // The console algorithm for PC is included
-    // for developers targeting really low spec machines.
-    // Likely better to just run FXAA_PC, and use a really low preset.
-    //
-    #define FXAA_PC_CONSOLE 0
-#endif
-/*--------------------------------------------------------------------------*/
 #ifndef FXAA_GLSL_120
     #define FXAA_GLSL_120 0
 #endif
 /*--------------------------------------------------------------------------*/
 #ifndef FXAA_GLSL_130
     #define FXAA_GLSL_130 0
-#endif
-/*--------------------------------------------------------------------------*/
-#ifndef FXAA_HLSL_3
-    #define FXAA_HLSL_3 0
-#endif
-/*--------------------------------------------------------------------------*/
-#ifndef FXAA_HLSL_4
-    #define FXAA_HLSL_4 0
-#endif
-/*--------------------------------------------------------------------------*/
-#ifndef FXAA_HLSL_5
-    #define FXAA_HLSL_5 0
 #endif
 /*--------------------------------------------------------------------------*/
 /*==========================================================================*/
@@ -315,9 +295,6 @@ A. Or use FXAA_GREEN_AS_LUMA.
     // 1 = API supports gather4 on alpha channel.
     // 0 = API does not support gather4 on alpha channel.
     //
-    #if (FXAA_HLSL_5 == 1)
-        #define FXAA_GATHER4_ALPHA 1
-    #endif
     #ifdef gpu_shader5
         #define FXAA_GATHER4_ALPHA 1
     #endif
@@ -581,18 +558,6 @@ NOTE the other tuning knobs are now in the shader function inputs!
     #define FxaaInt2 ivec2
     #define FxaaSat(x) clamp(x, 0.0, 1.0)
     #define FxaaTex sampler2D
-#else
-    #define FxaaBool bool
-    #define FxaaDiscard clip(-1)
-    #define FxaaFloat float
-    #define FxaaFloat2 float2
-    #define FxaaFloat3 float3
-    #define FxaaFloat4 float4
-    #define FxaaHalf half
-    #define FxaaHalf2 half2
-    #define FxaaHalf3 half3
-    #define FxaaHalf4 half4
-    #define FxaaSat(x) saturate(x)
 #endif
 /*--------------------------------------------------------------------------*/
 #if (FXAA_GLSL_120 == 1)
