@@ -40,33 +40,48 @@ export class Texture2DDecoder {
         engine.resourceManager._objectPool[objectId] = texture2D;
         resolve(texture2D);
       } else {
-        const blob = new window.Blob([imagesData[0]]);
-        const img = new Image();
-        img.onload = () => {
-          texture2D.setImageSource(img);
-          let completedCount = 0;
-          const onComplete = () => {
-            completedCount++;
-            if (completedCount >= mipCount) {
-              resolve(texture2D);
-            }
-          };
-          onComplete();
-          if (mipmap) {
-            texture2D.generateMipmaps();
-            for (let i = 1; i < mipCount; i++) {
-              const blob = new window.Blob([imagesData[i]]);
-              const img = new Image();
-              img.onload = () => {
-                texture2D.setImageSource(img, i);
-                onComplete();
-              };
-              img.src = URL.createObjectURL(blob);
-            }
+        let completedCount = 0;
+        const onComplete = () => {
+          completedCount++;
+          if (completedCount >= mipCount) {
+            resolve(texture2D);
           }
         };
-        img.src = URL.createObjectURL(blob);
+        this.loadImageBuffer(imagesData[0]).then((img) => {
+          texture2D.setImageSource(img);
+          onComplete();
+        }, reject).catch(reject);
+        if (mipmap) {
+          texture2D.generateMipmaps();
+          for (let i = 1; i < mipCount; i++) {
+            this.loadImageBuffer(imagesData[i]).then((img) => {
+              texture2D.setImageSource(img, i);
+              onComplete();
+            }, reject).catch(reject);
+          }
+        }
       }
+    })
+  }
+
+  static loadImageBuffer(imageBuffer: ArrayBuffer): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const blob = new window.Blob([imageBuffer]);
+      const img = new Image();
+      img.onerror = function () {
+        reject(new Error("Failed to load image buffer"));
+      };
+      img.onload = function () {
+        // Call requestAnimationFrame to avoid iOS's bug.
+        requestAnimationFrame(() => {
+          resolve(img);
+          img.onload = null;
+          img.onerror = null;
+          img.onabort = null;
+        });
+      };
+      img.crossOrigin = "anonymous";
+      img.src = URL.createObjectURL(blob);
     });
   }
 }
