@@ -81,6 +81,9 @@ void main(){
         color.rgb = applyFXAA(color.rgb, v_uv, renderer_texelSize, renderer_BlitTexture);
     #endif    
 
+    #ifndef ENGINE_OUTPUT_SRGB_CORRECT
+        color = sRGBToLinear(color);
+    #endif
+
     gl_FragColor = color;
-    
 }

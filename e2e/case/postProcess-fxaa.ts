@@ -3,15 +3,7 @@
  * @category PostProcess
  */
 
-import {
-  Camera,
-  PostProcess,
-  AntiAliasing,
-  BloomEffect,
-  Logger,
-  TonemappingEffect,
-  TonemappingMode
-} from "@galacean/engine";
+import { Camera, PostProcess, AntiAliasing, BloomEffect, TonemappingEffect, TonemappingMode } from "@galacean/engine";
 import { initPostProcessEnv } from "./.initPostProcessEnv";
 
 initPostProcessEnv((camera: Camera) => {

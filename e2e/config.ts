@@ -253,6 +253,11 @@ export const E2E_CONFIG = {
       category: "PostProcess",
       caseFileName: "postProcess-customPass",
       threshold: 0.1
+    },
+    fxaa: {
+      category: "PostProcess",
+      caseFileName: "postProcess-fxaa",
+      threshold: 0.1
     }
   },
   SpriteMask: {
