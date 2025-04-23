@@ -7,8 +7,6 @@
     #define FXAA_GLSL_120 1
 #endif
 
-#include <PostCommon>
-#include <Filtering>
 #include <FXAA3_11>
 
 varying vec2 v_uv;
