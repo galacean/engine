@@ -5,7 +5,6 @@
     #define FXAA_GLSL_130 1
 #elif defined(GRAPHICS_API_WEBGL1)
     #define FXAA_GLSL_120 1
-    #define FXAA_FAST_PIXEL_OFFSET 1
 #endif
 
 #include <PostCommon>
