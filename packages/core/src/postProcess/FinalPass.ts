@@ -31,11 +31,12 @@ export class FinalPass extends PostProcessPass {
 
     // FXAA Material
     const fxaaMaterial = new Material(engine, Shader.find("FinalPost"));
-    const finalDepthState = fxaaMaterial.renderState.depthState;
-    finalDepthState.enabled = false;
-    finalDepthState.writeEnabled = false;
+    const fxaaDepthState = fxaaMaterial.renderState.depthState;
+    fxaaDepthState.enabled = false;
+    fxaaDepthState.writeEnabled = false;
     fxaaMaterial._addReferCount(1);
     this._fxaaMaterial = fxaaMaterial;
+
     this.event = PostProcessPassEvent.AfterUber + 1;
   }
 
