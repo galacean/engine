@@ -1,24 +1,23 @@
 import {
-  resourceLoader,
-  Loader,
-  AssetPromise,
-  AssetType,
-  LoadItem,
-  ResourceManager,
+  AnimatorConditionMode,
   AnimatorController,
   AnimatorControllerLayer,
-  AnimatorStateTransition,
-  AnimatorState,
-  AnimatorConditionMode,
   AnimatorControllerParameterValue,
-  WrapMode,
-  AnimatorControllerParameter
+  AnimatorState,
+  AnimatorStateTransition,
+  AssetPromise,
+  AssetType,
+  Loader,
+  LoadItem,
+  resourceLoader,
+  ResourceManager,
+  WrapMode
 } from "@galacean/engine-core";
 
 @resourceLoader(AssetType.AnimatorController, ["json"], false)
 class AnimatorControllerLoader extends Loader<AnimatorController> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AnimatorController> {
-    return new AssetPromise((resolve, reject) => {
+    return (
       resourceManager
         // @ts-ignore
         ._request<any>(item.url, {
@@ -61,15 +60,13 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
                 statesMap[id] = state;
                 if (clipData) {
                   promises.push(
-                    new Promise((resolve) => {
-                      //@ts-ignore
-                      resourceManager.getResourceByRef(clipData).then((clip) => {
-                        resolve({
-                          layerIndex,
-                          stateIndex,
-                          clip
-                        });
-                      });
+                    //@ts-ignore
+                    resourceManager.getResourceByRef(clipData).then((clip) => {
+                      return {
+                        layerIndex,
+                        stateIndex,
+                        clip
+                      };
                     })
                   );
                 }
@@ -104,16 +101,19 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
           parameters.forEach((parameterData) => {
             animatorController.addParameter(parameterData.name, parameterData.defaultValue);
           });
-          Promise.all(promises).then((clipData) => {
-            clipData.forEach((data) => {
-              const { layerIndex, stateIndex, clip } = data;
-              animatorController.layers[layerIndex].stateMachine.states[stateIndex].clip = clip;
-            });
-            resolve(animatorController);
+          return new AssetPromise((resolve, reject) => {
+            AssetPromise.all(promises)
+              .then((clipData) => {
+                clipData.forEach((data) => {
+                  const { layerIndex, stateIndex, clip } = data;
+                  animatorController.layers[layerIndex].stateMachine.states[stateIndex].clip = clip;
+                });
+                resolve(animatorController);
+              }, reject)
+              .catch(reject);
           });
         })
-        .catch(reject);
-    });
+    );
   }
 
   private _createTransition(transitionData: ITransitionData, destinationState: AnimatorState): AnimatorStateTransition {
