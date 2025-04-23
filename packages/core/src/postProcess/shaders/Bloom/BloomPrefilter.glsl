@@ -51,7 +51,7 @@ void main(){
     // Clamp colors to positive once in prefilter. Encode can have a sqrt, and sqrt(-x) == NaN. Up/Downsample passes would then spread the NaN.
     color = max(color, 0.0);
 
-    // Ignore alpha to blend with the transparent background
+    // Bloom is addtive blend mode, we should set alpha 0 to avoid browser background color dark when canvas alpha and premultiplyAlpha is true
     gl_FragColor = vec4(color, 0.0);
     
     #ifndef ENGINE_IS_COLORSPACE_GAMMA
