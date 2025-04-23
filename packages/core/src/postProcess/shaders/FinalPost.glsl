@@ -28,15 +28,6 @@ vec3 applyFXAA(vec3 color, vec2 positionNDC, vec4 sourceSize, sampler2D blitText
     FxaaFloat kFxaaConsoleEdgeThreshold = 0.0;
     FxaaFloat kFxaaConsoleEdgeThresholdMin = 0.0;
 
-#if FXAA_PC_CONSOLE == 1
-    fxaaConsolePos = FxaaFloat4(positionNDC.xy - 0.5 * sourceSize.xy, positionNDC.xy + 0.5 * sourceSize.xy);
-    kFxaaConsoleRcpFrameOpt = 0.5 * FxaaFloat4(sourceSize.xy, -sourceSize.xy);
-    kFxaaConsoleRcpFrameOpt2 = 2.0 * FxaaFloat4(-sourceSize.xy, sourceSize.xy);
-    kFxaaConsoleEdgeSharpness = 8.0;
-    kFxaaConsoleEdgeThreshold = 0.125;
-    kFxaaConsoleEdgeThresholdMin = 0.05;
-#endif
-
     pixelShader = FxaaPixelShader(
     positionNDC,
     FxaaFloat4(color, 0),
