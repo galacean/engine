@@ -2,8 +2,8 @@
 //  This file was obatined from: https://github.com/hghdev/NVIDIAGameWorks-GraphicsSamples/blob/master/samples/es3-kepler/FXAA/FXAA3_11.h
 //
 //  Modifications to this file done by Galacean:
+//  * Deleted HLSL-related marcos
 //  * Deleted the marcos and function except for 'FXAA_PC == 1' 
-//  * Deleted the marcos and function except for 'FXAA_GLSL_130 == 1' and 'FXAA_GLSL_120 == 1' 
 //  * Deleted the useless parameters in 'FxaaPixelShader' 
 //  * Changed the 'FXAA_GREEN_AS_LUMA == 0' code-path to compute Luma 
 //----------------------------------------------------------------------------------
