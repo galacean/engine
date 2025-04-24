@@ -92,13 +92,6 @@ export class FinalPass extends PipelinePass {
     }
     this._inputRenderTarget = null;
   }
-
-  onDestroy() {
-    this._sRGBmaterial.destroy();
-    this._fxaaMaterial.destroy();
-    this._srgbRenderTarget?.destroy();
-    this._inputRenderTarget = null;
-  }
 }
 
 Object.assign(ShaderLib, {
