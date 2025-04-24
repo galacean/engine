@@ -49,7 +49,6 @@ export class Texture2DDecoder {
         };
         this._loadImageBuffer(imagesData[0]).then((img) => {
           texture2D.setImageSource(img);
-          onComplete();
           if (mipmap) {
             texture2D.generateMipmaps();
             for (let i = 1; i < mipCount; i++) {
@@ -59,6 +58,7 @@ export class Texture2DDecoder {
               }, reject);
             }
           }
+          onComplete();
         }, reject);
       }
     });
