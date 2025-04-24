@@ -75,6 +75,15 @@ export class FinalPass extends PostProcessPass {
       Blitter.blitTexture(engine, srcTexture, destTarget, 0, camera.viewport, sRGBMaterial);
     }
   }
+
+  /**
+   * @inheritdoc
+   */
+  override _onDestroy() {
+    super._onDestroy();
+    this._sRGBmaterial.destroy();
+    this._fxaaMaterial.destroy();
+  }
 }
 
 Object.assign(ShaderLib, {
