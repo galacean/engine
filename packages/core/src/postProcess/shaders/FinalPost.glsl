@@ -9,9 +9,9 @@
 
 #include <FXAA3_11>
 
-const FxaaFloat FXAA_SUBPIXEL_BLEND_AMOUNT = 0.65;
-const FxaaFloat FXAA_RELATIVE_CONTRAST_THRESHOLD = 0.15;
-const FxaaFloat FXAA_ABSOLUTE_CONTRAST_THRESHOLD = 0.03;
+const FxaaFloat FXAA_SUBPIXEL_BLEND_AMOUNT = 0.75;
+const FxaaFloat FXAA_RELATIVE_CONTRAST_THRESHOLD = 0.166;
+const FxaaFloat FXAA_ABSOLUTE_CONTRAST_THRESHOLD = 0.0833;
 
 varying vec2 v_uv;
 uniform sampler2D renderer_BlitTexture;
@@ -36,7 +36,7 @@ void main(){
     color.rgb = applyFXAA(color.rgb, v_uv, renderer_texelSize, renderer_BlitTexture);
 
     // We have convert the color to sRGB space in sRGB pass
-    // So we need to convert it back to linear space when output to render target
+    // So we need to convert it back to linear space when output to render target.
     #ifndef ENGINE_OUTPUT_SRGB_CORRECT
         color = sRGBToLinear(color);
     #endif
