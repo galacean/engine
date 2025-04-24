@@ -2,9 +2,10 @@
 //  This file was obatined from: https://github.com/hghdev/NVIDIAGameWorks-GraphicsSamples/blob/master/samples/es3-kepler/FXAA/FXAA3_11.h
 //  NVIDIA paper: https://www.iryoku.com/aacourse/downloads/09-FXAA-3.11-in-15-Slides.pdf
 //  Modifications to this file done by Galacean:
-//  * Deleted HLSL-related marcos
-//  * Deleted the marcos and function except for 'FXAA_PC == 1' 
+//  * Deleted HLSL-related macros
+//  * Deleted the macros and function except for 'FXAA_PC == 1' 
 //  * Deleted the useless parameters in 'FxaaPixelShader' 
+//  * Webgl does not compile the double underline, so we remove the double underline for macros
 //  * Changed the 'FXAA_GREEN_AS_LUMA == 0' code-path to compute luminance since we don't precompute luminance into the alpha channel
 //----------------------------------------------------------------------------------
 
