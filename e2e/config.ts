@@ -206,7 +206,7 @@ export const E2E_CONFIG = {
     fxaa: {
       category: "Camera",
       caseFileName: "camera-fxaa",
-      threshold: 0.1
+      threshold: 0.01
     }
   },
   Physics: {

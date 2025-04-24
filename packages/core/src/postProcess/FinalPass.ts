@@ -9,7 +9,7 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Shader } from "../shader";
 import { ShaderLib } from "../shaderlib";
 import BlitVS from "../shaderlib/extra/Blit.vs.glsl";
-import { RenderTarget, Texture2D, TextureFilterMode, TextureWrapMode } from "../texture";
+import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 import FinalAntiAliasingFS from "./shaders/FinalAntiAliasing.fs.glsl";
 import SRGBFS from "./shaders/FinalSRGB.fs.glsl";
 import FXAA3_11 from "./shaders/FXAA/FXAA3_11.glsl";
@@ -54,7 +54,7 @@ export class FinalPass extends PipelinePass {
         this._srgbRenderTarget,
         pixelViewport.width,
         pixelViewport.height,
-        camera._getTargetColorTextureFormat(),
+        TextureFormat.R8G8B8A8, // FXAA need color range [0, 1], so we use R8G8B8A8 and ignore camera target HDR format
         null,
         false,
         false,
