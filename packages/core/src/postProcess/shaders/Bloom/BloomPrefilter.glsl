@@ -52,6 +52,4 @@ void main(){
     color = max(color, 0.0);
 
     gl_FragColor = vec4(color, samplerColor.a);
-    
-    gl_FragColor = outputSRGBCorrection(gl_FragColor);
 }
