@@ -49,7 +49,7 @@ export class FinalPass extends PostProcessPass {
         this._swapRenderTarget,
         camera.pixelViewport.width,
         camera.pixelViewport.height,
-        camera._getInternalColorTextureFormat(), //TODO: use camera target format
+        camera._getTargetColorTextureFormat(),
         null,
         false,
         false,

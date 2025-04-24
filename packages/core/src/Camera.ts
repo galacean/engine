@@ -11,13 +11,13 @@ import { UpdateFlagManager } from "./UpdateFlagManager";
 import { VirtualCamera } from "./VirtualCamera";
 import { GLCapabilityType, Logger } from "./base";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
+import { AntiAliasing } from "./enums/AntiAliasing";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { CameraModifyFlags } from "./enums/CameraModifyFlags";
 import { CameraType } from "./enums/CameraType";
 import { DepthTextureMode } from "./enums/DepthTextureMode";
 import { Downsampling } from "./enums/Downsampling";
 import { MSAASamples } from "./enums/MSAASamples";
-import { AntiAliasing } from "./enums/AntiAliasing";
 import { ReplacementFailureStrategy } from "./enums/ReplacementFailureStrategy";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
@@ -739,6 +739,14 @@ export class Camera extends Component {
         ? TextureFormat.R11G11B10_UFloat
         : TextureFormat.R16G16B16A16
       : TextureFormat.R8G8B8A8;
+  }
+
+  /**
+   * @internal
+   */
+  _getTargetColorTextureFormat(): TextureFormat {
+    const renderTarget = this._renderTarget;
+    return renderTarget ? renderTarget.getColorTexture(0).format : TextureFormat.R8G8B8A8;
   }
 
   /**
