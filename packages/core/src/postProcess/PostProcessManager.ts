@@ -201,10 +201,10 @@ export class PostProcessManager {
     }
   }
 
-   /**
+  /**
    * @internal
    */
-   _releaseOutputRenderTarget(): void {
+  _releaseOutputRenderTarget(): void {
     const outputRenderTarget = this._outputRenderTarget;
     if (outputRenderTarget) {
       outputRenderTarget.getColorTexture(0)?.destroy(true);
@@ -212,7 +212,6 @@ export class PostProcessManager {
       this._outputRenderTarget = null;
     }
   }
-
 
   /**
    * @internal
