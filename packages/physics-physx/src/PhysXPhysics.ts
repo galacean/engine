@@ -1,8 +1,9 @@
-import { Quaternion, Vector3, version } from "@galacean/engine";
+import { Quaternion, Vector3, Layer } from "@galacean/engine";
 import {
   IBoxColliderShape,
   ICapsuleColliderShape,
   ICharacterController,
+  ICollider,
   ICollision,
   IDynamicCollider,
   IFixedJoint,
@@ -92,7 +93,7 @@ export class PhysXPhysics implements IPhysics {
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
         script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*PXxaQrGL0XsAAAAAAAAAAAAAARQnAQ/physx.release.downgrade.js`;
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
-        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*0Qq8Rob3_5oAAAAAAAAAAAAAARQnAQ/physx.release.js`;
+        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*H4ElTYwBxwgAAAAAAAAAAAAAARQnAQ/physx.release.js`;
       }
     });
 
@@ -147,7 +148,7 @@ export class PhysXPhysics implements IPhysics {
     onTriggerEnd?: (obj1: number, obj2: number) => void,
     onTriggerStay?: (obj1: number, obj2: number) => void
   ): IPhysicsScene {
-    const manager = new PhysXPhysicsScene(
+    const scene = new PhysXPhysicsScene(
       this,
       physicsManager,
       onContactBegin,
@@ -157,7 +158,7 @@ export class PhysXPhysics implements IPhysics {
       onTriggerEnd,
       onTriggerStay
     );
-    return manager;
+    return scene;
   }
 
   /**
@@ -246,6 +247,20 @@ export class PhysXPhysics implements IPhysics {
    */
   createSpringJoint(collider: PhysXCollider): ISpringJoint {
     return new PhysXSpringJoint(this, collider);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.setColliderGroupCollision }
+   */
+  setColliderGroupCollision(group1: number, group2: number, collide: boolean): void {
+    this._physX.setGroupCollisionFlag(group1, group2, collide);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.setColliderGroup }
+   */
+  setColliderGroup(collider: PhysXCollider, group: number): void {
+    this._physX.setGroup(collider._pxActor, group);
   }
 
   private _init(physX: any): void {

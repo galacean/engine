@@ -8,6 +8,7 @@ import {
   Entity,
   HitResult,
   Layer,
+  PhysicsScene,
   Script,
   SphereColliderShape,
   StaticCollider
@@ -114,13 +115,16 @@ function setColliderProps(entity: Entity, isDynamic: boolean, isTrigger: boolean
 describe("Physics Test", () => {
   describe("LitePhysics", () => {
     let engineLite: WebGLEngine;
-
+    let physics: LitePhysics;
+    let physicsScene: PhysicsScene;
     beforeAll(async () => {
+      physics = new LitePhysics();
       // Init engine with LitePhysics.
       engineLite = await WebGLEngine.create({
         canvas: document.createElement("canvas"),
-        physics: new LitePhysics()
+        physics
       });
+      physicsScene = engineLite.sceneManager.activeScene.physics;
 
       const rootEntityLitePhysics = engineLite.sceneManager.activeScene.createRootEntity("root_camera");
 
@@ -342,6 +346,45 @@ describe("Physics Test", () => {
       expect(collisionTestScript.onTriggerExit).toHaveBeenCalledTimes(1);
     });
 
+    it("Collision Group Tests", () => {
+      describe("should set and get collision group settings correctly", () => {
+        it("should set and get collision group settings correctly", () => {
+          physicsScene.setColliderGroupCollision(0, 1, true);
+          physicsScene.setColliderGroupCollision(0, 2, false);
+          physicsScene.setColliderGroupCollision(1, 2, true);
+
+          expect(physicsScene.getColliderGroupCollision(0, 1)).toBe(true);
+          expect(physicsScene.getColliderGroupCollision(0, 2)).toBe(false);
+          expect(physicsScene.getColliderGroupCollision(1, 2)).toBe(true);
+
+          expect(physicsScene.getColliderGroupCollision(1, 0)).toBe(true);
+          expect(physicsScene.getColliderGroupCollision(2, 0)).toBe(false);
+          expect(physicsScene.getColliderGroupCollision(2, 1)).toBe(true);
+        });
+      });
+
+      describe("should handle edge cases in collision group matrix", () => {
+        it("should handle edge cases in collision group matrix", () => {
+          const maxGroup = 31;
+
+          physicsScene.setColliderGroupCollision(maxGroup, 0, false);
+          expect(physicsScene.getColliderGroupCollision(maxGroup, 0)).toBe(false);
+
+          physicsScene.setColliderGroupCollision(maxGroup, 0, true);
+        });
+      });
+
+      describe("should handle invalid collision groups correctly", () => {
+        it("should handle invalid collision groups correctly", () => {
+          const invalidGroup = -1;
+
+          expect(physicsScene.getColliderGroupCollision(invalidGroup, 0)).toBe(true);
+          expect(physicsScene.getColliderGroupCollision(0, invalidGroup)).toBe(true);
+          expect(physicsScene.getColliderGroupCollision(invalidGroup, invalidGroup)).toBe(true);
+        });
+      });
+    });
+
     afterEach(() => {
       const root = engineLite.sceneManager.activeScene.findEntityByName("root");
       root?.destroy();
@@ -350,6 +393,7 @@ describe("Physics Test", () => {
 
   describe("PhysXPhysics", () => {
     let enginePhysX: WebGLEngine;
+    let physicsScene: PhysicsScene;
 
     beforeAll(async () => {
       // Init engine with PhysXPhysics.
@@ -357,6 +401,8 @@ describe("Physics Test", () => {
         canvas: document.createElement("canvas"),
         physics: new PhysXPhysics()
       });
+      physicsScene = enginePhysX.sceneManager.activeScene.physics;
+
       const rootEntityPhysX = enginePhysX.sceneManager.activeScene.createRootEntity("root_camera");
 
       const cameraEntityPhysX = rootEntityPhysX.createChild("camera");
@@ -496,6 +542,45 @@ describe("Physics Test", () => {
       expect(enginePhysX.physicsManager.raycast(ray, Number.MAX_VALUE, Layer.Everything, outHitResult)).to.eq(false);
 
       root.destroy();
+    });
+
+    it("Collision Group Tests", () => {
+      describe("should set and get collision group settings correctly", () => {
+        it("should set and get collision group settings correctly", () => {
+          physicsScene.setColliderGroupCollision(0, 1, true);
+          physicsScene.setColliderGroupCollision(0, 2, false);
+          physicsScene.setColliderGroupCollision(1, 2, true);
+
+          expect(physicsScene.getColliderGroupCollision(0, 1)).toBe(true);
+          expect(physicsScene.getColliderGroupCollision(0, 2)).toBe(false);
+          expect(physicsScene.getColliderGroupCollision(1, 2)).toBe(true);
+
+          expect(physicsScene.getColliderGroupCollision(1, 0)).toBe(true);
+          expect(physicsScene.getColliderGroupCollision(2, 0)).toBe(false);
+          expect(physicsScene.getColliderGroupCollision(2, 1)).toBe(true);
+        });
+      });
+
+      describe("should handle edge cases in collision group matrix", () => {
+        it("should handle edge cases in collision group matrix", () => {
+          const maxGroup = 31;
+
+          physicsScene.setColliderGroupCollision(maxGroup, 0, false);
+          expect(physicsScene.getColliderGroupCollision(maxGroup, 0)).toBe(false);
+
+          physicsScene.setColliderGroupCollision(maxGroup, 0, true);
+        });
+      });
+
+      describe("should handle invalid collision groups correctly", () => {
+        it("should handle invalid collision groups correctly", () => {
+          const invalidGroup = -1;
+
+          expect(physicsScene.getColliderGroupCollision(invalidGroup, 0)).toBe(true);
+          expect(physicsScene.getColliderGroupCollision(0, invalidGroup)).toBe(true);
+          expect(physicsScene.getColliderGroupCollision(invalidGroup, invalidGroup)).toBe(true);
+        });
+      });
     });
 
     describe("Collision Test", () => {
