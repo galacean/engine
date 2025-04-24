@@ -55,11 +55,11 @@ export class Texture2DDecoder {
               this._loadImageBuffer(imagesData[i]).then((img) => {
                 texture2D.setImageSource(img, i);
                 onComplete();
-              }, reject);
+              }, reject).catch(reject);
             }
           }
           onComplete();
-        }, reject);
+        }, reject).catch(reject);
       }
     });
   }
