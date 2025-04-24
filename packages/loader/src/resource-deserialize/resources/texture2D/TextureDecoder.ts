@@ -50,16 +50,16 @@ export class Texture2DDecoder {
         this._loadImageBuffer(imagesData[0]).then((img) => {
           texture2D.setImageSource(img);
           onComplete();
-        }, reject);
-        if (mipmap) {
-          texture2D.generateMipmaps();
-          for (let i = 1; i < mipCount; i++) {
-            this._loadImageBuffer(imagesData[i]).then((img) => {
-              texture2D.setImageSource(img, i);
-              onComplete();
-            }, reject);
+          if (mipmap) {
+            texture2D.generateMipmaps();
+            for (let i = 1; i < mipCount; i++) {
+              this._loadImageBuffer(imagesData[i]).then((img) => {
+                texture2D.setImageSource(img, i);
+                onComplete();
+              }, reject);
+            }
           }
-        }
+        }, reject);
       }
     });
   }
