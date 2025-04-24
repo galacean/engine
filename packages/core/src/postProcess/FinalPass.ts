@@ -10,7 +10,7 @@ import { Shader } from "../shader";
 import { ShaderLib } from "../shaderlib";
 import blitVs from "../shaderlib/extra/Blit.vs.glsl";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureWrapMode } from "../texture";
-import FinalPost from "./shaders/FinalPost.glsl";
+import FinalAntiAliasing from "./shaders/FinalAntiAliasing.glsl";
 import sRGBFs from "./shaders/FinalSRGB.glsl";
 import FXAA3_11 from "./shaders/FXAA/FXAA3_11.glsl";
 
@@ -21,7 +21,7 @@ import FXAA3_11 from "./shaders/FXAA/FXAA3_11.glsl";
 export class FinalPass extends PipelinePass {
   private _inputRenderTarget: RenderTarget;
   private _srgbRenderTarget: RenderTarget;
-  private _fxaaMaterial: Material;
+  private _antiAliasingMaterial: Material;
   private _sRGBmaterial: Material;
 
   constructor(engine: Engine) {
@@ -36,12 +36,12 @@ export class FinalPass extends PipelinePass {
     this._sRGBmaterial = sRGBmaterial;
 
     // FXAA Material
-    const fxaaMaterial = new Material(engine, Shader.find("FinalPost"));
-    const fxaaDepthState = fxaaMaterial.renderState.depthState;
-    fxaaDepthState.enabled = false;
-    fxaaDepthState.writeEnabled = false;
-    fxaaMaterial._addReferCount(1);
-    this._fxaaMaterial = fxaaMaterial;
+    const antiAliasingMaterial = new Material(engine, Shader.find("FinalAntiAliasing"));
+    const antiAliasingDepthState = antiAliasingMaterial.renderState.depthState;
+    antiAliasingDepthState.enabled = false;
+    antiAliasingDepthState.writeEnabled = false;
+    antiAliasingMaterial._addReferCount(1);
+    this._antiAliasingMaterial = antiAliasingMaterial;
   }
 
   onConfig(camera: Camera, inputRenderTarget: RenderTarget): void {
@@ -79,7 +79,7 @@ export class FinalPass extends PipelinePass {
 
     if (enableFXAA) {
       const sRGBTexture = <Texture2D>this._srgbRenderTarget.getColorTexture();
-      Blitter.blitTexture(engine, sRGBTexture, renderTarget, 0, viewport, this._fxaaMaterial);
+      Blitter.blitTexture(engine, sRGBTexture, renderTarget, 0, viewport, this._antiAliasingMaterial);
     }
   }
 
@@ -99,4 +99,4 @@ Object.assign(ShaderLib, {
 });
 
 Shader.create("FinalSRGB", blitVs, sRGBFs);
-Shader.create("FinalPost", blitVs, FinalPost);
+Shader.create("FinalAntiAliasing", blitVs, FinalAntiAliasing);
