@@ -16,5 +16,5 @@ void main() {
 
     textureColor.rgb *= material_Exposure * material_TintColor.rgb;
     
-    gl_FragColor = outputSRGBCorrection(textureColor);
+    gl_FragColor = textureColor;
 }

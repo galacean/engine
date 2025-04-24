@@ -20,7 +20,5 @@ void main() {
 
 	// Color space in screen is in gamma space but without sRGB texture, so we need to convert it to linear space manually
 	gl_FragColor = sRGBToLinear(gl_FragColor);
-
-	gl_FragColor = outputSRGBCorrection(gl_FragColor);
 }
 

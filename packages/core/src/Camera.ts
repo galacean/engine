@@ -11,6 +11,7 @@ import { UpdateFlagManager } from "./UpdateFlagManager";
 import { VirtualCamera } from "./VirtualCamera";
 import { GLCapabilityType, Logger } from "./base";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
+import { AntiAliasing } from "./enums/AntiAliasing";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { CameraModifyFlags } from "./enums/CameraModifyFlags";
 import { CameraType } from "./enums/CameraType";
@@ -93,6 +94,12 @@ export class Camera extends Component {
    * @remarks It will take effect when `independentCanvasEnabled` property is `true`, otherwise it will be invalid.
    */
   msaaSamples: MSAASamples = MSAASamples.None;
+
+  /**
+   * Anti-aliasing mode.
+   * @defaultValue `AntiAliasing.None`
+   */
+  antiAliasing: AntiAliasing = AntiAliasing.None;
 
   /** @internal */
   _cameraType: CameraType = CameraType.Normal;
@@ -177,8 +184,21 @@ export class Camera extends Component {
       return true;
     }
 
+    // Final pass should sRGB conversion and FXAA
+    if (this._needFinalPass()) {
+      return true;
+    }
+
+    const renderTarget = this._renderTarget;
+    // Need HDR and opaque texture
     if (this.enableHDR || this.opaqueTextureEnabled) {
-      return this._getInternalColorTextureFormat() !== this.renderTarget?.getColorTexture(0).format;
+      if (renderTarget) {
+        // If camera is HDR and format is same with renderTarget can reuse renderTarget if renderTarget is same HDR format
+        // If camera is LDR and opaqueTextureEnabled is true, can reuse renderTarget if renderTarget is LDR format(Only R8G8B8A8)
+        return this._getInternalColorTextureFormat() !== renderTarget.getColorTexture(0).format;
+      } else {
+        return true;
+      }
     }
 
     return false;
@@ -732,6 +752,34 @@ export class Camera extends Component {
         ? TextureFormat.R11G11B10_UFloat
         : TextureFormat.R16G16B16A16
       : TextureFormat.R8G8B8A8;
+  }
+
+  /**
+   * @internal
+   */
+  _needFinalPass(): boolean {
+    // FXAA or sRGB conversion when camera render to screen
+    return this.antiAliasing === AntiAliasing.FXAA || !this._renderTarget;
+  }
+
+  /**
+   * @internal
+   */
+  _getTargetColorTextureFormat(): TextureFormat {
+    const renderTarget = this._renderTarget;
+    return renderTarget ? renderTarget.getColorTexture(0).format : TextureFormat.R8G8B8A8;
+  }
+
+  /**
+   * @internal
+   */
+  _isTargetFormatHDR(): boolean {
+    const format = this._getTargetColorTextureFormat();
+    return (
+      format === TextureFormat.R16G16B16A16 ||
+      format === TextureFormat.R32G32B32A32 ||
+      format === TextureFormat.R11G11B10_UFloat
+    );
   }
 
   /**

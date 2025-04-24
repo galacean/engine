@@ -202,6 +202,11 @@ export const E2E_CONFIG = {
       category: "Camera",
       caseFileName: "camera-opaque-texture",
       threshold: 0.1
+    },
+    fxaa: {
+      category: "Camera",
+      caseFileName: "camera-fxaa",
+      threshold: 0.01
     }
   },
   Physics: {

@@ -29,6 +29,4 @@ void main() {
     #endif
 
     #include <FogFragment>
-
-    gl_FragColor = outputSRGBCorrection(gl_FragColor);
 }
