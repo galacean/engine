@@ -5,7 +5,7 @@
 //  * Deleted HLSL-related marcos
 //  * Deleted the marcos and function except for 'FXAA_PC == 1' 
 //  * Deleted the useless parameters in 'FxaaPixelShader' 
-//  * Changed the 'FXAA_GREEN_AS_LUMA == 0' code-path to compute Luma 
+//  * Changed the 'FXAA_GREEN_AS_LUMA == 0' code-path to compute luminance since we don't precompute luminance into the alpha channel
 //----------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------
@@ -600,9 +600,6 @@ NOTE the other tuning knobs are now in the shader function inputs!
                    GREEN AS LUMA OPTION SUPPORT FUNCTION
 ============================================================================*/
 #if (FXAA_GREEN_AS_LUMA == 0)
-    // FxaaFloat FxaaLuma(FxaaFloat4 rgba) { return rgba.w; }
-    // Note: Since we don't precompute luminance into the alpha channel
-    // we compute it here manually to ensure FXAA operates correctly
     FxaaFloat FxaaLuma(FxaaFloat4 rgba) { return dot(rgba.xyz, FxaaFloat3(0.299, 0.587, 0.114));}
 #else
    FxaaFloat FxaaLuma(FxaaFloat4 rgba) { return rgba.y; }
