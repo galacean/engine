@@ -35,6 +35,8 @@ void main(){
 
     color.rgb = applyFXAA(color.rgb, v_uv, renderer_texelSize, renderer_BlitTexture);
 
+    // We have convert the color to sRGB space in sRGB pass
+    // So we need to convert it back to linear space when output to render target
     #ifndef ENGINE_OUTPUT_SRGB_CORRECT
         color = sRGBToLinear(color);
     #endif
