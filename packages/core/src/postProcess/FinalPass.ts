@@ -83,6 +83,7 @@ export class FinalPass extends PostProcessPass {
     super._onDestroy();
     this._sRGBmaterial.destroy();
     this._fxaaMaterial.destroy();
+    this._swapRenderTarget?.destroy();
   }
 }
 
