@@ -184,8 +184,21 @@ export class Camera extends Component {
       return true;
     }
 
+    // Final pass should sRGB conversion and FXAA
+    if (this._needFinalPass()) {
+      return true;
+    }
+
+    const renderTarget = this._renderTarget;
+    // Need HDR and opaque texture
     if (this.enableHDR || this.opaqueTextureEnabled) {
-      return this._getInternalColorTextureFormat() !== this.renderTarget?.getColorTexture(0).format;
+      if (renderTarget) {
+        // If camera is HDR and format is same with renderTarget can reuse renderTarget if renderTarget is same HDR format
+        // If camera is LDR and opaqueTextureEnabled is true, can reuse renderTarget if renderTarget is LDR format(Only R8G8B8A8)
+        return this._getInternalColorTextureFormat() !== renderTarget.getColorTexture(0).format;
+      } else {
+        return true;
+      }
     }
 
     return false;
@@ -744,9 +757,29 @@ export class Camera extends Component {
   /**
    * @internal
    */
+  _needFinalPass(): boolean {
+    // FXAA or sRGB conversion when camera render to screen
+    return this.antiAliasing === AntiAliasing.FXAA || !this._renderTarget;
+  }
+
+  /**
+   * @internal
+   */
   _getTargetColorTextureFormat(): TextureFormat {
     const renderTarget = this._renderTarget;
     return renderTarget ? renderTarget.getColorTexture(0).format : TextureFormat.R8G8B8A8;
+  }
+
+  /**
+   * @internal
+   */
+  _isTargetFormatHDR(): boolean {
+    const format = this._getTargetColorTextureFormat();
+    return (
+      format === TextureFormat.R16G16B16A16 ||
+      format === TextureFormat.R32G32B32A32 ||
+      format === TextureFormat.R11G11B10_UFloat
+    );
   }
 
   /**

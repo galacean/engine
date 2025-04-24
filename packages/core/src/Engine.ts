@@ -280,9 +280,6 @@ export class Engine extends EventDispatcher {
 
     const uberPass = new PostProcessUberPass(this);
     this.addPostProcessPass(uberPass);
-
-    const finalPass = new FinalPass(this);
-    this.addPostProcessPass(finalPass);
   }
 
   /**

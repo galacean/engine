@@ -7,6 +7,7 @@
     #define FXAA_GLSL_120 1
 #endif
 
+#include <common>
 #include <FXAA3_11>
 
 const FxaaFloat FXAA_SUBPIXEL_BLEND_AMOUNT = 0.75;
