@@ -116,7 +116,7 @@ describe("camera test", function () {
   it("enable HDR", () => {
     // get enableHDR
     expect(camera.enableHDR).to.eq(false);
-    expect(camera.independentCanvasEnabled).to.eq(false);
+    expect(camera.independentCanvasEnabled).to.eq(true);// Because sRGB pass
     // set enableHDR
     camera.enableHDR = true;
     expect(camera.enableHDR).to.eq(true);
