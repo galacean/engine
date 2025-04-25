@@ -196,15 +196,16 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
     this._webCanvas = webCanvas;
 
+    const webGLOptions= this._webGLOptions;
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
     if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL2) {
-      gl = webCanvas.getContext("webgl2", this._webGLOptions);
+      gl = webCanvas.getContext("webgl2", webGLOptions);
       if (!gl && (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))) {
-        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", this._webGLOptions);
+        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", webGLOptions);
       }
       this._isWebGL2 = true;
 
-      // Prevent weird browsers to lie (such as safari!)
+      // Prevent weird browsers to lie (such as safari!)ƒ
       if (gl && !(<WebGL2RenderingContext>gl).deleteQuery) {
         this._isWebGL2 = false;
       }
@@ -212,9 +213,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
     if (!gl) {
       if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL1) {
-        gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", options);
+        gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", webGLOptions);
         if (!gl && (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))) {
-          gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("experimental-webgl", options);
+          gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("experimental-webgl", webGLOptions);
         }
         this._isWebGL2 = false;
       }
@@ -561,9 +562,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     if (debugRenderInfo != null) {
       this._renderer = gl.getParameter(debugRenderInfo.UNMASKED_RENDERER_WEBGL);
     }
-
-    this._contextAttributes = gl.getContextAttributes();
-    debugger;
   }
 
   destroy(): void {
