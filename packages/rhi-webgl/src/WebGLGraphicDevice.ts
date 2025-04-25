@@ -144,7 +144,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   constructor(initializeOptions: WebGLGraphicDeviceOptions = {}) {
     const options = {
       webGLMode: WebGLMode.Auto,
-      stencil: true,
+      stencil: false,
+      antialias: false,
+      depth: false,
       _forceFlush: false,
       _maxAllowSkinUniformVectorCount: 256,
       ...initializeOptions

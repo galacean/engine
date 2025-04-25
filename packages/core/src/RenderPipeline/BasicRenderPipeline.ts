@@ -84,7 +84,8 @@ export class BasicRenderPipeline {
     context.rendererUpdateFlag = ContextRendererUpdateFlag.All;
 
     const camera = this._camera;
-    const { scene, engine, renderTarget, independentCanvasEnabled } = camera;
+    const { scene, engine, renderTarget } = camera;
+    const independentCanvasEnabled = camera._isIndependentCanvasEnabled();
     const rhi = engine._hardwareRenderer;
     const cullingResults = this._cullingResults;
     const sunlight = scene._lightManager._sunlight;
