@@ -135,11 +135,11 @@ export class BasicRenderPipeline {
       let depthFormat: TextureFormat;
       if (camera.renderTarget) {
         depthFormat = camera.renderTarget._depthFormat;
-      } else if (rhi.context.depth && rhi.context.stencil) {
+      } else if (rhi._options.depth && rhi._options.stencil) {
         depthFormat = TextureFormat.Depth24Stencil8;
-      } else if (rhi.context.depth) {
+      } else if (rhi._options.depth) {
         depthFormat = TextureFormat.Depth24;
-      } else if (rhi.context.stencil) {
+      } else if (rhi._options.stencil) {
         depthFormat = TextureFormat.Stencil;
       } else {
         depthFormat = null;

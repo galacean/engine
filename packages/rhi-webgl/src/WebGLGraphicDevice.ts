@@ -89,6 +89,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   _currentBindShaderProgram: any;
 
   private _options: WebGLGraphicDeviceOptions;
+  private _webGLOptions: WebGLContextAttributes;
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _renderStates;
   private _extensions;
@@ -104,7 +105,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   private _lastScissor: Vector4 = new Vector4(null, null, null, null);
   private _lastClearColor: Color = new Color(null, null, null, null);
   private _scissorEnable: boolean = false;
-  private _contextAttributes: WebGLContextAttributes;
 
   private _onDeviceLost: () => void;
   private _onDeviceRestored: () => void;
@@ -137,40 +137,55 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     return this.capability.canIUseMoreJoints;
   }
 
-  get context(): WebGLGraphicDeviceOptions {
-    return this._contextAttributes;
-  }
-
   constructor(initializeOptions: WebGLGraphicDeviceOptions = {}) {
-    const options = {
+    this._options = {
       webGLMode: WebGLMode.Auto,
-      stencil: false,
-      antialias: false,
-      depth: false,
       _forceFlush: false,
       _maxAllowSkinUniformVectorCount: 256,
+      alpha: true,
+      depth: true,
+      stencil: true,
+      failIfMajorPerformanceCaveat: false,
+      powerPreference: "default",
+      premultipliedAlpha: true,
+      preserveDrawingBuffer: false,
+      desynchronized: false,
+      xrCompatible: false,
       ...initializeOptions
     };
+
     if (SystemInfo.platform === Platform.IPhone || SystemInfo.platform === Platform.IPad) {
       const version = SystemInfo.operatingSystem.match(/(\d+).?(\d+)?.?(\d+)?/);
       if (version) {
         const majorVersion = parseInt(version[1]);
         const minorVersion = parseInt(version[2]);
         if (majorVersion === 15 && minorVersion >= 0 && minorVersion <= 4) {
-          options._forceFlush = true;
+          this._options._forceFlush = true;
         }
       }
     }
-    this._options = options;
+
+    // Force disable stencil, antialias and depth, we configure them in internal render target
+    this._webGLOptions = {
+      stencil: false,
+      antialias: false,
+      depth: false,
+      alpha: true,
+      failIfMajorPerformanceCaveat: initializeOptions.failIfMajorPerformanceCaveat,
+      powerPreference: initializeOptions.powerPreference,
+      premultipliedAlpha: initializeOptions.premultipliedAlpha,
+      preserveDrawingBuffer: initializeOptions.preserveDrawingBuffer,
+      desynchronized: initializeOptions.desynchronized,
+      xrCompatible: initializeOptions.xrCompatible
+    };
 
     this._onWebGLContextLost = this._onWebGLContextLost.bind(this);
     this._onWebGLContextRestored = this._onWebGLContextRestored.bind(this);
   }
 
   init(canvas: Canvas, onDeviceLost: () => void, onDeviceRestored: () => void): void {
-    const options = this._options;
     const webCanvas = (canvas as WebCanvas)._webCanvas;
-    const webGLMode = options.webGLMode;
+    const webGLMode = this._options.webGLMode;
 
     this._onDeviceLost = onDeviceLost;
     this._onDeviceRestored = onDeviceRestored;
@@ -182,9 +197,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
     if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL2) {
-      gl = webCanvas.getContext("webgl2", options);
+      gl = webCanvas.getContext("webgl2", this._webGLOptions);
       if (!gl && (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))) {
-        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", options);
+        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", this._webGLOptions);
       }
       this._isWebGL2 = true;
 
@@ -547,6 +562,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     }
 
     this._contextAttributes = gl.getContextAttributes();
+    debugger;
   }
 
   destroy(): void {
