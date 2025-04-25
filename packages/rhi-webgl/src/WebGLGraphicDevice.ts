@@ -166,17 +166,18 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     }
 
     // Force disable stencil, antialias and depth, we configure them in internal render target
+    const options = this._options;
     this._webGLOptions = {
       stencil: false,
       antialias: false,
       depth: false,
       alpha: true,
-      failIfMajorPerformanceCaveat: initializeOptions.failIfMajorPerformanceCaveat,
-      powerPreference: initializeOptions.powerPreference,
-      premultipliedAlpha: initializeOptions.premultipliedAlpha,
-      preserveDrawingBuffer: initializeOptions.preserveDrawingBuffer,
-      desynchronized: initializeOptions.desynchronized,
-      xrCompatible: initializeOptions.xrCompatible
+      failIfMajorPerformanceCaveat: options.failIfMajorPerformanceCaveat,
+      powerPreference: options.powerPreference,
+      premultipliedAlpha: options.premultipliedAlpha,
+      preserveDrawingBuffer: options.preserveDrawingBuffer,
+      desynchronized: options.desynchronized,
+      xrCompatible: options.xrCompatible
     };
 
     this._onWebGLContextLost = this._onWebGLContextLost.bind(this);
