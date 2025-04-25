@@ -196,7 +196,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
     this._webCanvas = webCanvas;
 
-    const webGLOptions= this._webGLOptions;
+    const webGLOptions = this._webGLOptions;
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
     if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL2) {
       gl = webCanvas.getContext("webgl2", webGLOptions);
