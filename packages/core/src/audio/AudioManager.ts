@@ -2,6 +2,13 @@
  * @internal
  * Audio Manager.
  */
+
+declare global {
+  interface Window {
+    webkitAudioContext: typeof AudioContext;
+  }
+}
+
 export class AudioManager {
   private static _context: AudioContext;
   private static _gainNode: GainNode;
@@ -21,16 +28,23 @@ export class AudioManager {
 
       if (context.decodeAudioData && !context.decodeAudioData.toString().includes('return')) {
         const originalDecodeAudioData = context.decodeAudioData.bind(context);
-        context.decodeAudioData = (audioData: ArrayBuffer, successCallback?: (decodedData: AudioBuffer) => void, errorCallback?: (error: Error) => void) => {
-          return new Promise((resolve, reject) => {
-            originalDecodeAudioData(audioData, 
-              (buffer) => {
+        
+        (context.decodeAudioData as any) = (
+          audioData: ArrayBuffer, 
+          successCallback?: (decodedData: AudioBuffer) => void, 
+          errorCallback?: (error: DOMException | null) => void
+        ): Promise<AudioBuffer> => {
+          return new Promise<AudioBuffer>((resolve, reject) => {
+            originalDecodeAudioData(
+              audioData, 
+              (buffer: AudioBuffer) => {
                 if (successCallback) successCallback(buffer);
                 resolve(buffer);
               }, 
-              (error) => {
-                if (errorCallback) errorCallback(error || new Error('解码音频失败'));
-                reject(error || new Error('解码音频失败'));
+              (error: DOMException | null) => {
+                const actualError = error || new DOMException('解码音频失败', 'EncodingError');
+                if (errorCallback) errorCallback(actualError);
+                reject(actualError);
               }
             );
           });
@@ -84,7 +98,7 @@ export class AudioManager {
       AudioManager._isResuming = true;
       context.resume().then(() => {
         AudioManager._isResuming = false;
-      }).catch(error => {
+      }).catch((error: Error) => {
         console.error('恢复AudioContext失败:', error);
         AudioManager._isResuming = false;
       });
