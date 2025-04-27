@@ -10,9 +10,9 @@ import type { IEncodedModelMesh } from "./IModelMesh";
  */
 @decoder("Mesh")
 export class MeshDecoder {
-  public static decode(engine: Engine, bufferReader: BufferReader): AssetPromise<ModelMesh> {
+  public static decode(engine: Engine, bufferReader: BufferReader, modelMesh: ModelMesh): AssetPromise<ModelMesh> {
     return new AssetPromise((resolve) => {
-      const modelMesh = new ModelMesh(engine);
+      modelMesh ||= new ModelMesh(engine);
       const jsonDataString = bufferReader.nextStr();
       const encodedMeshData: IEncodedModelMesh = JSON.parse(jsonDataString);
 
