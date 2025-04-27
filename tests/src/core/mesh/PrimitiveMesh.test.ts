@@ -8,7 +8,6 @@ describe("PrimitiveMesh", () => {
 
   beforeAll(async () => {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-    engine.canvas.resizeByClientSize();
 
     const rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
     const cameraEntity = rootEntity.createChild("root");

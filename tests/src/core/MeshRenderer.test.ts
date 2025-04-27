@@ -32,7 +32,6 @@ describe("MeshRenderer", async function () {
     cubeEntity = rootEntity.createChild("Cube");
     cubeEntity.addComponent(MeshRenderer);
 
-    engine.canvas.resizeByClientSize();
     engine.run();
   });
 

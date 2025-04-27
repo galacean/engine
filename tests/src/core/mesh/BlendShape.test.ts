@@ -8,7 +8,6 @@ describe("BlendShape", () => {
 
   beforeAll(async () => {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-    engine.canvas.resizeByClientSize();
 
     engine.run();
   });

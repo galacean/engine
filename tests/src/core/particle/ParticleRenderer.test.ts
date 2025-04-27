@@ -10,7 +10,6 @@ describe("ParticleRenderer", () => {
     engine = await WebGLEngine.create({
       canvas: document.createElement("canvas")
     });
-    engine.canvas.resizeByClientSize();
 
     scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity("root");
