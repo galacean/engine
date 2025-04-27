@@ -1,6 +1,7 @@
 import {
   AssetPromise,
   AssetType,
+  ContentRestorer,
   Loader,
   LoadItem,
   resourceLoader,
@@ -13,7 +14,8 @@ import { parseSingleKTX } from "./compressed-texture";
 export class KTXLoader extends Loader<Texture2D> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
     return new AssetPromise((resolve, reject) => {
-      this.request<ArrayBuffer>(item.url, {
+      const request = this.request;
+      request<ArrayBuffer>(item.url, {
         ...item,
         type: "arraybuffer"
       })
@@ -27,7 +29,30 @@ export class KTXLoader extends Loader<Texture2D> {
             const { width, height, data } = mipmaps[miplevel];
             texture.setPixelBuffer(data, miplevel, 0, 0, width, height);
           }
-
+          resourceManager.addContentRestorer(
+            new (class extends ContentRestorer<Texture2D> {
+              restoreContent() {
+                return new AssetPromise<Texture2D>((resolve, reject) => {
+                  request<ArrayBuffer>(item.url, {
+                    ...item,
+                    type: "arraybuffer"
+                  })
+                    .then((bin) => {
+                      const mipmaps = parseSingleKTX(bin).mipmaps;
+                      const texture = this.resource;
+                      for (let miplevel = 0; miplevel < mipmaps.length; miplevel++) {
+                        const { width, height, data } = mipmaps[miplevel];
+                        texture.setPixelBuffer(data, miplevel, 0, 0, width, height);
+                      }
+                      resolve(texture);
+                    })
+                    .catch((e) => {
+                      reject(e);
+                    });
+                });
+              }
+            })(texture)
+          );
           resolve(texture);
         })
         .catch((e) => {

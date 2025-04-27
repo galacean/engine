@@ -1,6 +1,7 @@
 import {
   AssetPromise,
   AssetType,
+  ContentRestorer,
   Engine,
   EngineConfiguration,
   GLCapabilityType,
@@ -85,7 +86,8 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     engine: Engine,
     transcodeResult: TranscodeResult,
     targetFormat: KTX2TargetFormat,
-    params?: Uint8Array
+    params?: Uint8Array,
+    restoredTexture?: Texture2D | TextureCube
   ): Texture2D | TextureCube {
     const { width, height, faces } = transcodeResult;
     const faceCount = faces.length;
@@ -94,17 +96,17 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     const engineFormat = this._getEngineTextureFormat(targetFormat, transcodeResult);
     let texture: Texture2D | TextureCube;
     if (faceCount !== 6) {
-      texture = new Texture2D(engine, width, height, engineFormat, mipmap);
+      texture = restoredTexture || new Texture2D(engine, width, height, engineFormat, mipmap);
       for (let mipLevel = 0; mipLevel < mipmaps.length; mipLevel++) {
         const { data } = mipmaps[mipLevel];
-        texture.setPixelBuffer(data, mipLevel);
+        (<Texture2D>texture).setPixelBuffer(data, mipLevel);
       }
     } else {
-      texture = new TextureCube(engine, height, engineFormat, mipmap);
+      texture = restoredTexture || new TextureCube(engine, height, engineFormat, mipmap);
       for (let i = 0; i < faces.length; i++) {
         const faceData = faces[i];
         for (let mipLevel = 0; mipLevel < mipmaps.length; mipLevel++) {
-          texture.setPixelBuffer(TextureCubeFace.PositiveX + i, faceData[mipLevel].data, mipLevel);
+          (<TextureCube>texture).setPixelBuffer(TextureCubeFace.PositiveX + i, faceData[mipLevel].data, mipLevel);
         }
       }
     }
@@ -219,12 +221,43 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     item: LoadItem & { params?: KTX2Params },
     resourceManager: ResourceManager
   ): AssetPromise<Texture2D | TextureCube> {
-    return this.request<ArrayBuffer>(item.url!, { type: "arraybuffer" }).then((buffer) =>
-      KTX2Loader._parseBuffer(new Uint8Array(buffer), resourceManager.engine, item.params).then(
-        ({ engine, result, targetFormat, params }) =>
-          KTX2Loader._createTextureByBuffer(engine, result, targetFormat, params)
-      )
-    );
+    return new AssetPromise((resolve, reject) => {
+      const request = this.request;
+      request<ArrayBuffer>(item.url!, {
+        ...item,
+        type: "arraybuffer"
+      })
+        .then((buffer) =>
+          KTX2Loader._parseBuffer(new Uint8Array(buffer), resourceManager.engine, item.params)
+            .then(({ engine, result, targetFormat, params }) =>
+              KTX2Loader._createTextureByBuffer(engine, result, targetFormat, params)
+            )
+            .then((texture: Texture2D | TextureCube) => {
+              resourceManager.addContentRestorer(
+                new (class extends ContentRestorer<Texture2D | TextureCube> {
+                  override restoreContent(): void | AssetPromise<Texture2D | TextureCube> {
+                    return new AssetPromise((resolve, reject) => {
+                      request<ArrayBuffer>(item.url, {
+                        ...item,
+                        type: "arraybuffer"
+                      })
+                        .then((buffer) =>
+                          KTX2Loader._parseBuffer(new Uint8Array(buffer), resourceManager.engine, item.params).then(
+                            ({ engine, result, targetFormat, params }) =>
+                              KTX2Loader._createTextureByBuffer(engine, result, targetFormat, params, texture)
+                          )
+                        )
+                        .then(resolve)
+                        .catch(reject);
+                    });
+                  }
+                })(texture)
+              );
+              resolve(texture);
+            })
+        )
+        .catch(reject);
+    });
   }
 }
 

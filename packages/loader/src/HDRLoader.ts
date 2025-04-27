@@ -8,10 +8,8 @@ import {
   ResourceManager,
   TextureCube,
   TextureCubeFace,
-  request,
   resourceLoader
 } from "@galacean/engine-core";
-import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { Color, Vector3 } from "@galacean/engine-math";
 
 const PI = Math.PI;
@@ -394,36 +392,25 @@ class HDRLoader extends Loader<TextureCube> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCube> {
     return new AssetPromise((resolve, reject) => {
       const engine = resourceManager.engine;
-      const requestConfig = { ...item, type: "arraybuffer" } as RequestConfig;
-      this.request<ArrayBuffer>(item.url, requestConfig)
+      const request = this.request;
+      this.request<ArrayBuffer>(item.url, { ...item, type: "arraybuffer" })
         .then((buffer) => {
           const texture = HDRLoader._setTextureByBuffer(engine, buffer);
-          engine.resourceManager.addContentRestorer(new HDRContentRestorer(texture, item.url, requestConfig));
+          engine.resourceManager.addContentRestorer(
+            new (class extends ContentRestorer<TextureCube> {
+              override restoreContent(): AssetPromise<TextureCube> {
+                return new AssetPromise((resolve, reject) => {
+                  request<ArrayBuffer>(item.url, { ...item, type: "arraybuffer" })
+                    .then((buffer) => {
+                      HDRLoader._setTextureByBuffer(engine, buffer, texture);
+                      resolve(texture);
+                    })
+                    .catch(reject);
+                });
+              }
+            })(texture)
+          );
           resolve(texture);
-        })
-        .catch(reject);
-    });
-  }
-}
-
-/**
- * @internal
- */
-class HDRContentRestorer extends ContentRestorer<TextureCube> {
-  constructor(
-    resource: TextureCube,
-    public url: string,
-    public requestConfig: RequestConfig
-  ) {
-    super(resource);
-  }
-
-  override restoreContent(): AssetPromise<TextureCube> {
-    return new AssetPromise((resolve, reject) => {
-      request<ArrayBuffer>(this.url, this.requestConfig)
-        .then((buffer) => {
-          HDRLoader._setTextureByBuffer(this.resource.engine, buffer, this.resource);
-          resolve(this.resource);
         })
         .catch(reject);
     });
