@@ -227,7 +227,7 @@ export class BasicRenderPipeline {
     finalClearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(engine, finalClearFlags, color);
 
     if (internalColorTarget) {
-      // Force clear internal color target depth and stencil buffer,because it already missed by post process, HDR, etc.
+      // Force clear internal color target depth and stencil buffer, because it already missed due to post process, HDR, sRGB covert, etc.
       const keepDSFlags = ~finalClearFlags & CameraClearFlags.DepthStencil;
       if (keepDSFlags) {
         rhi.clearRenderTarget(engine, keepDSFlags);
