@@ -149,7 +149,7 @@ export class SkyProceduralMaterial extends Material {
    */
   override clone(): SkyProceduralMaterial {
     const dest = new SkyProceduralMaterial(this._engine);
-    this.cloneTo(dest);
+    this._cloneToAndModifyName(dest);
     return dest;
   }
 }

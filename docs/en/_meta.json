@@ -59,6 +59,12 @@
       "collapse": true
     }
   },
+  "audio": {
+    "title": "Audio",
+    "theme": {
+      "collapse": true
+    }
+  },
   "input": {
     "title": "Input",
     "theme": {

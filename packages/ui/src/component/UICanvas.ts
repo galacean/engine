@@ -7,11 +7,13 @@ import {
   DisorderedArray,
   Entity,
   EntityModifyFlags,
+  Logger,
   MathUtil,
   Matrix,
   Ray,
   Vector2,
   Vector3,
+  assignmentClone,
   deepClone,
   dependentComponents,
   ignoreClone
@@ -76,19 +78,19 @@ export class UICanvas extends Component implements IElement {
 
   @ignoreClone
   private _renderMode = CanvasRenderMode.WorldSpace;
-  @ignoreClone
+  @assignmentClone
   private _renderCamera: Camera;
   @ignoreClone
   private _cameraObserver: Camera;
-  @ignoreClone
+  @assignmentClone
   private _resolutionAdaptationMode = ResolutionAdaptationMode.HeightAdaptation;
-  @ignoreClone
+  @assignmentClone
   private _sortOrder: number = 0;
-  @ignoreClone
+  @assignmentClone
   private _distance: number = 10;
   @deepClone
   private _referenceResolution: Vector2 = new Vector2(800, 600);
-  @deepClone
+  @assignmentClone
   private _referenceResolutionPerUnit: number = 100;
   @ignoreClone
   private _hierarchyVersion: number = -1;
@@ -153,9 +155,23 @@ export class UICanvas extends Component implements IElement {
   set renderCamera(value: Camera) {
     const preCamera = this._renderCamera;
     if (preCamera !== value) {
+      value &&
+        this._isSameOrChildEntity(value.entity) &&
+        Logger.warn(
+          "Camera entity matching or nested within the canvas entity disables canvas auto-adaptation in ScreenSpaceCamera mode."
+        );
       this._renderCamera = value;
       this._updateCameraObserver();
-      this._setRealRenderMode(this._getRealRenderMode());
+      const preRenderMode = this._realRenderMode;
+      const curRenderMode = this._getRealRenderMode();
+      if (preRenderMode === curRenderMode) {
+        if (curRenderMode === CanvasRenderMode.ScreenSpaceCamera) {
+          this._adapterPoseInScreenSpace();
+          this._adapterSizeInScreenSpace();
+        }
+      } else {
+        this._setRealRenderMode(curRenderMode);
+      }
     }
   }
 
@@ -318,8 +334,9 @@ export class UICanvas extends Component implements IElement {
       case CanvasRenderMode.WorldSpace:
         const boundsCenter = this._getCenter();
         if (isOrthographic) {
-          Vector3.subtract(boundsCenter, cameraPosition, boundsCenter);
-          this._sortDistance = Vector3.dot(boundsCenter, cameraForward);
+          const distance = UICanvas._tempVec3;
+          Vector3.subtract(boundsCenter, cameraPosition, distance);
+          this._sortDistance = Vector3.dot(distance, cameraForward);
         } else {
           this._sortDistance = Vector3.distanceSquared(boundsCenter, cameraPosition);
         }
@@ -366,6 +383,13 @@ export class UICanvas extends Component implements IElement {
     }
   }
 
+  /**
+   * @internal
+   */
+  _cloneTo(target: UICanvas, srcRoot: Entity, targetRoot: Entity): void {
+    target.renderMode = this._renderMode;
+  }
+
   private _getRenderers(): UIRenderer[] {
     const { _orderedRenderers: renderers, entity } = this;
     const uiHierarchyVersion = entity._uiHierarchyVersion;
@@ -382,15 +406,18 @@ export class UICanvas extends Component implements IElement {
     const transform = this.entity.transform;
     const realRenderMode = this._realRenderMode;
     if (realRenderMode === CanvasRenderMode.ScreenSpaceCamera) {
-      const { transform: cameraTransform } = this._renderCamera.entity;
-      const { worldPosition: cameraWorldPosition, worldForward: cameraWorldForward } = cameraTransform;
-      const distance = this._distance;
-      transform.setWorldPosition(
-        cameraWorldPosition.x + cameraWorldForward.x * distance,
-        cameraWorldPosition.y + cameraWorldForward.y * distance,
-        cameraWorldPosition.z + cameraWorldForward.z * distance
-      );
-      transform.worldRotationQuaternion.copyFrom(cameraTransform.worldRotationQuaternion);
+      const cameraEntity = this._renderCamera.entity;
+      if (!this._isSameOrChildEntity(cameraEntity)) {
+        const { transform: cameraTransform } = cameraEntity;
+        const { worldPosition: cameraWorldPosition, worldForward: cameraWorldForward } = cameraTransform;
+        const distance = this._distance;
+        transform.setWorldPosition(
+          cameraWorldPosition.x + cameraWorldForward.x * distance,
+          cameraWorldPosition.y + cameraWorldForward.y * distance,
+          cameraWorldPosition.z + cameraWorldForward.z * distance
+        );
+        transform.worldRotationQuaternion.copyFrom(cameraTransform.worldRotationQuaternion);
+      }
     } else {
       const { canvas } = this.engine;
       transform.setWorldPosition(canvas.width * 0.5, canvas.height * 0.5, 0);
@@ -645,6 +672,15 @@ export class UICanvas extends Component implements IElement {
           break;
       }
     }
+  }
+
+  private _isSameOrChildEntity(cameraEntity: Entity): boolean {
+    const canvasEntity = this.entity;
+    while (cameraEntity) {
+      if (cameraEntity === canvasEntity) return true;
+      cameraEntity = cameraEntity.parent;
+    }
+    return false;
   }
 }
 

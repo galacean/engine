@@ -41,6 +41,10 @@ describe("UICanvas", async () => {
     expect(!!rootCanvas.renderCamera).to.eq(false);
     rootCanvas.renderCamera = camera;
     expect(rootCanvas.renderCamera).to.eq(camera);
+    rootCanvas.renderCamera = null;
+    expect(!!rootCanvas.renderCamera).to.eq(false);
+    rootCanvas.renderCamera = camera;
+    expect(rootCanvas.renderCamera).to.eq(camera);
 
     // Resolution Adaptation Strategy
     rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.WidthAdaptation;
@@ -93,6 +97,49 @@ describe("UICanvas", async () => {
     childCanvas.destroy();
     // @ts-ignore
     expect(rootCanvas._isRootCanvas).to.eq(true);
+  });
+
+  // Pose
+  it("Pose Fit", () => {
+    const canvasTransform = <UITransform>canvasEntity.transform;
+    const canvasPosition = canvasTransform.position;
+    rootCanvas.referenceResolution = new Vector2(800, 600);
+    rootCanvas.renderMode = CanvasRenderMode.ScreenSpaceCamera;
+    rootCanvas.distance = 10;
+    canvasPosition.set(0, 0, 0);
+    expect(canvasPosition.x).to.eq(0);
+    expect(canvasPosition.y).to.eq(0);
+    expect(canvasPosition.z).to.eq(0);
+
+    // Same entity
+    const cameraSame = canvasEntity.addComponent(Camera);
+    rootCanvas.renderCamera = cameraSame;
+    expect(canvasPosition.x).to.eq(0);
+    expect(canvasPosition.y).to.eq(0);
+    expect(canvasPosition.z).to.eq(0);
+    rootCanvas.distance = 100;
+    expect(canvasPosition.x).to.eq(0);
+    expect(canvasPosition.y).to.eq(0);
+    expect(canvasPosition.z).to.eq(0);
+
+    // Not same entity or child entity
+    rootCanvas.renderCamera = camera;
+    expect(canvasPosition.x).to.eq(0);
+    expect(canvasPosition.y).to.eq(0);
+    expect(canvasPosition.z).to.eq(-100);
+    rootCanvas.distance = 10;
+    expect(canvasPosition.x).to.eq(0);
+    expect(canvasPosition.y).to.eq(0);
+    expect(canvasPosition.z).to.eq(-10);
+
+    // Child entity
+    const cameraEntityChild = canvasEntity.createChild("cameraChild");
+    const cameraChild = cameraEntityChild.addComponent(Camera);
+    cameraEntityChild.transform.setPosition(2, 2, 2);
+    rootCanvas.renderCamera = cameraChild;
+    expect(canvasPosition.x).to.eq(0);
+    expect(canvasPosition.y).to.eq(0);
+    expect(canvasPosition.z).to.eq(-10);
   });
 
   // Size
@@ -221,5 +268,31 @@ describe("UICanvas", async () => {
     expect(Math.floor(canvasScale.z * 100000)).to.eq(3333);
     expect(Math.floor(canvasSize.x)).to.eq(168);
     expect(Math.floor(canvasSize.y)).to.eq(600);
+  });
+
+  it("Clone", () => {
+    rootCanvas.renderMode = CanvasRenderMode.ScreenSpaceCamera;
+    rootCanvas.renderCamera = camera;
+    rootCanvas.distance = 10;
+    rootCanvas.referenceResolution = new Vector2(800, 600);
+    rootCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.WidthAdaptation;
+    rootCanvas.referenceResolutionPerUnit = 100;
+    rootCanvas.sortOrder = 10;
+    const cloneEntity = canvasEntity.clone();
+    const cloneCanvas = cloneEntity.getComponent(UICanvas);
+    console.log(cloneCanvas.entity.parent);
+
+    expect(cloneCanvas.renderMode).to.eq(CanvasRenderMode.ScreenSpaceCamera);
+    expect(cloneCanvas.renderCamera).to.eq(camera);
+    expect(cloneCanvas.distance).to.eq(10);
+    expect(cloneCanvas.referenceResolution).to.deep.include({ x: 800, y: 600 });
+    expect(cloneCanvas.resolutionAdaptationMode).to.eq(ResolutionAdaptationMode.WidthAdaptation);
+    expect(cloneCanvas.referenceResolutionPerUnit).to.eq(100);
+    expect(cloneCanvas.sortOrder).to.eq(10);
+    // @ts-ignore
+    expect(cloneCanvas._isRootCanvas).to.eq(false);
+    root.addChild(cloneEntity);
+    // @ts-ignore
+    expect(cloneCanvas._isRootCanvas).to.eq(true);
   });
 });

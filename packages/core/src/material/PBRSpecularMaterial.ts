@@ -75,7 +75,7 @@ export class PBRSpecularMaterial extends PBRBaseMaterial {
    */
   override clone(): PBRSpecularMaterial {
     const dest = new PBRSpecularMaterial(this._engine);
-    this.cloneTo(dest);
+    this._cloneToAndModifyName(dest);
     return dest;
   }
 }

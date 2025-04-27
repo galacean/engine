@@ -484,7 +484,7 @@ export class PBRMaterial extends PBRBaseMaterial {
    */
   override clone(): PBRMaterial {
     const dest = new PBRMaterial(this._engine);
-    this.cloneTo(dest);
+    this._cloneToAndModifyName(dest);
     return dest;
   }
 
