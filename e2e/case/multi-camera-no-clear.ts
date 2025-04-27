@@ -49,6 +49,7 @@ function initFirstScene(engine: Engine): Scene {
   const camera = cameraEntity.addComponent(Camera);
   // camera.renderTarget = renderTarget;
   camera.cullingMask = Layer.Layer0;
+  camera.msaaSamples = 1;
   cameraEntity.transform.setPosition(0, 0, 20);
 
   // Create cube
