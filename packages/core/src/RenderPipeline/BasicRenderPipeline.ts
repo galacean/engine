@@ -1,7 +1,6 @@
 import { Vector2 } from "@galacean/engine-math";
 import { Background } from "../Background";
 import { Camera } from "../Camera";
-import { Logger } from "../base/Logger";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
@@ -227,36 +226,33 @@ export class BasicRenderPipeline {
     const color = colorTarget ? background._linearSolidColor : background.solidColor;
     finalClearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(engine, finalClearFlags, color);
 
-    if (internalColorTarget && finalClearFlags !== CameraClearFlags.All) {
-      // Can use `blitFramebuffer` API to copy color/depth/stencil buffer from back buffer to internal RT
-      if (this._canUseBlitFrameBuffer) {
-        const blitIgnoreFlags =
-          finalClearFlags | (this._shouldCopyBackgroundColor ? CameraClearFlags.Color : CameraClearFlags.None);
-        rhi.blitInternalRTByBlitFrameBuffer(camera.renderTarget, internalColorTarget, blitIgnoreFlags, camera.viewport);
-      } else {
-        if (!(finalClearFlags & CameraClearFlags.DepthStencil)) {
-          Logger.warn(
-            "We clear all depth/stencil state cause of the internalRT can't copy depth/stencil buffer from back buffer when use copy plan"
+    if (internalColorTarget) {
+      // Force clear internal color target depth and stencil buffer,because it already missed by post process, HDR, etc.
+      const keepDSFlags = ~finalClearFlags & CameraClearFlags.DepthStencil;
+      if (keepDSFlags) {
+        rhi.clearRenderTarget(engine, keepDSFlags);
+      }
+
+      const keepColorFlag = ~finalClearFlags & CameraClearFlags.Color;
+      if (keepColorFlag) {
+        if (this._shouldCopyBackgroundColor) {
+          // Copy RT's color buffer to grab texture
+          rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._copyBackgroundTexture, camera.viewport);
+          // Then blit grab texture to internal RT's color buffer
+          Blitter.blitTexture(
+            engine,
+            this._copyBackgroundTexture,
+            internalColorTarget,
+            0,
+            undefined,
+            camera.renderTarget ? undefined : engine._basicResources.blitScreenMaterial
           );
+        } else {
+          // Only blit color buffer from back buffer
+          const ignoreFlags = CameraClearFlags.DepthStencil;
+          rhi.blitInternalRTByBlitFrameBuffer(camera.renderTarget, internalColorTarget, ignoreFlags, camera.viewport);
         }
-        // We must clear depth/stencil buffer manually if current context don't support `blitFramebuffer` API
-        rhi.clearRenderTarget(engine, CameraClearFlags.DepthStencil);
       }
-
-      if (this._shouldCopyBackgroundColor) {
-        // Copy RT's color buffer to grab texture
-        rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._copyBackgroundTexture, camera.viewport);
-        // Then blit grab texture to internal RT's color buffer
-        Blitter.blitTexture(
-          engine,
-          this._copyBackgroundTexture,
-          internalColorTarget,
-          0,
-          undefined,
-          camera.renderTarget ? undefined : engine._basicResources.blitScreenMaterial
-        );
-      }
-
       context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
     }
 

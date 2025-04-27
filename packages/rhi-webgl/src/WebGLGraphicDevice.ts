@@ -169,8 +169,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     const options = this._options;
     this._webGLOptions = {
       antialias: false,
-      depth: true,
-      stencil: true,
+      depth: false,
+      stencil: false,
       alpha: options.alpha,
       failIfMajorPerformanceCaveat: options.failIfMajorPerformanceCaveat,
       powerPreference: options.powerPreference,
