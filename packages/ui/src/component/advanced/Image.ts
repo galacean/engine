@@ -29,7 +29,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   private _sprite: Sprite = null;
   @ignoreClone
   private _drawMode: SpriteDrawMode;
-  @assignmentClone
+  @ignoreClone
   private _assembler: ISpriteAssembler;
   @assignmentClone
   private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
@@ -147,6 +147,16 @@ export class Image extends UIRenderer implements ISpriteRenderer {
         this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
       }
     }
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: Image, srcRoot: Entity, targetRoot: Entity): void {
+    // @ts-ignore
+    super._cloneTo(target, srcRoot, targetRoot);
+    target.sprite = this._sprite;
+    target.drawMode = this._drawMode;
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
