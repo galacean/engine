@@ -226,31 +226,31 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       const requestConfig = <RequestConfig>{
         ...item,
         type: "arraybuffer"
-      }
+      };
       resourceManager
         // @ts-ignore
         ._request<ArrayBuffer>(item.url, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((buffer) =>
-          KTX2Loader._parseBuffer(new Uint8Array(buffer), resourceManager.engine, item.params).then(
-            ({ engine, result, targetFormat, params }) =>
+          KTX2Loader._parseBuffer(new Uint8Array(buffer), resourceManager.engine, item.params)
+            .then(({ engine, result, targetFormat, params }) =>
               KTX2Loader._createTextureByBuffer(engine, result, targetFormat, params)
-          ).then((texture) => {
-            resourceManager.addContentRestorer(new KTX2ContentRestorer(texture, item.url, requestConfig));
-            resolve(texture);
-          })
+            )
+            .then((texture) => {
+              resourceManager.addContentRestorer(new KTX2ContentRestorer(texture, item.url, requestConfig));
+              resolve(texture);
+            })
         )
         .catch(reject);
     });
   }
 }
 
-
 class KTX2ContentRestorer extends ContentRestorer<Texture2D | TextureCube> {
   constructor(
     resource: Texture2D | TextureCube,
     public url: string,
-    public requestConfig: RequestConfig & { params?: KTX2Params },
+    public requestConfig: RequestConfig & { params?: KTX2Params }
   ) {
     super(resource);
   }

@@ -1,4 +1,12 @@
-import { AssetPromise, ContentRestorer, Loader, LoadItem, resourceLoader, ResourceManager, Texture2D } from "@galacean/engine-core";
+import {
+  AssetPromise,
+  ContentRestorer,
+  Loader,
+  LoadItem,
+  resourceLoader,
+  ResourceManager,
+  Texture2D
+} from "@galacean/engine-core";
 import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { decode } from "../..";
 
@@ -37,7 +45,11 @@ class EditorTexture2DContentRestorer extends ContentRestorer<Texture2D> {
     const texture = this.resource;
     const engine = texture.engine;
     const resourceManager = engine.resourceManager;
-    // @ts-ignore
-    return resourceManager._request<ArrayBuffer>(this.url, this.requestConfig).then((data) => decode<Texture2D>(data, resourceManager.engine, texture))
+    return (
+      resourceManager
+        // @ts-ignore
+        ._request<ArrayBuffer>(this.url, this.requestConfig)
+        .then((data) => decode<Texture2D>(data, resourceManager.engine, texture))
+    );
   }
 }

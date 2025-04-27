@@ -1,13 +1,13 @@
 import {
-  resourceLoader,
-  Loader,
   AssetPromise,
   AssetType,
-  LoadItem,
-  ResourceManager,
-  ModelMesh,
   ContentRestorer,
-  RequestConfig
+  Loader,
+  LoadItem,
+  ModelMesh,
+  RequestConfig,
+  resourceLoader,
+  ResourceManager
 } from "@galacean/engine-core";
 import { decode } from "./resource-deserialize";
 
@@ -17,7 +17,7 @@ class MeshLoader extends Loader<ModelMesh> {
     const requestConfig: RequestConfig = {
       ...item,
       type: "arraybuffer"
-    }
+    };
     return new AssetPromise((resolve, reject) => {
       resourceManager
         // @ts-ignore
@@ -25,7 +25,8 @@ class MeshLoader extends Loader<ModelMesh> {
         .then((data) => {
           return decode<ModelMesh>(data, resourceManager.engine);
         })
-        .then((mesh) => {
+        .then((mesh: ModelMesh) => {
+          resourceManager.addContentRestorer(new MeshContentRestorer(mesh, item.url, requestConfig));
           resolve(mesh);
         })
         .catch(reject);
@@ -37,7 +38,7 @@ class MeshContentRestorer extends ContentRestorer<ModelMesh> {
   constructor(
     resource: ModelMesh,
     public url: string,
-    public requestConfig: RequestConfig,
+    public requestConfig: RequestConfig
   ) {
     super(resource);
   }

@@ -17,7 +17,7 @@ export class KTXLoader extends Loader<Texture2D> {
     const requestConfig = <RequestConfig>{
       ...item,
       type: "arraybuffer"
-    }
+    };
     return new AssetPromise((resolve, reject) => {
       resourceManager
         // @ts-ignore
