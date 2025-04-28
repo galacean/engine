@@ -52,7 +52,7 @@ export enum WebGLMode {
 /**
  * WebGL graphic device options.
  */
-export interface WebGLGraphicDeviceOptions extends WebGLContextAttributes {
+export interface WebGLGraphicDeviceOptions {
   /** WebGL mode.*/
   webGLMode?: WebGLMode;
 
@@ -69,6 +69,16 @@ export interface WebGLGraphicDeviceOptions extends WebGLContextAttributes {
    * @remarks large count maybe cause performance issue.
    */
   _maxAllowSkinUniformVectorCount?: number;
+
+  alpha?: boolean;
+  depth?: boolean;
+  desynchronized?: boolean;
+  failIfMajorPerformanceCaveat?: boolean;
+  powerPreference?: WebGLPowerPreference;
+  premultipliedAlpha?: boolean;
+  preserveDrawingBuffer?: boolean;
+  stencil?: boolean;
+  xrCompatible?: boolean;
 }
 
 /**
@@ -138,7 +148,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   }
 
   constructor(initializeOptions: WebGLGraphicDeviceOptions = {}) {
-    this._options = {
+    const options = <WebGLGraphicDeviceOptions>{
       webGLMode: WebGLMode.Auto,
       _forceFlush: false,
       _maxAllowSkinUniformVectorCount: 256,
@@ -160,13 +170,13 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
         const majorVersion = parseInt(version[1]);
         const minorVersion = parseInt(version[2]);
         if (majorVersion === 15 && minorVersion >= 0 && minorVersion <= 4) {
-          this._options._forceFlush = true;
+          options._forceFlush = true;
         }
       }
     }
+    this._options = options;
 
     // Force disable stencil, antialias and depth, we configure them in internal render target
-    const options = this._options;
     this._webGLOptions = {
       antialias: false,
       depth: false,
