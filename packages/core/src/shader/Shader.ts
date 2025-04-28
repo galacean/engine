@@ -174,6 +174,30 @@ export class Shader implements IReferable {
     return Shader._shaderMap[name];
   }
 
+  /**
+   * @internal
+   */
+  static _clear(engine: Engine): void {
+    const shaderMap = Shader._shaderMap;
+    for (const key in shaderMap) {
+      const shader = shaderMap[key];
+      const subShaders = shader._subShaders;
+      for (let i = 0, n = subShaders.length; i < n; i++) {
+        const passes = subShaders[i].passes;
+        for (let j = 0, m = passes.length; j < m; j++) {
+          const pass = passes[j];
+          const passShaderProgramPools = pass._shaderProgramPools;
+          for (let k = passShaderProgramPools.length - 1; k >= 0; k--) {
+            const shaderProgramPool = passShaderProgramPools[k];
+            if (shaderProgramPool.engine !== engine) continue;
+            shaderProgramPool._destroy();
+            passShaderProgramPools.splice(k, 1);
+          }
+        }
+      }
+    }
+  }
+
   private static _applyConstRenderStates(
     renderState: RenderState,
     key: RenderStateElementKey,

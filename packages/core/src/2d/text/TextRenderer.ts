@@ -21,6 +21,7 @@ import { Font } from "./Font";
 import { ITextRenderer } from "./ITextRenderer";
 import { SubFont } from "./SubFont";
 import { TextUtils } from "./TextUtils";
+import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 
 /**
  * Renders a text for 2D graphics.
@@ -254,11 +255,11 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   /**
    * The mask layer the sprite renderer belongs to.
    */
-  get maskLayer(): number {
+  get maskLayer(): SpriteMaskLayer {
     return this._maskLayer;
   }
 
-  set maskLayer(value: number) {
+  set maskLayer(value: SpriteMaskLayer) {
     this._maskLayer = value;
   }
 
