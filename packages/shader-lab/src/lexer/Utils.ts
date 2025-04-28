@@ -23,7 +23,6 @@ export default class LexerUtils {
   static isPpCharacters(charCode: number) {
     return (
       charCode === 35 || // #
-      charCode === 46 || // .
       charCode === 95 || // _
       (charCode >= 48 && charCode <= 57) || // 0 - 9
       (charCode >= 65 && charCode <= 90) || // A - Z

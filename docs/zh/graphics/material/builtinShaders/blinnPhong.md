@@ -4,11 +4,11 @@ title: Blinn Phong
 
 [BlinnPhongMaterial](/apis/core/#BlinnPhongMaterial) 材质是经典的材质之一，虽然不是基于物理渲染，但是其高效的渲染算法和基本齐全的光学部分，流传至今仍可以适用很多的场景。
 
-<Playground href="/embed/blinn-phong" />
+<playground src="blinn-phong.ts"></playground>
 
 ## 编辑器使用
 
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/eaa93827-29a4-46ad-b9d3-f179fa200c57/blinn.gif" alt="blinn" style={{ zoom: "100%" }} />
+<img src="https://gw.alipayobjects.com/zos/OasisHub/eaa93827-29a4-46ad-b9d3-f179fa200c57/blinn.gif" alt="blinn" style="zoom:100%;" />
 
 ## 参数介绍
 
@@ -25,4 +25,4 @@ title: Blinn Phong
 | [shininess](/apis/core/#BlinnPhongMaterial-shininess) | 镜面反射系数。值越大镜面反射效果越聚拢。 |
 | [tilingOffset](/apis/core/#BlinnPhongMaterial-tilingOffset) | 纹理坐标的缩放与偏移。是一个 Vector4 数据，分别控制纹理坐标在 uv 方向上的缩放和偏移，参考 [案例](/embed/tiling-offset) |
 
-如果需要通过脚本使用材质，可以前往[材质的使用教程](/docs/graphics/material/script)。
+如果需要通过脚本使用材质，可以前往[材质的使用教程](/docs/graphics/material/examples/create/#3-脚本方式)。

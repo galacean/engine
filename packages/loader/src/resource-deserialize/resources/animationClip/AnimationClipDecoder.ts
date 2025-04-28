@@ -1,5 +1,6 @@
 import {
   AnimationArrayCurve,
+  AnimationBoolCurve,
   AnimationClip,
   AnimationColorCurve,
   AnimationCurve,
@@ -7,17 +8,17 @@ import {
   AnimationFloatArrayCurve,
   AnimationFloatCurve,
   AnimationQuaternionCurve,
+  AnimationRefCurve,
+  AnimationStringCurve,
   AnimationVector2Curve,
   AnimationVector3Curve,
   AnimationVector4Curve,
-  AnimationRefCurve,
+  AssetPromise,
   Engine,
   Keyframe,
   KeyframeValueType,
-  ReferResource,
-  AnimationStringCurve,
-  AnimationBoolCurve,
-  Loader
+  Loader,
+  ReferResource
 } from "@galacean/engine-core";
 import { Color, Quaternion, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import type { BufferReader } from "../../utils/BufferReader";
@@ -39,8 +40,8 @@ export enum InterpolableValueType {
 
 @decoder("AnimationClip")
 export class AnimationClipDecoder {
-  public static decode(engine: Engine, bufferReader: BufferReader): Promise<AnimationClip> {
-    return new Promise((resolve) => {
+  public static decode(engine: Engine, bufferReader: BufferReader): AssetPromise<AnimationClip> {
+    return new AssetPromise((resolve) => {
       const name = bufferReader.nextStr();
       const clip = new AnimationClip(name);
       const eventsLen = bufferReader.nextUint16();

@@ -4,7 +4,7 @@ const { readFile } = server.commands;
 const sourceDir = "test-case/source/";
 const cmpDir = "test-case/compare/";
 
-const files = ["frag.txt", "frag2.txt"];
+const files = ["frag.txt", "frag2.txt", "macro.txt"];
 const testCaseList: { source: string; compare: string; name: string }[] = [];
 for (const f of files) {
   const cmpFilePath = `${cmpDir}${f}`;

@@ -1,0 +1,48 @@
+---
+title: 创建材质
+---
+
+创建材质一般有以下 3 种方式：
+
+## 1. 手动创建
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/b01b0ee2-317e-4acb-8c2f-e07736179d67/image-20240206163405147.png" />
+
+## 2. 模型中的材质
+
+参考[模型的导入和使用](/docs/graphics/model/use/)教程，我们可以先将模型导入到编辑器，一般情况下，模型已经自动绑定好材质，用户可以不用做任何操作；
+
+### 2.1. Remap 材质
+
+如果想要修改模型材质，我们可以点击 `duplicate and remap` 按钮来生成一份该材质的副本，注意 Remap 会修改模型预设，如下图所有模型实例都会受到影响：
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/4a41f66e-5523-43f0-a9b5-4028b9d14cbc/2025-01-24%25252015.30.31.gif" />
+
+### 2.2. 增量修改
+
+如果只想修改某个模型的材质，可以使用增量修改的功能：
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/5d2409f2-a7b2-4b5e-9e6a-9845c3358af3/2025-01-24%25252015.32.04.gif" />
+
+## 3. 脚本方式
+
+我们还可以通过脚本来创建/修改材质，我们将脚本挂载到立方体实体上，实现替换材质的一个 Demo：
+
+```ts showLineNumbers
+export default class extends Script {
+  onStart() {
+    // 获取所有 renderer
+    const renderers = [];
+    this.entity.getComponentsIncludeChildren(MeshRenderer, renderers);
+    const renderer = renderers[0];
+
+    // 直接修改材质
+    const material = renderer.getMaterial();
+    material.baseColor.set(1, 0, 0, 1);
+
+    // 或者替换材质
+    const pbrMaterial = new PBRMaterial(engine);
+    const material = renderer.setMaterial(material);
+  }
+}
+```
