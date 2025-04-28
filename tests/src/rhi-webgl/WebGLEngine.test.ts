@@ -48,7 +48,6 @@ describe("webgl engine test", () => {
 
     const canvas = document.createElement("canvas");
     const engine = await WebGLEngine.create({ canvas });
-    engine.canvas.resizeByClientSize();
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity();
     engine.run();
@@ -72,7 +71,6 @@ describe("webgl engine test", () => {
   it("engine device lost", async () => {
     const canvas = document.createElement("canvas");
     const engine = await WebGLEngine.create({ canvas });
-    engine.canvas.resizeByClientSize();
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity();
 

@@ -52,7 +52,7 @@ export enum WebGLMode {
 /**
  * WebGL graphic device options.
  */
-export interface WebGLGraphicDeviceOptions extends WebGLContextAttributes {
+export interface WebGLGraphicDeviceOptions {
   /** WebGL mode.*/
   webGLMode?: WebGLMode;
 
@@ -69,6 +69,16 @@ export interface WebGLGraphicDeviceOptions extends WebGLContextAttributes {
    * @remarks large count maybe cause performance issue.
    */
   _maxAllowSkinUniformVectorCount?: number;
+
+  alpha?: boolean;
+  depth?: boolean;
+  desynchronized?: boolean;
+  failIfMajorPerformanceCaveat?: boolean;
+  powerPreference?: WebGLPowerPreference;
+  premultipliedAlpha?: boolean;
+  preserveDrawingBuffer?: boolean;
+  stencil?: boolean;
+  xrCompatible?: boolean;
 }
 
 /**
@@ -89,6 +99,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   _currentBindShaderProgram: any;
 
   private _options: WebGLGraphicDeviceOptions;
+  private _webGLOptions: WebGLContextAttributes;
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _renderStates;
   private _extensions;
@@ -104,7 +115,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   private _lastScissor: Vector4 = new Vector4(null, null, null, null);
   private _lastClearColor: Color = new Color(null, null, null, null);
   private _scissorEnable: boolean = false;
-  private _contextAttributes: WebGLContextAttributes;
 
   private _onDeviceLost: () => void;
   private _onDeviceRestored: () => void;
@@ -137,18 +147,23 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     return this.capability.canIUseMoreJoints;
   }
 
-  get context(): WebGLGraphicDeviceOptions {
-    return this._contextAttributes;
-  }
-
   constructor(initializeOptions: WebGLGraphicDeviceOptions = {}) {
-    const options = {
+    const options = <WebGLGraphicDeviceOptions>{
       webGLMode: WebGLMode.Auto,
-      stencil: true,
       _forceFlush: false,
       _maxAllowSkinUniformVectorCount: 256,
+      alpha: true,
+      depth: true,
+      stencil: true,
+      failIfMajorPerformanceCaveat: false,
+      powerPreference: "default",
+      premultipliedAlpha: true,
+      preserveDrawingBuffer: false,
+      desynchronized: false,
+      xrCompatible: false,
       ...initializeOptions
     };
+
     if (SystemInfo.platform === Platform.IPhone || SystemInfo.platform === Platform.IPad) {
       const version = SystemInfo.operatingSystem.match(/(\d+).?(\d+)?.?(\d+)?/);
       if (version) {
@@ -161,14 +176,27 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     }
     this._options = options;
 
+    // Force disable stencil, antialias and depth, we configure them in internal render target
+    this._webGLOptions = {
+      antialias: false,
+      depth: false,
+      stencil: false,
+      alpha: options.alpha,
+      failIfMajorPerformanceCaveat: options.failIfMajorPerformanceCaveat,
+      powerPreference: options.powerPreference,
+      premultipliedAlpha: options.premultipliedAlpha,
+      preserveDrawingBuffer: options.preserveDrawingBuffer,
+      desynchronized: options.desynchronized,
+      xrCompatible: options.xrCompatible
+    };
+
     this._onWebGLContextLost = this._onWebGLContextLost.bind(this);
     this._onWebGLContextRestored = this._onWebGLContextRestored.bind(this);
   }
 
   init(canvas: Canvas, onDeviceLost: () => void, onDeviceRestored: () => void): void {
-    const options = this._options;
     const webCanvas = (canvas as WebCanvas)._webCanvas;
-    const webGLMode = options.webGLMode;
+    const webGLMode = this._options.webGLMode;
 
     this._onDeviceLost = onDeviceLost;
     this._onDeviceRestored = onDeviceRestored;
@@ -178,15 +206,16 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
     this._webCanvas = webCanvas;
 
+    const webGLOptions = this._webGLOptions;
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
     if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL2) {
-      gl = webCanvas.getContext("webgl2", options);
+      gl = webCanvas.getContext("webgl2", webGLOptions);
       if (!gl && (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))) {
-        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", options);
+        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", webGLOptions);
       }
       this._isWebGL2 = true;
 
-      // Prevent weird browsers to lie (such as safari!)
+      // Prevent weird browsers to lie (such as safari!)ƒ
       if (gl && !(<WebGL2RenderingContext>gl).deleteQuery) {
         this._isWebGL2 = false;
       }
@@ -194,9 +223,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
     if (!gl) {
       if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL1) {
-        gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", options);
+        gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", webGLOptions);
         if (!gl && (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))) {
-          gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("experimental-webgl", options);
+          gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("experimental-webgl", webGLOptions);
         }
         this._isWebGL2 = false;
       }
@@ -543,8 +572,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     if (debugRenderInfo != null) {
       this._renderer = gl.getParameter(debugRenderInfo.UNMASKED_RENDERER_WEBGL);
     }
-
-    this._contextAttributes = gl.getContextAttributes();
   }
 
   destroy(): void {

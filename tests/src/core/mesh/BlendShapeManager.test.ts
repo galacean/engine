@@ -21,7 +21,6 @@ describe("BlendShapeManager", () => {
     engineWebGL2 = await WebGLEngine.create({
       canvas: document.createElement("canvas")
     });
-    engineWebGL2.canvas.resizeByClientSize();
 
     rootEntity1 = engineWebGL2.sceneManager.activeScene.createRootEntity("root");
     const cameraEntity = rootEntity1.createChild("camera");
@@ -37,7 +36,6 @@ describe("BlendShapeManager", () => {
         webGLMode: WebGLMode.WebGL1
       }
     });
-    engineWebGL1.canvas.resizeByClientSize();
 
     rootEntity2 = engineWebGL1.sceneManager.activeScene.createRootEntity("root");
     const cameraEntity2 = rootEntity2.createChild("camera");
