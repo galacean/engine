@@ -2,86 +2,86 @@
  * @internal
  * Audio Manager.
  */
-
-declare global {
-  interface Window {
-    webkitAudioContext: typeof AudioContext;
-  }
-}
-
 export class AudioManager {
   private static _context: AudioContext;
   private static _gainNode: GainNode;
   private static _isResuming = false;
+  private static _hasAudio = true;
+
+  private static _dummyContext: any = {
+    currentTime: 0,
+    state: "suspended",
+    resume: () => Promise.resolve(),
+    decodeAudioData: (arrayBuffer: ArrayBuffer) => Promise.resolve(null),
+    createBufferSource: () => ({
+      connect: () => { },
+      disconnect: () => { },
+      start: () => { },
+      stop: () => { },
+      buffer: null
+    }),
+    createGain: () => ({
+      connect: () => { },
+      disconnect: () => { },
+      gain: { value: 1 }
+    }),
+    destination: {}
+  };
 
   static getContext(): AudioContext {
-    let context = AudioManager._context;
-    if (!context) {
+    if (!AudioManager._context && AudioManager._hasAudio) {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      
-      if (!AudioContextClass) {
-        console.error('当前环境不支持AudioContext或webkitAudioContext');
-        return AudioManager._context = {} as AudioContext;
-      }
-      
-      AudioManager._context = context = new AudioContextClass();
 
-      if (context.decodeAudioData && !context.decodeAudioData.toString().includes('return')) {
-        const originalDecodeAudioData = context.decodeAudioData.bind(context);
-        
-        (context.decodeAudioData as any) = (
-          audioData: ArrayBuffer, 
-          successCallback?: (decodedData: AudioBuffer) => void, 
-          errorCallback?: (error: DOMException | null) => void
-        ): Promise<AudioBuffer> => {
-          return new Promise<AudioBuffer>((resolve, reject) => {
+      if (AudioContextClass) {
+        AudioManager._context = new AudioContextClass();
+
+        const originalDecodeAudioData = AudioManager._context.decodeAudioData.bind(AudioManager._context);
+        AudioManager._context.decodeAudioData = function (arrayBuffer: ArrayBuffer, successCallback?: Function, errorCallback?: Function) {
+          const promise = new Promise((resolve, reject) => {
             originalDecodeAudioData(
-              audioData, 
-              (buffer: AudioBuffer) => {
-                if (successCallback) successCallback(buffer);
-                resolve(buffer);
-              }, 
-              (error: DOMException | null) => {
-                const actualError = error || new DOMException('解码音频失败', 'EncodingError');
-                if (errorCallback) errorCallback(actualError);
-                reject(actualError);
-              }
+              arrayBuffer,
+              (buffer: AudioBuffer) => resolve(buffer),
+              (error: Error) => reject(error || new Error('Failed to decode audio data'))
             );
           });
-        };
-      }
 
-      // Safari can't resume audio context without element interaction
-      document.addEventListener("pointerdown", AudioManager._tryResume, true);
-      document.addEventListener("touchend", AudioManager._tryResume, true);
-      document.addEventListener("touchstart", AudioManager._tryResume, true);
+          if (successCallback || errorCallback) {
+            promise.then(successCallback as any).catch(errorCallback as any);
+          }
+
+          return promise;
+        };
+
+        // Safari can't resume audio context without element interaction
+        document.addEventListener("pointerdown", AudioManager._tryResume, true);
+        document.addEventListener("touchend", AudioManager._tryResume, true);
+        document.addEventListener("touchstart", AudioManager._tryResume, true);
+      } else {
+        console.warn("AudioContext is not supported in this environment");
+        AudioManager._hasAudio = false;
+      }
     }
-    return context;
+
+    return AudioManager._context || (AudioManager._dummyContext as AudioContext);
   }
 
   static getGainNode(): GainNode {
-    let gainNode = AudioManager._gainNode;
-    if (!AudioManager._gainNode) {
-      try {
-        const context = AudioManager.getContext();
-        if (context.createGain) {
-          AudioManager._gainNode = gainNode = context.createGain();
-          gainNode.connect(context.destination);
-        } else {
-          console.error('当前环境不支持createGain方法');
-          return {} as GainNode;
-        }
-      } catch (error) {
-        console.error('创建GainNode失败:', error);
-        return {} as GainNode;
+    if (!AudioManager._gainNode && AudioManager._hasAudio) {
+      const context = AudioManager.getContext();
+      if (AudioManager._hasAudio) {
+        AudioManager._gainNode = context.createGain();
+        AudioManager._gainNode.connect(context.destination);
       }
     }
-    return gainNode;
+
+    return AudioManager._gainNode || (AudioManager._dummyContext.createGain() as GainNode);
   }
 
   static isAudioContextRunning(): boolean {
+    if (!AudioManager._hasAudio) return false;
+
     const context = AudioManager.getContext();
-    if (!context.state || context.state !== "running") {
+    if (context.state !== "running") {
       console.warn("The AudioContext is not running and requires user interaction, such as a click or touch.");
       return false;
     }
@@ -89,17 +89,17 @@ export class AudioManager {
   }
 
   private static _tryResume(): void {
-    const context = AudioManager._context;
-    if (context && context.state && context.state !== "running" && context.resume) {
+    if (!AudioManager._context || !AudioManager._hasAudio) return;
+
+    if (AudioManager._context.state !== "running") {
       if (AudioManager._isResuming) {
         return;
       }
 
       AudioManager._isResuming = true;
-      context.resume().then(() => {
+      AudioManager._context.resume().then(() => {
         AudioManager._isResuming = false;
-      }).catch((error: Error) => {
-        console.error('恢复AudioContext失败:', error);
+      }).catch(() => {
         AudioManager._isResuming = false;
       });
     }
