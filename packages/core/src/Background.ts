@@ -10,6 +10,9 @@ import { Texture2D } from "./texture";
  * Background of scene.
  */
 export class Background {
+  /** @internal */
+  static _premultiplySolidColor = new Color();
+
   /**
    * Background mode.
    * @defaultValue `BackgroundMode.SolidColor`
@@ -30,9 +33,6 @@ export class Background {
   _mesh: ModelMesh;
   /** @internal */
   _material: Material;
-
-  /** @internal */
-  _linearSolidColor = new Color();
 
   private _solidColor = new Color(0.25, 0.25, 0.25, 1.0);
   private _texture: Texture2D = null;
@@ -105,12 +105,6 @@ export class Background {
   constructor(private _engine: Engine) {
     this._initMesh(_engine);
     this._initMaterial(_engine);
-
-    this._solidColor.toLinear(this._linearSolidColor);
-    // @ts-ignore
-    this.solidColor._onValueChanged = () => {
-      this.solidColor.toLinear(this._linearSolidColor);
-    };
   }
 
   /**
