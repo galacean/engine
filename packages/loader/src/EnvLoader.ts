@@ -47,12 +47,14 @@ class EnvLoader extends Loader<AmbientLight> {
     return new AssetPromise((resolve, reject) => {
       const requestConfig = { ...item, type: "arraybuffer" } as RequestConfig;
       const engine = resourceManager.engine;
+      // @ts-ignore
+      const remoteUrl = resourceManager._getRemoteUrl(item.url);
       resourceManager
         // @ts-ignore
-        ._request<ArrayBuffer>(item.url, requestConfig)
+        ._requestByRemoteUrl<ArrayBuffer>(remoteUrl, requestConfig)
         .then((arraybuffer) => {
           const texture = EnvLoader._setTextureByBuffer(engine, arraybuffer);
-          engine.resourceManager.addContentRestorer(new EnvContentRestorer(texture, item.url, requestConfig));
+          engine.resourceManager.addContentRestorer(new EnvContentRestorer(texture, remoteUrl, requestConfig));
           const ambientLight = new AmbientLight(engine);
           const sh = new SphericalHarmonics3();
           ambientLight.diffuseMode = DiffuseMode.SphericalHarmonics;

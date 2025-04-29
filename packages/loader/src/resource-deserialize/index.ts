@@ -3,11 +3,11 @@ import { BufferReader } from "./utils/BufferReader";
 import { decoderMap } from "./utils/Decorator";
 import { FileHeader } from "./utils/FileHeader";
 
-export { MeshDecoder } from "./resources/mesh/MeshDecoder";
-export { Texture2DDecoder } from "./resources/texture2D/TextureDecoder";
-export { ReflectionParser } from "./resources/parser/ReflectionParser";
 export * from "./resources/animationClip/AnimationClipDecoder";
 export type { IModelMesh } from "./resources/mesh/IModelMesh";
+export { MeshDecoder } from "./resources/mesh/MeshDecoder";
+export { ReflectionParser } from "./resources/parser/ReflectionParser";
+export { Texture2DDecoder } from "./resources/texture2D/TextureDecoder";
 
 /**
  * Decode engine binary resource.
@@ -18,16 +18,16 @@ export type { IModelMesh } from "./resources/mesh/IModelMesh";
 export function decode<T>(arrayBuffer: ArrayBuffer, engine: Engine, ...args: any[]): AssetPromise<T> {
   const header = FileHeader.decode(arrayBuffer);
   const bufferReader = new BufferReader(new Uint8Array(arrayBuffer), header.headerLength, header.dataLength);
-  return decoderMap[header.type].decode(engine, bufferReader, args).then((object) => {
+  return decoderMap[header.type].decode(engine, bufferReader, ...args).then((object) => {
     object.name = header.name;
     return object;
   });
 }
 
-export * from "./resources/schema";
-export * from "./resources/scene/SceneParser";
-export * from "./resources/scene/EditorTextureLoader";
 export * from "./resources/parser/ParserContext";
+export * from "./resources/scene/EditorTextureLoader";
+export * from "./resources/scene/SceneParser";
+export * from "./resources/schema";
 
 export * from "./utils/BufferReader";
 export * from "./utils/Decorator";
