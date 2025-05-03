@@ -24,7 +24,6 @@ export enum TextureFormat {
   R8 = 36,
   /** RG float format, 8 bits per channel. */
   R8G8 = 37,
-
   /** RGB compressed format, 4 bits per pixel. */
   BC1 = 10,
   /** RGBA compressed format, 8 bits per pixel. */
@@ -32,7 +31,7 @@ export enum TextureFormat {
   /** RGB(A) compressed format, 128 bits per 4x4 pixel block. */
   BC7 = 12,
   /** RGB HDR compressed format, 8 bits per pixel.. */
-  BC6H = 36,
+  BC6H = 100,
   /** RGB compressed format, 4 bits per pixel. */
   ETC1_RGB = 13,
   /** RGB compressed format, 4 bits per pixel. */
