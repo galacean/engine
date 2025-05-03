@@ -21,7 +21,7 @@ import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 
-WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
+WebGLEngine.create({ canvas: "canvas", ktx2Loader: { workerCount: 0 } }).then((engine) => {
   engine.canvas.resizeByClientSize(2);
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();

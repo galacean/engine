@@ -98,7 +98,8 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
     R8,
     RG8,
     RGBA8,
-    BC6H
+    BC6H,
+    RGBA16
   }
 
   function getTranscodeFormatFromTarget(target: TargetFormat, hasAlpha: boolean) {
@@ -117,10 +118,12 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
         return BasisFormat.ASTC_4x4;
       case TargetFormat.BC7:
         return BasisFormat.BC7;
+      case TargetFormat.RGBA16:
+        return BasisFormat.RGBA_HALF;
     }
   }
 
-  function concat(arrays: Uint8Array[]) {
+  function concat(arrays: Uint8Array[] | Uint16Array[]) {
     if (arrays.length === 1) return arrays[0];
     let totalByteLength = 0;
 
@@ -169,7 +172,7 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
   for (let face = 0; face < faceCount; face++) {
     const mipmaps = new Array(levelCount);
     for (let mip = 0; mip < levelCount; mip++) {
-      const layerMips: Uint8Array[] = new Array(layerCount);
+      const layerMips: Uint8Array[] | Uint16Array[] = new Array(layerCount);
       let mipWidth: number, mipHeight: number;
 
       for (let layer = 0; layer < layerCount; layer++) {
@@ -186,9 +189,15 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
           mipHeight = levelInfo.origHeight;
         }
 
-        const dst = new Uint8Array(ktx2File.getImageTranscodedSizeInBytes(mip, layer, 0, format));
+        let dst: Uint8Array | Uint16Array = new Uint8Array(
+          ktx2File.getImageTranscodedSizeInBytes(mip, layer, 0, format)
+        );
 
         const status = ktx2File.transcodeImage(dst, mip, layer, face, format, 0, -1, -1);
+
+        if (targetFormat === TargetFormat.RGBA16) {
+          dst = new Uint16Array(dst.buffer, dst.byteOffset, dst.byteLength / Uint16Array.BYTES_PER_ELEMENT);
+        }
 
         if (!status) {
           cleanup();

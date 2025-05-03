@@ -61,6 +61,10 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       [DFDTransferFunction.linear]: [GLCapabilityType.bptc],
       [DFDTransferFunction.sRGB]: [GLCapabilityType.bptc]
     },
+    [KTX2TargetFormat.R16G16B16A16]: {
+      [DFDTransferFunction.linear]: [GLCapabilityType.textureHalfFloatLinear],
+      [DFDTransferFunction.sRGB]: [GLCapabilityType.textureHalfFloat]
+    },
     [KTX2TargetFormat.PVRTC]: { [DFDTransferFunction.linear]: [GLCapabilityType.pvrtc, GLCapabilityType.pvrtc_webkit] }
   };
 
@@ -78,6 +82,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     const ktx2Container = new KTX2Container(buffer);
     const formatPriorities = params?.priorityFormats ?? KTX2Loader._priorityFormats[ktx2Container.colorModel];
     const targetFormat = KTX2Loader._decideTargetFormat(engine, ktx2Container, formatPriorities);
+    console.log('target format', KTX2TargetFormat[targetFormat]);
     const binomialLLCWorker = KTX2Loader._getBinomialLLCTranscoder();
     return binomialLLCWorker
       .init()
