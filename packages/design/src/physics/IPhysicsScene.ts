@@ -57,4 +57,9 @@ export interface IPhysicsScene {
     onRaycast: (obj: number) => boolean,
     outHitResult?: (shapeUniqueID: number, distance: number, point: Vector3, normal: Vector3) => void
   ): boolean;
+
+  /**
+   * Destroy the physics scene.
+   */
+  destroy(): void;
 }

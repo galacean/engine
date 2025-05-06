@@ -134,4 +134,9 @@ export interface IPhysics {
    * @param collider - Affector of joint
    */
   createSpringJoint(collider: ICollider): ISpringJoint;
+
+  /**
+   * Destroy physics scene.
+   */
+  destroy(): void;
 }

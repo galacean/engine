@@ -58,6 +58,8 @@ export class Engine extends EventDispatcher {
   static _pixelsPerUnit: number = 100;
   /** @internal */
   static _physicalObjectsMap: Record<number, ColliderShape> = {};
+  /** @internal */
+  static _nativePhysics: IPhysics;
 
   /** Input manager of Engine. */
   readonly inputManager: InputManager;
@@ -505,7 +507,7 @@ export class Engine extends EventDispatcher {
     this._hardwareRenderer.destroy();
 
     this.removeAllEventListeners();
-
+    this._nativePhysicsManager = null;
     this._waitingDestroy = false;
     this._destroyed = true;
   }
@@ -622,7 +624,7 @@ export class Engine extends EventDispatcher {
     if (physics) {
       initializePromises.push(
         physics.initialize().then(() => {
-          PhysicsScene._nativePhysics = physics;
+          Engine._nativePhysics = physics;
           this._nativePhysicsManager = physics.createPhysicsManager();
           this._physicsInitialized = true;
           return this;

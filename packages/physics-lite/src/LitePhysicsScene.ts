@@ -148,6 +148,11 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   /**
+   * {@inheritDoc IPhysicsManager.destroy }
+   */
+  destroy(): void {}
+
+  /**
    * @internal
    */
   _addColliderShape(colliderShape: LiteColliderShape): void {

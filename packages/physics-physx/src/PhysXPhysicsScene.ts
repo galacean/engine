@@ -21,6 +21,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _pxFilterData: any;
 
   private _pxScene: any;
+  private _physXSimulationCallbackInstance: any;
 
   private readonly _onContactEnter?: (collision: ICollision) => void;
   private readonly _onContactExit?: (collision: ICollision) => void;
@@ -90,9 +91,14 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     };
 
     const pxPhysics = physXPhysics._pxPhysics;
-    const physXSimulationCallbackInstance = physX.PxSimulationEventCallback.implement(triggerCallback);
-    const sceneDesc = physX.getDefaultSceneDesc(pxPhysics.getTolerancesScale(), 0, physXSimulationCallbackInstance);
+    this._physXSimulationCallbackInstance = physX.PxSimulationEventCallback.implement(triggerCallback);
+    const sceneDesc = physX.getDefaultSceneDesc(
+      pxPhysics.getTolerancesScale(),
+      0,
+      this._physXSimulationCallbackInstance
+    );
     this._pxScene = pxPhysics.createScene(sceneDesc);
+    sceneDesc.delete();
   }
 
   /**
@@ -190,14 +196,17 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       postFilter: (filterData, hit) => {}
     };
 
+    const pxRaycastCallback = this._physXPhysics._physX.PxQueryFilterCallback.implement(raycastCallback);
     const result = this._pxScene.raycastSingle(
       ray.origin,
       ray.direction,
       distance,
       pxHitResult,
       this._pxFilterData,
-      this._physXPhysics._physX.PxQueryFilterCallback.implement(raycastCallback)
+      pxRaycastCallback
     );
+
+    pxRaycastCallback.delete();
 
     if (result && hit != undefined) {
       const { _tempPosition: position, _tempNormal: normal } = PhysXPhysicsScene;
@@ -208,6 +217,16 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       hit(pxHitResult.getShape().getUUID(), pxHitResult.distance, position, normal);
     }
     return result;
+  }
+
+  /**
+   * {@inheritDoc IPhysicsManager.destroy }
+   */
+  destroy(): void {
+    this._pxScene.release();
+    this._pxScene.delete();
+    this._physXSimulationCallbackInstance.delete();
+    this._physXSimulationCallbackInstance = null;
   }
 
   /**
