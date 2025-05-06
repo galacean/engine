@@ -31,7 +31,7 @@ export class CompatibleAudioContext {
       }
 
       this._isResuming = true;
-      (this._audioContext as any).resume().then(() => {
+      this._audioContext.resume().then(() => {
         this._isResuming = false;
       });
     }
@@ -91,12 +91,7 @@ export class CompatibleAudioContext {
   }
 
   public createGain(): GainNode {
-    if ((this._audioContext as any).createGain) {
-      return (this._audioContext as any).createGain();
-    } else if ((this._audioContext as any).createGainNode) {
-      return (this._audioContext as any).createGainNode();
-    }
-    throw new Error("Create gain node is not supported.");
+    return this._audioContext.createGain();
   }
 
   public createAnalyser(): AnalyserNode {
@@ -120,12 +115,7 @@ export class CompatibleAudioContext {
   }
 
   public createDelay(maxDelayTime?: number): DelayNode {
-    if ((this._audioContext as any).createDelay) {
-      return (this._audioContext as any).createDelay(maxDelayTime);
-    } else if ((this._audioContext as any).createDelayNode) {
-      return (this._audioContext as any).createDelayNode(maxDelayTime);
-    }
-    throw new Error("Create delay node is not supported.");
+    return this._audioContext.createDelay(maxDelayTime);
   }
 
   public createDynamicsCompressor(): DynamicsCompressorNode {
@@ -145,12 +135,7 @@ export class CompatibleAudioContext {
     imag: Float32Array,
     constraints?: PeriodicWaveConstraints
   ): PeriodicWave {
-    if ((this._audioContext as any).createPeriodicWave) {
-      return (this._audioContext as any).createPeriodicWave(real, imag, constraints);
-    } else if ((this._audioContext as any).createWaveTable) {
-      return (this._audioContext as any).createWaveTable(real, imag);
-    }
-    throw new Error("Create periodic wave is not supported.");
+    return this._audioContext.createPeriodicWave(real, imag, constraints);
   }
 
   public createMediaElementSource(mediaElement: HTMLMediaElement): MediaElementAudioSourceNode {
@@ -166,23 +151,14 @@ export class CompatibleAudioContext {
   }
 
   public resume(): Promise<void> {
-    if (typeof this._audioContext.resume === "function") {
-      return this._audioContext.resume();
-    }
-    return Promise.resolve();
+    return this._audioContext.resume();
   }
 
   public suspend(): Promise<void> {
-    if (typeof this._audioContext.suspend === "function") {
-      return this._audioContext.suspend();
-    }
-    return Promise.resolve();
+    return this._audioContext.suspend();
   }
 
   public close(): Promise<void> {
-    if (typeof this._audioContext.close === "function") {
-      return this._audioContext.close();
-    }
-    return Promise.resolve();
+    return this._audioContext.close();
   }
 }
