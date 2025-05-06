@@ -2,12 +2,16 @@
  * @internal
  * 自定义 AudioContext 代理类，处理兼容性问题
  */
-class CompatAudioContext extends (window.AudioContext || (window as any).webkitAudioContext as typeof AudioContext) {
+class CompatAudioContext extends ((window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext) {
   constructor() {
     super();
   }
 
-  override decodeAudioData(arrayBuffer: ArrayBuffer, successCallback?: Function, errorCallback?: Function): Promise<AudioBuffer> {
+  override decodeAudioData(
+    arrayBuffer: ArrayBuffer,
+    successCallback?: Function,
+    errorCallback?: Function
+  ): Promise<AudioBuffer> {
     const originalMethod = super.decodeAudioData.bind(this);
 
     const promise = new Promise<AudioBuffer>((resolve, reject) => {
@@ -42,15 +46,15 @@ export class AudioManager {
     resume: () => Promise.resolve(),
     decodeAudioData: (arrayBuffer: ArrayBuffer) => Promise.resolve(null),
     createBufferSource: () => ({
-      connect: () => { },
-      disconnect: () => { },
-      start: () => { },
-      stop: () => { },
+      connect: () => {},
+      disconnect: () => {},
+      start: () => {},
+      stop: () => {},
       buffer: null
     }),
     createGain: () => ({
-      connect: () => { },
-      disconnect: () => { },
+      connect: () => {},
+      disconnect: () => {},
       gain: { value: 1 }
     }),
     destination: {}
@@ -58,7 +62,7 @@ export class AudioManager {
 
   static getContext(): AudioContext {
     if (!AudioManager._context && AudioManager._hasAudio) {
-      if (window.AudioContext || window.webkitAudioContext) {
+      if ((window as any).AudioContext || (window as any).webkitAudioContext) {
         AudioManager._context = new CompatAudioContext();
 
         // Safari can't resume audio context without element interaction
@@ -106,11 +110,14 @@ export class AudioManager {
       }
 
       AudioManager._isResuming = true;
-      AudioManager._context.resume().then(() => {
-        AudioManager._isResuming = false;
-      }).catch(() => {
-        AudioManager._isResuming = false;
-      });
+      AudioManager._context
+        .resume()
+        .then(() => {
+          AudioManager._isResuming = false;
+        })
+        .catch(() => {
+          AudioManager._isResuming = false;
+        });
     }
   }
 }
