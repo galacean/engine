@@ -50,14 +50,14 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.setGravity }
+   * {@inheritDoc IPhysicsScene.setGravity }
    */
   setGravity(value: Vector3): void {
     console.log("Physics-lite don't support gravity. Use Physics-PhysX instead!");
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.addCollider }
+   * {@inheritDoc IPhysicsScene.addCollider }
    */
   addCollider(actor: LiteCollider): void {
     actor._scene = this;
@@ -70,7 +70,7 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.removeCollider }
+   * {@inheritDoc IPhysicsScene.removeCollider }
    */
   removeCollider(collider: LiteCollider): void {
     collider._scene = null;
@@ -84,7 +84,7 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.update }
+   * {@inheritDoc IPhysicsScene.update }
    */
   update(deltaTime: number): void {
     const dynamicColliders = this._dynamicColliders;
@@ -97,7 +97,7 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.raycast }
+   * {@inheritDoc IPhysicsScene.raycast }
    */
   raycast(
     ray: Ray,
@@ -134,18 +134,23 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.addCharacterController }
+   * {@inheritDoc IPhysicsScene.addCharacterController }
    */
   addCharacterController(characterController: ICharacterController): void {
     throw "Physics-lite don't support addCharacterController. Use Physics-PhysX instead!";
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.removeCharacterController }
+   * {@inheritDoc IPhysicsScene.removeCharacterController }
    */
   removeCharacterController(characterController: ICharacterController): void {
     throw "Physics-lite don't support removeCharacterController. Use Physics-PhysX instead!";
   }
+
+  /**
+   * {@inheritDoc IPhysicsScene.destroy }
+   */
+  destroy(): void {}
 
   /**
    * @internal
