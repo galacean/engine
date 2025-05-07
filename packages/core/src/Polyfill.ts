@@ -6,11 +6,12 @@ import { Logger } from "./base/Logger";
 export class Polyfill {
   static registerPolyfill(): void {
     Polyfill._registerMatchAll();
+    Polyfill._registerAudioContext();
   }
 
   private static _registerMatchAll(): void {
     if (!String.prototype.matchAll) {
-      Logger.info("polyfill String.prototype.matchAll");
+      Logger.info("Polyfill String.prototype.matchAll");
       String.prototype.matchAll = function (pattern: RegExp): ReturnType<String["matchAll"]> {
         const flags = pattern.flags;
         const globalFlagIdx = flags.indexOf("g");
@@ -30,6 +31,41 @@ export class Polyfill {
             yield item.match(matchPattern) as RegExpExecArray;
           }
         })();
+      };
+    }
+  }
+
+  private static _registerAudioContext(): void {
+    // IOS 12 and the following system do not support AudioContext, need to switch to webkitAudioContext
+    if (!window.AudioContext && (window as any).webkitAudioContext) {
+      Logger.info("Polyfill window.AudioContext");
+      window.AudioContext = (window as any).webkitAudioContext;
+
+      const originalDecodeAudioData = AudioContext.prototype.decodeAudioData as (
+        audioData: ArrayBuffer,
+        successCallback?: DecodeSuccessCallback | null,
+        errorCallback?: DecodeErrorCallback | null
+      ) => void;
+
+      AudioContext.prototype.decodeAudioData = function (
+        arrayBuffer: ArrayBuffer,
+        successCallback?: DecodeSuccessCallback | null,
+        errorCallback?: DecodeErrorCallback | null
+      ): Promise<AudioBuffer> {
+        return new Promise<AudioBuffer>((resolve, reject) => {
+          originalDecodeAudioData.call(
+            this,
+            arrayBuffer,
+            (buffer: AudioBuffer) => {
+              successCallback?.(buffer);
+              resolve(buffer);
+            },
+            (error: DOMException) => {
+              errorCallback?.(error);
+              reject(error);
+            }
+          );
+        });
       };
     }
   }
