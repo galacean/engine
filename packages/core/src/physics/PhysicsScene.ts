@@ -446,10 +446,7 @@ export class PhysicsScene {
    * @internal
    */
   _destroy() {
-    if (this._nativePhysicsScene) {
-      this._nativePhysicsScene.destroy();
-      this._nativePhysicsScene = null;
-    }
+    this._nativePhysicsScene?.destroy();
   }
 
   private _setGravity(): void {

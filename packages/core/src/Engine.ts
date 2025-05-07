@@ -624,6 +624,11 @@ export class Engine extends EventDispatcher {
     if (physics) {
       initializePromises.push(
         physics.initialize().then(() => {
+          if (Engine._nativePhysics) {
+            console.warn(
+              "A physics engine has already been configured. All physics operations will now be handled by the newly specified physics engine."
+            );
+          }
           Engine._nativePhysics = physics;
           this._nativePhysicsManager = physics.createPhysicsManager();
           this._physicsInitialized = true;

@@ -102,14 +102,14 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.setGravity }
+   * {@inheritDoc IPhysicsScene.setGravity }
    */
   setGravity(value: Vector3) {
     this._pxScene.setGravity(value);
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.addCollider }
+   * {@inheritDoc IPhysicsScene.addCollider }
    */
   addCollider(collider: PhysXCollider): void {
     collider._scene = this;
@@ -121,7 +121,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.removeCollider }
+   * {@inheritDoc IPhysicsScene.removeCollider }
    */
   removeCollider(collider: PhysXCollider): void {
     collider._scene = null;
@@ -133,7 +133,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.addCharacterController }
+   * {@inheritDoc IPhysicsScene.addCharacterController }
    */
   addCharacterController(characterController: PhysXCharacterController): void {
     characterController._scene = this;
@@ -154,7 +154,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.removeCharacterController }
+   * {@inheritDoc IPhysicsScene.removeCharacterController }
    */
   removeCharacterController(characterController: PhysXCharacterController): void {
     characterController._scene = null;
@@ -165,7 +165,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.update }
+   * {@inheritDoc IPhysicsScene.update }
    */
   update(elapsedTime: number): void {
     this._simulate(elapsedTime);
@@ -174,7 +174,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.raycast }
+   * {@inheritDoc IPhysicsScene.raycast }
    */
   raycast(
     ray: Ray,
@@ -220,13 +220,12 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.destroy }
+   * {@inheritDoc IPhysicsScene.destroy }
    */
   destroy(): void {
     this._pxScene.release();
     this._pxScene.delete();
     this._physXSimulationCallbackInstance.delete();
-    this._physXSimulationCallbackInstance = null;
   }
 
   /**
