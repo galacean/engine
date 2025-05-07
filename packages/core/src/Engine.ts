@@ -507,7 +507,6 @@ export class Engine extends EventDispatcher {
     this._hardwareRenderer.destroy();
 
     this.removeAllEventListeners();
-    this._nativePhysicsManager = null;
     this._waitingDestroy = false;
     this._destroyed = true;
   }
