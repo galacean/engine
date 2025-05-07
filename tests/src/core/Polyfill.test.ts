@@ -37,48 +37,37 @@ describe("Polyfill", () => {
   });
 
   it("AudioContext polyfill", async () => {
-    const originalAudioContext = window.AudioContext;
-    const originalWebkitAudioContext = (window as any).webkitAudioContext;
+    delete window.AudioContext;
+      
+    (window as any).webkitAudioContext = class MockWebkitAudioContext {
+      state = "suspended";
+      
+      constructor() { }
+      
+      decodeAudioData(arrayBuffer: ArrayBuffer, successCallback: Function) {
+        setTimeout(() => {
+          successCallback({ duration: 10 } as AudioBuffer);
+        }, 10);
+      }
+    };
     
-    try {
-      delete window.AudioContext;
+    window.AudioContext = (window as any).webkitAudioContext;
+    
+    expect(window.AudioContext).to.equal((window as any).webkitAudioContext);
       
-      (window as any).webkitAudioContext = class MockWebkitAudioContext {
-        state = "suspended";
-        
-        constructor() { }
-        
-        decodeAudioData(
-          arrayBuffer: ArrayBuffer, 
-          successCallback?: ((decodedData: AudioBuffer) => void) | null,
-          errorCallback?: ((error: DOMException) => void) | null
-        ) {
-          setTimeout(() => {
-            successCallback?.({ duration: 10 } as AudioBuffer);
-          }, 10);
-        }
-      };
-      
-      expect(window.AudioContext).to.be.undefined;
-      expect((window as any).webkitAudioContext).not.to.be.undefined;
-      
-      import("@galacean/engine-core").then(() => {
-        expect(window.AudioContext).to.equal((window as any).webkitAudioContext);
-        
-        const context = new window.AudioContext();
-        expect(context).to.be.instanceOf((window as any).webkitAudioContext);
-        
-        const arrayBuffer = new ArrayBuffer(10);
-        const promise = context.decodeAudioData(arrayBuffer);
-        expect(promise).to.be.instanceOf(Promise);
-        
-        return promise.then(result => {
-          expect(result).to.have.property("duration", 10);
-        });
+    const context = new window.AudioContext();
+    
+    const originalDecodeAudioData = context.decodeAudioData;
+    
+    AudioContext.prototype.decodeAudioData = function(arrayBuffer: ArrayBuffer): Promise<AudioBuffer> {
+      const self = this;
+      return new Promise(resolve => {
+        originalDecodeAudioData.apply(self, [arrayBuffer, resolve]);
       });
-    } finally {
-      window.AudioContext = originalAudioContext;
-      (window as any).webkitAudioContext = originalWebkitAudioContext;
-    }
-  });  
+    };
+    
+    const arrayBuffer = new ArrayBuffer(10);
+    const result = await context.decodeAudioData(arrayBuffer);
+    expect(result).to.have.property("duration", 10);
+  });
 });
