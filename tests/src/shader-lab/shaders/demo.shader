@@ -28,9 +28,9 @@ Shader "Water" {
     BlendState {
       SourceAlphaBlendFactor = material_SrcBlend;
       Enabled[0] = true;
-      ColorWriteMask[0] = 0.8;
       BlendColor = Color(1.0, 1.0, 1.0, 1.0);
       AlphaBlendOperation = BlendOperation.Max;
+      ColorWriteMask = ColorWriteMask.None;
     }
 
     UsePass "pbr/Default/Forward"
