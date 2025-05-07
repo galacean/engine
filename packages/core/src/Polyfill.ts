@@ -6,6 +6,7 @@ import { Logger } from "./base/Logger";
 export class Polyfill {
   static registerPolyfill(): void {
     Polyfill._registerMatchAll();
+    Polyfill._registerAudioContext();
   }
 
   private static _registerMatchAll(): void {
@@ -30,6 +31,37 @@ export class Polyfill {
             yield item.match(matchPattern) as RegExpExecArray;
           }
         })();
+      };
+    }
+  }
+
+  private static _registerAudioContext(): void {
+    if (!window.AudioContext && (window as any).webkitAudioContext) {
+      Logger.info("polyfill window.AudioContext");
+      window.AudioContext = (window as any).webkitAudioContext;
+    }
+
+    if (window.AudioContext && window.AudioContext.prototype.decodeAudioData) {
+      const originalDecodeAudioData = AudioContext.prototype.decodeAudioData;
+      AudioContext.prototype.decodeAudioData = function (
+        arrayBuffer: ArrayBuffer,
+        successCallback?: Function,
+        errorCallback?: Function
+      ): Promise<AudioBuffer> {
+        const promise = new Promise<AudioBuffer>((resolve, reject) => {
+          originalDecodeAudioData.call(
+            this,
+            arrayBuffer,
+            (buffer: AudioBuffer) => resolve(buffer),
+            (error: Error) => reject(error || new Error("Failed to decode audio data"))
+          );
+        });
+
+        if (successCallback || errorCallback) {
+          promise.then(successCallback as any).catch(errorCallback as any);
+        }
+
+        return promise;
       };
     }
   }

@@ -1,18 +1,23 @@
-import { CompatibleAudioContext } from "./CompatibleAudioContext";
-
 /**
  * @internal
  * Audio Manager.
  */
 export class AudioManager {
-  private static _context: CompatibleAudioContext;
+  private static _context: AudioContext;
   private static _gainNode: GainNode;
+  private static _isResuming = false;
 
-  static getContext(): CompatibleAudioContext {
-    if (!AudioManager._context) {
-      AudioManager._context = new CompatibleAudioContext();
+  static getContext(): AudioContext {
+    let context = AudioManager._context;
+    if (!context) {
+      AudioManager._context = context = new window.AudioContext();
+
+      // Safari can't resume audio context without element interaction
+      document.addEventListener("pointerdown", AudioManager._tryResume, true);
+      document.addEventListener("touchend", AudioManager._tryResume, true);
+      document.addEventListener("touchstart", AudioManager._tryResume, true);
     }
-    return AudioManager._context;
+    return context;
   }
 
   static getGainNode(): GainNode {
@@ -30,5 +35,18 @@ export class AudioManager {
       return false;
     }
     return true;
+  }
+
+  private static _tryResume(): void {
+    if (AudioManager._context.state !== "running") {
+      if (AudioManager._isResuming) {
+        return;
+      }
+
+      AudioManager._isResuming = true;
+      AudioManager._context.resume().then(() => {
+        AudioManager._isResuming = false;
+      });
+    }
   }
 }

@@ -35,4 +35,71 @@ describe("Polyfill", () => {
       expect(resultArray[2][1]).to.equal(originResultArray[2][1]).to.equal("/f3.glsl");
     });
   });
+
+  it("AudioContext polyfill", async () => {
+    const originalAudioContext = window.AudioContext;
+    const originalWebkitAudioContext = (window as any).webkitAudioContext;
+
+    try {
+      delete window.AudioContext;
+      (window as any).webkitAudioContext = class MockWebkitAudioContext {
+        state = "suspended";
+
+        constructor() { }
+
+        decodeAudioData(arrayBuffer: ArrayBuffer, successCallback: Function) {
+          setTimeout(() => {
+            successCallback({ duration: 10 } as AudioBuffer);
+          }, 10);
+        }
+      };
+
+      expect(window.AudioContext).to.be.undefined;
+      expect((window as any).webkitAudioContext).not.to.be.undefined;
+
+      if (!window.AudioContext && (window as any).webkitAudioContext) {
+        window.AudioContext = (window as any).webkitAudioContext;
+      }
+
+      expect(window.AudioContext).to.equal((window as any).webkitAudioContext);
+
+      const context = new window.AudioContext();
+      expect(context).to.be.instanceOf((window as any).webkitAudioContext);
+
+      if (window.AudioContext && window.AudioContext.prototype.decodeAudioData) {
+        const originalDecodeAudioData = AudioContext.prototype.decodeAudioData;
+        AudioContext.prototype.decodeAudioData = function (
+          arrayBuffer: ArrayBuffer,
+          successCallback?: Function,
+          errorCallback?: Function
+        ): Promise<AudioBuffer> {
+          const promise = new Promise<AudioBuffer>((resolve, reject) => {
+            originalDecodeAudioData.call(
+              this,
+              arrayBuffer,
+              (buffer: AudioBuffer) => resolve(buffer),
+              (error: Error) => reject(error || new Error("Failed to decode audio data"))
+            );
+          });
+
+          if (successCallback || errorCallback) {
+            promise.then(successCallback as any).catch(errorCallback as any);
+          }
+
+          return promise;
+        };
+      }
+
+      const arrayBuffer = new ArrayBuffer(10);
+      const promise = context.decodeAudioData(arrayBuffer);
+      expect(promise).to.be.instanceOf(Promise);
+
+      return promise.then(result => {
+        expect(result).to.have.property("duration", 10);
+      });
+    } finally {
+      window.AudioContext = originalAudioContext;
+      (window as any).webkitAudioContext = originalWebkitAudioContext;
+    }
+  });
 });
