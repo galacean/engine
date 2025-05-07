@@ -125,9 +125,7 @@ export class PhysXPhysics implements IPhysics {
   public destroy(): void {
     this._physX.PxCloseExtensions();
     this._pxPhysics.release();
-    this._pxPhysics.delete();
     this._pxFoundation.release();
-    this._pxFoundation.delete();
     this._defaultErrorCallback.delete();
     this._allocator.delete();
     this._tolerancesScale.delete();

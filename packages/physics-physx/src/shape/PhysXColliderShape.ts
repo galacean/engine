@@ -146,7 +146,6 @@ export abstract class PhysXColliderShape implements IColliderShape {
    */
   destroy(): void {
     this._pxShape.release();
-    this._pxShape.delete();
     this._pxGeometry.delete();
   }
 

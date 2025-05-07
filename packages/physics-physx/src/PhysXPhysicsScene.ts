@@ -224,15 +224,11 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    */
   destroy(): void {
     this._pxScene.release();
-    this._pxScene.delete();
     this._physXSimulationCallbackInstance.delete();
     this._pxRaycastHit.delete();
     this._pxFilterData.flags.delete();
     this._pxFilterData.delete();
-    if (this._pxControllerManager) {
-      this._pxControllerManager.release();
-      this._pxControllerManager.delete();
-    }
+    this._pxControllerManager?.release();
   }
 
   /**
