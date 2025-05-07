@@ -11,7 +11,7 @@ export class Polyfill {
 
   private static _registerMatchAll(): void {
     if (!String.prototype.matchAll) {
-      Logger.info("polyfill String.prototype.matchAll");
+      Logger.info("Polyfill String.prototype.matchAll");
       String.prototype.matchAll = function (pattern: RegExp): ReturnType<String["matchAll"]> {
         const flags = pattern.flags;
         const globalFlagIdx = flags.indexOf("g");
@@ -36,32 +36,36 @@ export class Polyfill {
   }
 
   private static _registerAudioContext(): void {
+    // IOS 12 and the following system do not support AudioContext, need to switch to webkitAudioContext
     if (!window.AudioContext && (window as any).webkitAudioContext) {
-      Logger.info("polyfill window.AudioContext");
+      Logger.info("Polyfill window.AudioContext");
       window.AudioContext = (window as any).webkitAudioContext;
-    }
 
-    if (window.AudioContext && window.AudioContext.prototype.decodeAudioData) {
-      const originalDecodeAudioData = AudioContext.prototype.decodeAudioData;
+      const originalDecodeAudioData = AudioContext.prototype.decodeAudioData as (
+        audioData: ArrayBuffer,
+        successCallback?: DecodeSuccessCallback | null,
+        errorCallback?: DecodeErrorCallback | null
+      ) => void;
+
       AudioContext.prototype.decodeAudioData = function (
         arrayBuffer: ArrayBuffer,
-        successCallback?: Function,
-        errorCallback?: Function
+        successCallback?: DecodeSuccessCallback | null,
+        errorCallback?: DecodeErrorCallback | null
       ): Promise<AudioBuffer> {
-        const promise = new Promise<AudioBuffer>((resolve, reject) => {
+        return new Promise<AudioBuffer>((resolve, reject) => {
           originalDecodeAudioData.call(
             this,
             arrayBuffer,
-            (buffer: AudioBuffer) => resolve(buffer),
-            (error: Error) => reject(error || new Error("Failed to decode audio data"))
+            (buffer: AudioBuffer) => {
+              successCallback?.(buffer);
+              resolve(buffer);
+            },
+            (error: DOMException) => {
+              errorCallback?.(error);
+              reject(error);
+            }
           );
         });
-
-        if (successCallback || errorCallback) {
-          promise.then(successCallback as any).catch(errorCallback as any);
-        }
-
-        return promise;
       };
     }
   }
