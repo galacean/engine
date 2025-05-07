@@ -136,6 +136,7 @@ export class PhysXCharacterController implements ICharacterController {
 
     this._pxController = pxManager._getControllerManager().createController(desc);
     this._pxController.setUUID(shape._id);
+    desc.delete();
   }
 
   /**
@@ -144,6 +145,7 @@ export class PhysXCharacterController implements ICharacterController {
   _destroyPXController(): void {
     if (this._pxController) {
       this._pxController.release();
+      this._pxController.delete();
       this._pxController = null;
     }
   }

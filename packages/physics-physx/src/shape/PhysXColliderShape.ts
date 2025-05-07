@@ -146,6 +146,8 @@ export abstract class PhysXColliderShape implements IColliderShape {
    */
   destroy(): void {
     this._pxShape.release();
+    this._pxShape.delete();
+    this._pxGeometry.delete();
   }
 
   /**
@@ -153,7 +155,9 @@ export abstract class PhysXColliderShape implements IColliderShape {
    */
   _setShapeFlags(flags: ShapeFlag) {
     this._shapeFlags = flags;
-    this._pxShape.setFlags(new this._physXPhysics._physX.PxShapeFlags(this._shapeFlags));
+    const shapeFlags = new this._physXPhysics._physX.PxShapeFlags(this._shapeFlags);
+    this._pxShape.setFlags(shapeFlags);
+    shapeFlags.delete();
   }
 
   protected _setLocalPose(): void {
@@ -166,12 +170,9 @@ export abstract class PhysXColliderShape implements IColliderShape {
   protected _initialize(material: PhysXPhysicsMaterial, id: number): void {
     this._id = id;
     this._pxMaterial = material._pxMaterial;
-    this._pxShape = this._physXPhysics._pxPhysics.createShape(
-      this._pxGeometry,
-      material._pxMaterial,
-      true,
-      new this._physXPhysics._physX.PxShapeFlags(this._shapeFlags)
-    );
+    const shapeFlags = new this._physXPhysics._physX.PxShapeFlags(this._shapeFlags);
+    this._pxShape = this._physXPhysics._pxPhysics.createShape(this._pxGeometry, material._pxMaterial, true, shapeFlags);
+    shapeFlags.delete();
     this._pxShape.setUUID(id);
   }
 

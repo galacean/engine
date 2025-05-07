@@ -65,6 +65,7 @@ export class PhysXPhysicsMaterial implements IPhysicsMaterial {
    */
   destroy(): void {
     this._pxMaterial.release();
+    this._pxMaterial.delete();
   }
 }
 

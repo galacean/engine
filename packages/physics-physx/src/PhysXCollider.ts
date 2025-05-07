@@ -66,6 +66,7 @@ export abstract class PhysXCollider implements ICollider {
    */
   destroy(): void {
     this._pxActor.release();
+    this._pxActor.delete();
   }
 
   /**

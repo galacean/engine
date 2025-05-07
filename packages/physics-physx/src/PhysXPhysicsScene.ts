@@ -226,6 +226,13 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     this._pxScene.release();
     this._pxScene.delete();
     this._physXSimulationCallbackInstance.delete();
+    this._pxRaycastHit.delete();
+    this._pxFilterData.flags.delete();
+    this._pxFilterData.delete();
+    if (this._pxControllerManager) {
+      this._pxControllerManager.release();
+      this._pxControllerManager.delete();
+    }
   }
 
   /**
@@ -243,7 +250,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * @internal
    */
   _addColliderShape(id: number) {
-    this._physXManager._eventMap[id] = {};
+    this._physXManager._eventMap[id] = Object.create(null);
   }
 
   /**

@@ -47,6 +47,9 @@ export class PhysXPhysics implements IPhysics {
   private _runTimeMode: PhysXRuntimeMode;
   private _initializeState: InitializeState = InitializeState.Uninitialized;
   private _initializePromise: Promise<void>;
+  private _defaultErrorCallback: any;
+  private _allocator: any;
+  private _tolerancesScale: any;
 
   constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto) {
     this._runTimeMode = runtimeMode;
@@ -122,10 +125,12 @@ export class PhysXPhysics implements IPhysics {
   public destroy(): void {
     this._physX.PxCloseExtensions();
     this._pxPhysics.release();
+    this._pxPhysics.delete();
     this._pxFoundation.release();
-    this._physX = null;
-    this._pxFoundation = null;
-    this._pxPhysics = null;
+    this._pxFoundation.delete();
+    this._defaultErrorCallback.delete();
+    this._allocator.delete();
+    this._tolerancesScale.delete();
   }
 
   /**
@@ -253,12 +258,16 @@ export class PhysXPhysics implements IPhysics {
     const defaultErrorCallback = new physX.PxDefaultErrorCallback();
     const allocator = new physX.PxDefaultAllocator();
     const pxFoundation = physX.PxCreateFoundation(version, allocator, defaultErrorCallback);
-    const pxPhysics = physX.PxCreatePhysics(version, pxFoundation, new physX.PxTolerancesScale(), false, null);
+    const tolerancesScale = new physX.PxTolerancesScale();
+    const pxPhysics = physX.PxCreatePhysics(version, pxFoundation, tolerancesScale, false, null);
 
     physX.PxInitExtensions(pxPhysics, null);
     this._physX = physX;
     this._pxFoundation = pxFoundation;
     this._pxPhysics = pxPhysics;
+    this._defaultErrorCallback = defaultErrorCallback;
+    this._allocator = allocator;
+    this._tolerancesScale = tolerancesScale;
   }
 }
 
