@@ -18,23 +18,23 @@ varying vec2 v_uv;
 uniform sampler2D renderer_BlitTexture;
 uniform vec4 renderer_texelSize;    // x: 1/width, y: 1/height, z: width, w: height
 
-vec3 applyFXAA(vec3 color, vec2 positionNDC, vec4 sourceSize, sampler2D blitTexture)
+vec4 applyFXAA(vec4 color, vec2 positionNDC, vec4 sourceSize, sampler2D blitTexture)
 {
     return FxaaPixelShader(
     positionNDC,
-    FxaaFloat4(color, 0),
+    color,
     blitTexture,
     sourceSize.xy,
     FXAA_SUBPIXEL_BLEND_AMOUNT,
     FXAA_RELATIVE_CONTRAST_THRESHOLD,
     FXAA_ABSOLUTE_CONTRAST_THRESHOLD
-    ).rgb;
+    );
 }
 
 void main(){
 	mediump vec4 color = texture2D(renderer_BlitTexture, v_uv);
 
-    color.rgb = applyFXAA(color.rgb, v_uv, renderer_texelSize, renderer_BlitTexture);
+    color = applyFXAA(color, v_uv, renderer_texelSize, renderer_BlitTexture);
 
     // We have convert the color to sRGB space in sRGB pass
     // So we need to convert it back to linear space when output to render target.
