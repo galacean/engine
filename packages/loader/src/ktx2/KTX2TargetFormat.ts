@@ -17,5 +17,9 @@ export enum KTX2TargetFormat {
   /** RG format, 16 bits per pixel. */
   R8G8,
   /** RGBA format, 32 bits per pixel. */
-  R8G8B8A8
+  R8G8B8A8,
+  /** RGB HDR compressed format, 8 bits per pixel. */
+  BC6H,
+  /** RGBA format, 16 bits per channel. */
+  R16G16B16A16
 }
