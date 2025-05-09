@@ -4,7 +4,7 @@ import type { BufferReader } from "./BufferReader";
 export const decoderMap: Record<
   string,
   {
-    decode: (engine: Engine, bufferReader: BufferReader) => AssetPromise<any>;
+    decode: (engine: Engine, bufferReader: BufferReader, ...arg: any[]) => AssetPromise<any>;
   }
 > = {};
 
