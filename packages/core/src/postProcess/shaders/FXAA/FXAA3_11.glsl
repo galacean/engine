@@ -1019,14 +1019,11 @@ FxaaFloat4 FxaaPixelShader(
     if(!horzSpan) posM.x += pixelOffsetSubpix * lengthSign;
     if( horzSpan) posM.y += pixelOffsetSubpix * lengthSign;
 
-    FxaaFloat4 ret;
     #if (FXAA_DISCARD == 1)
-        ret = FxaaTexTop(tex, posM);
+        return FxaaTexTop(tex, posM);
     #else
-        ret = FxaaTexTop(tex, posM);
+        return FxaaTexTop(tex, posM);
     #endif
-
-    return ret;
 }
 /*==========================================================================*/
 #endif
