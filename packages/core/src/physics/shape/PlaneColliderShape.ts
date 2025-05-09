@@ -1,5 +1,5 @@
 import { Vector3 } from "@galacean/engine-math";
-import { PhysicsScene } from "../PhysicsScene";
+import { Engine } from "../../Engine";
 import { ColliderShape } from "./ColliderShape";
 
 /**
@@ -8,7 +8,7 @@ import { ColliderShape } from "./ColliderShape";
 export class PlaneColliderShape extends ColliderShape {
   constructor() {
     super();
-    this._nativeShape = PhysicsScene._nativePhysics.createPlaneColliderShape(this._id, this._material._nativeMaterial);
+    this._nativeShape = Engine._nativePhysics.createPlaneColliderShape(this._id, this._material._nativeMaterial);
   }
 
   override getClosestPoint(point: Vector3, closestPoint: Vector3): number {

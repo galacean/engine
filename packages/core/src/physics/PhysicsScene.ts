@@ -14,9 +14,6 @@ import { HitResult } from "./HitResult";
  * A physics scene is a collection of colliders and constraints which can interact.
  */
 export class PhysicsScene {
-  /** @internal */
-  static _nativePhysics: IPhysics;
-
   private static _collision = new Collision();
 
   private _scene: Scene;
@@ -219,7 +216,7 @@ export class PhysicsScene {
 
     const engine = scene.engine;
     if (engine._physicsInitialized) {
-      this._nativePhysicsScene = PhysicsScene._nativePhysics.createPhysicsScene(
+      this._nativePhysicsScene = Engine._nativePhysics.createPhysicsScene(
         engine._nativePhysicsManager,
         this._onContactEnter,
         this._onContactExit,
@@ -443,6 +440,13 @@ export class PhysicsScene {
    */
   _gc(): void {
     this._colliders.garbageCollection();
+  }
+
+  /**
+   * @internal
+   */
+  _destroy() {
+    this._nativePhysicsScene?.destroy();
   }
 
   private _setGravity(): void {
