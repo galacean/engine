@@ -1,7 +1,6 @@
-import { AmbientLight, AssetType, BlinnPhongMaterial, Camera, DirectLight, MeshRenderer, PrimitiveMesh, TextureCube } from "@galacean/engine-core";
+import { AmbientLight, AssetType, BlinnPhongMaterial, Camera, DirectLight, MeshRenderer, PrimitiveMesh, Texture2D, TextureCube } from "@galacean/engine-core";
 import "@galacean/engine-loader";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { Texture2D } from "packages/core/src";
 import { describe, expect, it } from "vitest";
 
 const canvasDOM = document.createElement("canvas");
