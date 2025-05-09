@@ -223,16 +223,11 @@ export class BasicRenderPipeline {
     context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
 
     // Clear color
-    const premultiplyColor = Background._premultiplySolidColor;
-    background.solidColor.toLinear(premultiplyColor);
+    const premultiplyColor = background.solidColor.toLinear(Background._premultiplySolidColor);
 
     const alpha = premultiplyColor.a;
     premultiplyColor.set(premultiplyColor.r * alpha, premultiplyColor.g * alpha, premultiplyColor.b * alpha, alpha);
 
-    // If color target is not null, we should convert to sRGB
-    if (!colorTarget) {
-      premultiplyColor.toSRGB(premultiplyColor);
-    }
     finalClearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(engine, finalClearFlags, premultiplyColor);
 
     if (internalColorTarget) {
