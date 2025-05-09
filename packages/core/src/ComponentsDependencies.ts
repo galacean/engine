@@ -2,7 +2,6 @@ import { Component } from "./Component";
 import { Entity } from "./Entity";
 
 type ComponentConstructor = new (entity: Entity) => Component;
-alert("This is a test alert!"); // This line is just for testing purposes, you can remove it later
 /**
  * @internal
  * Used for component dependency registration.
