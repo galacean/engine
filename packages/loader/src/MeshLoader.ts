@@ -18,15 +18,16 @@ class MeshLoader extends Loader<ModelMesh> {
       ...item,
       type: "arraybuffer"
     };
+    const url = item.url;
     return new AssetPromise((resolve, reject) => {
       resourceManager
         // @ts-ignore
-        ._request<any>(item.url, requestConfig)
+        ._request(url, requestConfig)
         .then((data) => {
           return decode<ModelMesh>(data, resourceManager.engine);
         })
         .then((mesh: ModelMesh) => {
-          resourceManager.addContentRestorer(new MeshContentRestorer(mesh, item.url, requestConfig));
+          resourceManager.addContentRestorer(new MeshContentRestorer(mesh, url, requestConfig));
           resolve(mesh);
         })
         .catch(reject);
@@ -46,13 +47,12 @@ class MeshContentRestorer extends ContentRestorer<ModelMesh> {
   override restoreContent(): AssetPromise<ModelMesh> {
     const resource = this.resource;
     const engine = resource.engine;
-    const resourceManager = engine.resourceManager;
     return new AssetPromise((resolve, reject) => {
-      resourceManager
+      engine.resourceManager
         // @ts-ignore
-        ._request<any>(item.url, requestConfig)
+        ._request<any>(this.url, this.requestConfig)
         .then((data) => {
-          return decode<ModelMesh>(data, resourceManager.engine, this.resource);
+          return decode<ModelMesh>(data, engine, resource);
         })
         .then((mesh) => {
           resolve(mesh);

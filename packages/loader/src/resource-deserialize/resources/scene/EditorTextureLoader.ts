@@ -17,13 +17,14 @@ export class EditorTextureLoader extends Loader<Texture2D> {
       ...item,
       type: "arraybuffer"
     };
+    const url = item.url;
     return new AssetPromise((resolve, reject) => {
       resourceManager
         // @ts-ignore
-        ._request<ArrayBuffer>(item.url, requestConfig)
+        ._request<ArrayBuffer>(url, requestConfig)
         .then((data) => {
           decode<Texture2D>(data, resourceManager.engine).then((texture) => {
-            resourceManager.addContentRestorer(new EditorTexture2DContentRestorer(texture, item.url, requestConfig));
+            resourceManager.addContentRestorer(new EditorTexture2DContentRestorer(texture, url, requestConfig));
             resolve(texture);
           });
         })
@@ -44,12 +45,11 @@ class EditorTexture2DContentRestorer extends ContentRestorer<Texture2D> {
   override restoreContent(): AssetPromise<Texture2D> {
     const texture = this.resource;
     const engine = texture.engine;
-    const resourceManager = engine.resourceManager;
     return (
-      resourceManager
+      engine.resourceManager
         // @ts-ignore
         ._request<ArrayBuffer>(this.url, this.requestConfig)
-        .then((data) => decode<Texture2D>(data, resourceManager.engine, texture))
+        .then((data) => decode<Texture2D>(data, engine, texture))
     );
   }
 }

@@ -52,20 +52,19 @@ class KTXContentRestorer extends ContentRestorer<Texture2D> {
   }
 
   override restoreContent(): AssetPromise<Texture2D> {
-    const engine = this.resource.engine;
-    const resourceManager = engine.resourceManager;
+    const resource = this.resource;
+    const engine = resource.engine;
     return new AssetPromise((resolve, reject) => {
-      resourceManager
+      engine.resourceManager
         // @ts-ignore
         ._request<ArrayBuffer>(this.url, this.requestConfig)
         .then((bin) => {
           const mipmaps = parseSingleKTX(bin).mipmaps;
-          const texture = this.resource;
           for (let miplevel = 0; miplevel < mipmaps.length; miplevel++) {
             const { width, height, data } = mipmaps[miplevel];
-            texture.setPixelBuffer(data, miplevel, 0, 0, width, height);
+            resource.setPixelBuffer(data, miplevel, 0, 0, width, height);
           }
-          resolve(texture);
+          resolve(resource);
         })
         .catch((e) => {
           reject(e);

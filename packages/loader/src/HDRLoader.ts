@@ -9,7 +9,6 @@ import {
   ResourceManager,
   TextureCube,
   TextureCubeFace,
-  request,
   resourceLoader
 } from "@galacean/engine-core";
 import { Color, Vector3 } from "@galacean/engine-math";
@@ -401,14 +400,13 @@ class HDRLoader extends Loader<TextureCube> {
     return new AssetPromise((resolve, reject) => {
       const engine = resourceManager.engine;
       const requestConfig = { ...item, type: "arraybuffer" } as RequestConfig;
-      // @ts-ignore
-      const remoteUrl = resourceManager._getRemoteUrl(item.url);
+      const url = item.url;
       resourceManager
         // @ts-ignore
-        ._request<ArrayBuffer>(remoteUrl, requestConfig)
+        ._request<ArrayBuffer>(url, requestConfig)
         .then((buffer) => {
           const texture = HDRLoader._setTextureByBuffer(engine, buffer);
-          engine.resourceManager.addContentRestorer(new HDRContentRestorer(texture, remoteUrl, requestConfig));
+          engine.resourceManager.addContentRestorer(new HDRContentRestorer(texture, url, requestConfig));
           resolve(texture);
         })
         .catch(reject);
@@ -430,10 +428,14 @@ class HDRContentRestorer extends ContentRestorer<TextureCube> {
 
   override restoreContent(): AssetPromise<TextureCube> {
     return new AssetPromise((resolve, reject) => {
-      request<ArrayBuffer>(this.url, this.requestConfig)
+      const resource = this.resource;
+      const engine = resource.engine;
+      engine.resourceManager
+        // @ts-ignore
+        ._request<ArrayBuffer>(this.url, this.requestConfig)
         .then((buffer) => {
-          HDRLoader._setTextureByBuffer(this.resource.engine, buffer, this.resource);
-          resolve(this.resource);
+          HDRLoader._setTextureByBuffer(engine, buffer, resource);
+          resolve(resource);
         })
         .catch(reject);
     });
