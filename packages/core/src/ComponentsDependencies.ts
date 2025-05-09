@@ -2,7 +2,6 @@ import { Component } from "./Component";
 import { Entity } from "./Entity";
 
 type ComponentConstructor = new (entity: Entity) => Component;
-
 /**
  * @internal
  * Used for component dependency registration.

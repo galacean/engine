@@ -222,9 +222,13 @@ export class BasicRenderPipeline {
 
     context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
 
-    // If color target is null, hardware will not convert linear color space to sRGB
-    const color = colorTarget ? background._linearSolidColor : background.solidColor;
-    finalClearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(engine, finalClearFlags, color);
+    // Clear color
+    const premultiplyColor = background.solidColor.toLinear(Background._premultiplySolidColor);
+
+    const alpha = premultiplyColor.a;
+    premultiplyColor.set(premultiplyColor.r * alpha, premultiplyColor.g * alpha, premultiplyColor.b * alpha, alpha);
+
+    finalClearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(engine, finalClearFlags, premultiplyColor);
 
     if (internalColorTarget) {
       // Force clear internal color target depth and stencil buffer, because it already missed due to post process, HDR, sRGB covert, etc.

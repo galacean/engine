@@ -7,6 +7,7 @@
 //  * Deleted the useless parameters in 'FxaaPixelShader' 
 //  * Webgl does not compile the double underline, so we remove the double underline for macros
 //  * Changed the 'FXAA_GREEN_AS_LUMA == 0' code-path to compute luminance since we don't precompute luminance into the alpha channel
+//  * Change the alpha value of the `ret` finally returned by the function from brightness to transparency when `FXAA_DISCARD == 1` code path
 //----------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------
@@ -1018,14 +1019,11 @@ FxaaFloat4 FxaaPixelShader(
     if(!horzSpan) posM.x += pixelOffsetSubpix * lengthSign;
     if( horzSpan) posM.y += pixelOffsetSubpix * lengthSign;
 
-    FxaaFloat4 ret;
     #if (FXAA_DISCARD == 1)
-        ret = FxaaTexTop(tex, posM);
+        return FxaaTexTop(tex, posM);
     #else
-        ret = FxaaFloat4(FxaaTexTop(tex, posM).xyz, lumaM);
+        return FxaaTexTop(tex, posM);
     #endif
-
-    return ret;
 }
 /*==========================================================================*/
 #endif
