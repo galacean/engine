@@ -76,7 +76,7 @@ export class BloomEffect extends PostProcessEffect {
    * Set the level of brightness to filter out pixels under this level.
    * @remarks This value is expressed in linear.
    */
-  threshold = new PostProcessEffectFloatParameter(0.9, 0);
+  threshold = new PostProcessEffectFloatParameter(0.8, 0);
 
   /**
    * Controls the radius of the bloom effect.
