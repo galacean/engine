@@ -162,9 +162,9 @@ export class ParticleGradient {
         const key = keys[i];
         typeArray[offset] = key.time;
         const color = key.color;
-        typeArray[offset + 1] = Color.sRGBToLinearSpace(color.r);
-        typeArray[offset + 2] = Color.sRGBToLinearSpace(color.g);
-        typeArray[offset + 3] = Color.sRGBToLinearSpace(color.b);
+        typeArray[offset + 1] = color.r;
+        typeArray[offset + 2] = color.g;
+        typeArray[offset + 3] = color.b;
       }
       this._colorTypeArrayDirty = false;
     }

@@ -48,9 +48,9 @@ export class PointLight extends Light {
     data.cullingMask[cullingMaskStart] = cullingMask & 65535;
     data.cullingMask[cullingMaskStart + 1] = (cullingMask >>> 16) & 65535;
 
-    data.color[colorStart] = Color.sRGBToLinearSpace(lightColor.r);
-    data.color[colorStart + 1] = Color.sRGBToLinearSpace(lightColor.g);
-    data.color[colorStart + 2] = Color.sRGBToLinearSpace(lightColor.b);
+    data.color[colorStart] = lightColor.r;
+    data.color[colorStart + 1] = lightColor.g;
+    data.color[colorStart + 2] = lightColor.b;
 
     data.position[positionStart] = lightPosition.x;
     data.position[positionStart + 1] = lightPosition.y;

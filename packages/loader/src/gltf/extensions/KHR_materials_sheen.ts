@@ -12,12 +12,7 @@ class KHR_materials_sheen extends GLTFExtensionParser {
     const { sheenColorFactor, sheenColorTexture, sheenRoughnessFactor = 0, sheenRoughnessTexture } = schema;
 
     if (sheenColorFactor) {
-      material.sheenColor.set(
-        Color.linearToSRGBSpace(sheenColorFactor[0]),
-        Color.linearToSRGBSpace(sheenColorFactor[1]),
-        Color.linearToSRGBSpace(sheenColorFactor[2]),
-        undefined
-      );
+      material.sheenColor.set(sheenColorFactor[0], sheenColorFactor[1], sheenColorFactor[2], undefined);
     }
 
     material.sheenRoughness = sheenRoughnessFactor;
