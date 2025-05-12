@@ -34,7 +34,7 @@ export class Background {
   /** @internal */
   _material: Material;
 
-  private _solidColor = new Color(0.25, 0.25, 0.25, 1.0);
+  private _solidColor = new Color(0.05087608817155679, 0.05087608817155679, 0.05087608817155679, 1.0);
   private _texture: Texture2D = null;
 
   /**
