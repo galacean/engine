@@ -77,7 +77,7 @@ initPostProcessEnv((camera: Camera, resArray) => {
   const tonemappingEffect = postProcess.addEffect(TonemappingEffect);
   tonemappingEffect.mode.value = TonemappingMode.ACES;
 
-  bloomEffect.threshold.value = 0.5;
+  bloomEffect.threshold.value = 0.21404114048223255;
   bloomEffect.intensity.value = 1;
   bloomEffect.dirtTexture.value = dirtTexture;
   bloomEffect.dirtIntensity.value = 5;
