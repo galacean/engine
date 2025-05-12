@@ -223,12 +223,13 @@ export class BasicRenderPipeline {
     context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
 
     // Clear color
-    const premultiplyColor = background.solidColor.toLinear(Background._premultiplySolidColor);
-
-    const alpha = premultiplyColor.a;
-    premultiplyColor.set(premultiplyColor.r * alpha, premultiplyColor.g * alpha, premultiplyColor.b * alpha, alpha);
-
-    finalClearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(engine, finalClearFlags, premultiplyColor);
+    if (finalClearFlags !== CameraClearFlags.None) {
+      const premultiplyColor = Background._premultiplySolidColor;
+      const { solidColor } = background;
+      const { a } = solidColor;
+      premultiplyColor.set(solidColor.r * a, solidColor.g * a, solidColor.b * a, a);
+      rhi.clearRenderTarget(engine, finalClearFlags, premultiplyColor);
+    }
 
     if (internalColorTarget) {
       // Force clear internal color target depth and stencil buffer, because it already missed due to post process, HDR, sRGB covert, etc.
