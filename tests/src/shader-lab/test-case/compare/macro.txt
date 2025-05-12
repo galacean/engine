@@ -1,0 +1,4 @@
+
+
+vec2 q = vec2(uv.x * iResolution.x, uv.y * iResolution.y).xy / iResolution.xy;
+vec2 p = ( 2.0 * vec2(uv.x * iResolution.x, uv.y * iResolution.y).xy - iResolution.xy ) / min( iResolution.y, iResolution.x );

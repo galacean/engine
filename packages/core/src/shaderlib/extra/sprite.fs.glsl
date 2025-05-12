@@ -7,5 +7,5 @@ varying vec4 v_color;
 void main()
 {
   vec4 baseColor = texture2DSRGB(renderer_SpriteTexture, v_uv);
-  gl_FragColor = outputSRGBCorrection(baseColor * v_color);
+  gl_FragColor = baseColor * v_color;
 }

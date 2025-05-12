@@ -10,7 +10,7 @@ canvasDOM.height = 1024;
 describe("Device lost test", function () {
   it("Force lost and restore test", async () => {
     const engine = await WebGLEngine.create({ canvas: canvasDOM });
-    engine.canvas.resizeByClientSize();
+
 
     // Get scene and create root entity.
     const scene = engine.sceneManager.activeScene;

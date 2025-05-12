@@ -13,6 +13,7 @@ import {
   Ray,
   Vector2,
   Vector3,
+  assignmentClone,
   deepClone,
   dependentComponents,
   ignoreClone
@@ -77,19 +78,19 @@ export class UICanvas extends Component implements IElement {
 
   @ignoreClone
   private _renderMode = CanvasRenderMode.WorldSpace;
-  @ignoreClone
+  @assignmentClone
   private _renderCamera: Camera;
   @ignoreClone
   private _cameraObserver: Camera;
-  @ignoreClone
+  @assignmentClone
   private _resolutionAdaptationMode = ResolutionAdaptationMode.HeightAdaptation;
-  @ignoreClone
+  @assignmentClone
   private _sortOrder: number = 0;
-  @ignoreClone
+  @assignmentClone
   private _distance: number = 10;
   @deepClone
   private _referenceResolution: Vector2 = new Vector2(800, 600);
-  @deepClone
+  @assignmentClone
   private _referenceResolutionPerUnit: number = 100;
   @ignoreClone
   private _hierarchyVersion: number = -1;
@@ -154,7 +155,8 @@ export class UICanvas extends Component implements IElement {
   set renderCamera(value: Camera) {
     const preCamera = this._renderCamera;
     if (preCamera !== value) {
-      this._isSameOrChildEntity(value.entity) &&
+      value &&
+        this._isSameOrChildEntity(value.entity) &&
         Logger.warn(
           "Camera entity matching or nested within the canvas entity disables canvas auto-adaptation in ScreenSpaceCamera mode."
         );
@@ -379,6 +381,13 @@ export class UICanvas extends Component implements IElement {
         Utils.setRootCanvas(this, rootCanvas);
       }
     }
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: UICanvas, srcRoot: Entity, targetRoot: Entity): void {
+    target.renderMode = this._renderMode;
   }
 
   private _getRenderers(): UIRenderer[] {

@@ -18,6 +18,4 @@
 void main() {
     #include <pbr_frag>
     #include <FogFragment>
-    
-    gl_FragColor = outputSRGBCorrection(gl_FragColor);
 }

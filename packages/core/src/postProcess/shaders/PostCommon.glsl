@@ -15,5 +15,4 @@ float log10(float x){
     return log(x) * INVERT_LOG10;
 }
 
-
 #endif

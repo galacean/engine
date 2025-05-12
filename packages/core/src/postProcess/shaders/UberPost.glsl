@@ -46,5 +46,5 @@ void main(){
     	color.rgb = clamp(color.rgb, vec3(0), vec3(1));
 	#endif
 
-    gl_FragColor = outputSRGBCorrection(color);
+    gl_FragColor = color;
 }

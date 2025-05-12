@@ -5,12 +5,12 @@ import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { Layer } from "./Layer";
 import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
-import { PipelineUtils } from "./RenderPipeline/PipelineUtils";
 import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { VirtualCamera } from "./VirtualCamera";
 import { GLCapabilityType, Logger } from "./base";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
+import { AntiAliasing } from "./enums/AntiAliasing";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { CameraModifyFlags } from "./enums/CameraModifyFlags";
 import { CameraType } from "./enums/CameraType";
@@ -88,11 +88,20 @@ export class Camera extends Component {
   opaqueTextureDownsampling: Downsampling = Downsampling.TwoX;
 
   /**
-   * Multi-sample anti-aliasing samples when use independent canvas mode.
+   * The number of samples used for hardware multisample anti-aliasing (MSAA) to smooth geometry edges during rasterization.
+   * Higher sample counts (e.g., 2x, 4x, 8x) produce smoother edges.
    *
-   * @remarks It will take effect when `independentCanvasEnabled` property is `true`, otherwise it will be invalid.
+   * @defaultValue `MSAASamples.FourX`
    */
-  msaaSamples: MSAASamples = MSAASamples.None;
+  msaaSamples: MSAASamples = MSAASamples.FourX;
+
+  /**
+   * The screen-space anti-aliasing mode applied after the camera renders the final image.
+   * Unlike MSAA, it can smooth all pixels, including by shader-generated specular, alpha-cutoff edge, low resolution texture.
+   *
+   * @defaultValue `AntiAliasing.None`
+   */
+  antiAliasing: AntiAliasing = AntiAliasing.None;
 
   /** @internal */
   _cameraType: CameraType = CameraType.Normal;
@@ -154,34 +163,13 @@ export class Camera extends Component {
    * If enabled, the opaque texture can be accessed in the shader using `camera_OpaqueTexture`.
    *
    * @defaultValue `false`
-   * @remarks If enabled, the `independentCanvasEnabled` property will be forced to be true.
    */
   get opaqueTextureEnabled(): boolean {
     return this._opaqueTextureEnabled;
   }
 
   set opaqueTextureEnabled(value: boolean) {
-    if (this._opaqueTextureEnabled !== value) {
-      this._opaqueTextureEnabled = value;
-      this._checkMainCanvasAntialiasWaste();
-    }
-  }
-
-  /**
-   * Whether independent canvas is enabled.
-   * @remarks If true, the msaa in viewport can turn or off independently by `msaaSamples` property.
-   */
-  get independentCanvasEnabled(): boolean {
-    // Uber pass need internal RT
-    if (this.enablePostProcess && this.scene.postProcessManager._isValid()) {
-      return true;
-    }
-
-    if (this.enableHDR || this.opaqueTextureEnabled) {
-      return this._getInternalColorTextureFormat() !== this.renderTarget?.getColorTexture(0).format;
-    }
-
-    return false;
+    this._opaqueTextureEnabled = value;
   }
 
   /**
@@ -383,7 +371,6 @@ export class Camera extends Component {
   /**
    * Whether to enable HDR.
    * @defaultValue `false`
-   * @remarks If enabled, the `independentCanvasEnabled` property will be forced to be true.
    */
   get enableHDR(): boolean {
     return this._enableHDR;
@@ -398,14 +385,12 @@ export class Camera extends Component {
         return;
       }
       this._enableHDR = value;
-      this._checkMainCanvasAntialiasWaste();
     }
   }
 
   /**
    * Whether to enable post process.
    * @defaultValue `false`
-   * @remarks If enabled, the `independentCanvasEnabled` property will be forced to be true.
    */
   get enablePostProcess(): boolean {
     return this._enablePostProcess;
@@ -414,7 +399,6 @@ export class Camera extends Component {
   set enablePostProcess(value: boolean) {
     if (this._enablePostProcess !== value) {
       this._enablePostProcess = value;
-      this._checkMainCanvasAntialiasWaste();
     }
   }
 
@@ -656,11 +640,12 @@ export class Camera extends Component {
       Logger.error("mipLevel only take effect in WebGL2.0");
     }
     let ignoreClearFlags: CameraClearFlags;
-    if (this._cameraType !== CameraType.Normal && !this._renderTarget && !this.independentCanvasEnabled) {
+    if (this._cameraType !== CameraType.Normal && !this._renderTarget && !this._isIndependentCanvasEnabled()) {
       ignoreClearFlags = engine.xrManager._getCameraIgnoreClearFlags(this._cameraType);
     }
     this._renderPipeline.render(context, cubeFace, mipLevel, ignoreClearFlags);
     engine._renderCount++;
+    context.camera = null;
   }
 
   /**
@@ -725,6 +710,36 @@ export class Camera extends Component {
 
   /**
    * @internal
+   * Whether independent canvas is enabled.
+   */
+  _isIndependentCanvasEnabled(): boolean {
+    // Uber pass need internal RT
+    if (this.enablePostProcess && this.scene.postProcessManager._isValid()) {
+      return true;
+    }
+
+    // Final pass should sRGB conversion and FXAA
+    if (this._needFinalPass()) {
+      return true;
+    }
+
+    const renderTarget = this._renderTarget;
+    // Need HDR and opaque texture
+    if (this.enableHDR || this.opaqueTextureEnabled) {
+      if (renderTarget) {
+        // If camera is HDR and format is same with renderTarget can reuse renderTarget if renderTarget is same HDR format
+        // If camera is LDR and opaqueTextureEnabled is true, can reuse renderTarget if renderTarget is LDR format(Only R8G8B8A8)
+        return this._getInternalColorTextureFormat() !== renderTarget.getColorTexture(0).format;
+      } else {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * @internal
    */
   _getInternalColorTextureFormat(): TextureFormat {
     return this._enableHDR
@@ -732,6 +747,34 @@ export class Camera extends Component {
         ? TextureFormat.R11G11B10_UFloat
         : TextureFormat.R16G16B16A16
       : TextureFormat.R8G8B8A8;
+  }
+
+  /**
+   * @internal
+   */
+  _needFinalPass(): boolean {
+    // FXAA or sRGB conversion when camera render to screen
+    return this.antiAliasing === AntiAliasing.FXAA || !this._renderTarget;
+  }
+
+  /**
+   * @internal
+   */
+  _getTargetColorTextureFormat(): TextureFormat {
+    const renderTarget = this._renderTarget;
+    return renderTarget ? renderTarget.getColorTexture(0).format : TextureFormat.R8G8B8A8;
+  }
+
+  /**
+   * @internal
+   */
+  _isTargetFormatHDR(): boolean {
+    const format = this._getTargetColorTextureFormat();
+    return (
+      format === TextureFormat.R16G16B16A16 ||
+      format === TextureFormat.R32G32B32A32 ||
+      format === TextureFormat.R11G11B10_UFloat
+    );
   }
 
   /**
@@ -856,19 +899,6 @@ export class Camera extends Component {
   private _onPixelViewportChanged(): void {
     this._updatePixelViewport();
     this._customAspectRatio ?? this._projectionMatrixChange();
-    this._checkMainCanvasAntialiasWaste();
-  }
-
-  private _checkMainCanvasAntialiasWaste(): void {
-    if (
-      this._phasedActiveInScene &&
-      this.independentCanvasEnabled &&
-      Vector4.equals(this._viewport, PipelineUtils.defaultViewport)
-    ) {
-      Logger.warn(
-        "Camera use independent canvas and viewport cover the whole screen, it is recommended to disable antialias, depth and stencil to save memory when create engine."
-      );
-    }
   }
 
   private _dispatchModify(flag: CameraModifyFlags): void {

@@ -42,6 +42,7 @@ import { UIUtils } from "./ui/UIUtils";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
+import { FinalPass } from "./postProcess/FinalPass";
 
 ShaderPool.init();
 
@@ -491,10 +492,7 @@ export class Engine extends EventDispatcher {
 
   private _destroy(): void {
     this._sceneManager._destroyAllScene();
-
     this._resourceManager._destroy();
-    this._textDefaultFont = null;
-    this._fontMap = null;
 
     this.inputManager._destroy();
     this._batcherManager.destroy();
@@ -504,15 +502,10 @@ export class Engine extends EventDispatcher {
     // Cancel animation
     this.pause();
 
+    Shader._clear(this);
     this._hardwareRenderer.destroy();
 
     this.removeAllEventListeners();
-
-    this._animate = null;
-    this._sceneManager = null;
-    this._resourceManager = null;
-    this._canvas = null;
-    this._time = null;
 
     this._waitingDestroy = false;
     this._destroyed = true;
@@ -660,6 +653,7 @@ export class Engine extends EventDispatcher {
     this._hardwareRenderer.resetState();
     this._lastRenderState = new RenderState();
     // Clear shader pools
+    Shader._clear(this);
     this._shaderProgramPools.length = 0;
 
     const { resourceManager } = this;

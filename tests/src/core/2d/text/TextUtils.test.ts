@@ -29,7 +29,6 @@ describe("TextUtils", () => {
     engine = await WebGLEngine.create({
       canvas: document.createElement("canvas")
     });
-    engine.canvas.resizeByClientSize();
 
     // Create root entity.
     scene = engine.sceneManager.activeScene;

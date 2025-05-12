@@ -1,12 +1,12 @@
 import { Vector2 } from "@galacean/engine-math";
 import { Background } from "../Background";
 import { Camera } from "../Camera";
-import { Logger } from "../base/Logger";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DepthTextureMode } from "../enums/DepthTextureMode";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
+import { FinalPass } from "../postProcess";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { ShaderPass } from "../shader/ShaderPass";
@@ -31,7 +31,6 @@ import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
 import { PipelineStage } from "./enums/PipelineStage";
-
 /**
  * Basic render pipeline.
  */
@@ -46,6 +45,7 @@ export class BasicRenderPipeline {
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
   private _opaqueTexturePass: OpaqueTexturePass;
+  private _finalPass: FinalPass;
   private _copyBackgroundTexture: Texture2D;
   private _canUseBlitFrameBuffer = false;
   private _shouldCopyBackgroundColor = false;
@@ -61,6 +61,7 @@ export class BasicRenderPipeline {
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
     this._opaqueTexturePass = new OpaqueTexturePass(engine);
+    this._finalPass = new FinalPass(engine);
   }
 
   /**
@@ -82,7 +83,8 @@ export class BasicRenderPipeline {
     context.rendererUpdateFlag = ContextRendererUpdateFlag.All;
 
     const camera = this._camera;
-    const { scene, engine, renderTarget, independentCanvasEnabled } = camera;
+    const { scene, engine, renderTarget } = camera;
+    const independentCanvasEnabled = camera._isIndependentCanvasEnabled();
     const rhi = engine._hardwareRenderer;
     const cullingResults = this._cullingResults;
     const sunlight = scene._lightManager._sunlight;
@@ -91,10 +93,12 @@ export class BasicRenderPipeline {
     const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
     const msaaSamples = renderTarget ? renderTarget.antiAliasing : camera.msaaSamples;
 
+    // Check whether can use `blitFramebuffer` to blit internal render target, source maybe screen canvas or camera's render target
+    // Our screen canvas's anti-aliasing is always disable, so blit source and dest is always same by below rules:
     // 1. Only support blitFramebuffer in webgl2 context
     // 2. Can't blit normal FBO to MSAA FBO
     // 3. Can't blit screen MSAA FBO to normal FBO in mac safari platform and mobile, but mac chrome and firfox is OK
-    this._canUseBlitFrameBuffer = rhi.isWebGL2 && msaaSamples === 1 && (!!renderTarget || !rhi.context.antialias);
+    this._canUseBlitFrameBuffer = rhi.isWebGL2 && msaaSamples === 1;
 
     // Because internal render target is linear color space, so we should convert srgb background color to linear color space
     const isSRGBBackground = !renderTarget || renderTarget.getColorTexture(0).isSRGBColorSpace;
@@ -132,11 +136,11 @@ export class BasicRenderPipeline {
       let depthFormat: TextureFormat;
       if (camera.renderTarget) {
         depthFormat = camera.renderTarget._depthFormat;
-      } else if (rhi.context.depth && rhi.context.stencil) {
+      } else if (rhi._options.depth && rhi._options.stencil) {
         depthFormat = TextureFormat.Depth24Stencil8;
-      } else if (rhi.context.depth) {
+      } else if (rhi._options.depth) {
         depthFormat = TextureFormat.Depth24;
-      } else if (rhi.context.stencil) {
+      } else if (rhi._options.stencil) {
         depthFormat = TextureFormat.Stencil;
       } else {
         depthFormat = null;
@@ -201,7 +205,7 @@ export class BasicRenderPipeline {
     const cullingResults = this._cullingResults;
     const { opaqueQueue, alphaTestQueue, transparentQueue } = cullingResults;
 
-    const { engine, scene } = camera;
+    const { engine, scene, renderTarget: cameraRenderTarget } = camera;
     const { background } = scene;
 
     const rhi = engine._hardwareRenderer;
@@ -218,40 +222,41 @@ export class BasicRenderPipeline {
 
     context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
 
-    // If color target is null, hardware will not convert linear color space to sRGB
-    const color = colorTarget ? background._linearSolidColor : background.solidColor;
-    finalClearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(engine, finalClearFlags, color);
+    // Clear color
+    const premultiplyColor = background.solidColor.toLinear(Background._premultiplySolidColor);
 
-    if (internalColorTarget && finalClearFlags !== CameraClearFlags.All) {
-      // Can use `blitFramebuffer` API to copy color/depth/stencil buffer from back buffer to internal RT
-      if (this._canUseBlitFrameBuffer) {
-        const blitIgnoreFlags =
-          finalClearFlags | (this._shouldCopyBackgroundColor ? CameraClearFlags.Color : CameraClearFlags.None);
-        rhi.blitInternalRTByBlitFrameBuffer(camera.renderTarget, internalColorTarget, blitIgnoreFlags, camera.viewport);
-      } else {
-        if (!(finalClearFlags & CameraClearFlags.DepthStencil)) {
-          Logger.warn(
-            "We clear all depth/stencil state cause of the internalRT can't copy depth/stencil buffer from back buffer when use copy plan"
+    const alpha = premultiplyColor.a;
+    premultiplyColor.set(premultiplyColor.r * alpha, premultiplyColor.g * alpha, premultiplyColor.b * alpha, alpha);
+
+    finalClearFlags !== CameraClearFlags.None && rhi.clearRenderTarget(engine, finalClearFlags, premultiplyColor);
+
+    if (internalColorTarget) {
+      // Force clear internal color target depth and stencil buffer, because it already missed due to post process, HDR, sRGB covert, etc.
+      const keepDSFlags = ~finalClearFlags & CameraClearFlags.DepthStencil;
+      if (keepDSFlags) {
+        rhi.clearRenderTarget(engine, keepDSFlags);
+      }
+
+      const keepColorFlag = ~finalClearFlags & CameraClearFlags.Color;
+      if (keepColorFlag) {
+        if (this._shouldCopyBackgroundColor) {
+          // Copy RT's color buffer to grab texture
+          rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._copyBackgroundTexture, camera.viewport);
+          // Then blit grab texture to internal RT's color buffer
+          Blitter.blitTexture(
+            engine,
+            this._copyBackgroundTexture,
+            internalColorTarget,
+            0,
+            undefined,
+            camera.renderTarget ? undefined : engine._basicResources.blitScreenMaterial
           );
+        } else {
+          // Only blit color buffer from back buffer
+          const ignoreFlags = CameraClearFlags.DepthStencil;
+          rhi.blitInternalRTByBlitFrameBuffer(camera.renderTarget, internalColorTarget, ignoreFlags, camera.viewport);
         }
-        // We must clear depth/stencil buffer manually if current context don't support `blitFramebuffer` API
-        rhi.clearRenderTarget(engine, CameraClearFlags.DepthStencil);
       }
-
-      if (this._shouldCopyBackgroundColor) {
-        // Copy RT's color buffer to grab texture
-        rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._copyBackgroundTexture, camera.viewport);
-        // Then blit grab texture to internal RT's color buffer
-        Blitter.blitTexture(
-          engine,
-          this._copyBackgroundTexture,
-          internalColorTarget,
-          0,
-          undefined,
-          camera.renderTarget ? undefined : engine._basicResources.blitScreenMaterial
-        );
-      }
-
       context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
     }
 
@@ -289,22 +294,38 @@ export class BasicRenderPipeline {
     // Revert stencil buffer generated by mask
     maskManager.clearMask(context, PipelineStage.Forward);
 
-    const postProcessManager = scene.postProcessManager;
-    const cameraRenderTarget = camera.renderTarget;
+    // Output render target of each stage
+    let outputTarget = <RenderTarget>null;
+
+    // Post process
+    const needFinalPass = camera._needFinalPass();
+    const { postProcessManager } = scene;
     if (camera.enablePostProcess && postProcessManager._isValid()) {
-      postProcessManager._render(camera, internalColorTarget, cameraRenderTarget);
+      outputTarget = needFinalPass ? postProcessManager._getOutputRenderTarget(camera) : camera.renderTarget;
+      postProcessManager._render(camera, internalColorTarget, outputTarget);
     } else {
-      postProcessManager._releaseSwapRenderTarget();
+      // Maybe internalColorTarget or camera.renderTarget or null
+      outputTarget = colorTarget;
       if (internalColorTarget) {
         internalColorTarget._blitRenderTarget();
-        Blitter.blitTexture(
-          engine,
-          <Texture2D>internalColorTarget.getColorTexture(0),
-          cameraRenderTarget,
-          0,
-          camera.viewport
-        );
       }
+      postProcessManager._releaseSwapRenderTarget();
+      postProcessManager._releaseOutputRenderTarget();
+    }
+
+    // Final pass
+    const finalPass = this._finalPass;
+    if (needFinalPass) {
+      finalPass.onConfig(camera, outputTarget);
+      finalPass.onRender(context);
+      outputTarget = cameraRenderTarget;
+    } else {
+      finalPass.release();
+    }
+
+    // If output target is not camera's render target(only enable HDR or opaqueTexture), we should blit it to camera's render target
+    if (outputTarget !== cameraRenderTarget) {
+      Blitter.blitTexture(engine, <Texture2D>outputTarget.getColorTexture(0), cameraRenderTarget, 0, camera.viewport);
     }
 
     cameraRenderTarget?._blitRenderTarget();

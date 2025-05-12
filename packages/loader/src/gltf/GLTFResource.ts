@@ -71,7 +71,8 @@ export class GLTFResource extends ReferResource {
     materials && this._disassociationSuperResource(materials);
     if (meshes) {
       for (let i = 0, n = meshes.length; i < n; i++) {
-        this._disassociationSuperResource(meshes[i]);
+        const meshArr = meshes[i];
+        meshArr && this._disassociationSuperResource(meshArr);
       }
     }
   }
@@ -79,7 +80,7 @@ export class GLTFResource extends ReferResource {
   private _disassociationSuperResource(resources: ReferResource[]): void {
     for (let i = 0, n = resources.length; i < n; i++) {
       // @ts-ignore
-      resources[i]._disassociationSuperResource(this);
+      resources[i]?._disassociationSuperResource(this);
     }
   }
 

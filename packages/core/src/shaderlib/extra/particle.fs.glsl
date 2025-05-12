@@ -33,6 +33,5 @@ void main() {
 
 	color.rgb += emissiveRadiance;
 
-
-	gl_FragColor = outputSRGBCorrection(color);
+	gl_FragColor = color;
 }
