@@ -148,4 +148,9 @@ export class LitePhysics implements IPhysics {
   createSpringJoint(collider: LiteCollider): ISpringJoint {
     throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
   }
+
+  /**
+   * {@inheritDoc IPhysics.destroy }
+   */
+  destroy(): void {}
 }

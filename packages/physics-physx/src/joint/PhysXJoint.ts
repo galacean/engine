@@ -102,7 +102,6 @@ export class PhysXJoint implements IJoint {
   destroy(): void {
     if (!this._pxJoint) return;
     this._pxJoint.release();
-    this._pxJoint = null;
     this._collider = null;
   }
   /**
