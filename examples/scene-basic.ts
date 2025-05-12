@@ -37,7 +37,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   // Create light component
   let directLight = lightEntity.addComponent(DirectLight);
   directLight.color = new Color(1.0, 1.0, 1.0);
-  directLight.intensity = 0.5;
+  directLight.intensity = 0.21404114048223255;
 
   // Control light direction by entity's transform
   lightEntity.transform.rotation = new Vector3(45, 45, 45);

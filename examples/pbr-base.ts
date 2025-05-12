@@ -30,7 +30,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   const directLightNode = rootEntity.createChild("dir_light");
   const directLight = directLightNode.addComponent(DirectLight);
   const dirFolder = gui.addFolder("DirectionalLight1");
-  directLight.intensity = 0.5;
+  directLight.intensity =0.21404114048223255;
   dirFolder.add(directLight, "enabled");
   dirFolder.add(directLight, "intensity", 0, 1);
   directLightNode.transform.setPosition(5, 5, 5);

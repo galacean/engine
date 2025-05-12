@@ -43,7 +43,7 @@ async function main(): void {
   // Create direct light
   const lightEntity = rootEntity.createChild("DirectLight");
   const light = lightEntity.addComponent(DirectLight);
-  light.intensity = 0.6;
+  light.intensity = 0.31854677812509186;
 
   engine.resourceManager
     .load<Texture2D>({

@@ -14,7 +14,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   const directLightNode = rootEntity.createChild("dir_light");
   const directLight = directLightNode.addComponent(DirectLight);
-  directLight.intensity = 0.5;
+  directLight.intensity = 0.21404114048223255;
   directLightNode.transform.setPosition(5, 5, 5);
   directLightNode.transform.lookAt(new Vector3(0, 0, 0));
 

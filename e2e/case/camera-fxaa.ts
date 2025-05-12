@@ -17,7 +17,7 @@ initPostProcessEnv((camera: Camera) => {
   const postProcess = globalPostProcessEntity.addComponent(PostProcess);
 
   const bloomEffect = postProcess.addEffect(BloomEffect);
-  bloomEffect.threshold.value = 0.9;
+  bloomEffect.threshold.value = 0.7874122893956174
   bloomEffect.intensity.value = 1;
 
   const tonemappingEffect = postProcess.addEffect(TonemappingEffect);

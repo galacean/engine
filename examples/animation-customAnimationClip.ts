@@ -43,7 +43,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   const directLightEntity = lightWrap.createChild("light_node");
   const directLight = directLightEntity.addComponent(DirectLight);
-  directLight.intensity = 0.6;
+  directLight.intensity = 0.31854677812509186;
   directLightEntity.transform.lookAt(new Vector3(0, 0, 1));
   directLightEntity.transform.rotate(new Vector3(0, 90, 0));
 

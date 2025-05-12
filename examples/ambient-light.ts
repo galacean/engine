@@ -43,7 +43,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
 
   const lightEntity = rootEntity.createChild();
-  lightEntity.addComponent(DirectLight).intensity = 0.5;
+  lightEntity.addComponent(DirectLight).intensity = 0.21404114048223255;
   lightEntity.transform.setPosition(-5, 5, 5);
   lightEntity.transform.lookAt(new Vector3(0, 0, 0));
 
