@@ -101,8 +101,8 @@ function createDebrisParticle(engine: Engine, texture: Texture2D): Entity {
   main.startRotationZ.constantMax = 360;
   main.startRotationZ.mode = ParticleCurveMode.TwoConstants;
 
-  main.startColor.constantMin.set(255 / 255, 255 / 255, 255 / 255, 1.0);
-  main.startColor.constantMax.set(13 / 255, 255 / 255, 0 / 255, 1.0);
+  main.startColor.constantMin.set(1.0, 1.0, 1.0, 1.0);
+  main.startColor.constantMax.set(0.004024717018496307, 1.0, 0.0, 1.0);
   main.startColor.mode = ParticleGradientMode.TwoConstants;
 
   // Emission module
@@ -295,8 +295,8 @@ function createHighlightsParticle(fireEntity: Entity, texture: Texture2D): void 
   main.startRotationZ.constantMax = 360;
   main.startRotationZ.mode = ParticleCurveMode.TwoConstants;
 
-  main.startColor.constantMin.set(105 / 255, 198 / 255, 255 / 255, 64 / 255);
-  main.startColor.constantMax.set(13 / 255, 255 / 255, 0 / 255, 32 / 255);
+  main.startColor.constantMin.set(0.14126329114027164, 0.5647115057049292, 1.0, 64 / 255);
+  main.startColor.constantMax.set(0.004024717018496307, 1.0, 0.0, 32 / 255);
   main.startColor.mode = ParticleGradientMode.TwoConstants;
 
   // Emission module
