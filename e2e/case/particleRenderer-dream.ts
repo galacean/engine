@@ -31,7 +31,7 @@ WebGLEngine.create({
 
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
-  scene.background.solidColor = new Color(15 / 255, 38 / 255, 18 / 255, 1);
+  scene.background.solidColor = new Color(0.004776953480693729, 0.019382360956935723, 0.006048833022857054, 1);
 
   // Create camera
   const cameraEntity = rootEntity.createChild("camera_entity");
@@ -174,8 +174,8 @@ function createGlowParticle(fireEntity: Entity, texture: Texture2D): void {
   main.startRotationZ.constantMax = 360;
   main.startRotationZ.mode = ParticleCurveMode.TwoConstants;
 
-  main.startColor.constantMin = new Color(0 / 255, 157 / 255, 255 / 255, 64 / 255);
-  main.startColor.constantMax = new Color(13 / 255, 255 / 255, 0 / 255, 128 / 255);
+  main.startColor.constantMin = new Color(0, 0.33716361504833037, 1.0, 64 / 255);
+  main.startColor.constantMax = new Color(0.004024717018496307, 1.0, 0, 128 / 255);
   main.startColor.mode = ParticleGradientMode.TwoConstants;
 
   // Emission module
@@ -234,7 +234,7 @@ function createSparksParticle(fireEntity: Entity, texture: Texture2D): void {
   main.startRotationZ.constantMax = 360;
   main.startRotationZ.mode = ParticleCurveMode.TwoConstants;
 
-  main.startColor.constant = new Color(37 / 255, 133 / 255, 255 / 255, 255 / 255);
+  main.startColor.constant = new Color(0.018500220128379697, 0.23455058216100522, 1.0, 255 / 255);
 
   // Emission module
   emission.rateOverTime.constant = 30;
