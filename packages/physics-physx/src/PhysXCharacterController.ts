@@ -107,13 +107,13 @@ export class PhysXCharacterController implements ICharacterController {
   }
 
   /**
-   * {@inheritDoc ICollider.setCollisionGroup }
+   * {@inheritDoc ICollider.setCollisionLayer }
    */
-  setCollisionGroup(group: number): void {
+  setCollisionLayer(layer: number): void {
     const actor = this._pxController?.getActor();
 
     if (actor) {
-      this._physXPhysics._physX.setGroup(actor, group);
+      this._physXPhysics._physX.setGroup(actor, layer);
     }
   }
 

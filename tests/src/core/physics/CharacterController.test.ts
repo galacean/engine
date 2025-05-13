@@ -363,7 +363,7 @@ describe("CharacterController", function () {
     roleEntity.transform.position = new Vector3(0, 0, 0);
     triggerScript.reset();
 
-    engine.sceneManager.activeScene.physics.setColliderGroupCollision(1, 2, false);
+    engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, false);
 
     controller.move(new Vector3(0, 0, 2), 0.0001, 0.1);
 
@@ -373,7 +373,7 @@ describe("CharacterController", function () {
     expect(triggerScript.triggerEntered).toBe(false);
 
     // 恢复默认设置
-    engine.sceneManager.activeScene.physics.setColliderGroupCollision(1, 2, true);
+    engine.sceneManager.activeScene.physics.setColliderLayerCollision(1, 2, true);
   });
 
   it("should handle manual collision group setting with trigger", () => {
@@ -415,9 +415,9 @@ describe("CharacterController", function () {
     roleEntity.transform.position = new Vector3(0, 0, 0);
     triggerScript.reset();
 
-    controller.collisionGroup = 10;
+    controller.collisionLayer = Layer.Layer10;
 
-    engine.sceneManager.activeScene.physics.setColliderGroupCollision(10, 2, false);
+    engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer10, Layer.Layer2, false);
 
     controller.move(new Vector3(0, 0, 2), 0.0001, 0.1);
 
@@ -426,9 +426,9 @@ describe("CharacterController", function () {
 
     expect(triggerScript.triggerEntered).toBe(false);
 
-    engine.sceneManager.activeScene.physics.setColliderGroupCollision(10, 2, true);
+    engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer10, Layer.Layer2, true);
 
     // 恢复默认设置
-    engine.sceneManager.activeScene.physics.setColliderGroupCollision(1, 2, true);
+    engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, true);
   });
 });

@@ -21,7 +21,7 @@ export abstract class LiteCollider implements ICollider {
   /** @internal */
   _transform: LiteTransform = new LiteTransform();
   /** @internal */
-  _collisionGroup: number;
+  _collisionLayer: number;
 
   protected constructor(litePhysics: LitePhysics) {
     this._transform.owner = this;
@@ -73,10 +73,10 @@ export abstract class LiteCollider implements ICollider {
   }
 
   /**
-   * {@inheritDoc ICollider.setCollisionGroup }
+   * {@inheritDoc ICollider.setCollisionLayer }
    */
-  setCollisionGroup(collisionGroup: Layer): void {
-    this._litePhysics.setColliderGroup(this, collisionGroup);
+  setCollisionLayer(collisionLayer: Layer): void {
+    this._litePhysics.setColliderLayer(this, collisionLayer);
   }
 
   /**

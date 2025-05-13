@@ -20,7 +20,7 @@ export interface ICollider {
    * Set the collision group of the collider.
    * @param layer - The layer of the entity which the collider belongs to
    */
-  setCollisionGroup(layer: number): void;
+  setCollisionLayer(layer: number): void;
 
   /**
    * Deletes the collider.

@@ -26,7 +26,7 @@ export class Collider extends Component implements ICustomClone {
   protected _updateFlag: BoolUpdateFlag;
   @deepClone
   protected _shapes: ColliderShape[] = [];
-  protected _collisionGroup: number = 0;
+  protected _collisionLayer: Layer = Layer.Layer0;
 
   /**
    * The shapes of this collider.
@@ -36,18 +36,20 @@ export class Collider extends Component implements ICustomClone {
   }
 
   /**
-   * The collision group of this collider, only support 0-31.
+   * The collision group of this collider, default is Layer.Layer0, only support single layer.
    */
-  get collisionGroup(): number {
-    return this._collisionGroup;
+  get collisionLayer(): Layer {
+    return this._collisionLayer;
   }
 
-  set collisionGroup(value: number) {
-    if (value < 0 || value > 31) {
-      throw new Error("Collision group must be between 0 and 31");
+  set collisionLayer(value: Layer) {
+    // Check if value is a single layer (power of 2)
+    if (value !== Layer.Nothing && value !== Layer.Everything && (value & (value - 1)) !== 0) {
+      throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
     }
-    this._collisionGroup = value;
-    this._nativeCollider.setCollisionGroup(value);
+    const index = Math.log2(value);
+    this._collisionLayer = value;
+    this._nativeCollider.setCollisionLayer(index);
   }
 
   /**
@@ -148,14 +150,14 @@ export class Collider extends Component implements ICustomClone {
    * @internal
    */
   _handleShapesChanged(): void {
-    this._setCollisionGroup();
+    this._setCollisionLayer();
   }
 
   protected _syncNative(): void {
     for (let i = 0, n = this.shapes.length; i < n; i++) {
       this._addNativeShape(this.shapes[i]);
     }
-    this._setCollisionGroup();
+    this._setCollisionLayer();
   }
 
   /**
@@ -183,7 +185,7 @@ export class Collider extends Component implements ICustomClone {
     this._nativeCollider.removeShape(shape._nativeShape);
   }
 
-  protected _setCollisionGroup(): void {
-    this._nativeCollider.setCollisionGroup(this._collisionGroup);
+  protected _setCollisionLayer(): void {
+    this._nativeCollider.setCollisionLayer(this._collisionLayer);
   }
 }

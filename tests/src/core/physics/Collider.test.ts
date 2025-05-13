@@ -425,14 +425,14 @@ describe("Collider Layer Collision Tests", () => {
 
       script.reset();
 
-      engine.sceneManager.activeScene.physics.setColliderGroupCollision(1, 2, false);
+      engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, false);
 
       // @ts-ignore
       engine.sceneManager.activeScene.physics._update(1);
 
       expect(script.collisionDetected).toBe(false);
 
-      engine.sceneManager.activeScene.physics.setColliderGroupCollision(1, 2, true);
+      engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, true);
     });
 
     it("should handle manual collision group setting in LitePhysics", () => {
@@ -464,9 +464,9 @@ describe("Collider Layer Collision Tests", () => {
 
       script.reset();
 
-      collider1.collisionGroup = 10;
+      collider1.collisionLayer = Layer.Layer10;
 
-      engine.sceneManager.activeScene.physics.setColliderGroupCollision(10, 2, false);
+      engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer10, Layer.Layer2, false);
 
       // @ts-ignore
       engine.sceneManager.activeScene.physics._update(1);
@@ -474,7 +474,7 @@ describe("Collider Layer Collision Tests", () => {
       expect(script.collisionDetected).toBe(false);
 
       // 恢复默认设置
-      engine.sceneManager.activeScene.physics.setColliderGroupCollision(10, 2, true);
+      engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer10, Layer.Layer2, true);
     });
 
     afterEach(() => {
@@ -525,14 +525,14 @@ describe("Collider Layer Collision Tests", () => {
 
       script.reset();
 
-      engine.sceneManager.activeScene.physics.setColliderGroupCollision(1, 2, false);
+      engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, false);
 
       // @ts-ignore
       engine.sceneManager.activeScene.physics._update(1);
 
       expect(script.collisionDetected).toBe(false);
 
-      engine.sceneManager.activeScene.physics.setColliderGroupCollision(1, 2, true);
+      engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, true);
     });
 
     afterEach(() => {

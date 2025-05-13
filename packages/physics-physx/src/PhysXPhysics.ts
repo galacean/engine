@@ -250,17 +250,10 @@ export class PhysXPhysics implements IPhysics {
   }
 
   /**
-   * {@inheritDoc IPhysics.setColliderGroupCollision }
+   * {@inheritDoc IPhysics.setColliderLayerCollision }
    */
-  setColliderGroupCollision(group1: number, group2: number, collide: boolean): void {
-    this._physX.setGroupCollisionFlag(group1, group2, collide);
-  }
-
-  /**
-   * {@inheritDoc IPhysics.setColliderGroup }
-   */
-  setColliderGroup(collider: PhysXCollider, group: number): void {
-    this._physX.setGroup(collider._pxActor, group);
+  setColliderLayerCollision(layer1: number, layer2: number, collide: boolean): void {
+    this._physX.setGroupCollisionFlag(layer1, layer2, collide);
   }
 
   private _init(physX: any): void {

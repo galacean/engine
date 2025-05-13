@@ -141,12 +141,5 @@ export interface IPhysics {
    * @param group2 - The second collision group
    * @param collide - Whether the groups should collide
    */
-  setColliderGroupCollision(group1: number, group2: number, collide: boolean): void;
-
-  /**
-   * Set the collision group for a collider.
-   * @param collider - The collider to set the group for
-   * @param group - The group to set
-   */
-  setColliderGroup(collider: ICollider, group: number): void;
+  setColliderLayerCollision(group1: number, group2: number, collide: boolean): void;
 }

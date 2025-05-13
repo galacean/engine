@@ -39,7 +39,7 @@ function createPhysicsSphere(
   position: Vector3,
   radius: number,
   color: Vector3,
-  collisionGroup: number
+  collisionLayer: Layer
 ) {
   const sphereEntity = rootEntity.createChild(name);
   sphereEntity.transform.setPosition(position.x, position.y, position.z);
@@ -59,7 +59,7 @@ function createPhysicsSphere(
   physicsSphere.radius = radius;
 
   const sphereCollider = sphereEntity.addComponent(DynamicCollider);
-  sphereCollider.collisionGroup = collisionGroup;
+  sphereCollider.collisionLayer = collisionLayer;
   sphereCollider.addShape(physicsSphere);
 
   return sphereEntity;
@@ -108,13 +108,27 @@ WebGLEngine.create({ canvas: "canvas", physics: new LitePhysics() }).then((engin
   groundShape.size = cubeSize;
   groundCollider.addShape(groundShape);
 
-  groundCollider.collisionGroup = 3;
+  groundCollider.collisionLayer = Layer.Layer3;
 
-  const sphere1 = createPhysicsSphere(rootEntity, "RedSphere", new Vector3(-2, 5, 0), 0.5, new Vector3(1, 0, 0), 1);
+  const sphere1 = createPhysicsSphere(
+    rootEntity,
+    "RedSphere",
+    new Vector3(-2, 5, 0),
+    0.5,
+    new Vector3(1, 0, 0),
+    Layer.Layer1
+  );
 
-  const sphere2 = createPhysicsSphere(rootEntity, "BlueSphere", new Vector3(2, 5, 0), 0.5, new Vector3(0, 0, 1), 2);
+  const sphere2 = createPhysicsSphere(
+    rootEntity,
+    "BlueSphere",
+    new Vector3(2, 5, 0),
+    0.5,
+    new Vector3(0, 0, 1),
+    Layer.Layer2
+  );
 
-  scene.physics.setColliderGroupCollision(2, 3, false);
+  scene.physics.setColliderLayerCollision(Layer.Layer2, Layer.Layer3, false);
   updateForE2E(engine, 1000, 38);
   initScreenshot(engine, camera);
 });

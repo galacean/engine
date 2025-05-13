@@ -26,7 +26,7 @@ import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
 import { LitePhysicsManager } from "./LitePhysicsManager";
 
 export class LitePhysics implements IPhysics {
-  private _groupCollisionMatrix: boolean[] = [];
+  private _layerCollisionMatrix: boolean[] = [];
 
   /**
    * {@inheritDoc IPhysics.initialize }
@@ -154,41 +154,41 @@ export class LitePhysics implements IPhysics {
   }
 
   /**
-   * {@inheritDoc IPhysics.setColliderGroup }
+   * {@inheritDoc IPhysics.setColliderLayer }
    */
-  setColliderGroup(collider: LiteCollider, group: Layer): void {
-    collider._collisionGroup = group;
+  setColliderLayer(collider: LiteCollider, layer: Layer): void {
+    collider._collisionLayer = layer;
   }
 
   /**
-   * {@inheritDoc IPhysics.setColliderGroupCollision }
+   * {@inheritDoc IPhysics.setColliderLayerCollision }
    */
-  setColliderGroupCollision(group1: number, group2: number, collide: boolean): void {
-    const index = this._getColliderGroupIndex(group1, group2);
+  setColliderLayerCollision(layer1: number, layer2: number, collide: boolean): void {
+    const index = this._getColliderLayerIndex(layer1, layer2);
     if (index > -1) {
-      this._groupCollisionMatrix[index] = collide;
+      this._layerCollisionMatrix[index] = collide;
     }
   }
 
   /**
-   * {@inheritDoc IPhysics.getColliderGroupCollision }
+   * @internal
    */
-  getColliderGroupCollision(group1: number, group2: number): boolean {
-    const index = this._getColliderGroupIndex(group1, group2);
+  _getColliderLayerCollision(layer1: number, layer2: number): boolean {
+    const index = this._getColliderLayerIndex(layer1, layer2);
     if (index > -1) {
-      return this._groupCollisionMatrix[index] ?? true;
+      return this._layerCollisionMatrix[index] ?? true;
     }
     // If either layer is Layer.Nothing, they cant collide
     return false;
   }
 
-  private _getColliderGroupIndex(group1: number, group2: number): number {
-    if (group1 === 32 || group2 === 32) {
+  private _getColliderLayerIndex(layer1: number, layer2: number): number {
+    if (layer1 === 32 || layer2 === 32) {
       return -1;
     }
 
-    const min = Math.min(group1, group2);
-    const max = Math.max(group1, group2);
+    const min = Math.min(layer1, layer2);
+    const max = Math.max(layer1, layer2);
 
     // Calculate a unique index for the layer pair using the triangular number formula
     // This ensures that each layer combination maps to a unique index in the collision matrix

@@ -346,42 +346,26 @@ describe("Physics Test", () => {
       expect(collisionTestScript.onTriggerExit).toHaveBeenCalledTimes(1);
     });
 
-    it("Collision Group Tests", () => {
-      describe("should set and get collision group settings correctly", () => {
-        it("should set and get collision group settings correctly", () => {
-          physicsScene.setColliderGroupCollision(0, 1, true);
-          physicsScene.setColliderGroupCollision(0, 2, false);
-          physicsScene.setColliderGroupCollision(1, 2, true);
-
-          expect(physicsScene.getColliderGroupCollision(0, 1)).toBe(true);
-          expect(physicsScene.getColliderGroupCollision(0, 2)).toBe(false);
-          expect(physicsScene.getColliderGroupCollision(1, 2)).toBe(true);
-
-          expect(physicsScene.getColliderGroupCollision(1, 0)).toBe(true);
-          expect(physicsScene.getColliderGroupCollision(2, 0)).toBe(false);
-          expect(physicsScene.getColliderGroupCollision(2, 1)).toBe(true);
-        });
+    describe("Collision Group Tests", () => {
+      it("should set and get collision group settings correctly", () => {
+        physicsScene.setColliderLayerCollision(Layer.Layer0, Layer.Layer1, true);
+        physicsScene.setColliderLayerCollision(Layer.Layer0, Layer.Layer2, false);
+        physicsScene.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, true);
       });
 
-      describe("should handle edge cases in collision group matrix", () => {
-        it("should handle edge cases in collision group matrix", () => {
-          const maxGroup = 31;
+      it("should handle edge cases in collision group matrix", () => {
+        const maxGroup = Layer.Layer31;
 
-          physicsScene.setColliderGroupCollision(maxGroup, 0, false);
-          expect(physicsScene.getColliderGroupCollision(maxGroup, 0)).toBe(false);
-
-          physicsScene.setColliderGroupCollision(maxGroup, 0, true);
-        });
+        physicsScene.setColliderLayerCollision(maxGroup, Layer.Layer0, false);
+        physicsScene.setColliderLayerCollision(maxGroup, Layer.Layer0, true);
       });
 
-      describe("should handle invalid collision groups correctly", () => {
-        it("should handle invalid collision groups correctly", () => {
-          const invalidGroup = -1;
-
-          expect(physicsScene.getColliderGroupCollision(invalidGroup, 0)).toBe(true);
-          expect(physicsScene.getColliderGroupCollision(0, invalidGroup)).toBe(true);
-          expect(physicsScene.getColliderGroupCollision(invalidGroup, invalidGroup)).toBe(true);
-        });
+      it("should handle invalid collision groups correctly", () => {
+        const invalidGroup = -1;
+        // @ts-ignore
+        expect(() => physicsScene.setColliderLayerCollision(invalidGroup, Layer.Layer0, false)).to.throw();
+        // @ts-ignore
+        expect(() => physicsScene.setColliderLayerCollision(invalidGroup, Layer.Layer0, true)).to.throw();
       });
     });
 
@@ -544,42 +528,26 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
-    it("Collision Group Tests", () => {
-      describe("should set and get collision group settings correctly", () => {
-        it("should set and get collision group settings correctly", () => {
-          physicsScene.setColliderGroupCollision(0, 1, true);
-          physicsScene.setColliderGroupCollision(0, 2, false);
-          physicsScene.setColliderGroupCollision(1, 2, true);
-
-          expect(physicsScene.getColliderGroupCollision(0, 1)).toBe(true);
-          expect(physicsScene.getColliderGroupCollision(0, 2)).toBe(false);
-          expect(physicsScene.getColliderGroupCollision(1, 2)).toBe(true);
-
-          expect(physicsScene.getColliderGroupCollision(1, 0)).toBe(true);
-          expect(physicsScene.getColliderGroupCollision(2, 0)).toBe(false);
-          expect(physicsScene.getColliderGroupCollision(2, 1)).toBe(true);
-        });
+    describe("Collision Group Tests", () => {
+      it("should set and get collision group settings correctly", () => {
+        physicsScene.setColliderLayerCollision(Layer.Layer0, Layer.Layer1, true);
+        physicsScene.setColliderLayerCollision(Layer.Layer0, Layer.Layer2, false);
+        physicsScene.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, true);
       });
 
-      describe("should handle edge cases in collision group matrix", () => {
-        it("should handle edge cases in collision group matrix", () => {
-          const maxGroup = 31;
+      it("should handle edge cases in collision group matrix", () => {
+        const maxGroup = Layer.Layer31;
 
-          physicsScene.setColliderGroupCollision(maxGroup, 0, false);
-          expect(physicsScene.getColliderGroupCollision(maxGroup, 0)).toBe(false);
-
-          physicsScene.setColliderGroupCollision(maxGroup, 0, true);
-        });
+        physicsScene.setColliderLayerCollision(maxGroup, Layer.Layer0, false);
+        physicsScene.setColliderLayerCollision(maxGroup, Layer.Layer0, true);
       });
 
-      describe("should handle invalid collision groups correctly", () => {
-        it("should handle invalid collision groups correctly", () => {
-          const invalidGroup = -1;
-
-          expect(physicsScene.getColliderGroupCollision(invalidGroup, 0)).toBe(true);
-          expect(physicsScene.getColliderGroupCollision(0, invalidGroup)).toBe(true);
-          expect(physicsScene.getColliderGroupCollision(invalidGroup, invalidGroup)).toBe(true);
-        });
+      it("should handle invalid collision groups correctly", () => {
+        const invalidGroup = -1;
+        // @ts-ignore
+        expect(() => physicsScene.setColliderLayerCollision(invalidGroup, Layer.Layer0, false)).to.throw();
+        // @ts-ignore
+        expect(() => physicsScene.setColliderLayerCollision(invalidGroup, Layer.Layer0, true)).to.throw();
       });
     });
 

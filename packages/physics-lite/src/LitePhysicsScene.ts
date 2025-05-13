@@ -365,14 +365,14 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   private _checkColliderCollide(collider1: LiteCollider, collider2: LiteCollider): boolean {
-    const group1 = collider1._collisionGroup;
-    const group2 = collider2._collisionGroup;
+    const group1 = collider1._collisionLayer;
+    const group2 = collider2._collisionLayer;
 
     if (group1 === group2) {
       return true;
     }
 
-    return this._physics.getColliderGroupCollision(group1, group2);
+    return this._physics._getColliderLayerCollision(group1, group2);
   }
 }
 
