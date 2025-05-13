@@ -28,8 +28,8 @@ The property descriptions are as follows:
 | `Color` | Text color |
 | `FontSize` | Font size of the text |
 | `Font` | Custom font |
-| `Width` | The width of the text in 3D space, used to turn on the line break mode. The displayed text will be wrapped and horizontally aligned according to this width. |
-| `Height` | The height of the text in 3D space, when the total height of the text exceeds the set Height, it is processed with the OverflowMode setting and vertical alignment is used |
+| `Width` | The width of the text in 3D space: 1.Determines the display width of the text when line wrap mode is turned on. When the text width reaches or exceeds this setting value, the text will automatically wrap to the next line to continue displaying 2.When aligning horizontally, the horizontal position of the text is also determined based on this width. For example, when aligning left, the text paragraph starts from the left edge and displays multiple lines of text with this width as the maximum line width; when aligning center, each line of text will be displayed in the center of the container based on this width to ensure that the overall text is evenly distributed in the horizontal direction|
+| `Height` | The height of the text in 3D space: 1.When the total height of the text exceeds this setting, it will be processed accordingly according to the selected overflow mode (Overflow Mode), such as truncation display, overflow display 2.When aligning vertically, the vertical position of the text is also determined based on this height. For example, when aligning to the top, the text paragraph starts from the upper edge; when aligning to the center, the text will be displayed in the center of the container based on this height, ensuring that the overall text is evenly distributed in the vertical direction|
 | `LineSpacing` | Line spacing |
 | `FontStyle` | Font style settings: bold/italic |
 | `HorizontalAlignment` | Horizontal alignment options: Left/Center/Right |
