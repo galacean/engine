@@ -4,6 +4,11 @@ varying vec4 v_Color;
 varying vec2 v_TextureCoordinate;
 uniform sampler2D material_BaseTexture;
 uniform vec4 material_BaseColor;
+ 
+uniform mediump vec3 material_EmissiveColor;
+#ifdef MATERIAL_HAS_EMISSIVETEXTURE
+    uniform sampler2D material_EmissiveTexture;
+#endif
 
 #ifdef RENDERER_MODE_MESH
 	varying vec4 v_MeshColor;
@@ -17,15 +22,16 @@ void main() {
 	#endif
 
 	#ifdef MATERIAL_HAS_BASETEXTURE
-		vec4 textureColor = texture2D(material_BaseTexture,v_TextureCoordinate);
-		#ifndef ENGINE_IS_COLORSPACE_GAMMA
-            textureColor = gammaToLinear(textureColor);
-        #endif
-		color *= textureColor;
+		color *= texture2DSRGB(material_BaseTexture, v_TextureCoordinate);
 	#endif
-	gl_FragColor = color; 
+	
+	// Emissive
+	vec3 emissiveRadiance = material_EmissiveColor;
+	#ifdef MATERIAL_HAS_EMISSIVETEXTURE
+		emissiveRadiance *= texture2DSRGB(material_EmissiveTexture, v_TextureCoordinate).rgb;
+	#endif
 
-	 #ifndef ENGINE_IS_COLORSPACE_GAMMA
-        gl_FragColor = linearToGamma(gl_FragColor);
-    #endif
+	color.rgb += emissiveRadiance;
+
+	gl_FragColor = color;
 }

@@ -1,10 +1,10 @@
-import { Engine } from "@galacean/engine-core";
+import { AssetPromise, Engine } from "@galacean/engine-core";
 import type { BufferReader } from "./BufferReader";
 
 export const decoderMap: Record<
   string,
   {
-    decode: (engine: Engine, bufferReader: BufferReader) => Promise<any>;
+    decode: (engine: Engine, bufferReader: BufferReader) => AssetPromise<any>;
   }
 > = {};
 

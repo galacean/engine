@@ -15,7 +15,6 @@ import { PhysicsScene } from "./physics/PhysicsScene";
 import { PostProcessManager } from "./postProcess";
 import { ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
-import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
 import { ShadowResolution } from "./shadow/enum/ShadowResolution";
@@ -64,8 +63,6 @@ export class Scene extends EngineObject {
   _isActiveInEngine: boolean = false;
   /** @internal */
   _sceneManager: SceneManager;
-  /** @internal */
-  _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
   _rootEntities: Entity[] = [];
 
@@ -484,13 +481,6 @@ export class Scene extends EngineObject {
     } else {
       shaderData.disableMacro("SCENE_SHADOW_TYPE");
     }
-
-    // union scene and camera macro.
-    ShaderMacroCollection.unionCollection(
-      this.engine._macroCollection,
-      shaderData._macroCollection,
-      this._globalShaderMacro
-    );
   }
 
   /**

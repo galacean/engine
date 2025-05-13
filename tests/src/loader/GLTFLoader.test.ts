@@ -81,6 +81,21 @@ beforeAll(async function () {
             sampler: 0,
             source: 0,
             name: "test"
+          },
+          {
+            sampler: 0,
+            source: 0,
+            name: "test"
+          },
+          {
+            sampler: 0,
+            source: 0,
+            name: "test"
+          },
+          {
+            sampler: 0,
+            source: 0,
+            name: "test"
           }
         ],
         samplers: [
@@ -188,18 +203,18 @@ beforeAll(async function () {
                 }
               },
               metallicRoughnessTexture: {
-                index: 0
+                index: 3
               }
             },
             emissiveTexture: {
               index: 0
             },
             normalTexture: {
-              index: 0,
+              index: 1,
               scale: 2
             },
             occlusionTexture: {
-              index: 0,
+              index: 2,
               strength: 2,
               texCoord: 1
             },
@@ -423,7 +438,7 @@ describe("glTF Loader test", function () {
     expect(defaultSceneRoot).to.instanceOf(Entity);
 
     // texture
-    expect(textures.length).to.equal(1);
+    expect(textures.length).to.equal(4);
     expect(textures[0].name).to.equal("test");
     expect(textures[0].filterMode).to.equal(TextureFilterMode.Trilinear);
     expect(textures[0].wrapModeU).to.equal(TextureWrapMode.Repeat);
@@ -445,6 +460,10 @@ describe("glTF Loader test", function () {
     expect(pbrMaterials[0].clearCoatNormalTexture).to.exist;
     expect(pbrMaterials[2].baseTexture).to.exist;
     expect(pbrMaterials[2].specularGlossinessTexture).to.exist;
+    expect(pbrMaterials[0].baseTexture.isSRGBColorSpace).to.be.true;
+    expect(pbrMaterials[0].roughnessMetallicTexture.isSRGBColorSpace).to.be.false;
+    expect(pbrMaterials[0].normalTexture.isSRGBColorSpace).to.be.false;
+    expect(pbrMaterials[0].occlusionTexture.isSRGBColorSpace).to.be.false;
 
     // mesh
     expect(meshes.length).to.equal(1);

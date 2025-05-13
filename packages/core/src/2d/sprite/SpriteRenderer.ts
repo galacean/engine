@@ -18,6 +18,7 @@ import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "./Sprite";
+import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -32,7 +33,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
 
   @ignoreClone
   private _drawMode: SpriteDrawMode;
-  @assignmentClone
+  @ignoreClone
   private _assembler: ISpriteAssembler;
   @assignmentClone
   private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
@@ -240,11 +241,11 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   /**
    * The mask layer the sprite renderer belongs to.
    */
-  get maskLayer(): number {
+  get maskLayer(): SpriteMaskLayer {
     return this._maskLayer;
   }
 
-  set maskLayer(value: number) {
+  set maskLayer(value: SpriteMaskLayer) {
     this._maskLayer = value;
   }
 
@@ -287,7 +288,6 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
    */
   override _cloneTo(target: SpriteRenderer, srcRoot: Entity, targetRoot: Entity): void {
     super._cloneTo(target, srcRoot, targetRoot);
-    target._assembler.resetData(target);
     target.sprite = this._sprite;
     target.drawMode = this._drawMode;
   }

@@ -1,4 +1,4 @@
-import { PBRSpecularMaterial, Texture2D } from "@galacean/engine-core";
+import { Logger, PBRSpecularMaterial, Texture2D } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
 import type { IMaterial } from "../GLTFSchema";
 import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
@@ -20,25 +20,30 @@ class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
 
     if (diffuseFactor) {
       material.baseColor = new Color(
-        Color.linearToGammaSpace(diffuseFactor[0]),
-        Color.linearToGammaSpace(diffuseFactor[1]),
-        Color.linearToGammaSpace(diffuseFactor[2]),
+        Color.linearToSRGBSpace(diffuseFactor[0]),
+        Color.linearToSRGBSpace(diffuseFactor[1]),
+        Color.linearToSRGBSpace(diffuseFactor[2]),
         diffuseFactor[3]
       );
     }
 
     if (diffuseTexture) {
-      context.get<Texture2D>(GLTFParserType.Texture, diffuseTexture.index).then((texture) => {
-        material.baseTexture = texture;
-        GLTFParser.executeExtensionsAdditiveAndParse(diffuseTexture.extensions, context, material, diffuseTexture);
-      });
+      context
+        .get<Texture2D>(GLTFParserType.Texture, diffuseTexture.index)
+        .then((texture) => {
+          material.baseTexture = texture;
+          GLTFParser.executeExtensionsAdditiveAndParse(diffuseTexture.extensions, context, material, diffuseTexture);
+        })
+        .catch((e) => {
+          Logger.error("KHR_materials_pbrSpecularGlossiness: diffuse texture error", e);
+        });
     }
 
     if (specularFactor) {
       material.specularColor = new Color(
-        Color.linearToGammaSpace(specularFactor[0]),
-        Color.linearToGammaSpace(specularFactor[1]),
-        Color.linearToGammaSpace(specularFactor[2])
+        Color.linearToSRGBSpace(specularFactor[0]),
+        Color.linearToSRGBSpace(specularFactor[1]),
+        Color.linearToSRGBSpace(specularFactor[2])
       );
     }
 
@@ -49,9 +54,14 @@ class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
     if (specularGlossinessTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(specularGlossinessTexture, "Specular glossiness");
 
-      context.get<Texture2D>(GLTFParserType.Texture, specularGlossinessTexture.index).then((texture) => {
-        material.specularGlossinessTexture = texture;
-      });
+      context
+        .get<Texture2D>(GLTFParserType.Texture, specularGlossinessTexture.index)
+        .then((texture) => {
+          material.specularGlossinessTexture = texture;
+        })
+        .catch((e) => {
+          Logger.error("KHR_materials_pbrSpecularGlossiness: specular glossiness texture error", e);
+        });
     }
 
     material.name = ownerSchema.name;

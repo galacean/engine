@@ -63,9 +63,7 @@ void main() {
 
     gl_FragColor = vec4(material_BaseColor.rgb, saturate(1.0 - shadowAttenuation) * material_BaseColor.a);
     
-    #ifndef ENGINE_IS_COLORSPACE_GAMMA
-        gl_FragColor = linearToGamma(gl_FragColor);
-    #endif
+    gl_FragColor = linearToGamma(gl_FragColor);
 }
 `,
   { pipelineStage: "Forward" }

@@ -23,7 +23,6 @@ import { SceneManager } from "./SceneManager";
 import { ResourceManager } from "./asset/ResourceManager";
 import { EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
-import { ColorSpace } from "./enums/ColorSpace";
 import { InputManager } from "./input";
 import { Material } from "./material/Material";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
@@ -43,6 +42,7 @@ import { UIUtils } from "./ui/UIUtils";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
+import { FinalPass } from "./postProcess/FinalPass";
 
 ShaderPool.init();
 
@@ -51,9 +51,11 @@ ShaderPool.init();
  */
 export class Engine extends EventDispatcher {
   /** @internal */
-  static _gammaMacro: ShaderMacro = ShaderMacro.getByName("ENGINE_IS_COLORSPACE_GAMMA");
+  static _noDepthTextureMacro = ShaderMacro.getByName("ENGINE_NO_DEPTH_TEXTURE");
   /** @internal */
-  static _noDepthTextureMacro: ShaderMacro = ShaderMacro.getByName("ENGINE_NO_DEPTH_TEXTURE");
+  static _noSRGBSupportMacro = ShaderMacro.getByName("ENGINE_NO_SRGB");
+  /** @internal */
+  static _outputSRGBCorrectMacro = ShaderMacro.getByName("ENGINE_OUTPUT_SRGB_CORRECT");
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
   /** @internal */
@@ -106,8 +108,8 @@ export class Engine extends EventDispatcher {
   _shaderProgramPools: ShaderProgramPool[] = [];
   /** @internal */
   _fontMap: Record<string, Font> = {};
-  /** @internal @todo: temporary solution */
-  _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
+  /** @internal */
+  _macroCollection = new ShaderMacroCollection();
 
   /** @internal */
   _postProcessPassNeedRefresh = false;
@@ -254,9 +256,13 @@ export class Engine extends EventDispatcher {
     if (!hardwareRenderer.canIUse(GLCapabilityType.depthTexture)) {
       this._macroCollection.enable(Engine._noDepthTextureMacro);
     } else {
-      const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false);
+      const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false, false);
       depthTexture2D.isGCIgnored = true;
       this._depthTexture2D = depthTexture2D;
+    }
+
+    if (!hardwareRenderer.canIUse(GLCapabilityType.sRGB)) {
+      this._macroCollection.enable(Engine._noSRGBSupportMacro);
     }
 
     const meshMagentaMaterial = new Material(this, Shader.find("unlit"));
@@ -268,11 +274,6 @@ export class Engine extends EventDispatcher {
     particleMagentaMaterial.isGCIgnored = true;
     particleMagentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
     this._particleMagentaMaterial = particleMagentaMaterial;
-
-    const innerSettings = this._settings;
-    const colorSpace = configuration.colorSpace || ColorSpace.Linear;
-    colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
-    innerSettings.colorSpace = colorSpace;
 
     this._basicResources = new BasicResources(this);
     this._particleBufferUtils = new ParticleBufferUtils(this);
@@ -491,10 +492,7 @@ export class Engine extends EventDispatcher {
 
   private _destroy(): void {
     this._sceneManager._destroyAllScene();
-
     this._resourceManager._destroy();
-    this._textDefaultFont = null;
-    this._fontMap = null;
 
     this.inputManager._destroy();
     this._batcherManager.destroy();
@@ -504,15 +502,10 @@ export class Engine extends EventDispatcher {
     // Cancel animation
     this.pause();
 
+    Shader._clear(this);
     this._hardwareRenderer.destroy();
 
     this.removeAllEventListeners();
-
-    this._animate = null;
-    this._sceneManager = null;
-    this._resourceManager = null;
-    this._canvas = null;
-    this._time = null;
 
     this._waitingDestroy = false;
     this._destroyed = true;
@@ -660,6 +653,7 @@ export class Engine extends EventDispatcher {
     this._hardwareRenderer.resetState();
     this._lastRenderState = new RenderState();
     // Clear shader pools
+    Shader._clear(this);
     this._shaderProgramPools.length = 0;
 
     const { resourceManager } = this;
@@ -704,8 +698,6 @@ export interface EngineConfiguration {
   physics?: IPhysics;
   /** XR Device. */
   xrDevice?: IXRDevice;
-  /** Color space. */
-  colorSpace?: ColorSpace;
   /** Shader lab. */
   shaderLab?: IShaderLab;
   /** Input options. */

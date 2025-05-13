@@ -1,4 +1,4 @@
-import { Engine } from "@galacean/engine-core";
+import { AssetPromise, Engine } from "@galacean/engine-core";
 import { BufferReader } from "./utils/BufferReader";
 import { decoderMap } from "./utils/Decorator";
 import { FileHeader } from "./utils/FileHeader";
@@ -15,7 +15,7 @@ export type { IModelMesh } from "./resources/mesh/IModelMesh";
  * @param engine - engine
  * @returns
  */
-export function decode<T>(arrayBuffer: ArrayBuffer, engine: Engine): Promise<T> {
+export function decode<T>(arrayBuffer: ArrayBuffer, engine: Engine): AssetPromise<T> {
   const header = FileHeader.decode(arrayBuffer);
   const bufferReader = new BufferReader(new Uint8Array(arrayBuffer), header.headerLength, header.dataLength);
   return decoderMap[header.type].decode(engine, bufferReader).then((object) => {

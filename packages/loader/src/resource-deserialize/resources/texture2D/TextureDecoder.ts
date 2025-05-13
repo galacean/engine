@@ -1,11 +1,11 @@
-import { Engine, Texture2D } from "@galacean/engine-core";
+import { AssetPromise, Engine, Texture2D } from "@galacean/engine-core";
 import { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
 
 @decoder("Texture2D")
 export class Texture2DDecoder {
-  static decode(engine: Engine, bufferReader: BufferReader): Promise<Texture2D> {
-    return new Promise((resolve, reject) => {
+  static decode(engine: Engine, bufferReader: BufferReader): AssetPromise<Texture2D> {
+    return new AssetPromise((resolve, reject) => {
       const objectId = bufferReader.nextStr();
       const mipmap = !!bufferReader.nextUint8();
       const filterMode = bufferReader.nextUint8();
@@ -16,11 +16,12 @@ export class Texture2DDecoder {
       const width = bufferReader.nextUint16();
       const height = bufferReader.nextUint16();
       const isPixelBuffer = bufferReader.nextUint8();
+      const isSRGBColorSpace = !!bufferReader.nextUint8();
 
       const mipCount = bufferReader.nextUint8();
       const imagesData = bufferReader.nextImagesData(mipCount);
 
-      const texture2D = new Texture2D(engine, width, height, format, mipmap);
+      const texture2D = new Texture2D(engine, width, height, format, mipmap, isSRGBColorSpace);
       texture2D.filterMode = filterMode;
       texture2D.anisoLevel = anisoLevel;
       texture2D.wrapModeU = wrapModeU;

@@ -8,19 +8,19 @@ uniform vec4 renderer_texelSize;    // x: 1/width, y: 1/height, z: width, w: hei
 void main(){
 	#ifdef BLOOM_HQ
       vec2 texelSize = renderer_texelSize.xy;
-      mediump vec4 A = sampleTexture(renderer_BlitTexture, v_uv + texelSize * vec2(-1.0, -1.0));
-      mediump vec4 B = sampleTexture(renderer_BlitTexture, v_uv + texelSize * vec2(0.0, -1.0));
-      mediump vec4 C = sampleTexture(renderer_BlitTexture, v_uv + texelSize * vec2(1.0, -1.0));
-      mediump vec4 D = sampleTexture(renderer_BlitTexture, v_uv + texelSize * vec2(-0.5, -0.5));
-      mediump vec4 E = sampleTexture(renderer_BlitTexture, v_uv + texelSize * vec2(0.5, -0.5));
-      mediump vec4 F = sampleTexture(renderer_BlitTexture, v_uv + texelSize * vec2(-1.0, 0.0));
-      mediump vec4 G = sampleTexture(renderer_BlitTexture, v_uv);
-      mediump vec4 H = sampleTexture(renderer_BlitTexture, v_uv + texelSize * vec2(1.0, 0.0));
-      mediump vec4 I = sampleTexture(renderer_BlitTexture, v_uv + texelSize * vec2(-0.5, 0.5));
-      mediump vec4 J = sampleTexture(renderer_BlitTexture, v_uv + texelSize * vec2(0.5, 0.5));
-      mediump vec4 K = sampleTexture(renderer_BlitTexture, v_uv + texelSize * vec2(-1.0, 1.0));
-      mediump vec4 L = sampleTexture(renderer_BlitTexture, v_uv + texelSize * vec2(0.0, 1.0));
-      mediump vec4 M = sampleTexture(renderer_BlitTexture, v_uv + texelSize * vec2(1.0, 1.0));
+      mediump vec4 A = texture2DSRGB(renderer_BlitTexture, v_uv + texelSize * vec2(-1.0, -1.0));
+      mediump vec4 B = texture2DSRGB(renderer_BlitTexture, v_uv + texelSize * vec2(0.0, -1.0));
+      mediump vec4 C = texture2DSRGB(renderer_BlitTexture, v_uv + texelSize * vec2(1.0, -1.0));
+      mediump vec4 D = texture2DSRGB(renderer_BlitTexture, v_uv + texelSize * vec2(-0.5, -0.5));
+      mediump vec4 E = texture2DSRGB(renderer_BlitTexture, v_uv + texelSize * vec2(0.5, -0.5));
+      mediump vec4 F = texture2DSRGB(renderer_BlitTexture, v_uv + texelSize * vec2(-1.0, 0.0));
+      mediump vec4 G = texture2DSRGB(renderer_BlitTexture, v_uv);
+      mediump vec4 H = texture2DSRGB(renderer_BlitTexture, v_uv + texelSize * vec2(1.0, 0.0));
+      mediump vec4 I = texture2DSRGB(renderer_BlitTexture, v_uv + texelSize * vec2(-0.5, 0.5));
+      mediump vec4 J = texture2DSRGB(renderer_BlitTexture, v_uv + texelSize * vec2(0.5, 0.5));
+      mediump vec4 K = texture2DSRGB(renderer_BlitTexture, v_uv + texelSize * vec2(-1.0, 1.0));
+      mediump vec4 L = texture2DSRGB(renderer_BlitTexture, v_uv + texelSize * vec2(0.0, 1.0));
+      mediump vec4 M = texture2DSRGB(renderer_BlitTexture, v_uv + texelSize * vec2(1.0, 1.0));
 
       mediump vec2 scale = vec2(0.5, 0.125);
       mediump vec2 div = (1.0 / 4.0) * scale;
@@ -31,7 +31,7 @@ void main(){
       samplerColor += (F + G + L + K) * div.y;
       samplerColor += (G + H + M + L) * div.y;
     #else
-      mediump vec4 samplerColor = sampleTexture(renderer_BlitTexture, v_uv);
+      mediump vec4 samplerColor = texture2DSRGB(renderer_BlitTexture, v_uv);
     #endif
 
     mediump vec3 color = samplerColor.rgb;
@@ -51,9 +51,6 @@ void main(){
     // Clamp colors to positive once in prefilter. Encode can have a sqrt, and sqrt(-x) == NaN. Up/Downsample passes would then spread the NaN.
     color = max(color, 0.0);
 
-    gl_FragColor = vec4(color, samplerColor.a);
-    
-    #ifndef ENGINE_IS_COLORSPACE_GAMMA
-      gl_FragColor = linearToGamma(gl_FragColor);
-    #endif
+    // Bloom is addtive blend mode, we should set alpha 0 to avoid browser background color dark when canvas alpha and premultiplyAlpha is true
+    gl_FragColor = vec4(color, 0.0);
 }

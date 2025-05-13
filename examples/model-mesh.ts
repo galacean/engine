@@ -168,9 +168,7 @@ const shader = Shader.create(
       fogAmount = clamp(fogAmount, 0., 1.);
       gl_FragColor = mix(color, u_fogColor, fogAmount); 
 
-      #ifndef ENGINE_IS_COLORSPACE_GAMMA
-        gl_FragColor = linearToGamma(gl_FragColor);
-      #endif
+      gl_FragColor = linearToGamma(gl_FragColor);
     }
     `
 );

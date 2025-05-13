@@ -11,9 +11,6 @@ addTotalDirectRadiance(geometry, material, reflectedLight);
 // IBL diffuse
 #ifdef SCENE_USE_SH
     vec3 irradiance = getLightProbeIrradiance(scene_EnvSH, geometry.normal);
-    #ifdef ENGINE_IS_COLORSPACE_GAMMA
-        irradiance = linearToGamma(vec4(irradiance, 1.0)).rgb;
-    #endif
     irradiance *= scene_EnvMapLight.diffuseIntensity;
 #else
    vec3 irradiance = scene_EnvMapLight.diffuse * scene_EnvMapLight.diffuseIntensity;
@@ -62,11 +59,7 @@ vec4 finalColor = vec4(totalDiffuseColor + totalSpecularColor, material.opacity)
 // Emissive
 vec3 emissiveRadiance = material_EmissiveColor;
 #ifdef MATERIAL_HAS_EMISSIVETEXTURE
-    vec4 emissiveColor = texture2D(material_EmissiveTexture, v_uv);
-    #ifndef ENGINE_IS_COLORSPACE_GAMMA
-        emissiveColor = gammaToLinear(emissiveColor);
-    #endif
-    emissiveRadiance *= emissiveColor.rgb;
+    emissiveRadiance *= texture2DSRGB(material_EmissiveTexture, v_uv).rgb;
 #endif
 
 finalColor.rgb += emissiveRadiance;

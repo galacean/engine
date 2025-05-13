@@ -190,6 +190,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
       }
       add.length = del.length = 0;
     }
+    curPath.length = 0;
   }
 
   private _composedPath(element: UIRenderer, path: Entity[]): Entity[] {

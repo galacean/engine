@@ -1,9 +1,11 @@
 import { Matrix, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
+import { Engine } from "../Engine";
 import { VirtualCamera } from "../VirtualCamera";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
 import { Shader, ShaderProperty } from "../shader";
 import { ShaderTagKey } from "../shader/ShaderTagKey";
+import { RenderTarget, TextureCubeFace } from "../texture";
 
 /**
  * @internal
@@ -62,6 +64,18 @@ export class RenderContext {
     const projectionParams = this._projectionParams;
     projectionParams.set(flipProjection ? -1 : 1, virtualCamera.nearClipPlane, virtualCamera.farClipPlane, 0);
     shaderData.setVector4(RenderContext._cameraProjectionProperty, projectionParams);
+  }
+
+  setRenderTarget(destination: RenderTarget | null, viewport: Vector4, mipLevel?: number, faceIndex?: TextureCubeFace) {
+    const engine = this.camera.engine;
+    const rhi = engine._hardwareRenderer;
+    rhi.activeRenderTarget(destination, viewport, this.flipProjection, mipLevel, faceIndex);
+
+    if (destination) {
+      engine._macroCollection.disable(Engine._outputSRGBCorrectMacro);
+    } else {
+      engine._macroCollection.enable(Engine._outputSRGBCorrectMacro);
+    }
   }
 
   garbageCollection(): void {
