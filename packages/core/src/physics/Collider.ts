@@ -26,30 +26,13 @@ export class Collider extends Component implements ICustomClone {
   protected _updateFlag: BoolUpdateFlag;
   @deepClone
   protected _shapes: ColliderShape[] = [];
-  protected _collisionGroup: number;
-  protected _syncCollisionGroupByLayer = true;
+  protected _collisionGroup: number = 0;
 
   /**
    * The shapes of this collider.
    */
   get shapes(): Readonly<ColliderShape[]> {
     return this._shapes;
-  }
-
-  get syncCollisionGroupByLayer(): boolean {
-    return this._syncCollisionGroupByLayer;
-  }
-
-  set syncCollisionGroupByLayer(value: boolean) {
-    if (this._syncCollisionGroupByLayer !== value) {
-      this._syncCollisionGroupByLayer = value;
-      if (value) {
-        this._setCollisionGroupByLayer(this.entity.layer);
-        this.entity._registerModifyListener(this._onEntityModified);
-      } else {
-        this.entity._unRegisterModifyListener(this._onEntityModified);
-      }
-    }
   }
 
   /**
@@ -63,14 +46,8 @@ export class Collider extends Component implements ICustomClone {
     if (value < 0 || value > 31) {
       throw new Error("Collision group must be between 0 and 31");
     }
-    if (this._syncCollisionGroupByLayer) {
-      console.warn(
-        "Collision group is synced with layer, you can set syncCollisionGroupByLayer to false, and set collisionGroup manually"
-      );
-    } else {
-      this._collisionGroup = value;
-      this._nativeCollider.setCollisionGroup(value);
-    }
+    this._collisionGroup = value;
+    this._nativeCollider.setCollisionGroup(value);
   }
 
   /**
@@ -79,8 +56,6 @@ export class Collider extends Component implements ICustomClone {
   constructor(entity: Entity) {
     super(entity);
     this._updateFlag = entity.registerWorldChangeFlag();
-    this._onEntityModified = this._onEntityModified.bind(this);
-    entity._registerModifyListener(this._onEntityModified);
   }
 
   /**
@@ -196,7 +171,6 @@ export class Collider extends Component implements ICustomClone {
     }
     shapes.length = 0;
     this._nativeCollider.destroy();
-    this.entity._unRegisterModifyListener(this._onEntityModified);
   }
 
   protected _addNativeShape(shape: ColliderShape): void {
@@ -207,37 +181,6 @@ export class Collider extends Component implements ICustomClone {
   protected _removeNativeShape(shape: ColliderShape): void {
     shape._collider = null;
     this._nativeCollider.removeShape(shape._nativeShape);
-  }
-
-  protected _setCollisionGroupByLayer(layer: Layer): void {
-    if (layer === Layer.Nothing) {
-      if (this._collisionGroup !== 32) {
-        // Only support 0-31, 32 will skip collision check
-        this._collisionGroup = 32;
-        this._setCollisionGroup();
-      }
-      return;
-    }
-
-    if ((layer & (layer - 1)) !== 0) {
-      console.warn(
-        "Combined layers are not supported for collision groups, you can set syncCollisionGroupByLayer to false, and set collisionGroup manually"
-      );
-      return;
-    }
-
-    let newGroup = Math.log2(layer);
-    if (newGroup !== this._collisionGroup) {
-      this._collisionGroup = newGroup;
-      this._setCollisionGroup();
-    }
-  }
-
-  @ignoreClone
-  protected _onEntityModified(flag: EntityModifyFlags): void {
-    if (flag & EntityModifyFlags.Layer) {
-      this._setCollisionGroupByLayer(this.entity.layer);
-    }
   }
 
   protected _setCollisionGroup(): void {

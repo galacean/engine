@@ -17,6 +17,5 @@ export class StaticCollider extends Collider {
       transform.worldPosition,
       transform.worldRotationQuaternion
     );
-    this._setCollisionGroupByLayer(entity.layer);
   }
 }

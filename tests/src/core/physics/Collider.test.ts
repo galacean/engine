@@ -435,49 +435,6 @@ describe("Collider Layer Collision Tests", () => {
       engine.sceneManager.activeScene.physics.setColliderGroupCollision(1, 2, true);
     });
 
-    it("should handle collision groups correctly when entity layer changes", () => {
-      const entity1 = rootEntity.createChild("entity1");
-      const entity2 = rootEntity.createChild("entity2");
-
-      entity1.transform.position = new Vector3(0, 0, 0);
-      entity2.transform.position = new Vector3(0, 0, 0);
-
-      const collider1 = entity1.addComponent(DynamicCollider);
-      const shape1 = new BoxColliderShape();
-      shape1.size = new Vector3(1, 1, 1);
-      collider1.addShape(shape1);
-
-      const collider2 = entity2.addComponent(DynamicCollider);
-      const shape2 = new BoxColliderShape();
-      shape2.size = new Vector3(1, 1, 1);
-      collider2.addShape(shape2);
-
-      entity1.layer = Layer.Layer1;
-      entity2.layer = Layer.Layer2;
-
-      const script = entity1.addComponent(CollisionDetectionScript);
-
-      engine.sceneManager.activeScene.physics.setColliderGroupCollision(1, 2, false);
-
-      // @ts-ignore
-      engine.sceneManager.activeScene.physics._update(1);
-
-      expect(script.collisionDetected).toBe(false);
-
-      script.reset();
-
-      entity2.layer = Layer.Layer3;
-      entity2.layer = Layer.Layer3;
-
-      // @ts-ignore
-      engine.sceneManager.activeScene.physics._update(1);
-
-      expect(script.collisionDetected).toBe(true);
-
-      // 恢复默认设置
-      engine.sceneManager.activeScene.physics.setColliderGroupCollision(1, 2, true);
-    });
-
     it("should handle manual collision group setting in LitePhysics", () => {
       const entity1 = rootEntity.createChild("entity1");
       const entity2 = rootEntity.createChild("entity2");
@@ -507,7 +464,6 @@ describe("Collider Layer Collision Tests", () => {
 
       script.reset();
 
-      collider1.syncCollisionGroupByLayer = false;
       collider1.collisionGroup = 10;
 
       engine.sceneManager.activeScene.physics.setColliderGroupCollision(10, 2, false);
@@ -519,97 +475,6 @@ describe("Collider Layer Collision Tests", () => {
 
       // 恢复默认设置
       engine.sceneManager.activeScene.physics.setColliderGroupCollision(10, 2, true);
-      collider1.syncCollisionGroupByLayer = true;
-    });
-
-    it("should update collision group when syncCollisionGroupByLayer is true in LitePhysics", () => {
-      const entity1 = rootEntity.createChild("entity1");
-      const entity2 = rootEntity.createChild("entity2");
-
-      entity1.transform.position = new Vector3(0, 0, 0);
-      entity2.transform.position = new Vector3(0, 0, 0);
-
-      const collider1 = entity1.addComponent(DynamicCollider);
-      const shape1 = new BoxColliderShape();
-      shape1.size = new Vector3(1, 1, 1);
-      collider1.addShape(shape1);
-
-      const collider2 = entity2.addComponent(StaticCollider);
-      const shape2 = new BoxColliderShape();
-      shape2.size = new Vector3(1, 1, 1);
-      shape2.isTrigger = true;
-      collider2.addShape(shape2);
-
-      const script = entity2.addComponent(CollisionDetectionScript);
-
-      entity1.layer = Layer.Layer1;
-      entity2.layer = Layer.Layer2;
-
-      collider1.syncCollisionGroupByLayer = true;
-
-      engine.sceneManager.activeScene.physics.setColliderGroupCollision(1, 2, false);
-
-      // @ts-ignore
-      engine.sceneManager.activeScene.physics._update(1);
-      expect(script.collisionDetected).toBe(false);
-
-      script.reset();
-
-      entity1.layer = Layer.Layer3;
-
-      // @ts-ignore
-      engine.sceneManager.activeScene.physics._update(1);
-
-      expect(script.collisionDetected).toBe(true);
-
-      // 恢复默认设置
-      engine.sceneManager.activeScene.physics.setColliderGroupCollision(1, 2, true);
-    });
-
-    it("should not update collision group when syncCollisionGroupByLayer is false in LitePhysics", () => {
-      const entity1 = rootEntity.createChild("entity1");
-      const entity2 = rootEntity.createChild("entity2");
-
-      entity1.transform.position = new Vector3(0, 0, 0);
-      entity2.transform.position = new Vector3(0, 0, 0);
-
-      const collider1 = entity1.addComponent(DynamicCollider);
-      const shape1 = new BoxColliderShape();
-      shape1.size = new Vector3(1, 1, 1);
-      collider1.addShape(shape1);
-
-      const collider2 = entity2.addComponent(StaticCollider);
-      const shape2 = new BoxColliderShape();
-      shape2.size = new Vector3(1, 1, 1);
-      shape2.isTrigger = true;
-      collider2.addShape(shape2);
-
-      const script = entity2.addComponent(CollisionDetectionScript);
-
-      entity1.layer = Layer.Layer1;
-      entity2.layer = Layer.Layer2;
-
-      collider1.syncCollisionGroupByLayer = false;
-      collider1.collisionGroup = 10;
-
-      engine.sceneManager.activeScene.physics.setColliderGroupCollision(10, 2, false);
-
-      // @ts-ignore
-      engine.sceneManager.activeScene.physics._update(1);
-      expect(script.collisionDetected).toBe(false);
-
-      script.reset();
-
-      entity1.layer = Layer.Layer3;
-
-      // @ts-ignore
-      engine.sceneManager.activeScene.physics._update(1);
-
-      expect(script.collisionDetected).toBe(false);
-
-      // 恢复默认设置
-      engine.sceneManager.activeScene.physics.setColliderGroupCollision(10, 2, true);
-      collider1.syncCollisionGroupByLayer = true;
     });
 
     afterEach(() => {
@@ -667,49 +532,6 @@ describe("Collider Layer Collision Tests", () => {
 
       expect(script.collisionDetected).toBe(false);
 
-      engine.sceneManager.activeScene.physics.setColliderGroupCollision(1, 2, true);
-    });
-
-    it("should handle collision groups correctly when entity layer changes", () => {
-      const entity1 = rootEntity.createChild("entity1");
-      const entity2 = rootEntity.createChild("entity2");
-
-      entity1.transform.position = new Vector3(0, 0, 0);
-      entity2.transform.position = new Vector3(0, 0, 0);
-
-      const collider1 = entity1.addComponent(DynamicCollider);
-      const shape1 = new BoxColliderShape();
-      shape1.size = new Vector3(1, 1, 1);
-      collider1.addShape(shape1);
-
-      const collider2 = entity2.addComponent(DynamicCollider);
-      const shape2 = new BoxColliderShape();
-      shape2.size = new Vector3(1, 1, 1);
-      collider2.addShape(shape2);
-
-      entity1.layer = Layer.Layer1;
-      entity2.layer = Layer.Layer2;
-
-      const script = entity1.addComponent(CollisionDetectionScript);
-
-      engine.sceneManager.activeScene.physics.setColliderGroupCollision(1, 2, false);
-
-      // @ts-ignore
-      engine.sceneManager.activeScene.physics._update(1);
-
-      expect(script.collisionDetected).toBe(false);
-
-      script.reset();
-
-      entity2.layer = Layer.Layer3;
-      entity2.layer = Layer.Layer3;
-
-      // @ts-ignore
-      engine.sceneManager.activeScene.physics._update(1);
-
-      expect(script.collisionDetected).toBe(true);
-
-      // 恢复默认设置
       engine.sceneManager.activeScene.physics.setColliderGroupCollision(1, 2, true);
     });
 

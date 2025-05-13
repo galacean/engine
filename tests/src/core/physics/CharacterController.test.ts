@@ -376,60 +376,6 @@ describe("CharacterController", function () {
     engine.sceneManager.activeScene.physics.setColliderGroupCollision(1, 2, true);
   });
 
-  it("should update collision group with trigger when layer changes", () => {
-    const controller = roleEntity.getComponent(CharacterController);
-
-    const obstacleEntity = rootEntity.createChild("obstacle");
-    obstacleEntity.transform.position = new Vector3(0, 0, 2);
-
-    const obstacleCollider = obstacleEntity.addComponent(StaticCollider);
-    const triggerShape = new BoxColliderShape();
-    triggerShape.size = new Vector3(1, 1, 1);
-    triggerShape.isTrigger = true;
-    obstacleCollider.addShape(triggerShape);
-
-    class TriggerDetectionScript extends Script {
-      triggerEntered = false;
-
-      onTriggerEnter() {
-        this.triggerEntered = true;
-      }
-
-      reset() {
-        this.triggerEntered = false;
-      }
-    }
-
-    const triggerScript = obstacleEntity.addComponent(TriggerDetectionScript);
-
-    roleEntity.layer = Layer.Layer1;
-    obstacleEntity.layer = Layer.Layer2;
-
-    engine.sceneManager.activeScene.physics.setColliderGroupCollision(1, 2, false);
-
-    controller.move(new Vector3(0, 0, 2), 0.0001, 0.1);
-
-    // @ts-ignore
-    engine.sceneManager.activeScene.physics._update(1);
-
-    expect(triggerScript.triggerEntered).toBe(false);
-
-    roleEntity.transform.position = new Vector3(0, 0, 0);
-    triggerScript.reset();
-
-    obstacleEntity.layer = Layer.Layer3;
-
-    controller.move(new Vector3(0, 0, 2), 0.0001, 0.1);
-
-    // @ts-ignore
-    engine.sceneManager.activeScene.physics._update(1);
-
-    expect(triggerScript.triggerEntered).toBe(true);
-
-    // 恢复默认设置
-    engine.sceneManager.activeScene.physics.setColliderGroupCollision(1, 2, true);
-  });
-
   it("should handle manual collision group setting with trigger", () => {
     const controller = roleEntity.getComponent(CharacterController);
 
@@ -469,7 +415,6 @@ describe("CharacterController", function () {
     roleEntity.transform.position = new Vector3(0, 0, 0);
     triggerScript.reset();
 
-    controller.syncCollisionGroupByLayer = false;
     controller.collisionGroup = 10;
 
     engine.sceneManager.activeScene.physics.setColliderGroupCollision(10, 2, false);
@@ -482,7 +427,6 @@ describe("CharacterController", function () {
     expect(triggerScript.triggerEntered).toBe(false);
 
     engine.sceneManager.activeScene.physics.setColliderGroupCollision(10, 2, true);
-    controller.syncCollisionGroupByLayer = true;
 
     // 恢复默认设置
     engine.sceneManager.activeScene.physics.setColliderGroupCollision(1, 2, true);
