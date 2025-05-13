@@ -25,7 +25,7 @@ export class Collider extends Component implements ICustomClone {
   protected _updateFlag: BoolUpdateFlag;
   @deepClone
   protected _shapes: ColliderShape[] = [];
-  protected _collisionLayer: Layer = Layer.Layer0;
+  protected _collisionLayer: number = 0;
 
   /**
    * The shapes of this collider.
@@ -38,7 +38,7 @@ export class Collider extends Component implements ICustomClone {
    * The collision group of this collider, default is Layer.Layer0, only support single layer.
    */
   get collisionLayer(): Layer {
-    return this._collisionLayer;
+    return (1 << this._collisionLayer) as Layer;
   }
 
   set collisionLayer(value: Layer) {
@@ -47,7 +47,7 @@ export class Collider extends Component implements ICustomClone {
       throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
     }
     const index = Math.log2(value);
-    this._collisionLayer = value;
+    this._collisionLayer = index;
     this._nativeCollider.setCollisionLayer(index);
   }
 

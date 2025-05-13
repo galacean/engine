@@ -18,7 +18,7 @@ export interface ICollider {
 
   /**
    * Set the collision group of the collider.
-   * @param layer - The layer of the entity which the collider belongs to
+   * @param layer - The layer of the collider which the collider belongs to
    */
   setCollisionLayer(layer: number): void;
 
