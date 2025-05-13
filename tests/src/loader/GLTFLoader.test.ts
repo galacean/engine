@@ -406,7 +406,7 @@ describe("glTF Loader test", function () {
     expect(pbrMaterials[2]).to.instanceOf(PBRSpecularMaterial);
     expect(pbrMaterials[3]).to.instanceOf(BlinnPhongMaterial);
 
-    expect(pbrMaterials[0].baseColor).to.deep.equal(new Color(0.5, 0, 0, 1));
+    expect(pbrMaterials[0].baseColor).to.deep.equal(new Color(1, 0, 0, 1));
     expect(pbrMaterials[0].emissiveColor).to.deep.equal(new Color(1, 1, 1, 1));
     expect(pbrMaterials[0].renderFace).to.equal(RenderFace.Double);
     expect(pbrMaterials[0].isTransparent).to.be.true;
@@ -429,7 +429,7 @@ describe("glTF Loader test", function () {
     const directLight = entities[0].getComponent(SpotLight);
     expect(directLight).to.exist;
     expect(directLight.distance).to.equal(20);
-    expect(directLight.color).to.deep.equal(new Color(1, 0, 0, 1));
+    expect(directLight.color).to.deep.equal(new Color(0.5, 0, 0, 1));
     expect(directLight.angle).to.equal(Math.PI / 3);
     expect(directLight.penumbra).to.closeTo(Math.PI / 6, 1e-6);
 
