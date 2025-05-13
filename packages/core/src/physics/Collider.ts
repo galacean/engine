@@ -7,7 +7,6 @@ import { Transform } from "../Transform";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ColliderShape } from "./shape/ColliderShape";
 import { ICustomClone } from "../clone/ComponentCloner";
-import { EntityModifyFlags } from "../enums/EntityModifyFlags";
 import { Layer } from "../Layer";
 
 /**
