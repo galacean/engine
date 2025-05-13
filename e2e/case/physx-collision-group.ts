@@ -44,7 +44,7 @@ function createPhysicsSphere(
   position: Vector3,
   radius: number,
   color: Vector3,
-  layer: Layer
+  collisionGroup: number
 ) {
   const sphereEntity = rootEntity.createChild(name);
   sphereEntity.transform.setPosition(position.x, position.y, position.z);
@@ -62,9 +62,9 @@ function createPhysicsSphere(
   const physicsSphere = new SphereColliderShape();
   physicsSphere.radius = radius;
   physicsSphere.material.bounciness = 0.8;
-  sphereEntity.layer = layer;
 
   const sphereCollider = sphereEntity.addComponent(DynamicCollider);
+  sphereCollider.collisionGroup = collisionGroup;
   sphereEntity.addComponent(CheckScript);
   sphereCollider.addShape(physicsSphere);
 
@@ -117,27 +117,13 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
   groundShape.size = cubeSize;
   groundCollider.addShape(groundShape);
 
-  groundEntity.layer = Layer.Layer3;
+  groundCollider.collisionGroup = 3;
 
   // 创建可以碰撞的红色球体
-  const sphere1 = createPhysicsSphere(
-    rootEntity,
-    "RedSphere",
-    new Vector3(-2, 5, 0),
-    0.5,
-    new Vector3(1, 0, 0),
-    Layer.Layer1
-  );
+  const sphere1 = createPhysicsSphere(rootEntity, "RedSphere", new Vector3(-2, 5, 0), 0.5, new Vector3(1, 0, 0), 1);
 
   // 创建可以穿透的蓝色球体
-  const sphere2 = createPhysicsSphere(
-    rootEntity,
-    "BlueSphere",
-    new Vector3(2, 5, 0),
-    0.5,
-    new Vector3(0, 0, 1),
-    Layer.Layer2
-  );
+  const sphere2 = createPhysicsSphere(rootEntity, "BlueSphere", new Vector3(2, 5, 0), 0.5, new Vector3(0, 0, 1), 2);
 
   scene.physics.setColliderGroupCollision(2, 3, false);
 
