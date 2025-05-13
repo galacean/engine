@@ -33,7 +33,7 @@ WebGLEngine.create({
 
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
-  scene.background.solidColor = new Color(15 / 255, 15 / 255, 15 / 255, 1);
+  scene.background.solidColor = new Color(0.004776953480693729, 0.004776953480693729, 0.004776953480693729, 1);
 
   // Create camera
   const cameraEntity = rootEntity.createChild("camera_entity");
@@ -56,10 +56,15 @@ WebGLEngine.create({
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*Q60vQ40ZERsAAAAAAAAAAAAADil6AQ/original",
         type: AssetType.Texture2D
-      },
+      }
     ])
     .then((resources) => {
-      const fireEntity = createDebrisParticle(engine, <Texture2D>resources[0], <GLTFResource>resources[1],<Texture2D>resources[2]);
+      const fireEntity = createDebrisParticle(
+        engine,
+        <Texture2D>resources[0],
+        <GLTFResource>resources[1],
+        <Texture2D>resources[2]
+      );
       scene.addRootEntity(fireEntity);
 
       updateForE2E(engine, 500);
@@ -67,7 +72,12 @@ WebGLEngine.create({
     });
 });
 
-function createDebrisParticle(engine: Engine, texture: Texture2D, glTFResource: GLTFResource, emissionTexture: Texture2D): Entity {
+function createDebrisParticle(
+  engine: Engine,
+  texture: Texture2D,
+  glTFResource: GLTFResource,
+  emissionTexture: Texture2D
+): Entity {
   const particleEntity = new Entity(engine, "Debris");
 
   const particleRenderer = particleEntity.addComponent(ParticleRenderer);
@@ -98,14 +108,14 @@ function createDebrisParticle(engine: Engine, texture: Texture2D, glTFResource: 
   main.startRotationZ.constantMax = 360;
   main.startRotationZ.mode = ParticleCurveMode.TwoConstants;
 
-  main.startColor.constantMin.set(255 / 255, 255 / 255, 255 / 255, 1.0);
-  main.startColor.constantMax.set(13 / 255, 255 / 255, 0 / 255, 1.0);
+  main.startColor.constantMin.set(1.0, 1.0, 1.0, 1.0);
+  main.startColor.constantMax.set(0.004024717018496307, 1.0, 0.0, 1.0);
   main.startColor.mode = ParticleGradientMode.TwoConstants;
 
   // Emission module
   emission.rateOverTime.constant = 100;
 
-  emission.shape =new CircleShape();
+  emission.shape = new CircleShape();
 
   // Color over lifetime module
   colorOverLifetime.enabled = true;
@@ -116,7 +126,6 @@ function createDebrisParticle(engine: Engine, texture: Texture2D, glTFResource: 
   gradient.alphaKeys[1].alpha = 0;
   gradient.addAlphaKey(0.2, 1.0);
   gradient.addAlphaKey(0.8, 1.0);
-
 
   return particleEntity;
 }
