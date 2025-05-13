@@ -3,23 +3,24 @@
  * @category Light
  * @thumbnail https://mdn.alipayobjects.com/merchant_appfe/afts/img/A*7LKBQ4bsMiEAAAAAAAAAAAAADiR2AQ/original
  */
-import * as dat from "dat.gui";
 import {
   AmbientLight,
   AssetType,
   BackgroundMode,
   Camera,
+  Color,
   DiffuseMode,
   DirectLight,
+  Logger,
   MeshRenderer,
   PBRMaterial,
   PrimitiveMesh,
   SkyBoxMaterial,
   Vector3,
-  WebGLEngine,
-  Logger,
+  WebGLEngine
 } from "@galacean/engine";
 import { OrbitControl } from "@galacean/engine-toolkit-controls";
+import * as dat from "dat.gui";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
@@ -43,7 +44,12 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
 
   const lightEntity = rootEntity.createChild();
-  lightEntity.addComponent(DirectLight).intensity = 0.21404114048223255;
+  lightEntity.addComponent(DirectLight).color = new Color(
+    0.21404114048223255,
+    0.21404114048223255,
+    0.21404114048223255,
+    1
+  );
   lightEntity.transform.setPosition(-5, 5, 5);
   lightEntity.transform.lookAt(new Vector3(0, 0, 0));
 
@@ -59,7 +65,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   engine.resourceManager
     .load<AmbientLight>({
       type: AssetType.Env,
-      url: "https://gw.alipayobjects.com/os/bmw-prod/6470ea5e-094b-4a77-a05f-4945bf81e318.bin",
+      url: "https://gw.alipayobjects.com/os/bmw-prod/6470ea5e-094b-4a77-a05f-4945bf81e318.bin"
     })
     .then((ambientLight) => {
       scene.ambientLight = ambientLight;
@@ -73,26 +79,19 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     const info = {
       diffuseMode: "SphericalHarmonics",
       diffuseSolidColor: [0.212 * 255, 0.227 * 255, 0.259 * 255],
-      specularTexture: true,
+      specularTexture: true
     };
 
-    gui
-      .add(info, "diffuseMode", ["SolidColor", "SphericalHarmonics"])
-      .onChange((v) => {
-        if (v === "SphericalHarmonics") {
-          scene.ambientLight.diffuseMode = DiffuseMode.SphericalHarmonics;
-        } else if (v === "SolidColor") {
-          scene.ambientLight.diffuseMode = DiffuseMode.SolidColor;
-        }
-      });
+    gui.add(info, "diffuseMode", ["SolidColor", "SphericalHarmonics"]).onChange((v) => {
+      if (v === "SphericalHarmonics") {
+        scene.ambientLight.diffuseMode = DiffuseMode.SphericalHarmonics;
+      } else if (v === "SolidColor") {
+        scene.ambientLight.diffuseMode = DiffuseMode.SolidColor;
+      }
+    });
 
     gui.addColor(info, "diffuseSolidColor").onChange((v) => {
-      scene.ambientLight.diffuseSolidColor.set(
-        v[0] / 255,
-        v[1] / 255,
-        v[2] / 255,
-        1
-      );
+      scene.ambientLight.diffuseSolidColor.set(v[0] / 255, v[1] / 255, v[2] / 255, 1);
     });
 
     gui.add(info, "specularTexture").onChange((v) => {

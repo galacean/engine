@@ -3,19 +3,20 @@
  * @category Animation
  * @thumbnail https://mdn.alipayobjects.com/merchant_appfe/afts/img/A*mnVSQJk8jXgAAAAAAAAAAAAADiR2AQ/original
  */
-import * as dat from "dat.gui";
 import {
   Animator,
   AssetPromise,
   Camera,
+  Color,
   DirectLight,
   GLTFResource,
   Logger,
   SystemInfo,
   Vector3,
-  WebGLEngine,
+  WebGLEngine
 } from "@galacean/engine";
 import { OrbitControl } from "@galacean/engine-toolkit-controls";
+import * as dat from "dat.gui";
 const gui = new dat.GUI();
 
 Logger.enable();
@@ -32,7 +33,12 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   cameraEntity.addComponent(OrbitControl).target = new Vector3(0, 1, 0);
 
   const lightNode = rootEntity.createChild("light_node");
-  lightNode.addComponent(DirectLight).intensity = 0.31854677812509186;
+  lightNode.addComponent(DirectLight).color = new Color(
+    0.31854677812509186,
+    0.31854677812509186,
+    0.31854677812509186,
+    1
+  );
   lightNode.transform.lookAt(new Vector3(0, 0, 1));
   lightNode.transform.rotate(new Vector3(0, 90, 0));
 
@@ -59,8 +65,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     rootEntity.addChild(defaultSceneRoot);
     const animator = defaultSceneRoot.getComponent(Animator);
 
-    const danceState =
-      animator.animatorController.layers[0].stateMachine.addState("dance");
+    const danceState = animator.animatorController.layers[0].stateMachine.addState("dance");
     danceState.clip = animations[0];
 
     animator.play("dance");
@@ -75,7 +80,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   const initDatGUI = (animator, animationNames) => {
     const debugInfo = {
       animation: animationNames[1],
-      speed: 1,
+      speed: 1
     };
 
     gui.add(debugInfo, "animation", animationNames).onChange((v) => {

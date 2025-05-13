@@ -7,6 +7,7 @@ import {
   Animator,
   AnimatorState,
   Camera,
+  Color,
   DirectLight,
   Font,
   GLTFResource,
@@ -31,7 +32,12 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   cameraEntity.addComponent(OrbitControl).target = new Vector3(0, 1, 0);
 
   const lightNode = rootEntity.createChild("light_node");
-  lightNode.addComponent(DirectLight).intensity = 0.31854677812509186;
+  lightNode.addComponent(DirectLight).color = new Color(
+    0.31854677812509186,
+    0.31854677812509186,
+    0.31854677812509186,
+    1
+  );
   lightNode.transform.lookAt(new Vector3(0, 0, 1));
   lightNode.transform.rotate(new Vector3(0, 90, 0));
 

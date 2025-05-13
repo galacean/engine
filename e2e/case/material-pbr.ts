@@ -2,7 +2,16 @@
  * @title PBR Base
  * @category Material
  */
-import { AmbientLight, AssetType, Camera, DirectLight, GLTFResource, Vector3, WebGLEngine } from "@galacean/engine";
+import {
+  AmbientLight,
+  AssetType,
+  Camera,
+  Color,
+  DirectLight,
+  GLTFResource,
+  Vector3,
+  WebGLEngine
+} from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 // Create engine
@@ -14,7 +23,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   const directLightNode = rootEntity.createChild("dir_light");
   const directLight = directLightNode.addComponent(DirectLight);
-  directLight.intensity = 0.21404114048223255;
+  directLight.color = new Color(0.21404114048223255, 0.21404114048223255, 0.21404114048223255, 1);
   directLightNode.transform.setPosition(5, 5, 5);
   directLightNode.transform.lookAt(new Vector3(0, 0, 0));
 
