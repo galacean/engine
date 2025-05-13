@@ -147,6 +147,9 @@ export class Collider extends Component implements ICustomClone {
 
   /**
    * @internal
+   * @remarks
+   * When shapes are updated, we need to reset the collision layer because the underlying PhysX
+   * will call the shape methods when setting the collision layer.
    */
   _handleShapesChanged(): void {
     this._setCollisionLayer();
