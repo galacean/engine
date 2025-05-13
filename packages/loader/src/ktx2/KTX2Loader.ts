@@ -89,21 +89,22 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     transcodeResult: TranscodeResult,
     targetFormat: KTX2TargetFormat,
     params?: Uint8Array,
-    texture?: Texture2D | TextureCube
+    restoredTexture?: Texture2D | TextureCube
   ): Texture2D | TextureCube {
     const { width, height, faces } = transcodeResult;
     const faceCount = faces.length;
     const mipmaps = faces[0];
     const mipmap = mipmaps.length > 1;
     const engineFormat = this._getEngineTextureFormat(targetFormat, transcodeResult);
+    let texture: Texture2D | TextureCube;
     if (faceCount !== 6) {
-      texture ||= new Texture2D(engine, width, height, engineFormat, mipmap);
+      texture = restoredTexture || new Texture2D(engine, width, height, engineFormat, mipmap);
       for (let mipLevel = 0; mipLevel < mipmaps.length; mipLevel++) {
         const { data } = mipmaps[mipLevel];
         (<Texture2D>texture).setPixelBuffer(data, mipLevel);
       }
     } else {
-      texture ||= new TextureCube(engine, height, engineFormat, mipmap);
+      texture = restoredTexture || new TextureCube(engine, height, engineFormat, mipmap);
       for (let i = 0; i < faces.length; i++) {
         const faceData = faces[i];
         for (let mipLevel = 0; mipLevel < mipmaps.length; mipLevel++) {
