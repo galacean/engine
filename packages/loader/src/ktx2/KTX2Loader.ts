@@ -1,12 +1,14 @@
 import {
   AssetPromise,
   AssetType,
+  ContentRestorer,
   Engine,
   EngineConfiguration,
   GLCapabilityType,
   LoadItem,
   Loader,
   Logger,
+  RequestConfig,
   ResourceManager,
   Texture2D,
   TextureCube,
@@ -86,7 +88,8 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     engine: Engine,
     transcodeResult: TranscodeResult,
     targetFormat: KTX2TargetFormat,
-    params?: Uint8Array
+    params?: Uint8Array,
+    restoredTexture?: Texture2D | TextureCube
   ): Texture2D | TextureCube {
     const { width, height, faces } = transcodeResult;
     const faceCount = faces.length;
@@ -95,17 +98,17 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     const engineFormat = this._getEngineTextureFormat(targetFormat, transcodeResult);
     let texture: Texture2D | TextureCube;
     if (faceCount !== 6) {
-      texture = new Texture2D(engine, width, height, engineFormat, mipmap);
+      texture = restoredTexture || new Texture2D(engine, width, height, engineFormat, mipmap);
       for (let mipLevel = 0; mipLevel < mipmaps.length; mipLevel++) {
         const { data } = mipmaps[mipLevel];
-        texture.setPixelBuffer(data, mipLevel);
+        (<Texture2D>texture).setPixelBuffer(data, mipLevel);
       }
     } else {
-      texture = new TextureCube(engine, height, engineFormat, mipmap);
+      texture = restoredTexture || new TextureCube(engine, height, engineFormat, mipmap);
       for (let i = 0; i < faces.length; i++) {
         const faceData = faces[i];
         for (let mipLevel = 0; mipLevel < mipmaps.length; mipLevel++) {
-          texture.setPixelBuffer(TextureCubeFace.PositiveX + i, faceData[mipLevel].data, mipLevel);
+          (<TextureCube>texture).setPixelBuffer(TextureCubeFace.PositiveX + i, faceData[mipLevel].data, mipLevel);
         }
       }
     }
@@ -221,14 +224,50 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     resourceManager: ResourceManager
   ): AssetPromise<Texture2D | TextureCube> {
     return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
+      const requestConfig = <RequestConfig>{
+        ...item,
+        type: "arraybuffer"
+      };
+      const url = item.url;
       resourceManager
         // @ts-ignore
-        ._request<ArrayBuffer>(item.url, { type: "arraybuffer" })
+        ._request<ArrayBuffer>(url, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((buffer) =>
-          KTX2Loader._parseBuffer(new Uint8Array(buffer), resourceManager.engine, item.params).then(
-            ({ engine, result, targetFormat, params }) =>
+          KTX2Loader._parseBuffer(new Uint8Array(buffer), resourceManager.engine, item.params)
+            .then(({ engine, result, targetFormat, params }) =>
               KTX2Loader._createTextureByBuffer(engine, result, targetFormat, params)
+            )
+            .then((texture) => {
+              resourceManager.addContentRestorer(new KTX2ContentRestorer(texture, url, requestConfig));
+              resolve(texture);
+            })
+        )
+        .catch(reject);
+    });
+  }
+}
+
+class KTX2ContentRestorer extends ContentRestorer<Texture2D | TextureCube> {
+  constructor(
+    resource: Texture2D | TextureCube,
+    public url: string,
+    public requestConfig: RequestConfig & { params?: KTX2Params }
+  ) {
+    super(resource);
+  }
+
+  override restoreContent(): AssetPromise<Texture2D | TextureCube> {
+    const { resource, requestConfig } = this;
+    const engine = resource.engine;
+    return new AssetPromise((resolve, reject) => {
+      engine.resourceManager
+        // @ts-ignore
+        ._request<ArrayBuffer>(this.url, requestConfig)
+        .then((buffer) =>
+          KTX2Loader._parseBuffer(new Uint8Array(buffer), engine, requestConfig.params).then(
+            ({ engine, result, targetFormat, params }) =>
+              KTX2Loader._createTextureByBuffer(engine, result, targetFormat, params, resource)
           )
         )
         .then(resolve)
