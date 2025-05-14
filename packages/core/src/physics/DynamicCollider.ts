@@ -3,6 +3,7 @@ import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
+import { ColliderShapeChangeFlag } from "./enums/ColliderShapeChangeFlag";
 import { PhysicsScene } from "./PhysicsScene";
 
 /**
@@ -420,7 +421,9 @@ export class DynamicCollider extends Collider {
   /**
    * @internal
    */
-  override _handleShapesChanged(): void {
+  override _handleShapesChanged(changeType: ColliderShapeChangeFlag): void {
+    super._handleShapesChanged(changeType);
+
     if (this._automaticCenterOfMass || this._automaticInertiaTensor) {
       this._setMassAndUpdateInertia();
     }

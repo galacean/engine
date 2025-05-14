@@ -17,6 +17,12 @@ export interface ICollider {
   removeShape(shape: IColliderShape): void;
 
   /**
+   * Set the collision group of the collider.
+   * @param layer - The layer of the collider which the collider belongs to
+   */
+  setCollisionLayer(layer: number): void;
+
+  /**
    * Deletes the collider.
    */
   destroy(): void;

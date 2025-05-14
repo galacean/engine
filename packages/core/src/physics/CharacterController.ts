@@ -81,13 +81,12 @@ export class CharacterController extends Collider {
   constructor(entity: Entity) {
     super(entity);
     (<ICharacterController>this._nativeCollider) = PhysicsScene._nativePhysics.createCharacterController();
-
     this._setUpDirection = this._setUpDirection.bind(this);
     //@ts-ignore
     this._upDirection._onValueChanged = this._setUpDirection;
 
-    // sync world position to physical space
-    this._onUpdate();
+    // Sync world position to physical space
+    (<ICharacterController>this._nativeCollider).setWorldPosition(this.entity.transform.worldPosition);
   }
 
   /**
