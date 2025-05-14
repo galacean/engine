@@ -8,6 +8,7 @@ import { Entity } from "../Entity";
 import { Layer } from "../Layer";
 import { Transform } from "../Transform";
 import { ColliderShape } from "./shape/ColliderShape";
+import { ColliderShapeChangeFlag } from "./enums/ColliderShapeChangeFlag";
 
 /**
  * Base class for all colliders.
@@ -74,7 +75,7 @@ export class Collider extends Component implements ICustomClone {
       }
       this._shapes.push(shape);
       this._addNativeShape(shape);
-      this._handleShapesChanged();
+      this._handleShapesChanged(ColliderShapeChangeFlag.Count);
     }
   }
 
@@ -87,7 +88,7 @@ export class Collider extends Component implements ICustomClone {
     if (index !== -1) {
       this._shapes.splice(index, 1);
       this._removeNativeShape(shape);
-      this._handleShapesChanged();
+      this._handleShapesChanged(ColliderShapeChangeFlag.Count);
     }
   }
 
@@ -100,7 +101,7 @@ export class Collider extends Component implements ICustomClone {
       this._removeNativeShape(shapes[i]);
     }
     shapes.length = 0;
-    this._handleShapesChanged();
+    this._handleShapesChanged(ColliderShapeChangeFlag.Count);
   }
 
   /**
@@ -150,12 +151,11 @@ export class Collider extends Component implements ICustomClone {
 
   /**
    * @internal
-   * @remarks
-   * When shapes are updated, we need to reset the collision layer because the underlying PhysX
-   * will call the shape methods when setting the collision layer.
    */
-  _handleShapesChanged(): void {
-    this._setCollisionLayer();
+  _handleShapesChanged(changeType: ColliderShapeChangeFlag): void {
+    if (changeType & ColliderShapeChangeFlag.Count) {
+      this._setCollisionLayer();
+    }
   }
 
   protected _syncNative(): void {
