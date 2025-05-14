@@ -431,4 +431,16 @@ describe("CharacterController", function () {
     // 恢复默认设置
     engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, true);
   });
+
+  it("keep entity position when disabled", () => {
+    roleEntity.transform.position = new Vector3(0, 0, 3);
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.enabled = false;
+    controller.enabled = true;
+    // @ts-ignore
+    controller._syncWorldPositionFromPhysicalSpace();
+    expect(roleEntity.transform.position.z).eq(3);
+  });
 });

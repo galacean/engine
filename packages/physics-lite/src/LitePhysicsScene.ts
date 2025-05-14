@@ -372,7 +372,7 @@ export class LitePhysicsScene implements IPhysicsScene {
       return true;
     }
 
-    return this._physics._getColliderLayerCollision(group1, group2);
+    return this._physics.getColliderLayerCollision(group1, group2);
   }
 }
 

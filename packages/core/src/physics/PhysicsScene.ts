@@ -232,6 +232,22 @@ export class PhysicsScene {
   }
 
   /**
+   * Get whether two colliders can collide with each other.
+   * @param layer1 - The first collision layer
+   * @param layer2 - The second collision layer
+   * @returns Whether the colliders should collide
+   */
+  getColliderLayerCollision(layer1: Layer, layer2: Layer): boolean {
+    const index1 = Math.log2(layer1);
+    const index2 = Math.log2(layer2);
+    if (!Number.isInteger(index1) || !Number.isInteger(index1)) {
+      throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
+    }
+
+    return PhysicsScene._nativePhysics.getColliderLayerCollision(index1, index2);
+  }
+
+  /**
    * Set whether two colliders can collide with each other.
    * @param layer1 - The first collision layer
    * @param layer2 - The second collision layer

@@ -161,6 +161,18 @@ export class LitePhysics implements IPhysics {
   }
 
   /**
+   * {@inheritDoc IPhysics.getColliderLayerCollision }
+   */
+  getColliderLayerCollision(layer1: number, layer2: number): boolean {
+    const index = this._getColliderLayerIndex(layer1, layer2);
+    if (index > -1) {
+      return this._layerCollisionMatrix[index] ?? true;
+    }
+    // If either layer is Layer.Nothing, they cant collide
+    return false;
+  }
+
+  /**
    * {@inheritDoc IPhysics.setColliderLayerCollision }
    */
   setColliderLayerCollision(layer1: number, layer2: number, collide: boolean): void {
@@ -168,18 +180,6 @@ export class LitePhysics implements IPhysics {
     if (index > -1) {
       this._layerCollisionMatrix[index] = collide;
     }
-  }
-
-  /**
-   * @internal
-   */
-  _getColliderLayerCollision(layer1: number, layer2: number): boolean {
-    const index = this._getColliderLayerIndex(layer1, layer2);
-    if (index > -1) {
-      return this._layerCollisionMatrix[index] ?? true;
-    }
-    // If either layer is Layer.Nothing, they cant collide
-    return false;
   }
 
   private _getColliderLayerIndex(layer1: number, layer2: number): number {

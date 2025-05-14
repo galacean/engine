@@ -250,6 +250,13 @@ export class PhysXPhysics implements IPhysics {
   }
 
   /**
+   * {@inheritDoc IPhysics.getColliderLayerCollision }
+   */
+  getColliderLayerCollision(layer1: number, layer2: number): boolean {
+    return this._physX.getGroupCollisionFlag(layer1, layer2);
+  }
+
+  /**
    * {@inheritDoc IPhysics.setColliderLayerCollision }
    */
   setColliderLayerCollision(layer1: number, layer2: number, isCollide: boolean): void {
