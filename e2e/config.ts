@@ -299,6 +299,12 @@ export const E2E_CONFIG = {
       category: "Advance",
       caseFileName: "multi-camera-no-clear",
       threshold: 0.1
+    },
+
+    CanvasTransparency: {
+      category: "Advance",
+      caseFileName: "canvas-transparency",
+      threshold: 0.01
     }
   }
 };
