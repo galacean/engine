@@ -15,8 +15,12 @@ export class GLTFSchemaParser extends GLTFParser {
     const requestConfig = <RequestConfig>{ type: "arraybuffer" };
     return request<ArrayBuffer>(url, requestConfig)
       .then((buffer) => {
-        restoreBufferRequests.push(new BufferRequestInfo(url, requestConfig));
-        return GLTFUtils.parseGLB(context, buffer);
+        const parseResult = GLTFUtils.parseGLB(context, buffer);
+        // If the buffer is a GLB file, we need to restore the buffer data
+        if (parseResult?.glTF) {
+          restoreBufferRequests.push(new BufferRequestInfo(url, requestConfig));
+        }
+        return parseResult;
       })
       .then((result) => {
         if (result?.glTF) {

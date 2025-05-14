@@ -389,31 +389,32 @@ export class GLTFUtils {
 
     const dataView = new DataView(originBuffer);
 
-    // read header
+    // Read header
     const header = {
       magic: dataView.getUint32(0, true),
       version: dataView.getUint32(UINT32_LENGTH, true),
       length: dataView.getUint32(2 * UINT32_LENGTH, true)
     };
 
+    // Return the original buffer if it is not a glb
     if (header.magic !== GLB_HEADER_MAGIC) {
       return { originBuffer };
     }
 
-    // read main data
+    // Read main data
     let chunkLength = dataView.getUint32(GLB_HEADER_LENGTH, true);
     let chunkType = dataView.getUint32(GLB_HEADER_LENGTH + UINT32_LENGTH, true);
 
-    // read glTF json
+    // Read glTF json
     if (chunkType !== GLB_CHUNK_TYPES.JSON) {
       console.error("Invalid glb chunk type. Expected 0x4E4F534A, found 0x" + chunkType.toString(16));
       return null;
     }
 
     const glTFData = new Uint8Array(originBuffer, GLB_HEADER_LENGTH + 2 * UINT32_LENGTH, chunkLength);
-    const glTF: IGLTF = JSON.parse(Utils.decodeText(glTFData));
+    const glTF = <IGLTF>JSON.parse(Utils.decodeText(glTFData));
 
-    // read all buffers
+    // Read all buffers
     const buffers: ArrayBuffer[] = [];
     let byteOffset = GLB_HEADER_LENGTH + 2 * UINT32_LENGTH + chunkLength;
 
