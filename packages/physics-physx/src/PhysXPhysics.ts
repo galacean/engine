@@ -252,8 +252,8 @@ export class PhysXPhysics implements IPhysics {
   /**
    * {@inheritDoc IPhysics.setColliderLayerCollision }
    */
-  setColliderLayerCollision(layer1: number, layer2: number, collide: boolean): void {
-    this._physX.setGroupCollisionFlag(layer1, layer2, collide);
+  setColliderLayerCollision(layer1: number, layer2: number, isCollide: boolean): void {
+    this._physX.setGroupCollisionFlag(layer1, layer2, isCollide);
   }
 
   private _init(physX: any): void {

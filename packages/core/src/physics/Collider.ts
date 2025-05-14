@@ -1,13 +1,13 @@
 import { ICollider, IStaticCollider } from "@galacean/engine-design";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { ICustomClone } from "../clone/ComponentCloner";
 import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Entity } from "../Entity";
-import { Transform } from "../Transform";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
-import { ColliderShape } from "./shape/ColliderShape";
-import { ICustomClone } from "../clone/ComponentCloner";
 import { Layer } from "../Layer";
+import { Transform } from "../Transform";
+import { ColliderShape } from "./shape/ColliderShape";
 
 /**
  * Base class for all colliders.
@@ -25,7 +25,7 @@ export class Collider extends Component implements ICustomClone {
   protected _updateFlag: BoolUpdateFlag;
   @deepClone
   protected _shapes: ColliderShape[] = [];
-  protected _collisionLayer: number = 0;
+  protected _collisionLayerIndex: number = 0;
 
   /**
    * The shapes of this collider.
@@ -35,19 +35,22 @@ export class Collider extends Component implements ICustomClone {
   }
 
   /**
-   * The collision group of this collider, default is Layer.Layer0, only support single layer.
+   * The collision layer of this collider, only support single layer.
+   *
+   * @defaultValue `Layer.Layer0`
    */
   get collisionLayer(): Layer {
-    return (1 << this._collisionLayer) as Layer;
+    return (1 << this._collisionLayerIndex) as Layer;
   }
 
   set collisionLayer(value: Layer) {
     // Check if value is a single layer (power of 2)
-    if (value !== Layer.Nothing && value !== Layer.Everything && (value & (value - 1)) !== 0) {
+    const index = Math.log2(value);
+    if (!Number.isInteger(index)) {
       throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
     }
-    const index = Math.log2(value);
-    this._collisionLayer = index;
+
+    this._collisionLayerIndex = index;
     this._nativeCollider.setCollisionLayer(index);
   }
 
@@ -187,7 +190,7 @@ export class Collider extends Component implements ICustomClone {
     this._nativeCollider.removeShape(shape._nativeShape);
   }
 
-  protected _setCollisionLayer(): void {
-    this._nativeCollider.setCollisionLayer(this._collisionLayer);
+  private _setCollisionLayer(): void {
+    this._nativeCollider.setCollisionLayer(this._collisionLayerIndex);
   }
 }

@@ -168,7 +168,7 @@ export class PhysXCharacterController implements ICharacterController {
     this._updateNativePosition();
   }
 
-  private _updateNativePosition() {
+  private _updateNativePosition(): void {
     const worldPosition = this._worldPosition;
     if (this._pxController && worldPosition) {
       Vector3.add(worldPosition, this._shapeScaledPosition, PhysXCharacterController._tempVec);

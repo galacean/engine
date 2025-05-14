@@ -139,7 +139,7 @@ export interface IPhysics {
    * Set whether two collision groups can collide with each other.
    * @param group1 - The first collision group
    * @param group2 - The second collision group
-   * @param collide - Whether the groups should collide
+   * @param isCollide - Whether the groups should collide
    */
-  setColliderLayerCollision(group1: number, group2: number, collide: boolean): void;
+  setColliderLayerCollision(group1: number, group2: number, isCollide: boolean): void;
 }

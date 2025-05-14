@@ -235,16 +235,16 @@ export class PhysicsScene {
    * Set whether two colliders can collide with each other.
    * @param layer1 - The first collision layer
    * @param layer2 - The second collision layer
-   * @param collide - Whether the colliders should collide
+   * @param isCollide - Whether the colliders should collide
    */
-  setColliderLayerCollision(layer1: Layer, layer2: Layer, collide: boolean): void {
-    if (!this._checkValidLayer(layer1) || !this._checkValidLayer(layer2)) {
-      throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
-    }
+  setColliderLayerCollision(layer1: Layer, layer2: Layer, isCollide: boolean): void {
     const index1 = Math.log2(layer1);
     const index2 = Math.log2(layer2);
+    if (!Number.isInteger(index1) || !Number.isInteger(index1)) {
+      throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
+    }
 
-    PhysicsScene._nativePhysics.setColliderLayerCollision(index1, index2, collide);
+    PhysicsScene._nativePhysics.setColliderLayerCollision(index1, index2, isCollide);
   }
 
   /**
@@ -463,9 +463,5 @@ export class PhysicsScene {
 
   private _setGravity(): void {
     this._nativePhysicsScene.setGravity(this._gravity);
-  }
-
-  private _checkValidLayer(layer: Layer): boolean {
-    return layer !== Layer.Nothing && layer !== Layer.Everything && (layer & (layer - 1)) === 0;
   }
 }
