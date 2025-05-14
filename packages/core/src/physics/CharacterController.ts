@@ -85,8 +85,8 @@ export class CharacterController extends Collider {
     //@ts-ignore
     this._upDirection._onValueChanged = this._setUpDirection;
 
-    // sync world position to physical space
-    this._onUpdate();
+    // Sync world position to physical space
+    (<ICharacterController>this._nativeCollider).setWorldPosition(this.entity.transform.worldPosition);
   }
 
   /**
