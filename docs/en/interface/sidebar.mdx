@@ -7,31 +7,35 @@ label: Basics/Interface
 ---
 
 ## Main Menu
-By clicking the first button on the sidebar, you can bring up the main menu. The main menu provides project settings, options to create/clone a project, and various editing options.
+The main menu can be summoned by clicking the first button on the sidebar. It provides project settings, options to create/clone projects, and some editing options.
 
 <Image src="https://gw.alipayobjects.com/zos/OasisHub/8ea98fe5-399b-4e5f-83c7-391e2e1a36b8/image-20250212120635786.png" />
 
 ### Create/Clone Project
 
-Selecting the **New Project** option allows you to choose from different types of new projects. Clicking **Fork** will redirect you to the newly cloned project page, while the old project will still be retained.
+Select the **New Project** option to further choose different types of projects to create. Clicking **Fork** will redirect you to the newly cloned project page, while the old project remains intact.
 
 ### Project Settings
 
-Clicking the **Project Settings** option will bring up a popup with basic project settings.
+Clicking the **Project Settings** option will bring up the basic project settings dialog.
 
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/032598c7-cffb-4a7a-ac1f-2dc2185ce794/image-20250212152704057.png" style={{ zoom: "50%" }} />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/db9ba443-256a-49da-aaaf-7481b4301009/image-20250515103554317.png" style={{ zoom: "50%" }} />
 
 Basic project settings include:
 
-- **Engine Version**: Upgrade engine version to quickly fix a bug or enjoy new features.
-- **Physics Backend**: The physics engine backend, with options to choose between _Physics Lite_ or _PhysX_. The former is a lightweight physics engine, while the latter is a high-end physics engine based on [PhysX](https://developer.nvidia.com/physx-sdk).
-- **Model Import Options**: Model import options include options for computing tangents and removing lights.
+- **Engine Version**: Upgrade the engine version to quickly fix a bug or enjoy new features.
+- **Physics Backend**: Choose between _Physics Lite_ or _PhysX_ as the physics engine backend. The former is a lightweight physics engine, while the latter is an advanced engine based on [PhysX](https://developer.nvidia.com/physx-sdk).
+- **Model Import Options**: Options for model import, including calculating tangents and removing lights.
 
-<Callout type="warning">Engine version upgrades are irreversible. To avoid project damage, a snapshot will be automatically saved during the engine upgrade process.</Callout>
+<Callout type="warning">Engine version upgrades are irreversible. To prevent project damage, a snapshot will be automatically saved during the engine upgrade process.</Callout>
+
+For quick project settings, you can also access them from the project list page.
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/b1647904-871d-4ec4-9a84-b549f0294610/image-20250515103848864.png" style={{ zoom: "50%" }} />
 
 ## Panel Layout
 
-Users can use this menu to bring up hidden panels and save the current panel layout according to their usage habits, making it convenient to use the same layout for other projects.
+This menu allows you to call up hidden panels or save the current panel layout according to your usage habits, making it convenient to use the same layout for other projects.
 
 <Image src="https://gw.alipayobjects.com/zos/OasisHub/cafce601-36cb-4cf5-9e9c-c4e689bf7de8/image-20250212153709151.png" style={{ zoom: "50%" }} />
 
@@ -39,11 +43,11 @@ Users can use this menu to bring up hidden panels and save the current panel lay
 
 You can search for new members using their email and assign them one of three permission levels: read-write, read-only, or edit. After successfully adding them, you can still edit the member's permission level or remove the member. You can also generate a shareable link to send to partners you want to collaborate with.
 
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/d5afcff4-37db-49ff-ac53-a02430e71400/image-20250514181036015.png"  style={{ zoom: "50%" }} />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/d5afcff4-37db-49ff-ac53-a02430e71400/image-20250514181036015.png" style={{ zoom: "50%" }} />
 
 ## Project Export
 
-For more details, see [Multi-platform Export](/docs/platform/platform).
+For details, see [Multi-platform Export](/docs/platform/platform).
 
 ## Snapshot Management
 
@@ -55,4 +59,4 @@ Snapshots display information such as name, engine version, and author. By click
 
 <Image src="https://gw.alipayobjects.com/zos/OasisHub/041346eb-973e-4e13-aa45-cd1ef29e2b1a/image-20250514175044474.png" style={{ zoom: "50%" }} />
 
-It's worth noting that if the engine version is upgraded in the project settings, the system will automatically save a snapshot of the original version of the project. If the upgrade causes the project to become inaccessible, you can revert to the original version from the project settings on the project list page.
+<Callout type="info">If the engine version is upgraded in the project settings, the system will automatically save a snapshot of the original version of the project. If the upgrade causes the project to become inaccessible, you can revert to the original version from the project settings on the project list page.</Callout>
