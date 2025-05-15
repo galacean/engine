@@ -146,8 +146,9 @@ export class PhysXCharacterController implements ICharacterController {
     }
 
     desc.setMaterial(shape._pxMaterial);
-
     this._pxController = pxManager._getControllerManager().createController(desc);
+    desc.delete();
+
     this._pxController.setUUID(shape._id);
 
     this._updateNativePosition();

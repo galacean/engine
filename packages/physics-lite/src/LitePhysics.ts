@@ -182,6 +182,11 @@ export class LitePhysics implements IPhysics {
     }
   }
 
+  /**
+   * {@inheritDoc IPhysics.destroy }
+   */
+  destroy(): void {}
+
   private _getColliderLayerIndex(layer1: number, layer2: number): number {
     if (layer1 === 32 || layer2 === 32) {
       return -1;
