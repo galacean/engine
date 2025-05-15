@@ -150,7 +150,7 @@ export interface IPhysics {
    * @param isCollide - Whether the layers should collide
    */
   setColliderLayerCollision(layer1: number, layer2: number, isCollide: boolean): void;
-  
+
   /**
    * Destroy physics scene.
    */
