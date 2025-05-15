@@ -32,6 +32,10 @@ import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
 import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
 import { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
 import { PhysXSphereColliderShape } from "./shape/PhysXSphereColliderShape";
+import { PhysXBoxGeometry } from "./shape/PhysXBoxGeometry";
+import { PhysXSphereGeometry } from "./shape/PhysXSphereGeometry";
+import { PhysXPlaneGeometry } from "./shape/PhysXPlaneGeometry";
+import { PhysXCapsuleGeometry } from "./shape/PhysXCapsuleGeometry";
 
 /**
  * PhysX object creation.
@@ -48,6 +52,9 @@ export class PhysXPhysics implements IPhysics {
   private _runTimeMode: PhysXRuntimeMode;
   private _initializeState: InitializeState = InitializeState.Uninitialized;
   private _initializePromise: Promise<void>;
+  private _defaultErrorCallback: any;
+  private _allocator: any;
+  private _tolerancesScale: any;
 
   constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto) {
     this._runTimeMode = runtimeMode;
@@ -91,9 +98,9 @@ export class PhysXPhysics implements IPhysics {
       }
 
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
-        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*PXxaQrGL0XsAAAAAAAAAAAAAARQnAQ/physx.release.downgrade.js`;
+        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*V4pqRqM65UMAAAAAAAAAAAAAARQnAQ/physx.release.downgrade.js`;
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
-        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*H4ElTYwBxwgAAAAAAAAAAAAAARQnAQ/physx.release.js`;
+        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*-dz9R5IqomIAAAAAAAAAAAAAARQnAQ/physx.release.js`;
       }
     });
 
@@ -120,13 +127,13 @@ export class PhysXPhysics implements IPhysics {
   /**
    * Destroy PhysXPhysics.
    */
-  public destroy(): void {
+  destroy(): void {
     this._physX.PxCloseExtensions();
     this._pxPhysics.release();
     this._pxFoundation.release();
-    this._physX = null;
-    this._pxFoundation = null;
-    this._pxPhysics = null;
+    this._defaultErrorCallback.delete();
+    this._allocator.delete();
+    this._tolerancesScale.delete();
   }
 
   /**
@@ -203,6 +210,13 @@ export class PhysXPhysics implements IPhysics {
   }
 
   /**
+   * {@inheritDoc IPhysics.createBoxGeometry }
+   */
+  createBoxGeometry(halfExtents: Vector3): any {
+    return new PhysXBoxGeometry(this._physX, halfExtents);
+  }
+
+  /**
    * {@inheritDoc IPhysics.createSphereColliderShape }
    */
   createSphereColliderShape(uniqueID: number, radius: number, material: PhysXPhysicsMaterial): ISphereColliderShape {
@@ -210,10 +224,24 @@ export class PhysXPhysics implements IPhysics {
   }
 
   /**
+   * {@inheritDoc IPhysics.createSphereGeometry }
+   */
+  createSphereGeometry(radius: number): any {
+    return new PhysXSphereGeometry(this._physX, radius);
+  }
+
+  /**
    * {@inheritDoc IPhysics.createPlaneColliderShape }
    */
   createPlaneColliderShape(uniqueID: number, material: PhysXPhysicsMaterial): IPlaneColliderShape {
     return new PhysXPlaneColliderShape(this, uniqueID, material);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createPlaneGeometry }
+   */
+  createPlaneGeometry(): any {
+    return new PhysXPlaneGeometry(this._physX);
   }
 
   /**
@@ -226,6 +254,13 @@ export class PhysXPhysics implements IPhysics {
     material: PhysXPhysicsMaterial
   ): ICapsuleColliderShape {
     return new PhysXCapsuleColliderShape(this, uniqueID, radius, height, material);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createCapsuleGeometry }
+   */
+  createCapsuleGeometry(radius: number, height: number): any {
+    return new PhysXCapsuleGeometry(this._physX, radius, height * 0.5);
   }
 
   /**
@@ -268,12 +303,16 @@ export class PhysXPhysics implements IPhysics {
     const defaultErrorCallback = new physX.PxDefaultErrorCallback();
     const allocator = new physX.PxDefaultAllocator();
     const pxFoundation = physX.PxCreateFoundation(version, allocator, defaultErrorCallback);
-    const pxPhysics = physX.PxCreatePhysics(version, pxFoundation, new physX.PxTolerancesScale(), false, null);
+    const tolerancesScale = new physX.PxTolerancesScale();
+    const pxPhysics = physX.PxCreatePhysics(version, pxFoundation, tolerancesScale, false, null);
 
     physX.PxInitExtensions(pxPhysics, null);
     this._physX = physX;
     this._pxFoundation = pxFoundation;
     this._pxPhysics = pxPhysics;
+    this._defaultErrorCallback = defaultErrorCallback;
+    this._allocator = allocator;
+    this._tolerancesScale = tolerancesScale;
   }
 }
 

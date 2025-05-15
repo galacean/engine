@@ -1,7 +1,8 @@
 import { IPlaneColliderShape } from "@galacean/engine-design";
-import { Quaternion, Vector3 } from "@galacean/engine";
+import { Quaternion } from "@galacean/engine";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
+import { PhysXPlaneGeometry } from "./PhysXPlaneGeometry";
 import { PhysXColliderShape } from "./PhysXColliderShape";
 
 /**
@@ -13,7 +14,8 @@ export class PhysXPlaneColliderShape extends PhysXColliderShape implements IPlan
     this._axis = new Quaternion(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
     this._physXRotation.copyFrom(this._axis);
 
-    this._pxGeometry = new physXPhysics._physX.PxPlaneGeometry();
+    this._physXGeometry = new PhysXPlaneGeometry(physXPhysics._physX);
+    this._pxGeometry = this._physXGeometry.getGeometry();
     this._initialize(material, uniqueID);
     this._setLocalPose();
   }

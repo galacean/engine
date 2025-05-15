@@ -504,6 +504,8 @@ export class Scene extends EngineObject {
 
     const allCreatedScenes = sceneManager._allCreatedScenes;
     allCreatedScenes.splice(allCreatedScenes.indexOf(this), 1);
+
+    this.physics._destroy();
   }
 
   private _computeLinearFogParams(fogStart: number, fogEnd: number): void {

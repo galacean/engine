@@ -1,7 +1,7 @@
-import { Ray, Vector3 } from "@galacean/engine-math";
+import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
 import { ICharacterController } from "./ICharacterController";
 import { ICollider } from "./ICollider";
-import { IColliderShape } from "./shape";
+import { IGeometry } from "./geometry";
 
 /**
  * Interface for physics manager.
@@ -47,7 +47,7 @@ export interface IPhysicsScene {
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @param distance - The max distance the ray should check
-   * @param onRaycast - The raycast result callback which prefilter result
+   * @param onRaycast - The raycast result callback which pre filter result
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns True if the ray intersects with a collider, otherwise false
    */
@@ -57,4 +57,43 @@ export interface IPhysicsScene {
     onRaycast: (obj: number) => boolean,
     outHitResult?: (shapeUniqueID: number, distance: number, point: Vector3, normal: Vector3) => void
   ): boolean;
+
+  /**
+   * Sweep a geometry through the Scene and returns true if there is any hit.
+   * @param geometry - The geometry to sweep
+   * @param center - The center of the geometry
+   * @param orientation - The orientation of the geometry
+   * @param direction - The direction to sweep along
+   * @param distance - The max distance to sweep
+   * @param onSweep - Callback to pre filter objects
+   * @param outHitResult - Callback to get hit result
+   * @returns True if the sweep intersects with a collider, otherwise false
+   */
+  sweep(
+    geometry: IGeometry,
+    pose: { translation: Vector3; rotation: Quaternion },
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean;
+
+  /**
+   * Check if a geometry overlaps with any collider in the scene.
+   * @param geometry - The geometry to check
+   * @param pose - The pose of the geometry
+   * @param onOverlap - Callback to pre filter objects
+   * @returns True if the geometry overlaps with any collider, otherwise false
+   */
+  overlapAny(
+    geometry: IGeometry,
+    pose: { translation: Vector3; rotation: Quaternion },
+    onOverlap: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number) => void
+  ): boolean;
+
+  /**
+   * Destroy the physics scene.
+   */
+  destroy(): void;
 }

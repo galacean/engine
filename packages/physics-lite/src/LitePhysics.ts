@@ -1,7 +1,9 @@
 import { Quaternion, Vector3, Layer } from "@galacean/engine";
 import {
   IBoxColliderShape,
+  IBoxGeometry,
   ICapsuleColliderShape,
+  ICapsuleGeometry,
   ICharacterController,
   ICollider,
   ICollision,
@@ -12,7 +14,9 @@ import {
   IPhysicsManager,
   IPhysicsMaterial,
   IPlaneColliderShape,
+  IPlaneGeometry,
   ISphereColliderShape,
+  ISphereGeometry,
   ISpringJoint,
   IStaticCollider
 } from "@galacean/engine-design";
@@ -117,7 +121,7 @@ export class LitePhysics implements IPhysics {
    * {@inheritDoc IPhysics.createPlaneColliderShape }
    */
   createPlaneColliderShape(uniqueID: number, material: LitePhysicsMaterial): IPlaneColliderShape {
-    throw "Physics-lite don't support PlaneColliderShape. Use Physics-PhysX instead!";
+    throw new Error("Physics-lite doesn't support PlaneColliderShape. Use Physics-PhysX instead!");
   }
 
   /**
@@ -129,28 +133,56 @@ export class LitePhysics implements IPhysics {
     height: number,
     material: LitePhysicsMaterial
   ): ICapsuleColliderShape {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    throw new Error("Physics-lite doesn't support CapsuleColliderShape. Use Physics-PhysX instead!");
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createBoxGeometry }
+   */
+  createBoxGeometry(halfExtents: Vector3): IBoxGeometry {
+    throw new Error("Physics-lite doesn't support BoxGeometry. Use Physics-PhysX instead!");
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createSphereGeometry }
+   */
+  createSphereGeometry(radius: number): ISphereGeometry {
+    throw new Error("Physics-lite doesn't support SphereGeometry. Use Physics-PhysX instead!");
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createPlaneGeometry }
+   */
+  createPlaneGeometry(): IPlaneGeometry {
+    throw new Error("Physics-lite doesn't support PlaneGeometry. Use Physics-PhysX instead!");
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createCapsuleGeometry }
+   */
+  createCapsuleGeometry(radius: number, height: number): ICapsuleGeometry {
+    throw new Error("Physics-lite doesn't support CapsuleGeometry. Use Physics-PhysX instead!");
   }
 
   /**
    * {@inheritDoc IPhysics.createFixedJoint }
    */
   createFixedJoint(collider: LiteCollider): IFixedJoint {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    throw new Error("Physics-lite doesn't support FixedJoint. Use Physics-PhysX instead!");
   }
 
   /**
    * {@inheritDoc IPhysics.createHingeJoint }
    */
   createHingeJoint(collider: LiteCollider): IHingeJoint {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    throw new Error("Physics-lite doesn't support HingeJoint. Use Physics-PhysX instead!");
   }
 
   /**
    * {@inheritDoc IPhysics.createSpringJoint }
    */
   createSpringJoint(collider: LiteCollider): ISpringJoint {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    throw new Error("Physics-lite doesn't support SpringJoint. Use Physics-PhysX instead!");
   }
 
   /**
@@ -181,6 +213,11 @@ export class LitePhysics implements IPhysics {
       this._layerCollisionMatrix[index] = collide;
     }
   }
+
+  /**
+   * {@inheritDoc IPhysics.destroy }
+   */
+  destroy(): void {}
 
   private _getColliderLayerIndex(layer1: number, layer2: number): number {
     if (layer1 === 32 || layer2 === 32) {
