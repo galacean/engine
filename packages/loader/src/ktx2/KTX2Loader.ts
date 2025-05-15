@@ -288,8 +288,8 @@ class KTX2ContentRestorer extends ContentRestorer<Texture2D | TextureCube> {
         ._request<ArrayBuffer>(this.url, requestConfig)
         .then((buffer) =>
           KTX2Loader._parseBuffer(new Uint8Array(buffer), engine, requestConfig.params).then(
-            ({ engine, result, targetFormat, params }) =>
-              KTX2Loader._createTextureByBuffer(engine, result, targetFormat, params, resource)
+            ({ ktx2Container, engine, result, targetFormat, params }) =>
+              KTX2Loader._createTextureByBuffer(engine, ktx2Container.isSRGB, result, targetFormat, params, resource)
           )
         )
         .then(resolve)
