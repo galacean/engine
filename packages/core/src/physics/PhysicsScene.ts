@@ -241,7 +241,7 @@ export class PhysicsScene {
       throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
     }
 
-    return PhysicsScene._nativePhysics.getColliderLayerCollision(index1, index2);
+    return Engine._nativePhysics.getColliderLayerCollision(index1, index2);
   }
 
   /**
@@ -257,7 +257,7 @@ export class PhysicsScene {
       throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
     }
 
-    PhysicsScene._nativePhysics.setColliderLayerCollision(index1, index2, isCollide);
+    Engine._nativePhysics.setColliderLayerCollision(index1, index2, isCollide);
   }
 
   /**
