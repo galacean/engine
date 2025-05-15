@@ -103,6 +103,18 @@ export class Camera extends Component {
    */
   antiAliasing: AntiAliasing = AntiAliasing.None;
 
+  /**
+   * Determines whether to preserve the alpha channel in the output.
+   * When set to true, the alpha channel is always preserved.
+   * When set to false, the engine automatically decides whether to preserve it.
+   *
+   * @remarks
+   * Set to true if you need to ensure the alpha channel is preserved, for example, when performing canvas transparent blending.
+   *
+   * @defaultValue `false`
+   */
+  isAlphaOutputRequired = false;
+
   /** @internal */
   _cameraType: CameraType = CameraType.Normal;
   /** @internal */
@@ -743,7 +755,7 @@ export class Camera extends Component {
    */
   _getInternalColorTextureFormat(): TextureFormat {
     return this._enableHDR
-      ? this.engine._hardwareRenderer.isWebGL2
+      ? this.engine._hardwareRenderer.isWebGL2 && !this.isAlphaOutputRequired
         ? TextureFormat.R11G11B10_UFloat
         : TextureFormat.R16G16B16A16
       : TextureFormat.R8G8B8A8;
