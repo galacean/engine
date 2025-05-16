@@ -49,7 +49,7 @@ export class GLTFMaterialParser extends GLTFParser {
         pbrMetallicRoughness;
 
       if (baseColorFactor) {
-        material.baseColor = new Color(baseColorFactor[0], baseColorFactor[1], baseColorFactor[2], baseColorFactor[3]);
+        material.baseColor.copyFromArray(baseColorFactor);
       }
       if (baseColorTexture) {
         context
