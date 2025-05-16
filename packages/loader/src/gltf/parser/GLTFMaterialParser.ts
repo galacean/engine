@@ -99,7 +99,7 @@ export class GLTFMaterialParser extends GLTFParser {
       }
 
       if (emissiveFactor) {
-        material.emissiveColor = new Color(emissiveFactor[0], emissiveFactor[1], emissiveFactor[2]);
+        material.emissiveColor.set(emissiveFactor[0], emissiveFactor[1], emissiveFactor[2], 1.0);
       }
 
       if (normalTexture) {
