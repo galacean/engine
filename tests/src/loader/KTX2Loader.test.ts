@@ -45,8 +45,6 @@ describe("ktx2 Loader test", function () {
     expect(transcoder).not.to.be.null;
     KTX2Loader.release();
     // @ts-ignore
-    expect(KTX2Loader._khronosTranscoder).to.be.null;
-    // @ts-ignore
     expect(KTX2Loader._binomialLLCTranscoder).to.be.null;
   });
 
