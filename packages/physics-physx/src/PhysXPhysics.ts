@@ -3,7 +3,6 @@ import {
   IBoxColliderShape,
   ICapsuleColliderShape,
   ICharacterController,
-  ICollider,
   ICollision,
   IDynamicCollider,
   IFixedJoint,
@@ -212,7 +211,7 @@ export class PhysXPhysics implements IPhysics {
   /**
    * {@inheritDoc IPhysics.createBoxGeometry }
    */
-  createBoxGeometry(halfExtents: Vector3): any {
+  createBoxGeometry(halfExtents: Vector3): PhysXBoxGeometry {
     return new PhysXBoxGeometry(this._physX, halfExtents);
   }
 
@@ -226,7 +225,7 @@ export class PhysXPhysics implements IPhysics {
   /**
    * {@inheritDoc IPhysics.createSphereGeometry }
    */
-  createSphereGeometry(radius: number): any {
+  createSphereGeometry(radius: number): PhysXSphereGeometry {
     return new PhysXSphereGeometry(this._physX, radius);
   }
 
@@ -240,7 +239,7 @@ export class PhysXPhysics implements IPhysics {
   /**
    * {@inheritDoc IPhysics.createPlaneGeometry }
    */
-  createPlaneGeometry(): any {
+  createPlaneGeometry(): PhysXPlaneGeometry {
     return new PhysXPlaneGeometry(this._physX);
   }
 
@@ -259,7 +258,7 @@ export class PhysXPhysics implements IPhysics {
   /**
    * {@inheritDoc IPhysics.createCapsuleGeometry }
    */
-  createCapsuleGeometry(radius: number, height: number): any {
+  createCapsuleGeometry(radius: number, height: number): PhysXCapsuleGeometry {
     return new PhysXCapsuleGeometry(this._physX, radius, height * 0.5);
   }
 
