@@ -3,20 +3,21 @@
  * @category Material
  * @thumbnail https://mdn.alipayobjects.com/merchant_appfe/afts/img/A*kXDCQpieYEEAAAAAAAAAAAAADiR2AQ/original
  */
-import { OrbitControl } from "@galacean/engine-toolkit-controls";
-import * as dat from "dat.gui";
 import {
   AmbientLight,
   AssetType,
   BackgroundMode,
   Camera,
+  Color,
   DirectLight,
   GLTFResource,
   PrimitiveMesh,
   SkyBoxMaterial,
   Vector3,
-  WebGLEngine,
+  WebGLEngine
 } from "@galacean/engine";
+import { OrbitControl } from "@galacean/engine-toolkit-controls";
+import * as dat from "dat.gui";
 
 // Create engine
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
@@ -30,7 +31,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   const directLightNode = rootEntity.createChild("dir_light");
   const directLight = directLightNode.addComponent(DirectLight);
   const dirFolder = gui.addFolder("DirectionalLight1");
-  directLight.intensity = 0.5;
+  directLight.color = new Color(0.21404114048223255, 0.21404114048223255, 0.21404114048223255, 1);
   dirFolder.add(directLight, "enabled");
   dirFolder.add(directLight, "intensity", 0, 1);
   directLightNode.transform.setPosition(5, 5, 5);
@@ -52,9 +53,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   Promise.all([
     engine.resourceManager
-      .load<GLTFResource>(
-        "https://gw.alipayobjects.com/os/bmw-prod/477b0093-7ee8-41af-a0dd-836608a4f130.gltf"
-      )
+      .load<GLTFResource>("https://gw.alipayobjects.com/os/bmw-prod/477b0093-7ee8-41af-a0dd-836608a4f130.gltf")
       .then((gltf) => {
         const { defaultSceneRoot } = gltf;
         rootEntity.addChild(defaultSceneRoot);
@@ -63,7 +62,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     engine.resourceManager
       .load<AmbientLight>({
         type: AssetType.Env,
-        url: "https://gw.alipayobjects.com/os/bmw-prod/89c54544-1184-45a1-b0f5-c0b17e5c3e68.bin",
+        url: "https://gw.alipayobjects.com/os/bmw-prod/89c54544-1184-45a1-b0f5-c0b17e5c3e68.bin"
       })
       .then((ambientLight) => {
         scene.ambientLight = ambientLight;
@@ -73,7 +72,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
         const envFolder = gui.addFolder("EnvironmentMapLight");
         envFolder.add(ambientLight, "specularIntensity", 0, 1);
         envFolder.add(ambientLight, "diffuseIntensity", 0, 1);
-      }),
+      })
   ]).then(() => {
     engine.run();
   });

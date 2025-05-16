@@ -2,8 +2,8 @@ import { ShaderData, ShaderProperty } from "../shader";
 import { ShadowType } from "../shadow";
 import { DisorderedArray } from "../utils/DisorderedArray";
 import { DirectLight, IDirectLightShaderData } from "./DirectLight";
-import { PointLight, IPointLightShaderData } from "./PointLight";
-import { SpotLight, ISpotLightShaderData } from "./SpotLight";
+import { IPointLightShaderData, PointLight } from "./PointLight";
+import { ISpotLightShaderData, SpotLight } from "./SpotLight";
 
 /**
  * Light manager.
@@ -189,15 +189,15 @@ export class LightManager {
         maxIntensity = Number.NEGATIVE_INFINITY;
         hasShadowLight = true;
       }
-      const intensity = currentLight.intensity * currentLight.color.getBrightness();
+      const brightness = currentLight.color.getBrightness();
       if (hasShadowLight) {
-        if (currentLight.shadowType !== ShadowType.None && maxIntensity < intensity) {
-          maxIntensity = intensity;
+        if (currentLight.shadowType !== ShadowType.None && maxIntensity < brightness) {
+          maxIntensity = brightness;
           sunlight = currentLight;
         }
       } else {
-        if (maxIntensity < intensity) {
-          maxIntensity = intensity;
+        if (maxIntensity < brightness) {
+          maxIntensity = brightness;
           sunlight = currentLight;
         }
       }

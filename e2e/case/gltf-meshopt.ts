@@ -3,7 +3,7 @@
  * @category Animation
  */
 import { OrbitControl } from "@galacean/engine-toolkit";
-import { Camera, DirectLight, GLTFLoader, GLTFResource, Logger, Vector3, WebGLEngine } from "@galacean/engine";
+import { Camera, Color, DirectLight, GLTFLoader, GLTFResource, Logger, Vector3, WebGLEngine } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
@@ -19,7 +19,12 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   cameraEntity.addComponent(OrbitControl).target = new Vector3(0, 0, 0);
 
   const lightNode = rootEntity.createChild("light_node");
-  lightNode.addComponent(DirectLight).intensity = 0.6;
+  lightNode.addComponent(DirectLight).color = new Color(
+    0.31854677812509186,
+    0.31854677812509186,
+    0.31854677812509186,
+    1
+  );
   lightNode.transform.lookAt(new Vector3(0, 0, 0));
   lightNode.transform.rotate(new Vector3(0, 90, 0));
 

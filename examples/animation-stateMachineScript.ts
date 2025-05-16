@@ -3,12 +3,11 @@
  * @category Animation
  * @thumbnail https://mdn.alipayobjects.com/merchant_appfe/afts/img/A*XA6qQozlnUwAAAAAAAAAAAAADiR2AQ/original
  */
-import * as dat from "dat.gui";
-import { OrbitControl } from "@galacean/engine-toolkit-controls";
 import {
   Animator,
   AnimatorState,
   Camera,
+  Color,
   DirectLight,
   GLTFResource,
   Logger,
@@ -16,8 +15,10 @@ import {
   SystemInfo,
   TextRenderer,
   Vector3,
-  WebGLEngine,
+  WebGLEngine
 } from "@galacean/engine";
+import { OrbitControl } from "@galacean/engine-toolkit-controls";
+import * as dat from "dat.gui";
 const gui = new dat.GUI();
 
 Logger.enable();
@@ -34,7 +35,12 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   cameraEntity.addComponent(OrbitControl).target = new Vector3(0, 1, 0);
 
   const lightNode = rootEntity.createChild("light_node");
-  lightNode.addComponent(DirectLight).intensity = 0.6;
+  lightNode.addComponent(DirectLight).color = new Color(
+    0.31854677812509186,
+    0.31854677812509186,
+    0.31854677812509186,
+    1
+  );
   lightNode.transform.lookAt(new Vector3(0, 0, 1));
   lightNode.transform.rotate(new Vector3(0, 90, 0));
 
@@ -46,9 +52,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   textRenderer.text = "";
 
   engine.resourceManager
-    .load<GLTFResource>(
-      "https://gw.alipayobjects.com/os/bmw-prod/5e3c1e4e-496e-45f8-8e05-f89f2bd5e4a4.glb"
-    )
+    .load<GLTFResource>("https://gw.alipayobjects.com/os/bmw-prod/5e3c1e4e-496e-45f8-8e05-f89f2bd5e4a4.glb")
     .then((gltfResource) => {
       const { animations = [], defaultSceneRoot } = gltfResource;
       rootEntity.addChild(defaultSceneRoot);
@@ -58,28 +62,16 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
       state.addStateMachineScript(
         class extends StateMachineScript {
-          onStateEnter(
-            animator: Animator,
-            animatorState: AnimatorState,
-            layerIndex: number
-          ): void {
+          onStateEnter(animator: Animator, animatorState: AnimatorState, layerIndex: number): void {
             textRenderer.text = "onStateEnter";
             console.log("onStateEnter: ", animatorState);
           }
 
-          onStateUpdate(
-            animator: Animator,
-            animatorState: AnimatorState,
-            layerIndex: number
-          ): void {
+          onStateUpdate(animator: Animator, animatorState: AnimatorState, layerIndex: number): void {
             console.log("onStateUpdate: ", animatorState);
           }
 
-          onStateExit(
-            animator: Animator,
-            animatorState: AnimatorState,
-            layerIndex: number
-          ): void {
+          onStateExit(animator: Animator, animatorState: AnimatorState, layerIndex: number): void {
             textRenderer.text = "onStateExit";
             console.log("onStateExit: ", animatorState);
           }
@@ -94,12 +86,10 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   engine.run();
 
   const initDatGUI = (animator: Animator, animations) => {
-    const animationNames = animations
-      .filter((clip) => !clip.name.includes("pose"))
-      .map((clip) => clip.name);
+    const animationNames = animations.filter((clip) => !clip.name.includes("pose")).map((clip) => clip.name);
     const debugInfo = {
       animation: animationNames[4],
-      speed: 1,
+      speed: 1
     };
 
     gui.add(debugInfo, "animation", animationNames).onChange((v) => {
