@@ -9,3 +9,4 @@ export type { IStaticCollider } from "./IStaticCollider";
 export type { ICollision } from "./ICollision";
 export * from "./joints/index";
 export * from "./shape/index";
+export * from "./geometry/index";
