@@ -19,7 +19,7 @@ class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
     const { diffuseFactor, diffuseTexture, specularFactor, glossinessFactor, specularGlossinessTexture } = schema;
 
     if (diffuseFactor) {
-      material.baseColor = new Color(diffuseFactor[0], diffuseFactor[1], diffuseFactor[2], diffuseFactor[3]);
+      material.baseColor.copyFromArray(diffuseFactor);
     }
 
     if (diffuseTexture) {
@@ -35,7 +35,7 @@ class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
     }
 
     if (specularFactor) {
-      material.specularColor = new Color(specularFactor[0], specularFactor[1], specularFactor[2]);
+      material.specularColor.set(specularFactor[0], specularFactor[1], specularFactor[2], 1.0);
     }
 
     if (glossinessFactor !== undefined) {

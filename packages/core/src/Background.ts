@@ -39,7 +39,7 @@ export class Background {
 
   /**
    * Background solid color.
-   * @defaultValue `new Color(0.25, 0.25, 0.25, 1.0)`
+   * @defaultValue `new Color(0.05, 0.05, 0.05, 1.0)`
    * @remarks When `mode` is `BackgroundMode.SolidColor`, the property will take effects.
    */
   get solidColor(): Color {
