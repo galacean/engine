@@ -2,7 +2,7 @@ import { BoundingSphere } from "./BoundingSphere";
 import { IClone } from "./IClone";
 import { ICopy } from "./ICopy";
 import { Matrix } from "./Matrix";
-import { Vector3 } from "./Vector3";
+import { Vector3, Vector3Like } from "./Vector3";
 
 /**
  * Axis Aligned Bound Box (AABB).
@@ -77,8 +77,8 @@ export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, Boun
     const e = matrix.elements;
     // prettier-ignore
     const e0 = e[0], e1 = e[1], e2 = e[2],
-    e4 = e[4], e5 = e[5], e6 = e[6],
-    e8 = e[8], e9 = e[9], e10 = e[10];
+      e4 = e[4], e5 = e[5], e6 = e[6],
+      e8 = e[8], e9 = e[9], e10 = e[10];
     extent.set(
       (e0 === 0 ? 0 : Math.abs(x * e0)) + (e4 === 0 ? 0 : Math.abs(y * e4)) + (e8 === 0 ? 0 : Math.abs(z * e8)),
       (e1 === 0 ? 0 : Math.abs(x * e1)) + (e5 === 0 ? 0 : Math.abs(y * e5)) + (e9 === 0 ? 0 : Math.abs(z * e9)),
@@ -215,4 +215,34 @@ export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, Boun
     this.max.copyFrom(source.max);
     return this;
   }
+
+
+  /**
+   * Serialize this bounding box to a JSON representation.
+   * @returns A JSON representation of this bounding box
+   */
+  toJSON(): BoundingBoxLike {
+    const min = this.min;
+    const max = this.max;
+    return {
+      min: {
+        x: min._x,
+        y: min._y,
+        z: min._z,
+      },
+      max: {
+        x: max._x,
+        y: max._y,
+        z: max._z,
+      }
+    };
+  }
+}
+
+
+interface BoundingBoxLike {
+  /** {@inheritDoc BoundingBox.min} */
+  min: Vector3Like;
+  /** {@inheritDoc BoundingBox.max} */
+  max: Vector3Like;
 }
