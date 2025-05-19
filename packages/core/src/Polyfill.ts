@@ -7,6 +7,7 @@ export class Polyfill {
   static registerPolyfill(): void {
     Polyfill._registerMatchAll();
     Polyfill._registerAudioContext();
+    Polyfill._registerMeasureText();
   }
 
   private static _registerMatchAll(): void {
@@ -67,6 +68,27 @@ export class Polyfill {
           );
         });
       };
+    }
+  }
+
+  private static _registerMeasureText(): void {
+    if (!("actualBoundingBoxLeft" in TextMetrics.prototype)) {
+      Object.defineProperties(TextMetrics.prototype, {
+        actualBoundingBoxLeft: {
+          get: function () {
+            return this.width; // 将 actualBoundingBoxLeft 的值与 width 保持一致
+          },
+          configurable: true,
+          enumerable: true
+        },
+        actualBoundingBoxRight: {
+          get: function () {
+            return 0;
+          },
+          configurable: true,
+          enumerable: true
+        }
+      });
     }
   }
 }
