@@ -438,10 +438,10 @@ export class Camera extends Component {
       const maxMSAASamples = this._engine._hardwareRenderer.capability.maxAntiAliasing;
       if (value > maxMSAASamples) {
         Logger.warn(`MSAA samples exceeds the limit and is automatically downgraded to:${maxMSAASamples}`);
-        value = maxMSAASamples;
+        this._msaaSamples = maxMSAASamples;
+      } else {
+        this._msaaSamples = value;
       }
-
-      this._msaaSamples = value;
     }
   }
 
