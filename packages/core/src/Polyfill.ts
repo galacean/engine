@@ -72,6 +72,9 @@ export class Polyfill {
   }
 
   private static _registerMeasureText(): void {
+    // Some devices do not support actualBoundingBoxLeft and actualBoundingBoxRight in TextMetrics.
+    // Examples: Google Pixel 2 XL (Android 11), Honor 6X (Android 8).
+    // This polyfill ensures compatibility by defining these properties dynamically.
     if (!("actualBoundingBoxLeft" in TextMetrics.prototype)) {
       Object.defineProperties(TextMetrics.prototype, {
         actualBoundingBoxLeft: {
