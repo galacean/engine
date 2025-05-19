@@ -450,7 +450,7 @@ export class Camera extends Component {
    */
   constructor(entity: Entity) {
     super(entity);
-    // Include hardware check
+    // Includes hardware detection correction
     this.msaaSamples = MSAASamples.FourX;
 
     this._isViewMatrixDirty = entity.registerWorldChangeFlag();
