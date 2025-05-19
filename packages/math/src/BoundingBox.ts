@@ -216,7 +216,6 @@ export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, Boun
     return this;
   }
 
-
   /**
    * Serialize this bounding box to a JSON representation.
    * @returns A JSON representation of this bounding box
@@ -228,17 +227,16 @@ export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, Boun
       min: {
         x: min._x,
         y: min._y,
-        z: min._z,
+        z: min._z
       },
       max: {
         x: max._x,
         y: max._y,
-        z: max._z,
+        z: max._z
       }
     };
   }
 }
-
 
 interface BoundingBoxLike {
   /** {@inheritDoc BoundingBox.min} */
