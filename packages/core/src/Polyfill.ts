@@ -7,7 +7,7 @@ export class Polyfill {
   static registerPolyfill(): void {
     Polyfill._registerMatchAll();
     Polyfill._registerAudioContext();
-    Polyfill._registerMeasureText();
+    Polyfill._registerTextMetrics();
   }
 
   private static _registerMatchAll(): void {
@@ -71,25 +71,21 @@ export class Polyfill {
     }
   }
 
-  private static _registerMeasureText(): void {
+  private static _registerTextMetrics(): void {
+    // Based on the specific version of the engine implementation, when actualBoundingBoxLeft is not supported, width is used to represent the rendering width, and textBaseline is always in middle mode.
     // Some devices do not support actualBoundingBoxLeft and actualBoundingBoxRight in TextMetrics.
     // Examples: Google Pixel 2 XL (Android 11), Honor 6X (Android 8).
-    // This polyfill ensures compatibility by defining these properties dynamically.
     if (!("actualBoundingBoxLeft" in TextMetrics.prototype)) {
       Object.defineProperties(TextMetrics.prototype, {
         actualBoundingBoxLeft: {
           get: function () {
-            return this.width; // 将 actualBoundingBoxLeft 的值与 width 保持一致
-          },
-          configurable: true,
-          enumerable: true
+            return this.width;
+          }
         },
         actualBoundingBoxRight: {
           get: function () {
             return 0;
-          },
-          configurable: true,
-          enumerable: true
+          }
         }
       });
     }
