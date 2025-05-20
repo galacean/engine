@@ -51,9 +51,22 @@ export class PhysXPhysics implements IPhysics {
   private _defaultErrorCallback: any;
   private _allocator: any;
   private _tolerancesScale: any;
+  private _physXUrl: string;
+  private _physXDowngradeUrl: string;
 
-  constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto) {
+  /**
+   * Constructor.
+   * @param runtimeMode - set runtime mode @see {@link PhysXRuntimeMode}
+   * @param urlOptions - Manually specify the PhysX URL and downgrade URL
+   */
+  constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto, urlOptions?: IPhysXUrlOptions) {
     this._runTimeMode = runtimeMode;
+    this._physXUrl =
+      urlOptions?.physXUrl ??
+      "https://mdn.alipayobjects.com/rms/afts/file/A*nL1PSrCPoZ0AAAAAAAAAAAAAARQnAQ/physx.release.js";
+    this._physXDowngradeUrl =
+      urlOptions?.physXDowngradeUrl ??
+      "https://mdn.alipayobjects.com/rms/afts/file/A*V4pqRqM65UMAAAAAAAAAAAAAARQnAQ/physx.release.downgrade.js";
   }
 
   /**
@@ -94,9 +107,9 @@ export class PhysXPhysics implements IPhysics {
       }
 
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
-        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*V4pqRqM65UMAAAAAAAAAAAAAARQnAQ/physx.release.downgrade.js`;
+        script.src = this._physXDowngradeUrl;
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
-        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*nL1PSrCPoZ0AAAAAAAAAAAAAARQnAQ/physx.release.js`;
+        script.src = this._physXUrl;
       }
     });
 
@@ -288,4 +301,11 @@ enum InitializeState {
   Uninitialized,
   Initializing,
   Initialized
+}
+
+interface IPhysXUrlOptions {
+  /*** PhysXRuntimeMode.WebAssembly will use this url */
+  physXUrl?: string;
+  /*** PhysXRuntimeMode.JavaScript will use this url */
+  physXDowngradeUrl?: string;
 }

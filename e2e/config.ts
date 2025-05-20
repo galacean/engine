@@ -224,6 +224,11 @@ export const E2E_CONFIG = {
       category: "Physics",
       caseFileName: "physx-collision-group",
       threshold: 0.1
+    },
+    "PhysXPhysics Custom Url": {
+      category: "Physics",
+      caseFileName: "physx-customUrl",
+      threshold: 0.1
     }
   },
   Particle: {
