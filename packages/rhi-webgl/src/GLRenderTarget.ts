@@ -323,25 +323,27 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     const gl = this._gl;
     const e = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
 
-    if (e !== gl.FRAMEBUFFER_COMPLETE && !gl.isContextLost()) {
-      switch (e) {
-        case gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
-          throw new Error(
-            "The attachment types are mismatched or not all framebuffer attachment points are framebuffer attachment complete"
-          );
-        case gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
-          throw new Error("There is no attachment");
-        case gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS:
-          throw new Error(" Height and width of the attachment are not the same.");
-        case gl.FRAMEBUFFER_UNSUPPORTED:
+    switch (e) {
+      case gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+        throw new Error(
+          "The attachment types are mismatched or not all framebuffer attachment points are framebuffer attachment complete"
+        );
+      case gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+        throw new Error("There is no attachment");
+      case gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS:
+        throw new Error(" Height and width of the attachment are not the same.");
+      case gl.FRAMEBUFFER_UNSUPPORTED:
+        // #5.14.3 Event Types in https://registry.khronos.org/webgl/specs/1.0.0/  
+        if (!gl.isContextLost()) {
           throw new Error(
             "The format of the attachment is not supported or if depth and stencil attachments are not the same renderbuffer"
           );
-        case gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: // Only for WebGL2
-          throw new Error(
-            "The values of gl.RENDERBUFFER_SAMPLES are different among attached renderbuffers, or are non-zero if the attached images are a mix of renderbuffers and textures."
-          );
-      }
+        }
+
+      case gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: // Only for WebGL2
+        throw new Error(
+          "The values of gl.RENDERBUFFER_SAMPLES are different among attached renderbuffers, or are non-zero if the attached images are a mix of renderbuffers and textures."
+        );
     }
   }
 }
