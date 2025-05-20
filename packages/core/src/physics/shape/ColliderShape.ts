@@ -5,6 +5,7 @@ import { Collider } from "../Collider";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Engine } from "../../Engine";
+import { ColliderShapeChangeFlag } from "../enums/ColliderShapeChangeFlag";
 
 /**
  * Abstract class for collider shapes.
@@ -52,6 +53,7 @@ export abstract class ColliderShape implements ICustomClone {
 
   /**
    * Contact offset for this shape, the value must be greater than or equal to 0.
+   * @defaultValue 0.02
    */
   get contactOffset(): number {
     return this._contactOffset;
@@ -183,18 +185,18 @@ export abstract class ColliderShape implements ICustomClone {
     this._nativeShape.setIsTrigger(this._isTrigger);
     this._nativeShape.setMaterial(this._material._nativeMaterial);
 
-    this._collider?._handleShapesChanged();
+    this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
   }
 
   @ignoreClone
   private _setPosition(): void {
     this._nativeShape.setPosition(this._position);
-    this._collider?._handleShapesChanged();
+    this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
   }
 
   @ignoreClone
   private _setRotation(): void {
     this._nativeShape.setRotation(this._rotation);
-    this._collider?._handleShapesChanged();
+    this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
   }
 }

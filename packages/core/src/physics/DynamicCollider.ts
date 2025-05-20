@@ -1,9 +1,10 @@
 import { IDynamicCollider } from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneManager";
+import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
-import { PhysicsScene } from "./PhysicsScene";
+import { ColliderShapeChangeFlag } from "./enums/ColliderShapeChangeFlag";
 
 /**
  * A dynamic collider can act with self-defined movement or physical force.
@@ -306,7 +307,7 @@ export class DynamicCollider extends Collider {
   constructor(entity: Entity) {
     super(entity);
     const { transform } = this.entity;
-    this._nativeCollider = PhysicsScene._nativePhysics.createDynamicCollider(
+    this._nativeCollider = Engine._nativePhysics.createDynamicCollider(
       transform.worldPosition,
       transform.worldRotationQuaternion
     );
@@ -420,7 +421,9 @@ export class DynamicCollider extends Collider {
   /**
    * @internal
    */
-  override _handleShapesChanged(): void {
+  override _handleShapesChanged(changeType: ColliderShapeChangeFlag): void {
+    super._handleShapesChanged(changeType);
+
     if (this._automaticCenterOfMass || this._automaticInertiaTensor) {
       this._setMassAndUpdateInertia();
     }

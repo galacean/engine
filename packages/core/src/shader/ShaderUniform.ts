@@ -42,11 +42,7 @@ export class ShaderUniform {
     const cacheValue = <Vector2>this.cacheValue;
     if ((<Color>value).r !== undefined) {
       if (cacheValue.x !== (<Color>value).r || cacheValue.y !== (<Color>value).g) {
-        this._gl.uniform2f(
-          shaderUniform.location,
-          Color.sRGBToLinearSpace((<Color>value).r),
-          Color.sRGBToLinearSpace((<Color>value).g)
-        );
+        this._gl.uniform2f(shaderUniform.location, (<Color>value).r, (<Color>value).g);
         cacheValue.x = (<Color>value).r;
         cacheValue.y = (<Color>value).g;
       }
@@ -67,12 +63,7 @@ export class ShaderUniform {
     const cacheValue = <Vector3>this.cacheValue;
     if ((<Color>value).r !== undefined) {
       if (cacheValue.x !== (<Color>value).r || cacheValue.y !== (<Color>value).g || cacheValue.z !== (<Color>value).b) {
-        this._gl.uniform3f(
-          shaderUniform.location,
-          Color.sRGBToLinearSpace((<Color>value).r),
-          Color.sRGBToLinearSpace((<Color>value).g),
-          Color.sRGBToLinearSpace((<Color>value).b)
-        );
+        this._gl.uniform3f(shaderUniform.location, (<Color>value).r, (<Color>value).g, (<Color>value).b);
         cacheValue.x = (<Color>value).r;
         cacheValue.y = (<Color>value).g;
         cacheValue.z = (<Color>value).b;
@@ -106,9 +97,9 @@ export class ShaderUniform {
       ) {
         this._gl.uniform4f(
           shaderUniform.location,
-          Color.sRGBToLinearSpace((<Color>value).r),
-          Color.sRGBToLinearSpace((<Color>value).g),
-          Color.sRGBToLinearSpace((<Color>value).b),
+          (<Color>value).r,
+          (<Color>value).g,
+          (<Color>value).b,
           (<Color>value).a
         );
         cacheValue.x = (<Color>value).r;

@@ -35,12 +35,12 @@ WebGLEngine.create({
 
   const leftScene = engine.sceneManager.activeScene;
   const leftRootEntity = leftScene.createRootEntity();
-  leftScene.background.solidColor = new Color(15 / 255, 38 / 255, 18 / 255, 1);
+  leftScene.background.solidColor = new Color(0.004776953480693729, 0.019382360956935723, 0.006048833022857054, 1);
 
   const rightScene = new Scene(engine);
   engine.sceneManager.addScene(rightScene);
   const rightRootEntity = rightScene.createRootEntity();
-  rightScene.background.solidColor = new Color(15 / 255, 38 / 255, 18 / 255, 1);
+  rightScene.background.solidColor = new Color(0.004776953480693729, 0.019382360956935723, 0.006048833022857054, 1);
 
   // Create camera
   const leftCameraEntity = leftRootEntity.createChild("left-camera");
@@ -133,8 +133,8 @@ function createDebrisParticle(
   main.startRotationZ.constantMax = 360;
   main.startRotationZ.mode = ParticleCurveMode.TwoConstants;
 
-  main.startColor.constantMin.set(255 / 255, 255 / 255, 255 / 255, 1.0);
-  main.startColor.constantMax.set(13 / 255, 255 / 255, 0 / 255, 1.0);
+  main.startColor.constantMin.set(1.0, 1.0, 1.0, 1.0);
+  main.startColor.constantMax.set(0.004024717018496307, 1.0, 0.0, 1.0);
   main.startColor.mode = ParticleGradientMode.TwoConstants;
 
   // Emission module
@@ -227,8 +227,8 @@ function createGlowParticle(
   main.startRotationZ.constantMax = 360;
   main.startRotationZ.mode = ParticleCurveMode.TwoConstants;
 
-  main.startColor.constantMin = new Color(0 / 255, 157 / 255, 255 / 255, 64 / 255);
-  main.startColor.constantMax = new Color(13 / 255, 255 / 255, 0 / 255, 128 / 255);
+  main.startColor.constantMin = new Color(0.0, 0.33716361504833037, 1.0, 64 / 255);
+  main.startColor.constantMax = new Color(0.004024717018496307, 1.0, 0.0, 128 / 255);
   main.startColor.mode = ParticleGradientMode.TwoConstants;
 
   // Emission module
@@ -306,7 +306,7 @@ function createSparksParticle(fireEntity: Entity, texture: Texture2D, stretch = 
   main.startRotationZ.constantMax = 360;
   main.startRotationZ.mode = ParticleCurveMode.TwoConstants;
 
-  main.startColor.constant = new Color(37 / 255, 133 / 255, 255 / 255, 255 / 255);
+  main.startColor.constant = new Color(0.018500220128379697, 0.23455058216100522, 1.0, 255 / 255);
 
   // Emission module
   emission.rateOverTime.constant = 30;

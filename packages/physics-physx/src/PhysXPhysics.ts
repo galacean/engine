@@ -1,8 +1,9 @@
-import { Quaternion, Vector3, version } from "@galacean/engine";
+import { Quaternion, Vector3, Layer } from "@galacean/engine";
 import {
   IBoxColliderShape,
   ICapsuleColliderShape,
   ICharacterController,
+  ICollider,
   ICollision,
   IDynamicCollider,
   IFixedJoint,
@@ -47,6 +48,9 @@ export class PhysXPhysics implements IPhysics {
   private _runTimeMode: PhysXRuntimeMode;
   private _initializeState: InitializeState = InitializeState.Uninitialized;
   private _initializePromise: Promise<void>;
+  private _defaultErrorCallback: any;
+  private _allocator: any;
+  private _tolerancesScale: any;
 
   constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto) {
     this._runTimeMode = runtimeMode;
@@ -90,9 +94,9 @@ export class PhysXPhysics implements IPhysics {
       }
 
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
-        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*PXxaQrGL0XsAAAAAAAAAAAAAARQnAQ/physx.release.downgrade.js`;
+        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*V4pqRqM65UMAAAAAAAAAAAAAARQnAQ/physx.release.downgrade.js`;
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
-        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*0Qq8Rob3_5oAAAAAAAAAAAAAARQnAQ/physx.release.js`;
+        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*nL1PSrCPoZ0AAAAAAAAAAAAAARQnAQ/physx.release.js`;
       }
     });
 
@@ -123,9 +127,9 @@ export class PhysXPhysics implements IPhysics {
     this._physX.PxCloseExtensions();
     this._pxPhysics.release();
     this._pxFoundation.release();
-    this._physX = null;
-    this._pxFoundation = null;
-    this._pxPhysics = null;
+    this._defaultErrorCallback.delete();
+    this._allocator.delete();
+    this._tolerancesScale.delete();
   }
 
   /**
@@ -147,7 +151,7 @@ export class PhysXPhysics implements IPhysics {
     onTriggerEnd?: (obj1: number, obj2: number) => void,
     onTriggerStay?: (obj1: number, obj2: number) => void
   ): IPhysicsScene {
-    const manager = new PhysXPhysicsScene(
+    const scene = new PhysXPhysicsScene(
       this,
       physicsManager,
       onContactBegin,
@@ -157,7 +161,7 @@ export class PhysXPhysics implements IPhysics {
       onTriggerEnd,
       onTriggerStay
     );
-    return manager;
+    return scene;
   }
 
   /**
@@ -248,17 +252,35 @@ export class PhysXPhysics implements IPhysics {
     return new PhysXSpringJoint(this, collider);
   }
 
+  /**
+   * {@inheritDoc IPhysics.getColliderLayerCollision }
+   */
+  getColliderLayerCollision(layer1: number, layer2: number): boolean {
+    return this._physX.getGroupCollisionFlag(layer1, layer2);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.setColliderLayerCollision }
+   */
+  setColliderLayerCollision(layer1: number, layer2: number, isCollide: boolean): void {
+    this._physX.setGroupCollisionFlag(layer1, layer2, isCollide);
+  }
+
   private _init(physX: any): void {
     const version = physX.PX_PHYSICS_VERSION;
     const defaultErrorCallback = new physX.PxDefaultErrorCallback();
     const allocator = new physX.PxDefaultAllocator();
     const pxFoundation = physX.PxCreateFoundation(version, allocator, defaultErrorCallback);
-    const pxPhysics = physX.PxCreatePhysics(version, pxFoundation, new physX.PxTolerancesScale(), false, null);
+    const tolerancesScale = new physX.PxTolerancesScale();
+    const pxPhysics = physX.PxCreatePhysics(version, pxFoundation, tolerancesScale, false, null);
 
     physX.PxInitExtensions(pxPhysics, null);
     this._physX = physX;
     this._pxFoundation = pxFoundation;
     this._pxPhysics = pxPhysics;
+    this._defaultErrorCallback = defaultErrorCallback;
+    this._allocator = allocator;
+    this._tolerancesScale = tolerancesScale;
   }
 }
 

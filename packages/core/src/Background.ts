@@ -34,12 +34,12 @@ export class Background {
   /** @internal */
   _material: Material;
 
-  private _solidColor = new Color(0.25, 0.25, 0.25, 1.0);
+  private _solidColor = new Color(0.05087608817155679, 0.05087608817155679, 0.05087608817155679, 1.0);
   private _texture: Texture2D = null;
 
   /**
    * Background solid color.
-   * @defaultValue `new Color(0.25, 0.25, 0.25, 1.0)`
+   * @defaultValue `new Color(0.05, 0.05, 0.05, 1.0)`
    * @remarks When `mode` is `BackgroundMode.SolidColor`, the property will take effects.
    */
   get solidColor(): Color {

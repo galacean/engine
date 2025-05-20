@@ -1,7 +1,7 @@
 import { IHingeJoint } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
+import { Engine } from "../../Engine";
 import { Collider } from "../Collider";
-import { PhysicsScene } from "../PhysicsScene";
 import { HingeJointFlag } from "../enums/HingeJointFlag";
 import { Joint } from "./Joint";
 import { JointLimits } from "./JointLimits";
@@ -160,7 +160,7 @@ export class HingeJoint extends Joint {
   protected _createJoint(): void {
     const colliderInfo = this._colliderInfo;
     colliderInfo.collider = this.entity.getComponent(Collider);
-    this._nativeJoint = PhysicsScene._nativePhysics.createHingeJoint(colliderInfo.collider._nativeCollider);
+    this._nativeJoint = Engine._nativePhysics.createHingeJoint(colliderInfo.collider._nativeCollider);
   }
 
   protected override _syncNative(): void {

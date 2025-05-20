@@ -39,7 +39,9 @@ void main(){
     // We have convert the color to sRGB space in sRGB pass
     // So we need to convert it back to linear space when output to render target.
     #ifndef ENGINE_OUTPUT_SRGB_CORRECT
+        color.rgb /= color.a;
         color = sRGBToLinear(color);
+        color.rgb *= color.a;
     #endif
 
     gl_FragColor = color;

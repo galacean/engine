@@ -1,7 +1,7 @@
 import { ColliderShape } from "./ColliderShape";
 import { IBoxColliderShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
-import { PhysicsScene } from "../PhysicsScene";
+import { Engine } from "../../Engine";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 
 /**
@@ -26,7 +26,7 @@ export class BoxColliderShape extends ColliderShape {
 
   constructor() {
     super();
-    this._nativeShape = PhysicsScene._nativePhysics.createBoxColliderShape(
+    this._nativeShape = Engine._nativePhysics.createBoxColliderShape(
       this._id,
       this._size,
       this._material._nativeMaterial

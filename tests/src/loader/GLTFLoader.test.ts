@@ -429,8 +429,7 @@ describe("glTF Loader test", function () {
     const directLight = entities[0].getComponent(SpotLight);
     expect(directLight).to.exist;
     expect(directLight.distance).to.equal(20);
-    expect(directLight.intensity).to.equal(0.5);
-    expect(directLight.color).to.deep.equal(new Color(1, 0, 0, 1));
+    expect(directLight.color).to.deep.equal(new Color(0.5, 0, 0, 1));
     expect(directLight.angle).to.equal(Math.PI / 3);
     expect(directLight.penumbra).to.closeTo(Math.PI / 6, 1e-6);
 

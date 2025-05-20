@@ -31,16 +31,10 @@ export abstract class PhysXColliderShape implements IColliderShape {
   _controllers: DisorderedArray<PhysXCharacterController> = new DisorderedArray<PhysXCharacterController>();
   /** @internal */
   _contractOffset: number = 0.02;
-
-  protected _physXPhysics: PhysXPhysics;
-  protected _worldScale: Vector3 = new Vector3(1, 1, 1);
-  protected _position: Vector3 = new Vector3();
-  protected _rotation: Vector3 = new Vector3();
-  protected _axis: Quaternion = null;
-  protected _physXRotation: Quaternion = new Quaternion();
-
-  private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
-
+  /** @internal */
+  _worldScale: Vector3 = new Vector3(1, 1, 1);
+  /** @internal */
+  _position: Vector3 = new Vector3();
   /** @internal */
   _pxMaterial: any;
   /** @internal */
@@ -49,6 +43,13 @@ export abstract class PhysXColliderShape implements IColliderShape {
   _pxGeometry: any;
   /** @internal */
   _id: number;
+
+  protected _physXPhysics: PhysXPhysics;
+  protected _rotation: Vector3 = new Vector3();
+  protected _axis: Quaternion = null;
+  protected _physXRotation: Quaternion = new Quaternion();
+
+  private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
   constructor(physXPhysics: PhysXPhysics) {
     this._physXPhysics = physXPhysics;
@@ -146,6 +147,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
    */
   destroy(): void {
     this._pxShape.release();
+    this._pxGeometry.delete();
   }
 
   /**
@@ -153,7 +155,9 @@ export abstract class PhysXColliderShape implements IColliderShape {
    */
   _setShapeFlags(flags: ShapeFlag) {
     this._shapeFlags = flags;
-    this._pxShape.setFlags(new this._physXPhysics._physX.PxShapeFlags(this._shapeFlags));
+    const shapeFlags = new this._physXPhysics._physX.PxShapeFlags(this._shapeFlags);
+    this._pxShape.setFlags(shapeFlags);
+    shapeFlags.delete();
   }
 
   protected _setLocalPose(): void {
@@ -166,12 +170,9 @@ export abstract class PhysXColliderShape implements IColliderShape {
   protected _initialize(material: PhysXPhysicsMaterial, id: number): void {
     this._id = id;
     this._pxMaterial = material._pxMaterial;
-    this._pxShape = this._physXPhysics._pxPhysics.createShape(
-      this._pxGeometry,
-      material._pxMaterial,
-      true,
-      new this._physXPhysics._physX.PxShapeFlags(this._shapeFlags)
-    );
+    const shapeFlags = new this._physXPhysics._physX.PxShapeFlags(this._shapeFlags);
+    this._pxShape = this._physXPhysics._pxPhysics.createShape(this._pxGeometry, material._pxMaterial, true, shapeFlags);
+    shapeFlags.delete();
     this._pxShape.setUUID(id);
   }
 
