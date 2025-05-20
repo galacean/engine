@@ -28,11 +28,11 @@ WebGLEngine.create({
   const scene = engine.sceneManager.activeScene;
 
   const ambientLight = scene.ambientLight;
-  ambientLight.diffuseSolidColor.set(0.8, 0.8, 1, 1);
+  ambientLight.diffuseSolidColor.set(0.6038273388553378, 0.6038273388553378, 1, 1);
   ambientLight.diffuseIntensity = 0.5;
 
   const rootEntity = scene.createRootEntity();
-  scene.background.solidColor = new Color(25 / 255, 25 / 255, 112 / 255, 1);
+  scene.background.solidColor = new Color(0.00972121732023785, 0.00972121732023785, 0.162029375639111, 1);
 
   // Create camera
   const cameraEntity = rootEntity.createChild("camera_entity");

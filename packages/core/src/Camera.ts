@@ -88,20 +88,24 @@ export class Camera extends Component {
   opaqueTextureDownsampling: Downsampling = Downsampling.TwoX;
 
   /**
-   * The number of samples used for hardware multisample anti-aliasing (MSAA) to smooth geometry edges during rasterization.
-   * Higher sample counts (e.g., 2x, 4x, 8x) produce smoother edges.
-   *
-   * @defaultValue `MSAASamples.FourX`
-   */
-  msaaSamples: MSAASamples = MSAASamples.FourX;
-
-  /**
    * The screen-space anti-aliasing mode applied after the camera renders the final image.
    * Unlike MSAA, it can smooth all pixels, including by shader-generated specular, alpha-cutoff edge, low resolution texture.
    *
    * @defaultValue `AntiAliasing.None`
    */
   antiAliasing: AntiAliasing = AntiAliasing.None;
+
+  /**
+   * Determines whether to preserve the alpha channel in the output.
+   * When set to true, the alpha channel is always preserved.
+   * When set to false, the engine automatically decides whether to preserve it.
+   *
+   * @remarks
+   * Set to true if you need to ensure the alpha channel is preserved, for example, when performing canvas transparent blending.
+   *
+   * @defaultValue `false`
+   */
+  isAlphaOutputRequired = false;
 
   /** @internal */
   _cameraType: CameraType = CameraType.Normal;
@@ -140,6 +144,7 @@ export class Camera extends Component {
   private _opaqueTextureEnabled: boolean = false;
   private _enableHDR = false;
   private _enablePostProcess = false;
+  private _msaaSamples: MSAASamples;
 
   @ignoreClone
   private _updateFlagManager: UpdateFlagManager;
@@ -419,10 +424,34 @@ export class Camera extends Component {
   }
 
   /**
+   * The number of samples used for hardware multisample anti-aliasing (MSAA) to smooth geometry edges during rasterization.
+   * Higher sample counts (e.g., 2x, 4x, 8x) produce smoother edges.
+   *
+   * @defaultValue `MSAASamples.FourX`
+   */
+  get msaaSamples(): MSAASamples {
+    return this._msaaSamples;
+  }
+
+  set msaaSamples(value: MSAASamples) {
+    if (this._msaaSamples !== value) {
+      const maxMSAASamples = this._engine._hardwareRenderer.capability.maxAntiAliasing;
+      if (value > maxMSAASamples) {
+        Logger.warn(`MSAA samples exceeds the limit and is automatically downgraded to:${maxMSAASamples}`);
+        this._msaaSamples = maxMSAASamples;
+      } else {
+        this._msaaSamples = value;
+      }
+    }
+  }
+
+  /**
    * @internal
    */
   constructor(entity: Entity) {
     super(entity);
+    // Includes hardware detection correction
+    this.msaaSamples = MSAASamples.FourX;
 
     this._isViewMatrixDirty = entity.registerWorldChangeFlag();
     this._isInvViewProjDirty = entity.registerWorldChangeFlag();
@@ -743,7 +772,7 @@ export class Camera extends Component {
    */
   _getInternalColorTextureFormat(): TextureFormat {
     return this._enableHDR
-      ? this.engine._hardwareRenderer.isWebGL2
+      ? this.engine._hardwareRenderer.isWebGL2 && !this.isAlphaOutputRequired
         ? TextureFormat.R11G11B10_UFloat
         : TextureFormat.R16G16B16A16
       : TextureFormat.R8G8B8A8;

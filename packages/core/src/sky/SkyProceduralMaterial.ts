@@ -136,8 +136,8 @@ export class SkyProceduralMaterial extends Material {
     this.sunSize = 0.04;
     this.sunSizeConvergence = 5;
     this.atmosphereThickness = 1.0;
-    this.skyTint = new Color(0.5, 0.5, 0.5, 1.0);
-    this.groundTint = new Color(0.369, 0.349, 0.341, 1.0);
+    this.skyTint = new Color(0.21404114048223255, 0.21404114048223255, 0.21404114048223255, 1.0);
+    this.groundTint = new Color(0.11216882039252905, 0.09988709277986121, 0.09520561068319185, 1.0);
     this.exposure = 1.3;
 
     this.renderState.rasterState.cullMode = CullMode.Off;

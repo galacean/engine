@@ -88,6 +88,8 @@ export class PhysXCharacterController implements ICharacterController {
    * {@inheritDoc ICharacterController.addShape }
    */
   addShape(shape: PhysXColliderShape): void {
+    // Add shape should sync latest position and world scale to pxController
+    this._updateShapePosition(shape._position, shape._worldScale);
     // When CharacterController is disabled, set shape property need check pxController whether exist because of this._pxManager is null and won't create pxController
     this._pxManager && this._createPXController(this._pxManager, shape);
     this._shape = shape;
@@ -104,6 +106,17 @@ export class PhysXCharacterController implements ICharacterController {
     this._shape = null;
     shape._controllers.delete(this);
     this._scene?._removeColliderShape(shape._id);
+  }
+
+  /**
+   * {@inheritDoc ICollider.setCollisionLayer }
+   */
+  setCollisionLayer(layer: number): void {
+    const actor = this._pxController?.getActor();
+
+    if (actor) {
+      this._physXPhysics._physX.setGroup(actor, layer);
+    }
   }
 
   /**
@@ -133,9 +146,12 @@ export class PhysXCharacterController implements ICharacterController {
     }
 
     desc.setMaterial(shape._pxMaterial);
-
     this._pxController = pxManager._getControllerManager().createController(desc);
+    desc.delete();
+
     this._pxController.setUUID(shape._id);
+
+    this._updateNativePosition();
   }
 
   /**
@@ -156,7 +172,7 @@ export class PhysXCharacterController implements ICharacterController {
     this._updateNativePosition();
   }
 
-  private _updateNativePosition() {
+  private _updateNativePosition(): void {
     const worldPosition = this._worldPosition;
     if (this._pxController && worldPosition) {
       Vector3.add(worldPosition, this._shapeScaledPosition, PhysXCharacterController._tempVec);

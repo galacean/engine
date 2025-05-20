@@ -71,7 +71,7 @@ export class Scene extends EngineObject {
   private _shadowCascades: ShadowCascadesMode = ShadowCascadesMode.NoCascades;
   private _ambientLight: AmbientLight;
   private _fogMode: FogMode = FogMode.None;
-  private _fogColor: Color = new Color(0.5, 0.5, 0.5, 1.0);
+  private _fogColor: Color = new Color(0.21404114048223255, 0.21404114048223255, 0.21404114048223255, 1.0);
   private _fogStart: number = 0;
   private _fogEnd: number = 300;
   private _fogDensity: number = 0.01;
@@ -504,6 +504,8 @@ export class Scene extends EngineObject {
 
     const allCreatedScenes = sceneManager._allCreatedScenes;
     allCreatedScenes.splice(allCreatedScenes.indexOf(this), 1);
+
+    this.physics._destroy();
   }
 
   private _computeLinearFogParams(fogStart: number, fogEnd: number): void {

@@ -214,6 +214,16 @@ export const E2E_CONFIG = {
       category: "Physics",
       caseFileName: "physx-collision",
       threshold: 0.1
+    },
+    "LitePhysics Collision Group": {
+      category: "Physics",
+      caseFileName: "litePhysics-collision-group",
+      threshold: 0.1
+    },
+    "PhysXPhysics Collision Group": {
+      category: "Physics",
+      caseFileName: "physx-collision-group",
+      threshold: 0.1
     }
   },
   Particle: {
@@ -299,6 +309,12 @@ export const E2E_CONFIG = {
       category: "Advance",
       caseFileName: "multi-camera-no-clear",
       threshold: 0.1
+    },
+
+    CanvasTransparency: {
+      category: "Advance",
+      caseFileName: "canvas-transparency",
+      threshold: 0.01
     }
   }
 };

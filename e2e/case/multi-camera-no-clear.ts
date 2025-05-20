@@ -76,7 +76,7 @@ function initFirstScene(engine: Engine): Scene {
     const bloomEffect = postProcess.addEffect(BloomEffect);
     postProcess.addEffect(TonemappingEffect);
 
-    bloomEffect.threshold.value = 0.1;
+    bloomEffect.threshold.value = 0.010022825574869039;
     bloomEffect.intensity.value = 2;
     cameraEntity.transform.setPosition(0, 0, 20);
 

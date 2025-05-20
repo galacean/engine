@@ -92,7 +92,6 @@ describe("Light test", function () {
 
   it("light default values", function () {
     expect(directLight.color).to.deep.equal(new Color(1, 1, 1));
-    expect(directLight.intensity).to.equal(1);
     expect(directLight.cullingMask).to.equal(Layer.Everything);
     expect(directLight.shadowType).to.equal(ShadowType.None);
     expect(directLight.shadowBias).to.equal(1);
@@ -129,15 +128,6 @@ describe("Light test", function () {
     expect(viewMatrix[13] + inverseViewMatrix[13]).to.deep.equal(0);
     expect(viewMatrix[14] + inverseViewMatrix[14]).to.deep.equal(0);
     expect(viewMatrix[15]).to.deep.equal(inverseViewMatrix[15]);
-  });
-
-  it("update intensity", function () {
-    directLight.intensity = 2;
-    expect(directLight.intensity).to.equal(2);
-    const expectedColor = new Color(1, 1, 1, 2);
-    engine.update();
-    const calculatedColor = directLight["_lightColor"];
-    expect(calculatedColor).to.deep.equal(expectedColor);
   });
 
   it("update shadow type", function () {

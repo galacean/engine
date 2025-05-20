@@ -1,12 +1,14 @@
 import { ICollider, IStaticCollider } from "@galacean/engine-design";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { ICustomClone } from "../clone/ComponentCloner";
 import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Entity } from "../Entity";
+import { Layer } from "../Layer";
 import { Transform } from "../Transform";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ColliderShape } from "./shape/ColliderShape";
-import { ICustomClone } from "../clone/ComponentCloner";
+import { ColliderShapeChangeFlag } from "./enums/ColliderShapeChangeFlag";
 
 /**
  * Base class for all colliders.
@@ -24,12 +26,33 @@ export class Collider extends Component implements ICustomClone {
   protected _updateFlag: BoolUpdateFlag;
   @deepClone
   protected _shapes: ColliderShape[] = [];
+  protected _collisionLayerIndex: number = 0;
 
   /**
    * The shapes of this collider.
    */
   get shapes(): Readonly<ColliderShape[]> {
     return this._shapes;
+  }
+
+  /**
+   * The collision layer of this collider, only support single layer.
+   *
+   * @defaultValue `Layer.Layer0`
+   */
+  get collisionLayer(): Layer {
+    return (1 << this._collisionLayerIndex) as Layer;
+  }
+
+  set collisionLayer(value: Layer) {
+    // Check if value is a single layer (power of 2)
+    const index = Math.log2(value);
+    if (!Number.isInteger(index)) {
+      throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
+    }
+
+    this._collisionLayerIndex = index;
+    this._nativeCollider.setCollisionLayer(index);
   }
 
   /**
@@ -52,7 +75,7 @@ export class Collider extends Component implements ICustomClone {
       }
       this._shapes.push(shape);
       this._addNativeShape(shape);
-      this._handleShapesChanged();
+      this._handleShapesChanged(ColliderShapeChangeFlag.Count);
     }
   }
 
@@ -65,7 +88,7 @@ export class Collider extends Component implements ICustomClone {
     if (index !== -1) {
       this._shapes.splice(index, 1);
       this._removeNativeShape(shape);
-      this._handleShapesChanged();
+      this._handleShapesChanged(ColliderShapeChangeFlag.Count);
     }
   }
 
@@ -78,7 +101,7 @@ export class Collider extends Component implements ICustomClone {
       this._removeNativeShape(shapes[i]);
     }
     shapes.length = 0;
-    this._handleShapesChanged();
+    this._handleShapesChanged(ColliderShapeChangeFlag.Count);
   }
 
   /**
@@ -129,12 +152,17 @@ export class Collider extends Component implements ICustomClone {
   /**
    * @internal
    */
-  _handleShapesChanged(): void {}
+  _handleShapesChanged(changeType: ColliderShapeChangeFlag): void {
+    if (changeType & ColliderShapeChangeFlag.Count) {
+      this._setCollisionLayer();
+    }
+  }
 
   protected _syncNative(): void {
     for (let i = 0, n = this.shapes.length; i < n; i++) {
       this._addNativeShape(this.shapes[i]);
     }
+    this._setCollisionLayer();
   }
 
   /**
@@ -160,5 +188,9 @@ export class Collider extends Component implements ICustomClone {
   protected _removeNativeShape(shape: ColliderShape): void {
     shape._collider = null;
     this._nativeCollider.removeShape(shape._nativeShape);
+  }
+
+  private _setCollisionLayer(): void {
+    this._nativeCollider.setCollisionLayer(this._collisionLayerIndex);
   }
 }

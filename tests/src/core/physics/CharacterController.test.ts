@@ -9,7 +9,8 @@ import {
   PlaneColliderShape,
   DynamicCollider,
   Script,
-  ControllerCollisionFlag
+  ControllerCollisionFlag,
+  Layer
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
@@ -321,5 +322,125 @@ describe("CharacterController", function () {
     expect(roleEntity.transform.position.z).eq(1);
     roleEntity.isActive = false;
     controller.destroy();
+  });
+
+  it("collision group", () => {
+    const controller = roleEntity.getComponent(CharacterController);
+
+    const obstacleEntity = rootEntity.createChild("obstacle");
+    obstacleEntity.transform.position = new Vector3(0, 0, 2);
+
+    const obstacleCollider = obstacleEntity.addComponent(StaticCollider);
+    const triggerShape = new BoxColliderShape();
+    triggerShape.size = new Vector3(1, 1, 1);
+    triggerShape.isTrigger = true;
+    obstacleCollider.addShape(triggerShape);
+
+    class TriggerDetectionScript extends Script {
+      triggerEntered = false;
+
+      onTriggerEnter() {
+        this.triggerEntered = true;
+      }
+
+      reset() {
+        this.triggerEntered = false;
+      }
+    }
+
+    const triggerScript = obstacleEntity.addComponent(TriggerDetectionScript);
+
+    roleEntity.layer = Layer.Layer1;
+    obstacleEntity.layer = Layer.Layer2;
+
+    controller.move(new Vector3(0, 0, 2), 0.0001, 0.1);
+
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+
+    expect(triggerScript.triggerEntered).toBe(true);
+
+    roleEntity.transform.position = new Vector3(0, 0, 0);
+    triggerScript.reset();
+
+    engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, false);
+
+    controller.move(new Vector3(0, 0, 2), 0.0001, 0.1);
+
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+
+    expect(triggerScript.triggerEntered).toBe(false);
+
+    // 恢复默认设置
+    engine.sceneManager.activeScene.physics.setColliderLayerCollision(1, 2, true);
+  });
+
+  it("should handle manual collision group setting with trigger", () => {
+    const controller = roleEntity.getComponent(CharacterController);
+
+    const obstacleEntity = rootEntity.createChild("obstacle");
+    obstacleEntity.transform.position = new Vector3(0, 0, 2);
+
+    const obstacleCollider = obstacleEntity.addComponent(StaticCollider);
+    const triggerShape = new BoxColliderShape();
+    triggerShape.size = new Vector3(1, 1, 1);
+    triggerShape.isTrigger = true;
+    obstacleCollider.addShape(triggerShape);
+
+    class TriggerDetectionScript extends Script {
+      triggerEntered = false;
+
+      onTriggerEnter() {
+        this.triggerEntered = true;
+      }
+
+      reset() {
+        this.triggerEntered = false;
+      }
+    }
+
+    const triggerScript = obstacleEntity.addComponent(TriggerDetectionScript);
+
+    roleEntity.layer = Layer.Layer1;
+    obstacleEntity.layer = Layer.Layer2;
+
+    controller.move(new Vector3(0, 0, 2), 0.0001, 0.1);
+
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+
+    expect(triggerScript.triggerEntered).toBe(true);
+
+    roleEntity.transform.position = new Vector3(0, 0, 0);
+    triggerScript.reset();
+
+    controller.collisionLayer = Layer.Layer10;
+
+    engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer10, Layer.Layer2, false);
+
+    controller.move(new Vector3(0, 0, 2), 0.0001, 0.1);
+
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+
+    expect(triggerScript.triggerEntered).toBe(false);
+
+    engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer10, Layer.Layer2, true);
+
+    // 恢复默认设置
+    engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, true);
+  });
+
+  it("keep entity position when disabled", () => {
+    roleEntity.transform.position = new Vector3(0, 0, 3);
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.enabled = false;
+    controller.enabled = true;
+    // @ts-ignore
+    controller._syncWorldPositionFromPhysicalSpace();
+    expect(roleEntity.transform.position.z).eq(3);
   });
 });

@@ -7,6 +7,7 @@ import { LiteStaticCollider } from "./LiteStaticCollider";
 import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
 import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
+import { LitePhysics } from "./LitePhysics";
 
 /**
  * A manager is a collection of colliders and constraints which can interact.
@@ -32,8 +33,10 @@ export class LitePhysicsScene implements IPhysicsScene {
   private _currentEvents: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
   private _eventMap: Record<number, Record<number, TriggerEvent>> = {};
   private _eventPool: TriggerEvent[] = [];
+  private _physics: LitePhysics;
 
   constructor(
+    physics: LitePhysics,
     onContactEnter?: (collision: ICollision) => void,
     onContactExit?: (collision: ICollision) => void,
     onContactStay?: (collision: ICollision) => void,
@@ -41,6 +44,7 @@ export class LitePhysicsScene implements IPhysicsScene {
     onTriggerExit?: (obj1: number, obj2: number) => void,
     onTriggerStay?: (obj1: number, obj2: number) => void
   ) {
+    this._physics = physics;
     this._onContactEnter = onContactEnter;
     this._onContactExit = onContactExit;
     this._onContactStay = onContactStay;
@@ -50,14 +54,14 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.setGravity }
+   * {@inheritDoc IPhysicsScene.setGravity }
    */
   setGravity(value: Vector3): void {
     console.log("Physics-lite don't support gravity. Use Physics-PhysX instead!");
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.addCollider }
+   * {@inheritDoc IPhysicsScene.addCollider }
    */
   addCollider(actor: LiteCollider): void {
     actor._scene = this;
@@ -70,7 +74,7 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.removeCollider }
+   * {@inheritDoc IPhysicsScene.removeCollider }
    */
   removeCollider(collider: LiteCollider): void {
     collider._scene = null;
@@ -84,7 +88,7 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.update }
+   * {@inheritDoc IPhysicsScene.update }
    */
   update(deltaTime: number): void {
     const dynamicColliders = this._dynamicColliders;
@@ -97,7 +101,7 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.raycast }
+   * {@inheritDoc IPhysicsScene.raycast }
    */
   raycast(
     ray: Ray,
@@ -134,18 +138,23 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.addCharacterController }
+   * {@inheritDoc IPhysicsScene.addCharacterController }
    */
   addCharacterController(characterController: ICharacterController): void {
     throw "Physics-lite don't support addCharacterController. Use Physics-PhysX instead!";
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.removeCharacterController }
+   * {@inheritDoc IPhysicsScene.removeCharacterController }
    */
   removeCharacterController(characterController: ICharacterController): void {
     throw "Physics-lite don't support removeCharacterController. Use Physics-PhysX instead!";
   }
+
+  /**
+   * {@inheritDoc IPhysicsScene.destroy }
+   */
+  destroy(): void {}
 
   /**
    * @internal
@@ -216,7 +225,14 @@ export class LitePhysicsScene implements IPhysicsScene {
       if (myShape instanceof LiteBoxColliderShape) {
         LitePhysicsScene._updateWorldBox(myShape, this._box);
         for (let j = 0, len = colliders.length; j < len; j++) {
-          const colliderShape = colliders[j]._shapes;
+          const collider = colliders[j];
+          const colliderShape = collider._shapes;
+
+          // Skip collision check if layers can't collide
+          if (!this._checkColliderCollide(collider, myCollider)) {
+            continue;
+          }
+
           for (let k = 0, len = colliderShape.length; k < len; k++) {
             const shape = colliderShape[k];
             const index1 = shape._id;
@@ -243,7 +259,14 @@ export class LitePhysicsScene implements IPhysicsScene {
       } else if (myShape instanceof LiteSphereColliderShape) {
         LitePhysicsScene._upWorldSphere(myShape, this._sphere);
         for (let j = 0, len = colliders.length; j < len; j++) {
-          const colliderShape = colliders[j]._shapes;
+          const collider = colliders[j];
+          const colliderShape = collider._shapes;
+
+          // Skip collision check if layers can't collide
+          if (!this._checkColliderCollide(collider, myCollider)) {
+            continue;
+          }
+
           for (let k = 0, len = colliderShape.length; k < len; k++) {
             const shape = colliderShape[k];
             const index1 = shape._id;
@@ -344,6 +367,17 @@ export class LitePhysicsScene implements IPhysicsScene {
     }
 
     return isHit;
+  }
+
+  private _checkColliderCollide(collider1: LiteCollider, collider2: LiteCollider): boolean {
+    const group1 = collider1._collisionLayer;
+    const group2 = collider2._collisionLayer;
+
+    if (group1 === group2) {
+      return true;
+    }
+
+    return this._physics.getColliderLayerCollision(group1, group2);
   }
 }
 

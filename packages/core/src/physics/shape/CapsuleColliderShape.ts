@@ -1,8 +1,7 @@
 import { ColliderShape } from "./ColliderShape";
 import { ICapsuleColliderShape } from "@galacean/engine-design";
-import { PhysicsScene } from "../PhysicsScene";
+import { Engine } from "../../Engine";
 import { ColliderShapeUpAxis } from "../enums/ColliderShapeUpAxis";
-import { ignoreClone } from "../../clone/CloneManager";
 
 /**
  * Physical collider shape for capsule.
@@ -56,7 +55,7 @@ export class CapsuleColliderShape extends ColliderShape {
 
   constructor() {
     super();
-    this._nativeShape = PhysicsScene._nativePhysics.createCapsuleColliderShape(
+    this._nativeShape = Engine._nativePhysics.createCapsuleColliderShape(
       this._id,
       this._radius,
       this._height,

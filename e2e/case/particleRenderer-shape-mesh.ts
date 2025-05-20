@@ -33,7 +33,7 @@ WebGLEngine.create({
 
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
-  scene.background.solidColor = new Color(15 / 255, 15 / 255, 15 / 255, 1);
+  scene.background.solidColor = new Color(0.004776953480693729, 0.004776953480693729, 0.004776953480693729, 1);
 
   // Create camera
   const cameraEntity = rootEntity.createChild("camera_entity");
@@ -91,8 +91,8 @@ function createDebrisParticle(engine: Engine, texture: Texture2D, glTFResource: 
   main.startRotationZ.constantMax = 360;
   main.startRotationZ.mode = ParticleCurveMode.TwoConstants;
 
-  main.startColor.constantMin.set(255 / 255, 255 / 255, 255 / 255, 1.0);
-  main.startColor.constantMax.set(13 / 255, 255 / 255, 0 / 255, 1.0);
+  main.startColor.constantMin.set(1.0, 1.0, 1.0, 1.0);
+  main.startColor.constantMax.set(0.004024717018496307, 1.0, 0.0, 1.0);
   main.startColor.mode = ParticleGradientMode.TwoConstants;
 
   // Emission module
