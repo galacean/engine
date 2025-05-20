@@ -181,7 +181,7 @@ newEntity.findByPath("parent/child/grandson");
 
 ### 状态
 
-暂时不使用某实体时，可以通过调用实体的 [isActive](/apis/core/#Entity-isActive) 停止激活。同时该实体下的组件被动`component.enabled = false`
+暂时不使用某实体时，可以通过调用实体的 [isActive](/apis/core/#Entity-isActive) 停止激活，同时该实体下的所有组件都会被**禁用**。
 
 ```typescript
 newEntity.isActive = false;

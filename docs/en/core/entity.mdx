@@ -180,7 +180,7 @@ newEntity.findByPath("parent/child/grandson");
 
 ### Status
 
-When temporarily not using an entity, it can be deactivated by calling the entity's [isActive](/apis/core/#Entity-isActive). This also passively sets `component.enabled = false` for components under the entity.
+When temporarily not using an entity, it can be deactivated by calling the entity's [isActive](/apis/core/#Entity-isActive), and all components under the entity will be **disabled**.
 
 ```typescript
 newEntity.isActive = false;
