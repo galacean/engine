@@ -321,7 +321,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
   private _checkFrameBuffer(): void {
     const gl = this._gl;
-    const isWebGL2 = this._isWebGL2;
     const e = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
 
     if (e !== gl.FRAMEBUFFER_COMPLETE && !gl.isContextLost()) {
