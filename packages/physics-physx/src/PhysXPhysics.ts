@@ -1,9 +1,8 @@
-import { Quaternion, Vector3, Layer } from "@galacean/engine";
+import { Quaternion, Vector3 } from "@galacean/engine";
 import {
   IBoxColliderShape,
   ICapsuleColliderShape,
   ICharacterController,
-  ICollider,
   ICollision,
   IDynamicCollider,
   IFixedJoint,
@@ -51,9 +50,22 @@ export class PhysXPhysics implements IPhysics {
   private _defaultErrorCallback: any;
   private _allocator: any;
   private _tolerancesScale: any;
+  private _wasmModeUrl: string;
+  private _downgradeModeUrl: string;
 
-  constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto) {
+  /**
+   * Create a PhysXPhysics instance.
+   * @param runtimeMode - Runtime use WebAssembly mode or downgrade JavaScript mode, `Auto` prefers webAssembly mode if supported @see {@link PhysXRuntimeMode}
+   * @param runtimeUrls - Manually specify the `PhysXRuntimeMode.WebAssembly` mode and `PhysXRuntimeMode.JavaScript` mode URL
+   */
+  constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto, runtimeUrls?: PhysXRuntimeUrls) {
     this._runTimeMode = runtimeMode;
+    this._wasmModeUrl =
+      runtimeUrls?.wasmModeUrl ??
+      "https://mdn.alipayobjects.com/rms/afts/file/A*nL1PSrCPoZ0AAAAAAAAAAAAAARQnAQ/physx.release.js";
+    this._downgradeModeUrl =
+      runtimeUrls?.javaScriptModeUrl ??
+      "https://mdn.alipayobjects.com/rms/afts/file/A*ROBqQJEjZXAAAAAAAAAAAAAAARQnAQ/physx.release.downgrade.js";
   }
 
   /**
@@ -94,9 +106,9 @@ export class PhysXPhysics implements IPhysics {
       }
 
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
-        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*V4pqRqM65UMAAAAAAAAAAAAAARQnAQ/physx.release.downgrade.js`;
+        script.src = this._downgradeModeUrl;
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
-        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*nL1PSrCPoZ0AAAAAAAAAAAAAARQnAQ/physx.release.js`;
+        script.src = this._wasmModeUrl;
       }
     });
 
@@ -288,4 +300,11 @@ enum InitializeState {
   Uninitialized,
   Initializing,
   Initialized
+}
+
+interface PhysXRuntimeUrls {
+  /*** The URL of `PhysXRuntimeMode.WebAssembly` mode. */
+  wasmModeUrl?: string;
+  /*** The URL of `PhysXRuntimeMode.JavaScript` mode. */
+  javaScriptModeUrl?: string;
 }
