@@ -34,19 +34,31 @@ void main(){
     	  // Additive bloom (artist friendly)
 		  finalBloom += dirt * bloom;
     	#endif
-		// Bloom is additive, so we need to premultiply the compensation factor to eliminate the effect of dividing by alpha in the sRGB pass
-		color.rgb += finalBloom.rgb * additiveColorCompensationFactor(color.a);
-	#endif
+		
+		color.rgb += finalBloom.rgb;
 
+		// Bloom is additive, so we need to compensation the factor to eliminate the effect of dividing by alpha in the sRGB pass
+		float bloomCompensationFactor = additiveColorCompensationFactor(color.a) - 1.0;
+	#else
+		vec4 finalBloom = vec4(0.0);
+		float bloomCompensationFactor = 0.0;
+	#endif
+	
 	#ifdef ENABLE_EFFECT_TONEMAPPING
+		vec3 originalColor = color.rgb;
 		#if TONEMAPPING_MODE == 0
       		color.rgb = neutralTonemap(color.rgb);
     	#elif TONEMAPPING_MODE == 1
       		color.rgb = ACESTonemap(color.rgb);
     	#endif
-
     	color.rgb = clamp(color.rgb, vec3(0), vec3(1));
-	#endif
 
-    gl_FragColor = color;
+		vec3 tonemappingFactor = color.rgb/originalColor.rgb;
+		gl_FragColor = vec4(color.rgb + tonemappingFactor * finalBloom.rgb * bloomCompensationFactor, color.a);
+	#else
+		gl_FragColor = vec4(color.rgb + finalBloom.rgb * bloomCompensationFactor, color.a);
+	#endif
+	
+
+   
 }

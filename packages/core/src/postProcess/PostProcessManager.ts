@@ -223,7 +223,7 @@ export class PostProcessManager {
       this._outputRenderTarget,
       pixelViewport.width,
       pixelViewport.height,
-      camera._getTargetColorTextureFormat(),
+      camera._getInternalColorTextureFormat(),
       null,
       false,
       false,
