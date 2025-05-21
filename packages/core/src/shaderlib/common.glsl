@@ -53,7 +53,7 @@ float additiveColorCompensationFactor(float value){
 	//     linearToSRGB((rgb * k(a)) / a) * a ≈ linearToSRGB(rgb)
 	//
 	// Derivation (approximate):
-	//   k(a) = a^{-γ}, where γ ≈ 1.38
+	//   k(a) = a^{-γ}, where γ ≈ 1.33
 	//
 	// Code flow:
 	//   premultiplyCorrectedRGB = color.rgb * pow(color.a, -γ);
@@ -66,7 +66,7 @@ float additiveColorCompensationFactor(float value){
 	//
 	// Note:
 	//   γ = 1.38 is recommended; ensure alpha > 0 to avoid issues.
-    return pow(value, -1.38);
+    return pow(value, -1.33);
 }
 
 // Compatible with devices that do not even support EXT_sRGB in WebGL1.0.
