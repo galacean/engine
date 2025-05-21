@@ -268,7 +268,7 @@ export class PostProcessManager {
         this._swapRenderTarget,
         viewport.width,
         viewport.height,
-        camera._getInternalColorTextureFormat(),
+        camera._getInternalColorTextureFormat(), // Bloom is additive mode, should use hdr format to compensation
         TextureFormat.Depth24Stencil8,
         false,
         false,
