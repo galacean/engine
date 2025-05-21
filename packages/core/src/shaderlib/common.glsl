@@ -56,10 +56,10 @@ float additiveColorCompensationFactor(float value){
 	//   k(a) = a^{-γ}, where γ ≈ 1.38
 	//
 	// Code flow:
-	//   prmutiplyCorrectedRGB = color.rgb * pow(color.a, -γ);
-	//   correctedRGB = prmutiplyCorrectedRGB / color.a;
+	//   premultiplyCorrectedRGB = color.rgb * pow(color.a, -γ);
+	//   correctedRGB = premultiplyCorrectedRGB / color.a;
 	//   srgbColor = linearToSRGB(vec4(correctedRGB, color.a));
-	//   gl_FragColor = vec4(srgbColor.rgb * color.a, color.a);
+	//   srgbColor = vec4(srgbColor.rgb * color.a, color.a);
 	//
 	// This closely matches non-premultiplied sRGB conversion:
 	//   srgbColor = linearToSRGB(vec4(color.rgb, color.a));

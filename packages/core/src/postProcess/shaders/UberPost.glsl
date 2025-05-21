@@ -34,7 +34,8 @@ void main(){
     	  // Additive bloom (artist friendly)
 		  finalBloom += dirt * bloom;
     	#endif
-		color.rgb +=finalBloom.rgb * additiveColorCompensationFactor(color.a);
+		// Bloom is additive, so we need to premultiply the compensation factor to eliminate the effect of dividing by alpha in the sRGB pass
+		color.rgb += finalBloom.rgb * additiveColorCompensationFactor(color.a);
 	#endif
 
 	#ifdef ENABLE_EFFECT_TONEMAPPING
