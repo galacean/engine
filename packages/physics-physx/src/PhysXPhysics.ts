@@ -50,8 +50,8 @@ export class PhysXPhysics implements IPhysics {
   private _defaultErrorCallback: any;
   private _allocator: any;
   private _tolerancesScale: any;
-  private _physXUrl: string;
-  private _physXDowngradeUrl: string;
+  private _wasmModeUrl: string;
+  private _downgradeModeUrl: string;
 
   /**
    * Create a PhysXPhysics instance.
@@ -60,10 +60,10 @@ export class PhysXPhysics implements IPhysics {
    */
   constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto, runtimeUrls?: PhysXRuntimeUrls) {
     this._runTimeMode = runtimeMode;
-    this._physXUrl =
+    this._wasmModeUrl =
       runtimeUrls?.wasmModeUrl ??
       "https://mdn.alipayobjects.com/rms/afts/file/A*nL1PSrCPoZ0AAAAAAAAAAAAAARQnAQ/physx.release.js";
-    this._physXDowngradeUrl =
+    this._downgradeModeUrl =
       runtimeUrls?.javaScriptModeUrl ??
       "https://mdn.alipayobjects.com/rms/afts/file/A*ROBqQJEjZXAAAAAAAAAAAAAAARQnAQ/physx.release.downgrade.js";
   }
@@ -106,9 +106,9 @@ export class PhysXPhysics implements IPhysics {
       }
 
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
-        script.src = this._physXDowngradeUrl;
+        script.src = this._downgradeModeUrl;
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
-        script.src = this._physXUrl;
+        script.src = this._wasmModeUrl;
       }
     });
 
