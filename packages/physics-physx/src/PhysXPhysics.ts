@@ -1,9 +1,8 @@
-import { Quaternion, Vector3, Layer } from "@galacean/engine";
+import { Quaternion, Vector3 } from "@galacean/engine";
 import {
   IBoxColliderShape,
   ICapsuleColliderShape,
   ICharacterController,
-  ICollider,
   ICollision,
   IDynamicCollider,
   IFixedJoint,
@@ -59,7 +58,7 @@ export class PhysXPhysics implements IPhysics {
    * @param runtimeMode - Runtime use webAssembly mode or JavaScript mode @see {@link PhysXRuntimeMode}
    * @param urlOptions - Manually specify the `PhysXRuntimeMode.WebAssembly` mode and `PhysXRuntimeMode.JavaScript` mode url
    */
-  constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto, runtimeURLs?: IPhysXRuntimeURLs) {
+  constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto, runtimeURLs?: PhysXRuntimeURLs) {
     this._runTimeMode = runtimeMode;
     this._physXUrl =
       runtimeURLs?.physXUrl ??
@@ -303,7 +302,7 @@ enum InitializeState {
   Initialized
 }
 
-interface IPhysXRuntimeURLs {
+interface PhysXRuntimeURLs {
   /*** `PhysXRuntimeMode.WebAssembly` mode url. */
   physXUrl?: string;
   /*** `PhysXRuntimeMode.JavaScript` mode url. */
