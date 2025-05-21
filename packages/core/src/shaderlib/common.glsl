@@ -47,6 +47,28 @@ vec4 linearToSRGB(vec4 value){
     return vec4(linearToSRGB(value.r), linearToSRGB(value.g), linearToSRGB(value.b), value.a);
 }
 
+float additiveColorCompensationFactor(float value){
+	// Goal:
+	//   Find k(a) so that:
+	//     linearToSRGB((rgb * k(a)) / a) * a ≈ linearToSRGB(rgb)
+	//
+	// Derivation (approximate):
+	//   k(a) = a^{-γ}, where γ ≈ 1.38
+	//
+	// Code flow:
+	//   prmutiplyCorrectedRGB = color.rgb * pow(color.a, -γ);
+	//   correctedRGB = prmutiplyCorrectedRGB / color.a;
+	//   srgbColor = linearToSRGB(vec4(correctedRGB, color.a));
+	//   gl_FragColor = vec4(srgbColor.rgb * color.a, color.a);
+	//
+	// This closely matches non-premultiplied sRGB conversion:
+	//   srgbColor = linearToSRGB(vec4(color.rgb, color.a));
+	//
+	// Note:
+	//   γ = 1.38 is recommended; ensure alpha > 0 to avoid issues.
+    return pow(value, -1.38);
+}
+
 // Compatible with devices that do not even support EXT_sRGB in WebGL1.0.
 vec4 texture2DSRGB(sampler2D tex, vec2 uv) {
 	vec4 color = texture2D(tex, uv);

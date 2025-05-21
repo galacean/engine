@@ -26,14 +26,15 @@ void main(){
     	#endif
 
     	bloom *= material_BloomIntensityParams.x;
-    	color += bloom * material_BloomTint;
+		vec4 finalBloom = bloom * material_BloomTint;
 
     	#ifdef BLOOM_DIRT
     	  mediump vec4 dirt = texture2DSRGB(material_BloomDirtTexture, v_uv * material_BloomDirtTilingOffset.xy + material_BloomDirtTilingOffset.zw);
     	  dirt *= material_BloomIntensityParams.y;
     	  // Additive bloom (artist friendly)
-    	  color += dirt * bloom;
+		  finalBloom += dirt * bloom;
     	#endif
+		color.rgb +=finalBloom.rgb * additiveColorCompensationFactor(color.a);
 	#endif
 
 	#ifdef ENABLE_EFFECT_TONEMAPPING
