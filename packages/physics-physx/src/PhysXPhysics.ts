@@ -55,9 +55,9 @@ export class PhysXPhysics implements IPhysics {
   private _physXDowngradeUrl: string;
 
   /**
-   * Constructor.
-   * @param runtimeMode - set runtime mode @see {@link PhysXRuntimeMode}
-   * @param urlOptions - Manually specify the PhysX URL and downgrade URL
+   * Create a PhysXPhysics instance.
+   * @param runtimeMode - Runtime use webAssembly mode or JavaScript mode @see {@link PhysXRuntimeMode}
+   * @param urlOptions - Manually specify the `PhysXRuntimeMode.WebAssembly` mode and `PhysXRuntimeMode.JavaScript` mode url
    */
   constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto, urlOptions?: IPhysXUrlOptions) {
     this._runTimeMode = runtimeMode;
@@ -304,8 +304,8 @@ enum InitializeState {
 }
 
 interface IPhysXUrlOptions {
-  /*** PhysXRuntimeMode.WebAssembly will use this url */
+  /*** `PhysXRuntimeMode.WebAssembly` mode url. */
   physXUrl?: string;
-  /*** PhysXRuntimeMode.JavaScript will use this url */
+  /*** `PhysXRuntimeMode.JavaScript` mode url. */
   physXDowngradeUrl?: string;
 }
