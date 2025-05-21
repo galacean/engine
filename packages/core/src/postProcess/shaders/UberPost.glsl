@@ -45,7 +45,7 @@ void main(){
 	#endif
 	
 	#ifdef ENABLE_EFFECT_TONEMAPPING
-		vec3 originalColor = color.rgb;
+		// vec3 originalColor = color.rgb;
 		#if TONEMAPPING_MODE == 0
       		color.rgb = neutralTonemap(color.rgb);
     	#elif TONEMAPPING_MODE == 1
@@ -53,8 +53,8 @@ void main(){
     	#endif
     	color.rgb = clamp(color.rgb, vec3(0), vec3(1));
 
-		vec3 tonemappingFactor = color.rgb/originalColor.rgb;
-		gl_FragColor = vec4(color.rgb + tonemappingFactor * finalBloom.rgb * bloomCompensationFactor, color.a);
+		// vec3 tonemappingFactor = color.rgb/originalColor.rgb;
+		gl_FragColor = vec4(color.rgb +  finalBloom.rgb * bloomCompensationFactor, color.a);
 	#else
 		gl_FragColor = vec4(color.rgb + finalBloom.rgb * bloomCompensationFactor, color.a);
 	#endif
