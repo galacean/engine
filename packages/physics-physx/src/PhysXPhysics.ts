@@ -65,7 +65,7 @@ export class PhysXPhysics implements IPhysics {
       "https://mdn.alipayobjects.com/rms/afts/file/A*nL1PSrCPoZ0AAAAAAAAAAAAAARQnAQ/physx.release.js";
     this._physXDowngradeUrl =
       runtimeURLs?.javaScriptUrl ??
-      "https://mdn.alipayobjects.com/rms/afts/file/A*V4pqRqM65UMAAAAAAAAAAAAAARQnAQ/physx.release.downgrade.js";
+      "https://mdn.alipayobjects.com/rms/afts/file/A*ROBqQJEjZXAAAAAAAAAAAAAAARQnAQ/physx.release.downgrade.js";
   }
 
   /**
