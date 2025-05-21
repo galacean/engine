@@ -55,16 +55,16 @@ export class PhysXPhysics implements IPhysics {
 
   /**
    * Create a PhysXPhysics instance.
-   * @param runtimeMode - Runtime use webAssembly mode or JavaScript mode @see {@link PhysXRuntimeMode}
+   * @param runtimeMode - Runtime use webAssembly mode or downgrade javaScript mode, `Auto` prefers webAssembly mode if supported @see {@link PhysXRuntimeMode}
    * @param runtimeURLs - Manually specify the `PhysXRuntimeMode.WebAssembly` mode and `PhysXRuntimeMode.JavaScript` mode url
    */
-  constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto, runtimeURLs?: PhysXRuntimeURLs) {
+  constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto, runtimeURLs?: PhysXRuntimeUrls) {
     this._runTimeMode = runtimeMode;
     this._physXUrl =
-      runtimeURLs?.physXUrl ??
+      runtimeURLs?.wasmUrl ??
       "https://mdn.alipayobjects.com/rms/afts/file/A*nL1PSrCPoZ0AAAAAAAAAAAAAARQnAQ/physx.release.js";
     this._physXDowngradeUrl =
-      runtimeURLs?.physXDowngradeUrl ??
+      runtimeURLs?.javaScriptUrl ??
       "https://mdn.alipayobjects.com/rms/afts/file/A*V4pqRqM65UMAAAAAAAAAAAAAARQnAQ/physx.release.downgrade.js";
   }
 
@@ -302,9 +302,9 @@ enum InitializeState {
   Initialized
 }
 
-interface PhysXRuntimeURLs {
+interface PhysXRuntimeUrls {
   /*** `PhysXRuntimeMode.WebAssembly` mode url. */
-  physXUrl?: string;
+  wasmUrl?: string;
   /*** `PhysXRuntimeMode.JavaScript` mode url. */
-  physXDowngradeUrl?: string;
+  javaScriptUrl?: string;
 }
