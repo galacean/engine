@@ -1,7 +1,6 @@
 import { ColliderShape } from "./ColliderShape";
 import { ISphereColliderShape } from "@galacean/engine-design";
-import { PhysicsScene } from "../PhysicsScene";
-import { ignoreClone } from "../../clone/CloneManager";
+import { Engine } from "../../Engine";
 
 /**
  * Physical collider shape for sphere.
@@ -25,7 +24,7 @@ export class SphereColliderShape extends ColliderShape {
 
   constructor() {
     super();
-    this._nativeShape = PhysicsScene._nativePhysics.createSphereColliderShape(
+    this._nativeShape = Engine._nativePhysics.createSphereColliderShape(
       this._id,
       this._radius,
       this._material._nativeMaterial

@@ -12,7 +12,6 @@ import {
   TextureCube,
   TextureCubeFace,
   TextureFilterMode,
-  request,
   resourceLoader
 } from "@galacean/engine-core";
 import { SphericalHarmonics3 } from "@galacean/engine-math";
@@ -47,12 +46,13 @@ class EnvLoader extends Loader<AmbientLight> {
     return new AssetPromise((resolve, reject) => {
       const requestConfig = { ...item, type: "arraybuffer" } as RequestConfig;
       const engine = resourceManager.engine;
+      const url = item.url;
       resourceManager
         // @ts-ignore
-        ._request<ArrayBuffer>(item.url, requestConfig)
+        ._request<ArrayBuffer>(url, requestConfig)
         .then((arraybuffer) => {
           const texture = EnvLoader._setTextureByBuffer(engine, arraybuffer);
-          engine.resourceManager.addContentRestorer(new EnvContentRestorer(texture, item.url, requestConfig));
+          engine.resourceManager.addContentRestorer(new EnvContentRestorer(texture, url, requestConfig));
           const ambientLight = new AmbientLight(engine);
           const sh = new SphericalHarmonics3();
           ambientLight.diffuseMode = DiffuseMode.SphericalHarmonics;
@@ -83,10 +83,14 @@ class EnvContentRestorer extends ContentRestorer<TextureCube> {
 
   override restoreContent(): AssetPromise<TextureCube> {
     return new AssetPromise((resolve, reject) => {
-      request<ArrayBuffer>(this.url, this.requestConfig)
+      const resource = this.resource;
+      const engine = resource.engine;
+      engine.resourceManager
+        // @ts-ignore
+        ._request<ArrayBuffer>(this.url, this.requestConfig)
         .then((buffer) => {
-          EnvLoader._setTextureByBuffer(this.resource.engine, buffer, this.resource);
-          resolve(this.resource);
+          EnvLoader._setTextureByBuffer(engine, buffer, resource);
+          resolve(resource);
         })
         .catch(reject);
     });
