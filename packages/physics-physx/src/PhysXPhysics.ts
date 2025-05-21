@@ -1,9 +1,8 @@
-import { Quaternion, Vector3, Layer } from "@galacean/engine";
+import { Quaternion, Vector3 } from "@galacean/engine";
 import {
   IBoxColliderShape,
   ICapsuleColliderShape,
   ICharacterController,
-  ICollider,
   ICollision,
   IDynamicCollider,
   IFixedJoint,
@@ -55,17 +54,17 @@ export class PhysXPhysics implements IPhysics {
   private _physXDowngradeUrl: string;
 
   /**
-   * Constructor.
-   * @param runtimeMode - set runtime mode @see {@link PhysXRuntimeMode}
-   * @param urlOptions - Manually specify the PhysX URL and downgrade URL
+   * Create a PhysXPhysics instance.
+   * @param runtimeMode - Runtime use webAssembly mode or JavaScript mode @see {@link PhysXRuntimeMode}
+   * @param runtimeURLs - Manually specify the `PhysXRuntimeMode.WebAssembly` mode and `PhysXRuntimeMode.JavaScript` mode url
    */
-  constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto, urlOptions?: IPhysXUrlOptions) {
+  constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto, runtimeURLs?: PhysXRuntimeURLs) {
     this._runTimeMode = runtimeMode;
     this._physXUrl =
-      urlOptions?.physXUrl ??
+      runtimeURLs?.physXUrl ??
       "https://mdn.alipayobjects.com/rms/afts/file/A*nL1PSrCPoZ0AAAAAAAAAAAAAARQnAQ/physx.release.js";
     this._physXDowngradeUrl =
-      urlOptions?.physXDowngradeUrl ??
+      runtimeURLs?.physXDowngradeUrl ??
       "https://mdn.alipayobjects.com/rms/afts/file/A*ROBqQJEjZXAAAAAAAAAAAAAAARQnAQ/physx.release.downgrade.js";
   }
 
@@ -303,9 +302,9 @@ enum InitializeState {
   Initialized
 }
 
-interface IPhysXUrlOptions {
-  /*** PhysXRuntimeMode.WebAssembly will use this url */
+interface PhysXRuntimeURLs {
+  /*** `PhysXRuntimeMode.WebAssembly` mode url. */
   physXUrl?: string;
-  /*** PhysXRuntimeMode.JavaScript will use this url */
+  /*** `PhysXRuntimeMode.JavaScript` mode url. */
   physXDowngradeUrl?: string;
 }
