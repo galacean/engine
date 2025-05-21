@@ -61,10 +61,10 @@ export class PhysXPhysics implements IPhysics {
   constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto, runtimeUrls?: PhysXRuntimeUrls) {
     this._runTimeMode = runtimeMode;
     this._physXUrl =
-      runtimeUrls?.wasmUrl ??
+      runtimeUrls?.wasmModeUrl ??
       "https://mdn.alipayobjects.com/rms/afts/file/A*nL1PSrCPoZ0AAAAAAAAAAAAAARQnAQ/physx.release.js";
     this._physXDowngradeUrl =
-      runtimeUrls?.javaScriptUrl ??
+      runtimeUrls?.javaScriptModeUrl ??
       "https://mdn.alipayobjects.com/rms/afts/file/A*ROBqQJEjZXAAAAAAAAAAAAAAARQnAQ/physx.release.downgrade.js";
   }
 
@@ -304,7 +304,7 @@ enum InitializeState {
 
 interface PhysXRuntimeUrls {
   /*** The URL of `PhysXRuntimeMode.WebAssembly` mode. */
-  wasmUrl?: string;
+  wasmModeUrl?: string;
   /*** The URL of `PhysXRuntimeMode.JavaScript` mode. */
-  javaScriptUrl?: string;
+  javaScriptModeUrl?: string;
 }
