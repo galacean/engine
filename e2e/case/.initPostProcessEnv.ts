@@ -3,6 +3,7 @@ import {
   AssetType,
   BackgroundMode,
   Camera,
+  Color,
   GLTFResource,
   PrimitiveMesh,
   SkyBoxMaterial,
@@ -26,6 +27,8 @@ export async function initPostProcessEnv(
     cameraNode.transform.position.set(4, 0, 6);
     cameraNode.transform.lookAt(new Vector3(1, 0, 0));
     const camera = cameraNode.addComponent(Camera);
+    // camera.enableHDR= true;
+    camera.isAlphaOutputRequired = true;
 
     Promise.all([
       engine.resourceManager
@@ -41,15 +44,17 @@ export async function initPostProcessEnv(
           url: "https://gw.alipayobjects.com/os/bmw-prod/89c54544-1184-45a1-b0f5-c0b17e5c3e68.bin"
         })
         .then((ambientLight) => {
-          scene.ambientLight = ambientLight;
-          const sky = scene.background.sky;
-          const skyMaterial = new SkyBoxMaterial(engine);
-          scene.background.mode = BackgroundMode.Sky;
+          // scene.ambientLight = ambientLight;
+          // const sky = scene.background.sky;
+          // const skyMaterial = new SkyBoxMaterial(engine);
+          // scene.background.mode = BackgroundMode.Sky;
+          scene.background.solidColor = new Color(0, 0, 0, 1.1);
 
-          sky.material = skyMaterial;
-          sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
-          skyMaterial.texture = ambientLight.specularTexture;
-          skyMaterial.textureDecodeRGBM = true;
+
+          // sky.material = skyMaterial;
+          // sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
+          // skyMaterial.texture = ambientLight.specularTexture;
+          // skyMaterial.textureDecodeRGBM = true;
           return ambientLight;
         }),
       engine.resourceManager.load<Texture2D>({
@@ -59,9 +64,10 @@ export async function initPostProcessEnv(
     ]).then((resArray) => {
       callback(camera, resArray);
 
-      updateForE2E(engine);
+      engine.run();
+      // updateForE2E(engine);
 
-      initScreenshot(engine, camera);
+      // initScreenshot(engine, camera);
     });
   });
 }
