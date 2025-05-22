@@ -339,7 +339,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
             "The format of the attachment is not supported or if depth and stencil attachments are not the same renderbuffer"
           );
         }
-
+        break;
       case gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: // Only for WebGL2
         throw new Error(
           "The values of gl.RENDERBUFFER_SAMPLES are different among attached renderbuffers, or are non-zero if the attached images are a mix of renderbuffers and textures."
