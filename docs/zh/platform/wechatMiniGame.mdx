@@ -84,11 +84,26 @@ npm run release
 
 ## 分包
 
-随着小游戏的玩法越来越丰富，开发者对于扩大包大小的需求越来越强烈，为了让用户尽快的加载完并进入游戏体验，微信小游戏提供了分包的功能，即把游戏内容按一定规则拆分这几包，在首次启动时先下载必要的包，这个必要的包我们称为主包。在 Galacean 编辑器中，我们以文件夹作为子包的单位，不在子包的内容均会打包到主包中。在导出小游戏面板中，可以通过在子包列表中添加子包并设置对应的文件夹来进行分包，具体的配置如下：
+### 概述
+
+随着小游戏玩法日益丰富，内容增多，包体积变大，影响加载速度。微信小游戏提供分包功能，将游戏内容按规则拆分为主包和子包。主包包含首次启动必要的资源，子包则按需加载，使用户能快速进入游戏。
+
+### Galacean 编辑器分包配置
+
+在 Galacean 编辑器中，文件夹是子包划分的单位。不在子包的内容会进主包。导出小游戏时，在导出面板的子包列表添加子包并关联文件夹即可分包。
+
+### 子包配置步骤
+
+1、打开导出面板，选择微信小游戏平台，点击子包列表的添加子包按钮，添加子包：
+
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*j5u6Q7txvj4AAAAAAAAAAAAAejCHAQ/fmt.webp" />
+
+2、在子包中，选择需要分包的文件夹即可完成子包的配置：
 
 <Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*ndgyR5bjGqsAAAAAAAAAAAAAejCHAQ/fmt.webp" />
 
-关于分包的几点说明：
+### 注意事项
+
 - 设置为子包的文件夹下的脚本资源不会计入子包，会单独导出到主包中
 - 微信小游戏中，主包的大小限制为 4M，单个子包不限制大小，但是整个小游戏的主包+分包大小不超过 30M，更详细的规则见：[分包](https://developers.weixin.qq.com/minigame/dev/guide/base-ability/subPackage/useSubPackage.html)
 - 分包的配置、加载等引擎均帮开发者自动处理好了，开发者动态加载子包下的资产和普通资产是一样的，都是通过 engine.resourceManager.load 来加载
