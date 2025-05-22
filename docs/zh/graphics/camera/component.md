@@ -82,6 +82,7 @@ camera.enableHDR = true;
 |  | [enableHDR](/apis/core/#Camera-enableHDR) | 是否启用 HDR 渲染，允许 shader 输出的颜色使用浮点数进行存储，可以得到更大范围的值，用于后处理等场景。 |
 |  | [enablePostProcess](/apis/core/#Camera-enablePostProcess) | 是否启用后处理，后处理配置详见[后处理教程](/docs/graphics/postProcess/postProcess)。 |
 |  | [postProcessMask](/apis/core/#Camera-postProcessMask) | 后处理遮罩，决定生效的后处理组件，后处理配置详见[后处理教程](/docs/graphics/postProcess/postProcess)。 |
+|  | [isAlphaOutputRequired](/apis/core/#Camera-isAlphaOutputRequired) | 确定是否在输出中保留透明通道。设置为 true 时，始终保留透明通道；设置为 false 时，引擎会自动决定是否保留透明通道。 |
 
 ### 裁剪遮罩
 
