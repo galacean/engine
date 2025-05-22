@@ -31,16 +31,10 @@ export abstract class PhysXColliderShape implements IColliderShape {
   _controllers: DisorderedArray<PhysXCharacterController> = new DisorderedArray<PhysXCharacterController>();
   /** @internal */
   _contractOffset: number = 0.02;
-
-  protected _physXPhysics: PhysXPhysics;
-  protected _worldScale: Vector3 = new Vector3(1, 1, 1);
-  protected _position: Vector3 = new Vector3();
-  protected _rotation: Vector3 = new Vector3();
-  protected _axis: Quaternion = null;
-  protected _physXRotation: Quaternion = new Quaternion();
-
-  private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
-
+  /** @internal */
+  _worldScale: Vector3 = new Vector3(1, 1, 1);
+  /** @internal */
+  _position: Vector3 = new Vector3();
   /** @internal */
   _pxMaterial: any;
   /** @internal */
@@ -49,6 +43,13 @@ export abstract class PhysXColliderShape implements IColliderShape {
   _pxGeometry: any;
   /** @internal */
   _id: number;
+
+  protected _physXPhysics: PhysXPhysics;
+  protected _rotation: Vector3 = new Vector3();
+  protected _axis: Quaternion = null;
+  protected _physXRotation: Quaternion = new Quaternion();
+
+  private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
   constructor(physXPhysics: PhysXPhysics) {
     this._physXPhysics = physXPhysics;

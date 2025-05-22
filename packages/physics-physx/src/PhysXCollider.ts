@@ -62,6 +62,13 @@ export abstract class PhysXCollider implements ICollider {
   }
 
   /**
+   * {@inheritDoc ICollider.setCollisionLayer }
+   */
+  setCollisionLayer(layer: number): void {
+    this._physXPhysics._physX.setGroup(this._pxActor, layer);
+  }
+
+  /**
    * {@inheritDoc ICollider.destroy }
    */
   destroy(): void {

@@ -43,9 +43,6 @@ vec3 getLightProbeIrradiance(vec3 sh[9], vec3 normal){
 void evaluateDiffuseIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, inout vec3 diffuseColor){
     #ifdef SCENE_USE_SH
         vec3 irradiance = getLightProbeIrradiance(scene_EnvSH, surfaceData.normal);
-        #ifdef ENGINE_IS_COLORSPACE_GAMMA
-            irradiance = (linearToGamma(vec4(irradiance, 1.0))).rgb;
-        #endif
         irradiance *= scene_EnvMapLight.diffuseIntensity;
     #else
        vec3 irradiance = scene_EnvMapLight.diffuse * scene_EnvMapLight.diffuseIntensity;

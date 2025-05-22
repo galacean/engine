@@ -159,7 +159,7 @@ describe("PostProcess", () => {
     expect(bloomEffect.highQualityFiltering.value).to.false;
     expect(bloomEffect.downScale.value).to.equal(BloomDownScaleMode.Half);
     expect(bloomEffect.dirtTexture.value).to.null;
-    expect(bloomEffect.threshold.value).to.equal(0.9);
+    expect(bloomEffect.threshold.value).to.equal(0.8);
     expect(bloomEffect.scatter.value).to.equal(0.7);
     expect(bloomEffect.intensity.value).to.equal(0);
     expect(bloomEffect.dirtIntensity.value).to.equal(0);

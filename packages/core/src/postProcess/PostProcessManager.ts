@@ -32,6 +32,7 @@ export class PostProcessManager {
   private _blendEffectMap = new Map<typeof PostProcessEffect, PostProcessEffect>();
   private _defaultEffectMap = new Map<typeof PostProcessEffect, PostProcessEffect>();
   private _remainActivePassCount = 0;
+  private _outputRenderTarget: RenderTarget;
 
   /**
    * Create a PostProcessManager.
@@ -200,6 +201,40 @@ export class PostProcessManager {
     }
   }
 
+  /**
+   * @internal
+   */
+  _releaseOutputRenderTarget(): void {
+    const outputRenderTarget = this._outputRenderTarget;
+    if (outputRenderTarget) {
+      outputRenderTarget.getColorTexture(0)?.destroy(true);
+      outputRenderTarget.destroy(true);
+      this._outputRenderTarget = null;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _getOutputRenderTarget(camera: Camera): RenderTarget {
+    const { pixelViewport } = camera;
+    this._outputRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
+      camera.engine,
+      this._outputRenderTarget,
+      pixelViewport.width,
+      pixelViewport.height,
+      camera._getTargetColorTextureFormat(),
+      null,
+      false,
+      false,
+      !camera._isTargetFormatHDR(),
+      1,
+      TextureWrapMode.Clamp,
+      TextureFilterMode.Bilinear
+    );
+    return this._outputRenderTarget;
+  }
+
   private _sortActivePostProcess(): void {
     if (this._postProcessNeedSorting) {
       const postProcesses = this._activePostProcesses;
@@ -237,6 +272,7 @@ export class PostProcessManager {
         TextureFormat.Depth24Stencil8,
         false,
         false,
+        !camera.enableHDR,
         1,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear

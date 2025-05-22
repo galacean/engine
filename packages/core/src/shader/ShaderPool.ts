@@ -1,6 +1,7 @@
 import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
 import { BaseMaterial } from "../material/BaseMaterial";
 import blitFs from "../shaderlib/extra/Blit.fs.glsl";
+import blitScreenFs from "../shaderlib/extra/BlitScreen.fs.glsl";
 import blitVs from "../shaderlib/extra/Blit.vs.glsl";
 import skyProceduralFs from "../shaderlib/extra/SkyProcedural.fs.glsl";
 import skyProceduralVs from "../shaderlib/extra/SkyProcedural.vs.glsl";
@@ -63,6 +64,7 @@ export class ShaderPool {
     Shader.create("unlit", [new ShaderPass("Forward", unlitVs, unlitFs, forwardPassTags), ...basePasses]);
 
     Shader.create("blit", [new ShaderPass("Forward", blitVs, blitFs, forwardPassTags)]);
+    Shader.create("blit-screen", [new ShaderPass("Forward", blitVs, blitScreenFs, forwardPassTags)]);
     Shader.create("skybox", [new ShaderPass("Forward", skyboxVs, skyboxFs, forwardPassTags)]);
     Shader.create("SkyProcedural", [new ShaderPass("Forward", skyProceduralVs, skyProceduralFs, forwardPassTags)]);
 

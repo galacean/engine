@@ -1,6 +1,9 @@
 import { defineProject } from "vitest/config";
 
 export default defineProject({
+  server: {
+    port: 51204
+  },
   optimizeDeps: {
     exclude: [
       "@galacean/engine",

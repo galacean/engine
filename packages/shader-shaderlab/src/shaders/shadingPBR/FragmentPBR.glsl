@@ -135,11 +135,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     vec3 emissiveRadiance = material_EmissiveColor;
 
     #ifdef MATERIAL_HAS_BASETEXTURE
-        vec4 baseTextureColor = texture2D(material_BaseTexture, uv);
-        #ifndef ENGINE_IS_COLORSPACE_GAMMA
-            baseTextureColor = gammaToLinear(baseTextureColor);
-        #endif
-        baseColor *= baseTextureColor;
+        baseColor *= texture2DSRGB(material_BaseTexture, uv);
     #endif
 
     #ifdef RENDERER_ENABLE_VERTEXCOLOR
@@ -160,21 +156,14 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     #endif
 
     #ifdef MATERIAL_HAS_SPECULAR_GLOSSINESS_TEXTURE
-        vec4 specularGlossinessColor = texture2D(material_SpecularGlossinessTexture, uv );
-        #ifndef ENGINE_IS_COLORSPACE_GAMMA
-            specularGlossinessColor = gammaToLinear(specularGlossinessColor);
-        #endif
+        vec4 specularGlossinessColor = texture2DSRGB(material_SpecularGlossinessTexture, uv);
         specularColor *= specularGlossinessColor.rgb;
         glossiness *= specularGlossinessColor.a;
         roughness =  1.0 - glossiness;
     #endif
 
     #ifdef MATERIAL_HAS_EMISSIVETEXTURE
-        vec4 emissiveColor = texture2D(material_EmissiveTexture, uv);
-        #ifndef ENGINE_IS_COLORSPACE_GAMMA
-            emissiveColor = gammaToLinear(emissiveColor);
-        #endif
-        emissiveRadiance *= emissiveColor.rgb;
+        emissiveRadiance *= texture2DSRGB(material_EmissiveTexture, uv).rgb;
     #endif
 
     surfaceData.albedoColor = baseColor.rgb;
@@ -296,11 +285,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     #ifdef MATERIAL_ENABLE_SHEEN
         vec3 sheenColor = material_SheenColor;
         #ifdef MATERIAL_HAS_SHEEN_TEXTURE
-            vec4 sheenTextureColor = texture2D(material_SheenTexture, uv);
-            #ifndef ENGINE_IS_COLORSPACE_GAMMA
-                sheenTextureColor = gammaToLinear(sheenTextureColor);
-            #endif
-            sheenColor *= sheenTextureColor.rgb;
+            sheenColor *= texture2DSRGB(material_SheenTexture, uv).rgb;
         #endif
         surfaceData.sheenColor = sheenColor;
 

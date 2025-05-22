@@ -342,6 +342,7 @@ export class BlendShapeManager {
       textureHeight,
       blendShapeCount,
       TextureFormat.R32G32B32A32,
+      false,
       false
     );
     blendShapeDataTexture.filterMode = TextureFilterMode.Point;
