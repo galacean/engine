@@ -34,5 +34,8 @@
   },
   "postProcess": {
     "title": "Post Process"
+  },
+  "quality": {
+    "title": "Graphic Quality"
   }
 }
