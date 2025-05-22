@@ -25,7 +25,7 @@ Shader "PBRShaderName" {
       }
 
       Header("Emissive") {
-        material_EmissiveColor("EmissiveColor", Color ) = (0, 0, 0, 1);
+        material_EmissiveColor("EmissiveColor", HDRColor ) = (0, 0, 0, 1);
         material_EmissiveTexture("EmissiveTexture", Texture2D);
       }
 
