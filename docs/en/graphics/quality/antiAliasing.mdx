@@ -13,11 +13,7 @@ Anti-Aliasing (AA) is an image processing technique that aims to reduce the "ali
 />
 
 ## FXAA (Fast Approximate Anti-Aliasing)
-Fast Approximate Anti-aliasing (FXAA) is an **image-based** fast anti-aliasing algorithm that smoothen edges by detecting edge pixels and blurring jagged areas after the image is rendered.
-
-<Callout type="info">
-  While this technique renders quickly, it can slightly blur image details compared to other anti-aliasing techniques.
-</Callout>
+[Fast Approximate Anti-Aliasing (FXAA)](https://en.wikipedia.org/wiki/Fast_approximate_anti-aliasing) is screen-space anti-aliasing mode applied after the camera renders the final image,it can smooth all pixels, including by `shader-generated specular`, `alpha-cutoff edge`, `low resolution texture`.
 
 <Comparison
   leftSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*oTb9Trh4Y9sAAAAAAAAAAAAAegDwAQ/original"
@@ -26,12 +22,8 @@ Fast Approximate Anti-aliasing (FXAA) is an **image-based** fast anti-aliasing a
   rightText="FXAA ON"
 />
 
-<Callout type="positive">
- FXAA is an image-based algorithm, which means it can handle all types of aliasing: geometric edges, textures, materials, transparent surfaces.
-</Callout>
-
 ## MSAA (Multiple Sampling Anti-Aliasing)
-MSAA (Multiple Sampling anti-aliasing) is a hardware level anti-aliasing technique that smoothen the aliasing on the edges of the model by performing geometric tests on multiple sub-samples of each pixel to make the final image clearer and more natural.
+[Multiple Sampling Anti-Aliasing (MSAA)](https://en.wikipedia.org/wiki/Multisample_anti-aliasing) is a hardware-level anti-aliasing technology, mainly addressing the jagged edges of geometric shapes. Since jagged edges caused by materials, textures, and transparency and other non-geometric objects are not affected by `MSAA`, this means that you can use `MSAA` and `FXAA` together.
 
 <Callout type="info">
 Materials, textures, and transparent surfaces are not affected by MSAA, which means you can use MSAA with FXAA.
@@ -46,12 +38,14 @@ Materials, textures, and transparent surfaces are not affected by MSAA, which me
 
 <Callout type="warning">It can be seen that in this scenario, the leaves with transparent clipping (alphaCutoff) are not affected by MSAA, and the opaque bones are affected by MSAA.</Callout>
 
-You can determine the quality of MSAA by setting "msaaSamples" under the camera, or you can set it in your code through the following interface:
+In Galacean, the default 'msaaSamples' under the camera is' 4x'. You can modify the 'msaaSamples' to customize the 'MSAA' quality. Or, you can also set it through the following interface in the code:
 ```typescript
   camera.msaaSamples = MSAASamples.FourX;
 ```
 
 ## How to use it in the editor?
-- Navigate to the Camera Inspector panel and select the desired effect：
 
+To see the anti-aliasing effect, preview through the camera window:
+
+![image](https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*-fwHQJ6nC90AAAAAAAAAAAAAegDwAQ/original) 
 ![image](https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*dgVPSrM27dcAAAAAAAAAAAAAegDwAQ/original) 
