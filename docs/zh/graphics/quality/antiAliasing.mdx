@@ -1,0 +1,57 @@
+---
+order: 0
+title: 抗锯齿
+---
+
+抗锯齿（Anti-Aliasing，简称 AA）是一种图像处理技术，目的是减少图像中“锯齿状”边缘（aliasing），让画面更平滑、更自然。
+
+<Comparison
+  leftSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*i_i6TJFeLV8AAAAAAAAAAAAAegDwAQ/original"
+  leftText="OFF"
+  rightSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*41n8SZdM8jYAAAAAAAAAAAAAegDwAQ/original"
+  rightText="FXAA + MSAA"
+/>
+
+## FXAA (快速近似抗锯齿)
+快速近似抗锯齿 (FXAA) 是一种基于 **图像** 的快速抗锯齿算法，在图像渲染完成后，通过检测边缘像素并模糊锯齿区域，使画面边缘变得更平滑。
+
+<Callout type="info">
+  虽然这种技术渲染速度很快，但与其他抗锯齿技术相比，可能会稍微模糊图像细节。
+</Callout>
+
+<Comparison
+  leftSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*oTb9Trh4Y9sAAAAAAAAAAAAAegDwAQ/original"
+  leftText="FXAA OFF"
+  rightSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*my-aSI1FnpoAAAAAAAAAAAAAegDwAQ/original"
+  rightText="FXAA ON"
+/>
+
+<Callout type="positive">
+ FXAA 是基于图像的算法，这意味着它可以处理所有锯齿类型：几何边缘、贴图、材质、透明表面。
+</Callout>
+
+## MSAA (多重采样抗锯齿)
+MSAA (多重采样抗锯齿)是一种硬件级别的抗锯齿技术，通过对每个像素的多个子样本（sub-samples）进行几何测试，来平滑模型边缘上的锯齿，使最终图像更清晰自然。
+
+<Callout type="info">
+  MSAA 主要解决的是几何锯齿问题，材质、纹理、和透明的表面不会受到 MSAA 影响，这意味着你可以将 MSAA 和 FXAA 一起搭配使用。
+</Callout>
+
+<Comparison
+  leftSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*oTb9Trh4Y9sAAAAAAAAAAAAAegDwAQ/original"
+  leftText="MSAA OFF"
+  rightSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*9T8LSJ2ORscAAAAAAAAAAAAAegDwAQ/original"
+  rightText="MSAA 4x"
+/>
+
+<Callout type="warning">可以看到该场景里使用透明裁剪（alphaCutoff）的叶片无法受到 MSAA 影响，不透明的骨头会受到 MSAA 影响。</Callout>
+
+你可以通过在相机下设置 “MSAA 采样” 来决定 MSAA 的质量，或者，你也可以在代码中通过以下接口设置：
+```typescript
+  camera.msaaSamples = MSAASamples.FourX;
+```
+
+## 编辑器中如何使用？
+- 导航到 Camera 的 Inspector 面板后选择需要的效果：
+
+![image](https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*dgVPSrM27dcAAAAAAAAAAAAAegDwAQ/original) 
