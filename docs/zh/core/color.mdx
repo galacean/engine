@@ -60,5 +60,47 @@ sRGB 色彩空间的伽马校正正是基于这种感知特性设计的，并对
 
 ---
 
+## 脚本使用
+
+在 Galacean 引擎中，[加载纹理](/docs/assets/load) 时默认使用 sRGB 色彩空间。如果需要使用线性空间，可以通过参数关闭 sRGB 设置：
+
+```ts showLineNumbers {7}
+// 使用 Text2DLoader 加载纹理
+engine.resourceManager
+  .load<Texture2D>({
+    type: AssetType.Texture2D,
+    url: "https://***.png",
+    params: {
+      isSRGBColorSpace: false // 关闭 sRGB
+    }
+  });
+```
+
+在手动[创建纹理](/apis/core/#Texture2D)时，也可以通过构造函数参数指定是否使用 sRGB 色彩空间：
+
+```ts showLineNumbers {9,18}
+export declare class Texture2D extends Texture {
+  /**
+   * 创建 Texture2D。
+   * @param engine - 渲染引擎实例
+   * @param width - 纹理宽度
+   * @param height - 纹理高度
+   * @param format - 纹理格式，默认值为 `TextureFormat.R8G8B8A8`
+   * @param mipmap - 是否使用多级纹理
+   * @param isSRGBColorSpace - 是否使用 sRGB 色彩空间，默认值为 `true`
+   * @param usage - 纹理用途
+   */
+  constructor(
+    engine: Engine,
+    width: number,
+    height: number,
+    format?: TextureFormat,
+    mipmap?: boolean,
+    isSRGBColorSpace?: boolean,
+    usage?: TextureUsage
+  );
+}
+```
+
 
 通过正确管理纹理的色彩空间设置，可以确保渲染结果的准确性，同时提升性能。
