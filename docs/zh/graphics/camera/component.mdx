@@ -56,6 +56,8 @@ camera.clearFlags = CameraClearFlags.All;
 camera.enablePostProcess = true;
 // 开启 HDR
 camera.enableHDR = true;
+// 开启 FXAA
+camera.antiAliasing = AntiAliasing.FXAA;
 ```
 
 其中每个属性对应的功能如下：
@@ -78,7 +80,8 @@ camera.enableHDR = true;
 | 渲染相关 | [depthTextureMode](/apis/core/#Camera-depthTextureMode) | 深度纹理模式，默认为`DepthTextureMode.None`，如果开启，可以在 shader 中使用 `camera_DepthTexture` 深度纹理。详情可参考[相机纹理](/docs/graphics/camera/texture/) |
 |  | [opaqueTextureEnabled](/apis/core/#Camera-opaqueTextureEnabled) | 是否启用非透明纹理，默认关闭，如果启用，可以在透明队列的 shader 中使用 `camera_OpaqueTexture` 非透明纹理。 |
 |  | [opaqueTextureDownsampling](/apis/core/#Camera-opaqueTextureDownsampling) | 启用非透明纹理时，可以设置降采样，可以根据清晰度需求和性能要求来进行设置。 |
-|  | [msaaSamples](/apis/core/#Camera-msaaSamples) | 多样本抗锯齿采样样本数量，仅当独立画布开启时才能生效，如 `enableHDR`、`enablePostProcess`、`opaqueTextureEnabled`。 |
+|  | [antiAliasing](/apis/core/#Camera-antiAliasing) | 选择抗锯齿方法，默认不开启，详见[抗锯齿](/docs/graphics/quality/antiAliasing)。 |
+|  | [msaaSamples](/apis/core/#Camera-msaaSamples) | 多样本抗锯齿采样样本数量，默认4倍，详见[抗锯齿](/docs/graphics/quality/antiAliasing)。 |
 |  | [enableHDR](/apis/core/#Camera-enableHDR) | 是否启用 HDR 渲染，允许 shader 输出的颜色使用浮点数进行存储，可以得到更大范围的值，用于后处理等场景。 |
 |  | [enablePostProcess](/apis/core/#Camera-enablePostProcess) | 是否启用后处理，后处理配置详见[后处理教程](/docs/graphics/postProcess/postProcess)。 |
 |  | [postProcessMask](/apis/core/#Camera-postProcessMask) | 后处理遮罩，决定生效的后处理组件，后处理配置详见[后处理教程](/docs/graphics/postProcess/postProcess)。 |

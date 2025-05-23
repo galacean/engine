@@ -89,7 +89,7 @@ export class Camera extends Component {
 
   /**
    * The screen-space anti-aliasing mode applied after the camera renders the final image.
-   * Unlike MSAA, it can smooth all pixels, including by shader-generated specular, alpha-cutoff edge, low resolution texture.
+   * Unlike MSAA, it can smooth all pixels, including by shader-generated specular, alpha-cutoff edge.
    *
    * @defaultValue `AntiAliasing.None`
    */

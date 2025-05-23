@@ -19,9 +19,9 @@ After adding it, you can view the camera properties in the inspector, and the ca
 You can also mount the camera component to an [Entity](/en/docs/core/entity) in the script with the following code:
 
 ```typescript
-// 创建实体
+// Create an entity
 const entity = root.createChild("cameraEntity");
-// 创建相机组件
+// Create camera
 const camera = entity.addComponent(Camera);
 ```
 
@@ -34,28 +34,30 @@ By modifying the properties of the camera component, you can customize the rende
 You can also get the camera component and set the corresponding properties through the script.
 
 ```typescript
-// 从挂载相机的节点上获取相机组件
+// Get the camera component from the node where the camera is mounted
 const camera = entity.getComponent(Camera);
-// 设置相机类型
+// Set the camera type
 camera.isOrthographic = true;
-// 设置相机的近平面
+// Set the near plane of the camera
 camera.nearClipPlane = 0.1;
-// 设置相机的远平面
+// Set the far plane of the camera
 camera.farClipPlane = 100;
-// 设置相机的 FOV（角度制）
+// Set the camera's FOV (Angle mode)
 camera.fieldOfView = 45;
-// 设置相机在画布上的渲染区域（归一化）
+// Set the camera's rendered area on the canvas (normalized)
 camera.viewport = new Vector4(0, 0, 1, 1);
-// 设置相机的渲染优先级（值越小，渲染优先级越高）
+// Set the render priority of the camera (lower value means higher render priority)
 camera.priority = 0;
-// 设置相机是否开启视锥体裁剪
+// Sets whether the camera enables cone cropping
 camera.enableFrustumCulling = true;
-// 设置相机渲染前的清除标记
+// Sets the clear mark before camera rendering
 camera.clearFlags = CameraClearFlags.All;
-// 开启后处理
+// Enable post-processing
 camera.enablePostProcess = true;
-// 开启 HDR
+// Enable HDR
 camera.enableHDR = true;
+// Enable FXAA
+camera.antiAliasing = AntiAliasing.FXAA;
 ```
 
 The functionality corresponding to each property is as follows:
@@ -78,7 +80,8 @@ The functionality corresponding to each property is as follows:
 | Rendering Related | [depthTextureMode](/apis/core/#Camera-depthTextureMode) | Depth texture mode, default is `DepthTextureMode.None`. If enabled, the `camera_DepthTexture` depth texture can be used in the shader. For details, refer to [Camera Texture](/en/docs/graphics/camera/texture/). |
 |  | [opaqueTextureEnabled](/apis/core/#Camera-opaqueTextureEnabled) | Whether to enable opaque texture. Default is off. If enabled, the `camera_OpaqueTexture` opaque texture can be used in the shader of the transparent queue. |
 |  | [opaqueTextureDownsampling](/apis/core/#Camera-opaqueTextureDownsampling) | When opaque texture is enabled, downsampling can be set according to clarity and performance requirements. |
-|  | [msaaSamples](/apis/core/#Camera-msaaSamples) | Number of samples for multi-sample anti-aliasing, effective only when the standalone canvas is enabled, such as `enableHDR`, `enablePostProcess`, `opaqueTextureEnabled`. |
+|  | [antiAliasing](/apis/core/#Camera-antiAliasing) | Select the anti-aliasing method, the default is not turned on, see the details:[antiAliasing](/docs/graphics/quality/antiAliasing)。 |
+|  | [msaaSamples](/apis/core/#Camera-msaaSamples) | Multiple anti-aliasing sample number, default 4 times, see details[antiAliasing](/docs/graphics/quality/antiAliasing)。 |
 |  | [enableHDR](/apis/core/#Camera-enableHDR) | Whether to enable HDR rendering, allowing the shader's output color to be stored using floating-point numbers, providing a wider range of values for post-processing and other scenarios. |
 |  | [enablePostProcess](/apis/core/#Camera-enablePostProcess) | Whether to enable post-processing. For post-processing configuration, see [Post-Processing Tutorial](/en/docs/graphics/postProcess/postProcess). |
 |  | [postProcessMask](/apis/core/#Camera-postProcessMask) | Post-processing mask, which determines the effective post-processing components. For post-processing configuration, [Post-Processing Tutorial](/en/docs/graphics/postProcess/postProcess). |

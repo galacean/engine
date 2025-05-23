@@ -5,7 +5,26 @@ type: Physics
 label: Physics
 ---
 
-Character Controller ([CharacterController](/apis/core/#CharacterController)) is a special type of collider component specifically designed for handling character movement. It provides specialized movement algorithms and collision detection, capable of handling steps, slopes, and other complex terrains, making it particularly suitable for first-person or third-person game character control.
+The [CharacterController](/apis/core/#CharacterController) is a special collider component designed specifically for handling character physics movement. It provides specialized movement algorithms and collision detection, capable of handling complex terrain like steps and slopes, making it particularly suitable for character control in first-person or third-person games.
+
+## Differences from Dynamic Collider
+
+While both the Character Controller and [Dynamic Collider](/docs/physics/collider/dynamicCollider) can achieve object movement, they have significant differences:
+
+| Feature | Character Controller | Dynamic Collider |
+|---------|---------------------|------------------|
+| Movement Method | Direct displacement control via `move()` method | Movement through forces or impulses |
+| Collision Response | Manual collision response, automatic step and slope handling | Physics-based collision response |
+| Gravity Handling | Requires manual gravity implementation | Automatic scene gravity application |
+| Shape Limitations | Can only use one collision shape | Can use multiple collision shapes |
+| Use Cases | Character control, first/third-person games | Physics simulation, rigid body motion |
+| Performance Cost | Lower | Higher |
+
+<Callout type="positive">
+Recommendations:
+- Use Character Controller when precise control over character movement and collision response is needed
+- Use Dynamic Collider when realistic physics simulation is required
+</Callout>
 
 ## Usage
 
@@ -13,55 +32,53 @@ Character Controller ([CharacterController](/apis/core/#CharacterController)) is
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*nEMXRKiqpy8AAAAAAAAAAAAAesJ_AQ/original" />
 
-2. Set the collision shape of the controller to match the character's appearance as closely as possible. For detailed instructions on collision shapes, please refer to the [Collision Shape](/docs/physics/collider/colliderShape) documentation.
+2. Set the controller's collision shape to match the character's appearance as closely as possible. For detailed information about collision shapes, please refer to the [ColliderShape](/docs/physics/collider/colliderShape) documentation.
 
 <Callout type="positive">
-Unlike other colliders, the character controller can only add one collision shape. It is generally recommended to use a capsule shape (CapsuleColliderShape) as the character's collision shape.
+Unlike other colliders, the Character Controller can only have one collision shape. It is recommended to use a CapsuleColliderShape as the character's collision shape.
 </Callout>
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*4QvUTI4D89EAAAAAAAAAAAAAesJ_AQ/original" />
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*aRGqSIMqDmsAAAAAAAAAAAAAesJ_AQ/original" />
 
-3. Adjust the properties of the collider as needed to modify the physical behavior of the object. The meaning and function of each property are explained below.
+3. Adjust the collider's properties according to your needs to modify the object's physical behavior. The meaning and function of each property are explained below.
 
-## Property Explanation
+## Property Description
 
-
-### Inherited from Collider
-| Property                                  | Description       |
-| ----------------------------------------- | ----------------- |
+### Properties Inherited from Collider
+| Property | Description |
+|----------|-------------|
 | [**shapes**](/apis/core/#Collider-shapes) | Collection of collision shapes |
 
-### CharacterController Specific Properties
-| Property | Description | Default Value |
-| ---- | ---- | ------ |
-| [**stepOffset**](/apis/core/#CharacterController-stepOffset) | The maximum step height the character can automatically step over. <ul><li>Must be greater than or equal to 0</li><li>Actual step height = stepOffset + contact offset of the collision shape</li></ul> | 0.5 |
-| [**slopeLimit**](/apis/core/#CharacterController-slopeLimit) | The maximum slope angle (degrees) the character can walk on. <ul><li>Slopes steeper than this angle will be treated as walls</li><li>Affects the character's ability to climb slopes</li></ul> | 45° |
-| [**nonWalkableMode**](/apis/core/#CharacterController-nonWalkableMode) | Defines how to handle non-walkable surfaces. <ul><li>PreventClimbing: Prevents the character from climbing non-walkable slopes but does not force other movements (default)</li><li>PreventClimbingAndForceSliding: Prevents the character from climbing non-walkable slopes and forces the character to slide down the slope</li></ul> | PreventClimbing |
-| [**upDirection**](/apis/core/#CharacterController-upDirection) | Defines the upward direction of the character. The default is (0, 1, 0), which is the Y-axis in world space. Affects the direction determination for movement and collision detection | (0, 1, 0) |
+### Specific Properties
+| Property | Description | Default |
+|----------|-------------|---------|
+| [**stepOffset**](/apis/core/#CharacterController-stepOffset) | Maximum step height the character can automatically climb.<ul><li>Must be greater than or equal to 0</li><li>Actual climbable height = stepOffset + contact offset of collision shape</li></ul> | 0.5 |
+| [**slopeLimit**](/apis/core/#CharacterController-slopeLimit) | Maximum slope angle (in degrees) the character can walk on.<ul><li>Surfaces steeper than this angle will be treated as unwalkable walls</li><li>Affects the character's climbing ability</li></ul> | 45° |
+| [**nonWalkableMode**](/apis/core/#CharacterController-nonWalkableMode) | Defines how to handle unwalkable surfaces.<ul><li>PreventClimbing: Prevents the character from climbing unwalkable slopes but doesn't force other movements (default)</li><li>PreventClimbingAndForceSliding: Prevents the character from climbing unwalkable slopes and forces the character to slide down</li></ul> | PreventClimbing |
+| [**upDirection**](/apis/core/#CharacterController-upDirection) | Defines the character's up direction. Default is (0, 1, 0), which means Y-axis up in world space. Affects movement and collision detection direction | (0, 1, 0) |
 
-## Methods
+## Public Methods
 
-
-### Inherited from Collider
-| Method Name                                          | Description       |
-| --------------------------------------------------- | ----------------- |
-| [**addShape**](/apis/core/#Collider-addShape)       | Add a collision shape     |
+### Methods Inherited from Collider
+| Method | Description |
+|--------|-------------|
+| [**addShape**](/apis/core/#Collider-addShape) | Add a collision shape |
 | [**removeShape**](/apis/core/#Collider-removeShape) | Remove a specified collision shape |
 | [**clearShapes**](/apis/core/#Collider-clearShapes) | Clear all collision shapes |
 
-### CharacterController Specific Methods
-| Method Name | Description |
-| ---- | ---- |
-| [**move**](/apis/core/#CharacterController-move) | Moves the character controller. Returns a collision flag value indicating the collision state. <ul><li>displacement: Movement vector</li><li>minDist: Minimum movement distance</li><li>elapsedTime: Elapsed time</li></ul> |
+### Specific Methods
+| Method | Description |
+|--------|-------------|
+| [**move**](/apis/core/#CharacterController-move) | Move the character controller. Returns a collision flag value indicating collision status.<ul><li>displacement: Movement vector</li><li>minDist: Minimum movement distance</li><li>elapsedTime: Elapsed time</li></ul> |
 
 ### Collision Flags
 
-The `move()` function returns a collision flag value that indicates the collision state of the character controller with the environment. These flags can be checked using bitwise AND operations (&):
+The `move()` function returns a collision flag value that indicates the character controller's collision status with the environment. These flags can be detected using bitwise AND operations (&):
 
 | Flag Name | Value | Description |
-|---------|----|----|
+|-----------|-------|-------------|
 | None | 0 | No collision occurred |
 | Sides | 1 | Collided with sides |
 | Up | 2 | Collided with the top (e.g., ceiling) |
@@ -91,9 +108,8 @@ controller.upDirection = new Vector3(0, 1, 0); // Set upward direction
 class CharacterMovement extends Script {
   private _velocity = new Vector3();
   
-  onUpdate() {
+  onUpdate(deltaTime: number) {
     const controller = this.entity.getComponent(CharacterController);
-    const deltaTime = engine.deltaTime;
 
     // Create displacement vector
     const displacement = new Vector3();
@@ -112,17 +128,6 @@ class CharacterMovement extends Script {
 }
 ```
 
-### Collision Flags
-
-The `move()` function returns a collision flag value indicating the character controller's collision state with the environment. These flags can be checked using bitwise AND (&) operations:
-
-| Flag Name | Value | Description |
-|---------|----|----|
-| None | 0 | No collision occurred |
-| Sides | 1 | Collision with sides |
-| Up | 2 | Collision with ceiling |
-| Down | 4 | Collision with ground |
-
 Usage example:
 ```typescript
 const flags = controller.move(displacement, 0, deltaTime);
@@ -139,33 +144,106 @@ if (flags & ControllerCollisionFlag.Up) {
     this._velocity.y = 0;
 }
 
-// Check if hitting walls
+// Check if hitting wall
 if (flags & ControllerCollisionFlag.Sides) {
     // Character hit wall
     this._handleWallCollision();
 }
 
-// Check multiple flags
+// Can check multiple flags simultaneously
 if ((flags & ControllerCollisionFlag.Down) && 
     (flags & ControllerCollisionFlag.Sides)) {
     // Character is touching both ground and wall
 }
 ```
 
-### Walking on Slopes/Steps
+### Slope/Step Walking
 
-1. **Walking on Slopes**
+1. **Slope Walking**
 ```typescript
-// Control the walkable slope angle by setting slopeLimit
+// Control walkable slope angle by setting slopeLimit
 controller.slopeLimit = 60; // Allow steeper slopes
 
-// Set the handling method for non-walkable slopes
-controller.nonWalkableMode = ControllerNonWalkableMode.PreventClimbingAndForceSliding; // Slide down steep slopes
+// Set how to handle unwalkable slopes
+controller.nonWalkableMode = ControllerNonWalkableMode.PreventClimbingAndForceSliding; // Will slide down on too steep slopes
 ```
 
-2. **Adjusting Step Height**
+2. **Step Walking Adjustment**
 ```typescript
-// Adjust stepOffset to control the maximum step height
+// Adjust stepOffset to control climbable step height
 controller.stepOffset = 0.3; // Lower steps
 controller.stepOffset = 0.5; // Higher steps
 ```
+
+### Gravity Handling
+
+The Character Controller itself doesn't include gravity handling; you need to implement gravity effects manually in scripts. Here's a complete gravity handling example:
+
+```typescript
+class CharacterMovement extends Script {
+  private _controller: CharacterController;
+  private _velocity = new Vector3();
+  private _isGrounded = false;
+  private _moveSpeed = 5;
+  private _jumpForce = 5;
+  private _gravity: Vector3;
+
+  onAwake() {
+    this._controller = this.entity.getComponent(CharacterController);
+    this._gravity = this.scene.physics.gravity;
+  }
+
+  onUpdate(deltaTime: number) {
+    const inputManager = this.engine.inputManager;
+
+    // Get input
+    const horizontal = inputManager.isKeyHeldDown(Keys.KeyA) ? -1 : inputManager.isKeyHeldDown(Keys.KeyD) ? 1 : 0;
+    const vertical = inputManager.isKeyHeldDown(Keys.KeyS) ? -1 : inputManager.isKeyHeldDown(Keys.KeyW) ? 1 : 0;
+    const jump = inputManager.isKeyDown(Keys.Space);
+
+    // Calculate movement direction
+    const moveDirection = new Vector3(horizontal, 0, vertical);
+    moveDirection.normalize();
+
+    // Apply movement speed
+    this._velocity.x = moveDirection.x * this._moveSpeed;
+    this._velocity.z = moveDirection.z * this._moveSpeed;
+
+    // Apply gravity
+    if (!this._isGrounded) {
+      this._velocity.y += this._gravity.y * deltaTime;
+    }
+
+    // Handle jumping
+    if (this._isGrounded && jump) {
+      this._velocity.y = this._jumpForce;
+      this._isGrounded = false;
+    }
+
+    // Execute movement
+    const displacement = new Vector3();
+    Vector3.scale(this._velocity, deltaTime, displacement);
+    const collisionFlags = this._controller.move(displacement, 0, deltaTime);
+
+    // Update ground status
+    this._isGrounded = (collisionFlags & ControllerCollisionFlag.Down) !== 0;
+    if (this._isGrounded) {
+      this._velocity.y = 0;
+    }
+  }
+}
+```
+
+## Limitations and Considerations
+
+1. **Shape Limitations**
+   - Can only use one collision shape
+   - Recommended to use CapsuleColliderShape as the collision shape
+
+2. **Performance Considerations**
+   - Character Controller has better performance than Dynamic Collider
+   - But each Character Controller consumes some physics calculation resources
+   - It's recommended to control the number of Character Controllers in the scene
+
+For a complete example, please refer to:
+<Playground href="/embed/physx-controller" />

@@ -1,0 +1,38 @@
+---
+order: 6
+title: Collision Layer
+type: Physics
+label: Physics
+---
+
+Collision Layer is an important concept in the physics system that controls collision relationships between different objects. By setting collision layers, you can flexibly control which objects can collide with each other and which cannot.
+
+## Setting Collision Layers
+
+Each [collider](/docs/physics/collider/overview) can be assigned to a collision layer. The engine provides 32 collision layers (Layer0 to Layer31), and each collider can only belong to one layer.
+
+```typescript
+// Set collider to Layer1
+collider.collisionLayer = Layer.Layer1;
+```
+
+## Configuring Collision Relationships
+
+The collision relationships between layers can be set using the `setColliderLayerCollision` method of [PhysicsScene](/apis/core/#PhysicsScene) to determine whether collisions can occur between two layers:
+
+```typescript
+// Disable collision between Layer1 and Layer2
+scene.physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, false);
+
+// Enable collision between Layer1 and Layer2
+scene.physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, true);
+
+// Check collision relationship between Layer1 and Layer2
+console.log(scene.physics.getColliderLayerCollision(Layer.Layer1, Layer.Layer2));
+```
+
+## Important Notes
+
+1. Each collider can only belong to one collision layer
+2. By default, collisions can occur between all collision layers
+3. Collision layer settings affect both physical collisions and trigger events 
