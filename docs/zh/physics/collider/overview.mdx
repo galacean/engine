@@ -1,5 +1,5 @@
 ---
-order: 1
+order: 0
 title: 碰撞器
 type: 物理
 label: Physics
@@ -44,6 +44,8 @@ label: Physics
    - `碰撞形状` 可以设置相对于实体的局部偏移和旋转
 
 3. **碰撞/触发事件**：碰撞器在与其他碰撞器交互时可以生成碰撞和触发器事件。有关这些事件的详细信息以及如何处理它们，请参阅[碰撞事件](/docs/physics/collider/event)文档。
+
+4. **碰撞层**：每个碰撞器可以被分配到一个碰撞层（Layer0 到 Layer31），用于控制不同物体之间的碰撞关系。通过设置碰撞层，可以灵活地控制哪些物体之间可以发生碰撞，哪些物体之间不能发生碰撞。更多信息请参考[碰撞层](/docs/physics/collider/collisionLayer)文档。
 
 ## 最佳实践
 
@@ -101,3 +103,4 @@ const characterController = entity.addComponent(CharacterController);
 - [静态碰撞器文档](/docs/physics/collider/staticCollider)
 - [角色控制器文档](/docs/physics/collider/characterController)
 - [碰撞事件文档](/docs/physics/collider/event)
+- [碰撞层文档](/docs/physics/collider/collisionLayer)

@@ -66,15 +66,15 @@ import {
 } from "@galacean/engine";
 
 const textEntity = rootEntity.createChild("text");
-// 给实体添加 TextRenderer 组件
+// 1、创建 TextRenderer 组件显示文本  
 const textRenderer = textEntity.addComponent(TextRenderer);
-// 通过 font 设置 Font 对象
+// 2、通过 font 设置 Font 对象  
 textRenderer.font = Font.createFromOS(engine, "Arial");
-// 通过 text 设置需要显示的文本
+// 3、通过 text 设置需要显示的文本  
 textRenderer.text = "Galacean 会写字了！";
-// 通过 fontSize 设置字体大小
+// 4、通过 fontSize 设置字体大小  
 textRenderer.fontSize = 36;
-// 通过 color 设置文本颜色
+// 5、通过 color 设置文本颜色
 textRenderer.color.set(1, 0, 0, 1);
 ```
 

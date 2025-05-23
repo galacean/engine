@@ -10,13 +10,11 @@ label: Graphics/Light
 
 <Image src="https://gw.alipayobjects.com/zos/OasisHub/3eb4bc88-fc7e-4957-83a4-dfb7dd678af5/image-20240319174317201.png" alt="image-20240319174317201" style={{ zoom: "50%" }} />
 
-点光源有 3 个主要特性：_颜色_（[color](/apis/core/#PointLight-color)）、_强度_（[intensity](/apis/core/#PointLight-intensity)）、_有效距离_（[distance](/apis/core/#PointLight-distance)））。超过有效距离的地方将无法接受到点光源的光线，并且离光源越远光照强度也会逐渐降低。
 
 | 属性         | 作用                                                                      |
 | :----------- | :------------------------------------------------------------------------ |
-| Intensity    | 控制点光源的强度，**值越高越亮**                                          |
 | Color        | 控制点光源的颜色，默认白色                                                |
-| Distance     | 有效距离，光照强度随距离衰减                                              |
+| Distance     | 有效距离，光照强度随距离衰减，超过有效距离的地方将无法接受到点光源的光线                                              |
 | Culling Mask | 控制灯光需要照亮的物体，默认 Everything。 需要配合 Entity 的 Layer 来使用 |
 
 ### 脚本使用

@@ -1,0 +1,106 @@
+---
+order: 11
+title: 色彩空间
+type: 核心概念
+label: Core
+---
+
+## 什么是色彩空间？
+
+色彩空间是用于描述颜色在不同介质中呈现方式的标准化模型。它通过映射函数定义了颜色值的范围和转换规则，使得在不同设备或应用之间进行颜色转换变得简单。
+
+在渲染图形时，色彩空间的选择通常受到设备支持的限制。大多数设备默认使用 [sRGB 色彩空间](https://www.wikiwand.com/en/articles/SRGB)，它适合网络图像、数码摄影等应用。sRGB 的设计基于人眼的生理特性，特别是对暗色值的敏感度远高于亮色值。
+
+---
+
+## 人眼感知与 sRGB 色彩空间
+
+人眼通过视杆细胞和视锥细胞感知光线。视杆细胞对光线高度敏感，主要在弱光环境下工作，但无法感知颜色；而视锥细胞则负责感知颜色，主要在明亮环境下工作。这种分工使得人眼在不同光照条件下能够适应并感知环境。
+
+### 为什么人眼对低光更敏感？
+
+在低光环境下，视杆细胞的作用尤为显著。它们对光线的响应是非线性的，尤其对暗色值的变化更加敏感。这种特性使得人类能够在昏暗环境中分辨出微弱的亮度差异。
+
+例如，当我们观察显示器时，线性插值的亮度值并不能直接反映人眼的感知。如下图所示，从黑色（0% 光亮度）到白色（100% 光亮度）的线性渐变中，人眼对 50% 亮度后的变化感知较弱：
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/dc1cacea-4348-4010-ac98-18ff65c3f045/linearGradient_steps.png" />
+
+通过伽马校正后，亮度的变化更符合人眼的感知特性，呈现出更自然的渐变效果：
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/d1492e83-522b-4e8b-b0ea-ccbfcb39a614/gammaGradient_steps.png" />
+
+sRGB 色彩空间的伽马校正正是基于这种感知特性设计的，并对非常暗的数值进行了额外优化，使显示器上的亮度和颜色过渡更加自然。
+
+---
+
+## 色彩空间与纹理
+
+在渲染中，纹理的色彩空间选择取决于其用途。
+
+* 颜色数据纹理（如基础贴图、自发光贴图）应使用 **sRGB 色彩空间** 保存。这是因为这些纹理直接影响材质的颜色表现，且需要与显示器的 sRGB 色彩空间匹配。
+
+* 非颜色数据纹理（如法线贴图、金属粗糙度贴图）应使用 **线性色彩空间** 保存。这些纹理不直接影响颜色，而是用于光照计算。将它们保存为线性空间可以避免不必要的伽马编码和解码操作，从而优化渲染性能。
+
+---
+
+## 编辑器使用
+
+在编辑器中上传纹理时，默认会开启 sRGB 设置。如果上传的是非颜色数据纹理（如法线贴图），可以手动关闭 sRGB 开关。对于 glTF 资产，编辑器会根据贴图类型（如法线贴图、基础贴图）自动适配 sRGB 设置。
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/185f73d9-ffa5-494c-b317-76345eb4bc3d/image-20250522184013437.png" />
+
+以下对比图展示了开启和关闭 sRGB 设置的效果：
+
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/bc3895dc-3813-4a59-b508-14660055fabe/screenshot_srgb.png"
+  leftText="sRGB ON"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/bdf12227-1a3e-4f11-b15b-33a4caa642a4/screenshot_linear.png"
+  rightText="sRGB OFF"
+/>
+
+---
+
+## 脚本使用
+
+在 Galacean 引擎中，[加载纹理](/docs/assets/load) 时默认使用 sRGB 色彩空间。如果需要使用线性空间，可以通过参数关闭 sRGB 设置：
+
+```ts showLineNumbers {7}
+// 使用 Text2DLoader 加载纹理
+engine.resourceManager
+  .load<Texture2D>({
+    type: AssetType.Texture2D,
+    url: "https://***.png",
+    params: {
+      isSRGBColorSpace: false // 关闭 sRGB
+    }
+  });
+```
+
+在手动[创建纹理](/apis/core/#Texture2D)时，也可以通过构造函数参数指定是否使用 sRGB 色彩空间：
+
+```ts showLineNumbers {9,18}
+export declare class Texture2D extends Texture {
+  /**
+   * 创建 Texture2D。
+   * @param engine - 渲染引擎实例
+   * @param width - 纹理宽度
+   * @param height - 纹理高度
+   * @param format - 纹理格式，默认值为 `TextureFormat.R8G8B8A8`
+   * @param mipmap - 是否使用多级纹理
+   * @param isSRGBColorSpace - 是否使用 sRGB 色彩空间，默认值为 `true`
+   * @param usage - 纹理用途
+   */
+  constructor(
+    engine: Engine,
+    width: number,
+    height: number,
+    format?: TextureFormat,
+    mipmap?: boolean,
+    isSRGBColorSpace?: boolean,
+    usage?: TextureUsage
+  );
+}
+```
+
+
+通过正确管理纹理的色彩空间设置，可以确保渲染结果的准确性，同时提升性能。

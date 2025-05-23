@@ -200,8 +200,6 @@ colorClip.addCurveBinding("/light", DirectLight, "color.r", colorCurve);
 
 你同样可以为你的子实体 `/light` 添加 `AnimationCurve` ，就像上面的代码示例，同时 `addCurveBinding` 的第三个参数并不局限于组件的属性，它是一个能索引到值的路径。
 
-<Playground href="/embed/animation-customAnimationClip" />
-
 ### 动画事件
 
 你可以使用 [AnimationEvent](/apis/core/#AnimationEvent)  来为 AnimationClip 添加事件，动画事件将在指定时间调用你在同一实体上绑定组件的指定回调函数。
@@ -212,6 +210,3 @@ event.functionName = "test";
 event.time = 0.5;
 clip.addEvent(event);
 ```
-
-<Playground href="/embed/animation-event" />
-
