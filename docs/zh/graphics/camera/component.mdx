@@ -87,19 +87,13 @@ camera.enableHDR = true;
 
 相机组件可以通过设置 `cullingMask` 选择性地渲染场景内的渲染组件
 
-<playground src="culling-mask.ts"></playground>
-
 ### 渲染目标
 
 相机组件可以通过设置 `renderTarget` 将渲染结果渲染到不同的目标上。
 
-<playground src="multi-camera.ts"></playground>
-
 ### 视锥剔除
 
 `enableFrustumCulling` 属性默认是开启的，因为对于三维世界来说，“看不见的东西就不需要渲染”是个很自然的逻辑，属于最基本的性能优化。关闭视锥剔除意味着关闭此项优化。如果你想保留此项优化，而只想让某个节点始终渲染，可以把节点的渲染器的包围盒设置成无限大。
-
-<playground src="renderer-cull.ts"></playground>
 
 ## 方法
 
@@ -137,9 +131,7 @@ const cameras = scene._componentsManager._activeCameras;
 
 ### Shader 替换
 
-借助 `setReplacementShader` 全局替换 Shader 的能力可以观测特定的渲染效果：
-
-<playground src="shader-replacement.ts"></playground>
+借助 `setReplacementShader` 全局替换 Shader 的能力可以观测特定的渲染效果。
 
 ### 空间转换
 

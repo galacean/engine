@@ -87,19 +87,13 @@ The functionality corresponding to each property is as follows:
 
 The camera component can selectively render the rendering components in the scene by setting the `cullingMask`.
 
-<playground src="culling-mask.ts"></playground>
-
 ### Render Target
 
 The camera component can render the result to different targets by setting the `renderTarget`.
 
-<playground src="multi-camera.ts"></playground>
-
 ### Frustum Culling
 
 The `enableFrustumCulling` property is enabled by default because, in a 3D world, "things that are not visible do not need to be rendered" is a very natural logic and is the most basic performance optimization. Disabling frustum culling means turning off this optimization. If you want to keep this optimization but always render a specific node, you can set the bounding box of the node's renderer to be infinite.
-
-<playground src="renderer-cull.ts"></playground>
 
 ## Methods
 
@@ -137,9 +131,7 @@ const cameras = scene._componentsManager._activeCameras;
 
 ### Shader Replacement
 
-With the ability of `setReplacementShader` to globally replace shaders, you can observe specific rendering effects:
-
-<playground src="shader-replacement.ts"></playground>
+With the ability of `setReplacementShader` to globally replace shaders, you can observe specific rendering effects.
 
 ### Space Transformation
 

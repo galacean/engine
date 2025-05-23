@@ -16,8 +16,6 @@ Camera controls inherit from powerful scripts and are mounted on an `Entity` tha
 
 `OrbitControl` is used to simulate orbit interaction, suitable for 360-degree rotation interaction around a target object. Note that **the orbit controller must be added after the camera component**.
 
-<playground src="gltf-basic.ts"></playground>
-
 | Property         | Description                                                        |
 | :--------------- | :----------------------------------------------------------------- |
 | `target`         | The target position to observe                                     |
@@ -42,8 +40,6 @@ Camera controls inherit from powerful scripts and are mounted on an `Entity` tha
 
 `FreeControl` is generally used for roaming control, commonly seen in game scenes. Note that **the free controller must be added after the camera component**.
 
-<playground src="controls-free.ts"></playground>
-
 | Property        | Description                               |
 | :-------------- | :---------------------------------------- |
 | `floorMock`     | Whether to simulate the ground, default is true |
@@ -53,9 +49,8 @@ Camera controls inherit from powerful scripts and are mounted on an `Entity` tha
 
 #### Orthographic Controller
 
-`OrthoControl` is generally used to control zooming and panning in 2D scenes:
+`OrthoControl` is generally used to control zooming and panning in 2D scenes.
 
-<playground src="ortho-control.ts"></playground>
 
 | Property    | Description |
 | :---------- | :-----------|
