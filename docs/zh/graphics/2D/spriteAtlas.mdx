@@ -6,15 +6,10 @@ group: 2D
 label: Graphics/2D
 ---
 
-[SpriteAtlas](/apis/core/#SpriteAtlas) 是一种精灵集合资源，通过将多个精灵纹理打包成一张精灵图集从而在绘制时合并绘制指令，它拥有以下优势：
+[SpriteAtlas](/apis/core/#SpriteAtlas) 是一种精灵集合资源，通过将多个精灵纹理打包成一张精灵图集从而在绘制时合并绘制指令，它可以达到：
 
 - 更好的性能（合并绘制指令）；
-- 更少的显存（打包算法降低纹理尺寸）；
 - 更少的请求次数（通过减少碎片文件来减少加载的请求次数）；
-
-下图精灵图集例子里每帧只调用了一次绘制指令：
-
-<Playground href="/embed/sprite-atlas" />
 
 ## 编辑器使用
 
@@ -159,9 +154,3 @@ engine.resourceManager
     const allSpritesWithSameName = atlas.getSprites("spriteName", []);
   });
 ```
-
-## 注意事项
-
-1. 请将绘制时序相连的精灵打包进同一图集，可显著提升性能（降低绘制指令的调用次数）；
-2. 清理精灵图集时，需要确保图集内的所有精灵都已不使用；
-3. 打包精灵图集是需要统筹精灵数目与尺寸，避免一次打包生成多张精灵图集；

@@ -10,21 +10,14 @@ label: Graphics/Renderer
 
 ## 属性
 
-蒙皮网格渲染器的属性基本上与`骨骼动画`和 `Blend Shape` 脱不了关系。
+蒙皮网格渲染器在[网格渲染器](/docs/graphics/renderer/meshRenderer/)的基础上新增了骨骼相关信息。
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*AVGwRpqT35sAAAAAQQAAAAgAehuCAQ/original" alt="image-20231007153753006" style={{ zoom: "50%" }} />
 
 | 设置                | 解释                           |
 | :------------------ | :----------------------------- |
+| `rootBone`          | 蒙皮网格渲染器对应的根骨骼节点  |
 | `localBounds`       | 蒙皮网格渲染器的局部包围盒     |
-| `bones`             | 蒙皮网格渲染器的所有骨骼节点   |
-| `rootBone`          | 蒙皮网格渲染器对应的根骨骼节点 |
-| `blendShapeWeights` | BlendShapes 的混合权重         |
 
-美术工作流导出的模型中一般已经预先设置好了所有骨骼和 BlendShape 信息，开发者只需要结合[动画系统](/docs/animation/overview)播放指定的动画片段即可。
+<Callout type="info">在某些难以避免的情况下，调整局部包围盒可以避免渲染器被相机裁剪</Callout>
 
-## 骨骼动画
-
-<Playground href="/embed/skeleton-animation-play" />
-
-## BlendShape
-
-<Playground href="/embed/skeleton-animation-blendShape" />
