@@ -200,8 +200,6 @@ colorClip.addCurveBinding("/light", DirectLight, "color.r", colorCurve);
 
 You can also add `AnimationCurve` to your child entity `/light`, as shown in the code example above. At the same time, the third parameter of `addCurveBinding` is not limited to the properties of the component; it is a path that can index the value.
 
-<Playground href="/embed/animation-customAnimationClip" />
-
 ### Animation Events
 
 You can use [AnimationEvent](/apis/core/#AnimationEvent) to add events to `AnimationClip`. Animation events will call the specified callback function of the component bound to the same entity at the specified time.
@@ -212,5 +210,3 @@ event.functionName = "test";
 event.time = 0.5;
 clip.addEvent(event);
 ```
-
-<Playground href="/embed/animation-event" />

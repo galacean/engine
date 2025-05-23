@@ -20,13 +20,13 @@ flowchart LR
 
 On the **[Home Page](/en/docs/interface/intro/#%E9%A6%96%E9%A1%B5)** click **Create Project**, then in **[Project Settings](/en/docs/interface/sidebar/#project-settings)** select the physics backend as `WebXR`.
 
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*n0b_Sa89AKoAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*n0b_Sa89AKoAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom:"50%"}} />
 
 ### Add XR Node
 
 In the **[Hierarchy Panel](/en/docs/interface/hierarchy/)** add an XR node.
 
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*qGeqSa-gx8EAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*qGeqSa-gx8EAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom:"50%"}} />
 
 > Adding an XR node will automatically create and select `origin` and `camera`, so there should be no other `Camera` components in the scene unless intentionally added.
 
@@ -36,7 +36,7 @@ In the **[Hierarchy Panel](/en/docs/interface/hierarchy/)** add an XR node.
 
 If you have followed the [Debug XR Project](/en/docs/xr/quickStart/debug/) requirements using Chrome and the [Immersive Web Emulator](https://chromewebstore.google.com/detail/immersive-web-emulator/cgffilbpcibhmcfbgggfhfolhkfbhmik) plugin, you can preview directly.
 
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*aiw2Tq994REAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*aiw2Tq994REAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom:"50%"}} />
 
 ### XR Capabilities
 
@@ -51,7 +51,7 @@ Add the `XR Anchor Manage` component to any active Entity to add anchor tracking
 | Anchor List | List of tracked anchors, determined by Position and RotationQuaternion in real space |
 | Prefab      | If a prefab is set, it will be instantiated and attached to the tracked anchor when the anchor is tracked |
 
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*QJgzSasSHmQAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*QJgzSasSHmQAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom:"50%"}} />
 
 #### Image Tracking
 
@@ -62,7 +62,7 @@ Add the `XR Image Manage` component to any active Entity to add image tracking c
 | Image List | List of tracked images, add `ReferenceImageAssets` to determine the tracked image information |
 | Prefab     | If a prefab is set, it will be instantiated and attached to the tracked anchor when the anchor is tracked |
 
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*QJgzSasSHmQAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*QJgzSasSHmQAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom:"50%"}} />
 
 Among them, the tracked image is an asset in the editor. You can upload the tracked image by right-clicking on the blank space of the **[Asset Panel](/en/docs/assets/interface/)** → **Upload** → **XRReferenceImage** → **select the corresponding image**.
 
@@ -82,7 +82,7 @@ Add the `XR Plane Manage` component to any active Entity to enable plane trackin
 | Detection Mode  | The type of plane detection, including `None`, `Horizontal`, `Vertical`, `EveryThing`. It can determine the type of plane to be tracked. The default is `EveryThing`, but in `WebXR`, it usually detects horizontal planes |
 | Prefab          | If a prefab is set, the prefab will be instantiated and attached to the tracked plane when the plane is tracked |
 
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*10GkTo4k-CcAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*10GkTo4k-CcAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom:"50%"}} />
 
 ### Note
 
@@ -106,9 +106,3 @@ engine.xrManager.sessionManager.isSupportedMode(xrMode).then(
   }
 );
 ```
-
-## Script Development
-
-Before entering pure code development, please first understand some [XR Managers](/en/docs/xr/system/manager/) content. Below is the simplest example to enable AR interaction:
-
-<playground src="xr-ar-simple.ts"></playground>

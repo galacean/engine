@@ -53,9 +53,7 @@ texture.setImageSource(video);
 
 > `setImageSource` can only synchronize the data of that frame, but the video changes every frame. If you need the texture to change synchronously, you need to execute it in the script's onUpdate hook.
 
-For scenarios where the texture content needs to be frequently updated, such as videos, you need to disable mipmap and set the texture usage to Dynamic when creating the texture to achieve better performance. The sample code is as follows:
-
-<Playground href="/embed/benchmark-video" />
+For scenarios where the texture content needs to be frequently updated, such as videos, you need to disable mipmap and set the texture usage to Dynamic when creating the texture to achieve better performance. 
 
 ### setPixelBuffer
 

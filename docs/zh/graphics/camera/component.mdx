@@ -10,11 +10,11 @@ label: Graphics/Camera
 
 首先需要将相机组件挂载到在场景中已激活的 [Entity](/docs/core/entity) 上，编辑器项目通常已经自带了相机组件，当然我们也可以自己手动添加。
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/c6a1a344-630c-40c6-88ef-abb447cfd183/image-20231009114711623.png" alt="image-20231009114711623" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/c6a1a344-630c-40c6-88ef-abb447cfd183/image-20231009114711623.png" alt="image-20231009114711623" style={{zoom:"50%"}} />
 
 添加完毕后，就可以在检查器里可以查看相机属性，并且左下角的相机预览可以方便地查看项目实际运行时的相机效果：
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/d60e9f91-137e-4148-b85e-7458007333c3/image-20240718211520816.png" alt="image-20240718211520816" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/d60e9f91-137e-4148-b85e-7458007333c3/image-20240718211520816.png" alt="image-20240718211520816" style={{zoom:"50%"}} />
 
 您也可以在脚本中通过如下代码为 [Entity](/docs/core/entity) 挂载相机组件：
 
@@ -29,7 +29,7 @@ const camera = entity.addComponent(Camera);
 
 通过修改相机组件的属性可以定制渲染效果。下方是相机组件在 **[检查器面板](/docs/interface/inspector)** 暴露的属性设置。
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/af60182b-a31a-4509-a0d4-3eb4cb737087/image-20240718211645854.png" alt="image-20240718211645854" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/af60182b-a31a-4509-a0d4-3eb4cb737087/image-20240718211645854.png" alt="image-20240718211645854" style={{zoom:"50%"}} />
 
 也可以通过脚本去获取相机组件并设置相应的属性。
 
@@ -90,19 +90,13 @@ camera.antiAliasing = AntiAliasing.FXAA;
 
 相机组件可以通过设置 `cullingMask` 选择性地渲染场景内的渲染组件
 
-<playground src="culling-mask.ts"></playground>
-
 ### 渲染目标
 
 相机组件可以通过设置 `renderTarget` 将渲染结果渲染到不同的目标上。
 
-<playground src="multi-camera.ts"></playground>
-
 ### 视锥剔除
 
 `enableFrustumCulling` 属性默认是开启的，因为对于三维世界来说，“看不见的东西就不需要渲染”是个很自然的逻辑，属于最基本的性能优化。关闭视锥剔除意味着关闭此项优化。如果你想保留此项优化，而只想让某个节点始终渲染，可以把节点的渲染器的包围盒设置成无限大。
-
-<playground src="renderer-cull.ts"></playground>
 
 ## 方法
 
@@ -140,9 +134,7 @@ const cameras = scene._componentsManager._activeCameras;
 
 ### Shader 替换
 
-借助 `setReplacementShader` 全局替换 Shader 的能力可以观测特定的渲染效果：
-
-<playground src="shader-replacement.ts"></playground>
+借助 `setReplacementShader` 全局替换 Shader 的能力可以观测特定的渲染效果。
 
 ### 空间转换
 
