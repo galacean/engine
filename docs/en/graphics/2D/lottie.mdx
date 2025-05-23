@@ -74,8 +74,6 @@ await lottie.play();
 
 The editor provides an animation slicing function, allowing you to cut the entire segment provided by the designer into multiple segments. Each segment needs to define three fields: segment name, start frame, and end frame.
 
-<Playground href="/embed/lottie-clips" />
-
 <Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*skjbSZjSpYoAAAAAAAAAAAAADjCHAQ/original" />
 
 This operation will add the `lolitaAnimations` field in the Lottie protocol to implement animation slicing:
@@ -129,8 +127,6 @@ engine.resourceManager.load({
 });
 ```
 
-<Playground href="/embed/lottie" />
-
 ### 3D Transform
 
 In business scenarios, there is often a need for 3D transformations, such as entrance animations for pop-ups. For example, with rotation, traditional lottie-web solutions can only rotate along the **Z-axis** (i.e., perpendicular to the screen's normal direction). Even if we achieve rotation along the **X-axis** or **Y-axis** in AE, it will be ignored when played with lottie-web.
@@ -138,8 +134,6 @@ In business scenarios, there is often a need for 3D transformations, such as ent
 <Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*qVYxTaEdVBgAAAAAAAAAAAAAARQnAQ" alt="3D rotation" style={{zoom: "50%"}} />
 
 Thanks to the unified architecture of the Galacean Engine 2D/3D engine, 3D transformation functions can be easily implemented.
-
-<Playground href="/embed/lottie-3d-rotation" />
 
 ### Version Dependencies
 | Engine Version |  Lottie Version |

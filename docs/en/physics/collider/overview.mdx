@@ -1,5 +1,5 @@
 ---
-order: 1
+order: 0
 title: Collider
 type: Physics
 label: Physics
@@ -44,6 +44,9 @@ Currently, four types of `collision shapes` are supported, but the support varie
    - `Collision shapes` can be set with local offsets and rotations relative to the entity
 
 3. **Collision/Trigger Events**: Colliders can generate collision and trigger events when interacting with other colliders. For detailed information on these events and how to handle them, please refer to the [Collision Events](/docs/physics/collider/event) documentation.
+
+4. **Collision Layer**: Each collider can be assigned to a collision layer (Layer0 to Layer31), which is used to control collision relationships between different objects. By setting collision layers, you can flexibly control which objects can collide with each other and which cannot. For more information, please refer to the [Collision Layer](/docs/physics/collider/collisionLayer) documentation.
+
 ## Best Practices
 
 1. **Reasonable Use of Shapes**
@@ -99,3 +102,4 @@ const characterController = entity.addComponent(CharacterController);
 - [Static Collider Documentation](/docs/physics/collider/staticCollider)
 - [Character Controller Documentation](/docs/physics/collider/characterController)
 - [Collision Events Documentation](/docs/physics/collider/event)
+- [Collision Layer Documentation](/docs/physics/collider/collisionLayer)

@@ -31,5 +31,8 @@
   },
   "postProcess": {
     "title": "后处理"
+  },
+  "quality": {
+    "title": "图形质量"
   }
 }

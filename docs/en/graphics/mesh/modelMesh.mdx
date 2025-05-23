@@ -8,8 +8,6 @@ label: Graphics/Mesh
 
 [ModelMesh](/apis/core/#ModelMesh) is a mesh rendering data class used to describe the geometric outline, mainly including vertex data (such as position, normal, and UV), indices, and blend shapes. It can not only be created and exported in glTF format using modeling software for engine parsing and restoration but also be conveniently written directly into data creation using scripts.
 
-<Playground href="/embed/obj-loader" />
-
 ## Code Example
 
 ```typescript
@@ -134,8 +132,6 @@ If you need to continuously modify the `ModelMesh` data, set the `releaseData` p
 modelMesh.uploadData(false);
 ```
 
-<Playground href="/embed/model-mesh" />
-
 ### **Reading Advanced Data**
 
 To make the vertex data in `ModelMesh` readable, pay attention to:
@@ -171,12 +167,6 @@ const result = mesh.getPositions();
 ## Adding BlendShape Animation in Script
 
 `BlendShape` is commonly used to create highly detailed animations, such as facial expressions. The principle is quite simple, mainly blending the mesh data of base shape and target shape with weights to achieve smooth transition between shapes.
-
-**glTF Import BlendShape Animation Example:**
-<Playground href="/embed/skeleton-animation-blendShape" />
-
-**Custom BlendShape Animation in Script Example:**
-<Playground href="/embed/skeleton-animation-customBlendShape" />
 
 ### Detailed Steps
 
