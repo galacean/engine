@@ -7,63 +7,103 @@ title: Post Process Effects
 
 [API](/apis/core/#BloomEffect)
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/99928a81-72c2-45f3-90ba-b51117e01715/image-20240719122439611.png" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/99928a81-72c2-45f3-90ba-b51117e01715/image-20240719122439611.png" />
 
-- **Down Scale**: Controls the starting resolution that this effect begins processing, you can choose `Half`, `Quarter`.
+The Bloom effect adds a halo-like quality to images.
 
-<figure>
-	<img src="https://gw.alipayobjects.com/zos/OasisHub/32712777-1bb3-42f9-b17b-d4eecf9eea19/image-20240723172204618.png" style="zoom:50%;" />
-	<figcaption style="text-align:center; color: #889096;font-size:14px">`Half`(left), `Quarter`(right)</figcaption>
-</figure>
+### Properties
 
-- **Threshold**: Filters out pixels under this level of brightness. Value is in gamma-space.
+- **Down Scale**: Controls the starting resolution of the bloom post-processing. The default is `Half`, meaning the initial downsampled resolution is half of the canvas. If precision is not a major concern, it can be switched to `Quarter` to save resources, reducing it to 1/4 of the canvas.
 
-<figure>
-	<img src="https://gw.alipayobjects.com/zos/OasisHub/739acae8-991f-4b9a-af76-7f6c695156ca/image-20240723180139089.png" style="zoom:50%;" />
-	<figcaption style="text-align:center; color: #889096;font-size:14px">value `0.9`(left), `0.5`(right)</figcaption>
-</figure>
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/b537d126-863e-4387-b6a6-7c4f042029ca/image-20240726114458404.png"
+  leftText="Half"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/b62624a6-a4f2-4c9d-964c-7742f9970c8f/image-20240726114511958.png"
+  rightText="Quarter"
+/>
 
-- **Scatter**: Set the radius of the bloom effect.
+- **Threshold**: The bloom effect filters out pixels below this brightness level. The lower the value, the larger the Bloom area. This value is in gamma space, with a default of 0.9.
 
-<figure> 
-	<img src="https://gw.alipayobjects.com/zos/OasisHub/a8cd9144-7182-4ee9-a6a4-aef279fb3799/image-20240723180228646.png" style="zoom:50%;" /> 
-	<figcaption style="text-align:center; color: #889096;font-size:14px">value `0.3`(left), `0.8`(right)</figcaption> 
-</figure>
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/47347ffb-b6c3-43f8-8008-32041c1d1d3c/image-20240726114601564.png"
+  leftText="0.9"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/ee71fee4-ab78-4848-ac46-79587e107df4/image-20240726114616577.png"
+  rightText="0.5"
+/>
 
-- **Intensity**: Strength of the bloom effect.
+- **Scatter**: Sets the diffusion range of the bloom effect, default is 0.7.
 
-<figure>
-	<img src="https://gw.alipayobjects.com/zos/OasisHub/1aaa6eaa-0841-4427-b1ea-afb7c74308d4/image-20240723180255363.png" style="zoom:50%;" />
-	<figcaption style="text-align:center; color: #889096;font-size:14px">value `1`(left), `2`(right)</figcaption>
-</figure>
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/38833509-dac2-4a97-bf55-6c1d85ec17c6/image-20240726115106399.png"
+  leftText="0.3"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/352d7efb-3c61-4cef-bc7f-7405faa7b121/image-20240726115129010.png"
+  rightText="0.8"
+/>
 
-- **Tint**: The tint of the bloom effect.
+- **Intensity**: The strength of the bloom effect.
 
-<figure>
-	<img src="https://gw.alipayobjects.com/zos/OasisHub/95c85eea-7cae-4c0b-9049-568d6da0259b/image-20240723180322584.png" style="zoom:50%;" />
-	<figcaption style="text-align:center; color: #889096;font-size:14px">value `(255, 255, 255)`(left), `(255, 0, 0)`(right)</figcaption>
-</figure>
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/8555a001-d1b6-4a2c-8687-ad322e841071/image-20240726115441141.png"
+  leftText="1"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/8391bd7e-feeb-4351-b65e-9c1352bfb032/image-20240726115350389.png"
+  rightText="2"
+/>
 
-- **Dirt Texture**: Dirtiness texture to add smudges or dust to the bloom effect.
+- **Tint**: The tint color for the bloom effect.
 
-<figure>
-	<img src="https://gw.alipayobjects.com/zos/OasisHub/280ada8b-d007-4f4a-908f-62773d625c5a/image-20240723180356801.png" style="zoom:50%;" />
-	<figcaption style="text-align:center; color: #889096;font-size:14px">`OFF`(left), `ON`(right)</figcaption>
-</figure>
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/ae9ce1a2-9075-4739-9162-c0e5ff6b8ad1/image-20240726115519606.png"
+  leftText="White"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/796ec758-bf4e-45df-8050-67f88ad174b8/image-20240726115534397.png"
+  rightText="Red"
+/>
 
-- **Dirt Intensity**: The strength of the dirt texture.
+- **Dirt Texture**: Adds smudges or dust to the bloom effect using a dirt texture.
 
-<figure> 
-	<img src="https://gw.alipayobjects.com/zos/OasisHub/85e9b9b7-3752-4fec-bbee-82fc96e76977/image-20240723180441902.png" style="zoom:50%;" /> 
-	<figcaption style="text-align:center; color: #889096;font-size:14px">value `1`(left), `5`(right)</figcaption> 
-</figure>
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/8a9b9fdb-191e-4ec9-bb38-ab0877fbde68/image-20240726115722323.png"
+  leftText="Off"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/a711bdd0-95a0-4f88-85fc-8f533569635d/image-20240726115736031.png"
+  rightText="On"
+/>
+
+- **Dirt Intensity**: The intensity of the dirt texture.
+
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/a711bdd0-95a0-4f88-85fc-8f533569635d/image-20240726115736031.png"
+  leftText="1"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/451dff04-fc7b-4e40-9a3c-76dce3ff81c8/image-20240726115803813.png"
+  rightText="5"
+/>
 
 ## Tonemapping
 
 [API](/apis/core/#TonemappingEffect)
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/d326f3fb-0d04-493c-8714-93cd4c5924ae/image-20240719122505552.png" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/d326f3fb-0d04-493c-8714-93cd4c5924ae/image-20240719122505552.png" />
 
-- **Mode**: Tone mapping algorithm. You can choose `Neutral` and `ACES`. `Netural` mode is particularly suitable for situations where only range remapping is required with minimal impact on hue and saturation; `ACES` mode uses the ACES reference color space of movies, which can produce film-like contrast effects, but the performance consumption is large.
+Tonemapping remaps the HDR values of an image, improving the overall contrast and color saturation.
 
-<figure> <img src="https://gw.alipayobjects.com/zos/OasisHub/83184ba2-9913-46d6-821d-e8ac6afec542/image-20240723180530944.png" style="zoom:50%;" /> <figcaption style="text-align:center; color: #889096;font-size:14px">`OFF`(left), `Netual`(center), `ACES`(right)</figcaption> </figure>
+<Callout type="positive">
+  Tonemapping is generally used after enabling [HDR mode on the camera](/docs/graphics/postProcess/postProcess/#2相机开关).
+</Callout>
+
+For example, enabling ACES tonemapping in the image below increases the dynamic range in sun-exposed areas, revealing more details:
+
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/8ec8f8e0-0054-48c9-aeb1-146b745ac996/image-20240726114047059.png"
+  leftText="Tonemapping Off"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/9bbb75f2-8ed2-4448-930f-960da82ed298/image-20240726114242977.png"
+  rightText="Tonemapping On"
+/>
+
+### Properties
+
+- **Mode**: Tonemapping algorithm. You can choose between `Neutral` and `ACES`. The `Neutral` mode is particularly suitable for situations requiring only range remapping with minimal impact on tone and saturation. The `ACES` mode uses the cinematic ACES reference color space, which can produce film-like contrast effects but is more consuming in performance.
+
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/8eaed6b4-ceb6-4e05-927e-eb02b1f76aaa/image-20240726114338413.png"
+  leftText="Netural"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/9bbb75f2-8ed2-4448-930f-960da82ed298/image-20240726114242977.png"
+  rightText="ACES"
+/>

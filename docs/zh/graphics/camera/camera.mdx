@@ -14,7 +14,7 @@ label: Graphics/Camera
 
 透视投影符合我们的近大远小模型，可以看一下透视模型示意图：
 
-<img src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*isMHSpe21ZMAAAAAAAAAAAAAARQnAQ" alt="image.png" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*isMHSpe21ZMAAAAAAAAAAAAAARQnAQ" alt="image.png" style={{zoom:"50%"}} />
 
 如上图所示，近裁剪平面（[nearClipPlane](/apis/core/#Camera-nearClipPlane)），远裁剪平面（[farClipPlane](/apis/core/#Camera-farClipPlane)）和 视角（[fieldOfView](/apis/core/#Camera-fieldOfView)） 会形成一个视椎体 ([_View Frustum_](https://en.wikipedia.org/wiki/Viewing_frustum))。在视椎体内部的物体是会被投影到摄像机里的，也就是会渲染在画布上，而视椎体外的物体则会被裁剪。
 
@@ -22,7 +22,7 @@ label: Graphics/Camera
 
 正交投影就是可视区近处和远处看到的物体是等大小的。由正交投影模型产生的可视区称为盒状可视区，盒状可视区模型如下：
 
-<img src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*KEuGSqX-vXsAAAAAAAAAAAAAARQnAQ" alt="image.png" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*KEuGSqX-vXsAAAAAAAAAAAAAARQnAQ" alt="image.png" style={{zoom:"50%"}} />
 
 如上图所示，有 top、bottom、left 和 right，Galacean 对正交属性做了一些简化，更符合开发者的使用习惯，只有 [orthographicSize](/apis/core/#Camera-orthographicSize)。下面是针对各项属性和 [orthographicSize](/apis/core/#Camera-orthographicSize) 的关系
 

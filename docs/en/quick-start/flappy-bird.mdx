@@ -12,7 +12,7 @@ label: Basics/GettingStarted
 
 Flappy Bird is a 2D project. The 2D template provided on the editor's homepage is implemented step by step according to this document. Let's start by creating a `2D Project` using the editor's `New Project` feature. (If you encounter any issues, refer to **Home** -> **Templates** -> **Pixel Bird**)
 
-<img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*tzD2TKk9f9gAAAAAAAAAAAAADleLAQ/original" alt="image-20231007170002181" />
+<Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*tzD2TKk9f9gAAAAAAAAAAAAADleLAQ/original" alt="image-20231007170002181" />
 
 ## Prepare Resources
 
@@ -24,25 +24,25 @@ Flappy Bird relies on a set of images. You can download the image package to you
 - Ground, pipes
 - Game restart button
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/154a2280-92d5-465e-8501-4ecc3f01c9d1/image-20231007170002181.png" alt="image-20231007170002181" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/154a2280-92d5-465e-8501-4ecc3f01c9d1/image-20231007170002181.png" alt="image-20231007170002181" style={{zoom:"50%"}} />
 
 ### Upload Resources
 
-Go back to the scene editor, click the upload button on the resource panel <img src="https://gw.alipayobjects.com/zos/OasisHub/07b876d3-462b-4a06-a2da-ce68d2932034/image-20231007145111353.png" alt="image-20231007145111353" style="zoom:50%;" />, and select `Sprite`. This will open the file viewer of your operating system. Choose all the images from the FlappyBird directory. After uploading, as shown in the image below, the editor creates a [Texture](/en/docs/graphics-texture) resource and a [Sprite](/en/docs/graphics/2D/sprite) resource for each image (Sprites are distinguished from Texture resources by a gray rounded rectangle background). In the following steps, we will only focus on Sprite resources.
+Go back to the scene editor, click the upload button on the resource panel <img src="https://gw.alipayobjects.com/zos/OasisHub/07b876d3-462b-4a06-a2da-ce68d2932034/image-20231007145111353.png" alt="image-20231007145111353" />, and select `Sprite`. This will open the file viewer of your operating system. Choose all the images from the FlappyBird directory. After uploading, as shown in the image below, the editor creates a [Texture](/en/docs/graphics-texture) resource and a [Sprite](/en/docs/graphics/2D/sprite) resource for each image (Sprites are distinguished from Texture resources by a gray rounded rectangle background). In the following steps, we will only focus on Sprite resources.
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/7f13679f-de18-4621-81b1-5834b5d00bd7/image-20231007145451371.png" alt="image-20231007145451371" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/7f13679f-de18-4621-81b1-5834b5d00bd7/image-20231007145451371.png" alt="image-20231007145451371" style={{zoom:"50%"}} />
 
 At this point, we have uploaded the resources. However, if you have a tendency for tidiness, seeing these scattered resources may trigger your urge to organize them. Let's create a folder and rename it to _Sprites_. Then, select all the recently uploaded resources and drag them into the _Sprites_ directory. This not only makes the resource panel more organized but also prepares us for creating a [Sprite Atlas](/en/docs/graphics/2D/spriteAtlas) resource in the next step.
 
 ### Create Sprite Atlas
 
-To achieve better runtime performance, we choose to pack these Sprite resources into an Atlas resource. Click the <img src="https://gw.alipayobjects.com/zos/OasisHub/16aa674c-1bee-49d7-a516-21c591a4ce36/image-20231007152415467.png" alt="image-20231007152415467" style="zoom:50%;" /> button and select `Sprite Atlas`. After creating it, select the Sprite Atlas and use the `Add to List` button on the **[Inspector Panel](/en/docs/interface/inspector)** to add all Sprite resources to the list.
+To achieve better runtime performance, we choose to pack these Sprite resources into an Atlas resource. Click the <img src="https://gw.alipayobjects.com/zos/OasisHub/16aa674c-1bee-49d7-a516-21c591a4ce36/image-20231007152415467.png" alt="image-20231007152415467" /> button and select `Sprite Atlas`. After creating it, select the Sprite Atlas and use the `Add to List` button on the **[Inspector Panel](/en/docs/interface/inspector)** to add all Sprite resources to the list.
 
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*1YsTTZdjmm4AAAAAAAAAAAAADhuCAQ/original" alt="image-20231007171348757" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*1YsTTZdjmm4AAAAAAAAAAAAADhuCAQ/original" alt="image-20231007171348757" style={{zoom:"50%"}} />
 
 点击 `Pack and Preview` button to see Atlas creation success:
 
-<img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*Xc0ZR71aXdMAAAAAAAAAAAAADleLAQ/original" alt="image-20231007153448666" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*Xc0ZR71aXdMAAAAAAAAAAAAADleLAQ/original" alt="image-20231007153448666" style={{zoom:"50%"}} />
 
 Congratulations, you have completed the resource upload and management operations up to this point. Next, we will proceed to building the game scene.
 
@@ -56,7 +56,7 @@ Select the `Camera` node in the hierarchy panel to preview how the scene will re
 
 > If you find the screen too large or too small, you can adjust the `Orthographic Size` of the orthographic camera to scale it.
 
-<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*XRceR5mdqLgAAAAAAAAAAAAADhuCAQ/original" alt="image-20231007162550749" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*XRceR5mdqLgAAAAAAAAAAAAADhuCAQ/original" alt="image-20231007162550749" style={{zoom:"50%"}} />
 
 ### Add the Bird
 
@@ -66,19 +66,19 @@ Similarly, drag the Sprite of the bird (`bird3-spr.png`) into the scene. The bir
 
 As the game progresses, pipes will repeatedly appear on the screen in pairs of upper and lower pipes. Here's a little trick: you can set the `Scale` value of the upper pipe to `-1` to elegantly achieve flipping.
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/c4e2cf84-3834-4178-86d0-3ad9faa7bd28/image-20231007163240028.png" alt="image-20231007163240028" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/c4e2cf84-3834-4178-86d0-3ad9faa7bd28/image-20231007163240028.png" alt="image-20231007163240028" style={{zoom:"50%"}} />
 
 During the game, the height at which pipes appear is random, but the assets we have on hand have fixed heights. No worries, just adjust the `Sprite Render Mode` to stretch without loss, allowing us to stretch certain assets without distortion.
 
-<img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*ZDSZTaXK-RIAAAAAAAAAAAAADleLAQ/original"/>
+<Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*ZDSZTaXK-RIAAAAAAAAAAAAADleLAQ/original"/>
 
 Here's a little trick: setting the `pivot` property of the referenced `sprite` asset to `bottom` can avoid re-anchoring the position every time you adjust the height.
 
-<img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*MQqKTK0BAFAAAAAAAAAAAAAADleLAQ/original" alt="image-20231007163240028" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*MQqKTK0BAFAAAAAAAAAAAAAADleLAQ/original" alt="image-20231007163240028" style={{zoom:"50%"}} />
 
 Considering that pipes will repeat, we can group a pair of pipes into a `PipeMother` group in the node tree and place it under the `Pipe` node. This way, by binding a script component to the Pipe later, we can access `PipeMother` to achieve pipe reuse.
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/ef20415a-aa57-4236-b29e-e4df88f7e747/image-20231007163400680.png" alt="image-20231007163400680" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/ef20415a-aa57-4236-b29e-e4df88f7e747/image-20231007163400680.png" alt="image-20231007163400680" style={{zoom:"50%"}} />
 
 ### Add the Ground
 
@@ -90,24 +90,23 @@ Here are the steps:
 
 2. In the **[Inspector Panel](/en/docs/interface/inspector)**, add a `Sprite Renderer` component by clicking the `Add Component` button, set the `SpriteRenderer DrawMode Info` property to `Tiled`, and set the width to `8.14`.
 
-```markdown
-   <img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*pDBbTp6a78oAAAAAAAAAAAAADleLAQ/original" alt="image-20231007173243980" style="zoom:50%;" />
+   <Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*pDBbTp6a78oAAAAAAAAAAAAADleLAQ/original" alt="image-20231007173243980" style={{zoom:"50%"}} />
 
 3. At this point, we have a fully tiled ground. Next, we can make it move by creating animation clips! See [Animation Clip Editing](/en/docs/animation/clip) for details.
 
-   <img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*3d2GSINL_8IAAAAAAAAAAAAADleLAQ/original" />
+   <Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*3d2GSINL_8IAAAAAAAAAAAAADleLAQ/original" />
 
 ### Adding a Mask
 
 After adding the ground, we noticed that the left and right sides seem to be exposed! In such cases, you just need to add a mask to the sprite renderer. See [Sprite Mask Component](/en/docs/graphics/2D/spriteMask) for details.
 
-   <img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*d_ZBS6zxOjQAAAAAAAAAAAAADleLAQ/original" />
+   <Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*d_ZBS6zxOjQAAAAAAAAAAAAADleLAQ/original" />
 
 ### Adding GUI
 
 The GUI includes score display and restart button. Drag two sprites, one for the score (`0.png`) and the other for the restart button (`restart.png`), into the scene and place them under a newly created `GUI` node.
 
-<img src="https://gw.alipayobjects.com/zos/OasisHub/2f443e5f-1523-4341-8f10-4c85c421fb50/image-20231007180819265.png" alt="image-20231007180819265" style="zoom:50%;" />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/2f443e5f-1523-4341-8f10-4c85c421fb50/image-20231007180819265.png" alt="image-20231007180819265" style={{zoom:"50%"}} />
 
 With this, the interface is set up! Take a look at the complete structure of the node tree on the left. A good tree structure is important for managing complex scenes.
 
@@ -124,7 +123,7 @@ In this project, we need to add physical feedback when **the bird touches the pi
 
 Colliders describe the pose and shape of objects, so when adding colliders, they should closely match the actual size of the objects being displayed. See [Colliders](/en/docs/physics-collider) for more information on using colliders. Here, we demonstrate adding a collider to the bird.
 
-<img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*_szwQL3V1AQAAAAAAAAAAAAADleLAQ/original" />
+<Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*_szwQL3V1AQAAAAAAAAAAAAADleLAQ/original" />
 
 #### Handling Collision Callbacks
 
@@ -259,7 +258,7 @@ timeline
 
 After disassembling, it can be found that if we simply classify animations as idle animation, flying animation, and falling animation, considering that when idle, we need to play sprite switching and vertical easing animations, and when flying, we also need to play sprite switching and upward falling animations. The overlapping parts not only increase the workload during animation editing but also require additional consideration of whether the sprite switching animations between these two animations are natural. Therefore, we further atomize each  `AnimatorState` , split the parts of sprite switching and coordinate changes, and set them in different `Layers` separately. Different `Layers` are independent of each other and can play their animations simultaneously, set their overlay modes and weights. For more details, refer to the [animation component](/en/docs/animation/system/).
 
-<img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*1cXjQIJAgZoAAAAAAAAAAAAADleLAQ/original" alt="image-20231007180819265" style="zoom:50%;" />
+<Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*1cXjQIJAgZoAAAAAAAAAAAAADleLAQ/original" alt="image-20231007180819265" style={{zoom:"50%"}} />
 
 Let each `Layer` control its own  `AnimatorState`  separately for clearer logic.
 
@@ -348,7 +347,7 @@ class Bird extends Script {
 
 Since animation segment editing can only edit absolute coordinate or rotation changes, for example, each flight animation, its rotation change is absolute, but the coordinates are relative. Therefore, we can implement this in the `StateMachineScript`, using the `Fly` animation as an example:
 
-<img src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*T_stQakEWT0AAAAAAAAAAAAADleLAQ/original"/>
+<Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*T_stQakEWT0AAAAAAAAAAAAADleLAQ/original"/>
 
 Then open this script and add the free fall coordinate changes:
 
