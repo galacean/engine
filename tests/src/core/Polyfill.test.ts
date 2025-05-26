@@ -77,13 +77,11 @@ describe("Polyfill", () => {
       delete TextMetrics.prototype.actualBoundingBoxLeft;
       // @ts-ignore
       delete TextMetrics.prototype.actualBoundingBoxRight;
-    }
 
-    expect("actualBoundingBoxLeft" in TextMetrics.prototype).to.be.false;
-    expect("actualBoundingBoxRight" in TextMetrics.prototype).to.be.false;
+      expect("actualBoundingBoxLeft" in TextMetrics.prototype).to.be.false;
+      expect("actualBoundingBoxRight" in TextMetrics.prototype).to.be.false;
 
-    import("@galacean/engine-core").then(() => {
-      setTimeout(() => {
+      import("@galacean/engine-core").then(() => {
         expect("actualBoundingBoxLeft" in TextMetrics.prototype).to.be.true;
         expect("actualBoundingBoxRight" in TextMetrics.prototype).to.be.true;
 
@@ -98,7 +96,7 @@ describe("Polyfill", () => {
 
         expect(mockTextMetrics.actualBoundingBoxLeft).to.equal(0);
         expect(mockTextMetrics.actualBoundingBoxRight).to.equal(100);
-      }, 10);
-    });
+      });
+    }
   });
 });
