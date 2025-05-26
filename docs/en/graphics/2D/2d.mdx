@@ -6,25 +6,47 @@ group: 2D
 label: Graphics/2D
 ---
 
-Galacean is a 3D/2D interactive solution. You can quickly experience 2D interactive development by **clicking Template** -> **Flappy Bird** in the **Menu View** on the **Editor Homepage**.
+## Creation
+
+Galacean offers two ways to quickly start 2D interactive development:
+
+### **Create via Template**  
+1. On the **Menu View** side of the editor homepage, click **Templates** → **Flappy Bird**.  
+2. Directly experience a complete 2D interactive sample project.  
 
 <Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*YYyxRZ2nyukAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom:"50%"}} />
 
-You can also create a blank 2D project by **clicking New Project** -> **2D Project** in the **Project View** on the **Editor Homepage**.
+### **Create a Blank Project**  
+1. On the **Project View** side of the editor homepage, click **New Project** → **2D Project**.  
+2. Generate basic 2D project configurations and structure.  
 
 <Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*R8_XTL8PX-UAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom:"50%"}} />
 
-In the editor, there is not much difference between 2D and 3D projects, except that the perspective switches from 3D to 2D, and the default camera is set to **orthographic**. In the **Hierarchy Interface**, you can **select a node and right-click** -> **2D Object** to quickly create a 2D child node.
-In a 2D project, you can attach a **Sprite Renderer** and set **Sprite Assets** to render images, use a **Text Renderer** to render 2D text, use **SpriteMask** to achieve masking effects for 2D elements, and use Lottie or Spine (2D skeletal animation) to display 2D effects. For performance optimization, you can also pack **sprites** into a **sprite atlas** to improve request and rendering performance.
+## Features
 
-Next, let's dive into the following topics:
+Newly created 2D projects come pre-configured with the following features:  
 
-- [Sprite](/en/docs/graphics/2D/sprite/)
-- [Sprite Renderer](/en/docs/graphics/2D/spriteRenderer/)
-- [Sprite Mask](/en/docs/graphics/2D/spriteMask/)
-- [Text Renderer](/en/docs/graphics/2D/text/)
-- [Sprite Atlas](/en/docs/graphics/2D/spriteAtlas/)
-- [Lottie](/en/docs/graphics/2D/lottie/)
-- [Spine](/en/docs/graphics/2D/spine/overview)
+| Configuration       | Description                                                                 |
+|---------------------|-----------------------------------------------------------------------------|
+| **Scene Settings**  | Displays 2D-specific scenes, disables unnecessary configurations like skybox and post-processing. |
+| **Resources**       | Removes built-in resources unused in 2D mode.                               |
+| **Camera Controls** | Sets the scene camera to operate in 2D mode.                                |
 
+<Callout type="info">The above settings can also be modified after project creation.</Callout>
 
+## 2D Development Toolchain
+
+Galacean provides a comprehensive 2D development toolchain:  
+
+### **Basic Rendering Assets & Components**  
+- [Sprite Assets](/docs/graphics/2D/sprite/): Define display results for Sprite Renderers and Sprite Masks.  
+- [Sprite Renderer](/docs/graphics/2D/spriteRenderer/): Renders images by binding sprite assets after attaching the component.  
+- [Text Renderer](/docs/graphics/2D/text/): Supports bitmap font rendering.  
+
+### **Advanced Effects**  
+- [Sprite Mask](/docs/graphics/2D/spriteMask/): Provides masking effects for sprites and text renderers.  
+- [Spine](/docs/graphics/2D/spine/overview): Professional 2D skeletal animation system for complex animations.  
+- [Lottie](/docs/graphics/2D/lottie/): Ideal for UI animations.  
+
+### **Performance Optimization**  
+- [Sprite Atlas](/docs/graphics/2D/spriteAtlas/): Combines scattered sprites into atlases to reduce Draw Calls and resource requests.  

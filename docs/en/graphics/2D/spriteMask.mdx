@@ -6,71 +6,57 @@ group: 2D
 label: Graphics/2D
 ---
 
-The Sprite Mask component is used to apply masking effects to [Sprite Renderer](/en/docs/graphics/2D/spriteRenderer/) and [Text Renderer](/en/docs/graphics/2D/text/) in 3D/2D scenes.
+The **Sprite Mask** component is used to apply masking effects to [Sprite Renderers](/docs/graphics/2D/spriteRenderer/) and [Text Renderers](/docs/graphics/2D/text/) in 3D/2D scenes.
 
-Control the interaction with [Sprite](/en/docs/graphics/2D/sprite/) using parameters provided by [SpriteMask](/apis/core/#SpriteMask).
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*J1Q9T5biHWgAAAAAAAAAAAAAehuCAQ/original" alt="070C8B9F-14E2-4A9A-BFEC-4BC3F2BB564F" style={{zoom: "67%"}} />
 
-| Parameter       | Type   | Description                                                                                      |
-| :-------------- | :----- | :----------------------------------------------------------------------------------------------- |
-| influenceLayers | number | The mask layers affected by the current mask. Default is SpriteMaskLayer.Everything, meaning it affects all mask layers. |
-| alphaCutoff     | number | The lower limit of the effective alpha value for the current mask (range: 0~1). Pixels with alpha values less than alphaCutoff will be discarded. |
+| Parameter          | Type   | Description                                                                                             |
+| :----------------- | :----- | :------------------------------------------------------------------------------------------------------ |
+| sprite             | number | A reference to the sprite                                                                              |
+| alphaCutoff        | number | The lower limit of the effective alpha value (range: 0~1). Pixels with alpha values below this cutoff will be discarded |
+| influenceLayers    | number | The mask layer(s) affected by this mask. Defaults to **Everything**, meaning it affects all mask layers |
 
-[SpriteMaskLayer](/apis/core/#SpriteMaskLayer) declares the mask layers provided by the engine. There are 32 mask layers in total, named Layer0~Layer31. Mask layers are unrelated to rendering and are only used to help developers set how `SpriteMask` and `SpriteRenderer` interact. For a `SpriteMask` object to mask a `SpriteRenderer` object, their mask layers must intersect.
+<Callout type="warning">Currently, only sprite-based masks are supported to define the mask shape</Callout>
 
-The `influenceLayers` of `SpriteMask` indicates which mask layers the mask will affect for `SpriteRenderer`. The `maskLayer` of `SpriteRenderer` indicates which mask layers the sprite belongs to, as shown below:
+The hierarchical relationship between a **Sprite Mask** and its target components typically falls into three categories:
 
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/09abdf57-84b8-4aa9-b785-822f858fb4f9/070C8B9F-14E2-4A9A-BFEC-4BC3F2BB564F.png" alt="070C8B9F-14E2-4A9A-BFEC-4BC3F2BB564F" style={{zoom:"67%"}} />
+| influenceLayers     | maskLayer         | Takes Effect?                                                                                          |
+| :------------------ | :---------------- | :----------------------------------------------------------------------------------------------------- |
+| Layer0              | Layer0            | Equal → Takes effect                                                                                  |
+| Layer1, Layer2      | Layer2, Layer3    | Intersection exists → Takes effect                                                                    |
+| Layer4              | Layer5            | No intersection → Does not take effect                                                                |
 
-In the image above, the spriteMask affects sprites in `Layer1` and `Layer30`. spriteRenderer0 is in `Layer2`, so there is no intersection, and spriteRenderer0 does not interact with spriteMask. spriteRenderer1 is in `Layer1`, which intersects with the mask layers affected by spriteMask, so spriteRenderer1 interacts with spriteMask.
+<Callout type="info">[influenceLayers](/apis/core/#SpriteMask-influenceLayers): Layers affected by the sprite mask; [maskLayer](/apis/core/#SpriteRenderer-maskLayer): Mask layer of the target component</Callout>
+<Callout type="info">If the mask still has no effect after adjusting layers, it might be because the target component's mask type is still set to the default (None). Update its [SpriteMaskInteraction](/apis/core/#SpriteMaskInteraction) accordingly</Callout>
 
 ## Usage
 
-### Adding a Sprite Mask Component
+In the **[Hierarchy Panel](/docs/interface/hierarchy)**, **right-click** → **2D Object** → **Sprite Mask** to quickly create a node containing a Sprite Mask.
 
-When we need to mask a sprite, we first need to create an entity and add a sprite mask component, as shown below:
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*MnTWQ58Gr_QAAAAAAAAAAAAAehuCAQ/original" alt="070C8B9F-14E2-4A9A-BFEC-4BC3F2BB564F" style={{zoom: "67%"}} />
 
-<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*GYVBTbTvqU4AAAAAAAAAAAAADjCHAQ/original" />
-
-### Setting the Mask Area
-
-The sprite mask component uses an image to represent the mask area. We set the sprite resource through the component's `sprite` parameter, as shown below:
-
-<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*k5GsSYqQTKoAAAAAAAAAAAAADjCHAQ/original" />
-
-### Setting the Sprite's Mask Type
-
-After the above two steps, you may find that the mask still has no effect. This is because the current sprite's mask type is still the default (None). We set the `mask interaction` of the sprite in the scene to the inner mask type, as shown below:
-
-<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*GdxhSYLY4EIAAAAAAAAAAAAADjCHAQ/original" />
-
-### Setting alpha cutoff
-
-This parameter represents the lower limit of the effective `alpha` value for the current mask (range: `0~1`). In other words, any alpha value in the sprite's texture that is less than the alpha cutoff will be discarded (i.e., it will not be considered as a mask area). We can dynamically adjust the value of this property to see the actual effect, as shown below:
-
-<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*2CLjT7UTVa8AAAAAAAAAAAAADjCHAQ/original" />
-
-Similarly, in the script, we can use the following code to apply the sprite mask:
+You can use the Sprite Mask in scripts as follows:
 
 ```typescript
-// 创建一个遮罩实体
+// Create a mask entity
 const spriteEntity = rootEntity.createChild(`spriteMask`);
-// 给实体添加 SpriteMask 组件
+// Add the SpriteMask component to the entity
 const spriteMask = spriteEntity.addComponent(SpriteMask);
-// 通过 texture 创建 sprite 对象
+// Create a sprite object from a texture
 const sprite = new Sprite(engine, texture);
-// 设置 sprite
+// Assign the sprite
 spriteMask.sprite = sprite;
-// mask 的 sprite 中纹理 alpha 小于 0.5 的将被丢弃
+// Discard pixels with alpha < 0.5 in the mask's texture
 spriteMask.alphaCutoff = 0.5;
-// mask 对所有遮罩层的精灵都生效
+// Apply mask to all mask layers
 spriteMask.influenceLayers = SpriteMaskLayer.Everything;
-// mask 只对处于遮罩层 Layer0 的精灵有效
+// Apply mask only to Layer0
 spriteMask.influenceLayers = SpriteMaskLayer.Layer0;
-// mask 对处于遮罩层 Layer0 和 Layer1 的精灵有效
+// Apply mask to both Layer0 and Layer1
 spriteMask.influenceLayers = SpriteMaskLayer.Layer0 | SpriteMaskLayer.Layer1;
 
-// 设置遮罩类型
+// Set mask interaction type
 spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
-// 设置精灵处于哪个遮罩层
+// Assign the component to Layer0
 spriteRenderer.maskLayer = SpriteMaskLayer.Layer0;
 ```
