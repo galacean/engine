@@ -54,13 +54,6 @@ To make the text display more diverse, developers can upload their own font file
 
 ## Script Usage
 
-<Playground href="/embed/text-renderer" />
-
-1. Create a [TextRenderer](/apis/core/#TextRenderer) component to display text  
-2. Set the [Font](/apis/core/#Font) object through the font property  
-3. Set the text to be displayed through the text property  
-3. Set the font size through the fontSize property  
-4. Set the text color through the color property
 
 ```typescript
 import {
@@ -74,15 +67,15 @@ import {
 } from "@galacean/engine";
 
 const textEntity = rootEntity.createChild("text");
-// 给实体添加 TextRenderer 组件
+// 1. Create a TextRenderer component to display text  
 const textRenderer = textEntity.addComponent(TextRenderer);
-// 通过 font 设置 Font 对象
+// 2. Set the Font object through the font property  
 textRenderer.font = Font.createFromOS(engine, "Arial");
-// 通过 text 设置需要显示的文本
+// 3. Set the text to be displayed through the text property  
 textRenderer.text = "Galacean 会写字了！";
-// 通过 fontSize 设置字体大小
+// 4. Set the font size through the fontSize property  
 textRenderer.fontSize = 36;
-// 通过 color 设置文本颜色
+// 5. Set the text color through the color property
 textRenderer.color.set(1, 0, 0, 1);
 ```
 
@@ -158,10 +151,6 @@ textRenderer.fontStyle = FontStyle.Italic;
 textRenderer.fontStyle = FontStyle.Bold | FontStyle.Italic;
 ```
 
-### Multi-line Text
-
-<Playground href="/embed/text-wrap-alignment" />
-
 ### Custom Fonts
 
 [Font](/apis/core/#Font) is a font resource used to represent the font used by the text.
@@ -180,7 +169,4 @@ Currently supported formats: ttf/otf/woff
 const font = await engine.resourceManager.load({
   url: "https://lg-2fw0hhsc-1256786476.cos.ap-shanghai.myqcloud.com/Avelia.otf",
 });
-```
-
-<Playground href="/embed/text-renderer-font" />
 ```

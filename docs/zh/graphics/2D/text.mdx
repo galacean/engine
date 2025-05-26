@@ -54,14 +54,6 @@ label: Graphics/2D
 
 ## 脚本使用
 
-<Playground href="/embed/text-renderer" />
-
-1、创建 [TextRenderer](/apis/core/#TextRenderer) 组件显示文本  
-2、通过 font 设置 [Font](/apis/core/#Font) 对象  
-3、通过 text 设置需要显示的文本  
-3、通过 fontSize 设置字体大小  
-4、通过 color 设置文本颜色
-
 ```typescript
 import {
   Camera,
@@ -74,15 +66,15 @@ import {
 } from "@galacean/engine";
 
 const textEntity = rootEntity.createChild("text");
-// 给实体添加 TextRenderer 组件
+// 1、创建 TextRenderer 组件显示文本  
 const textRenderer = textEntity.addComponent(TextRenderer);
-// 通过 font 设置 Font 对象
+// 2、通过 font 设置 Font 对象  
 textRenderer.font = Font.createFromOS(engine, "Arial");
-// 通过 text 设置需要显示的文本
+// 3、通过 text 设置需要显示的文本  
 textRenderer.text = "Galacean 会写字了！";
-// 通过 fontSize 设置字体大小
+// 4、通过 fontSize 设置字体大小  
 textRenderer.fontSize = 36;
-// 通过 color 设置文本颜色
+// 5、通过 color 设置文本颜色
 textRenderer.color.set(1, 0, 0, 1);
 ```
 
@@ -158,10 +150,6 @@ textRenderer.fontStyle = FontStyle.Italic;
 textRenderer.fontStyle = FontStyle.Bold | FontStyle.Italic;
 ```
 
-### 多行文本
-
-<Playground href="/embed/text-wrap-alignment" />
-
 ### 自定义字体
 
 [Font](/apis/core/#Font) 是字体资源，用于表示文本使用的字体。
@@ -181,5 +169,3 @@ const font = await engine.resourceManager.load({
   url: "https://lg-2fw0hhsc-1256786476.cos.ap-shanghai.myqcloud.com/Avelia.otf",
 });
 ```
-
-<Playground href="/embed/text-renderer-font" />

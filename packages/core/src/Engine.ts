@@ -26,7 +26,6 @@ import { GLCapabilityType } from "./base/Constant";
 import { InputManager } from "./input";
 import { Material } from "./material/Material";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
-import { PhysicsScene } from "./physics/PhysicsScene";
 import { ColliderShape } from "./physics/shape/ColliderShape";
 import { PostProcessPass } from "./postProcess/PostProcessPass";
 import { PostProcessUberPass } from "./postProcess/PostProcessUberPass";
@@ -42,7 +41,6 @@ import { UIUtils } from "./ui/UIUtils";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
-import { FinalPass } from "./postProcess/FinalPass";
 
 ShaderPool.init();
 
@@ -574,10 +572,16 @@ export class Engine extends EventDispatcher {
           (camera: Camera) => {
             componentsManager.callCameraOnBeginRender(camera);
 
-            // Update post process manager
-            scene.postProcessManager._update(camera);
+            // `pixelViewport` width or height is `0` will cause internal render target create error and return can save performance
+            const { pixelViewport } = camera;
+            if (pixelViewport.width !== 0 || pixelViewport.height !== 0) {
+              Logger.warn("Camera pixelViewport width or height is 0.");
 
-            camera.render();
+              // Update post process manager
+              scene.postProcessManager._update(camera);
+              camera.render();
+            }
+
             componentsManager.callCameraOnEndRender(camera);
 
             // Temp solution for webgl implement bug

@@ -36,8 +36,6 @@ timeline
     ……
 ```
 
-<Playground href="/embed/input-log" />
-
 ### Touch Buttons
 
 Referring to the [W3C standard](https://www.w3.org/TR/uievents/#dom-mouseevent-button) and [Microsoft related documentation](https://learn.microsoft.com/en-us/dotnet/api/system.windows.input.mousebutton?view=windowsdesktop-6.0), Galacean defines touch buttons as follows:
@@ -54,9 +52,6 @@ Referring to the [W3C standard](https://www.w3.org/TR/uievents/#dom-mouseevent-b
 | [XButton4](/apis/core/#PointerButton-XButton4) | Extended button                                                  |
 | ……                                              | ……                                                               |
 
-Combining touch buttons can easily detect the behavior of touch points triggered in this frame:
-
-<Playground href="/embed/input-pointerButton" />
 
 ### Touch Callbacks
 
@@ -71,15 +66,10 @@ You only need to add touch callbacks to an Entity with a Collider component to e
 | [onPointerClick](/apis/core/#Script-onPointerClick) | Triggered once when the touch point is pressed and released within the Entity's collider range |
 | [onPointerDrag](/apis/core/#Script-onPointerDrag)   | Continuously triggered when the touch point is pressed within the Entity's collider range until the touch point is no longer pressed |
 
-> ⚠️ Touch callbacks **depend on the physics engine**. Please ensure the physics engine is initialized before using this feature.
+<Callout type="info">
+Touch callbacks **depend on the physics engine**. Please ensure the physics engine is initialized before using this feature.
+</Callout>
 
-Example:
-
-- The leftmost cube responds to Enter and Exit events, changing color when the mouse moves over it and when the mouse leaves.
-- The middle cube responds to Drag events, allowing you to drag the cube anywhere in space with the mouse.
-- The rightmost cube responds to Click events (first down, then up), changing color when the mouse clicks on it.
-
-<Playground href="/embed/input-pointer" />
 
 ### Raycasting
 
@@ -104,17 +94,13 @@ if (scene.physics.raycast(ray, 100, hitResult)) {
 }
 ```
 
-The following example provides a more intuitive understanding of this process. The main camera is equipped with auxiliary lines, and the side view camera can fully observe the process of the main camera's raycasting detecting the collider.
-
-<Playground href="/embed/input-pointerRaycast" />
-
 ## Compatibility
 
 As of February 2024, the compatibility of PointerEvent across different platforms has reached [96.35%](https://caniuse.com/?search=PointerEvent).
 
-Design ideas can be referenced at: https://github.com/galacean/engine/wiki/Input-system-design.
-
-> ⚠️ If you encounter compatibility issues on a platform, you can raise an issue at https://github.com/galacean/polyfill-pointer-event.
+<Callout type="info">
+️ If you encounter compatibility issues on a platform, you can raise an issue at https://github.com/galacean/polyfill-pointer-event.
+</Callout>
 
 ## QA
 

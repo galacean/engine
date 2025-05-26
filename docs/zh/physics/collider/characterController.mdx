@@ -7,6 +7,25 @@ label: Physics
 
 角色控制器（[CharacterController](/apis/core/#CharacterController)）是一种特殊的碰撞器组件，专门用于处理角色的物理运动。它提供了专门的移动算法和碰撞检测，能够处理台阶、斜坡等复杂地形，特别适合第一人称或第三人称游戏中的角色控制。
 
+## 与动态碰撞器的区别
+
+角色控制器和[动态碰撞器](/docs/physics/collider/dynamicCollider)虽然都可以实现物体的移动，但它们有着显著的区别：
+
+| 特性 | 角色控制器 | 动态碰撞器 |
+|------|------------|------------|
+| 移动方式 | 通过 `move()` 方法直接控制位移 | 通过施加力或冲量来移动 |
+| 碰撞响应 | 手动处理碰撞响应，自动处理台阶和斜坡 | 基于物理模拟的碰撞响应 |
+| 重力处理 | 需要手动实现重力效果 | 自动应用场景重力 |
+| 形状限制 | 只能使用一个碰撞形状 | 可以使用多个碰撞形状 |
+| 适用场景 | 角色控制、第一/第三人称游戏 | 物理模拟、刚体运动 |
+| 性能开销 | 较低 | 较高 |
+
+<Callout type="positive">
+选择建议：
+- 如果需要精确控制角色的移动和碰撞响应，使用角色控制器
+- 如果需要真实的物理模拟效果，使用动态碰撞器
+</Callout>
+
 ## 使用方法
 
 1. 选中目标实体，并在检查器中点击添加组件按钮，添加 CharacterController 组件。
@@ -91,9 +110,8 @@ controller.upDirection = new Vector3(0, 1, 0); // 设置向上方向
 class CharacterMovement extends Script {
   private _velocity = new Vector3();
   
-  onUpdate() {
+  onUpdate(deltaTime: number) {
     const controller = this.entity.getComponent(CharacterController);
-    const deltaTime = engine.deltaTime;
 
     // 创建位移向量
     const displacement = new Vector3();
@@ -158,6 +176,76 @@ controller.nonWalkableMode = ControllerNonWalkableMode.PreventClimbingAndForceSl
 controller.stepOffset = 0.3; // 较低的台阶
 controller.stepOffset = 0.5; // 较高的台阶
 ```
+
+### 重力处理
+
+角色控制器本身不包含重力处理，需要在脚本中手动实现重力效果。以下是一个完整的重力处理示例：
+
+```typescript
+class CharacterMovement extends Script {
+  private _controller: CharacterController;
+  private _velocity = new Vector3();
+  private _isGrounded = false;
+  private _moveSpeed = 5;
+  private _jumpForce = 5;
+  private _gravity: Vector3;
+
+  onAwake() {
+    this._controller = this.entity.getComponent(CharacterController);
+    this._gravity = this.scene.physics.gravity;
+  }
+
+  onUpdate(deltaTime: number) {
+    const inputManager = this.engine.inputManager;
+
+    // 获取输入
+    const horizontal = inputManager.isKeyHeldDown(Keys.KeyA) ? -1 : inputManager.isKeyHeldDown(Keys.KeyD) ? 1 : 0;
+    const vertical = inputManager.isKeyHeldDown(Keys.KeyS) ? -1 : inputManager.isKeyHeldDown(Keys.KeyW) ? 1 : 0;
+    const jump = inputManager.isKeyDown(Keys.Space);
+    // 计算移动方向
+    const moveDirection = new Vector3(horizontal, 0, vertical);
+    moveDirection.normalize();
+
+    // 应用移动速度
+    this._velocity.x = moveDirection.x * this._moveSpeed;
+    this._velocity.z = moveDirection.z * this._moveSpeed;
+
+    // 应用重力
+    if (!this._isGrounded) {
+      this._velocity.y += this._gravity.y * deltaTime;
+    }
+
+    // 处理跳跃
+    if (this._isGrounded && jump) {
+      this._velocity.y = this._jumpForce;
+      this._isGrounded = false;
+    }
+
+    // 执行移动
+    const displacement = new Vector3();
+    Vector3.scale(this._velocity, deltaTime, displacement);
+    const collisionFlags = this._controller.move(displacement, 0, deltaTime);
+
+    // 更新地面状态
+    this._isGrounded = (collisionFlags & ControllerCollisionFlag.Down) !== 0;
+    if (this._isGrounded) {
+      this._velocity.y = 0;
+    }
+  }
+}
+```
+
+## 限制和注意事项
+
+1. **形状限制**
+   - 只能使用一个碰撞形状
+   - 建议使用胶囊体（CapsuleColliderShape）作为碰撞形状
+
+2. **性能考虑**
+   - 角色控制器比动态碰撞器性能更好
+   - 但每个角色控制器都会占用一定的物理计算资源
+   - 建议在场景中控制角色控制器的数量
+
 
 完整的示例效果可以参考：
 <Playground href="/embed/physx-controller" />
