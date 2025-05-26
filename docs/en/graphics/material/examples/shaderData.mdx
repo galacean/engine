@@ -1,0 +1,104 @@
+---
+title: Using Shader Data  
+---
+
+Like other programming languages, we use many variables when writing shaders. The engine provides many [built-in variables](/en/docs/graphics/material/variables), which are automatically available in shaders without manual setup. Below, we'll explore how to define and use custom data.
+
+### Setting Data
+
+We recommend using [ShaderLab](/en/docs/graphics/material/shaderLab/overview) to declare and manage shader data:
+
+```glsl showLineNumbers {3,8,17,21}
+Editor {
+    Properties {
+        material_BaseColor("Offset unit scale", Color) = (1,1,1,1);
+        ...
+
+        Header("Emissive")
+        {
+            material_EmissiveColor("Emissive color", Color) = (1,1,1,1);
+            ...
+        }
+        ...
+    }
+
+    ...
+
+    Macros {
+        [On] UV_OFFSET("UV Offset", Range(1,100)) = 10;
+        ...
+
+        Header("Common") {
+            SOME_MACRO("label", Int) = 1;
+        }
+    }
+
+    ...
+
+    // Specify the path to the UIScript editor file for this shader.
+    UIScript "./shaderScript.ts";
+}
+```
+
+<Callout type="positive">
+  Refer to [ShaderLab Property Definition](/en/docs/graphics/material/shaderLab/property) for more data types.
+</Callout>
+
+You can also set shader data programmatically:
+
+```ts showLineNumbers
+// ShaderData can be stored in scene, camera, renderer, or material.
+const shaderData = material.shaderData;
+
+// Upload different types of shader data
+shaderData.setFloat("u_float", 1.5);
+shaderData.setInt("u_int", 1);
+shaderData.setInt("u_bool", 1);
+shaderData.setVector2("u_vec2", new Vector2(1, 1));
+shaderData.setVector3("u_vec3", new Vector3(1, 1, 1));
+shaderData.setVector4("u_vec4", new Vector4(1, 1, 1, 1));
+shaderData.setMatrix("u_matrix", new Matrix());
+shaderData.setIntArray("u_intArray", new Int32Array(10));
+shaderData.setFloatArray("u_floatArray", new Float32Array(10));
+shaderData.setTexture("u_sampler2D", texture2D);
+shaderData.setTexture("u_samplerCube", textureCube);
+shaderData.setTextureArray("u_samplerArray", [texture2D, textureCube]);
+
+// Enable macro
+shaderData.enableMacro("DISCARD");
+// Disable macro
+shaderData.disableMacro("DISCARD");
+
+// Enable variable macro
+shaderData.enableMacro("LIGHT_COUNT", "3");
+
+// Switch variable macro (automatically disables previous "LIGHT_COUNT 3")
+shaderData.enableMacro("LIGHT_COUNT", "2");
+
+// Disable variable macro
+shaderData.disableMacro("LIGHT_COUNT");
+```
+
+### Accessing Data
+
+Once data is set, you can directly use it in your shader:
+
+```glsl showLineNumbers filename="test.glsl"
+float test = u_float;
+int test = u_int;
+bool test = u_bool;
+vec2 test = u_vec2;
+mat4 test = u_matrix;
+sampler2D test = u_sampler2D;
+...
+```
+
+You can also retrieve these values via code:
+
+```ts showLineNumbers filename="test.ts"
+const test = shaderData.getFloat("u_float");
+const test = shaderData.getInt("u_int");
+const test = shaderData.getVector2("u_vec2");
+const test = shaderData.getMatrix("u_matrix");
+const test = shaderData.getTexture("u_sampler2D");
+```

@@ -1,0 +1,151 @@
+---
+title: Global Variable Declaration  
+---
+
+In the [overview section](./overview/#syntax-introduction), we mentioned that the overall structure of `ShaderLab` consists of three nested modules: `Shader`, `SubShader`, and `Pass`. Each module has its own global variable scope. Within the global scope, you can declare four types of global variables: **RenderState**, **Structs**, **Functions**, and **Single Variables**.
+
+| Variable Type | Description |  
+| :-- | :-- |  
+| **RenderState** | Corresponds to the engine's [RenderState](/apis/galacean/#RenderState) API and can be directly configured in ShaderLab. |  
+| **Structs** | Function similarly to GLSL structs and are also used for declaring **Varying** and **Attribute** variables. See [documentation](./entry/#attribute-and-varying-variable-declaration) for details. |  
+| **Functions** | Equivalent to global functions in GLSL. |  
+| **Single Variables** | Used to define **Uniform** variables in shaders. |  
+
+<Callout type="info">  
+### Global Variable Scope  
+
+Similar to other programming languages, global variables in `ShaderLab` follow scope rules and name overriding principles. Specifically:  
+- Global variables are only visible and valid within the module they are declared in (`Shader`, `SubShader`, or `Pass`).  
+- **Name Overriding Rule**: If a global variable with the same name exists in a `Pass` module as one in its parent `SubShader` module, the `Pass`-level variable will override the `SubShader`-level variable. The same logic applies between `SubShader` and its parent `Shader` module.  
+</Callout>  
+
+## RenderState  
+
+Includes **BlendState**, **DepthState**, **StencilState**, **RasterState**, and **renderQueueType**.  
+
+### BlendState  
+
+```glsl  
+BlendState state {  
+  Enabled: bool;  
+  ColorBlendOperation: BlendOperation.XXX;  
+  AlphaBlendOperation: BlendOperation.XXX;  
+  SourceColorBlendFactor: BlendFactor.XXX;  
+  SourceAlphaBlendFactor: BlendFactor.XXX;  
+  DestinationColorBlendFactor: BlendFactor.XXX;  
+  DestinationAlphaBlendFactor: BlendFactor.XXX;  
+  ColorWriteMask: float // 0xffffffff  
+  BlendColor: vec4;  
+  AlphaToCoverage: bool;  
+}  
+```  
+<Callout>  
+The [BlendOperation](/apis/galacean/#BlendOperation) and [BlendFactor](/apis/galacean/#BlendFactor) enums are identical to engine APIs.  
+</Callout>  
+
+### DepthState  
+
+```glsl  
+DepthState state {  
+  Enabled: bool;  
+  WriteEnabled: bool;  
+  CompareFunction: CompareFunction.XXX;  
+}  
+```  
+<Callout>  
+The [CompareFunction](/apis/galacean/#CompareFunction) enum is identical to the engine API.  
+</Callout>  
+
+### StencilState  
+
+```glsl  
+StencilState state {  
+  Enabled: bool;  
+  ReferenceValue: int;  
+  Mask: float; // 0xffffffff  
+  WriteMask: float; // 0xffffffff  
+  CompareFunctionFront: CompareFunction.XXX;  
+  CompareFunctionBack: CompareFunction.XXX;  
+  PassOperationFront: StencilOperation.XXX;  
+  PassOperationBack: StencilOperation.XXX;  
+  FailOperationFront: StencilOperation.XXX;  
+  FailOperationBack: StencilOperation.XXX;  
+  ZFailOperationFront: StencilOperation.XXX;  
+  ZFailOperationBack: StencilOperation.XXX;  
+}  
+```  
+<Callout>  
+The [CompareFunction](/apis/galacean/#CompareFunction) and [StencilOperation](/apis/galacean/#StencilOperation) enums are identical to engine APIs.  
+</Callout>  
+
+### RasterState  
+
+```glsl  
+RasterState state {  
+  CullMode: CullMode.XXX;  
+  DepthBias: float;  
+  SlopeScaledDepthBias: float;  
+}  
+```  
+<Callout>  
+The [CullMode](/apis/galacean/#CullMode) enum is identical to the engine API.  
+</Callout>  
+
+### renderQueueType  
+
+```glsl showLineNumbers  
+RenderQueueType = Transparent;  
+RenderQueueType = Opaque;  
+RenderQueueType = AlphaTest;  
+```  
+
+For detailed information about these render states, refer to the [documentation](./renderState).  
+
+## Structs and Functions  
+
+Equivalent to GLSL syntax. The code block below demonstrates functions and structs declared in `Shader`, `SubShader`, and `Pass` scopes:  
+
+```glsl showLineNumbers {5-9, 15-19, 25-29}  
+Shader "PlanarShadow" {  
+
+  ...  
+  // Scope: Entire Shader module  
+  mat4 getJointMatrix(sampler2D smp, float index) {  
+    float base = index / renderer_JointCount;  
+    ...  
+    return mat4(m0, m1, m2, m3);  
+  }  
+  ...  
+
+  SubShader "Default" {  
+    ...  
+    // Scope: "Default" SubShader module  
+    vec3 ShadowProjectPos(vec4 vertPos) {  
+      vec3 shadowPos;  
+      ...  
+      return shadowPos;  
+    }  
+    ...  
+
+    Pass "0" {  
+      ...  
+      // a2v struct is only visible in Pass "0"  
+      struct a2v {  
+        vec4 POSITION;  
+        vec4 JOINTS_0;  
+        vec4 WEIGHTS_0;  
+      };  
+      ...  
+    }  
+  }  
+  ...  
+}  
+```  
+
+## Single Variables  
+
+Equivalent to GLSL syntax. All **Uniform** variables in `ShaderLab` are declared using global single-variable syntax:  
+
+```glsl showLineNumbers  
+[lowp/mediump/highp] mat4 uMVPMatrix;  
+```
