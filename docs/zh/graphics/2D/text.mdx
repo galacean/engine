@@ -8,7 +8,7 @@ label: Graphics/2D
 
 [TextRenderer](/apis/core/#TextRenderer) 组件用于在 3D/2D 场景中显示文字，支持动态文本、自定义字体、多行显示、对齐方式等特性。
 
-## 编辑器使用指南
+## 编辑器使用
 
 ### 添加文本组件
 1. 在场景中选择目标实体。
@@ -36,7 +36,7 @@ label: Graphics/2D
 | **Font**            | 自定义字体资源（默认使用系统字体）                                  |
 | **Width**           | 文本设计宽度（影响换行和布局，单位：场景单位）                    |
 | **Height**          | 文本设计高度（影响截断和布局，单位：场景单位）                    |
-| **LineSpacing**     | 行间距（基准为字体大小，比例值）                                    |
+| **LineSpacing**     | 行间距（单位：像素）                                    |
 | **FontStyle**       | 字体样式：`None`（默认）/ `Bold`（加粗）/ `Italic`（斜体）          |
 | **HorizontalAlignment** | 水平对齐：`Left`（左）/ `Center`（中）/ `Right`（右）            |
 | **VerticalAlignment**   | 垂直对齐：`Top`（顶）/ `Center`（中）/ `Bottom`（底）            |
@@ -107,7 +107,7 @@ textRenderer.height = 3;  // 影响截断高度
 // 启用自动换行
 textRenderer.enableWrapping = true;
 
-// 设置行间距（基于字体大小的比例）
+// 设置行间距
 textRenderer.lineSpacing = 0.5;
 ```
 
