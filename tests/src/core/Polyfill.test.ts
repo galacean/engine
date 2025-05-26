@@ -86,9 +86,14 @@ describe("Polyfill", () => {
       expect("actualBoundingBoxLeft" in TextMetrics.prototype).to.be.true;
       expect("actualBoundingBoxRight" in TextMetrics.prototype).to.be.true;
 
-      const mockTextMetrics = {
-        width: 100
-      } as TextMetrics;
+      const mockTextMetrics = Object.create(TextMetrics.prototype, {
+        width: {
+          value: 100,
+          writable: true,
+          configurable: true,
+          enumerable: true
+        }
+      });
 
       expect(mockTextMetrics.actualBoundingBoxLeft).to.equal(0);
       expect(mockTextMetrics.actualBoundingBoxRight).to.equal(100);
