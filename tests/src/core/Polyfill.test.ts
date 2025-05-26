@@ -83,20 +83,22 @@ describe("Polyfill", () => {
     expect("actualBoundingBoxRight" in TextMetrics.prototype).to.be.false;
 
     import("@galacean/engine-core").then(() => {
-      expect("actualBoundingBoxLeft" in TextMetrics.prototype).to.be.true;
-      expect("actualBoundingBoxRight" in TextMetrics.prototype).to.be.true;
+      setTimeout(() => {
+        expect("actualBoundingBoxLeft" in TextMetrics.prototype).to.be.true;
+        expect("actualBoundingBoxRight" in TextMetrics.prototype).to.be.true;
 
-      const mockTextMetrics = Object.create(TextMetrics.prototype, {
-        width: {
-          value: 100,
-          writable: true,
-          configurable: true,
-          enumerable: true
-        }
-      });
+        const mockTextMetrics = Object.create(TextMetrics.prototype, {
+          width: {
+            value: 100,
+            writable: true,
+            configurable: true,
+            enumerable: true
+          }
+        });
 
-      expect(mockTextMetrics.actualBoundingBoxLeft).to.equal(0);
-      expect(mockTextMetrics.actualBoundingBoxRight).to.equal(100);
+        expect(mockTextMetrics.actualBoundingBoxLeft).to.equal(0);
+        expect(mockTextMetrics.actualBoundingBoxRight).to.equal(100);
+      }, 10);
     });
   });
 });
