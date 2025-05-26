@@ -572,14 +572,14 @@ export class Engine extends EventDispatcher {
           (camera: Camera) => {
             componentsManager.callCameraOnBeginRender(camera);
 
-            // `pixelViewport` width or height is `0` will cause internal render target create error and return can save performance
             const { pixelViewport } = camera;
-            if (pixelViewport.width !== 0 || pixelViewport.height !== 0) {
-              Logger.warn("Camera pixelViewport width or height is 0.");
-
+            // `pixelViewport` width or height is `0` will cause internal render target create error and return can save performance
+            if (pixelViewport.width !== 0 && pixelViewport.height !== 0) {
               // Update post process manager
               scene.postProcessManager._update(camera);
               camera.render();
+            } else {
+              Logger.warn("Camera pixelViewport width or height is 0.");
             }
 
             componentsManager.callCameraOnEndRender(camera);
