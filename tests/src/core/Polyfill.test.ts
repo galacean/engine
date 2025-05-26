@@ -82,6 +82,10 @@ describe("Polyfill", () => {
       expect("actualBoundingBoxRight" in TextMetrics.prototype).to.be.false;
 
       import("@galacean/engine-core").then(() => {
+        console.log("Polyfill TextMetrics Test");
+        console.log(TextMetrics.prototype);
+        console.log("actualBoundingBoxLeft" in TextMetrics.prototype);
+        console.log("actualBoundingBoxRight" in TextMetrics.prototype);
         expect("actualBoundingBoxLeft" in TextMetrics.prototype).to.be.true;
         expect("actualBoundingBoxRight" in TextMetrics.prototype).to.be.true;
 
