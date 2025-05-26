@@ -52,7 +52,7 @@ Solo and Mute are usually used for debugging, helping developers test and debug 
 ### Default Playback
 
 #### Editor Usage
-Connecting the `AnimatorState` to `entry` will automatically play the animation on it when you run the exported project, without needing to call `animator.play`. Click the `entity` bound to the `Animation Control Component` ([detailed introduction](/docs/animation/animator)) to preview the animation.
+Connecting the `AnimatorState` to `entry` will automatically play the animation on it when you run the exported project, without needing to call `animator.play`. Click the `entity` bound to the `Animation Control Component` ([detailed introduction](/en/docs/animation/animator)) to preview the animation.
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*0_DkSoSAhmUAAAAAAAAAAAAADsJ_AQ/original" />
 
@@ -97,7 +97,7 @@ transition.destinationState = runState;
 walkState.addTransition(transition);
 animator.play("walk");
 ```
-In this way, every time you play the `walk` animation in the `animation layer` ([detailed introduction](/docs/animation/layer)) where the `AnimatorStateMachine` is located, it will start transitioning to the `run` animation halfway through.
+In this way, every time you play the `walk` animation in the `animation layer` ([detailed introduction](/en/docs/animation/layer)) where the `AnimatorStateMachine` is located, it will start transitioning to the `run` animation halfway through.
 
 ##### Adding Conditions to Animation Transitions
 You can use the [animatorStateTransition.addCondition](/apis/core/#AnimatorStateTransition-addCondition) method to add `transition conditions` to the `AnimatorStateTransition`.
@@ -269,4 +269,4 @@ state.addStateMachineScript(
 ```
 
 ## Multi-layer AnimatorStateMachine Blending
-Each `Animation Layer` has an `AnimatorStateMachine`, and the final animation performance is blended by multiple `Animation Layer`. For how to use `Animation Layer`, please refer to the [Animation Layer](/docs/animation/layer) documentation.
+Each `Animation Layer` has an `AnimatorStateMachine`, and the final animation performance is blended by multiple `Animation Layer`. For how to use `Animation Layer`, please refer to the [Animation Layer](/en/docs/animation/layer) documentation.

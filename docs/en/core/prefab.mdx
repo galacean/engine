@@ -7,7 +7,7 @@ label: Core
 
 ## Introduction
 
-Prefabs are assets that can be considered as templates storing **[entities](/docs/core/entity)** (including their child entities and components) data. Prefabs allow developers to create and update this template, which can then be instantiated into the scene as needed.
+Prefabs are assets that can be considered as templates storing **[entities](/en/docs/core/entity)** (including their child entities and components) data. Prefabs allow developers to create and update this template, which can then be instantiated into the scene as needed.
 
 If you want to reuse entities configured in a specific way across multiple locations in a scene or multiple scenes in a project, such as non-player characters (NPCs), props, or landscapes, you should convert this game object into a prefab. This approach is better than simply copying and pasting game objects because prefabs can keep all copies synchronized.
 
@@ -33,7 +33,7 @@ There are two ways to create a prefab:
 
 1. Right-click an entity to create a prefab using this entity as a template.
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*1D-6TpXqDWcAAAAAAAAAAAAADsJ_AQ/original" />
-2. Drag the entity from the **[Hierarchy Panel](/docs/interface/hierarchy)** to the **[Asset Panel](/docs/assets/interface)** to create a prefab using this entity as a template.
+2. Drag the entity from the **[Hierarchy Panel](/en/docs/interface/hierarchy)** to the **[Asset Panel](/en/docs/assets/interface)** to create a prefab using this entity as a template.
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*IXI9Q4ljEu8AAAAAAAAAAAAADsJ_AQ/original" />
 
 ### Updating a Prefab
@@ -87,7 +87,7 @@ A prefab is an asset, and it can be deleted just like other assets. Note that wh
 ## Script Usage
 
 ### Loading a Prefab
-The engine object of a prefab asset is [PrefabResource](/apis/loader/#PrefabResource}). After loading a prefab ([Asset Loading](/docs/assets/load)), you can instantiate it using the [instantiate](/apis/loader/#PrefabResource-instantiate}) method.
+The engine object of a prefab asset is [PrefabResource](/apis/loader/#PrefabResource}). After loading a prefab ([Asset Loading](/en/docs/assets/load)), you can instantiate it using the [instantiate](/apis/loader/#PrefabResource-instantiate}) method.
 
 ```typescript
 engine.resourceManager
