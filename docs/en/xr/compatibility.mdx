@@ -1,54 +1,56 @@
 ---
-order: 7
-title: XR Compatibility
-type: XR
-label: XR
+order: 7  
+title: XR Compatibility  
+type: XR  
+label: XR  
+---  
+
+The XR system supports multiple backends (see [XR Overview](/en/docs/xr/overall)), but **currently only the WebXR standard is officially supported**. Therefore, the compatibility of XR interactions is **limited by device support for WebXR**.  
+
+Before using XR features, refer to [CanIUse](https://caniuse.com/?search=webxr) to evaluate the runtime environment. Below is a summary of current WebXR compatibility:  
+
 ---
 
-The XR system supports multiple backends (refer to [XR Overview](/en/docs/xr/overall)), currently, the official support is only for the WebXR standard, so the compatibility of XR interactions is also **limited by the device's compatibility with WebXR**.
+## Device Support  
 
-Before using XR capabilities, you can refer to [CanIUse](https://caniuse.com/?search=webxr) to evaluate the runtime environment. Below is a summary of the current WebXR compatibility.
+### PC  
+- Browsers supporting WebXR on PC (this article uses Mac Chrome)  
+- PC Chrome can install the [Immersive Web Emulator](https://chromewebstore.google.com/detail/immersive-web-emulator/cgffilbpcibhmcfbgggfhfolhkfbhmik) or other WebXR simulation plugins  
 
-## Device Support
+### Android  
+- Devices and browsers supporting WebXR (this article uses Android phones with mobile Chrome apps)  
+- Android phones require additional installation of [Google Play Services for AR](https://play.google.com/store/apps/details?id=com.google.ar.core&hl=en_US&pli=1)  
 
-### PC
+### iOS  
+- Safari on iPhones does not support WebXR  
+- Apple Vision Pro supports WebXR  
 
-- PC browsers that support WebXR (this article uses Mac Chrome)
-- Install [Immersive Web Emulator](https://chromewebstore.google.com/detail/immersive-web-emulator/cgffilbpcibhmcfbgggfhfolhkfbhmik) or other WebXR simulation plugins on PC Chrome
+### Head-Mounted Displays (HMDs)  
+- Varies by device. Refer to the official HMD documentation for compatibility details. Most HMD browsers (Chromium-based) support WebXR.  
 
-### Android
+---
 
-- Terminals and browsers that support WebXR (this article uses an Android device and the mobile Chrome app on the Android device)
-- Android phones need to additionally install [Google Play Services for AR](https://play.google.com/store/apps/details?id=com.google.ar.core&hl=en_US&pli=1)
+## Runtime Compatibility Check  
 
-### IOS
+In runtime, you can use the following code to check if the environment supports `AR` or `VR`:  
 
-- Safari on iPhones does not currently support WebXR
-- Apple Vision Pro supports WebXR
+```typescript  
+// Check if AR is supported  
+xrManager.sessionManager.isSupportedMode(XRSessionMode.AR);  
+```  
 
-### Headset Devices
+Before adding features, you can check compatibility using:  
 
-Depending on the situation, you can refer to the headset's official website for compatibility information. Most browsers in headsets (browsers with Chromium kernel) support WebXR.
+```typescript  
+// Check if image tracking is supported  
+xrManager.isSupportedFeature(XRImageTracking);  
+```  
 
-## Runtime Compatibility Check
+---
 
-In the runtime, you can use the following code to check if the current environment supports `AR` or `VR`:
+## Enabling Experimental Features on Android  
 
-```typescript
-// Check if AR is supported
-xrManager.sessionManager.isSupportedMode(XRSessionMode.AR);
-```
-
-Before adding features, you can use the following code to check the compatibility of the feature:
-
-```typescript
-// Check if image tracking is supported
-xrManager.isSupportedFeature(XRImageTracking);
-```
-
-## Enabling Experimental Features on Android
-
-Android supports some experimental features, but they are turned off by default. You can enable them by setting flags: **Open Chrome on Android** -> **Log in to chrome://flags** -> **Search for WebXR** -> **Enable WebXR Incubations**
+Android supports certain experimental features, but they are disabled by default. You can enable them via flags:  
+**Open Chrome on Android** → **Navigate to chrome://flags** → **Search for WebXR** → **Enable WebXR Incubations**  
 
 <Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*YJCVTIAe0nEAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom:"50%"}} />
-

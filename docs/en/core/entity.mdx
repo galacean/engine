@@ -21,7 +21,7 @@ You can also right-click an entity to add a child entity to it:
 
 You can add empty entities or quickly add entities with relevant functional components attached, such as entities with camera components, light components, and 3D/2D basic rendering components.
 
-After adding, you can edit the properties of the new entity in the **[Inspector Panel](/docs/interface/inspector)**.
+After adding, you can edit the properties of the new entity in the **[Inspector Panel](/en/docs/interface/inspector)**.
 
 ### Deleting an Entity
 
@@ -62,7 +62,7 @@ There is a search box at the top of the hierarchy panel where users can enter th
 Every entity has an eye button on its right side, which can be clicked to toggle the entity's display/hide state in the scene.
 
 <Callout type="info">
-Please note that the adjustment of the entity's display state here is only a modification in the workspace, not the `isActive` attribute in the **[Inspector Panel](/docs/interface/inspector)**.
+Please note that the adjustment of the entity's display state here is only a modification in the workspace, not the `isActive` attribute in the **[Inspector Panel](/en/docs/interface/inspector)**.
 </Callout>
 
 ### Shortcut Keys
@@ -80,7 +80,7 @@ The following operations take effect after selecting an entity.
 
 ## Editing Entities
 
-Clicking an entity allows you to edit it in the **[Inspector Panel](/docs/interface/inspector)** on the right, where you can edit the following attributes:
+Clicking an entity allows you to edit it in the **[Inspector Panel](/en/docs/interface/inspector)** on the right, where you can edit the following attributes:
 
 ### Basic Information
 
@@ -91,11 +91,11 @@ Clicking an entity allows you to edit it in the **[Inspector Panel](/docs/interf
 | ---- | -------- | -------------------------------------------------------------- |
 | 1    | Name     | The name of the entity, can be fetched using `scene.findEntityByName("entityName")` in scripts |
 | 2    | Is Active | Whether the entity is active in the scene                    |
-| 3    | Layer    | Layer management for entities, used for [culling masks](/docs/graphics/camera/component/#裁剪遮罩) (to control which layers are culled during rendering), [raycasting](/docs/physics/manager/#使用射线检测) (to control which layers' entities can be detected by rays), etc. Supports multiple selection. |
+| 3    | Layer    | Layer management for entities, used for [culling masks](/en/docs/graphics/camera/component/#裁剪遮罩) (to control which layers are culled during rendering), [raycasting](/en/docs/physics/manager/#使用射线检测) (to control which layers' entities can be detected by rays), etc. Supports multiple selection. |
 
 ### Component Management
 
-Components of entities are displayed tiled in the Inspector panel, such as the most common **Transform** component. For detailed usage, please refer to the [Component](/docs/core/component) documentation.
+Components of entities are displayed tiled in the Inspector panel, such as the most common **Transform** component. For detailed usage, please refer to the [Component](/en/docs/core/component) documentation.
 
 <Image
   src="https://gw.alipayobjects.com/zos/OasisHub/2a670e89-a8de-44b9-b978-5a25e9689fd0/image-20250515153549864.png"
@@ -106,7 +106,7 @@ Components of entities are displayed tiled in the Inspector panel, such as the m
 
 ### Creating New Entities
 
-As introduced in [Scenes](/docs/core/scene) on how to access the active scene. In a new scene, we usually start by adding a root entity:
+As introduced in [Scenes](/en/docs/core/scene) on how to access the active scene. In a new scene, we usually start by adding a root entity:
 
 ```typescript
 const scene = engine.sceneManager.activeScene;

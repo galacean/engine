@@ -1,57 +1,58 @@
 ---
-order: 1
-title: Debugging XR Interaction
-type: XR
-label: XR
----
+order: 1  
+title: Debugging XR Interactions  
+type: XR  
+label: XR  
+---  
 
-This article will mainly introduce how to debug on PC, as well as how to preview and debug on XR devices.
+This document primarily introduces how to debug on PC and preview/debug on XR devices.  
 
-> Unless otherwise specified, the following debugging items are all based on WebXR development.
+> All the following debugging steps are based on **WebXR development** unless otherwise specified.  
 
-## PC Debugging
+## PC Debugging  
 
-First, prepare the debugging environment. Use the Chrome browser that supports WebXR on the PC, and install the [Immersive Web Emulator](https://chromewebstore.google.com/detail/immersive-web-emulator/cgffilbpcibhmcfbgggfhfolhkfbhmik) plugin.
+First, prepare the debugging environment:  
+- Use a **Chrome browser supporting WebXR** on PC  
+- Install the [Immersive Web Emulator](https://chromewebstore.google.com/detail/immersive-web-emulator/cgffilbpcibhmcfbgggfhfolhkfbhmik) extension  
 
-> For usage of the plugin, refer to the [Immersive Web Emulator repository](https://github.com/meta-quest/immersive-web-emulator).
+> For extension usage instructions, refer to the [Immersive Web Emulator repository](https://github.com/meta-quest/immersive-web-emulator)  
 
-Once prepared, you can preview the XR project in the editor:
+After preparation, you can preview XR projects in the editor:  
 
-<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*lglHQad-k88AAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom:"50%"}} />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*lglHQad-k88AAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom:"50%"}} />  
 
-Of course, you can also preview by downloading the project to the local script build:
+Alternatively, download the project locally and preview via script build:  
 
-```bash
-npm install
-npm run https
-```
+```bash  
+npm install  
+npm run https  
+```  
 
-<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*4rqLS51t6DoAAAAAAAAAAAAADhuCAQ/original" alt="image.png"  />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*4rqLS51t6DoAAAAAAAAAAAAADhuCAQ/original" alt="image.png"  />  
 
-> WebXR is only available in a secure environment (HTTPS), so you need to enable HTTPS when building the project for debugging.
+> **HTTPS is required** for WebXR, so ensure HTTPS is enabled during project debugging.  
 
-## Mobile Debugging
+## Mobile Debugging  
 
-To support mobile debugging, the following conditions must be met:
+Requirements for mobile debugging:  
+- **Device supports ARCore** (refer to [ARCore-supported devices](https://developers.google.com/ar/devices))  
+- Installed **WebXR-compatible browser** (e.g., Chrome Mobile App)  
+- Installed [Google Play Services for AR](https://play.google.com/store/apps/details?id=com.google.ar.core&hl=en_US&pli=1)  
 
-- The phone supports ARCore, refer to [ARCore supported devices](https://developers.google.com/ar/devices).
-- Install a browser that supports WebXR (mobile Chrome app).
-- Additionally, install [Google Play Services for AR](https://play.google.com/store/apps/details?id=com.google.ar.core&hl=en_US&pli=1).
+> `Google Play Services for AR` is Google's augmented reality platform (ARCore). Some devices come pre-installed; if not, search in the app store. Below is an example from Xiaomi App Store:  
 
-> `Google Play Services for AR` is an augmented reality platform developed by Google (ARCore). Some phones come with this app pre-installed. If not, you can search for it in the app store. The image below shows the search result in the Xiaomi app store.
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*1piTR6lx8T8AAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom:"50%"}} />  
 
-<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*1piTR6lx8T8AAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom:"50%"}} />
+With all conditions met, you can preview locally built projects on your phone (**ensure the phone and PC are on the same local network**):  
 
-With all the above conditions met, you can preview the locally built project on your phone (ensure that **the phone and computer are on the same local network**):
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*YGikQ6UhL5oAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom:"50%"}} />  
 
-<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*YGikQ6UhL5oAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom:"50%"}} />
+### Debugging  
 
-### Debugging
+Refer to [Remote Debugging Android Devices](https://developer.chrome.com/docs/devtools/remote-debugging?hl=zh-cn). XR device debugging follows the same principle.  
 
-Please refer to [Remote Debugging Android Devices](https://developer.chrome.com/docs/devtools/remote-debugging?hl=zh-cn), the same applies to XR devices.
+> Before debugging, ensure **Developer Options** are enabled and **USB Debugging** is allowed on the phone.  
 
-> Ensure that the phone has **`Developer Options`** enabled and allows **`USB Debugging`** before debugging.
+## Best Practices  
 
-## Best Practices
-
-Since XR debugging is relatively cumbersome, we recommend completing most of the work and verification during the PC preview and debugging stage. This can significantly improve development efficiency.
+Since XR debugging can be complex, we recommend completing most work and verification during the PC preview/debugging phase to significantly improve development efficiency.

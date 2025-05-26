@@ -1,39 +1,38 @@
 ---
-order: 4
-title: Camera Manager
-type: XR
-label: XR
----
+order: 4  
+title: Camera Manager  
+type: XR  
+label: XR  
+---  
 
-The Camera Manager is a part of the XRManager instance, which you can access via `xrManager.cameraManager`.
+The camera manager is part of the `XRManager` instance and can be accessed via `xrManager.cameraManager`.  
 
-## Properties
+## Properties  
 
-| Property | Type | Description |
-| :-- | :-- | :-- |
-| fixedFoveation | number | Sets the fixed foveation of the camera. For more details, refer to [fixedFoveation](https://developer.mozilla.org/en-US/docs/Web/API/XRProjectionLayer/fixedFoveation) |
+| Property           | Type   | Description                                                                 |
+| :----------------- | :----- | :-------------------------------------------------------------------------- |
+| fixedFoveation     | number | Sets a fixed foveation value for the camera. See [fixedFoveation](https://developer.mozilla.org/en-US/docs/Web/API/XRProjectionLayer/fixedFoveation) for details. |
 
-## Methods
+## Methods  
 
-| Method         | Description                                         |
-| :----------- | :------------------------------------------- |
-| attachCamera | Binds the virtual world's camera to the real world's camera     |
-| detachCamera | Unbinds the virtual world's camera from the real world's camera |
+| Method             | Description                                           |
+| :----------------- | :---------------------------------------------------- |
+| attachCamera       | Binds the virtual world camera to the real-world camera. |
+| detachCamera       | Unbinds the virtual world camera from the real-world camera. |
 
-> When the XR session type is AR, the type of camera to bind is `XRTrackedInputDevice.Camera`
+> For AR sessions, bind to `XRTrackedInputDevice.Camera`.  
+> For VR sessions, bind to `XRTrackedInputDevice.LeftCamera` and `XRTrackedInputDevice.RightCamera`.  
 
-> When the XR session type is VR, the types of cameras to bind are `XRTrackedInputDevice.LeftCamera` and `XRTrackedInputDevice.RightCamera`
+## Update Process  
 
-## Update Process
-
-Simply synchronize the parameters and pose of the `real camera` completely with the `virtual camera`, and the `real scene` and `virtual scene` can remain **synchronized**.
+To maintain **synchronization** between the real and virtual scenes, simply mirror the real camera's parameters and pose to the virtual camera.  
 
 ```mermaid
 flowchart TD
-    A[时间片开始] --> B[获取现实相机数据]
-    B --> C[将姿态同步给虚拟相机]
-    C --> D[将 viewport 同步给虚拟相机]
-    D --> E[将投影矩阵同步给虚拟相机]
-    E --> F[时间片结束]
+    A[Start of Time Slice] --> B[Fetch Real Camera Data]
+    B --> C[Synchronize Pose to Virtual Camera]
+    C --> D[Synchronize Viewport to Virtual Camera]
+    D --> E[Synchronize Projection Matrix to Virtual Camera]
+    E --> F[End of Time Slice]
     F --> A
 ```

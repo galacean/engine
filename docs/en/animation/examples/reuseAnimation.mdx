@@ -9,7 +9,7 @@ label: Animation/Examples
 This example demonstrates how to play animations from other models in the Galacean editor. Through simple steps, you will learn how to let one model reuse the animations of another model. This guide is suitable for beginners to understand the animation system of the Galacean editor and lays the foundation for more complex animation applications.
 If this is your first time using the animation editor, it is recommended to read this document first:
 
-[Play Animation in Model](/docs/animation/examples/playAnimation/)
+[Play Animation in Model](/en/docs/animation/examples/playAnimation/)
 
 ## 0. Preparation
 
@@ -36,7 +36,7 @@ Select the `Without Skin` option, then click download
 </Callout>
 
 ### Import Model
-If you don't know how to import models, please refer to: [Import Model](/docs/animation/examples/playAnimation/#导入模型)
+If you don't know how to import models, please refer to: [Import Model](/en/docs/animation/examples/playAnimation/#导入模型)
 
 Import the character model and animation model into the editor.  
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*xApDR4D-Ed0AAAAAAAAAAAAADsJ_AQ/original" />
@@ -44,11 +44,11 @@ Import the character model and animation model into the editor.
 
 ## 1. Create AnimatorController Asset
 To play animations from other models, we need to edit the content of the `AnimatorController`. The `AnimatorController` in the model is read-only, so we need to create an `AnimatorController` ourselves.
-If you don't know how to create an `AnimatorController`, please refer to: [Create AnimatorController](/docs/animation/examples/playAnimation/#2-create-animatorcontroller-asset)
+If you don't know how to create an `AnimatorController`, please refer to: [Create AnimatorController](/en/docs/animation/examples/playAnimation/#2-create-animatorcontroller-asset)
 
 ## 2. Edit AnimatorController
 
-1. Double-click the [AnimatorController](/docs/animation/animatorController/) asset to enter the AnimatorController editor (for an introduction to the functions of the editor, please refer to the [AnimatorController Editor](/docs/animation/animatorController/) document)
+1. Double-click the [AnimatorController](/en/docs/animation/animatorController/) asset to enter the AnimatorController editor (for an introduction to the functions of the editor, please refer to the [AnimatorController Editor](/en/docs/animation/animatorController/) document)
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*v8aUR4McTA4AAAAAAAAAAAAADsJ_AQ/original" /> 
 
@@ -56,11 +56,11 @@ If you don't know how to create an `AnimatorController`, please refer to: [Creat
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*G1moSpo20KcAAAAAAAAAAAAADsJ_AQ/original" /> 
 
-3. Click the `AnimatorState` (for an introduction to the properties of the Animation State, please refer to the [AnimatorState](/docs/animation/animatorState/) document), and bind the `AnimationClip` from the animation model.
+3. Click the `AnimatorState` (for an introduction to the properties of the Animation State, please refer to the [AnimatorState](/en/docs/animation/animatorState/) document), and bind the `AnimationClip` from the animation model.
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*72LhQ5gOBmgAAAAAAAAAAAAADsJ_AQ/original" />
 
-4. Connect from `entry` to this `AnimatorState` and click the connection line to change the `Duration` to 0 (for a detailed introduction to `AnimatorState` and Animation Transition, please refer to the [AnimatorStateMachine](/docs/animation/state-machine/) document). This way, when this AnimatorController is applied, it will immediately play this `AnimatorState` .
+4. Connect from `entry` to this `AnimatorState` and click the connection line to change the `Duration` to 0 (for a detailed introduction to `AnimatorState` and Animation Transition, please refer to the [AnimatorStateMachine](/en/docs/animation/state-machine/) document). This way, when this AnimatorController is applied, it will immediately play this `AnimatorState` .
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*wgBgQor0c5wAAAAAAAAAAAAADsJ_AQ/original" />
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*NgW5QZ4vaFEAAAAAAAAAAAAADsJ_AQ/original" />
@@ -71,7 +71,7 @@ If you don't know how to create an `AnimatorController`, please refer to: [Creat
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*uEGPTZfKEZwAAAAAAAAAAAAADsJ_AQ/original" />
 
-2. Unlike directly playing animations in the model, we need to find the `Animator` component ([detailed introduction](/docs/animation/animator/)) of the animation model. The component is generally on the root entity of the model instance, which is the first child entity under the model entity in the editor. Therefore, we need to drag the model containing the animation into the node tree as well.
+2. Unlike directly playing animations in the model, we need to find the `Animator` component ([detailed introduction](/en/docs/animation/animator/)) of the animation model. The component is generally on the root entity of the model instance, which is the first child entity under the model entity in the editor. Therefore, we need to drag the model containing the animation into the node tree as well.
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*kjmDSZeyq4QAAAAAAAAAAAAADsJ_AQ/original" />
 
