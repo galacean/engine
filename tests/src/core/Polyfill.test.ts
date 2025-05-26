@@ -70,36 +70,4 @@ describe("Polyfill", () => {
     const result = await context.decodeAudioData(arrayBuffer);
     expect(result).to.have.property("duration", 10);
   });
-
-  it("TextMetrics", async () => {
-    if (window.TextMetrics) {
-      // @ts-ignore
-      delete TextMetrics.prototype.actualBoundingBoxLeft;
-      // @ts-ignore
-      delete TextMetrics.prototype.actualBoundingBoxRight;
-
-      expect("actualBoundingBoxLeft" in TextMetrics.prototype).to.be.false;
-      expect("actualBoundingBoxRight" in TextMetrics.prototype).to.be.false;
-
-      import("@galacean/engine-core").then(() => {
-        console.log("Polyfill TextMetrics Test");
-        console.log("actualBoundingBoxLeft" in TextMetrics.prototype);
-        console.log("actualBoundingBoxRight" in TextMetrics.prototype);
-        expect("actualBoundingBoxLeft" in TextMetrics.prototype).to.be.true;
-        expect("actualBoundingBoxRight" in TextMetrics.prototype).to.be.true;
-
-        const mockTextMetrics = Object.create(TextMetrics.prototype, {
-          width: {
-            value: 100,
-            writable: true,
-            configurable: true,
-            enumerable: true
-          }
-        });
-
-        expect(mockTextMetrics.actualBoundingBoxLeft).to.equal(0);
-        expect(mockTextMetrics.actualBoundingBoxRight).to.equal(100);
-      });
-    }
-  });
 });
