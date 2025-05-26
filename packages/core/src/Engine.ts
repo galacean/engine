@@ -570,19 +570,18 @@ export class Engine extends EventDispatcher {
       } else {
         cameras.forEach(
           (camera: Camera) => {
-            // `pixelViewport` width or height is `0` will cause internal render target create error and return can save performance
-            const { pixelViewport } = camera;
-            if (pixelViewport.width === 0 || pixelViewport.height === 0) {
-              Logger.warn("Camera pixelViewport width or height is 0.");
-              return;
-            }
-
             componentsManager.callCameraOnBeginRender(camera);
 
-            // Update post process manager
-            scene.postProcessManager._update(camera);
+            // `pixelViewport` width or height is `0` will cause internal render target create error and return can save performance
+            const { pixelViewport } = camera;
+            if (pixelViewport.width !== 0 || pixelViewport.height !== 0) {
+              Logger.warn("Camera pixelViewport width or height is 0.");
 
-            camera.render();
+              // Update post process manager
+              scene.postProcessManager._update(camera);
+              camera.render();
+            }
+
             componentsManager.callCameraOnEndRender(camera);
 
             // Temp solution for webgl implement bug
