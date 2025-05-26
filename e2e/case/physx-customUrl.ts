@@ -19,7 +19,7 @@ import {
   AmbientLight,
   AssetType,
   BlinnPhongMaterial,
-  Entity,
+  Entity
 } from "@galacean/engine";
 import { WireframeManager } from "@galacean/engine-toolkit";
 
@@ -56,9 +56,13 @@ function addBox(rootEntity: Entity, cubeSize: number, x: number, y: number, z: n
   return boxEntity;
 }
 
-WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics(PhysXRuntimeMode.Auto, {
-  physXUrl: "../physx.release.js"
-}) }).then((engine) => {
+WebGLEngine.create({
+  canvas: "canvas",
+  physics: new PhysXPhysics(PhysXRuntimeMode.Auto, {
+    wasmModeUrl: "../physx.release.js",
+    javaScriptModeUrl: "../physx.release.downgrade.js"
+  })
+}).then((engine) => {
   engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity("root");

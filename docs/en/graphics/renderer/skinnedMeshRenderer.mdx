@@ -6,26 +6,17 @@ group: Renderer
 label: Graphics/Renderer
 ---
 
-The Skinned Mesh Renderer inherits from the [Mesh Renderer](/en/docs/graphics/renderer/meshRenderer/), additionally encapsulating the capabilities of `skeletal animation` and `Blend Shape`, making the animation effects of rendered objects more natural and realistic.
+The **Skinned Mesh Renderer** inherits from the [Mesh Renderer](/en/docs/graphics/renderer/meshRenderer/) and adds encapsulation for **skeletal animation** and **Blend Shape**, enabling more natural and realistic animation effects for rendered objects.
 
 ## Properties
 
-The properties of the Skinned Mesh Renderer are mostly related to `skeletal animation` and `Blend Shape`.
+The Skinned Mesh Renderer extends the properties of the [Mesh Renderer](/en/docs/graphics/renderer/meshRenderer/) with additional skeletal-related information.
 
-| Setting             | Description                    |
-| :------------------ | :----------------------------- |
-| `localBounds`       | The local bounding box of the Skinned Mesh Renderer |
-| `bones`             | All bone nodes of the Skinned Mesh Renderer |
-| `rootBone`          | The root bone node corresponding to the Skinned Mesh Renderer |
-| `blendShapeWeights` | The blend weights of BlendShapes |
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*AVGwRpqT35sAAAAAQQAAAAgAehuCAQ/original" alt="image-20231007153753006" style={{ zoom: "50%" }} />
 
-In models exported from the art workflow, all bone and BlendShape information is generally pre-set. Developers only need to play the specified animation clips in conjunction with the [animation system](/en/docs/animation/overview).
+| Property          | Description                          |
+| :---------------- | :----------------------------------- |
+| `rootBone`        | The root bone node of the skinned mesh renderer |
+| `localBounds`     | The local bounding box of the skinned mesh renderer |
 
-## Skeletal Animation
-
-<Playground href="/embed/skeleton-animation-play" />
-
-## BlendShape
-
-<Playground href="/embed/skeleton-animation-blendShape" />
-
+<Callout type="info">In rare cases where unavoidable, adjusting the local bounding box can prevent the renderer from being clipped by the camera</Callout>
