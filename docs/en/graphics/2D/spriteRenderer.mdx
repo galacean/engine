@@ -25,15 +25,15 @@ In the editor, you can conveniently view and set the properties of a sprite rend
 | [drawMode](/apis/core/#SpriteRenderer-drawMode)               | [SpriteDrawMode](/apis/core/#SpriteDrawMode)               | Drawing mode, supports normal, nine-slice, and tiling modes                                                            |
 | [maskInteraction](/apis/core/#SpriteRenderer-maskInteraction) | [SpriteMaskInteraction](/apis/core/#SpriteMaskInteraction) | Mask type, used to specify whether the sprite needs masking and whether to show content inside or outside the mask when masked            |
 | [maskLayer](/apis/core/#SpriteRenderer-maskLayer)             | [SpriteMaskLayer](/apis/core/#SpriteMaskLayer)             | The mask layer to which the sprite belongs, used to match with SpriteMask. Defaults to Everything, meaning it can mask with any SpriteMask |
-| [material](/apis/core/#SpriteRenderer-setMaterial)            | [Material](/apis/core/#Material)                           | [Material](/docs/graphics/material/material/) information for the sprite renderer |
+| [material](/apis/core/#SpriteRenderer-setMaterial)            | [Material](/apis/core/#Material)                           | [Material](/en/docs/graphics/material/material/) information for the sprite renderer |
 | [priority](/apis/core/#SpriteRenderer-priority)               | Number                                                    | Render priority of the sprite renderer. Lower values indicate higher priority. Defaults to 0 |
 
-<Callout type="info">**Render Priority**, **the distance between the bounding box and the camera**, etc., collectively determine the rendering order of renderers. For details, see [Render Order](/docs/graphics/renderer/order/)</Callout>
+<Callout type="info">**Render Priority**, **the distance between the bounding box and the camera**, etc., collectively determine the rendering order of renderers. For details, see [Render Order](/en/docs/graphics/renderer/order/)</Callout>
 
 ## Usage
 
-In the **[Hierarchy Panel](/docs/interface/hierarchy)**, **right-click** -> **2D Object** -> **Sprite Renderer** to quickly create a node containing a sprite renderer.
+In the **[Hierarchy Panel](/en/docs/interface/hierarchy)**, **right-click** -> **2D Object** -> **Sprite Renderer** to quickly create a node containing a sprite renderer.
 
 <Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*ABuGRoF5B4oAAAAAgJAAAAgAehuCAQ/original" alt="avatar" style={{zoom:"50%"}} />
 
-<Callout type="info">Mask effects require the use of [Sprite Mask](/docs/graphics/2D/spriteMask/)</Callout>
+<Callout type="info">Mask effects require the use of [Sprite Mask](/en/docs/graphics/2D/spriteMask/)</Callout>
