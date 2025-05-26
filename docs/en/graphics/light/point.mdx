@@ -14,9 +14,8 @@ Point lights have 3 main characteristics: _color_ ([color](/apis/core/#PointLigh
 
 | Property      | Description                                                              |
 | :------------ | :----------------------------------------------------------------------- |
-| Intensity     | Controls the intensity of the point light, **higher values mean brighter light** |
 | Color         | Controls the color of the point light, default is white                   |
-| Distance      | Range within which the light affects, light intensity decreases with distance |
+| Distance      | Range within which the light affects, light intensity decreases with distance, area beyond the range will not receive light from the point light |
 | Culling Mask  | Controls which objects the light should illuminate, default is Everything. Needs to be used with the Layer of the Entity |
 
 ### Script Usage
