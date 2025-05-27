@@ -227,6 +227,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     this._pxRaycastHit.delete();
     this._pxFilterData.flags.delete();
     this._pxFilterData.delete();
+    // Need to release the controller manager before release the scene.
     this._pxControllerManager?.release();
     this._pxScene.release();
   }
