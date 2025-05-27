@@ -18,22 +18,20 @@ import {
   ParticleRenderer,
   Texture2D,
   Vector3,
-  WebGLEngine,
-  WebGLMode
+  WebGLEngine
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 // Create engine
 WebGLEngine.create({
-  canvas: "canvas",
-  graphicDeviceOptions: { webGLMode: WebGLMode.WebGL1 }
+  canvas: "canvas"
 }).then((engine) => {
   Logger.enable();
   engine.canvas.resizeByClientSize();
 
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
-  scene.background.solidColor = new Color(15 / 255, 38 / 255, 18 / 255, 1);
+  scene.background.solidColor = new Color(0.004776953480693729, 0.019382360956935723, 0.006048833022857054, 1);
 
   // Create camera
   const cameraEntity = rootEntity.createChild("camera_entity");
@@ -103,8 +101,8 @@ function createDebrisParticle(engine: Engine, texture: Texture2D): Entity {
   main.startRotationZ.constantMax = 360;
   main.startRotationZ.mode = ParticleCurveMode.TwoConstants;
 
-  main.startColor.constantMin.set(255 / 255, 255 / 255, 255 / 255, 1.0);
-  main.startColor.constantMax.set(13 / 255, 255 / 255, 0 / 255, 1.0);
+  main.startColor.constantMin.set(1.0, 1.0, 1.0, 1.0);
+  main.startColor.constantMax.set(0.004024717018496307, 1.0, 0.0, 1.0);
   main.startColor.mode = ParticleGradientMode.TwoConstants;
 
   // Emission module
@@ -176,8 +174,8 @@ function createGlowParticle(fireEntity: Entity, texture: Texture2D): void {
   main.startRotationZ.constantMax = 360;
   main.startRotationZ.mode = ParticleCurveMode.TwoConstants;
 
-  main.startColor.constantMin = new Color(0 / 255, 157 / 255, 255 / 255, 64 / 255);
-  main.startColor.constantMax = new Color(13 / 255, 255 / 255, 0 / 255, 128 / 255);
+  main.startColor.constantMin = new Color(0, 0.33716361504833037, 1.0, 64 / 255);
+  main.startColor.constantMax = new Color(0.004024717018496307, 1.0, 0, 128 / 255);
   main.startColor.mode = ParticleGradientMode.TwoConstants;
 
   // Emission module
@@ -236,7 +234,7 @@ function createSparksParticle(fireEntity: Entity, texture: Texture2D): void {
   main.startRotationZ.constantMax = 360;
   main.startRotationZ.mode = ParticleCurveMode.TwoConstants;
 
-  main.startColor.constant = new Color(37 / 255, 133 / 255, 255 / 255, 255 / 255);
+  main.startColor.constant = new Color(0.018500220128379697, 0.23455058216100522, 1.0, 255 / 255);
 
   // Emission module
   emission.rateOverTime.constant = 30;
@@ -297,8 +295,8 @@ function createHighlightsParticle(fireEntity: Entity, texture: Texture2D): void 
   main.startRotationZ.constantMax = 360;
   main.startRotationZ.mode = ParticleCurveMode.TwoConstants;
 
-  main.startColor.constantMin.set(105 / 255, 198 / 255, 255 / 255, 64 / 255);
-  main.startColor.constantMax.set(13 / 255, 255 / 255, 0 / 255, 32 / 255);
+  main.startColor.constantMin.set(0.14126329114027164, 0.5647115057049292, 1.0, 64 / 255);
+  main.startColor.constantMax.set(0.004024717018496307, 1.0, 0.0, 32 / 255);
   main.startColor.mode = ParticleGradientMode.TwoConstants;
 
   // Emission module

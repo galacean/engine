@@ -8,6 +8,7 @@ import {
   Texture2D,
   TextureFilterMode,
   TextureFormat,
+  TextureUtils,
   TextureWrapMode,
   resourceLoader
 } from "@galacean/engine-core";
@@ -27,10 +28,36 @@ class Texture2DLoader extends Loader<Texture2D> {
         ._request<HTMLImageElement>(url, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((image) => {
-          const { format, mipmap, anisoLevel, wrapModeU, wrapModeV, filterMode } =
-            (item.params as Partial<Texture2DParams>) ?? {};
+          const {
+            format = TextureFormat.R8G8B8A8,
+            anisoLevel,
+            wrapModeU,
+            wrapModeV,
+            filterMode,
+            isSRGBColorSpace = true,
+            mipmap = true
+          } = (item.params as Partial<Texture2DParams>) ?? {};
+          const { width, height } = image;
+          // @ts-ignore
+          const isWebGL2 = resourceManager.engine._hardwareRenderer._isWebGL2;
 
-          const texture = new Texture2D(resourceManager.engine, image.width, image.height, format, mipmap);
+          const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
+            width,
+            height,
+            format,
+            mipmap,
+            isSRGBColorSpace,
+            isWebGL2
+          );
+
+          const texture = new Texture2D(
+            resourceManager.engine,
+            width,
+            height,
+            format,
+            generateMipmap,
+            isSRGBColorSpace
+          );
 
           texture.anisoLevel = anisoLevel ?? texture.anisoLevel;
           texture.filterMode = filterMode ?? texture.filterMode;
@@ -38,7 +65,7 @@ class Texture2DLoader extends Loader<Texture2D> {
           texture.wrapModeV = wrapModeV ?? texture.wrapModeV;
 
           texture.setImageSource(image);
-          texture.generateMipmaps();
+          generateMipmap && texture.generateMipmaps();
 
           if (url.indexOf("data:") !== 0) {
             const index = url.lastIndexOf("/");
@@ -71,4 +98,6 @@ export interface Texture2DParams {
   filterMode: TextureFilterMode;
   /** Anisotropic level for texture. */
   anisoLevel: number;
+  /** Whether the texture data is in sRGB color space, otherwise is linear color space. @defaultValue `true` */
+  isSRGBColorSpace: boolean;
 }

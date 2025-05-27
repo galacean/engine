@@ -7,6 +7,7 @@ export class Polyfill {
   static registerPolyfill(): void {
     Polyfill._registerMatchAll();
     Polyfill._registerAudioContext();
+    Polyfill._registerTextMetrics();
   }
 
   private static _registerMatchAll(): void {
@@ -67,6 +68,27 @@ export class Polyfill {
           );
         });
       };
+    }
+  }
+
+  private static _registerTextMetrics(): void {
+    // Based on the specific version of the engine implementation, when actualBoundingBoxLeft is not supported, width is used to represent the rendering width, and `textAlign` uses the default value `start` and direction is left to right.
+    // Some devices do not support actualBoundingBoxLeft and actualBoundingBoxRight in TextMetrics.
+    // Examples: Google Pixel 2 XL (Android 11), Honor 6X (Android 8).
+    // In WeChat Mini Games, TextMetrics may be reported as not defined, so a check for window.TextMetrics is added.
+    if (window.TextMetrics && !("actualBoundingBoxLeft" in TextMetrics.prototype)) {
+      Object.defineProperties(TextMetrics.prototype, {
+        actualBoundingBoxLeft: {
+          get: function () {
+            return 0;
+          }
+        },
+        actualBoundingBoxRight: {
+          get: function () {
+            return this.width;
+          }
+        }
+      });
     }
   }
 }

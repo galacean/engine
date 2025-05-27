@@ -1,5 +1,5 @@
 ---
-order: 1
+order: 0
 title: Collider
 type: Physics
 label: Physics
@@ -15,20 +15,20 @@ Collider ([Collider](/apis/core/#Collider)) is a component used to detect and re
 
 Collider components are used to define the physical properties and collision behavior of objects. The Galacean physics system provides three types of colliders:
 
-1. [Dynamic Collider](/docs/physics/collider/dynamicCollider)  
+1. [Dynamic Collider](/en/docs/physics/collider/dynamicCollider)  
    Dynamic colliders can move freely and are affected by physical forces, suitable for movable objects that require physical simulation, such as projectiles and pushable boxes.
 
-2. [Static Collider](/docs/physics/collider/staticCollider)  
+2. [Static Collider](/en/docs/physics/collider/staticCollider)  
    Static colliders are fixed in the scene and do not move, typically used to create fixed physical obstacles such as ground and walls.
 
-3. [Character Controller](/docs/physics/collider/characterController)  
+3. [Character Controller](/en/docs/physics/collider/characterController)  
    Character controllers are colliders specifically designed for character movement, supporting features such as walking on slopes and climbing steps, suitable for character control in first-person or third-person games.
 
 ## Basic Concepts
 
 All collider types have the following common features:
 
-1. **Shape Management**: Each collider can contain multiple [collision shapes](/docs/physics/collider/colliderShape) (character controllers can only add one). For detailed instructions on collision shapes, please refer to the [Collision Shape](/docs/physics/collider/colliderShape) documentation.
+1. **Shape Management**: Each collider can contain multiple [collision shapes](/en/docs/physics/collider/colliderShape) (character controllers can only add one). For detailed instructions on collision shapes, please refer to the [Collision Shape](/en/docs/physics/collider/colliderShape) documentation.
 
 Currently, four types of `collision shapes` are supported, but the support varies among different backend physics packages, as shown below:
 
@@ -43,7 +43,10 @@ Currently, four types of `collision shapes` are supported, but the support varie
    - Colliders automatically synchronize the world transform of the entity, including position, rotation, and scale
    - `Collision shapes` can be set with local offsets and rotations relative to the entity
 
-3. **Collision/Trigger Events**: Colliders can generate collision and trigger events when interacting with other colliders. For detailed information on these events and how to handle them, please refer to the [Collision Events](/docs/physics/collider/event) documentation.
+3. **Collision/Trigger Events**: Colliders can generate collision and trigger events when interacting with other colliders. For detailed information on these events and how to handle them, please refer to the [Collision Events](/en/docs/physics/collider/event) documentation.
+
+4. **Collision Layer**: Each collider can be assigned to a collision layer (Layer0 to Layer31), which is used to control collision relationships between different objects. By setting collision layers, you can flexibly control which objects can collide with each other and which cannot. For more information, please refer to the [Collision Layer](/en/docs/physics/collider/collisionLayer) documentation.
+
 ## Best Practices
 
 1. **Reasonable Use of Shapes**
@@ -95,7 +98,8 @@ const characterController = entity.addComponent(CharacterController);
 
 ## More Information
 
-- [Dynamic Collider Documentation](/docs/physics/collider/dynamicCollider)
-- [Static Collider Documentation](/docs/physics/collider/staticCollider)
-- [Character Controller Documentation](/docs/physics/collider/characterController)
-- [Collision Events Documentation](/docs/physics/collider/event)
+- [Dynamic Collider Documentation](/en/docs/physics/collider/dynamicCollider)
+- [Static Collider Documentation](/en/docs/physics/collider/staticCollider)
+- [Character Controller Documentation](/en/docs/physics/collider/characterController)
+- [Collision Events Documentation](/en/docs/physics/collider/event)
+- [Collision Layer Documentation](/en/docs/physics/collider/collisionLayer)

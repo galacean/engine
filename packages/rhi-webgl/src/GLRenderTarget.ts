@@ -46,9 +46,12 @@ export class GLRenderTarget implements IPlatformRenderTarget {
      */
 
     for (let i = 0, n = _colorTextures.length; i < n; i++) {
-      const format = _colorTextures[i]._format;
+      const { format, isSRGBColorSpace } = _colorTextures[i];
       if (!GLTexture._supportRenderBufferColorFormat(format, rhi)) {
         throw new Error(`TextureFormat is not supported:${TextureFormat[format]} in RenderTarget`);
+      }
+      if (isSRGBColorSpace && format === TextureFormat.R8G8B8) {
+        throw new Error(`If you want to use sRGB color space, only R8G8B8A8 format is supported in RenderTarget`);
       }
     }
 
@@ -318,7 +321,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
   private _checkFrameBuffer(): void {
     const gl = this._gl;
-    const isWebGL2 = this._isWebGL2;
     const e = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
 
     switch (e) {
@@ -331,15 +333,17 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       case gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS:
         throw new Error(" Height and width of the attachment are not the same.");
       case gl.FRAMEBUFFER_UNSUPPORTED:
+        // #5.14.3 Event Types in https://registry.khronos.org/webgl/specs/1.0.0/
+        if (!gl.isContextLost()) {
+          throw new Error(
+            "The format of the attachment is not supported or if depth and stencil attachments are not the same renderbuffer"
+          );
+        }
+        break;
+      case gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: // Only for WebGL2
         throw new Error(
-          "The format of the attachment is not supported or if depth and stencil attachments are not the same renderbuffer"
+          "The values of gl.RENDERBUFFER_SAMPLES are different among attached renderbuffers, or are non-zero if the attached images are a mix of renderbuffers and textures."
         );
-    }
-
-    if (isWebGL2 && e === gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE) {
-      throw new Error(
-        "The values of gl.RENDERBUFFER_SAMPLES are different among attached renderbuffers, or are non-zero if the attached images are a mix of renderbuffers and textures."
-      );
     }
   }
 }

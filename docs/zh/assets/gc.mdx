@@ -1,5 +1,5 @@
 ---
-order: 4
+order: 3
 title: 资产的释放
 type: 资产工作流
 label: Resource
@@ -20,18 +20,3 @@ label: Resource
 ```typescript
 engine.resourceManager.gc();
 ```
-
-## 验证资产释放
-
-如果您需要验证资产是否释放成功，可按照以下步骤，在空白页打开以下示例：
-
-<Playground href="/embed/assets-gc" />
-
-该示例在初始化时会通过创建 `Texture2D` 和 `Sprite` 渲染 2D 精灵，当点击右上角 GC 按钮后，`root` 节点被销毁，纹理和精灵资产的引用计数都被清空，此时这些资产会被真正销毁，分别在 `gc` 前后拍摄内存快照可以更直观地感受这个过程
-
-1. gc 前： **开发者工具** -> **内存** -> **拍摄堆快照**
-2. gc 后： **开发者工具** -> **内存** -> **拍摄堆快照** -> **比较** -> **选择 gc 前快照**
-
-<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*CtRmTqXDgt0AAAAAAAAAAAAADhuCAQ/original" alt="image-1" style={{zoom:"50%"}} />
-
-<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*E5PwQ7ocw2EAAAAAAAAAAAAADhuCAQ/original" alt="image-1" style={{zoom:"50%"}} />

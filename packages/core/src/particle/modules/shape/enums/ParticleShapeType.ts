@@ -11,5 +11,7 @@ export enum ParticleShapeType {
   /** Emit from a half-sphere. */
   Hemisphere = 3,
   /** Emit from a sphere. */
-  Sphere = 4
+  Sphere = 4,
+  /** Emit from a mesh. */
+  Mesh = 5
 }

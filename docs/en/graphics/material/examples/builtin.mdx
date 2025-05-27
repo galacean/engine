@@ -1,0 +1,30 @@
+---
+title: Using Built-in Shaders  
+---
+
+The Galacean engine provides several commonly used built-in shaders, including:
+
+| Type | Description |  
+| :-- | :-- |  
+| [Unlit](/en/docs/graphics/material/builtinShaders/unlit) | The **Unlit Shader** is suitable for rendering pre-baked models. It only requires a base texture or color to display high-quality offline rendering results. However, it cannot simulate real-time light interaction because its rendering is entirely determined by textures and is unaffected by lighting. See the [baking tutorial](/en/docs/art/bake-blender) and [Unlit export tutorial](/en/docs/graphics/shader/builtins/unlit) for details. |  
+| [Blinn Phong](/en/docs/graphics/material/builtinShaders/blinnPhong/) | The **Blinn Phong Shader** is ideal for scenarios where photorealism is not critical. Though not physically based, its efficient rendering algorithm and comprehensive optical properties make it applicable in many cases. |  
+| [PBR](/en/docs/graphics/material/builtinShaders/pbr) | The **PBR Shader** is designed for applications requiring realistic rendering. Since PBR follows energy conservation and is physically based, developers can ensure physically accurate results by adjusting parameters like metallic, roughness, and lighting. |  
+| [Hair](/en/docs/graphics/material/builtinShaders/digitalHuman/hair) | The hair shader is based on the Kajiya-Kay model, approximating dual-layer anisotropic highlights on hair strands, commonly referred to as "angel rings" in hair rendering. |  
+| [Skin](/en/docs/graphics/material/builtinShaders/digitalHuman/skin) | Skin rendering uses the Spherical Gaussian model, allowing flexible customization of different diffusion profiles to simulate human skin or standard subsurface scattering effects. |  
+| [Eyes](/en/docs/graphics/material/builtinShaders/digitalHuman/eye) | The eye shader provides realistic rendering for eyeball models, enabling lifelike artistic results in your creations. |  
+
+You can directly debug the corresponding properties of built-in shaders in the editor to observe real-time rendering changes.  
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/cd87c11a-7a68-4cde-a19a-40cff943e878/2025-02-10%25252017.05.33.gif" />  
+
+Most built-in shaders share these common parameters:  
+
+| Parameter | Description |  
+| :-- | :-- |  
+| [isTransparent](/apis/core/#BaseMaterial-isTransparent) | **Transparency**. Enables/disables transparency. When enabled, use [BlendMode](/apis/core/#BaseMaterial-blendMode) to set the color blending mode. |  
+| [alphaCutoff](/apis/core/#BaseMaterial-alphaCutoff) | **Alpha Cutoff Value**. Sets a threshold; fragments with alpha values below this will be discarded in the shader. See [example](/embed/blend-mode). |  
+| [renderFace](/apis/core/#BaseMaterial-renderFace) | **Render Face**. Controls whether to render front-facing, back-facing, or both sides. |  
+| [blendMode](/apis/core/#BaseMaterial-blendMode) | **Color Blending Mode**. Specifies how colors blend when the material is transparent. See [example](/embed/blend-mode). |  
+| [tilingOffset](/apis/core/#BaseMaterial-tilingOffset) | **Tiling Offset**. A Vector4 value controlling UV scaling and offset. See [example](/embed/tiling-offset). |  
+
+Each shader offers unique rendering effects and use cases. For more details, refer to the [Built-in Shaders tutorial](/en/docs/graphics/material/builtinShaders/pbr/).

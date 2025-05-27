@@ -1,5 +1,5 @@
 ---
-order: 4
+order: 3
 title: Releasing Assets
 type: Asset Workflow
 label: Resource
@@ -20,18 +20,3 @@ For example, the entity shown in the figure below contains a [MeshRenderer](/api
 ```typescript
 engine.resourceManager.gc();
 ```
-
-## Verifying Asset Release
-
-If you need to verify whether assets have been successfully released, you can follow the steps below and open the following example on a blank page:
-
-<Playground href="/embed/assets-gc" />
-
-In this example, `Texture2D` and `Sprite` are created to render 2D sprites during initialization. When you click the GC button in the upper right corner, the `root` node is destroyed, and the reference counts of the texture and sprite assets are cleared. At this point, these assets will be truly destroyed. Taking memory snapshots before and after `gc` can give a more intuitive understanding of this process.
-
-1. Before gc: **Developer Tools** -> **Memory** -> **Take Heap Snapshot**
-2. After gc: **Developer Tools** -> **Memory** -> **Take Heap Snapshot** -> **Compare** -> **Select Snapshot Before gc**
-
-<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*CtRmTqXDgt0AAAAAAAAAAAAADhuCAQ/original" alt="image-1" style={{zoom:"50%"}} />
-
-<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*E5PwQ7ocw2EAAAAAAAAAAAAADhuCAQ/original" alt="image-1" style={{zoom:"50%"}} />

@@ -243,11 +243,11 @@ color2.g = 0.5;
 color2.b = 0.5;
 color2.a = 1;
 
-// linear 空间转 gamma 空间
+// linear 空间转 sRGB 空间
 const gammaColor = new Color();
-color1.toGamma(gammaColor);
+color1.toSRGB(gammaColor);
 
-// gamma 空间转 linear 空间
+// sRGB 空间转 linear 空间
 const linearColor = new Color();
 color2.toLinear(linearColor);
 ```

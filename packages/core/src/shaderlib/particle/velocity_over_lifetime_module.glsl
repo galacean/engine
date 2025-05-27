@@ -1,102 +1,62 @@
-#if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE)
+#if defined(RENDERER_VOL_CONSTANT_MODE) || defined(RENDERER_VOL_CURVE_MODE)
+    #define _VOL_MODULE_ENABLED
+#endif
+
+#ifdef _VOL_MODULE_ENABLED
     uniform int renderer_VOLSpace;
 
-    #if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_RANDOM_CONSTANT)
+    #ifdef RENDERER_VOL_CONSTANT_MODE
         uniform vec3 renderer_VOLMaxConst;
 
-         #ifdef RENDERER_VOL_RANDOM_CONSTANT
+         #ifdef RENDERER_VOL_IS_RANDOM_TWO
             uniform vec3 renderer_VOLMinConst;
         #endif
     #endif
 
-    #if defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CURVE)
+    #ifdef RENDERER_VOL_CURVE_MODE
         uniform vec2 renderer_VOLMaxGradientX[4]; // x:time y:value
         uniform vec2 renderer_VOLMaxGradientY[4]; // x:time y:value
         uniform vec2 renderer_VOLMaxGradientZ[4]; // x:time y:value
 
-        #ifdef RENDERER_VOL_RANDOM_CURVE
+        #ifdef RENDERER_VOL_IS_RANDOM_TWO
             uniform vec2 renderer_VOLMinGradientX[4]; // x:time y:value
             uniform vec2 renderer_VOLMinGradientY[4]; // x:time y:value
             uniform vec2 renderer_VOLMinGradientZ[4]; // x:time y:value
         #endif
     #endif
-#endif
 
 
-#if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE)
-    vec3 computeParticleLifeVelocity(in float normalizedAge) {
-        vec3 velocity;
-        #if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_RANDOM_CONSTANT)
-            velocity = renderer_VOLMaxConst;
-            #ifdef RENDERER_VOL_RANDOM_CONSTANT
-                velocity = mix(renderer_VOLMinConst, velocity, vec3(a_Random1.y, a_Random1.z, a_Random1.w));
+    vec3 computeVelocityPositionOffset(in float normalizedAge, in float age, out vec3 currentVelocity) {
+        vec3 velocityPosition;
+
+        #ifdef RENDERER_VOL_CONSTANT_MODE
+            currentVelocity = renderer_VOLMaxConst;
+            #ifdef RENDERER_VOL_IS_RANDOM_TWO
+                currentVelocity = mix(renderer_VOLMinConst, currentVelocity, a_Random1.yzw);
             #endif
-        #endif
-       
-        #if defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CURVE)
-            velocity = vec3(evaluateParticleCurve(renderer_VOLMaxGradientX, normalizedAge), evaluateParticleCurve(renderer_VOLMaxGradientY, normalizedAge), evaluateParticleCurve(renderer_VOLMaxGradientZ, normalizedAge));
-        #endif
-        
-        #ifdef RENDERER_VOL_RANDOM_CURVE
-            velocity = vec3(
-            mix(velocity.x, evaluateParticleCurve(renderer_VOLMinGradientX, normalizedAge), a_Random1.y),
-            mix(velocity.y, evaluateParticleCurve(renderer_VOLMinGradientY, normalizedAge), a_Random1.z),
-            mix(velocity.z, evaluateParticleCurve(renderer_VOLMinGradientZ, normalizedAge), a_Random1.w));
+
+            velocityPosition = currentVelocity * age;
         #endif
 
-        return velocity;
+        #ifdef RENDERER_VOL_CURVE_MODE
+            velocityPosition = vec3(
+            evaluateParticleCurveCumulative(renderer_VOLMaxGradientX, normalizedAge, currentVelocity.x),
+            evaluateParticleCurveCumulative(renderer_VOLMaxGradientY, normalizedAge, currentVelocity.y),
+            evaluateParticleCurveCumulative(renderer_VOLMaxGradientZ, normalizedAge, currentVelocity.z));
+
+            #ifdef RENDERER_VOL_IS_RANDOM_TWO
+                vec3 minCurrentVelocity;
+                vec3 minVelocityPosition = vec3(
+                    evaluateParticleCurveCumulative(renderer_VOLMinGradientX, normalizedAge, minCurrentVelocity.x),
+                    evaluateParticleCurveCumulative(renderer_VOLMinGradientY, normalizedAge, minCurrentVelocity.y),
+                    evaluateParticleCurveCumulative(renderer_VOLMinGradientZ, normalizedAge, minCurrentVelocity.z));
+
+                currentVelocity = mix(minCurrentVelocity, currentVelocity, a_Random1.yzw);
+                velocityPosition = mix(minVelocityPosition, velocityPosition, a_Random1.yzw);
+            #endif
+
+            velocityPosition *= vec3(a_ShapePositionStartLifeTime.w);
+        #endif
+        return velocityPosition;
     }
 #endif
-
-vec3 getStartPosition(vec3 startVelocity, float age, vec3 dragData) {
-    vec3 startPosition;
-    float lastTime = min(startVelocity.x / dragData.x, age); // todo 0/0
-    startPosition = lastTime * (startVelocity - 0.5 * dragData * lastTime);
-    return startPosition;
-}
-
-vec3 computeParticlePosition(in vec3 startVelocity, in vec3 lifeVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, vec3 dragData) {
-    vec3 startPosition = getStartPosition(startVelocity, age, dragData);
-    vec3 lifePosition;
-    #if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE)
-        #if defined(RENDERER_VOL_CONSTANT)|| defined(RENDERER_VOL_RANDOM_CONSTANT)
-            // @todo:just RENDERER_VOL_CONSTANT and RENDERER_VOL_RANDOM_CONSTANT need `lifeVelocity`
-            lifePosition = lifeVelocity * age;
-        #endif
-
-        #if defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CURVE)
-            lifePosition = vec3(
-            evaluateParticleCurveCumulative(renderer_VOLMaxGradientX, normalizedAge),
-            evaluateParticleCurveCumulative(renderer_VOLMaxGradientY, normalizedAge),
-            evaluateParticleCurveCumulative(renderer_VOLMaxGradientZ, normalizedAge));
-
-            #ifdef RENDERER_VOL_RANDOM_CURVE
-                lifePosition = vec3(
-                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientX, normalizedAge), lifePosition.x, a_Random1.y),
-                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientY, normalizedAge), lifePosition.y, a_Random1.z),
-                mix(evaluateParticleCurveCumulative(renderer_VOLMinGradientZ, normalizedAge), lifePosition.z, a_Random1.w));
-            #endif
-
-            lifePosition *= vec3(a_ShapePositionStartLifeTime.w);
-        #endif
-      
-        vec3 finalPosition;
-        if (renderer_VOLSpace == 0) {
-            finalPosition = rotationByQuaternions(a_ShapePositionStartLifeTime.xyz + startPosition + lifePosition, worldRotation);
-        } else {
-            finalPosition = rotationByQuaternions(a_ShapePositionStartLifeTime.xyz + startPosition, worldRotation) + lifePosition;
-        }
-    #else
-        vec3 finalPosition = rotationByQuaternions(a_ShapePositionStartLifeTime.xyz + startPosition, worldRotation);
-    #endif
-
-    if (renderer_SimulationSpace == 0) {
-        finalPosition = finalPosition + renderer_WorldPosition;
-    } else if (renderer_SimulationSpace == 1) {
-	    finalPosition = finalPosition + a_SimulationWorldPosition;
-	}
-
-    finalPosition += 0.5 * gravityVelocity * age;
-
-    return finalPosition;
-}

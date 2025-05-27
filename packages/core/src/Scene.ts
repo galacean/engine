@@ -15,7 +15,6 @@ import { PhysicsScene } from "./physics/PhysicsScene";
 import { PostProcessManager } from "./postProcess";
 import { ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
-import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
 import { ShadowResolution } from "./shadow/enum/ShadowResolution";
@@ -65,8 +64,6 @@ export class Scene extends EngineObject {
   /** @internal */
   _sceneManager: SceneManager;
   /** @internal */
-  _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
-  /** @internal */
   _rootEntities: Entity[] = [];
 
   private _background: Background = new Background(this._engine);
@@ -74,7 +71,7 @@ export class Scene extends EngineObject {
   private _shadowCascades: ShadowCascadesMode = ShadowCascadesMode.NoCascades;
   private _ambientLight: AmbientLight;
   private _fogMode: FogMode = FogMode.None;
-  private _fogColor: Color = new Color(0.5, 0.5, 0.5, 1.0);
+  private _fogColor: Color = new Color(0.21404114048223255, 0.21404114048223255, 0.21404114048223255, 1.0);
   private _fogStart: number = 0;
   private _fogEnd: number = 300;
   private _fogDensity: number = 0.01;
@@ -484,13 +481,6 @@ export class Scene extends EngineObject {
     } else {
       shaderData.disableMacro("SCENE_SHADOW_TYPE");
     }
-
-    // union scene and camera macro.
-    ShaderMacroCollection.unionCollection(
-      this.engine._macroCollection,
-      shaderData._macroCollection,
-      this._globalShaderMacro
-    );
   }
 
   /**

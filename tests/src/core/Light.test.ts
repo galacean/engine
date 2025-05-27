@@ -1,24 +1,24 @@
 import {
-  Layer,
-  DirectLight,
-  PointLight,
-  SpotLight,
   AmbientLight,
-  Entity,
   AssetType,
-  SkyBoxMaterial,
   BackgroundMode,
+  DirectLight,
+  Engine,
+  Entity,
+  Layer,
+  PointLight,
   PrimitiveMesh,
   Scene,
-  Engine
+  SkyBoxMaterial,
+  SpotLight
 } from "@galacean/engine-core";
 import "@galacean/engine-loader";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Color, SphericalHarmonics3, Vector3 } from "@galacean/engine-math";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 
+import { ShadowType } from "@galacean/engine-core";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { lightResource } from "./model/ambientLight";
-import { ColorSpace, ShadowType } from "@galacean/engine-core";
-import { describe, beforeAll, it, expect, afterAll } from "vitest";
 
 const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
@@ -37,7 +37,7 @@ describe("Light test", function () {
   let ambientLightB: AmbientLight;
 
   beforeAll(async () => {
-    engine = await WebGLEngine.create({ canvas: canvasDOM, colorSpace: ColorSpace.Gamma });
+    engine = await WebGLEngine.create({ canvas: canvasDOM });
     const rootEntity = engine.sceneManager.activeScene.createRootEntity();
     scene = engine.sceneManager.activeScene;
 
@@ -92,7 +92,6 @@ describe("Light test", function () {
 
   it("light default values", function () {
     expect(directLight.color).to.deep.equal(new Color(1, 1, 1));
-    expect(directLight.intensity).to.equal(1);
     expect(directLight.cullingMask).to.equal(Layer.Everything);
     expect(directLight.shadowType).to.equal(ShadowType.None);
     expect(directLight.shadowBias).to.equal(1);
@@ -129,15 +128,6 @@ describe("Light test", function () {
     expect(viewMatrix[13] + inverseViewMatrix[13]).to.deep.equal(0);
     expect(viewMatrix[14] + inverseViewMatrix[14]).to.deep.equal(0);
     expect(viewMatrix[15]).to.deep.equal(inverseViewMatrix[15]);
-  });
-
-  it("update intensity", function () {
-    directLight.intensity = 2;
-    expect(directLight.intensity).to.equal(2);
-    const expectedColor = new Color(1, 1, 1, 2);
-    engine.update();
-    const calculatedColor = directLight["_lightColor"];
-    expect(calculatedColor).to.deep.equal(expectedColor);
   });
 
   it("update shadow type", function () {
@@ -274,7 +264,7 @@ describe("Light test", function () {
   });
 
   it("ambientLight specularTextureDecodeRGBM", async () => {
-    const engine = await WebGLEngine.create({ canvas: canvasDOM, colorSpace: 0 });
+    const engine = await WebGLEngine.create({ canvas: canvasDOM });
     const scene = engine.sceneManager.activeScene;
     const rootEntity = engine.sceneManager.activeScene.createRootEntity();
     const lightEntity = rootEntity.createChild("light");

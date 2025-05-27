@@ -19,7 +19,7 @@ label: Basics/Interface
 
 点击 **Project Settings** 项，会出现项目基础设置弹窗。
 
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/032598c7-cffb-4a7a-ac1f-2dc2185ce794/image-20250212152704057.png"  style={{ zoom: "50%" }} />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/db9ba443-256a-49da-aaaf-7481b4301009/image-20250515103554317.png"  style={{ zoom: "50%" }} />
 
 项目基础设置包括：
 
@@ -29,17 +29,25 @@ label: Basics/Interface
 
 <Callout type="warning">引擎版本升级操作是不可逆的。为避免损坏项目，升级引擎过程中会自动保存一个快照。</Callout>
 
+为了快速进行项目设置，也可以从项目列表页进行项目设置。
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/b1647904-871d-4ec4-9a84-b549f0294610/image-20250515103848864.png"  style={{ zoom: "50%" }} />
+
 ## 面板布局
 
-用户可以通过此菜单唤起隐藏的面板，也可以根据自己的使用习惯保存当前面板布局，方便其他项目也使用次布局。
+你可以通过此菜单唤起隐藏的面板，也可以根据自己的使用习惯保存当前面板布局，方便其他项目也使用次布局。
 
 <Image src="https://gw.alipayobjects.com/zos/OasisHub/cafce601-36cb-4cf5-9e9c-c4e689bf7de8/image-20250212153709151.png"  style={{ zoom: "50%" }} />
 
 ## 成员管理
 
-用户可以通过邮箱搜索到新成员，添加读写、只读、编辑三种等级的权限。添加成功之后，仍然可以对成员的权限等级进行编辑或者移除该成员。
+您可以通过电子邮件搜索新成员，并为其添加读写、只读和编辑三种权限等级。成功添加后，您仍然可以编辑成员的权限等级或移除该成员。此外，您可以生成一个有效期为7天的项目邀请链接，点击该链接的用户可以直接加入项目。
 
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/e8804737-d181-4cb5-bb39-74bf800264c1/image-20250212154556326.png"  style={{ zoom: "50%" }} />
+请注意，我们目前不支持多人同时编辑同一个项目。我们将在后续版本中支持多人协作编辑。
+
+<Callout>每个项目最多有 5 名协作者</Callout>
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/d5afcff4-37db-49ff-ac53-a02430e71400/image-20250514181036015.png" />
 
 ## 项目导出
 
@@ -47,6 +55,19 @@ label: Basics/Interface
 
 ## 快照管理
 
-快照管理功能允许用户保存某个项目的快照到历史记录中，万一项目出现数据丢失等问题，可以通过 **Revert** 快速恢复到之前保存的某个快照。用户可以在菜单中选择 **Add Snapshot** 。点击快照名可以编辑快照名称，以方便下次快速找到。
+快照管理功能允许用户保存某个项目的快照到历史记录中，万一项目出现数据丢失等问题。用户可以在菜单中选择 **Add Snapshot** 。
 
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/c057ba9a-d757-4ab2-8123-9fff84aaeae3/image-20250212121056362.png" style={{ zoom: "50%" }} />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/f1288a4c-0a0b-4f4c-9325-041ba5df0e59/image-20250514175303329.png"  style={{ zoom: "50%" }} />
+
+快照显示了名称、引擎版本、作者等信息，点击快照名可以编辑快照名称，以方便下次快速找到。你可以通过 **Revert** 快速恢复到之前保存的某个快照，也可以通过 **Delete** 删除不想保留的快照。
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/041346eb-973e-4e13-aa45-cd1ef29e2b1a/image-20250514175044474.png" style={{ zoom: "50%" }} />
+
+<Callout type="info">如果在项目设置中升级了引擎版本，系统会自动保存一份原先版本的项目的快照。万一升级导致了项目无法打开，你可以从项目列表页的项目设置中恢复到原来的版本。</Callout>
+
+
+## AI
+
+<Image src="https://mdn.alipayobjects.com/rms/afts/img/A*y9LQT7sqxLwAAAAAAAAAAAAAARQnAQ/original/image.jpg" style={{ zoom: "50%" }} />
+
+你可以通过此按钮打开AI面板，目前支持[图生3D模型](/docs/AI/image2model)能力，后续的 AI 能力也会添加到这里。

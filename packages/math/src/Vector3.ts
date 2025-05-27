@@ -611,7 +611,7 @@ export class Vector3 implements IClone<Vector3>, ICopy<Vector3Like, Vector3> {
   }
 }
 
-interface Vector3Like {
+export interface Vector3Like {
   /** {@inheritDoc Vector3.x} */
   x: number;
   /** {@inheritDoc Vector3.y} */

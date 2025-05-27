@@ -1,6 +1,7 @@
 import { ignoreClone } from "../../clone/CloneManager";
 import { ShaderData, ShaderMacro } from "../../shader";
 import { ParticleGenerator } from "../ParticleGenerator";
+import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 
 /**
  * Particle generator module.
@@ -35,5 +36,12 @@ export abstract class ParticleGeneratorModule {
       enableMacro && shaderData.enableMacro(enableMacro);
     }
     return enableMacro;
+  }
+
+  protected _onCompositeCurveChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {
+    const renderer = this._generator._renderer;
+    lastValue?._unRegisterOnValueChanged(renderer._onGeneratorParamsChanged);
+    value?._registerOnValueChanged(renderer._onGeneratorParamsChanged);
+    renderer._onGeneratorParamsChanged();
   }
 }

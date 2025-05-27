@@ -1,0 +1,105 @@
+---
+order: 11
+title: Color Space
+type: Core Concept
+label: Core
+---
+
+## What is a Color Space?
+
+A color space is a standardized model used to describe how colors are represented across different media. It defines the range of color values and transformation rules through mapping functions, making it easier to convert colors between different devices or applications.
+
+When rendering graphics, the choice of color space is often limited by device support. Most devices default to using the [sRGB color space](https://www.wikiwand.com/en/articles/SRGB), which is suitable for web images, digital photography, and similar applications. The design of sRGB is based on the physiological characteristics of the human eye, particularly its higher sensitivity to darker values compared to brighter ones.
+
+---
+
+## Human Perception and the sRGB Color Space
+
+The human eye perceives light through rod cells and cone cells. Rod cells are highly sensitive to light and work primarily in low-light conditions but cannot perceive color. Cone cells, on the other hand, are responsible for color perception and function mainly in bright environments. This division allows the human eye to adapt and perceive its surroundings under varying lighting conditions.
+
+### Why is the human eye more sensitive to low light?
+
+In low-light environments, rod cells play a dominant role. Their response to light is nonlinear, especially for changes in darker values. This characteristic enables humans to distinguish subtle differences in brightness in dim environments.
+
+For example, when observing a display, linearly interpolated brightness values do not directly reflect human perception. As shown in the image below, in a linear gradient from black (0% brightness) to white (100% brightness), the human eye perceives changes after 50% brightness as less significant:
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/dc1cacea-4348-4010-ac98-18ff65c3f045/linearGradient_steps.png" />
+
+After gamma correction, the brightness changes align more closely with human perception, resulting in a more natural gradient:
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/d1492e83-522b-4e8b-b0ea-ccbfcb39a614/gammaGradient_steps.png" />
+
+The gamma correction in the sRGB color space is designed based on this perceptual characteristic, with additional optimization for very dark values, making brightness and color transitions on displays appear more natural.
+
+---
+
+## Color Space and Textures
+
+In rendering, the choice of color space for textures depends on their purpose.
+
+* Color data textures (e.g., base maps, emissive maps) should be saved in the **sRGB color space**. This is because these textures directly affect the material's color representation and need to match the sRGB color space of the display.
+
+* Non-color data textures (e.g., normal maps, metallic roughness maps) should be saved in the **linear color space**. These textures do not directly affect color but are used for lighting calculations. Saving them in linear space avoids unnecessary gamma encoding and decoding operations, optimizing rendering performance.
+
+---
+
+## Editor Usage
+
+When uploading textures in the editor, the sRGB setting is enabled by default. If the uploaded texture is non-color data (e.g., normal maps), you can manually disable the sRGB toggle. For glTF assets, the editor automatically adapts the sRGB setting based on the texture type (e.g., normal maps, base maps).
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/185f73d9-ffa5-494c-b317-76345eb4bc3d/image-20250522184013437.png" />
+
+The comparison below shows the effect of enabling and disabling the sRGB setting:
+
+<Comparison
+  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/bc3895dc-3813-4a59-b508-14660055fabe/screenshot_srgb.png"
+  leftText="sRGB ON"
+  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/bdf12227-1a3e-4f11-b15b-33a4caa642a4/screenshot_linear.png"
+  rightText="sRGB OFF"
+/>
+
+---
+
+## Script
+
+In the Galacean engine, textures are loaded with the sRGB color space enabled by default. If you need to use linear space, you can disable the sRGB setting through parameters:
+
+```ts showLineNumbers {7}
+// Load texture using Text2DLoader
+engine.resourceManager
+  .load<Texture2D>({
+    type: AssetType.Texture2D,
+    url: "https://***.png",
+    params: {
+      isSRGBColorSpace: false // Disable sRGB
+    }
+  });
+```
+
+When manually [creating a texture](/apis/core/#Texture2D), you can also specify whether to use the sRGB color space through the constructor parameters:
+
+```ts showLineNumbers {9,18}
+export declare class Texture2D extends Texture {
+  /**
+   * Create a Texture2D.
+   * @param engine - The rendering engine instance
+   * @param width - The texture width
+   * @param height - The texture height
+   * @param format - The texture format, default is `TextureFormat.R8G8B8A8`
+   * @param mipmap - Whether to use mipmaps
+   * @param isSRGBColorSpace - Whether to use the sRGB color space, default is `true`
+   * @param usage - The texture usage
+   */
+  constructor(
+    engine: Engine,
+    width: number,
+    height: number,
+    format?: TextureFormat,
+    mipmap?: boolean,
+    isSRGBColorSpace?: boolean,
+    usage?: TextureUsage
+  );
+}
+```
+
+By correctly managing the color space settings of textures, you can ensure rendering accuracy while improving performance.

@@ -1,5 +1,4 @@
 import { Color, Vector3 } from "@galacean/engine-math";
-import { ColorSpace } from "../enums/ColorSpace";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
@@ -41,26 +40,19 @@ export class PointLight extends Light {
     const colorStart = lightIndex * 3;
     const positionStart = lightIndex * 3;
     const distanceStart = lightIndex;
-
-    const lightColor = this._getLightIntensityColor();
-    const lightPosition = this.position;
+    const { color, position } = this;
 
     const cullingMask = this.cullingMask;
     data.cullingMask[cullingMaskStart] = cullingMask & 65535;
     data.cullingMask[cullingMaskStart + 1] = (cullingMask >>> 16) & 65535;
 
-    if (this.engine.settings.colorSpace === ColorSpace.Linear) {
-      data.color[colorStart] = Color.gammaToLinearSpace(lightColor.r);
-      data.color[colorStart + 1] = Color.gammaToLinearSpace(lightColor.g);
-      data.color[colorStart + 2] = Color.gammaToLinearSpace(lightColor.b);
-    } else {
-      data.color[colorStart] = lightColor.r;
-      data.color[colorStart + 1] = lightColor.g;
-      data.color[colorStart + 2] = lightColor.b;
-    }
-    data.position[positionStart] = lightPosition.x;
-    data.position[positionStart + 1] = lightPosition.y;
-    data.position[positionStart + 2] = lightPosition.z;
+    data.color[colorStart] = color.r;
+    data.color[colorStart + 1] = color.g;
+    data.color[colorStart + 2] = color.b;
+
+    data.position[positionStart] = position.x;
+    data.position[positionStart + 1] = position.y;
+    data.position[positionStart + 2] = position.z;
     data.distance[distanceStart] = this.distance;
   }
 

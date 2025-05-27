@@ -120,7 +120,6 @@ export class ConeShape extends BaseShape {
     switch (this.emitType) {
       case ConeEmitType.Base:
         radian = MathUtil.degreeToRadian(this._angle);
-
         break;
       case ConeEmitType.Volume:
         const randomRadian = MathUtil.degreeToRadian((180 - this._angle) * this.randomDirectionAmount + this._angle);

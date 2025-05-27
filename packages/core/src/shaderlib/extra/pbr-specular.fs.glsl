@@ -17,8 +17,4 @@
 void main() {
     #include <pbr_frag>
     #include <FogFragment>
-
-    #ifndef ENGINE_IS_COLORSPACE_GAMMA
-        gl_FragColor = linearToGamma(gl_FragColor);
-    #endif
 }

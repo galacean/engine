@@ -6,6 +6,7 @@ import {
   Animator,
   BaseMaterial,
   Camera,
+  Color,
   DirectLight,
   Engine,
   Entity,
@@ -35,7 +36,12 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   camera.opaqueTextureEnabled = true;
 
   const lightNode = rootEntity.createChild("light_node");
-  lightNode.addComponent(DirectLight).intensity = 0.6;
+  lightNode.addComponent(DirectLight).color = new Color(
+    0.31854677812509186,
+    0.31854677812509186,
+    0.31854677812509186,
+    1
+  );
   lightNode.transform.lookAt(new Vector3(0, 0, 1));
   lightNode.transform.rotate(new Vector3(0, 90, 0));
 
@@ -95,9 +101,6 @@ const renderOpaqueFS = `
 
     void main() {
         vec4 baseColor = texture2D(camera_OpaqueTexture, v_uv);
-        #ifndef ENGINE_IS_COLORSPACE_GAMMA
-            baseColor = gammaToLinear(baseColor);
-        #endif
 
         gl_FragColor = baseColor;
 
@@ -106,10 +109,6 @@ const renderOpaqueFS = `
         #endif
 
         #include <FogFragment>
-
-        #ifndef ENGINE_IS_COLORSPACE_GAMMA
-            gl_FragColor = linearToGamma(gl_FragColor);
-        #endif
     }`;
 
 Shader.create("RenderOpaqueTexture", renderOpaqueVS, renderOpaqueFS);

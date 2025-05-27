@@ -11,9 +11,9 @@ export class ColorTransition extends Transition<Color, UIRenderer> {
   constructor() {
     super();
     this._normal = new Color(1, 1, 1, 1);
-    this._hover = new Color(245 / 255, 245 / 255, 245 / 255, 1);
-    this._pressed = new Color(200 / 255, 200 / 255, 200 / 255, 1);
-    this._disabled = new Color(200 / 255, 200 / 255, 200 / 255, 1);
+    this._hover = new Color(0.9130986517934192, 0.9130986517934192, 0.9130986517934192, 1);
+    this._pressed = new Color(0.5775804404296506, 0.5775804404296506, 0.5775804404296506, 1);
+    this._disabled = new Color(0.5775804404296506, 0.5775804404296506, 0.5775804404296506, 1);
     this._duration = 0.1;
     this._currentValue = new Color();
 

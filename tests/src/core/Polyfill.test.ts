@@ -38,34 +38,34 @@ describe("Polyfill", () => {
 
   it("AudioContext polyfill", async () => {
     delete window.AudioContext;
-      
+
     (window as any).webkitAudioContext = class MockWebkitAudioContext {
       state = "suspended";
-      
-      constructor() { }
-      
+
+      constructor() {}
+
       decodeAudioData(arrayBuffer: ArrayBuffer, successCallback: Function) {
         setTimeout(() => {
           successCallback({ duration: 10 } as AudioBuffer);
         }, 10);
       }
     };
-    
+
     window.AudioContext = (window as any).webkitAudioContext;
-    
+
     expect(window.AudioContext).to.equal((window as any).webkitAudioContext);
-      
+
     const context = new window.AudioContext();
-    
+
     const originalDecodeAudioData = context.decodeAudioData;
-    
-    AudioContext.prototype.decodeAudioData = function(arrayBuffer: ArrayBuffer): Promise<AudioBuffer> {
+
+    AudioContext.prototype.decodeAudioData = function (arrayBuffer: ArrayBuffer): Promise<AudioBuffer> {
       const self = this;
-      return new Promise(resolve => {
+      return new Promise((resolve) => {
         originalDecodeAudioData.apply(self, [arrayBuffer, resolve]);
       });
     };
-    
+
     const arrayBuffer = new ArrayBuffer(10);
     const result = await context.decodeAudioData(arrayBuffer);
     expect(result).to.have.property("duration", 10);

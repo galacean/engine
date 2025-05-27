@@ -1,5 +1,4 @@
-import { Color, Matrix, Vector3 } from "@galacean/engine-math";
-import { ColorSpace } from "../enums/ColorSpace";
+import { Matrix, Vector3 } from "@galacean/engine-math";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
@@ -72,24 +71,16 @@ export class SpotLight extends Light {
     const distanceStart = lightIndex;
     const penumbraCosStart = lightIndex;
     const angleCosStart = lightIndex;
-
-    const lightColor = this._getLightIntensityColor();
-    const position = this.position;
-    const direction = this.direction;
+    const { color, position, direction } = this;
 
     const cullingMask = this.cullingMask;
     data.cullingMask[cullingMaskStart] = cullingMask & 65535;
     data.cullingMask[cullingMaskStart + 1] = (cullingMask >>> 16) & 65535;
 
-    if (this.engine.settings.colorSpace === ColorSpace.Linear) {
-      data.color[colorStart] = Color.gammaToLinearSpace(lightColor.r);
-      data.color[colorStart + 1] = Color.gammaToLinearSpace(lightColor.g);
-      data.color[colorStart + 2] = Color.gammaToLinearSpace(lightColor.b);
-    } else {
-      data.color[colorStart] = lightColor.r;
-      data.color[colorStart + 1] = lightColor.g;
-      data.color[colorStart + 2] = lightColor.b;
-    }
+    data.color[colorStart] = color.r;
+    data.color[colorStart + 1] = color.g;
+    data.color[colorStart + 2] = color.b;
+
     data.position[positionStart] = position.x;
     data.position[positionStart + 1] = position.y;
     data.position[positionStart + 2] = position.z;

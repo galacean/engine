@@ -1,3 +1,5 @@
+#include <common>
+
 uniform mediump sampler2D renderer_BlitTexture;
 #ifdef HAS_TEX_LOD
 	uniform float renderer_BlitMipLevel;
@@ -12,9 +14,9 @@ void main() {
 	uv = uv * renderer_SourceScaleOffset.xy + renderer_SourceScaleOffset.zw;
 
 	#ifdef HAS_TEX_LOD
-		gl_FragColor = texture2DLodEXT( renderer_BlitTexture, uv, renderer_BlitMipLevel );
+		gl_FragColor = texture2DLodSRGB( renderer_BlitTexture, uv, renderer_BlitMipLevel );
 	#else
-		gl_FragColor = texture2D( renderer_BlitTexture, uv );
+		gl_FragColor = texture2DSRGB( renderer_BlitTexture, uv );
 	#endif
 }
 

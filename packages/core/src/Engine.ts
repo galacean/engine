@@ -23,11 +23,9 @@ import { SceneManager } from "./SceneManager";
 import { ResourceManager } from "./asset/ResourceManager";
 import { EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
-import { ColorSpace } from "./enums/ColorSpace";
 import { InputManager } from "./input";
 import { Material } from "./material/Material";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
-import { PhysicsScene } from "./physics/PhysicsScene";
 import { ColliderShape } from "./physics/shape/ColliderShape";
 import { PostProcessPass } from "./postProcess/PostProcessPass";
 import { PostProcessUberPass } from "./postProcess/PostProcessUberPass";
@@ -51,9 +49,11 @@ ShaderPool.init();
  */
 export class Engine extends EventDispatcher {
   /** @internal */
-  static _gammaMacro: ShaderMacro = ShaderMacro.getByName("ENGINE_IS_COLORSPACE_GAMMA");
+  static _noDepthTextureMacro = ShaderMacro.getByName("ENGINE_NO_DEPTH_TEXTURE");
   /** @internal */
-  static _noDepthTextureMacro: ShaderMacro = ShaderMacro.getByName("ENGINE_NO_DEPTH_TEXTURE");
+  static _noSRGBSupportMacro = ShaderMacro.getByName("ENGINE_NO_SRGB");
+  /** @internal */
+  static _outputSRGBCorrectMacro = ShaderMacro.getByName("ENGINE_OUTPUT_SRGB_CORRECT");
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
   /** @internal */
@@ -108,8 +108,8 @@ export class Engine extends EventDispatcher {
   _shaderProgramPools: ShaderProgramPool[] = [];
   /** @internal */
   _fontMap: Record<string, Font> = {};
-  /** @internal @todo: temporary solution */
-  _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
+  /** @internal */
+  _macroCollection = new ShaderMacroCollection();
 
   /** @internal */
   _postProcessPassNeedRefresh = false;
@@ -256,9 +256,13 @@ export class Engine extends EventDispatcher {
     if (!hardwareRenderer.canIUse(GLCapabilityType.depthTexture)) {
       this._macroCollection.enable(Engine._noDepthTextureMacro);
     } else {
-      const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false);
+      const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false, false);
       depthTexture2D.isGCIgnored = true;
       this._depthTexture2D = depthTexture2D;
+    }
+
+    if (!hardwareRenderer.canIUse(GLCapabilityType.sRGB)) {
+      this._macroCollection.enable(Engine._noSRGBSupportMacro);
     }
 
     const meshMagentaMaterial = new Material(this, Shader.find("unlit"));
@@ -270,11 +274,6 @@ export class Engine extends EventDispatcher {
     particleMagentaMaterial.isGCIgnored = true;
     particleMagentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
     this._particleMagentaMaterial = particleMagentaMaterial;
-
-    const innerSettings = this._settings;
-    const colorSpace = configuration.colorSpace || ColorSpace.Linear;
-    colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
-    innerSettings.colorSpace = colorSpace;
 
     this._basicResources = new BasicResources(this);
     this._particleBufferUtils = new ParticleBufferUtils(this);
@@ -573,10 +572,16 @@ export class Engine extends EventDispatcher {
           (camera: Camera) => {
             componentsManager.callCameraOnBeginRender(camera);
 
-            // Update post process manager
-            scene.postProcessManager._update(camera);
+            const { pixelViewport } = camera;
+            // `pixelViewport` width or height is `0` will cause internal render target create error and return can save performance
+            if (pixelViewport.width !== 0 && pixelViewport.height !== 0) {
+              // Update post process manager
+              scene.postProcessManager._update(camera);
+              camera.render();
+            } else {
+              Logger.warn("Camera pixelViewport width or height is 0.");
+            }
 
-            camera.render();
             componentsManager.callCameraOnEndRender(camera);
 
             // Temp solution for webgl implement bug
@@ -703,8 +708,6 @@ export interface EngineConfiguration {
   physics?: IPhysics;
   /** XR Device. */
   xrDevice?: IXRDevice;
-  /** Color space. */
-  colorSpace?: ColorSpace;
   /** Shader lab. */
   shaderLab?: IShaderLab;
   /** Input options. */

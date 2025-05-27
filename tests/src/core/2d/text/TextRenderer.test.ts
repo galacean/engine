@@ -24,7 +24,6 @@ describe("TextRenderer", () => {
     engine = await WebGLEngine.create({
       canvas: document.createElement("canvas")
     });
-    engine.canvas.resizeByClientSize();
 
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
 

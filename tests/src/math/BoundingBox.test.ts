@@ -251,4 +251,11 @@ describe("BoundingBox test", () => {
     expect(Vector3.equals(a.min, out.min)).eq(true);
     expect(Vector3.equals(a.max, out.max)).eq(true);
   });
+
+  it("toJSON", () => {
+    const min = new Vector3(1, 2, 3);
+    const max = new Vector3(4, 5, 6);
+    const boundingBox = new BoundingBox(min, max);
+    expect(boundingBox.toJSON()).to.deep.eq({ min: { x: 1, y: 2, z: 3 }, max: { x: 4, y: 5, z: 6 } });
+  });
 });

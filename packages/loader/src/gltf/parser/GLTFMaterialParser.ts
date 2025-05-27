@@ -49,12 +49,7 @@ export class GLTFMaterialParser extends GLTFParser {
         pbrMetallicRoughness;
 
       if (baseColorFactor) {
-        material.baseColor = new Color(
-          Color.linearToGammaSpace(baseColorFactor[0]),
-          Color.linearToGammaSpace(baseColorFactor[1]),
-          Color.linearToGammaSpace(baseColorFactor[2]),
-          baseColorFactor[3]
-        );
+        material.baseColor.copyFromArray(baseColorFactor);
       }
       if (baseColorTexture) {
         context
@@ -104,11 +99,7 @@ export class GLTFMaterialParser extends GLTFParser {
       }
 
       if (emissiveFactor) {
-        material.emissiveColor = new Color(
-          Color.linearToGammaSpace(emissiveFactor[0]),
-          Color.linearToGammaSpace(emissiveFactor[1]),
-          Color.linearToGammaSpace(emissiveFactor[2])
-        );
+        material.emissiveColor.set(emissiveFactor[0], emissiveFactor[1], emissiveFactor[2], 1.0);
       }
 
       if (normalTexture) {

@@ -8,8 +8,6 @@ label: Graphics/Renderer
 
 [MeshRenderer](/apis/core/#MeshRenderer) 是网格渲染器组件， 使用网格对象（如立方体）作为几何体轮廓的数据源。当一个实体挂载了网格渲染组件，只需设置它的 `mesh` 与 `material` 即可渲染物体。
 
-<Playground href="/embed/scene-basic" />
-
 ## 使用
 
 在编辑器 **[层级面板](/docs/interface/hierarchy)** 中，你可以快速创建一个挂载了长方体网格渲染器的节点（ **层级面板** -> **右键** -> **3D Object** -> **Cuboid** ）。
@@ -33,7 +31,7 @@ cube.setMaterial(new BlinnPhongMaterial(engine));
 
 在编辑器中，可以很方便地设置网格渲染器的属性。
 
-<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*5Y-3TrYyWo8AAAAAAAAAAAAADhuCAQ/original" alt="image-20231007153753006" style={{ zoom: "50%" }} />
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*A5SWQ5v-QKwAAAAAAAAAAAAAehuCAQ/original" alt="image-20231007153753006" style={{ zoom: "50%" }} />
 
 | 设置             | 解释                                               |
 | :--------------- | :------------------------------------------------- |
@@ -47,13 +45,7 @@ cube.setMaterial(new BlinnPhongMaterial(engine));
 
 | 属性                | 解释           |
 | :------------------ | :------------- |
-| `enableVertexColor` | 是否支持顶点色 |
-
-```typescript
-const meshRenderer = entity.getComponent(MeshRenderer);
-// 启用顶点色
-meshRenderer.enableVertexColor = true;
-```
+| [enableVertexColor](/apis/core//#MeshRenderer-enableVertexColor) | 是否支持顶点色 |
 
 ## 方法
 

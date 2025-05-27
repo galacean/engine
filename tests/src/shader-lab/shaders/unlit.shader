@@ -117,9 +117,7 @@ Shader "Water" {
 
         #ifdef MATERIAL_HAS_BASETEXTURE
             vec4 textureColor = texture2D(u_textures[2], v_uv);
-            #ifndef ENGINE_IS_COLORSPACE_GAMMA
-                textureColor = gammaToLinear(textureColor);
-            #endif
+            textureColor = gammaToLinear(textureColor);
             baseColor *= textureColor;
         #endif
 
@@ -135,9 +133,7 @@ Shader "Water" {
             gl_FragColor.a = 1.0;
         #endif
 
-        #ifndef ENGINE_IS_COLORSPACE_GAMMA
-            gl_FragColor = linearToGamma(gl_FragColor);
-        #endif
+        gl_FragColor = linearToGamma(gl_FragColor);
       }
 
       VertexShader = vert;
