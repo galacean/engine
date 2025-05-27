@@ -30,8 +30,6 @@ function checkWebpSupport(): AssetPromise<boolean> {
 
 @registerGLTFExtension("EXT_texture_webp", GLTFExtensionMode.CreateAndParse)
 class EXT_texture_webp extends GLTFExtensionParser {
-  private _supportWebP = checkWebpSupport();
-
   override createAndParse(
     context: GLTFParserContext,
     schema: EXTWebPSchema,
@@ -41,7 +39,7 @@ class EXT_texture_webp extends GLTFExtensionParser {
   ): AssetPromise<Texture2D> {
     const webPIndex = schema.source;
     const { sampler, source: fallbackIndex = 0, name: textureName } = textureInfo;
-    return this._supportWebP.then((supportWebP) => {
+    return checkWebpSupport().then((supportWebP) => {
       return GLTFTextureParser._parseTexture(
         context,
         supportWebP ? webPIndex : fallbackIndex,
