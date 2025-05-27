@@ -90,8 +90,7 @@ export class SystemInfo {
   static _checkWebpSupported(): AssetPromise<boolean> {
     if (!this._webpSupported) {
       this._webpSupported = new AssetPromise((resolve) => {
-        // @ts-ignore
-        if (SystemInfo._isBrowser) {
+        if (this._isBrowser) {
           const img = new Image();
           img.onload = function () {
             const result = img.width > 0 && img.height > 0;
