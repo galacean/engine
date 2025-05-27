@@ -62,10 +62,10 @@ export class PhysXPhysics implements IPhysics {
     this._runTimeMode = runtimeMode;
     this._wasmModeUrl =
       runtimeUrls?.wasmModeUrl ??
-      "https://mdn.alipayobjects.com/rms/afts/file/A*nL1PSrCPoZ0AAAAAAAAAAAAAARQnAQ/physx.release.js";
+      "https://mdn.alipayobjects.com/rms/afts/file/A*_sSyR5oWKjkAAAAAAAAAAAAAARQnAQ/physx.release.js";
     this._downgradeModeUrl =
       runtimeUrls?.javaScriptModeUrl ??
-      "https://mdn.alipayobjects.com/rms/afts/file/A*ROBqQJEjZXAAAAAAAAAAAAAAARQnAQ/physx.release.downgrade.js";
+      "https://mdn.alipayobjects.com/rms/afts/file/A*3frOSZNS8RwAAAAAAAAAAAAAARQnAQ/physx.release.downgrade.js";
   }
 
   /**
