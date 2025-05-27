@@ -8,8 +8,13 @@ import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 interface EXTWebPSchema {
   source: number;
 }
+
+let webpSupportPromise: AssetPromise<boolean> | null = null;
 function checkWebpSupport(): AssetPromise<boolean> {
-  return new AssetPromise((resolve) => {
+  if (webpSupportPromise) {
+    return webpSupportPromise;
+  }
+  webpSupportPromise = new AssetPromise((resolve) => {
     // @ts-ignore
     if (SystemInfo._isBrowser) {
       const img = new Image();
@@ -26,6 +31,7 @@ function checkWebpSupport(): AssetPromise<boolean> {
       resolve(false);
     }
   });
+  return webpSupportPromise;
 }
 
 @registerGLTFExtension("EXT_texture_webp", GLTFExtensionMode.CreateAndParse)
