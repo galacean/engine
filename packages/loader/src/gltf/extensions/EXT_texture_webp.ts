@@ -8,25 +8,36 @@ import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 interface EXTWebPSchema {
   source: number;
 }
+function checkWebpSupport(): Promise<boolean> {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = function () {
+        const result = (img.width > 0) && (img.height > 0);
+        resolve(result);
+        };
+        img.onerror = function () {
+        resolve(false);
+        };
+        img.src = 'data:image/webp;base64,UklGRhACAABXRUJQVlA4WAoAAAAwAAAAAAAAAAAASUNDUMgBAAAAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADZBTFBIAgAAAAAAVlA4IBgAAAAwAQCdASoBAAEAAUAmJaQAA3AA/v02aAA=';
+    })
+}
 
 @registerGLTFExtension("EXT_texture_webp", GLTFExtensionMode.CreateAndParse)
 class EXT_texture_webp extends GLTFExtensionParser {
-  private _supportWebP = false;
+  private _supportWebP = false as boolean| Promise<boolean>;
 
   constructor() {
     super();
 
     // @ts-ignore
     if (SystemInfo._isBrowser) {
-      const testCanvas = document.createElement("canvas");
-      testCanvas.width = testCanvas.height = 1;
-      this._supportWebP = testCanvas.toDataURL("image/webp").indexOf("data:image/webp") == 0;
+      this._supportWebP = checkWebpSupport()
     } else {
       this._supportWebP = false;
     }
   }
 
-  override createAndParse(
+  override async createAndParse(
     context: GLTFParserContext,
     schema: EXTWebPSchema,
     textureInfo: ITexture,
@@ -35,9 +46,13 @@ class EXT_texture_webp extends GLTFExtensionParser {
   ): AssetPromise<Texture2D> {
     const webPIndex = schema.source;
     const { sampler, source: fallbackIndex = 0, name: textureName } = textureInfo;
+    let supportWebP = false;
+    if(this._supportWebP) {
+      supportWebP = await this._supportWebP;
+    }
     const texture = GLTFTextureParser._parseTexture(
       context,
-      this._supportWebP ? webPIndex : fallbackIndex,
+      supportWebP ? webPIndex : fallbackIndex,
       textureIndex,
       sampler,
       textureName,
