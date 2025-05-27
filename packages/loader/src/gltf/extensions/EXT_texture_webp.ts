@@ -8,36 +8,31 @@ import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 interface EXTWebPSchema {
   source: number;
 }
-function checkWebpSupport(): Promise<boolean> {
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = function () {
-        const result = (img.width > 0) && (img.height > 0);
+function checkWebpSupport(): AssetPromise<boolean> {
+  return new AssetPromise((resolve) => {
+    // @ts-ignore
+    if (SystemInfo._isBrowser) {
+      const img = new Image();
+      img.onload = function () {
+        const result = img.width > 0 && img.height > 0;
         resolve(result);
-        };
-        img.onerror = function () {
+      };
+      img.onerror = function () {
         resolve(false);
-        };
-        img.src = 'data:image/webp;base64,UklGRhACAABXRUJQVlA4WAoAAAAwAAAAAAAAAAAASUNDUMgBAAAAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADZBTFBIAgAAAAAAVlA4IBgAAAAwAQCdASoBAAEAAUAmJaQAA3AA/v02aAA=';
-    })
+      };
+      img.src =
+        "data:image/webp;base64,UklGRhACAABXRUJQVlA4WAoAAAAwAAAAAAAAAAAASUNDUMgBAAAAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADZBTFBIAgAAAAAAVlA4IBgAAAAwAQCdASoBAAEAAUAmJaQAA3AA/v02aAA=";
+    } else {
+      resolve(false);
+    }
+  });
 }
 
 @registerGLTFExtension("EXT_texture_webp", GLTFExtensionMode.CreateAndParse)
 class EXT_texture_webp extends GLTFExtensionParser {
-  private _supportWebP = false as boolean| Promise<boolean>;
+  private _supportWebP = checkWebpSupport();
 
-  constructor() {
-    super();
-
-    // @ts-ignore
-    if (SystemInfo._isBrowser) {
-      this._supportWebP = checkWebpSupport()
-    } else {
-      this._supportWebP = false;
-    }
-  }
-
-  override async createAndParse(
+  override createAndParse(
     context: GLTFParserContext,
     schema: EXTWebPSchema,
     textureInfo: ITexture,
@@ -46,19 +41,15 @@ class EXT_texture_webp extends GLTFExtensionParser {
   ): AssetPromise<Texture2D> {
     const webPIndex = schema.source;
     const { sampler, source: fallbackIndex = 0, name: textureName } = textureInfo;
-    let supportWebP = false;
-    if(this._supportWebP) {
-      supportWebP = await this._supportWebP;
-    }
-    const texture = GLTFTextureParser._parseTexture(
-      context,
-      supportWebP ? webPIndex : fallbackIndex,
-      textureIndex,
-      sampler,
-      textureName,
-      isSRGBColorSpace
-    );
-
-    return texture;
+    return this._supportWebP.then((supportWebP) => {
+      return GLTFTextureParser._parseTexture(
+        context,
+        supportWebP ? webPIndex : fallbackIndex,
+        textureIndex,
+        sampler,
+        textureName,
+        isSRGBColorSpace
+      );
+    });
   }
 }
