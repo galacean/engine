@@ -1,4 +1,4 @@
-import { Quaternion, Vector3, version } from "@galacean/engine";
+import { Quaternion, Vector3 } from "@galacean/engine";
 import {
   IBoxColliderShape,
   ICapsuleColliderShape,
@@ -93,9 +93,9 @@ export class PhysXPhysics implements IPhysics {
       }
 
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
-        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*V4pqRqM65UMAAAAAAAAAAAAAARQnAQ/physx.release.downgrade.js`;
+        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*_sSyR5oWKjkAAAAAAAAAAAAAARQnAQ/physx.release.js`;
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
-        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*jlLNQqp6mBsAAAAAAAAAAAAAARQnAQ/physx.release.js`;
+        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*3frOSZNS8RwAAAAAAAAAAAAAARQnAQ/physx.release.downgrade.js`;
       }
     });
 
