@@ -9,10 +9,12 @@ import {
   TextureCoordinate,
   UnlitMaterial
 } from "@galacean/engine-core";
-import { Color } from "@galacean/engine-math";
 import { IMaterial, ITextureInfo, MaterialAlphaMode } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFParserContext";
+
+// @todo: remap plugin should have a higher priority storage location
+const REMAP_NAME = "GALACEAN_materials_remap";
 
 @registerGLTFParser(GLTFParserType.Material)
 export class GLTFMaterialParser extends GLTFParser {
@@ -167,9 +169,17 @@ export class GLTFMaterialParser extends GLTFParser {
     const materialInfo = context.glTF.materials[index];
     const glTFResource = context.glTFResource;
     const engine = glTFResource.engine;
+    let extensions = materialInfo.extensions || {};
+
+    //Keep only the remap extension
+    if (extensions[REMAP_NAME]) {
+      extensions = {
+        [REMAP_NAME]: extensions[REMAP_NAME]
+      };
+    }
 
     let material = <Material | Promise<Material>>(
-      GLTFParser.executeExtensionsCreateAndParse(materialInfo.extensions, context, materialInfo)
+      GLTFParser.executeExtensionsCreateAndParse(extensions, context, materialInfo)
     );
 
     if (!material) {
@@ -181,7 +191,7 @@ export class GLTFMaterialParser extends GLTFParser {
     return AssetPromise.resolve(material).then((material) => {
       // @ts-ignore
       material ||= engine._basicResources._getBlinnPhongMaterial();
-      GLTFParser.executeExtensionsAdditiveAndParse(materialInfo.extensions, context, material, materialInfo);
+      GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, material, materialInfo);
       // @ts-ignore
       material._associationSuperResource(glTFResource);
       return material;
