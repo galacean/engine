@@ -2,6 +2,7 @@ import { GLCapabilityType } from "./base/Constant";
 import { Engine } from "./Engine";
 import { Platform } from "./Platform";
 import { TextureFormat } from "./texture";
+import { AssetPromise } from "./asset/AssetPromise";
 
 /**
  * Access operating system, platform and hardware information.
@@ -17,6 +18,8 @@ export class SystemInfo {
 
   /** Whether the system support SIMD. */
   private static _simdSupported: boolean | null = null;
+
+  private static _webpSupported: AssetPromise<boolean> | null = null;
 
   /**
    * The pixel ratio of the device.
@@ -82,6 +85,28 @@ export class SystemInfo {
       );
     }
     return this._simdSupported;
+  }
+
+  static _checkWebpSupported(): AssetPromise<boolean> {
+    if (!this._webpSupported) {
+      this._webpSupported = new AssetPromise((resolve) => {
+        if (this._isBrowser) {
+          const img = new Image();
+          img.onload = function () {
+            const result = img.width > 0 && img.height > 0;
+            resolve(result);
+          };
+          img.onerror = function () {
+            resolve(false);
+          };
+          img.src =
+            "data:image/webp;base64,UklGRhACAABXRUJQVlA4WAoAAAAwAAAAAAAAAAAASUNDUMgBAAAAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADZBTFBIAgAAAAAAVlA4IBgAAAAwAQCdASoBAAEAAUAmJaQAA3AA/v02aAA=";
+        } else {
+          resolve(false);
+        }
+      });
+    }
+    return this._webpSupported;
   }
 
   /**

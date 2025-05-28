@@ -11,21 +11,6 @@ interface EXTWebPSchema {
 
 @registerGLTFExtension("EXT_texture_webp", GLTFExtensionMode.CreateAndParse)
 class EXT_texture_webp extends GLTFExtensionParser {
-  private _supportWebP = false;
-
-  constructor() {
-    super();
-
-    // @ts-ignore
-    if (SystemInfo._isBrowser) {
-      const testCanvas = document.createElement("canvas");
-      testCanvas.width = testCanvas.height = 1;
-      this._supportWebP = testCanvas.toDataURL("image/webp").indexOf("data:image/webp") == 0;
-    } else {
-      this._supportWebP = false;
-    }
-  }
-
   override createAndParse(
     context: GLTFParserContext,
     schema: EXTWebPSchema,
@@ -35,15 +20,15 @@ class EXT_texture_webp extends GLTFExtensionParser {
   ): AssetPromise<Texture2D> {
     const webPIndex = schema.source;
     const { sampler, source: fallbackIndex = 0, name: textureName } = textureInfo;
-    const texture = GLTFTextureParser._parseTexture(
-      context,
-      this._supportWebP ? webPIndex : fallbackIndex,
-      textureIndex,
-      sampler,
-      textureName,
-      isSRGBColorSpace
-    );
-
-    return texture;
+    return SystemInfo._checkWebpSupported().then((supportWebP) => {
+      return GLTFTextureParser._parseTexture(
+        context,
+        supportWebP ? webPIndex : fallbackIndex,
+        textureIndex,
+        sampler,
+        textureName,
+        isSRGBColorSpace
+      );
+    });
   }
 }
