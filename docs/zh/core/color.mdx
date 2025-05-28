@@ -33,45 +33,34 @@ sRGB 色彩空间的伽马校正正是基于这种感知特性设计的，并对
 
 ---
 
-## 色彩空间与纹理
+## sRGB 纹理
 
-在渲染中，纹理的色彩空间选择取决于其用途。
+纹理支持硬件级的 sRGB 颜色解码，可以提升渲染色彩的准确性，同时提升性能和减少 Shader 编码的复杂度。如果开启 sRGB， Shader 采样纹理时硬件会自动解码为线性数据，纹理大致分为两类：
 
-* 颜色数据纹理（如基础贴图、自发光贴图）应使用 **sRGB 色彩空间** 保存。这是因为这些纹理直接影响材质的颜色表现，且需要与显示器的 sRGB 色彩空间匹配。
+* 颜色纹理（如基础贴图、自发光贴图）应使用 sRGB 色彩空间，因为这些纹理通常是通过显示器在 sRGB 空间创作的。
+* 数据纹理（如法线贴图、金属粗糙度贴图）无需使用 sRGB 色彩空间，这些非颜色数据本身就存储在线性空间。
 
-* 非颜色数据纹理（如法线贴图、金属粗糙度贴图）应使用 **线性色彩空间** 保存。这些纹理不直接影响颜色，而是用于光照计算。将它们保存为线性空间可以避免不必要的伽马编码和解码操作，从而优化渲染性能。
 
----
+### 编辑器使用
 
-## 编辑器使用
+在编辑器上传纹理时，默认会开启 sRGB 开关。如果上传的是非颜色数据纹理（如法线贴图），可以手动关闭 sRGB 开关。对于 glTF 资产，编辑器会根据纹理类型（如法线贴图、基础贴图）自动适配 sRGB 开关。
 
-在编辑器中上传纹理时，默认会开启 sRGB 设置。如果上传的是非颜色数据纹理（如法线贴图），可以手动关闭 sRGB 开关。对于 glTF 资产，编辑器会根据贴图类型（如法线贴图、基础贴图）自动适配 sRGB 设置。
-
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/185f73d9-ffa5-494c-b317-76345eb4bc3d/image-20250522184013437.png" />
-
-以下对比图展示了开启和关闭 sRGB 设置的效果：
-
-<Comparison
-  leftSrc="https://gw.alipayobjects.com/zos/OasisHub/bc3895dc-3813-4a59-b508-14660055fabe/screenshot_srgb.png"
-  leftText="sRGB ON"
-  rightSrc="https://gw.alipayobjects.com/zos/OasisHub/bdf12227-1a3e-4f11-b15b-33a4caa642a4/screenshot_linear.png"
-  rightText="sRGB OFF"
-/>
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/80263907-8340-4bd2-8b8f-462b4779ccab/image-20250528114039960.png" />
 
 ---
 
-## 脚本使用
+### 脚本使用
 
-在 Galacean 引擎中，[加载纹理](/docs/assets/load) 时默认使用 sRGB 色彩空间。如果需要使用线性空间，可以通过参数关闭 sRGB 设置：
+[加载纹理](/docs/assets/load) 默认使用 sRGB 色彩空间。如果需要使用线性空间，可以通过参数关闭 sRGB 设置：
 
 ```ts showLineNumbers {7}
-// 使用 Text2DLoader 加载纹理
+// 使用 Texture2DLoader 加载纹理
 engine.resourceManager
   .load<Texture2D>({
     type: AssetType.Texture2D,
     url: "https://***.png",
     params: {
-      isSRGBColorSpace: false // 关闭 sRGB
+      isSRGBColorSpace: false // 关闭 sRGB，使用线性空间，如法线贴图
     }
   });
 ```
