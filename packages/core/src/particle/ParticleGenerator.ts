@@ -1195,7 +1195,7 @@ export class ParticleGenerator {
     const gravityEffectMinZ = z * minGravityEffect;
     const gravityEffectMaxZ = z * maxGravityEffect;
 
-    // `origin` and `out` is same reference
+    // `origin` and `out` maybe is same reference
     out.min.set(
       Math.min(gravityEffectMinX, gravityEffectMaxX) + originMin.x,
       Math.min(gravityEffectMinY, gravityEffectMaxY) + originMin.y,
