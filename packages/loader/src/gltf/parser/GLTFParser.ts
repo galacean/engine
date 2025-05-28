@@ -101,7 +101,10 @@ export abstract class GLTFParser {
     GLTFParser._extensionParsers[extensionName].push(extensionParser);
   }
 
-  private static _createAndParse(
+  /**
+   * @internal
+   */
+  static _createAndParse(
     extensionName: string,
     context: GLTFParserContext,
     extensionSchema: GLTFExtensionSchema,
