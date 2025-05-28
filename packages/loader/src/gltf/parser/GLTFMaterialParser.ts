@@ -171,6 +171,7 @@ export class GLTFMaterialParser extends GLTFParser {
     const engine = glTFResource.engine;
     let extensions = materialInfo.extensions || {};
 
+    //Keep only the remap extension
     if (extensions[REMAP_NAME]) {
       extensions = {
         [REMAP_NAME]: extensions[REMAP_NAME]
