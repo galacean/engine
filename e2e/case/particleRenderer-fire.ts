@@ -3,31 +3,31 @@
  * @category Particle
  */
 import {
-    AssetType,
-    BlendMode,
-    Burst,
-    Camera,
-    Color,
-    ConeShape,
-    CurveKey,
-    Engine,
-    Entity,
-    Logger,
-    ParticleCompositeCurve,
-    ParticleCurve,
-    ParticleCurveMode,
-    ParticleGradientMode,
-    ParticleMaterial,
-    ParticleRenderer,
-    ParticleScaleMode,
-    ParticleSimulationSpace,
-    PointerButton,
-    Script,
-    SphereShape,
-    Texture2D,
-    Vector2,
-    Vector3,
-    WebGLEngine
+  AssetType,
+  BlendMode,
+  Burst,
+  Camera,
+  Color,
+  ConeShape,
+  CurveKey,
+  Engine,
+  Entity,
+  Logger,
+  ParticleCompositeCurve,
+  ParticleCurve,
+  ParticleCurveMode,
+  ParticleGradientMode,
+  ParticleMaterial,
+  ParticleRenderer,
+  ParticleScaleMode,
+  ParticleSimulationSpace,
+  PointerButton,
+  Script,
+  SphereShape,
+  Texture2D,
+  Vector2,
+  Vector3,
+  WebGLEngine
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
@@ -44,7 +44,7 @@ WebGLEngine.create({
 
   // Create camera
   const cameraEntity = rootEntity.createChild("camera_entity");
-  cameraEntity.transform.position = new Vector3(0, 1, 3);
+  cameraEntity.transform.position = new Vector3(-10, 1, 3);// -10 can test bounds transform
   const camera = cameraEntity.addComponent(Camera);
   camera.fieldOfView = 60;
 
@@ -85,6 +85,7 @@ function createFireParticle(engine: Engine, texture: Texture2D): Entity {
   const particleEntity = new Entity(engine, "Fire");
   particleEntity.transform.scale.set(1.268892, 1.268892, 1.268892);
   particleEntity.transform.rotate(90, 0, 0);
+  particleEntity.transform.position.set(-10, 0, 0);
 
   const particleRenderer = particleEntity.addComponent(ParticleRenderer);
 
