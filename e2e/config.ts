@@ -237,6 +237,11 @@ export const E2E_CONFIG = {
       caseFileName: "particleRenderer-dream",
       threshold: 0.1
     },
+     particleFire: {
+      category: "Particle",
+      caseFileName: "particleRenderer-fire",
+      threshold: 0.1
+    },
     forceOverLifetime: {
       category: "Particle",
       caseFileName: "particleRenderer-force",
