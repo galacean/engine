@@ -19,7 +19,7 @@ export class SystemInfo {
   /** Whether the system support SIMD. */
   private static _simdSupported: boolean | null = null;
 
-  static _webpSupported: AssetPromise<boolean> | null = null;
+  private static _webpSupported: AssetPromise<boolean> | null = null;
 
   /**
    * The pixel ratio of the device.
