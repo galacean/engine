@@ -7,18 +7,21 @@ import { ContextRendererUpdateFlag } from "../RenderPipeline/RenderContext";
 import { Scene } from "../Scene";
 import { VirtualCamera } from "../VirtualCamera";
 import { EngineObject } from "../base";
-import { RenderQueueType, ShaderData, ShaderDataGroup } from "../shader";
+import { RenderQueueType, ShaderData, ShaderDataGroup, ShaderMacro } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { DisorderedArray } from "../utils/DisorderedArray";
 import { IUICanvas } from "./IUICanvas";
 
 export class UIUtils {
+  private static _shouldSRGBCorrect = ShaderMacro.getByName("ENGINE_SHOULD_SRGB_CORRECT");
+
   private static _renderQueue: RenderQueue;
   private static _virtualCamera: VirtualCamera;
   private static _viewport: Vector4;
   private static _overlayCamera: OverlayCamera;
 
   static renderOverlay(engine: Engine, scene: Scene, uiCanvases: DisorderedArray<IUICanvas>): void {
+    engine._macroCollection.enable(UIUtils._shouldSRGBCorrect);
     const { canvas, _hardwareRenderer: rhi, _renderContext: renderContext, _batcherManager: batcherManager } = engine;
     const uiRenderQueue = (this._renderQueue ||= new RenderQueue(RenderQueueType.Transparent));
     const virtualCamera = (this._virtualCamera ||= new VirtualCamera());
@@ -50,6 +53,7 @@ export class UIUtils {
       }
     }
     renderContext.camera = null;
+    engine._macroCollection.disable(UIUtils._shouldSRGBCorrect);
   }
 }
 
