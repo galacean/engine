@@ -6,145 +6,85 @@ group: Texture
 label: Graphics/Texture
 ---
 
-Textures ([Texture](/apis/core/#Texture)) are one of the most commonly used resources in 3D rendering. When shading a model, we need to set a color value for each fragment. Besides setting the color value manually, we can also choose to read texels from a texture for shading to achieve richer artistic effects.
+## Texture Overview
 
-> It is worth noting that images, canvas, raw data, videos, etc., can all be used as textures. The Galacean engine currently supports all WebGL standard textures.
+Textures ([Texture](/apis/core/#Texture)) are one of the most commonly used resources in 3D rendering. By using textures, we can set color values for each fragment of a model, achieving richer artistic effects. Textures can come from images, canvas elements, raw data, videos, etc. The Galacean engine supports all WebGL standard textures.
 
-We will find that many issues in the engine stem from mapping between different spaces (such as MVP transformations). Textures are no exception. Developers need to understand the mapping relationship from image space to texture space and the mapping rules from texels to pixels.
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/c4945cc8-8cba-48a7-85ae-f6f2903fcfe1/image-20250529143945756.png" />
 
-This article will mainly introduce:
+<Callout type="info">
+  The use of textures involves spatial mapping (e.g., MVP transformations). Developers need to understand the mapping relationship from image space to texture space, as well as the mapping rules from texels to pixels.
+</Callout>
 
-- Types of textures, texture space, and common properties
-- [2D Textures](/en/docs/graphics/texture/2d/)
-- [Cube Textures](/en/docs/graphics/texture/cube/)
-- [Playing Videos through Textures](/en/docs/graphics/texture/2d/)
-- [Setting Sky Textures](/en/docs/graphics/background/sky/)
-- [Off-screen Rendering Textures](/en/docs/graphics/texture/rtt/)
-- Using [Compressed Textures](/en/docs/graphics/texture/compression/)
+---
+
+## Purpose of Textures
+
+The main purposes of textures in 3D rendering include:
+
+- Adding colors and details to models, such as base textures and normal maps.
+- Creating effects like [skyboxes](/en/docs/graphics/background/sky/) and environmental reflections.
+- [Playing videos through textures](/en/docs/graphics/texture/2d/).
+- Improving performance through optimization techniques like [compressed textures](/en/docs/graphics/texture/compression/).
+
+---
 
 ## Texture Types
 
 | Type                                     | Description                                                        |
 | :--------------------------------------- | :----------------------------------------------------------------- |
-| [2D Textures](/en/docs/graphics/texture/2d/)    | The most commonly used artistic resource, sampled using 2D UV coordinates                         |
-| [Cube Textures](/en/docs/graphics/texture/cube/) | Composed of 6 2D textures, can be used to achieve skybox, environment reflection effects |
-| 2D Texture Arrays                              | Occupies only one texture unit, very suitable for implementing texture atlas switching needs         |
+| [2D Textures](/en/docs/graphics/texture/2d/)    | The most commonly used artistic resource, sampled using 2D UV coordinates. |
+| [Cube Textures](/en/docs/graphics/texture/cube/) | Composed of 6 2D textures, used to create skyboxes and environmental reflection effects. |
+| [2D Texture Arrays](/apis/core/#Texture2DArray) | Occupies only one texture unit, ideal for scenarios requiring texture atlas switching. |
 
-## Texture Space
+---
 
-Texture space is determined by the shape of the texture. 2D textures require 2D space vectors for texture sampling, while cube textures require 3D space vectors for texture sampling.
+## Properties
 
-<div style={{display: "flex", gap: "20px"}}>
-  <figure style={{flex:1}}>
-  <Image alt="Texture 2D" src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*lQ29R7W1ufsAAAAAAAAAAAAADhuCAQ/original" style={{zoom: "50%"}} />
-  <figcaption style={{textAlign: "center", color: "#889096", fontSize: "12px"}}>Texture 2D</figcaption>
-	</figure>
-  <figure style={{flex:1}}>
-    <Image alt="Texture Cube" src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*X752S5pQSB0AAAAAAAAAAAAAARQnAQ" style={{zoom: "80%"}} />
-    <figcaption style={{textAlign: "center", color: "#889096", fontSize: "12px"}}>Texture Cube</figcaption>
-  </figure>
-</div>
+### sRGB
+Determines whether the texture data is in the sRGB color space. The default is `true`. For linear data like normal maps, this option should be disabled. For more details, see [Color Space](/en/docs/core/color/).
 
-## Common Properties
+### Mipmap
 
-Although there are various types of textures, they all have some similar basic properties and settings:
-
-| Property                                                            | Value                                                                                                                                                                                         |
-| :-------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Wrap Mode U ([wrapModeU](/apis/core/#Texture-wrapModeU))         | Clamp Mode ([Clamp](/apis/core/#TextureWrapMode-Clamp)), Repeat Mode ([Repeat](/apis/core/#TextureWrapMode-Repeat)), Mirror Repeat Mode ([Mirror](/apis/core/#TextureWrapMode-Mirror))               |
-| Wrap Mode V ([wrapModeV](/apis/core/#Texture-wrapModeV))         | Clamp Mode ([Clamp](/apis/core/#TextureWrapMode-Clamp)), Repeat Mode ([Repeat](/apis/core/#TextureWrapMode-Repeat)), Mirror Repeat Mode ([Mirror](/apis/core/#TextureWrapMode-Mirror))               |
-| Filter Mode ([filterMode](/apis/core/#Texture-filterMode))         | Point Filter ([Point](/apis/core/#TextureFilterMode-Point)), Bilinear Filter ([Bilinear](/apis/core/#TextureFilterMode-Bilinear)), Trilinear Filter ([Trilinear](/apis/core/#TextureFilterMode-Trilinear)) |
-| Anisotropic Filter Level ([anisoLevel](/apis/core/#Texture-anisoLevel)) | 1 ~ 16, depending on device support                                                                                                                                                               |
-
-### Loop Mode
-
-The texture sampling range is `[0,1]`. When the texture UV coordinates exceed this range, we can control how the exceeding part is sampled by setting the loop mode.
-
-| Sampling Loop Mode | Explanation                          |
-| :----------------- | :----------------------------------- |
-| Clamp              | Samples the edge texel when out of range |
-| Repeat             | Resamples from [0,1] when out of range |
-| Mirror             | Mirrors sampling from [1,0] when out of range |
-
-
-### Filter Mode
-
-Generally, texels and screen pixels do not correspond exactly. We can control the filtering mode in magnification (Mag) and minification (Min) modes by setting the filter mode.
-
-| Sampling Filter Mode | Explanation                                                   |
-| :------------------- | :------------------------------------------------------------ |
-| Point                | Uses the texel closest to the sampling point                  |
-| Bilinear             | Uses the average value of the nearest 2\*2 texel matrix       |
-| Trilinear            | Applies average filtering to the mipmap levels based on bilinear filtering |
-
-
-### Anisotropic Filtering Level
-
-Anisotropic filtering technology can make textures appear clearer when viewed at oblique angles. As shown in the figure below, the end of the texture becomes clearer as the anisotropic filtering level increases. However, use it with caution; the higher the value, the greater the GPU computation.
-
-## General Settings
-
-| Setting           | Value                        |
-| :---------------- | :--------------------------- |
-| mipmap            | Multi-level texture gradient (enabled by default) |
-| flipY             | Flip Y-axis (disabled by default) |
-| premultiplyAlpha  | Premultiply alpha channel (disabled by default) |
-| format            | Texture format (default R8G8B8A8) |
-
-### mipmap
-
-**The engine enables [mipmap](/apis/core/#Texture-generateMipmaps)** (multi-level texture gradient) by default. Mipmap is used to solve the precision and performance issues when sampling high-resolution textures on low-resolution screens, allowing the selection of different resolution textures at appropriate distances, as shown below:
+**Mipmap generation is enabled by default in the engine ([mipmap](/apis/core/#Texture-generateMipmaps))**, which improves performance and precision when sampling high-resolution textures on low-resolution screens. WebGL 2.0 supports textures of any resolution, but in WebGL 1.0 environments, **power-of-two textures** (e.g., 1024x512) must be uploaded; otherwise, mipmap will be automatically disabled.
 
 <Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*mTBvTJ7Czt4AAAAAAAAAAAAAARQnAQ" />
 
-It should be noted that WebGL2.0 supports textures of **any resolution** and will generate mip levels based on the [mipmap](http://download.nvidia.com/developer/Papers/2005/NP2_Mipmapping/NP2_Mipmap_Creation.pdf) algorithm. However, if your environment is WebGL1.0, please ensure to upload **power-of-two textures**, such as textures with a resolution of 1024 \* 512. Otherwise, Galacean will detect that the environment cannot use mipmap and will automatically downgrade to disable the mipmap function, which may cause some unexpected visual effects.
+---
 
-If you need to change the default behavior of mipmap, you can do so via script. For parameters, see [API](/apis/core/#Texture2D-constructor):
+### Filter Modes
 
-```typescript
-const texture = new Texture2D(
-  engine,
-  width,
-  height,
-  TextureFormat.R8G8B8A8,
-  false
-); // 第 5 个参数
-```
+Texels and screen pixels usually do not correspond exactly. Filter modes can control the sampling method when magnifying (Mag) or minifying (Min) textures:
 
-For cube texture scripts, see [API](/apis/core/#TextureCube-constructor):
+| Sampling Filter Mode | Description                                              |
+| :------------------- | :------------------------------------------------------- |
+| Point                | Uses the texel closest to the sampling point.            |
+| Bilinear             | Uses the average value of the nearest 2x2 texel matrix.  |
+| Trilinear            | Adds average filtering across mipmap levels on top of bilinear filtering. |
 
-```typescript
-const cubeTexture = new TextureCube(
-  engine,
-  size,
-  TextureFormat.R8G8B8A8,
-  false
-); // 第 4 个参数
-```
+---
 
-### flipY
+### Wrap Modes
 
-flipY is used to control whether the texture is flipped along the Y-axis, i.e., upside down. **The engine and editor disable it by default**. If you need to change the default behavior of flipY, you can do so via the [setImageSource](/apis/core/#Texture2D-setImageSource) method:
+The sampling range of a texture is `[0,1]`. When UV coordinates exceed this range, wrap modes can control the sampling behavior:
 
-```typescript
-const texture = new Texture2D(engine, width, height);
-texture.setImageSource(img, 0, true); // The 3rd parameter
-```
+| Sampling Wrap Mode | Description                          |
+| :----------------- | :----------------------------------- |
+| Clamp              | Samples the edge texel when out of range. |
+| Repeat             | Restarts sampling from `[0,1]` when out of range. |
+| Mirror             | Mirrors sampling from `[1,0]` when out of range. |
 
-### premultiplyAlpha
+---
 
-premultiplyAlpha is used to control whether the texture pre-multiplies the alpha (transparency) channel. **The engine and editor have it turned off by default**. If you need to change the default behavior of premultiplyAlpha, you can do so through the [setImageSource](/apis/core/#Texture2D-setImageSource) method:
+### Anisotropic Filtering Level
 
-```typescript
-const texture = new Texture2D(engine, width, height);
-texture.setImageSource(img, 0, undefined, true); // The 4th parameter
-```
+Anisotropic filtering improves texture clarity when viewed at oblique angles. The level ranges from 1 to 16, depending on device support.
 
-### format
+---
 
-The engine uses `TextureFormat.R8G8B8A8` as the default texture format, meaning that the red, green, blue, and alpha channels each use 1 byte, allowing each channel to store color values ranging from 0 to 255. The engine supports configuring different texture formats, which can be referenced in [TextureFormat](/apis/core/#TextureFormat). For example, if we do not need to use the alpha channel, i.e., the A channel, we can use `TextureFormat.R8G8B8`:
+### Texture Compression and Project Publishing
 
-```typescript
-const texture = new Texture2D(engine, width, height, TextureFormat.R8G8B8);
-```
-```
+All textures in the project can be globally configured during [project publishing](/en/docs/platform/platform):
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/7957f809-0d05-40fb-b423-5756a00bb203/image-20250529145448199.png" />
+
+Individual textures can also be configured. For more details, see [Texture Compression](/en/docs/graphics/texture/compression/).

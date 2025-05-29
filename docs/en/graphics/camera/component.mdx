@@ -29,35 +29,22 @@ const camera = entity.addComponent(Camera);
 
 By modifying the properties of the camera component, you can customize the rendering effects. Below are the property settings exposed by the camera component in the **[Inspector Panel](/en/docs/interface/inspector)**.
 
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/af60182b-a31a-4509-a0d4-3eb4cb737087/image-20240718211645854.png" alt="image-20240718211645854" style={{zoom:"50%"}} />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/686b9d8a-52aa-4a9d-85c1-0de1b822586a/image-20250529110352736.png" alt="image-20240718211645854" style={{zoom:"50%"}} />
 
 You can also get the camera component and set the corresponding properties through the script.
 
 ```typescript
 // Get the camera component from the node where the camera is mounted
 const camera = entity.getComponent(Camera);
-// Set the camera type
-camera.isOrthographic = true;
-// Set the near plane of the camera
-camera.nearClipPlane = 0.1;
-// Set the far plane of the camera
-camera.farClipPlane = 100;
-// Set the camera's FOV (Angle mode)
-camera.fieldOfView = 45;
-// Set the camera's rendered area on the canvas (normalized)
-camera.viewport = new Vector4(0, 0, 1, 1);
-// Set the render priority of the camera (lower value means higher render priority)
-camera.priority = 0;
-// Sets whether the camera enables cone cropping
-camera.enableFrustumCulling = true;
-// Sets the clear mark before camera rendering
-camera.clearFlags = CameraClearFlags.All;
+
 // Enable post-processing
 camera.enablePostProcess = true;
 // Enable HDR
 camera.enableHDR = true;
 // Enable FXAA
 camera.antiAliasing = AntiAliasing.FXAA;
+// Preserve the alpha channel in the output
+camera.isAlphaOutputRequired = true;
 ```
 
 The functionality corresponding to each property is as follows:

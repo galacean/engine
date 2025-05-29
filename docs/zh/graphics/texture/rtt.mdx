@@ -20,7 +20,7 @@ label: Graphics/Texture
 
 这里举例使用脚本 `onBeginRender` 钩子，在每一帧渲染前，先将屏幕`物体A`渲染到`离屏纹理`上，然后将离屏纹理当作`物体B`的基础纹理，将物体 B 渲染到`屏幕`上。假设 `物体A` 的 layer 为 `Layer0`，`物体B` 的 layer 为 `Layer1`;
 
-```
+```ts
 class switchRTScript extends Script {
     renderColorTexture = new Texture2D(engine, 1024, 1024);
     renderTarget = new RenderTarget(
