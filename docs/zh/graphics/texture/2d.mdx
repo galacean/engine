@@ -17,16 +17,12 @@ label: Graphics/Texture
 同样的，在脚本中可以通过 [ResourceManager](/apis/core/#ResourceManager) 加载图片获取对应的 2D 纹理：
 
 ```typescript
-const textureResource = {
-  type: AssetType.Texture2D,
-  url: `图片url`,
-};
-
 engine.resourceManager
-  .load(textureResource, cubeTextureResource)
-  .then((resource) => {
-    // 引擎支持的2D纹理
-    const texture = resource;
+  .load({
+     type: AssetType.Texture2D,
+     url: `图片url`,
+  })
+  .then((texture2D) => {
     // 接下来可以将纹理应用到材质上或者进行其他操作
   });
 ```
@@ -96,17 +92,6 @@ material.baseTexture = texture;
 
 ## 色彩膨胀
 
-<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*ACbwSKO2LHwAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom: "50%"}} />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/57cf941e-8f10-4a3e-ba38-bf22d390d7f2/image-20250529151207425.png" alt="image.png" />
 
 为了解决带透明像素图片在 Alpha 值突变处出现黑边的问题，编辑器内置了色彩膨胀功能。该功能是通过将图片中所有透明像素的 RGB 值改写为与其最临近非完全透明像素的 RGB 值，达到去除图片黑边的效果。
-
-| 选项             | 解释                                            |
-| :--------------- | :---------------------------------------------- |
-| 范围 Alpha Range | 阈值，透明像素 Alpha 值小于此阈值, RGB 值被修改 |
-| 大小 Alpha Value | 透明像素填充后的 Alpha 值                       |
-
-## 导出配置
-
-<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*_aepTLE47-gAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom: "50%"}} />
-
-[项目发布](/docs/platform/platform)文档中详细说明了纹理导出时的**全局配置**，若此处勾选 Overwrite 选项时，此资产导出时将遵循**自定义配置**将非**全局配置**。

@@ -6,107 +6,93 @@ group: Texture
 label: Graphics/Texture
 ---
 
-2D textures ([Texture2D](/apis/core/#Texture2D)) are the most commonly used art resources, sampled using two-dimensional UV coordinates.
+2D textures ([Texture2D](/apis/core/#Texture2D)) are the most commonly used artistic resources, sampled using 2D UV coordinates.
 
 ## Creation
 
-In the editor, you can easily import a 2D texture by following the path **[Asset Panel](/en/docs/assets/interface)** -> **Right-click Upload** -> **Select Texture2D** -> **Choose the corresponding texture** -> **2D texture asset creation complete**.
+In the editor, you can easily import a 2D texture by following the steps:  
+**[Assets Panel](/en/docs/assets/interface)** -> **Right-click Upload** -> **Select Texture2D** -> **Choose the corresponding texture** -> **2D texture asset creation is complete**.
 
 <Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*71QKTYuRSyAAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom: "50%"}} />
 
-Similarly, in the script, you can load an image through [ResourceManager](/apis/core/#ResourceManager) to get the corresponding 2D texture:
+Similarly, in scripts, you can load an image and obtain the corresponding 2D texture using the [ResourceManager](/apis/core/#ResourceManager):
 
 ```typescript
-const textureResource = {
-  type: AssetType.Texture2D,
-  url: `图片url`,
-};
-
 engine.resourceManager
-  .load(textureResource, cubeTextureResource)
-  .then((resource) => {
-    // 引擎支持的2D纹理
-    const texture = resource;
-    // 接下来可以将纹理应用到材质上或者进行其他操作
+  .load({
+     type: AssetType.Texture2D,
+     url: `image_url`,
+  })
+  .then((texture2D) => {
+    // The texture can now be applied to materials or used for other operations
   });
 ```
 
 ## Methods
 
-| Method          | Description              |
-| :-------------- | :----------------------- |
-| setImageSource  | Sets the image data source of the texture |
+| Method          | Description                     |
+| :-------------- | :------------------------------ |
+| setImageSource  | Sets the image data source for the texture |
 | setPixelBuffer  | Modifies the image data of the texture object |
 | getPixelBuffer  | Retrieves the image data of the texture object |
 
 ### setImageSource
 
-As mentioned earlier, image-related data sources such as images, canvas, and videos can be used as textures. For example, a video can be uploaded to the texture through the [setImageSource](/apis/core/#Texture2D-setImageSource) interface:
+As mentioned earlier, image-related data sources such as images, canvas elements, and videos can be used as textures. For example, a video can be uploaded to a texture using the [setImageSource](/apis/core/#Texture2D-setImageSource) method:
 
 ```typescript
-// 拿到视频标签，即 HTMLVideoElement
+// Get the video element (HTMLVideoElement)
 const video = document.getElementsByTagName("video")[0];
 
-// 加载到纹理
+// Load it into the texture
 texture.setImageSource(video);
 ```
 
-> `setImageSource` can only synchronize the data of that frame, but the video changes every frame. If you need the texture to change synchronously, you need to execute it in the script's onUpdate hook.
+> `setImageSource` only synchronizes the data of the current frame. Since video frames change continuously, you need to execute this in the `onUpdate` hook of the script to synchronize the texture with the video.
 
-For scenarios where the texture content needs to be frequently updated, such as videos, you need to disable mipmap and set the texture usage to Dynamic when creating the texture to achieve better performance. 
+For scenarios like videos that require frequent updates to texture content, it is recommended to disable mipmap and set the texture usage to `Dynamic` when creating the texture for better performance.
 
 ### setPixelBuffer
 
-The underlying texture corresponds to the color value of each pixel, i.e., the RGBA channels. We can manually fill in the color values of these channels and then pass them to the texture through the [setPixelBuffer](/apis/core/#Texture2D-setPixelBuffer) interface:
+At the core, a texture corresponds to the color values of each pixel, i.e., RGBA channels. You can manually set these color values and upload them to the texture using the [setPixelBuffer](/apis/core/#Texture2D-setPixelBuffer) method:
 
 ```typescript
 const texture = new Texture2D(engine, 1, 1);
-// 将该像素设置为红色，即 R 通道为 255。
+// Set the pixel to red, i.e., R channel to 255.
 const data = new Uint8Array([255, 0, 0, 255]);
 texture.setPixelBuffer(data);
 ```
 
 ### getPixelBuffer
 
-Similarly, we can read the color data of these channels:
+Similarly, you can retrieve the color data of these channels:
 
 ```typescript
 const texture = new Texture2D(engine, width, height);
-// 对纹理做了一系列处理
-// ···
-// 用来保存颜色信息的数组，它的大小和要读取的数据量相等
+// Perform a series of operations on the texture
+// ...
+// An array to store the color information, its size matches the amount of data to be read
 const data = new Uint8Array(width * height * 4);
 texture.getPixelBuffer(0, 0, width, height, 0, data);
 ```
 
 ## Usage
 
-Assigning the texture to the corresponding property of the material ball can enable different rendering functions. For example, adding a base color texture can determine the basic tone of the model. In the editor, you only need to select the corresponding texture in the corresponding property.
+Assigning a texture to the corresponding property of a material enables different rendering features. For example, adding a base color texture determines the base tone of the model. In the editor, you can simply select the corresponding texture for the property.
 
 <Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*toooTZvkC60AAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom: "50%"}} />
 
-Similarly, in the script, you can set it like this:
+Similarly, in scripts, you can set it like this:
 
 ```typescript
 const material = new PBRMaterial(engine);
-const texture = 生成纹理(); // 上文所示，不再赘述
+const texture = createTexture(); // As shown above, not repeated here
 
 material.baseTexture = texture;
 ```
 
-## Color Expansion
+## Color Bleeding
 
-<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*ACbwSKO2LHwAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom: "50%"}} />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/57cf941e-8f10-4a3e-ba38-bf22d390d7f2/image-20250529151207425.png" alt="image.png" />
 
-To solve the problem of black edges appearing at the abrupt changes in Alpha values in images with transparent pixels, the editor has a built-in color expansion function. This function removes the black edges of the image by rewriting the RGB values of all transparent pixels in the image to the RGB values of the nearest non-fully transparent pixels.
-
-| Option           | Description                                      |
-| :--------------- | :----------------------------------------------- |
-| Alpha Range      | Threshold, transparent pixel Alpha value less than this threshold, RGB value is modified |
-| Alpha Value      | Alpha value after filling transparent pixels     |
-
-## Export Configuration
-
-<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*_aepTLE47-gAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom: "50%"}} />
-
-The [Project Release](/en/docs/platform/platform) document explains the **global configuration** for texture export in detail. If the Overwrite option is selected here, this asset will follow the **custom configuration** instead of the **global configuration** during export.
+To solve the issue of black edges appearing at areas with abrupt alpha value changes in images with transparent pixels, the editor includes a color bleeding feature. This feature rewrites the RGB values of all transparent pixels in the image to match the RGB values of the nearest non-transparent pixel, effectively removing black edges from the image.

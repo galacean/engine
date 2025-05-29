@@ -6,49 +6,53 @@ group: Texture
 label: Graphics/Texture
 ---
 
-The difference between a cube texture ([TextureCube](/apis/core/#TextureCube)) and a 2D texture is that it has 6 faces, which means a cube texture is composed of 6 2D textures.
+Cube textures ([TextureCube](/apis/core/#TextureCube)) differ from 2D textures in that they have six faces, composed of six 2D textures to form a cube texture.
 
 <Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*Omw8Qo0WzfYAAAAAAAAAAAAAARQnAQ" />
 
 <Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*r-XPSaUTEnEAAAAAAAAAAAAAARQnAQ" />
 
-The underlying sampling method of cube textures is slightly different from that of 2D textures. Textures use two-dimensional coordinates for sampling, while cube textures use three-dimensional coordinates, i.e., _direction vectors_ for sampling. For example, using an orange direction vector to sample a texture value from a cube texture would look like this:
+The underlying sampling method of cube textures is slightly different from that of 2D textures. While 2D textures use 2D coordinates for sampling, cube textures use 3D coordinates, i.e., a _direction vector_ for sampling. For example, using an orange direction vector to sample a texture value from a cube texture would look like this:
 
 <Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*X752S5pQSB0AAAAAAAAAAAAAARQnAQ" />
 
-Because of this sampling characteristic, cube textures can be used to achieve effects such as skyboxes and environment reflections.
+Due to this sampling characteristic, cube textures can be used to implement effects such as skyboxes and environmental reflections.
 
 ## Creation
 
-> You can download free HDR maps from [Poly Haven](https://polyhaven.com/) or [BimAnt HDRI](http://hdri.bimant.com/)
+The editor supports generating cube textures by uploading HDR images. This method allows for HDR color gamut representation and is relatively convenient.
 
-After preparing the HDR, follow the path **[Asset Panel](/en/docs/assets/interface)** -> **Right-click Upload** -> **Select TextureCube(.hdr)** -> **Choose the corresponding HDR map** -> **Cube texture asset creation completed**.
+<Callout type="info">
+  You can download free HDR images from [Poly Haven](https://polyhaven.com/) or [BimAnt HDRI](http://hdri.bimant.com/).
+</Callout>
+
+After preparing the HDR image, follow the steps:  
+**[Assets Panel](/en/docs/assets/interface)** -> **Right-click Upload** -> **Select TextureCube (.hdr)** -> **Choose the corresponding HDR image** -> **Cube texture asset creation is complete**.
 
 <Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Oi3FSLEEaYgAAAAAAAAAAAAADhuCAQ/original" />
 
-Similarly, in the script, you can also get the corresponding cube texture by loading six textures in the correct order.
+Of course, you can also create a cube texture in scripts by loading six textures in the corresponding order.
 
 ```typescript
 const cubeTextureResource = {
   type: AssetType.TextureCube,
   urls: [
-    "px - right 图片 url",
-    "nx - left 图片 url",
-    "py - top 图片 url",
-    "ny - bottom 图片 url",
-    "pz - front 图片 url",
-    "nz - back 图片 url",
+    "px - right image url",
+    "nx - left image url",
+    "py - top image url",
+    "ny - bottom image url",
+    "pz - front image url",
+    "nz - back image url",
   ],
 };
 
 engine.resourceManager.load(cubeTextureResource).then((resource) => {
-  // 引擎支持的立方纹理
+  // Cube texture supported by the engine
   const cubeTexture = resource;
-  // 接下来可以将纹理应用到材质上或者进行其他操作
+  // The texture can now be applied to materials or used for other operations
 });
 ```
 
 ## Usage
 
-Cube textures are mainly used in skyboxes. For more details, refer to [Sky Background](/en/docs/graphics/background/sky/)
-
+Cube textures are primarily used in skyboxes. For more details, refer to [Sky Background](/en/docs/graphics/background/sky/).

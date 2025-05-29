@@ -29,35 +29,22 @@ const camera = entity.addComponent(Camera);
 
 通过修改相机组件的属性可以定制渲染效果。下方是相机组件在 **[检查器面板](/docs/interface/inspector)** 暴露的属性设置。
 
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/af60182b-a31a-4509-a0d4-3eb4cb737087/image-20240718211645854.png" alt="image-20240718211645854" style={{zoom:"50%"}} />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/686b9d8a-52aa-4a9d-85c1-0de1b822586a/image-20250529110352736.png" alt="image-20240718211645854" style={{zoom:"50%"}} />
 
 也可以通过脚本去获取相机组件并设置相应的属性。
 
 ```typescript
 // 从挂载相机的节点上获取相机组件
 const camera = entity.getComponent(Camera);
-// 设置相机类型
-camera.isOrthographic = true;
-// 设置相机的近平面
-camera.nearClipPlane = 0.1;
-// 设置相机的远平面
-camera.farClipPlane = 100;
-// 设置相机的 FOV（角度制）
-camera.fieldOfView = 45;
-// 设置相机在画布上的渲染区域（归一化）
-camera.viewport = new Vector4(0, 0, 1, 1);
-// 设置相机的渲染优先级（值越小，渲染优先级越高）
-camera.priority = 0;
-// 设置相机是否开启视锥体裁剪
-camera.enableFrustumCulling = true;
-// 设置相机渲染前的清除标记
-camera.clearFlags = CameraClearFlags.All;
+
 // 开启后处理
 camera.enablePostProcess = true;
 // 开启 HDR
 camera.enableHDR = true;
 // 开启 FXAA
 camera.antiAliasing = AntiAliasing.FXAA;
+// 保留 Alpha 通道
+camera.isAlphaOutputRequired = true;
 ```
 
 其中每个属性对应的功能如下：
@@ -89,7 +76,7 @@ camera.antiAliasing = AntiAliasing.FXAA;
 
 ### 裁剪遮罩
 
-相机组件可以通过设置 `cullingMask` 选择性地渲染场景内的渲染组件
+相机组件可以通过设置 `cullingMask` 选择性地渲染场景内的渲染组件。
 
 ### 渲染目标
 

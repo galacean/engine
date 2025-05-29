@@ -20,7 +20,7 @@ The engine provides the [RenderTarget](/apis/core/#RenderTarget) class for offsc
 
 Here is an example using the `onBeginRender` hook script. Before rendering each frame, first render the screen `Object A` to the `offscreen texture`, then use the offscreen texture as the base texture for `Object B`, and render Object B to the `screen`. Assume the layer of `Object A` is `Layer0` and the layer of `Object B` is `Layer1`;
 
-```
+```ts
 class switchRTScript extends Script {
     renderColorTexture = new Texture2D(engine, 1024, 1024);
     renderTarget = new RenderTarget(
