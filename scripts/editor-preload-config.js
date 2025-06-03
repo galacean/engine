@@ -1,0 +1,75 @@
+module.exports = {
+  firstParty: [
+    {
+      name: "@galacean/engine",
+      path: "packages/galacean",
+      browserPath: "dist/browser.js"
+    },
+    {
+      name: "@galacean/engine-xr",
+      path: "packages/xr",
+      browserPath: "dist/browser.js"
+    },
+    {
+      name: "@galacean/engine-ui",
+      path: "packages/ui",
+      browserPath: "dist/browser.js"
+    },
+    {
+      name: "@galacean/engine-physics-lite",
+      path: "packages/physics-lite",
+      browserPath: "dist/browser.js"
+    },
+    {
+      name: "@galacean/engine-physics-physx",
+      path: "packages/physics-physx",
+      browserPath: "dist/browser.js"
+    },
+    {
+      name: "@galacean/engine-shaderlab",
+      path: "packages/shader-lab",
+      browserPath: "dist/browser.js"
+    },
+    {
+      name: "@galacean/engine-shader-shaderlab",
+      path: "packages/shader-shaderlab",
+      browserPath: "dist/browser.js"
+    }
+  ],
+
+  secondParty: [
+    {
+      name: "@galacean/engine-toolkit",
+      repo: "https://github.com/galacean/engine-toolkit.git",
+      isMonorepo: true,
+      buildCommand: "pnpm b:all",
+      packages: [
+        {
+          name: "@galacean/engine-toolkit",
+          packagePath: "packages/galacean-engine-toolkit",
+          browserPath: "dist/umd/browser.js"
+        },
+        {
+          name: "@galacean/engine-toolkit-xr",
+          packagePath: "packages/xr",
+          browserPath: "dist/umd/browser.js"
+        }
+      ]
+    },
+    {
+      name: "@galacean/engine-lottie",
+      repo: "https://github.com/galacean/engine-lottie.git",
+      packagePath: ".",
+      browserPath: "dist/browser.js",
+      buildCommand: "pnpm build"
+    },
+    {
+      name: "@galacean/engine-spine",
+      repo: "https://github.com/galacean/engine-spine.git",
+      branch: "4.2",
+      packagePath: ".",
+      browserPath: "dist/browser.js",
+      buildCommand: "pnpm build"
+    }
+  ]
+};
