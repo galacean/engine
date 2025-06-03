@@ -6,31 +6,14 @@ group: 纹理
 label: Graphics/Texture
 ---
 
+纹理是 3D 渲染中最常用的资源之一。通过纹理，我们可以为模型的每个片元设置颜色值，从而实现更加丰富的美术效果，主要作用包括：
 
-## 纹理总览
+- 材质属性：纹理可以用来定义物体的材质属性，比如基础颜色和图案、光泽度、金属感和粗糙度等。
+- 环境效果：实现[天空盒](/docs/graphics/background/sky/)、环境反射等特效。
 
-纹理（[Texture](/apis/core/#Texture)）是 3D 渲染中最常用的资源之一。通过纹理，我们可以为模型的每个片元设置颜色值，从而实现更加丰富的美术效果。纹理可以来源于图片、canvas 画布、原始数据、视频等，Galacean 引擎支持所有 WebGL 标准的纹理。
+Galacean 引擎支持所有 WebGL 标准的纹理，纹理可以来源于图片、canvas 画布、原始数据、视频等。
 
-<Image src ="https://gw.alipayobjects.com/zos/OasisHub/c4945cc8-8cba-48a7-85ae-f6f2903fcfe1/image-20250529143945756.png" />
-
-<Callout type="info">
-  纹理的使用涉及空间映射（如 MVP 变换），开发者需要了解图片空间到纹理空间的映射关系，以及纹素到像素的映射规则
-</Callout>
-
----
-
-
-## 纹理的用途
-
-纹理在 3D 渲染中的主要作用包括：
-
-- 为模型添加颜色和细节。如基础纹理、法线纹理。
-- 实现[天空盒](/docs/graphics/background/sky/)、环境反射等特效。
-- [通过纹理播放视频](/docs/graphics/texture/2d/)。
-- 通过[压缩纹理](/docs/graphics/texture/compression/)等手段提高性能。
-
-
-## 纹理类型
+## 类型
 
 | 类型                                     | 描述                                                               |
 | :--------------------------------------- | :----------------------------------------------------------------- |
@@ -38,9 +21,9 @@ label: Graphics/Texture
 | [立方纹理](/docs/graphics/texture/cube/) | 6 张 2D 纹理组成了一个立方纹理，可以用来实现天空盒、环境反射等特效 |
 | [2D 纹理数组](/apis/core/#Texture2DArray)                              | 只占用一个纹理单元，非常适合用来实现需要切换纹理图集的需求         |
 
-
-
 ## 属性
+
+<Image src ="https://gw.alipayobjects.com/zos/OasisHub/c4945cc8-8cba-48a7-85ae-f6f2903fcfe1/image-20250529143945756.png" />
 
 ### sRGB
 决定该纹理数据是否是 sRGB 颜色空间，默认为 ture，如果是法线纹理等线性数据，我们需要关闭该开关，更多详情可以查看[色彩空间](/docs/core/color/)。
@@ -79,10 +62,10 @@ label: Graphics/Texture
 
 各向异性过滤技术可以使纹理在倾斜角度下观看会更加清晰。1 ~ 16 ,具体要看设备支持情况。
 
+### 色彩膨胀
+为了解决带透明像素图片在 Alpha 值突变处出现黑边的问题，编辑器内置了色彩膨胀功能。该功能是通过将图片中所有透明像素的 RGB 值改写为与其最临近非完全透明像素的 RGB 值，达到去除图片黑边的效果。
 
+### 纹理压缩
 
-### 纹理压缩以及项目发布
-项目中的所有纹理可以在[项目发布](/docs/platform/platform)时进行全局配置：
-<Image src ="https://gw.alipayobjects.com/zos/OasisHub/7957f809-0d05-40fb-b423-5756a00bb203/image-20250529145448199.png" />
+通过压缩纹理可以有效降低显存和提升图片解码速度，详情查看[纹理压缩](/docs/graphics/texture/compression/)。
 
-也可以针对该纹理单独配置，更多详情可以查看[纹理压缩](/docs/graphics/texture/compression/)。

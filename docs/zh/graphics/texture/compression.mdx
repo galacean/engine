@@ -6,11 +6,31 @@ group: 纹理
 label: Graphics/Texture
 ---
 
-**[KTX2](https://www.khronos.org/ktx/)**(Khronos Texture Container version 2.0) 是 Khronos 推出最新的纹理压缩方案，Galacean 自 1.1 版本开始已经支持。KTX2 会根据设备平台支持运行时转码到对应格式的压缩纹理(BC/PVRTC/ETC/ASTC)。
+<Callout>
+**[KTX2](https://www.khronos.org/ktx/)**(Khronos Texture Container version 2.0) 是 Khronos 推出最新的纹理压缩方案，KTX2 会根据设备平台支持运行时转码到对应格式的压缩纹理(BC/PVRTC/ETC/ASTC)。glTF 中使用 ktx2 需要包含 [KHR_texture_basisu](https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_texture_basisu/README.md) 扩展。
+Galacean 自 1.1 版本开始已经支持 KTX2。
+</Callout>
 
-## 使用
+## 编辑器使用
 
-在引擎中，直接使用 `resourceManager` 加载即可：
+可以在[项目导出](/docs/platform/platform/)环节进行全局配置，**KTX2** 表示开启纹理压缩，**Original** 表示不压缩。
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/ea6cf83b-e55c-4ff5-ae3b-c37073636df7/image-20250603113737512.png" style={{zoom: "50%"}}/>
+
+也可以独立对某个纹理资源配置不同的压缩格式。在编辑器的纹理面板下勾选 **overwrite** 可以覆盖全局配置：
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/b8627078-4aeb-4b03-947e-c48e96a05528/image-20250603114018740.png" style={{zoom: "50%"}} />
+
+选择 **KTX2** 后可以选择不同的压缩格式：
+
+| 格式  | 解释                                                         |
+| ----- | ------------------------------------------------------------ |
+| ETC1S | 尺寸大，质量高，适合 normal 这类贴图                         |
+| UASTC | 尺寸小，内存极小，但是质量较低，适合 albedo, specular 等贴图，可以通过 **Quality** 来设置压缩质量(值越大，渲染质量越好) |
+
+## 脚本使用
+
+使用 `resourceManager` 加载即可：
 
 ```typescript
 engine.resourceManager.load("xxx.ktx2");
@@ -24,22 +44,6 @@ engine.resourceManager
     material.baseTexture = tex;
   });
 ```
-
-glTF 中使用 ktx2 需要包含 [KHR_texture_basisu](https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_texture_basisu/README.md) 扩展。
-
-KTX2 的生成可以使用：
-
-- toktx
-- basisu
-
-### 编辑器
-
-编辑器在项目打包时，可以配置选项生成 KTX2，可以参考『[项目发布](/docs/platform/platform/)』文档。项目导出是全局的配置，也可以独立给不同的纹理资源配置不同的压缩格式。在编辑器的纹理面板下勾选 overwrite 可以覆盖全局配置：
-
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/544cf47d-fe46-43d0-ae5c-95adee9d08fe/image-20250529152634221.png" />
-
-- ETC1S 尺寸小，内存极小，但是质量较低，适合 albedo, specular 等贴图
-- UASTC 尺寸大，质量高，适合 normal 这类贴图
 
 ## 兼容性
 

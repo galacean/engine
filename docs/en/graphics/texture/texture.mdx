@@ -5,86 +5,62 @@ type: Graphics
 group: Texture
 label: Graphics/Texture
 ---
+Textures are one of the most commonly used resources in 3D rendering. Through textures, we can set the color values for each fragment of a model, thereby achieving richer artistic effects. The main functions include:
 
-## Texture Overview
+- Material Properties: Textures can be used to define the material properties of objects, such as base color and patterns, glossiness, metallic feel, and roughness.
+- Environmental Effects: Realizing effects like [skyboxes](/docs/graphics/background/sky/) and environmental reflections.
 
-Textures ([Texture](/apis/core/#Texture)) are one of the most commonly used resources in 3D rendering. By using textures, we can set color values for each fragment of a model, achieving richer artistic effects. Textures can come from images, canvas elements, raw data, videos, etc. The Galacean engine supports all WebGL standard textures.
+The Galacean engine supports all WebGL standard textures. Textures can originate from images, canvas, raw data, videos, and more.
 
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/c4945cc8-8cba-48a7-85ae-f6f2903fcfe1/image-20250529143945756.png" />
+## Types
 
-<Callout type="info">
-  The use of textures involves spatial mapping (e.g., MVP transformations). Developers need to understand the mapping relationship from image space to texture space, as well as the mapping rules from texels to pixels.
-</Callout>
-
----
-
-## Purpose of Textures
-
-The main purposes of textures in 3D rendering include:
-
-- Adding colors and details to models, such as base textures and normal maps.
-- Creating effects like [skyboxes](/en/docs/graphics/background/sky/) and environmental reflections.
-- [Playing videos through textures](/en/docs/graphics/texture/2d/).
-- Improving performance through optimization techniques like [compressed textures](/en/docs/graphics/texture/compression/).
-
----
-
-## Texture Types
-
-| Type                                     | Description                                                        |
-| :--------------------------------------- | :----------------------------------------------------------------- |
-| [2D Textures](/en/docs/graphics/texture/2d/)    | The most commonly used artistic resource, sampled using 2D UV coordinates. |
-| [Cube Textures](/en/docs/graphics/texture/cube/) | Composed of 6 2D textures, used to create skyboxes and environmental reflection effects. |
-| [2D Texture Arrays](/apis/core/#Texture2DArray) | Occupies only one texture unit, ideal for scenarios requiring texture atlas switching. |
-
----
+| Type                                    | Description                                                        |
+| :-------------------------------------- | :----------------------------------------------------------------- |
+| [2D Texture](/docs/graphics/texture/2d/) | The most commonly used artistic resource, sampled using 2D UV coordinates |
+| [Cube Texture](/docs/graphics/texture/cube/) | Composed of 6 2D textures, used for effects like skyboxes and environmental reflections |
+| [2D Texture Array](/apis/core/#Texture2DArray) | Occupies only one texture unit, ideal for implementing texture atlas switching needs |
 
 ## Properties
 
+<Image src ="https://gw.alipayobjects.com/zos/OasisHub/c4945cc8-8cba-48a7-85ae-f6f2903fcfe1/image-20250529143945756.png" />
+
 ### sRGB
-Determines whether the texture data is in the sRGB color space. The default is `true`. For linear data like normal maps, this option should be disabled. For more details, see [Color Space](/en/docs/core/color/).
+Determines whether the texture data is in the sRGB color space. The default is true. If the data is linear, like normal textures, this should be turned off. More details can be found in the [Color Space](/docs/core/color/) documentation.
 
-### Mipmap
+### mipmap
 
-**Mipmap generation is enabled by default in the engine ([mipmap](/apis/core/#Texture-generateMipmaps))**, which improves performance and precision when sampling high-resolution textures on low-resolution screens. WebGL 2.0 supports textures of any resolution, but in WebGL 1.0 environments, **power-of-two textures** (e.g., 1024x512) must be uploaded; otherwise, mipmap will be automatically disabled.
+**The engine enables [mipmap](/apis/core/#Texture-generateMipmaps) by default**, which improves performance and precision when sampling high-resolution textures on low-resolution screens. WebGL 2.0 supports textures of any resolution, but in the WebGL 1.0 environment, you need to upload **power-of-two textures** (such as 1024x512), or mipmaps will be automatically disabled.
 
 <Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*mTBvTJ7Czt4AAAAAAAAAAAAAARQnAQ" />
 
----
+### Filter Mode
 
-### Filter Modes
+Texture pixels and screen pixels often do not correspond exactly. The filter mode can control the sampling method when magnifying (Mag) or minifying (Min):
 
-Texels and screen pixels usually do not correspond exactly. Filter modes can control the sampling method when magnifying (Mag) or minifying (Min) textures:
+| Sampling Filter Mode | Description                                           |
+| :------------------- | :---------------------------------------------------- |
+| Point                | Uses the texel closest to the sampling point          |
+| Bilinear             | Uses the average value of the nearest 2\*2 texel matrix |
+| Trilinear            | In addition to bilinear filtering, averages across mipmap levels |
 
-| Sampling Filter Mode | Description                                              |
-| :------------------- | :------------------------------------------------------- |
-| Point                | Uses the texel closest to the sampling point.            |
-| Bilinear             | Uses the average value of the nearest 2x2 texel matrix.  |
-| Trilinear            | Adds average filtering across mipmap levels on top of bilinear filtering. |
+### Wrap Mode
 
----
+The range of texture sampling is `[0,1]`. When UV coordinates exceed the range, wrap mode can control the sampling method:
 
-### Wrap Modes
-
-The sampling range of a texture is `[0,1]`. When UV coordinates exceed this range, wrap modes can control the sampling behavior:
-
-| Sampling Wrap Mode | Description                          |
-| :----------------- | :----------------------------------- |
-| Clamp              | Samples the edge texel when out of range. |
-| Repeat             | Restarts sampling from `[0,1]` when out of range. |
-| Mirror             | Mirrors sampling from `[1,0]` when out of range. |
-
----
+| Sampling Wrap Mode | Description                      |
+| :----------------- | :------------------------------- |
+| Clamp              | Samples edge texel if out of range |
+| Repeat             | Resamples from [0,1] if out of range |
+| Mirror             | Mirrors sampling from [1,0] if out of range |
 
 ### Anisotropic Filtering Level
 
-Anisotropic filtering improves texture clarity when viewed at oblique angles. The level ranges from 1 to 16, depending on device support.
+Anisotropic filtering makes textures appear clearer when viewed at an angle. Levels range from 1 to 16, depending on device support.
 
----
+### Color Dilation
 
-### Texture Compression and Project Publishing
+To address the issue of black edges appearing at sudden changes in alpha values in images with transparent pixels, the editor has a built-in color dilation feature. This function removes black edges by rewriting the RGB values of all transparent pixels in the image to match the RGB values of their nearest non-fully transparent pixels.
 
-All textures in the project can be globally configured during [project publishing](/en/docs/platform/platform):
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/7957f809-0d05-40fb-b423-5756a00bb203/image-20250529145448199.png" />
+### Texture Compression
 
-Individual textures can also be configured. For more details, see [Texture Compression](/en/docs/graphics/texture/compression/).
+Compressed textures can effectively reduce memory usage and improve image decoding speed. For more details, see [Compressed Textures](/docs/graphics/texture/compression/).
