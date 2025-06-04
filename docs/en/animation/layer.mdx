@@ -5,14 +5,14 @@ type: Animation
 label: Animation
 ---
 
-`AnimatorControllerLayer` ([API](/apis/core/#AnimatorControllerLayer)) is used to organize and manage `AnimatorStateMachine` ([see details](/docs/animation/state-machine/)) in an `Animation Controller` ([detailed introduction](/docs/animation/animatorController)). Each `AnimatorControllerLayer` has its own `AnimatorStateMachine`. When the `Animator` Component runs, all `AnimatorControllerLayer` run simultaneously, controlling the overall animation effect through `blendingWeight` and `blendingMode`.
+`AnimatorControllerLayer` ([API](/apis/core/#AnimatorControllerLayer)) is used to organize and manage `AnimatorStateMachine` ([see details](/en/docs/animation/state-machine/)) in an `Animation Controller` ([detailed introduction](/en/docs/animation/animatorController)). Each `AnimatorControllerLayer` has its own `AnimatorStateMachine`. When the `Animator` Component runs, all `AnimatorControllerLayer` run simultaneously, controlling the overall animation effect through `blendingWeight` and `blendingMode`.
 
 | Property     | Description                                                                           |
 | :------- | :--------------------------------------------------------------------------------- |
 | Name     | The name of the layer.                                                                       |
 | Weight   | The blending weight of the layer, the default value is 1.0.                                                    |
 | Blending | The blending mode of the layer, `Additive` is additive mode, `Override` is override mode, the default value is `Override`. |
-| StateMachine | The animation state machine of the layer, [detailed introduction](/docs/animation/state-machine/) |
+| StateMachine | The animation state machine of the layer, [detailed introduction](/en/docs/animation/state-machine/) |
 
 ### Additive Mode
 In additive mode, the higher layer's animation will be added on top of the lower layer's animation. This mode calculates the differences in animation keyframes and applies these differences to the lower layer's animation, achieving an additive effect (increasing the weight will not reduce the influence of the lower layer). It is often used to add details or adjustments to basic actions. For example, a breathing animation can be added on top of a walking animation using the `Additive` mode, or a facial expression change can be added during an attack.
@@ -58,4 +58,3 @@ additiveLayer.blendingMode = AnimatorLayerBlendingMode.Additive;
 additiveLayer.blendingMode = AnimatorLayerBlendingMode.Override;
 additiveLayer.weight = 0.5;
 ```
-<Playground href="/embed/skeleton-animation-additive" />

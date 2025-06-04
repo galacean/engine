@@ -8,9 +8,9 @@ label: Animation/Examples
 
 This example demonstrates how to create material animations in the Galacean editor. Through simple steps, you will learn how to create an AnimationClip for material. If this is your first time using the animation editor, it is recommended to read the previous documents:
 
-[1. Play Animation in Model](/docs/animation/examples/playAnimation/)
+[1. Play Animation in Model](/en/docs/animation/examples/playAnimation/)
 
-[2. Reuse Animation](/docs/animation/examples/reuseAnimation/)
+[2. Reuse Animation](/en/docs/animation/examples/reuseAnimation/)
 
 ## 0. Preparation
 Before starting, we need to add a `MeshRenderer` component to the `entity`. The default project created already has a cube, which contains the `MeshRenderer` component.
@@ -20,7 +20,7 @@ Before starting, we need to add a `MeshRenderer` component to the `entity`. The 
 In addition, because the default `material` is read-only, we also need to create a `material`.
 
 There are two ways to create a `material`:
-1. Right-click on the blank space in the **[Asset Panel](/docs/assets/interface)** and select `Create` -> `Material`
+1. Right-click on the blank space in the **[Asset Panel](/en/docs/assets/interface)** and select `Create` -> `Material`
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*1ox2RKV31u4AAAAAAAAAAAAADsJ_AQ/original" />
 
@@ -33,8 +33,8 @@ Replace the `material` property of the `MeshRenderer` with the `material` we jus
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*vISSRpxf6PUAAAAAAAAAAAAADsJ_AQ/original" />
 
 ## 1. Create AnimationClip
-After adding the component, we need to create an `AnimationClip` (for an introduction to AnimationClip, please refer to the [AnimationClip](/docs/animation/clip) document). There are two ways to create an `AnimationClip`:
-1. Right-click on the blank space in the **[Asset Panel](/docs/assets/interface)** and select `Create` -> `AnimationClip`
+After adding the component, we need to create an `AnimationClip` (for an introduction to AnimationClip, please refer to the [AnimationClip](/en/docs/animation/clip) document). There are two ways to create an `AnimationClip`:
+1. Right-click on the blank space in the **[Asset Panel](/en/docs/assets/interface)** and select `Create` -> `AnimationClip`
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*XK28Qr2GX6UAAAAAAAAAAAAADsJ_AQ/original" />
 
@@ -48,7 +48,7 @@ After adding the component, we need to create an `AnimationClip` (for an introdu
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*w4ReS7ijXgcAAAAAAAAAAAAADsJ_AQ/original" />
 
-2. Select an `entity`. According to the prompt, we need to select an `entity` in the **[Hierarchy Panel](/docs/interface/hierarchy)** as the target for editing the animation.
+2. Select an `entity`. According to the prompt, we need to select an `entity` in the **[Hierarchy Panel](/en/docs/interface/hierarchy)** as the target for editing the animation.
 
 Select the default `entity` created by the editor (you can also click the `+` button in the hierarchy panel to create a new one)
 
@@ -58,8 +58,8 @@ Select the default `entity` created by the editor (you can also click the `+` bu
 
 <Callout type="info">
 The preparation work includes:
-1. Creating an `Animator` component ([detailed introduction](/docs/animation/animator/)) for the selected `entity` and creating an `AnimatorController` ([detailed introduction](/docs/animation/animatorController/)) asset.
-2. The `AnimatorController` will contain an AnimatorState, and the `AnimatorState` will automatically bind the selected `AnimationClip` and connect to the `entry` node (for a detailed introduction to the `entry` node, please refer to the [AnimatorStateMachine](/docs/animation/state-machine/) document).
+1. Creating an `Animator` component ([detailed introduction](/en/docs/animation/animator/)) for the selected `entity` and creating an `AnimatorController` ([detailed introduction](/en/docs/animation/animatorController/)) asset.
+2. The `AnimatorController` will contain an AnimatorState, and the `AnimatorState` will automatically bind the selected `AnimationClip` and connect to the `entry` node (for a detailed introduction to the `entry` node, please refer to the [AnimatorStateMachine](/en/docs/animation/state-machine/) document).
 3. The `Animator` component will automatically bind the `AnimatorController`.
 </Callout>
 
@@ -83,7 +83,7 @@ After creation, you will open the AnimationClip editor as shown below:
 ![2024-11-20 17.43.50.gif](<https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*mQOgR6L3NjYAAAAAAAAAAAAADsJ_AQ/original>)
 
 
-Now our material color change `AnimationClip` is complete. For more operations about the animation editor, please refer to the [AnimationClip](/docs/animation/clip) document.
+Now our material color change `AnimationClip` is complete. For more operations about the animation editor, please refer to the [AnimationClip](/en/docs/animation/clip) document.
 
 For information on how to use this `AnimationClip` in your project, please refer to the two documents listed at the top of the article.
 

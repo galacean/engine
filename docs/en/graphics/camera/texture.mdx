@@ -1,0 +1,28 @@
+---
+order: 4
+title: Camera Texture
+type: Graphics
+group: Camera
+label: Graphics/Camera
+---
+
+## Depth Texture
+
+You can enable the depth texture by using the [depthTextureMode](/apis/galacean/#Camera-depthTextureMode) property of the camera. Once enabled, the depth texture can be accessed in the Shader through the `camera_DepthTexture` property.
+
+Common uses of depth textures include:
+- Implementing soft particle effects
+- Smooth transitions at water edges
+- Simple post-processing effects
+
+<Callout type="info">
+Note: Depth textures only render non-transparent objects. Transparent objects will not write to the depth texture.
+</Callout>
+
+---
+
+## Opaque Texture
+
+You can enable the opaque texture by using the [opaqueTextureEnabled](/apis/galacean/#Camera-opaqueTextureEnabled) property of the camera. Once enabled, Shaders in the transparent queue can use the `camera_OpaqueTexture` property.
+
+Additionally, you can set the downsampling level through the [opaqueTextureDownsampling](/apis/galacean/#Camera-opaqueTextureDownsampling) property of the camera to balance clarity and performance.

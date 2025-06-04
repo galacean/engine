@@ -1,0 +1,38 @@
+---
+order: 6
+title: 碰撞层
+type: 物理
+label: Physics
+---
+
+碰撞层（Collision Layer）是物理系统中的一个重要概念，用于控制不同物体之间的碰撞关系。通过设置碰撞层，可以灵活地控制哪些物体之间可以发生碰撞，哪些物体之间不能发生碰撞。
+
+## 碰撞层设置
+
+每个[碰撞器](/docs/physics/collider/overview)都可以被分配到一个碰撞层。引擎提供了 32 个碰撞层（Layer0 到 Layer31），每个碰撞器只能属于一个碰撞层。
+
+```typescript
+// 设置碰撞器到 Layer1
+collider.collisionLayer = Layer.Layer1;
+```
+
+## 碰撞关系设置
+
+碰撞层之间的碰撞关系可以使用 [PhysicsScene](/apis/core/#PhysicsScene) 的 `setColliderLayerCollision` 方法来设置两个碰撞层之间是否可以发生碰撞：
+
+```typescript
+// 禁用 Layer1 和 Layer2 之间的碰撞
+scene.physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, false);
+
+// 启用 Layer1 和 Layer2 之间的碰撞
+scene.physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, true);
+
+// 查看 Layer1 和 Layer2 之间的碰撞关系
+console.log(scene.physics.getColliderLayerCollision(Layer.Layer1, Layer.Layer2));
+```
+
+## 注意事项
+
+1. 每个碰撞器只能属于一个碰撞层
+2. 默认情况下，所有碰撞层之间都可以发生碰撞
+3. 碰撞层设置会同时影响物理碰撞和触发器事件

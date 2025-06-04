@@ -36,8 +36,6 @@ timeline
     ……
 ```
 
-<Playground href="/embed/input-log" />
-
 ### 触控按键
 
 参照 [W3C 标准](https://www.w3.org/TR/uievents/#dom-mouseevent-button) 与[微软相关文档](https://learn.microsoft.com/en-us/dotnet/api/system.windows.input.mousebutton?view=windowsdesktop-6.0)，Galacean 对触控按键的定义如下：
@@ -54,9 +52,6 @@ timeline
 | [XButton4](/apis/core/#PointerButton-XButton4)   | 拓展按键                                                         |
 | ……                                              | ……                                                               |
 
-结合触控按键可以方便地检测触控点在本帧触发的行为：
-
-<Playground href="/embed/input-pointerButton" />
 
 ### 触控回调
 
@@ -74,15 +69,9 @@ timeline
 | [onPointerEndDrag](/apis/core/#Script-onPointerEndDrag)   | 开始拖动后，触控点松开时触发 |
 | [onPointerDrop](/apis/core/#Script-onPointerDrop)   | 开始拖动后，当触控点在某个 Entity 的碰撞范围内松开时触发 |
 
-> ⚠️ 触控回调**依赖物理引擎**，使用此功能前请确保物理引擎已初始化完毕。
-
-如下示例：
-
-- 最左边的立方体添加了对 Enter 与 Exit 的响应，当鼠标移动到上方和鼠标移出时便会触发它颜色的改变。
-- 中间的立方体添加了对 Drag 的响应，你可以用鼠标拖拽这个立方体在空间内任意移动。
-- 最右边的立方体添加了对 Click 的响应（先 down 后 up ），当鼠标点击时会触发它颜色的改变。
-
-<Playground href="/embed/input-pointer" />
+<Callout type="info">
+触控回调**依赖物理引擎**，使用此功能前请确保物理引擎已初始化完毕。
+</Callout>
 
 ### 射线检测
 
@@ -90,7 +79,7 @@ timeline
 
 ```mermaid
 flowchart LR
-   添加碰撞体组件 --> 获取触控点 --> 通过画布坐标获取射线 --> 射线检测
+   A[添加碰撞体组件] --> B[获取触控点] --> C[通过画布坐标获取射线] --> D[射线检测]
 ```
 
 添加碰撞体组件可参考[碰撞体组件](/docs/physics/collider/)，实现检测部分的代码逻辑如下：
@@ -107,17 +96,13 @@ if (scene.physics.raycast(ray, 100, hitResult)) {
 }
 ```
 
-通过下方示例可以更直观地理解此过程，示例中为主相机添加了辅助线，侧视相机可以完整观察到主相机射线检测到碰撞体的过程。
-
-<Playground href="/embed/input-pointerRaycast" />
-
 ## 兼容性
 
 截止 2024 年 2 月，不同平台对 PointerEvent 的兼容性已经达到了 [96.35%](https://caniuse.com/?search=PointerEvent) 。
 
-设计思路可参考：https://github.com/galacean/engine/wiki/Input-system-design.
-
-> ⚠️ 若遇到平台的兼容性问题，可以在 https://github.com/galacean/polyfill-pointer-event 提 issue 。
+<Callout type="info">
+若遇到平台的兼容性问题，可以在 https://github.com/galacean/polyfill-pointer-event 提 issue 。
+</Callout>
 
 ## QA
 

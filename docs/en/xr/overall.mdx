@@ -1,0 +1,46 @@
+---
+order: 0  
+title: XR Overview  
+type: XR  
+label: XR  
+---  
+
+`XR` is a general term used to describe the concept of **Extended Reality**, which includes **Virtual Reality (VR)**, **Augmented Reality (AR)**, and **Mixed Reality (MR)**.  
+
+---
+
+## Architecture  
+
+Galacean provides a clean and flexible design for XR:  
+
+- **Clean**: When no XR capabilities are required, the package contains no XR logic, and the size remains unchanged.  
+- **Flexible**: Pluggable features simplify development.  
+- **Future-ready**: A multi-backend design that can be adapted to different platforms and interfaces in the future.  
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*_lUbQblVmQYAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom:"50%"}} />  
+
+---
+
+## Module Management  
+
+| Package                             | Description                          | Related Documentation |  
+| :---------------------------------- | :----------------------------------- | :-------------------- |  
+| `@galacean/engine-xr`               | Core architecture logic              | [API](/apis/galacean) |  
+| `@galacean/engine-web-xr`           | Backend package                      | [Doc](/en/docs/physics/overall) |  
+| `@galacean/engine-toolkit-xr`       | Advanced tool components             | [Doc](/en/docs/xr/toolkit) |  
+
+> `@galacean/engine-xr` and `@galacean/engine-web-xr` are mandatory dependencies for implementing **WebXR**. In contrast, `@galacean/engine-toolkit-xr` is not required but simplifies XR development in the editor.  
+
+> The dependency rules between XR packages follow the [version dependency rules](/en/docs/basics/version/#版本依赖):  
+> - The versions of `@galacean/engine-xr` and `@galacean/engine-web-xr` must match the version of `@galacean/engine`.  
+> - The **major version** of `@galacean/engine-toolkit-xr` must match that of `@galacean/engine`.  
+
+---
+
+## Quick Start  
+
+In this section, you will learn to:  
+
+- Quickly [develop XR interactions](/en/docs/xr/quickStart/develop) and [debug XR interactions](/en/docs/xr/quickStart/debug) without prior expertise.  
+- For deeper insights into Galacean XR, refer to [XR Core Logic](/en/docs/xr/system/manager).  
+- Finally, understanding [XR Compatibility](/en/docs/xr/compatibility) helps you assess project risks holistically.

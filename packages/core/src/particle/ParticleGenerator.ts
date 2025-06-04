@@ -22,13 +22,13 @@ import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
 import { ColorOverLifetimeModule } from "./modules/ColorOverLifetimeModule";
 import { EmissionModule } from "./modules/EmissionModule";
+import { ForceOverLifetimeModule } from "./modules/ForceOverLifetimeModule";
 import { MainModule } from "./modules/MainModule";
 import { ParticleCompositeCurve } from "./modules/ParticleCompositeCurve";
 import { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule";
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
-import { ForceOverLifetimeModule } from "./modules/ForceOverLifetimeModule";
 
 /**
  * Particle Generator.
@@ -1175,7 +1175,6 @@ export class ParticleGenerator {
 
   private _addGravityToBounds(maxLifetime: number, origin: BoundingBox, out: BoundingBox): void {
     const { min: originMin, max: originMax } = origin;
-    const { min, max } = out;
     const modifierMinMax = ParticleGenerator._tempVector20;
 
     // Gravity modifier impact
@@ -1196,20 +1195,18 @@ export class ParticleGenerator {
     const gravityEffectMinZ = z * minGravityEffect;
     const gravityEffectMaxZ = z * maxGravityEffect;
 
-    min.set(
-      Math.min(gravityEffectMinX, gravityEffectMaxX),
-      Math.min(gravityEffectMinY, gravityEffectMaxY),
-      Math.min(gravityEffectMinZ, gravityEffectMaxZ)
+    // `origin` and `out` maybe is same reference
+    out.min.set(
+      Math.min(gravityEffectMinX, gravityEffectMaxX) + originMin.x,
+      Math.min(gravityEffectMinY, gravityEffectMaxY) + originMin.y,
+      Math.min(gravityEffectMinZ, gravityEffectMaxZ) + originMin.z
     );
 
-    max.set(
-      Math.max(gravityEffectMinX, gravityEffectMaxX),
-      Math.max(gravityEffectMinY, gravityEffectMaxY),
-      Math.max(gravityEffectMinZ, gravityEffectMaxZ)
+    out.max.set(
+      Math.max(gravityEffectMinX, gravityEffectMaxX) + originMax.x,
+      Math.max(gravityEffectMinY, gravityEffectMaxY) + originMax.y,
+      Math.max(gravityEffectMinZ, gravityEffectMaxZ) + originMax.z
     );
-
-    min.add(originMin);
-    max.add(originMax);
   }
 
   private _getExtremeValueFromZero(curve: ParticleCompositeCurve, out: Vector2): void {

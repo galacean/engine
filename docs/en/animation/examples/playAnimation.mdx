@@ -32,11 +32,11 @@ Before starting, we need a model with animations. If you don't have a model, you
 
 ### Import Model
 There are three ways to import models:
-1. Drag the model file into the **[Asset Panel](/docs/assets/interface)** of the editor
+1. Drag the model file into the **[Asset Panel](/en/docs/assets/interface)** of the editor
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*EZ5ZRqABz4sAAAAAAAAAAAAADsJ_AQ/original" /> 
 
-2. Right-click on the blank space in the **[Asset Panel](/docs/assets/interface)** and select `Upload` -> `Model`
+2. Right-click on the blank space in the **[Asset Panel](/en/docs/assets/interface)** and select `Upload` -> `Model`
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*ggJdTrF7xP0AAAAAAAAAAAAADsJ_AQ/original" /> 
 
@@ -51,11 +51,11 @@ Click the expand button on the model asset
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*NBuoSbwLWeEAAAAAAAAAAAAADsJ_AQ/original" /> 
 
-You can see that the model contains an `AnimationClip` ([detailed introduction](/docs/animation/clip)) asset (if the model contains multiple animations, there will be multiple `AnimationClip` assets here)
+You can see that the model contains an `AnimationClip` ([detailed introduction](/en/docs/animation/clip)) asset (if the model contains multiple animations, there will be multiple `AnimationClip` assets here)
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*_k9iSJJckgAAAAAAAAAAAAAADsJ_AQ/original" /> 
 
-And an `AnimatorController` ([detailed introduction](/docs/animation/animatorController/)) asset
+And an `AnimatorController` ([detailed introduction](/en/docs/animation/animatorController/)) asset
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*KCiLQbzUTp8AAAAAAAAAAAAADsJ_AQ/original" /> 
 
@@ -64,7 +64,7 @@ And an `AnimatorController` ([detailed introduction](/docs/animation/animatorCon
 To control the playback of animations, we need to edit the content of the `AnimatorController`. The `AnimatorController` in the model is read-only, so we need to create an `AnimatorController` ourselves.
 
 There are two ways to create an `AnimatorController`:
-1. Right-click on the blank space in the **[Asset Panel](/docs/assets/interface)** and select `Create` -> `Animation Controller`
+1. Right-click on the blank space in the **[Asset Panel](/en/docs/assets/interface)** and select `Create` -> `Animation Controller`
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*61Q7S62IZxQAAAAAAAAAAAAADsJ_AQ/original" /> 
 
@@ -74,7 +74,7 @@ There are two ways to create an `AnimatorController`:
 
 ## 3. Edit AnimatorController
 
-1. Double-click the [AnimatorController](/docs/animation/animatorController/) asset to enter the AnimatorController editor (for an introduction to the functions of the editor, please refer to the [AnimatorController Editor](/docs/animation/animatorController/) document)
+1. Double-click the [AnimatorController](/en/docs/animation/animatorController/) asset to enter the AnimatorController editor (for an introduction to the functions of the editor, please refer to the [AnimatorController Editor](/en/docs/animation/animatorController/) document)
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*v8aUR4McTA4AAAAAAAAAAAAADsJ_AQ/original" /> 
 
@@ -82,11 +82,11 @@ There are two ways to create an `AnimatorController`:
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*G1moSpo20KcAAAAAAAAAAAAADsJ_AQ/original" /> 
 
-3. Click the  `AnimatorState`  (for an introduction to the properties of the Animation State, please refer to the [AnimatorStateMachine](/docs/animation/state-machine/#animation-state) document), and bind the AnimationClip.
+3. Click the  `AnimatorState`  (for an introduction to the properties of the Animation State, please refer to the [AnimatorStateMachine](/en/docs/animation/state-machine/#animation-state) document), and bind the AnimationClip.
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*GUdQQqCHE7cAAAAAAAAAAAAADsJ_AQ/original" /> 
 
-4. Connect from `entry` to this `AnimatorState` and click the connection line to change the `Duration` to 0 (for a detailed introduction to Animation Transition, please refer to the [AnimatorStateMachine](/docs/animation/state-machine/) document). This way, when this AnimatorController is applied, it will immediately play this `AnimatorState`.
+4. Connect from `entry` to this `AnimatorState` and click the connection line to change the `Duration` to 0 (for a detailed introduction to Animation Transition, please refer to the [AnimatorStateMachine](/en/docs/animation/state-machine/) document). This way, when this AnimatorController is applied, it will immediately play this `AnimatorState`.
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*wgBgQor0c5wAAAAAAAAAAAAADsJ_AQ/original" />
 
@@ -97,7 +97,7 @@ There are two ways to create an `AnimatorController`:
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*SMLQQLhOv-0AAAAAAAAAAAAADsJ_AQ/original" />
 
-2. Find the `Animator` component ([detailed introduction](/docs/animation/animator/)). The component is generally on the root entity of the model instance, which is the first child entity under the model entity in the editor.
+2. Find the `Animator` component ([detailed introduction](/en/docs/animation/animator/)). The component is generally on the root entity of the model instance, which is the first child entity under the model entity in the editor.
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*IAAySr0iYkoAAAAAAAAAAAAADsJ_AQ/original" /> 
 
 

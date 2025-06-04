@@ -9,9 +9,9 @@ label: Animation/Examples
 This example demonstrates how to achieve animation transitions in the Galacean editor. Through simple steps, you will learn how to transition from one animation to another.
 If this is your first time using the animation editor, it is recommended to read the previous documents:
 
-[1. Play Animation in Model](/docs/animation/examples/playAnimation/)
+[1. Play Animation in Model](/en/docs/animation/examples/playAnimation/)
 
-[2. Reuse Animation](/docs/animation/examples/reuseAnimation/)
+[2. Reuse Animation](/en/docs/animation/examples/reuseAnimation/)
 
 ## 0. Preparation
 
@@ -22,21 +22,21 @@ Before starting, we need a model that contains multiple animations. If you don't
 </Callout>
 
 ### Import Model
-If you are not sure how to import a model, please refer to: [Import Model](/docs/animation/examples/playAnimation/#import-model)
+If you are not sure how to import a model, please refer to: [Import Model](/en/docs/animation/examples/playAnimation/#import-model)
 
 ## 1. View Model
 Click the expand button on the model asset
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*uMXwRZDzOwkAAAAAAAAAAAAADsJ_AQ/original" />
 
-You can see that the model contains three [AnimationClip](/docs/animation/clip) assets and an [AnimatorController](/docs/animation/animatorController/) asset
+You can see that the model contains three [AnimationClip](/en/docs/animation/clip) assets and an [AnimatorController](/en/docs/animation/animatorController/) asset
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*kyhMRYgmJJwAAAAAAAAAAAAADsJ_AQ/original" />
 
 
 ## 2. Create AnimatorController Asset
 To control the animation playback of the model, we need to edit the content of the `AnimatorController`. Since the `AnimatorController` in the model is read-only, we need to create our own `AnimatorController`.
-If you don't know how to create an `AnimatorController`, please refer to: [Create Animator Asset](/docs/animation/examples/playAnimation/#2-create-animator-asset)
+If you don't know how to create an `AnimatorController`, please refer to: [Create Animator Asset](/en/docs/animation/examples/playAnimation/#2-create-animator-asset)
 
 ## 3. Edit AnimatorController
 
@@ -44,9 +44,9 @@ If you don't know how to create an `AnimatorController`, please refer to: [Creat
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*YQ8-S5XcK-wAAAAAAAAAAAAADsJ_AQ/original" />
 
-If you don't know how to create `AnimatorState` and bind `AnimationClips`, please refer to: [Edit AnimatorController](/docs/animation/examples/playAnimation/#3-edit-animator-controller)
+If you don't know how to create `AnimatorState` and bind `AnimationClips`, please refer to: [Edit AnimatorController](/en/docs/animation/examples/playAnimation/#3-edit-animator-controller)
 
-2. Create `AnimatorStateTransition` (for detailed introduction, please refer to the [AnimatorStateMachine](/docs/animation/state-machine/#animation-transition) document): Connect the `idle` animation to `entry`, and change the `Duration` to 0. This way, when the AnimatorController is applied, the character will play the `idle` animation.
+2. Create `AnimatorStateTransition` (for detailed introduction, please refer to the [AnimatorStateMachine](/en/docs/animation/state-machine/#animation-transition) document): Connect the `idle` animation to `entry`, and change the `Duration` to 0. This way, when the AnimatorController is applied, the character will play the `idle` animation.
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*xONyQ76QzkMAAAAAAAAAAAAADsJ_AQ/original" />
 
@@ -55,7 +55,7 @@ If you don't know how to create `AnimatorState` and bind `AnimationClips`, pleas
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*LSECTqsXywUAAAAAAAAAAAAADsJ_AQ/original" />
 
 ## 4. Use AnimatorController and Preview
-Bind the `AnimatorController` (if you don't know how to bind the `AnimatorController`, please refer to: [Use AnimatorController](/docs/animation/examples/playAnimation/#4-use-animator-controller) document) and click the play button to see the model transition from `idle` to `walk`, then to `run`, and finally exit, returning to the `idle` state.
+Bind the `AnimatorController` (if you don't know how to bind the `AnimatorController`, please refer to: [Use AnimatorController](/en/docs/animation/examples/playAnimation/#4-use-animator-controller) document) and click the play button to see the model transition from `idle` to `walk`, then to `run`, and finally exit, returning to the `idle` state.
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*flHoR7W2aiwAAAAAAAAAAAAADsJ_AQ/original" />
 
@@ -64,6 +64,6 @@ Bind the `AnimatorController` (if you don't know how to bind the `AnimatorContro
 </Callout>
 
 ## Control Animation with User Input
-The above method is mainly for debugging the transition effect of animations. You can modify the transition `Duration`, `ExitTime`, `Offset`, and other parameters (for detailed introduction, please refer to the [AnimatorStateMachine](/docs/animation/state-machine/) document) to adjust to the appropriate transition effect.
+The above method is mainly for debugging the transition effect of animations. You can modify the transition `Duration`, `ExitTime`, `Offset`, and other parameters (for detailed introduction, please refer to the [AnimatorStateMachine](/en/docs/animation/state-machine/) document) to adjust to the appropriate transition effect.
 
-In actual projects, animations generally do not switch automatically like in this example. In most cases, user input is needed to control the animation switch. For details, please refer to: [Control Animation by User Input](/docs/animation/examples/controlAnimationByInput) document.
+In actual projects, animations generally do not switch automatically like in this example. In most cases, user input is needed to control the animation switch. For details, please refer to: [Control Animation by User Input](/en/docs/animation/examples/controlAnimationByInput) document.

@@ -1,0 +1,56 @@
+---
+order: 7  
+title: XR Compatibility  
+type: XR  
+label: XR  
+---  
+
+The XR system supports multiple backends (see [XR Overview](/en/docs/xr/overall)), but **currently only the WebXR standard is officially supported**. Therefore, the compatibility of XR interactions is **limited by device support for WebXR**.  
+
+Before using XR features, refer to [CanIUse](https://caniuse.com/?search=webxr) to evaluate the runtime environment. Below is a summary of current WebXR compatibility:  
+
+---
+
+## Device Support  
+
+### PC  
+- Browsers supporting WebXR on PC (this article uses Mac Chrome)  
+- PC Chrome can install the [Immersive Web Emulator](https://chromewebstore.google.com/detail/immersive-web-emulator/cgffilbpcibhmcfbgggfhfolhkfbhmik) or other WebXR simulation plugins  
+
+### Android  
+- Devices and browsers supporting WebXR (this article uses Android phones with mobile Chrome apps)  
+- Android phones require additional installation of [Google Play Services for AR](https://play.google.com/store/apps/details?id=com.google.ar.core&hl=en_US&pli=1)  
+
+### iOS  
+- Safari on iPhones does not support WebXR  
+- Apple Vision Pro supports WebXR  
+
+### Head-Mounted Displays (HMDs)  
+- Varies by device. Refer to the official HMD documentation for compatibility details. Most HMD browsers (Chromium-based) support WebXR.  
+
+---
+
+## Runtime Compatibility Check  
+
+In runtime, you can use the following code to check if the environment supports `AR` or `VR`:  
+
+```typescript  
+// Check if AR is supported  
+xrManager.sessionManager.isSupportedMode(XRSessionMode.AR);  
+```  
+
+Before adding features, you can check compatibility using:  
+
+```typescript  
+// Check if image tracking is supported  
+xrManager.isSupportedFeature(XRImageTracking);  
+```  
+
+---
+
+## Enabling Experimental Features on Android  
+
+Android supports certain experimental features, but they are disabled by default. You can enable them via flags:  
+**Open Chrome on Android** → **Navigate to chrome://flags** → **Search for WebXR** → **Enable WebXR Incubations**  
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*YJCVTIAe0nEAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom:"50%"}} />

@@ -8,9 +8,9 @@ label: Animation/Examples
 
 This example demonstrates how to create text animations in the Galacean editor. Through simple steps, you will learn how to create an animation clip for text. If this is your first time using the animation editor, it is recommended to read the previous documents:
 
-[1. Play Animation in Model](/docs/animation/examples/playAnimation/)
+[1. Play Animation in Model](/en/docs/animation/examples/playAnimation/)
 
-[2. Reuse Animation](/docs/animation/examples/reuseAnimation/)
+[2. Reuse Animation](/en/docs/animation/examples/reuseAnimation/)
 
 ## 0. Preparation
 Before starting, we need to add a `TextRenderer` component to the `entity`.
@@ -18,8 +18,8 @@ Before starting, we need to add a `TextRenderer` component to the `entity`.
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QlyOTZOGt3cAAAAAAAAAAAAADsJ_AQ/original" />
 
 ## 1. Create AnimationClip
-After adding the component, we need to create an `AnimationClip` (for an introduction to AnimationClip, please refer to the [AnimationClip](/docs/animation/clip) document). There are two ways to create an `AnimationClip`:
-1. Right-click on the blank space in the **[Asset Panel](/docs/assets/interface)** and select `Create` -> `Animation Clip`
+After adding the component, we need to create an `AnimationClip` (for an introduction to AnimationClip, please refer to the [AnimationClip](/en/docs/animation/clip) document). There are two ways to create an `AnimationClip`:
+1. Right-click on the blank space in the **[Asset Panel](/en/docs/assets/interface)** and select `Create` -> `Animation Clip`
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*XK28Qr2GX6UAAAAAAAAAAAAADsJ_AQ/original" />
 
@@ -33,7 +33,7 @@ After adding the component, we need to create an `AnimationClip` (for an introdu
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*w4ReS7ijXgcAAAAAAAAAAAAADsJ_AQ/original" />
 
-2. Select an `entity`. According to the prompt, we need to select an `entity` in the **[Hierarchy Panel](/docs/interface/hierarchy)** as the target for editing the animation.
+2. Select an `entity`. According to the prompt, we need to select an `entity` in the **[Hierarchy Panel](/en/docs/interface/hierarchy)** as the target for editing the animation.
 
 Select the default `entity` created by the editor (you can also click the `+` button in the hierarchy panel to create a new one)
 
@@ -43,8 +43,8 @@ Select the default `entity` created by the editor (you can also click the `+` bu
 
 <Callout type="info">
 The preparation work includes:
-1. Creating an `Animator` component ([detailed introduction](/docs/animation/animator/)) for the selected `entity` and creating an `AnimatorController` ([detailed introduction](/docs/animation/animatorController/)) asset.
-2. The `AnimatorController` will contain an AnimatorState, and the `AnimatorState` will automatically bind the selected `AnimationClip` and connect to the `entry` node (for a detailed introduction to the `entry` node, please refer to the [AnimatorStateMachine](/docs/animation/state-machine/) document).
+1. Creating an `Animator` component ([detailed introduction](/en/docs/animation/animator/)) for the selected `entity` and creating an `AnimatorController` ([detailed introduction](/en/docs/animation/animatorController/)) asset.
+2. The `AnimatorController` will contain an AnimatorState, and the `AnimatorState` will automatically bind the selected `AnimationClip` and connect to the `entry` node (for a detailed introduction to the `entry` node, please refer to the [AnimatorStateMachine](/en/docs/animation/state-machine/) document).
 3. The `Animator` component will automatically bind the `AnimatorController`.
 </Callout>
 
@@ -55,7 +55,7 @@ After creation, you will open the AnimationClip editor as shown below:
 
 ## 3. Set Test Text and Switch to 2D View
 
-1. Enter `Hello World` in the `Text` property of the `TextRenderer` component on the `entity` and set the `Font Size` to `200`. You can also set other properties as needed. For more information on text, please refer to the [TextRenderer](/docs/graphics/2D/text/) document.
+1. Enter `Hello World` in the `Text` property of the `TextRenderer` component on the `entity` and set the `Font Size` to `200`. You can also set other properties as needed. For more information on text, please refer to the [TextRenderer](/en/docs/graphics/2D/text/) document.
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*AlLoT5n2EswAAAAAAAAAAAAADsJ_AQ/original" />
 
@@ -77,6 +77,6 @@ After creation, you will open the AnimationClip editor as shown below:
 
 ![2024-11-20 17.01.54.gif](<https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*QegxTJuCjyIAAAAAAAAAAAAADsJ_AQ/original>)
 
-This completes the creation of the text zoom `AnimationClip`. You can also try other properties of the `TextRenderer`, such as `Color`, `Font`, etc. For more operations on the animation editor, please refer to the [AnimationClip](/docs/animation/clip) document.
+This completes the creation of the text zoom `AnimationClip`. You can also try other properties of the `TextRenderer`, such as `Color`, `Font`, etc. For more operations on the animation editor, please refer to the [AnimationClip](/en/docs/animation/clip) document.
 
 To learn how to use this `AnimationClip` in your project, refer to the two documents listed at the top of the article.

@@ -1,6 +1,7 @@
 {
-  "material": { "title": " Material Overview" },
-  "composition": { "title": "Material Composition" },
-  "editor": { "title": "Using the Editor" },
-  "script": { "title": "Script Usage" }
+  "overview": { "title": "Material Overview" },
+  "examples": { "title": "Guidelines and Examples" },
+  "builtinShaders": { "title": "Built-in shaders" },
+  "shaderLab": { "title": "ShaderLab" },
+  "variables": "Built-in Variables"
 }

@@ -23,6 +23,12 @@
       "collapse": true
     }
   },
+  "AI": {
+    "title": "AI",
+    "theme": {
+      "collapse": true
+    }
+  },
   "graphics": {
     "title": "图形",
     "theme": {

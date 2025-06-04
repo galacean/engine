@@ -1,0 +1,67 @@
+---
+title: Multi-Pass Shader Writing  
+---
+
+Sometimes, to render a complex effect, we need to perform multiple rendering passes within a single rendering loop. We can organize these related passes under the same `SubShader` for unified management. A Shader containing multiple passes is commonly referred to as a **multi-pass shader**.
+
+As shown below, declare multiple passes required for rendering within a `SubShader`. The engine will render these passes in the order they are declared:
+
+```glsl showLineNumbers {6-8}
+SubShader "SubShaderName" {
+  ...
+  // Global variable area: variable declarations, struct declarations, render state declarations
+  ...
+ 
+  Pass "Pass0" { ... }
+  Pass "Pass1" { ... }
+  Pass "Pass2" { ... }
+
+  ...
+}
+```
+
+## UsePass
+
+Developers can reuse shader passes using the `UsePass` directive: `UsePass "{pass path}"`. The pass path format is `{ShaderName/SubShaderName/PassName}`. For example, if the following shader pass is declared:
+
+```glsl showLineNumbers {1,3,5}
+Shader "water" {
+  ...
+  SubShader "Default" {
+    ...
+    Pass "0" {
+      ...
+    }
+    ...
+  }
+  ...
+}
+```
+
+Developers can reuse it in other custom shaders via `UsePass "water/Default/0"`.
+
+Additionally, the `UsePass` directive supports reusing built-in engine passes. Currently supported built-in passes include:
+
+| Built-in Shader |           Pass Path           |
+| :-------------: | :---------------------------: |
+|       PBR       |     pbr/Default/Forward       |
+|      Unlit      |    unlit/Default/Forward      |
+|     Skybox      |   skybox/Default/Forward      |
+| Particle-shader | particle-shader/Default/Forward |
+|   SpriteMask    | SpriteMask/Default/Forward    |
+|     Sprite      |    Sprite/Default/Forward     |
+
+<Callout>
+The `SubShader` is not only used for organizing multiple passes but also supports setting `Tags`, which correspond to the engine's [setTag](/apis/galacean/#SubShader-setTag) API. For example, setting a `ReplaceTag`:
+</Callout>
+
+
+```glsl showLineNumbers
+SubShader "SubShaderName" {
+  ...
+  Tags {ReplaceTag = "opaque"}
+
+  Pass "PassName" {
+    ...
+  }
+}

@@ -1,0 +1,28 @@
+---
+order: 4
+title: 相机纹理
+type: 图形
+group: 相机
+label: Graphics/Camera
+---
+
+## 深度纹理
+
+通过相机的 [depthTextureMode](/apis/galacean/#Camera-depthTextureMode) 属性，可以启用深度纹理。启用后，Shader 中可以通过 `camera_DepthTexture` 属性访问深度纹理。
+
+深度纹理的常见用途包括：
+- 实现软粒子效果
+- 水面边缘的平滑过渡
+- 简单的后处理效果
+
+<Callout type="info">
+注意：深度纹理仅会渲染非透明物体，透明物体不会写入深度。
+</Callout>
+
+---
+
+## 非透明纹理
+
+通过相机的 [opaqueTextureEnabled](/apis/galacean/#Camera-opaqueTextureEnabled) 属性，可以启用非透明纹理。启用后，透明队列中的 Shader 可以使用 `camera_OpaqueTexture` 属性。
+
+此外，可以通过相机的 [opaqueTextureDownsampling](/apis/galacean/#Camera-opaqueTextureDownsampling) 属性设置降采样级别，以在清晰度和性能之间找到平衡。

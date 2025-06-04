@@ -9,6 +9,7 @@ import {
   HitResult,
   Layer,
   PhysicsScene,
+  Scene,
   Script,
   SphereColliderShape,
   StaticCollider
@@ -1041,6 +1042,18 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerStay).not.toHaveBeenCalled();
         expect(collisionTestScript.onTriggerExit).not.toHaveBeenCalled();
       });
+    });
+
+    it("destroy with characterController", () => {
+      const newScene = new Scene(enginePhysX);
+      enginePhysX.sceneManager.addScene(newScene);
+      const root = newScene.createRootEntity("root");
+      const characterController = root.addComponent(CharacterController);
+      characterController.addShape(new BoxColliderShape());
+      newScene.destroy();
+      expect(characterController.shapes.length).eq(0);
+      expect(characterController.destroyed).eq(true);
+      expect(newScene.destroyed).eq(true);
     });
 
     afterEach(() => {
