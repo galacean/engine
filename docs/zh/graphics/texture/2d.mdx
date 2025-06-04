@@ -6,15 +6,17 @@ group: 纹理
 label: Graphics/Texture
 ---
 
-2D 纹理（[Texture2D](/apis/core/#Texture2D)）是最常用的美术资源，使用二维 UV 坐标进行采样。
+2D 纹理是最常用的美术资源，使用二维 UV 坐标进行采样。
 
-## 创建
+## 编辑器使用
 
-在编辑器中可以方便地导入一张 2D 纹理，按照路径 **[资产面板](/docs/assets/interface)** -> **右键上传** -> **选择 Texture2D** -> **选择对应贴图** -> **2D 纹理资产创建完毕** 操作即可。
+在[资产面板](/docs/assets/interface)中拖入一张 2D 图片 (*jpg*、*png*、*webp*)即可完成 2D 纹理的创建。 将创建好的纹理赋予材质球的相应属性，可以开启不同的渲染功能，如添加基础颜色纹理，可以决定模型的基本色调。在编辑器中，只需在对应属性选择相应纹理即可。
 
-<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*71QKTYuRSyAAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom: "50%"}} />
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/563886ca-d682-487c-a74e-437a9c7df7c3/image-20250603142201774.png" style={{zoom: "50%"}} />
 
-同样的，在脚本中可以通过 [ResourceManager](/apis/core/#ResourceManager) 加载图片获取对应的 2D 纹理：
+## 脚本使用
+
+在脚本中可以通过 [ResourceManager](/apis/core/#ResourceManager) 加载图片创建对应的 2D 纹理：
 
 ```typescript
 engine.resourceManager
@@ -22,12 +24,16 @@ engine.resourceManager
      type: AssetType.Texture2D,
      url: `图片url`,
   })
-  .then((texture2D) => {
+  .then((texture) => {
     // 接下来可以将纹理应用到材质上或者进行其他操作
+    const material = new PBRMaterial(engine);
+    const texture = 生成纹理();
+
+    material.baseTexture = texture;
   });
 ```
 
-## 方法
+纹理包含以下方法：
 
 | 方法           | 解释                   |
 | :------------- | :--------------------- |
@@ -47,9 +53,11 @@ const video = document.getElementsByTagName("video")[0];
 texture.setImageSource(video);
 ```
 
-> `setImageSource` 只能同步那一帧的数据，但是视频每一帧都在变化，如果需要纹理同步变化，则要在脚本 onUpdate 钩子里面执行
-
+<Callout type="info">
+`setImageSource` 只能同步那一帧的数据，但是视频每一帧都在变化，如果需要纹理同步变化，则要在脚本 onUpdate 钩子里面执行。
 对于视频这类需要频繁更新纹理内容的使用场景，创建纹理的时候需要关闭 mipmap 并设置纹理使用方式为 Dynamic，以获得更好的性能。
+</Callout>
+
 
 ### setPixelBuffer
 
@@ -74,24 +82,3 @@ const texture = new Texture2D(engine, width, height);
 const data = new Uint8Array(width * height * 4);
 texture.getPixelBuffer(0, 0, width, height, 0, data);
 ```
-
-## 使用
-
-将纹理赋予材质球的相应属性，可以开启不同的渲染功能，如添加基础颜色纹理，可以决定模型的基本色调。在编辑器中，只需在对应属性选择相应纹理即可。
-
-<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*toooTZvkC60AAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom: "50%"}} />
-
-对应的，在脚本中，可以这样设置：
-
-```typescript
-const material = new PBRMaterial(engine);
-const texture = 生成纹理(); // 上文所示，不再赘述
-
-material.baseTexture = texture;
-```
-
-## 色彩膨胀
-
-<Image src="https://gw.alipayobjects.com/zos/OasisHub/57cf941e-8f10-4a3e-ba38-bf22d390d7f2/image-20250529151207425.png" alt="image.png" />
-
-为了解决带透明像素图片在 Alpha 值突变处出现黑边的问题，编辑器内置了色彩膨胀功能。该功能是通过将图片中所有透明像素的 RGB 值改写为与其最临近非完全透明像素的 RGB 值，达到去除图片黑边的效果。

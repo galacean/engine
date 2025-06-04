@@ -35,7 +35,7 @@ label: Platform
 | Main Scene | 项目主场景 |
 | Engine version | 项目使用的引擎版本号 |
 | Upload to CDN | 是否将资产上传至 CDN |
-| Texture Type | 纹理类型，支持 KTX2 和 Original：<br/> **Original**：不对纹理做任何处理 <br/> **KTX2**：开启纹理压缩 <Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*yHPrSrhyo0sAAAAAAAAAAAAADjCHAQ/fmt.webp" style={{zoom: "50%"}}/> 选择 KTX2 可以选择不同的压缩格式：<br/> **ETC1S：** 尺寸小，内存极小，但是质量较低，适合 albedo, specular 等贴图 <br/> **UASTC：** 尺寸大，质量高，适合 normal 这类贴图 <br/> <Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*_Ga2SKIDvv0AAAAAAAAAAAAADjCHAQ/fmt.webp" style={{zoom: "50%"}} /> 如果选择了 ETC1S 压缩格式，可以通过 Quality 来设置压缩质量(值越大，渲染质量越好)：<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*ZhviTYuo7A4AAAAAAAAAAAAADjCHAQ/fmt.webp" style={{zoom: "50%"}} />|
+| Texture Type | 详见[压缩纹理](/docs/graphics/texture/compression/)|
 | Tree shaking | 是否对导出的资产进行裁剪： <br/>  **None:** 不进行裁剪，导出所有资产 <br/> **Current Scene:** 只导出当前场景用到的资产 <br/> **All Scene:** 对所有场景 treeshaking，导出全量场景用到的资产 <Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*BJbwQrdlghwAAAAAAAAAAAAADjCHAQ/fmt.webp" style={{zoom: "50%"}} />|
 | WebGL Mode | 选择使用 WebGL 的版本：<br/> **Auto：** 优先使用 WebGL2.0, 如果运行环境不支持自动切到 WebGL1.0 <br/> **WebGL1.0：** 使用 WebGL1.0 <br/>  **WebGL2.0：**  使用 WebGL2.0 <Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*HszfTJChrdEAAAAAAAAAAAAADjCHAQ/fmt.webp" style={{zoom: "50%"}} />|
 | Alpha | 画布是否支持透明背景，如果希望画布下方的内容可以透出可以开启 |
