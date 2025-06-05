@@ -3,37 +3,37 @@ module.exports = {
     {
       name: "@galacean/engine",
       path: "packages/galacean",
-      browserPath: "dist/browser.js"
+      browserPath: "dist/browser.min.js"
     },
     {
       name: "@galacean/engine-xr",
       path: "packages/xr",
-      browserPath: "dist/browser.js"
+      browserPath: "dist/browser.min.js"
     },
     {
       name: "@galacean/engine-ui",
       path: "packages/ui",
-      browserPath: "dist/browser.js"
+      browserPath: "dist/browser.min.js"
     },
     {
       name: "@galacean/engine-physics-lite",
       path: "packages/physics-lite",
-      browserPath: "dist/browser.js"
+      browserPath: "dist/browser.min.js"
     },
     {
       name: "@galacean/engine-physics-physx",
       path: "packages/physics-physx",
-      browserPath: "dist/browser.js"
+      browserPath: "dist/browser.min.js"
     },
     {
       name: "@galacean/engine-shaderlab",
       path: "packages/shader-lab",
-      browserPath: "dist/browser.js"
+      browserPath: "dist/browser.min.js"
     },
     {
       name: "@galacean/engine-shader-shaderlab",
       path: "packages/shader-shaderlab",
-      browserPath: "dist/browser.js"
+      browserPath: "dist/browser.min.js"
     }
   ],
 
