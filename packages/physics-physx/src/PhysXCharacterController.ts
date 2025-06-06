@@ -133,14 +133,20 @@ export class PhysXCharacterController implements ICharacterController {
     let desc: any;
     if (shape instanceof PhysXBoxColliderShape) {
       desc = new this._physXPhysics._physX.PxBoxControllerDesc();
-      desc.halfHeight = shape._halfSize.x;
-      desc.halfSideExtent = shape._halfSize.y;
+      desc.halfHeight = shape._halfSize.y;
+      desc.halfSideExtent = shape._halfSize.x;
       desc.halfForwardExtent = shape._halfSize.z;
+      if (shape._rotation.lengthSquared() > 0) {
+        console.warn("Box character controller `rotation` is not supported in PhysX and will be ignored");
+      }
     } else if (shape instanceof PhysXCapsuleColliderShape) {
       desc = new this._physXPhysics._physX.PxCapsuleControllerDesc();
       desc.radius = shape._radius;
       desc.height = shape._halfHeight * 2;
       desc.climbingMode = 1; // constraint mode
+      if (shape._upAxis !== 1) {
+        console.warn("Capsule character controller `upAxis` is not supported in PhysX and will be ignored");
+      }
     } else {
       throw "unsupported shape type";
     }

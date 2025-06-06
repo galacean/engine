@@ -10,7 +10,8 @@ import {
   DynamicCollider,
   Script,
   ControllerCollisionFlag,
-  Layer
+  Layer,
+  ColliderShapeUpAxis
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
@@ -442,5 +443,118 @@ describe("CharacterController", function () {
     // @ts-ignore
     controller._syncWorldPositionFromPhysicalSpace();
     expect(roleEntity.transform.position.z).eq(3);
+  });
+
+  it("CapsuleColliderShape upAxis warning message", () => {
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.clearShapes();
+
+    const capsuleShape = new CapsuleColliderShape();
+    controller.addShape(capsuleShape);
+
+    // Mock console.warn to capture warning messages
+    const originalWarn = console.warn;
+    let warningMessage = "";
+    console.warn = (message: string) => {
+      warningMessage = message;
+    };
+
+    try {
+      // Trigger the warning by setting upAxis when controller has shapes
+      capsuleShape.upAxis = ColliderShapeUpAxis.X;
+
+      // Verify the warning message has correct grammar and format
+      expect(warningMessage).to.include(
+        "Capsule character controller `upAxis` is not supported in PhysX and will be ignored"
+      );
+    } finally {
+      // Restore original console.warn
+      console.warn = originalWarn;
+    }
+  });
+
+  it("BoxColliderShape rotation warning message", () => {
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.clearShapes();
+
+    const boxShape = new BoxColliderShape();
+    controller.addShape(boxShape);
+
+    // Mock console.warn to capture warning messages
+    const originalWarn = console.warn;
+    let warningMessage = "";
+    console.warn = (message: string) => {
+      warningMessage = message;
+    };
+
+    try {
+      // Trigger the warning by setting rotation when controller has shapes
+      boxShape.rotation = new Vector3(0, 45, 0);
+
+      // Verify the warning message has correct grammar and format
+      expect(warningMessage).to.include(
+        "Box character controller `rotation` is not supported in PhysX and will be ignored"
+      );
+    } finally {
+      // Restore original console.warn
+      console.warn = originalWarn;
+    }
+  });
+
+  it("PhysXCharacterController Box rotation warning on controller creation", () => {
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.clearShapes();
+
+    // Mock console.warn to capture warning messages
+    const originalWarn = console.warn;
+    let warningMessage = "";
+    console.warn = (message: string) => {
+      warningMessage = message;
+    };
+
+    try {
+      const boxShape = new BoxColliderShape();
+      // Set rotation before adding to controller to trigger warning during controller creation
+      boxShape.rotation = new Vector3(45, 0, 0);
+
+      // This should trigger the warning in PhysXCharacterController._createPXController
+      controller.addShape(boxShape);
+
+      // Verify the warning message has correct grammar and format
+      expect(warningMessage).to.include(
+        "Box character controller `rotation` is not supported in PhysX and will be ignored"
+      );
+    } finally {
+      // Restore original console.warn
+      console.warn = originalWarn;
+    }
+  });
+
+  it("PhysXCharacterController Capsule upAxis warning on controller creation", () => {
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.clearShapes();
+
+    // Mock console.warn to capture warning messages
+    const originalWarn = console.warn;
+    let warningMessage = "";
+    console.warn = (message: string) => {
+      warningMessage = message;
+    };
+
+    try {
+      const capsuleShape = new CapsuleColliderShape();
+      capsuleShape.upAxis = ColliderShapeUpAxis.X;
+
+      // This should trigger the warning in PhysXCharacterController._createPXController
+      controller.addShape(capsuleShape);
+
+      // Verify the warning message has correct grammar and format
+      expect(warningMessage).to.include(
+        "Capsule character controller `upAxis` is not supported in PhysX and will be ignored"
+      );
+    } finally {
+      // Restore original console.warn
+      console.warn = originalWarn;
+    }
   });
 });
