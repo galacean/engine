@@ -12,7 +12,8 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
   _radius: number;
   /** @internal */
   _halfHeight: number;
-  private _upAxis: ColliderShapeUpAxis = ColliderShapeUpAxis.Y;
+  /** @internal */
+  _upAxis: ColliderShapeUpAxis = ColliderShapeUpAxis.Y;
 
   constructor(
     physXPhysics: PhysXPhysics,
@@ -110,6 +111,10 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
       physXRotation.copyFrom(axis);
     }
     this._setLocalPose();
+
+    if (this._controllers.length > 0) {
+      console.warn("Capsule character controller `upAxis` is not supported in PhysX and will be ignored");
+    }
   }
 
   /**
