@@ -14,6 +14,7 @@ import {
   BlendOperation,
   BlendFactor,
   CullMode,
+  ColorWriteMask,
   Logger
 } from "@galacean/engine";
 import {
@@ -52,7 +53,15 @@ const RenderStateType = [
  * @internal
  */
 export class ShaderContentParser {
-  static _engineType = { RenderQueueType, CompareFunction, StencilOperation, BlendOperation, BlendFactor, CullMode };
+  static _engineType = {
+    RenderQueueType,
+    CompareFunction,
+    StencilOperation,
+    BlendOperation,
+    BlendFactor,
+    CullMode,
+    ColorWriteMask
+  };
 
   static _errors: GSError[] = [];
 
