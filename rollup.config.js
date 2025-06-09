@@ -8,6 +8,7 @@ import serve from "rollup-plugin-serve";
 import replace from "@rollup/plugin-replace";
 import { swc, defineRollupSwcOption, minify } from "rollup-plugin-swc3";
 import jscc from "rollup-plugin-jscc";
+import { string } from "rollup-plugin-string";
 
 const { BUILD_TYPE, NODE_ENV } = process.env;
 
@@ -79,13 +80,18 @@ function config({ location, pkgJson, verboseMode }) {
     })
   );
 
+  const isShaderLabSrcPkg = pkgJson.name === "@galacean/engine-shader-shaderlab";
+  const glslifyPluginIdx = curPlugins.findIndex((item) => item === glslifyPlugin);
+  if (isShaderLabSrcPkg) {
+    curPlugins.splice(glslifyPluginIdx, 1, string({ include: ["**/*.glsl", "**/*.gs"] }));
+  }
+
   return {
     umd: (compress) => {
       const umdConfig = pkgJson.umd;
       let file = path.join(location, "dist", "browser.js");
 
       if (compress) {
-        const glslifyPluginIdx = curPlugins.findIndex((item) => item === glslifyPlugin);
         curPlugins.splice(
           glslifyPluginIdx,
           1,

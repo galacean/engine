@@ -59,6 +59,7 @@
     "rollup-plugin-jscc": "^2.0.0",
     "rollup-plugin-modify": "^3.0.0",
     "rollup-plugin-serve": "^1.1.0",
+    "rollup-plugin-string": "^3.0.0",
     "rollup-plugin-swc3": "^0.10.1",
     "ts-node": "^10",
     "typescript": "^5.1.6",
