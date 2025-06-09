@@ -19,13 +19,13 @@ export class Transform extends Component {
   private static _tempMat42: Matrix = new Matrix();
 
   @deepClone
-  protected _position: Vector3 = new Vector3();
+  private _position: Vector3 = new Vector3();
   @deepClone
-  protected _rotation: Vector3 = new Vector3();
+  private _rotation: Vector3 = new Vector3();
   @deepClone
-  protected _rotationQuaternion: Quaternion = new Quaternion();
+  private _rotationQuaternion: Quaternion = new Quaternion();
   @deepClone
-  protected _scale: Vector3 = new Vector3(1, 1, 1);
+  private _scale: Vector3 = new Vector3(1, 1, 1);
   @assignmentClone
   private _localUniformScaling: boolean = true;
   @deepClone
