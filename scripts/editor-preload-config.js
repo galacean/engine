@@ -1,11 +1,6 @@
 module.exports = {
   firstParty: [
     {
-      name: "@galacean/engine-xr",
-      path: "packages/xr",
-      browserPath: "dist/browser.min.js"
-    },
-    {
       name: "@galacean/engine-physics-lite",
       path: "packages/physics-lite",
       browserPath: "dist/browser.min.js"
@@ -34,11 +29,6 @@ module.exports = {
           packagePath: "packages/galacean-engine-toolkit",
           browserPath: "dist/umd/browser.js"
         },
-        {
-          name: "@galacean/engine-toolkit-xr",
-          packagePath: "packages/xr",
-          browserPath: "dist/umd/browser.js"
-        }
       ]
     },
     {
