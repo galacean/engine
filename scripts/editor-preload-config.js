@@ -1,11 +1,6 @@
 module.exports = {
   firstParty: [
     {
-      name: "@galacean/engine-xr",
-      path: "packages/xr",
-      browserPath: "dist/browser.min.js"
-    },
-    {
       name: "@galacean/engine-physics-lite",
       path: "packages/physics-lite",
       browserPath: "dist/browser.min.js"
