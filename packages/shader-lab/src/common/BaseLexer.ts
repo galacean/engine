@@ -1,16 +1,16 @@
-import { ETokenType, ShaderRange, ShaderPosition } from ".";
+import { Logger } from "@galacean/engine";
+import { ETokenType, ShaderPosition, ShaderRange } from ".";
 import { GSErrorName } from "../GSError";
 import { ShaderLab } from "../ShaderLab";
-import { BaseToken } from "./BaseToken";
 import { ShaderLabUtils } from "../ShaderLabUtils";
-import { Logger } from "@galacean/engine";
+import { BaseToken } from "./BaseToken";
 
-export type OnToken = (token: BaseToken, scanner: BaseScanner) => void;
+export type OnToken = (token: BaseToken, scanner: BaseLexer) => void;
 
 /**
  * @internal
  */
-export default class BaseScanner {
+export abstract class BaseLexer {
   private static _spaceCharsWithBreak = [" ", "\t", "\n", "\r"];
   private static _spaceChars = [" ", "\t"];
   private static _checkIsIn(checked: string, chars: string[]): boolean {
@@ -102,10 +102,10 @@ export default class BaseScanner {
   }
 
   skipSpace(includeLineBreak: boolean): void {
-    const spaceChars = includeLineBreak ? BaseScanner._spaceCharsWithBreak : BaseScanner._spaceChars;
+    const spaceChars = includeLineBreak ? BaseLexer._spaceCharsWithBreak : BaseLexer._spaceChars;
     let curChar = this.getCurChar();
 
-    while (BaseScanner._checkIsIn(curChar, spaceChars)) {
+    while (BaseLexer._checkIsIn(curChar, spaceChars)) {
       this._advance();
       curChar = this.getCurChar();
     }

@@ -3,15 +3,15 @@ import LexerUtils from "../lexer/Utils";
 // #if _VERBOSE
 import PpSourceMap from "./sourceMap";
 // #endif
-import BaseScanner from "../common/BaseScanner";
 import { BaseToken, EOF } from "../common/BaseToken";
 import { EPpKeyword, EPpToken, PpKeyword } from "./constants";
 import { PpUtils } from "./Utils";
 import { ShaderLab } from "../ShaderLab";
+import { BaseLexer } from "../common/BaseLexer";
 
-export type OnToken = (token: BaseToken, scanner: PpScanner) => void;
+export type OnToken = (token: BaseToken, scanner: PpLexer) => void;
 
-export default class PpScanner extends BaseScanner {
+export default class PpLexer extends BaseLexer {
   private macroLvl = 0;
 
   // #if _VERBOSE

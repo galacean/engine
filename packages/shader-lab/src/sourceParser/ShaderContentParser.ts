@@ -3,7 +3,6 @@ import { BaseToken } from "../common/BaseToken";
 import { EKeyword, ETokenType, TokenType } from "../common";
 import { ShaderPosition } from "../common";
 import { KeywordMap } from "./KeywordMap";
-import Scanner from "./Scanner";
 import ContentSymbolTable, { ISymbol } from "./ContentSymbolTable";
 import {
   RenderStateDataKey,
@@ -28,6 +27,7 @@ import { GSErrorName } from "../GSError";
 import { GSError } from "../GSError";
 // #endif
 import { ShaderLabUtils } from "../ShaderLabUtils";
+import SourceLexer from "./SourceLexer";
 
 const EngineType = [
   EKeyword.GS_RenderQueueType,
@@ -67,7 +67,7 @@ export class ShaderContentParser {
   static parse(source: string): IShaderSource {
     const start = performance.now();
 
-    const scanner = new Scanner(source, KeywordMap);
+    const scanner = new SourceLexer(source, KeywordMap);
     const ret = {
       subShaders: [],
       globalContents: [],
@@ -122,7 +122,7 @@ export class ShaderContentParser {
     }
   }
 
-  private static _parseShaderStatements(ret: IShaderSource, scanner: Scanner) {
+  private static _parseShaderStatements(ret: IShaderSource, scanner: SourceLexer) {
     let braceLevel = 1;
     let start = scanner.getCurPosition();
 
@@ -180,7 +180,7 @@ export class ShaderContentParser {
   private static _parseRenderStateDeclarationOrAssignment(
     ret: { renderStates: IRenderStates },
     stateToken: BaseToken,
-    scanner: Scanner
+    scanner: SourceLexer
   ) {
     const ident = scanner.scanToken();
     let isDeclaration: boolean;
@@ -220,7 +220,7 @@ export class ShaderContentParser {
     }
   }
 
-  private static _parseVariableDeclaration(type: number, scanner: Scanner) {
+  private static _parseVariableDeclaration(type: number, scanner: SourceLexer) {
     const token = scanner.scanToken();
     scanner.scanText(";");
     this._symbolTableStack.insert({ type: token.type, ident: token.lexeme });
@@ -235,7 +235,7 @@ export class ShaderContentParser {
     this._symbolTableStack.dropScope();
   }
 
-  private static _parseRenderStatePropList(state: string, scanner: Scanner): IRenderStates {
+  private static _parseRenderStatePropList(state: string, scanner: SourceLexer): IRenderStates {
     const ret: IRenderStates = { constantMap: {}, variableMap: {} };
     while (scanner.getCurChar() !== "}") {
       this._parseRenderStatePropItem(ret, state, scanner);
@@ -245,7 +245,7 @@ export class ShaderContentParser {
     return ret;
   }
 
-  private static _parseRenderStatePropItem(ret: IRenderStates, state: string, scanner: Scanner) {
+  private static _parseRenderStatePropItem(ret: IRenderStates, state: string, scanner: SourceLexer) {
     let renderStateProp = scanner.scanToken().lexeme;
     const op = scanner.scanToken();
     if (state === "BlendState" && renderStateProp !== "BlendColor" && renderStateProp !== "AlphaToCoverage") {
@@ -337,7 +337,7 @@ export class ShaderContentParser {
     }
   }
 
-  private static _parseRenderQueueAssignment(ret: { renderStates: IRenderStates }, scanner: Scanner) {
+  private static _parseRenderQueueAssignment(ret: { renderStates: IRenderStates }, scanner: SourceLexer) {
     scanner.scanText("=");
     const word = scanner.scanToken();
     scanner.scanText(";");
@@ -352,7 +352,7 @@ export class ShaderContentParser {
 
   private static _addGlobalStatement(
     ret: { globalContents: IStatement[] },
-    scanner: Scanner,
+    scanner: SourceLexer,
     start: ShaderPosition,
     offset: number
   ) {
@@ -364,7 +364,7 @@ export class ShaderContentParser {
     }
   }
 
-  private static _parseSubShader(scanner: Scanner): ISubShaderSource {
+  private static _parseSubShader(scanner: SourceLexer): ISubShaderSource {
     this._newScope();
     const ret = {
       passes: [],
@@ -436,7 +436,7 @@ export class ShaderContentParser {
     }
   }
 
-  private static _parseTags(ret: { tags?: Record<string, number | string | boolean> }, scanner: Scanner) {
+  private static _parseTags(ret: { tags?: Record<string, number | string | boolean> }, scanner: SourceLexer) {
     scanner.scanText("{");
     while (true) {
       const ident = scanner.scanToken();
@@ -454,7 +454,7 @@ export class ShaderContentParser {
     }
   }
 
-  private static _parsePass(scanner: Scanner): IShaderPassSource {
+  private static _parsePass(scanner: SourceLexer): IShaderPassSource {
     this._newScope();
     const ret = {
       globalContents: [],

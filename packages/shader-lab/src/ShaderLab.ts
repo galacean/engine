@@ -1,6 +1,6 @@
 import { IShaderLab, IShaderSource } from "@galacean/engine-design";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
-import { ShaderContentParser } from "./contentParser";
+import { ShaderContentParser } from "./sourceParser";
 import { Lexer } from "./lexer";
 import { ShaderTargetParser } from "./parser";
 import { Preprocessor } from "./preprocessor";

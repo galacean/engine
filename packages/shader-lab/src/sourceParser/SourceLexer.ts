@@ -1,6 +1,7 @@
-import BaseScanner from "../common/BaseScanner";
+import { BaseLexer } from "../common/BaseLexer";
 
-export default class Scanner extends BaseScanner {
+
+export default class SourceLexer extends BaseLexer {
   constructor(source: string, kws: Map<string, number> = new Map()) {
     super(source, kws);
   }

@@ -1,13 +1,13 @@
 import { ETokenType, KeywordTable } from "../common";
 import { EOF, BaseToken } from "../common/BaseToken";
 import LexerUtils from "./Utils";
-import BaseScanner from "../common/BaseScanner";
 import { ShaderLab } from "../ShaderLab";
+import { BaseLexer } from "../common/BaseLexer";
 
 /**
  * The Lexer of ShaderLab Compiler
  */
-export class Lexer extends BaseScanner {
+export class Lexer extends BaseLexer {
   reset(source: string) {
     this._source = source;
     this._currentIndex = 0;
