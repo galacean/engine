@@ -40,7 +40,7 @@ importers:
         version: 18.19.64
       '@types/webxr':
         specifier: latest
-        version: 0.5.20
+        version: 0.5.22
       '@typescript-eslint/eslint-plugin':
         specifier: ^6.1.0
         version: 6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.6.3))(eslint@8.57.1)(typescript@5.6.3)
@@ -110,6 +110,9 @@ importers:
       rollup-plugin-serve:
         specifier: ^1.1.0
         version: 1.1.1
+      rollup-plugin-string:
+        specifier: ^3.0.0
+        version: 3.0.0
       rollup-plugin-swc3:
         specifier: ^0.10.1
         version: 0.10.4(@swc/core@1.9.2(@swc/helpers@0.5.15))(rollup@2.79.2)
@@ -1307,8 +1310,8 @@ packages:
   '@types/tough-cookie@4.0.5':
     resolution: {integrity: sha512-/Ad8+nIOV7Rl++6f1BdKxFSMgmoqEoYbHRpPcx3JEfv8VRsQe9Z4mCXeJBzxs7mbHY/XOZZuXlRNfhpVPbs6ZA==}
 
-  '@types/webxr@0.5.20':
-    resolution: {integrity: sha512-JGpU6qiIJQKUuVSKx1GtQnHJGxRjtfGIhzO2ilq43VZZS//f1h1Sgexbdk+Lq+7569a6EYhOWrUpIruR/1Enmg==}
+  '@types/webxr@0.5.22':
+    resolution: {integrity: sha512-Vr6Stjv5jPRqH690f5I5GLjVk8GSsoQSYJ2FVd/3jJF7KaqfwPi3ehfBS96mlQ2kPCwZaX6U0rG2+NGHBKkA/A==}
 
   '@types/yauzl@2.10.3':
     resolution: {integrity: sha512-oJoftv0LSuaDZE3Le4DbKX+KS9G36NzOeSap90UIK0yMA/NhKJhqlSGtNDORNRaIbQfzjXDrQa0ytJ6mNRGz/Q==}
@@ -3592,6 +3595,9 @@ packages:
   rollup-plugin-serve@1.1.1:
     resolution: {integrity: sha512-H0VarZRtFR0lfiiC9/P8jzCDvtFf1liOX4oSdIeeYqUCKrmFA7vNiQ0rg2D+TuoP7leaa/LBR8XBts5viF6lnw==}
 
+  rollup-plugin-string@3.0.0:
+    resolution: {integrity: sha512-vqyzgn9QefAgeKi+Y4A7jETeIAU1zQmS6VotH6bzm/zmUQEnYkpIGRaOBPY41oiWYV4JyBoGAaBjYMYuv+6wVw==}
+
   rollup-plugin-swc3@0.10.4:
     resolution: {integrity: sha512-ggLdYqAe3fZmhuyavDnuixMcNyK1/7CIlmJatW2UcKveN1GpQeFlaRjtXnK6/UCIt71SVr3Qy6p2iCLIkXq3iQ==}
     engines: {node: '>=12'}
@@ -5224,7 +5230,7 @@ snapshots:
 
   '@types/tough-cookie@4.0.5': {}
 
-  '@types/webxr@0.5.20': {}
+  '@types/webxr@0.5.22': {}
 
   '@types/yauzl@2.10.3':
     dependencies:
@@ -7708,6 +7714,10 @@ snapshots:
     dependencies:
       mime: 2.6.0
       opener: 1.5.2
+
+  rollup-plugin-string@3.0.0:
+    dependencies:
+      rollup-pluginutils: 2.8.2
 
   rollup-plugin-swc3@0.10.4(@swc/core@1.9.2(@swc/helpers@0.5.15))(rollup@2.79.2):
     dependencies:
