@@ -56,17 +56,4 @@ export enum EPpKeyword {
   defined
 }
 
-export const PpKeyword = new Map<string, EPpKeyword>([
-  ["#define", EPpKeyword.define],
-  ["#undef", EPpKeyword.undef],
-  ["#if", EPpKeyword.if],
-  ["#ifdef", EPpKeyword.ifdef],
-  ["#ifndef", EPpKeyword.ifndef],
-  ["#else", EPpKeyword.else],
-  ["#elif", EPpKeyword.elif],
-  ["#endif", EPpKeyword.endif],
-  ["#include", EPpKeyword.include],
-  ["defined", EPpKeyword.defined]
-]);
-
 export type PpConstant = boolean | number;

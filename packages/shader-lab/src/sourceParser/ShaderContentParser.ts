@@ -15,7 +15,6 @@ import { SymbolTableStack } from "../common/BaseSymbolTable";
 import { BaseToken } from "../common/BaseToken";
 import { GSErrorName } from "../GSError";
 import ContentSymbolTable, { ISymbol } from "./ContentSymbolTable";
-import { KeywordMap } from "./KeywordMap";
 // #if _VERBOSE
 import { GSError } from "../GSError";
 // #endif
@@ -60,7 +59,7 @@ export class ShaderContentParser {
   static parse(sourceCode: string): IShaderSource {
     const start = performance.now();
 
-    const lexer = new SourceLexer(sourceCode, KeywordMap);
+    const lexer = new SourceLexer(sourceCode);
     const shaderSource = {
       subShaders: [],
       globalContents: [],

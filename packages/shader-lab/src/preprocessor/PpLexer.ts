@@ -4,7 +4,7 @@ import LexerUtils from "../lexer/Utils";
 import PpSourceMap from "./sourceMap";
 // #endif
 import { BaseToken, EOF } from "../common/BaseToken";
-import { EPpKeyword, EPpToken, PpKeyword } from "./constants";
+import { EPpKeyword, EPpToken } from "./constants";
 import { PpUtils } from "./Utils";
 import { ShaderLab } from "../ShaderLab";
 import { BaseLexer } from "../common/BaseLexer";
@@ -12,6 +12,18 @@ import { BaseLexer } from "../common/BaseLexer";
 export type OnToken = (token: BaseToken, scanner: PpLexer) => void;
 
 export default class PpLexer extends BaseLexer {
+  private static _ppKeyword = new Map<string, EPpKeyword>([
+    ["#define", EPpKeyword.define],
+    ["#undef", EPpKeyword.undef],
+    ["#if", EPpKeyword.if],
+    ["#ifdef", EPpKeyword.ifdef],
+    ["#ifndef", EPpKeyword.ifndef],
+    ["#else", EPpKeyword.else],
+    ["#elif", EPpKeyword.elif],
+    ["#endif", EPpKeyword.endif],
+    ["#include", EPpKeyword.include],
+    ["defined", EPpKeyword.defined]
+  ]);
   private macroLvl = 0;
 
   // #if _VERBOSE
@@ -86,7 +98,7 @@ export default class PpLexer extends BaseLexer {
     if (end === start) {
       this.throwError(this.getShaderPosition(0), "no word found.");
     }
-    const kw = PpKeyword.get(word);
+    const kw = PpLexer._ppKeyword.get(word);
     if (kw) {
       const token = BaseToken.pool.get();
       token.set(kw, word, this.getShaderPosition(0));
@@ -139,7 +151,7 @@ export default class PpLexer extends BaseLexer {
 
     const lexeme = source.slice(start, this._currentIndex);
     const ret = BaseToken.pool.get();
-    const tokenType = PpKeyword.get(lexeme);
+    const tokenType = PpLexer._ppKeyword.get(lexeme);
     ret.set(tokenType ?? EPpToken.id, lexeme, this.getShaderPosition(this._currentIndex - start));
     onToken?.(ret, this);
     return ret;
