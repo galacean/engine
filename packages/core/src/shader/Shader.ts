@@ -85,18 +85,18 @@ export class Shader implements IReferable {
     const shaderMap = Shader._shaderMap;
 
     if (!vertexSourceOrShaderPassesOrSubShaders) {
-      if (!Shader._shaderLab) {
+      const shaderLab = Shader._shaderLab;
+      if (!shaderLab) {
         throw "ShaderLab has not been set up yet.";
       }
 
-      debugger;
-      const shaderContent = Shader._shaderLab._parseShaderSource(nameOrShaderSource);
-      console.log(shaderContent);
-      if (shaderMap[shaderContent.name]) {
-        console.error(`Shader named "${shaderContent.name}" already exists.`);
+      const shaderSource = shaderLab._parseShaderSource(nameOrShaderSource);
+      if (shaderMap[shaderSource.name]) {
+        console.error(`Shader named "${shaderSource.name}" already exists.`);
         return;
       }
-      const subShaderList = shaderContent.subShaders.map((subShaderContent) => {
+
+      const subShaderList = shaderSource.subShaders.map((subShaderContent) => {
         const passList = subShaderContent.passes.map((passInfo) => {
           if (passInfo.isUsePass) {
             // Use pass reference
@@ -138,8 +138,8 @@ export class Shader implements IReferable {
         return new SubShader(subShaderContent.name, passList, subShaderContent.tags);
       });
 
-      shader = new Shader(shaderContent.name, subShaderList);
-      shaderMap[shaderContent.name] = shader;
+      shader = new Shader(shaderSource.name, subShaderList);
+      shaderMap[shaderSource.name] = shader;
       return shader;
     } else {
       if (shaderMap[nameOrShaderSource]) {
