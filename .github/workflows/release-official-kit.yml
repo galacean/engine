@@ -3,6 +3,10 @@ name: Release Official Kit
 on:
   workflow_dispatch:
     inputs:
+      branch:
+        description: 'Branch to build from'
+        required: true
+        default: 'main'
       version:
         description: 'Version to use for editor-preload-official package'
         required: true
@@ -17,6 +21,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.inputs.branch }}
           fetch-depth: 0
 
       - name: Install pnpm
@@ -37,6 +42,7 @@ jobs:
       - name: Make scripts executable
         run: |
           chmod +x ./scripts/build-official-preload.js
+          chmod +x ./scripts/build-editor-preload.js
 
       - name: Build official preload package
         run: ./scripts/build-official-preload.js --version=${{ github.event.inputs.version }}
