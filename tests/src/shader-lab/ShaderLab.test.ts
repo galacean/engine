@@ -1,5 +1,6 @@
 import {
   BlendOperation,
+  ColorWriteMask,
   CompareFunction,
   CullMode,
   RenderStateDataKey,
@@ -187,7 +188,7 @@ describe("ShaderLab", () => {
       [RenderStateDataKey.StencilStateCompareFunctionFront]: CompareFunction.Less,
       // Blend State
       [RenderStateDataKey.BlendStateEnabled0]: true,
-      [RenderStateDataKey.BlendStateColorWriteMask0]: 0.8,
+      [RenderStateDataKey.BlendStateColorWriteMask0]: ColorWriteMask.None,
       [RenderStateDataKey.BlendStateAlphaBlendOperation0]: BlendOperation.Max,
 
       // Depth State
