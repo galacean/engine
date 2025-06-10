@@ -9,7 +9,11 @@ on:
       use_npm:
         description: 'Use npm packages instead of building from source'
         type: boolean
-        default: true
+        default: false
+      build_official:
+        description: 'Also build and publish official preload package'
+        type: boolean
+        default: false
 
 jobs:
   release:
@@ -35,8 +39,10 @@ jobs:
           registry-url: https://registry.npmjs.org/
           cache: pnpm
 
-      - name: Make build script executable
-        run: chmod +x ./scripts/build-editor-preload.js
+      - name: Make scripts executable
+        run: |
+          chmod +x ./scripts/build-editor-preload.js
+          chmod +x ./scripts/build-official-preload.js
 
       - name: Build editor-preload packages
         run: |
@@ -45,15 +51,27 @@ jobs:
             USE_NPM_ARG="--use-npm"
           fi
           
-          ./scripts/build-editor-preload.js --version=${{ github.event.inputs.version }} $USE_NPM_ARG
+          BUILD_OFFICIAL_ARG=""
+          if [ "${{ github.event.inputs.build_official }}" == "true" ]; then
+            BUILD_OFFICIAL_ARG="--build-official"
+          fi
+          
+          ./scripts/build-editor-preload.js --version=${{ github.event.inputs.version }} $USE_NPM_ARG $BUILD_OFFICIAL_ARG
+
+      - name: Prepare packages list for publishing
+        id: prepare-packages
+        run: |
+          PACKAGES="editor-preload-ecosystem"
+          if [ "${{ github.event.inputs.build_official }}" == "true" ]; then
+            PACKAGES="editor-preload-official\neditor-preload-ecosystem"
+          fi
+          echo "packages=$PACKAGES" >> $GITHUB_OUTPUT
 
       - name: Release packages and Sync to CDN
         uses: galacean/publish@main
         with:
           publish: false
-          packages: |
-            editor-preload-official
-            editor-preload-ecosystem
+          packages: ${{ steps.prepare-packages.outputs.packages }}
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
           NPM_CONFIG_PROVENANCE: true
@@ -61,11 +79,20 @@ jobs:
           OASISBE_REQUEST_HEADER: ${{secrets.OASISBE_REQUEST_HEADER}}
           OASISBE_PUBLIC_KEY: ${{secrets.OASISBE_PUBLIC_KEY}}
           
+      - name: Prepare artifact paths
+        id: prepare-artifacts
+        run: |
+          PATHS="editor-preload-ecosystem/dist/browser.js"
+          if [ "${{ github.event.inputs.build_official }}" == "true" ]; then
+            PATHS="editor-preload-official/dist/browser.js\neditor-preload-ecosystem/dist/browser.js"
+          fi
+          echo "paths<<EOF" >> $GITHUB_OUTPUT
+          echo "$PATHS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: editor-preload-packages
-          path: |
-            editor-preload-official/dist/browser.js
-            editor-preload-ecosystem/dist/browser.js
+          path: ${{ steps.prepare-artifacts.outputs.paths }}
           retention-days: 7

@@ -11,6 +11,7 @@ const versionArg = args.find(arg => arg.startsWith('--version='));
 const ecosystemVersion = versionArg ? versionArg.split('=')[1] : '1.0.0';
 const useNpmArg = args.includes('--use-npm');
 const skipBuildArg = args.includes('--skip-build');
+const buildOfficialArg = args.includes('--build-official');
 
 // Get engine version from package.json
 const enginePackageJson = require(path.join(process.cwd(), 'package.json'));
@@ -18,44 +19,24 @@ const engineVersion = enginePackageJson.version;
 
 console.log(`Engine version: ${engineVersion}`);
 console.log(`Ecosystem version: ${ecosystemVersion}`);
+console.log(`Use npm: ${useNpmArg}`);
+console.log(`Skip build: ${skipBuildArg}`);
+console.log(`Build official: ${buildOfficialArg}`);
 
 // Paths
 const rootDir = process.cwd();
-const outputOfficialDir = path.join(rootDir, 'editor-preload-official');
 const outputEcosystemDir = path.join(rootDir, 'editor-preload-ecosystem');
-const outputOfficialDistDir = path.join(outputOfficialDir, 'dist');
 const outputEcosystemDistDir = path.join(outputEcosystemDir, 'dist');
-const outputOfficialFile = path.join(outputOfficialDistDir, 'browser.js');
 const outputEcosystemFile = path.join(outputEcosystemDistDir, 'browser.js');
 
 console.log('Creating output directories...');
-// Create output directories
-if (!fs.existsSync(outputOfficialDir)) {
-  fs.mkdirSync(outputOfficialDir, { recursive: true });
-}
-if (!fs.existsSync(outputOfficialDistDir)) {
-  fs.mkdirSync(outputOfficialDistDir, { recursive: true });
-}
+// Create ecosystem output directories
 if (!fs.existsSync(outputEcosystemDir)) {
   fs.mkdirSync(outputEcosystemDir, { recursive: true });
 }
 if (!fs.existsSync(outputEcosystemDistDir)) {
   fs.mkdirSync(outputEcosystemDistDir, { recursive: true });
 }
-
-// Create package.json for official package
-const officialPackageJson = {
-  name: "@galacean/editor-preload-official",
-  version: engineVersion,
-  description: "Official packages preloaded for Galacean Editor",
-  main: "dist/browser.js",
-  files: ["dist"]
-};
-
-fs.writeFileSync(
-  path.join(outputOfficialDir, 'package.json'),
-  JSON.stringify(officialPackageJson, null, 2)
-);
 
 // Create package.json for ecosystem package
 const ecosystemPackageJson = {
@@ -71,9 +52,8 @@ fs.writeFileSync(
   JSON.stringify(ecosystemPackageJson, null, 2)
 );
 
-// Initialize output files with headers
-fs.writeFileSync(outputOfficialFile, `// @galacean/editor-preload-official ${engineVersion}\n`);
-fs.writeFileSync(outputEcosystemFile, `// @galacean/editor-preload-ecosystem ${ecosystemVersion}\n`);
+// Initialize output file with header
+fs.writeFileSync(outputEcosystemFile, `// @galacean/editor-preload-ecosystem v${ecosystemVersion}\n`);
 
 // Build first-party packages if needed
 if (!skipBuildArg) {
@@ -86,19 +66,16 @@ if (!skipBuildArg) {
   }
 }
 
-// Concatenate first-party packages
-console.log('Concatenating first-party packages...');
-config.firstParty.forEach(pkg => {
-  const browserFile = path.join(rootDir, pkg.path, pkg.browserPath);
-  
-  if (fs.existsSync(browserFile)) {
-    const content = fs.readFileSync(browserFile);
-    fs.appendFileSync(outputOfficialFile, content);
-    console.log(`Added ${pkg.name} to official package (${browserFile})`);
-  } else {
-    console.warn(`Warning: ${browserFile} not found for ${pkg.name}`);
+// If buildOfficialArg is true, also build the official preload package
+if (buildOfficialArg) {
+  console.log('Building official preload package...');
+  try {
+    execSync('node ./scripts/build-official-preload.js', { stdio: 'inherit', cwd: rootDir });
+  } catch (error) {
+    console.error('Failed to build official preload package:', error);
+    process.exit(1);
   }
-});
+}
 
 // Handle second-party packages
 if (useNpmArg) {
@@ -142,7 +119,7 @@ if (useNpmArg) {
   }
   
   // Concatenate second-party packages
-  console.log('Concatenating second-party packages...');
+  console.log('Concatenating second-party packages for ecosystem preload...');
   config.secondParty.forEach(pkg => {
     if (pkg.isMonorepo && pkg.packages) {
       pkg.packages.forEach(subPkg => {
@@ -251,9 +228,6 @@ if (useNpmArg) {
 }
 
 // Output file stats
-const officialStats = fs.statSync(outputOfficialFile);
 const ecosystemStats = fs.statSync(outputEcosystemFile);
-
-console.log(`\nCreated ${outputOfficialFile} (${(officialStats.size / 1024 / 1024).toFixed(2)} MB)`);
-console.log(`Created ${outputEcosystemFile} (${(ecosystemStats.size / 1024 / 1024).toFixed(2)} MB)`);
+console.log(`\nCreated ${outputEcosystemFile} (${(ecosystemStats.size / 1024 / 1024).toFixed(2)} MB)`);
 console.log('Done!');
