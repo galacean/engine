@@ -46,6 +46,16 @@ export class UITransform extends Transform {
     this._pivot._onValueChanged = this._onPivotChange.bind(this);
   }
 
+  /**
+   * @internal
+   */
+  _copyFrom(transform: UITransform): void {
+    // @ts-ignore
+    super._copyFrom(transform);
+    this._size.copyFrom(transform.size);
+    this._pivot.copyFrom(transform.pivot);
+  }
+
   @ignoreClone
   private _onSizeChange(): void {
     // @ts-ignore
