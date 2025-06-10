@@ -58,20 +58,13 @@ jobs:
           
           ./scripts/build-editor-preload.js --version=${{ github.event.inputs.version }} $USE_NPM_ARG $BUILD_OFFICIAL_ARG
 
-      - name: Prepare packages list for publishing
-        id: prepare-packages
-        run: |
-          PACKAGES="editor-preload-ecosystem"
-          if [ "${{ github.event.inputs.build_official }}" == "true" ]; then
-            PACKAGES="editor-preload-official\neditor-preload-ecosystem"
-          fi
-          echo "packages=$PACKAGES" >> $GITHUB_OUTPUT
-
       - name: Release packages and Sync to CDN
         uses: galacean/publish@main
         with:
           publish: false
-          packages: ${{ steps.prepare-packages.outputs.packages }}
+          packages: |
+            editor-preload-ecosystem
+            ${{ github.event.inputs.build_official == 'true' && 'editor-preload-official' || '' }}
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
           NPM_CONFIG_PROVENANCE: true
@@ -79,20 +72,11 @@ jobs:
           OASISBE_REQUEST_HEADER: ${{secrets.OASISBE_REQUEST_HEADER}}
           OASISBE_PUBLIC_KEY: ${{secrets.OASISBE_PUBLIC_KEY}}
           
-      - name: Prepare artifact paths
-        id: prepare-artifacts
-        run: |
-          PATHS="editor-preload-ecosystem/dist/browser.js"
-          if [ "${{ github.event.inputs.build_official }}" == "true" ]; then
-            PATHS="editor-preload-official/dist/browser.js\neditor-preload-ecosystem/dist/browser.js"
-          fi
-          echo "paths<<EOF" >> $GITHUB_OUTPUT
-          echo "$PATHS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: editor-preload-packages
-          path: ${{ steps.prepare-artifacts.outputs.paths }}
+          path: |
+            editor-preload-ecosystem/dist/browser.js
+            ${{ github.event.inputs.build_official == 'true' && 'editor-preload-official/dist/browser.js' || '' }}
           retention-days: 7
