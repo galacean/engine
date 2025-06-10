@@ -9,7 +9,7 @@ on:
       use_npm:
         description: 'Use npm packages instead of building from source'
         type: boolean
-        default: false
+        default: true
 
 jobs:
   release:
