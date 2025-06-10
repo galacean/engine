@@ -89,7 +89,7 @@ export class Shader implements IReferable {
         throw "ShaderLab has not been set up yet.";
       }
 
-      const shaderContent = Shader._shaderLab._parseShaderContent(nameOrShaderSource);
+      const shaderContent = Shader._shaderLab._parseShaderSource(nameOrShaderSource);
       if (shaderMap[shaderContent.name]) {
         console.error(`Shader named "${shaderContent.name}" already exists.`);
         return;

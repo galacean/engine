@@ -74,7 +74,7 @@ export function glslValidate(shaderSource, _shaderLab?: ShaderLab, includeMap = 
 
   const start = performance.now();
   // @ts-ignore
-  const shader = shaderLab._parseShaderContent(shaderSource);
+  const shader = shaderLab._parseShaderSource(shaderSource);
   console.log("struct compilation time: ", (performance.now() - start).toFixed(2), "ms");
   expect(shader).not.be.null;
   shader.subShaders.forEach((subShader) => {
@@ -105,7 +105,7 @@ export function shaderParse(
   macros: ShaderMacro[] = [],
   backend: ShaderPlatformTarget = ShaderPlatformTarget.GLES100
 ): (ReturnType<ShaderLab["_parseShaderPass"]> & { name: string })[] {
-  const structInfo = this._parseShaderContent(shaderSource);
+  const structInfo = this._parseShaderSource(shaderSource);
   const passResult = [] as any;
   for (const subShader of structInfo.subShaders) {
     for (const pass of subShader.passes) {

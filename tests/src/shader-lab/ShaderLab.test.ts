@@ -141,7 +141,7 @@ describe("ShaderLab", () => {
   let pass1: IShaderContent["subShaders"][number]["passes"][number];
 
   beforeAll(() => {
-    shader = shaderLabVerbose._parseShaderContent(demoShader);
+    shader = shaderLabVerbose._parseShaderSource(demoShader);
     subShader = shader.subShaders[0];
     passList = subShader.passes;
     expect(passList[0].isUsePass).to.be.true;
