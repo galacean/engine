@@ -3,6 +3,10 @@ name: Release Official Kit
 on:
   workflow_dispatch:
     inputs:
+      branch:
+        description: 'Branch to build from'
+        required: true
+        default: 'main'
       version:
         description: 'Version to use for editor-preload-official package'
         required: true
@@ -17,6 +21,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.inputs.branch }}
           fetch-depth: 0
 
       - name: Install pnpm
@@ -39,13 +44,7 @@ jobs:
           chmod +x ./scripts/build-official-preload.js
 
       - name: Build official preload package
-        run: ./scripts/build-official-preload.js
-
-      - name: Update package version
-        run: |
-          # Update the version in package.json
-          cd editor-preload-official
-          npm version ${{ github.event.inputs.version }} --no-git-tag-version
+        run: ./scripts/build-official-preload.js --version=${{ github.event.inputs.version }}
 
       - name: Release official preload package and Sync to CDN
         uses: galacean/publish@main
