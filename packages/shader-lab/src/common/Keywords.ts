@@ -1,6 +1,5 @@
 export enum EKeyword {
-  ATTRIBUTE = 0,
-  CONST,
+  CONST = 0,
   BOOL,
   FLOAT,
   DOUBLE,
