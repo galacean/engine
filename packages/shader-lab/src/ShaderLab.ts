@@ -120,7 +120,7 @@ export class ShaderLab implements IShaderLab {
   _parseShaderSource(sourceCode: string): IShaderSource {
     ShaderLabUtils.clearAllShaderLabObjectPool();
     ShaderContentParser.reset();
-    const ret = ShaderContentParser.parse(sourceCode);
+    const shaderSource = ShaderContentParser.parse(sourceCode);
 
     // #if _VERBOSE
     this.errors.length = 0;
@@ -129,7 +129,7 @@ export class ShaderLab implements IShaderLab {
     }
     // #endif
 
-    return ret;
+    return shaderSource;
   }
 
   // #if _VERBOSE

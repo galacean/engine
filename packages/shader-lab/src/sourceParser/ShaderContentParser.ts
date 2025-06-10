@@ -1,28 +1,21 @@
+import {
+  BlendFactor,
+  BlendOperation,
+  Color,
+  CompareFunction,
+  CullMode,
+  Logger,
+  RenderQueueType,
+  RenderStateDataKey,
+  StencilOperation
+} from "@galacean/engine";
+import { IRenderStates, IShaderPassSource, IShaderSource, IStatement, ISubShaderSource } from "@galacean/engine-design";
+import { EKeyword, ETokenType, ShaderPosition, TokenType } from "../common";
 import { SymbolTableStack } from "../common/BaseSymbolTable";
 import { BaseToken } from "../common/BaseToken";
-import { EKeyword, ETokenType, TokenType } from "../common";
-import { ShaderPosition } from "../common";
-import { KeywordMap } from "./KeywordMap";
-import ContentSymbolTable, { ISymbol } from "./ContentSymbolTable";
-import {
-  RenderStateDataKey,
-  Color,
-  RenderQueueType,
-  CompareFunction,
-  StencilOperation,
-  BlendOperation,
-  BlendFactor,
-  CullMode,
-  Logger
-} from "@galacean/engine";
-import {
-  IStatement,
-  IShaderSource,
-  ISubShaderSource,
-  IShaderPassSource,
-  IRenderStates
-} from "@galacean/engine-design";
 import { GSErrorName } from "../GSError";
+import ContentSymbolTable, { ISymbol } from "./ContentSymbolTable";
+import { KeywordMap } from "./KeywordMap";
 // #if _VERBOSE
 import { GSError } from "../GSError";
 // #endif
@@ -64,27 +57,27 @@ export class ShaderContentParser {
     this._newScope();
   }
 
-  static parse(source: string): IShaderSource {
+  static parse(sourceCode: string): IShaderSource {
     const start = performance.now();
 
-    const scanner = new SourceLexer(source, KeywordMap);
-    const ret = {
+    const lexer = new SourceLexer(sourceCode, KeywordMap);
+    const shaderSource = {
       subShaders: [],
       globalContents: [],
       renderStates: { constantMap: {}, variableMap: {} }
     } as IShaderSource;
 
-    scanner.scanText("Shader");
-    ret.name = scanner.scanPairedText('"', '"');
-    scanner.scanText("{");
+    lexer.scanText("Shader");
+    shaderSource.name = lexer.scanPairedText('"', '"');
+    lexer.scanText("{");
 
-    scanner.skipCommentsAndSpace();
-    this._parseShaderStatements(ret, scanner);
+    lexer.skipCommentsAndSpace();
+    this._parseShaderStatements(shaderSource, lexer);
 
-    const shaderGlobalStatements = ret.globalContents;
-    const shaderRenderStates = ret.renderStates;
-    for (let i = 0; i < ret.subShaders.length; i++) {
-      const subShader = ret.subShaders[i];
+    const shaderGlobalStatements = shaderSource.globalContents;
+    const shaderRenderStates = shaderSource.renderStates;
+    for (let i = 0; i < shaderSource.subShaders.length; i++) {
+      const subShader = shaderSource.subShaders[i];
       const curSubShaderGlobalStatements = shaderGlobalStatements.concat(subShader.globalContents);
       const constMap = { ...shaderRenderStates.constantMap, ...subShader.renderStates.constantMap };
       const variableMap = { ...shaderRenderStates.variableMap, ...subShader.renderStates.variableMap };
@@ -102,7 +95,7 @@ export class ShaderContentParser {
 
     Logger.info(`[content compilation] cost time ${performance.now() - start}ms`);
 
-    return ret;
+    return shaderSource;
   }
 
   private static _isRenderStateDeclarator(token: BaseToken) {
