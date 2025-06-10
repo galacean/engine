@@ -18,9 +18,9 @@ import {
 } from "@galacean/engine";
 import {
   IStatement,
-  IShaderContent,
-  ISubShaderContent,
-  IShaderPassContent,
+  IShaderSource,
+  ISubShaderSource,
+  IShaderPassSource,
   IRenderStates
 } from "@galacean/engine-design";
 import { GSErrorName } from "../GSError";
@@ -64,7 +64,7 @@ export class ShaderContentParser {
     this._newScope();
   }
 
-  static parse(source: string): IShaderContent {
+  static parse(source: string): IShaderSource {
     const start = performance.now();
 
     const scanner = new Scanner(source, KeywordMap);
@@ -72,7 +72,7 @@ export class ShaderContentParser {
       subShaders: [],
       globalContents: [],
       renderStates: { constantMap: {}, variableMap: {} }
-    } as IShaderContent;
+    } as IShaderSource;
 
     scanner.scanText("Shader");
     ret.name = scanner.scanPairedText('"', '"');
@@ -122,7 +122,7 @@ export class ShaderContentParser {
     }
   }
 
-  private static _parseShaderStatements(ret: IShaderContent, scanner: Scanner) {
+  private static _parseShaderStatements(ret: IShaderSource, scanner: Scanner) {
     let braceLevel = 1;
     let start = scanner.getCurPosition();
 
@@ -364,14 +364,14 @@ export class ShaderContentParser {
     }
   }
 
-  private static _parseSubShader(scanner: Scanner): ISubShaderContent {
+  private static _parseSubShader(scanner: Scanner): ISubShaderSource {
     this._newScope();
     const ret = {
       passes: [],
       globalContents: [],
       renderStates: { constantMap: {}, variableMap: {} },
       tags: {}
-    } as ISubShaderContent;
+    } as ISubShaderSource;
     let braceLevel = 1;
     ret.name = scanner.scanPairedText('"', '"');
     scanner.scanText("{");
@@ -454,13 +454,13 @@ export class ShaderContentParser {
     }
   }
 
-  private static _parsePass(scanner: Scanner): IShaderPassContent {
+  private static _parsePass(scanner: Scanner): IShaderPassSource {
     this._newScope();
     const ret = {
       globalContents: [],
       renderStates: { constantMap: {}, variableMap: {} },
       tags: {}
-    } as IShaderPassContent & {
+    } as IShaderPassSource & {
       globalContents: IStatement[];
     };
     ret.name = scanner.scanPairedText('"', '"');

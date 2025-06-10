@@ -1,5 +1,5 @@
 import { IShaderProgramSource } from "./IShaderProgramSource";
-import { IShaderContent } from "./shaderContent/IShaderContent";
+import { IShaderSource } from "./shaderSource/IShaderSource";
 
 /**
  * Shader lab interface.
@@ -9,7 +9,7 @@ export interface IShaderLab {
    * @internal
    * Parse shader source to get the structure of shader.
    */
-  _parseShaderContent(shaderSource: string): IShaderContent;
+  _parseShaderContent(shaderSource: string): IShaderSource;
 
   /**
    * @internal

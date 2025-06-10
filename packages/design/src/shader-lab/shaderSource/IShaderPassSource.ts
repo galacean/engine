@@ -1,6 +1,6 @@
 import { IRenderStates } from "./IRenderStates";
 
-export interface IShaderPassContent {
+export interface IShaderPassSource {
   name: string;
   isUsePass: boolean;
   tags?: Record<string, number | string | boolean>;

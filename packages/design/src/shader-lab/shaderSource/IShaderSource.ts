@@ -1,10 +1,11 @@
 import { IRenderStates } from "./IRenderStates";
 import { IStatement } from "./IStatement";
-import { ISubShaderContent } from "./ISubShaderContent";
+import { ISubShaderSource } from "./ISubShaderSource";
 
-export interface IShaderContent {
+
+export interface IShaderSource {
   name: string;
-  subShaders: ISubShaderContent[];
+  subShaders: ISubShaderSource[];
   globalContents: IStatement[];
   renderStates: IRenderStates;
 }

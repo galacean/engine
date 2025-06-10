@@ -2,7 +2,7 @@ import { Lexer } from "./lexer";
 import { ShaderTargetParser } from "./parser";
 import { Preprocessor } from "./preprocessor";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
-import { IShaderContent, IShaderLab } from "@galacean/engine-design";
+import { ISubShaderSource, IShaderLab, IShaderSource } from "@galacean/engine-design";
 import { ShaderContentParser } from "./contentParser";
 // @ts-ignore
 import { Logger, ShaderLib, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
@@ -117,7 +117,7 @@ export class ShaderLab implements IShaderLab {
     return ret;
   }
 
-  _parseShaderContent(shaderSource: string): IShaderContent {
+  _parseShaderContent(shaderSource: string): IShaderSource {
     ShaderLabUtils.clearAllShaderLabObjectPool();
     ShaderContentParser.reset();
     const ret = ShaderContentParser.parse(shaderSource);
