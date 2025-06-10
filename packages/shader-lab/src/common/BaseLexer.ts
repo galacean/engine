@@ -61,7 +61,7 @@ export abstract class BaseLexer {
 
   protected readonly _keywordsMap: Map<string, number>;
 
-  constructor(source: string, kws: Map<string, number>) {
+  constructor(source: string, kws: Map<string, number> = new Map()) {
     this._source = source;
     this._keywordsMap = kws;
   }
