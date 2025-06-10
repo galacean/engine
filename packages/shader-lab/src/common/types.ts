@@ -1,7 +1,6 @@
 import { EKeyword } from "./Keywords";
 
 export const KeywordTable = new Map<string, EKeyword>([
-  ["attribute", EKeyword.ATTRIBUTE],
   ["const", EKeyword.CONST],
   ["bool", EKeyword.BOOL],
   ["float", EKeyword.FLOAT],

@@ -337,7 +337,7 @@ export class Lexer extends BaseLexer {
     }
     const word = buffer.join("");
     const kt = KeywordTable.get(word);
-    if (kt) {
+    if (kt != undefined) {
       const token = BaseToken.pool.get();
       token.set(kt, word, start);
       return token;
