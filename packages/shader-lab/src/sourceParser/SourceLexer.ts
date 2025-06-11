@@ -5,7 +5,7 @@ import { EKeyword } from "../common/Keywords";
 import { ShaderLab } from "../ShaderLab";
 
 export default class SourceLexer extends BaseLexer {
-  private static _keywordMap = new Map([
+  private static _keywordTable = new Map([
     ["RenderQueueType", EKeyword.GS_RenderQueueType],
     ["BlendState", EKeyword.GS_BlendState],
     ["DepthState", EKeyword.GS_DepthState],
@@ -82,7 +82,7 @@ export default class SourceLexer extends BaseLexer {
     }
 
     const lexeme = this._source.substring(start.index, end.index);
-    const tokenType = SourceLexer._keywordMap.get(lexeme) ?? ETokenType.ID;
+    const tokenType = SourceLexer._keywordTable.get(lexeme) ?? ETokenType.ID;
     const range = ShaderLab.createRange(start, end);
     const token = BaseToken.pool.get();
     token.set(tokenType, lexeme, range);

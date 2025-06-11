@@ -1,13 +1,80 @@
-import { ETokenType, KeywordTable } from "../common";
-import { EOF, BaseToken } from "../common/BaseToken";
-import LexerUtils from "./Utils";
 import { ShaderLab } from "../ShaderLab";
+import { EKeyword, ETokenType } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
+import { BaseToken, EOF } from "../common/BaseToken";
+import LexerUtils from "./Utils";
 
 /**
  * The Lexer of ShaderLab Compiler
  */
 export class Lexer extends BaseLexer {
+  private static _keywordTable = new Map<string, EKeyword>([
+    ["const", EKeyword.CONST],
+    ["bool", EKeyword.BOOL],
+    ["float", EKeyword.FLOAT],
+    ["double", EKeyword.DOUBLE],
+    ["int", EKeyword.INT],
+    ["uint", EKeyword.UINT],
+    ["break", EKeyword.BREAK],
+    ["continue", EKeyword.CONTINUE],
+    ["do", EKeyword.DO],
+    ["else", EKeyword.ELSE],
+    ["for", EKeyword.FOR],
+    ["if", EKeyword.IF],
+    ["while", EKeyword.WHILE],
+    ["discard", EKeyword.DISCARD],
+    ["return", EKeyword.RETURN],
+    ["bvec2", EKeyword.BVEC2],
+    ["bvec3", EKeyword.BVEC3],
+    ["bvec4", EKeyword.BVEC4],
+    ["ivec2", EKeyword.IVEC2],
+    ["ivec3", EKeyword.IVEC3],
+    ["ivec4", EKeyword.IVEC4],
+    ["uvec2", EKeyword.UVEC2],
+    ["uvec3", EKeyword.UVEC3],
+    ["uvec4", EKeyword.UVEC4],
+    ["vec2", EKeyword.VEC2],
+    ["vec3", EKeyword.VEC3],
+    ["vec4", EKeyword.VEC4],
+    ["mat2", EKeyword.MAT2],
+    ["mat3", EKeyword.MAT3],
+    ["mat4", EKeyword.MAT4],
+    ["in", EKeyword.IN],
+    ["out", EKeyword.OUT],
+    ["inout", EKeyword.INOUT],
+    ["sampler2D", EKeyword.SAMPLER2D],
+    ["samplerCube", EKeyword.SAMPLER_CUBE],
+    ["sampler3D", EKeyword.SAMPLER3D],
+    ["sampler2DShadow", EKeyword.SAMPLER2D_SHADOW],
+    ["samplerCubeShadow", EKeyword.SAMPLER_CUBE_SHADOW],
+    ["sampler2DArray", EKeyword.SAMPLER2D_ARRAY],
+    ["sampler2DArrayShadow", EKeyword.SAMPLER2D_ARRAY_SHADOW],
+    ["isampler2D", EKeyword.I_SAMPLER2D],
+    ["isampler3D", EKeyword.I_SAMPLER3D],
+    ["isamplerCube", EKeyword.I_SAMPLER_CUBE],
+    ["isampler2DArray", EKeyword.I_SAMPLER2D_ARRAY],
+    ["usampler2D", EKeyword.U_SAMPLER2D],
+    ["usampler3D", EKeyword.U_SAMPLER3D],
+    ["usamplerCube", EKeyword.U_SAMPLER_CUBE],
+    ["usampler2DArray", EKeyword.U_SAMPLER2D_ARRAY],
+    ["struct", EKeyword.STRUCT],
+    ["void", EKeyword.VOID],
+    ["true", EKeyword.TRUE],
+    ["false", EKeyword.FALSE],
+    ["precision", EKeyword.PRECISION],
+    ["precise", EKeyword.PRECISE],
+    ["highp", EKeyword.HIGHP],
+    ["mediump", EKeyword.MEDIUMP],
+    ["lowp", EKeyword.LOWP],
+    ["invariant", EKeyword.INVARIANT],
+    ["flat", EKeyword.FLAT],
+    ["smooth", EKeyword.SMOOTH],
+    ["noperspective", EKeyword.NOPERSPECTIVE],
+    ["centroid", EKeyword.CENTROID],
+    ["layout", EKeyword.LAYOUT],
+    ["location", EKeyword.LOCATION]
+  ]);
+
   reset(source: string) {
     this._source = source;
     this._currentIndex = 0;
@@ -336,7 +403,7 @@ export class Lexer extends BaseLexer {
       this._advance();
     }
     const word = buffer.join("");
-    const kt = KeywordTable.get(word);
+    const kt = Lexer._keywordTable.get(word);
     if (kt != undefined) {
       const token = BaseToken.pool.get();
       token.set(kt, word, start);
