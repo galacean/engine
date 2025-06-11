@@ -5,32 +5,32 @@ import { EKeyword } from "../common/Keywords";
 import { ShaderLab } from "../ShaderLab";
 
 export default class SourceLexer extends BaseLexer {
-  private static _keywordMap = new Map([
-    ["RenderQueueType", EKeyword.GS_RenderQueueType],
-    ["BlendState", EKeyword.GS_BlendState],
-    ["DepthState", EKeyword.GS_DepthState],
-    ["StencilState", EKeyword.GS_StencilState],
-    ["RasterState", EKeyword.GS_RasterState],
-    ["EditorProperties", EKeyword.GS_EditorProperties],
-    ["EditorMacros", EKeyword.GS_EditorMacros],
-    ["Editor", EKeyword.GS_Editor],
-    ["Tags", EKeyword.GS_Tags],
-    ["VertexShader", EKeyword.GS_VertexShader],
-    ["FragmentShader", EKeyword.GS_FragmentShader],
-    ["SubShader", EKeyword.GS_SubShader],
-    ["Pass", EKeyword.GS_Pass],
-    ["BlendFactor", EKeyword.GS_BlendFactor],
-    ["BlendOperation", EKeyword.GS_BlendOperation],
-    ["Bool", EKeyword.GS_Bool],
-    ["Number", EKeyword.GS_Number],
-    ["CompareFunction", EKeyword.GS_CompareFunction],
-    ["StencilOperation", EKeyword.GS_StencilOperation],
-    ["CullMode", EKeyword.GS_CullMode],
-    ["true", EKeyword.TRUE],
-    ["false", EKeyword.FALSE],
-    ["UsePass", EKeyword.GS_UsePass],
-    ["Color", EKeyword.GS_Color]
-  ]);
+  private static _keywordTable = <Record<string, EKeyword>>{
+    RenderQueueType: EKeyword.GS_RenderQueueType,
+    BlendState: EKeyword.GS_BlendState,
+    DepthState: EKeyword.GS_DepthState,
+    StencilState: EKeyword.GS_StencilState,
+    RasterState: EKeyword.GS_RasterState,
+    EditorProperties: EKeyword.GS_EditorProperties,
+    EditorMacros: EKeyword.GS_EditorMacros,
+    Editor: EKeyword.GS_Editor,
+    Tags: EKeyword.GS_Tags,
+    VertexShader: EKeyword.GS_VertexShader,
+    FragmentShader: EKeyword.GS_FragmentShader,
+    SubShader: EKeyword.GS_SubShader,
+    Pass: EKeyword.GS_Pass,
+    BlendFactor: EKeyword.GS_BlendFactor,
+    BlendOperation: EKeyword.GS_BlendOperation,
+    Bool: EKeyword.GS_Bool,
+    Number: EKeyword.GS_Number,
+    CompareFunction: EKeyword.GS_CompareFunction,
+    StencilOperation: EKeyword.GS_StencilOperation,
+    CullMode: EKeyword.GS_CullMode,
+    true: EKeyword.TRUE,
+    false: EKeyword.FALSE,
+    UsePass: EKeyword.GS_UsePass,
+    Color: EKeyword.GS_Color
+  };
 
   constructor(source: string) {
     super(source);
@@ -82,7 +82,7 @@ export default class SourceLexer extends BaseLexer {
     }
 
     const lexeme = this._source.substring(start.index, end.index);
-    const tokenType = SourceLexer._keywordMap.get(lexeme) ?? ETokenType.ID;
+    const tokenType = SourceLexer._keywordTable[lexeme] ?? ETokenType.ID;
     const range = ShaderLab.createRange(start, end);
     const token = BaseToken.pool.get();
     token.set(tokenType, lexeme, range);
