@@ -1,5 +1,5 @@
 import { Logger } from "@galacean/engine";
-import { ETokenType, ShaderPosition, ShaderRange } from ".";
+import { ShaderPosition, ShaderRange } from ".";
 import { GSErrorName } from "../GSError";
 import { ShaderLab } from "../ShaderLab";
 import { ShaderLabUtils } from "../ShaderLabUtils";
@@ -59,11 +59,8 @@ export abstract class BaseLexer {
   }
   // #endif
 
-  protected readonly _keywordsMap: Map<string, number>;
-
-  constructor(source: string, kws: Map<string, number> = new Map()) {
+  constructor(source: string) {
     this._source = source;
-    this._keywordsMap = kws;
   }
 
   isEnd(): boolean {
@@ -183,27 +180,5 @@ export abstract class BaseLexer {
     return this._source.substring(start, this._currentIndex - right.length);
   }
 
-  scanToken(onToken?: OnToken, splitCharRegex = /\w/) {
-    this.skipCommentsAndSpace();
-    const start = this.getCurPosition();
-    if (this.isEnd()) return;
-    while (splitCharRegex.test(this.getCurChar()) && !this.isEnd()) this._advance();
-    const end = this.getCurPosition();
-
-    if (start.index === end.index) {
-      this._advance();
-      const token = BaseToken.pool.get();
-      token.set(ETokenType.NOT_WORD, this._source[start.index], start);
-      onToken?.(token, this);
-      return token;
-    }
-
-    const lexeme = this._source.substring(start.index, end.index);
-    const tokenType = this._keywordsMap.get(lexeme) ?? ETokenType.ID;
-    const range = ShaderLab.createRange(start, end);
-    const token = BaseToken.pool.get();
-    token.set(tokenType, lexeme, range);
-    onToken?.(token, this);
-    return token;
-  }
+  abstract scanToken(onToken?: OnToken): void;
 }
