@@ -44,7 +44,7 @@ const RenderStateType = [
 /**
  * @internal
  */
-export class ShaderContentParser {
+export class ShaderSourceParser {
   static _engineType = { RenderQueueType, CompareFunction, StencilOperation, BlendOperation, BlendFactor, CullMode };
 
   static _errors: GSError[] = [];
@@ -107,7 +107,7 @@ export class ShaderContentParser {
   }
 
   private static _lookupSymbolByType(ident: string, type: TokenType): ISymbol | undefined {
-    const stack = ShaderContentParser._symbolTableStack.stack;
+    const stack = ShaderSourceParser._symbolTableStack.stack;
     for (let length = stack.length, i = length - 1; i >= 0; i--) {
       const symbolTable = stack[i];
       const ret = symbolTable.lookup(ident, type);
@@ -155,12 +155,12 @@ export class ShaderContentParser {
           }
 
         default:
-          if (ShaderContentParser._isRenderStateDeclarator(word)) {
+          if (ShaderSourceParser._isRenderStateDeclarator(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
             this._parseRenderStateDeclarationOrAssignment(ret, word, scanner);
             start = scanner.getCurPosition();
             break;
-          } else if (ShaderContentParser._isEngineType(word)) {
+          } else if (ShaderSourceParser._isEngineType(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
             this._parseVariableDeclaration(word.type, scanner);
             start = scanner.getCurPosition();
@@ -185,7 +185,7 @@ export class ShaderContentParser {
     } else if (ident.lexeme === "=") {
       const variable = scanner.scanToken();
       scanner.scanText(";");
-      const sm = ShaderContentParser._lookupSymbolByType(variable.lexeme, stateToken.type);
+      const sm = ShaderSourceParser._lookupSymbolByType(variable.lexeme, stateToken.type);
       if (!sm?.value) {
         const error = ShaderLabUtils.createGSError(
           `Invalid "${stateToken.lexeme}" variable: ${variable.lexeme}`,
@@ -304,7 +304,7 @@ export class ShaderContentParser {
       } else if (scanner.getCurChar() === ".") {
         scanner._advance();
         const engineTypeProp = scanner.scanToken();
-        value = ShaderContentParser._engineType[token.lexeme]?.[engineTypeProp.lexeme];
+        value = ShaderSourceParser._engineType[token.lexeme]?.[engineTypeProp.lexeme];
         if (value == undefined) {
           const error = ShaderLabUtils.createGSError(
             `Invalid engine constant: ${token.lexeme}.${engineTypeProp.lexeme}`,
@@ -334,7 +334,7 @@ export class ShaderContentParser {
     scanner.scanText("=");
     const word = scanner.scanToken();
     scanner.scanText(";");
-    const value = ShaderContentParser._engineType.RenderQueueType[word.lexeme];
+    const value = ShaderSourceParser._engineType.RenderQueueType[word.lexeme];
     const key = RenderStateDataKey.RenderQueueType;
     if (value == undefined) {
       ret.renderStates.variableMap[key] = word.lexeme;
@@ -414,12 +414,12 @@ export class ShaderContentParser {
           }
 
         default:
-          if (ShaderContentParser._isRenderStateDeclarator(word)) {
+          if (ShaderSourceParser._isRenderStateDeclarator(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
             this._parseRenderStateDeclarationOrAssignment(ret, word, scanner);
             start = scanner.getCurPosition();
             break;
-          } else if (ShaderContentParser._isEngineType(word)) {
+          } else if (ShaderSourceParser._isEngineType(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
             this._parseVariableDeclaration(word.type, scanner);
             start = scanner.getCurPosition();
@@ -513,12 +513,12 @@ export class ShaderContentParser {
           }
 
         default:
-          if (ShaderContentParser._isRenderStateDeclarator(word)) {
+          if (ShaderSourceParser._isRenderStateDeclarator(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
             this._parseRenderStateDeclarationOrAssignment(ret, word, scanner);
             start = scanner.getCurPosition();
             break;
-          } else if (ShaderContentParser._isEngineType(word)) {
+          } else if (ShaderSourceParser._isEngineType(word)) {
             this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
             this._parseVariableDeclaration(word.type, scanner);
             start = scanner.getCurPosition();

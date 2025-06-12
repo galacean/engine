@@ -1,6 +1,5 @@
 import { IShaderLab, IShaderSource } from "@galacean/engine-design";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
-import { ShaderContentParser } from "./sourceParser";
 import { Lexer } from "./lexer";
 import { ShaderTargetParser } from "./parser";
 import { Preprocessor } from "./preprocessor";
@@ -13,6 +12,7 @@ import { GSError } from "./GSError";
 import { IShaderProgramSource } from "@galacean/engine-design/types/shader-lab/IShaderProgramSource";
 import { PpParser } from "./preprocessor/PpParser";
 import { ShaderLabUtils } from "./ShaderLabUtils";
+import { ShaderSourceParser } from "./sourceParser/ShaderSourceParser";
 
 /** @internal */
 export class ShaderLab implements IShaderLab {
@@ -119,12 +119,12 @@ export class ShaderLab implements IShaderLab {
 
   _parseShaderSource(sourceCode: string): IShaderSource {
     ShaderLabUtils.clearAllShaderLabObjectPool();
-    ShaderContentParser.reset();
-    const shaderSource = ShaderContentParser.parse(sourceCode);
+    ShaderSourceParser.reset();
+    const shaderSource = ShaderSourceParser.parse(sourceCode);
 
     // #if _VERBOSE
     this.errors.length = 0;
-    for (const error of ShaderContentParser._errors) {
+    for (const error of ShaderSourceParser._errors) {
       this.errors.push(error);
     }
     // #endif
