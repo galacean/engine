@@ -67,9 +67,14 @@ export default class SourceLexer extends BaseLexer {
     const wordCharRegex = SourceLexer._wordCharRegex;
 
     this.skipCommentsAndSpace();
+    
     const start = this.getCurPosition();
     if (this.isEnd()) return;
-    while (wordCharRegex.test(this.getCurChar()) && !this.isEnd()) this._advance();
+
+    while (wordCharRegex.test(this.getCurChar()) && !this.isEnd()) {
+      this._advance();
+    }
+
     const end = this.getCurPosition();
 
     if (start.index === end.index) {

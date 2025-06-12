@@ -11,16 +11,11 @@ export type OnToken = (token: BaseToken, scanner: BaseLexer) => void;
  * @internal
  */
 export abstract class BaseLexer {
-  private static _spaceCharsWithBreak = [" ", "\t", "\n", "\r"];
-  private static _spaceChars = [" ", "\t"];
-  private static _checkIsIn(checked: string, chars: string[]): boolean {
-    for (let i = 0; i < chars.length; i++) {
-      if (checked === chars[i]) {
-        return true;
-      }
-      continue;
+  private static _isWhiteSpaceChar(char: string, includeBreak: boolean): boolean {
+    if (char === " " || char === "\t") {
+      return true;
     }
-    return false;
+    return includeBreak && (char === "\n" || char === "\r");
   }
 
   protected _currentIndex = 0;
@@ -99,19 +94,16 @@ export abstract class BaseLexer {
   }
 
   skipSpace(includeLineBreak: boolean): void {
-    const spaceChars = includeLineBreak ? BaseLexer._spaceCharsWithBreak : BaseLexer._spaceChars;
     let curChar = this.getCurChar();
-
-    while (BaseLexer._checkIsIn(curChar, spaceChars)) {
+    while (BaseLexer._isWhiteSpaceChar(curChar, includeLineBreak)) {
       this._advance();
       curChar = this.getCurChar();
     }
   }
 
-  skipCommentsAndSpace(): ShaderRange | undefined {
+  skipCommentsAndSpace(): void {
     this.skipSpace(true);
     if (this.peek(2) === "//") {
-      const start = this.getCurPosition();
       this.advance(2);
       // single line comments
       let curChar = this.getCurChar();
@@ -120,15 +112,14 @@ export abstract class BaseLexer {
         curChar = this.getCurChar();
       }
       this.skipCommentsAndSpace();
-      return ShaderLab.createRange(start, this.getCurPosition());
     } else if (this.peek(2) === "/*") {
-      const start = this.getCurPosition();
       this.advance(2);
       //  multi-line comments
-      while (this.peek(2) !== "*/" && !this.isEnd()) this._advance();
+      while (this.peek(2) !== "*/" && !this.isEnd()) {
+        this._advance();
+      }
       this.advance(2);
       this.skipCommentsAndSpace();
-      return ShaderLab.createRange(start, this.getCurPosition());
     }
   }
 
