@@ -31,10 +31,7 @@ export default class SourceLexer extends BaseLexer {
     UsePass: Keyword.GS_UsePass,
     Color: Keyword.GS_Color
   };
-
-  constructor(source: string) {
-    super(source);
-  }
+  private static _wordCharRegex = /\w/;
 
   /**
    * split by space
@@ -66,11 +63,13 @@ export default class SourceLexer extends BaseLexer {
   }
   // #endif
 
-  override scanToken(onToken?: OnToken, splitCharRegex = /\w/) {
+  override scanToken(onToken?: OnToken): BaseToken {
+    const wordCharRegex = SourceLexer._wordCharRegex;
+
     this.skipCommentsAndSpace();
     const start = this.getCurPosition();
     if (this.isEnd()) return;
-    while (splitCharRegex.test(this.getCurChar()) && !this.isEnd()) this._advance();
+    while (wordCharRegex.test(this.getCurChar()) && !this.isEnd()) this._advance();
     const end = this.getCurPosition();
 
     if (start.index === end.index) {
