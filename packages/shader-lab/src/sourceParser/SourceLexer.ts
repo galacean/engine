@@ -5,7 +5,7 @@ import { Keyword } from "../common/enums/Keyword";
 import { ShaderLab } from "../ShaderLab";
 
 export default class SourceLexer extends BaseLexer {
-  private static _keywordTable = <Record<string, Keyword>>{
+  private static _lexemeTable = <Record<string, Keyword>>{
     RenderQueueType: Keyword.GS_RenderQueueType,
     BlendState: Keyword.GS_BlendState,
     DepthState: Keyword.GS_DepthState,
@@ -66,11 +66,11 @@ export default class SourceLexer extends BaseLexer {
   override scanToken(onToken?: OnToken): BaseToken {
     this.skipCommentsAndSpace();
 
-    const start = this.getCurPosition();
     if (this.isEnd()) {
       return;
     }
 
+    const start = this.getCurPosition();
     const wordCharRegex = SourceLexer._wordCharRegex;
     while (wordCharRegex.test(this.getCurChar()) && !this.isEnd()) {
       this._advance();
@@ -87,7 +87,7 @@ export default class SourceLexer extends BaseLexer {
     }
 
     const lexeme = this._source.substring(start.index, end.index);
-    const tokenType = SourceLexer._keywordTable[lexeme] ?? ETokenType.ID;
+    const tokenType = SourceLexer._lexemeTable[lexeme] ?? ETokenType.ID;
     const range = ShaderLab.createRange(start, end);
     const token = BaseToken.pool.get();
     token.set(tokenType, lexeme, range);

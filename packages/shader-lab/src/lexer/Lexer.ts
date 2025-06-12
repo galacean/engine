@@ -9,7 +9,7 @@ import LexerUtils from "./Utils";
  * The Lexer of ShaderLab Compiler
  */
 export class Lexer extends BaseLexer {
-  private static _keywordTable = <Record<string, Keyword>>{
+  private static _lexemeTable = <Record<string, Keyword>>{
     const: Keyword.CONST,
     bool: Keyword.BOOL,
     float: Keyword.FLOAT,
@@ -404,7 +404,7 @@ export class Lexer extends BaseLexer {
       this._advance();
     }
     const word = buffer.join("");
-    const kt = Lexer._keywordTable[word];
+    const kt = Lexer._lexemeTable[word];
     if (kt != undefined) {
       const token = BaseToken.pool.get();
       token.set(kt, word, start);

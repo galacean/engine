@@ -12,7 +12,7 @@ import { PpUtils } from "./Utils";
 export type OnToken = (token: BaseToken, scanner: PpLexer) => void;
 
 export default class PpLexer extends BaseLexer {
-  private static _keywordTable = <Record<string, EPpKeyword>>{
+  private static _lexemeTable = <Record<string, EPpKeyword>>{
     "#define": EPpKeyword.define,
     "#undef": EPpKeyword.undef,
     "#if": EPpKeyword.if,
@@ -99,7 +99,7 @@ export default class PpLexer extends BaseLexer {
     if (end === start) {
       this.throwError(this.getShaderPosition(0), "no word found.");
     }
-    const kw = PpLexer._keywordTable[word];
+    const kw = PpLexer._lexemeTable[word];
     if (kw) {
       const token = BaseToken.pool.get();
       token.set(kw, word, this.getShaderPosition(0));
@@ -152,7 +152,7 @@ export default class PpLexer extends BaseLexer {
 
     const lexeme = source.slice(start, this._currentIndex);
     const ret = BaseToken.pool.get();
-    const tokenType = PpLexer._keywordTable[lexeme];
+    const tokenType = PpLexer._lexemeTable[lexeme];
     ret.set(tokenType ?? EPpToken.id, lexeme, this.getShaderPosition(this._currentIndex - start));
     onToken?.(ret, this);
     return ret;
