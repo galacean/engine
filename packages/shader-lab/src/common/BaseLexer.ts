@@ -128,13 +128,14 @@ export abstract class BaseLexer {
     return this._source.substring(offset, offset + to);
   }
 
-  scanText(text: string) {
+  scanText(text: string): void {
     this.skipCommentsAndSpace();
-    const peek = this.peek(text.length);
+    const length = text.length;
+    const peek = this.peek(length);
     if (peek !== text) {
       this.throwError(this.getCurPosition(), `Expect text "${text}", but got "${peek}"`);
     }
-    this.advance(text.length);
+    this.advance(length);
   }
 
   throwError(pos: ShaderPosition | ShaderRange, ...msgs: any[]) {
@@ -145,30 +146,36 @@ export abstract class BaseLexer {
     throw error;
   }
 
-  scanPairedText(left: string, right: string, balanced = false, skipLeading = false) {
+  scanPairedText(left: string, right: string, balanced: boolean, skipLeading: boolean): string {
     if (!skipLeading) {
       this.scanText(left);
     }
+
     const start = this._currentIndex;
+    const leftLength = left.length;
+    const rightLength = right.length;
+
     let level = balanced ? 1 : 0;
-    while (this.peek(right.length) !== right || level !== 0) {
+    while (this.peek(rightLength) !== right || level !== 0) {
       if (this.isEnd()) return;
+
       if (balanced) {
-        if (this.peek(left.length) === left) {
-          level += 1;
-          this.advance(left.length);
+        if (this.peek(leftLength) === left) {
+          level++;
+          this.advance(leftLength);
           continue;
-        } else if (this.peek(right.length) === right) {
-          level -= 1;
-          if (level === 0) break;
-          this.advance(right.length);
+        } else if (this.peek(rightLength) === right) {
+          if (--level === 0) {
+            break;
+          }
+          this.advance(rightLength);
           continue;
         }
       }
-      this.advance(right.length);
+      this.advance(rightLength);
     }
-    this.advance(right.length);
-    return this._source.substring(start, this._currentIndex - right.length);
+    this.advance(rightLength);
+    return this._source.substring(start, this._currentIndex - rightLength);
   }
 
   abstract scanToken(onToken?: OnToken): void;

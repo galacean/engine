@@ -6,18 +6,18 @@ import { ShaderLab } from "../ShaderLab";
 
 export default class SourceLexer extends BaseLexer {
   private static _lexemeTable = <Record<string, Keyword>>{
-    RenderQueueType: Keyword.GS_RenderQueueType,
+    RenderQueueType: Keyword.GSRenderQueueType,
     BlendState: Keyword.GS_BlendState,
     DepthState: Keyword.GS_DepthState,
     StencilState: Keyword.GS_StencilState,
     RasterState: Keyword.GS_RasterState,
-    EditorProperties: Keyword.GS_EditorProperties,
-    EditorMacros: Keyword.GS_EditorMacros,
-    Editor: Keyword.GS_Editor,
+    EditorProperties: Keyword.GSEditorProperties,
+    EditorMacros: Keyword.GSEditorMacros,
+    Editor: Keyword.GSEditor,
     Tags: Keyword.GS_Tags,
     VertexShader: Keyword.GS_VertexShader,
     FragmentShader: Keyword.GS_FragmentShader,
-    SubShader: Keyword.GS_SubShader,
+    SubShader: Keyword.GSSubShader,
     Pass: Keyword.GS_Pass,
     BlendFactor: Keyword.GS_BlendFactor,
     BlendOperation: Keyword.GS_BlendOperation,
@@ -80,7 +80,7 @@ export default class SourceLexer extends BaseLexer {
     if (start.index === end.index) {
       this._advance();
       const token = BaseToken.pool.get();
-      token.set(ETokenType.NOT_WORD, this._source[start.index], start);
+      token.set(ETokenType.NotWord, this._source[start.index], start);
       onToken?.(token, this);
       return token;
     }

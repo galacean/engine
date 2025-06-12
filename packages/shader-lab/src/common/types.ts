@@ -94,7 +94,7 @@ export enum ETokenType {
   /** ? */
   QUESTION,
 
-  NOT_WORD,
+  NotWord,
 
   /** ε */
   EPSILON = 1998,
