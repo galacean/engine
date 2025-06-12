@@ -64,13 +64,14 @@ export default class SourceLexer extends BaseLexer {
   // #endif
 
   override scanToken(onToken?: OnToken): BaseToken {
-    const wordCharRegex = SourceLexer._wordCharRegex;
-
     this.skipCommentsAndSpace();
-    
-    const start = this.getCurPosition();
-    if (this.isEnd()) return;
 
+    const start = this.getCurPosition();
+    if (this.isEnd()) {
+      return;
+    }
+
+    const wordCharRegex = SourceLexer._wordCharRegex;
     while (wordCharRegex.test(this.getCurChar()) && !this.isEnd()) {
       this._advance();
     }

@@ -104,8 +104,8 @@ export abstract class BaseLexer {
   skipCommentsAndSpace(): void {
     this.skipSpace(true);
     if (this.peek(2) === "//") {
+      // Single line comments
       this.advance(2);
-      // single line comments
       let curChar = this.getCurChar();
       while (curChar !== "\n" && curChar !== "\r" && !this.isEnd()) {
         this._advance();
@@ -113,8 +113,8 @@ export abstract class BaseLexer {
       }
       this.skipCommentsAndSpace();
     } else if (this.peek(2) === "/*") {
+      // Multi-line comments
       this.advance(2);
-      //  multi-line comments
       while (this.peek(2) !== "*/" && !this.isEnd()) {
         this._advance();
       }
