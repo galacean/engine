@@ -1,4 +1,4 @@
-export enum EKeyword {
+export enum Keyword {
   CONST = 0,
   BOOL,
   FLOAT,

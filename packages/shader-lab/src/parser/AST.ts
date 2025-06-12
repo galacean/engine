@@ -3,7 +3,7 @@ import { BuiltinFunction, BuiltinVariable, NonGenericGalaceanType } from "./buil
 // #endif
 import { ClearableObjectPool, IPoolElement } from "@galacean/engine";
 import { CodeGenVisitor } from "../codeGen";
-import { EKeyword, ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from "../common";
+import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from "../common";
 import { BaseToken, BaseToken as Token } from "../common/BaseToken";
 import { ParserUtils } from "../ParserUtils";
 import { ShaderLabUtils } from "../ShaderLabUtils";
@@ -12,6 +12,7 @@ import SemanticAnalyzer from "./SemanticAnalyzer";
 import { ShaderData } from "./ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, VarSymbol } from "./symbolTable";
 import { IParamInfo, NodeChild, StructProp, SymbolType } from "./types";
+import { Keyword } from "../common/enums/Keyword";
 
 function ASTNodeDecorator(nonTerminal: NoneTerminal) {
   return function <T extends { new (): TreeNode }>(ASTNode: T) {
@@ -102,7 +103,7 @@ export namespace ASTNode {
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      if (ASTNode._unwrapToken(this.children![0]).type === EKeyword.RETURN) {
+      if (ASTNode._unwrapToken(this.children![0]).type === Keyword.RETURN) {
         sa.curFunctionInfo.returnStatement = this;
       }
     }
@@ -234,13 +235,13 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.single_type_qualifier)
   export class SingleTypeQualifier extends TreeNode {
-    qualifier: EKeyword;
+    qualifier: Keyword;
     lexeme: string;
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const child = this.children[0];
       if (child instanceof Token) {
-        this.qualifier = child.type as EKeyword;
+        this.qualifier = child.type as Keyword;
         this.lexeme = child.lexeme;
       } else {
         this.qualifier = (<BasicTypeQualifier>child).qualifier;
@@ -250,12 +251,12 @@ export namespace ASTNode {
   }
 
   abstract class BasicTypeQualifier extends TreeNode {
-    qualifier: EKeyword;
+    qualifier: Keyword;
     lexeme: string;
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const token = this.children[0] as Token;
-      this.qualifier = token.type as EKeyword;
+      this.qualifier = token.type as Keyword;
       this.lexeme = token.lexeme;
     }
   }
@@ -357,7 +358,7 @@ export namespace ASTNode {
           if (!id.symbolInfo) {
             sa.reportError(id.location, `Undeclared symbol: ${id.lexeme}`);
           }
-          if (!ParserUtils.typeCompatible(EKeyword.INT, id.typeInfo)) {
+          if (!ParserUtils.typeCompatible(Keyword.INT, id.typeInfo)) {
             sa.reportError(id.location, "Invalid integer.");
             return;
           }
@@ -650,7 +651,7 @@ export namespace ASTNode {
 
       const { curFunctionInfo } = sa;
       const { header, returnStatement } = curFunctionInfo;
-      if (header.returnType.type === EKeyword.VOID) {
+      if (header.returnType.type === Keyword.VOID) {
         if (returnStatement) {
           sa.reportError(header.returnType.location, "Return in void function.");
         }
@@ -837,14 +838,14 @@ export namespace ASTNode {
         } else {
           switch ((<Token>id).type) {
             case ETokenType.INT_CONSTANT:
-              this._type = EKeyword.INT;
+              this._type = Keyword.INT;
               break;
             case ETokenType.FLOAT_CONSTANT:
-              this.type = EKeyword.FLOAT;
+              this.type = Keyword.FLOAT;
               break;
-            case EKeyword.TRUE:
-            case EKeyword.FALSE:
-              this.type = EKeyword.BOOL;
+            case Keyword.TRUE:
+            case Keyword.FALSE:
+              this.type = Keyword.BOOL;
               break;
           }
         }
@@ -929,7 +930,7 @@ export namespace ASTNode {
       if (this.children.length === 1) {
         this.type = (<ShiftExpression>this.children[0]).type;
       } else {
-        this.type = EKeyword.BOOL;
+        this.type = Keyword.BOOL;
       }
     }
   }
@@ -940,7 +941,7 @@ export namespace ASTNode {
       if (this.children.length === 1) {
         this.type = (<RelationalExpression>this.children[0]).type;
       } else {
-        this.type = EKeyword.BOOL;
+        this.type = Keyword.BOOL;
       }
     }
   }
@@ -951,7 +952,7 @@ export namespace ASTNode {
       if (this.children.length === 1) {
         this.type = (<AndExpression>this.children[0]).type;
       } else {
-        this.type = EKeyword.UINT;
+        this.type = Keyword.UINT;
       }
     }
   }
@@ -962,7 +963,7 @@ export namespace ASTNode {
       if (this.children.length === 1) {
         this.type = (<AndExpression>this.children[0]).type;
       } else {
-        this.type = EKeyword.UINT;
+        this.type = Keyword.UINT;
       }
     }
   }
@@ -973,7 +974,7 @@ export namespace ASTNode {
       if (this.children.length === 1) {
         this.type = (<ExclusiveOrExpression>this.children[0]).type;
       } else {
-        this.type = EKeyword.UINT;
+        this.type = Keyword.UINT;
       }
     }
   }
@@ -984,7 +985,7 @@ export namespace ASTNode {
       if (this.children.length === 1) {
         this.type = (<InclusiveOrExpression>this.children[0]).type;
       } else {
-        this.type = EKeyword.BOOL;
+        this.type = Keyword.BOOL;
       }
     }
   }
@@ -995,7 +996,7 @@ export namespace ASTNode {
       if (this.children.length === 1) {
         this.type = (<LogicalAndExpression>this.children[0]).type;
       } else {
-        this.type = EKeyword.BOOL;
+        this.type = Keyword.BOOL;
       }
     }
   }
@@ -1006,7 +1007,7 @@ export namespace ASTNode {
       if (this.children.length === 1) {
         this.type = (<LogicalXorExpression>this.children[0]).type;
       } else {
-        this.type = EKeyword.BOOL;
+        this.type = Keyword.BOOL;
       }
     }
   }

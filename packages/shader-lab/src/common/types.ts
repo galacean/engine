@@ -1,4 +1,5 @@
-import { EKeyword } from "./Keywords";
+import { Keyword } from "./enums/Keyword";
+
 
 export enum ETokenType {
   ID = 1000,
@@ -103,49 +104,49 @@ export enum ETokenType {
 export const TypeAny = 3000;
 
 export type GalaceanDataType =
-  | EKeyword.VOID
-  | EKeyword.FLOAT
-  | EKeyword.BOOL
-  | EKeyword.INT
-  | EKeyword.UINT
-  | EKeyword.VEC2
-  | EKeyword.VEC3
-  | EKeyword.VEC4
-  | EKeyword.BVEC2
-  | EKeyword.BVEC3
-  | EKeyword.BVEC4
-  | EKeyword.IVEC2
-  | EKeyword.IVEC3
-  | EKeyword.IVEC4
-  | EKeyword.UVEC2
-  | EKeyword.UVEC3
-  | EKeyword.UVEC4
-  | EKeyword.MAT2
-  | EKeyword.MAT3
-  | EKeyword.MAT4
-  | EKeyword.MAT2X3
-  | EKeyword.MAT2X4
-  | EKeyword.MAT3X2
-  | EKeyword.MAT3X4
-  | EKeyword.MAT4X2
-  | EKeyword.MAT4X3
-  | EKeyword.SAMPLER2D
-  | EKeyword.SAMPLER3D
-  | EKeyword.SAMPLER_CUBE
-  | EKeyword.SAMPLER2D_SHADOW
-  | EKeyword.SAMPLER_CUBE_SHADOW
-  | EKeyword.SAMPLER2D_ARRAY
-  | EKeyword.SAMPLER2D_ARRAY_SHADOW
-  | EKeyword.I_SAMPLER2D
-  | EKeyword.I_SAMPLER3D
-  | EKeyword.I_SAMPLER_CUBE
-  | EKeyword.I_SAMPLER2D_ARRAY
-  | EKeyword.U_SAMPLER2D
-  | EKeyword.U_SAMPLER3D
-  | EKeyword.U_SAMPLER_CUBE
-  | EKeyword.U_SAMPLER2D_ARRAY
-  | EKeyword.VEC4_ARRAY
+  | Keyword.VOID
+  | Keyword.FLOAT
+  | Keyword.BOOL
+  | Keyword.INT
+  | Keyword.UINT
+  | Keyword.VEC2
+  | Keyword.VEC3
+  | Keyword.VEC4
+  | Keyword.BVEC2
+  | Keyword.BVEC3
+  | Keyword.BVEC4
+  | Keyword.IVEC2
+  | Keyword.IVEC3
+  | Keyword.IVEC4
+  | Keyword.UVEC2
+  | Keyword.UVEC3
+  | Keyword.UVEC4
+  | Keyword.MAT2
+  | Keyword.MAT3
+  | Keyword.MAT4
+  | Keyword.MAT2X3
+  | Keyword.MAT2X4
+  | Keyword.MAT3X2
+  | Keyword.MAT3X4
+  | Keyword.MAT4X2
+  | Keyword.MAT4X3
+  | Keyword.SAMPLER2D
+  | Keyword.SAMPLER3D
+  | Keyword.SAMPLER_CUBE
+  | Keyword.SAMPLER2D_SHADOW
+  | Keyword.SAMPLER_CUBE_SHADOW
+  | Keyword.SAMPLER2D_ARRAY
+  | Keyword.SAMPLER2D_ARRAY_SHADOW
+  | Keyword.I_SAMPLER2D
+  | Keyword.I_SAMPLER3D
+  | Keyword.I_SAMPLER_CUBE
+  | Keyword.I_SAMPLER2D_ARRAY
+  | Keyword.U_SAMPLER2D
+  | Keyword.U_SAMPLER3D
+  | Keyword.U_SAMPLER_CUBE
+  | Keyword.U_SAMPLER2D_ARRAY
+  | Keyword.VEC4_ARRAY
   | typeof TypeAny
   | string;
 
-export type TokenType = ETokenType | EKeyword;
+export type TokenType = ETokenType | Keyword;

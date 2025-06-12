@@ -10,7 +10,7 @@ import {
   StencilOperation
 } from "@galacean/engine";
 import { IRenderStates, IShaderPassSource, IShaderSource, IStatement, ISubShaderSource } from "@galacean/engine-design";
-import { EKeyword, ETokenType, ShaderPosition, TokenType } from "../common";
+import {  ETokenType, ShaderPosition, TokenType } from "../common";
 import { SymbolTableStack } from "../common/BaseSymbolTable";
 import { BaseToken } from "../common/BaseToken";
 import { GSErrorName } from "../GSError";
@@ -20,24 +20,25 @@ import { GSError } from "../GSError";
 // #endif
 import { ShaderLabUtils } from "../ShaderLabUtils";
 import SourceLexer from "./SourceLexer";
+import { Keyword } from "../common/enums/Keyword";
 
 const EngineType = [
-  EKeyword.GS_RenderQueueType,
-  EKeyword.GS_BlendFactor,
-  EKeyword.GS_BlendOperation,
-  EKeyword.GS_Bool,
-  EKeyword.GS_Number,
-  EKeyword.GS_Color,
-  EKeyword.GS_CompareFunction,
-  EKeyword.GS_StencilOperation,
-  EKeyword.GS_CullMode
+  Keyword.GS_RenderQueueType,
+  Keyword.GS_BlendFactor,
+  Keyword.GS_BlendOperation,
+  Keyword.GS_Bool,
+  Keyword.GS_Number,
+  Keyword.GS_Color,
+  Keyword.GS_CompareFunction,
+  Keyword.GS_StencilOperation,
+  Keyword.GS_CullMode
 ];
 
 const RenderStateType = [
-  EKeyword.GS_BlendState,
-  EKeyword.GS_DepthState,
-  EKeyword.GS_RasterState,
-  EKeyword.GS_StencilState
+  Keyword.GS_BlendState,
+  Keyword.GS_DepthState,
+  Keyword.GS_RasterState,
+  Keyword.GS_StencilState
 ];
 
 /**
@@ -121,22 +122,22 @@ export class ShaderContentParser {
     while (true) {
       const word = scanner.scanToken();
       switch (word.type) {
-        case EKeyword.GS_SubShader:
+        case Keyword.GS_SubShader:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           const subShader = this._parseSubShader(scanner);
           ret.subShaders.push(subShader);
           start = scanner.getCurPosition();
           break;
 
-        case EKeyword.GS_EditorProperties:
-        case EKeyword.GS_EditorMacros:
-        case EKeyword.GS_Editor:
+        case Keyword.GS_EditorProperties:
+        case Keyword.GS_EditorMacros:
+        case Keyword.GS_Editor:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           scanner.scanPairedText("{", "}", true);
           start = scanner.getCurPosition();
           break;
 
-        case EKeyword.GS_RenderQueueType:
+        case Keyword.GS_RenderQueueType:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           this._parseRenderQueueAssignment(ret, scanner);
           start = scanner.getCurPosition();
@@ -284,9 +285,9 @@ export class ShaderContentParser {
       value = scanner.scanNumber();
     } else {
       const token = scanner.scanToken();
-      if (token.type === EKeyword.TRUE) value = true;
-      else if (token.type === EKeyword.FALSE) value = false;
-      else if (token.type === EKeyword.GS_Color) {
+      if (token.type === Keyword.TRUE) value = true;
+      else if (token.type === Keyword.FALSE) value = false;
+      else if (token.type === Keyword.GS_Color) {
         scanner.scanText("(");
         const args: number[] = [];
         while (true) {
@@ -374,20 +375,20 @@ export class ShaderContentParser {
     while (true) {
       const word = scanner.scanToken();
       switch (word.type) {
-        case EKeyword.GS_Pass:
+        case Keyword.GS_Pass:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           const pass = this._parsePass(scanner);
           ret.passes.push(pass);
           start = scanner.getCurPosition();
           break;
 
-        case EKeyword.GS_RenderQueueType:
+        case Keyword.GS_RenderQueueType:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           this._parseRenderQueueAssignment(ret, scanner);
           start = scanner.getCurPosition();
           break;
 
-        case EKeyword.GS_UsePass:
+        case Keyword.GS_UsePass:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           const name = scanner.scanPairedText('"', '"');
           // @ts-ignore
@@ -395,7 +396,7 @@ export class ShaderContentParser {
           start = scanner.getCurPosition();
           break;
 
-        case EKeyword.GS_Tags:
+        case Keyword.GS_Tags:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           this._parseTags(ret, scanner);
           start = scanner.getCurPosition();
@@ -465,20 +466,20 @@ export class ShaderContentParser {
     while (true) {
       const word = scanner.scanToken();
       switch (word.type) {
-        case EKeyword.GS_RenderQueueType:
+        case Keyword.GS_RenderQueueType:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           this._parseRenderQueueAssignment(ret, scanner);
           start = scanner.getCurPosition();
           break;
 
-        case EKeyword.GS_Tags:
+        case Keyword.GS_Tags:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           this._parseTags(ret, scanner);
           start = scanner.getCurPosition();
           break;
 
-        case EKeyword.GS_VertexShader:
-        case EKeyword.GS_FragmentShader:
+        case Keyword.GS_VertexShader:
+        case Keyword.GS_FragmentShader:
           this._addGlobalStatement(ret, scanner, start, word.lexeme.length);
           scanner.scanText("=");
           const entry = scanner.scanToken();
@@ -494,7 +495,7 @@ export class ShaderContentParser {
             throw error;
             // #endif
           }
-          const key = word.type === EKeyword.GS_VertexShader ? "vertexEntry" : "fragmentEntry";
+          const key = word.type === Keyword.GS_VertexShader ? "vertexEntry" : "fragmentEntry";
           ret[key] = entry.lexeme;
           scanner.scanText(";");
           start = scanner.getCurPosition();

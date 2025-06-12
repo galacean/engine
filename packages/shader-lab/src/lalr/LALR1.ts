@@ -3,9 +3,10 @@ import { NoneTerminal, GrammarSymbol, Terminal } from "../parser/GrammarSymbol";
 import State from "./State";
 import StateItem from "./StateItem";
 import GrammarUtils from "./Utils";
-import { EKeyword, ETokenType } from "../common";
+import {  ETokenType } from "../common";
 import Utils from "./Utils";
 import { ActionInfo, ActionTable, EAction, GotoTable, StateActionTable, StateGotoTable } from "./types";
+import { Keyword } from "../common/enums/Keyword";
 
 /**
  * The [LALR1](https://web.stanford.edu/class/archive/cs/cs143/cs143.1128/handouts/140%20LALR%20Parsing.pdf) Parser generator
@@ -158,7 +159,7 @@ export class LALR1 {
     const exist = table.get(terminal);
     if (exist && !Utils.isActionEqual(exist, action)) {
       // Resolve dangling else ambiguity
-      if (terminal === EKeyword.ELSE && exist.action === EAction.Shift && action.action === EAction.Reduce) {
+      if (terminal === Keyword.ELSE && exist.action === EAction.Shift && action.action === EAction.Reduce) {
         return;
       } else {
         // #if _VERBOSE

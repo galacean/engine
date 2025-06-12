@@ -1,35 +1,35 @@
 import { ETokenType } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken } from "../common/BaseToken";
-import { EKeyword } from "../common/Keywords";
+import { Keyword } from "../common/enums/Keyword";
 import { ShaderLab } from "../ShaderLab";
 
 export default class SourceLexer extends BaseLexer {
-  private static _keywordTable = <Record<string, EKeyword>>{
-    RenderQueueType: EKeyword.GS_RenderQueueType,
-    BlendState: EKeyword.GS_BlendState,
-    DepthState: EKeyword.GS_DepthState,
-    StencilState: EKeyword.GS_StencilState,
-    RasterState: EKeyword.GS_RasterState,
-    EditorProperties: EKeyword.GS_EditorProperties,
-    EditorMacros: EKeyword.GS_EditorMacros,
-    Editor: EKeyword.GS_Editor,
-    Tags: EKeyword.GS_Tags,
-    VertexShader: EKeyword.GS_VertexShader,
-    FragmentShader: EKeyword.GS_FragmentShader,
-    SubShader: EKeyword.GS_SubShader,
-    Pass: EKeyword.GS_Pass,
-    BlendFactor: EKeyword.GS_BlendFactor,
-    BlendOperation: EKeyword.GS_BlendOperation,
-    Bool: EKeyword.GS_Bool,
-    Number: EKeyword.GS_Number,
-    CompareFunction: EKeyword.GS_CompareFunction,
-    StencilOperation: EKeyword.GS_StencilOperation,
-    CullMode: EKeyword.GS_CullMode,
-    true: EKeyword.TRUE,
-    false: EKeyword.FALSE,
-    UsePass: EKeyword.GS_UsePass,
-    Color: EKeyword.GS_Color
+  private static _keywordTable = <Record<string, Keyword>>{
+    RenderQueueType: Keyword.GS_RenderQueueType,
+    BlendState: Keyword.GS_BlendState,
+    DepthState: Keyword.GS_DepthState,
+    StencilState: Keyword.GS_StencilState,
+    RasterState: Keyword.GS_RasterState,
+    EditorProperties: Keyword.GS_EditorProperties,
+    EditorMacros: Keyword.GS_EditorMacros,
+    Editor: Keyword.GS_Editor,
+    Tags: Keyword.GS_Tags,
+    VertexShader: Keyword.GS_VertexShader,
+    FragmentShader: Keyword.GS_FragmentShader,
+    SubShader: Keyword.GS_SubShader,
+    Pass: Keyword.GS_Pass,
+    BlendFactor: Keyword.GS_BlendFactor,
+    BlendOperation: Keyword.GS_BlendOperation,
+    Bool: Keyword.GS_Bool,
+    Number: Keyword.GS_Number,
+    CompareFunction: Keyword.GS_CompareFunction,
+    StencilOperation: Keyword.GS_StencilOperation,
+    CullMode: Keyword.GS_CullMode,
+    true: Keyword.TRUE,
+    false: Keyword.FALSE,
+    UsePass: Keyword.GS_UsePass,
+    Color: Keyword.GS_Color
   };
 
   constructor(source: string) {

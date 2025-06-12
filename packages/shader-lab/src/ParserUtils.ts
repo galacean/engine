@@ -1,8 +1,9 @@
-import { NoneTerminal, GrammarSymbol } from "./parser/GrammarSymbol";
+import { ETokenType, GalaceanDataType } from "./common";
 import { BaseToken as Token } from "./common/BaseToken";
-import { EKeyword, ETokenType, GalaceanDataType } from "./common";
 import { TreeNode } from "./parser/AST";
+import { GrammarSymbol, NoneTerminal } from "./parser/GrammarSymbol";
 // #if _VERBOSE
+import { Keyword } from "./common/enums/Keyword";
 import State from "./lalr/State";
 // #endif
 
@@ -20,15 +21,15 @@ export class ParserUtils {
    */
   static typeCompatible(ta: GalaceanDataType, tb: GalaceanDataType | undefined) {
     if (tb == undefined) return true;
-    if (ta === EKeyword.INT) {
-      return ta === tb || tb === EKeyword.UINT;
+    if (ta === Keyword.INT) {
+      return ta === tb || tb === Keyword.UINT;
     }
     return ta === tb;
   }
 
   static toString(sm: GrammarSymbol) {
     if (this.isTerminal(sm)) {
-      return ETokenType[sm] ?? EKeyword[sm];
+      return ETokenType[sm] ?? Keyword[sm];
     }
     return NoneTerminal[sm];
   }

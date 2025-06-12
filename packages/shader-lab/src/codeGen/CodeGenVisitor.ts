@@ -1,18 +1,19 @@
-import { NoneTerminal } from "../parser/GrammarSymbol";
+import { ShaderPosition, ShaderRange } from "../common";
 import { BaseToken as Token } from "../common/BaseToken";
-import { EKeyword, ShaderPosition, ShaderRange } from "../common";
-import { ASTNode, TreeNode } from "../parser/AST";
-import { ESymbolType, FnSymbol, VarSymbol } from "../parser/symbolTable";
-import { ParserUtils } from "../ParserUtils";
-import { NodeChild } from "../parser/types";
-import { VisitorContext } from "./VisitorContext";
-import { ShaderLab } from "../ShaderLab";
 import { GSErrorName } from "../GSError";
+import { ASTNode, TreeNode } from "../parser/AST";
+import { NoneTerminal } from "../parser/GrammarSymbol";
+import { ESymbolType, FnSymbol, VarSymbol } from "../parser/symbolTable";
+import { NodeChild } from "../parser/types";
+import { ParserUtils } from "../ParserUtils";
+import { ShaderLab } from "../ShaderLab";
+import { VisitorContext } from "./VisitorContext";
 // #if _VERBOSE
 import { GSError } from "../GSError";
 // #endif
 import { Logger, ReturnableObjectPool } from "@galacean/engine";
 import { TempArray } from "../TempArray";
+import { Keyword } from "../common/enums/Keyword";
 
 export const V3_GL_FragColor = "GS_glFragColor";
 export const V3_GL_FragData = "GS_glFragData";
@@ -209,7 +210,7 @@ export abstract class CodeGenVisitor {
   visitJumpStatement(node: ASTNode.JumpStatement): string {
     const children = node.children;
     const cmd = children[0] as Token;
-    if (cmd.type === EKeyword.RETURN) {
+    if (cmd.type === Keyword.RETURN) {
       const expr = children[1];
       if (expr instanceof ASTNode.Expression) {
         const returnVar = ParserUtils.unwrapNodeByType<ASTNode.VariableIdentifier>(

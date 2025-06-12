@@ -6,7 +6,7 @@ import { EShaderStage } from "../common/Enums";
 import { IShaderInfo } from "@galacean/engine-design";
 import { ICodeSegment } from "./types";
 import { VisitorContext } from "./VisitorContext";
-import { EKeyword } from "../common";
+import { Keyword } from "../common/enums/Keyword";
 
 const defaultPrecision = `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -59,7 +59,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       } else {
         VisitorContext.context.varyingStruct = varyStruct.astNode;
       }
-    } else if (returnType.type !== EKeyword.VOID) {
+    } else if (returnType.type !== Keyword.VOID) {
       this._reportError(returnType.location, "vertex main entry can only return struct or void.");
     }
 
@@ -123,7 +123,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       } else {
         context.mrtStruct = mrtStruct.astNode;
       }
-    } else if (returnDataType !== EKeyword.VOID && returnDataType !== EKeyword.VEC4) {
+    } else if (returnDataType !== Keyword.VOID && returnDataType !== Keyword.VEC4) {
       this._reportError(returnLocation, "fragment main entry can only return struct or vec4.");
     }
 

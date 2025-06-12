@@ -1,5 +1,6 @@
-import { EKeyword, GalaceanDataType, TypeAny } from "../../common";
+import {  GalaceanDataType, TypeAny } from "../../common";
 import { EShaderStage } from "../../common/Enums";
+import { Keyword } from "../../common/enums/Keyword";
 
 export enum EGenType {
   GenType = 200,
@@ -133,22 +134,22 @@ BuiltinFunction._create("round", EGenType.GenType, EGenType.GenType);
 BuiltinFunction._create("roundEven", EGenType.GenType, EGenType.GenType);
 BuiltinFunction._create("ceil", EGenType.GenType, EGenType.GenType);
 BuiltinFunction._create("fract", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("mod", EGenType.GenType, EGenType.GenType, EKeyword.FLOAT);
+BuiltinFunction._create("mod", EGenType.GenType, EGenType.GenType, Keyword.FLOAT);
 BuiltinFunction._create("mod", EGenType.GenType, EGenType.GenType, EGenType.GenType);
 BuiltinFunction._create("min", EGenType.GenType, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("min", EGenType.GenType, EGenType.GenType, EKeyword.FLOAT);
+BuiltinFunction._create("min", EGenType.GenType, EGenType.GenType, Keyword.FLOAT);
 BuiltinFunction._create("min", EGenType.GenIntType, EGenType.GenIntType, EGenType.GenIntType);
-BuiltinFunction._create("min", EGenType.GenIntType, EGenType.GenIntType, EKeyword.INT);
+BuiltinFunction._create("min", EGenType.GenIntType, EGenType.GenIntType, Keyword.INT);
 BuiltinFunction._create("min", EGenType.GenUintType, EGenType.GenUintType, EGenType.GenUintType);
-BuiltinFunction._create("min", EGenType.GenUintType, EGenType.GenUintType, EKeyword.UINT);
+BuiltinFunction._create("min", EGenType.GenUintType, EGenType.GenUintType, Keyword.UINT);
 BuiltinFunction._create("max", EGenType.GenType, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("max", EGenType.GenType, EGenType.GenType, EKeyword.FLOAT);
+BuiltinFunction._create("max", EGenType.GenType, EGenType.GenType, Keyword.FLOAT);
 BuiltinFunction._create("max", EGenType.GenIntType, EGenType.GenIntType, EGenType.GenIntType);
-BuiltinFunction._create("max", EGenType.GenIntType, EGenType.GenIntType, EKeyword.INT);
+BuiltinFunction._create("max", EGenType.GenIntType, EGenType.GenIntType, Keyword.INT);
 BuiltinFunction._create("clamp", EGenType.GenType, EGenType.GenType, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("clamp", EGenType.GenType, EGenType.GenType, EKeyword.FLOAT, EKeyword.FLOAT);
+BuiltinFunction._create("clamp", EGenType.GenType, EGenType.GenType, Keyword.FLOAT, Keyword.FLOAT);
 BuiltinFunction._create("clamp", EGenType.GenIntType, EGenType.GenIntType, EGenType.GenIntType, EGenType.GenIntType);
-BuiltinFunction._create("clamp", EGenType.GenIntType, EGenType.GenIntType, EKeyword.INT, EKeyword.INT);
+BuiltinFunction._create("clamp", EGenType.GenIntType, EGenType.GenIntType, Keyword.INT, Keyword.INT);
 BuiltinFunction._create(
   "clamp",
   EGenType.GenUintType,
@@ -156,14 +157,14 @@ BuiltinFunction._create(
   EGenType.GenUintType,
   EGenType.GenUintType
 );
-BuiltinFunction._create("clamp", EGenType.GenUintType, EGenType.GenUintType, EKeyword.UINT, EKeyword.UINT);
+BuiltinFunction._create("clamp", EGenType.GenUintType, EGenType.GenUintType, Keyword.UINT, Keyword.UINT);
 BuiltinFunction._create("mix", EGenType.GenType, EGenType.GenType, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("mix", EGenType.GenType, EGenType.GenType, EGenType.GenType, EKeyword.FLOAT);
+BuiltinFunction._create("mix", EGenType.GenType, EGenType.GenType, EGenType.GenType, Keyword.FLOAT);
 BuiltinFunction._create("mix", EGenType.GenType, EGenType.GenType, EGenType.GenType, EGenType.GenBoolType);
 BuiltinFunction._create("step", EGenType.GenType, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("step", EGenType.GenType, EKeyword.FLOAT, EGenType.GenType);
+BuiltinFunction._create("step", EGenType.GenType, Keyword.FLOAT, EGenType.GenType);
 BuiltinFunction._create("smoothstep", EGenType.GenType, EGenType.GenType, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("smoothstep", EGenType.GenType, EKeyword.FLOAT, EKeyword.FLOAT, EGenType.GenType);
+BuiltinFunction._create("smoothstep", EGenType.GenType, Keyword.FLOAT, Keyword.FLOAT, EGenType.GenType);
 BuiltinFunction._create("isnan", EGenType.GenBoolType, EGenType.GenType);
 BuiltinFunction._create("isinf", EGenType.GenBoolType, EGenType.GenType);
 BuiltinFunction._create("floatBitsToInt", EGenType.GenType, EGenType.GenType);
@@ -171,52 +172,52 @@ BuiltinFunction._create("floatBitsToUint", EGenType.GenUintType, EGenType.GenTyp
 BuiltinFunction._create("intBitsToFloat", EGenType.GenType, EGenType.GenIntType);
 BuiltinFunction._create("uintBitsToFloat", EGenType.GenType, EGenType.GenUintType);
 
-BuiltinFunction._create("packSnorm2x16", EKeyword.UINT, EKeyword.VEC2);
-BuiltinFunction._create("unpackSnorm2x16", EKeyword.VEC2, EKeyword.UINT);
-BuiltinFunction._create("packUnorm2x16", EKeyword.UINT, EKeyword.VEC2);
-BuiltinFunction._create("unpackUnorm2x16", EKeyword.VEC2, EKeyword.UINT);
-BuiltinFunction._create("packHalf2x16", EKeyword.UINT, EKeyword.VEC2);
-BuiltinFunction._create("unpackHalf2x16", EKeyword.VEC2, EKeyword.UINT);
+BuiltinFunction._create("packSnorm2x16", Keyword.UINT, Keyword.VEC2);
+BuiltinFunction._create("unpackSnorm2x16", Keyword.VEC2, Keyword.UINT);
+BuiltinFunction._create("packUnorm2x16", Keyword.UINT, Keyword.VEC2);
+BuiltinFunction._create("unpackUnorm2x16", Keyword.VEC2, Keyword.UINT);
+BuiltinFunction._create("packHalf2x16", Keyword.UINT, Keyword.VEC2);
+BuiltinFunction._create("unpackHalf2x16", Keyword.VEC2, Keyword.UINT);
 
-BuiltinFunction._create("length", EKeyword.FLOAT, EGenType.GenType);
-BuiltinFunction._create("distance", EKeyword.FLOAT, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("dot", EKeyword.FLOAT, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("cross", EKeyword.VEC3, EKeyword.VEC3, EKeyword.VEC3);
+BuiltinFunction._create("length", Keyword.FLOAT, EGenType.GenType);
+BuiltinFunction._create("distance", Keyword.FLOAT, EGenType.GenType, EGenType.GenType);
+BuiltinFunction._create("dot", Keyword.FLOAT, EGenType.GenType, EGenType.GenType);
+BuiltinFunction._create("cross", Keyword.VEC3, Keyword.VEC3, Keyword.VEC3);
 BuiltinFunction._create("normalize", EGenType.GenType, EGenType.GenType);
 BuiltinFunction._create("faceforward", EGenType.GenType, EGenType.GenType, EGenType.GenType, EGenType.GenType);
 BuiltinFunction._create("reflect", EGenType.GenType, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("refract", EGenType.GenType, EGenType.GenType, EGenType.GenType, EKeyword.FLOAT);
+BuiltinFunction._create("refract", EGenType.GenType, EGenType.GenType, EGenType.GenType, Keyword.FLOAT);
 BuiltinFunction._create("matrixCompMult", EGenType.Mat, EGenType.Mat, EGenType.Mat);
-BuiltinFunction._create("outerProduct", EKeyword.MAT2, EKeyword.VEC2, EKeyword.VEC2);
-BuiltinFunction._create("outerProduct", EKeyword.MAT3, EKeyword.VEC3, EKeyword.VEC3);
-BuiltinFunction._create("outerProduct", EKeyword.MAT4, EKeyword.VEC4, EKeyword.VEC4);
+BuiltinFunction._create("outerProduct", Keyword.MAT2, Keyword.VEC2, Keyword.VEC2);
+BuiltinFunction._create("outerProduct", Keyword.MAT3, Keyword.VEC3, Keyword.VEC3);
+BuiltinFunction._create("outerProduct", Keyword.MAT4, Keyword.VEC4, Keyword.VEC4);
 
-BuiltinFunction._create("outerProduct", EKeyword.MAT2X3, EKeyword.VEC3, EKeyword.VEC2);
-BuiltinFunction._create("outerProduct", EKeyword.MAT3X2, EKeyword.VEC2, EKeyword.VEC3);
+BuiltinFunction._create("outerProduct", Keyword.MAT2X3, Keyword.VEC3, Keyword.VEC2);
+BuiltinFunction._create("outerProduct", Keyword.MAT3X2, Keyword.VEC2, Keyword.VEC3);
 
-BuiltinFunction._create("outerProduct", EKeyword.MAT2X4, EKeyword.VEC4, EKeyword.VEC2);
-BuiltinFunction._create("outerProduct", EKeyword.MAT4X2, EKeyword.VEC2, EKeyword.VEC4);
+BuiltinFunction._create("outerProduct", Keyword.MAT2X4, Keyword.VEC4, Keyword.VEC2);
+BuiltinFunction._create("outerProduct", Keyword.MAT4X2, Keyword.VEC2, Keyword.VEC4);
 
-BuiltinFunction._create("outerProduct", EKeyword.MAT3X4, EKeyword.VEC4, EKeyword.VEC3);
-BuiltinFunction._create("outerProduct", EKeyword.MAT4X3, EKeyword.VEC3, EKeyword.VEC4);
+BuiltinFunction._create("outerProduct", Keyword.MAT3X4, Keyword.VEC4, Keyword.VEC3);
+BuiltinFunction._create("outerProduct", Keyword.MAT4X3, Keyword.VEC3, Keyword.VEC4);
 
-BuiltinFunction._create("transpose", EKeyword.MAT2, EKeyword.MAT2);
-BuiltinFunction._create("transpose", EKeyword.MAT3, EKeyword.MAT3);
-BuiltinFunction._create("transpose", EKeyword.MAT4, EKeyword.MAT4);
-BuiltinFunction._create("transpose", EKeyword.MAT2X3, EKeyword.MAT3X2);
-BuiltinFunction._create("transpose", EKeyword.MAT3X2, EKeyword.MAT2X3);
-BuiltinFunction._create("transpose", EKeyword.MAT4X2, EKeyword.MAT2X4);
-BuiltinFunction._create("transpose", EKeyword.MAT2X4, EKeyword.MAT4X2);
-BuiltinFunction._create("transpose", EKeyword.MAT3X4, EKeyword.MAT4X3);
-BuiltinFunction._create("transpose", EKeyword.MAT4X3, EKeyword.MAT3X4);
+BuiltinFunction._create("transpose", Keyword.MAT2, Keyword.MAT2);
+BuiltinFunction._create("transpose", Keyword.MAT3, Keyword.MAT3);
+BuiltinFunction._create("transpose", Keyword.MAT4, Keyword.MAT4);
+BuiltinFunction._create("transpose", Keyword.MAT2X3, Keyword.MAT3X2);
+BuiltinFunction._create("transpose", Keyword.MAT3X2, Keyword.MAT2X3);
+BuiltinFunction._create("transpose", Keyword.MAT4X2, Keyword.MAT2X4);
+BuiltinFunction._create("transpose", Keyword.MAT2X4, Keyword.MAT4X2);
+BuiltinFunction._create("transpose", Keyword.MAT3X4, Keyword.MAT4X3);
+BuiltinFunction._create("transpose", Keyword.MAT4X3, Keyword.MAT3X4);
 
-BuiltinFunction._create("determinant", EKeyword.FLOAT, EKeyword.MAT2);
-BuiltinFunction._create("determinant", EKeyword.FLOAT, EKeyword.MAT3);
-BuiltinFunction._create("determinant", EKeyword.FLOAT, EKeyword.MAT4);
+BuiltinFunction._create("determinant", Keyword.FLOAT, Keyword.MAT2);
+BuiltinFunction._create("determinant", Keyword.FLOAT, Keyword.MAT3);
+BuiltinFunction._create("determinant", Keyword.FLOAT, Keyword.MAT4);
 
-BuiltinFunction._create("inverse", EKeyword.MAT2, EKeyword.MAT2);
-BuiltinFunction._create("inverse", EKeyword.MAT3, EKeyword.MAT3);
-BuiltinFunction._create("inverse", EKeyword.MAT4, EKeyword.MAT4);
+BuiltinFunction._create("inverse", Keyword.MAT2, Keyword.MAT2);
+BuiltinFunction._create("inverse", Keyword.MAT3, Keyword.MAT3);
+BuiltinFunction._create("inverse", Keyword.MAT4, Keyword.MAT4);
 
 BuiltinFunction._create("lessThan", EGenType.BoolVec, EGenType.Vec, EGenType.Vec);
 BuiltinFunction._create("lessThan", EGenType.BoolVec, EGenType.IntVec, EGenType.IntVec);
@@ -244,418 +245,418 @@ BuiltinFunction._create("notEqual", EGenType.BoolVec, EGenType.IntVec, EGenType.
 BuiltinFunction._create("notEqual", EGenType.BoolVec, EGenType.UintVec, EGenType.UintVec);
 BuiltinFunction._create("notEqual", EGenType.BoolVec, EGenType.BoolVec, EGenType.BoolVec);
 
-BuiltinFunction._create("any", EKeyword.BOOL, EGenType.BoolVec);
-BuiltinFunction._create("all", EKeyword.BOOL, EGenType.BoolVec);
+BuiltinFunction._create("any", Keyword.BOOL, EGenType.BoolVec);
+BuiltinFunction._create("all", Keyword.BOOL, EGenType.BoolVec);
 BuiltinFunction._create("not", EGenType.BoolVec, EGenType.BoolVec);
 
-BuiltinFunction._create("textureSize", EKeyword.IVEC2, EGenType.GSampler2D, EKeyword.INT);
-BuiltinFunction._create("textureSize", EKeyword.IVEC3, EGenType.GSampler3D, EKeyword.INT);
-BuiltinFunction._create("textureSize", EKeyword.IVEC2, EGenType.GSamplerCube, EKeyword.INT);
+BuiltinFunction._create("textureSize", Keyword.IVEC2, EGenType.GSampler2D, Keyword.INT);
+BuiltinFunction._create("textureSize", Keyword.IVEC3, EGenType.GSampler3D, Keyword.INT);
+BuiltinFunction._create("textureSize", Keyword.IVEC2, EGenType.GSamplerCube, Keyword.INT);
 
-BuiltinFunction._create("textureSize", EKeyword.IVEC2, EKeyword.SAMPLER2D_SHADOW, EKeyword.INT);
-BuiltinFunction._create("textureSize", EKeyword.IVEC2, EKeyword.SAMPLER_CUBE_SHADOW, EKeyword.INT);
+BuiltinFunction._create("textureSize", Keyword.IVEC2, Keyword.SAMPLER2D_SHADOW, Keyword.INT);
+BuiltinFunction._create("textureSize", Keyword.IVEC2, Keyword.SAMPLER_CUBE_SHADOW, Keyword.INT);
 
-BuiltinFunction._create("textureSize", EKeyword.IVEC3, EGenType.GSampler2DArray, EKeyword.INT);
-BuiltinFunction._create("textureSize", EKeyword.IVEC3, EKeyword.SAMPLER2D_ARRAY_SHADOW, EKeyword.INT);
+BuiltinFunction._create("textureSize", Keyword.IVEC3, EGenType.GSampler2DArray, Keyword.INT);
+BuiltinFunction._create("textureSize", Keyword.IVEC3, Keyword.SAMPLER2D_ARRAY_SHADOW, Keyword.INT);
 
-BuiltinFunction._create("texture2D", EKeyword.VEC4, EKeyword.SAMPLER2D, EKeyword.VEC2);
-BuiltinFunction._create("texture2D", EKeyword.VEC4, EKeyword.SAMPLER2D, EKeyword.VEC2, EKeyword.FLOAT);
+BuiltinFunction._create("texture2D", Keyword.VEC4, Keyword.SAMPLER2D, Keyword.VEC2);
+BuiltinFunction._create("texture2D", Keyword.VEC4, Keyword.SAMPLER2D, Keyword.VEC2, Keyword.FLOAT);
 
-BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSampler2D, EKeyword.VEC2, EKeyword.FLOAT);
-BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSampler2D, EKeyword.VEC2);
-BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSampler3D, EKeyword.VEC3, EKeyword.FLOAT);
-BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSampler3D, EKeyword.VEC3);
+BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2, Keyword.FLOAT);
+BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2);
+BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC3);
 
-BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSamplerCube, EKeyword.VEC3, EKeyword.FLOAT);
-BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSamplerCube, EKeyword.VEC3);
+BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3);
 
-BuiltinFunction._create("texture", EKeyword.FLOAT, EKeyword.SAMPLER2D_SHADOW, EKeyword.VEC3, EKeyword.FLOAT);
-BuiltinFunction._create("texture", EKeyword.FLOAT, EKeyword.SAMPLER2D_SHADOW, EKeyword.VEC3);
+BuiltinFunction._create("texture", Keyword.FLOAT, Keyword.SAMPLER2D_SHADOW, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("texture", Keyword.FLOAT, Keyword.SAMPLER2D_SHADOW, Keyword.VEC3);
 
-BuiltinFunction._create("texture", EKeyword.FLOAT, EKeyword.SAMPLER_CUBE_SHADOW, EKeyword.VEC4, EKeyword.FLOAT);
-BuiltinFunction._create("texture", EKeyword.FLOAT, EKeyword.SAMPLER_CUBE_SHADOW, EKeyword.VEC4);
+BuiltinFunction._create("texture", Keyword.FLOAT, Keyword.SAMPLER_CUBE_SHADOW, Keyword.VEC4, Keyword.FLOAT);
+BuiltinFunction._create("texture", Keyword.FLOAT, Keyword.SAMPLER_CUBE_SHADOW, Keyword.VEC4);
 
-BuiltinFunction._create("texture", EGenType.GVec4, EKeyword.SAMPLER2D_ARRAY, EKeyword.VEC3, EKeyword.FLOAT);
-BuiltinFunction._create("texture", EGenType.GVec4, EKeyword.SAMPLER2D_ARRAY, EKeyword.VEC3);
+BuiltinFunction._create("texture", EGenType.GVec4, Keyword.SAMPLER2D_ARRAY, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("texture", EGenType.GVec4, Keyword.SAMPLER2D_ARRAY, Keyword.VEC3);
 
-BuiltinFunction._create("texture", EKeyword.FLOAT, EKeyword.SAMPLER2D_ARRAY_SHADOW, EKeyword.VEC4);
+BuiltinFunction._create("texture", Keyword.FLOAT, Keyword.SAMPLER2D_ARRAY_SHADOW, Keyword.VEC4);
 
-BuiltinFunction._create("textureProj", EGenType.GVec4, EGenType.GSampler2D, EKeyword.VEC3, EKeyword.FLOAT);
-BuiltinFunction._create("textureProj", EGenType.GVec4, EGenType.GSampler2D, EKeyword.VEC3);
-BuiltinFunction._create("textureProj", EGenType.GVec4, EGenType.GSampler2D, EKeyword.VEC4, EKeyword.FLOAT);
-BuiltinFunction._create("textureProj", EGenType.GVec4, EGenType.GSampler2D, EKeyword.VEC4);
-BuiltinFunction._create("textureProj", EGenType.GVec4, EGenType.GSampler3D, EKeyword.VEC4, EKeyword.FLOAT);
-BuiltinFunction._create("textureProj", EGenType.GVec4, EGenType.GSampler3D, EKeyword.VEC4);
+BuiltinFunction._create("textureProj", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("textureProj", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC3);
+BuiltinFunction._create("textureProj", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC4, Keyword.FLOAT);
+BuiltinFunction._create("textureProj", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC4);
+BuiltinFunction._create("textureProj", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC4, Keyword.FLOAT);
+BuiltinFunction._create("textureProj", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC4);
 
-BuiltinFunction._create("textureProj", EKeyword.FLOAT, EKeyword.SAMPLER2D_SHADOW, EKeyword.VEC4, EKeyword.FLOAT);
-BuiltinFunction._create("textureProj", EKeyword.FLOAT, EKeyword.SAMPLER2D_SHADOW, EKeyword.VEC4);
+BuiltinFunction._create("textureProj", Keyword.FLOAT, Keyword.SAMPLER2D_SHADOW, Keyword.VEC4, Keyword.FLOAT);
+BuiltinFunction._create("textureProj", Keyword.FLOAT, Keyword.SAMPLER2D_SHADOW, Keyword.VEC4);
 
-BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSampler2D, EKeyword.VEC2, EKeyword.FLOAT);
-BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSampler3D, EKeyword.VEC3, EKeyword.FLOAT);
-BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSamplerCube, EKeyword.VEC3, EKeyword.FLOAT);
-BuiltinFunction._create("textureLod", EKeyword.FLOAT, EKeyword.SAMPLER2D_SHADOW, EKeyword.VEC3, EKeyword.FLOAT);
-BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSampler2DArray, EKeyword.VEC3, EKeyword.FLOAT);
-BuiltinFunction._create("texture2DLodEXT", EGenType.GVec4, EGenType.GSampler2D, EKeyword.VEC2, EKeyword.FLOAT);
-BuiltinFunction._create("texture2DLodEXT", EGenType.GVec4, EGenType.GSampler3D, EKeyword.VEC3, EKeyword.FLOAT);
+BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2, Keyword.FLOAT);
+BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("textureLod", Keyword.FLOAT, Keyword.SAMPLER2D_SHADOW, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSampler2DArray, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("texture2DLodEXT", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2, Keyword.FLOAT);
+BuiltinFunction._create("texture2DLodEXT", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC3, Keyword.FLOAT);
 
-BuiltinFunction._create("textureCube", EKeyword.SAMPLER_CUBE, EKeyword.VEC3);
-BuiltinFunction._create("textureCube", EKeyword.SAMPLER_CUBE, EKeyword.VEC3, EKeyword.FLOAT);
-BuiltinFunction._create("textureCubeLod", EKeyword.SAMPLER_CUBE, EKeyword.VEC3, EKeyword.FLOAT);
-BuiltinFunction._create("textureCubeLodEXT", EGenType.GVec4, EGenType.GSamplerCube, EKeyword.VEC3, EKeyword.FLOAT);
+BuiltinFunction._create("textureCube", Keyword.SAMPLER_CUBE, Keyword.VEC3);
+BuiltinFunction._create("textureCube", Keyword.SAMPLER_CUBE, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("textureCubeLod", Keyword.SAMPLER_CUBE, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("textureCubeLodEXT", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
 
 BuiltinFunction._create(
   "textureOffset",
   EGenType.GVec4,
   EGenType.GSampler2D,
-  EKeyword.VEC2,
-  EKeyword.IVEC2,
-  EKeyword.FLOAT
+  Keyword.VEC2,
+  Keyword.IVEC2,
+  Keyword.FLOAT
 );
-BuiltinFunction._create("textureOffset", EGenType.GVec4, EGenType.GSampler2D, EKeyword.VEC2, EKeyword.IVEC2);
+BuiltinFunction._create("textureOffset", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2, Keyword.IVEC2);
 
 BuiltinFunction._create(
   "textureOffset",
   EGenType.GVec4,
   EGenType.GSampler3D,
-  EKeyword.VEC3,
-  EKeyword.IVEC3,
-  EKeyword.FLOAT
+  Keyword.VEC3,
+  Keyword.IVEC3,
+  Keyword.FLOAT
 );
-BuiltinFunction._create("textureOffset", EGenType.GVec4, EGenType.GSampler3D, EKeyword.VEC3, EKeyword.IVEC3);
+BuiltinFunction._create("textureOffset", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC3, Keyword.IVEC3);
 
 BuiltinFunction._create(
   "textureOffset",
-  EKeyword.FLOAT,
-  EKeyword.SAMPLER2D_SHADOW,
-  EKeyword.VEC3,
-  EKeyword.IVEC2,
-  EKeyword.FLOAT
+  Keyword.FLOAT,
+  Keyword.SAMPLER2D_SHADOW,
+  Keyword.VEC3,
+  Keyword.IVEC2,
+  Keyword.FLOAT
 );
-BuiltinFunction._create("textureOffset", EKeyword.FLOAT, EKeyword.SAMPLER2D_SHADOW, EKeyword.VEC3, EKeyword.IVEC2);
+BuiltinFunction._create("textureOffset", Keyword.FLOAT, Keyword.SAMPLER2D_SHADOW, Keyword.VEC3, Keyword.IVEC2);
 BuiltinFunction._create(
   "textureOffset",
   EGenType.GVec4,
   EGenType.GSampler2DArray,
-  EKeyword.VEC3,
-  EKeyword.IVEC2,
-  EKeyword.FLOAT
+  Keyword.VEC3,
+  Keyword.IVEC2,
+  Keyword.FLOAT
 );
-BuiltinFunction._create("textureOffset", EGenType.GVec4, EGenType.GSampler2DArray, EKeyword.VEC3, EKeyword.IVEC2);
+BuiltinFunction._create("textureOffset", EGenType.GVec4, EGenType.GSampler2DArray, Keyword.VEC3, Keyword.IVEC2);
 
-BuiltinFunction._create("texelFetch", EGenType.GVec4, EGenType.GSampler2D, EKeyword.IVEC2, EKeyword.INT);
-BuiltinFunction._create("texelFetch", EGenType.GVec4, EGenType.GSampler3D, EKeyword.IVEC3, EKeyword.INT);
-BuiltinFunction._create("texelFetch", EGenType.GVec4, EGenType.GSampler2DArray, EKeyword.IVEC3, EKeyword.INT);
+BuiltinFunction._create("texelFetch", EGenType.GVec4, EGenType.GSampler2D, Keyword.IVEC2, Keyword.INT);
+BuiltinFunction._create("texelFetch", EGenType.GVec4, EGenType.GSampler3D, Keyword.IVEC3, Keyword.INT);
+BuiltinFunction._create("texelFetch", EGenType.GVec4, EGenType.GSampler2DArray, Keyword.IVEC3, Keyword.INT);
 
 BuiltinFunction._create(
   "texelFetchOffset",
   EGenType.GVec4,
   EGenType.GSampler2D,
-  EKeyword.IVEC2,
-  EKeyword.INT,
-  EKeyword.IVEC2
+  Keyword.IVEC2,
+  Keyword.INT,
+  Keyword.IVEC2
 );
 BuiltinFunction._create(
   "texelFetchOffset",
   EGenType.GVec4,
   EGenType.GSampler3D,
-  EKeyword.IVEC3,
-  EKeyword.INT,
-  EKeyword.IVEC3
+  Keyword.IVEC3,
+  Keyword.INT,
+  Keyword.IVEC3
 );
 BuiltinFunction._create(
   "texelFetchOffset",
   EGenType.GVec4,
   EGenType.GSampler2DArray,
-  EKeyword.IVEC3,
-  EKeyword.INT,
-  EKeyword.IVEC2
+  Keyword.IVEC3,
+  Keyword.INT,
+  Keyword.IVEC2
 );
 
 BuiltinFunction._create(
   "textureProjOffset",
   EGenType.GVec4,
   EGenType.GSampler2D,
-  EKeyword.VEC3,
-  EKeyword.IVEC2,
-  EKeyword.FLOAT
+  Keyword.VEC3,
+  Keyword.IVEC2,
+  Keyword.FLOAT
 );
-BuiltinFunction._create("textureProjOffset", EGenType.GVec4, EGenType.GSampler2D, EKeyword.VEC3, EKeyword.IVEC2);
+BuiltinFunction._create("textureProjOffset", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC3, Keyword.IVEC2);
 
 BuiltinFunction._create(
   "textureProjOffset",
   EGenType.GVec4,
   EGenType.GSampler2D,
-  EKeyword.VEC4,
-  EKeyword.IVEC2,
-  EKeyword.FLOAT
+  Keyword.VEC4,
+  Keyword.IVEC2,
+  Keyword.FLOAT
 );
-BuiltinFunction._create("textureProjOffset", EGenType.GVec4, EGenType.GSampler2D, EKeyword.VEC4, EKeyword.IVEC2);
+BuiltinFunction._create("textureProjOffset", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC4, Keyword.IVEC2);
 
 BuiltinFunction._create(
   "textureProjOffset",
   EGenType.GVec4,
   EGenType.GSampler3D,
-  EKeyword.VEC4,
-  EKeyword.IVEC3,
-  EKeyword.FLOAT
+  Keyword.VEC4,
+  Keyword.IVEC3,
+  Keyword.FLOAT
 );
-BuiltinFunction._create("textureProjOffset", EGenType.GVec4, EGenType.GSampler3D, EKeyword.VEC4, EKeyword.IVEC3);
+BuiltinFunction._create("textureProjOffset", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC4, Keyword.IVEC3);
 
 BuiltinFunction._create(
   "textureProjOffset",
-  EKeyword.FLOAT,
-  EKeyword.SAMPLER2D_SHADOW,
-  EKeyword.VEC4,
-  EKeyword.IVEC2,
-  EKeyword.FLOAT
+  Keyword.FLOAT,
+  Keyword.SAMPLER2D_SHADOW,
+  Keyword.VEC4,
+  Keyword.IVEC2,
+  Keyword.FLOAT
 );
-BuiltinFunction._create("textureProjOffset", EKeyword.FLOAT, EKeyword.SAMPLER2D_SHADOW, EKeyword.VEC4, EKeyword.IVEC2);
+BuiltinFunction._create("textureProjOffset", Keyword.FLOAT, Keyword.SAMPLER2D_SHADOW, Keyword.VEC4, Keyword.IVEC2);
 
 BuiltinFunction._create(
   "textureLodOffset",
   EGenType.GVec4,
   EGenType.GSampler2D,
-  EKeyword.VEC2,
-  EKeyword.FLOAT,
-  EKeyword.IVEC2
+  Keyword.VEC2,
+  Keyword.FLOAT,
+  Keyword.IVEC2
 );
 BuiltinFunction._create(
   "textureLodOffset",
   EGenType.GVec4,
   EGenType.GSampler3D,
-  EKeyword.VEC3,
-  EKeyword.FLOAT,
-  EKeyword.IVEC3
+  Keyword.VEC3,
+  Keyword.FLOAT,
+  Keyword.IVEC3
 );
 
 BuiltinFunction._create(
   "textureLodOffset",
-  EKeyword.FLOAT,
-  EKeyword.SAMPLER2D_SHADOW,
-  EKeyword.VEC3,
-  EKeyword.FLOAT,
-  EKeyword.IVEC2
+  Keyword.FLOAT,
+  Keyword.SAMPLER2D_SHADOW,
+  Keyword.VEC3,
+  Keyword.FLOAT,
+  Keyword.IVEC2
 );
 BuiltinFunction._create(
   "textureLodOffset",
   EGenType.GVec4,
   EGenType.GSampler2DArray,
-  EKeyword.VEC3,
-  EKeyword.FLOAT,
-  EKeyword.IVEC2
+  Keyword.VEC3,
+  Keyword.FLOAT,
+  Keyword.IVEC2
 );
 
-BuiltinFunction._create("textureProjLod", EGenType.GVec4, EGenType.GSampler2D, EKeyword.VEC3, EKeyword.FLOAT);
-BuiltinFunction._create("textureProjLod", EGenType.GVec4, EGenType.GSampler2D, EKeyword.VEC4, EKeyword.FLOAT);
-BuiltinFunction._create("textureProjLod", EGenType.GVec4, EGenType.GSampler3D, EKeyword.VEC4, EKeyword.FLOAT);
-BuiltinFunction._create("textureProjLod", EKeyword.FLOAT, EKeyword.SAMPLER2D_SHADOW, EKeyword.VEC4, EKeyword.FLOAT);
+BuiltinFunction._create("textureProjLod", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("textureProjLod", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC4, Keyword.FLOAT);
+BuiltinFunction._create("textureProjLod", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC4, Keyword.FLOAT);
+BuiltinFunction._create("textureProjLod", Keyword.FLOAT, Keyword.SAMPLER2D_SHADOW, Keyword.VEC4, Keyword.FLOAT);
 
 BuiltinFunction._create(
   "textureProjLodOffset",
   EGenType.GVec4,
   EGenType.GSampler2D,
-  EKeyword.VEC3,
-  EKeyword.FLOAT,
-  EKeyword.IVEC2
+  Keyword.VEC3,
+  Keyword.FLOAT,
+  Keyword.IVEC2
 );
 BuiltinFunction._create(
   "textureProjLodOffset",
   EGenType.GVec4,
   EGenType.GSampler2D,
-  EKeyword.VEC4,
-  EKeyword.FLOAT,
-  EKeyword.IVEC2
+  Keyword.VEC4,
+  Keyword.FLOAT,
+  Keyword.IVEC2
 );
 BuiltinFunction._create(
   "textureProjLodOffset",
   EGenType.GVec4,
   EGenType.GSampler3D,
-  EKeyword.VEC4,
-  EKeyword.FLOAT,
-  EKeyword.IVEC3
+  Keyword.VEC4,
+  Keyword.FLOAT,
+  Keyword.IVEC3
 );
 BuiltinFunction._create(
   "textureProjLodOffset",
-  EKeyword.FLOAT,
-  EKeyword.SAMPLER2D_SHADOW,
-  EKeyword.VEC4,
-  EKeyword.FLOAT,
-  EKeyword.IVEC2
+  Keyword.FLOAT,
+  Keyword.SAMPLER2D_SHADOW,
+  Keyword.VEC4,
+  Keyword.FLOAT,
+  Keyword.IVEC2
 );
 
 BuiltinFunction._create(
   "textureGrad",
   EGenType.GVec4,
   EGenType.GSampler2D,
-  EKeyword.VEC2,
-  EKeyword.VEC2,
-  EKeyword.VEC2
+  Keyword.VEC2,
+  Keyword.VEC2,
+  Keyword.VEC2
 );
 BuiltinFunction._create(
   "textureGrad",
   EGenType.GVec4,
   EGenType.GSampler3D,
-  EKeyword.VEC3,
-  EKeyword.VEC3,
-  EKeyword.VEC3
+  Keyword.VEC3,
+  Keyword.VEC3,
+  Keyword.VEC3
 );
 BuiltinFunction._create(
   "textureGrad",
   EGenType.GVec4,
   EGenType.GSamplerCube,
-  EKeyword.VEC3,
-  EKeyword.VEC3,
-  EKeyword.VEC3
+  Keyword.VEC3,
+  Keyword.VEC3,
+  Keyword.VEC3
 );
 
 BuiltinFunction._create(
   "textureGrad",
-  EKeyword.FLOAT,
-  EKeyword.SAMPLER2D_SHADOW,
-  EKeyword.VEC3,
-  EKeyword.VEC2,
-  EKeyword.VEC2
+  Keyword.FLOAT,
+  Keyword.SAMPLER2D_SHADOW,
+  Keyword.VEC3,
+  Keyword.VEC2,
+  Keyword.VEC2
 );
 BuiltinFunction._create(
   "textureGrad",
-  EKeyword.FLOAT,
-  EKeyword.SAMPLER_CUBE_SHADOW,
-  EKeyword.VEC4,
-  EKeyword.VEC3,
-  EKeyword.VEC3
+  Keyword.FLOAT,
+  Keyword.SAMPLER_CUBE_SHADOW,
+  Keyword.VEC4,
+  Keyword.VEC3,
+  Keyword.VEC3
 );
 
 BuiltinFunction._create(
   "textureGrad",
   EGenType.GVec4,
   EGenType.GSampler2DArray,
-  EKeyword.VEC3,
-  EKeyword.VEC2,
-  EKeyword.VEC2
+  Keyword.VEC3,
+  Keyword.VEC2,
+  Keyword.VEC2
 );
 BuiltinFunction._create(
   "textureGrad",
-  EKeyword.FLOAT,
-  EKeyword.SAMPLER2D_ARRAY_SHADOW,
-  EKeyword.VEC4,
-  EKeyword.VEC2,
-  EKeyword.VEC2
+  Keyword.FLOAT,
+  Keyword.SAMPLER2D_ARRAY_SHADOW,
+  Keyword.VEC4,
+  Keyword.VEC2,
+  Keyword.VEC2
 );
 
 BuiltinFunction._create(
   "textureGradOffset",
   EGenType.GVec4,
   EGenType.GSampler2D,
-  EKeyword.VEC2,
-  EKeyword.VEC2,
-  EKeyword.VEC2,
-  EKeyword.IVEC2
+  Keyword.VEC2,
+  Keyword.VEC2,
+  Keyword.VEC2,
+  Keyword.IVEC2
 );
 BuiltinFunction._create(
   "textureGradOffset",
   EGenType.GVec4,
   EGenType.GSampler3D,
-  EKeyword.VEC3,
-  EKeyword.VEC3,
-  EKeyword.VEC3,
-  EKeyword.IVEC3
+  Keyword.VEC3,
+  Keyword.VEC3,
+  Keyword.VEC3,
+  Keyword.IVEC3
 );
 BuiltinFunction._create(
   "textureGradOffset",
-  EKeyword.FLOAT,
-  EKeyword.SAMPLER2D_SHADOW,
-  EKeyword.VEC3,
-  EKeyword.VEC2,
-  EKeyword.VEC2,
-  EKeyword.IVEC2
+  Keyword.FLOAT,
+  Keyword.SAMPLER2D_SHADOW,
+  Keyword.VEC3,
+  Keyword.VEC2,
+  Keyword.VEC2,
+  Keyword.IVEC2
 );
 BuiltinFunction._create(
   "textureGradOffset",
   EGenType.GVec4,
   EGenType.GSampler2DArray,
-  EKeyword.VEC3,
-  EKeyword.VEC2,
-  EKeyword.VEC2,
-  EKeyword.IVEC2
+  Keyword.VEC3,
+  Keyword.VEC2,
+  Keyword.VEC2,
+  Keyword.IVEC2
 );
 BuiltinFunction._create(
   "textureGradOffset",
-  EKeyword.FLOAT,
-  EKeyword.SAMPLER2D_ARRAY_SHADOW,
-  EKeyword.VEC3,
-  EKeyword.VEC2,
-  EKeyword.VEC2,
-  EKeyword.IVEC2
+  Keyword.FLOAT,
+  Keyword.SAMPLER2D_ARRAY_SHADOW,
+  Keyword.VEC3,
+  Keyword.VEC2,
+  Keyword.VEC2,
+  Keyword.IVEC2
 );
 
 BuiltinFunction._create(
   "textureProjGrad",
   EGenType.GVec4,
   EGenType.GSampler2D,
-  EKeyword.VEC3,
-  EKeyword.VEC2,
-  EKeyword.VEC2
+  Keyword.VEC3,
+  Keyword.VEC2,
+  Keyword.VEC2
 );
 BuiltinFunction._create(
   "textureProjGrad",
   EGenType.GVec4,
   EGenType.GSampler2D,
-  EKeyword.VEC4,
-  EKeyword.VEC2,
-  EKeyword.VEC2
+  Keyword.VEC4,
+  Keyword.VEC2,
+  Keyword.VEC2
 );
 BuiltinFunction._create(
   "textureProjGrad",
   EGenType.GVec4,
   EGenType.GSampler3D,
-  EKeyword.VEC4,
-  EKeyword.VEC3,
-  EKeyword.VEC3
+  Keyword.VEC4,
+  Keyword.VEC3,
+  Keyword.VEC3
 );
 BuiltinFunction._create(
   "textureProjGrad",
-  EKeyword.FLOAT,
-  EKeyword.SAMPLER2D_SHADOW,
-  EKeyword.VEC4,
-  EKeyword.VEC2,
-  EKeyword.VEC2
+  Keyword.FLOAT,
+  Keyword.SAMPLER2D_SHADOW,
+  Keyword.VEC4,
+  Keyword.VEC2,
+  Keyword.VEC2
 );
 
 BuiltinFunction._create(
   "textureProjGradOffset",
   EGenType.GVec4,
   EGenType.GSampler2D,
-  EKeyword.VEC3,
-  EKeyword.VEC2,
-  EKeyword.VEC2,
-  EKeyword.IVEC2
+  Keyword.VEC3,
+  Keyword.VEC2,
+  Keyword.VEC2,
+  Keyword.IVEC2
 );
 BuiltinFunction._create(
   "textureProjGradOffset",
   EGenType.GVec4,
   EGenType.GSampler2D,
-  EKeyword.VEC4,
-  EKeyword.VEC2,
-  EKeyword.VEC2,
-  EKeyword.IVEC2
+  Keyword.VEC4,
+  Keyword.VEC2,
+  Keyword.VEC2,
+  Keyword.IVEC2
 );
 BuiltinFunction._create(
   "textureProjGradOffset",
   EGenType.GVec4,
   EGenType.GSampler3D,
-  EKeyword.VEC4,
-  EKeyword.VEC3,
-  EKeyword.VEC3,
-  EKeyword.IVEC3
+  Keyword.VEC4,
+  Keyword.VEC3,
+  Keyword.VEC3,
+  Keyword.IVEC3
 );
 BuiltinFunction._create(
   "textureProjGradOffset",
-  EKeyword.FLOAT,
-  EKeyword.SAMPLER2D_SHADOW,
-  EKeyword.VEC4,
-  EKeyword.VEC2,
-  EKeyword.VEC2,
-  EKeyword.IVEC2
+  Keyword.FLOAT,
+  Keyword.SAMPLER2D_SHADOW,
+  Keyword.VEC4,
+  Keyword.VEC2,
+  Keyword.VEC2,
+  Keyword.IVEC2
 );
 BuiltinFunction._createWithScop("dFdx", EGenType.GenType, EShaderStage.FRAGMENT, EGenType.GenType);
 BuiltinFunction._createWithScop("dFdy", EGenType.GenType, EShaderStage.FRAGMENT, EGenType.GenType);

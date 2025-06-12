@@ -1,4 +1,4 @@
-import { EKeyword, ETokenType, ShaderRange } from "../common";
+import {  ETokenType, ShaderRange } from "../common";
 import { ASTNode, TreeNode } from "../parser/AST";
 import { TranslationRule } from "../parser/SemanticAnalyzer";
 import { NoneTerminal, GrammarSymbol } from "../parser/GrammarSymbol";
@@ -7,6 +7,7 @@ import { ActionInfo, EAction } from "./types";
 import { ShaderLab } from "../ShaderLab";
 import { ClearableObjectPool, IPoolElement } from "@galacean/engine";
 import { NodeChild } from "../parser/types";
+import { Keyword } from "../common/enums/Keyword";
 
 export default class GrammarUtils {
   static isTerminal(sm: GrammarSymbol) {
@@ -15,7 +16,7 @@ export default class GrammarUtils {
 
   static toString(sm: GrammarSymbol) {
     if (this.isTerminal(sm)) {
-      return ETokenType[sm] ?? EKeyword[sm];
+      return ETokenType[sm] ?? Keyword[sm];
     }
     return NoneTerminal[sm];
   }
