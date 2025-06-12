@@ -11,7 +11,7 @@ import { ShaderLab as ShaderLabRelease } from "@galacean/engine-shaderlab";
 import { glslValidate, shaderParse } from "./ShaderValidate";
 import { registerIncludes } from "@galacean/engine-shader-shaderlab";
 
-import { IShaderContent } from "@galacean/engine-design";
+import { IShaderSource } from "@galacean/engine-design";
 import { describe, beforeAll, expect, assert, it } from "vitest";
 import { server } from "@vitest/browser/context";
 const { readFile } = server.commands;
@@ -135,10 +135,10 @@ const shaderLabVerbose = new ShaderLabVerbose();
 const shaderLabRelease = new ShaderLabRelease();
 
 describe("ShaderLab", () => {
-  let shader: IShaderContent;
-  let subShader: IShaderContent["subShaders"][number];
-  let passList: IShaderContent["subShaders"][number]["passes"];
-  let pass1: IShaderContent["subShaders"][number]["passes"][number];
+  let shader: IShaderSource;
+  let subShader: IShaderSource["subShaders"][number];
+  let passList: IShaderSource["subShaders"][number]["passes"];
+  let pass1: IShaderSource["subShaders"][number]["passes"][number];
 
   beforeAll(() => {
     shader = shaderLabVerbose._parseShaderSource(demoShader);
@@ -204,6 +204,9 @@ describe("ShaderLab", () => {
     expect(variableMap).include({
       [RenderStateDataKey.BlendStateSourceAlphaBlendFactor0]: "material_SrcBlend"
     });
+
+    expect(shaderLabVerbose.errors.length).to.eq(1);
+    expect(shaderLabVerbose.errors[0].message).contains("Invalid RenderQueueType variable: Unknown");
   });
 
   it("shader tags", () => {
