@@ -78,7 +78,6 @@ export default class SourceLexer extends BaseLexer {
 
     const end = this.getCurPosition();
     if (start.index === end.index) {
-      console.log( this._source[start.index]);
       this._advance();
       const token = BaseToken.pool.get();
       token.set(ETokenType.NOT_WORD, this._source[start.index], start);

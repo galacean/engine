@@ -9,6 +9,8 @@ import {
   BackgroundMode,
   Camera,
   GLTFResource,
+  Loader,
+  Logger,
   PrimitiveMesh,
   Shader,
   SkyBoxMaterial,
@@ -19,6 +21,8 @@ import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { registerIncludes } from "@galacean/engine-shader-shaderlab";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 import { ShaderLab } from "@galacean/engine-shaderlab";
+
+Logger.enable();
 
 const shaderLab = new ShaderLab();
 registerIncludes();
