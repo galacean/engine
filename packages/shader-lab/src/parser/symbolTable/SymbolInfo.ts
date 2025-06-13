@@ -23,6 +23,6 @@ export class SymbolInfo implements IBaseSymbol {
     public readonly symbolType: ESymbolType,
     public readonly astNode?: SymbolAstNode,
     public readonly dataType?: SymbolDataType,
-    public readonly signature?: GalaceanDataType[]
+    public readonly paramSignature?: GalaceanDataType[]
   ) {}
 }

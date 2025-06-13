@@ -41,26 +41,25 @@ export default class SemanticAnalyzer {
   }
 
   constructor() {
-    this.newScope();
+    this.pushScope();
   }
 
   reset() {
     this.semanticStack.length = 0;
     this._shaderData = new ShaderData();
     this.symbolTableStack.clear();
-    this.newScope();
+    this.pushScope();
     // #if _VERBOSE
     this.errors.length = 0;
     // #endif
   }
 
-  newScope() {
-    const scope = new TargetSymbolTable();
-    this.symbolTableStack.newScope(scope);
+  pushScope() {
+    this.symbolTableStack.pushScope(new TargetSymbolTable());
   }
 
-  dropScope() {
-    return this.symbolTableStack.dropScope();
+  popScope() {
+    return this.symbolTableStack.popScope();
   }
 
   addTranslationRule(pid: number, rule: TranslationRule) {
@@ -74,13 +73,13 @@ export default class SemanticAnalyzer {
   lookupSymbolBy(
     ident: string,
     symbolType: ESymbolType,
-    signature?: NonGenericGalaceanType[],
+    paramSignature?: NonGenericGalaceanType[],
     astNode?: ASTNode.FunctionDefinition
   ): SymbolInfo | undefined {
     const stack = this.symbolTableStack.stack;
     for (let length = stack.length, i = length - 1; i >= 0; i--) {
       const symbolTable = stack[i];
-      const ret = symbolTable.lookup(ident, symbolType, signature, astNode);
+      const ret = symbolTable.lookup(ident, symbolType, paramSignature, astNode);
       if (ret) return ret;
     }
   }
