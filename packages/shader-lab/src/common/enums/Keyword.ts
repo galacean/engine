@@ -80,14 +80,14 @@ export enum Keyword {
   GSEditorProperties,
   GSEditorMacros,
   GSEditor,
-  GS_Tags,
+  GSTags,
   GS_ReplacementTag,
   GS_LightMode,
   GS_PipelineStage,
   GS_VertexShader,
   GS_FragmentShader,
   GSSubShader,
-  GS_Pass,
+  GSPass,
   GS_BlendFactor,
   GS_BlendOperation,
   GS_Bool,
@@ -96,5 +96,5 @@ export enum Keyword {
   GS_CompareFunction,
   GS_StencilOperation,
   GS_CullMode,
-  GS_UsePass
+  GSUsePass
 }

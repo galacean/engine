@@ -14,11 +14,11 @@ export default class SourceLexer extends BaseLexer {
     EditorProperties: Keyword.GSEditorProperties,
     EditorMacros: Keyword.GSEditorMacros,
     Editor: Keyword.GSEditor,
-    Tags: Keyword.GS_Tags,
+    Tags: Keyword.GSTags,
     VertexShader: Keyword.GS_VertexShader,
     FragmentShader: Keyword.GS_FragmentShader,
     SubShader: Keyword.GSSubShader,
-    Pass: Keyword.GS_Pass,
+    Pass: Keyword.GSPass,
     BlendFactor: Keyword.GS_BlendFactor,
     BlendOperation: Keyword.GS_BlendOperation,
     Bool: Keyword.GS_Bool,
@@ -28,7 +28,7 @@ export default class SourceLexer extends BaseLexer {
     CullMode: Keyword.GS_CullMode,
     true: Keyword.TRUE,
     false: Keyword.FALSE,
-    UsePass: Keyword.GS_UsePass,
+    UsePass: Keyword.GSUsePass,
     Color: Keyword.GS_Color
   };
   private static _wordCharRegex = /\w/;
