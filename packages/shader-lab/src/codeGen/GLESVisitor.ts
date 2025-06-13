@@ -1,12 +1,12 @@
-import { CodeGenVisitor } from "./CodeGenVisitor";
+import { IShaderInfo } from "@galacean/engine-design";
+import { EShaderStage } from "../common/Enums";
+import { Keyword } from "../common/enums/Keyword";
 import { ASTNode } from "../parser/AST";
 import { ShaderData } from "../parser/ShaderInfo";
-import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo } from "../parser/symbolTable";
-import { EShaderStage } from "../common/Enums";
-import { IShaderInfo } from "@galacean/engine-design";
+import { ESymbolType, SymbolInfo } from "../parser/symbolTable";
+import { CodeGenVisitor } from "./CodeGenVisitor";
 import { ICodeSegment } from "./types";
 import { VisitorContext } from "./VisitorContext";
-import { Keyword } from "../common/enums/Keyword";
 
 const defaultPrecision = `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
