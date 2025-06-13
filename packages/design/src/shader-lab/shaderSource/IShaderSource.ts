@@ -4,7 +4,7 @@ import { ISubShaderSource } from "./ISubShaderSource";
 
 export interface IShaderSource {
   name: string;
+  pendingContents: IStatement[];
   subShaders: ISubShaderSource[];
-  globalContents: IStatement[];
   renderStates: IRenderStates;
 }
