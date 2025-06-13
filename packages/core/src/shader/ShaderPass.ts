@@ -183,25 +183,20 @@ export class ShaderPass extends ShaderPart {
     }
 
     const start = performance.now();
-    try {
-      const shaderProgramSource = Shader._shaderLab._parseShaderPass(
-        this._shaderLabSource,
-        vertexEntry,
-        fragmentEntry,
-        macros,
-        isWebGL2 ? ShaderPlatformTarget.GLES300 : ShaderPlatformTarget.GLES100,
-        platformMacros,
-        new URL(path, ShaderPass._shaderRootPath).href
-      );
-      Logger.info(`[ShaderLab compilation] cost time: ${performance.now() - start}ms`);
+    const shaderProgramSource = Shader._shaderLab._parseShaderPass(
+      this._shaderLabSource,
+      vertexEntry,
+      fragmentEntry,
+      macros,
+      isWebGL2 ? ShaderPlatformTarget.GLES300 : ShaderPlatformTarget.GLES100,
+      platformMacros,
+      new URL(path, ShaderPass._shaderRootPath).href
+    );
+    Logger.info(`[ShaderLab compilation] cost time: ${performance.now() - start}ms`);
 
-      if (shaderProgramSource) {
-        return new ShaderProgram(engine, shaderProgramSource.vertex, shaderProgramSource.fragment);
-      } else {
-        return new ShaderProgram(engine, "", "");
-      }
-    } catch (e) {
-      Logger.error(e);
+    if (shaderProgramSource) {
+      return new ShaderProgram(engine, shaderProgramSource.vertex, shaderProgramSource.fragment);
+    } else {
       return new ShaderProgram(engine, "", "");
     }
   }
