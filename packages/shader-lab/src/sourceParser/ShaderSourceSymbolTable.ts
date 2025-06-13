@@ -1,4 +1,3 @@
-import { Logger } from "@galacean/engine";
 import { TokenType } from "../common";
 import { BaseSymbolTable, IBaseSymbol } from "../common/BaseSymbolTable";
 
@@ -12,9 +11,7 @@ export default class ShaderSourceSymbolTable extends BaseSymbolTable<ISymbol> {
     const entry = this._table.get(sm.ident) ?? [];
     for (let i = 0; i < entry.length; i++) {
       if (entry[i].type === sm.type) {
-        Logger.warn("replace symbol:", sm.ident);
-        entry[i] = sm;
-        return;
+        throw `Symbol ${sm.ident} already exists.`;
       }
     }
     entry.push(sm);

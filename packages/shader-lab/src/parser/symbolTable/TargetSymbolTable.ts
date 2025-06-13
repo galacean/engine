@@ -1,4 +1,3 @@
-import { Logger } from "@galacean/engine";
 import { GalaceanDataType, TypeAny } from "../../common";
 import { BaseSymbolTable } from "../../common/BaseSymbolTable";
 import { ASTNode } from "../AST";
@@ -12,9 +11,7 @@ export class TargetSymbolTable extends BaseSymbolTable<SymbolInfo> {
     const entry = this._table.get(sm.ident) ?? [];
     for (let i = 0; i < entry.length; i++) {
       if (this._haveSameTypeSymbol(entry[i], sm.symbolType, sm.paramSignature, sm.astNode)) {
-        Logger.warn("replace symbol:", sm.ident);
-        entry[i] = sm;
-        return;
+        throw `Symbol "${sm.ident}" already exists.`;
       }
     }
     entry.push(sm);
