@@ -53,7 +53,7 @@ export default class SourceLexer extends BaseLexer {
   }
   // #endif
 
-  override scanToken(onToken?: OnToken): BaseToken {
+  override scanToken(): BaseToken {
     this.skipCommentsAndSpace();
 
     if (this.isEnd()) {
@@ -71,7 +71,6 @@ export default class SourceLexer extends BaseLexer {
       this._advance();
       const token = BaseToken.pool.get();
       token.set(ETokenType.NotWord, this._source[start.index], start);
-      onToken?.(token, this);
       return token;
     }
 
@@ -80,9 +79,6 @@ export default class SourceLexer extends BaseLexer {
     const range = ShaderLab.createRange(start, end);
     const token = BaseToken.pool.get();
     token.set(tokenType, lexeme, range);
-    onToken?.(token, this);
     return token;
   }
 }
-
-export type OnToken = (token: BaseToken, scanner: BaseLexer) => void;
