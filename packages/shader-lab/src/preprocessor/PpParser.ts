@@ -185,10 +185,7 @@ export class PpParser {
     this._parseMacroBranch(<any>nextDirective.type, scanner);
   }
 
-  private static _parseMacroBranch(
-    directive: EPpKeyword.elif | EPpKeyword.else | EPpKeyword.endif,
-    scanner: PpLexer
-  ) {
+  private static _parseMacroBranch(directive: EPpKeyword.elif | EPpKeyword.else | EPpKeyword.endif, scanner: PpLexer) {
     if (directive === EPpKeyword.endif) {
       return;
     }

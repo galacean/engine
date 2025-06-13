@@ -3,7 +3,7 @@ import { NoneTerminal, GrammarSymbol, Terminal } from "../parser/GrammarSymbol";
 import State from "./State";
 import StateItem from "./StateItem";
 import GrammarUtils from "./Utils";
-import {  ETokenType } from "../common";
+import { ETokenType } from "../common";
 import Utils from "./Utils";
 import { ActionInfo, ActionTable, EAction, GotoTable, StateActionTable, StateGotoTable } from "./types";
 import { Keyword } from "../common/enums/Keyword";

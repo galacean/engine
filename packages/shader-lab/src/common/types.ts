@@ -1,6 +1,5 @@
 import { Keyword } from "./enums/Keyword";
 
-
 export enum ETokenType {
   ID = 1000,
   FLOAT_CONSTANT,

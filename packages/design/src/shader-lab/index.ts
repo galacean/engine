@@ -6,4 +6,3 @@ export { IShaderPosition } from "./shaderSource/IShaderPosition";
 export type { IShaderSource } from "./shaderSource/IShaderSource";
 export { IStatement } from "./shaderSource/IStatement";
 export { ISubShaderSource } from "./shaderSource/ISubShaderSource";
-

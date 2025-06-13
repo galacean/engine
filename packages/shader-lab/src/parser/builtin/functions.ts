@@ -1,4 +1,4 @@
-import {  GalaceanDataType, TypeAny } from "../../common";
+import { GalaceanDataType, TypeAny } from "../../common";
 import { EShaderStage } from "../../common/Enums";
 import { Keyword } from "../../common/enums/Keyword";
 
@@ -484,30 +484,9 @@ BuiltinFunction._create(
   Keyword.IVEC2
 );
 
-BuiltinFunction._create(
-  "textureGrad",
-  EGenType.GVec4,
-  EGenType.GSampler2D,
-  Keyword.VEC2,
-  Keyword.VEC2,
-  Keyword.VEC2
-);
-BuiltinFunction._create(
-  "textureGrad",
-  EGenType.GVec4,
-  EGenType.GSampler3D,
-  Keyword.VEC3,
-  Keyword.VEC3,
-  Keyword.VEC3
-);
-BuiltinFunction._create(
-  "textureGrad",
-  EGenType.GVec4,
-  EGenType.GSamplerCube,
-  Keyword.VEC3,
-  Keyword.VEC3,
-  Keyword.VEC3
-);
+BuiltinFunction._create("textureGrad", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2, Keyword.VEC2, Keyword.VEC2);
+BuiltinFunction._create("textureGrad", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC3, Keyword.VEC3, Keyword.VEC3);
+BuiltinFunction._create("textureGrad", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3, Keyword.VEC3, Keyword.VEC3);
 
 BuiltinFunction._create(
   "textureGrad",

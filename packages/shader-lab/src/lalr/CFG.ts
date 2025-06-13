@@ -3,7 +3,7 @@
 import { Grammar } from "../parser/Grammar";
 import { NoneTerminal, GrammarSymbol } from "../parser/GrammarSymbol";
 import GrammarUtils from "./Utils";
-import {  ETokenType } from "../common";
+import { ETokenType } from "../common";
 import SemanticAnalyzer, { TranslationRule } from "../parser/SemanticAnalyzer";
 import { ASTNode } from "../parser/AST";
 import { Keyword } from "../common/enums/Keyword";

@@ -1,4 +1,4 @@
-import {  ETokenType, ShaderRange } from "../common";
+import { ETokenType, ShaderRange } from "../common";
 import { ASTNode, TreeNode } from "../parser/AST";
 import { TranslationRule } from "../parser/SemanticAnalyzer";
 import { NoneTerminal, GrammarSymbol } from "../parser/GrammarSymbol";

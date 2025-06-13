@@ -1,5 +1,5 @@
 import { ShaderLab } from "../ShaderLab";
-import {  ETokenType } from "../common";
+import { ETokenType } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken, EOF } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
