@@ -510,21 +510,4 @@ export class ShaderSourceParser {
         return start;
     }
   }
-
-  private static _parseTag(
-    token: BaseToken<number>,
-    lexer: SourceLexer,
-    start: ShaderPosition,
-    globalContents: IStatement[],
-    tags: Record<string, number | string | boolean>
-  ): ShaderPosition {
-    switch (token.type) {
-      case Keyword.GS_Tags:
-        this._addGlobalStatement(lexer, start, token.lexeme.length, globalContents);
-        this._parseTags(tags, lexer);
-        return lexer.getCurPosition();
-      default:
-        return start;
-    }
-  }
 }
