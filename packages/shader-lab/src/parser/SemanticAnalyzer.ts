@@ -73,13 +73,13 @@ export default class SemanticAnalyzer {
   lookupSymbolBy(
     ident: string,
     symbolType: ESymbolType,
-    signature?: NonGenericGalaceanType[],
+    paramSignature?: NonGenericGalaceanType[],
     astNode?: ASTNode.FunctionDefinition
   ): SymbolInfo | undefined {
     const stack = this.symbolTableStack.stack;
     for (let length = stack.length, i = length - 1; i >= 0; i--) {
       const symbolTable = stack[i];
-      const ret = symbolTable.lookup(ident, symbolType, signature, astNode);
+      const ret = symbolTable.lookup(ident, symbolType, paramSignature, astNode);
       if (ret) return ret;
     }
   }

@@ -24,7 +24,7 @@ export class TargetSymbolTable extends BaseSymbolTable<SymbolInfo> {
   lookup<T extends ESymbolType>(
     ident: string,
     symbolType: T,
-    signature?: GalaceanDataType[],
+    paramSignature?: GalaceanDataType[],
     astNode?: ASTNode.FunctionDefinition
   ): T extends ESymbolType.FN
     ? FnSymbol
@@ -37,7 +37,7 @@ export class TargetSymbolTable extends BaseSymbolTable<SymbolInfo> {
     if (entry) {
       for (let length = entry.length, i = 0; i < length; i++) {
         const item = entry[i];
-        if (this._haveSameTypeSymbol(item, symbolType, signature, astNode)) return <any>item;
+        if (this._haveSameTypeSymbol(item, symbolType, paramSignature, astNode)) return <any>item;
       }
     }
   }
