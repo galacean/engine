@@ -33,15 +33,35 @@ export default class SourceLexer extends BaseLexer {
   };
   private static _wordCharRegex = /\w/;
 
+  private static _scanDigits(source: string, startIndex: number): number {
+    let currentIndex = startIndex;
+    while (true) {
+      const charCode = source.charCodeAt(currentIndex);
+      if (charCode >= 48 && charCode <= 57) { // '0' to '9'
+        currentIndex++;
+      } else {
+        break;
+      }
+    }
+    return currentIndex;
+  }
+
   scanNumber(): number {
     this.skipCommentsAndSpace();
     const start = this._currentIndex;
-    while (/[0-9]/.test(this.getCurChar())) this._advance();
-    if (this.getCurChar() === ".") {
-      this._advance();
-      while (/[0-9]/.test(this.getCurChar())) this._advance();
+    const source = this._source;
+    let currentIndex = this._currentIndex;
+
+    // Scan integer part
+    currentIndex = SourceLexer._scanDigits(source, currentIndex);
+
+    // Scan decimal part if present
+    if (source[currentIndex] === ".") {
+      currentIndex = SourceLexer._scanDigits(source, currentIndex + 1);
     }
-    return Number(this._source.substring(start, this._currentIndex));
+
+    this.advance(currentIndex - this._currentIndex);
+    return Number(source.substring(start, currentIndex));
   }
 
   // #if _VERBOSE
