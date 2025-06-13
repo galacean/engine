@@ -96,9 +96,10 @@ export class ShaderSourceParser {
     const { globalContents } = outShaderSource;
     while (true) {
       const token = lexer.scanToken();
+      const { lexeme } = token;
       switch (token.type) {
         case Keyword.GSSubShader:
-          this._addGlobalStatement(lexer, start, token.lexeme.length, globalContents);
+          this._addGlobalStatement(lexer, start, lexeme.length, globalContents);
           const subShader = this._parseSubShader(lexer);
           outShaderSource.subShaders.push(subShader);
           start = lexer.getCurPosition();
@@ -106,16 +107,16 @@ export class ShaderSourceParser {
         case Keyword.GSEditorProperties:
         case Keyword.GSEditorMacros:
         case Keyword.GSEditor:
-          this._addGlobalStatement(lexer, start, token.lexeme.length, globalContents);
+          this._addGlobalStatement(lexer, start, lexeme.length, globalContents);
           lexer.scanPairedText("{", "}", true, false);
           start = lexer.getCurPosition();
           break;
         case ETokenType.NotWord:
-          if (token.lexeme === "{") braceLevel += 1;
-          else if (token.lexeme === "}") {
-            braceLevel -= 1;
-            if (braceLevel === 0) {
-              this._addGlobalStatement(lexer, start, token.lexeme.length, globalContents);
+          if (lexeme === "{") {
+            ++braceLevel;
+          } else if (lexeme === "}") {
+            if (--braceLevel === 0) {
+              this._addGlobalStatement(lexer, start, lexeme.length, globalContents);
               this._symbolTableStack.dropScope();
               return;
             }
@@ -331,15 +332,16 @@ export class ShaderSourceParser {
   }
 
   private static _addGlobalStatement(
-    scanner: SourceLexer,
+    lexer: SourceLexer,
     start: ShaderPosition,
-    offset: number,
+    backOffset: number,
     outGlobalContents: IStatement[]
   ) {
-    if (scanner.current > start.index + offset) {
+    const endIndex = lexer.current - backOffset;
+    if (endIndex > start.index) {
       outGlobalContents.push({
-        range: { start, end: { ...scanner.getCurPosition(), index: scanner.current - offset - 1 } },
-        content: scanner.source.substring(start.index, scanner.current - offset - 1)
+        range: { start, end: { ...lexer.getCurPosition(), index: endIndex - 1 } },
+        content: lexer.source.substring(start.index, endIndex - 1)
       });
     }
   }
@@ -437,7 +439,6 @@ export class ShaderSourceParser {
           this._parseTags(ret, scanner);
           start = scanner.getCurPosition();
           break;
-
         case Keyword.GS_VertexShader:
         case Keyword.GS_FragmentShader:
           this._addGlobalStatement(scanner, start, word.lexeme.length, ret.globalContents);
