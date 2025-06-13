@@ -52,7 +52,7 @@ export class ShaderSourceParser {
     shaderSource.name = lexer.scanPairedText('"', '"', false, false);
     lexer.scanText("{");
 
-    this._parseShaderStatements(lexer, shaderSource);
+    this._parseShader(lexer, shaderSource);
 
     const shaderGlobalStatements = shaderSource.globalContents;
     const shaderRenderStates = shaderSource.renderStates;
@@ -73,7 +73,7 @@ export class ShaderSourceParser {
       }
     }
 
-    Logger.info(`[content compilation] cost time ${performance.now() - start}ms`);
+    Logger.info(`[Source compilation] cost time ${performance.now() - start}ms`);
 
     return shaderSource;
   }
@@ -87,7 +87,7 @@ export class ShaderSourceParser {
     }
   }
 
-  private static _parseShaderStatements(lexer: SourceLexer, outShaderSource: IShaderSource): void {
+  private static _parseShader(lexer: SourceLexer, outShaderSource: IShaderSource): void {
     let braceLevel = 1;
 
     lexer.skipCommentsAndSpace();
