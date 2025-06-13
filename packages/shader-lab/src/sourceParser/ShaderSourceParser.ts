@@ -23,7 +23,6 @@ import { ShaderLabUtils } from "../ShaderLabUtils";
 import SourceLexer from "./SourceLexer";
 
 const EngineType = [
-  Keyword.GSRenderQueueType,
   Keyword.GS_BlendFactor,
   Keyword.GS_BlendOperation,
   Keyword.GS_Bool,
@@ -134,7 +133,7 @@ export class ShaderSourceParser {
           break;
         case Keyword.GSRenderQueueType:
           this._addGlobalStatement(lexer, start, token.lexeme.length, globalContents);
-          this._parseRenderQueueAssignment(outShaderSource, lexer);
+          this._parseRenderQueueDeclarationOrAssignment(outShaderSource, lexer);
           start = lexer.getCurPosition();
           break;
         case ETokenType.NotWord:
@@ -323,13 +322,45 @@ export class ShaderSourceParser {
     }
   }
 
-  private static _parseRenderQueueAssignment(ret: { renderStates: IRenderStates }, scanner: SourceLexer) {
-    scanner.scanText("=");
+  private static _parseRenderQueueDeclarationOrAssignment(ret: { renderStates: IRenderStates }, scanner: SourceLexer) {
+    const token = scanner.scanToken();
+    if (token.type === ETokenType.ID) {
+      // declaration.
+      scanner.scanText(";");
+      this._symbolTableStack.insert({ ident: token.lexeme, type: Keyword.GSRenderQueueType });
+      return;
+    }
+
+    if (token.lexeme !== "=") {
+      const error = ShaderLabUtils.createGSError(
+        `Invalid syntax.`,
+        GSErrorName.CompilationError,
+        scanner.source,
+        token.location
+      );
+      // #if _VERBOSE
+      this._errors.push(<GSError>error);
+      return;
+      // #endif
+    }
     const word = scanner.scanToken();
     scanner.scanText(";");
     const value = ShaderSourceParser._engineType.RenderQueueType[word.lexeme];
     const key = RenderStateDataKey.RenderQueueType;
     if (value == undefined) {
+      const sm = ShaderSourceParser._lookupSymbolByType(word.lexeme, Keyword.GSRenderQueueType);
+      if (!sm) {
+        const error = ShaderLabUtils.createGSError(
+          `Invalid RenderQueueType variable: ${word.lexeme}`,
+          GSErrorName.CompilationError,
+          scanner.source,
+          word.location
+        );
+        // #if _VERBOSE
+        this._errors.push(<GSError>error);
+        return;
+        // #endif
+      }
       ret.renderStates.variableMap[key] = word.lexeme;
     } else {
       ret.renderStates.constantMap[key] = value;
@@ -377,7 +408,7 @@ export class ShaderSourceParser {
 
         case Keyword.GSRenderQueueType:
           this._addGlobalStatement(scanner, start, word.lexeme.length, ret.globalContents);
-          this._parseRenderQueueAssignment(ret, scanner);
+          this._parseRenderQueueDeclarationOrAssignment(ret, scanner);
           start = scanner.getCurPosition();
           break;
 
@@ -461,7 +492,7 @@ export class ShaderSourceParser {
       switch (word.type) {
         case Keyword.GSRenderQueueType:
           this._addGlobalStatement(scanner, start, word.lexeme.length, ret.globalContents);
-          this._parseRenderQueueAssignment(ret, scanner);
+          this._parseRenderQueueDeclarationOrAssignment(ret, scanner);
           start = scanner.getCurPosition();
           break;
 
