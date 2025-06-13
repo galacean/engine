@@ -471,7 +471,7 @@ export namespace ASTNode {
     ident: Token;
     returnType: FullySpecifiedType;
     parameterList: IParamInfo[];
-    paramSig: GalaceanDataType[];
+    paramSig: GalaceanDataType[] | undefined;
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const declarator = this.children[0] as FunctionDeclarator;

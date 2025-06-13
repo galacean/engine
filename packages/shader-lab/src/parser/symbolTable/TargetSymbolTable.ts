@@ -11,7 +11,7 @@ export class TargetSymbolTable extends BaseSymbolTable<SymbolInfo> {
   override insert(sm: SymbolInfo): void {
     const entry = this._table.get(sm.ident) ?? [];
     for (let i = 0; i < entry.length; i++) {
-      if (this._compareWith(entry[i], sm.symbolType, sm.signature, sm.astNode)) {
+      if (this._haveSameTypeSymbol(entry[i], sm.symbolType, sm.paramSignature, sm.astNode)) {
         Logger.warn("replace symbol:", sm.ident);
         entry[i] = sm;
         return;
@@ -37,7 +37,7 @@ export class TargetSymbolTable extends BaseSymbolTable<SymbolInfo> {
     if (entry) {
       for (let length = entry.length, i = 0; i < length; i++) {
         const item = entry[i];
-        if (this._compareWith(item, symbolType, signature, astNode)) return <any>item;
+        if (this._haveSameTypeSymbol(item, symbolType, signature, astNode)) return <any>item;
       }
     }
   }
@@ -47,20 +47,20 @@ export class TargetSymbolTable extends BaseSymbolTable<SymbolInfo> {
     return entries.filter((item) => item.symbolType === ESymbolType.FN) as FnSymbol[];
   }
 
-  private _compareWith(
+  private _haveSameTypeSymbol(
     item: SymbolInfo,
     symbolType: ESymbolType,
-    signature?: GalaceanDataType[],
+    paramSignature?: GalaceanDataType[],
     astNode?: SymbolAstNode
   ): boolean {
     if (item.symbolType !== symbolType) return false;
     if (item.symbolType === ESymbolType.FN) {
-      if (!astNode && !signature) return true;
+      if (!astNode && !paramSignature) return true;
 
       const params = (<ASTNode.FunctionDefinition>item.astNode).protoType.paramSig;
-      const comparedParams = signature ?? (<ASTNode.FunctionDefinition>astNode).protoType.paramSig;
-      const length = params.length;
-      if (length !== comparedParams.length) return false;
+      const comparedParams = paramSignature ?? (<ASTNode.FunctionDefinition>astNode).protoType.paramSig;
+      const length = params?.length;
+      if (length !== comparedParams?.length) return false;
       for (let i = 0; i < length; i++) {
         const t1 = params[i],
           t2 = comparedParams[i];
