@@ -33,16 +33,6 @@ export default class SourceLexer extends BaseLexer {
   };
   private static _wordCharRegex = /\w/;
 
-  /**
-   * split by space
-   */
-  scanWord(): string {
-    this.skipCommentsAndSpace();
-    const start = this._currentIndex;
-    while (/\S/.test(this.getCurChar()) && !this.isEnd()) this._advance();
-    return this._source.substring(start, this._currentIndex);
-  }
-
   scanNumber(): number {
     this.skipCommentsAndSpace();
     const start = this._currentIndex;
