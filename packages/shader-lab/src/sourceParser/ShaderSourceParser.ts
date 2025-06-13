@@ -22,19 +22,6 @@ import { Keyword } from "../common/enums/Keyword";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 import SourceLexer from "./SourceLexer";
 
-const EngineType = [
-  Keyword.GS_BlendFactor,
-  Keyword.GS_BlendOperation,
-  Keyword.GS_Bool,
-  Keyword.GS_Number,
-  Keyword.GS_Color,
-  Keyword.GS_CompareFunction,
-  Keyword.GS_StencilOperation,
-  Keyword.GS_CullMode
-];
-
-const RenderStateType = [Keyword.GS_BlendState, Keyword.GS_DepthState, Keyword.GS_RasterState, Keyword.GS_StencilState];
-
 /**
  * @internal
  */
@@ -91,14 +78,6 @@ export class ShaderSourceParser {
     return shaderSource;
   }
 
-  private static _isRenderStateDeclarator(token: BaseToken) {
-    return RenderStateType.includes(token.type);
-  }
-
-  private static _isEngineType(token: BaseToken) {
-    return EngineType.includes(token.type);
-  }
-
   private static _lookupSymbolByType(ident: string, type: TokenType): ISymbol | undefined {
     const stack = ShaderSourceParser._symbolTableStack.stack;
     for (let length = stack.length, i = length - 1; i >= 0; i--) {
@@ -131,11 +110,6 @@ export class ShaderSourceParser {
           lexer.scanPairedText("{", "}", true, false);
           start = lexer.getCurPosition();
           break;
-        case Keyword.GSRenderQueueType:
-          this._addGlobalStatement(lexer, start, token.lexeme.length, globalContents);
-          this._parseRenderQueueDeclarationOrAssignment(outShaderSource, lexer);
-          start = lexer.getCurPosition();
-          break;
         case ETokenType.NotWord:
           if (token.lexeme === "{") braceLevel += 1;
           else if (token.lexeme === "}") {
@@ -146,24 +120,13 @@ export class ShaderSourceParser {
               return;
             }
           }
-        default:
-          if (ShaderSourceParser._isRenderStateDeclarator(token)) {
-            this._addGlobalStatement(lexer, start, token.lexeme.length, globalContents);
-            this._parseRenderStateDeclarationOrAssignment(outShaderSource, token, lexer);
-            start = lexer.getCurPosition();
-            break;
-          } else if (ShaderSourceParser._isEngineType(token)) {
-            this._addGlobalStatement(lexer, start, token.lexeme.length, globalContents);
-            this._parseVariableDeclaration(token.type, lexer);
-            start = lexer.getCurPosition();
-            break;
-          }
       }
+      this._parseRenderState(token, lexer, start, globalContents, outShaderSource.renderStates);
     }
   }
 
   private static _parseRenderStateDeclarationOrAssignment(
-    ret: { renderStates: IRenderStates },
+    renderStates: IRenderStates,
     stateToken: BaseToken,
     scanner: SourceLexer
   ) {
@@ -191,8 +154,8 @@ export class ShaderSourceParser {
         // #endif
       }
       const renderState = sm.value as IRenderStates;
-      Object.assign(ret.renderStates.constantMap, renderState.constantMap);
-      Object.assign(ret.renderStates.variableMap, renderState.variableMap);
+      Object.assign(renderStates.constantMap, renderState.constantMap);
+      Object.assign(renderStates.variableMap, renderState.variableMap);
       return;
     }
 
@@ -200,8 +163,8 @@ export class ShaderSourceParser {
     if (isDeclaration) {
       this._symbolTableStack.insert({ ident: ident.lexeme, type: stateToken.type, value: renderState });
     } else {
-      Object.assign(ret.renderStates.constantMap, renderState.constantMap);
-      Object.assign(ret.renderStates.variableMap, renderState.variableMap);
+      Object.assign(renderStates.constantMap, renderState.constantMap);
+      Object.assign(renderStates.variableMap, renderState.variableMap);
     }
   }
 
@@ -322,7 +285,7 @@ export class ShaderSourceParser {
     }
   }
 
-  private static _parseRenderQueueDeclarationOrAssignment(ret: { renderStates: IRenderStates }, scanner: SourceLexer) {
+  private static _parseRenderQueueDeclarationOrAssignment(renderStates: IRenderStates, scanner: SourceLexer) {
     const token = scanner.scanToken();
     if (token.type === ETokenType.ID) {
       // declaration.
@@ -361,9 +324,9 @@ export class ShaderSourceParser {
         return;
         // #endif
       }
-      ret.renderStates.variableMap[key] = word.lexeme;
+      renderStates.variableMap[key] = word.lexeme;
     } else {
-      ret.renderStates.constantMap[key] = value;
+      renderStates.constantMap[key] = value;
     }
   }
 
@@ -405,13 +368,6 @@ export class ShaderSourceParser {
           ret.passes.push(pass);
           start = scanner.getCurPosition();
           break;
-
-        case Keyword.GSRenderQueueType:
-          this._addGlobalStatement(scanner, start, word.lexeme.length, ret.globalContents);
-          this._parseRenderQueueDeclarationOrAssignment(ret, scanner);
-          start = scanner.getCurPosition();
-          break;
-
         case Keyword.GS_UsePass:
           this._addGlobalStatement(scanner, start, word.lexeme.length, ret.globalContents);
           const name = scanner.scanPairedText('"', '"', false, false);
@@ -419,13 +375,6 @@ export class ShaderSourceParser {
           ret.passes.push({ name, isUsePass: true, renderStates: { constantMap: {}, variableMap: {} }, tags: {} });
           start = scanner.getCurPosition();
           break;
-
-        case Keyword.GS_Tags:
-          this._addGlobalStatement(scanner, start, word.lexeme.length, ret.globalContents);
-          this._parseTags(ret, scanner);
-          start = scanner.getCurPosition();
-          break;
-
         case ETokenType.NotWord:
           if (word.lexeme === "{") braceLevel += 1;
           else if (word.lexeme === "}") {
@@ -436,38 +385,10 @@ export class ShaderSourceParser {
               return ret;
             }
           }
-
-        default:
-          if (ShaderSourceParser._isRenderStateDeclarator(word)) {
-            this._addGlobalStatement(scanner, start, word.lexeme.length, ret.globalContents);
-            this._parseRenderStateDeclarationOrAssignment(ret, word, scanner);
-            start = scanner.getCurPosition();
-            break;
-          } else if (ShaderSourceParser._isEngineType(word)) {
-            this._addGlobalStatement(scanner, start, word.lexeme.length, ret.globalContents);
-            this._parseVariableDeclaration(word.type, scanner);
-            start = scanner.getCurPosition();
-            break;
-          }
+          break;
       }
-    }
-  }
-
-  private static _parseTags(ret: { tags?: Record<string, number | string | boolean> }, scanner: SourceLexer) {
-    scanner.scanText("{");
-    while (true) {
-      const ident = scanner.scanToken();
-      scanner.scanText("=");
-      const value = scanner.scanPairedText('"', '"', false, false);
-      scanner.skipCommentsAndSpace();
-
-      ret.tags[ident.lexeme] = value;
-
-      if (scanner.peek(1) === "}") {
-        scanner._advance();
-        return;
-      }
-      scanner.scanText(",");
+      this._parseTag(word, scanner, start, ret.globalContents, ret.tags);
+      this._parseRenderState(word, scanner, start, ret.globalContents, ret.renderStates);
     }
   }
 
@@ -490,18 +411,6 @@ export class ShaderSourceParser {
     while (true) {
       const word = scanner.scanToken();
       switch (word.type) {
-        case Keyword.GSRenderQueueType:
-          this._addGlobalStatement(scanner, start, word.lexeme.length, ret.globalContents);
-          this._parseRenderQueueDeclarationOrAssignment(ret, scanner);
-          start = scanner.getCurPosition();
-          break;
-
-        case Keyword.GS_Tags:
-          this._addGlobalStatement(scanner, start, word.lexeme.length, ret.globalContents);
-          this._parseTags(ret, scanner);
-          start = scanner.getCurPosition();
-          break;
-
         case Keyword.GS_VertexShader:
         case Keyword.GS_FragmentShader:
           this._addGlobalStatement(scanner, start, word.lexeme.length, ret.globalContents);
@@ -524,7 +433,6 @@ export class ShaderSourceParser {
           scanner.scanText(";");
           start = scanner.getCurPosition();
           break;
-
         case ETokenType.NotWord:
           if (word.lexeme === "{") braceLevel += 1;
           else if (word.lexeme === "}") {
@@ -535,20 +443,80 @@ export class ShaderSourceParser {
               return ret;
             }
           }
-
-        default:
-          if (ShaderSourceParser._isRenderStateDeclarator(word)) {
-            this._addGlobalStatement(scanner, start, word.lexeme.length, ret.globalContents);
-            this._parseRenderStateDeclarationOrAssignment(ret, word, scanner);
-            start = scanner.getCurPosition();
-            break;
-          } else if (ShaderSourceParser._isEngineType(word)) {
-            this._addGlobalStatement(scanner, start, word.lexeme.length, ret.globalContents);
-            this._parseVariableDeclaration(word.type, scanner);
-            start = scanner.getCurPosition();
-            break;
-          }
+          break;
       }
+      this._parseTag(word, scanner, start, ret.globalContents, ret.tags);
+      this._parseRenderState(word, scanner, start, ret.globalContents, ret.renderStates);
+    }
+  }
+
+  private static _parseRenderState(
+    token: BaseToken<number>,
+    lexer: SourceLexer,
+    start: ShaderPosition,
+    globalContents: IStatement[],
+    renderStates: IRenderStates
+  ): void {
+    switch (token.type) {
+      case Keyword.GS_BlendState:
+      case Keyword.GS_DepthState:
+      case Keyword.GS_RasterState:
+      case Keyword.GS_StencilState:
+        this._addGlobalStatement(lexer, start, token.lexeme.length, globalContents);
+        this._parseRenderStateDeclarationOrAssignment(renderStates, token, lexer);
+        start = lexer.getCurPosition();
+        break;
+      case Keyword.GS_BlendFactor:
+      case Keyword.GS_BlendOperation:
+      case Keyword.GS_Bool:
+      case Keyword.GS_Number:
+      case Keyword.GS_Color:
+      case Keyword.GS_CompareFunction:
+      case Keyword.GS_StencilOperation:
+      case Keyword.GS_CullMode:
+        this._addGlobalStatement(lexer, start, token.lexeme.length, globalContents);
+        this._parseVariableDeclaration(token.type, lexer);
+        start = lexer.getCurPosition();
+        break;
+      case Keyword.GSRenderQueueType:
+        this._addGlobalStatement(lexer, start, token.lexeme.length, globalContents);
+        this._parseRenderQueueDeclarationOrAssignment(renderStates, lexer);
+        start = lexer.getCurPosition();
+        break;
+    }
+  }
+
+  private static _parseTag(
+    token: BaseToken<number>,
+    lexer: SourceLexer,
+    start: ShaderPosition,
+    globalContents: IStatement[],
+    tags: Record<string, number | string | boolean>
+  ): void {
+    switch (token.type) {
+      case Keyword.GS_Tags:
+        this._addGlobalStatement(lexer, start, token.lexeme.length, globalContents);
+        this._parseTags(tags, lexer);
+        start = lexer.getCurPosition();
+        break;
+    }
+  }
+
+  private static _parseTags(tags: Record<string, number | string | boolean>, scanner: SourceLexer) {
+    scanner.scanText("{");
+    while (true) {
+      const ident = scanner.scanToken();
+      scanner.scanText("=");
+      const value = scanner.scanPairedText('"', '"', false, false);
+      scanner.skipCommentsAndSpace();
+
+      tags[ident.lexeme] = value;
+
+      if (scanner.peek(1) === "}") {
+        scanner._advance();
+        return;
+      }
+      scanner.scanText(",");
     }
   }
 }
