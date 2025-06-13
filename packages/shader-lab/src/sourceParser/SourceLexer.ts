@@ -37,7 +37,8 @@ export default class SourceLexer extends BaseLexer {
     let currentIndex = startIndex;
     while (true) {
       const charCode = source.charCodeAt(currentIndex);
-      if (charCode >= 48 && charCode <= 57) { // '0' to '9'
+      // '0' to '9'
+      if (charCode >= 48 && charCode <= 57) {
         currentIndex++;
       } else {
         break;
@@ -63,15 +64,6 @@ export default class SourceLexer extends BaseLexer {
     this.advance(currentIndex - this._currentIndex);
     return Number(source.substring(start, currentIndex));
   }
-
-  // #if _VERBOSE
-  scanToCharacter(char: string): void {
-    while (this.getCurChar() !== char && !this.isEnd()) {
-      this._advance();
-    }
-    this._advance();
-  }
-  // #endif
 
   override scanToken(): BaseToken {
     this.skipCommentsAndSpace();
@@ -101,4 +93,13 @@ export default class SourceLexer extends BaseLexer {
     token.set(tokenType, lexeme, range);
     return token;
   }
+
+  // #if _VERBOSE
+  scanToCharacter(char: string): void {
+    while (this.getCurChar() !== char && !this.isEnd()) {
+      this._advance();
+    }
+    this._advance();
+  }
+  // #endif
 }
