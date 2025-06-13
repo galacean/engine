@@ -146,36 +146,39 @@ export abstract class BaseLexer {
     throw error;
   }
 
-  scanPairedText(left: string, right: string, balanced: boolean, skipLeading: boolean): string {
+  scanPairedChar(left: string, right: string, balanced: boolean, skipLeading: boolean): string {
     if (!skipLeading) {
       this.scanText(left);
     }
 
     const start = this._currentIndex;
-    const leftLength = left.length;
-    const rightLength = right.length;
+    const source = this._source;
+    const sourceLength = source.length;
 
-    let level = balanced ? 1 : 0;
-    while (this.peek(rightLength) !== right || level !== 0) {
-      if (this.isEnd()) return;
-
-      if (balanced) {
-        if (this.peek(leftLength) === left) {
+    let currentIndex = this._currentIndex;
+    if (balanced) {
+      let level = 1;
+      while (currentIndex < sourceLength) {
+        const currentChar = source[currentIndex];
+        if (currentChar === right && --level === 0) {
+          break;
+        } else if (currentChar === left) {
           level++;
-          this.advance(leftLength);
-          continue;
-        } else if (this.peek(rightLength) === right) {
-          if (--level === 0) {
-            break;
-          }
-          this.advance(rightLength);
-          continue;
         }
+        currentIndex++;
       }
-      this.advance(rightLength);
+    } else {
+      while (currentIndex < sourceLength) {
+        if (source[currentIndex] === right) {
+          break;
+        }
+        currentIndex++;
+      }
     }
-    this.advance(rightLength);
-    return this._source.substring(start, this._currentIndex - rightLength);
+
+    this.advance(currentIndex + 1 - this._currentIndex);
+
+    return source.substring(start, currentIndex);
   }
 
   abstract scanToken(onToken?: OnToken): void;

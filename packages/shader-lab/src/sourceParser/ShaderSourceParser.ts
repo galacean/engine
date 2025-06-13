@@ -49,7 +49,7 @@ export class ShaderSourceParser {
     };
 
     lexer.scanText("Shader");
-    shaderSource.name = lexer.scanPairedText('"', '"', false, false);
+    shaderSource.name = lexer.scanPairedChar('"', '"', false, false);
     lexer.scanText("{");
 
     this._parseShader(lexer, shaderSource);
@@ -108,7 +108,7 @@ export class ShaderSourceParser {
         case Keyword.GSEditorMacros:
         case Keyword.GSEditor:
           this._addGlobalStatement(lexer, start, lexeme.length, globalContents);
-          lexer.scanPairedText("{", "}", true, false);
+          lexer.scanPairedChar("{", "}", true, false);
           start = lexer.getCurPosition();
           break;
         case ETokenType.NotWord:
@@ -355,7 +355,7 @@ export class ShaderSourceParser {
       tags: {}
     } as ISubShaderSource;
     let braceLevel = 1;
-    ret.name = scanner.scanPairedText('"', '"', false, false);
+    ret.name = scanner.scanPairedChar('"', '"', false, false);
     scanner.scanText("{");
 
     scanner.skipCommentsAndSpace();
@@ -372,7 +372,7 @@ export class ShaderSourceParser {
           break;
         case Keyword.GS_UsePass:
           this._addGlobalStatement(scanner, start, word.lexeme.length, ret.globalContents);
-          const name = scanner.scanPairedText('"', '"', false, false);
+          const name = scanner.scanPairedChar('"', '"', false, false);
           // @ts-ignore
           ret.passes.push({ name, isUsePass: true, renderStates: { constantMap: {}, variableMap: {} }, tags: {} });
           start = scanner.getCurPosition();
@@ -402,7 +402,7 @@ export class ShaderSourceParser {
     while (true) {
       const ident = scanner.scanToken();
       scanner.scanText("=");
-      const value = scanner.scanPairedText('"', '"', false, false);
+      const value = scanner.scanPairedChar('"', '"', false, false);
       scanner.skipCommentsAndSpace();
 
       ret.tags[ident.lexeme] = value;
@@ -424,7 +424,7 @@ export class ShaderSourceParser {
     } as IShaderPassSource & {
       globalContents: IStatement[];
     };
-    ret.name = scanner.scanPairedText('"', '"', false, false);
+    ret.name = scanner.scanPairedChar('"', '"', false, false);
     scanner.scanText("{");
     let braceLevel = 1;
 
