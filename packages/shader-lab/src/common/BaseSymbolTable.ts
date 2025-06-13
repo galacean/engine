@@ -1,5 +1,3 @@
-import { Logger } from "@galacean/engine";
-
 export interface IBaseSymbol {
   readonly ident: string;
 }
@@ -20,7 +18,7 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends BaseSymbolTable<S
     return this.stack[this.stack.length - 1];
   }
 
-  newScope(scope: T) {
+  pushScope(scope: T) {
     this.stack.push(scope);
   }
 
@@ -28,7 +26,7 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends BaseSymbolTable<S
     this.stack.length = 0;
   }
 
-  dropScope() {
+  popScope() {
     this.stack.pop();
   }
 

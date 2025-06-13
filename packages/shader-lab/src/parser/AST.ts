@@ -83,14 +83,14 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.scope_brace)
   export class ScopeBrace extends TreeNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      sa.newScope();
+      sa.pushScope();
     }
   }
 
   @ASTNodeDecorator(NoneTerminal.scope_end_brace)
   export class ScopeEndBrace extends TreeNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      sa.dropScope();
+      sa.popScope();
     }
   }
 
@@ -513,7 +513,7 @@ export namespace ASTNode {
     returnType: FullySpecifiedType;
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      sa.newScope();
+      sa.pushScope();
       const children = this.children;
       this.ident = children[1] as Token;
       this.returnType = children[0] as FullySpecifiedType;
@@ -645,7 +645,7 @@ export namespace ASTNode {
       this.protoType = children[0] as FunctionProtoType;
       this.statements = children[1] as CompoundStatementNoScope;
 
-      sa.dropScope();
+      sa.popScope();
       const sm = new FnSymbol(this.protoType.ident.lexeme, this);
       sa.symbolTableStack.insert(sm);
 

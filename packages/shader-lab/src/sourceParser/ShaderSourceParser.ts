@@ -14,7 +14,7 @@ import { ETokenType, ShaderPosition, TokenType } from "../common";
 import { SymbolTableStack } from "../common/BaseSymbolTable";
 import { BaseToken } from "../common/BaseToken";
 import { GSErrorName } from "../GSError";
-import ContentSymbolTable, { ISymbol } from "./ContentSymbolTable";
+import ShaderSourceSymbolTable, { ISymbol } from "./ShaderSourceSymbolTable";
 // #if _VERBOSE
 import { GSError } from "../GSError";
 // #endif
@@ -30,12 +30,12 @@ export class ShaderSourceParser {
 
   static _errors: GSError[] = [];
 
-  private static _symbolTableStack: SymbolTableStack<ISymbol, ContentSymbolTable> = new SymbolTableStack();
+  private static _symbolTableStack: SymbolTableStack<ISymbol, ShaderSourceSymbolTable> = new SymbolTableStack();
 
   static reset() {
     this._errors.length = 0;
     this._symbolTableStack.clear();
-    this._newScope();
+    this._pushScope();
   }
 
   static parse(sourceCode: string): IShaderSource {
@@ -116,7 +116,7 @@ export class ShaderSourceParser {
             braceLevel -= 1;
             if (braceLevel === 0) {
               this._addGlobalStatement(lexer, start, token.lexeme.length, globalContents);
-              this._symbolTableStack.dropScope();
+              this._symbolTableStack.popScope();
               return;
             }
           }
@@ -174,13 +174,12 @@ export class ShaderSourceParser {
     this._symbolTableStack.insert({ type: token.type, ident: token.lexeme });
   }
 
-  private static _newScope() {
-    const symbolTable = new ContentSymbolTable();
-    this._symbolTableStack.newScope(symbolTable);
+  private static _pushScope() {
+    this._symbolTableStack.pushScope(new ShaderSourceSymbolTable());
   }
 
-  private static _dropScope() {
-    this._symbolTableStack.dropScope();
+  private static _popScope() {
+    this._symbolTableStack.popScope();
   }
 
   private static _parseRenderStatePropList(state: string, scanner: SourceLexer): IRenderStates {
@@ -345,7 +344,7 @@ export class ShaderSourceParser {
   }
 
   private static _parseSubShader(scanner: SourceLexer): ISubShaderSource {
-    this._newScope();
+    this._pushScope();
     const ret = {
       passes: [],
       globalContents: [],
@@ -381,7 +380,7 @@ export class ShaderSourceParser {
             braceLevel -= 1;
             if (braceLevel === 0) {
               this._addGlobalStatement(scanner, start, word.lexeme.length, ret.globalContents);
-              this._dropScope();
+              this._popScope();
               return ret;
             }
           }
@@ -393,7 +392,7 @@ export class ShaderSourceParser {
   }
 
   private static _parsePass(scanner: SourceLexer): IShaderPassSource {
-    this._newScope();
+    this._pushScope();
     const ret = {
       globalContents: [],
       renderStates: { constantMap: {}, variableMap: {} },
@@ -439,7 +438,7 @@ export class ShaderSourceParser {
             braceLevel -= 1;
             if (braceLevel === 0) {
               this._addGlobalStatement(scanner, start, word.lexeme.length, ret.globalContents);
-              this._dropScope();
+              this._popScope();
               return ret;
             }
           }
