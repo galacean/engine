@@ -209,8 +209,8 @@ export class ShaderSourceParser {
   }
 
   private static _parseRenderStatePropItem(ret: IRenderStates, state: string, scanner: SourceLexer) {
-    const token = scanner.scanToken();
-    let renderStateProp = token.lexeme;
+    const propertyToken = scanner.scanToken();
+    let renderStateProp = propertyToken.lexeme;
     const op = scanner.scanToken();
     if (state === "BlendState" && renderStateProp !== "BlendColor" && renderStateProp !== "AlphaToCoverage") {
       let idx = 0;
@@ -291,7 +291,7 @@ export class ShaderSourceParser {
         }
       } else {
         propertyValue = variableToken.lexeme;
-        const lookupType = ShaderSourceParser._getRenderStatePropertyType(token.lexeme);
+        const lookupType = ShaderSourceParser._getRenderStatePropertyType(propertyToken.lexeme);
         if (!ShaderSourceParser._lookupVariable(variableToken.lexeme, lookupType)) {
           const error = ShaderLabUtils.createGSError(
             `Invalid ${state} variable: ${variableToken.lexeme}`,
