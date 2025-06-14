@@ -7,29 +7,34 @@ import { ShaderLab } from "../ShaderLab";
 export default class SourceLexer extends BaseLexer {
   private static _lexemeTable = <Record<string, Keyword>>{
     RenderQueueType: Keyword.GSRenderQueueType,
-    BlendState: Keyword.GS_BlendState,
-    DepthState: Keyword.GS_DepthState,
-    StencilState: Keyword.GS_StencilState,
-    RasterState: Keyword.GS_RasterState,
+    BlendState: Keyword.GSBlendState,
+    DepthState: Keyword.GSDepthState,
+    StencilState: Keyword.GSStencilState,
+    RasterState: Keyword.GSRasterState,
     EditorProperties: Keyword.GSEditorProperties,
     EditorMacros: Keyword.GSEditorMacros,
     Editor: Keyword.GSEditor,
     Tags: Keyword.GSTags,
-    VertexShader: Keyword.GS_VertexShader,
-    FragmentShader: Keyword.GS_FragmentShader,
+    VertexShader: Keyword.GSVertexShader,
+    FragmentShader: Keyword.GSFragmentShader,
     SubShader: Keyword.GSSubShader,
     Pass: Keyword.GSPass,
-    BlendFactor: Keyword.GS_BlendFactor,
-    BlendOperation: Keyword.GS_BlendOperation,
-    Bool: Keyword.GS_Bool,
-    Number: Keyword.GS_Number,
-    CompareFunction: Keyword.GS_CompareFunction,
-    StencilOperation: Keyword.GS_StencilOperation,
-    CullMode: Keyword.GS_CullMode,
-    true: Keyword.TRUE,
-    false: Keyword.FALSE,
+    BlendFactor: Keyword.GSBlendFactor,
+    BlendOperation: Keyword.GSBlendOperation,
+    Bool: Keyword.GSBool,
+    Number: Keyword.GSNumber,
+    Color: Keyword.GSColor,
+    CompareFunction: Keyword.GSCompareFunction,
+    StencilOperation: Keyword.GSStencilOperation,
+    CullMode: Keyword.GSCullMode,
     UsePass: Keyword.GSUsePass,
-    Color: Keyword.GS_Color
+
+    true: Keyword.True,
+    false: Keyword.False,
+    "{": Keyword.LeftBrace,
+    "}": Keyword.RightBrace,
+    "=": Keyword.Equal,
+    "[": Keyword.LeftBracket
   };
   private static _wordCharRegex = /\w/;
 
@@ -65,6 +70,8 @@ export default class SourceLexer extends BaseLexer {
     return Number(source.substring(start, currentIndex));
   }
 
+  static xx: number = 0;
+
   override scanToken(): BaseToken {
     this.skipCommentsAndSpace();
 
@@ -83,6 +90,8 @@ export default class SourceLexer extends BaseLexer {
       this._advance();
       const token = BaseToken.pool.get();
       token.set(ETokenType.NotWord, this._source[start.index], start);
+      console.log(this._source[start.index]);
+      console.log(++SourceLexer.xx);
       return token;
     }
 
@@ -91,6 +100,8 @@ export default class SourceLexer extends BaseLexer {
     const range = ShaderLab.createRange(start, end);
     const token = BaseToken.pool.get();
     token.set(tokenType, lexeme, range);
+    console.log(lexeme);
+    console.log(++SourceLexer.xx);
     return token;
   }
 

@@ -458,8 +458,8 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.variable_identifier],
       [ETokenType.INT_CONSTANT],
       [ETokenType.FLOAT_CONSTANT],
-      [Keyword.TRUE],
-      [Keyword.FALSE],
+      [Keyword.True],
+      [Keyword.False],
       [ETokenType.LEFT_PAREN, NoneTerminal.expression, ETokenType.RIGHT_PAREN]
     ],
     ASTNode.PrimaryExpression.pool

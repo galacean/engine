@@ -843,8 +843,8 @@ export namespace ASTNode {
             case ETokenType.FLOAT_CONSTANT:
               this.type = Keyword.FLOAT;
               break;
-            case Keyword.TRUE:
-            case Keyword.FALSE:
+            case Keyword.True:
+            case Keyword.False:
               this.type = Keyword.BOOL;
               break;
           }

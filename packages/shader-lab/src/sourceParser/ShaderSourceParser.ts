@@ -139,6 +139,7 @@ export class ShaderSourceParser {
       isDeclaration = false;
     } else if (ident.lexeme === "=") {
       const variable = scanner.scanToken();
+     
       scanner.scanText(";");
       const sm = ShaderSourceParser._lookupSymbolByType(variable.lexeme, stateToken.type);
       if (!sm?.value) {
@@ -240,9 +241,9 @@ export class ShaderSourceParser {
       value = scanner.scanNumber();
     } else {
       const token = scanner.scanToken();
-      if (token.type === Keyword.TRUE) value = true;
-      else if (token.type === Keyword.FALSE) value = false;
-      else if (token.type === Keyword.GS_Color) {
+      if (token.type === Keyword.True) value = true;
+      else if (token.type === Keyword.False) value = false;
+      else if (token.type === Keyword.GSColor) {
         scanner.scanText("(");
         const args: number[] = [];
         while (true) {
@@ -426,8 +427,8 @@ export class ShaderSourceParser {
     while (true) {
       const word = scanner.scanToken();
       switch (word.type) {
-        case Keyword.GS_VertexShader:
-        case Keyword.GS_FragmentShader:
+        case Keyword.GSVertexShader:
+        case Keyword.GSFragmentShader:
           this._addPendingContents(scanner, start, word.lexeme.length, ret.pendingContents);
           scanner.scanText("=");
           const entry = scanner.scanToken();
@@ -443,7 +444,7 @@ export class ShaderSourceParser {
             throw error;
             // #endif
           }
-          const key = word.type === Keyword.GS_VertexShader ? "vertexEntry" : "fragmentEntry";
+          const key = word.type === Keyword.GSVertexShader ? "vertexEntry" : "fragmentEntry";
           ret[key] = entry.lexeme;
           scanner.scanText(";");
           start = scanner.getCurPosition();
@@ -491,22 +492,22 @@ export class ShaderSourceParser {
     outRenderStates: IRenderStates
   ): ShaderPosition {
     switch (token.type) {
-      case Keyword.GS_BlendState:
-      case Keyword.GS_DepthState:
-      case Keyword.GS_RasterState:
-      case Keyword.GS_StencilState:
+      case Keyword.GSBlendState:
+      case Keyword.GSDepthState:
+      case Keyword.GSRasterState:
+      case Keyword.GSStencilState:
         this._addPendingContents(lexer, start, token.lexeme.length, outGlobalContents);
         this._parseRenderStateDeclarationOrAssignment(outRenderStates, token, lexer);
         start = lexer.getCurPosition();
         break;
-      case Keyword.GS_BlendFactor:
-      case Keyword.GS_BlendOperation:
-      case Keyword.GS_Bool:
-      case Keyword.GS_Number:
-      case Keyword.GS_Color:
-      case Keyword.GS_CompareFunction:
-      case Keyword.GS_StencilOperation:
-      case Keyword.GS_CullMode:
+      case Keyword.GSBlendFactor:
+      case Keyword.GSBlendOperation:
+      case Keyword.GSBool:
+      case Keyword.GSNumber:
+      case Keyword.GSColor:
+      case Keyword.GSCompareFunction:
+      case Keyword.GSStencilOperation:
+      case Keyword.GSCullMode:
         this._addPendingContents(lexer, start, token.lexeme.length, outGlobalContents);
         this._parseVariableDeclaration(token.type, lexer);
         start = lexer.getCurPosition();
