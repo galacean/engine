@@ -45,7 +45,7 @@ export default class SourceLexer extends BaseLexer {
       charCode === 123 || // {
       charCode === 125 || // }
       charCode === 61 || // =
-      charCode === 59 // ; (semicolon)
+      charCode === 59 // ;
     );
   }
 
@@ -53,16 +53,24 @@ export default class SourceLexer extends BaseLexer {
     return BaseLexer._isWhiteSpaceChar(charCode, true) || SourceLexer._isSyntaxDelimiter(charCode);
   }
 
-  private _isPrevCharValidBoundary(startIndex: number): boolean {
-    if (startIndex === 0) return true; // Start of file
-    const prevCharCode = this._source.charCodeAt(startIndex - 1);
-    return SourceLexer._isValidWordBoundary(prevCharCode);
-  }
+  private _validateWordBoundaries(startIndex: number, endIndex: number): boolean {
+    // Check previous boundary
+    if (startIndex > 0) {
+      const prevCharCode = this._source.charCodeAt(startIndex - 1);
+      if (!SourceLexer._isValidWordBoundary(prevCharCode)) {
+        return false;
+      }
+    }
 
-  private _isNextCharValidBoundary(endIndex: number): boolean {
-    if (endIndex >= this._source.length) return true; // End of file
-    const nextCharCode = this._source.charCodeAt(endIndex);
-    return SourceLexer._isValidWordBoundary(nextCharCode);
+    // Check next boundary
+    if (endIndex < this._source.length) {
+      const nextCharCode = this._source.charCodeAt(endIndex);
+      if (!SourceLexer._isValidWordBoundary(nextCharCode)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   private static _scanDigits(source: string, startIndex: number): number {
@@ -127,19 +135,14 @@ export default class SourceLexer extends BaseLexer {
   }
 
   private _scanWord(start: ShaderPosition): BaseToken | null {
-    if (!this._isPrevCharValidBoundary(start.index)) {
-      while (SourceLexer._isWordChar(this.getCurCharCode()) && !this.isEnd()) {
-        this._advance();
-      }
-      return null; // Invalid word due to boundary violation
-    }
-
-    while (SourceLexer._isWordChar(this.getCurCharCode()) && !this.isEnd()) {
+    // Scan the complete word first
+    while (BaseLexer._isWordChar(this.getCurCharCode()) && !this.isEnd()) {
       this._advance();
     }
     const end = this.getCurPosition();
 
-    if (!this._isNextCharValidBoundary(end.index)) {
+    // Validate both boundaries in one optimized call
+    if (!this._validateWordBoundaries(start.index, end.index)) {
       return null; // Invalid word due to boundary violation
     }
 
