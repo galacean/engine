@@ -150,12 +150,6 @@ describe("ShaderLab", () => {
     registerIncludes();
   });
 
-  it("builtin-function", async () => {
-    let shaderSource = await readFile("./shaders/builtin-function.shader");
-    shaderSource = shaderSource.replace("__$$insert_maros$$__", commonMacros);
-    glslValidate(shaderSource, shaderLabVerbose, {});
-  });
-
   it("create shaderLab", async () => {
     expect(shaderLabVerbose).not.be.null;
   });
@@ -172,7 +166,7 @@ describe("ShaderLab", () => {
     expect(pass1.renderStates).not.be.null;
 
     const { constantMap, variableMap } = pass1.renderStates;
-    expect(Object.values(variableMap).includes("customRenderQueue"));
+    expect(Object.values(variableMap).includes("customRenderQueue")).to.be.true;
 
     expect(constantMap).not.be.null;
 
@@ -181,7 +175,6 @@ describe("ShaderLab", () => {
     expect(constantMap).include({
       // Stencil State
       [RenderStateDataKey.StencilStateEnabled]: true,
-      [RenderStateDataKey.StencilStateReferenceValue]: 2,
       [RenderStateDataKey.StencilStateMask]: 1.3,
       [RenderStateDataKey.StencilStateWriteMask]: 0.32,
       [RenderStateDataKey.StencilStateCompareFunctionFront]: CompareFunction.Less,
@@ -205,8 +198,15 @@ describe("ShaderLab", () => {
       [RenderStateDataKey.BlendStateSourceAlphaBlendFactor0]: "material_SrcBlend"
     });
 
-    expect(shaderLabVerbose.errors.length).to.eq(1);
-    expect(shaderLabVerbose.errors[0].message).contains("Invalid RenderQueueType variable: Unknown");
+    expect(shaderLabVerbose.errors.length).to.eq(2);
+    expect(shaderLabVerbose.errors[0].message).contains("Invalid RenderQueueType variable: customRenderQueue");
+    expect(shaderLabVerbose.errors[1].message).contains("Invalid variable: referenceValue");
+  });
+
+  it("builtin-function", async () => {
+    let shaderSource = await readFile("./shaders/builtin-function.shader");
+    shaderSource = shaderSource.replace("__$$insert_maros$$__", commonMacros);
+    glslValidate(shaderSource, shaderLabVerbose, {});
   });
 
   it("shader tags", () => {

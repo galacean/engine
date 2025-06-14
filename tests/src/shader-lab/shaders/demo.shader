@@ -66,7 +66,7 @@ Shader "Water" {
 
     StencilState stencilState {
       Enabled = true;
-      ReferenceValue = 2;
+      ReferenceValue = referenceValue;
       Mask = 1.3; // 0xffffffff
       WriteMask = 0.32; // 0xffffffff
       CompareFunctionFront = CompareFunction.Less;

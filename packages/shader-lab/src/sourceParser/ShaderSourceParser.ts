@@ -273,6 +273,19 @@ export class ShaderSourceParser {
         }
       } else {
         value = token.lexeme;
+        const sm = ShaderSourceParser._lookupSymbolByType(value, ETokenType.ID);
+
+        if (!sm) {
+          const error = ShaderLabUtils.createGSError(
+            `Invalid variable: ${value}`,
+            GSErrorName.CompilationError,
+            scanner.source,
+            token.location
+          );
+          // #if _VERBOSE
+          this._errors.push(<GSError>error);
+          // #endif
+        }
       }
     }
     scanner.scanText(";");
@@ -310,6 +323,7 @@ export class ShaderSourceParser {
     const key = RenderStateDataKey.RenderQueueType;
     if (value == undefined) {
       const sm = ShaderSourceParser._lookupSymbolByType(word.lexeme, Keyword.GSRenderQueueType);
+      renderStates.variableMap[key] = word.lexeme;
       if (!sm) {
         const error = ShaderLabUtils.createGSError(
           `Invalid RenderQueueType variable: ${word.lexeme}`,
@@ -322,7 +336,6 @@ export class ShaderSourceParser {
         return;
         // #endif
       }
-      renderStates.variableMap[key] = word.lexeme;
     } else {
       renderStates.constantMap[key] = value;
     }
