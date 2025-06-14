@@ -110,16 +110,16 @@ export class ShaderSourceParser {
           lexer.scanPairedChar("{", "}", true, false);
           start = lexer.getCurPosition();
           break;
-        case ETokenType.NotWord:
-          if (lexeme === "{") {
-            ++braceLevel;
-          } else if (lexeme === "}") {
-            if (--braceLevel === 0) {
-              this._addPendingContents(lexer, start, lexeme.length, pendingContents);
-              this._popScope();
-              return;
-            }
+        case Keyword.LeftBrace:
+          ++braceLevel;
+          break;
+        case Keyword.RightBrace:
+          if (--braceLevel === 0) {
+            this._addPendingContents(lexer, start, lexeme.length, pendingContents);
+            this._popScope();
+            return;
           }
+          break;
       }
       start = this._parseRenderState(token, lexer, start, pendingContents, outShaderSource.renderStates);
     }
@@ -139,7 +139,7 @@ export class ShaderSourceParser {
       isDeclaration = false;
     } else if (ident.lexeme === "=") {
       const variable = scanner.scanToken();
-     
+
       scanner.scanText(";");
       const sm = ShaderSourceParser._lookupSymbolByType(variable.lexeme, stateToken.type);
       if (!sm?.value) {
@@ -377,16 +377,17 @@ export class ShaderSourceParser {
           ret.passes.push({ name, isUsePass: true, renderStates: { constantMap: {}, variableMap: {} }, tags: {} });
           start = scanner.getCurPosition();
           break;
-        case ETokenType.NotWord:
-          if (word.lexeme === "{") braceLevel += 1;
-          else if (word.lexeme === "}") {
-            braceLevel -= 1;
-            if (braceLevel === 0) {
-              this._addPendingContents(scanner, start, word.lexeme.length, ret.pendingContents);
-              this._popScope();
-              return ret;
-            }
+        case Keyword.LeftBrace:
+          braceLevel += 1;
+          break;
+        case Keyword.RightBrace:
+          braceLevel -= 1;
+          if (braceLevel === 0) {
+            this._addPendingContents(scanner, start, word.lexeme.length, ret.pendingContents);
+            this._popScope();
+            return ret;
           }
+          break;
       }
       start = this._parseRenderStateAndTags(word, scanner, start, ret.pendingContents, ret.renderStates, ret.tags);
     }
@@ -449,17 +450,17 @@ export class ShaderSourceParser {
           scanner.scanText(";");
           start = scanner.getCurPosition();
           break;
-
-        case ETokenType.NotWord:
-          if (word.lexeme === "{") braceLevel += 1;
-          else if (word.lexeme === "}") {
-            braceLevel -= 1;
-            if (braceLevel === 0) {
-              this._addPendingContents(scanner, start, word.lexeme.length, ret.pendingContents);
-              this._popScope();
-              return ret;
-            }
+        case Keyword.LeftBrace:
+          braceLevel += 1;
+          break;
+        case Keyword.RightBrace:
+          braceLevel -= 1;
+          if (braceLevel === 0) {
+            this._addPendingContents(scanner, start, word.lexeme.length, ret.pendingContents);
+            this._popScope();
+            return ret;
           }
+          break;
       }
       start = this._parseRenderStateAndTags(word, scanner, start, ret.pendingContents, ret.renderStates, ret.tags);
     }

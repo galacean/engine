@@ -1,11 +1,11 @@
-import { ETokenType } from "../common";
+import { ETokenType, ShaderPosition } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { ShaderLab } from "../ShaderLab";
 
 export default class SourceLexer extends BaseLexer {
-  private static _lexemeTable = <Record<string, Keyword>>{
+  private static _keywordLexemeTable = <Record<string, Keyword>>{
     RenderQueueType: Keyword.GSRenderQueueType,
     BlendState: Keyword.GSBlendState,
     DepthState: Keyword.GSDepthState,
@@ -30,20 +30,46 @@ export default class SourceLexer extends BaseLexer {
     UsePass: Keyword.GSUsePass,
 
     true: Keyword.True,
-    false: Keyword.False,
+    false: Keyword.False
+  };
+
+  private static _symbolLexemeTable = <Record<string, Keyword>>{
     "{": Keyword.LeftBrace,
     "}": Keyword.RightBrace,
     "=": Keyword.Equal,
     "[": Keyword.LeftBracket
   };
-  private static _wordCharRegex = /\w/;
+
+  private static _isSyntaxDelimiter(charCode: number): boolean {
+    return (
+      charCode === 123 || // {
+      charCode === 125 || // }
+      charCode === 61 || // =
+      charCode === 59 // ; (semicolon)
+    );
+  }
+
+  private static _isValidWordBoundary(charCode: number): boolean {
+    return BaseLexer._isWhiteSpaceChar(charCode, true) || SourceLexer._isSyntaxDelimiter(charCode);
+  }
+
+  private _isPrevCharValidBoundary(startIndex: number): boolean {
+    if (startIndex === 0) return true; // Start of file
+    const prevCharCode = this._source.charCodeAt(startIndex - 1);
+    return SourceLexer._isValidWordBoundary(prevCharCode);
+  }
+
+  private _isNextCharValidBoundary(endIndex: number): boolean {
+    if (endIndex >= this._source.length) return true; // End of file
+    const nextCharCode = this._source.charCodeAt(endIndex);
+    return SourceLexer._isValidWordBoundary(nextCharCode);
+  }
 
   private static _scanDigits(source: string, startIndex: number): number {
     let currentIndex = startIndex;
-    while (true) {
+    while (currentIndex < source.length) {
       const charCode = source.charCodeAt(currentIndex);
-      // '0' to '9'
-      if (charCode >= 48 && charCode <= 57) {
+      if (BaseLexer._isDigit(charCode)) {
         currentIndex++;
       } else {
         break;
@@ -70,8 +96,6 @@ export default class SourceLexer extends BaseLexer {
     return Number(source.substring(start, currentIndex));
   }
 
-  static xx: number = 0;
-
   override scanToken(): BaseToken {
     this.skipCommentsAndSpace();
 
@@ -80,28 +104,50 @@ export default class SourceLexer extends BaseLexer {
     }
 
     const start = this.getCurPosition();
-    const wordCharRegex = SourceLexer._wordCharRegex;
-    while (wordCharRegex.test(this.getCurChar()) && !this.isEnd()) {
-      this._advance();
+
+    if (BaseLexer._isAlpha(this.getCurCharCode())) {
+      const wordToken = this._scanWord(start);
+      if (wordToken === null) {
+        return this.scanToken();
+      }
+      return wordToken;
     }
 
-    const end = this.getCurPosition();
-    if (start.index === end.index) {
+    const currentChar = this.getCurChar();
+    const symbolKeyword = SourceLexer._symbolLexemeTable[currentChar];
+    if (symbolKeyword !== undefined) {
       this._advance();
       const token = BaseToken.pool.get();
-      token.set(ETokenType.NotWord, this._source[start.index], start);
-      console.log(this._source[start.index]);
-      console.log(++SourceLexer.xx);
+      token.set(symbolKeyword, currentChar, start);
       return token;
     }
 
+    this._advance();
+    return this.scanToken();
+  }
+
+  private _scanWord(start: ShaderPosition): BaseToken | null {
+    if (!this._isPrevCharValidBoundary(start.index)) {
+      while (SourceLexer._isWordChar(this.getCurCharCode()) && !this.isEnd()) {
+        this._advance();
+      }
+      return null; // Invalid word due to boundary violation
+    }
+
+    while (SourceLexer._isWordChar(this.getCurCharCode()) && !this.isEnd()) {
+      this._advance();
+    }
+    const end = this.getCurPosition();
+
+    if (!this._isNextCharValidBoundary(end.index)) {
+      return null; // Invalid word due to boundary violation
+    }
+
     const lexeme = this._source.substring(start.index, end.index);
-    const tokenType = SourceLexer._lexemeTable[lexeme] ?? ETokenType.ID;
+    const tokenType = SourceLexer._keywordLexemeTable[lexeme] ?? ETokenType.ID;
     const range = ShaderLab.createRange(start, end);
     const token = BaseToken.pool.get();
     token.set(tokenType, lexeme, range);
-    console.log(lexeme);
-    console.log(++SourceLexer.xx);
     return token;
   }
 

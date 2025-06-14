@@ -11,11 +11,30 @@ export type OnToken = (token: BaseToken, scanner: BaseLexer) => void;
  * @internal
  */
 export abstract class BaseLexer {
-  private static _isWhiteSpaceChar(char: string, includeBreak: boolean): boolean {
-    if (char === " " || char === "\t") {
+  protected static _isWhiteSpaceChar(charCode: number, includeBreak: boolean): boolean {
+    if (charCode === 32 || charCode === 9) { // Space || Tab
       return true;
     }
-    return includeBreak && (char === "\n" || char === "\r");
+    return includeBreak && (charCode === 10 || charCode === 13); // \n || \r
+  }
+
+  // Check if character is a digit (0-9)
+  protected static _isDigit(charCode: number): boolean {
+    return charCode >= 48 && charCode <= 57; // 0-9
+  }
+
+  // Check if character is alphabetic or underscore (valid word start)
+  protected static _isAlpha(charCode: number): boolean {
+    return (
+      charCode === 95 || // _
+      (charCode >= 65 && charCode <= 90) || // A-Z
+      (charCode >= 97 && charCode <= 122) // a-z
+    );
+  }
+
+  // Check if character is valid word character (alpha + digit)
+  protected static _isWordChar(charCode: number): boolean {
+    return BaseLexer._isAlpha(charCode) || BaseLexer._isDigit(charCode);
   }
 
   protected _currentIndex = 0;
@@ -94,10 +113,10 @@ export abstract class BaseLexer {
   }
 
   skipSpace(includeLineBreak: boolean): void {
-    let curChar = this.getCurChar();
-    while (BaseLexer._isWhiteSpaceChar(curChar, includeLineBreak)) {
+    let curCharCode = this.getCurCharCode();
+    while (BaseLexer._isWhiteSpaceChar(curCharCode, includeLineBreak)) {
       this._advance();
-      curChar = this.getCurChar();
+      curCharCode = this.getCurCharCode();
     }
   }
 
