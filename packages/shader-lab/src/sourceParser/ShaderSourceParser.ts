@@ -77,12 +77,34 @@ export class ShaderSourceParser {
     return shaderSource;
   }
 
-  private static _lookupSymbolByType(ident: string, type: TokenType): ISymbol | undefined {
+  private static _lookupVariable(variableName: string, type: TokenType): ISymbol | undefined {
     const stack = ShaderSourceParser._symbolTableStack.stack;
     for (let length = stack.length, i = length - 1; i >= 0; i--) {
       const symbolTable = stack[i];
-      const ret = symbolTable.lookup(ident, type);
+      const ret = symbolTable.lookup(variableName, type);
       if (ret) return ret;
+    }
+  }
+
+  /**
+   * Get the appropriate keyword type for a render state property based on its name
+   * @param propertyName - The name of the render state property
+   * @returns The corresponding Keyword type for symbol lookup
+   */
+  private static _getRenderStatePropertyType(propertyName: string): Keyword {
+    switch (propertyName) {
+      case "WriteEnabled":
+      case "Enabled":
+        return Keyword.GSBool;
+      case "SourceColorBlendFactor":
+      case "DestinationColorBlendFactor":
+      case "SourceAlphaBlendFactor":
+      case "DestinationAlphaBlendFactor":
+        return Keyword.GSBlendFactor;
+      case "CullMode":
+        return Keyword.GSCullMode;
+      default:
+        return undefined; // For properties that don't have a specific type mapping
     }
   }
 
@@ -141,7 +163,7 @@ export class ShaderSourceParser {
       const variable = lexer.scanToken();
 
       lexer.scanText(";");
-      const sm = ShaderSourceParser._lookupSymbolByType(variable.lexeme, stateToken.type);
+      const sm = ShaderSourceParser._lookupVariable(variable.lexeme, stateToken.type);
       if (!sm?.value) {
         const error = ShaderLabUtils.createGSError(
           `Invalid "${stateToken.lexeme}" variable: ${variable.lexeme}`,
@@ -229,13 +251,13 @@ export class ShaderSourceParser {
     }
 
     scanner.skipCommentsAndSpace();
-    let value: any;
+    let propertyValue: number | string | boolean | Color;
     if (/[0-9.]/.test(scanner.getCurChar())) {
-      value = scanner.scanNumber();
+      propertyValue = scanner.scanNumber();
     } else {
       const variableToken = scanner.scanToken();
-      if (variableToken.type === Keyword.True) value = true;
-      else if (variableToken.type === Keyword.False) value = false;
+      if (variableToken.type === Keyword.True) propertyValue = true;
+      else if (variableToken.type === Keyword.False) propertyValue = false;
       else if (variableToken.type === Keyword.GSColor) {
         scanner.scanText("(");
         const args: number[] = [];
@@ -249,12 +271,12 @@ export class ShaderSourceParser {
           }
           scanner.scanText(",");
         }
-        value = new Color(...args);
+        propertyValue = new Color(...args);
       } else if (scanner.getCurChar() === ".") {
         scanner._advance();
         const engineTypeProp = scanner.scanToken();
-        value = ShaderSourceParser._engineType[variableToken.lexeme]?.[engineTypeProp.lexeme];
-        if (value == undefined) {
+        propertyValue = ShaderSourceParser._engineType[variableToken.lexeme]?.[engineTypeProp.lexeme];
+        if (propertyValue == undefined) {
           const error = ShaderLabUtils.createGSError(
             `Invalid engine constant: ${variableToken.lexeme}.${engineTypeProp.lexeme}`,
             GSErrorName.CompilationError,
@@ -268,25 +290,9 @@ export class ShaderSourceParser {
           // #endif
         }
       } else {
-        value = variableToken.lexeme;
-        let lookupType: Keyword;
-        switch (token.lexeme) {
-          case "WriteEnabled":
-          case "Enabled":
-            lookupType = Keyword.GSBool;
-            break;
-          case "SourceColorBlendFactor":
-          case "DestinationColorBlendFactor":
-          case "SourceAlphaBlendFactor":
-          case "DestinationAlphaBlendFactor":
-            lookupType = Keyword.GSBlendFactor;
-            break;
-          case "CullMode":
-            lookupType = Keyword.GSCullMode;
-            break;
-        }
-        const sm = ShaderSourceParser._lookupSymbolByType(variableToken.lexeme, lookupType);
-        if (!sm) {
+        propertyValue = variableToken.lexeme;
+        const lookupType = ShaderSourceParser._getRenderStatePropertyType(token.lexeme);
+        if (!ShaderSourceParser._lookupVariable(variableToken.lexeme, lookupType)) {
           const error = ShaderLabUtils.createGSError(
             `Invalid ${state} variable: ${variableToken.lexeme}`,
             GSErrorName.CompilationError,
@@ -301,10 +307,10 @@ export class ShaderSourceParser {
       }
     }
     scanner.scanText(";");
-    if (typeof value === "string") {
-      ret.variableMap[renderStateElementKey] = value;
+    if (typeof propertyValue === "string") {
+      ret.variableMap[renderStateElementKey] = propertyValue;
     } else {
-      ret.constantMap[renderStateElementKey] = value;
+      ret.constantMap[renderStateElementKey] = propertyValue;
     }
   }
 
@@ -334,7 +340,7 @@ export class ShaderSourceParser {
     const value = ShaderSourceParser._engineType.RenderQueueType[word.lexeme];
     const key = RenderStateDataKey.RenderQueueType;
     if (value == undefined) {
-      const sm = ShaderSourceParser._lookupSymbolByType(word.lexeme, Keyword.GSRenderQueueType);
+      const sm = ShaderSourceParser._lookupVariable(word.lexeme, Keyword.GSRenderQueueType);
       if (!sm) {
         const error = ShaderLabUtils.createGSError(
           `Invalid RenderQueueType variable: ${word.lexeme}`,
