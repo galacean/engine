@@ -12,7 +12,8 @@ export type OnToken = (token: BaseToken, scanner: BaseLexer) => void;
  */
 export abstract class BaseLexer {
   protected static _isWhiteSpaceChar(charCode: number, includeBreak: boolean): boolean {
-    if (charCode === 32 || charCode === 9) { // Space || Tab
+    // Space || Tab
+    if (charCode === 32 || charCode === 9) {
       return true;
     }
     return includeBreak && (charCode === 10 || charCode === 13); // \n || \r

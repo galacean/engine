@@ -40,17 +40,20 @@ export default class SourceLexer extends BaseLexer {
     "[": Keyword.LeftBracket
   };
 
-  private static _isSyntaxDelimiter(charCode: number): boolean {
+  private static _isWordSeparatorChar(charCode: number): boolean {
     return (
       charCode === 123 || // {
       charCode === 125 || // }
       charCode === 61 || // =
-      charCode === 59 // ;
+      charCode === 59 || // ;
+      charCode === 46 || // .   CullMode.Back
+      charCode === 91 || // [   Enabled[0],
+      charCode === 40 // (      Color(1.0, 1.0, 1.0, 1.0);
     );
   }
 
   private static _isValidWordBoundary(charCode: number): boolean {
-    return BaseLexer._isWhiteSpaceChar(charCode, true) || SourceLexer._isSyntaxDelimiter(charCode);
+    return BaseLexer._isWhiteSpaceChar(charCode, true) || SourceLexer._isWordSeparatorChar(charCode);
   }
 
   private _validateWordBoundaries(startIndex: number, endIndex: number): boolean {
