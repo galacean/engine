@@ -2,6 +2,12 @@ Shader "/Folder1/test.gs" {
     SubShader "Default" {
       UsePass "pbr/Default/ShadowCaster"
 
+      RenderQueueType material_QuqueType;
+      RenderQueueType = material_QuqueType;
+      RenderQueueType = Opaque;
+
+      RenderQueueType = Unknown;
+
       Pass "Forward Pass" {
         Tags { pipelineStage = "Forward"} 
 
@@ -20,8 +26,6 @@ Shader "/Folder1/test.gs" {
         RasterState{
           CullMode = rasterStateCullMode;
         }
-
-        RenderQueueType = renderQueueType;
 
         #define IS_METALLIC_WORKFLOW
         #define MATERIAL_ENABLE_IRIDESCENCE
