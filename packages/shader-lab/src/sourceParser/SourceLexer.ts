@@ -57,17 +57,19 @@ export default class SourceLexer extends BaseLexer {
   }
 
   private _validateWordBoundaries(startIndex: number, endIndex: number): boolean {
+    const source = this._source;
+
     // Check previous boundary
     if (startIndex > 0) {
-      const prevCharCode = this._source.charCodeAt(startIndex - 1);
+      const prevCharCode = source.charCodeAt(startIndex - 1);
       if (!SourceLexer._isValidWordBoundary(prevCharCode)) {
         return false;
       }
     }
 
     // Check next boundary
-    if (endIndex < this._source.length) {
-      const nextCharCode = this._source.charCodeAt(endIndex);
+    if (endIndex < source.length) {
+      const nextCharCode = source.charCodeAt(endIndex);
       if (!SourceLexer._isValidWordBoundary(nextCharCode)) {
         return false;
       }
@@ -108,33 +110,35 @@ export default class SourceLexer extends BaseLexer {
   }
 
   override scanToken(): BaseToken {
-    this.skipCommentsAndSpace();
+    while (true) {
+      this.skipCommentsAndSpace();
 
-    if (this.isEnd()) {
-      return;
-    }
-
-    const start = this.getCurPosition();
-
-    if (BaseLexer._isAlpha(this.getCurCharCode())) {
-      const wordToken = this._scanWord(start);
-      if (wordToken === null) {
-        return this.scanToken();
+      if (this.isEnd()) {
+        return;
       }
-      return wordToken;
-    }
 
-    const currentChar = this.getCurChar();
-    const symbolKeyword = SourceLexer._symbolLexemeTable[currentChar];
-    if (symbolKeyword !== undefined) {
+      const start = this.getCurPosition();
+
+      if (BaseLexer._isAlpha(this.getCurCharCode())) {
+        const wordToken = this._scanWord(start);
+        if (wordToken !== null) {
+          return wordToken;
+        }
+        continue; // Continue loop to scan next token if word was invalid
+      }
+
+      const currentChar = this.getCurChar();
+      const symbolKeyword = SourceLexer._symbolLexemeTable[currentChar];
+      if (symbolKeyword !== undefined) {
+        this._advance();
+        const token = BaseToken.pool.get();
+        token.set(symbolKeyword, currentChar, start);
+        return token;
+      }
+
+      // Skip unrecognized character and continue
       this._advance();
-      const token = BaseToken.pool.get();
-      token.set(symbolKeyword, currentChar, start);
-      return token;
     }
-
-    this._advance();
-    return this.scanToken();
   }
 
   private _scanWord(start: ShaderPosition): BaseToken | null {
