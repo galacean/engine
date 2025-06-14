@@ -17,28 +17,34 @@ Shader "custom/pbr" {
             Pass "Pass0" {
 
               #ifdef MATERIAL_IS_TRANSPARENT
-                BlendState {
+                BlendState blendState {
                   Enabled = true;
                   SourceColorBlendFactor = BlendFactor.SourceAlpha;
                   DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
                   SourceAlphaBlendFactor = BlendFactor.One;
                   DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
                 }
-                DepthState {
+                DepthState depthState {
                   WriteEnabled = false;
                 }
+
+                BlendState = blendState;
+                DepthState = depthState;
                 RenderQueueType = Transparent;
               #else
-                BlendState {
+                BlendState blendState {
                   Enabled = false;
                   SourceColorBlendFactor = BlendFactor.SourceAlpha;
                   DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
                   SourceAlphaBlendFactor = BlendFactor.One;
                   DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
                 }
-                DepthState {
+                DepthState depthState {
                   WriteEnabled = true;
                 }
+
+                BlendState = blendState;
+                DepthState = depthState;
                 RenderQueueType = Opaque;
               #endif
 
