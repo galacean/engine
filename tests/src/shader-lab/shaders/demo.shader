@@ -25,13 +25,14 @@ Shader "Water" {
 
     BlendFactor material_SrcBlend;
 
-    BlendState {
+    BlendState blendState {
       SourceAlphaBlendFactor = material_SrcBlend;
       Enabled[0] = true;
       ColorWriteMask[0] = 0.8;
       BlendColor = Color(1.0, 1.0, 1.0, 1.0);
       AlphaBlendOperation = BlendOperation.Max;
     }
+    BlendState = blendState;
 
     UsePass "pbr/Default/Forward"
 
@@ -63,7 +64,7 @@ Shader "Water" {
           return vec4(pow(linearIn.rgb, vec3(1.0 / 2.2)), linearIn.a);
     }
 
-    StencilState {
+    StencilState stencilState {
       Enabled = true;
       ReferenceValue = 2;
       Mask = 1.3; // 0xffffffff
@@ -72,6 +73,7 @@ Shader "Water" {
       PassOperationBack = StencilOperation.Zero;
     }
 
+    StencilState = stencilState;
     DepthState = depthState;
     RasterState = rasterState;
 

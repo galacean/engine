@@ -54,7 +54,7 @@ Shader "Water" {
 
     BlendState = blendState;
 
-    StencilState {
+    StencilState stencilState {
       Enabled = true;
       ReferenceValue = 2;
       Mask = 1.3; // 0xffffffff
@@ -63,6 +63,7 @@ Shader "Water" {
       PassOperationBack = StencilOperation.Zero;
     }
 
+    StencilState = stencilState;
     DepthState = depthState;
     RasterState = rasterState;
 

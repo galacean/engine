@@ -131,12 +131,8 @@ export class ShaderSourceParser {
     scanner: SourceLexer
   ) {
     const ident = scanner.scanToken();
-    let isDeclaration: boolean;
     if (ident.type === ETokenType.ID) {
-      isDeclaration = true;
       scanner.scanText("{");
-    } else if (ident.lexeme === "{") {
-      isDeclaration = false;
     } else if (ident.lexeme === "=") {
       const variable = scanner.scanToken();
       scanner.scanText(";");
@@ -157,15 +153,17 @@ export class ShaderSourceParser {
       Object.assign(renderStates.constantMap, renderState.constantMap);
       Object.assign(renderStates.variableMap, renderState.variableMap);
       return;
+    } else {
+      throw ShaderLabUtils.createGSError(
+        `Invalid render state syntax`,
+        GSErrorName.CompilationError,
+        scanner.source,
+        ident.location
+      );
     }
 
     const renderState = this._parseRenderStatePropList(stateToken.lexeme, scanner);
-    if (isDeclaration) {
-      this._symbolTableStack.insert({ ident: ident.lexeme, type: stateToken.type, value: renderState });
-    } else {
-      Object.assign(renderStates.constantMap, renderState.constantMap);
-      Object.assign(renderStates.variableMap, renderState.variableMap);
-    }
+    this._symbolTableStack.insert({ ident: ident.lexeme, type: stateToken.type, value: renderState });
   }
 
   private static _parseVariableDeclaration(type: number, scanner: SourceLexer) {
