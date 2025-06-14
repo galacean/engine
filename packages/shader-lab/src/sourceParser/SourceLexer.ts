@@ -52,32 +52,6 @@ export default class SourceLexer extends BaseLexer {
     );
   }
 
-  private static _isValidWordBoundary(charCode: number): boolean {
-    return BaseLexer._isWhiteSpaceChar(charCode, true) || SourceLexer._isWordSeparatorChar(charCode);
-  }
-
-  private _validateWordBoundaries(startIndex: number, endIndex: number): boolean {
-    const source = this._source;
-
-    // Check previous boundary
-    if (startIndex > 0) {
-      const prevCharCode = source.charCodeAt(startIndex - 1);
-      if (!SourceLexer._isValidWordBoundary(prevCharCode)) {
-        return false;
-      }
-    }
-
-    // Check next boundary
-    if (endIndex < source.length) {
-      const nextCharCode = source.charCodeAt(endIndex);
-      if (!SourceLexer._isValidWordBoundary(nextCharCode)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
   private static _scanDigits(source: string, startIndex: number): number {
     let currentIndex = startIndex;
     while (currentIndex < source.length) {
@@ -141,6 +115,15 @@ export default class SourceLexer extends BaseLexer {
     }
   }
 
+  // #if _VERBOSE
+  scanToCharacter(char: string): void {
+    while (this.getCurChar() !== char && !this.isEnd()) {
+      this._advance();
+    }
+    this._advance();
+  }
+  // #endif
+
   private _scanWord(start: ShaderPosition): BaseToken | null {
     // Scan the complete word first
     while (BaseLexer._isWordChar(this.getCurCharCode()) && !this.isEnd()) {
@@ -161,12 +144,29 @@ export default class SourceLexer extends BaseLexer {
     return token;
   }
 
-  // #if _VERBOSE
-  scanToCharacter(char: string): void {
-    while (this.getCurChar() !== char && !this.isEnd()) {
-      this._advance();
+  private _validateWordBoundaries(startIndex: number, endIndex: number): boolean {
+    const source = this._source;
+
+    // Check previous boundary
+    if (startIndex > 0) {
+      const prevCharCode = source.charCodeAt(startIndex - 1);
+      if (!this._isValidWordBoundary(prevCharCode)) {
+        return false;
+      }
     }
-    this._advance();
+
+    // Check next boundary
+    if (endIndex < source.length) {
+      const nextCharCode = source.charCodeAt(endIndex);
+      if (!this._isValidWordBoundary(nextCharCode)) {
+        return false;
+      }
+    }
+
+    return true;
   }
-  // #endif
+
+  private _isValidWordBoundary(charCode: number): boolean {
+    return BaseLexer._isWhiteSpaceChar(charCode, true) || SourceLexer._isWordSeparatorChar(charCode);
+  }
 }
