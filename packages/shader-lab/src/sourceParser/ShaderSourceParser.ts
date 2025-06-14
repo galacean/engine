@@ -128,25 +128,25 @@ export class ShaderSourceParser {
   private static _parseRenderStateDeclarationOrAssignment(
     renderStates: IRenderStates,
     stateToken: BaseToken,
-    scanner: SourceLexer
+    lexer: SourceLexer
   ) {
-    const ident = scanner.scanToken();
-    let isDeclaration: boolean;
-    if (ident.type === ETokenType.ID) {
-      isDeclaration = true;
-      scanner.scanText("{");
-    } else if (ident.lexeme === "{") {
-      isDeclaration = false;
-    } else if (ident.lexeme === "=") {
-      const variable = scanner.scanToken();
+    const token = lexer.scanToken();
+    if (token.type === ETokenType.ID) {
+      // Declaration
+      lexer.scanText("{");
+      const renderState = this._parseRenderStatePropList(stateToken.lexeme, lexer);
+      this._symbolTableStack.insert({ ident: token.lexeme, type: stateToken.type, value: renderState });
+    } else if (token.lexeme === "=") {
+      // Assignment
+      const variable = lexer.scanToken();
 
-      scanner.scanText(";");
+      lexer.scanText(";");
       const sm = ShaderSourceParser._lookupSymbolByType(variable.lexeme, stateToken.type);
       if (!sm?.value) {
         const error = ShaderLabUtils.createGSError(
           `Invalid "${stateToken.lexeme}" variable: ${variable.lexeme}`,
           GSErrorName.CompilationError,
-          scanner.source,
+          lexer.source,
           variable.location
         );
         // #if _VERBOSE
@@ -159,20 +159,12 @@ export class ShaderSourceParser {
       Object.assign(renderStates.variableMap, renderState.variableMap);
       return;
     }
-
-    const renderState = this._parseRenderStatePropList(stateToken.lexeme, scanner);
-    if (isDeclaration) {
-      this._symbolTableStack.insert({ ident: ident.lexeme, type: stateToken.type, value: renderState });
-    } else {
-      Object.assign(renderStates.constantMap, renderState.constantMap);
-      Object.assign(renderStates.variableMap, renderState.variableMap);
-    }
   }
 
   private static _parseVariableDeclaration(type: number, scanner: SourceLexer) {
     const token = scanner.scanToken();
     scanner.scanText(";");
-    this._symbolTableStack.insert({ type: token.type, ident: token.lexeme });
+    this._symbolTableStack.insert({ type: type, ident: token.lexeme });
   }
 
   private static _pushScope() {
@@ -195,7 +187,8 @@ export class ShaderSourceParser {
   }
 
   private static _parseRenderStatePropItem(ret: IRenderStates, state: string, scanner: SourceLexer) {
-    let renderStateProp = scanner.scanToken().lexeme;
+    const token = scanner.scanToken();
+    let renderStateProp = token.lexeme;
     const op = scanner.scanToken();
     if (state === "BlendState" && renderStateProp !== "BlendColor" && renderStateProp !== "AlphaToCoverage") {
       let idx = 0;
@@ -240,10 +233,10 @@ export class ShaderSourceParser {
     if (/[0-9.]/.test(scanner.getCurChar())) {
       value = scanner.scanNumber();
     } else {
-      const token = scanner.scanToken();
-      if (token.type === Keyword.True) value = true;
-      else if (token.type === Keyword.False) value = false;
-      else if (token.type === Keyword.GSColor) {
+      const variableToken = scanner.scanToken();
+      if (variableToken.type === Keyword.True) value = true;
+      else if (variableToken.type === Keyword.False) value = false;
+      else if (variableToken.type === Keyword.GSColor) {
         scanner.scanText("(");
         const args: number[] = [];
         while (true) {
@@ -260,10 +253,10 @@ export class ShaderSourceParser {
       } else if (scanner.getCurChar() === ".") {
         scanner._advance();
         const engineTypeProp = scanner.scanToken();
-        value = ShaderSourceParser._engineType[token.lexeme]?.[engineTypeProp.lexeme];
+        value = ShaderSourceParser._engineType[variableToken.lexeme]?.[engineTypeProp.lexeme];
         if (value == undefined) {
           const error = ShaderLabUtils.createGSError(
-            `Invalid engine constant: ${token.lexeme}.${engineTypeProp.lexeme}`,
+            `Invalid engine constant: ${variableToken.lexeme}.${engineTypeProp.lexeme}`,
             GSErrorName.CompilationError,
             scanner.source,
             engineTypeProp.location
@@ -275,7 +268,36 @@ export class ShaderSourceParser {
           // #endif
         }
       } else {
-        value = token.lexeme;
+        value = variableToken.lexeme;
+        let lookupType: Keyword;
+        switch (token.lexeme) {
+          case "WriteEnabled":
+          case "Enabled":
+            lookupType = Keyword.GSBool;
+            break;
+          case "SourceColorBlendFactor":
+          case "DestinationColorBlendFactor":
+          case "SourceAlphaBlendFactor":
+          case "DestinationAlphaBlendFactor":
+            lookupType = Keyword.GSBlendFactor;
+            break;
+          case "CullMode":
+            lookupType = Keyword.GSCullMode;
+            break;
+        }
+        const sm = ShaderSourceParser._lookupSymbolByType(variableToken.lexeme, lookupType);
+        if (!sm) {
+          const error = ShaderLabUtils.createGSError(
+            `Invalid ${state} variable: ${variableToken.lexeme}`,
+            GSErrorName.CompilationError,
+            scanner.source,
+            variableToken.location
+          );
+          // #if _VERBOSE
+          this._errors.push(<GSError>error);
+          return;
+          // #endif
+        }
       }
     }
     scanner.scanText(";");

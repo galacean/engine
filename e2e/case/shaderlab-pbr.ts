@@ -295,11 +295,20 @@ const pbrShaderSource = `Shader "PBRShaderName" {
       Pass "Forward Pass" {
         Tags { pipelineStage = "Forward"} 
 
-        DepthState {
+        RenderQueueType renderQueueType;
+        BlendFactor sourceColorBlendFactor;
+        BlendFactor destinationColorBlendFactor;
+        BlendFactor sourceAlphaBlendFactor;
+        BlendFactor destinationAlphaBlendFactor;
+        CullMode rasterStateCullMode;
+        Bool blendEnabled;
+        Bool depthWriteEnabled;
+
+        DepthState customDepthState {
           WriteEnabled = depthWriteEnabled;
         }
 
-        BlendState {
+        BlendState customBlendState {
           Enabled = blendEnabled;
           SourceColorBlendFactor = sourceColorBlendFactor;
           DestinationColorBlendFactor = destinationColorBlendFactor;
@@ -307,10 +316,13 @@ const pbrShaderSource = `Shader "PBRShaderName" {
           DestinationAlphaBlendFactor = destinationAlphaBlendFactor;
         }
 
-        RasterState{
+        RasterState customRasterState {
           CullMode = rasterStateCullMode;
         }
 
+        BlendState = customBlendState;
+        DepthState = customDepthState;
+        RasterState = customRasterState;
         RenderQueueType = renderQueueType;
 
         #define IS_METALLIC_WORKFLOW
