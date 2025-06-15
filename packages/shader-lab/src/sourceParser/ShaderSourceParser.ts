@@ -10,7 +10,7 @@ import {
   StencilOperation
 } from "@galacean/engine";
 import { IRenderStates, IShaderPassSource, IShaderSource, IStatement, ISubShaderSource } from "@galacean/engine-design";
-import { ETokenType, ShaderPosition, TokenType } from "../common";
+import { ETokenType, ShaderPosition, ShaderRange, TokenType } from "../common";
 import { SymbolTableStack } from "../common/BaseSymbolTable";
 import { BaseToken } from "../common/BaseToken";
 import { GSErrorName } from "../GSError";
@@ -18,6 +18,7 @@ import ContentSymbolTable, { ISymbol } from "./ShaderSourceSymbolTable";
 // #if _VERBOSE
 import { GSError } from "../GSError";
 // #endif
+import { BaseLexer } from "../common/BaseLexer";
 import { Keyword } from "../common/enums/Keyword";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 import SourceLexer from "./SourceLexer";
@@ -77,11 +78,11 @@ export class ShaderSourceParser {
     return shaderSource;
   }
 
-  private static _lookupSymbolByType(ident: string, type: TokenType): ISymbol | undefined {
+  private static _lookupVariable(variableName: string, type: TokenType): ISymbol | undefined {
     const stack = ShaderSourceParser._symbolTableStack.stack;
     for (let length = stack.length, i = length - 1; i >= 0; i--) {
       const symbolTable = stack[i];
-      const ret = symbolTable.lookup(ident, type);
+      const ret = symbolTable.lookup(variableName, type);
       if (ret) return ret;
     }
   }
@@ -128,25 +129,25 @@ export class ShaderSourceParser {
   private static _parseRenderStateDeclarationOrAssignment(
     renderStates: IRenderStates,
     stateToken: BaseToken,
-    scanner: SourceLexer
+    lexer: SourceLexer
   ) {
-    const ident = scanner.scanToken();
-    let isDeclaration: boolean;
-    if (ident.type === ETokenType.ID) {
-      isDeclaration = true;
-      scanner.scanText("{");
-    } else if (ident.lexeme === "{") {
-      isDeclaration = false;
-    } else if (ident.lexeme === "=") {
-      const variable = scanner.scanToken();
+    const token = lexer.scanToken();
+    if (token.type === ETokenType.ID) {
+      // Declaration
+      lexer.scanText("{");
+      const renderState = this._parseRenderStatePropList(stateToken.lexeme, lexer);
+      this._symbolTableStack.insert({ ident: token.lexeme, type: stateToken.type, value: renderState });
+    } else if (token.lexeme === "=") {
+      // Assignment
+      const variable = lexer.scanToken();
 
-      scanner.scanText(";");
-      const sm = ShaderSourceParser._lookupSymbolByType(variable.lexeme, stateToken.type);
+      lexer.scanText(";");
+      const sm = ShaderSourceParser._lookupVariable(variable.lexeme, stateToken.type);
       if (!sm?.value) {
         const error = ShaderLabUtils.createGSError(
           `Invalid "${stateToken.lexeme}" variable: ${variable.lexeme}`,
           GSErrorName.CompilationError,
-          scanner.source,
+          lexer.source,
           variable.location
         );
         // #if _VERBOSE
@@ -159,20 +160,12 @@ export class ShaderSourceParser {
       Object.assign(renderStates.variableMap, renderState.variableMap);
       return;
     }
-
-    const renderState = this._parseRenderStatePropList(stateToken.lexeme, scanner);
-    if (isDeclaration) {
-      this._symbolTableStack.insert({ ident: ident.lexeme, type: stateToken.type, value: renderState });
-    } else {
-      Object.assign(renderStates.constantMap, renderState.constantMap);
-      Object.assign(renderStates.variableMap, renderState.variableMap);
-    }
   }
 
   private static _parseVariableDeclaration(type: number, scanner: SourceLexer) {
     const token = scanner.scanToken();
     scanner.scanText(";");
-    this._symbolTableStack.insert({ type: token.type, ident: token.lexeme });
+    this._symbolTableStack.insert({ type: type, ident: token.lexeme });
   }
 
   private static _pushScope() {
@@ -187,102 +180,107 @@ export class ShaderSourceParser {
   private static _parseRenderStatePropList(state: string, scanner: SourceLexer): IRenderStates {
     const ret: IRenderStates = { constantMap: {}, variableMap: {} };
     while (scanner.getCurChar() !== "}") {
-      this._parseRenderStatePropItem(ret, state, scanner);
+      this._parseRenderStateProperties(ret, state, scanner);
       scanner.skipCommentsAndSpace();
     }
     scanner._advance();
     return ret;
   }
 
-  private static _parseRenderStatePropItem(ret: IRenderStates, state: string, scanner: SourceLexer) {
-    let renderStateProp = scanner.scanToken().lexeme;
-    const op = scanner.scanToken();
-    if (state === "BlendState" && renderStateProp !== "BlendColor" && renderStateProp !== "AlphaToCoverage") {
-      let idx = 0;
-      if (op.lexeme === "[") {
-        idx = scanner.scanNumber();
-        scanner.scanText("]");
-        scanner.scanText("=");
-      } else if (op.lexeme !== "=") {
-        const error = ShaderLabUtils.createGSError(
-          `Invalid syntax, expect character '=', but got ${op.lexeme}`,
-          GSErrorName.CompilationError,
-          scanner.source,
-          scanner.getCurPosition()
-        );
+  private static _createCompileError(
+    lexer: SourceLexer,
+    message: string,
+    location?: ShaderPosition | ShaderRange
+  ): void {
+    const error = lexer.createCompileError(message, location);
+    // #if _VERBOSE
+    this._errors.push(<GSError>error);
+    // #endif
+  }
+
+  private static _parseRenderStateProperties(out: IRenderStates, stateLexeme: string, lexer: SourceLexer): void {
+    const propertyToken = lexer.scanToken();
+    const propertyLexeme = propertyToken.lexeme;
+    let renderStateKey = propertyLexeme;
+    const nextToken = lexer.scanToken();
+    if (stateLexeme === "BlendState" && propertyLexeme !== "BlendColor" && propertyLexeme !== "AlphaToCoverage") {
+      let keyIndex = 0;
+      if (nextToken.type === Keyword.LeftBracket) {
+        keyIndex = lexer.scanNumber();
+        lexer.scanText("]");
+        lexer.scanText("=");
+      } else if (nextToken.type !== Keyword.Equal) {
+        this._createCompileError(lexer, `Invalid syntax, expect character '=', but got ${nextToken.lexeme}`);
         // #if _VERBOSE
-        this._errors.push(<GSError>error);
-        scanner.scanToCharacter(";");
+        lexer.scanToCharacter(";");
         return;
         // #endif
       }
-      renderStateProp += idx;
+      renderStateKey += keyIndex;
     }
 
-    renderStateProp = state + renderStateProp;
-    const renderStateElementKey = RenderStateDataKey[renderStateProp];
-    if (renderStateElementKey == undefined) {
-      const error = ShaderLabUtils.createGSError(
-        `Invalid render state element ${renderStateProp}`,
-        GSErrorName.CompilationError,
-        scanner.source,
-        scanner.getCurPosition()
-      );
+    const renderStateElementKey = RenderStateDataKey[stateLexeme + renderStateKey];
+    if (renderStateElementKey === undefined) {
+      this._createCompileError(lexer, `Invalid render state property ${propertyLexeme}`);
       // #if _VERBOSE
-      this._errors.push(<GSError>error);
-      scanner.scanToCharacter(";");
+      lexer.scanToCharacter(";");
       return;
       // #endif
     }
 
-    scanner.skipCommentsAndSpace();
-    let value: any;
-    if (/[0-9.]/.test(scanner.getCurChar())) {
-      value = scanner.scanNumber();
+    lexer.skipCommentsAndSpace();
+    let propertyValue: number | string | boolean | Color;
+
+    const curCharCode = lexer.getCurCharCode();
+    if (BaseLexer.isDigit(curCharCode) || curCharCode === 46) {
+      // Digit or '.'
+      propertyValue = lexer.scanNumber();
     } else {
-      const token = scanner.scanToken();
-      if (token.type === Keyword.True) value = true;
-      else if (token.type === Keyword.False) value = false;
-      else if (token.type === Keyword.GSColor) {
-        scanner.scanText("(");
-        const args: number[] = [];
-        while (true) {
-          args.push(scanner.scanNumber());
-          scanner.skipCommentsAndSpace();
-          const peek = scanner.peek(1);
-          if (peek === ")") {
-            scanner._advance();
-            break;
-          }
-          scanner.scanText(",");
-        }
-        value = new Color(...args);
-      } else if (scanner.getCurChar() === ".") {
-        scanner._advance();
-        const engineTypeProp = scanner.scanToken();
-        value = ShaderSourceParser._engineType[token.lexeme]?.[engineTypeProp.lexeme];
-        if (value == undefined) {
-          const error = ShaderLabUtils.createGSError(
-            `Invalid engine constant: ${token.lexeme}.${engineTypeProp.lexeme}`,
-            GSErrorName.CompilationError,
-            scanner.source,
+      const variableToken = lexer.scanToken();
+      const valueType = variableToken.type;
+
+      if (valueType === Keyword.True) {
+        propertyValue = true;
+      } else if (valueType === Keyword.False) {
+        propertyValue = false;
+      } else if (valueType === Keyword.GSColor) {
+        propertyValue = lexer.scanColor();
+      } else if (lexer.getCurChar() === ".") {
+        lexer._advance();
+        const engineTypeProp = lexer.scanToken();
+        propertyValue = ShaderSourceParser._engineType[variableToken.lexeme]?.[engineTypeProp.lexeme];
+        if (propertyValue == undefined) {
+          this._createCompileError(
+            lexer,
+            `Invalid engine constant: ${variableToken.lexeme}.${engineTypeProp.lexeme}`,
             engineTypeProp.location
           );
           // #if _VERBOSE
-          this._errors.push(<GSError>error);
-          scanner.scanToCharacter(";");
+          lexer.scanToCharacter(";");
           return;
           // #endif
         }
       } else {
-        value = token.lexeme;
+        propertyValue = variableToken.lexeme;
+        const lookupType = ShaderSourceParser._getRenderStatePropertyType(propertyLexeme);
+        if (!ShaderSourceParser._lookupVariable(variableToken.lexeme, lookupType)) {
+          this._createCompileError(
+            lexer,
+            `Invalid ${stateLexeme} variable: ${variableToken.lexeme}`,
+            variableToken.location
+          );
+          // #if _VERBOSE
+          lexer.scanToCharacter(";");
+          return;
+          // #endif
+        }
       }
     }
-    scanner.scanText(";");
-    if (typeof value === "string") {
-      ret.variableMap[renderStateElementKey] = value;
+    lexer.scanText(";");
+    if (typeof propertyValue === "string") {
+      out.variableMap[renderStateElementKey] = propertyValue;
     } else {
-      ret.constantMap[renderStateElementKey] = value;
+      out.constantMap[renderStateElementKey] = propertyValue;
     }
   }
 
@@ -312,7 +310,7 @@ export class ShaderSourceParser {
     const value = ShaderSourceParser._engineType.RenderQueueType[word.lexeme];
     const key = RenderStateDataKey.RenderQueueType;
     if (value == undefined) {
-      const sm = ShaderSourceParser._lookupSymbolByType(word.lexeme, Keyword.GSRenderQueueType);
+      const sm = ShaderSourceParser._lookupVariable(word.lexeme, Keyword.GSRenderQueueType);
       if (!sm) {
         const error = ShaderLabUtils.createGSError(
           `Invalid RenderQueueType variable: ${word.lexeme}`,
@@ -520,5 +518,44 @@ export class ShaderSourceParser {
         break;
     }
     return start;
+  }
+
+  private static _getRenderStatePropertyType(propertyName: string): Keyword {
+    switch (propertyName) {
+      case "WriteEnabled":
+      case "Enabled":
+      case "AlphaToCoverage":
+        return Keyword.GSBool;
+      case "SourceColorBlendFactor":
+      case "DestinationColorBlendFactor":
+      case "SourceAlphaBlendFactor":
+      case "DestinationAlphaBlendFactor":
+        return Keyword.GSBlendFactor;
+      case "AlphaBlendOperation":
+      case "ColorBlendOperation":
+        return Keyword.GSBlendOperation;
+      case "ColorWriteMask":
+      case "DepthBias":
+      case "SlopeScaledDepthBias":
+      case "ReferenceValue":
+      case "Mask":
+      case "WriteMask":
+        return Keyword.GSNumber;
+      case "CullMode":
+        return Keyword.GSCullMode;
+      case "BlendColor":
+        return Keyword.GSColor;
+      case "CompareFunction":
+      case "CompareFunctionFront":
+      case "CompareFunctionBack":
+        return Keyword.GSCompareFunction;
+      case "PassOperationFront":
+      case "PassOperationBack":
+      case "FailOperationFront":
+      case "FailOperationBack":
+      case "ZFailOperationFront":
+      case "ZFailOperationBack":
+        return Keyword.GSStencilOperation;
+    }
   }
 }

@@ -11,17 +11,16 @@ export type OnToken = (token: BaseToken, scanner: BaseLexer) => void;
  * @internal
  */
 export abstract class BaseLexer {
+  static isDigit(charCode: number): boolean {
+    return charCode >= 48 && charCode <= 57; // 0-9
+  }
+
   protected static _isWhiteSpaceChar(charCode: number, includeBreak: boolean): boolean {
     // Space || Tab
     if (charCode === 32 || charCode === 9) {
       return true;
     }
     return includeBreak && (charCode === 10 || charCode === 13); // \n || \r
-  }
-
-  // Check if character is a digit (0-9)
-  protected static _isDigit(charCode: number): boolean {
-    return charCode >= 48 && charCode <= 57; // 0-9
   }
 
   // Check if character is alphabetic or underscore (valid word start)
@@ -35,7 +34,7 @@ export abstract class BaseLexer {
 
   // Check if character is valid word character (alpha + digit)
   protected static _isWordChar(charCode: number): boolean {
-    return BaseLexer._isAlpha(charCode) || BaseLexer._isDigit(charCode);
+    return BaseLexer._isAlpha(charCode) || BaseLexer.isDigit(charCode);
   }
 
   protected _currentIndex = 0;
