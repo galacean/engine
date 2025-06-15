@@ -136,23 +136,23 @@ export default class SourceLexer extends BaseLexer {
       const currentChar = this.getCurChar();
       const symbolKeyword = SourceLexer._symbolLexemeTable[currentChar];
       if (symbolKeyword !== undefined) {
-        this._advance();
+        this.advance(1);
         const token = BaseToken.pool.get();
         token.set(symbolKeyword, currentChar, start);
         return token;
       }
 
       // Skip unrecognized character and continue
-      this._advance();
+      this.advance(1);
     }
   }
 
   // #if _VERBOSE
   scanToCharacter(char: string): void {
     while (this.getCurChar() !== char && !this.isEnd()) {
-      this._advance();
+      this.advance(1);
     }
-    this._advance();
+    this.advance(1);
   }
   // #endif
 
@@ -168,7 +168,7 @@ export default class SourceLexer extends BaseLexer {
   private _scanWord(start: ShaderPosition): BaseToken | null {
     // Scan the complete word first
     while (BaseLexer._isWordChar(this.getCurCharCode()) && !this.isEnd()) {
-      this._advance();
+      this.advance(1);
     }
     const end = this.getCurPosition();
 

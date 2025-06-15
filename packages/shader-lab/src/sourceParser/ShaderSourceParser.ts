@@ -188,7 +188,7 @@ export class ShaderSourceParser {
       this._parseRenderStateProperties(state, lexer, renderStates);
       lexer.skipCommentsAndSpace();
     }
-    lexer._advance();
+    lexer.advance(1);
     return renderStates;
   }
 
@@ -253,7 +253,7 @@ export class ShaderSourceParser {
       } else if (valueTokenType === Keyword.GSColor) {
         propertyValue = lexer.scanColor();
       } else if (lexer.getCurChar() === ".") {
-        lexer._advance();
+        lexer.advance(1);
         const constValueToken = lexer.scanToken();
         propertyValue = ShaderSourceParser._renderStateConstType[valueToken.lexeme]?.[constValueToken.lexeme];
         if (propertyValue == undefined) {
@@ -396,7 +396,7 @@ export class ShaderSourceParser {
       tags[ident.lexeme] = value;
 
       if (scanner.peek(1) === "}") {
-        scanner._advance();
+        scanner.advance(1);
         return;
       }
       scanner.scanLexeme(",");

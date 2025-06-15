@@ -89,33 +89,26 @@ export abstract class BaseLexer {
     return this._source.charCodeAt(this._currentIndex);
   }
 
-  advance(count = 1): void {
+  advance(count: number): void {
     // #if _VERBOSE
+    const source = this._source;
+    const startIndex = this._currentIndex;
     for (let i = 0; i < count; i++) {
-      this._advance();
+      if (source[startIndex + i] === "\n") {
+        this._line += 1;
+        this._column = 0;
+      } else {
+        this._column += 1;
+      }
     }
-    // #else
+    // #endif
     this._currentIndex += count;
-    // #endif
-  }
-
-  _advance(): void {
-    // #if _VERBOSE
-    if (this.getCurChar() === "\n") {
-      this._line += 1;
-      this._column = 0;
-    } else {
-      this._column += 1;
-    }
-    // #endif
-
-    this._currentIndex++;
   }
 
   skipSpace(includeLineBreak: boolean): void {
     let curCharCode = this.getCurCharCode();
     while (BaseLexer._isWhiteSpaceChar(curCharCode, includeLineBreak)) {
-      this._advance();
+      this.advance(1);
       curCharCode = this.getCurCharCode();
     }
   }
@@ -127,7 +120,7 @@ export abstract class BaseLexer {
       this.advance(2);
       let curChar = this.getCurChar();
       while (curChar !== "\n" && curChar !== "\r" && !this.isEnd()) {
-        this._advance();
+        this.advance(1);
         curChar = this.getCurChar();
       }
       this.skipCommentsAndSpace();
@@ -135,7 +128,7 @@ export abstract class BaseLexer {
       // Multi-line comments
       this.advance(2);
       while (this.peek(2) !== "*/" && !this.isEnd()) {
-        this._advance();
+        this.advance(1);
       }
       this.advance(2);
       this.skipCommentsAndSpace();
