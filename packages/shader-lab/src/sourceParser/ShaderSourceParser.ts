@@ -87,11 +87,6 @@ export class ShaderSourceParser {
     }
   }
 
-  /**
-   * Get the appropriate keyword type for a render state property based on its name
-   * @param propertyName - The name of the render state property
-   * @returns The corresponding Keyword type for symbol lookup
-   */
   private static _getRenderStatePropertyType(propertyName: string): Keyword {
     switch (propertyName) {
       case "WriteEnabled":
@@ -102,8 +97,33 @@ export class ShaderSourceParser {
       case "SourceAlphaBlendFactor":
       case "DestinationAlphaBlendFactor":
         return Keyword.GSBlendFactor;
+      case "AlphaBlendOperation":
+      case "ColorBlendOperation":
+        return Keyword.GSBlendOperation;
+      case "ColorWriteMask":
+      case "DepthBias":
+      case "SlopeScaledDepthBias":
+      case "ReferenceValue":
+      case "Mask":
+      case "WriteMask":
+        return Keyword.GSNumber;
       case "CullMode":
         return Keyword.GSCullMode;
+      case "AlphaToCoverage":
+        return Keyword.GSBool;
+      case "BlendColor":
+        return Keyword.GSColor;
+      case "CompareFunction":
+      case "CompareFunctionFront":
+      case "CompareFunctionBack":
+        return Keyword.GSCompareFunction;
+      case "PassOperationFront":
+      case "PassOperationBack":
+      case "FailOperationFront":
+      case "FailOperationBack":
+      case "ZFailOperationFront":
+      case "ZFailOperationBack":
+        return Keyword.GSStencilOperation;
       default:
         return undefined; // For properties that don't have a specific type mapping
     }
