@@ -114,25 +114,41 @@ export abstract class BaseLexer {
   }
 
   skipCommentsAndSpace(): void {
-    this.skipSpace(true);
-    if (this.peek(2) === "//") {
-      // Single line comments
-      this.advance(2);
-      let curChar = this.getCurChar();
-      while (curChar !== "\n" && curChar !== "\r" && !this.isEnd()) {
-        this.advance(1);
-        curChar = this.getCurChar();
+    const source = this._source;
+    const length = source.length;
+    let index = this._currentIndex;
+
+    while (index < length) {
+      // Skip whitespace
+      while (index < length && BaseLexer._isWhiteSpaceChar(source.charCodeAt(index), true)) {
+        index++;
       }
-      this.skipCommentsAndSpace();
-    } else if (this.peek(2) === "/*") {
-      // Multi-line comments
-      this.advance(2);
-      while (this.peek(2) !== "*/" && !this.isEnd()) {
-        this.advance(1);
+
+      // Check for comments: 47 is '/'
+      if (index + 1 >= length || source.charCodeAt(index) !== 47) break;
+
+      const nextChar = source.charCodeAt(index + 1);
+      if (nextChar === 47) {
+        // Single line comment: 10 is '\n', 13 is '\r'
+        index += 2;
+        while (index < length) {
+          const charCode = source.charCodeAt(index);
+          if (charCode === 10 || charCode === 13) break;
+          index++;
+        }
+      } else if (nextChar === 42) {
+        // Multi-line comment: 42 is '*'
+        index += 2;
+        while (index + 1 < length && !(source.charCodeAt(index) === 42 && source.charCodeAt(index + 1) === 47)) {
+          index++;
+        }
+        index += 2; // Skip '*/'
+      } else {
+        break; // Not a comment, stop
       }
-      this.advance(2);
-      this.skipCommentsAndSpace();
     }
+
+    this.advance(index - this._currentIndex);
   }
 
   peek(to: number): string {
