@@ -202,7 +202,6 @@ export class ShaderSourceParser {
     const propertyToken = lexer.scanToken();
     const propertyLexeme = propertyToken.lexeme;
     let renderStateKey = propertyLexeme;
-    debugger;
     const nextToken = lexer.scanToken();
     if (stateLexeme === "BlendState" && propertyLexeme !== "BlendColor" && propertyLexeme !== "AlphaToCoverage") {
       let keyIndex = 0;
@@ -271,6 +270,7 @@ export class ShaderSourceParser {
             variableToken.location
           );
           // #if _VERBOSE
+          lexer.scanToCharacter(";");
           return;
           // #endif
         }
