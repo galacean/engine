@@ -10,7 +10,7 @@ import {
   StencilOperation
 } from "@galacean/engine";
 import { IRenderStates, IShaderPassSource, IShaderSource, IStatement, ISubShaderSource } from "@galacean/engine-design";
-import { ETokenType, ShaderPosition, TokenType } from "../common";
+import { ETokenType, ShaderPosition, ShaderRange, TokenType } from "../common";
 import { SymbolTableStack } from "../common/BaseSymbolTable";
 import { BaseToken } from "../common/BaseToken";
 import { GSErrorName } from "../GSError";
@@ -18,6 +18,7 @@ import ContentSymbolTable, { ISymbol } from "./ShaderSourceSymbolTable";
 // #if _VERBOSE
 import { GSError } from "../GSError";
 // #endif
+import { BaseLexer } from "../common/BaseLexer";
 import { Keyword } from "../common/enums/Keyword";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 import SourceLexer from "./SourceLexer";
@@ -208,6 +209,17 @@ export class ShaderSourceParser {
     return ret;
   }
 
+  private static _createCompileError(
+    lexer: SourceLexer,
+    message: string,
+    location?: ShaderPosition | ShaderRange
+  ): void {
+    const error = lexer.createCompileError(message, location);
+    // #if _VERBOSE
+    this._errors.push(<GSError>error);
+    // #endif
+  }
+
   private static _parseRenderStateProperties(out: IRenderStates, stateLexeme: string, lexer: SourceLexer): void {
     const propertyToken = lexer.scanToken();
     const propertyLexeme = propertyToken.lexeme;
@@ -221,9 +233,8 @@ export class ShaderSourceParser {
         lexer.scanText("]");
         lexer.scanText("=");
       } else if (nextToken.type !== Keyword.Equal) {
-        const error = lexer.createCompileError(`Invalid syntax, expect character '=', but got ${nextToken.lexeme}`);
+        this._createCompileError(lexer, `Invalid syntax, expect character '=', but got ${nextToken.lexeme}`);
         // #if _VERBOSE
-        this._errors.push(<GSError>error);
         lexer.scanToCharacter(";");
         return;
         // #endif
@@ -231,12 +242,10 @@ export class ShaderSourceParser {
       renderStateKey += keyIndex;
     }
 
-    renderStateKey = stateLexeme + renderStateKey;
-    const renderStateElementKey = RenderStateDataKey[renderStateKey];
+    const renderStateElementKey = RenderStateDataKey[stateLexeme + renderStateKey];
     if (renderStateElementKey === undefined) {
-      const error = lexer.createCompileError(`Invalid render state element ${renderStateKey}`);
+      this._createCompileError(lexer, `Invalid render state property ${propertyLexeme}`);
       // #if _VERBOSE
-      this._errors.push(<GSError>error);
       lexer.scanToCharacter(";");
       return;
       // #endif
@@ -244,13 +253,20 @@ export class ShaderSourceParser {
 
     lexer.skipCommentsAndSpace();
     let propertyValue: number | string | boolean | Color;
-    if (/[0-9.]/.test(lexer.getCurChar())) {
+
+    const curCharCode = lexer.getCurCharCode();
+    if (BaseLexer.isDigit(curCharCode) || curCharCode === 46) {
+      // Digit or '.'
       propertyValue = lexer.scanNumber();
     } else {
       const variableToken = lexer.scanToken();
-      if (variableToken.type === Keyword.True) propertyValue = true;
-      else if (variableToken.type === Keyword.False) propertyValue = false;
-      else if (variableToken.type === Keyword.GSColor) {
+      const valueType = variableToken.type;
+
+      if (valueType === Keyword.True) {
+        propertyValue = true;
+      } else if (valueType === Keyword.False) {
+        propertyValue = false;
+      } else if (valueType === Keyword.GSColor) {
         lexer.scanText("(");
         const args: number[] = [];
         while (true) {
@@ -269,14 +285,12 @@ export class ShaderSourceParser {
         const engineTypeProp = lexer.scanToken();
         propertyValue = ShaderSourceParser._engineType[variableToken.lexeme]?.[engineTypeProp.lexeme];
         if (propertyValue == undefined) {
-          const error = ShaderLabUtils.createGSError(
+          this._createCompileError(
+            lexer,
             `Invalid engine constant: ${variableToken.lexeme}.${engineTypeProp.lexeme}`,
-            GSErrorName.CompilationError,
-            lexer.source,
             engineTypeProp.location
           );
           // #if _VERBOSE
-          this._errors.push(<GSError>error);
           lexer.scanToCharacter(";");
           return;
           // #endif
@@ -285,14 +299,12 @@ export class ShaderSourceParser {
         propertyValue = variableToken.lexeme;
         const lookupType = ShaderSourceParser._getRenderStatePropertyType(propertyLexeme);
         if (!ShaderSourceParser._lookupVariable(variableToken.lexeme, lookupType)) {
-          const error = ShaderLabUtils.createGSError(
+          this._createCompileError(
+            lexer,
             `Invalid ${stateLexeme} variable: ${variableToken.lexeme}`,
-            GSErrorName.CompilationError,
-            lexer.source,
             variableToken.location
           );
           // #if _VERBOSE
-          this._errors.push(<GSError>error);
           return;
           // #endif
         }

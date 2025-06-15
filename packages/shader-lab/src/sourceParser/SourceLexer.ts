@@ -1,4 +1,4 @@
-import { ETokenType, ShaderPosition } from "../common";
+import { ETokenType, ShaderPosition, ShaderRange } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
@@ -58,7 +58,7 @@ export default class SourceLexer extends BaseLexer {
     let currentIndex = startIndex;
     while (currentIndex < source.length) {
       const charCode = source.charCodeAt(currentIndex);
-      if (BaseLexer._isDigit(charCode)) {
+      if (BaseLexer.isDigit(charCode)) {
         currentIndex++;
       } else {
         break;
@@ -126,8 +126,13 @@ export default class SourceLexer extends BaseLexer {
   }
   // #endif
 
-  createCompileError(message: string) {
-    return ShaderLabUtils.createGSError(message, GSErrorName.CompilationError, this.source, this.getCurPosition());
+  createCompileError(message: string, location?: ShaderPosition | ShaderRange) {
+    return ShaderLabUtils.createGSError(
+      message,
+      GSErrorName.CompilationError,
+      this.source,
+      location ?? this.getCurPosition()
+    );
   }
 
   private _scanWord(start: ShaderPosition): BaseToken | null {
