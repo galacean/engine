@@ -6,14 +6,14 @@ import {
   ShaderPlatformTarget
 } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
-import { ShaderLab as ShaderLabVerbose, GSError } from "@galacean/engine-shaderlab/verbose";
-import { ShaderLab as ShaderLabRelease } from "@galacean/engine-shaderlab";
-import { glslValidate, shaderParse } from "./ShaderValidate";
 import { registerIncludes } from "@galacean/engine-shader-shaderlab";
+import { ShaderLab as ShaderLabRelease } from "@galacean/engine-shaderlab";
+import { GSError, ShaderLab as ShaderLabVerbose } from "@galacean/engine-shaderlab/verbose";
+import { glslValidate, shaderParse } from "./ShaderValidate";
 
 import { IShaderSource } from "@galacean/engine-design";
-import { describe, beforeAll, expect, assert, it } from "vitest";
 import { server } from "@vitest/browser/context";
+import { assert, beforeAll, describe, expect, it } from "vitest";
 const { readFile } = server.commands;
 
 const demoShader = await readFile("./shaders/demo.shader");
@@ -150,12 +150,6 @@ describe("ShaderLab", () => {
     registerIncludes();
   });
 
-  it("builtin-function", async () => {
-    let shaderSource = await readFile("./shaders/builtin-function.shader");
-    shaderSource = shaderSource.replace("__$$insert_maros$$__", commonMacros);
-    glslValidate(shaderSource, shaderLabVerbose, {});
-  });
-
   it("create shaderLab", async () => {
     expect(shaderLabVerbose).not.be.null;
   });
@@ -172,7 +166,7 @@ describe("ShaderLab", () => {
     expect(pass1.renderStates).not.be.null;
 
     const { constantMap, variableMap } = pass1.renderStates;
-    expect(Object.values(variableMap).includes("customRenderQueue"));
+    expect(Object.values(variableMap).includes("customRenderQueue")).to.be.true;
 
     expect(constantMap).not.be.null;
 
@@ -181,7 +175,6 @@ describe("ShaderLab", () => {
     expect(constantMap).include({
       // Stencil State
       [RenderStateElementKey.StencilStateEnabled]: true,
-      [RenderStateElementKey.StencilStateReferenceValue]: 2,
       [RenderStateElementKey.StencilStateMask]: 1.3,
       [RenderStateElementKey.StencilStateWriteMask]: 0.32,
       [RenderStateElementKey.StencilStateCompareFunctionFront]: CompareFunction.Less,
@@ -205,8 +198,15 @@ describe("ShaderLab", () => {
       [RenderStateElementKey.BlendStateSourceAlphaBlendFactor0]: "material_SrcBlend"
     });
 
-    expect(shaderLabVerbose.errors.length).to.eq(1);
-    expect(shaderLabVerbose.errors[0].message).contains("Invalid RenderQueueType variable: Unknown");
+    expect(shaderLabVerbose.errors.length).to.eq(2);
+    expect(shaderLabVerbose.errors[0].message).contains("Invalid RenderQueueType variable: customRenderQueue");
+    expect(shaderLabVerbose.errors[1].message).contains("Invalid StencilState variable: referenceValue");
+  });
+
+  it("builtin-function", async () => {
+    let shaderSource = await readFile("./shaders/builtin-function.shader");
+    shaderSource = shaderSource.replace("__$$insert_maros$$__", commonMacros);
+    glslValidate(shaderSource, shaderLabVerbose, {});
   });
 
   it("shader tags", () => {

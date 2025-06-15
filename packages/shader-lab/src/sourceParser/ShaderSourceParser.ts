@@ -167,10 +167,10 @@ export class ShaderSourceParser {
     }
   }
 
-  private static _parseVariableDeclaration(type: number, scanner: SourceLexer) {
-    const token = scanner.scanToken();
-    scanner.scanLexeme(";");
-    this._symbolTableStack.insert({ type: type, ident: token.lexeme });
+  private static _parseVariableDeclaration(lexer: SourceLexer) {
+    const token = lexer.scanToken();
+    lexer.scanLexeme(";");
+    this._symbolTableStack.insert({ type: token.type, ident: token.lexeme });
   }
 
   private static _pushScope() {
@@ -269,8 +269,7 @@ export class ShaderSourceParser {
         }
       } else {
         propertyValue = valueToken.lexeme;
-        const lookupType = ShaderSourceParser._getRenderStatePropertyType(propertyLexeme);
-        if (!ShaderSourceParser._lookupVariable(valueToken.lexeme, lookupType)) {
+        if (!ShaderSourceParser._lookupVariable(valueToken.lexeme, ETokenType.ID)) {
           this._createCompileError(lexer, `Invalid ${stateLexeme} variable: ${valueToken.lexeme}`, valueToken.location);
           // #if _VERBOSE
           lexer.scanToCharacter(";");
@@ -311,6 +310,7 @@ export class ShaderSourceParser {
     const value = ShaderSourceParser._renderStateConstType.RenderQueueType[word.lexeme];
     const key = RenderStateElementKey.RenderQueueType;
     if (value == undefined) {
+      renderStates.variableMap[key] = word.lexeme;
       const sm = ShaderSourceParser._lookupVariable(word.lexeme, Keyword.GSRenderQueueType);
       if (!sm) {
         this._createCompileError(scanner, `Invalid RenderQueueType variable: ${word.lexeme}`, word.location);
@@ -318,7 +318,6 @@ export class ShaderSourceParser {
         return;
         // #endif
       }
-      renderStates.variableMap[key] = word.lexeme;
     } else {
       renderStates.constantMap[key] = value;
     }
@@ -503,7 +502,7 @@ export class ShaderSourceParser {
       case Keyword.GSStencilOperation:
       case Keyword.GSCullMode:
         this._addPendingContents(lexer, start, token.lexeme.length, outGlobalContents);
-        this._parseVariableDeclaration(token.type, lexer);
+        this._parseVariableDeclaration(lexer);
         start = lexer.getCurPosition();
         break;
       case Keyword.GSRenderQueueType:
@@ -513,44 +512,5 @@ export class ShaderSourceParser {
         break;
     }
     return start;
-  }
-
-  private static _getRenderStatePropertyType(propertyName: string): Keyword {
-    switch (propertyName) {
-      case "WriteEnabled":
-      case "Enabled":
-      case "AlphaToCoverage":
-        return Keyword.GSBool;
-      case "SourceColorBlendFactor":
-      case "DestinationColorBlendFactor":
-      case "SourceAlphaBlendFactor":
-      case "DestinationAlphaBlendFactor":
-        return Keyword.GSBlendFactor;
-      case "AlphaBlendOperation":
-      case "ColorBlendOperation":
-        return Keyword.GSBlendOperation;
-      case "ColorWriteMask":
-      case "DepthBias":
-      case "SlopeScaledDepthBias":
-      case "ReferenceValue":
-      case "Mask":
-      case "WriteMask":
-        return Keyword.GSNumber;
-      case "CullMode":
-        return Keyword.GSCullMode;
-      case "BlendColor":
-        return Keyword.GSColor;
-      case "CompareFunction":
-      case "CompareFunctionFront":
-      case "CompareFunctionBack":
-        return Keyword.GSCompareFunction;
-      case "PassOperationFront":
-      case "PassOperationBack":
-      case "FailOperationFront":
-      case "FailOperationBack":
-      case "ZFailOperationFront":
-      case "ZFailOperationBack":
-        return Keyword.GSStencilOperation;
-    }
   }
 }
