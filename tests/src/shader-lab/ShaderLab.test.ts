@@ -2,7 +2,7 @@ import {
   BlendOperation,
   CompareFunction,
   CullMode,
-  RenderStateDataKey,
+  RenderStateElementKey,
   ShaderPlatformTarget
 } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
@@ -176,33 +176,33 @@ describe("ShaderLab", () => {
 
     expect(constantMap).not.be.null;
 
-    expect(toString(constantMap[RenderStateDataKey.BlendStateBlendColor] as Color)).eq("Color(1, 1, 1, 1)");
+    expect(toString(constantMap[RenderStateElementKey.BlendStateBlendColor] as Color)).eq("Color(1, 1, 1, 1)");
 
     expect(constantMap).include({
       // Stencil State
-      [RenderStateDataKey.StencilStateEnabled]: true,
-      [RenderStateDataKey.StencilStateReferenceValue]: 2,
-      [RenderStateDataKey.StencilStateMask]: 1.3,
-      [RenderStateDataKey.StencilStateWriteMask]: 0.32,
-      [RenderStateDataKey.StencilStateCompareFunctionFront]: CompareFunction.Less,
+      [RenderStateElementKey.StencilStateEnabled]: true,
+      [RenderStateElementKey.StencilStateReferenceValue]: 2,
+      [RenderStateElementKey.StencilStateMask]: 1.3,
+      [RenderStateElementKey.StencilStateWriteMask]: 0.32,
+      [RenderStateElementKey.StencilStateCompareFunctionFront]: CompareFunction.Less,
       // Blend State
-      [RenderStateDataKey.BlendStateEnabled0]: true,
-      [RenderStateDataKey.BlendStateColorWriteMask0]: 0.8,
-      [RenderStateDataKey.BlendStateAlphaBlendOperation0]: BlendOperation.Max,
+      [RenderStateElementKey.BlendStateEnabled0]: true,
+      [RenderStateElementKey.BlendStateColorWriteMask0]: 0.8,
+      [RenderStateElementKey.BlendStateAlphaBlendOperation0]: BlendOperation.Max,
 
       // Depth State
-      [RenderStateDataKey.DepthStateEnabled]: true,
-      [RenderStateDataKey.DepthStateWriteEnabled]: false,
-      [RenderStateDataKey.DepthStateCompareFunction]: CompareFunction.Greater,
+      [RenderStateElementKey.DepthStateEnabled]: true,
+      [RenderStateElementKey.DepthStateWriteEnabled]: false,
+      [RenderStateElementKey.DepthStateCompareFunction]: CompareFunction.Greater,
 
       // Raster State
-      [RenderStateDataKey.RasterStateCullMode]: CullMode.Front,
-      [RenderStateDataKey.RasterStateDepthBias]: 0.1,
-      [RenderStateDataKey.RasterStateSlopeScaledDepthBias]: 0.8
+      [RenderStateElementKey.RasterStateCullMode]: CullMode.Front,
+      [RenderStateElementKey.RasterStateDepthBias]: 0.1,
+      [RenderStateElementKey.RasterStateSlopeScaledDepthBias]: 0.8
     });
 
     expect(variableMap).include({
-      [RenderStateDataKey.BlendStateSourceAlphaBlendFactor0]: "material_SrcBlend"
+      [RenderStateElementKey.BlendStateSourceAlphaBlendFactor0]: "material_SrcBlend"
     });
 
     expect(shaderLabVerbose.errors.length).to.eq(1);

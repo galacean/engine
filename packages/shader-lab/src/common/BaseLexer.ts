@@ -147,14 +147,32 @@ export abstract class BaseLexer {
     return this._source.substring(offset, offset + to);
   }
 
-  scanText(text: string): void {
+  scanLexeme(lexeme: string): void {
     this.skipCommentsAndSpace();
-    const length = text.length;
+    const length = lexeme.length;
     const peek = this.peek(length);
-    if (peek !== text) {
-      this.throwError(this.getCurPosition(), `Expect text "${text}", but got "${peek}"`);
+    if (peek !== lexeme) {
+      this.throwError(this.getCurPosition(), `Expect lexeme "${lexeme}", but got "${peek}"`);
     }
     this.advance(length);
+  }
+
+  scanTwoExpectedLexemes(lexeme1: string, lexeme2: string): string | null {
+    this.skipCommentsAndSpace();
+
+    // Check first lexeme
+    if (this.peek(lexeme1.length) === lexeme1) {
+      this.advance(lexeme1.length);
+      return lexeme1;
+    }
+
+    // Check second lexeme
+    if (this.peek(lexeme2.length) === lexeme2) {
+      this.advance(lexeme2.length);
+      return lexeme2;
+    }
+
+    return null;
   }
 
   throwError(pos: ShaderPosition | ShaderRange, ...msgs: any[]) {
@@ -167,7 +185,7 @@ export abstract class BaseLexer {
 
   scanPairedChar(left: string, right: string, balanced: boolean, skipLeading: boolean): string {
     if (!skipLeading) {
-      this.scanText(left);
+      this.scanLexeme(left);
     }
 
     const start = this._currentIndex;

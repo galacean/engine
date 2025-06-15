@@ -73,7 +73,6 @@ export enum Keyword {
   // Common Tokens
   True,
   False,
-  LeftBracket,
   LeftBrace,
   RightBrace,
   Equal,

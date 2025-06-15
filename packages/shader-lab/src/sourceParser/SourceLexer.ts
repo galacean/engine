@@ -39,8 +39,7 @@ export default class SourceLexer extends BaseLexer {
   private static _symbolLexemeTable = <Record<string, Keyword>>{
     "{": Keyword.LeftBrace,
     "}": Keyword.RightBrace,
-    "=": Keyword.Equal,
-    "[": Keyword.LeftBracket
+    "=": Keyword.Equal
   };
 
   private static _isWordSeparatorChar(charCode: number): boolean {
@@ -87,7 +86,7 @@ export default class SourceLexer extends BaseLexer {
   }
 
   scanColor(): Color {
-    this.scanText("(");
+    this.scanLexeme("(");
 
     let r = 0,
       g = 0,
@@ -97,22 +96,22 @@ export default class SourceLexer extends BaseLexer {
     r = this.scanNumber();
     this.skipCommentsAndSpace();
     if (this.peek(1) !== ")") {
-      this.scanText(",");
+      this.scanLexeme(",");
       g = this.scanNumber();
       this.skipCommentsAndSpace();
       if (this.peek(1) !== ")") {
-        this.scanText(",");
+        this.scanLexeme(",");
         b = this.scanNumber();
         this.skipCommentsAndSpace();
         if (this.peek(1) !== ")") {
-          this.scanText(",");
+          this.scanLexeme(",");
           a = this.scanNumber();
           this.skipCommentsAndSpace();
         }
       }
     }
 
-    this.scanText(")");
+    this.scanLexeme(")");
     return new Color(r, g, b, a);
   }
 

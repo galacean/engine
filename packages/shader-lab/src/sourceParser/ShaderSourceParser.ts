@@ -6,7 +6,7 @@ import {
   CullMode,
   Logger,
   RenderQueueType,
-  RenderStateDataKey,
+  RenderStateElementKey,
   StencilOperation
 } from "@galacean/engine";
 import { IRenderStates, IShaderPassSource, IShaderSource, IStatement, ISubShaderSource } from "@galacean/engine-design";
@@ -27,7 +27,14 @@ import SourceLexer from "./SourceLexer";
  * @internal
  */
 export class ShaderSourceParser {
-  static _engineType = { RenderQueueType, CompareFunction, StencilOperation, BlendOperation, BlendFactor, CullMode };
+  static _renderStateConstType = {
+    RenderQueueType,
+    CompareFunction,
+    StencilOperation,
+    BlendOperation,
+    BlendFactor,
+    CullMode
+  };
 
   static _errors: GSError[] = [];
 
@@ -49,9 +56,9 @@ export class ShaderSourceParser {
       renderStates: { constantMap: {}, variableMap: {} }
     };
 
-    lexer.scanText("Shader");
+    lexer.scanLexeme("Shader");
     shaderSource.name = lexer.scanPairedChar('"', '"', false, false);
-    lexer.scanText("{");
+    lexer.scanLexeme("{");
 
     this._parseShader(lexer, shaderSource);
 
@@ -134,14 +141,14 @@ export class ShaderSourceParser {
     const token = lexer.scanToken();
     if (token.type === ETokenType.ID) {
       // Declaration
-      lexer.scanText("{");
+      lexer.scanLexeme("{");
       const renderState = this._parseRenderStatePropList(stateToken.lexeme, lexer);
       this._symbolTableStack.insert({ ident: token.lexeme, type: stateToken.type, value: renderState });
     } else if (token.lexeme === "=") {
       // Assignment
       const variable = lexer.scanToken();
 
-      lexer.scanText(";");
+      lexer.scanLexeme(";");
       const sm = ShaderSourceParser._lookupVariable(variable.lexeme, stateToken.type);
       if (!sm?.value) {
         this._createCompileError(
@@ -162,7 +169,7 @@ export class ShaderSourceParser {
 
   private static _parseVariableDeclaration(type: number, scanner: SourceLexer) {
     const token = scanner.scanToken();
-    scanner.scanText(";");
+    scanner.scanLexeme(";");
     this._symbolTableStack.insert({ type: type, ident: token.lexeme });
   }
 
@@ -175,14 +182,14 @@ export class ShaderSourceParser {
     this._symbolTableStack.popScope();
   }
 
-  private static _parseRenderStatePropList(state: string, scanner: SourceLexer): IRenderStates {
-    const ret: IRenderStates = { constantMap: {}, variableMap: {} };
-    while (scanner.getCurChar() !== "}") {
-      this._parseRenderStateProperties(ret, state, scanner);
-      scanner.skipCommentsAndSpace();
+  private static _parseRenderStatePropList(state: string, lexer: SourceLexer): IRenderStates {
+    const renderStates = <IRenderStates>{ constantMap: {}, variableMap: {} };
+    while (lexer.getCurChar() !== "}") {
+      this._parseRenderStateProperties(state, lexer, renderStates);
+      lexer.skipCommentsAndSpace();
     }
-    scanner._advance();
-    return ret;
+    lexer._advance();
+    return renderStates;
   }
 
   private static _createCompileError(
@@ -196,28 +203,30 @@ export class ShaderSourceParser {
     // #endif
   }
 
-  private static _parseRenderStateProperties(out: IRenderStates, stateLexeme: string, lexer: SourceLexer): void {
+  private static _parseRenderStateProperties(stateLexeme: string, lexer: SourceLexer, out: IRenderStates): void {
     const propertyToken = lexer.scanToken();
     const propertyLexeme = propertyToken.lexeme;
-    let renderStateKey = propertyLexeme;
-    const nextToken = lexer.scanToken();
+    let stateElementKey = propertyLexeme;
     if (stateLexeme === "BlendState" && propertyLexeme !== "BlendColor" && propertyLexeme !== "AlphaToCoverage") {
       let keyIndex = 0;
-      if (nextToken.type === Keyword.LeftBracket) {
+      const scannedLexeme = lexer.scanTwoExpectedLexemes("[", "=");
+      if (scannedLexeme === "[") {
         keyIndex = lexer.scanNumber();
-        lexer.scanText("]");
-        lexer.scanText("=");
-      } else if (nextToken.type !== Keyword.Equal) {
-        this._createCompileError(lexer, `Invalid syntax, expect character '=', but got ${nextToken.lexeme}`);
+        lexer.scanLexeme("]");
+        lexer.scanLexeme("=");
+      } else if (scannedLexeme !== "=") {
+        this._createCompileError(lexer, `Invalid syntax, expect '[' or '=', but got unexpected token`);
         // #if _VERBOSE
         lexer.scanToCharacter(";");
         return;
         // #endif
       }
-      renderStateKey += keyIndex;
+      stateElementKey += keyIndex;
+    } else {
+      lexer.scanLexeme("=");
     }
 
-    const renderStateElementKey = RenderStateDataKey[stateLexeme + renderStateKey];
+    const renderStateElementKey = RenderStateElementKey[stateLexeme + stateElementKey];
     if (renderStateElementKey === undefined) {
       this._createCompileError(lexer, `Invalid render state property ${propertyLexeme}`);
       // #if _VERBOSE
@@ -234,24 +243,24 @@ export class ShaderSourceParser {
       // Digit or '.'
       propertyValue = lexer.scanNumber();
     } else {
-      const variableToken = lexer.scanToken();
-      const valueType = variableToken.type;
+      const valueToken = lexer.scanToken();
+      const valueTokenType = valueToken.type;
 
-      if (valueType === Keyword.True) {
+      if (valueTokenType === Keyword.True) {
         propertyValue = true;
-      } else if (valueType === Keyword.False) {
+      } else if (valueTokenType === Keyword.False) {
         propertyValue = false;
-      } else if (valueType === Keyword.GSColor) {
+      } else if (valueTokenType === Keyword.GSColor) {
         propertyValue = lexer.scanColor();
       } else if (lexer.getCurChar() === ".") {
         lexer._advance();
-        const engineTypeProp = lexer.scanToken();
-        propertyValue = ShaderSourceParser._engineType[variableToken.lexeme]?.[engineTypeProp.lexeme];
+        const constValueToken = lexer.scanToken();
+        propertyValue = ShaderSourceParser._renderStateConstType[valueToken.lexeme]?.[constValueToken.lexeme];
         if (propertyValue == undefined) {
           this._createCompileError(
             lexer,
-            `Invalid engine constant: ${variableToken.lexeme}.${engineTypeProp.lexeme}`,
-            engineTypeProp.location
+            `Invalid engine constant: ${valueToken.lexeme}.${constValueToken.lexeme}`,
+            constValueToken.location
           );
           // #if _VERBOSE
           lexer.scanToCharacter(";");
@@ -259,14 +268,10 @@ export class ShaderSourceParser {
           // #endif
         }
       } else {
-        propertyValue = variableToken.lexeme;
+        propertyValue = valueToken.lexeme;
         const lookupType = ShaderSourceParser._getRenderStatePropertyType(propertyLexeme);
-        if (!ShaderSourceParser._lookupVariable(variableToken.lexeme, lookupType)) {
-          this._createCompileError(
-            lexer,
-            `Invalid ${stateLexeme} variable: ${variableToken.lexeme}`,
-            variableToken.location
-          );
+        if (!ShaderSourceParser._lookupVariable(valueToken.lexeme, lookupType)) {
+          this._createCompileError(lexer, `Invalid ${stateLexeme} variable: ${valueToken.lexeme}`, valueToken.location);
           // #if _VERBOSE
           lexer.scanToCharacter(";");
           return;
@@ -274,7 +279,7 @@ export class ShaderSourceParser {
         }
       }
     }
-    lexer.scanText(";");
+    lexer.scanLexeme(";");
     if (typeof propertyValue === "string") {
       out.variableMap[renderStateElementKey] = propertyValue;
     } else {
@@ -286,7 +291,7 @@ export class ShaderSourceParser {
     const token = scanner.scanToken();
     if (token.type === ETokenType.ID) {
       // declaration.
-      scanner.scanText(";");
+      scanner.scanLexeme(";");
       this._symbolTableStack.insert({ ident: token.lexeme, type: Keyword.GSRenderQueueType });
       return;
     }
@@ -302,9 +307,9 @@ export class ShaderSourceParser {
       // #endif
     }
     const word = scanner.scanToken();
-    scanner.scanText(";");
-    const value = ShaderSourceParser._engineType.RenderQueueType[word.lexeme];
-    const key = RenderStateDataKey.RenderQueueType;
+    scanner.scanLexeme(";");
+    const value = ShaderSourceParser._renderStateConstType.RenderQueueType[word.lexeme];
+    const key = RenderStateElementKey.RenderQueueType;
     if (value == undefined) {
       const sm = ShaderSourceParser._lookupVariable(word.lexeme, Keyword.GSRenderQueueType);
       if (!sm) {
@@ -344,7 +349,7 @@ export class ShaderSourceParser {
     } as ISubShaderSource;
     let braceLevel = 1;
     ret.name = scanner.scanPairedChar('"', '"', false, false);
-    scanner.scanText("{");
+    scanner.scanLexeme("{");
 
     scanner.skipCommentsAndSpace();
     let start = scanner.getCurPosition();
@@ -382,10 +387,10 @@ export class ShaderSourceParser {
   }
 
   private static _parseTags(tags: Record<string, number | string | boolean>, scanner: SourceLexer) {
-    scanner.scanText("{");
+    scanner.scanLexeme("{");
     while (true) {
       const ident = scanner.scanToken();
-      scanner.scanText("=");
+      scanner.scanLexeme("=");
       const value = scanner.scanPairedChar('"', '"', false, false);
       scanner.skipCommentsAndSpace();
 
@@ -395,7 +400,7 @@ export class ShaderSourceParser {
         scanner._advance();
         return;
       }
-      scanner.scanText(",");
+      scanner.scanLexeme(",");
     }
   }
 
@@ -407,7 +412,7 @@ export class ShaderSourceParser {
       tags: {}
     };
     ret.name = scanner.scanPairedChar('"', '"', false, false);
-    scanner.scanText("{");
+    scanner.scanLexeme("{");
     let braceLevel = 1;
 
     scanner.skipCommentsAndSpace();
@@ -419,7 +424,7 @@ export class ShaderSourceParser {
         case Keyword.GSVertexShader:
         case Keyword.GSFragmentShader:
           this._addPendingContents(scanner, start, word.lexeme.length, ret.pendingContents);
-          scanner.scanText("=");
+          scanner.scanLexeme("=");
           const entry = scanner.scanToken();
           if (ret[word.lexeme]) {
             const error = ShaderLabUtils.createGSError(
@@ -435,7 +440,7 @@ export class ShaderSourceParser {
           }
           const key = word.type === Keyword.GSVertexShader ? "vertexEntry" : "fragmentEntry";
           ret[key] = entry.lexeme;
-          scanner.scanText(";");
+          scanner.scanLexeme(";");
           start = scanner.getCurPosition();
           break;
         case Keyword.LeftBrace:
