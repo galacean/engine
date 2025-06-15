@@ -11,11 +11,19 @@ Shader "/Folder1/test.gs" {
       Pass "Forward Pass" {
         Tags { pipelineStage = "Forward"} 
 
-        DepthState {
+        Bool blendEnabled;
+        Bool depthWriteEnabled;
+        BlendFactor sourceColorBlendFactor;
+        BlendFactor destinationColorBlendFactor;
+        BlendFactor sourceAlphaBlendFactor;
+        BlendFactor destinationAlphaBlendFactor;
+        CullMode rasterStateCullMode;
+
+        DepthState customDepthState {
           WriteEnabled = depthWriteEnabled;
         }
 
-        BlendState {
+        BlendState customBlendState {
           Enabled = blendEnabled;
           SourceColorBlendFactor = sourceColorBlendFactor;
           DestinationColorBlendFactor = destinationColorBlendFactor;
@@ -23,9 +31,13 @@ Shader "/Folder1/test.gs" {
           DestinationAlphaBlendFactor = destinationAlphaBlendFactor;
         }
 
-        RasterState{
+        RasterState customRasterState {
           CullMode = rasterStateCullMode;
         }
+
+        BlendState = customBlendState;
+        DepthState = customDepthState;
+        RasterState = customRasterState;
 
         #define IS_METALLIC_WORKFLOW
         #define MATERIAL_ENABLE_IRIDESCENCE

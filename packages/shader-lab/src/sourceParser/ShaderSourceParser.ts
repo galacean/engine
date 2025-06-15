@@ -87,48 +87,6 @@ export class ShaderSourceParser {
     }
   }
 
-  private static _getRenderStatePropertyType(propertyName: string): Keyword {
-    switch (propertyName) {
-      case "WriteEnabled":
-      case "Enabled":
-        return Keyword.GSBool;
-      case "SourceColorBlendFactor":
-      case "DestinationColorBlendFactor":
-      case "SourceAlphaBlendFactor":
-      case "DestinationAlphaBlendFactor":
-        return Keyword.GSBlendFactor;
-      case "AlphaBlendOperation":
-      case "ColorBlendOperation":
-        return Keyword.GSBlendOperation;
-      case "ColorWriteMask":
-      case "DepthBias":
-      case "SlopeScaledDepthBias":
-      case "ReferenceValue":
-      case "Mask":
-      case "WriteMask":
-        return Keyword.GSNumber;
-      case "CullMode":
-        return Keyword.GSCullMode;
-      case "AlphaToCoverage":
-        return Keyword.GSBool;
-      case "BlendColor":
-        return Keyword.GSColor;
-      case "CompareFunction":
-      case "CompareFunctionFront":
-      case "CompareFunctionBack":
-        return Keyword.GSCompareFunction;
-      case "PassOperationFront":
-      case "PassOperationBack":
-      case "FailOperationFront":
-      case "FailOperationBack":
-      case "ZFailOperationFront":
-      case "ZFailOperationBack":
-        return Keyword.GSStencilOperation;
-      default:
-        return undefined; // For properties that don't have a specific type mapping
-    }
-  }
-
   private static _parseShader(lexer: SourceLexer, outShaderSource: IShaderSource): void {
     let braceLevel = 1;
 
@@ -244,7 +202,7 @@ export class ShaderSourceParser {
     const propertyToken = lexer.scanToken();
     const propertyLexeme = propertyToken.lexeme;
     let renderStateKey = propertyLexeme;
-
+    debugger;
     const nextToken = lexer.scanToken();
     if (stateLexeme === "BlendState" && propertyLexeme !== "BlendColor" && propertyLexeme !== "AlphaToCoverage") {
       let keyIndex = 0;
@@ -560,5 +518,44 @@ export class ShaderSourceParser {
         break;
     }
     return start;
+  }
+
+  private static _getRenderStatePropertyType(propertyName: string): Keyword {
+    switch (propertyName) {
+      case "WriteEnabled":
+      case "Enabled":
+      case "AlphaToCoverage":
+        return Keyword.GSBool;
+      case "SourceColorBlendFactor":
+      case "DestinationColorBlendFactor":
+      case "SourceAlphaBlendFactor":
+      case "DestinationAlphaBlendFactor":
+        return Keyword.GSBlendFactor;
+      case "AlphaBlendOperation":
+      case "ColorBlendOperation":
+        return Keyword.GSBlendOperation;
+      case "ColorWriteMask":
+      case "DepthBias":
+      case "SlopeScaledDepthBias":
+      case "ReferenceValue":
+      case "Mask":
+      case "WriteMask":
+        return Keyword.GSNumber;
+      case "CullMode":
+        return Keyword.GSCullMode;
+      case "BlendColor":
+        return Keyword.GSColor;
+      case "CompareFunction":
+      case "CompareFunctionFront":
+      case "CompareFunctionBack":
+        return Keyword.GSCompareFunction;
+      case "PassOperationFront":
+      case "PassOperationBack":
+      case "FailOperationFront":
+      case "FailOperationBack":
+      case "ZFailOperationFront":
+      case "ZFailOperationBack":
+        return Keyword.GSStencilOperation;
+    }
   }
 }

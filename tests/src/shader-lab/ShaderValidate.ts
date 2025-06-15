@@ -1,6 +1,6 @@
 import { ShaderLab } from "@galacean/engine-shaderlab";
 import { Shader, ShaderFactory, ShaderPass, ShaderPlatformTarget, ShaderMacro } from "@galacean/engine-core";
-import { IShaderContent } from "@galacean/engine-design/src/shader-lab";
+import { IShaderSource } from "@galacean/engine-design/src/shader-lab";
 import { expect } from "vitest";
 
 function addLineNum(str: string) {
@@ -20,7 +20,7 @@ function addLineNum(str: string) {
 }
 
 function validateShaderPass(
-  pass: IShaderContent["subShaders"][number]["passes"][number],
+  pass: IShaderSource["subShaders"][number]["passes"][number],
   vertexSource: string,
   fragmentSource: string
 ) {

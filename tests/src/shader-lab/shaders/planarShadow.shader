@@ -6,7 +6,7 @@ Shader "PlanarShadow" {
 
     Pass "planarShadow" {
       // render states
-      DepthState {
+      DepthState customDepthState {
         WriteEnabled = true;
       }
 
@@ -18,7 +18,7 @@ Shader "PlanarShadow" {
         DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
       }
 
-      StencilState {
+      StencilState customStencilState {
         Enabled = true;
         ReferenceValue = 0;
         CompareFunctionFront = CompareFunction.Equal;
@@ -31,6 +31,8 @@ Shader "PlanarShadow" {
         PassOperationBack = StencilOperation.IncrementWrap;
       }
 
+      DepthState = customDepthState;
+      StencilState = customStencilState;
       BlendState = blendState;
 
       vec3 u_lightDir;
