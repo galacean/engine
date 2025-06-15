@@ -28,20 +28,14 @@ export class VisitorContext {
 
   stage: EShaderStage;
 
-  _referencedAttributeList: Record<string, IParamInfo & { qualifier?: string }> = Object.create(null);
-  _referencedGlobals: Record<string, SymbolInfo | ASTNode.PrecisionSpecifier> = Object.create(null);
-  _referencedVaryingList: Record<string, IParamInfo & { qualifier?: string }> = Object.create(null);
-  _referencedMRTList: Record<string, StructProp | string> = Object.create(null);
+  _referencedAttributeList: Record<string, IParamInfo & { qualifier?: string }>;
+  _referencedGlobals: Record<string, SymbolInfo | ASTNode.PrecisionSpecifier>;
+  _referencedVaryingList: Record<string, IParamInfo & { qualifier?: string }>;
+  _referencedMRTList: Record<string, StructProp | string>;
 
   _curFn?: ASTNode.FunctionProtoType;
 
   _passSymbolTable: TargetSymbolTable;
-
-  private constructor() {}
-
-  get passSymbolTable() {
-    return this._passSymbolTable;
-  }
 
   reset() {
     this.attributeList.length = 0;

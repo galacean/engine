@@ -3,7 +3,7 @@ import LexerUtils from "../lexer/Utils";
 import { MacroDefine } from "./MacroDefine";
 import { BaseToken } from "../common/BaseToken";
 import { EPpKeyword, EPpToken, PpConstant } from "./constants";
-import PpScanner from "./PpScanner";
+import PpLexer from "./PpLexer";
 import { PpUtils } from "./Utils";
 import { ShaderLab } from "../ShaderLab";
 import { ShaderPass } from "@galacean/engine";
@@ -62,7 +62,7 @@ export class PpParser {
     this._definedMacros.set(macro, new MacroDefine(tk, macroBody));
   }
 
-  static parse(scanner: PpScanner): string | null {
+  static parse(scanner: PpLexer): string | null {
     while (!scanner.isEnd()) {
       const directive = scanner.scanDirective(this._onToken.bind(this))!;
       if (scanner.isEnd()) break;
@@ -110,7 +110,7 @@ export class PpParser {
     // #endif
   }
 
-  private static _parseInclude(scanner: PpScanner) {
+  private static _parseInclude(scanner: PpLexer) {
     const start = scanner.getShaderPosition(8);
 
     scanner.skipSpace(true);
@@ -147,7 +147,7 @@ export class PpParser {
     });
   }
 
-  private static _parseIfDef(scanner: PpScanner) {
+  private static _parseIfDef(scanner: PpLexer) {
     const start = scanner.current - 6;
 
     const id = scanner.scanWord();
@@ -185,10 +185,7 @@ export class PpParser {
     this._parseMacroBranch(<any>nextDirective.type, scanner);
   }
 
-  private static _parseMacroBranch(
-    directive: EPpKeyword.elif | EPpKeyword.else | EPpKeyword.endif,
-    scanner: PpScanner
-  ) {
+  private static _parseMacroBranch(directive: EPpKeyword.elif | EPpKeyword.else | EPpKeyword.endif, scanner: PpLexer) {
     if (directive === EPpKeyword.endif) {
       return;
     }
@@ -248,12 +245,12 @@ export class PpParser {
     }
   }
 
-  private static _parseConstantExpression(scanner: PpScanner) {
+  private static _parseConstantExpression(scanner: PpLexer) {
     scanner.skipSpace(true);
     return this._parseLogicalOrExpression(scanner);
   }
 
-  private static _parseLogicalOrExpression(scanner: PpScanner): PpConstant {
+  private static _parseLogicalOrExpression(scanner: PpLexer): PpConstant {
     const operand1 = this._parseLogicalAndExpression(scanner);
     const operator = scanner.peek(2);
     if (operator && operator === "||") {
@@ -265,7 +262,7 @@ export class PpParser {
     return operand1;
   }
 
-  private static _parseLogicalAndExpression(scanner: PpScanner): PpConstant {
+  private static _parseLogicalAndExpression(scanner: PpLexer): PpConstant {
     const operand1 = this._parseEqualityExpression(scanner);
     const operator = scanner.peek(2);
     if (operator && operator === "&&") {
@@ -277,7 +274,7 @@ export class PpParser {
     return operand1;
   }
 
-  private static _parseEqualityExpression(scanner: PpScanner): PpConstant {
+  private static _parseEqualityExpression(scanner: PpLexer): PpConstant {
     const operand1 = this._parseRelationalExpression(scanner);
     const operator = scanner.peek(2);
     if (operator && ["==", "!="].includes(operator)) {
@@ -294,7 +291,7 @@ export class PpParser {
     return operand1;
   }
 
-  private static _parseRelationalExpression(scanner: PpScanner): PpConstant {
+  private static _parseRelationalExpression(scanner: PpLexer): PpConstant {
     const operand1 = this._parseShiftExpression(scanner) as number;
     let operator = scanner.peek(2);
     if (operator[1] !== "=") operator = operator[0];
@@ -321,7 +318,7 @@ export class PpParser {
     return operand1;
   }
 
-  private static _parseShiftExpression(scanner: PpScanner): PpConstant {
+  private static _parseShiftExpression(scanner: PpLexer): PpConstant {
     const operand1 = this._parseAdditiveExpression(scanner) as number;
     const operator = scanner.peek(2);
     if (operator && [">>", "<<"].includes(operator)) {
@@ -344,11 +341,11 @@ export class PpParser {
     return operand1;
   }
 
-  private static _parseAdditiveExpression(scanner: PpScanner): PpConstant {
+  private static _parseAdditiveExpression(scanner: PpLexer): PpConstant {
     const operand1 = this._parseMulticativeExpression(scanner) as number;
     if ([">", "<"].includes(scanner.getCurChar())) {
       const opPos = scanner.getShaderPosition(0);
-      scanner.advance();
+      scanner.advance(1);
 
       const operator = scanner.getCurChar();
       scanner.skipSpace(false);
@@ -367,7 +364,7 @@ export class PpParser {
     return operand1;
   }
 
-  private static _parseMulticativeExpression(scanner: PpScanner): PpConstant {
+  private static _parseMulticativeExpression(scanner: PpLexer): PpConstant {
     const operand1 = this._parseUnaryExpression(scanner) as number;
     scanner.skipSpace(false);
     if (["*", "/", "%"].includes(scanner.getCurChar())) {
@@ -391,10 +388,10 @@ export class PpParser {
     return operand1;
   }
 
-  private static _parseUnaryExpression(scanner: PpScanner) {
+  private static _parseUnaryExpression(scanner: PpLexer) {
     const operator = scanner.getCurChar();
     if (["+", "-", "!"].includes(operator)) {
-      scanner.advance();
+      scanner.advance(1);
       const opPos = scanner.getShaderPosition(0);
       const parenExpr = this._parseParenthesisExpression(scanner);
       if ((operator === "!" && typeof parenExpr !== "boolean") || (operator !== "!" && typeof parenExpr !== "number")) {
@@ -413,19 +410,19 @@ export class PpParser {
     return this._parseParenthesisExpression(scanner);
   }
 
-  private static _parseParenthesisExpression(scanner: PpScanner): PpConstant {
+  private static _parseParenthesisExpression(scanner: PpLexer): PpConstant {
     if (scanner.getCurChar() === "(") {
-      scanner._advance();
+      scanner.advance(1);
       scanner.skipSpace(false);
       const ret = this._parseConstantExpression(scanner);
       scanner.scanToChar(")");
-      scanner._advance();
+      scanner.advance(1);
       return ret;
     }
     return this._parseConstant(scanner);
   }
 
-  private static _parseConstant(scanner: PpScanner): PpConstant {
+  private static _parseConstant(scanner: PpLexer): PpConstant {
     if (LexerUtils.isAlpha(scanner.getCurCharCode())) {
       const id = scanner.scanWord();
       if (id.type === EPpKeyword.defined) {
@@ -433,7 +430,7 @@ export class PpParser {
         const macro = scanner.scanWord(true);
         if (withParen) {
           scanner.scanToChar(")");
-          scanner._advance();
+          scanner.advance(1);
         }
         this._branchMacros.add(macro.lexeme);
         return !!this._definedMacros.get(macro.lexeme);
@@ -471,7 +468,7 @@ export class PpParser {
   private static _expandMacroChunk(
     chunk: string,
     loc: ShaderRange,
-    parentScanner: PpScanner
+    parentScanner: PpLexer
   ): {
     content: string;
     // #if _VERBOSE
@@ -491,7 +488,7 @@ export class PpParser {
   private static _expandMacroChunk(
     chunk: string,
     loc: ShaderRange,
-    scannerOrFile: PpScanner | string
+    scannerOrFile: PpLexer | string
   ): {
     content: string;
     // #if _VERBOSE
@@ -499,11 +496,11 @@ export class PpParser {
     // #endif
   } {
     this._expandSegmentsStack.push([]);
-    let scanner: PpScanner;
+    let scanner: PpLexer;
     if (typeof scannerOrFile === "string") {
-      scanner = new PpScanner(chunk, scannerOrFile);
+      scanner = new PpLexer(chunk, scannerOrFile);
     } else {
-      scanner = new PpScanner(chunk, scannerOrFile.file, loc);
+      scanner = new PpLexer(chunk, scannerOrFile.file, loc);
     }
     const ret = this.parse(scanner);
     this._expandSegmentsStack.pop();
@@ -515,7 +512,7 @@ export class PpParser {
     };
   }
 
-  private static _parseIfNdef(scanner: PpScanner) {
+  private static _parseIfNdef(scanner: PpLexer) {
     const start = scanner.current - 7;
 
     const id = scanner.scanWord();
@@ -547,7 +544,7 @@ export class PpParser {
     this._parseMacroBranch(<any>nextDirective.type, scanner);
   }
 
-  private static _addEmptyReplace(scanner: PpScanner, start: number) {
+  private static _addEmptyReplace(scanner: PpLexer, start: number) {
     // #if _VERBOSE
     const block = new BlockInfo(scanner.file, scanner.blockRange);
     // #endif
@@ -563,7 +560,7 @@ export class PpParser {
     });
   }
 
-  private static _parseIf(scanner: PpScanner) {
+  private static _parseIf(scanner: PpLexer) {
     const start = scanner.current - 3;
 
     const constantExpr = this._parseConstantExpression(scanner);
@@ -592,7 +589,7 @@ export class PpParser {
     this._parseMacroBranch(<any>nextDirective.type, scanner);
   }
 
-  private static _parseDefine(scanner: PpScanner) {
+  private static _parseDefine(scanner: PpLexer) {
     const start = scanner.getShaderPosition(7);
     const macro = scanner.scanWord();
 
@@ -624,7 +621,7 @@ export class PpParser {
     });
   }
 
-  private static _parseUndef(scanner: PpScanner) {
+  private static _parseUndef(scanner: PpLexer) {
     const start = scanner.current - 6;
     const macro = scanner.scanWord();
 
@@ -643,13 +640,13 @@ export class PpParser {
     this._definedMacros.delete(macro.lexeme);
   }
 
-  private static _onToken(token: BaseToken, scanner: PpScanner) {
+  private static _onToken(token: BaseToken, scanner: PpLexer) {
     const macro = this._definedMacros.get(token.lexeme);
     if (macro) {
       let replace = macro.body.lexeme;
       if (macro.isFunction) {
         scanner.scanToChar("(");
-        scanner._advance();
+        scanner.advance(1);
 
         // extract parameters
         const args: string[] = [];
@@ -664,11 +661,11 @@ export class PpParser {
             args.push(scanner.source.slice(curIdx, scanner.current));
             curIdx = scanner.current + 1;
           }
-          scanner._advance();
+          scanner.advance(1);
         }
         args.push(scanner.source.slice(curIdx, scanner.current));
 
-        scanner._advance();
+        scanner.advance(1);
         const range = ShaderLab.createRange(token.location!.start, scanner.getCurPosition());
         replace = macro.expandFunctionBody(args);
         const expanded = this._expandMacroChunk(replace, range, scanner);

@@ -1,9 +1,9 @@
 import { PpParser } from "./PpParser";
-import PpScanner from "./PpScanner";
+import PpLexer from "./PpLexer";
 
 /** @internal */
 export class Preprocessor {
-  static baseScanner: PpScanner;
+  static baseScanner: PpLexer;
 
   /**
    * Reset the parser of `Preprocessor`
@@ -17,7 +17,7 @@ export class Preprocessor {
    * Should call it after reset.
    */
   static process(source: string): string | null {
-    this.baseScanner = new PpScanner(source);
+    this.baseScanner = new PpLexer(source);
     return PpParser.parse(this.baseScanner);
   }
 
