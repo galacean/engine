@@ -144,14 +144,12 @@ export class ShaderSourceParser {
       lexer.scanText(";");
       const sm = ShaderSourceParser._lookupVariable(variable.lexeme, stateToken.type);
       if (!sm?.value) {
-        const error = ShaderLabUtils.createGSError(
+        this._createCompileError(
+          lexer,
           `Invalid "${stateToken.lexeme}" variable: ${variable.lexeme}`,
-          GSErrorName.CompilationError,
-          lexer.source,
           variable.location
         );
         // #if _VERBOSE
-        this._errors.push(<GSError>error);
         return;
         // #endif
       }
@@ -294,14 +292,12 @@ export class ShaderSourceParser {
     }
 
     if (token.lexeme !== "=") {
-      const error = ShaderLabUtils.createGSError(
-        `Invalid syntax.`,
-        GSErrorName.CompilationError,
-        scanner.source,
+      this._createCompileError(
+        scanner,
+        `Invalid syntax, expect character '=', but got ${token.lexeme}`,
         token.location
       );
       // #if _VERBOSE
-      this._errors.push(<GSError>error);
       return;
       // #endif
     }
@@ -312,14 +308,8 @@ export class ShaderSourceParser {
     if (value == undefined) {
       const sm = ShaderSourceParser._lookupVariable(word.lexeme, Keyword.GSRenderQueueType);
       if (!sm) {
-        const error = ShaderLabUtils.createGSError(
-          `Invalid RenderQueueType variable: ${word.lexeme}`,
-          GSErrorName.CompilationError,
-          scanner.source,
-          word.location
-        );
+        this._createCompileError(scanner, `Invalid RenderQueueType variable: ${word.lexeme}`, word.location);
         // #if _VERBOSE
-        this._errors.push(<GSError>error);
         return;
         // #endif
       }
