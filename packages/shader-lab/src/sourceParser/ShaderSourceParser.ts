@@ -267,19 +267,7 @@ export class ShaderSourceParser {
       } else if (valueType === Keyword.False) {
         propertyValue = false;
       } else if (valueType === Keyword.GSColor) {
-        lexer.scanText("(");
-        const args: number[] = [];
-        while (true) {
-          args.push(lexer.scanNumber());
-          lexer.skipCommentsAndSpace();
-          const peek = lexer.peek(1);
-          if (peek === ")") {
-            lexer._advance();
-            break;
-          }
-          lexer.scanText(",");
-        }
-        propertyValue = new Color(...args);
+        propertyValue = lexer.scanColor();
       } else if (lexer.getCurChar() === ".") {
         lexer._advance();
         const engineTypeProp = lexer.scanToken();

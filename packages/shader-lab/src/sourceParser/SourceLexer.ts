@@ -1,3 +1,4 @@
+import { Color } from "@galacean/engine";
 import { ETokenType, ShaderPosition, ShaderRange } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken } from "../common/BaseToken";
@@ -83,6 +84,33 @@ export default class SourceLexer extends BaseLexer {
 
     this.advance(currentIndex - this._currentIndex);
     return Number(source.substring(start, currentIndex));
+  }
+
+  scanColor(): Color {
+    this.scanText("(");
+
+    let r = 0, g = 0, b = 0, a = 1;
+
+    r = this.scanNumber();
+    this.skipCommentsAndSpace();
+    if (this.peek(1) !== ")") {
+      this.scanText(",");
+      g = this.scanNumber();
+      this.skipCommentsAndSpace();
+      if (this.peek(1) !== ")") {
+        this.scanText(",");
+        b = this.scanNumber();
+        this.skipCommentsAndSpace();
+        if (this.peek(1) !== ")") {
+          this.scanText(",");
+          a = this.scanNumber();
+          this.skipCommentsAndSpace();
+        }
+      }
+    }
+
+    this.scanText(")");
+    return new Color(r, g, b, a);
   }
 
   override scanToken(): BaseToken {
