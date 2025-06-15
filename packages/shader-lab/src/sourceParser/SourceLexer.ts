@@ -89,7 +89,10 @@ export default class SourceLexer extends BaseLexer {
   scanColor(): Color {
     this.scanText("(");
 
-    let r = 0, g = 0, b = 0, a = 1;
+    let r = 0,
+      g = 0,
+      b = 0,
+      a = 1;
 
     r = this.scanNumber();
     this.skipCommentsAndSpace();
