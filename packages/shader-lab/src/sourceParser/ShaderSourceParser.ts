@@ -201,102 +201,94 @@ export class ShaderSourceParser {
   private static _parseRenderStatePropList(state: string, scanner: SourceLexer): IRenderStates {
     const ret: IRenderStates = { constantMap: {}, variableMap: {} };
     while (scanner.getCurChar() !== "}") {
-      this._parseRenderStatePropItem(ret, state, scanner);
+      this._parseRenderStateProperties(ret, state, scanner);
       scanner.skipCommentsAndSpace();
     }
     scanner._advance();
     return ret;
   }
 
-  private static _parseRenderStatePropItem(ret: IRenderStates, state: string, scanner: SourceLexer) {
-    const propertyToken = scanner.scanToken();
-    let renderStateProp = propertyToken.lexeme;
-    const op = scanner.scanToken();
-    if (state === "BlendState" && renderStateProp !== "BlendColor" && renderStateProp !== "AlphaToCoverage") {
-      let idx = 0;
-      if (op.lexeme === "[") {
-        idx = scanner.scanNumber();
-        scanner.scanText("]");
-        scanner.scanText("=");
-      } else if (op.lexeme !== "=") {
-        const error = ShaderLabUtils.createGSError(
-          `Invalid syntax, expect character '=', but got ${op.lexeme}`,
-          GSErrorName.CompilationError,
-          scanner.source,
-          scanner.getCurPosition()
-        );
+  private static _parseRenderStateProperties(out: IRenderStates, stateLexeme: string, lexer: SourceLexer): void {
+    const propertyToken = lexer.scanToken();
+    const propertyLexeme = propertyToken.lexeme;
+    let renderStateKey = propertyLexeme;
+
+    const nextToken = lexer.scanToken();
+    if (stateLexeme === "BlendState" && propertyLexeme !== "BlendColor" && propertyLexeme !== "AlphaToCoverage") {
+      let keyIndex = 0;
+      if (nextToken.type === Keyword.LeftBracket) {
+        keyIndex = lexer.scanNumber();
+        lexer.scanText("]");
+        lexer.scanText("=");
+      } else if (nextToken.type !== Keyword.Equal) {
+        const error = lexer.createCompileError(`Invalid syntax, expect character '=', but got ${nextToken.lexeme}`);
         // #if _VERBOSE
         this._errors.push(<GSError>error);
-        scanner.scanToCharacter(";");
+        lexer.scanToCharacter(";");
         return;
         // #endif
       }
-      renderStateProp += idx;
+      renderStateKey += keyIndex;
     }
 
-    renderStateProp = state + renderStateProp;
-    const renderStateElementKey = RenderStateDataKey[renderStateProp];
-    if (renderStateElementKey == undefined) {
-      const error = ShaderLabUtils.createGSError(
-        `Invalid render state element ${renderStateProp}`,
-        GSErrorName.CompilationError,
-        scanner.source,
-        scanner.getCurPosition()
-      );
+    renderStateKey = stateLexeme + renderStateKey;
+    const renderStateElementKey = RenderStateDataKey[renderStateKey];
+    if (renderStateElementKey === undefined) {
+      const error = lexer.createCompileError(`Invalid render state element ${renderStateKey}`);
       // #if _VERBOSE
       this._errors.push(<GSError>error);
-      scanner.scanToCharacter(";");
+      lexer.scanToCharacter(";");
       return;
       // #endif
     }
 
-    scanner.skipCommentsAndSpace();
+    lexer.skipCommentsAndSpace();
     let propertyValue: number | string | boolean | Color;
-    if (/[0-9.]/.test(scanner.getCurChar())) {
-      propertyValue = scanner.scanNumber();
+    if (/[0-9.]/.test(lexer.getCurChar())) {
+      propertyValue = lexer.scanNumber();
     } else {
-      const variableToken = scanner.scanToken();
+      const variableToken = lexer.scanToken();
       if (variableToken.type === Keyword.True) propertyValue = true;
       else if (variableToken.type === Keyword.False) propertyValue = false;
       else if (variableToken.type === Keyword.GSColor) {
-        scanner.scanText("(");
+        lexer.scanText("(");
         const args: number[] = [];
         while (true) {
-          args.push(scanner.scanNumber());
-          scanner.skipCommentsAndSpace();
-          const peek = scanner.peek(1);
+          args.push(lexer.scanNumber());
+          lexer.skipCommentsAndSpace();
+          const peek = lexer.peek(1);
           if (peek === ")") {
-            scanner._advance();
+            lexer._advance();
             break;
           }
-          scanner.scanText(",");
+          lexer.scanText(",");
         }
         propertyValue = new Color(...args);
-      } else if (scanner.getCurChar() === ".") {
-        scanner._advance();
-        const engineTypeProp = scanner.scanToken();
+      } else if (lexer.getCurChar() === ".") {
+        lexer._advance();
+        const engineTypeProp = lexer.scanToken();
         propertyValue = ShaderSourceParser._engineType[variableToken.lexeme]?.[engineTypeProp.lexeme];
         if (propertyValue == undefined) {
           const error = ShaderLabUtils.createGSError(
             `Invalid engine constant: ${variableToken.lexeme}.${engineTypeProp.lexeme}`,
             GSErrorName.CompilationError,
-            scanner.source,
+            lexer.source,
             engineTypeProp.location
           );
           // #if _VERBOSE
           this._errors.push(<GSError>error);
-          scanner.scanToCharacter(";");
+          lexer.scanToCharacter(";");
           return;
           // #endif
         }
       } else {
         propertyValue = variableToken.lexeme;
-        const lookupType = ShaderSourceParser._getRenderStatePropertyType(propertyToken.lexeme);
+        const lookupType = ShaderSourceParser._getRenderStatePropertyType(propertyLexeme);
         if (!ShaderSourceParser._lookupVariable(variableToken.lexeme, lookupType)) {
           const error = ShaderLabUtils.createGSError(
-            `Invalid ${state} variable: ${variableToken.lexeme}`,
+            `Invalid ${stateLexeme} variable: ${variableToken.lexeme}`,
             GSErrorName.CompilationError,
-            scanner.source,
+            lexer.source,
             variableToken.location
           );
           // #if _VERBOSE
@@ -306,11 +298,11 @@ export class ShaderSourceParser {
         }
       }
     }
-    scanner.scanText(";");
+    lexer.scanText(";");
     if (typeof propertyValue === "string") {
-      ret.variableMap[renderStateElementKey] = propertyValue;
+      out.variableMap[renderStateElementKey] = propertyValue;
     } else {
-      ret.constantMap[renderStateElementKey] = propertyValue;
+      out.constantMap[renderStateElementKey] = propertyValue;
     }
   }
 

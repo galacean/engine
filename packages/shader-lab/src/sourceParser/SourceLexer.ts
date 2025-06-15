@@ -2,7 +2,9 @@ import { ETokenType, ShaderPosition } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
+import { GSErrorName } from "../GSError";
 import { ShaderLab } from "../ShaderLab";
+import { ShaderLabUtils } from "../ShaderLabUtils";
 
 export default class SourceLexer extends BaseLexer {
   private static _keywordLexemeTable = <Record<string, Keyword>>{
@@ -123,6 +125,10 @@ export default class SourceLexer extends BaseLexer {
     this._advance();
   }
   // #endif
+
+  createCompileError(message: string) {
+    return ShaderLabUtils.createGSError(message, GSErrorName.CompilationError, this.source, this.getCurPosition());
+  }
 
   private _scanWord(start: ShaderPosition): BaseToken | null {
     // Scan the complete word first
