@@ -142,7 +142,7 @@ export class ShaderSourceParser {
     if (token.type === ETokenType.ID) {
       // Declaration
       lexer.scanLexeme("{");
-      const renderState = this._parseRenderStatePropList(stateToken.lexeme, lexer);
+      const renderState = this._parseRenderStateProperties(stateToken.lexeme, lexer);
       this._symbolTableStack.insert({ ident: token.lexeme, type: stateToken.type, value: renderState });
     } else if (token.lexeme === "=") {
       // Assignment
@@ -182,10 +182,10 @@ export class ShaderSourceParser {
     this._symbolTableStack.popScope();
   }
 
-  private static _parseRenderStatePropList(state: string, lexer: SourceLexer): IRenderStates {
+  private static _parseRenderStateProperties(state: string, lexer: SourceLexer): IRenderStates {
     const renderStates = <IRenderStates>{ constantMap: {}, variableMap: {} };
     while (lexer.getCurChar() !== "}") {
-      this._parseRenderStateProperties(state, lexer, renderStates);
+      this._parseRenderStateProperty(state, lexer, renderStates);
       lexer.skipCommentsAndSpace();
     }
     lexer.advance(1);
@@ -203,7 +203,7 @@ export class ShaderSourceParser {
     // #endif
   }
 
-  private static _parseRenderStateProperties(stateLexeme: string, lexer: SourceLexer, out: IRenderStates): void {
+  private static _parseRenderStateProperty(stateLexeme: string, lexer: SourceLexer, out: IRenderStates): void {
     const propertyToken = lexer.scanToken();
     const propertyLexeme = propertyToken.lexeme;
     let stateElementKey = propertyLexeme;

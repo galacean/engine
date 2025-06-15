@@ -93,7 +93,7 @@ export class Lexer extends BaseLexer {
 
   override skipSpace() {
     while (LexerUtils.isSpace(this.getCurCharCode())) {
-      this._advance();
+      this.advance(1);
     }
   }
 
@@ -116,19 +116,19 @@ export class Lexer extends BaseLexer {
 
     switch (this.getCurChar()) {
       case "<":
-        this._advance();
+        this.advance(1);
         curChar = this.getCurChar();
         if (curChar === "<") {
-          this._advance();
+          this.advance(1);
           if (this.getCurChar() === "=") {
-            this._advance();
+            this.advance(1);
             token.set(ETokenType.LEFT_ASSIGN, "<<=", start);
             break;
           }
           token.set(ETokenType.LEFT_OP, "<<", start);
           break;
         } else if (curChar === "=") {
-          this._advance();
+          this.advance(1);
           token.set(ETokenType.LE_OP, "<=", start);
           break;
         }
@@ -136,19 +136,19 @@ export class Lexer extends BaseLexer {
         break;
 
       case ">":
-        this._advance();
+        this.advance(1);
         curChar = this.getCurChar();
         if (curChar === ">") {
-          this._advance();
+          this.advance(1);
           if (this.getCurChar() === "=") {
-            this._advance();
+            this.advance(1);
             token.set(ETokenType.RIGHT_ASSIGN, ">>=", start);
             break;
           }
           token.set(ETokenType.RIGHT_OP, ">>", start);
           break;
         } else if (curChar === "=") {
-          this._advance();
+          this.advance(1);
           token.set(ETokenType.GE_OP, ">=", start);
           break;
         }
@@ -156,14 +156,14 @@ export class Lexer extends BaseLexer {
         break;
 
       case "+":
-        this._advance();
+        this.advance(1);
         curChar = this.getCurChar();
         if (curChar === "+") {
-          this._advance();
+          this.advance(1);
           token.set(ETokenType.INC_OP, "++", start);
           break;
         } else if (curChar === "=") {
-          this._advance();
+          this.advance(1);
           token.set(ETokenType.ADD_ASSIGN, "+=", start);
           break;
         }
@@ -171,14 +171,14 @@ export class Lexer extends BaseLexer {
         break;
 
       case "-":
-        this._advance();
+        this.advance(1);
         curChar = this.getCurChar();
         if (curChar === "-") {
-          this._advance();
+          this.advance(1);
           token.set(ETokenType.DEC_OP, "--", start);
           break;
         } else if (curChar === "=") {
-          this._advance();
+          this.advance(1);
           token.set(ETokenType.SUB_ASSIGN, "-=", start);
           break;
         }
@@ -186,9 +186,9 @@ export class Lexer extends BaseLexer {
         break;
 
       case "=":
-        this._advance();
+        this.advance(1);
         if (this.getCurChar() === "=") {
-          this._advance();
+          this.advance(1);
           token.set(ETokenType.EQ_OP, "==", start);
           break;
         }
@@ -196,9 +196,9 @@ export class Lexer extends BaseLexer {
         break;
 
       case "!":
-        this._advance();
+        this.advance(1);
         if (this.getCurChar() === "=") {
-          this._advance();
+          this.advance(1);
           token.set(ETokenType.NE_OP, "!=", start);
           break;
         }
@@ -206,14 +206,14 @@ export class Lexer extends BaseLexer {
         break;
 
       case "&":
-        this._advance();
+        this.advance(1);
         curChar = this.getCurChar();
         if (curChar === "&") {
-          this._advance();
+          this.advance(1);
           token.set(ETokenType.AND_OP, "&&", start);
           break;
         } else if (curChar === "=") {
-          this._advance();
+          this.advance(1);
           token.set(ETokenType.ADD_ASSIGN, "&=", start);
           break;
         }
@@ -221,14 +221,14 @@ export class Lexer extends BaseLexer {
         break;
 
       case "|":
-        this._advance();
+        this.advance(1);
         curChar = this.getCurChar();
         if (curChar === "|") {
-          this._advance();
+          this.advance(1);
           token.set(ETokenType.OR_OP, "||", start);
           break;
         } else if (curChar === "=") {
-          this._advance();
+          this.advance(1);
           token.set(ETokenType.OR_ASSIGN, "|=", start);
           break;
         }
@@ -236,14 +236,14 @@ export class Lexer extends BaseLexer {
         break;
 
       case "^":
-        this._advance();
+        this.advance(1);
         curChar = this.getCurChar();
         if (curChar === "^") {
-          this._advance();
+          this.advance(1);
           token.set(ETokenType.XOR_OP, "^^", start);
           break;
         } else if (curChar === "=") {
-          this._advance();
+          this.advance(1);
           token.set(ETokenType.XOR_ASSIGN, "^=", start);
           break;
         }
@@ -251,9 +251,9 @@ export class Lexer extends BaseLexer {
         break;
 
       case "*":
-        this._advance();
+        this.advance(1);
         if (this.getCurChar() === "=") {
-          this._advance();
+          this.advance(1);
           token.set(ETokenType.MUL_ASSIGN, "*=", start);
           break;
         }
@@ -262,9 +262,9 @@ export class Lexer extends BaseLexer {
         break;
 
       case "/":
-        this._advance();
+        this.advance(1);
         if (this.getCurChar() === "=") {
-          this._advance();
+          this.advance(1);
 
           token.set(ETokenType.DIV_ASSIGN, "/=", start);
           break;
@@ -274,9 +274,9 @@ export class Lexer extends BaseLexer {
         break;
 
       case "%":
-        this._advance();
+        this.advance(1);
         if (this.getCurChar() === "=") {
-          this._advance();
+          this.advance(1);
 
           token.set(ETokenType.MOD_ASSIGN, "%=", start);
           break;
@@ -286,37 +286,37 @@ export class Lexer extends BaseLexer {
         break;
 
       case "(":
-        this._advance();
+        this.advance(1);
 
         token.set(ETokenType.LEFT_PAREN, "(", start);
         break;
       case ")":
-        this._advance();
+        this.advance(1);
 
         token.set(ETokenType.RIGHT_PAREN, ")", start);
         break;
       case "{":
-        this._advance();
+        this.advance(1);
 
         token.set(ETokenType.LEFT_BRACE, "{", start);
         break;
       case "}":
-        this._advance();
+        this.advance(1);
 
         token.set(ETokenType.RIGHT_BRACE, "}", start);
         break;
       case "[":
-        this._advance();
+        this.advance(1);
 
         token.set(ETokenType.LEFT_BRACKET, "[", start);
         break;
       case "]":
-        this._advance();
+        this.advance(1);
 
         token.set(ETokenType.RIGHT_BRACKET, "]", start);
         break;
       case ".":
-        this._advance();
+        this.advance(1);
         if (LexerUtils.isNum(this.getCurCharCode())) {
           return this._scanNumAfterDot();
         }
@@ -324,32 +324,32 @@ export class Lexer extends BaseLexer {
         token.set(ETokenType.DOT, ".", start);
         break;
       case ",":
-        this._advance();
+        this.advance(1);
 
         token.set(ETokenType.COMMA, ",", start);
         break;
       case ":":
-        this._advance();
+        this.advance(1);
 
         token.set(ETokenType.COLON, ":", start);
         return token;
       case ";":
-        this._advance();
+        this.advance(1);
 
         token.set(ETokenType.SEMICOLON, ";", start);
         break;
       case "~":
-        this._advance();
+        this.advance(1);
 
         token.set(ETokenType.TILDE, "~", start);
         break;
       case "?":
-        this._advance();
+        this.advance(1);
 
         token.set(ETokenType.QUESTION, "?", start);
         break;
       case '"':
-        this._advance();
+        this.advance(1);
         return this._scanStringConst();
 
       default:
@@ -363,9 +363,9 @@ export class Lexer extends BaseLexer {
     const buffer: string[] = [];
     while (this.getCurChar() !== '"') {
       buffer.push(this.getCurChar());
-      this._advance();
+      this.advance(1);
     }
-    this._advance();
+    this.advance(1);
     const range = ShaderLab.createRange(start, this._getPosition());
 
     const token = BaseToken.pool.get();
@@ -377,7 +377,7 @@ export class Lexer extends BaseLexer {
     const buffer = ["."];
     while (LexerUtils.isNum(this.getCurCharCode())) {
       buffer.push(this.getCurChar());
-      this._advance();
+      this.advance(1);
     }
 
     const token = BaseToken.pool.get();
@@ -398,10 +398,10 @@ export class Lexer extends BaseLexer {
   private _scanWord() {
     const buffer: string[] = [this.getCurChar()];
     const start = this._getPosition();
-    this._advance();
+    this.advance(1);
     while (LexerUtils.isLetter(this.getCurCharCode())) {
       buffer.push(this.getCurChar());
-      this._advance();
+      this.advance(1);
     }
     const word = buffer.join("");
     const kt = Lexer._lexemeTable[word];
@@ -420,14 +420,14 @@ export class Lexer extends BaseLexer {
     const buffer: string[] = [];
     while (LexerUtils.isNum(this.getCurCharCode())) {
       buffer.push(this.getCurChar());
-      this._advance();
+      this.advance(1);
     }
     if (this.getCurChar() === ".") {
       buffer.push(this.getCurChar());
-      this._advance();
+      this.advance(1);
       while (LexerUtils.isNum(this.getCurCharCode())) {
         buffer.push(this.getCurChar());
-        this._advance();
+        this.advance(1);
       }
       this._scanFloatSuffix(buffer);
 
@@ -454,28 +454,28 @@ export class Lexer extends BaseLexer {
   private _scanFloatSuffix(buffer: string[]) {
     if (this.getCurChar() === "e" || this.getCurChar() === "E") {
       buffer.push(this.getCurChar());
-      this._advance();
+      this.advance(1);
       if (this.getCurChar() === "+" || this.getCurChar() === "-") {
         buffer.push(this.getCurChar());
-        this._advance();
+        this.advance(1);
       }
       if (!LexerUtils.isNum(this.getCurCharCode()))
         this.throwError(this.getCurPosition(), "lexing error, invalid exponent suffix.");
       while (LexerUtils.isNum(this.getCurCharCode())) {
         buffer.push(this.getCurChar());
-        this._advance();
+        this.advance(1);
       }
     }
     if (this.getCurChar() === "f" || this.getCurChar() === "F") {
       buffer.push(this.getCurChar());
-      this._advance();
+      this.advance(1);
     }
   }
 
   private _scanIntegerSuffix(buffer: string[]) {
     if (this.getCurChar() === "u" || this.getCurChar() === "U") {
       buffer.push(this.getCurChar());
-      this._advance();
+      this.advance(1);
     }
   }
 }

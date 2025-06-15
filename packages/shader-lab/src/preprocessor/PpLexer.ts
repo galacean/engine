@@ -71,10 +71,10 @@ export default class PpLexer extends BaseLexer {
       if (LexerUtils.isLetter(this.getCurCharCode())) {
         ret.push(this.scanWord());
       } else if (this.getCurChar() === nonLetterChar) {
-        this._advance();
+        this.advance(1);
         return ret;
       } else {
-        this._advance();
+        this.advance(1);
       }
     }
   }
@@ -82,7 +82,7 @@ export default class PpLexer extends BaseLexer {
   scanWord(skipNonLetter = false): BaseToken {
     if (skipNonLetter) {
       while (!LexerUtils.isLetter(this.getCurCharCode()) && !this.isEnd()) {
-        this._advance();
+        this.advance(1);
       }
     } else {
       this.skipSpace(true);
@@ -92,7 +92,7 @@ export default class PpLexer extends BaseLexer {
 
     const start = this._currentIndex;
     while (LexerUtils.isLetter(this.getCurCharCode()) && !this.isEnd()) {
-      this._advance();
+      this.advance(1);
     }
     const end = this._currentIndex;
     const word = this._source.slice(start, end);
@@ -138,13 +138,13 @@ export default class PpLexer extends BaseLexer {
     let found = false;
     for (var n = source.length; this._currentIndex < n; ) {
       if (LexerUtils.isPpCharacters(source.charCodeAt(this._currentIndex))) {
-        this._advance();
+        this.advance(1);
         found = true;
       } else {
         if (found) {
           break;
         }
-        this._advance();
+        this.advance(1);
         this.skipCommentsAndSpace();
         start = this._currentIndex;
       }
@@ -164,9 +164,9 @@ export default class PpLexer extends BaseLexer {
       this.throwError(this.getShaderPosition(0), "unexpected char, expected '\"'");
     }
     const ShaderPosition = this.getShaderPosition(0);
-    this._advance();
+    this.advance(1);
     const start = this._currentIndex;
-    while (this.getCurChar() !== '"' && !this.isEnd()) this._advance();
+    while (this.getCurChar() !== '"' && !this.isEnd()) this.advance(1);
     if (this.isEnd()) {
       this.throwError(this.getShaderPosition(0), "unexpected char, expected '\"'");
     }
@@ -180,7 +180,7 @@ export default class PpLexer extends BaseLexer {
   scanToChar(char: string) {
     const source = this._source;
     while (source[this._currentIndex] !== char && !this.isEnd()) {
-      this._advance();
+      this.advance(1);
     }
   }
 
@@ -220,7 +220,7 @@ export default class PpLexer extends BaseLexer {
       } else if (curChar === rc) {
         level--;
       }
-      this._advance();
+      this.advance(1);
     } while (level > 0);
   }
 
@@ -247,7 +247,7 @@ export default class PpLexer extends BaseLexer {
   scanInteger() {
     const start = this._currentIndex;
     while (LexerUtils.isNum(this.getCurCharCode())) {
-      this._advance();
+      this.advance(1);
     }
     if (this._currentIndex === start) {
       this.throwError(this.getShaderPosition(0), "no integer found");
@@ -276,7 +276,7 @@ export default class PpLexer extends BaseLexer {
         token.set(EPpToken.line_remain, line, this.getShaderPosition(line.length));
         return token;
       }
-      this._advance();
+      this.advance(1);
       const commentRange = this._skipComments();
       if (commentRange) {
         commentRange.start.index -= start;
@@ -311,7 +311,7 @@ export default class PpLexer extends BaseLexer {
       const start = this.getShaderPosition(0);
       // single line comments
       while (this.getCurChar() !== "\n" && !this.isEnd()) {
-        this._advance();
+        this.advance(1);
       }
       return ShaderLab.createRange(start, this.getCurPosition());
     } else if (this.peek(2) === "/*") {
@@ -319,7 +319,7 @@ export default class PpLexer extends BaseLexer {
       //  multi-line comments
       this.advance(2);
       while (this.peek(2) !== "*/" && !this.isEnd()) {
-        this._advance();
+        this.advance(1);
       }
       this.advance(2);
       return ShaderLab.createRange(start, this.getShaderPosition(0));

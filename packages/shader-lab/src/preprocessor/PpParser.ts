@@ -345,7 +345,7 @@ export class PpParser {
     const operand1 = this._parseMulticativeExpression(scanner) as number;
     if ([">", "<"].includes(scanner.getCurChar())) {
       const opPos = scanner.getShaderPosition(0);
-      scanner.advance();
+      scanner.advance(1);
 
       const operator = scanner.getCurChar();
       scanner.skipSpace(false);
@@ -391,7 +391,7 @@ export class PpParser {
   private static _parseUnaryExpression(scanner: PpLexer) {
     const operator = scanner.getCurChar();
     if (["+", "-", "!"].includes(operator)) {
-      scanner.advance();
+      scanner.advance(1);
       const opPos = scanner.getShaderPosition(0);
       const parenExpr = this._parseParenthesisExpression(scanner);
       if ((operator === "!" && typeof parenExpr !== "boolean") || (operator !== "!" && typeof parenExpr !== "number")) {
@@ -412,11 +412,11 @@ export class PpParser {
 
   private static _parseParenthesisExpression(scanner: PpLexer): PpConstant {
     if (scanner.getCurChar() === "(") {
-      scanner._advance();
+      scanner.advance(1);
       scanner.skipSpace(false);
       const ret = this._parseConstantExpression(scanner);
       scanner.scanToChar(")");
-      scanner._advance();
+      scanner.advance(1);
       return ret;
     }
     return this._parseConstant(scanner);
@@ -430,7 +430,7 @@ export class PpParser {
         const macro = scanner.scanWord(true);
         if (withParen) {
           scanner.scanToChar(")");
-          scanner._advance();
+          scanner.advance(1);
         }
         this._branchMacros.add(macro.lexeme);
         return !!this._definedMacros.get(macro.lexeme);
@@ -646,7 +646,7 @@ export class PpParser {
       let replace = macro.body.lexeme;
       if (macro.isFunction) {
         scanner.scanToChar("(");
-        scanner._advance();
+        scanner.advance(1);
 
         // extract parameters
         const args: string[] = [];
@@ -661,11 +661,11 @@ export class PpParser {
             args.push(scanner.source.slice(curIdx, scanner.current));
             curIdx = scanner.current + 1;
           }
-          scanner._advance();
+          scanner.advance(1);
         }
         args.push(scanner.source.slice(curIdx, scanner.current));
 
-        scanner._advance();
+        scanner.advance(1);
         const range = ShaderLab.createRange(token.location!.start, scanner.getCurPosition());
         replace = macro.expandFunctionBody(args);
         const expanded = this._expandMacroChunk(replace, range, scanner);
