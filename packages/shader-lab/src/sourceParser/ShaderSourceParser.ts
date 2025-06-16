@@ -136,7 +136,7 @@ export class ShaderSourceParser {
     }
   }
 
-  private static _parseRenderStateDeclarationOrAssignment(renderStates: IRenderStates, stateToken: BaseToken) {
+  private static _parseRenderStateDeclarationOrAssignment(renderStates: IRenderStates, stateToken: BaseToken): void {
     const lexer = this._lexer;
     const token = lexer.scanToken();
     if (token.type === ETokenType.ID) {
@@ -163,19 +163,19 @@ export class ShaderSourceParser {
     }
   }
 
-  private static _parseVariableDeclaration() {
+  private static _parseVariableDeclaration(): void {
     const lexer = this._lexer;
     const token = lexer.scanToken();
     lexer.scanLexeme(";");
     this._symbolTableStack.insert({ type: token.type, ident: token.lexeme });
   }
 
-  private static _pushScope() {
+  private static _pushScope(): void {
     const symbolTable = new ContentSymbolTable();
     this._symbolTableStack.pushScope(symbolTable);
   }
 
-  private static _popScope() {
+  private static _popScope(): void {
     this._symbolTableStack.popScope();
   }
 
@@ -280,7 +280,7 @@ export class ShaderSourceParser {
     }
   }
 
-  private static _parseRenderQueueDeclarationOrAssignment(renderStates: IRenderStates) {
+  private static _parseRenderQueueDeclarationOrAssignment(renderStates: IRenderStates): void {
     const lexer = this._lexer;
     const token = lexer.scanToken();
     if (token.type === ETokenType.ID) {
@@ -377,7 +377,7 @@ export class ShaderSourceParser {
     }
   }
 
-  private static _parseTags(tags: Record<string, number | string | boolean>) {
+  private static _parseTags(tags: Record<string, number | string | boolean>): void {
     const lexer = this._lexer;
     lexer.scanLexeme("{");
     while (true) {
