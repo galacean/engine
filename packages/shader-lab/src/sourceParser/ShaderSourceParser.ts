@@ -21,6 +21,7 @@ import { GSError } from "../GSError";
 import { BaseLexer } from "../common/BaseLexer";
 import { Keyword } from "../common/enums/Keyword";
 import { ShaderLabUtils } from "../ShaderLabUtils";
+import { ShaderSourceFactory } from "./ShaderSourceFactory";
 import SourceLexer from "./SourceLexer";
 
 /**
@@ -53,14 +54,9 @@ export class ShaderSourceParser {
     const lexer = this._lexer;
     lexer.setSource(sourceCode);
 
-    const shaderSource = <IShaderSource>{
-      subShaders: [],
-      pendingContents: [],
-      renderStates: { constantMap: {}, variableMap: {} }
-    };
-
     lexer.scanLexeme("Shader");
-    shaderSource.name = lexer.scanPairedChar('"', '"', false, false);
+    const name = lexer.scanPairedChar('"', '"', false, false);
+    const shaderSource = ShaderSourceFactory.createShaderSource(name);
     lexer.scanLexeme("{");
 
     this._parseShader(lexer, shaderSource);
@@ -181,7 +177,7 @@ export class ShaderSourceParser {
 
   private static _parseRenderStateProperties(state: string): IRenderStates {
     const lexer = this._lexer;
-    const renderStates = <IRenderStates>{ constantMap: {}, variableMap: {} };
+    const renderStates = ShaderSourceFactory.createRenderStates();
     while (lexer.getCurChar() !== "}") {
       this._parseRenderStateProperty(state, renderStates);
       lexer.skipCommentsAndSpace();
@@ -332,14 +328,10 @@ export class ShaderSourceParser {
   private static _parseSubShader(): ISubShaderSource {
     const lexer = this._lexer;
     this._pushScope();
-    const ret = {
-      passes: [],
-      pendingContents: [],
-      renderStates: { constantMap: {}, variableMap: {} },
-      tags: {}
-    } as ISubShaderSource;
+
     let braceLevel = 1;
-    ret.name = lexer.scanPairedChar('"', '"', false, false);
+    const name = lexer.scanPairedChar('"', '"', false, false);
+    const ret = ShaderSourceFactory.createSubShaderSource(name);
     lexer.scanLexeme("{");
 
     lexer.skipCommentsAndSpace();
@@ -357,8 +349,7 @@ export class ShaderSourceParser {
         case Keyword.GSUsePass:
           this._addPendingContents(start, word.lexeme.length, ret.pendingContents);
           const name = lexer.scanPairedChar('"', '"', false, false);
-          // @ts-ignore
-          ret.passes.push({ name, isUsePass: true, renderStates: { constantMap: {}, variableMap: {} }, tags: {} });
+          ret.passes.push(ShaderSourceFactory.createUsePass(name));
           start = lexer.getCurPosition();
           break;
         case Keyword.LeftBrace:
@@ -399,12 +390,9 @@ export class ShaderSourceParser {
   private static _parsePass(): IShaderPassSource {
     this._pushScope();
     const lexer = this._lexer;
-    const ret = <IShaderPassSource>{
-      pendingContents: [],
-      renderStates: { constantMap: {}, variableMap: {} },
-      tags: {}
-    };
-    ret.name = lexer.scanPairedChar('"', '"', false, false);
+
+    const name = lexer.scanPairedChar('"', '"', false, false);
+    const ret = ShaderSourceFactory.createShaderPassSource(name);
     lexer.scanLexeme("{");
     let braceLevel = 1;
 
