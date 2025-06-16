@@ -76,14 +76,6 @@ export class Lexer extends BaseLexer {
     location: Keyword.LOCATION
   };
 
-  reset(source: string) {
-    this._source = source;
-    this._currentIndex = 0;
-    // #if _VERBOSE
-    this._line = this._column = 0;
-    // #endif
-  }
-
   *tokenize() {
     while (!this.isEnd()) {
       yield this.scanToken();
@@ -387,7 +379,7 @@ export class Lexer extends BaseLexer {
 
   private _getPosition(offset /** offset from starting point */ = 0) {
     return ShaderLab.createPosition(
-      this.current - offset,
+      this.currentIndex - offset,
       // #if _VERBOSE
       this._line,
       this._column - offset

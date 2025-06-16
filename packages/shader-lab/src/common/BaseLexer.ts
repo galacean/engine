@@ -45,22 +45,12 @@ export abstract class BaseLexer {
   protected _line = 0;
   // #endif
 
-  get current(): number {
+  get currentIndex(): number {
     return this._currentIndex;
   }
 
   get source(): string {
     return this._source;
-  }
-
-  getCurPosition(): ShaderPosition {
-    return ShaderLab.createPosition(
-      this._currentIndex,
-      // #if _VERBOSE
-      this._line,
-      this._column
-      // #endif
-    );
   }
 
   // #if _VERBOSE
@@ -73,8 +63,26 @@ export abstract class BaseLexer {
   }
   // #endif
 
-  constructor(source: string) {
+  constructor(source?: string) {
     this._source = source;
+  }
+
+  setSource(source: string): void {
+    this._source = source;
+    this._currentIndex = 0;
+    // #if _VERBOSE
+    this._line = this._column = 0;
+    // #endif
+  }
+
+  getCurPosition(): ShaderPosition {
+    return ShaderLab.createPosition(
+      this._currentIndex,
+      // #if _VERBOSE
+      this._line,
+      this._column
+      // #endif
+    );
   }
 
   isEnd(): boolean {

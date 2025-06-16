@@ -71,27 +71,27 @@ export default class SourceLexer extends BaseLexer {
     this.skipCommentsAndSpace();
     const start = this._currentIndex;
     const source = this._source;
-    let currentIndex = this._currentIndex;
+    let index = this._currentIndex;
 
     // Scan integer part
-    currentIndex = SourceLexer._scanDigits(source, currentIndex);
+    index = SourceLexer._scanDigits(source, index);
 
     // Scan decimal part if present
-    if (source[currentIndex] === ".") {
-      currentIndex = SourceLexer._scanDigits(source, currentIndex + 1);
+    if (source[index] === ".") {
+      index = SourceLexer._scanDigits(source, index + 1);
     }
 
-    this.advance(currentIndex - this._currentIndex);
-    return Number(source.substring(start, currentIndex));
+    this.advance(index - this._currentIndex);
+    return Number(source.substring(start, index));
   }
 
   scanColor(): Color {
     this.scanLexeme("(");
 
-    let r = 0,
-      g = 0,
-      b = 0,
-      a = 1;
+    let r = 0;
+    let g = 0;
+    let b = 0;
+    let a = 1;
 
     r = this.scanNumber();
     this.skipCommentsAndSpace();

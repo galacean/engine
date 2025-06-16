@@ -40,6 +40,8 @@ export class ShaderSourceParser {
 
   private static _symbolTableStack: SymbolTableStack<ISymbol, ContentSymbolTable> = new SymbolTableStack();
 
+  private static _lexer: SourceLexer = new SourceLexer();
+
   static reset() {
     this._errors.length = 0;
     this._symbolTableStack.clear();
@@ -47,9 +49,11 @@ export class ShaderSourceParser {
   }
 
   static parse(sourceCode: string): IShaderSource {
-    const start = performance.now();
+    const startTime = performance.now();
 
-    const lexer = new SourceLexer(sourceCode);
+    const lexer = this._lexer;
+    lexer.setSource(sourceCode);
+
     const shaderSource = <IShaderSource>{
       subShaders: [],
       pendingContents: [],
@@ -80,7 +84,7 @@ export class ShaderSourceParser {
       }
     }
 
-    Logger.info(`[Source compilation] cost time ${performance.now() - start}ms`);
+    Logger.info(`[Source compilation] cost time ${performance.now() - startTime}ms`);
 
     return shaderSource;
   }
@@ -329,7 +333,7 @@ export class ShaderSourceParser {
     backOffset: number,
     outPendingContents: IStatement[]
   ) {
-    const endIndex = lexer.current - backOffset;
+    const endIndex = lexer.currentIndex - backOffset;
     if (endIndex > start.index) {
       outPendingContents.push({
         range: { start, end: { ...lexer.getCurPosition(), index: endIndex - 1 } },

@@ -148,7 +148,7 @@ export class PpParser {
   }
 
   private static _parseIfDef(scanner: PpLexer) {
-    const start = scanner.current - 6;
+    const start = scanner.currentIndex - 6;
 
     const id = scanner.scanWord();
     this._addEmptyReplace(scanner, start);
@@ -190,7 +190,7 @@ export class PpParser {
       return;
     }
 
-    const start = scanner.current;
+    const start = scanner.currentIndex;
 
     if (directive === EPpKeyword.else) {
       const { token: elseChunk } = scanner.scanMacroBranchChunk();
@@ -211,7 +211,7 @@ export class PpParser {
       const constantExpr = this._parseConstantExpression(scanner);
       const { token: bodyChunk, nextDirective } = scanner.scanMacroBranchChunk();
       if (!!constantExpr) {
-        const end = nextDirective.type === EPpKeyword.endif ? scanner.current : scanner.scanRemainMacro().index;
+        const end = nextDirective.type === EPpKeyword.endif ? scanner.currentIndex : scanner.scanRemainMacro().index;
         const expanded = this._expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
         // #if _VERBOSE
         const block = new BlockInfo(scanner.file, scanner.blockRange, expanded.sourceMap);
@@ -231,7 +231,7 @@ export class PpParser {
         const block = new BlockInfo(scanner.file, scanner.blockRange);
         // #endif
         const startPosition = ShaderLab.createPosition(start);
-        const endPosition = ShaderLab.createPosition(scanner.current);
+        const endPosition = ShaderLab.createPosition(scanner.currentIndex);
         const range = ShaderLab.createRange(startPosition, endPosition);
         this.expandSegments.push({
           // #if _VERBOSE
@@ -513,7 +513,7 @@ export class PpParser {
   }
 
   private static _parseIfNdef(scanner: PpLexer) {
-    const start = scanner.current - 7;
+    const start = scanner.currentIndex - 7;
 
     const id = scanner.scanWord();
     this._addEmptyReplace(scanner, start);
@@ -561,7 +561,7 @@ export class PpParser {
   }
 
   private static _parseIf(scanner: PpLexer) {
-    const start = scanner.current - 3;
+    const start = scanner.currentIndex - 3;
 
     const constantExpr = this._parseConstantExpression(scanner);
     this._addEmptyReplace(scanner, start);
@@ -622,7 +622,7 @@ export class PpParser {
   }
 
   private static _parseUndef(scanner: PpLexer) {
-    const start = scanner.current - 6;
+    const start = scanner.currentIndex - 6;
     const macro = scanner.scanWord();
 
     // #if _VERBOSE
@@ -651,19 +651,19 @@ export class PpParser {
         // extract parameters
         const args: string[] = [];
         let curLvl = 1;
-        let curIdx = scanner.current;
+        let curIdx = scanner.currentIndex;
         while (true) {
           if (scanner.getCurChar() === "(") curLvl += 1;
           else if (scanner.getCurChar() === ")") {
             curLvl -= 1;
             if (curLvl === 0) break;
           } else if (scanner.getCurChar() === "," && curLvl === 1) {
-            args.push(scanner.source.slice(curIdx, scanner.current));
-            curIdx = scanner.current + 1;
+            args.push(scanner.source.slice(curIdx, scanner.currentIndex));
+            curIdx = scanner.currentIndex + 1;
           }
           scanner.advance(1);
         }
-        args.push(scanner.source.slice(curIdx, scanner.current));
+        args.push(scanner.source.slice(curIdx, scanner.currentIndex));
 
         scanner.advance(1);
         const range = ShaderLab.createRange(token.location!.start, scanner.getCurPosition());
