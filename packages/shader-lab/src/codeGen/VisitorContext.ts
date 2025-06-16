@@ -1,9 +1,9 @@
-import { EShaderStage } from "../common/Enums";
-import { ASTNode } from "../parser/AST";
-import { ESymbolType, TargetSymbolTable, SymbolInfo } from "../parser/symbolTable";
-import { IParamInfo, StructProp } from "../parser/types";
-import { GSErrorName } from "../GSError";
 import { BaseToken } from "../common/BaseToken";
+import { EShaderStage } from "../common/Enums";
+import { GSErrorName } from "../GSError";
+import { ASTNode } from "../parser/AST";
+import { ESymbolType, SymbolInfo, TargetSymbolTable } from "../parser/symbolTable";
+import { IParamInfo, StructProp } from "../parser/types";
 import { ShaderLab } from "../ShaderLab";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 
@@ -104,17 +104,21 @@ export class VisitorContext {
     this._referencedMRTList[ident.lexeme] = prop;
   }
 
-  referenceGlobal(ident: string, type: ESymbolType) {
+  referenceGlobal(ident: string, type: ESymbolType): void {
     if (this._referencedGlobals[ident]) return;
 
     if (type === ESymbolType.FN) {
-      const fnEntries = this._passSymbolTable.getAllFnSymbols(ident);
-      for (let i = 0; i < fnEntries.length; i++) {
-        const key = i === 0 ? ident : ident + i;
-        this._referencedGlobals[key] = fnEntries[i];
+      const entries = this._passSymbolTable._table.get(ident) ?? [];
+      for (let i = 0; i < entries.length; i++) {
+        const item = entries[i];
+        if (item.symbolType !== ESymbolType.FN) continue;
+        // @todo: `key` should be unique
+        const key = i === 0 ? ident : `${ident}__${i}__`;
+        this._referencedGlobals[key] = item;
       }
       return;
     }
+
     const sm = this._passSymbolTable.lookup(ident, type);
     if (sm) {
       this._referencedGlobals[ident] = sm;

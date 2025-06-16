@@ -1,12 +1,12 @@
-import { CodeGenVisitor } from "./CodeGenVisitor";
+import { IShaderInfo } from "@galacean/engine-design";
+import { EShaderStage } from "../common/Enums";
+import { Keyword } from "../common/enums/Keyword";
 import { ASTNode } from "../parser/AST";
 import { ShaderData } from "../parser/ShaderInfo";
-import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo } from "../parser/symbolTable";
-import { EShaderStage } from "../common/Enums";
-import { IShaderInfo } from "@galacean/engine-design";
+import { ESymbolType, SymbolInfo } from "../parser/symbolTable";
+import { CodeGenVisitor } from "./CodeGenVisitor";
 import { ICodeSegment } from "./types";
 import { VisitorContext } from "./VisitorContext";
-import { Keyword } from "../common/enums/Keyword";
 
 const defaultPrecision = `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -87,7 +87,8 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const { _globalCodeArray: globalCodeArray } = this;
     globalCodeArray.length = 0;
 
-    this._getGlobalText(data, globalCodeArray);
+    this._getGlobalSymbol(globalCodeArray);
+    this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
     this.getAttributeDeclare(globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
 
@@ -131,7 +132,8 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const { _globalCodeArray: globalCodeArray } = this;
     globalCodeArray.length = 0;
 
-    this._getGlobalText(data, globalCodeArray);
+    this._getGlobalSymbol(globalCodeArray);
+    this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
     this.getMRTDeclare(globalCodeArray);
 
@@ -144,38 +146,27 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     return `${this._versionText}\n${this._extensions}\n${defaultPrecision}\n${globalCode}\n\nvoid main() ${statements}`;
   }
 
-  private _getGlobalText(
-    data: ShaderData,
-    textList: ICodeSegment[],
-    lastLength: number = 0,
-    _serialized: Set<string> = new Set()
-  ): ICodeSegment[] {
+  private _getGlobalSymbol(out: ICodeSegment[]): void {
     const { _referencedGlobals } = VisitorContext.context;
 
-    if (lastLength === Object.keys(_referencedGlobals).length) {
-      for (const precision of data.globalPrecisions) {
-        textList.push({ text: precision.codeGen(this), index: precision.location.start.index });
-      }
-      return textList;
-    }
-
-    lastLength = Object.keys(_referencedGlobals).length;
     for (const ident in _referencedGlobals) {
       const sm = _referencedGlobals[ident];
 
-      if (_serialized.has(ident)) continue;
-      _serialized.add(ident);
-
       if (sm instanceof SymbolInfo) {
         if (sm.symbolType === ESymbolType.VAR) {
-          textList.push({ text: `uniform ${sm.astNode.codeGen(this)}`, index: sm.astNode.location.start.index });
+          out.push({ text: `uniform ${sm.astNode.codeGen(this)}`, index: sm.astNode.location.start.index });
         } else {
-          textList.push({ text: sm.astNode!.codeGen(this), index: sm.astNode!.location.start.index });
+          out.push({ text: sm.astNode!.codeGen(this), index: sm.astNode!.location.start.index });
         }
       } else {
-        textList.push({ text: sm.codeGen(this), index: sm.location.start.index });
+        out.push({ text: sm.codeGen(this), index: sm.location.start.index });
       }
     }
-    return this._getGlobalText(data, textList, lastLength, _serialized);
+  }
+
+  private _getGlobalPrecisions(precisions: ASTNode.PrecisionSpecifier[], out: ICodeSegment[]): void {
+    for (const precision of precisions) {
+      out.push({ text: precision.codeGen(this), index: precision.location.start.index });
+    }
   }
 }

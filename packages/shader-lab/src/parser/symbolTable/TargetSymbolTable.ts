@@ -42,11 +42,6 @@ export class TargetSymbolTable extends BaseSymbolTable<SymbolInfo> {
     }
   }
 
-  getAllFnSymbols(fnIdent: string): FnSymbol[] {
-    const entries = this._table.get(fnIdent) ?? [];
-    return entries.filter((item) => item.symbolType === ESymbolType.FN) as FnSymbol[];
-  }
-
   private _haveSameTypeSymbol(
     item: SymbolInfo,
     symbolType: ESymbolType,

@@ -6,7 +6,8 @@ export interface IBaseSymbol {
  * The base class of `SymbolTable`
  */
 export abstract class BaseSymbolTable<T extends IBaseSymbol = IBaseSymbol> {
-  protected _table: Map<string, T[]> = new Map();
+  /** @internal */
+  _table: Map<string, T[]> = new Map();
 
   abstract insert(sm: T): void;
 }
