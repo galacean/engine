@@ -21,7 +21,7 @@ import { GSError } from "../GSError";
 import { BaseLexer } from "../common/BaseLexer";
 import { Keyword } from "../common/enums/Keyword";
 import { ShaderLabUtils } from "../ShaderLabUtils";
-import { IShaderSourceSymbol } from "./IShaderSourceSymbol";
+import { ShaderSourceSymbol } from "./ShaderSourceSymbol";
 import { ShaderSourceFactory } from "./ShaderSourceFactory";
 import SourceLexer from "./SourceLexer";
 
@@ -40,7 +40,7 @@ export class ShaderSourceParser {
 
   static _errors = new Array<GSError>();
 
-  private static _symbolTableStack = new SymbolTableStack<IShaderSourceSymbol, ContentSymbolTable>();
+  private static _symbolTableStack = new SymbolTableStack<ShaderSourceSymbol, ContentSymbolTable>();
   private static _lexer = new SourceLexer();
 
   static parse(sourceCode: string): IShaderSource {
