@@ -37,19 +37,18 @@ export class ShaderSourceParser {
     CullMode
   };
 
-  static _errors: GSError[] = [];
+  static _errors = new Array<GSError>();
 
-  private static _symbolTableStack: SymbolTableStack<ISymbol, ContentSymbolTable> = new SymbolTableStack();
-  private static _lexer: SourceLexer = new SourceLexer();
-
-  static reset() {
-    this._errors.length = 0;
-    this._symbolTableStack.clear();
-    this._pushScope();
-  }
+  private static _symbolTableStack = new SymbolTableStack<ISymbol, ContentSymbolTable>();
+  private static _lexer = new SourceLexer();
 
   static parse(sourceCode: string): IShaderSource {
     const startTime = performance.now();
+
+    // Clear previous data
+    this._errors.length = 0;
+    this._symbolTableStack.clear();
+    this._pushScope();
 
     const lexer = this._lexer;
     lexer.setSource(sourceCode);
@@ -58,19 +57,18 @@ export class ShaderSourceParser {
     const name = lexer.scanPairedChar('"', '"', false, false);
     const shaderSource = ShaderSourceFactory.createShaderSource(name);
     lexer.scanLexeme("{");
-
     this._parseShader(lexer, shaderSource);
 
     const shaderPendingContents = shaderSource.pendingContents;
     const shaderRenderStates = shaderSource.renderStates;
-    for (let i = 0; i < shaderSource.subShaders.length; i++) {
+    for (let i = 0, n = shaderSource.subShaders.length; i < n; i++) {
       const subShader = shaderSource.subShaders[i];
       const curSubShaderGlobalStatements = shaderPendingContents.concat(subShader.pendingContents);
       const constMap = { ...shaderRenderStates.constantMap, ...subShader.renderStates.constantMap };
       const variableMap = { ...shaderRenderStates.variableMap, ...subShader.renderStates.variableMap };
 
-      for (let i = 0; i < subShader.passes.length; i++) {
-        const pass = subShader.passes[i];
+      for (let j = 0, m = subShader.passes.length; j < m; j++) {
+        const pass = subShader.passes[j];
         Object.assign(pass.renderStates.constantMap, constMap);
         Object.assign(pass.renderStates.variableMap, variableMap);
         if (pass.isUsePass) continue;
