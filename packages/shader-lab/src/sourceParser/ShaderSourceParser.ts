@@ -14,13 +14,14 @@ import { ETokenType, ShaderPosition, ShaderRange } from "../common";
 import { BaseToken } from "../common/BaseToken";
 import { SymbolTableStack } from "../common/SymbolTableStack";
 import { GSErrorName } from "../GSError";
-import ContentSymbolTable, { ISymbol } from "./ShaderSourceSymbolTable";
+import ContentSymbolTable from "./ShaderSourceSymbolTable";
 // #if _VERBOSE
 import { GSError } from "../GSError";
 // #endif
 import { BaseLexer } from "../common/BaseLexer";
 import { Keyword } from "../common/enums/Keyword";
 import { ShaderLabUtils } from "../ShaderLabUtils";
+import { IShaderSourceSymbol } from "./IShaderSourceSymbol";
 import { ShaderSourceFactory } from "./ShaderSourceFactory";
 import SourceLexer from "./SourceLexer";
 
@@ -39,7 +40,7 @@ export class ShaderSourceParser {
 
   static _errors = new Array<GSError>();
 
-  private static _symbolTableStack = new SymbolTableStack<ISymbol, ContentSymbolTable>();
+  private static _symbolTableStack = new SymbolTableStack<IShaderSourceSymbol, ContentSymbolTable>();
   private static _lexer = new SourceLexer();
 
   static parse(sourceCode: string): IShaderSource {

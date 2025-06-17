@@ -1,15 +1,10 @@
 import { Logger } from "@galacean/engine";
 import { TokenType } from "../common";
 import { BaseSymbolTable } from "../common/BaseSymbolTable";
-import { IBaseSymbol } from "../common/IBaseSymbol";
+import { IShaderSourceSymbol } from "./IShaderSourceSymbol";
 
-export interface ISymbol extends IBaseSymbol {
-  type: number;
-  value?: any;
-}
-
-export default class ShaderSourceSymbolTable extends BaseSymbolTable<ISymbol> {
-  override insert(sm: ISymbol): void {
+export default class ShaderSourceSymbolTable extends BaseSymbolTable<IShaderSourceSymbol> {
+  override insert(sm: IShaderSourceSymbol): void {
     const entry = this._table.get(sm.ident) ?? [];
     for (let i = 0; i < entry.length; i++) {
       if (entry[i].type === sm.type) {
@@ -22,7 +17,7 @@ export default class ShaderSourceSymbolTable extends BaseSymbolTable<ISymbol> {
     this._table.set(sm.ident, entry);
   }
 
-  lookup(ident: string, type: TokenType): ISymbol | undefined {
+  lookup(ident: string, type: TokenType): IShaderSourceSymbol | undefined {
     const entry = this._table.get(ident);
     if (entry) {
       for (let length = entry.length, i = 0; i < length; i++) {
