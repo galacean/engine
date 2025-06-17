@@ -83,8 +83,8 @@ export class ShaderSourceParser {
   }
 
   private static _lookupVariable(variableName: string, type: TokenType): ISymbol | undefined {
-    const stack = ShaderSourceParser._symbolTableStack.stack;
-    for (let length = stack.length, i = length - 1; i >= 0; i--) {
+    const stack = this._symbolTableStack.stack;
+    for (let i = stack.length - 1; i >= 0; i--) {
       const symbolTable = stack[i];
       const ret = symbolTable.lookup(variableName, type);
       if (ret) return ret;
@@ -143,7 +143,7 @@ export class ShaderSourceParser {
       const variable = lexer.scanToken();
 
       lexer.scanLexeme(";");
-      const sm = ShaderSourceParser._lookupVariable(variable.lexeme, stateToken.type);
+      const sm = this._lookupVariable(variable.lexeme, stateToken.type);
       if (!sm?.value) {
         this._createCompileError(`Invalid "${stateToken.lexeme}" variable: ${variable.lexeme}`, variable.location);
         // #if _VERBOSE
@@ -244,7 +244,7 @@ export class ShaderSourceParser {
       } else if (lexer.getCurChar() === ".") {
         lexer.advance(1);
         const constValueToken = lexer.scanToken();
-        propertyValue = ShaderSourceParser._renderStateConstType[valueToken.lexeme]?.[constValueToken.lexeme];
+        propertyValue = this._renderStateConstType[valueToken.lexeme]?.[constValueToken.lexeme];
         if (propertyValue == undefined) {
           this._createCompileError(
             `Invalid engine constant: ${valueToken.lexeme}.${constValueToken.lexeme}`,
@@ -257,7 +257,7 @@ export class ShaderSourceParser {
         }
       } else {
         propertyValue = valueToken.lexeme;
-        if (!ShaderSourceParser._lookupVariable(valueToken.lexeme, ETokenType.ID)) {
+        if (!this._lookupVariable(valueToken.lexeme, ETokenType.ID)) {
           this._createCompileError(`Invalid ${stateLexeme} variable: ${valueToken.lexeme}`, valueToken.location);
           // #if _VERBOSE
           lexer.scanToCharacter(";");
@@ -292,11 +292,11 @@ export class ShaderSourceParser {
     }
     const word = lexer.scanToken();
     lexer.scanLexeme(";");
-    const value = ShaderSourceParser._renderStateConstType.RenderQueueType[word.lexeme];
+    const value = this._renderStateConstType.RenderQueueType[word.lexeme];
     const key = RenderStateElementKey.RenderQueueType;
     if (value == undefined) {
       renderStates.variableMap[key] = word.lexeme;
-      const sm = ShaderSourceParser._lookupVariable(word.lexeme, Keyword.GSRenderQueueType);
+      const sm = this._lookupVariable(word.lexeme, Keyword.GSRenderQueueType);
       if (!sm) {
         this._createCompileError(`Invalid RenderQueueType variable: ${word.lexeme}`, word.location);
         // #if _VERBOSE
@@ -351,11 +351,10 @@ export class ShaderSourceParser {
           start = lexer.getCurPosition();
           break;
         case Keyword.LeftBrace:
-          braceLevel += 1;
+          ++braceLevel;
           break;
         case Keyword.RightBrace:
-          braceLevel -= 1;
-          if (braceLevel === 0) {
+          if (--braceLevel === 0) {
             this._addPendingContents(start, word.lexeme.length, ret.pendingContents);
             this._popScope();
             return ret;
@@ -423,11 +422,10 @@ export class ShaderSourceParser {
           start = lexer.getCurPosition();
           break;
         case Keyword.LeftBrace:
-          braceLevel += 1;
+          ++braceLevel;
           break;
         case Keyword.RightBrace:
-          braceLevel -= 1;
-          if (braceLevel === 0) {
+          if (--braceLevel === 0) {
             this._addPendingContents(start, word.lexeme.length, ret.pendingContents);
             this._popScope();
             return ret;
