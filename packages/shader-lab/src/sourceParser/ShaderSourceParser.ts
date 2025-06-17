@@ -10,7 +10,7 @@ import {
   StencilOperation
 } from "@galacean/engine";
 import { IRenderStates, IShaderPassSource, IShaderSource, IStatement, ISubShaderSource } from "@galacean/engine-design";
-import { ETokenType, ShaderPosition, ShaderRange, TokenType } from "../common";
+import { ETokenType, ShaderPosition, ShaderRange } from "../common";
 import { SymbolTableStack } from "../common/BaseSymbolTable";
 import { BaseToken } from "../common/BaseToken";
 import { GSErrorName } from "../GSError";
@@ -82,14 +82,7 @@ export class ShaderSourceParser {
     return shaderSource;
   }
 
-  private static _lookupVariable(variableName: string, type: TokenType): ISymbol | undefined {
-    const stack = this._symbolTableStack.stack;
-    for (let i = stack.length - 1; i >= 0; i--) {
-      const symbolTable = stack[i];
-      const ret = symbolTable.lookup(variableName, type);
-      if (ret) return ret;
-    }
-  }
+
 
   private static _parseShader(lexer: SourceLexer, outShaderSource: IShaderSource): void {
     let braceLevel = 1;
@@ -143,7 +136,7 @@ export class ShaderSourceParser {
       const variable = lexer.scanToken();
 
       lexer.scanLexeme(";");
-      const sm = this._lookupVariable(variable.lexeme, stateToken.type);
+      const sm = this._symbolTableStack.lookup(variable.lexeme, stateToken.type);
       if (!sm?.value) {
         this._createCompileError(`Invalid "${stateToken.lexeme}" variable: ${variable.lexeme}`, variable.location);
         // #if _VERBOSE
@@ -257,7 +250,7 @@ export class ShaderSourceParser {
         }
       } else {
         propertyValue = valueToken.lexeme;
-        if (!this._lookupVariable(valueToken.lexeme, ETokenType.ID)) {
+        if (!this._symbolTableStack.lookup(valueToken.lexeme, ETokenType.ID)) {
           this._createCompileError(`Invalid ${stateLexeme} variable: ${valueToken.lexeme}`, valueToken.location);
           // #if _VERBOSE
           lexer.scanToCharacter(";");
@@ -296,7 +289,7 @@ export class ShaderSourceParser {
     const key = RenderStateElementKey.RenderQueueType;
     if (value == undefined) {
       renderStates.variableMap[key] = word.lexeme;
-      const sm = this._lookupVariable(word.lexeme, Keyword.GSRenderQueueType);
+      const sm = this._symbolTableStack.lookup(word.lexeme, Keyword.GSRenderQueueType);
       if (!sm) {
         this._createCompileError(`Invalid RenderQueueType variable: ${word.lexeme}`, word.location);
         // #if _VERBOSE
