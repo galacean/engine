@@ -48,8 +48,7 @@ void evaluateDiffuseIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brd
        vec3 irradiance = scene_EnvMapLight.diffuse * scene_EnvMapLight.diffuseIntensity;
        irradiance *= PI;
     #endif
-
-    diffuseColor += surfaceData.diffuseAO * irradiance * BRDF_Diffuse_Lambert( brdfData.diffuseColor );
+    diffuseColor += brdfData.diffuseAO * irradiance * BRDF_Diffuse_Lambert( brdfData.diffuseColor );
 }
 
 float evaluateClearCoatIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, inout vec3 specularColor){
@@ -57,7 +56,8 @@ float evaluateClearCoatIBL(Varyings varyings, SurfaceData surfaceData, BRDFData 
 
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         vec3 clearCoatRadiance = getLightProbeRadiance(surfaceData, surfaceData.clearCoatNormal, brdfData.clearCoatRoughness);
-        specularColor += surfaceData.specularAO * clearCoatRadiance * surfaceData.clearCoat * envBRDFApprox(brdfData.clearCoatSpecularColor, brdfData.clearCoatRoughness, surfaceData.clearCoatDotNV);
+        float specularAO = indirectSpecularOcclusion(surfaceData.dotNV, brdfData.diffuseAO, brdfData.clearCoatRoughness);
+        specularColor += specularAO * clearCoatRadiance * surfaceData.clearCoat * envBRDFApprox(brdfData.clearCoatSpecularColor, brdfData.clearCoatRoughness, surfaceData.clearCoatDotNV);
         radianceAttenuation -= surfaceData.clearCoat * F_Schlick(surfaceData.f0, surfaceData.clearCoatDotNV);
     #endif
 
@@ -72,16 +72,17 @@ void evaluateSpecularIBL(Varyings varyings, SurfaceData surfaceData, BRDFData br
     #else
         vec3 speculaColor = brdfData.specularColor;
     #endif
-
-    outSpecularColor += surfaceData.specularAO * radianceAttenuation * radiance * envBRDFApprox(speculaColor, brdfData.roughness, surfaceData.dotNV);
+    
+    float specularAO = indirectSpecularOcclusion(surfaceData.dotNV, brdfData.diffuseAO, brdfData.roughness);
+    outSpecularColor += specularAO * radianceAttenuation * radiance * envBRDFApprox(speculaColor, brdfData.roughness, surfaceData.dotNV);
 }
 
 void evaluateSheenIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData,  float radianceAttenuation, inout vec3 diffuseColor, inout vec3 specularColor){
     #ifdef MATERIAL_ENABLE_SHEEN
         diffuseColor *= brdfData.sheenScaling;
         specularColor *= brdfData.sheenScaling;
-
-        vec3 reflectance = surfaceData.specularAO * radianceAttenuation * brdfData.approxIBLSheenDG * surfaceData.sheenColor;
+        float specularAO = indirectSpecularOcclusion(surfaceData.dotNV, brdfData.diffuseAO, brdfData.sheenRoughness);
+        vec3 reflectance = specularAO * radianceAttenuation * brdfData.approxIBLSheenDG * surfaceData.sheenColor;
         specularColor += reflectance;
     #endif
 }

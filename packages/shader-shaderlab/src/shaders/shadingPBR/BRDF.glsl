@@ -20,8 +20,7 @@ struct SurfaceData{
 	vec3  emissiveColor;
     float metallic;
     float roughness;
-    float diffuseAO;
-    float specularAO;
+    float ambientOcclusion;
     float f0;
     float opacity;
     float IOR;
@@ -78,6 +77,7 @@ struct BRDFData{
     vec3  specularColor;
     float roughness;
     vec3 envSpecularDFG;
+    float diffuseAO;
 
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         vec3  clearCoatSpecularColor;
@@ -397,6 +397,8 @@ void initBRDFData(SurfaceData surfaceData, out BRDFData brdfData){
     brdfData.roughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(roughness + getAARoughnessFactor(surfaceData.normal), 1.0));
     brdfData.envSpecularDFG = envBRDFApprox(brdfData.specularColor,  brdfData.roughness, surfaceData.dotNV);
    
+    brdfData.diffuseAO = surfaceData.ambientOcclusion;
+
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         brdfData.clearCoatRoughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(surfaceData.clearCoatRoughness + getAARoughnessFactor(surfaceData.clearCoatNormal), 1.0));
         brdfData.clearCoatSpecularColor = vec3(0.04);
