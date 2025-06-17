@@ -21,8 +21,8 @@ import { GSError } from "../GSError";
 import { BaseLexer } from "../common/BaseLexer";
 import { Keyword } from "../common/enums/Keyword";
 import { ShaderLabUtils } from "../ShaderLabUtils";
-import { ShaderSourceSymbol } from "./ShaderSourceSymbol";
 import { ShaderSourceFactory } from "./ShaderSourceFactory";
+import { ShaderSourceSymbol } from "./ShaderSourceSymbol";
 import SourceLexer from "./SourceLexer";
 
 /**
@@ -129,7 +129,8 @@ export class ShaderSourceParser {
       // Declaration
       lexer.scanLexeme("{");
       const renderState = this._parseRenderStateProperties(stateToken.lexeme);
-      this._symbolTableStack.insert({ ident: token.lexeme, type: stateToken.type, value: renderState });
+      const symbol = new ShaderSourceSymbol(token.lexeme, stateToken.type, renderState);
+      this._symbolTableStack.insert(symbol);
     } else if (token.lexeme === "=") {
       // Assignment
       const variable = lexer.scanToken();
@@ -153,7 +154,8 @@ export class ShaderSourceParser {
     const lexer = this._lexer;
     const token = lexer.scanToken();
     lexer.scanLexeme(";");
-    this._symbolTableStack.insert({ type: token.type, ident: token.lexeme });
+    const symbol = new ShaderSourceSymbol(token.lexeme, token.type);
+    this._symbolTableStack.insert(symbol);
   }
 
   private static _pushScope(): void {
@@ -272,7 +274,8 @@ export class ShaderSourceParser {
     if (token.type === ETokenType.ID) {
       // declaration.
       lexer.scanLexeme(";");
-      this._symbolTableStack.insert({ ident: token.lexeme, type: Keyword.GSRenderQueueType });
+      const symbol = new ShaderSourceSymbol(token.lexeme, Keyword.GSRenderQueueType);
+      this._symbolTableStack.insert(symbol);
       return;
     }
 

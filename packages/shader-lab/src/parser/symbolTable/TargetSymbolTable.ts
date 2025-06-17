@@ -8,18 +8,6 @@ import { ESymbolType, SymbolAstNode, SymbolInfo } from "./SymbolInfo";
 import { VarSymbol } from "./VarSymbol";
 
 export class TargetSymbolTable extends BaseSymbolTable<SymbolInfo> {
-  override insert(sm: SymbolInfo): void {
-    const entry = this._table.get(sm.ident) ?? [];
-    for (let i = 0; i < entry.length; i++) {
-      if (this._haveSameTypeSymbol(entry[i], sm.symbolType, sm.paramSignature, sm.astNode)) {
-        Logger.warn("replace symbol:", sm.ident);
-        entry[i] = sm;
-        return;
-      }
-    }
-    entry.push(sm);
-    this._table.set(sm.ident, entry);
-  }
 
   lookup<T extends ESymbolType>(
     ident: string,

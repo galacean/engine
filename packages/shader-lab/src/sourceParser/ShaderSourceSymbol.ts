@@ -6,4 +6,8 @@ export class ShaderSourceSymbol implements IBaseSymbol {
     public readonly type: number,
     public readonly value?: any
   ) {}
+
+  equal(other: ShaderSourceSymbol): boolean {
+    return this.type === other.type;
+  }
 }

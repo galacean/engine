@@ -1,5 +1,5 @@
 import { IBaseSymbol } from "../../common/IBaseSymbol";
-import { GalaceanDataType } from "../../common/types";
+import { GalaceanDataType, TypeAny } from "../../common/types";
 import { ASTNode } from "../AST";
 import { SymbolDataType } from "./SymbolDataType";
 
@@ -25,4 +25,24 @@ export class SymbolInfo implements IBaseSymbol {
     public readonly dataType?: SymbolDataType,
     public readonly paramSignature?: GalaceanDataType[]
   ) {}
+
+  equal(other: SymbolInfo): boolean {
+    if (this.symbolType !== other.symbolType) return false;
+    if (this.symbolType === ESymbolType.FN) {
+      if (!other.astNode && !other.paramSignature) return true;
+
+      const params = (<ASTNode.FunctionDefinition>this.astNode).protoType.paramSig;
+      const comparedParams = other.paramSignature ?? (<ASTNode.FunctionDefinition>other.astNode).protoType.paramSig;
+      const length = params?.length;
+      if (length !== comparedParams?.length) return false;
+      for (let i = 0; i < length; i++) {
+        const t1 = params[i],
+          t2 = comparedParams[i];
+        if (t1 === TypeAny || t2 === TypeAny) continue;
+        if (t1 !== t2) return false;
+      }
+      return true;
+    }
+    return true;
+  }
 }
