@@ -4,7 +4,7 @@ import { GSErrorName } from "../GSError";
 import { ShaderData } from "./ShaderInfo";
 import { ESymbolType, SymbolInfo, TargetSymbolTable } from "../parser/symbolTable";
 import { NodeChild } from "./types";
-import { SymbolTableStack } from "../common/BaseSymbolTable";
+import { SymbolTableStack } from "../common/SymbolTableStack";
 import { ShaderLab } from "../ShaderLab";
 import { NonGenericGalaceanType } from "./builtin";
 // #if _VERBOSE

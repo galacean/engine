@@ -1,6 +1,7 @@
 import { Logger } from "@galacean/engine";
 import { TokenType } from "../common";
-import { BaseSymbolTable, IBaseSymbol } from "../common/BaseSymbolTable";
+import { BaseSymbolTable } from "../common/BaseSymbolTable";
+import { IBaseSymbol } from "../common/IBaseSymbol";
 
 export interface ISymbol extends IBaseSymbol {
   type: number;

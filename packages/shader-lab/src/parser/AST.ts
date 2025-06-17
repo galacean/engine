@@ -1265,7 +1265,7 @@ export namespace ASTNode {
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       this.shaderData = sa.shaderData;
-      this.shaderData.symbolTable = sa.symbolTableStack._scope;
+      this.shaderData.symbolTable = sa.symbolTableStack.scope;
     }
   }
 }

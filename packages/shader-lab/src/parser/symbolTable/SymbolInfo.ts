@@ -1,4 +1,4 @@
-import { IBaseSymbol } from "../../common/BaseSymbolTable";
+import { IBaseSymbol } from "../../common/IBaseSymbol";
 import { GalaceanDataType } from "../../common/types";
 import { ASTNode } from "../AST";
 import { SymbolDataType } from "./SymbolDataType";

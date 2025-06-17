@@ -11,8 +11,8 @@ import {
 } from "@galacean/engine";
 import { IRenderStates, IShaderPassSource, IShaderSource, IStatement, ISubShaderSource } from "@galacean/engine-design";
 import { ETokenType, ShaderPosition, ShaderRange } from "../common";
-import { SymbolTableStack } from "../common/BaseSymbolTable";
 import { BaseToken } from "../common/BaseToken";
+import { SymbolTableStack } from "../common/SymbolTableStack";
 import { GSErrorName } from "../GSError";
 import ContentSymbolTable, { ISymbol } from "./ShaderSourceSymbolTable";
 // #if _VERBOSE
@@ -81,8 +81,6 @@ export class ShaderSourceParser {
 
     return shaderSource;
   }
-
-
 
   private static _parseShader(lexer: SourceLexer, outShaderSource: IShaderSource): void {
     let braceLevel = 1;
