@@ -117,8 +117,9 @@ export class ShaderSourceParser {
             return shaderSource;
           }
           break;
+        default:
+          start = this._parseRenderState(token, start, pendingContents, shaderSource.renderStates);
       }
-      start = this._parseRenderState(token, start, pendingContents, shaderSource.renderStates);
     }
   }
 
@@ -361,14 +362,15 @@ export class ShaderSourceParser {
             return subShaderSource;
           }
           break;
+        default:
+          start = this._parseRenderStateAndTags(
+            token,
+            start,
+            subShaderSource.pendingContents,
+            subShaderSource.renderStates,
+            subShaderSource.tags
+          );
       }
-      start = this._parseRenderStateAndTags(
-        token,
-        start,
-        subShaderSource.pendingContents,
-        subShaderSource.renderStates,
-        subShaderSource.tags
-      );
     }
   }
 
@@ -438,14 +440,15 @@ export class ShaderSourceParser {
             return passSource;
           }
           break;
+        default:
+          start = this._parseRenderStateAndTags(
+            token,
+            start,
+            passSource.pendingContents,
+            passSource.renderStates,
+            passSource.tags
+          );
       }
-      start = this._parseRenderStateAndTags(
-        token,
-        start,
-        passSource.pendingContents,
-        passSource.renderStates,
-        passSource.tags
-      );
     }
   }
 
@@ -456,13 +459,14 @@ export class ShaderSourceParser {
     outRenderStates: IRenderStates,
     outTags: Record<string, number | string | boolean>
   ): ShaderPosition {
-    start = this._parseRenderState(token, start, outGlobalContents, outRenderStates);
     switch (token.type) {
       case Keyword.GSTags:
         this._addPendingContents(start, token.lexeme.length, outGlobalContents);
         this._parseTags(outTags);
         start = this._lexer.getCurPosition();
         break;
+      default:
+        start = this._parseRenderState(token, start, outGlobalContents, outRenderStates);
     }
     return start;
   }
