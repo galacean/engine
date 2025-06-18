@@ -19,17 +19,17 @@ import { GSError } from "../GSError";
 // #endif
 import { BaseLexer } from "../common/BaseLexer";
 import { Keyword } from "../common/enums/Keyword";
+import { SymbolTable } from "../common/SymbolTable";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 import { ShaderSourceFactory } from "./ShaderSourceFactory";
 import { ShaderSourceSymbol } from "./ShaderSourceSymbol";
 import SourceLexer from "./SourceLexer";
-import { SymbolTable } from "../common/SymbolTable";
 
 /**
  * @internal
  */
 export class ShaderSourceParser {
-  static _renderStateConstType = {
+  static _renderStateConstMap: Record<string, Record<string, number | string | boolean>> = {
     RenderQueueType,
     CompareFunction,
     StencilOperation,
@@ -241,7 +241,7 @@ export class ShaderSourceParser {
       } else if (lexer.getCurChar() === ".") {
         lexer.advance(1);
         const constValueToken = lexer.scanToken();
-        propertyValue = this._renderStateConstType[valueToken.lexeme]?.[constValueToken.lexeme];
+        propertyValue = this._renderStateConstMap[valueToken.lexeme]?.[constValueToken.lexeme];
         if (propertyValue == undefined) {
           this._createCompileError(
             `Invalid engine constant: ${valueToken.lexeme}.${constValueToken.lexeme}`,
@@ -292,7 +292,7 @@ export class ShaderSourceParser {
     }
     const word = lexer.scanToken();
     lexer.scanLexeme(";");
-    const value = this._renderStateConstType.RenderQueueType[word.lexeme];
+    const value = this._renderStateConstMap.RenderQueueType[word.lexeme];
     const key = RenderStateElementKey.RenderQueueType;
     if (value == undefined) {
       renderStates.variableMap[key] = word.lexeme;
