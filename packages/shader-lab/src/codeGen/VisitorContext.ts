@@ -109,13 +109,15 @@ export class VisitorContext {
     if (this._referencedGlobals[ident]) return;
 
     if (type === ESymbolType.FN) {
-      const entries = this._passSymbolTable._table.get(ident) ?? [];
-      for (let i = 0; i < entries.length; i++) {
-        const item = entries[i];
-        if (item.type !== ESymbolType.FN) continue;
-        (<SymbolInfo[]>(this._referencedGlobals[ident] ||= [])).push(item);
+      const entries = this._passSymbolTable._table.get(ident);
+      if (entries) {
+        for (let i = 0; i < entries.length; i++) {
+          const item = entries[i];
+          if (item.type !== ESymbolType.FN) continue;
+          (<SymbolInfo[]>(this._referencedGlobals[ident] ||= [])).push(item);
+        }
+        return;
       }
-      return;
     }
     const lookupSymbol = VisitorContext._lookupSymbol;
     lookupSymbol.set(ident, type);
