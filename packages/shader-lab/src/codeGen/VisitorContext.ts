@@ -29,7 +29,7 @@ export class VisitorContext {
   stage: EShaderStage;
 
   _referencedAttributeList: Record<string, IParamInfo & { qualifier?: string }>;
-  _referencedGlobals: Record<string, SymbolInfo | ASTNode.PrecisionSpecifier>;
+  _referencedGlobals: Record<string, SymbolInfo | SymbolInfo[] | ASTNode.PrecisionSpecifier>;
   _referencedVaryingList: Record<string, IParamInfo & { qualifier?: string }>;
   _referencedMRTList: Record<string, StructProp | string>;
 
@@ -112,9 +112,7 @@ export class VisitorContext {
       for (let i = 0; i < entries.length; i++) {
         const item = entries[i];
         if (item.symbolType !== ESymbolType.FN) continue;
-        // @todo: `key` should be unique
-        const key = i === 0 ? ident : `${ident}__${i}__`;
-        this._referencedGlobals[key] = item;
+        (<SymbolInfo[]>(this._referencedGlobals[ident] ||= [])).push(item);
       }
       return;
     }
