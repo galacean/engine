@@ -119,7 +119,6 @@ export class ShaderLab implements IShaderLab {
 
   _parseShaderSource(sourceCode: string): IShaderSource {
     ShaderLabUtils.clearAllShaderLabObjectPool();
-    ShaderSourceParser.reset();
     const shaderSource = ShaderSourceParser.parse(sourceCode);
 
     // #if _VERBOSE

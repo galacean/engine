@@ -10,24 +10,26 @@ import {
   StencilOperation
 } from "@galacean/engine";
 import { IRenderStates, IShaderPassSource, IShaderSource, IStatement, ISubShaderSource } from "@galacean/engine-design";
-import { ETokenType, ShaderPosition, ShaderRange, TokenType } from "../common";
-import { SymbolTableStack } from "../common/BaseSymbolTable";
+import { ETokenType, ShaderPosition, ShaderRange } from "../common";
 import { BaseToken } from "../common/BaseToken";
+import { SymbolTableStack } from "../common/SymbolTableStack";
 import { GSErrorName } from "../GSError";
-import ContentSymbolTable, { ISymbol } from "./ShaderSourceSymbolTable";
 // #if _VERBOSE
 import { GSError } from "../GSError";
 // #endif
 import { BaseLexer } from "../common/BaseLexer";
 import { Keyword } from "../common/enums/Keyword";
+import { SymbolTable } from "../common/SymbolTable";
 import { ShaderLabUtils } from "../ShaderLabUtils";
+import { ShaderSourceFactory } from "./ShaderSourceFactory";
+import { ShaderSourceSymbol } from "./ShaderSourceSymbol";
 import SourceLexer from "./SourceLexer";
 
 /**
  * @internal
  */
 export class ShaderSourceParser {
-  static _renderStateConstType = {
+  static _renderStateConstMap: Record<string, Record<string, number | string | boolean>> = {
     RenderQueueType,
     CompareFunction,
     StencilOperation,
@@ -36,45 +38,39 @@ export class ShaderSourceParser {
     CullMode
   };
 
-  static _errors: GSError[] = [];
+  static _errors = new Array<GSError>();
 
-  private static _symbolTableStack: SymbolTableStack<ISymbol, ContentSymbolTable> = new SymbolTableStack();
-  private static _lexer: SourceLexer = new SourceLexer();
-
-  static reset() {
-    this._errors.length = 0;
-    this._symbolTableStack.clear();
-    this._pushScope();
-  }
+  private static _symbolTableStack = new SymbolTableStack<ShaderSourceSymbol, SymbolTable<ShaderSourceSymbol>>();
+  private static _lexer = new SourceLexer();
+  private static _lookupSymbol: ShaderSourceSymbol = new ShaderSourceSymbol("", null);
 
   static parse(sourceCode: string): IShaderSource {
     const startTime = performance.now();
 
+    // Clear previous data
+    this._errors.length = 0;
+    this._symbolTableStack.clear();
+    this._pushScope();
+
     const lexer = this._lexer;
     lexer.setSource(sourceCode);
 
-    const shaderSource = <IShaderSource>{
-      subShaders: [],
-      pendingContents: [],
-      renderStates: { constantMap: {}, variableMap: {} }
-    };
-
     lexer.scanLexeme("Shader");
-    shaderSource.name = lexer.scanPairedChar('"', '"', false, false);
+    const name = lexer.scanPairedChar('"', '"', false, false);
+    const shaderSource = ShaderSourceFactory.createShaderSource(name);
     lexer.scanLexeme("{");
-
     this._parseShader(lexer, shaderSource);
 
     const shaderPendingContents = shaderSource.pendingContents;
     const shaderRenderStates = shaderSource.renderStates;
-    for (let i = 0; i < shaderSource.subShaders.length; i++) {
+    for (let i = 0, n = shaderSource.subShaders.length; i < n; i++) {
       const subShader = shaderSource.subShaders[i];
       const curSubShaderGlobalStatements = shaderPendingContents.concat(subShader.pendingContents);
       const constMap = { ...shaderRenderStates.constantMap, ...subShader.renderStates.constantMap };
       const variableMap = { ...shaderRenderStates.variableMap, ...subShader.renderStates.variableMap };
 
-      for (let i = 0; i < subShader.passes.length; i++) {
-        const pass = subShader.passes[i];
+      for (let j = 0, m = subShader.passes.length; j < m; j++) {
+        const pass = subShader.passes[j];
         Object.assign(pass.renderStates.constantMap, constMap);
         Object.assign(pass.renderStates.variableMap, variableMap);
         if (pass.isUsePass) continue;
@@ -86,15 +82,6 @@ export class ShaderSourceParser {
     Logger.info(`[Source compilation] cost time ${performance.now() - startTime}ms`);
 
     return shaderSource;
-  }
-
-  private static _lookupVariable(variableName: string, type: TokenType): ISymbol | undefined {
-    const stack = ShaderSourceParser._symbolTableStack.stack;
-    for (let length = stack.length, i = length - 1; i >= 0; i--) {
-      const symbolTable = stack[i];
-      const ret = symbolTable.lookup(variableName, type);
-      if (ret) return ret;
-    }
   }
 
   private static _parseShader(lexer: SourceLexer, outShaderSource: IShaderSource): void {
@@ -143,13 +130,16 @@ export class ShaderSourceParser {
       // Declaration
       lexer.scanLexeme("{");
       const renderState = this._parseRenderStateProperties(stateToken.lexeme);
-      this._symbolTableStack.insert({ ident: token.lexeme, type: stateToken.type, value: renderState });
+      const symbol = new ShaderSourceSymbol(token.lexeme, stateToken.type, renderState);
+      this._symbolTableStack.insert(symbol);
     } else if (token.lexeme === "=") {
       // Assignment
       const variable = lexer.scanToken();
 
       lexer.scanLexeme(";");
-      const sm = ShaderSourceParser._lookupVariable(variable.lexeme, stateToken.type);
+      const lookupSymbol = this._lookupSymbol;
+      lookupSymbol.set(variable.lexeme, stateToken.type);
+      const sm = this._symbolTableStack.lookup(lookupSymbol);
       if (!sm?.value) {
         this._createCompileError(`Invalid "${stateToken.lexeme}" variable: ${variable.lexeme}`, variable.location);
         // #if _VERBOSE
@@ -167,11 +157,12 @@ export class ShaderSourceParser {
     const lexer = this._lexer;
     const token = lexer.scanToken();
     lexer.scanLexeme(";");
-    this._symbolTableStack.insert({ type: token.type, ident: token.lexeme });
+    const symbol = new ShaderSourceSymbol(token.lexeme, token.type);
+    this._symbolTableStack.insert(symbol);
   }
 
   private static _pushScope(): void {
-    const symbolTable = new ContentSymbolTable();
+    const symbolTable = new SymbolTable<ShaderSourceSymbol>();
     this._symbolTableStack.pushScope(symbolTable);
   }
 
@@ -181,7 +172,7 @@ export class ShaderSourceParser {
 
   private static _parseRenderStateProperties(state: string): IRenderStates {
     const lexer = this._lexer;
-    const renderStates = <IRenderStates>{ constantMap: {}, variableMap: {} };
+    const renderStates = ShaderSourceFactory.createRenderStates();
     while (lexer.getCurChar() !== "}") {
       this._parseRenderStateProperty(state, renderStates);
       lexer.skipCommentsAndSpace();
@@ -250,7 +241,7 @@ export class ShaderSourceParser {
       } else if (lexer.getCurChar() === ".") {
         lexer.advance(1);
         const constValueToken = lexer.scanToken();
-        propertyValue = ShaderSourceParser._renderStateConstType[valueToken.lexeme]?.[constValueToken.lexeme];
+        propertyValue = this._renderStateConstMap[valueToken.lexeme]?.[constValueToken.lexeme];
         if (propertyValue == undefined) {
           this._createCompileError(
             `Invalid engine constant: ${valueToken.lexeme}.${constValueToken.lexeme}`,
@@ -263,7 +254,9 @@ export class ShaderSourceParser {
         }
       } else {
         propertyValue = valueToken.lexeme;
-        if (!ShaderSourceParser._lookupVariable(valueToken.lexeme, ETokenType.ID)) {
+        const lookupSymbol = this._lookupSymbol;
+        lookupSymbol.set(valueToken.lexeme, ETokenType.ID);
+        if (!this._symbolTableStack.lookup(lookupSymbol)) {
           this._createCompileError(`Invalid ${stateLexeme} variable: ${valueToken.lexeme}`, valueToken.location);
           // #if _VERBOSE
           lexer.scanToCharacter(";");
@@ -286,7 +279,8 @@ export class ShaderSourceParser {
     if (token.type === ETokenType.ID) {
       // declaration.
       lexer.scanLexeme(";");
-      this._symbolTableStack.insert({ ident: token.lexeme, type: Keyword.GSRenderQueueType });
+      const symbol = new ShaderSourceSymbol(token.lexeme, Keyword.GSRenderQueueType);
+      this._symbolTableStack.insert(symbol);
       return;
     }
 
@@ -298,11 +292,13 @@ export class ShaderSourceParser {
     }
     const word = lexer.scanToken();
     lexer.scanLexeme(";");
-    const value = ShaderSourceParser._renderStateConstType.RenderQueueType[word.lexeme];
+    const value = this._renderStateConstMap.RenderQueueType[word.lexeme];
     const key = RenderStateElementKey.RenderQueueType;
     if (value == undefined) {
       renderStates.variableMap[key] = word.lexeme;
-      const sm = ShaderSourceParser._lookupVariable(word.lexeme, Keyword.GSRenderQueueType);
+      const lookupSymbol = this._lookupSymbol;
+      lookupSymbol.set(word.lexeme, Keyword.GSRenderQueueType);
+      const sm = this._symbolTableStack.lookup(lookupSymbol);
       if (!sm) {
         this._createCompileError(`Invalid RenderQueueType variable: ${word.lexeme}`, word.location);
         // #if _VERBOSE
@@ -332,14 +328,10 @@ export class ShaderSourceParser {
   private static _parseSubShader(): ISubShaderSource {
     const lexer = this._lexer;
     this._pushScope();
-    const ret = {
-      passes: [],
-      pendingContents: [],
-      renderStates: { constantMap: {}, variableMap: {} },
-      tags: {}
-    } as ISubShaderSource;
+
     let braceLevel = 1;
-    ret.name = lexer.scanPairedChar('"', '"', false, false);
+    const name = lexer.scanPairedChar('"', '"', false, false);
+    const ret = ShaderSourceFactory.createSubShaderSource(name);
     lexer.scanLexeme("{");
 
     lexer.skipCommentsAndSpace();
@@ -357,16 +349,14 @@ export class ShaderSourceParser {
         case Keyword.GSUsePass:
           this._addPendingContents(start, word.lexeme.length, ret.pendingContents);
           const name = lexer.scanPairedChar('"', '"', false, false);
-          // @ts-ignore
-          ret.passes.push({ name, isUsePass: true, renderStates: { constantMap: {}, variableMap: {} }, tags: {} });
+          ret.passes.push(ShaderSourceFactory.createUsePass(name));
           start = lexer.getCurPosition();
           break;
         case Keyword.LeftBrace:
-          braceLevel += 1;
+          ++braceLevel;
           break;
         case Keyword.RightBrace:
-          braceLevel -= 1;
-          if (braceLevel === 0) {
+          if (--braceLevel === 0) {
             this._addPendingContents(start, word.lexeme.length, ret.pendingContents);
             this._popScope();
             return ret;
@@ -399,12 +389,9 @@ export class ShaderSourceParser {
   private static _parsePass(): IShaderPassSource {
     this._pushScope();
     const lexer = this._lexer;
-    const ret = <IShaderPassSource>{
-      pendingContents: [],
-      renderStates: { constantMap: {}, variableMap: {} },
-      tags: {}
-    };
-    ret.name = lexer.scanPairedChar('"', '"', false, false);
+
+    const name = lexer.scanPairedChar('"', '"', false, false);
+    const ret = ShaderSourceFactory.createShaderPassSource(name);
     lexer.scanLexeme("{");
     let braceLevel = 1;
 
@@ -437,11 +424,10 @@ export class ShaderSourceParser {
           start = lexer.getCurPosition();
           break;
         case Keyword.LeftBrace:
-          braceLevel += 1;
+          ++braceLevel;
           break;
         case Keyword.RightBrace:
-          braceLevel -= 1;
-          if (braceLevel === 0) {
+          if (--braceLevel === 0) {
             this._addPendingContents(start, word.lexeme.length, ret.pendingContents);
             this._popScope();
             return ret;

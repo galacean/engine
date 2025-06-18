@@ -9,6 +9,7 @@ import { ShaderLabUtils } from "../ShaderLabUtils";
 
 /** @internal */
 export class VisitorContext {
+  private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
   private static _singleton: VisitorContext;
   static get context() {
     return this._singleton;
@@ -111,13 +112,14 @@ export class VisitorContext {
       const entries = this._passSymbolTable._table.get(ident) ?? [];
       for (let i = 0; i < entries.length; i++) {
         const item = entries[i];
-        if (item.symbolType !== ESymbolType.FN) continue;
+        if (item.type !== ESymbolType.FN) continue;
         (<SymbolInfo[]>(this._referencedGlobals[ident] ||= [])).push(item);
       }
       return;
     }
-
-    const sm = this._passSymbolTable.lookup(ident, type);
+    const lookupSymbol = VisitorContext._lookupSymbol;
+    lookupSymbol.set(ident, type);
+    const sm = this._passSymbolTable.lookup(lookupSymbol);
     if (sm) {
       this._referencedGlobals[ident] = sm;
     }
