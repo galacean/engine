@@ -2,8 +2,8 @@ Shader "/Folder1/test.gs" {
     SubShader "Default" {
       UsePass "pbr/Default/ShadowCaster"
 
-      RenderQueueType material_QuqueType;
-      RenderQueueType = material_QuqueType;
+      RenderQueueType material_QueueType;
+      RenderQueueType = material_QueueType;
       RenderQueueType = Opaque;
 
       RenderQueueType = Unknown;
