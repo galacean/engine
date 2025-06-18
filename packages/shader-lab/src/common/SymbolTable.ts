@@ -1,12 +1,12 @@
 import { Logger } from "@galacean/engine";
 import { IBaseSymbol } from "./IBaseSymbol";
 
-export class BaseSymbolTable<T extends IBaseSymbol> {
+export class SymbolTable<T extends IBaseSymbol> {
   protected _table: Map<string, T[]> = new Map();
 
   insert(symbol: T): void {
     const entry = this._table.get(symbol.ident) ?? [];
-    for (let i = 0; i < entry.length; i++) {
+    for (let i = 0, n = entry.length; i < n; i++) {
       if (entry[i].equal(symbol)) {
         Logger.warn("Replace symbol:", symbol.ident);
         entry[i] = symbol;
@@ -20,7 +20,7 @@ export class BaseSymbolTable<T extends IBaseSymbol> {
   lookup(symbol: T): T | undefined {
     const entry = this._table.get(symbol.ident);
     if (entry) {
-      for (let length = entry.length, i = 0; i < length; i++) {
+      for (let n = entry.length, i = 0; i < n; i++) {
         const item = entry[i];
         if (item.equal(symbol)) return item;
       }

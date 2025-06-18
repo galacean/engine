@@ -1,7 +1,7 @@
-import { BaseSymbolTable } from "./BaseSymbolTable";
+import { SymbolTable } from "./SymbolTable";
 import { IBaseSymbol } from "./IBaseSymbol";
 
-export class SymbolTableStack<S extends IBaseSymbol, T extends BaseSymbolTable<S>> {
+export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
   stack: T[] = [];
 
   get scope(): T {

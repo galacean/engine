@@ -23,7 +23,7 @@ import { ShaderLabUtils } from "../ShaderLabUtils";
 import { ShaderSourceFactory } from "./ShaderSourceFactory";
 import { ShaderSourceSymbol } from "./ShaderSourceSymbol";
 import SourceLexer from "./SourceLexer";
-import { BaseSymbolTable } from "../common/BaseSymbolTable";
+import { SymbolTable } from "../common/SymbolTable";
 
 /**
  * @internal
@@ -40,7 +40,7 @@ export class ShaderSourceParser {
 
   static _errors = new Array<GSError>();
 
-  private static _symbolTableStack = new SymbolTableStack<ShaderSourceSymbol, BaseSymbolTable<ShaderSourceSymbol>>();
+  private static _symbolTableStack = new SymbolTableStack<ShaderSourceSymbol, SymbolTable<ShaderSourceSymbol>>();
   private static _lexer = new SourceLexer();
   private static _lookupSymbol: ShaderSourceSymbol = new ShaderSourceSymbol("", null);
 
@@ -162,7 +162,7 @@ export class ShaderSourceParser {
   }
 
   private static _pushScope(): void {
-    const symbolTable = new BaseSymbolTable<ShaderSourceSymbol>();
+    const symbolTable = new SymbolTable<ShaderSourceSymbol>();
     this._symbolTableStack.pushScope(symbolTable);
   }
 
