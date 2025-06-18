@@ -26,6 +26,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   protected _extensions: string = "";
   private _globalCodeArray: ICodeSegment[] = [];
   private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
+  private static _serializedGlobalKey = new Set();
 
   abstract getAttributeDeclare(out: ICodeSegment[]): void;
   abstract getVaryingDeclare(out: ICodeSegment[]): void;
@@ -91,6 +92,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     const { _globalCodeArray: globalCodeArray } = this;
     globalCodeArray.length = 0;
+    GLESVisitor._serializedGlobalKey.clear();
 
     this._getGlobalSymbol(globalCodeArray);
     this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
@@ -139,6 +141,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const statements = fnNode.statements.codeGen(this);
     const { _globalCodeArray: globalCodeArray } = this;
     globalCodeArray.length = 0;
+    GLESVisitor._serializedGlobalKey.clear();
 
     this._getGlobalSymbol(globalCodeArray);
     this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
@@ -157,7 +160,12 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   private _getGlobalSymbol(out: ICodeSegment[]): void {
     const { _referencedGlobals } = VisitorContext.context;
 
+    const lastLength = Object.keys(_referencedGlobals).length;
+
     for (const ident in _referencedGlobals) {
+      if (GLESVisitor._serializedGlobalKey.has(ident)) continue;
+      GLESVisitor._serializedGlobalKey.add(ident);
+
       const symbol = _referencedGlobals[ident];
       const symbols = Array.isArray(symbol) ? symbol : [symbol];
       for (let i = 0; i < symbols.length; i++) {
@@ -172,6 +180,10 @@ export abstract class GLESVisitor extends CodeGenVisitor {
           out.push({ text: sm.codeGen(this), index: sm.location.start.index });
         }
       }
+    }
+
+    if (Object.keys(_referencedGlobals).length !== lastLength) {
+      this._getGlobalSymbol(out);
     }
   }
 
