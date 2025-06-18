@@ -123,7 +123,7 @@ export class ShaderLab implements IShaderLab {
 
     // #if _VERBOSE
     this.errors.length = 0;
-    for (const error of ShaderSourceParser._errors) {
+    for (const error of ShaderSourceParser.errors) {
       this.errors.push(error);
     }
     // #endif

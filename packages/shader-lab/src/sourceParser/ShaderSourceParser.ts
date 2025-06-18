@@ -29,7 +29,9 @@ import SourceLexer from "./SourceLexer";
  * @internal
  */
 export class ShaderSourceParser {
-  static _renderStateConstMap: Record<string, Record<string, number | string | boolean>> = {
+  static errors = new Array<GSError>();
+
+  private static _renderStateConstMap = <Record<string, Record<string, number | string | boolean>>>{
     RenderQueueType,
     CompareFunction,
     StencilOperation,
@@ -37,18 +39,15 @@ export class ShaderSourceParser {
     BlendFactor,
     CullMode
   };
-
-  static _errors = new Array<GSError>();
-
   private static _symbolTableStack = new SymbolTableStack<ShaderSourceSymbol, SymbolTable<ShaderSourceSymbol>>();
   private static _lexer = new SourceLexer();
-  private static _lookupSymbol: ShaderSourceSymbol = new ShaderSourceSymbol("", null);
+  private static _lookupSymbol = new ShaderSourceSymbol("", null);
 
   static parse(sourceCode: string): IShaderSource {
     const startTime = performance.now();
 
     // Clear previous data
-    this._errors.length = 0;
+    this.errors.length = 0;
     this._symbolTableStack.clear();
     this._pushScope();
 
@@ -184,7 +183,7 @@ export class ShaderSourceParser {
   private static _createCompileError(message: string, location?: ShaderPosition | ShaderRange): void {
     const error = this._lexer.createCompileError(message, location);
     // #if _VERBOSE
-    this._errors.push(<GSError>error);
+    this.errors.push(<GSError>error);
     // #endif
   }
 
