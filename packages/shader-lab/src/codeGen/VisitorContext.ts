@@ -1,14 +1,15 @@
-import { EShaderStage } from "../common/Enums";
-import { ASTNode } from "../parser/AST";
-import { ESymbolType, TargetSymbolTable, SymbolInfo } from "../parser/symbolTable";
-import { IParamInfo, StructProp } from "../parser/types";
-import { GSErrorName } from "../GSError";
 import { BaseToken } from "../common/BaseToken";
+import { EShaderStage } from "../common/Enums";
+import { GSErrorName } from "../GSError";
+import { ASTNode } from "../parser/AST";
+import { ESymbolType, SymbolInfo, TargetSymbolTable } from "../parser/symbolTable";
+import { IParamInfo, StructProp } from "../parser/types";
 import { ShaderLab } from "../ShaderLab";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 
 /** @internal */
 export class VisitorContext {
+  private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
   private static _singleton: VisitorContext;
   static get context() {
     return this._singleton;
@@ -115,7 +116,9 @@ export class VisitorContext {
       }
       return;
     }
-    const sm = this._passSymbolTable.lookup(ident, type);
+    const lookupSymbol = VisitorContext._lookupSymbol;
+    lookupSymbol.set(ident, type);
+    const sm = this._passSymbolTable.lookup(lookupSymbol);
     if (sm) {
       this._referencedGlobals[ident] = sm;
     }

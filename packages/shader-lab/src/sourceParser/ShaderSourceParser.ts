@@ -14,7 +14,6 @@ import { ETokenType, ShaderPosition, ShaderRange } from "../common";
 import { BaseToken } from "../common/BaseToken";
 import { SymbolTableStack } from "../common/SymbolTableStack";
 import { GSErrorName } from "../GSError";
-import ContentSymbolTable from "./ShaderSourceSymbolTable";
 // #if _VERBOSE
 import { GSError } from "../GSError";
 // #endif
@@ -24,6 +23,7 @@ import { ShaderLabUtils } from "../ShaderLabUtils";
 import { ShaderSourceFactory } from "./ShaderSourceFactory";
 import { ShaderSourceSymbol } from "./ShaderSourceSymbol";
 import SourceLexer from "./SourceLexer";
+import { BaseSymbolTable } from "../common/BaseSymbolTable";
 
 /**
  * @internal
@@ -40,8 +40,9 @@ export class ShaderSourceParser {
 
   static _errors = new Array<GSError>();
 
-  private static _symbolTableStack = new SymbolTableStack<ShaderSourceSymbol, ContentSymbolTable>();
+  private static _symbolTableStack = new SymbolTableStack<ShaderSourceSymbol, BaseSymbolTable<ShaderSourceSymbol>>();
   private static _lexer = new SourceLexer();
+  private static _lookupSymbol: ShaderSourceSymbol = new ShaderSourceSymbol("", null);
 
   static parse(sourceCode: string): IShaderSource {
     const startTime = performance.now();
@@ -136,7 +137,9 @@ export class ShaderSourceParser {
       const variable = lexer.scanToken();
 
       lexer.scanLexeme(";");
-      const sm = this._symbolTableStack.lookup(variable.lexeme, stateToken.type);
+      const lookupSymbol = this._lookupSymbol;
+      lookupSymbol.set(variable.lexeme, stateToken.type);
+      const sm = this._symbolTableStack.lookup(lookupSymbol);
       if (!sm?.value) {
         this._createCompileError(`Invalid "${stateToken.lexeme}" variable: ${variable.lexeme}`, variable.location);
         // #if _VERBOSE
@@ -159,7 +162,7 @@ export class ShaderSourceParser {
   }
 
   private static _pushScope(): void {
-    const symbolTable = new ContentSymbolTable();
+    const symbolTable = new BaseSymbolTable<ShaderSourceSymbol>();
     this._symbolTableStack.pushScope(symbolTable);
   }
 
@@ -251,7 +254,9 @@ export class ShaderSourceParser {
         }
       } else {
         propertyValue = valueToken.lexeme;
-        if (!this._symbolTableStack.lookup(valueToken.lexeme, ETokenType.ID)) {
+        const lookupSymbol = this._lookupSymbol;
+        lookupSymbol.set(valueToken.lexeme, ETokenType.ID);
+        if (!this._symbolTableStack.lookup(lookupSymbol)) {
           this._createCompileError(`Invalid ${stateLexeme} variable: ${valueToken.lexeme}`, valueToken.location);
           // #if _VERBOSE
           lexer.scanToCharacter(";");
@@ -291,7 +296,9 @@ export class ShaderSourceParser {
     const key = RenderStateElementKey.RenderQueueType;
     if (value == undefined) {
       renderStates.variableMap[key] = word.lexeme;
-      const sm = this._symbolTableStack.lookup(word.lexeme, Keyword.GSRenderQueueType);
+      const lookupSymbol = this._lookupSymbol;
+      lookupSymbol.set(word.lexeme, Keyword.GSRenderQueueType);
+      const sm = this._symbolTableStack.lookup(lookupSymbol);
       if (!sm) {
         this._createCompileError(`Invalid RenderQueueType variable: ${word.lexeme}`, word.location);
         // #if _VERBOSE

@@ -24,10 +24,10 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends BaseSymbolTable<S
     this.scope.insert(symbol);
   }
 
-  lookup(identifier: string, type?: any): S | undefined {
+  lookup(symbol: S): S | undefined {
     for (let i = this.stack.length - 1; i >= 0; i--) {
       const symbolTable = this.stack[i];
-      const result = symbolTable.lookup(identifier, type);
+      const result = symbolTable.lookup(symbol);
       if (result) return result;
     }
     return undefined;

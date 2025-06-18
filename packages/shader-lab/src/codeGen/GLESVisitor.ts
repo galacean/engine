@@ -1,12 +1,12 @@
-import { CodeGenVisitor } from "./CodeGenVisitor";
+import { IShaderInfo } from "@galacean/engine-design";
+import { EShaderStage } from "../common/Enums";
+import { Keyword } from "../common/enums/Keyword";
 import { ASTNode } from "../parser/AST";
 import { ShaderData } from "../parser/ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo } from "../parser/symbolTable";
-import { EShaderStage } from "../common/Enums";
-import { IShaderInfo } from "@galacean/engine-design";
+import { CodeGenVisitor } from "./CodeGenVisitor";
 import { ICodeSegment } from "./types";
 import { VisitorContext } from "./VisitorContext";
-import { Keyword } from "../common/enums/Keyword";
 
 const defaultPrecision = `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -25,6 +25,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   protected _versionText: string = "";
   protected _extensions: string = "";
   private _globalCodeArray: ICodeSegment[] = [];
+  private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
 
   abstract getAttributeDeclare(out: ICodeSegment[]): void;
   abstract getVaryingDeclare(out: ICodeSegment[]): void;
@@ -44,8 +45,10 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   }
 
   vertexMain(entry: string, data: ShaderData): string {
+    const lookupSymbol = GLESVisitor._lookupSymbol;
     const { symbolTable } = data;
-    const fnSymbol = symbolTable.lookup(entry, ESymbolType.FN);
+    lookupSymbol.set(entry, ESymbolType.FN);
+    const fnSymbol = <FnSymbol>symbolTable.lookup(lookupSymbol);
     if (!fnSymbol?.astNode) throw `no entry function found: ${entry}`;
 
     const fnNode = fnSymbol.astNode;
@@ -53,7 +56,8 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     const returnType = fnNode.protoType.returnType;
     if (typeof returnType.type === "string") {
-      const varyStruct = symbolTable.lookup(returnType.type, ESymbolType.STRUCT);
+      lookupSymbol.set(returnType.type, ESymbolType.STRUCT);
+      const varyStruct = <StructSymbol>symbolTable.lookup(lookupSymbol);
       if (!varyStruct) {
         this._reportError(returnType.location, `invalid varying struct: ${returnType.type}`);
       } else {
@@ -67,7 +71,8 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     if (paramList?.length) {
       for (const paramInfo of paramList) {
         if (typeof paramInfo.typeInfo.type === "string") {
-          const structSymbol = symbolTable.lookup(paramInfo.typeInfo.type, ESymbolType.STRUCT);
+          lookupSymbol.set(paramInfo.typeInfo.type, ESymbolType.STRUCT);
+          const structSymbol = <StructSymbol>symbolTable.lookup(lookupSymbol);
           if (!structSymbol) {
             this._reportError(paramInfo.astNode.location, `Not found attribute struct "${paramInfo.typeInfo.type}".`);
             continue;
@@ -102,8 +107,10 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   }
 
   private _fragmentMain(entry: string, data: ShaderData): string {
+    const lookupSymbol = GLESVisitor._lookupSymbol;
     const { symbolTable } = data;
-    const fnSymbol = symbolTable.lookup(entry, ESymbolType.FN);
+    lookupSymbol.set(entry, ESymbolType.FN);
+    const fnSymbol = <FnSymbol>symbolTable.lookup(lookupSymbol);
     if (!fnSymbol?.astNode) throw `no entry function found: ${entry}`;
     const fnNode = fnSymbol.astNode;
 
@@ -117,7 +124,8 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     const { type: returnDataType, location: returnLocation } = fnNode.protoType.returnType;
     if (typeof returnDataType === "string") {
-      const mrtStruct = symbolTable.lookup(returnDataType, ESymbolType.STRUCT);
+      lookupSymbol.set(returnDataType, ESymbolType.STRUCT);
+      const mrtStruct = <StructSymbol>symbolTable.lookup(lookupSymbol);
       if (!mrtStruct) {
         this._reportError(returnLocation, `invalid mrt struct: ${returnDataType}`);
       } else {
@@ -167,7 +175,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       _serialized.add(ident);
 
       if (sm instanceof SymbolInfo) {
-        if (sm.symbolType === ESymbolType.VAR) {
+        if (sm.type === ESymbolType.VAR) {
           textList.push({ text: `uniform ${sm.astNode.codeGen(this)}`, index: sm.astNode.location.start.index });
         } else {
           textList.push({ text: sm.astNode!.codeGen(this), index: sm.astNode!.location.start.index });

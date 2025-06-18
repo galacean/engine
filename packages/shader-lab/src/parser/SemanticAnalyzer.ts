@@ -22,6 +22,8 @@ export type TranslationRule<T = any> = (sa: SemanticAnalyzer, ...tokens: NodeChi
  * - Static analysis
  */
 export default class SemanticAnalyzer {
+  private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
+
   semanticStack: TreeNode[] = [];
   acceptRule?: TranslationRule = undefined;
   symbolTableStack: SymbolTableStack<SymbolInfo, TargetSymbolTable> = new SymbolTableStack();
@@ -76,10 +78,12 @@ export default class SemanticAnalyzer {
     paramSignature?: NonGenericGalaceanType[],
     astNode?: ASTNode.FunctionDefinition
   ): SymbolInfo | undefined {
+    const lookupSymbol = SemanticAnalyzer._lookupSymbol;
     const stack = this.symbolTableStack.stack;
     for (let length = stack.length, i = length - 1; i >= 0; i--) {
       const symbolTable = stack[i];
-      const ret = symbolTable.lookup(ident, symbolType, paramSignature, astNode);
+      lookupSymbol.set(ident, symbolType, astNode, undefined, paramSignature);
+      const ret = symbolTable.lookup(lookupSymbol);
       if (ret) return ret;
     }
   }

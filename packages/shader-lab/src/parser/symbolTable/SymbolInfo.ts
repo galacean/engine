@@ -19,16 +19,30 @@ export type SymbolAstNode =
 
 export class SymbolInfo implements IBaseSymbol {
   constructor(
-    public readonly ident: string,
-    public readonly symbolType: ESymbolType,
-    public readonly astNode?: SymbolAstNode,
-    public readonly dataType?: SymbolDataType,
-    public readonly paramSignature?: GalaceanDataType[]
+    public ident: string,
+    public type: ESymbolType,
+    public astNode?: SymbolAstNode,
+    public dataType?: SymbolDataType,
+    public paramSignature?: GalaceanDataType[]
   ) {}
 
+  set(
+    ident: string,
+    symbolType: ESymbolType,
+    astNode?: SymbolAstNode,
+    dataType?: SymbolDataType,
+    paramSignature?: GalaceanDataType[]
+  ) {
+    this.ident = ident;
+    this.type = symbolType;
+    this.astNode = astNode;
+    this.dataType = dataType;
+    this.paramSignature = paramSignature;
+  }
+
   equal(other: SymbolInfo): boolean {
-    if (this.symbolType !== other.symbolType) return false;
-    if (this.symbolType === ESymbolType.FN) {
+    if (this.type !== other.type) return false;
+    if (this.type === ESymbolType.FN) {
       if (!other.astNode && !other.paramSignature) return true;
 
       const params = (<ASTNode.FunctionDefinition>this.astNode).protoType.paramSig;
