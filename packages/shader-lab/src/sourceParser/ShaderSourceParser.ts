@@ -54,11 +54,7 @@ export class ShaderSourceParser {
     const lexer = this._lexer;
     lexer.setSource(sourceCode);
 
-    lexer.scanLexeme("Shader");
-    const name = lexer.scanPairedChar('"', '"', false, false);
-    const shaderSource = ShaderSourceFactory.createShaderSource(name);
-    lexer.scanLexeme("{");
-    this._parseShader(lexer, shaderSource);
+    const shaderSource = this._parseShader(lexer);
 
     const shaderPendingContents = shaderSource.pendingContents;
     const shaderRenderStates = shaderSource.renderStates;
@@ -83,27 +79,31 @@ export class ShaderSourceParser {
     return shaderSource;
   }
 
-  private static _parseShader(lexer: SourceLexer, outShaderSource: IShaderSource): void {
-    let braceLevel = 1;
+  private static _parseShader(lexer: SourceLexer): IShaderSource {
+    // Parse shader header
+    lexer.scanLexeme("Shader");
+    const name = lexer.scanPairedChar('"', '"', false, false);
+    const shaderSource = ShaderSourceFactory.createShaderSource(name);
+    lexer.scanLexeme("{");
 
+    let braceLevel = 1;
     lexer.skipCommentsAndSpace();
     let start = lexer.getCurPosition();
 
-    const { pendingContents } = outShaderSource;
+    const { pendingContents } = shaderSource;
     while (true) {
       const token = lexer.scanToken();
-      const { lexeme } = token;
       switch (token.type) {
         case Keyword.GSSubShader:
-          this._addPendingContents(start, lexeme.length, pendingContents);
+          this._addPendingContents(start, token.lexeme.length, pendingContents);
           const subShader = this._parseSubShader();
-          outShaderSource.subShaders.push(subShader);
+          shaderSource.subShaders.push(subShader);
           start = lexer.getCurPosition();
           break;
         case Keyword.GSEditorProperties:
         case Keyword.GSEditorMacros:
         case Keyword.GSEditor:
-          this._addPendingContents(start, lexeme.length, pendingContents);
+          this._addPendingContents(start, token.lexeme.length, pendingContents);
           lexer.scanPairedChar("{", "}", true, false);
           start = lexer.getCurPosition();
           break;
@@ -112,13 +112,13 @@ export class ShaderSourceParser {
           break;
         case Keyword.RightBrace:
           if (--braceLevel === 0) {
-            this._addPendingContents(start, lexeme.length, pendingContents);
+            this._addPendingContents(start, token.lexeme.length, pendingContents);
             this._popScope();
-            return;
+            return shaderSource;
           }
           break;
       }
-      start = this._parseRenderState(token, start, pendingContents, outShaderSource.renderStates);
+      start = this._parseRenderState(token, start, pendingContents, shaderSource.renderStates);
     }
   }
 
@@ -276,7 +276,7 @@ export class ShaderSourceParser {
     const lexer = this._lexer;
     const token = lexer.scanToken();
     if (token.type === ETokenType.ID) {
-      // declaration.
+      // Declaration
       lexer.scanLexeme(";");
       const symbol = new ShaderSourceSymbol(token.lexeme, Keyword.GSRenderQueueType);
       this._symbolTableStack.insert(symbol);
@@ -330,7 +330,7 @@ export class ShaderSourceParser {
 
     let braceLevel = 1;
     const name = lexer.scanPairedChar('"', '"', false, false);
-    const ret = ShaderSourceFactory.createSubShaderSource(name);
+    const subShaderSource = ShaderSourceFactory.createSubShaderSource(name);
     lexer.scanLexeme("{");
 
     lexer.skipCommentsAndSpace();
@@ -340,15 +340,15 @@ export class ShaderSourceParser {
       const word = lexer.scanToken();
       switch (word.type) {
         case Keyword.GSPass:
-          this._addPendingContents(start, word.lexeme.length, ret.pendingContents);
+          this._addPendingContents(start, word.lexeme.length, subShaderSource.pendingContents);
           const pass = this._parsePass();
-          ret.passes.push(pass);
+          subShaderSource.passes.push(pass);
           start = lexer.getCurPosition();
           break;
         case Keyword.GSUsePass:
-          this._addPendingContents(start, word.lexeme.length, ret.pendingContents);
+          this._addPendingContents(start, word.lexeme.length, subShaderSource.pendingContents);
           const name = lexer.scanPairedChar('"', '"', false, false);
-          ret.passes.push(ShaderSourceFactory.createUsePass(name));
+          subShaderSource.passes.push(ShaderSourceFactory.createUsePass(name));
           start = lexer.getCurPosition();
           break;
         case Keyword.LeftBrace:
@@ -356,13 +356,13 @@ export class ShaderSourceParser {
           break;
         case Keyword.RightBrace:
           if (--braceLevel === 0) {
-            this._addPendingContents(start, word.lexeme.length, ret.pendingContents);
+            this._addPendingContents(start, word.lexeme.length, subShaderSource.pendingContents);
             this._popScope();
-            return ret;
+            return subShaderSource;
           }
           break;
       }
-      start = this._parseRenderStateAndTags(word, start, ret.pendingContents, ret.renderStates, ret.tags);
+      start = this._parseRenderStateAndTags(word, start, subShaderSource.pendingContents, subShaderSource.renderStates, subShaderSource.tags);
     }
   }
 
@@ -398,14 +398,14 @@ export class ShaderSourceParser {
     let start = lexer.getCurPosition();
 
     while (true) {
-      const word = lexer.scanToken();
-      switch (word.type) {
+      const token = lexer.scanToken();
+      switch (token.type) {
         case Keyword.GSVertexShader:
         case Keyword.GSFragmentShader:
-          this._addPendingContents(start, word.lexeme.length, ret.pendingContents);
+          this._addPendingContents(start, token.lexeme.length, ret.pendingContents);
           lexer.scanLexeme("=");
           const entry = lexer.scanToken();
-          if (ret[word.lexeme]) {
+          if (ret[token.lexeme]) {
             const error = ShaderLabUtils.createGSError(
               "reassign main entry",
               GSErrorName.CompilationError,
@@ -417,7 +417,7 @@ export class ShaderSourceParser {
             throw error;
             // #endif
           }
-          const key = word.type === Keyword.GSVertexShader ? "vertexEntry" : "fragmentEntry";
+          const key = token.type === Keyword.GSVertexShader ? "vertexEntry" : "fragmentEntry";
           ret[key] = entry.lexeme;
           lexer.scanLexeme(";");
           start = lexer.getCurPosition();
@@ -427,13 +427,13 @@ export class ShaderSourceParser {
           break;
         case Keyword.RightBrace:
           if (--braceLevel === 0) {
-            this._addPendingContents(start, word.lexeme.length, ret.pendingContents);
+            this._addPendingContents(start, token.lexeme.length, ret.pendingContents);
             this._popScope();
             return ret;
           }
           break;
       }
-      start = this._parseRenderStateAndTags(word, start, ret.pendingContents, ret.renderStates, ret.tags);
+      start = this._parseRenderStateAndTags(token, start, ret.pendingContents, ret.renderStates, ret.tags);
     }
   }
 
