@@ -87,6 +87,16 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
   }
 
   /**
+   * {@inheritDoc ICapsuleColliderShape.setRotation }
+   */
+  override setRotation(value: Vector3): void {
+    super.setRotation(value);
+    if (this._controllers.length > 0) {
+      console.warn("Capsule character controller `rotation` is not supported in PhysX and will be ignored");
+    }
+  }
+
+  /**
    * {@inheritDoc ICapsuleColliderShape.setUpAxis }
    */
   setUpAxis(upAxis: ColliderShapeUpAxis): void {
@@ -156,7 +166,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
 /**
  * The up axis of the collider shape.
  */
-enum ColliderShapeUpAxis {
+export enum ColliderShapeUpAxis {
   /** Up axis is X. */
   X,
   /** Up axis is Y. */

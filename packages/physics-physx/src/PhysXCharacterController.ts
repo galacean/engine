@@ -3,7 +3,7 @@ import { Vector3 } from "@galacean/engine";
 import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
 import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
-import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
+import { ColliderShapeUpAxis, PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
 import { PhysXColliderShape } from "./shape/PhysXColliderShape";
 
 /**
@@ -144,7 +144,11 @@ export class PhysXCharacterController implements ICharacterController {
       desc.radius = shape._radius;
       desc.height = shape._halfHeight * 2;
       desc.climbingMode = 1; // constraint mode
-      if (shape._upAxis !== 1) {
+
+      if (shape._rotation.lengthSquared() > 0) {
+        console.warn("Capsule character controller `rotation` is not supported in PhysX and will be ignored");
+      }
+      if (shape._upAxis !== ColliderShapeUpAxis.Y) {
         console.warn("Capsule character controller `upAxis` is not supported in PhysX and will be ignored");
       }
     } else {

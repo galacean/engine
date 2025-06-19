@@ -530,6 +530,35 @@ describe("CharacterController", function () {
     }
   });
 
+  it("CapsuleColliderShape rotation warning message on controller creation", () => {
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.clearShapes();
+
+    // Mock console.warn to capture warning messages
+    const originalWarn = console.warn;
+    let warningMessage = "";
+    console.warn = (message: string) => {
+      warningMessage = message;
+    };
+
+    try {
+      const capsuleShape = new CapsuleColliderShape();
+      // Set rotation before adding to controller to trigger warning during controller creation
+      capsuleShape.rotation = new Vector3(45, 0, 0);
+
+      // This should trigger the warning in PhysXCharacterController._createPXController
+      controller.addShape(capsuleShape);
+
+      // Verify the warning message has correct grammar and format
+      expect(warningMessage).to.include(
+        "Capsule character controller `rotation` is not supported in PhysX and will be ignored"
+      );
+    } finally {
+      // Restore original console.warn
+      console.warn = originalWarn;
+    }
+  });
+
   it("PhysXCharacterController Capsule upAxis warning on controller creation", () => {
     const controller = roleEntity.getComponent(CharacterController);
     controller.clearShapes();
