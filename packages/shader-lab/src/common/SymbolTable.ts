@@ -2,7 +2,8 @@ import { Logger } from "@galacean/engine";
 import { IBaseSymbol } from "./IBaseSymbol";
 
 export class SymbolTable<T extends IBaseSymbol> {
-  protected _table: Map<string, T[]> = new Map();
+  /** @internal */
+  _table: Map<string, T[]> = new Map();
 
   insert(symbol: T): void {
     const entry = this._table.get(symbol.ident) ?? [];

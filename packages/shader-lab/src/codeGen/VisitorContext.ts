@@ -30,7 +30,7 @@ export class VisitorContext {
   stage: EShaderStage;
 
   _referencedAttributeList: Record<string, IParamInfo & { qualifier?: string }>;
-  _referencedGlobals: Record<string, SymbolInfo | ASTNode.PrecisionSpecifier>;
+  _referencedGlobals: Record<string, SymbolInfo | SymbolInfo[] | ASTNode.PrecisionSpecifier>;
   _referencedVaryingList: Record<string, IParamInfo & { qualifier?: string }>;
   _referencedMRTList: Record<string, StructProp | string>;
 
@@ -105,16 +105,19 @@ export class VisitorContext {
     this._referencedMRTList[ident.lexeme] = prop;
   }
 
-  referenceGlobal(ident: string, type: ESymbolType) {
+  referenceGlobal(ident: string, type: ESymbolType): void {
     if (this._referencedGlobals[ident]) return;
 
     if (type === ESymbolType.FN) {
-      const fnEntries = this._passSymbolTable.getAllFnSymbols(ident);
-      for (let i = 0; i < fnEntries.length; i++) {
-        const key = i === 0 ? ident : ident + i;
-        this._referencedGlobals[key] = fnEntries[i];
+      const entries = this._passSymbolTable._table.get(ident);
+      if (entries) {
+        for (let i = 0; i < entries.length; i++) {
+          const item = entries[i];
+          if (item.type !== ESymbolType.FN) continue;
+          (<SymbolInfo[]>(this._referencedGlobals[ident] ||= [])).push(item);
+        }
+        return;
       }
-      return;
     }
     const lookupSymbol = VisitorContext._lookupSymbol;
     lookupSymbol.set(ident, type);

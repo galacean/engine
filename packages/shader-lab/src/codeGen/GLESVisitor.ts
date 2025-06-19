@@ -26,6 +26,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   protected _extensions: string = "";
   private _globalCodeArray: ICodeSegment[] = [];
   private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
+  private static _serializedGlobalKey = new Set();
 
   abstract getAttributeDeclare(out: ICodeSegment[]): void;
   abstract getVaryingDeclare(out: ICodeSegment[]): void;
@@ -91,8 +92,10 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     const { _globalCodeArray: globalCodeArray } = this;
     globalCodeArray.length = 0;
+    GLESVisitor._serializedGlobalKey.clear();
 
-    this._getGlobalText(data, globalCodeArray);
+    this._getGlobalSymbol(globalCodeArray);
+    this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
     this.getAttributeDeclare(globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
 
@@ -138,8 +141,10 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const statements = fnNode.statements.codeGen(this);
     const { _globalCodeArray: globalCodeArray } = this;
     globalCodeArray.length = 0;
+    GLESVisitor._serializedGlobalKey.clear();
 
-    this._getGlobalText(data, globalCodeArray);
+    this._getGlobalSymbol(globalCodeArray);
+    this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
     this.getMRTDeclare(globalCodeArray);
 
@@ -152,38 +157,38 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     return `${this._versionText}\n${this._extensions}\n${defaultPrecision}\n${globalCode}\n\nvoid main() ${statements}`;
   }
 
-  private _getGlobalText(
-    data: ShaderData,
-    textList: ICodeSegment[],
-    lastLength: number = 0,
-    _serialized: Set<string> = new Set()
-  ): ICodeSegment[] {
+  private _getGlobalSymbol(out: ICodeSegment[]): void {
     const { _referencedGlobals } = VisitorContext.context;
 
-    if (lastLength === Object.keys(_referencedGlobals).length) {
-      for (const precision of data.globalPrecisions) {
-        textList.push({ text: precision.codeGen(this), index: precision.location.start.index });
-      }
-      return textList;
-    }
+    const lastLength = Object.keys(_referencedGlobals).length;
 
-    lastLength = Object.keys(_referencedGlobals).length;
     for (const ident in _referencedGlobals) {
-      const sm = _referencedGlobals[ident];
+      if (GLESVisitor._serializedGlobalKey.has(ident)) continue;
+      GLESVisitor._serializedGlobalKey.add(ident);
 
-      if (_serialized.has(ident)) continue;
-      _serialized.add(ident);
-
-      if (sm instanceof SymbolInfo) {
-        if (sm.type === ESymbolType.VAR) {
-          textList.push({ text: `uniform ${sm.astNode.codeGen(this)}`, index: sm.astNode.location.start.index });
+      const symbol = _referencedGlobals[ident];
+      const symbols = Array.isArray(symbol) ? symbol : [symbol];
+      for (let i = 0; i < symbols.length; i++) {
+        const sm = symbols[i];
+        if (sm instanceof SymbolInfo) {
+          out.push({
+            text: `${sm.type === ESymbolType.VAR ? "uniform " : ""}${sm.astNode.codeGen(this)}`,
+            index: sm.astNode.location.start.index
+          });
         } else {
-          textList.push({ text: sm.astNode!.codeGen(this), index: sm.astNode!.location.start.index });
+          out.push({ text: sm.codeGen(this), index: sm.location.start.index });
         }
-      } else {
-        textList.push({ text: sm.codeGen(this), index: sm.location.start.index });
       }
     }
-    return this._getGlobalText(data, textList, lastLength, _serialized);
+
+    if (Object.keys(_referencedGlobals).length !== lastLength) {
+      this._getGlobalSymbol(out);
+    }
+  }
+
+  private _getGlobalPrecisions(precisions: ASTNode.PrecisionSpecifier[], out: ICodeSegment[]): void {
+    for (const precision of precisions) {
+      out.push({ text: precision.codeGen(this), index: precision.location.start.index });
+    }
   }
 }
