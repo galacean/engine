@@ -8,8 +8,6 @@
 #include "VaryingsPBR.glsl"
 #include "LightDirectPBR.glsl"
 #include "LightIndirectPBR.glsl"
-#include "BTDF.glsl"
-
 #include "VertexPBR.glsl"
 #include "FragmentPBR.glsl"
 
@@ -58,7 +56,7 @@ Varyings PBRVertex(Attributes attributes) {
 
 
 void PBRFragment(Varyings varyings) {
-  BRDFData brdfData;
+  BSDFData bsdfData;
 
   // Get aoUV
   vec2 aoUV = varyings.uv;
@@ -71,7 +69,7 @@ void PBRFragment(Varyings varyings) {
   SurfaceData surfaceData = getSurfaceData(varyings, aoUV, gl_FrontFacing);
 
   // Can modify surfaceData here
-  initBRDFData(surfaceData, brdfData);
+  initBSDFData(surfaceData, bsdfData);
 
 
   vec3 totalDiffuseColor = vec3(0, 0, 0);
@@ -89,13 +87,13 @@ void PBRFragment(Varyings varyings) {
   #endif
 
   // Evaluate direct lighting
-  evaluateDirectRadiance(varyings, surfaceData, brdfData, shadowAttenuation, totalDiffuseColor, totalSpecularColor);
+  evaluateDirectRadiance(varyings, surfaceData, bsdfData, shadowAttenuation, totalDiffuseColor, totalSpecularColor);
 
   // IBL
-  evaluateIBL(varyings, surfaceData, brdfData, totalDiffuseColor, totalSpecularColor);
+  evaluateIBL(varyings, surfaceData, bsdfData, totalDiffuseColor, totalSpecularColor);
 
   #ifdef MATERIAL_ENABLE_TRANSMISSION 
-      vec3 refractionTransmitted = evaluateTransmission(surfaceData, brdfData);
+      vec3 refractionTransmitted = evaluateTransmission(surfaceData, bsdfData);
       totalDiffuseColor = mix(totalDiffuseColor, refractionTransmitted, surfaceData.transmission);
   #endif
 

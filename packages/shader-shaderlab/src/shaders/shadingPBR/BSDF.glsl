@@ -1,6 +1,8 @@
 #ifndef BSDF_INCLUDED
 #define BSDF_INCLUDED
 
+#include "Refraction.glsl"
+
 #define MIN_PERCEPTUAL_ROUGHNESS 0.045
 #define MIN_ROUGHNESS            0.002025
 
@@ -377,43 +379,6 @@ vec3 envBRDFApprox(vec3 specularColor, float roughness, float dotNV ) {
 
 }
 
-void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
-    vec3 albedoColor = surfaceData.albedoColor;
-    vec3 specularColor = surfaceData.specularColor;
-    float metallic = surfaceData.metallic;
-    float roughness = surfaceData.roughness;
-    float f0 = surfaceData.f0;
-
-    #ifdef IS_METALLIC_WORKFLOW
-        bsdfData.diffuseColor = albedoColor * ( 1.0 - metallic );
-        bsdfData.specularColor = mix( vec3(f0), albedoColor, metallic );
-    #else
-        float specularStrength = max( max( specularColor.r, specularColor.g ), specularColor.b );
-        bsdfData.diffuseColor = albedoColor * ( 1.0 - specularStrength );
-        bsdfData.specularColor = specularColor;
-    #endif
-    bsdfData.roughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(roughness + getAARoughnessFactor(surfaceData.normal), 1.0));
-    bsdfData.envSpecularDFG = envBRDFApprox(bsdfData.specularColor,  bsdfData.roughness, surfaceData.dotNV);
-   
-    #ifdef MATERIAL_ENABLE_CLEAR_COAT
-        bsdfData.clearCoatRoughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(surfaceData.clearCoatRoughness + getAARoughnessFactor(surfaceData.clearCoatNormal), 1.0));
-        bsdfData.clearCoatSpecularColor = vec3(0.04);
-    #endif
-
-    #ifdef MATERIAL_ENABLE_IRIDESCENCE
-        float topIOR = 1.0;
-        bsdfData.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, surfaceData.dotNV, surfaceData.iridescenceIOR, bsdfData.specularColor, surfaceData.iridescenceThickness);   
-    #endif
-
-    #ifdef MATERIAL_ENABLE_SHEEN
-        bsdfData.sheenRoughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(surfaceData.sheenRoughness + getAARoughnessFactor(surfaceData.normal), 1.0));
-        bsdfData.approxIBLSheenDG = prefilteredSheenDFG(surfaceData.dotNV, bsdfData.sheenRoughness);
-        bsdfData.sheenScaling = 1.0 - bsdfData.approxIBLSheenDG * max(max(surfaceData.sheenColor.r, surfaceData.sheenColor.g), surfaceData.sheenColor.b);
-    #endif
-}
-
-#include "Refraction.glsl"
-
 #ifdef MATERIAL_ENABLE_TRANSMISSION 
     sampler2D camera_OpaqueTexture;
     vec3 evaluateTransmission(SurfaceData surfaceData, BSDFData bsdfData) {
@@ -451,5 +416,39 @@ void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
     }
 #endif
 
+void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
+    vec3 albedoColor = surfaceData.albedoColor;
+    vec3 specularColor = surfaceData.specularColor;
+    float metallic = surfaceData.metallic;
+    float roughness = surfaceData.roughness;
+    float f0 = surfaceData.f0;
+
+    #ifdef IS_METALLIC_WORKFLOW
+        bsdfData.diffuseColor = albedoColor * ( 1.0 - metallic );
+        bsdfData.specularColor = mix( vec3(f0), albedoColor, metallic );
+    #else
+        float specularStrength = max( max( specularColor.r, specularColor.g ), specularColor.b );
+        bsdfData.diffuseColor = albedoColor * ( 1.0 - specularStrength );
+        bsdfData.specularColor = specularColor;
+    #endif
+    bsdfData.roughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(roughness + getAARoughnessFactor(surfaceData.normal), 1.0));
+    bsdfData.envSpecularDFG = envBRDFApprox(bsdfData.specularColor,  bsdfData.roughness, surfaceData.dotNV);
+   
+    #ifdef MATERIAL_ENABLE_CLEAR_COAT
+        bsdfData.clearCoatRoughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(surfaceData.clearCoatRoughness + getAARoughnessFactor(surfaceData.clearCoatNormal), 1.0));
+        bsdfData.clearCoatSpecularColor = vec3(0.04);
+    #endif
+
+    #ifdef MATERIAL_ENABLE_IRIDESCENCE
+        float topIOR = 1.0;
+        bsdfData.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, surfaceData.dotNV, surfaceData.iridescenceIOR, bsdfData.specularColor, surfaceData.iridescenceThickness);   
+    #endif
+
+    #ifdef MATERIAL_ENABLE_SHEEN
+        bsdfData.sheenRoughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(surfaceData.sheenRoughness + getAARoughnessFactor(surfaceData.normal), 1.0));
+        bsdfData.approxIBLSheenDG = prefilteredSheenDFG(surfaceData.dotNV, bsdfData.sheenRoughness);
+        bsdfData.sheenScaling = 1.0 - bsdfData.approxIBLSheenDG * max(max(surfaceData.sheenColor.r, surfaceData.sheenColor.g), surfaceData.sheenColor.b);
+    #endif
+}
 
 #endif
