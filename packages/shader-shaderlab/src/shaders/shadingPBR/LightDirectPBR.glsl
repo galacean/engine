@@ -18,11 +18,11 @@
     #define FUNCTION_SHEEN_LOBE sheenLobe
 #endif
 
-#include "BRDF.glsl"
+#include "BSDF.glsl"
 #include "Light.glsl"
 #include "ReflectionLobe.glsl"
 
-void surfaceShading(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, vec3 incidentDirection, vec3 lightColor, inout vec3 totalDiffuseColor, inout vec3 totalSpecularColor) {
+void surfaceShading(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, vec3 incidentDirection, vec3 lightColor, inout vec3 totalDiffuseColor, inout vec3 totalSpecularColor) {
 
     vec3 diffuseColor = vec3(0);
     vec3 specularColor = vec3(0);
@@ -30,15 +30,15 @@ void surfaceShading(Varyings varyings, SurfaceData surfaceData, BRDFData brdfDat
     vec3 irradiance = dotNL * lightColor * PI;
 
     // ClearCoat Lobe
-    float attenuation = FUNCTION_CLEAR_COAT_LOBE(varyings, surfaceData, brdfData, incidentDirection, lightColor, specularColor);
+    float attenuation = FUNCTION_CLEAR_COAT_LOBE(varyings, surfaceData, bsdfData, incidentDirection, lightColor, specularColor);
 
     vec3 attenuationIrradiance = attenuation * irradiance;
     // Diffuse Lobe
-    FUNCTION_DIFFUSE_LOBE(varyings, surfaceData, brdfData, attenuationIrradiance, diffuseColor);
+    FUNCTION_DIFFUSE_LOBE(varyings, surfaceData, bsdfData, attenuationIrradiance, diffuseColor);
     // Specular Lobe
-    FUNCTION_SPECULAR_LOBE(varyings, surfaceData, brdfData, incidentDirection, attenuationIrradiance, specularColor);
+    FUNCTION_SPECULAR_LOBE(varyings, surfaceData, bsdfData, incidentDirection, attenuationIrradiance, specularColor);
     // Sheen Lobe
-    FUNCTION_SHEEN_LOBE(varyings, surfaceData, brdfData, incidentDirection, attenuationIrradiance, diffuseColor, specularColor);
+    FUNCTION_SHEEN_LOBE(varyings, surfaceData, bsdfData, incidentDirection, attenuationIrradiance, diffuseColor, specularColor);
     
     totalDiffuseColor += diffuseColor;
     totalSpecularColor += specularColor;
@@ -47,11 +47,11 @@ void surfaceShading(Varyings varyings, SurfaceData surfaceData, BRDFData brdfDat
 
 #ifdef SCENE_DIRECT_LIGHT_COUNT
 
-    void addDirectionalDirectLightRadiance(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, DirectLight directionalLight, inout vec3 totalDiffuseColor, inout vec3 totalSpecularColor) {
+    void addDirectionalDirectLightRadiance(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, DirectLight directionalLight, inout vec3 totalDiffuseColor, inout vec3 totalSpecularColor) {
         vec3 lightColor = directionalLight.color;
         vec3 direction = -directionalLight.direction;
 
-        FUNCTION_SURFACE_SHADING(varyings, surfaceData, brdfData, direction, lightColor, totalDiffuseColor, totalSpecularColor);
+        FUNCTION_SURFACE_SHADING(varyings, surfaceData, bsdfData, direction, lightColor, totalDiffuseColor, totalSpecularColor);
 
     }
 
@@ -59,7 +59,7 @@ void surfaceShading(Varyings varyings, SurfaceData surfaceData, BRDFData brdfDat
 
 #ifdef SCENE_POINT_LIGHT_COUNT
 
-	void addPointDirectLightRadiance(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, PointLight pointLight, inout vec3 totalDiffuseColor, inout vec3 totalSpecularColor) {
+	void addPointDirectLightRadiance(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, PointLight pointLight, inout vec3 totalDiffuseColor, inout vec3 totalSpecularColor) {
 		vec3 lVector = pointLight.position - surfaceData.position;
 		vec3 direction = normalize( lVector );
 		float lightDistance = length( lVector );
@@ -67,14 +67,14 @@ void surfaceShading(Varyings varyings, SurfaceData surfaceData, BRDFData brdfDat
 		vec3 lightColor = pointLight.color;
 		lightColor *= clamp(1.0 - pow(lightDistance/pointLight.distance, 4.0), 0.0, 1.0);
 
-        FUNCTION_SURFACE_SHADING(varyings, surfaceData, brdfData, direction, lightColor, totalDiffuseColor, totalSpecularColor);
+        FUNCTION_SURFACE_SHADING(varyings, surfaceData, bsdfData, direction, lightColor, totalDiffuseColor, totalSpecularColor);
 	}
 
 #endif
 
 #ifdef SCENE_SPOT_LIGHT_COUNT
 
-	void addSpotDirectLightRadiance(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, SpotLight spotLight, inout vec3 totalDiffuseColor, inout vec3 totalSpecularColor) {
+	void addSpotDirectLightRadiance(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, SpotLight spotLight, inout vec3 totalDiffuseColor, inout vec3 totalSpecularColor) {
 
 		vec3 lVector = spotLight.position - surfaceData.position;
 		vec3 direction = normalize( lVector );
@@ -87,14 +87,14 @@ void surfaceShading(Varyings varyings, SurfaceData surfaceData, BRDFData brdfDat
 		vec3 lightColor = spotLight.color;
 		lightColor *= spotEffect * decayEffect;
 
-        FUNCTION_SURFACE_SHADING(varyings, surfaceData, brdfData, direction, lightColor, totalDiffuseColor, totalSpecularColor);
+        FUNCTION_SURFACE_SHADING(varyings, surfaceData, bsdfData, direction, lightColor, totalDiffuseColor, totalSpecularColor);
 
 	}
 
 
 #endif
 
-void evaluateDirectRadiance(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, float shadowAttenuation, inout vec3 totalDiffuseColor, inout vec3 totalSpecularColor){
+void evaluateDirectRadiance(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, float shadowAttenuation, inout vec3 totalDiffuseColor, inout vec3 totalSpecularColor){
     #ifdef SCENE_DIRECT_LIGHT_COUNT
 
         for ( int i = 0; i < SCENE_DIRECT_LIGHT_COUNT; i ++ ) {
@@ -113,7 +113,7 @@ void evaluateDirectRadiance(Varyings varyings, SurfaceData surfaceData, BRDFData
                         directionalLight.color *= shadowAttenuation;
                     }
                 #endif
-                addDirectionalDirectLightRadiance(varyings, surfaceData, brdfData, directionalLight, totalDiffuseColor, totalSpecularColor );
+                addDirectionalDirectLightRadiance(varyings, surfaceData, bsdfData, directionalLight, totalDiffuseColor, totalSpecularColor );
             }
         }
 
@@ -131,7 +131,7 @@ void evaluateDirectRadiance(Varyings varyings, SurfaceData surfaceData, BRDFData
                     pointLight.position = scene_PointLightPosition[i];
                     pointLight.distance = scene_PointLightDistance[i];
                 #endif
-                addPointDirectLightRadiance(varyings, surfaceData, brdfData, pointLight, totalDiffuseColor, totalSpecularColor);
+                addPointDirectLightRadiance(varyings, surfaceData, bsdfData, pointLight, totalDiffuseColor, totalSpecularColor);
             } 
         }
 
@@ -152,7 +152,7 @@ void evaluateDirectRadiance(Varyings varyings, SurfaceData surfaceData, BRDFData
                     spotLight.angleCos = scene_SpotLightAngleCos[i];
                     spotLight.penumbraCos = scene_SpotLightPenumbraCos[i];
                 #endif
-                addSpotDirectLightRadiance( varyings, surfaceData, brdfData, spotLight, totalDiffuseColor, totalSpecularColor);
+                addSpotDirectLightRadiance( varyings, surfaceData, bsdfData, spotLight, totalDiffuseColor, totalSpecularColor);
             } 
         }
 
