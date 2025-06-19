@@ -66,7 +66,7 @@ jobs:
       - name: Install
         run: pnpm install
       - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install --with-deps chromium
       - name: Build
         run: npm run build
       - name: Test
@@ -95,29 +95,36 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-      - name: Run Cypress Tests
-        uses: cypress-io/github-action@v5
-        with:
-          build: npm run build
-          start: npm run e2e:case
-          wait-on: "http://localhost:5175"
-          wait-on-timeout: 120
-          browser: chrome
-      - name: Upload Diff
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+      - name: Build project
+        run: npm run build
+      - name: Run Playwright Tests
+        run: npm run e2e
+        env:
+          CI: true
+          PLAYWRIGHT_BROWSERS_PATH: 0
+      - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: cypress-diff
-          path: e2e/diff/
-      - name: Upload Origin
+          name: playwright-test-results
+          path: e2e/test-results/
+          retention-days: 30
+      - name: Upload diff images
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: cypress-origin
-          path: e2e/fixtures/originImage
-      - name: Upload Screenshots
+          name: playwright-diffs
+          path: e2e/test-results/diffs/
+          retention-days: 30
+      - name: Upload HTML report
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: cypress-screenshots
-          path: e2e/downloads/
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30

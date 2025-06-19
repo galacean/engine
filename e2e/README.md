@@ -1,43 +1,104 @@
-### Note: Require install git-lfs
-We use [git-lfs](https://git-lfs.com/) (Install by official website) to manage baseline images for e2e tests, so it's necessary to install it, ignore if already installed.
-### 1. Create a case page in the e2e/case directory
-You can refer to e2e/case/animator-play.ts.
-### 2. Configure your e2e test in e2e/config.ts
-The threshold is color difference threshold (from 0 to 1). Less more precise.
-### 3. Debug your test cases:
-#### Launch the Case page:
+# E2E Testing Guide
 
-```
-npm run e2e:case
-```
+## Prerequisites
 
-After successfully launching the case page, run:
-
-```
+### Git LFS
+We use [git-lfs](https://git-lfs.com/) to manage baseline images for e2e tests. Install it if you haven't already:
+```bash
+git lfs install
 git lfs pull
 ```
-Pull image from github, then run
 
+## Quick Start
+
+### Run all e2e tests
+```bash
+npm run e2e
 ```
+
+### Debug tests interactively
+```bash
 npm run e2e:debug
 ```
 
-Open the Cypress client for debugging.
-Cypress will capture screenshots of your case pages.
-Review the screenshots in e2e/downloads folder, store them in the e2e/fixtures/originImage directory if there are no issues, then rerun the test cases. If the test cases pass, the debugging is complete.
+Both commands will automatically:
+- Install required browsers (Chromium)
+- Start the test server
+- Run visual regression tests with odiff comparison
 
-### 4. Run the complete e2e tests:
+## Project Structure
+
 ```
-npm run e2e
+e2e/
+├── case/              # Test case implementations
+├── config.ts          # Test configuration
+├── fixtures/
+│   └── originImage/   # Baseline images (managed by git-lfs)
+├── downloads/         # Generated screenshots
+├── tests/             # Playwright test files
+└── utils/             # Helper utilities
 ```
-Note: The e2e testing framework for this project is Cypress. For detailed usage instructions, please refer to https://www.cypress.io/.
 
+## Adding New Test Cases
 
-### Add new e2e case
+### 1. Create a test case file
+Create your test implementation in `e2e/case/`, following existing patterns:
+```typescript
+// e2e/case/my-new-test.ts
+WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
+  // Your test implementation
+  initScreenshot(engine, camera);
+});
+```
 
-1. modify `config.ts` based on the new test case.
-2. run `npm run e2e:debug`
+### 2. Add configuration
+Add your test to `e2e/config.ts`:
+```typescript
+MyCategory: {
+  myNewTest: {
+    category: "MyCategory",
+    caseFileName: "my-new-test",
+    threshold: 0.1  // 0.01 for strict tests, 0.1 for normal tests
+  }
+}
+```
 
-the new image of test case for comparison will be present under directory `e2e/downloads`, you need to copy it into directory `e2e/fixtures/originImage`.
+### 3. Generate baseline image
+Run in debug mode to generate the initial screenshot:
+```bash
+npm run e2e:debug
+```
+
+Copy the generated image from `e2e/downloads/` to `e2e/fixtures/originImage/` and commit it with git-lfs.
+
+## Threshold Guidelines
+
+- **0.01**: Strict comparison for pixel-perfect tests (e.g., FXAA, transparency)
+- **0.1**: Normal comparison for most 3D rendering tests
+- Adjust based on rendering stability and requirements
+
+## Troubleshooting
+
+### Browser installation issues
+Manually install browsers:
+```bash
+npm run e2e:install
+```
+
+### Missing baseline images
+Pull from git-lfs:
+```bash
+git lfs pull
+```
+
+### Server startup issues
+Manually start the test server:
+```bash
+npm run e2e:case
+```
+
+## Framework Details
+
+This project uses [Playwright](https://playwright.dev/) with [odiff](https://github.com/dmtrKovalenko/odiff) for visual regression testing. All tests run in Chromium for consistency.
 
 
