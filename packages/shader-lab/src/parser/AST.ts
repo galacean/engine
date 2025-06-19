@@ -646,7 +646,7 @@ export namespace ASTNode {
       this.statements = children[1] as CompoundStatementNoScope;
 
       sa.popScope();
-      const sm = new FnSymbol(this.protoType.ident.lexeme, this, this.protoType.paramSig);
+      const sm = new FnSymbol(this.protoType.ident.lexeme, this);
       sa.symbolTableStack.insert(sm);
 
       const { curFunctionInfo } = sa;
