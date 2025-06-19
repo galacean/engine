@@ -170,15 +170,10 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       const symbols = Array.isArray(symbol) ? symbol : [symbol];
       for (let i = 0; i < symbols.length; i++) {
         const sm = symbols[i];
-        if (sm instanceof SymbolInfo) {
-          if (sm.type === ESymbolType.VAR) {
-            out.push({ text: `uniform ${sm.astNode.codeGen(this)}`, index: sm.astNode.location.start.index });
-          } else {
-            out.push({ text: sm.astNode!.codeGen(this), index: sm.astNode!.location.start.index });
-          }
-        } else {
-          out.push({ text: sm.codeGen(this), index: sm.location.start.index });
-        }
+        out.push({
+          text: `${sm.type === ESymbolType.VAR ? "uniform " : ""}${sm.astNode.codeGen(this)}`,
+          index: sm.astNode.location.start.index
+        });
       }
     }
 
