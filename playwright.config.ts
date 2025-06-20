@@ -45,9 +45,9 @@ export default defineConfig({
   ],
   webServer: {
     command: "npm run e2e:case",
-    url: "http://localhost:5175",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000
+    timeout: 120 * 1000,
+    stdout: "pipe",
+    stderr: "pipe"
   },
   outputDir: "e2e/test-results"
 });

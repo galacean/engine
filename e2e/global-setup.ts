@@ -1,7 +1,30 @@
 import * as fs from "fs-extra";
 import * as path from "path";
 
-export default function globalSetup() {
+// Wait for server to be ready
+async function waitForServer(url: string, timeout: number = 120000): Promise<void> {
+  const startTime = Date.now();
+  console.log(`⏳ Waiting for server at ${url}...`);
+
+  while (Date.now() - startTime < timeout) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) {
+        console.log(`✅ Server is ready at ${url}`);
+        return;
+      }
+    } catch (error) {
+      // Server not ready yet, continue waiting
+    }
+
+    // Wait 1 second before next attempt
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+
+  throw new Error(`❌ Server at ${url} did not start within ${timeout}ms`);
+}
+
+export default async function globalSetup() {
   console.log("🚀 Galacean Engine E2E Test Setup");
   console.log("📁 Cleaning downloads directory...");
 
@@ -36,6 +59,9 @@ export default function globalSetup() {
     const baselineFiles = fs.readdirSync(baselineDir).filter((f) => f.endsWith(".jpg"));
     console.log(`📸 Found ${baselineFiles.length} baseline images`);
   }
+
+  // Wait for server to be ready
+  await waitForServer("http://localhost:5175");
 
   console.log("🎬 Ready to run visual regression tests!\n");
 }
