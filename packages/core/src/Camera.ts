@@ -190,7 +190,7 @@ export class Camera extends Component {
     const virtualCamera = this._virtualCamera;
     if (virtualCamera.nearClipPlane !== value) {
       virtualCamera.nearClipPlane = value;
-      this._makeProjectionMatrixDirty();
+      this._updateProjectionMatrixDirty();
     }
   }
 
@@ -205,7 +205,7 @@ export class Camera extends Component {
     const virtualCamera = this._virtualCamera;
     if (virtualCamera.farClipPlane !== value) {
       virtualCamera.farClipPlane = value;
-      this._makeProjectionMatrixDirty();
+      this._updateProjectionMatrixDirty();
     }
   }
 
@@ -219,7 +219,7 @@ export class Camera extends Component {
   set fieldOfView(value: number) {
     if (this._fieldOfView !== value) {
       this._fieldOfView = value;
-      !this.isOrthographic && this._makeProjectionMatrixDirty();
+      !this.isOrthographic && this._updateProjectionMatrixDirty();
       this._dispatchModify(CameraModifyFlags.FieldOfView);
     }
   }
@@ -236,7 +236,7 @@ export class Camera extends Component {
   set aspectRatio(value: number) {
     if (this._customAspectRatio !== value) {
       this._customAspectRatio = value;
-      this._makeProjectionMatrixDirty();
+      this._updateProjectionMatrixDirty();
       this._dispatchModify(CameraModifyFlags.AspectRatio);
     }
   }
@@ -291,7 +291,7 @@ export class Camera extends Component {
     const { _virtualCamera: virtualCamera } = this;
     if (virtualCamera.isOrthographic !== value) {
       virtualCamera.isOrthographic = value;
-      this._makeProjectionMatrixDirty();
+      this._updateProjectionMatrixDirty();
       if (value) {
         this.shaderData.enableMacro("CAMERA_ORTHOGRAPHIC");
       } else {
@@ -311,7 +311,7 @@ export class Camera extends Component {
   set orthographicSize(value: number) {
     if (this._orthographicSize !== value) {
       this._orthographicSize = value;
-      this._makeProjectionMatrixDirty();
+      this.isOrthographic && this._updateProjectionMatrixDirty();
       this._dispatchModify(CameraModifyFlags.OrthographicSize);
     }
   }
@@ -366,7 +366,7 @@ export class Camera extends Component {
   set projectionMatrix(value: Matrix) {
     this._virtualCamera.projectionMatrix.copyFrom(value);
     this._isCustomProjectionMatrix = true;
-    this._makeProjectionMatrixDirty();
+    this._updateProjectionMatrixDirty();
   }
 
   /**
@@ -464,7 +464,7 @@ export class Camera extends Component {
    */
   resetViewMatrix(): void {
     this._isCustomViewMatrix = false;
-    this._setDirtyFlagTrue(CameraDirtyFlags.View | CameraDirtyFlags.InvView | CameraDirtyFlags.ViewProjection | CameraDirtyFlags.InvViewProjection | CameraDirtyFlags.Frustum);
+    this._updateViewportMatrixDirty();
   }
 
   /**
@@ -472,7 +472,7 @@ export class Camera extends Component {
    */
   resetProjectionMatrix(): void {
     this._isCustomProjectionMatrix = false;
-    this._makeProjectionMatrixDirty();
+    this._updateProjectionMatrixDirty();
   }
 
   /**
@@ -480,7 +480,7 @@ export class Camera extends Component {
    */
   resetAspectRatio(): void {
     this._customAspectRatio = undefined;
-    this._makeProjectionMatrixDirty();
+    this._updateProjectionMatrixDirty();
     this._dispatchModify(CameraModifyFlags.AspectRatio);
   }
 
@@ -848,11 +848,6 @@ export class Camera extends Component {
     this._dirtyFlags &= ~flags;
   }
 
-  private _makeProjectionMatrixDirty(): void {
-    if (this._isCustomProjectionMatrix) return;
-    this._setDirtyFlagTrue(CameraDirtyFlags.Projection | CameraDirtyFlags.InvProjection | CameraDirtyFlags.ViewProjection | CameraDirtyFlags.InvViewProjection | CameraDirtyFlags.Frustum);
-  }
-
   private _innerViewportToWorldPoint(x: number, y: number, z: number, invViewProjMat: Matrix, out: Vector3): Vector3 {
     // Depth is a normalized value, 0 is nearPlane, 1 is farClipPlane.
     // Transform to clipping space matrix
@@ -916,8 +911,7 @@ export class Camera extends Component {
 
   @ignoreClone
   private _onTransformChanged(): void {
-    if (this._isCustomViewMatrix) return;
-    this._setDirtyFlagTrue(CameraDirtyFlags.View | CameraDirtyFlags.InvView | CameraDirtyFlags.ViewProjection | CameraDirtyFlags.InvViewProjection | CameraDirtyFlags.Frustum);
+    this._updateViewportMatrixDirty();
   }
 
   @ignoreClone
@@ -936,9 +930,20 @@ export class Camera extends Component {
 
     const viewport = this._viewport;
     this._pixelViewport.set(viewport.x * width, viewport.y * height, viewport.z * width, viewport.w * height);
-    if (!this._customAspectRatio && !this._isCustomProjectionMatrix) {
-      this._setDirtyFlagTrue(CameraDirtyFlags.Projection | CameraDirtyFlags.InvProjection | CameraDirtyFlags.ViewProjection | CameraDirtyFlags.InvViewProjection | CameraDirtyFlags.Frustum);
+    if (!this._customAspectRatio) {
+      this._updateProjectionMatrixDirty();
+      this._dispatchModify(CameraModifyFlags.AspectRatio);
     }
+  }
+
+  private _updateViewportMatrixDirty(): void {
+    if (this._isCustomViewMatrix) return;
+    this._setDirtyFlagTrue(CameraDirtyFlags.View | CameraDirtyFlags.InvView | CameraDirtyFlags.ViewProjection | CameraDirtyFlags.InvViewProjection | CameraDirtyFlags.Frustum);
+  }
+
+  private _updateProjectionMatrixDirty(): void {
+    if (this._isCustomProjectionMatrix) return;
+    this._setDirtyFlagTrue(CameraDirtyFlags.Projection | CameraDirtyFlags.InvProjection | CameraDirtyFlags.ViewProjection | CameraDirtyFlags.InvViewProjection | CameraDirtyFlags.Frustum);
   }
 
   private _dispatchModify(flag: CameraModifyFlags): void {
