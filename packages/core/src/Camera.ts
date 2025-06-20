@@ -1,5 +1,4 @@
 import { BoundingFrustum, MathUtil, Matrix, Ray, Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
 import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
@@ -136,8 +135,6 @@ export class Camera extends Component {
   private _isCustomProjectionMatrix = false;
   private _fieldOfView: number = 45;
   private _orthographicSize: number = 10;
-  private _isProjectionDirty = true;
-  private _isInvProjMatDirty: boolean = true;
   private _customAspectRatio: number | undefined = undefined;
   private _renderTarget: RenderTarget = null;
   private _depthBufferParams: Vector4 = new Vector4();
@@ -146,14 +143,6 @@ export class Camera extends Component {
   private _enablePostProcess = false;
   private _msaaSamples: MSAASamples;
 
-  @ignoreClone
-  private _updateFlagManager: UpdateFlagManager;
-  @ignoreClone
-  private _frustumChangeFlag: BoolUpdateFlag;
-  @ignoreClone
-  private _isViewMatrixDirty: BoolUpdateFlag;
-  @ignoreClone
-  private _isInvViewProjDirty: BoolUpdateFlag;
   @deepClone
   private _viewport: Vector4 = new Vector4(0, 0, 1, 1);
   @deepClone
@@ -162,6 +151,12 @@ export class Camera extends Component {
   private _inverseProjectionMatrix: Matrix = new Matrix();
   @deepClone
   private _invViewProjMat: Matrix = new Matrix();
+  @deepClone
+  private _invViewMat: Matrix = new Matrix();
+  @ignoreClone
+  private _updateFlagManager: UpdateFlagManager;
+  @ignoreClone
+  private _dirtyFlags: CameraDirtyFlags = CameraDirtyFlags.None;
 
   /**
    * Whether to enable opaque texture.
@@ -192,8 +187,11 @@ export class Camera extends Component {
   }
 
   set nearClipPlane(value: number) {
-    this._virtualCamera.nearClipPlane = value;
-    this._projectionMatrixChange();
+    const virtualCamera = this._virtualCamera;
+    if (virtualCamera.nearClipPlane !== value) {
+      virtualCamera.nearClipPlane = value;
+      this._makeProjectionMatrixDirty();
+    }
   }
 
   /**
@@ -204,8 +202,11 @@ export class Camera extends Component {
   }
 
   set farClipPlane(value: number) {
-    this._virtualCamera.farClipPlane = value;
-    this._projectionMatrixChange();
+    const virtualCamera = this._virtualCamera;
+    if (virtualCamera.farClipPlane !== value) {
+      virtualCamera.farClipPlane = value;
+      this._makeProjectionMatrixDirty();
+    }
   }
 
   /**
@@ -218,7 +219,7 @@ export class Camera extends Component {
   set fieldOfView(value: number) {
     if (this._fieldOfView !== value) {
       this._fieldOfView = value;
-      this._projectionMatrixChange();
+      !this.isOrthographic && this._makeProjectionMatrixDirty();
       this._dispatchModify(CameraModifyFlags.FieldOfView);
     }
   }
@@ -233,9 +234,11 @@ export class Camera extends Component {
   }
 
   set aspectRatio(value: number) {
-    this._customAspectRatio = value;
-    this._projectionMatrixChange();
-    this._dispatchModify(CameraModifyFlags.AspectRatio);
+    if (this._customAspectRatio !== value) {
+      this._customAspectRatio = value;
+      this._makeProjectionMatrixDirty();
+      this._dispatchModify(CameraModifyFlags.AspectRatio);
+    }
   }
 
   /**
@@ -288,7 +291,7 @@ export class Camera extends Component {
     const { _virtualCamera: virtualCamera } = this;
     if (virtualCamera.isOrthographic !== value) {
       virtualCamera.isOrthographic = value;
-      this._projectionMatrixChange();
+      this._makeProjectionMatrixDirty();
       if (value) {
         this.shaderData.enableMacro("CAMERA_ORTHOGRAPHIC");
       } else {
@@ -308,7 +311,7 @@ export class Camera extends Component {
   set orthographicSize(value: number) {
     if (this._orthographicSize !== value) {
       this._orthographicSize = value;
-      this._projectionMatrixChange();
+      this._makeProjectionMatrixDirty();
       this._dispatchModify(CameraModifyFlags.OrthographicSize);
     }
   }
@@ -318,23 +321,18 @@ export class Camera extends Component {
    */
   get viewMatrix(): Readonly<Matrix> {
     const viewMatrix = this._virtualCamera.viewMatrix;
-
-    if (!this._isViewMatrixDirty.flag || this._isCustomViewMatrix) {
+    if (!this._isContainDirtyFlag(CameraDirtyFlags.View) || this._isCustomViewMatrix) {
       return viewMatrix;
     }
-    this._isViewMatrixDirty.flag = false;
-
-    // Ignore scale
-    const transform = this._entity.transform;
-    Matrix.rotationTranslation(transform.worldRotationQuaternion, transform.worldPosition, viewMatrix);
-    viewMatrix.invert();
+    Matrix.invert(this._getInvViewMat(), viewMatrix);
+    this._setDirtyFlagFalse(CameraDirtyFlags.View);
     return viewMatrix;
   }
 
   set viewMatrix(value: Matrix) {
     this._virtualCamera.viewMatrix.copyFrom(value);
     this._isCustomViewMatrix = true;
-    this._viewMatrixChange();
+    this._setDirtyFlagTrue(CameraDirtyFlags.InvView | CameraDirtyFlags.ViewProjection | CameraDirtyFlags.InvViewProjection | CameraDirtyFlags.Frustum);
   }
 
   /**
@@ -344,12 +342,9 @@ export class Camera extends Component {
   get projectionMatrix(): Readonly<Matrix> {
     const virtualCamera = this._virtualCamera;
     const projectionMatrix = virtualCamera.projectionMatrix;
-
-    if (!this._isProjectionDirty || this._isCustomProjectionMatrix) {
+    if (!this._isContainDirtyFlag(CameraDirtyFlags.Projection) || this._isCustomProjectionMatrix) {
       return projectionMatrix;
     }
-    this._isProjectionDirty = false;
-
     const aspectRatio = this.aspectRatio;
     if (!virtualCamera.isOrthographic) {
       Matrix.perspective(
@@ -364,13 +359,14 @@ export class Camera extends Component {
       const height = this._orthographicSize;
       Matrix.ortho(-width, width, -height, height, this.nearClipPlane, this.farClipPlane, projectionMatrix);
     }
+    this._setDirtyFlagFalse(CameraDirtyFlags.Projection);
     return projectionMatrix;
   }
 
   set projectionMatrix(value: Matrix) {
     this._virtualCamera.projectionMatrix.copyFrom(value);
     this._isCustomProjectionMatrix = true;
-    this._projectionMatrixChange();
+    this._makeProjectionMatrixDirty();
   }
 
   /**
@@ -419,7 +415,7 @@ export class Camera extends Component {
       this._renderTarget && this._addResourceReferCount(this._renderTarget, -1);
       value && this._addResourceReferCount(value, 1);
       this._renderTarget = value;
-      this._onPixelViewportChanged();
+      this._adjustPixelViewport();
     }
   }
 
@@ -452,18 +448,15 @@ export class Camera extends Component {
     super(entity);
     // Includes hardware detection correction
     this.msaaSamples = MSAASamples.FourX;
-
-    this._isViewMatrixDirty = entity.registerWorldChangeFlag();
-    this._isInvViewProjDirty = entity.registerWorldChangeFlag();
-    this._frustumChangeFlag = entity.registerWorldChangeFlag();
+    this._onTransformChanged = this._onTransformChanged.bind(this);
+    entity._updateFlagManager.addListener(this._onTransformChanged);
     this._renderPipeline = new BasicRenderPipeline(this);
     this._addResourceReferCount(this.shaderData, 1);
-    this._updatePixelViewport();
-
-    this._onPixelViewportChanged = this._onPixelViewportChanged.bind(this);
+    this._adjustPixelViewport = this._adjustPixelViewport.bind(this);
+    this._adjustPixelViewport();
     //@ts-ignore
-    this._viewport._onValueChanged = this._onPixelViewportChanged;
-    this.engine.canvas._sizeUpdateFlagManager.addListener(this._onPixelViewportChanged);
+    this._viewport._onValueChanged = this._adjustPixelViewport;
+    this.engine.canvas._sizeUpdateFlagManager.addListener(this._adjustPixelViewport);
   }
 
   /**
@@ -471,7 +464,7 @@ export class Camera extends Component {
    */
   resetViewMatrix(): void {
     this._isCustomViewMatrix = false;
-    this._viewMatrixChange();
+    this._setDirtyFlagTrue(CameraDirtyFlags.View | CameraDirtyFlags.InvView | CameraDirtyFlags.ViewProjection | CameraDirtyFlags.InvViewProjection | CameraDirtyFlags.Frustum);
   }
 
   /**
@@ -479,7 +472,7 @@ export class Camera extends Component {
    */
   resetProjectionMatrix(): void {
     this._isCustomProjectionMatrix = false;
-    this._projectionMatrixChange();
+    this._makeProjectionMatrixDirty();
   }
 
   /**
@@ -487,7 +480,7 @@ export class Camera extends Component {
    */
   resetAspectRatio(): void {
     this._customAspectRatio = undefined;
-    this._projectionMatrixChange();
+    this._makeProjectionMatrixDirty();
     this._dispatchModify(CameraModifyFlags.AspectRatio);
   }
 
@@ -650,9 +643,9 @@ export class Camera extends Component {
     context.replacementFailureStrategy = this._replacementFailureStrategy;
 
     // compute cull frustum.
-    if (this.enableFrustumCulling && this._frustumChangeFlag.flag) {
+    if (this.enableFrustumCulling && this._isContainDirtyFlag(CameraDirtyFlags.Frustum)) {
       this._frustum.calculateFromMatrix(virtualCamera.viewProjectionMatrix);
-      this._frustumChangeFlag.flag = false;
+      this._setDirtyFlagFalse(CameraDirtyFlags.Frustum);
     }
 
     this._updateShaderData();
@@ -827,55 +820,37 @@ export class Camera extends Component {
   protected override _onDestroy(): void {
     super._onDestroy();
     this._renderPipeline?.destroy();
-    this._isInvViewProjDirty.destroy();
-    this._isViewMatrixDirty.destroy();
+    this._entity._updateFlagManager.removeListener(this._onTransformChanged);
     this._addResourceReferCount(this.shaderData, -1);
 
     //@ts-ignore
     this._viewport._onValueChanged = null;
-    this.engine.canvas._sizeUpdateFlagManager.removeListener(this._onPixelViewportChanged);
+    this.engine.canvas._sizeUpdateFlagManager.removeListener(this._adjustPixelViewport);
     this._globalShaderMacro = null;
     this._frustum = null;
     this._renderPipeline = null;
     this._virtualCamera = null;
     this._shaderData = null;
-    this._frustumChangeFlag = null;
-    this._isViewMatrixDirty = null;
-    this._isInvViewProjDirty = null;
     this._viewport = null;
     this._inverseProjectionMatrix = null;
     this._invViewProjMat = null;
   }
 
-  private _updatePixelViewport(): void {
-    let width: number, height: number;
-
-    const renderTarget = this._renderTarget;
-    if (renderTarget) {
-      width = renderTarget.width;
-      height = renderTarget.height;
-    } else {
-      const canvas = this.engine.canvas;
-      width = canvas.width;
-      height = canvas.height;
-    }
-
-    const viewport = this._viewport;
-    this._pixelViewport.set(viewport.x * width, viewport.y * height, viewport.z * width, viewport.w * height);
-    !this._customAspectRatio && this._dispatchModify(CameraModifyFlags.AspectRatio);
+  private _isContainDirtyFlag(flags: CameraDirtyFlags): boolean {
+    return (this._dirtyFlags & flags) != 0;
   }
 
-  private _viewMatrixChange(): void {
-    this._isViewMatrixDirty.flag = true;
-    this._isInvViewProjDirty.flag = true;
-    this._frustumChangeFlag.flag = true;
+  private _setDirtyFlagTrue(flags: CameraDirtyFlags) {
+    this._dirtyFlags |= flags;
   }
 
-  private _projectionMatrixChange(): void {
-    this._isProjectionDirty = true;
-    this._isInvProjMatDirty = true;
-    this._isInvViewProjDirty.flag = true;
-    this._frustumChangeFlag.flag = true;
+  private _setDirtyFlagFalse(flags: CameraDirtyFlags) {
+    this._dirtyFlags &= ~flags;
+  }
+
+  private _makeProjectionMatrixDirty(): void {
+    if (this._isCustomProjectionMatrix) return;
+    this._setDirtyFlagTrue(CameraDirtyFlags.Projection | CameraDirtyFlags.InvProjection | CameraDirtyFlags.ViewProjection | CameraDirtyFlags.InvViewProjection | CameraDirtyFlags.Frustum);
   }
 
   private _innerViewportToWorldPoint(x: number, y: number, z: number, invViewProjMat: Matrix, out: Vector3): Vector3 {
@@ -891,7 +866,7 @@ export class Camera extends Component {
     const shaderData = this.shaderData;
 
     const transform = this._entity.transform;
-    shaderData.setMatrix(Camera._inverseViewMatrixProperty, transform.worldMatrix);
+    shaderData.setMatrix(Camera._inverseViewMatrixProperty, this._getInvViewMat());
     shaderData.setVector3(Camera._cameraPositionProperty, transform.worldPosition);
     shaderData.setVector3(Camera._cameraForwardProperty, transform.worldForward);
     shaderData.setVector3(Camera._cameraUpProperty, transform.worldUp);
@@ -902,13 +877,28 @@ export class Camera extends Component {
     shaderData.setVector4(Camera._cameraDepthBufferParamsProperty, depthBufferParams);
   }
 
+  private _getInvViewMat(): Matrix {
+    const invViewMat = this._invViewMat;
+    if (!this._isContainDirtyFlag(CameraDirtyFlags.InvView)) {
+      return invViewMat;
+    }
+    if (this._isCustomViewMatrix) {
+      Matrix.invert(this._virtualCamera.viewMatrix, invViewMat);
+    } else {
+      const transform = this._entity.transform;
+      Matrix.rotationTranslation(transform.worldRotationQuaternion, transform.worldPosition, invViewMat);
+    }
+    this._setDirtyFlagFalse(CameraDirtyFlags.InvView);
+    return invViewMat;
+  }
+
   /**
    * The inverse matrix of view projection matrix.
    */
   private _getInvViewProjMat(): Matrix {
-    if (this._isInvViewProjDirty.flag) {
-      this._isInvViewProjDirty.flag = false;
-      Matrix.multiply(this._entity.transform.worldMatrix, this._getInverseProjectionMatrix(), this._invViewProjMat);
+    if (this._isContainDirtyFlag(CameraDirtyFlags.InvViewProjection)) {
+      Matrix.multiply(this._getInvViewMat(), this._getInverseProjectionMatrix(), this._invViewProjMat);
+      this._setDirtyFlagFalse(CameraDirtyFlags.InvViewProjection);
     }
     return this._invViewProjMat;
   }
@@ -917,20 +907,55 @@ export class Camera extends Component {
    * The inverse of the projection matrix.
    */
   private _getInverseProjectionMatrix(): Readonly<Matrix> {
-    if (this._isInvProjMatDirty) {
-      this._isInvProjMatDirty = false;
+    if (this._isContainDirtyFlag(CameraDirtyFlags.InvProjection)) {
       Matrix.invert(this.projectionMatrix, this._inverseProjectionMatrix);
+      this._setDirtyFlagFalse(CameraDirtyFlags.InvProjection);
     }
     return this._inverseProjectionMatrix;
   }
 
   @ignoreClone
-  private _onPixelViewportChanged(): void {
-    this._updatePixelViewport();
-    this._customAspectRatio ?? this._projectionMatrixChange();
+  private _onTransformChanged(): void {
+    if (this._isCustomViewMatrix) return;
+    this._setDirtyFlagTrue(CameraDirtyFlags.View | CameraDirtyFlags.InvView | CameraDirtyFlags.ViewProjection | CameraDirtyFlags.InvViewProjection | CameraDirtyFlags.Frustum);
+  }
+
+  @ignoreClone
+  private _adjustPixelViewport(): void {
+    let width: number, height: number;
+
+    const renderTarget = this._renderTarget;
+    if (renderTarget) {
+      width = renderTarget.width;
+      height = renderTarget.height;
+    } else {
+      const canvas = this.engine.canvas;
+      width = canvas.width;
+      height = canvas.height;
+    }
+
+    const viewport = this._viewport;
+    this._pixelViewport.set(viewport.x * width, viewport.y * height, viewport.z * width, viewport.w * height);
+    if (!this._customAspectRatio && !this._isCustomProjectionMatrix) {
+      this._setDirtyFlagTrue(CameraDirtyFlags.Projection | CameraDirtyFlags.InvProjection | CameraDirtyFlags.ViewProjection | CameraDirtyFlags.InvViewProjection | CameraDirtyFlags.Frustum);
+    }
   }
 
   private _dispatchModify(flag: CameraModifyFlags): void {
     this._updateFlagManager?.dispatch(flag);
   }
+}
+
+/**
+ * @internal
+ */
+export enum CameraDirtyFlags {
+  None = 0,
+  View = 0x1,
+  InvView = 0x2,
+  Projection = 0x4,
+  InvProjection = 0x8,
+  ViewProjection = 0x10,
+  InvViewProjection = 0x20,
+  Frustum = 0x40,
 }
