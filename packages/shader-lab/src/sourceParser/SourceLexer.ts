@@ -8,6 +8,8 @@ import { ShaderLab } from "../ShaderLab";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 
 export default class SourceLexer extends BaseLexer {
+  hasPendingContent = false;
+
   private static _keywordLexemeTable = <Record<string, Keyword>>{
     RenderQueueType: Keyword.GSRenderQueueType,
     BlendState: Keyword.GSBlendState,
@@ -130,6 +132,7 @@ export default class SourceLexer extends BaseLexer {
         if (wordToken !== null) {
           return wordToken;
         }
+        this.hasPendingContent = true;
         continue; // Continue loop to scan next token if word was invalid
       }
 

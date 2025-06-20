@@ -316,12 +316,13 @@ export class ShaderSourceParser {
     outPendingContents: IStatement[]
   ): void {
     const lexer = this._lexer;
-    const endIndex = lexer.currentIndex - backOffset;
-    if (endIndex > start.index) {
+    if (lexer.hasPendingContent) {
+      const endIndex = lexer.currentIndex - backOffset;
       outPendingContents.push({
         range: { start, end: { ...lexer.getCurPosition(), index: endIndex - 1 } },
         content: lexer.source.substring(start.index, endIndex - 1)
       });
+      lexer.hasPendingContent = false;
     }
   }
 
@@ -503,6 +504,9 @@ export class ShaderSourceParser {
         this._parseRenderQueueDeclarationOrAssignment(outRenderStates);
         start = this._lexer.getCurPosition();
         break;
+      default:
+        // Unrecognized tokens are defined as pending content
+        this._lexer.hasPendingContent = true;
     }
     return start;
   }
