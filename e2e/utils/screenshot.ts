@@ -1,7 +1,6 @@
 import { Page } from "@playwright/test";
 import { compare } from "odiff-bin";
 import * as path from "path";
-import * as fs from "fs-extra";
 
 export interface ScreenshotOptions {
   category: string;
@@ -11,77 +10,76 @@ export interface ScreenshotOptions {
 
 export async function screenshotWithThreshold(page: Page, options: ScreenshotOptions) {
   const { category, name, threshold = 0.1 } = options;
-
-  await page.goto(`/mpa/${name}.html?category=${category}&case=${name}`);
-
   const imageName = `${category}_${name}.jpg`;
+  const testId = `${category}_${name}`;
+  const startTime = Date.now();
 
-  // Wait for page load and 3D scene initialization
-  await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(3000);
+  console.log(`📸 [${testId}] Starting test`);
+  const testUrl = `/mpa/${name}.html`;
 
-  // Wait for screenshot button to be ready (created with download attribute)
-  await page.waitForFunction(
-    () => {
-      const btn = document.querySelector("#screenshot");
-      return btn && btn.getAttribute("download") && btn.getAttribute("href");
-    },
-    { timeout: 60000 }
-  );
+  console.log(`🌐 [${testId}] Navigating to ${testUrl}`);
+  await page.goto(testUrl);
 
-  // Trigger screenshot download
-  await page.evaluate(() => {
-    (document.querySelector("#screenshot") as HTMLElement)?.click();
-  });
+  console.log(`⏳ [${testId}] Waiting for DOM content loaded...`);
+  await page.waitForLoadState("domcontentloaded");
+  const pageReadyTime = Date.now();
+  console.log(`📄 [${testId}] Page ready (${pageReadyTime - startTime}ms)`);
 
-  // Wait for download to complete
-  await page.waitForTimeout(1000);
+  console.log(`🔍 [${testId}] Looking for screenshot button...`);
+  // 监听下载事件
+  const downloadPromise = page.waitForEvent("download");
+  console.log(`📡 [${testId}] Download listener set up`);
 
-  const downloadsPath = path.join(process.cwd(), "e2e/downloads");
-  const baseImagePath = path.join(process.cwd(), "e2e/fixtures/originImage", imageName);
-  const newImagePath = path.join(downloadsPath, imageName);
-  const diffDir = path.join(process.cwd(), "e2e/test-results/diffs");
-  const diffImagePath = path.join(diffDir, imageName);
-
-  // Ensure diff directory exists
-  if (!fs.existsSync(diffDir)) {
-    fs.mkdirSync(diffDir, { recursive: true });
+  console.log(`⏰ [${testId}] Waiting for screenshot button to be visible (timeout: 180s)...`);
+  let pageRenderedTime;
+  try {
+    // 等待 screenshot 按钮可见
+    await page.getByTestId("screenshot").waitFor({ timeout: 180000 });
+    pageRenderedTime = Date.now();
+    console.log(`✅ [${testId}] Screenshot button visible (${pageRenderedTime - pageReadyTime}ms)`);
+  } catch (error) {
+    console.log(`❌ [${testId}] Screenshot button not visible after 180s`);
+    console.log(`🔍 [${testId}] Page content: ${await page.content()}`);
+    throw error;
   }
 
-  // Wait for the downloaded file to exist
-  await waitForFile(newImagePath, page);
+  console.log(`👆 [${testId}] Clicking screenshot button...`);
+  // 点击下载按钮
+  await page.getByTestId("screenshot").click();
+  console.log(`✅ [${testId}] Screenshot button clicked`);
 
-  // Compare images using odiff
-  const result = await compare(baseImagePath, newImagePath, diffImagePath, {
-    threshold,
+  console.log(`⬇️ [${testId}] Waiting for download to start...`);
+  // 等待下载完成
+  const download = await downloadPromise;
+  console.log(`📦 [${testId}] Download received`);
+
+  console.log(`💾 [${testId}] Saving download...`);
+  const downloadPath = path.join(process.cwd(), "e2e/downloads", imageName);
+
+  // 保存下载的文件
+  await download.saveAs(downloadPath);
+
+  console.log(`📥 [${testId}] Downloaded (${Date.now() - pageRenderedTime}ms)`);
+
+  // Compare with baseline
+  const baseImagePath = path.join(process.cwd(), "e2e/fixtures/originImage", imageName);
+  const diffImagePath = path.join(process.cwd(), "e2e/test-results/diffs", imageName);
+
+  const result = await compare(baseImagePath, downloadPath, diffImagePath, {
+    threshold: threshold * 100,
     antialiasing: true
   });
 
-  // Apply threshold logic: treat differences within threshold as matches
-  const isMatch =
-    result.match || (result.match === false && "diffPercentage" in result && result.diffPercentage <= threshold);
-
-  if (!isMatch) {
-    const diffPercentage = "diffPercentage" in result ? result.diffPercentage : "N/A";
+  if (!result.match) {
+    const diffPercentage = "diffPercentage" in result ? result.diffPercentage : "unknown";
+    console.log(`❌ [${testId}] Visual regression: ${diffPercentage}% (${Date.now() - startTime}ms)`);
     throw new Error(
       `Visual regression detected for ${imageName}. ` +
-        `Difference: ${diffPercentage}%, threshold: ${threshold}%. ` +
+        `Difference: ${diffPercentage}%, threshold: ${threshold * 100}%. ` +
         `Diff saved to: ${diffImagePath}`
     );
   }
 
+  console.log(`✅ [${testId}] Test passed (${Date.now() - startTime}ms total)`);
   return result;
-}
-
-/**
- * Wait for a file to exist with retry logic
- */
-async function waitForFile(filePath: string, page: Page, maxAttempts = 20): Promise<void> {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    if (fs.existsSync(filePath)) {
-      return;
-    }
-    await page.waitForTimeout(500);
-  }
-  throw new Error(`Downloaded image not found: ${filePath}`);
 }

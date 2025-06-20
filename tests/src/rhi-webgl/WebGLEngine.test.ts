@@ -90,15 +90,46 @@ describe("webgl engine test", () => {
     engine.on("devicelost", opLost);
     engine.on("devicerestored", onRestored);
 
-    engine.forceLoseDevice();
-    setTimeout(() => {
-      expect(opLost).toHaveBeenCalledTimes(1);
-    }, 100);
+    return new Promise<void>((resolve, reject) => {
+      // Set up error tracking
+      const originalOnError = window.onerror;
+      let errorCaught: Error | null = null;
 
-    setTimeout(() => {
-      engine.forceRestoreDevice();
-    }, 1000);
+      window.onerror = (message, source, lineno, colno, error) => {
+        errorCaught = error || new Error(String(message));
+        console.error("Error caught during device lost test:", {
+          message: errorCaught.message,
+          source,
+          lineno,
+          colno,
+          stack: errorCaught.stack
+        });
+        return originalOnError ? originalOnError(message, source, lineno, colno, error) : false;
+      };
+
+      engine.forceLoseDevice();
+
+      setTimeout(() => {
+        try {
+          expect(opLost).toHaveBeenCalledTimes(1);
+          engine.forceRestoreDevice();
+
+          setTimeout(() => {
+            window.onerror = originalOnError;
+            engine.destroy();
+
+            if (errorCaught) {
+              reject(errorCaught);
+            } else {
+              resolve();
+            }
+          }, 1100);
+        } catch (err) {
+          window.onerror = originalOnError;
+          engine.destroy();
+          reject(err);
+        }
+      }, 100);
+    });
   });
 });
-// npx cross-env TS_NODE_PROJECT=tsconfig.tests.json nyc --reporter=lcov floss -p tests/src/*.test.ts -r ts-node/register
-// npx cross-env TS_NODE_PROJECT=tsconfig.tests.json nyc --reporter=lcov floss --path tests -r ts-node/register

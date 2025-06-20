@@ -19,7 +19,7 @@ describe("Polyfill", () => {
     const contentTest = "test";
 
     expect(
-      String.prototype.matchAll.bind(contentTest, regexTest),
+      () => String.prototype.matchAll.call(contentTest, regexTest),
       "Should throw error caused by absence of g flag"
     ).to.throw(TypeError);
 

@@ -7,7 +7,7 @@
     "preinstall": "npx only-allow pnpm",
     "pretest": "vitest --version && playwright install --with-deps chromium",
     "test": "vitest",
-    "coverage": "vitest --coverage",
+    "coverage": "cross-env HEADLESS=true vitest --coverage",
     "build": "npm run b:module && npm run b:types",
     "lint": "eslint packages/*/src --ext .ts",
     "watch": "cross-env NODE_ENV=release BUILD_TYPE=MODULE rollup -cw -m inline",
