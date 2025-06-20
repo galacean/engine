@@ -221,7 +221,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
         #ifdef MATERIAL_HAS_NORMALTEXTURE
             surfaceData.normal = getNormalByNormalTexture(tbn, material_NormalTexture, material_NormalIntensity, uv, isFrontFacing);
         #endif
-    #endif
+    #endif  
 
     surfaceData.dotNV = saturate( dot(surfaceData.normal, surfaceData.viewDir) );
 
@@ -265,7 +265,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
         surfaceData.anisotropicN = getAnisotropicBentNormal(surfaceData);
     #endif
 
-    //Iridescence
+    // Iridescence
     #ifdef MATERIAL_ENABLE_IRIDESCENCE
         surfaceData.iridescenceFactor = material_IridescenceInfo.x;
         surfaceData.iridescenceIOR = material_IridescenceInfo.y;
@@ -310,20 +310,12 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
         #endif    
     #endif
 
-    // AO
-    float diffuseAO = 1.0;
-    float specularAO = 1.0;
-
+    // Ambient Occlusion
     #ifdef MATERIAL_HAS_OCCLUSION_TEXTURE
-        diffuseAO = ((texture2D(material_OcclusionTexture, aoUV)).r - 1.0) * material_OcclusionIntensity + 1.0;
+        surfaceData.ambientOcclusion = ((texture2D(material_OcclusionTexture, aoUV)).r - 1.0) * material_OcclusionIntensity + 1.0;
+    #else
+        surfaceData.ambientOcclusion = 1.0;
     #endif
-
-    #if defined(MATERIAL_HAS_OCCLUSION_TEXTURE) && defined(SCENE_USE_SPECULAR_ENV) 
-        specularAO = saturate( pow( surfaceData.dotNV + diffuseAO, exp2( - 16.0 * surfaceData.roughness - 1.0 ) ) - 1.0 + diffuseAO );
-    #endif
-
-    surfaceData.diffuseAO = diffuseAO;
-    surfaceData.specularAO = specularAO;
 
     return surfaceData;
 }
