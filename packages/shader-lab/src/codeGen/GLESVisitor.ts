@@ -161,6 +161,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const { _referencedGlobals } = VisitorContext.context;
 
     const lastLength = Object.keys(_referencedGlobals).length;
+    if (lastLength === 0) return;
 
     for (const ident in _referencedGlobals) {
       if (GLESVisitor._serializedGlobalKey.has(ident)) continue;
