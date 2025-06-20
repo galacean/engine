@@ -47,6 +47,7 @@ Create your test implementation in `e2e/case/`, following existing patterns:
 // e2e/case/my-new-test.ts
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   // Your test implementation
+  updateForE2E(engine);
   initScreenshot(engine, camera);
 });
 ```
