@@ -1,4 +1,5 @@
 import { ShaderRange } from "../common";
+import { SymbolTable } from "../common/SymbolTable";
 import { SymbolTableStack } from "../common/SymbolTableStack";
 import { GSErrorName } from "../GSError";
 import { ESymbolType, SymbolInfo } from "../parser/symbolTable";
@@ -11,7 +12,6 @@ import { NodeChild } from "./types";
 import { GSError } from "../GSError";
 // #else
 import { Logger } from "@galacean/engine";
-import { SymbolTable } from "../common/SymbolTable";
 // #endif
 
 export type TranslationRule<T = any> = (sa: SemanticAnalyzer, ...tokens: NodeChild[]) => T;

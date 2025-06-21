@@ -4,4 +4,3 @@ export * from "./StructSymbol";
 export * from "./SymbolDataType";
 export * from "./SymbolInfo";
 export * from "./VarSymbol";
-
