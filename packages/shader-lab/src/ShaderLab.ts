@@ -4,7 +4,6 @@ import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { ShaderPosition, ShaderRange } from "./common";
 import { Lexer } from "./lexer";
 import { ShaderTargetParser } from "./parser";
-import { Preprocessor } from "./preprocessor";
 // #if _VERBOSE
 import { GSError } from "./GSError";
 // #endif
@@ -55,7 +54,7 @@ export class ShaderLab implements IShaderLab {
     basePathForIncludeKey: string
   ): IShaderProgramSource | undefined {
     const preprocessorStartTime = performance.now();
-    const ppdContent = Preprocessor.parse(source, macros, platformMacros, basePathForIncludeKey);
+    const ppdContent = PpParser.parse(source, macros, platformMacros, basePathForIncludeKey);
     // #if _VERBOSE
     if (PpParser._errors.length > 0) {
       for (const err of PpParser._errors) {

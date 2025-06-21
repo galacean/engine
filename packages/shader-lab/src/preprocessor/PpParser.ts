@@ -1,14 +1,15 @@
 import { ShaderPosition, ShaderRange } from "../common";
-import LexerUtils from "../lexer/Utils";
-import { MacroDefine } from "./MacroDefine";
 import { BaseToken } from "../common/BaseToken";
+import LexerUtils from "../lexer/Utils";
+import { ShaderLab } from "../ShaderLab";
 import { EPpKeyword, EPpToken, PpConstant } from "./constants";
+import { MacroDefine } from "./MacroDefine";
 import PpLexer from "./PpLexer";
 import { PpUtils } from "./Utils";
-import { ShaderLab } from "../ShaderLab";
-import { ShaderPass } from "@galacean/engine";
-import { ShaderLabUtils } from "../ShaderLabUtils";
+// @ts-ignore
+import { ShaderLib, ShaderMacro, ShaderPass } from "@galacean/engine";
 import { GSErrorName } from "../GSError";
+import { ShaderLabUtils } from "../ShaderLabUtils";
 // #if _VERBOSE
 import PpSourceMap, { BlockInfo } from "./sourceMap";
 // #endif
@@ -23,6 +24,8 @@ export interface ExpandSegment {
 
 /** @internal */
 export class PpParser {
+  static lexer: PpLexer;
+
   private static _definedMacros: Map<string, MacroDefine> = new Map();
   private static _expandSegmentsStack: ExpandSegment[][] = [[]];
 
@@ -35,6 +38,26 @@ export class PpParser {
   // #if _VERBOSE
   static _errors: Error[] = [];
   // #endif
+
+  static parse(
+    source: string,
+    macros: ShaderMacro[],
+    platformMacros: string[],
+    basePathForIncludeKey: string
+  ): string | null {
+    PpParser.reset(ShaderLib, basePathForIncludeKey);
+
+    for (const macro of macros) {
+      PpParser.addPredefinedMacro(macro.name, macro.value);
+    }
+
+    for (let i = 0; i < platformMacros.length; i++) {
+      PpParser.addPredefinedMacro(platformMacros[i]);
+    }
+
+    this.lexer = new PpLexer(source);
+    return PpParser.parseDirectives(this.lexer);
+  }
 
   static reset(includeMap: Record<string, string>, basePathForIncludeKey: string) {
     this._definedMacros.clear();
@@ -62,7 +85,7 @@ export class PpParser {
     this._definedMacros.set(macro, new MacroDefine(tk, macroBody));
   }
 
-  static parse(scanner: PpLexer): string | null {
+  static parseDirectives(scanner: PpLexer): string | null {
     while (!scanner.isEnd()) {
       const directive = scanner.scanDirective(this._onToken.bind(this))!;
       if (scanner.isEnd()) break;
@@ -502,7 +525,7 @@ export class PpParser {
     } else {
       scanner = new PpLexer(chunk, scannerOrFile.file, loc);
     }
-    const ret = this.parse(scanner);
+    const ret = this.parseDirectives(scanner);
     this._expandSegmentsStack.pop();
     return {
       content: ret,
@@ -696,4 +719,10 @@ export class PpParser {
       }
     }
   }
+
+  // #if _VERBOSE
+  static convertSourceIndex(index: number) {
+    return this.lexer.sourceMap.map(index);
+  }
+  // #endif
 }
