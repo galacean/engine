@@ -96,30 +96,29 @@ export class Shader implements IReferable {
         return;
       }
 
-      const subShaderList = shaderSource.subShaders.map((subShaderContent) => {
-        const passList = subShaderContent.passes.map((passInfo) => {
-          if (passInfo.isUsePass) {
-            // Use pass reference
-            const paths = passInfo.name.split("/");
-            return Shader.find(paths[0])
-              ?.subShaders.find((subShader) => subShader.name === paths[1])
-              ?.passes.find((pass) => pass.name === paths[2]);
+      const subShaderList = shaderSource.subShaders.map((subShaderSource) => {
+        const passList = subShaderSource.passes.map((passSource) => {
+          if (passSource.isUsePass) {
+            const [shaderName, subShaderName, passName] = passSource.name.split("/");
+            return Shader.find(shaderName)
+              ?.subShaders.find((subShader) => subShader.name === subShaderName)
+              ?.passes.find((pass) => pass.name === passName);
           }
 
-          const shaderPassContent = new ShaderPass(
-            passInfo.name,
-            passInfo.contents,
-            passInfo.vertexEntry,
-            passInfo.fragmentEntry,
-            passInfo.tags
+          const shaderPass = new ShaderPass(
+            passSource.name,
+            passSource.contents,
+            passSource.vertexEntry,
+            passSource.fragmentEntry,
+            passSource.tags
           );
 
-          const { constantMap, variableMap } = passInfo.renderStates;
+          const { constantMap, variableMap } = passSource.renderStates;
           // Compatible shader lab no render state use material `renderState` to modify render state
           if (Object.keys(constantMap).length > 0 || Object.keys(variableMap).length > 0) {
             // Parse const render state
             const renderState = new RenderState();
-            shaderPassContent._renderState = renderState;
+            shaderPass._renderState = renderState;
             for (let k in constantMap) {
               Shader._applyConstRenderStates(renderState, <RenderStateElementKey>parseInt(k), constantMap[k]);
             }
@@ -129,13 +128,13 @@ export class Shader implements IReferable {
             for (let k in variableMap) {
               renderStateDataMap[k] = ShaderProperty.getByName(variableMap[k]);
             }
-            shaderPassContent._renderStateDataMap = renderStateDataMap;
+            shaderPass._renderStateDataMap = renderStateDataMap;
           }
 
-          return shaderPassContent;
+          return shaderPass;
         });
 
-        return new SubShader(subShaderContent.name, passList, subShaderContent.tags);
+        return new SubShader(subShaderSource.name, passList, subShaderSource.tags);
       });
 
       shader = new Shader(shaderSource.name, subShaderList);
