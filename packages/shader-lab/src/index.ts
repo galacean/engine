@@ -2,6 +2,7 @@ export { ShaderLab } from "./ShaderLab";
 
 // #if _VERBOSE
 export { Preprocessor } from "./preprocessor";
+export { PpParser } from "./preprocessor/PpParser";
 export * from "./GSError";
 // #endif
 

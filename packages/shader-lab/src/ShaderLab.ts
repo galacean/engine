@@ -1,11 +1,10 @@
+import { Logger, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
 import { IShaderLab, IShaderSource } from "@galacean/engine-design";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
+import { ShaderPosition, ShaderRange } from "./common";
 import { Lexer } from "./lexer";
 import { ShaderTargetParser } from "./parser";
 import { Preprocessor } from "./preprocessor";
-// @ts-ignore
-import { Logger, ShaderLib, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
-import { ShaderPosition, ShaderRange } from "./common";
 // #if _VERBOSE
 import { GSError } from "./GSError";
 // #endif
@@ -43,8 +42,7 @@ export class ShaderLab implements IShaderLab {
   }
 
   // #if _VERBOSE
-  /** Retrieve the compilation errors */
-  readonly errors: Error[] = [];
+  readonly errors = new Array<Error>();
   // #endif
 
   _parseShaderPass(
@@ -56,17 +54,8 @@ export class ShaderLab implements IShaderLab {
     platformMacros: string[],
     basePathForIncludeKey: string
   ): IShaderProgramSource | undefined {
-    Preprocessor.reset(ShaderLib, basePathForIncludeKey);
-    for (const macro of macros) {
-      Preprocessor.addPredefinedMacro(macro.name, macro.value);
-    }
-
-    for (let i = 0; i < platformMacros.length; i++) {
-      Preprocessor.addPredefinedMacro(platformMacros[i]);
-    }
-
-    const preprocessorStart = performance.now();
-    const ppdContent = Preprocessor.process(source);
+    const preprocessorStartTime = performance.now();
+    const ppdContent = Preprocessor.parse(source, macros, platformMacros, basePathForIncludeKey);
     // #if _VERBOSE
     if (PpParser._errors.length > 0) {
       for (const err of PpParser._errors) {
@@ -77,7 +66,7 @@ export class ShaderLab implements IShaderLab {
     }
     // #endif
 
-    Logger.info(`[pass compilation - preprocessor]  cost time ${performance.now() - preprocessorStart}ms`);
+    Logger.info(`[Pass preprocessor compilation] cost time ${performance.now() - preprocessorStartTime}ms`);
 
     const lexer = new Lexer(ppdContent);
     const tokens = lexer.tokenize();

@@ -1,33 +1,35 @@
-import { PpParser } from "./PpParser";
+// @ts-ignore
+import { ShaderLib, ShaderMacro } from "@galacean/engine";
 import PpLexer from "./PpLexer";
+import { PpParser } from "./PpParser";
 
 /** @internal */
 export class Preprocessor {
-  static baseScanner: PpLexer;
+  static lexer: PpLexer;
 
-  /**
-   * Reset the parser of `Preprocessor`
-   * @param basePathForIncludeKey - the base path to resolve the relative path of `#include` directive
-   */
-  static reset(includeMap: Record<string, string>, basePathForIncludeKey: string): void {
-    PpParser.reset(includeMap, basePathForIncludeKey);
-  }
+  static parse(
+    source: string,
+    macros: ShaderMacro[],
+    platformMacros: string[],
+    basePathForIncludeKey: string
+  ): string | null {
+    PpParser.reset(ShaderLib, basePathForIncludeKey);
 
-  /**
-   * Should call it after reset.
-   */
-  static process(source: string): string | null {
-    this.baseScanner = new PpLexer(source);
-    return PpParser.parse(this.baseScanner);
-  }
+    for (const macro of macros) {
+      PpParser.addPredefinedMacro(macro.name, macro.value);
+    }
 
-  static addPredefinedMacro(macro: string, value?: string): void {
-    PpParser.addPredefinedMacro(macro, value);
+    for (let i = 0; i < platformMacros.length; i++) {
+      PpParser.addPredefinedMacro(platformMacros[i]);
+    }
+
+    this.lexer = new PpLexer(source);
+    return PpParser.parse(this.lexer);
   }
 
   // #if _VERBOSE
   static convertSourceIndex(index: number) {
-    return this.baseScanner.sourceMap.map(index);
+    return this.lexer.sourceMap.map(index);
   }
   // #endif
 }

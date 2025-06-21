@@ -29,7 +29,7 @@ import SourceLexer from "./SourceLexer";
  * @internal
  */
 export class ShaderSourceParser {
-  static errors = new Array<GSError>();
+  static readonly errors = new Array<GSError>();
 
   private static _renderStateConstMap = <Record<string, Record<string, number | string | boolean>>>{
     RenderQueueType,
@@ -75,7 +75,6 @@ export class ShaderSourceParser {
     }
 
     Logger.info(`[Source compilation] cost time ${performance.now() - startTime}ms`);
-
     return shaderSource;
   }
 
