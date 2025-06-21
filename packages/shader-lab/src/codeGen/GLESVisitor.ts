@@ -1,12 +1,12 @@
-import { CodeGenVisitor } from "./CodeGenVisitor";
+import { IShaderInfo } from "@galacean/engine-design";
+import { EShaderStage } from "../common/Enums";
+import { Keyword } from "../common/enums/Keyword";
 import { ASTNode } from "../parser/AST";
 import { ShaderData } from "../parser/ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo } from "../parser/symbolTable";
-import { EShaderStage } from "../common/Enums";
-import { IShaderInfo } from "@galacean/engine-design";
+import { CodeGenVisitor } from "./CodeGenVisitor";
 import { ICodeSegment } from "./types";
 import { VisitorContext } from "./VisitorContext";
-import { EKeyword } from "../common";
 
 const defaultPrecision = `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -25,6 +25,8 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   protected _versionText: string = "";
   protected _extensions: string = "";
   private _globalCodeArray: ICodeSegment[] = [];
+  private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
+  private static _serializedGlobalKey = new Set();
 
   abstract getAttributeDeclare(out: ICodeSegment[]): void;
   abstract getVaryingDeclare(out: ICodeSegment[]): void;
@@ -44,8 +46,10 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   }
 
   vertexMain(entry: string, data: ShaderData): string {
+    const lookupSymbol = GLESVisitor._lookupSymbol;
     const { symbolTable } = data;
-    const fnSymbol = symbolTable.lookup(entry, ESymbolType.FN);
+    lookupSymbol.set(entry, ESymbolType.FN);
+    const fnSymbol = <FnSymbol>symbolTable.lookup(lookupSymbol);
     if (!fnSymbol?.astNode) throw `no entry function found: ${entry}`;
 
     const fnNode = fnSymbol.astNode;
@@ -53,13 +57,14 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     const returnType = fnNode.protoType.returnType;
     if (typeof returnType.type === "string") {
-      const varyStruct = symbolTable.lookup(returnType.type, ESymbolType.STRUCT);
+      lookupSymbol.set(returnType.type, ESymbolType.STRUCT);
+      const varyStruct = <StructSymbol>symbolTable.lookup(lookupSymbol);
       if (!varyStruct) {
         this._reportError(returnType.location, `invalid varying struct: ${returnType.type}`);
       } else {
         VisitorContext.context.varyingStruct = varyStruct.astNode;
       }
-    } else if (returnType.type !== EKeyword.VOID) {
+    } else if (returnType.type !== Keyword.VOID) {
       this._reportError(returnType.location, "vertex main entry can only return struct or void.");
     }
 
@@ -67,7 +72,8 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     if (paramList?.length) {
       for (const paramInfo of paramList) {
         if (typeof paramInfo.typeInfo.type === "string") {
-          const structSymbol = symbolTable.lookup(paramInfo.typeInfo.type, ESymbolType.STRUCT);
+          lookupSymbol.set(paramInfo.typeInfo.type, ESymbolType.STRUCT);
+          const structSymbol = <StructSymbol>symbolTable.lookup(lookupSymbol);
           if (!structSymbol) {
             this._reportError(paramInfo.astNode.location, `Not found attribute struct "${paramInfo.typeInfo.type}".`);
             continue;
@@ -86,8 +92,10 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     const { _globalCodeArray: globalCodeArray } = this;
     globalCodeArray.length = 0;
+    GLESVisitor._serializedGlobalKey.clear();
 
-    this._getGlobalText(data, globalCodeArray);
+    this._getGlobalSymbol(globalCodeArray);
+    this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
     this.getAttributeDeclare(globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
 
@@ -102,8 +110,10 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   }
 
   private _fragmentMain(entry: string, data: ShaderData): string {
+    const lookupSymbol = GLESVisitor._lookupSymbol;
     const { symbolTable } = data;
-    const fnSymbol = symbolTable.lookup(entry, ESymbolType.FN);
+    lookupSymbol.set(entry, ESymbolType.FN);
+    const fnSymbol = <FnSymbol>symbolTable.lookup(lookupSymbol);
     if (!fnSymbol?.astNode) throw `no entry function found: ${entry}`;
     const fnNode = fnSymbol.astNode;
 
@@ -117,21 +127,24 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     const { type: returnDataType, location: returnLocation } = fnNode.protoType.returnType;
     if (typeof returnDataType === "string") {
-      const mrtStruct = symbolTable.lookup(returnDataType, ESymbolType.STRUCT);
+      lookupSymbol.set(returnDataType, ESymbolType.STRUCT);
+      const mrtStruct = <StructSymbol>symbolTable.lookup(lookupSymbol);
       if (!mrtStruct) {
         this._reportError(returnLocation, `invalid mrt struct: ${returnDataType}`);
       } else {
         context.mrtStruct = mrtStruct.astNode;
       }
-    } else if (returnDataType !== EKeyword.VOID && returnDataType !== EKeyword.VEC4) {
+    } else if (returnDataType !== Keyword.VOID && returnDataType !== Keyword.VEC4) {
       this._reportError(returnLocation, "fragment main entry can only return struct or vec4.");
     }
 
     const statements = fnNode.statements.codeGen(this);
     const { _globalCodeArray: globalCodeArray } = this;
     globalCodeArray.length = 0;
+    GLESVisitor._serializedGlobalKey.clear();
 
-    this._getGlobalText(data, globalCodeArray);
+    this._getGlobalSymbol(globalCodeArray);
+    this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
     this.getMRTDeclare(globalCodeArray);
 
@@ -144,38 +157,39 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     return `${this._versionText}\n${this._extensions}\n${defaultPrecision}\n${globalCode}\n\nvoid main() ${statements}`;
   }
 
-  private _getGlobalText(
-    data: ShaderData,
-    textList: ICodeSegment[],
-    lastLength: number = 0,
-    _serialized: Set<string> = new Set()
-  ): ICodeSegment[] {
+  private _getGlobalSymbol(out: ICodeSegment[]): void {
     const { _referencedGlobals } = VisitorContext.context;
 
-    if (lastLength === Object.keys(_referencedGlobals).length) {
-      for (const precision of data.globalPrecisions) {
-        textList.push({ text: precision.codeGen(this), index: precision.location.start.index });
-      }
-      return textList;
-    }
+    const lastLength = Object.keys(_referencedGlobals).length;
+    if (lastLength === 0) return;
 
-    lastLength = Object.keys(_referencedGlobals).length;
     for (const ident in _referencedGlobals) {
-      const sm = _referencedGlobals[ident];
+      if (GLESVisitor._serializedGlobalKey.has(ident)) continue;
+      GLESVisitor._serializedGlobalKey.add(ident);
 
-      if (_serialized.has(ident)) continue;
-      _serialized.add(ident);
-
-      if (sm instanceof SymbolInfo) {
-        if (sm.symbolType === ESymbolType.VAR) {
-          textList.push({ text: `uniform ${sm.astNode.codeGen(this)}`, index: sm.astNode.location.start.index });
+      const symbol = _referencedGlobals[ident];
+      const symbols = Array.isArray(symbol) ? symbol : [symbol];
+      for (let i = 0; i < symbols.length; i++) {
+        const sm = symbols[i];
+        if (sm instanceof SymbolInfo) {
+          out.push({
+            text: `${sm.type === ESymbolType.VAR ? "uniform " : ""}${sm.astNode.codeGen(this)}`,
+            index: sm.astNode.location.start.index
+          });
         } else {
-          textList.push({ text: sm.astNode!.codeGen(this), index: sm.astNode!.location.start.index });
+          out.push({ text: sm.codeGen(this), index: sm.location.start.index });
         }
-      } else {
-        textList.push({ text: sm.codeGen(this), index: sm.location.start.index });
       }
     }
-    return this._getGlobalText(data, textList, lastLength, _serialized);
+
+    if (Object.keys(_referencedGlobals).length !== lastLength) {
+      this._getGlobalSymbol(out);
+    }
+  }
+
+  private _getGlobalPrecisions(precisions: ASTNode.PrecisionSpecifier[], out: ICodeSegment[]): void {
+    for (const precision of precisions) {
+      out.push({ text: precision.codeGen(this), index: precision.location.start.index });
+    }
   }
 }

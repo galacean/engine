@@ -1,13 +1,14 @@
+import { ETokenType } from "../common";
+import { BaseToken as Token } from "../common/BaseToken";
+import { EShaderStage } from "../common/Enums";
+import { Keyword } from "../common/enums/Keyword";
 import { ASTNode, TreeNode } from "../parser/AST";
 import { SymbolType } from "../parser/types";
-import { BaseToken as Token } from "../common/BaseToken";
-import { EKeyword, ETokenType } from "../common";
-import { GLESVisitor } from "./GLESVisitor";
-import { EShaderStage } from "../common/Enums";
-import { ICodeSegment } from "./types";
-import { VisitorContext } from "./VisitorContext";
 import { ShaderLab } from "../ShaderLab";
 import { V3_GL_FragColor, V3_GL_FragData } from "./CodeGenVisitor";
+import { GLESVisitor } from "./GLESVisitor";
+import { ICodeSegment } from "./types";
+import { VisitorContext } from "./VisitorContext";
 
 export class GLES300Visitor extends GLESVisitor {
   override _versionText: string = "#version 300 es";
@@ -140,7 +141,7 @@ export class GLES300Visitor extends GLESVisitor {
       token.set(ETokenType.ID, V3_GL_FragColor, ShaderLab.createPosition(0, 0, 0));
       _referencedVaryingList[V3_GL_FragColor] = {
         ident: token,
-        typeInfo: new SymbolType(EKeyword.VEC4, "vec4"),
+        typeInfo: new SymbolType(Keyword.VEC4, "vec4"),
         qualifier: "out",
         astNode: node
       };

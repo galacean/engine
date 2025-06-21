@@ -17,28 +17,34 @@ Shader "custom/pbr" {
             Pass "Pass0" {
 
               #ifdef MATERIAL_IS_TRANSPARENT
-                BlendState {
+                BlendState customBlendState {
                   Enabled = true;
                   SourceColorBlendFactor = BlendFactor.SourceAlpha;
                   DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
                   SourceAlphaBlendFactor = BlendFactor.One;
                   DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
                 }
-                DepthState {
+                DepthState customDepthState {
                   WriteEnabled = false;
                 }
+                
+                BlendState = customBlendState;
+                DepthState = customDepthState;
                 RenderQueueType = Transparent;
               #else
-                BlendState {
+                BlendState customBlendState {
                   Enabled = false;
                   SourceColorBlendFactor = BlendFactor.SourceAlpha;
                   DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
                   SourceAlphaBlendFactor = BlendFactor.One;
                   DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
                 }
-                DepthState {
+                DepthState customDepthState {
                   WriteEnabled = true;
                 }
+
+                BlendState = customBlendState;
+                DepthState = customDepthState;
                 RenderQueueType = Opaque;
               #endif
 
@@ -46,6 +52,18 @@ Shader "custom/pbr" {
               vec4 material_BaseColor;
               float material_AlphaCutoff;
               sampler2D material_BaseTexture;
+
+              float test(){
+                return 1.0;
+              }
+
+              float test(float param1){
+                return 1.0;
+              }
+
+              float test1(){
+                return 1.0;
+              }
             
               struct Attributes {
                 vec4 POSITION;
@@ -90,7 +108,7 @@ Shader "custom/pbr" {
                 gl_FragColor = baseColor;
 
                 #ifndef MATERIAL_IS_TRANSPARENT
-                  gl_FragColor.a = 1.0;
+                  gl_FragColor.a = test1();
                 #endif
               }
           }
