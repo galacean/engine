@@ -1,16 +1,17 @@
 import { ShaderRange } from "../common";
-import { ASTNode, TreeNode } from "./AST";
-import { GSErrorName } from "../GSError";
-import { ShaderData } from "./ShaderInfo";
-import { ESymbolType, SymbolInfo, TargetSymbolTable } from "../parser/symbolTable";
-import { NodeChild } from "./types";
 import { SymbolTableStack } from "../common/SymbolTableStack";
+import { GSErrorName } from "../GSError";
+import { ESymbolType, SymbolInfo } from "../parser/symbolTable";
 import { ShaderLab } from "../ShaderLab";
+import { ASTNode, TreeNode } from "./AST";
 import { NonGenericGalaceanType } from "./builtin";
+import { ShaderData } from "./ShaderInfo";
+import { NodeChild } from "./types";
 // #if _VERBOSE
 import { GSError } from "../GSError";
 // #else
 import { Logger } from "@galacean/engine";
+import { SymbolTable } from "../common/SymbolTable";
 // #endif
 
 export type TranslationRule<T = any> = (sa: SemanticAnalyzer, ...tokens: NodeChild[]) => T;
@@ -26,7 +27,7 @@ export default class SemanticAnalyzer {
 
   semanticStack: TreeNode[] = [];
   acceptRule?: TranslationRule = undefined;
-  symbolTableStack: SymbolTableStack<SymbolInfo, TargetSymbolTable> = new SymbolTableStack();
+  symbolTableStack: SymbolTableStack<SymbolInfo, SymbolTable<SymbolInfo>> = new SymbolTableStack();
   curFunctionInfo: {
     header?: ASTNode.FunctionDeclarator;
     returnStatement?: ASTNode.JumpStatement;
@@ -57,7 +58,7 @@ export default class SemanticAnalyzer {
   }
 
   pushScope() {
-    this.symbolTableStack.pushScope(new TargetSymbolTable());
+    this.symbolTableStack.pushScope(new SymbolTable<SymbolInfo>());
   }
 
   popScope() {

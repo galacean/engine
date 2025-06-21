@@ -1,8 +1,9 @@
 import { BaseToken } from "../common/BaseToken";
 import { EShaderStage } from "../common/Enums";
+import { SymbolTable } from "../common/SymbolTable";
 import { GSErrorName } from "../GSError";
 import { ASTNode } from "../parser/AST";
-import { ESymbolType, SymbolInfo, TargetSymbolTable } from "../parser/symbolTable";
+import { ESymbolType, SymbolInfo } from "../parser/symbolTable";
 import { IParamInfo, StructProp } from "../parser/types";
 import { ShaderLab } from "../ShaderLab";
 import { ShaderLabUtils } from "../ShaderLabUtils";
@@ -36,7 +37,7 @@ export class VisitorContext {
 
   _curFn?: ASTNode.FunctionProtoType;
 
-  _passSymbolTable: TargetSymbolTable;
+  _passSymbolTable: SymbolTable<SymbolInfo>;
 
   reset() {
     this.attributeList.length = 0;
