@@ -130,15 +130,12 @@ export default class PpLexer extends BaseLexer {
     return token;
   }
 
-  /**
-   * @param offset - Offset from starting point
-   */
-  getShaderPosition(offset: number) {
+  getShaderPosition(backOffset: number) {
     return ShaderLab.createPosition(
-      this._currentIndex - offset,
+      this._currentIndex - backOffset,
       // #if _VERBOSE
       this.line,
-      this.column - offset
+      this.column - backOffset
       // #endif
     );
   }
