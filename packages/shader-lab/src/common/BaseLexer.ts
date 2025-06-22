@@ -15,6 +15,15 @@ export abstract class BaseLexer {
     return charCode >= 48 && charCode <= 57; // 0-9
   }
 
+  // Check if character is alphabetic or underscore (valid word start)
+  static isAlpha(charCode: number): boolean {
+    return (
+      charCode === 95 || // _
+      (charCode >= 65 && charCode <= 90) || // A-Z
+      (charCode >= 97 && charCode <= 122) // a-z
+    );
+  }
+
   protected static _isWhiteSpaceChar(charCode: number, includeBreak: boolean): boolean {
     // Space || Tab
     if (charCode === 32 || charCode === 9) {
@@ -23,18 +32,9 @@ export abstract class BaseLexer {
     return includeBreak && (charCode === 10 || charCode === 13); // \n || \r
   }
 
-  // Check if character is alphabetic or underscore (valid word start)
-  protected static _isAlpha(charCode: number): boolean {
-    return (
-      charCode === 95 || // _
-      (charCode >= 65 && charCode <= 90) || // A-Z
-      (charCode >= 97 && charCode <= 122) // a-z
-    );
-  }
-
   // Check if character is valid word character (alpha + digit)
   protected static _isWordChar(charCode: number): boolean {
-    return BaseLexer._isAlpha(charCode) || BaseLexer.isDigit(charCode);
+    return BaseLexer.isAlpha(charCode) || BaseLexer.isDigit(charCode);
   }
 
   protected _currentIndex = 0;

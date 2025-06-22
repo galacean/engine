@@ -127,7 +127,7 @@ export default class SourceLexer extends BaseLexer {
 
       const start = this.getCurPosition();
 
-      if (BaseLexer._isAlpha(this.getCurCharCode())) {
+      if (BaseLexer.isAlpha(this.getCurCharCode())) {
         const wordToken = this._scanWord(start);
         if (wordToken !== null) {
           return wordToken;

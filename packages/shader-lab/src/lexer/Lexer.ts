@@ -84,7 +84,7 @@ export class Lexer extends BaseLexer {
   }
 
   override skipSpace() {
-    while (LexerUtils.isSpace(this.getCurCharCode())) {
+    while (BaseLexer._isWhiteSpaceChar(this.getCurCharCode(), true)) {
       this.advance(1);
     }
   }
@@ -95,7 +95,7 @@ export class Lexer extends BaseLexer {
       return EOF;
     }
 
-    if (LexerUtils.isAlpha(this.getCurCharCode())) {
+    if (BaseLexer.isAlpha(this.getCurCharCode())) {
       return this._scanWord();
     }
     if (LexerUtils.isNum(this.getCurCharCode())) {

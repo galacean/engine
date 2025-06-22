@@ -13,6 +13,7 @@ import { ShaderLabUtils } from "../ShaderLabUtils";
 // #if _VERBOSE
 import PpSourceMap, { BlockInfo } from "./sourceMap";
 // #endif
+import { BaseLexer } from "../common/BaseLexer";
 
 export interface ExpandSegment {
   // #if _VERBOSE
@@ -446,7 +447,7 @@ export class PpParser {
   }
 
   private static _parseConstant(scanner: PpLexer): PpConstant {
-    if (LexerUtils.isAlpha(scanner.getCurCharCode())) {
+    if (BaseLexer.isAlpha(scanner.getCurCharCode())) {
       const id = scanner.scanWord();
       if (id.type === EPpKeyword.defined) {
         const withParen = scanner.peekNonSpace() === "(";

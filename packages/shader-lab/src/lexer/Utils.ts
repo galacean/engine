@@ -12,14 +12,6 @@ export default class LexerUtils {
     );
   }
 
-  static isAlpha(charCode: number) {
-    return (
-      charCode === 95 || // _
-      (charCode >= 65 && charCode <= 90) || // A - Z
-      (charCode >= 97 && charCode <= 122) // a - z
-    );
-  }
-
   static isPpCharacters(charCode: number) {
     return (
       charCode === 35 || // #
@@ -30,12 +22,5 @@ export default class LexerUtils {
     );
   }
 
-  static isSpace(charCode: number) {
-    return (
-      charCode === 9 || // Tab
-      charCode === 10 || // Line break - /n
-      charCode === 13 || // Carriage return -/r
-      charCode === 32 // Space
-    );
-  }
+
 }
