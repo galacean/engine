@@ -53,10 +53,14 @@ export default class PpLexer extends BaseLexer {
    */
   scanDirective(expandOnToken?: OnToken): BaseToken<number> {
     const directive = this._advanceToDirective(expandOnToken);
-    if ([EPpKeyword.if, EPpKeyword.ifdef, EPpKeyword.ifndef].includes(<any>directive?.type)) {
-      this.macroLvl += 1;
-    } else if (<any>directive?.type === EPpKeyword.endif) {
-      this.macroLvl -= 1;
+    if (
+      directive?.type === EPpKeyword.if ||
+      directive?.type === EPpKeyword.ifdef ||
+      directive?.type === EPpKeyword.ifndef
+    ) {
+      this.macroLvl++;
+    } else if (directive?.type === EPpKeyword.endif) {
+      this.macroLvl--;
     }
     return directive;
   }
