@@ -52,17 +52,26 @@ export default class PpLexer extends BaseLexer {
    * @param expandOnToken callback on encountering token.
    */
   scanDirective(expandOnToken?: OnToken): BaseToken<number> {
-    const directive = this._advanceToDirective(expandOnToken);
-    if (
-      directive?.type === EPpKeyword.if ||
-      directive?.type === EPpKeyword.ifdef ||
-      directive?.type === EPpKeyword.ifndef
-    ) {
-      this.macroLvl++;
-    } else if (directive?.type === EPpKeyword.endif) {
-      this.macroLvl--;
+    let token: BaseToken | undefined;
+    while (true) {
+      token = this.scanToken(expandOnToken);
+      if (token?.lexeme.startsWith("#")) {
+        break;
+      }
+      if (this.isEnd()) {
+        break;
+      }
     }
-    return directive;
+
+    if (token) {
+      const { type } = token;
+      if (type === EPpKeyword.if || type === EPpKeyword.ifdef || type === EPpKeyword.ifndef) {
+        this.macroLvl++;
+      } else if (type === EPpKeyword.endif) {
+        this.macroLvl--;
+      }
+    }
+    return token;
   }
 
   /**
@@ -300,14 +309,6 @@ export default class PpLexer extends BaseLexer {
     const token = BaseToken.pool.get();
     token.set(EPpToken.line_remain, line, this.getShaderPosition(line.length));
     return token;
-  }
-
-  private _advanceToDirective(onToken?: OnToken): BaseToken | undefined {
-    while (true) {
-      const token = this.scanToken(onToken);
-      if (token?.lexeme.startsWith("#")) return token;
-      if (this.isEnd()) return;
-    }
   }
 
   private _skipComments(): ShaderRange | undefined {
