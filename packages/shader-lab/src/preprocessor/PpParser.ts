@@ -450,7 +450,7 @@ export class PpParser {
       const id = scanner.scanWord();
       if (id.type === EPpKeyword.defined) {
         const withParen = scanner.peekNonSpace() === "(";
-        const macro = scanner.scanWord(true);
+        const macro = scanner.scanWord();
         if (withParen) {
           scanner.scanToChar(")");
           scanner.advance(1);
@@ -623,7 +623,7 @@ export class PpParser {
 
     let macroArgs: BaseToken[] | undefined;
     if (scanner.getCurChar() === "(") {
-      macroArgs = scanner.scanWordsUntilChar(")");
+      macroArgs = scanner.scanWordsUntilTerminator(")");
       end = scanner.getShaderPosition(0);
     }
     const macroBody = scanner.scanLineRemain();

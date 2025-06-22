@@ -80,34 +80,30 @@ export default class PpLexer extends BaseLexer {
     return token;
   }
 
-  /**
-   * @param nonLetterChar should not be space
-   */
-  scanWordsUntilChar(nonLetterChar: string): BaseToken[] {
-    const ret: BaseToken[] = [];
+  scanWordsUntilTerminator(terminatorChar: string): BaseToken[] {
+    const tokens: BaseToken[] = [];
     while (true) {
       this.skipSpace(true);
-      if (BaseLexer.isAlnum(this.getCurCharCode())) {
-        ret.push(this.scanWord());
-      } else if (this.getCurChar() === nonLetterChar) {
+      if (BaseLexer.isAlpha(this.getCurCharCode())) {
+        tokens.push(this.scanWord());
+      } else if (this.getCurChar() === terminatorChar) {
         this.advance(1);
-        return ret;
+        return tokens;
       } else {
         this.advance(1);
       }
     }
   }
 
-  scanWord(skipNonLetter = false): BaseToken {
-    if (skipNonLetter) {
-      while (!BaseLexer.isAlnum(this.getCurCharCode()) && !this.isEnd()) {
-        this.advance(1);
-      }
-    } else {
-      this.skipSpace(true);
+  scanWord(): BaseToken {
+    // Skip all non-alphabetic characters, primarily used for handling defined(MACRO) syntax
+    while (!BaseLexer.isAlpha(this.getCurCharCode()) && !this.isEnd()) {
+      this.advance(1);
     }
 
-    if (this.isEnd()) return EOF;
+    if (this.isEnd()) {
+      return EOF;
+    }
 
     const start = this._currentIndex;
     while (BaseLexer.isAlnum(this.getCurCharCode()) && !this.isEnd()) {
