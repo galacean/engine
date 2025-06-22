@@ -11,10 +11,7 @@ import { PpUtils } from "./Utils";
 export type OnToken = (token: BaseToken, scanner: PpLexer) => void;
 
 export default class PpLexer extends BaseLexer {
-  /**
-   * Check if character is valid for preprocessor tokens (# + alphanumeric)
-   */
-  static isPpCharacters(charCode: number): boolean {
+  private static _isPpCharacters(charCode: number): boolean {
     return (
       charCode === 35 || // #
       BaseLexer.isAlnum(charCode) // _, A-Z, a-z, 0-9
@@ -146,20 +143,16 @@ export default class PpLexer extends BaseLexer {
     );
   }
 
-  /**
-   * @param onToken callback when encounter a token
-   * @returns token split by space
-   */
   override scanToken(onToken?: OnToken): BaseToken | undefined {
     this.skipCommentsAndSpace();
     if (this.isEnd()) {
       return;
     }
-    const { _source: source } = this;
+    const source = this._source;
     let start = this._currentIndex;
     let found = false;
     for (var n = source.length; this._currentIndex < n; ) {
-      if (PpLexer.isPpCharacters(source.charCodeAt(this._currentIndex))) {
+      if (PpLexer._isPpCharacters(source.charCodeAt(this._currentIndex))) {
         this.advance(1);
         found = true;
       } else {
@@ -173,11 +166,11 @@ export default class PpLexer extends BaseLexer {
     }
 
     const lexeme = source.slice(start, this._currentIndex);
-    const ret = BaseToken.pool.get();
+    const token = BaseToken.pool.get();
     const tokenType = PpLexer._lexemeTable[lexeme];
-    ret.set(tokenType ?? EPpToken.id, lexeme, this.getShaderPosition(this._currentIndex - start));
-    onToken?.(ret, this);
-    return ret;
+    token.set(tokenType ?? EPpToken.id, lexeme, this.getShaderPosition(this._currentIndex - start));
+    onToken?.(token, this);
+    return token;
   }
 
   scanQuotedString(): BaseToken<EPpToken.string_const> {
