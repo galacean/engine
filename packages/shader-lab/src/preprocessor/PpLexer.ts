@@ -1,5 +1,4 @@
 import { ShaderPosition, ShaderRange } from "../common";
-import LexerUtils from "../lexer/Utils";
 // #if _VERBOSE
 import PpSourceMap from "./sourceMap";
 // #endif
@@ -12,6 +11,16 @@ import { PpUtils } from "./Utils";
 export type OnToken = (token: BaseToken, scanner: PpLexer) => void;
 
 export default class PpLexer extends BaseLexer {
+  /**
+   * Check if character is valid for preprocessor tokens (# + alphanumeric)
+   */
+  static isPpCharacters(charCode: number): boolean {
+    return (
+      charCode === 35 || // #
+      BaseLexer.isAlnum(charCode) // _, A-Z, a-z, 0-9
+    );
+  }
+
   private static _lexemeTable = <Record<string, EPpKeyword>>{
     "#define": EPpKeyword.define,
     "#undef": EPpKeyword.undef,
@@ -81,7 +90,7 @@ export default class PpLexer extends BaseLexer {
     const ret: BaseToken[] = [];
     while (true) {
       this.skipSpace(true);
-      if (LexerUtils.isLetter(this.getCurCharCode())) {
+      if (BaseLexer.isAlnum(this.getCurCharCode())) {
         ret.push(this.scanWord());
       } else if (this.getCurChar() === nonLetterChar) {
         this.advance(1);
@@ -94,7 +103,7 @@ export default class PpLexer extends BaseLexer {
 
   scanWord(skipNonLetter = false): BaseToken {
     if (skipNonLetter) {
-      while (!LexerUtils.isLetter(this.getCurCharCode()) && !this.isEnd()) {
+      while (!BaseLexer.isAlnum(this.getCurCharCode()) && !this.isEnd()) {
         this.advance(1);
       }
     } else {
@@ -104,7 +113,7 @@ export default class PpLexer extends BaseLexer {
     if (this.isEnd()) return EOF;
 
     const start = this._currentIndex;
-    while (LexerUtils.isLetter(this.getCurCharCode()) && !this.isEnd()) {
+    while (BaseLexer.isAlnum(this.getCurCharCode()) && !this.isEnd()) {
       this.advance(1);
     }
     const end = this._currentIndex;
@@ -150,7 +159,7 @@ export default class PpLexer extends BaseLexer {
     let start = this._currentIndex;
     let found = false;
     for (var n = source.length; this._currentIndex < n; ) {
-      if (LexerUtils.isPpCharacters(source.charCodeAt(this._currentIndex))) {
+      if (PpLexer.isPpCharacters(source.charCodeAt(this._currentIndex))) {
         this.advance(1);
         found = true;
       } else {
@@ -259,7 +268,7 @@ export default class PpLexer extends BaseLexer {
 
   scanInteger() {
     const start = this._currentIndex;
-    while (LexerUtils.isNum(this.getCurCharCode())) {
+    while (BaseLexer.isDigit(this.getCurCharCode())) {
       this.advance(1);
     }
     if (this._currentIndex === start) {

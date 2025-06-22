@@ -1,6 +1,5 @@
 import { ShaderPosition, ShaderRange } from "../common";
 import { BaseToken } from "../common/BaseToken";
-import LexerUtils from "../lexer/Utils";
 import { ShaderLab } from "../ShaderLab";
 import { EPpKeyword, EPpToken, PpConstant } from "./constants";
 import { MacroDefine } from "./MacroDefine";
@@ -473,7 +472,7 @@ export class PpParser {
         this._branchMacros.add(id.lexeme);
         return value;
       }
-    } else if (LexerUtils.isNum(scanner.getCurCharCode())) {
+    } else if (BaseLexer.isDigit(scanner.getCurCharCode())) {
       const integer = scanner.scanInteger();
       return Number(integer.lexeme);
     } else {

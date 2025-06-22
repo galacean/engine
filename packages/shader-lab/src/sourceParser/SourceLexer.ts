@@ -170,7 +170,7 @@ export default class SourceLexer extends BaseLexer {
 
   private _scanWord(start: ShaderPosition): BaseToken | null {
     // Scan the complete word first
-    while (BaseLexer._isWordChar(this.getCurCharCode()) && !this.isEnd()) {
+    while (BaseLexer.isAlnum(this.getCurCharCode()) && !this.isEnd()) {
       this.advance(1);
     }
     const end = this.getCurPosition();

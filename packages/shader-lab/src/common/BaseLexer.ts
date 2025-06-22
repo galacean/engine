@@ -24,17 +24,17 @@ export abstract class BaseLexer {
     );
   }
 
+  // Check if character is alphanumeric (alpha + digit)
+  static isAlnum(charCode: number): boolean {
+    return BaseLexer.isAlpha(charCode) || BaseLexer.isDigit(charCode);
+  }
+
   protected static _isWhiteSpaceChar(charCode: number, includeBreak: boolean): boolean {
     // Space || Tab
     if (charCode === 32 || charCode === 9) {
       return true;
     }
     return includeBreak && (charCode === 10 || charCode === 13); // \n || \r
-  }
-
-  // Check if character is valid word character (alpha + digit)
-  protected static _isWordChar(charCode: number): boolean {
-    return BaseLexer.isAlpha(charCode) || BaseLexer.isDigit(charCode);
   }
 
   protected _currentIndex = 0;

@@ -3,7 +3,6 @@ import { ETokenType } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken, EOF } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
-import LexerUtils from "./Utils";
 
 /**
  * The Lexer of ShaderLab Compiler
@@ -98,7 +97,7 @@ export class Lexer extends BaseLexer {
     if (BaseLexer.isAlpha(this.getCurCharCode())) {
       return this._scanWord();
     }
-    if (LexerUtils.isNum(this.getCurCharCode())) {
+    if (BaseLexer.isDigit(this.getCurCharCode())) {
       return this._scanNum();
     }
 
@@ -309,7 +308,7 @@ export class Lexer extends BaseLexer {
         break;
       case ".":
         this.advance(1);
-        if (LexerUtils.isNum(this.getCurCharCode())) {
+        if (BaseLexer.isDigit(this.getCurCharCode())) {
           return this._scanNumAfterDot();
         }
 
@@ -367,7 +366,7 @@ export class Lexer extends BaseLexer {
 
   private _scanNumAfterDot() {
     const buffer = ["."];
-    while (LexerUtils.isNum(this.getCurCharCode())) {
+    while (BaseLexer.isDigit(this.getCurCharCode())) {
       buffer.push(this.getCurChar());
       this.advance(1);
     }
@@ -391,7 +390,7 @@ export class Lexer extends BaseLexer {
     const buffer: string[] = [this.getCurChar()];
     const start = this._getPosition();
     this.advance(1);
-    while (LexerUtils.isLetter(this.getCurCharCode())) {
+    while (BaseLexer.isAlnum(this.getCurCharCode())) {
       buffer.push(this.getCurChar());
       this.advance(1);
     }
@@ -410,14 +409,14 @@ export class Lexer extends BaseLexer {
 
   private _scanNum() {
     const buffer: string[] = [];
-    while (LexerUtils.isNum(this.getCurCharCode())) {
+    while (BaseLexer.isDigit(this.getCurCharCode())) {
       buffer.push(this.getCurChar());
       this.advance(1);
     }
     if (this.getCurChar() === ".") {
       buffer.push(this.getCurChar());
       this.advance(1);
-      while (LexerUtils.isNum(this.getCurCharCode())) {
+      while (BaseLexer.isDigit(this.getCurCharCode())) {
         buffer.push(this.getCurChar());
         this.advance(1);
       }
@@ -451,9 +450,9 @@ export class Lexer extends BaseLexer {
         buffer.push(this.getCurChar());
         this.advance(1);
       }
-      if (!LexerUtils.isNum(this.getCurCharCode()))
+      if (!BaseLexer.isDigit(this.getCurCharCode()))
         this.throwError(this.getCurPosition(), "lexing error, invalid exponent suffix.");
-      while (LexerUtils.isNum(this.getCurCharCode())) {
+      while (BaseLexer.isDigit(this.getCurCharCode())) {
         buffer.push(this.getCurChar());
         this.advance(1);
       }
