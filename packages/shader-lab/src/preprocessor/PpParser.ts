@@ -518,21 +518,7 @@ export class PpParser {
   }
 
   private static _addEmptyReplace(lexer: PpLexer, start: number) {
-    // #if _VERBOSE
-    const block = new BlockInfo(lexer.file, lexer.blockRange);
-    // #endif
-
-    const startPosition = ShaderLab.createPosition(start);
-    const endPosition = lexer.getShaderPosition(0);
-    const range = ShaderLab.createRange(startPosition, endPosition);
-    this._getExpandSegments().push({
-      // #if _VERBOSE
-      block,
-      // #endif
-
-      rangeInBlock: range,
-      replace: ""
-    });
+    this._addContentReplace(lexer, ShaderLab.createPosition(start), lexer.getShaderPosition(0), "");
   }
 
   private static _addContentReplace(
@@ -601,18 +587,7 @@ export class PpParser {
     const start = scanner.currentIndex - 6;
     const macro = scanner.scanWord();
 
-    // #if _VERBOSE
-    const block = new BlockInfo(scanner.file, scanner.blockRange);
-    // #endif
-    const startPosition = ShaderLab.createPosition(start);
-    const range = ShaderLab.createRange(startPosition, scanner.getShaderPosition(0));
-    this._getExpandSegments().push({
-      // #if _VERBOSE
-      block,
-      // #endif
-      rangeInBlock: range,
-      replace: ""
-    });
+    this._addContentReplace(scanner, ShaderLab.createPosition(start), scanner.getShaderPosition(0), "");
     this._definedMacros.delete(macro.lexeme);
   }
 
