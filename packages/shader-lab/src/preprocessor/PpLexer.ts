@@ -114,15 +114,10 @@ export default class PpLexer extends BaseLexer {
     if (end === start) {
       this.throwError(this.getShaderPosition(0), "no word found.");
     }
-    const kw = PpLexer._lexemeTable[word];
-    if (kw) {
-      const token = BaseToken.pool.get();
-      token.set(kw, word, this.getShaderPosition(0));
-      return token;
-    }
 
     const token = BaseToken.pool.get();
-    token.set(EPpToken.id, word, this.getShaderPosition(word.length));
+    const tokenType = PpLexer._lexemeTable[word] ?? EPpToken.id;
+    token.set(tokenType, word, this.getShaderPosition(word.length));
     return token;
   }
 
