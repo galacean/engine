@@ -153,16 +153,7 @@ export class PpParser {
 
     const range = ShaderLab.createRange(start, end);
     const expanded = this._expandMacroChunk(chunk, range, id.lexeme);
-    // #if _VERBOSE
-    const block = new BlockInfo(id.lexeme, undefined, expanded.sourceMap);
-    // #endif
-    this._getExpandSegments().push({
-      // #if _VERBOSE
-      block,
-      // #endif
-      rangeInBlock: range,
-      replace: expanded.content
-    });
+    this._addContentReplace(id.lexeme, start, end, expanded.content, undefined, expanded.sourceMap);
   }
 
   private static _parseIfDef(lexer: PpLexer): void {
@@ -177,7 +168,14 @@ export class PpParser {
     if (defined) {
       const end = nextDirective.type === EPpKeyword.endif ? lexer.getShaderPosition(0) : lexer.scanRemainMacro();
       const expanded = this._expandMacroChunk(bodyToken.lexeme, bodyToken.location, lexer);
-      this._addContentReplace(lexer, ShaderLab.createPosition(start), end, expanded.content, expanded.sourceMap);
+      this._addContentReplace(
+        lexer.file,
+        ShaderLab.createPosition(start),
+        end,
+        expanded.content,
+        lexer.blockRange,
+        expanded.sourceMap
+      );
     } else {
       this._addEmptyReplace(lexer, start);
       this._processConditionalDirective(nextDirective.type, lexer);
@@ -198,10 +196,11 @@ export class PpParser {
       const { token: elseChunk } = scanner.scanMacroBranchChunk();
       const expanded = this._expandMacroChunk(elseChunk.lexeme, elseChunk.location, scanner);
       this._addContentReplace(
-        scanner,
+        scanner.file,
         ShaderLab.createPosition(start),
         scanner.getShaderPosition(0),
         expanded.content,
+        scanner.blockRange,
         expanded.sourceMap
       );
     } else if (directive === EPpKeyword.elif) {
@@ -211,18 +210,20 @@ export class PpParser {
         const end = nextDirective.type === EPpKeyword.endif ? scanner.currentIndex : scanner.scanRemainMacro().index;
         const expanded = this._expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
         this._addContentReplace(
-          scanner,
+          scanner.file,
           ShaderLab.createPosition(start),
           ShaderLab.createPosition(end),
           expanded.content,
+          scanner.blockRange,
           expanded.sourceMap
         );
       } else {
         this._addContentReplace(
-          scanner,
+          scanner.file,
           ShaderLab.createPosition(start),
           ShaderLab.createPosition(scanner.currentIndex),
-          ""
+          "",
+          scanner.blockRange
         );
         this._processConditionalDirective(nextDirective.type, scanner);
       }
@@ -508,7 +509,14 @@ export class PpParser {
     if (!macro) {
       const end = nextDirective.type === EPpKeyword.endif ? scanner.getShaderPosition(0) : scanner.scanRemainMacro();
       const expanded = this._expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
-      this._addContentReplace(scanner, bodyChunk.location.start, end, expanded.content, expanded.sourceMap);
+      this._addContentReplace(
+        scanner.file,
+        bodyChunk.location.start,
+        end,
+        expanded.content,
+        scanner.blockRange,
+        expanded.sourceMap
+      );
       return;
     }
 
@@ -518,18 +526,25 @@ export class PpParser {
   }
 
   private static _addEmptyReplace(lexer: PpLexer, start: number) {
-    this._addContentReplace(lexer, ShaderLab.createPosition(start), lexer.getShaderPosition(0), "");
+    this._addContentReplace(
+      lexer.file,
+      ShaderLab.createPosition(start),
+      lexer.getShaderPosition(0),
+      "",
+      lexer.blockRange
+    );
   }
 
   private static _addContentReplace(
-    lexer: PpLexer,
+    sourceFile: string,
     start: ShaderPosition,
     end: ShaderPosition,
     content: string,
+    sourceRange?: ShaderRange,
     sourceMap?: PpSourceMap
   ): void {
     // #if _VERBOSE
-    const block = new BlockInfo(lexer.file, lexer.blockRange, sourceMap);
+    const block = new BlockInfo(sourceFile, sourceRange, sourceMap);
     // #endif
 
     const range = ShaderLab.createRange(start, end);
@@ -552,7 +567,14 @@ export class PpParser {
     if (constantExpr) {
       const end = nextDirective.type === EPpKeyword.endif ? scanner.getShaderPosition(0) : scanner.scanRemainMacro();
       const expanded = this._expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
-      this._addContentReplace(scanner, bodyChunk.location.start, end, expanded.content, expanded.sourceMap);
+      this._addContentReplace(
+        scanner.file,
+        bodyChunk.location.start,
+        end,
+        expanded.content,
+        scanner.blockRange,
+        expanded.sourceMap
+      );
       return;
     }
 
@@ -580,60 +602,69 @@ export class PpParser {
     const macroDefine = new MacroDefine(macro, macroBody, range, macroArgs);
     this._definedMacros.set(macro.lexeme, macroDefine);
 
-    this._addContentReplace(scanner, start, scanner.getShaderPosition(0), "");
+    this._addContentReplace(scanner.file, start, scanner.getShaderPosition(0), "", scanner.blockRange);
   }
 
   private static _parseUndef(scanner: PpLexer) {
     const start = scanner.currentIndex - 6;
     const macro = scanner.scanWord();
 
-    this._addContentReplace(scanner, ShaderLab.createPosition(start), scanner.getShaderPosition(0), "");
+    this._addContentReplace(
+      scanner.file,
+      ShaderLab.createPosition(start),
+      scanner.getShaderPosition(0),
+      "",
+      scanner.blockRange
+    );
     this._definedMacros.delete(macro.lexeme);
   }
 
-  private static _onToken(token: BaseToken, scanner: PpLexer) {
+  private static _onToken(token: BaseToken, lexer: PpLexer) {
     const macro = this._definedMacros.get(token.lexeme);
     if (macro) {
+      const { location } = token;
       let replace = macro.body.lexeme;
       if (macro.isFunction) {
-        scanner.scanToChar("(");
-        scanner.advance(1);
+        lexer.scanToChar("(");
+        lexer.advance(1);
 
         // extract parameters
         const args: string[] = [];
         let curLvl = 1;
-        let curIdx = scanner.currentIndex;
+        let curIdx = lexer.currentIndex;
         while (true) {
-          if (scanner.getCurChar() === "(") curLvl += 1;
-          else if (scanner.getCurChar() === ")") {
+          if (lexer.getCurChar() === "(") curLvl += 1;
+          else if (lexer.getCurChar() === ")") {
             curLvl -= 1;
             if (curLvl === 0) break;
-          } else if (scanner.getCurChar() === "," && curLvl === 1) {
-            args.push(scanner.source.slice(curIdx, scanner.currentIndex));
-            curIdx = scanner.currentIndex + 1;
+          } else if (lexer.getCurChar() === "," && curLvl === 1) {
+            args.push(lexer.source.slice(curIdx, lexer.currentIndex));
+            curIdx = lexer.currentIndex + 1;
           }
-          scanner.advance(1);
+          lexer.advance(1);
         }
-        args.push(scanner.source.slice(curIdx, scanner.currentIndex));
+        args.push(lexer.source.slice(curIdx, lexer.currentIndex));
 
-        scanner.advance(1);
-        const range = ShaderLab.createRange(token.location!.start, scanner.getShaderPosition(0));
+        lexer.advance(1);
+        const range = ShaderLab.createRange(location!.start, lexer.getShaderPosition(0));
         replace = macro.expandFunctionBody(args);
-        const expanded = this._expandMacroChunk(replace, range, scanner);
+        const expanded = this._expandMacroChunk(replace, range, lexer);
         this._addContentReplace(
-          scanner,
-          token.location.start,
-          scanner.getShaderPosition(0),
+          lexer.file,
+          location.start,
+          lexer.getShaderPosition(0),
           expanded.content,
+          lexer.blockRange,
           expanded.sourceMap
         );
       } else {
-        const expanded = this._expandMacroChunk(replace, token.location, scanner);
+        const expanded = this._expandMacroChunk(replace, location, lexer);
         this._addContentReplace(
-          scanner,
-          token.location.start,
-          token.location.end,
+          lexer.file,
+          location.start,
+          location.end,
           expanded.content,
+          lexer.blockRange,
           expanded.sourceMap
         );
       }
