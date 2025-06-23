@@ -168,22 +168,20 @@ export class PpParser {
   private static _parseIfDef(lexer: PpLexer): void {
     const start = lexer.currentIndex - 6;
     const macroToken = lexer.scanWord();
-
-    this._addEmptyReplace(lexer, start);
     this._branchMacros.add(macroToken.lexeme);
 
     lexer.skipSpace(true);
     const { token: bodyToken, nextDirective } = lexer.scanMacroBranchChunk();
 
-    const definedMacro = this._definedMacros.get(macroToken.lexeme);
-    if (definedMacro) {
+    const defined = this._definedMacros.get(macroToken.lexeme);
+    if (defined) {
       const end = nextDirective.type === EPpKeyword.endif ? lexer.getShaderPosition(0) : lexer.scanRemainMacro();
       const expanded = this._expandMacroChunk(bodyToken.lexeme, bodyToken.location, lexer);
       // #if _VERBOSE
       const block = new BlockInfo(lexer.file, lexer.blockRange, expanded.sourceMap);
       // #endif
 
-      const range = ShaderLab.createRange(bodyToken.location.start, end);
+      const range = ShaderLab.createRange(ShaderLab.createPosition(start), end);
 
       this._getExpandSegments().push({
         // #if _VERBOSE
@@ -193,8 +191,7 @@ export class PpParser {
         replace: expanded.content
       });
     } else {
-      const expandSegments = this._getExpandSegments();
-      expandSegments[expandSegments.length - 1].rangeInBlock.end = lexer.getShaderPosition(0);
+      this._addEmptyReplace(lexer, start);
       this._processConditionalDirective(nextDirective.type, lexer);
     }
   }
