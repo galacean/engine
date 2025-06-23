@@ -530,8 +530,7 @@ export class Entity extends EngineObject {
     }
     const components = this._components;
     for (let i = 0, n = components.length; i < n; i++) {
-      const sourceComp = components[i];
-      cloneEntity.addComponent(<ComponentConstructor>sourceComp.constructor);
+      cloneEntity.addComponent(<ComponentConstructor>components[i].constructor);
     }
     return cloneEntity;
   }
@@ -551,8 +550,7 @@ export class Entity extends EngineObject {
 
     const components = src._components;
     for (let i = 0, n = components.length; i < n; i++) {
-      const sourceComp = components[i];
-      ComponentCloner.cloneComponent(sourceComp, target._components[i], srcRoot, targetRoot, deepInstanceMap);
+      ComponentCloner.cloneComponent(components[i], target._components[i], srcRoot, targetRoot, deepInstanceMap);
     }
   }
 
