@@ -100,10 +100,10 @@ export class PpParser {
           this._parseIf(scanner);
           break;
         case PpKeyword.ifndef:
-          this._parseIfNdef(scanner);
+          this._parseIfDef(scanner, true);
           break;
         case PpKeyword.ifdef:
-          this._parseIfDef(scanner);
+          this._parseIfDef(scanner, false);
           break;
         case PpKeyword.include:
           this._parseInclude(scanner);
@@ -156,8 +156,9 @@ export class PpParser {
     this._addContentReplace(id.lexeme, start, end, expanded.content, undefined, expanded.sourceMap);
   }
 
-  private static _parseIfDef(lexer: PpLexer): void {
-    const start = lexer.currentIndex - 6;
+  private static _parseIfDef(lexer: PpLexer, isNegate: boolean): void {
+    const directiveLength = isNegate ? 7 : 6; // #ifndef = 7, #ifdef = 6
+    const start = lexer.currentIndex - directiveLength;
     const macroToken = lexer.scanWord();
     this._branchMacros.add(macroToken.lexeme);
 
@@ -165,32 +166,7 @@ export class PpParser {
     lexer.skipSpace(true);
     const { body, nextDirective } = lexer.scanMacroBranchBody();
 
-    if (defined) {
-      const end = nextDirective.type === PpKeyword.endif ? lexer.getShaderPosition(0) : lexer.scanRemainMacro();
-      const expanded = this._expandMacroChunk(body.lexeme, body.location, lexer);
-      this._addContentReplace(
-        lexer.file,
-        ShaderLab.createPosition(start),
-        end,
-        expanded.content,
-        lexer.blockRange,
-        expanded.sourceMap
-      );
-    } else {
-      this._addEmptyReplace(lexer, start);
-      this._processConditionalDirective(nextDirective.type, lexer);
-    }
-  }
-
-  private static _parseIfNdef(lexer: PpLexer): void {
-    const start = lexer.currentIndex - 7;
-    const macroToken = lexer.scanWord();
-    this._branchMacros.add(macroToken.lexeme);
-
-    const defined = this._definedMacros.get(macroToken.lexeme);
-    lexer.skipSpace(true);
-    const { body, nextDirective } = lexer.scanMacroBranchBody();
-    if (!defined) {
+    if (isNegate ? !defined : defined) {
       const end = nextDirective.type === PpKeyword.endif ? lexer.getShaderPosition(0) : lexer.scanRemainMacro();
       const expanded = this._expandMacroChunk(body.lexeme, body.location, lexer);
       this._addContentReplace(
