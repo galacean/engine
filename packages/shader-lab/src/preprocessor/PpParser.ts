@@ -218,19 +218,12 @@ export class PpParser {
           expanded.sourceMap
         );
       } else {
-        // #if _VERBOSE
-        const block = new BlockInfo(scanner.file, scanner.blockRange);
-        // #endif
-        const startPosition = ShaderLab.createPosition(start);
-        const endPosition = ShaderLab.createPosition(scanner.currentIndex);
-        const range = ShaderLab.createRange(startPosition, endPosition);
-        this._getExpandSegments().push({
-          // #if _VERBOSE
-          block,
-          // #endif
-          rangeInBlock: range,
-          replace: ""
-        });
+        this._addContentReplace(
+          scanner,
+          ShaderLab.createPosition(start),
+          ShaderLab.createPosition(scanner.currentIndex),
+          ""
+        );
         this._processConditionalDirective(nextDirective.type, scanner);
       }
     }
@@ -542,6 +535,27 @@ export class PpParser {
     });
   }
 
+  private static _addContentReplace(
+    lexer: PpLexer,
+    start: ShaderPosition,
+    end: ShaderPosition,
+    content: string,
+    sourceMap?: PpSourceMap
+  ): void {
+    // #if _VERBOSE
+    const block = new BlockInfo(lexer.file, lexer.blockRange, sourceMap);
+    // #endif
+
+    const range = ShaderLab.createRange(start, end);
+    this._getExpandSegments().push({
+      // #if _VERBOSE
+      block,
+      // #endif
+      rangeInBlock: range,
+      replace: content
+    });
+  }
+
   private static _parseIf(scanner: PpLexer) {
     const start = scanner.currentIndex - 3;
 
@@ -559,27 +573,6 @@ export class PpParser {
     const expandSegments = this._getExpandSegments();
     expandSegments[expandSegments.length - 1].rangeInBlock.end = scanner.getShaderPosition(0);
     this._processConditionalDirective(nextDirective.type, scanner);
-  }
-
-  private static _addContentReplace(
-    lexer: PpLexer,
-    start: ShaderPosition,
-    end: ShaderPosition,
-    content: string,
-    sourceMap: PpSourceMap
-  ): void {
-    // #if _VERBOSE
-    const block = new BlockInfo(lexer.file, lexer.blockRange, sourceMap);
-    // #endif
-
-    const range = ShaderLab.createRange(start, end);
-    this._getExpandSegments().push({
-      // #if _VERBOSE
-      block,
-      // #endif
-      rangeInBlock: range,
-      replace: content
-    });
   }
 
   private static _parseDefine(scanner: PpLexer) {
@@ -601,17 +594,7 @@ export class PpParser {
     const macroDefine = new MacroDefine(macro, macroBody, range, macroArgs);
     this._definedMacros.set(macro.lexeme, macroDefine);
 
-    // #if _VERBOSE
-    const block = new BlockInfo(scanner.file, scanner.blockRange);
-    // #endif
-
-    this._getExpandSegments().push({
-      // #if _VERBOSE
-      block,
-      // #endif
-      rangeInBlock: ShaderLab.createRange(start, scanner.getShaderPosition(0)),
-      replace: ""
-    });
+    this._addContentReplace(scanner, start, scanner.getShaderPosition(0), "");
   }
 
   private static _parseUndef(scanner: PpLexer) {
