@@ -18,7 +18,7 @@ async function waitForServer(url: string, timeout: number = 120000): Promise<voi
     }
 
     // Wait 1 second before next attempt
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
   throw new Error(`❌ Server at ${url} did not start within ${timeout}ms`);
