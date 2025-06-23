@@ -1,4 +1,4 @@
-import { Entity, EntityModifyFlags, Script, ignoreClone } from "@galacean/engine";
+import { Entity, EntityModifyFlags, Script, deepClone, ignoreClone } from "@galacean/engine";
 import { UIGroup } from "../..";
 import { Utils } from "../../Utils";
 import { IGroupAble } from "../../interface/IGroupAble";
@@ -10,6 +10,8 @@ import { Transition } from "./transition/Transition";
  * Interactive component.
  */
 export class UIInteractive extends Script implements IGroupAble {
+  private static _targetTempPath = new Array<number>();
+
   /** @internal */
   @ignoreClone
   _rootCanvas: UICanvas;
@@ -42,9 +44,10 @@ export class UIInteractive extends Script implements IGroupAble {
   @ignoreClone
   _globalInteractiveDirty: boolean = false;
 
+  @ignoreClone
+  protected _transitions: Transition[] = [];
   protected _interactive: boolean = true;
   protected _state: InteractiveState = InteractiveState.Normal;
-  protected _transitions: Transition[] = [];
 
   /** @todo Multi-touch points are not considered yet. */
   private _isPointerInside: boolean = false;
@@ -156,6 +159,28 @@ export class UIInteractive extends Script implements IGroupAble {
     const transitions = this._transitions;
     for (let i = transitions.length - 1; i >= 0; i--) {
       transitions[i].destroy();
+    }
+  }
+
+  // @ts-ignore
+  override _cloneTo(target: UIInteractive, srcRoot: Entity, targetRoot: Entity): void {
+    const transitions = this._transitions;
+    for (let i = 0, n = transitions.length; i < n; i++) {
+      const srcTransition = transitions[i];
+      const dstTransition: Transition<any, any> = new (<any>transitions[i]).constructor()
+      dstTransition.normal = srcTransition.normal;
+      dstTransition.pressed = srcTransition.pressed;
+      dstTransition.hover = srcTransition.hover;
+      dstTransition.disabled = srcTransition.disabled;
+      const transitionTarget = srcTransition.target;
+      if (transitionTarget) {
+        const paths = UIInteractive._targetTempPath;
+        // @ts-ignore
+        const success = Entity._getEntityHierarchyPath(srcRoot, transitionTarget.entity, paths);
+        // @ts-ignore
+        dstTransition.target = success ? Entity._getEntityByHierarchyPath(targetRoot, paths).getComponent((<any>transitionTarget).constructor) : transitionTarget;
+      }
+      target.addTransition(dstTransition);
     }
   }
 
