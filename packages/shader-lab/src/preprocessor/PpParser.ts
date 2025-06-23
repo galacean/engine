@@ -570,7 +570,7 @@ export class PpParser {
     // #endif
 
     const startPosition = ShaderLab.createPosition(start);
-    const endPosition = lexer.getCurPosition();
+    const endPosition = lexer.getShaderPosition(0);
     const range = ShaderLab.createRange(startPosition, endPosition);
     this._getExpandSegments().push({
       // #if _VERBOSE
@@ -638,7 +638,7 @@ export class PpParser {
       // #if _VERBOSE
       block,
       // #endif
-      rangeInBlock: ShaderLab.createRange(start, scanner.getCurPosition()),
+      rangeInBlock: ShaderLab.createRange(start, scanner.getShaderPosition(0)),
       replace: ""
     });
   }
@@ -651,7 +651,7 @@ export class PpParser {
     const block = new BlockInfo(scanner.file, scanner.blockRange);
     // #endif
     const startPosition = ShaderLab.createPosition(start);
-    const range = ShaderLab.createRange(startPosition, scanner.getCurPosition());
+    const range = ShaderLab.createRange(startPosition, scanner.getShaderPosition(0));
     this._getExpandSegments().push({
       // #if _VERBOSE
       block,
@@ -688,13 +688,13 @@ export class PpParser {
         args.push(scanner.source.slice(curIdx, scanner.currentIndex));
 
         scanner.advance(1);
-        const range = ShaderLab.createRange(token.location!.start, scanner.getCurPosition());
+        const range = ShaderLab.createRange(token.location!.start, scanner.getShaderPosition(0));
         replace = macro.expandFunctionBody(args);
         const expanded = this._expandMacroChunk(replace, range, scanner);
         // #if _VERBOSE
         const block = new BlockInfo(scanner.file, scanner.blockRange, expanded.sourceMap);
         // #endif
-        const blockRange = ShaderLab.createRange(token.location!.start, scanner.getCurPosition());
+        const blockRange = ShaderLab.createRange(token.location!.start, scanner.getShaderPosition(0));
         this._getExpandSegments().push({
           // #if _VERBOSE
           block,

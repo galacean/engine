@@ -126,16 +126,6 @@ export default class PpLexer extends BaseLexer {
     return token;
   }
 
-  getShaderPosition(backOffset: number) {
-    return ShaderLab.createPosition(
-      this._currentIndex - backOffset,
-      // #if _VERBOSE
-      this.line,
-      this.column - backOffset
-      // #endif
-    );
-  }
-
   override scanToken(onToken?: OnToken): BaseToken | undefined {
     this.skipCommentsAndSpace();
     if (this.isEnd()) {
@@ -313,7 +303,7 @@ export default class PpLexer extends BaseLexer {
       while (this.getCurChar() !== "\n" && !this.isEnd()) {
         this.advance(1);
       }
-      return ShaderLab.createRange(start, this.getCurPosition());
+      return ShaderLab.createRange(start, this.getShaderPosition(0));
     } else if (this.peek(2) === "/*") {
       const start = this.getShaderPosition(0);
       //  multi-line comments

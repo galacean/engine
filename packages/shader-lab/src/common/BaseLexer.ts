@@ -75,12 +75,12 @@ export abstract class BaseLexer {
     // #endif
   }
 
-  getCurPosition(): ShaderPosition {
+  getShaderPosition(backOffset: number): ShaderPosition {
     return ShaderLab.createPosition(
-      this._currentIndex,
+      this._currentIndex - backOffset,
       // #if _VERBOSE
       this._line,
-      this._column
+      this._column - backOffset
       // #endif
     );
   }
@@ -169,7 +169,7 @@ export abstract class BaseLexer {
     const length = lexeme.length;
     const peek = this.peek(length);
     if (peek !== lexeme) {
-      this.throwError(this.getCurPosition(), `Expect lexeme "${lexeme}", but got "${peek}"`);
+      this.throwError(this.getShaderPosition(0), `Expect lexeme "${lexeme}", but got "${peek}"`);
     }
     this.advance(length);
   }

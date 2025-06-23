@@ -344,7 +344,7 @@ export class Lexer extends BaseLexer {
         return this._scanStringConst();
 
       default:
-        this.throwError(this.getCurPosition(), `Unexpected character ${this.getCurChar()}`);
+        this.throwError(this.getShaderPosition(0), `Unexpected character ${this.getCurChar()}`);
     }
     return token;
   }
@@ -451,7 +451,7 @@ export class Lexer extends BaseLexer {
         this.advance(1);
       }
       if (!BaseLexer.isDigit(this.getCurCharCode()))
-        this.throwError(this.getCurPosition(), "lexing error, invalid exponent suffix.");
+        this.throwError(this.getShaderPosition(0), "lexing error, invalid exponent suffix.");
       while (BaseLexer.isDigit(this.getCurCharCode())) {
         buffer.push(this.getCurChar());
         this.advance(1);

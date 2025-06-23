@@ -125,7 +125,7 @@ export default class SourceLexer extends BaseLexer {
         return;
       }
 
-      const start = this.getCurPosition();
+      const start = this.getShaderPosition(0);
 
       if (BaseLexer.isAlpha(this.getCurCharCode())) {
         const wordToken = this._scanWord(start);
@@ -164,7 +164,7 @@ export default class SourceLexer extends BaseLexer {
       message,
       GSErrorName.CompilationError,
       this.source,
-      location ?? this.getCurPosition()
+      location ?? this.getShaderPosition(0)
     );
   }
 
@@ -173,7 +173,7 @@ export default class SourceLexer extends BaseLexer {
     while (BaseLexer.isAlnum(this.getCurCharCode()) && !this.isEnd()) {
       this.advance(1);
     }
-    const end = this.getCurPosition();
+    const end = this.getShaderPosition(0);
 
     // Validate both boundaries in one optimized call
     if (!this._validateWordBoundaries(start.index, end.index)) {
