@@ -8,6 +8,7 @@ import { CharInfo } from "../text/CharInfo";
  * @internal
  */
 export class FontAtlas extends ReferResource {
+  static textureSize: number = 256;
   texture: Texture2D;
 
   _charInfoMap: Record<number, CharInfo> = {};

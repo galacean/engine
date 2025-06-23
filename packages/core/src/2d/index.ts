@@ -4,6 +4,7 @@ export { SimpleSpriteAssembler } from "./assembler/SimpleSpriteAssembler";
 export { SlicedSpriteAssembler } from "./assembler/SlicedSpriteAssembler";
 export { TiledSpriteAssembler } from "./assembler/TiledSpriteAssembler";
 export { SpriteAtlas } from "./atlas/SpriteAtlas";
+export { FontAtlas } from "./atlas/FontAtlas";
 export { FontStyle } from "./enums/FontStyle";
 export { SpriteDrawMode } from "./enums/SpriteDrawMode";
 export { SpriteMaskInteraction } from "./enums/SpriteMaskInteraction";
