@@ -64,7 +64,7 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
         return;
       }
       const responseType = xhr.responseType;
-      let result = (responseType == '' || responseType == 'text') ? xhr.responseText : xhr.response;
+      let result = responseType == "" || responseType == "text" ? xhr.responseText : xhr.response;
       if (!result) {
         reject(new Error(`request ${url} response is empty, please check the url`));
         return;

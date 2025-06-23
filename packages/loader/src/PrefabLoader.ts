@@ -17,7 +17,7 @@ export class PrefabLoader extends Loader<PrefabResource> {
         })
         .then((data) => {
           PrefabParser.parse(engine, item.url, data).then(resolve).catch(reject);
-        }, reject)
+        }, reject);
     });
   }
 }
