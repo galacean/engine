@@ -42,7 +42,7 @@ export enum EPpToken {
   EOF = 100
 }
 
-export enum EPpKeyword {
+export enum PpKeyword {
   define = 101,
   undef,
   if,

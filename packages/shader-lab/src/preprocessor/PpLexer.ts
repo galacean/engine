@@ -5,7 +5,7 @@ import PpSourceMap from "./sourceMap";
 import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken, EOF } from "../common/BaseToken";
 import { ShaderLab } from "../ShaderLab";
-import { EPpKeyword, EPpToken } from "./constants";
+import { EPpToken, PpKeyword } from "./constants";
 import { PpUtils } from "./Utils";
 
 export type OnToken = (token: BaseToken, scanner: PpLexer) => void;
@@ -18,17 +18,17 @@ export default class PpLexer extends BaseLexer {
     );
   }
 
-  private static _lexemeTable = <Record<string, EPpKeyword>>{
-    "#define": EPpKeyword.define,
-    "#undef": EPpKeyword.undef,
-    "#if": EPpKeyword.if,
-    "#ifdef": EPpKeyword.ifdef,
-    "#ifndef": EPpKeyword.ifndef,
-    "#else": EPpKeyword.else,
-    "#elif": EPpKeyword.elif,
-    "#endif": EPpKeyword.endif,
-    "#include": EPpKeyword.include,
-    defined: EPpKeyword.defined
+  private static _lexemeTable = <Record<string, PpKeyword>>{
+    "#define": PpKeyword.define,
+    "#undef": PpKeyword.undef,
+    "#if": PpKeyword.if,
+    "#ifdef": PpKeyword.ifdef,
+    "#ifndef": PpKeyword.ifndef,
+    "#else": PpKeyword.else,
+    "#elif": PpKeyword.elif,
+    "#endif": PpKeyword.endif,
+    "#include": PpKeyword.include,
+    defined: PpKeyword.defined
   };
 
   private macroLvl = 0;
@@ -71,9 +71,9 @@ export default class PpLexer extends BaseLexer {
 
     if (token) {
       const { type } = token;
-      if (type === EPpKeyword.if || type === EPpKeyword.ifdef || type === EPpKeyword.ifndef) {
+      if (type === PpKeyword.if || type === PpKeyword.ifdef || type === PpKeyword.ifndef) {
         this.macroLvl++;
-      } else if (type === EPpKeyword.endif) {
+      } else if (type === PpKeyword.endif) {
         this.macroLvl--;
       }
     }
@@ -182,21 +182,23 @@ export default class PpLexer extends BaseLexer {
     nextDirective: BaseToken;
   } {
     const start = this._currentIndex;
-    const ShaderPosition = this.getShaderPosition(0);
+    const shaderPosition = this.getShaderPosition(0);
+    const startLevel = this.macroLvl;
 
-    const startLvl = this.macroLvl;
     let directive = this.scanDirective()!;
-
     while (true) {
-      if (directive.type === EPpKeyword.endif && startLvl - 1 === this.macroLvl) break;
-      else if ([EPpKeyword.elif, EPpKeyword.else].includes(<EPpKeyword>directive.type) && startLvl === this.macroLvl)
+      const { type } = directive;
+      if (type === PpKeyword.endif && startLevel - 1 === this.macroLvl) {
         break;
+      } else if ((type === PpKeyword.elif || type === PpKeyword.else) && startLevel === this.macroLvl) {
+        break;
+      }
       directive = this.scanDirective()!;
     }
 
     const chunk = this._source.slice(start, this._currentIndex - directive.lexeme.length - 1);
     const token = BaseToken.pool.get();
-    token.set(EPpToken.chunk, chunk, ShaderPosition);
+    token.set(EPpToken.chunk, chunk, shaderPosition);
     return { token, nextDirective: directive };
   }
 
@@ -223,7 +225,7 @@ export default class PpLexer extends BaseLexer {
   scanRemainMacro(): ShaderPosition {
     const startLvl = this.macroLvl;
     let directive = this.scanDirective()!;
-    while (!this.isEnd() && (directive.type !== EPpKeyword.endif || startLvl - 1 !== this.macroLvl)) {
+    while (!this.isEnd() && (directive.type !== PpKeyword.endif || startLvl - 1 !== this.macroLvl)) {
       directive = this.scanDirective()!;
     }
     return this.getShaderPosition(0);

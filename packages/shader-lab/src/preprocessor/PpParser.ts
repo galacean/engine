@@ -1,7 +1,7 @@
 import { ShaderPosition, ShaderRange } from "../common";
 import { BaseToken } from "../common/BaseToken";
 import { ShaderLab } from "../ShaderLab";
-import { EPpKeyword, EPpToken, PpConstant } from "./constants";
+import { PpKeyword, EPpToken, PpConstant } from "./constants";
 import { MacroDefine } from "./MacroDefine";
 import PpLexer from "./PpLexer";
 import { PpUtils } from "./Utils";
@@ -90,22 +90,22 @@ export class PpParser {
       const directive = scanner.scanDirective(this._onToken.bind(this))!;
       if (scanner.isEnd()) break;
       switch (directive.type) {
-        case EPpKeyword.define:
+        case PpKeyword.define:
           this._parseDefine(scanner);
           break;
-        case EPpKeyword.undef:
+        case PpKeyword.undef:
           this._parseUndef(scanner);
           break;
-        case EPpKeyword.if:
+        case PpKeyword.if:
           this._parseIf(scanner);
           break;
-        case EPpKeyword.ifndef:
+        case PpKeyword.ifndef:
           this._parseIfNdef(scanner);
           break;
-        case EPpKeyword.ifdef:
+        case PpKeyword.ifdef:
           this._parseIfDef(scanner);
           break;
-        case EPpKeyword.include:
+        case PpKeyword.include:
           this._parseInclude(scanner);
           break;
       }
@@ -166,7 +166,7 @@ export class PpParser {
 
     const defined = this._definedMacros.get(macroToken.lexeme);
     if (defined) {
-      const end = nextDirective.type === EPpKeyword.endif ? lexer.getShaderPosition(0) : lexer.scanRemainMacro();
+      const end = nextDirective.type === PpKeyword.endif ? lexer.getShaderPosition(0) : lexer.scanRemainMacro();
       const expanded = this._expandMacroChunk(bodyToken.lexeme, bodyToken.location, lexer);
       this._addContentReplace(
         lexer.file,
@@ -183,16 +183,16 @@ export class PpParser {
   }
 
   private static _processConditionalDirective(
-    directive: EPpKeyword.elif | EPpKeyword.else | EPpKeyword.endif,
+    directive: PpKeyword.elif | PpKeyword.else | PpKeyword.endif,
     scanner: PpLexer
   ) {
-    if (directive === EPpKeyword.endif) {
+    if (directive === PpKeyword.endif) {
       return;
     }
 
     const start = scanner.currentIndex;
 
-    if (directive === EPpKeyword.else) {
+    if (directive === PpKeyword.else) {
       const { token: elseChunk } = scanner.scanMacroBranchChunk();
       const expanded = this._expandMacroChunk(elseChunk.lexeme, elseChunk.location, scanner);
       this._addContentReplace(
@@ -203,11 +203,11 @@ export class PpParser {
         scanner.blockRange,
         expanded.sourceMap
       );
-    } else if (directive === EPpKeyword.elif) {
+    } else if (directive === PpKeyword.elif) {
       const constantExpr = this._parseConstantExpression(scanner);
       const { token: bodyChunk, nextDirective } = scanner.scanMacroBranchChunk();
       if (constantExpr) {
-        const end = nextDirective.type === EPpKeyword.endif ? scanner.currentIndex : scanner.scanRemainMacro().index;
+        const end = nextDirective.type === PpKeyword.endif ? scanner.currentIndex : scanner.scanRemainMacro().index;
         const expanded = this._expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
         this._addContentReplace(
           scanner.file,
@@ -410,7 +410,7 @@ export class PpParser {
   private static _parseConstant(scanner: PpLexer): PpConstant {
     if (BaseLexer.isAlpha(scanner.getCurCharCode())) {
       const id = scanner.scanWord();
-      if (id.type === EPpKeyword.defined) {
+      if (id.type === PpKeyword.defined) {
         const withParen = scanner.peekNonSpace() === "(";
         const macro = scanner.scanWord();
         if (withParen) {
@@ -507,7 +507,7 @@ export class PpParser {
     const macro = this._definedMacros.get(id.lexeme);
     const { token: bodyChunk, nextDirective } = scanner.scanMacroBranchChunk();
     if (!macro) {
-      const end = nextDirective.type === EPpKeyword.endif ? scanner.getShaderPosition(0) : scanner.scanRemainMacro();
+      const end = nextDirective.type === PpKeyword.endif ? scanner.getShaderPosition(0) : scanner.scanRemainMacro();
       const expanded = this._expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
       this._addContentReplace(
         scanner.file,
@@ -565,7 +565,7 @@ export class PpParser {
 
     const { token: bodyChunk, nextDirective } = scanner.scanMacroBranchChunk();
     if (constantExpr) {
-      const end = nextDirective.type === EPpKeyword.endif ? scanner.getShaderPosition(0) : scanner.scanRemainMacro();
+      const end = nextDirective.type === PpKeyword.endif ? scanner.getShaderPosition(0) : scanner.scanRemainMacro();
       const expanded = this._expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
       this._addContentReplace(
         scanner.file,
