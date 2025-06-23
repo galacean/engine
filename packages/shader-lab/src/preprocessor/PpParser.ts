@@ -97,13 +97,13 @@ export class PpParser {
           this._parseUndef(scanner);
           break;
         case PpKeyword.if:
-          this._parseIf(scanner);
+          this._parseIfDirective(scanner, PpKeyword.if);
           break;
         case PpKeyword.ifndef:
-          this._parseIfDef(scanner, true);
+          this._parseIfDirective(scanner, PpKeyword.ifndef);
           break;
         case PpKeyword.ifdef:
-          this._parseIfDef(scanner, false);
+          this._parseIfDirective(scanner, PpKeyword.ifdef);
           break;
         case PpKeyword.include:
           this._parseInclude(scanner);
@@ -156,17 +156,24 @@ export class PpParser {
     this._addContentReplace(id.lexeme, start, end, expanded.content, undefined, expanded.sourceMap);
   }
 
-  private static _parseIfDef(lexer: PpLexer, isNegate: boolean): void {
-    const directiveLength = isNegate ? 7 : 6; // #ifndef = 7, #ifdef = 6
+  private static _parseIfDirective(lexer: PpLexer, directiveType: PpKeyword): void {
+    const directiveLength = directiveType === PpKeyword.if ? 3 : directiveType === PpKeyword.ifdef ? 6 : 7; // #if = 3,  #ifdef = 6, #ifndef = 7
     const start = lexer.currentIndex - directiveLength;
-    const macroToken = lexer.scanWord();
-    this._branchMacros.add(macroToken.lexeme);
 
-    const defined = this._definedMacros.get(macroToken.lexeme);
+    let shouldInclude: PpConstant;
+    if (directiveType === PpKeyword.if) {
+      shouldInclude = this._parseConstantExpression(lexer);
+    } else {
+      const macroToken = lexer.scanWord();
+      this._branchMacros.add(macroToken.lexeme);
+      const defined = this._definedMacros.get(macroToken.lexeme);
+      shouldInclude = directiveType === PpKeyword.ifdef ? !!defined : !defined;
+    }
+
     lexer.skipSpace(true);
     const { body, nextDirective } = lexer.scanMacroBranchBody();
 
-    if (isNegate ? !defined : defined) {
+    if (shouldInclude) {
       const end = nextDirective.type === PpKeyword.endif ? lexer.getShaderPosition(0) : lexer.scanRemainMacro();
       const expanded = this._expandMacroChunk(body.lexeme, body.location, lexer);
       this._addContentReplace(
@@ -231,7 +238,7 @@ export class PpParser {
     }
   }
 
-  private static _parseConstantExpression(scanner: PpLexer) {
+  private static _parseConstantExpression(scanner: PpLexer): PpConstant {
     scanner.skipSpace(true);
     return this._parseLogicalOrExpression(scanner);
   }
@@ -528,32 +535,6 @@ export class PpParser {
       rangeInBlock: range,
       replace: content
     });
-  }
-
-  private static _parseIf(scanner: PpLexer) {
-    const start = scanner.currentIndex - 3;
-
-    const constantExpr = this._parseConstantExpression(scanner);
-    this._addEmptyReplace(scanner, start);
-
-    const { body, nextDirective } = scanner.scanMacroBranchBody();
-    if (constantExpr) {
-      const end = nextDirective.type === PpKeyword.endif ? scanner.getShaderPosition(0) : scanner.scanRemainMacro();
-      const expanded = this._expandMacroChunk(body.lexeme, body.location, scanner);
-      this._addContentReplace(
-        scanner.file,
-        body.location.start,
-        end,
-        expanded.content,
-        scanner.blockRange,
-        expanded.sourceMap
-      );
-      return;
-    }
-
-    const expandSegments = this._getExpandSegments();
-    expandSegments[expandSegments.length - 1].rangeInBlock.end = scanner.getShaderPosition(0);
-    this._processConditionalDirective(nextDirective.type, scanner);
   }
 
   private static _parseDefine(scanner: PpLexer) {
