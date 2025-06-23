@@ -93,23 +93,18 @@ export class PpParser {
         case EPpKeyword.define:
           this._parseDefine(scanner);
           break;
-
         case EPpKeyword.undef:
           this._parseUndef(scanner);
           break;
-
         case EPpKeyword.if:
           this._parseIf(scanner);
           break;
-
         case EPpKeyword.ifndef:
           this._parseIfNdef(scanner);
           break;
-
         case EPpKeyword.ifdef:
           this._parseIfDef(scanner);
           break;
-
         case EPpKeyword.include:
           this._parseInclude(scanner);
           break;
@@ -178,18 +173,17 @@ export class PpParser {
     this._branchMacros.add(macroToken.lexeme);
 
     lexer.skipSpace(true);
-    const { token: bodyChunk, nextDirective } = lexer.scanMacroBranchChunk();
+    const { token: bodyToken, nextDirective } = lexer.scanMacroBranchChunk();
 
     const definedMacro = this._definedMacros.get(macroToken.lexeme);
     if (definedMacro) {
       const end = nextDirective.type === EPpKeyword.endif ? lexer.getShaderPosition(0) : lexer.scanRemainMacro();
-      const expanded = this._expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, lexer);
-
+      const expanded = this._expandMacroChunk(bodyToken.lexeme, bodyToken.location, lexer);
       // #if _VERBOSE
       const block = new BlockInfo(lexer.file, lexer.blockRange, expanded.sourceMap);
       // #endif
 
-      const range = ShaderLab.createRange(bodyChunk.location.start, end);
+      const range = ShaderLab.createRange(bodyToken.location.start, end);
 
       this._getExpandSegments().push({
         // #if _VERBOSE
@@ -199,13 +193,16 @@ export class PpParser {
         replace: expanded.content
       });
     } else {
-      this._getExpandSegments().pop();
-      this._addEmptyReplace(lexer, start);
+      const expandSegments = this._getExpandSegments();
+      expandSegments[expandSegments.length - 1].rangeInBlock.end = lexer.getShaderPosition(0);
       this._processConditionalDirective(nextDirective.type, lexer);
     }
   }
 
-  private static _processConditionalDirective(directive: EPpKeyword.elif | EPpKeyword.else | EPpKeyword.endif, scanner: PpLexer) {
+  private static _processConditionalDirective(
+    directive: EPpKeyword.elif | EPpKeyword.else | EPpKeyword.endif,
+    scanner: PpLexer
+  ) {
     if (directive === EPpKeyword.endif) {
       return;
     }
@@ -559,8 +556,8 @@ export class PpParser {
       return;
     }
 
-    this._getExpandSegments().pop();
-    this._addEmptyReplace(scanner, start);
+    const expandSegments = this._getExpandSegments();
+    expandSegments[expandSegments.length - 1].rangeInBlock.end = scanner.getShaderPosition(0);
     this._processConditionalDirective(nextDirective.type, scanner);
   }
 
@@ -606,8 +603,8 @@ export class PpParser {
       return;
     }
 
-    this._getExpandSegments().pop();
-    this._addEmptyReplace(scanner, start);
+    const expandSegments = this._getExpandSegments();
+    expandSegments[expandSegments.length - 1].rangeInBlock.end = scanner.getShaderPosition(0);
     this._processConditionalDirective(nextDirective.type, scanner);
   }
 
