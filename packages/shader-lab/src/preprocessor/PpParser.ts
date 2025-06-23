@@ -1,7 +1,7 @@
 import { ShaderPosition, ShaderRange } from "../common";
 import { BaseToken } from "../common/BaseToken";
 import { ShaderLab } from "../ShaderLab";
-import { PpToken, PpConstant, PpKeyword } from "./constants";
+import { PpConstant, PpKeyword, PpToken } from "./constants";
 import { MacroDefine } from "./MacroDefine";
 import PpLexer from "./PpLexer";
 import { PpUtils } from "./Utils";
@@ -161,11 +161,36 @@ export class PpParser {
     const macroToken = lexer.scanWord();
     this._branchMacros.add(macroToken.lexeme);
 
+    const defined = this._definedMacros.get(macroToken.lexeme);
     lexer.skipSpace(true);
     const { body, nextDirective } = lexer.scanMacroBranchBody();
 
-    const defined = this._definedMacros.get(macroToken.lexeme);
     if (defined) {
+      const end = nextDirective.type === PpKeyword.endif ? lexer.getShaderPosition(0) : lexer.scanRemainMacro();
+      const expanded = this._expandMacroChunk(body.lexeme, body.location, lexer);
+      this._addContentReplace(
+        lexer.file,
+        ShaderLab.createPosition(start),
+        end,
+        expanded.content,
+        lexer.blockRange,
+        expanded.sourceMap
+      );
+    } else {
+      this._addEmptyReplace(lexer, start);
+      this._processConditionalDirective(nextDirective.type, lexer);
+    }
+  }
+
+  private static _parseIfNdef(lexer: PpLexer): void {
+    const start = lexer.currentIndex - 7;
+    const macroToken = lexer.scanWord();
+    this._branchMacros.add(macroToken.lexeme);
+
+    const defined = this._definedMacros.get(macroToken.lexeme);
+    lexer.skipSpace(true);
+    const { body, nextDirective } = lexer.scanMacroBranchBody();
+    if (!defined) {
       const end = nextDirective.type === PpKeyword.endif ? lexer.getShaderPosition(0) : lexer.scanRemainMacro();
       const expanded = this._expandMacroChunk(body.lexeme, body.location, lexer);
       this._addContentReplace(
@@ -495,34 +520,6 @@ export class PpParser {
       sourceMap: scanner.sourceMap
       // #endif
     };
-  }
-
-  private static _parseIfNdef(scanner: PpLexer) {
-    const start = scanner.currentIndex - 7;
-
-    const id = scanner.scanWord();
-    this._addEmptyReplace(scanner, start);
-    this._branchMacros.add(id.lexeme);
-
-    const macro = this._definedMacros.get(id.lexeme);
-    const { body, nextDirective } = scanner.scanMacroBranchBody();
-    if (!macro) {
-      const end = nextDirective.type === PpKeyword.endif ? scanner.getShaderPosition(0) : scanner.scanRemainMacro();
-      const expanded = this._expandMacroChunk(body.lexeme, body.location, scanner);
-      this._addContentReplace(
-        scanner.file,
-        body.location.start,
-        end,
-        expanded.content,
-        scanner.blockRange,
-        expanded.sourceMap
-      );
-      return;
-    }
-
-    const expandSegments = this._getExpandSegments();
-    expandSegments[expandSegments.length - 1].rangeInBlock.end = scanner.getShaderPosition(0);
-    this._processConditionalDirective(nextDirective.type, scanner);
   }
 
   private static _addEmptyReplace(lexer: PpLexer, start: number) {
