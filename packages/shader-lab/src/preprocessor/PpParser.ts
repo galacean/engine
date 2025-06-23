@@ -1,7 +1,7 @@
 import { ShaderPosition, ShaderRange } from "../common";
 import { BaseToken } from "../common/BaseToken";
 import { ShaderLab } from "../ShaderLab";
-import { PpKeyword, EPpToken, PpConstant } from "./constants";
+import { PpToken, PpConstant, PpKeyword } from "./constants";
 import { MacroDefine } from "./MacroDefine";
 import PpLexer from "./PpLexer";
 import { PpUtils } from "./Utils";
@@ -74,12 +74,12 @@ export class PpParser {
 
   private static _addPredefinedMacro(macro: string, value?: string) {
     const tk = BaseToken.pool.get();
-    tk.set(EPpToken.id, macro);
+    tk.set(PpToken.id, macro);
 
     let macroBody: BaseToken | undefined;
     if (value) {
       macroBody = BaseToken.pool.get();
-      macroBody.set(EPpToken.id, value);
+      macroBody.set(PpToken.id, value);
     }
 
     this._definedMacros.set(macro, new MacroDefine(tk, macroBody));
@@ -162,12 +162,12 @@ export class PpParser {
     this._branchMacros.add(macroToken.lexeme);
 
     lexer.skipSpace(true);
-    const { token: bodyToken, nextDirective } = lexer.scanMacroBranchChunk();
+    const { body, nextDirective } = lexer.scanMacroBranchBody();
 
     const defined = this._definedMacros.get(macroToken.lexeme);
     if (defined) {
       const end = nextDirective.type === PpKeyword.endif ? lexer.getShaderPosition(0) : lexer.scanRemainMacro();
-      const expanded = this._expandMacroChunk(bodyToken.lexeme, bodyToken.location, lexer);
+      const expanded = this._expandMacroChunk(body.lexeme, body.location, lexer);
       this._addContentReplace(
         lexer.file,
         ShaderLab.createPosition(start),
@@ -193,8 +193,8 @@ export class PpParser {
     const start = scanner.currentIndex;
 
     if (directive === PpKeyword.else) {
-      const { token: elseChunk } = scanner.scanMacroBranchChunk();
-      const expanded = this._expandMacroChunk(elseChunk.lexeme, elseChunk.location, scanner);
+      const { body } = scanner.scanMacroBranchBody();
+      const expanded = this._expandMacroChunk(body.lexeme, body.location, scanner);
       this._addContentReplace(
         scanner.file,
         ShaderLab.createPosition(start),
@@ -205,10 +205,10 @@ export class PpParser {
       );
     } else if (directive === PpKeyword.elif) {
       const constantExpr = this._parseConstantExpression(scanner);
-      const { token: bodyChunk, nextDirective } = scanner.scanMacroBranchChunk();
+      const { body, nextDirective } = scanner.scanMacroBranchBody();
       if (constantExpr) {
         const end = nextDirective.type === PpKeyword.endif ? scanner.currentIndex : scanner.scanRemainMacro().index;
-        const expanded = this._expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
+        const expanded = this._expandMacroChunk(body.lexeme, body.location, scanner);
         this._addContentReplace(
           scanner.file,
           ShaderLab.createPosition(start),
@@ -505,13 +505,13 @@ export class PpParser {
     this._branchMacros.add(id.lexeme);
 
     const macro = this._definedMacros.get(id.lexeme);
-    const { token: bodyChunk, nextDirective } = scanner.scanMacroBranchChunk();
+    const { body, nextDirective } = scanner.scanMacroBranchBody();
     if (!macro) {
       const end = nextDirective.type === PpKeyword.endif ? scanner.getShaderPosition(0) : scanner.scanRemainMacro();
-      const expanded = this._expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
+      const expanded = this._expandMacroChunk(body.lexeme, body.location, scanner);
       this._addContentReplace(
         scanner.file,
-        bodyChunk.location.start,
+        body.location.start,
         end,
         expanded.content,
         scanner.blockRange,
@@ -563,13 +563,13 @@ export class PpParser {
     const constantExpr = this._parseConstantExpression(scanner);
     this._addEmptyReplace(scanner, start);
 
-    const { token: bodyChunk, nextDirective } = scanner.scanMacroBranchChunk();
+    const { body, nextDirective } = scanner.scanMacroBranchBody();
     if (constantExpr) {
       const end = nextDirective.type === PpKeyword.endif ? scanner.getShaderPosition(0) : scanner.scanRemainMacro();
-      const expanded = this._expandMacroChunk(bodyChunk.lexeme, bodyChunk.location, scanner);
+      const expanded = this._expandMacroChunk(body.lexeme, body.location, scanner);
       this._addContentReplace(
         scanner.file,
-        bodyChunk.location.start,
+        body.location.start,
         end,
         expanded.content,
         scanner.blockRange,

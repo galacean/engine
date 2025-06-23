@@ -5,7 +5,7 @@ import PpSourceMap from "./sourceMap";
 import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken, EOF } from "../common/BaseToken";
 import { ShaderLab } from "../ShaderLab";
-import { EPpToken, PpKeyword } from "./constants";
+import { PpKeyword, PpToken } from "./constants";
 import { PpUtils } from "./Utils";
 
 export type OnToken = (token: BaseToken, scanner: PpLexer) => void;
@@ -116,7 +116,7 @@ export default class PpLexer extends BaseLexer {
     }
 
     const token = BaseToken.pool.get();
-    const tokenType = PpLexer._lexemeTable[word] ?? EPpToken.id;
+    const tokenType = PpLexer._lexemeTable[word] ?? PpToken.id;
     token.set(tokenType, word, this.getShaderPosition(word.length));
     return token;
   }
@@ -146,12 +146,12 @@ export default class PpLexer extends BaseLexer {
     const lexeme = source.slice(start, this._currentIndex);
     const token = BaseToken.pool.get();
     const tokenType = PpLexer._lexemeTable[lexeme];
-    token.set(tokenType ?? EPpToken.id, lexeme, this.getShaderPosition(this._currentIndex - start));
+    token.set(tokenType ?? PpToken.id, lexeme, this.getShaderPosition(this._currentIndex - start));
     onToken?.(token, this);
     return token;
   }
 
-  scanQuotedString(): BaseToken<EPpToken.string_const> {
+  scanQuotedString(): BaseToken<PpToken.string_const> {
     this.skipSpace(true);
     if (this.getCurChar() !== '"') {
       this.throwError(this.getShaderPosition(0), "unexpected char, expected '\"'");
@@ -166,7 +166,7 @@ export default class PpLexer extends BaseLexer {
     const word = this._source.slice(start, this._currentIndex);
 
     const token = BaseToken.pool.get();
-    token.set(EPpToken.string_const, word, ShaderPosition);
+    token.set(PpToken.string_const, word, ShaderPosition);
     return token;
   }
 
@@ -177,29 +177,28 @@ export default class PpLexer extends BaseLexer {
     }
   }
 
-  scanMacroBranchChunk(): {
-    token: BaseToken<EPpToken.chunk>;
+  scanMacroBranchBody(): {
+    body: BaseToken<PpToken.chunk>;
     nextDirective: BaseToken;
   } {
-    const start = this._currentIndex;
     const shaderPosition = this.getShaderPosition(0);
     const startLevel = this.macroLvl;
 
-    let directive = this.scanDirective()!;
+    let nextDirective = this.scanDirective()!;
     while (true) {
-      const { type } = directive;
+      const { type } = nextDirective;
       if (type === PpKeyword.endif && startLevel - 1 === this.macroLvl) {
         break;
       } else if ((type === PpKeyword.elif || type === PpKeyword.else) && startLevel === this.macroLvl) {
         break;
       }
-      directive = this.scanDirective()!;
+      nextDirective = this.scanDirective()!;
     }
 
-    const chunk = this._source.slice(start, this._currentIndex - directive.lexeme.length - 1);
-    const token = BaseToken.pool.get();
-    token.set(EPpToken.chunk, chunk, shaderPosition);
-    return { token, nextDirective: directive };
+    const lexeme = this._source.slice(shaderPosition.index, this._currentIndex - nextDirective.lexeme.length - 1);
+    const body = BaseToken.pool.get();
+    body.set(PpToken.chunk, lexeme, shaderPosition);
+    return { body, nextDirective };
   }
 
   scanPairedBlock(lc: string, rc: string): void {
@@ -250,7 +249,7 @@ export default class PpLexer extends BaseLexer {
     const integer = this._source.slice(start, this._currentIndex);
 
     const token = BaseToken.pool.get();
-    token.set(EPpToken.int_constant, integer, this.getShaderPosition(0));
+    token.set(PpToken.int_constant, integer, this.getShaderPosition(0));
     return token;
   }
 
@@ -268,7 +267,7 @@ export default class PpLexer extends BaseLexer {
         const line = this._source.slice(start, this._currentIndex);
 
         const token = BaseToken.pool.get();
-        token.set(EPpToken.line_remain, line, this.getShaderPosition(line.length));
+        token.set(PpToken.line_remain, line, this.getShaderPosition(line.length));
         return token;
       }
       this.advance(1);
@@ -289,7 +288,7 @@ export default class PpLexer extends BaseLexer {
     }
 
     const token = BaseToken.pool.get();
-    token.set(EPpToken.line_remain, line, this.getShaderPosition(line.length));
+    token.set(PpToken.line_remain, line, this.getShaderPosition(line.length));
     return token;
   }
 

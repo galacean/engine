@@ -1,4 +1,4 @@
-export enum EPpToken {
+export enum PpToken {
   id,
   line_remain,
   chunk,
