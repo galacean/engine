@@ -11,7 +11,7 @@ export class FontAtlas extends ReferResource {
   static textureSize: number = 256;
   texture: Texture2D;
 
-  _charInfoMap: Record<number, CharInfo> = {};
+  _charInfoMap: Record<string, CharInfo> = {};
   private _space: number = 1;
   private _curX: number = 1;
   private _curY: number = 1;
@@ -73,11 +73,11 @@ export class FontAtlas extends ReferResource {
   }
 
   addCharInfo(char: string, charInfo: CharInfo) {
-    this._charInfoMap[char.charCodeAt(0)] = charInfo;
+    this._charInfoMap[char] = charInfo;
   }
 
   getCharInfo(char: string): CharInfo {
-    return this._charInfoMap[char.charCodeAt(0)];
+    return this._charInfoMap[char];
   }
 
   /**

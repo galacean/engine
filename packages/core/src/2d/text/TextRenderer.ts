@@ -505,7 +505,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     }
   }
 
-  private _updateLocalData(): void {
+  protected _updateLocalData(): void {
     const { _pixelsPerUnit } = Engine;
     const { min, max } = this._localBounds;
     const charRenderInfos = TextRenderer._charRenderInfos;
@@ -721,13 +721,13 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   }
 }
 
-class TextChunk {
+export class TextChunk {
   charRenderInfos = new Array<CharRenderInfo>();
   subChunk: SubPrimitiveChunk;
   texture: Texture2D;
 }
 
-enum DirtyFlag {
+export enum DirtyFlag {
   SubFont = 0x1,
   LocalPositionBounds = 0x2,
   WorldPosition = 0x4,
