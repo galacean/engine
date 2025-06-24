@@ -252,7 +252,7 @@ export default class PpLexer extends BaseLexer {
     return token;
   }
 
-  scanMacroValue(): BaseToken<PpToken.line_remain> {
+  scanMacroBody(): BaseToken<PpToken.line_remain> {
     this.skipSpace(false);
     let lexeme = "";
     const source = this._source;
