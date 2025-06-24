@@ -172,6 +172,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   private _parsePrefabRemovedComponents() {
     const entitiesConfig = this.data.entities;
     const entityMap = this.context.entityMap;
+    const prefabContextMap = this._prefabContextMap;
 
     for (let i = 0, l = entitiesConfig.length; i < l; i++) {
       const entityConfig = entitiesConfig[i];
@@ -182,7 +183,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
         for (let j = 0, m = removedComponents.length; j < m; j++) {
           const target = removedComponents[j];
           const { componentId } = target;
-          const context = this._prefabContextMap.get(rootEntity);
+          const context = prefabContextMap.get(rootEntity);
           const targetComponent = context.components.get(componentId);
           if (targetComponent) {
             targetComponent.destroy();
@@ -286,14 +287,16 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
   private _addComponents(entity: Entity, components: IEntity["components"]): void {
     const context = this.context;
+    const componentMap = context.components;
+    const componentConfigMap = context.componentConfigMap;
 
     for (let i = 0, n = components.length; i < n; i++) {
       const componentConfig = components[i];
       const key = !componentConfig.refId ? componentConfig.class : componentConfig.refId;
       const componentId = componentConfig.id;
       const component = entity.addComponent(Loader.getClass(key));
-      context.components.set(componentId, component);
-      context.componentConfigMap.set(componentId, componentConfig);
+      componentMap.set(componentId, component);
+      componentConfigMap.set(componentId, componentConfig);
     }
   }
 
@@ -339,12 +342,14 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
   private _parseComponentsPropsAndMethods(): Promise<any[]> {
     const context = this.context;
+    const componentConfigMap = context.componentConfigMap;
+    const reflectionParser = this._reflectionParser;
     const promises = [];
 
     for (const [componentId, component] of context.components) {
-      const componentConfig = context.componentConfigMap.get(componentId);
+      const componentConfig = componentConfigMap.get(componentId);
       if (componentConfig) {
-        promises.push(this._reflectionParser.parsePropsAndMethods(component, componentConfig));
+        promises.push(reflectionParser.parsePropsAndMethods(component, componentConfig));
       }
     }
 
