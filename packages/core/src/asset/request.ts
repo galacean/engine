@@ -65,6 +65,7 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
         return;
       }
       const result = xhr.response;
+      // For example, if the response body is a document but responseType is set to JSON, it returns null.
       if (!result) {
         reject(new Error(`Request ${url} response is empty, please check the config.`));
         return;
