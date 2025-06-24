@@ -56,17 +56,17 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
     const isImg = config.type === "image";
     xhr.timeout = config.timeout;
     config.method = config.method ?? "get";
+    xhr.withCredentials = config.credentials === "include";
     // @ts-ignore
     xhr.responseType = isImg ? "blob" : config.type;
     xhr.onload = () => {
       if (xhr.status < 200 || xhr.status >= 300) {
-        reject(new Error(`request failed from: ${url}`));
+        reject(new Error(`Request failed from: ${url}`));
         return;
       }
-      const responseType = xhr.responseType;
-      let result = responseType == "" || responseType == "text" ? xhr.responseText : xhr.response;
+      const result = xhr.response;
       if (!result) {
-        reject(new Error(`request ${url} response is empty, please check the url`));
+        reject(new Error(`Request ${url} response is empty, please check the config.`));
         return;
       }
       if (isImg) {
@@ -110,7 +110,6 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
       }
     };
     xhr.open(config.method, url, true);
-    xhr.withCredentials = config.credentials === "include";
     const headers = config.headers;
     if (headers) {
       Object.keys(headers).forEach((name) => {
