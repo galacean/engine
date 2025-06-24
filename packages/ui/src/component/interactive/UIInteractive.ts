@@ -167,7 +167,7 @@ export class UIInteractive extends Script implements IGroupAble {
     const transitions = this._transitions;
     for (let i = 0, n = transitions.length; i < n; i++) {
       const srcTransition = transitions[i];
-      const dstTransition: Transition = new (<TransitionConstructor>transitions[i].constructor)();
+      const dstTransition = new (transitions[i].constructor as new () => Transition)();
       dstTransition.normal = srcTransition.normal;
       dstTransition.pressed = srcTransition.pressed;
       dstTransition.hover = srcTransition.hover;
@@ -296,5 +296,3 @@ export enum InteractiveState {
   Hover,
   Disable
 }
-
-type TransitionConstructor = new () => Transition;
