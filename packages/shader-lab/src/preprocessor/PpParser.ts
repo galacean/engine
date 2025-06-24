@@ -551,7 +551,7 @@ export class PpParser {
       macroArgs = scanner.scanWordsUntilTerminator(")");
       end = scanner.getShaderPosition(0);
     }
-    const macroBody = scanner.scanLineRemain();
+    const macroBody = scanner.scanMacroValue();
     const range = ShaderLab.createRange(start, end);
     const macroDefine = new MacroDefine(macro, macroBody, range, macroArgs);
     this._definedMacros.set(macro.lexeme, macroDefine);

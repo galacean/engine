@@ -6,7 +6,6 @@ import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken, EOF } from "../common/BaseToken";
 import { ShaderLab } from "../ShaderLab";
 import { PpKeyword, PpToken } from "./constants";
-import { PpUtils } from "./Utils";
 
 export type OnToken = (token: BaseToken, scanner: PpLexer) => void;
 
@@ -253,62 +252,59 @@ export default class PpLexer extends BaseLexer {
     return token;
   }
 
-  /**
-   * Skip comments
-   */
-  scanLineRemain() {
+  scanMacroValue(): BaseToken<PpToken.line_remain> {
     this.skipSpace(false);
-    const start = this._currentIndex;
+    let lexeme = "";
+    const source = this._source;
+    const sourceLength = source.length;
 
-    const comments: ShaderRange[] = [];
+    const start = this.getShaderPosition(0);
+    while (this._currentIndex < sourceLength) {
+      const charCode = source.charCodeAt(this._currentIndex);
 
-    while (this.getCurChar() !== "\n") {
-      if (this.isEnd()) {
-        const line = this._source.slice(start, this._currentIndex);
-
-        const token = BaseToken.pool.get();
-        token.set(PpToken.line_remain, line, this.getShaderPosition(line.length));
-        return token;
+      // Check for line break (terminates macro definition), break when encounter "\n"
+      if (charCode === 10) {
+        break;
       }
+
+      // Check for comments (both single-line and multi-line)
+      if (charCode === 47) {
+        const nextIndex = this._currentIndex + 1;
+        if (nextIndex < sourceLength) {
+          const nextCharCode = source.charCodeAt(nextIndex);
+
+          // Single-line comment (terminates macro definition), break when encounter "//"
+          if (nextCharCode === 47) {
+            break;
+          }
+
+          // Multi-line comment (skip but don't terminate)
+          if (nextCharCode === 42) {
+            this.advance(2); // Skip "/*"
+
+            // Skip until end of multi-line comment
+            while (this._currentIndex + 1 < sourceLength) {
+              const currentIndex = this._currentIndex;
+              if (source.charCodeAt(currentIndex) === 42 && source.charCodeAt(currentIndex + 1) === 47) {
+                this.advance(2); // Skip "*/
+                break;
+              }
+              this.advance(1);
+            }
+
+            lexeme += " "; // Replace comment with space
+            continue;
+          }
+        }
+      }
+
+      // Accumulate useful character
+      lexeme += source[this._currentIndex];
       this.advance(1);
-      const commentRange = this._skipComments();
-      if (commentRange) {
-        commentRange.start.index -= start;
-        commentRange.end.index -= start;
-        comments.push(commentRange);
-      }
-    }
-    let line = this._source.slice(start, this._currentIndex);
-    if (comments.length) {
-      // filter comments
-      line = PpUtils.assembleSegments(
-        comments.map((item) => ({ range: item, replace: "" })),
-        line
-      );
     }
 
-    const token = BaseToken.pool.get();
-    token.set(PpToken.line_remain, line, this.getShaderPosition(line.length));
-    return token;
-  }
-
-  private _skipComments(): ShaderRange | undefined {
-    if (this.peek(2) === "//") {
-      const start = this.getShaderPosition(0);
-      // single line comments
-      while (this.getCurChar() !== "\n" && !this.isEnd()) {
-        this.advance(1);
-      }
-      return ShaderLab.createRange(start, this.getShaderPosition(0));
-    } else if (this.peek(2) === "/*") {
-      const start = this.getShaderPosition(0);
-      //  multi-line comments
-      this.advance(2);
-      while (this.peek(2) !== "*/" && !this.isEnd()) {
-        this.advance(1);
-      }
-      this.advance(2);
-      return ShaderLab.createRange(start, this.getShaderPosition(0));
-    }
+    const valueToken = BaseToken.pool.get();
+    valueToken.set(PpToken.line_remain, lexeme, ShaderLab.createRange(start, this.getShaderPosition(0)));
+    return valueToken;
   }
 }

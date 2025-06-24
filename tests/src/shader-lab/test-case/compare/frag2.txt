@@ -1,9 +1,9 @@
+// comments
 
 
-
-
-
-
+// 1/2-1/6*2
+// smaller jitter gives more regular pattern
+// smaller jitter gives less errors in F1 F2
 
 
 
