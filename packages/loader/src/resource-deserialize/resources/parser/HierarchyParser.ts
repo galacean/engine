@@ -285,12 +285,15 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   }
 
   private _addComponents(entity: Entity, components: IEntity["components"]): void {
+    const context = this.context;
+
     for (let i = 0, n = components.length; i < n; i++) {
       const componentConfig = components[i];
       const key = !componentConfig.refId ? componentConfig.class : componentConfig.refId;
+      const componentId = componentConfig.id;
       const component = entity.addComponent(Loader.getClass(key));
-      this.context.components.set(componentConfig.id, component);
-      this.context.componentConfigMap.set(componentConfig.id, componentConfig);
+      context.components.set(componentId, component);
+      context.componentConfigMap.set(componentId, componentConfig);
     }
   }
 
@@ -335,10 +338,11 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   }
 
   private _parseComponentsPropsAndMethods(): Promise<any[]> {
+    const context = this.context;
     const promises = [];
 
-    for (const [componentId, component] of this.context.components) {
-      const componentConfig = this.context.componentConfigMap.get(componentId);
+    for (const [componentId, component] of context.components) {
+      const componentConfig = context.componentConfigMap.get(componentId);
       if (componentConfig) {
         promises.push(this._reflectionParser.parsePropsAndMethods(component, componentConfig));
       }
