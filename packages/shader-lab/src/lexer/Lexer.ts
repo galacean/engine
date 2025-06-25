@@ -378,16 +378,11 @@ export class Lexer extends BaseLexer {
       buffer.push(this.getCurChar());
       this.advance(1);
     }
+    const token = BaseToken.pool.get();
     const word = buffer.join("");
     const kt = Lexer._lexemeTable[word];
-    if (kt != undefined) {
-      const token = BaseToken.pool.get();
-      token.set(kt, word, start);
-      return token;
-    }
 
-    const token = BaseToken.pool.get();
-    token.set(ETokenType.ID, word, start);
+    token.set(kt ?? ETokenType.ID, word, start);
     return token;
   }
 
