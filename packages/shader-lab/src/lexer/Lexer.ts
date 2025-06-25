@@ -366,7 +366,7 @@ export class Lexer extends BaseLexer {
     }
     this._scanFloatSuffix(buffer);
     const token = BaseToken.pool.get();
-    token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this._getPosition(1));
+    token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this._getPosition(buffer.length));
     return token;
   }
 
