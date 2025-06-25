@@ -397,8 +397,9 @@ export class Lexer extends BaseLexer {
       buffer.push(this.getCurChar());
       this.advance(1);
     }
-    if (this.getCurChar() === ".") {
-      buffer.push(this.getCurChar());
+    const curChar = this.getCurChar();
+    if (curChar === ".") {
+      buffer.push(curChar);
       this.advance(1);
       while (BaseLexer.isDigit(this.getCurCharCode())) {
         buffer.push(this.getCurChar());
@@ -410,7 +411,7 @@ export class Lexer extends BaseLexer {
       token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
       return token;
     } else {
-      if (this.getCurChar() === "e" || this.getCurChar() === "E") {
+      if (curChar === "e" || curChar === "E") {
         this._scanFloatSuffix(buffer);
 
         const token = BaseToken.pool.get();
@@ -427,29 +428,35 @@ export class Lexer extends BaseLexer {
   }
 
   private _scanFloatSuffix(buffer: string[]) {
-    if (this.getCurChar() === "e" || this.getCurChar() === "E") {
-      buffer.push(this.getCurChar());
+    let curChar = this.getCurChar();
+    if (curChar === "e" || curChar === "E") {
+      buffer.push(curChar);
       this.advance(1);
-      if (this.getCurChar() === "+" || this.getCurChar() === "-") {
-        buffer.push(this.getCurChar());
+      curChar = this.getCurChar();
+      if (curChar === "+" || curChar === "-") {
+        buffer.push(curChar);
         this.advance(1);
+        curChar = this.getCurChar();
       }
       if (!BaseLexer.isDigit(this.getCurCharCode()))
         this.throwError(this.getShaderPosition(0), "lexing error, invalid exponent suffix.");
-      while (BaseLexer.isDigit(this.getCurCharCode())) {
-        buffer.push(this.getCurChar());
+
+      do {
+        buffer.push(curChar);
         this.advance(1);
-      }
+        curChar = this.getCurChar();
+      } while (BaseLexer.isDigit(this.getCurCharCode()));
     }
-    if (this.getCurChar() === "f" || this.getCurChar() === "F") {
-      buffer.push(this.getCurChar());
+    if (curChar === "f" || curChar === "F") {
+      buffer.push(curChar);
       this.advance(1);
     }
   }
 
   private _scanIntegerSuffix(buffer: string[]) {
-    if (this.getCurChar() === "u" || this.getCurChar() === "U") {
-      buffer.push(this.getCurChar());
+    const curChar = this.getCurChar();
+    if (curChar === "u" || curChar === "U") {
+      buffer.push(curChar);
       this.advance(1);
     }
   }
