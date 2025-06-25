@@ -114,10 +114,8 @@ export abstract class BaseLexer {
   }
 
   skipSpace(includeLineBreak: boolean): void {
-    let curCharCode = this.getCurCharCode();
-    while (BaseLexer._isWhiteSpaceChar(curCharCode, includeLineBreak)) {
+    while (BaseLexer._isWhiteSpaceChar(this.getCurCharCode(), includeLineBreak)) {
       this.advance(1);
-      curCharCode = this.getCurCharCode();
     }
   }
 

@@ -82,12 +82,6 @@ export class Lexer extends BaseLexer {
     return EOF;
   }
 
-  override skipSpace() {
-    while (BaseLexer._isWhiteSpaceChar(this.getCurCharCode(), true)) {
-      this.advance(1);
-    }
-  }
-
   override scanToken(): BaseToken {
     this.skipCommentsAndSpace();
     if (this.isEnd()) {
