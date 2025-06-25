@@ -95,7 +95,7 @@ export class Lexer extends BaseLexer {
       return this._scanNum();
     }
 
-    const start = this._getPosition();
+    const start = this.getShaderPosition();
     const token = BaseToken.pool.get();
     let curChar: string;
 
@@ -344,14 +344,14 @@ export class Lexer extends BaseLexer {
   }
 
   private _scanStringConst() {
-    const start = this._getPosition();
+    const start = this.getShaderPosition();
     const buffer: string[] = [];
     while (this.getCurChar() !== '"') {
       buffer.push(this.getCurChar());
       this.advance(1);
     }
     this.advance(1);
-    const range = ShaderLab.createRange(start, this._getPosition());
+    const range = ShaderLab.createRange(start, this.getShaderPosition());
 
     const token = BaseToken.pool.get();
     token.set(ETokenType.STRING_CONST, buffer.join(""), range);
@@ -366,23 +366,13 @@ export class Lexer extends BaseLexer {
     }
     this._scanFloatSuffix(buffer);
     const token = BaseToken.pool.get();
-    token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this._getPosition(buffer.length));
+    token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
     return token;
-  }
-
-  private _getPosition(offset /** offset from starting point */ = 0) {
-    return ShaderLab.createPosition(
-      this.currentIndex - offset,
-      // #if _VERBOSE
-      this._line,
-      this._column - offset
-      // #endif
-    );
   }
 
   private _scanWord() {
     const buffer: string[] = [this.getCurChar()];
-    const start = this._getPosition();
+    const start = this.getShaderPosition();
     this.advance(1);
     while (BaseLexer.isAlnum(this.getCurCharCode())) {
       buffer.push(this.getCurChar());
@@ -417,20 +407,20 @@ export class Lexer extends BaseLexer {
       this._scanFloatSuffix(buffer);
 
       const token = BaseToken.pool.get();
-      token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this._getPosition(buffer.length));
+      token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
       return token;
     } else {
       if (this.getCurChar() === "e" || this.getCurChar() === "E") {
         this._scanFloatSuffix(buffer);
 
         const token = BaseToken.pool.get();
-        token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this._getPosition(buffer.length));
+        token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
         return token;
       } else {
         this._scanIntegerSuffix(buffer);
 
         const token = BaseToken.pool.get();
-        token.set(ETokenType.INT_CONSTANT, buffer.join(""), this._getPosition(buffer.length));
+        token.set(ETokenType.INT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
         return token;
       }
     }

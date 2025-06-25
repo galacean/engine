@@ -75,7 +75,7 @@ export abstract class BaseLexer {
     // #endif
   }
 
-  getShaderPosition(backOffset: number): ShaderPosition {
+  getShaderPosition(backOffset = 0): ShaderPosition {
     return ShaderLab.createPosition(
       this._currentIndex - backOffset,
       // #if _VERBOSE
