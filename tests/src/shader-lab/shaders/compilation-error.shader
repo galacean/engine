@@ -54,7 +54,7 @@ Shader "custom/pbr" {
               sampler2D material_BaseTexture;
 
               float test(){
-                return 1.0;
+                return .3f;
               }
 
               float test(float param1){
