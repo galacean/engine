@@ -6,6 +6,5 @@ export { TextureCoordinate } from "./enums/TextureCoordinate";
 export { Material } from "./Material";
 export { PBRBaseMaterial } from "./PBRBaseMaterial";
 export { PBRMaterial } from "./PBRMaterial";
-export { PBRSpecularMaterial } from "./PBRSpecularMaterial";
 export { UnlitMaterial } from "./UnlitMaterial";
 export { RefractionMode } from "./enums/Refraction";
