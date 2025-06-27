@@ -132,28 +132,28 @@ export class PpParser {
     const start = lexer.getShaderPosition(8);
 
     lexer.skipSpace(true);
-    const id = lexer.scanQuotedString();
-    let includedPath: string;
+    const pathToken = lexer.scanQuotedString();
+    let path: string;
     // builtin path
-    if (id.lexeme[0] !== ".") {
-      includedPath = id.lexeme;
+    if (pathToken.lexeme[0] !== ".") {
+      path = pathToken.lexeme;
     } else {
       // relative path
       // @ts-ignore
-      includedPath = new URL(id.lexeme, this._basePathForIncludeKey).href.substring(ShaderPass._shaderRootPath.length);
+      path = new URL(pathToken.lexeme, this._basePathForIncludeKey).href.substring(ShaderPass._shaderRootPath.length);
     }
 
     lexer.scanToChar("\n");
     const end = lexer.getShaderPosition(0);
-    const chunk = this._includeMap[includedPath];
+    const chunk = this._includeMap[path];
     if (!chunk) {
-      this._reportError(id.location, `Shader slice "${includedPath}" not founded.`, lexer.source, lexer.file);
+      this._reportError(pathToken.location, `Shader slice "${path}" not founded.`, lexer.source, lexer.file);
       return;
     }
 
     const range = ShaderLab.createRange(start, end);
-    const expanded = this._expandMacroChunk(chunk, range, id.lexeme);
-    this._addContentReplace(id.lexeme, start, end, expanded.content, undefined, expanded.sourceMap);
+    const expanded = this._expandMacroChunk(chunk, range, pathToken.lexeme);
+    this._addContentReplace(pathToken.lexeme, start, end, expanded.content, undefined, expanded.sourceMap);
   }
 
   private static _parseIfDirective(lexer: PpLexer, directiveType: PpKeyword): void {

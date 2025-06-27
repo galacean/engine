@@ -157,13 +157,14 @@ export default class PpLexer extends BaseLexer {
     const start = this.getShaderPosition(0);
 
     let index = this._currentIndex;
-    // 34 = '"'
+
+    // Check for opening quote
     if (source.charCodeAt(index) !== 34) {
+      // 34 = '"'
       this.throwError(start, "Unexpected char, expected '\"'");
     }
 
-    index++; // Skip opening quote
-    const contentStart = index;
+    const contentStart = ++index; // Skip opening quote and record start
 
     // Fast scan to closing quote
     while (index < sourceLength && source.charCodeAt(index) !== 34) {
