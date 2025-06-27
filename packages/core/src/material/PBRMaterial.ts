@@ -474,7 +474,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   set specular(value: number) {
-    this.shaderData.getFloat(PBRMaterial._specularProp);
+    this.shaderData.setFloat(PBRMaterial._specularProp, value);
     const enableSpecular = value > 0;
     if (enableSpecular !== this._specularEnabled) {
       this._specularEnabled = enableSpecular;
