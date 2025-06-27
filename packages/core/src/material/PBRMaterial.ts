@@ -41,10 +41,21 @@ export class PBRMaterial extends PBRBaseMaterial {
   private static _thicknessProp = ShaderProperty.getByName("material_Thickness");
   private static _thicknessTextureProp = ShaderProperty.getByName("material_ThicknessTexture");
 
+  private static _specularMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_ENABLE_SPECULAR");
+  private static _specularTextureMacro = ShaderMacro.getByName("MATERIAL_ENABLE_SPECULAR_TEXTURE");
+  private static _specularColorTextureMacro = ShaderMacro.getByName("MATERIAL_ENABLE_SPECULAR_COLOR_TEXTURE");
+  private static _specularProp = ShaderProperty.getByName("material_Specular");
+  private static _specularColorProp = ShaderProperty.getByName("material_SpecularColor");
+  private static _specularTextureProp = ShaderProperty.getByName("material_SpecularTexture");
+  private static _specularColorTextureProp = ShaderProperty.getByName("material_SpecularColorTexture");
+  private static _reflectanceProp = ShaderProperty.getByName("material_Reflectance");
+
   private _refractionMode: RefractionMode;
   private _anisotropyRotation: number = 0;
   private _iridescenceRange = new Vector2(100, 400);
   private _sheenEnabled = false;
+  private _specularEnabled = false;
+  private _specularColorEnabled = false;
 
   /**
    * Index Of Refraction.
@@ -56,6 +67,7 @@ export class PBRMaterial extends PBRBaseMaterial {
 
   set ior(v: number) {
     this.shaderData.setFloat(PBRMaterial._iorProp, Math.max(v, 0));
+    this._updateReflectance();
   }
 
   /**
@@ -451,6 +463,78 @@ export class PBRMaterial extends PBRBaseMaterial {
       this.shaderData.disableMacro(PBRMaterial._thicknessTextureMacro);
     }
   }
+
+  /**
+   * The strength of the specular reflection.
+   * @defaultValue `1.0`
+   */
+
+  get specular(): number {
+    return this.shaderData.getFloat(PBRMaterial._specularProp);
+  }
+
+  set specular(value: number) {
+    this.shaderData.getFloat(PBRMaterial._specularProp);
+    const enableSpecular = value > 0;
+    if (enableSpecular !== this._specularEnabled) {
+      this._specularEnabled = enableSpecular;
+      if (enableSpecular) {
+        this.shaderData.enableMacro(PBRMaterial._specularMacro);
+      } else {
+        this.shaderData.disableMacro(PBRMaterial._specularMacro);
+      }
+    }
+    this._updateReflectance();
+  }
+
+  /**
+   * The specular color.
+   * @defaultValue `[1,1,1]`
+   */
+  get specularColor(): Color {
+    return this.shaderData.getColor(PBRMaterial._specularColorProp);
+  }
+  set specularColor(value: Color) {
+    const specularColor = this.shaderData.getColor(PBRMaterial._specularColorProp);
+    if (value !== specularColor) {
+      specularColor.copyFrom(value);
+    }
+  }
+
+  /**
+   * Specular texture.
+   * @remarks A channel will be multiplied by `specular`.
+   */
+  get specularTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._specularTextureProp);
+  }
+
+  set specularTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._specularTextureProp, value);
+    if (value) {
+      this.shaderData.enableMacro(PBRMaterial._specularTextureMacro);
+    } else {
+      this.shaderData.disableMacro(PBRMaterial._specularTextureMacro);
+    }
+  }
+
+  /**
+   * Specular color texture.
+   * @remarks The intensity of Specular color， multiplied by `specularColor`.
+   */
+  get specularColorTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._specularColorTextureProp);
+  }
+
+  set specularColorTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._specularColorTextureProp, value);
+    if (value) {
+      this.shaderData.enableMacro(PBRMaterial._specularColorTextureMacro);
+    } else {
+      this.shaderData.disableMacro(PBRMaterial._specularColorTextureMacro);
+    }
+  }
+
   /**
    * Create a pbr metallic-roughness workflow material instance.
    * @param engine - Engine to which the material belongs
@@ -472,11 +556,17 @@ export class PBRMaterial extends PBRBaseMaterial {
     shaderData.setFloat(PBRMaterial._attenuationDistanceProp, Infinity);
     const attenuationColor = new Color(1, 1, 1);
     shaderData.setColor(PBRMaterial._attenuationColorProp, attenuationColor);
+    shaderData.setFloat(PBRMaterial._specularProp, 1);
+    const specularColor = new Color(1, 1, 1);
+    shaderData.setColor(PBRMaterial._specularColorProp, specularColor);
+    shaderData.setFloat(PBRMaterial._reflectanceProp, 0.5);
 
     // @ts-ignore
     this._iridescenceRange._onValueChanged = this._onIridescenceRangeChanged.bind(this);
     // @ts-ignore
     sheenColor._onValueChanged = this._onSheenColorChanged.bind(this);
+    // @ts-ignore
+    specularColor._onValueChanged = this._onSpecularColorChanged.bind(this);
   }
 
   /**
@@ -505,5 +595,30 @@ export class PBRMaterial extends PBRBaseMaterial {
         this.shaderData.disableMacro("MATERIAL_ENABLE_SHEEN");
       }
     }
+  }
+
+  private _onSpecularColorChanged(): void {
+    const specularColor = this.specularColor;
+    const enableSpecularColor = specularColor.r + specularColor.g + specularColor.b > 0;
+    if (enableSpecularColor !== this._specularColorEnabled) {
+      this._specularColorEnabled = enableSpecularColor;
+      if (enableSpecularColor) {
+        this.shaderData.enableMacro("MATERIAL_ENABLE_SPECULAR_COLOR");
+      } else {
+        this.shaderData.disableMacro("MATERIAL_ENABLE_SPECULAR_COLOR");
+      }
+    }
+  }
+
+  private _updateReflectance(): void {
+    let reflectance: number;
+    if (this.specular) {
+      reflectance = this.shaderData.getFloat(PBRMaterial._reflectanceProp);
+    } else {
+      const ior = this.ior;
+      const f0 = (ior - 1.0) / (ior + 1.0);
+      reflectance = Math.sqrt((f0 * f0) / 0.16);
+    }
+    this.shaderData.setFloat(PBRMaterial._reflectanceProp, reflectance);
   }
 }
