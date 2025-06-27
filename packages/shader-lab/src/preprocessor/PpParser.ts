@@ -128,11 +128,11 @@ export class PpParser {
     // #endif
   }
 
-  private static _parseInclude(scanner: PpLexer) {
-    const start = scanner.getShaderPosition(8);
+  private static _parseInclude(lexer: PpLexer): void {
+    const start = lexer.getShaderPosition(8);
 
-    scanner.skipSpace(true);
-    const id = scanner.scanQuotedString();
+    lexer.skipSpace(true);
+    const id = lexer.scanQuotedString();
     let includedPath: string;
     // builtin path
     if (id.lexeme[0] !== ".") {
@@ -143,11 +143,11 @@ export class PpParser {
       includedPath = new URL(id.lexeme, this._basePathForIncludeKey).href.substring(ShaderPass._shaderRootPath.length);
     }
 
-    scanner.scanToChar("\n");
-    const end = scanner.getShaderPosition(0);
+    lexer.scanToChar("\n");
+    const end = lexer.getShaderPosition(0);
     const chunk = this._includeMap[includedPath];
     if (!chunk) {
-      this._reportError(id.location, `Shader slice "${includedPath}" not founded.`, scanner.source, scanner.file);
+      this._reportError(id.location, `Shader slice "${includedPath}" not founded.`, lexer.source, lexer.file);
       return;
     }
 
@@ -537,40 +537,35 @@ export class PpParser {
     });
   }
 
-  private static _parseDefine(scanner: PpLexer) {
-    const start = scanner.getShaderPosition(7);
-    const macro = scanner.scanWord();
+  private static _parseDefine(lexer: PpLexer): void {
+    const start = lexer.getShaderPosition(7);
+    const macroName = lexer.scanWord();
 
-    let end = macro.location.end;
-    if (this._definedMacros.get(macro.lexeme) && macro.lexeme.startsWith("GL_")) {
-      this._reportError(macro.location, `redefined macro: ${macro.lexeme}`, scanner.source, scanner.file);
+    const { lexeme, location } = macroName;
+    let { end } = location;
+    if (this._definedMacros.get(lexeme) && lexeme.startsWith("GL_")) {
+      this._reportError(location, `Redefined macro: ${lexeme}`, lexer.source, lexer.file);
     }
 
     let macroArgs: BaseToken[] | undefined;
-    if (scanner.getCurChar() === "(") {
-      macroArgs = scanner.scanWordsUntilTerminator(")");
-      end = scanner.getShaderPosition(0);
+    if (lexer.getCurChar() === "(") {
+      macroArgs = lexer.scanWordsUntilTerminator(")");
+      end = lexer.getShaderPosition(0);
     }
-    const macroBody = scanner.scanMacroBody();
+    const macroBody = lexer.scanMacroBody();
     const range = ShaderLab.createRange(start, end);
-    const macroDefine = new MacroDefine(macro, macroBody, range, macroArgs);
-    this._definedMacros.set(macro.lexeme, macroDefine);
+    const macroDefine = new MacroDefine(macroName, macroBody, range, macroArgs);
+    this._definedMacros.set(lexeme, macroDefine);
 
-    this._addContentReplace(scanner.file, start, scanner.getShaderPosition(0), "", scanner.blockRange);
+    this._addContentReplace(lexer.file, start, lexer.getShaderPosition(0), "", lexer.blockRange);
   }
 
-  private static _parseUndef(scanner: PpLexer) {
-    const start = scanner.currentIndex - 6;
-    const macro = scanner.scanWord();
+  private static _parseUndef(lexer: PpLexer): void {
+    const start = lexer.getShaderPosition(6);
+    const macroName = lexer.scanWord();
+    this._definedMacros.delete(macroName.lexeme);
 
-    this._addContentReplace(
-      scanner.file,
-      ShaderLab.createPosition(start),
-      scanner.getShaderPosition(0),
-      "",
-      scanner.blockRange
-    );
-    this._definedMacros.delete(macro.lexeme);
+    this._addContentReplace(lexer.file, start, lexer.getShaderPosition(0), "", lexer.blockRange);
   }
 
   private static _onToken(token: BaseToken, lexer: PpLexer) {
