@@ -152,20 +152,33 @@ export default class PpLexer extends BaseLexer {
 
   scanQuotedString(): BaseToken<PpToken.string_const> {
     this.skipSpace(true);
-    if (this.getCurChar() !== '"') {
-      this.throwError(this.getShaderPosition(0), "unexpected char, expected '\"'");
+    const source = this._source;
+    const sourceLength = source.length;
+    const start = this.getShaderPosition(0);
+
+    let index = this._currentIndex;
+    // 34 = '"'
+    if (source.charCodeAt(index) !== 34) {
+      this.throwError(start, "Unexpected char, expected '\"'");
     }
-    const ShaderPosition = this.getShaderPosition(0);
-    this.advance(1);
-    const start = this._currentIndex;
-    while (this.getCurChar() !== '"' && !this.isEnd()) this.advance(1);
-    if (this.isEnd()) {
-      this.throwError(this.getShaderPosition(0), "unexpected char, expected '\"'");
+
+    index++; // Skip opening quote
+    const contentStart = index;
+
+    // Fast scan to closing quote
+    while (index < sourceLength && source.charCodeAt(index) !== 34) {
+      index++;
     }
-    const word = this._source.slice(start, this._currentIndex);
+
+    if (index >= sourceLength) {
+      this.throwError(this.getShaderPosition(0), "Unexpected char, expected '\"'");
+    }
+
+    const lexeme = source.slice(contentStart, index);
+    this.advance(index + 1 - this._currentIndex); // Skip to after closing quote
 
     const token = BaseToken.pool.get();
-    token.set(PpToken.string_const, word, ShaderPosition);
+    token.set(PpToken.string_const, lexeme, start);
     return token;
   }
 
