@@ -1,12 +1,13 @@
 import { ShaderRange } from "../common";
-import { ASTNode, TreeNode } from "./AST";
+import { SymbolTable } from "../common/SymbolTable";
+import { SymbolTableStack } from "../common/SymbolTableStack";
 import { GSErrorName } from "../GSError";
-import { ShaderData } from "./ShaderInfo";
-import { ESymbolType, SymbolInfo, TargetSymbolTable } from "../parser/symbolTable";
-import { NodeChild } from "./types";
-import { SymbolTableStack } from "../common/BaseSymbolTable";
+import { ESymbolType, SymbolInfo } from "../parser/symbolTable";
 import { ShaderLab } from "../ShaderLab";
+import { ASTNode, TreeNode } from "./AST";
 import { NonGenericGalaceanType } from "./builtin";
+import { ShaderData } from "./ShaderInfo";
+import { NodeChild } from "./types";
 // #if _VERBOSE
 import { GSError } from "../GSError";
 // #else
@@ -22,9 +23,11 @@ export type TranslationRule<T = any> = (sa: SemanticAnalyzer, ...tokens: NodeChi
  * - Static analysis
  */
 export default class SemanticAnalyzer {
+  private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
+
   semanticStack: TreeNode[] = [];
   acceptRule?: TranslationRule = undefined;
-  symbolTableStack: SymbolTableStack<SymbolInfo, TargetSymbolTable> = new SymbolTableStack();
+  symbolTableStack: SymbolTableStack<SymbolInfo, SymbolTable<SymbolInfo>> = new SymbolTableStack();
   curFunctionInfo: {
     header?: ASTNode.FunctionDeclarator;
     returnStatement?: ASTNode.JumpStatement;
@@ -41,26 +44,25 @@ export default class SemanticAnalyzer {
   }
 
   constructor() {
-    this.newScope();
+    this.pushScope();
   }
 
   reset() {
     this.semanticStack.length = 0;
     this._shaderData = new ShaderData();
     this.symbolTableStack.clear();
-    this.newScope();
+    this.pushScope();
     // #if _VERBOSE
     this.errors.length = 0;
     // #endif
   }
 
-  newScope() {
-    const scope = new TargetSymbolTable();
-    this.symbolTableStack.newScope(scope);
+  pushScope() {
+    this.symbolTableStack.pushScope(new SymbolTable<SymbolInfo>());
   }
 
-  dropScope() {
-    return this.symbolTableStack.dropScope();
+  popScope() {
+    return this.symbolTableStack.popScope();
   }
 
   addTranslationRule(pid: number, rule: TranslationRule) {
@@ -74,13 +76,15 @@ export default class SemanticAnalyzer {
   lookupSymbolBy(
     ident: string,
     symbolType: ESymbolType,
-    signature?: NonGenericGalaceanType[],
+    paramSignature?: NonGenericGalaceanType[],
     astNode?: ASTNode.FunctionDefinition
   ): SymbolInfo | undefined {
+    const lookupSymbol = SemanticAnalyzer._lookupSymbol;
     const stack = this.symbolTableStack.stack;
     for (let length = stack.length, i = length - 1; i >= 0; i--) {
       const symbolTable = stack[i];
-      const ret = symbolTable.lookup(ident, symbolType, signature, astNode);
+      lookupSymbol.set(ident, symbolType, astNode, undefined, paramSignature);
+      const ret = symbolTable.lookup(lookupSymbol);
       if (ret) return ret;
     }
   }
