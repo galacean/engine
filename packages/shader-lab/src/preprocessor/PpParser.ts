@@ -35,6 +35,9 @@ export class PpParser {
   private static _includeMap: Record<string, string>;
   private static _basePathForIncludeKey: string;
 
+  private static _expandVisitedMacros: Record<string, number> = {};
+  private static _expandVersionId: number = 1;
+
   // #if _VERBOSE
   static _errors: Error[] = [];
   // #endif
@@ -455,6 +458,86 @@ export class PpParser {
     }
   }
 
+  private static _expandMacroBody(body: string): string {
+    const visitedMacros = this._expandVisitedMacros;
+    const currentVersionId = ++this._expandVersionId;
+    let expandedBody = body;
+    let hasExpansion = true;
+
+    while (hasExpansion) {
+      hasExpansion = false;
+      const length = expandedBody.length;
+      let i = 0;
+
+      while (i < length) {
+        const charCode = expandedBody.charCodeAt(i);
+        if (BaseLexer.isAlpha(charCode)) {
+          const start = i;
+          while (i < length && BaseLexer.isAlnum(expandedBody.charCodeAt(i))) {
+            i++;
+          }
+
+          const macroName = expandedBody.substring(start, i);
+          const macro = this._definedMacros.get(macroName);
+
+          if (macro && visitedMacros[macroName] !== currentVersionId) {
+            // Prevent circular references
+            visitedMacros[macroName] = currentVersionId;
+
+            if (!macro.isFunction) {
+              const before = expandedBody.substring(0, start);
+              const after = expandedBody.substring(i);
+              const macroContent = macro.body ? macro.body.lexeme : "";
+              expandedBody = before + macroContent + after;
+
+              hasExpansion = true;
+              break; // Restart scanning
+            } else {
+              let j = i;
+              while (j < length && expandedBody.charCodeAt(j) !== 40) { // '('
+                j++;
+              }
+
+              let curLevel = 1;
+              let argStart = j + 1;
+              let k = argStart;
+              const args: string[] = [];
+
+              while (k < length && curLevel > 0) {
+                const charCode = expandedBody.charCodeAt(k);
+                if (charCode === 40) { // '('
+                  curLevel++;
+                } else if (charCode === 41) { // ')'
+                  curLevel--;
+                  if (curLevel === 0) {
+                    args.push(expandedBody.substring(argStart, k));
+                    break;
+                  }
+                } else if (charCode === 44 && curLevel === 1) { // ','
+                  args.push(expandedBody.substring(argStart, k));
+                  argStart = k + 1;
+                }
+                k++;
+              }
+
+              const expandedFunctionBody = macro.expandFunctionBody(args);
+              const before = expandedBody.substring(0, start);
+              const after = expandedBody.substring(k + 1);
+              expandedBody = before + expandedFunctionBody + after;
+
+              hasExpansion = true;
+              break; // Restart scanning
+            }
+          }
+        } else {
+          i++;
+        }
+      }
+    }
+
+    return expandedBody;
+  }
+
   /**
    * Recursively expand macro body and expansion.
    */
@@ -572,50 +655,24 @@ export class PpParser {
     const macro = this._definedMacros.get(token.lexeme);
     if (macro) {
       const { location } = token;
-      let replace = macro.body.lexeme;
       if (macro.isFunction) {
-        lexer.scanToChar("(");
-        lexer.advance(1);
+        lexer.scanPairedBlock("(", ")");
 
-        // extract parameters
-        const args: string[] = [];
-        let curLvl = 1;
-        let curIdx = lexer.currentIndex;
-        while (true) {
-          if (lexer.getCurChar() === "(") curLvl += 1;
-          else if (lexer.getCurChar() === ")") {
-            curLvl -= 1;
-            if (curLvl === 0) break;
-          } else if (lexer.getCurChar() === "," && curLvl === 1) {
-            args.push(lexer.source.slice(curIdx, lexer.currentIndex));
-            curIdx = lexer.currentIndex + 1;
-          }
-          lexer.advance(1);
-        }
-        args.push(lexer.source.slice(curIdx, lexer.currentIndex));
+        const fullFunctionCall = lexer.source.slice(location.start.index, lexer.currentIndex);
+        const expandedContent = this._expandMacroBody(fullFunctionCall);
 
-        lexer.advance(1);
-        const range = ShaderLab.createRange(location!.start, lexer.getShaderPosition(0));
-        replace = macro.expandFunctionBody(args);
-        const expanded = this._expandMacroChunk(replace, range, lexer);
         this._addContentReplace(
           lexer.file,
           location.start,
           lexer.getShaderPosition(0),
-          expanded.content,
-          lexer.blockRange,
-          expanded.sourceMap
+          expandedContent,
+          lexer.blockRange
         );
       } else {
-        const expanded = this._expandMacroChunk(replace, location, lexer);
-        this._addContentReplace(
-          lexer.file,
-          location.start,
-          location.end,
-          expanded.content,
-          lexer.blockRange,
-          expanded.sourceMap
-        );
+        const macroContent = macro.body ? macro.body.lexeme : "";
+        const expandedContent = this._expandMacroBody(macroContent);
+
+        this._addContentReplace(lexer.file, location.start, location.end, expandedContent, lexer.blockRange);
       }
     }
   }

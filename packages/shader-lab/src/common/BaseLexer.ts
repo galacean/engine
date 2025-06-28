@@ -29,7 +29,7 @@ export abstract class BaseLexer {
     return BaseLexer.isAlpha(charCode) || BaseLexer.isDigit(charCode);
   }
 
-  protected static _isWhiteSpaceChar(charCode: number, includeBreak: boolean): boolean {
+  static isWhiteSpaceChar(charCode: number, includeBreak: boolean): boolean {
     // Space || Tab
     if (charCode === 32 || charCode === 9) {
       return true;
@@ -114,7 +114,7 @@ export abstract class BaseLexer {
   }
 
   skipSpace(includeLineBreak: boolean): void {
-    while (BaseLexer._isWhiteSpaceChar(this.getCurCharCode(), includeLineBreak)) {
+    while (BaseLexer.isWhiteSpaceChar(this.getCurCharCode(), includeLineBreak)) {
       this.advance(1);
     }
   }
@@ -126,7 +126,7 @@ export abstract class BaseLexer {
 
     while (index < length) {
       // Skip whitespace
-      while (index < length && BaseLexer._isWhiteSpaceChar(source.charCodeAt(index), true)) {
+      while (index < length && BaseLexer.isWhiteSpaceChar(source.charCodeAt(index), true)) {
         index++;
       }
 

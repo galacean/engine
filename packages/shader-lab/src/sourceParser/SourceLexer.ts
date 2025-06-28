@@ -210,6 +210,6 @@ export default class SourceLexer extends BaseLexer {
   }
 
   private _isValidWordBoundary(charCode: number): boolean {
-    return BaseLexer._isWhiteSpaceChar(charCode, true) || SourceLexer._isWordSeparatorChar(charCode);
+    return BaseLexer.isWhiteSpaceChar(charCode, true) || SourceLexer._isWordSeparatorChar(charCode);
   }
 }
