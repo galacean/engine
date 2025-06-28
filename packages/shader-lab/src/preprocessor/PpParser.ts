@@ -471,67 +471,66 @@ export class PpParser {
 
       while (i < length) {
         const charCode = expandedBody.charCodeAt(i);
-        if (BaseLexer.isAlpha(charCode)) {
-          const start = i;
-          while (i < length && BaseLexer.isAlnum(expandedBody.charCodeAt(i))) {
-            i++;
-          }
+        if (!BaseLexer.isAlpha(charCode)) {
+          i++;
+          continue;
+        }
 
-          const macroName = expandedBody.substring(start, i);
-          const macro = this._definedMacros.get(macroName);
-
-          if (macro && visitedMacros[macroName] !== currentVersionId) {
-            // Prevent circular references
-            visitedMacros[macroName] = currentVersionId;
-
-            if (!macro.isFunction) {
-              const before = expandedBody.substring(0, start);
-              const after = expandedBody.substring(i);
-              const macroContent = macro.body ? macro.body.lexeme : "";
-              expandedBody = before + macroContent + after;
-
-              hasExpansion = true;
-              break; // Restart scanning
-            } else {
-              let j = i;
-              while (j < length && expandedBody.charCodeAt(j) !== 40) { // '('
-                j++;
-              }
-
-              let curLevel = 1;
-              let argStart = j + 1;
-              let k = argStart;
-              const args: string[] = [];
-
-              while (k < length && curLevel > 0) {
-                const charCode = expandedBody.charCodeAt(k);
-                if (charCode === 40) { // '('
-                  curLevel++;
-                } else if (charCode === 41) { // ')'
-                  curLevel--;
-                  if (curLevel === 0) {
-                    args.push(expandedBody.substring(argStart, k));
-                    break;
-                  }
-                } else if (charCode === 44 && curLevel === 1) { // ','
-                  args.push(expandedBody.substring(argStart, k));
-                  argStart = k + 1;
-                }
-                k++;
-              }
-
-              const expandedFunctionBody = macro.expandFunctionBody(args);
-              const before = expandedBody.substring(0, start);
-              const after = expandedBody.substring(k + 1);
-              expandedBody = before + expandedFunctionBody + after;
-
-              hasExpansion = true;
-              break; // Restart scanning
-            }
-          }
-        } else {
+        const start = i;
+        while (i < length && BaseLexer.isAlnum(expandedBody.charCodeAt(i))) {
           i++;
         }
+
+        const macroName = expandedBody.substring(start, i);
+        const macro = this._definedMacros.get(macroName);
+
+        if (!macro || visitedMacros[macroName] === currentVersionId) {
+          continue;
+        }
+
+        // Prevent circular references
+        visitedMacros[macroName] = currentVersionId;
+
+        let replacement: string;
+        let endIndex: number;
+
+        if (!macro.isFunction) {
+          replacement = macro.body ? macro.body.lexeme : "";
+          endIndex = i;
+        } else {
+          // Find opening parenthesis
+          let j = i;
+          while (j < length && expandedBody.charCodeAt(j) !== 40) j++;
+
+          // Parse function arguments
+          const args: string[] = [];
+          let level = 1;
+          let argStart = j + 1;
+          let k = argStart;
+
+          while (k < length && level > 0) {
+            const charCode = expandedBody.charCodeAt(k);
+            if (charCode === 40) {
+              level++;
+            } else if (charCode === 41) {
+              if (--level === 0) {
+                args.push(expandedBody.substring(argStart, k));
+                break;
+              }
+            } else if (charCode === 44 && level === 1) {
+              args.push(expandedBody.substring(argStart, k));
+              argStart = k + 1;
+            }
+            k++;
+          }
+
+          replacement = macro.expandFunctionBody(args);
+          endIndex = k + 1;
+        }
+
+        expandedBody = expandedBody.substring(0, start) + replacement + expandedBody.substring(endIndex);
+        hasExpansion = true;
+        break;
       }
     }
 
