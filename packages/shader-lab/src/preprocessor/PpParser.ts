@@ -458,6 +458,42 @@ export class PpParser {
     }
   }
 
+  private static _parseMacroFunctionArgs(
+    source: string,
+    startIndex: number,
+    macroName: string
+  ): { args: string[]; endIndex: number } {
+    const length = source.length;
+    let i = startIndex + macroName.length;
+
+    // Find opening parenthesis
+    while (i < length && source.charCodeAt(i) !== 40) i++;
+
+    // Parse function arguments
+    const args: string[] = [];
+    let level = 1;
+    let argStart = i + 1;
+    let k = argStart;
+
+    while (k < length && level > 0) {
+      const charCode = source.charCodeAt(k);
+      if (charCode === 40) {
+        level++;
+      } else if (charCode === 41) {
+        if (--level === 0) {
+          args.push(source.substring(argStart, k));
+          break;
+        }
+      } else if (charCode === 44 && level === 1) {
+        args.push(source.substring(argStart, k));
+        argStart = k + 1;
+      }
+      k++;
+    }
+
+    return { args, endIndex: k + 1 };
+  }
+
   private static _expandMacroBody(body: string): string {
     const visitedMacros = this._expandVisitedMacros;
     const currentVersionId = ++this._expandVersionId;
@@ -495,37 +531,12 @@ export class PpParser {
         let endIndex: number;
 
         if (!macro.isFunction) {
-          replacement = macro.body ? macro.body.lexeme : "";
+          replacement = macro.body?.lexeme ?? "";
           endIndex = i;
         } else {
-          // Find opening parenthesis
-          let j = i;
-          while (j < length && expandedBody.charCodeAt(j) !== 40) j++;
-
-          // Parse function arguments
-          const args: string[] = [];
-          let level = 1;
-          let argStart = j + 1;
-          let k = argStart;
-
-          while (k < length && level > 0) {
-            const charCode = expandedBody.charCodeAt(k);
-            if (charCode === 40) {
-              level++;
-            } else if (charCode === 41) {
-              if (--level === 0) {
-                args.push(expandedBody.substring(argStart, k));
-                break;
-              }
-            } else if (charCode === 44 && level === 1) {
-              args.push(expandedBody.substring(argStart, k));
-              argStart = k + 1;
-            }
-            k++;
-          }
-
+          const { args, endIndex: newEndIndex } = this._parseMacroFunctionArgs(expandedBody, start, macroName);
           replacement = macro.expandFunctionBody(args);
-          endIndex = k + 1;
+          endIndex = newEndIndex;
         }
 
         expandedBody = expandedBody.substring(0, start) + replacement + expandedBody.substring(endIndex);
@@ -655,10 +666,12 @@ export class PpParser {
     if (macro) {
       const { location } = token;
       if (macro.isFunction) {
-        lexer.scanPairedBlock("(", ")");
+        const { args, endIndex } = this._parseMacroFunctionArgs(lexer.source, location.start.index, token.lexeme);
+        const macroBodyExpanded = macro.expandFunctionBody(args);
+        const expandedContent = this._expandMacroBody(macroBodyExpanded);
 
-        const fullFunctionCall = lexer.source.slice(location.start.index, lexer.currentIndex);
-        const expandedContent = this._expandMacroBody(fullFunctionCall);
+        const remainingLength = endIndex - location.end.index;
+        lexer.advance(remainingLength);
 
         this._addContentReplace(
           lexer.file,
@@ -668,7 +681,7 @@ export class PpParser {
           lexer.blockRange
         );
       } else {
-        const macroContent = macro.body ? macro.body.lexeme : "";
+        const macroContent = macro.body?.lexeme ?? "";
         const expandedContent = this._expandMacroBody(macroContent);
 
         this._addContentReplace(lexer.file, location.start, location.end, expandedContent, lexer.blockRange);
