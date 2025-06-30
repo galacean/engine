@@ -69,67 +69,37 @@ describe("webgl engine test", () => {
   });
 
   it("engine device lost", async () => {
-    const canvas = document.createElement("canvas");
-    const engine = await WebGLEngine.create({ canvas });
-    const scene = engine.sceneManager.activeScene;
-    const rootEntity = scene.createRootEntity();
-
-    // init camera
-    const cameraEntity = rootEntity.createChild("camera");
-    const camera = cameraEntity.addComponent(Camera);
-
+    const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    engine.sceneManager.activeScene.createRootEntity().createChild("camera").addComponent(Camera);
     engine.run();
 
-    const opLost = vi.fn(() => {
+    const onLost = vi.fn(() => {
       console.log("On device lost.");
     });
     const onRestored = vi.fn(() => {
       console.log("On device restored.");
     });
 
-    engine.on("devicelost", opLost);
+    engine.on("devicelost", onLost);
     engine.on("devicerestored", onRestored);
 
-    return new Promise<void>((resolve, reject) => {
-      // Set up error tracking
-      const originalOnError = window.onerror;
-      let errorCaught: Error | null = null;
+    const originalOnError = window.onerror;
+    let error: Error | null = null;
+    window.onerror = (msg, src, line, col, err) => (error = err || new Error(String(msg)));
 
-      window.onerror = (message, source, lineno, colno, error) => {
-        errorCaught = error || new Error(String(message));
-        console.error("Error caught during device lost test:", {
-          message: errorCaught.message,
-          source,
-          lineno,
-          colno,
-          stack: errorCaught.stack
-        });
-        return originalOnError ? originalOnError(message, source, lineno, colno, error) : false;
-      };
-
+    try {
       engine.forceLoseDevice();
+      await new Promise((r) => setTimeout(r, 100));
+      expect(onLost).toHaveBeenCalledTimes(1);
 
-      setTimeout(() => {
-        try {
-          expect(opLost).toHaveBeenCalledTimes(1);
-          engine.forceRestoreDevice();
+      engine.forceRestoreDevice();
+      await new Promise((r) => setTimeout(r, 100));
+      expect(onRestored).toHaveBeenCalledTimes(1);
 
-          setTimeout(() => {
-            window.onerror = originalOnError;
-            engine.destroy();
-
-            if (errorCaught) {
-              reject(errorCaught);
-            } else {
-              resolve();
-            }
-          }, 1100);
-        } catch (err) {
-          window.onerror = originalOnError;
-          engine.destroy();
-          reject(err);
-        }
-      }, 100);
-    });
+      if (error) throw error;
+    } finally {
+      window.onerror = originalOnError;
+      engine.destroy();
+    }
   });
 });

@@ -19,9 +19,9 @@
     "b:all": "cross-env NODE_ENV=release npm run b:types && cross-env BUILD_TYPE=ALL NODE_ENV=release rollup -c",
     "clean": "pnpm -r exec rm -rf dist && pnpm -r exec rm -rf types",
     "e2e:case": "pnpm -C ./e2e run case",
-    "e2e:install": "playwright install",
     "pree2e": "playwright install --with-deps chromium",
     "e2e": "playwright test",
+    "pree2e:debug": "playwright install --with-deps chromium",
     "e2e:debug": "playwright test --ui",
     "prepare": "husky install",
     "release": "bumpp -r"
