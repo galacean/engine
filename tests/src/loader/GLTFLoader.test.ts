@@ -111,18 +111,12 @@ beforeAll(async function () {
         },
         extensionsUsed: [
           "KHR_materials_unlit",
-          "KHR_materials_pbrSpecularGlossiness",
           "KHR_materials_clearcoat",
           "KHR_lights_punctual",
           "Custom_Material",
           "Custom_Light"
         ],
-        extensionsRequired: [
-          "KHR_materials_unlit",
-          "KHR_materials_pbrSpecularGlossiness",
-          "Custom_Material",
-          "Custom_Light"
-        ],
+        extensionsRequired: ["KHR_materials_unlit", "Custom_Material", "Custom_Light"],
         extensions: {
           KHR_lights_punctual: {
             lights: [
@@ -245,24 +239,6 @@ beforeAll(async function () {
             },
             extensions: {
               KHR_materials_unlit: {}
-            }
-          },
-          {
-            name: "specular",
-            alphaMode: "MASK",
-            alphaCutoff: 0.8,
-            extensions: {
-              KHR_materials_pbrSpecularGlossiness: {
-                diffuseFactor: [0, 0, 1, 1],
-                specularFactor: [1, 0, 0, 1],
-                glossinessFactor: 0.5,
-                diffuseTexture: {
-                  index: 0
-                },
-                specularGlossinessTexture: {
-                  index: 0
-                }
-              }
             }
           },
           {

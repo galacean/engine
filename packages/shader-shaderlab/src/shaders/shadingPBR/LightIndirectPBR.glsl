@@ -58,7 +58,7 @@ float evaluateClearCoatIBL(Varyings varyings, SurfaceData surfaceData, BSDFData 
         vec3 clearCoatRadiance = getLightProbeRadiance(surfaceData, surfaceData.clearCoatNormal, bsdfData.clearCoatRoughness);
         float specularAO = evaluateSpecularOcclusion(surfaceData.dotNV, bsdfData.diffuseAO, bsdfData.clearCoatRoughness);
         specularColor += specularAO * clearCoatRadiance * surfaceData.clearCoat * envBRDFApprox(bsdfData.clearCoatSpecularColor, bsdfData.clearCoatRoughness, surfaceData.clearCoatDotNV);
-        radianceAttenuation -= surfaceData.clearCoat * F_Schlick(surfaceData.f0, surfaceData.clearCoatDotNV);
+        radianceAttenuation -= surfaceData.clearCoat * F_Schlick( 0.04, 1.0, surfaceData.clearCoatDotNV);
     #endif
 
     return radianceAttenuation;
