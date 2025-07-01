@@ -46,17 +46,6 @@ export interface IKHRMaterialsIor {
 export interface IKHRMaterialsUnlit {}
 
 /**
- * Interfaces from the KHR_materials_pbrSpecularGlossiness extension
- */
-export interface IKHRMaterialsPbrSpecularGlossiness {
-  diffuseFactor: number[];
-  diffuseTexture: ITextureInfo;
-  specularFactor: number[];
-  glossinessFactor: number;
-  specularGlossinessTexture: ITextureInfo;
-}
-
-/**
  * Interfaces from the KHR_materials_sheen extension
  */
 export interface IKHRMaterialsSheen {
@@ -70,9 +59,10 @@ export interface IKHRMaterialsSheen {
  * Interfaces from the KHR_materials_specular extension
  */
 export interface IKHRMaterialsSpecular {
-  specularFactor: number;
-  specularColorFactor: number[];
-  specularTexture: ITextureInfo;
+  specularFactor?: number;
+  specularColorFactor?: number[];
+  specularTexture?: ITextureInfo;
+  specularColorTexture?: ITextureInfo;
 }
 
 /**
@@ -203,7 +193,6 @@ export type GLTFExtensionSchema =
   | IKHRMaterialsClearcoat
   | IKHRMaterialsIor
   | IKHRMaterialsUnlit
-  | IKHRMaterialsPbrSpecularGlossiness
   | IKHRMaterialsSheen
   | IKHRMaterialsSpecular
   | IKHRMaterialsTransmission

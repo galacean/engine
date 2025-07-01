@@ -26,7 +26,7 @@ float clearCoatLobe(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfDat
         vec3 clearCoatIrradiance = clearCoatDotNL * color;
 
         specularColor += surfaceData.clearCoat * clearCoatIrradiance * BRDF_Specular_GGX( incidentDirection, surfaceData, bsdfData, surfaceData.clearCoatNormal, bsdfData.clearCoatSpecularColor, bsdfData.clearCoatRoughness );
-        attenuation -= surfaceData.clearCoat * F_Schlick(0.04, surfaceData.clearCoatDotNV);
+        attenuation -= surfaceData.clearCoat * F_Schlick(0.04, 1.0, surfaceData.clearCoatDotNV);
     #endif
 
     return attenuation;
