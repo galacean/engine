@@ -1,9 +1,9 @@
-import { Engine, Entity, Loader, Scene, Transform } from "@galacean/engine-core";
-import type { IEntity, IHierarchyFile, IRefEntity, IStrippedEntity } from "../schema";
-import { ReflectionParser } from "./ReflectionParser";
-import { ParserContext, ParserType } from "./ParserContext";
-import { PrefabResource } from "../../../prefab/PrefabResource";
+import { Component, Engine, Entity, Loader, Scene, Transform } from "@galacean/engine-core";
 import { GLTFResource } from "../../../gltf";
+import { PrefabResource } from "../../../prefab/PrefabResource";
+import type { IEntity, IHierarchyFile, IRefEntity, IStrippedEntity } from "../schema";
+import { ParserContext, ParserType } from "./ParserContext";
+import { ReflectionParser } from "./ReflectionParser";
 
 /** @Internal */
 export abstract class HierarchyParser<T extends Scene | PrefabResource, V extends ParserContext<IHierarchyFile, T>> {
@@ -223,6 +223,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     const entity = new Entity(engine, entityConfig.name, transform ? Loader.getClass(transform.class) : Transform);
     if (!entityConfig.parent) this.context.rootIds.push(entityConfig.id);
 
+    this._addEntityPlugin(entityConfig.id, entity);
     return Promise.resolve(entity);
   }
 
@@ -297,6 +298,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       const component = entity.addComponent(Loader.getClass(key));
       componentMap.set(componentId, component);
       componentConfigMap.set(componentId, componentConfig);
+      this._addComponentPlugin(componentId, component);
     }
   }
 
@@ -355,4 +357,8 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
     return Promise.all(promises);
   }
+
+  private _addComponentPlugin(componentId: string, component: Component): void {}
+
+  private _addEntityPlugin(entityId: string, entity: Entity): void {}
 }
