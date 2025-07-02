@@ -227,8 +227,6 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     return Promise.resolve(entity);
   }
 
-  private _addEntityPlugin(entityId: string, entity: Entity): void {}
-
   private _parsePrefab(entityConfig: IRefEntity, engine: Engine): Promise<Entity> {
     const assetRefId: string = entityConfig.assetRefId;
 
@@ -304,8 +302,6 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     }
   }
 
-  private _addComponentPlugin(componentId: string, component: Component): void {}
-
   private _applyEntityData(entity: Entity, entityConfig: IEntity = {}): Entity {
     entity.isActive = entityConfig.isActive ?? entity.isActive;
     entity.name = entityConfig.name ?? entity.name;
@@ -361,4 +357,8 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
     return Promise.all(promises);
   }
+
+  private _addComponentPlugin(componentId: string, component: Component): void {}
+
+  private _addEntityPlugin(entityId: string, entity: Entity): void {}
 }
