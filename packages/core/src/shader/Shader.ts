@@ -85,59 +85,60 @@ export class Shader implements IReferable {
     const shaderMap = Shader._shaderMap;
 
     if (!vertexSourceOrShaderPassesOrSubShaders) {
-      if (!Shader._shaderLab) {
+      const shaderLab = Shader._shaderLab;
+      if (!shaderLab) {
         throw "ShaderLab has not been set up yet.";
       }
 
-      const shaderContent = Shader._shaderLab._parseShaderContent(nameOrShaderSource);
-      if (shaderMap[shaderContent.name]) {
-        console.error(`Shader named "${shaderContent.name}" already exists.`);
+      const shaderSource = shaderLab._parseShaderSource(nameOrShaderSource);
+      if (shaderMap[shaderSource.name]) {
+        console.error(`Shader named "${shaderSource.name}" already exists.`);
         return;
       }
-      const subShaderList = shaderContent.subShaders.map((subShaderContent) => {
-        const passList = subShaderContent.passes.map((passInfo) => {
-          if (passInfo.isUsePass) {
-            // Use pass reference
-            const paths = passInfo.name.split("/");
-            return Shader.find(paths[0])
-              ?.subShaders.find((subShader) => subShader.name === paths[1])
-              ?.passes.find((pass) => pass.name === paths[2]);
+
+      const subShaderList = shaderSource.subShaders.map((subShaderSource) => {
+        const passList = subShaderSource.passes.map((passSource) => {
+          if (passSource.isUsePass) {
+            const [shaderName, subShaderName, passName] = passSource.name.split("/");
+            return Shader.find(shaderName)
+              ?.subShaders.find((subShader) => subShader.name === subShaderName)
+              ?.passes.find((pass) => pass.name === passName);
           }
 
-          const shaderPassContent = new ShaderPass(
-            passInfo.name,
-            passInfo.contents,
-            passInfo.vertexEntry,
-            passInfo.fragmentEntry,
-            passInfo.tags
+          const shaderPass = new ShaderPass(
+            passSource.name,
+            passSource.contents,
+            passSource.vertexEntry,
+            passSource.fragmentEntry,
+            passSource.tags
           );
 
-          const { constantMap, variableMap } = passInfo.renderStates;
+          const { constantMap, variableMap } = passSource.renderStates;
           // Compatible shader lab no render state use material `renderState` to modify render state
           if (Object.keys(constantMap).length > 0 || Object.keys(variableMap).length > 0) {
             // Parse const render state
             const renderState = new RenderState();
-            shaderPassContent._renderState = renderState;
             for (let k in constantMap) {
-              Shader._applyConstRenderStates(renderState, <RenderStateElementKey>parseInt(k), constantMap[k]);
+              Shader._applyConstRenderStates(renderState, +k, constantMap[k]);
             }
+            shaderPass._renderState = renderState;
 
             // Parse variable render state
-            const renderStateDataMap = {} as Record<number, ShaderProperty>;
+            const renderStateDataMap = <Record<number, ShaderProperty>>{};
             for (let k in variableMap) {
               renderStateDataMap[k] = ShaderProperty.getByName(variableMap[k]);
             }
-            shaderPassContent._renderStateDataMap = renderStateDataMap;
+            shaderPass._renderStateDataMap = renderStateDataMap;
           }
 
-          return shaderPassContent;
+          return shaderPass;
         });
 
-        return new SubShader(subShaderContent.name, passList, subShaderContent.tags);
+        return new SubShader(subShaderSource.name, passList, subShaderSource.tags);
       });
 
-      shader = new Shader(shaderContent.name, subShaderList);
-      shaderMap[shaderContent.name] = shader;
+      shader = new Shader(shaderSource.name, subShaderList);
+      shaderMap[shaderSource.name] = shader;
       return shader;
     } else {
       if (shaderMap[nameOrShaderSource]) {

@@ -1,5 +1,6 @@
-import { EKeyword, GalaceanDataType, TypeAny } from "../../common";
+import { GalaceanDataType } from "../../common";
 import { EShaderStage } from "../../common/Enums";
+import { Keyword } from "../../common/enums/Keyword";
 
 export const BuiltinVariableTable: Map<string, BuiltinVariable> = new Map();
 
@@ -24,26 +25,26 @@ export class BuiltinVariable {
   }
 }
 
-BuiltinVariable.createVariable("gl_VertexID", EKeyword.INT, EShaderStage.VERTEX);
-BuiltinVariable.createVariable("gl_InstanceID", EKeyword.INT, EShaderStage.VERTEX);
-BuiltinVariable.createVariable("gl_Position", EKeyword.VEC4, EShaderStage.VERTEX);
-BuiltinVariable.createVariable("gl_PointSize", EKeyword.FLOAT, EShaderStage.VERTEX);
+BuiltinVariable.createVariable("gl_VertexID", Keyword.INT, EShaderStage.VERTEX);
+BuiltinVariable.createVariable("gl_InstanceID", Keyword.INT, EShaderStage.VERTEX);
+BuiltinVariable.createVariable("gl_Position", Keyword.VEC4, EShaderStage.VERTEX);
+BuiltinVariable.createVariable("gl_PointSize", Keyword.FLOAT, EShaderStage.VERTEX);
 
-BuiltinVariable.createVariable("gl_FragCoord", EKeyword.VEC4, EShaderStage.FRAGMENT);
-BuiltinVariable.createVariable("gl_FrontFacing", EKeyword.BOOL, EShaderStage.FRAGMENT);
-BuiltinVariable.createVariable("gl_FragDepth", EKeyword.FLOAT, EShaderStage.FRAGMENT);
-BuiltinVariable.createVariable("gl_PointCoord", EKeyword.VEC2, EShaderStage.FRAGMENT);
-BuiltinVariable.createVariable("gl_FragColor", EKeyword.VEC4, EShaderStage.FRAGMENT);
-BuiltinVariable.createVariable("gl_FragData", EKeyword.VEC4_ARRAY, EShaderStage.FRAGMENT);
+BuiltinVariable.createVariable("gl_FragCoord", Keyword.VEC4, EShaderStage.FRAGMENT);
+BuiltinVariable.createVariable("gl_FrontFacing", Keyword.BOOL, EShaderStage.FRAGMENT);
+BuiltinVariable.createVariable("gl_FragDepth", Keyword.FLOAT, EShaderStage.FRAGMENT);
+BuiltinVariable.createVariable("gl_PointCoord", Keyword.VEC2, EShaderStage.FRAGMENT);
+BuiltinVariable.createVariable("gl_FragColor", Keyword.VEC4, EShaderStage.FRAGMENT);
+BuiltinVariable.createVariable("gl_FragData", Keyword.VEC4_ARRAY, EShaderStage.FRAGMENT);
 
-BuiltinVariable.createVariable("gl_MaxVertexAttribs", EKeyword.INT);
-BuiltinVariable.createVariable("gl_MaxVertexUniformVectors", EKeyword.INT);
-BuiltinVariable.createVariable("gl_MaxVertexOutputVectors", EKeyword.INT);
-BuiltinVariable.createVariable("gl_MaxFragmentInputVectors", EKeyword.INT);
-BuiltinVariable.createVariable("gl_MaxVertexTextureImageUnits", EKeyword.INT);
-BuiltinVariable.createVariable("gl_MaxCombinedTextureImageUnits", EKeyword.INT);
-BuiltinVariable.createVariable("gl_MaxTextureImageUnits", EKeyword.INT);
-BuiltinVariable.createVariable("gl_MaxFragmentUniformVectors", EKeyword.INT);
-BuiltinVariable.createVariable("gl_MaxDrawBuffers", EKeyword.INT);
-BuiltinVariable.createVariable("gl_MinProgramTexelOffset", EKeyword.INT);
-BuiltinVariable.createVariable("gl_MaxProgramTexelOffset", EKeyword.INT);
+BuiltinVariable.createVariable("gl_MaxVertexAttribs", Keyword.INT);
+BuiltinVariable.createVariable("gl_MaxVertexUniformVectors", Keyword.INT);
+BuiltinVariable.createVariable("gl_MaxVertexOutputVectors", Keyword.INT);
+BuiltinVariable.createVariable("gl_MaxFragmentInputVectors", Keyword.INT);
+BuiltinVariable.createVariable("gl_MaxVertexTextureImageUnits", Keyword.INT);
+BuiltinVariable.createVariable("gl_MaxCombinedTextureImageUnits", Keyword.INT);
+BuiltinVariable.createVariable("gl_MaxTextureImageUnits", Keyword.INT);
+BuiltinVariable.createVariable("gl_MaxFragmentUniformVectors", Keyword.INT);
+BuiltinVariable.createVariable("gl_MaxDrawBuffers", Keyword.INT);
+BuiltinVariable.createVariable("gl_MinProgramTexelOffset", Keyword.INT);
+BuiltinVariable.createVariable("gl_MaxProgramTexelOffset", Keyword.INT);

@@ -113,7 +113,6 @@ variable_type:
 
 render_state_assignment:
     render_state_declarator '=' id ';'
-    | render_state_declarator '{' render_state_prop_list '}'
     ;
 
 render_state_declaration:
