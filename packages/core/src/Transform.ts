@@ -50,10 +50,10 @@ export class Transform extends Component {
   private _worldUp: Vector3 = null;
 
   @ignoreClone
-  private _isParentDirty: boolean = true;
+  protected _isParentDirty: boolean = true;
   @ignoreClone
-  private _parentTransformCache: Transform = null;
-  private _dirtyFlag: number = TransformModifyFlags.WmWpWeWqWs;
+  protected _parentTransformCache: Transform = null;
+  protected _dirtyFlag: number = TransformModifyFlags.WmWpWeWqWs;
 
   /**
    * Local position.
@@ -698,7 +698,7 @@ export class Transform extends Component {
    * Update all world transform property dirty flag, the principle is the same as above.
    * @param flags - Dirty flag
    */
-  private _updateAllWorldFlag(flags: TransformModifyFlags): void {
+  protected _updateAllWorldFlag(flags: TransformModifyFlags): void {
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
       const children = this._entity._children;
@@ -740,19 +740,19 @@ export class Transform extends Component {
     return scaMat;
   }
 
-  private _isContainDirtyFlags(targetDirtyFlags: number): boolean {
+  protected _isContainDirtyFlags(targetDirtyFlags: number): boolean {
     return (this._dirtyFlag & targetDirtyFlags) === targetDirtyFlags;
   }
 
-  private _isContainDirtyFlag(type: number): boolean {
+  protected _isContainDirtyFlag(type: number): boolean {
     return (this._dirtyFlag & type) != 0;
   }
 
-  private _setDirtyFlagTrue(type: number) {
+  protected _setDirtyFlagTrue(type: number) {
     this._dirtyFlag |= type;
   }
 
-  private _setDirtyFlagFalse(type: number) {
+  protected _setDirtyFlagFalse(type: number) {
     this._dirtyFlag &= ~type;
   }
 
