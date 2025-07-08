@@ -92,16 +92,24 @@ export function initScreenshot(
       const imageName = `${category}_${caseFileName}.jpg`;
       a.href = url;
       a.download = imageName;
-      a.id = "screenshot";
+      a.dataset.testid = "screenshot";
+      a.textContent = "Download Screenshot";
+      a.style.cssText = `
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        z-index: 9999;
+        background: #007bff;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        border: none;
+        cursor: pointer;
+      `;
       document.body.appendChild(a);
-
-      a.addEventListener("click", () => {
-        if (a.parentElement) {
-          a.parentElement.removeChild(a);
-        }
-      });
-
-      // window.URL.revokeObjectURL(url);
 
       // revert
       callbacks.forEach((cb) => cb());
