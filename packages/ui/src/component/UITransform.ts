@@ -4,10 +4,6 @@ import { Entity, MathUtil, Rect, Transform, Vector2, deepClone, ignoreClone } fr
  * The Transform component exclusive to the UI element.
  */
 export class UITransform extends Transform {
-  static _checkIsNull(value: number): boolean {
-    return value === undefined || value === null || isNaN(value);
-  }
-
   @deepClone
   private _size: Vector2 = new Vector2(100, 100);
   @deepClone
@@ -30,7 +26,7 @@ export class UITransform extends Transform {
   set left(value: number) {
     if (MathUtil.equals(value, this._left)) return;
     this._left = value;
-    if (UITransform._checkIsNull(value)) {
+    if (Number.isFinite(value)) {
       this._alignment &= ~UITransformAlignment.Left;
     } else {
       this._center = NaN;
@@ -47,7 +43,7 @@ export class UITransform extends Transform {
   set right(value: number) {
     if (MathUtil.equals(value, this._right)) return;
     this._right = value;
-    if (UITransform._checkIsNull(value)) {
+    if (Number.isFinite(value)) {
       this._alignment &= ~UITransformAlignment.Right;
     } else {
       this._center = NaN;
@@ -64,7 +60,7 @@ export class UITransform extends Transform {
   set center(value: number) {
     if (MathUtil.equals(value, this._center)) return;
     this._center = value;
-    if (UITransform._checkIsNull(value)) {
+    if (Number.isFinite(value)) {
       this._alignment &= ~UITransformAlignment.Center;
     } else {
       this._left = this.right = NaN;
@@ -81,7 +77,7 @@ export class UITransform extends Transform {
   set top(value: number) {
     if (MathUtil.equals(value, this._top)) return;
     this._top = value;
-    if (UITransform._checkIsNull(value)) {
+    if (Number.isFinite(value)) {
       this._alignment &= ~UITransformAlignment.Top;
     } else {
       this._middle = NaN;
@@ -98,7 +94,7 @@ export class UITransform extends Transform {
   set bottom(value: number) {
     if (MathUtil.equals(value, this._bottom)) return;
     this._bottom = value;
-    if (UITransform._checkIsNull(value)) {
+    if (Number.isFinite(value)) {
       this._alignment &= ~UITransformAlignment.Bottom;
     } else {
       this._middle = NaN;
@@ -115,7 +111,7 @@ export class UITransform extends Transform {
   set middle(value: number) {
     if (MathUtil.equals(value, this._middle)) return;
     this._middle = value;
-    if (UITransform._checkIsNull(value)) {
+    if (Number.isFinite(value)) {
       this._alignment &= ~UITransformAlignment.Middle;
     } else {
       this._top = this.bottom = NaN;
@@ -294,7 +290,7 @@ export enum UITransformModifyFlags {
   Pivot = 0x400,
 }
 
-export enum UITransformAlignment {
+enum UITransformAlignment {
   None = 0,
   // Horizontal alignment
   Left = 0x1,
