@@ -601,22 +601,6 @@ export class Transform extends Component {
     return parentCache;
   }
 
-  protected _isContainDirtyFlags(targetDirtyFlags: number): boolean {
-    return (this._dirtyFlag & targetDirtyFlags) === targetDirtyFlags;
-  }
-
-  protected _isContainDirtyFlag(type: number): boolean {
-    return (this._dirtyFlag & type) != 0;
-  }
-
-  protected _setDirtyFlagTrue(type: number) {
-    this._dirtyFlag |= type;
-  }
-
-  protected _setDirtyFlagFalse(type: number) {
-    this._dirtyFlag &= ~type;
-  }
-
   @ignoreClone
   protected _onPositionChanged(): void {
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
@@ -757,6 +741,22 @@ export class Transform extends Component {
     Matrix3x3.rotationQuaternion(invRotation, invRotationMat);
     Matrix3x3.multiply(invRotationMat, worldRotScaMat, scaMat);
     return scaMat;
+  }
+
+  private _isContainDirtyFlags(targetDirtyFlags: number): boolean {
+    return (this._dirtyFlag & targetDirtyFlags) === targetDirtyFlags;
+  }
+
+  private _isContainDirtyFlag(type: number): boolean {
+    return (this._dirtyFlag & type) != 0;
+  }
+
+  private _setDirtyFlagTrue(type: number) {
+    this._dirtyFlag |= type;
+  }
+
+  private _setDirtyFlagFalse(type: number) {
+    this._dirtyFlag &= ~type;
   }
 
   private _worldAssociatedChange(type: number): void {
