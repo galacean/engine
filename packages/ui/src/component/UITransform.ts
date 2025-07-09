@@ -8,7 +8,7 @@ export class UITransform extends Transform {
   private _size: Vector2 = new Vector2(100, 100);
   @deepClone
   private _pivot: Vector2 = new Vector2(0.5, 0.5);
-  @deepClone
+  @ignoreClone
   private _localRect: Rect = new Rect(-50, -50, 100, 100);
 
   private _left: number = NaN;
@@ -234,7 +234,7 @@ export class UITransform extends Transform {
         this.position.x = parentRect.x + this._left + localRect.x;
         break;
       case UITransformAlignment.Center:
-        this.position.x = parentRect.x + (parentRect.width - localRect.width) >> 1 + localRect.x + this._center;
+        this.position.x = (parentRect.x + (parentRect.width - localRect.width)) >> (1 + localRect.x + this._center);
         break;
       case UITransformAlignment.Right:
         this.position.x = parentRect.width + parentRect.x - this._right - localRect.width - localRect.x;
@@ -251,7 +251,7 @@ export class UITransform extends Transform {
         this.position.y = parentRect.y + this._top + localRect.y;
         break;
       case UITransformAlignment.Middle:
-        this.position.y = parentRect.y + (parentRect.height - localRect.height) >> 1 + localRect.y + this._middle;
+        this.position.y = (parentRect.y + (parentRect.height - localRect.height)) >> (1 + localRect.y + this._middle);
         break;
       case UITransformAlignment.Bottom:
         this.position.y = parentRect.height + parentRect.y - this._bottom - localRect.height - localRect.y;
@@ -282,26 +282,27 @@ export class UITransform extends Transform {
 
 /**
  * @internal
+ * extends TransformModifyFlags
  */
 export enum UITransformModifyFlags {
   /** Size. */
   Size = 0x200,
   /** Pivot. */
-  Pivot = 0x400,
+  Pivot = 0x400
 }
 
 enum UITransformAlignment {
   None = 0,
-  // Horizontal alignment
+  /** Horizontal. */
   Left = 0x1,
   Right = 0x2,
   LeftAndRight = 0x3,
   Center = 0x4,
   Horizontal = 0x7,
-  // Vertical alignment
+  /** Vertical. */
   Top = 0x8,
   Bottom = 0x10,
   TopAndBottom = 0x18,
   Middle = 0x20,
-  Vertical = 0x38,
+  Vertical = 0x38
 }
