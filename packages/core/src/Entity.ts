@@ -659,6 +659,7 @@ export class Entity extends EngineObject {
    * @internal
    */
   _setParentChange() {
+    // @ts-ignore
     this._transform._parentChange();
     this._dispatchModify(EntityModifyFlags.Parent, this);
   }

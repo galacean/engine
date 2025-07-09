@@ -19,7 +19,7 @@ export class Transform extends Component {
   private static _tempMat42: Matrix = new Matrix();
 
   @deepClone
-  private _position: Vector3 = new Vector3();
+  protected _position: Vector3 = new Vector3();
   @deepClone
   private _rotation: Vector3 = new Vector3();
   @deepClone
@@ -556,10 +556,7 @@ export class Transform extends Component {
     rotMat.getRotation(this._worldRotationQuaternion);
   }
 
-  /**
-   * @internal
-   */
-  _parentChange(): void {
+  protected _parentChange(): void {
     this._isParentDirty = true;
     this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
   }
@@ -607,7 +604,7 @@ export class Transform extends Component {
    * Get worldPosition: Will trigger the worldMatrix, local position update of itself and the worldMatrix update of all parent entities.
    * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix or worldRotationQuaternion) to be false.
    */
-  private _updateWorldPositionFlag(): void {
+  protected _updateWorldPositionFlag(): void {
     if (!this._isContainDirtyFlags(TransformModifyFlags.WmWp)) {
       this._worldAssociatedChange(TransformModifyFlags.WmWp);
       const children = this._entity._children;
@@ -708,7 +705,7 @@ export class Transform extends Component {
     }
   }
 
-  private _getParentTransform(): Transform | null {
+  protected _getParentTransform(): Transform | null {
     if (!this._isParentDirty) {
       return this._parentTransformCache;
     }
@@ -787,7 +784,7 @@ export class Transform extends Component {
   }
 
   @ignoreClone
-  private _onPositionChanged(): void {
+  protected _onPositionChanged(): void {
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
     this._updateWorldPositionFlag();
   }
@@ -846,7 +843,7 @@ export class Transform extends Component {
   }
 
   @ignoreClone
-  private _onScaleChanged(): void {
+  protected _onScaleChanged(): void {
     const { x, y, z } = this._scale;
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
     const localUniformScaling = x == y && y == z;
