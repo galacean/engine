@@ -49,7 +49,7 @@ importers:
         version: 6.21.0(eslint@8.57.1)(typescript@5.6.3)
       '@vitest/coverage-v8':
         specifier: 2.1.3
-        version: 2.1.3(@vitest/browser@2.1.3)(vitest@2.1.3)
+        version: 2.1.3(@vitest/browser@2.1.3(@types/node@18.19.64)(@vitest/spy@2.1.3)(playwright@1.48.2)(typescript@5.6.3)(vite@5.4.11(@types/node@18.19.64)(sass@1.81.0))(vitest@2.1.3))(vitest@2.1.3(@types/node@18.19.64)(@vitest/browser@2.1.3)(msw@2.6.5(@types/node@18.19.64)(typescript@5.6.3))(sass@1.81.0))
       bumpp:
         specifier: ^9.5.2
         version: 9.8.1(magicast@0.3.5)
@@ -286,27 +286,15 @@ importers:
       '@galacean/engine':
         specifier: workspace:*
         version: link:../packages/galacean
-      '@galacean/engine-core':
-        specifier: workspace:*
-        version: link:../packages/core
       '@galacean/engine-design':
         specifier: workspace:*
         version: link:../packages/design
-      '@galacean/engine-loader':
-        specifier: workspace:*
-        version: link:../packages/loader
-      '@galacean/engine-math':
-        specifier: workspace:*
-        version: link:../packages/math
       '@galacean/engine-physics-lite':
         specifier: workspace:*
         version: link:../packages/physics-lite
       '@galacean/engine-physics-physx':
         specifier: workspace:*
         version: link:../packages/physics-physx
-      '@galacean/engine-rhi-webgl':
-        specifier: workspace:*
-        version: link:../packages/rhi-webgl
       '@galacean/engine-shader-shaderlab':
         specifier: workspace:*
         version: link:../packages/shader-shaderlab
@@ -5216,7 +5204,7 @@ snapshots:
       - utf-8-validate
       - vite
 
-  '@vitest/coverage-v8@2.1.3(@vitest/browser@2.1.3)(vitest@2.1.3)':
+  '@vitest/coverage-v8@2.1.3(@vitest/browser@2.1.3(@types/node@18.19.64)(@vitest/spy@2.1.3)(playwright@1.48.2)(typescript@5.6.3)(vite@5.4.11(@types/node@18.19.64)(sass@1.81.0))(vitest@2.1.3))(vitest@2.1.3(@types/node@18.19.64)(@vitest/browser@2.1.3)(msw@2.6.5(@types/node@18.19.64)(typescript@5.6.3))(sass@1.81.0))':
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@bcoe/v8-coverage': 0.2.3

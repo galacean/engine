@@ -21,7 +21,7 @@ export class ReflectionParser {
     this.customParseComponentHandles[componentType] = handle;
   }
 
-  constructor(private readonly _context: ParserContext<IHierarchyFile, EngineObject>) {}
+  constructor(private readonly _context: ParserContext<IHierarchyFile, EngineObject>) { }
 
   parseEntity(entityConfig: IEntity): Promise<Entity> {
     return this._getEntityByConfig(entityConfig).then((entity) => {
@@ -163,7 +163,7 @@ export class ReflectionParser {
               // @ts-ignore
               this._context.resource._addDependenceAsset(resource);
             }
-            entity.name = entityConfig.name;
+            (<Entity>entity).name = entityConfig.name;
             return entity;
           })
       );

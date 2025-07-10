@@ -42,11 +42,13 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
       // @ts-ignore
       const componentsManager = scene._componentsManager;
       // Overlay Canvas
+      // @ts-ignore
       let canvasElements: DisorderedArray<UICanvas> = componentsManager._overlayCanvases;
       // Screen to world ( Assume that world units have a one-to-one relationship with pixel units )
       ray.origin.set(position.x, scene.engine.canvas.height - position.y, 1);
       ray.direction.set(0, 0, -1);
       for (let j = canvasElements.length - 1; j >= 0; j--) {
+        // @ts-ignore
         if (canvasElements.get(j)._raycast(ray, hitResult)) {
           this._updateRaycast((<UIHitResult>hitResult).component, pointer);
           return;
@@ -72,6 +74,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         const isOrthographic = camera.isOrthographic;
         const { worldPosition: cameraPosition, worldForward: cameraForward } = camera.entity.transform;
         // Sort by rendering order
+        // @ts-ignore
         canvasElements = componentsManager._canvases;
         for (let k = 0, n = canvasElements.length; k < n; k++) {
           canvasElements.get(k)._updateSortDistance(isOrthographic, cameraPosition, cameraForward);
@@ -85,6 +88,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         for (let k = 0, n = canvasElements.length; k < n; k++) {
           const canvas = canvasElements.get(k);
           if (!canvas._canRender(camera)) continue;
+          // @ts-ignore
           if (canvas._raycast(ray, hitResult, farClipPlane)) {
             this._updateRaycast((<UIHitResult>hitResult).component, pointer);
             return;

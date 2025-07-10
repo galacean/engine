@@ -16,8 +16,8 @@
   "main": "src/index.ts",
   "module": "src/index.ts",
   "browser": "src/index.ts",
-  "types": "src/index.ts",
   "debug": "src/index.ts",
+  "types": "src/index.ts",
   "scripts": {
     "b:types": "tsc"
   },

@@ -230,12 +230,14 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   private _parsePrefab(entityConfig: IRefEntity, engine: Engine): Promise<Entity> {
     const assetRefId: string = entityConfig.assetRefId;
 
+    // @ts-ignore
     return (
       engine.resourceManager
         // @ts-ignore
         .getResourceByRef<Entity>({
           refId: assetRefId
         })
+        // @ts-ignore
         .then((prefabResource: PrefabResource | GLTFResource) => {
           const entity =
             prefabResource instanceof PrefabResource
@@ -330,6 +332,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       // @ts-ignore
       const name = Loader.getClassName(component.constructor);
       if (!componentsMap[name]) {
+        // @ts-ignore
         componentsMap[name] = entity.getComponents(component.constructor, []);
         componentIndexMap[name] = 0;
       }
@@ -358,7 +361,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     return Promise.all(promises);
   }
 
-  private _addComponentPlugin(componentId: string, component: Component): void {}
+  private _addComponentPlugin(componentId: string, component: Component): void { }
 
-  private _addEntityPlugin(entityId: string, entity: Entity): void {}
+  private _addEntityPlugin(entityId: string, entity: Entity): void { }
 }

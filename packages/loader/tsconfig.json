@@ -13,7 +13,6 @@
     "emitDeclarationOnly": true,
     "sourceMap": true
   },
-  "include": [
-    "src/**/*"
-  ]
+   "include": [
+    "src/**/*", "../global.d.ts"  ]
 }

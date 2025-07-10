@@ -15,6 +15,7 @@ export class WebGLEngine extends Engine {
     const canvas = configuration.canvas;
     const webCanvas = new WebCanvas(typeof canvas === "string" ? document.getElementById(canvas) : canvas);
     const webGLGraphicDevice = new WebGLGraphicDevice(configuration.graphicDeviceOptions);
+    // @ts-ignore
     const engine = new WebGLEngine(webCanvas, webGLGraphicDevice, configuration);
     // @ts-ignore
     const promise = engine._initialize(configuration) as Promise<WebGLEngine>;

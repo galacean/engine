@@ -77,7 +77,8 @@ export class GLTFResource extends ReferResource {
     }
   }
 
-  private _disassociationSuperResource(resources: ReferResource[]): void {
+  // @ts-ignore
+  override _disassociationSuperResource(resources: ReferResource[]): void {
     for (let i = 0, n = resources.length; i < n; i++) {
       // @ts-ignore
       resources[i]?._disassociationSuperResource(this);
