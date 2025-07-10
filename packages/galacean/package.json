@@ -3,16 +3,21 @@
   "version": "1.5.10",
   "publishConfig": {
     "access": "public",
-    "registry": "https://registry.npmjs.org"
+    "registry": "https://registry.npmjs.org",
+    "main": "dist/main.js",
+    "module": "dist/module.js",
+    "browser": "dist/browser.js",
+    "types": "types/index.d.ts"
   },
   "license": "MIT",
   "scripts": {
     "b:types": "tsc"
   },
-  "types": "types/index.d.ts",
-  "main": "dist/main.js",
-  "module": "dist/module.js",
-  "browser": "dist/browser.js",
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "browser": "src/index.ts",
+  "types": "src/index.ts",
+  "debug": "src/index.ts",
   "files": [
     "dist/**/*",
     "types/**/*"

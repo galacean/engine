@@ -16,11 +16,7 @@
   ],
   "dependencies": {
     "@galacean/engine": "workspace:*",
-    "@galacean/engine-core": "workspace:*",
-    "@galacean/engine-loader": "workspace:*",
     "@galacean/engine-design": "workspace:*",
-    "@galacean/engine-math": "workspace:*",
-    "@galacean/engine-rhi-webgl": "workspace:*",
     "@galacean/engine-physics-lite": "workspace:*",
     "@galacean/engine-shaderlab": "workspace:*",
     "@galacean/engine-physics-physx": "workspace:*",
