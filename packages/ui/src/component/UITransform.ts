@@ -181,7 +181,7 @@ export class UITransform extends Transform {
     this._calRelativeByAbsolute();
     const children = this.entity.children;
     for (let i = 0, n = children.length; i < n; i++) {
-      (children[i].transform as unknown as UITransform)?._calAbsoluteByRelative();
+      (children[i].transform as unknown as UITransform)._calAbsoluteByRelative?.();
     }
   }
 
