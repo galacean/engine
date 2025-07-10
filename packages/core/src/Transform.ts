@@ -559,14 +559,6 @@ export class Transform extends Component {
   /**
    * @internal
    */
-  _parentChange(): void {
-    this._isParentDirty = true;
-    this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
-  }
-
-  /**
-   * @internal
-   */
   _isFrontFaceInvert(): boolean {
     const scale = this.lossyWorldScale;
     let isInvert = scale.x < 0;
@@ -582,6 +574,37 @@ export class Transform extends Component {
     this._position.copyFrom(transform.position);
     this._rotation.copyFrom(transform.rotation);
     this._scale.copyFrom(transform.scale);
+  }
+
+  protected _parentChange(): void {
+    this._isParentDirty = true;
+    this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
+  }
+
+  protected _getParentTransform(): Transform | null {
+    if (!this._isParentDirty) {
+      return this._parentTransformCache;
+    }
+    let parentCache: Transform = null;
+    let parent = this._entity.parent;
+    while (parent) {
+      const transform = parent.transform;
+      if (transform) {
+        parentCache = transform;
+        break;
+      } else {
+        parent = parent.parent;
+      }
+    }
+    this._parentTransformCache = parentCache;
+    this._isParentDirty = false;
+    return parentCache;
+  }
+
+  @ignoreClone
+  protected _onPositionChanged(): void {
+    this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
+    this._updateWorldPositionFlag();
   }
 
   protected override _onDestroy(): void {
@@ -708,26 +731,6 @@ export class Transform extends Component {
     }
   }
 
-  private _getParentTransform(): Transform | null {
-    if (!this._isParentDirty) {
-      return this._parentTransformCache;
-    }
-    let parentCache: Transform = null;
-    let parent = this._entity.parent;
-    while (parent) {
-      const transform = parent.transform;
-      if (transform) {
-        parentCache = transform;
-        break;
-      } else {
-        parent = parent.parent;
-      }
-    }
-    this._parentTransformCache = parentCache;
-    this._isParentDirty = false;
-    return parentCache;
-  }
-
   private _getScaleMatrix(): Matrix3x3 {
     const invRotation = Transform._tempQuat0;
     const invRotationMat = Transform._tempMat30;
@@ -784,12 +787,6 @@ export class Transform extends Component {
     const rotQuat = Transform._tempQuat0;
     Quaternion.rotationEuler(x * radFactor, y * radFactor, z * radFactor, rotQuat);
     this._rotateByQuat(rotQuat, relativeToLocal);
-  }
-
-  @ignoreClone
-  private _onPositionChanged(): void {
-    this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
-    this._updateWorldPositionFlag();
   }
 
   @ignoreClone
