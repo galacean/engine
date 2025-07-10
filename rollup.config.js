@@ -129,7 +129,7 @@ function config({ location, pkgJson, verboseMode }) {
       }
       return {
         input,
-        external,
+        external: pkgJson.name === "@galacean/engine" ? [] : external,
         output: [
           {
             file: esFile,
