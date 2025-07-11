@@ -13,6 +13,7 @@ import {
   Logger,
   Mesh,
   Platform,
+  Primitive,
   RenderTarget,
   SubMesh,
   SystemInfo,
@@ -240,7 +241,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   }
 
   createPlatformPrimitive(primitive: Mesh): IPlatformPrimitive {
-    return new GLPrimitive(this, primitive);
+    return new GLPrimitive(this, primitive as unknown as Primitive);
   }
 
   createPlatformTexture2D(texture2D: Texture2D): IPlatformTexture2D {
@@ -496,9 +497,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     // @ts-ignore
     const glTexture = grabTexture._platformTexture;
 
-    glTexture._bind();
+    (glTexture as any)._bind();
 
-    gl.copyTexSubImage2D(glTexture._target, 0, 0, 0, xStart, yStart, copyWidth, copyHeight);
+    gl.copyTexSubImage2D((glTexture as any)._target, 0, 0, 0, xStart, yStart, copyWidth, copyHeight);
   }
 
   activeTexture(textureID: number): void {

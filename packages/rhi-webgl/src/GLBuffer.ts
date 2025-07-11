@@ -6,7 +6,7 @@ export class GLBuffer implements IPlatformBuffer {
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _glBindTarget: number;
   private _glBufferUsage: number;
-  private _glBuffer: WebGLBuffer;
+  _glBuffer: WebGLBuffer;
   private _isWebGL2: boolean;
 
   constructor(

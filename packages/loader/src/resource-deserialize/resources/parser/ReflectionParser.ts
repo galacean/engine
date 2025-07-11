@@ -163,6 +163,7 @@ export class ReflectionParser {
               // @ts-ignore
               this._context.resource._addDependenceAsset(resource);
             }
+            // @ts-ignore
             entity.name = entityConfig.name;
             return entity;
           })

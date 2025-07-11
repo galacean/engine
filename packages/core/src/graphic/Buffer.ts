@@ -17,7 +17,7 @@ export class Buffer extends GraphicsResource {
   private _type: BufferBindFlag;
   private _byteLength: number;
   private _bufferUsage: BufferUsage;
-  private _platformBuffer: IPlatformBuffer;
+  _platformBuffer: IPlatformBuffer;
   private _readable: boolean;
   private _data: Uint8Array;
 

@@ -1,19 +1,21 @@
 {
   "name": "@galacean/engine-physics-physx",
   "version": "1.5.10",
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "types": "src/index.ts",
+  "debug": "src/index.ts",
   "publishConfig": {
     "access": "public",
-    "registry": "https://registry.npmjs.org"
+    "registry": "https://registry.npmjs.org",
+    "main": "dist/main.js",
+    "module": "dist/module.js",
+    "types": "types/index.d.ts"
   },
   "repository": {
     "url": "https://github.com/galacean/engine.git"
   },
   "license": "MIT",
-  "main": "dist/main.js",
-  "module": "dist/module.js",
-  "debug": "src/index.ts",
-  "browser": "dist/browser.js",
-  "types": "types/index.d.ts",
   "scripts": {
     "b:types": "tsc"
   },

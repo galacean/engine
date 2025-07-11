@@ -1,9 +1,15 @@
 import { defineProject } from "vitest/config";
+import raw from "vite-raw-plugin";
 
 export default defineProject({
   server: {
     port: 51204
   },
+  plugins: [
+    raw({
+      fileRegex: /\.glsl$/
+    })
+  ],
   optimizeDeps: {
     exclude: [
       "@galacean/engine",

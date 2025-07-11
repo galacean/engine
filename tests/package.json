@@ -17,17 +17,18 @@
   "dependencies": {
     "@galacean/engine": "workspace:*",
     "@galacean/engine-core": "workspace:*",
-    "@galacean/engine-loader": "workspace:*",
     "@galacean/engine-design": "workspace:*",
+    "@galacean/engine-loader": "workspace:*",
     "@galacean/engine-math": "workspace:*",
-    "@galacean/engine-rhi-webgl": "workspace:*",
     "@galacean/engine-physics-lite": "workspace:*",
-    "@galacean/engine-shaderlab": "workspace:*",
     "@galacean/engine-physics-physx": "workspace:*",
-    "@galacean/engine-ui": "workspace:*",
-    "@galacean/engine-shader-shaderlab": "workspace:*"
+    "@galacean/engine-rhi-webgl": "workspace:*",
+    "@galacean/engine-shader-shaderlab": "workspace:*",
+    "@galacean/engine-shaderlab": "workspace:*",
+    "@galacean/engine-ui": "workspace:*"
   },
   "devDependencies": {
-    "@vitest/browser": "2.1.3"
+    "@vitest/browser": "2.1.3",
+    "vite-raw-plugin": "^1.0.2"
   }
 }

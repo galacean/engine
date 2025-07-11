@@ -253,7 +253,11 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           0
         );
       } else if (this._target.antiAliasing <= 1) {
-        const { internalFormat, attachment } = GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
+        const { internalFormat, attachment } = GLTexture._getRenderBufferDepthFormatDetail(
+          _depth as TextureFormat,
+          gl,
+          isWebGL2
+        );
         const depthRenderBuffer = gl.createRenderbuffer();
 
         this._depthRenderBuffer = depthRenderBuffer;

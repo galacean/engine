@@ -24,6 +24,7 @@ class MeshLoader extends Loader<ModelMesh> {
         // @ts-ignore
         ._request(url, requestConfig)
         .then((data) => {
+          // @ts-ignore
           return decode<ModelMesh>(data, resourceManager.engine);
         })
         .then((mesh: ModelMesh) => {
