@@ -121,8 +121,8 @@ function config({ location, pkgJson, verboseMode }) {
       };
     },
     module: () => {
-      let esFile = path.join(location, pkgJson.module);
-      let mainFile = path.join(location, pkgJson.main);
+      let esFile = path.join(location, pkgJson.publishConfig.module);
+      let mainFile = path.join(location, pkgJson.publishConfig.main);
       if (verboseMode) {
         esFile = path.join(location, "dist", "module.verbose.js");
         mainFile = path.join(location, "dist", "main.verbose.js");

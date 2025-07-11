@@ -16,7 +16,6 @@ export class WebGLEngine extends Engine {
     const webCanvas = new WebCanvas(typeof canvas === "string" ? document.getElementById(canvas) : canvas);
     const webGLGraphicDevice = new WebGLGraphicDevice(configuration.graphicDeviceOptions);
     const engine = new WebGLEngine(webCanvas, webGLGraphicDevice, configuration);
-    // @ts-ignore
     const promise = engine._initialize(configuration) as Promise<WebGLEngine>;
     return promise.then(() => {
       engine.sceneManager.addScene(new Scene(engine, "DefaultScene"));
@@ -25,10 +24,22 @@ export class WebGLEngine extends Engine {
   }
 
   /**
+   * @internal
+   * Protected constructor to match the base Engine class pattern.
+   * Use WebGLEngine.create() to create instances.
+   */
+  protected constructor(
+    canvas: WebCanvas,
+    hardwareRenderer: WebGLGraphicDevice,
+    configuration: WebGLEngineConfiguration
+  ) {
+    super(canvas, hardwareRenderer, configuration);
+  }
+
+  /**
    * Web canvas.
    */
   override get canvas(): WebCanvas {
-    // @ts-ignore
     return this._canvas as WebCanvas;
   }
 }
