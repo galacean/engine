@@ -46,11 +46,15 @@ export class UIInteractive extends Script implements IGroupAble {
 
   @ignoreClone
   protected _transitions: Transition[] = [];
+  @ignoreClone
   protected _interactive: boolean = true;
+  @ignoreClone
   protected _state: InteractiveState = InteractiveState.Normal;
 
   /** @todo Multi-touch points are not considered yet. */
+  @ignoreClone
   private _isPointerInside: boolean = false;
+  @ignoreClone
   private _isPointerDragging: boolean = false;
 
   /**
@@ -179,11 +183,12 @@ export class UIInteractive extends Script implements IGroupAble {
         const success = Entity._getEntityHierarchyPath(srcRoot, transitionTarget.entity, paths);
         dstTransition.target = success
           ? // @ts-ignore
-            Entity._getEntityByHierarchyPath(targetRoot, paths).getComponent(transitionTarget.constructor)
+          Entity._getEntityByHierarchyPath(targetRoot, paths).getComponent(transitionTarget.constructor)
           : transitionTarget;
       }
       target.addTransition(dstTransition);
     }
+    target.interactive = this._interactive;
   }
 
   /**
