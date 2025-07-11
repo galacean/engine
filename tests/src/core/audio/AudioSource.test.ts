@@ -61,4 +61,15 @@ describe("AudioSource", () => {
       expect(audioSource.isPlaying).to.be.false;
     }
   });
+
+  it("clone", () => {
+    const audioEntity = audioSource.entity.clone();
+    const cloneAudioSource = audioEntity.getComponent(AudioSource);
+
+    expect(cloneAudioSource.clip).to.be.equal(audioSource.clip);
+    expect(cloneAudioSource.volume).to.be.equal(audioSource.volume);
+    expect(cloneAudioSource.playbackRate).to.be.equal(audioSource.playbackRate);
+    expect(cloneAudioSource.loop).to.be.equal(audioSource.loop);
+    expect(cloneAudioSource.mute).to.be.equal(audioSource.mute);
+  });
 });
