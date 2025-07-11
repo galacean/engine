@@ -6,7 +6,7 @@ void diffuseLobe(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, 
 }
 
 void specularLobe(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, vec3 incidentDirection, vec3 attenuationIrradiance, inout vec3 specularColor){
-        specularColor += attenuationIrradiance *  BRDF_Specular_GGX( incidentDirection, surfaceData, bsdfData, surfaceData.normal, bsdfData.specularColor, bsdfData.roughness);
+        specularColor += attenuationIrradiance *  BRDF_Specular_GGX( incidentDirection, surfaceData, bsdfData, surfaceData.normal, bsdfData.specularF0, bsdfData.roughness);
 }
 
 void sheenLobe(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, vec3 incidentDirection, vec3 attenuationIrradiance, inout vec3 diffuseColor, inout vec3 specularColor){
@@ -26,7 +26,7 @@ float clearCoatLobe(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfDat
         vec3 clearCoatIrradiance = clearCoatDotNL * color;
 
         specularColor += surfaceData.clearCoat * clearCoatIrradiance * BRDF_Specular_GGX( incidentDirection, surfaceData, bsdfData, surfaceData.clearCoatNormal, bsdfData.clearCoatSpecularColor, bsdfData.clearCoatRoughness );
-        attenuation -= surfaceData.clearCoat * F_Schlick(0.04, surfaceData.clearCoatDotNV);
+        attenuation -= surfaceData.clearCoat * F_Schlick(0.04, 1.0, surfaceData.clearCoatDotNV);
     #endif
 
     return attenuation;
