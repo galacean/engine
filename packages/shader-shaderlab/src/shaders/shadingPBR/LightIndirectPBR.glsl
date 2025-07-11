@@ -68,9 +68,9 @@ void evaluateSpecularIBL(Varyings varyings, SurfaceData surfaceData, BSDFData bs
     vec3 radiance = getLightProbeRadiance(surfaceData, surfaceData.normal, bsdfData.roughness);
   
     #ifdef MATERIAL_ENABLE_IRIDESCENCE
-        vec3 speculaColor = mix(bsdfData.specularColor, bsdfData.iridescenceSpecularColor, surfaceData.iridescenceFactor);
+        vec3 speculaColor = mix(bsdfData.specularF0, bsdfData.iridescenceSpecularColor, surfaceData.iridescenceFactor);
     #else
-        vec3 speculaColor = bsdfData.specularColor;
+        vec3 speculaColor = bsdfData.specularF0;
     #endif
     
     float specularAO = evaluateSpecularOcclusion(surfaceData.dotNV, bsdfData.diffuseAO, bsdfData.roughness);

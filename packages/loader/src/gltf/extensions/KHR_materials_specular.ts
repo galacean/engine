@@ -8,7 +8,7 @@ import { IKHRMaterialsSpecular } from "./GLTFExtensionSchema";
 @registerGLTFExtension("KHR_materials_specular", GLTFExtensionMode.CreateAndParse)
 class KHR_materials_specular extends GLTFExtensionParser {
   override additiveParse(context: GLTFParserContext, material: PBRMaterial, schema: IKHRMaterialsSpecular): void {
-    const { specularFactor, specularTexture, specularColorFactor, specularColorTexture } = schema;
+    const { specularFactor = 0, specularTexture, specularColorFactor, specularColorTexture } = schema;
 
     material.specular = specularFactor;
 

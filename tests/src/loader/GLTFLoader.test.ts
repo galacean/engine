@@ -4,7 +4,6 @@ import {
   Entity,
   ModelMesh,
   PBRMaterial,
-  PBRSpecularMaterial,
   PointLight,
   RenderFace,
   SkinnedMeshRenderer,
@@ -373,14 +372,13 @@ describe("glTF Loader test", function () {
       url: "mock/path/testA.gltf"
     });
     const { materials, entities, defaultSceneRoot, textures, meshes } = glTFResource;
-    const pbrMaterials = materials as PBRSpecularMaterial[] & PBRMaterial[];
+    const pbrMaterials = materials as PBRMaterial[];
 
     // material
     expect(pbrMaterials.length).to.equal(4);
     expect(pbrMaterials[0]).to.instanceOf(PBRMaterial);
     expect(pbrMaterials[1]).to.instanceOf(UnlitMaterial);
-    expect(pbrMaterials[2]).to.instanceOf(PBRSpecularMaterial);
-    expect(pbrMaterials[3]).to.instanceOf(BlinnPhongMaterial);
+    expect(pbrMaterials[2]).to.instanceOf(BlinnPhongMaterial);
 
     expect(pbrMaterials[0].baseColor).to.deep.equal(new Color(1, 0, 0, 1));
     expect(pbrMaterials[0].emissiveColor).to.deep.equal(new Color(1, 1, 1, 1));
@@ -394,8 +392,7 @@ describe("glTF Loader test", function () {
     expect(pbrMaterials[2].baseColor).to.deep.equal(new Color(0, 0, 1, 1));
     expect(pbrMaterials[2].specularColor).to.deep.equal(new Color(1, 0, 0, 1));
     expect(pbrMaterials[2].alphaCutoff).to.equal(0.8);
-    expect(pbrMaterials[2].glossiness).to.equal(0.5);
-    expect(pbrMaterials[3].baseColor).to.deep.equal(new Color(1, 1, 0, 1));
+    expect(pbrMaterials[2].baseColor).to.deep.equal(new Color(1, 1, 0, 1));
 
     // entity
     expect(entities.length).to.equal(2);
@@ -434,7 +431,6 @@ describe("glTF Loader test", function () {
     expect(pbrMaterials[0].clearCoatRoughnessTexture).to.exist;
     expect(pbrMaterials[0].clearCoatNormalTexture).to.exist;
     expect(pbrMaterials[2].baseTexture).to.exist;
-    expect(pbrMaterials[2].specularGlossinessTexture).to.exist;
     expect(pbrMaterials[0].baseTexture.isSRGBColorSpace).to.be.true;
     expect(pbrMaterials[0].roughnessMetallicTexture.isSRGBColorSpace).to.be.false;
     expect(pbrMaterials[0].normalTexture.isSRGBColorSpace).to.be.false;

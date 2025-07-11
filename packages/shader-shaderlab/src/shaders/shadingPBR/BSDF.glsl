@@ -23,9 +23,9 @@ struct SurfaceData{
     float metallic;
     float roughness;
     float ambientOcclusion;
-    vec3 reflectance;
     float opacity;
     float IOR;
+    float reflectance;
     
 
     // geometry
@@ -77,7 +77,7 @@ struct SurfaceData{
 
 struct BSDFData{
     vec3  diffuseColor;
-    vec3  specularColor;
+    vec3  specularF0;
     float roughness;
     vec3 envSpecularDFG;
     float diffuseAO;
@@ -242,15 +242,16 @@ vec3 BRDF_Diffuse_Lambert(vec3 diffuseColor) {
 	return RECIPROCAL_PI * diffuseColor;
 }
 
-vec3 iorToFresnel0(vec3 transmittedIOR, float incidentIOR) {
-    return pow((transmittedIOR - incidentIOR) / (transmittedIOR + incidentIOR),vec3(2.0));
-} 
-
-float iorToFresnel0(float transmittedIOR, float incidentIOR) {
-    return pow((transmittedIOR - incidentIOR) / (transmittedIOR + incidentIOR),2.0);
-} 
-
 #ifdef MATERIAL_ENABLE_IRIDESCENCE
+
+    vec3 iorToFresnel0(vec3 transmittedIOR, float incidentIOR) {
+        return pow((transmittedIOR - incidentIOR) / (transmittedIOR + incidentIOR),vec3(2.0));
+    } 
+
+    float iorToFresnel0(float transmittedIOR, float incidentIOR) {
+        return pow((transmittedIOR - incidentIOR) / (transmittedIOR + incidentIOR),2.0);
+    } 
+
     // Assume air interface for top
     // Note: We don't handle the case fresnel0 == 1
     vec3 fresnelToIOR(vec3 f0){
@@ -424,15 +425,21 @@ void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
     float metallic = surfaceData.metallic;
     float roughness = surfaceData.roughness;
 
-    vec3 dielectricSpecularF0 = 0.16 * surfaceData.reflectance * surfaceData.reflectance;
-    float dielectricSpecularF90 = surfaceData.specular;  
+    #ifdef MATERIAL_ENABLE_SPECULAR
+        float reflectance = sqrt(surfaceData.reflectance / 0.16);
+        vec3 dielectricSpecularF0 = min(reflectance * surfaceData.specularColor , vec3(1.0)) * surfaceData.specular;
+        float dielectricSpecularF90 = surfaceData.specular;  
+        bsdfData.specularF0 = albedoColor * metallic + dielectricSpecularF0 * (1.0 - metallic);
+        bsdfData.specularF90 = metallic + dielectricSpecularF90 * (1.0 - metallic);
+    #else
+        bsdfData.specularF0 = albedoColor * metallic + (surfaceData.reflectance * (1.0 - metallic));
+        bsdfData.specularF90 = 1.0;
+    #endif
 
     bsdfData.diffuseColor = albedoColor * ( 1.0 - metallic );
-    bsdfData.specularColor = mix( dielectricSpecularF0, albedoColor, metallic );
-    bsdfData.specularF90 = metallic + dielectricSpecularF90 * (1.0 - metallic);
 
     bsdfData.roughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(roughness + getAARoughnessFactor(surfaceData.normal), 1.0));
-    bsdfData.envSpecularDFG = envBRDFApprox(bsdfData.specularColor,  bsdfData.roughness, surfaceData.dotNV);
+    bsdfData.envSpecularDFG = envBRDFApprox(bsdfData.specularF0,  bsdfData.roughness, surfaceData.dotNV);
    
     bsdfData.diffuseAO = surfaceData.ambientOcclusion;
 
@@ -443,7 +450,7 @@ void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
 
     #ifdef MATERIAL_ENABLE_IRIDESCENCE
         float topIOR = 1.0;
-        bsdfData.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, surfaceData.dotNV, surfaceData.iridescenceIOR, bsdfData.specularColor,bsdfData.specularF90, surfaceData.iridescenceThickness);   
+        bsdfData.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, surfaceData.dotNV, surfaceData.iridescenceIOR, bsdfData.specularF0,bsdfData.specularF90, surfaceData.iridescenceThickness);   
     #endif
 
     #ifdef MATERIAL_ENABLE_SHEEN

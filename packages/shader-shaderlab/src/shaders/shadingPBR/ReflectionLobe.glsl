@@ -6,7 +6,7 @@ void diffuseLobe(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, 
 }
 
 void specularLobe(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, vec3 incidentDirection, vec3 attenuationIrradiance, inout vec3 specularColor){
-        specularColor += attenuationIrradiance *  BRDF_Specular_GGX( incidentDirection, surfaceData, bsdfData, surfaceData.normal, bsdfData.specularColor, bsdfData.roughness);
+        specularColor += attenuationIrradiance *  BRDF_Specular_GGX( incidentDirection, surfaceData, bsdfData, surfaceData.normal, bsdfData.specularF0, bsdfData.roughness);
 }
 
 void sheenLobe(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, vec3 incidentDirection, vec3 attenuationIrradiance, inout vec3 diffuseColor, inout vec3 specularColor){
