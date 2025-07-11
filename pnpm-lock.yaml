@@ -320,15 +320,9 @@ importers:
       '@vitest/browser':
         specifier: 2.1.3
         version: 2.1.3(@types/node@18.19.64)(@vitest/spy@2.1.5)(playwright@1.48.2)(typescript@5.6.3)(vite@5.4.11(@types/node@18.19.64)(sass@1.81.0))(vitest@2.1.5)
-      vite-plugin-string:
-        specifier: ^1.2.3
-        version: 1.2.3(rollup@4.27.2)(vite@5.4.11(@types/node@18.19.64)(sass@1.81.0))
       vite-raw-plugin:
         specifier: ^1.0.2
         version: 1.0.2
-      vite-string-plugin:
-        specifier: ^1.4.6
-        version: 1.4.6
 
 packages:
 
@@ -3969,16 +3963,8 @@ packages:
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
 
-  vite-plugin-string@1.2.3:
-    resolution: {integrity: sha512-zw2jL0c4B6CAvxO8PshX04494jTcqJjNH2kW1AugBH+fImRY0evdNtVgmeS1i1VFdua/OFhL7fMqIPh0uF21/Q==}
-    peerDependencies:
-      vite: '>=2'
-
   vite-raw-plugin@1.0.2:
     resolution: {integrity: sha512-gdp/OFVXBiVq1UwPujVb7+4mmgYHTGrzslMbQvxmgzTN4/HC+3j4GNrumsIKSWfA/y3hktII7XqY38muRaGjhw==}
-
-  vite-string-plugin@1.4.6:
-    resolution: {integrity: sha512-Csjtny8/uVIynzlaRRj4RpHrPAakNwlH9jw6kgQ8tQhc2f0zzA6bCbAgWD0y84EgB8aLNrz7pZFUqSt3LOtk+w==}
 
   vite@3.1.6:
     resolution: {integrity: sha512-qMXIwnehvvcK5XfJiXQUiTxoYAEMKhM+jqCY6ZSTKFBKu1hJnAKEzP3AOcnTerI0cMZYAaJ4wpW1wiXLMDt4mA==}
@@ -4907,14 +4893,6 @@ snapshots:
       picomatch: 4.0.2
     optionalDependencies:
       rollup: 2.79.2
-
-  '@rollup/pluginutils@5.2.0(rollup@4.27.2)':
-    dependencies:
-      '@types/estree': 1.0.6
-      estree-walker: 2.0.2
-      picomatch: 4.0.2
-    optionalDependencies:
-      rollup: 4.27.2
 
   '@rollup/rollup-android-arm-eabi@4.27.2':
     optional: true
@@ -7921,16 +7899,7 @@ snapshots:
       - supports-color
       - terser
 
-  vite-plugin-string@1.2.3(rollup@4.27.2)(vite@5.4.11(@types/node@18.19.64)(sass@1.81.0)):
-    dependencies:
-      '@rollup/pluginutils': 5.2.0(rollup@4.27.2)
-      vite: 5.4.11(@types/node@18.19.64)(sass@1.81.0)
-    transitivePeerDependencies:
-      - rollup
-
   vite-raw-plugin@1.0.2: {}
-
-  vite-string-plugin@1.4.6: {}
 
   vite@3.1.6(sass@1.81.0):
     dependencies:
