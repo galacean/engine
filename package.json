@@ -6,7 +6,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "pretest": "pnpm exec playwright install",
-    "test": "vitest run tests/src/shader-lab/ShaderLab.test.ts",
+    "test": "vitest",
     "coverage": "vitest --coverage",
     "build": "npm run b:module && npm run b:types",
     "lint": "eslint packages/*/src --ext .ts",
