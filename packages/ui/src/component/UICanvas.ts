@@ -396,7 +396,8 @@ export class UICanvas extends Component implements IElement {
       const success = Entity._getEntityHierarchyPath(srcRoot, renderCamera.entity, paths);
       // @ts-ignore
       target.renderCamera = success
-        ? Entity._getEntityByHierarchyPath(targetRoot, paths).getComponent(Camera)
+        ? // @ts-ignore
+          Entity._getEntityByHierarchyPath(targetRoot, paths).getComponent(Camera)
         : renderCamera;
     }
   }
