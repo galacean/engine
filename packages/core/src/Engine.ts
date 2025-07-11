@@ -96,10 +96,6 @@ export class Engine extends EventDispatcher {
   _renderContext: RenderContext = new RenderContext();
 
   /* @internal */
-  _meshMagentaMaterial: Material;
-  /* @internal */
-  _particleMagentaMaterial: Material;
-  /* @internal */
   _depthTexture2D: Texture2D;
 
   /* @internal */
@@ -264,16 +260,6 @@ export class Engine extends EventDispatcher {
     if (!hardwareRenderer.canIUse(GLCapabilityType.sRGB)) {
       this._macroCollection.enable(Engine._noSRGBSupportMacro);
     }
-
-    const meshMagentaMaterial = new Material(this, Shader.find("unlit"));
-    meshMagentaMaterial.isGCIgnored = true;
-    meshMagentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
-    this._meshMagentaMaterial = meshMagentaMaterial;
-
-    const particleMagentaMaterial = new Material(this, Shader.find("particle-shader"));
-    particleMagentaMaterial.isGCIgnored = true;
-    particleMagentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
-    this._particleMagentaMaterial = particleMagentaMaterial;
 
     this._basicResources = new BasicResources(this);
     this._particleBufferUtils = new ParticleBufferUtils(this);
