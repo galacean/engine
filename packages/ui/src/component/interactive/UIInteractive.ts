@@ -183,7 +183,7 @@ export class UIInteractive extends Script implements IGroupAble {
         const success = Entity._getEntityHierarchyPath(srcRoot, transitionTarget.entity, paths);
         dstTransition.target = success
           ? // @ts-ignore
-          Entity._getEntityByHierarchyPath(targetRoot, paths).getComponent(transitionTarget.constructor)
+            Entity._getEntityByHierarchyPath(targetRoot, paths).getComponent(transitionTarget.constructor)
           : transitionTarget;
       }
       target.addTransition(dstTransition);
