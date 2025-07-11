@@ -212,6 +212,7 @@ export class AudioSource extends Component {
     this.clip = null;
   }
 
+  @ignoreClone
   private _onPlayEnd(): void {
     this.stop();
   }
