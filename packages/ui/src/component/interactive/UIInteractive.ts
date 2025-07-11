@@ -1,4 +1,4 @@
-import { Entity, EntityModifyFlags, Script, ignoreClone } from "@galacean/engine";
+import { Entity, EntityModifyFlags, Script, assignmentClone, ignoreClone } from "@galacean/engine";
 import { UIGroup } from "../..";
 import { Utils } from "../../Utils";
 import { IGroupAble } from "../../interface/IGroupAble";
@@ -46,11 +46,15 @@ export class UIInteractive extends Script implements IGroupAble {
 
   @ignoreClone
   protected _transitions: Transition[] = [];
+  @assignmentClone
   protected _interactive: boolean = true;
+  @ignoreClone
   protected _state: InteractiveState = InteractiveState.Normal;
 
   /** @todo Multi-touch points are not considered yet. */
+  @ignoreClone
   private _isPointerInside: boolean = false;
+  @ignoreClone
   private _isPointerDragging: boolean = false;
 
   /**
