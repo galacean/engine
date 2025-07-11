@@ -1,4 +1,4 @@
-import { Entity, EntityModifyFlags, Script, ignoreClone } from "@galacean/engine";
+import { Entity, EntityModifyFlags, Script, assignmentClone, ignoreClone } from "@galacean/engine";
 import { UIGroup } from "../..";
 import { Utils } from "../../Utils";
 import { IGroupAble } from "../../interface/IGroupAble";
@@ -46,7 +46,7 @@ export class UIInteractive extends Script implements IGroupAble {
 
   @ignoreClone
   protected _transitions: Transition[] = [];
-  @ignoreClone
+  @assignmentClone
   protected _interactive: boolean = true;
   @ignoreClone
   protected _state: InteractiveState = InteractiveState.Normal;
@@ -183,12 +183,11 @@ export class UIInteractive extends Script implements IGroupAble {
         const success = Entity._getEntityHierarchyPath(srcRoot, transitionTarget.entity, paths);
         dstTransition.target = success
           ? // @ts-ignore
-            Entity._getEntityByHierarchyPath(targetRoot, paths).getComponent(transitionTarget.constructor)
+          Entity._getEntityByHierarchyPath(targetRoot, paths).getComponent(transitionTarget.constructor)
           : transitionTarget;
       }
       target.addTransition(dstTransition);
     }
-    target.interactive = this._interactive;
   }
 
   /**
