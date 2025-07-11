@@ -7,7 +7,7 @@ export default defineProject({
   },
   plugins: [
     raw({
-      fileRegex: /\.glsl$/
+      fileRegex: /\.(glsl|gs)$/
     })
   ],
   optimizeDeps: {
