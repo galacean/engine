@@ -89,9 +89,8 @@ export class PpParser {
   }
 
   private static _parseDirectives(lexer: PpLexer): string | null {
-    while (!lexer.isEnd()) {
-      const directive = lexer.scanToken()!;
-      if (lexer.isEnd()) break;
+    let directive: BaseToken | undefined;
+    while (directive = lexer.scanToken()) {
       switch (directive.type) {
         case PpToken.id:
           this._parseMacro(lexer, directive);
