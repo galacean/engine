@@ -73,10 +73,15 @@ export class Animator extends Component {
   }
 
   set animatorController(animatorController: AnimatorController) {
-    if (animatorController !== this._animatorController) {
-      this._reset();
+    const lastController = this._animatorController;
+    if (animatorController !== lastController) {
+      lastController && lastController._addReferCount(-1);
       this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
-      this._controllerUpdateFlag = animatorController && animatorController._registerChangeFlag();
+      this._reset();
+      if (animatorController) {
+        animatorController._addReferCount(1);
+        this._controllerUpdateFlag = animatorController._registerChangeFlag();
+      }
       this._animatorController = animatorController;
     }
   }
@@ -323,6 +328,16 @@ export class Animator extends Component {
     if (this._controllerUpdateFlag) {
       this._controllerUpdateFlag.flag = false;
     }
+  }
+
+  protected override _onDestroy(): void {
+    const controller = this._animatorController;
+    if (controller) {
+      this._addResourceReferCount(controller, -1);
+      this._controllerUpdateFlag.destroy();
+    }
+
+    super._onDestroy();
   }
 
   private _crossFade(
@@ -747,8 +762,8 @@ export class Animator extends Component {
         // > transition: The time that will be played is enough to finish the transition
         playedTime - dstPlayDeltaTime > transitionDuration
           ? // Negative number is used to convert a time period into a reverse deltaTime.
-            // -(transitionDuration - playedTime)
-            playedTime - transitionDuration
+          // -(transitionDuration - playedTime)
+          playedTime - transitionDuration
           : dstPlayDeltaTime;
     }
 
@@ -871,8 +886,8 @@ export class Animator extends Component {
         // > transition: The time that will be played is enough to finish the transition
         playedTime - playDeltaTime > transitionDuration
           ? // Negative number is used to convert a time period into a reverse deltaTime.
-            // -(transitionDuration - playedTime)
-            playedTime - transitionDuration
+          // -(transitionDuration - playedTime)
+          playedTime - transitionDuration
           : playDeltaTime;
     }
 

@@ -182,6 +182,36 @@ describe("Light test", function () {
     expect(expectDirection).to.deep.eq(reverseDirection);
   });
 
+  it("Light clone", async () => {
+    const engine = await WebGLEngine.create({ canvas: canvasDOM });
+    const rootEntity = engine.sceneManager.activeScene.createRootEntity();
+    const lightEntity = rootEntity.createChild("light");
+    const directLight = lightEntity.addComponent(DirectLight);
+    const pointLight = lightEntity.addComponent(PointLight);
+    const spotLight = lightEntity.addComponent(SpotLight);
+
+    const cloneLightEntity = lightEntity.clone();
+    const cloneDirectLight = cloneLightEntity.getComponent(DirectLight);
+    const clonePointLight = cloneLightEntity.getComponent(PointLight);
+    const cloneSpotLight = cloneLightEntity.getComponent(SpotLight);
+
+    directLight.color.set(1, 0, 0, 1);
+    pointLight.color.set(0, 1, 0, 1);
+    spotLight.color.set(0, 0, 1, 1);
+
+    directLight.cullingMask
+
+    expect(directLight.color).to.not.eq(cloneDirectLight);
+    expect(directLight.viewMatrix).to.not.eq(cloneDirectLight.viewMatrix);
+    expect(directLight.inverseViewMatrix).to.not.eq(cloneDirectLight.inverseViewMatrix);
+    expect(pointLight.color).to.not.eq(clonePointLight);
+    expect(pointLight.viewMatrix).to.not.eq(clonePointLight.viewMatrix);
+    expect(pointLight.inverseViewMatrix).to.not.eq(clonePointLight.inverseViewMatrix);
+    expect(spotLight.color).to.not.eq(cloneSpotLight);
+    expect(spotLight.viewMatrix).to.not.eq(cloneSpotLight.viewMatrix);
+    expect(spotLight.inverseViewMatrix).to.not.eq(cloneSpotLight.inverseViewMatrix
+  });
+
   it("light component disabled", function () {
     directLight.enabled = false;
     pointLight.enabled = false;

@@ -469,7 +469,7 @@ export class Scene extends EngineObject {
 
     if (sunlight) {
       lightManager._updateSunlightIndex(sunlight);
-      shaderData.setColor(LightManager._sunlightColorProperty, sunlight._lightColor);
+      shaderData.setColor(LightManager._sunlightColorProperty, sunlight.color);
       shaderData.setVector3(LightManager._sunlightDirectionProperty, sunlight.direction);
     } else {
       // @ts-ignore
