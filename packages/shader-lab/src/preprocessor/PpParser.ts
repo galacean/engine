@@ -88,28 +88,31 @@ export class PpParser {
     this._definedMacros.set(macro, new MacroDefine(tk, macroBody));
   }
 
-  private static _parseDirectives(scanner: PpLexer): string | null {
-    while (!scanner.isEnd()) {
-      const directive = scanner.scanDirective(this._onToken.bind(this))!;
-      if (scanner.isEnd()) break;
+  private static _parseDirectives(lexer: PpLexer): string | null {
+    while (!lexer.isEnd()) {
+      const directive = lexer.scanToken()!;
+      if (lexer.isEnd()) break;
       switch (directive.type) {
+        case PpToken.id:
+          this._parseMacro(lexer, directive);
+          break;
         case PpKeyword.define:
-          this._parseDefine(scanner);
+          this._parseDefine(lexer);
           break;
         case PpKeyword.undef:
-          this._parseUndef(scanner);
+          this._parseUndef(lexer);
           break;
         case PpKeyword.if:
-          this._parseIfDirective(scanner, PpKeyword.if);
+          this._parseIfDirective(lexer, PpKeyword.if);
           break;
         case PpKeyword.ifndef:
-          this._parseIfDirective(scanner, PpKeyword.ifndef);
+          this._parseIfDirective(lexer, PpKeyword.ifndef);
           break;
         case PpKeyword.ifdef:
-          this._parseIfDirective(scanner, PpKeyword.ifdef);
+          this._parseIfDirective(lexer, PpKeyword.ifdef);
           break;
         case PpKeyword.include:
-          this._parseInclude(scanner);
+          this._parseInclude(lexer);
           break;
       }
     }
@@ -117,7 +120,7 @@ export class PpParser {
     if (this._errors.length > 0) return null;
     // #endif
 
-    return PpUtils.expand(this._getExpandSegments(), scanner.source, scanner.sourceMap);
+    return PpUtils.expand(this._getExpandSegments(), lexer.source, lexer.sourceMap);
   }
 
   private static _getExpandSegments(): ExpandSegment[] {
@@ -661,7 +664,7 @@ export class PpParser {
     this._addContentReplace(lexer.file, start, lexer.getShaderPosition(0), "", lexer.blockRange);
   }
 
-  private static _onToken(token: BaseToken, lexer: PpLexer) {
+  private static _parseMacro(lexer: PpLexer, token: BaseToken) {
     const macro = this._definedMacros.get(token.lexeme);
     if (macro) {
       const { location } = token;
