@@ -360,7 +360,13 @@ describe("camera test", function () {
     );
   });
 
+  it("clone", () => {
+    const cloneCamera = camera.entity.clone().getComponent(Camera)
+    expect(cloneCamera.renderTarget).to.eq(camera.renderTarget);
+    expect(cloneCamera.shaderData).to.not.eq(camera.shaderData);
+  })
+
   it("destroy test", () => {
-    camera.destroy();
+    camera.destroy()
   });
 });

@@ -199,17 +199,22 @@ describe("Light test", function () {
     pointLight.color.set(0, 1, 0, 1);
     spotLight.color.set(0, 0, 1, 1);
 
-    directLight.cullingMask
-
-    expect(directLight.color).to.not.eq(cloneDirectLight);
+    expect(directLight.shadowNearPlaneOffset).to.eq(cloneDirectLight.shadowNearPlaneOffset);
+    expect(directLight.color).to.not.eq(cloneDirectLight.color);
     expect(directLight.viewMatrix).to.not.eq(cloneDirectLight.viewMatrix);
     expect(directLight.inverseViewMatrix).to.not.eq(cloneDirectLight.inverseViewMatrix);
-    expect(pointLight.color).to.not.eq(clonePointLight);
+    expect(directLight.reverseDirection).to.not.eq(cloneDirectLight.reverseDirection);
+    expect(pointLight.distance).to.eq(clonePointLight.distance);
+    expect(pointLight.color).to.not.eq(clonePointLight.color);
     expect(pointLight.viewMatrix).to.not.eq(clonePointLight.viewMatrix);
     expect(pointLight.inverseViewMatrix).to.not.eq(clonePointLight.inverseViewMatrix);
-    expect(spotLight.color).to.not.eq(cloneSpotLight);
+    expect(spotLight.distance).to.eq(cloneSpotLight.distance);
+    expect(spotLight.angle).to.eq(cloneSpotLight.angle);
+    expect(spotLight.penumbra).to.eq(cloneSpotLight.penumbra);
+    expect(spotLight.color).to.not.eq(cloneSpotLight.color);
     expect(spotLight.viewMatrix).to.not.eq(cloneSpotLight.viewMatrix);
-    expect(spotLight.inverseViewMatrix).to.not.eq(cloneSpotLight.inverseViewMatrix
+    expect(spotLight.inverseViewMatrix).to.not.eq(cloneSpotLight.inverseViewMatrix);
+    expect(spotLight.reverseDirection).to.not.eq(cloneSpotLight.reverseDirection);
   });
 
   it("light component disabled", function () {
