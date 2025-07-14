@@ -830,6 +830,7 @@ export class Camera extends Component {
    */
   _cloneTo(target: Camera, srcRoot: Entity, targetRoot: Entity): void {
     target.renderTarget = this._renderTarget;
+    this._virtualCamera._cloneTo(target._virtualCamera);
   }
 
   /**

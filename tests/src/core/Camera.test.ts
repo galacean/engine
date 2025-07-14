@@ -361,7 +361,13 @@ describe("camera test", function () {
   });
 
   it("clone", () => {
-    const cloneCamera = camera.entity.clone().getComponent(Camera)
+    camera.isOrthographic = true;
+    camera.nearClipPlane = 1;
+    camera.farClipPlane = 255;
+    const cloneCamera = camera.entity.clone().getComponent(Camera);
+    expect(cloneCamera.isOrthographic).to.eq(camera.isOrthographic)
+    expect(cloneCamera.nearClipPlane).to.eq(camera.nearClipPlane);
+    expect(cloneCamera.farClipPlane).to.eq(camera.farClipPlane);
     expect(cloneCamera.renderTarget).to.eq(camera.renderTarget);
     expect(cloneCamera.shaderData).to.not.eq(camera.shaderData);
   })
