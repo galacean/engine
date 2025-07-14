@@ -54,7 +54,7 @@ describe("Animator test", function () {
     animator.speed = 1;
     // @ts-ignore
     animator._reset();
-    animator.animatorController?.clearParameters();
+    animator.animatorController.clearParameters();
   });
   it("constructor", () => {
     // Test default values

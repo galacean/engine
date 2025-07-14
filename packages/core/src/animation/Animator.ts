@@ -769,8 +769,8 @@ export class Animator extends Component {
         // > transition: The time that will be played is enough to finish the transition
         playedTime - dstPlayDeltaTime > transitionDuration
           ? // Negative number is used to convert a time period into a reverse deltaTime.
-          // -(transitionDuration - playedTime)
-          playedTime - transitionDuration
+            // -(transitionDuration - playedTime)
+            playedTime - transitionDuration
           : dstPlayDeltaTime;
     }
 
@@ -893,8 +893,8 @@ export class Animator extends Component {
         // > transition: The time that will be played is enough to finish the transition
         playedTime - playDeltaTime > transitionDuration
           ? // Negative number is used to convert a time period into a reverse deltaTime.
-          // -(transitionDuration - playedTime)
-          playedTime - transitionDuration
+            // -(transitionDuration - playedTime)
+            playedTime - transitionDuration
           : playDeltaTime;
     }
 

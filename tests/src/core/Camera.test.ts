@@ -1,7 +1,7 @@
 import { Camera, CameraClearFlags, Entity, Layer, ReplacementFailureStrategy, Shader } from "@galacean/engine-core";
 import { Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { describe, beforeAll, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 describe("camera test", function () {
   const canvasDOM = new OffscreenCanvas(256, 256);
@@ -367,6 +367,6 @@ describe("camera test", function () {
   })
 
   it("destroy test", () => {
-    camera.destroy()
+    camera.destroy();
   });
 });
