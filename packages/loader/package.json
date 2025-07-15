@@ -18,7 +18,8 @@
   "debug": "src/index.ts",
   "files": [
     "dist/**/*",
-    "types/**/*"
+    "types/**/*",
+    "libs/**/*"
   ],
   "dependencies": {
     "@galacean/engine-core": "workspace:*",
