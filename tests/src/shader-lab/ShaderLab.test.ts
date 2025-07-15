@@ -2,18 +2,18 @@ import {
   BlendOperation,
   CompareFunction,
   CullMode,
-  RenderStateDataKey,
+  RenderStateElementKey,
   ShaderPlatformTarget
 } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
-import { ShaderLab as ShaderLabVerbose, GSError } from "@galacean/engine-shaderlab/verbose";
-import { ShaderLab as ShaderLabRelease } from "@galacean/engine-shaderlab";
-import { glslValidate, shaderParse } from "./ShaderValidate";
 import { registerIncludes } from "@galacean/engine-shader-shaderlab";
+import { ShaderLab as ShaderLabRelease } from "@galacean/engine-shaderlab";
+import { GSError, ShaderLab as ShaderLabVerbose } from "@galacean/engine-shaderlab/verbose";
+import { glslValidate, shaderParse } from "./ShaderValidate";
 
-import { IShaderContent } from "@galacean/engine-design";
-import { describe, beforeAll, expect, assert, it } from "vitest";
+import { IShaderSource } from "@galacean/engine-design";
 import { server } from "@vitest/browser/context";
+import { assert, beforeAll, describe, expect, it } from "vitest";
 const { readFile } = server.commands;
 
 const demoShader = await readFile("./shaders/demo.shader");
@@ -135,25 +135,19 @@ const shaderLabVerbose = new ShaderLabVerbose();
 const shaderLabRelease = new ShaderLabRelease();
 
 describe("ShaderLab", () => {
-  let shader: IShaderContent;
-  let subShader: IShaderContent["subShaders"][number];
-  let passList: IShaderContent["subShaders"][number]["passes"];
-  let pass1: IShaderContent["subShaders"][number]["passes"][number];
+  let shader: IShaderSource;
+  let subShader: IShaderSource["subShaders"][number];
+  let passList: IShaderSource["subShaders"][number]["passes"];
+  let pass1: IShaderSource["subShaders"][number]["passes"][number];
 
   beforeAll(() => {
-    shader = shaderLabVerbose._parseShaderContent(demoShader);
+    shader = shaderLabVerbose._parseShaderSource(demoShader);
     subShader = shader.subShaders[0];
     passList = subShader.passes;
     expect(passList[0].isUsePass).to.be.true;
     expect(passList[0].name).eq("pbr/Default/Forward");
     pass1 = passList[1];
     registerIncludes();
-  });
-
-  it("builtin-function", async () => {
-    let shaderSource = await readFile("./shaders/builtin-function.shader");
-    shaderSource = shaderSource.replace("__$$insert_maros$$__", commonMacros);
-    glslValidate(shaderSource, shaderLabVerbose, {});
   });
 
   it("create shaderLab", async () => {
@@ -172,38 +166,47 @@ describe("ShaderLab", () => {
     expect(pass1.renderStates).not.be.null;
 
     const { constantMap, variableMap } = pass1.renderStates;
-    expect(Object.values(variableMap).includes("customRenderQueue"));
+    expect(Object.values(variableMap).includes("customRenderQueue")).to.be.true;
 
     expect(constantMap).not.be.null;
 
-    expect(toString(constantMap[RenderStateDataKey.BlendStateBlendColor] as Color)).eq("Color(1, 1, 1, 1)");
+    expect(toString(constantMap[RenderStateElementKey.BlendStateBlendColor] as Color)).eq("Color(1, 1, 1, 1)");
 
     expect(constantMap).include({
       // Stencil State
-      [RenderStateDataKey.StencilStateEnabled]: true,
-      [RenderStateDataKey.StencilStateReferenceValue]: 2,
-      [RenderStateDataKey.StencilStateMask]: 1.3,
-      [RenderStateDataKey.StencilStateWriteMask]: 0.32,
-      [RenderStateDataKey.StencilStateCompareFunctionFront]: CompareFunction.Less,
+      [RenderStateElementKey.StencilStateEnabled]: true,
+      [RenderStateElementKey.StencilStateMask]: 1.3,
+      [RenderStateElementKey.StencilStateWriteMask]: 0.32,
+      [RenderStateElementKey.StencilStateCompareFunctionFront]: CompareFunction.Less,
       // Blend State
-      [RenderStateDataKey.BlendStateEnabled0]: true,
-      [RenderStateDataKey.BlendStateColorWriteMask0]: 0.8,
-      [RenderStateDataKey.BlendStateAlphaBlendOperation0]: BlendOperation.Max,
+      [RenderStateElementKey.BlendStateEnabled0]: true,
+      [RenderStateElementKey.BlendStateColorWriteMask0]: 0.8,
+      [RenderStateElementKey.BlendStateAlphaBlendOperation0]: BlendOperation.Max,
 
       // Depth State
-      [RenderStateDataKey.DepthStateEnabled]: true,
-      [RenderStateDataKey.DepthStateWriteEnabled]: false,
-      [RenderStateDataKey.DepthStateCompareFunction]: CompareFunction.Greater,
+      [RenderStateElementKey.DepthStateEnabled]: true,
+      [RenderStateElementKey.DepthStateWriteEnabled]: false,
+      [RenderStateElementKey.DepthStateCompareFunction]: CompareFunction.Greater,
 
       // Raster State
-      [RenderStateDataKey.RasterStateCullMode]: CullMode.Front,
-      [RenderStateDataKey.RasterStateDepthBias]: 0.1,
-      [RenderStateDataKey.RasterStateSlopeScaledDepthBias]: 0.8
+      [RenderStateElementKey.RasterStateCullMode]: CullMode.Front,
+      [RenderStateElementKey.RasterStateDepthBias]: 0.1,
+      [RenderStateElementKey.RasterStateSlopeScaledDepthBias]: 0.8
     });
 
     expect(variableMap).include({
-      [RenderStateDataKey.BlendStateSourceAlphaBlendFactor0]: "material_SrcBlend"
+      [RenderStateElementKey.BlendStateSourceAlphaBlendFactor0]: "material_SrcBlend"
     });
+
+    expect(shaderLabVerbose.errors.length).to.eq(2);
+    expect(shaderLabVerbose.errors[0].message).contains("Invalid RenderQueueType variable: customRenderQueue");
+    expect(shaderLabVerbose.errors[1].message).contains("Invalid StencilState variable: referenceValue");
+  });
+
+  it("builtin-function", async () => {
+    let shaderSource = await readFile("./shaders/builtin-function.shader");
+    shaderSource = shaderSource.replace("__$$insert_maros$$__", commonMacros);
+    glslValidate(shaderSource, shaderLabVerbose, {});
   });
 
   it("shader tags", () => {

@@ -1,8 +1,8 @@
+import { SymbolInfo, SymbolTable } from "../parser/symbolTable";
 import { ASTNode } from "./AST";
-import { TargetSymbolTable } from "../parser/symbolTable";
 
 export class ShaderData {
-  symbolTable: TargetSymbolTable;
+  symbolTable: SymbolTable<SymbolInfo>;
 
   vertexMain: ASTNode.FunctionDefinition;
   fragmentMain: ASTNode.FunctionDefinition;
