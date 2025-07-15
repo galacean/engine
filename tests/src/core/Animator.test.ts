@@ -4,25 +4,25 @@ import {
   AnimationFloatCurve,
   Animator,
   AnimatorConditionMode,
+  AnimatorController,
   AnimatorControllerLayer,
   AnimatorLayerBlendingMode,
   AnimatorLayerMask,
   AnimatorStateMachine,
   AnimatorStateTransition,
   Camera,
+  Entity,
   Keyframe,
   Script,
-  Transform,
-  AnimatorController,
-  WrapMode,
   StateMachineScript,
-  Entity
+  Transform,
+  WrapMode
 } from "@galacean/engine-core";
 import "@galacean/engine-loader";
 import type { GLTFResource } from "@galacean/engine-loader";
 import { Quaternion } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { vi, describe, beforeAll, expect, it, afterAll, afterEach } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { glbResource } from "./model/fox";
 const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
@@ -323,7 +323,7 @@ describe("Animator test", function () {
     animator.play("Walk");
 
     class TestScript extends Script {
-      event0(): void {}
+      event0(): void { }
     }
 
     const testScript = animator.entity.addComponent(TestScript);
@@ -765,8 +765,8 @@ describe("Animator test", function () {
     animator.animatorController = animatorController;
 
     class TestScript extends StateMachineScript {
-      onStateEnter(animator) {}
-      onStateExit(animator) {}
+      onStateEnter(animator) { }
+      onStateExit(animator) { }
     }
 
     const testScript = state1.addStateMachineScript(TestScript);
@@ -1014,4 +1014,8 @@ describe("Animator test", function () {
     animator.update(0.3);
     expect(animatorLayerData[0]?.srcPlayData.state.name).to.eq("state2");
   });
+
+  it("Clone", () => {
+    expect(animator.entity.clone().getComponent(Animator).animatorController).to.eq(animator.animatorController);
+  })
 });

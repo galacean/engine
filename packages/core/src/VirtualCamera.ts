@@ -13,4 +13,13 @@ export class VirtualCamera {
   farClipPlane: number = 100;
   /** Only orth mode use. */
   forward: Vector3 = new Vector3();
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: VirtualCamera): void {
+    target.isOrthographic = this.isOrthographic;
+    target.nearClipPlane = this.nearClipPlane;
+    target.farClipPlane = this.farClipPlane;
+  }
 }
