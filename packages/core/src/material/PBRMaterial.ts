@@ -5,13 +5,24 @@ import { Shader } from "../shader/Shader";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { Texture2D } from "../texture/Texture2D";
 import { BaseMaterial } from "./BaseMaterial";
-import { PBRBaseMaterial } from "./PBRBaseMaterial";
+import { TextureCoordinate } from "./enums/TextureCoordinate";
 import { RefractionMode } from "./enums/Refraction";
+import { Logger } from "../base";
 
 /**
  * PBR (Metallic-Roughness Workflow) Material.
  */
-export class PBRMaterial extends PBRBaseMaterial {
+export class PBRMaterial extends BaseMaterial {
+  private static _occlusionTextureIntensityProp = ShaderProperty.getByName("material_OcclusionIntensity");
+  private static _occlusionTextureCoordProp = ShaderProperty.getByName("material_OcclusionTextureCoord");
+  private static _occlusionTextureProp = ShaderProperty.getByName("material_OcclusionTexture");
+
+  private static _clearCoatProp = ShaderProperty.getByName("material_ClearCoat");
+  private static _clearCoatTextureProp = ShaderProperty.getByName("material_ClearCoatTexture");
+  private static _clearCoatRoughnessProp = ShaderProperty.getByName("material_ClearCoatRoughness");
+  private static _clearCoatRoughnessTextureProp = ShaderProperty.getByName("material_ClearCoatRoughnessTexture");
+  private static _clearCoatNormalTextureProp = ShaderProperty.getByName("material_ClearCoatNormalTexture");
+
   private static _metallicProp = ShaderProperty.getByName("material_Metal");
   private static _roughnessProp = ShaderProperty.getByName("material_Roughness");
   private static _roughnessMetallicTextureProp = ShaderProperty.getByName("material_RoughnessMetallicTexture");
@@ -44,7 +55,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   private static _specularMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_ENABLE_SPECULAR");
   private static _specularTextureMacro = ShaderMacro.getByName("MATERIAL_ENABLE_SPECULAR_TEXTURE");
   private static _specularColorTextureMacro = ShaderMacro.getByName("MATERIAL_ENABLE_SPECULAR_COLOR_TEXTURE");
-  private static _specularProp = ShaderProperty.getByName("material_Specular");
+  private static _specularProp = ShaderProperty.getByName("material_SpecularIntensity");
   private static _specularColorProp = ShaderProperty.getByName("material_SpecularColor");
   private static _specularTextureProp = ShaderProperty.getByName("material_SpecularTexture");
   private static _specularColorTextureProp = ShaderProperty.getByName("material_SpecularColorTexture");
@@ -55,6 +66,229 @@ export class PBRMaterial extends PBRBaseMaterial {
   private _sheenEnabled = false;
   private _specularEnabled = false;
   private _specularColorEnabled = false;
+
+  /**
+   * Base color.
+   */
+  get baseColor(): Color {
+    return this.shaderData.getColor(PBRMaterial._baseColorProp);
+  }
+
+  set baseColor(value: Color) {
+    const baseColor = this.shaderData.getColor(PBRMaterial._baseColorProp);
+    if (value !== baseColor) {
+      baseColor.copyFrom(value);
+    }
+  }
+
+  /**
+   * Base texture.
+   */
+  get baseTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._baseTextureProp);
+  }
+
+  set baseTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._baseTextureProp, value);
+    if (value) {
+      this.shaderData.enableMacro(PBRMaterial._baseTextureMacro);
+    } else {
+      this.shaderData.disableMacro(PBRMaterial._baseTextureMacro);
+    }
+  }
+
+  /**
+   * Normal texture.
+   */
+  get normalTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._normalTextureProp);
+  }
+
+  set normalTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._normalTextureProp, value);
+    if (value) {
+      this.shaderData.enableMacro(PBRMaterial._normalTextureMacro);
+    } else {
+      this.shaderData.disableMacro(PBRMaterial._normalTextureMacro);
+    }
+  }
+
+  /**
+   * Normal texture intensity.
+   */
+  get normalTextureIntensity(): number {
+    return this.shaderData.getFloat(PBRMaterial._normalIntensityProp);
+  }
+
+  set normalTextureIntensity(value: number) {
+    this.shaderData.setFloat(PBRMaterial._normalIntensityProp, value);
+  }
+
+  /**
+   * Emissive color.
+   */
+  get emissiveColor(): Color {
+    return this.shaderData.getColor(PBRMaterial._emissiveColorProp);
+  }
+
+  set emissiveColor(value: Color) {
+    const emissiveColor = this.shaderData.getColor(PBRMaterial._emissiveColorProp);
+    if (value !== emissiveColor) {
+      emissiveColor.copyFrom(value);
+    }
+  }
+
+  /**
+   * Emissive texture.
+   */
+  get emissiveTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._emissiveTextureProp);
+  }
+
+  set emissiveTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._emissiveTextureProp, value);
+    if (value) {
+      this.shaderData.enableMacro(PBRMaterial._emissiveTextureMacro);
+    } else {
+      this.shaderData.disableMacro(PBRMaterial._emissiveTextureMacro);
+    }
+  }
+
+  /**
+   * Occlusion texture.
+   */
+  get occlusionTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._occlusionTextureProp);
+  }
+
+  set occlusionTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._occlusionTextureProp, value);
+    if (value) {
+      this.shaderData.enableMacro("MATERIAL_HAS_OCCLUSION_TEXTURE");
+    } else {
+      this.shaderData.disableMacro("MATERIAL_HAS_OCCLUSION_TEXTURE");
+    }
+  }
+
+  /**
+   * Occlusion texture intensity.
+   */
+  get occlusionTextureIntensity(): number {
+    return this.shaderData.getFloat(PBRMaterial._occlusionTextureIntensityProp);
+  }
+
+  set occlusionTextureIntensity(value: number) {
+    this.shaderData.setFloat(PBRMaterial._occlusionTextureIntensityProp, value);
+  }
+
+  /**
+   * Occlusion texture uv coordinate.
+   * @remarks Must be UV0 or UV1.
+   */
+  get occlusionTextureCoord(): TextureCoordinate {
+    return this.shaderData.getFloat(PBRMaterial._occlusionTextureCoordProp);
+  }
+
+  set occlusionTextureCoord(value: TextureCoordinate) {
+    if (value > TextureCoordinate.UV1) {
+      Logger.warn("Occlusion texture uv coordinate must be UV0 or UV1.");
+    }
+    this.shaderData.setFloat(PBRMaterial._occlusionTextureCoordProp, value);
+  }
+
+  /**
+   * Tiling and offset of main textures.
+   */
+  get tilingOffset(): Vector4 {
+    return this.shaderData.getVector4(PBRMaterial._tilingOffsetProp);
+  }
+
+  set tilingOffset(value: Vector4) {
+    const tilingOffset = this.shaderData.getVector4(PBRMaterial._tilingOffsetProp);
+    if (value !== tilingOffset) {
+      tilingOffset.copyFrom(value);
+    }
+  }
+
+  /**
+   * The clearCoat layer intensity, default 0.
+   */
+  get clearCoat(): number {
+    return this.shaderData.getFloat(PBRMaterial._clearCoatProp);
+  }
+
+  set clearCoat(value: number) {
+    if (!!this.shaderData.getFloat(PBRMaterial._clearCoatProp) !== !!value) {
+      if (value === 0) {
+        this.shaderData.disableMacro("MATERIAL_ENABLE_CLEAR_COAT");
+      } else {
+        this.shaderData.enableMacro("MATERIAL_ENABLE_CLEAR_COAT");
+      }
+    }
+    this.shaderData.setFloat(PBRMaterial._clearCoatProp, value);
+  }
+
+  /**
+   * The clearCoat layer intensity texture.
+   */
+  get clearCoatTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._clearCoatTextureProp);
+  }
+
+  set clearCoatTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._clearCoatTextureProp, value);
+
+    if (value) {
+      this.shaderData.enableMacro("MATERIAL_HAS_CLEAR_COAT_TEXTURE");
+    } else {
+      this.shaderData.disableMacro("MATERIAL_HAS_CLEAR_COAT_TEXTURE");
+    }
+  }
+
+  /**
+   * The clearCoat layer roughness, default 0.
+   */
+  get clearCoatRoughness(): number {
+    return this.shaderData.getFloat(PBRMaterial._clearCoatRoughnessProp);
+  }
+
+  set clearCoatRoughness(value: number) {
+    this.shaderData.setFloat(PBRMaterial._clearCoatRoughnessProp, value);
+  }
+
+  /**
+   * The clearCoat layer roughness texture.
+   */
+  get clearCoatRoughnessTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._clearCoatRoughnessTextureProp);
+  }
+
+  set clearCoatRoughnessTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._clearCoatRoughnessTextureProp, value);
+
+    if (value) {
+      this.shaderData.enableMacro("MATERIAL_HAS_CLEAR_COAT_ROUGHNESS_TEXTURE");
+    } else {
+      this.shaderData.disableMacro("MATERIAL_HAS_CLEAR_COAT_ROUGHNESS_TEXTURE");
+    }
+  }
+
+  /**
+   * The clearCoat normal map texture.
+   */
+  get clearCoatNormalTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._clearCoatNormalTextureProp);
+  }
+
+  set clearCoatNormalTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._clearCoatNormalTextureProp, value);
+
+    if (value) {
+      this.shaderData.enableMacro("MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE");
+    } else {
+      this.shaderData.disableMacro("MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE");
+    }
+  }
 
   /**
    * Index Of Refraction.
@@ -540,6 +774,20 @@ export class PBRMaterial extends PBRBaseMaterial {
     super(engine, Shader.find("pbr"));
 
     const shaderData = this.shaderData;
+
+    shaderData.enableMacro("MATERIAL_NEED_WORLD_POS");
+    shaderData.enableMacro("MATERIAL_NEED_TILING_OFFSET");
+
+    shaderData.setColor(PBRMaterial._baseColorProp, new Color(1, 1, 1, 1));
+    shaderData.setColor(PBRMaterial._emissiveColorProp, new Color(0, 0, 0, 1));
+    shaderData.setVector4(PBRMaterial._tilingOffsetProp, new Vector4(1, 1, 0, 0));
+
+    shaderData.setFloat(PBRMaterial._normalIntensityProp, 1);
+    shaderData.setFloat(PBRMaterial._occlusionTextureIntensityProp, 1);
+    shaderData.setFloat(PBRMaterial._occlusionTextureCoordProp, TextureCoordinate.UV0);
+
+    shaderData.setFloat(PBRMaterial._clearCoatProp, 0);
+    shaderData.setFloat(PBRMaterial._clearCoatRoughnessProp, 0);
     shaderData.setFloat(PBRMaterial._metallicProp, 1);
     shaderData.setFloat(PBRMaterial._roughnessProp, 1);
     shaderData.setFloat(PBRMaterial._iorProp, 1.5);

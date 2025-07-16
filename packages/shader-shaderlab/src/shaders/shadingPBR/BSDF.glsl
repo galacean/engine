@@ -17,16 +17,13 @@
 struct SurfaceData{
     // common
 	vec3  albedoColor;
-    float specular;
-    vec3  specularColor;
 	vec3  emissiveColor;
     float metallic;
     float roughness;
     float ambientOcclusion;
     float opacity;
     float IOR;
-    float reflectance;
-    
+    float f0;
 
     // geometry
     vec3 position;
@@ -39,6 +36,12 @@ struct SurfaceData{
 
     vec3  viewDir;
     float dotNV;
+
+    // Specular
+    #ifdef MATERIAL_ENABLE_SPECULAR
+        float specularIntensity;
+        vec3  specularColor;
+    #endif
 
     // Anisotropy
     #ifdef MATERIAL_ENABLE_ANISOTROPY
@@ -56,17 +59,20 @@ struct SurfaceData{
         float clearCoatDotNV;
     #endif
 
+    // Iridescence
     #ifdef MATERIAL_ENABLE_IRIDESCENCE
         float iridescenceIOR;
         float iridescenceFactor;
         float iridescenceThickness;
     #endif
 
+    // Sheen
     #ifdef MATERIAL_ENABLE_SHEEN
         float sheenRoughness;
         vec3  sheenColor;
     #endif
 
+    // Transmission
     #ifdef MATERIAL_ENABLE_TRANSMISSION 
         vec3 absorptionCoefficient;
         float transmission;
@@ -77,11 +83,11 @@ struct SurfaceData{
 
 struct BSDFData{
     vec3  diffuseColor;
-    vec3  specularF0;
     float roughness;
     vec3 envSpecularDFG;
     float diffuseAO;
-    float specularF90;
+    vec3  f0;
+    float f90;
 
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         vec3  clearCoatSpecularColor;
@@ -224,7 +230,7 @@ vec3 BRDF_Specular_GGX(vec3 incidentDirection, SurfaceData surfaceData, BSDFData
 	float dotNH = saturate( dot( normal, halfDir ) );
 	float dotLH = saturate( dot( incidentDirection, halfDir ) );
 
-    vec3 F = F_Schlick( specularColor, bsdfData.specularF90, dotLH );
+    vec3 F = F_Schlick( specularColor, bsdfData.f90, dotLH );
     #ifdef MATERIAL_ENABLE_IRIDESCENCE
         F = mix(F, bsdfData.iridescenceSpecularColor, surfaceData.iridescenceFactor);
     #endif
@@ -426,20 +432,21 @@ void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
     float roughness = surfaceData.roughness;
 
     #ifdef MATERIAL_ENABLE_SPECULAR
-        float reflectance = sqrt(surfaceData.reflectance / 0.16);
-        vec3 dielectricSpecularF0 = min(reflectance * surfaceData.specularColor , vec3(1.0)) * surfaceData.specular;
-        float dielectricSpecularF90 = surfaceData.specular;  
-        bsdfData.specularF0 = albedoColor * metallic + dielectricSpecularF0 * (1.0 - metallic);
-        bsdfData.specularF90 = metallic + dielectricSpecularF90 * (1.0 - metallic);
+        float reflectance = sqrt(surfaceData.f0 / 0.16);
+        vec3 dielectricF0 = min(reflectance * surfaceData.specularColor , vec3(1.0)) * surfaceData.specularIntensity;
+        float dielectricF90 = surfaceData.specularIntensity;  
+
+        bsdfData.f0 = albedoColor * metallic + dielectricF0 * (1.0 - metallic);
+        bsdfData.f90 = metallic + dielectricF90 * (1.0 - metallic);
     #else
-        bsdfData.specularF0 = albedoColor * metallic + (surfaceData.reflectance * (1.0 - metallic));
-        bsdfData.specularF90 = 1.0;
+        bsdfData.f0 = albedoColor * metallic + (surfaceData.f0 * (1.0 - metallic));
+        bsdfData.f90 = 1.0;
     #endif
 
     bsdfData.diffuseColor = albedoColor * ( 1.0 - metallic );
 
     bsdfData.roughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(roughness + getAARoughnessFactor(surfaceData.normal), 1.0));
-    bsdfData.envSpecularDFG = envBRDFApprox(bsdfData.specularF0,  bsdfData.roughness, surfaceData.dotNV);
+    bsdfData.envSpecularDFG = envBRDFApprox(bsdfData.f0,  bsdfData.roughness, surfaceData.dotNV);
    
     bsdfData.diffuseAO = surfaceData.ambientOcclusion;
 
@@ -450,7 +457,7 @@ void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
 
     #ifdef MATERIAL_ENABLE_IRIDESCENCE
         float topIOR = 1.0;
-        bsdfData.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, surfaceData.dotNV, surfaceData.iridescenceIOR, bsdfData.specularF0,bsdfData.specularF90, surfaceData.iridescenceThickness);   
+        bsdfData.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, surfaceData.dotNV, surfaceData.iridescenceIOR, bsdfData.f0, bsdfData.f90, surfaceData.iridescenceThickness);   
     #endif
 
     #ifdef MATERIAL_ENABLE_SHEEN

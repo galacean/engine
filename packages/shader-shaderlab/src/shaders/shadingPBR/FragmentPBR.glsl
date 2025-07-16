@@ -14,7 +14,7 @@ float material_OcclusionIntensity;
 float material_OcclusionTextureCoord;
 
 #ifdef MATERIAL_ENABLE_SPECULAR
-    float material_Specular;
+    float material_SpecularIntensity;
     #ifdef MATERIAL_HAS_SPECULAR_TEXTURE
         sampler2D material_SpecularTexture;
     #endif
@@ -168,7 +168,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     surfaceData.metallic = metallic;
     surfaceData.roughness = roughness;
     surfaceData.IOR = material_IOR;
-    surfaceData.reflectance = pow2( (material_IOR - 1.0) / (material_IOR + 1.0) );
+    surfaceData.f0 = pow2( (material_IOR - 1.0) / (material_IOR + 1.0) );
 
     #ifdef MATERIAL_IS_TRANSPARENT
         surfaceData.opacity = baseColor.a;
@@ -222,9 +222,9 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
 
     // Specular
     #ifdef MATERIAL_ENABLE_SPECULAR
-        surfaceData.specular = material_Specular;
+        surfaceData.specularIntensity = material_SpecularIntensity;
         #ifdef MATERIAL_HAS_SPECULAR_TEXTURE
-            surfaceData.specular *= (texture2D( material_SpecularTexture, uv )).a;
+            surfaceData.specularIntensity *= (texture2D( material_SpecularTexture, uv )).a;
         #endif
 
         surfaceData.specularColor = vec3(1.0);
@@ -235,7 +235,6 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
             #endif
         #endif
     #endif
-
 
     // Clear Coat
      #ifdef MATERIAL_ENABLE_CLEAR_COAT
