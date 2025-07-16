@@ -64,8 +64,8 @@ export class PBRMaterial extends BaseMaterial {
   private _anisotropyRotation: number = 0;
   private _iridescenceRange = new Vector2(100, 400);
   private _sheenEnabled = false;
-  private _specularEnabled = false;
-  private _specularColorEnabled = false;
+  private _specularEnabled = true;
+  private _specularColorEnabled = true;
 
   /**
    * Base color.
@@ -707,7 +707,7 @@ export class PBRMaterial extends BaseMaterial {
 
   set specular(value: number) {
     this.shaderData.setFloat(PBRMaterial._specularProp, value);
-    const enableSpecular = value > 0;
+    const enableSpecular = value !== 0;
     if (enableSpecular !== this._specularEnabled) {
       this._specularEnabled = enableSpecular;
       if (enableSpecular) {
@@ -843,7 +843,7 @@ export class PBRMaterial extends BaseMaterial {
 
   private _onSpecularColorChanged(): void {
     const specularColor = this.specularColor;
-    const enableSpecularColor = specularColor.r + specularColor.g + specularColor.b > 0;
+    const enableSpecularColor = !(specularColor.r === 0 && specularColor.g === 0 && specularColor.b === 0);
     if (enableSpecularColor !== this._specularColorEnabled) {
       this._specularColorEnabled = enableSpecularColor;
       if (enableSpecularColor) {

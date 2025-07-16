@@ -23,7 +23,6 @@ struct SurfaceData{
     float ambientOcclusion;
     float opacity;
     float IOR;
-    float f0;
 
     // geometry
     vec3 position;
@@ -431,15 +430,15 @@ void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
     float metallic = surfaceData.metallic;
     float roughness = surfaceData.roughness;
 
+    vec3 dielectricF0 = vec3(pow2( (surfaceData.IOR - 1.0) / (surfaceData.IOR  + 1.0) ));
     #ifdef MATERIAL_ENABLE_SPECULAR
-        float reflectance = sqrt(surfaceData.f0 / 0.16);
-        vec3 dielectricF0 = min(reflectance * surfaceData.specularColor , vec3(1.0)) * surfaceData.specularIntensity;
+        dielectricF0 = min(dielectricF0 * surfaceData.specularColor , vec3(1.0)) * surfaceData.specularIntensity;
         float dielectricF90 = surfaceData.specularIntensity;  
 
-        bsdfData.f0 = albedoColor * metallic + dielectricF0 * (1.0 - metallic);
-        bsdfData.f90 = metallic + dielectricF90 * (1.0 - metallic);
+        bsdfData.f0 = mix(dielectricF0, albedoColor, metallic);
+        bsdfData.f90 = mix(dielectricF90, 1.0, metallic);
     #else
-        bsdfData.f0 = albedoColor * metallic + (surfaceData.f0 * (1.0 - metallic));
+        bsdfData.f0 = mix(dielectricF0, albedoColor, metallic);
         bsdfData.f90 = 1.0;
     #endif
 

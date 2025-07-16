@@ -10,9 +10,6 @@ import {
   DirectLight,
   GLTFResource,
   Logger,
-  MeshRenderer,
-  PBRMaterial,
-  Texture2D,
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
@@ -29,7 +26,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   const directLightNode = rootEntity.createChild("dir_light");
   directLightNode.addComponent(DirectLight).color = new Color(2, 2, 2, 1);
-  directLightNode.transform.setRotation(10, 20, 10);
+  directLightNode.transform.setRotation(10, 50, 0);
 
   //Create camera
   const cameraNode = rootEntity.createChild("camera_node");

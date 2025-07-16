@@ -168,7 +168,6 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     surfaceData.metallic = metallic;
     surfaceData.roughness = roughness;
     surfaceData.IOR = material_IOR;
-    surfaceData.f0 = pow2( (material_IOR - 1.0) / (material_IOR + 1.0) );
 
     #ifdef MATERIAL_IS_TRANSPARENT
         surfaceData.opacity = baseColor.a;
