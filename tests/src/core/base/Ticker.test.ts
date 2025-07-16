@@ -1,4 +1,4 @@
-import { Ticker, TickerCallback } from "../../../../packages/core/src/base/Ticker";
+import { Ticker } from "@galacean/engine-core";
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 
 describe("Ticker", function () {

@@ -29,9 +29,9 @@ function expectObjectToBeCloseTo(actual, expected, delta) {
 
 export const updateEngine = (engine: Engine, deltaTime = 100) => {
   //@ts-ignore
-  engine._vSyncCount = Infinity;
+  engine.vSyncCount = Infinity;
   //@ts-ignore
-  engine._time._lastSystemTime = 0;
+  engine.time._lastSystemTime = 0;
   let times = 0;
   performance.now = function () {
     times++;
