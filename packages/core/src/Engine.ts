@@ -303,7 +303,7 @@ export class Engine extends EventDispatcher {
   /**
    * Update the engine loop manually. If you call engine.run(), you generally don't need to call this function.
    */
-  update(deltaTime: number): void {
+  update(deltaTime: number = this.time.deltaTime): void {
     this._frameInProcess = true;
 
     this._subRenderElementPool.clear();
