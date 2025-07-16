@@ -21,7 +21,7 @@ import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { ResourceManager } from "./asset/ResourceManager";
-import { EventDispatcher, Logger, Time } from "./base";
+import { EventDispatcher, Logger, Time, Ticker } from "./base";
 import { GLCapabilityType } from "./base/Constant";
 import { InputManager } from "./input";
 import { Material } from "./material/Material";
@@ -120,14 +120,7 @@ export class Engine extends EventDispatcher {
   private _settings: EngineSettings = {};
   private _resourceManager: ResourceManager = new ResourceManager(this);
   private _sceneManager: SceneManager = new SceneManager(this);
-  private _vSyncCount: number = 1;
-  private _targetFrameRate: number = 60;
-  private _time: Time = new Time();
-  private _isPaused: boolean = true;
-  private _requestId: number;
-  private _timeoutId: number;
-  private _vSyncCounter: number = 1;
-  private _targetFrameInterval: number = 1000 / 60;
+  private _ticker: Ticker;
   private _destroyed: boolean = false;
   private _frameInProcess: boolean = false;
   private _waitingDestroy: boolean = false;
@@ -135,20 +128,6 @@ export class Engine extends EventDispatcher {
   private _waitingGC: boolean = false;
   private _postProcessPasses = new Array<PostProcessPass>();
   private _activePostProcessPasses = new Array<PostProcessPass>();
-
-  private _animate = () => {
-    if (this._vSyncCount) {
-      const raf = this.xrManager?._getRequestAnimationFrame() || requestAnimationFrame;
-      this._requestId = raf(this._animate);
-      if (this._vSyncCounter++ % this._vSyncCount === 0) {
-        this.update();
-        this._vSyncCounter = 1;
-      }
-    } else {
-      this._timeoutId = window.setTimeout(this._animate, this._targetFrameInterval);
-      this.update();
-    }
-  };
 
   /**
    * Settings of Engine.
@@ -182,14 +161,14 @@ export class Engine extends EventDispatcher {
    * The time information of the engine.
    */
   get time(): Time {
-    return this._time;
+    return this._ticker.time;
   }
 
   /**
    * Whether the engine is paused.
    */
   get isPaused(): boolean {
-    return this._isPaused;
+    return this._ticker.isPaused;
   }
 
   /**
@@ -197,11 +176,11 @@ export class Engine extends EventDispatcher {
    * @remarks 0 means that the vertical synchronization is turned off.
    */
   get vSyncCount(): number {
-    return this._vSyncCount;
+    return this._ticker.vSyncCount;
   }
 
   set vSyncCount(value: number) {
-    this._vSyncCount = Math.max(0, Math.floor(value));
+    this._ticker.vSyncCount = value;
   }
 
   /**
@@ -211,13 +190,11 @@ export class Engine extends EventDispatcher {
    * The larger the value, the higher the target frame rate, Number.POSITIVE_INFINITY represents the infinite target frame rate.
    */
   get targetFrameRate(): number {
-    return this._targetFrameRate;
+    return this._ticker.targetFrameRate;
   }
 
   set targetFrameRate(value: number) {
-    value = Math.max(0.000001, value);
-    this._targetFrameRate = value;
-    this._targetFrameInterval = 1000 / value;
+    this._ticker.targetFrameRate = value;
   }
 
   /**
@@ -278,6 +255,24 @@ export class Engine extends EventDispatcher {
     this._basicResources = new BasicResources(this);
     this._particleBufferUtils = new ParticleBufferUtils(this);
 
+    // Initialize Ticker
+    this._ticker = new Ticker({
+      targetFrameRate: 60,
+      vSyncCount: 1,
+      autoStart: false
+    });
+
+    // Set up the update callback
+    this._ticker.addCallback(this.update.bind(this));
+
+    // Set custom animation frame provider if XR is available
+    if (this.xrManager) {
+      this._ticker.setAnimationFrameProvider(
+        () => this.xrManager._getRequestAnimationFrame() || requestAnimationFrame,
+        () => this.xrManager._getCancelAnimationFrame() || cancelAnimationFrame
+      );
+    }
+
     const uberPass = new PostProcessUberPass(this);
     this.addPostProcessPass(uberPass);
   }
@@ -295,35 +290,20 @@ export class Engine extends EventDispatcher {
    * Pause the engine.
    */
   pause(): void {
-    this._isPaused = true;
-    const caf = this.xrManager?._getCancelAnimationFrame() || cancelAnimationFrame;
-    caf(this._requestId);
-    clearTimeout(this._timeoutId);
+    this._ticker.pause();
   }
 
   /**
    * Resume the engine.
    */
   resume(): void {
-    if (!this._isPaused) return;
-    this._isPaused = false;
-    this.time._reset();
-    if (this._vSyncCount) {
-      const raf = this.xrManager?._getRequestAnimationFrame() || requestAnimationFrame;
-      this._requestId = raf(this._animate);
-    } else {
-      this._timeoutId = window.setTimeout(this._animate, this._targetFrameInterval);
-    }
+    this._ticker.start();
   }
 
   /**
    * Update the engine loop manually. If you call engine.run(), you generally don't need to call this function.
    */
-  update(): void {
-    const time = this._time;
-    time._update();
-
-    const deltaTime = time.deltaTime;
+  update(deltaTime: number): void {
     this._frameInProcess = true;
 
     this._subRenderElementPool.clear();
@@ -407,7 +387,7 @@ export class Engine extends EventDispatcher {
    * Execution engine loop.
    */
   run(): void {
-    this.resume();
+    this._ticker.start();
     this.dispatch("run", this);
   }
 
@@ -504,6 +484,9 @@ export class Engine extends EventDispatcher {
 
     Shader._clear(this);
     this._hardwareRenderer.destroy();
+    
+    // Destroy ticker
+    this._ticker.destroy();
 
     this.removeAllEventListeners();
     this._waitingDestroy = false;
