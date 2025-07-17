@@ -200,6 +200,10 @@ export class Ticker extends EventDispatcher {
     this._getCAF = getCAF;
   }
 
+  update() {
+    this._time._update();
+  }
+
   private _update(): void {
     this._time._update();
     const deltaTime = this._time.deltaTime;

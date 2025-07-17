@@ -303,8 +303,9 @@ export class Engine extends EventDispatcher {
   /**
    * Update the engine loop manually. If you call engine.run(), you generally don't need to call this function.
    */
-  update(deltaTime: number = this.time.deltaTime): void {
-    this._ticker.time._update();
+  update(): void {
+    this._ticker.update();
+    const deltaTime = this.time.deltaTime;
 
     this._frameInProcess = true;
 
