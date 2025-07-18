@@ -10,7 +10,7 @@ class KHR_materials_specular extends GLTFExtensionParser {
   override additiveParse(context: GLTFParserContext, material: PBRMaterial, schema: IKHRMaterialsSpecular): void {
     const { specularFactor = 1, specularTexture, specularColorFactor, specularColorTexture } = schema;
 
-    material.specular = specularFactor;
+    material.specularIntensity = specularFactor;
 
     if (specularColorFactor) {
       material.specularColor.set(specularColorFactor[0], specularColorFactor[1], specularColorFactor[2], undefined);

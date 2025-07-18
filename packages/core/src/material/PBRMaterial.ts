@@ -1,13 +1,13 @@
 import { Color, MathUtil, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
+import { Logger } from "../base";
 import { ShaderMacro, ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { Texture2D } from "../texture/Texture2D";
 import { BaseMaterial } from "./BaseMaterial";
-import { TextureCoordinate } from "./enums/TextureCoordinate";
 import { RefractionMode } from "./enums/Refraction";
-import { Logger } from "../base";
+import { TextureCoordinate } from "./enums/TextureCoordinate";
 
 /**
  * PBR (Metallic-Roughness Workflow) Material.
@@ -697,12 +697,11 @@ export class PBRMaterial extends BaseMaterial {
    * The strength of the specular reflection.
    * @defaultValue `1.0`
    */
-
-  get specular(): number {
+  get specularIntensity(): number {
     return this.shaderData.getFloat(PBRMaterial._specularProp);
   }
 
-  set specular(value: number) {
+  set specularIntensity(value: number) {
     this.shaderData.setFloat(PBRMaterial._specularProp, value);
   }
 
@@ -713,6 +712,7 @@ export class PBRMaterial extends BaseMaterial {
   get specularColor(): Color {
     return this.shaderData.getColor(PBRMaterial._specularColorProp);
   }
+
   set specularColor(value: Color) {
     const specularColor = this.shaderData.getColor(PBRMaterial._specularColorProp);
     if (value !== specularColor) {
@@ -722,7 +722,7 @@ export class PBRMaterial extends BaseMaterial {
 
   /**
    * Specular texture.
-   * @remarks The strength of the specular reflection, A channel will be multiplied by `specular`.
+   * @remarks The strength of the specular reflection, A channel will be multiplied by `specularIntensity`.
    */
   get specularTexture(): Texture2D {
     return <Texture2D>this.shaderData.getTexture(PBRMaterial._specularTextureProp);
@@ -787,11 +787,9 @@ export class PBRMaterial extends BaseMaterial {
     shaderData.setFloat(PBRMaterial._transmissionProp, 0);
     shaderData.setFloat(PBRMaterial._thicknessProp, 0);
     shaderData.setFloat(PBRMaterial._attenuationDistanceProp, Infinity);
-    const attenuationColor = new Color(1, 1, 1);
-    shaderData.setColor(PBRMaterial._attenuationColorProp, attenuationColor);
+    shaderData.setColor(PBRMaterial._attenuationColorProp, new Color(1, 1, 1));
     shaderData.setFloat(PBRMaterial._specularProp, 1);
-    const specularColor = new Color(1, 1, 1);
-    shaderData.setColor(PBRMaterial._specularColorProp, specularColor);
+    shaderData.setColor(PBRMaterial._specularColorProp, new Color(1, 1, 1));
 
     // @ts-ignore
     this._iridescenceRange._onValueChanged = this._onIridescenceRangeChanged.bind(this);
