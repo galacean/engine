@@ -280,7 +280,6 @@ describe("UICanvas", async () => {
     rootCanvas.sortOrder = 10;
     const cloneEntity = canvasEntity.clone();
     const cloneCanvas = cloneEntity.getComponent(UICanvas);
-    console.log(cloneCanvas.entity.parent);
 
     expect(cloneCanvas.renderMode).to.eq(CanvasRenderMode.ScreenSpaceCamera);
     expect(cloneCanvas.renderCamera).to.eq(camera);
@@ -294,5 +293,11 @@ describe("UICanvas", async () => {
     root.addChild(cloneEntity);
     // @ts-ignore
     expect(cloneCanvas._isRootCanvas).to.eq(true);
+
+    const cameraNeedClone = canvasEntity.createChild('camera').addComponent(Camera);
+    rootCanvas.renderCamera = cameraNeedClone;
+    const anoCloneEntity = canvasEntity.clone();
+    const anoCloneCanvas = anoCloneEntity.getComponent(UICanvas);
+    expect(anoCloneCanvas.renderCamera).to.eq(anoCloneEntity.findByName("camera").getComponent(Camera));
   });
 });

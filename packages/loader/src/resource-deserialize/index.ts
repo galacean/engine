@@ -24,6 +24,7 @@ export function decode<T>(arrayBuffer: ArrayBuffer, engine: Engine, ...args: any
   });
 }
 
+export * from "./resources/parser/HierarchyParser";
 export * from "./resources/parser/ParserContext";
 export * from "./resources/scene/EditorTextureLoader";
 export * from "./resources/scene/SceneParser";
