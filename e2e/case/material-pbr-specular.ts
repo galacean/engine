@@ -10,15 +10,20 @@ import {
   DirectLight,
   GLTFResource,
   Logger,
+  Shader,
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
+import { PBRSource, registerIncludes } from "@galacean/engine-shader-shaderlab";
+import { ShaderLab } from "@galacean/engine-shaderlab";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 
+registerIncludes();
+
 // Create engine
-WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
+WebGLEngine.create({ canvas: "canvas", shaderLab: new ShaderLab() }).then((engine) => {
   engine.canvas.resizeByClientSize();
 
   const scene = engine.sceneManager.activeScene;
@@ -40,9 +45,13 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
         "https://mdn.alipayobjects.com/huamei_9ahbho/afts/file/A*NEFJQro2hFoAAAAATaAAAAgAegDwAQ/SpecularTest.glb"
       )
       .then((gltf) => {
-        const { defaultSceneRoot } = gltf;
+        const { defaultSceneRoot, materials } = gltf;
         const entity = rootEntity.createChild();
         entity.addChild(defaultSceneRoot);
+        const shader = Shader.create(PBRSource);
+        materials?.forEach((material) => {
+          material.shader = shader;
+        });
       }),
     engine.resourceManager
       .load<AmbientLight>({
