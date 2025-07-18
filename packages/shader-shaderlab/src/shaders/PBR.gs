@@ -14,7 +14,7 @@ Shader "PBRShaderName" {
       }
       
       Header("Specular") {
-        material_SpecularIntensity( "Intensity", Range(0,1,0.01) ) = 1;
+        material_SpecularIntensity( "Intensity", Range(0,2,0.01) ) = 1;
         material_SpecularColor( "Color", Color ) = (1, 1, 1, 1);
         material_SpecularTexture("IntensityTexture", Texture2D);
         material_SpecularColorTexture("ColorTexture", Texture2D);
