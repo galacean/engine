@@ -13,7 +13,6 @@ import {
   ShaderProperty,
   Vector3,
   Vector4,
-  assignmentClone,
   deepClone,
   dependentComponents,
   ignoreClone
@@ -72,7 +71,7 @@ export class UIRenderer extends Renderer implements IGraphics {
   @ignoreClone
   _subChunk;
 
-  @assignmentClone
+  @ignoreClone
   private _raycastEnabled: boolean = true;
   @deepClone
   protected _color: Color = new Color(1, 1, 1, 1);

@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-loader",
-  "version": "1.5.12",
+  "version": "1.5.7",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -18,8 +18,7 @@
   "debug": "src/index.ts",
   "files": [
     "dist/**/*",
-    "types/**/*",
-    "libs/**/*"
+    "types/**/*"
   ],
   "dependencies": {
     "@galacean/engine-core": "workspace:*",

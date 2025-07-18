@@ -55,18 +55,11 @@ describe("Image", async () => {
     const sprite = new Sprite(engine, new Texture2D(engine, 100, 100));
     image.sprite = sprite;
     image.drawMode = SpriteDrawMode.Sliced;
-    image.raycastEnabled = false;
-    image.raycastPadding.set(1, 1, 1, 1);
 
     const cloneEntity = imageEntity.clone();
     const cloneImage = cloneEntity.getComponent(Image);
 
     expect(cloneImage.sprite).to.eq(sprite);
     expect(cloneImage.drawMode).to.eq(SpriteDrawMode.Sliced);
-    expect(cloneImage.raycastEnabled).to.eq(false);
-    expect(cloneImage.raycastPadding.x).to.eq(1);
-    expect(cloneImage.raycastPadding.y).to.eq(1);
-    expect(cloneImage.raycastPadding.z).to.eq(1);
-    expect(cloneImage.raycastPadding.w).to.eq(1);
   });
 });

@@ -54,22 +54,16 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
   return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
     const xhr = new XMLHttpRequest();
     const isImg = config.type === "image";
+
     xhr.timeout = config.timeout;
     config.method = config.method ?? "get";
-    xhr.withCredentials = config.credentials === "include";
-    // @ts-ignore
-    xhr.responseType = isImg ? "blob" : config.type;
+
     xhr.onload = () => {
       if (xhr.status < 200 || xhr.status >= 300) {
-        reject(new Error(`Request failed from: ${url}`));
+        reject(new Error(`request failed from: ${url}`));
         return;
       }
-      const result = xhr.response;
-      // For example, if the response body is a document but responseType is set to JSON, it returns null.
-      if (!result) {
-        reject(new Error(`Request ${url} response is empty, please check the config.`));
-        return;
-      }
+      const result = xhr.response ?? xhr.responseText;
       if (isImg) {
         const img = new Image();
 
@@ -111,6 +105,9 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
       }
     };
     xhr.open(config.method, url, true);
+    xhr.withCredentials = config.credentials === "include";
+    // @ts-ignore
+    xhr.responseType = isImg ? "blob" : config.type;
     const headers = config.headers;
     if (headers) {
       Object.keys(headers).forEach((name) => {

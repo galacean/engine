@@ -36,16 +36,6 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
   }
 
   /**
-   * {@inheritDoc IColliderShape.setRotation }
-   */
-  override setRotation(value: Vector3): void {
-    super.setRotation(value);
-    if (this._controllers.length > 0) {
-      console.warn("Box character controller `rotation` is not supported in PhysX and will be ignored");
-    }
-  }
-
-  /**
    * {@inheritDoc IColliderShape.setWorldScale }
    */
   override setWorldScale(scale: Vector3): void {
@@ -64,8 +54,8 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
       const pxController = controllers.get(i)._pxController;
 
       if (pxController) {
-        pxController.setHalfHeight(extents.y);
-        pxController.setHalfSideExtent(extents.x);
+        pxController.setHalfHeight(extents.x);
+        pxController.setHalfSideExtent(extents.y);
         pxController.setHalfForwardExtent(extents.z);
       }
     }

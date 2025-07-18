@@ -1,8 +1,7 @@
-import { ignoreClone, PointerEventData, SafeLoopArray } from "@galacean/engine";
+import { PointerEventData, SafeLoopArray } from "@galacean/engine";
 import { UIInteractive } from "../interactive/UIInteractive";
 
 export class Button extends UIInteractive {
-  @ignoreClone
   private _listeners: SafeLoopArray<IUIListener> = new SafeLoopArray<IUIListener>();
 
   /**

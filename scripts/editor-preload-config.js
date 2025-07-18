@@ -28,7 +28,7 @@ module.exports = {
     {
       name: "@galacean/engine-shader-shaderlab",
       path: "packages/shader-shaderlab",
-      browserPath: "dist/browser.js"
+      browserPath: "dist/browser.min.js"
     }
   ],
 

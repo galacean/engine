@@ -114,7 +114,7 @@ export class ReflectionParser {
           return resource;
         });
       } else if (ReflectionParser._isComponentRef(value)) {
-        return Promise.resolve(this._context.components.get(value.componentId) ?? null);
+        return this._context.getComponentByRef(value);
       } else if (ReflectionParser._isEntityRef(value)) {
         // entity reference
         return Promise.resolve(this._context.entityMap.get(value.entityId));

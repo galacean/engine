@@ -1,4 +1,4 @@
-import { deepClone, Entity, Scene, Transform } from "@galacean/engine-core";
+import { Entity, Scene, Transform } from "@galacean/engine-core";
 import { Vector2, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -113,6 +113,15 @@ describe("Transform test", function () {
 });
 
 class SubClassOfTransform extends Transform {
-  @deepClone
   size: Vector2 = new Vector2();
+
+  /**
+   * @internal
+   */
+  _copyFrom(transform: SubClassOfTransform): void {
+    this.position.copyFrom(transform.position);
+    this.rotation.copyFrom(transform.rotation);
+    this.scale.copyFrom(transform.scale);
+    this.size.copyFrom(transform.size);
+  }
 }

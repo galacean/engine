@@ -43,10 +43,9 @@ export abstract class PhysXColliderShape implements IColliderShape {
   _pxGeometry: any;
   /** @internal */
   _id: number;
-  /** @internal */
-  _rotation: Vector3 = new Vector3();
 
   protected _physXPhysics: PhysXPhysics;
+  protected _rotation: Vector3 = new Vector3();
   protected _axis: Quaternion = null;
   protected _physXRotation: Quaternion = new Quaternion();
 

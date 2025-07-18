@@ -515,7 +515,10 @@ export class Entity extends EngineObject {
   }
 
   private _createCloneEntity(): Entity {
-    const cloneEntity = new Entity(this.engine, this.name);
+    const transform = this._transform;
+    const cloneEntity = transform
+      ? new Entity(this.engine, this.name, transform.constructor as ComponentConstructor)
+      : new Entity(this.engine, this.name);
     const templateResource = this._templateResource;
     if (templateResource) {
       cloneEntity._templateResource = templateResource;
@@ -524,13 +527,10 @@ export class Entity extends EngineObject {
 
     cloneEntity.layer = this.layer;
     cloneEntity._isActive = this._isActive;
+    cloneEntity.transform._copyFrom(this.transform);
     const srcChildren = this._children;
     for (let i = 0, n = srcChildren.length; i < n; i++) {
       cloneEntity.addChild(srcChildren[i]._createCloneEntity());
-    }
-    const components = this._components;
-    for (let i = 0, n = components.length; i < n; i++) {
-      cloneEntity.addComponent(<ComponentConstructor>components[i].constructor);
     }
     return cloneEntity;
   }
@@ -550,7 +550,11 @@ export class Entity extends EngineObject {
 
     const components = src._components;
     for (let i = 0, n = components.length; i < n; i++) {
-      ComponentCloner.cloneComponent(components[i], target._components[i], srcRoot, targetRoot, deepInstanceMap);
+      const sourceComp = components[i];
+      if (!(sourceComp instanceof Transform)) {
+        const targetComp = target.addComponent(<ComponentConstructor>sourceComp.constructor);
+        ComponentCloner.cloneComponent(sourceComp, targetComp, srcRoot, targetRoot, deepInstanceMap);
+      }
     }
   }
 
