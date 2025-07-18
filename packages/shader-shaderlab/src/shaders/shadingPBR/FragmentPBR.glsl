@@ -13,18 +13,14 @@ float material_NormalIntensity;
 float material_OcclusionIntensity;
 float material_OcclusionTextureCoord;
 
-#ifdef MATERIAL_ENABLE_SPECULAR
-    float material_SpecularIntensity;
-    #ifdef MATERIAL_HAS_SPECULAR_TEXTURE
-        sampler2D material_SpecularTexture;
-    #endif
+float material_SpecularIntensity;
+vec3  material_SpecularColor;
+#ifdef MATERIAL_HAS_SPECULAR_TEXTURE
+    sampler2D material_SpecularTexture;
+#endif
 
-    #ifdef MATERIAL_ENABLE_SPECULAR_COLOR
-        vec3  material_SpecularColor;
-        #ifdef MATERIAL_HAS_SPECULAR_COLOR_TEXTURE
-            sampler2D material_SpecularColorTexture;
-        #endif
-    #endif
+#ifdef MATERIAL_HAS_SPECULAR_COLOR_TEXTURE
+    sampler2D material_SpecularColorTexture;
 #endif
 
 #ifdef MATERIAL_ENABLE_CLEAR_COAT
@@ -220,19 +216,14 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     surfaceData.dotNV = saturate( dot(surfaceData.normal, surfaceData.viewDir) );
 
     // Specular
-    #ifdef MATERIAL_ENABLE_SPECULAR
-        surfaceData.specularIntensity = material_SpecularIntensity;
-        #ifdef MATERIAL_HAS_SPECULAR_TEXTURE
-            surfaceData.specularIntensity *= (texture2D( material_SpecularTexture, uv )).a;
-        #endif
+    surfaceData.specularIntensity = material_SpecularIntensity;
+    surfaceData.specularColor = material_SpecularColor;
+    #ifdef MATERIAL_HAS_SPECULAR_TEXTURE
+        surfaceData.specularIntensity *= (texture2D( material_SpecularTexture, uv )).a;
+    #endif
 
-        surfaceData.specularColor = vec3(1.0);
-        #ifdef MATERIAL_ENABLE_SPECULAR_COLOR
-            surfaceData.specularColor = material_SpecularColor;
-            #ifdef MATERIAL_HAS_SPECULAR_COLOR_TEXTURE
-                surfaceData.specularColor *= (texture2D( material_SpecularColorTexture, uv )).rgb;
-            #endif
-        #endif
+    #ifdef MATERIAL_HAS_SPECULAR_COLOR_TEXTURE
+        surfaceData.specularColor *= (texture2D( material_SpecularColorTexture, uv )).rgb;
     #endif
 
     // Clear Coat

@@ -52,7 +52,6 @@ export class PBRMaterial extends BaseMaterial {
   private static _thicknessProp = ShaderProperty.getByName("material_Thickness");
   private static _thicknessTextureProp = ShaderProperty.getByName("material_ThicknessTexture");
 
-  private static _specularMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_ENABLE_SPECULAR");
   private static _specularTextureMacro = ShaderMacro.getByName("MATERIAL_ENABLE_SPECULAR_TEXTURE");
   private static _specularColorTextureMacro = ShaderMacro.getByName("MATERIAL_ENABLE_SPECULAR_COLOR_TEXTURE");
   private static _specularProp = ShaderProperty.getByName("material_SpecularIntensity");
@@ -64,8 +63,6 @@ export class PBRMaterial extends BaseMaterial {
   private _anisotropyRotation: number = 0;
   private _iridescenceRange = new Vector2(100, 400);
   private _sheenEnabled = false;
-  private _specularEnabled = true;
-  private _specularColorEnabled = true;
 
   /**
    * Base color.
@@ -707,15 +704,6 @@ export class PBRMaterial extends BaseMaterial {
 
   set specular(value: number) {
     this.shaderData.setFloat(PBRMaterial._specularProp, value);
-    const enableSpecular = value !== 0;
-    if (enableSpecular !== this._specularEnabled) {
-      this._specularEnabled = enableSpecular;
-      if (enableSpecular) {
-        this.shaderData.enableMacro(PBRMaterial._specularMacro);
-      } else {
-        this.shaderData.disableMacro(PBRMaterial._specularMacro);
-      }
-    }
   }
 
   /**
@@ -801,7 +789,6 @@ export class PBRMaterial extends BaseMaterial {
     shaderData.setFloat(PBRMaterial._attenuationDistanceProp, Infinity);
     const attenuationColor = new Color(1, 1, 1);
     shaderData.setColor(PBRMaterial._attenuationColorProp, attenuationColor);
-    shaderData.enableMacro(PBRMaterial._specularMacro);
     shaderData.setFloat(PBRMaterial._specularProp, 1);
     const specularColor = new Color(1, 1, 1);
     shaderData.setColor(PBRMaterial._specularColorProp, specularColor);
@@ -838,19 +825,6 @@ export class PBRMaterial extends BaseMaterial {
         this.shaderData.enableMacro("MATERIAL_ENABLE_SHEEN");
       } else {
         this.shaderData.disableMacro("MATERIAL_ENABLE_SHEEN");
-      }
-    }
-  }
-
-  private _onSpecularColorChanged(): void {
-    const specularColor = this.specularColor;
-    const enableSpecularColor = !(specularColor.r === 0 && specularColor.g === 0 && specularColor.b === 0);
-    if (enableSpecularColor !== this._specularColorEnabled) {
-      this._specularColorEnabled = enableSpecularColor;
-      if (enableSpecularColor) {
-        this.shaderData.enableMacro("MATERIAL_ENABLE_SPECULAR_COLOR");
-      } else {
-        this.shaderData.disableMacro("MATERIAL_ENABLE_SPECULAR_COLOR");
       }
     }
   }

@@ -37,10 +37,8 @@ struct SurfaceData{
     float dotNV;
 
     // Specular
-    #ifdef MATERIAL_ENABLE_SPECULAR
-        float specularIntensity;
-        vec3  specularColor;
-    #endif
+    float specularIntensity;
+    vec3  specularColor;
 
     // Anisotropy
     #ifdef MATERIAL_ENABLE_ANISOTROPY
@@ -431,16 +429,11 @@ void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
     float roughness = surfaceData.roughness;
 
     vec3 dielectricF0 = vec3(pow2( (surfaceData.IOR - 1.0) / (surfaceData.IOR  + 1.0) ));
-    #ifdef MATERIAL_ENABLE_SPECULAR
-        dielectricF0 = min(dielectricF0 * surfaceData.specularColor , vec3(1.0)) * surfaceData.specularIntensity;
-        float dielectricF90 = surfaceData.specularIntensity;  
+    dielectricF0 = min(dielectricF0 * surfaceData.specularColor , vec3(1.0)) * surfaceData.specularIntensity;
+    float dielectricF90 = surfaceData.specularIntensity;  
 
-        bsdfData.f0 = mix(dielectricF0, albedoColor, metallic);
-        bsdfData.f90 = mix(dielectricF90, 1.0, metallic);
-    #else
-        bsdfData.f0 = mix(dielectricF0, albedoColor, metallic);
-        bsdfData.f90 = 1.0;
-    #endif
+    bsdfData.f0 = mix(dielectricF0, albedoColor, metallic);
+    bsdfData.f90 = mix(dielectricF90, 1.0, metallic);
 
     bsdfData.diffuseColor = albedoColor * ( 1.0 - metallic );
 
