@@ -801,6 +801,7 @@ export class PBRMaterial extends BaseMaterial {
     shaderData.setFloat(PBRMaterial._attenuationDistanceProp, Infinity);
     const attenuationColor = new Color(1, 1, 1);
     shaderData.setColor(PBRMaterial._attenuationColorProp, attenuationColor);
+    shaderData.enableMacro(PBRMaterial._specularMacro);
     shaderData.setFloat(PBRMaterial._specularProp, 1);
     const specularColor = new Color(1, 1, 1);
     shaderData.setColor(PBRMaterial._specularColorProp, specularColor);
