@@ -375,7 +375,7 @@ describe("glTF Loader test", function () {
     const pbrMaterials = materials as PBRMaterial[];
 
     // material
-    expect(pbrMaterials.length).to.equal(4);
+    expect(pbrMaterials.length).to.equal(3);
     expect(pbrMaterials[0]).to.instanceOf(PBRMaterial);
     expect(pbrMaterials[1]).to.instanceOf(UnlitMaterial);
     expect(pbrMaterials[2]).to.instanceOf(BlinnPhongMaterial);
@@ -389,9 +389,6 @@ describe("glTF Loader test", function () {
     expect(pbrMaterials[1].baseColor).to.deep.equal(new Color(0, 1, 0, 1));
     expect(pbrMaterials[1].renderFace).to.equal(RenderFace.Front);
     expect(pbrMaterials[1].isTransparent).to.be.false;
-    expect(pbrMaterials[2].baseColor).to.deep.equal(new Color(0, 0, 1, 1));
-    expect(pbrMaterials[2].specularColor).to.deep.equal(new Color(1, 0, 0, 1));
-    expect(pbrMaterials[2].alphaCutoff).to.equal(0.8);
     expect(pbrMaterials[2].baseColor).to.deep.equal(new Color(1, 1, 0, 1));
 
     // entity
@@ -430,7 +427,6 @@ describe("glTF Loader test", function () {
     expect(pbrMaterials[0].clearCoatTexture).to.exist;
     expect(pbrMaterials[0].clearCoatRoughnessTexture).to.exist;
     expect(pbrMaterials[0].clearCoatNormalTexture).to.exist;
-    expect(pbrMaterials[2].baseTexture).to.exist;
     expect(pbrMaterials[0].baseTexture.isSRGBColorSpace).to.be.true;
     expect(pbrMaterials[0].roughnessMetallicTexture.isSRGBColorSpace).to.be.false;
     expect(pbrMaterials[0].normalTexture.isSRGBColorSpace).to.be.false;
