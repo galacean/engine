@@ -797,8 +797,6 @@ export class PBRMaterial extends BaseMaterial {
     this._iridescenceRange._onValueChanged = this._onIridescenceRangeChanged.bind(this);
     // @ts-ignore
     sheenColor._onValueChanged = this._onSheenColorChanged.bind(this);
-    // @ts-ignore
-    specularColor._onValueChanged = this._onSpecularColorChanged.bind(this);
   }
 
   /**
