@@ -54,7 +54,7 @@ export class PBRMaterial extends BaseMaterial {
 
   private static _specularTextureMacro = ShaderMacro.getByName("MATERIAL_ENABLE_SPECULAR_TEXTURE");
   private static _specularColorTextureMacro = ShaderMacro.getByName("MATERIAL_ENABLE_SPECULAR_COLOR_TEXTURE");
-  private static _specularProp = ShaderProperty.getByName("material_SpecularIntensity");
+  private static _specularIntensityProp = ShaderProperty.getByName("material_SpecularIntensity");
   private static _specularColorProp = ShaderProperty.getByName("material_SpecularColor");
   private static _specularTextureProp = ShaderProperty.getByName("material_SpecularTexture");
   private static _specularColorTextureProp = ShaderProperty.getByName("material_SpecularColorTexture");
@@ -698,11 +698,11 @@ export class PBRMaterial extends BaseMaterial {
    * @defaultValue `1.0`
    */
   get specularIntensity(): number {
-    return this.shaderData.getFloat(PBRMaterial._specularProp);
+    return this.shaderData.getFloat(PBRMaterial._specularIntensityProp);
   }
 
   set specularIntensity(value: number) {
-    this.shaderData.setFloat(PBRMaterial._specularProp, value);
+    this.shaderData.setFloat(PBRMaterial._specularIntensityProp, value);
   }
 
   /**
@@ -788,7 +788,7 @@ export class PBRMaterial extends BaseMaterial {
     shaderData.setFloat(PBRMaterial._thicknessProp, 0);
     shaderData.setFloat(PBRMaterial._attenuationDistanceProp, Infinity);
     shaderData.setColor(PBRMaterial._attenuationColorProp, new Color(1, 1, 1));
-    shaderData.setFloat(PBRMaterial._specularProp, 1);
+    shaderData.setFloat(PBRMaterial._specularIntensityProp, 1);
     shaderData.setColor(PBRMaterial._specularColorProp, new Color(1, 1, 1));
 
     // @ts-ignore
