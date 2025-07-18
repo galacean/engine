@@ -12,6 +12,13 @@ Shader "PBRShaderName" {
         material_Roughness( "Roughness", Range( 0, 1, 0.01 ) ) = 1;
         material_RoughnessMetallicTexture("RoughnessMetallicTexture", Texture2D);
       }
+      
+      Header("Specular") {
+        material_SpecularIntensity( "Intensity", Range(0,2,0.01) ) = 1;
+        material_SpecularColor( "Color", Color ) = (1, 1, 1, 1);
+        material_SpecularTexture("IntensityTexture", Texture2D);
+        material_SpecularColorTexture("ColorTexture", Texture2D);
+      }
 
       Header("Anisotropy") {
         anisotropy("Intensity", Range(0, 1, 0.01)) = 0;
@@ -104,8 +111,6 @@ Shader "PBRShaderName" {
         }
 
         RenderQueueType = renderQueueType;
-
-        #define IS_METALLIC_WORKFLOW
         
         VertexShader = PBRVertex;
         FragmentShader = PBRFragment;

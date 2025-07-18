@@ -17,12 +17,10 @@
 struct SurfaceData{
     // common
 	vec3  albedoColor;
-    vec3  specularColor;
 	vec3  emissiveColor;
     float metallic;
     float roughness;
     float ambientOcclusion;
-    float f0;
     float opacity;
     float IOR;
 
@@ -37,6 +35,10 @@ struct SurfaceData{
 
     vec3  viewDir;
     float dotNV;
+
+    // Specular
+    float specularIntensity;
+    vec3  specularColor;
 
     // Anisotropy
     #ifdef MATERIAL_ENABLE_ANISOTROPY
@@ -54,17 +56,20 @@ struct SurfaceData{
         float clearCoatDotNV;
     #endif
 
+    // Iridescence
     #ifdef MATERIAL_ENABLE_IRIDESCENCE
         float iridescenceIOR;
         float iridescenceFactor;
         float iridescenceThickness;
     #endif
 
+    // Sheen
     #ifdef MATERIAL_ENABLE_SHEEN
         float sheenRoughness;
         vec3  sheenColor;
     #endif
 
+    // Transmission
     #ifdef MATERIAL_ENABLE_TRANSMISSION 
         vec3 absorptionCoefficient;
         float transmission;
@@ -75,10 +80,11 @@ struct SurfaceData{
 
 struct BSDFData{
     vec3  diffuseColor;
-    vec3  specularColor;
     float roughness;
     vec3 envSpecularDFG;
     float diffuseAO;
+    vec3  f0;
+    float f90;
 
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         vec3  clearCoatSpecularColor;
@@ -111,11 +117,11 @@ float getAARoughnessFactor(vec3 normal) {
 }
 
 
-float F_Schlick(float f0, float dotLH) {
-	return f0 + 0.96 * (pow(1.0 - dotLH, 5.0));
+float F_Schlick(float f0, float f90, float dotLH) {
+	return f0 + (f90 - f0) * (pow(1.0 - dotLH, 5.0));
 }
 
-vec3 F_Schlick(vec3 specularColor, float dotLH ) {
+vec3 F_Schlick(vec3 f0, float f90, float dotLH ) {
 
 	// Original approximation by Christophe Schlick '94
 	// float fresnel = pow( 1.0 - dotLH, 5.0 );
@@ -124,7 +130,7 @@ vec3 F_Schlick(vec3 specularColor, float dotLH ) {
 	// https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
 	float fresnel = exp2( ( -5.55473 * dotLH - 6.98316 ) * dotLH );
 
-	return ( 1.0 - specularColor ) * fresnel + specularColor;
+	return (f90 - f0 ) * fresnel + f0;
 
 }
 
@@ -221,7 +227,7 @@ vec3 BRDF_Specular_GGX(vec3 incidentDirection, SurfaceData surfaceData, BSDFData
 	float dotNH = saturate( dot( normal, halfDir ) );
 	float dotLH = saturate( dot( incidentDirection, halfDir ) );
 
-    vec3 F = F_Schlick( specularColor, dotLH );
+    vec3 F = F_Schlick( specularColor, bsdfData.f90, dotLH );
     #ifdef MATERIAL_ENABLE_IRIDESCENCE
         F = mix(F, bsdfData.iridescenceSpecularColor, surfaceData.iridescenceFactor);
     #endif
@@ -240,6 +246,7 @@ vec3 BRDF_Diffuse_Lambert(vec3 diffuseColor) {
 }
 
 #ifdef MATERIAL_ENABLE_IRIDESCENCE
+
     vec3 iorToFresnel0(vec3 transmittedIOR, float incidentIOR) {
         return pow((transmittedIOR - incidentIOR) / (transmittedIOR + incidentIOR),vec3(2.0));
     } 
@@ -275,7 +282,7 @@ vec3 BRDF_Diffuse_Lambert(vec3 diffuseColor) {
         return rgb;
     }
 
-    vec3 evalIridescenceSpecular(float outsideIOR, float dotNV, float thinIOR, vec3 baseF0,float iridescenceThickness){ 
+    vec3 evalIridescenceSpecular(float outsideIOR, float dotNV, float thinIOR, vec3 baseF0, float baseF90, float iridescenceThickness){ 
         vec3 iridescence = vec3(1.0);
         // Force iridescenceIOR -> outsideIOR when thinFilmThickness -> 0.0
         float iridescenceIOR = mix( outsideIOR, thinIOR, smoothstep( 0.0, 0.03, iridescenceThickness ) );
@@ -290,7 +297,7 @@ vec3 BRDF_Diffuse_Lambert(vec3 diffuseColor) {
             
         // First interface
         float f0 = iorToFresnel0(iridescenceIOR, outsideIOR);
-        float reflectance = F_Schlick(f0, dotNV);
+        float reflectance = F_Schlick(f0, baseF90, dotNV);
         float t121 = 1.0 - reflectance;
         float phi12 = 0.0;
         // iridescenceIOR has limited greater than 1.0
@@ -300,7 +307,7 @@ vec3 BRDF_Diffuse_Lambert(vec3 diffuseColor) {
         // Second interface
         vec3 baseIOR = fresnelToIOR(clamp(baseF0, 0.0, 0.9999)); // guard against 1.0
         vec3 r1  = iorToFresnel0(baseIOR, iridescenceIOR);
-        vec3 r23 = F_Schlick(r1, cosTheta2);
+        vec3 r23 = F_Schlick(r1, baseF90, cosTheta2);
         vec3 phi23 =vec3(0.0);
         if (baseIOR[0] < iridescenceIOR) {phi23[0] = PI;}
         if (baseIOR[1] < iridescenceIOR) {phi23[1] = PI;}
@@ -404,7 +411,7 @@ vec3 envBRDFApprox(vec3 specularColor, float roughness, float dotNV ) {
          
         // Use specularFGD as an approximation of the fresnel effect
         // https://blog.selfshadow.com/publications/s2017-shading-course/imageworks/s2017_pbs_imageworks_slides_v2.pdf
-        refractionTransmitted *= (1.0 - bsdfData.envSpecularDFG);
+        refractionTransmitted *= 1.0 - bsdfData.envSpecularDFG;
 
        #ifdef MATERIAL_HAS_THICKNESS
             // Absorption coefficient from Disney: http://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_notes.pdf
@@ -418,21 +425,20 @@ vec3 envBRDFApprox(vec3 specularColor, float roughness, float dotNV ) {
 
 void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
     vec3 albedoColor = surfaceData.albedoColor;
-    vec3 specularColor = surfaceData.specularColor;
     float metallic = surfaceData.metallic;
     float roughness = surfaceData.roughness;
-    float f0 = surfaceData.f0;
 
-    #ifdef IS_METALLIC_WORKFLOW
-        bsdfData.diffuseColor = albedoColor * ( 1.0 - metallic );
-        bsdfData.specularColor = mix( vec3(f0), albedoColor, metallic );
-    #else
-        float specularStrength = max( max( specularColor.r, specularColor.g ), specularColor.b );
-        bsdfData.diffuseColor = albedoColor * ( 1.0 - specularStrength );
-        bsdfData.specularColor = specularColor;
-    #endif
+    vec3 dielectricF0 = vec3(pow2( (surfaceData.IOR - 1.0) / (surfaceData.IOR  + 1.0) ));
+    dielectricF0 = min(dielectricF0 * surfaceData.specularColor , vec3(1.0)) * surfaceData.specularIntensity;
+    float dielectricF90 = surfaceData.specularIntensity;  
+
+    bsdfData.f0 = mix(dielectricF0, albedoColor, metallic);
+    bsdfData.f90 = mix(dielectricF90, 1.0, metallic);
+
+    bsdfData.diffuseColor = albedoColor * ( 1.0 - metallic );
+
     bsdfData.roughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(roughness + getAARoughnessFactor(surfaceData.normal), 1.0));
-    bsdfData.envSpecularDFG = envBRDFApprox(bsdfData.specularColor,  bsdfData.roughness, surfaceData.dotNV);
+    bsdfData.envSpecularDFG = envBRDFApprox(bsdfData.f0,  bsdfData.roughness, surfaceData.dotNV);
    
     bsdfData.diffuseAO = surfaceData.ambientOcclusion;
 
@@ -443,7 +449,7 @@ void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
 
     #ifdef MATERIAL_ENABLE_IRIDESCENCE
         float topIOR = 1.0;
-        bsdfData.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, surfaceData.dotNV, surfaceData.iridescenceIOR, bsdfData.specularColor, surfaceData.iridescenceThickness);   
+        bsdfData.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, surfaceData.dotNV, surfaceData.iridescenceIOR, bsdfData.f0, bsdfData.f90, surfaceData.iridescenceThickness);   
     #endif
 
     #ifdef MATERIAL_ENABLE_SHEEN
