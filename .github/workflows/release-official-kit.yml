@@ -5,7 +5,7 @@ on:
     inputs:
       version:
         description: 'Version to use for editor-preload-official package'
-        required: true
+        required: false
 
 jobs:
   release:

@@ -46,6 +46,14 @@ export class UITransform extends Transform {
     this._pivot._onValueChanged = this._onPivotChange.bind(this);
   }
 
+  // @ts-ignore
+  override _cloneTo(target: UITransform, srcRoot: Entity, targetRoot: Entity): void {
+    // @ts-ignore
+    super._cloneTo(target, srcRoot, targetRoot);
+    target.size.copyFrom(this._size);
+    target.pivot.copyFrom(this._pivot);
+  }
+
   @ignoreClone
   private _onSizeChange(): void {
     // @ts-ignore

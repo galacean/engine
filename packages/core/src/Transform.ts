@@ -578,10 +578,10 @@ export class Transform extends Component {
   /**
    * @internal
    */
-  _copyFrom(transform: Transform): void {
-    this._position.copyFrom(transform.position);
-    this._rotation.copyFrom(transform.rotation);
-    this._scale.copyFrom(transform.scale);
+  _cloneTo(target: Transform, srcRoot: Entity, targetRoot: Entity): void {
+    target._position.copyFrom(this.position);
+    target._rotation.copyFrom(this.rotation);
+    target._scale.copyFrom(this.scale);
   }
 
   protected override _onDestroy(): void {
