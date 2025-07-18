@@ -219,11 +219,11 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     surfaceData.specularIntensity = material_SpecularIntensity;
     surfaceData.specularColor = material_SpecularColor;
     #ifdef MATERIAL_HAS_SPECULAR_TEXTURE
-        surfaceData.specularIntensity *= (texture2D( material_SpecularTexture, uv )).a;
+        surfaceData.specularIntensity *= texture2D( material_SpecularTexture, uv ).a;
     #endif
 
     #ifdef MATERIAL_HAS_SPECULAR_COLOR_TEXTURE
-        surfaceData.specularColor *= (texture2D( material_SpecularColorTexture, uv )).rgb;
+        surfaceData.specularColor *= texture2D( material_SpecularColorTexture, uv ).rgb;
     #endif
 
     // Clear Coat

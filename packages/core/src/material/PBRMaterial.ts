@@ -52,8 +52,8 @@ export class PBRMaterial extends BaseMaterial {
   private static _thicknessProp = ShaderProperty.getByName("material_Thickness");
   private static _thicknessTextureProp = ShaderProperty.getByName("material_ThicknessTexture");
 
-  private static _specularTextureMacro = ShaderMacro.getByName("MATERIAL_ENABLE_SPECULAR_TEXTURE");
-  private static _specularColorTextureMacro = ShaderMacro.getByName("MATERIAL_ENABLE_SPECULAR_COLOR_TEXTURE");
+  private static _specularTextureMacro = ShaderMacro.getByName("MATERIAL_HAS_SPECULAR_TEXTURE");
+  private static _specularColorTextureMacro = ShaderMacro.getByName("MATERIAL_HAS_SPECULAR_COLOR_TEXTURE");
   private static _specularIntensityProp = ShaderProperty.getByName("material_SpecularIntensity");
   private static _specularColorProp = ShaderProperty.getByName("material_SpecularColor");
   private static _specularTextureProp = ShaderProperty.getByName("material_SpecularTexture");
