@@ -26,13 +26,7 @@ export class EngineExtension {
   _uiDefaultMaterial: Material;
   _getUIDefaultMaterial(): Material {
     if (!this._uiDefaultMaterial) {
-      const shader =
-        Shader.find("ui") ??
-        Shader.create("ui", [
-          new ShaderPass("Forward", uiDefaultVs, uiDefaultFs, {
-            pipelineStage: PipelineStage.Forward
-          })
-        ]);
+      const shader = _getOrCreateUIShader();
       // @ts-ignore
       const material = new Material(this, shader);
       const renderState = material.renderState;
@@ -110,10 +104,17 @@ export function registerGUI() {
   for (let key in GUIComponent) {
     Loader.registerClass(key, GUIComponent[key]);
   }
-  Shader.find("ui") ||
-    Shader.create("ui", [
+  _getOrCreateUIShader();
+}
+
+function _getOrCreateUIShader(): Shader {
+  let shader = Shader.find("ui");
+  if (!shader) {
+    shader = Shader.create("ui", [
       new ShaderPass("Forward", uiDefaultVs, uiDefaultFs, {
         pipelineStage: PipelineStage.Forward
       })
     ]);
+  }
+  return shader;
 }
