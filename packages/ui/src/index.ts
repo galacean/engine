@@ -110,4 +110,10 @@ export function registerGUI() {
   for (let key in GUIComponent) {
     Loader.registerClass(key, GUIComponent[key]);
   }
+  Shader.find("ui") ||
+    Shader.create("ui", [
+      new ShaderPass("Forward", uiDefaultVs, uiDefaultFs, {
+        pipelineStage: PipelineStage.Forward
+      })
+    ]);
 }
