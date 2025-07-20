@@ -1,4 +1,4 @@
-import { Entity, MathUtil, Rect, Transform, Vector2, deepClone, ignoreClone } from "@galacean/engine";
+import { Entity, MathUtil, Matrix, Rect, Transform, Vector2, Vector3, deepClone, ignoreClone } from "@galacean/engine";
 
 /**
  * The Transform component exclusive to the UI element.
@@ -19,6 +19,31 @@ export class UITransform extends Transform {
   private _middle: number = NaN;
   private _alignment: UITransformAlignment = UITransformAlignment.None;
 
+  override get position(): Vector3 {
+    if (!!this._alignment) {
+      const { _position: position } = this;
+      if (this._isContainDirtyFlag(UITransformModifyFlags.LocalPosition)) {
+        // @ts-ignore
+        position._onValueChanged = null;
+        this._calAbsoluteByAlignment(this._alignment);
+        // @ts-ignore
+        position._onValueChanged = this._onPositionChanged;
+        this._setDirtyFlagFalse(UITransformModifyFlags.LocalPosition);
+      }
+    }
+    return this._position;
+  }
+
+  override set localMatrix(value: Matrix) {
+    super.localMatrix = value;
+    !!this._alignment && this._setDirtyFlagTrue(UITransformModifyFlags.LpLm);
+  }
+
+  override set worldMatrix(value: Matrix) {
+    super.worldMatrix = value;
+    !!this._alignment && this._setDirtyFlagTrue(UITransformModifyFlags.LpLmWm);
+  }
+
   get left(): number {
     return this._left;
   }
@@ -27,13 +52,12 @@ export class UITransform extends Transform {
     if (MathUtil.equals(value, this._left)) return;
     this._left = value;
     if (Number.isFinite(value)) {
-      this._alignment &= ~UITransformAlignment.Left;
-    } else {
       this._center = NaN;
-      this._alignment &= ~UITransformAlignment.Center;
-      this._alignment |= UITransformAlignment.Left;
+      this._alignment = (this._alignment | UITransformAlignment.Left) & ~UITransformAlignment.Center;
+    } else {
+      this._alignment &= ~UITransformAlignment.Left;
     }
-    this._calAbsoluteByRelative(this._alignment & UITransformAlignment.Horizontal);
+    this._updateHorizontalAlignment();
   }
 
   get right(): number {
@@ -44,13 +68,12 @@ export class UITransform extends Transform {
     if (MathUtil.equals(value, this._right)) return;
     this._right = value;
     if (Number.isFinite(value)) {
-      this._alignment &= ~UITransformAlignment.Right;
-    } else {
       this._center = NaN;
-      this._alignment &= ~UITransformAlignment.Center;
-      this._alignment |= UITransformAlignment.Right;
+      this._alignment = (this._alignment | UITransformAlignment.Right) & ~UITransformAlignment.Center;
+    } else {
+      this._alignment &= ~UITransformAlignment.Right;
     }
-    this._calAbsoluteByRelative(this._alignment & UITransformAlignment.Horizontal);
+    this._updateHorizontalAlignment();
   }
 
   get center(): number {
@@ -61,13 +84,12 @@ export class UITransform extends Transform {
     if (MathUtil.equals(value, this._center)) return;
     this._center = value;
     if (Number.isFinite(value)) {
-      this._alignment &= ~UITransformAlignment.Center;
-    } else {
       this._left = this.right = NaN;
-      this._alignment &= ~UITransformAlignment.LeftAndRight;
-      this._alignment |= UITransformAlignment.Center;
+      this._alignment = (this._alignment | UITransformAlignment.Center) & ~UITransformAlignment.LeftAndRight;
+    } else {
+      this._alignment &= ~UITransformAlignment.Center;
     }
-    this._calAbsoluteByRelative(this._alignment & UITransformAlignment.Horizontal);
+    this._updateHorizontalAlignment();
   }
 
   get top(): number {
@@ -78,13 +100,12 @@ export class UITransform extends Transform {
     if (MathUtil.equals(value, this._top)) return;
     this._top = value;
     if (Number.isFinite(value)) {
-      this._alignment &= ~UITransformAlignment.Top;
-    } else {
       this._middle = NaN;
-      this._alignment &= ~UITransformAlignment.Middle;
-      this._alignment |= UITransformAlignment.Top;
+      this._alignment = (this._alignment | UITransformAlignment.Top) & ~UITransformAlignment.Middle;
+    } else {
+      this._alignment &= ~UITransformAlignment.Top;
     }
-    this._calAbsoluteByRelative(this._alignment & UITransformAlignment.Vertical);
+    this._updateVerticalAlignment();
   }
 
   get bottom(): number {
@@ -95,13 +116,12 @@ export class UITransform extends Transform {
     if (MathUtil.equals(value, this._bottom)) return;
     this._bottom = value;
     if (Number.isFinite(value)) {
-      this._alignment &= ~UITransformAlignment.Bottom;
-    } else {
       this._middle = NaN;
-      this._alignment &= ~UITransformAlignment.Middle;
-      this._alignment |= UITransformAlignment.Bottom;
+      this._alignment = (this._alignment | UITransformAlignment.Bottom) & ~UITransformAlignment.Middle;
+    } else {
+      this._alignment &= ~UITransformAlignment.Bottom;
     }
-    this._calAbsoluteByRelative(this._alignment & UITransformAlignment.Vertical);
+    this._updateVerticalAlignment();
   }
 
   get middle(): number {
@@ -112,19 +132,23 @@ export class UITransform extends Transform {
     if (MathUtil.equals(value, this._middle)) return;
     this._middle = value;
     if (Number.isFinite(value)) {
-      this._alignment &= ~UITransformAlignment.Middle;
-    } else {
       this._top = this.bottom = NaN;
-      this._alignment &= ~UITransformAlignment.TopAndBottom;
-      this._alignment |= UITransformAlignment.Middle;
+      this._alignment = (this._alignment | UITransformAlignment.Middle) & ~UITransformAlignment.TopAndBottom;
+    } else {
+      this._alignment &= ~UITransformAlignment.Middle;
     }
-    this._calAbsoluteByRelative(this._alignment & UITransformAlignment.Vertical);
+    this._updateVerticalAlignment();
   }
 
   /**
    * Width and height of UI element.
    */
   get size(): Vector2 {
+    const alignment = this._alignment;
+    if (((alignment & UITransformAlignment.Horizontal) === UITransformAlignment.LeftAndRight || (alignment & UITransformAlignment.Vertical) === UITransformAlignment.TopAndBottom) && this._isContainDirtyFlag(UITransformModifyFlags.Size)) {
+      this._calAbsoluteByAlignment(this._alignment);
+      this._setDirtyFlagFalse(UITransformModifyFlags.Size);
+    }
     return this._size;
   }
 
@@ -152,17 +176,10 @@ export class UITransform extends Transform {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._updateLocalRect();
     // @ts-ignore
-    this._size._onValueChanged = this._onSizeChange.bind(this);
+    this._size._onValueChanged = this._onSizeChanged.bind(this);
     // @ts-ignore
-    this._pivot._onValueChanged = this._onPivotChange.bind(this);
-  }
-
-  @ignoreClone
-  protected override _onPositionChanged(): void {
-    super._onPositionChanged();
-    this._calRelativeByAbsolute();
+    this._pivot._onValueChanged = this._onPivotChanged.bind(this);
   }
 
   /**
@@ -170,63 +187,56 @@ export class UITransform extends Transform {
    */
   protected override _parentChange(): void {
     super._parentChange();
-    this._calAbsoluteByRelative();
+    this._calAbsoluteByAlignment();
   }
 
-  private _updateLocalRect(): void {
-    const { _size: size, _pivot: pivot, _localRect: localRect } = this;
-    const x = -pivot.x * size.x;
-    const y = -pivot.y * size.y;
-    localRect.set(x, y, size.x, size.y);
-    this._calRelativeByAbsolute();
+  private _updateHorizontalAlignment(): void {
+    const alignment = this._alignment & UITransformAlignment.Horizontal;
+    if (!!alignment) {
+      this._onPositionChanged();
+      alignment === UITransformAlignment.LeftAndRight && this._onSizeChanged();
+    }
+  }
+
+  private _updateVerticalAlignment(): void {
+    const alignment = this._alignment & UITransformAlignment.Vertical;
+    if (!!alignment) {
+      this._onPositionChanged();
+      alignment === UITransformAlignment.TopAndBottom && this._onSizeChanged();
+    }
+  }
+
+  private _getLocalRect(): Rect {
+    if (this._isContainDirtyFlag(UITransformModifyFlags.LocalRect)) {
+      const { _size: size, _pivot: pivot, _localRect: localRect } = this;
+      const x = -pivot.x * size.x;
+      const y = -pivot.y * size.y;
+      localRect.set(x, y, size.x, size.y);
+      this._setDirtyFlagFalse(UITransformModifyFlags.LocalRect);
+    }
+    return this._localRect;
+  }
+
+  private _setLocalRectDirty(flags: UITransformModifyFlags): void {
+    if (this._isContainDirtyFlag(flags)) return;
+    this._setDirtyFlagTrue(flags);
     const children = this.entity.children;
     for (let i = 0, n = children.length; i < n; i++) {
-      (children[i].transform as unknown as UITransform)._calAbsoluteByRelative?.();
+      const transform = children[i].transform as unknown as UITransform;
+      const alignment = transform?._alignment ?? UITransformAlignment.None;
+      const horizontalAlignment = alignment & UITransformAlignment.Horizontal;
+      const verticalAlignment = alignment & UITransformAlignment.Vertical;
+      if (!!horizontalAlignment || !!verticalAlignment) {
+        transform._setDirtyFlagTrue(UITransformModifyFlags.LocalPosition);
+        if (horizontalAlignment === UITransformAlignment.LeftAndRight || verticalAlignment === UITransformAlignment.TopAndBottom) {
+          transform._setLocalRectDirty(UITransformModifyFlags.Size | UITransformModifyFlags.LocalRect);
+        }
+      }
     }
   }
 
-  private _calRelativeByAbsolute(alignment: UITransformAlignment = this._alignment): void {
-    const parentRect = (this._getParentTransform() as unknown as UITransform)?._localRect;
-    if (!parentRect) return;
-    const { _localRect: localRect } = this;
-    switch (alignment & UITransformAlignment.Horizontal) {
-      case UITransformAlignment.Left:
-        this.left = this.position.x - parentRect.x - localRect.x;
-        break;
-      case UITransformAlignment.Center:
-        this.center = this.position.x - parentRect.x - (parentRect.width - localRect.width) / 2 - localRect.x;
-        break;
-      case UITransformAlignment.Right:
-        this.right = parentRect.x + parentRect.width - this.position.x - localRect.width - localRect.x;
-        break;
-      case UITransformAlignment.LeftAndRight:
-        this._left = this.position.x - parentRect.x - localRect.x;
-        this.right = parentRect.width - localRect.width - this._left;
-        break;
-      default:
-        break;
-    }
-    switch (alignment & UITransformAlignment.Vertical) {
-      case UITransformAlignment.Top:
-        this.top = this.position.y - parentRect.y - localRect.y;
-        break;
-      case UITransformAlignment.Bottom:
-        this.bottom = parentRect.y + parentRect.height - this.position.y - localRect.height - localRect.y;
-        break;
-      case UITransformAlignment.Middle:
-        this.middle = this.position.y - parentRect.y - (parentRect.height - localRect.height) / 2 - localRect.y;
-        break;
-      case UITransformAlignment.TopAndBottom:
-        this._top = this.position.y - parentRect.y - localRect.y;
-        this.bottom = parentRect.height - localRect.height - this._top;
-        break;
-      default:
-        break;
-    }
-  }
-
-  private _calAbsoluteByRelative(alignment: UITransformAlignment = this._alignment): void {
-    const parentRect = (this._getParentTransform() as unknown as UITransform)?._localRect;
+  private _calAbsoluteByAlignment(alignment: UITransformAlignment = this._alignment): void {
+    const parentRect = (this._getParentTransform() as unknown as UITransform)?._getLocalRect?.();
     if (!parentRect) return;
     const { _localRect: localRect } = this;
     switch (alignment & UITransformAlignment.Horizontal) {
@@ -266,15 +276,27 @@ export class UITransform extends Transform {
   }
 
   @ignoreClone
-  private _onSizeChange(): void {
-    this._updateLocalRect();
+  protected override _onPositionChanged(): void {
+    super._onPositionChanged();
+    !!this._alignment && this._setDirtyFlagTrue(UITransformModifyFlags.LocalPosition);
+  }
+
+  @ignoreClone
+  protected override _onWorldPositionChanged(): void {
+    super._onWorldPositionChanged();
+    !!this._alignment && this._setDirtyFlagTrue(UITransformModifyFlags.WorldPosition);
+  }
+
+  @ignoreClone
+  private _onSizeChanged(): void {
+    this._setLocalRectDirty(UITransformModifyFlags.LocalRect);
     // @ts-ignore
     this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Size);
   }
 
   @ignoreClone
-  private _onPivotChange(): void {
-    this._updateLocalRect();
+  private _onPivotChanged(): void {
+    this._setLocalRectDirty(UITransformModifyFlags.LocalRect);
     // @ts-ignore
     this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Pivot);
   }
@@ -285,10 +307,25 @@ export class UITransform extends Transform {
  * extends TransformModifyFlags
  */
 export enum UITransformModifyFlags {
+  /** World position. */
+  WorldPosition = 0x4,
+  /** Local matrix. */
+  LocalMatrix = 0x40,
+  /** World matrix. */
+  WorldMatrix = 0x80,
   /** Size. */
   Size = 0x200,
   /** Pivot. */
-  Pivot = 0x400
+  Pivot = 0x400,
+  /** Local position. */
+  LocalPosition = 0x800,
+  /** Local Rect. */
+  LocalRect = 0x1000,
+
+  /** Local position | local matrix. */
+  LpLm = LocalPosition | LocalMatrix,
+  /** Local position | local matrix | world matrix. */
+  LpLmWm = LocalPosition | LocalMatrix | WorldMatrix
 }
 
 enum UITransformAlignment {

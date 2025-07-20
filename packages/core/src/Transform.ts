@@ -19,7 +19,9 @@ export class Transform extends Component {
   private static _tempMat42: Matrix = new Matrix();
 
   @deepClone
-  private _position: Vector3 = new Vector3();
+  protected _position: Vector3 = new Vector3();
+  @deepClone
+  protected _worldPosition: Vector3 = new Vector3();
   @deepClone
   private _rotation: Vector3 = new Vector3();
   @deepClone
@@ -29,8 +31,6 @@ export class Transform extends Component {
   @assignmentClone
   private _localUniformScaling: boolean = true;
   @deepClone
-  private _worldPosition: Vector3 = new Vector3();
-  @deepClone
   private _worldRotation: Vector3 = new Vector3();
   @deepClone
   private _worldRotationQuaternion: Quaternion = new Quaternion();
@@ -39,7 +39,7 @@ export class Transform extends Component {
   @deepClone
   private _lossyWorldScale: Vector3 = new Vector3(1, 1, 1);
   @deepClone
-  private _localMatrix: Matrix = new Matrix();
+  protected _localMatrix: Matrix = new Matrix();
   @deepClone
   private _worldMatrix: Matrix = new Matrix();
   @ignoreClone
@@ -607,22 +607,17 @@ export class Transform extends Component {
     this._updateWorldPositionFlag();
   }
 
-  protected override _onDestroy(): void {
-    super._onDestroy();
-    //@ts-ignore
-    this._worldPosition._onValueChanged = null;
-    //@ts-ignore
-    this._rotation._onValueChanged = null;
-    //@ts-ignore
-    this._worldRotation._onValueChanged = null;
-    //@ts-ignore
-    this._rotationQuaternion._onValueChanged = null;
-    //@ts-ignore
-    this._worldRotationQuaternion._onValueChanged = null;
-    //@ts-ignore
-    this._position._onValueChanged = null;
-    //@ts-ignore
-    this._scale._onValueChanged = null;
+  @ignoreClone
+  protected _onWorldPositionChanged(): void {
+    const worldPosition = this._worldPosition;
+    const parent = this._getParentTransform();
+    if (parent) {
+      Matrix.invert(parent.worldMatrix, Transform._tempMat41);
+      Vector3.transformCoordinate(worldPosition, Transform._tempMat41, this._position);
+    } else {
+      this._position.copyFrom(worldPosition);
+    }
+    this._setDirtyFlagFalse(TransformModifyFlags.WorldPosition);
   }
 
   /**
@@ -743,19 +738,19 @@ export class Transform extends Component {
     return scaMat;
   }
 
-  private _isContainDirtyFlags(targetDirtyFlags: number): boolean {
+  protected _isContainDirtyFlags(targetDirtyFlags: number): boolean {
     return (this._dirtyFlag & targetDirtyFlags) === targetDirtyFlags;
   }
 
-  private _isContainDirtyFlag(type: number): boolean {
+  protected _isContainDirtyFlag(type: number): boolean {
     return (this._dirtyFlag & type) != 0;
   }
 
-  private _setDirtyFlagTrue(type: number) {
+  protected _setDirtyFlagTrue(type: number) {
     this._dirtyFlag |= type;
   }
 
-  private _setDirtyFlagFalse(type: number) {
+  protected _setDirtyFlagFalse(type: number) {
     this._dirtyFlag &= ~type;
   }
 
@@ -787,19 +782,6 @@ export class Transform extends Component {
     const rotQuat = Transform._tempQuat0;
     Quaternion.rotationEuler(x * radFactor, y * radFactor, z * radFactor, rotQuat);
     this._rotateByQuat(rotQuat, relativeToLocal);
-  }
-
-  @ignoreClone
-  private _onWorldPositionChanged(): void {
-    const worldPosition = this._worldPosition;
-    const parent = this._getParentTransform();
-    if (parent) {
-      Matrix.invert(parent.worldMatrix, Transform._tempMat41);
-      Vector3.transformCoordinate(worldPosition, Transform._tempMat41, this._position);
-    } else {
-      this._position.copyFrom(worldPosition);
-    }
-    this._setDirtyFlagFalse(TransformModifyFlags.WorldPosition);
   }
 
   @ignoreClone
