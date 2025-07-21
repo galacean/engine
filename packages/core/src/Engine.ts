@@ -380,7 +380,7 @@ export class Engine extends EventDispatcher {
     }
 
     // Render scene and fire `onBeginRender` and `onEndRender`
-    if (!this._hardwareRenderer.isContextLost) {
+    if (!this._hardwareRenderer.isContextLost()) {
       this._render(scenes);
     }
 

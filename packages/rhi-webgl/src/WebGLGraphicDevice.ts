@@ -135,10 +135,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     return this._gl;
   }
 
-  get isContextLost() {
-    return this.gl.isContextLost();
-  }
-
   get renderStates(): GLRenderStates {
     return this._renderStates;
   }
@@ -544,6 +540,10 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   forceRestoreDevice(): void {
     const extension = this.requireExtension(GLCapabilityType.WEBGL_lose_context);
     extension.restoreContext();
+  }
+
+  isContextLost() {
+    return this.gl.isContextLost();
   }
 
   resetState(): void {
