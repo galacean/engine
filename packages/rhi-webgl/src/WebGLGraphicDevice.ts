@@ -135,6 +135,10 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     return this._gl;
   }
 
+  get isContextLost() {
+    return this.gl.isContextLost();
+  }
+
   get renderStates(): GLRenderStates {
     return this._renderStates;
   }

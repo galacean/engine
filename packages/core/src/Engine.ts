@@ -131,7 +131,6 @@ export class Engine extends EventDispatcher {
   private _destroyed: boolean = false;
   private _frameInProcess: boolean = false;
   private _waitingDestroy: boolean = false;
-  private _isDeviceLost: boolean = false;
   private _waitingGC: boolean = false;
   private _postProcessPasses = new Array<PostProcessPass>();
   private _activePostProcessPasses = new Array<PostProcessPass>();
@@ -381,7 +380,7 @@ export class Engine extends EventDispatcher {
     }
 
     // Render scene and fire `onBeginRender` and `onEndRender`
-    if (!this._isDeviceLost) {
+    if (!this._hardwareRenderer.isContextLost) {
       this._render(scenes);
     }
 
@@ -652,7 +651,6 @@ export class Engine extends EventDispatcher {
   }
 
   private _onDeviceLost(): void {
-    this._isDeviceLost = true;
     // Lose graphic resources
     this.resourceManager._lostGraphicResources();
     console.log("Device lost.");
@@ -677,7 +675,6 @@ export class Engine extends EventDispatcher {
       .then(() => {
         console.log("Graphic resource content restored.\n\n" + "Device restored.");
         this.dispatch("devicerestored", this);
-        this._isDeviceLost = false;
       })
       .catch((error) => {
         console.error(error);
