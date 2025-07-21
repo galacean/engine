@@ -370,6 +370,8 @@ describe("camera test", function () {
     expect(cloneCamera.farClipPlane).to.eq(camera.farClipPlane);
     expect(cloneCamera.renderTarget).to.eq(camera.renderTarget);
     expect(cloneCamera.shaderData).to.not.eq(camera.shaderData);
+    // @ts-ignore
+    expect(cloneCamera._globalShaderMacro).to.not.eq(camera._globalShaderMacro);
   })
 
   it("destroy test", () => {
