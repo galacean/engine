@@ -411,7 +411,7 @@ vec3 envBRDFApprox(vec3 specularColor, float roughness, float dotNV ) {
          
         // Use specularFGD as an approximation of the fresnel effect
         // https://blog.selfshadow.com/publications/s2017-shading-course/imageworks/s2017_pbs_imageworks_slides_v2.pdf
-        refractionTransmitted *= 1.0 - bsdfData.envSpecularDFG;
+        refractionTransmitted *= 1.0 - max(max(bsdfData.envSpecularDFG.r,bsdfData.envSpecularDFG.g),bsdfData.envSpecularDFG.b);
 
        #ifdef MATERIAL_HAS_THICKNESS
             // Absorption coefficient from Disney: http://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_notes.pdf
@@ -435,7 +435,7 @@ void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
     bsdfData.f0 = mix(dielectricF0, albedoColor, metallic);
     bsdfData.f90 = mix(dielectricF90, 1.0, metallic);
 
-    bsdfData.diffuseColor = albedoColor * ( 1.0 - metallic );
+    bsdfData.diffuseColor = albedoColor * ( 1.0 - metallic ) * (1.0 - max(max(dielectricF0.r,dielectricF0.g),dielectricF0.b));
 
     bsdfData.roughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(roughness + getAARoughnessFactor(surfaceData.normal), 1.0));
     bsdfData.envSpecularDFG = envBRDFApprox(bsdfData.f0,  bsdfData.roughness, surfaceData.dotNV);
