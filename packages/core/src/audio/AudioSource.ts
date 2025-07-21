@@ -1,4 +1,4 @@
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { AudioClip } from "./AudioClip";
@@ -14,25 +14,25 @@ export class AudioSource extends Component {
   @ignoreClone
   private _isPlaying: boolean = false;
 
-  @ignoreClone
+  @assignmentClone
   private _clip: AudioClip;
-  @deepClone
+  @ignoreClone
   private _gainNode: GainNode;
   @ignoreClone
   private _sourceNode: AudioBufferSourceNode | null = null;
 
-  @deepClone
+  @ignoreClone
   private _pausedTime: number = -1;
   @ignoreClone
   private _playTime: number = -1;
 
-  @deepClone
+  @assignmentClone
   private _volume: number = 1;
-  @deepClone
+  @assignmentClone
   private _lastVolume: number = 1;
-  @deepClone
+  @assignmentClone
   private _playbackRate: number = 1;
-  @deepClone
+  @assignmentClone
   private _loop: boolean = false;
 
   /**
@@ -192,6 +192,14 @@ export class AudioSource extends Component {
   /**
    * @internal
    */
+  _cloneTo(target: AudioSource, srcRoot: Entity, targetRoot: Entity): void {
+    target._clip?._addReferCount(1);
+    target._gainNode.gain.setValueAtTime(target._volume, AudioManager.getContext().currentTime);
+  }
+
+  /**
+   * @internal
+   */
   override _onEnable(): void {
     this.playOnEnabled && this.play();
   }
@@ -212,6 +220,7 @@ export class AudioSource extends Component {
     this.clip = null;
   }
 
+  @ignoreClone
   private _onPlayEnd(): void {
     this.stop();
   }
