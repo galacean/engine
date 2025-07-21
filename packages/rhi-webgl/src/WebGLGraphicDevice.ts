@@ -542,6 +542,10 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     extension.restoreContext();
   }
 
+  /**
+   * @remarks
+   * WebGL context loss and restore can happen at any GPU execution point. refs to: https://www.khronos.org/webgl/wiki/HandlingContextLost
+   */
   isContextLost() {
     return this.gl.isContextLost();
   }
