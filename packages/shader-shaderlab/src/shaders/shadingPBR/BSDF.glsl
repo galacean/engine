@@ -370,7 +370,7 @@ vec3 BRDF_Diffuse_Lambert(vec3 diffuseColor) {
 
 // ------------------------Indirect Specular------------------------
 // ref: https://www.unrealengine.com/blog/physically-based-shading-on-mobile - environmentBRDF for GGX on mobile
-vec3 envBRDFApprox(vec3 specularColor, float roughness, float dotNV ) {
+vec3 envBRDFApprox(vec3 f0, float f90, float roughness, float dotNV ) {
 
     const vec4 c0 = vec4( - 1, - 0.0275, - 0.572, 0.022 );
 
@@ -382,7 +382,7 @@ vec3 envBRDFApprox(vec3 specularColor, float roughness, float dotNV ) {
 
     vec2 AB = vec2( -1.04, 1.04 ) * a004 + r.zw;
 
-    return specularColor * AB.x + AB.y;
+    return f0 * AB.x + f90 * AB.y;
 
 }
 
@@ -438,7 +438,7 @@ void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
     bsdfData.diffuseColor = albedoColor * ( 1.0 - metallic ) * (1.0 - max(max(dielectricF0.r,dielectricF0.g),dielectricF0.b));
 
     bsdfData.roughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(roughness + getAARoughnessFactor(surfaceData.normal), 1.0));
-    bsdfData.envSpecularDFG = envBRDFApprox(bsdfData.f0,  bsdfData.roughness, surfaceData.dotNV);
+    bsdfData.envSpecularDFG = envBRDFApprox(bsdfData.f0,  bsdfData.f90, bsdfData.roughness, surfaceData.dotNV);
    
     bsdfData.diffuseAO = surfaceData.ambientOcclusion;
 
