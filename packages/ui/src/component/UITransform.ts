@@ -183,7 +183,8 @@ export class UITransform extends Transform {
     let horizontalAlignment = this._alignment & UITransformAlignmentFlags.Horizontal;
     if (Number.isFinite(value)) {
       this._left = this._right = NaN;
-      horizontalAlignment = (horizontalAlignment | UITransformAlignmentFlags.Center) & ~UITransformAlignmentFlags.LeftAndRight;
+      horizontalAlignment =
+        (horizontalAlignment | UITransformAlignmentFlags.Center) & ~UITransformAlignmentFlags.LeftAndRight;
     } else {
       horizontalAlignment &= ~UITransformAlignmentFlags.Center;
     }
@@ -234,7 +235,8 @@ export class UITransform extends Transform {
     let verticalAlignment = this._alignment & UITransformAlignmentFlags.Vertical;
     if (Number.isFinite(value)) {
       this._top = this._bottom = NaN;
-      verticalAlignment = (verticalAlignment | UITransformAlignmentFlags.Middle) & ~UITransformAlignmentFlags.TopAndBottom;
+      verticalAlignment =
+        (verticalAlignment | UITransformAlignmentFlags.Middle) & ~UITransformAlignmentFlags.TopAndBottom;
     } else {
       verticalAlignment &= ~UITransformAlignmentFlags.Middle;
     }
