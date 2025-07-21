@@ -85,7 +85,6 @@ describe("UICanvas", async () => {
     rootCanvas.enabled = true;
     // @ts-ignore
     expect(childCanvas._isRootCanvas).to.eq(false);
-    console.log("rootCanvas", rootCanvas);
     const parentCanvas = root.addComponent(UICanvas);
     // @ts-ignore
     expect(parentCanvas._isRootCanvas).to.eq(true);
