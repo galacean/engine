@@ -103,7 +103,7 @@ export const E2E_CONFIG = {
     "pbr-specular": {
       category: "Material",
       caseFileName: "material-pbr-specular",
-      threshold: 0.1
+      threshold: 0.001
     },
     pbr: {
       category: "Material",
