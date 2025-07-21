@@ -16,7 +16,7 @@ export class Transform extends Component {
   private static _tempMat31: Matrix3x3 = new Matrix3x3();
   private static _tempMat32: Matrix3x3 = new Matrix3x3();
   private static _tempMat41: Matrix = new Matrix();
-  private static _tempMat42: Matrix = new Matrix();
+  protected static _tempMat42: Matrix = new Matrix();
 
   @deepClone
   protected _position: Vector3 = new Vector3();
@@ -25,11 +25,11 @@ export class Transform extends Component {
   @deepClone
   private _rotation: Vector3 = new Vector3();
   @deepClone
-  private _rotationQuaternion: Quaternion = new Quaternion();
+  protected _rotationQuaternion: Quaternion = new Quaternion();
   @deepClone
-  private _scale: Vector3 = new Vector3(1, 1, 1);
+  protected _scale: Vector3 = new Vector3(1, 1, 1);
   @assignmentClone
-  private _localUniformScaling: boolean = true;
+  protected _localUniformScaling: boolean = true;
   @deepClone
   private _worldRotation: Vector3 = new Vector3();
   @deepClone
@@ -41,7 +41,7 @@ export class Transform extends Component {
   @deepClone
   protected _localMatrix: Matrix = new Matrix();
   @deepClone
-  private _worldMatrix: Matrix = new Matrix();
+  protected _worldMatrix: Matrix = new Matrix();
   @ignoreClone
   private _worldForward: Vector3 = null;
   @ignoreClone
@@ -79,7 +79,7 @@ export class Transform extends Component {
       if (this._getParentTransform()) {
         this.worldMatrix.getTranslation(worldPosition);
       } else {
-        worldPosition.copyFrom(this._position);
+        worldPosition.copyFrom(this.position);
       }
       //@ts-ignore
       worldPosition._onValueChanged = this._onWorldPositionChanged;
@@ -248,7 +248,7 @@ export class Transform extends Component {
    */
   get localMatrix(): Matrix {
     if (this._isContainDirtyFlag(TransformModifyFlags.LocalMatrix)) {
-      Matrix.affineTransformation(this._scale, this.rotationQuaternion, this._position, this._localMatrix);
+      Matrix.affineTransformation(this._scale, this.rotationQuaternion, this.position, this._localMatrix);
       this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix);
     }
     return this._localMatrix;
@@ -716,7 +716,7 @@ export class Transform extends Component {
    * Update all world transform property dirty flag, the principle is the same as above.
    * @param flags - Dirty flag
    */
-  private _updateAllWorldFlag(flags: TransformModifyFlags): void {
+  protected _updateAllWorldFlag(flags: TransformModifyFlags): void {
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
       const children = this._entity._children;
@@ -804,7 +804,7 @@ export class Transform extends Component {
   }
 
   @ignoreClone
-  private _onRotationQuaternionChanged(): void {
+  protected _onRotationQuaternionChanged(): void {
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalEuler);
     this._setDirtyFlagFalse(TransformModifyFlags.LocalQuat);
     this._updateWorldRotationFlag();
@@ -825,7 +825,7 @@ export class Transform extends Component {
   }
 
   @ignoreClone
-  private _onScaleChanged(): void {
+  protected _onScaleChanged(): void {
     const { x, y, z } = this._scale;
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
     const localUniformScaling = x == y && y == z;
