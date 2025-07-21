@@ -43,7 +43,7 @@ export class Animator extends Component {
   /** @internal */
   _onUpdateIndex = -1;
 
-  @ignoreClone
+  @assignmentClone
   protected _animatorController: AnimatorController;
   @ignoreClone
   protected _controllerUpdateFlag: BoolUpdateFlag;
@@ -334,17 +334,20 @@ export class Animator extends Component {
    * @internal
    */
   _cloneTo(target: Animator, srcRoot: Entity, targetRoot: Entity): void {
-    target.animatorController = this._animatorController;
+    const animatorController = target._animatorController;
+    if (animatorController) {
+      target._addResourceReferCount(animatorController, 1);
+      target._controllerUpdateFlag = animatorController._registerChangeFlag();
+    }
   }
 
   protected override _onDestroy(): void {
+    super._onDestroy();
     const controller = this._animatorController;
     if (controller) {
       this._addResourceReferCount(controller, -1);
       this._controllerUpdateFlag?.destroy();
-      this._animatorController = null;
     }
-    super._onDestroy();
   }
 
   private _crossFade(

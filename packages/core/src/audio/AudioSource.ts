@@ -14,7 +14,7 @@ export class AudioSource extends Component {
   @ignoreClone
   private _isPlaying: boolean = false;
 
-  @ignoreClone
+  @assignmentClone
   private _clip: AudioClip;
   @ignoreClone
   private _gainNode: GainNode;
@@ -26,7 +26,7 @@ export class AudioSource extends Component {
   @ignoreClone
   private _playTime: number = -1;
 
-  @ignoreClone
+  @assignmentClone
   private _volume: number = 1;
   @assignmentClone
   private _lastVolume: number = 1;
@@ -193,8 +193,8 @@ export class AudioSource extends Component {
    * @internal
    */
   _cloneTo(target: AudioSource, srcRoot: Entity, targetRoot: Entity): void {
-    target.clip = this._clip;
-    target.volume = this._volume;
+    target._clip?._addReferCount(1);
+    target._gainNode.gain.setValueAtTime(target._volume, AudioManager.getContext().currentTime);
   }
 
   /**

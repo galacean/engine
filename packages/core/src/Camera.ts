@@ -120,7 +120,7 @@ export class Camera extends Component {
   @ignoreClone
   _renderPipeline: BasicRenderPipeline;
   /** @internal */
-  @ignoreClone
+  @deepClone
   _virtualCamera: VirtualCamera = new VirtualCamera();
   /** @internal */
   _replacementShader: Shader = null;
@@ -145,7 +145,6 @@ export class Camera extends Component {
   private _enablePostProcess = false;
   private _msaaSamples: MSAASamples;
 
-  @ignoreClone
   private _renderTarget: RenderTarget = null;
   @ignoreClone
   private _updateFlagManager: UpdateFlagManager;
@@ -157,7 +156,7 @@ export class Camera extends Component {
   private _isInvViewProjDirty: BoolUpdateFlag;
   @deepClone
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
-  @deepClone
+  @ignoreClone
   private _depthBufferParams: Vector4 = new Vector4();
   @deepClone
   private _viewport: Vector4 = new Vector4(0, 0, 1, 1);
@@ -829,8 +828,7 @@ export class Camera extends Component {
    * @internal
    */
   _cloneTo(target: Camera, srcRoot: Entity, targetRoot: Entity): void {
-    target.renderTarget = this._renderTarget;
-    this._virtualCamera._cloneTo(target._virtualCamera);
+    this._renderTarget?._addReferCount(1);
   }
 
   /**
