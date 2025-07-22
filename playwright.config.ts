@@ -24,21 +24,13 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
         viewport: { width: 1200, height: 800 },
         launchOptions: {
-          args: process.env.CI
-            ? [
-                "--use-gl=angle",
-                "--use-angle=swiftshader",
-                "--enable-webgl",
-                "--ignore-gpu-blocklist",
-                "--disable-gpu-sandbox",
-                "--disable-software-rasterizer",
-                "--disable-dev-shm-usage",
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-web-security",
-                "--disable-features=VizDisplayCompositor"
-              ]
-            : ["--use-gl=egl", "--ignore-gpu-blocklist", "--use-gl=angle"]
+          args: [
+            "--use-angle=default",
+            "--enable-gpu-rasterization",
+            "--enable-oop-rasterization",
+            "--enable-webgl",
+            "--enable-webgl2"
+          ]
         }
       }
     }
