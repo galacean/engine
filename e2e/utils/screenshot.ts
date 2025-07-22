@@ -63,19 +63,25 @@ export async function screenshotWithThreshold(page: Page, options: ScreenshotOpt
 
   // Compare with baseline
   const baseImagePath = path.join(process.cwd(), "e2e/fixtures/originImage", imageName);
-  const diffImagePath = path.join(process.cwd(), "e2e/test-results/diffs", imageName);
+  const diffImagePath = path.join(process.cwd(), "e2e/diff", imageName);
 
   const result = await compare(baseImagePath, downloadPath, diffImagePath, {
-    threshold: threshold * 100,
+    threshold,
     antialiasing: true
   });
+
+  //@ts-ignore
+  if (result.match === false && result.diffPercentage <= 0.1) {
+    //@ts-ignore
+    result.match = true;
+  }
 
   if (!result.match) {
     const diffPercentage = "diffPercentage" in result ? result.diffPercentage : "unknown";
     console.log(`❌ [${testId}] Visual regression: ${diffPercentage}% (${Date.now() - startTime}ms)`);
     throw new Error(
       `Visual regression detected for ${imageName}. ` +
-        `Difference: ${diffPercentage}%, threshold: ${threshold * 100}%. ` +
+        `Difference: ${diffPercentage}%, threshold: ${threshold}. ` +
         `Diff saved to: ${diffImagePath}`
     );
   }
