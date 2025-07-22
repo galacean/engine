@@ -10,11 +10,12 @@ function createTestsForCategory(categoryName: string, categoryConfig: CategoryCo
   test.describe(categoryName, () => {
     Object.entries(categoryConfig).forEach(([caseName, config]: [string, TestCaseConfig]) => {
       test(caseName, async ({ page }) => {
-        const { category, caseFileName, threshold } = config;
+        const { category, caseFileName, threshold, diffPercentage } = config;
         await screenshotWithThreshold(page, {
           category,
           name: caseFileName,
-          threshold
+          threshold,
+          diffPercentage
         });
       });
     });

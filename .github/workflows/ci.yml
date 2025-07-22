@@ -85,6 +85,7 @@ jobs:
       matrix:
         node-version: [22.x]
         shard: [1/4, 2/4, 3/4, 4/4]
+      fail-fast: false
 
     steps:
       - uses: actions/checkout@v3

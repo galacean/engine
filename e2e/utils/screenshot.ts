@@ -6,10 +6,11 @@ export interface ScreenshotOptions {
   category: string;
   name: string;
   threshold?: number;
+  diffPercentage?: number;
 }
 
 export async function screenshotWithThreshold(page: Page, options: ScreenshotOptions) {
-  const { category, name, threshold = 0.1 } = options;
+  const { category, name, threshold = 0, diffPercentage = 0 } = options;
   const imageName = `${category}_${name}.jpg`;
   const testId = `${category}_${name}`;
   const startTime = Date.now();
@@ -69,9 +70,8 @@ export async function screenshotWithThreshold(page: Page, options: ScreenshotOpt
     threshold,
     antialiasing: true
   });
-
   //@ts-ignore
-  if (result.match === false && result.diffPercentage <= 0.1) {
+  if (result.match === false && result.diffPercentage <= diffPercentage) {
     //@ts-ignore
     result.match = true;
   }
