@@ -79,7 +79,7 @@ jobs:
           flags: unittests
 
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     strategy:
       matrix:
@@ -129,7 +129,11 @@ jobs:
           echo "🔍 Verifying browser installation..."
           ls -la ~/.cache/ms-playwright/ || echo "Browser cache directory not found"
           find ~/.cache/ms-playwright -name "*headless_shell*" || echo "Headless shell not found"
-          
+      - name: Create artifact folders
+        run: |
+          mkdir -p e2e/test-results
+          mkdir -p e2e/diff
+          mkdir -p playwright-report
       - name: Run Playwright Tests
         run: |
           echo "🧪 Starting e2e visual regression tests..."
@@ -149,7 +153,7 @@ jobs:
           CI: true
           PLAYWRIGHT_FORCE_TTY: 1
       - name: Upload test results
-        if: failure()
+        if: failure() || cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-test-results-${{ strategy.job-index }}-${{ github.run_number }}
@@ -157,17 +161,29 @@ jobs:
             e2e/test-results/
             !e2e/test-results/**/*.webm
           retention-days: 7
+          if-no-files-found: ignore
+      - name: Upload download images
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-downloads-${{ strategy.job-index }}-${{ github.run_number }}
+          path: e2e/downloads/
+          retention-days: 7
+          if-no-files-found: ignore
       - name: Upload diff images
-        if: failure()
+        if: failure() || cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-diffs-${{ strategy.job-index }}-${{ github.run_number }}
-          path: e2e/test-results/diffs/
-          retention-days: 14
+          path: e2e/diff/
+          retention-days: 7
+          if-no-files-found: ignore
       - name: Upload HTML report
-        if: failure()
+        if: failure() || cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report-${{ strategy.job-index }}-${{ github.run_number }}
           path: playwright-report/
           retention-days: 7
+          if-no-files-found: ignore
+    
