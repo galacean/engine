@@ -56,7 +56,7 @@ export class PBRMaterial extends BaseMaterial {
   private static _specularColorTextureMacro = ShaderMacro.getByName("MATERIAL_HAS_SPECULAR_COLOR_TEXTURE");
   private static _specularIntensityProp = ShaderProperty.getByName("material_SpecularIntensity");
   private static _specularColorProp = ShaderProperty.getByName("material_SpecularColor");
-  private static _specularTextureProp = ShaderProperty.getByName("material_SpecularTexture");
+  private static _specularIntensityTextureProp = ShaderProperty.getByName("material_SpecularIntensityTexture");
   private static _specularColorTextureProp = ShaderProperty.getByName("material_SpecularColorTexture");
 
   private _refractionMode: RefractionMode;
@@ -694,7 +694,7 @@ export class PBRMaterial extends BaseMaterial {
   }
 
   /**
-   * The strength of the specular reflection.
+   * The intensity of the specular reflection.
    * @defaultValue `1.0`
    */
   get specularIntensity(): number {
@@ -721,15 +721,14 @@ export class PBRMaterial extends BaseMaterial {
   }
 
   /**
-   * Specular texture.
-   * @remarks The strength of the specular reflection, A channel will be multiplied by `specularIntensity`.
+   * The intensity of the specular reflection, stored in alpha(A) channel. This will be multiplied by `specularIntensity`.
    */
-  get specularTexture(): Texture2D {
-    return <Texture2D>this.shaderData.getTexture(PBRMaterial._specularTextureProp);
+  get specularIntensityTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._specularIntensityTextureProp);
   }
 
-  set specularTexture(value: Texture2D) {
-    this.shaderData.setTexture(PBRMaterial._specularTextureProp, value);
+  set specularIntensityTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._specularIntensityTextureProp, value);
     if (value) {
       this.shaderData.enableMacro(PBRMaterial._specularTextureMacro);
     } else {
@@ -738,8 +737,7 @@ export class PBRMaterial extends BaseMaterial {
   }
 
   /**
-   * Specular color texture.
-   * @remarks The F0 color texture，multiplied by `specularColor`.
+   * The F0 color of the specular reflection, stored in the RGB channels. This will be multiplied by `specularColor`.
    */
   get specularColorTexture(): Texture2D {
     return <Texture2D>this.shaderData.getTexture(PBRMaterial._specularColorTextureProp);

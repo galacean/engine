@@ -16,7 +16,7 @@ float material_OcclusionTextureCoord;
 float material_SpecularIntensity;
 vec3  material_SpecularColor;
 #ifdef MATERIAL_HAS_SPECULAR_TEXTURE
-    sampler2D material_SpecularTexture;
+    sampler2D material_SpecularIntensityTexture;
 #endif
 
 #ifdef MATERIAL_HAS_SPECULAR_COLOR_TEXTURE
@@ -219,7 +219,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     surfaceData.specularIntensity = material_SpecularIntensity;
     surfaceData.specularColor = material_SpecularColor;
     #ifdef MATERIAL_HAS_SPECULAR_TEXTURE
-        surfaceData.specularIntensity *= texture2D( material_SpecularTexture, uv ).a;
+        surfaceData.specularIntensity *= texture2D( material_SpecularIntensityTexture, uv ).a;
     #endif
 
     #ifdef MATERIAL_HAS_SPECULAR_COLOR_TEXTURE
