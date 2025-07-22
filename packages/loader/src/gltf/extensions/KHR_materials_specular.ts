@@ -22,7 +22,7 @@ class KHR_materials_specular extends GLTFExtensionParser {
       context
         .get<Texture2D>(GLTFParserType.Texture, specularTexture.index)
         .then((texture) => {
-          material.specularTexture = texture;
+          material.specularIntensityTexture = texture;
         })
         .catch((e) => {
           Logger.error("KHR_materials_specular: specularTexture error", e);
