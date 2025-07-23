@@ -2,12 +2,15 @@ import { Vector3 } from "@galacean/engine";
 import { IBoxColliderShape } from "@galacean/engine-design";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
+import { PhysXBoxGeometry } from "./PhysXBoxGeometry";
 import { PhysXColliderShape } from "./PhysXColliderShape";
 
 /**
  * Box collider shape in PhysX.
  */
 export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxColliderShape {
+  protected declare _physXGeometry: PhysXBoxGeometry;
+
   private static _tempHalfExtents = new Vector3();
   /** @internal */
   _halfSize: Vector3 = new Vector3();
@@ -16,7 +19,8 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
     super(physXPhysics);
     const halfSize = this._halfSize;
     halfSize.set(size.x * 0.5, size.y * 0.5, size.z * 0.5);
-    this._pxGeometry = new physXPhysics._physX.PxBoxGeometry(halfSize.x, halfSize.y, halfSize.z);
+    this._physXGeometry = new PhysXBoxGeometry(physXPhysics._physX, halfSize);
+    this._pxGeometry = this._physXGeometry.getGeometry();
     this._initialize(material, uniqueID);
     this._setLocalPose();
   }
@@ -29,7 +33,7 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
     const tempExtents = PhysXBoxColliderShape._tempHalfExtents;
     halfSize.set(value.x * 0.5, value.y * 0.5, value.z * 0.5);
     Vector3.multiply(halfSize, this._worldScale, tempExtents);
-    this._pxGeometry.halfExtents = tempExtents;
+    this._physXGeometry.halfExtents = tempExtents;
     this._pxShape.setGeometry(this._pxGeometry);
 
     this._updateController(tempExtents);
@@ -52,7 +56,7 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
     super.setWorldScale(scale);
     const tempExtents = PhysXBoxColliderShape._tempHalfExtents;
     Vector3.multiply(this._halfSize, this._worldScale, tempExtents);
-    this._pxGeometry.halfExtents = tempExtents;
+    this._physXGeometry.halfExtents = tempExtents;
     this._pxShape.setGeometry(this._pxGeometry);
 
     this._updateController(tempExtents);

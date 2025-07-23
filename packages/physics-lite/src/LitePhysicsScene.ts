@@ -1,5 +1,13 @@
-import { BoundingBox, BoundingSphere, CollisionUtil, DisorderedArray, Ray, Vector3 } from "@galacean/engine";
-import { ICharacterController, ICollision, IPhysicsScene } from "@galacean/engine-design";
+import {
+  BoundingBox,
+  BoundingSphere,
+  CollisionUtil,
+  DisorderedArray,
+  Quaternion,
+  Ray,
+  Vector3
+} from "@galacean/engine";
+import { ICharacterController, ICollision, IGeometry, IPhysicsScene } from "@galacean/engine-design";
 import { LiteCollider } from "./LiteCollider";
 import { LiteDynamicCollider } from "./LiteDynamicCollider";
 import { LiteHitResult } from "./LiteHitResult";
@@ -138,17 +146,43 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   /**
+   * {@inheritDoc IPhysicsScene.sweep }
+   */
+  sweep(
+    geometry: IGeometry,
+    pose: { translation: Vector3; rotation: Quaternion },
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean {
+    throw new Error("Physics-lite doesn't support sweep. Use Physics-PhysX instead!");
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.overlapAny }
+   */
+  overlapAny(
+    geometry: IGeometry,
+    pose: { translation: Vector3; rotation: Quaternion },
+    onOverlap: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number) => void
+  ): boolean {
+    throw new Error("Physics-lite doesn't support overlapAny. Use Physics-PhysX instead!");
+  }
+
+  /**
    * {@inheritDoc IPhysicsScene.addCharacterController }
    */
   addCharacterController(characterController: ICharacterController): void {
-    throw "Physics-lite don't support addCharacterController. Use Physics-PhysX instead!";
+    throw new Error("Physics-lite doesn't support addCharacterController. Use Physics-PhysX instead!");
   }
 
   /**
    * {@inheritDoc IPhysicsScene.removeCharacterController }
    */
   removeCharacterController(characterController: ICharacterController): void {
-    throw "Physics-lite don't support removeCharacterController. Use Physics-PhysX instead!";
+    throw new Error("Physics-lite doesn't support removeCharacterController. Use Physics-PhysX instead!");
   }
 
   /**

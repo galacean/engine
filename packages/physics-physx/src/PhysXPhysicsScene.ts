@@ -1,5 +1,5 @@
-import { Ray, Vector3, DisorderedArray } from "@galacean/engine";
-import { ICollision, IPhysicsScene } from "@galacean/engine-design";
+import { Ray, Vector3, DisorderedArray, Quaternion } from "@galacean/engine";
+import { ICollision, IGeometry, IPhysicsScene } from "@galacean/engine-design";
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXCollider } from "./PhysXCollider";
 import { PhysXPhysics } from "./PhysXPhysics";
@@ -183,7 +183,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
     const { _pxRaycastHit: pxHitResult } = this;
-    distance = Math.min(distance, 3.4e38); // float32 max value limit in physx raycast.
+    distance = Math.min(distance, 3.4e38); // float32 max value limit in physX raycast.
 
     const raycastCallback = {
       preFilter: (filterData, index, actor) => {
@@ -192,8 +192,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         } else {
           return 0; // eNONE
         }
-      },
-      postFilter: (filterData, hit) => {}
+      }
     };
 
     const pxRaycastCallback = this._physXPhysics._physX.PxQueryFilterCallback.implement(raycastCallback);
@@ -216,6 +215,94 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
       hit(pxHitResult.getShape().getUUID(), pxHitResult.distance, position, normal);
     }
+    return result;
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.sweep }
+   */
+  sweep(
+    geometry: IGeometry,
+    pose: { translation: Vector3; rotation: Quaternion },
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean {
+    distance = Math.min(distance, 3.4e38); // float32 max value limit in physx sweep
+
+    const sweepCallback = {
+      preFilter: (filterData, index, actor) => {
+        if (onSweep(index)) {
+          return 2; // eBLOCK
+        } else {
+          return 0; // eNONE
+        }
+      }
+    };
+
+    const pxSweepCallback = this._physXPhysics._physX.PxQueryFilterCallback.implement(sweepCallback);
+    const pxSweepHit = new this._physXPhysics._physX.PxSweepHit();
+    const result = this._pxScene.sweepSingle(
+      geometry.getGeometry(),
+      pose,
+      direction,
+      distance,
+      pxSweepHit,
+      this._pxFilterData,
+      pxSweepCallback
+    );
+
+    if (result && outHitResult != undefined) {
+      const { _tempPosition: position, _tempNormal: normal } = PhysXPhysicsScene;
+      const { position: pxPosition, normal: pxNormal } = pxSweepHit;
+      position.set(pxPosition.x, pxPosition.y, pxPosition.z);
+      normal.set(pxNormal.x, pxNormal.y, pxNormal.z);
+      outHitResult(pxSweepHit.getShape().getUUID(), pxSweepHit.distance, position, normal);
+    }
+
+    pxSweepCallback.delete();
+    pxSweepHit.delete();
+
+    return result;
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.overlapAny }
+   */
+  overlapAny(
+    geometry: IGeometry,
+    pose: { translation: Vector3; rotation: Quaternion },
+    onOverlap: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number) => void
+  ): boolean {
+    const overlapCallback = {
+      preFilter: (filterData, index, actor) => {
+        if (onOverlap(index)) {
+          return 2; // eBLOCK
+        } else {
+          return 0; // eNONE
+        }
+      }
+    };
+
+    const pxOverlapCallback = this._physXPhysics._physX.PxQueryFilterCallback.implement(overlapCallback);
+    const pxOverlapHit = new this._physXPhysics._physX.PxOverlapHit();
+    const result = this._pxScene.overlapAny(
+      geometry.getGeometry(),
+      pose,
+      pxOverlapHit,
+      this._pxFilterData,
+      pxOverlapCallback
+    );
+
+    if (result && outHitResult != undefined) {
+      outHitResult(pxOverlapHit.getShape().getUUID());
+    }
+
+    pxOverlapCallback.delete();
+    pxOverlapHit.delete();
+
     return result;
   }
 
