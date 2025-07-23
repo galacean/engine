@@ -17,7 +17,7 @@ class KHR_materials_specular extends GLTFExtensionParser {
     }
 
     if (specularTexture) {
-      GLTFMaterialParser._checkOtherTextureTransform(specularTexture, "Specular texture");
+      GLTFMaterialParser._checkOtherTextureTransform(specularTexture, "Specular intensity texture");
 
       context
         .get<Texture2D>(GLTFParserType.Texture, specularTexture.index)
@@ -30,7 +30,7 @@ class KHR_materials_specular extends GLTFExtensionParser {
     }
 
     if (specularColorTexture) {
-      GLTFMaterialParser._checkOtherTextureTransform(specularColorTexture, "SpecularColor texture");
+      GLTFMaterialParser._checkOtherTextureTransform(specularColorTexture, "Specular color texture");
 
       context
         .get<Texture2D>(GLTFParserType.Texture, specularColorTexture.index)
