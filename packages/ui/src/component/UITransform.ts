@@ -305,7 +305,7 @@ export class UITransform extends Transform {
     this._transferFlags(UITransformModifyFlags.LrWmWpWeWqWsWus);
   }
 
-  private _transferFlags(flags: UITransformModifyFlags) {
+  private _transferFlags(flags: UITransformModifyFlags): void {
     if (flags & UITransformModifyFlags.LocalRect) {
       const alignment = this._alignment;
       if (!!alignment) {
@@ -316,6 +316,8 @@ export class UITransform extends Transform {
           this.verticalAlignment === UITransformAlignmentFlags.TopAndBottom
         ) {
           this._setDirtyFlagTrue(UITransformModifyFlags.Size);
+          // @ts-ignore
+          this.entity._updateFlagManager.dispatch(UITransformModifyFlags.Size);
         } else {
           flags &= ~UITransformModifyFlags.LocalRect;
         }
@@ -324,8 +326,9 @@ export class UITransform extends Transform {
       }
     }
     if (!this._isContainDirtyFlags(flags)) {
-      this._setDirtyFlagTrue(flags);
-      // todo: dispatch world flags
+      const worldFlags = flags & ~UITransformModifyFlags.LocalRect;
+      !this._isContainDirtyFlags(worldFlags) && this._worldAssociatedChange(worldFlags);
+      this._setDirtyFlagTrue(flags & UITransformModifyFlags.LocalRect);
       const children = this.entity.children;
       for (let i = 0, n = children.length; i < n; i++) {
         (children[i].transform as unknown as UITransform)?._transferFlags?.(flags);
@@ -401,9 +404,10 @@ export class UITransform extends Transform {
       (alignment & UITransformAlignmentFlags.Vertical) === UITransformAlignmentFlags.TopAndBottom
     ) {
       this._setDirtyFlagTrue(UITransformModifyFlags.Size);
+    } else {
+      // @ts-ignore
+      this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Size);
     }
-    // @ts-ignore
-    this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Size);
   }
 
   @ignoreClone

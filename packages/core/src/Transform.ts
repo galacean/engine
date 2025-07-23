@@ -754,9 +754,10 @@ export class Transform extends Component {
     this._dirtyFlag &= ~type;
   }
 
-  private _worldAssociatedChange(type: number): void {
+  protected _worldAssociatedChange(type: number): void {
+    const dispatchFlags = type & ~this._dirtyFlag;
     this._dirtyFlag |= type;
-    this._entity._updateFlagManager.dispatch(type);
+    this._entity._updateFlagManager.dispatch(dispatchFlags);
   }
 
   private _rotateByQuat(rotateQuat: Quaternion, relativeToLocal: boolean): void {
