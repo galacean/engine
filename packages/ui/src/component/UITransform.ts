@@ -398,7 +398,10 @@ export class UITransform extends Transform {
   @ignoreClone
   private _onSizeChanged(): void {
     if (!this._isContainDirtyFlag(UITransformModifyFlags.Size)) {
-      if (this.horizontalAlignment === UITransformAlignmentFlags.LeftAndRight || this.verticalAlignment === UITransformAlignmentFlags.TopAndBottom) {
+      if (
+        this.horizontalAlignment === UITransformAlignmentFlags.LeftAndRight ||
+        this.verticalAlignment === UITransformAlignmentFlags.TopAndBottom
+      ) {
         this._setDirtyFlagTrue(UITransformModifyFlags.Size);
       }
       this._setLocalRectDirty();
