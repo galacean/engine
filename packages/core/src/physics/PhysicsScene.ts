@@ -406,7 +406,9 @@ export class PhysicsScene {
     pose.translation.copyFrom(center);
     pose.rotation.copyFrom(orientation);
 
-    return this._sweep(boxGeometry, pose, direction, distance, layerMask, outHitResult);
+    const result = this._sweep(boxGeometry, pose, direction, distance, layerMask, outHitResult);
+    boxGeometry.release();
+    return result;
   }
 
   /**
@@ -430,7 +432,9 @@ export class PhysicsScene {
     const sphereGeometry = Engine._nativePhysics.createSphereGeometry(radius);
     const pose = PhysicsScene._tempPose;
     pose.translation.copyFrom(center);
-    return this._sweep(sphereGeometry, pose, direction, distance, layerMask, outHitResult);
+    const result = this._sweep(sphereGeometry, pose, direction, distance, layerMask, outHitResult);
+    sphereGeometry.release();
+    return result;
   }
 
   /**
@@ -458,7 +462,9 @@ export class PhysicsScene {
     const pose = PhysicsScene._tempPose;
     pose.translation.copyFrom(center);
     pose.rotation.copyFrom(orientation);
-    return this._sweep(capsuleGeometry, pose, direction, distance, layerMask, outHitResult);
+    const result = this._sweep(capsuleGeometry, pose, direction, distance, layerMask, outHitResult);
+    capsuleGeometry.release();
+    return result;
   }
 
   /**
@@ -480,7 +486,9 @@ export class PhysicsScene {
     const pose = PhysicsScene._tempPose;
     pose.translation.copyFrom(center);
     pose.rotation.copyFrom(orientation);
-    return this._overlap(boxGeometry, pose, layerMask, outOverlapHitResult);
+    const result = this._overlap(boxGeometry, pose, layerMask, outOverlapHitResult);
+    boxGeometry.release();
+    return result;
   }
 
   /**
@@ -494,7 +502,9 @@ export class PhysicsScene {
     const sphereGeometry = Engine._nativePhysics.createSphereGeometry(radius);
     const pose = PhysicsScene._tempPose;
     pose.translation.copyFrom(center);
-    return this._overlap(sphereGeometry, pose, layerMask, outOverlapHitResult);
+    const result = this._overlap(sphereGeometry, pose, layerMask, outOverlapHitResult);
+    sphereGeometry.release();
+    return result;
   }
 
   /**
@@ -518,7 +528,9 @@ export class PhysicsScene {
     const pose = PhysicsScene._tempPose;
     pose.translation.copyFrom(center);
     pose.rotation.copyFrom(orientation);
-    return this._overlap(capsuleGeometry, pose, layerMask, outOverlapHitResult);
+    const result = this._overlap(capsuleGeometry, pose, layerMask, outOverlapHitResult);
+    capsuleGeometry.release();
+    return result;
   }
 
   /**
