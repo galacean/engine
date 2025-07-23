@@ -311,7 +311,10 @@ export class UITransform extends Transform {
       if (!!alignment) {
         flags |= UITransformModifyFlags.WmWp;
         this._setDirtyFlagTrue(UITransformModifyFlags.LmLp);
-        if (this.horizontalAlignment === UITransformAlignmentFlags.LeftAndRight || this.verticalAlignment === UITransformAlignmentFlags.TopAndBottom) {
+        if (
+          this.horizontalAlignment === UITransformAlignmentFlags.LeftAndRight ||
+          this.verticalAlignment === UITransformAlignmentFlags.TopAndBottom
+        ) {
           this._setDirtyFlagTrue(UITransformModifyFlags.Size);
         } else {
           flags &= ~UITransformModifyFlags.LocalRect;
@@ -361,7 +364,6 @@ export class UITransform extends Transform {
   set verticalAlignment(value: UITransformAlignmentFlags) {
     this._alignment = (this._alignment & UITransformAlignmentFlags.Horizontal) | value;
   }
-
 
   private _getLocalRect(): Rect {
     if (this._isContainDirtyFlag(UITransformModifyFlags.LocalRect)) {
@@ -449,7 +451,7 @@ export enum UITransformModifyFlags {
   /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale | WorldUniformScaling */
   WmWpWeWqWsWus = 0x1bc,
   /** Local rect | World matrix | world position | world Euler | world quaternion | world scale | world uniform scaling */
-  LrWmWpWeWqWsWus = 0x11bc,
+  LrWmWpWeWqWsWus = 0x11bc
 }
 
 enum UITransformAlignmentFlags {
