@@ -12,10 +12,10 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
   _radius: number;
   /** @internal */
   _halfHeight: number;
+  /** @internal */
+  _upAxis: ColliderShapeUpAxis = ColliderShapeUpAxis.Y;
 
   protected declare _physXGeometry: PhysXCapsuleGeometry;
-
-  private _upAxis: ColliderShapeUpAxis = ColliderShapeUpAxis.Y;
 
   constructor(
     physXPhysics: PhysXPhysics,
