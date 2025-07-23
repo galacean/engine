@@ -250,7 +250,7 @@ export class UITransform extends Transform {
     if (this._isContainDirtyFlag(UITransformModifyFlags.Size)) {
       const parentRect = (this._getParentTransform() as unknown as UITransform)?._getLocalRect?.();
       if (parentRect) {
-        const { _size: size, _alignment: alignment } = this;
+        const size = this._size;
         // @ts-ignore
         size._onValueChanged = null;
         if (this.horizontalAlignment === UITransformAlignmentFlags.LeftAndRight) {
@@ -397,17 +397,14 @@ export class UITransform extends Transform {
 
   @ignoreClone
   private _onSizeChanged(): void {
-    this._setLocalRectDirty();
-    const alignment = this._alignment;
-    if (
-      (alignment & UITransformAlignmentFlags.Horizontal) === UITransformAlignmentFlags.LeftAndRight ||
-      (alignment & UITransformAlignmentFlags.Vertical) === UITransformAlignmentFlags.TopAndBottom
-    ) {
-      this._setDirtyFlagTrue(UITransformModifyFlags.Size);
-    } else {
-      // @ts-ignore
-      this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Size);
+    if (!this._isContainDirtyFlag(UITransformModifyFlags.Size)) {
+      if (this.horizontalAlignment === UITransformAlignmentFlags.LeftAndRight || this.verticalAlignment === UITransformAlignmentFlags.TopAndBottom) {
+        this._setDirtyFlagTrue(UITransformModifyFlags.Size);
+      }
+      this._setLocalRectDirty();
     }
+    // @ts-ignore
+    this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Size);
   }
 
   @ignoreClone
