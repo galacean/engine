@@ -326,9 +326,9 @@ export class UITransform extends Transform {
       }
     }
     if (!this._isContainDirtyFlags(flags)) {
+      this._setDirtyFlagTrue(flags & UITransformModifyFlags.LocalRect);
       const worldFlags = flags & ~UITransformModifyFlags.LocalRect;
       !this._isContainDirtyFlags(worldFlags) && this._worldAssociatedChange(worldFlags);
-      this._setDirtyFlagTrue(flags & UITransformModifyFlags.LocalRect);
       const children = this.entity.children;
       for (let i = 0, n = children.length; i < n; i++) {
         (children[i].transform as unknown as UITransform)?._transferFlags?.(flags);
