@@ -72,7 +72,15 @@ export class Lexer extends BaseLexer {
     noperspective: Keyword.NOPERSPECTIVE,
     centroid: Keyword.CENTROID,
     layout: Keyword.LAYOUT,
-    location: Keyword.LOCATION
+    location: Keyword.LOCATION,
+
+    // Macros ...
+    "#if": Keyword.MACRO_IF,
+    "#ifdef": Keyword.MACRO_IFDEF,
+    "#ifndef": Keyword.MACRO_IFNDEF,
+    "#else": Keyword.MACRO_ELSE,
+    "#elif": Keyword.MACRO_ELIF,
+    "#endif": Keyword.MACRO_ENDIF
   };
 
   *tokenize() {

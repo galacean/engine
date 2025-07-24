@@ -1268,4 +1268,11 @@ export namespace ASTNode {
       this.shaderData.symbolTable = sa.symbolTableStack.scope;
     }
   }
+
+  @ASTNodeDecorator(NoneTerminal.macro_selection_statement)
+  export class Macro_selection_statement extends TreeNode {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      console.log(123123);
+    }
+  }
 }

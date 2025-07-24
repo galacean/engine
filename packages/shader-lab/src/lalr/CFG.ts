@@ -841,6 +841,13 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     NoneTerminal.variable_identifier,
     [[ETokenType.ID]],
     ASTNode.VariableIdentifier.pool
+  ),
+
+  // Macros ...
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_selection_statement,
+    [[Keyword.MACRO_IFDEF, ETokenType.ID, NoneTerminal.statement_list, Keyword.MACRO_ENDIF]],
+    ASTNode.VariableIdentifier.pool
   )
 ];
 

@@ -58,6 +58,14 @@
 
 %token CONTINUE BREAK RETURN DISCARD
 
+%token MACRO_IF
+%token MACRO_IFDEF
+%token MACRO_IFNDEF
+%token MACRO_ELSE
+%token MACRO_ELIF
+%token MACRO_ENDIF
+
+
 %%
 gs_shader_program:
     global_declaration
@@ -123,6 +131,8 @@ struct_declaration:
 
 layout_qualifier:
     layout '(' location '=' INT_CONSTANT ')'
+    | layout '(' location '=' id ')'
+
 
 struct_declarator_list:
     struct_declarator
@@ -399,6 +409,7 @@ simple_statement:
     | selection_statement
     | iteration_statement
     | jump_statement
+    | macro_selection_statement
     ;
 
 declaration:
@@ -449,6 +460,11 @@ selection_statement:
     IF '(' expression ')' statement
     | IF '(' expression ')' statement ELSE statement
     ;
+
+macro_selection_statement:
+    MACRO_IF id statement_list MACRO_ENDIF
+    ; 
+
 
 iteration_statement:
     WHILE '(' condition ')' statement

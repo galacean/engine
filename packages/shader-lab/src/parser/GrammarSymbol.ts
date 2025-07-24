@@ -106,6 +106,7 @@ export enum NoneTerminal {
   typename_identifier_node,
   scope_brace,
   scope_end_brace,
+  macro_selection_statement,
 
   _ignore
 }

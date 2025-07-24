@@ -99,5 +99,13 @@ export enum Keyword {
   GSCompareFunction,
   GSStencilOperation,
   GSCullMode,
-  GSUsePass
+  GSUsePass,
+
+  // Macros
+  MACRO_IF,
+  MACRO_IFDEF,
+  MACRO_IFNDEF,
+  MACRO_ELSE,
+  MACRO_ELIF,
+  MACRO_ENDIF
 }
