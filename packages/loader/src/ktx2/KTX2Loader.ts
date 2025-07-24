@@ -330,9 +330,9 @@ declare module "@galacean/engine-core" {
       priorityFormats?: KTX2TargetFormat[];
       /** Used for initialize KTX2 transcoder, default is BinomialLLC. */
       transcoder?: KTX2Transcoder;
-      /** basis_transcoder.js */
+      /** The URL of `basis_transcoder.js` for BinomialLLCTranscoder. */
       binomialLLCJsUrl?: string;
-      /** basis_transcoder.wasm */
+      /** The URL of `basis_transcoder.wasm` for BinomialLLCTranscoder. */
       binomialLLCWasmUrl?: string;
     };
   }
