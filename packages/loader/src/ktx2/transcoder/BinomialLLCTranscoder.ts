@@ -1,21 +1,21 @@
 import { KTX2TargetFormat } from "../KTX2TargetFormat";
 import { AbstractTranscoder, TranscodeResult } from "./AbstractTranscoder";
-import { TranscodeWorkerCode, init, transcode, _init } from "./BinomialLLCWorkerCode";
+import { TranscodeWorkerCode, init, transcode } from "./BinomialLLCWorkerCode";
 
 /** @internal */
 export class BinomialLLCTranscoder extends AbstractTranscoder {
-  constructor(workerLimitCount: number) {
+  constructor(
+    workerLimitCount: number,
+    private _jsUrl = "https://mdn.alipayobjects.com/rms/afts/file/A*ImQSTZQiexkAAAAAQ1AAAAgAehQnAQ/basis_transcoder.js",
+    private _wasmUrl = "https://mdn.alipayobjects.com/rms/afts/file/A*DFX8RJ6Z0G0AAAAAXoAAAAgAehQnAQ/basis_transcoder.wasm"
+  ) {
     super(workerLimitCount);
   }
 
   _initTranscodeWorkerPool() {
     return Promise.all([
-      fetch("https://mdn.alipayobjects.com/rms/afts/file/A*ImQSTZQiexkAAAAAQ1AAAAgAehQnAQ/basis_transcoder.js").then(
-        (res) => res.text()
-      ),
-      fetch("https://mdn.alipayobjects.com/rms/afts/file/A*DFX8RJ6Z0G0AAAAAXoAAAAgAehQnAQ/basis_transcoder.wasm").then(
-        (res) => res.arrayBuffer()
-      )
+      fetch(this._jsUrl).then((res) => res.text()),
+      fetch(this._wasmUrl).then((res) => res.arrayBuffer())
     ]).then(([jsCode, wasmBuffer]) => {
       if (this.workerLimitCount === 0) {
         return new Promise<any>((resolve, reject) => {
