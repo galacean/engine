@@ -4,18 +4,18 @@ import { TranscodeWorkerCode, init, transcode } from "./BinomialLLCWorkerCode";
 
 /** @internal */
 export class BinomialLLCTranscoder extends AbstractTranscoder {
-  constructor(
-    workerLimitCount: number,
-    private _jsUrl = "https://mdn.alipayobjects.com/rms/afts/file/A*z-iFT4PIU5AAAAAAQ0AAAAgAehQnAQ/basis_transcoder.js",
-    private _wasmUrl = "https://mdn.alipayobjects.com/rms/afts/file/A*Ey3UQqdJNrMAAAAAXoAAAAgAehQnAQ/basis_transcoder.wasm"
-  ) {
+  constructor(workerLimitCount: number) {
     super(workerLimitCount);
   }
 
   _initTranscodeWorkerPool() {
     return Promise.all([
-      fetch(this._jsUrl).then((res) => res.text()),
-      fetch(this._wasmUrl).then((res) => res.arrayBuffer())
+      fetch("https://mdn.alipayobjects.com/rms/afts/file/A*z-iFT4PIU5AAAAAAQ0AAAAgAehQnAQ/basis_transcoder.js").then(
+        (res) => res.text()
+      ),
+      fetch("https://mdn.alipayobjects.com/rms/afts/file/A*Ey3UQqdJNrMAAAAAXoAAAAgAehQnAQ/basis_transcoder.wasm").then(
+        (res) => res.arrayBuffer()
+      )
     ]).then(([jsCode, wasmBuffer]) => {
       if (this.workerLimitCount === 0) {
         return new Promise<any>((resolve, reject) => {

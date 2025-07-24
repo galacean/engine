@@ -192,9 +192,9 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     return null;
   }
 
-  private static _getBinomialLLCTranscoder(workerCount = 4, jsUrl?: string, wasmUrl?: string) {
+  private static _getBinomialLLCTranscoder(workerCount: number = 4) {
     KTX2Loader._isBinomialInit = true;
-    return (this._binomialLLCTranscoder ??= new BinomialLLCTranscoder(workerCount, jsUrl, wasmUrl));
+    return (this._binomialLLCTranscoder ??= new BinomialLLCTranscoder(workerCount));
   }
 
   private static _getKhronosTranscoder(workerCount: number = 4) {
@@ -233,11 +233,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       if (options.transcoder === KTX2Transcoder.Khronos) {
         return KTX2Loader._getKhronosTranscoder(options.workerCount).init();
       } else {
-        return KTX2Loader._getBinomialLLCTranscoder(
-          options.workerCount,
-          options.binomialLLCJsUrl,
-          options.binomialLLCWasmUrl
-        ).init();
+        return KTX2Loader._getBinomialLLCTranscoder(options.workerCount).init();
       }
     }
   }
@@ -330,10 +326,6 @@ declare module "@galacean/engine-core" {
       priorityFormats?: KTX2TargetFormat[];
       /** Used for initialize KTX2 transcoder, default is BinomialLLC. */
       transcoder?: KTX2Transcoder;
-      /** The URL of `basis_transcoder.js` for BinomialLLCTranscoder. */
-      binomialLLCJsUrl?: string;
-      /** The URL of `basis_transcoder.wasm` for BinomialLLCTranscoder. */
-      binomialLLCWasmUrl?: string;
     };
   }
 }
