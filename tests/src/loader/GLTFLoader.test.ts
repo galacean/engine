@@ -110,12 +110,13 @@ beforeAll(async function () {
         },
         extensionsUsed: [
           "KHR_materials_unlit",
+          "KHR_materials_specular",
           "KHR_materials_clearcoat",
           "KHR_lights_punctual",
           "Custom_Material",
           "Custom_Light"
         ],
-        extensionsRequired: ["KHR_materials_unlit", "Custom_Material", "Custom_Light"],
+        extensionsRequired: ["KHR_materials_unlit", "KHR_materials_specular", "Custom_Material", "Custom_Light"],
         extensions: {
           KHR_lights_punctual: {
             lights: [
@@ -244,6 +245,26 @@ beforeAll(async function () {
             name: "custom blinn-phong",
             extensions: {
               Custom_Material: { baseColorFactor: [1, 1, 0, 1] }
+            }
+          },
+          {
+            name: "specular",
+            pbrMetallicRoughness: {
+              baseColorFactor: [1, 0, 0, 1],
+              metallicFactor: 0.0,
+              roughnessFactor: 0.2
+            },
+            extensions: {
+              KHR_materials_specular: {
+                specularFactor: 0.5,
+                specularColorFactor: [1.0, 0.0, 0.0],
+                specularTexture: {
+                  index: 0
+                },
+                specularColorTexture: {
+                  index: 0
+                }
+              }
             }
           }
         ],
@@ -375,7 +396,7 @@ describe("glTF Loader test", function () {
     const pbrMaterials = materials as PBRMaterial[];
 
     // material
-    expect(pbrMaterials.length).to.equal(3);
+    expect(pbrMaterials.length).to.equal(4);
     expect(pbrMaterials[0]).to.instanceOf(PBRMaterial);
     expect(pbrMaterials[1]).to.instanceOf(UnlitMaterial);
     expect(pbrMaterials[2]).to.instanceOf(BlinnPhongMaterial);
@@ -390,6 +411,9 @@ describe("glTF Loader test", function () {
     expect(pbrMaterials[1].renderFace).to.equal(RenderFace.Front);
     expect(pbrMaterials[1].isTransparent).to.be.false;
     expect(pbrMaterials[2].baseColor).to.deep.equal(new Color(1, 1, 0, 1));
+    expect(pbrMaterials[3].baseColor).to.deep.equal(new Color(1, 0, 0, 1));
+    expect(pbrMaterials[3].specularIntensity).to.equal(0.5);
+    expect(pbrMaterials[3].specularColor).to.deep.equal(new Color(1, 0, 0, 1));
 
     // entity
     expect(entities.length).to.equal(2);
@@ -427,10 +451,14 @@ describe("glTF Loader test", function () {
     expect(pbrMaterials[0].clearCoatTexture).to.exist;
     expect(pbrMaterials[0].clearCoatRoughnessTexture).to.exist;
     expect(pbrMaterials[0].clearCoatNormalTexture).to.exist;
+    expect(pbrMaterials[3].specularIntensityTexture).to.exist;
+    expect(pbrMaterials[3].specularColorTexture).to.exist;
     expect(pbrMaterials[0].baseTexture.isSRGBColorSpace).to.be.true;
     expect(pbrMaterials[0].roughnessMetallicTexture.isSRGBColorSpace).to.be.false;
     expect(pbrMaterials[0].normalTexture.isSRGBColorSpace).to.be.false;
     expect(pbrMaterials[0].occlusionTexture.isSRGBColorSpace).to.be.false;
+    expect(pbrMaterials[3].specularIntensityTexture.isSRGBColorSpace).to.be.false;
+    expect(pbrMaterials[3].specularColorTexture.isSRGBColorSpace).to.be.false;
 
     // mesh
     expect(meshes.length).to.equal(1);
