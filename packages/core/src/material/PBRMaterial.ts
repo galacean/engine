@@ -296,7 +296,7 @@ export class PBRMaterial extends BaseMaterial {
   }
 
   set ior(v: number) {
-    this.shaderData.setFloat(PBRMaterial._iorProp, Math.max(v, 0));
+    this.shaderData.setFloat(PBRMaterial._iorProp, Math.min(Math.max(v, 0), 5));
   }
 
   /**
@@ -702,7 +702,7 @@ export class PBRMaterial extends BaseMaterial {
   }
 
   set specularIntensity(value: number) {
-    this.shaderData.setFloat(PBRMaterial._specularIntensityProp, value);
+    this.shaderData.setFloat(PBRMaterial._specularIntensityProp, Math.min(Math.max(value, 0), 2));
   }
 
   /**

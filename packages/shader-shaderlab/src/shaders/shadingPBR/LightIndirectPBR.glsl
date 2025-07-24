@@ -68,13 +68,13 @@ void evaluateSpecularIBL(Varyings varyings, SurfaceData surfaceData, BSDFData bs
     vec3 radiance = getLightProbeRadiance(surfaceData, surfaceData.normal, bsdfData.roughness);
   
     #ifdef MATERIAL_ENABLE_IRIDESCENCE
-        vec3 speculaColor = mix(bsdfData.f0, bsdfData.iridescenceSpecularColor, surfaceData.iridescenceFactor);
+        vec3 speculaColor = mix(bsdfData.specularF0, bsdfData.iridescenceSpecularColor, surfaceData.iridescenceFactor);
     #else
-        vec3 speculaColor = bsdfData.f0;
+        vec3 speculaColor = bsdfData.specularF0;
     #endif
     
     float specularAO = evaluateSpecularOcclusion(surfaceData.dotNV, bsdfData.diffuseAO, bsdfData.roughness);
-    outSpecularColor += specularAO * radianceAttenuation * radiance * envBRDFApprox(speculaColor, bsdfData.f90, bsdfData.roughness, surfaceData.dotNV);
+    outSpecularColor += specularAO * radianceAttenuation * radiance * envBRDFApprox(speculaColor, bsdfData.specularF90 , bsdfData.roughness, surfaceData.dotNV);
 }
 
 void evaluateSheenIBL(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData,  float radianceAttenuation, inout vec3 diffuseColor, inout vec3 specularColor){
