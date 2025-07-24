@@ -6,8 +6,8 @@ import { TranscodeWorkerCode, init, transcode } from "./BinomialLLCWorkerCode";
 export class BinomialLLCTranscoder extends AbstractTranscoder {
   constructor(
     workerLimitCount: number,
-    public jsUrl = "https://mdn.alipayobjects.com/rms/afts/file/A*ImQSTZQiexkAAAAAQ1AAAAgAehQnAQ/basis_transcoder.js",
-    public wasmUrl = "https://mdn.alipayobjects.com/rms/afts/file/A*DFX8RJ6Z0G0AAAAAXoAAAAgAehQnAQ/basis_transcoder.wasm"
+    public jsUrl = "https://mdn.alipayobjects.com/rms/afts/file/A*z-iFT4PIU5AAAAAAQ0AAAAgAehQnAQ/basis_transcoder.js",
+    public wasmUrl = "https://mdn.alipayobjects.com/rms/afts/file/A*Ey3UQqdJNrMAAAAAXoAAAAgAehQnAQ/basis_transcoder.wasm"
   ) {
     super(workerLimitCount);
   }
