@@ -6,6 +6,11 @@ module.exports = {
       browserPath: "dist/browser.min.js"
     },
     {
+      name: "@galacean/engine-xr-webxr",
+      path: "packages/xr-webxr",
+      browserPath: "dist/browser.min.js"
+    },
+    {
       name: "@galacean/engine-ui",
       path: "packages/ui",
       browserPath: "dist/browser.min.js"
