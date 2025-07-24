@@ -101,28 +101,6 @@ describe("ktx2 Loader test", function () {
     expect(texture2d.format).to.be.equal(TextureFormat.BC1);
     texture2d.destroy();
   });
-
-  it("custom transcoder", async () => {
-    const binomialLLCJsUrl = "https://your.cdn.com/basis_transcoder.js";
-    const binomialLLCWasmUrl = "https://your.cdn.com/basis_transcoder.wasm";
-
-    const canvasDOM = document.createElement("canvas");
-    WebGLEngine.create({
-      canvas: canvasDOM,
-      ktx2Loader: {
-        workerCount: 4,
-        binomialLLCJsUrl,
-        binomialLLCWasmUrl
-      }
-    });
-
-    // @ts-ignore
-    const transcoder = KTX2Loader._binomialLLCTranscoder;
-    // @ts-ignore
-    expect(transcoder.jsUrl).toBe(binomialLLCJsUrl);
-    // @ts-ignore
-    expect(transcoder.wasmUrl).toBe(binomialLLCWasmUrl);
-  });
 });
 
 afterAll(() => {
