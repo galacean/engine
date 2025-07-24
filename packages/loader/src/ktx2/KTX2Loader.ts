@@ -194,7 +194,16 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
 
   private static _getBinomialLLCTranscoder(workerCount = 4, jsUrl?: string, wasmUrl?: string) {
     KTX2Loader._isBinomialInit = true;
-    return (this._binomialLLCTranscoder ??= new BinomialLLCTranscoder(workerCount, jsUrl, wasmUrl));
+    if (
+      !this._binomialLLCTranscoder ||
+      this._binomialLLCTranscoder.workerLimitCount !== workerCount ||
+      this._binomialLLCTranscoder.jsUrl !== jsUrl ||
+      this._binomialLLCTranscoder.wasmUrl !== wasmUrl
+    ) {
+      this._binomialLLCTranscoder = new BinomialLLCTranscoder(workerCount, jsUrl, wasmUrl);
+    }
+
+    return this._binomialLLCTranscoder;
   }
 
   private static _getKhronosTranscoder(workerCount: number = 4) {

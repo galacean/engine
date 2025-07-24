@@ -1,7 +1,7 @@
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { GLCapabilityType, Texture2D, TextureFormat } from "@galacean/engine-core";
 import { KTX2Loader } from "@galacean/engine-loader";
-import { Texture2D, TextureFormat, GLCapabilityType } from "@galacean/engine-core";
-import { describe, beforeAll, afterAll, expect, it } from "vitest";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 let engine: WebGLEngine;
 
@@ -100,6 +100,28 @@ describe("ktx2 Loader test", function () {
     expect(texture2d.mipmapCount).to.be.equal(6);
     expect(texture2d.format).to.be.equal(TextureFormat.BC1);
     texture2d.destroy();
+  });
+
+  it("custom transcoder", async () => {
+    const binomialLLCJsUrl = "https://your.cdn.com/basis_transcoder.js";
+    const binomialLLCWasmUrl = "https://your.cdn.com/basis_transcoder.wasm";
+
+    const canvasDOM = document.createElement("canvas");
+    WebGLEngine.create({
+      canvas: canvasDOM,
+      ktx2Loader: {
+        workerCount: 4,
+        binomialLLCJsUrl,
+        binomialLLCWasmUrl
+      }
+    });
+
+    // @ts-ignore
+    const transcoder = KTX2Loader._binomialLLCTranscoder;
+    // @ts-ignore
+    expect(transcoder.jsUrl).toBe(binomialLLCJsUrl);
+    // @ts-ignore
+    expect(transcoder.wasmUrl).toBe(binomialLLCWasmUrl);
   });
 });
 
