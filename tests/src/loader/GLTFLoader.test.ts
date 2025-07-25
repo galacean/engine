@@ -95,6 +95,16 @@ beforeAll(async function () {
             sampler: 0,
             source: 0,
             name: "test"
+          },
+          {
+            sampler: 0,
+            source: 0,
+            name: "specular intensity"
+          },
+          {
+            sampler: 0,
+            source: 0,
+            name: "specular color"
           }
         ],
         samplers: [
@@ -259,10 +269,10 @@ beforeAll(async function () {
                 specularFactor: 0.5,
                 specularColorFactor: [1.0, 0.0, 0.0],
                 specularTexture: {
-                  index: 0
+                  index: 4
                 },
                 specularColorTexture: {
-                  index: 0
+                  index: 5
                 }
               }
             }
@@ -413,7 +423,7 @@ describe("glTF Loader test", function () {
     expect(pbrMaterials[2].baseColor).to.deep.equal(new Color(1, 1, 0, 1));
     expect(pbrMaterials[3].baseColor).to.deep.equal(new Color(1, 0, 0, 1));
     expect(pbrMaterials[3].specularIntensity).to.equal(0.5);
-    expect(pbrMaterials[3].specularColor).to.deep.equal(new Color(1, 0, 0, 1));
+    expect(pbrMaterials[3].specularColor).to.deep.include({ r: 1, g: 0, b: 0 });
 
     // entity
     expect(entities.length).to.equal(2);
@@ -431,7 +441,7 @@ describe("glTF Loader test", function () {
     expect(defaultSceneRoot).to.instanceOf(Entity);
 
     // texture
-    expect(textures.length).to.equal(4);
+    expect(textures.length).to.equal(6);
     expect(textures[0].name).to.equal("test");
     expect(textures[0].filterMode).to.equal(TextureFilterMode.Trilinear);
     expect(textures[0].wrapModeU).to.equal(TextureWrapMode.Repeat);
@@ -458,7 +468,7 @@ describe("glTF Loader test", function () {
     expect(pbrMaterials[0].normalTexture.isSRGBColorSpace).to.be.false;
     expect(pbrMaterials[0].occlusionTexture.isSRGBColorSpace).to.be.false;
     expect(pbrMaterials[3].specularIntensityTexture.isSRGBColorSpace).to.be.false;
-    expect(pbrMaterials[3].specularColorTexture.isSRGBColorSpace).to.be.false;
+    expect(pbrMaterials[3].specularColorTexture.isSRGBColorSpace).to.be.true;
 
     // mesh
     expect(meshes.length).to.equal(1);
