@@ -411,7 +411,7 @@ vec3 envBRDFApprox(vec3 f0, float f90, float roughness, float dotNV ) {
          
         // Since we did not calculate the true Fresnel result in the diffuse reflection, 
         // it will cause the lower edge of the transmission to be too bright,
-        // Therefore, Fresnel needs to be approximated.
+        // Therefore, Therefore, we use an approximate Fresnel attenuation.
         // https://blog.selfshadow.com/publications/s2017-shading-course/imageworks/s2017_pbs_imageworks_slides_v2.pdf
         refractionTransmitted *= (1.0 - max(max(bsdfData.envSpecularDFG.r,bsdfData.envSpecularDFG.g),bsdfData.envSpecularDFG.b));
 
