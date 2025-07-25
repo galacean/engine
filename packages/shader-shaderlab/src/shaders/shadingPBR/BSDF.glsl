@@ -409,7 +409,9 @@ vec3 envBRDFApprox(vec3 f0, float f90, float roughness, float dotNV ) {
         
         refractionTransmitted *= bsdfData.diffuseColor;
          
-        // Use specularFGD as an approximation of the fresnel effect
+        // Since we did not calculate the true Fresnel result in the diffuse reflection, 
+        // it will cause the lower edge of the transmission to be too bright,
+        // Therefore, Fresnel needs to be approximated.
         // https://blog.selfshadow.com/publications/s2017-shading-course/imageworks/s2017_pbs_imageworks_slides_v2.pdf
         refractionTransmitted *= (1.0 - max(max(bsdfData.envSpecularDFG.r,bsdfData.envSpecularDFG.g),bsdfData.envSpecularDFG.b));
 
@@ -435,8 +437,9 @@ void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
     bsdfData.specularF0 = mix(dielectricF0, albedoColor, metallic);
     bsdfData.specularF90 = mix(dielectricF90, 1.0, metallic);
 
-    bsdfData.diffuseColor = albedoColor * mix((1.0 - max(max(dielectricF0.r,dielectricF0.g),dielectricF0.b)), (1.0 - metallic), metallic);
-
+    // Simplify: albedoColor * mix((1.0 - max(max(dielectricF0.r,dielectricF0.g),dielectricF0.b)), 0.0, metallic);
+    bsdfData.diffuseColor = albedoColor * (1.0-metallic) * (1.0 - max(max(dielectricF0.r,dielectricF0.g),dielectricF0.b));
+    
     bsdfData.roughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(roughness + getAARoughnessFactor(surfaceData.normal), 1.0));
     bsdfData.envSpecularDFG = envBRDFApprox(bsdfData.specularF0,  bsdfData.specularF90 , bsdfData.roughness, surfaceData.dotNV);
    
