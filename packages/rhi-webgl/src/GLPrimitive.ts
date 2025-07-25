@@ -1,6 +1,6 @@
 import { GLCapabilityType, Logger, Primitive } from "@galacean/engine-core";
 import { SubPrimitive } from "@galacean/engine-core/types/graphic/SubPrimitive";
-import { IPlatformPrimitive } from "@galacean/engine-design";
+import { IPlatformPrimitive, IPlatformShaderProgram } from "@galacean/engine-design";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 import { WebGLExtension } from "./type";
 
@@ -32,7 +32,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   /**
    * Draw the primitive.
    */
-  draw(shaderProgram: any, subMesh: SubPrimitive): void {
+  draw(shaderProgram: IPlatformShaderProgram, subMesh: SubPrimitive): void {
     const gl = this._gl;
     const primitive = this._primitive;
     const useVao = this._isSupportVAO && primitive.enableVAO;
@@ -100,7 +100,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   /**
    * Bind buffer and attribute.
    */
-  private _bindBufferAndAttrib(shaderProgram: any): void {
+  private _bindBufferAndAttrib(shaderProgram: IPlatformShaderProgram): void {
     const gl = this._gl;
     const primitive = this._primitive;
     const vertexBufferBindings = primitive.vertexBufferBindings;
@@ -148,7 +148,7 @@ export class GLPrimitive implements IPlatformPrimitive {
     }
   }
 
-  private _registerVAO(shaderProgram: any): void {
+  private _registerVAO(shaderProgram: IPlatformShaderProgram): void {
     const gl = this._gl;
     const vao = gl.createVertexArray();
 
