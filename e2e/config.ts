@@ -100,6 +100,11 @@ export const E2E_CONFIG = {
       caseFileName: "material-pbr-clearcoat",
       threshold: 0.1
     },
+    "pbr-specular": {
+      category: "Material",
+      caseFileName: "material-pbr-specular",
+      threshold: 0
+    },
     pbr: {
       category: "Material",
       caseFileName: "material-pbr",
