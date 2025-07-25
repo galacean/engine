@@ -144,6 +144,41 @@ function config({ location, pkgJson, verboseMode }) {
         ],
         plugins: curPlugins
       };
+    },
+    bundled: (compress) => {
+      // ES module format with no external dependencies (bundled)
+      const bundledFile = path.join(location, "dist", compress ? "bundled.module.min.js" : "bundled.module.js");
+
+      const bundledPlugins = Array.from(curPlugins);
+
+      if (compress) {
+        const glslifyPluginIdx = bundledPlugins.findIndex((item) => item === glslPlugin);
+        bundledPlugins.splice(
+          glslifyPluginIdx,
+          1,
+          glsl({
+            include: [/\.(glsl|gs)$/],
+            compress: true
+          })
+        );
+        bundledPlugins.push(minify({
+          sourceMap: true,
+          module: true // Indicate this is an ES module
+        }));
+      }
+
+      return {
+        input,
+        external: [], // No external dependencies - bundle everything
+        output: [
+          {
+            file: bundledFile,
+            format: "es",
+            sourcemap: true
+          }
+        ],
+        plugins: bundledPlugins
+      };
     }
   };
 }
@@ -160,6 +195,9 @@ switch (BUILD_TYPE) {
     break;
   case "MODULE":
     promises.push(...getModule());
+    break;
+  case "BUNDLED":
+    promises.push(...getBundled());
     break;
   case "ALL":
     promises.push(...getAll());
@@ -189,8 +227,20 @@ function getModule() {
   return configs.map((config) => makeRollupConfig({ ...config, type: "module" }));
 }
 
+function getBundled() {
+  // Only build bundled version for @galacean/engine package
+  const galaceanConfig = pkgs.find((pkg) => pkg.pkgJson.name === "@galacean/engine");
+  if (galaceanConfig) {
+    return [
+      makeRollupConfig({ ...galaceanConfig, type: "bundled", compress: false }),
+      makeRollupConfig({ ...galaceanConfig, type: "bundled", compress: true })
+    ];
+  }
+  return [];
+}
+
 function getAll() {
-  return [...getModule(), ...getUMD()];
+  return [...getModule(), ...getUMD(), ...getBundled()];
 }
 
 export default Promise.all(promises);
