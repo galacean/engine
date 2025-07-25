@@ -96,6 +96,9 @@ export class Lexer extends BaseLexer {
       return EOF;
     }
 
+    if (BaseLexer.isPreprocessorStartChar(this.getCurCharCode())) {
+      return this._scanDirectives();
+    }
     if (BaseLexer.isAlpha(this.getCurCharCode())) {
       return this._scanWord();
     }
@@ -375,6 +378,22 @@ export class Lexer extends BaseLexer {
     this._scanFloatSuffix(buffer);
     const token = BaseToken.pool.get();
     token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
+    return token;
+  }
+
+  private _scanDirectives() {
+    const buffer: string[] = [this.getCurChar()];
+    const start = this.getShaderPosition();
+    this.advance(1);
+    while (BaseLexer.isAlpha(this.getCurCharCode())) {
+      buffer.push(this.getCurChar());
+      this.advance(1);
+    }
+    const token = BaseToken.pool.get();
+    const word = buffer.join("");
+    const kt = Lexer._lexemeTable[word];
+
+    token.set(kt ?? ETokenType.ID, word, start);
     return token;
   }
 
