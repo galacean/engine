@@ -1,12 +1,11 @@
 // Context Free Grammar of Galacean ShaderLab
-
-import { Grammar } from "../parser/Grammar";
-import { NoneTerminal, GrammarSymbol } from "../parser/GrammarSymbol";
-import GrammarUtils from "./Utils";
 import { ETokenType } from "../common";
-import SemanticAnalyzer, { TranslationRule } from "../parser/SemanticAnalyzer";
-import { ASTNode } from "../parser/AST";
 import { Keyword } from "../common/enums/Keyword";
+import { ASTNode } from "../parser/AST";
+import { Grammar } from "../parser/Grammar";
+import { GrammarSymbol, NoneTerminal } from "../parser/GrammarSymbol";
+import SemanticAnalyzer, { TranslationRule } from "../parser/SemanticAnalyzer";
+import GrammarUtils from "./Utils";
 
 const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
@@ -15,12 +14,17 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     ASTNode.GLShaderProgram.pool
   ),
 
-  ...GrammarUtils.createProductionWithOptions(NoneTerminal.global_declaration, [
-    [NoneTerminal.precision_specifier],
-    [NoneTerminal.variable_declaration_statement],
-    [NoneTerminal.struct_specifier],
-    [NoneTerminal.function_definition]
-  ]),
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.global_declaration,
+    [
+      [NoneTerminal.precision_specifier],
+      [NoneTerminal.variable_declaration_statement],
+      [NoneTerminal.struct_specifier],
+      [NoneTerminal.function_definition],
+      [NoneTerminal.macro_selection_statement]
+    ],
+    ASTNode.GlobalDeclaration.pool
+  ),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.variable_declaration,
@@ -628,7 +632,8 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.expression_statement],
       [NoneTerminal.selection_statement],
       [NoneTerminal.iteration_statement],
-      [NoneTerminal.jump_statement]
+      [NoneTerminal.jump_statement],
+      [NoneTerminal.macro_selection_statement]
     ],
     // #if _VERBOSE
     ASTNode.SimpleStatement.pool
@@ -846,8 +851,8 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   // Macros ...
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.macro_selection_statement,
-    [[Keyword.MACRO_IFDEF, ETokenType.ID, NoneTerminal.statement_list, Keyword.MACRO_ENDIF]],
-    ASTNode.VariableIdentifier.pool
+    [[Keyword.MACRO_IFDEF, ETokenType.ID, Keyword.MACRO_ENDIF]],
+    ASTNode.MacroSelectionStatement.pool
   )
 ];
 
@@ -866,4 +871,4 @@ const addTranslationRule = (sa: SemanticAnalyzer) => {
   }
 };
 
-export { createGrammar, addTranslationRule };
+export { addTranslationRule, createGrammar };

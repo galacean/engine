@@ -5,6 +5,7 @@ import { ClearableObjectPool, IPoolElement } from "@galacean/engine";
 import { CodeGenVisitor } from "../codeGen";
 import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from "../common";
 import { BaseToken, BaseToken as Token } from "../common/BaseToken";
+import { Keyword } from "../common/enums/Keyword";
 import { ParserUtils } from "../ParserUtils";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 import { NoneTerminal } from "./GrammarSymbol";
@@ -12,7 +13,6 @@ import SemanticAnalyzer from "./SemanticAnalyzer";
 import { ShaderData } from "./ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, VarSymbol } from "./symbolTable";
 import { IParamInfo, NodeChild, StructProp, SymbolType } from "./types";
-import { Keyword } from "../common/enums/Keyword";
 
 function ASTNodeDecorator(nonTerminal: NoneTerminal) {
   return function <T extends { new (): TreeNode }>(ASTNode: T) {
@@ -1269,10 +1269,22 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.macro_selection_statement)
-  export class Macro_selection_statement extends TreeNode {
+  @ASTNodeDecorator(NoneTerminal.global_declaration)
+  export class GlobalDeclaration extends TreeNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      console.log(123123);
+      const firstChild = this.children[0];
+      if (firstChild instanceof MacroSelectionStatement) {
+        sa.shaderData.globalMacros.push(firstChild);
+      }
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.macro_selection_statement)
+  export class MacroSelectionStatement extends TreeNode {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {}
+
+    override codeGen(visitor: CodeGenVisitor) {
+      return visitor.visitMacroSelectionStatement(this);
     }
   }
 }

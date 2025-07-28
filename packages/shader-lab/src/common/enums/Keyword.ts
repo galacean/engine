@@ -107,5 +107,6 @@ export enum Keyword {
   MACRO_IFNDEF,
   MACRO_ELSE,
   MACRO_ELIF,
+  MACRO_DEFINED,
   MACRO_ENDIF
 }

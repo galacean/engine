@@ -37,11 +37,13 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     this.errors.length = 0;
     // #endif
     VisitorContext.reset();
-    VisitorContext.context._passSymbolTable = node.shaderData.symbolTable;
+
+    const shaderData = node.shaderData;
+    VisitorContext.context._passSymbolTable = shaderData.symbolTable;
 
     return {
-      vertex: this.vertexMain(vertexEntry, node.shaderData),
-      fragment: this._fragmentMain(fragmentEntry, node.shaderData)
+      vertex: this.vertexMain(vertexEntry, shaderData),
+      fragment: this._fragmentMain(fragmentEntry, shaderData)
     };
   }
 
@@ -96,6 +98,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     this._getGlobalSymbol(globalCodeArray);
     this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
+    this._getGlobalMacros(data.globalMacros, globalCodeArray);
     this.getAttributeDeclare(globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
 
@@ -145,6 +148,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     this._getGlobalSymbol(globalCodeArray);
     this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
+    this._getGlobalMacros(data.globalMacros, globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
     this.getMRTDeclare(globalCodeArray);
 
@@ -190,6 +194,12 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   private _getGlobalPrecisions(precisions: ASTNode.PrecisionSpecifier[], out: ICodeSegment[]): void {
     for (const precision of precisions) {
       out.push({ text: precision.codeGen(this), index: precision.location.start.index });
+    }
+  }
+
+  private _getGlobalMacros(macros: ASTNode.MacroSelectionStatement[], out: ICodeSegment[]): void {
+    for (const macro of macros) {
+      out.push({ text: macro.codeGen(this), index: macro.location.start.index });
     }
   }
 }

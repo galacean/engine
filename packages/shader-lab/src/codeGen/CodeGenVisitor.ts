@@ -233,6 +233,11 @@ export abstract class CodeGenVisitor {
     return this.defaultCodeGen(node.children);
   }
 
+  visitMacroSelectionStatement(node: ASTNode.MacroSelectionStatement): string {
+    const children = node.children as Token[];
+    return `\n${children[0].lexeme} ${children[1].lexeme} \n${children[2].lexeme}`;
+  }
+
   protected _reportError(loc: ShaderRange | ShaderPosition, message: string): void {
     // #if _VERBOSE
     this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderLab._processingPassText));

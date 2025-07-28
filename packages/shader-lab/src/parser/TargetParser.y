@@ -58,12 +58,7 @@
 
 %token CONTINUE BREAK RETURN DISCARD
 
-%token MACRO_IF
-%token MACRO_IFDEF
-%token MACRO_IFNDEF
-%token MACRO_ELSE
-%token MACRO_ELIF
-%token MACRO_ENDIF
+%token MACRO_IF MACRO_IFDEF MACRO_IFNDEF MACRO_ELIF MACRO_ELSE MACRO_ENDIF DEFINED
 
 
 %%
@@ -77,6 +72,7 @@ global_declaration:
     | variable_declaration_statement
     | struct_specifier
     | function_definition
+    | macro_selection_statement
     ;
 
 variable_declaration:
@@ -461,10 +457,10 @@ selection_statement:
     | IF '(' expression ')' statement ELSE statement
     ;
 
-macro_selection_statement:
-    MACRO_IF id statement_list MACRO_ENDIF
-    ; 
 
+macro_selection_statement:
+    MACRO_IFDEF id MACRO_ENDIF
+    ;
 
 iteration_statement:
     WHILE '(' condition ')' statement
