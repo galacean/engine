@@ -15,7 +15,6 @@ describe("GLRenderTarget", () => {
   });
 
   afterEach(() => {
-    // 清理所有的 mock
     vi.restoreAllMocks();
   });
 
