@@ -12,21 +12,187 @@ import { GLTexture } from "./GLTexture";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
 /**
- * The render target in WebGL platform is used for off-screen rendering.
+ * MSAA manager for WebGL render targets.
+ * Handles all MSAA-related operations separately from the main render target logic.
  */
-export class GLRenderTarget implements IPlatformRenderTarget {
+class MSAAManager {
   private _gl: WebGLRenderingContext & WebGL2RenderingContext;
   private _isWebGL2: boolean;
   private _target: RenderTarget;
   private _frameBuffer: WebGLFramebuffer;
-  private _MSAAFrameBuffer: WebGLFramebuffer | null;
-  private _depthRenderBuffer: WebGLRenderbuffer | null;
-  private _MSAAColorRenderBuffers: WebGLRenderbuffer[] = [];
-  private _MSAADepthRenderBuffer: WebGLRenderbuffer | null;
+  private _colorRenderBuffers: WebGLRenderbuffer[] = [];
+  private _depthRenderBuffer: WebGLRenderbuffer | null = null;
+  private _blitDrawBuffers: GLenum[] = [];
   private _oriDrawBuffers: GLenum[];
-  private _blitDrawBuffers: GLenum[] | null;
+
+  constructor(
+    gl: WebGLRenderingContext & WebGL2RenderingContext,
+    isWebGL2: boolean,
+    target: RenderTarget,
+    oriDrawBuffers: GLenum[]
+  ) {
+    this._gl = gl;
+    this._isWebGL2 = isWebGL2;
+    this._target = target;
+    this._oriDrawBuffers = oriDrawBuffers;
+    this._frameBuffer = this._gl.createFramebuffer();
+    
+    this._bindFBO();
+  }
+
+  /**
+   * Activate MSAA frame buffer for rendering.
+   */
+  activate(): void {
+    this._gl.bindFramebuffer(this._gl.FRAMEBUFFER, this._frameBuffer);
+  }
+
+  /**
+   * Resolve MSAA frame buffer to target frame buffer.
+   */
+  resolveTo(targetFrameBuffer: WebGLFramebuffer): void {
+    const gl = this._gl;
+    const mask = gl.COLOR_BUFFER_BIT | (this._target.depthTexture ? gl.DEPTH_BUFFER_BIT : 0);
+    const { colorTextureCount, width, height } = this._target;
+
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this._frameBuffer);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, targetFrameBuffer);
+
+    for (let textureIndex = 0; textureIndex < colorTextureCount; textureIndex++) {
+      const attachment = gl.COLOR_ATTACHMENT0 + textureIndex;
+
+      this._blitDrawBuffers[textureIndex] = attachment;
+
+      gl.readBuffer(attachment);
+      gl.drawBuffers(this._blitDrawBuffers);
+      gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, mask, gl.NEAREST);
+
+      this._blitDrawBuffers[textureIndex] = gl.NONE;
+    }
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  /**
+   * Destroy MSAA resources.
+   */
+  destroy(): void {
+    const gl = this._gl;
+
+    if (this._frameBuffer) {
+      gl.deleteFramebuffer(this._frameBuffer);
+      this._frameBuffer = null;
+    }
+
+    if (this._depthRenderBuffer) {
+      gl.deleteRenderbuffer(this._depthRenderBuffer);
+      this._depthRenderBuffer = null;
+    }
+
+    for (let i = 0; i < this._colorRenderBuffers.length; i++) {
+      gl.deleteRenderbuffer(this._colorRenderBuffers[i]);
+    }
+    this._colorRenderBuffers.length = 0;
+  }
+
+  private _bindFBO(): void {
+    const gl = this._gl;
+    const isWebGL2 = this._isWebGL2;
+    const depthRenderBuffer = gl.createRenderbuffer();
+
+    /** @ts-ignore */
+    const { _depth, colorTextureCount, antiAliasing, width, height } = this._target;
+
+    this._blitDrawBuffers = new Array(colorTextureCount);
+    this._depthRenderBuffer = depthRenderBuffer;
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
+
+    // prepare MRT+MSAA color RBOs
+    for (let i = 0; i < colorTextureCount; i++) {
+      const colorRenderBuffer = gl.createRenderbuffer();
+
+      this._colorRenderBuffers[i] = colorRenderBuffer;
+      this._blitDrawBuffers[i] = gl.NONE;
+
+      gl.bindRenderbuffer(gl.RENDERBUFFER, colorRenderBuffer);
+      gl.renderbufferStorageMultisample(
+        gl.RENDERBUFFER,
+        antiAliasing,
+        /** @ts-ignore */
+        (this._target.getColorTexture(i)._platformTexture as GLTexture)._formatDetail.internalFormat,
+        width,
+        height
+      );
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, gl.RENDERBUFFER, colorRenderBuffer);
+    }
+    gl.drawBuffers(this._oriDrawBuffers);
+
+    // prepare MSAA depth RBO
+    if (_depth !== null) {
+      const { internalFormat, attachment } =
+        _depth instanceof Texture
+          ? /** @ts-ignore */
+            (_depth._platformTexture as GLTexture)._formatDetail
+          : GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
+
+      gl.bindRenderbuffer(gl.RENDERBUFFER, depthRenderBuffer);
+      gl.renderbufferStorageMultisample(gl.RENDERBUFFER, antiAliasing, internalFormat, width, height);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, depthRenderBuffer);
+    }
+
+    GLRenderTarget.checkFrameBufferStatus(gl);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+  }
+}
+
+/**
+ * The render target in WebGL platform is used for off-screen rendering.
+ */
+export class GLRenderTarget implements IPlatformRenderTarget {
+  /**
+   * Check frame buffer status and throw error if invalid.
+   * Static utility method that can be used by any component that creates FrameBuffers.
+   */
+  static checkFrameBufferStatus(gl: WebGLRenderingContext | WebGL2RenderingContext): void {
+    const e = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+
+    switch (e) {
+      case gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+        throw new Error(
+          "The attachment types are mismatched or not all framebuffer attachment points are framebuffer attachment complete"
+        );
+      case gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+        throw new Error("There is no attachment");
+      case gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS:
+        throw new Error(" Height and width of the attachment are not the same.");
+      case gl.FRAMEBUFFER_UNSUPPORTED:
+        // #5.14.3 Event Types in https://registry.khronos.org/webgl/specs/1.0.0/
+        if (!gl.isContextLost()) {
+          throw new Error(
+            "The format of the attachment is not supported or if depth and stencil attachments are not the same renderbuffer"
+          );
+        }
+        break;
+      case (gl as WebGL2RenderingContext).FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: // Only for WebGL2
+        throw new Error(
+          "The values of gl.RENDERBUFFER_SAMPLES are different among attached renderbuffers, or are non-zero if the attached images are a mix of renderbuffers and textures."
+        );
+    }
+  }
+
+  private _gl: WebGLRenderingContext & WebGL2RenderingContext;
+  private _isWebGL2: boolean;
+  private _target: RenderTarget;
+  private _frameBuffer: WebGLFramebuffer;
+  private _depthRenderBuffer: WebGLRenderbuffer | null;
+  private _oriDrawBuffers: GLenum[];
   private _curMipLevel: number = 0;
   private _curFaceIndex: TextureCubeFace = undefined;
+  
+  // MSAA manager handles all MSAA-related operations
+  private _msaaManager: MSAAManager | null = null;
 
   /**
    * Create render target in WebGL platform.
@@ -39,11 +205,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     /** @ts-ignore */
     const { _colorTextures, _depth, width, height } = target;
     const isDepthTexture = _depth instanceof Texture;
-
-    /** todo
-     * MRT + Cube + [,MSAA]
-     * MRT + MSAA
-     */
 
     for (let i = 0, n = _colorTextures.length; i < n; i++) {
       const { format, isSRGBColorSpace } = _colorTextures[i];
@@ -91,8 +252,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
     // bind MSAA FBO
     if (target.antiAliasing > 1) {
-      this._MSAAFrameBuffer = this._gl.createFramebuffer();
-      this._bindMSAAFBO();
+      this._msaaManager = new MSAAManager(this._gl, this._isWebGL2, target, this._oriDrawBuffers);
     }
   }
 
@@ -151,8 +311,8 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     this._curMipLevel = mipLevel;
     this._curFaceIndex = faceIndex;
 
-    if (this._MSAAFrameBuffer) {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
+    if (this._msaaManager) {
+      this._msaaManager.activate();
     }
   }
 
@@ -160,28 +320,9 @@ export class GLRenderTarget implements IPlatformRenderTarget {
    * Blit FBO.
    */
   blitRenderTarget(): void {
-    if (!this._MSAAFrameBuffer) return;
-
-    const gl = this._gl;
-    const mask = gl.COLOR_BUFFER_BIT | (this._target.depthTexture ? gl.DEPTH_BUFFER_BIT : 0);
-    const { colorTextureCount, width, height } = this._target;
-
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this._MSAAFrameBuffer);
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this._frameBuffer);
-
-    for (let textureIndex = 0; textureIndex < colorTextureCount; textureIndex++) {
-      const attachment = gl.COLOR_ATTACHMENT0 + textureIndex;
-
-      this._blitDrawBuffers[textureIndex] = attachment;
-
-      gl.readBuffer(attachment);
-      gl.drawBuffers(this._blitDrawBuffers);
-      gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, mask, gl.NEAREST);
-
-      this._blitDrawBuffers[textureIndex] = gl.NONE;
+    if (this._msaaManager) {
+      this._msaaManager.resolveTo(this._frameBuffer);
     }
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
   /**
@@ -192,18 +333,14 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
     this._frameBuffer && gl.deleteFramebuffer(this._frameBuffer);
     this._depthRenderBuffer && gl.deleteRenderbuffer(this._depthRenderBuffer);
-    this._MSAAFrameBuffer && gl.deleteFramebuffer(this._MSAAFrameBuffer);
-    this._MSAADepthRenderBuffer && gl.deleteRenderbuffer(this._MSAADepthRenderBuffer);
 
-    for (let i = 0; i < this._MSAAColorRenderBuffers.length; i++) {
-      gl.deleteRenderbuffer(this._MSAAColorRenderBuffers[i]);
+    if (this._msaaManager) {
+      this._msaaManager.destroy();
+      this._msaaManager = null;
     }
 
     this._frameBuffer = null;
     this._depthRenderBuffer = null;
-    this._MSAAFrameBuffer = null;
-    this._MSAAColorRenderBuffers.length = 0;
-    this._MSAADepthRenderBuffer = null;
   }
 
   private _bindMainFBO(): void {
@@ -266,84 +403,5 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.bindRenderbuffer(gl.RENDERBUFFER, null);
-  }
-
-  private _bindMSAAFBO(): void {
-    const gl = this._gl;
-    const isWebGL2 = this._isWebGL2;
-    const MSAADepthRenderBuffer = gl.createRenderbuffer();
-
-    /** @ts-ignore */
-    const { _depth, colorTextureCount, antiAliasing, width, height } = this._target;
-
-    this._blitDrawBuffers = new Array(colorTextureCount);
-    this._MSAADepthRenderBuffer = MSAADepthRenderBuffer;
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
-
-    // prepare MRT+MSAA color RBOs
-    for (let i = 0; i < colorTextureCount; i++) {
-      const MSAAColorRenderBuffer = gl.createRenderbuffer();
-
-      this._MSAAColorRenderBuffers[i] = MSAAColorRenderBuffer;
-      this._blitDrawBuffers[i] = gl.NONE;
-
-      gl.bindRenderbuffer(gl.RENDERBUFFER, MSAAColorRenderBuffer);
-      gl.renderbufferStorageMultisample(
-        gl.RENDERBUFFER,
-        antiAliasing,
-        /** @ts-ignore */
-        (this._target.getColorTexture(i)._platformTexture as GLTexture)._formatDetail.internalFormat,
-        width,
-        height
-      );
-      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, gl.RENDERBUFFER, MSAAColorRenderBuffer);
-    }
-    gl.drawBuffers(this._oriDrawBuffers);
-
-    // prepare MSAA depth RBO
-    if (_depth !== null) {
-      const { internalFormat, attachment } =
-        _depth instanceof Texture
-          ? /** @ts-ignore */
-            (_depth._platformTexture as GLTexture)._formatDetail
-          : GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
-
-      gl.bindRenderbuffer(gl.RENDERBUFFER, MSAADepthRenderBuffer);
-      gl.renderbufferStorageMultisample(gl.RENDERBUFFER, antiAliasing, internalFormat, width, height);
-      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, MSAADepthRenderBuffer);
-    }
-
-    this._checkFrameBuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
-  }
-
-  private _checkFrameBuffer(): void {
-    const gl = this._gl;
-    const e = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-
-    switch (e) {
-      case gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
-        throw new Error(
-          "The attachment types are mismatched or not all framebuffer attachment points are framebuffer attachment complete"
-        );
-      case gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
-        throw new Error("There is no attachment");
-      case gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS:
-        throw new Error(" Height and width of the attachment are not the same.");
-      case gl.FRAMEBUFFER_UNSUPPORTED:
-        // #5.14.3 Event Types in https://registry.khronos.org/webgl/specs/1.0.0/
-        if (!gl.isContextLost()) {
-          throw new Error(
-            "The format of the attachment is not supported or if depth and stencil attachments are not the same renderbuffer"
-          );
-        }
-        break;
-      case gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: // Only for WebGL2
-        throw new Error(
-          "The values of gl.RENDERBUFFER_SAMPLES are different among attached renderbuffers, or are non-zero if the attached images are a mix of renderbuffers and textures."
-        );
-    }
   }
 }
