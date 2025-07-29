@@ -24,7 +24,7 @@ describe("GLRenderTarget", () => {
       vi.spyOn(gl, 'checkFramebufferStatus').mockReturnValue(gl.FRAMEBUFFER_COMPLETE);
       
       expect(() => {
-        GLRenderTarget.checkFrameBufferStatus(gl);
+        GLRenderTarget._checkFrameBufferStatus(gl);
       }).not.toThrow();
     });
 
@@ -32,7 +32,7 @@ describe("GLRenderTarget", () => {
       vi.spyOn(gl, 'checkFramebufferStatus').mockReturnValue(gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
       
       expect(() => {
-        GLRenderTarget.checkFrameBufferStatus(gl);
+        GLRenderTarget._checkFrameBufferStatus(gl);
       }).toThrow("The attachment types are mismatched");
     });
 
@@ -40,7 +40,7 @@ describe("GLRenderTarget", () => {
       vi.spyOn(gl, 'checkFramebufferStatus').mockReturnValue(gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT);
       
       expect(() => {
-        GLRenderTarget.checkFrameBufferStatus(gl);
+        GLRenderTarget._checkFrameBufferStatus(gl);
       }).toThrow("There is no attachment");
     });
 
@@ -48,7 +48,7 @@ describe("GLRenderTarget", () => {
       vi.spyOn(gl, 'checkFramebufferStatus').mockReturnValue(gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS);
       
       expect(() => {
-        GLRenderTarget.checkFrameBufferStatus(gl);
+        GLRenderTarget._checkFrameBufferStatus(gl);
       }).toThrow("Height and width of the attachment are not the same");
     });
 
@@ -57,7 +57,7 @@ describe("GLRenderTarget", () => {
       vi.spyOn(gl, 'isContextLost').mockReturnValue(false);
       
       expect(() => {
-        GLRenderTarget.checkFrameBufferStatus(gl);
+        GLRenderTarget._checkFrameBufferStatus(gl);
       }).toThrow("The format of the attachment is not supported");
     });
 
@@ -66,7 +66,7 @@ describe("GLRenderTarget", () => {
       vi.spyOn(gl, 'isContextLost').mockReturnValue(true);
       
       expect(() => {
-        GLRenderTarget.checkFrameBufferStatus(gl);
+        GLRenderTarget._checkFrameBufferStatus(gl);
       }).not.toThrow();
     });
 
@@ -78,7 +78,7 @@ describe("GLRenderTarget", () => {
         );
         
         expect(() => {
-          GLRenderTarget.checkFrameBufferStatus(gl);
+          GLRenderTarget._checkFrameBufferStatus(gl);
         }).toThrow("The values of gl.RENDERBUFFER_SAMPLES are different");
       }
     });
@@ -87,7 +87,7 @@ describe("GLRenderTarget", () => {
   describe("MSAA functionality integration", () => {
     it("should handle MSAA render targets without errors", () => {
       // Mock checkFrameBufferStatus to avoid WebGL validation issues
-      const mockCheckFrameBuffer = vi.spyOn(GLRenderTarget, 'checkFrameBufferStatus')
+      const mockCheckFrameBuffer = vi.spyOn(GLRenderTarget, '_checkFrameBufferStatus')
         .mockImplementation(() => {});
       
       try {
@@ -113,7 +113,7 @@ describe("GLRenderTarget", () => {
     });
 
     it("should support basic render target operations", () => {
-      const mockCheckFrameBuffer = vi.spyOn(GLRenderTarget, 'checkFrameBufferStatus')
+      const mockCheckFrameBuffer = vi.spyOn(GLRenderTarget, '_checkFrameBufferStatus')
         .mockImplementation(() => {});
       
       try {
@@ -154,7 +154,7 @@ describe("GLRenderTarget", () => {
 
     it("should validate color texture size consistency", () => {
       // Mock checkFrameBufferStatus to focus on size validation
-      const mockCheckFrameBuffer = vi.spyOn(GLRenderTarget, 'checkFrameBufferStatus')
+      const mockCheckFrameBuffer = vi.spyOn(GLRenderTarget, '_checkFrameBufferStatus')
         .mockImplementation(() => {});
       
       try {
@@ -176,7 +176,7 @@ describe("GLRenderTarget", () => {
       // @ts-ignore
       engine._hardwareRenderer.capability._maxAntiAliasing = 2;
       
-      const mockCheckFrameBuffer = vi.spyOn(GLRenderTarget, 'checkFrameBufferStatus')
+      const mockCheckFrameBuffer = vi.spyOn(GLRenderTarget, '_checkFrameBufferStatus')
         .mockImplementation(() => {});
       
       try {
