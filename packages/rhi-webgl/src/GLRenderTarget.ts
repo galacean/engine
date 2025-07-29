@@ -95,36 +95,27 @@ class MSAAManager {
     this._colorRenderBuffers.length = 0;
   }
 
+
+
   private _bindFBO(): void {
     const gl = this._gl;
     const isWebGL2 = this._isWebGL2;
-    const depthRenderBuffer = gl.createRenderbuffer();
 
     /** @ts-ignore */
-    const { _depth, colorTextureCount, antiAliasing, width, height } = this._target;
+    const { _depth, colorTextureCount  } = this._target;
 
     this._blitDrawBuffers = new Array(colorTextureCount);
-    this._depthRenderBuffer = depthRenderBuffer;
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
 
     // prepare MRT+MSAA color RBOs
     for (let i = 0; i < colorTextureCount; i++) {
-      const colorRenderBuffer = gl.createRenderbuffer();
-
-      this._colorRenderBuffers[i] = colorRenderBuffer;
       this._blitDrawBuffers[i] = gl.NONE;
 
-      gl.bindRenderbuffer(gl.RENDERBUFFER, colorRenderBuffer);
-      gl.renderbufferStorageMultisample(
-        gl.RENDERBUFFER,
-        antiAliasing,
-        /** @ts-ignore */
-        (this._target.getColorTexture(i)._platformTexture as GLTexture)._formatDetail.internalFormat,
-        width,
-        height
-      );
-      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, gl.RENDERBUFFER, colorRenderBuffer);
+      const internalFormat = /** @ts-ignore */
+        (this._target.getColorTexture(i)._platformTexture as GLTexture)._formatDetail.internalFormat;
+      
+      this._colorRenderBuffers[i] = GLRenderTarget.createRenderBuffer(this._gl, this._target, internalFormat, gl.COLOR_ATTACHMENT0 + i);
     }
     gl.drawBuffers(this._oriDrawBuffers);
 
@@ -136,9 +127,7 @@ class MSAAManager {
             (_depth._platformTexture as GLTexture)._formatDetail
           : GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
 
-      gl.bindRenderbuffer(gl.RENDERBUFFER, depthRenderBuffer);
-      gl.renderbufferStorageMultisample(gl.RENDERBUFFER, antiAliasing, internalFormat, width, height);
-      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, depthRenderBuffer);
+      this._depthRenderBuffer = GLRenderTarget.createRenderBuffer(this._gl, this._target, internalFormat, attachment);
     }
 
     GLRenderTarget.checkFrameBufferStatus(gl);
@@ -151,6 +140,38 @@ class MSAAManager {
  * The render target in WebGL platform is used for off-screen rendering.
  */
 export class GLRenderTarget implements IPlatformRenderTarget {
+  /**
+   * Create and configure render buffer
+   * @param gl - WebGL context
+   * @param target - Render target
+   * @param internalFormat - Internal format for the render buffer
+   * @param attachment - Framebuffer attachment point
+   * @returns Created and configured WebGL render buffer
+   */
+  static createRenderBuffer(
+    gl: WebGLRenderingContext & WebGL2RenderingContext,
+    target: RenderTarget,
+    internalFormat: GLenum,
+    attachment: GLenum
+  ): WebGLRenderbuffer {
+    const renderBuffer = gl.createRenderbuffer();
+    const { width, height, antiAliasing } = target;
+    
+    gl.bindRenderbuffer(gl.RENDERBUFFER, renderBuffer);
+    
+    if (antiAliasing > 1) {
+      // Use MSAA storage
+      gl.renderbufferStorageMultisample(gl.RENDERBUFFER, antiAliasing, internalFormat, width, height);
+    } else {
+      // Use regular storage
+      gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, width, height);
+    }
+    
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, renderBuffer);
+    
+    return renderBuffer;
+  }
+
   /**
    * Check frame buffer status and throw error if invalid.
    * Static utility method that can be used by any component that creates FrameBuffers.
@@ -391,13 +412,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
         );
       } else if (this._target.antiAliasing <= 1) {
         const { internalFormat, attachment } = GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
-        const depthRenderBuffer = gl.createRenderbuffer();
-
-        this._depthRenderBuffer = depthRenderBuffer;
-
-        gl.bindRenderbuffer(gl.RENDERBUFFER, depthRenderBuffer);
-        gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, width, height);
-        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, depthRenderBuffer);
+        this._depthRenderBuffer = GLRenderTarget.createRenderBuffer(gl, this._target, internalFormat, attachment);
       }
     }
 
