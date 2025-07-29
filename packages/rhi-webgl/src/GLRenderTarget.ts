@@ -115,7 +115,7 @@ class MSAAManager {
       const internalFormat = /** @ts-ignore */
         (this._target.getColorTexture(i)._platformTexture as GLTexture)._formatDetail.internalFormat;
       
-      this._colorRenderBuffers[i] = GLRenderTarget.createRenderBuffer(this._gl, this._target, internalFormat, gl.COLOR_ATTACHMENT0 + i);
+      this._colorRenderBuffers[i] = GLRenderTarget._createRenderBuffer(this._gl, this._target, internalFormat, gl.COLOR_ATTACHMENT0 + i);
     }
     gl.drawBuffers(this._oriDrawBuffers);
 
@@ -127,10 +127,10 @@ class MSAAManager {
             (_depth._platformTexture as GLTexture)._formatDetail
           : GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
 
-      this._depthRenderBuffer = GLRenderTarget.createRenderBuffer(this._gl, this._target, internalFormat, attachment);
+      this._depthRenderBuffer = GLRenderTarget._createRenderBuffer(this._gl, this._target, internalFormat, attachment);
     }
 
-    GLRenderTarget.checkFrameBufferStatus(gl);
+    GLRenderTarget._checkFrameBufferStatus(gl);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.bindRenderbuffer(gl.RENDERBUFFER, null);
   }
@@ -141,14 +141,9 @@ class MSAAManager {
  */
 export class GLRenderTarget implements IPlatformRenderTarget {
   /**
-   * Create and configure render buffer
-   * @param gl - WebGL context
-   * @param target - Render target
-   * @param internalFormat - Internal format for the render buffer
-   * @param attachment - Framebuffer attachment point
-   * @returns Created and configured WebGL render buffer
+   * @internal
    */
-  static createRenderBuffer(
+  static _createRenderBuffer(
     gl: WebGLRenderingContext & WebGL2RenderingContext,
     target: RenderTarget,
     internalFormat: GLenum,
@@ -173,10 +168,9 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   }
 
   /**
-   * Check frame buffer status and throw error if invalid.
-   * Static utility method that can be used by any component that creates FrameBuffers.
+   * @internal
    */
-  static checkFrameBufferStatus(gl: WebGLRenderingContext | WebGL2RenderingContext): void {
+  static _checkFrameBufferStatus(gl: WebGLRenderingContext | WebGL2RenderingContext): void {
     const e = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
 
     switch (e) {
@@ -412,7 +406,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
         );
       } else if (this._target.antiAliasing <= 1) {
         const { internalFormat, attachment } = GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
-        this._depthRenderBuffer = GLRenderTarget.createRenderBuffer(gl, this._target, internalFormat, attachment);
+        this._depthRenderBuffer = GLRenderTarget._createRenderBuffer(gl, this._target, internalFormat, attachment);
       }
     }
 
