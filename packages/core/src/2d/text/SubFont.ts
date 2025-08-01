@@ -117,7 +117,11 @@ export class SubFont {
 
             if (charInfo.w > 0 && charInfo.h > 0 && data) {
               const { bufferOffset } = charInfo;
-              texture.setPixelBuffer(data, 0, bufferOffset.x, bufferOffset.y, charInfo.w, charInfo.h);
+              if (data instanceof Uint8Array) {
+                texture.setPixelBuffer(data, 0, bufferOffset.x, bufferOffset.y, charInfo.w, charInfo.h);
+              } else {
+                texture.setImageSource(data, 0, false, false, bufferOffset.x, bufferOffset.y);
+              }
             }
           }
           texture.generateMipmaps();

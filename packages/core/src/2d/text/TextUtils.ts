@@ -23,6 +23,7 @@ export class TextUtils {
     "fangsong"
   ];
 
+  static useImageData: boolean = true;
   // _extendHeight used to extend the height of canvas, because in miniprogram performance is different from h5.
   /** @internal */
   static _extendHeight: number = 0;
@@ -374,6 +375,7 @@ export class TextUtils {
     context.clearRect(0, 0, width, height);
     context.textBaseline = "middle";
     context.fillStyle = "#fff";
+    context.lineJoin = 'round';
     if (actualBoundingBoxLeft > 0) {
       context.fillText(measureString, actualBoundingBoxLeft, baseline);
     } else {
@@ -392,21 +394,26 @@ export class TextUtils {
 
     const integerW = canvas.width;
     const integerWReciprocal = 1.0 / integerW;
-    for (let i = 0; i < len; i += 4) {
-      if (colorData[i + 3] !== 0) {
-        const idx = i * 0.25;
-        y = ~~(idx * integerWReciprocal);
+    if (this.useImageData) {
+      for (let i = 0; i < len; i += 4) {
+        if (colorData[i + 3] !== 0) {
+          const idx = i * 0.25;
+          y = ~~(idx * integerWReciprocal);
 
-        if (top === -1) {
-          top = y;
-        }
+          if (top === -1) {
+            top = y;
+          }
 
-        if (y > bottom) {
-          bottom = y;
+          if (y > bottom) {
+            bottom = y;
+          }
+        } else {
+          colorData[i] = colorData[i + 1] = colorData[i + 2] = 255;
         }
-      } else {
-        colorData[i] = colorData[i + 1] = colorData[i + 2] = 255;
       }
+    } else {
+      top = 0;
+      bottom = height - 1;
     }
 
     if (top !== -1 && bottom !== -1) {
@@ -419,9 +426,13 @@ export class TextUtils {
     if (isChar) {
       let data = null;
       if (size > 0) {
-        const lineIntegerW = integerW * 4;
-        // gl.texSubImage2D uploading data of type Uint8ClampedArray is not supported in some devices(eg: IphoneX IOS 13.6.1).
-        data = new Uint8Array(colorData.buffer, top * lineIntegerW, size * lineIntegerW);
+        if (this.useImageData) {
+          // gl.texSubImage2D uploading data of type Uint8ClampedArray is not supported in some devices(eg: IphoneX IOS 13.6.1).
+          const lineIntegerW = integerW * 4;
+          data = new Uint8Array(colorData.buffer, top * lineIntegerW, size * lineIntegerW);
+        } else {
+          data = canvas;
+        }
       }
       return {
         char: measureString,
