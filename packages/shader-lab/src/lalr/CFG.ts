@@ -21,7 +21,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.variable_declaration_statement],
       [NoneTerminal.struct_specifier],
       [NoneTerminal.function_definition],
-      [NoneTerminal.macro_selection_statement]
+      [NoneTerminal.macro_if_statement]
     ],
     ASTNode.GlobalDeclaration.pool
   ),
@@ -633,7 +633,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.selection_statement],
       [NoneTerminal.iteration_statement],
       [NoneTerminal.jump_statement],
-      [NoneTerminal.macro_selection_statement]
+      [NoneTerminal.macro_if_statement]
     ],
     // #if _VERBOSE
     ASTNode.SimpleStatement.pool
@@ -850,9 +850,131 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
 
   // Macros ...
   ...GrammarUtils.createProductionWithOptions(
-    NoneTerminal.macro_selection_statement,
-    [[Keyword.MACRO_IFDEF, ETokenType.ID, Keyword.MACRO_ENDIF]],
-    ASTNode.MacroSelectionStatement.pool
+    NoneTerminal.macro_if_statement,
+    [
+      [
+        Keyword.MACRO_IF,
+        NoneTerminal.macro_conditional_expression,
+        NoneTerminal.statement_list,
+        NoneTerminal.macro_branch
+      ],
+      [Keyword.MACRO_IFDEF, ETokenType.ID, NoneTerminal.statement_list, NoneTerminal.macro_branch],
+      [Keyword.MACRO_IFNDEF, ETokenType.ID, NoneTerminal.statement_list, NoneTerminal.macro_branch]
+    ],
+    ASTNode.MacroIfStatement.pool
+  ),
+
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_branch,
+    [
+      [Keyword.MACRO_ENDIF],
+      [
+        Keyword.MACRO_ELIF,
+        NoneTerminal.macro_conditional_expression,
+        NoneTerminal.statement_list,
+        NoneTerminal.macro_branch
+      ],
+      [Keyword.MACRO_ELSE, NoneTerminal.statement_list, Keyword.MACRO_ENDIF]
+    ],
+    ASTNode.MacroBranch.pool
+  ),
+
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_conditional_expression,
+    [[NoneTerminal.macro_logical_or_expression]],
+    ASTNode.MacroConditionalExpression.pool
+  ),
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_logical_or_expression,
+    [
+      [NoneTerminal.macro_logical_and_expression],
+      [NoneTerminal.macro_logical_or_expression, ETokenType.OR_OP, NoneTerminal.macro_logical_and_expression]
+    ],
+    ASTNode.MacroLogicalOrExpression.pool
+  ),
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_logical_and_expression,
+    [
+      [NoneTerminal.macro_equality_expression],
+      [NoneTerminal.macro_logical_and_expression, ETokenType.AND_OP, NoneTerminal.macro_equality_expression]
+    ],
+    ASTNode.MacroLogicalAndExpression.pool
+  ),
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_equality_expression,
+    [
+      [NoneTerminal.macro_relational_expression],
+      [NoneTerminal.macro_equality_expression, ETokenType.EQ_OP, NoneTerminal.macro_relational_expression],
+      [NoneTerminal.macro_equality_expression, ETokenType.NE_OP, NoneTerminal.macro_relational_expression]
+    ],
+    ASTNode.MacroEqualityExpression.pool
+  ),
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_relational_expression,
+    [
+      [NoneTerminal.macro_shift_expression],
+      [NoneTerminal.macro_relational_expression, ETokenType.RIGHT_ANGLE, NoneTerminal.macro_shift_expression],
+      [NoneTerminal.macro_relational_expression, ETokenType.LEFT_ANGLE, NoneTerminal.macro_shift_expression],
+      [NoneTerminal.macro_relational_expression, ETokenType.GE_OP, NoneTerminal.macro_shift_expression],
+      [NoneTerminal.macro_relational_expression, ETokenType.LE_OP, NoneTerminal.macro_shift_expression]
+    ],
+    ASTNode.MacroRelationalExpression.pool
+  ),
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_shift_expression,
+    [
+      [NoneTerminal.macro_additive_expression],
+      [NoneTerminal.macro_shift_expression, ETokenType.RIGHT_OP, NoneTerminal.macro_additive_expression],
+      [NoneTerminal.macro_shift_expression, ETokenType.LEFT_OP, NoneTerminal.macro_additive_expression]
+    ],
+    ASTNode.MacroShiftExpression.pool
+  ),
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_additive_expression,
+    [
+      [NoneTerminal.macro_multiplicative_expression],
+      [NoneTerminal.macro_additive_expression, ETokenType.PLUS, NoneTerminal.macro_multiplicative_expression],
+      [NoneTerminal.macro_additive_expression, ETokenType.DASH, NoneTerminal.macro_multiplicative_expression]
+    ],
+    ASTNode.MacroAdditiveExpression.pool
+  ),
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_multiplicative_expression,
+    [
+      [NoneTerminal.macro_unary_expression],
+      [NoneTerminal.macro_multiplicative_expression, ETokenType.STAR, NoneTerminal.macro_unary_expression],
+      [NoneTerminal.macro_multiplicative_expression, ETokenType.SLASH, NoneTerminal.macro_unary_expression],
+      [NoneTerminal.macro_multiplicative_expression, ETokenType.PERCENT, NoneTerminal.macro_unary_expression]
+    ],
+    ASTNode.MacroMultiplicativeExpression.pool
+  ),
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_unary_expression,
+    [
+      [NoneTerminal.macro_primary_expression],
+      [ETokenType.PLUS, NoneTerminal.macro_unary_expression],
+      [ETokenType.DASH, NoneTerminal.macro_unary_expression],
+      [ETokenType.BANG, NoneTerminal.macro_unary_expression]
+    ],
+    ASTNode.MacroUnaryExpression.pool
+  ),
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_primary_expression,
+    [
+      [NoneTerminal.macro_constant],
+      [ETokenType.LEFT_PAREN, NoneTerminal.macro_conditional_expression, ETokenType.RIGHT_PAREN]
+    ],
+    ASTNode.MacroPrimaryExpression.pool
+  ),
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_constant,
+    [
+      [ETokenType.ID],
+      [ETokenType.INT_CONSTANT],
+      [Keyword.MACRO_DEFINED, ETokenType.ID],
+      [Keyword.MACRO_DEFINED, ETokenType.LEFT_PAREN, ETokenType.ID, ETokenType.RIGHT_PAREN]
+    ],
+    ASTNode.MacroConstant.pool
   )
 ];
 

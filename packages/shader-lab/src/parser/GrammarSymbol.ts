@@ -106,7 +106,21 @@ export enum NoneTerminal {
   typename_identifier_node,
   scope_brace,
   scope_end_brace,
-  macro_selection_statement,
+
+  // Macro
+  macro_if_statement,
+  macro_branch,
+  macro_conditional_expression,
+  macro_logical_or_expression,
+  macro_logical_and_expression,
+  macro_equality_expression,
+  macro_relational_expression,
+  macro_shift_expression,
+  macro_additive_expression,
+  macro_multiplicative_expression,
+  macro_unary_expression,
+  macro_primary_expression,
+  macro_constant,
 
   _ignore
 }

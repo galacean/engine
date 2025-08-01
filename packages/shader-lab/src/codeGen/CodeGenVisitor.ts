@@ -12,8 +12,8 @@ import { VisitorContext } from "./VisitorContext";
 import { GSError } from "../GSError";
 // #endif
 import { Logger, ReturnableObjectPool } from "@galacean/engine";
-import { TempArray } from "../TempArray";
 import { Keyword } from "../common/enums/Keyword";
+import { TempArray } from "../TempArray";
 
 export const V3_GL_FragColor = "GS_glFragColor";
 export const V3_GL_FragData = "GS_glFragData";
@@ -31,6 +31,14 @@ export abstract class CodeGenVisitor {
   abstract getReferencedMRTPropText(index: string | number, ident: string): string;
 
   protected static _tmpArrayPool = new ReturnableObjectPool(TempArray<string>, 10);
+  private _macroStartKeywords = new Set([
+    Keyword.MACRO_IF,
+    Keyword.MACRO_IFDEF,
+    Keyword.MACRO_IFNDEF,
+    Keyword.MACRO_ELIF,
+    Keyword.MACRO_ELSE,
+    Keyword.MACRO_ENDIF
+  ]);
 
   defaultCodeGen(children: NodeChild[]) {
     const pool = CodeGenVisitor._tmpArrayPool;
@@ -233,9 +241,27 @@ export abstract class CodeGenVisitor {
     return this.defaultCodeGen(node.children);
   }
 
-  visitMacroSelectionStatement(node: ASTNode.MacroSelectionStatement): string {
-    const children = node.children as Token[];
-    return `\n${children[0].lexeme} ${children[1].lexeme} \n${children[2].lexeme}`;
+  visitMacroStatement(node: TreeNode): string {
+    let result = "";
+    for (let i = 0; i < node.children.length; ++i) {
+      const child = node.children[i];
+      if (child instanceof Token) {
+        const lexeme = child.lexeme;
+        if (this._macroStartKeywords.has(child.type)) {
+          result += `\n${lexeme}`;
+        } else {
+          result += ` ${lexeme}`;
+        }
+      } else if (child instanceof ASTNode.MacroBranch) {
+        result += this.visitMacroStatement(child);
+      } else if (child instanceof ASTNode.StatementList) {
+        result += `\n${child.codeGen(this)}`;
+      } else {
+        result += ` ${child.codeGen(this)}`;
+      }
+    }
+
+    return result;
   }
 
   protected _reportError(loc: ShaderRange | ShaderPosition, message: string): void {

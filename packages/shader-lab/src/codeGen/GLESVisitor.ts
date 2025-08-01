@@ -197,7 +197,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     }
   }
 
-  private _getGlobalMacros(macros: ASTNode.MacroSelectionStatement[], out: ICodeSegment[]): void {
+  private _getGlobalMacros(macros: ASTNode.MacroIfStatement[], out: ICodeSegment[]): void {
     for (const macro of macros) {
       out.push({ text: macro.codeGen(this), index: macro.location.start.index });
     }

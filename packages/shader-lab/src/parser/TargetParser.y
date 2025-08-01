@@ -58,7 +58,7 @@
 
 %token CONTINUE BREAK RETURN DISCARD
 
-%token MACRO_IF MACRO_IFDEF MACRO_IFNDEF MACRO_ELIF MACRO_ELSE MACRO_ENDIF DEFINED
+%token MACRO_IF MACRO_IFDEF MACRO_IFNDEF MACRO_ELIF MACRO_ELSE MACRO_DEFINED MACRO_ENDIF
 
 
 %%
@@ -72,8 +72,9 @@ global_declaration:
     | variable_declaration_statement
     | struct_specifier
     | function_definition
-    | macro_selection_statement
+    | macro_if_statement
     ;
+
 
 variable_declaration:
     fully_specified_type id
@@ -405,7 +406,7 @@ simple_statement:
     | selection_statement
     | iteration_statement
     | jump_statement
-    | macro_selection_statement
+    | macro_if_statement
     ;
 
 declaration:
@@ -457,9 +458,82 @@ selection_statement:
     | IF '(' expression ')' statement ELSE statement
     ;
 
+macro_if_statement: 
+    MACRO_IF macro_conditional_expression statement_list macro_branch
+    | MACRO_IFDEF id statement_list macro_branch
+    | MACRO_IFNDEF id statement_list macro_branch
+    ;
 
-macro_selection_statement:
-    MACRO_IFDEF id MACRO_ENDIF
+macro_branch: 
+    MACRO_ENDIF
+    | MACRO_ELIF macro_conditional_expression statement_list macro_branch
+    | MACRO_ELSE statement_list MACRO_ENDIF
+    ;
+
+macro_conditional_expression
+    : macro_logical_or_expression
+    ;
+
+macro_logical_or_expression
+    : macro_logical_and_expression
+    | macro_logical_or_expression "||" macro_logical_and_expression
+    ;
+
+macro_logical_and_expression
+    : macro_equality_expression
+    | macro_logical_and_expression "&&" macro_equality_expression
+    ;
+
+macro_equality_expression
+    : macro_relational_expression
+    | macro_equality_expression "==" macro_relational_expression
+    | macro_equality_expression "!=" macro_relational_expression
+    ;
+
+macro_relational_expression
+    : macro_shift_expression
+    | macro_relational_expression ">" macro_shift_expression
+    | macro_relational_expression "<" macro_shift_expression
+    | macro_relational_expression ">=" macro_shift_expression
+    | macro_relational_expression "<=" macro_shift_expression
+    ;
+
+macro_shift_expression
+    : macro_additive_expression
+    | macro_shift_expression ">>" macro_additive_expression
+    | macro_shift_expression "<<" macro_additive_expression
+    ;
+
+macro_additive_expression
+    : macro_multiplicative_expression
+    | macro_additive_expression "+" macro_multiplicative_expression
+    | macro_additive_expression "-" macro_multiplicative_expression
+    ;
+
+macro_multiplicative_expression
+    : macro_unary_expression
+    | macro_multiplicative_expression "*" macro_unary_expression
+    | macro_multiplicative_expression "/" macro_unary_expression
+    | macro_multiplicative_expression "%" macro_unary_expression
+    ;
+
+macro_unary_expression
+    : macro_primary_expression
+    | "+" macro_unary_expression
+    | "-" macro_unary_expression
+    | "!" macro_unary_expression
+    ;
+
+macro_primary_expression
+    : macro_constant
+    | "(" macro_conditional_expression ")"
+    ;
+
+macro_constant
+    : id
+    | INT_CONSTANT
+    | MACRO_DEFINED id
+    | MACRO_DEFINED "(" id ")"
     ;
 
 iteration_statement:
