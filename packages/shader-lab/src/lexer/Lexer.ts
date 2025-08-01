@@ -80,6 +80,7 @@ export class Lexer extends BaseLexer {
     "#ifndef": Keyword.MACRO_IFNDEF,
     "#else": Keyword.MACRO_ELSE,
     "#elif": Keyword.MACRO_ELIF,
+    defined: Keyword.MACRO_DEFINED,
     "#endif": Keyword.MACRO_ENDIF
   };
 
