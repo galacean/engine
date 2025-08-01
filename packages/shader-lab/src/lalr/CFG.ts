@@ -21,9 +21,39 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.variable_declaration_statement],
       [NoneTerminal.struct_specifier],
       [NoneTerminal.function_definition],
-      [NoneTerminal.macro_if_statement]
+      [NoneTerminal.global_macro_if_statement]
     ],
     ASTNode.GlobalDeclaration.pool
+  ),
+
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.global_macro_if_statement,
+    [
+      [
+        Keyword.MACRO_IF,
+        NoneTerminal.macro_conditional_expression,
+        NoneTerminal.global_declaration,
+        NoneTerminal.global_macro_branch
+      ],
+      [Keyword.MACRO_IFDEF, ETokenType.ID, NoneTerminal.global_declaration, NoneTerminal.global_macro_branch],
+      [Keyword.MACRO_IFNDEF, ETokenType.ID, NoneTerminal.global_declaration, NoneTerminal.global_macro_branch]
+    ],
+    ASTNode.GlobalMacroIfStatement.pool
+  ),
+
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.global_macro_branch,
+    [
+      [Keyword.MACRO_ENDIF],
+      [
+        Keyword.MACRO_ELIF,
+        NoneTerminal.macro_conditional_expression,
+        NoneTerminal.global_declaration,
+        NoneTerminal.global_macro_branch
+      ],
+      [Keyword.MACRO_ELSE, NoneTerminal.global_declaration, Keyword.MACRO_ENDIF]
+    ],
+    ASTNode.GlobalMacroBranch.pool
   ),
 
   ...GrammarUtils.createProductionWithOptions(

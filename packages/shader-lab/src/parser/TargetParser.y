@@ -72,9 +72,20 @@ global_declaration:
     | variable_declaration_statement
     | struct_specifier
     | function_definition
-    | macro_if_statement
+    | global_macro_if_statement
     ;
 
+global_macro_if_statement:
+    MACRO_IF macro_conditional_expression global_declaration global_macro_branch
+    | MACRO_IFDEF id global_declaration global_macro_branch
+    | MACRO_IFNDEF id global_declaration global_macro_branch
+    ;
+
+global_macro_branch:
+    MACRO_ENDIF
+    | MACRO_ELIF macro_conditional_expression global_declaration global_macro_branch
+    | MACRO_ELSE global_declaration MACRO_ENDIF
+    ;
 
 variable_declaration:
     fully_specified_type id

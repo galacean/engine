@@ -108,6 +108,8 @@ export enum NoneTerminal {
   scope_end_brace,
 
   // Macro
+  global_macro_if_statement,
+  global_macro_branch,
   macro_if_statement,
   macro_branch,
   macro_conditional_expression,

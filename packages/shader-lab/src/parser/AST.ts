@@ -1279,6 +1279,16 @@ export namespace ASTNode {
     }
   }
 
+  @ASTNodeDecorator(NoneTerminal.global_macro_if_statement)
+  export class GlobalMacroIfStatement extends TreeNode {
+    override codeGen(visitor: CodeGenVisitor) {
+      return visitor.visitMacroStatement(this);
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.global_macro_branch)
+  export class GlobalMacroBranch extends TreeNode {}
+
   @ASTNodeDecorator(NoneTerminal.macro_if_statement)
   export class MacroIfStatement extends TreeNode {
     override codeGen(visitor: CodeGenVisitor) {
