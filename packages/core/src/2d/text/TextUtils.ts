@@ -23,7 +23,7 @@ export class TextUtils {
     "fangsong"
   ];
 
-  static useImageData: boolean = false;
+  static useImageData: boolean = true;
   // _extendHeight used to extend the height of canvas, because in miniprogram performance is different from h5.
   /** @internal */
   static _extendHeight: number = 0;
