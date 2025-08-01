@@ -46,7 +46,11 @@ export class FontAtlas extends ReferResource {
 
     if (width > 0 && height > 0 && data) {
       charInfo.bufferOffset = new Vector2(this._curX, this._curY);
-      texture.setPixelBuffer(data, 0, this._curX, this._curY, width, height);
+      if (data instanceof Uint8Array) {
+        texture.setPixelBuffer(data, 0, this._curX, this._curY, width, height);
+      } else {
+        texture.setImageSource(data, 0, false, false, this._curX, this._curY);
+      }
       texture.generateMipmaps();
     }
 

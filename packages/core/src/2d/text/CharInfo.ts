@@ -15,7 +15,7 @@ export interface CharInfo {
   ascent: number;
   descent: number;
   index: number;
-  data?: Uint8Array;
+  data?: Uint8Array | TexImageSource;
   uvs: Vector2[];
   bufferOffset?: Vector2;
 }
