@@ -364,8 +364,10 @@ export class TextUtils {
     let height = baseline * TextUtils._heightMultiplier;
     baseline = (TextUtils._baselineMultiplier * baseline) | 0;
     if (!this.useImageData) {
-      height = Math.round(TextUtils._heightMultiplier * (fontBoundingBoxAscent + fontBoundingBoxDescent));
-      baseline = Math.round(height / 4 + fontBoundingBoxAscent);
+      const as = Math.ceil(fontBoundingBoxAscent);
+      const des = Math.ceil(fontBoundingBoxDescent);
+      height = as + des + 1;
+      baseline = as;
     }
     const { _extendHeight } = TextUtils;
     height += _extendHeight;
