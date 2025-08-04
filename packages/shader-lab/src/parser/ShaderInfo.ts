@@ -8,5 +8,5 @@ export class ShaderData {
   fragmentMain: ASTNode.FunctionDefinition;
 
   globalPrecisions: ASTNode.PrecisionSpecifier[] = [];
-  globalMacros: ASTNode.MacroSelectionStatement[] = [];
+  globalMacros: ASTNode.GlobalMacroIfStatement[] = [];
 }
