@@ -247,17 +247,13 @@ export abstract class CodeGenVisitor {
       const child = node.children[i];
       if (child instanceof Token) {
         const lexeme = child.lexeme;
-        if (this._macroStartKeywords.has(child.type)) {
-          result += `\n${lexeme}`;
-        } else {
-          result += ` ${lexeme}`;
-        }
-      } else if (child instanceof ASTNode.MacroBranch) {
+        result += this._macroStartKeywords.has(child.type) ? `\n${lexeme} ` : lexeme;
+      } else if (child instanceof ASTNode.MacroBranch || child instanceof ASTNode.GlobalMacroBranch) {
         result += this.visitMacroStatement(child);
-      } else if (child instanceof ASTNode.StatementList) {
+      } else if (child instanceof ASTNode.StatementList || child instanceof ASTNode.GlobalMacroDeclaration) {
         result += `\n${child.codeGen(this)}`;
       } else {
-        result += ` ${child.codeGen(this)}`;
+        result += child.codeGen(this);
       }
     }
 

@@ -27,7 +27,19 @@ export abstract class TreeNode implements IPoolElement {
   /** The non-terminal in grammar. */
   nt: NoneTerminal;
   private _children: NodeChild[];
+  private _parent: TreeNode;
   private _location: ShaderRange;
+
+  /**
+   * Parent pointer for AST traversal.
+   * @remarks
+   * The parent pointer is only reliable after the entire AST has been constructed.
+   * DO NOT rely on `parent` during the `semanticAnalyze` phase, as the AST may still be under construction.
+   * It is safe to use `parent` during code generation or any phase after AST construction.
+   */
+  get parent(): TreeNode {
+    return this._parent;
+  }
 
   get children() {
     return this._children;
@@ -40,6 +52,12 @@ export abstract class TreeNode implements IPoolElement {
   set(loc: ShaderRange, children: NodeChild[]): void {
     this._location = loc;
     this._children = children;
+    for (const child of children) {
+      if (child instanceof TreeNode) {
+        child._parent = this;
+      }
+    }
+
     this.init();
   }
 
@@ -1270,17 +1288,17 @@ export namespace ASTNode {
   }
 
   @ASTNodeDecorator(NoneTerminal.global_declaration)
-  export class GlobalDeclaration extends TreeNode {
-    override semanticAnalyze(sa: SemanticAnalyzer): void {
-      const firstChild = this.children[0];
-      if (firstChild instanceof GlobalMacroIfStatement) {
-        sa.shaderData.globalMacroStatements.push(firstChild);
-      }
-    }
-  }
+  export class GlobalDeclaration extends TreeNode {}
+
+  @ASTNodeDecorator(NoneTerminal.global_macro_declaration)
+  export class GlobalMacroDeclaration extends TreeNode {}
 
   @ASTNodeDecorator(NoneTerminal.global_macro_if_statement)
   export class GlobalMacroIfStatement extends TreeNode {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      sa.shaderData.globalMacroStatements.push(this);
+    }
+
     override codeGen(visitor: CodeGenVisitor) {
       return visitor.visitMacroStatement(this);
     }

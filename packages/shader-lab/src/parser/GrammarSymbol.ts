@@ -109,8 +109,9 @@ export enum NoneTerminal {
 
   // Macro
   global_macro_if_statement,
-  global_macro_branch,
+  global_macro_declaration,
   macro_if_statement,
+  global_macro_branch,
   macro_branch,
   macro_conditional_expression,
   macro_logical_or_expression,

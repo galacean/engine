@@ -98,7 +98,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     this._getGlobalSymbol(globalCodeArray);
     this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
-    this._getGlobalMacros(data.globalMacroStatements, globalCodeArray);
+    this._getGlobalMacroStatements(data.globalMacroStatements, globalCodeArray);
     this.getAttributeDeclare(globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
 
@@ -148,7 +148,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     this._getGlobalSymbol(globalCodeArray);
     this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
-    this._getGlobalMacros(data.globalMacroStatements, globalCodeArray);
+    this._getGlobalMacroStatements(data.globalMacroStatements, globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
     this.getMRTDeclare(globalCodeArray);
 
@@ -194,9 +194,11 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     }
   }
 
-  private _getGlobalMacros(macros: ASTNode.MacroIfStatement[], out: ICodeSegment[]): void {
+  private _getGlobalMacroStatements(macros: ASTNode.GlobalMacroIfStatement[], out: ICodeSegment[]): void {
     for (const macro of macros) {
-      out.push({ text: macro.codeGen(this), index: macro.location.start.index });
+      if (macro.parent.parent instanceof ASTNode.GLShaderProgram) {
+        out.push({ text: macro.codeGen(this), index: macro.location.start.index });
+      }
     }
   }
 }
