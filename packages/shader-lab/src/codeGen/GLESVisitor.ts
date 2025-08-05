@@ -98,7 +98,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     this._getGlobalSymbol(globalCodeArray);
     this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
-    this._getGlobalMacros(data.globalMacros, globalCodeArray);
+    this._getGlobalMacros(data.globalMacroStatements, globalCodeArray);
     this.getAttributeDeclare(globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
 
@@ -148,7 +148,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     this._getGlobalSymbol(globalCodeArray);
     this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
-    this._getGlobalMacros(data.globalMacros, globalCodeArray);
+    this._getGlobalMacros(data.globalMacroStatements, globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
     this.getMRTDeclare(globalCodeArray);
 

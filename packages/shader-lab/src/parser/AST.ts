@@ -1273,8 +1273,8 @@ export namespace ASTNode {
   export class GlobalDeclaration extends TreeNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const firstChild = this.children[0];
-      if (firstChild instanceof MacroIfStatement) {
-        sa.shaderData.globalMacros.push(firstChild);
+      if (firstChild instanceof GlobalMacroIfStatement) {
+        sa.shaderData.globalMacroStatements.push(firstChild);
       }
     }
   }
