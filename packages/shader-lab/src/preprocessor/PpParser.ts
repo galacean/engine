@@ -80,7 +80,7 @@ export class PpParser {
     token.set(PpToken.id, macro);
 
     let macroBody: BaseToken | undefined;
-    if (value) {
+    if (value != undefined) {
       macroBody = BaseToken.pool.get();
       macroBody.set(PpToken.id, value);
     }
@@ -433,9 +433,15 @@ export class PpParser {
         return !!this._definedMacros.get(macro.lexeme);
       } else {
         const macro = this._definedMacros.get(id.lexeme);
-        if (!macro || !macro.body) {
+
+        if (!macro) {
           return false;
         }
+
+        if (!macro.body) {
+          return true;
+        }
+
         if (macro.isFunction) {
           this._reportError(id.location, "invalid function macro usage", scanner.source, scanner.file);
         }
