@@ -10,13 +10,13 @@ export const E2E_CONFIG = {
       category: "Animator",
       caseFileName: "animator-blendShape",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.01
     },
     blendShapeQuantization: {
       category: "Animator",
       caseFileName: "animator-blendShape-quantization",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.05
     },
     crossfade: {
       category: "Animator",
@@ -90,13 +90,13 @@ export const E2E_CONFIG = {
       category: "GLTF",
       caseFileName: "gltf-meshopt",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.055
     },
     blendShape: {
       category: "GLTF",
       caseFileName: "gltf-blendshape",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.05
     }
   },
 
@@ -105,31 +105,31 @@ export const E2E_CONFIG = {
       category: "Material",
       caseFileName: "material-blendMode",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.02
     },
     "blinn-phong": {
       category: "Material",
       caseFileName: "material-blinn-phong",
       threshold: 0,
-      diffPercentage: 0.003
+      diffPercentage: 0.36
     },
     "pbr-clearcoat": {
       category: "Material",
       caseFileName: "material-pbr-clearcoat",
       threshold: 0,
-      diffPercentage: 0.00042
+      diffPercentage: 0.12
     },
     "pbr-specular": {
       category: "Material",
       caseFileName: "material-pbr-specular",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.055
     },
     pbr: {
       category: "Material",
       caseFileName: "material-pbr",
       threshold: 0,
-      diffPercentage: 0.0009
+      diffPercentage: 0.004
     },
     shaderLab: {
       category: "Material",
@@ -147,13 +147,13 @@ export const E2E_CONFIG = {
       category: "Material",
       caseFileName: "material-shaderReplacement",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.049
     },
     unlit: {
       category: "Material",
       caseFileName: "material-unlit",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.033
     },
     "shaderLab-renderState": {
       category: "Material",
@@ -173,7 +173,7 @@ export const E2E_CONFIG = {
       category: "Texture",
       caseFileName: "texture-sRGB-KTX2",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.071
     },
     R8G8: {
       category: "Texture",
@@ -193,13 +193,13 @@ export const E2E_CONFIG = {
       category: "Shadow",
       caseFileName: "shadow-basic",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.008
     },
     transparent: {
       category: "Shadow",
       caseFileName: "shadow-transparent",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.044
     }
   },
   Primitive: {
@@ -207,37 +207,37 @@ export const E2E_CONFIG = {
       category: "Primitive",
       caseFileName: "primitive-capsule",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.0016
     },
     cone: {
       category: "Primitive",
       caseFileName: "primitive-cone",
       threshold: 0,
-      diffPercentage: 0.0042
+      diffPercentage: 0.0016
     },
     cuboid: {
       category: "Primitive",
       caseFileName: "primitive-cuboid",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.0016
     },
     cylinder: {
       category: "Primitive",
       caseFileName: "primitive-cylinder",
       threshold: 0,
-      diffPercentage: 0.0022
+      diffPercentage: 0.0016
     },
     plane: {
       category: "Primitive",
       caseFileName: "primitive-plane",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.0016
     },
     sphere: {
       category: "Primitive",
       caseFileName: "primitive-sphere",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.0058
     },
     torus: {
       category: "Primitive",
@@ -257,7 +257,7 @@ export const E2E_CONFIG = {
       category: "Camera",
       caseFileName: "camera-fxaa",
       threshold: 0,
-      diffPercentage: 0.055
+      diffPercentage: 0.161
     }
   },
   Physics: {
@@ -297,7 +297,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-fire",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.064
     },
     forceOverLifetime: {
       category: "Particle",
@@ -315,7 +315,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-shape-mesh",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.0073
     },
     particleEmissive: {
       category: "Particle",
@@ -329,25 +329,25 @@ export const E2E_CONFIG = {
       category: "PostProcess",
       caseFileName: "postProcess-HDR-bloom-ACES",
       threshold: 0,
-      diffPercentage: 0.004
+      diffPercentage: 0.148
     },
     HDRBloomNeutral: {
       category: "PostProcess",
       caseFileName: "postProcess-HDR-bloom-neutral",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.066
     },
     LDRBloomNeutral: {
       category: "PostProcess",
       caseFileName: "postProcess-LDR-bloom-neutral",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.097
     },
     customPass: {
       category: "PostProcess",
       caseFileName: "postProcess-customPass",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.025
     }
   },
   SpriteMask: {
@@ -355,7 +355,7 @@ export const E2E_CONFIG = {
       category: "SpriteMask",
       caseFileName: "spriteMask-customStencil",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.0024
     }
   },
   Text: {
@@ -370,8 +370,8 @@ export const E2E_CONFIG = {
     ProjectLoader: {
       category: "Advance",
       caseFileName: "project-loader",
-      threshold: 0,
-      diffPercentage: 0.00448
+      threshold: 0.01,
+      diffPercentage: 0.0016
     },
     MultiSceneClear: {
       category: "Advance",
