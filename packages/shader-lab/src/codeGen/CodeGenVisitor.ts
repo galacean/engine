@@ -248,11 +248,10 @@ export abstract class CodeGenVisitor {
       if (child instanceof Token) {
         const lexeme = child.lexeme;
         result += this._macroStartKeywords.has(child.type) ? `\n${lexeme} ` : lexeme;
-      } else if (child instanceof ASTNode.MacroBranch || child instanceof ASTNode.GlobalMacroBranch) {
-        result += this.visitMacroStatement(child);
-      } else if (child instanceof ASTNode.StatementList || child instanceof ASTNode.GlobalMacroDeclaration) {
-        result += `\n${child.codeGen(this)}`;
       } else {
+        if (child instanceof ASTNode.StatementList || child instanceof ASTNode.GlobalMacroDeclaration) {
+          result += "\n";
+        }
         result += child.codeGen(this);
       }
     }

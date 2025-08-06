@@ -1305,7 +1305,11 @@ export namespace ASTNode {
   }
 
   @ASTNodeDecorator(NoneTerminal.global_macro_branch)
-  export class GlobalMacroBranch extends TreeNode {}
+  export class GlobalMacroBranch extends TreeNode {
+    override codeGen(visitor: CodeGenVisitor) {
+      return visitor.visitMacroStatement(this);
+    }
+  }
 
   @ASTNodeDecorator(NoneTerminal.macro_if_statement)
   export class MacroIfStatement extends TreeNode {
@@ -1315,7 +1319,11 @@ export namespace ASTNode {
   }
 
   @ASTNodeDecorator(NoneTerminal.macro_branch)
-  export class MacroBranch extends TreeNode {}
+  export class MacroBranch extends TreeNode {
+    override codeGen(visitor: CodeGenVisitor) {
+      return visitor.visitMacroStatement(this);
+    }
+  }
 
   @ASTNodeDecorator(NoneTerminal.macro_conditional_expression)
   export class MacroConditionalExpression extends TreeNode {}
