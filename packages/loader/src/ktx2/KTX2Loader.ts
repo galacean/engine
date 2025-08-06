@@ -17,32 +17,30 @@ import {
   resourceLoader
 } from "@galacean/engine-core";
 import { MathUtil } from "@galacean/engine-math";
-import { DFDTransferFunction, KTX2Container } from "./KTX2Container";
+import { DFDTransferFunction, KTX2Container, ColorModel } from "./KTX2Container";
 import { KTX2TargetFormat } from "./KTX2TargetFormat";
 import { TranscodeResult } from "./transcoder/AbstractTranscoder";
 import { BinomialLLCTranscoder } from "./transcoder/BinomialLLCTranscoder";
-import { KhronosTranscoder } from "./transcoder/KhronosTranscoder";
 
 @resourceLoader(AssetType.KTX2, ["ktx2"])
 export class KTX2Loader extends Loader<Texture2D | TextureCube> {
-  private static _isBinomialInit: boolean = false;
   private static _binomialLLCTranscoder: BinomialLLCTranscoder;
-  private static _khronosTranscoder: KhronosTranscoder;
   private static _priorityFormats = {
-    etc1s: [
+    [ColorModel.ETC1S]: [
       KTX2TargetFormat.ETC,
       KTX2TargetFormat.BC7,
       KTX2TargetFormat.ASTC,
       KTX2TargetFormat.BC1_BC3,
       KTX2TargetFormat.PVRTC
     ],
-    uastc: [
+    [ColorModel.UASTC_LDR_4X4]: [
       KTX2TargetFormat.ASTC,
       KTX2TargetFormat.BC7,
       KTX2TargetFormat.ETC,
       KTX2TargetFormat.BC1_BC3,
       KTX2TargetFormat.PVRTC
-    ]
+    ],
+    [ColorModel.UASTC_HDR_4X4]: [KTX2TargetFormat.BC6H, KTX2TargetFormat.R16G16B16A16]
   };
   private static _capabilityMap = {
     [KTX2TargetFormat.ASTC]: {
@@ -61,6 +59,14 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       [DFDTransferFunction.linear]: [GLCapabilityType.s3tc],
       [DFDTransferFunction.sRGB]: [GLCapabilityType.s3tc_srgb]
     },
+    [KTX2TargetFormat.BC6H]: {
+      [DFDTransferFunction.linear]: [GLCapabilityType.bptc],
+      [DFDTransferFunction.sRGB]: [GLCapabilityType.bptc]
+    },
+    [KTX2TargetFormat.R16G16B16A16]: {
+      [DFDTransferFunction.linear]: [GLCapabilityType.textureHalfFloatLinear],
+      [DFDTransferFunction.sRGB]: [GLCapabilityType.textureHalfFloat]
+    },
     [KTX2TargetFormat.PVRTC]: { [DFDTransferFunction.linear]: [GLCapabilityType.pvrtc, GLCapabilityType.pvrtc_webkit] }
   };
 
@@ -70,35 +76,27 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
    */
   static release(): void {
     if (this._binomialLLCTranscoder) this._binomialLLCTranscoder.destroy();
-    if (this._khronosTranscoder) this._khronosTranscoder.destroy();
     this._binomialLLCTranscoder = null;
-    this._khronosTranscoder = null;
-    this._isBinomialInit = false;
   }
 
   /** @internal */
   static _parseBuffer(buffer: Uint8Array, engine: Engine, params?: KTX2Params) {
     const ktx2Container = new KTX2Container(buffer);
-    const formatPriorities =
-      params?.priorityFormats ?? KTX2Loader._priorityFormats[ktx2Container.isUASTC ? "uastc" : "etc1s"];
+    const formatPriorities = params?.priorityFormats ?? KTX2Loader._priorityFormats[ktx2Container.colorModel];
     const targetFormat = KTX2Loader._decideTargetFormat(engine, ktx2Container, formatPriorities);
-    let transcodeResultPromise: Promise<TranscodeResult>;
-    if (KTX2Loader._isBinomialInit || !KhronosTranscoder.transcoderMap[targetFormat] || !ktx2Container.isUASTC) {
-      const binomialLLCWorker = KTX2Loader._getBinomialLLCTranscoder();
-      transcodeResultPromise = binomialLLCWorker.init().then(() => binomialLLCWorker.transcode(buffer, targetFormat));
-    } else {
-      const khronosWorker = KTX2Loader._getKhronosTranscoder();
-      transcodeResultPromise = khronosWorker.init().then(() => khronosWorker.transcode(ktx2Container));
-    }
-    return transcodeResultPromise.then((result) => {
-      return {
-        ktx2Container,
-        engine,
-        result,
-        targetFormat,
-        params: ktx2Container.keyValue["GalaceanTextureParams"] as Uint8Array
-      };
-    });
+    const binomialLLCWorker = KTX2Loader._getBinomialLLCTranscoder();
+    return binomialLLCWorker
+      .init()
+      .then(() => binomialLLCWorker.transcode(buffer, targetFormat))
+      .then((result) => {
+        return {
+          ktx2Container,
+          engine,
+          result,
+          targetFormat,
+          params: ktx2Container.keyValue["GalaceanTextureParams"] as Uint8Array
+        };
+      });
   }
 
   /** @internal */
@@ -193,12 +191,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   }
 
   private static _getBinomialLLCTranscoder(workerCount: number = 4) {
-    KTX2Loader._isBinomialInit = true;
     return (this._binomialLLCTranscoder ??= new BinomialLLCTranscoder(workerCount));
-  }
-
-  private static _getKhronosTranscoder(workerCount: number = 4) {
-    return (this._khronosTranscoder ??= new KhronosTranscoder(workerCount, KTX2TargetFormat.ASTC));
   }
 
   private static _getEngineTextureFormat(
@@ -219,6 +212,10 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         return hasAlpha ? TextureFormat.PVRTC_RGBA4 : TextureFormat.PVRTC_RGB4;
       case KTX2TargetFormat.R8G8B8A8:
         return TextureFormat.R8G8B8A8;
+      case KTX2TargetFormat.BC6H:
+        return TextureFormat.BC6H;
+      case KTX2TargetFormat.R16G16B16A16:
+        return TextureFormat.R16G16B16A16;
     }
   }
 
@@ -230,11 +227,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         KTX2Loader._priorityFormats["uastc"] = options.priorityFormats;
       }
 
-      if (options.transcoder === KTX2Transcoder.Khronos) {
-        return KTX2Loader._getKhronosTranscoder(options.workerCount).init();
-      } else {
-        return KTX2Loader._getBinomialLLCTranscoder(options.workerCount).init();
-      }
+      return KTX2Loader._getBinomialLLCTranscoder(options.workerCount).init();
     }
   }
 
@@ -307,14 +300,6 @@ export interface KTX2Params {
   priorityFormats: KTX2TargetFormat[];
 }
 
-/** Used for initialize KTX2 transcoder. */
-export enum KTX2Transcoder {
-  /** BinomialLLC transcoder. */
-  BinomialLLC,
-  /** Khronos transcoder. */
-  Khronos
-}
-
 declare module "@galacean/engine-core" {
   interface EngineConfiguration {
     /** KTX2 loader options. If set this option and workCount is great than 0, workers will be created. */
@@ -324,8 +309,6 @@ declare module "@galacean/engine-core" {
       /** Global transcoding format queue which will be used if not specified in per-instance param, default is BC7/ASTC/BC3_BC1/ETC/PVRTC/R8G8B8A8. */
       /** @deprecated */
       priorityFormats?: KTX2TargetFormat[];
-      /** Used for initialize KTX2 transcoder, default is BinomialLLC. */
-      transcoder?: KTX2Transcoder;
     };
   }
 }

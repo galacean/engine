@@ -119,6 +119,11 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.00042
     },
+    "pbr-specular": {
+      category: "Material",
+      caseFileName: "material-pbr-specular",
+      threshold: 0
+    },
     pbr: {
       category: "Material",
       caseFileName: "material-pbr",
@@ -172,6 +177,12 @@ export const E2E_CONFIG = {
     R8G8: {
       category: "Texture",
       caseFileName: "texture-R8G8",
+      threshold: 0,
+      diffPercentage: 0
+    },
+    KTX2HDR: {
+      category: "Texture",
+      caseFileName: "texture-hdr-ktx2",
       threshold: 0,
       diffPercentage: 0
     }
