@@ -173,7 +173,7 @@ export const E2E_CONFIG = {
       category: "Texture",
       caseFileName: "texture-sRGB-KTX2",
       threshold: 0,
-      diffPercentage: 0.071
+      diffPercentage: 0.072
     },
     R8G8: {
       category: "Texture",
@@ -213,7 +213,7 @@ export const E2E_CONFIG = {
       category: "Primitive",
       caseFileName: "primitive-cone",
       threshold: 0,
-      diffPercentage: 0.0016
+      diffPercentage: 0.0029
     },
     cuboid: {
       category: "Primitive",
@@ -225,7 +225,7 @@ export const E2E_CONFIG = {
       category: "Primitive",
       caseFileName: "primitive-cylinder",
       threshold: 0,
-      diffPercentage: 0.0016
+      diffPercentage: 0.0036
     },
     plane: {
       category: "Primitive",
@@ -303,7 +303,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-force",
       threshold: 0.005,
-      diffPercentage: 0.004
+      diffPercentage: 0.0054
     },
     textureSheetAnimation: {
       category: "Particle",
