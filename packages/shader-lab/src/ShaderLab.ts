@@ -1,18 +1,16 @@
+import { Logger, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
+import { IShaderLab, IShaderSource } from "@galacean/engine-design";
+import { GLES100Visitor, GLES300Visitor } from "./codeGen";
+import { ShaderPosition, ShaderRange } from "./common";
 import { Lexer } from "./lexer";
 import { ShaderTargetParser } from "./parser";
-import { Preprocessor } from "./preprocessor";
-import { GLES100Visitor, GLES300Visitor } from "./codeGen";
-import { IShaderContent, IShaderLab } from "@galacean/engine-design";
-import { ShaderContentParser } from "./contentParser";
-// @ts-ignore
-import { Logger, ShaderLib, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
-import { ShaderPosition, ShaderRange } from "./common";
 // #if _VERBOSE
 import { GSError } from "./GSError";
 // #endif
+import { IShaderProgramSource } from "@galacean/engine-design/types/shader-lab/IShaderProgramSource";
 import { PpParser } from "./preprocessor/PpParser";
 import { ShaderLabUtils } from "./ShaderLabUtils";
-import { IShaderProgramSource } from "@galacean/engine-design/types/shader-lab/IShaderProgramSource";
+import { ShaderSourceParser } from "./sourceParser/ShaderSourceParser";
 
 /** @internal */
 export class ShaderLab implements IShaderLab {
@@ -43,8 +41,7 @@ export class ShaderLab implements IShaderLab {
   }
 
   // #if _VERBOSE
-  /** Retrieve the compilation errors */
-  readonly errors: Error[] = [];
+  readonly errors = new Array<Error>();
   // #endif
 
   _parseShaderPass(
@@ -56,17 +53,8 @@ export class ShaderLab implements IShaderLab {
     platformMacros: string[],
     basePathForIncludeKey: string
   ): IShaderProgramSource | undefined {
-    Preprocessor.reset(ShaderLib, basePathForIncludeKey);
-    for (const macro of macros) {
-      Preprocessor.addPredefinedMacro(macro.name, macro.value);
-    }
-
-    for (let i = 0; i < platformMacros.length; i++) {
-      Preprocessor.addPredefinedMacro(platformMacros[i]);
-    }
-
-    const preprocessorStart = performance.now();
-    const ppdContent = Preprocessor.process(source);
+    const preprocessorStartTime = performance.now();
+    const ppdContent = PpParser.parse(source, macros, platformMacros, basePathForIncludeKey);
     // #if _VERBOSE
     if (PpParser._errors.length > 0) {
       for (const err of PpParser._errors) {
@@ -77,7 +65,7 @@ export class ShaderLab implements IShaderLab {
     }
     // #endif
 
-    Logger.info(`[pass compilation - preprocessor]  cost time ${performance.now() - preprocessorStart}ms`);
+    Logger.info(`[Pass preprocessor compilation] cost time ${performance.now() - preprocessorStartTime}ms`);
 
     const lexer = new Lexer(ppdContent);
     const tokens = lexer.tokenize();
@@ -117,19 +105,18 @@ export class ShaderLab implements IShaderLab {
     return ret;
   }
 
-  _parseShaderContent(shaderSource: string): IShaderContent {
+  _parseShaderSource(sourceCode: string): IShaderSource {
     ShaderLabUtils.clearAllShaderLabObjectPool();
-    ShaderContentParser.reset();
-    const ret = ShaderContentParser.parse(shaderSource);
+    const shaderSource = ShaderSourceParser.parse(sourceCode);
 
     // #if _VERBOSE
     this.errors.length = 0;
-    for (const error of ShaderContentParser._errors) {
+    for (const error of ShaderSourceParser.errors) {
       this.errors.push(error);
     }
     // #endif
 
-    return ret;
+    return shaderSource;
   }
 
   // #if _VERBOSE

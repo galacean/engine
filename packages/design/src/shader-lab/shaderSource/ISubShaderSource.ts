@@ -1,11 +1,11 @@
-import { IShaderPassContent } from "./IShaderPassContent";
 import { IRenderStates } from "./IRenderStates";
+import { IShaderPassSource } from "./IShaderPassSource";
 import { IStatement } from "./IStatement";
 
-export interface ISubShaderContent {
+export interface ISubShaderSource {
   name: string;
-  passes: IShaderPassContent[];
-  globalContents: IStatement[];
+  passes: IShaderPassSource[];
+  pendingContents: IStatement[];
   tags?: Record<string, number | string | boolean>;
   renderStates: IRenderStates;
 }
