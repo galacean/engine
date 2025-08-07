@@ -11,6 +11,16 @@ import { ShaderProgramPool } from "./ShaderProgramPool";
 import { ShaderProperty } from "./ShaderProperty";
 import { RenderState } from "./state/RenderState";
 
+const precisionStr = `
+    #ifdef GL_FRAGMENT_PRECISION_HIGH
+      precision highp float;
+      precision highp int;
+    #else
+      precision mediump float;
+      precision mediump int;
+    #endif
+    `;
+
 /**
  * Shader pass containing vertex and fragment source.
  */
@@ -123,38 +133,31 @@ export class ShaderPass extends ShaderPart {
     const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
     const shaderMacroList = new Array<ShaderMacro>();
     ShaderMacro._getMacrosElements(macroCollection, shaderMacroList);
-    const versionStr = isWebGL2 ? "#version 300 es" : "#version 100";
-    const graphicAPI = isWebGL2 ? "#define GRAPHICS_API_WEBGL2" : "#define GRAPHICS_API_WEBGL1";
-    let precisionStr = `
-    #ifdef GL_FRAGMENT_PRECISION_HIGH
-      precision highp float;
-      precision highp int;
-    #else
-      precision mediump float;
-      precision mediump int;
-    #endif
-    `;
-
+    shaderMacroList.push(ShaderMacro.getByName(isWebGL2 ? "GRAPHICS_API_WEBGL2" : "GRAPHICS_API_WEBGL1"));
     if (engine._hardwareRenderer.canIUse(GLCapabilityType.shaderTextureLod)) {
-      precisionStr += "#define HAS_TEX_LOD\n";
+      shaderMacroList.push(ShaderMacro.getByName("HAS_TEX_LOD"));
     }
     if (engine._hardwareRenderer.canIUse(GLCapabilityType.standardDerivatives)) {
-      precisionStr += "#define HAS_DERIVATIVES\n";
+      shaderMacroList.push(ShaderMacro.getByName("HAS_DERIVATIVES"));
     }
 
-    const parsedVertex = Shader._shaderLab._parseDirectives(this._vertexSource, shaderMacroList);
-    const parsedFrag = Shader._shaderLab._parseDirectives(this._fragmentSource, shaderMacroList);
+    // Compatible with non-shaderlab syntax
+    const noIncludeVertex = ShaderFactory.parseIncludes(this._vertexSource);
+    const noIncludeFrag = ShaderFactory.parseIncludes(this._fragmentSource);
 
-    let vertexSource =
-      ` ${versionStr}
-        ${graphicAPI}
-      ` + ShaderFactory.parseIncludes(parsedVertex);
-    let fragmentSource =
-      ` ${versionStr}
-        ${graphicAPI}
+    const noMacroVertex = Shader._shaderLab._parseDirectives(noIncludeVertex, shaderMacroList);
+    const noMacroFrag = Shader._shaderLab._parseDirectives(noIncludeFrag, shaderMacroList);
+
+    const versionStr = isWebGL2 ? "#version 300 es" : "#version 100";
+
+    let vertexSource = ` ${versionStr} 
+        ${noMacroVertex}
+      `;
+    let fragmentSource = ` ${versionStr}
         ${isWebGL2 ? "" : ShaderFactory._shaderExtension}
         ${precisionStr}
-      ` + ShaderFactory.parseIncludes(parsedFrag);
+        ${noMacroFrag}
+      `;
 
     if (isWebGL2) {
       vertexSource = ShaderFactory.convertTo300(vertexSource);
