@@ -26,14 +26,15 @@ export interface ExpandSegment {
 export class PpParser {
   static lexer: PpLexer;
 
+  private static _includeMap: Record<string, string>;
+  private static _basePathForIncludeKey: string;
+
+  private static _isIncludeStage: boolean;
   private static _definedMacros: Map<string, MacroDefine> = new Map();
   private static _expandSegmentsStack: ExpandSegment[][] = [[]];
 
   /** Referenced by branch macro or defined operator */
   private static _branchMacros: Set<string> = new Set();
-
-  private static _includeMap: Record<string, string>;
-  private static _basePathForIncludeKey: string;
 
   private static _expandVisitedMacros: Record<string, number> = {};
   private static _expandVersionId: number = 1;
@@ -42,13 +43,17 @@ export class PpParser {
   static _errors: Error[] = [];
   // #endif
 
-  static parse(
-    source: string,
-    macros: ShaderMacro[],
-    platformMacros: string[],
-    basePathForIncludeKey: string
-  ): string | null {
+  static parseInclude(source: string, basePathForIncludeKey: string): string | null {
+    PpParser._isIncludeStage = true;
     PpParser._reset(ShaderLib, basePathForIncludeKey);
+
+    const lexer = new PpLexer(source);
+    return PpParser._parseIncludeDirectives(lexer);
+  }
+
+  static parse(source: string, macros: ShaderMacro[], platformMacros: string[]): string | null {
+    PpParser._isIncludeStage = false;
+    PpParser._reset();
 
     for (const macro of macros) {
       PpParser._addPredefinedMacro(macro.name, macro.value);
@@ -62,14 +67,19 @@ export class PpParser {
     return PpParser._parseDirectives(this.lexer);
   }
 
-  private static _reset(includeMap: Record<string, string>, basePathForIncludeKey: string) {
-    this._definedMacros.clear();
+  private static _reset(includeMap?: Record<string, string>, basePathForIncludeKey?: string) {
     this._expandSegmentsStack.length = 0;
     this._expandSegmentsStack.push([]);
-    this._branchMacros.clear();
-    this._addPredefinedMacro("GL_ES");
-    this._includeMap = includeMap;
-    this._basePathForIncludeKey = basePathForIncludeKey;
+
+    if (PpParser._isIncludeStage) {
+      this._includeMap = includeMap;
+      this._basePathForIncludeKey = basePathForIncludeKey;
+    } else {
+      this._definedMacros.clear();
+      this._branchMacros.clear();
+      this._addPredefinedMacro("GL_ES");
+    }
+
     // #if _VERBOSE
     this._errors.length = 0;
     // #endif
@@ -86,6 +96,22 @@ export class PpParser {
     }
 
     this._definedMacros.set(macro, new MacroDefine(token, macroBody));
+  }
+
+  private static _parseIncludeDirectives(lexer: PpLexer): string | null {
+    let directive: BaseToken | undefined;
+
+    while ((directive = lexer.scanToken())) {
+      if (directive.type === PpKeyword.include) {
+        this._parseInclude(lexer);
+      }
+    }
+
+    // #if _VERBOSE
+    if (this._errors.length > 0) return null;
+    // #endif
+
+    return PpUtils.expand(this._getExpandSegments(), lexer.source, lexer.sourceMap);
   }
 
   private static _parseDirectives(lexer: PpLexer): string | null {
@@ -109,9 +135,6 @@ export class PpParser {
           break;
         case PpKeyword.ifdef:
           this._parseIfDirective(lexer, PpKeyword.ifdef);
-          break;
-        case PpKeyword.include:
-          this._parseInclude(lexer);
           break;
       }
     }
@@ -190,7 +213,8 @@ export class PpParser {
         expanded.sourceMap
       );
     } else {
-      // this._processConditionalDirective(nextDirective.type, lexer);
+      this._addEmptyReplace(lexer, start);
+      this._processConditionalDirective(nextDirective.type, lexer);
     }
   }
 
@@ -595,7 +619,8 @@ export class PpParser {
     } else {
       scanner = new PpLexer(chunk, scannerOrFile.file, loc);
     }
-    const ret = this._parseDirectives(scanner);
+
+    const ret = PpParser._isIncludeStage ? this._parseIncludeDirectives(scanner) : this._parseDirectives(scanner);
     this._expandSegmentsStack.pop();
     return {
       content: ret,
@@ -603,6 +628,16 @@ export class PpParser {
       sourceMap: scanner.sourceMap
       // #endif
     };
+  }
+
+  private static _addEmptyReplace(lexer: PpLexer, start: number) {
+    this._addContentReplace(
+      lexer.file,
+      ShaderLab.createPosition(start),
+      lexer.getShaderPosition(0),
+      "",
+      lexer.blockRange
+    );
   }
 
   private static _addContentReplace(

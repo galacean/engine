@@ -1,5 +1,5 @@
 import { Logger, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
-import { IShaderLab, IShaderSource } from "@galacean/engine-design";
+import { IShaderInfo, IShaderLab, IShaderSource } from "@galacean/engine-design";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { ShaderPosition, ShaderRange } from "./common";
 import { Lexer } from "./lexer";
@@ -54,7 +54,10 @@ export class ShaderLab implements IShaderLab {
     basePathForIncludeKey: string
   ): IShaderProgramSource | undefined {
     const preprocessorStartTime = performance.now();
-    const ppdContent = PpParser.parse(source, macros, platformMacros, basePathForIncludeKey);
+
+    // console.warn("source:");
+    // console.log(source);
+    const ppdContent = PpParser.parseInclude(source, basePathForIncludeKey);
     // #if _VERBOSE
     if (PpParser._errors.length > 0) {
       for (const err of PpParser._errors) {
@@ -68,6 +71,8 @@ export class ShaderLab implements IShaderLab {
     Logger.info(`[Pass preprocessor compilation] cost time ${performance.now() - preprocessorStartTime}ms`);
 
     const lexer = new Lexer(ppdContent);
+    console.warn("ppd:");
+    console.log(ppdContent);
     const tokens = lexer.tokenize();
 
     const { _parser: parser } = ShaderLab;
@@ -102,7 +107,21 @@ export class ShaderLab implements IShaderLab {
     this._logErrors();
     // #endif
 
+    // console.warn("vert:");
+    // console.log(ret.vertex);
+    console.warn("frag:");
+    console.log(ret.fragment);
+
+    this._parseShaderPass2(ret, macros, platformMacros);
     return ret;
+  }
+
+  _parseShaderPass2(ret: IShaderInfo, macros: ShaderMacro[], platformMacros: string[]) {
+    ret.vertex = PpParser.parse(ret.vertex, macros, platformMacros);
+    ret.fragment = PpParser.parse(ret.fragment, macros, platformMacros);
+
+    console.warn("final frag:");
+    console.log(ret.fragment);
   }
 
   _parseShaderSource(sourceCode: string): IShaderSource {
