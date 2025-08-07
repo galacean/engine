@@ -8,22 +8,10 @@ import { CodeGenVisitor } from "./CodeGenVisitor";
 import { ICodeSegment } from "./types";
 import { VisitorContext } from "./VisitorContext";
 
-const defaultPrecision = `
-#ifdef GL_FRAGMENT_PRECISION_HIGH
-  precision highp float;
-  precision highp int;
-#else
-  precision mediump float;
-  precision mediump int;
-#endif
-`;
-
 /**
  * @internal
  */
 export abstract class GLESVisitor extends CodeGenVisitor {
-  protected _versionText: string = "";
-  protected _extensions: string = "";
   private _globalCodeArray: ICodeSegment[] = [];
   private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
   private static _serializedGlobalKey = new Set();
@@ -115,7 +103,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     VisitorContext.context.reset();
 
-    return `${this._versionText}\n${globalCode}\n\nvoid main() ${statements}`;
+    return `${globalCode}\n\nvoid main() ${statements}`;
   }
 
   private _fragmentMain(
@@ -168,7 +156,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       .join("\n");
 
     context.reset();
-    return `${this._versionText}\n${this._extensions}\n${defaultPrecision}\n${globalCode}\n\nvoid main() ${statements}`;
+    return `${globalCode}\n\nvoid main() ${statements}`;
   }
 
   private _getGlobalSymbol(out: ICodeSegment[]): void {

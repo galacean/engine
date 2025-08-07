@@ -51,16 +51,12 @@ export class PpParser {
     return PpParser._parseIncludeDirectives(lexer);
   }
 
-  static parse(source: string, macros: ShaderMacro[], platformMacros: string[]): string | null {
+  static parse(source: string, macros: ShaderMacro[]): string | null {
     PpParser._isIncludeStage = false;
     PpParser._reset();
 
     for (const macro of macros) {
       PpParser._addPredefinedMacro(macro.name, macro.value);
-    }
-
-    for (let i = 0, n = platformMacros.length; i < n; i++) {
-      PpParser._addPredefinedMacro(platformMacros[i]);
     }
 
     this.lexer = new PpLexer(source);

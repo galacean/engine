@@ -15,10 +15,6 @@ export class ShaderFactory {
 
   private static readonly _has300OutInFragReg = /\bout\s+(?:\w+\s+)?(?:vec4)\s+(?:\w+)\s*;/; // [layout(location = 0)] out [highp] vec4 [color];
 
-  static parseCustomMacros(macros: ShaderMacro[]) {
-    return macros.map((m) => `#define ${m.value ? m.name + ` ` + m.value : m.name}\n`).join("");
-  }
-
   static registerInclude(includeName: string, includeSource: string) {
     if (ShaderLib[includeName]) {
       throw `The "${includeName}" shader include already exist`;
