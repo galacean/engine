@@ -20,9 +20,9 @@ export interface IShaderLab {
     shaderPassSource: string,
     vertexEntry: string,
     fragmentEntry: string,
-    macros: any[],
     backend: number,
-    platformMacros: string[],
     basePathForIncludeKey: string
   ): IShaderProgramSource;
+
+  _parseDirectives(context: string, macros: Array<{ name: string; value: string }>): string;
 }

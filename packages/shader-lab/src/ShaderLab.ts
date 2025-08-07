@@ -1,5 +1,5 @@
 import { Logger, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
-import { IShaderLab, IShaderSource } from "@galacean/engine-design";
+import { IShaderInfo, IShaderLab, IShaderSource } from "@galacean/engine-design";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { ShaderPosition, ShaderRange } from "./common";
 import { Lexer } from "./lexer";
@@ -44,17 +44,30 @@ export class ShaderLab implements IShaderLab {
   readonly errors = new Array<Error>();
   // #endif
 
+  _parseShaderSource(sourceCode: string): IShaderSource {
+    ShaderLabUtils.clearAllShaderLabObjectPool();
+    const shaderSource = ShaderSourceParser.parse(sourceCode);
+
+    // #if _VERBOSE
+    this.errors.length = 0;
+    for (const error of ShaderSourceParser.errors) {
+      this.errors.push(error);
+    }
+    // #endif
+
+    return shaderSource;
+  }
+
   _parseShaderPass(
     source: string,
     vertexEntry: string,
     fragmentEntry: string,
-    macros: ShaderMacro[],
     backend: ShaderPlatformTarget,
-    platformMacros: string[],
     basePathForIncludeKey: string
   ): IShaderProgramSource | undefined {
     const preprocessorStartTime = performance.now();
-    const ppdContent = PpParser.parse(source, macros, platformMacros, basePathForIncludeKey);
+    const ppdContent = PpParser.parseInclude(source, basePathForIncludeKey);
+
     // #if _VERBOSE
     if (PpParser._errors.length > 0) {
       for (const err of PpParser._errors) {
@@ -105,18 +118,9 @@ export class ShaderLab implements IShaderLab {
     return ret;
   }
 
-  _parseShaderSource(sourceCode: string): IShaderSource {
-    ShaderLabUtils.clearAllShaderLabObjectPool();
-    const shaderSource = ShaderSourceParser.parse(sourceCode);
-
-    // #if _VERBOSE
-    this.errors.length = 0;
-    for (const error of ShaderSourceParser.errors) {
-      this.errors.push(error);
-    }
-    // #endif
-
-    return shaderSource;
+  _parseDirectives(content: string, macros: ShaderMacro[]): string {
+    const parsedContent = PpParser.parse(content, macros);
+    return parsedContent;
   }
 
   // #if _VERBOSE

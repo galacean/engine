@@ -8,22 +8,10 @@ import { CodeGenVisitor } from "./CodeGenVisitor";
 import { ICodeSegment } from "./types";
 import { VisitorContext } from "./VisitorContext";
 
-const defaultPrecision = `
-#ifdef GL_FRAGMENT_PRECISION_HIGH
-  precision highp float;
-  precision highp int;
-#else
-  precision mediump float;
-  precision mediump int;
-#endif
-`;
-
 /**
  * @internal
  */
 export abstract class GLESVisitor extends CodeGenVisitor {
-  protected _versionText: string = "";
-  protected _extensions: string = "";
   private _globalCodeArray: ICodeSegment[] = [];
   private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
   private static _serializedGlobalKey = new Set();
@@ -37,15 +25,23 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     this.errors.length = 0;
     // #endif
     VisitorContext.reset();
-    VisitorContext.context._passSymbolTable = node.shaderData.symbolTable;
+
+    const shaderData = node.shaderData;
+    VisitorContext.context._passSymbolTable = shaderData.symbolTable;
+
+    const outerGlobalMacroStatements = shaderData.getOuterGlobalMacroStatements();
 
     return {
-      vertex: this.vertexMain(vertexEntry, node.shaderData),
-      fragment: this._fragmentMain(fragmentEntry, node.shaderData)
+      vertex: this._vertexMain(vertexEntry, shaderData, outerGlobalMacroStatements),
+      fragment: this._fragmentMain(fragmentEntry, shaderData, outerGlobalMacroStatements)
     };
   }
 
-  vertexMain(entry: string, data: ShaderData): string {
+  private _vertexMain(
+    entry: string,
+    data: ShaderData,
+    outerGlobalMacroStatements: ASTNode.GlobalMacroIfStatement[]
+  ): string {
     const lookupSymbol = GLESVisitor._lookupSymbol;
     const { symbolTable } = data;
     lookupSymbol.set(entry, ESymbolType.FN);
@@ -96,6 +92,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     this._getGlobalSymbol(globalCodeArray);
     this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
+    this._getGlobalMacroStatements(outerGlobalMacroStatements, globalCodeArray);
     this.getAttributeDeclare(globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
 
@@ -106,10 +103,14 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     VisitorContext.context.reset();
 
-    return `${this._versionText}\n${globalCode}\n\nvoid main() ${statements}`;
+    return `${globalCode}\n\nvoid main() ${statements}`;
   }
 
-  private _fragmentMain(entry: string, data: ShaderData): string {
+  private _fragmentMain(
+    entry: string,
+    data: ShaderData,
+    outerGlobalMacroStatements: ASTNode.GlobalMacroIfStatement[]
+  ): string {
     const lookupSymbol = GLESVisitor._lookupSymbol;
     const { symbolTable } = data;
     lookupSymbol.set(entry, ESymbolType.FN);
@@ -145,6 +146,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     this._getGlobalSymbol(globalCodeArray);
     this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
+    this._getGlobalMacroStatements(outerGlobalMacroStatements, globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
     this.getMRTDeclare(globalCodeArray);
 
@@ -154,7 +156,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       .join("\n");
 
     context.reset();
-    return `${this._versionText}\n${this._extensions}\n${defaultPrecision}\n${globalCode}\n\nvoid main() ${statements}`;
+    return `${globalCode}\n\nvoid main() ${statements}`;
   }
 
   private _getGlobalSymbol(out: ICodeSegment[]): void {
@@ -171,14 +173,10 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       const symbols = Array.isArray(symbol) ? symbol : [symbol];
       for (let i = 0; i < symbols.length; i++) {
         const sm = symbols[i];
-        if (sm instanceof SymbolInfo) {
-          out.push({
-            text: `${sm.type === ESymbolType.VAR ? "uniform " : ""}${sm.astNode.codeGen(this)}`,
-            index: sm.astNode.location.start.index
-          });
-        } else {
-          out.push({ text: sm.codeGen(this), index: sm.location.start.index });
-        }
+        out.push({
+          text: sm.astNode.codeGen(this) + (sm.type === ESymbolType.VAR ? ";" : ""),
+          index: sm.astNode.location.start.index
+        });
       }
     }
 
@@ -190,6 +188,12 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   private _getGlobalPrecisions(precisions: ASTNode.PrecisionSpecifier[], out: ICodeSegment[]): void {
     for (const precision of precisions) {
       out.push({ text: precision.codeGen(this), index: precision.location.start.index });
+    }
+  }
+
+  private _getGlobalMacroStatements(macros: ASTNode.GlobalMacroIfStatement[], out: ICodeSegment[]): void {
+    for (const macro of macros) {
+      out.push({ text: macro.codeGen(this), index: macro.location.start.index });
     }
   }
 }

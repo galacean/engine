@@ -31,7 +31,7 @@ export class VisitorContext {
   stage: EShaderStage;
 
   _referencedAttributeList: Record<string, IParamInfo & { qualifier?: string }>;
-  _referencedGlobals: Record<string, SymbolInfo | SymbolInfo[] | ASTNode.PrecisionSpecifier>;
+  _referencedGlobals: Record<string, SymbolInfo | SymbolInfo[]>;
   _referencedVaryingList: Record<string, IParamInfo & { qualifier?: string }>;
   _referencedMRTList: Record<string, StructProp | string>;
 

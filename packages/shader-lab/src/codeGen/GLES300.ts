@@ -11,8 +11,6 @@ import { ICodeSegment } from "./types";
 import { VisitorContext } from "./VisitorContext";
 
 export class GLES300Visitor extends GLESVisitor {
-  override _versionText: string = "#version 300 es";
-
   private static _singleton: GLES300Visitor;
   static getVisitor(): GLES300Visitor {
     if (!this._singleton) {

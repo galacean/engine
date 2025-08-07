@@ -8,4 +8,10 @@ export class ShaderData {
   fragmentMain: ASTNode.FunctionDefinition;
 
   globalPrecisions: ASTNode.PrecisionSpecifier[] = [];
+
+  globalMacroStatements: ASTNode.GlobalMacroIfStatement[] = [];
+
+  getOuterGlobalMacroStatements(): ASTNode.GlobalMacroIfStatement[] {
+    return this.globalMacroStatements.filter((node) => node.parent.parent instanceof ASTNode.GLShaderProgram);
+  }
 }
