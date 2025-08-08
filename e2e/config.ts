@@ -193,7 +193,7 @@ export const E2E_CONFIG = {
       category: "Shadow",
       caseFileName: "shadow-basic",
       threshold: 0,
-      diffPercentage: 0.011
+      diffPercentage: 0.008
     },
     transparent: {
       category: "Shadow",
@@ -257,7 +257,7 @@ export const E2E_CONFIG = {
       category: "Camera",
       caseFileName: "camera-fxaa",
       threshold: 0,
-      diffPercentage: 0.162
+      diffPercentage: 0.161
     }
   },
   Physics: {
@@ -297,13 +297,13 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-fire",
       threshold: 0,
-      diffPercentage: 0.0641
+      diffPercentage: 0.064
     },
     forceOverLifetime: {
       category: "Particle",
       caseFileName: "particleRenderer-force",
       threshold: 0.005,
-      diffPercentage: 0.0152
+      diffPercentage: 0.0054
     },
     textureSheetAnimation: {
       category: "Particle",
@@ -329,7 +329,7 @@ export const E2E_CONFIG = {
       category: "PostProcess",
       caseFileName: "postProcess-HDR-bloom-ACES",
       threshold: 0,
-      diffPercentage: 0.15
+      diffPercentage: 0.148
     },
     HDRBloomNeutral: {
       category: "PostProcess",
@@ -363,7 +363,7 @@ export const E2E_CONFIG = {
       category: "Text",
       caseFileName: "text-typed",
       threshold: 0,
-      diffPercentage: 0.00021
+      diffPercentage: 0
     }
   },
   Other: {
