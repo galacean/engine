@@ -11,6 +11,8 @@ import {
   RendererUpdateFlags,
   ShaderMacroCollection,
   ShaderProperty,
+  SpriteMaskInteraction,
+  SpriteMaskLayer,
   Vector3,
   Vector4,
   assignmentClone,
@@ -87,6 +89,31 @@ export class UIRenderer extends Renderer implements IGraphics {
   set color(value: Color) {
     if (this._color !== value) {
       this._color.copyFrom(value);
+    }
+  }
+
+
+  /**
+   * The mask layer the sprite renderer belongs to.
+   */
+  get maskLayer(): SpriteMaskLayer {
+    return this._maskLayer;
+  }
+
+  set maskLayer(value: SpriteMaskLayer) {
+    this._maskLayer = value;
+  }
+
+  /**
+   * Interacts with the masks.
+   */
+  get maskInteraction(): SpriteMaskInteraction {
+    return this._maskInteraction;
+  }
+
+  set maskInteraction(value: SpriteMaskInteraction) {
+    if (this._maskInteraction !== value) {
+      this._maskInteraction = value;
     }
   }
 

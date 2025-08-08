@@ -1,6 +1,8 @@
-import { Entity } from "@galacean/engine";
+import { Entity, Matrix, Plane, Ray, Vector2, Vector3 } from "@galacean/engine";
+import { UITransform } from "./component";
 import { RootCanvasModifyFlags, UICanvas } from "./component/UICanvas";
 import { GroupModifyFlags, UIGroup } from "./component/UIGroup";
+import { CanvasRenderMode } from "./enums/CanvasRenderMode";
 import { IElement } from "./interface/IElement";
 import { IGroupAble } from "./interface/IGroupAble";
 
@@ -148,5 +150,59 @@ export class Utils {
       listeningEntities[i]._unRegisterModifyListener(listener);
     }
     listeningEntities.length = 0;
+  }
+
+  static _tempRay: Ray = new Ray();
+  static _tempPlane: Plane = new Plane();
+  static _tempVec3: Vector3 = new Vector3();
+  static _tempMat: Matrix = new Matrix();
+  /**
+   * 屏幕上的点在组件中的局部位置
+   */
+  static screenToLocalPoint(position: Vector2, transform: UITransform, out: Vector3): Boolean {
+    const engine = transform.engine;
+    // 获取主画布
+    let entity = transform.entity;
+    let rootCanvas: UICanvas;
+    while (entity) {
+      // @ts-ignore
+      const components = entity._components;
+      for (let i = 0, n = components.length; i < n; i++) {
+        const component = components[i];
+        if (component.enabled && component instanceof UICanvas && component._isRootCanvas) {
+          rootCanvas = component;
+        }
+      }
+      entity = entity.parent;
+    }
+    if (!rootCanvas) return false;
+    // 计算 Ray
+    const ray = this._tempRay;
+    switch (rootCanvas._realRenderMode) {
+      case CanvasRenderMode.ScreenSpaceOverlay:
+        // Screen to world ( Assume that world units have a one-to-one relationship with pixel units )
+        ray.origin.set(position.x, engine.canvas.height - position.y, 1);
+        ray.direction.set(0, 0, -1);
+        break;
+      case CanvasRenderMode.ScreenSpaceCamera:
+        rootCanvas.renderCamera.screenPointToRay(position, ray);
+        break;
+      default:
+        // 暂不支持世界空间，详见 issue #2793
+        return false;
+    }
+    // 用这个射线和 UI 平面相交获取局部坐标
+    const plane = this._tempPlane;
+    const normal = plane.normal.copyFrom(transform.worldForward);
+    plane.distance = -Vector3.dot(normal, transform.worldPosition);
+    const curDistance = ray.intersectPlane(plane);
+    if (curDistance >= 0 && curDistance < Number.MAX_SAFE_INTEGER) {
+      const hitPointWorld = ray.getPoint(curDistance, this._tempVec3);
+      const worldMatrixInv = this._tempMat;
+      Matrix.invert(transform.worldMatrix, worldMatrixInv);
+      Vector3.transformCoordinate(hitPointWorld, worldMatrixInv, out);
+      return true;
+    }
+    return false;
   }
 }
