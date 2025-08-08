@@ -60,8 +60,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       [DFDTransferFunction.sRGB]: [GLCapabilityType.s3tc_srgb]
     },
     [KTX2TargetFormat.BC6H]: {
-      [DFDTransferFunction.linear]: [GLCapabilityType.bptc],
-      [DFDTransferFunction.sRGB]: [GLCapabilityType.bptc]
+      [DFDTransferFunction.linear]: [GLCapabilityType.bptc]
     },
     [KTX2TargetFormat.R16G16B16A16]: {
       [DFDTransferFunction.linear]: [GLCapabilityType.textureHalfFloat],
