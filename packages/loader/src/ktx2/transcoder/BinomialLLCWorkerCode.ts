@@ -82,7 +82,6 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
     ASTC_4x4 = 10,
     RGBA8 = 13,
     BC6H = 22,
-    RGB_HALF = 24,
     RGBA_HALF = 25
   }
 

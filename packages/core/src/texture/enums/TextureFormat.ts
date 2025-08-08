@@ -30,7 +30,7 @@ export enum TextureFormat {
   BC3 = 11,
   /** RGB(A) compressed format, 128 bits per 4x4 pixel block. */
   BC7 = 12,
-  /** RGB HDR compressed format, 8 bits per pixel.. */
+  /** RGB HDR compressed format, 8 bits per pixel. */
   BC6H = 100,
   /** RGB compressed format, 4 bits per pixel. */
   ETC1_RGB = 13,
