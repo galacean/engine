@@ -3,16 +3,14 @@
  * @category Texture
  */
 import {
-  BloomEffect,
+  AssetType,
   Camera,
-  DirectLight,
   Logger,
+  Material,
   MeshRenderer,
-  PostProcess,
   PrimitiveMesh,
+  Shader,
   Texture2D,
-  TonemappingEffect,
-  UnlitMaterial,
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
@@ -33,23 +31,49 @@ WebGLEngine.create({ canvas: "canvas", ktx2Loader: { workerCount: 0 } }).then((e
   cameraEntity.addComponent(OrbitControl).target = new Vector3(0, 0, 0);
 
   const lightNode = rootEntity.createChild("light_node");
-  lightNode.addComponent(DirectLight).intensity = 0.6;
   lightNode.transform.lookAt(new Vector3(0, 0, 1));
   lightNode.transform.rotate(new Vector3(0, 90, 0));
 
   const planeEntity = rootEntity.createChild("plane");
   const meshRenderer = planeEntity.addComponent(MeshRenderer);
   meshRenderer.mesh = PrimitiveMesh.createCuboid(engine);
-  const mtl = new UnlitMaterial(engine);
+  const mtl = new Material(
+    engine,
+    Shader.create(
+      "test-hdr",
+      `
+    attribute vec3 POSITION;
+    attribute vec2 TEXCOORD_0;
+    uniform mat4 renderer_MVPMat;
+    varying vec2 v_uv;
+
+    void main() {
+      gl_Position = renderer_MVPMat * vec4(POSITION, 1.0);
+      v_uv = TEXCOORD_0;
+    }
+    `,
+      `
+    uniform sampler2D material_BaseTexture;
+    varying vec2 v_uv;
+
+    void main(){
+      vec4 color = texture(material_BaseTexture, v_uv);
+      gl_FragColor = color - vec4(1, 1, 1, 0);
+    }
+    `
+    )
+  );
   meshRenderer.setMaterial(mtl);
-  const postProcess = rootEntity.addComponent(PostProcess);
-  postProcess.addEffect(BloomEffect);
-  postProcess.addEffect(TonemappingEffect);
 
-  engine.resourceManager.load<Texture2D>("/autumn_field_puresky_1k.ktx2").then((tex) => {
-    mtl.baseTexture = tex;
-    updateForE2E(engine);
+  engine.resourceManager
+    .load<Texture2D>({
+      type: AssetType.KTX2,
+      url: "https://mdn.alipayobjects.com/rms/afts/img/A*6lCwQrgPpSEAAAAAXRAAAAgAehQnAQ/original/autumn_field_puresky_1k.ktx2"
+    })
+    .then((tex) => {
+      mtl.shaderData.setTexture("material_BaseTexture", tex);
+      updateForE2E(engine);
 
-    initScreenshot(engine, camera);
-  });
+      initScreenshot(engine, camera);
+    });
 });
