@@ -109,14 +109,14 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
         return hasAlpha ? BasisFormat.ETC2 : BasisFormat.ETC1;
       case TargetFormat.PVRTC:
         return hasAlpha ? BasisFormat.PVRTC1_4_RGBA : BasisFormat.PVRTC1_4_RGB;
-      case TargetFormat.BC6H:
-        return BasisFormat.BC6H;
       case TargetFormat.RGBA8:
         return BasisFormat.RGBA8;
       case TargetFormat.ASTC:
         return BasisFormat.ASTC_4x4;
       case TargetFormat.BC7:
         return BasisFormat.BC7;
+      case TargetFormat.BC6H:
+        return BasisFormat.BC6H;
       case TargetFormat.RGBA16:
         return BasisFormat.RGBA_HALF;
     }
