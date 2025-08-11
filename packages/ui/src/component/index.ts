@@ -8,9 +8,5 @@ export { Transition } from "./interactive/transition/Transition";
 export { UICanvas } from "./UICanvas";
 export { UIGroup } from "./UIGroup";
 export { UIRenderer } from "./UIRenderer";
-export {
-  UIHorizontalAlignmentFlags,
-  UITransform,
-  UITransformModifyFlags,
-  UIVerticalAlignmentFlags
-} from "./UITransform";
+export { UIHorizontalAlignmentFlags, UITransform, UITransformModifyFlags, UIVerticalAlignmentFlags } from "./UITransform";
+
