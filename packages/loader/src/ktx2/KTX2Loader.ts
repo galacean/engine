@@ -17,7 +17,7 @@ import {
   resourceLoader
 } from "@galacean/engine-core";
 import { MathUtil } from "@galacean/engine-math";
-import { DFDTransferFunction, KTX2Container, ColorModel } from "./KTX2Container";
+import { ColorModel, DFDTransferFunction, KTX2Container } from "./KTX2Container";
 import { KTX2TargetFormat } from "./KTX2TargetFormat";
 import { TranscodeResult } from "./transcoder/AbstractTranscoder";
 import { BinomialLLCTranscoder } from "./transcoder/BinomialLLCTranscoder";
@@ -40,7 +40,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       KTX2TargetFormat.BC1_BC3,
       KTX2TargetFormat.PVRTC
     ],
-    [ColorModel.UASTC_HDR_4X4]: [KTX2TargetFormat.BC6H, KTX2TargetFormat.R16G16B16A16]
+    [ColorModel.UASTC_HDR_4X4]: [KTX2TargetFormat.ASTC_HDR_4x4, KTX2TargetFormat.BC6H, KTX2TargetFormat.R16G16B16A16]
   };
   private static _capabilityMap = {
     [KTX2TargetFormat.ASTC]: {
@@ -61,6 +61,9 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     },
     [KTX2TargetFormat.BC6H]: {
       [DFDTransferFunction.linear]: [GLCapabilityType.bptc]
+    },
+    [KTX2TargetFormat.ASTC_HDR_4x4]: {
+      [DFDTransferFunction.linear]: [GLCapabilityType.astc_hdr]
     },
     [KTX2TargetFormat.R16G16B16A16]: {
       [DFDTransferFunction.linear]: [GLCapabilityType.textureHalfFloat],
@@ -213,6 +216,8 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         return TextureFormat.R8G8B8A8;
       case KTX2TargetFormat.BC6H:
         return TextureFormat.BC6H;
+      case KTX2TargetFormat.ASTC_HDR_4x4:
+        return TextureFormat.ASTC_4x4;
       case KTX2TargetFormat.R16G16B16A16:
         return TextureFormat.R16G16B16A16;
     }

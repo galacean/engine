@@ -82,6 +82,7 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
     ASTC_4x4 = 10,
     RGBA8 = 13,
     BC6H = 22,
+    ASTC_HDR_4x4 = 23,
     RGBA_HALF = 25
   }
 
@@ -98,6 +99,7 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
     RG8,
     RGBA8,
     BC6H,
+    ASTC_HDR_4x4,
     RGBA16
   }
 
@@ -117,6 +119,8 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
         return BasisFormat.BC7;
       case TargetFormat.BC6H:
         return BasisFormat.BC6H;
+      case TargetFormat.ASTC_HDR_4x4:
+        return BasisFormat.ASTC_HDR_4x4;
       case TargetFormat.RGBA16:
         return BasisFormat.RGBA_HALF;
     }

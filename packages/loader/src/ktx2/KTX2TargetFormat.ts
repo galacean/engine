@@ -20,6 +20,8 @@ export enum KTX2TargetFormat {
   R8G8B8A8,
   /** RGB HDR compressed format, 8 bits per pixel. */
   BC6H,
+  /** HDR, RGBA (currently UASTC HDR 4x4 encoders are only RGB), unsigned. */
+  ASTC_HDR_4x4,
   /** RGBA format, 16 bits per channel. */
   R16G16B16A16
 }
