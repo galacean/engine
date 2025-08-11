@@ -66,8 +66,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       [DFDTransferFunction.linear]: [GLCapabilityType.astc_hdr]
     },
     [KTX2TargetFormat.R16G16B16A16]: {
-      [DFDTransferFunction.linear]: [GLCapabilityType.textureHalfFloat],
-      [DFDTransferFunction.sRGB]: [GLCapabilityType.textureHalfFloat]
+      [DFDTransferFunction.linear]: [GLCapabilityType.textureHalfFloat]
     },
     [KTX2TargetFormat.PVRTC]: { [DFDTransferFunction.linear]: [GLCapabilityType.pvrtc, GLCapabilityType.pvrtc_webkit] }
   };
