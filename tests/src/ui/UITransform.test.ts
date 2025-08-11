@@ -1,10 +1,9 @@
 import { WebGLEngine } from "@galacean/engine";
 import {
   UICanvas,
-  UIHorizontalAlignmentFlags,
-  UIVerticalAlignmentFlags,
+  HorizontalAlignmentFlags,
   UITransform,
-  UITransformModifyFlags
+  VerticalAlignmentFlags,
 } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
 
@@ -66,15 +65,15 @@ describe("UITransform", async () => {
       const t = child.transform as UITransform;
 
       // Parent default size (100,100), pivot (0.5,0.5)
-      t.horizontalAlignment = UIHorizontalAlignmentFlags.Left;
+      t.horizontalAlignment = HorizontalAlignmentFlags.Left;
       t.left = 10;
       expect(t.position.x).to.eq(10);
 
-      t.horizontalAlignment = UIHorizontalAlignmentFlags.Center;
+      t.horizontalAlignment = HorizontalAlignmentFlags.Center;
       t.center = 5;
       expect(t.position.x).to.eq(5);
 
-      t.horizontalAlignment = UIHorizontalAlignmentFlags.Right;
+      t.horizontalAlignment = HorizontalAlignmentFlags.Right;
       t.right = 7;
       expect(t.position.x).to.eq(-7);
     });
@@ -90,15 +89,15 @@ describe("UITransform", async () => {
       const child = customParent.createChild("child");
       const t = child.transform as UITransform;
 
-      t.horizontalAlignment = UIHorizontalAlignmentFlags.Left;
+      t.horizontalAlignment = HorizontalAlignmentFlags.Left;
       t.left = 10;
       expect(t.position.x).to.eq(20);
 
-      t.horizontalAlignment = UIHorizontalAlignmentFlags.Center;
+      t.horizontalAlignment = HorizontalAlignmentFlags.Center;
       t.center = 5;
       expect(t.position.x).to.eq(65);
 
-      t.horizontalAlignment = UIHorizontalAlignmentFlags.Right;
+      t.horizontalAlignment = HorizontalAlignmentFlags.Right;
       t.right = 7;
       expect(t.position.x).to.eq(103);
     });
@@ -109,15 +108,15 @@ describe("UITransform", async () => {
       const child = canvasEntity.createChild("child-vert");
       const t = child.transform as UITransform;
 
-      t.verticalAlignment = UIVerticalAlignmentFlags.Top;
+      t.verticalAlignment = VerticalAlignmentFlags.Top;
       t.top = 10;
       expect(t.position.y).to.eq(-10);
 
-      t.verticalAlignment = UIVerticalAlignmentFlags.Middle;
+      t.verticalAlignment = VerticalAlignmentFlags.Middle;
       t.middle = 3;
       expect(t.position.y).to.eq(3);
 
-      t.verticalAlignment = UIVerticalAlignmentFlags.Bottom;
+      t.verticalAlignment = VerticalAlignmentFlags.Bottom;
       t.bottom = 8;
       expect(t.position.y).to.eq(8);
     });
@@ -132,15 +131,15 @@ describe("UITransform", async () => {
       const child = customParent.createChild("child-vert");
       const t = child.transform as UITransform;
 
-      t.verticalAlignment = UIVerticalAlignmentFlags.Top;
+      t.verticalAlignment = VerticalAlignmentFlags.Top;
       t.top = 10;
       expect(t.position.y).to.eq(-30);
 
-      t.verticalAlignment = UIVerticalAlignmentFlags.Middle;
+      t.verticalAlignment = VerticalAlignmentFlags.Middle;
       t.middle = 3;
       expect(t.position.y).to.eq(-42);
 
-      t.verticalAlignment = UIVerticalAlignmentFlags.Bottom;
+      t.verticalAlignment = VerticalAlignmentFlags.Bottom;
       t.bottom = 8;
       expect(t.position.y).to.eq(-62);
     });
@@ -151,13 +150,13 @@ describe("UITransform", async () => {
       const child = canvasEntity.createChild("child-stretch");
       const t = child.transform as UITransform;
 
-      t.horizontalAlignment = UIHorizontalAlignmentFlags.LeftAndRight;
+      t.horizontalAlignment = HorizontalAlignmentFlags.LeftAndRight;
       t.left = 10;
       t.right = 20;
       expect(t.size.x).to.eq(70);
       expect(t.position.x).to.eq(-5);
 
-      t.verticalAlignment = UIVerticalAlignmentFlags.TopAndBottom;
+      t.verticalAlignment = VerticalAlignmentFlags.TopAndBottom;
       t.top = 10;
       t.bottom = 20;
       expect(t.size.y).to.eq(70);
@@ -174,13 +173,13 @@ describe("UITransform", async () => {
       const child = customParent.createChild("child-stretch");
       const t = child.transform as UITransform;
 
-      t.horizontalAlignment = UIHorizontalAlignmentFlags.LeftAndRight;
+      t.horizontalAlignment = HorizontalAlignmentFlags.LeftAndRight;
       t.left = 10;
       t.right = 20;
       expect(t.size.x).to.eq(170);
       expect(t.position.x).to.eq(55);
 
-      t.verticalAlignment = UIVerticalAlignmentFlags.TopAndBottom;
+      t.verticalAlignment = VerticalAlignmentFlags.TopAndBottom;
       t.top = 10;
       t.bottom = 20;
       expect(t.size.y).to.eq(120);
@@ -193,9 +192,9 @@ describe("UITransform", async () => {
     const child = canvasEntity.createChild("child-world");
     const t = child.transform as UITransform;
 
-    t.horizontalAlignment = UIHorizontalAlignmentFlags.Center;
+    t.horizontalAlignment = HorizontalAlignmentFlags.Center;
     t.center = 5;
-    t.verticalAlignment = UIVerticalAlignmentFlags.Bottom;
+    t.verticalAlignment = VerticalAlignmentFlags.Bottom;
     t.bottom = 8;
 
     // Move parent, worldPosition should offset accordingly (no rotation/scale applied)
@@ -210,3 +209,28 @@ describe("UITransform", async () => {
   });
 });
 
+enum UITransformModifyFlags {
+  LocalEuler = 0x1,
+  LocalQuat = 0x2,
+  WorldPosition = 0x4,
+  LocalMatrix = 0x40,
+  WorldMatrix = 0x80,
+  Size = 0x200,
+  Pivot = 0x400,
+  LocalPosition = 0x800,
+  LocalRect = 0x1000,
+
+  LsLr = Size | LocalRect,
+  /** Local matrix | local position. */
+  LmLp = LocalMatrix | LocalPosition,
+  /** Local rect | World matrix | world position. */
+  LrWmWp = LocalRect | WorldMatrix | WorldPosition,
+  /** World matrix | world position. */
+  WmWp = WorldMatrix | WorldPosition,
+  /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale */
+  WmWpWeWqWs = 0xbc,
+  /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale | WorldUniformScaling */
+  WmWpWeWqWsWus = 0x1bc,
+  /** Local rect | World matrix | world position | world Euler | world quaternion | world scale | world uniform scaling */
+  LrWmWpWeWqWsWus = 0x11bc
+}
