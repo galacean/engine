@@ -109,6 +109,8 @@ export enum NoneTerminal {
 
   // Macro
   macro_undef,
+  macro_push_context,
+  macro_pop_context,
   global_macro_if_statement,
   global_macro_declaration,
   macro_if_statement,

@@ -1264,11 +1264,7 @@ export namespace ASTNode {
       // #endif
 
       this.symbolInfo = sa.lookupSymbolBy(token.lexeme, ESymbolType.VAR) as VarSymbol;
-      // #if _VERBOSE
-      if (!this.symbolInfo) {
-        sa.reportError(this.location, `undeclared identifier: ${token.lexeme}`);
-      }
-      // #endif
+
       this.typeInfo = this.symbolInfo?.dataType?.type;
     }
 
@@ -1319,6 +1315,28 @@ export namespace ASTNode {
   export class MacroUndef extends TreeNode {
     override codeGen(visitor: CodeGenVisitor) {
       return visitor.defaultCodeGen(this.children) + "\n";
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.macro_push_context)
+  export class MacroPushContext extends TreeNode {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      sa._isInMacroBranch = true;
+    }
+
+    override codeGen(visitor: CodeGenVisitor) {
+      return visitor.visitMacroStatement(this);
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.macro_pop_context)
+  export class MacroPopContext extends TreeNode {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      sa._isInMacroBranch = false;
+    }
+
+    override codeGen(visitor: CodeGenVisitor) {
+      return visitor.visitMacroStatement(this);
     }
   }
 

@@ -37,17 +37,8 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.global_macro_if_statement,
     [
-      [
-        Keyword.MACRO_IF,
-        NoneTerminal.macro_conditional_expression,
-        NoneTerminal.global_macro_declaration,
-        NoneTerminal.global_macro_branch
-      ],
-      [Keyword.MACRO_IFDEF, ETokenType.ID, NoneTerminal.global_macro_declaration, NoneTerminal.global_macro_branch],
-      [Keyword.MACRO_IFNDEF, ETokenType.ID, NoneTerminal.global_macro_declaration, NoneTerminal.global_macro_branch],
-      [Keyword.MACRO_IF, NoneTerminal.macro_conditional_expression, NoneTerminal.global_macro_branch],
-      [Keyword.MACRO_IFDEF, ETokenType.ID, NoneTerminal.global_macro_branch],
-      [Keyword.MACRO_IFNDEF, ETokenType.ID, NoneTerminal.global_macro_branch]
+      [NoneTerminal.macro_push_context, NoneTerminal.global_macro_declaration, NoneTerminal.global_macro_branch],
+      [NoneTerminal.macro_push_context, NoneTerminal.global_macro_branch]
     ],
     ASTNode.GlobalMacroIfStatement.pool
   ),
@@ -55,16 +46,16 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.global_macro_branch,
     [
-      [Keyword.MACRO_ENDIF],
+      [NoneTerminal.macro_pop_context],
       [
         Keyword.MACRO_ELIF,
         NoneTerminal.macro_conditional_expression,
         NoneTerminal.global_macro_declaration,
         NoneTerminal.global_macro_branch
       ],
-      [Keyword.MACRO_ELSE, NoneTerminal.global_macro_declaration, Keyword.MACRO_ENDIF],
+      [Keyword.MACRO_ELSE, NoneTerminal.global_macro_declaration, NoneTerminal.macro_pop_context],
       [Keyword.MACRO_ELIF, NoneTerminal.macro_conditional_expression, NoneTerminal.global_macro_branch],
-      [Keyword.MACRO_ELSE, Keyword.MACRO_ENDIF]
+      [Keyword.MACRO_ELSE, NoneTerminal.macro_pop_context]
     ],
     ASTNode.GlobalMacroBranch.pool
   ),
@@ -73,6 +64,22 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     NoneTerminal.macro_undef,
     [[Keyword.MACRO_UNDEF, ETokenType.ID]],
     ASTNode.MacroUndef.pool
+  ),
+
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_push_context,
+    [
+      [Keyword.MACRO_IF, NoneTerminal.macro_conditional_expression],
+      [Keyword.MACRO_IFDEF, ETokenType.ID],
+      [Keyword.MACRO_IFNDEF, ETokenType.ID]
+    ],
+    ASTNode.MacroPushContext.pool
+  ),
+
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_pop_context,
+    [[Keyword.MACRO_ENDIF]],
+    ASTNode.MacroPopContext.pool
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -903,17 +910,8 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.macro_if_statement,
     [
-      [
-        Keyword.MACRO_IF,
-        NoneTerminal.macro_conditional_expression,
-        NoneTerminal.statement_list,
-        NoneTerminal.macro_branch
-      ],
-      [Keyword.MACRO_IFDEF, ETokenType.ID, NoneTerminal.statement_list, NoneTerminal.macro_branch],
-      [Keyword.MACRO_IFNDEF, ETokenType.ID, NoneTerminal.statement_list, NoneTerminal.macro_branch],
-      [Keyword.MACRO_IF, NoneTerminal.macro_conditional_expression, NoneTerminal.macro_branch],
-      [Keyword.MACRO_IFDEF, ETokenType.ID, NoneTerminal.macro_branch],
-      [Keyword.MACRO_IFNDEF, ETokenType.ID, NoneTerminal.macro_branch]
+      [NoneTerminal.macro_push_context, NoneTerminal.statement_list, NoneTerminal.macro_branch],
+      [NoneTerminal.macro_push_context, NoneTerminal.macro_branch]
     ],
     ASTNode.MacroIfStatement.pool
   ),
@@ -921,16 +919,16 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.macro_branch,
     [
-      [Keyword.MACRO_ENDIF],
+      [NoneTerminal.macro_pop_context],
       [
         Keyword.MACRO_ELIF,
         NoneTerminal.macro_conditional_expression,
         NoneTerminal.statement_list,
         NoneTerminal.macro_branch
       ],
-      [Keyword.MACRO_ELSE, NoneTerminal.statement_list, Keyword.MACRO_ENDIF],
+      [Keyword.MACRO_ELSE, NoneTerminal.statement_list, NoneTerminal.macro_pop_context],
       [Keyword.MACRO_ELIF, NoneTerminal.macro_conditional_expression, NoneTerminal.macro_branch],
-      [Keyword.MACRO_ELSE, Keyword.MACRO_ENDIF]
+      [Keyword.MACRO_ELSE, NoneTerminal.macro_pop_context]
     ],
     ASTNode.MacroBranch.pool
   ),

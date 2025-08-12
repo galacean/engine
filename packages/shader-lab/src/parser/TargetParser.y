@@ -84,25 +84,32 @@ global_macro_declaration:
 
 
 global_macro_if_statement:
-    MACRO_IF macro_conditional_expression global_macro_declaration global_macro_branch
-    | MACRO_IFDEF id global_macro_declaration global_macro_branch
-    | MACRO_IFNDEF id global_macro_declaration global_macro_branch
-    | MACRO_IF macro_conditional_expression global_macro_branch
-    | MACRO_IFDEF id global_macro_branch
-    | MACRO_IFNDEF id global_macro_branch
+    macro_push_context global_macro_declaration global_macro_branch
+    | macro_push_context global_macro_branch
     ;
 
 global_macro_branch:
-    MACRO_ENDIF
+    macro_pop_context
     | MACRO_ELIF macro_conditional_expression global_macro_declaration global_macro_branch
-    | MACRO_ELSE global_macro_declaration MACRO_ENDIF
+    | MACRO_ELSE global_macro_declaration macro_pop_context
     | MACRO_ELIF macro_conditional_expression global_macro_branch
-    | MACRO_ELSE MACRO_ENDIF
+    | MACRO_ELSE macro_pop_context
     ;
 
 macro_undef:
     MACRO_UNDEF id
     ;
+
+macro_push_context:
+     MACRO_IF macro_conditional_expression 
+     | MACRO_IFDEF id
+     | MACRO_IFNDEF id
+     ;
+
+macro_pop_context:
+    MACRO_ENDIF
+    ;
+
 
 variable_declaration:
     fully_specified_type id
@@ -489,20 +496,16 @@ selection_statement:
     ;
 
 macro_if_statement: 
-    MACRO_IF macro_conditional_expression statement_list macro_branch
-    | MACRO_IFDEF id statement_list macro_branch
-    | MACRO_IFNDEF id statement_list macro_branch
-    | MACRO_IF macro_conditional_expression macro_branch
-    | MACRO_IFDEF id macro_branch
-    | MACRO_IFNDEF id macro_branch
+    macro_push_context statement_list macro_branch
+    | macro_push_context macro_branch
     ;
 
 macro_branch: 
-    MACRO_ENDIF
+    macro_pop_context
     | MACRO_ELIF macro_conditional_expression statement_list macro_branch
-    | MACRO_ELSE statement_list MACRO_ENDIF
+    | MACRO_ELSE statement_list macro_pop_context
     | MACRO_ELIF macro_conditional_expression macro_branch
-    | MACRO_ELSE MACRO_ENDIF
+    | MACRO_ELSE macro_pop_context
     ;
 
 macro_conditional_expression
