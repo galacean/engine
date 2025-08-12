@@ -227,7 +227,7 @@ export class ParticleRenderer extends Renderer {
     }
 
     if (material.destroyed || material.shader.destroyed) {
-      material = this.engine._particleMagentaMaterial;
+      material = this.engine._basicResources.particleMagentaMaterial;
     }
 
     const engine = this._engine;
