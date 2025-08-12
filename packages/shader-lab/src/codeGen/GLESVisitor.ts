@@ -90,9 +90,9 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     globalCodeArray.length = 0;
     GLESVisitor._serializedGlobalKey.clear();
 
+    this._getGlobalMacroDeclarations(outerGlobalMacroDeclarations, globalCodeArray);
     this._getGlobalSymbol(globalCodeArray);
     this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
-    this._getGlobalMacroDeclarations(outerGlobalMacroDeclarations, globalCodeArray);
     this.getAttributeDeclare(globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
 
@@ -144,9 +144,9 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     globalCodeArray.length = 0;
     GLESVisitor._serializedGlobalKey.clear();
 
+    this._getGlobalMacroDeclarations(outerGlobalMacroStatements, globalCodeArray);
     this._getGlobalSymbol(globalCodeArray);
     this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
-    this._getGlobalMacroDeclarations(outerGlobalMacroStatements, globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
     this.getMRTDeclare(globalCodeArray);
 
