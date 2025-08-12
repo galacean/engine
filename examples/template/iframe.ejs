@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <style>
+      html,
+      body,
+      canvas {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: black;
+        border: none;
+      }
+
+      .dg.main > ul {
+        overflow: initial;
+      }
+    </style>
+  </head>
+
+  <body>
+    <canvas id="canvas"></canvas>
+    <script type="module" src="<%= url %>"></script>
+    <script>
+      document.oncontextmenu = (e) => {
+        e.preventDefault();
+      };
+    </script>
+  </body>
+</html>

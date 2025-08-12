@@ -30,7 +30,7 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import { OrbitControl } from "@galacean/engine-toolkit-controls";
+import { OrbitControl } from "@galacean/engine-toolkit";
 import * as dat from "dat.gui";
 
 Logger.enable();
@@ -197,6 +197,7 @@ class Oasis {
     if (!this.state.addLights) {
       this.light1.enabled = this.light2.enabled = false;
     }
+    // @ts-ignore
     this.light1.intensity = this.light2.intensity = this.state.lightIntensity;
     this.lightEntity1.transform.setRotation(30, 0, 0);
     this.lightEntity2.transform.setRotation(-30, 180, 0);
@@ -250,6 +251,7 @@ class Oasis {
     lightFolder
       .add(this.state, "lightIntensity", 0, 2)
       .onChange((v) => {
+        // @ts-ignore
         this.light1.intensity = this.light2.intensity = v;
       })
       .name("直接光强度");

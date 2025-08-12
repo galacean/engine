@@ -8,6 +8,7 @@
     "pretest": "pnpm exec playwright install",
     "test": "vitest",
     "coverage": "vitest --coverage",
+    "examples": "pnpm --filter @galacean/engine-examples dev",
     "build": "npm run b:module && npm run b:types",
     "lint": "eslint packages/*/src --ext .ts",
     "watch": "cross-env NODE_ENV=release BUILD_TYPE=MODULE rollup -cw -m inline",

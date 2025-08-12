@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en" class="w-full h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Galacean Playground</title>
+    <link rel="icon" href="https://mdn.alipayobjects.com/huamei_dc3kgb/afts/img/A*yHe-TqU1TOkAAAAAAAAAAAAADuiaAQ/original" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'galacean': {
+                50: '#f0f9ff',
+                100: '#e0f2fe',
+                500: '#0ea5e9',
+                600: '#0284c7',
+                700: '#0369a1',
+                900: '#0c4a6e'
+              }
+            },
+            fontFamily: {
+              'sans': ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif']
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      /* Custom styles */
+      .search-input {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='%236b7280'%3e%3cpath stroke-linecap='round' stroke-linejoin='round' d='M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z' /%3e%3c/svg%3e");
+        background-position: 12px center;
+        background-repeat: no-repeat;
+        background-size: 16px 16px;
+      }
+
+      .item-list .hide {
+        height: 0 !important;
+        opacity: 0;
+        overflow: hidden;
+      }
+
+      .item-list a.active {
+        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
+      }
+
+      .item-list a.active .demo-item {
+        background: transparent !important;
+      }
+
+      .item-list a.active .demo-item span {
+        color: white !important;
+      }
+
+      .item-list a.active .demo-item .w-2 {
+        background-color: white !important;
+      }
+
+      .sidebar-gradient {
+        background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+        border-right: 1px solid #e2e8f0;
+      }
+
+      .category-title {
+        background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .demo-item {
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .demo-item:hover {
+        background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .fullscreen-btn {
+        transition: all 0.2s ease;
+        filter: grayscale(1);
+      }
+
+      .fullscreen-btn:hover {
+        filter: grayscale(0);
+        transform: scale(1.1);
+      }
+    </style>
+  </head>
+  <body class="m-0 w-full h-full overflow-hidden font-sans text-slate-800 bg-white antialiased">
+    <div class="flex h-full">
+      <div class="sidebar-gradient w-80 flex flex-col shadow-xl">
+        <div class="px-6 py-6 border-b border-slate-200/60">
+          <div class="flex items-center justify-between mb-6">
+            <a class="flex items-center space-x-3 text-slate-900 hover:text-galacean-600 transition-colors duration-200"
+               href="https://galacean.antgroup.com/" target="Home">
+              <div class="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-lg">
+                <img
+                  class="w-6 h-6"
+                  src="https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*ppQsSphM7uUAAAAAAAAAAAAADtKFAQ/original"
+                  alt="Galacean Logo"
+                />
+              </div>
+              <div>
+                <h1 class="text-lg font-semibold tracking-tight">Galacean</h1>
+                <p class="text-xs text-slate-500 font-medium">Playground</p>
+              </div>
+            </a>
+
+            <button
+              id="fullScreen"
+              class="fullscreen-btn w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 hover:border-slate-300 shadow-sm"
+              title="Open in fullscreen"
+            >
+              <img
+                class="w-4 h-4"
+                src="https://mdn.alipayobjects.com/huamei_dmxymu/afts/img/A*lmbpRpr9QugAAAAAAAAAAAAADuuHAQ/original"
+                alt="Fullscreen"
+              />
+            </button>
+          </div>
+
+          <div class="relative">
+            <input
+              placeholder="Search examples..."
+              class="search-input w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-galacean-500 focus:border-transparent shadow-sm transition-all duration-200"
+              id="searchBar"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck="false"
+            />
+          </div>
+        </div>
+        <div class="item-list flex-1 overflow-y-auto px-4 py-4" id="itemList">
+        </div>
+      </div>
+
+      <div class="flex-1 bg-slate-50">
+        <iframe
+          id="iframe"
+          allowfullscreen
+          src=""
+          frameborder="0"
+          class="w-full h-full bg-white shadow-inner"
+        ></iframe>
+      </div>
+    </div>
+
+    <script type="module" src="./index.js"></script>
+  </body>
+</html>
