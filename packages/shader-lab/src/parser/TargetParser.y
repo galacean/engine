@@ -87,12 +87,17 @@ global_macro_if_statement:
     MACRO_IF macro_conditional_expression global_macro_declaration global_macro_branch
     | MACRO_IFDEF id global_macro_declaration global_macro_branch
     | MACRO_IFNDEF id global_macro_declaration global_macro_branch
+    | MACRO_IF macro_conditional_expression global_macro_branch
+    | MACRO_IFDEF id global_macro_branch
+    | MACRO_IFNDEF id global_macro_branch
     ;
 
 global_macro_branch:
     MACRO_ENDIF
     | MACRO_ELIF macro_conditional_expression global_macro_declaration global_macro_branch
     | MACRO_ELSE global_macro_declaration MACRO_ENDIF
+    | MACRO_ELIF macro_conditional_expression global_macro_branch
+    | MACRO_ELSE MACRO_ENDIF
     ;
 
 macro_undef:
@@ -487,12 +492,17 @@ macro_if_statement:
     MACRO_IF macro_conditional_expression statement_list macro_branch
     | MACRO_IFDEF id statement_list macro_branch
     | MACRO_IFNDEF id statement_list macro_branch
+    | MACRO_IF macro_conditional_expression macro_branch
+    | MACRO_IFDEF id macro_branch
+    | MACRO_IFNDEF id macro_branch
     ;
 
 macro_branch: 
     MACRO_ENDIF
     | MACRO_ELIF macro_conditional_expression statement_list macro_branch
     | MACRO_ELSE statement_list MACRO_ENDIF
+    | MACRO_ELIF macro_conditional_expression macro_branch
+    | MACRO_ELSE MACRO_ENDIF
     ;
 
 macro_conditional_expression
