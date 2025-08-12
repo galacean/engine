@@ -508,11 +508,13 @@ export class PpParser {
         level++;
       } else if (charCode === 41) {
         if (--level === 0) {
-          args.push(source.substring(argStart, k));
+          const arg = source.substring(argStart, k).trim();
+          if (arg.length > 0) args.push(arg);
           break;
         }
       } else if (charCode === 44 && level === 1) {
-        args.push(source.substring(argStart, k));
+        const arg = source.substring(argStart, k).trim();
+        if (arg.length > 0) args.push(arg);
         argStart = k + 1;
       }
       k++;
