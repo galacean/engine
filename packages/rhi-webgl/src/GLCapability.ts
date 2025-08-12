@@ -219,10 +219,7 @@ export class GLCapability {
     cap.set(astc_hdr, false);
     if (astcExtension) {
       const supportedProfiles = astcExtension.getSupportedProfiles();
-      const hdrProfiles = supportedProfiles.filter((p) => p.includes("hdr"));
-      if (hdrProfiles.length > 0) {
-        cap.set(astc_hdr, true);
-      }
+      cap.set(astc_hdr, supportedProfiles.includes("hdr"));
     }
 
     cap.set(sRGB, isWebGL2 || !!requireExtension(sRGB));
