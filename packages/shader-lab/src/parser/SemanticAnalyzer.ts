@@ -39,11 +39,6 @@ export default class SemanticAnalyzer {
   readonly errors: Error[] = [];
   // #endif
 
-  /**
-   * @internal
-   */
-  _isInMacroBranch = false;
-
   get shaderData() {
     return this._shaderData;
   }

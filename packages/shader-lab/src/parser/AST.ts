@@ -1321,7 +1321,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.macro_push_context)
   export class MacroPushContext extends TreeNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      sa._isInMacroBranch = true;
+      sa.symbolTableStack._isInMacroBranch = true;
     }
 
     override codeGen(visitor: CodeGenVisitor) {
@@ -1332,7 +1332,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.macro_pop_context)
   export class MacroPopContext extends TreeNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      sa._isInMacroBranch = false;
+      sa.symbolTableStack._isInMacroBranch = false;
     }
 
     override codeGen(visitor: CodeGenVisitor) {

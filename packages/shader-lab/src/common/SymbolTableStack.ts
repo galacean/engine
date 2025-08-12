@@ -1,8 +1,13 @@
-import { SymbolTable } from "./SymbolTable";
 import { IBaseSymbol } from "./IBaseSymbol";
+import { SymbolTable } from "./SymbolTable";
 
 export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
   stack: T[] = [];
+
+  /**
+   * @internal
+   */
+  _isInMacroBranch = false;
 
   get scope(): T {
     return this.stack[this.stack.length - 1];
@@ -21,6 +26,9 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
   }
 
   insert(symbol: S): void {
+    if (this._isInMacroBranch) {
+      return;
+    }
     this.scope.insert(symbol);
   }
 
