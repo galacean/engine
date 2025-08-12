@@ -59,6 +59,7 @@
 %token CONTINUE BREAK RETURN DISCARD
 
 %token MACRO_IF MACRO_IFDEF MACRO_IFNDEF MACRO_ELIF MACRO_ELSE MACRO_DEFINED MACRO_ENDIF
+%token MACRO_UNDEF MACRO_DEFINE_EXPRESSION
 
 
 %%
@@ -73,6 +74,8 @@ global_declaration:
     | struct_specifier
     | function_definition
     | global_macro_if_statement
+    | macro_undef
+    | MACRO_DEFINE_EXPRESSION
     ;
 
 global_macro_declaration:
@@ -90,6 +93,10 @@ global_macro_branch:
     MACRO_ENDIF
     | MACRO_ELIF macro_conditional_expression global_macro_declaration global_macro_branch
     | MACRO_ELSE global_macro_declaration MACRO_ENDIF
+    ;
+
+macro_undef:
+    MACRO_UNDEF id
     ;
 
 variable_declaration:
@@ -423,6 +430,8 @@ simple_statement:
     | iteration_statement
     | jump_statement
     | macro_if_statement
+    | macro_undef
+    | MACRO_DEFINE_EXPRESSION
     ;
 
 declaration:

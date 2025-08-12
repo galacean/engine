@@ -21,7 +21,9 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.variable_declaration_statement],
       [NoneTerminal.struct_specifier],
       [NoneTerminal.function_definition],
-      [NoneTerminal.global_macro_if_statement]
+      [NoneTerminal.global_macro_if_statement],
+      [NoneTerminal.macro_undef],
+      [Keyword.MACRO_DEFINE_EXPRESSION]
     ],
     ASTNode.GlobalDeclaration.pool
   ),
@@ -60,6 +62,12 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [Keyword.MACRO_ELSE, NoneTerminal.global_macro_declaration, Keyword.MACRO_ENDIF]
     ],
     ASTNode.GlobalMacroBranch.pool
+  ),
+
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_undef,
+    [[Keyword.MACRO_UNDEF, ETokenType.ID]],
+    ASTNode.MacroUndef.pool
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -669,7 +677,9 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.selection_statement],
       [NoneTerminal.iteration_statement],
       [NoneTerminal.jump_statement],
-      [NoneTerminal.macro_if_statement]
+      [NoneTerminal.macro_if_statement],
+      [NoneTerminal.macro_undef],
+      [Keyword.MACRO_DEFINE_EXPRESSION]
     ],
     // #if _VERBOSE
     ASTNode.SimpleStatement.pool

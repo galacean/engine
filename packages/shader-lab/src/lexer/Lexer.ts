@@ -81,7 +81,8 @@ export class Lexer extends BaseLexer {
     "#else": Keyword.MACRO_ELSE,
     "#elif": Keyword.MACRO_ELIF,
     defined: Keyword.MACRO_DEFINED,
-    "#endif": Keyword.MACRO_ENDIF
+    "#endif": Keyword.MACRO_ENDIF,
+    "#undef": Keyword.MACRO_UNDEF
   };
 
   *tokenize() {
@@ -392,9 +393,20 @@ export class Lexer extends BaseLexer {
     }
     const token = BaseToken.pool.get();
     const word = buffer.join("");
-    const kt = Lexer._lexemeTable[word];
 
-    token.set(kt ?? ETokenType.ID, word, start);
+    // If it is a macro definition, we need to skip the rest of the line
+    if (word === "#define") {
+      while (this.getCurChar() !== "\n" && !this.isEnd()) {
+        buffer.push(this.getCurChar());
+        this.advance(1);
+      }
+      const word = buffer.join("") + "\n";
+      token.set(Keyword.MACRO_DEFINE_EXPRESSION, word, start);
+    } else {
+      const kt = Lexer._lexemeTable[word];
+      token.set(kt ?? ETokenType.ID, word, start);
+    }
+
     return token;
   }
 

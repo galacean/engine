@@ -29,18 +29,18 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const shaderData = node.shaderData;
     VisitorContext.context._passSymbolTable = shaderData.symbolTable;
 
-    const outerGlobalMacroStatements = shaderData.getOuterGlobalMacroStatements();
+    const outerGlobalMacroDeclarations = shaderData.getOuterGlobalMacroDeclarations();
 
     return {
-      vertex: this._vertexMain(vertexEntry, shaderData, outerGlobalMacroStatements),
-      fragment: this._fragmentMain(fragmentEntry, shaderData, outerGlobalMacroStatements)
+      vertex: this._vertexMain(vertexEntry, shaderData, outerGlobalMacroDeclarations),
+      fragment: this._fragmentMain(fragmentEntry, shaderData, outerGlobalMacroDeclarations)
     };
   }
 
   private _vertexMain(
     entry: string,
     data: ShaderData,
-    outerGlobalMacroStatements: ASTNode.GlobalMacroIfStatement[]
+    outerGlobalMacroDeclarations: ASTNode.GlobalDeclaration[]
   ): string {
     const lookupSymbol = GLESVisitor._lookupSymbol;
     const { symbolTable } = data;
@@ -92,7 +92,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     this._getGlobalSymbol(globalCodeArray);
     this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
-    this._getGlobalMacroStatements(outerGlobalMacroStatements, globalCodeArray);
+    this._getGlobalMacroDeclarations(outerGlobalMacroDeclarations, globalCodeArray);
     this.getAttributeDeclare(globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
 
@@ -109,7 +109,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   private _fragmentMain(
     entry: string,
     data: ShaderData,
-    outerGlobalMacroStatements: ASTNode.GlobalMacroIfStatement[]
+    outerGlobalMacroStatements: ASTNode.GlobalDeclaration[]
   ): string {
     const lookupSymbol = GLESVisitor._lookupSymbol;
     const { symbolTable } = data;
@@ -146,7 +146,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     this._getGlobalSymbol(globalCodeArray);
     this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
-    this._getGlobalMacroStatements(outerGlobalMacroStatements, globalCodeArray);
+    this._getGlobalMacroDeclarations(outerGlobalMacroStatements, globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
     this.getMRTDeclare(globalCodeArray);
 
@@ -191,7 +191,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     }
   }
 
-  private _getGlobalMacroStatements(macros: ASTNode.GlobalMacroIfStatement[], out: ICodeSegment[]): void {
+  private _getGlobalMacroDeclarations(macros: ASTNode.GlobalDeclaration[], out: ICodeSegment[]): void {
     for (const macro of macros) {
       out.push({ text: macro.codeGen(this), index: macro.location.start.index });
     }

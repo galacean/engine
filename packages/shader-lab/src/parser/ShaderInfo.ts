@@ -9,9 +9,9 @@ export class ShaderData {
 
   globalPrecisions: ASTNode.PrecisionSpecifier[] = [];
 
-  globalMacroStatements: ASTNode.GlobalMacroIfStatement[] = [];
+  globalMacroDeclarations: ASTNode.GlobalDeclaration[] = [];
 
-  getOuterGlobalMacroStatements(): ASTNode.GlobalMacroIfStatement[] {
-    return this.globalMacroStatements.filter((node) => node.parent.parent instanceof ASTNode.GLShaderProgram);
+  getOuterGlobalMacroDeclarations(): ASTNode.GlobalDeclaration[] {
+    return this.globalMacroDeclarations.filter((node) => node.parent instanceof ASTNode.GLShaderProgram);
   }
 }

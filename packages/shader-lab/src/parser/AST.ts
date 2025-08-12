@@ -1288,17 +1288,21 @@ export namespace ASTNode {
   }
 
   @ASTNodeDecorator(NoneTerminal.global_declaration)
-  export class GlobalDeclaration extends TreeNode {}
+  export class GlobalDeclaration extends TreeNode {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      const child = this.children[0];
+
+      if (child instanceof MacroUndef || child instanceof GlobalMacroIfStatement || child instanceof BaseToken) {
+        sa.shaderData.globalMacroDeclarations.push(this);
+      }
+    }
+  }
 
   @ASTNodeDecorator(NoneTerminal.global_macro_declaration)
   export class GlobalMacroDeclaration extends TreeNode {}
 
   @ASTNodeDecorator(NoneTerminal.global_macro_if_statement)
   export class GlobalMacroIfStatement extends TreeNode {
-    override semanticAnalyze(sa: SemanticAnalyzer): void {
-      sa.shaderData.globalMacroStatements.push(this);
-    }
-
     override codeGen(visitor: CodeGenVisitor) {
       return visitor.visitMacroStatement(this);
     }
@@ -1308,6 +1312,13 @@ export namespace ASTNode {
   export class GlobalMacroBranch extends TreeNode {
     override codeGen(visitor: CodeGenVisitor) {
       return visitor.visitMacroStatement(this);
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.macro_undef)
+  export class MacroUndef extends TreeNode {
+    override codeGen(visitor: CodeGenVisitor) {
+      return visitor.defaultCodeGen(this.children) + "\n";
     }
   }
 
