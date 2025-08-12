@@ -33,9 +33,6 @@ export class PpParser {
   private static _definedMacros: Map<string, MacroDefine> = new Map();
   private static _expandSegmentsStack: ExpandSegment[][] = [[]];
 
-  /** Referenced by branch macro or defined operator */
-  private static _branchMacros: Set<string> = new Set();
-
   private static _expandVisitedMacros: Record<string, number> = {};
   private static _expandVersionId: number = 1;
 
@@ -72,7 +69,6 @@ export class PpParser {
       this._basePathForIncludeKey = basePathForIncludeKey;
     } else {
       this._definedMacros.clear();
-      this._branchMacros.clear();
       this._addPredefinedMacro("GL_ES");
     }
 
@@ -183,19 +179,26 @@ export class PpParser {
   private static _parseIfDirective(lexer: PpLexer, directiveType: PpKeyword): void {
     const directiveLength = directiveType === PpKeyword.if ? 3 : directiveType === PpKeyword.ifdef ? 6 : 7; // #if = 3,  #ifdef = 6, #ifndef = 7
     const start = lexer.currentIndex - directiveLength;
+    let skipMacro = false;
 
     let shouldInclude: PpConstant;
     if (directiveType === PpKeyword.if) {
       shouldInclude = this._parseConstantExpression(lexer);
     } else {
       const macroToken = lexer.scanWord();
-      this._branchMacros.add(macroToken.lexeme);
-      const defined = this._definedMacros.get(macroToken.lexeme);
-      shouldInclude = directiveType === PpKeyword.ifdef ? !!defined : !defined;
+      const lexeme = macroToken.lexeme;
+      if (lexeme.startsWith("GL_")) {
+        skipMacro = true;
+      } else {
+        const defined = this._definedMacros.get(lexeme);
+        shouldInclude = directiveType === PpKeyword.ifdef ? !!defined : !defined;
+      }
     }
 
     lexer.skipSpace(true);
     const { body, nextDirective } = lexer.scanMacroBranchBody();
+
+    if (skipMacro) return;
 
     if (shouldInclude) {
       const end = nextDirective.type === PpKeyword.endif ? lexer.getShaderPosition(0) : lexer.scanRemainMacro();
@@ -449,7 +452,6 @@ export class PpParser {
           scanner.scanToChar(")");
           scanner.advance(1);
         }
-        this._branchMacros.add(macro.lexeme);
         return !!this._definedMacros.get(macro.lexeme);
       } else {
         const macro = this._definedMacros.get(id.lexeme);
@@ -469,7 +471,6 @@ export class PpParser {
         if (!Number.isInteger(value)) {
           this._reportError(id.location, `invalid const macro: ${id.lexeme}`, scanner.source, scanner.file);
         }
-        this._branchMacros.add(id.lexeme);
         return value;
       }
     } else if (BaseLexer.isDigit(scanner.getCurCharCode())) {
