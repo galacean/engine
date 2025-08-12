@@ -73,30 +73,31 @@ export class GLES300Visitor extends GLESVisitor {
       return this.defaultCodeGen(children);
     }
     let ident = node.lexeme;
-    if (node.ident === "texture2D" || node.ident === "textureCube") {
-      ident = "texture";
-    } else if (node.ident === "texture2DProj") {
-      ident = "textureProj";
-    } else if (VisitorContext.context.stage === EShaderStage.FRAGMENT) {
-      switch (node.ident) {
-        case "texture2DLodEXT":
-        case "textureCubeLodEXT":
-          ident = "textureLod";
-          break;
-        case "texture2DGradEXT":
-        case "textureCubeGradEXT":
-          ident = "textureGrad";
-          break;
-        case "texture2DProjLodEXT":
-          ident = "textureProjLod";
-          break;
-        case "texture2DProjGradEXT":
-          ident = "textureProjGrad";
-          break;
-        case "gl_FragDepthEXT":
-          ident = "gl_FragDepth";
-          break;
-      }
+    switch (node.ident) {
+      case "texture2D":
+      case "textureCube":
+        ident = "texture";
+        break;
+      case "texture2DProj":
+        ident = "textureProj";
+        break;
+      case "texture2DLodEXT":
+      case "textureCubeLodEXT":
+        ident = "textureLod";
+        break;
+      case "texture2DGradEXT":
+      case "textureCubeGradEXT":
+        ident = "textureGrad";
+        break;
+      case "texture2DProjLodEXT":
+        ident = "textureProjLod";
+        break;
+      case "texture2DProjGradEXT":
+        ident = "textureProjGrad";
+        break;
+      case "gl_FragDepthEXT":
+        ident = "gl_FragDepth";
+        break;
     }
     return ident;
   }
