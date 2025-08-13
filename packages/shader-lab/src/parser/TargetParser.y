@@ -159,6 +159,20 @@ struct_declaration:
     type_specifier struct_declarator_list ';'
     | type_qualifier type_specifier struct_declarator_list ';'
     | layout_qualifier type_specifier struct_declarator ';'
+    | macro_struct_declaration
+    ;
+
+macro_struct_declaration: 
+    macro_push_context struct_declaration_list macro_struct_branch
+    | macro_push_context macro_struct_branch
+    ;
+    
+macro_struct_branch: 
+    macro_pop_context
+    | MACRO_ELIF macro_conditional_expression struct_declaration_list macro_struct_branch
+    | MACRO_ELSE struct_declaration_list macro_pop_context
+    | MACRO_ELIF macro_conditional_expression macro_struct_branch
+    | MACRO_ELSE macro_pop_context
     ;
 
 layout_qualifier:

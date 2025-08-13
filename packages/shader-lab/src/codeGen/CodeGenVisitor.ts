@@ -249,7 +249,11 @@ export abstract class CodeGenVisitor {
         const lexeme = child.lexeme;
         result += this._macroStartKeywords.has(child.type) ? `\n${lexeme} ` : lexeme;
       } else {
-        if (child instanceof ASTNode.StatementList || child instanceof ASTNode.GlobalMacroDeclaration) {
+        if (
+          child instanceof ASTNode.StatementList ||
+          child instanceof ASTNode.GlobalMacroDeclaration ||
+          child instanceof ASTNode.StructDeclarationList
+        ) {
           result += "\n";
         }
         result += child.codeGen(this);

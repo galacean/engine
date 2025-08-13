@@ -262,9 +262,41 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         NoneTerminal.struct_declarator_list,
         ETokenType.SEMICOLON
       ],
-      [NoneTerminal.layout_qualifier, NoneTerminal.type_specifier, NoneTerminal.struct_declarator, ETokenType.SEMICOLON]
+      [
+        NoneTerminal.layout_qualifier,
+        NoneTerminal.type_specifier,
+        NoneTerminal.struct_declarator,
+        ETokenType.SEMICOLON
+      ],
+      [NoneTerminal.macro_struct_declaration]
     ],
     ASTNode.StructDeclaration.pool
+  ),
+
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_struct_declaration,
+    [
+      [NoneTerminal.macro_push_context, NoneTerminal.struct_declaration_list, NoneTerminal.macro_struct_branch],
+      [NoneTerminal.macro_push_context, NoneTerminal.macro_struct_branch]
+    ],
+    ASTNode.MacroStructDeclaration.pool
+  ),
+
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_struct_branch,
+    [
+      [NoneTerminal.macro_pop_context],
+      [
+        Keyword.MACRO_ELIF,
+        NoneTerminal.macro_conditional_expression,
+        NoneTerminal.struct_declaration_list,
+        NoneTerminal.macro_struct_branch
+      ],
+      [Keyword.MACRO_ELSE, NoneTerminal.struct_declaration_list, NoneTerminal.macro_pop_context],
+      [Keyword.MACRO_ELIF, NoneTerminal.macro_conditional_expression, NoneTerminal.macro_struct_branch],
+      [Keyword.MACRO_ELSE, NoneTerminal.macro_pop_context]
+    ],
+    ASTNode.MacroStructBranch.pool
   ),
 
   ...GrammarUtils.createProductionWithOptions(

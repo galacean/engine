@@ -113,6 +113,8 @@ export enum NoneTerminal {
   macro_pop_context,
   global_macro_if_statement,
   global_macro_declaration,
+  macro_struct_declaration,
+  macro_struct_branch,
   macro_if_statement,
   global_macro_branch,
   macro_branch,

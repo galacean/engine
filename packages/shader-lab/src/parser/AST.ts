@@ -1099,35 +1099,45 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.struct_declaration)
   export class StructDeclaration extends TreeNode {
-    typeSpecifier: TypeSpecifier;
-    declaratorList: StructDeclaratorList;
     props: StructProp[] = [];
 
+    private _typeSpecifier?: TypeSpecifier;
+    private _declaratorList?: StructDeclaratorList;
+
     override init(): void {
-      this.typeSpecifier = undefined;
-      this.declaratorList = undefined;
+      this._typeSpecifier = undefined;
+      this._declaratorList = undefined;
       this.props.length = 0;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const { children, props } = this;
+
+      if (children.length === 1) {
+        const macroStructDeclaration = children[0] as MacroStructDeclaration;
+        if (macroStructDeclaration.props) {
+          this.props = macroStructDeclaration.props;
+        }
+        return;
+      }
+
       if (children.length === 3) {
-        this.typeSpecifier = children[0] as TypeSpecifier;
-        this.declaratorList = children[1] as StructDeclaratorList;
+        this._typeSpecifier = children[0] as TypeSpecifier;
+        this._declaratorList = children[1] as StructDeclaratorList;
       } else {
-        this.typeSpecifier = children[1] as TypeSpecifier;
-        this.declaratorList = children[2] as StructDeclaratorList;
+        this._typeSpecifier = children[1] as TypeSpecifier;
+        this._declaratorList = children[2] as StructDeclaratorList;
       }
 
       const firstChild = children[0];
-      const { type, lexeme } = this.typeSpecifier;
+      const { type, lexeme } = this._typeSpecifier;
       if (firstChild instanceof LayoutQualifier) {
         const declarator = children[2] as StructDeclarator;
         const typeInfo = new SymbolType(type, lexeme);
         const prop = new StructProp(typeInfo, declarator.ident, firstChild.index);
         props.push(prop);
       } else {
-        const declaratorList = this.declaratorList.declaratorList;
+        const declaratorList = this._declaratorList.declaratorList;
         const declaratorListLength = declaratorList.length;
         props.length = declaratorListLength;
         for (let i = 0; i < declaratorListLength; i++) {
@@ -1137,6 +1147,32 @@ export namespace ASTNode {
           props[i] = prop;
         }
       }
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.macro_struct_declaration)
+  export class MacroStructDeclaration extends TreeNode {
+    props?: StructProp[];
+
+    override semanticAnalyze(): void {
+      const children = this.children;
+
+      if (children.length === 3) {
+        this.props = (children[1] as StructDeclarationList).propList;
+      } else {
+        this.props = null;
+      }
+    }
+
+    override codeGen(visitor: CodeGenVisitor) {
+      return visitor.visitMacroStatement(this);
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.macro_struct_branch)
+  export class MacroStructBranch extends TreeNode {
+    override codeGen(visitor: CodeGenVisitor) {
+      return visitor.visitMacroStatement(this);
     }
   }
 
