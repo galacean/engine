@@ -1170,7 +1170,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.macro_struct_branch)
   export class MacroStructBranch extends TreeNode {
     override codeGen(visitor: CodeGenVisitor) {
-      return "\n" + super.codeGen(visitor) + "\n";
+      return visitor.visitMacroBranch(this);
     }
   }
 
@@ -1349,7 +1349,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.global_macro_branch)
   export class GlobalMacroBranch extends TreeNode {
     override codeGen(visitor: CodeGenVisitor) {
-      return "\n" + super.codeGen(visitor) + "\n";
+      return visitor.visitMacroBranch(this);
     }
   }
 
@@ -1376,6 +1376,10 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       sa.symbolTableStack._isInMacroBranch = false;
     }
+
+    override codeGen(visitor: CodeGenVisitor) {
+      return "\n" + super.codeGen(visitor) + "\n";
+    }
   }
 
   @ASTNodeDecorator(NoneTerminal.macro_if_statement)
@@ -1384,7 +1388,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.macro_branch)
   export class MacroBranch extends TreeNode {
     override codeGen(visitor: CodeGenVisitor) {
-      return "\n" + super.codeGen(visitor) + "\n";
+      return visitor.visitMacroBranch(this);
     }
   }
 

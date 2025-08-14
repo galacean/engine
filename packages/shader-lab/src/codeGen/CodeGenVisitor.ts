@@ -233,6 +233,34 @@ export abstract class CodeGenVisitor {
     return this.defaultCodeGen(node.children);
   }
 
+  visitMacroBranch(node: ASTNode.GlobalMacroBranch | ASTNode.MacroStructBranch | ASTNode.MacroBranch): string {
+    const children = node.children;
+    let breakLineIndex = -1;
+    let result = "";
+    if (children[0] instanceof Token) {
+      if (children[0].type === Keyword.MACRO_ELSE) {
+        breakLineIndex = 0;
+      } else {
+        breakLineIndex = 1;
+      }
+    }
+
+    for (let i = 0; i < node.children.length; ++i) {
+      const child = node.children[i];
+      if (child instanceof Token) {
+        result += `\n${child.lexeme} `;
+      } else {
+        result += child.codeGen(this);
+      }
+
+      if (i === breakLineIndex) {
+        result += "\n";
+      }
+    }
+
+    return result;
+  }
+
   protected _reportError(loc: ShaderRange | ShaderPosition, message: string): void {
     // #if _VERBOSE
     this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderLab._processingPassText));
