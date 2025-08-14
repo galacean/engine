@@ -45,7 +45,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const lookupSymbol = GLESVisitor._lookupSymbol;
     const { symbolTable } = data;
     lookupSymbol.set(entry, ESymbolType.FN);
-    const fnSymbol = <FnSymbol>symbolTable.lookup(lookupSymbol);
+    const fnSymbol = <FnSymbol>symbolTable.getSymbol(lookupSymbol);
     if (!fnSymbol?.astNode) throw `no entry function found: ${entry}`;
 
     const fnNode = fnSymbol.astNode;
@@ -54,7 +54,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const returnType = fnNode.protoType.returnType;
     if (typeof returnType.type === "string") {
       lookupSymbol.set(returnType.type, ESymbolType.STRUCT);
-      const varyStruct = <StructSymbol>symbolTable.lookup(lookupSymbol);
+      const varyStruct = <StructSymbol>symbolTable.getSymbol(lookupSymbol);
       if (!varyStruct) {
         this._reportError(returnType.location, `invalid varying struct: ${returnType.type}`);
       } else {
@@ -69,7 +69,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       for (const paramInfo of paramList) {
         if (typeof paramInfo.typeInfo.type === "string") {
           lookupSymbol.set(paramInfo.typeInfo.type, ESymbolType.STRUCT);
-          const structSymbol = <StructSymbol>symbolTable.lookup(lookupSymbol);
+          const structSymbol = <StructSymbol>symbolTable.getSymbol(lookupSymbol);
           if (!structSymbol) {
             this._reportError(paramInfo.astNode.location, `Not found attribute struct "${paramInfo.typeInfo.type}".`);
             continue;
@@ -114,7 +114,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const lookupSymbol = GLESVisitor._lookupSymbol;
     const { symbolTable } = data;
     lookupSymbol.set(entry, ESymbolType.FN);
-    const fnSymbol = <FnSymbol>symbolTable.lookup(lookupSymbol);
+    const fnSymbol = <FnSymbol>symbolTable.getSymbol(lookupSymbol);
     if (!fnSymbol?.astNode) throw `no entry function found: ${entry}`;
     const fnNode = fnSymbol.astNode;
 
@@ -129,7 +129,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const { type: returnDataType, location: returnLocation } = fnNode.protoType.returnType;
     if (typeof returnDataType === "string") {
       lookupSymbol.set(returnDataType, ESymbolType.STRUCT);
-      const mrtStruct = <StructSymbol>symbolTable.lookup(lookupSymbol);
+      const mrtStruct = <StructSymbol>symbolTable.getSymbol(lookupSymbol);
       if (!mrtStruct) {
         this._reportError(returnLocation, `invalid mrt struct: ${returnDataType}`);
       } else {

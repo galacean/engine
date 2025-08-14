@@ -23,7 +23,8 @@ export class SymbolInfo implements IBaseSymbol {
     public type: ESymbolType,
     public astNode?: SymbolAstNode,
     public dataType?: SymbolDataType,
-    public paramSignature?: GalaceanDataType[]
+    public paramSignature?: GalaceanDataType[],
+    public isInMacroBranch = false
   ) {}
 
   set(

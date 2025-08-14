@@ -5,26 +5,48 @@ export class SymbolTable<T extends IBaseSymbol> {
   /** @internal */
   _table: Map<string, T[]> = new Map();
 
-  insert(symbol: T): void {
+  insert(symbol: T, isInMacroBranch = false): void {
+    symbol.isInMacroBranch = isInMacroBranch;
+
     const entry = this._table.get(symbol.ident) ?? [];
-    for (let i = 0, n = entry.length; i < n; i++) {
-      if (entry[i].equal(symbol)) {
-        Logger.warn("Replace symbol:", symbol.ident);
-        entry[i] = symbol;
-        return;
+    if (!isInMacroBranch) {
+      for (let i = 0, n = entry.length; i < n; i++) {
+        if (entry[i].isInMacroBranch) continue;
+        if (entry[i].equal(symbol)) {
+          Logger.warn("Replace symbol:", symbol.ident);
+          entry[i] = symbol;
+          return;
+        }
       }
     }
+
     entry.push(symbol);
     this._table.set(symbol.ident, entry);
   }
 
-  lookup(symbol: T): T | undefined {
+  getSymbol(symbol: T, includeMacro = false): T | undefined {
     const entry = this._table.get(symbol.ident);
     if (entry) {
-      for (let n = entry.length, i = 0; i < n; i++) {
+      for (let i = entry.length - 1; i >= 0; i--) {
         const item = entry[i];
+        if (!includeMacro && item.isInMacroBranch) continue;
         if (item.equal(symbol)) return item;
       }
     }
+  }
+
+  getSymbols(symbol: T, includeMacro = false, out: T[]): T[] {
+    out.length = 0;
+    const entry = this._table.get(symbol.ident);
+
+    if (entry) {
+      for (let i = entry.length - 1; i >= 0; i--) {
+        const item = entry[i];
+        if (!includeMacro && item.isInMacroBranch) continue;
+        if (item.equal(symbol)) out.push(item);
+      }
+    }
+
+    return out;
   }
 }

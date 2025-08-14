@@ -728,15 +728,20 @@ export namespace ASTNode {
         }
         // #endif
 
-        const fnSymbol = sa.lookupSymbolBy(fnIdent, ESymbolType.FN, paramSig);
+        const lookupSymbol = SemanticAnalyzer._lookupSymbol;
+        lookupSymbol.set(fnIdent, ESymbolType.FN, undefined, undefined, paramSig);
+
+        const fnSymbol = sa.symbolTableStack.lookup(lookupSymbol, true) as FnSymbol;
+
         if (!fnSymbol) {
           // #if _VERBOSE
           sa.reportError(this.location, `No overload function type found: ${functionIdentifier.ident}`);
           // #endif
           return;
         }
+
         this.type = fnSymbol?.dataType?.type;
-        this.fnSymbol = fnSymbol as FnSymbol;
+        this.fnSymbol = fnSymbol;
       }
     }
   }
@@ -1296,7 +1301,10 @@ export namespace ASTNode {
       }
       // #endif
 
-      this.symbolInfo = sa.lookupSymbolBy(token.lexeme, ESymbolType.VAR) as VarSymbol;
+      const lookupSymbol = SemanticAnalyzer._lookupSymbol;
+      lookupSymbol.set(token.lexeme, ESymbolType.VAR);
+
+      this.symbolInfo = sa.symbolTableStack.lookup(lookupSymbol, true) as VarSymbol;
 
       this.typeInfo = this.symbolInfo?.dataType?.type;
     }
