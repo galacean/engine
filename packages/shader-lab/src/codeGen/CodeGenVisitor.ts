@@ -235,18 +235,20 @@ export abstract class CodeGenVisitor {
 
   visitMacroBranch(node: ASTNode.GlobalMacroBranch | ASTNode.MacroStructBranch | ASTNode.MacroBranch): string {
     const children = node.children;
+    const firstChild = children[0];
     let breakLineIndex = -1;
     let result = "";
-    if (children[0] instanceof Token) {
-      if (children[0].type === Keyword.MACRO_ELSE) {
+
+    if (firstChild instanceof Token) {
+      if (firstChild.type === Keyword.MACRO_ELSE) {
         breakLineIndex = 0;
       } else {
         breakLineIndex = 1;
       }
     }
 
-    for (let i = 0; i < node.children.length; ++i) {
-      const child = node.children[i];
+    for (let i = 0, length = children.length; i < length; i++) {
+      const child = children[i];
       if (child instanceof Token) {
         result += `\n${child.lexeme} `;
       } else {
