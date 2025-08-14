@@ -31,14 +31,6 @@ export abstract class CodeGenVisitor {
   abstract getReferencedMRTPropText(index: string | number, ident: string): string;
 
   protected static _tmpArrayPool = new ReturnableObjectPool(TempArray<string>, 10);
-  private _macroStartKeywords = new Set([
-    Keyword.MACRO_IF,
-    Keyword.MACRO_IFDEF,
-    Keyword.MACRO_IFNDEF,
-    Keyword.MACRO_ELIF,
-    Keyword.MACRO_ELSE,
-    Keyword.MACRO_ENDIF
-  ]);
 
   defaultCodeGen(children: NodeChild[]) {
     const pool = CodeGenVisitor._tmpArrayPool;
@@ -239,28 +231,6 @@ export abstract class CodeGenVisitor {
 
   visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {
     return this.defaultCodeGen(node.children);
-  }
-
-  visitMacroStatement(node: TreeNode): string {
-    let result = "";
-    for (let i = 0; i < node.children.length; ++i) {
-      const child = node.children[i];
-      if (child instanceof Token) {
-        const lexeme = child.lexeme;
-        result += this._macroStartKeywords.has(child.type) ? `\n${lexeme} ` : lexeme;
-      } else {
-        if (
-          child instanceof ASTNode.StatementList ||
-          child instanceof ASTNode.GlobalMacroDeclaration ||
-          child instanceof ASTNode.StructDeclarationList
-        ) {
-          result += "\n";
-        }
-        result += child.codeGen(this);
-      }
-    }
-
-    return result;
   }
 
   protected _reportError(loc: ShaderRange | ShaderPosition, message: string): void {

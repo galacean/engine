@@ -1165,16 +1165,12 @@ export namespace ASTNode {
         this.props = null;
       }
     }
-
-    override codeGen(visitor: CodeGenVisitor) {
-      return visitor.visitMacroStatement(this);
-    }
   }
 
   @ASTNodeDecorator(NoneTerminal.macro_struct_branch)
   export class MacroStructBranch extends TreeNode {
     override codeGen(visitor: CodeGenVisitor) {
-      return visitor.visitMacroStatement(this);
+      return "\n" + super.codeGen(visitor) + "\n";
     }
   }
 
@@ -1336,26 +1332,31 @@ export namespace ASTNode {
   }
 
   @ASTNodeDecorator(NoneTerminal.global_macro_declaration)
-  export class GlobalMacroDeclaration extends TreeNode {}
-
-  @ASTNodeDecorator(NoneTerminal.global_macro_if_statement)
-  export class GlobalMacroIfStatement extends TreeNode {
+  export class GlobalMacroDeclaration extends TreeNode {
     override codeGen(visitor: CodeGenVisitor) {
-      return visitor.visitMacroStatement(this);
+      const children = this.children as TreeNode[];
+      if (children.length === 1) {
+        return children[0].codeGen(visitor);
+      } else {
+        return `${children[0].codeGen(visitor)}\n${children[1].codeGen(visitor)}`;
+      }
     }
   }
+
+  @ASTNodeDecorator(NoneTerminal.global_macro_if_statement)
+  export class GlobalMacroIfStatement extends TreeNode {}
 
   @ASTNodeDecorator(NoneTerminal.global_macro_branch)
   export class GlobalMacroBranch extends TreeNode {
     override codeGen(visitor: CodeGenVisitor) {
-      return visitor.visitMacroStatement(this);
+      return "\n" + super.codeGen(visitor) + "\n";
     }
   }
 
   @ASTNodeDecorator(NoneTerminal.macro_undef)
   export class MacroUndef extends TreeNode {
     override codeGen(visitor: CodeGenVisitor) {
-      return visitor.defaultCodeGen(this.children) + "\n";
+      return this.codeGen(visitor) + "\n";
     }
   }
 
@@ -1366,7 +1367,7 @@ export namespace ASTNode {
     }
 
     override codeGen(visitor: CodeGenVisitor) {
-      return visitor.visitMacroStatement(this);
+      return "\n" + super.codeGen(visitor) + "\n";
     }
   }
 
@@ -1375,23 +1376,15 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       sa.symbolTableStack._isInMacroBranch = false;
     }
-
-    override codeGen(visitor: CodeGenVisitor) {
-      return visitor.visitMacroStatement(this);
-    }
   }
 
   @ASTNodeDecorator(NoneTerminal.macro_if_statement)
-  export class MacroIfStatement extends TreeNode {
-    override codeGen(visitor: CodeGenVisitor) {
-      return visitor.visitMacroStatement(this);
-    }
-  }
+  export class MacroIfStatement extends TreeNode {}
 
   @ASTNodeDecorator(NoneTerminal.macro_branch)
   export class MacroBranch extends TreeNode {
     override codeGen(visitor: CodeGenVisitor) {
-      return visitor.visitMacroStatement(this);
+      return "\n" + super.codeGen(visitor) + "\n";
     }
   }
 
