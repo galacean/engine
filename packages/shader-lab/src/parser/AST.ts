@@ -373,9 +373,6 @@ export namespace ASTNode {
         // #if _VERBOSE
         else {
           const id = child as VariableIdentifier;
-          if (!id.symbolInfo) {
-            sa.reportError(id.location, `Undeclared symbol: ${id.lexeme}`);
-          }
           if (!ParserUtils.typeCompatible(Keyword.INT, id.typeInfo)) {
             sa.reportError(id.location, "Invalid integer.");
             return;
