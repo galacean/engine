@@ -7,10 +7,10 @@ import { GSErrorName } from "../GSError";
 
 export class MacroDefine {
   private _replaceRegex?: RegExp;
-  private readonly _argsLexemes: string[];
+  private readonly _argsLexemes?: string[];
 
   get isFunction(): boolean {
-    return !!this.args?.length;
+    return !!this.args;
   }
 
   constructor(
@@ -19,7 +19,7 @@ export class MacroDefine {
     public readonly location?: ShaderRange,
     public readonly args?: BaseToken[]
   ) {
-    if (args) {
+    if (args?.length > 0) {
       this._argsLexemes = this.args.map((item) => item.lexeme);
       this._replaceRegex = new RegExp(`\\b(${this._argsLexemes.join("|")})\\b`, "g");
     }
@@ -28,6 +28,10 @@ export class MacroDefine {
   expandFunctionBody(args: string[]): string {
     if (args.length !== this.args?.length) {
       throw ShaderLabUtils.createGSError("mismatched function macro", GSErrorName.PreprocessorError, "", this.location);
+    }
+
+    if (args.length === 0) {
+      return this.body.lexeme;
     }
 
     return this.body.lexeme.replace(this._replaceRegex, (m) => {

@@ -58,6 +58,10 @@
 
 %token CONTINUE BREAK RETURN DISCARD
 
+%token MACRO_IF MACRO_IFDEF MACRO_IFNDEF MACRO_ELIF MACRO_ELSE MACRO_DEFINED MACRO_ENDIF
+%token MACRO_UNDEF MACRO_DEFINE_EXPRESSION
+
+
 %%
 gs_shader_program:
     global_declaration
@@ -69,7 +73,43 @@ global_declaration:
     | variable_declaration_statement
     | struct_specifier
     | function_definition
+    | global_macro_if_statement
+    | macro_undef
+    | MACRO_DEFINE_EXPRESSION
     ;
+
+global_macro_declaration:
+    global_declaration
+    | global_macro_declaration global_declaration
+
+
+global_macro_if_statement:
+    macro_push_context global_macro_declaration global_macro_branch
+    | macro_push_context global_macro_branch
+    ;
+
+global_macro_branch:
+    macro_pop_context
+    | MACRO_ELIF macro_conditional_expression global_macro_declaration global_macro_branch
+    | MACRO_ELSE global_macro_declaration macro_pop_context
+    | MACRO_ELIF macro_conditional_expression global_macro_branch
+    | MACRO_ELSE macro_pop_context
+    ;
+
+macro_undef:
+    MACRO_UNDEF id
+    ;
+
+macro_push_context:
+     MACRO_IF macro_conditional_expression 
+     | MACRO_IFDEF id
+     | MACRO_IFNDEF id
+     ;
+
+macro_pop_context:
+    MACRO_ENDIF
+    ;
+
 
 variable_declaration:
     fully_specified_type id
@@ -119,10 +159,26 @@ struct_declaration:
     type_specifier struct_declarator_list ';'
     | type_qualifier type_specifier struct_declarator_list ';'
     | layout_qualifier type_specifier struct_declarator ';'
+    | macro_struct_declaration
+    ;
+
+macro_struct_declaration: 
+    macro_push_context struct_declaration_list macro_struct_branch
+    | macro_push_context macro_struct_branch
+    ;
+    
+macro_struct_branch: 
+    macro_pop_context
+    | MACRO_ELIF macro_conditional_expression struct_declaration_list macro_struct_branch
+    | MACRO_ELSE struct_declaration_list macro_pop_context
+    | MACRO_ELIF macro_conditional_expression macro_struct_branch
+    | MACRO_ELSE macro_pop_context
     ;
 
 layout_qualifier:
     layout '(' location '=' INT_CONSTANT ')'
+    | layout '(' location '=' id ')'
+
 
 struct_declarator_list:
     struct_declarator
@@ -399,6 +455,9 @@ simple_statement:
     | selection_statement
     | iteration_statement
     | jump_statement
+    | macro_if_statement
+    | macro_undef
+    | MACRO_DEFINE_EXPRESSION
     ;
 
 declaration:
@@ -448,6 +507,85 @@ expression_statement:
 selection_statement:
     IF '(' expression ')' statement
     | IF '(' expression ')' statement ELSE statement
+    ;
+
+macro_if_statement: 
+    macro_push_context statement_list macro_branch
+    | macro_push_context macro_branch
+    ;
+
+macro_branch: 
+    macro_pop_context
+    | MACRO_ELIF macro_conditional_expression statement_list macro_branch
+    | MACRO_ELSE statement_list macro_pop_context
+    | MACRO_ELIF macro_conditional_expression macro_branch
+    | MACRO_ELSE macro_pop_context
+    ;
+
+macro_conditional_expression
+    : macro_logical_or_expression
+    ;
+
+macro_logical_or_expression
+    : macro_logical_and_expression
+    | macro_logical_or_expression "||" macro_logical_and_expression
+    ;
+
+macro_logical_and_expression
+    : macro_equality_expression
+    | macro_logical_and_expression "&&" macro_equality_expression
+    ;
+
+macro_equality_expression
+    : macro_relational_expression
+    | macro_equality_expression "==" macro_relational_expression
+    | macro_equality_expression "!=" macro_relational_expression
+    ;
+
+macro_relational_expression
+    : macro_shift_expression
+    | macro_relational_expression ">" macro_shift_expression
+    | macro_relational_expression "<" macro_shift_expression
+    | macro_relational_expression ">=" macro_shift_expression
+    | macro_relational_expression "<=" macro_shift_expression
+    ;
+
+macro_shift_expression
+    : macro_additive_expression
+    | macro_shift_expression ">>" macro_additive_expression
+    | macro_shift_expression "<<" macro_additive_expression
+    ;
+
+macro_additive_expression
+    : macro_multiplicative_expression
+    | macro_additive_expression "+" macro_multiplicative_expression
+    | macro_additive_expression "-" macro_multiplicative_expression
+    ;
+
+macro_multiplicative_expression
+    : macro_unary_expression
+    | macro_multiplicative_expression "*" macro_unary_expression
+    | macro_multiplicative_expression "/" macro_unary_expression
+    | macro_multiplicative_expression "%" macro_unary_expression
+    ;
+
+macro_unary_expression
+    : macro_primary_expression
+    | "+" macro_unary_expression
+    | "-" macro_unary_expression
+    | "!" macro_unary_expression
+    ;
+
+macro_primary_expression
+    : macro_constant
+    | "(" macro_conditional_expression ")"
+    ;
+
+macro_constant
+    : id
+    | INT_CONSTANT
+    | MACRO_DEFINED id
+    | MACRO_DEFINED "(" id ")"
     ;
 
 iteration_statement:

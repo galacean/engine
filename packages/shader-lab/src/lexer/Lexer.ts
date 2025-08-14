@@ -72,7 +72,17 @@ export class Lexer extends BaseLexer {
     noperspective: Keyword.NOPERSPECTIVE,
     centroid: Keyword.CENTROID,
     layout: Keyword.LAYOUT,
-    location: Keyword.LOCATION
+    location: Keyword.LOCATION,
+
+    // Macros ...
+    "#if": Keyword.MACRO_IF,
+    "#ifdef": Keyword.MACRO_IFDEF,
+    "#ifndef": Keyword.MACRO_IFNDEF,
+    "#else": Keyword.MACRO_ELSE,
+    "#elif": Keyword.MACRO_ELIF,
+    defined: Keyword.MACRO_DEFINED,
+    "#endif": Keyword.MACRO_ENDIF,
+    "#undef": Keyword.MACRO_UNDEF
   };
 
   *tokenize() {
@@ -88,6 +98,9 @@ export class Lexer extends BaseLexer {
       return EOF;
     }
 
+    if (BaseLexer.isPreprocessorStartChar(this.getCurCharCode())) {
+      return this._scanDirectives();
+    }
     if (BaseLexer.isAlpha(this.getCurCharCode())) {
       return this._scanWord();
     }
@@ -367,6 +380,33 @@ export class Lexer extends BaseLexer {
     this._scanFloatSuffix(buffer);
     const token = BaseToken.pool.get();
     token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
+    return token;
+  }
+
+  private _scanDirectives() {
+    const buffer: string[] = [this.getCurChar()];
+    const start = this.getShaderPosition();
+    this.advance(1);
+    while (BaseLexer.isAlpha(this.getCurCharCode())) {
+      buffer.push(this.getCurChar());
+      this.advance(1);
+    }
+    const token = BaseToken.pool.get();
+    const word = buffer.join("");
+
+    // If it is a macro definition, we need to skip the rest of the line
+    if (word === "#define") {
+      while (this.getCurChar() !== "\n" && !this.isEnd()) {
+        buffer.push(this.getCurChar());
+        this.advance(1);
+      }
+      const word = buffer.join("") + "\n";
+      token.set(Keyword.MACRO_DEFINE_EXPRESSION, word, start);
+    } else {
+      const kt = Lexer._lexemeTable[word];
+      token.set(kt ?? ETokenType.ID, word, start);
+    }
+
     return token;
   }
 

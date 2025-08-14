@@ -31,7 +31,7 @@ export class VisitorContext {
   stage: EShaderStage;
 
   _referencedAttributeList: Record<string, IParamInfo & { qualifier?: string }>;
-  _referencedGlobals: Record<string, SymbolInfo | SymbolInfo[] | ASTNode.PrecisionSpecifier>;
+  _referencedGlobals: Record<string, SymbolInfo | SymbolInfo[]>;
   _referencedVaryingList: Record<string, IParamInfo & { qualifier?: string }>;
   _referencedMRTList: Record<string, StructProp | string>;
 
@@ -114,15 +114,17 @@ export class VisitorContext {
       if (entries) {
         for (let i = 0; i < entries.length; i++) {
           const item = entries[i];
+          if (item.isInMacroBranch) continue;
           if (item.type !== ESymbolType.FN) continue;
           (<SymbolInfo[]>(this._referencedGlobals[ident] ||= [])).push(item);
         }
-        return;
       }
+      return;
     }
+
     const lookupSymbol = VisitorContext._lookupSymbol;
     lookupSymbol.set(ident, type);
-    const sm = this._passSymbolTable.lookup(lookupSymbol);
+    const sm = this._passSymbolTable.getSymbol(lookupSymbol);
     if (sm) {
       this._referencedGlobals[ident] = sm;
     }

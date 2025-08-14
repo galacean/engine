@@ -29,6 +29,10 @@ export abstract class BaseLexer {
     return BaseLexer.isAlpha(charCode) || BaseLexer.isDigit(charCode);
   }
 
+  static isPreprocessorStartChar(charCode: number): boolean {
+    return charCode === 35; // #
+  }
+
   static isWhiteSpaceChar(charCode: number, includeBreak: boolean): boolean {
     // Space || Tab
     if (charCode === 32 || charCode === 9) {

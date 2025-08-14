@@ -5,6 +5,7 @@ import { ClearableObjectPool, IPoolElement } from "@galacean/engine";
 import { CodeGenVisitor } from "../codeGen";
 import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from "../common";
 import { BaseToken, BaseToken as Token } from "../common/BaseToken";
+import { Keyword } from "../common/enums/Keyword";
 import { ParserUtils } from "../ParserUtils";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 import { NoneTerminal } from "./GrammarSymbol";
@@ -12,7 +13,6 @@ import SemanticAnalyzer from "./SemanticAnalyzer";
 import { ShaderData } from "./ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, VarSymbol } from "./symbolTable";
 import { IParamInfo, NodeChild, StructProp, SymbolType } from "./types";
-import { Keyword } from "../common/enums/Keyword";
 
 function ASTNodeDecorator(nonTerminal: NoneTerminal) {
   return function <T extends { new (): TreeNode }>(ASTNode: T) {
@@ -27,7 +27,19 @@ export abstract class TreeNode implements IPoolElement {
   /** The non-terminal in grammar. */
   nt: NoneTerminal;
   private _children: NodeChild[];
+  private _parent: TreeNode;
   private _location: ShaderRange;
+
+  /**
+   * Parent pointer for AST traversal.
+   * @remarks
+   * The parent pointer is only reliable after the entire AST has been constructed.
+   * DO NOT rely on `parent` during the `semanticAnalyze` phase, as the AST may still be under construction.
+   * It is safe to use `parent` during code generation or any phase after AST construction.
+   */
+  get parent(): TreeNode {
+    return this._parent;
+  }
 
   get children() {
     return this._children;
@@ -40,6 +52,12 @@ export abstract class TreeNode implements IPoolElement {
   set(loc: ShaderRange, children: NodeChild[]): void {
     this._location = loc;
     this._children = children;
+    for (const child of children) {
+      if (child instanceof TreeNode) {
+        child._parent = this;
+      }
+    }
+
     this.init();
   }
 
@@ -355,9 +373,6 @@ export namespace ASTNode {
         // #if _VERBOSE
         else {
           const id = child as VariableIdentifier;
-          if (!id.symbolInfo) {
-            sa.reportError(id.location, `Undeclared symbol: ${id.lexeme}`);
-          }
           if (!ParserUtils.typeCompatible(Keyword.INT, id.typeInfo)) {
             sa.reportError(id.location, "Invalid integer.");
             return;
@@ -713,15 +728,20 @@ export namespace ASTNode {
         }
         // #endif
 
-        const fnSymbol = sa.lookupSymbolBy(fnIdent, ESymbolType.FN, paramSig);
+        const lookupSymbol = SemanticAnalyzer._lookupSymbol;
+        lookupSymbol.set(fnIdent, ESymbolType.FN, undefined, undefined, paramSig);
+
+        const fnSymbol = sa.symbolTableStack.lookup(lookupSymbol, true) as FnSymbol;
+
         if (!fnSymbol) {
           // #if _VERBOSE
           sa.reportError(this.location, `No overload function type found: ${functionIdentifier.ident}`);
           // #endif
           return;
         }
+
         this.type = fnSymbol?.dataType?.type;
-        this.fnSymbol = fnSymbol as FnSymbol;
+        this.fnSymbol = fnSymbol;
       }
     }
   }
@@ -1081,35 +1101,45 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.struct_declaration)
   export class StructDeclaration extends TreeNode {
-    typeSpecifier: TypeSpecifier;
-    declaratorList: StructDeclaratorList;
     props: StructProp[] = [];
 
+    private _typeSpecifier?: TypeSpecifier;
+    private _declaratorList?: StructDeclaratorList;
+
     override init(): void {
-      this.typeSpecifier = undefined;
-      this.declaratorList = undefined;
+      this._typeSpecifier = undefined;
+      this._declaratorList = undefined;
       this.props.length = 0;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const { children, props } = this;
+
+      if (children.length === 1) {
+        const macroStructDeclaration = children[0] as MacroStructDeclaration;
+        if (macroStructDeclaration.props) {
+          this.props = macroStructDeclaration.props;
+        }
+        return;
+      }
+
       if (children.length === 3) {
-        this.typeSpecifier = children[0] as TypeSpecifier;
-        this.declaratorList = children[1] as StructDeclaratorList;
+        this._typeSpecifier = children[0] as TypeSpecifier;
+        this._declaratorList = children[1] as StructDeclaratorList;
       } else {
-        this.typeSpecifier = children[1] as TypeSpecifier;
-        this.declaratorList = children[2] as StructDeclaratorList;
+        this._typeSpecifier = children[1] as TypeSpecifier;
+        this._declaratorList = children[2] as StructDeclaratorList;
       }
 
       const firstChild = children[0];
-      const { type, lexeme } = this.typeSpecifier;
+      const { type, lexeme } = this._typeSpecifier;
       if (firstChild instanceof LayoutQualifier) {
         const declarator = children[2] as StructDeclarator;
         const typeInfo = new SymbolType(type, lexeme);
         const prop = new StructProp(typeInfo, declarator.ident, firstChild.index);
         props.push(prop);
       } else {
-        const declaratorList = this.declaratorList.declaratorList;
+        const declaratorList = this._declaratorList.declaratorList;
         const declaratorListLength = declaratorList.length;
         props.length = declaratorListLength;
         for (let i = 0; i < declaratorListLength; i++) {
@@ -1119,6 +1149,28 @@ export namespace ASTNode {
           props[i] = prop;
         }
       }
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.macro_struct_declaration)
+  export class MacroStructDeclaration extends TreeNode {
+    props?: StructProp[];
+
+    override semanticAnalyze(): void {
+      const children = this.children;
+
+      if (children.length === 3) {
+        this.props = (children[1] as StructDeclarationList).propList;
+      } else {
+        this.props = null;
+      }
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.macro_struct_branch)
+  export class MacroStructBranch extends TreeNode {
+    override codeGen(visitor: CodeGenVisitor) {
+      return visitor.visitMacroBranch(this);
     }
   }
 
@@ -1187,7 +1239,7 @@ export namespace ASTNode {
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
-      return visitor.visitGlobalVariableDeclaration(this) + ";";
+      return `uniform ${visitor.visitGlobalVariableDeclaration(this)}`;
     }
   }
 
@@ -1245,12 +1297,11 @@ export namespace ASTNode {
       }
       // #endif
 
-      this.symbolInfo = sa.lookupSymbolBy(token.lexeme, ESymbolType.VAR) as VarSymbol;
-      // #if _VERBOSE
-      if (!this.symbolInfo) {
-        sa.reportError(this.location, `undeclared identifier: ${token.lexeme}`);
-      }
-      // #endif
+      const lookupSymbol = SemanticAnalyzer._lookupSymbol;
+      lookupSymbol.set(token.lexeme, ESymbolType.VAR);
+
+      this.symbolInfo = sa.symbolTableStack.lookup(lookupSymbol, true) as VarSymbol;
+
       this.typeInfo = this.symbolInfo?.dataType?.type;
     }
 
@@ -1268,4 +1319,109 @@ export namespace ASTNode {
       this.shaderData.symbolTable = sa.symbolTableStack.scope;
     }
   }
+
+  @ASTNodeDecorator(NoneTerminal.global_declaration)
+  export class GlobalDeclaration extends TreeNode {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      const child = this.children[0];
+
+      if (child instanceof MacroUndef || child instanceof GlobalMacroIfStatement || child instanceof BaseToken) {
+        sa.shaderData.globalMacroDeclarations.push(this);
+      }
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.global_macro_declaration)
+  export class GlobalMacroDeclaration extends TreeNode {
+    override codeGen(visitor: CodeGenVisitor) {
+      const children = this.children as TreeNode[];
+      if (children.length === 1) {
+        return children[0].codeGen(visitor);
+      } else {
+        return `${children[0].codeGen(visitor)}\n${children[1].codeGen(visitor)}`;
+      }
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.global_macro_if_statement)
+  export class GlobalMacroIfStatement extends TreeNode {}
+
+  @ASTNodeDecorator(NoneTerminal.global_macro_branch)
+  export class GlobalMacroBranch extends TreeNode {
+    override codeGen(visitor: CodeGenVisitor) {
+      return visitor.visitMacroBranch(this);
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.macro_undef)
+  export class MacroUndef extends TreeNode {
+    override codeGen(visitor: CodeGenVisitor) {
+      return this.codeGen(visitor) + "\n";
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.macro_push_context)
+  export class MacroPushContext extends TreeNode {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      sa.symbolTableStack._isInMacroBranch = true;
+    }
+
+    override codeGen(visitor: CodeGenVisitor) {
+      return "\n" + super.codeGen(visitor) + "\n";
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.macro_pop_context)
+  export class MacroPopContext extends TreeNode {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      sa.symbolTableStack._isInMacroBranch = false;
+    }
+
+    override codeGen(visitor: CodeGenVisitor) {
+      return "\n" + super.codeGen(visitor) + "\n";
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.macro_if_statement)
+  export class MacroIfStatement extends TreeNode {}
+
+  @ASTNodeDecorator(NoneTerminal.macro_branch)
+  export class MacroBranch extends TreeNode {
+    override codeGen(visitor: CodeGenVisitor) {
+      return visitor.visitMacroBranch(this);
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.macro_conditional_expression)
+  export class MacroConditionalExpression extends TreeNode {}
+
+  @ASTNodeDecorator(NoneTerminal.macro_logical_or_expression)
+  export class MacroLogicalOrExpression extends TreeNode {}
+
+  @ASTNodeDecorator(NoneTerminal.macro_logical_and_expression)
+  export class MacroLogicalAndExpression extends TreeNode {}
+
+  @ASTNodeDecorator(NoneTerminal.macro_equality_expression)
+  export class MacroEqualityExpression extends TreeNode {}
+
+  @ASTNodeDecorator(NoneTerminal.macro_relational_expression)
+  export class MacroRelationalExpression extends TreeNode {}
+
+  @ASTNodeDecorator(NoneTerminal.macro_shift_expression)
+  export class MacroShiftExpression extends TreeNode {}
+
+  @ASTNodeDecorator(NoneTerminal.macro_additive_expression)
+  export class MacroAdditiveExpression extends TreeNode {}
+
+  @ASTNodeDecorator(NoneTerminal.macro_multiplicative_expression)
+  export class MacroMultiplicativeExpression extends TreeNode {}
+
+  @ASTNodeDecorator(NoneTerminal.macro_unary_expression)
+  export class MacroUnaryExpression extends TreeNode {}
+
+  @ASTNodeDecorator(NoneTerminal.macro_primary_expression)
+  export class MacroPrimaryExpression extends TreeNode {}
+
+  @ASTNodeDecorator(NoneTerminal.macro_constant)
+  export class MacroConstant extends TreeNode {}
 }

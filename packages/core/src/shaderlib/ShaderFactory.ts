@@ -15,10 +15,6 @@ export class ShaderFactory {
 
   private static readonly _has300OutInFragReg = /\bout\s+(?:\w+\s+)?(?:vec4)\s+(?:\w+)\s*;/; // [layout(location = 0)] out [highp] vec4 [color];
 
-  static parseCustomMacros(macros: ShaderMacro[]) {
-    return macros.map((m) => `#define ${m.value ? m.name + ` ` + m.value : m.name}\n`).join("");
-  }
-
   static registerInclude(includeName: string, includeSource: string) {
     if (ShaderLib[includeName]) {
       throw `The "${includeName}" shader include already exist`;
@@ -58,12 +54,12 @@ export class ShaderFactory {
     shader = shader.replace(/\bvarying\b/g, isFrag ? "in" : "out");
     shader = shader.replace(/\btexture(2D|Cube)\b/g, "texture");
     shader = shader.replace(/\btexture2DProj\b/g, "textureProj");
+    shader = shader.replace(/\btexture(2D|Cube)LodEXT\b/g, "textureLod");
+    shader = shader.replace(/\btexture(2D|Cube)GradEXT\b/g, "textureGrad");
+    shader = shader.replace(/\btexture2DProjLodEXT\b/g, "textureProjLod");
+    shader = shader.replace(/\btexture2DProjGradEXT\b/g, "textureProjGrad");
 
     if (isFrag) {
-      shader = shader.replace(/\btexture(2D|Cube)LodEXT\b/g, "textureLod");
-      shader = shader.replace(/\btexture(2D|Cube)GradEXT\b/g, "textureGrad");
-      shader = shader.replace(/\btexture2DProjLodEXT\b/g, "textureProjLod");
-      shader = shader.replace(/\btexture2DProjGradEXT\b/g, "textureProjGrad");
       shader = shader.replace(/\bgl_FragDepthEXT\b/g, "gl_FragDepth");
 
       if (!ShaderFactory._has300Output(shader)) {

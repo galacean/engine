@@ -296,6 +296,10 @@ export default class PpLexer extends BaseLexer {
       this.advance(1);
     }
 
+    if (lexeme === "") {
+      return null;
+    }
+
     const valueToken = BaseToken.pool.get();
     valueToken.set(PpToken.line_remain, lexeme, ShaderLab.createRange(start, this.getShaderPosition(0)));
     return valueToken;
