@@ -123,6 +123,10 @@ export class Shader implements IReferable {
             new URL(fragmentSourceOrPath, ShaderPass._shaderRootPath).href
           );
 
+          if (!shaderProgramSource) {
+            throw `Shader pass "${shaderSource.name}.${subShaderSource.name}.${passSource.name}" parse failed, please check the shader source code.`;
+          }
+
           const shaderPass = new ShaderPass(
             passSource.name,
             shaderProgramSource.vertex,
