@@ -1231,7 +1231,7 @@ export namespace ASTNode {
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
-      return `uniform ${visitor.visitGlobalVariableDeclaration(this)}`;
+      return visitor.visitGlobalVariableDeclaration(this);
     }
   }
 

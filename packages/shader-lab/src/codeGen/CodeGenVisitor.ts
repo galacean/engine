@@ -163,7 +163,7 @@ export abstract class CodeGenVisitor {
     if (fullType instanceof ASTNode.FullySpecifiedType && fullType.typeSpecifier.isCustom) {
       VisitorContext.context.referenceGlobal(<string>fullType.type, ESymbolType.STRUCT);
     }
-    return this.defaultCodeGen(children);
+    return `uniform ${this.defaultCodeGen(children)}`;
   }
 
   visitDeclaration(node: ASTNode.Declaration): string {
