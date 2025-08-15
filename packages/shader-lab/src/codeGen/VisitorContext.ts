@@ -35,8 +35,6 @@ export class VisitorContext {
   _referencedVaryingList: Record<string, IParamInfo & { qualifier?: string }>;
   _referencedMRTList: Record<string, StructProp | string>;
 
-  _curFn?: ASTNode.FunctionProtoType;
-
   _passSymbolTable: SymbolTable<SymbolInfo>;
 
   reset() {

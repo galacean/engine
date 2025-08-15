@@ -495,10 +495,6 @@ export namespace ASTNode {
       this.parameterList = declarator.parameterInfoList;
       this.paramSig = declarator.paramSig;
     }
-
-    override codeGen(visitor: CodeGenVisitor): string {
-      return visitor.visitFunctionProtoType(this);
-    }
   }
 
   @ASTNodeDecorator(NoneTerminal.function_declarator)
@@ -679,10 +675,6 @@ export namespace ASTNode {
       }
       curFunctionInfo.header = undefined;
       curFunctionInfo.returnStatement = undefined;
-    }
-
-    override codeGen(visitor: CodeGenVisitor): string {
-      return visitor.visitFunctionDefinition(this);
     }
   }
 
@@ -1301,6 +1293,12 @@ export namespace ASTNode {
       lookupSymbol.set(token.lexeme, ESymbolType.VAR);
 
       this.symbolInfo = sa.symbolTableStack.lookup(lookupSymbol, true) as VarSymbol;
+
+      // #if _VERBOSE
+      if (!this.symbolInfo) {
+        sa.reportError(this.location, `undeclared identifier: ${token.lexeme}`);
+      }
+      // #endif
 
       this.typeInfo = this.symbolInfo?.dataType?.type;
     }

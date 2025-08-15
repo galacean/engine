@@ -178,16 +178,6 @@ export abstract class CodeGenVisitor {
     return this.defaultCodeGen(children);
   }
 
-  visitFunctionProtoType(node: ASTNode.FunctionProtoType): string {
-    VisitorContext.context._curFn = node;
-    return this.defaultCodeGen(node.children);
-  }
-
-  visitFunctionDefinition(node: ASTNode.FunctionDefinition): string {
-    VisitorContext.context._curFn = undefined;
-    return this.defaultCodeGen(node.children);
-  }
-
   visitFunctionParameterList(node: ASTNode.FunctionParameterList): string {
     const params = node.parameterInfoList;
     return params
