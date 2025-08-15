@@ -192,8 +192,9 @@ export abstract class CodeGenVisitor {
 
   visitFunctionHeader(node: ASTNode.FunctionHeader): string {
     const returnType = node.returnType.typeSpecifier.lexeme;
-    if (VisitorContext.context.isAttributeStruct(returnType) || VisitorContext.context.isVaryingStruct(returnType))
+    if (VisitorContext.context.isVaryingStruct(returnType)) {
       return `void ${node.ident.lexeme}(`;
+    }
     return this.defaultCodeGen(node.children);
   }
 
