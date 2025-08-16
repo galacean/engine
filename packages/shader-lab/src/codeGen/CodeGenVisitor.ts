@@ -208,11 +208,11 @@ export abstract class CodeGenVisitor {
           expr,
           NoneTerminal.variable_identifier
         );
-        if (returnVar?.typeInfo === VisitorContext.context.varyingStruct?.ident?.lexeme) {
+        if (returnVar?.typeInfo === VisitorContext.context.varyingStructs[0]?.ident?.lexeme) {
           return "";
         }
         const returnFnCall = ParserUtils.unwrapNodeByType<ASTNode.FunctionCall>(expr, NoneTerminal.function_call);
-        if (returnFnCall?.type === VisitorContext.context.varyingStruct?.ident?.lexeme) {
+        if (returnFnCall?.type === VisitorContext.context.varyingStructs[0]?.ident?.lexeme) {
           return `${expr.codeGen(this)};`;
         }
       }

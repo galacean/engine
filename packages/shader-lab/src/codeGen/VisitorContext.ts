@@ -4,7 +4,7 @@ import { SymbolTable } from "../common/SymbolTable";
 import { GSErrorName } from "../GSError";
 import { ASTNode } from "../parser/AST";
 import { ESymbolType, SymbolInfo } from "../parser/symbolTable";
-import { IParamInfo, StructProp } from "../parser/types";
+import { StructProp } from "../parser/types";
 import { ShaderLab } from "../ShaderLab";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 
@@ -23,28 +23,34 @@ export class VisitorContext {
     this._singleton.reset();
   }
 
-  attributeList: IParamInfo[] = [];
   attributeStructs: ASTNode.StructSpecifier[] = [];
-  varyingStruct?: ASTNode.StructSpecifier;
+  attributeList: StructProp[] = [];
+  varyingStructs: ASTNode.StructSpecifier[] = [];
+  varyingList: StructProp[] = [];
   mrtStruct?: ASTNode.StructSpecifier;
 
   stage: EShaderStage;
 
-  _referencedAttributeList: Record<string, IParamInfo & { qualifier?: string }>;
+  _referencedAttributeList: Record<string, StructProp[]>;
+  _referencedVaryingList: Record<string, Array<StructProp & { qualifier?: string }>>;
   _referencedGlobals: Record<string, SymbolInfo | SymbolInfo[]>;
-  _referencedVaryingList: Record<string, IParamInfo & { qualifier?: string }>;
   _referencedMRTList: Record<string, StructProp | string>;
 
   _passSymbolTable: SymbolTable<SymbolInfo>;
 
-  reset() {
-    this.attributeList.length = 0;
-    this.attributeStructs.length = 0;
+  reset(resetAll = true) {
+    if (resetAll) {
+      this.attributeStructs.length = 0;
+      this.attributeList.length = 0;
+      this.varyingStructs.length = 0;
+      this.varyingList.length = 0;
+      this.mrtStruct = undefined;
+    }
+
     this._referencedAttributeList = Object.create(null);
     this._referencedGlobals = Object.create(null);
     this._referencedVaryingList = Object.create(null);
     this._referencedMRTList = Object.create(null);
-    this.mrtStruct = undefined;
   }
 
   isAttributeStruct(type: string) {
@@ -52,7 +58,7 @@ export class VisitorContext {
   }
 
   isVaryingStruct(type: string) {
-    return this.varyingStruct?.ident?.lexeme === type;
+    return this.varyingStructs[0]?.ident?.lexeme === type;
   }
 
   isMRTStruct(type: string) {
@@ -60,33 +66,35 @@ export class VisitorContext {
   }
 
   referenceAttribute(ident: BaseToken): Error | void {
-    if (this._referencedAttributeList[ident.lexeme]) return;
+    const lexeme = ident.lexeme;
+    if (this._referencedAttributeList[lexeme]) return;
 
-    const prop = this.attributeList.find((item) => item.ident.lexeme === ident.lexeme);
-    if (!prop) {
+    const props = this.attributeList.filter((item) => item.ident.lexeme === lexeme);
+    if (!props.length) {
       return ShaderLabUtils.createGSError(
-        `referenced attribute not found: ${ident.lexeme}`,
+        `referenced attribute not found: ${lexeme}`,
         GSErrorName.CompilationError,
         ShaderLab._processingPassText,
         ident.location
       );
     }
-    this._referencedAttributeList[ident.lexeme] = prop;
+    this._referencedAttributeList[lexeme] = props;
   }
 
   referenceVarying(ident: BaseToken): Error | void {
-    if (this._referencedVaryingList[ident.lexeme]) return;
+    const lexeme = ident.lexeme;
+    if (this._referencedVaryingList[lexeme]) return;
 
-    const prop = this.varyingStruct?.propList.find((item) => item.ident.lexeme === ident.lexeme);
-    if (!prop) {
+    const props = this.varyingList.filter((item) => item.ident.lexeme === lexeme);
+    if (!props.length) {
       return ShaderLabUtils.createGSError(
-        `referenced varying not found: ${ident.lexeme}`,
+        `referenced varying not found: ${lexeme}`,
         GSErrorName.CompilationError,
         ShaderLab._processingPassText,
         ident.location
       );
     }
-    this._referencedVaryingList[ident.lexeme] = prop;
+    this._referencedVaryingList[lexeme] = props;
   }
 
   referenceMRTProp(ident: BaseToken): Error | void {

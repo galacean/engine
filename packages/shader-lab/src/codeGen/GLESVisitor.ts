@@ -42,44 +42,55 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     data: ShaderData,
     outerGlobalMacroDeclarations: ASTNode.GlobalDeclaration[]
   ): string {
+    const context = VisitorContext.context;
+    const { attributeStructs, attributeList, varyingStructs, varyingList } = context;
     const lookupSymbol = GLESVisitor._lookupSymbol;
-    const { symbolTable } = data;
+    const symbolTable = data.symbolTable;
     lookupSymbol.set(entry, ESymbolType.FN);
     const fnSymbol = <FnSymbol>symbolTable.getSymbol(lookupSymbol);
     if (!fnSymbol?.astNode) throw `no entry function found: ${entry}`;
 
     const fnNode = fnSymbol.astNode;
-    VisitorContext.context.stage = EShaderStage.VERTEX;
+    context.stage = EShaderStage.VERTEX;
 
     const returnType = fnNode.protoType.returnType;
     if (typeof returnType.type === "string") {
       lookupSymbol.set(returnType.type, ESymbolType.STRUCT);
-      const varyStruct = <StructSymbol>symbolTable.getSymbol(lookupSymbol);
-      if (!varyStruct) {
-        this._reportError(returnType.location, `invalid varying struct: ${returnType.type}`);
+      const varyingSymbols = <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
+      if (!varyingSymbols.length) {
+        this._reportError(returnType.location, `invalid varying struct: "${returnType.type}".`);
       } else {
-        VisitorContext.context.varyingStruct = varyStruct.astNode;
+        for (let i = 0; i < varyingSymbols.length; i++) {
+          const varyingSymbol = varyingSymbols[i];
+          const astNode = varyingSymbol.astNode;
+          varyingStructs.push(astNode);
+          for (const prop of astNode.propList) {
+            varyingList.push(prop);
+          }
+        }
       }
     } else if (returnType.type !== Keyword.VOID) {
       this._reportError(returnType.location, "vertex main entry can only return struct or void.");
     }
 
     const paramList = fnNode.protoType.parameterList;
-    if (paramList?.length) {
-      for (const paramInfo of paramList) {
-        if (typeof paramInfo.typeInfo.type === "string") {
-          lookupSymbol.set(paramInfo.typeInfo.type, ESymbolType.STRUCT);
-          const structSymbol = <StructSymbol>symbolTable.getSymbol(lookupSymbol);
-          if (!structSymbol) {
-            this._reportError(paramInfo.astNode.location, `Not found attribute struct "${paramInfo.typeInfo.type}".`);
-            continue;
-          }
-          VisitorContext.context.attributeStructs.push(structSymbol.astNode);
-          for (const prop of structSymbol.astNode.propList) {
-            VisitorContext.context.attributeList.push(prop);
-          }
+    const attributeParam = paramList?.[0];
+    if (attributeParam) {
+      const attributeType = attributeParam.typeInfo.type;
+      if (typeof attributeType === "string") {
+        lookupSymbol.set(attributeType, ESymbolType.STRUCT);
+        const attributeSymbols = <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
+        if (!attributeSymbols.length) {
+          this._reportError(attributeParam.astNode.location, `invalid attribute struct: "${attributeType}".`);
         } else {
-          VisitorContext.context.attributeList.push(paramInfo);
+          for (let i = 0; i < attributeSymbols.length; i++) {
+            const attributeSymbol = attributeSymbols[i];
+            const astNode = attributeSymbol.astNode;
+            attributeStructs.push(astNode);
+            for (const prop of astNode.propList) {
+              attributeList.push(prop);
+            }
+          }
         }
       }
     }
@@ -101,7 +112,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       .map((item) => item.text)
       .join("\n");
 
-    VisitorContext.context.reset();
+    VisitorContext.context.reset(false);
 
     return `${globalCode}\n\nvoid main() ${statements}`;
   }

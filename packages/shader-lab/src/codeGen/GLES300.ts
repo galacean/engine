@@ -2,7 +2,7 @@ import { ETokenType } from "../common";
 import { BaseToken as Token } from "../common/BaseToken";
 import { EShaderStage } from "../common/Enums";
 import { Keyword } from "../common/enums/Keyword";
-import { ASTNode, TreeNode } from "../parser/AST";
+import { ASTNode } from "../parser/AST";
 import { SymbolType } from "../parser/types";
 import { ShaderLab } from "../ShaderLab";
 import { V3_GL_FragColor, V3_GL_FragData } from "./CodeGenVisitor";
@@ -29,22 +29,31 @@ export class GLES300Visitor extends GLESVisitor {
 
   override getAttributeDeclare(out: ICodeSegment[]): void {
     for (const item of Object.values(VisitorContext.context._referencedAttributeList)) {
-      out.push({
-        text: `in ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
-        index: item.ident.location.start.index
-      });
+      for (let j = 0; j < item.length; j++) {
+        const prop = item[j];
+        if (!prop.isInMacroBranch) {
+          out.push({
+            text: `in ${prop.typeInfo.typeLexeme} ${prop.ident.lexeme};`,
+            index: prop.ident.location.start.index
+          });
+        }
+      }
     }
   }
 
   override getVaryingDeclare(out: ICodeSegment[]): void {
     const qualifier = VisitorContext.context.stage === EShaderStage.FRAGMENT ? "in" : "out";
-    const values = Object.values(VisitorContext.context._referencedVaryingList);
-    for (let i = 0; i < values.length; i++) {
-      const item = values[i];
-      out.push({
-        text: `${item.qualifier ?? qualifier} ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
-        index: item.ident.location.start.index
-      });
+
+    for (const item of Object.values(VisitorContext.context._referencedVaryingList)) {
+      for (let j = 0; j < item.length; j++) {
+        const prop = item[j];
+        if (!prop.isInMacroBranch) {
+          out.push({
+            text: `${prop.qualifier ?? qualifier} ${prop.typeInfo.typeLexeme} ${prop.ident.lexeme};`,
+            index: prop.ident.location.start.index
+          });
+        }
+      }
     }
   }
 
@@ -113,7 +122,7 @@ export class GLES300Visitor extends GLESVisitor {
         this._reportError(node.location, "gl_FragColor cannot be used with MRT (Multiple Render Targets).");
       }
       // #endif
-      this._registerFragColorVariable(node);
+      this._registerFragColorVariable();
       return V3_GL_FragColor;
     }
     return super.visitVariableIdentifier(node);
@@ -125,7 +134,7 @@ export class GLES300Visitor extends GLESVisitor {
       if (mrtStruct) {
         return "";
       }
-      this._registerFragColorVariable(node);
+      this._registerFragColorVariable();
 
       const expression = node.children[1] as ASTNode.Expression;
       return `${V3_GL_FragColor} = ${expression.codeGen(this)};`;
@@ -133,17 +142,19 @@ export class GLES300Visitor extends GLESVisitor {
     return super.visitJumpStatement(node);
   }
 
-  private _registerFragColorVariable(node: TreeNode) {
+  private _registerFragColorVariable() {
     const { _referencedVaryingList } = VisitorContext.context;
     if (!_referencedVaryingList[V3_GL_FragColor]) {
       const token = Token.pool.get();
       token.set(ETokenType.ID, V3_GL_FragColor, ShaderLab.createPosition(0, 0, 0));
-      _referencedVaryingList[V3_GL_FragColor] = {
-        ident: token,
-        typeInfo: new SymbolType(Keyword.VEC4, "vec4"),
-        qualifier: "out",
-        astNode: node
-      };
+      _referencedVaryingList[V3_GL_FragColor] = [
+        {
+          ident: token,
+          typeInfo: new SymbolType(Keyword.VEC4, "vec4"),
+          qualifier: "out",
+          isInMacroBranch: false
+        }
+      ];
     }
   }
 }
