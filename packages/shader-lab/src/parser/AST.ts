@@ -783,7 +783,9 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.precision_specifier)
   export class PrecisionSpecifier extends TreeNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      sa.shaderData.globalPrecisions.push(this);
+      if (!sa.symbolTableStack.isInMacroBranch) {
+        sa.shaderData.globalPrecisions.push(this);
+      }
     }
   }
 
@@ -1109,8 +1111,12 @@ export namespace ASTNode {
 
       if (children.length === 1) {
         const macroStructDeclaration = children[0] as MacroStructDeclaration;
-        if (macroStructDeclaration.props) {
-          this.props = macroStructDeclaration.props;
+        const macroProps = macroStructDeclaration.props;
+        if (macroProps) {
+          for (let i = 0, length = macroProps.length; i < length; i++) {
+            macroProps[i].isInMacroBranch = true;
+            props.push(macroProps[i]);
+          }
         }
         return;
       }
@@ -1125,10 +1131,11 @@ export namespace ASTNode {
 
       const firstChild = children[0];
       const { type, lexeme } = this._typeSpecifier;
+      const isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
       if (firstChild instanceof LayoutQualifier) {
         const declarator = children[2] as StructDeclarator;
         const typeInfo = new SymbolType(type, lexeme);
-        const prop = new StructProp(typeInfo, declarator.ident, firstChild.index);
+        const prop = new StructProp(typeInfo, declarator.ident, firstChild.index, isInMacroBranch);
         props.push(prop);
       } else {
         const declaratorList = this._declaratorList.declaratorList;
@@ -1137,7 +1144,7 @@ export namespace ASTNode {
         for (let i = 0; i < declaratorListLength; i++) {
           const declarator = declaratorList[i];
           const typeInfo = new SymbolType(type, lexeme, declarator.arraySpecifier);
-          const prop = new StructProp(typeInfo, declarator.ident);
+          const prop = new StructProp(typeInfo, declarator.ident, undefined, isInMacroBranch);
           props[i] = prop;
         }
       }
@@ -1361,7 +1368,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.macro_push_context)
   export class MacroPushContext extends TreeNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      sa.symbolTableStack._isInMacroBranch = true;
+      sa.symbolTableStack._macroLevel++;
     }
 
     override codeGen(visitor: CodeGenVisitor) {
@@ -1372,7 +1379,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.macro_pop_context)
   export class MacroPopContext extends TreeNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      sa.symbolTableStack._isInMacroBranch = false;
+      sa.symbolTableStack._macroLevel--;
     }
 
     override codeGen(visitor: CodeGenVisitor) {

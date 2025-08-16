@@ -7,10 +7,14 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
   /**
    * @internal
    */
-  _isInMacroBranch = false;
+  _macroLevel = 0;
 
   get scope(): T {
     return this.stack[this.stack.length - 1];
+  }
+
+  get isInMacroBranch(): boolean {
+    return this._macroLevel > 0;
   }
 
   pushScope(scope: T): void {
@@ -26,7 +30,7 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
   }
 
   insert(symbol: S): void {
-    this.scope.insert(symbol, this._isInMacroBranch);
+    this.scope.insert(symbol, this.isInMacroBranch);
   }
 
   lookup(symbol: S, includeMacro = false): S | undefined {
