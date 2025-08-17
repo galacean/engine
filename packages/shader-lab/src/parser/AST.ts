@@ -1304,7 +1304,7 @@ export namespace ASTNode {
       if (!symbols.length) {
         sa.reportError(this.location, `undeclared identifier: ${token.lexeme}`);
       } else {
-        // @todo: typeInfo may be multiple types.
+        // @todo: typeInfo may be multiple types, use nearest one for now.
         this.typeInfo = symbols[0].dataType?.type;
         const nearestSymbol = <VarSymbol>sa.symbolTableStack.lookup(lookupSymbol, false);
         if (nearestSymbol) {
