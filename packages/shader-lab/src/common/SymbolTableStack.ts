@@ -41,4 +41,13 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
     }
     return undefined;
   }
+
+  lookupAll(symbol: S, includeMacro = false, out: S[]): S[] {
+    out.length = 0;
+    for (let i = this.stack.length - 1; i >= 0; i--) {
+      const symbolTable = this.stack[i];
+      symbolTable._getSymbols(symbol, includeMacro, out);
+    }
+    return out;
+  }
 }

@@ -1273,15 +1273,16 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.variable_identifier)
   export class VariableIdentifier extends TreeNode {
-    symbolInfo:
-      | VarSymbol
-      // #if _VERBOSE
-      | BuiltinVariable
-      // #endif
-      | null;
-
     lexeme: string;
+    hasGlobalVariable: boolean;
     typeInfo: GalaceanDataType;
+
+    private _symbols: VarSymbol[] = [];
+
+    override init(): void {
+      this._symbols.length = 0;
+      this.hasGlobalVariable = false;
+    }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const token = this.children[0] as Token;
@@ -1290,24 +1291,28 @@ export namespace ASTNode {
       // #if _VERBOSE
       const builtinVar = BuiltinVariable.getVar(token.lexeme);
       if (builtinVar) {
-        this.symbolInfo = builtinVar;
         this.typeInfo = builtinVar.type;
         return;
       }
       // #endif
 
+      const symbols = this._symbols;
       const lookupSymbol = SemanticAnalyzer._lookupSymbol;
       lookupSymbol.set(token.lexeme, ESymbolType.VAR);
+      sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols);
 
-      this.symbolInfo = sa.symbolTableStack.lookup(lookupSymbol, true) as VarSymbol;
-
-      // #if _VERBOSE
-      if (!this.symbolInfo) {
+      if (!symbols.length) {
         sa.reportError(this.location, `undeclared identifier: ${token.lexeme}`);
+      } else {
+        // @todo: typeInfo may be multiple types.
+        this.typeInfo = symbols[0].dataType?.type;
+        const nearestSymbol = <VarSymbol>sa.symbolTableStack.lookup(lookupSymbol, false);
+        if (nearestSymbol) {
+          this.hasGlobalVariable = nearestSymbol.isGlobalVariable;
+        } else {
+          this.hasGlobalVariable = symbols.some((s) => s.isGlobalVariable);
+        }
       }
-      // #endif
-
-      this.typeInfo = this.symbolInfo?.dataType?.type;
     }
 
     override codeGen(visitor: CodeGenVisitor): string {

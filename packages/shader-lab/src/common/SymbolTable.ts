@@ -37,6 +37,15 @@ export class SymbolTable<T extends IBaseSymbol> {
 
   getSymbols(symbol: T, includeMacro = false, out: T[]): T[] {
     out.length = 0;
+    this._getSymbols(symbol, includeMacro, out);
+
+    return out;
+  }
+
+  /**
+   * @internal
+   */
+  _getSymbols(symbol: T, includeMacro = false, out: T[]): T[] {
     const entry = this._table.get(symbol.ident);
 
     if (entry) {

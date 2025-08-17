@@ -108,7 +108,7 @@ export abstract class CodeGenVisitor {
   }
 
   visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
-    if (node.symbolInfo instanceof VarSymbol && node.symbolInfo.isGlobalVariable) {
+    if (node.hasGlobalVariable) {
       VisitorContext.context.referenceGlobal(node.lexeme, ESymbolType.VAR);
     }
     return node.lexeme;
