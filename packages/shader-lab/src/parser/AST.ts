@@ -29,6 +29,7 @@ export abstract class TreeNode implements IPoolElement {
   private _children: NodeChild[];
   private _parent: TreeNode;
   private _location: ShaderRange;
+  private _codeCache: string;
 
   /**
    * Parent pointer for AST traversal.
@@ -65,9 +66,20 @@ export abstract class TreeNode implements IPoolElement {
 
   dispose(): void {}
 
+  setCache(code: string): string {
+    this._codeCache = code;
+    return code;
+  }
+
+  getCache(): string {
+    return this._codeCache;
+  }
+
   // Visitor pattern interface for code generation
   codeGen(visitor: CodeGenVisitor) {
-    return visitor.defaultCodeGen(this.children);
+    const code = visitor.defaultCodeGen(this.children);
+    this.setCache(code);
+    return code;
   }
 
   /**
@@ -127,7 +139,7 @@ export namespace ASTNode {
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
-      return visitor.visitJumpStatement(this);
+      return this.setCache(visitor.visitJumpStatement(this));
     }
   }
 
@@ -232,7 +244,7 @@ export namespace ASTNode {
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
-      return visitor.visitSingleDeclaration(this);
+      return this.setCache(visitor.visitSingleDeclaration(this));
     }
   }
 
@@ -477,7 +489,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.declaration)
   export class Declaration extends TreeNode {
     override codeGen(visitor: CodeGenVisitor): string {
-      return visitor.visitDeclaration(this);
+      return this.setCache(visitor.visitDeclaration(this));
     }
   }
 
@@ -531,7 +543,7 @@ export namespace ASTNode {
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
-      return visitor.visitFunctionHeader(this);
+      return this.setCache(visitor.visitFunctionHeader(this));
     }
   }
 
@@ -570,7 +582,7 @@ export namespace ASTNode {
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
-      return visitor.visitFunctionParameterList(this);
+      return this.setCache(visitor.visitFunctionParameterList(this));
     }
   }
 
@@ -637,7 +649,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.statement_list)
   export class StatementList extends TreeNode {
     override codeGen(visitor: CodeGenVisitor): string {
-      return visitor.visitStatementList(this);
+      return this.setCache(visitor.visitStatementList(this));
     }
   }
 
@@ -685,7 +697,7 @@ export namespace ASTNode {
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
-      return visitor.visitFunctionCall(this);
+      return this.setCache(visitor.visitFunctionCall(this));
     }
   }
 
@@ -803,7 +815,7 @@ export namespace ASTNode {
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
-      return visitor.visitFunctionIdentifier(this);
+      return this.setCache(visitor.visitFunctionIdentifier(this));
     }
   }
 
@@ -881,7 +893,7 @@ export namespace ASTNode {
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
-      return visitor.visitPostfixExpression(this);
+      return this.setCache(visitor.visitPostfixExpression(this));
     }
   }
 
@@ -1169,7 +1181,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.macro_struct_branch)
   export class MacroStructBranch extends TreeNode {
     override codeGen(visitor: CodeGenVisitor) {
-      return visitor.visitMacroBranch(this);
+      return this.setCache(visitor.visitMacroBranch(this));
     }
   }
 
@@ -1238,7 +1250,7 @@ export namespace ASTNode {
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
-      return visitor.visitGlobalVariableDeclaration(this);
+      return this.setCache(visitor.visitGlobalVariableDeclaration(this));
     }
   }
 
@@ -1316,7 +1328,7 @@ export namespace ASTNode {
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
-      return visitor.visitVariableIdentifier(this);
+      return this.setCache(visitor.visitVariableIdentifier(this));
     }
   }
 
@@ -1346,9 +1358,9 @@ export namespace ASTNode {
     override codeGen(visitor: CodeGenVisitor) {
       const children = this.children as TreeNode[];
       if (children.length === 1) {
-        return children[0].codeGen(visitor);
+        return this.setCache(children[0].codeGen(visitor));
       } else {
-        return `${children[0].codeGen(visitor)}\n${children[1].codeGen(visitor)}`;
+        return this.setCache(`${children[0].codeGen(visitor)}\n${children[1].codeGen(visitor)}`);
       }
     }
   }
@@ -1359,14 +1371,14 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.global_macro_branch)
   export class GlobalMacroBranch extends TreeNode {
     override codeGen(visitor: CodeGenVisitor) {
-      return visitor.visitMacroBranch(this);
+      return this.setCache(visitor.visitMacroBranch(this));
     }
   }
 
   @ASTNodeDecorator(NoneTerminal.macro_undef)
   export class MacroUndef extends TreeNode {
     override codeGen(visitor: CodeGenVisitor) {
-      return super.codeGen(visitor) + "\n";
+      return this.setCache(super.codeGen(visitor) + "\n");
     }
   }
 
@@ -1377,7 +1389,7 @@ export namespace ASTNode {
     }
 
     override codeGen(visitor: CodeGenVisitor) {
-      return "\n" + super.codeGen(visitor) + "\n";
+      return this.setCache("\n" + super.codeGen(visitor) + "\n");
     }
   }
 
@@ -1388,7 +1400,7 @@ export namespace ASTNode {
     }
 
     override codeGen(visitor: CodeGenVisitor) {
-      return "\n" + super.codeGen(visitor) + "\n";
+      return this.setCache("\n" + super.codeGen(visitor) + "\n");
     }
   }
 
@@ -1398,7 +1410,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.macro_branch)
   export class MacroBranch extends TreeNode {
     override codeGen(visitor: CodeGenVisitor) {
-      return visitor.visitMacroBranch(this);
+      return this.setCache(visitor.visitMacroBranch(this));
     }
   }
 

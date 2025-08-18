@@ -47,7 +47,7 @@ export abstract class CodeGenVisitor {
     return ret.array.join(" ");
   }
 
-  visitPostfixExpression(node: ASTNode.PostfixExpression) {
+  visitPostfixExpression(node: ASTNode.PostfixExpression): string {
     const children = node.children;
     const derivationLength = children.length;
     const context = VisitorContext.context;
