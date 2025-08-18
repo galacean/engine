@@ -13,6 +13,7 @@ import SemanticAnalyzer from "./SemanticAnalyzer";
 import { ShaderData } from "./ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, VarSymbol } from "./symbolTable";
 import { IParamInfo, NodeChild, StructProp, SymbolType } from "./types";
+import { VisitorContext } from "../codeGen/VisitorContext";
 
 function ASTNodeDecorator(nonTerminal: NoneTerminal) {
   return function <T extends { new (): TreeNode }>(ASTNode: T) {
@@ -658,6 +659,7 @@ export namespace ASTNode {
     returnStatement?: ASTNode.JumpStatement;
     protoType: FunctionProtoType;
     statements: CompoundStatementNoScope;
+    isInMacroBranch: boolean;
 
     override init(): void {
       this.returnStatement = undefined;
@@ -671,6 +673,7 @@ export namespace ASTNode {
       sa.popScope();
       const sm = new FnSymbol(this.protoType.ident.lexeme, this);
       sa.symbolTableStack.insert(sm);
+      this.isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
 
       const { curFunctionInfo } = sa;
       const { header, returnStatement } = curFunctionInfo;
@@ -687,6 +690,13 @@ export namespace ASTNode {
       }
       curFunctionInfo.header = undefined;
       curFunctionInfo.returnStatement = undefined;
+    }
+
+    override codeGen(visitor: CodeGenVisitor): string {
+      if (this.isInMacroBranch && VisitorContext.context._referencedGlobalMacroASTs.indexOf(this) === -1) {
+        return null;
+      }
+      return super.codeGen(visitor);
     }
   }
 

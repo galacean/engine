@@ -2,7 +2,7 @@ import { BaseToken } from "../common/BaseToken";
 import { EShaderStage } from "../common/Enums";
 import { SymbolTable } from "../common/SymbolTable";
 import { GSErrorName } from "../GSError";
-import { ASTNode } from "../parser/AST";
+import { ASTNode, TreeNode } from "../parser/AST";
 import { ESymbolType, SymbolInfo } from "../parser/symbolTable";
 import { StructProp } from "../parser/types";
 import { ShaderLab } from "../ShaderLab";
@@ -33,8 +33,9 @@ export class VisitorContext {
 
   _referencedAttributeList: Record<string, StructProp[]>;
   _referencedVaryingList: Record<string, Array<StructProp & { qualifier?: string }>>;
-  _referencedGlobals: Record<string, SymbolInfo | SymbolInfo[]>;
+  _referencedGlobals: Record<string, SymbolInfo[]>;
   _referencedMRTList: Record<string, StructProp | string>;
+  _referencedGlobalMacroASTs: TreeNode[] = [];
 
   _passSymbolTable: SymbolTable<SymbolInfo>;
 
@@ -51,6 +52,7 @@ export class VisitorContext {
     this._referencedGlobals = Object.create(null);
     this._referencedVaryingList = Object.create(null);
     this._referencedMRTList = Object.create(null);
+    this._referencedGlobalMacroASTs.length = 0;
   }
 
   isAttributeStruct(type: string) {
