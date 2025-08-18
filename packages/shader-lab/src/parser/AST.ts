@@ -1366,7 +1366,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.macro_undef)
   export class MacroUndef extends TreeNode {
     override codeGen(visitor: CodeGenVisitor) {
-      return this.codeGen(visitor) + "\n";
+      return super.codeGen(visitor) + "\n";
     }
   }
 
