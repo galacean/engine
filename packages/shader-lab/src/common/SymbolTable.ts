@@ -2,8 +2,7 @@ import { Logger } from "@galacean/engine";
 import { IBaseSymbol } from "./IBaseSymbol";
 
 export class SymbolTable<T extends IBaseSymbol> {
-  /** @internal */
-  _table: Map<string, T[]> = new Map();
+  private _table: Map<string, T[]> = new Map();
 
   insert(symbol: T, isInMacroBranch = false): void {
     symbol.isInMacroBranch = isInMacroBranch;
