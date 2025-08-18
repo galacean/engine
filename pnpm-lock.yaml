@@ -198,6 +198,9 @@ importers:
         specifier: workspace:*
         version: link:../packages/ui
     devDependencies:
+      dat.gui:
+        specifier: ^0.7.9
+        version: 0.7.9
       vite:
         specifier: ^4.4.4
         version: 4.5.14(@types/node@18.19.64)(sass@1.81.0)

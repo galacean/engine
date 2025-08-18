@@ -14,17 +14,18 @@
   "dependencies": {
     "@galacean/engine": "workspace:*",
     "@galacean/engine-core": "workspace:*",
-    "@galacean/engine-loader": "workspace:*",
     "@galacean/engine-design": "workspace:*",
+    "@galacean/engine-loader": "workspace:*",
     "@galacean/engine-math": "workspace:*",
-    "@galacean/engine-rhi-webgl": "workspace:*",
     "@galacean/engine-physics-lite": "workspace:*",
-    "@galacean/engine-ui": "workspace:*",
-    "@galacean/engine-shaderlab": "workspace:*",
+    "@galacean/engine-rhi-webgl": "workspace:*",
     "@galacean/engine-shader-shaderlab": "workspace:*",
-    "@galacean/engine-toolkit": "latest"
+    "@galacean/engine-shaderlab": "workspace:*",
+    "@galacean/engine-toolkit": "latest",
+    "@galacean/engine-ui": "workspace:*"
   },
   "devDependencies": {
+    "dat.gui": "^0.7.9",
     "vite": "^4.4.4"
   }
 }
