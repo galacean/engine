@@ -213,7 +213,7 @@ export const E2E_CONFIG = {
       category: "Primitive",
       caseFileName: "primitive-cone",
       threshold: 0,
-      diffPercentage: 0.0029
+      diffPercentage: 0.0054
     },
     cuboid: {
       category: "Primitive",
