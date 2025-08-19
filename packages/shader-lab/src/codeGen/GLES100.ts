@@ -26,36 +26,8 @@ export class GLES100Visitor extends GLESVisitor {
     return `attribute ${prop.typeInfo.typeLexeme} ${prop.ident.lexeme};`;
   }
 
-  override getAttributeDeclare(out: ICodeSegment[]): void {
-    for (const item of Object.values(VisitorContext.context._referencedAttributeList)) {
-      for (let j = 0; j < item.length; j++) {
-        const prop = item[j];
-        if (!prop.isInMacroBranch) {
-          out.push({
-            text: `attribute ${prop.typeInfo.typeLexeme} ${prop.ident.lexeme};`,
-            index: prop.ident.location.start.index
-          });
-        }
-      }
-    }
-  }
-
   override getVaryingProp(prop: StructProp): string {
     return `varying ${prop.typeInfo.typeLexeme} ${prop.ident.lexeme};`;
-  }
-
-  override getVaryingDeclare(out: ICodeSegment[]): void {
-    for (const item of Object.values(VisitorContext.context._referencedVaryingList)) {
-      for (let j = 0; j < item.length; j++) {
-        const prop = item[j];
-        if (!prop.isInMacroBranch) {
-          out.push({
-            text: `varying ${prop.typeInfo.typeLexeme} ${prop.ident.lexeme};`,
-            index: prop.ident.location.start.index
-          });
-        }
-      }
-    }
   }
 
   override getMRTDeclare(out: ICodeSegment[]): void {

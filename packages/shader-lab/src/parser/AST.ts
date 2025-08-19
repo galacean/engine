@@ -1066,6 +1066,7 @@ export namespace ASTNode {
   export class StructSpecifier extends TreeNode {
     ident?: Token;
     propList: StructProp[];
+    isInMacroBranch: boolean;
 
     override init(): void {
       this.ident = undefined;
@@ -1073,6 +1074,7 @@ export namespace ASTNode {
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
+      this.isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
       if (children.length === 6) {
         this.ident = children[1] as Token;
         sa.symbolTableStack.insert(new StructSymbol(this.ident.lexeme, this));

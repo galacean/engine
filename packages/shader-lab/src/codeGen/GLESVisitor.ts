@@ -16,8 +16,6 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
   private static _serializedGlobalKey = new Set();
 
-  abstract getAttributeDeclare(out: ICodeSegment[]): void;
-  abstract getVaryingDeclare(out: ICodeSegment[]): void;
   abstract getMRTDeclare(out: ICodeSegment[]): void;
 
   reset(): void {
@@ -113,8 +111,8 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const globalCodeArray = this._globalCodeArray;
 
     this._getGlobalSymbol(globalCodeArray);
-    this.getAttributeDeclare(globalCodeArray);
-    this.getVaryingDeclare(globalCodeArray);
+    this._getSpecialStruct(context.attributeStructs, globalCodeArray);
+    this._getSpecialStruct(context.varyingStructs, globalCodeArray);
     this._getGlobalMacroDeclarations(outerGlobalMacroDeclarations, globalCodeArray);
     this.getOtherGlobal(data, globalCodeArray);
 
@@ -166,7 +164,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const globalCodeArray = this._globalCodeArray;
 
     this._getGlobalSymbol(globalCodeArray);
-    this.getVaryingDeclare(globalCodeArray);
+    this._getSpecialStruct(context.varyingStructs, globalCodeArray);
     this.getMRTDeclare(globalCodeArray);
     this._getGlobalMacroDeclarations(outerGlobalMacroStatements, globalCodeArray);
     this.getOtherGlobal(data, globalCodeArray);
@@ -206,6 +204,15 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     if (Object.keys(_referencedGlobals).length !== lastLength) {
       this._getGlobalSymbol(out);
+    }
+  }
+
+  private _getSpecialStruct(structNode: ASTNode.StructSpecifier[], out: ICodeSegment[]): void {
+    for (const node of structNode) {
+      if (!node.isInMacroBranch) {
+        const text = node.codeGen(this);
+        out.push({ text, index: node.location.start.index });
+      }
     }
   }
 
