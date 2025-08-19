@@ -101,7 +101,10 @@ export class Polyfill {
       Promise.prototype.finally = function <T>(this: Promise<T>, onFinally?: () => void): Promise<T> {
         return this.then(
           (value) => Promise.resolve(onFinally?.()).then(() => value),
-          (reason) => Promise.resolve(onFinally?.()).then(() => { throw reason; })
+          (reason) =>
+            Promise.resolve(onFinally?.()).then(() => {
+              throw reason;
+            })
         );
       };
     }
