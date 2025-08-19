@@ -24,11 +24,11 @@ const shaderLab = new ShaderLab();
 const shaderSource = `Shader "Test RenderState" {
   SubShader "Default" {
     Pass "0" {
-	DepthState {
+	DepthState customDepthState {
       WriteEnabled = depthWriteEnabled;
     }
     
-	BlendState {
+	BlendState customBlendState {
       Enabled = blendEnabled;
       SourceColorBlendFactor = sourceColorBlendFactor;
       DestinationColorBlendFactor = destinationColorBlendFactor;
@@ -36,9 +36,15 @@ const shaderSource = `Shader "Test RenderState" {
       DestinationAlphaBlendFactor = destinationAlphaBlendFactor;
     }
     
-	RasterState{
+	RasterState customRasterState {
       CullMode = rasterStateCullMode;
     }
+
+    DepthState = customDepthState;
+    BlendState = customBlendState;
+    RasterState = customRasterState;
+
+
     // RenderQueueType = renderQueueType;
 	RenderQueueType = Transparent;
       
