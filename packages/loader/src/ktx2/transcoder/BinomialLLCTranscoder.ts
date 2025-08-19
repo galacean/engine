@@ -1,6 +1,6 @@
 import { KTX2TargetFormat } from "../KTX2TargetFormat";
 import { AbstractTranscoder, TranscodeResult } from "./AbstractTranscoder";
-import { TranscodeWorkerCode, init, transcode, _init } from "./BinomialLLCWorkerCode";
+import { TranscodeWorkerCode, init, transcode } from "./BinomialLLCWorkerCode";
 
 /** @internal */
 export class BinomialLLCTranscoder extends AbstractTranscoder {
@@ -10,10 +10,10 @@ export class BinomialLLCTranscoder extends AbstractTranscoder {
 
   _initTranscodeWorkerPool() {
     return Promise.all([
-      fetch("https://mdn.alipayobjects.com/rms/afts/file/A*ImQSTZQiexkAAAAAQ1AAAAgAehQnAQ/basis_transcoder.js").then(
+      fetch("https://mdn.alipayobjects.com/rms/afts/file/A*J8IrSL8WE8EAAAAAQ6AAAAgAehQnAQ/basis_transcoder.js").then(
         (res) => res.text()
       ),
-      fetch("https://mdn.alipayobjects.com/rms/afts/file/A*DFX8RJ6Z0G0AAAAAXoAAAAgAehQnAQ/basis_transcoder.wasm").then(
+      fetch("https://mdn.alipayobjects.com/rms/afts/file/A*F3duSLqOP2sAAAAAXjAAAAgAehQnAQ/basis_transcoder.wasm").then(
         (res) => res.arrayBuffer()
       )
     ]).then(([jsCode, wasmBuffer]) => {

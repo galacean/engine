@@ -1,7 +1,7 @@
 import { Camera, CameraClearFlags, Entity, Layer, ReplacementFailureStrategy, Shader } from "@galacean/engine-core";
 import { Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { describe, beforeAll, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 describe("camera test", function () {
   const canvasDOM = new OffscreenCanvas(256, 256);
@@ -359,6 +359,20 @@ describe("camera test", function () {
       )
     );
   });
+
+  it("clone", () => {
+    camera.isOrthographic = true;
+    camera.nearClipPlane = 1;
+    camera.farClipPlane = 255;
+    const cloneCamera = camera.entity.clone().getComponent(Camera);
+    expect(cloneCamera.isOrthographic).to.eq(camera.isOrthographic)
+    expect(cloneCamera.nearClipPlane).to.eq(camera.nearClipPlane);
+    expect(cloneCamera.farClipPlane).to.eq(camera.farClipPlane);
+    expect(cloneCamera.renderTarget).to.eq(camera.renderTarget);
+    expect(cloneCamera.shaderData).to.not.eq(camera.shaderData);
+    // @ts-ignore
+    expect(cloneCamera._globalShaderMacro).to.not.eq(camera._globalShaderMacro);
+  })
 
   it("destroy test", () => {
     camera.destroy();

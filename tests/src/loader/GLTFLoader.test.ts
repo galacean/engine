@@ -393,7 +393,7 @@ beforeAll(async function () {
 
 afterAll(() => {
   @registerGLTFParser(GLTFParserType.Schema)
-  class test extends GLTFSchemaParser {}
+  class test extends GLTFSchemaParser { }
 });
 
 describe("glTF Loader test", function () {
