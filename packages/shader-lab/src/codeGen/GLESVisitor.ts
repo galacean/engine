@@ -1,8 +1,7 @@
 import { IShaderInfo } from "@galacean/engine-design";
-import { BaseToken } from "../common/BaseToken";
 import { EShaderStage } from "../common/Enums";
 import { Keyword } from "../common/enums/Keyword";
-import { ASTNode, TreeNode } from "../parser/AST";
+import { ASTNode } from "../parser/AST";
 import { ShaderData } from "../parser/ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo } from "../parser/symbolTable";
 import { CodeGenVisitor } from "./CodeGenVisitor";
@@ -103,10 +102,10 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     GLESVisitor._serializedGlobalKey.clear();
 
     this._getGlobalSymbol(globalCodeArray);
-    this._getGlobalMacroDeclarations(outerGlobalMacroDeclarations, globalCodeArray);
     this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
     this.getAttributeDeclare(globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
+    this._getGlobalMacroDeclarations(outerGlobalMacroDeclarations, globalCodeArray);
 
     const globalCode = globalCodeArray
       .sort((a, b) => a.index - b.index)
@@ -157,10 +156,10 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     GLESVisitor._serializedGlobalKey.clear();
 
     this._getGlobalSymbol(globalCodeArray);
-    this._getGlobalMacroDeclarations(outerGlobalMacroStatements, globalCodeArray);
     this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
     this.getMRTDeclare(globalCodeArray);
+    this._getGlobalMacroDeclarations(outerGlobalMacroStatements, globalCodeArray);
 
     const globalCode = globalCodeArray
       .sort((a, b) => a.index - b.index)
@@ -206,8 +205,9 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   }
 
   private _getGlobalMacroDeclarations(macros: ASTNode.GlobalDeclaration[], out: ICodeSegment[]): void {
-    const referencedGlobals = VisitorContext.context._referencedGlobals;
-    const referencedGlobalMacroASTs = VisitorContext.context._referencedGlobalMacroASTs;
+    const context = VisitorContext.context;
+    const referencedGlobals = context._referencedGlobals;
+    const referencedGlobalMacroASTs = context._referencedGlobalMacroASTs;
     referencedGlobalMacroASTs.length = 0;
 
     for (const symbols of Object.values(referencedGlobals)) {
@@ -218,6 +218,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       }
     }
 
+    context.getCacheCodeInMacroBranch = true;
     for (const macro of macros) {
       out.push({ text: macro.codeGen(this), index: macro.location.start.index });
     }

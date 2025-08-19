@@ -30,6 +30,7 @@ export class VisitorContext {
   mrtStruct?: ASTNode.StructSpecifier;
 
   stage: EShaderStage;
+  getCacheCodeInMacroBranch = false;
 
   _referencedAttributeList: Record<string, StructProp[]>;
   _referencedVaryingList: Record<string, Array<StructProp & { qualifier?: string }>>;
@@ -53,6 +54,7 @@ export class VisitorContext {
     this._referencedVaryingList = Object.create(null);
     this._referencedMRTList = Object.create(null);
     this._referencedGlobalMacroASTs.length = 0;
+    this.getCacheCodeInMacroBranch = false;
   }
 
   isAttributeStruct(type: string) {

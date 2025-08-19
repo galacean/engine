@@ -3,6 +3,7 @@ import { BuiltinFunction, BuiltinVariable, NonGenericGalaceanType } from "./buil
 // #endif
 import { ClearableObjectPool, IPoolElement } from "@galacean/engine";
 import { CodeGenVisitor } from "../codeGen";
+import { VisitorContext } from "../codeGen/VisitorContext";
 import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from "../common";
 import { BaseToken, BaseToken as Token } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
@@ -13,7 +14,6 @@ import SemanticAnalyzer from "./SemanticAnalyzer";
 import { ShaderData } from "./ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, VarSymbol } from "./symbolTable";
 import { IParamInfo, NodeChild, StructProp, SymbolType } from "./types";
-import { VisitorContext } from "../codeGen/VisitorContext";
 
 function ASTNodeDecorator(nonTerminal: NoneTerminal) {
   return function <T extends { new (): TreeNode }>(ASTNode: T) {
@@ -693,7 +693,11 @@ export namespace ASTNode {
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
-      if (this.isInMacroBranch && VisitorContext.context._referencedGlobalMacroASTs.indexOf(this) === -1) {
+      const context = VisitorContext.context;
+      if (this.isInMacroBranch && context.getCacheCodeInMacroBranch) {
+        if (context._referencedGlobalMacroASTs.indexOf(this) !== -1) {
+          return this.getCache();
+        }
         return null;
       }
       return super.codeGen(visitor);
