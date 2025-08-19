@@ -1,5 +1,5 @@
 import { ShaderPosition, ShaderRange } from "../common";
-import { BaseToken as Token } from "../common/BaseToken";
+import { BaseToken } from "../common/BaseToken";
 import { GSErrorName } from "../GSError";
 import { ASTNode, TreeNode } from "../parser/AST";
 import { NoneTerminal } from "../parser/GrammarSymbol";
@@ -39,7 +39,7 @@ export abstract class CodeGenVisitor {
     let ret = pool.get();
     ret.dispose();
     for (const child of children) {
-      if (child instanceof Token) {
+      if (child instanceof BaseToken) {
         ret.array.push(child.lexeme);
       } else {
         ret.array.push(child.codeGen(this));
@@ -58,7 +58,7 @@ export abstract class CodeGenVisitor {
       const postExpr = children[0] as ASTNode.PostfixExpression;
       const prop = children[2];
 
-      if (prop instanceof Token) {
+      if (prop instanceof BaseToken) {
         if (context.isAttributeStruct(<string>postExpr.type)) {
           const error = context.referenceAttribute(prop);
           // #if _VERBOSE
@@ -202,7 +202,7 @@ export abstract class CodeGenVisitor {
 
   visitJumpStatement(node: ASTNode.JumpStatement): string {
     const children = node.children;
-    const cmd = children[0] as Token;
+    const cmd = children[0] as BaseToken;
     if (cmd.type === Keyword.RETURN) {
       const expr = children[1];
       if (expr instanceof ASTNode.Expression) {
@@ -232,7 +232,7 @@ export abstract class CodeGenVisitor {
     let breakLineIndex = -1;
     let result = "";
 
-    if (firstChild instanceof Token) {
+    if (firstChild instanceof BaseToken) {
       if (firstChild.type === Keyword.MACRO_ELSE) {
         breakLineIndex = 0;
       } else {
@@ -242,7 +242,7 @@ export abstract class CodeGenVisitor {
 
     for (let i = 0, length = children.length; i < length; i++) {
       const child = children[i];
-      if (child instanceof Token) {
+      if (child instanceof BaseToken) {
         result += `\n${child.lexeme} `;
       } else {
         result += child.codeGen(this);

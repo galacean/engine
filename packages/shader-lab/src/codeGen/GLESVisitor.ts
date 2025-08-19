@@ -114,8 +114,8 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     VisitorContext.context.referenceGlobal(entry, ESymbolType.FN);
 
     this._getGlobalSymbol(globalCodeArray);
-    this._getSpecialStruct(context.attributeStructs, globalCodeArray);
-    this._getSpecialStruct(context.varyingStructs, globalCodeArray);
+    this._getCustomStruct(context.attributeStructs, globalCodeArray);
+    this._getCustomStruct(context.varyingStructs, globalCodeArray);
     this._getGlobalMacroDeclarations(outerGlobalMacroDeclarations, globalCodeArray);
     this.getOtherGlobal(data, globalCodeArray);
 
@@ -171,7 +171,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     VisitorContext.context.referenceGlobal(entry, ESymbolType.FN);
 
     this._getGlobalSymbol(globalCodeArray);
-    this._getSpecialStruct(context.varyingStructs, globalCodeArray);
+    this._getCustomStruct(context.varyingStructs, globalCodeArray);
     this.getMRTDeclare(globalCodeArray);
     this._getGlobalMacroDeclarations(outerGlobalMacroStatements, globalCodeArray);
     this.getOtherGlobal(data, globalCodeArray);
@@ -215,7 +215,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     }
   }
 
-  private _getSpecialStruct(structNode: ASTNode.StructSpecifier[], out: ICodeSegment[]): void {
+  private _getCustomStruct(structNode: ASTNode.StructSpecifier[], out: ICodeSegment[]): void {
     for (const node of structNode) {
       if (!node.isInMacroBranch) {
         const text = node.codeGen(this);
