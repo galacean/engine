@@ -700,7 +700,7 @@ export namespace ASTNode {
         }
         return null;
       }
-      return super.codeGen(visitor);
+      return this.setCache(visitor.visitFunctionDefinition(this));
     }
   }
 

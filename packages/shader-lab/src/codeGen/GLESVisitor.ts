@@ -58,11 +58,12 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const lookupSymbol = GLESVisitor._lookupSymbol;
     const symbolTable = data.symbolTable;
     lookupSymbol.set(entry, ESymbolType.FN);
-    const fnSymbol = <FnSymbol>symbolTable.getSymbol(lookupSymbol);
+    const fnSymbol = <FnSymbol>symbolTable.getSymbol(lookupSymbol, true);
     if (!fnSymbol?.astNode) throw `no entry function found: ${entry}`;
 
     const fnNode = fnSymbol.astNode;
     context.stage = EShaderStage.VERTEX;
+    context.stageEntry = entry;
 
     const returnType = fnNode.protoType.returnType;
     if (typeof returnType.type === "string") {
@@ -106,9 +107,8 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       }
     }
 
-    const statements = fnNode.statements.codeGen(this);
-
     const globalCodeArray = this._globalCodeArray;
+    VisitorContext.context.referenceGlobal(entry, ESymbolType.FN);
 
     this._getGlobalSymbol(globalCodeArray);
     this._getSpecialStruct(context.attributeStructs, globalCodeArray);
@@ -124,7 +124,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     VisitorContext.context.reset(false);
     this.reset();
 
-    return `${globalCode}\n\nvoid main() ${statements}`;
+    return globalCode;
   }
 
   private _fragmentMain(
@@ -135,7 +135,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const lookupSymbol = GLESVisitor._lookupSymbol;
     const { symbolTable } = data;
     lookupSymbol.set(entry, ESymbolType.FN);
-    const fnSymbol = <FnSymbol>symbolTable.getSymbol(lookupSymbol);
+    const fnSymbol = <FnSymbol>symbolTable.getSymbol(lookupSymbol, true);
     if (!fnSymbol?.astNode) throw `no entry function found: ${entry}`;
     const fnNode = fnSymbol.astNode;
 
@@ -146,6 +146,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     const { context } = VisitorContext;
     context.stage = EShaderStage.FRAGMENT;
+    context.stageEntry = entry;
 
     const { type: returnDataType, location: returnLocation } = fnNode.protoType.returnType;
     if (typeof returnDataType === "string") {
@@ -160,8 +161,8 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       this._reportError(returnLocation, "fragment main entry can only return struct or vec4.");
     }
 
-    const statements = fnNode.statements.codeGen(this);
     const globalCodeArray = this._globalCodeArray;
+    VisitorContext.context.referenceGlobal(entry, ESymbolType.FN);
 
     this._getGlobalSymbol(globalCodeArray);
     this._getSpecialStruct(context.varyingStructs, globalCodeArray);
@@ -176,7 +177,8 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     context.reset();
     this.reset();
-    return `${globalCode}\n\nvoid main() ${statements}`;
+
+    return globalCode;
   }
 
   private _getGlobalSymbol(out: ICodeSegment[]): void {

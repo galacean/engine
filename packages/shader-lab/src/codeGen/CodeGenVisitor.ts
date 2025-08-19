@@ -282,6 +282,18 @@ export abstract class CodeGenVisitor {
     }
   }
 
+  visitFunctionDefinition(fnNode: ASTNode.FunctionDefinition): string {
+    const fnName = fnNode.protoType.ident.lexeme;
+    const context = VisitorContext.context;
+
+    if (fnName == context.stageEntry) {
+      const statements = fnNode.statements.codeGen(this);
+      return `void main() ${statements}`;
+    } else {
+      return this.defaultCodeGen(fnNode.children);
+    }
+  }
+
   protected _reportError(loc: ShaderRange | ShaderPosition, message: string): void {
     // #if _VERBOSE
     this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderLab._processingPassText));

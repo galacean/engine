@@ -30,6 +30,8 @@ export class VisitorContext {
   mrtStruct?: ASTNode.StructSpecifier;
 
   stage: EShaderStage;
+  stageEntry: string;
+
   getCacheCodeInMacroBranch = false;
 
   _referencedAttributeList: Record<string, StructProp[]>;
