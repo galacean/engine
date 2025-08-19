@@ -23,6 +23,7 @@ import { StencilOperation } from "./shader/enums/StencilOperation";
 import { Texture, Texture2D, TextureCube, TextureCubeFace } from "./texture";
 import { Texture2DArray } from "./texture/Texture2DArray";
 import { TextureFormat } from "./texture/enums/TextureFormat";
+import { Color } from "@galacean/engine-math";
 
 /**
  * @internal
@@ -118,6 +119,9 @@ export class BasicResources {
   readonly textDefaultMaterial: Material;
   readonly spriteMaskDefaultMaterial: Material;
 
+  readonly meshMagentaMaterial: Material;
+  readonly particleMagentaMaterial: Material;
+
   private _blinnPhongMaterial: BlinnPhongMaterial;
   private _prefilteredDFGTexture: Texture2D;
 
@@ -195,6 +199,9 @@ export class BasicResources {
     this.spriteDefaultMaterial = this._create2DMaterial(engine, Shader.find("Sprite"));
     this.textDefaultMaterial = this._create2DMaterial(engine, Shader.find("Text"));
     this.spriteMaskDefaultMaterial = this._createSpriteMaskMaterial(engine);
+
+    this.meshMagentaMaterial = this._createMagentaMaterial(engine, "unlit");
+    this.particleMagentaMaterial = this._createMagentaMaterial(engine, "particle-shader");
   }
 
   /**
@@ -309,6 +316,13 @@ export class BasicResources {
     renderState.rasterState.cullMode = CullMode.Off;
     renderState.renderQueueType = RenderQueueType.Transparent;
     material.isGCIgnored = true;
+    return material;
+  }
+
+  private _createMagentaMaterial(engine: Engine, shaderName: string): Material {
+    const material = new Material(engine, Shader.find(shaderName));
+    material.isGCIgnored = true;
+    material.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
     return material;
   }
 
