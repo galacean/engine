@@ -1144,11 +1144,9 @@ export namespace ASTNode {
       if (children.length === 1) {
         const macroStructDeclaration = children[0] as MacroStructDeclaration;
         const macroProps = macroStructDeclaration.props;
-        if (macroProps) {
-          for (let i = 0, length = macroProps.length; i < length; i++) {
-            macroProps[i].isInMacroBranch = true;
-            props.push(macroProps[i]);
-          }
+        for (let i = 0, length = macroProps.length; i < length; i++) {
+          macroProps[i].isInMacroBranch = true;
+          props.push(macroProps[i]);
         }
         return;
       }
@@ -1185,21 +1183,61 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.macro_struct_declaration)
   export class MacroStructDeclaration extends TreeNode {
-    props?: StructProp[];
+    props: StructProp[] = [];
+
+    override init(): void {
+      this.props.length = 0;
+    }
 
     override semanticAnalyze(): void {
       const children = this.children;
 
       if (children.length === 3) {
-        this.props = (children[1] as StructDeclarationList).propList;
+        const structDeclarationProps = (children[1] as StructDeclarationList).propList;
+        const macroStructBranchProps = (children[2] as MacroStructBranch).props;
+        for (let i = 0; i < structDeclarationProps.length; i++) {
+          this.props.push(structDeclarationProps[i]);
+        }
+        for (let i = 0; i < macroStructBranchProps.length; i++) {
+          this.props.push(macroStructBranchProps[i]);
+        }
       } else {
-        this.props = null;
+        const macroStructBranchProps = (children[1] as MacroStructBranch).props;
+        for (let i = 0; i < macroStructBranchProps.length; i++) {
+          this.props.push(macroStructBranchProps[i]);
+        }
       }
     }
   }
 
   @ASTNodeDecorator(NoneTerminal.macro_struct_branch)
   export class MacroStructBranch extends TreeNode {
+    props: StructProp[] = [];
+
+    override init(): void {
+      this.props.length = 0;
+    }
+
+    override semanticAnalyze(): void {
+      const children = this.children;
+      const lastNode = children[children.length - 1];
+      const last2Node = children[children.length - 2];
+
+      if (last2Node instanceof StructDeclarationList) {
+        const lastProps = last2Node.propList;
+        for (let i = 0, length = lastProps.length; i < length; i++) {
+          this.props.push(lastProps[i]);
+        }
+      }
+
+      if (lastNode instanceof MacroStructBranch) {
+        const lastProps = lastNode.props;
+        for (let i = 0, length = lastProps.length; i < length; i++) {
+          this.props.push(lastProps[i]);
+        }
+      }
+    }
+
     override codeGen(visitor: CodeGenVisitor) {
       return this.setCache(visitor.visitMacroBranch(this));
     }
