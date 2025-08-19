@@ -3,8 +3,8 @@ import { BaseToken as Token } from "../common/BaseToken";
 import { GSErrorName } from "../GSError";
 import { ASTNode, TreeNode } from "../parser/AST";
 import { NoneTerminal } from "../parser/GrammarSymbol";
-import { ESymbolType, FnSymbol, VarSymbol } from "../parser/symbolTable";
-import { NodeChild } from "../parser/types";
+import { ESymbolType, FnSymbol } from "../parser/symbolTable";
+import { NodeChild, StructProp } from "../parser/types";
 import { ParserUtils } from "../ParserUtils";
 import { ShaderLab } from "../ShaderLab";
 import { VisitorContext } from "./VisitorContext";
@@ -29,6 +29,8 @@ export abstract class CodeGenVisitor {
 
   abstract getFragDataCodeGen(index: string | number): string;
   abstract getReferencedMRTPropText(index: string | number, ident: string): string;
+  abstract getVaryingProp(prop: StructProp): string;
+  abstract getAttributeProp(prop: StructProp): string;
 
   protected static _tmpArrayPool = new ReturnableObjectPool(TempArray<string>, 10);
 
@@ -208,11 +210,11 @@ export abstract class CodeGenVisitor {
           expr,
           NoneTerminal.variable_identifier
         );
-        if (returnVar?.typeInfo === VisitorContext.context.varyingStructs[0]?.ident?.lexeme) {
+        if (VisitorContext.context.isVaryingStruct(<string>returnVar?.typeInfo)) {
           return "";
         }
         const returnFnCall = ParserUtils.unwrapNodeByType<ASTNode.FunctionCall>(expr, NoneTerminal.function_call);
-        if (returnFnCall?.type === VisitorContext.context.varyingStructs[0]?.ident?.lexeme) {
+        if (VisitorContext.context.isVaryingStruct(<string>returnFnCall?.type)) {
           return `${expr.codeGen(this)};`;
         }
       }
@@ -252,6 +254,32 @@ export abstract class CodeGenVisitor {
     }
 
     return result;
+  }
+
+  visitStructSpecifier(node: ASTNode.StructSpecifier): string {
+    const context = VisitorContext.context;
+    const { varyingStructs, attributeStructs } = context;
+    const isVaryingStruct = varyingStructs.indexOf(node) !== -1;
+    const isAttributeStruct = attributeStructs.indexOf(node) !== -1;
+
+    if (isVaryingStruct && isAttributeStruct) {
+      this._reportError(node.location, "cannot use same struct as Varying and Attribute");
+    }
+
+    if (isVaryingStruct || isAttributeStruct) {
+      let result = "";
+      for (const prop of node.propList) {
+        const name = prop.ident.lexeme;
+        if (isVaryingStruct && context._referencedVaryingList[name]?.indexOf(prop) >= 0) {
+          result += `${this.getVaryingProp(prop)}\n`;
+        } else if (isAttributeStruct && context._referencedAttributeList[name]?.indexOf(prop) >= 0) {
+          result += `${this.getAttributeProp(prop)}\n`;
+        }
+      }
+      return result;
+    } else {
+      return this.defaultCodeGen(node.children);
+    }
   }
 
   protected _reportError(loc: ShaderRange | ShaderPosition, message: string): void {

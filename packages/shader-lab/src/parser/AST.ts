@@ -1082,6 +1082,10 @@ export namespace ASTNode {
         this.propList = (children[2] as StructDeclarationList).propList;
       }
     }
+
+    override codeGen(visitor: CodeGenVisitor) {
+      return this.setCache(visitor.visitStructSpecifier(this));
+    }
   }
 
   @ASTNodeDecorator(NoneTerminal.struct_declaration_list)

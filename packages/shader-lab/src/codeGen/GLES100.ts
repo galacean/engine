@@ -1,5 +1,6 @@
 import { BaseToken } from "../common/BaseToken";
 import { ASTNode } from "../parser/AST";
+import { StructProp } from "../parser/types";
 import { GLESVisitor } from "./GLESVisitor";
 import { VisitorContext } from "./VisitorContext";
 import { ICodeSegment } from "./types";
@@ -21,6 +22,10 @@ export class GLES100Visitor extends GLESVisitor {
     return "";
   }
 
+  override getAttributeProp(prop: StructProp): string {
+    return `attribute ${prop.typeInfo.typeLexeme} ${prop.ident.lexeme};`;
+  }
+
   override getAttributeDeclare(out: ICodeSegment[]): void {
     for (const item of Object.values(VisitorContext.context._referencedAttributeList)) {
       for (let j = 0; j < item.length; j++) {
@@ -33,6 +38,10 @@ export class GLES100Visitor extends GLESVisitor {
         }
       }
     }
+  }
+
+  override getVaryingProp(prop: StructProp): string {
+    return `varying ${prop.typeInfo.typeLexeme} ${prop.ident.lexeme};`;
   }
 
   override getVaryingDeclare(out: ICodeSegment[]): void {

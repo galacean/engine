@@ -62,7 +62,7 @@ export class VisitorContext {
   }
 
   isVaryingStruct(type: string) {
-    return this.varyingStructs[0]?.ident?.lexeme === type;
+    return this.varyingStructs.findIndex((item) => item.ident!.lexeme === type) !== -1;
   }
 
   isMRTStruct(type: string) {

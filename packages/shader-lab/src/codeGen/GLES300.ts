@@ -3,7 +3,7 @@ import { BaseToken as Token } from "../common/BaseToken";
 import { EShaderStage } from "../common/Enums";
 import { Keyword } from "../common/enums/Keyword";
 import { ASTNode } from "../parser/AST";
-import { SymbolType } from "../parser/types";
+import { StructProp, SymbolType } from "../parser/types";
 import { ShaderLab } from "../ShaderLab";
 import { V3_GL_FragColor, V3_GL_FragData } from "./CodeGenVisitor";
 import { GLESVisitor } from "./GLESVisitor";
@@ -27,6 +27,10 @@ export class GLES300Visitor extends GLESVisitor {
     return `layout(location = ${index}) out vec4 ${ident};`;
   }
 
+  override getAttributeProp(prop: StructProp): string {
+    return `in ${prop.typeInfo.typeLexeme} ${prop.ident.lexeme};`;
+  }
+
   override getAttributeDeclare(out: ICodeSegment[]): void {
     for (const item of Object.values(VisitorContext.context._referencedAttributeList)) {
       for (let j = 0; j < item.length; j++) {
@@ -39,6 +43,11 @@ export class GLES300Visitor extends GLESVisitor {
         }
       }
     }
+  }
+
+  override getVaryingProp(prop: StructProp): string {
+    const qualifier = VisitorContext.context.stage === EShaderStage.FRAGMENT ? "in" : "out";
+    return `${qualifier} ${prop.typeInfo.typeLexeme} ${prop.ident.lexeme};`;
   }
 
   override getVaryingDeclare(out: ICodeSegment[]): void {
