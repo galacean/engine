@@ -54,58 +54,61 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     outerGlobalMacroDeclarations: ASTNode.GlobalDeclaration[]
   ): string {
     const context = VisitorContext.context;
-    const { attributeStructs, attributeList, varyingStructs, varyingList } = context;
-    const lookupSymbol = GLESVisitor._lookupSymbol;
-    const symbolTable = data.symbolTable;
-    lookupSymbol.set(entry, ESymbolType.FN);
-    const fnSymbol = <FnSymbol>symbolTable.getSymbol(lookupSymbol, true);
-    if (!fnSymbol?.astNode) throw `no entry function found: ${entry}`;
-
-    const fnNode = fnSymbol.astNode;
     context.stage = EShaderStage.VERTEX;
     context.stageEntry = entry;
 
-    const returnType = fnNode.protoType.returnType;
-    if (typeof returnType.type === "string") {
-      lookupSymbol.set(returnType.type, ESymbolType.STRUCT);
-      const varyingSymbols = <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-      if (!varyingSymbols.length) {
-        this._reportError(returnType.location, `invalid varying struct: "${returnType.type}".`);
-      } else {
-        for (let i = 0; i < varyingSymbols.length; i++) {
-          const varyingSymbol = varyingSymbols[i];
-          const astNode = varyingSymbol.astNode;
-          varyingStructs.push(astNode);
-          for (const prop of astNode.propList) {
-            varyingList.push(prop);
+    const lookupSymbol = GLESVisitor._lookupSymbol;
+    const symbolTable = data.symbolTable;
+    lookupSymbol.set(entry, ESymbolType.FN);
+    const fnSymbols = <FnSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
+    if (!fnSymbols.length) throw `no entry function found: ${entry}`;
+
+    const { attributeStructs, attributeList, varyingStructs, varyingList } = context;
+    fnSymbols.forEach((fnSymbol) => {
+      const fnNode = fnSymbol.astNode;
+      const returnType = fnNode.protoType.returnType;
+
+      if (typeof returnType.type === "string") {
+        lookupSymbol.set(returnType.type, ESymbolType.STRUCT);
+        const varyingSymbols = <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
+        if (!varyingSymbols.length) {
+          this._reportError(returnType.location, `invalid varying struct: "${returnType.type}".`);
+        } else {
+          for (let i = 0; i < varyingSymbols.length; i++) {
+            const varyingSymbol = varyingSymbols[i];
+            const astNode = varyingSymbol.astNode;
+            varyingStructs.push(astNode);
+            for (const prop of astNode.propList) {
+              varyingList.push(prop);
+            }
           }
         }
+      } else if (returnType.type !== Keyword.VOID) {
+        this._reportError(returnType.location, "vertex main entry can only return struct or void.");
       }
-    } else if (returnType.type !== Keyword.VOID) {
-      this._reportError(returnType.location, "vertex main entry can only return struct or void.");
-    }
 
-    const paramList = fnNode.protoType.parameterList;
-    const attributeParam = paramList?.[0];
-    if (attributeParam) {
-      const attributeType = attributeParam.typeInfo.type;
-      if (typeof attributeType === "string") {
-        lookupSymbol.set(attributeType, ESymbolType.STRUCT);
-        const attributeSymbols = <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-        if (!attributeSymbols.length) {
-          this._reportError(attributeParam.astNode.location, `invalid attribute struct: "${attributeType}".`);
-        } else {
-          for (let i = 0; i < attributeSymbols.length; i++) {
-            const attributeSymbol = attributeSymbols[i];
-            const astNode = attributeSymbol.astNode;
-            attributeStructs.push(astNode);
-            for (const prop of astNode.propList) {
-              attributeList.push(prop);
+      const paramList = fnNode.protoType.parameterList;
+      const attributeParam = paramList?.[0];
+      if (attributeParam) {
+        const attributeType = attributeParam.typeInfo.type;
+        if (typeof attributeType === "string") {
+          lookupSymbol.set(attributeType, ESymbolType.STRUCT);
+          const attributeSymbols = <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
+          if (!attributeSymbols.length) {
+            this._reportError(attributeParam.astNode.location, `invalid attribute struct: "${attributeType}".`);
+          } else {
+            for (let i = 0; i < attributeSymbols.length; i++) {
+              const attributeSymbol = attributeSymbols[i];
+              const astNode = attributeSymbol.astNode;
+              attributeStructs.push(astNode);
+              for (const prop of astNode.propList) {
+                attributeList.push(prop);
+              }
             }
           }
         }
       }
-    }
+    });
 
     const globalCodeArray = this._globalCodeArray;
     VisitorContext.context.referenceGlobal(entry, ESymbolType.FN);
@@ -132,34 +135,37 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     data: ShaderData,
     outerGlobalMacroStatements: ASTNode.GlobalDeclaration[]
   ): string {
-    const lookupSymbol = GLESVisitor._lookupSymbol;
-    const { symbolTable } = data;
-    lookupSymbol.set(entry, ESymbolType.FN);
-    const fnSymbol = <FnSymbol>symbolTable.getSymbol(lookupSymbol, true);
-    if (!fnSymbol?.astNode) throw `no entry function found: ${entry}`;
-    const fnNode = fnSymbol.astNode;
-
-    const { returnStatement } = fnNode;
-    if (returnStatement) {
-      returnStatement.isFragReturnStatement = true;
-    }
-
-    const { context } = VisitorContext;
+    const context = VisitorContext.context;
     context.stage = EShaderStage.FRAGMENT;
     context.stageEntry = entry;
 
-    const { type: returnDataType, location: returnLocation } = fnNode.protoType.returnType;
-    if (typeof returnDataType === "string") {
-      lookupSymbol.set(returnDataType, ESymbolType.STRUCT);
-      const mrtStruct = <StructSymbol>symbolTable.getSymbol(lookupSymbol);
-      if (!mrtStruct) {
-        this._reportError(returnLocation, `invalid mrt struct: ${returnDataType}`);
-      } else {
-        context.mrtStruct = mrtStruct.astNode;
+    const lookupSymbol = GLESVisitor._lookupSymbol;
+    const { symbolTable } = data;
+    lookupSymbol.set(entry, ESymbolType.FN);
+    const fnSymbols = <FnSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
+    if (!fnSymbols?.length) throw `no entry function found: ${entry}`;
+
+    fnSymbols.forEach((fnSymbol) => {
+      const fnNode = fnSymbol.astNode;
+      const { returnStatement } = fnNode;
+
+      if (returnStatement) {
+        returnStatement.isFragReturnStatement = true;
       }
-    } else if (returnDataType !== Keyword.VOID && returnDataType !== Keyword.VEC4) {
-      this._reportError(returnLocation, "fragment main entry can only return struct or vec4.");
-    }
+
+      const { type: returnDataType, location: returnLocation } = fnNode.protoType.returnType;
+      if (typeof returnDataType === "string") {
+        lookupSymbol.set(returnDataType, ESymbolType.STRUCT);
+        const mrtStruct = <StructSymbol>symbolTable.getSymbol(lookupSymbol);
+        if (!mrtStruct) {
+          this._reportError(returnLocation, `invalid mrt struct: ${returnDataType}`);
+        } else {
+          context.mrtStruct = mrtStruct.astNode;
+        }
+      } else if (returnDataType !== Keyword.VOID && returnDataType !== Keyword.VEC4) {
+        this._reportError(returnLocation, "fragment main entry can only return struct or vec4.");
+      }
+    });
 
     const globalCodeArray = this._globalCodeArray;
     VisitorContext.context.referenceGlobal(entry, ESymbolType.FN);
