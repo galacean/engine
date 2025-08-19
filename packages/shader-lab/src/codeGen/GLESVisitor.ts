@@ -20,11 +20,24 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   abstract getVaryingDeclare(out: ICodeSegment[]): void;
   abstract getMRTDeclare(out: ICodeSegment[]): void;
 
+  reset(): void {
+    const { _globalCodeArray: globalCodeArray } = this;
+    globalCodeArray.length = 0;
+    GLESVisitor._serializedGlobalKey.clear();
+  }
+
+  getOtherGlobal(data: ShaderData, out: ICodeSegment[]): void {
+    for (const precision of data.globalPrecisions) {
+      out.push({ text: precision.codeGen(this), index: precision.location.start.index });
+    }
+  }
+
   visitShaderProgram(node: ASTNode.GLShaderProgram, vertexEntry: string, fragmentEntry: string): IShaderInfo {
     // #if _VERBOSE
     this.errors.length = 0;
     // #endif
     VisitorContext.reset();
+    this.reset();
 
     const shaderData = node.shaderData;
     VisitorContext.context._passSymbolTable = shaderData.symbolTable;
@@ -97,15 +110,13 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     const statements = fnNode.statements.codeGen(this);
 
-    const { _globalCodeArray: globalCodeArray } = this;
-    globalCodeArray.length = 0;
-    GLESVisitor._serializedGlobalKey.clear();
+    const globalCodeArray = this._globalCodeArray;
 
     this._getGlobalSymbol(globalCodeArray);
-    this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
     this.getAttributeDeclare(globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
     this._getGlobalMacroDeclarations(outerGlobalMacroDeclarations, globalCodeArray);
+    this.getOtherGlobal(data, globalCodeArray);
 
     const globalCode = globalCodeArray
       .sort((a, b) => a.index - b.index)
@@ -113,6 +124,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       .join("\n");
 
     VisitorContext.context.reset(false);
+    this.reset();
 
     return `${globalCode}\n\nvoid main() ${statements}`;
   }
@@ -151,15 +163,13 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     }
 
     const statements = fnNode.statements.codeGen(this);
-    const { _globalCodeArray: globalCodeArray } = this;
-    globalCodeArray.length = 0;
-    GLESVisitor._serializedGlobalKey.clear();
+    const globalCodeArray = this._globalCodeArray;
 
     this._getGlobalSymbol(globalCodeArray);
-    this._getGlobalPrecisions(data.globalPrecisions, globalCodeArray);
     this.getVaryingDeclare(globalCodeArray);
     this.getMRTDeclare(globalCodeArray);
     this._getGlobalMacroDeclarations(outerGlobalMacroStatements, globalCodeArray);
+    this.getOtherGlobal(data, globalCodeArray);
 
     const globalCode = globalCodeArray
       .sort((a, b) => a.index - b.index)
@@ -167,6 +177,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       .join("\n");
 
     context.reset();
+    this.reset();
     return `${globalCode}\n\nvoid main() ${statements}`;
   }
 
@@ -195,12 +206,6 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     if (Object.keys(_referencedGlobals).length !== lastLength) {
       this._getGlobalSymbol(out);
-    }
-  }
-
-  private _getGlobalPrecisions(precisions: ASTNode.PrecisionSpecifier[], out: ICodeSegment[]): void {
-    for (const precision of precisions) {
-      out.push({ text: precision.codeGen(this), index: precision.location.start.index });
     }
   }
 

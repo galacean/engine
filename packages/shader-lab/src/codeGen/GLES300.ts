@@ -1,10 +1,7 @@
-import { ETokenType } from "../common";
-import { BaseToken as Token } from "../common/BaseToken";
 import { EShaderStage } from "../common/Enums";
-import { Keyword } from "../common/enums/Keyword";
 import { ASTNode } from "../parser/AST";
-import { StructProp, SymbolType } from "../parser/types";
-import { ShaderLab } from "../ShaderLab";
+import { ShaderData } from "../parser/ShaderInfo";
+import { StructProp } from "../parser/types";
 import { V3_GL_FragColor, V3_GL_FragData } from "./CodeGenVisitor";
 import { GLESVisitor } from "./GLESVisitor";
 import { ICodeSegment } from "./types";
@@ -17,6 +14,24 @@ export class GLES300Visitor extends GLESVisitor {
       this._singleton = new GLES300Visitor();
     }
     return this._singleton;
+  }
+
+  private _otherCodeArray: ICodeSegment[] = [];
+  private _fragColorVariableRegistered = false;
+
+  override reset(): void {
+    super.reset();
+
+    this._otherCodeArray.length = 0;
+    this._fragColorVariableRegistered = false;
+  }
+
+  override getOtherGlobal(data: ShaderData, out: ICodeSegment[]): void {
+    super.getOtherGlobal(data, out);
+
+    for (let i = 0, n = this._otherCodeArray.length; i < n; i++) {
+      out.push(this._otherCodeArray[i]);
+    }
   }
 
   override getFragDataCodeGen(index: string | number): string {
@@ -152,18 +167,11 @@ export class GLES300Visitor extends GLESVisitor {
   }
 
   private _registerFragColorVariable() {
-    const { _referencedVaryingList } = VisitorContext.context;
-    if (!_referencedVaryingList[V3_GL_FragColor]) {
-      const token = Token.pool.get();
-      token.set(ETokenType.ID, V3_GL_FragColor, ShaderLab.createPosition(0, 0, 0));
-      _referencedVaryingList[V3_GL_FragColor] = [
-        {
-          ident: token,
-          typeInfo: new SymbolType(Keyword.VEC4, "vec4"),
-          qualifier: "out",
-          isInMacroBranch: false
-        }
-      ];
-    }
+    if (this._fragColorVariableRegistered) return;
+    this._otherCodeArray.push({
+      text: `out vec4 ${V3_GL_FragColor};`,
+      index: 0
+    });
+    this._fragColorVariableRegistered = true;
   }
 }
