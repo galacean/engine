@@ -14,6 +14,7 @@ import { GSError } from "../GSError";
 import { Logger, ReturnableObjectPool } from "@galacean/engine";
 import { Keyword } from "../common/enums/Keyword";
 import { TempArray } from "../TempArray";
+import { ICodeSegment } from "./types";
 
 export const V3_GL_FragColor = "GS_glFragColor";
 export const V3_GL_FragData = "GS_glFragData";
@@ -237,16 +238,32 @@ export abstract class CodeGenVisitor {
     }
 
     if (isVaryingStruct || isAttributeStruct) {
-      let result = "";
+      let result: ICodeSegment[] = [];
+
+      result.push(
+        ...node.macroExpressions.map((item) => ({ text: item.codeGen(this), index: item.location.start.index }))
+      );
+
       for (const prop of node.propList) {
         const name = prop.ident.lexeme;
         if (isVaryingStruct && context._referencedVaryingList[name]?.indexOf(prop) >= 0) {
-          result += `${this.getVaryingProp(prop)}\n`;
+          result.push({
+            text: `${this.getVaryingProp(prop)}\n`,
+            index: prop.ident.location.start.index
+          });
         } else if (isAttributeStruct && context._referencedAttributeList[name]?.indexOf(prop) >= 0) {
-          result += `${this.getAttributeProp(prop)}\n`;
+          result.push({
+            text: `${this.getAttributeProp(prop)}\n`,
+            index: prop.ident.location.start.index
+          });
         }
       }
-      return result;
+      const test = result
+        .sort((a, b) => a.index - b.index)
+        .map((item) => item.text)
+        .join("");
+
+      return test;
     } else {
       return this.defaultCodeGen(node.children);
     }

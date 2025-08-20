@@ -1066,6 +1066,7 @@ export namespace ASTNode {
   export class StructSpecifier extends TreeNode {
     ident?: Token;
     propList: StructProp[];
+    macroExpressions: Array<MacroPushContext | MacroPopContext | MacroElseExpression | MacroElifExpression>;
     isInMacroBranch: boolean;
 
     override init(): void {
@@ -1080,8 +1081,10 @@ export namespace ASTNode {
         sa.symbolTableStack.insert(new StructSymbol(this.ident.lexeme, this));
 
         this.propList = (children[3] as StructDeclarationList).propList;
+        this.macroExpressions = (children[3] as StructDeclarationList).macroExpressions;
       } else {
         this.propList = (children[2] as StructDeclarationList).propList;
+        this.macroExpressions = (children[2] as StructDeclarationList).macroExpressions;
       }
     }
 
@@ -1093,34 +1096,24 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.struct_declaration_list)
   export class StructDeclarationList extends TreeNode {
     propList: StructProp[] = [];
+    macroExpressions: Array<MacroPushContext | MacroPopContext | MacroElseExpression | MacroElifExpression> = [];
 
     override init(): void {
       this.propList.length = 0;
+      this.macroExpressions.length = 0;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      const { children, propList } = this;
+      const { children, propList, macroExpressions } = this;
 
       if (children.length === 1) {
-        const props = (children[0] as StructDeclaration).props;
-        const propsLength = props.length;
-        propList.length = propsLength;
-        for (let i = 0; i < propsLength; i++) {
-          propList[i] = props[i];
-        }
+        propList.push(...(children[0] as StructDeclaration).props);
+        macroExpressions.push(...(children[0] as StructDeclaration).macroExpressions);
       } else {
-        const listProps = (children[0] as StructDeclarationList).propList;
-        const declProps = (children[1] as StructDeclaration).props;
-        const listPropLength = listProps.length;
-        const declPropLength = declProps.length;
-        propList.length = listPropLength + declPropLength;
-
-        for (let i = 0; i < listPropLength; i++) {
-          propList[i] = listProps[i];
-        }
-        for (let i = 0; i < declPropLength; i++) {
-          propList[i + listPropLength] = declProps[i];
-        }
+        propList.push(...(children[0] as StructDeclarationList).propList);
+        propList.push(...(children[1] as StructDeclaration).props);
+        macroExpressions.push(...(children[0] as StructDeclarationList).macroExpressions);
+        macroExpressions.push(...(children[1] as StructDeclaration).macroExpressions);
       }
     }
   }
@@ -1128,6 +1121,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.struct_declaration)
   export class StructDeclaration extends TreeNode {
     props: StructProp[] = [];
+    macroExpressions: Array<MacroPushContext | MacroPopContext | MacroElseExpression | MacroElifExpression> = [];
 
     private _typeSpecifier?: TypeSpecifier;
     private _declaratorList?: StructDeclaratorList;
@@ -1136,18 +1130,23 @@ export namespace ASTNode {
       this._typeSpecifier = undefined;
       this._declaratorList = undefined;
       this.props.length = 0;
+      this.macroExpressions.length = 0;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      const { children, props } = this;
+      const { children, props, macroExpressions } = this;
 
       if (children.length === 1) {
         const macroStructDeclaration = children[0] as MacroStructDeclaration;
         const macroProps = macroStructDeclaration.props;
+
         for (let i = 0, length = macroProps.length; i < length; i++) {
           macroProps[i].isInMacroBranch = true;
           props.push(macroProps[i]);
         }
+
+        macroExpressions.push(...macroStructDeclaration.macroExpressions);
+
         return;
       }
 
@@ -1184,28 +1183,26 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.macro_struct_declaration)
   export class MacroStructDeclaration extends TreeNode {
     props: StructProp[] = [];
+    macroExpressions: Array<MacroPushContext | MacroPopContext | MacroElseExpression | MacroElifExpression> = [];
 
     override init(): void {
       this.props.length = 0;
+      this.macroExpressions.length = 0;
     }
 
     override semanticAnalyze(): void {
       const children = this.children;
 
+      this.macroExpressions.push(children[0] as MacroPushContext);
+
       if (children.length === 3) {
-        const structDeclarationProps = (children[1] as StructDeclarationList).propList;
-        const macroStructBranchProps = (children[2] as MacroStructBranch).props;
-        for (let i = 0; i < structDeclarationProps.length; i++) {
-          this.props.push(structDeclarationProps[i]);
-        }
-        for (let i = 0; i < macroStructBranchProps.length; i++) {
-          this.props.push(macroStructBranchProps[i]);
-        }
+        this.props.push(...(children[1] as StructDeclarationList).propList);
+        this.props.push(...(children[2] as MacroStructBranch).props);
+        this.macroExpressions.push(...(children[1] as StructDeclarationList).macroExpressions);
+        this.macroExpressions.push(...(children[2] as MacroStructBranch).macroExpressions);
       } else {
-        const macroStructBranchProps = (children[1] as MacroStructBranch).props;
-        for (let i = 0; i < macroStructBranchProps.length; i++) {
-          this.props.push(macroStructBranchProps[i]);
-        }
+        this.props.push(...(children[1] as MacroStructBranch).props);
+        this.macroExpressions.push(...(children[1] as MacroStructBranch).macroExpressions);
       }
     }
   }
@@ -1213,28 +1210,31 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.macro_struct_branch)
   export class MacroStructBranch extends TreeNode {
     props: StructProp[] = [];
+    macroExpressions: Array<MacroPushContext | MacroPopContext | MacroElseExpression | MacroElifExpression> = [];
 
     override init(): void {
       this.props.length = 0;
+      this.macroExpressions.length = 0;
     }
 
     override semanticAnalyze(): void {
       const children = this.children;
       const lastNode = children[children.length - 1];
-      const last2Node = children[children.length - 2];
 
-      if (last2Node instanceof StructDeclarationList) {
-        const lastProps = last2Node.propList;
-        for (let i = 0, length = lastProps.length; i < length; i++) {
-          this.props.push(lastProps[i]);
-        }
+      this.macroExpressions.push(children[0] as MacroPopContext | MacroElseExpression | MacroElifExpression);
+
+      if (children[1] instanceof StructDeclarationList) {
+        this.props.push(...children[1].propList);
+        this.macroExpressions.push(...children[1].macroExpressions);
       }
 
       if (lastNode instanceof MacroStructBranch) {
-        const lastProps = lastNode.props;
-        for (let i = 0, length = lastProps.length; i < length; i++) {
-          this.props.push(lastProps[i]);
-        }
+        this.props.push(...lastNode.props);
+        this.macroExpressions.push(...lastNode.macroExpressions);
+      }
+
+      if (children.length > 1 && lastNode instanceof MacroPopContext) {
+        this.macroExpressions.push(lastNode);
       }
     }
   }
