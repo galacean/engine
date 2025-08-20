@@ -226,36 +226,6 @@ export abstract class CodeGenVisitor {
     return this.defaultCodeGen(node.children);
   }
 
-  visitMacroBranch(node: ASTNode.GlobalMacroBranch | ASTNode.MacroStructBranch | ASTNode.MacroBranch): string {
-    const children = node.children;
-    const firstChild = children[0];
-    let breakLineIndex = -1;
-    let result = "";
-
-    if (firstChild instanceof BaseToken) {
-      if (firstChild.type === Keyword.MACRO_ELSE) {
-        breakLineIndex = 0;
-      } else {
-        breakLineIndex = 1;
-      }
-    }
-
-    for (let i = 0, length = children.length; i < length; i++) {
-      const child = children[i];
-      if (child instanceof BaseToken) {
-        result += `\n${child.lexeme} `;
-      } else {
-        result += child.codeGen(this);
-      }
-
-      if (i === breakLineIndex) {
-        result += "\n";
-      }
-    }
-
-    return result;
-  }
-
   visitStructSpecifier(node: ASTNode.StructSpecifier): string {
     const context = VisitorContext.context;
     const { varyingStructs, attributeStructs } = context;

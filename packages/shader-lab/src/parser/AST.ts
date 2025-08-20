@@ -1237,10 +1237,6 @@ export namespace ASTNode {
         }
       }
     }
-
-    override codeGen(visitor: CodeGenVisitor) {
-      return this.setCache(visitor.visitMacroBranch(this));
-    }
   }
 
   @ASTNodeDecorator(NoneTerminal.layout_qualifier)
@@ -1411,28 +1407,6 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.global_macro_declaration)
-  export class GlobalMacroDeclaration extends TreeNode {
-    override codeGen(visitor: CodeGenVisitor) {
-      const children = this.children as TreeNode[];
-      if (children.length === 1) {
-        return this.setCache(children[0].codeGen(visitor));
-      } else {
-        return this.setCache(`${children[0].codeGen(visitor)}\n${children[1].codeGen(visitor)}`);
-      }
-    }
-  }
-
-  @ASTNodeDecorator(NoneTerminal.global_macro_if_statement)
-  export class GlobalMacroIfStatement extends TreeNode {}
-
-  @ASTNodeDecorator(NoneTerminal.global_macro_branch)
-  export class GlobalMacroBranch extends TreeNode {
-    override codeGen(visitor: CodeGenVisitor) {
-      return this.setCache(visitor.visitMacroBranch(this));
-    }
-  }
-
   @ASTNodeDecorator(NoneTerminal.macro_undef)
   export class MacroUndef extends TreeNode {
     override codeGen(visitor: CodeGenVisitor) {
@@ -1462,15 +1436,43 @@ export namespace ASTNode {
     }
   }
 
+  @ASTNodeDecorator(NoneTerminal.macro_elif_expression)
+  export class MacroElifExpression extends TreeNode {
+    override codeGen(visitor: CodeGenVisitor) {
+      return this.setCache("\n" + super.codeGen(visitor) + "\n");
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.macro_else_expression)
+  export class MacroElseExpression extends TreeNode {
+    override codeGen(visitor: CodeGenVisitor) {
+      return this.setCache("\n" + super.codeGen(visitor) + "\n");
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.global_macro_declaration)
+  export class GlobalMacroDeclaration extends TreeNode {
+    override codeGen(visitor: CodeGenVisitor) {
+      const children = this.children as TreeNode[];
+      if (children.length === 1) {
+        return this.setCache(children[0].codeGen(visitor));
+      } else {
+        return this.setCache(`${children[0].codeGen(visitor)}\n${children[1].codeGen(visitor)}`);
+      }
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.global_macro_if_statement)
+  export class GlobalMacroIfStatement extends TreeNode {}
+
+  @ASTNodeDecorator(NoneTerminal.global_macro_branch)
+  export class GlobalMacroBranch extends TreeNode {}
+
   @ASTNodeDecorator(NoneTerminal.macro_if_statement)
   export class MacroIfStatement extends TreeNode {}
 
   @ASTNodeDecorator(NoneTerminal.macro_branch)
-  export class MacroBranch extends TreeNode {
-    override codeGen(visitor: CodeGenVisitor) {
-      return this.setCache(visitor.visitMacroBranch(this));
-    }
-  }
+  export class MacroBranch extends TreeNode {}
 
   @ASTNodeDecorator(NoneTerminal.macro_conditional_expression)
   export class MacroConditionalExpression extends TreeNode {}

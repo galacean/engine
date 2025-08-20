@@ -68,6 +68,28 @@ gs_shader_program:
     | gs_shader_program global_declaration
     ;
 
+macro_undef:
+    MACRO_UNDEF id
+    ;
+
+macro_push_context:
+     MACRO_IF macro_conditional_expression 
+     | MACRO_IFDEF id
+     | MACRO_IFNDEF id
+     ;
+
+macro_pop_context:
+    MACRO_ENDIF
+    ;
+
+macro_elif_expression:
+    MACRO_ELIF macro_conditional_expression
+    ;
+
+macro_else_expression:
+    MACRO_ELSE
+    ;
+
 global_declaration:
     precision_specifier
     | variable_declaration_statement
@@ -90,24 +112,10 @@ global_macro_if_statement:
 
 global_macro_branch:
     macro_pop_context
-    | MACRO_ELIF macro_conditional_expression global_macro_declaration global_macro_branch
-    | MACRO_ELSE global_macro_declaration macro_pop_context
-    | MACRO_ELIF macro_conditional_expression global_macro_branch
-    | MACRO_ELSE macro_pop_context
-    ;
-
-macro_undef:
-    MACRO_UNDEF id
-    ;
-
-macro_push_context:
-     MACRO_IF macro_conditional_expression 
-     | MACRO_IFDEF id
-     | MACRO_IFNDEF id
-     ;
-
-macro_pop_context:
-    MACRO_ENDIF
+    | macro_elif_expression global_macro_declaration global_macro_branch
+    | macro_else_expression global_macro_declaration macro_pop_context
+    | macro_elif_expression global_macro_branch
+    | macro_else_expression macro_pop_context
     ;
 
 
@@ -169,10 +177,10 @@ macro_struct_declaration:
     
 macro_struct_branch: 
     macro_pop_context
-    | MACRO_ELIF macro_conditional_expression struct_declaration_list macro_struct_branch
-    | MACRO_ELSE struct_declaration_list macro_pop_context
-    | MACRO_ELIF macro_conditional_expression macro_struct_branch
-    | MACRO_ELSE macro_pop_context
+    | macro_elif_expression struct_declaration_list macro_struct_branch
+    | macro_else_expression struct_declaration_list macro_pop_context
+    | macro_elif_expression macro_struct_branch
+    | macro_else_expression macro_pop_context
     ;
 
 layout_qualifier:
@@ -516,10 +524,10 @@ macro_if_statement:
 
 macro_branch: 
     macro_pop_context
-    | MACRO_ELIF macro_conditional_expression statement_list macro_branch
-    | MACRO_ELSE statement_list macro_pop_context
-    | MACRO_ELIF macro_conditional_expression macro_branch
-    | MACRO_ELSE macro_pop_context
+    | macro_elif_expression statement_list macro_branch
+    | macro_else_expression statement_list macro_pop_context
+    | macro_elif_expression macro_branch
+    | macro_else_expression macro_pop_context
     ;
 
 macro_conditional_expression
