@@ -411,8 +411,9 @@ export class PpParser {
   private static _parseUnaryExpression(scanner: PpLexer) {
     const operator = scanner.getCurChar();
     if (["+", "-", "!"].includes(operator)) {
-      scanner.advance(1);
       const opPos = scanner.getShaderPosition(0);
+      scanner.advance(1);
+      scanner.skipSpace(false);
       const parenExpr = this._parseParenthesisExpression(scanner);
       if ((operator === "!" && typeof parenExpr !== "boolean") || (operator !== "!" && typeof parenExpr !== "number")) {
         this._reportError(opPos, "invalid operator.", scanner.source, scanner.file);
