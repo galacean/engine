@@ -132,6 +132,11 @@ export enum NoneTerminal {
   macro_primary_expression,
   macro_constant,
 
+  // Macro call
+  macro_call_symbol,
+  macro_call_parameter_list,
+  macro_call_function,
+
   _ignore
 }
 

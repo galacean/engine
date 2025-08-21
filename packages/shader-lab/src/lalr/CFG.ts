@@ -29,6 +29,30 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ),
 
   ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_call_symbol,
+    [[Keyword.MACRO_CALL]],
+    ASTNode.MacroCallSymbol.pool
+  ),
+
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_call_parameter_list,
+    [
+      [NoneTerminal.primary_expression],
+      [NoneTerminal.macro_call_parameter_list, ETokenType.COMMA, NoneTerminal.primary_expression]
+    ],
+    ASTNode.MacroCallParameterList.pool
+  ),
+
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_call_function,
+    [
+      [Keyword.MACRO_CALL, ETokenType.LEFT_PAREN, ETokenType.RIGHT_PAREN],
+      [Keyword.MACRO_CALL, ETokenType.LEFT_PAREN, NoneTerminal.macro_call_parameter_list, ETokenType.RIGHT_PAREN]
+    ],
+    ASTNode.MacroCallFunction.pool
+  ),
+
+  ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.macro_undef,
     [[Keyword.MACRO_UNDEF, ETokenType.ID]],
     ASTNode.MacroUndef.pool
@@ -668,7 +692,12 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.parameter_declaration,
-    [[NoneTerminal.type_qualifier, NoneTerminal.parameter_declarator], [NoneTerminal.parameter_declarator]],
+    [
+      [NoneTerminal.type_qualifier, NoneTerminal.parameter_declarator],
+      [NoneTerminal.parameter_declarator],
+      [NoneTerminal.macro_call_symbol],
+      [NoneTerminal.macro_call_function]
+    ],
     ASTNode.ParameterDeclaration.pool
   ),
 
@@ -936,7 +965,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.variable_identifier,
-    [[ETokenType.ID]],
+    [[ETokenType.ID], [NoneTerminal.macro_call_symbol], [NoneTerminal.macro_call_function]],
     ASTNode.VariableIdentifier.pool
   ),
 

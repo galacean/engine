@@ -114,7 +114,12 @@ export abstract class CodeGenVisitor {
     if (node.hasGlobalVariable) {
       VisitorContext.context.referenceGlobal(node.lexeme, ESymbolType.VAR);
     }
-    return node.lexeme;
+
+    if (node.macroCallNode) {
+      return node.macroCallNode.codeGen(this);
+    } else {
+      return node.lexeme;
+    }
   }
 
   visitFunctionCall(node: ASTNode.FunctionCall): string {

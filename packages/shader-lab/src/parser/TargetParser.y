@@ -60,12 +60,28 @@
 
 %token MACRO_IF MACRO_IFDEF MACRO_IFNDEF MACRO_ELIF MACRO_ELSE MACRO_DEFINED MACRO_ENDIF
 %token MACRO_UNDEF MACRO_DEFINE_EXPRESSION
+%token MACRO_CALL
 
 
 %%
 gs_shader_program:
     global_declaration
     | gs_shader_program global_declaration
+    ;
+
+macro_call_symbol:
+    MACRO_CALL
+    ;
+
+
+macro_call_parameter_list:
+    primary_expression
+    | macro_call_parameter_list ',' primary_expression
+    ;
+
+macro_call_function:
+    MACRO_CALL '(' ')'
+    | MACRO_CALL '(' macro_call_parameter_list ')'
     ;
 
 macro_undef:
@@ -135,6 +151,8 @@ variable_declaration_statement:
 
 variable_identifier:
     id
+    | macro_call_symbol
+    | macro_call_function
     ;
 
 precision_specifier:
@@ -431,6 +449,8 @@ function_parameter_list:
 parameter_declaration:
     type_qualifier parameter_declarator
     | parameter_declarator
+    | macro_call_symbol
+    | macro_call_function
     ;
 
 parameter_declarator:
@@ -530,67 +550,67 @@ macro_branch:
     | macro_else_expression macro_pop_context
     ;
 
-macro_conditional_expression
-    : macro_logical_or_expression
+macro_conditional_expression: 
+    macro_logical_or_expression
     ;
 
-macro_logical_or_expression
-    : macro_logical_and_expression
+macro_logical_or_expression: 
+    macro_logical_and_expression
     | macro_logical_or_expression "||" macro_logical_and_expression
     ;
 
-macro_logical_and_expression
-    : macro_equality_expression
+macro_logical_and_expression: 
+    macro_equality_expression
     | macro_logical_and_expression "&&" macro_equality_expression
     ;
 
-macro_equality_expression
-    : macro_relational_expression
+macro_equality_expression: 
+    macro_relational_expression
     | macro_equality_expression "==" macro_relational_expression
     | macro_equality_expression "!=" macro_relational_expression
     ;
 
-macro_relational_expression
-    : macro_shift_expression
+macro_relational_expression: 
+    macro_shift_expression
     | macro_relational_expression ">" macro_shift_expression
     | macro_relational_expression "<" macro_shift_expression
     | macro_relational_expression ">=" macro_shift_expression
     | macro_relational_expression "<=" macro_shift_expression
     ;
 
-macro_shift_expression
-    : macro_additive_expression
+macro_shift_expression: 
+    macro_additive_expression
     | macro_shift_expression ">>" macro_additive_expression
     | macro_shift_expression "<<" macro_additive_expression
     ;
 
-macro_additive_expression
-    : macro_multiplicative_expression
+macro_additive_expression: 
+    macro_multiplicative_expression
     | macro_additive_expression "+" macro_multiplicative_expression
     | macro_additive_expression "-" macro_multiplicative_expression
     ;
 
-macro_multiplicative_expression
-    : macro_unary_expression
+macro_multiplicative_expression: 
+    macro_unary_expression
     | macro_multiplicative_expression "*" macro_unary_expression
     | macro_multiplicative_expression "/" macro_unary_expression
     | macro_multiplicative_expression "%" macro_unary_expression
     ;
 
-macro_unary_expression
-    : macro_primary_expression
+macro_unary_expression: 
+    macro_primary_expression
     | "+" macro_unary_expression
     | "-" macro_unary_expression
     | "!" macro_unary_expression
     ;
 
-macro_primary_expression
-    : macro_constant
+macro_primary_expression: 
+    macro_constant
     | "(" macro_conditional_expression ")"
     ;
 
-macro_constant
-    : id
+macro_constant: 
+    id
     | INT_CONSTANT
     | MACRO_DEFINED id
     | MACRO_DEFINED "(" id ")"
