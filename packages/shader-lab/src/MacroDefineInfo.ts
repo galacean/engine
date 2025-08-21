@@ -1,3 +1,5 @@
+import { Logger } from "@galacean/engine";
+
 export enum MacroValueType {
   Number, // 1, 1.1
   Symbol, // variable name
@@ -21,7 +23,7 @@ export interface MacroDefineList {
 
 const isNumber = (str: string) => !isNaN(Number(str));
 
-const macroRegex = /^\s*#define\s+(\w+)[ ]*(\(([^)]*)\))?[ ]+(\(?\w+\)?.*)\s*$/gm;
+const macroRegex = /^\s*#define\s+(\w+)[ ]*(\(([^)]*)\))?[ ]+(\(?\w+\)?.*?)(?:\/\/.*|\/\*.*?\*\/)?\s*$/gm;
 const symbolReg = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 const funcCallReg = /^([a-zA-Z_][a-zA-Z0-9_]*)\s*\((.*)\)$/;
 
@@ -57,6 +59,7 @@ export function parseMacroDefines(source: string): MacroDefineList {
         functionCallName = callMatch[1];
       }
     }
+
     const info: MacroDefineInfo = {
       isFunction,
       name,
@@ -80,6 +83,12 @@ export function parseMacroDefines(source: string): MacroDefineList {
 
     if (!existingMacro) {
       macroList[name].push(info);
+
+      if (info.valueType === MacroValueType.Other) {
+        Logger.warn(
+          `Warning: Macro "${name}" has an unrecognized value type "${value}". ShaderLab does not validate this type.`
+        );
+      }
     }
   }
 
