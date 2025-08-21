@@ -1,5 +1,5 @@
 import { Logger, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
-import { IShaderInfo, IShaderLab, IShaderSource } from "@galacean/engine-design";
+import { IShaderLab, IShaderSource } from "@galacean/engine-design";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { ShaderPosition, ShaderRange } from "./common";
 import { Lexer } from "./lexer";
@@ -11,6 +11,7 @@ import { IShaderProgramSource } from "@galacean/engine-design/types/shader-lab/I
 import { PpParser } from "./preprocessor/PpParser";
 import { ShaderLabUtils } from "./ShaderLabUtils";
 import { ShaderSourceParser } from "./sourceParser/ShaderSourceParser";
+import { parseMacroDefines } from "./MacroDefineInfo";
 
 /** @internal */
 export class ShaderLab implements IShaderLab {
@@ -67,6 +68,9 @@ export class ShaderLab implements IShaderLab {
   ): IShaderProgramSource | undefined {
     const totalStartTime = performance.now();
     const noIncludeContent = PpParser.parseInclude(source, basePathForIncludeKey);
+
+    const macroDefineList = parseMacroDefines(noIncludeContent);
+
     Logger.info(`[Pass include compilation] cost time ${performance.now() - totalStartTime}ms`);
 
     // #if _VERBOSE
@@ -79,14 +83,14 @@ export class ShaderLab implements IShaderLab {
     }
     // #endif
 
-    const lexer = new Lexer(noIncludeContent);
+    const lexer = new Lexer(noIncludeContent, macroDefineList);
 
     const tokens = lexer.tokenize();
     const { _parser: parser } = ShaderLab;
 
     ShaderLab._processingPassText = noIncludeContent;
 
-    const program = parser.parse(tokens);
+    const program = parser.parse(tokens, macroDefineList);
 
     // #if _VERBOSE
     for (const err of parser.errors) {

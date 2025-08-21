@@ -75,8 +75,8 @@ macro_call_symbol:
 
 
 macro_call_parameter_list:
-    primary_expression
-    | macro_call_parameter_list ',' primary_expression
+    assignment_expression
+    | macro_call_parameter_list ',' assignment_expression
     ;
 
 macro_call_function:
@@ -92,6 +92,8 @@ macro_push_context:
      MACRO_IF macro_conditional_expression 
      | MACRO_IFDEF id
      | MACRO_IFNDEF id
+     | MACRO_IFDEF macro_call_symbol
+     | MACRO_IFNDEF macro_call_symbol
      ;
 
 macro_pop_context:
@@ -611,9 +613,12 @@ macro_primary_expression:
 
 macro_constant: 
     id
+    | macro_call_symbol
     | INT_CONSTANT
     | MACRO_DEFINED id
     | MACRO_DEFINED "(" id ")"
+    | MACRO_DEFINED macro_call_symbol
+    | MACRO_DEFINED "(" macro_call_symbol ")"
     ;
 
 iteration_statement:

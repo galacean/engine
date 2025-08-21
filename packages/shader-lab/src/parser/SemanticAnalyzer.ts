@@ -2,16 +2,16 @@ import { ShaderRange } from "../common";
 import { SymbolTable } from "../common/SymbolTable";
 import { SymbolTableStack } from "../common/SymbolTableStack";
 import { GSErrorName } from "../GSError";
-import { ESymbolType, SymbolInfo } from "../parser/symbolTable";
+import { SymbolInfo } from "../parser/symbolTable";
 import { ShaderLab } from "../ShaderLab";
 import { ASTNode, TreeNode } from "./AST";
-import { NonGenericGalaceanType } from "./builtin";
 import { ShaderData } from "./ShaderInfo";
 import { NodeChild } from "./types";
 // #if _VERBOSE
 import { GSError } from "../GSError";
 // #else
 import { Logger } from "@galacean/engine";
+import { MacroDefineList } from "../MacroDefineInfo";
 // #endif
 
 export type TranslationRule<T = any> = (sa: SemanticAnalyzer, ...tokens: NodeChild[]) => T;
@@ -38,6 +38,8 @@ export default class SemanticAnalyzer {
   private _shaderData = new ShaderData();
   private _translationRuleTable: Map<number /** production id */, TranslationRule> = new Map();
 
+  private _macroDefineList: MacroDefineList;
+
   // #if _VERBOSE
   readonly errors: Error[] = [];
   // #endif
@@ -46,11 +48,16 @@ export default class SemanticAnalyzer {
     return this._shaderData;
   }
 
+  get macroDefineList(): MacroDefineList {
+    return this._macroDefineList;
+  }
+
   constructor() {
     this.pushScope();
   }
 
-  reset() {
+  reset(macroDefineList: MacroDefineList) {
+    this._macroDefineList = macroDefineList;
     this.semanticStack.length = 0;
     this._shaderData = new ShaderData();
     this.symbolTableStack.clear();

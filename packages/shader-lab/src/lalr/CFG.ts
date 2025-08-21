@@ -37,8 +37,8 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.macro_call_parameter_list,
     [
-      [NoneTerminal.primary_expression],
-      [NoneTerminal.macro_call_parameter_list, ETokenType.COMMA, NoneTerminal.primary_expression]
+      [NoneTerminal.assignment_expression],
+      [NoneTerminal.macro_call_parameter_list, ETokenType.COMMA, NoneTerminal.assignment_expression]
     ],
     ASTNode.MacroCallParameterList.pool
   ),
@@ -63,7 +63,9 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     [
       [Keyword.MACRO_IF, NoneTerminal.macro_conditional_expression],
       [Keyword.MACRO_IFDEF, ETokenType.ID],
-      [Keyword.MACRO_IFNDEF, ETokenType.ID]
+      [Keyword.MACRO_IFNDEF, ETokenType.ID],
+      [Keyword.MACRO_IFDEF, NoneTerminal.macro_call_symbol],
+      [Keyword.MACRO_IFNDEF, NoneTerminal.macro_call_symbol]
     ],
     ASTNode.MacroPushContext.pool
   ),
@@ -1084,7 +1086,9 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ETokenType.ID],
       [ETokenType.INT_CONSTANT],
       [Keyword.MACRO_DEFINED, ETokenType.ID],
-      [Keyword.MACRO_DEFINED, ETokenType.LEFT_PAREN, ETokenType.ID, ETokenType.RIGHT_PAREN]
+      [Keyword.MACRO_DEFINED, ETokenType.LEFT_PAREN, ETokenType.ID, ETokenType.RIGHT_PAREN],
+      [Keyword.MACRO_DEFINED, NoneTerminal.macro_call_symbol],
+      [Keyword.MACRO_DEFINED, ETokenType.LEFT_PAREN, NoneTerminal.macro_call_symbol, ETokenType.RIGHT_PAREN]
     ],
     ASTNode.MacroConstant.pool
   )

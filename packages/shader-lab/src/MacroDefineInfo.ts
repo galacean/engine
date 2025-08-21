@@ -1,11 +1,11 @@
-enum MacroValueType {
+export enum MacroValueType {
   Number, // 1, 1.1
   Symbol, // variable name
   FunctionCall, // function call, e.g. clamp(a, 0.0, 1.0), need to collect function call info
   Other // shaderLab does not check this, e.g. a + b, cannot enumerate all cases, just give a warning!
 }
 
-interface MacroDefineInfo {
+export interface MacroDefineInfo {
   isFunction: boolean; // whether the macro itself is a function macro
   name: string; // macro name
   value: string; // macro expanded string value
@@ -15,7 +15,7 @@ interface MacroDefineInfo {
   // functionCallParams: string[]; // only present when valueType is FunctionCall, parameter type checking not needed for now
 }
 
-interface MacroDefineList {
+export interface MacroDefineList {
   [key: string]: MacroDefineInfo[];
 }
 

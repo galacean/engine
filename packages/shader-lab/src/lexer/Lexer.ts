@@ -1,8 +1,9 @@
-import { ShaderLab } from "../ShaderLab";
 import { ETokenType } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken, EOF } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
+import { MacroDefineList } from "../MacroDefineInfo";
+import { ShaderLab } from "../ShaderLab";
 
 /**
  * The Lexer of ShaderLab Compiler
@@ -90,6 +91,13 @@ export class Lexer extends BaseLexer {
       yield this.scanToken();
     }
     return EOF;
+  }
+
+  constructor(
+    source: string,
+    public macroDefineList: MacroDefineList
+  ) {
+    super(source);
   }
 
   override scanToken(): BaseToken {
@@ -422,7 +430,11 @@ export class Lexer extends BaseLexer {
     const word = buffer.join("");
     const kt = Lexer._lexemeTable[word];
 
-    token.set(kt ?? ETokenType.ID, word, start);
+    if (this.macroDefineList[word]) {
+      token.set(Keyword.MACRO_CALL, word, start);
+    } else {
+      token.set(kt ?? ETokenType.ID, word, start);
+    }
     return token;
   }
 
