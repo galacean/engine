@@ -26,7 +26,7 @@ export class UITransform extends Transform {
    */
   get size(): Vector2 {
     if (this._isContainDirtyFlag(UITransformModifyFlags.Size)) {
-      const parentRect = (this._getParentTransform() as unknown as UITransform)?._getLocalRect?.();
+      const parentRect = (this._getParentTransform() as unknown as UITransform)?._getRect?.();
       if (parentRect) {
         const size = this._size;
         // @ts-ignore
@@ -218,36 +218,36 @@ export class UITransform extends Transform {
    */
   override get position(): Vector3 {
     if (this._isContainDirtyFlag(UITransformModifyFlags.LocalPosition)) {
-      const parentRect = (this._getParentTransform() as unknown as UITransform)?._getLocalRect?.();
+      const parentRect = (this._getParentTransform() as unknown as UITransform)?._getRect?.();
       if (!!parentRect) {
         const position = this._position;
         // @ts-ignore
         position._onValueChanged = null;
-        const localRect = this._getLocalRect();
+        const rect = this._getRect();
         switch (this.horizontalAlignment) {
           case HorizontalAlignmentFlags.Left:
           case HorizontalAlignmentFlags.LeftAndRight:
-            position.x = parentRect.x - localRect.x + this._left;
+            position.x = parentRect.x - rect.x + this._left;
             break;
           case HorizontalAlignmentFlags.Center:
-            position.x = parentRect.x + parentRect.width * 0.5 - localRect.x - localRect.width * 0.5 + this._center;
+            position.x = parentRect.x + parentRect.width * 0.5 - rect.x - rect.width * 0.5 + this._center;
             break;
           case HorizontalAlignmentFlags.Right:
-            position.x = parentRect.x + parentRect.width - localRect.x - localRect.width - this._right;
+            position.x = parentRect.x + parentRect.width - rect.x - rect.width - this._right;
             break;
           default:
             break;
         }
         switch (this.verticalAlignment) {
           case VerticalAlignmentFlags.Top:
-            position.y = parentRect.y + parentRect.height - localRect.y - localRect.height - this._top;
+            position.y = parentRect.y + parentRect.height - rect.y - rect.height - this._top;
             break;
           case VerticalAlignmentFlags.Middle:
-            position.y = parentRect.y + parentRect.height * 0.5 - localRect.y - localRect.height * 0.5 + this._middle;
+            position.y = parentRect.y + parentRect.height * 0.5 - rect.y - rect.height * 0.5 + this._middle;
             break;
           case VerticalAlignmentFlags.Bottom:
           case VerticalAlignmentFlags.TopAndBottom:
-            position.y = parentRect.y - localRect.y + this._bottom;
+            position.y = parentRect.y - rect.y + this._bottom;
             break;
           default:
             break;
@@ -331,8 +331,8 @@ export class UITransform extends Transform {
     }
     const parent = this._getParentTransform();
     if (parent) {
-      Matrix.invert(parent.worldMatrix, Transform._tempMat42);
-      Matrix.multiply(Transform._tempMat42, value, this._localMatrix);
+      Matrix.invert(parent.worldMatrix, Transform._tempMat40);
+      Matrix.multiply(Transform._tempMat40, value, this._localMatrix);
     } else {
       this._localMatrix.copyFrom(value);
     }
@@ -362,46 +362,49 @@ export class UITransform extends Transform {
    */
   protected override _parentChange(): void {
     this._isParentDirty = true;
-    this._transferFlagsWithLocalRectDirty(UITransformModifyFlags.LrWmWpWeWqWsWus);
+    this._updateWorldFlagWithParentRectDirty(UITransformModifyFlags.WmWpWeWqWsWus);
   }
 
-  private _transferFlagsWithLocalRectDirty(flags: UITransformModifyFlags): void {
-    if (flags & UITransformModifyFlags.LocalRect) {
-      if (!!this._horizontalAlignment || !!this._verticalAlignment) {
+  private _updateWorldFlagWithParentRectDirty(flags: UITransformModifyFlags, parentRectDirty: boolean = true): void {
+    if (parentRectDirty) {
+      const { _horizontalAlignment: horizontalAlignment, _verticalAlignment: verticalAlignment } = this;
+      if (!!horizontalAlignment || !!verticalAlignment) {
         flags |= UITransformModifyFlags.WmWp;
         this._setDirtyFlagTrue(UITransformModifyFlags.LmLp);
         if (
-          this._horizontalAlignment === HorizontalAlignmentFlags.LeftAndRight ||
-          this._verticalAlignment === VerticalAlignmentFlags.TopAndBottom
+          horizontalAlignment === HorizontalAlignmentFlags.LeftAndRight ||
+          verticalAlignment === VerticalAlignmentFlags.TopAndBottom
         ) {
-          this._setDirtyFlagTrue(UITransformModifyFlags.Size);
-          // @ts-ignore
-          this.entity._updateFlagManager.dispatch(UITransformModifyFlags.Size);
+          !this._isContainDirtyFlags(UITransformModifyFlags.LsLr) &&
+            this._worldAssociatedChange(UITransformModifyFlags.LsLr);
         } else {
-          flags &= ~UITransformModifyFlags.LocalRect;
+          parentRectDirty = false;
         }
       } else {
-        flags &= ~UITransformModifyFlags.LocalRect;
+        parentRectDirty = false;
       }
     }
-    if (!this._isContainDirtyFlags(flags)) {
-      this._setDirtyFlagTrue(flags & UITransformModifyFlags.LocalRect);
-      const worldFlags = flags & ~UITransformModifyFlags.LocalRect;
-      !this._isContainDirtyFlags(worldFlags) && this._worldAssociatedChange(worldFlags);
+
+    const containDirtyFlags = this._isContainDirtyFlags(flags);
+    if (parentRectDirty || !containDirtyFlags) {
+      !containDirtyFlags && this._worldAssociatedChange(flags);
       const children = this.entity.children;
       for (let i = 0, n = children.length; i < n; i++) {
-        (children[i].transform as unknown as UITransform)?._transferFlagsWithLocalRectDirty?.(flags);
+        (children[i].transform as unknown as UITransform)?._updateWorldFlagWithParentRectDirty?.(
+          flags,
+          parentRectDirty
+        );
       }
     }
   }
 
-  private _getLocalRect(): Rect {
-    if (this._isContainDirtyFlag(UITransformModifyFlags.LocalRect)) {
-      const { size, _pivot: pivot, _rect: localRect } = this;
+  private _getRect(): Rect {
+    if (this._isContainDirtyFlag(UITransformModifyFlags.Rect)) {
+      const { size, _pivot: pivot, _rect: rect } = this;
       const x = -pivot.x * size.x;
       const y = -pivot.y * size.y;
-      localRect.set(x, y, size.x, size.y);
-      this._setDirtyFlagFalse(UITransformModifyFlags.LocalRect);
+      rect.set(x, y, size.x, size.y);
+      this._setDirtyFlagFalse(UITransformModifyFlags.Rect);
     }
     return this._rect;
   }
@@ -433,26 +436,26 @@ export class UITransform extends Transform {
       ) {
         this._setDirtyFlagTrue(UITransformModifyFlags.Size);
       }
-      this._setLocalRectDirty();
+      this._setRectDirty();
+      // @ts-ignore
+      this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Size);
     }
-    // @ts-ignore
-    this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Size);
   }
 
   @ignoreClone
   private _onPivotChanged(): void {
-    this._setLocalRectDirty();
+    this._setRectDirty();
     // @ts-ignore
     this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Pivot);
   }
 
-  private _setLocalRectDirty(): void {
-    if (!this._isContainDirtyFlag(UITransformModifyFlags.LocalRect)) {
-      this._setDirtyFlagTrue(UITransformModifyFlags.LocalRect);
+  private _setRectDirty(): void {
+    if (!this._isContainDirtyFlag(UITransformModifyFlags.Rect)) {
+      this._setDirtyFlagTrue(UITransformModifyFlags.Rect);
       const children = this.entity.children;
       for (let i = 0, n = children.length; i < n; i++) {
-        (children[i].transform as unknown as UITransform)?._transferFlagsWithLocalRectDirty?.(
-          UITransformModifyFlags.LocalRect
+        (children[i].transform as unknown as UITransform)?._updateWorldFlagWithParentRectDirty?.(
+          UITransformModifyFlags.None
         );
       }
     }
@@ -464,6 +467,7 @@ export class UITransform extends Transform {
  * extends TransformModifyFlags
  */
 export enum UITransformModifyFlags {
+  None = 0x0,
   LocalEuler = 0x1,
   LocalQuat = 0x2,
   WorldPosition = 0x4,
@@ -472,19 +476,15 @@ export enum UITransformModifyFlags {
   Size = 0x200,
   Pivot = 0x400,
   LocalPosition = 0x800,
-  LocalRect = 0x1000,
+  Rect = 0x1000,
 
-  LsLr = Size | LocalRect,
+  LsLr = Size | Rect,
   /** Local matrix | local position. */
   LmLp = LocalMatrix | LocalPosition,
-  /** Local rect | World matrix | world position. */
-  LrWmWp = LocalRect | WorldMatrix | WorldPosition,
   /** World matrix | world position. */
   WmWp = WorldMatrix | WorldPosition,
   /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale */
   WmWpWeWqWs = 0xbc,
   /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale | WorldUniformScaling */
-  WmWpWeWqWsWus = 0x1bc,
-  /** Local rect | World matrix | world position | world Euler | world quaternion | world scale | world uniform scaling */
-  LrWmWpWeWqWsWus = 0x11bc
+  WmWpWeWqWsWus = 0x1bc
 }

@@ -218,19 +218,15 @@ enum UITransformModifyFlags {
   Size = 0x200,
   Pivot = 0x400,
   LocalPosition = 0x800,
-  LocalRect = 0x1000,
+  Rect = 0x1000,
 
-  LsLr = Size | LocalRect,
+  LsLr = Size | Rect,
   /** Local matrix | local position. */
   LmLp = LocalMatrix | LocalPosition,
-  /** Local rect | World matrix | world position. */
-  LrWmWp = LocalRect | WorldMatrix | WorldPosition,
   /** World matrix | world position. */
   WmWp = WorldMatrix | WorldPosition,
   /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale */
   WmWpWeWqWs = 0xbc,
   /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale | WorldUniformScaling */
   WmWpWeWqWsWus = 0x1bc,
-  /** Local rect | World matrix | world position | world Euler | world quaternion | world scale | world uniform scaling */
-  LrWmWpWeWqWsWus = 0x11bc
 }
