@@ -1367,12 +1367,8 @@ export namespace ASTNode {
         const name = needFindNames[i];
 
         // only `macro_call` CFG can reference fnSymbols, others fnSymbols are referenced in `function_call_generic` CFG
-        if (
-          !(child instanceof BaseToken) &&
-          BuiltinFunction.isExist(name) &&
-          referenceGlobalSymbolNames.indexOf(name) === -1
-        ) {
-          referenceGlobalSymbolNames.push(name);
+        if (!(child instanceof BaseToken) && BuiltinFunction.isExist(name)) {
+          continue;
         }
 
         const builtinVar = BuiltinVariable.getVar(name);
