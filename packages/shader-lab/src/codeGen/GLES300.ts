@@ -107,7 +107,7 @@ export class GLES300Visitor extends GLESVisitor {
 
   override visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
     const { context } = VisitorContext;
-    if (context.stage === EShaderStage.FRAGMENT && node.lexeme === "gl_FragColor") {
+    if (context.stage === EShaderStage.FRAGMENT && node.getLexeme(this) === "gl_FragColor") {
       // #if _VERBOSE
       if (context._referencedMRTList["gl_FragData"]) {
         this._reportError(node.location, "cannot use both gl_FragData and gl_FragColor");

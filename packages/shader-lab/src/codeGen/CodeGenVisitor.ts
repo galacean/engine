@@ -111,15 +111,11 @@ export abstract class CodeGenVisitor {
   }
 
   visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
-    if (node.hasGlobalVariable) {
-      VisitorContext.context.referenceGlobal(node.lexeme, ESymbolType.VAR);
+    for (let name of node.referenceGlobalSymbolNames) {
+      VisitorContext.context.referenceGlobal(name, ESymbolType.Any);
     }
 
-    if (node.macroCallNode) {
-      return node.macroCallNode.codeGen(this);
-    } else {
-      return node.lexeme;
-    }
+    return node.getLexeme(this);
   }
 
   visitFunctionCall(node: ASTNode.FunctionCall): string {

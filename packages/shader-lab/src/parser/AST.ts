@@ -1,12 +1,11 @@
-// #if _VERBOSE
 import { BuiltinFunction, BuiltinVariable, NonGenericGalaceanType } from "./builtin";
-// #endif
 import { ClearableObjectPool, IPoolElement } from "@galacean/engine";
 import { CodeGenVisitor } from "../codeGen";
 import { VisitorContext } from "../codeGen/VisitorContext";
 import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from "../common";
 import { BaseToken } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
+import { getReferenceSymbolNames } from "../MacroDefineInfo";
 import { ParserUtils } from "../ParserUtils";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 import { NoneTerminal } from "./GrammarSymbol";
@@ -496,7 +495,7 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.function_prototype)
   export class FunctionProtoType extends TreeNode {
-    ident: Token;
+    ident: BaseToken;
     returnType: FullySpecifiedType;
     parameterList: IParamInfo[];
     paramSig: GalaceanDataType[] | undefined;
@@ -1339,58 +1338,85 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.variable_identifier)
   export class VariableIdentifier extends TreeNode {
-    lexeme: string;
-    hasGlobalVariable: boolean;
+    // @todo: typeInfo may be multiple types
     typeInfo: GalaceanDataType;
-    macroCallNode: MacroCallSymbol | MacroCallFunction;
+    referenceGlobalSymbolNames: string[] = [];
 
-    private _symbols: VarSymbol[] = [];
+    private _symbols: Array<VarSymbol | FnSymbol> = [];
 
     override init(): void {
+      this.typeInfo = TypeAny;
       this._symbols.length = 0;
-      this.hasGlobalVariable = false;
-      this.macroCallNode = null;
+      this.referenceGlobalSymbolNames.length = 0;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const child = this.children[0] as BaseToken | MacroCallSymbol | MacroCallFunction;
-      this.lexeme = child.lexeme;
-
-      if (child instanceof BaseToken) {
-      } else {
-        this.macroCallNode = child;
-        // this.hasGlobalVariable = false;
-      }
-
-      // #if _VERBOSE
-      const builtinVar = BuiltinVariable.getVar(this.lexeme);
-      if (builtinVar) {
-        this.typeInfo = builtinVar.type;
-        return;
-      }
-      // #endif
-
+      const referenceGlobalSymbolNames = this.referenceGlobalSymbolNames;
       const symbols = this._symbols;
       const lookupSymbol = SemanticAnalyzer._lookupSymbol;
-      lookupSymbol.set(this.lexeme, ESymbolType.VAR);
-      sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols);
+      let needFindNames: string[];
 
-      if (!symbols.length) {
-        // sa.reportError(this.location, `undeclared identifier: ${token.lexeme}`);
+      if (child instanceof BaseToken) {
+        needFindNames = [child.lexeme];
       } else {
-        // @todo: typeInfo may be multiple types, use nearest one for now.
-        this.typeInfo = symbols[0].dataType?.type;
-        const nearestSymbol = <VarSymbol>sa.symbolTableStack.lookup(lookupSymbol, false);
-        if (nearestSymbol) {
-          this.hasGlobalVariable = nearestSymbol.isGlobalVariable;
+        needFindNames = (child as MacroCallSymbol | MacroCallFunction).referenceSymbolNames;
+      }
+
+      for (let i = 0; i < needFindNames.length; i++) {
+        const name = needFindNames[i];
+
+        // only `macro_call` CFG can reference fnSymbols, others fnSymbols are referenced in `function_call_generic` CFG
+        if (
+          !(child instanceof BaseToken) &&
+          BuiltinFunction.isExist(name) &&
+          referenceGlobalSymbolNames.indexOf(name) === -1
+        ) {
+          referenceGlobalSymbolNames.push(name);
+        }
+
+        const builtinVar = BuiltinVariable.getVar(name);
+        if (builtinVar) {
+          this.typeInfo = builtinVar.type;
+          continue;
+        }
+
+        lookupSymbol.set(name, ESymbolType.Any);
+        sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols);
+
+        if (!symbols.length) {
+          sa.reportError(this.location, `undeclared identifier: ${name}`);
         } else {
-          this.hasGlobalVariable = symbols.some((s) => s.isGlobalVariable);
+          this.typeInfo = symbols[0].dataType?.type;
+          const currentScopeSymbol = <VarSymbol | FnSymbol>sa.symbolTableStack.scope.getSymbol(lookupSymbol, true);
+          if (currentScopeSymbol) {
+            if (
+              (currentScopeSymbol instanceof FnSymbol || currentScopeSymbol.isGlobalVariable) &&
+              referenceGlobalSymbolNames.indexOf(name) === -1
+            ) {
+              referenceGlobalSymbolNames.push(name);
+            }
+          } else if (
+            symbols.some((s) => s instanceof FnSymbol || s.isGlobalVariable) &&
+            referenceGlobalSymbolNames.indexOf(name) === -1
+          ) {
+            referenceGlobalSymbolNames.push(name);
+          }
         }
       }
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
       return this.setCache(visitor.visitVariableIdentifier(this));
+    }
+
+    getLexeme(visitor: CodeGenVisitor): string {
+      const child = this.children[0] as BaseToken | MacroCallSymbol | MacroCallFunction;
+      if (child instanceof BaseToken) {
+        return child.lexeme;
+      } else {
+        return child.codeGen(visitor);
+      }
     }
   }
 
@@ -1517,10 +1543,17 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.macro_call_symbol)
   export class MacroCallSymbol extends TreeNode {
-    lexeme: string;
+    referenceSymbolNames: string[] = [];
+
+    override init(): void {
+      this.referenceSymbolNames.length = 0;
+    }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      this.lexeme = (this.children[0] as BaseToken).lexeme;
+      const children = this.children;
+      const macroName = (children[0] as BaseToken).lexeme;
+
+      getReferenceSymbolNames(sa.macroDefineList, macroName, this.referenceSymbolNames);
     }
   }
 
@@ -1529,10 +1562,17 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.macro_call_function)
   export class MacroCallFunction extends TreeNode {
-    lexeme: string;
+    referenceSymbolNames: string[] = [];
+
+    override init(): void {
+      this.referenceSymbolNames.length = 0;
+    }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      this.lexeme = (this.children[0] as BaseToken).lexeme;
+      const children = this.children;
+      const macroName = (children[0] as BaseToken).lexeme;
+
+      getReferenceSymbolNames(sa.macroDefineList, macroName, this.referenceSymbolNames);
     }
   }
 }

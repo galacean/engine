@@ -6,7 +6,8 @@ import { SymbolDataType } from "./SymbolDataType";
 export enum ESymbolType {
   VAR,
   FN,
-  STRUCT
+  STRUCT,
+  Any
 }
 
 export type SymbolAstNode =
@@ -41,13 +42,13 @@ export class SymbolInfo implements IBaseSymbol {
     this.paramSignature = paramSignature;
   }
 
-  equal(other: SymbolInfo): boolean {
-    if (this.type !== other.type) return false;
+  equal(symbol: SymbolInfo): boolean {
+    if (symbol.type !== ESymbolType.Any && this.type !== symbol.type) return false;
     if (this.type === ESymbolType.FN) {
-      if (!other.astNode && !other.paramSignature) return true;
+      if (!symbol.astNode && !symbol.paramSignature) return true;
 
       const params = (<ASTNode.FunctionDefinition>this.astNode).protoType.paramSig;
-      const comparedParams = other.paramSignature ?? (<ASTNode.FunctionDefinition>other.astNode).protoType.paramSig;
+      const comparedParams = symbol.paramSignature ?? (<ASTNode.FunctionDefinition>symbol.astNode).protoType.paramSig;
       const length = params?.length;
       if (length !== comparedParams?.length) return false;
       for (let i = 0; i < length; i++) {

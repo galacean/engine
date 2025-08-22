@@ -1,5 +1,3 @@
-import { Logger } from "@galacean/engine";
-
 export enum MacroValueType {
   Number, // 1, 1.1
   Symbol, // variable name
@@ -18,7 +16,7 @@ export interface MacroDefineInfo {
 }
 
 export interface MacroDefineList {
-  [key: string]: MacroDefineInfo[];
+  [macroName: string]: MacroDefineInfo[];
 }
 
 const isNumber = (str: string) => !isNaN(Number(str));
@@ -83,14 +81,44 @@ export function parseMacroDefines(source: string): MacroDefineList {
 
     if (!existingMacro) {
       macroList[name].push(info);
-
-      if (info.valueType === MacroValueType.Other) {
-        Logger.warn(
-          `Warning: Macro "${name}" has an unrecognized value type "${value}". ShaderLab does not validate this type.`
-        );
-      }
     }
   }
 
   return macroList;
+}
+
+/**
+ * Get reference symbol names from a macro define list, to visit referenced symbol in shader code.
+ * @example
+ * #define TEST functionName(0.0, 1.0) // ["functionName"]
+ * #define TEST(a) functionName(a)     // ["functionName"]
+ * #define TEST(a) b                    // ["b"]
+ * #define TEST(b) b                   // []
+ */
+export function getReferenceSymbolNames(macroDefineList: MacroDefineList, macroName: string, out: string[]): string[] {
+  out.length = 0;
+  const infos = macroDefineList[macroName];
+
+  if (infos) {
+    for (let i = 0; i < infos.length; i++) {
+      const info = infos[i];
+      const valueType = info.valueType;
+
+      if (valueType === MacroValueType.FunctionCall || valueType === MacroValueType.Symbol) {
+        const referencedName = valueType === MacroValueType.FunctionCall ? info.functionCallName : info.value;
+        if (info.params.indexOf(referencedName) !== -1) continue;
+        if (out.indexOf(referencedName) === -1) {
+          out.push(referencedName);
+        }
+      } else if (info.valueType === MacroValueType.Other) {
+        // #if _VERBOSE
+        console.warn(
+          `Warning: Macro "${info.name}" has an unrecognized value type "${info.value}". ShaderLab does not validate this type.`
+        );
+        // #endif
+      }
+    }
+  }
+
+  return out;
 }
