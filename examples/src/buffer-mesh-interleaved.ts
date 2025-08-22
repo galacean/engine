@@ -18,7 +18,7 @@ import {
   Vector3,
   VertexElement,
   VertexElementFormat,
-  WebGLEngine,
+  WebGLEngine
 } from "@galacean/engine";
 
 // Create engine and get root entity
@@ -93,18 +93,8 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
           20, 22, 23, 22, 20, 21]);
 
     // Create gpu vertex buffer and index buffer.
-    const vertexBuffer = new Buffer(
-      engine,
-      BufferBindFlag.VertexBuffer,
-      vertices,
-      BufferUsage.Static
-    );
-    const indexBuffer = new Buffer(
-      engine,
-      BufferBindFlag.IndexBuffer,
-      indices,
-      BufferUsage.Static
-    );
+    const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static);
+    const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, indices, BufferUsage.Static);
 
     // Bind buffer
     geometry.setVertexBufferBinding(vertexBuffer, 24);
@@ -113,7 +103,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     // Add vertexElement
     geometry.setVertexElements([
       new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
-      new VertexElement("NORMAL", 12, VertexElementFormat.Vector3, 0),
+      new VertexElement("NORMAL", 12, VertexElementFormat.Vector3, 0)
     ]);
 
     // Add one sub geometry.

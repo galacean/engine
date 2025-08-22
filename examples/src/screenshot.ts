@@ -4,7 +4,7 @@
  * @thumbnail https://mdn.alipayobjects.com/merchant_appfe/afts/img/A*0OXcQYHlwzQAAAAAAAAAAAAADiR2AQ/original
  */
 
-import { OrbitControl } from "@galacean/engine-toolkit-controls";
+import { OrbitControl } from "@galacean/engine-toolkit";
 import * as dat from "dat.gui";
 import {
   AmbientLight,
@@ -15,7 +15,7 @@ import {
   RenderTarget,
   Texture2D,
   Vector3,
-  WebGLEngine,
+  WebGLEngine
 } from "@galacean/engine";
 
 const gui = new dat.GUI();
@@ -34,9 +34,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   // add gltf model
   engine.resourceManager
-    .load<GLTFResource>(
-      "https://gw.alipayobjects.com/os/bmw-prod/5e3c1e4e-496e-45f8-8e05-f89f2bd5e4a4.glb"
-    )
+    .load<GLTFResource>("https://gw.alipayobjects.com/os/bmw-prod/5e3c1e4e-496e-45f8-8e05-f89f2bd5e4a4.glb")
     .then((asset) => {
       const { defaultSceneRoot } = asset;
       rootEntity.addChild(defaultSceneRoot);
@@ -48,7 +46,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   engine.resourceManager
     .load<AmbientLight>({
       type: AssetType.Env,
-      url: "https://gw.alipayobjects.com/os/bmw-prod/89c54544-1184-45a1-b0f5-c0b17e5c3e68.bin",
+      url: "https://gw.alipayobjects.com/os/bmw-prod/89c54544-1184-45a1-b0f5-c0b17e5c3e68.bin"
     })
     .then((ambientLight) => {
       scene.ambientLight = ambientLight;
@@ -58,14 +56,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   /** ---------------------------- Capture ---------------------------- */
   let screenshotCanvas: HTMLCanvasElement = null;
   let flipYCanvas: HTMLCanvasElement = null;
-  function screenshot(
-    camera: Camera,
-    width: number,
-    height: number,
-    flipY = false,
-    isPNG = true,
-    jpgQuality = 1
-  ) {
+  function screenshot(camera: Camera, width: number, height: number, flipY = false, isPNG = true, jpgQuality = 1) {
     if (!screenshotCanvas) {
       screenshotCanvas = document.createElement("canvas");
     }
@@ -81,14 +72,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     const originalTarget = camera.renderTarget;
     const renderColorTexture = new Texture2D(engine, width, height);
     const renderTargetData = new Uint8Array(width * height * 4);
-    const renderTarget = new RenderTarget(
-      engine,
-      width,
-      height,
-      renderColorTexture,
-      undefined,
-      8
-    );
+    const renderTarget = new RenderTarget(engine, width, height, renderColorTexture, undefined, 8);
 
     // render to off-screen
     camera.renderTarget = renderTarget;
@@ -118,26 +102,23 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       ctx2.drawImage(screenshotCanvas, 0, 0);
     }
 
-    // download
+    // open in new window
     canvas.toBlob(
       (blob) => {
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
 
-        document.body.appendChild(a);
-        a.style.display = "none";
-        a.href = url;
-        a.download = "screenshot";
-
-        a.addEventListener("click", () => {
-          if (a.parentElement) {
-            a.parentElement.removeChild(a);
-          }
-        });
-
-        a.click();
-
-        window.URL.revokeObjectURL(url);
+        // Open image in new window
+        const newWindow = window.open(url);
+        if (newWindow) {
+          // Clean up the blob URL after some time
+          setTimeout(() => {
+            window.URL.revokeObjectURL(url);
+          }, 1000);
+        } else {
+          // Fallback: if popup is blocked, clean up immediately
+          window.URL.revokeObjectURL(url);
+          console.warn("Unable to open screenshot in new window. Please allow popups for this site.");
+        }
 
         // revert
         camera.renderTarget = originalTarget;
@@ -159,7 +140,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       screenshot: () => {
         const { width, height, flipY, isPNG, jpgQuality } = config;
         screenshot(camera, width, height, flipY, isPNG, jpgQuality);
-      },
+      }
     };
 
     const configFolder = gui.addFolder("config");
