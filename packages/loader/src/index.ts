@@ -25,6 +25,7 @@ import "./ShaderChunkLoader";
 import "./PhysicsMaterialLoader";
 
 export { GLTFLoader } from "./GLTFLoader";
+export { ProjectLoader } from "./ProjectLoader";
 export type { GLTFParams } from "./GLTFLoader";
 export * from "./SceneLoader";
 export type { Texture2DParams } from "./Texture2DLoader";
