@@ -1,8 +1,9 @@
-import { ShaderLab } from "../ShaderLab";
 import { ETokenType } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken, EOF } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
+import { MacroDefineList } from "../MacroDefineInfo";
+import { ShaderLab } from "../ShaderLab";
 
 /**
  * The Lexer of ShaderLab Compiler
@@ -72,7 +73,17 @@ export class Lexer extends BaseLexer {
     noperspective: Keyword.NOPERSPECTIVE,
     centroid: Keyword.CENTROID,
     layout: Keyword.LAYOUT,
-    location: Keyword.LOCATION
+    location: Keyword.LOCATION,
+
+    // Macros ...
+    "#if": Keyword.MACRO_IF,
+    "#ifdef": Keyword.MACRO_IFDEF,
+    "#ifndef": Keyword.MACRO_IFNDEF,
+    "#else": Keyword.MACRO_ELSE,
+    "#elif": Keyword.MACRO_ELIF,
+    defined: Keyword.MACRO_DEFINED,
+    "#endif": Keyword.MACRO_ENDIF,
+    "#undef": Keyword.MACRO_UNDEF
   };
 
   *tokenize() {
@@ -82,12 +93,22 @@ export class Lexer extends BaseLexer {
     return EOF;
   }
 
+  constructor(
+    source: string,
+    public macroDefineList: MacroDefineList
+  ) {
+    super(source);
+  }
+
   override scanToken(): BaseToken {
     this.skipCommentsAndSpace();
     if (this.isEnd()) {
       return EOF;
     }
 
+    if (BaseLexer.isPreprocessorStartChar(this.getCurCharCode())) {
+      return this._scanDirectives();
+    }
     if (BaseLexer.isAlpha(this.getCurCharCode())) {
       return this._scanWord();
     }
@@ -370,6 +391,33 @@ export class Lexer extends BaseLexer {
     return token;
   }
 
+  private _scanDirectives() {
+    const buffer: string[] = [this.getCurChar()];
+    const start = this.getShaderPosition();
+    this.advance(1);
+    while (BaseLexer.isAlpha(this.getCurCharCode())) {
+      buffer.push(this.getCurChar());
+      this.advance(1);
+    }
+    const token = BaseToken.pool.get();
+    const word = buffer.join("");
+
+    // If it is a macro definition, we need to skip the rest of the line
+    if (word === "#define") {
+      while (this.getCurChar() !== "\n" && !this.isEnd()) {
+        buffer.push(this.getCurChar());
+        this.advance(1);
+      }
+      const word = buffer.join("") + "\n";
+      token.set(Keyword.MACRO_DEFINE_EXPRESSION, word, start);
+    } else {
+      const kt = Lexer._lexemeTable[word];
+      token.set(kt ?? ETokenType.ID, word, start);
+    }
+
+    return token;
+  }
+
   private _scanWord() {
     const buffer: string[] = [this.getCurChar()];
     const start = this.getShaderPosition();
@@ -382,7 +430,11 @@ export class Lexer extends BaseLexer {
     const word = buffer.join("");
     const kt = Lexer._lexemeTable[word];
 
-    token.set(kt ?? ETokenType.ID, word, start);
+    if (this.macroDefineList[word]) {
+      token.set(Keyword.MACRO_CALL, word, start);
+    } else {
+      token.set(kt ?? ETokenType.ID, word, start);
+    }
     return token;
   }
 

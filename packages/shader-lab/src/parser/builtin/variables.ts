@@ -20,7 +20,7 @@ export class BuiltinVariable {
     BuiltinVariableTable.set(lexeme, item);
   }
 
-  static getVar(ident: string) {
+  static getVar(ident: string): BuiltinVariable {
     return BuiltinVariableTable.get(ident);
   }
 }

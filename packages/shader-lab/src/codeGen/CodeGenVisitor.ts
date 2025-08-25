@@ -1,10 +1,10 @@
 import { ShaderPosition, ShaderRange } from "../common";
-import { BaseToken as Token } from "../common/BaseToken";
+import { BaseToken } from "../common/BaseToken";
 import { GSErrorName } from "../GSError";
 import { ASTNode, TreeNode } from "../parser/AST";
 import { NoneTerminal } from "../parser/GrammarSymbol";
-import { ESymbolType, FnSymbol, VarSymbol } from "../parser/symbolTable";
-import { NodeChild } from "../parser/types";
+import { ESymbolType, FnSymbol } from "../parser/symbolTable";
+import { NodeChild, StructProp } from "../parser/types";
 import { ParserUtils } from "../ParserUtils";
 import { ShaderLab } from "../ShaderLab";
 import { VisitorContext } from "./VisitorContext";
@@ -12,8 +12,9 @@ import { VisitorContext } from "./VisitorContext";
 import { GSError } from "../GSError";
 // #endif
 import { Logger, ReturnableObjectPool } from "@galacean/engine";
-import { TempArray } from "../TempArray";
 import { Keyword } from "../common/enums/Keyword";
+import { TempArray } from "../TempArray";
+import { ICodeSegment } from "./types";
 
 export const V3_GL_FragColor = "GS_glFragColor";
 export const V3_GL_FragData = "GS_glFragData";
@@ -27,8 +28,9 @@ export abstract class CodeGenVisitor {
   readonly errors: Error[] = [];
   // #endif
 
-  abstract getFragDataCodeGen(index: string | number): string;
-  abstract getReferencedMRTPropText(index: string | number, ident: string): string;
+  abstract getAttributeProp(prop: StructProp): string;
+  abstract getVaryingProp(prop: StructProp): string;
+  abstract getMRTProp(prop: StructProp): string;
 
   protected static _tmpArrayPool = new ReturnableObjectPool(TempArray<string>, 10);
 
@@ -37,7 +39,7 @@ export abstract class CodeGenVisitor {
     let ret = pool.get();
     ret.dispose();
     for (const child of children) {
-      if (child instanceof Token) {
+      if (child instanceof BaseToken) {
         ret.array.push(child.lexeme);
       } else {
         ret.array.push(child.codeGen(this));
@@ -47,7 +49,7 @@ export abstract class CodeGenVisitor {
     return ret.array.join(" ");
   }
 
-  visitPostfixExpression(node: ASTNode.PostfixExpression) {
+  visitPostfixExpression(node: ASTNode.PostfixExpression): string {
     const children = node.children;
     const derivationLength = children.length;
     const context = VisitorContext.context;
@@ -56,7 +58,7 @@ export abstract class CodeGenVisitor {
       const postExpr = children[0] as ASTNode.PostfixExpression;
       const prop = children[2];
 
-      if (prop instanceof Token) {
+      if (prop instanceof BaseToken) {
         if (context.isAttributeStruct(<string>postExpr.type)) {
           const error = context.referenceAttribute(prop);
           // #if _VERBOSE
@@ -93,25 +95,20 @@ export abstract class CodeGenVisitor {
       const identLexeme = identNode.codeGen(this);
       const indexLexeme = indexNode.codeGen(this);
       if (identLexeme === "gl_FragData") {
-        // #if _VERBOSE
-        if (context._referencedVaryingList[V3_GL_FragColor]) {
-          this._reportError(identNode.location, "cannot use both gl_FragData and gl_FragColor");
-        }
-        // #endif
-        const mrtLexeme = this.getFragDataCodeGen(indexLexeme);
-        context._referencedMRTList[mrtLexeme] = this.getReferencedMRTPropText(indexLexeme, mrtLexeme);
-        return mrtLexeme;
+        this._reportError(identNode.location, "Please use MRT struct instead of gl_FragData.");
       }
       return `${identLexeme}[${indexLexeme}]`;
     }
+
     return this.defaultCodeGen(node.children);
   }
 
   visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
-    if (node.symbolInfo instanceof VarSymbol && node.symbolInfo.isGlobalVariable) {
-      VisitorContext.context.referenceGlobal(node.lexeme, ESymbolType.VAR);
+    for (let name of node.referenceGlobalSymbolNames) {
+      VisitorContext.context.referenceGlobal(name, ESymbolType.Any);
     }
-    return node.lexeme;
+
+    return node.getLexeme(this);
   }
 
   visitFunctionCall(node: ASTNode.FunctionCall): string {
@@ -163,7 +160,7 @@ export abstract class CodeGenVisitor {
     if (fullType instanceof ASTNode.FullySpecifiedType && fullType.typeSpecifier.isCustom) {
       VisitorContext.context.referenceGlobal(<string>fullType.type, ESymbolType.STRUCT);
     }
-    return this.defaultCodeGen(children);
+    return `uniform ${this.defaultCodeGen(children)}`;
   }
 
   visitDeclaration(node: ASTNode.Declaration): string {
@@ -176,16 +173,6 @@ export abstract class CodeGenVisitor {
       if (context.isVaryingStruct(typeLexeme) || context.isMRTStruct(typeLexeme)) return "";
     }
     return this.defaultCodeGen(children);
-  }
-
-  visitFunctionProtoType(node: ASTNode.FunctionProtoType): string {
-    VisitorContext.context._curFn = node;
-    return this.defaultCodeGen(node.children);
-  }
-
-  visitFunctionDefinition(node: ASTNode.FunctionDefinition): string {
-    VisitorContext.context._curFn = undefined;
-    return this.defaultCodeGen(node.children);
   }
 
   visitFunctionParameterList(node: ASTNode.FunctionParameterList): string {
@@ -202,14 +189,15 @@ export abstract class CodeGenVisitor {
 
   visitFunctionHeader(node: ASTNode.FunctionHeader): string {
     const returnType = node.returnType.typeSpecifier.lexeme;
-    if (VisitorContext.context.isAttributeStruct(returnType) || VisitorContext.context.isVaryingStruct(returnType))
+    if (VisitorContext.context.isVaryingStruct(returnType)) {
       return `void ${node.ident.lexeme}(`;
+    }
     return this.defaultCodeGen(node.children);
   }
 
   visitJumpStatement(node: ASTNode.JumpStatement): string {
     const children = node.children;
-    const cmd = children[0] as Token;
+    const cmd = children[0] as BaseToken;
     if (cmd.type === Keyword.RETURN) {
       const expr = children[1];
       if (expr instanceof ASTNode.Expression) {
@@ -217,11 +205,11 @@ export abstract class CodeGenVisitor {
           expr,
           NoneTerminal.variable_identifier
         );
-        if (returnVar?.typeInfo === VisitorContext.context.varyingStruct?.ident?.lexeme) {
+        if (VisitorContext.context.isVaryingStruct(<string>returnVar?.typeInfo)) {
           return "";
         }
         const returnFnCall = ParserUtils.unwrapNodeByType<ASTNode.FunctionCall>(expr, NoneTerminal.function_call);
-        if (returnFnCall?.type === VisitorContext.context.varyingStruct?.ident?.lexeme) {
+        if (VisitorContext.context.isVaryingStruct(<string>returnFnCall?.type)) {
           return `${expr.codeGen(this)};`;
         }
       }
@@ -231,6 +219,74 @@ export abstract class CodeGenVisitor {
 
   visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {
     return this.defaultCodeGen(node.children);
+  }
+
+  visitStructSpecifier(node: ASTNode.StructSpecifier): string {
+    const context = VisitorContext.context;
+    const { varyingStructs, attributeStructs, mrtStructs } = context;
+    const isVaryingStruct = varyingStructs.indexOf(node) !== -1;
+    const isAttributeStruct = attributeStructs.indexOf(node) !== -1;
+    const isMRTStruct = mrtStructs.indexOf(node) !== -1;
+
+    if (isVaryingStruct && isAttributeStruct) {
+      this._reportError(node.location, "cannot use same struct as Varying and Attribute");
+    }
+
+    if (isVaryingStruct && isMRTStruct) {
+      this._reportError(node.location, "cannot use same struct as Varying and MRT");
+    }
+
+    if (isAttributeStruct && isMRTStruct) {
+      this._reportError(node.location, "cannot use same struct as Attribute and MRT");
+    }
+
+    if (isVaryingStruct || isAttributeStruct || isMRTStruct) {
+      let result: ICodeSegment[] = [];
+
+      result.push(
+        ...node.macroExpressions.map((item) => ({ text: item.codeGen(this), index: item.location.start.index }))
+      );
+
+      for (const prop of node.propList) {
+        const name = prop.ident.lexeme;
+        if (isVaryingStruct && context._referencedVaryingList[name]?.indexOf(prop) >= 0) {
+          result.push({
+            text: `${this.getVaryingProp(prop)}\n`,
+            index: prop.ident.location.start.index
+          });
+        } else if (isAttributeStruct && context._referencedAttributeList[name]?.indexOf(prop) >= 0) {
+          result.push({
+            text: `${this.getAttributeProp(prop)}\n`,
+            index: prop.ident.location.start.index
+          });
+        } else if (isMRTStruct && context._referencedMRTList[name]?.indexOf(prop) >= 0) {
+          result.push({
+            text: `${this.getMRTProp(prop)}\n`,
+            index: prop.ident.location.start.index
+          });
+        }
+      }
+      const test = result
+        .sort((a, b) => a.index - b.index)
+        .map((item) => item.text)
+        .join("");
+
+      return test;
+    } else {
+      return this.defaultCodeGen(node.children);
+    }
+  }
+
+  visitFunctionDefinition(fnNode: ASTNode.FunctionDefinition): string {
+    const fnName = fnNode.protoType.ident.lexeme;
+    const context = VisitorContext.context;
+
+    if (fnName == context.stageEntry) {
+      const statements = fnNode.statements.codeGen(this);
+      return `void main() ${statements}`;
+    } else {
+      return this.defaultCodeGen(fnNode.children);
+    }
   }
 
   protected _reportError(loc: ShaderRange | ShaderPosition, message: string): void {

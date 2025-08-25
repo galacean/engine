@@ -24,9 +24,7 @@ class ShaderLoader extends Loader<Shader> {
       }
 
       return ShaderChunkLoader._loadChunksInCode(code, url, resourceManager).then(() => {
-        const shader = Shader.create(code);
-        // @ts-ignore
-        shader._registerPath(url);
+        const shader = Shader.create(code, undefined, url);
         return shader;
       });
     });

@@ -1,6 +1,8 @@
 import { IBaseSymbol } from "../common/IBaseSymbol";
 
 export class ShaderSourceSymbol implements IBaseSymbol {
+  public isInMacroBranch: boolean = false;
+
   constructor(
     public ident: string,
     public type: number,

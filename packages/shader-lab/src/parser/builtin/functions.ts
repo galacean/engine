@@ -98,6 +98,10 @@ export class BuiltinFunction {
       }
     }
   }
+
+  static isExist(ident: string) {
+    return !!BuiltinFunctionTable.get(ident);
+  }
 }
 
 BuiltinFunction._create("radians", EGenType.GenType, EGenType.GenType);

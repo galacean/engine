@@ -87,11 +87,20 @@ Shader "PBRShaderName" {
       Pass "Forward Pass" {
         Tags { pipelineStage = "Forward"} 
 
-        DepthState {
+        RenderQueueType renderQueueType;
+        BlendFactor sourceColorBlendFactor;
+        BlendFactor destinationColorBlendFactor;
+        BlendFactor sourceAlphaBlendFactor;
+        BlendFactor destinationAlphaBlendFactor;
+        CullMode rasterStateCullMode;
+        Bool blendEnabled;
+        Bool depthWriteEnabled;
+
+        DepthState customDepthState {
           WriteEnabled = depthWriteEnabled;
         }
 
-        BlendState {
+        BlendState customBlendState {
           Enabled = blendEnabled;
           SourceColorBlendFactor = sourceColorBlendFactor;
           DestinationColorBlendFactor = destinationColorBlendFactor;
@@ -99,14 +108,15 @@ Shader "PBRShaderName" {
           DestinationAlphaBlendFactor = destinationAlphaBlendFactor;
         }
 
-        RasterState{
+        RasterState customRasterState {
           CullMode = rasterStateCullMode;
         }
 
+        DepthState = customDepthState;
+        BlendState = customBlendState;
+        RasterState = customRasterState;
         RenderQueueType = renderQueueType;
 
-        #define IS_METALLIC_WORKFLOW
-        
         VertexShader = PBRVertex;
         FragmentShader = PBRFragment;
 
