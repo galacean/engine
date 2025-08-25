@@ -16,8 +16,6 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
   private static _serializedGlobalKey = new Set();
 
-  abstract getMRTDeclare(out: ICodeSegment[]): void;
-
   reset(): void {
     const { _globalCodeArray: globalCodeArray } = this;
     globalCodeArray.length = 0;
@@ -156,11 +154,18 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       const { type: returnDataType, location: returnLocation } = fnNode.protoType.returnType;
       if (typeof returnDataType === "string") {
         lookupSymbol.set(returnDataType, ESymbolType.STRUCT);
-        const mrtStruct = <StructSymbol>symbolTable.getSymbol(lookupSymbol);
-        if (!mrtStruct) {
+        const mrtSymbols = <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
+        if (!mrtSymbols.length) {
           this._reportError(returnLocation, `invalid mrt struct: ${returnDataType}`);
         } else {
-          context.mrtStruct = mrtStruct.astNode;
+          for (let i = 0; i < mrtSymbols.length; i++) {
+            const mrtSymbol = mrtSymbols[i];
+            const astNode = mrtSymbol.astNode;
+            context.mrtStructs.push(astNode);
+            for (const prop of astNode.propList) {
+              context.mrtList.push(prop);
+            }
+          }
         }
       } else if (returnDataType !== Keyword.VOID && returnDataType !== Keyword.VEC4) {
         this._reportError(returnLocation, "fragment main entry can only return struct or vec4.");
@@ -172,7 +177,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     this._getGlobalSymbol(globalCodeArray);
     this._getCustomStruct(context.varyingStructs, globalCodeArray);
-    this.getMRTDeclare(globalCodeArray);
+    this._getCustomStruct(context.mrtStructs, globalCodeArray);
     this._getGlobalMacroDeclarations(outerGlobalMacroStatements, globalCodeArray);
     this.getOtherGlobal(data, globalCodeArray);
 

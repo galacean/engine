@@ -34,14 +34,6 @@ export class GLES300Visitor extends GLESVisitor {
     }
   }
 
-  override getFragDataCodeGen(index: string | number): string {
-    return `${V3_GL_FragData}_${index}`;
-  }
-
-  override getReferencedMRTPropText(index: string | number, ident: string): string {
-    return `layout(location = ${index}) out vec4 ${ident};`;
-  }
-
   override getAttributeProp(prop: StructProp): string {
     return `in ${prop.typeInfo.typeLexeme} ${prop.ident.lexeme};`;
   }
@@ -51,22 +43,8 @@ export class GLES300Visitor extends GLESVisitor {
     return `${qualifier} ${prop.typeInfo.typeLexeme} ${prop.ident.lexeme};`;
   }
 
-  override getMRTDeclare(out: ICodeSegment[]): void {
-    const referencedMRTList = VisitorContext.context._referencedMRTList;
-    for (let ident in referencedMRTList) {
-      const info = referencedMRTList[ident];
-      if (typeof info === "string") {
-        out.push({
-          text: info,
-          index: Number.MAX_SAFE_INTEGER
-        });
-      } else {
-        out.push({
-          text: this.getReferencedMRTPropText(info.mrtIndex, ident),
-          index: info.ident.location.start.index
-        });
-      }
-    }
+  override getMRTProp(prop: StructProp): string {
+    return `layout(location = ${prop.mrtIndex}) out vec4 ${prop.ident.lexeme};`;
   }
 
   override visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {
@@ -108,14 +86,10 @@ export class GLES300Visitor extends GLESVisitor {
   override visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
     const { context } = VisitorContext;
     if (context.stage === EShaderStage.FRAGMENT && node.getLexeme(this) === "gl_FragColor") {
-      // #if _VERBOSE
-      if (context._referencedMRTList["gl_FragData"]) {
-        this._reportError(node.location, "cannot use both gl_FragData and gl_FragColor");
-      }
-      if (context.mrtStruct) {
+      if (context.mrtStructs.length) {
         this._reportError(node.location, "gl_FragColor cannot be used with MRT (Multiple Render Targets).");
+        return;
       }
-      // #endif
       this._registerFragColorVariable();
       return V3_GL_FragColor;
     }
@@ -124,8 +98,7 @@ export class GLES300Visitor extends GLESVisitor {
 
   override visitJumpStatement(node: ASTNode.JumpStatement): string {
     if (node.isFragReturnStatement) {
-      const { mrtStruct } = VisitorContext.context;
-      if (mrtStruct) {
+      if (VisitorContext.context.mrtStructs.length) {
         return "";
       }
       this._registerFragColorVariable();

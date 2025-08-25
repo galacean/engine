@@ -28,10 +28,9 @@ export abstract class CodeGenVisitor {
   readonly errors: Error[] = [];
   // #endif
 
-  abstract getFragDataCodeGen(index: string | number): string;
-  abstract getReferencedMRTPropText(index: string | number, ident: string): string;
-  abstract getVaryingProp(prop: StructProp): string;
   abstract getAttributeProp(prop: StructProp): string;
+  abstract getVaryingProp(prop: StructProp): string;
+  abstract getMRTProp(prop: StructProp): string;
 
   protected static _tmpArrayPool = new ReturnableObjectPool(TempArray<string>, 10);
 
@@ -96,17 +95,11 @@ export abstract class CodeGenVisitor {
       const identLexeme = identNode.codeGen(this);
       const indexLexeme = indexNode.codeGen(this);
       if (identLexeme === "gl_FragData") {
-        // #if _VERBOSE
-        if (context._referencedVaryingList[V3_GL_FragColor]) {
-          this._reportError(identNode.location, "cannot use both gl_FragData and gl_FragColor");
-        }
-        // #endif
-        const mrtLexeme = this.getFragDataCodeGen(indexLexeme);
-        context._referencedMRTList[mrtLexeme] = this.getReferencedMRTPropText(indexLexeme, mrtLexeme);
-        return mrtLexeme;
+        this._reportError(identNode.location, "Please use MRT struct instead of gl_FragData.");
       }
       return `${identLexeme}[${indexLexeme}]`;
     }
+
     return this.defaultCodeGen(node.children);
   }
 
@@ -230,15 +223,24 @@ export abstract class CodeGenVisitor {
 
   visitStructSpecifier(node: ASTNode.StructSpecifier): string {
     const context = VisitorContext.context;
-    const { varyingStructs, attributeStructs } = context;
+    const { varyingStructs, attributeStructs, mrtStructs } = context;
     const isVaryingStruct = varyingStructs.indexOf(node) !== -1;
     const isAttributeStruct = attributeStructs.indexOf(node) !== -1;
+    const isMRTStruct = mrtStructs.indexOf(node) !== -1;
 
     if (isVaryingStruct && isAttributeStruct) {
       this._reportError(node.location, "cannot use same struct as Varying and Attribute");
     }
 
-    if (isVaryingStruct || isAttributeStruct) {
+    if (isVaryingStruct && isMRTStruct) {
+      this._reportError(node.location, "cannot use same struct as Varying and MRT");
+    }
+
+    if (isAttributeStruct && isMRTStruct) {
+      this._reportError(node.location, "cannot use same struct as Attribute and MRT");
+    }
+
+    if (isVaryingStruct || isAttributeStruct || isMRTStruct) {
       let result: ICodeSegment[] = [];
 
       result.push(
@@ -255,6 +257,11 @@ export abstract class CodeGenVisitor {
         } else if (isAttributeStruct && context._referencedAttributeList[name]?.indexOf(prop) >= 0) {
           result.push({
             text: `${this.getAttributeProp(prop)}\n`,
+            index: prop.ident.location.start.index
+          });
+        } else if (isMRTStruct && context._referencedMRTList[name]?.indexOf(prop) >= 0) {
+          result.push({
+            text: `${this.getMRTProp(prop)}\n`,
             index: prop.ident.location.start.index
           });
         }
