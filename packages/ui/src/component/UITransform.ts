@@ -375,8 +375,9 @@ export class UITransform extends Transform {
           horizontalAlignment === HorizontalAlignmentFlags.LeftAndRight ||
           verticalAlignment === VerticalAlignmentFlags.TopAndBottom
         ) {
-          !this._isContainDirtyFlags(UITransformModifyFlags.LsLr) &&
-            this._worldAssociatedChange(UITransformModifyFlags.LsLr);
+          this._setDirtyFlagTrue(UITransformModifyFlags.Rect);
+          !this._isContainDirtyFlags(UITransformModifyFlags.Size) &&
+            this._worldAssociatedChange(UITransformModifyFlags.Size);
         } else {
           parentRectDirty = false;
         }
@@ -451,16 +452,17 @@ export class UITransform extends Transform {
 
   private _setRectDirty(): void {
     if (!this._isContainDirtyFlag(UITransformModifyFlags.Rect)) {
-      this._worldAssociatedChange(UITransformModifyFlags.Rect);
+      let worldFlags = UITransformModifyFlags.None;
+      this._setDirtyFlagTrue(UITransformModifyFlags.Rect);
       const { _horizontalAlignment: horizontalAlignment, _verticalAlignment: verticalAlignment } = this;
       if (!!horizontalAlignment || !!verticalAlignment) {
-        this._setDirtyFlagTrue(UITransformModifyFlags.LocalPosition);
+        worldFlags |= UITransformModifyFlags.WmWp;
+        this._setDirtyFlagTrue(UITransformModifyFlags.LmLp);
       }
+      this._isContainDirtyFlags(worldFlags) && this._worldAssociatedChange(worldFlags);
       const children = this.entity.children;
       for (let i = 0, n = children.length; i < n; i++) {
-        (children[i].transform as unknown as UITransform)?._updateWorldFlagWithParentRectDirty?.(
-          UITransformModifyFlags.None
-        );
+        (children[i].transform as unknown as UITransform)?._updateWorldFlagWithParentRectDirty?.(worldFlags);
       }
     }
   }
