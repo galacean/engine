@@ -255,29 +255,7 @@ export class Transform extends Component {
   }
 
   set localMatrix(value: Matrix) {
-    if (this._localMatrix !== value) {
-      this._localMatrix.copyFrom(value);
-    }
-    const { _position: position, _rotationQuaternion: rotationQuaternion, _scale: scale } = this;
-    // @ts-ignore
-    position._onValueChanged = rotationQuaternion._onValueChanged = scale._onValueChanged = null;
-    this._localMatrix.decompose(position, rotationQuaternion, scale);
-    // @ts-ignore
-    position._onValueChanged = this._onPositionChanged;
-    // @ts-ignore
-    rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
-    // @ts-ignore
-    scale._onValueChanged = this._onScaleChanged;
-
-    this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler);
-    this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalQuat);
-    const localUniformScaling = scale.x === scale.y && scale.y === scale.z;
-    if (this._localUniformScaling !== localUniformScaling) {
-      this._localUniformScaling = localUniformScaling;
-      this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
-    } else {
-      this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWs);
-    }
+    this._applyLocalMatrix(value);
   }
 
   /**
@@ -298,18 +276,7 @@ export class Transform extends Component {
   }
 
   set worldMatrix(value: Matrix) {
-    if (this._worldMatrix !== value) {
-      this._worldMatrix.copyFrom(value);
-    }
-    const parent = this._getParentTransform();
-    if (parent) {
-      Matrix.invert(parent.worldMatrix, Transform._tempMat40);
-      Matrix.multiply(Transform._tempMat40, value, this._localMatrix);
-    } else {
-      this._localMatrix.copyFrom(value);
-    }
-    this.localMatrix = this._localMatrix;
-    this._setDirtyFlagFalse(TransformModifyFlags.WorldMatrix);
+    this._applyWorldMatrix(value);
   }
 
   /**
@@ -574,6 +541,47 @@ export class Transform extends Component {
     this._position.copyFrom(transform.position);
     this._rotation.copyFrom(transform.rotation);
     this._scale.copyFrom(transform.scale);
+  }
+
+  protected _applyLocalMatrix(value: Matrix): void {
+    if (this._localMatrix !== value) {
+      this._localMatrix.copyFrom(value);
+    }
+    const { _position: position, _rotationQuaternion: rotationQuaternion, _scale: scale } = this;
+    // @ts-ignore
+    position._onValueChanged = rotationQuaternion._onValueChanged = scale._onValueChanged = null;
+    this._localMatrix.decompose(position, rotationQuaternion, scale);
+    // @ts-ignore
+    position._onValueChanged = this._onPositionChanged;
+    // @ts-ignore
+    rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
+    // @ts-ignore
+    scale._onValueChanged = this._onScaleChanged;
+
+    this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler);
+    this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalQuat);
+    const localUniformScaling = scale.x === scale.y && scale.y === scale.z;
+    if (this._localUniformScaling !== localUniformScaling) {
+      this._localUniformScaling = localUniformScaling;
+      this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
+    } else {
+      this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWs);
+    }
+  }
+
+  protected _applyWorldMatrix(value: Matrix): void {
+    if (this._worldMatrix !== value) {
+      this._worldMatrix.copyFrom(value);
+    }
+    const parent = this._getParentTransform();
+    if (parent) {
+      Matrix.invert(parent.worldMatrix, Transform._tempMat40);
+      Matrix.multiply(Transform._tempMat40, value, this._localMatrix);
+    } else {
+      this._localMatrix.copyFrom(value);
+    }
+    this.localMatrix = this._localMatrix;
+    this._setDirtyFlagFalse(TransformModifyFlags.WorldMatrix);
   }
 
   protected _isContainDirtyFlags(targetDirtyFlags: number): boolean {

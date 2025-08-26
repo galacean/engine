@@ -279,32 +279,11 @@ export class UITransform extends Transform {
   }
 
   override set localMatrix(value: Matrix) {
-    if (this._localMatrix !== value) {
-      this._localMatrix.copyFrom(value);
-    }
-    const { _position: position, _rotationQuaternion: rotationQuaternion, _scale: scale } = this;
-    // @ts-ignore
-    position._onValueChanged = rotationQuaternion._onValueChanged = scale._onValueChanged = null;
-    value.decompose(position, rotationQuaternion, scale);
-    // @ts-ignore
-    position._onValueChanged = this._onPositionChanged;
-    // @ts-ignore
-    rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
-    // @ts-ignore
-    scale._onValueChanged = this._onScaleChanged;
-    const localUniformScaling = scale.x === scale.y && scale.y === scale.z;
-    if (this._localUniformScaling !== localUniformScaling) {
-      this._localUniformScaling = localUniformScaling;
-      this._updateAllWorldFlag(UITransformModifyFlags.WmWpWeWqWsWus);
-    } else {
-      this._updateAllWorldFlag(UITransformModifyFlags.WmWpWeWqWs);
-    }
-    this._setDirtyFlagTrue(UITransformModifyFlags.LocalEuler);
-    this._setDirtyFlagFalse(UITransformModifyFlags.LocalQuat);
     if (!!this._horizontalAlignment || !!this._verticalAlignment) {
-      this._setDirtyFlagTrue(UITransformModifyFlags.LmLp);
+      if (this._localMatrix !== value) return;
+      this._setDirtyFlagTrue(UITransformModifyFlags.LocalMatrix);
     } else {
-      this._setDirtyFlagFalse(UITransformModifyFlags.LmLp);
+      super._applyLocalMatrix(value);
     }
   }
 
@@ -326,21 +305,11 @@ export class UITransform extends Transform {
   }
 
   override set worldMatrix(value: Matrix) {
-    if (this._worldMatrix !== value) {
-      this._worldMatrix.copyFrom(value);
-    }
-    const parent = this._getParentTransform();
-    if (parent) {
-      Matrix.invert(parent.worldMatrix, Transform._tempMat40);
-      Matrix.multiply(Transform._tempMat40, value, this._localMatrix);
-    } else {
-      this._localMatrix.copyFrom(value);
-    }
-    this.localMatrix = this._localMatrix;
     if (!!this._horizontalAlignment || !!this._verticalAlignment) {
+      if (this._worldMatrix !== value) return;
       this._setDirtyFlagTrue(UITransformModifyFlags.WorldMatrix);
     } else {
-      this._setDirtyFlagFalse(UITransformModifyFlags.WorldMatrix);
+      super._applyWorldMatrix(value);
     }
   }
 
