@@ -249,7 +249,6 @@ describe("UITransform", async () => {
       t.left = 10;
       t.right = 20;
       expect(t.size.x).to.eq(70);
-      debugger;
       expect(t.position.x).to.eq(-5);
       pt.size.set(200, 100);
       expect(t.size.x).to.eq(170);
