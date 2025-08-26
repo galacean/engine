@@ -140,7 +140,7 @@ export class UITransform extends Transform {
   }
 
   /**
-   * Horizontal alignment mode: Left/Center/Right or LeftAndRight (stretch).
+   * Vertical alignment mode: Top/Middle/Bottom or TopAndBottom (stretch).
    */
   get verticalAlignment(): VerticalAlignmentFlags {
     return this._verticalAlignment;
@@ -355,9 +355,8 @@ export class UITransform extends Transform {
       }
     }
 
-    const containDirtyFlags = this._isContainDirtyFlags(flags);
-    if (parentRectDirty || !containDirtyFlags) {
-      !containDirtyFlags && this._worldAssociatedChange(flags);
+    if (parentRectDirty || !this._isContainDirtyFlags(flags)) {
+      !this._isContainDirtyFlags(flags) && this._worldAssociatedChange(flags);
       const children = this.entity.children;
       for (let i = 0, n = children.length; i < n; i++) {
         (children[i].transform as unknown as UITransform)?._updateWorldFlagWithParentRectDirty?.(
@@ -428,7 +427,7 @@ export class UITransform extends Transform {
         worldFlags |= UITransformModifyFlags.WmWp;
         this._setDirtyFlagTrue(UITransformModifyFlags.LmLp);
       }
-      this._isContainDirtyFlags(worldFlags) && this._worldAssociatedChange(worldFlags);
+      !this._isContainDirtyFlags(worldFlags) && this._worldAssociatedChange(worldFlags);
       const children = this.entity.children;
       for (let i = 0, n = children.length; i < n; i++) {
         (children[i].transform as unknown as UITransform)?._updateWorldFlagWithParentRectDirty?.(worldFlags);
