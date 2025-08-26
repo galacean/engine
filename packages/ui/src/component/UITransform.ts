@@ -451,7 +451,11 @@ export class UITransform extends Transform {
 
   private _setRectDirty(): void {
     if (!this._isContainDirtyFlag(UITransformModifyFlags.Rect)) {
-      this._setDirtyFlagTrue(UITransformModifyFlags.Rect);
+      this._worldAssociatedChange(UITransformModifyFlags.Rect);
+      const { _horizontalAlignment: horizontalAlignment, _verticalAlignment: verticalAlignment } = this;
+      if (!!horizontalAlignment || !!verticalAlignment) {
+        this._setDirtyFlagTrue(UITransformModifyFlags.LocalPosition);
+      }
       const children = this.entity.children;
       for (let i = 0, n = children.length; i < n; i++) {
         (children[i].transform as unknown as UITransform)?._updateWorldFlagWithParentRectDirty?.(

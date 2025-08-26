@@ -186,6 +186,94 @@ describe("UITransform", async () => {
       expect(t.position.y).to.eq(-40);
     });
   });
+  describe("setRectDirty propagation", () => {
+    it("updates own aligned position when pivot changes", () => {
+      const parent = root.createChild("rect-parent-a");
+      parent.addComponent(UICanvas);
+      const child = parent.createChild("rect-child-a");
+      const t = child.transform as UITransform;
+      t.horizontalAlignment = HorizontalAlignmentFlags.Left;
+      t.left = 10;
+      expect(t.position.x).to.eq(10);
+      t.pivot.set(0.2, 0.5);
+      expect(t.position.x).to.eq(-20);
+    });
+
+    it("updates own aligned position when size changes", () => {
+      const parent = root.createChild("rect-parent-b");
+      parent.addComponent(UICanvas);
+      const child = parent.createChild("rect-child-b");
+      const t = child.transform as UITransform;
+      t.horizontalAlignment = HorizontalAlignmentFlags.Left;
+      t.left = 10;
+      expect(t.position.x).to.eq(10);
+      t.size.set(200, 100);
+      expect(t.position.x).to.eq(60);
+    });
+
+    it("updates child aligned position when parent size changes", () => {
+      const parent = root.createChild("rect-parent-c");
+      parent.addComponent(UICanvas);
+      const pt = parent.transform as UITransform;
+      const child = parent.createChild("rect-child-c");
+      const t = child.transform as UITransform;
+
+      t.horizontalAlignment = HorizontalAlignmentFlags.Left;
+      t.left = 10;
+      expect(t.position.x).to.eq(10);
+      pt.size.set(200, 100);
+      expect(t.position.x).to.eq(-40);
+    });
+
+    it("updates child aligned position when parent pivot changes", () => {
+      const parent = root.createChild("rect-parent-d");
+      parent.addComponent(UICanvas);
+      const pt = parent.transform as UITransform;
+      const child = parent.createChild("rect-child-d");
+      const t = child.transform as UITransform;
+      t.horizontalAlignment = HorizontalAlignmentFlags.Left;
+      t.left = 10;
+      expect(t.position.x).to.eq(10);
+      pt.pivot.set(0.2, 0.5);
+      expect(t.position.x).to.eq(40);
+    });
+  });
+  describe("setRectDirty with stretch", () => {
+    it("parent size change updates child's size and position in LeftAndRight", () => {
+      const parent = root.createChild("rect-parent-stretch-a");
+      parent.addComponent(UICanvas);
+      const pt = parent.transform as UITransform;
+      const child = parent.createChild("rect-child-stretch-a");
+      const t = child.transform as UITransform;
+      t.horizontalAlignment = HorizontalAlignmentFlags.LeftAndRight;
+      t.left = 10;
+      t.right = 20;
+      expect(t.size.x).to.eq(70);
+      debugger;
+      expect(t.position.x).to.eq(-5);
+      pt.size.set(200, 100);
+      expect(t.size.x).to.eq(170);
+      expect(t.position.x).to.eq(-5);
+    });
+
+    it("parent size change updates child's size and position in TopAndBottom", () => {
+      const parent = root.createChild("rect-parent-stretch-b");
+      parent.addComponent(UICanvas);
+      const pt = parent.transform as UITransform;
+      const child = parent.createChild("rect-child-stretch-b");
+      const t = child.transform as UITransform;
+      t.verticalAlignment = VerticalAlignmentFlags.TopAndBottom;
+      t.top = 10;
+      t.bottom = 20;
+      expect(t.size.y).to.eq(70);
+      expect(t.position.y).to.eq(5);
+      pt.size.set(100, 150);
+      expect(t.size.y).to.eq(120);
+      expect(t.position.y).to.eq(5);
+    });
+  });
+
+
 
   it("widget changes reflect in worldPosition when parent moves", () => {
     // Use default parent canvasEntity for deterministic base
