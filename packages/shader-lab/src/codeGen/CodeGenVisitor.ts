@@ -16,9 +16,6 @@ import { Keyword } from "../common/enums/Keyword";
 import { TempArray } from "../TempArray";
 import { ICodeSegment } from "./types";
 
-export const V3_GL_FragColor = "GS_glFragColor";
-export const V3_GL_FragData = "GS_glFragData";
-
 /**
  * @internal
  * The code generator

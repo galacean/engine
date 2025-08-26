@@ -2,10 +2,11 @@ import { EShaderStage } from "../common/Enums";
 import { ASTNode } from "../parser/AST";
 import { ShaderData } from "../parser/ShaderInfo";
 import { StructProp } from "../parser/types";
-import { V3_GL_FragColor, V3_GL_FragData } from "./CodeGenVisitor";
 import { GLESVisitor } from "./GLESVisitor";
 import { ICodeSegment } from "./types";
 import { VisitorContext } from "./VisitorContext";
+
+const V3_GL_FragColor = "GS_glFragColor";
 
 export class GLES300Visitor extends GLESVisitor {
   private static _singleton: GLES300Visitor;
