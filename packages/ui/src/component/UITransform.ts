@@ -378,6 +378,14 @@ export class UITransform extends Transform {
     return this._rect;
   }
 
+  // @ts-ignore
+  override _cloneTo(target: UITransform, srcRoot: Entity, targetRoot: Entity): void {
+    // @ts-ignore
+    super._cloneTo(target, srcRoot, targetRoot);
+    target.size.copyFrom(this._size);
+    target.pivot.copyFrom(this._pivot);
+  }
+
   @ignoreClone
   protected override _onPositionChanged(): void {
     super._onPositionChanged();

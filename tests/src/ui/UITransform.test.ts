@@ -1,7 +1,7 @@
 import { WebGLEngine } from "@galacean/engine";
 import {
-  UICanvas,
   HorizontalAlignmentFlags,
+  UICanvas,
   UITransform,
   VerticalAlignmentFlags,
 } from "@galacean/engine-ui";

@@ -43,8 +43,8 @@ export class Animator extends Component {
   /** @internal */
   _onUpdateIndex = -1;
 
+  @assignmentClone
   protected _animatorController: AnimatorController;
-
   @ignoreClone
   protected _controllerUpdateFlag: BoolUpdateFlag;
   @ignoreClone
@@ -73,10 +73,15 @@ export class Animator extends Component {
   }
 
   set animatorController(animatorController: AnimatorController) {
-    if (animatorController !== this._animatorController) {
-      this._reset();
+    const lastController = this._animatorController;
+    if (animatorController !== lastController) {
+      lastController && this._addResourceReferCount(lastController, -1);
       this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
-      this._controllerUpdateFlag = animatorController && animatorController._registerChangeFlag();
+      this._reset();
+      if (animatorController) {
+        this._addResourceReferCount(animatorController, 1);
+        this._controllerUpdateFlag = animatorController._registerChangeFlag();
+      }
       this._animatorController = animatorController;
     }
   }
@@ -322,6 +327,26 @@ export class Animator extends Component {
 
     if (this._controllerUpdateFlag) {
       this._controllerUpdateFlag.flag = false;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: Animator, srcRoot: Entity, targetRoot: Entity): void {
+    const animatorController = target._animatorController;
+    if (animatorController) {
+      target._addResourceReferCount(animatorController, 1);
+      target._controllerUpdateFlag = animatorController._registerChangeFlag();
+    }
+  }
+
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    const controller = this._animatorController;
+    if (controller) {
+      this._addResourceReferCount(controller, -1);
+      this._controllerUpdateFlag?.destroy();
     }
   }
 

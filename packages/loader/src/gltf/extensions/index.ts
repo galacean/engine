@@ -1,7 +1,6 @@
 import "./KHR_lights_punctual";
 import "./KHR_materials_clearcoat";
 import "./KHR_materials_ior";
-import "./KHR_materials_pbrSpecularGlossiness";
 import "./KHR_materials_sheen";
 import "./KHR_materials_transmission";
 import "./KHR_materials_unlit";
@@ -16,6 +15,7 @@ import "./GALACEAN_animation_event";
 import "./EXT_meshopt_compression";
 import "./KHR_materials_anisotropy";
 import "./KHR_materials_iridescence";
+import "./KHR_materials_specular";
 import "./EXT_texture_webp";
 
 export { GLTFExtensionParser, GLTFExtensionMode } from "./GLTFExtensionParser";

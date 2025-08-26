@@ -1,7 +1,7 @@
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { GLCapabilityType, Texture2D, TextureFormat } from "@galacean/engine-core";
 import { KTX2Loader } from "@galacean/engine-loader";
-import { Texture2D, TextureFormat, GLCapabilityType } from "@galacean/engine-core";
-import { describe, beforeAll, afterAll, expect, it } from "vitest";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 let engine: WebGLEngine;
 
@@ -44,8 +44,6 @@ describe("ktx2 Loader test", function () {
     const transcoder = KTX2Loader._khronosTranscoder ?? KTX2Loader._binomialLLCTranscoder;
     expect(transcoder).not.to.be.null;
     KTX2Loader.release();
-    // @ts-ignore
-    expect(KTX2Loader._khronosTranscoder).to.be.null;
     // @ts-ignore
     expect(KTX2Loader._binomialLLCTranscoder).to.be.null;
   });

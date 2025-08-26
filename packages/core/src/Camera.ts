@@ -108,8 +108,10 @@ export class Camera extends Component {
   isAlphaOutputRequired = false;
 
   /** @internal */
+  @ignoreClone
   _cameraType: CameraType = CameraType.Normal;
   /** @internal */
+  @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
   @deepClone
@@ -118,7 +120,7 @@ export class Camera extends Component {
   @ignoreClone
   _renderPipeline: BasicRenderPipeline;
   /** @internal */
-  @ignoreClone
+  @deepClone
   _virtualCamera: VirtualCamera = new VirtualCamera();
   /** @internal */
   _replacementShader: Shader = null;
@@ -131,7 +133,6 @@ export class Camera extends Component {
   _cameraIndex: number = -1;
 
   private _priority: number = 0;
-  private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
   private _isCustomViewMatrix = false;
   private _isCustomProjectionMatrix = false;
   private _fieldOfView: number = 45;
@@ -139,13 +140,12 @@ export class Camera extends Component {
   private _isProjectionDirty = true;
   private _isInvProjMatDirty: boolean = true;
   private _customAspectRatio: number | undefined = undefined;
-  private _renderTarget: RenderTarget = null;
-  private _depthBufferParams: Vector4 = new Vector4();
   private _opaqueTextureEnabled: boolean = false;
   private _enableHDR = false;
   private _enablePostProcess = false;
   private _msaaSamples: MSAASamples;
 
+  private _renderTarget: RenderTarget = null;
   @ignoreClone
   private _updateFlagManager: UpdateFlagManager;
   @ignoreClone
@@ -154,6 +154,10 @@ export class Camera extends Component {
   private _isViewMatrixDirty: BoolUpdateFlag;
   @ignoreClone
   private _isInvViewProjDirty: BoolUpdateFlag;
+  @deepClone
+  private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
+  @ignoreClone
+  private _depthBufferParams: Vector4 = new Vector4();
   @deepClone
   private _viewport: Vector4 = new Vector4(0, 0, 1, 1);
   @deepClone
@@ -822,6 +826,13 @@ export class Camera extends Component {
 
   /**
    * @internal
+   */
+  _cloneTo(target: Camera, srcRoot: Entity, targetRoot: Entity): void {
+    this._renderTarget?._addReferCount(1);
+  }
+
+  /**
+   * @internal
    * @inheritdoc
    */
   protected override _onDestroy(): void {
@@ -830,6 +841,7 @@ export class Camera extends Component {
     this._isInvViewProjDirty.destroy();
     this._isViewMatrixDirty.destroy();
     this._addResourceReferCount(this.shaderData, -1);
+    this._renderTarget && this._addResourceReferCount(this._renderTarget, -1);
 
     //@ts-ignore
     this._viewport._onValueChanged = null;
