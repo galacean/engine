@@ -1354,8 +1354,8 @@ export namespace ASTNode {
 
     override init(): void {
       this.typeInfo = TypeAny;
-      this._symbols.length = 0;
       this.referenceGlobalSymbolNames.length = 0;
+      this._symbols.length = 0;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
@@ -1638,7 +1638,24 @@ export namespace ASTNode {
   }
 
   @ASTNodeDecorator(NoneTerminal.macro_call_parameter_list)
-  export class MacroCallParameterList extends TreeNode {}
+  export class MacroCallParameterList extends TreeNode {
+    paramNodes: AssignmentExpression[] = [];
+
+    override init(): void {
+      this.paramNodes.length = 0;
+    }
+
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      const { children, paramNodes } = this;
+      if (children.length === 1) {
+        const expr = children[0] as AssignmentExpression;
+        paramNodes.push(expr);
+      } else {
+        paramNodes.push(...(children[0] as MacroCallParameterList).paramNodes);
+        paramNodes.push(children[2] as AssignmentExpression);
+      }
+    }
+  }
 
   @ASTNodeDecorator(NoneTerminal.macro_call_function)
   export class MacroCallFunction extends TreeNode {
@@ -1653,6 +1670,10 @@ export namespace ASTNode {
       const macroName = (children[0] as BaseToken).lexeme;
 
       getReferenceSymbolNames(sa.macroDefineList, macroName, this.referenceSymbolNames);
+    }
+
+    override codeGen(visitor: CodeGenVisitor) {
+      return this.setCache(visitor.visitMacroCallFunction(this));
     }
   }
 }

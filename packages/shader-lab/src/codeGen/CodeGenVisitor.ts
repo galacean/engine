@@ -123,7 +123,8 @@ export abstract class CodeGenVisitor {
         for (let i = 0; i < params.length; i++) {
           if (
             !VisitorContext.context.isAttributeStruct(paramInfoList[i].typeInfo.typeLexeme) &&
-            !VisitorContext.context.isVaryingStruct(paramInfoList[i].typeInfo.typeLexeme)
+            !VisitorContext.context.isVaryingStruct(paramInfoList[i].typeInfo.typeLexeme) &&
+            !VisitorContext.context.isMRTStruct(paramInfoList[i].typeInfo.typeLexeme)
           ) {
             plainParams.push(params[i].codeGen(this));
           }
@@ -132,6 +133,35 @@ export abstract class CodeGenVisitor {
       }
     }
     return this.defaultCodeGen(node.children);
+  }
+
+  visitMacroCallFunction(node: ASTNode.MacroCallFunction): string {
+    const children = node.children;
+    const paramList = children[2];
+    if (paramList instanceof ASTNode.MacroCallParameterList) {
+      const paramNodes = paramList.paramNodes;
+      const plainParams: string[] = [];
+      for (let i = 0; i < paramNodes.length; i++) {
+        const variableParam = ParserUtils.unwrapNodeByType<ASTNode.VariableIdentifier>(
+          paramNodes[i],
+          NoneTerminal.variable_identifier
+        );
+        if (
+          variableParam &&
+          typeof variableParam.typeInfo === "string" &&
+          (VisitorContext.context.isAttributeStruct(variableParam.typeInfo) ||
+            VisitorContext.context.isVaryingStruct(variableParam.typeInfo) ||
+            VisitorContext.context.isMRTStruct(variableParam.typeInfo))
+        ) {
+          continue;
+        }
+        plainParams.push(paramNodes[i].codeGen(this));
+      }
+
+      return `${(children[0] as BaseToken).lexeme}(${plainParams.join(", ")})`;
+    } else {
+      return this.defaultCodeGen(node.children);
+    }
   }
 
   visitStatementList(node: ASTNode.StatementList): string {
@@ -178,7 +208,8 @@ export abstract class CodeGenVisitor {
       .filter(
         (item) =>
           !VisitorContext.context.isAttributeStruct(item.typeInfo.typeLexeme) &&
-          !VisitorContext.context.isVaryingStruct(item.typeInfo.typeLexeme)
+          !VisitorContext.context.isVaryingStruct(item.typeInfo.typeLexeme) &&
+          !VisitorContext.context.isMRTStruct(item.typeInfo.typeLexeme)
       )
       .map((item) => item.astNode.codeGen(this))
       .join(", ");
