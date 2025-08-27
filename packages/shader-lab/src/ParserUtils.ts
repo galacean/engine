@@ -1,4 +1,4 @@
-import { ETokenType, GalaceanDataType } from "./common";
+import { ETokenType, GalaceanDataType, TypeAny } from "./common";
 import { BaseToken as Token } from "./common/BaseToken";
 import { TreeNode } from "./parser/AST";
 import { GrammarSymbol, NoneTerminal } from "./parser/GrammarSymbol";
@@ -20,7 +20,7 @@ export class ParserUtils {
    * Check if type `tb` is compatible with type `ta`.
    */
   static typeCompatible(ta: GalaceanDataType, tb: GalaceanDataType | undefined) {
-    if (tb == undefined) return true;
+    if (tb == undefined || tb === TypeAny) return true;
     if (ta === Keyword.INT) {
       return ta === tb || tb === Keyword.UINT;
     }

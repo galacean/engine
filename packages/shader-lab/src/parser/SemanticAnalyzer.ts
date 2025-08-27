@@ -9,10 +9,10 @@ import { ShaderData } from "./ShaderInfo";
 import { NodeChild } from "./types";
 // #if _VERBOSE
 import { GSError } from "../GSError";
-// #else
-import { Logger } from "@galacean/engine";
-import { MacroDefineList } from "../MacroDefineInfo";
 // #endif
+
+import { MacroDefineList } from "../MacroDefineInfo";
+import { Logger } from "@galacean/engine";
 
 export type TranslationRule<T = any> = (sa: SemanticAnalyzer, ...tokens: NodeChild[]) => T;
 
@@ -89,5 +89,9 @@ export default class SemanticAnalyzer {
     // #else
     Logger.error(message);
     // #endif
+  }
+
+  reportWarning(loc: ShaderRange, message: string): void {
+    Logger.warn(new GSError(GSErrorName.CompilationWarn, message, loc, ShaderLab._processingPassText).toString());
   }
 }

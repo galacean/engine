@@ -1374,6 +1374,10 @@ export namespace ASTNode {
       for (let i = 0; i < needFindNames.length; i++) {
         const name = needFindNames[i];
 
+        if (sa.macroDefineList[name]) {
+          continue;
+        }
+
         // only `macro_call` CFG can reference fnSymbols, others fnSymbols are referenced in `function_call_generic` CFG
         if (!(child instanceof BaseToken) && BuiltinFunction.isExist(name)) {
           continue;
@@ -1389,7 +1393,7 @@ export namespace ASTNode {
         sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols);
 
         if (!symbols.length) {
-          sa.reportError(this.location, `undeclared identifier: ${name}`);
+          sa.reportWarning(this.location, `Please sure the identifier "${name}" will be declared before used.`);
         } else {
           this.typeInfo = symbols[0].dataType?.type;
           const currentScopeSymbol = <VarSymbol | FnSymbol>sa.symbolTableStack.scope.getSymbol(lookupSymbol, true);

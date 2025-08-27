@@ -64,5 +64,6 @@ export class GSError extends Error {
 export enum GSErrorName {
   PreprocessorError = "PreprocessorError",
   CompilationError = "CompilationError",
-  ScannerError = "ScannerError"
+  ScannerError = "ScannerError",
+  CompilationWarn = "CompilationWarning"
 }
