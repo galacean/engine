@@ -28,6 +28,8 @@ import { DepthOnlyPass } from "./DepthOnlyPass";
 import { OpaqueTexturePass } from "./OpaqueTexturePass";
 import { PipelineUtils } from "./PipelineUtils";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
+import { SSAOPass } from "../lighting/screenSpaceLighting/ScreenSpaceAmbientOcclusionPass";
+import { ScreenSpaceAmbientOcclusion } from "../lighting/screenSpaceLighting";
 import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
 import { PipelineStage } from "./enums/PipelineStage";
@@ -44,6 +46,7 @@ export class BasicRenderPipeline {
   private _internalColorTarget: RenderTarget = null;
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
+  private _ssaoPass: SSAOPass;
   private _opaqueTexturePass: OpaqueTexturePass;
   private _finalPass: FinalPass;
   private _copyBackgroundTexture: Texture2D;
@@ -60,6 +63,7 @@ export class BasicRenderPipeline {
     this._cullingResults = new CullingResults();
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
+    this._ssaoPass = new SSAOPass(engine);
     this._opaqueTexturePass = new OpaqueTexturePass(engine);
     this._finalPass = new FinalPass(engine);
   }
@@ -89,6 +93,9 @@ export class BasicRenderPipeline {
     const cullingResults = this._cullingResults;
     const sunlight = scene._lightManager._sunlight;
     const depthOnlyPass = this._depthOnlyPass;
+
+    camera.depthTextureMode = DepthTextureMode.PrePass;
+
     const depthPassEnabled = camera.depthTextureMode === DepthTextureMode.PrePass && depthOnlyPass._supportDepthTexture;
     const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
     const msaaSamples = renderTarget ? renderTarget.antiAliasing : camera.msaaSamples;
@@ -259,6 +266,26 @@ export class BasicRenderPipeline {
         }
       }
       context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+    }
+
+    // Screen space ambient occlusion pass
+    // Before opaque pass so materials can sample ambient occlusion in BRDF
+    const ssaoPass = this._ssaoPass;
+    camera.shaderData.setTexture(Camera._cameraSSAOTextureProperty, engine._basicResources.whiteTexture2D);
+    // Disable macro so PBR won't try to sample unless SSAO is active
+    camera.shaderData.disableMacro(ScreenSpaceAmbientOcclusion._enableMacro);
+    if (ssaoPass) {
+      const depthTexture =
+        camera.depthTextureMode === DepthTextureMode.PrePass
+          ? camera.shaderData.getTexture(Camera._cameraDepthTextureProperty)
+          : null;
+      if (camera.ssao?.enabled && depthTexture && depthTexture !== engine._basicResources.whiteTexture2D) {
+        ssaoPass.onConfig(camera, colorTarget);
+        ssaoPass.onRender(context);
+        // Enable macro globally for PBR
+        camera.shaderData.enableMacro(ScreenSpaceAmbientOcclusion._enableMacro);
+        context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+      }
     }
 
     const maskManager = scene._maskManager;

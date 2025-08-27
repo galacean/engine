@@ -4,3 +4,4 @@ export { DiffuseMode } from "./enums/DiffuseMode";
 export { Light } from "./Light";
 export { PointLight } from "./PointLight";
 export { SpotLight } from "./SpotLight";
+export { ScreenSpaceAmbientOcclusion, SSAOQuality } from "./screenSpaceLighting";

@@ -6,6 +6,7 @@
 #include <direct_irradiance_frag_define>
 #include <ibl_frag_define>
 
+uniform sampler2D camera_SSAOTexture;
 
 float computeSpecularOcclusion(float ambientOcclusion, float roughness, float dotNV ) {
     return saturate( pow( dotNV + ambientOcclusion, exp2( - 16.0 * roughness - 1.0 ) ) - 1.0 + ambientOcclusion );
@@ -158,7 +159,7 @@ void initMaterial(out Material material, inout Geometry geometry){
 
         material.envSpecularDFG = envBRDFApprox(material.specularColor, material.roughness, geometry.dotNV );
 
-        // AO
+    // AO
         float diffuseAO = 1.0;
         float specularAO = 1.0;
 
@@ -172,8 +173,12 @@ void initMaterial(out Material material, inout Geometry geometry){
             diffuseAO = ((texture2D(material_OcclusionTexture, aoUV)).r - 1.0) * material_OcclusionIntensity + 1.0;
         #endif
 
-        #if defined(MATERIAL_HAS_OCCLUSION_TEXTURE) && defined(SCENE_USE_SPECULAR_ENV) 
-            specularAO = saturate( pow( geometry.dotNV + diffuseAO, exp2( - 16.0 * material.roughness - 1.0 ) ) - 1.0 + diffuseAO );
+        #ifdef ENABLE_SSAO                    
+            vec4 samplingPositionNDC = camera_ProjMat * camera_ViewMat * vec4( geometry.position, 1.0 );
+            vec2 ssaoUV = (samplingPositionNDC.xy / samplingPositionNDC.w) * 0.5 + 0.5;
+            float ssao = texture2D(camera_SSAOTexture, ssaoUV).r;
+            diffuseAO *= ssao;
+            specularAO = saturate(pow( geometry.dotNV + diffuseAO, exp2(-16.0 * material.roughness - 1.0)) - 1.0 + diffuseAO);
         #endif
 
         material.diffuseAO = diffuseAO;

@@ -27,6 +27,7 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { TextureFormat } from "./texture";
 import { RenderTarget } from "./texture/RenderTarget";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
+import { ScreenSpaceAmbientOcclusion } from "./lighting/screenSpaceLighting";
 
 class MathTemp {
   static tempVec4 = new Vector4();
@@ -44,6 +45,8 @@ export class Camera extends Component {
   static _cameraDepthTextureProperty = ShaderProperty.getByName("camera_DepthTexture");
   /** @internal */
   static _cameraOpaqueTextureProperty = ShaderProperty.getByName("camera_OpaqueTexture");
+  /** @internal */
+  static _cameraSSAOTextureProperty = ShaderProperty.getByName("camera_SSAOTexture");
 
   private static _inverseViewMatrixProperty = ShaderProperty.getByName("camera_ViewInvMat");
   private static _cameraPositionProperty = ShaderProperty.getByName("camera_Position");
@@ -116,6 +119,7 @@ export class Camera extends Component {
   /** @internal */
   @deepClone
   _frustum: BoundingFrustum = new BoundingFrustum();
+
   /** @internal */
   @ignoreClone
   _renderPipeline: BasicRenderPipeline;
@@ -144,6 +148,7 @@ export class Camera extends Component {
   private _enableHDR = false;
   private _enablePostProcess = false;
   private _msaaSamples: MSAASamples;
+  private _ssao = new ScreenSpaceAmbientOcclusion();
 
   private _renderTarget: RenderTarget = null;
   @ignoreClone
@@ -378,6 +383,13 @@ export class Camera extends Component {
   }
 
   /**
+   * The inverse projection matrix.
+   */
+  get inverseProjectionMatrix(): Readonly<Matrix> {
+    return this._getInverseProjectionMatrix();
+  }
+
+  /**
    * Whether to enable HDR.
    * @defaultValue `false`
    */
@@ -446,6 +458,19 @@ export class Camera extends Component {
       } else {
         this._msaaSamples = value;
       }
+    }
+  }
+
+  /**
+   * screen space ambient occlusion configuration.
+   */
+  get ssao(): ScreenSpaceAmbientOcclusion {
+    return this._ssao;
+  }
+
+  set ssao(value: ScreenSpaceAmbientOcclusion) {
+    if (this._ssao !== value) {
+      this._ssao = value;
     }
   }
 
