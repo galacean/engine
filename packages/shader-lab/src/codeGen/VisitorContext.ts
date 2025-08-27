@@ -33,8 +33,6 @@ export class VisitorContext {
   stage: EShaderStage;
   stageEntry: string;
 
-  getCacheCodeInMacroBranch = false;
-
   _referencedAttributeList: Record<string, StructProp[]>;
   _referencedVaryingList: Record<string, StructProp[]>;
   _referencedMRTList: Record<string, StructProp[]>;
@@ -58,7 +56,6 @@ export class VisitorContext {
     this._referencedMRTList = Object.create(null);
     this._referencedGlobals = Object.create(null);
     this._referencedGlobalMacroASTs.length = 0;
-    this.getCacheCodeInMacroBranch = false;
   }
 
   isAttributeStruct(type: string) {

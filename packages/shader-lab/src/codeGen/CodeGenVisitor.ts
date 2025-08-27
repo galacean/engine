@@ -241,7 +241,10 @@ export abstract class CodeGenVisitor {
       let result: ICodeSegment[] = [];
 
       result.push(
-        ...node.macroExpressions.map((item) => ({ text: item.codeGen(this), index: item.location.start.index }))
+        ...node.macroExpressions.map((item) => ({
+          text: item instanceof BaseToken ? item.lexeme : item.codeGen(this),
+          index: item.location.start.index
+        }))
       );
 
       for (const prop of node.propList) {
@@ -263,12 +266,13 @@ export abstract class CodeGenVisitor {
           });
         }
       }
-      const test = result
+
+      const text = result
         .sort((a, b) => a.index - b.index)
         .map((item) => item.text)
         .join("");
 
-      return test;
+      return text;
     } else {
       return this.defaultCodeGen(node.children);
     }

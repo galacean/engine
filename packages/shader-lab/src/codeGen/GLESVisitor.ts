@@ -1,7 +1,8 @@
 import { IShaderInfo } from "@galacean/engine-design";
+import { BaseToken } from "../common/BaseToken";
 import { EShaderStage } from "../common/Enums";
 import { Keyword } from "../common/enums/Keyword";
-import { ASTNode } from "../parser/AST";
+import { ASTNode, TreeNode } from "../parser/AST";
 import { ShaderData } from "../parser/ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo } from "../parser/symbolTable";
 import { CodeGenVisitor } from "./CodeGenVisitor";
@@ -220,10 +221,11 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     }
   }
 
-  private _getCustomStruct(structNode: ASTNode.StructSpecifier[], out: ICodeSegment[]): void {
-    for (const node of structNode) {
+  private _getCustomStruct(structNodes: ASTNode.StructSpecifier[], out: ICodeSegment[]): void {
+    for (const node of structNodes) {
+      const text = node.codeGen(this);
+
       if (!node.isInMacroBranch) {
-        const text = node.codeGen(this);
         out.push({ text, index: node.location.start.index });
       }
     }
@@ -243,9 +245,82 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       }
     }
 
-    context.getCacheCodeInMacroBranch = true;
     for (const macro of macros) {
-      out.push({ text: macro.codeGen(this), index: macro.location.start.index });
+      let text: string;
+      const child = macro.children[0];
+
+      if (child instanceof ASTNode.GlobalMacroIfStatement) {
+        let result: ICodeSegment[] = [];
+        result.push(
+          ...macro.macroExpressions.map((item) => ({
+            text: item instanceof BaseToken ? item.lexeme : item.codeGen(this),
+            index: item.location.start.index
+          }))
+        );
+
+        this._visitGlobalMacroIfStatement(child, result);
+
+        text = result
+          .sort((a, b) => a.index - b.index)
+          .map((item) => item.text)
+          .join("\n");
+      } else {
+        text = macro.codeGen(this);
+      }
+
+      out.push({
+        text,
+        index: macro.location.start.index
+      });
+    }
+  }
+
+  private _visitGlobalMacroIfStatement(node: TreeNode, out: ICodeSegment[]): void {
+    const children = node.children;
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i];
+      if (child instanceof ASTNode.PrecisionSpecifier) {
+        out.push({
+          text: child.codeGen(this),
+          index: child.location.start.index
+        });
+      } else if (child instanceof ASTNode.FunctionDefinition) {
+        if (VisitorContext.context._referencedGlobalMacroASTs.indexOf(child) !== -1) {
+          out.push({
+            text: child.getCache(), // code has generated in `_getGlobalSymbol`
+            index: child.location.start.index
+          });
+        }
+      } else if (child instanceof ASTNode.StructSpecifier) {
+        const context = VisitorContext.context;
+        const stage = context.stage;
+        if (
+          VisitorContext.context._referencedGlobalMacroASTs.indexOf(child) !== -1 ||
+          (stage === EShaderStage.VERTEX
+            ? context.isAttributeStruct(child.ident?.lexeme) || context.isVaryingStruct(child.ident?.lexeme)
+            : context.isVaryingStruct(child.ident?.lexeme) || context.isMRTStruct(child.ident?.lexeme))
+        ) {
+          out.push({
+            text: child.getCache(), // code has generated in `_getGlobalSymbol` or `_getCustomStruct`
+            index: child.location.start.index
+          });
+        }
+      } else if (child instanceof ASTNode.VariableDeclarationList) {
+        const variableDeclarations = child.variableDeclarations;
+        for (let i = 0; i < variableDeclarations.length; i++) {
+          const variableDeclaration = variableDeclarations[i];
+          if (VisitorContext.context._referencedGlobalMacroASTs.indexOf(variableDeclaration) !== -1) {
+            out.push({
+              text: variableDeclaration.getCache() + ";", // code has generated in `_getGlobalSymbol`
+              index: variableDeclaration.location.start.index
+            });
+          }
+        }
+      }
+
+      if (child instanceof TreeNode) {
+        this._visitGlobalMacroIfStatement(child, out);
+      }
     }
   }
 }
