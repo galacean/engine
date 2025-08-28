@@ -82,11 +82,11 @@ uniform sampler2D camera_DepthTexture;
             H.w = texture2D(depthTexture, uv + dx * 2.0).r; // right2
             
             // Calculate horizontal edge weights
-            vec2 he = abs((2.0 * H.xy - H.zw) - depth);
+            vec2 horizontalEdgeWeights = abs((2.0 * H.xy - H.zw) - depth);
 
             vec3 pos_l = computeViewSpacePosition(uv - dx, SampleAndGetLinearViewDepth(H.x), invProjScaleXY);
             vec3 pos_r = computeViewSpacePosition(uv + dx, SampleAndGetLinearViewDepth(H.y), invProjScaleXY);
-            vec3 dpdx = (he.x < he.y) ? (viewPos - pos_l) : (pos_r - viewPos);
+            vec3 dpdx = (horizontalEdgeWeights.x < horizontalEdgeWeights.y) ? (viewPos - pos_l) : (pos_r - viewPos);
 
             // Sample depths for vertical edge detection
             vec4 V;
@@ -96,10 +96,10 @@ uniform sampler2D camera_DepthTexture;
             V.w = texture2D(depthTexture, uv + dy * 2.0).r; // up2
 
             // Calculate vertical edge weights
-            vec2 ve = abs((2.0 * V.xy - V.zw) - depth);
+            vec2 verticalEdgeWeights = abs((2.0 * V.xy - V.zw) - depth);
             vec3 pos_d = computeViewSpacePosition(uv - dy, SampleAndGetLinearViewDepth(V.x), invProjScaleXY);
             vec3 pos_u = computeViewSpacePosition(uv + dy, SampleAndGetLinearViewDepth(V.y), invProjScaleXY);
-            vec3 dpdy = (ve.x < ve.y) ? (viewPos - pos_d) : (pos_u - viewPos);
+            vec3 dpdy = (verticalEdgeWeights.x < verticalEdgeWeights.y) ? (viewPos - pos_d) : (pos_u - viewPos);
             normal = normalize(cross(dpdx, dpdy));
         #endif
         return normal;

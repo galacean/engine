@@ -118,7 +118,6 @@ export class Camera extends Component {
   /** @internal */
   @deepClone
   _frustum: BoundingFrustum = new BoundingFrustum();
-
   /** @internal */
   @ignoreClone
   _renderPipeline: BasicRenderPipeline;
