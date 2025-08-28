@@ -32,13 +32,13 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   cameraEntity.transform.position = new Vector3(0.8, 1, 3.5);
   const camera = cameraEntity.addComponent(Camera);
 
-  camera.ssao.enabled = true;
-  camera.ssao.radius = 0.4;
-  camera.ssao.intensity = 3;
-  camera.ssao.power = 1.0;
-  camera.ssao.bias = 0.0005;
-  camera.ssao.bilateralThreshold = 0.01;
-  camera.ssao.quality = SSAOQuality.High;
+  scene.ssao.enabled = true;
+  scene.ssao.radius = 0.4;
+  scene.ssao.intensity = 3;
+  scene.ssao.power = 1.0;
+  scene.ssao.bias = 0.0005;
+  scene.ssao.bilateralThreshold = 0.01;
+  scene.ssao.quality = SSAOQuality.High;
 
   const lightNode = rootEntity.createChild("light_node");
   lightNode.addComponent(DirectLight).color = new Color(1, 1, 1);

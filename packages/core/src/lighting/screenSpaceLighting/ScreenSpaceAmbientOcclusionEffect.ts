@@ -47,7 +47,7 @@ export class ScreenSpaceAmbientOcclusion {
 
   // Shader macros
   /** @internal */
-  static _enableMacro = ShaderMacro.getByName("ENABLE_SSAO");
+  static _enableMacro = ShaderMacro.getByName("SCENE_ENABLE_SSAO");
 
   private _enabled: boolean = false;
   private _quality: SSAOQuality = SSAOQuality.Low;

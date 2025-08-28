@@ -8,7 +8,7 @@ import { SceneManager } from "./SceneManager";
 import { EngineObject, Logger } from "./base";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { FogMode } from "./enums/FogMode";
-import { DirectLight } from "./lighting";
+import { DirectLight, ScreenSpaceAmbientOcclusion } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
 import { LightManager } from "./lighting/LightManager";
 import { PhysicsScene } from "./physics/PhysicsScene";
@@ -79,6 +79,7 @@ export class Scene extends EngineObject {
   private _isActive: boolean = true;
   private _sun: DirectLight | null;
   private _enableTransparentShadow = false;
+  private _ssao = new ScreenSpaceAmbientOcclusion();
 
   /**
    * Whether the scene is active.
@@ -262,6 +263,19 @@ export class Scene extends EngineObject {
       } else {
         this.shaderData.disableMacro("SCENE_ENABLE_TRANSPARENT_SHADOW");
       }
+    }
+  }
+
+  /**
+   * screen space ambient occlusion configuration.
+   */
+  get ssao(): ScreenSpaceAmbientOcclusion {
+    return this._ssao;
+  }
+
+  set ssao(value: ScreenSpaceAmbientOcclusion) {
+    if (this._ssao !== value) {
+      this._ssao = value;
     }
   }
 

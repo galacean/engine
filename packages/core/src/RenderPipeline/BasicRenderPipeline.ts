@@ -267,18 +267,12 @@ export class BasicRenderPipeline {
 
     // Screen space ambient occlusion pass
     // Before opaque pass so materials can sample ambient occlusion in BRDF
-    const ssaoPass = this._ssaoPass;
-    // Disable macro so PBR won't try to sample unless SSAO is active
-    camera.shaderData.disableMacro(ScreenSpaceAmbientOcclusion._enableMacro);
-    if (ssaoPass) {
-      if (camera.ssao?.enabled) {
-        camera.depthTextureMode = DepthTextureMode.PrePass;
-        ssaoPass.onConfig(camera, colorTarget);
-        ssaoPass.onRender(context);
-        // Enable macro globally for PBR
-        camera.shaderData.enableMacro(ScreenSpaceAmbientOcclusion._enableMacro);
-        context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
-      }
+    if (scene.ssao.enabled) {
+      camera.depthTextureMode = DepthTextureMode.PrePass;
+      const ssaoPass = this._ssaoPass;
+      ssaoPass.onConfig(camera, colorTarget);
+      ssaoPass.onRender(context);
+      context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
     }
 
     const maskManager = scene._maskManager;

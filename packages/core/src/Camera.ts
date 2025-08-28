@@ -27,7 +27,6 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { TextureFormat } from "./texture";
 import { RenderTarget } from "./texture/RenderTarget";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
-import { ScreenSpaceAmbientOcclusion } from "./lighting/screenSpaceLighting";
 
 class MathTemp {
   static tempVec4 = new Vector4();
@@ -170,8 +169,6 @@ export class Camera extends Component {
   private _inverseProjectionMatrix: Matrix = new Matrix();
   @deepClone
   private _invViewProjMat: Matrix = new Matrix();
-  @deepClone
-  private _ssao = new ScreenSpaceAmbientOcclusion();
 
   /**
    * Whether to enable opaque texture.
@@ -459,19 +456,6 @@ export class Camera extends Component {
       } else {
         this._msaaSamples = value;
       }
-    }
-  }
-
-  /**
-   * screen space ambient occlusion configuration.
-   */
-  get ssao(): ScreenSpaceAmbientOcclusion {
-    return this._ssao;
-  }
-
-  set ssao(value: ScreenSpaceAmbientOcclusion) {
-    if (this._ssao !== value) {
-      this._ssao = value;
     }
   }
 

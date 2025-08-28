@@ -84,11 +84,9 @@ export class SSAOPass extends PipelinePass {
 
     const kernelArraySize = 16;
     const gaussianKernel = new Float32Array(kernelArraySize);
-    let sum = 0.0;
     for (let i = 0; i < sampleCount; i++) {
       const w = Math.exp(-(i * i) / (2.0 * standardDeviation * standardDeviation));
       gaussianKernel[i] = w;
-      sum += w;
     }
     for (let i = sampleCount; i < kernelArraySize; i++) gaussianKernel[i] = 0.0;
     this._quality = quality;
@@ -139,7 +137,8 @@ export class SSAOPass extends PipelinePass {
     const { engine } = this;
     const { camera } = context;
     const { viewport } = camera;
-    const ssaoEffect = camera.ssao;
+    const scene = camera.scene;
+    const ssaoEffect = scene.ssao;
     const ssaoShaderData = this._ssaoMaterial.shaderData;
     const blurShaderData = this._bilateralBlurMaterial.shaderData;
     const projectionMatrix = context.projectionMatrix;
@@ -159,6 +158,7 @@ export class SSAOPass extends PipelinePass {
     if (ssaoEffect?.isValid()) {
       this._setQuality(blurShaderData, ssaoEffect.quality);
       const qualityValue = ssaoEffect.quality.toString();
+      scene.shaderData.enableMacro("SCENE_ENABLE_SSAO");
       ssaoShaderData.enableMacro("SSAO_QUALITY", qualityValue);
       blurShaderData.enableMacro("SSAO_QUALITY", qualityValue);
 
@@ -183,6 +183,7 @@ export class SSAOPass extends PipelinePass {
       blurShaderData.enableMacro(ScreenSpaceAmbientOcclusion._enableMacro);
       blurShaderData.setFloat(ScreenSpaceAmbientOcclusion._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
     } else {
+      scene.shaderData.disableMacro("SCENE_ENABLE_SSAO");
       ssaoShaderData.disableMacro(ScreenSpaceAmbientOcclusion._enableMacro);
       blurShaderData.disableMacro(ScreenSpaceAmbientOcclusion._enableMacro);
       return;
