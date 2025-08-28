@@ -159,7 +159,7 @@ void initMaterial(out Material material, inout Geometry geometry){
 
         material.envSpecularDFG = envBRDFApprox(material.specularColor, material.roughness, geometry.dotNV );
 
-    // AO
+        // AO
         float diffuseAO = 1.0;
         float specularAO = 1.0;
 

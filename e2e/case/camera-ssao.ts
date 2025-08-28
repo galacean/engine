@@ -1,5 +1,5 @@
 /**
- * @title screen Space Ambient Occlusion
+ * @title Screen Space Ambient Occlusion
  * @category Camera
  */
 import {
@@ -34,15 +34,15 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   camera.ssao.enabled = true;
   camera.ssao.radius = 0.4;
-  camera.ssao.intensity = 10;
-  camera.ssao.power = 2.0;
-  camera.ssao.bias = 0.005;
-  camera.ssao.bilateralThreshold = 0.005;
+  camera.ssao.intensity = 3;
+  camera.ssao.power = 1.0;
+  camera.ssao.bias = 0.0005;
+  camera.ssao.bilateralThreshold = 0.01;
   camera.ssao.quality = SSAOQuality.High;
 
   const lightNode = rootEntity.createChild("light_node");
   lightNode.addComponent(DirectLight).color = new Color(1, 1, 1);
-  lightNode.transform.rotate(new Vector3(-90, 90, 0));
+  lightNode.transform.rotate(new Vector3(-45, 60, 0));
 
   const sky = background.sky;
   const skyMaterial = new SkyBoxMaterial(engine);
@@ -51,7 +51,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
 
   const sphereMaterial = new PBRMaterial(engine);
-  sphereMaterial.baseColor = new Color(2, 2, 2, 1);
+  sphereMaterial.baseColor = new Color(1, 1, 1, 1);
   const sphere = rootEntity.createChild("sphere");
   const { transform } = sphere;
   transform.setPosition(0, 1, 0);
@@ -62,7 +62,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   const box = rootEntity.createChild("box");
   const boxMaterial = new PBRMaterial(engine);
-  boxMaterial.baseColor = new Color(2, 2, 2, 1);
+  boxMaterial.baseColor = new Color(1, 1, 1, 1);
   box.transform.setPosition(1, 0.9, 0.1);
   box.transform.setRotation(30, 30, 0);
   const boxMeshRenderer = box.addComponent(MeshRenderer);
@@ -78,8 +78,8 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       scene.ambientLight = ambientLight;
       skyMaterial.texture = ambientLight.specularTexture;
       skyMaterial.textureDecodeRGBM = true;
-      ambientLight.diffuseIntensity = 2;
-      ambientLight.specularIntensity = 2;
+      ambientLight.diffuseIntensity = 1;
+      ambientLight.specularIntensity = 1;
     })
     .then(() => {
       updateForE2E(engine);

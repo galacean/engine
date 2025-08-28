@@ -93,9 +93,6 @@ export class BasicRenderPipeline {
     const cullingResults = this._cullingResults;
     const sunlight = scene._lightManager._sunlight;
     const depthOnlyPass = this._depthOnlyPass;
-
-    camera.depthTextureMode = DepthTextureMode.PrePass;
-
     const depthPassEnabled = camera.depthTextureMode === DepthTextureMode.PrePass && depthOnlyPass._supportDepthTexture;
     const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
     const msaaSamples = renderTarget ? renderTarget.antiAliasing : camera.msaaSamples;
@@ -271,15 +268,11 @@ export class BasicRenderPipeline {
     // Screen space ambient occlusion pass
     // Before opaque pass so materials can sample ambient occlusion in BRDF
     const ssaoPass = this._ssaoPass;
-    camera.shaderData.setTexture(Camera._cameraSSAOTextureProperty, engine._basicResources.whiteTexture2D);
     // Disable macro so PBR won't try to sample unless SSAO is active
     camera.shaderData.disableMacro(ScreenSpaceAmbientOcclusion._enableMacro);
     if (ssaoPass) {
-      const depthTexture =
-        camera.depthTextureMode === DepthTextureMode.PrePass
-          ? camera.shaderData.getTexture(Camera._cameraDepthTextureProperty)
-          : null;
-      if (camera.ssao?.enabled && depthTexture && depthTexture !== engine._basicResources.whiteTexture2D) {
+      if (camera.ssao?.enabled) {
+        camera.depthTextureMode = DepthTextureMode.PrePass;
         ssaoPass.onConfig(camera, colorTarget);
         ssaoPass.onRender(context);
         // Enable macro globally for PBR

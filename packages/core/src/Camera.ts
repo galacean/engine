@@ -148,7 +148,6 @@ export class Camera extends Component {
   private _enableHDR = false;
   private _enablePostProcess = false;
   private _msaaSamples: MSAASamples;
-  private _ssao = new ScreenSpaceAmbientOcclusion();
 
   private _renderTarget: RenderTarget = null;
   @ignoreClone
@@ -171,6 +170,8 @@ export class Camera extends Component {
   private _inverseProjectionMatrix: Matrix = new Matrix();
   @deepClone
   private _invViewProjMat: Matrix = new Matrix();
+  @deepClone
+  private _ssao = new ScreenSpaceAmbientOcclusion();
 
   /**
    * Whether to enable opaque texture.
