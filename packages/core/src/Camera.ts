@@ -381,13 +381,6 @@ export class Camera extends Component {
   }
 
   /**
-   * The inverse projection matrix.
-   */
-  get inverseProjectionMatrix(): Readonly<Matrix> {
-    return this._getInverseProjectionMatrix();
-  }
-
-  /**
    * Whether to enable HDR.
    * @defaultValue `false`
    */
