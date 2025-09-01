@@ -571,7 +571,7 @@ export namespace ASTNode {
       if (childrenLength === 1) {
         const decl = children[0] as ParameterDeclaration;
         parameterInfoList.push({ ident: decl.ident, typeInfo: decl.typeInfo, astNode: decl });
-        paramSig.push(decl.typeInfo.type);
+        paramSig.push(decl.typeInfo?.type ?? TypeAny);
       } else {
         const list = children[0] as FunctionParameterList;
         const decl = children[2] as ParameterDeclaration;
@@ -584,7 +584,7 @@ export namespace ASTNode {
           paramSig[i] = list.paramSig[i];
         }
         parameterInfoList[listParamLength] = { ident: decl.ident, typeInfo: decl.typeInfo, astNode: decl };
-        paramSig[listParamLength] = decl.typeInfo.type;
+        paramSig[listParamLength] = decl.typeInfo?.type ?? TypeAny;
       }
     }
 
@@ -595,31 +595,33 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.parameter_declaration)
   export class ParameterDeclaration extends TreeNode {
-    typeQualifier: TypeQualifier | undefined;
+    typeQualifier?: TypeQualifier;
     typeInfo: SymbolType;
     ident: BaseToken;
 
     override init(): void {
       this.typeQualifier = undefined;
+      this.typeInfo = undefined;
+      this.ident = undefined;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
-      const childrenLength = children.length;
-      let parameterDeclarator: ParameterDeclarator;
-      if (childrenLength === 1) {
-        parameterDeclarator = children[0] as ParameterDeclarator;
-      } else {
-        parameterDeclarator = children[1] as ParameterDeclarator;
-      }
-      if (childrenLength === 2) {
+      let parameterDeclarator: ParameterDeclarator | undefined;
+
+      if (children[0] instanceof ParameterDeclarator) {
+        parameterDeclarator = children[0];
+      } else if (children[1] instanceof ParameterDeclarator) {
+        parameterDeclarator = children[1];
         this.typeQualifier = children[0] as TypeQualifier;
       }
-      this.typeInfo = parameterDeclarator.typeInfo;
-      this.ident = parameterDeclarator.ident;
 
-      const varSymbol = new VarSymbol(parameterDeclarator.ident.lexeme, parameterDeclarator.typeInfo, false, this);
-      sa.symbolTableStack.insert(varSymbol);
+      if (parameterDeclarator) {
+        this.typeInfo = parameterDeclarator.typeInfo;
+        this.ident = parameterDeclarator.ident;
+        const varSymbol = new VarSymbol(parameterDeclarator.ident.lexeme, parameterDeclarator.typeInfo, false, this);
+        sa.symbolTableStack.insert(varSymbol);
+      }
     }
   }
 
@@ -1686,6 +1688,8 @@ export namespace ASTNode {
       const children = this.children;
       const macroName = (children[0] as BaseToken).lexeme;
 
+      if (this.referenceSymbolNames.length) {
+      }
       getReferenceSymbolNames(sa.macroDefineList, macroName, this.referenceSymbolNames);
     }
 

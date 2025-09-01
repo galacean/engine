@@ -121,13 +121,16 @@ export abstract class CodeGenVisitor {
         const params = paramList.paramNodes;
 
         for (let i = 0; i < params.length; i++) {
+          const typeInfo = paramInfoList[i]?.typeInfo;
           if (
-            !VisitorContext.context.isAttributeStruct(paramInfoList[i].typeInfo.typeLexeme) &&
-            !VisitorContext.context.isVaryingStruct(paramInfoList[i].typeInfo.typeLexeme) &&
-            !VisitorContext.context.isMRTStruct(paramInfoList[i].typeInfo.typeLexeme)
+            typeInfo &&
+            (VisitorContext.context.isAttributeStruct(typeInfo.typeLexeme) ||
+              VisitorContext.context.isVaryingStruct(typeInfo.typeLexeme) ||
+              VisitorContext.context.isMRTStruct(typeInfo.typeLexeme))
           ) {
-            plainParams.push(params[i].codeGen(this));
+            continue;
           }
+          plainParams.push(params[i].codeGen(this));
         }
         return `${call.fnSymbol.ident}(${plainParams.join(", ")})`;
       }
@@ -207,9 +210,10 @@ export abstract class CodeGenVisitor {
     return params
       .filter(
         (item) =>
-          !VisitorContext.context.isAttributeStruct(item.typeInfo.typeLexeme) &&
-          !VisitorContext.context.isVaryingStruct(item.typeInfo.typeLexeme) &&
-          !VisitorContext.context.isMRTStruct(item.typeInfo.typeLexeme)
+          !item.typeInfo ||
+          (!VisitorContext.context.isAttributeStruct(item.typeInfo.typeLexeme) &&
+            !VisitorContext.context.isVaryingStruct(item.typeInfo.typeLexeme) &&
+            !VisitorContext.context.isMRTStruct(item.typeInfo.typeLexeme))
       )
       .map((item) => item.astNode.codeGen(this))
       .join(", ");
