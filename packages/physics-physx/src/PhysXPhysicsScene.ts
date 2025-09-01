@@ -288,59 +288,52 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsScene.overlapBox }
+   * {@inheritDoc IPhysicsScene.overlapBoxAll }
    */
-  overlapBox(
+  overlapBoxAll(
     center: Vector3,
     orientation: Quaternion,
     halfExtents: Vector3,
-    onOverlap: (obj: number) => boolean,
-    outHitResult?: (shapeUniqueID: number) => void
-  ): boolean {
+    onOverlap: (obj: number) => boolean
+  ): number[] {
     const geometry = new PhysXBoxGeometry(this._physXPhysics._physX, halfExtents);
     try {
       const pose = { translation: center, rotation: orientation };
-      return this._overlapAny(geometry.getGeometry(), pose, onOverlap, outHitResult);
+      return this._overlapMultiple(geometry.getGeometry(), pose, onOverlap);
     } finally {
       geometry.release();
     }
   }
 
   /**
-   * {@inheritDoc IPhysicsScene.overlapSphere }
+   * {@inheritDoc IPhysicsScene.overlapSphereAll }
    */
-  overlapSphere(
-    center: Vector3,
-    radius: number,
-    onOverlap: (obj: number) => boolean,
-    outHitResult?: (shapeUniqueID: number) => void
-  ): boolean {
+  overlapSphereAll(center: Vector3, radius: number, onOverlap: (obj: number) => boolean): number[] {
     const geometry = new PhysXSphereGeometry(this._physXPhysics._physX, radius);
     try {
       const tempQuat = PhysXPhysicsScene._tempQuaternion;
-      tempQuat.set(0, 0, 0, 1); // Identity quaternion
+      tempQuat.set(0, 0, 0, 1);
       const pose = { translation: center, rotation: tempQuat };
-      return this._overlapAny(geometry.getGeometry(), pose, onOverlap, outHitResult);
+      return this._overlapMultiple(geometry.getGeometry(), pose, onOverlap);
     } finally {
       geometry.release();
     }
   }
 
   /**
-   * {@inheritDoc IPhysicsScene.overlapCapsule }
+   * {@inheritDoc IPhysicsScene.overlapCapsuleAll }
    */
-  overlapCapsule(
+  overlapCapsuleAll(
     center: Vector3,
     radius: number,
     height: number,
     orientation: Quaternion,
-    onOverlap: (obj: number) => boolean,
-    outHitResult?: (shapeUniqueID: number) => void
-  ): boolean {
+    onOverlap: (obj: number) => boolean
+  ): number[] {
     const geometry = new PhysXCapsuleGeometry(this._physXPhysics._physX, radius, height * 0.5);
     try {
       const pose = { translation: center, rotation: orientation };
-      return this._overlapAny(geometry.getGeometry(), pose, onOverlap, outHitResult);
+      return this._overlapMultiple(geometry.getGeometry(), pose, onOverlap);
     } finally {
       geometry.release();
     }
@@ -443,33 +436,35 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     return result;
   }
 
-  private _overlapAny(
+  private _overlapMultiple(
     geometry: any,
     pose: { translation: Vector3; rotation: Quaternion },
-    onOverlap: (obj: number) => boolean,
-    outHitResult?: (shapeUniqueID: number) => void
-  ): boolean {
+    onOverlap: (obj: number) => boolean
+  ): number[] {
     const overlapCallback = {
-      preFilter: (filterData, index, actor) => {
-        if (onOverlap(index)) {
-          return 2; // eBLOCK
-        } else {
-          return 0; // eNONE
-        }
-      }
+      preFilter: (filterData, index, actor) => (onOverlap(index) ? 2 : 0)
     };
 
     const pxOverlapCallback = this._physXPhysics._physX.PxQueryFilterCallback.implement(overlapCallback);
-    const pxOverlapHit = new this._physXPhysics._physX.PxOverlapHit();
-    const result = this._pxScene.overlapAny(geometry, pose, pxOverlapHit, this._pxFilterData, pxOverlapCallback);
+    const maxHits = 256;
+    const hits: any = (this._pxScene as any).overlapMultiple(
+      geometry,
+      pose,
+      maxHits,
+      this._pxFilterData,
+      pxOverlapCallback
+    );
 
-    if (result && outHitResult != undefined) {
-      outHitResult(pxOverlapHit.getShape().getUUID());
+    const result: number[] = [];
+    if (hits) {
+      // PhysX overlapMultiple returns a collection with size() method
+      for (let i = 0, n = hits.size(); i < n; i++) {
+        result.push(hits.get(i).getShape().getUUID());
+      }
     }
 
     pxOverlapCallback.delete();
-    pxOverlapHit.delete();
-
+    hits?.delete();
     return result;
   }
 

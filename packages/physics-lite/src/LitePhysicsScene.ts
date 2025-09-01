@@ -60,6 +60,33 @@ export class LitePhysicsScene implements IPhysicsScene {
     this._onTriggerExit = onTriggerExit;
     this._onTriggerStay = onTriggerStay;
   }
+  overlapBox(
+    center: Vector3,
+    orientation: Quaternion,
+    halfExtents: Vector3,
+    onOverlap: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number) => void
+  ): boolean {
+    throw new Error("Method not implemented.");
+  }
+  overlapSphere(
+    center: Vector3,
+    radius: number,
+    onOverlap: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number) => void
+  ): boolean {
+    throw new Error("Method not implemented.");
+  }
+  overlapCapsule(
+    center: Vector3,
+    radius: number,
+    height: number,
+    orientation: Quaternion,
+    onOverlap: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number) => void
+  ): boolean {
+    throw new Error("Method not implemented.");
+  }
 
   /**
    * {@inheritDoc IPhysicsScene.setGravity }
@@ -205,42 +232,35 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsScene.overlapBox }
+   * {@inheritDoc IPhysicsScene.overlapBoxAll }
    */
-  overlapBox(
+  overlapBoxAll(
     center: Vector3,
     orientation: Quaternion,
     halfExtents: Vector3,
-    onOverlap: (obj: number) => boolean,
-    outHitResult?: (shapeUniqueID: number) => void
-  ): boolean {
-    throw new Error("Physics-lite doesn't support overlapBox. Use Physics-PhysX instead!");
+    onOverlap: (obj: number) => boolean
+  ): number[] {
+    throw new Error("Physics-lite doesn't support overlapBoxAll. Use Physics-PhysX instead!");
   }
 
   /**
-   * {@inheritDoc IPhysicsScene.overlapSphere }
+   * {@inheritDoc IPhysicsScene.overlapSphereAll }
    */
-  overlapSphere(
-    center: Vector3,
-    radius: number,
-    onOverlap: (obj: number) => boolean,
-    outHitResult?: (shapeUniqueID: number) => void
-  ): boolean {
-    throw new Error("Physics-lite doesn't support overlapSphere. Use Physics-PhysX instead!");
+  overlapSphereAll(center: Vector3, radius: number, onOverlap: (obj: number) => boolean): number[] {
+    throw new Error("Physics-lite doesn't support overlapSphereAll. Use Physics-PhysX instead!");
   }
 
   /**
-   * {@inheritDoc IPhysicsScene.overlapCapsule }
+   * {@inheritDoc IPhysicsScene.overlapCapsuleAll }
    */
-  overlapCapsule(
+  overlapCapsuleAll(
     center: Vector3,
     radius: number,
     height: number,
     orientation: Quaternion,
-    onOverlap: (obj: number) => boolean,
-    outHitResult?: (shapeUniqueID: number) => void
-  ): boolean {
-    throw new Error("Physics-lite doesn't support overlapCapsule. Use Physics-PhysX instead!");
+    onOverlap: (obj: number) => boolean
+  ): number[] {
+    throw new Error("Physics-lite doesn't support overlapCapsuleAll. Use Physics-PhysX instead!");
   }
 
   /**

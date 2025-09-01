@@ -853,7 +853,7 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
-    it("overlapBox", () => {
+    it("overlapBoxAll", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
       const root = scene.createRootEntity("root");
@@ -869,41 +869,35 @@ describe("Physics Test", () => {
       const center = new Vector3(3, 3, 3);
       const halfExtents = new Vector3(0.5, 0.5, 0.5);
       const orientation = new Quaternion();
-      expect(physicsScene.overlapBox(center, orientation, halfExtents)).to.eq(false);
+      expect(physicsScene.overlapBoxAll(center, orientation, halfExtents)).to.have.length(0);
 
       // Test overlapBox with overlap
       center.set(0.5, 0.5, 0.5);
-      const outOverlapHitResult = new OverlapHitResult();
-      expect(physicsScene.overlapBox(center, orientation, halfExtents, Layer.Everything, outOverlapHitResult)).to.eq(
-        true
-      );
-      expect(outOverlapHitResult.entity).to.be.eq(overlapTestRoot);
-      expect(outOverlapHitResult.shape).to.be.eq(boxShape);
+      const shapes1 = physicsScene.overlapBoxAll(center, orientation, halfExtents, Layer.Everything);
+      expect(shapes1).to.have.length(1);
+      expect(shapes1[0]).to.be.eq(boxShape);
 
       // Test overlapBox with layer mask
-      expect(
-        enginePhysX.sceneManager.scenes[0].physics.overlapBox(
-          center,
-          orientation,
-          halfExtents,
-          Layer.Layer1,
-          outOverlapHitResult
-        )
-      ).to.eq(false);
+      const shapesMask = enginePhysX.sceneManager.scenes[0].physics.overlapBoxAll(
+        center,
+        orientation,
+        halfExtents,
+        Layer.Layer1
+      );
+      expect(shapesMask).to.have.length(0);
 
       // Test overlapBox when box contains collider
       center.set(0, 0, 0);
       halfExtents.set(2, 2, 2);
-      expect(physicsScene.overlapBox(center, orientation, halfExtents, Layer.Everything, outOverlapHitResult)).to.eq(
-        true
-      );
+      const shapesContain = physicsScene.overlapBoxAll(center, orientation, halfExtents, Layer.Everything);
+      expect(shapesContain).to.have.length(1);
+      expect(shapesContain[0]).to.eq(boxShape);
 
       // Test overlapBox with rotation
       Quaternion.rotationEuler(0, Math.PI / 4, 0, orientation);
       center.set(0.5, 0, 0);
-      expect(physicsScene.overlapBox(center, orientation, halfExtents, Layer.Everything, outOverlapHitResult)).to.eq(
-        true
-      );
+      const shapesRot = physicsScene.overlapBoxAll(center, orientation, halfExtents, Layer.Everything);
+      expect(shapesRot).to.include(boxShape);
 
       // Test overlapBox with multiple colliders
       const collider2 = overlapTestRoot.addComponent(StaticCollider);
@@ -912,21 +906,28 @@ describe("Physics Test", () => {
       boxShape2.position = new Vector3(1, 0, 0);
       collider2.addShape(boxShape2);
       center.set(0.5, 0, 0);
-      expect(physicsScene.overlapBox(center, orientation, halfExtents, Layer.Everything, outOverlapHitResult)).to.eq(
-        true
-      );
+      const shapesMulti = physicsScene.overlapBoxAll(center, orientation, halfExtents, Layer.Everything);
+      expect(shapesMulti).to.have.length(2);
+      expect(shapesMulti).to.include.members([boxShape, boxShape2]);
 
       // Test overlapBox with edge contact
       center.set(0.5, 0.5, 0.5);
       halfExtents.set(0.5, 0.5, 0.5);
-      expect(physicsScene.overlapBox(center, orientation, halfExtents, Layer.Everything, outOverlapHitResult)).to.eq(
-        true
-      );
+      const shapesEdge = physicsScene.overlapBoxAll(center, orientation, halfExtents, Layer.Everything);
+      expect(shapesEdge).to.have.length(2);
+      expect(shapesEdge).to.include.members([boxShape, boxShape2]);
+
+      // Test overlapBox with custom array parameter
+      const customArray: ColliderShape[] = [];
+      const shapesCustom = physicsScene.overlapBoxAll(center, orientation, halfExtents, Layer.Everything, customArray);
+      expect(shapesCustom).to.be.eq(customArray);
+      expect(shapesCustom).to.have.length(2);
+      expect(shapesCustom).to.include.members([boxShape, boxShape2]);
 
       root.destroy();
     });
 
-    it("overlapSphere", () => {
+    it("overlapSphereAll", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const root = scene.createRootEntity("root");
       const overlapTestRoot = root.createChild("root");
@@ -940,33 +941,29 @@ describe("Physics Test", () => {
       // Test overlapSphere with no overlap
       const center = new Vector3(3, 3, 3);
       const radius = 0.5;
-      expect(enginePhysX.sceneManager.scenes[0].physics.overlapSphere(center, radius)).to.eq(false);
+      expect(enginePhysX.sceneManager.scenes[0].physics.overlapSphereAll(center, radius)).to.have.length(0);
 
       // Test overlapSphere with overlap
       center.set(0.5, 0.5, 0.5);
-      const outOverlapHitResult = new OverlapHitResult();
-      expect(
-        enginePhysX.sceneManager.scenes[0].physics.overlapSphere(center, radius, Layer.Everything, outOverlapHitResult)
-      ).to.eq(true);
-      expect(outOverlapHitResult.entity).to.be.eq(overlapTestRoot);
-      expect(outOverlapHitResult.shape).to.be.eq(boxShape);
+      const s1 = enginePhysX.sceneManager.scenes[0].physics.overlapSphereAll(center, radius, Layer.Everything);
+      expect(s1).to.have.length(1);
+      expect(s1[0]).to.eq(boxShape);
 
       // Test overlapSphere with layer mask
-      expect(
-        enginePhysX.sceneManager.scenes[0].physics.overlapSphere(center, radius, Layer.Layer1, outOverlapHitResult)
-      ).to.eq(false);
+      expect(enginePhysX.sceneManager.scenes[0].physics.overlapSphereAll(center, radius, Layer.Layer1)).to.have.length(
+        0
+      );
 
       // Test overlapSphere when sphere contains collider
       center.set(0, 0, 0);
       let sphereRadius = 2;
-      expect(
-        enginePhysX.sceneManager.scenes[0].physics.overlapSphere(
-          center,
-          sphereRadius,
-          Layer.Everything,
-          outOverlapHitResult
-        )
-      ).to.eq(true);
+      const sContain = enginePhysX.sceneManager.scenes[0].physics.overlapSphereAll(
+        center,
+        sphereRadius,
+        Layer.Everything
+      );
+      expect(sContain).to.have.length(1);
+      expect(sContain[0]).to.eq(boxShape);
 
       // Test overlapSphere with multiple colliders
       const collider2 = overlapTestRoot.addComponent(StaticCollider);
@@ -975,31 +972,37 @@ describe("Physics Test", () => {
       boxShape2.position = new Vector3(1, 0, 0);
       collider2.addShape(boxShape2);
       center.set(0.5, 0, 0);
-      expect(
-        enginePhysX.sceneManager.scenes[0].physics.overlapSphere(
-          center,
-          sphereRadius,
-          Layer.Everything,
-          outOverlapHitResult
-        )
-      ).to.eq(true);
+      const sMulti = enginePhysX.sceneManager.scenes[0].physics.overlapSphereAll(
+        center,
+        sphereRadius,
+        Layer.Everything
+      );
+      expect(sMulti).to.have.length(2);
+      expect(sMulti).to.include.members([boxShape, boxShape2]);
 
       // Test overlapSphere with edge contact
       center.set(0.5, 0.5, 0.5);
       sphereRadius = 0.5;
-      expect(
-        enginePhysX.sceneManager.scenes[0].physics.overlapSphere(
-          center,
-          sphereRadius,
-          Layer.Everything,
-          outOverlapHitResult
-        )
-      ).to.eq(true);
+      const sEdge = enginePhysX.sceneManager.scenes[0].physics.overlapSphereAll(center, sphereRadius, Layer.Everything);
+      expect(sEdge).to.have.length(2);
+      expect(sEdge).to.include.members([boxShape, boxShape2]);
+
+      // Test overlapSphere with custom array parameter
+      const customSphereArray: ColliderShape[] = [];
+      const sCustom = enginePhysX.sceneManager.scenes[0].physics.overlapSphereAll(
+        center,
+        sphereRadius,
+        Layer.Everything,
+        customSphereArray
+      );
+      expect(sCustom).to.be.eq(customSphereArray);
+      expect(sCustom).to.have.length(2);
+      expect(sCustom).to.include.members([boxShape, boxShape2]);
 
       root.destroy();
     });
 
-    it("overlapCapsule", () => {
+    it("overlapCapsuleAll", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const root = scene.createRootEntity("root");
       const overlapTestRoot = root.createChild("root");
@@ -1015,67 +1018,53 @@ describe("Physics Test", () => {
       const radius = 0.5;
       const height = 1.0;
       const orientation = new Quaternion();
-      expect(enginePhysX.sceneManager.scenes[0].physics.overlapCapsule(center, radius, height, orientation)).to.eq(
-        false
-      );
+      expect(
+        enginePhysX.sceneManager.scenes[0].physics.overlapCapsuleAll(center, radius, height, orientation)
+      ).to.have.length(0);
 
       // Test overlapCapsule with overlap
       center.set(0.5, 0.5, 0.5);
-      const outOverlapHitResult = new OverlapHitResult();
-      expect(
-        enginePhysX.sceneManager.scenes[0].physics.overlapCapsule(
-          center,
-          radius,
-          height,
-          orientation,
-          Layer.Everything,
-          outOverlapHitResult
-        )
-      ).to.eq(true);
-      expect(outOverlapHitResult.entity).to.be.eq(overlapTestRoot);
-      expect(outOverlapHitResult.shape).to.be.eq(boxShape);
+      const c1 = enginePhysX.sceneManager.scenes[0].physics.overlapCapsuleAll(
+        center,
+        radius,
+        height,
+        orientation,
+        Layer.Everything
+      );
+      expect(c1).to.have.length(1);
+      expect(c1[0]).to.eq(boxShape);
 
       // Test overlapCapsule with layer mask
       expect(
-        enginePhysX.sceneManager.scenes[0].physics.overlapCapsule(
-          center,
-          radius,
-          height,
-          orientation,
-          Layer.Layer1,
-          outOverlapHitResult
-        )
-      ).to.eq(false);
+        enginePhysX.sceneManager.scenes[0].physics.overlapCapsuleAll(center, radius, height, orientation, Layer.Layer1)
+      ).to.have.length(0);
 
       // Test overlapCapsule when capsule contains collider
       center.set(0, 0, 0);
       let capsuleRadius = 2;
       let capsuleHeight = 4;
-      expect(
-        enginePhysX.sceneManager.scenes[0].physics.overlapCapsule(
-          center,
-          capsuleRadius,
-          capsuleHeight,
-          orientation,
-          Layer.Everything,
-          outOverlapHitResult
-        )
-      ).to.eq(true);
+      const cContain = enginePhysX.sceneManager.scenes[0].physics.overlapCapsuleAll(
+        center,
+        capsuleRadius,
+        capsuleHeight,
+        orientation,
+        Layer.Everything
+      );
+      expect(cContain).to.have.length(1);
+      expect(cContain[0]).to.eq(boxShape);
 
       // Test overlapCapsule with rotation
       Quaternion.rotationEuler(0, Math.PI / 4, 0, orientation);
       center.set(2, 0, 0);
       const direction = new Vector3(-1, 0, 0);
-      expect(
-        enginePhysX.sceneManager.scenes[0].physics.overlapCapsule(
-          center,
-          capsuleRadius,
-          capsuleHeight,
-          orientation,
-          Layer.Everything,
-          outOverlapHitResult
-        )
-      ).to.eq(true);
+      const cRot = enginePhysX.sceneManager.scenes[0].physics.overlapCapsuleAll(
+        center,
+        capsuleRadius,
+        capsuleHeight,
+        orientation,
+        Layer.Everything
+      );
+      expect(cRot).to.include(boxShape);
 
       // Test overlapCapsule with multiple colliders
       const collider2 = overlapTestRoot.addComponent(StaticCollider);
@@ -1084,31 +1073,43 @@ describe("Physics Test", () => {
       boxShape2.position = new Vector3(1, 0, 0);
       collider2.addShape(boxShape2);
       center.set(0.5, 0, 0);
-      expect(
-        enginePhysX.sceneManager.scenes[0].physics.overlapCapsule(
-          center,
-          capsuleRadius,
-          capsuleHeight,
-          orientation,
-          Layer.Everything,
-          outOverlapHitResult
-        )
-      ).to.eq(true);
+      const cMulti = enginePhysX.sceneManager.scenes[0].physics.overlapCapsuleAll(
+        center,
+        capsuleRadius,
+        capsuleHeight,
+        orientation,
+        Layer.Everything
+      );
+      expect(cMulti).to.have.length(2);
+      expect(cMulti).to.include.members([boxShape, boxShape2]);
 
       // Test overlapCapsule with edge contact
       center.set(0.5, 0.5, 0.5);
       capsuleRadius = 0.5;
       capsuleHeight = 1;
-      expect(
-        enginePhysX.sceneManager.scenes[0].physics.overlapCapsule(
-          center,
-          capsuleRadius,
-          capsuleHeight,
-          orientation,
-          Layer.Everything,
-          outOverlapHitResult
-        )
-      ).to.eq(true);
+      const cEdge = enginePhysX.sceneManager.scenes[0].physics.overlapCapsuleAll(
+        center,
+        capsuleRadius,
+        capsuleHeight,
+        orientation,
+        Layer.Everything
+      );
+      expect(cEdge).to.have.length(2);
+      expect(cEdge).to.include.members([boxShape, boxShape2]);
+
+      // Test overlapCapsule with custom array parameter
+      const customCapsuleArray: ColliderShape[] = [];
+      const cCustom = enginePhysX.sceneManager.scenes[0].physics.overlapCapsuleAll(
+        center,
+        capsuleRadius,
+        capsuleHeight,
+        orientation,
+        Layer.Everything,
+        customCapsuleArray
+      );
+      expect(cCustom).to.be.eq(customCapsuleArray);
+      expect(cCustom).to.have.length(2);
+      expect(cCustom).to.include.members([boxShape, boxShape2]);
 
       root.destroy();
     });

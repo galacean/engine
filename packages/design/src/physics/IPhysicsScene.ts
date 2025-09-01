@@ -97,37 +97,33 @@ export interface IPhysicsScene {
   ): boolean;
 
   /**
-   * Check if a box overlaps with any collider in the scene.
+   * Get all colliders overlapping with a box.
+   * Returns an array of shape unique IDs.
    */
-  overlapBox(
+  overlapBoxAll(
     center: Vector3,
     orientation: Quaternion,
     halfExtents: Vector3,
-    onOverlap: (obj: number) => boolean,
-    outHitResult?: (shapeUniqueID: number) => void
-  ): boolean;
+    onOverlap: (obj: number) => boolean
+  ): number[];
 
   /**
-   * Check if a sphere overlaps with any collider in the scene.
+   * Get all colliders overlapping with a sphere.
+   * Returns an array of shape unique IDs.
    */
-  overlapSphere(
-    center: Vector3,
-    radius: number,
-    onOverlap: (obj: number) => boolean,
-    outHitResult?: (shapeUniqueID: number) => void
-  ): boolean;
+  overlapSphereAll(center: Vector3, radius: number, onOverlap: (obj: number) => boolean): number[];
 
   /**
-   * Check if a capsule overlaps with any collider in the scene.
+   * Get all colliders overlapping with a capsule.
+   * Returns an array of shape unique IDs.
    */
-  overlapCapsule(
+  overlapCapsuleAll(
     center: Vector3,
     radius: number,
     height: number,
     orientation: Quaternion,
-    onOverlap: (obj: number) => boolean,
-    outHitResult?: (shapeUniqueID: number) => void
-  ): boolean;
+    onOverlap: (obj: number) => boolean
+  ): number[];
 
   /**
    * Destroy the physics scene.

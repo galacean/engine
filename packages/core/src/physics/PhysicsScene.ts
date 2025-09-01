@@ -8,7 +8,8 @@ import { DisorderedArray } from "../utils/DisorderedArray";
 import { CharacterController } from "./CharacterController";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
-import { HitResult, OverlapHitResult } from "./HitResult";
+import { HitResult } from "./HitResult";
+import { ColliderShape } from "./shape";
 
 /**
  * A physics scene is a collection of colliders and constraints which can interact.
@@ -501,55 +502,51 @@ export class PhysicsScene {
    * @param center - The center of the box
    * @param orientation - The rotation of the box
    * @param halfExtents - Half the size of the box in each dimension
-   * @param layerMask - Layer mask that is used to selectively ignore Colliders when checking, default is Layer.Everything
-   * @returns Returns True if the box overlaps with any collider, otherwise false
+   * @param layerMask - Layer mask that is used to selectively filter colliders, default is Layer.Everything
+   * @param shapes - Array to store overlapping collider shapes, default is empty array
+   * @returns The collider shapes overlapping with the box
    */
-  overlapBox(
+  overlapBoxAll(
     center: Vector3,
     orientation: Quaternion,
     halfExtents: Vector3,
     layerMask?: Layer,
-    outOverlapHitResult?: OverlapHitResult
-  ): boolean {
-    const mask = layerMask ?? Layer.Everything;
-    const preFilter = this._createPreFilter(mask);
-
-    const result = this._nativePhysicsScene.overlapBox(
+    shapes: ColliderShape[] = []
+  ): ColliderShape[] {
+    const ids = this._nativePhysicsScene.overlapBoxAll(
       center,
       orientation,
       halfExtents,
-      preFilter,
-      outOverlapHitResult ? this._createOverlapCallback(outOverlapHitResult) : undefined
+      this._createPreFilter(layerMask ?? Layer.Everything)
     );
 
-    if (!result && outOverlapHitResult) {
-      this._clearOverlapHitResult(outOverlapHitResult);
+    shapes.length = 0;
+    for (let i = 0; i < ids.length; i++) {
+      shapes.push(Engine._physicalObjectsMap[ids[i]]);
     }
-    return result;
+    return shapes;
   }
 
   /**
    * Check if a sphere overlaps with any collider in the scene.
    * @param center - The center of the sphere
    * @param radius - The radius of the sphere
-   * @param layerMask - Layer mask that is used to selectively ignore Colliders when checking, default is Layer.Everything
-   * @returns Returns True if the sphere overlaps with any collider, otherwise false
+   * @param layerMask - Layer mask that is used to selectively filter colliders, default is Layer.Everything
+   * @param shapes - Array to store overlapping collider shapes, default is empty array
+   * @returns The collider shapes overlapping with the sphere
    */
-  overlapSphere(center: Vector3, radius: number, layerMask?: Layer, outOverlapHitResult?: OverlapHitResult): boolean {
-    const mask = layerMask ?? Layer.Everything;
-    const preFilter = this._createPreFilter(mask);
-
-    const result = this._nativePhysicsScene.overlapSphere(
+  overlapSphereAll(center: Vector3, radius: number, layerMask?: Layer, shapes: ColliderShape[] = []): ColliderShape[] {
+    const ids = this._nativePhysicsScene.overlapSphereAll(
       center,
       radius,
-      preFilter,
-      outOverlapHitResult ? this._createOverlapCallback(outOverlapHitResult) : undefined
+      this._createPreFilter(layerMask ?? Layer.Everything)
     );
 
-    if (!result && outOverlapHitResult) {
-      this._clearOverlapHitResult(outOverlapHitResult);
+    shapes.length = 0;
+    for (let i = 0; i < ids.length; i++) {
+      shapes.push(Engine._physicalObjectsMap[ids[i]]);
     }
-    return result;
+    return shapes;
   }
 
   /**
@@ -558,33 +555,31 @@ export class PhysicsScene {
    * @param radius - The radius of the capsule
    * @param height - The height of the capsule
    * @param orientation - The rotation of the capsule
-   * @param layerMask - Layer mask that is used to selectively ignore Colliders when checking, default is Layer.Everything
-   * @returns Returns True if the capsule overlaps with any collider, otherwise false
+   * @param layerMask - Layer mask that is used to selectively filter colliders, default is Layer.Everything
+   * @param shapes - Array to store overlapping collider shapes, default is empty array
+   * @returns The collider shapes overlapping with the capsule
    */
-  overlapCapsule(
+  overlapCapsuleAll(
     center: Vector3,
     radius: number,
     height: number,
     orientation: Quaternion,
     layerMask?: Layer,
-    outOverlapHitResult?: OverlapHitResult
-  ): boolean {
-    const mask = layerMask ?? Layer.Everything;
-    const preFilter = this._createPreFilter(mask);
-
-    const result = this._nativePhysicsScene.overlapCapsule(
+    shapes: ColliderShape[] = []
+  ): ColliderShape[] {
+    const ids = this._nativePhysicsScene.overlapCapsuleAll(
       center,
       radius,
       height,
       orientation,
-      preFilter,
-      outOverlapHitResult ? this._createOverlapCallback(outOverlapHitResult) : undefined
+      this._createPreFilter(layerMask ?? Layer.Everything)
     );
 
-    if (!result && outOverlapHitResult) {
-      this._clearOverlapHitResult(outOverlapHitResult);
+    shapes.length = 0;
+    for (let i = 0; i < ids.length; i++) {
+      shapes.push(Engine._physicalObjectsMap[ids[i]]);
     }
-    return result;
+    return shapes;
   }
 
   /**
@@ -714,24 +709,11 @@ export class PhysicsScene {
     };
   }
 
-  private _createOverlapCallback(outOverlapHitResult: OverlapHitResult) {
-    return (shapeUniqueID: number) => {
-      const hitShape = Engine._physicalObjectsMap[shapeUniqueID];
-      outOverlapHitResult.entity = hitShape.collider.entity;
-      outOverlapHitResult.shape = hitShape;
-    };
-  }
-
   private _clearHitResult(hitResult: HitResult): void {
     hitResult.entity = null;
     hitResult.shape = null;
     hitResult.distance = 0;
     hitResult.point.set(0, 0, 0);
     hitResult.normal.set(0, 0, 0);
-  }
-
-  private _clearOverlapHitResult(overlapHitResult: OverlapHitResult): void {
-    overlapHitResult.entity = null;
-    overlapHitResult.shape = null;
   }
 }

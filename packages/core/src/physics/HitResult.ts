@@ -17,13 +17,3 @@ export class HitResult {
   /** The shape of the collider that was hit. */
   shape: ColliderShape = null;
 }
-
-/**
- * Structure used to get information back from an overlap.
- */
-export class OverlapHitResult {
-  /** The entity that was overlapped. */
-  entity: Entity = null;
-  /** The shape of the collider that was overlapped. */
-  shape: ColliderShape = null;
-}
