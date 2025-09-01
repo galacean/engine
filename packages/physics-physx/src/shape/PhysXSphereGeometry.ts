@@ -1,10 +1,9 @@
-import { ISphereGeometry } from "@galacean/engine-design";
 import { PhysXGeometry } from "./PhysXGeometry";
 
 /**
  * Sphere geometry for PhysX.
  */
-export class PhysXSphereGeometry extends PhysXGeometry implements ISphereGeometry {
+export class PhysXSphereGeometry extends PhysXGeometry {
   constructor(physX: any, radius: number) {
     super(physX);
     this._geometry = new physX.PxSphereGeometry(radius);

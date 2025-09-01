@@ -1,10 +1,9 @@
 import { Quaternion, Vector3 } from "@galacean/engine";
-import { IGeometry } from "@galacean/engine-design";
 
 /**
  * Base class for PhysX geometry types.
  */
-export class PhysXGeometry implements IGeometry {
+export class PhysXGeometry {
   protected _physX: any;
   protected _geometry: any;
 

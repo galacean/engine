@@ -1,4 +1,4 @@
-import { ICharacterController, ICollider, ICollision, IGeometry, IPhysicsScene } from "@galacean/engine-design";
+import { ICharacterController, ICollider, ICollision, IPhysicsScene } from "@galacean/engine-design";
 import { MathUtil, Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
@@ -15,10 +15,6 @@ import { HitResult, OverlapHitResult } from "./HitResult";
  */
 export class PhysicsScene {
   private static _collision = new Collision();
-  private static _tempPose: { translation: Vector3; rotation: Quaternion } = {
-    translation: new Vector3(),
-    rotation: new Quaternion()
-  };
 
   private _scene: Scene;
   private _restTime: number = 0;
@@ -363,7 +359,7 @@ export class PhysicsScene {
 
       if (result) {
         const hitShape = Engine._physicalObjectsMap[outIDX];
-        hitResult.entity = hitShape._collider.entity;
+        hitResult.entity = hitShape.collider.entity;
         hitResult.shape = hitShape;
         hitResult.distance = outDistance;
         hitResult.point.copyFrom(outPosition);
@@ -401,13 +397,23 @@ export class PhysicsScene {
     layerMask?: Layer,
     outHitResult?: HitResult
   ): boolean {
-    const boxGeometry = Engine._nativePhysics.createBoxGeometry(halfExtents);
-    const pose = PhysicsScene._tempPose;
-    pose.translation.copyFrom(center);
-    pose.rotation.copyFrom(orientation);
+    const maxDistance = distance ?? Number.MAX_VALUE;
+    const mask = layerMask ?? Layer.Everything;
+    const preFilter = this._createPreFilter(mask);
 
-    const result = this._sweep(boxGeometry, pose, direction, distance, layerMask, outHitResult);
-    boxGeometry.release();
+    const result = this._nativePhysicsScene.boxCast(
+      center,
+      orientation,
+      halfExtents,
+      direction,
+      maxDistance,
+      preFilter,
+      outHitResult ? this._createSweepCallback(outHitResult) : undefined
+    );
+
+    if (!result && outHitResult) {
+      this._clearHitResult(outHitResult);
+    }
     return result;
   }
 
@@ -429,11 +435,22 @@ export class PhysicsScene {
     layerMask?: Layer,
     outHitResult?: HitResult
   ): boolean {
-    const sphereGeometry = Engine._nativePhysics.createSphereGeometry(radius);
-    const pose = PhysicsScene._tempPose;
-    pose.translation.copyFrom(center);
-    const result = this._sweep(sphereGeometry, pose, direction, distance, layerMask, outHitResult);
-    sphereGeometry.release();
+    const maxDistance = distance ?? Number.MAX_VALUE;
+    const mask = layerMask ?? Layer.Everything;
+    const preFilter = this._createPreFilter(mask);
+
+    const result = this._nativePhysicsScene.sphereCast(
+      center,
+      radius,
+      direction,
+      maxDistance,
+      preFilter,
+      outHitResult ? this._createSweepCallback(outHitResult) : undefined
+    );
+
+    if (!result && outHitResult) {
+      this._clearHitResult(outHitResult);
+    }
     return result;
   }
 
@@ -458,12 +475,24 @@ export class PhysicsScene {
     layerMask?: Layer,
     outHitResult?: HitResult
   ): boolean {
-    const capsuleGeometry = Engine._nativePhysics.createCapsuleGeometry(radius, height);
-    const pose = PhysicsScene._tempPose;
-    pose.translation.copyFrom(center);
-    pose.rotation.copyFrom(orientation);
-    const result = this._sweep(capsuleGeometry, pose, direction, distance, layerMask, outHitResult);
-    capsuleGeometry.release();
+    const maxDistance = distance ?? Number.MAX_VALUE;
+    const mask = layerMask ?? Layer.Everything;
+    const preFilter = this._createPreFilter(mask);
+
+    const result = this._nativePhysicsScene.capsuleCast(
+      center,
+      radius,
+      height,
+      orientation,
+      direction,
+      maxDistance,
+      preFilter,
+      outHitResult ? this._createSweepCallback(outHitResult) : undefined
+    );
+
+    if (!result && outHitResult) {
+      this._clearHitResult(outHitResult);
+    }
     return result;
   }
 
@@ -482,12 +511,20 @@ export class PhysicsScene {
     layerMask?: Layer,
     outOverlapHitResult?: OverlapHitResult
   ): boolean {
-    const boxGeometry = Engine._nativePhysics.createBoxGeometry(halfExtents);
-    const pose = PhysicsScene._tempPose;
-    pose.translation.copyFrom(center);
-    pose.rotation.copyFrom(orientation);
-    const result = this._overlap(boxGeometry, pose, layerMask, outOverlapHitResult);
-    boxGeometry.release();
+    const mask = layerMask ?? Layer.Everything;
+    const preFilter = this._createPreFilter(mask);
+
+    const result = this._nativePhysicsScene.overlapBox(
+      center,
+      orientation,
+      halfExtents,
+      preFilter,
+      outOverlapHitResult ? this._createOverlapCallback(outOverlapHitResult) : undefined
+    );
+
+    if (!result && outOverlapHitResult) {
+      this._clearOverlapHitResult(outOverlapHitResult);
+    }
     return result;
   }
 
@@ -499,11 +536,19 @@ export class PhysicsScene {
    * @returns Returns True if the sphere overlaps with any collider, otherwise false
    */
   overlapSphere(center: Vector3, radius: number, layerMask?: Layer, outOverlapHitResult?: OverlapHitResult): boolean {
-    const sphereGeometry = Engine._nativePhysics.createSphereGeometry(radius);
-    const pose = PhysicsScene._tempPose;
-    pose.translation.copyFrom(center);
-    const result = this._overlap(sphereGeometry, pose, layerMask, outOverlapHitResult);
-    sphereGeometry.release();
+    const mask = layerMask ?? Layer.Everything;
+    const preFilter = this._createPreFilter(mask);
+
+    const result = this._nativePhysicsScene.overlapSphere(
+      center,
+      radius,
+      preFilter,
+      outOverlapHitResult ? this._createOverlapCallback(outOverlapHitResult) : undefined
+    );
+
+    if (!result && outOverlapHitResult) {
+      this._clearOverlapHitResult(outOverlapHitResult);
+    }
     return result;
   }
 
@@ -524,12 +569,21 @@ export class PhysicsScene {
     layerMask?: Layer,
     outOverlapHitResult?: OverlapHitResult
   ): boolean {
-    const capsuleGeometry = Engine._nativePhysics.createCapsuleGeometry(radius, height);
-    const pose = PhysicsScene._tempPose;
-    pose.translation.copyFrom(center);
-    pose.rotation.copyFrom(orientation);
-    const result = this._overlap(capsuleGeometry, pose, layerMask, outOverlapHitResult);
-    capsuleGeometry.release();
+    const mask = layerMask ?? Layer.Everything;
+    const preFilter = this._createPreFilter(mask);
+
+    const result = this._nativePhysicsScene.overlapCapsule(
+      center,
+      radius,
+      height,
+      orientation,
+      preFilter,
+      outOverlapHitResult ? this._createOverlapCallback(outOverlapHitResult) : undefined
+    );
+
+    if (!result && outOverlapHitResult) {
+      this._clearOverlapHitResult(outOverlapHitResult);
+    }
     return result;
   }
 
@@ -640,86 +694,44 @@ export class PhysicsScene {
     this._nativePhysicsScene.setGravity(this._gravity);
   }
 
-  private _sweep(
-    geometry: IGeometry,
-    pose: { translation: Vector3; rotation: Quaternion },
-    direction: Vector3,
-    distance?: number,
-    layerMask?: Layer,
-    outHitResult?: HitResult
-  ): boolean {
-    const maxDistance = distance ?? Number.MAX_VALUE;
-    const mask = layerMask ?? Layer.Everything;
-
-    const preFilter = (obj: number) => {
+  private _createPreFilter(mask: Layer) {
+    return (obj: number) => {
       const shape = Engine._physicalObjectsMap[obj];
       if (!shape) {
         return false;
       }
       return shape.collider.entity.layer & mask && shape.isSceneQuery;
     };
-
-    if (outHitResult !== undefined) {
-      const result = this._nativePhysicsScene.sweep(
-        geometry,
-        pose,
-        direction,
-        maxDistance,
-        preFilter,
-        (shapeUniqueID, distance, position, normal) => {
-          outHitResult.entity = Engine._physicalObjectsMap[shapeUniqueID].collider.entity;
-          outHitResult.shape = Engine._physicalObjectsMap[shapeUniqueID];
-          outHitResult.distance = distance;
-          outHitResult.point.copyFrom(position);
-          outHitResult.normal.copyFrom(normal);
-        }
-      );
-
-      if (!result) {
-        outHitResult.entity = null;
-        outHitResult.shape = null;
-        outHitResult.distance = 0;
-        outHitResult.point.set(0, 0, 0);
-        outHitResult.normal.set(0, 0, 0);
-        return false;
-      }
-      return true;
-    }
-
-    return this._nativePhysicsScene.sweep(geometry, pose, direction, maxDistance, preFilter);
   }
 
-  private _overlap(
-    geometry: IGeometry,
-    pose: { translation: Vector3; rotation: Quaternion },
-    layerMask?: Layer,
-    outOverlapHitResult?: OverlapHitResult
-  ): boolean {
-    const mask = layerMask ?? Layer.Everything;
-
-    const preFilter = (obj: number) => {
-      const shape = Engine._physicalObjectsMap[obj];
-      if (!shape) {
-        return false;
-      }
-      return shape.collider.entity.layer & mask && shape.isSceneQuery;
+  private _createSweepCallback(outHitResult: HitResult) {
+    return (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => {
+      outHitResult.entity = Engine._physicalObjectsMap[shapeUniqueID].collider.entity;
+      outHitResult.shape = Engine._physicalObjectsMap[shapeUniqueID];
+      outHitResult.distance = distance;
+      outHitResult.point.copyFrom(position);
+      outHitResult.normal.copyFrom(normal);
     };
+  }
 
-    if (outOverlapHitResult !== undefined) {
-      const result = this._nativePhysicsScene.overlapAny(geometry, pose, preFilter, (shapeUniqueID) => {
-        const hitShape = Engine._physicalObjectsMap[shapeUniqueID];
-        outOverlapHitResult.entity = hitShape._collider.entity;
-        outOverlapHitResult.shape = hitShape;
-      });
+  private _createOverlapCallback(outOverlapHitResult: OverlapHitResult) {
+    return (shapeUniqueID: number) => {
+      const hitShape = Engine._physicalObjectsMap[shapeUniqueID];
+      outOverlapHitResult.entity = hitShape.collider.entity;
+      outOverlapHitResult.shape = hitShape;
+    };
+  }
 
-      if (!result) {
-        outOverlapHitResult.entity = null;
-        outOverlapHitResult.shape = null;
-        return false;
-      }
-      return true;
-    }
+  private _clearHitResult(hitResult: HitResult): void {
+    hitResult.entity = null;
+    hitResult.shape = null;
+    hitResult.distance = 0;
+    hitResult.point.set(0, 0, 0);
+    hitResult.normal.set(0, 0, 0);
+  }
 
-    return this._nativePhysicsScene.overlapAny(geometry, pose, preFilter);
+  private _clearOverlapHitResult(overlapHitResult: OverlapHitResult): void {
+    overlapHitResult.entity = null;
+    overlapHitResult.shape = null;
   }
 }

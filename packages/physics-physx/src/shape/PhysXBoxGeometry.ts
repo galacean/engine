@@ -1,4 +1,3 @@
-import { IBoxGeometry } from "@galacean/engine-design";
 import { PhysXGeometry } from "./PhysXGeometry";
 import { Vector3 } from "@galacean/engine";
 
@@ -7,7 +6,7 @@ type Vector3Like = Pick<Vector3, "x" | "y" | "z">;
 /**
  * Box geometry for PhysX.
  */
-export class PhysXBoxGeometry extends PhysXGeometry implements IBoxGeometry {
+export class PhysXBoxGeometry extends PhysXGeometry {
   constructor(physX: any, halfExtents: Vector3Like) {
     super(physX);
     this._geometry = new physX.PxBoxGeometry(halfExtents.x, halfExtents.y, halfExtents.z);

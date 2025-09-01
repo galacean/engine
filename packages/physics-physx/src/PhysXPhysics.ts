@@ -31,10 +31,6 @@ import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
 import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
 import { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
 import { PhysXSphereColliderShape } from "./shape/PhysXSphereColliderShape";
-import { PhysXBoxGeometry } from "./shape/PhysXBoxGeometry";
-import { PhysXSphereGeometry } from "./shape/PhysXSphereGeometry";
-import { PhysXPlaneGeometry } from "./shape/PhysXPlaneGeometry";
-import { PhysXCapsuleGeometry } from "./shape/PhysXCapsuleGeometry";
 
 /**
  * PhysX object creation.
@@ -222,13 +218,6 @@ export class PhysXPhysics implements IPhysics {
   }
 
   /**
-   * {@inheritDoc IPhysics.createBoxGeometry }
-   */
-  createBoxGeometry(halfExtents: Vector3): PhysXBoxGeometry {
-    return new PhysXBoxGeometry(this._physX, halfExtents);
-  }
-
-  /**
    * {@inheritDoc IPhysics.createSphereColliderShape }
    */
   createSphereColliderShape(uniqueID: number, radius: number, material: PhysXPhysicsMaterial): ISphereColliderShape {
@@ -236,24 +225,10 @@ export class PhysXPhysics implements IPhysics {
   }
 
   /**
-   * {@inheritDoc IPhysics.createSphereGeometry }
-   */
-  createSphereGeometry(radius: number): PhysXSphereGeometry {
-    return new PhysXSphereGeometry(this._physX, radius);
-  }
-
-  /**
    * {@inheritDoc IPhysics.createPlaneColliderShape }
    */
   createPlaneColliderShape(uniqueID: number, material: PhysXPhysicsMaterial): IPlaneColliderShape {
     return new PhysXPlaneColliderShape(this, uniqueID, material);
-  }
-
-  /**
-   * {@inheritDoc IPhysics.createPlaneGeometry }
-   */
-  createPlaneGeometry(): PhysXPlaneGeometry {
-    return new PhysXPlaneGeometry(this._physX);
   }
 
   /**
@@ -266,13 +241,6 @@ export class PhysXPhysics implements IPhysics {
     material: PhysXPhysicsMaterial
   ): ICapsuleColliderShape {
     return new PhysXCapsuleColliderShape(this, uniqueID, radius, height, material);
-  }
-
-  /**
-   * {@inheritDoc IPhysics.createCapsuleGeometry }
-   */
-  createCapsuleGeometry(radius: number, height: number): PhysXCapsuleGeometry {
-    return new PhysXCapsuleGeometry(this._physX, radius, height * 0.5);
   }
 
   /**

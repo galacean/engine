@@ -7,7 +7,7 @@ import {
   Ray,
   Vector3
 } from "@galacean/engine";
-import { ICharacterController, ICollision, IGeometry, IPhysicsScene } from "@galacean/engine-design";
+import { ICharacterController, ICollision, IPhysicsScene } from "@galacean/engine-design";
 import { LiteCollider } from "./LiteCollider";
 import { LiteDynamicCollider } from "./LiteDynamicCollider";
 import { LiteHitResult } from "./LiteHitResult";
@@ -146,32 +146,6 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsScene.sweep }
-   */
-  sweep(
-    geometry: IGeometry,
-    pose: { translation: Vector3; rotation: Quaternion },
-    direction: Vector3,
-    distance: number,
-    onSweep: (obj: number) => boolean,
-    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
-  ): boolean {
-    throw new Error("Physics-lite doesn't support sweep. Use Physics-PhysX instead!");
-  }
-
-  /**
-   * {@inheritDoc IPhysicsScene.overlapAny }
-   */
-  overlapAny(
-    geometry: IGeometry,
-    pose: { translation: Vector3; rotation: Quaternion },
-    onOverlap: (obj: number) => boolean,
-    outHitResult?: (shapeUniqueID: number) => void
-  ): boolean {
-    throw new Error("Physics-lite doesn't support overlapAny. Use Physics-PhysX instead!");
-  }
-
-  /**
    * {@inheritDoc IPhysicsScene.addCharacterController }
    */
   addCharacterController(characterController: ICharacterController): void {
@@ -183,6 +157,90 @@ export class LitePhysicsScene implements IPhysicsScene {
    */
   removeCharacterController(characterController: ICharacterController): void {
     throw new Error("Physics-lite doesn't support removeCharacterController. Use Physics-PhysX instead!");
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.boxCast }
+   */
+  boxCast(
+    center: Vector3,
+    orientation: Quaternion,
+    halfExtents: Vector3,
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean {
+    throw new Error("Physics-lite doesn't support boxCast. Use Physics-PhysX instead!");
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.sphereCast }
+   */
+  sphereCast(
+    center: Vector3,
+    radius: number,
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean {
+    throw new Error("Physics-lite doesn't support sphereCast. Use Physics-PhysX instead!");
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.capsuleCast }
+   */
+  capsuleCast(
+    center: Vector3,
+    radius: number,
+    height: number,
+    orientation: Quaternion,
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean {
+    throw new Error("Physics-lite doesn't support capsuleCast. Use Physics-PhysX instead!");
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.overlapBox }
+   */
+  overlapBox(
+    center: Vector3,
+    orientation: Quaternion,
+    halfExtents: Vector3,
+    onOverlap: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number) => void
+  ): boolean {
+    throw new Error("Physics-lite doesn't support overlapBox. Use Physics-PhysX instead!");
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.overlapSphere }
+   */
+  overlapSphere(
+    center: Vector3,
+    radius: number,
+    onOverlap: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number) => void
+  ): boolean {
+    throw new Error("Physics-lite doesn't support overlapSphere. Use Physics-PhysX instead!");
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.overlapCapsule }
+   */
+  overlapCapsule(
+    center: Vector3,
+    radius: number,
+    height: number,
+    orientation: Quaternion,
+    onOverlap: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number) => void
+  ): boolean {
+    throw new Error("Physics-lite doesn't support overlapCapsule. Use Physics-PhysX instead!");
   }
 
   /**

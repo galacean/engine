@@ -1,9 +1,7 @@
 import { Quaternion, Vector3, Layer } from "@galacean/engine";
 import {
   IBoxColliderShape,
-  IBoxGeometry,
   ICapsuleColliderShape,
-  ICapsuleGeometry,
   ICharacterController,
   ICollider,
   ICollision,
@@ -14,9 +12,7 @@ import {
   IPhysicsManager,
   IPhysicsMaterial,
   IPlaneColliderShape,
-  IPlaneGeometry,
   ISphereColliderShape,
-  ISphereGeometry,
   ISpringJoint,
   IStaticCollider
 } from "@galacean/engine-design";
@@ -134,34 +130,6 @@ export class LitePhysics implements IPhysics {
     material: LitePhysicsMaterial
   ): ICapsuleColliderShape {
     throw new Error("Physics-lite doesn't support CapsuleColliderShape. Use Physics-PhysX instead!");
-  }
-
-  /**
-   * {@inheritDoc IPhysics.createBoxGeometry }
-   */
-  createBoxGeometry(halfExtents: Vector3): IBoxGeometry {
-    throw new Error("Physics-lite doesn't support BoxGeometry. Use Physics-PhysX instead!");
-  }
-
-  /**
-   * {@inheritDoc IPhysics.createSphereGeometry }
-   */
-  createSphereGeometry(radius: number): ISphereGeometry {
-    throw new Error("Physics-lite doesn't support SphereGeometry. Use Physics-PhysX instead!");
-  }
-
-  /**
-   * {@inheritDoc IPhysics.createPlaneGeometry }
-   */
-  createPlaneGeometry(): IPlaneGeometry {
-    throw new Error("Physics-lite doesn't support PlaneGeometry. Use Physics-PhysX instead!");
-  }
-
-  /**
-   * {@inheritDoc IPhysics.createCapsuleGeometry }
-   */
-  createCapsuleGeometry(radius: number, height: number): ICapsuleGeometry {
-    throw new Error("Physics-lite doesn't support CapsuleGeometry. Use Physics-PhysX instead!");
   }
 
   /**

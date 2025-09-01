@@ -1,7 +1,6 @@
 import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
 import { ICharacterController } from "./ICharacterController";
 import { ICollider } from "./ICollider";
-import { IGeometry } from "./geometry";
 
 /**
  * Interface for physics manager.
@@ -59,19 +58,12 @@ export interface IPhysicsScene {
   ): boolean;
 
   /**
-   * Sweep a geometry through the Scene and returns true if there is any hit.
-   * @param geometry - The geometry to sweep
-   * @param center - The center of the geometry
-   * @param orientation - The orientation of the geometry
-   * @param direction - The direction to sweep along
-   * @param distance - The max distance to sweep
-   * @param onSweep - Callback to pre filter objects
-   * @param outHitResult - Callback to get hit result
-   * @returns True if the sweep intersects with a collider, otherwise false
+   * Casts a box through the scene and returns true if there is any hit.
    */
-  sweep(
-    geometry: IGeometry,
-    pose: { translation: Vector3; rotation: Quaternion },
+  boxCast(
+    center: Vector3,
+    orientation: Quaternion,
+    halfExtents: Vector3,
     direction: Vector3,
     distance: number,
     onSweep: (obj: number) => boolean,
@@ -79,15 +71,60 @@ export interface IPhysicsScene {
   ): boolean;
 
   /**
-   * Check if a geometry overlaps with any collider in the scene.
-   * @param geometry - The geometry to check
-   * @param pose - The pose of the geometry
-   * @param onOverlap - Callback to pre filter objects
-   * @returns True if the geometry overlaps with any collider, otherwise false
+   * Casts a sphere through the scene and returns true if there is any hit.
    */
-  overlapAny(
-    geometry: IGeometry,
-    pose: { translation: Vector3; rotation: Quaternion },
+  sphereCast(
+    center: Vector3,
+    radius: number,
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean;
+
+  /**
+   * Casts a capsule through the scene and returns true if there is any hit.
+   */
+  capsuleCast(
+    center: Vector3,
+    radius: number,
+    height: number,
+    orientation: Quaternion,
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean;
+
+  /**
+   * Check if a box overlaps with any collider in the scene.
+   */
+  overlapBox(
+    center: Vector3,
+    orientation: Quaternion,
+    halfExtents: Vector3,
+    onOverlap: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number) => void
+  ): boolean;
+
+  /**
+   * Check if a sphere overlaps with any collider in the scene.
+   */
+  overlapSphere(
+    center: Vector3,
+    radius: number,
+    onOverlap: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number) => void
+  ): boolean;
+
+  /**
+   * Check if a capsule overlaps with any collider in the scene.
+   */
+  overlapCapsule(
+    center: Vector3,
+    radius: number,
+    height: number,
+    orientation: Quaternion,
     onOverlap: (obj: number) => boolean,
     outHitResult?: (shapeUniqueID: number) => void
   ): boolean;

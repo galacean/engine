@@ -1,10 +1,9 @@
-import { ICapsuleGeometry } from "@galacean/engine-design";
 import { PhysXGeometry } from "./PhysXGeometry";
 
 /**
  * Capsule geometry for PhysX.
  */
-export class PhysXCapsuleGeometry extends PhysXGeometry implements ICapsuleGeometry {
+export class PhysXCapsuleGeometry extends PhysXGeometry {
   constructor(physX: any, radius: number, halfHeight: number) {
     super(physX);
     this._geometry = new physX.PxCapsuleGeometry(radius, halfHeight);

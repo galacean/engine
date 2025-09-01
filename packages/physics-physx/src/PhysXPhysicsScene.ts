@@ -1,9 +1,12 @@
 import { Ray, Vector3, DisorderedArray, Quaternion } from "@galacean/engine";
-import { ICollision, IGeometry, IPhysicsScene } from "@galacean/engine-design";
+import { ICollision, IPhysicsScene } from "@galacean/engine-design";
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXCollider } from "./PhysXCollider";
 import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
+import { PhysXBoxGeometry } from "./shape/PhysXBoxGeometry";
+import { PhysXSphereGeometry } from "./shape/PhysXSphereGeometry";
+import { PhysXCapsuleGeometry } from "./shape/PhysXCapsuleGeometry";
 
 /**
  * A manager is a collection of colliders and constraints which can interact.
@@ -13,6 +16,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   _pxControllerManager: any = null;
 
   private static _tempPosition: Vector3 = new Vector3();
+  private static _tempQuaternion: Quaternion = new Quaternion();
   private static _tempNormal: Vector3 = new Vector3();
 
   private _physXPhysics: PhysXPhysics;
@@ -219,91 +223,127 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsScene.sweep }
+   * {@inheritDoc IPhysicsScene.boxCast }
    */
-  sweep(
-    geometry: IGeometry,
-    pose: { translation: Vector3; rotation: Quaternion },
+  boxCast(
+    center: Vector3,
+    orientation: Quaternion,
+    halfExtents: Vector3,
     direction: Vector3,
     distance: number,
     onSweep: (obj: number) => boolean,
     outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    distance = Math.min(distance, 3.4e38); // float32 max value limit in physx sweep
-
-    const sweepCallback = {
-      preFilter: (filterData, index, actor) => {
-        if (onSweep(index)) {
-          return 2; // eBLOCK
-        } else {
-          return 0; // eNONE
-        }
-      }
-    };
-
-    const pxSweepCallback = this._physXPhysics._physX.PxQueryFilterCallback.implement(sweepCallback);
-    const pxSweepHit = new this._physXPhysics._physX.PxSweepHit();
-    const result = this._pxScene.sweepSingle(
-      geometry.getGeometry(),
-      pose,
-      direction,
-      distance,
-      pxSweepHit,
-      this._pxFilterData,
-      pxSweepCallback
-    );
-
-    if (result && outHitResult != undefined) {
-      const { _tempPosition: position, _tempNormal: normal } = PhysXPhysicsScene;
-      const { position: pxPosition, normal: pxNormal } = pxSweepHit;
-      position.set(pxPosition.x, pxPosition.y, pxPosition.z);
-      normal.set(pxNormal.x, pxNormal.y, pxNormal.z);
-      outHitResult(pxSweepHit.getShape().getUUID(), pxSweepHit.distance, position, normal);
+    const geometry = new PhysXBoxGeometry(this._physXPhysics._physX, halfExtents);
+    try {
+      const pose = { translation: center, rotation: orientation };
+      return this._sweepSingle(geometry.getGeometry(), pose, direction, distance, onSweep, outHitResult);
+    } finally {
+      geometry.release();
     }
-
-    pxSweepCallback.delete();
-    pxSweepHit.delete();
-
-    return result;
   }
 
   /**
-   * {@inheritDoc IPhysicsScene.overlapAny }
+   * {@inheritDoc IPhysicsScene.sphereCast }
    */
-  overlapAny(
-    geometry: IGeometry,
-    pose: { translation: Vector3; rotation: Quaternion },
+  sphereCast(
+    center: Vector3,
+    radius: number,
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean {
+    const geometry = new PhysXSphereGeometry(this._physXPhysics._physX, radius);
+    try {
+      const tempQuat = PhysXPhysicsScene._tempQuaternion;
+      tempQuat.set(0, 0, 0, 1); // Identity quaternion
+      const pose = { translation: center, rotation: tempQuat };
+      return this._sweepSingle(geometry.getGeometry(), pose, direction, distance, onSweep, outHitResult);
+    } finally {
+      geometry.release();
+    }
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.capsuleCast }
+   */
+  capsuleCast(
+    center: Vector3,
+    radius: number,
+    height: number,
+    orientation: Quaternion,
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean {
+    const geometry = new PhysXCapsuleGeometry(this._physXPhysics._physX, radius, height * 0.5);
+    try {
+      const pose = { translation: center, rotation: orientation };
+      return this._sweepSingle(geometry.getGeometry(), pose, direction, distance, onSweep, outHitResult);
+    } finally {
+      geometry.release();
+    }
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.overlapBox }
+   */
+  overlapBox(
+    center: Vector3,
+    orientation: Quaternion,
+    halfExtents: Vector3,
     onOverlap: (obj: number) => boolean,
     outHitResult?: (shapeUniqueID: number) => void
   ): boolean {
-    const overlapCallback = {
-      preFilter: (filterData, index, actor) => {
-        if (onOverlap(index)) {
-          return 2; // eBLOCK
-        } else {
-          return 0; // eNONE
-        }
-      }
-    };
-
-    const pxOverlapCallback = this._physXPhysics._physX.PxQueryFilterCallback.implement(overlapCallback);
-    const pxOverlapHit = new this._physXPhysics._physX.PxOverlapHit();
-    const result = this._pxScene.overlapAny(
-      geometry.getGeometry(),
-      pose,
-      pxOverlapHit,
-      this._pxFilterData,
-      pxOverlapCallback
-    );
-
-    if (result && outHitResult != undefined) {
-      outHitResult(pxOverlapHit.getShape().getUUID());
+    const geometry = new PhysXBoxGeometry(this._physXPhysics._physX, halfExtents);
+    try {
+      const pose = { translation: center, rotation: orientation };
+      return this._overlapAny(geometry.getGeometry(), pose, onOverlap, outHitResult);
+    } finally {
+      geometry.release();
     }
+  }
 
-    pxOverlapCallback.delete();
-    pxOverlapHit.delete();
+  /**
+   * {@inheritDoc IPhysicsScene.overlapSphere }
+   */
+  overlapSphere(
+    center: Vector3,
+    radius: number,
+    onOverlap: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number) => void
+  ): boolean {
+    const geometry = new PhysXSphereGeometry(this._physXPhysics._physX, radius);
+    try {
+      const tempQuat = PhysXPhysicsScene._tempQuaternion;
+      tempQuat.set(0, 0, 0, 1); // Identity quaternion
+      const pose = { translation: center, rotation: tempQuat };
+      return this._overlapAny(geometry.getGeometry(), pose, onOverlap, outHitResult);
+    } finally {
+      geometry.release();
+    }
+  }
 
-    return result;
+  /**
+   * {@inheritDoc IPhysicsScene.overlapCapsule }
+   */
+  overlapCapsule(
+    center: Vector3,
+    radius: number,
+    height: number,
+    orientation: Quaternion,
+    onOverlap: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number) => void
+  ): boolean {
+    const geometry = new PhysXCapsuleGeometry(this._physXPhysics._physX, radius, height * 0.5);
+    try {
+      const pose = { translation: center, rotation: orientation };
+      return this._overlapAny(geometry.getGeometry(), pose, onOverlap, outHitResult);
+    } finally {
+      geometry.release();
+    }
   }
 
   /**
@@ -355,6 +395,82 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       }
     });
     delete eventMap[id];
+  }
+
+  private _sweepSingle(
+    geometry: any,
+    pose: { translation: Vector3; rotation: Quaternion },
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean {
+    distance = Math.min(distance, 3.4e38); // float32 max value limit in physx sweep
+
+    const sweepCallback = {
+      preFilter: (filterData, index, actor) => {
+        if (onSweep(index)) {
+          return 2; // eBLOCK
+        } else {
+          return 0; // eNONE
+        }
+      }
+    };
+
+    const pxSweepCallback = this._physXPhysics._physX.PxQueryFilterCallback.implement(sweepCallback);
+    const pxSweepHit = new this._physXPhysics._physX.PxSweepHit();
+    const result = this._pxScene.sweepSingle(
+      geometry,
+      pose,
+      direction,
+      distance,
+      pxSweepHit,
+      this._pxFilterData,
+      pxSweepCallback
+    );
+
+    if (result && outHitResult != undefined) {
+      const { _tempPosition: position, _tempNormal: normal } = PhysXPhysicsScene;
+      const { position: pxPosition, normal: pxNormal } = pxSweepHit;
+      position.set(pxPosition.x, pxPosition.y, pxPosition.z);
+      normal.set(pxNormal.x, pxNormal.y, pxNormal.z);
+      outHitResult(pxSweepHit.getShape().getUUID(), pxSweepHit.distance, position, normal);
+    }
+
+    pxSweepCallback.delete();
+    pxSweepHit.delete();
+
+    return result;
+  }
+
+  private _overlapAny(
+    geometry: any,
+    pose: { translation: Vector3; rotation: Quaternion },
+    onOverlap: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number) => void
+  ): boolean {
+    const overlapCallback = {
+      preFilter: (filterData, index, actor) => {
+        if (onOverlap(index)) {
+          return 2; // eBLOCK
+        } else {
+          return 0; // eNONE
+        }
+      }
+    };
+
+    const pxOverlapCallback = this._physXPhysics._physX.PxQueryFilterCallback.implement(overlapCallback);
+    const pxOverlapHit = new this._physXPhysics._physX.PxOverlapHit();
+    const result = this._pxScene.overlapAny(geometry, pose, pxOverlapHit, this._pxFilterData, pxOverlapCallback);
+
+    if (result && outHitResult != undefined) {
+      outHitResult(pxOverlapHit.getShape().getUUID());
+    }
+
+    pxOverlapCallback.delete();
+    pxOverlapHit.delete();
+
+    return result;
   }
 
   private _simulate(elapsedTime: number): void {

@@ -9,7 +9,6 @@ import { IStaticCollider } from "./IStaticCollider";
 import { IFixedJoint, IHingeJoint, ISpringJoint } from "./joints";
 import { IBoxColliderShape, ICapsuleColliderShape, IPlaneColliderShape, ISphereColliderShape } from "./shape";
 import { ICollision } from "./ICollision";
-import { IBoxGeometry, ICapsuleGeometry, IPlaneGeometry, ISphereGeometry } from "./geometry";
 
 /**
  * The interface of physics creation.
@@ -90,13 +89,6 @@ export interface IPhysics {
   createBoxColliderShape(uniqueID: number, size: Vector3, material: IPhysicsMaterial): IBoxColliderShape;
 
   /**
-   * Create box geometry.
-   * @param halfExtents - Half the size of the box in each dimension
-   * @returns The created box geometry
-   */
-  createBoxGeometry(halfExtents: Vector3): IBoxGeometry;
-
-  /**
    * Create sphere collider shape.
    * @param uniqueID - Shape unique id
    * @param radius - Radius of the sphere
@@ -105,23 +97,11 @@ export interface IPhysics {
   createSphereColliderShape(uniqueID: number, radius: number, material: IPhysicsMaterial): ISphereColliderShape;
 
   /**
-   * Create sphere geometry.
-   * @param radius - The radius of the sphere
-   * @returns The created sphere geometry
-   */
-  createSphereGeometry(radius: number): ISphereGeometry;
-  /**
    * Create plane collider shape.
    * @param uniqueID - Shape unique id
    * @param material - The material of this shape
    */
   createPlaneColliderShape(uniqueID: number, material: IPhysicsMaterial): IPlaneColliderShape;
-
-  /**
-   * Create plane geometry.
-   * @returns The created plane geometry
-   */
-  createPlaneGeometry(): IPlaneGeometry;
 
   /**
    * Create capsule collider shape.
@@ -136,14 +116,6 @@ export interface IPhysics {
     height: number,
     material: IPhysicsMaterial
   ): ICapsuleColliderShape;
-
-  /**
-   * Create capsule geometry.
-   * @param radius - The radius of the capsule
-   * @param height - The height of the capsule
-   * @returns The created capsule geometry
-   */
-  createCapsuleGeometry(radius: number, height: number): ICapsuleGeometry;
 
   /**
    * Create fixed joint.

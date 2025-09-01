@@ -19,7 +19,7 @@ export class HitResult {
 }
 
 /**
- * Structure used to get information back from a overlap.
+ * Structure used to get information back from an overlap.
  */
 export class OverlapHitResult {
   /** The entity that was overlapped. */
