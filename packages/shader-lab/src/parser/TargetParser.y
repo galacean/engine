@@ -140,6 +140,7 @@ global_macro_branch:
 variable_declaration:
     fully_specified_type id
     | fully_specified_type id array_specifier
+    | fully_specified_type id '=' initializer
     ;
 
 variable_declaration_list:

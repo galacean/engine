@@ -1291,6 +1291,11 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.variable_declaration)
   export class VariableDeclaration extends TreeNode {
     type: FullySpecifiedType;
+    isStatic: boolean;
+
+    override init(): void {
+      this.isStatic = false;
+    }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
@@ -1300,10 +1305,18 @@ export namespace ASTNode {
       const sm = new VarSymbol(ident.lexeme, new SymbolType(type.type, type.typeSpecifier.lexeme), true, this);
 
       sa.symbolTableStack.insert(sm);
+
+      if (children.length === 4) {
+        this.isStatic = true;
+      }
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
-      return this.setCache(visitor.visitGlobalVariableDeclaration(this));
+      if (this.isStatic) {
+        super.codeGen(visitor);
+      } else {
+        return this.setCache(visitor.visitGlobalVariableDeclaration(this));
+      }
     }
   }
 

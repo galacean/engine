@@ -119,7 +119,8 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     NoneTerminal.variable_declaration,
     [
       [NoneTerminal.fully_specified_type, ETokenType.ID],
-      [NoneTerminal.fully_specified_type, ETokenType.ID, NoneTerminal.array_specifier]
+      [NoneTerminal.fully_specified_type, ETokenType.ID, NoneTerminal.array_specifier],
+      [NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer]
     ],
     ASTNode.VariableDeclaration.pool
   ),
