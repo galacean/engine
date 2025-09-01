@@ -19,6 +19,10 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private static _tempQuaternion: Quaternion = new Quaternion();
   private static _tempNormal: Vector3 = new Vector3();
 
+  private _boxGeometry: PhysXBoxGeometry = null;
+  private _sphereGeometry: PhysXSphereGeometry = null;
+  private _capsuleGeometry: PhysXCapsuleGeometry = null;
+
   private _physXPhysics: PhysXPhysics;
   private _physXManager: PhysXPhysicsManager;
   private _pxRaycastHit: any;
@@ -234,13 +238,13 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     onSweep: (obj: number) => boolean,
     outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    const geometry = new PhysXBoxGeometry(this._physXPhysics._physX, halfExtents);
-    try {
-      const pose = { translation: center, rotation: orientation };
-      return this._sweepSingle(geometry.getGeometry(), pose, direction, distance, onSweep, outHitResult);
-    } finally {
-      geometry.release();
+    if (!this._boxGeometry) {
+      this._boxGeometry = new PhysXBoxGeometry(this._physXPhysics._physX, halfExtents);
+    } else {
+      this._boxGeometry.halfExtents = halfExtents;
     }
+    const pose = { translation: center, rotation: orientation };
+    return this._sweepSingle(this._boxGeometry.getGeometry(), pose, direction, distance, onSweep, outHitResult);
   }
 
   /**
@@ -254,15 +258,15 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     onSweep: (obj: number) => boolean,
     outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    const geometry = new PhysXSphereGeometry(this._physXPhysics._physX, radius);
-    try {
-      const tempQuat = PhysXPhysicsScene._tempQuaternion;
-      tempQuat.set(0, 0, 0, 1); // Identity quaternion
-      const pose = { translation: center, rotation: tempQuat };
-      return this._sweepSingle(geometry.getGeometry(), pose, direction, distance, onSweep, outHitResult);
-    } finally {
-      geometry.release();
+    if (!this._sphereGeometry) {
+      this._sphereGeometry = new PhysXSphereGeometry(this._physXPhysics._physX, radius);
+    } else {
+      this._sphereGeometry.radius = radius;
     }
+    const tempQuat = PhysXPhysicsScene._tempQuaternion;
+    tempQuat.set(0, 0, 0, 1); // Identity quaternion
+    const pose = { translation: center, rotation: tempQuat };
+    return this._sweepSingle(this._sphereGeometry.getGeometry(), pose, direction, distance, onSweep, outHitResult);
   }
 
   /**
@@ -278,13 +282,14 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     onSweep: (obj: number) => boolean,
     outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    const geometry = new PhysXCapsuleGeometry(this._physXPhysics._physX, radius, height * 0.5);
-    try {
-      const pose = { translation: center, rotation: orientation };
-      return this._sweepSingle(geometry.getGeometry(), pose, direction, distance, onSweep, outHitResult);
-    } finally {
-      geometry.release();
+    if (!this._capsuleGeometry) {
+      this._capsuleGeometry = new PhysXCapsuleGeometry(this._physXPhysics._physX, radius, height * 0.5);
+    } else {
+      this._capsuleGeometry.radius = radius;
+      this._capsuleGeometry.halfHeight = height * 0.5;
     }
+    const pose = { translation: center, rotation: orientation };
+    return this._sweepSingle(this._capsuleGeometry.getGeometry(), pose, direction, distance, onSweep, outHitResult);
   }
 
   /**
@@ -296,28 +301,28 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     halfExtents: Vector3,
     onOverlap: (obj: number) => boolean
   ): number[] {
-    const geometry = new PhysXBoxGeometry(this._physXPhysics._physX, halfExtents);
-    try {
-      const pose = { translation: center, rotation: orientation };
-      return this._overlapMultiple(geometry.getGeometry(), pose, onOverlap);
-    } finally {
-      geometry.release();
+    if (!this._boxGeometry) {
+      this._boxGeometry = new PhysXBoxGeometry(this._physXPhysics._physX, halfExtents);
+    } else {
+      this._boxGeometry.halfExtents = halfExtents;
     }
+    const pose = { translation: center, rotation: orientation };
+    return this._overlapMultiple(this._boxGeometry.getGeometry(), pose, onOverlap);
   }
 
   /**
    * {@inheritDoc IPhysicsScene.overlapSphereAll }
    */
   overlapSphereAll(center: Vector3, radius: number, onOverlap: (obj: number) => boolean): number[] {
-    const geometry = new PhysXSphereGeometry(this._physXPhysics._physX, radius);
-    try {
-      const tempQuat = PhysXPhysicsScene._tempQuaternion;
-      tempQuat.set(0, 0, 0, 1);
-      const pose = { translation: center, rotation: tempQuat };
-      return this._overlapMultiple(geometry.getGeometry(), pose, onOverlap);
-    } finally {
-      geometry.release();
+    if (!this._sphereGeometry) {
+      this._sphereGeometry = new PhysXSphereGeometry(this._physXPhysics._physX, radius);
+    } else {
+      this._sphereGeometry.radius = radius;
     }
+    const tempQuat = PhysXPhysicsScene._tempQuaternion;
+    tempQuat.set(0, 0, 0, 1);
+    const pose = { translation: center, rotation: tempQuat };
+    return this._overlapMultiple(this._sphereGeometry.getGeometry(), pose, onOverlap);
   }
 
   /**
@@ -330,19 +335,28 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     orientation: Quaternion,
     onOverlap: (obj: number) => boolean
   ): number[] {
-    const geometry = new PhysXCapsuleGeometry(this._physXPhysics._physX, radius, height * 0.5);
-    try {
-      const pose = { translation: center, rotation: orientation };
-      return this._overlapMultiple(geometry.getGeometry(), pose, onOverlap);
-    } finally {
-      geometry.release();
+    if (!this._capsuleGeometry) {
+      this._capsuleGeometry = new PhysXCapsuleGeometry(this._physXPhysics._physX, radius, height * 0.5);
+    } else {
+      this._capsuleGeometry.radius = radius;
+      this._capsuleGeometry.halfHeight = height * 0.5;
     }
+    const pose = { translation: center, rotation: orientation };
+    return this._overlapMultiple(this._capsuleGeometry.getGeometry(), pose, onOverlap);
   }
 
   /**
    * {@inheritDoc IPhysicsScene.destroy }
    */
   destroy(): void {
+    // Clean up geometry cache
+    this._boxGeometry?.release();
+    this._sphereGeometry?.release();
+    this._capsuleGeometry?.release();
+    this._boxGeometry = null;
+    this._sphereGeometry = null;
+    this._capsuleGeometry = null;
+
     this._physXSimulationCallbackInstance.delete();
     this._pxRaycastHit.delete();
     this._pxFilterData.flags.delete();

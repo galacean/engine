@@ -16,6 +16,7 @@ import { ColliderShape } from "./shape";
  */
 export class PhysicsScene {
   private static _collision = new Collision();
+  private static _identityQuaternion = new Quaternion(0, 0, 0, 1);
 
   private _scene: Scene;
   private _restTime: number = 0;
@@ -384,16 +385,17 @@ export class PhysicsScene {
    * @param center - The center of the box
    * @param halfExtents - Half the size of the box in each dimension
    * @param direction - The direction to sweep along
-   * @param orientation - The rotation of the box
+   * @param orientation - The rotation of the box, default is identity quaternion (axis-aligned)
    * @param distance - The max distance to sweep, default is Number.MAX_VALUE
    * @param layerMask - Layer mask that is used to selectively ignore Colliders when sweeping, default is Layer.Everything
-   * @returns Returns True if the box intersects with any collider, otherwise false
+   * @param outHitResult - Optional HitResult object to store detailed hit information
+   * @returns Returns true if the box intersects with any collider, otherwise false
    */
   boxCast(
     center: Vector3,
-    orientation: Quaternion,
     halfExtents: Vector3,
     direction: Vector3,
+    orientation?: Quaternion,
     distance?: number,
     layerMask?: Layer,
     outHitResult?: HitResult
@@ -404,7 +406,7 @@ export class PhysicsScene {
 
     const result = this._nativePhysicsScene.boxCast(
       center,
-      orientation,
+      orientation ?? PhysicsScene._identityQuaternion,
       halfExtents,
       direction,
       maxDistance,
@@ -461,17 +463,18 @@ export class PhysicsScene {
    * @param radius - The radius of the capsule
    * @param height - The height of the capsule
    * @param direction - The direction to sweep along
-   * @param orientation - The rotation of the capsule
+   * @param orientation - The rotation of the capsule, default is identity quaternion (vertical capsule)
    * @param distance - The max distance to sweep, default is Number.MAX_VALUE
    * @param layerMask - Layer mask that is used to selectively ignore Colliders when sweeping, default is Layer.Everything
+   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns True if the capsule intersects with any collider, otherwise false
    */
   capsuleCast(
     center: Vector3,
     radius: number,
     height: number,
-    orientation: Quaternion,
     direction: Vector3,
+    orientation?: Quaternion,
     distance?: number,
     layerMask?: Layer,
     outHitResult?: HitResult
@@ -484,7 +487,7 @@ export class PhysicsScene {
       center,
       radius,
       height,
-      orientation,
+      orientation ?? PhysicsScene._identityQuaternion,
       direction,
       maxDistance,
       preFilter,
@@ -498,24 +501,24 @@ export class PhysicsScene {
   }
 
   /**
-   * Check if a box overlaps with any collider in the scene.
+   * Get all colliders that overlap with a box in the scene.
    * @param center - The center of the box
-   * @param orientation - The rotation of the box
    * @param halfExtents - Half the size of the box in each dimension
+   * @param orientation - The rotation of the box, default is identity quaternion (axis-aligned)
    * @param layerMask - Layer mask that is used to selectively filter colliders, default is Layer.Everything
    * @param shapes - Array to store overlapping collider shapes, default is empty array
    * @returns The collider shapes overlapping with the box
    */
   overlapBoxAll(
     center: Vector3,
-    orientation: Quaternion,
     halfExtents: Vector3,
+    orientation?: Quaternion,
     layerMask?: Layer,
     shapes: ColliderShape[] = []
   ): ColliderShape[] {
     const ids = this._nativePhysicsScene.overlapBoxAll(
       center,
-      orientation,
+      orientation ?? PhysicsScene._identityQuaternion,
       halfExtents,
       this._createPreFilter(layerMask ?? Layer.Everything)
     );
@@ -528,7 +531,7 @@ export class PhysicsScene {
   }
 
   /**
-   * Check if a sphere overlaps with any collider in the scene.
+   * Get all colliders that overlap with a sphere in the scene.
    * @param center - The center of the sphere
    * @param radius - The radius of the sphere
    * @param layerMask - Layer mask that is used to selectively filter colliders, default is Layer.Everything
@@ -550,11 +553,11 @@ export class PhysicsScene {
   }
 
   /**
-   * Check if a capsule overlaps with any collider in the scene.
+   * Get all colliders that overlap with a capsule in the scene.
    * @param center - The center of the capsule
    * @param radius - The radius of the capsule
    * @param height - The height of the capsule
-   * @param orientation - The rotation of the capsule
+   * @param orientation - The rotation of the capsule, default is identity quaternion (vertical capsule)
    * @param layerMask - Layer mask that is used to selectively filter colliders, default is Layer.Everything
    * @param shapes - Array to store overlapping collider shapes, default is empty array
    * @returns The collider shapes overlapping with the capsule
@@ -563,7 +566,7 @@ export class PhysicsScene {
     center: Vector3,
     radius: number,
     height: number,
-    orientation: Quaternion,
+    orientation?: Quaternion,
     layerMask?: Layer,
     shapes: ColliderShape[] = []
   ): ColliderShape[] {
@@ -571,7 +574,7 @@ export class PhysicsScene {
       center,
       radius,
       height,
-      orientation,
+      orientation ?? PhysicsScene._identityQuaternion,
       this._createPreFilter(layerMask ?? Layer.Everything)
     );
 
