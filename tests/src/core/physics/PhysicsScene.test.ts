@@ -554,7 +554,7 @@ describe("Physics Test", () => {
       const halfExtents = new Vector3(0.5, 0.5, 0.5);
       const direction = new Vector3(0, 1, 0);
       const orientation = new Quaternion();
-      expect(physicsScene.boxCast(center, orientation, halfExtents, direction)).to.eq(false);
+      expect(physicsScene.boxCast(center, halfExtents, direction, orientation)).to.eq(false);
 
       // Test boxCast with hit
       direction.set(-1, -1, -1);
@@ -563,9 +563,9 @@ describe("Physics Test", () => {
       expect(
         physicsScene.boxCast(
           center,
-          orientation,
           halfExtents,
           direction,
+          orientation,
           Number.MAX_VALUE,
           Layer.Everything,
           outHitResult
@@ -576,12 +576,12 @@ describe("Physics Test", () => {
 
       // Test boxCast with layer mask
       expect(
-        physicsScene.boxCast(center, orientation, halfExtents, direction, Number.MAX_VALUE, Layer.Layer1, outHitResult)
+        physicsScene.boxCast(center, halfExtents, direction, orientation, Number.MAX_VALUE, Layer.Layer1, outHitResult)
       ).to.eq(false);
 
       // Test boxCast with distance limit
       expect(
-        physicsScene.boxCast(center, orientation, halfExtents, direction, 0.1, Layer.Everything, outHitResult)
+        physicsScene.boxCast(center, halfExtents, direction, orientation, 0.1, Layer.Everything, outHitResult)
       ).to.eq(false);
 
       // Test boxCast when box is inside collider
@@ -589,9 +589,9 @@ describe("Physics Test", () => {
       expect(
         physicsScene.boxCast(
           center,
-          orientation,
           halfExtents,
           direction,
+          orientation,
           Number.MAX_VALUE,
           Layer.Everything,
           outHitResult
@@ -606,9 +606,9 @@ describe("Physics Test", () => {
       expect(
         physicsScene.boxCast(
           center,
-          orientation,
           halfExtents,
           direction,
+          orientation,
           Number.MAX_VALUE,
           Layer.Everything,
           outHitResult
@@ -626,9 +626,9 @@ describe("Physics Test", () => {
       expect(
         physicsScene.boxCast(
           center,
-          orientation,
           halfExtents,
           direction,
+          orientation,
           Number.MAX_VALUE,
           Layer.Everything,
           outHitResult
@@ -642,9 +642,9 @@ describe("Physics Test", () => {
       expect(
         physicsScene.boxCast(
           center,
-          orientation,
           halfExtents,
           direction,
+          orientation,
           Number.MAX_VALUE,
           Layer.Everything,
           outHitResult
@@ -738,7 +738,7 @@ describe("Physics Test", () => {
       const height = 1.0;
       const direction = new Vector3(0, 1, 0);
       const orientation = new Quaternion();
-      expect(physicsScene.capsuleCast(center, radius, height, orientation, direction)).to.eq(false);
+      expect(physicsScene.capsuleCast(center, radius, height, direction, orientation)).to.eq(false);
 
       // Test capsuleCast with hit
       direction.set(-1, -1, -1);
@@ -749,8 +749,8 @@ describe("Physics Test", () => {
           center,
           radius,
           height,
-          orientation,
           direction,
+          orientation,
           Number.MAX_VALUE,
           Layer.Everything,
           outHitResult
@@ -764,8 +764,8 @@ describe("Physics Test", () => {
           center,
           radius,
           height,
-          orientation,
           direction,
+          orientation,
           Number.MAX_VALUE,
           Layer.Layer1,
           outHitResult
@@ -774,7 +774,7 @@ describe("Physics Test", () => {
 
       // Test capsuleCast with distance limit
       expect(
-        physicsScene.capsuleCast(center, radius, height, orientation, direction, 0.1, Layer.Everything, outHitResult)
+        physicsScene.capsuleCast(center, radius, height, direction, orientation, 0.1, Layer.Everything, outHitResult)
       ).to.eq(false);
 
       // Test capsuleCast when capsule is inside collider
@@ -784,8 +784,8 @@ describe("Physics Test", () => {
           center,
           radius,
           height,
-          orientation,
           direction,
+          orientation,
           Number.MAX_VALUE,
           Layer.Everything,
           outHitResult
@@ -802,8 +802,8 @@ describe("Physics Test", () => {
           center,
           radius,
           height,
-          orientation,
           direction,
+          orientation,
           Number.MAX_VALUE,
           Layer.Everything,
           outHitResult
@@ -824,8 +824,8 @@ describe("Physics Test", () => {
           center,
           radius,
           height,
-          orientation,
           direction,
+          orientation,
           Number.MAX_VALUE,
           Layer.Everything,
           outHitResult
@@ -842,8 +842,8 @@ describe("Physics Test", () => {
           center,
           radius,
           height,
-          orientation,
           direction,
+          orientation,
           Number.MAX_VALUE,
           Layer.Everything,
           outHitResult
@@ -869,19 +869,19 @@ describe("Physics Test", () => {
       const center = new Vector3(3, 3, 3);
       const halfExtents = new Vector3(0.5, 0.5, 0.5);
       const orientation = new Quaternion();
-      expect(physicsScene.overlapBoxAll(center, orientation, halfExtents)).to.have.length(0);
+      expect(physicsScene.overlapBoxAll(center, halfExtents, orientation)).to.have.length(0);
 
       // Test overlapBox with overlap
       center.set(0.5, 0.5, 0.5);
-      const shapes1 = physicsScene.overlapBoxAll(center, orientation, halfExtents, Layer.Everything);
+      const shapes1 = physicsScene.overlapBoxAll(center, halfExtents, orientation, Layer.Everything);
       expect(shapes1).to.have.length(1);
       expect(shapes1[0]).to.be.eq(boxShape);
 
       // Test overlapBox with layer mask
       const shapesMask = enginePhysX.sceneManager.scenes[0].physics.overlapBoxAll(
         center,
-        orientation,
         halfExtents,
+        orientation,
         Layer.Layer1
       );
       expect(shapesMask).to.have.length(0);
@@ -889,14 +889,14 @@ describe("Physics Test", () => {
       // Test overlapBox when box contains collider
       center.set(0, 0, 0);
       halfExtents.set(2, 2, 2);
-      const shapesContain = physicsScene.overlapBoxAll(center, orientation, halfExtents, Layer.Everything);
+      const shapesContain = physicsScene.overlapBoxAll(center, halfExtents, orientation, Layer.Everything);
       expect(shapesContain).to.have.length(1);
       expect(shapesContain[0]).to.eq(boxShape);
 
       // Test overlapBox with rotation
       Quaternion.rotationEuler(0, Math.PI / 4, 0, orientation);
       center.set(0.5, 0, 0);
-      const shapesRot = physicsScene.overlapBoxAll(center, orientation, halfExtents, Layer.Everything);
+      const shapesRot = physicsScene.overlapBoxAll(center, halfExtents, orientation, Layer.Everything);
       expect(shapesRot).to.include(boxShape);
 
       // Test overlapBox with multiple colliders
@@ -906,20 +906,20 @@ describe("Physics Test", () => {
       boxShape2.position = new Vector3(1, 0, 0);
       collider2.addShape(boxShape2);
       center.set(0.5, 0, 0);
-      const shapesMulti = physicsScene.overlapBoxAll(center, orientation, halfExtents, Layer.Everything);
+      const shapesMulti = physicsScene.overlapBoxAll(center, halfExtents, orientation, Layer.Everything);
       expect(shapesMulti).to.have.length(2);
       expect(shapesMulti).to.include.members([boxShape, boxShape2]);
 
       // Test overlapBox with edge contact
       center.set(0.5, 0.5, 0.5);
       halfExtents.set(0.5, 0.5, 0.5);
-      const shapesEdge = physicsScene.overlapBoxAll(center, orientation, halfExtents, Layer.Everything);
+      const shapesEdge = physicsScene.overlapBoxAll(center, halfExtents, orientation, Layer.Everything);
       expect(shapesEdge).to.have.length(2);
       expect(shapesEdge).to.include.members([boxShape, boxShape2]);
 
       // Test overlapBox with custom array parameter
       const customArray: ColliderShape[] = [];
-      const shapesCustom = physicsScene.overlapBoxAll(center, orientation, halfExtents, Layer.Everything, customArray);
+      const shapesCustom = physicsScene.overlapBoxAll(center, halfExtents, orientation, Layer.Everything, customArray);
       expect(shapesCustom).to.be.eq(customArray);
       expect(shapesCustom).to.have.length(2);
       expect(shapesCustom).to.include.members([boxShape, boxShape2]);
