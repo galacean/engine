@@ -1,4 +1,6 @@
+import { IPlatformShaderProgram } from "./IPlatformShaderProgram";
+
 export interface IPlatformPrimitive {
-  draw(tech: any, subPrimitive: any): void;
+  draw(shaderProgram: IPlatformShaderProgram, subPrimitive: any): void;
   destroy(): void;
 }

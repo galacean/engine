@@ -13,7 +13,7 @@ import {
   Script,
   Vector3,
   WebGLEngine,
-  WebGLMode,
+  WebGLMode
 } from "@galacean/engine";
 import { OrbitControl } from "@galacean/engine-toolkit";
 
@@ -22,7 +22,7 @@ async function main() {
   const htmlCanvas = document.getElementById("canvas") as HTMLCanvasElement;
   const engine = await WebGLEngine.create({
     canvas: htmlCanvas,
-    graphicDeviceOptions: { webGLMode: WebGLMode.Auto },
+    graphicDeviceOptions: { webGLMode: WebGLMode.Auto }
   });
 
   engine.canvas.resizeByClientSize();
@@ -47,10 +47,7 @@ async function main() {
   // Add dom element
   const dom = document.createElement("div");
   dom.innerHTML = "Hello world!!!";
-  dom.setAttribute(
-    "style",
-    "padding:10px;position:absolute;top:0;left:0;background:white;border-radius:5px"
-  );
+  dom.setAttribute("style", "padding:10px;position:absolute;top:0;left:0;background:white;border-radius:5px");
   document.body.appendChild(dom);
 
   // Add script
@@ -81,10 +78,7 @@ class LocationTrackingScript extends Script {
 
   onUpdate() {
     // Convert world coordinates to screen coordinates
-    this.camera.worldToScreenPoint(
-      this.entity.transform.position,
-      this.screenPoint
-    );
+    this.camera.worldToScreenPoint(this.entity.transform.position, this.screenPoint);
     const style = this.dom.style;
     style.left = `${this.screenPoint.x / this.widthRatio}px`;
     style.top = `${this.screenPoint.y / this.heightRatio}px`;

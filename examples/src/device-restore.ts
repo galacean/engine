@@ -3,14 +3,7 @@
  * @category Advance
  * @thumbnail https://mdn.alipayobjects.com/merchant_appfe/afts/img/A*U3AXS7Iq-AQAAAAAAAAAAAAADiR2AQ/original
  */
-import {
-  Animator,
-  Camera,
-  Color,
-  GLTFResource,
-  Vector3,
-  WebGLEngine,
-} from "@galacean/engine";
+import { Animator, Camera, Color, GLTFResource, Vector3, WebGLEngine } from "@galacean/engine";
 
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   engine.canvas.resizeByClientSize();

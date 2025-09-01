@@ -23,9 +23,10 @@
 float computeParticleRotationFloat(in float rotation, in float age, in float normalizedAge) {
     #if defined(RENDERER_ROL_CONSTANT_MODE) || defined(RENDERER_ROL_CURVE_MODE)
         #ifdef RENDERER_ROL_CURVE_MODE
-            float lifeRotation = evaluateParticleCurveCumulative(renderer_ROLMaxCurveZ, normalizedAge);
+            float currentValue;
+            float lifeRotation = evaluateParticleCurveCumulative(renderer_ROLMaxCurveZ, normalizedAge, currentValue);
             #ifdef RENDERER_ROL_IS_RANDOM_TWO
-                lifeRotation = mix(evaluateParticleCurveCumulative(renderer_ROLMinCurveZ, normalizedAge), lifeRotation, a_Random0.w);
+                lifeRotation = mix(evaluateParticleCurveCumulative(renderer_ROLMinCurveZ, normalizedAge, currentValue), lifeRotation, a_Random0.w);
             #endif
             rotation += lifeRotation * a_ShapePositionStartLifeTime.w;
         #else

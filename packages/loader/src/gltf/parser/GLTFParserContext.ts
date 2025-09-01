@@ -155,15 +155,12 @@ export class GLTFParserContext {
   /**
    * @internal
    */
-  _addTaskCompletePromise(taskPromise: PromiseLike<any>): void {
+  _addTaskCompletePromise(taskPromise: AssetPromise<any>): void {
     const task = this._progress.taskComplete;
     task.total += 1;
-    taskPromise.then(
-      () => {
-        this._setTaskCompleteProgress(++task.loaded, task.total);
-      },
-      () => {}
-    );
+    taskPromise.finally(() => {
+      this._setTaskCompleteProgress(++task.loaded, task.total);
+    });
   }
 
   private _handleSubAsset<T>(
