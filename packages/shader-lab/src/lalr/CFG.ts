@@ -35,19 +35,10 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ),
 
   ...GrammarUtils.createProductionWithOptions(
-    NoneTerminal.macro_call_parameter_list,
-    [
-      [NoneTerminal.assignment_expression],
-      [NoneTerminal.macro_call_parameter_list, ETokenType.COMMA, NoneTerminal.assignment_expression]
-    ],
-    ASTNode.MacroCallParameterList.pool
-  ),
-
-  ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.macro_call_function,
     [
       [Keyword.MACRO_CALL, ETokenType.LEFT_PAREN, ETokenType.RIGHT_PAREN],
-      [Keyword.MACRO_CALL, ETokenType.LEFT_PAREN, NoneTerminal.macro_call_parameter_list, ETokenType.RIGHT_PAREN]
+      [Keyword.MACRO_CALL, ETokenType.LEFT_PAREN, NoneTerminal.function_call_parameter_list, ETokenType.RIGHT_PAREN]
     ],
     ASTNode.MacroCallFunction.pool
   ),

@@ -73,15 +73,9 @@ macro_call_symbol:
     MACRO_CALL
     ;
 
-
-macro_call_parameter_list:
-    assignment_expression
-    | macro_call_parameter_list ',' assignment_expression
-    ;
-
 macro_call_function:
     MACRO_CALL '(' ')'
-    | MACRO_CALL '(' macro_call_parameter_list ')'
+    | MACRO_CALL '(' function_call_parameter_list ')'
     ;
 
 macro_undef:

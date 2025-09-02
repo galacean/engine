@@ -139,7 +139,6 @@ export enum NoneTerminal {
 
   // Macro call
   macro_call_symbol,
-  macro_call_parameter_list,
   macro_call_function,
 
   _ignore

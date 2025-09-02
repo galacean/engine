@@ -141,7 +141,7 @@ export abstract class CodeGenVisitor {
   visitMacroCallFunction(node: ASTNode.MacroCallFunction): string {
     const children = node.children;
     const paramList = children[2];
-    if (paramList instanceof ASTNode.MacroCallParameterList) {
+    if (paramList instanceof ASTNode.FunctionCallParameterList) {
       const paramNodes = paramList.paramNodes;
       const plainParams: string[] = [];
       for (let i = 0; i < paramNodes.length; i++) {

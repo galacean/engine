@@ -801,30 +801,16 @@ export namespace ASTNode {
       const { children, paramSig, paramNodes } = this;
       if (children.length === 1) {
         const expr = children[0] as AssignmentExpression;
-        if (expr.type == undefined) {
-          paramSig.push(TypeAny);
-        } else {
-          paramSig.push(expr.type);
-        }
-
-        this.paramNodes.push(expr);
+        paramSig.push(expr.type);
+        paramNodes.push(expr);
       } else {
         const list = children[0] as FunctionCallParameterList;
         const decl = children[2] as AssignmentExpression;
-        if (list.paramSig.length === 0 || decl.type == undefined) {
-          this.paramSig.push(TypeAny);
-        } else {
-          const listParamLength = list.paramSig.length;
-          paramSig.length = listParamLength + 1;
-          paramNodes.length = listParamLength + 1;
+        paramSig.push(...list.paramSig);
+        paramNodes.push(...list.paramNodes);
 
-          for (let i = 0; i < listParamLength; i++) {
-            paramSig[i] = list.paramSig[i];
-            paramNodes[i] = list.paramNodes[i];
-          }
-          paramSig[listParamLength] = decl.type;
-          paramNodes[listParamLength] = decl;
-        }
+        paramSig.push(decl.type);
+        paramNodes.push(decl);
       }
     }
   }
@@ -1676,26 +1662,6 @@ export namespace ASTNode {
       const macroName = (children[0] as BaseToken).lexeme;
 
       getReferenceSymbolNames(sa.macroDefineList, macroName, this.referenceSymbolNames);
-    }
-  }
-
-  @ASTNodeDecorator(NoneTerminal.macro_call_parameter_list)
-  export class MacroCallParameterList extends TreeNode {
-    paramNodes: AssignmentExpression[] = [];
-
-    override init(): void {
-      this.paramNodes.length = 0;
-    }
-
-    override semanticAnalyze(sa: SemanticAnalyzer): void {
-      const { children, paramNodes } = this;
-      if (children.length === 1) {
-        const expr = children[0] as AssignmentExpression;
-        paramNodes.push(expr);
-      } else {
-        paramNodes.push(...(children[0] as MacroCallParameterList).paramNodes);
-        paramNodes.push(children[2] as AssignmentExpression);
-      }
     }
   }
 
