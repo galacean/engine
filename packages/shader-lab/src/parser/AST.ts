@@ -1652,6 +1652,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.macro_call_symbol)
   export class MacroCallSymbol extends TreeNode {
     referenceSymbolNames: string[] = [];
+    macroName: string;
 
     override init(): void {
       this.referenceSymbolNames.length = 0;
@@ -1660,6 +1661,8 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
       const macroName = (children[0] as BaseToken).lexeme;
+
+      this.macroName = macroName;
 
       getReferenceSymbolNames(sa.macroDefineList, macroName, this.referenceSymbolNames);
     }
@@ -1667,19 +1670,14 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.macro_call_function)
   export class MacroCallFunction extends TreeNode {
-    referenceSymbolNames: string[] = [];
-
-    override init(): void {
-      this.referenceSymbolNames.length = 0;
-    }
+    referenceSymbolNames: string[];
+    macroName: string;
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      const children = this.children;
-      const macroName = (children[0] as BaseToken).lexeme;
+      const child = this.children[0] as MacroCallSymbol;
 
-      if (this.referenceSymbolNames.length) {
-      }
-      getReferenceSymbolNames(sa.macroDefineList, macroName, this.referenceSymbolNames);
+      this.referenceSymbolNames = child.referenceSymbolNames;
+      this.macroName = child.macroName;
     }
 
     override codeGen(visitor: CodeGenVisitor) {

@@ -37,8 +37,13 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.macro_call_function,
     [
-      [Keyword.MACRO_CALL, ETokenType.LEFT_PAREN, ETokenType.RIGHT_PAREN],
-      [Keyword.MACRO_CALL, ETokenType.LEFT_PAREN, NoneTerminal.function_call_parameter_list, ETokenType.RIGHT_PAREN]
+      [NoneTerminal.macro_call_symbol, ETokenType.LEFT_PAREN, ETokenType.RIGHT_PAREN],
+      [
+        NoneTerminal.macro_call_symbol,
+        ETokenType.LEFT_PAREN,
+        NoneTerminal.function_call_parameter_list,
+        ETokenType.RIGHT_PAREN
+      ]
     ],
     ASTNode.MacroCallFunction.pool
   ),

@@ -161,7 +161,7 @@ export abstract class CodeGenVisitor {
         plainParams.push(paramNodes[i].codeGen(this));
       }
 
-      return `${(children[0] as BaseToken).lexeme}(${plainParams.join(", ")})`;
+      return `${node.macroName}(${plainParams.join(", ")})`;
     } else {
       return this.defaultCodeGen(node.children);
     }

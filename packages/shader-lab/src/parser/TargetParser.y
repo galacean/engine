@@ -74,8 +74,8 @@ macro_call_symbol:
     ;
 
 macro_call_function:
-    MACRO_CALL '(' ')'
-    | MACRO_CALL '(' function_call_parameter_list ')'
+    macro_call_symbol '(' ')'
+    | macro_call_symbol '(' function_call_parameter_list ')'
     ;
 
 macro_undef:
