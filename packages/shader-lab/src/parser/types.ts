@@ -24,4 +24,4 @@ export class StructProp implements IParamInfo {
 
 export type NodeChild = TreeNode | BaseToken;
 
-export type IParamInfo = { ident: BaseToken; typeInfo: SymbolType; astNode?: TreeNode };
+export type IParamInfo = { ident?: BaseToken; typeInfo?: SymbolType; astNode?: TreeNode };

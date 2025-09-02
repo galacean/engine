@@ -554,6 +554,21 @@ export namespace ASTNode {
     }
   }
 
+  @ASTNodeDecorator(NoneTerminal.macro_param_item)
+  export class MacroParamItem extends TreeNode {}
+
+  @ASTNodeDecorator(NoneTerminal.macro_param_element)
+  export class MacroParamElement extends TreeNode {}
+
+  @ASTNodeDecorator(NoneTerminal.macro_param_case_list)
+  export class MacroParamCaseList extends TreeNode {}
+
+  @ASTNodeDecorator(NoneTerminal.macro_param_block)
+  export class MacroParamBlock extends TreeNode {}
+
+  @ASTNodeDecorator(NoneTerminal.macro_parameter_branch)
+  export class MacroParameterBranch extends TreeNode {}
+
   @ASTNodeDecorator(NoneTerminal.function_parameter_list)
   export class FunctionParameterList extends TreeNode {
     parameterInfoList: IParamInfo[] = [];
@@ -566,25 +581,29 @@ export namespace ASTNode {
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
-      const childrenLength = children.length;
       const { parameterInfoList, paramSig } = this;
-      if (childrenLength === 1) {
-        const decl = children[0] as ParameterDeclaration;
+
+      if (children[0] instanceof ParameterDeclaration) {
+        const decl = children[0];
         parameterInfoList.push({ ident: decl.ident, typeInfo: decl.typeInfo, astNode: decl });
         paramSig.push(decl.typeInfo?.type ?? TypeAny);
-      } else {
+      } else if (children[2] instanceof ParameterDeclaration) {
         const list = children[0] as FunctionParameterList;
-        const decl = children[2] as ParameterDeclaration;
-        const listParamLength = list.parameterInfoList.length;
-        parameterInfoList.length = listParamLength + 1;
-        paramSig.length = listParamLength + 1;
+        const decl = children[2];
 
-        for (let i = 0; i < listParamLength; i++) {
-          parameterInfoList[i] = list.parameterInfoList[i];
-          paramSig[i] = list.paramSig[i];
-        }
-        parameterInfoList[listParamLength] = { ident: decl.ident, typeInfo: decl.typeInfo, astNode: decl };
-        paramSig[listParamLength] = decl.typeInfo?.type ?? TypeAny;
+        parameterInfoList.push(...list.parameterInfoList);
+        parameterInfoList.push({ ident: decl.ident, typeInfo: decl.typeInfo, astNode: decl });
+        paramSig.push(...list.paramSig);
+        paramSig.push(decl.typeInfo?.type ?? TypeAny);
+      } else if (children[0] instanceof FunctionParameterList && children[1] instanceof MacroParamBlock) {
+        parameterInfoList.push(...children[0].parameterInfoList);
+        paramSig.push(...children[0].paramSig);
+
+        parameterInfoList.push({ astNode: children[1] });
+        paramSig.push(TypeAny);
+      } else if (children[0] instanceof MacroParamBlock) {
+        parameterInfoList.push({ astNode: children[0] });
+        paramSig.push(TypeAny);
       }
     }
 
@@ -595,12 +614,12 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.parameter_declaration)
   export class ParameterDeclaration extends TreeNode {
-    typeQualifier?: TypeQualifier;
-    typeInfo: SymbolType;
-    ident: BaseToken;
+    // Some syntax is not recognized, eg.
+    // `#define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2D shadowMap`
+    typeInfo?: SymbolType;
+    ident?: BaseToken;
 
     override init(): void {
-      this.typeQualifier = undefined;
       this.typeInfo = undefined;
       this.ident = undefined;
     }
@@ -613,13 +632,17 @@ export namespace ASTNode {
         parameterDeclarator = children[0];
       } else if (children[1] instanceof ParameterDeclarator) {
         parameterDeclarator = children[1];
-        this.typeQualifier = children[0] as TypeQualifier;
       }
 
       if (parameterDeclarator) {
         this.typeInfo = parameterDeclarator.typeInfo;
         this.ident = parameterDeclarator.ident;
-        const varSymbol = new VarSymbol(parameterDeclarator.ident.lexeme, parameterDeclarator.typeInfo, false, this);
+        const varSymbol = new VarSymbol(
+          parameterDeclarator.ident.lexeme,
+          parameterDeclarator.typeInfo,
+          false,
+          parameterDeclarator
+        );
         sa.symbolTableStack.insert(varSymbol);
       }
     }

@@ -206,17 +206,30 @@ export abstract class CodeGenVisitor {
   }
 
   visitFunctionParameterList(node: ASTNode.FunctionParameterList): string {
-    const params = node.parameterInfoList;
-    return params
-      .filter(
-        (item) =>
-          !item.typeInfo ||
-          (!VisitorContext.context.isAttributeStruct(item.typeInfo.typeLexeme) &&
-            !VisitorContext.context.isVaryingStruct(item.typeInfo.typeLexeme) &&
-            !VisitorContext.context.isMRTStruct(item.typeInfo.typeLexeme))
-      )
-      .map((item) => item.astNode.codeGen(this))
-      .join(", ");
+    const params = node.parameterInfoList.filter(
+      (item) =>
+        !item.typeInfo ||
+        (!VisitorContext.context.isAttributeStruct(item.typeInfo.typeLexeme) &&
+          !VisitorContext.context.isVaryingStruct(item.typeInfo.typeLexeme) &&
+          !VisitorContext.context.isMRTStruct(item.typeInfo.typeLexeme))
+    );
+
+    let out = "";
+    for (let i = 0, length = params.length; i < length; i++) {
+      const item = params[i];
+      const astNode = item.astNode;
+      const code = astNode.codeGen(this);
+      out += code;
+      if (
+        i !== length - 1 &&
+        !(astNode instanceof ASTNode.MacroParamBlock) &&
+        !(params[i + 1]?.astNode instanceof ASTNode.MacroParamBlock)
+      ) {
+        out += ", ";
+      }
+    }
+
+    return out;
   }
 
   visitFunctionHeader(node: ASTNode.FunctionHeader): string {
