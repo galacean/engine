@@ -338,8 +338,8 @@ export class ResourceManager {
     this._loadingPromises = null;
   }
 
-  private _assignDefaultOptions(assetInfo: LoadItem): LoadItem {
-    assetInfo.type = assetInfo.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
+  private _assignDefaultOptions(assetInfo: LoadItem, editorResourceItem?: EditorResourceItem): LoadItem {
+    assetInfo.type = assetInfo.type ?? editorResourceItem?.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
     if (assetInfo.type === undefined) {
       throw `asset type should be specified: ${assetInfo.url}`;
     }
@@ -350,21 +350,27 @@ export class ResourceManager {
     return assetInfo;
   }
 
+  private _resolveRemoteUrl(url: string, editorResourceItem?: EditorResourceItem): string {
+    if (Utils.isAbsoluteUrl) return url;
+    if (editorResourceItem) {
+      return this.baseUrl ? Utils.resolveAbsoluteUrl(this.baseUrl, "." + url) : url;
+    } else {
+      return this.baseUrl ? Utils.resolveAbsoluteUrl(this.baseUrl, url) : url;
+    }
+  }
+
   private _loadSingleItem<T>(itemOrURL: LoadItem | string): AssetPromise<T> {
-    const item = this._assignDefaultOptions(typeof itemOrURL === "string" ? { url: itemOrURL } : itemOrURL);
+    const item = typeof itemOrURL === "string" ? { url: itemOrURL } : itemOrURL;
     let { url } = item;
-
-    // Not absolute and base url is set
-    if (!Utils.isAbsoluteUrl(url) && this.baseUrl) url = Utils.resolveAbsoluteUrl(this.baseUrl, url);
-
     // Parse url
     const { assetBaseURL, queryPath } = this._parseURL(url);
+    const editorResourceItem = this._virtualPathResourceMap[assetBaseURL];
+    this._assignDefaultOptions(item, editorResourceItem);
+
     const paths = queryPath ? this._parseQueryPath(queryPath) : [];
 
     // Get remote asset base url
-    const remoteConfig = this._virtualPathResourceMap[assetBaseURL];
-    const remoteAssetBaseURL = remoteConfig?.path ?? assetBaseURL;
-
+    const remoteAssetBaseURL = this._resolveRemoteUrl(editorResourceItem?.path ?? assetBaseURL);
     // Check cache
     const cacheObject = this._assetUrlPool[remoteAssetBaseURL];
     if (cacheObject) {
@@ -405,7 +411,7 @@ export class ResourceManager {
       throw `loader not found: ${item.type}`;
     }
 
-    const subpackageName = remoteConfig?.subpackageName;
+    const subpackageName = editorResourceItem?.subpackageName;
 
     // Check sub asset
     if (queryPath) {
