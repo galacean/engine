@@ -31,10 +31,6 @@ export class Transform extends Component {
   @deepClone
   private _worldPosition: Vector3 = new Vector3();
   @deepClone
-  private _localMatrix: Matrix = new Matrix();
-  @deepClone
-  private _worldMatrix: Matrix = new Matrix();
-  @deepClone
   private _worldRotation: Vector3 = new Vector3();
   @deepClone
   private _worldRotationQuaternion: Quaternion = new Quaternion();
@@ -42,6 +38,10 @@ export class Transform extends Component {
   private _worldUniformScaling: boolean = true;
   @deepClone
   private _lossyWorldScale: Vector3 = new Vector3(1, 1, 1);
+  @deepClone
+  private _localMatrix: Matrix = new Matrix();
+  @deepClone
+  private _worldMatrix: Matrix = new Matrix();
   @ignoreClone
   private _worldForward: Vector3 = null;
   @ignoreClone
