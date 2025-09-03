@@ -366,8 +366,8 @@ export class Text extends UIRenderer implements ITextRenderer {
 
     // prettier-ignore
     const e0 = e[0], e1 = e[1], e2 = e[2],
-          e4 = e[4], e5 = e[5], e6 = e[6],
-          e12 = e[12], e13 = e[13], e14 = e[14];
+      e4 = e[4], e5 = e[5], e6 = e[6],
+      e12 = e[12], e13 = e[13], e14 = e[14];
 
     const up = UIRenderer._tempVec31.set(e4, e5, e6);
     const right = UIRenderer._tempVec30.set(e0, e1, e2);
@@ -439,16 +439,16 @@ export class Text extends UIRenderer implements ITextRenderer {
     const offsetHeight = rendererHeight * (0.5 - pivot.y);
     const textMetrics = this.enableWrapping
       ? TextUtils.measureTextWithWrap(
-          this,
-          rendererWidth * pixelsPerResolution,
-          rendererHeight * pixelsPerResolution,
-          this._lineSpacing * pixelsPerResolution
-        )
+        this,
+        rendererWidth * pixelsPerResolution,
+        rendererHeight * pixelsPerResolution,
+        this._lineSpacing * pixelsPerResolution
+      )
       : TextUtils.measureTextWithoutWrap(
-          this,
-          rendererHeight * pixelsPerResolution,
-          this._lineSpacing * pixelsPerResolution
-        );
+        this,
+        rendererHeight * pixelsPerResolution,
+        this._lineSpacing * pixelsPerResolution
+      );
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
     // @ts-ignore
     const charRenderInfoPool = this.engine._charRenderInfoPool;
@@ -605,6 +605,7 @@ export class Text extends UIRenderer implements ITextRenderer {
 
   private _buildChunk(textChunk: TextChunk, count: number) {
     const { r, g, b, a } = this.color;
+    const finalAlpha = a * this._getGlobalAlpha();
     const tempIndices = CharRenderInfo.triangles;
     const tempIndicesLength = tempIndices.length;
     const subChunk = (textChunk.subChunk = this._getChunkManager().allocateSubChunk(count * 4));
@@ -627,7 +628,7 @@ export class Text extends UIRenderer implements ITextRenderer {
         vertices[vo + 2] = r;
         vertices[vo + 3] = g;
         vertices[vo + 4] = b;
-        vertices[vo + 5] = a;
+        vertices[vo + 5] = finalAlpha;
       }
     }
 
