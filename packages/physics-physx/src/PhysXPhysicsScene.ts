@@ -19,6 +19,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     translation: new Vector3(),
     rotation: new Quaternion()
   };
+  private static _tempShapeIDs: number[] = [];
 
   // Cached geometry objects for reuse
   private _boxGeometry: any = null;
@@ -481,7 +482,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       pxOverlapCallback
     );
 
-    const result: number[] = [];
+    const result = PhysXPhysicsScene._tempShapeIDs;
+    result.length = 0;
     if (hits) {
       // PhysX overlapMultiple returns a collection with size() method
       for (let i = 0, n = hits.size(); i < n; i++) {
