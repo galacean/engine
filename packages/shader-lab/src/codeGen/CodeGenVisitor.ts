@@ -114,27 +114,36 @@ export abstract class CodeGenVisitor {
       VisitorContext.context.referenceGlobal(call.fnSymbol.ident, ESymbolType.FN);
 
       const paramList = call.children[2];
-      const paramInfoList = call.fnSymbol.astNode.protoType.parameterList;
-
       if (paramList instanceof ASTNode.FunctionCallParameterList) {
-        const plainParams: string[] = [];
-        const params = paramList.paramNodes;
+        const astNodes = paramList.paramNodes;
+        const paramInfoList = call.fnSymbol.astNode.protoType.parameterList;
 
-        for (let i = 0; i < params.length; i++) {
-          const typeInfo = paramInfoList[i]?.typeInfo;
-          if (
-            typeInfo &&
-            (VisitorContext.context.isAttributeStruct(typeInfo.typeLexeme) ||
-              VisitorContext.context.isVaryingStruct(typeInfo.typeLexeme) ||
-              VisitorContext.context.isMRTStruct(typeInfo.typeLexeme))
-          ) {
-            continue;
+        const params = astNodes.filter((_, i) => {
+          const typeInfo = paramInfoList?.[i]?.typeInfo;
+          return (
+            !typeInfo ||
+            (!VisitorContext.context.isAttributeStruct(typeInfo.typeLexeme) &&
+              !VisitorContext.context.isVaryingStruct(typeInfo.typeLexeme) &&
+              !VisitorContext.context.isMRTStruct(typeInfo.typeLexeme))
+          );
+        });
+
+        let paramsCode = "";
+
+        for (let i = 0, length = params.length; i < length; i++) {
+          const astNode = params[i];
+          const code = astNode.codeGen(this);
+          if (astNode instanceof ASTNode.MacroCallArgBlock || i === 0) {
+            paramsCode += code;
+          } else {
+            paramsCode += `, ${code}`;
           }
-          plainParams.push(params[i].codeGen(this));
         }
-        return `${call.fnSymbol.ident}(${plainParams.join(", ")})`;
+
+        return `${call.fnSymbol.ident}(${paramsCode})`;
       }
     }
+
     return this.defaultCodeGen(node.children);
   }
 
@@ -142,26 +151,41 @@ export abstract class CodeGenVisitor {
     const children = node.children;
     const paramList = children[2];
     if (paramList instanceof ASTNode.FunctionCallParameterList) {
-      const paramNodes = paramList.paramNodes;
-      const plainParams: string[] = [];
-      for (let i = 0; i < paramNodes.length; i++) {
-        const variableParam = ParserUtils.unwrapNodeByType<ASTNode.VariableIdentifier>(
-          paramNodes[i],
-          NoneTerminal.variable_identifier
-        );
-        if (
-          variableParam &&
-          typeof variableParam.typeInfo === "string" &&
-          (VisitorContext.context.isAttributeStruct(variableParam.typeInfo) ||
-            VisitorContext.context.isVaryingStruct(variableParam.typeInfo) ||
-            VisitorContext.context.isMRTStruct(variableParam.typeInfo))
-        ) {
-          continue;
+      const astNodes = paramList.paramNodes;
+
+      const params = astNodes.filter((node) => {
+        if (node instanceof ASTNode.AssignmentExpression) {
+          const variableParam = ParserUtils.unwrapNodeByType<ASTNode.VariableIdentifier>(
+            node,
+            NoneTerminal.variable_identifier
+          );
+          if (
+            variableParam &&
+            typeof variableParam.typeInfo === "string" &&
+            (VisitorContext.context.isAttributeStruct(variableParam.typeInfo) ||
+              VisitorContext.context.isVaryingStruct(variableParam.typeInfo) ||
+              VisitorContext.context.isMRTStruct(variableParam.typeInfo))
+          ) {
+            return false;
+          }
         }
-        plainParams.push(paramNodes[i].codeGen(this));
+
+        return true;
+      });
+
+      let paramsCode = "";
+      for (let i = 0, length = params.length; i < length; i++) {
+        const node = params[i];
+        const code = node.codeGen(this);
+
+        if (node instanceof ASTNode.MacroCallArgBlock || i === 0) {
+          paramsCode += code;
+        } else {
+          paramsCode += `, ${code}`;
+        }
       }
 
-      return `${node.macroName}(${plainParams.join(", ")})`;
+      return `${node.macroName}(${paramsCode})`;
     } else {
       return this.defaultCodeGen(node.children);
     }
@@ -219,13 +243,10 @@ export abstract class CodeGenVisitor {
       const item = params[i];
       const astNode = item.astNode;
       const code = astNode.codeGen(this);
-      out += code;
-      if (
-        i !== length - 1 &&
-        !(astNode instanceof ASTNode.MacroParamBlock) &&
-        !(params[i + 1]?.astNode instanceof ASTNode.MacroParamBlock)
-      ) {
-        out += ", ";
+      if (astNode instanceof ASTNode.MacroParamBlock || i === 0) {
+        out += code;
+      } else {
+        out += `, ${code}`;
       }
     }
 

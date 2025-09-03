@@ -591,16 +591,15 @@ export namespace ASTNode {
         const list = children[0] as FunctionParameterList;
         const decl = children[2];
 
-        parameterInfoList.push(...list.parameterInfoList);
-        parameterInfoList.push({ ident: decl.ident, typeInfo: decl.typeInfo, astNode: decl });
-        paramSig.push(...list.paramSig);
-        paramSig.push(decl.typeInfo?.type ?? TypeAny);
+        parameterInfoList.push(...list.parameterInfoList, {
+          ident: decl.ident,
+          typeInfo: decl.typeInfo,
+          astNode: decl
+        });
+        paramSig.push(...list.paramSig, decl.typeInfo?.type ?? TypeAny);
       } else if (children[0] instanceof FunctionParameterList && children[1] instanceof MacroParamBlock) {
-        parameterInfoList.push(...children[0].parameterInfoList);
-        paramSig.push(...children[0].paramSig);
-
-        parameterInfoList.push({ astNode: children[1] });
-        paramSig.push(TypeAny);
+        parameterInfoList.push(...children[0].parameterInfoList, { astNode: children[1] });
+        paramSig.push(...children[0].paramSig, TypeAny);
       } else if (children[0] instanceof MacroParamBlock) {
         parameterInfoList.push({ astNode: children[0] });
         paramSig.push(TypeAny);
@@ -777,7 +776,7 @@ export namespace ASTNode {
 
         if (!fnSymbol) {
           // #if _VERBOSE
-          // sa.reportError(this.location, `No overload function type found: ${functionIdentifier.ident}`);
+          sa.reportError(this.location, `No overload function type found: ${functionIdentifier.ident}`);
           // #endif
           return;
         }
@@ -790,7 +789,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.function_call_parameter_list)
   export class FunctionCallParameterList extends TreeNode {
     paramSig: GalaceanDataType[] = [];
-    paramNodes: AssignmentExpression[] = [];
+    paramNodes: Array<AssignmentExpression | MacroCallArgBlock> = [];
 
     override init(): void {
       this.paramSig.length = 0;
@@ -799,21 +798,35 @@ export namespace ASTNode {
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const { children, paramSig, paramNodes } = this;
-      if (children.length === 1) {
-        const expr = children[0] as AssignmentExpression;
+      if (children[0] instanceof AssignmentExpression) {
+        const expr = children[0];
         paramSig.push(expr.type);
         paramNodes.push(expr);
-      } else {
+      } else if (children[2] instanceof AssignmentExpression) {
         const list = children[0] as FunctionCallParameterList;
         const decl = children[2] as AssignmentExpression;
-        paramSig.push(...list.paramSig);
-        paramNodes.push(...list.paramNodes);
-
-        paramSig.push(decl.type);
-        paramNodes.push(decl);
+        paramSig.push(...list.paramSig, decl.type);
+        paramNodes.push(...list.paramNodes, decl);
+      } else if (children[0] instanceof FunctionCallParameterList && children[1] instanceof MacroCallArgBlock) {
+        paramSig.push(...children[0].paramSig, TypeAny);
+        paramNodes.push(...children[0].paramNodes, children[1]);
+      } else if (children[0] instanceof MacroCallArgBlock) {
+        paramSig.push(TypeAny);
+        paramNodes.push(children[0]);
       }
     }
   }
+
+  @ASTNodeDecorator(NoneTerminal.macro_call_arg_item)
+  export class MacroCallArgItem extends TreeNode {}
+  @ASTNodeDecorator(NoneTerminal.macro_call_arg_element)
+  export class MacroCallArgElement extends TreeNode {}
+  @ASTNodeDecorator(NoneTerminal.macro_call_arg_case_list)
+  export class MacroCallArgCaseList extends TreeNode {}
+  @ASTNodeDecorator(NoneTerminal.macro_call_arg_block)
+  export class MacroCallArgBlock extends TreeNode {}
+  @ASTNodeDecorator(NoneTerminal.macro_call_arg_branch)
+  export class MacroCallArgBranch extends TreeNode {}
 
   @ASTNodeDecorator(NoneTerminal.precision_specifier)
   export class PrecisionSpecifier extends TreeNode {

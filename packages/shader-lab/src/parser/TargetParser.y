@@ -410,7 +410,38 @@ function_call_generic:
 
 function_call_parameter_list:
     assignment_expression
-    | function_call_parameter_list ',' assignment_expression
+  | function_call_parameter_list ',' assignment_expression
+  | macro_call_arg_block
+  | function_call_parameter_list macro_call_arg_block
+  ;
+
+macro_call_arg_item:
+    assignment_expression
+  | macro_call_arg_block
+  ;
+
+macro_call_arg_element:
+    macro_call_arg_item
+  | ',' macro_call_arg_item
+  ;
+
+macro_call_arg_case_list:
+    macro_call_arg_element
+  | macro_call_arg_case_list macro_call_arg_element
+  ;
+
+macro_call_arg_block:
+    macro_push_context macro_call_arg_branch
+  | macro_push_context macro_call_arg_case_list macro_call_arg_branch
+  ;
+
+macro_call_arg_branch:
+    macro_pop_context
+  | macro_elif_expression macro_call_arg_case_list macro_call_arg_branch
+  | macro_else_expression macro_call_arg_case_list macro_pop_context
+  | macro_elif_expression macro_call_arg_branch
+  | macro_else_expression macro_pop_context
+  ;
 
 function_identifier:
     type_specifier
