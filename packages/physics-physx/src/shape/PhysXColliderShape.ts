@@ -3,7 +3,6 @@ import { IColliderShape } from "@galacean/engine-design";
 import { PhysXCharacterController } from "../PhysXCharacterController";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
-import { PhysXGeometry } from "./PhysXGeometry";
 
 /**
  * Flags which affect the behavior of Shapes.
@@ -49,7 +48,6 @@ export abstract class PhysXColliderShape implements IColliderShape {
   _rotation: Vector3 = new Vector3();
 
   protected _physXPhysics: PhysXPhysics;
-  protected _physXGeometry: PhysXGeometry;
   protected _pxGeometry: any;
   protected _axis: Quaternion = null;
   protected _physXRotation: Quaternion = new Quaternion();
@@ -140,7 +138,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.pointDistance }
    */
   pointDistance(point: Vector3): Vector4 {
-    const info = this._physXGeometry.pointDistance(this._pxShape.getGlobalPose(), point);
+    const info = this._pxGeometry.pointDistance(this._pxShape.getGlobalPose(), point);
     const closestPoint = info.closestPoint;
     const res = PhysXColliderShape._tempVector4;
     res.set(closestPoint.x, closestPoint.y, closestPoint.z, info.distance);
@@ -152,7 +150,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
    */
   destroy(): void {
     this._pxShape.release();
-    this._physXGeometry.release();
+    this._pxGeometry.delete();
   }
 
   /**
