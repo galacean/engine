@@ -653,7 +653,7 @@ export class PhysicsScene {
   /**
    * @internal
    */
-  _destroy() {
+  _destroy(): void {
     this._nativePhysicsScene?.destroy();
   }
 
@@ -661,7 +661,7 @@ export class PhysicsScene {
     this._nativePhysicsScene.setGravity(this._gravity);
   }
 
-  private _createPreFilter(mask: Layer) {
+  private _createPreFilter(mask: Layer): (obj: number) => boolean {
     return (obj: number) => {
       const shape = Engine._physicalObjectsMap[obj];
       if (!shape) {
@@ -671,7 +671,9 @@ export class PhysicsScene {
     };
   }
 
-  private _createHitCallback(outHitResult: HitResult) {
+  private _createHitCallback(
+    outHitResult: HitResult
+  ): (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void {
     return (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => {
       outHitResult.entity = Engine._physicalObjectsMap[shapeUniqueID].collider.entity;
       outHitResult.shape = Engine._physicalObjectsMap[shapeUniqueID];
