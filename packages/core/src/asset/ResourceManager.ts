@@ -338,8 +338,8 @@ export class ResourceManager {
     this._loadingPromises = null;
   }
 
-  private _assignDefaultOptions(assetInfo: LoadItem, editorResourceItem?: EditorResourceItem): LoadItem {
-    assetInfo.type = assetInfo.type ?? editorResourceItem?.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
+  private _assignDefaultOptions(assetInfo: LoadItem): LoadItem {
+    assetInfo.type = assetInfo.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
     if (assetInfo.type === undefined) {
       throw `asset type should be specified: ${assetInfo.url}`;
     }
@@ -361,8 +361,9 @@ export class ResourceManager {
     const remoteConfig = this._virtualPathResourceMap[assetBaseURL];
     let remoteAssetBaseURL = remoteConfig?.path ?? assetBaseURL;
     // Not absolute and base url is set
-    if (!Utils.isAbsoluteUrl(remoteAssetBaseURL) && this.baseUrl)
+    if (!Utils.isAbsoluteUrl(remoteAssetBaseURL) && this.baseUrl) {
       remoteAssetBaseURL = Utils.resolveAbsoluteUrl(this.baseUrl, remoteAssetBaseURL);
+    }
 
     // Check cache
     const cacheObject = this._assetUrlPool[remoteAssetBaseURL];
