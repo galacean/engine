@@ -305,6 +305,7 @@ BuiltinFunction._create("texture2DLodEXT", EGenType.GVec4, EGenType.GSampler3D, 
 
 BuiltinFunction._create("textureCube", Keyword.SAMPLER_CUBE, Keyword.VEC3);
 BuiltinFunction._create("textureCube", Keyword.SAMPLER_CUBE, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("textureCube", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
 BuiltinFunction._create("textureCubeLod", Keyword.SAMPLER_CUBE, Keyword.VEC3, Keyword.FLOAT);
 BuiltinFunction._create("textureCubeLodEXT", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
 
