@@ -339,45 +339,19 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
-    const preFilter = (obj: number) => {
-      const shape = Engine._physicalObjectsMap[obj];
-      if (!shape) {
-        return false;
-      }
-      return shape.collider.entity.layer & layerMask && shape.isSceneQuery;
-    };
-    let outIDX: number;
-    let outDistance: number;
-    let outPosition: Vector3;
-    let outNormal: Vector3;
+    const preFilter = this._createPreFilter(layerMask);
 
-    if (hitResult != undefined) {
-      const result = this._nativePhysicsScene.raycast(ray, distance, preFilter, (idx, distance, position, normal) => {
-        outIDX = idx;
-        outDistance = distance;
-        outPosition = position;
-        outNormal = normal;
-      });
+    const result = this._nativePhysicsScene.raycast(
+      ray,
+      distance,
+      preFilter,
+      hitResult ? this._createHitCallback(hitResult) : undefined
+    );
 
-      if (result) {
-        const hitShape = Engine._physicalObjectsMap[outIDX];
-        hitResult.entity = hitShape.collider.entity;
-        hitResult.shape = hitShape;
-        hitResult.distance = outDistance;
-        hitResult.point.copyFrom(outPosition);
-        hitResult.normal.copyFrom(outNormal);
-        return true;
-      } else {
-        hitResult.entity = null;
-        hitResult.shape = null;
-        hitResult.distance = 0;
-        hitResult.point.set(0, 0, 0);
-        hitResult.normal.set(0, 0, 0);
-        return false;
-      }
-    } else {
-      return this._nativePhysicsScene.raycast(ray, distance, preFilter);
+    if (!result && hitResult) {
+      this._clearHitResult(hitResult);
     }
+    return result;
   }
 
   /**
@@ -385,9 +359,9 @@ export class PhysicsScene {
    * @param center - The center of the box
    * @param halfExtents - Half the size of the box in each dimension
    * @param direction - The direction to sweep along
-   * @param orientation - The rotation of the box, default is identity quaternion (axis-aligned)
-   * @param distance - The max distance to sweep, default is Number.MAX_VALUE
-   * @param layerMask - Layer mask that is used to selectively ignore Colliders when sweeping, default is Layer.Everything
+   * @param orientation - The rotation of the box. @defaultValue `PhysicsScene._identityQuaternion`
+   * @param distance - The max distance to sweep. @defaultValue `Number.MAX_VALUE`
+   * @param layerMask - Layer mask that is used to selectively ignore Colliders when sweeping. @defaultValue `Layer.Everything`
    * @param outHitResult - Optional HitResult object to store detailed hit information
    * @returns Returns true if the box intersects with any collider, otherwise false
    */
@@ -409,7 +383,7 @@ export class PhysicsScene {
       direction,
       distance,
       preFilter,
-      outHitResult ? this._createSweepCallback(outHitResult) : undefined
+      outHitResult ? this._createHitCallback(outHitResult) : undefined
     );
 
     if (!result && outHitResult) {
@@ -423,8 +397,8 @@ export class PhysicsScene {
    * @param center - The center of the sphere
    * @param radius - The radius of the sphere
    * @param direction - The direction to sweep along
-   * @param distance - The max distance to sweep, default is Number.MAX_VALUE
-   * @param layerMask - Layer mask that is used to selectively ignore Colliders when sweeping, default is Layer.Everything
+   * @param distance - The max distance to sweep. @defaultValue `Number.MAX_VALUE`
+   * @param layerMask - Layer mask that is used to selectively ignore Colliders when sweeping. @defaultValue `Layer.Everything`
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns True if the sphere intersects with any collider, otherwise false
    */
@@ -444,7 +418,7 @@ export class PhysicsScene {
       direction,
       distance,
       preFilter,
-      outHitResult ? this._createSweepCallback(outHitResult) : undefined
+      outHitResult ? this._createHitCallback(outHitResult) : undefined
     );
 
     if (!result && outHitResult) {
@@ -459,9 +433,9 @@ export class PhysicsScene {
    * @param radius - The radius of the capsule
    * @param height - The height of the capsule
    * @param direction - The direction to sweep along
-   * @param orientation - The rotation of the capsule, default is identity quaternion (vertical capsule)
-   * @param distance - The max distance to sweep, default is Number.MAX_VALUE
-   * @param layerMask - Layer mask that is used to selectively ignore Colliders when sweeping, default is Layer.Everything
+   * @param orientation - The rotation of the capsule. @defaultValue `PhysicsScene._identityQuaternion`
+   * @param distance - The max distance to sweep. @defaultValue `Number.MAX_VALUE`
+   * @param layerMask - Layer mask that is used to selectively ignore Colliders when sweeping. @defaultValue `Layer.Everything`
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns True if the capsule intersects with any collider, otherwise false
    */
@@ -485,7 +459,7 @@ export class PhysicsScene {
       direction,
       distance,
       preFilter,
-      outHitResult ? this._createSweepCallback(outHitResult) : undefined
+      outHitResult ? this._createHitCallback(outHitResult) : undefined
     );
 
     if (!result && outHitResult) {
@@ -498,9 +472,9 @@ export class PhysicsScene {
    * Get all colliders that overlap with a box in the scene.
    * @param center - The center of the box
    * @param halfExtents - Half the size of the box in each dimension
-   * @param orientation - The rotation of the box, default is identity quaternion (axis-aligned)
-   * @param layerMask - Layer mask that is used to selectively filter colliders, default is Layer.Everything
-   * @param shapes - Array to store overlapping collider shapes, default is empty array
+   * @param orientation - The rotation of the box. @defaultValue `PhysicsScene._identityQuaternion`
+   * @param layerMask - Layer mask that is used to selectively filter colliders. @defaultValue `Layer.Everything`
+   * @param shapes - Array to store overlapping collider shapes. @defaultValue `[]`
    * @returns The collider shapes overlapping with the box
    */
   overlapBoxAll(
@@ -518,7 +492,7 @@ export class PhysicsScene {
     );
 
     shapes.length = 0;
-    for (let i = 0; i < ids.length; i++) {
+    for (let i = 0, n = ids.length; i < n; i++) {
       shapes.push(Engine._physicalObjectsMap[ids[i]]);
     }
     return shapes;
@@ -528,8 +502,8 @@ export class PhysicsScene {
    * Get all colliders that overlap with a sphere in the scene.
    * @param center - The center of the sphere
    * @param radius - The radius of the sphere
-   * @param layerMask - Layer mask that is used to selectively filter colliders, default is Layer.Everything
-   * @param shapes - Array to store overlapping collider shapes, default is empty array
+   * @param layerMask - Layer mask that is used to selectively filter colliders. @defaultValue `Layer.Everything`
+   * @param shapes - Array to store overlapping collider shapes. @defaultValue `[]`
    * @returns The collider shapes overlapping with the sphere
    */
   overlapSphereAll(
@@ -552,9 +526,9 @@ export class PhysicsScene {
    * @param center - The center of the capsule
    * @param radius - The radius of the capsule
    * @param height - The height of the capsule
-   * @param orientation - The rotation of the capsule, default is identity quaternion (vertical capsule)
-   * @param layerMask - Layer mask that is used to selectively filter colliders, default is Layer.Everything
-   * @param shapes - Array to store overlapping collider shapes, default is empty array
+   * @param orientation - The rotation of the capsule. @defaultValue `PhysicsScene._identityQuaternion`
+   * @param layerMask - Layer mask that is used to selectively filter colliders. @defaultValue `Layer.Everything`
+   * @param shapes - Array to store overlapping collider shapes. @defaultValue `[]`
    * @returns The collider shapes overlapping with the capsule
    */
   overlapCapsuleAll(
@@ -697,7 +671,7 @@ export class PhysicsScene {
     };
   }
 
-  private _createSweepCallback(outHitResult: HitResult) {
+  private _createHitCallback(outHitResult: HitResult) {
     return (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => {
       outHitResult.entity = Engine._physicalObjectsMap[shapeUniqueID].collider.entity;
       outHitResult.shape = Engine._physicalObjectsMap[shapeUniqueID];
