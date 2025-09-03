@@ -395,21 +395,19 @@ export class PhysicsScene {
     center: Vector3,
     halfExtents: Vector3,
     direction: Vector3,
-    orientation?: Quaternion,
-    distance?: number,
-    layerMask?: Layer,
+    orientation: Quaternion = PhysicsScene._identityQuaternion,
+    distance: number = Number.MAX_VALUE,
+    layerMask: Layer = Layer.Everything,
     outHitResult?: HitResult
   ): boolean {
-    const maxDistance = distance ?? Number.MAX_VALUE;
-    const mask = layerMask ?? Layer.Everything;
-    const preFilter = this._createPreFilter(mask);
+    const preFilter = this._createPreFilter(layerMask);
 
     const result = this._nativePhysicsScene.boxCast(
       center,
-      orientation ?? PhysicsScene._identityQuaternion,
+      orientation,
       halfExtents,
       direction,
-      maxDistance,
+      distance,
       preFilter,
       outHitResult ? this._createSweepCallback(outHitResult) : undefined
     );
@@ -434,19 +432,17 @@ export class PhysicsScene {
     center: Vector3,
     radius: number,
     direction: Vector3,
-    distance?: number,
-    layerMask?: Layer,
+    distance: number = Number.MAX_VALUE,
+    layerMask: Layer = Layer.Everything,
     outHitResult?: HitResult
   ): boolean {
-    const maxDistance = distance ?? Number.MAX_VALUE;
-    const mask = layerMask ?? Layer.Everything;
-    const preFilter = this._createPreFilter(mask);
+    const preFilter = this._createPreFilter(layerMask);
 
     const result = this._nativePhysicsScene.sphereCast(
       center,
       radius,
       direction,
-      maxDistance,
+      distance,
       preFilter,
       outHitResult ? this._createSweepCallback(outHitResult) : undefined
     );
@@ -474,22 +470,20 @@ export class PhysicsScene {
     radius: number,
     height: number,
     direction: Vector3,
-    orientation?: Quaternion,
-    distance?: number,
-    layerMask?: Layer,
+    orientation: Quaternion = PhysicsScene._identityQuaternion,
+    distance: number = Number.MAX_VALUE,
+    layerMask: Layer = Layer.Everything,
     outHitResult?: HitResult
   ): boolean {
-    const maxDistance = distance ?? Number.MAX_VALUE;
-    const mask = layerMask ?? Layer.Everything;
-    const preFilter = this._createPreFilter(mask);
+    const preFilter = this._createPreFilter(layerMask);
 
     const result = this._nativePhysicsScene.capsuleCast(
       center,
       radius,
       height,
-      orientation ?? PhysicsScene._identityQuaternion,
+      orientation,
       direction,
-      maxDistance,
+      distance,
       preFilter,
       outHitResult ? this._createSweepCallback(outHitResult) : undefined
     );
@@ -512,15 +506,15 @@ export class PhysicsScene {
   overlapBoxAll(
     center: Vector3,
     halfExtents: Vector3,
-    orientation?: Quaternion,
-    layerMask?: Layer,
+    orientation: Quaternion = PhysicsScene._identityQuaternion,
+    layerMask: Layer = Layer.Everything,
     shapes: ColliderShape[] = []
   ): ColliderShape[] {
     const ids = this._nativePhysicsScene.overlapBoxAll(
       center,
-      orientation ?? PhysicsScene._identityQuaternion,
+      orientation,
       halfExtents,
-      this._createPreFilter(layerMask ?? Layer.Everything)
+      this._createPreFilter(layerMask)
     );
 
     shapes.length = 0;
@@ -538,12 +532,13 @@ export class PhysicsScene {
    * @param shapes - Array to store overlapping collider shapes, default is empty array
    * @returns The collider shapes overlapping with the sphere
    */
-  overlapSphereAll(center: Vector3, radius: number, layerMask?: Layer, shapes: ColliderShape[] = []): ColliderShape[] {
-    const ids = this._nativePhysicsScene.overlapSphereAll(
-      center,
-      radius,
-      this._createPreFilter(layerMask ?? Layer.Everything)
-    );
+  overlapSphereAll(
+    center: Vector3,
+    radius: number,
+    layerMask: Layer = Layer.Everything,
+    shapes: ColliderShape[] = []
+  ): ColliderShape[] {
+    const ids = this._nativePhysicsScene.overlapSphereAll(center, radius, this._createPreFilter(layerMask));
 
     shapes.length = 0;
     for (let i = 0; i < ids.length; i++) {
@@ -566,16 +561,16 @@ export class PhysicsScene {
     center: Vector3,
     radius: number,
     height: number,
-    orientation?: Quaternion,
-    layerMask?: Layer,
+    orientation: Quaternion = PhysicsScene._identityQuaternion,
+    layerMask: Layer = Layer.Everything,
     shapes: ColliderShape[] = []
   ): ColliderShape[] {
     const ids = this._nativePhysicsScene.overlapCapsuleAll(
       center,
       radius,
       height,
-      orientation ?? PhysicsScene._identityQuaternion,
-      this._createPreFilter(layerMask ?? Layer.Everything)
+      orientation,
+      this._createPreFilter(layerMask)
     );
 
     shapes.length = 0;
