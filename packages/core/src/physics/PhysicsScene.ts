@@ -359,7 +359,7 @@ export class PhysicsScene {
    * @param center - The center of the box
    * @param halfExtents - Half the size of the box in each dimension
    * @param direction - The direction to sweep along
-   * @param orientation - The rotation of the box. @defaultValue `PhysicsScene._identityQuaternion`
+   * @param orientation - The rotation of the box. @defaultValue `Quaternion(0, 0, 0, 1)`
    * @param distance - The max distance to sweep. @defaultValue `Number.MAX_VALUE`
    * @param layerMask - Layer mask that is used to selectively ignore Colliders when sweeping. @defaultValue `Layer.Everything`
    * @param outHitResult - Optional HitResult object to store detailed hit information
@@ -433,7 +433,7 @@ export class PhysicsScene {
    * @param radius - The radius of the capsule
    * @param height - The height of the capsule
    * @param direction - The direction to sweep along
-   * @param orientation - The rotation of the capsule. @defaultValue `PhysicsScene._identityQuaternion`
+   * @param orientation - The rotation of the capsule. @defaultValue `Quaternion(0, 0, 0, 1)`
    * @param distance - The max distance to sweep. @defaultValue `Number.MAX_VALUE`
    * @param layerMask - Layer mask that is used to selectively ignore Colliders when sweeping. @defaultValue `Layer.Everything`
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
@@ -472,7 +472,7 @@ export class PhysicsScene {
    * Get all colliders that overlap with a box in the scene.
    * @param center - The center of the box
    * @param halfExtents - Half the size of the box in each dimension
-   * @param orientation - The rotation of the box. @defaultValue `PhysicsScene._identityQuaternion`
+   * @param orientation - The rotation of the box. @defaultValue `Quaternion(0, 0, 0, 1)`
    * @param layerMask - Layer mask that is used to selectively filter colliders. @defaultValue `Layer.Everything`
    * @param shapes - Array to store overlapping collider shapes. @defaultValue `[]`
    * @returns The collider shapes overlapping with the box
@@ -526,7 +526,7 @@ export class PhysicsScene {
    * @param center - The center of the capsule
    * @param radius - The radius of the capsule
    * @param height - The height of the capsule
-   * @param orientation - The rotation of the capsule. @defaultValue `PhysicsScene._identityQuaternion`
+   * @param orientation - The rotation of the capsule. @defaultValue `Quaternion(0, 0, 0, 1)`
    * @param layerMask - Layer mask that is used to selectively filter colliders. @defaultValue `Layer.Everything`
    * @param shapes - Array to store overlapping collider shapes. @defaultValue `[]`
    * @returns The collider shapes overlapping with the capsule
