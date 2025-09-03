@@ -464,42 +464,34 @@ fully_specified_type:
     ;
 
 
-macro_param_item:
+function_parameter_list:
     parameter_declaration
-  | macro_param_block
-  ;
-
-macro_param_element:
-    macro_param_item
-  | ',' macro_param_item
+    | function_parameter_list ',' parameter_declaration
+    | macro_param_block
+    | function_parameter_list macro_param_block
   ;
 
 macro_param_case_list:
-    macro_param_element
-  | macro_param_case_list macro_param_element
+    parameter_declaration
+    | ',' parameter_declaration
+    | macro_param_block
+    | macro_param_case_list macro_param_block
+    | macro_param_case_list ',' parameter_declaration
   ;
 
 macro_param_block:
     macro_push_context macro_parameter_branch
-  | macro_push_context macro_param_case_list macro_parameter_branch
+    | macro_push_context macro_param_case_list macro_parameter_branch
   ;
-
 
 macro_parameter_branch:
     macro_pop_context
-  | macro_elif_expression macro_param_case_list macro_parameter_branch
-  | macro_else_expression macro_param_case_list macro_pop_context
-  | macro_elif_expression macro_parameter_branch
-  | macro_else_expression macro_pop_context
+    | macro_elif_expression macro_param_case_list macro_parameter_branch
+    | macro_else_expression macro_param_case_list macro_pop_context
+    | macro_elif_expression macro_parameter_branch
+    | macro_else_expression macro_pop_context
   ;
 
-
-function_parameter_list:
-    parameter_declaration
-  | function_parameter_list ',' parameter_declaration
-  | macro_param_block
-  | function_parameter_list macro_param_block
-  ;
 
 parameter_declaration:
     type_qualifier parameter_declarator

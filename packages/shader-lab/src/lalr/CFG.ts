@@ -716,20 +716,25 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ),
 
   ...GrammarUtils.createProductionWithOptions(
-    NoneTerminal.macro_param_item,
-    [[NoneTerminal.parameter_declaration], [NoneTerminal.macro_param_block]],
-    ASTNode.MacroParamItem.pool
-  ),
-
-  ...GrammarUtils.createProductionWithOptions(
-    NoneTerminal.macro_param_element,
-    [[NoneTerminal.macro_param_item], [ETokenType.COMMA, NoneTerminal.macro_param_item]],
-    ASTNode.MacroParamElement.pool
+    NoneTerminal.function_parameter_list,
+    [
+      [NoneTerminal.parameter_declaration],
+      [NoneTerminal.function_parameter_list, ETokenType.COMMA, NoneTerminal.parameter_declaration],
+      [NoneTerminal.macro_param_block],
+      [NoneTerminal.function_parameter_list, NoneTerminal.macro_param_block]
+    ],
+    ASTNode.FunctionParameterList.pool
   ),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.macro_param_case_list,
-    [[NoneTerminal.macro_param_element], [NoneTerminal.macro_param_case_list, NoneTerminal.macro_param_element]],
+    [
+      [NoneTerminal.parameter_declaration],
+      [ETokenType.COMMA, NoneTerminal.parameter_declaration],
+      [NoneTerminal.macro_param_block],
+      [NoneTerminal.macro_param_case_list, NoneTerminal.macro_param_block],
+      [NoneTerminal.macro_param_case_list, ETokenType.COMMA, NoneTerminal.parameter_declaration]
+    ],
     ASTNode.MacroParamCaseList.pool
   ),
 
@@ -752,17 +757,6 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.macro_else_expression, NoneTerminal.macro_pop_context]
     ],
     ASTNode.MacroParameterBranch.pool
-  ),
-
-  ...GrammarUtils.createProductionWithOptions(
-    NoneTerminal.function_parameter_list,
-    [
-      [NoneTerminal.parameter_declaration],
-      [NoneTerminal.function_parameter_list, ETokenType.COMMA, NoneTerminal.parameter_declaration],
-      [NoneTerminal.macro_param_block],
-      [NoneTerminal.function_parameter_list, NoneTerminal.macro_param_block]
-    ],
-    ASTNode.FunctionParameterList.pool
   ),
 
   ...GrammarUtils.createProductionWithOptions(

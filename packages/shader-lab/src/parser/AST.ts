@@ -554,21 +554,6 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.macro_param_item)
-  export class MacroParamItem extends TreeNode {}
-
-  @ASTNodeDecorator(NoneTerminal.macro_param_element)
-  export class MacroParamElement extends TreeNode {}
-
-  @ASTNodeDecorator(NoneTerminal.macro_param_case_list)
-  export class MacroParamCaseList extends TreeNode {}
-
-  @ASTNodeDecorator(NoneTerminal.macro_param_block)
-  export class MacroParamBlock extends TreeNode {}
-
-  @ASTNodeDecorator(NoneTerminal.macro_parameter_branch)
-  export class MacroParameterBranch extends TreeNode {}
-
   @ASTNodeDecorator(NoneTerminal.function_parameter_list)
   export class FunctionParameterList extends TreeNode {
     parameterInfoList: IParamInfo[] = [];
@@ -610,6 +595,15 @@ export namespace ASTNode {
       return this.setCache(visitor.visitFunctionParameterList(this));
     }
   }
+
+  @ASTNodeDecorator(NoneTerminal.macro_param_case_list)
+  export class MacroParamCaseList extends TreeNode {}
+
+  @ASTNodeDecorator(NoneTerminal.macro_param_block)
+  export class MacroParamBlock extends TreeNode {}
+
+  @ASTNodeDecorator(NoneTerminal.macro_parameter_branch)
+  export class MacroParameterBranch extends TreeNode {}
 
   @ASTNodeDecorator(NoneTerminal.parameter_declaration)
   export class ParameterDeclaration extends TreeNode {

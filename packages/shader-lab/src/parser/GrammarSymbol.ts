@@ -120,8 +120,6 @@ export enum NoneTerminal {
   macro_struct_branch,
   macro_if_statement,
   macro_branch,
-  macro_param_item,
-  macro_param_element,
   macro_param_case_list,
   macro_param_block,
   macro_parameter_branch,
