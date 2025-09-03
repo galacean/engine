@@ -439,16 +439,16 @@ export class Text extends UIRenderer implements ITextRenderer {
     const offsetHeight = rendererHeight * (0.5 - pivot.y);
     const textMetrics = this.enableWrapping
       ? TextUtils.measureTextWithWrap(
-        this,
-        rendererWidth * pixelsPerResolution,
-        rendererHeight * pixelsPerResolution,
-        this._lineSpacing * pixelsPerResolution
-      )
+          this,
+          rendererWidth * pixelsPerResolution,
+          rendererHeight * pixelsPerResolution,
+          this._lineSpacing * pixelsPerResolution
+        )
       : TextUtils.measureTextWithoutWrap(
-        this,
-        rendererHeight * pixelsPerResolution,
-        this._lineSpacing * pixelsPerResolution
-      );
+          this,
+          rendererHeight * pixelsPerResolution,
+          this._lineSpacing * pixelsPerResolution
+        );
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
     // @ts-ignore
     const charRenderInfoPool = this.engine._charRenderInfoPool;
