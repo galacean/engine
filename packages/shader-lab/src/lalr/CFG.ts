@@ -653,22 +653,13 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ),
 
   ...GrammarUtils.createProductionWithOptions(
-    NoneTerminal.macro_call_arg_item,
-    [[NoneTerminal.assignment_expression], [NoneTerminal.macro_call_arg_block]],
-    ASTNode.MacroCallArgItem.pool
-  ),
-
-  ...GrammarUtils.createProductionWithOptions(
-    NoneTerminal.macro_call_arg_element,
-    [[NoneTerminal.macro_call_arg_item], [ETokenType.COMMA, NoneTerminal.macro_call_arg_item]],
-    ASTNode.MacroCallArgElement.pool
-  ),
-
-  ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.macro_call_arg_case_list,
     [
-      [NoneTerminal.macro_call_arg_element],
-      [NoneTerminal.macro_call_arg_case_list, NoneTerminal.macro_call_arg_element]
+      [NoneTerminal.assignment_expression],
+      [ETokenType.COMMA, NoneTerminal.assignment_expression],
+      [NoneTerminal.macro_call_arg_block],
+      [NoneTerminal.macro_call_arg_case_list, NoneTerminal.macro_call_arg_block],
+      [NoneTerminal.macro_call_arg_case_list, ETokenType.COMMA, NoneTerminal.assignment_expression]
     ],
     ASTNode.MacroCallArgCaseList.pool
   ),

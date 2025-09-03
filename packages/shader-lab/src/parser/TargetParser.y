@@ -415,19 +415,13 @@ function_call_parameter_list:
   | function_call_parameter_list macro_call_arg_block
   ;
 
-macro_call_arg_item:
-    assignment_expression
-  | macro_call_arg_block
-  ;
-
-macro_call_arg_element:
-    macro_call_arg_item
-  | ',' macro_call_arg_item
-  ;
 
 macro_call_arg_case_list:
-    macro_call_arg_element
-  | macro_call_arg_case_list macro_call_arg_element
+    assignment_expression
+    | ',' assignment_expression
+    | macro_call_arg_block
+    | macro_call_arg_case_list macro_call_arg_block
+    | macro_call_arg_case_list ',' assignment_expression
   ;
 
 macro_call_arg_block:

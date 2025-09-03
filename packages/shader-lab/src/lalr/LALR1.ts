@@ -163,12 +163,12 @@ export class LALR1 {
         return;
       } else {
         // #if _VERBOSE
-        // console.warn(
-        //   `conflict detect: <Terminal ${GrammarUtils.toString(terminal)}>`,
-        //   Utils.printAction(exist),
-        //   " -> ",
-        //   Utils.printAction(action)
-        // );
+        console.warn(
+          `conflict detect: <Terminal ${GrammarUtils.toString(terminal)}>`,
+          Utils.printAction(exist),
+          " -> ",
+          Utils.printAction(action)
+        );
         // #endif
       }
     }

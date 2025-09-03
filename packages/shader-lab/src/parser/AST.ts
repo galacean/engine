@@ -817,10 +817,6 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.macro_call_arg_item)
-  export class MacroCallArgItem extends TreeNode {}
-  @ASTNodeDecorator(NoneTerminal.macro_call_arg_element)
-  export class MacroCallArgElement extends TreeNode {}
   @ASTNodeDecorator(NoneTerminal.macro_call_arg_case_list)
   export class MacroCallArgCaseList extends TreeNode {}
   @ASTNodeDecorator(NoneTerminal.macro_call_arg_block)
