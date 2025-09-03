@@ -164,9 +164,9 @@ export class LALR1 {
       } else {
         // #if _VERBOSE
         console.warn(
-          `conflict detect: <Terminal ${GrammarUtils.toString(terminal)}>`,
+          `conflict detect: <Terminal ${GrammarUtils.toString(terminal)}> \n`,
           Utils.printAction(exist),
-          " -> ",
+          "\n",
           Utils.printAction(action)
         );
         // #endif
