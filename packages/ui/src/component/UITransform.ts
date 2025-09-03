@@ -1,4 +1,4 @@
-import { Entity, MathUtil, Matrix, Rect, Transform, Vector2, Vector3, deepClone, ignoreClone } from "@galacean/engine";
+import { Entity, MathUtil, Rect, Transform, Vector2, deepClone, ignoreClone } from "@galacean/engine";
 import { HorizontalAlignmentFlags, VerticalAlignmentFlags } from "../enums/AlignmentFlags";
 
 /**
@@ -214,137 +214,6 @@ export class UITransform extends Transform {
   }
 
   /**
-   * Local position.
-   */
-  override get position(): Vector3 {
-    if (this._isContainDirtyFlag(UITransformModifyFlags.LocalPosition)) {
-      const parentRect = (this._getParentTransform() as unknown as UITransform)?._getRect?.();
-      if (!!parentRect) {
-        const position = this._position;
-        // @ts-ignore
-        position._onValueChanged = null;
-        const rect = this._getRect();
-        switch (this.horizontalAlignment) {
-          case HorizontalAlignmentFlags.Left:
-          case HorizontalAlignmentFlags.LeftAndRight:
-            position.x = parentRect.x - rect.x + this._left;
-            break;
-          case HorizontalAlignmentFlags.Center:
-            position.x = parentRect.x + parentRect.width * 0.5 - rect.x - rect.width * 0.5 + this._center;
-            break;
-          case HorizontalAlignmentFlags.Right:
-            position.x = parentRect.x + parentRect.width - rect.x - rect.width - this._right;
-            break;
-          default:
-            break;
-        }
-        switch (this.verticalAlignment) {
-          case VerticalAlignmentFlags.Top:
-            position.y = parentRect.y + parentRect.height - rect.y - rect.height - this._top;
-            break;
-          case VerticalAlignmentFlags.Middle:
-            position.y = parentRect.y + parentRect.height * 0.5 - rect.y - rect.height * 0.5 + this._middle;
-            break;
-          case VerticalAlignmentFlags.Bottom:
-          case VerticalAlignmentFlags.TopAndBottom:
-            position.y = parentRect.y - rect.y + this._bottom;
-            break;
-          default:
-            break;
-        }
-        // @ts-ignore
-        position._onValueChanged = this._onPositionChanged;
-      }
-      this._setDirtyFlagFalse(UITransformModifyFlags.LocalPosition);
-    }
-    return this._position;
-  }
-
-  override set position(value: Vector3) {
-    if (this._position !== value) {
-      this._position.copyFrom(value);
-    }
-  }
-
-  /**
-   * Local matrix.
-   * @remarks Need to re-assign after modification to ensure that the modification takes effect.
-   */
-  override get localMatrix(): Matrix {
-    if (this._isContainDirtyFlag(UITransformModifyFlags.LocalMatrix)) {
-      Matrix.affineTransformation(this._scale, this.rotationQuaternion, this.position, this._localMatrix);
-      this._setDirtyFlagFalse(UITransformModifyFlags.LocalMatrix);
-    }
-    return this._localMatrix;
-  }
-
-  override set localMatrix(value: Matrix) {
-    if (this._localMatrix !== value) {
-      this._localMatrix.copyFrom(value);
-    }
-    const { _position: position, _rotationQuaternion: rotationQuaternion, _scale: scale } = this;
-    // @ts-ignore
-    position._onValueChanged = rotationQuaternion._onValueChanged = scale._onValueChanged = null;
-    value.decompose(position, rotationQuaternion, scale);
-    // @ts-ignore
-    position._onValueChanged = this._onPositionChanged;
-    // @ts-ignore
-    rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
-    // @ts-ignore
-    scale._onValueChanged = this._onScaleChanged;
-    this._setDirtyFlagTrue(UITransformModifyFlags.LocalEuler);
-    this._setDirtyFlagFalse(UITransformModifyFlags.LocalQuat);
-    if (!!this._horizontalAlignment || !!this._verticalAlignment) {
-      this._setDirtyFlagTrue(UITransformModifyFlags.LmLp);
-    } else {
-      this._setDirtyFlagFalse(UITransformModifyFlags.LmLp);
-    }
-    const localUniformScaling = scale.x === scale.y && scale.y === scale.z;
-    if (this._localUniformScaling !== localUniformScaling) {
-      this._localUniformScaling = localUniformScaling;
-      this._updateAllWorldFlag(UITransformModifyFlags.WmWpWeWqWsWus);
-    } else {
-      this._updateAllWorldFlag(UITransformModifyFlags.WmWpWeWqWs);
-    }
-  }
-
-  /**
-   * World matrix.
-   * @remarks Need to re-assign after modification to ensure that the modification takes effect.
-   */
-  override get worldMatrix(): Matrix {
-    if (this._isContainDirtyFlag(UITransformModifyFlags.WorldMatrix)) {
-      const parent = this._getParentTransform();
-      if (parent) {
-        Matrix.multiply(parent.worldMatrix, this.localMatrix, this._worldMatrix);
-      } else {
-        this._worldMatrix.copyFrom(this.localMatrix);
-      }
-      this._setDirtyFlagFalse(UITransformModifyFlags.WorldMatrix);
-    }
-    return this._worldMatrix;
-  }
-
-  override set worldMatrix(value: Matrix) {
-    if (this._worldMatrix !== value) {
-      this._worldMatrix.copyFrom(value);
-    }
-    const parent = this._getParentTransform();
-    if (parent) {
-      Matrix.invert(parent.worldMatrix, Transform._tempMat40);
-      Matrix.multiply(Transform._tempMat40, value, this._localMatrix);
-    } else {
-      this._localMatrix.copyFrom(value);
-    }
-    this.localMatrix = this._localMatrix;
-    if (!!this._horizontalAlignment || !!this._verticalAlignment) {
-      this._setDirtyFlagTrue(UITransformModifyFlags.WorldMatrix);
-    } else {
-      this._setDirtyFlagFalse(UITransformModifyFlags.WorldMatrix);
-    }
-  }
-
-  /**
    * @internal
    */
   constructor(entity: Entity) {
@@ -360,7 +229,7 @@ export class UITransform extends Transform {
   /**
    * @internal
    */
-  protected override _parentChange(): void {
+  _parentChange(): void {
     this._isParentDirty = true;
     this._updateWorldFlagWithParentRectDirty(UITransformModifyFlags.WmWpWeWqWsWus);
   }
@@ -417,14 +286,73 @@ export class UITransform extends Transform {
     target.pivot.copyFrom(this._pivot);
   }
 
+  protected override _checkLocalPosition(): void {
+    if (this._isContainDirtyFlag(UITransformModifyFlags.LocalPosition)) {
+      const parentRect = (this._getParentTransform() as unknown as UITransform)?._getRect?.();
+      if (!!parentRect) {
+        const position = this._position;
+        // @ts-ignore
+        position._onValueChanged = null;
+        const rect = this._getRect();
+        switch (this.horizontalAlignment) {
+          case HorizontalAlignmentFlags.Left:
+          case HorizontalAlignmentFlags.LeftAndRight:
+            position.x = parentRect.x - rect.x + this._left;
+            break;
+          case HorizontalAlignmentFlags.Center:
+            position.x = parentRect.x + parentRect.width * 0.5 - rect.x - rect.width * 0.5 + this._center;
+            break;
+          case HorizontalAlignmentFlags.Right:
+            position.x = parentRect.x + parentRect.width - rect.x - rect.width - this._right;
+            break;
+          default:
+            break;
+        }
+        switch (this.verticalAlignment) {
+          case VerticalAlignmentFlags.Top:
+            position.y = parentRect.y + parentRect.height - rect.y - rect.height - this._top;
+            break;
+          case VerticalAlignmentFlags.Middle:
+            position.y = parentRect.y + parentRect.height * 0.5 - rect.y - rect.height * 0.5 + this._middle;
+            break;
+          case VerticalAlignmentFlags.Bottom:
+          case VerticalAlignmentFlags.TopAndBottom:
+            position.y = parentRect.y - rect.y + this._bottom;
+            break;
+          default:
+            break;
+        }
+        // @ts-ignore
+        position._onValueChanged = this._onPositionChanged;
+      }
+      this._setDirtyFlagFalse(UITransformModifyFlags.LocalPosition);
+    }
+  }
+
+  protected override _onLocalMatrixChange() {
+    this._setDirtyFlagTrue(UITransformModifyFlags.LocalEuler);
+    this._setDirtyFlagFalse(UITransformModifyFlags.LocalQuat);
+    if (!!this._horizontalAlignment || !!this._verticalAlignment) {
+      this._setDirtyFlagTrue(UITransformModifyFlags.LmLp);
+    } else {
+      this._setDirtyFlagFalse(UITransformModifyFlags.LmLp);
+    }
+  }
+
+  protected override _onWorldMatrixChange() {
+    if (!this._horizontalAlignment && !this._verticalAlignment) {
+      this._setDirtyFlagFalse(UITransformModifyFlags.WorldMatrix);
+    }
+  }
+
   @ignoreClone
   protected override _onPositionChanged(): void {
-    super._onPositionChanged();
     if (!!this._horizontalAlignment || !!this._verticalAlignment) {
       this._setDirtyFlagTrue(UITransformModifyFlags.LocalPosition);
     } else {
       this._setDirtyFlagFalse(UITransformModifyFlags.LocalPosition);
     }
+    super._onPositionChanged();
   }
 
   @ignoreClone
@@ -491,13 +419,10 @@ export enum UITransformModifyFlags {
   LocalPosition = 0x800,
   Rect = 0x1000,
 
-  LsLr = Size | Rect,
   /** Local matrix | local position. */
   LmLp = LocalMatrix | LocalPosition,
   /** World matrix | world position. */
   WmWp = WorldMatrix | WorldPosition,
-  /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale */
-  WmWpWeWqWs = 0xbc,
   /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale | WorldUniformScaling */
   WmWpWeWqWsWus = 0x1bc
 }

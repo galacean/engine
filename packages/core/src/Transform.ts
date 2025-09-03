@@ -8,7 +8,7 @@ import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
  * Used to implement transformation related functions.
  */
 export class Transform extends Component {
-  protected static _tempMat40: Matrix = new Matrix();
+  private static _tempMat40: Matrix = new Matrix();
   private static _tempMat41: Matrix = new Matrix();
   private static _tempQuat0: Quaternion = new Quaternion();
   private static _tempVec30: Vector3 = new Vector3();
@@ -21,19 +21,19 @@ export class Transform extends Component {
   @deepClone
   protected _position: Vector3 = new Vector3();
   @deepClone
-  protected _worldPosition: Vector3 = new Vector3();
+  private _worldPosition: Vector3 = new Vector3();
   @deepClone
   private _rotation: Vector3 = new Vector3();
   @deepClone
-  protected _rotationQuaternion: Quaternion = new Quaternion();
+  private _rotationQuaternion: Quaternion = new Quaternion();
   @deepClone
-  protected _scale: Vector3 = new Vector3(1, 1, 1);
+  private _scale: Vector3 = new Vector3(1, 1, 1);
   @assignmentClone
-  protected _localUniformScaling: boolean = true;
+  private _localUniformScaling: boolean = true;
   @deepClone
-  protected _localMatrix: Matrix = new Matrix();
+  private _localMatrix: Matrix = new Matrix();
   @deepClone
-  protected _worldMatrix: Matrix = new Matrix();
+  private _worldMatrix: Matrix = new Matrix();
   @deepClone
   private _worldRotation: Vector3 = new Vector3();
   @deepClone
@@ -59,6 +59,7 @@ export class Transform extends Component {
    * Local position.
    */
   get position(): Vector3 {
+    this._checkLocalPosition();
     return this._position;
   }
 
@@ -268,9 +269,7 @@ export class Transform extends Component {
     rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
     // @ts-ignore
     scale._onValueChanged = this._onScaleChanged;
-
-    this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler);
-    this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalQuat);
+    this._onLocalMatrixChange();
     const localUniformScaling = scale.x === scale.y && scale.y === scale.z;
     if (this._localUniformScaling !== localUniformScaling) {
       this._localUniformScaling = localUniformScaling;
@@ -309,7 +308,7 @@ export class Transform extends Component {
       this._localMatrix.copyFrom(value);
     }
     this.localMatrix = this._localMatrix;
-    this._setDirtyFlagFalse(TransformModifyFlags.WorldMatrix);
+    this._onWorldMatrixChange();
   }
 
   /**
@@ -576,6 +575,17 @@ export class Transform extends Component {
     target._scale.copyFrom(this.scale);
   }
 
+  protected _checkLocalPosition(): void {}
+
+  protected _onLocalMatrixChange() {
+    this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler);
+    this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalQuat);
+  }
+
+  protected _onWorldMatrixChange() {
+    this._setDirtyFlagFalse(TransformModifyFlags.WorldMatrix);
+  }
+
   protected _isContainDirtyFlags(targetDirtyFlags: number): boolean {
     return (this._dirtyFlag & targetDirtyFlags) === targetDirtyFlags;
   }
@@ -598,7 +608,10 @@ export class Transform extends Component {
     this._entity._updateFlagManager.dispatch(dispatchFlags);
   }
 
-  protected _parentChange(): void {
+  /**
+   * @internal
+   */
+  _parentChange(): void {
     this._isParentDirty = true;
     this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
   }
