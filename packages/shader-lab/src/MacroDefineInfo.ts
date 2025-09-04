@@ -1,3 +1,5 @@
+import { Logger } from "@galacean/engine";
+
 export enum MacroValueType {
   Number, // 1, 1.1
   Symbol, // variable name
@@ -112,7 +114,7 @@ export function getReferenceSymbolNames(macroDefineList: MacroDefineList, macroN
         }
       } else if (info.valueType === MacroValueType.Other) {
         // #if _VERBOSE
-        console.warn(
+        Logger.warn(
           `Warning: Macro "${info.name}" has an unrecognized value type "${info.value}". ShaderLab does not validate this type.`
         );
         // #endif

@@ -1,12 +1,12 @@
+import { Logger } from "@galacean/engine";
+import { ETokenType } from "../common";
+import { Keyword } from "../common/enums/Keyword";
 import { Grammar } from "../parser/Grammar";
-import { NoneTerminal, GrammarSymbol, Terminal } from "../parser/GrammarSymbol";
+import { GrammarSymbol, NoneTerminal, Terminal } from "../parser/GrammarSymbol";
 import State from "./State";
 import StateItem from "./StateItem";
-import GrammarUtils from "./Utils";
-import { ETokenType } from "../common";
-import Utils from "./Utils";
+import { default as GrammarUtils, default as Utils } from "./Utils";
 import { ActionInfo, ActionTable, EAction, GotoTable, StateActionTable, StateGotoTable } from "./types";
-import { Keyword } from "../common/enums/Keyword";
 
 /**
  * The [LALR1](https://web.stanford.edu/class/archive/cs/cs143/cs143.1128/handouts/140%20LALR%20Parsing.pdf) Parser generator
@@ -163,7 +163,7 @@ export class LALR1 {
         return;
       } else {
         // #if _VERBOSE
-        console.warn(
+        Logger.warn(
           `conflict detect: <Terminal ${GrammarUtils.toString(terminal)}> \n`,
           Utils.printAction(exist),
           "\n",
