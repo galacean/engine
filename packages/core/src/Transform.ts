@@ -581,8 +581,8 @@ export class Transform extends Component {
     target._scale.copyFrom(this.scale);
   }
 
-  protected _decomposeLocalMatrix(matrix: Matrix, position: Vector3, quaternion: Quaternion, scale: Vector3): void {
-    this._localMatrix.decompose(position, quaternion, scale);
+  protected _decomposeLocalMatrix(matrix: Matrix, pos: Vector3, quat: Quaternion, scale: Vector3): void {
+    matrix.decompose(pos, quat, scale);
     this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler);
     this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalQuat);
   }

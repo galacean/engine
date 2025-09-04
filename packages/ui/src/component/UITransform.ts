@@ -235,13 +235,8 @@ export class UITransform extends Transform {
     target.pivot.copyFrom(this._pivot);
   }
 
-  protected override _decomposeLocalMatrix(
-    matrix: Matrix,
-    position: Vector3,
-    quaternion: Quaternion,
-    scale: Vector3
-  ): void {
-    matrix.decompose(position, quaternion, scale);
+  protected override _decomposeLocalMatrix(matrix: Matrix, pos: Vector3, quat: Quaternion, scale: Vector3): void {
+    matrix.decompose(pos, quat, scale);
     this._calPosition();
     this._setDirtyFlagTrue(UITransformModifyFlags.LocalEuler | UITransformModifyFlags.LocalMatrix);
     this._setDirtyFlagFalse(UITransformModifyFlags.LocalQuat);
@@ -272,7 +267,7 @@ export class UITransform extends Transform {
       // @ts-ignore
       position._onValueChanged = null;
       const rect = this._rect;
-      switch (this.horizontalAlignment) {
+      switch (this._horizontalAlignment) {
         case HorizontalAlignmentFlags.Left:
         case HorizontalAlignmentFlags.LeftAndRight:
           position.x = parentRect.x - rect.x + this._left;
@@ -286,7 +281,7 @@ export class UITransform extends Transform {
         default:
           break;
       }
-      switch (this.verticalAlignment) {
+      switch (this._verticalAlignment) {
         case VerticalAlignmentFlags.Top:
           position.y = parentRect.y + parentRect.height - rect.y - rect.height - this._top;
           break;
