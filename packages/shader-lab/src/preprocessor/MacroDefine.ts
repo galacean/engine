@@ -1,5 +1,5 @@
-import { BaseToken } from "../common/BaseToken";
 import { ShaderRange } from "../common";
+import { BaseToken } from "../common/BaseToken";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 // #if _VERBOSE
 import { GSErrorName } from "../GSError";

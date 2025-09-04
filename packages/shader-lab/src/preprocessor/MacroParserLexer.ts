@@ -5,11 +5,11 @@ import PpSourceMap from "./sourceMap";
 import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken, EOF } from "../common/BaseToken";
 import { ShaderLab } from "../ShaderLab";
-import { PpKeyword, PpToken } from "./constants";
+import { MacroParserKeyword, MacroParserToken } from "./constants";
 
-export type OnToken = (token: BaseToken, scanner: PpLexer) => void;
+export type OnToken = (token: BaseToken, scanner: MacroParserLexer) => void;
 
-export default class PpLexer extends BaseLexer {
+export default class MacroParserLexer extends BaseLexer {
   private static _isPpCharacters(charCode: number): boolean {
     return (
       charCode === 35 || // #
@@ -17,16 +17,16 @@ export default class PpLexer extends BaseLexer {
     );
   }
 
-  private static _lexemeTable = <Record<string, PpKeyword>>{
-    "#define": PpKeyword.define,
-    "#undef": PpKeyword.undef,
-    "#if": PpKeyword.if,
-    "#ifdef": PpKeyword.ifdef,
-    "#ifndef": PpKeyword.ifndef,
-    "#else": PpKeyword.else,
-    "#elif": PpKeyword.elif,
-    "#endif": PpKeyword.endif,
-    defined: PpKeyword.defined
+  private static _lexemeTable = <Record<string, MacroParserKeyword>>{
+    "#define": MacroParserKeyword.define,
+    "#undef": MacroParserKeyword.undef,
+    "#if": MacroParserKeyword.if,
+    "#ifdef": MacroParserKeyword.ifdef,
+    "#ifndef": MacroParserKeyword.ifndef,
+    "#else": MacroParserKeyword.else,
+    "#elif": MacroParserKeyword.elif,
+    "#endif": MacroParserKeyword.endif,
+    defined: MacroParserKeyword.defined
   };
 
   private macroLvl = 0;
@@ -87,7 +87,7 @@ export default class PpLexer extends BaseLexer {
     }
 
     const token = BaseToken.pool.get();
-    const tokenType = PpLexer._lexemeTable[word] ?? PpToken.id;
+    const tokenType = MacroParserLexer._lexemeTable[word] ?? MacroParserToken.id;
     token.set(tokenType, word, this.getShaderPosition(word.length));
     return token;
   }
@@ -101,7 +101,7 @@ export default class PpLexer extends BaseLexer {
     let start = this._currentIndex;
     let found = false;
     for (var n = source.length; this._currentIndex < n; ) {
-      if (PpLexer._isPpCharacters(source.charCodeAt(this._currentIndex))) {
+      if (MacroParserLexer._isPpCharacters(source.charCodeAt(this._currentIndex))) {
         this.advance(1);
         found = true;
       } else {
@@ -116,19 +116,19 @@ export default class PpLexer extends BaseLexer {
 
     const lexeme = source.slice(start, this._currentIndex);
     const token = BaseToken.pool.get();
-    const type = PpLexer._lexemeTable[lexeme] ?? PpToken.id;
+    const type = MacroParserLexer._lexemeTable[lexeme] ?? MacroParserToken.id;
     token.set(type, lexeme, this.getShaderPosition(this._currentIndex - start));
 
-    if (type === PpKeyword.if || type === PpKeyword.ifdef || type === PpKeyword.ifndef) {
+    if (type === MacroParserKeyword.if || type === MacroParserKeyword.ifdef || type === MacroParserKeyword.ifndef) {
       this.macroLvl++;
-    } else if (type === PpKeyword.endif) {
+    } else if (type === MacroParserKeyword.endif) {
       this.macroLvl--;
     }
 
     return token;
   }
 
-  scanQuotedString(): BaseToken<PpToken.string_const> {
+  scanQuotedString(): BaseToken<MacroParserToken.string_const> {
     this.skipSpace(true);
     const source = this._source;
     const sourceLength = source.length;
@@ -157,7 +157,7 @@ export default class PpLexer extends BaseLexer {
     this.advance(index + 1 - this._currentIndex); // Skip to after closing quote
 
     const token = BaseToken.pool.get();
-    token.set(PpToken.string_const, lexeme, start);
+    token.set(MacroParserToken.string_const, lexeme, start);
     return token;
   }
 
@@ -169,7 +169,7 @@ export default class PpLexer extends BaseLexer {
   }
 
   scanMacroBranchBody(): {
-    body: BaseToken<PpToken.chunk>;
+    body: BaseToken<MacroParserToken.chunk>;
     nextDirective: BaseToken;
   } {
     const shaderPosition = this.getShaderPosition(0);
@@ -178,9 +178,9 @@ export default class PpLexer extends BaseLexer {
     let nextDirective = this.scanToken()!;
     while (true) {
       const { type } = nextDirective;
-      if (type === PpKeyword.endif && startLevel - 1 === this.macroLvl) {
+      if (type === MacroParserKeyword.endif && startLevel - 1 === this.macroLvl) {
         break;
-      } else if ((type === PpKeyword.elif || type === PpKeyword.else) && startLevel === this.macroLvl) {
+      } else if ((type === MacroParserKeyword.elif || type === MacroParserKeyword.else) && startLevel === this.macroLvl) {
         break;
       }
       nextDirective = this.scanToken()!;
@@ -188,7 +188,7 @@ export default class PpLexer extends BaseLexer {
 
     const lexeme = this._source.slice(shaderPosition.index, this._currentIndex - nextDirective.lexeme.length - 1);
     const body = BaseToken.pool.get();
-    body.set(PpToken.chunk, lexeme, shaderPosition);
+    body.set(MacroParserToken.chunk, lexeme, shaderPosition);
     return { body, nextDirective };
   }
 
@@ -215,7 +215,7 @@ export default class PpLexer extends BaseLexer {
   scanRemainMacro(): ShaderPosition {
     const startLvl = this.macroLvl;
     let directive = this.scanToken()!;
-    while (!this.isEnd() && (directive.type !== PpKeyword.endif || startLvl - 1 !== this.macroLvl)) {
+    while (!this.isEnd() && (directive.type !== MacroParserKeyword.endif || startLvl - 1 !== this.macroLvl)) {
       directive = this.scanToken()!;
     }
     return this.getShaderPosition(0);
@@ -240,11 +240,11 @@ export default class PpLexer extends BaseLexer {
     const integer = this._source.slice(start, this._currentIndex);
 
     const token = BaseToken.pool.get();
-    token.set(PpToken.int_constant, integer, this.getShaderPosition(0));
+    token.set(MacroParserToken.int_constant, integer, this.getShaderPosition(0));
     return token;
   }
 
-  scanMacroBody(): BaseToken<PpToken.line_remain> {
+  scanMacroBody(): BaseToken<MacroParserToken.line_remain> {
     this.skipSpace(false);
     let lexeme = "";
     const source = this._source;
@@ -300,7 +300,7 @@ export default class PpLexer extends BaseLexer {
     }
 
     const valueToken = BaseToken.pool.get();
-    valueToken.set(PpToken.line_remain, lexeme, ShaderLab.createRange(start, this.getShaderPosition(0)));
+    valueToken.set(MacroParserToken.line_remain, lexeme, ShaderLab.createRange(start, this.getShaderPosition(0)));
     return valueToken;
   }
 }

@@ -6,7 +6,7 @@ import { ShaderPosition, ShaderRange } from "./common";
 import { Lexer } from "./lexer";
 import { ShaderTargetParser } from "./parser";
 import { parseIncludes, parseMacroDefines } from "./Preprocessor";
-import { PpParser } from "./preprocessor/PpParser";
+import { MacroParser } from "./preprocessor/MacroParser";
 import { ShaderLabUtils } from "./ShaderLabUtils";
 import { ShaderSourceParser } from "./sourceParser/ShaderSourceParser";
 
@@ -95,11 +95,11 @@ export class ShaderLab implements IShaderLab {
 
   _parseDirectives(content: string, macros: ShaderMacro[]): string {
     const startTime = performance.now();
-    const parsedContent = PpParser.parse(content, macros);
+    const parsedContent = MacroParser.parse(content, macros);
     Logger.info(`[Pass directives compilation] cost time: ${performance.now() - startTime}ms`);
 
     // #if _VERBOSE
-    this._logErrors(PpParser._errors);
+    this._logErrors(MacroParser._errors);
     // #endif
 
     return parsedContent;
