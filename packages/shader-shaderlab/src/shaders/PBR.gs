@@ -117,6 +117,9 @@ Shader "PBRShaderName" {
         RasterState = customRasterState;
         RenderQueueType = renderQueueType;
 
+
+        #define IS_METALLIC_WORKFLOW
+        
         VertexShader = PBRVertex;
         FragmentShader = PBRFragment;
 

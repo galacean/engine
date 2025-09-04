@@ -52,7 +52,7 @@ export class Shader implements IReferable {
    * @throws
    * Throw string exception if shaderLab has not been enabled properly.
    */
-  static create(shaderSource: string, backend: ShaderPlatformTarget, path?: string): Shader;
+  static create(shaderSource: string, backend?: ShaderPlatformTarget, path?: string): Shader;
 
   /**
    * Create a shader.
@@ -81,7 +81,7 @@ export class Shader implements IReferable {
 
   static create(
     nameOrShaderSource: string,
-    vertexSourceOrShaderPassesOrSubShadersOrBackend: ShaderPlatformTarget | SubShader[] | ShaderPass[] | string,
+    vertexSourceOrShaderPassesOrSubShadersOrBackend?: ShaderPlatformTarget | SubShader[] | ShaderPass[] | string,
     fragmentSourceOrPath?: string
   ): Shader {
     let shader: Shader;
