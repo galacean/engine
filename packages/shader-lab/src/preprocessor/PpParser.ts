@@ -1,14 +1,13 @@
+import { ShaderMacro } from "@galacean/engine";
 import { ShaderPosition, ShaderRange } from "../common";
 import { BaseToken } from "../common/BaseToken";
+import { GSErrorName } from "../GSError";
 import { ShaderLab } from "../ShaderLab";
+import { ShaderLabUtils } from "../ShaderLabUtils";
 import { PpConstant, PpKeyword, PpToken } from "./constants";
 import { MacroDefine } from "./MacroDefine";
 import PpLexer from "./PpLexer";
 import { PpUtils } from "./Utils";
-// @ts-ignore
-import { ShaderLib, ShaderMacro, ShaderPass } from "@galacean/engine";
-import { GSErrorName } from "../GSError";
-import { ShaderLabUtils } from "../ShaderLabUtils";
 // #if _VERBOSE
 import PpSourceMap, { BlockInfo } from "./sourceMap";
 // #endif
@@ -26,10 +25,6 @@ export interface ExpandSegment {
 export class PpParser {
   static lexer: PpLexer;
 
-  private static _includeMap: Record<string, string>;
-  private static _basePathForIncludeKey: string;
-
-  private static _isIncludeStage: boolean;
   private static _definedMacros: Map<string, MacroDefine> = new Map();
   private static _expandSegmentsStack: ExpandSegment[][] = [[]];
 
@@ -40,16 +35,7 @@ export class PpParser {
   static _errors: Error[] = [];
   // #endif
 
-  static parseInclude(source: string, basePathForIncludeKey: string): string | null {
-    PpParser._isIncludeStage = true;
-    PpParser._reset(ShaderLib, basePathForIncludeKey);
-
-    const lexer = new PpLexer(source);
-    return PpParser._parseIncludeDirectives(lexer);
-  }
-
   static parse(source: string, macros: ShaderMacro[]): string | null {
-    PpParser._isIncludeStage = false;
     PpParser._reset();
 
     for (const macro of macros) {
@@ -60,17 +46,12 @@ export class PpParser {
     return PpParser._parseDirectives(this.lexer);
   }
 
-  private static _reset(includeMap?: Record<string, string>, basePathForIncludeKey?: string) {
+  private static _reset() {
     this._expandSegmentsStack.length = 0;
     this._expandSegmentsStack.push([]);
 
-    if (PpParser._isIncludeStage) {
-      this._includeMap = includeMap;
-      this._basePathForIncludeKey = basePathForIncludeKey;
-    } else {
-      this._definedMacros.clear();
-      this._addPredefinedMacro("GL_ES");
-    }
+    this._definedMacros.clear();
+    this._addPredefinedMacro("GL_ES");
 
     // #if _VERBOSE
     this._errors.length = 0;
@@ -88,22 +69,6 @@ export class PpParser {
     }
 
     this._definedMacros.set(macro, new MacroDefine(token, macroBody));
-  }
-
-  private static _parseIncludeDirectives(lexer: PpLexer): string | null {
-    let directive: BaseToken | undefined;
-
-    while ((directive = lexer.scanToken())) {
-      if (directive.type === PpKeyword.include) {
-        this._parseInclude(lexer);
-      }
-    }
-
-    // #if _VERBOSE
-    if (this._errors.length > 0) return null;
-    // #endif
-
-    return PpUtils.expand(this._getExpandSegments(), lexer.source, lexer.sourceMap);
   }
 
   private static _parseDirectives(lexer: PpLexer): string | null {
@@ -146,34 +111,6 @@ export class PpParser {
     // #if _VERBOSE
     this._errors.push(error);
     // #endif
-  }
-
-  private static _parseInclude(lexer: PpLexer): void {
-    const start = lexer.getShaderPosition(8);
-
-    lexer.skipSpace(true);
-    const pathToken = lexer.scanQuotedString();
-    let path: string;
-    // builtin path
-    if (pathToken.lexeme[0] !== ".") {
-      path = pathToken.lexeme;
-    } else {
-      // relative path
-      // @ts-ignore
-      path = new URL(pathToken.lexeme, this._basePathForIncludeKey).href.substring(ShaderPass._shaderRootPath.length);
-    }
-
-    lexer.scanToChar("\n");
-    const end = lexer.getShaderPosition(0);
-    const chunk = this._includeMap[path];
-    if (!chunk) {
-      this._reportError(pathToken.location, `Shader slice "${path}" not founded.`, lexer.source, lexer.file);
-      return;
-    }
-
-    const range = ShaderLab.createRange(start, end);
-    const expanded = this._expandMacroChunk(chunk, range, pathToken.lexeme);
-    this._addContentReplace(pathToken.lexeme, start, end, expanded.content, undefined, expanded.sourceMap);
   }
 
   private static _parseIfDirective(lexer: PpLexer, directiveType: PpKeyword): void {
@@ -620,7 +557,7 @@ export class PpParser {
       scanner = new PpLexer(chunk, scannerOrFile.file, loc);
     }
 
-    const ret = PpParser._isIncludeStage ? this._parseIncludeDirectives(scanner) : this._parseDirectives(scanner);
+    const ret = this._parseDirectives(scanner);
     this._expandSegmentsStack.pop();
     return {
       content: ret,

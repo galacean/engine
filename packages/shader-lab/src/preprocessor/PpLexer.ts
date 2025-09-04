@@ -26,7 +26,6 @@ export default class PpLexer extends BaseLexer {
     "#else": PpKeyword.else,
     "#elif": PpKeyword.elif,
     "#endif": PpKeyword.endif,
-    "#include": PpKeyword.include,
     defined: PpKeyword.defined
   };
 

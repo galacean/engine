@@ -51,7 +51,6 @@ export enum PpKeyword {
   else,
   elif,
   endif,
-  include,
 
   defined
 }
