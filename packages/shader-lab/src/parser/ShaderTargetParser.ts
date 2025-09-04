@@ -81,7 +81,7 @@ export class ShaderTargetParser {
         nextToken = tokens.next();
       } else if (actionInfo?.action === EAction.Accept) {
         Logger.info(
-          `[pass compilation - parser] Accept! State automata run ${loopCount} times! cost time ${
+          `[pass AST compilation] Accept! State automata run ${loopCount} times! cost time ${
             performance.now() - start
           }ms`
         );

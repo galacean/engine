@@ -1,17 +1,14 @@
 import { Logger, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
 import { IShaderLab, IShaderSource } from "@galacean/engine-design";
+import { IShaderProgramSource } from "@galacean/engine-design/types/shader-lab/IShaderProgramSource";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { ShaderPosition, ShaderRange } from "./common";
 import { Lexer } from "./lexer";
 import { ShaderTargetParser } from "./parser";
-// #if _VERBOSE
-import { GSError } from "./GSError";
-// #endif
-import { IShaderProgramSource } from "@galacean/engine-design/types/shader-lab/IShaderProgramSource";
+import { parseIncludes, parseMacroDefines } from "./Preprocessor";
 import { PpParser } from "./preprocessor/PpParser";
 import { ShaderLabUtils } from "./ShaderLabUtils";
 import { ShaderSourceParser } from "./sourceParser/ShaderSourceParser";
-import { parseIncludes, parseMacroDefines } from "./Preprocessor";
 
 /** @internal */
 export class ShaderLab implements IShaderLab {
@@ -41,19 +38,12 @@ export class ShaderLab implements IShaderLab {
     return range;
   }
 
-  // #if _VERBOSE
-  readonly errors = new Array<Error>();
-  // #endif
-
   _parseShaderSource(sourceCode: string): IShaderSource {
     ShaderLabUtils.clearAllShaderLabObjectPool();
     const shaderSource = ShaderSourceParser.parse(sourceCode);
 
     // #if _VERBOSE
-    this.errors.length = 0;
-    for (const error of ShaderSourceParser.errors) {
-      this.errors.push(error);
-    }
+    this._logErrors(ShaderSourceParser.errors);
     // #endif
 
     return shaderSource;
@@ -69,17 +59,7 @@ export class ShaderLab implements IShaderLab {
     const totalStartTime = performance.now();
     const noIncludeContent = parseIncludes(source, basePathForIncludeKey);
     const macroDefineList = parseMacroDefines(noIncludeContent);
-    Logger.info(`[Pass include compilation] cost time ${performance.now() - totalStartTime}ms`);
-
-    // #if _VERBOSE
-    if (PpParser._errors.length > 0) {
-      for (const err of PpParser._errors) {
-        this.errors.push(<GSError>err);
-      }
-      this._logErrors();
-      return undefined;
-    }
-    // #endif
+    Logger.info(`[Pass Pre processor] cost time ${performance.now() - totalStartTime}ms`);
 
     const lexer = new Lexer(noIncludeContent, macroDefineList);
 
@@ -90,14 +70,9 @@ export class ShaderLab implements IShaderLab {
 
     const program = parser.parse(tokens, macroDefineList);
 
-    // #if _VERBOSE
-    for (const err of parser.errors) {
-      this.errors.push(err);
-    }
-    // #endif
     if (!program) {
       // #if _VERBOSE
-      this._logErrors();
+      this._logErrors(parser.errors);
       // #endif
       return undefined;
     }
@@ -112,10 +87,7 @@ export class ShaderLab implements IShaderLab {
     ShaderLab._processingPassText = undefined;
 
     // #if _VERBOSE
-    for (const err of codeGen.errors) {
-      this.errors.push(err);
-    }
-    this._logErrors();
+    this._logErrors(codeGen.errors);
     // #endif
 
     return ret;
@@ -125,6 +97,11 @@ export class ShaderLab implements IShaderLab {
     const startTime = performance.now();
     const parsedContent = PpParser.parse(content, macros);
     Logger.info(`[Pass directives compilation] cost time: ${performance.now() - startTime}ms`);
+
+    // #if _VERBOSE
+    this._logErrors(PpParser._errors);
+    // #endif
+
     return parsedContent;
   }
 
@@ -132,8 +109,7 @@ export class ShaderLab implements IShaderLab {
   /**
    * @internal
    */
-  _logErrors() {
-    const errors = this.errors;
+  _logErrors(errors: Error[]) {
     if (errors.length === 0 || !Logger.isEnabled) return;
     Logger.error(`${errors.length} errors occur!`);
     for (const err of errors) {
