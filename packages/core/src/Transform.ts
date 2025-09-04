@@ -19,7 +19,7 @@ export class Transform extends Component {
   private static _tempMat42: Matrix = new Matrix();
 
   @deepClone
-  protected _position: Vector3 = new Vector3();
+  private _position: Vector3 = new Vector3();
   @deepClone
   private _rotation: Vector3 = new Vector3();
   @deepClone

@@ -268,7 +268,7 @@ export class UITransform extends Transform {
   private _calPosition(): void {
     const parentRect = (this._getParentTransform() as unknown as UITransform)?._rect;
     if (!!parentRect) {
-      const position = this._position;
+      const position = this.position;
       // @ts-ignore
       position._onValueChanged = null;
       const rect = this._rect;
