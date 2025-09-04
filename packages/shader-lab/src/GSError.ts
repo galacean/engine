@@ -1,4 +1,3 @@
-// #if _VERBOSE
 import { ShaderPosition } from "./common/ShaderPosition";
 import { ShaderRange } from "./common/ShaderRange";
 
@@ -32,6 +31,8 @@ export class GSError extends Error {
     const lines = source.split("\n");
 
     let diagnosticMessage = `${this.name}: ${message}\n\n`;
+
+    // #if _VERBOSE
     const lineSplit = "|···";
 
     const wrappingLineCount = GSError.wrappingLineCount;
@@ -55,12 +56,12 @@ export class GSError extends Error {
 
       diagnosticMessage += " ".repeat(paddingLength) + "^".repeat(remarkLength) + "\n";
     }
+    // #endif
 
     return diagnosticMessage;
   }
 }
 
-// #endif
 export enum GSErrorName {
   PreprocessorError = "PreprocessorError",
   CompilationError = "CompilationError",

@@ -1,15 +1,12 @@
 import { ShaderRange } from "../common";
 import { SymbolTable } from "../common/SymbolTable";
 import { SymbolTableStack } from "../common/SymbolTableStack";
-import { GSErrorName } from "../GSError";
+import { GSError, GSErrorName } from "../GSError";
 import { SymbolInfo } from "../parser/symbolTable";
 import { ShaderLab } from "../ShaderLab";
 import { ASTNode, TreeNode } from "./AST";
 import { ShaderData } from "./ShaderInfo";
 import { NodeChild } from "./types";
-// #if _VERBOSE
-import { GSError } from "../GSError";
-// #endif
 
 import { Logger } from "@galacean/engine";
 import { MacroDefineList } from "../Preprocessor";
