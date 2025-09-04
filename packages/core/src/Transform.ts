@@ -79,7 +79,7 @@ export class Transform extends Component {
       if (this._getParentTransform()) {
         this.worldMatrix.getTranslation(worldPosition);
       } else {
-        worldPosition.copyFrom(this.position);
+        worldPosition.copyFrom(this._position);
       }
       //@ts-ignore
       worldPosition._onValueChanged = this._onWorldPositionChanged;
@@ -248,7 +248,7 @@ export class Transform extends Component {
    */
   get localMatrix(): Matrix {
     if (this._isContainDirtyFlag(TransformModifyFlags.LocalMatrix)) {
-      Matrix.affineTransformation(this._scale, this.rotationQuaternion, this.position, this._localMatrix);
+      Matrix.affineTransformation(this._scale, this.rotationQuaternion, this._position, this._localMatrix);
       this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix);
     }
     return this._localMatrix;
