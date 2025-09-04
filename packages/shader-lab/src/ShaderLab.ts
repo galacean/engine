@@ -6,7 +6,7 @@ import { ShaderPosition, ShaderRange } from "./common";
 import { Lexer } from "./lexer";
 import { ShaderTargetParser } from "./parser";
 import { parseIncludes, parseMacroDefines } from "./Preprocessor";
-import { MacroParser } from "./preprocessor/MacroParser";
+import { MacroParser } from "./macroProcessor/MacroParser";
 import { ShaderLabUtils } from "./ShaderLabUtils";
 import { ShaderSourceParser } from "./sourceParser/ShaderSourceParser";
 
