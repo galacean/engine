@@ -1,4 +1,15 @@
-import { Entity, MathUtil, Matrix, Quaternion, Rect, Transform, Vector2, Vector3, deepClone, ignoreClone } from "@galacean/engine";
+import {
+  Entity,
+  MathUtil,
+  Matrix,
+  Quaternion,
+  Rect,
+  Transform,
+  Vector2,
+  Vector3,
+  deepClone,
+  ignoreClone
+} from "@galacean/engine";
 import { HorizontalAlignmentFlags, VerticalAlignmentFlags } from "../enums/AlignmentFlags";
 
 /**
@@ -224,7 +235,12 @@ export class UITransform extends Transform {
     target.pivot.copyFrom(this._pivot);
   }
 
-  protected override _decomposeLocalMatrix(matrix: Matrix, position: Vector3, quaternion: Quaternion, scale: Vector3): void {
+  protected override _decomposeLocalMatrix(
+    matrix: Matrix,
+    position: Vector3,
+    quaternion: Quaternion,
+    scale: Vector3
+  ): void {
     matrix.decompose(position, quaternion, scale);
     this._calPosition();
     this._setDirtyFlagTrue(UITransformModifyFlags.LocalEuler | UITransformModifyFlags.LocalMatrix);
@@ -232,7 +248,7 @@ export class UITransform extends Transform {
   }
 
   protected override _onWorldMatrixChange() {
-    (!this._horizontalAlignment && !this._verticalAlignment) && super._onWorldMatrixChange();
+    !this._horizontalAlignment && !this._verticalAlignment && super._onWorldMatrixChange();
   }
 
   @ignoreClone
@@ -374,10 +390,7 @@ export class UITransform extends Transform {
     if (selfRectDirty || !containDirtyFlags) {
       const children = this.entity.children;
       for (let i = 0, n = children.length; i < n; i++) {
-        (children[i].transform as unknown as UITransform)?._updateWorldFlagWithParentRectChange?.(
-          flags,
-          selfRectDirty
-        );
+        (children[i].transform as unknown as UITransform)?._updateWorldFlagWithParentRectChange?.(flags, selfRectDirty);
       }
     }
   }
