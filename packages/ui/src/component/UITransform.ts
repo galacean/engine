@@ -388,6 +388,8 @@ export class UITransform extends Transform {
         (children[i].transform as unknown as UITransform)?._updateWorldFlagWithParentRectChange?.(flags, selfRectDirty);
       }
     }
+    // @ts-ignore
+    selfRectDirty && this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Size);
   }
 }
 
