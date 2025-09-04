@@ -1,10 +1,5 @@
 export { ShaderLab } from "./ShaderLab";
 
-// #if _VERBOSE
-export { PpParser } from "./preprocessor";
-export * from "./GSError";
-// #endif
-
 //@ts-ignore
 export const version = `__buildVersion`;
 

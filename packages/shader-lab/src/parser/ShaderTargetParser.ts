@@ -5,7 +5,7 @@ import { GSError, GSErrorName } from "../GSError";
 import { LALR1 } from "../lalr";
 import { addTranslationRule, createGrammar } from "../lalr/CFG";
 import { EAction, StateActionTable, StateGotoTable } from "../lalr/types";
-import { MacroDefineList } from "../MacroDefineInfo";
+import { MacroDefineList } from "../Preprocessor";
 import { ParserUtils } from "../ParserUtils";
 import { ShaderLab } from "../ShaderLab";
 import { ShaderLabUtils } from "../ShaderLabUtils";

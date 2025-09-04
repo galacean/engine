@@ -120,7 +120,7 @@ export class Shader implements IReferable {
             passSource.vertexEntry,
             passSource.fragmentEntry,
             vertexSourceOrShaderPassesOrSubShadersOrBackend,
-            new URL(fragmentSourceOrPath, ShaderPass._shaderRootPath).href
+            new URL(fragmentSourceOrPath ?? "", ShaderPass._shaderRootPath).href
           );
 
           if (!shaderProgramSource) {

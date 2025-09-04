@@ -11,8 +11,8 @@ import { NodeChild } from "./types";
 import { GSError } from "../GSError";
 // #endif
 
-import { MacroDefineList } from "../MacroDefineInfo";
 import { Logger } from "@galacean/engine";
+import { MacroDefineList } from "../Preprocessor";
 
 export type TranslationRule<T = any> = (sa: SemanticAnalyzer, ...tokens: NodeChild[]) => T;
 

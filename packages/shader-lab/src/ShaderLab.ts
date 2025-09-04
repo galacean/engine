@@ -11,7 +11,7 @@ import { IShaderProgramSource } from "@galacean/engine-design/types/shader-lab/I
 import { PpParser } from "./preprocessor/PpParser";
 import { ShaderLabUtils } from "./ShaderLabUtils";
 import { ShaderSourceParser } from "./sourceParser/ShaderSourceParser";
-import { parseMacroDefines } from "./MacroDefineInfo";
+import { parseIncludes, parseMacroDefines } from "./Preprocessor";
 
 /** @internal */
 export class ShaderLab implements IShaderLab {
@@ -67,10 +67,8 @@ export class ShaderLab implements IShaderLab {
     basePathForIncludeKey: string
   ): IShaderProgramSource | undefined {
     const totalStartTime = performance.now();
-    const noIncludeContent = PpParser.parseInclude(source, basePathForIncludeKey);
-
+    const noIncludeContent = parseIncludes(source, basePathForIncludeKey);
     const macroDefineList = parseMacroDefines(noIncludeContent);
-
     Logger.info(`[Pass include compilation] cost time ${performance.now() - totalStartTime}ms`);
 
     // #if _VERBOSE

@@ -2,7 +2,7 @@ import { ETokenType } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken, EOF } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
-import { MacroDefineList } from "../MacroDefineInfo";
+import { MacroDefineList } from "../Preprocessor";
 import { ShaderLab } from "../ShaderLab";
 
 /**

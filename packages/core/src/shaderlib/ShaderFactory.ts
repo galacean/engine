@@ -1,5 +1,4 @@
 import { Logger } from "../base/Logger";
-import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderLib } from "./ShaderLib";
 
 export class ShaderFactory {

@@ -1,4 +1,7 @@
-import { Logger } from "@galacean/engine";
+import { Logger, ShaderPass } from "@galacean/engine";
+
+/** @ts-ignore */
+import { ShaderLib } from "@galacean/engine";
 
 export enum MacroValueType {
   Number, // 1, 1.1
@@ -115,7 +118,7 @@ export function getReferenceSymbolNames(macroDefineList: MacroDefineList, macroN
       } else if (info.valueType === MacroValueType.Other) {
         // #if _VERBOSE
         Logger.warn(
-          `Warning: Macro "${info.name}" has an unrecognized value type "${info.value}". ShaderLab does not validate this type.`
+          `Warning: Macro "${info.name}" has an unrecognized value "${info.value}". ShaderLab does not validate this type.`
         );
         // #endif
       }
@@ -123,4 +126,30 @@ export function getReferenceSymbolNames(macroDefineList: MacroDefineList, macroN
   }
 
   return out;
+}
+
+const includeReg = /^[ \t]*#include +"([\w\d./]+)"/gm;
+
+export function parseIncludes(source: string, basePathForIncludeKey: string) {
+  function replace(_, slice: string) {
+    let path: string;
+    if (slice[0] === ".") {
+      // relative path
+      // @ts-ignore
+      path = new URL(slice, basePathForIncludeKey).href.substring(ShaderPass._shaderRootPath.length);
+    } else {
+      path = slice;
+    }
+
+    const chunk = ShaderLib[path];
+
+    if (!chunk) {
+      Logger.error(`Shader slice "${path}" not founded.`);
+      return "";
+    }
+
+    return parseIncludes(chunk, basePathForIncludeKey);
+  }
+
+  return source.replace(includeReg, replace);
 }
