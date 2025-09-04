@@ -216,47 +216,6 @@ export class UITransform extends Transform {
     this._updateWorldFlagWithParentRectChange(UITransformModifyFlags.WmWpWeWqWsWus);
   }
 
-  private _updateWorldFlagWithParentRectChange(flags: UITransformModifyFlags, parentRectDirty: boolean = true): void {
-    if (parentRectDirty) {
-      const { _horizontalAlignment: horizontalAlignment, _verticalAlignment: verticalAlignment } = this;
-      if (!!horizontalAlignment || !!verticalAlignment) {
-        if (
-          horizontalAlignment === HorizontalAlignmentFlags.LeftAndRight ||
-          verticalAlignment === VerticalAlignmentFlags.TopAndBottom
-        ) {
-          this._calSize();
-          this._calRect();
-        } else {
-          parentRectDirty = false;
-        }
-        this._calPosition();
-        this._setDirtyFlagTrue(UITransformModifyFlags.LocalMatrix);
-        flags |= UITransformModifyFlags.WmWp;
-      } else {
-        parentRectDirty = false;
-      }
-    }
-
-    if (parentRectDirty || !this._isContainDirtyFlags(flags)) {
-      !this._isContainDirtyFlags(flags) && this._worldAssociatedChange(flags);
-      const children = this.entity.children;
-      for (let i = 0, n = children.length; i < n; i++) {
-        (children[i].transform as unknown as UITransform)?._updateWorldFlagWithParentRectChange?.(
-          flags,
-          parentRectDirty
-        );
-      }
-    }
-  }
-
-  private _calRect(): Rect {
-    const { size, _pivot: pivot, _rect: rect } = this;
-    const x = -pivot.x * size.x;
-    const y = -pivot.y * size.y;
-    rect.set(x, y, size.x, size.y);
-    return this._rect;
-  }
-
   // @ts-ignore
   override _cloneTo(target: UITransform, srcRoot: Entity, targetRoot: Entity): void {
     // @ts-ignore
@@ -273,10 +232,20 @@ export class UITransform extends Transform {
   }
 
   protected override _onWorldMatrixChange() {
-    if (this._horizontalAlignment || this._verticalAlignment) {
-      this._setDirtyFlagTrue(UITransformModifyFlags.WorldMatrix);
-    } else {
-      super._onWorldMatrixChange();
+    (!this._horizontalAlignment && !this._verticalAlignment) && super._onWorldMatrixChange();
+  }
+
+  @ignoreClone
+  protected override _onPositionChanged(): void {
+    (this._horizontalAlignment || this._verticalAlignment) && this._calPosition();
+    super._onPositionChanged();
+  }
+
+  @ignoreClone
+  protected override _onWorldPositionChanged(): void {
+    super._onWorldPositionChanged();
+    if (!!this._horizontalAlignment || !!this._verticalAlignment) {
+      this._setDirtyFlagTrue(UITransformModifyFlags.WorldPosition);
     }
   }
 
@@ -320,20 +289,6 @@ export class UITransform extends Transform {
     }
   }
 
-  @ignoreClone
-  protected override _onPositionChanged(): void {
-    (this._horizontalAlignment || this._verticalAlignment) && this._calPosition();
-    super._onPositionChanged();
-  }
-
-  @ignoreClone
-  protected override _onWorldPositionChanged(): void {
-    super._onWorldPositionChanged();
-    if (!!this._horizontalAlignment || !!this._verticalAlignment) {
-      this._setDirtyFlagTrue(UITransformModifyFlags.WorldPosition);
-    }
-  }
-
   private _calSize(): void {
     const parentRect = (this._getParentTransform() as unknown as UITransform)?._rect;
     if (parentRect) {
@@ -350,6 +305,13 @@ export class UITransform extends Transform {
       // @ts-ignore
       size._onValueChanged = this._onSizeChanged;
     }
+  }
+
+  private _calRect(): void {
+    const { size, _pivot: pivot, _rect: rect } = this;
+    const x = -pivot.x * size.x;
+    const y = -pivot.y * size.y;
+    rect.set(x, y, size.x, size.y);
   }
 
   @ignoreClone
@@ -388,6 +350,37 @@ export class UITransform extends Transform {
       (children[i].transform as unknown as UITransform)?._updateWorldFlagWithParentRectChange?.(worldFlags);
     }
   }
+
+  private _updateWorldFlagWithParentRectChange(flags: UITransformModifyFlags, parentRectDirty: boolean = true): void {
+    let selfRectDirty = false;
+    if (parentRectDirty) {
+      const { _horizontalAlignment: horizontalAlignment, _verticalAlignment: verticalAlignment } = this;
+      if (!!horizontalAlignment || !!verticalAlignment) {
+        if (
+          horizontalAlignment === HorizontalAlignmentFlags.LeftAndRight ||
+          verticalAlignment === VerticalAlignmentFlags.TopAndBottom
+        ) {
+          this._calSize();
+          this._calRect();
+          selfRectDirty = true;
+        }
+        this._calPosition();
+        this._setDirtyFlagTrue(UITransformModifyFlags.LocalMatrix);
+        flags |= UITransformModifyFlags.WmWp;
+      }
+    }
+    const containDirtyFlags = this._isContainDirtyFlags(flags);
+    !containDirtyFlags && this._worldAssociatedChange(flags);
+    if (selfRectDirty || !containDirtyFlags) {
+      const children = this.entity.children;
+      for (let i = 0, n = children.length; i < n; i++) {
+        (children[i].transform as unknown as UITransform)?._updateWorldFlagWithParentRectChange?.(
+          flags,
+          selfRectDirty
+        );
+      }
+    }
+  }
 }
 
 /**
@@ -403,7 +396,6 @@ export enum UITransformModifyFlags {
   WorldMatrix = 0x80,
   Size = 0x200,
   Pivot = 0x400,
-  Rect = 0x1000,
 
   /** World matrix | world position. */
   WmWp = WorldMatrix | WorldPosition,

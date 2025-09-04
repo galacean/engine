@@ -297,23 +297,6 @@ describe("UITransform", async () => {
 });
 
 enum UITransformModifyFlags {
-  LocalEuler = 0x1,
-  LocalQuat = 0x2,
-  WorldPosition = 0x4,
-  LocalMatrix = 0x40,
-  WorldMatrix = 0x80,
   Size = 0x200,
-  Pivot = 0x400,
-  LocalPosition = 0x800,
-  Rect = 0x1000,
-
-  LsLr = Size | Rect,
-  /** Local matrix | local position. */
-  LmLp = LocalMatrix | LocalPosition,
-  /** World matrix | world position. */
-  WmWp = WorldMatrix | WorldPosition,
-  /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale */
-  WmWpWeWqWs = 0xbc,
-  /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale | WorldUniformScaling */
-  WmWpWeWqWsWus = 0x1bc,
+  Pivot = 0x400
 }

@@ -59,7 +59,6 @@ export class Transform extends Component {
    * Local position.
    */
   get position(): Vector3 {
-    this._checkLocalPosition();
     return this._position;
   }
 
@@ -276,12 +275,6 @@ export class Transform extends Component {
     } else {
       this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWs);
     }
-  }
-
-  protected _decomposeLocalMatrix(matrix: Matrix, position: Vector3, quaternion: Quaternion, scale: Vector3): void {
-    this._localMatrix.decompose(position, quaternion, scale);
-    this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler);
-    this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalQuat);
   }
 
   /**
@@ -586,6 +579,12 @@ export class Transform extends Component {
     target._position.copyFrom(this.position);
     target._rotation.copyFrom(this.rotation);
     target._scale.copyFrom(this.scale);
+  }
+
+  protected _decomposeLocalMatrix(matrix: Matrix, position: Vector3, quaternion: Quaternion, scale: Vector3): void {
+    this._localMatrix.decompose(position, quaternion, scale);
+    this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler);
+    this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalQuat);
   }
 
   protected _onWorldMatrixChange() {
