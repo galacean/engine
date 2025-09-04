@@ -1,6 +1,6 @@
 import { IShaderInfo } from "@galacean/engine-design";
 import { BaseToken } from "../common/BaseToken";
-import { EShaderStage } from "../common/Enums";
+import { EShaderStage } from "../common/enums/ShaderStage";
 import { Keyword } from "../common/enums/Keyword";
 import { ASTNode, TreeNode } from "../parser/AST";
 import { ShaderData } from "../parser/ShaderInfo";

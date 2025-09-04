@@ -142,21 +142,27 @@ export class ShaderPass extends ShaderPart {
     }
 
     // Compatible with non-shaderlab syntax
-    const noIncludeVertex = ShaderFactory.parseIncludes(this._vertexSource);
-    const noIncludeFrag = ShaderFactory.parseIncludes(this._fragmentSource);
+    let noIncludeVertex = ShaderFactory.parseIncludes(this._vertexSource);
+    let noIncludeFrag = ShaderFactory.parseIncludes(this._fragmentSource);
 
-    const noMacroVertex = Shader._shaderLab._parseDirectives(noIncludeVertex, shaderMacroList);
-    const noMacroFrag = Shader._shaderLab._parseDirectives(noIncludeFrag, shaderMacroList);
+    if (Shader._shaderLab) {
+      noIncludeVertex = Shader._shaderLab._parseMacros(noIncludeVertex, shaderMacroList);
+      noIncludeFrag = Shader._shaderLab._parseMacros(noIncludeFrag, shaderMacroList);
+    } else {
+      const macroNameStr = ShaderFactory.parseCustomMacros(shaderMacroList);
+      noIncludeVertex = macroNameStr + noIncludeVertex;
+      noIncludeFrag = macroNameStr + noIncludeFrag;
+    }
 
     const versionStr = isWebGL2 ? "#version 300 es" : "#version 100";
 
     let vertexSource = ` ${versionStr} 
-        ${noMacroVertex}
+        ${noIncludeVertex}
       `;
     let fragmentSource = ` ${versionStr}
         ${isWebGL2 ? "" : ShaderFactory._shaderExtension}
         ${precisionStr}
-        ${noMacroFrag}
+        ${noIncludeFrag}
       `;
 
     if (isWebGL2) {

@@ -1,6 +1,6 @@
 import { GalaceanDataType } from "../../common";
-import { EShaderStage } from "../../common/Enums";
 import { Keyword } from "../../common/enums/Keyword";
+import { EShaderStage } from "../../common/enums/ShaderStage";
 
 export const BuiltinVariableTable: Map<string, BuiltinVariable> = new Map();
 

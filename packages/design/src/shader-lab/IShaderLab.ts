@@ -24,5 +24,5 @@ export interface IShaderLab {
     basePathForIncludeKey: string
   ): IShaderProgramSource;
 
-  _parseDirectives(context: string, macros: Array<{ name: string; value: string }>): string;
+  _parseMacros(context: string, macros: Array<{ name: string; value: string }>): string;
 }

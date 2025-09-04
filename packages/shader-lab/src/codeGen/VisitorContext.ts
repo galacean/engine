@@ -1,5 +1,5 @@
 import { BaseToken } from "../common/BaseToken";
-import { EShaderStage } from "../common/Enums";
+import { EShaderStage } from "../common/enums/ShaderStage";
 import { SymbolTable } from "../common/SymbolTable";
 import { GSErrorName } from "../GSError";
 import { ASTNode, TreeNode } from "../parser/AST";

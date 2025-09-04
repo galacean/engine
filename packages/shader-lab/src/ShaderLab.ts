@@ -59,7 +59,7 @@ export class ShaderLab implements IShaderLab {
     const totalStartTime = performance.now();
     const noIncludeContent = parseIncludes(source, basePathForIncludeKey);
     const macroDefineList = parseMacroDefines(noIncludeContent);
-    Logger.info(`[Pass Pre processor] cost time ${performance.now() - totalStartTime}ms`);
+    Logger.info(`[Task - Pre processor] cost time ${performance.now() - totalStartTime}ms`);
 
     const lexer = new Lexer(noIncludeContent, macroDefineList);
 
@@ -82,8 +82,8 @@ export class ShaderLab implements IShaderLab {
 
     const codeGenStartTime = performance.now();
     const ret = codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
-    Logger.info(`[Pass CodeGen] cost time: ${performance.now() - codeGenStartTime}ms`);
-    Logger.info(`[Pass total compilation] cost time: ${performance.now() - totalStartTime}ms`);
+    Logger.info(`[Task - CodeGen] cost time: ${performance.now() - codeGenStartTime}ms`);
+    Logger.info(`[Task - Total compilation] cost time: ${performance.now() - totalStartTime}ms`);
     ShaderLab._processingPassText = undefined;
 
     // #if _VERBOSE
@@ -93,10 +93,10 @@ export class ShaderLab implements IShaderLab {
     return ret;
   }
 
-  _parseDirectives(content: string, macros: ShaderMacro[]): string {
+  _parseMacros(content: string, macros: ShaderMacro[]): string {
     const startTime = performance.now();
     const parsedContent = MacroParser.parse(content, macros);
-    Logger.info(`[Pass directives compilation] cost time: ${performance.now() - startTime}ms`);
+    Logger.info(`[Task -  parse macros] cost time: ${performance.now() - startTime}ms`);
 
     // #if _VERBOSE
     this._logErrors(MacroParser._errors);

@@ -1,6 +1,6 @@
 import { GalaceanDataType, TypeAny } from "../../common";
-import { EShaderStage } from "../../common/Enums";
 import { Keyword } from "../../common/enums/Keyword";
+import { EShaderStage } from "../../common/enums/ShaderStage";
 
 export enum EGenType {
   GenType = 200,

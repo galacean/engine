@@ -1,4 +1,4 @@
-import { EShaderStage } from "../common/Enums";
+import { EShaderStage } from "../common/enums/ShaderStage";
 import { ASTNode } from "../parser/AST";
 import { ShaderData } from "../parser/ShaderInfo";
 import { StructProp } from "../parser/types";
