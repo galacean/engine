@@ -262,14 +262,13 @@ export class Transform extends Component {
     const { _position: position, _rotationQuaternion: rotationQuaternion, _scale: scale } = this;
     // @ts-ignore
     position._onValueChanged = rotationQuaternion._onValueChanged = scale._onValueChanged = null;
-    this._localMatrix.decompose(position, rotationQuaternion, scale);
+    this._decomposeLocalMatrix(value, position, rotationQuaternion, scale);
     // @ts-ignore
     position._onValueChanged = this._onPositionChanged;
     // @ts-ignore
     rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
     // @ts-ignore
     scale._onValueChanged = this._onScaleChanged;
-    this._onLocalMatrixChange();
     const localUniformScaling = scale.x === scale.y && scale.y === scale.z;
     if (this._localUniformScaling !== localUniformScaling) {
       this._localUniformScaling = localUniformScaling;
@@ -277,6 +276,12 @@ export class Transform extends Component {
     } else {
       this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWs);
     }
+  }
+
+  protected _decomposeLocalMatrix(matrix: Matrix, position: Vector3, quaternion: Quaternion, scale: Vector3): void {
+    this._localMatrix.decompose(position, quaternion, scale);
+    this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler);
+    this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalQuat);
   }
 
   /**
@@ -581,13 +586,6 @@ export class Transform extends Component {
     target._position.copyFrom(this.position);
     target._rotation.copyFrom(this.rotation);
     target._scale.copyFrom(this.scale);
-  }
-
-  protected _checkLocalPosition(): void {}
-
-  protected _onLocalMatrixChange() {
-    this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler);
-    this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalQuat);
   }
 
   protected _onWorldMatrixChange() {
