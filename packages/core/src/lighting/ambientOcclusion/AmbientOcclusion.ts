@@ -1,11 +1,11 @@
 import { Shader, ShaderMacro, ShaderPass, ShaderProperty } from "../../shader";
 import blitVs from "../../shaderlib/extra/Blit.vs.glsl";
-import scalableAmbientOcclusionFS from "./shaders/ScalableAmbientOcclusion.glsl";
-import bilateralBlurFS from "./shaders/Blur/BilateralBlur.glsl";
 import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
+import bilateralBlurFS from "./shaders/Blur/BilateralBlur.glsl";
+import scalableAmbientOcclusionFS from "./shaders/ScalableAmbientOcclusion.glsl";
 
 /**
- * Screen Space Ambient Occlusion effect configuration.
+ * Ambient Occlusion effect configuration.
  */
 export class AmbientOcclusion {
   static readonly SHADER_NAME = "ScalableAmbientOcclusion";
@@ -38,13 +38,13 @@ export class AmbientOcclusion {
   /** @internal */
   static _enableMacro = ShaderMacro.getByName("SCENE_ENABLE_SSAO");
 
-  private _enabled: boolean = false;
-  private _quality: AmbientOcclusionQuality = AmbientOcclusionQuality.Low;
-  private _radius: number = 0.5;
-  private _intensity: number = 1.0;
-  private _bias: number = 0.01;
-  private _power: number = 1.0;
-  private _bilateralThreshold: number = 0.05;
+  private _enabled = false;
+  private _quality = AmbientOcclusionQuality.Low;
+  private _radius = 0.5;
+  private _intensity = 1.0;
+  private _bias = 0.01;
+  private _power = 1.0;
+  private _bilateralThreshold = 0.05;
 
   /**
    * Control whether screen space ambient occlusion is enabled or not.
