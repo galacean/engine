@@ -215,7 +215,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
    * @param onFinally - The callback to execute when the Promise is settled.
    * @returns An AssetPromise for the completion of the callback.
    */
-  finally(onFinally?: () => void | PromiseLike<void>): AssetPromise<T> {
+  finally(onFinally?: () => void): AssetPromise<T> {
     return this.then(
       (value) => AssetPromise.resolve(onFinally?.()).then(() => value),
       (reason) =>
