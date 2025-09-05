@@ -6,6 +6,6 @@ export enum AmbientOcclusionQuality {
   Low = 0,
   /** Medium quality - balanced samples and performance. */
   Medium = 1,
-  /** High quality - more samples, better visual quality. */
+  /** High quality - more samples, slower performance. */
   High = 2
 }
