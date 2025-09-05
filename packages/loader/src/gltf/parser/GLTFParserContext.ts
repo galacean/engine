@@ -158,9 +158,13 @@ export class GLTFParserContext {
   _addTaskCompletePromise(taskPromise: AssetPromise<any>): void {
     const task = this._progress.taskComplete;
     task.total += 1;
-    taskPromise.finally(() => {
-      this._setTaskCompleteProgress(++task.loaded, task.total);
-    });
+    taskPromise
+      .finally(() => {
+        this._setTaskCompleteProgress(++task.loaded, task.total);
+      })
+      .catch((e) => {
+        Logger.error("GLTFParserContext", `Failed to load task: ${e}`);
+      });
   }
 
   private _handleSubAsset<T>(

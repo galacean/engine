@@ -209,13 +209,20 @@ export class AssetPromise<T> implements PromiseLike<T> {
   }
 
   /**
-   * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
-   * resolved value cannot be modified from the callback.
-   * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
-   * @returns A Promise for the completion of the callback.
+   * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected).
+   * The callback result is ignored and the original value/reason is preserved per Promise spec.
+   * Returns an AssetPromise to keep chainability with AssetPromise methods.
+   * @param onFinally - The callback to execute when the Promise is settled.
+   * @returns An AssetPromise for the completion of the callback.
    */
-  finally(onFinally?: () => void): Promise<T> {
-    return this._promise.finally(onFinally);
+  finally(onFinally?: () => void | PromiseLike<void>): AssetPromise<T> {
+    return this.then(
+      (value) => AssetPromise.resolve(onFinally?.()).then(() => value),
+      (reason) =>
+        AssetPromise.resolve(onFinally?.()).then(() => {
+          throw reason;
+        })
+    );
   }
 
   /**
