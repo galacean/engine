@@ -4,8 +4,6 @@ import scalableAmbientOcclusionFS from "./shaders/ScalableAmbientOcclusion.glsl"
 import bilateralBlurFS from "./shaders/Blur/BilateralBlur.glsl";
 import { SSAOQuality } from "../enums/SSAOQuality";
 
-
-
 /**
  * Screen Space Ambient Occlusion effect configuration.
  */
