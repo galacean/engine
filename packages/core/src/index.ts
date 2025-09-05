@@ -14,7 +14,7 @@ export { Script } from "./Script";
 export { Renderer, RendererUpdateFlags } from "./Renderer";
 export { dependentComponents, DependentMode } from "./ComponentsDependencies";
 export { Camera } from "./Camera";
-export { Transform } from "./Transform";
+export { Transform, TransformModifyFlags } from "./Transform";
 export { BoolUpdateFlag } from "./BoolUpdateFlag";
 export type { EngineSettings } from "./EngineSettings";
 export type { EngineConfiguration } from "./Engine";

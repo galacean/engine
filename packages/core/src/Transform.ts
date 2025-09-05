@@ -874,7 +874,7 @@ export class Transform extends Component {
 }
 
 /**
- * @internal
+ * Dirty flag of transform.
  */
 export enum TransformModifyFlags {
   LocalEuler = 0x1,

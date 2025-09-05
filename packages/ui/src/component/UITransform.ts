@@ -5,12 +5,14 @@ import {
   Quaternion,
   Rect,
   Transform,
+  TransformModifyFlags,
   Vector2,
   Vector3,
   deepClone,
   ignoreClone
 } from "@galacean/engine";
-import { HorizontalAlignmentFlags, VerticalAlignmentFlags } from "../enums/AlignmentFlags";
+import { HorizontalAlignmentMode } from "../enums/HorizontalAlignmentMode";
+import { VerticalAlignmentMode } from "../enums/VerticalAlignmentMode";
 
 /**
  * The Transform component exclusive to the UI element.
@@ -23,14 +25,14 @@ export class UITransform extends Transform {
   @ignoreClone
   private _rect: Rect = new Rect(-50, -50, 100, 100);
 
-  private _left: number = 0;
-  private _right: number = 0;
-  private _center: number = 0;
-  private _top: number = 0;
-  private _bottom: number = 0;
-  private _middle: number = 0;
-  private _horizontalAlignment: HorizontalAlignmentFlags = HorizontalAlignmentFlags.None;
-  private _verticalAlignment: VerticalAlignmentFlags = VerticalAlignmentFlags.None;
+  private _alignLeft: number = 0;
+  private _alignRight: number = 0;
+  private _alignCenter: number = 0;
+  private _alignTop: number = 0;
+  private _alignBottom: number = 0;
+  private _alignMiddle: number = 0;
+  private _horizontalAlignment: HorizontalAlignmentMode = HorizontalAlignmentMode.None;
+  private _verticalAlignment: VerticalAlignmentMode = VerticalAlignmentMode.None;
 
   /**
    * Width and height of UI element.
@@ -61,21 +63,21 @@ export class UITransform extends Transform {
   /**
    * Horizontal alignment mode: Left/Center/Right or LeftAndRight (stretch).
    */
-  get horizontalAlignment(): HorizontalAlignmentFlags {
+  get horizontalAlignment(): HorizontalAlignmentMode {
     return this._horizontalAlignment;
   }
 
-  set horizontalAlignment(value: HorizontalAlignmentFlags) {
+  set horizontalAlignment(value: HorizontalAlignmentMode) {
     const current = this._horizontalAlignment;
     if (current === value) return;
     this._horizontalAlignment = value;
     switch (value) {
-      case HorizontalAlignmentFlags.Left:
-      case HorizontalAlignmentFlags.Right:
-      case HorizontalAlignmentFlags.Center:
+      case HorizontalAlignmentMode.Left:
+      case HorizontalAlignmentMode.Right:
+      case HorizontalAlignmentMode.Center:
         this._onPositionChanged();
         break;
-      case HorizontalAlignmentFlags.LeftAndRight:
+      case HorizontalAlignmentMode.LeftAndRight:
         this._onPositionChanged();
         this._onSizeChanged();
         break;
@@ -85,71 +87,71 @@ export class UITransform extends Transform {
   }
 
   /**
-   * Left margin used in horizontal alignment formulas.
+   * Left inset used in horizontal alignment formulas.
    */
-  get left(): number {
-    return this._left;
+  get alignLeft(): number {
+    return this._alignLeft;
   }
 
-  set left(value: number) {
+  set alignLeft(value: number) {
     if (!Number.isFinite(value)) return;
-    if (MathUtil.equals(value, this._left)) return;
-    this._left = value;
-    if (this._horizontalAlignment & HorizontalAlignmentFlags.Left) {
+    if (MathUtil.equals(value, this._alignLeft)) return;
+    this._alignLeft = value;
+    if (this._horizontalAlignment & HorizontalAlignmentMode.Left) {
       this._onPositionChanged();
-      this._horizontalAlignment & HorizontalAlignmentFlags.Right && this._onSizeChanged();
+      this._horizontalAlignment & HorizontalAlignmentMode.Right && this._onSizeChanged();
     }
   }
 
   /**
-   * Right margin used in horizontal alignment formulas.
+   * Right inset used in horizontal alignment formulas.
    */
-  get right(): number {
-    return this._right;
+  get alignRight(): number {
+    return this._alignRight;
   }
 
-  set right(value: number) {
+  set alignRight(value: number) {
     if (!Number.isFinite(value)) return;
-    if (MathUtil.equals(value, this._right)) return;
-    this._right = value;
-    if (this._horizontalAlignment & HorizontalAlignmentFlags.Right) {
+    if (MathUtil.equals(value, this._alignRight)) return;
+    this._alignRight = value;
+    if (this._horizontalAlignment & HorizontalAlignmentMode.Right) {
       this._onPositionChanged();
-      this._horizontalAlignment & HorizontalAlignmentFlags.Left && this._onSizeChanged();
+      this._horizontalAlignment & HorizontalAlignmentMode.Left && this._onSizeChanged();
     }
   }
 
   /**
    * Horizontal center offset relative to parent's center.
    */
-  get center(): number {
-    return this._center;
+  get alignCenter(): number {
+    return this._alignCenter;
   }
 
-  set center(value: number) {
+  set alignCenter(value: number) {
     if (!Number.isFinite(value)) return;
-    if (MathUtil.equals(value, this._center)) return;
-    this._center = value;
-    this._horizontalAlignment & HorizontalAlignmentFlags.Center && this._onPositionChanged();
+    if (MathUtil.equals(value, this._alignCenter)) return;
+    this._alignCenter = value;
+    this._horizontalAlignment & HorizontalAlignmentMode.Center && this._onPositionChanged();
   }
 
   /**
    * Vertical alignment mode: Top/Middle/Bottom or TopAndBottom (stretch).
    */
-  get verticalAlignment(): VerticalAlignmentFlags {
+  get verticalAlignment(): VerticalAlignmentMode {
     return this._verticalAlignment;
   }
 
-  set verticalAlignment(value: VerticalAlignmentFlags) {
+  set verticalAlignment(value: VerticalAlignmentMode) {
     const current = this._verticalAlignment;
     if (current === value) return;
     this._verticalAlignment = value;
     switch (value) {
-      case VerticalAlignmentFlags.Top:
-      case VerticalAlignmentFlags.Bottom:
-      case VerticalAlignmentFlags.Middle:
+      case VerticalAlignmentMode.Top:
+      case VerticalAlignmentMode.Bottom:
+      case VerticalAlignmentMode.Middle:
         this._onPositionChanged();
         break;
-      case VerticalAlignmentFlags.TopAndBottom:
+      case VerticalAlignmentMode.TopAndBottom:
         this._onPositionChanged();
         this._onSizeChanged();
         break;
@@ -159,51 +161,51 @@ export class UITransform extends Transform {
   }
 
   /**
-   * Top margin used in vertical alignment formulas.
+   * Top inset used in vertical alignment formulas.
    */
-  get top(): number {
-    return this._top;
+  get alignTop(): number {
+    return this._alignTop;
   }
 
-  set top(value: number) {
+  set alignTop(value: number) {
     if (!Number.isFinite(value)) return;
-    if (MathUtil.equals(value, this._top)) return;
-    this._top = value;
-    if (this._verticalAlignment & VerticalAlignmentFlags.Top) {
+    if (MathUtil.equals(value, this._alignTop)) return;
+    this._alignTop = value;
+    if (this._verticalAlignment & VerticalAlignmentMode.Top) {
       this._onPositionChanged();
-      this._verticalAlignment & VerticalAlignmentFlags.Bottom && this._onSizeChanged();
+      this._verticalAlignment & VerticalAlignmentMode.Bottom && this._onSizeChanged();
     }
   }
 
   /**
-   * Bottom margin used in vertical alignment formulas.
+   * Bottom inset used in vertical alignment formulas.
    */
-  get bottom(): number {
-    return this._bottom;
+  get alignBottom(): number {
+    return this._alignBottom;
   }
 
-  set bottom(value: number) {
+  set alignBottom(value: number) {
     if (!Number.isFinite(value)) return;
-    if (MathUtil.equals(value, this._bottom)) return;
-    this._bottom = value;
-    if (this._verticalAlignment & VerticalAlignmentFlags.Bottom) {
+    if (MathUtil.equals(value, this._alignBottom)) return;
+    this._alignBottom = value;
+    if (this._verticalAlignment & VerticalAlignmentMode.Bottom) {
       this._onPositionChanged();
-      this._verticalAlignment & VerticalAlignmentFlags.Top && this._onSizeChanged();
+      this._verticalAlignment & VerticalAlignmentMode.Top && this._onSizeChanged();
     }
   }
 
   /**
    * Vertical middle offset relative to parent's middle.
    */
-  get middle(): number {
-    return this._middle;
+  get alignMiddle(): number {
+    return this._alignMiddle;
   }
 
-  set middle(value: number) {
+  set alignMiddle(value: number) {
     if (!Number.isFinite(value)) return;
-    if (MathUtil.equals(value, this._middle)) return;
-    this._middle = value;
-    this._verticalAlignment & VerticalAlignmentFlags.Middle && this._onPositionChanged();
+    if (MathUtil.equals(value, this._alignMiddle)) return;
+    this._alignMiddle = value;
+    this._verticalAlignment & VerticalAlignmentMode.Middle && this._onPositionChanged();
   }
 
   /**
@@ -224,7 +226,7 @@ export class UITransform extends Transform {
    */
   _parentChange(): void {
     this._isParentDirty = true;
-    this._updateWorldFlagWithParentRectChange(UITransformModifyFlags.WmWpWeWqWsWus);
+    this._updateWorldFlagWithParentRectChange(TransformModifyFlags.WmWpWeWqWsWus);
   }
 
   // @ts-ignore
@@ -238,8 +240,8 @@ export class UITransform extends Transform {
   protected override _decomposeLocalMatrix(matrix: Matrix, pos: Vector3, quat: Quaternion, scale: Vector3): void {
     matrix.decompose(pos, quat, scale);
     this._calPosition();
-    this._setDirtyFlagTrue(UITransformModifyFlags.LocalEuler | UITransformModifyFlags.LocalMatrix);
-    this._setDirtyFlagFalse(UITransformModifyFlags.LocalQuat);
+    this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler | TransformModifyFlags.LocalMatrix);
+    this._setDirtyFlagFalse(TransformModifyFlags.LocalQuat);
   }
 
   protected override _onWorldMatrixChange() {
@@ -256,7 +258,7 @@ export class UITransform extends Transform {
   protected override _onWorldPositionChanged(): void {
     super._onWorldPositionChanged();
     if (!!this._horizontalAlignment || !!this._verticalAlignment) {
-      this._setDirtyFlagTrue(UITransformModifyFlags.WorldPosition);
+      this._setDirtyFlagTrue(TransformModifyFlags.WorldPosition);
     }
   }
 
@@ -268,29 +270,29 @@ export class UITransform extends Transform {
       position._onValueChanged = null;
       const rect = this._rect;
       switch (this._horizontalAlignment) {
-        case HorizontalAlignmentFlags.Left:
-        case HorizontalAlignmentFlags.LeftAndRight:
-          position.x = parentRect.x - rect.x + this._left;
+        case HorizontalAlignmentMode.Left:
+        case HorizontalAlignmentMode.LeftAndRight:
+          position.x = parentRect.x - rect.x + this._alignLeft;
           break;
-        case HorizontalAlignmentFlags.Center:
-          position.x = parentRect.x + parentRect.width * 0.5 - rect.x - rect.width * 0.5 + this._center;
+        case HorizontalAlignmentMode.Center:
+          position.x = parentRect.x + parentRect.width * 0.5 - rect.x - rect.width * 0.5 + this._alignCenter;
           break;
-        case HorizontalAlignmentFlags.Right:
-          position.x = parentRect.x + parentRect.width - rect.x - rect.width - this._right;
+        case HorizontalAlignmentMode.Right:
+          position.x = parentRect.x + parentRect.width - rect.x - rect.width - this._alignRight;
           break;
         default:
           break;
       }
       switch (this._verticalAlignment) {
-        case VerticalAlignmentFlags.Top:
-          position.y = parentRect.y + parentRect.height - rect.y - rect.height - this._top;
+        case VerticalAlignmentMode.Top:
+          position.y = parentRect.y + parentRect.height - rect.y - rect.height - this._alignTop;
           break;
-        case VerticalAlignmentFlags.Middle:
-          position.y = parentRect.y + parentRect.height * 0.5 - rect.y - rect.height * 0.5 + this._middle;
+        case VerticalAlignmentMode.Middle:
+          position.y = parentRect.y + parentRect.height * 0.5 - rect.y - rect.height * 0.5 + this._alignMiddle;
           break;
-        case VerticalAlignmentFlags.Bottom:
-        case VerticalAlignmentFlags.TopAndBottom:
-          position.y = parentRect.y - rect.y + this._bottom;
+        case VerticalAlignmentMode.Bottom:
+        case VerticalAlignmentMode.TopAndBottom:
+          position.y = parentRect.y - rect.y + this._alignBottom;
           break;
         default:
           break;
@@ -307,11 +309,11 @@ export class UITransform extends Transform {
       // @ts-ignore
       size._onValueChanged = null;
       // The values of size must be greater than 0.
-      if (this._horizontalAlignment === HorizontalAlignmentFlags.LeftAndRight) {
-        size.x = Math.max(parentRect.width - this._left - this._right, 0);
+      if (this._horizontalAlignment === HorizontalAlignmentMode.LeftAndRight) {
+        size.x = Math.max(parentRect.width - this._alignLeft - this._alignRight, 0);
       }
-      if (this._verticalAlignment === VerticalAlignmentFlags.TopAndBottom) {
-        size.y = Math.max(parentRect.height - this._top - this._bottom, 0);
+      if (this._verticalAlignment === VerticalAlignmentMode.TopAndBottom) {
+        size.y = Math.max(parentRect.height - this._alignTop - this._alignBottom, 0);
       }
       // @ts-ignore
       size._onValueChanged = this._onSizeChanged;
@@ -328,8 +330,8 @@ export class UITransform extends Transform {
   @ignoreClone
   private _onSizeChanged(): void {
     if (
-      this._horizontalAlignment === HorizontalAlignmentFlags.LeftAndRight ||
-      this._verticalAlignment === VerticalAlignmentFlags.TopAndBottom
+      this._horizontalAlignment === HorizontalAlignmentMode.LeftAndRight ||
+      this._verticalAlignment === VerticalAlignmentMode.TopAndBottom
     ) {
       this._calSize();
     }
@@ -348,12 +350,12 @@ export class UITransform extends Transform {
   }
 
   private _updateWorldFlagWithSelfRectChange(): void {
-    let worldFlags = UITransformModifyFlags.None;
+    let worldFlags = 0;
     const { _horizontalAlignment: horizontalAlignment, _verticalAlignment: verticalAlignment } = this;
     if (!!horizontalAlignment || !!verticalAlignment) {
       this._calPosition();
-      this._setDirtyFlagTrue(UITransformModifyFlags.LocalMatrix);
-      worldFlags = UITransformModifyFlags.WmWp;
+      this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
+      worldFlags = TransformModifyFlags.WmWp;
       !this._isContainDirtyFlags(worldFlags) && this._worldAssociatedChange(worldFlags);
     }
     const children = this.entity.children;
@@ -362,22 +364,22 @@ export class UITransform extends Transform {
     }
   }
 
-  private _updateWorldFlagWithParentRectChange(flags: UITransformModifyFlags, parentChange: boolean = true): void {
+  private _updateWorldFlagWithParentRectChange(flags: number, parentChange: boolean = true): void {
     let selfChange = false;
     if (parentChange) {
       const { _horizontalAlignment: horizontalAlignment, _verticalAlignment: verticalAlignment } = this;
       if (!!horizontalAlignment || !!verticalAlignment) {
         if (
-          horizontalAlignment === HorizontalAlignmentFlags.LeftAndRight ||
-          verticalAlignment === VerticalAlignmentFlags.TopAndBottom
+          horizontalAlignment === HorizontalAlignmentMode.LeftAndRight ||
+          verticalAlignment === VerticalAlignmentMode.TopAndBottom
         ) {
           this._calSize();
           this._calRect();
           selfChange = true;
         }
         this._calPosition();
-        this._setDirtyFlagTrue(UITransformModifyFlags.LocalMatrix);
-        flags |= UITransformModifyFlags.WmWp;
+        this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
+        flags |= TransformModifyFlags.WmWp;
       }
     }
     const containDirtyFlags = this._isContainDirtyFlags(flags);
@@ -398,17 +400,6 @@ export class UITransform extends Transform {
  * extends TransformModifyFlags
  */
 export enum UITransformModifyFlags {
-  None = 0x0,
-  LocalEuler = 0x1,
-  LocalQuat = 0x2,
-  WorldPosition = 0x4,
-  LocalMatrix = 0x40,
-  WorldMatrix = 0x80,
   Size = 0x200,
-  Pivot = 0x400,
-
-  /** World matrix | world position. */
-  WmWp = WorldMatrix | WorldPosition,
-  /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale | WorldUniformScaling */
-  WmWpWeWqWsWus = 0x1bc
+  Pivot = 0x400
 }

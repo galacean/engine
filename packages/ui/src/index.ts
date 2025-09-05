@@ -18,10 +18,11 @@ import * as GUIComponent from "./component";
 import uiDefaultFs from "./shader/uiDefault.fs.glsl";
 import uiDefaultVs from "./shader/uiDefault.vs.glsl";
 export * from "./component";
-export { HorizontalAlignmentFlags, VerticalAlignmentFlags } from "./enums/AlignmentFlags";
 export { CanvasRenderMode } from "./enums/CanvasRenderMode";
 export { ResolutionAdaptationMode } from "./enums/ResolutionAdaptationMode";
 export { UIPointerEventEmitter } from "./input/UIPointerEventEmitter";
+export { HorizontalAlignmentMode } from "./enums/HorizontalAlignmentMode";
+export { VerticalAlignmentMode } from "./enums/VerticalAlignmentMode";
 
 export class EngineExtension {
   _uiDefaultMaterial: Material;
