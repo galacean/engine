@@ -239,18 +239,18 @@ export class UITransform extends Transform {
 
   protected override _decomposeLocalMatrix(matrix: Matrix, pos: Vector3, quat: Quaternion, scale: Vector3): void {
     matrix.decompose(pos, quat, scale);
-    this._calPosition();
+    this._updatePositionByAlignment();
     this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler | TransformModifyFlags.LocalMatrix);
     this._setDirtyFlagFalse(TransformModifyFlags.LocalQuat);
   }
 
-  protected override _onWorldMatrixChange() {
+  protected override _onWorldMatrixChange(): void {
     !this._horizontalAlignment && !this._verticalAlignment && super._onWorldMatrixChange();
   }
 
   @ignoreClone
   protected override _onPositionChanged(): void {
-    (this._horizontalAlignment || this._verticalAlignment) && this._calPosition();
+    (this._horizontalAlignment || this._verticalAlignment) && this._updatePositionByAlignment();
     super._onPositionChanged();
   }
 
@@ -262,8 +262,8 @@ export class UITransform extends Transform {
     }
   }
 
-  private _calPosition(): void {
-    const parentRect = (this._getParentTransform() as unknown as UITransform)?._rect;
+  private _updatePositionByAlignment(): void {
+    const parentRect = (this._getParentTransform() as UITransform)?._rect;
     if (!!parentRect) {
       const position = this.position;
       // @ts-ignore
@@ -302,8 +302,8 @@ export class UITransform extends Transform {
     }
   }
 
-  private _calSize(): void {
-    const parentRect = (this._getParentTransform() as unknown as UITransform)?._rect;
+  private _updateSizeByAlignment(): void {
+    const parentRect = (this._getParentTransform() as UITransform)?._rect;
     if (parentRect) {
       const size = this._size;
       // @ts-ignore
@@ -320,7 +320,7 @@ export class UITransform extends Transform {
     }
   }
 
-  private _calRect(): void {
+  private _updateRectByPivot(): void {
     const { size, _pivot: pivot } = this;
     const x = -pivot.x * size.x;
     const y = -pivot.y * size.y;
@@ -333,9 +333,9 @@ export class UITransform extends Transform {
       this._horizontalAlignment === HorizontalAlignmentMode.LeftAndRight ||
       this._verticalAlignment === VerticalAlignmentMode.TopAndBottom
     ) {
-      this._calSize();
+      this._updateSizeByAlignment();
     }
-    this._calRect();
+    this._updateRectByPivot();
     this._updateWorldFlagWithSelfRectChange();
     // @ts-ignore
     this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Size);
@@ -343,7 +343,7 @@ export class UITransform extends Transform {
 
   @ignoreClone
   private _onPivotChanged(): void {
-    this._calRect();
+    this._updateRectByPivot();
     this._updateWorldFlagWithSelfRectChange();
     // @ts-ignore
     this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Pivot);
@@ -353,7 +353,7 @@ export class UITransform extends Transform {
     let worldFlags = 0;
     const { _horizontalAlignment: horizontalAlignment, _verticalAlignment: verticalAlignment } = this;
     if (!!horizontalAlignment || !!verticalAlignment) {
-      this._calPosition();
+      this._updatePositionByAlignment();
       this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
       worldFlags = TransformModifyFlags.WmWp;
       !this._isContainDirtyFlags(worldFlags) && this._worldAssociatedChange(worldFlags);
@@ -373,11 +373,11 @@ export class UITransform extends Transform {
           horizontalAlignment === HorizontalAlignmentMode.LeftAndRight ||
           verticalAlignment === VerticalAlignmentMode.TopAndBottom
         ) {
-          this._calSize();
-          this._calRect();
+          this._updateSizeByAlignment();
+          this._updateRectByPivot();
           selfChange = true;
         }
-        this._calPosition();
+        this._updatePositionByAlignment();
         this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
         flags |= TransformModifyFlags.WmWp;
       }
