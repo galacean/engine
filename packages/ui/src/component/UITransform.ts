@@ -232,7 +232,7 @@ export class UITransform extends Transform {
     target.pivot.copyFrom(this._pivot);
   }
 
-  protected _onLocalMatrixChanging(): void {
+  protected override _onLocalMatrixChanging(): void {
     this._updatePositionByAlignment();
   }
 
@@ -249,14 +249,14 @@ export class UITransform extends Transform {
   @ignoreClone
   protected override _onWorldPositionChanged(): void {
     super._onWorldPositionChanged();
-    if (!!this._horizontalAlignment || !!this._verticalAlignment) {
+    if (this._horizontalAlignment || this._verticalAlignment) {
       this._setDirtyFlagTrue(TransformModifyFlags.WorldPosition);
     }
   }
 
   private _updatePositionByAlignment(): void {
     const parentRect = (this._getParentTransform() as UITransform)?._rect;
-    if (!!parentRect) {
+    if (parentRect) {
       const position = this.position;
       // @ts-ignore
       position._onValueChanged = null;
@@ -343,7 +343,7 @@ export class UITransform extends Transform {
 
   private _updateWorldFlagWithSelfRectChange(): void {
     let worldFlags = 0;
-    if (!!this._horizontalAlignment || !!this._verticalAlignment) {
+    if (this._horizontalAlignment || this._verticalAlignment) {
       this._updatePositionByAlignment();
       this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
       worldFlags = TransformModifyFlags.WmWp;
@@ -359,7 +359,7 @@ export class UITransform extends Transform {
     let selfChange = false;
     if (parentChange) {
       const { _horizontalAlignment: horizontalAlignment, _verticalAlignment: verticalAlignment } = this;
-      if (!!horizontalAlignment || !!verticalAlignment) {
+      if (horizontalAlignment || verticalAlignment) {
         if (
           horizontalAlignment === HorizontalAlignmentMode.LeftAndRight ||
           verticalAlignment === VerticalAlignmentMode.TopAndBottom
