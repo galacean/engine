@@ -16,20 +16,20 @@ import { VerticalAlignmentMode } from "../enums/VerticalAlignmentMode";
  */
 export class UITransform extends Transform {
   @deepClone
-  private _size: Vector2 = new Vector2(100, 100);
+  private _size = new Vector2(100, 100);
   @deepClone
-  private _pivot: Vector2 = new Vector2(0.5, 0.5);
+  private _pivot = new Vector2(0.5, 0.5);
   @ignoreClone
-  private _rect: Rect = new Rect(-50, -50, 100, 100);
+  private _rect = new Rect(-50, -50, 100, 100);
 
-  private _alignLeft: number = 0;
-  private _alignRight: number = 0;
-  private _alignCenter: number = 0;
-  private _alignTop: number = 0;
-  private _alignBottom: number = 0;
-  private _alignMiddle: number = 0;
-  private _horizontalAlignment: HorizontalAlignmentMode = HorizontalAlignmentMode.None;
-  private _verticalAlignment: VerticalAlignmentMode = VerticalAlignmentMode.None;
+  private _alignLeft = 0;
+  private _alignRight = 0;
+  private _alignCenter = 0;
+  private _alignTop = 0;
+  private _alignBottom = 0;
+  private _alignMiddle = 0;
+  private _horizontalAlignment = HorizontalAlignmentMode.None;
+  private _verticalAlignment = VerticalAlignmentMode.None;
 
   /**
    * Width and height of UI element.
@@ -58,7 +58,14 @@ export class UITransform extends Transform {
   }
 
   /**
-   * Horizontal alignment mode, Left/Center/Right or LeftAndRight (stretch).
+   * Horizontal alignment mode.
+   *
+   * @remarks
+   * Controls how the element aligns horizontally within its parent:
+   * - `Left` - Align to parent's left edge
+   * - `Center` - Align to parent's horizontal center
+   * - `Right` - Align to parent's right edge
+   * - `LeftAndRight` - Align to both left and right edges (stretch to fill width)
    */
   get horizontalAlignment(): HorizontalAlignmentMode {
     return this._horizontalAlignment;
@@ -83,7 +90,11 @@ export class UITransform extends Transform {
   }
 
   /**
-   * Left inset used in horizontal alignment formulas.
+   * Left margin when horizontalAlignment is Left or LeftAndRight.
+   *
+   * @remarks
+   * Only effective when horizontalAlignment includes Left mode.
+   * Distance from the parent's left edge to the element's left edge.
    */
   get alignLeft(): number {
     return this._alignLeft;
@@ -100,7 +111,11 @@ export class UITransform extends Transform {
   }
 
   /**
-   * Right inset used in horizontal alignment formulas.
+   * Right margin when horizontalAlignment is Right or LeftAndRight.
+   *
+   * @remarks
+   * Only effective when horizontalAlignment includes Right mode.
+   * Distance from the parent's right edge to the element's right edge.
    */
   get alignRight(): number {
     return this._alignRight;
@@ -117,7 +132,11 @@ export class UITransform extends Transform {
   }
 
   /**
-   * Horizontal center offset relative to parent's center.
+   * Horizontal center offset when horizontalAlignment is Center.
+   *
+   * @remarks
+   * Only effective when horizontalAlignment is Center mode.
+   * Positive values move the element to the right, negative values to the left.
    */
   get alignCenter(): number {
     return this._alignCenter;
@@ -131,7 +150,14 @@ export class UITransform extends Transform {
   }
 
   /**
-   * Vertical alignment mode, Top/Middle/Bottom or TopAndBottom (stretch).
+   * Vertical alignment mode.
+   *
+   * @remarks
+   * Controls how the element aligns vertically within its parent:
+   * - `Top` - Align to parent's top edge
+   * - `Middle` - Align to parent's vertical center
+   * - `Bottom` - Align to parent's bottom edge
+   * - `TopAndBottom` - Align to both top and bottom edges (stretch to fill height)
    */
   get verticalAlignment(): VerticalAlignmentMode {
     return this._verticalAlignment;
@@ -156,7 +182,11 @@ export class UITransform extends Transform {
   }
 
   /**
-   * Top inset used in vertical alignment formulas.
+   * Top margin when verticalAlignment is Top or TopAndBottom.
+   *
+   * @remarks
+   * Only effective when verticalAlignment includes Top mode.
+   * Used to offset the element from the parent's top edge.
    */
   get alignTop(): number {
     return this._alignTop;
