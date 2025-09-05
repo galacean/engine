@@ -258,6 +258,12 @@ export const E2E_CONFIG = {
       caseFileName: "camera-fxaa",
       threshold: 0,
       diffPercentage: 0.161
+    },
+    ssao: {
+      category: "Camera",
+      caseFileName: "camera-ssao",
+      threshold: 0,
+      diffPercentage: 0.08
     }
   },
   Physics: {
