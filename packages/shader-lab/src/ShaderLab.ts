@@ -4,9 +4,9 @@ import { IShaderProgramSource } from "@galacean/engine-design/types/shader-lab/I
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { ShaderPosition, ShaderRange } from "./common";
 import { Lexer } from "./lexer";
-import { ShaderTargetParser } from "./parser";
-import { parseIncludes, parseMacroDefines } from "./Preprocessor";
 import { MacroParser } from "./macroProcessor/MacroParser";
+import { ShaderTargetParser } from "./parser";
+import { parseIncludes } from "./Preprocessor";
 import { ShaderLabUtils } from "./ShaderLabUtils";
 import { ShaderSourceParser } from "./sourceParser/ShaderSourceParser";
 
@@ -57,8 +57,8 @@ export class ShaderLab implements IShaderLab {
     basePathForIncludeKey: string
   ): IShaderProgramSource | undefined {
     const totalStartTime = performance.now();
-    const noIncludeContent = parseIncludes(source, basePathForIncludeKey);
-    const macroDefineList = parseMacroDefines(noIncludeContent);
+    const macroDefineList = {};
+    const noIncludeContent = parseIncludes(source, basePathForIncludeKey, macroDefineList);
     Logger.info(`[Task - Pre processor] cost time ${performance.now() - totalStartTime}ms`);
 
     const lexer = new Lexer(noIncludeContent, macroDefineList);

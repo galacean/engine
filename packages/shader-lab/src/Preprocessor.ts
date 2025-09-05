@@ -30,8 +30,19 @@ const macroRegex = /^\s*#define\s+(\w+)[ ]*(\(([^)]*)\))?[ ]+(\(?\w+\)?.*?)(?:\/
 const symbolReg = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 const funcCallReg = /^([a-zA-Z_][a-zA-Z0-9_]*)\s*\((.*)\)$/;
 
-export function parseMacroDefines(source: string): MacroDefineList {
-  const macroList: MacroDefineList = {};
+function isExist(existMacroDefineInfos: MacroDefineInfo[], checkItem: MacroDefineInfo): boolean {
+  return existMacroDefineInfos.some(
+    (existing) =>
+      existing.valueType === checkItem.valueType &&
+      existing.value === checkItem.value &&
+      existing.isFunction === checkItem.isFunction &&
+      existing.functionCallName === checkItem.functionCallName &&
+      existing.params.length === checkItem.params.length &&
+      existing.params.every((param, index) => param === checkItem.params[index])
+  );
+}
+
+function parseMacroDefines(source: string, outMacroList: MacroDefineList): void {
   let match: RegExpExecArray | null;
 
   while ((match = macroRegex.exec(source)) !== null) {
@@ -72,24 +83,29 @@ export function parseMacroDefines(source: string): MacroDefineList {
       functionCallName
     };
 
-    if (!macroList[name]) macroList[name] = [];
-
-    const existingMacro = macroList[name].find(
-      (existing) =>
-        existing.value === info.value &&
-        existing.valueType === info.valueType &&
-        existing.isFunction === info.isFunction &&
-        existing.functionCallName === info.functionCallName &&
-        existing.params.length === info.params.length &&
-        existing.params.every((param, index) => param === info.params[index])
-    );
-
-    if (!existingMacro) {
-      macroList[name].push(info);
+    if (outMacroList[name]) {
+      if (!isExist(outMacroList[name], info)) {
+        outMacroList[name].push(info);
+      }
+    } else {
+      outMacroList[name] = [];
+      outMacroList[name].push(info);
     }
   }
+}
 
-  return macroList;
+function mergeMacroDefineLists(from: MacroDefineList, to: MacroDefineList): void {
+  for (const macroName in from) {
+    if (to[macroName]) {
+      from[macroName].forEach((info) => {
+        if (!isExist(to[macroName], info)) {
+          to[macroName].push(info);
+        }
+      });
+    } else {
+      to[macroName] = from[macroName];
+    }
+  }
 }
 
 /**
@@ -100,7 +116,7 @@ export function parseMacroDefines(source: string): MacroDefineList {
  * #define TEST(a) b                    // ["b"]
  * #define TEST(b) b                   // []
  */
-export function getReferenceSymbolNames(macroDefineList: MacroDefineList, macroName: string, out: string[]): string[] {
+export function getReferenceSymbolNames(macroDefineList: MacroDefineList, macroName: string, out: string[]): void {
   out.length = 0;
   const infos = macroDefineList[macroName];
 
@@ -124,13 +140,18 @@ export function getReferenceSymbolNames(macroDefineList: MacroDefineList, macroN
       }
     }
   }
-
-  return out;
 }
 
 const includeReg = /^[ \t]*#include +"([\w\d./]+)"/gm;
 
-export function parseIncludes(source: string, basePathForIncludeKey: string) {
+const macroDefineIncludeMap = new Map<string, MacroDefineList>();
+
+export function parseIncludes(
+  source: string,
+  basePathForIncludeKey: string,
+  outMacroDefineList: MacroDefineList,
+  parseMacro = true
+): string {
   function replace(_, slice: string) {
     let path: string;
     if (slice[0] === ".") {
@@ -148,8 +169,18 @@ export function parseIncludes(source: string, basePathForIncludeKey: string) {
       return "";
     }
 
-    return parseIncludes(chunk, basePathForIncludeKey);
+    if (macroDefineIncludeMap.has(path)) {
+      mergeMacroDefineLists(macroDefineIncludeMap.get(path), outMacroDefineList);
+    } else {
+      const chunkMacroDefineList: MacroDefineList = {};
+      parseMacroDefines(chunk, chunkMacroDefineList);
+      macroDefineIncludeMap.set(path, chunkMacroDefineList);
+      mergeMacroDefineLists(chunkMacroDefineList, outMacroDefineList);
+    }
+
+    return parseIncludes(chunk, basePathForIncludeKey, outMacroDefineList, false);
   }
 
+  parseMacro && parseMacroDefines(source, outMacroDefineList);
   return source.replace(includeReg, replace);
 }
