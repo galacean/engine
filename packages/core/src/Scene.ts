@@ -267,7 +267,10 @@ export class Scene extends EngineObject {
   }
 
   /**
-   * screen space ambient occlusion configuration.
+   * Screen Space Ambient Occlusion (SSAO) settings.
+   * @remarks
+   * Darkens areas where objects are close together to simulate natural light blocking,
+   * such as corners, crevices, and contact points between surfaces.
    */
   get ssao(): ScreenSpaceAmbientOcclusion {
     return this._ssao;
