@@ -217,11 +217,14 @@ export class AssetPromise<T> implements PromiseLike<T> {
    */
   finally(onFinally?: () => void): AssetPromise<T> {
     return this.then(
-      (value) => AssetPromise.resolve(onFinally?.()).then(() => value),
-      (reason) =>
-        AssetPromise.resolve(onFinally?.()).then(() => {
-          throw reason;
-        })
+      (value) => {
+        onFinally?.();
+        return value;
+      },
+      (reason) => {
+        onFinally?.();
+        throw reason;
+      }
     );
   }
 
