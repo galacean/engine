@@ -82,7 +82,7 @@ float remapDepthBufferLinear01(float z){
 	return 1.0/ (camera_DepthBufferParams.x * z + camera_DepthBufferParams.y);
 }
 
-//From Next Generation Post Processing in Call of Duty: Advanced Warfare [Jimenez 2014]
+// From Next Generation Post Processing in Call of Duty: Advanced Warfare [Jimenez 2014]
 // http://advances.realtimerendering.com/s2014/index.html
 float interleavedGradientNoise(vec2 pixCoord)
 {
