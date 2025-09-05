@@ -9,6 +9,7 @@ import { ShaderPart } from "./ShaderPart";
 import { ShaderProgram } from "./ShaderProgram";
 import { ShaderProgramPool } from "./ShaderProgramPool";
 import { ShaderProperty } from "./ShaderProperty";
+import { ShaderPlatformTarget } from "./enums/ShaderPlatformTarget";
 import { RenderState } from "./state/RenderState";
 
 const precisionStr = `
@@ -28,6 +29,11 @@ export class ShaderPass extends ShaderPart {
   private static _shaderPassCounter: number = 0;
   /** @internal */
   static _shaderRootPath = "shaders://root/";
+
+  /**
+   * The platform target of this shader pass.
+   */
+  platformTarget = ShaderPlatformTarget.GLES100;
 
   /** @internal */
   _shaderPassId: number = 0;
@@ -165,7 +171,7 @@ export class ShaderPass extends ShaderPart {
         ${noIncludeFrag}
       `;
 
-    if (isWebGL2) {
+    if (isWebGL2 && this.platformTarget === ShaderPlatformTarget.GLES100) {
       vertexSource = ShaderFactory.convertTo300(vertexSource);
       fragmentSource = ShaderFactory.convertTo300(fragmentSource, true);
     }
