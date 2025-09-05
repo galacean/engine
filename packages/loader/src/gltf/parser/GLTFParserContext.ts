@@ -163,7 +163,7 @@ export class GLTFParserContext {
         this._setTaskCompleteProgress(++task.loaded, task.total);
       })
       .catch((e) => {
-        Logger.error("GLTFParserContext", `Failed to load task: ${e}`);
+        // Need catch to avoid unhandled rejection
       });
   }
 
