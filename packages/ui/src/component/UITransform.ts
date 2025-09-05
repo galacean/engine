@@ -68,8 +68,7 @@ export class UITransform extends Transform {
   }
 
   set horizontalAlignment(value: HorizontalAlignmentMode) {
-    const current = this._horizontalAlignment;
-    if (current === value) return;
+    if (this._horizontalAlignment === value) return;
     this._horizontalAlignment = value;
     switch (value) {
       case HorizontalAlignmentMode.Left:
@@ -142,8 +141,7 @@ export class UITransform extends Transform {
   }
 
   set verticalAlignment(value: VerticalAlignmentMode) {
-    const current = this._verticalAlignment;
-    if (current === value) return;
+    if (this._verticalAlignment === value) return;
     this._verticalAlignment = value;
     switch (value) {
       case VerticalAlignmentMode.Top:
@@ -308,7 +306,7 @@ export class UITransform extends Transform {
       const size = this._size;
       // @ts-ignore
       size._onValueChanged = null;
-      // The values of size must be greater than 0.
+      // The values of size must be greater than 0
       if (this._horizontalAlignment === HorizontalAlignmentMode.LeftAndRight) {
         size.x = Math.max(parentRect.width - this._alignLeft - this._alignRight, 0);
       }
