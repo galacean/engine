@@ -86,7 +86,7 @@ export class PipelineUtils {
   ): RenderTarget {
     const currentColorTexture = <Texture2D>currentRenderTarget?.getColorTexture(0);
     const colorTexture =
-      colorFormat != undefined
+      colorFormat != null
         ? PipelineUtils.recreateTextureIfNeeded(
             engine,
             currentColorTexture,
