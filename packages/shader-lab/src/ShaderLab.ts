@@ -6,7 +6,7 @@ import { ShaderPosition, ShaderRange } from "./common";
 import { Lexer } from "./lexer";
 import { MacroParser } from "./macroProcessor/MacroParser";
 import { ShaderTargetParser } from "./parser";
-import { parseIncludes } from "./Preprocessor";
+import { Preprocessor } from "./Preprocessor";
 import { ShaderLabUtils } from "./ShaderLabUtils";
 import { ShaderSourceParser } from "./sourceParser/ShaderSourceParser";
 
@@ -58,7 +58,7 @@ export class ShaderLab implements IShaderLab {
   ): IShaderProgramSource | undefined {
     const totalStartTime = performance.now();
     const macroDefineList = {};
-    const noIncludeContent = parseIncludes(source, basePathForIncludeKey, macroDefineList);
+    const noIncludeContent = Preprocessor.parse(source, basePathForIncludeKey, macroDefineList);
     Logger.info(`[Task - Pre processor] cost time ${performance.now() - totalStartTime}ms`);
 
     const lexer = new Lexer(noIncludeContent, macroDefineList);

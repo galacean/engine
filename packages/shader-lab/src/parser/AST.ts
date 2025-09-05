@@ -4,7 +4,7 @@ import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from ".
 import { BaseToken } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { ParserUtils } from "../ParserUtils";
-import { getReferenceSymbolNames } from "../Preprocessor";
+import { Preprocessor } from "../Preprocessor";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 import { BuiltinFunction, BuiltinVariable, NonGenericGalaceanType } from "./builtin";
 import { NoneTerminal } from "./GrammarSymbol";
@@ -1667,7 +1667,7 @@ export namespace ASTNode {
 
       this.macroName = macroName;
 
-      getReferenceSymbolNames(sa.macroDefineList, macroName, this.referenceSymbolNames);
+      Preprocessor.getReferenceSymbolNames(sa.macroDefineList, macroName, this.referenceSymbolNames);
     }
   }
 
