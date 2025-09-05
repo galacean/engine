@@ -14,14 +14,15 @@ import {
   PBRMaterial,
   PrimitiveMesh,
   SkyBoxMaterial,
-  SSAOQuality,
+  AmbientOcclusionQuality,
   Vector3,
-  WebGLEngine
+  WebGLEngine,
+  WebGLMode
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
-WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
+WebGLEngine.create({ canvas: "canvas",graphicDeviceOptions: { webGLMode: WebGLMode.WebGL1 } }).then((engine) => {
   engine.canvas.resizeByClientSize(2);
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
@@ -32,13 +33,13 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   cameraEntity.transform.position = new Vector3(0.8, 1, 3.5);
   const camera = cameraEntity.addComponent(Camera);
 
-  scene.ssao.enabled = true;
-  scene.ssao.radius = 0.4;
-  scene.ssao.intensity = 3;
-  scene.ssao.power = 1.0;
-  scene.ssao.bias = 0.0005;
-  scene.ssao.bilateralThreshold = 0.01;
-  scene.ssao.quality = SSAOQuality.High;
+  scene.ambientOcclusion.enabled = true;
+  scene.ambientOcclusion.radius = 0.4;
+  scene.ambientOcclusion.intensity = 3;
+  scene.ambientOcclusion.power = 1.0;
+  scene.ambientOcclusion.bias = 0.0005;
+  scene.ambientOcclusion.bilateralThreshold = 0.01;
+  scene.ambientOcclusion.quality = AmbientOcclusionQuality.High;
 
   const lightNode = rootEntity.createChild("light_node");
   lightNode.addComponent(DirectLight).color = new Color(1, 1, 1);
@@ -82,6 +83,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       ambientLight.specularIntensity = 1;
     })
     .then(() => {
+      // engine.run();
       updateForE2E(engine);
       initScreenshot(engine, camera);
     });

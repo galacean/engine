@@ -28,8 +28,8 @@ import { DepthOnlyPass } from "./DepthOnlyPass";
 import { OpaqueTexturePass } from "./OpaqueTexturePass";
 import { PipelineUtils } from "./PipelineUtils";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
-import { SSAOPass } from "../lighting/screenSpaceLighting/ScreenSpaceAmbientOcclusionPass";
-import { ScreenSpaceAmbientOcclusion } from "../lighting/screenSpaceLighting";
+import { SSAOPass } from "../lighting/ambientOcclusion/ScreenSpaceAmbientOcclusionPass";
+import { AmbientOcclusion } from "../lighting/ambientOcclusion";
 import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
 import { PipelineStage } from "./enums/PipelineStage";
@@ -267,7 +267,7 @@ export class BasicRenderPipeline {
 
     // Screen space ambient occlusion pass
     // Before opaque pass so materials can sample ambient occlusion in BRDF
-    if (scene.ssao.enabled) {
+    if (scene.ambientOcclusion.enabled) {
       camera.depthTextureMode = DepthTextureMode.PrePass;
       const ssaoPass = this._ssaoPass;
       ssaoPass.onConfig(camera, colorTarget);

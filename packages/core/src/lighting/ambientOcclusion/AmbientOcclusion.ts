@@ -2,12 +2,12 @@ import { Shader, ShaderMacro, ShaderPass, ShaderProperty } from "../../shader";
 import blitVs from "../../shaderlib/extra/Blit.vs.glsl";
 import scalableAmbientOcclusionFS from "./shaders/ScalableAmbientOcclusion.glsl";
 import bilateralBlurFS from "./shaders/Blur/BilateralBlur.glsl";
-import { SSAOQuality } from "../enums/SSAOQuality";
+import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
 
 /**
  * Screen Space Ambient Occlusion effect configuration.
  */
-export class ScreenSpaceAmbientOcclusion {
+export class AmbientOcclusion {
   static readonly SHADER_NAME = "ScalableAmbientOcclusion";
 
   // Shader properties for ambient occlusion calculation
@@ -39,7 +39,7 @@ export class ScreenSpaceAmbientOcclusion {
   static _enableMacro = ShaderMacro.getByName("SCENE_ENABLE_SSAO");
 
   private _enabled: boolean = false;
-  private _quality: SSAOQuality = SSAOQuality.Low;
+  private _quality: AmbientOcclusionQuality = AmbientOcclusionQuality.Low;
   private _radius: number = 0.5;
   private _intensity: number = 1.0;
   private _bias: number = 0.01;
@@ -67,11 +67,11 @@ export class ScreenSpaceAmbientOcclusion {
    * If set to `SSAOQuality.Medium`, the effect will balance quality and performance.
    * If set to `SSAOQuality.High`, the effect will use more samples for better quality，but the performance will be even worse.
    */
-  get quality(): SSAOQuality {
+  get quality(): AmbientOcclusionQuality {
     return this._quality;
   }
 
-  set quality(value: SSAOQuality) {
+  set quality(value: AmbientOcclusionQuality) {
     if (this._quality !== value) {
       this._quality = value;
     }
@@ -161,7 +161,7 @@ export class ScreenSpaceAmbientOcclusion {
   }
 }
 
-Shader.create(ScreenSpaceAmbientOcclusion.SHADER_NAME, [
+Shader.create(AmbientOcclusion.SHADER_NAME, [
   new ShaderPass("ScalableAmbientOcclusion", blitVs, scalableAmbientOcclusionFS),
   new ShaderPass("BilateralBlur", blitVs, bilateralBlurFS)
 ]);

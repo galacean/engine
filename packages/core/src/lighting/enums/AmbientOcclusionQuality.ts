@@ -1,7 +1,7 @@
 /**
- * Screen Space Ambient Occlusion quality levels.
+ * Ambient Occlusion quality levels.
  */
-export enum SSAOQuality {
+export enum AmbientOcclusionQuality {
   /** Low quality - fewer samples, faster performance */
   Low = 0,
   /** Medium quality - balanced samples and performance */

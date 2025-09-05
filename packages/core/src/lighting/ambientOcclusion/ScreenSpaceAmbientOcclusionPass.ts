@@ -9,8 +9,8 @@ import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { Vector2, Vector4 } from "@galacean/engine-math";
 import { SystemInfo } from "../../SystemInfo";
-import { SSAOQuality } from "../enums/SSAOQuality";
-import { ScreenSpaceAmbientOcclusion } from "./ScreenSpaceAmbientOcclusion";
+import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
+import { AmbientOcclusion } from "./AmbientOcclusion";
 
 /**
  * @internal
@@ -29,19 +29,19 @@ export class SSAOPass extends PipelinePass {
   private _offsetX = new Vector4();
   private _offsetY = new Vector4();
 
-  private _quality: SSAOQuality = SSAOQuality.Low;
+  private _quality: AmbientOcclusionQuality = AmbientOcclusionQuality.Low;
   private _kernel: Float32Array = null;
 
   constructor(engine: Engine) {
     super(engine);
 
     // Create SSAO material
-    const ssaoMaterial = new Material(engine, Shader.find(ScreenSpaceAmbientOcclusion.SHADER_NAME));
+    const ssaoMaterial = new Material(engine, Shader.find(AmbientOcclusion.SHADER_NAME));
     ssaoMaterial._addReferCount(1);
     this._ssaoMaterial = ssaoMaterial;
 
     //Bilateral Blur material
-    const bilateralBlurMaterial = new Material(engine, Shader.find(ScreenSpaceAmbientOcclusion.SHADER_NAME));
+    const bilateralBlurMaterial = new Material(engine, Shader.find(AmbientOcclusion.SHADER_NAME));
     bilateralBlurMaterial._addReferCount(1);
     this._bilateralBlurMaterial = bilateralBlurMaterial;
 
@@ -52,13 +52,13 @@ export class SSAOPass extends PipelinePass {
     const defaultPower = 1.0;
     const peak = 0.1 * radius;
     const intensity = (2 * Math.PI * peak) / this._sampleCount;
-    ssaoShaderData.setFloat(ScreenSpaceAmbientOcclusion._invRadiusSquaredProp, 1.0 / (radius * radius));
-    ssaoShaderData.setFloat(ScreenSpaceAmbientOcclusion._intensityProp, intensity);
-    ssaoShaderData.setFloat(ScreenSpaceAmbientOcclusion._powerProp, defaultPower * 2.0);
-    ssaoShaderData.setFloat(ScreenSpaceAmbientOcclusion._peak2Prop, peak * peak);
+    ssaoShaderData.setFloat(AmbientOcclusion._invRadiusSquaredProp, 1.0 / (radius * radius));
+    ssaoShaderData.setFloat(AmbientOcclusion._intensityProp, intensity);
+    ssaoShaderData.setFloat(AmbientOcclusion._powerProp, defaultPower * 2.0);
+    ssaoShaderData.setFloat(AmbientOcclusion._peak2Prop, peak * peak);
   }
 
-  private _setQuality(blurShaderData: ShaderData, quality: SSAOQuality): void {
+  private _setQuality(blurShaderData: ShaderData, quality: AmbientOcclusionQuality): void {
     if (quality === this._quality && this._kernel !== null) {
       return;
     }
@@ -67,15 +67,15 @@ export class SSAOPass extends PipelinePass {
     let standardDeviation: number;
 
     switch (quality) {
-      case SSAOQuality.Low:
+      case AmbientOcclusionQuality.Low:
         sampleCount = 7;
         standardDeviation = 8.0;
         break;
-      case SSAOQuality.Medium:
+      case AmbientOcclusionQuality.Medium:
         sampleCount = 11;
         standardDeviation = 8.0;
         break;
-      case SSAOQuality.High:
+      case AmbientOcclusionQuality.High:
       default:
         sampleCount = 16;
         standardDeviation = 6.0;
@@ -92,7 +92,7 @@ export class SSAOPass extends PipelinePass {
     for (let i = sampleCount; i < kernelArraySize; i++) gaussianKernel[i] = 0.0;
     this._quality = quality;
     this._kernel = gaussianKernel;
-    blurShaderData.setFloatArray(ScreenSpaceAmbientOcclusion._kernelProp, gaussianKernel);
+    blurShaderData.setFloatArray(AmbientOcclusion._kernelProp, gaussianKernel);
   }
 
   onConfig(camera: Camera, inputRenderTarget: RenderTarget): void {
@@ -139,7 +139,7 @@ export class SSAOPass extends PipelinePass {
     const { camera } = context;
     const { viewport } = camera;
     const scene = camera.scene;
-    const ssaoEffect = scene.ssao;
+    const ssaoEffect = scene.ambientOcclusion;
     const ssaoShaderData = this._ssaoMaterial.shaderData;
     const blurShaderData = this._bilateralBlurMaterial.shaderData;
     const projectionMatrix = context.projectionMatrix;
@@ -154,7 +154,7 @@ export class SSAOPass extends PipelinePass {
     const invProjection1 = 1.0 / projectionMatrix.elements[5]; // 1 / projection[1][1]
 
     const position = this._position.set(invProjection0 * 2.0, invProjection1 * 2.0);
-    ssaoShaderData.setVector2(ScreenSpaceAmbientOcclusion._invPositionProp, position);
+    ssaoShaderData.setVector2(AmbientOcclusion._invPositionProp, position);
 
     if (ssaoEffect?.isValid()) {
       this._setQuality(blurShaderData, ssaoEffect.quality);
@@ -173,20 +173,20 @@ export class SSAOPass extends PipelinePass {
       const invRadiusSquared = 1.0 / (radius * radius);
       const farPlaneOverEdgeDistance = -camera.farClipPlane / ssaoEffect.bilateralThreshold;
 
-      ssaoShaderData.setFloat(ScreenSpaceAmbientOcclusion._invRadiusSquaredProp, invRadiusSquared);
-      ssaoShaderData.setFloat(ScreenSpaceAmbientOcclusion._intensityProp, intensity);
-      ssaoShaderData.setFloat(ScreenSpaceAmbientOcclusion._powerProp, power);
-      ssaoShaderData.setFloat(ScreenSpaceAmbientOcclusion._projectionScaleRadiusProp, projectionScaleRadius);
-      ssaoShaderData.setFloat(ScreenSpaceAmbientOcclusion._biasProp, bias);
-      ssaoShaderData.setFloat(ScreenSpaceAmbientOcclusion._peak2Prop, peak2);
-      ssaoShaderData.enableMacro(ScreenSpaceAmbientOcclusion._enableMacro);
+      ssaoShaderData.setFloat(AmbientOcclusion._invRadiusSquaredProp, invRadiusSquared);
+      ssaoShaderData.setFloat(AmbientOcclusion._intensityProp, intensity);
+      ssaoShaderData.setFloat(AmbientOcclusion._powerProp, power);
+      ssaoShaderData.setFloat(AmbientOcclusion._projectionScaleRadiusProp, projectionScaleRadius);
+      ssaoShaderData.setFloat(AmbientOcclusion._biasProp, bias);
+      ssaoShaderData.setFloat(AmbientOcclusion._peak2Prop, peak2);
+      ssaoShaderData.enableMacro(AmbientOcclusion._enableMacro);
 
-      blurShaderData.enableMacro(ScreenSpaceAmbientOcclusion._enableMacro);
-      blurShaderData.setFloat(ScreenSpaceAmbientOcclusion._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
+      blurShaderData.enableMacro(AmbientOcclusion._enableMacro);
+      blurShaderData.setFloat(AmbientOcclusion._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
     } else {
       scene.shaderData.disableMacro("SCENE_ENABLE_SSAO");
-      ssaoShaderData.disableMacro(ScreenSpaceAmbientOcclusion._enableMacro);
-      blurShaderData.disableMacro(ScreenSpaceAmbientOcclusion._enableMacro);
+      ssaoShaderData.disableMacro(AmbientOcclusion._enableMacro);
+      blurShaderData.disableMacro(AmbientOcclusion._enableMacro);
       return;
     }
 
