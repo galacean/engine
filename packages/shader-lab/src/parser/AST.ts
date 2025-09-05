@@ -1327,7 +1327,7 @@ export namespace ASTNode {
 
     override codeGen(visitor: CodeGenVisitor): string {
       if (this.isStatic) {
-        super.codeGen(visitor);
+        return super.codeGen(visitor);
       } else {
         return this.setCache(visitor.visitGlobalVariableDeclaration(this));
       }
