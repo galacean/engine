@@ -351,8 +351,7 @@ export class UITransform extends Transform {
 
   private _updateWorldFlagWithSelfRectChange(): void {
     let worldFlags = 0;
-    const { _horizontalAlignment: horizontalAlignment, _verticalAlignment: verticalAlignment } = this;
-    if (!!horizontalAlignment || !!verticalAlignment) {
+    if (!!this._horizontalAlignment || !!this._verticalAlignment) {
       this._updatePositionByAlignment();
       this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
       worldFlags = TransformModifyFlags.WmWp;
@@ -360,7 +359,7 @@ export class UITransform extends Transform {
     }
     const children = this.entity.children;
     for (let i = 0, n = children.length; i < n; i++) {
-      (children[i].transform as unknown as UITransform)?._updateWorldFlagWithParentRectChange?.(worldFlags);
+      (children[i].transform as UITransform)?._updateWorldFlagWithParentRectChange?.(worldFlags);
     }
   }
 
@@ -387,7 +386,7 @@ export class UITransform extends Transform {
     if (selfChange || !containDirtyFlags) {
       const children = this.entity.children;
       for (let i = 0, n = children.length; i < n; i++) {
-        (children[i].transform as unknown as UITransform)?._updateWorldFlagWithParentRectChange?.(flags, selfChange);
+        (children[i].transform as UITransform)?._updateWorldFlagWithParentRectChange?.(flags, selfChange);
       }
     }
     // @ts-ignore
