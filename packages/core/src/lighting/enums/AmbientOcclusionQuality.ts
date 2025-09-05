@@ -1,11 +1,11 @@
 /**
- * Ambient Occlusion quality levels.
+ * Ambient occlusion quality levels that control the balance between visual quality and performance.
  */
 export enum AmbientOcclusionQuality {
-  /** Low quality - fewer samples, faster performance */
+  /** Low quality - fewer samples, better performance. */
   Low = 0,
-  /** Medium quality - balanced samples and performance */
+  /** Medium quality - balanced samples and performance. */
   Medium = 1,
-  /** High quality - more samples, better quality */
+  /** High quality - more samples, better visual quality. */
   High = 2
 }
