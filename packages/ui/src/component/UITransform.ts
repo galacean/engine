@@ -1,13 +1,10 @@
 import {
   Entity,
   MathUtil,
-  Matrix,
-  Quaternion,
   Rect,
   Transform,
   TransformModifyFlags,
   Vector2,
-  Vector3,
   deepClone,
   ignoreClone
 } from "@galacean/engine";
@@ -235,11 +232,8 @@ export class UITransform extends Transform {
     target.pivot.copyFrom(this._pivot);
   }
 
-  protected override _decomposeLocalMatrix(matrix: Matrix, pos: Vector3, quat: Quaternion, scale: Vector3): void {
-    matrix.decompose(pos, quat, scale);
+  protected _onLocalMatrixChanging(): void {
     this._updatePositionByAlignment();
-    this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler | TransformModifyFlags.LocalMatrix);
-    this._setDirtyFlagFalse(TransformModifyFlags.LocalQuat);
   }
 
   protected override _onWorldMatrixChange(): void {

@@ -261,7 +261,12 @@ export class Transform extends Component {
     const { _position: position, _rotationQuaternion: rotationQuaternion, _scale: scale } = this;
     // @ts-ignore
     position._onValueChanged = rotationQuaternion._onValueChanged = scale._onValueChanged = null;
-    this._decomposeLocalMatrix(value, position, rotationQuaternion, scale);
+
+    value.decompose(position, rotationQuaternion, scale);
+    this._onLocalMatrixChanging?.();
+    this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler);
+    this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalQuat);
+
     // @ts-ignore
     position._onValueChanged = this._onPositionChanged;
     // @ts-ignore
@@ -581,11 +586,7 @@ export class Transform extends Component {
     target._scale.copyFrom(this.scale);
   }
 
-  protected _decomposeLocalMatrix(matrix: Matrix, pos: Vector3, quat: Quaternion, scale: Vector3): void {
-    matrix.decompose(pos, quat, scale);
-    this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler);
-    this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalQuat);
-  }
+  protected _onLocalMatrixChanging?(): void;
 
   protected _onWorldMatrixChange() {
     this._setDirtyFlagFalse(TransformModifyFlags.WorldMatrix);
