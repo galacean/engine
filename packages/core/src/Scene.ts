@@ -53,6 +53,14 @@ export class Scene extends EngineObject {
   /** Post process manager. */
   readonly postProcessManager = new PostProcessManager(this);
 
+  /**
+   * Screen Space Ambient Occlusion (SSAO) settings.
+   * @remarks
+   * Darkens areas where objects are close together to simulate natural light blocking,
+   * such as corners, crevices, and contact points between surfaces.
+   */
+  readonly ssao = new ScreenSpaceAmbientOcclusion();
+
   /* @internal */
   _lightManager: LightManager = new LightManager();
   /* @internal */
@@ -79,7 +87,6 @@ export class Scene extends EngineObject {
   private _isActive: boolean = true;
   private _sun: DirectLight | null;
   private _enableTransparentShadow = false;
-  private _ssao = new ScreenSpaceAmbientOcclusion();
 
   /**
    * Whether the scene is active.
@@ -263,22 +270,6 @@ export class Scene extends EngineObject {
       } else {
         this.shaderData.disableMacro("SCENE_ENABLE_TRANSPARENT_SHADOW");
       }
-    }
-  }
-
-  /**
-   * Screen Space Ambient Occlusion (SSAO) settings.
-   * @remarks
-   * Darkens areas where objects are close together to simulate natural light blocking,
-   * such as corners, crevices, and contact points between surfaces.
-   */
-  get ssao(): ScreenSpaceAmbientOcclusion {
-    return this._ssao;
-  }
-
-  set ssao(value: ScreenSpaceAmbientOcclusion) {
-    if (this._ssao !== value) {
-      this._ssao = value;
     }
   }
 
