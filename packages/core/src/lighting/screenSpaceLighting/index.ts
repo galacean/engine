@@ -1,1 +1,3 @@
-export { ScreenSpaceAmbientOcclusion, SSAOQuality } from "./ScreenSpaceAmbientOcclusionEffect";
+export { SSAOQuality } from "../enums/SSAOQuality";
+export { ScreenSpaceAmbientOcclusion } from "./ScreenSpaceAmbientOcclusion";
+

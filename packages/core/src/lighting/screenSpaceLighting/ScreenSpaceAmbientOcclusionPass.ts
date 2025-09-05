@@ -7,9 +7,10 @@ import { Blitter } from "../../RenderPipeline/Blitter";
 import { PipelinePass } from "../../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
-import { ScreenSpaceAmbientOcclusion, SSAOQuality } from "./ScreenSpaceAmbientOcclusionEffect";
 import { Vector2, Vector4 } from "@galacean/engine-math";
 import { SystemInfo } from "../../SystemInfo";
+import { SSAOQuality } from "../enums/SSAOQuality";
+import { ScreenSpaceAmbientOcclusion } from "./ScreenSpaceAmbientOcclusion";
 
 /**
  * @internal
