@@ -61,7 +61,7 @@ export class UITransform extends Transform {
   }
 
   /**
-   * Horizontal alignment mode: Left/Center/Right or LeftAndRight (stretch).
+   * Horizontal alignment mode, Left/Center/Right or LeftAndRight (stretch).
    */
   get horizontalAlignment(): HorizontalAlignmentMode {
     return this._horizontalAlignment;
@@ -135,7 +135,7 @@ export class UITransform extends Transform {
   }
 
   /**
-   * Vertical alignment mode: Top/Middle/Bottom or TopAndBottom (stretch).
+   * Vertical alignment mode, Top/Middle/Bottom or TopAndBottom (stretch).
    */
   get verticalAlignment(): VerticalAlignmentMode {
     return this._verticalAlignment;
@@ -321,10 +321,10 @@ export class UITransform extends Transform {
   }
 
   private _calRect(): void {
-    const { size, _pivot: pivot, _rect: rect } = this;
+    const { size, _pivot: pivot } = this;
     const x = -pivot.x * size.x;
     const y = -pivot.y * size.y;
-    rect.set(x, y, size.x, size.y);
+    this._rect.set(x, y, size.x, size.y);
   }
 
   @ignoreClone
