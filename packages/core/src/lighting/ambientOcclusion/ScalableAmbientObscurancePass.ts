@@ -127,7 +127,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     const { camera } = context;
     const { viewport } = camera;
     const scene = camera.scene;
-    const ssaoEffect = scene.ambientOcclusion;
+    const aoEffect = scene.ambientOcclusion;
     const ssaoShaderData = this._ssaoMaterial.shaderData;
     const blurShaderData = this._bilateralBlurMaterial.shaderData;
     const projectionMatrix = context.projectionMatrix;
@@ -144,22 +144,22 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     const position = this._position.set(invProjection0 * 2.0, invProjection1 * 2.0);
     ssaoShaderData.setVector2(AmbientOcclusion._invPositionProp, position);
 
-    if (ssaoEffect?.isValid()) {
-      this._setQuality(blurShaderData, ssaoEffect.quality);
-      const qualityValue = ssaoEffect.quality.toString();
+    if (aoEffect?._isValid()) {
+      this._setQuality(blurShaderData, aoEffect.quality);
+      const qualityValue = aoEffect.quality.toString();
       scene.shaderData.enableMacro("SCENE_ENABLE_SSAO");
       ssaoShaderData.enableMacro("SSAO_QUALITY", qualityValue);
       blurShaderData.enableMacro("SSAO_QUALITY", qualityValue);
 
-      const radius = ssaoEffect.radius;
+      const radius = aoEffect.radius;
       const peak = 0.1 * radius;
-      const intensity = (2 * Math.PI * peak * ssaoEffect.intensity) / this._sampleCount;
-      const bias = ssaoEffect.bias;
-      const power = ssaoEffect.power * 2.0;
+      const intensity = (2 * Math.PI * peak * aoEffect.intensity) / this._sampleCount;
+      const bias = aoEffect.bias;
+      const power = aoEffect.power * 2.0;
       const projectionScaleRadius = radius * projectionMatrix.elements[5];
       const peak2 = peak * peak;
       const invRadiusSquared = 1.0 / (radius * radius);
-      const farPlaneOverEdgeDistance = -camera.farClipPlane / ssaoEffect.bilateralThreshold;
+      const farPlaneOverEdgeDistance = -camera.farClipPlane / aoEffect.bilateralThreshold;
 
       ssaoShaderData.setFloat(AmbientOcclusion._invRadiusSquaredProp, invRadiusSquared);
       ssaoShaderData.setFloat(AmbientOcclusion._intensityProp, intensity);
@@ -168,7 +168,6 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       ssaoShaderData.setFloat(AmbientOcclusion._biasProp, bias);
       ssaoShaderData.setFloat(AmbientOcclusion._peak2Prop, peak2);
       ssaoShaderData.enableMacro(AmbientOcclusion._enableMacro);
-      debugger;
 
       blurShaderData.enableMacro(AmbientOcclusion._enableMacro);
       blurShaderData.setFloat(AmbientOcclusion._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
@@ -182,7 +181,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     const blurTarget = this._blurRenderTarget;
     const ssaoTarget = this._ssaoRenderTarget;
 
-    // draw ambient occlusion texture
+    // Draw ambient occlusion texture
     const sourceTexture = <Texture2D>this._inputRenderTarget.getColorTexture();
     Blitter.blitTexture(engine, sourceTexture, ssaoTarget, 0, viewport, this._ssaoMaterial, 0);
 

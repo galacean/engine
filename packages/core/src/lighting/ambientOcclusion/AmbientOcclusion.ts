@@ -156,7 +156,7 @@ export class AmbientOcclusion {
   /**
    * @internal
    */
-  isValid(): boolean {
+  _isValid(): boolean {
     return this.enabled && this.intensity > 0;
   }
 }
