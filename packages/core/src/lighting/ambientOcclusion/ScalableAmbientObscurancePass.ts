@@ -43,7 +43,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     this._saoMaterial = saoMaterial;
   }
 
-  private _setQuality(blurShaderData: ShaderData, quality: AmbientOcclusionQuality): void {
+  private _updateBlurKernel(blurShaderData: ShaderData, quality: AmbientOcclusionQuality): void {
     if (quality === this._quality) {
       return;
     }
@@ -142,7 +142,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     saoShaderData.setVector2(AmbientOcclusion._invPositionProp, position);
 
     if (aoEffect?._isValid()) {
-      this._setQuality(saoShaderData, aoEffect.quality);
+      this._updateBlurKernel(saoShaderData, aoEffect.quality);
       const qualityValue = aoEffect.quality.toString();
       scene.shaderData.enableMacro("SCENE_ENABLE_SSAO");
       saoShaderData.enableMacro("SSAO_QUALITY", qualityValue);
