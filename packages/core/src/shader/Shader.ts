@@ -115,7 +115,7 @@ export class Shader implements IReferable {
               ?.passes.find((pass) => pass.name === passName);
           }
 
-          const shaderProgramSource = Shader._shaderLab._parseShaderPass(
+          const shaderPassSource = Shader._shaderLab._parseShaderPass(
             passSource.contents,
             passSource.vertexEntry,
             passSource.fragmentEntry,
@@ -123,14 +123,14 @@ export class Shader implements IReferable {
             new URL(fragmentSourceOrPath ?? "", ShaderPass._shaderRootPath).href
           );
 
-          if (!shaderProgramSource) {
+          if (!shaderPassSource) {
             throw `Shader pass "${shaderSource.name}.${subShaderSource.name}.${passSource.name}" parse failed, please check the shader source code.`;
           }
 
           const shaderPass = new ShaderPass(
             passSource.name,
-            shaderProgramSource.vertex,
-            shaderProgramSource.fragment,
+            shaderPassSource.vertex,
+            shaderPassSource.fragment,
             passSource.tags
           );
 

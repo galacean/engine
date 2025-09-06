@@ -1,5 +1,7 @@
 export { ShaderLab } from "./ShaderLab";
 
+export * from "./GSError";
+
 //@ts-ignore
 export const version = `__buildVersion`;
 

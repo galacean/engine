@@ -10,7 +10,6 @@ import { Preprocessor } from "./Preprocessor";
 import { ShaderLabUtils } from "./ShaderLabUtils";
 import { ShaderSourceParser } from "./sourceParser/ShaderSourceParser";
 
-/** @internal */
 export class ShaderLab implements IShaderLab {
   private static _parser = ShaderTargetParser.create();
   private static _shaderPositionPool = ShaderLabUtils.createObjectPool(ShaderPosition);
