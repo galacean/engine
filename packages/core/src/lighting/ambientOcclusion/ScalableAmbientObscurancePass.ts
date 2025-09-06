@@ -14,9 +14,9 @@ import { AmbientOcclusion } from "./AmbientOcclusion";
 
 /**
  * @internal
- * Screen Space Ambient Occlusion render pass.
+ * Scalable Ambient Obscurance render pass.
  */
-export class SSAOPass extends PipelinePass {
+export class ScalableAmbientObscurancePass extends PipelinePass {
   private readonly _ssaoMaterial: Material;
   private readonly _bilateralBlurMaterial: Material;
 

@@ -6,6 +6,7 @@ import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DepthTextureMode } from "../enums/DepthTextureMode";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
+import { ScalableAmbientObscurancePass } from "../lighting/ambientOcclusion/ScalableAmbientObscurancePass";
 import { FinalPass } from "../postProcess";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
@@ -28,8 +29,6 @@ import { DepthOnlyPass } from "./DepthOnlyPass";
 import { OpaqueTexturePass } from "./OpaqueTexturePass";
 import { PipelineUtils } from "./PipelineUtils";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
-import { SSAOPass } from "../lighting/ambientOcclusion/ScreenSpaceAmbientOcclusionPass";
-import { AmbientOcclusion } from "../lighting/ambientOcclusion";
 import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
 import { PipelineStage } from "./enums/PipelineStage";
@@ -46,7 +45,7 @@ export class BasicRenderPipeline {
   private _internalColorTarget: RenderTarget = null;
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
-  private _ssaoPass: SSAOPass;
+  private _ssaoPass: ScalableAmbientObscurancePass;
   private _opaqueTexturePass: OpaqueTexturePass;
   private _finalPass: FinalPass;
   private _copyBackgroundTexture: Texture2D;
@@ -63,7 +62,7 @@ export class BasicRenderPipeline {
     this._cullingResults = new CullingResults();
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
-    this._ssaoPass = new SSAOPass(engine);
+    this._ssaoPass = new ScalableAmbientObscurancePass(engine);
     this._opaqueTexturePass = new OpaqueTexturePass(engine);
     this._finalPass = new FinalPass(engine);
   }
