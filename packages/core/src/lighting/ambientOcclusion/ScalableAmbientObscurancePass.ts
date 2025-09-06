@@ -43,59 +43,20 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     this._saoMaterial = saoMaterial;
   }
 
-  private _updateBlurKernel(blurShaderData: ShaderData, quality: AmbientOcclusionQuality): void {
-    if (quality === this._quality) {
-      return;
-    }
-
-    let sampleCount: number;
-    let standardDeviation: number;
-
-    switch (quality) {
-      case AmbientOcclusionQuality.Low:
-        sampleCount = 7;
-        standardDeviation = 8.0;
-        break;
-      case AmbientOcclusionQuality.Medium:
-        sampleCount = 11;
-        standardDeviation = 8.0;
-        break;
-      case AmbientOcclusionQuality.High:
-        sampleCount = 16;
-        standardDeviation = 6.0;
-        break;
-    }
-    this._sampleCount = sampleCount;
-
-    const kernelArraySize = 16;
-    const gaussianKernel = new Float32Array(kernelArraySize);
-    const variance = 2.0 * standardDeviation * standardDeviation;
-    for (let i = 0; i < sampleCount; i++) {
-      gaussianKernel[i] = Math.exp(-(i * i) / variance);
-    }
-    for (let i = sampleCount; i < kernelArraySize; i++) {
-      gaussianKernel[i] = 0.0;
-    }
-
-    blurShaderData.setFloatArray(AmbientOcclusion._kernelProp, gaussianKernel);
-    this._quality = quality;
-  }
-
   onConfig(camera: Camera, inputRenderTarget: RenderTarget): void {
-    const { pixelViewport } = camera;
     const engine = this.engine;
+    const { width, height } = camera.pixelViewport;
+
     this._inputRenderTarget = inputRenderTarget;
 
-    const textureFormat = SystemInfo.supportsTextureFormat(engine, TextureFormat.R8)
-      ? TextureFormat.R8
-      : TextureFormat.R8G8B8;
+    const format = SystemInfo.supportsTextureFormat(engine, TextureFormat.R8) ? TextureFormat.R8 : TextureFormat.R8G8B8;
 
     this._saoRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
-      this.engine,
+      engine,
       this._saoRenderTarget,
-      pixelViewport.width,
-      pixelViewport.height,
-      textureFormat,
+      width,
+      height,
+      format,
       null,
       false,
       false,
@@ -107,9 +68,9 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     this._blurRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
       engine,
       this._blurRenderTarget,
-      pixelViewport.width,
-      pixelViewport.height,
-      textureFormat,
+      width,
+      height,
+      format,
       null,
       false,
       false,
@@ -149,11 +110,11 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
 
       const radius = aoEffect.radius;
       const peak = 0.1 * radius;
+      const peak2 = peak * peak;
       const intensity = (2 * Math.PI * peak * aoEffect.intensity) / this._sampleCount;
       const bias = aoEffect.bias;
       const power = aoEffect.power * 2.0;
       const projectionScaleRadius = radius * projectionMatrix.elements[5];
-      const peak2 = peak * peak;
       const invRadiusSquared = 1.0 / (radius * radius);
       const farPlaneOverEdgeDistance = -camera.farClipPlane / aoEffect.bilateralThreshold;
 
@@ -207,6 +168,44 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     this._inputRenderTarget = null;
     this._saoMaterial._addReferCount(-1);
     this._saoMaterial.destroy();
+  }
+
+  private _updateBlurKernel(blurShaderData: ShaderData, quality: AmbientOcclusionQuality): void {
+    if (quality === this._quality) {
+      return;
+    }
+
+    let sampleCount: number;
+    let standardDeviation: number;
+
+    switch (quality) {
+      case AmbientOcclusionQuality.Low:
+        sampleCount = 7;
+        standardDeviation = 8.0;
+        break;
+      case AmbientOcclusionQuality.Medium:
+        sampleCount = 11;
+        standardDeviation = 8.0;
+        break;
+      case AmbientOcclusionQuality.High:
+        sampleCount = 16;
+        standardDeviation = 6.0;
+        break;
+    }
+    this._sampleCount = sampleCount;
+
+    const kernelArraySize = 16;
+    const gaussianKernel = new Float32Array(kernelArraySize);
+    const variance = 2.0 * standardDeviation * standardDeviation;
+    for (let i = 0; i < sampleCount; i++) {
+      gaussianKernel[i] = Math.exp(-(i * i) / variance);
+    }
+    for (let i = sampleCount; i < kernelArraySize; i++) {
+      gaussianKernel[i] = 0.0;
+    }
+
+    blurShaderData.setFloatArray(AmbientOcclusion._kernelProp, gaussianKernel);
+    this._quality = quality;
   }
 }
 
