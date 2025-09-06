@@ -17,10 +17,9 @@ import { AmbientOcclusion } from "./AmbientOcclusion";
  * Scalable Ambient Obscurance render pass.
  */
 export class ScalableAmbientObscurancePass extends PipelinePass {
-  private readonly _ssaoMaterial: Material;
-  private readonly _bilateralBlurMaterial: Material;
+  private readonly _saoMaterial: Material;
 
-  private _ssaoRenderTarget?: RenderTarget;
+  private _saoRenderTarget?: RenderTarget;
   private _inputRenderTarget: RenderTarget;
   private _blurRenderTarget: RenderTarget;
 
@@ -35,15 +34,9 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   constructor(engine: Engine) {
     super(engine);
 
-    // Create SSAO material
-    const ssaoMaterial = new Material(engine, Shader.find(AmbientOcclusion.SHADER_NAME));
-    ssaoMaterial._addReferCount(1);
-    this._ssaoMaterial = ssaoMaterial;
-
-    // Bilateral Blur material
-    const bilateralBlurMaterial = new Material(engine, Shader.find(AmbientOcclusion.SHADER_NAME));
-    bilateralBlurMaterial._addReferCount(1);
-    this._bilateralBlurMaterial = bilateralBlurMaterial;
+    const saoMaterial = new Material(engine, Shader.find(AmbientOcclusion.SHADER_NAME));
+    saoMaterial._addReferCount(1);
+    this._saoMaterial = saoMaterial;
   }
 
   private _setQuality(blurShaderData: ShaderData, quality: AmbientOcclusionQuality): void {
@@ -92,9 +85,9 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       ? TextureFormat.R8
       : TextureFormat.R8G8B8;
 
-    this._ssaoRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
+    this._saoRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
       this.engine,
-      this._ssaoRenderTarget,
+      this._saoRenderTarget,
       pixelViewport.width,
       pixelViewport.height,
       textureFormat,
@@ -128,8 +121,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     const { viewport } = camera;
     const scene = camera.scene;
     const aoEffect = scene.ambientOcclusion;
-    const ssaoShaderData = this._ssaoMaterial.shaderData;
-    const blurShaderData = this._bilateralBlurMaterial.shaderData;
+    const ssaoShaderData = this._saoMaterial.shaderData;
     const projectionMatrix = context.projectionMatrix;
 
     // For a typical projection matrix in column-major order:
@@ -145,11 +137,10 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     ssaoShaderData.setVector2(AmbientOcclusion._invPositionProp, position);
 
     if (aoEffect?._isValid()) {
-      this._setQuality(blurShaderData, aoEffect.quality);
+      this._setQuality(ssaoShaderData, aoEffect.quality);
       const qualityValue = aoEffect.quality.toString();
       scene.shaderData.enableMacro("SCENE_ENABLE_SSAO");
       ssaoShaderData.enableMacro("SSAO_QUALITY", qualityValue);
-      blurShaderData.enableMacro("SSAO_QUALITY", qualityValue);
 
       const radius = aoEffect.radius;
       const peak = 0.1 * radius;
@@ -169,41 +160,39 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       ssaoShaderData.setFloat(AmbientOcclusion._peak2Prop, peak2);
       ssaoShaderData.enableMacro(AmbientOcclusion._enableMacro);
 
-      blurShaderData.enableMacro(AmbientOcclusion._enableMacro);
-      blurShaderData.setFloat(AmbientOcclusion._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
+      ssaoShaderData.setFloat(AmbientOcclusion._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
     } else {
       scene.shaderData.disableMacro("SCENE_ENABLE_SSAO");
       ssaoShaderData.disableMacro(AmbientOcclusion._enableMacro);
-      blurShaderData.disableMacro(AmbientOcclusion._enableMacro);
       return;
     }
 
     const blurTarget = this._blurRenderTarget;
-    const ssaoTarget = this._ssaoRenderTarget;
+    const ssaoTarget = this._saoRenderTarget;
 
     // Draw ambient occlusion texture
     const sourceTexture = <Texture2D>this._inputRenderTarget.getColorTexture();
-    Blitter.blitTexture(engine, sourceTexture, ssaoTarget, 0, viewport, this._ssaoMaterial, 0);
+    Blitter.blitTexture(engine, sourceTexture, ssaoTarget, 0, viewport, this._saoMaterial, 0);
 
     // Separable bilateral blur pass
-    const aoTexture = <Texture2D>this._ssaoRenderTarget.getColorTexture();
+    const aoTexture = <Texture2D>this._saoRenderTarget.getColorTexture();
     // Horizontal blur: ssaoRenderTarget -> blurRenderTarget
     const offsetX = this._offsetX.set(1, 1, 1 / aoTexture.width, 0);
     const offsetY = this._offsetY.set(1, 1, 0, 1 / aoTexture.height);
-    Blitter.blitTexture(engine, aoTexture, blurTarget, 0, viewport, this._bilateralBlurMaterial, 1, offsetX);
+    Blitter.blitTexture(engine, aoTexture, blurTarget, 0, viewport, this._saoMaterial, 1, offsetX);
     // Vertical blur: blurRenderTarget -> ssaoRenderTarget
     const horizontalBlur = <Texture2D>this._blurRenderTarget.getColorTexture();
-    Blitter.blitTexture(engine, horizontalBlur, ssaoTarget, 0, viewport, this._bilateralBlurMaterial, 1, offsetY);
+    Blitter.blitTexture(engine, horizontalBlur, ssaoTarget, 0, viewport, this._saoMaterial, 1, offsetY);
 
     // Set the SSAO texture
     camera.shaderData.setTexture(Camera._cameraSSAOTextureProperty, aoTexture);
   }
 
   release(): void {
-    if (this._ssaoRenderTarget) {
-      this._ssaoRenderTarget.getColorTexture(0)?.destroy(true);
-      this._ssaoRenderTarget.destroy(true);
-      this._ssaoRenderTarget = null;
+    if (this._saoRenderTarget) {
+      this._saoRenderTarget.getColorTexture(0)?.destroy(true);
+      this._saoRenderTarget.destroy(true);
+      this._saoRenderTarget = null;
     }
     if (this._blurRenderTarget) {
       this._blurRenderTarget.getColorTexture(0)?.destroy(true);
@@ -212,9 +201,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     }
     this._kernel = null;
     this._inputRenderTarget = null;
-    this._ssaoMaterial._addReferCount(-1);
-    this._ssaoMaterial.destroy();
-    this._bilateralBlurMaterial._addReferCount(-1);
-    this._bilateralBlurMaterial.destroy();
+    this._saoMaterial._addReferCount(-1);
+    this._saoMaterial.destroy();
   }
 }
