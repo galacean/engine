@@ -1,14 +1,14 @@
+import { Vector2, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../../Camera";
 import { Engine } from "../../Engine";
 import { Material } from "../../material";
-import { Shader, ShaderData } from "../../shader";
-import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../../texture";
 import { Blitter } from "../../RenderPipeline/Blitter";
 import { PipelinePass } from "../../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
-import { Vector2, Vector4 } from "@galacean/engine-math";
+import { Shader, ShaderData } from "../../shader";
 import { SystemInfo } from "../../SystemInfo";
+import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../../texture";
 import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
 import { AmbientOcclusion } from "./AmbientOcclusion";
 
@@ -24,12 +24,12 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   private _inputRenderTarget: RenderTarget;
   private _blurRenderTarget: RenderTarget;
 
-  private _sampleCount: number = 7;
+  private _sampleCount = 7;
   private _position = new Vector2();
   private _offsetX = new Vector4();
   private _offsetY = new Vector4();
 
-  private _quality: AmbientOcclusionQuality = AmbientOcclusionQuality.Low;
+  private _quality = AmbientOcclusionQuality.Low;
   private _kernel: Float32Array = null;
 
   constructor(engine: Engine) {
@@ -40,22 +40,10 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     ssaoMaterial._addReferCount(1);
     this._ssaoMaterial = ssaoMaterial;
 
-    //Bilateral Blur material
+    // Bilateral Blur material
     const bilateralBlurMaterial = new Material(engine, Shader.find(AmbientOcclusion.SHADER_NAME));
     bilateralBlurMaterial._addReferCount(1);
     this._bilateralBlurMaterial = bilateralBlurMaterial;
-
-    // ShaderData initialization
-    const ssaoShaderData = this._ssaoMaterial.shaderData;
-
-    const radius = 0.5;
-    const defaultPower = 1.0;
-    const peak = 0.1 * radius;
-    const intensity = (2 * Math.PI * peak) / this._sampleCount;
-    ssaoShaderData.setFloat(AmbientOcclusion._invRadiusSquaredProp, 1.0 / (radius * radius));
-    ssaoShaderData.setFloat(AmbientOcclusion._intensityProp, intensity);
-    ssaoShaderData.setFloat(AmbientOcclusion._powerProp, defaultPower * 2.0);
-    ssaoShaderData.setFloat(AmbientOcclusion._peak2Prop, peak * peak);
   }
 
   private _setQuality(blurShaderData: ShaderData, quality: AmbientOcclusionQuality): void {
@@ -180,6 +168,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       ssaoShaderData.setFloat(AmbientOcclusion._biasProp, bias);
       ssaoShaderData.setFloat(AmbientOcclusion._peak2Prop, peak2);
       ssaoShaderData.enableMacro(AmbientOcclusion._enableMacro);
+      debugger;
 
       blurShaderData.enableMacro(AmbientOcclusion._enableMacro);
       blurShaderData.setFloat(AmbientOcclusion._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
