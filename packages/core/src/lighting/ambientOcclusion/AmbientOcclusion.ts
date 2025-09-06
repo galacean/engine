@@ -1,34 +1,9 @@
-import { ShaderMacro, ShaderProperty } from "../../shader";
 import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
 
 /**
  * Ambient Occlusion effect configuration.
  */
 export class AmbientOcclusion {
-  // Shader properties for ambient occlusion calculation
-  /** @internal */
-  static _invRadiusSquaredProp = ShaderProperty.getByName("material_invRadiusSquared");
-  /** @internal */
-  static _intensityProp = ShaderProperty.getByName("material_intensity");
-  /** @internal */
-  static _projectionScaleRadiusProp = ShaderProperty.getByName("material_projectionScaleRadius");
-  /** @internal */
-  static _biasProp = ShaderProperty.getByName("material_bias");
-  /** @internal */
-  static _minHorizonAngleSineSquaredProp = ShaderProperty.getByName("material_minHorizonAngleSineSquared");
-  /** @internal */
-  static _peak2Prop = ShaderProperty.getByName("material_peak2");
-  /** @internal */
-  static _powerProp = ShaderProperty.getByName("material_power");
-  /** @internal */
-  static _invPositionProp = ShaderProperty.getByName("material_invProjScaleXY");
-
-  // Shader properties for bilateral blur
-  /** @internal */
-  static _farPlaneOverEdgeDistanceProp = ShaderProperty.getByName("material_farPlaneOverEdgeDistance");
-  /** @internal */
-  static _kernelProp = ShaderProperty.getByName("material_kernel");
-
   private _enabled = false;
   private _quality = AmbientOcclusionQuality.Low;
   private _radius = 0.5;

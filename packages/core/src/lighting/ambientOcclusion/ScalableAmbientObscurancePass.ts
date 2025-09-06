@@ -7,12 +7,11 @@ import { PipelinePass } from "../../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { Scene } from "../../Scene";
-import { Shader, ShaderData, ShaderPass } from "../../shader";
+import { Shader, ShaderData, ShaderPass, ShaderProperty } from "../../shader";
 import blitVs from "../../shaderlib/extra/Blit.vs.glsl";
 import { SystemInfo } from "../../SystemInfo";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../../texture";
 import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
-import { AmbientOcclusion } from "./AmbientOcclusion";
 import bilateralBlurFS from "./shaders/Blur/BilateralBlur.glsl";
 import scalableAmbientOcclusionFS from "./shaders/ScalableAmbientOcclusion.glsl";
 
@@ -22,6 +21,19 @@ import scalableAmbientOcclusionFS from "./shaders/ScalableAmbientOcclusion.glsl"
  */
 export class ScalableAmbientObscurancePass extends PipelinePass {
   static readonly SHADER_NAME = "ScalableAmbientOcclusion";
+
+  private static _invRadiusSquaredProp = ShaderProperty.getByName("material_invRadiusSquared");
+  private static _intensityProp = ShaderProperty.getByName("material_intensity");
+  private static _projectionScaleRadiusProp = ShaderProperty.getByName("material_projectionScaleRadius");
+  private static _biasProp = ShaderProperty.getByName("material_bias");
+  private static _minHorizonAngleSineSquaredProp = ShaderProperty.getByName("material_minHorizonAngleSineSquared");
+  private static _peak2Prop = ShaderProperty.getByName("material_peak2");
+  private static _powerProp = ShaderProperty.getByName("material_power");
+  private static _invPositionProp = ShaderProperty.getByName("material_invProjScaleXY");
+
+  // Shader properties for bilateral blur
+  private static _farPlaneOverEdgeDistanceProp = ShaderProperty.getByName("material_farPlaneOverEdgeDistance");
+  private static _kernelProp = ShaderProperty.getByName("material_kernel");
 
   private readonly _material: Material;
 
@@ -33,7 +45,6 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   private _position = new Vector2();
   private _offsetX = new Vector4();
   private _offsetY = new Vector4();
-
   private _quality: AmbientOcclusionQuality;
 
   constructor(engine: Engine) {
@@ -98,7 +109,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     const invProjection1 = 1.0 / projectionMatrix.elements[5];
 
     const position = this._position.set(invProjection0 * 2.0, invProjection1 * 2.0);
-    shaderData.setVector2(AmbientOcclusion._invPositionProp, position);
+    shaderData.setVector2(ScalableAmbientObscurancePass._invPositionProp, position);
 
     if (ambientOcclusion?._isValid()) {
       scene.shaderData.enableMacro(Scene._ambientOcclusionMacro);
@@ -116,14 +127,14 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       const invRadiusSquared = 1.0 / (radius * radius);
       const farPlaneOverEdgeDistance = -camera.farClipPlane / ambientOcclusion.bilateralThreshold;
 
-      shaderData.setFloat(AmbientOcclusion._invRadiusSquaredProp, invRadiusSquared);
-      shaderData.setFloat(AmbientOcclusion._intensityProp, intensity);
-      shaderData.setFloat(AmbientOcclusion._powerProp, power);
-      shaderData.setFloat(AmbientOcclusion._projectionScaleRadiusProp, projectionScaleRadius);
-      shaderData.setFloat(AmbientOcclusion._biasProp, bias);
-      shaderData.setFloat(AmbientOcclusion._peak2Prop, peak2);
+      shaderData.setFloat(ScalableAmbientObscurancePass._invRadiusSquaredProp, invRadiusSquared);
+      shaderData.setFloat(ScalableAmbientObscurancePass._intensityProp, intensity);
+      shaderData.setFloat(ScalableAmbientObscurancePass._powerProp, power);
+      shaderData.setFloat(ScalableAmbientObscurancePass._projectionScaleRadiusProp, projectionScaleRadius);
+      shaderData.setFloat(ScalableAmbientObscurancePass._biasProp, bias);
+      shaderData.setFloat(ScalableAmbientObscurancePass._peak2Prop, peak2);
 
-      shaderData.setFloat(AmbientOcclusion._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
+      shaderData.setFloat(ScalableAmbientObscurancePass._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
 
       const { _saoRenderTarget: saoTarget, _material: material } = this;
 
@@ -199,7 +210,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       gaussianKernel[i] = 0.0;
     }
 
-    blurShaderData.setFloatArray(AmbientOcclusion._kernelProp, gaussianKernel);
+    blurShaderData.setFloatArray(ScalableAmbientObscurancePass._kernelProp, gaussianKernel);
     this._quality = quality;
   }
 }
