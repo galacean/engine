@@ -6,6 +6,7 @@ import { Blitter } from "../../RenderPipeline/Blitter";
 import { PipelinePass } from "../../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
+import { Scene } from "../../Scene";
 import { Shader, ShaderData, ShaderPass } from "../../shader";
 import blitVs from "../../shaderlib/extra/Blit.vs.glsl";
 import { SystemInfo } from "../../SystemInfo";
@@ -44,7 +45,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   }
 
   onConfig(camera: Camera, inputRenderTarget: RenderTarget): void {
-    const engine = this.engine;
+    const { engine } = this;
     const { width, height } = camera.pixelViewport;
 
     this._inputRenderTarget = inputRenderTarget;
@@ -84,52 +85,47 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   override onRender(context: RenderContext): void {
     const { engine } = this;
     const { camera } = context;
-    const { viewport } = camera;
-    const scene = camera.scene;
-    const aoEffect = scene.ambientOcclusion;
-    const saoShaderData = this._saoMaterial.shaderData;
-    const projectionMatrix = context.projectionMatrix;
+    const { viewport, scene } = camera;
+    const { ambientOcclusion } = scene;
+    const { shaderData } = this._saoMaterial;
+    const { projectionMatrix } = context;
 
     // For a typical projection matrix in column-major order:
     // projection[0][0] is at index 0 (X scaling)
     // projection[1][1] is at index 5 (Y scaling)
     // The inverse values we need are:
-    // invProjection[0][0] = 1 / projection[0][0]
-    // invProjection[1][1] = 1 / projection[1][1]
-    const invProjection0 = 1.0 / projectionMatrix.elements[0]; // 1 / projection[0][0]
-    const invProjection1 = 1.0 / projectionMatrix.elements[5]; // 1 / projection[1][1]
+    const invProjection0 = 1.0 / projectionMatrix.elements[0];
+    const invProjection1 = 1.0 / projectionMatrix.elements[5];
 
     const position = this._position.set(invProjection0 * 2.0, invProjection1 * 2.0);
-    saoShaderData.setVector2(AmbientOcclusion._invPositionProp, position);
+    shaderData.setVector2(AmbientOcclusion._invPositionProp, position);
 
-    if (aoEffect?._isValid()) {
-      this._updateBlurKernel(saoShaderData, aoEffect.quality);
-      const qualityValue = aoEffect.quality.toString();
-      scene.shaderData.enableMacro("SCENE_ENABLE_SSAO");
-      saoShaderData.enableMacro("SSAO_QUALITY", qualityValue);
+    if (ambientOcclusion?._isValid()) {
+      this._updateBlurKernel(shaderData, ambientOcclusion.quality);
+      const qualityValue = ambientOcclusion.quality.toString();
+      scene.shaderData.enableMacro(Scene._ambientOcclusionMacro);
+      shaderData.enableMacro("SSAO_QUALITY", qualityValue);
 
-      const radius = aoEffect.radius;
+      const radius = ambientOcclusion.radius;
       const peak = 0.1 * radius;
       const peak2 = peak * peak;
-      const intensity = (2 * Math.PI * peak * aoEffect.intensity) / this._sampleCount;
-      const bias = aoEffect.bias;
-      const power = aoEffect.power * 2.0;
+      const intensity = (2 * Math.PI * peak * ambientOcclusion.intensity) / this._sampleCount;
+      const bias = ambientOcclusion.bias;
+      const power = ambientOcclusion.power * 2.0;
       const projectionScaleRadius = radius * projectionMatrix.elements[5];
       const invRadiusSquared = 1.0 / (radius * radius);
-      const farPlaneOverEdgeDistance = -camera.farClipPlane / aoEffect.bilateralThreshold;
+      const farPlaneOverEdgeDistance = -camera.farClipPlane / ambientOcclusion.bilateralThreshold;
 
-      saoShaderData.setFloat(AmbientOcclusion._invRadiusSquaredProp, invRadiusSquared);
-      saoShaderData.setFloat(AmbientOcclusion._intensityProp, intensity);
-      saoShaderData.setFloat(AmbientOcclusion._powerProp, power);
-      saoShaderData.setFloat(AmbientOcclusion._projectionScaleRadiusProp, projectionScaleRadius);
-      saoShaderData.setFloat(AmbientOcclusion._biasProp, bias);
-      saoShaderData.setFloat(AmbientOcclusion._peak2Prop, peak2);
-      saoShaderData.enableMacro(AmbientOcclusion._enableMacro);
+      shaderData.setFloat(AmbientOcclusion._invRadiusSquaredProp, invRadiusSquared);
+      shaderData.setFloat(AmbientOcclusion._intensityProp, intensity);
+      shaderData.setFloat(AmbientOcclusion._powerProp, power);
+      shaderData.setFloat(AmbientOcclusion._projectionScaleRadiusProp, projectionScaleRadius);
+      shaderData.setFloat(AmbientOcclusion._biasProp, bias);
+      shaderData.setFloat(AmbientOcclusion._peak2Prop, peak2);
 
-      saoShaderData.setFloat(AmbientOcclusion._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
+      shaderData.setFloat(AmbientOcclusion._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
     } else {
-      scene.shaderData.disableMacro("SCENE_ENABLE_SSAO");
-      saoShaderData.disableMacro(AmbientOcclusion._enableMacro);
+      scene.shaderData.disableMacro(Scene._ambientOcclusionMacro);
       return;
     }
 

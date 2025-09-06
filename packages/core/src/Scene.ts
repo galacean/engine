@@ -13,7 +13,7 @@ import { AmbientLight } from "./lighting/AmbientLight";
 import { LightManager } from "./lighting/LightManager";
 import { PhysicsScene } from "./physics/PhysicsScene";
 import { PostProcessManager } from "./postProcess";
-import { ShaderProperty } from "./shader";
+import { ShaderMacro, ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
@@ -24,6 +24,9 @@ import { ShadowType } from "./shadow/enum/ShadowType";
  * Scene.
  */
 export class Scene extends EngineObject {
+  /** @internal */
+  static _ambientOcclusionMacro = ShaderMacro.getByName("SCENE_ENABLE_SSAO");
+
   private static _fogColorProperty = ShaderProperty.getByName("scene_FogColor");
   private static _fogParamsProperty = ShaderProperty.getByName("scene_FogParams");
   private static _prefilterdDFGProperty = ShaderProperty.getByName("scene_PrefilteredDFG");

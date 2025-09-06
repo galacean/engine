@@ -29,10 +29,6 @@ export class AmbientOcclusion {
   /** @internal */
   static _kernelProp = ShaderProperty.getByName("material_kernel");
 
-  // Shader macros
-  /** @internal */
-  static _enableMacro = ShaderMacro.getByName("SCENE_ENABLE_SSAO");
-
   private _enabled = false;
   private _quality = AmbientOcclusionQuality.Low;
   private _radius = 0.5;
