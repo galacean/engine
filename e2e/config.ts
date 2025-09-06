@@ -237,7 +237,7 @@ export const E2E_CONFIG = {
       caseFileName: "particleRenderer-dream",
       threshold: 0.1
     },
-     particleFire: {
+    particleFire: {
       category: "Particle",
       caseFileName: "particleRenderer-fire",
       threshold: 0.1

@@ -1,4 +1,4 @@
-import { ExpandSegment } from "./PpParser";
+import { ExpandSegment } from "./MacroParser";
 // #if _VERBOSE
 import PpSourceMap, { MapRange } from "./sourceMap";
 // #endif

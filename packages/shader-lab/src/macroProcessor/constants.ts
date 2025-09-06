@@ -1,4 +1,4 @@
-export enum PpToken {
+export enum MacroParserToken {
   id,
   line_remain,
   chunk,
@@ -42,7 +42,7 @@ export enum PpToken {
   EOF = 100
 }
 
-export enum PpKeyword {
+export enum MacroParserKeyword {
   define = 101,
   undef,
   if,
@@ -51,9 +51,8 @@ export enum PpKeyword {
   else,
   elif,
   endif,
-  include,
 
   defined
 }
 
-export type PpConstant = boolean | number;
+export type MacroParserConstant = boolean | number;

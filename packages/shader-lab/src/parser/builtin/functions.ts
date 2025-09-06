@@ -1,6 +1,6 @@
 import { GalaceanDataType, TypeAny } from "../../common";
-import { EShaderStage } from "../../common/Enums";
 import { Keyword } from "../../common/enums/Keyword";
+import { EShaderStage } from "../../common/enums/ShaderStage";
 
 export enum EGenType {
   GenType = 200,
@@ -97,6 +97,10 @@ export class BuiltinFunction {
         }
       }
     }
+  }
+
+  static isExist(ident: string) {
+    return !!BuiltinFunctionTable.get(ident);
   }
 }
 
@@ -301,6 +305,7 @@ BuiltinFunction._create("texture2DLodEXT", EGenType.GVec4, EGenType.GSampler3D, 
 
 BuiltinFunction._create("textureCube", Keyword.SAMPLER_CUBE, Keyword.VEC3);
 BuiltinFunction._create("textureCube", Keyword.SAMPLER_CUBE, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("textureCube", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
 BuiltinFunction._create("textureCubeLod", Keyword.SAMPLER_CUBE, Keyword.VEC3, Keyword.FLOAT);
 BuiltinFunction._create("textureCubeLodEXT", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
 

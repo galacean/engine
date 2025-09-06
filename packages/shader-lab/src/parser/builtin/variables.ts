@@ -1,6 +1,6 @@
 import { GalaceanDataType } from "../../common";
-import { EShaderStage } from "../../common/Enums";
 import { Keyword } from "../../common/enums/Keyword";
+import { EShaderStage } from "../../common/enums/ShaderStage";
 
 export const BuiltinVariableTable: Map<string, BuiltinVariable> = new Map();
 
@@ -20,7 +20,7 @@ export class BuiltinVariable {
     BuiltinVariableTable.set(lexeme, item);
   }
 
-  static getVar(ident: string) {
+  static getVar(ident: string): BuiltinVariable {
     return BuiltinVariableTable.get(ident);
   }
 }

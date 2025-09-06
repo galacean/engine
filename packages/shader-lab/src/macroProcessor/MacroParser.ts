@@ -1,14 +1,13 @@
+import { ShaderMacro } from "@galacean/engine";
 import { ShaderPosition, ShaderRange } from "../common";
 import { BaseToken } from "../common/BaseToken";
-import { ShaderLab } from "../ShaderLab";
-import { PpConstant, PpKeyword, PpToken } from "./constants";
-import { MacroDefine } from "./MacroDefine";
-import PpLexer from "./PpLexer";
-import { PpUtils } from "./Utils";
-// @ts-ignore
-import { ShaderLib, ShaderMacro, ShaderPass } from "@galacean/engine";
 import { GSErrorName } from "../GSError";
+import { ShaderLab } from "../ShaderLab";
 import { ShaderLabUtils } from "../ShaderLabUtils";
+import { MacroParserConstant, MacroParserKeyword, MacroParserToken } from "./constants";
+import { MacroDefine } from "./MacroDefine";
+import MacroParserLexer from "./MacroParserLexer";
+import { PpUtils } from "./Utils";
 // #if _VERBOSE
 import PpSourceMap, { BlockInfo } from "./sourceMap";
 // #endif
@@ -23,17 +22,11 @@ export interface ExpandSegment {
 }
 
 /** @internal */
-export class PpParser {
-  static lexer: PpLexer;
+export class MacroParser {
+  static lexer: MacroParserLexer;
 
   private static _definedMacros: Map<string, MacroDefine> = new Map();
   private static _expandSegmentsStack: ExpandSegment[][] = [[]];
-
-  /** Referenced by branch macro or defined operator */
-  private static _branchMacros: Set<string> = new Set();
-
-  private static _includeMap: Record<string, string>;
-  private static _basePathForIncludeKey: string;
 
   private static _expandVisitedMacros: Record<string, number> = {};
   private static _expandVersionId: number = 1;
@@ -42,76 +35,63 @@ export class PpParser {
   static _errors: Error[] = [];
   // #endif
 
-  static parse(
-    source: string,
-    macros: ShaderMacro[],
-    platformMacros: string[],
-    basePathForIncludeKey: string
-  ): string | null {
-    PpParser._reset(ShaderLib, basePathForIncludeKey);
+  static parse(source: string, macros: ShaderMacro[]): string | null {
+    MacroParser._reset();
 
     for (const macro of macros) {
-      PpParser._addPredefinedMacro(macro.name, macro.value);
+      MacroParser._addPredefinedMacro(macro.name, macro.value);
     }
 
-    for (let i = 0, n = platformMacros.length; i < n; i++) {
-      PpParser._addPredefinedMacro(platformMacros[i]);
-    }
-
-    this.lexer = new PpLexer(source);
-    return PpParser._parseDirectives(this.lexer);
+    this.lexer = new MacroParserLexer(source);
+    return MacroParser._parseDirectives(this.lexer);
   }
 
-  private static _reset(includeMap: Record<string, string>, basePathForIncludeKey: string) {
-    this._definedMacros.clear();
+  private static _reset() {
     this._expandSegmentsStack.length = 0;
     this._expandSegmentsStack.push([]);
-    this._branchMacros.clear();
+
+    this._definedMacros.clear();
     this._addPredefinedMacro("GL_ES");
-    this._includeMap = includeMap;
-    this._basePathForIncludeKey = basePathForIncludeKey;
+
     // #if _VERBOSE
     this._errors.length = 0;
     // #endif
   }
 
   private static _addPredefinedMacro(macro: string, value?: string) {
-    const tk = BaseToken.pool.get();
-    tk.set(PpToken.id, macro);
+    const token = BaseToken.pool.get();
+    token.set(MacroParserToken.id, macro);
 
     let macroBody: BaseToken | undefined;
-    if (value) {
+    if (value != undefined) {
       macroBody = BaseToken.pool.get();
-      macroBody.set(PpToken.id, value);
+      macroBody.set(MacroParserToken.id, value);
     }
 
-    this._definedMacros.set(macro, new MacroDefine(tk, macroBody));
+    this._definedMacros.set(macro, new MacroDefine(token, macroBody));
   }
 
-  private static _parseDirectives(lexer: PpLexer): string | null {
+  private static _parseDirectives(lexer: MacroParserLexer): string | null {
     let directive: BaseToken | undefined;
-    while (directive = lexer.scanToken()) {
+    while ((directive = lexer.scanToken())) {
       switch (directive.type) {
-        case PpToken.id:
+        case MacroParserToken.id:
           this._parseMacro(lexer, directive);
           break;
-        case PpKeyword.define:
+        case MacroParserKeyword.define:
           this._parseDefine(lexer);
           break;
-        case PpKeyword.undef:
+        case MacroParserKeyword.undef:
           this._parseUndef(lexer);
           break;
-        case PpKeyword.if:
-          this._parseIfDirective(lexer, PpKeyword.if);
+        case MacroParserKeyword.if:
+          this._parseIfDirective(lexer, MacroParserKeyword.if);
           break;
-        case PpKeyword.ifndef:
-          this._parseIfDirective(lexer, PpKeyword.ifndef);
+        case MacroParserKeyword.ifndef:
+          this._parseIfDirective(lexer, MacroParserKeyword.ifndef);
           break;
-        case PpKeyword.ifdef:
-          this._parseIfDirective(lexer, PpKeyword.ifdef);
-          break;
-        case PpKeyword.include:
-          this._parseInclude(lexer);
+        case MacroParserKeyword.ifdef:
+          this._parseIfDirective(lexer, MacroParserKeyword.ifdef);
           break;
       }
     }
@@ -126,60 +106,41 @@ export class PpParser {
     return this._expandSegmentsStack[this._expandSegmentsStack.length - 1];
   }
 
-  private static _reportError(loc: ShaderRange | ShaderPosition, message: string, source: string, file: string) {
+  private static _reportError(loc: ShaderRange | ShaderPosition, message: string, source: string, file?: string) {
     const error = ShaderLabUtils.createGSError(message, GSErrorName.PreprocessorError, source, loc, file);
     // #if _VERBOSE
     this._errors.push(error);
     // #endif
   }
 
-  private static _parseInclude(lexer: PpLexer): void {
-    const start = lexer.getShaderPosition(8);
-
-    lexer.skipSpace(true);
-    const pathToken = lexer.scanQuotedString();
-    let path: string;
-    // builtin path
-    if (pathToken.lexeme[0] !== ".") {
-      path = pathToken.lexeme;
-    } else {
-      // relative path
-      // @ts-ignore
-      path = new URL(pathToken.lexeme, this._basePathForIncludeKey).href.substring(ShaderPass._shaderRootPath.length);
-    }
-
-    lexer.scanToChar("\n");
-    const end = lexer.getShaderPosition(0);
-    const chunk = this._includeMap[path];
-    if (!chunk) {
-      this._reportError(pathToken.location, `Shader slice "${path}" not founded.`, lexer.source, lexer.file);
-      return;
-    }
-
-    const range = ShaderLab.createRange(start, end);
-    const expanded = this._expandMacroChunk(chunk, range, pathToken.lexeme);
-    this._addContentReplace(pathToken.lexeme, start, end, expanded.content, undefined, expanded.sourceMap);
-  }
-
-  private static _parseIfDirective(lexer: PpLexer, directiveType: PpKeyword): void {
-    const directiveLength = directiveType === PpKeyword.if ? 3 : directiveType === PpKeyword.ifdef ? 6 : 7; // #if = 3,  #ifdef = 6, #ifndef = 7
+  private static _parseIfDirective(lexer: MacroParserLexer, directiveType: MacroParserKeyword): void {
+    const directiveLength =
+      directiveType === MacroParserKeyword.if ? 3 : directiveType === MacroParserKeyword.ifdef ? 6 : 7; // #if = 3,  #ifdef = 6, #ifndef = 7
     const start = lexer.currentIndex - directiveLength;
+    let skipMacro = false;
 
-    let shouldInclude: PpConstant;
-    if (directiveType === PpKeyword.if) {
+    let shouldInclude: MacroParserConstant;
+    if (directiveType === MacroParserKeyword.if) {
       shouldInclude = this._parseConstantExpression(lexer);
     } else {
       const macroToken = lexer.scanWord();
-      this._branchMacros.add(macroToken.lexeme);
-      const defined = this._definedMacros.get(macroToken.lexeme);
-      shouldInclude = directiveType === PpKeyword.ifdef ? !!defined : !defined;
+      const lexeme = macroToken.lexeme;
+      if (lexeme.startsWith("GL_")) {
+        skipMacro = true;
+      } else {
+        const defined = this._definedMacros.get(lexeme);
+        shouldInclude = directiveType === MacroParserKeyword.ifdef ? !!defined : !defined;
+      }
     }
 
     lexer.skipSpace(true);
     const { body, nextDirective } = lexer.scanMacroBranchBody();
 
+    if (skipMacro) return;
+
     if (shouldInclude) {
-      const end = nextDirective.type === PpKeyword.endif ? lexer.getShaderPosition(0) : lexer.scanRemainMacro();
+      const end =
+        nextDirective.type === MacroParserKeyword.endif ? lexer.getShaderPosition(0) : lexer.scanRemainMacro();
       const expanded = this._expandMacroChunk(body.lexeme, body.location, lexer);
       this._addContentReplace(
         lexer.file,
@@ -196,16 +157,16 @@ export class PpParser {
   }
 
   private static _processConditionalDirective(
-    directive: PpKeyword.elif | PpKeyword.else | PpKeyword.endif,
-    scanner: PpLexer
+    directive: MacroParserKeyword.elif | MacroParserKeyword.else | MacroParserKeyword.endif,
+    scanner: MacroParserLexer
   ) {
-    if (directive === PpKeyword.endif) {
+    if (directive === MacroParserKeyword.endif) {
       return;
     }
 
     const start = scanner.currentIndex;
 
-    if (directive === PpKeyword.else) {
+    if (directive === MacroParserKeyword.else) {
       const { body } = scanner.scanMacroBranchBody();
       const expanded = this._expandMacroChunk(body.lexeme, body.location, scanner);
       this._addContentReplace(
@@ -216,11 +177,12 @@ export class PpParser {
         scanner.blockRange,
         expanded.sourceMap
       );
-    } else if (directive === PpKeyword.elif) {
+    } else if (directive === MacroParserKeyword.elif) {
       const constantExpr = this._parseConstantExpression(scanner);
       const { body, nextDirective } = scanner.scanMacroBranchBody();
       if (constantExpr) {
-        const end = nextDirective.type === PpKeyword.endif ? scanner.currentIndex : scanner.scanRemainMacro().index;
+        const end =
+          nextDirective.type === MacroParserKeyword.endif ? scanner.currentIndex : scanner.scanRemainMacro().index;
         const expanded = this._expandMacroChunk(body.lexeme, body.location, scanner);
         this._addContentReplace(
           scanner.file,
@@ -243,12 +205,12 @@ export class PpParser {
     }
   }
 
-  private static _parseConstantExpression(scanner: PpLexer): PpConstant {
+  private static _parseConstantExpression(scanner: MacroParserLexer): MacroParserConstant {
     scanner.skipSpace(true);
     return this._parseLogicalOrExpression(scanner);
   }
 
-  private static _parseLogicalOrExpression(scanner: PpLexer): PpConstant {
+  private static _parseLogicalOrExpression(scanner: MacroParserLexer): MacroParserConstant {
     const operand1 = this._parseLogicalAndExpression(scanner);
     const operator = scanner.peek(2);
     if (operator && operator === "||") {
@@ -260,7 +222,7 @@ export class PpParser {
     return operand1;
   }
 
-  private static _parseLogicalAndExpression(scanner: PpLexer): PpConstant {
+  private static _parseLogicalAndExpression(scanner: MacroParserLexer): MacroParserConstant {
     const operand1 = this._parseEqualityExpression(scanner);
     const operator = scanner.peek(2);
     if (operator && operator === "&&") {
@@ -272,7 +234,7 @@ export class PpParser {
     return operand1;
   }
 
-  private static _parseEqualityExpression(scanner: PpLexer): PpConstant {
+  private static _parseEqualityExpression(scanner: MacroParserLexer): MacroParserConstant {
     const operand1 = this._parseRelationalExpression(scanner);
     const operator = scanner.peek(2);
     if (operator && ["==", "!="].includes(operator)) {
@@ -289,7 +251,7 @@ export class PpParser {
     return operand1;
   }
 
-  private static _parseRelationalExpression(scanner: PpLexer): PpConstant {
+  private static _parseRelationalExpression(scanner: MacroParserLexer): MacroParserConstant {
     const operand1 = this._parseShiftExpression(scanner) as number;
     let operator = scanner.peek(2);
     if (operator[1] !== "=") operator = operator[0];
@@ -316,7 +278,7 @@ export class PpParser {
     return operand1;
   }
 
-  private static _parseShiftExpression(scanner: PpLexer): PpConstant {
+  private static _parseShiftExpression(scanner: MacroParserLexer): MacroParserConstant {
     const operand1 = this._parseAdditiveExpression(scanner) as number;
     const operator = scanner.peek(2);
     if (operator && [">>", "<<"].includes(operator)) {
@@ -339,7 +301,7 @@ export class PpParser {
     return operand1;
   }
 
-  private static _parseAdditiveExpression(scanner: PpLexer): PpConstant {
+  private static _parseAdditiveExpression(scanner: MacroParserLexer): MacroParserConstant {
     const operand1 = this._parseMulticativeExpression(scanner) as number;
     if ([">", "<"].includes(scanner.getCurChar())) {
       const opPos = scanner.getShaderPosition(0);
@@ -362,7 +324,7 @@ export class PpParser {
     return operand1;
   }
 
-  private static _parseMulticativeExpression(scanner: PpLexer): PpConstant {
+  private static _parseMulticativeExpression(scanner: MacroParserLexer): MacroParserConstant {
     const operand1 = this._parseUnaryExpression(scanner) as number;
     scanner.skipSpace(false);
     if (["*", "/", "%"].includes(scanner.getCurChar())) {
@@ -386,11 +348,12 @@ export class PpParser {
     return operand1;
   }
 
-  private static _parseUnaryExpression(scanner: PpLexer) {
+  private static _parseUnaryExpression(scanner: MacroParserLexer) {
     const operator = scanner.getCurChar();
     if (["+", "-", "!"].includes(operator)) {
-      scanner.advance(1);
       const opPos = scanner.getShaderPosition(0);
+      scanner.advance(1);
+      scanner.skipSpace(false);
       const parenExpr = this._parseParenthesisExpression(scanner);
       if ((operator === "!" && typeof parenExpr !== "boolean") || (operator !== "!" && typeof parenExpr !== "number")) {
         this._reportError(opPos, "invalid operator.", scanner.source, scanner.file);
@@ -408,7 +371,7 @@ export class PpParser {
     return this._parseParenthesisExpression(scanner);
   }
 
-  private static _parseParenthesisExpression(scanner: PpLexer): PpConstant {
+  private static _parseParenthesisExpression(scanner: MacroParserLexer): MacroParserConstant {
     if (scanner.getCurChar() === "(") {
       scanner.advance(1);
       scanner.skipSpace(false);
@@ -420,23 +383,28 @@ export class PpParser {
     return this._parseConstant(scanner);
   }
 
-  private static _parseConstant(scanner: PpLexer): PpConstant {
+  private static _parseConstant(scanner: MacroParserLexer): MacroParserConstant {
     if (BaseLexer.isAlpha(scanner.getCurCharCode())) {
       const id = scanner.scanWord();
-      if (id.type === PpKeyword.defined) {
+      if (id.type === MacroParserKeyword.defined) {
         const withParen = scanner.peekNonSpace() === "(";
         const macro = scanner.scanWord();
         if (withParen) {
           scanner.scanToChar(")");
           scanner.advance(1);
         }
-        this._branchMacros.add(macro.lexeme);
         return !!this._definedMacros.get(macro.lexeme);
       } else {
         const macro = this._definedMacros.get(id.lexeme);
-        if (!macro || !macro.body) {
+
+        if (!macro) {
           return false;
         }
+
+        if (!macro.body) {
+          return true;
+        }
+
         if (macro.isFunction) {
           this._reportError(id.location, "invalid function macro usage", scanner.source, scanner.file);
         }
@@ -444,7 +412,6 @@ export class PpParser {
         if (!Number.isInteger(value)) {
           this._reportError(id.location, `invalid const macro: ${id.lexeme}`, scanner.source, scanner.file);
         }
-        this._branchMacros.add(id.lexeme);
         return value;
       }
     } else if (BaseLexer.isDigit(scanner.getCurCharCode())) {
@@ -483,11 +450,13 @@ export class PpParser {
         level++;
       } else if (charCode === 41) {
         if (--level === 0) {
-          args.push(source.substring(argStart, k));
+          const arg = source.substring(argStart, k).trim();
+          if (arg.length > 0) args.push(arg);
           break;
         }
       } else if (charCode === 44 && level === 1) {
-        args.push(source.substring(argStart, k));
+        const arg = source.substring(argStart, k).trim();
+        if (arg.length > 0) args.push(arg);
         argStart = k + 1;
       }
       k++;
@@ -556,7 +525,7 @@ export class PpParser {
   private static _expandMacroChunk(
     chunk: string,
     loc: ShaderRange,
-    parentScanner: PpLexer
+    parentScanner: MacroParserLexer
   ): {
     content: string;
     // #if _VERBOSE
@@ -576,7 +545,7 @@ export class PpParser {
   private static _expandMacroChunk(
     chunk: string,
     loc: ShaderRange,
-    scannerOrFile: PpLexer | string
+    scannerOrFile: MacroParserLexer | string
   ): {
     content: string;
     // #if _VERBOSE
@@ -584,12 +553,13 @@ export class PpParser {
     // #endif
   } {
     this._expandSegmentsStack.push([]);
-    let scanner: PpLexer;
+    let scanner: MacroParserLexer;
     if (typeof scannerOrFile === "string") {
-      scanner = new PpLexer(chunk, scannerOrFile);
+      scanner = new MacroParserLexer(chunk, scannerOrFile);
     } else {
-      scanner = new PpLexer(chunk, scannerOrFile.file, loc);
+      scanner = new MacroParserLexer(chunk, scannerOrFile.file, loc);
     }
+
     const ret = this._parseDirectives(scanner);
     this._expandSegmentsStack.pop();
     return {
@@ -600,7 +570,7 @@ export class PpParser {
     };
   }
 
-  private static _addEmptyReplace(lexer: PpLexer, start: number) {
+  private static _addEmptyReplace(lexer: MacroParserLexer, start: number) {
     this._addContentReplace(
       lexer.file,
       ShaderLab.createPosition(start),
@@ -632,7 +602,7 @@ export class PpParser {
     });
   }
 
-  private static _parseDefine(lexer: PpLexer): void {
+  private static _parseDefine(lexer: MacroParserLexer): void {
     const start = lexer.getShaderPosition(7);
     const macroName = lexer.scanWord();
 
@@ -655,7 +625,7 @@ export class PpParser {
     this._addContentReplace(lexer.file, start, lexer.getShaderPosition(0), "", lexer.blockRange);
   }
 
-  private static _parseUndef(lexer: PpLexer): void {
+  private static _parseUndef(lexer: MacroParserLexer): void {
     const start = lexer.getShaderPosition(6);
     const macroName = lexer.scanWord();
     this._definedMacros.delete(macroName.lexeme);
@@ -663,7 +633,7 @@ export class PpParser {
     this._addContentReplace(lexer.file, start, lexer.getShaderPosition(0), "", lexer.blockRange);
   }
 
-  private static _parseMacro(lexer: PpLexer, token: BaseToken) {
+  private static _parseMacro(lexer: MacroParserLexer, token: BaseToken) {
     const macro = this._definedMacros.get(token.lexeme);
     if (macro) {
       const { location } = token;

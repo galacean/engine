@@ -1,7 +1,7 @@
-import { NoneTerminal } from "./GrammarSymbol";
+import { GalaceanDataType } from "../common";
 import { BaseToken } from "../common/BaseToken";
-import { GalaceanDataType, ShaderRange } from "../common";
 import { ASTNode, TreeNode } from "./AST";
+import { NoneTerminal } from "./GrammarSymbol";
 
 export type TraceStackItem = NoneTerminal | BaseToken;
 
@@ -17,10 +17,15 @@ export class StructProp implements IParamInfo {
   constructor(
     public typeInfo: SymbolType,
     public ident: BaseToken,
-    public mrtIndex?: number
+    public mrtIndex?: number,
+    public isInMacroBranch = false
   ) {}
 }
 
 export type NodeChild = TreeNode | BaseToken;
 
-export type IParamInfo = { ident: BaseToken; typeInfo: SymbolType; astNode?: TreeNode };
+export type IParamInfo = {
+  ident?: BaseToken;
+  typeInfo?: SymbolType;
+  astNode?: ASTNode.ParameterDeclaration | ASTNode.MacroParamBlock;
+};

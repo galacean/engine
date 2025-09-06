@@ -107,6 +107,41 @@ export enum NoneTerminal {
   scope_brace,
   scope_end_brace,
 
+  // Macro
+  macro_undef,
+  macro_push_context,
+  macro_pop_context,
+  macro_elif_expression,
+  macro_else_expression,
+  global_macro_if_statement,
+  global_macro_declaration,
+  global_macro_branch,
+  macro_struct_declaration,
+  macro_struct_branch,
+  macro_if_statement,
+  macro_branch,
+  macro_param_case_list,
+  macro_param_block,
+  macro_parameter_branch,
+  macro_call_arg_case_list,
+  macro_call_arg_block,
+  macro_call_arg_branch,
+  macro_conditional_expression,
+  macro_logical_or_expression,
+  macro_logical_and_expression,
+  macro_equality_expression,
+  macro_relational_expression,
+  macro_shift_expression,
+  macro_additive_expression,
+  macro_multiplicative_expression,
+  macro_unary_expression,
+  macro_primary_expression,
+  macro_constant,
+
+  // Macro call
+  macro_call_symbol,
+  macro_call_function,
+
   _ignore
 }
 

@@ -91,15 +91,18 @@
         sampler2D scene_ShadowMap;
         #ifdef ENGINE_NO_DEPTH_TEXTURE
             const vec4 bitShift = vec4(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));
-            /**
-            * Unpack depth value.
-            */
-            float unpack(in vec4 rgbaDepth) {
-                return dot(rgbaDepth, bitShift);
+            float textureShadowMapDowngrade(sampler2D scene_ShadowMap, vec3 shadowCoord){
+                vec4 rgbaDepth = texture2D(scene_ShadowMap, shadowCoord.xy);
+                float unpackDepth = dot(rgbaDepth, bitShift);
+                return unpackDepth < shadowCoord.z ? 0.0 : 1.0;
             }
-            #define SAMPLE_TEXTURE2D_SHADOW(textureName, coord3) (unpack(texture2D(textureName, coord3.xy)) < coord3.z ? 0.0 : 1.0)
+            #define SAMPLE_TEXTURE2D_SHADOW(textureName, coord3) textureShadowMapDowngrade(textureName, coord3)
         #else
-            #define SAMPLE_TEXTURE2D_SHADOW(textureName, coord3) ((texture2D(textureName, coord3.xy)).r < coord3.z ? 0.0 : 1.0)
+            float textureShadowMapDowngrade(sampler2D scene_ShadowMap, vec3 shadowCoord){
+                float depth = texture2D(scene_ShadowMap, shadowCoord.xy).r;
+                return depth < shadowCoord.z ? 0.0 : 1.0;
+            }
+            #define SAMPLE_TEXTURE2D_SHADOW(textureName, coord3) textureShadowMapDowngrade(textureName, coord3)
         #endif
         #define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2D shadowMap
     #endif

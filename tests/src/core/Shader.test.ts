@@ -9,6 +9,7 @@ import {
   ShaderFactory,
   ShaderMacro,
   ShaderPass,
+  ShaderPlatformTarget,
   ShaderProperty,
   ShaderTagKey,
   SubShader
@@ -36,11 +37,6 @@ describe("Shader", () => {
       // Create shader by empty SubShader array
       expect(() => {
         Shader.create("customByEmptySubShader", []);
-      }).to.throw();
-
-      // Create shader by empty string
-      expect(() => {
-        Shader.create("customByEmptyString", "", "");
       }).to.throw();
 
       // Create shader by empty pass
@@ -131,7 +127,6 @@ describe("Shader", () => {
       const lightEntity = rootEntity.createChild("Light");
       const directLight = lightEntity.addComponent(DirectLight);
       lightEntity.transform.setRotation(-45, -45, 0);
-      directLight.intensity = 0.4;
 
       // Create camera
       const cameraEntity = rootEntity.createChild("Camera");
@@ -156,10 +151,11 @@ describe("Shader", () => {
       });
 
       // Test that shader created successfully, if use shaderLab.
-      let shader = Shader.create(testShaderLabCode);
+      let shader = Shader.create(testShaderLabCode, ShaderPlatformTarget.GLES300);
       expect(shader).to.be.an.instanceOf(Shader);
       expect(shader.subShaders.length).to.equal(1);
       expect(shader.subShaders[0].passes.length).to.equal(3);
+      expect(shader.subShaders[0].passes[1].platformTarget).to.equal(ShaderPlatformTarget.GLES300);
       expect(shader.subShaders[0].getTagValue("ReplacementTag")).to.equal("transparent");
 
       // Test that throw error, if shader was created with same name in shaderLab.
