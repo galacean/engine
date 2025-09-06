@@ -4,27 +4,10 @@ import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
  * Ambient Occlusion effect configuration.
  */
 export class AmbientOcclusion {
-  private _enabled = false;
-  private _quality = AmbientOcclusionQuality.Low;
-  private _radius = 0.5;
-  private _intensity = 1.0;
-  private _bias = 0.01;
-  private _power = 1.0;
-  private _bilateralThreshold = 0.05;
-
   /**
    * Control whether screen space ambient occlusion is enabled or not.
    */
-  get enabled(): boolean {
-    return this._enabled;
-  }
-
-  set enabled(value: boolean) {
-    if (value === this._enabled) {
-      return;
-    }
-    this._enabled = value;
-  }
+  enabled = false;
 
   /**
    * Controls the quality of the Screen Space Ambient Occlusion.
@@ -33,15 +16,19 @@ export class AmbientOcclusion {
    * If set to `SSAOQuality.Medium`, the effect will balance quality and performance.
    * If set to `SSAOQuality.High`, the effect will use more samples for better quality，but the performance will be even worse.
    */
-  get quality(): AmbientOcclusionQuality {
-    return this._quality;
-  }
+  quality = AmbientOcclusionQuality.Low;
 
-  set quality(value: AmbientOcclusionQuality) {
-    if (this._quality !== value) {
-      this._quality = value;
-    }
-  }
+  /**
+   * Controls the bias to prevent self-occlusion artifacts.
+   * @default 0.01
+   * @range [0.0, 0.1]
+   */
+  bias = 0.01;
+
+  private _power = 1.0;
+  private _bilateralThreshold = 0.05;
+  private _radius = 0.5;
+  private _intensity = 1.0;
 
   /**
    * Controls the radius of the Screen Space Ambient Occlusion radius.
@@ -71,21 +58,6 @@ export class AmbientOcclusion {
   set intensity(value: number) {
     if (this._intensity !== value) {
       this._intensity = Math.max(0.0, value);
-    }
-  }
-
-  /**
-   * Controls the bias to prevent self-occlusion artifacts.
-   * @default 0.01
-   * @range [0.0, 0.1]
-   */
-  get bias(): number {
-    return this._bias;
-  }
-
-  set bias(value: number) {
-    if (this._bias !== value) {
-      this._bias = value;
     }
   }
 
