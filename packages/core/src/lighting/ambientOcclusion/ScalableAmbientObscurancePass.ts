@@ -61,7 +61,6 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
         standardDeviation = 8.0;
         break;
       case AmbientOcclusionQuality.High:
-      default:
         sampleCount = 16;
         standardDeviation = 6.0;
         break;
@@ -70,15 +69,16 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
 
     const kernelArraySize = 16;
     const gaussianKernel = new Float32Array(kernelArraySize);
+    const variance = 2.0 * standardDeviation * standardDeviation;
     for (let i = 0; i < sampleCount; i++) {
-      const w = Math.exp(-(i * i) / (2.0 * standardDeviation * standardDeviation));
-      gaussianKernel[i] = w;
+      gaussianKernel[i] = Math.exp(-(i * i) / variance);
     }
     for (let i = sampleCount; i < kernelArraySize; i++) {
       gaussianKernel[i] = 0.0;
     }
-    this._quality = quality;
+
     blurShaderData.setFloatArray(AmbientOcclusion._kernelProp, gaussianKernel);
+    this._quality = quality;
   }
 
   onConfig(camera: Camera, inputRenderTarget: RenderTarget): void {
