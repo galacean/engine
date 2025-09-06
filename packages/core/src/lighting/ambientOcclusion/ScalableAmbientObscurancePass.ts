@@ -28,8 +28,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   private _offsetX = new Vector4();
   private _offsetY = new Vector4();
 
-  private _quality = AmbientOcclusionQuality.Low;
-  private _kernel: Float32Array = null;
+  private _quality: AmbientOcclusionQuality;
 
   constructor(engine: Engine) {
     super(engine);
@@ -40,7 +39,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   }
 
   private _setQuality(blurShaderData: ShaderData, quality: AmbientOcclusionQuality): void {
-    if (quality === this._quality && this._kernel !== null) {
+    if (quality === this._quality) {
       return;
     }
 
@@ -70,9 +69,10 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       const w = Math.exp(-(i * i) / (2.0 * standardDeviation * standardDeviation));
       gaussianKernel[i] = w;
     }
-    for (let i = sampleCount; i < kernelArraySize; i++) gaussianKernel[i] = 0.0;
+    for (let i = sampleCount; i < kernelArraySize; i++) {
+      gaussianKernel[i] = 0.0;
+    }
     this._quality = quality;
-    this._kernel = gaussianKernel;
     blurShaderData.setFloatArray(AmbientOcclusion._kernelProp, gaussianKernel);
   }
 
@@ -121,7 +121,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     const { viewport } = camera;
     const scene = camera.scene;
     const aoEffect = scene.ambientOcclusion;
-    const ssaoShaderData = this._saoMaterial.shaderData;
+    const saoShaderData = this._saoMaterial.shaderData;
     const projectionMatrix = context.projectionMatrix;
 
     // For a typical projection matrix in column-major order:
@@ -134,13 +134,13 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     const invProjection1 = 1.0 / projectionMatrix.elements[5]; // 1 / projection[1][1]
 
     const position = this._position.set(invProjection0 * 2.0, invProjection1 * 2.0);
-    ssaoShaderData.setVector2(AmbientOcclusion._invPositionProp, position);
+    saoShaderData.setVector2(AmbientOcclusion._invPositionProp, position);
 
     if (aoEffect?._isValid()) {
-      this._setQuality(ssaoShaderData, aoEffect.quality);
+      this._setQuality(saoShaderData, aoEffect.quality);
       const qualityValue = aoEffect.quality.toString();
       scene.shaderData.enableMacro("SCENE_ENABLE_SSAO");
-      ssaoShaderData.enableMacro("SSAO_QUALITY", qualityValue);
+      saoShaderData.enableMacro("SSAO_QUALITY", qualityValue);
 
       const radius = aoEffect.radius;
       const peak = 0.1 * radius;
@@ -152,18 +152,18 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       const invRadiusSquared = 1.0 / (radius * radius);
       const farPlaneOverEdgeDistance = -camera.farClipPlane / aoEffect.bilateralThreshold;
 
-      ssaoShaderData.setFloat(AmbientOcclusion._invRadiusSquaredProp, invRadiusSquared);
-      ssaoShaderData.setFloat(AmbientOcclusion._intensityProp, intensity);
-      ssaoShaderData.setFloat(AmbientOcclusion._powerProp, power);
-      ssaoShaderData.setFloat(AmbientOcclusion._projectionScaleRadiusProp, projectionScaleRadius);
-      ssaoShaderData.setFloat(AmbientOcclusion._biasProp, bias);
-      ssaoShaderData.setFloat(AmbientOcclusion._peak2Prop, peak2);
-      ssaoShaderData.enableMacro(AmbientOcclusion._enableMacro);
+      saoShaderData.setFloat(AmbientOcclusion._invRadiusSquaredProp, invRadiusSquared);
+      saoShaderData.setFloat(AmbientOcclusion._intensityProp, intensity);
+      saoShaderData.setFloat(AmbientOcclusion._powerProp, power);
+      saoShaderData.setFloat(AmbientOcclusion._projectionScaleRadiusProp, projectionScaleRadius);
+      saoShaderData.setFloat(AmbientOcclusion._biasProp, bias);
+      saoShaderData.setFloat(AmbientOcclusion._peak2Prop, peak2);
+      saoShaderData.enableMacro(AmbientOcclusion._enableMacro);
 
-      ssaoShaderData.setFloat(AmbientOcclusion._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
+      saoShaderData.setFloat(AmbientOcclusion._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
     } else {
       scene.shaderData.disableMacro("SCENE_ENABLE_SSAO");
-      ssaoShaderData.disableMacro(AmbientOcclusion._enableMacro);
+      saoShaderData.disableMacro(AmbientOcclusion._enableMacro);
       return;
     }
 
@@ -199,7 +199,6 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       this._blurRenderTarget.destroy(true);
       this._blurRenderTarget = null;
     }
-    this._kernel = null;
     this._inputRenderTarget = null;
     this._saoMaterial._addReferCount(-1);
     this._saoMaterial.destroy();
