@@ -89,6 +89,7 @@ export class ShaderLab implements IShaderLab {
     this._logErrors(codeGen.errors);
     // #endif
 
+    console.log(ret.fragment);
     return ret;
   }
 

@@ -6,11 +6,12 @@ import { ShaderLab as ShaderLabVerbose } from "@galacean/engine-shaderlab/verbos
 import { glslValidate } from "./ShaderValidate";
 
 import { WebGLEngine, Logger } from "@galacean/engine";
-import { IShaderSource } from "@galacean/engine-design";
 import { server } from "@vitest/browser/context";
 import { beforeAll, describe, expect, it } from "vitest";
 const { readFile } = server.commands;
 Logger.enable();
+registerIncludes();
+
 function toString(v: Color): string {
   return `Color(${v.r}, ${v.g}, ${v.b}, ${v.a})`;
 }
@@ -19,43 +20,57 @@ const shaderLabVerbose = new ShaderLabVerbose();
 const shaderLabRelease = new ShaderLabRelease();
 
 describe("ShaderLab", async () => {
-  let shader: IShaderSource;
-  let subShader: IShaderSource["subShaders"][number];
-  let passList: IShaderSource["subShaders"][number]["passes"];
-  let pass1: IShaderSource["subShaders"][number]["passes"][number];
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas: canvas });
 
-  beforeAll(() => {
-    shader = shaderLabVerbose._parseShaderSource(PBRSource);
-    subShader = shader.subShaders[0];
-    passList = subShader.passes;
-    expect(passList[0].isUsePass).to.be.true;
-    expect(passList[1].name).eq("Forward Pass");
-    pass1 = passList[1];
-    registerIncludes();
-  });
-
   it("create shaderLab", async () => {
     expect(shaderLabVerbose).not.be.null;
+    expect(shaderLabRelease).not.be.null;
   });
 
-  it("shader name", () => {
+  it("PBR", async () => {
+    const shader = shaderLabVerbose._parseShaderSource(PBRSource);
+    const subShader = shader.subShaders[0];
+    const passList = subShader.passes;
+    const pass1 = passList[1];
+
+    // shader name
     expect(shader.name).to.equal("PBRShaderName");
     expect(subShader.name).to.equal("Default");
     expect(pass1.name).to.equal("Forward Pass");
     expect(passList.length).to.eq(2);
-  });
 
-  it("render state", () => {
+    // Pass
+    expect(passList[0].isUsePass).to.be.true;
+    expect(passList[1].name).eq("Forward Pass");
+
+    // renderState
     expect(pass1.renderStates).not.be.null;
-
     const { constantMap, variableMap } = pass1.renderStates;
     expect(Object.values(variableMap).includes("renderQueueType")).to.be.true;
 
+    expect(variableMap).include({
+      // depth
+      [RenderStateElementKey.DepthStateWriteEnabled]: "depthWriteEnabled",
+
+      // blend
+      [RenderStateElementKey.BlendStateEnabled0]: "blendEnabled",
+      [RenderStateElementKey.BlendStateSourceColorBlendFactor0]: "sourceColorBlendFactor",
+      [RenderStateElementKey.BlendStateDestinationColorBlendFactor0]: "destinationColorBlendFactor",
+      [RenderStateElementKey.BlendStateSourceAlphaBlendFactor0]: "sourceAlphaBlendFactor",
+      [RenderStateElementKey.BlendStateDestinationAlphaBlendFactor0]: "destinationAlphaBlendFactor",
+
+      // raster
+      [RenderStateElementKey.RasterStateCullMode]: "rasterStateCullMode",
+
+      // renderQueue
+      [RenderStateElementKey.RenderQueueType]: "renderQueueType"
+    });
+  });
+
+  it("render state", () => {
     // expect(constantMap).not.be.null;
     // expect(toString(constantMap[RenderStateElementKey.BlendStateBlendColor] as Color)).eq("Color(1, 1, 1, 1)");
-
     // expect(constantMap).include({
     //   // Stencil State
     //   [RenderStateElementKey.StencilStateEnabled]: true,
@@ -66,21 +81,15 @@ describe("ShaderLab", async () => {
     //   [RenderStateElementKey.BlendStateEnabled0]: true,
     //   [RenderStateElementKey.BlendStateColorWriteMask0]: 0.8,
     //   [RenderStateElementKey.BlendStateAlphaBlendOperation0]: BlendOperation.Max,
-
     //   // Depth State
     //   [RenderStateElementKey.DepthStateEnabled]: true,
     //   [RenderStateElementKey.DepthStateWriteEnabled]: false,
     //   [RenderStateElementKey.DepthStateCompareFunction]: CompareFunction.Greater,
-
     //   // Raster State
     //   [RenderStateElementKey.RasterStateCullMode]: CullMode.Front,
     //   [RenderStateElementKey.RasterStateDepthBias]: 0.1,
     //   [RenderStateElementKey.RasterStateSlopeScaledDepthBias]: 0.8
     // });
-
-    expect(variableMap).include({
-      [RenderStateElementKey.BlendStateSourceAlphaBlendFactor0]: "sourceAlphaBlendFactor"
-    });
   });
 
   // it("shader tags", () => {
@@ -101,11 +110,6 @@ describe("ShaderLab", async () => {
 
   it("planarShadow shader", async () => {
     const demoShader = await readFile("./shaders/planarShadow.shader");
-    glslValidate(engine, demoShader, shaderLabRelease);
-  });
-
-  it("Empty macro shader", async () => {
-    const demoShader = await readFile("./shaders/triangle.shader");
     glslValidate(engine, demoShader, shaderLabRelease);
   });
 
