@@ -1,15 +1,10 @@
-import { Shader, ShaderMacro, ShaderPass, ShaderProperty } from "../../shader";
-import blitVs from "../../shaderlib/extra/Blit.vs.glsl";
+import { ShaderMacro, ShaderProperty } from "../../shader";
 import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
-import bilateralBlurFS from "./shaders/Blur/BilateralBlur.glsl";
-import scalableAmbientOcclusionFS from "./shaders/ScalableAmbientOcclusion.glsl";
 
 /**
  * Ambient Occlusion effect configuration.
  */
 export class AmbientOcclusion {
-  static readonly SHADER_NAME = "ScalableAmbientOcclusion";
-
   // Shader properties for ambient occlusion calculation
   /** @internal */
   static _invRadiusSquaredProp = ShaderProperty.getByName("material_invRadiusSquared");
@@ -160,8 +155,3 @@ export class AmbientOcclusion {
     return this.enabled && this.intensity > 0;
   }
 }
-
-Shader.create(AmbientOcclusion.SHADER_NAME, [
-  new ShaderPass("ScalableAmbientOcclusion", blitVs, scalableAmbientOcclusionFS),
-  new ShaderPass("BilateralBlur", blitVs, bilateralBlurFS)
-]);

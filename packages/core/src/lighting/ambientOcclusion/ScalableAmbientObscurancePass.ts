@@ -6,17 +6,22 @@ import { Blitter } from "../../RenderPipeline/Blitter";
 import { PipelinePass } from "../../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
-import { Shader, ShaderData } from "../../shader";
+import { Shader, ShaderData, ShaderPass } from "../../shader";
+import blitVs from "../../shaderlib/extra/Blit.vs.glsl";
 import { SystemInfo } from "../../SystemInfo";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../../texture";
 import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
 import { AmbientOcclusion } from "./AmbientOcclusion";
+import bilateralBlurFS from "./shaders/Blur/BilateralBlur.glsl";
+import scalableAmbientOcclusionFS from "./shaders/ScalableAmbientOcclusion.glsl";
 
 /**
  * @internal
  * Scalable Ambient Obscurance render pass.
  */
 export class ScalableAmbientObscurancePass extends PipelinePass {
+  static readonly SHADER_NAME = "ScalableAmbientOcclusion";
+
   private readonly _saoMaterial: Material;
 
   private _saoRenderTarget?: RenderTarget;
@@ -33,7 +38,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   constructor(engine: Engine) {
     super(engine);
 
-    const saoMaterial = new Material(engine, Shader.find(AmbientOcclusion.SHADER_NAME));
+    const saoMaterial = new Material(engine, Shader.find(ScalableAmbientObscurancePass.SHADER_NAME));
     saoMaterial._addReferCount(1);
     this._saoMaterial = saoMaterial;
   }
@@ -204,3 +209,8 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     this._saoMaterial.destroy();
   }
 }
+
+Shader.create(ScalableAmbientObscurancePass.SHADER_NAME, [
+  new ShaderPass("ScalableAmbientOcclusion", blitVs, scalableAmbientOcclusionFS),
+  new ShaderPass("BilateralBlur", blitVs, bilateralBlurFS)
+]);
