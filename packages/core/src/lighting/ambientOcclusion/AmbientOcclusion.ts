@@ -11,30 +11,30 @@ export class AmbientOcclusion {
   private static _enableMacro = ShaderMacro.getByName("SCENE_ENABLE_AMBIENT_OCCLUSION");
 
   /**
-   * Controls the quality of the Screen Space Ambient Occlusion.
+   * Controls the quality of the ambient occlusion effect.
    * @remarks
    * If set to `AmbientOcclusionQuality.Low`, the effect will use fewer samples for faster performance.
    * If set to `AmbientOcclusionQuality.Medium`, the effect will balance quality and performance.
-   * If set to `AmbientOcclusionQuality.High`, the effect will use more samples for better quality，but the performance will be even worse.
+   * If set to `AmbientOcclusionQuality.High`, the effect will use more samples for better quality, but the performance will be worse.
    */
   quality = AmbientOcclusionQuality.Low;
 
   /**
    * Controls the bias to prevent self-occlusion artifacts.
-   * @default 0.01
-   * @range [0.0, 0.1]
+   * Valid range: [0.0, 0.1]
+   * @defaultValue 0.01
    */
   bias = 0.01;
 
+  private _scene: Scene;
   private _enabled = false;
   private _power = 1.0;
   private _bilateralThreshold = 0.05;
   private _radius = 0.5;
   private _intensity = 1.0;
-  private _scene: Scene;
 
   /**
-   * Control whether screen space ambient occlusion is enabled or not.
+   * Control whether ambient occlusion is enabled or not.
    */
   get enabled(): boolean {
     return this._enabled;
@@ -48,10 +48,10 @@ export class AmbientOcclusion {
   }
 
   /**
-   * Controls the radius of the Screen Space Ambient Occlusion radius.
+   * Controls the radius of the ambient occlusion effect.
    * Higher values create larger occlusion areas.
-   * @default 0.5
-   * @range [0.0, 10.0]
+   * Valid range: [0.0, 10.0]
+   * @defaultValue 0.5
    */
   get radius(): number {
     return this._radius;
@@ -64,9 +64,9 @@ export class AmbientOcclusion {
   }
 
   /**
-   * Controls the strength of the Screen Space Ambient Occlusion effect.
-   * @default 1.0
-   * @range [0.0, ∞)
+   * Controls the strength of the ambient occlusion effect.
+   * Valid range: [0.0, Infinity)
+   * @defaultValue 1.0
    */
   get intensity(): number {
     return this._intensity;
@@ -80,10 +80,10 @@ export class AmbientOcclusion {
   }
 
   /**
-   * Control the contrast of the Screen Space Ambient Occlusion,
+   * Control the contrast of the ambient occlusion effect.
    * The larger the value, the grayer the effect.
-   * @default 1.0
-   * @range [0.1, 5.0]
+   * Valid range: [0.1, 5.0]
+   * @defaultValue 1.0
    */
   get power(): number {
     return this._power;
@@ -95,11 +95,10 @@ export class AmbientOcclusion {
 
   /**
    * Control the threshold for blurred edges.
-   * @remarks
    * Smaller value that retains the edge will result in sharper edges,
    * while a larger value will make the edges softer.
-   * @default 0.05
-   * @range (0.000001, 1.0]
+   * Valid range: (0.000001, 1.0]
+   * @defaultValue 0.05
    */
   get bilateralThreshold(): number {
     return this._bilateralThreshold;
