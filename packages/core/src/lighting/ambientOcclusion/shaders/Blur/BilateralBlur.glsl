@@ -7,7 +7,7 @@ uniform vec4 renderer_SourceScaleOffset;
 uniform sampler2D camera_DepthTexture;
 
 
-#ifdef SCENE_ENABLE_SSAO
+#ifdef SCENE_ENABLE_AMBIENT_OCCLUSION
       uniform float material_farPlaneOverEdgeDistance;
       #if SSAO_QUALITY == 0
             #define SAMPLE_COUNT 7
@@ -38,7 +38,7 @@ uniform sampler2D camera_DepthTexture;
 void main(){
       mediump vec4 color = texture2D(renderer_BlitTexture, v_uv);
 
-      #ifdef SCENE_ENABLE_SSAO
+      #ifdef SCENE_ENABLE_AMBIENT_OCCLUSION
             float depth = texture2D(camera_DepthTexture, v_uv).r;
             // Weight of the center pixel from the Gaussian kernel (typically 1.0)
             float totalWeight = material_kernel[0];

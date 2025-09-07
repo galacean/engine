@@ -3,17 +3,19 @@ import { ShaderMacro } from "../../shader/ShaderMacro";
 import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
 
 /**
- * Ambient Occlusion effect configuration.
+ * Ambient Occlusion settings.
+ * @remarks
+ * Adds realistic shadows to corners, crevices, and areas where objects meet.
  */
 export class AmbientOcclusion {
-  private static _ambientOcclusionMacro = ShaderMacro.getByName("SCENE_ENABLE_SSAO");
+  private static _enableMacro = ShaderMacro.getByName("SCENE_ENABLE_AMBIENT_OCCLUSION");
 
   /**
    * Controls the quality of the Screen Space Ambient Occlusion.
    * @remarks
-   * If set to `SSAOQuality.Low`, the effect will use fewer samples for faster performance.
-   * If set to `SSAOQuality.Medium`, the effect will balance quality and performance.
-   * If set to `SSAOQuality.High`, the effect will use more samples for better quality，but the performance will be even worse.
+   * If set to `AmbientOcclusionQuality.Low`, the effect will use fewer samples for faster performance.
+   * If set to `AmbientOcclusionQuality.Medium`, the effect will balance quality and performance.
+   * If set to `AmbientOcclusionQuality.High`, the effect will use more samples for better quality，but the performance will be even worse.
    */
   quality = AmbientOcclusionQuality.Low;
 
@@ -41,7 +43,7 @@ export class AmbientOcclusion {
   set enabled(value: boolean) {
     if (this._enabled !== value) {
       this._enabled = value;
-      this._updateShaderMacro();
+      this._toggleAmbientOcclusionMacro();
     }
   }
 
@@ -73,7 +75,7 @@ export class AmbientOcclusion {
   set intensity(value: number) {
     if (this._intensity !== value) {
       this._intensity = Math.max(0.0, value);
-      this._updateShaderMacro();
+      this._toggleAmbientOcclusionMacro();
     }
   }
 
@@ -118,14 +120,11 @@ export class AmbientOcclusion {
     return this._enabled && this.intensity > 0;
   }
 
-  /**
-   * @internal
-   */
-  private _updateShaderMacro(): void {
+  private _toggleAmbientOcclusionMacro(): void {
     if (this._isValid()) {
-      this._scene.shaderData.enableMacro(AmbientOcclusion._ambientOcclusionMacro);
+      this._scene.shaderData.enableMacro(AmbientOcclusion._enableMacro);
     } else {
-      this._scene.shaderData.disableMacro(AmbientOcclusion._ambientOcclusionMacro);
+      this._scene.shaderData.disableMacro(AmbientOcclusion._enableMacro);
     }
   }
 }

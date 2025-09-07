@@ -4,7 +4,7 @@ varying vec2 v_uv;
 uniform vec4 renderer_texelSize;    // x: 1/width, y: 1/height, z: width, w: height
 uniform sampler2D camera_DepthTexture;
 
-#ifdef SCENE_ENABLE_SSAO
+#ifdef SCENE_ENABLE_AMBIENT_OCCLUSION
     #define PI 3.14159265359
     #if SSAO_QUALITY == 0
         #define SAMPLE_COUNT 7.0
@@ -185,7 +185,7 @@ uniform sampler2D camera_DepthTexture;
 
 void main(){
     float aoVisibility = 0.0;
-        #ifdef SCENE_ENABLE_SSAO
+        #ifdef SCENE_ENABLE_AMBIENT_OCCLUSION
             float depth = texture2D(camera_DepthTexture, v_uv).r;
             float linearDepth = SampleAndGetLinearViewDepth(depth);
 
