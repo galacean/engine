@@ -1,13 +1,12 @@
+import { Scene } from "../../Scene";
+import { ShaderMacro } from "../../shader/ShaderMacro";
 import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
 
 /**
  * Ambient Occlusion effect configuration.
  */
 export class AmbientOcclusion {
-  /**
-   * Control whether screen space ambient occlusion is enabled or not.
-   */
-  enabled = false;
+  private static _ambientOcclusionMacro = ShaderMacro.getByName("SCENE_ENABLE_SSAO");
 
   /**
    * Controls the quality of the Screen Space Ambient Occlusion.
@@ -25,10 +24,26 @@ export class AmbientOcclusion {
    */
   bias = 0.01;
 
+  private _enabled = false;
   private _power = 1.0;
   private _bilateralThreshold = 0.05;
   private _radius = 0.5;
   private _intensity = 1.0;
+  private _scene: Scene;
+
+  /**
+   * Control whether screen space ambient occlusion is enabled or not.
+   */
+  get enabled(): boolean {
+    return this._enabled;
+  }
+
+  set enabled(value: boolean) {
+    if (this._enabled !== value) {
+      this._enabled = value;
+      this._updateShaderMacro();
+    }
+  }
 
   /**
    * Controls the radius of the Screen Space Ambient Occlusion radius.
@@ -58,6 +73,7 @@ export class AmbientOcclusion {
   set intensity(value: number) {
     if (this._intensity !== value) {
       this._intensity = Math.max(0.0, value);
+      this._updateShaderMacro();
     }
   }
 
@@ -91,10 +107,25 @@ export class AmbientOcclusion {
     this._bilateralThreshold = Math.max(1e-6, Math.min(1.0, value));
   }
 
+  constructor(scene: Scene) {
+    this._scene = scene;
+  }
+
   /**
    * @internal
    */
   _isValid(): boolean {
-    return this.enabled && this.intensity > 0;
+    return this._enabled && this.intensity > 0;
+  }
+
+  /**
+   * @internal
+   */
+  private _updateShaderMacro(): void {
+    if (this._isValid()) {
+      this._scene.shaderData.enableMacro(AmbientOcclusion._ambientOcclusionMacro);
+    } else {
+      this._scene.shaderData.disableMacro(AmbientOcclusion._ambientOcclusionMacro);
+    }
   }
 }

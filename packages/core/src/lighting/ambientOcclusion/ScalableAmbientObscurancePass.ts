@@ -6,7 +6,6 @@ import { Blitter } from "../../RenderPipeline/Blitter";
 import { PipelinePass } from "../../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
-import { Scene } from "../../Scene";
 import { Shader, ShaderData, ShaderPass, ShaderProperty } from "../../shader";
 import blitVs from "../../shaderlib/extra/Blit.vs.glsl";
 import { SystemInfo } from "../../SystemInfo";
@@ -112,8 +111,6 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     shaderData.setVector2(ScalableAmbientObscurancePass._invPositionProp, position);
 
     if (ambientOcclusion?._isValid()) {
-      scene.shaderData.enableMacro(Scene._ambientOcclusionMacro);
-
       const { quality } = ambientOcclusion;
       this._updateBlurKernel(shaderData, quality);
       shaderData.enableMacro("SSAO_QUALITY", quality.toString());
@@ -154,8 +151,6 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
 
       // Set the SAO texture
       camera.shaderData.setTexture(Camera._cameraSSAOTextureProperty, aoTexture);
-    } else {
-      scene.shaderData.disableMacro(Scene._ambientOcclusionMacro);
     }
   }
 

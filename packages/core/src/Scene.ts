@@ -8,12 +8,12 @@ import { SceneManager } from "./SceneManager";
 import { EngineObject, Logger } from "./base";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { FogMode } from "./enums/FogMode";
-import { DirectLight, AmbientOcclusion } from "./lighting";
+import { AmbientOcclusion, DirectLight } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
 import { LightManager } from "./lighting/LightManager";
 import { PhysicsScene } from "./physics/PhysicsScene";
 import { PostProcessManager } from "./postProcess";
-import { ShaderMacro, ShaderProperty } from "./shader";
+import { ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
@@ -24,9 +24,6 @@ import { ShadowType } from "./shadow/enum/ShadowType";
  * Scene.
  */
 export class Scene extends EngineObject {
-  /** @internal */
-  static _ambientOcclusionMacro = ShaderMacro.getByName("SCENE_ENABLE_SSAO");
-
   private static _fogColorProperty = ShaderProperty.getByName("scene_FogColor");
   private static _fogParamsProperty = ShaderProperty.getByName("scene_FogParams");
   private static _prefilterdDFGProperty = ShaderProperty.getByName("scene_PrefilteredDFG");
@@ -62,7 +59,7 @@ export class Scene extends EngineObject {
    * Darkens areas where objects are close together to simulate natural light blocking,
    * such as corners, crevices, and contact points between surfaces.
    */
-  readonly ambientOcclusion = new AmbientOcclusion();
+  readonly ambientOcclusion = new AmbientOcclusion(this);
 
   /* @internal */
   _lightManager: LightManager = new LightManager();
