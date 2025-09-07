@@ -37,7 +37,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   private readonly _material: Material;
 
   private _saoRenderTarget?: RenderTarget;
-  private _inputRenderTarget: RenderTarget;
+  private _depthRenderTarget: RenderTarget;
   private _blurRenderTarget: RenderTarget;
 
   private _sampleCount = 7;
@@ -54,11 +54,11 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     this._material = material;
   }
 
-  onConfig(camera: Camera, inputRenderTarget: RenderTarget): void {
+  onConfig(camera: Camera, depthRenderTarget: RenderTarget): void {
     const { engine } = this;
     const { width, height } = camera.pixelViewport;
 
-    this._inputRenderTarget = inputRenderTarget;
+    this._depthRenderTarget = depthRenderTarget;
 
     const format = SystemInfo.supportsTextureFormat(engine, TextureFormat.R8) ? TextureFormat.R8 : TextureFormat.R8G8B8;
 
@@ -135,7 +135,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     const { _saoRenderTarget: saoTarget, _material: material } = this;
 
     // Draw ambient occlusion texture
-    const sourceTexture = <Texture2D>this._inputRenderTarget.getColorTexture();
+    const sourceTexture = <Texture2D>this._depthRenderTarget.depthTexture;
     Blitter.blitTexture(engine, sourceTexture, saoTarget, 0, viewport, material, 0);
 
     // Horizontal blur, saoRenderTarget -> blurRenderTarget
@@ -163,7 +163,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       this._blurRenderTarget.destroy(true);
       this._blurRenderTarget = null;
     }
-    this._inputRenderTarget = null;
+    this._depthRenderTarget = null;
     const material = this._material;
     material._addReferCount(-1);
     material.destroy();
