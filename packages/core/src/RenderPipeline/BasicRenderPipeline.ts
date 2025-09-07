@@ -45,7 +45,7 @@ export class BasicRenderPipeline {
   private _internalColorTarget: RenderTarget = null;
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
-  private _ssaoPass: ScalableAmbientObscurancePass;
+  private _saoPass: ScalableAmbientObscurancePass;
   private _opaqueTexturePass: OpaqueTexturePass;
   private _finalPass: FinalPass;
   private _copyBackgroundTexture: Texture2D;
@@ -62,7 +62,7 @@ export class BasicRenderPipeline {
     this._cullingResults = new CullingResults();
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
-    this._ssaoPass = new ScalableAmbientObscurancePass(engine);
+    this._saoPass = new ScalableAmbientObscurancePass(engine);
     this._opaqueTexturePass = new OpaqueTexturePass(engine);
     this._finalPass = new FinalPass(engine);
   }
@@ -264,14 +264,16 @@ export class BasicRenderPipeline {
       context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
     }
 
-    // Screen space ambient occlusion pass
+    // Scalable ambient obscurance pass
     // Before opaque pass so materials can sample ambient occlusion in BRDF
-    if (scene.ambientOcclusion.enabled) {
+    if (scene.ambientOcclusion._isValid()) {
       camera.depthTextureMode = DepthTextureMode.PrePass;
-      const ssaoPass = this._ssaoPass;
-      ssaoPass.onConfig(camera, colorTarget);
-      ssaoPass.onRender(context);
+      const saoPass = this._saoPass;
+      saoPass.onConfig(camera, colorTarget);
+      saoPass.onRender(context);
       context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+    } else {
+      this._saoPass.release();
     }
 
     const maskManager = scene._maskManager;

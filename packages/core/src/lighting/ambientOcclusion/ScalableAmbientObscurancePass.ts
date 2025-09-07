@@ -49,9 +49,9 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   constructor(engine: Engine) {
     super(engine);
 
-    const saoMaterial = new Material(engine, Shader.find(ScalableAmbientObscurancePass.SHADER_NAME));
-    saoMaterial._addReferCount(1);
-    this._material = saoMaterial;
+    const material = new Material(engine, Shader.find(ScalableAmbientObscurancePass.SHADER_NAME));
+    material._addReferCount(1);
+    this._material = material;
   }
 
   onConfig(camera: Camera, inputRenderTarget: RenderTarget): void {
@@ -110,48 +110,46 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     const position = this._position.set(invProjection0 * 2.0, invProjection1 * 2.0);
     shaderData.setVector2(ScalableAmbientObscurancePass._invPositionProp, position);
 
-    if (ambientOcclusion?._isValid()) {
-      const { quality } = ambientOcclusion;
-      this._updateBlurKernel(shaderData, quality);
-      shaderData.enableMacro("SSAO_QUALITY", quality.toString());
+    const { quality } = ambientOcclusion;
+    this._updateBlurKernel(shaderData, quality);
+    shaderData.enableMacro("SSAO_QUALITY", quality.toString());
 
-      const { radius, bias } = ambientOcclusion;
-      const peak = 0.1 * radius;
-      const peak2 = peak * peak;
-      const intensity = (2 * Math.PI * peak * ambientOcclusion.intensity) / this._sampleCount;
-      const power = ambientOcclusion.power * 2.0;
-      const projectionScaleRadius = radius * projectionMatrix.elements[5];
-      const invRadiusSquared = 1.0 / (radius * radius);
-      const farPlaneOverEdgeDistance = -camera.farClipPlane / ambientOcclusion.bilateralThreshold;
+    const { radius, bias } = ambientOcclusion;
+    const peak = 0.1 * radius;
+    const peak2 = peak * peak;
+    const intensity = (2 * Math.PI * peak * ambientOcclusion.intensity) / this._sampleCount;
+    const power = ambientOcclusion.power * 2.0;
+    const projectionScaleRadius = radius * projectionMatrix.elements[5];
+    const invRadiusSquared = 1.0 / (radius * radius);
+    const farPlaneOverEdgeDistance = -camera.farClipPlane / ambientOcclusion.bilateralThreshold;
 
-      shaderData.setFloat(ScalableAmbientObscurancePass._invRadiusSquaredProp, invRadiusSquared);
-      shaderData.setFloat(ScalableAmbientObscurancePass._intensityProp, intensity);
-      shaderData.setFloat(ScalableAmbientObscurancePass._powerProp, power);
-      shaderData.setFloat(ScalableAmbientObscurancePass._projectionScaleRadiusProp, projectionScaleRadius);
-      shaderData.setFloat(ScalableAmbientObscurancePass._biasProp, bias);
-      shaderData.setFloat(ScalableAmbientObscurancePass._peak2Prop, peak2);
+    shaderData.setFloat(ScalableAmbientObscurancePass._invRadiusSquaredProp, invRadiusSquared);
+    shaderData.setFloat(ScalableAmbientObscurancePass._intensityProp, intensity);
+    shaderData.setFloat(ScalableAmbientObscurancePass._powerProp, power);
+    shaderData.setFloat(ScalableAmbientObscurancePass._projectionScaleRadiusProp, projectionScaleRadius);
+    shaderData.setFloat(ScalableAmbientObscurancePass._biasProp, bias);
+    shaderData.setFloat(ScalableAmbientObscurancePass._peak2Prop, peak2);
 
-      shaderData.setFloat(ScalableAmbientObscurancePass._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
+    shaderData.setFloat(ScalableAmbientObscurancePass._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
 
-      const { _saoRenderTarget: saoTarget, _material: material } = this;
+    const { _saoRenderTarget: saoTarget, _material: material } = this;
 
-      // Draw ambient occlusion texture
-      const sourceTexture = <Texture2D>this._inputRenderTarget.getColorTexture();
-      Blitter.blitTexture(engine, sourceTexture, saoTarget, 0, viewport, material, 0);
+    // Draw ambient occlusion texture
+    const sourceTexture = <Texture2D>this._inputRenderTarget.getColorTexture();
+    Blitter.blitTexture(engine, sourceTexture, saoTarget, 0, viewport, material, 0);
 
-      // Horizontal blur, saoRenderTarget -> blurRenderTarget
-      const aoTexture = <Texture2D>saoTarget.getColorTexture();
-      const offsetX = this._offsetX.set(1, 1, 1 / aoTexture.width, 0);
-      Blitter.blitTexture(engine, aoTexture, this._blurRenderTarget, 0, viewport, material, 1, offsetX);
+    // Horizontal blur, saoRenderTarget -> blurRenderTarget
+    const aoTexture = <Texture2D>saoTarget.getColorTexture();
+    const offsetX = this._offsetX.set(1, 1, 1 / aoTexture.width, 0);
+    Blitter.blitTexture(engine, aoTexture, this._blurRenderTarget, 0, viewport, material, 1, offsetX);
 
-      // Vertical blur, blurRenderTarget -> saoRenderTarget
-      const horizontalBlur = <Texture2D>this._blurRenderTarget.getColorTexture();
-      const offsetY = this._offsetY.set(1, 1, 0, 1 / aoTexture.height);
-      Blitter.blitTexture(engine, horizontalBlur, saoTarget, 0, viewport, material, 1, offsetY);
+    // Vertical blur, blurRenderTarget -> saoRenderTarget
+    const horizontalBlur = <Texture2D>this._blurRenderTarget.getColorTexture();
+    const offsetY = this._offsetY.set(1, 1, 0, 1 / aoTexture.height);
+    Blitter.blitTexture(engine, horizontalBlur, saoTarget, 0, viewport, material, 1, offsetY);
 
-      // Set the SAO texture
-      camera.shaderData.setTexture(Camera._cameraSSAOTextureProperty, aoTexture);
-    }
+    // Set the SAO texture
+    camera.shaderData.setTexture(Camera._cameraSSAOTextureProperty, aoTexture);
   }
 
   release(): void {
