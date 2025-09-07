@@ -82,12 +82,13 @@ float remapDepthBufferLinear01(float z){
 	return 1.0/ (camera_DepthBufferParams.x * z + camera_DepthBufferParams.y);
 }
 
-//From Next Generation Post Processing in Call of Duty: Advanced Warfare [Jimenez 2014]
+// From Next Generation Post Processing in Call of Duty: Advanced Warfare [Jimenez 2014]
 // http://advances.realtimerendering.com/s2014/index.html
-float interleavedGradientNoise(vec2 pixCoord)
+// sampleCoord must not be normalized (e.g. window coordinates)
+float interleavedGradientNoise(vec2 sampleCoord)
 {
 	const vec3 magic = vec3(0.06711056, 0.00583715, 52.9829189);
-	return fract(magic.z * fract(dot(pixCoord, magic.xy)));
+	return fract(magic.z * fract(dot(sampleCoord, magic.xy)));
 }
 
 #ifdef GRAPHICS_API_WEBGL2

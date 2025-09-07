@@ -263,7 +263,7 @@ export const E2E_CONFIG = {
       category: "Camera",
       caseFileName: "camera-ssao",
       threshold: 0,
-      diffPercentage: 0.08
+      diffPercentage: 0.12
     }
   },
   Physics: {

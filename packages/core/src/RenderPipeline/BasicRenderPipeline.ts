@@ -6,6 +6,7 @@ import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DepthTextureMode } from "../enums/DepthTextureMode";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
+import { ScalableAmbientObscurancePass } from "../lighting/ambientOcclusion/ScalableAmbientObscurancePass";
 import { FinalPass } from "../postProcess";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
@@ -28,8 +29,6 @@ import { DepthOnlyPass } from "./DepthOnlyPass";
 import { OpaqueTexturePass } from "./OpaqueTexturePass";
 import { PipelineUtils } from "./PipelineUtils";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
-import { SSAOPass } from "../lighting/screenSpaceLighting/ScreenSpaceAmbientOcclusionPass";
-import { ScreenSpaceAmbientOcclusion } from "../lighting/screenSpaceLighting";
 import { RenderElement } from "./RenderElement";
 import { SubRenderElement } from "./SubRenderElement";
 import { PipelineStage } from "./enums/PipelineStage";
@@ -46,7 +45,7 @@ export class BasicRenderPipeline {
   private _internalColorTarget: RenderTarget = null;
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
-  private _ssaoPass: SSAOPass;
+  private _saoPass: ScalableAmbientObscurancePass;
   private _opaqueTexturePass: OpaqueTexturePass;
   private _finalPass: FinalPass;
   private _copyBackgroundTexture: Texture2D;
@@ -63,7 +62,7 @@ export class BasicRenderPipeline {
     this._cullingResults = new CullingResults();
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
-    this._ssaoPass = new SSAOPass(engine);
+    this._saoPass = new ScalableAmbientObscurancePass(engine);
     this._opaqueTexturePass = new OpaqueTexturePass(engine);
     this._finalPass = new FinalPass(engine);
   }
@@ -93,7 +92,15 @@ export class BasicRenderPipeline {
     const cullingResults = this._cullingResults;
     const sunlight = scene._lightManager._sunlight;
     const depthOnlyPass = this._depthOnlyPass;
-    const depthPassEnabled = camera.depthTextureMode === DepthTextureMode.PrePass && depthOnlyPass._supportDepthTexture;
+    const ambientOcclusionEnabled = scene.ambientOcclusion._isValid();
+    const supportDepthTexture = depthOnlyPass.supportDepthTexture;
+
+    // Ambient occlusion enable will force enable depth prepass
+    if (ambientOcclusionEnabled) {
+      camera.depthTextureMode = DepthTextureMode.PrePass;
+    }
+
+    const depthPassEnabled = camera.depthTextureMode === DepthTextureMode.PrePass && supportDepthTexture;
     const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
     const msaaSamples = renderTarget ? renderTarget.antiAliasing : camera.msaaSamples;
 
@@ -196,6 +203,16 @@ export class BasicRenderPipeline {
       }
     }
 
+    // Scalable ambient obscurance pass
+    // Before opaque pass so materials can sample ambient occlusion in BRDF
+    if (ambientOcclusionEnabled && supportDepthTexture) {
+      const saoPass = this._saoPass;
+      saoPass.onConfig(camera, this._depthOnlyPass.renderTarget);
+      saoPass.onRender(context);
+    } else {
+      this._saoPass.release();
+    }
+
     this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel);
   }
 
@@ -262,16 +279,6 @@ export class BasicRenderPipeline {
           rhi.blitInternalRTByBlitFrameBuffer(camera.renderTarget, internalColorTarget, ignoreFlags, camera.viewport);
         }
       }
-      context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
-    }
-
-    // Screen space ambient occlusion pass
-    // Before opaque pass so materials can sample ambient occlusion in BRDF
-    if (scene.ssao.enabled) {
-      camera.depthTextureMode = DepthTextureMode.PrePass;
-      const ssaoPass = this._ssaoPass;
-      ssaoPass.onConfig(camera, colorTarget);
-      ssaoPass.onRender(context);
       context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
     }
 

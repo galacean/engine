@@ -173,18 +173,15 @@ void initMaterial(out Material material, inout Geometry geometry){
             diffuseAO = ((texture2D(material_OcclusionTexture, aoUV)).r - 1.0) * material_OcclusionIntensity + 1.0;
         #endif
 
-        #if defined(MATERIAL_HAS_OCCLUSION_TEXTURE) && defined(SCENE_USE_SPECULAR_ENV) 
-            specularAO = saturate( pow( geometry.dotNV + diffuseAO, exp2( - 16.0 * material.roughness - 1.0 ) ) - 1.0 + diffuseAO );
-        #endif
-
-        #ifdef SCENE_ENABLE_SSAO                    
+         #ifdef SCENE_ENABLE_AMBIENT_OCCLUSION                    
             vec4 samplingPositionNDC = camera_ProjMat * camera_ViewMat * vec4( geometry.position, 1.0 );
             vec2 ssaoUV = (samplingPositionNDC.xy / samplingPositionNDC.w) * 0.5 + 0.5;
             float ssao = texture2D(camera_SSAOTexture, ssaoUV).r;
             diffuseAO *= ssao;
-            #ifdef SCENE_USE_SPECULAR_ENV
-                specularAO = saturate(pow( geometry.dotNV + diffuseAO, exp2(-16.0 * material.roughness - 1.0)) - 1.0 + diffuseAO);
-            #endif
+        #endif
+
+        #if (defined(MATERIAL_HAS_OCCLUSION_TEXTURE) || defined(SCENE_ENABLE_AMBIENT_OCCLUSION))&& defined(SCENE_USE_SPECULAR_ENV) 
+            specularAO = saturate( pow( geometry.dotNV + diffuseAO, exp2( - 16.0 * material.roughness - 1.0 ) ) - 1.0 + diffuseAO );
         #endif
 
         material.diffuseAO = diffuseAO;
