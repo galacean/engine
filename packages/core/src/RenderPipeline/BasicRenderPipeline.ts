@@ -99,7 +99,7 @@ export class BasicRenderPipeline {
     if (ambientOcclusionEnabled) {
       camera.depthTextureMode = DepthTextureMode.PrePass;
     }
-    
+
     const depthPassEnabled = camera.depthTextureMode === DepthTextureMode.PrePass && supportDepthTexture;
     const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
     const msaaSamples = renderTarget ? renderTarget.antiAliasing : camera.msaaSamples;
