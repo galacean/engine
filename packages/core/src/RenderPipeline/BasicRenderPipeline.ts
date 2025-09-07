@@ -92,13 +92,15 @@ export class BasicRenderPipeline {
     const cullingResults = this._cullingResults;
     const sunlight = scene._lightManager._sunlight;
     const depthOnlyPass = this._depthOnlyPass;
+    const ambientOcclusionEnabled = scene.ambientOcclusion._isValid();
+    const supportDepthTexture = depthOnlyPass.supportDepthTexture;
 
     // Ambient occlusion enable will force enable depth prepass
-    if (scene.ambientOcclusion._isValid()) {
+    if (ambientOcclusionEnabled) {
       camera.depthTextureMode = DepthTextureMode.PrePass;
     }
-    const depthPassEnabled = camera.depthTextureMode === DepthTextureMode.PrePass && depthOnlyPass.supportDepthTexture;
-
+    
+    const depthPassEnabled = camera.depthTextureMode === DepthTextureMode.PrePass && supportDepthTexture;
     const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
     const msaaSamples = renderTarget ? renderTarget.antiAliasing : camera.msaaSamples;
 
@@ -201,6 +203,16 @@ export class BasicRenderPipeline {
       }
     }
 
+    // Scalable ambient obscurance pass
+    // Before opaque pass so materials can sample ambient occlusion in BRDF
+    if (ambientOcclusionEnabled && supportDepthTexture) {
+      const saoPass = this._saoPass;
+      saoPass.onConfig(camera, this._depthOnlyPass.renderTarget);
+      saoPass.onRender(context);
+    } else {
+      this._saoPass.release();
+    }
+
     this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel);
   }
 
@@ -268,17 +280,6 @@ export class BasicRenderPipeline {
         }
       }
       context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
-    }
-
-    // Scalable ambient obscurance pass
-    // Before opaque pass so materials can sample ambient occlusion in BRDF
-    if (scene.ambientOcclusion._isValid() && this._depthOnlyPass.supportDepthTexture) {
-      const saoPass = this._saoPass;
-      saoPass.onConfig(camera, this._depthOnlyPass.renderTarget);
-      saoPass.onRender(context);
-      context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
-    } else {
-      this._saoPass.release();
     }
 
     const maskManager = scene._maskManager;
