@@ -21,10 +21,10 @@ export class AmbientOcclusion {
 
   private _scene: Scene;
   private _enabled = false;
-  private _bias = 0.01;
+  private _bias = 0.0005;
   private _power = 1.0;
   private _bilateralThreshold = 0.05;
-  private _radius = 0.5;
+  private _radius = 0.3;
   private _intensity = 1.0;
 
   /**
