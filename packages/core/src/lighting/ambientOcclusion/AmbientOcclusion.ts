@@ -19,15 +19,9 @@ export class AmbientOcclusion {
    */
   quality = AmbientOcclusionQuality.Low;
 
-  /**
-   * Controls the bias to prevent self-occlusion artifacts.
-   * Valid range: [0.0, 0.1]
-   * @defaultValue 0.01
-   */
-  bias = 0.01;
-
   private _scene: Scene;
   private _enabled = false;
+  private _bias = 0.01;
   private _power = 1.0;
   private _bilateralThreshold = 0.05;
   private _radius = 0.5;
@@ -45,6 +39,19 @@ export class AmbientOcclusion {
       this._enabled = value;
       this._toggleAmbientOcclusionMacro();
     }
+  }
+
+  /**
+   * Controls the bias to prevent self-occlusion artifacts.
+   * Valid range: [0.0, 0.1]
+   * @defaultValue 0.01
+   */
+  get bias(): number {
+    return this._bias;
+  }
+
+  set bias(value: number) {
+    this._bias = Math.max(0.0, Math.min(0.1, value));
   }
 
   /**
