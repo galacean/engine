@@ -91,7 +91,7 @@ export class AmbientOcclusion {
    * Control the threshold for blurred edges.
    * Smaller value that retains the edge will result in sharper edges,
    * while a larger value will make the edges softer.
-   * Valid range: (0.000001, 1.0]
+   * Valid range: [0.000001, 1.0]
    * @defaultValue 0.05
    */
   get bilateralThreshold(): number {
