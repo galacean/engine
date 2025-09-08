@@ -149,7 +149,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     Blitter.blitTexture(engine, horizontalBlur, saoTarget, 0, viewport, material, 1, offsetY);
 
     // Set the SAO texture
-    camera.shaderData.setTexture(Camera._cameraSSAOTextureProperty, saoTexture);
+    camera.shaderData.setTexture(Camera._cameraAOTextureProperty, saoTexture);
   }
 
   release(): void {
