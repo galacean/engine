@@ -40,7 +40,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   private _depthRenderTarget: RenderTarget;
   private _blurRenderTarget: RenderTarget;
 
-  private _sampleCount = 7;
+  private _sampleCount: number;
   private _position = new Vector2();
   private _offsetX = new Vector4();
   private _offsetY = new Vector4();
@@ -149,7 +149,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     Blitter.blitTexture(engine, horizontalBlur, saoTarget, 0, viewport, material, 1, offsetY);
 
     // Set the SAO texture
-    camera.shaderData.setTexture(Camera._cameraSSAOTextureProperty, saoTexture);
+    camera.shaderData.setTexture(Camera._cameraAOTextureProperty, saoTexture);
   }
 
   release(): void {
