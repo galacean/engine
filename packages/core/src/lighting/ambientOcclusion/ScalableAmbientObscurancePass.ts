@@ -40,7 +40,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   private _depthRenderTarget: RenderTarget;
   private _blurRenderTarget: RenderTarget;
 
-  private _sampleCount = 7;
+  private _sampleCount: number;
   private _position = new Vector2();
   private _offsetX = new Vector4();
   private _offsetY = new Vector4();
