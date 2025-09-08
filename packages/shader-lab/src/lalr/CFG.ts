@@ -50,7 +50,10 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.macro_undef,
-    [[Keyword.MACRO_UNDEF, ETokenType.ID]],
+    [
+      [Keyword.MACRO_UNDEF, ETokenType.ID],
+      [Keyword.MACRO_UNDEF, Keyword.MACRO_CALL]
+    ],
     ASTNode.MacroUndef.pool
   ),
 
@@ -1151,6 +1154,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     NoneTerminal.macro_constant,
     [
       [ETokenType.ID],
+      [NoneTerminal.macro_call_symbol],
       [ETokenType.INT_CONSTANT],
       [Keyword.MACRO_DEFINED, ETokenType.ID],
       [Keyword.MACRO_DEFINED, ETokenType.LEFT_PAREN, ETokenType.ID, ETokenType.RIGHT_PAREN],

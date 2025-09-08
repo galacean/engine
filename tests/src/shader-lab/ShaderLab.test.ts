@@ -130,10 +130,10 @@ describe("ShaderLab", async () => {
   //   glslValidate(engine, shaderSource, shaderLabRelease);
   // });
 
-  // it("macro-with-preprocessor", async () => {
-  //   const shaderSource = await readFile("./shaders/macro-pre.shader");
-  //   glslValidate(engine, shaderSource, shaderLabRelease);
-  // });
+  it("macro-with-preprocessor", async () => {
+    const shaderSource = await readFile("./shaders/macro-pre.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+  });
 
   it("mrt-struct", async () => {
     const shaderSource = await readFile("./shaders/mrt-struct.shader");

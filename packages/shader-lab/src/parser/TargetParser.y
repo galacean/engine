@@ -80,6 +80,7 @@ macro_call_function:
 
 macro_undef:
     MACRO_UNDEF id
+    | MACRO_UNDEF MACRO_CALL
     ;
 
 macro_push_context:
