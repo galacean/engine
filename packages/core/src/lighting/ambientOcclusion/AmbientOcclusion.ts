@@ -21,11 +21,11 @@ export class AmbientOcclusion {
 
   private _scene: Scene;
   private _enabled = false;
-  private _bias = 0.0005;
   private _power = 1.0;
   private _bilateralThreshold = 0.05;
   private _radius = 0.3;
   private _intensity = 1.0;
+  private _bias = 0.0005;
 
   /**
    * Control whether ambient occlusion is enabled or not.
@@ -42,23 +42,10 @@ export class AmbientOcclusion {
   }
 
   /**
-   * Controls the bias to prevent self-occlusion artifacts.
-   * Valid range: [0.0, 0.1]
-   * @defaultValue 0.01
-   */
-  get bias(): number {
-    return this._bias;
-  }
-
-  set bias(value: number) {
-    this._bias = Math.max(0.0, Math.min(0.1, value));
-  }
-
-  /**
    * Controls the radius of the ambient occlusion effect.
    * Higher values create larger occlusion areas.
    * Valid range: [0.0, 10.0]
-   * @defaultValue 0.5
+   * @defaultValue 0.3
    */
   get radius(): number {
     return this._radius;
@@ -113,6 +100,19 @@ export class AmbientOcclusion {
 
   set bilateralThreshold(value: number) {
     this._bilateralThreshold = Math.max(1e-6, Math.min(1.0, value));
+  }
+
+  /**
+   * Controls the bias to prevent self-occlusion artifacts.
+   * Valid range: [0.0, 0.1]
+   * @defaultValue 0.0005
+   */
+  get bias(): number {
+    return this._bias;
+  }
+
+  set bias(value: number) {
+    this._bias = Math.max(0.0, Math.min(0.1, value));
   }
 
   constructor(scene: Scene) {
