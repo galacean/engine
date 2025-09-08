@@ -136,6 +136,7 @@ export class BasicRenderPipeline {
       depthOnlyPass.onRender(context, cullingResults);
       context.rendererUpdateFlag = ContextRendererUpdateFlag.None;
     } else {
+      depthOnlyPass.release();
       camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._basicResources.whiteTexture2D);
     }
 
