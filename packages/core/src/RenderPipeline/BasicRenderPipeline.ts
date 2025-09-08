@@ -96,11 +96,8 @@ export class BasicRenderPipeline {
     const supportDepthTexture = depthOnlyPass.supportDepthTexture;
 
     // Ambient occlusion enable will force enable depth prepass
-    if (ambientOcclusionEnabled) {
-      camera.depthTextureMode = DepthTextureMode.PrePass;
-    }
-
-    const depthPassEnabled = camera.depthTextureMode === DepthTextureMode.PrePass && supportDepthTexture;
+    const depthPassEnabled =
+      (camera.depthTextureMode === DepthTextureMode.PrePass || ambientOcclusionEnabled) && supportDepthTexture;
     const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
     const msaaSamples = renderTarget ? renderTarget.antiAliasing : camera.msaaSamples;
 
