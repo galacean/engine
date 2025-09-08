@@ -59,4 +59,13 @@ export class DepthOnlyPass extends PipelinePass {
 
     camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, this.renderTarget.depthTexture);
   }
+
+  release(): void {
+    const renderTarget = this.renderTarget;
+    if (renderTarget) {
+      renderTarget.depthTexture?.destroy(true);
+      renderTarget.destroy(true);
+      this.renderTarget = null;
+    }
+  }
 }

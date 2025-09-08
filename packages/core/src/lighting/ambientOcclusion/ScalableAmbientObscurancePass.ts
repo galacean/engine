@@ -139,17 +139,17 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     Blitter.blitTexture(engine, sourceTexture, saoTarget, 0, viewport, material, 0);
 
     // Horizontal blur, saoRenderTarget -> blurRenderTarget
-    const aoTexture = <Texture2D>saoTarget.getColorTexture();
-    const offsetX = this._offsetX.set(1, 1, 1 / aoTexture.width, 0);
-    Blitter.blitTexture(engine, aoTexture, this._blurRenderTarget, 0, viewport, material, 1, offsetX);
+    const saoTexture = <Texture2D>saoTarget.getColorTexture();
+    const offsetX = this._offsetX.set(1, 1, 1 / saoTexture.width, 0);
+    Blitter.blitTexture(engine, saoTexture, this._blurRenderTarget, 0, viewport, material, 1, offsetX);
 
     // Vertical blur, blurRenderTarget -> saoRenderTarget
     const horizontalBlur = <Texture2D>this._blurRenderTarget.getColorTexture();
-    const offsetY = this._offsetY.set(1, 1, 0, 1 / aoTexture.height);
+    const offsetY = this._offsetY.set(1, 1, 0, 1 / saoTexture.height);
     Blitter.blitTexture(engine, horizontalBlur, saoTarget, 0, viewport, material, 1, offsetY);
 
     // Set the SAO texture
-    camera.shaderData.setTexture(Camera._cameraSSAOTextureProperty, aoTexture);
+    camera.shaderData.setTexture(Camera._cameraSSAOTextureProperty, saoTexture);
   }
 
   release(): void {
