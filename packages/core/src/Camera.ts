@@ -911,8 +911,16 @@ export class Camera extends Component {
     shaderData.setVector3(Camera._cameraUpProperty, transform.worldUp);
 
     const depthBufferParams = this._depthBufferParams;
-    const farDivideNear = this.farClipPlane / this.nearClipPlane;
-    depthBufferParams.set(1.0 - farDivideNear, farDivideNear, 0, 0);
+    const { farClipPlane } = this;
+    const farDivideNear = farClipPlane / this.nearClipPlane;
+    const oneMinusFarDivideNear = 1.0 - farDivideNear;
+
+    depthBufferParams.set(
+      oneMinusFarDivideNear,
+      farDivideNear,
+      oneMinusFarDivideNear / farClipPlane,
+      farDivideNear / farClipPlane
+    );
     shaderData.setVector4(Camera._cameraDepthBufferParamsProperty, depthBufferParams);
   }
 
