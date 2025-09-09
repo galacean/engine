@@ -112,20 +112,12 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     const invProjScaleXY = this._invProjScaleXY.set(invProjectionSacleX * 2.0, invProjectionScaleY * 2.0);
     shaderData.setVector2(ScalableAmbientObscurancePass._invProjScaleXYProp, invProjScaleXY);
 
-    const { quality } = ambientOcclusion;
+    const { quality, radius } = ambientOcclusion;
     this._updateBlurKernel(shaderData, quality);
     shaderData.enableMacro("SSAO_QUALITY", quality.toString());
 
-    const { radius } = ambientOcclusion;
     const peak = 0.1 * radius;
     const intensity = (2 * Math.PI * peak * ambientOcclusion.intensity) / this._sampleCount;
-
-    const projectionScale = Math.min(
-      0.5 * projectionScaleX * pixelViewport.width,
-      0.5 * projectionScaleY * pixelViewport.height
-    );
-    const farPlaneOverEdgeDistance = -camera.farClipPlane / ambientOcclusion.bilateralThreshold;
-
     shaderData.setFloat(ScalableAmbientObscurancePass._invRadiusSquaredProp, 1.0 / (radius * radius));
     shaderData.setFloat(ScalableAmbientObscurancePass._intensityProp, intensity);
     shaderData.setFloat(ScalableAmbientObscurancePass._powerProp, ambientOcclusion.power * 2.0);
@@ -135,8 +127,13 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       ScalableAmbientObscurancePass._minHorizonAngleSineSquaredProp,
       Math.pow(Math.sin(ambientOcclusion.minHorizonAngle), 2.0)
     );
-    shaderData.setFloat(ScalableAmbientObscurancePass._projectionScaleRadiusProp, radius * projectionScale);
 
+    const projectionScale = Math.min(
+      0.5 * projectionScaleX * pixelViewport.width,
+      0.5 * projectionScaleY * pixelViewport.height
+    );
+    const farPlaneOverEdgeDistance = -camera.farClipPlane / ambientOcclusion.bilateralThreshold;
+    shaderData.setFloat(ScalableAmbientObscurancePass._projectionScaleRadiusProp, radius * projectionScale);
     shaderData.setFloat(ScalableAmbientObscurancePass._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
 
     const { _saoRenderTarget: saoTarget, _material: material } = this;

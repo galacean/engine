@@ -53,11 +53,11 @@ float SampleAndGetLinearViewDepth(float depth) {
     #endif
 }
 
-vec3 computeViewSpaceNormal(vec2 uv, sampler2D depthTexture, float depth, vec2 invProjScaleXY, vec3 viewPos, vec2 sourceSize) {
+vec3 computeViewSpaceNormal(vec2 uv, sampler2D depthTexture, float depth, vec3 viewPos, vec2 texel, vec2 invProjScaleXY) {
     vec3 normal = vec3(0.0);
 #if SSAO_QUALITY == 0 || SSAO_QUALITY == 1
-        vec2 uvdx = uv + vec2(sourceSize.x, 0.0);
-        vec2 uvdy = uv + vec2(0.0, sourceSize.y);
+        vec2 uvdx = uv + vec2(texel.x, 0.0);
+        vec2 uvdy = uv + vec2(0.0, texel.y);
 
         float depthX = texture2D(depthTexture, uvdx).r;
         float depthY = texture2D(depthTexture, uvdy).r;
@@ -71,8 +71,8 @@ vec3 computeViewSpaceNormal(vec2 uv, sampler2D depthTexture, float depth, vec2 i
         normal = normalize(cross(dpdx, dpdy));
 
 #elif SSAO_QUALITY == 2
-        vec2 dx = vec2(sourceSize.x, 0.0);
-        vec2 dy = vec2(0.0, sourceSize.y);
+        vec2 dx = vec2(texel.x, 0.0);
+        vec2 dy = vec2(0.0, texel.y);
         
         vec4 H;
         H.x = texture2D(depthTexture, uv - dx).r;       // left
@@ -128,13 +128,13 @@ vec3 tapLocationFast(float i, vec2 p, const float noise) {
 }
 
 void computeAmbientOcclusionSAO(inout float occlusion, float i, float ssDiskRadius, vec2 uv, vec3 originPosition, vec3 normal,
-        vec2 tapPosition, float noise, vec2 texSize) {
+        vec2 tapPosition, float noise) {
 
     vec3 tap = tapLocationFast(i, tapPosition, noise);
 
     float ssRadius = max(1.0, tap.z * ssDiskRadius); // at least 1 pixel screen-space radius
 
-    vec2 uvSamplePos = uv + vec2(ssRadius * tap.xy) * texSize;
+    vec2 uvSamplePos = uv + vec2(ssRadius * tap.xy) * renderer_texelSize.xy;
 
     float occlusionDepth = texture2D(renderer_BlitTexture, uvSamplePos).r;
     float linearOcclusionDepth = SampleAndGetLinearViewDepth(occlusionDepth);
@@ -162,8 +162,8 @@ void computeAmbientOcclusionSAO(inout float occlusion, float i, float ssDiskRadi
     occlusion += weight * sampleOcclusion;
 }
 
-void scalableAmbientObscurance(out float obscurance, vec2 fragCoord, vec2 uv, vec3 origin, vec3 normal, vec2 texSize) {
-    float noise = interleavedGradientNoise(fragCoord);
+void scalableAmbientObscurance(out float obscurance, vec2 uv, vec3 origin, vec3 normal) {
+    float noise = interleavedGradientNoise(gl_FragCoord.xy);
     vec2 tapPosition = startPosition(noise);
     mat2 angleStep = tapAngleStep();
 
@@ -174,7 +174,7 @@ void scalableAmbientObscurance(out float obscurance, vec2 fragCoord, vec2 uv, ve
     // accumulate the occlusion amount of all sampling points
     obscurance = 0.0;
     for (float i = 0.0; i < SAMPLE_COUNT; i += 1.0) {
-        computeAmbientOcclusionSAO(obscurance, i, ssDiskRadius, uv, origin, normal, tapPosition, noise, texSize);
+        computeAmbientOcclusionSAO(obscurance, i, ssDiskRadius, uv, origin, normal, tapPosition, noise);
         tapPosition = angleStep * tapPosition;
     }
     obscurance = sqrt(obscurance * material_intensity);
@@ -190,10 +190,10 @@ void main(){
     vec3 viewPos = computeViewSpacePosition(v_uv, linearDepth, material_invProjScaleXY);
 
     // Compute normal
-    vec3 normal = computeViewSpaceNormal(v_uv, renderer_BlitTexture, depth, material_invProjScaleXY, viewPos, renderer_texelSize.xy);
+    vec3 normal = computeViewSpaceNormal(v_uv, renderer_BlitTexture, depth, viewPos, renderer_texelSize.xy, material_invProjScaleXY);
 
     float occlusion = 0.0;
-    scalableAmbientObscurance(occlusion, gl_FragCoord.xy, v_uv, viewPos, normal, renderer_texelSize.xy);
+    scalableAmbientObscurance(occlusion, v_uv, viewPos, normal);
 
     // occlusion to visibility
     aoVisibility = pow(clamp(1.0 - occlusion, 0.0, 1.0), material_power);
