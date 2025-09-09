@@ -95,19 +95,21 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   override onRender(context: RenderContext): void {
     const { engine } = this;
     const { camera } = context;
-    const { viewport, scene } = camera;
+    const { viewport, scene, pixelViewport } = camera;
     const { ambientOcclusion } = scene;
     const { shaderData } = this._material;
     const { projectionMatrix } = context;
+    const projectionScaleX = projectionMatrix.elements[0];
+    const projectionScaleY = context.flipProjection ? -projectionMatrix.elements[5] : projectionMatrix.elements[5];
 
     // For a typical projection matrix in column-major order:
     // projection[0][0] is at index 0 (X scaling)
     // projection[1][1] is at index 5 (Y scaling)
     // The inverse values we need are:
-    const invProjection0 = 1.0 / projectionMatrix.elements[0];
-    const invProjection1 = 1.0 / projectionMatrix.elements[5];
+    const invProjectionSacleX = 1.0 / projectionScaleX;
+    const invProjectionScaleY = 1.0 / projectionScaleY;
 
-    const position = this._position.set(invProjection0 * 2.0, invProjection1 * 2.0);
+    const position = this._position.set(invProjectionSacleX * 2.0, invProjectionScaleY * 2.0);
     shaderData.setVector2(ScalableAmbientObscurancePass._invPositionProp, position);
 
     const { quality } = ambientOcclusion;
@@ -117,7 +119,11 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     const { radius } = ambientOcclusion;
     const peak = 0.1 * radius;
     const intensity = (2 * Math.PI * peak * ambientOcclusion.intensity) / this._sampleCount;
-    const projectionScaleRadius = radius * projectionMatrix.elements[5];
+
+    const projectionScale = Math.min(
+      0.5 * projectionScaleX * pixelViewport.width,
+      0.5 * projectionScaleY * pixelViewport.height
+    );
     const farPlaneOverEdgeDistance = -camera.farClipPlane / ambientOcclusion.bilateralThreshold;
 
     shaderData.setFloat(ScalableAmbientObscurancePass._invRadiusSquaredProp, 1.0 / (radius * radius));
@@ -129,7 +135,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       ScalableAmbientObscurancePass._minHorizonAngleSineSquaredProp,
       Math.pow(Math.sin(ambientOcclusion.minHorizonAngle), 2.0)
     );
-    shaderData.setFloat(ScalableAmbientObscurancePass._projectionScaleRadiusProp, projectionScaleRadius);
+    shaderData.setFloat(ScalableAmbientObscurancePass._projectionScaleRadiusProp, radius * projectionScale);
 
     shaderData.setFloat(ScalableAmbientObscurancePass._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
 
