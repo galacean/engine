@@ -26,7 +26,7 @@ export class AmbientOcclusion {
   private _radius = 0.3;
   private _intensity = 1.0;
   private _bias = 0.0005;
-  private _minHorizonAngleRad = 0.0;
+  private _minHorizonAngle = 0.0;
 
   /**
    * Control whether ambient occlusion is enabled or not.
@@ -122,11 +122,11 @@ export class AmbientOcclusion {
    * @defaultValue 0.0
    */
   get minHorizonAngle(): number {
-    return this._minHorizonAngleRad;
+    return this._minHorizonAngle;
   }
 
   set minHorizonAngle(value: number) {
-    this._minHorizonAngleRad = Math.max(0.0, Math.min(Math.PI / 4, value));
+    this._minHorizonAngle = Math.max(0.0, Math.min(Math.PI / 4, value));
   }
 
   constructor(scene: Scene) {
