@@ -28,7 +28,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   private static _minHorizonAngleSineSquaredProp = ShaderProperty.getByName("material_minHorizonAngleSineSquared");
   private static _peak2Prop = ShaderProperty.getByName("material_peak2");
   private static _powerProp = ShaderProperty.getByName("material_power");
-  private static _invPositionProp = ShaderProperty.getByName("material_invProjScaleXY");
+  private static _invProjScaleXYProp = ShaderProperty.getByName("material_invProjScaleXY");
 
   // Shader properties for bilateral blur
   private static _farPlaneOverEdgeDistanceProp = ShaderProperty.getByName("material_farPlaneOverEdgeDistance");
@@ -41,7 +41,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   private _blurRenderTarget: RenderTarget;
 
   private _sampleCount: number;
-  private _position = new Vector2();
+  private _invProjScaleXY = new Vector2();
   private _offsetX = new Vector4();
   private _offsetY = new Vector4();
   private _quality: AmbientOcclusionQuality;
@@ -109,8 +109,8 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     const invProjectionSacleX = 1.0 / projectionScaleX;
     const invProjectionScaleY = 1.0 / projectionScaleY;
 
-    const position = this._position.set(invProjectionSacleX * 2.0, invProjectionScaleY * 2.0);
-    shaderData.setVector2(ScalableAmbientObscurancePass._invPositionProp, position);
+    const invProjScaleXY = this._invProjScaleXY.set(invProjectionSacleX * 2.0, invProjectionScaleY * 2.0);
+    shaderData.setVector2(ScalableAmbientObscurancePass._invProjScaleXYProp, invProjScaleXY);
 
     const { quality } = ambientOcclusion;
     this._updateBlurKernel(shaderData, quality);
