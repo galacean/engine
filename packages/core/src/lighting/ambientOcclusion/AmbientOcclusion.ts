@@ -45,7 +45,7 @@ export class AmbientOcclusion {
   /**
    * Controls the radius of the ambient occlusion effect.
    * Higher values create larger occlusion areas.
-   * Valid range: [0.0, 10.0]
+   * Valid range: [0.1, 10.0]
    * @defaultValue 0.3
    */
   get radius(): number {
@@ -54,7 +54,7 @@ export class AmbientOcclusion {
 
   set radius(value: number) {
     if (this._radius !== value) {
-      this._radius = Math.max(0.0, Math.min(10.0, value));
+      this._radius = Math.max(0.1, Math.min(10.0, value));
     }
   }
 
@@ -77,7 +77,7 @@ export class AmbientOcclusion {
   /**
    * Control the contrast of the ambient occlusion effect.
    * The larger the value, the grayer the effect.
-   * Valid range: [0.1, 5.0]
+   * Valid range: [1.0, 8.0]
    * @defaultValue 1.0
    */
   get power(): number {
@@ -85,14 +85,14 @@ export class AmbientOcclusion {
   }
 
   set power(value: number) {
-    this._power = Math.max(0.1, Math.min(5.0, value));
+    this._power = Math.max(1.0, Math.min(8.0, value));
   }
 
   /**
    * Control the threshold for blurred edges.
    * Smaller value that retains the edge will result in sharper edges,
    * while a larger value will make the edges softer.
-   * Valid range: [0.000001, 1.0]
+   * Valid range: [0.000001, 0.1]
    * @defaultValue 0.05
    */
   get bilateralThreshold(): number {
@@ -100,12 +100,12 @@ export class AmbientOcclusion {
   }
 
   set bilateralThreshold(value: number) {
-    this._bilateralThreshold = Math.max(1e-6, Math.min(1.0, value));
+    this._bilateralThreshold = Math.max(1e-6, Math.min(0.1, value));
   }
 
   /**
    * Controls the bias to prevent self-occlusion artifacts.
-   * Valid range: [0.0, 0.1]
+   * Valid range: [0.0, 0.5]
    * @defaultValue 0.0005
    */
   get bias(): number {
@@ -113,7 +113,7 @@ export class AmbientOcclusion {
   }
 
   set bias(value: number) {
-    this._bias = Math.max(0.0, Math.min(0.1, value));
+    this._bias = Math.max(0.0, Math.min(0.5, value));
   }
 
   /**
