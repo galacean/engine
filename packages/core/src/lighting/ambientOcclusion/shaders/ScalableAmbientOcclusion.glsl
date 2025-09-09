@@ -47,9 +47,9 @@ vec3 computeViewSpacePosition(vec2 uv, float linearDepth, vec2 invProjScaleXY) {
 
 float sampleAndGetLinearViewDepth(float depth) {
     #ifdef CAMERA_ORTHOGRAPHIC
-        return LinearDepthToViewDepth(depth);
+        return - LinearDepthToViewDepth(depth);
     #else
-        return remapDepthBufferEyeDepth(depth);
+        return - remapDepthBufferEyeDepth(depth);
     #endif
 }
 
