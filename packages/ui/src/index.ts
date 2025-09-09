@@ -21,6 +21,8 @@ export * from "./component";
 export { CanvasRenderMode } from "./enums/CanvasRenderMode";
 export { ResolutionAdaptationMode } from "./enums/ResolutionAdaptationMode";
 export { UIPointerEventEmitter } from "./input/UIPointerEventEmitter";
+export { HorizontalAlignmentMode } from "./enums/HorizontalAlignmentMode";
+export { VerticalAlignmentMode } from "./enums/VerticalAlignmentMode";
 
 export class EngineExtension {
   _uiDefaultMaterial: Material;

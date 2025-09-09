@@ -2,11 +2,8 @@
 
 varying vec2 v_uv;
 uniform sampler2D renderer_BlitTexture;
-// uniform vec4 renderer_texelSize;    // x: 1/width, y: 1/height, z: width, w: height
 uniform vec4 renderer_SourceScaleOffset; 
 uniform sampler2D camera_DepthTexture;
-
-
 uniform float material_farPlaneOverEdgeDistance;
 #if SSAO_QUALITY == 0
       #define SAMPLE_COUNT 7
