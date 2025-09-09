@@ -129,6 +129,10 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     shaderData.setFloat(ScalableAmbientObscurancePass._projectionScaleRadiusProp, projectionScaleRadius);
     shaderData.setFloat(ScalableAmbientObscurancePass._biasProp, bias);
     shaderData.setFloat(ScalableAmbientObscurancePass._peak2Prop, peak2);
+    shaderData.setFloat(
+      ScalableAmbientObscurancePass._minHorizonAngleSineSquaredProp,
+      Math.pow(Math.sin(ambientOcclusion.minHorizonAngle), 2.0)
+    );
 
     shaderData.setFloat(ScalableAmbientObscurancePass._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
 
