@@ -114,25 +114,22 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     this._updateBlurKernel(shaderData, quality);
     shaderData.enableMacro("SSAO_QUALITY", quality.toString());
 
-    const { radius, bias } = ambientOcclusion;
+    const { radius } = ambientOcclusion;
     const peak = 0.1 * radius;
-    const peak2 = peak * peak;
     const intensity = (2 * Math.PI * peak * ambientOcclusion.intensity) / this._sampleCount;
-    const power = ambientOcclusion.power * 2.0;
     const projectionScaleRadius = radius * projectionMatrix.elements[5];
-    const invRadiusSquared = 1.0 / (radius * radius);
     const farPlaneOverEdgeDistance = -camera.farClipPlane / ambientOcclusion.bilateralThreshold;
 
-    shaderData.setFloat(ScalableAmbientObscurancePass._invRadiusSquaredProp, invRadiusSquared);
+    shaderData.setFloat(ScalableAmbientObscurancePass._invRadiusSquaredProp, 1.0 / (radius * radius));
     shaderData.setFloat(ScalableAmbientObscurancePass._intensityProp, intensity);
-    shaderData.setFloat(ScalableAmbientObscurancePass._powerProp, power);
-    shaderData.setFloat(ScalableAmbientObscurancePass._projectionScaleRadiusProp, projectionScaleRadius);
-    shaderData.setFloat(ScalableAmbientObscurancePass._biasProp, bias);
-    shaderData.setFloat(ScalableAmbientObscurancePass._peak2Prop, peak2);
+    shaderData.setFloat(ScalableAmbientObscurancePass._powerProp, ambientOcclusion.power * 2.0);
+    shaderData.setFloat(ScalableAmbientObscurancePass._biasProp, ambientOcclusion.bias);
+    shaderData.setFloat(ScalableAmbientObscurancePass._peak2Prop, peak * peak);
     shaderData.setFloat(
       ScalableAmbientObscurancePass._minHorizonAngleSineSquaredProp,
       Math.pow(Math.sin(ambientOcclusion.minHorizonAngle), 2.0)
     );
+    shaderData.setFloat(ScalableAmbientObscurancePass._projectionScaleRadiusProp, projectionScaleRadius);
 
     shaderData.setFloat(ScalableAmbientObscurancePass._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
 
