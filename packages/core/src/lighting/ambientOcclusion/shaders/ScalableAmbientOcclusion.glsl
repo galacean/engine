@@ -29,7 +29,7 @@ uniform float material_peak2; // Peak value to avoid singularities
 uniform float material_power; // Exponent to convert occlusion to visibility
 uniform vec2 material_invProjScaleXY; //invProjection[0][0] * 2, invProjection[1][1] * 2
 
-uniform vec4 camera_ProjectionParams; 
+uniform vec4 camera_ProjectionParams; // x: flipProjection ? -1 : 1, y: near, z: far, w: 0
 
 // maps orthographic depth buffer value (linear, [0, 1]) to view-space eye depth 
 float LinearDepthToViewDepth(float depth){
@@ -179,6 +179,14 @@ void scalableAmbientObscurance(vec2 uv, vec3 origin, vec3 normal, out float obsc
     obscurance = sqrt(obscurance * material_intensity);
 }
 
+vec2 pack(highp float normalizedDepth) {
+    highp float z = clamp(normalizedDepth, 0.0, 1.0);
+    highp float t = floor(256.0 * z);
+    mediump float hi = t * (1.0 / 256.0);
+    mediump float lo = (256.0 * z) - t;
+    return vec2(hi, lo);
+}
+
 
 void main(){
     float depth = texture2D(renderer_BlitTexture, v_uv).r;
@@ -196,7 +204,6 @@ void main(){
     // Occlusion to visibility
     float aoVisibility = pow(clamp(1.0 - occlusion, 0.0, 1.0), material_power);
 
-    // gl_FragColor = vec4(normal.x,normal.y,normal.z, 1.0);
-    gl_FragColor = vec4(aoVisibility, aoVisibility, aoVisibility, 1.0);
+    gl_FragColor = vec4(aoVisibility, pack(-positionVS.z/camera_ProjectionParams.z), 1.0);
 }
 

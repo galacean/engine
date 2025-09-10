@@ -8,7 +8,6 @@ import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { Shader, ShaderData, ShaderPass, ShaderProperty } from "../../shader";
 import blitVs from "../../shaderlib/extra/Blit.vs.glsl";
-import { SystemInfo } from "../../SystemInfo";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../../texture";
 import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
 import bilateralBlurFS from "./shaders/Blur/BilateralBlur.glsl";
@@ -61,7 +60,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
 
     this._depthRenderTarget = depthRenderTarget;
 
-    const format = SystemInfo.supportsTextureFormat(engine, TextureFormat.R8) ? TextureFormat.R8 : TextureFormat.R8G8B8;
+    const format = TextureFormat.R8G8B8;
 
     this._saoRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
       engine,
