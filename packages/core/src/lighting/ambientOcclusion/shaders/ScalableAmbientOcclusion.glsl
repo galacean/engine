@@ -162,7 +162,7 @@ void computeAmbientOcclusionSAO(inout float occlusion, float i, float ssDiskRadi
     occlusion += weight * sampleOcclusion;
 }
 
-void scalableAmbientObscurance(out float obscurance, vec2 uv, vec3 origin, vec3 normal) {
+void scalableAmbientObscurance(vec2 uv, vec3 origin, vec3 normal, out float obscurance) {
     float noise = interleavedGradientNoise(gl_FragCoord.xy);
     vec2 tapPosition = startPosition(noise);
     mat2 angleStep = tapAngleStep();
@@ -192,12 +192,12 @@ void main(){
     vec3 normal = computeViewSpaceNormal(v_uv, renderer_BlitTexture, depth, positionVS, renderer_texelSize.xy, material_invProjScaleXY);
 
     float occlusion = 0.0;
-    scalableAmbientObscurance(occlusion, v_uv, positionVS, normal);
+    scalableAmbientObscurance(v_uv, positionVS, normal, occlusion);
 
     // occlusion to visibility
     float aoVisibility = pow(clamp(1.0 - occlusion, 0.0, 1.0), material_power);
 
-    // gl_FragColor = vec4(positionVS.x,positionVS.y,positionVS.z, 1.0);
+    // gl_FragColor = vec4(normal.x,normal.y,normal.z, 1.0);
     gl_FragColor = vec4(aoVisibility, aoVisibility, aoVisibility, 1.0);
 }
 
