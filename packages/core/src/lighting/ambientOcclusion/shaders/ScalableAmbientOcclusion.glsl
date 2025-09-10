@@ -45,7 +45,7 @@ vec3 computeViewSpacePosition(vec2 uv, float linearDepth, vec2 invProjScaleXY) {
     #endif
 }
 
-float sampleAndGetLinearViewDepth(float depth) {
+float depthToViewZ(float depth) {
     #ifdef CAMERA_ORTHOGRAPHIC
         return - LinearDepthToViewDepth(depth);
     #else
@@ -62,8 +62,8 @@ vec3 computeViewSpaceNormal(vec2 uv, sampler2D depthTexture, float depth, vec3 v
         float depthX = texture2D(depthTexture, uvdx).r;
         float depthY = texture2D(depthTexture, uvdy).r;
 
-        vec3 px = computeViewSpacePosition(uvdx,  sampleAndGetLinearViewDepth(depthX), invProjScaleXY);
-        vec3 py = computeViewSpacePosition(uvdy,  sampleAndGetLinearViewDepth(depthY), invProjScaleXY);
+        vec3 px = computeViewSpacePosition(uvdx,  depthToViewZ(depthX), invProjScaleXY);
+        vec3 py = computeViewSpacePosition(uvdy,  depthToViewZ(depthY), invProjScaleXY);
 
         vec3 dpdx = px - viewPos;
         vec3 dpdy = py - viewPos;
@@ -83,8 +83,8 @@ vec3 computeViewSpaceNormal(vec2 uv, sampler2D depthTexture, float depth, vec3 v
         // Calculate horizontal edge weights
         vec2 horizontalEdgeWeights = abs((2.0 * H.xy - H.zw) - depth);
 
-        vec3 pos_l = computeViewSpacePosition(uv - dx, sampleAndGetLinearViewDepth(H.x), invProjScaleXY);
-        vec3 pos_r = computeViewSpacePosition(uv + dx, sampleAndGetLinearViewDepth(H.y), invProjScaleXY);
+        vec3 pos_l = computeViewSpacePosition(uv - dx, depthToViewZ(H.x), invProjScaleXY);
+        vec3 pos_r = computeViewSpacePosition(uv + dx, depthToViewZ(H.y), invProjScaleXY);
         vec3 dpdx = (horizontalEdgeWeights.x < horizontalEdgeWeights.y) ? (viewPos - pos_l) : (pos_r - viewPos);
 
         // Sample depths for vertical edge detection
@@ -96,8 +96,8 @@ vec3 computeViewSpaceNormal(vec2 uv, sampler2D depthTexture, float depth, vec3 v
 
         // Calculate vertical edge weights
         vec2 verticalEdgeWeights = abs((2.0 * V.xy - V.zw) - depth);
-        vec3 pos_d = computeViewSpacePosition(uv - dy, sampleAndGetLinearViewDepth(V.x), invProjScaleXY);
-        vec3 pos_u = computeViewSpacePosition(uv + dy, sampleAndGetLinearViewDepth(V.y), invProjScaleXY);
+        vec3 pos_d = computeViewSpacePosition(uv - dy, depthToViewZ(V.x), invProjScaleXY);
+        vec3 pos_u = computeViewSpacePosition(uv + dy, depthToViewZ(V.y), invProjScaleXY);
         vec3 dpdy = (verticalEdgeWeights.x < verticalEdgeWeights.y) ? (viewPos - pos_d) : (pos_u - viewPos);
         normal = normalize(cross(dpdx, dpdy));
     #endif
@@ -137,7 +137,7 @@ void computeAmbientOcclusionSAO(inout float occlusion, float i, float ssDiskRadi
     vec2 uvSamplePos = uv + vec2(ssRadius * tap.xy) * renderer_texelSize.xy;
 
     float occlusionDepth = texture2D(renderer_BlitTexture, uvSamplePos).r;
-    float linearOcclusionDepth = sampleAndGetLinearViewDepth(occlusionDepth);
+    float linearOcclusionDepth = depthToViewZ(occlusionDepth);
     // “p” is the position after spiral sampling
     vec3 p = computeViewSpacePosition(uvSamplePos, linearOcclusionDepth, material_invProjScaleXY);
 
@@ -184,7 +184,7 @@ void scalableAmbientObscurance(out float obscurance, vec2 uv, vec3 origin, vec3 
 void main(){
     float aoVisibility = 0.0;
     float depth = texture2D(renderer_BlitTexture, v_uv).r;
-    float z = sampleAndGetLinearViewDepth(depth);
+    float z = depthToViewZ(depth);
 
     // Reconstruct view space position from depth
     vec3 viewPos = computeViewSpacePosition(v_uv, z, material_invProjScaleXY);
@@ -197,6 +197,7 @@ void main(){
 
     // occlusion to visibility
     aoVisibility = pow(clamp(1.0 - occlusion, 0.0, 1.0), material_power);
+    // gl_FragColor = vec4(viewPos.x,viewPos.y,viewPos.z, 1.0);
     gl_FragColor = vec4(aoVisibility, aoVisibility, aoVisibility, 1.0);
 }
 
