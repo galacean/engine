@@ -182,22 +182,22 @@ void scalableAmbientObscurance(out float obscurance, vec2 uv, vec3 origin, vec3 
 
 
 void main(){
-    float aoVisibility = 0.0;
     float depth = texture2D(renderer_BlitTexture, v_uv).r;
     float z = depthToViewZ(depth);
 
     // Reconstruct view space position from depth
-    vec3 viewPos = computeViewSpacePosition(v_uv, z, material_invProjScaleXY);
+    vec3 positionVS = computeViewSpacePosition(v_uv, z, material_invProjScaleXY);
 
     // Compute normal
-    vec3 normal = computeViewSpaceNormal(v_uv, renderer_BlitTexture, depth, viewPos, renderer_texelSize.xy, material_invProjScaleXY);
+    vec3 normal = computeViewSpaceNormal(v_uv, renderer_BlitTexture, depth, positionVS, renderer_texelSize.xy, material_invProjScaleXY);
 
     float occlusion = 0.0;
-    scalableAmbientObscurance(occlusion, v_uv, viewPos, normal);
+    scalableAmbientObscurance(occlusion, v_uv, positionVS, normal);
 
     // occlusion to visibility
-    aoVisibility = pow(clamp(1.0 - occlusion, 0.0, 1.0), material_power);
-    // gl_FragColor = vec4(viewPos.x,viewPos.y,viewPos.z, 1.0);
+    float aoVisibility = pow(clamp(1.0 - occlusion, 0.0, 1.0), material_power);
+
+    // gl_FragColor = vec4(positionVS.x,positionVS.y,positionVS.z, 1.0);
     gl_FragColor = vec4(aoVisibility, aoVisibility, aoVisibility, 1.0);
 }
 
