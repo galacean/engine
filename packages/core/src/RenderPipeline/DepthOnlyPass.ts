@@ -33,7 +33,7 @@ export class DepthOnlyPass extends PipelinePass {
       width,
       height,
       null,
-      TextureFormat.Depth16,
+      engine._hardwareRenderer.isWebGL2 ? TextureFormat.Depth24 : TextureFormat.Depth24Stencil8,
       true,
       false,
       false,
