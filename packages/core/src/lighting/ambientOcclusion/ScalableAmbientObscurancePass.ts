@@ -40,7 +40,8 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   private _depthRenderTarget: RenderTarget;
   private _blurRenderTarget: RenderTarget;
 
-  private _sampleCount: number;
+  private _aoSpiralSampleCount: number;
+  private _blurStepPixels: number;
   private _invProjScaleXY = new Vector2();
   private _offsetX = new Vector4();
   private _offsetY = new Vector4();
@@ -117,7 +118,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     shaderData.enableMacro("SSAO_QUALITY", quality.toString());
 
     const peak = 0.1 * radius;
-    const intensity = (2 * Math.PI * peak * ambientOcclusion.intensity) / this._sampleCount;
+    const intensity = (2 * Math.PI * peak * ambientOcclusion.intensity) / this._aoSpiralSampleCount;
     shaderData.setFloat(ScalableAmbientObscurancePass._invRadiusSquaredProp, 1.0 / (radius * radius));
     shaderData.setFloat(ScalableAmbientObscurancePass._intensityProp, intensity);
     shaderData.setFloat(ScalableAmbientObscurancePass._powerProp, ambientOcclusion.power * 2.0);
@@ -144,12 +145,12 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
 
     // Horizontal blur, saoRenderTarget -> blurRenderTarget
     const saoTexture = <Texture2D>saoTarget.getColorTexture();
-    const offsetX = this._offsetX.set(1, 1, 1 / saoTexture.width, 0);
+    const offsetX = this._offsetX.set(1, 1, this._blurStepPixels / saoTexture.width, 0);
     Blitter.blitTexture(engine, saoTexture, this._blurRenderTarget, 0, viewport, material, 1, offsetX);
 
     // Vertical blur, blurRenderTarget -> saoRenderTarget
     const horizontalBlur = <Texture2D>this._blurRenderTarget.getColorTexture();
-    const offsetY = this._offsetY.set(1, 1, 0, 1 / saoTexture.height);
+    const offsetY = this._offsetY.set(1, 1, 0, this._blurStepPixels / saoTexture.height);
     Blitter.blitTexture(engine, horizontalBlur, saoTarget, 0, viewport, material, 1, offsetY);
 
     // Set the SAO texture
@@ -178,32 +179,44 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       return;
     }
 
-    let sampleCount: number;
-    let standardDeviation: number;
+    let aoSpiralSampleCount: number;
+    let blurStepPixels: number;
+    let blurStandardDeviation: number;
+    let blurKernelTaps: number;
 
     switch (quality) {
       case AmbientOcclusionQuality.Low:
-        sampleCount = 7;
-        standardDeviation = 8.0;
+        aoSpiralSampleCount = 7;
+        // spiralTurns = 3;
+        blurStepPixels = 4.0;
+        blurStandardDeviation = 8.0 / blurStepPixels;
+        blurKernelTaps = (23 + 1) / blurStepPixels - 1;
         break;
       case AmbientOcclusionQuality.Medium:
-        sampleCount = 11;
-        standardDeviation = 8.0;
+        aoSpiralSampleCount = 11;
+        // spiralTurns = 6;
+        blurStepPixels = 2.0;
+        blurStandardDeviation = 8.0 / blurStepPixels;
+        blurKernelTaps = (23 + 1) / blurStepPixels - 1;
         break;
       case AmbientOcclusionQuality.High:
-        sampleCount = 16;
-        standardDeviation = 6.0;
+        aoSpiralSampleCount = 16;
+        // spiralTurns = 7;
+        blurStepPixels = 1.0;
+        blurStandardDeviation = 6.0 / blurStepPixels;
+        blurKernelTaps = (23 + 1) / blurStepPixels - 1;
         break;
     }
-    this._sampleCount = sampleCount;
+    this._aoSpiralSampleCount = aoSpiralSampleCount;
+    this._blurStepPixels = blurStepPixels;
 
-    const kernelArraySize = 16;
-    const gaussianKernel = new Float32Array(kernelArraySize);
-    const variance = 2.0 * standardDeviation * standardDeviation;
-    for (let i = 0; i < sampleCount; i++) {
+    const kernelMaxSize = 12;
+    const gaussianKernel = new Float32Array(kernelMaxSize);
+    const variance = 2.0 * blurStandardDeviation * blurStandardDeviation;
+    for (let i = 0, n = (blurKernelTaps + 1) / 2.0; i < n; i++) {
       gaussianKernel[i] = Math.exp(-(i * i) / variance);
     }
-    for (let i = sampleCount; i < kernelArraySize; i++) {
+    for (let i = aoSpiralSampleCount; i < kernelMaxSize; i++) {
       gaussianKernel[i] = 0.0;
     }
 

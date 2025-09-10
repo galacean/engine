@@ -6,14 +6,14 @@ uniform vec4 renderer_SourceScaleOffset;
 uniform sampler2D camera_DepthTexture;
 uniform float material_farPlaneOverEdgeDistance;
 #if SSAO_QUALITY == 0
-      #define SAMPLE_COUNT 7
+      #define BLUR_SAMPLE_COUNT 3
 #elif SSAO_QUALITY == 1
-      #define SAMPLE_COUNT 11
+      #define BLUR_SAMPLE_COUNT 6
 #elif SSAO_QUALITY == 2
-      #define SAMPLE_COUNT 16
+      #define BLUR_SAMPLE_COUNT 12
 #endif
 
-uniform float material_kernel[16]; // Sample weights for bilateral blur
+uniform float material_kernel[12]; // Sample weights for bilateral blur
 
 float bilateralWeight(float depth, float sampleDepth) {
       float diff = (sampleDepth - depth) * material_farPlaneOverEdgeDistance;
@@ -39,11 +39,11 @@ void main(){
       float sum = color.r * totalWeight;
       
       vec2 offset = renderer_SourceScaleOffset.zw;
-      for (int i = 1; i < SAMPLE_COUNT; i++) {
-      float weight = material_kernel[i];
-      tap(renderer_BlitTexture, sum, totalWeight, weight, depth, v_uv + offset);
-      tap(renderer_BlitTexture, sum, totalWeight, weight, depth, v_uv - offset);
-      offset += renderer_SourceScaleOffset.zw;
+      for (int i = 1; i < BLUR_SAMPLE_COUNT; i++) {
+            float weight = material_kernel[i];
+            tap(renderer_BlitTexture, sum, totalWeight, weight, depth, v_uv + offset);
+            tap(renderer_BlitTexture, sum, totalWeight, weight, depth, v_uv - offset);
+            offset += renderer_SourceScaleOffset.zw;
       }
 
       float ao = sum * (1.0 / totalWeight);
