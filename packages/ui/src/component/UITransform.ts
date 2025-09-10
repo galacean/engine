@@ -15,12 +15,12 @@ import { VerticalAlignmentMode } from "../enums/VerticalAlignmentMode";
  * The Transform component exclusive to the UI element.
  */
 export class UITransform extends Transform {
-  @deepClone
-  private _size = new Vector2(100, 100);
-  @deepClone
-  private _pivot = new Vector2(0.5, 0.5);
   @ignoreClone
-  private _rect = new Rect(-50, -50, 100, 100);
+  private _size: Vector2 = new Vector2(100, 100);
+  @ignoreClone
+  private _pivot: Vector2 = new Vector2(0.5, 0.5);
+  @deepClone
+  private _rect: Rect = new Rect(-50, -50, 100, 100);
 
   private _alignLeft = 0;
   private _alignRight = 0;
@@ -258,8 +258,15 @@ export class UITransform extends Transform {
   override _cloneTo(target: UITransform, srcRoot: Entity, targetRoot: Entity): void {
     // @ts-ignore
     super._cloneTo(target, srcRoot, targetRoot);
-    target.size.copyFrom(this._size);
-    target.pivot.copyFrom(this._pivot);
+    const { _size: size, _pivot: pivot } = this;
+    // @ts-ignore
+    size._onValueChanged = pivot._onValueChanged = null;
+    target._size.copyFrom(this._size);
+    target._pivot.copyFrom(this._pivot);
+    // @ts-ignore
+    size._onValueChanged = this._onSizeChanged;
+    // @ts-ignore
+    pivot._onValueChanged = this._onPivotChanged;
   }
 
   protected override _onLocalMatrixChanging(): void {

@@ -2,7 +2,7 @@ import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@galacean/engi
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
-import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
+import { assignmentClone, ignoreClone } from "./clone/CloneManager";
 
 /**
  * Used to implement transformation related functions.
@@ -18,29 +18,29 @@ export class Transform extends Component {
   private static _tempMat41: Matrix = new Matrix();
   private static _tempMat42: Matrix = new Matrix();
 
-  @deepClone
+  @ignoreClone
   private _position: Vector3 = new Vector3();
-  @deepClone
+  @ignoreClone
   private _rotation: Vector3 = new Vector3();
-  @deepClone
+  @ignoreClone
   private _rotationQuaternion: Quaternion = new Quaternion();
-  @deepClone
+  @ignoreClone
   private _scale: Vector3 = new Vector3(1, 1, 1);
   @assignmentClone
   private _localUniformScaling: boolean = true;
-  @deepClone
+  @ignoreClone
   private _worldPosition: Vector3 = new Vector3();
-  @deepClone
+  @ignoreClone
   private _worldRotation: Vector3 = new Vector3();
-  @deepClone
+  @ignoreClone
   private _worldRotationQuaternion: Quaternion = new Quaternion();
-  @assignmentClone
+  @ignoreClone
   private _worldUniformScaling: boolean = true;
-  @deepClone
+  @ignoreClone
   private _lossyWorldScale: Vector3 = new Vector3(1, 1, 1);
-  @deepClone
+  @ignoreClone
   private _localMatrix: Matrix = new Matrix();
-  @deepClone
+  @ignoreClone
   private _worldMatrix: Matrix = new Matrix();
   @ignoreClone
   private _worldForward: Vector3 = null;
@@ -53,7 +53,8 @@ export class Transform extends Component {
   protected _isParentDirty: boolean = true;
   @ignoreClone
   private _parentTransformCache: Transform = null;
-  private _dirtyFlag: number = TransformModifyFlags.WmWpWeWqWs;
+  @ignoreClone
+  private _dirtyFlag: number = TransformModifyFlags.LqLmWmWpWeWqWsWus;
 
   /**
    * Local position.
@@ -581,9 +582,19 @@ export class Transform extends Component {
    * @internal
    */
   _cloneTo(target: Transform, srcRoot: Entity, targetRoot: Entity): void {
-    target._position.copyFrom(this.position);
-    target._rotation.copyFrom(this.rotation);
-    target._scale.copyFrom(this.scale);
+    const { _position: position, _rotation: rotation, _scale: scale } = target;
+    // @ts-ignore
+    position._onValueChanged = rotation._onValueChanged = scale._onValueChanged = null;
+    position.copyFrom(this._position);
+    // Maybe dirty, so get
+    rotation.copyFrom(this.rotation);
+    scale.copyFrom(this._scale);
+    // @ts-ignore
+    position._onValueChanged = this._onPositionChanged;
+    // @ts-ignore
+    rotation._onValueChanged = this._onRotationChanged;
+    // @ts-ignore
+    scale._onValueChanged = this._onScaleChanged;
   }
 
   protected _onLocalMatrixChanging?(): void;
@@ -909,5 +920,7 @@ export enum TransformModifyFlags {
   /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale */
   WmWpWeWqWs = 0xbc,
   /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale | WorldUniformScaling */
-  WmWpWeWqWsWus = 0x1bc
+  WmWpWeWqWsWus = 0x1bc,
+  /** LocalQuat | LocalMatrix | WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale | WorldUniformScaling */
+  LqLmWmWpWeWqWsWus = 0x1fe
 }
