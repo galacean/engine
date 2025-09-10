@@ -4,12 +4,11 @@ varying vec2 v_uv;
 uniform vec4 renderer_texelSize;    // x: 1/width, y: 1/height, z: width, w: height
 uniform sampler2D renderer_BlitTexture; // Camera_DepthTexture
 
-#define PI 3.14159265359
+// float inc = (1.0f / (SAMPLE_COUNT - 0.5f)) * SPIRAL_TURNS * 2.0 * PI
+// const vec2 angleIncCosSin = vec2(cos(inc), sin(inc))
 #if SSAO_QUALITY == 0
     #define SAMPLE_COUNT 7.0
     #define SPIRAL_TURNS 3.0
-    // inc = (1.0f / (SAMPLE_COUNT - 0.5f)) * SPIRAL_TURNS * 2.0 * PI
-    // angleIncCosSin = vec2(cos(inc), sin(inc))
     const vec2 angleIncCosSin = vec2(-0.971148, 0.238227);
 #elif SSAO_QUALITY == 1
     #define SAMPLE_COUNT 11.0
@@ -157,7 +156,7 @@ void computeAmbientOcclusionSAO(inout float occlusion, float i, float ssDiskRadi
     // sin(beta) * |v|. So the test simplifies to vn^2 < vv * sin(epsilon)^2.
     weight *= step(vv * material_minHorizonAngleSineSquared, vn * vn);
 
-    //Calculate the contribution of a single sampling point to Ambient Occlusion
+    // Calculate the contribution of a single sampling point to Ambient Occlusion
     float sampleOcclusion = max(0.0, vn + (originPosition.z * material_bias)) / (vv + material_peak2);
     occlusion += weight * sampleOcclusion;
 }
@@ -171,7 +170,7 @@ void scalableAmbientObscurance(vec2 uv, vec3 origin, vec3 normal, out float obsc
     // proportional to the projected area of the sphere
     float ssDiskRadius = -(material_projectionScaleRadius / origin.z);
 
-    // accumulate the occlusion amount of all sampling points
+    // Accumulate the occlusion amount of all sampling points
     obscurance = 0.0;
     for (float i = 0.0; i < SAMPLE_COUNT; i += 1.0) {
         computeAmbientOcclusionSAO(obscurance, i, ssDiskRadius, uv, origin, normal, tapPosition, noise);
@@ -194,7 +193,7 @@ void main(){
     float occlusion = 0.0;
     scalableAmbientObscurance(v_uv, positionVS, normal, occlusion);
 
-    // occlusion to visibility
+    // Occlusion to visibility
     float aoVisibility = pow(clamp(1.0 - occlusion, 0.0, 1.0), material_power);
 
     // gl_FragColor = vec4(normal.x,normal.y,normal.z, 1.0);
