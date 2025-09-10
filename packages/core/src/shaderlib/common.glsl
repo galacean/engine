@@ -77,13 +77,18 @@ vec4 outputSRGBCorrection(vec4 linearIn){
 
 
 uniform vec4 camera_DepthBufferParams;
+uniform vec4 camera_ProjectionParams;
 
 float remapDepthBufferLinear01(float depth){
 	return 1.0 / (camera_DepthBufferParams.x * depth + camera_DepthBufferParams.y);
 }
 
 float remapDepthBufferEyeDepth(float depth){
-	return 1.0 / (camera_DepthBufferParams.z * depth + camera_DepthBufferParams.w);
+	#ifdef CAMERA_ORTHOGRAPHIC
+		return camera_ProjectionParams.y + (camera_ProjectionParams.z - camera_ProjectionParams.y) * depth;
+	#else
+		return 1.0 / (camera_DepthBufferParams.z * depth + camera_DepthBufferParams.w);
+	#endif
 }
 
 // From Next Generation Post Processing in Call of Duty: Advanced Warfare [Jimenez 2014]

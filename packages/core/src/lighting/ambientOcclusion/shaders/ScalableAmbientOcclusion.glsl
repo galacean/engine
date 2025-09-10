@@ -29,12 +29,6 @@ uniform float material_peak2; // Peak value to avoid singularities
 uniform float material_power; // Exponent to convert occlusion to visibility
 uniform vec2 material_invProjScaleXY; //invProjection[0][0] * 2, invProjection[1][1] * 2
 
-uniform vec4 camera_ProjectionParams; // x: flipProjection ? -1 : 1, y: near, z: far, w: 0
-
-// maps orthographic depth buffer value (linear, [0, 1]) to view-space eye depth 
-float LinearDepthToViewDepth(float depth){
-    return camera_ProjectionParams.y + (camera_ProjectionParams.z - camera_ProjectionParams.y) * depth;
-}
 
 vec3 computeViewSpacePosition(vec2 uv, float linearDepth, vec2 invProjScaleXY) {
     #ifdef CAMERA_ORTHOGRAPHIC
@@ -45,11 +39,7 @@ vec3 computeViewSpacePosition(vec2 uv, float linearDepth, vec2 invProjScaleXY) {
 }
 
 float depthToViewZ(float depth) {
-    #ifdef CAMERA_ORTHOGRAPHIC
-        return - LinearDepthToViewDepth(depth);
-    #else
-        return - remapDepthBufferEyeDepth(depth);
-    #endif
+    return -remapDepthBufferEyeDepth(depth);
 }
 
 vec3 computeViewSpaceNormal(vec2 uv, sampler2D depthTexture, float depth, vec3 viewPos, vec2 texel, vec2 invProjScaleXY) {
@@ -61,8 +51,8 @@ vec3 computeViewSpaceNormal(vec2 uv, sampler2D depthTexture, float depth, vec3 v
         float depthX = texture2D(depthTexture, uvdx).r;
         float depthY = texture2D(depthTexture, uvdy).r;
 
-        vec3 px = computeViewSpacePosition(uvdx,  depthToViewZ(depthX), invProjScaleXY);
-        vec3 py = computeViewSpacePosition(uvdy,  depthToViewZ(depthY), invProjScaleXY);
+        vec3 px = computeViewSpacePosition(uvdx, depthToViewZ(depthX), invProjScaleXY);
+        vec3 py = computeViewSpacePosition(uvdy, depthToViewZ(depthY), invProjScaleXY);
 
         vec3 dpdx = px - viewPos;
         vec3 dpdy = py - viewPos;
