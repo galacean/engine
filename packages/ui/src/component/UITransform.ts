@@ -263,9 +263,9 @@ export class UITransform extends Transform {
     size._onValueChanged = pivot._onValueChanged = null;
     size.copyFrom(this._size), pivot.copyFrom(this._pivot);
     // @ts-ignore
-    size._onValueChanged = this._onSizeChanged;
+    size._onValueChanged = target._onSizeChanged;
     // @ts-ignore
-    pivot._onValueChanged = this._onPivotChanged;
+    pivot._onValueChanged = target._onPivotChanged;
   }
 
   protected override _onLocalMatrixChanging(): void {

@@ -587,11 +587,11 @@ export class Transform extends Component {
     position._onValueChanged = rotation._onValueChanged = scale._onValueChanged = null;
     position.copyFrom(this.position), rotation.copyFrom(this.rotation), scale.copyFrom(this.scale);
     // @ts-ignore
-    position._onValueChanged = this._onPositionChanged;
+    position._onValueChanged = target._onPositionChanged;
     // @ts-ignore
-    rotation._onValueChanged = this._onRotationChanged;
+    rotation._onValueChanged = target._onRotationChanged;
     // @ts-ignore
-    scale._onValueChanged = this._onScaleChanged;
+    scale._onValueChanged = target._onScaleChanged;
   }
 
   protected _onLocalMatrixChanging?(): void;
