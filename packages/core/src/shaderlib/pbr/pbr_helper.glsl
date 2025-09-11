@@ -177,7 +177,7 @@ void initMaterial(out Material material, inout Geometry geometry){
             vec4 samplingPositionNDC = camera_ProjMat * camera_ViewMat * vec4( geometry.position, 1.0 );
             vec2 ssaoUV = (samplingPositionNDC.xy / samplingPositionNDC.w) * 0.5 + 0.5;
             float ssao = texture2D(camera_AOTexture, ssaoUV).r;
-            diffuseAO *= ssao;
+            diffuseAO = min(diffuseAO, ssao);
         #endif
 
         #if (defined(MATERIAL_HAS_OCCLUSION_TEXTURE) || defined(SCENE_ENABLE_AMBIENT_OCCLUSION))&& defined(SCENE_USE_SPECULAR_ENV) 
