@@ -6,6 +6,7 @@ import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DepthTextureMode } from "../enums/DepthTextureMode";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
+import { ScalableAmbientObscurancePass } from "../lighting/ambientOcclusion/ScalableAmbientObscurancePass";
 import { FinalPass } from "../postProcess";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
@@ -44,6 +45,7 @@ export class BasicRenderPipeline {
   private _internalColorTarget: RenderTarget = null;
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
+  private _saoPass: ScalableAmbientObscurancePass;
   private _opaqueTexturePass: OpaqueTexturePass;
   private _finalPass: FinalPass;
   private _copyBackgroundTexture: Texture2D;
@@ -60,6 +62,7 @@ export class BasicRenderPipeline {
     this._cullingResults = new CullingResults();
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
+    this._saoPass = new ScalableAmbientObscurancePass(engine);
     this._opaqueTexturePass = new OpaqueTexturePass(engine);
     this._finalPass = new FinalPass(engine);
   }
@@ -89,7 +92,12 @@ export class BasicRenderPipeline {
     const cullingResults = this._cullingResults;
     const sunlight = scene._lightManager._sunlight;
     const depthOnlyPass = this._depthOnlyPass;
-    const depthPassEnabled = camera.depthTextureMode === DepthTextureMode.PrePass && depthOnlyPass._supportDepthTexture;
+    const ambientOcclusionEnabled = scene.ambientOcclusion._isValid();
+    const supportDepthTexture = depthOnlyPass.supportDepthTexture;
+
+    // Ambient occlusion enable will force enable depth prepass
+    const depthPassEnabled =
+      (camera.depthTextureMode === DepthTextureMode.PrePass || ambientOcclusionEnabled) && supportDepthTexture;
     const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
     const msaaSamples = renderTarget ? renderTarget.antiAliasing : camera.msaaSamples;
 
@@ -128,6 +136,7 @@ export class BasicRenderPipeline {
       depthOnlyPass.onRender(context, cullingResults);
       context.rendererUpdateFlag = ContextRendererUpdateFlag.None;
     } else {
+      depthOnlyPass.release();
       camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._basicResources.whiteTexture2D);
     }
 
@@ -190,6 +199,16 @@ export class BasicRenderPipeline {
         copyBackgroundTexture.destroy(true);
         this._copyBackgroundTexture = null;
       }
+    }
+
+    // Scalable ambient obscurance pass
+    // Before opaque pass so materials can sample ambient occlusion in BRDF
+    if (ambientOcclusionEnabled && supportDepthTexture) {
+      const saoPass = this._saoPass;
+      saoPass.onConfig(camera, this._depthOnlyPass.renderTarget);
+      saoPass.onRender(context);
+    } else {
+      this._saoPass.release();
     }
 
     this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel);
