@@ -30,9 +30,6 @@ describe("ShaderLab", async () => {
   });
 
   it("PBR", async () => {
-    glslValidate(engine, PBRSource, shaderLabVerbose);
-    glslValidate(engine, PBRSource, shaderLabRelease);
-
     const shader = shaderLabVerbose._parseShaderSource(PBRSource);
     const subShader = shader.subShaders[0];
     const passList = subShader.passes;
@@ -70,6 +67,22 @@ describe("ShaderLab", async () => {
       // renderQueue
       [RenderStateElementKey.RenderQueueType]: "renderQueueType"
     });
+
+    // Compile test
+    glslValidate(engine, PBRSource, shaderLabVerbose);
+    glslValidate(engine, PBRSource, shaderLabRelease);
+
+    // some material variants
+    glslValidate(engine, PBRSource, shaderLabRelease, [
+      { name: "MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE" },
+      { name: "MATERIAL_ENABLE_IRIDESCENCE" },
+      { name: "MATERIAL_ENABLE_ANISOTROPY" },
+      { name: "MATERIAL_ENABLE_SHEEN" },
+      { name: "MATERIAL_HAS_SHEEN_TEXTURE" },
+      { name: "REFRACTION_MODE", value: "1" },
+      { name: "MATERIAL_ENABLE_TRANSMISSION" },
+      { name: "MATERIAL_HAS_THICKNESS" }
+    ]);
   });
 
   it("render state", async () => {
@@ -137,6 +150,6 @@ describe("ShaderLab", async () => {
 
   it("mrt-struct", async () => {
     const shaderSource = await readFile("./shaders/mrt-struct.shader");
-    glslValidate(engine, shaderSource, shaderLabRelease, {});
+    glslValidate(engine, shaderSource, shaderLabRelease);
   });
 });

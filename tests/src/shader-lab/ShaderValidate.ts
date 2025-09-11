@@ -10,7 +10,7 @@ import {
 import { ShaderLab } from "@galacean/engine-shaderlab";
 import { expect } from "vitest";
 
-const testMacroList = [
+const baseTestMacroList = [
   { name: "RENDERER_IS_RECEIVE_SHADOWS" },
   { name: "RENDERER_HAS_NORMAL" },
   { name: "SCENE_USE_SH" },
@@ -25,20 +25,16 @@ const testMacroList = [
   { name: "SCENE_SHADOW_TYPE", value: "2" }
 ];
 
-const macroMockCollection = new ShaderMacroCollection();
-
-testMacroList.forEach(({ name, value }) => {
-  const macro = ShaderMacro.getByName(name, value);
-  macroMockCollection.enable(macro);
-});
-
-export function glslValidate(engine: Engine, src: string, _shaderLab?: ShaderLab, includeMap = {}) {
+export function glslValidate(
+  engine: Engine,
+  src: string,
+  _shaderLab?: ShaderLab,
+  extraMacroList: { name: string; value?: string }[] = []
+) {
   const shaderLab: ShaderLab = _shaderLab ?? new ShaderLab();
   // @ts-ignore
   Shader._shaderLab = shaderLab;
-  for (const key in includeMap) {
-    ShaderFactory.registerInclude(key, includeMap[key]);
-  }
+
   expect(() => {
     const shaderSource = shaderLab._parseShaderSource(src);
 
@@ -67,6 +63,14 @@ export function glslValidate(engine: Engine, src: string, _shaderLab?: ShaderLab
           passSource.tags
         );
         shaderPass.platformTarget = platform;
+
+        const totalMacroList = [...baseTestMacroList, ...extraMacroList];
+        const macroMockCollection = new ShaderMacroCollection();
+
+        totalMacroList.forEach(({ name, value }) => {
+          const macro = ShaderMacro.getByName(name, value);
+          macroMockCollection.enable(macro);
+        });
 
         // @ts-ignore
         const shaderProgram = shaderPass._getCanonicalShaderProgram(engine, macroMockCollection);
