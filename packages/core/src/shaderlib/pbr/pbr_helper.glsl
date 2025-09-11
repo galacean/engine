@@ -174,7 +174,7 @@ void initMaterial(out Material material, inout Geometry geometry){
         #endif
 
          #ifdef SCENE_ENABLE_AMBIENT_OCCLUSION                    
-            float ambientAO = texture2D(camera_AOTexture, v_ViewportCoord).r;
+            float ambientAO = texture2D(camera_AOTexture,(v_PositionCS.xy / v_PositionCS.w) * 0.5 + 0.5).r;
             diffuseAO = min(diffuseAO, ambientAO);
         #endif
 

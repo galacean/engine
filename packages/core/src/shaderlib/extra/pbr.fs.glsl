@@ -4,7 +4,7 @@
 #include <transform_declare>
 
 #include <FogFragmentDeclaration>
-#include <ViewportCoordDeclaration>
+#include <PositionClipSpaceDeclaration>
 
 #include <uv_share>
 #include <normal_share>

@@ -1,3 +1,3 @@
 #ifdef SCENE_ENABLE_AMBIENT_OCCLUSION
-    varying vec2 v_ViewportCoord;
+    varying vec4 v_PositionCS;
 #endif

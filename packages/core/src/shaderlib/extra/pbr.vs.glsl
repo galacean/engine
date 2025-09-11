@@ -8,7 +8,7 @@
 
 #include <ShadowVertexDeclaration>
 #include <FogVertexDeclaration>
-#include <ViewportCoordDeclaration>
+#include <PositionClipSpaceDeclaration>
 
 void main() {
 
@@ -24,5 +24,5 @@ void main() {
 
     #include <ShadowVertex>
     #include <FogVertex>
-    #include <ViewportCoordVertex>
+    #include <PositionClipSpaceVertex>
 }
