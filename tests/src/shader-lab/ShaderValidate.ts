@@ -1,5 +1,6 @@
 import {
   Engine,
+  Shader,
   ShaderFactory,
   ShaderMacro,
   ShaderMacroCollection,
@@ -20,7 +21,8 @@ const testMacroList = [
   { name: "MATERIAL_NEED_WORLD_POS" },
   { name: "MATERIAL_NEED_TILING_OFFSET" },
   { name: "REFRACTION_MODE", value: "1" },
-  { name: "SCENE_DIRECT_LIGHT_COUNT", value: "1" }
+  { name: "SCENE_DIRECT_LIGHT_COUNT", value: "1" },
+  { name: "SCENE_SHADOW_TYPE", value: "2" }
 ];
 
 const macroMockCollection = new ShaderMacroCollection();
@@ -32,6 +34,8 @@ testMacroList.forEach(({ name, value }) => {
 
 export function glslValidate(engine: Engine, src: string, _shaderLab?: ShaderLab, includeMap = {}) {
   const shaderLab: ShaderLab = _shaderLab ?? new ShaderLab();
+  // @ts-ignore
+  Shader._shaderLab = shaderLab;
   for (const key in includeMap) {
     ShaderFactory.registerInclude(key, includeMap[key]);
   }
