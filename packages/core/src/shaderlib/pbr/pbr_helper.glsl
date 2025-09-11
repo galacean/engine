@@ -174,7 +174,6 @@ void initMaterial(out Material material, inout Geometry geometry){
         #endif
 
          #ifdef SCENE_ENABLE_AMBIENT_OCCLUSION                    
-            vec4 samplingPositionNDC = camera_ProjMat * camera_ViewMat * vec4( geometry.position, 1.0 );
             float ambientAO = texture2D(camera_AOTexture, v_ViewportCoord).r;
             diffuseAO = min(diffuseAO, ambientAO);
         #endif
