@@ -125,10 +125,10 @@ describe("ShaderLab", async () => {
     glslValidate(engine, demoShader, shaderLabRelease);
   });
 
-  // it("multi-pass", async () => {
-  //   const shaderSource = await readFile("./shaders/multi-pass.shader");
-  //   glslValidate(engine, shaderSource, shaderLabRelease);
-  // });
+  it("multi-pass", async () => {
+    const shaderSource = await readFile("./shaders/multi-pass.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+  });
 
   it("macro-with-preprocessor", async () => {
     const shaderSource = await readFile("./shaders/macro-pre.shader");

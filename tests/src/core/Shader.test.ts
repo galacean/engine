@@ -257,11 +257,11 @@ describe("Shader", () => {
           true
         )
       ).to.be.equal(
-        `
+        `out vec4 glFragColor;\n
         in vec2 v_uv; 
         uniform sampler2D u_texture;
         uniform samplerCube u_textureCube;\n
-        out vec4 glFragColor;\nvoid main(){
+        void main(){
           glFragColor = texture(u_texture, v_uv);
           vec4 color1 = texture(u_textureCube, vec3(1));
           vec4 color2 = textureProj(u_textureCube, vec3(1));

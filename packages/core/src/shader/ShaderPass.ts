@@ -160,21 +160,21 @@ export class ShaderPass extends ShaderPart {
       noIncludeFrag = macroNameStr + noIncludeFrag;
     }
 
+    if (isWebGL2 && this.platformTarget === ShaderPlatformTarget.GLES100) {
+      noIncludeVertex = ShaderFactory.convertTo300(noIncludeVertex);
+      noIncludeFrag = ShaderFactory.convertTo300(noIncludeFrag, true);
+    }
+
     const versionStr = isWebGL2 ? "#version 300 es" : "#version 100";
 
-    let vertexSource = ` ${versionStr} 
+    const vertexSource = ` ${versionStr} 
         ${noIncludeVertex}
       `;
-    let fragmentSource = ` ${versionStr}
+    const fragmentSource = ` ${versionStr}
         ${isWebGL2 ? "" : ShaderFactory._shaderExtension}
         ${precisionStr}
         ${noIncludeFrag}
       `;
-
-    if (isWebGL2 && this.platformTarget === ShaderPlatformTarget.GLES100) {
-      vertexSource = ShaderFactory.convertTo300(vertexSource);
-      fragmentSource = ShaderFactory.convertTo300(fragmentSource, true);
-    }
 
     const shaderProgram = new ShaderProgram(engine, vertexSource, fragmentSource);
 

@@ -73,7 +73,7 @@ export class ShaderFactory {
           const result = shader.match(/\bgl_FragData\[.+?\]/g);
           shader = this._replaceMRTShader(shader, result);
         } else {
-          shader = shader.replace(/void\s+?main\s*\(/g, `out vec4 glFragColor;\nvoid main(`);
+          shader = "out vec4 glFragColor;\n" + shader;
           shader = shader.replace(/\bgl_FragColor\b/g, "glFragColor");
         }
       }
