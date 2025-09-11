@@ -1,3 +1,8 @@
+// Ambient Occlusion, largely inspired from:
+// "The Alchemy Screen-Space Ambient Obscurance Algorithm" by Morgan McGuire
+// "Scalable Ambient Obscurance" by Morgan McGuire, Michael Mara and David Luebke
+// https://research.nvidia.com/sites/default/files/pubs/2012-06_Scalable-Ambient-Obscurance/McGuire12SAO.pdf
+
 #include <common>
 
 varying vec2 v_uv;
@@ -42,6 +47,9 @@ float depthToViewZ(float depth) {
     return -remapDepthBufferEyeDepth(depth);
 }
 
+// reconstructing normal from depth buffer
+// https://atyuwen.github.io/posts/normal-reconstruction
+// https://wickedengine.net/2019/09/22/improved-normal-reconstruction-from-depth/
 vec3 computeViewSpaceNormal(vec2 uv, sampler2D depthTexture, float depth, vec3 viewPos, vec2 texel, vec2 invProjScaleXY) {
     vec3 normal = vec3(0.0);
 #if SSAO_QUALITY == 0 || SSAO_QUALITY == 1
