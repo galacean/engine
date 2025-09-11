@@ -34,11 +34,11 @@ WebGLEngine.create({ canvas: "canvas",graphicDeviceOptions: { webGLMode: WebGLMo
   const camera = cameraEntity.addComponent(Camera);
 
   scene.ambientOcclusion.enabled = true;
-  scene.ambientOcclusion.radius = 0.4;
-  scene.ambientOcclusion.intensity = 3;
-  scene.ambientOcclusion.power = 1.0;
-  scene.ambientOcclusion.bias = 0.0005;
-  scene.ambientOcclusion.bilateralThreshold = 0.01;
+  // scene.ambientOcclusion.radius = 0.4;
+  // scene.ambientOcclusion.intensity = 3;
+  // scene.ambientOcclusion.power = 1.0;
+  // scene.ambientOcclusion.bias = 0.0005;
+  // scene.ambientOcclusion.bilateralThreshold = 0.01;
   scene.ambientOcclusion.quality = AmbientOcclusionQuality.High;
 
   const lightNode = rootEntity.createChild("light_node");
