@@ -8,6 +8,7 @@
 
 #include <ShadowVertexDeclaration>
 #include <FogVertexDeclaration>
+#include <ViewportCoordDeclaration>
 
 void main() {
 
@@ -23,4 +24,5 @@ void main() {
 
     #include <ShadowVertex>
     #include <FogVertex>
+    #include <ViewportCoordVertex>
 }

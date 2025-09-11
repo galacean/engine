@@ -6,6 +6,7 @@ import transform_declare from "./transform_declare.glsl";
 import color_share from "./color_share.glsl";
 import FogFragmentDeclaration from "./FogFragmentDeclaration.glsl";
 import FogVertexDeclaration from "./FogVertexDeclaration.glsl";
+import ViewportCoordDeclaration from "./ViewportCoordDeclaration.glsl";
 import normal_share from "./normal_share.glsl";
 import uv_share from "./uv_share.glsl";
 import worldpos_share from "./worldpos_share.glsl";
@@ -24,6 +25,7 @@ import uv_vert from "./uv_vert.glsl";
 import worldpos_vert from "./worldpos_vert.glsl";
 
 import FogFragment from "./FogFragment.glsl";
+import ViewportCoordVertex from "./ViewportCoordVertex.glsl";
 import light_frag_define from "./light_frag_define.glsl";
 import mobile_material_frag from "./mobile_material_frag.glsl";
 
@@ -67,6 +69,7 @@ export const ShaderLib = {
   worldpos_share,
   FogVertexDeclaration,
   FogFragmentDeclaration,
+  ViewportCoordDeclaration,
 
   begin_normal_vert,
   begin_position_vert,
@@ -84,6 +87,7 @@ export const ShaderLib = {
   light_frag_define,
   mobile_material_frag,
   FogFragment,
+  ViewportCoordVertex,
 
   begin_mobile_frag,
   begin_viewdir_frag,
