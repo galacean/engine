@@ -24,5 +24,6 @@ export const KeywordMap = new Map([
   ["true", EKeyword.TRUE],
   ["false", EKeyword.FALSE],
   ["UsePass", EKeyword.GS_UsePass],
+  ["ColorWriteMask", EKeyword.GS_ColorWriteMask],
   ["Color", EKeyword.GS_Color]
 ]);

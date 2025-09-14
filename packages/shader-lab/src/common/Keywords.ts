@@ -97,5 +97,6 @@ export enum EKeyword {
   GS_CompareFunction,
   GS_StencilOperation,
   GS_CullMode,
+  GS_ColorWriteMask,
   GS_UsePass
 }
