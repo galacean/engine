@@ -583,6 +583,7 @@ export class Transform extends Component {
    */
   _cloneTo(target: Transform, srcRoot: Entity, targetRoot: Entity): void {
     const { _position: position, _rotation: rotation, _scale: scale } = target;
+    
     // @ts-ignore
     position._onValueChanged = rotation._onValueChanged = scale._onValueChanged = null;
 
