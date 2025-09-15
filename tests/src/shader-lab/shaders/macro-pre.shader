@@ -1,4 +1,4 @@
-Shader "Water" {
+Shader "macro-pre-test" {
   SubShader "subname" {
     Tags { LightMode = "ForwardBase" }
 

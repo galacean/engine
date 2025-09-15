@@ -1,4 +1,4 @@
-Shader "Test-Default" {
+Shader "no-frag-args-test" {
   SubShader "Default" {
     Pass "test" {
       Tags { ReplacementTag = "opaque" }
