@@ -1,8 +1,6 @@
 #ifndef SHADOW_INCLUDED
 #define SHADOW_INCLUDED
 
-#include "Transform.glsl"
-#include "Common.glsl"
 
 #if defined(SCENE_SHADOW_TYPE) && defined(RENDERER_IS_RECEIVE_SHADOWS)
     #define NEED_CALCULATE_SHADOWS

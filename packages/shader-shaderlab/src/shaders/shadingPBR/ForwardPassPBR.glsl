@@ -3,6 +3,10 @@
 
 #include "Common.glsl"
 #include "Fog.glsl"
+#include "Transform.glsl"
+#include "Skin.glsl"
+#include "BlendShape.glsl"
+#include "Shadow.glsl"
 
 #include "AttributesPBR.glsl"
 #include "VaryingsPBR.glsl"

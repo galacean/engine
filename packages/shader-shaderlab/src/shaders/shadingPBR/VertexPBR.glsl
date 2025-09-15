@@ -1,12 +1,6 @@
 #ifndef VERTEX_INCLUDE
 #define VERTEX_INCLUDE
 
-#include "Transform.glsl"
-#include "Skin.glsl"
-#include "BlendShape.glsl"
-#include "Shadow.glsl"
-
-
 struct VertexInputs{
     vec4 positionOS;
     vec3 positionWS;

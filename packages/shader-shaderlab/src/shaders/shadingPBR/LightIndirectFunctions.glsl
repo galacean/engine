@@ -1,6 +1,5 @@
 #ifndef LIGHT_INDIRECT_FUNCTIONS_INCLUDED
 #define LIGHT_INDIRECT_FUNCTIONS_INCLUDED
-#include "Light.glsl"
 
 vec3 getReflectedVector(SurfaceData surfaceData, vec3 n) {
     #ifdef MATERIAL_ENABLE_ANISOTROPY

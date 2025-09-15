@@ -14,8 +14,6 @@
 #ifndef FUNCTION_SHEEN_IBL
     #define FUNCTION_SHEEN_IBL evaluateSheenIBL
 #endif
-#include "BRDF.glsl"
-#include "Light.glsl"
 #include "LightIndirectFunctions.glsl"
 
 // ------------------------Diffuse------------------------

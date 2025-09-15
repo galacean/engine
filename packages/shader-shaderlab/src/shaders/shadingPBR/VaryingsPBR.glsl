@@ -1,8 +1,6 @@
 #ifndef VARYINGS_PBR_INCLUDED
 #define VARYINGS_PBR_INCLUDED
 
-#include "Shadow.glsl"
-
 struct Varyings{
 	vec2 uv;
 	#ifdef RENDERER_HAS_UV1
