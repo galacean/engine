@@ -274,11 +274,20 @@ export class UITransform extends Transform {
   }
 
   protected override _onLocalMatrixChanging(): void {
-    this._updatePositionByAlignment();
+    // `super._onLocalMatrixChanging()` will set `LocalMatrix` dirty flag `false`
+    // If there is an alignment, `position` and `localMatrix` will be reset again
+    if (this._horizontalAlignment || this._verticalAlignment) {
+      this._updatePositionByAlignment();
+      this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
+    } else {
+      super._onLocalMatrixChanging();
+    }
   }
 
-  protected override _onWorldMatrixChange(): void {
-    !this._horizontalAlignment && !this._verticalAlignment && super._onWorldMatrixChange();
+  protected override _onWorldMatrixChanging(): void {
+    // `super._onWorldMatrixChanging()` will set `WorldMatrix` dirty flag `false`
+    // If there is an alignment, `position` and `worldMatrix` will be reset again(`worldMatrix` dirty flag is already `true`)
+    !this._horizontalAlignment && !this._verticalAlignment && super._onWorldMatrixChanging();
   }
 
   @ignoreClone
@@ -353,7 +362,7 @@ export class UITransform extends Transform {
     }
   }
 
-  private _updateRectByPivot(): void {
+  private _updateRectBySizeAndPivot(): void {
     const { size, _pivot: pivot } = this;
     const x = -pivot.x * size.x;
     const y = -pivot.y * size.y;
@@ -368,7 +377,7 @@ export class UITransform extends Transform {
     ) {
       this._updateSizeByAlignment();
     }
-    this._updateRectByPivot();
+    this._updateRectBySizeAndPivot();
     this._updateWorldFlagWithSelfRectChange();
     // @ts-ignore
     this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Size);
@@ -376,7 +385,7 @@ export class UITransform extends Transform {
 
   @ignoreClone
   private _onPivotChanged(): void {
-    this._updateRectByPivot();
+    this._updateRectBySizeAndPivot();
     this._updateWorldFlagWithSelfRectChange();
     // @ts-ignore
     this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Pivot);
@@ -406,7 +415,7 @@ export class UITransform extends Transform {
           verticalAlignment === VerticalAlignmentMode.TopAndBottom
         ) {
           this._updateSizeByAlignment();
-          this._updateRectByPivot();
+          this._updateRectBySizeAndPivot();
           selfChange = true;
         }
         this._updatePositionByAlignment();

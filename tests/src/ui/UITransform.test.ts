@@ -360,6 +360,54 @@ describe("UITransform", async () => {
     expect(worldPos.z).to.eq(pos.z + pt.worldPosition.z);
   });
 
+  it("_onLocalMatrixChanging behavior with alignment", () => {
+    // Create test entities
+    const parentEntity = canvasEntity.createChild("parent-with-alignment");
+    const childEntity = parentEntity.createChild("child-with-alignment");
+    const parentTransform = parentEntity.transform as UITransform;
+    const childTransform = childEntity.transform as UITransform;
+    parentTransform.size.set(400, 300);
+    childTransform.horizontalAlignment = HorizontalAlignmentMode.Center;
+    childTransform.verticalAlignment = VerticalAlignmentMode.Middle;
+    childTransform.alignCenter = 10;
+    childTransform.alignMiddle = 20;
+    const testMatrix = childTransform.localMatrix;
+    const originX = testMatrix.elements[12];
+    const originY = testMatrix.elements[13];
+    const originZ = testMatrix.elements[14];
+    const modifyX = testMatrix.elements[12] = originX + 50;
+    const modifyY = testMatrix.elements[13] = originY + 50;
+    const modifyZ = testMatrix.elements[14] = originZ + 50;
+    childTransform.localMatrix = testMatrix;
+    const actualMatrix = childTransform.localMatrix;
+    expect(actualMatrix.elements[12]).to.not.eq(modifyX);
+    expect(actualMatrix.elements[12]).to.eq(originX);
+    expect(actualMatrix.elements[13]).to.not.eq(modifyY);
+    expect(actualMatrix.elements[13]).to.eq(originY);
+    expect(actualMatrix.elements[14]).to.not.eq(originZ);
+    expect(actualMatrix.elements[14]).to.eq(modifyZ);
+  });
+
+  it("_onLocalMatrixChanging behavior without alignment", () => {
+    const parentEntity = canvasEntity.createChild("parent-without-alignment");
+    const childEntity = parentEntity.createChild("child-without-alignment");
+    const childTransform = childEntity.transform as UITransform;
+    childTransform.horizontalAlignment = HorizontalAlignmentMode.None;
+    childTransform.verticalAlignment = VerticalAlignmentMode.None;
+    const expectedX = 200;
+    const expectedY = 250;
+    const expectedZ = 75;
+    const testMatrix = childTransform.localMatrix;
+    testMatrix.elements[12] = expectedX;
+    testMatrix.elements[13] = expectedY;
+    testMatrix.elements[14] = expectedZ;
+    childTransform.localMatrix = testMatrix;
+    const actualMatrix = childTransform.localMatrix;
+    expect(actualMatrix.elements[12]).to.eq(expectedX); // X position should match
+    expect(actualMatrix.elements[13]).to.eq(expectedY); // Y position should match
+    expect(actualMatrix.elements[14]).to.eq(expectedZ); // Z position should match
+  });
+
   describe("clone", () => {
     it("clones basic properties correctly", () => {
       const parent = root.createChild("clone-parent");
