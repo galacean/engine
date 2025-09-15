@@ -4,7 +4,9 @@
  */
 
 import {
+  AssetType,
   Camera,
+  Font,
   Logger,
   Script,
   TextHorizontalAlignment,
@@ -44,6 +46,10 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     private _totalTime = 0.1;
     private _isPlaying = false;
 
+    set font(val: Font) {
+      this._renderer.font = val;
+    }
+
     onUpdate(deltaTime: number): void {
       if (this._isPlaying) {
         if (this._curTime >= this._totalTime) {
@@ -72,8 +78,10 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     }
   }
 
-  const typedText = entity.addComponent(TypedText);
-  typedText.play(textRenderer, "我这一生，走过许多地方的桥儿");
-
-  updateForE2E(engine, 100, 100);
+  engine.resourceManager.load<Font>({ url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*1Bo5To15x0oAAAAAC_AAAAgAekp5AQ/钟齐志莽行书.json", type: AssetType.Font }).then((font) => {
+    const typedText = entity.addComponent(TypedText);
+    typedText.play(textRenderer, "我这一生，走过许多地方的桥儿");
+    typedText.font = font;
+    updateForE2E(engine, 100, 100);
+  });
 });
