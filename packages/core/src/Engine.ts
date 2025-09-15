@@ -6,7 +6,6 @@ import {
   IShaderLab,
   IXRDevice
 } from "@galacean/engine-design";
-import { Color } from "@galacean/engine-math";
 import { CharRenderInfo } from "./2d/text/CharRenderInfo";
 import { Font } from "./2d/text/Font";
 import { BasicResources } from "./BasicResources";
@@ -24,7 +23,6 @@ import { ResourceManager } from "./asset/ResourceManager";
 import { EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
 import { InputManager } from "./input";
-import { Material } from "./material/Material";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
 import { ColliderShape } from "./physics/shape/ColliderShape";
 import { PostProcessPass } from "./postProcess/PostProcessPass";
@@ -95,10 +93,6 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _renderContext: RenderContext = new RenderContext();
 
-  /* @internal */
-  _meshMagentaMaterial: Material;
-  /* @internal */
-  _particleMagentaMaterial: Material;
   /* @internal */
   _depthTexture2D: Texture2D;
 
@@ -263,16 +257,6 @@ export class Engine extends EventDispatcher {
     if (!hardwareRenderer.canIUse(GLCapabilityType.sRGB)) {
       this._macroCollection.enable(Engine._noSRGBSupportMacro);
     }
-
-    const meshMagentaMaterial = new Material(this, Shader.find("unlit"));
-    meshMagentaMaterial.isGCIgnored = true;
-    meshMagentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
-    this._meshMagentaMaterial = meshMagentaMaterial;
-
-    const particleMagentaMaterial = new Material(this, Shader.find("particle-shader"));
-    particleMagentaMaterial.isGCIgnored = true;
-    particleMagentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
-    this._particleMagentaMaterial = particleMagentaMaterial;
 
     this._basicResources = new BasicResources(this);
     this._particleBufferUtils = new ParticleBufferUtils(this);
