@@ -158,7 +158,7 @@ export class MeshRenderer extends Renderer {
         continue;
       }
       if (material.destroyed || material.shader.destroyed) {
-        material = this.engine._meshMagentaMaterial;
+        material = this.engine._basicResources.meshMagentaMaterial;
       }
 
       const subRenderElement = subRenderElementPool.get();

@@ -6,6 +6,7 @@
 #include <direct_irradiance_frag_define>
 #include <ibl_frag_define>
 
+uniform sampler2D camera_AOTexture;
 
 float computeSpecularOcclusion(float ambientOcclusion, float roughness, float dotNV ) {
     return saturate( pow( dotNV + ambientOcclusion, exp2( - 16.0 * roughness - 1.0 ) ) - 1.0 + ambientOcclusion );
@@ -172,7 +173,12 @@ void initMaterial(out Material material, inout Geometry geometry){
             diffuseAO = ((texture2D(material_OcclusionTexture, aoUV)).r - 1.0) * material_OcclusionIntensity + 1.0;
         #endif
 
-        #if defined(MATERIAL_HAS_OCCLUSION_TEXTURE) && defined(SCENE_USE_SPECULAR_ENV) 
+         #ifdef SCENE_ENABLE_AMBIENT_OCCLUSION                    
+            float ambientAO = texture2D(camera_AOTexture,(v_PositionCS.xy / v_PositionCS.w) * 0.5 + 0.5).r;
+            diffuseAO = min(diffuseAO, ambientAO);
+        #endif
+
+        #if (defined(MATERIAL_HAS_OCCLUSION_TEXTURE) || defined(SCENE_ENABLE_AMBIENT_OCCLUSION))&& defined(SCENE_USE_SPECULAR_ENV) 
             specularAO = saturate( pow( geometry.dotNV + diffuseAO, exp2( - 16.0 * material.roughness - 1.0 ) ) - 1.0 + diffuseAO );
         #endif
 

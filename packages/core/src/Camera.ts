@@ -44,6 +44,8 @@ export class Camera extends Component {
   static _cameraDepthTextureProperty = ShaderProperty.getByName("camera_DepthTexture");
   /** @internal */
   static _cameraOpaqueTextureProperty = ShaderProperty.getByName("camera_OpaqueTexture");
+  /** @internal */
+  static _cameraAOTextureProperty = ShaderProperty.getByName("camera_AOTexture");
 
   private static _inverseViewMatrixProperty = ShaderProperty.getByName("camera_ViewInvMat");
   private static _cameraPositionProperty = ShaderProperty.getByName("camera_Position");
@@ -909,8 +911,16 @@ export class Camera extends Component {
     shaderData.setVector3(Camera._cameraUpProperty, transform.worldUp);
 
     const depthBufferParams = this._depthBufferParams;
-    const farDivideNear = this.farClipPlane / this.nearClipPlane;
-    depthBufferParams.set(1.0 - farDivideNear, farDivideNear, 0, 0);
+    const { farClipPlane } = this;
+    const farDivideNear = farClipPlane / this.nearClipPlane;
+    const oneMinusFarDivideNear = 1.0 - farDivideNear;
+
+    depthBufferParams.set(
+      oneMinusFarDivideNear,
+      farDivideNear,
+      oneMinusFarDivideNear / farClipPlane,
+      farDivideNear / farClipPlane
+    );
     shaderData.setVector4(Camera._cameraDepthBufferParamsProperty, depthBufferParams);
   }
 
