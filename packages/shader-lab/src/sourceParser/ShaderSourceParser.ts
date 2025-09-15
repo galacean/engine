@@ -74,7 +74,7 @@ export class ShaderSourceParser {
       }
     }
 
-    Logger.info(`[Source compilation] cost time ${performance.now() - startTime}ms`);
+    Logger.info(`[Task - Source compilation] cost time ${performance.now() - startTime}ms`);
     return shaderSource;
   }
 
