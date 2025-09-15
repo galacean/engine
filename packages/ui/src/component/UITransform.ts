@@ -16,11 +16,11 @@ import { VerticalAlignmentMode } from "../enums/VerticalAlignmentMode";
  */
 export class UITransform extends Transform {
   @ignoreClone
-  private _size: Vector2 = new Vector2(100, 100);
+  private _size = new Vector2(100, 100);
   @ignoreClone
-  private _pivot: Vector2 = new Vector2(0.5, 0.5);
+  private _pivot = new Vector2(0.5, 0.5);
   @deepClone
-  private _rect: Rect = new Rect(-50, -50, 100, 100);
+  private _rect = new Rect(-50, -50, 100, 100);
 
   private _alignLeft = 0;
   private _alignRight = 0;
