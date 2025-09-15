@@ -339,8 +339,6 @@ describe("UITransform", async () => {
 
   });
 
-
-
   it("widget changes reflect in worldPosition when parent moves", () => {
     // Use default parent canvasEntity for deterministic base
     const child = canvasEntity.createChild("child-world");
@@ -360,6 +358,112 @@ describe("UITransform", async () => {
     expect(worldPos.x).to.eq(pos.x + pt.worldPosition.x);
     expect(worldPos.y).to.eq(pos.y + pt.worldPosition.y);
     expect(worldPos.z).to.eq(pos.z + pt.worldPosition.z);
+  });
+
+  describe("clone", () => {
+    it("clones basic properties correctly", () => {
+      const parent = root.createChild("clone-parent");
+      parent.addComponent(UICanvas);
+      const original = parent.createChild("original");
+      const originalTransform = original.transform as UITransform;
+
+      originalTransform.size.set(200, 150);
+      originalTransform.pivot.set(0.3, 0.7);
+      originalTransform.position.set(10, 20, 5);
+      originalTransform.rotation.set(45, 30, 60);
+      originalTransform.scale.set(1.5, 2.0, 1.2);
+
+      const cloned = original.clone();
+      const clonedTransform = cloned.transform as UITransform;
+
+      expect(clonedTransform.size.x).to.eq(200);
+      expect(clonedTransform.size.y).to.eq(150);
+      expect(clonedTransform.pivot.x).to.eq(0.3);
+      expect(clonedTransform.pivot.y).to.eq(0.7);
+      expect(clonedTransform.position.x).to.eq(10);
+      expect(clonedTransform.position.y).to.eq(20);
+      expect(clonedTransform.position.z).to.eq(5);
+      expect(clonedTransform.rotation.x).to.eq(45);
+      expect(clonedTransform.rotation.y).to.eq(30);
+      expect(clonedTransform.rotation.z).to.eq(60);
+      expect(clonedTransform.scale.x).to.eq(1.5);
+      expect(clonedTransform.scale.y).to.eq(2.0);
+      expect(clonedTransform.scale.z).to.eq(1.2);
+    });
+
+    it("clones alignment properties correctly", () => {
+      const parent = root.createChild("clone-alignment-parent");
+      parent.addComponent(UICanvas);
+      const original = parent.createChild("original-alignment");
+      const originalTransform = original.transform as UITransform;
+
+      originalTransform.horizontalAlignment = HorizontalAlignmentMode.LeftAndRight;
+      originalTransform.alignLeft = 10;
+      originalTransform.alignRight = 20;
+      originalTransform.alignCenter = 5;
+      
+      originalTransform.verticalAlignment = VerticalAlignmentMode.TopAndBottom;
+      originalTransform.alignTop = 15;
+      originalTransform.alignBottom = 25;
+      originalTransform.alignMiddle = 8;
+
+      const cloned = original.clone();
+      const clonedTransform = cloned.transform as UITransform;
+
+      expect(clonedTransform.horizontalAlignment).to.eq(HorizontalAlignmentMode.LeftAndRight);
+      expect(clonedTransform.alignLeft).to.eq(10);
+      expect(clonedTransform.alignRight).to.eq(20);
+      expect(clonedTransform.alignCenter).to.eq(5);
+      
+      expect(clonedTransform.verticalAlignment).to.eq(VerticalAlignmentMode.TopAndBottom);
+      expect(clonedTransform.alignTop).to.eq(15);
+      expect(clonedTransform.alignBottom).to.eq(25);
+      expect(clonedTransform.alignMiddle).to.eq(8);
+    });
+
+    it("cloned transform is independent from original", () => {
+      const parent = root.createChild("clone-independent-parent");
+      parent.addComponent(UICanvas);
+      const original = parent.createChild("original-independent");
+      const originalTransform = original.transform as UITransform;
+
+      originalTransform.size.set(100, 100);
+      originalTransform.pivot.set(0.5, 0.5);
+
+      const cloned = original.clone();
+      const clonedTransform = cloned.transform as UITransform;
+
+      originalTransform.size.set(200, 150);
+      originalTransform.pivot.set(0.2, 0.8);
+      originalTransform.alignLeft = 30;
+
+      expect(clonedTransform.size.x).to.eq(100);
+      expect(clonedTransform.size.y).to.eq(100);
+      expect(clonedTransform.pivot.x).to.eq(0.5);
+      expect(clonedTransform.pivot.y).to.eq(0.5);
+      expect(clonedTransform.alignLeft).to.eq(0);
+    });
+
+    it("cloned transform with alignment behaves correctly", () => {
+      const parent = root.createChild("clone-behavior-parent");
+      parent.addComponent(UICanvas);
+      const parentTransform = parent.transform as UITransform;
+      parentTransform.size.set(300, 200);
+      
+      const original = parent.createChild("original-behavior");
+      const originalTransform = original.transform as UITransform;
+      
+      originalTransform.horizontalAlignment = HorizontalAlignmentMode.Left;
+      originalTransform.alignLeft = 20;
+      
+      const cloned = original.clone();
+      parent.addChild(cloned);
+      const clonedTransform = cloned.transform as UITransform;
+
+      expect(clonedTransform.horizontalAlignment).to.eq(HorizontalAlignmentMode.Left);
+      expect(clonedTransform.alignLeft).to.eq(20);
+      expect(clonedTransform.position.x).to.eq(originalTransform.position.x);
+    });
   });
 });
 
