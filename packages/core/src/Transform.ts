@@ -603,7 +603,7 @@ export class Transform extends Component {
     this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix);
   }
 
-  protected _onWorldMatrixChanging() {
+  protected _onWorldMatrixChanging(): void {
     this._setDirtyFlagFalse(TransformModifyFlags.WorldMatrix);
   }
 

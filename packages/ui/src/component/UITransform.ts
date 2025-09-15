@@ -274,6 +274,8 @@ export class UITransform extends Transform {
   }
 
   protected override _onLocalMatrixChanging(): void {
+    // `super._onLocalMatrixChanging()` will set `LocalMatrix` dirty flag `false`
+    // If there is an alignment, `position` and `localMatrix` will be reset again
     if (this._horizontalAlignment || this._verticalAlignment) {
       this._updatePositionByAlignment();
       this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
@@ -283,6 +285,8 @@ export class UITransform extends Transform {
   }
 
   protected override _onWorldMatrixChanging(): void {
+    // `super._onWorldMatrixChanging()` will set `WorldMatrix` dirty flag `false`
+    // If there is an alignment, `position` and `worldMatrix` will be reset again(`worldMatrix` dirty flag is already `true`)
     !this._horizontalAlignment && !this._verticalAlignment && super._onWorldMatrixChanging();
   }
 
