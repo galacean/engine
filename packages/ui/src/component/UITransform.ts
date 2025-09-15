@@ -258,10 +258,15 @@ export class UITransform extends Transform {
   override _cloneTo(target: UITransform, srcRoot: Entity, targetRoot: Entity): void {
     // @ts-ignore
     super._cloneTo(target, srcRoot, targetRoot);
+
     const { _size: size, _pivot: pivot } = target;
+
     // @ts-ignore
     size._onValueChanged = pivot._onValueChanged = null;
-    size.copyFrom(this._size), pivot.copyFrom(this._pivot);
+
+    size.copyFrom(this._size);
+    pivot.copyFrom(this._pivot);
+
     // @ts-ignore
     size._onValueChanged = target._onSizeChanged;
     // @ts-ignore
