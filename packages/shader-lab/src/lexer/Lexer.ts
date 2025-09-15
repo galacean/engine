@@ -81,10 +81,11 @@ export class Lexer extends BaseLexer {
     "#ifndef": Keyword.MACRO_IFNDEF,
     "#else": Keyword.MACRO_ELSE,
     "#elif": Keyword.MACRO_ELIF,
-    defined: Keyword.MACRO_DEFINED,
     "#endif": Keyword.MACRO_ENDIF,
     "#undef": Keyword.MACRO_UNDEF
   };
+
+  private _needScanMacroConditionExpression = false;
 
   *tokenize() {
     while (!this.isEnd()) {
@@ -106,13 +107,19 @@ export class Lexer extends BaseLexer {
       return EOF;
     }
 
-    if (BaseLexer.isPreprocessorStartChar(this.getCurCharCode())) {
+    if (this._needScanMacroConditionExpression) {
+      this._needScanMacroConditionExpression = false;
+      return this._scanMacroConditionExpression();
+    }
+
+    const curCharCode = this.getCurCharCode();
+    if (BaseLexer.isPreprocessorStartChar(curCharCode)) {
       return this._scanDirectives();
     }
-    if (BaseLexer.isAlpha(this.getCurCharCode())) {
+    if (BaseLexer.isAlpha(curCharCode)) {
       return this._scanWord();
     }
-    if (BaseLexer.isDigit(this.getCurCharCode())) {
+    if (BaseLexer.isDigit(curCharCode)) {
       return this._scanNum();
     }
 
@@ -364,7 +371,7 @@ export class Lexer extends BaseLexer {
     return token;
   }
 
-  private _scanStringConst() {
+  private _scanStringConst(): BaseToken {
     const start = this.getShaderPosition();
     const buffer: string[] = [];
     while (this.getCurChar() !== '"') {
@@ -379,7 +386,7 @@ export class Lexer extends BaseLexer {
     return token;
   }
 
-  private _scanNumAfterDot() {
+  private _scanNumAfterDot(): BaseToken {
     const buffer = ["."];
     while (BaseLexer.isDigit(this.getCurCharCode())) {
       buffer.push(this.getCurChar());
@@ -391,7 +398,14 @@ export class Lexer extends BaseLexer {
     return token;
   }
 
-  private _scanDirectives() {
+  private _scanUtilBreakLine(outBuffer: string[]): void {
+    while (this.getCurChar() !== "\n" && !this.isEnd()) {
+      outBuffer.push(this.getCurChar());
+      this.advance(1);
+    }
+  }
+
+  private _scanDirectives(): BaseToken {
     const buffer: string[] = [this.getCurChar()];
     const start = this.getShaderPosition();
     this.advance(1);
@@ -402,23 +416,33 @@ export class Lexer extends BaseLexer {
     const token = BaseToken.pool.get();
     const word = buffer.join("");
 
-    // If it is a macro definition, we need to skip the rest of the line
+    // If it is a macro definition or conditional expression, we need to skip the rest of the line
     if (word === "#define") {
-      while (this.getCurChar() !== "\n" && !this.isEnd()) {
-        buffer.push(this.getCurChar());
-        this.advance(1);
-      }
+      this._scanUtilBreakLine(buffer);
       const word = buffer.join("") + "\n";
       token.set(Keyword.MACRO_DEFINE_EXPRESSION, word, start);
     } else {
       const kt = Lexer._lexemeTable[word];
       token.set(kt ?? ETokenType.ID, word, start);
+      if (word === "#if" || word === "#elif") {
+        this._needScanMacroConditionExpression = true;
+      }
     }
 
     return token;
   }
 
-  private _scanWord() {
+  private _scanMacroConditionExpression(): BaseToken {
+    const buffer = new Array<string>();
+    const start = this.getShaderPosition();
+    this._scanUtilBreakLine(buffer);
+    const word = buffer.join("");
+    const token = BaseToken.pool.get();
+    token.set(Keyword.MACRO_CONDITIONAL_EXPRESSION, word, start);
+    return token;
+  }
+
+  private _scanWord(): BaseToken {
     const buffer: string[] = [this.getCurChar()];
     const start = this.getShaderPosition();
     this.advance(1);
@@ -438,7 +462,7 @@ export class Lexer extends BaseLexer {
     return token;
   }
 
-  private _scanNum() {
+  private _scanNum(): BaseToken {
     const buffer: string[] = [];
     while (BaseLexer.isDigit(this.getCurCharCode())) {
       buffer.push(this.getCurChar());
@@ -474,7 +498,7 @@ export class Lexer extends BaseLexer {
     }
   }
 
-  private _scanFloatSuffix(buffer: string[]) {
+  private _scanFloatSuffix(buffer: string[]): void {
     let curChar = this.getCurChar();
     if (curChar === "e" || curChar === "E") {
       buffer.push(curChar);
@@ -500,7 +524,7 @@ export class Lexer extends BaseLexer {
     }
   }
 
-  private _scanIntegerSuffix(buffer: string[]) {
+  private _scanIntegerSuffix(buffer: string[]): void {
     const curChar = this.getCurChar();
     if (curChar === "u" || curChar === "U") {
       buffer.push(curChar);

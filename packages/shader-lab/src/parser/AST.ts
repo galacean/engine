@@ -1619,39 +1619,6 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.macro_branch)
   export class MacroBranch extends TreeNode {}
 
-  @ASTNodeDecorator(NoneTerminal.macro_conditional_expression)
-  export class MacroConditionalExpression extends TreeNode {}
-
-  @ASTNodeDecorator(NoneTerminal.macro_logical_or_expression)
-  export class MacroLogicalOrExpression extends TreeNode {}
-
-  @ASTNodeDecorator(NoneTerminal.macro_logical_and_expression)
-  export class MacroLogicalAndExpression extends TreeNode {}
-
-  @ASTNodeDecorator(NoneTerminal.macro_equality_expression)
-  export class MacroEqualityExpression extends TreeNode {}
-
-  @ASTNodeDecorator(NoneTerminal.macro_relational_expression)
-  export class MacroRelationalExpression extends TreeNode {}
-
-  @ASTNodeDecorator(NoneTerminal.macro_shift_expression)
-  export class MacroShiftExpression extends TreeNode {}
-
-  @ASTNodeDecorator(NoneTerminal.macro_additive_expression)
-  export class MacroAdditiveExpression extends TreeNode {}
-
-  @ASTNodeDecorator(NoneTerminal.macro_multiplicative_expression)
-  export class MacroMultiplicativeExpression extends TreeNode {}
-
-  @ASTNodeDecorator(NoneTerminal.macro_unary_expression)
-  export class MacroUnaryExpression extends TreeNode {}
-
-  @ASTNodeDecorator(NoneTerminal.macro_primary_expression)
-  export class MacroPrimaryExpression extends TreeNode {}
-
-  @ASTNodeDecorator(NoneTerminal.macro_constant)
-  export class MacroConstant extends TreeNode {}
-
   @ASTNodeDecorator(NoneTerminal.macro_call_symbol)
   export class MacroCallSymbol extends TreeNode {
     referenceSymbolNames: string[] = [];

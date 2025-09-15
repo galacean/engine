@@ -58,8 +58,9 @@
 
 %token CONTINUE BREAK RETURN DISCARD
 
-%token MACRO_IF MACRO_IFDEF MACRO_IFNDEF MACRO_ELIF MACRO_ELSE MACRO_DEFINED MACRO_ENDIF
-%token MACRO_UNDEF MACRO_DEFINE_EXPRESSION
+%token MACRO_IF MACRO_IFDEF MACRO_IFNDEF MACRO_ELIF MACRO_ELSE MACRO_ENDIF
+%token MACRO_UNDEF
+%token MACRO_DEFINE_EXPRESSION MACRO_CONDITIONAL_EXPRESSION
 %token MACRO_CALL
 
 
@@ -84,7 +85,7 @@ macro_undef:
     ;
 
 macro_push_context:
-     MACRO_IF macro_conditional_expression 
+     MACRO_IF MACRO_CONDITIONAL_EXPRESSION 
      | MACRO_IFDEF id
      | MACRO_IFNDEF id
      | MACRO_IFDEF macro_call_symbol
@@ -96,7 +97,7 @@ macro_pop_context:
     ;
 
 macro_elif_expression:
-    MACRO_ELIF macro_conditional_expression
+    MACRO_ELIF MACRO_CONDITIONAL_EXPRESSION
     ;
 
 macro_else_expression:
@@ -596,75 +597,6 @@ macro_branch:
     | macro_else_expression statement_list macro_pop_context
     | macro_elif_expression macro_branch
     | macro_else_expression macro_pop_context
-    ;
-
-macro_conditional_expression: 
-    macro_logical_or_expression
-    ;
-
-macro_logical_or_expression: 
-    macro_logical_and_expression
-    | macro_logical_or_expression "||" macro_logical_and_expression
-    ;
-
-macro_logical_and_expression: 
-    macro_equality_expression
-    | macro_logical_and_expression "&&" macro_equality_expression
-    ;
-
-macro_equality_expression: 
-    macro_relational_expression
-    | macro_equality_expression "==" macro_relational_expression
-    | macro_equality_expression "!=" macro_relational_expression
-    ;
-
-macro_relational_expression: 
-    macro_shift_expression
-    | macro_relational_expression ">" macro_shift_expression
-    | macro_relational_expression "<" macro_shift_expression
-    | macro_relational_expression ">=" macro_shift_expression
-    | macro_relational_expression "<=" macro_shift_expression
-    ;
-
-macro_shift_expression: 
-    macro_additive_expression
-    | macro_shift_expression ">>" macro_additive_expression
-    | macro_shift_expression "<<" macro_additive_expression
-    ;
-
-macro_additive_expression: 
-    macro_multiplicative_expression
-    | macro_additive_expression "+" macro_multiplicative_expression
-    | macro_additive_expression "-" macro_multiplicative_expression
-    ;
-
-macro_multiplicative_expression: 
-    macro_unary_expression
-    | macro_multiplicative_expression "*" macro_unary_expression
-    | macro_multiplicative_expression "/" macro_unary_expression
-    | macro_multiplicative_expression "%" macro_unary_expression
-    ;
-
-macro_unary_expression: 
-    macro_primary_expression
-    | "+" macro_unary_expression
-    | "-" macro_unary_expression
-    | "!" macro_unary_expression
-    ;
-
-macro_primary_expression: 
-    macro_constant
-    | "(" macro_conditional_expression ")"
-    ;
-
-macro_constant: 
-    id
-    | macro_call_symbol
-    | INT_CONSTANT
-    | MACRO_DEFINED id
-    | MACRO_DEFINED "(" id ")"
-    | MACRO_DEFINED macro_call_symbol
-    | MACRO_DEFINED "(" macro_call_symbol ")"
     ;
 
 iteration_statement:
