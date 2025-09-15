@@ -30,6 +30,11 @@ export class Preprocessor {
   private static readonly _funcCallReg = /^([a-zA-Z_][a-zA-Z0-9_]*)\s*\((.*)\)$/;
   private static readonly _macroDefineIncludeMap = new Map<string, MacroDefineList>();
 
+  /**
+   * @internal
+   */
+  static _repeatIncludeSet = new Set<string>();
+
   static parse(
     source: string,
     basePathForIncludeKey: string,
@@ -162,6 +167,11 @@ export class Preprocessor {
       Logger.error(`Shader slice "${path}" not founded.`);
       return "";
     }
+
+    if (this._repeatIncludeSet.has(path)) {
+      Logger.warn(`Shader slice "${path}" is included multiple times.`);
+    }
+    this._repeatIncludeSet.add(path);
 
     if (this._macroDefineIncludeMap.has(path)) {
       this._mergeMacroDefineLists(this._macroDefineIncludeMap.get(path)!, outMacroDefineList);
