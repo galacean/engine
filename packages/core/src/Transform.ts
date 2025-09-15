@@ -585,7 +585,11 @@ export class Transform extends Component {
     const { _position: position, _rotation: rotation, _scale: scale } = target;
     // @ts-ignore
     position._onValueChanged = rotation._onValueChanged = scale._onValueChanged = null;
-    position.copyFrom(this.position), rotation.copyFrom(this.rotation), scale.copyFrom(this.scale);
+
+    position.copyFrom(this.position);
+    rotation.copyFrom(this.rotation);
+    scale.copyFrom(this.scale);
+
     // @ts-ignore
     position._onValueChanged = target._onPositionChanged;
     // @ts-ignore
