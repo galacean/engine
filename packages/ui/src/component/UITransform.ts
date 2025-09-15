@@ -263,8 +263,12 @@ export class UITransform extends Transform {
   }
 
   protected override _onLocalMatrixChanging(): void {
-    this._updatePositionByAlignment();
-    this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
+    if (this._horizontalAlignment || this._verticalAlignment) {
+      this._updatePositionByAlignment();
+      this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
+    } else {
+      super._onLocalMatrixChanging();
+    }
   }
 
   protected override _onWorldMatrixChanging(): void {
