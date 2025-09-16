@@ -43,7 +43,7 @@ Referencing in ShaderLab:
 In the current version, the engine provides built-in **PBR** ShaderLab code segments. Developers can use these to customize PBR shaders. Note that you must register these engine-provided ShaderLab code segments before use.
 
 ```ts showLineNumbers {4} filename="TypeScript"
-import { registerIncludes } from "@galacean/engine-shader-shaderlab";
+import { registerIncludes } from "@galacean/engine-shader";
 
 // Register built-in ShaderLab code segments
 registerIncludes();
@@ -56,5 +56,5 @@ registerIncludes();
 ...
 ```
 
-Official built-in PBR ShaderLab code segment source code: [Reference](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/PBR.gs)  
+Official built-in PBR ShaderLab code segment source code: [Reference](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/PBR.gs)  
 </Callout>

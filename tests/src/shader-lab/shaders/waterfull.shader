@@ -1,4 +1,4 @@
-Shader "Waterfull" {
+Shader "Waterfull-test" {
   EditorProperties { // 颜色
     _ShallowColor( "shallow color", Color ) = ( 0.4858, 1, 0.86, 1.0 );
     _DeepColor( "deep color", Color ) = ( 0, 0.4673, 0, 1 );

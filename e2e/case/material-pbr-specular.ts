@@ -14,7 +14,7 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import { PBRSource, registerIncludes } from "@galacean/engine-shader-shaderlab";
+import { PBRSource, registerIncludes } from "@galacean/engine-shader";
 import { ShaderLab } from "@galacean/engine-shaderlab";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 

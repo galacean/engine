@@ -16,7 +16,7 @@ importers:
         version: 11.0.0
       '@playwright/test':
         specifier: ^1.53.1
-        version: 1.53.1
+        version: 1.55.0
       '@rollup/plugin-commonjs':
         specifier: ^17.0.0
         version: 17.1.0(rollup@2.79.2)
@@ -137,9 +137,9 @@ importers:
       '@galacean/engine-rhi-webgl':
         specifier: workspace:*
         version: link:../packages/rhi-webgl
-      '@galacean/engine-shader-shaderlab':
+      '@galacean/engine-shader':
         specifier: workspace:*
-        version: link:../packages/shader-shaderlab
+        version: link:../packages/shader
       '@galacean/engine-shaderlab':
         specifier: workspace:*
         version: link:../packages/shader-lab
@@ -179,9 +179,9 @@ importers:
       '@galacean/engine-rhi-webgl':
         specifier: workspace:*
         version: link:../packages/rhi-webgl
-      '@galacean/engine-shader-shaderlab':
+      '@galacean/engine-shader':
         specifier: workspace:*
-        version: link:../packages/shader-shaderlab
+        version: link:../packages/shader
       '@galacean/engine-shaderlab':
         specifier: workspace:*
         version: link:../packages/shader-lab
@@ -275,6 +275,12 @@ importers:
         specifier: workspace:*
         version: link:../design
 
+  packages/shader:
+    devDependencies:
+      '@galacean/engine':
+        specifier: workspace:*
+        version: link:../galacean
+
   packages/shader-lab:
     devDependencies:
       '@galacean/engine':
@@ -283,12 +289,6 @@ importers:
       '@galacean/engine-design':
         specifier: workspace:*
         version: link:../design
-
-  packages/shader-shaderlab:
-    devDependencies:
-      '@galacean/engine':
-        specifier: workspace:*
-        version: link:../galacean
 
   packages/ui:
     devDependencies:
@@ -344,9 +344,9 @@ importers:
       '@galacean/engine-rhi-webgl':
         specifier: workspace:*
         version: link:../packages/rhi-webgl
-      '@galacean/engine-shader-shaderlab':
+      '@galacean/engine-shader':
         specifier: workspace:*
-        version: link:../packages/shader-shaderlab
+        version: link:../packages/shader
       '@galacean/engine-shaderlab':
         specifier: workspace:*
         version: link:../packages/shader-lab
@@ -356,7 +356,7 @@ importers:
     devDependencies:
       '@vitest/browser':
         specifier: 2.1.3
-        version: 2.1.3(@types/node@18.19.64)(@vitest/spy@2.1.5)(playwright@1.53.1)(typescript@5.6.3)(vite@5.4.11(@types/node@18.19.64)(sass@1.81.0))(vitest@2.1.5)
+        version: 2.1.3(@types/node@18.19.64)(@vitest/spy@2.1.5)(playwright@1.55.0)(typescript@5.6.3)(vite@5.4.11(@types/node@18.19.64)(sass@1.81.0))(vitest@2.1.5)
 
 packages:
 
@@ -1216,8 +1216,8 @@ packages:
     resolution: {integrity: sha512-cq8o4cWH0ibXh9VGi5P20Tu9XF/0fFXl9EUinr9QfTM7a7p0oTA4iJRCQWppXR1Pg8dSM0UCItCkPwsk9qWWYA==}
     engines: {node: ^12.20.0 || ^14.18.0 || >=16.0.0}
 
-  '@playwright/test@1.53.1':
-    resolution: {integrity: sha512-Z4c23LHV0muZ8hfv4jw6HngPJkbbtZxTkxPNIg7cJcTc9C28N/p2q7g3JZS2SiKBBHJ3uM1dgDye66bB7LEk5w==}
+  '@playwright/test@1.55.0':
+    resolution: {integrity: sha512-04IXzPwHrW69XusN/SIdDdKZBzMfOT9UNT/YiJit/xpy2VuAoB8NHc8Aplb96zsWDddLnbkPL3TsmrS04ZU2xQ==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -1246,6 +1246,15 @@ packages:
     engines: {node: '>= 8.0.0'}
     peerDependencies:
       rollup: ^1.20.0||^2.0.0
+
+  '@rollup/pluginutils@5.1.3':
+    resolution: {integrity: sha512-Pnsb6f32CD2W3uCaLZIzDmeFyQ2b8UWMFI7xtwUezpcGBDVDW6y9XgAWIlARiGAo6eNF5FK5aQTr0LFyNyqq5A==}
+    engines: {node: '>=14.0.0'}
+    peerDependencies:
+      rollup: ^1.20.0||^2.0.0||^3.0.0||^4.0.0
+    peerDependenciesMeta:
+      rollup:
+        optional: true
 
   '@rollup/pluginutils@5.2.0':
     resolution: {integrity: sha512-qWJ2ZTbmumwiLFomfzTyt5Kng4hwPi9rwCYN4SHb6eaRU1KNO4ccxINHr/VhH4GgPlt1XfSTLX2LBTme8ne4Zw==}
@@ -3270,13 +3279,13 @@ packages:
   pkg-types@1.2.1:
     resolution: {integrity: sha512-sQoqa8alT3nHjGuTjuKgOnvjo4cljkufdtLMnO2LBP/wRwuDlo1tkaEdMxCRhyGRPacv/ztlZgDPm2b7FAmEvw==}
 
-  playwright-core@1.53.1:
-    resolution: {integrity: sha512-Z46Oq7tLAyT0lGoFx4DOuB1IA9D1TPj0QkYxpPVUnGDqHHvDpCftu1J2hM2PiWsNMoZh8+LQaarAWcDfPBc6zg==}
+  playwright-core@1.55.0:
+    resolution: {integrity: sha512-GvZs4vU3U5ro2nZpeiwyb0zuFaqb9sUiAJuyrWpcGouD8y9/HLgGbNRjIph7zU9D3hnPaisMl9zG9CgFi/biIg==}
     engines: {node: '>=18'}
     hasBin: true
 
-  playwright@1.53.1:
-    resolution: {integrity: sha512-LJ13YLr/ocweuwxyGf1XNFWIU4M2zUSo149Qbp+A4cpwDjsxRPj7k6H25LBrEHiEwxvRbD8HdwvQmRMSvquhYw==}
+  playwright@1.55.0:
+    resolution: {integrity: sha512-sdCWStblvV1YU909Xqx0DhOjPZE4/5lJsIS84IfN9dAZfcl/CIZ5O8l3o0j7hPMjDvqoTF8ZUcc+i/GL5erstA==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -4909,9 +4918,9 @@ snapshots:
 
   '@pkgr/core@0.1.1': {}
 
-  '@playwright/test@1.53.1':
+  '@playwright/test@1.55.0':
     dependencies:
-      playwright: 1.53.1
+      playwright: 1.55.0
 
   '@polka/url@1.0.0-next.28': {}
 
@@ -4947,6 +4956,14 @@ snapshots:
       '@types/estree': 0.0.39
       estree-walker: 1.0.1
       picomatch: 2.3.1
+      rollup: 2.79.2
+
+  '@rollup/pluginutils@5.1.3(rollup@2.79.2)':
+    dependencies:
+      '@types/estree': 1.0.6
+      estree-walker: 2.0.2
+      picomatch: 4.0.2
+    optionalDependencies:
       rollup: 2.79.2
 
   '@rollup/pluginutils@5.2.0(rollup@2.79.2)':
@@ -5229,7 +5246,7 @@ snapshots:
 
   '@ungap/structured-clone@1.2.0': {}
 
-  '@vitest/browser@2.1.3(@types/node@18.19.64)(@vitest/spy@2.1.3)(playwright@1.53.1)(typescript@5.6.3)(vite@5.4.11(@types/node@18.19.64)(sass@1.81.0))(vitest@2.1.3)':
+  '@vitest/browser@2.1.3(@types/node@18.19.64)(@vitest/spy@2.1.3)(playwright@1.55.0)(typescript@5.6.3)(vite@5.4.11(@types/node@18.19.64)(sass@1.81.0))(vitest@2.1.3)':
     dependencies:
       '@testing-library/dom': 10.4.0
       '@testing-library/user-event': 14.5.2(@testing-library/dom@10.4.0)
@@ -5242,7 +5259,7 @@ snapshots:
       vitest: 2.1.3(@types/node@18.19.64)(@vitest/browser@2.1.3)(msw@2.6.5(@types/node@18.19.64)(typescript@5.6.3))(sass@1.81.0)
       ws: 8.18.0
     optionalDependencies:
-      playwright: 1.53.1
+      playwright: 1.55.0
     transitivePeerDependencies:
       - '@types/node'
       - '@vitest/spy'
@@ -5252,7 +5269,7 @@ snapshots:
       - vite
     optional: true
 
-  '@vitest/browser@2.1.3(@types/node@18.19.64)(@vitest/spy@2.1.5)(playwright@1.53.1)(typescript@5.6.3)(vite@5.4.11(@types/node@18.19.64)(sass@1.81.0))(vitest@2.1.5)':
+  '@vitest/browser@2.1.3(@types/node@18.19.64)(@vitest/spy@2.1.5)(playwright@1.55.0)(typescript@5.6.3)(vite@5.4.11(@types/node@18.19.64)(sass@1.81.0))(vitest@2.1.5)':
     dependencies:
       '@testing-library/dom': 10.4.0
       '@testing-library/user-event': 14.5.2(@testing-library/dom@10.4.0)
@@ -5265,7 +5282,7 @@ snapshots:
       vitest: 2.1.5(@types/node@18.19.64)(@vitest/browser@2.1.3)(msw@2.6.5(@types/node@18.19.64)(typescript@5.6.3))(sass@1.81.0)
       ws: 8.18.0
     optionalDependencies:
-      playwright: 1.53.1
+      playwright: 1.55.0
     transitivePeerDependencies:
       - '@types/node'
       - '@vitest/spy'
@@ -5290,7 +5307,7 @@ snapshots:
       tinyrainbow: 1.2.0
       vitest: 2.1.3(@types/node@18.19.64)(@vitest/browser@2.1.3)(msw@2.6.5(@types/node@18.19.64)(typescript@5.6.3))(sass@1.81.0)
     optionalDependencies:
-      '@vitest/browser': 2.1.3(@types/node@18.19.64)(@vitest/spy@2.1.3)(playwright@1.53.1)(typescript@5.6.3)(vite@5.4.11(@types/node@18.19.64)(sass@1.81.0))(vitest@2.1.3)
+      '@vitest/browser': 2.1.3(@types/node@18.19.64)(@vitest/spy@2.1.3)(playwright@1.55.0)(typescript@5.6.3)(vite@5.4.11(@types/node@18.19.64)(sass@1.81.0))(vitest@2.1.3)
     transitivePeerDependencies:
       - supports-color
 
@@ -7067,11 +7084,11 @@ snapshots:
       mlly: 1.7.3
       pathe: 1.1.2
 
-  playwright-core@1.53.1: {}
+  playwright-core@1.55.0: {}
 
-  playwright@1.53.1:
+  playwright@1.55.0:
     dependencies:
-      playwright-core: 1.53.1
+      playwright-core: 1.55.0
     optionalDependencies:
       fsevents: 2.3.2
 
@@ -7253,7 +7270,7 @@ snapshots:
   rollup-plugin-swc3@0.10.4(@swc/core@1.9.2(@swc/helpers@0.5.15))(rollup@2.79.2):
     dependencies:
       '@fastify/deepmerge': 1.3.0
-      '@rollup/pluginutils': 5.2.0(rollup@2.79.2)
+      '@rollup/pluginutils': 5.1.3(rollup@2.79.2)
       '@swc/core': 1.9.2(@swc/helpers@0.5.15)
       get-tsconfig: 4.8.1
       rollup: 2.79.2
@@ -7746,7 +7763,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 18.19.64
-      '@vitest/browser': 2.1.3(@types/node@18.19.64)(@vitest/spy@2.1.3)(playwright@1.53.1)(typescript@5.6.3)(vite@5.4.11(@types/node@18.19.64)(sass@1.81.0))(vitest@2.1.3)
+      '@vitest/browser': 2.1.3(@types/node@18.19.64)(@vitest/spy@2.1.3)(playwright@1.55.0)(typescript@5.6.3)(vite@5.4.11(@types/node@18.19.64)(sass@1.81.0))(vitest@2.1.3)
     transitivePeerDependencies:
       - less
       - lightningcss
@@ -7782,7 +7799,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 18.19.64
-      '@vitest/browser': 2.1.3(@types/node@18.19.64)(@vitest/spy@2.1.5)(playwright@1.53.1)(typescript@5.6.3)(vite@5.4.11(@types/node@18.19.64)(sass@1.81.0))(vitest@2.1.5)
+      '@vitest/browser': 2.1.3(@types/node@18.19.64)(@vitest/spy@2.1.5)(playwright@1.55.0)(typescript@5.6.3)(vite@5.4.11(@types/node@18.19.64)(sass@1.81.0))(vitest@2.1.5)
     transitivePeerDependencies:
       - less
       - lightningcss

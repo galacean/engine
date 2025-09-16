@@ -1,4 +1,4 @@
-Shader "Triangle" {
+Shader "multi-pass-test" {
   SubShader "Default" {
      mat4 renderer_MVPMat;
 

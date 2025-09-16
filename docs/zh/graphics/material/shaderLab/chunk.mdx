@@ -41,7 +41,7 @@ ShaderLab 中引用
 当前版本中，引擎提供了 `PBR` ShaderLab 内置代码段，开发者可以通过这些内置代码段对 `PBR` Shader 进行自定义扩展。需要注意的是，需要对引擎内置 ShaderLab 代码段进行注册后才可使用。
 
 ```ts showLineNumbers {4} filename="Typescript"
-import { registerIncludes } from "@galacean/engine-shader-shaderlab";
+import { registerIncludes } from "@galacean/engine-shader";
 
 // 对内置 ShaderLab 代码段注册。
 registerIncludes();
@@ -53,5 +53,5 @@ registerIncludes();
 #include "BRDF.glsl"
 ...
 ```
-官方内置 `PBR` ShaderLab 代码段源码 [参考](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/PBR.gs)
+官方内置 `PBR` ShaderLab 代码段源码 [参考](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/PBR.gs)
 </Callout>
