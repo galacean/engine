@@ -106,10 +106,10 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     // projection[0][0] is at index 0 (X scaling)
     // projection[1][1] is at index 5 (Y scaling)
     // The inverse values we need are:
-    const invProjectionSacleX = 1.0 / projectionScaleX;
+    const invProjectionScaleX = 1.0 / projectionScaleX;
     const invProjectionScaleY = 1.0 / projectionScaleY;
 
-    const invProjScaleXY = this._invProjScaleXY.set(invProjectionSacleX * 2.0, invProjectionScaleY * 2.0);
+    const invProjScaleXY = this._invProjScaleXY.set(invProjectionScaleX * 2.0, invProjectionScaleY * 2.0);
     shaderData.setVector2(ScalableAmbientObscurancePass._invProjScaleXYProp, invProjScaleXY);
 
     const { quality, radius } = ambientOcclusion;
@@ -168,9 +168,6 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       this._blurRenderTarget = null;
     }
     this._depthRenderTarget = null;
-    const material = this._material;
-    material._addReferCount(-1);
-    material.destroy();
   }
 
   private _updateBlurKernel(blurShaderData: ShaderData, quality: AmbientOcclusionQuality): void {
