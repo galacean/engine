@@ -1420,7 +1420,9 @@ export namespace ASTNode {
         sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols);
 
         if (!symbols.length) {
+          // #if _VERBOSE
           sa.reportWarning(this.location, `Please sure the identifier "${name}" will be declared before used.`);
+          // #endif
         } else {
           this.typeInfo = symbols[0].dataType?.type;
           const currentScopeSymbol = <VarSymbol | FnSymbol>sa.symbolTableStack.scope.getSymbol(lookupSymbol, true);

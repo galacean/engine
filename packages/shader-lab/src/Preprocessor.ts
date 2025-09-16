@@ -62,9 +62,11 @@ export class Preprocessor {
         if (info.params.indexOf(referencedName) !== -1) continue;
         if (out.indexOf(referencedName) === -1) out.push(referencedName);
       } else if (valueType === MacroValueType.Other) {
+        // #if _VERBOSE
         Logger.warn(
           `Warning: Macro "${info.name}" has an unrecognized value "${info.value}". ShaderLab does not validate this type.`
         );
+        // #endif
       }
     }
   }
