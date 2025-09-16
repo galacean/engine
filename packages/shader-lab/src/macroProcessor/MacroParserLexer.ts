@@ -180,7 +180,10 @@ export default class MacroParserLexer extends BaseLexer {
       const { type } = nextDirective;
       if (type === MacroParserKeyword.endif && startLevel - 1 === this.macroLvl) {
         break;
-      } else if ((type === MacroParserKeyword.elif || type === MacroParserKeyword.else) && startLevel === this.macroLvl) {
+      } else if (
+        (type === MacroParserKeyword.elif || type === MacroParserKeyword.else) &&
+        startLevel === this.macroLvl
+      ) {
         break;
       }
       nextDirective = this.scanToken()!;
