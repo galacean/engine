@@ -155,7 +155,8 @@ describe("Shader", () => {
       expect(shader).to.be.an.instanceOf(Shader);
       expect(shader.subShaders.length).to.equal(1);
       expect(shader.subShaders[0].passes.length).to.equal(3);
-      expect(shader.subShaders[0].passes[1].platformTarget).to.equal(ShaderLanguage.GLSLES300);
+      // @ts-ignore
+      expect(shader.subShaders[0].passes[1]._platformTarget).to.equal(ShaderLanguage.GLSLES300);
       expect(shader.subShaders[0].getTagValue("ReplacementTag")).to.equal("transparent");
 
       // Test that throw error, if shader was created with same name in shaderLab.

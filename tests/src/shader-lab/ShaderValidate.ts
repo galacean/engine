@@ -54,7 +54,8 @@ export function glslValidate(
           shaderPassSource.fragment,
           passSource.tags
         );
-        shaderPass.platformTarget = platform;
+        // @ts-ignore
+        shaderPass._platformTarget = platform;
 
         const totalMacroList = [...baseTestMacroList, ...extraMacroList];
         const macroMockCollection = new ShaderMacroCollection();

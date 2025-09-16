@@ -31,9 +31,9 @@ export class ShaderPass extends ShaderPart {
   static _shaderRootPath = "shaders://root/";
 
   /**
-   * The platform target of this shader pass.
+   * @internal
    */
-  platformTarget = ShaderLanguage.GLSLES100;
+  _platformTarget: ShaderLanguage | undefined;
 
   /** @internal */
   _shaderPassId: number = 0;
@@ -160,7 +160,8 @@ export class ShaderPass extends ShaderPart {
       noIncludeFrag = macroNameStr + noIncludeFrag;
     }
 
-    if (isWebGL2 && this.platformTarget === ShaderLanguage.GLSLES100) {
+    // Need to convert to 300 es when the target is GLSL ES 100 or unkdown
+    if (isWebGL2 && (this._platformTarget == undefined || this._platformTarget === ShaderLanguage.GLSLES100)) {
       noIncludeVertex = ShaderFactory.convertTo300(noIncludeVertex);
       noIncludeFrag = ShaderFactory.convertTo300(noIncludeFrag, true);
     }
