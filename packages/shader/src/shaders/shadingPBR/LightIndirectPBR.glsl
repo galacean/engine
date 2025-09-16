@@ -14,6 +14,9 @@
 #ifndef FUNCTION_SHEEN_IBL
     #define FUNCTION_SHEEN_IBL evaluateSheenIBL
 #endif
+
+#include "BSDF.glsl"
+#include "Light.glsl"
 #include "LightIndirectFunctions.glsl"
 
 // ------------------------Diffuse------------------------
@@ -38,7 +41,7 @@ vec3 getLightProbeIrradiance(vec3 sh[9], vec3 normal){
 }
 
 
-void evaluateDiffuseIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, inout vec3 diffuseColor){
+void evaluateDiffuseIBL(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, inout vec3 diffuseColor){
     #ifdef SCENE_USE_SH
         vec3 irradiance = getLightProbeIrradiance(scene_EnvSH, surfaceData.normal);
         irradiance *= scene_EnvMapLight.diffuseIntensity;
@@ -46,59 +49,60 @@ void evaluateDiffuseIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brd
        vec3 irradiance = scene_EnvMapLight.diffuse * scene_EnvMapLight.diffuseIntensity;
        irradiance *= PI;
     #endif
-
-    diffuseColor += surfaceData.diffuseAO * irradiance * BRDF_Diffuse_Lambert( brdfData.diffuseColor );
+    diffuseColor += bsdfData.diffuseAO * irradiance * BRDF_Diffuse_Lambert( bsdfData.diffuseColor );
 }
 
-float evaluateClearCoatIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, inout vec3 specularColor){
+float evaluateClearCoatIBL(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, inout vec3 specularColor){
     float radianceAttenuation = 1.0;
 
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
-        vec3 clearCoatRadiance = getLightProbeRadiance(surfaceData, surfaceData.clearCoatNormal, brdfData.clearCoatRoughness);
-        specularColor += surfaceData.specularAO * clearCoatRadiance * surfaceData.clearCoat * envBRDFApprox(brdfData.clearCoatSpecularColor, brdfData.clearCoatRoughness, surfaceData.clearCoatDotNV);
-        radianceAttenuation -= surfaceData.clearCoat * F_Schlick(surfaceData.f0, surfaceData.clearCoatDotNV);
+        vec3 clearCoatRadiance = getLightProbeRadiance(surfaceData, surfaceData.clearCoatNormal, bsdfData.clearCoatRoughness);
+        float specularAO = evaluateSpecularOcclusion(surfaceData.dotNV, bsdfData.diffuseAO, bsdfData.clearCoatRoughness);
+        specularColor += specularAO * clearCoatRadiance * surfaceData.clearCoat * envBRDFApprox(bsdfData.clearCoatSpecularColor, 1.0, bsdfData.clearCoatRoughness, surfaceData.clearCoatDotNV);
+        radianceAttenuation -= surfaceData.clearCoat * F_Schlick( 0.04, 1.0, surfaceData.clearCoatDotNV);
     #endif
 
     return radianceAttenuation;
 }
 
-void evaluateSpecularIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, float radianceAttenuation, inout vec3 outSpecularColor){
-    vec3 radiance = getLightProbeRadiance(surfaceData, surfaceData.normal, brdfData.roughness);
+void evaluateSpecularIBL(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, float radianceAttenuation, inout vec3 outSpecularColor){
+    vec3 radiance = getLightProbeRadiance(surfaceData, surfaceData.normal, bsdfData.roughness);
   
     #ifdef MATERIAL_ENABLE_IRIDESCENCE
-        vec3 speculaColor = mix(brdfData.specularColor, brdfData.iridescenceSpecularColor, surfaceData.iridescenceFactor);
+        vec3 speculaColor = mix(bsdfData.specularF0, bsdfData.iridescenceSpecularColor, surfaceData.iridescenceFactor);
     #else
-        vec3 speculaColor = brdfData.specularColor;
+        vec3 speculaColor = bsdfData.specularF0;
     #endif
-
-    outSpecularColor += surfaceData.specularAO * radianceAttenuation * radiance * envBRDFApprox(speculaColor, brdfData.roughness, surfaceData.dotNV);
+    
+    float specularAO = evaluateSpecularOcclusion(surfaceData.dotNV, bsdfData.diffuseAO, bsdfData.roughness);
+    outSpecularColor += specularAO * radianceAttenuation * radiance * envBRDFApprox(speculaColor, bsdfData.specularF90 , bsdfData.roughness, surfaceData.dotNV);
 }
 
-void evaluateSheenIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData,  float radianceAttenuation, inout vec3 diffuseColor, inout vec3 specularColor){
+void evaluateSheenIBL(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData,  float radianceAttenuation, inout vec3 diffuseColor, inout vec3 specularColor){
     #ifdef MATERIAL_ENABLE_SHEEN
-        diffuseColor *= brdfData.sheenScaling;
-        specularColor *= brdfData.sheenScaling;
-
-        vec3 reflectance = surfaceData.specularAO * radianceAttenuation * brdfData.approxIBLSheenDG * surfaceData.sheenColor;
+        diffuseColor *= bsdfData.sheenScaling;
+        specularColor *= bsdfData.sheenScaling;
+        float specularAO = evaluateSpecularOcclusion(surfaceData.dotNV, bsdfData.diffuseAO, bsdfData.sheenRoughness) ;
+        vec3 reflectance = specularAO * radianceAttenuation * bsdfData.approxIBLSheenDG * surfaceData.sheenColor;
         specularColor += reflectance;
     #endif
 }
 
-void evaluateIBL(Varyings varyings, SurfaceData surfaceData, BRDFData brdfData, inout vec3 totalDiffuseColor, inout vec3 totalSpecularColor){
+void evaluateIBL(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, inout vec3 totalDiffuseColor, inout vec3 totalSpecularColor){
     vec3 diffuseColor = vec3(0);
     vec3 specularColor = vec3(0);
 
     // IBL diffuse
-    FUNCTION_DIFFUSE_IBL(varyings, surfaceData, brdfData, diffuseColor);
+    FUNCTION_DIFFUSE_IBL(varyings, surfaceData, bsdfData, diffuseColor);
 
     // IBL ClearCoat
-    float radianceAttenuation = FUNCTION_CLEAR_COAT_IBL(varyings, surfaceData, brdfData, specularColor);
+    float radianceAttenuation = FUNCTION_CLEAR_COAT_IBL(varyings, surfaceData, bsdfData, specularColor);
 
     // IBL specular
-    FUNCTION_SPECULAR_IBL(varyings, surfaceData, brdfData, radianceAttenuation, specularColor);
+    FUNCTION_SPECULAR_IBL(varyings, surfaceData, bsdfData, radianceAttenuation, specularColor);
   
     // IBL sheen
-    FUNCTION_SHEEN_IBL(varyings, surfaceData, brdfData, radianceAttenuation, diffuseColor, specularColor);
+    FUNCTION_SHEEN_IBL(varyings, surfaceData, bsdfData, radianceAttenuation, diffuseColor, specularColor);
 
     totalDiffuseColor += diffuseColor;
     totalSpecularColor += specularColor;

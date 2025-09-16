@@ -6,6 +6,11 @@ module.exports = {
       browserPath: "dist/browser.min.js"
     },
     {
+      name: "@galacean/engine-xr-webxr",
+      path: "packages/xr-webxr",
+      browserPath: "dist/browser.min.js"
+    },
+    {
       name: "@galacean/engine-ui",
       path: "packages/ui",
       browserPath: "dist/browser.min.js"
@@ -28,29 +33,11 @@ module.exports = {
     {
       name: "@galacean/engine-shader",
       path: "packages/shader",
-      browserPath: "dist/browser.min.js"
+      browserPath: "dist/browser.js"
     }
   ],
 
   secondParty: [
-    {
-      name: "@galacean/engine-toolkit",
-      repo: "https://github.com/galacean/engine-toolkit.git",
-      isMonorepo: true,
-      buildCommand: "pnpm b:all",
-      packages: [
-        {
-          name: "@galacean/engine-toolkit",
-          packagePath: "packages/galacean-engine-toolkit",
-          browserPath: "dist/umd/browser.js"
-        },
-        {
-          name: "@galacean/engine-toolkit-xr",
-          packagePath: "packages/xr",
-          browserPath: "dist/umd/browser.js"
-        }
-      ]
-    },
     {
       name: "@galacean/engine-lottie",
       repo: "https://github.com/galacean/engine-lottie.git",

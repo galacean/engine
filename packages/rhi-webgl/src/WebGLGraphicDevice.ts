@@ -22,7 +22,7 @@ import {
   TextureCubeFace,
   TextureFormat
 } from "@galacean/engine-core";
-import { IHardwareRenderer, IPlatformPrimitive } from "@galacean/engine-design";
+import { IHardwareRenderer, IPlatformPrimitive, IPlatformShaderProgram } from "@galacean/engine-design";
 import { Color, Vector4 } from "@galacean/engine-math";
 import { GLBuffer } from "./GLBuffer";
 import { GLCapability } from "./GLCapability";
@@ -354,7 +354,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     gl.clear(clearFlag);
   }
 
-  drawPrimitive(primitive: GLPrimitive, subPrimitive: SubMesh, shaderProgram: any) {
+  drawPrimitive(primitive: GLPrimitive, subPrimitive: SubMesh, shaderProgram: IPlatformShaderProgram) {
     // todo: VAO not support morph animation
     if (primitive) {
       primitive.draw(shaderProgram, subPrimitive);
@@ -540,6 +540,14 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   forceRestoreDevice(): void {
     const extension = this.requireExtension(GLCapabilityType.WEBGL_lose_context);
     extension.restoreContext();
+  }
+
+  /**
+   * @remarks
+   * WebGL context loss and restore can happen at any GPU execution point. refs to: https://www.khronos.org/webgl/wiki/HandlingContextLost
+   */
+  isContextLost() {
+    return this.gl.isContextLost();
   }
 
   resetState(): void {

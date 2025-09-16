@@ -1,7 +1,6 @@
-import { Ray, Vector3 } from "@galacean/engine-math";
+import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
 import { ICharacterController } from "./ICharacterController";
 import { ICollider } from "./ICollider";
-import { IColliderShape } from "./shape";
 
 /**
  * Interface for physics manager.
@@ -47,7 +46,7 @@ export interface IPhysicsScene {
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @param distance - The max distance the ray should check
-   * @param onRaycast - The raycast result callback which prefilter result
+   * @param onRaycast - The raycast result callback which pre filter result
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns True if the ray intersects with a collider, otherwise false
    */
@@ -57,6 +56,74 @@ export interface IPhysicsScene {
     onRaycast: (obj: number) => boolean,
     outHitResult?: (shapeUniqueID: number, distance: number, point: Vector3, normal: Vector3) => void
   ): boolean;
+
+  /**
+   * Casts a box through the scene and returns true if there is any hit.
+   */
+  boxCast(
+    center: Vector3,
+    orientation: Quaternion,
+    halfExtents: Vector3,
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean;
+
+  /**
+   * Casts a sphere through the scene and returns true if there is any hit.
+   */
+  sphereCast(
+    center: Vector3,
+    radius: number,
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean;
+
+  /**
+   * Casts a capsule through the scene and returns true if there is any hit.
+   */
+  capsuleCast(
+    center: Vector3,
+    radius: number,
+    height: number,
+    orientation: Quaternion,
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean;
+
+  /**
+   * Get all colliders overlapping with a box.
+   * Returns an array of shape unique IDs.
+   */
+  overlapBoxAll(
+    center: Vector3,
+    orientation: Quaternion,
+    halfExtents: Vector3,
+    onOverlap: (obj: number) => boolean
+  ): number[];
+
+  /**
+   * Get all colliders overlapping with a sphere.
+   * Returns an array of shape unique IDs.
+   */
+  overlapSphereAll(center: Vector3, radius: number, onOverlap: (obj: number) => boolean): number[];
+
+  /**
+   * Get all colliders overlapping with a capsule.
+   * Returns an array of shape unique IDs.
+   */
+  overlapCapsuleAll(
+    center: Vector3,
+    radius: number,
+    height: number,
+    orientation: Quaternion,
+    onOverlap: (obj: number) => boolean
+  ): number[];
 
   /**
    * Destroy the physics scene.

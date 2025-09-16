@@ -8,6 +8,7 @@ import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { CurveKey, ParticleCurve } from "./ParticleCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
+import { ParticleGenerator } from "../ParticleGenerator";
 
 /**
  * Texture sheet animation module.
@@ -50,8 +51,13 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   }
 
   set tiling(value: Vector2) {
-    this._tiling = value;
-    this._tillingInfo.set(1.0 / value.x, 1.0 / value.y, value.x * value.y);
+    value !== this._tiling && this._tiling.copyFrom(value);
+  }
+
+  constructor(generator: ParticleGenerator) {
+    super(generator);
+    // @ts-ignore
+    this._tiling._onValueChanged = this._onTilingChanged.bind(this);
   }
 
   /**
@@ -84,6 +90,12 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
    */
   _resetRandomSeed(randomSeed: number): void {
     this._frameOverTimeRand.reset(randomSeed, ParticleRandomSubSeeds.TextureSheetAnimation);
+  }
+
+  @ignoreClone
+  private _onTilingChanged(): void {
+    const tiling = this.tiling;
+    this._tillingInfo.set(1.0 / tiling.x, 1.0 / tiling.y, tiling.x * tiling.y);
   }
 }
 

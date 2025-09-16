@@ -1,5 +1,14 @@
-import { Component, Engine, EngineObject, Entity, ReferResource, ResourceManager, Scene } from "@galacean/engine-core";
-import type { IComponentRef, IEntity, IHierarchyFile } from "../schema";
+import {
+  AssetPromise,
+  Component,
+  Engine,
+  EngineObject,
+  Entity,
+  ReferResource,
+  ResourceManager,
+  Scene
+} from "@galacean/engine-core";
+import type { IEntity, IHierarchyFile } from "../schema";
 
 export enum ParserType {
   Prefab,
@@ -12,11 +21,15 @@ export class ParserContext<T extends IHierarchyFile, I extends EngineObject> {
   entityMap: Map<string, Entity> = new Map();
   entityConfigMap: Map<string, IEntity> = new Map();
   components: Map<string, Component> = new Map();
+  componentConfigMap: Map<string, any> = new Map();
   rootIds: string[] = [];
   strippedIds: string[] = [];
-  componentWaitingMap: Map<string, Function[]> = new Map();
 
   readonly resourceManager: ResourceManager;
+
+  private _tasks: Set<string> = new Set();
+  private _loaded: number = 0;
+  private _total: number = 0;
 
   constructor(
     public readonly engine: Engine,
@@ -26,36 +39,27 @@ export class ParserContext<T extends IHierarchyFile, I extends EngineObject> {
     this.resourceManager = engine.resourceManager;
   }
 
-  addComponent(id: string, component: Component) {
-    this.components.set(id, component);
-    const waitingList = this.componentWaitingMap.get(id);
-    if (waitingList?.length) {
-      waitingList.forEach((resolve) => resolve(component));
-      this.componentWaitingMap.delete(id);
-    }
-  }
-
-  getComponentByRef(ref: IComponentRef): Promise<Component> {
-    return new Promise((resolve, reject) => {
-      const component = this.components.get(ref.componentId);
-      if (component) {
-        resolve(component);
-      } else {
-        const resolves = this.componentWaitingMap.get(ref.componentId);
-        if (resolves) {
-          resolves.push(resolve);
-        } else {
-          this.componentWaitingMap.set(ref.componentId, [resolve]);
-        }
-      }
-    });
-  }
-
   clear() {
     this.entityMap.clear();
     this.components.clear();
+    this.componentConfigMap.clear();
     this.entityConfigMap.clear();
     this.rootIds.length = 0;
     this.strippedIds.length = 0;
+  }
+
+  /** @internal */
+  _setTaskCompleteProgress: (loaded: number, total: number) => void;
+
+  /** @internal */
+  _addDependentAsset(refID: string, promise: AssetPromise<any>): void {
+    const tasks = this._tasks;
+    if (tasks.has(refID)) return;
+    ++this._total;
+    tasks.add(refID);
+    promise.finally(() => {
+      ++this._loaded;
+      this._setTaskCompleteProgress(this._loaded, this._total);
+    });
   }
 }

@@ -158,6 +158,7 @@ export class GLCapability {
 
       astc,
       astc_webkit,
+      astc_hdr,
       etc,
       etc_webkit,
       etc1,
@@ -206,13 +207,16 @@ export class GLCapability {
     cap.set(textureFilterAnisotropic, !!requireExtension(textureFilterAnisotropic));
     cap.set(fragDepth, isWebGL2 || !!requireExtension(fragDepth));
 
-    cap.set(astc, !!(requireExtension(astc) || requireExtension(astc_webkit)));
     cap.set(etc, !!(requireExtension(etc) || requireExtension(etc_webkit)));
     cap.set(etc1, !!(requireExtension(etc1) || requireExtension(etc1_webkit)));
     cap.set(pvrtc, !!(requireExtension(pvrtc) || requireExtension(pvrtc_webkit)));
     cap.set(s3tc, !!(requireExtension(s3tc) || requireExtension(s3tc_webkit)));
     cap.set(s3tc_srgb, !!requireExtension(s3tc_srgb));
     cap.set(bptc, !!requireExtension(bptc));
+
+    const astcExtension = requireExtension(astc) || requireExtension(astc_webkit);
+    cap.set(astc, !!astcExtension);
+    cap.set(astc_hdr, !!astcExtension?.getSupportedProfiles().includes("hdr"));
 
     cap.set(sRGB, isWebGL2 || !!requireExtension(sRGB));
   }

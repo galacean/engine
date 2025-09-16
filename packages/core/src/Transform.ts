@@ -2,7 +2,7 @@ import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@galacean/engi
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
-import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
+import { assignmentClone, ignoreClone } from "./clone/CloneManager";
 
 /**
  * Used to implement transformation related functions.
@@ -18,29 +18,29 @@ export class Transform extends Component {
   private static _tempMat41: Matrix = new Matrix();
   private static _tempMat42: Matrix = new Matrix();
 
-  @deepClone
+  @ignoreClone
   private _position: Vector3 = new Vector3();
-  @deepClone
+  @ignoreClone
   private _rotation: Vector3 = new Vector3();
-  @deepClone
+  @ignoreClone
   private _rotationQuaternion: Quaternion = new Quaternion();
-  @deepClone
+  @ignoreClone
   private _scale: Vector3 = new Vector3(1, 1, 1);
   @assignmentClone
   private _localUniformScaling: boolean = true;
-  @deepClone
+  @ignoreClone
   private _worldPosition: Vector3 = new Vector3();
-  @deepClone
+  @ignoreClone
   private _worldRotation: Vector3 = new Vector3();
-  @deepClone
+  @ignoreClone
   private _worldRotationQuaternion: Quaternion = new Quaternion();
-  @assignmentClone
+  @ignoreClone
   private _worldUniformScaling: boolean = true;
-  @deepClone
+  @ignoreClone
   private _lossyWorldScale: Vector3 = new Vector3(1, 1, 1);
-  @deepClone
+  @ignoreClone
   private _localMatrix: Matrix = new Matrix();
-  @deepClone
+  @ignoreClone
   private _worldMatrix: Matrix = new Matrix();
   @ignoreClone
   private _worldForward: Vector3 = null;
@@ -50,10 +50,11 @@ export class Transform extends Component {
   private _worldUp: Vector3 = null;
 
   @ignoreClone
-  private _isParentDirty: boolean = true;
+  protected _isParentDirty: boolean = true;
   @ignoreClone
   private _parentTransformCache: Transform = null;
-  private _dirtyFlag: number = TransformModifyFlags.WmWpWeWqWs;
+  @ignoreClone
+  private _dirtyFlag: number = TransformModifyFlags.LqLmWmWpWeWqWsWus;
 
   /**
    * Local position.
@@ -261,16 +262,18 @@ export class Transform extends Component {
     const { _position: position, _rotationQuaternion: rotationQuaternion, _scale: scale } = this;
     // @ts-ignore
     position._onValueChanged = rotationQuaternion._onValueChanged = scale._onValueChanged = null;
-    this._localMatrix.decompose(position, rotationQuaternion, scale);
+
+    value.decompose(position, rotationQuaternion, scale);
+    this._onLocalMatrixChanging();
+    this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler);
+    this._setDirtyFlagFalse(TransformModifyFlags.LocalQuat);
+
     // @ts-ignore
     position._onValueChanged = this._onPositionChanged;
     // @ts-ignore
     rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
     // @ts-ignore
     scale._onValueChanged = this._onScaleChanged;
-
-    this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler);
-    this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalQuat);
     const localUniformScaling = scale.x === scale.y && scale.y === scale.z;
     if (this._localUniformScaling !== localUniformScaling) {
       this._localUniformScaling = localUniformScaling;
@@ -309,7 +312,7 @@ export class Transform extends Component {
       this._localMatrix.copyFrom(value);
     }
     this.localMatrix = this._localMatrix;
-    this._setDirtyFlagFalse(TransformModifyFlags.WorldMatrix);
+    this._onWorldMatrixChanging();
   }
 
   /**
@@ -578,28 +581,91 @@ export class Transform extends Component {
   /**
    * @internal
    */
-  _copyFrom(transform: Transform): void {
-    this._position.copyFrom(transform.position);
-    this._rotation.copyFrom(transform.rotation);
-    this._scale.copyFrom(transform.scale);
+  _cloneTo(target: Transform, srcRoot: Entity, targetRoot: Entity): void {
+    const { _position: position, _rotation: rotation, _scale: scale } = target;
+
+    // @ts-ignore
+    position._onValueChanged = rotation._onValueChanged = scale._onValueChanged = null;
+
+    position.copyFrom(this.position);
+    rotation.copyFrom(this.rotation);
+    scale.copyFrom(this.scale);
+
+    // @ts-ignore
+    position._onValueChanged = target._onPositionChanged;
+    // @ts-ignore
+    rotation._onValueChanged = target._onRotationChanged;
+    // @ts-ignore
+    scale._onValueChanged = target._onScaleChanged;
   }
 
-  protected override _onDestroy(): void {
-    super._onDestroy();
-    //@ts-ignore
-    this._worldPosition._onValueChanged = null;
-    //@ts-ignore
-    this._rotation._onValueChanged = null;
-    //@ts-ignore
-    this._worldRotation._onValueChanged = null;
-    //@ts-ignore
-    this._rotationQuaternion._onValueChanged = null;
-    //@ts-ignore
-    this._worldRotationQuaternion._onValueChanged = null;
-    //@ts-ignore
-    this._position._onValueChanged = null;
-    //@ts-ignore
-    this._scale._onValueChanged = null;
+  protected _onLocalMatrixChanging(): void {
+    this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix);
+  }
+
+  protected _onWorldMatrixChanging(): void {
+    this._setDirtyFlagFalse(TransformModifyFlags.WorldMatrix);
+  }
+
+  protected _isContainDirtyFlags(targetDirtyFlags: number): boolean {
+    return (this._dirtyFlag & targetDirtyFlags) === targetDirtyFlags;
+  }
+
+  protected _isContainDirtyFlag(type: number): boolean {
+    return (this._dirtyFlag & type) != 0;
+  }
+
+  protected _setDirtyFlagTrue(type: number) {
+    this._dirtyFlag |= type;
+  }
+
+  protected _setDirtyFlagFalse(type: number) {
+    this._dirtyFlag &= ~type;
+  }
+
+  protected _worldAssociatedChange(type: number): void {
+    const dispatchFlags = type & ~this._dirtyFlag;
+    this._dirtyFlag |= type;
+    this._entity._updateFlagManager.dispatch(dispatchFlags);
+  }
+
+  protected _getParentTransform(): Transform | null {
+    if (!this._isParentDirty) {
+      return this._parentTransformCache;
+    }
+    let parentCache: Transform = null;
+    let parent = this._entity.parent;
+    while (parent) {
+      const transform = parent.transform;
+      if (transform) {
+        parentCache = transform;
+        break;
+      } else {
+        parent = parent.parent;
+      }
+    }
+    this._parentTransformCache = parentCache;
+    this._isParentDirty = false;
+    return parentCache;
+  }
+
+  @ignoreClone
+  protected _onPositionChanged(): void {
+    this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
+    this._updateWorldPositionFlag();
+  }
+
+  @ignoreClone
+  protected _onWorldPositionChanged(): void {
+    const worldPosition = this._worldPosition;
+    const parent = this._getParentTransform();
+    if (parent) {
+      Matrix.invert(parent.worldMatrix, Transform._tempMat41);
+      Vector3.transformCoordinate(worldPosition, Transform._tempMat41, this._position);
+    } else {
+      this._position.copyFrom(worldPosition);
+    }
+    this._setDirtyFlagFalse(TransformModifyFlags.WorldPosition);
   }
 
   /**
@@ -708,26 +774,6 @@ export class Transform extends Component {
     }
   }
 
-  private _getParentTransform(): Transform | null {
-    if (!this._isParentDirty) {
-      return this._parentTransformCache;
-    }
-    let parentCache: Transform = null;
-    let parent = this._entity.parent;
-    while (parent) {
-      const transform = parent.transform;
-      if (transform) {
-        parentCache = transform;
-        break;
-      } else {
-        parent = parent.parent;
-      }
-    }
-    this._parentTransformCache = parentCache;
-    this._isParentDirty = false;
-    return parentCache;
-  }
-
   private _getScaleMatrix(): Matrix3x3 {
     const invRotation = Transform._tempQuat0;
     const invRotationMat = Transform._tempMat30;
@@ -738,27 +784,6 @@ export class Transform extends Component {
     Matrix3x3.rotationQuaternion(invRotation, invRotationMat);
     Matrix3x3.multiply(invRotationMat, worldRotScaMat, scaMat);
     return scaMat;
-  }
-
-  private _isContainDirtyFlags(targetDirtyFlags: number): boolean {
-    return (this._dirtyFlag & targetDirtyFlags) === targetDirtyFlags;
-  }
-
-  private _isContainDirtyFlag(type: number): boolean {
-    return (this._dirtyFlag & type) != 0;
-  }
-
-  private _setDirtyFlagTrue(type: number) {
-    this._dirtyFlag |= type;
-  }
-
-  private _setDirtyFlagFalse(type: number) {
-    this._dirtyFlag &= ~type;
-  }
-
-  private _worldAssociatedChange(type: number): void {
-    this._dirtyFlag |= type;
-    this._entity._updateFlagManager.dispatch(type);
   }
 
   private _rotateByQuat(rotateQuat: Quaternion, relativeToLocal: boolean): void {
@@ -784,25 +809,6 @@ export class Transform extends Component {
     const rotQuat = Transform._tempQuat0;
     Quaternion.rotationEuler(x * radFactor, y * radFactor, z * radFactor, rotQuat);
     this._rotateByQuat(rotQuat, relativeToLocal);
-  }
-
-  @ignoreClone
-  private _onPositionChanged(): void {
-    this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
-    this._updateWorldPositionFlag();
-  }
-
-  @ignoreClone
-  private _onWorldPositionChanged(): void {
-    const worldPosition = this._worldPosition;
-    const parent = this._getParentTransform();
-    if (parent) {
-      Matrix.invert(parent.worldMatrix, Transform._tempMat41);
-      Vector3.transformCoordinate(worldPosition, Transform._tempMat41, this._position);
-    } else {
-      this._position.copyFrom(worldPosition);
-    }
-    this._setDirtyFlagFalse(TransformModifyFlags.WorldPosition);
   }
 
   @ignoreClone
@@ -884,7 +890,7 @@ export class Transform extends Component {
 }
 
 /**
- * @internal
+ * Dirty flag of transform.
  */
 export enum TransformModifyFlags {
   LocalEuler = 0x1,
@@ -918,5 +924,7 @@ export enum TransformModifyFlags {
   /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale */
   WmWpWeWqWs = 0xbc,
   /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale | WorldUniformScaling */
-  WmWpWeWqWsWus = 0x1bc
+  WmWpWeWqWsWus = 0x1bc,
+  /** LocalQuat | LocalMatrix | WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale | WorldUniformScaling */
+  LqLmWmWpWeWqWsWus = 0x1fe
 }

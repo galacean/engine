@@ -8,7 +8,7 @@ import { SceneManager } from "./SceneManager";
 import { EngineObject, Logger } from "./base";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { FogMode } from "./enums/FogMode";
-import { DirectLight } from "./lighting";
+import { AmbientOcclusion, DirectLight } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
 import { LightManager } from "./lighting/LightManager";
 import { PhysicsScene } from "./physics/PhysicsScene";
@@ -52,6 +52,14 @@ export class Scene extends EngineObject {
 
   /** Post process manager. */
   readonly postProcessManager = new PostProcessManager(this);
+
+  /**
+   * Ambient Occlusion settings.
+   * @remarks
+   * Darkens areas where objects are close together to simulate natural light blocking,
+   * such as corners, crevices, and contact points between surfaces.
+   */
+  readonly ambientOcclusion = new AmbientOcclusion(this);
 
   /* @internal */
   _lightManager: LightManager = new LightManager();
@@ -469,7 +477,7 @@ export class Scene extends EngineObject {
 
     if (sunlight) {
       lightManager._updateSunlightIndex(sunlight);
-      shaderData.setColor(LightManager._sunlightColorProperty, sunlight._lightColor);
+      shaderData.setColor(LightManager._sunlightColorProperty, sunlight.color);
       shaderData.setVector3(LightManager._sunlightDirectionProperty, sunlight.direction);
     } else {
       // @ts-ignore

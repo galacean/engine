@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-shader",
-  "version": "1.5.7",
+  "version": "1.6.0-alpha.2",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -18,7 +18,7 @@
     "b:types": "tsc"
   },
   "umd": {
-    "name": "Galacean.ShaderShaderLab",
+    "name": "Galacean.Shader",
     "globals": {
       "@galacean/engine": "Galacean"
     }

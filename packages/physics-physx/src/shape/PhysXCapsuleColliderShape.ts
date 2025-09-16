@@ -3,7 +3,6 @@ import { Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { PhysXColliderShape } from "./PhysXColliderShape";
-
 /**
  * Capsule collider shape in PhysX.
  */
@@ -12,7 +11,8 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
   _radius: number;
   /** @internal */
   _halfHeight: number;
-  private _upAxis: ColliderShapeUpAxis = ColliderShapeUpAxis.Y;
+  /** @internal */
+  _upAxis: ColliderShapeUpAxis = ColliderShapeUpAxis.Y;
 
   constructor(
     physXPhysics: PhysXPhysics,
@@ -28,7 +28,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
     this._axis = new Quaternion(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
     this._physXRotation.copyFrom(this._axis);
 
-    this._pxGeometry = new physXPhysics._physX.PxCapsuleGeometry(this._radius, this._halfHeight);
+    this._pxGeometry = new physXPhysics._physX.PxCapsuleGeometry(radius, this._halfHeight);
     this._initialize(material, uniqueID);
     this._setLocalPose();
   }
@@ -86,6 +86,16 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
   }
 
   /**
+   * {@inheritDoc ICapsuleColliderShape.setRotation }
+   */
+  override setRotation(value: Vector3): void {
+    super.setRotation(value);
+    if (this._controllers.length > 0) {
+      console.warn("Capsule character controller `rotation` is not supported in PhysX and will be ignored");
+    }
+  }
+
+  /**
    * {@inheritDoc ICapsuleColliderShape.setUpAxis }
    */
   setUpAxis(upAxis: ColliderShapeUpAxis): void {
@@ -110,6 +120,10 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
       physXRotation.copyFrom(axis);
     }
     this._setLocalPose();
+
+    if (this._controllers.length > 0) {
+      console.warn("Capsule character controller `upAxis` is not supported in PhysX and will be ignored");
+    }
   }
 
   /**
@@ -151,7 +165,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
 /**
  * The up axis of the collider shape.
  */
-enum ColliderShapeUpAxis {
+export enum ColliderShapeUpAxis {
   /** Up axis is X. */
   X,
   /** Up axis is Y. */

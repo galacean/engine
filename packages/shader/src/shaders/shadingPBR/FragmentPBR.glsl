@@ -8,12 +8,20 @@ vec4 material_BaseColor;
 float material_Metal;
 float material_Roughness;
 float material_IOR;
-vec3 material_PBRSpecularColor;
-float material_Glossiness;
 vec3 material_EmissiveColor;
 float material_NormalIntensity;
 float material_OcclusionIntensity;
 float material_OcclusionTextureCoord;
+
+float material_SpecularIntensity;
+vec3  material_SpecularColor;
+#ifdef MATERIAL_HAS_SPECULAR_TEXTURE
+    sampler2D material_SpecularIntensityTexture;
+#endif
+
+#ifdef MATERIAL_HAS_SPECULAR_COLOR_TEXTURE
+    sampler2D material_SpecularColorTexture;
+#endif
 
 #ifdef MATERIAL_ENABLE_CLEAR_COAT
     float material_ClearCoat;
@@ -95,11 +103,6 @@ float material_OcclusionTextureCoord;
     sampler2D material_RoughnessMetallicTexture;
 #endif
 
-
-#ifdef MATERIAL_HAS_SPECULAR_GLOSSINESS_TEXTURE
-    sampler2D material_SpecularGlossinessTexture;
-#endif
-
 #ifdef MATERIAL_HAS_OCCLUSION_TEXTURE
     sampler2D material_OcclusionTexture;
 #endif
@@ -129,9 +132,6 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     vec4 baseColor = material_BaseColor;
     float metallic = material_Metal;
     float roughness = material_Roughness;
-    vec3 specularColor = material_PBRSpecularColor;
-    float glossiness = material_Glossiness;
-    float f0 = pow2( (material_IOR - 1.0) / (material_IOR + 1.0) );
     vec3 emissiveRadiance = material_EmissiveColor;
 
     #ifdef MATERIAL_HAS_BASETEXTURE
@@ -155,25 +155,15 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
         metallic *= metalRoughMapColor.b;
     #endif
 
-    #ifdef MATERIAL_HAS_SPECULAR_GLOSSINESS_TEXTURE
-        vec4 specularGlossinessColor = texture2DSRGB(material_SpecularGlossinessTexture, uv);
-        specularColor *= specularGlossinessColor.rgb;
-        glossiness *= specularGlossinessColor.a;
-        roughness =  1.0 - glossiness;
-    #endif
-
     #ifdef MATERIAL_HAS_EMISSIVETEXTURE
         emissiveRadiance *= texture2DSRGB(material_EmissiveTexture, uv).rgb;
     #endif
 
     surfaceData.albedoColor = baseColor.rgb;
-    surfaceData.specularColor = specularColor;
     surfaceData.emissiveColor = emissiveRadiance;
     surfaceData.metallic = metallic;
     surfaceData.roughness = roughness;
-    surfaceData.f0 = f0;
     surfaceData.IOR = material_IOR;
-
 
     #ifdef MATERIAL_IS_TRANSPARENT
         surfaceData.opacity = baseColor.a;
@@ -221,9 +211,20 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
         #ifdef MATERIAL_HAS_NORMALTEXTURE
             surfaceData.normal = getNormalByNormalTexture(tbn, material_NormalTexture, material_NormalIntensity, uv, isFrontFacing);
         #endif
-    #endif
+    #endif  
 
     surfaceData.dotNV = saturate( dot(surfaceData.normal, surfaceData.viewDir) );
+
+    // Specular
+    surfaceData.specularIntensity = material_SpecularIntensity;
+    surfaceData.specularColor = material_SpecularColor;
+    #ifdef MATERIAL_HAS_SPECULAR_TEXTURE
+        surfaceData.specularIntensity *= texture2D( material_SpecularIntensityTexture, uv ).a;
+    #endif
+
+    #ifdef MATERIAL_HAS_SPECULAR_COLOR_TEXTURE
+        surfaceData.specularColor *= texture2D( material_SpecularColorTexture, uv ).rgb;
+    #endif
 
     // Clear Coat
      #ifdef MATERIAL_ENABLE_CLEAR_COAT
@@ -265,7 +266,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
         surfaceData.anisotropicN = getAnisotropicBentNormal(surfaceData);
     #endif
 
-    //Iridescence
+    // Iridescence
     #ifdef MATERIAL_ENABLE_IRIDESCENCE
         surfaceData.iridescenceFactor = material_IridescenceInfo.x;
         surfaceData.iridescenceIOR = material_IridescenceInfo.y;
@@ -310,20 +311,12 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
         #endif    
     #endif
 
-    // AO
-    float diffuseAO = 1.0;
-    float specularAO = 1.0;
-
+    // Ambient Occlusion
     #ifdef MATERIAL_HAS_OCCLUSION_TEXTURE
-        diffuseAO = ((texture2D(material_OcclusionTexture, aoUV)).r - 1.0) * material_OcclusionIntensity + 1.0;
+        surfaceData.ambientOcclusion = ((texture2D(material_OcclusionTexture, aoUV)).r - 1.0) * material_OcclusionIntensity + 1.0;
+    #else
+        surfaceData.ambientOcclusion = 1.0;
     #endif
-
-    #if defined(MATERIAL_HAS_OCCLUSION_TEXTURE) && defined(SCENE_USE_SPECULAR_ENV) 
-        specularAO = saturate( pow( surfaceData.dotNV + diffuseAO, exp2( - 16.0 * surfaceData.roughness - 1.0 ) ) - 1.0 + diffuseAO );
-    #endif
-
-    surfaceData.diffuseAO = diffuseAO;
-    surfaceData.specularAO = specularAO;
 
     return surfaceData;
 }

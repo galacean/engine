@@ -8,8 +8,7 @@ import {
   ShadowResolution,
   TonemappingMode
 } from "@galacean/engine-core";
-import type { IReferable } from "@galacean/engine-core/types/asset/IReferable";
-import type { IColor, IHierarchyFile, IVector3 } from "./BasicSchema";
+import type { IAssetRef, IColor, IHierarchyFile, IVector3 } from "./BasicSchema";
 
 export enum SpecularMode {
   Sky = "Sky",
@@ -21,16 +20,16 @@ export interface IScene extends IHierarchyFile {
     background: {
       mode: BackgroundMode;
       color: IColor;
-      texture?: IReferable;
+      texture?: IAssetRef;
       textureFillMode?: BackgroundTextureFillMode;
-      skyMesh?: IReferable;
-      skyMaterial?: IReferable;
+      skyMesh?: IAssetRef;
+      skyMaterial?: IAssetRef;
     };
     ambient: {
       diffuseMode: DiffuseMode;
-      ambientLight: IReferable;
-      customAmbientLight: IReferable;
-      customSpecularTexture: IReferable;
+      ambientLight: IAssetRef;
+      customAmbientLight: IAssetRef;
+      customSpecularTexture: IAssetRef;
       diffuseSolidColor: IColor;
       diffuseIntensity: number;
       specularIntensity: number;
@@ -63,7 +62,7 @@ export interface IScene extends IHierarchyFile {
         scatter: number;
         intensity: number;
         tint: IColor;
-        dirtTexture: IReferable;
+        dirtTexture: IAssetRef;
         dirtIntensity: number;
       };
       tonemapping: {

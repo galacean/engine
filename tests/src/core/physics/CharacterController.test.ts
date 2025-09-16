@@ -10,7 +10,8 @@ import {
   DynamicCollider,
   Script,
   ControllerCollisionFlag,
-  Layer
+  Layer,
+  ColliderShapeUpAxis
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
@@ -442,5 +443,231 @@ describe("CharacterController", function () {
     // @ts-ignore
     controller._syncWorldPositionFromPhysicalSpace();
     expect(roleEntity.transform.position.z).eq(3);
+  });
+
+  it("CapsuleColliderShape upAxis warning message", () => {
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.clearShapes();
+
+    const capsuleShape = new CapsuleColliderShape();
+    controller.addShape(capsuleShape);
+
+    // Mock console.warn to capture warning messages
+    const originalWarn = console.warn;
+    let warningMessage = "";
+    console.warn = (message: string) => {
+      warningMessage = message;
+    };
+
+    try {
+      // Trigger the warning by setting upAxis when controller has shapes
+      capsuleShape.upAxis = ColliderShapeUpAxis.X;
+
+      // Verify the warning message has correct grammar and format
+      expect(warningMessage).to.include(
+        "Capsule character controller `upAxis` is not supported in PhysX and will be ignored"
+      );
+    } finally {
+      // Restore original console.warn
+      console.warn = originalWarn;
+    }
+  });
+
+  it("BoxColliderShape rotation warning message", () => {
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.clearShapes();
+
+    const boxShape = new BoxColliderShape();
+    controller.addShape(boxShape);
+
+    // Mock console.warn to capture warning messages
+    const originalWarn = console.warn;
+    let warningMessage = "";
+    console.warn = (message: string) => {
+      warningMessage = message;
+    };
+
+    try {
+      // Trigger the warning by setting rotation when controller has shapes
+      boxShape.rotation = new Vector3(0, 45, 0);
+
+      // Verify the warning message has correct grammar and format
+      expect(warningMessage).to.include(
+        "Box character controller `rotation` is not supported in PhysX and will be ignored"
+      );
+    } finally {
+      // Restore original console.warn
+      console.warn = originalWarn;
+    }
+  });
+
+  it("PhysXCharacterController Box rotation warning on controller creation", () => {
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.clearShapes();
+
+    // Mock console.warn to capture warning messages
+    const originalWarn = console.warn;
+    let warningMessage = "";
+    console.warn = (message: string) => {
+      warningMessage = message;
+    };
+
+    try {
+      const boxShape = new BoxColliderShape();
+      // Set rotation before adding to controller to trigger warning during controller creation
+      boxShape.rotation = new Vector3(45, 0, 0);
+
+      // This should trigger the warning in PhysXCharacterController._createPXController
+      controller.addShape(boxShape);
+
+      // Verify the warning message has correct grammar and format
+      expect(warningMessage).to.include(
+        "Box character controller `rotation` is not supported in PhysX and will be ignored"
+      );
+    } finally {
+      // Restore original console.warn
+      console.warn = originalWarn;
+    }
+  });
+
+  it("CapsuleColliderShape rotation warning message on controller creation", () => {
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.clearShapes();
+
+    // Mock console.warn to capture warning messages
+    const originalWarn = console.warn;
+    let warningMessage = "";
+    console.warn = (message: string) => {
+      warningMessage = message;
+    };
+
+    try {
+      const capsuleShape = new CapsuleColliderShape();
+      // Set rotation before adding to controller to trigger warning during controller creation
+      capsuleShape.rotation = new Vector3(45, 0, 0);
+
+      // This should trigger the warning in PhysXCharacterController._createPXController
+      controller.addShape(capsuleShape);
+
+      // Verify the warning message has correct grammar and format
+      expect(warningMessage).to.include(
+        "Capsule character controller `rotation` is not supported in PhysX and will be ignored"
+      );
+    } finally {
+      // Restore original console.warn
+      console.warn = originalWarn;
+    }
+  });
+
+  it("PhysXCharacterController Capsule upAxis warning on controller creation", () => {
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.clearShapes();
+
+    // Mock console.warn to capture warning messages
+    const originalWarn = console.warn;
+    let warningMessage = "";
+    console.warn = (message: string) => {
+      warningMessage = message;
+    };
+
+    try {
+      const capsuleShape = new CapsuleColliderShape();
+      capsuleShape.upAxis = ColliderShapeUpAxis.X;
+
+      // This should trigger the warning in PhysXCharacterController._createPXController
+      controller.addShape(capsuleShape);
+
+      // Verify the warning message has correct grammar and format
+      expect(warningMessage).to.include(
+        "Capsule character controller `upAxis` is not supported in PhysX and will be ignored"
+      );
+    } finally {
+      // Restore original console.warn
+      console.warn = originalWarn;
+    }
+  });
+
+  it("BoxColliderShape size update affects collision detection", () => {
+    const { fixedTimeStep } = engine.sceneManager.activeScene.physics;
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.clearShapes();
+
+    // Create a box shape with initial size
+    const boxShape = new BoxColliderShape();
+    boxShape.size = new Vector3(1, 2, 1); // Initial size: width=1, height=2, depth=1
+    controller.addShape(boxShape);
+
+    // Create an obstacle at a specific position that would collide if the controller is wide enough
+    const obstacleEntity = rootEntity.createChild("obstacle");
+    obstacleEntity.transform.position = new Vector3(1.2, 1, 0); // Positioned to the right
+    const obstacleCollider = obstacleEntity.addComponent(StaticCollider);
+    const obstacleShape = new BoxColliderShape();
+    obstacleShape.size = new Vector3(1, 2, 1);
+    obstacleCollider.addShape(obstacleShape);
+
+    // Position the character controller at origin
+    roleEntity.transform.position = new Vector3(0, 1, 0);
+
+    // Try to move right - should not collide with initial narrow width (0.5 half-width)
+    const moveDistance = new Vector3(1, 0, 0);
+    controller.move(moveDistance, 0.0001, fixedTimeStep);
+    const positionAfterFirstMove = roleEntity.transform.position.x;
+
+    // Reset position
+    roleEntity.transform.position = new Vector3(0, 1, 0);
+
+    // Now increase the box size to make it wider
+    boxShape.size = new Vector3(3, 2, 1); // Wider: width=3, height=2, depth=1 (half-width=1.5)
+
+    // Try to move right again - should now collide due to increased width
+    controller.move(moveDistance, 0.0001, fixedTimeStep);
+    const positionAfterSecondMove = roleEntity.transform.position.x;
+
+    // The character should move less distance (or not at all) when the box is wider due to collision
+    expect(positionAfterSecondMove).toBeLessThan(positionAfterFirstMove);
+  });
+
+  it("BoxColliderShape height update affects step ability", () => {
+    const { fixedTimeStep } = engine.sceneManager.activeScene.physics;
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.stepOffset = 0.1;
+    controller.clearShapes();
+
+    // Create a box shape with initial size
+    const boxShape = new BoxColliderShape();
+    boxShape.size = new Vector3(1, 1, 1); // Initial height=1 (half-height=0.5)
+    controller.addShape(boxShape);
+
+    // Create a low step that only a short character can pass under
+    const stepEntity = rootEntity.createChild("step");
+    stepEntity.transform.position = new Vector3(0, 1.5, 2);
+    const stepCollider = stepEntity.addComponent(StaticCollider);
+    const stepShape = new BoxColliderShape();
+    stepShape.size = new Vector3(5, 0.4, 1); // Low horizontal barrier
+    stepCollider.addShape(stepShape);
+
+    // Position the character controller at origin
+    roleEntity.transform.position = new Vector3(0, 0.5, 0);
+
+    // Try to move forward - should pass under with short height
+    const moveDistance = new Vector3(0, 0, 3);
+    controller.move(moveDistance, 0.0001, fixedTimeStep);
+    const zPositionWithShortHeight = roleEntity.transform.position.z;
+    console.log(roleEntity.transform.position, zPositionWithShortHeight);
+
+    // Reset position
+    roleEntity.transform.position = new Vector3(0, 0.5, 0);
+
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    // Now increase the box height to make it taller
+    boxShape.size = new Vector3(1, 2, 1); // Taller: height=2 (half-height=1)
+
+    // Try to move forward again - should now be blocked by the low ceiling
+    controller.move(moveDistance, 0.0001, fixedTimeStep);
+    const zPositionWithTallHeight = roleEntity.transform.position.z;
+
+    // The taller character should move less distance due to collision with ceiling
+    expect(zPositionWithTallHeight).toBeLessThan(zPositionWithShortHeight);
   });
 });
