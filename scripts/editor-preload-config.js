@@ -39,24 +39,6 @@ module.exports = {
 
   secondParty: [
     {
-      name: "@galacean/engine-toolkit",
-      repo: "https://github.com/galacean/engine-toolkit.git",
-      isMonorepo: true,
-      buildCommand: "pnpm b:all",
-      packages: [
-        {
-          name: "@galacean/engine-toolkit",
-          packagePath: "packages/galacean-engine-toolkit",
-          browserPath: "dist/umd/browser.js"
-        },
-        {
-          name: "@galacean/engine-toolkit-xr",
-          packagePath: "packages/xr",
-          browserPath: "dist/umd/browser.js"
-        }
-      ]
-    },
-    {
       name: "@galacean/engine-lottie",
       repo: "https://github.com/galacean/engine-lottie.git",
       packagePath: ".",
