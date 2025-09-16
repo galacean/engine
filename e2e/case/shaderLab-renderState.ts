@@ -24,29 +24,36 @@ const shaderLab = new ShaderLab();
 const shaderSource = `Shader "Test RenderState" {
   SubShader "Default" {
     Pass "0" {
-	DepthState customDepthState {
-      WriteEnabled = depthWriteEnabled;
-    }
-    
-	BlendState customBlendState {
-      Enabled = blendEnabled;
-      SourceColorBlendFactor = sourceColorBlendFactor;
-      DestinationColorBlendFactor = destinationColorBlendFactor;
-      SourceAlphaBlendFactor = sourceAlphaBlendFactor;
-      DestinationAlphaBlendFactor = destinationAlphaBlendFactor;
-    }
-    
-	RasterState customRasterState {
-      CullMode = rasterStateCullMode;
-    }
+        RenderQueueType renderQueueType;
+        BlendFactor sourceColorBlendFactor;
+        BlendFactor destinationColorBlendFactor;
+        BlendFactor sourceAlphaBlendFactor;
+        BlendFactor destinationAlphaBlendFactor;
+        CullMode rasterStateCullMode;
+        Bool blendEnabled;
+        Bool depthWriteEnabled;
 
-    DepthState = customDepthState;
-    BlendState = customBlendState;
-    RasterState = customRasterState;
+        DepthState customDepthState {
+          WriteEnabled = depthWriteEnabled;
+        }
 
+        BlendState customBlendState {
+          Enabled = blendEnabled;
+          SourceColorBlendFactor = sourceColorBlendFactor;
+          DestinationColorBlendFactor = destinationColorBlendFactor;
+          SourceAlphaBlendFactor = sourceAlphaBlendFactor;
+          DestinationAlphaBlendFactor = destinationAlphaBlendFactor;
+        }
 
-    // RenderQueueType = renderQueueType;
-	RenderQueueType = Transparent;
+        RasterState customRasterState {
+          CullMode = rasterStateCullMode;
+        }
+
+        DepthState = customDepthState;
+        BlendState = customBlendState;
+        RasterState = customRasterState;
+        RenderQueueType = renderQueueType;
+        
       
 	mat4 renderer_MVPMat;
     vec4 u_color;

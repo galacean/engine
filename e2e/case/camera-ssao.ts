@@ -22,7 +22,7 @@ import {
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
-WebGLEngine.create({ canvas: "canvas",graphicDeviceOptions: { webGLMode: WebGLMode.WebGL1 } }).then((engine) => {
+WebGLEngine.create({ canvas: "canvas", graphicDeviceOptions: { webGLMode: WebGLMode.WebGL1 } }).then((engine) => {
   engine.canvas.resizeByClientSize(2);
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
