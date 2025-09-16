@@ -145,7 +145,7 @@ float f2 = pow2(0.5);
 ```
 
 ### Common
-Provides macros like `PI` and utility functions (`gammaToLinear`, `pow2`). See [source](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/Common.glsl).
+Provides macros like `PI` and utility functions (`gammaToLinear`, `pow2`). See [source](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/Common.glsl).
 
 ### Fog
 Depth fog calculation:
@@ -195,7 +195,7 @@ mat3 getTBNByDerivatives(vec2 uv, vec3 normal, vec3 position, bool isFrontFacing
 ```
 
 ### Shadow
-Shadow-related functions ([source](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/Shadow.glsl)):
+Shadow-related functions ([source](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/Shadow.glsl)):
 ```glsl
 int computeCascadeIndex(vec3 positionWS);
 vec3 getShadowCoord(vec3 positionWS);
@@ -217,13 +217,13 @@ void calculateBlendShape(Attributes attributes, inout vec4 position, inout vec3 
 ## PBR APIs
 
 ### AttributesPBR
-All PBR attribute variables ([source](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/AttributesPBR.glsl)).
+All PBR attribute variables ([source](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/AttributesPBR.glsl)).
 
 ### VaryingsPBR
-All PBR varying variables ([source](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/VaryingsPBR.glsl)).
+All PBR varying variables ([source](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/VaryingsPBR.glsl)).
 
 ### LightDirectPBR
-Direct lighting calculations based on BRDF ([source](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/LightDirectPBR.glsl)).
+Direct lighting calculations based on BRDF ([source](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/LightDirectPBR.glsl)).
 
 **Usage:**
 ```glsl
@@ -244,7 +244,7 @@ evaluateDirectRadiance(varyings, surfaceData, brdfData, shadowAttenuation, color
 <Callout type="info">See PBR template extension example above.</Callout>
 
 ### LightIndirectPBR
-Indirect lighting (IBL) calculations ([source](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/LightIndirectPBR.glsl)).
+Indirect lighting (IBL) calculations ([source](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/LightIndirectPBR.glsl)).
 
 **Usage:**
 ```glsl
@@ -262,7 +262,7 @@ evaluateIBL(varyings, surfaceData, brdfData, color.rgb);
 ```
 
 ### VertexPBR
-Vertex shader utilities for UV/TBN/skinning ([source](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/VertexPBR.glsl)):
+Vertex shader utilities for UV/TBN/skinning ([source](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/VertexPBR.glsl)):
 
 ```glsl showLineNumbers {2, 4}
 Varyings varyings;
@@ -286,13 +286,13 @@ gl_Position = renderer_MVPMat * vertexInputs.positionOS;
 ```
 
 ### BRDF
-Core PBR lighting calculations and data structures ([source](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/BRDF.glsl)).
+Core PBR lighting calculations and data structures ([source](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/BRDF.glsl)).
 
 ### BTDF
-Transmission/refraction functions ([source](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/BTDF.glsl)).
+Transmission/refraction functions ([source](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/BTDF.glsl)).
 
 ### FragmentPBR
-Handles material properties and surface data initialization ([source](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/FragmentPBR.glsl)):
+Handles material properties and surface data initialization ([source](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/FragmentPBR.glsl)):
 
 ```glsl showLineNumbers
 BRDFData brdfData;
@@ -303,4 +303,4 @@ initBRDFData(surfaceData, brdfData);
 
 ## Final Notes
 
-For complete file organization examples, refer to the official [ForwardPassPBR](https://github.com/galacean/engine/blob/main/packages/shader-shaderlab/src/shaders/shadingPBR/ForwardPassPBR.glsl) implementation.
+For complete file organization examples, refer to the official [ForwardPassPBR](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/ForwardPassPBR.glsl) implementation.

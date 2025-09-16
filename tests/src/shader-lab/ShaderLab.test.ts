@@ -5,7 +5,7 @@ import {
   RenderStateElementKey,
   StencilOperation
 } from "@galacean/engine-core";
-import { PBRSource, registerIncludes } from "@galacean/engine-shader-shaderlab";
+import { PBRSource, registerIncludes } from "@galacean/engine-shader";
 import { ShaderLab as ShaderLabRelease } from "@galacean/engine-shaderlab";
 import { ShaderLab as ShaderLabVerbose } from "@galacean/engine-shaderlab/verbose";
 import { glslValidate } from "./ShaderValidate";

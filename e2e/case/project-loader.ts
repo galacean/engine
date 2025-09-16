@@ -4,7 +4,7 @@
  */
 import { Logger, WebGLEngine, AssetType, Camera } from "@galacean/engine";
 import { ShaderLab } from "@galacean/engine-shaderlab";
-import { registerIncludes } from "@galacean/engine-shader-shaderlab";
+import { registerIncludes } from "@galacean/engine-shader";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 // Create ShaderLab

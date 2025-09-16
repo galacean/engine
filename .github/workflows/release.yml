@@ -94,8 +94,8 @@ jobs:
           cp -r ${{ github.workspace }}/packages/ui/dist ${{ github.workspace }}/temp/@galacean/engine-ui
           mkdir -p ${{ github.workspace }}/temp/@galacean/engine-shaderlab
           cp -r ${{ github.workspace }}/packages/shader-lab/dist ${{ github.workspace }}/temp/@galacean/engine-shaderlab
-          mkdir -p ${{ github.workspace }}/temp/@galacean/engine-shader-shaderlab
-          cp -r ${{ github.workspace }}/packages/shader-shaderlab/dist ${{ github.workspace }}/temp/@galacean/engine-shader-shaderlab
+          mkdir -p ${{ github.workspace }}/temp/@galacean/engine-shader
+          cp -r ${{ github.workspace }}/packages/shader/dist ${{ github.workspace }}/temp/@galacean/engine-shader
           mkdir -p ${{ github.workspace }}/temp/@galacean/engine-physics-lite
           cp -r ${{ github.workspace }}/packages/physics-lite/dist ${{ github.workspace }}/temp/@galacean/engine-physics-lite
           mkdir -p ${{ github.workspace }}/temp/@galacean/engine-physics-physx
