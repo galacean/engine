@@ -70,10 +70,11 @@ export class ShaderLab implements IShaderLab {
 
     const program = parser.parse(tokens, macroDefineList);
 
+    // #if _VERBOSE
+    this._logErrors(parser.errors);
+    // #endif
+
     if (!program) {
-      // #if _VERBOSE
-      this._logErrors(parser.errors);
-      // #endif
       return undefined;
     }
 
