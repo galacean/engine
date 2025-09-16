@@ -1,4 +1,4 @@
-import { Logger, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
+import { Logger, ShaderMacro, ShaderLanguage } from "@galacean/engine";
 import { IShaderLab, IShaderSource } from "@galacean/engine-design";
 import { IShaderProgramSource } from "@galacean/engine-design/types/shader-lab/IShaderProgramSource";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
@@ -52,7 +52,7 @@ export class ShaderLab implements IShaderLab {
     source: string,
     vertexEntry: string,
     fragmentEntry: string,
-    backend: ShaderPlatformTarget,
+    backend: ShaderLanguage,
     basePathForIncludeKey: string
   ): IShaderProgramSource | undefined {
     const totalStartTime = performance.now();
@@ -78,8 +78,7 @@ export class ShaderLab implements IShaderLab {
       return undefined;
     }
 
-    const codeGen =
-      backend === ShaderPlatformTarget.GLES100 ? GLES100Visitor.getVisitor() : GLES300Visitor.getVisitor();
+    const codeGen = backend === ShaderLanguage.GLSLES100 ? GLES100Visitor.getVisitor() : GLES300Visitor.getVisitor();
 
     const codeGenStartTime = performance.now();
     const ret = codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);

@@ -9,7 +9,7 @@ import { ShaderPart } from "./ShaderPart";
 import { ShaderProgram } from "./ShaderProgram";
 import { ShaderProgramPool } from "./ShaderProgramPool";
 import { ShaderProperty } from "./ShaderProperty";
-import { ShaderPlatformTarget } from "./enums/ShaderPlatformTarget";
+import { ShaderLanguage } from "./enums/ShaderLanguage";
 import { RenderState } from "./state/RenderState";
 
 const precisionStr = `
@@ -33,7 +33,7 @@ export class ShaderPass extends ShaderPart {
   /**
    * The platform target of this shader pass.
    */
-  platformTarget = ShaderPlatformTarget.GLES100;
+  platformTarget = ShaderLanguage.GLSLES100;
 
   /** @internal */
   _shaderPassId: number = 0;
@@ -160,7 +160,7 @@ export class ShaderPass extends ShaderPart {
       noIncludeFrag = macroNameStr + noIncludeFrag;
     }
 
-    if (isWebGL2 && this.platformTarget === ShaderPlatformTarget.GLES100) {
+    if (isWebGL2 && this.platformTarget === ShaderLanguage.GLSLES100) {
       noIncludeVertex = ShaderFactory.convertTo300(noIncludeVertex);
       noIncludeFrag = ShaderFactory.convertTo300(noIncludeFrag, true);
     }

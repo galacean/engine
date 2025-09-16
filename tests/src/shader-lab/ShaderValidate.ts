@@ -1,13 +1,6 @@
-import {
-  Engine,
-  Shader,
-  ShaderFactory,
-  ShaderMacro,
-  ShaderMacroCollection,
-  ShaderPass,
-  ShaderPlatformTarget
-} from "@galacean/engine-core";
+import { Engine, Shader, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
 import { ShaderLab } from "@galacean/engine-shaderlab";
+import { ShaderLanguage } from "packages/core/src";
 import { expect } from "vitest";
 
 const baseTestMacroList = [
@@ -42,7 +35,7 @@ export function glslValidate(
       subShaderSource.passes.forEach((passSource) => {
         if (passSource.isUsePass) return;
 
-        const platform = ShaderPlatformTarget.GLES100;
+        const platform = ShaderLanguage.GLSLES100;
 
         const shaderPassSource = shaderLab._parseShaderPass(
           passSource.contents,

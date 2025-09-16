@@ -14,7 +14,7 @@ import { CompareFunction } from "./enums/CompareFunction";
 import { CullMode } from "./enums/CullMode";
 import { RenderQueueType } from "./enums/RenderQueueType";
 import { RenderStateElementKey } from "./enums/RenderStateElementKey";
-import { ShaderPlatformTarget } from "./enums/ShaderPlatformTarget";
+import { ShaderLanguage } from "./enums/ShaderLanguage";
 import { StencilOperation } from "./enums/StencilOperation";
 import { RenderState } from "./state/RenderState";
 
@@ -45,14 +45,14 @@ export class Shader implements IReferable {
    * ```
    *
    * @param shaderSource - shader code
-   * @param backend - shader platform target, GLES100 by default
+   * @param platformTarget - shader platform target, GLES100 by default
    * @param path - base path for include key, path should follow the specifications of [URL.origin](https://developer.mozilla.org/en-US/docs/Web/API/URL/origin), like: `shaders://root/`
    * @returns Shader
    *
    * @throws
    * Throw string exception if shaderLab has not been enabled properly.
    */
-  static create(shaderSource: string, backend?: ShaderPlatformTarget, path?: string): Shader;
+  static create(shaderSource: string, platformTarget?: ShaderLanguage, path?: string): Shader;
 
   /**
    * Create a shader.
@@ -81,19 +81,19 @@ export class Shader implements IReferable {
 
   static create(
     nameOrShaderSource: string,
-    vertexSourceOrShaderPassesOrSubShadersOrBackend?: ShaderPlatformTarget | SubShader[] | ShaderPass[] | string,
+    vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget?: ShaderLanguage | SubShader[] | ShaderPass[] | string,
     fragmentSourceOrPath?: string
   ): Shader {
     let shader: Shader;
     const shaderMap = Shader._shaderMap;
 
-    if (vertexSourceOrShaderPassesOrSubShadersOrBackend == undefined) {
-      vertexSourceOrShaderPassesOrSubShadersOrBackend = ShaderPlatformTarget.GLES100;
+    if (vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget == undefined) {
+      vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget = ShaderLanguage.GLSLES100;
     }
 
     if (
-      vertexSourceOrShaderPassesOrSubShadersOrBackend === ShaderPlatformTarget.GLES100 ||
-      vertexSourceOrShaderPassesOrSubShadersOrBackend === ShaderPlatformTarget.GLES300
+      vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget === ShaderLanguage.GLSLES100 ||
+      vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget === ShaderLanguage.GLSLES300
     ) {
       const shaderLab = Shader._shaderLab;
       if (!shaderLab) {
@@ -119,7 +119,7 @@ export class Shader implements IReferable {
             passSource.contents,
             passSource.vertexEntry,
             passSource.fragmentEntry,
-            vertexSourceOrShaderPassesOrSubShadersOrBackend,
+            vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget,
             new URL(fragmentSourceOrPath ?? "", ShaderPass._shaderRootPath).href
           );
 
@@ -134,7 +134,7 @@ export class Shader implements IReferable {
             passSource.tags
           );
 
-          shaderPass.platformTarget = vertexSourceOrShaderPassesOrSubShadersOrBackend;
+          shaderPass.platformTarget = vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget;
 
           const { constantMap, variableMap } = passSource.renderStates;
           // Compatible shader lab no render state use material `renderState` to modify render state
@@ -168,19 +168,19 @@ export class Shader implements IReferable {
         console.error(`Shader named "${nameOrShaderSource}" already exists.`);
         return;
       }
-      if (typeof vertexSourceOrShaderPassesOrSubShadersOrBackend === "string") {
-        const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShadersOrBackend, fragmentSourceOrPath);
+      if (typeof vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget === "string") {
+        const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget, fragmentSourceOrPath);
         shader = new Shader(nameOrShaderSource, [new SubShader("Default", [shaderPass])]);
       } else {
-        if (vertexSourceOrShaderPassesOrSubShadersOrBackend.length > 0) {
-          if (vertexSourceOrShaderPassesOrSubShadersOrBackend[0].constructor === ShaderPass) {
+        if (vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget.length > 0) {
+          if (vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget[0].constructor === ShaderPass) {
             shader = new Shader(nameOrShaderSource, [
-              new SubShader("Default", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShadersOrBackend)
+              new SubShader("Default", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget)
             ]);
           } else {
             shader = new Shader(
               nameOrShaderSource,
-              <SubShader[]>vertexSourceOrShaderPassesOrSubShadersOrBackend.slice()
+              <SubShader[]>vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget.slice()
             );
           }
         } else {

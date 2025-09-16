@@ -6,7 +6,7 @@ export { CullMode } from "./enums/CullMode";
 export { RenderQueueType } from "./enums/RenderQueueType";
 export { RenderStateElementKey } from "./enums/RenderStateElementKey";
 export { ShaderDataGroup } from "./enums/ShaderDataGroup";
-export { ShaderPlatformTarget } from "./enums/ShaderPlatformTarget";
+export { ShaderLanguage } from "./enums/ShaderLanguage";
 export { ShaderPropertyType } from "./enums/ShaderPropertyType";
 export { StencilOperation } from "./enums/StencilOperation";
 export { Shader } from "./Shader";
