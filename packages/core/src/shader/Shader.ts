@@ -91,10 +91,7 @@ export class Shader implements IReferable {
       vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget = ShaderLanguage.GLSLES100;
     }
 
-    if (
-      vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget === ShaderLanguage.GLSLES100 ||
-      vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget === ShaderLanguage.GLSLES300
-    ) {
+    if (typeof vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget === "number") {
       const shaderLab = Shader._shaderLab;
       if (!shaderLab) {
         throw "ShaderLab has not been set up yet.";

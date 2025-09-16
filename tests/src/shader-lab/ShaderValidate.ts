@@ -1,6 +1,5 @@
-import { Engine, Shader, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
+import { Engine, Shader, ShaderMacro, ShaderMacroCollection, ShaderPass, ShaderLanguage } from "@galacean/engine-core";
 import { ShaderLab } from "@galacean/engine-shaderlab";
-import { ShaderLanguage } from "packages/core/src";
 import { expect } from "vitest";
 
 const baseTestMacroList = [
