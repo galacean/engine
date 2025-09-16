@@ -44,9 +44,9 @@ export class Shader implements IReferable {
    * ...
    * ```
    *
-   * @param shaderSource - shader code
-   * @param platformTarget - shader platform target, GLES100 by default
-   * @param path - base path for include key, path should follow the specifications of [URL.origin](https://developer.mozilla.org/en-US/docs/Web/API/URL/origin), like: `shaders://root/`
+   * @param shaderSource - Shader code
+   * @param platformTarget - Shader platform target, @defaultValue ShaderLanguage.GLSLES300
+   * @param path - Shader location path
    * @returns Shader
    *
    * @throws
