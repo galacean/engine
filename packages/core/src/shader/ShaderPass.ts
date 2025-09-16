@@ -140,6 +140,12 @@ export class ShaderPass extends ShaderPart {
     const shaderMacroList = new Array<ShaderMacro>();
     ShaderMacro._getMacrosElements(macroCollection, shaderMacroList);
     shaderMacroList.push(ShaderMacro.getByName(isWebGL2 ? "GRAPHICS_API_WEBGL2" : "GRAPHICS_API_WEBGL1"));
+    if (engine._hardwareRenderer.canIUse(GLCapabilityType.shaderTextureLod)) {
+      shaderMacroList.push(ShaderMacro.getByName("HAS_TEX_LOD"));
+    }
+    if (engine._hardwareRenderer.canIUse(GLCapabilityType.standardDerivatives)) {
+      shaderMacroList.push(ShaderMacro.getByName("HAS_DERIVATIVES"));
+    }
 
     // Compatible with non-shaderlab syntax
     let noIncludeVertex = ShaderFactory.parseIncludes(this._vertexSource);
@@ -166,12 +172,9 @@ export class ShaderPass extends ShaderPart {
     const vertexSource = ` ${versionStr} 
         ${noIncludeVertex}
       `;
-
     const fragmentSource = ` ${versionStr}
         ${isWebGL2 ? "" : ShaderFactory._shaderExtension}
         ${precisionStr}
-        ${engine._hardwareRenderer.canIUse(GLCapabilityType.shaderTextureLod) ? "#define HAS_TEX_LOD" : ""}
-        ${engine._hardwareRenderer.canIUse(GLCapabilityType.standardDerivatives) ? "#define HAS_DERIVATIVES" : ""}
         ${noIncludeFrag}
       `;
 
