@@ -151,7 +151,8 @@ export class ShaderPass extends ShaderPart {
     let noIncludeVertex = ShaderFactory.parseIncludes(this._vertexSource);
     let noIncludeFrag = ShaderFactory.parseIncludes(this._fragmentSource);
 
-    if (Shader._shaderLab) {
+    // Parse macros when use shaderlab
+    if (this._platformTarget != undefined) {
       noIncludeVertex = Shader._shaderLab._parseMacros(noIncludeVertex, shaderMacroList);
       noIncludeFrag = Shader._shaderLab._parseMacros(noIncludeFrag, shaderMacroList);
     } else {
