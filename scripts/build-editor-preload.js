@@ -107,6 +107,36 @@ if (useNpmArg) {
   // Install packages
   try {
     execSync("pnpm install", { stdio: "inherit", cwd: tempDir });
+    
+    // Debug: List node_modules contents
+    console.log("\nDebugging: temp-install node_modules contents:");
+    try {
+      const nodeModulesPath = path.join(tempDir, "node_modules");
+      if (fs.existsSync(nodeModulesPath)) {
+        const contents = fs.readdirSync(nodeModulesPath);
+        console.log(`Found ${contents.length} items in node_modules:`);
+        contents.forEach(item => {
+          const itemPath = path.join(nodeModulesPath, item);
+          const stats = fs.statSync(itemPath);
+          console.log(`  ${stats.isDirectory() ? '[DIR]' : '[FILE]'} ${item}`);
+          
+          // For packages, also show their internal structure
+          if (stats.isDirectory() && !item.startsWith('.') && !item.startsWith('@')) {
+            try {
+              const packageContents = fs.readdirSync(itemPath);
+              console.log(`    Contents: ${packageContents.slice(0, 5).join(', ')}${packageContents.length > 5 ? '...' : ''}`);
+            } catch (e) {
+              // Ignore errors reading package contents
+            }
+          }
+        });
+      } else {
+        console.log(`  node_modules directory not found at ${nodeModulesPath}`);
+      }
+    } catch (debugError) {
+      console.warn(`  Warning: Failed to list node_modules contents:`, debugError.message);
+    }
+    console.log(''); // Empty line for readability
   } catch (error) {
     console.error("Failed to install second-party packages:", error);
     process.exit(1);
