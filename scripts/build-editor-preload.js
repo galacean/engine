@@ -119,8 +119,8 @@ if (useNpmArg) {
   // Install packages
   console.log("\nAttempting to install packages...");
   try {
-    console.log("Running: pnpm install");
-    const result = execSync("pnpm install", { 
+    console.log("Running: pnpm install --ignore-workspace");
+    const result = execSync("pnpm install --ignore-workspace", { 
       stdio: ["pipe", "pipe", "pipe"], 
       cwd: tempDir,
       encoding: 'utf8'
