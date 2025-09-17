@@ -106,7 +106,7 @@ if (useNpmArg) {
 
   // Install packages
   try {
-    execSync("npm install", { stdio: "inherit", cwd: tempDir });
+    execSync("pnpm install", { stdio: "inherit", cwd: tempDir });
   } catch (error) {
     console.error("Failed to install second-party packages:", error);
     process.exit(1);
