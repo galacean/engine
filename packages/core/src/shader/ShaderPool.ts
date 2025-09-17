@@ -49,6 +49,9 @@ export class ShaderPool {
     const depthOnlyPass = new ShaderPass("DepthOnly", depthOnlyVs, depthOnlyFs, {
       pipelineStage: PipelineStage.DepthOnly
     });
+    depthOnlyPass._renderState = new RenderState();
+    depthOnlyPass._renderStateDataMap[RenderStateElementKey.RenderQueueType] = BaseMaterial._depthOnlyRenderQueueProp;
+
     const basePasses = [shadowCasterPass, depthOnlyPass];
 
     const forwardPassTags = {

@@ -70,6 +70,16 @@ WebGLEngine.create({ canvas: "canvas", graphicDeviceOptions: { webGLMode: WebGLM
   boxMeshRenderer.mesh = PrimitiveMesh.createCuboid(engine);
   boxMeshRenderer.setMaterial(boxMaterial);
 
+  const capsule = rootEntity.createChild("capsule");
+  const capsuleMaterial = new PBRMaterial(engine);
+  capsuleMaterial.isTransparent = true;
+  capsuleMaterial.baseColor = new Color(1, 1, 1, 0.5);
+  capsule.transform.setPosition(1, 0.9, 0.1);
+  capsule.transform.setRotation(30, 30, 0);
+  const capsuleMeshRenderer = capsule.addComponent(MeshRenderer);
+  capsuleMeshRenderer.mesh = PrimitiveMesh.createCapsule(engine);
+  capsuleMeshRenderer.setMaterial(capsuleMaterial);
+
   engine.resourceManager
     .load<AmbientLight>({
       type: AssetType.Env,
