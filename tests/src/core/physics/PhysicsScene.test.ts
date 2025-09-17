@@ -654,6 +654,44 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
+    it("boxCast - New Overloads", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("root");
+      const sweepTestRoot = root.createChild("root");
+
+      // Create a box collider to test against
+      const collider = sweepTestRoot.addComponent(StaticCollider);
+      const boxShape = new BoxColliderShape();
+      boxShape.size = new Vector3(1, 1, 1);
+      collider.addShape(boxShape);
+
+      const center = new Vector3(3, 3, 3);
+      const halfExtents = new Vector3(0.5, 0.5, 0.5);
+      const direction = new Vector3(-1, -1, -1).normalize();
+      const outHitResult = new HitResult();
+
+      // Test boxCast(center, halfExtents, direction, outHitResult) - direct HitResult
+      expect(physicsScene.boxCast(center, halfExtents, direction, outHitResult)).to.eq(true);
+      expect(outHitResult.entity).to.be.eq(sweepTestRoot);
+      expect(outHitResult.shape).to.be.eq(boxShape);
+
+      // Test boxCast(center, halfExtents, direction, distance) - distance only
+      expect(physicsScene.boxCast(center, halfExtents, direction, 0.1)).to.eq(false);
+      expect(physicsScene.boxCast(center, halfExtents, direction, Number.MAX_VALUE)).to.eq(true);
+
+      // Test boxCast(center, halfExtents, direction, distance, outHitResult) - distance + result
+      outHitResult.distance = 0;
+      expect(physicsScene.boxCast(center, halfExtents, direction, Number.MAX_VALUE, outHitResult)).to.eq(true);
+      expect(outHitResult.entity).to.be.eq(sweepTestRoot);
+      expect(outHitResult.distance).to.be.greaterThan(0);
+
+      // Test distance limit with result
+      expect(physicsScene.boxCast(center, halfExtents, direction, 0.1, outHitResult)).to.eq(false);
+
+      root.destroy();
+    });
+
     it("sphereCast", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
@@ -720,6 +758,44 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
+    it("sphereCast - New Overloads", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("root");
+      const sweepTestRoot = root.createChild("root");
+
+      // Create a box collider to test against
+      const collider = sweepTestRoot.addComponent(StaticCollider);
+      const boxShape = new BoxColliderShape();
+      boxShape.size = new Vector3(1, 1, 1);
+      collider.addShape(boxShape);
+
+      const center = new Vector3(3, 3, 3);
+      const radius = 0.5;
+      const direction = new Vector3(-1, -1, -1).normalize();
+      const outHitResult = new HitResult();
+
+      // Test sphereCast(center, radius, direction, outHitResult) - direct HitResult
+      expect(physicsScene.sphereCast(center, radius, direction, outHitResult)).to.eq(true);
+      expect(outHitResult.entity).to.be.eq(sweepTestRoot);
+      expect(outHitResult.shape).to.be.eq(boxShape);
+
+      // Test sphereCast(center, radius, direction, distance) - distance only
+      expect(physicsScene.sphereCast(center, radius, direction, 0.1)).to.eq(false);
+      expect(physicsScene.sphereCast(center, radius, direction, Number.MAX_VALUE)).to.eq(true);
+
+      // Test sphereCast(center, radius, direction, distance, outHitResult) - distance + result
+      outHitResult.distance = 0;
+      expect(physicsScene.sphereCast(center, radius, direction, Number.MAX_VALUE, outHitResult)).to.eq(true);
+      expect(outHitResult.entity).to.be.eq(sweepTestRoot);
+      expect(outHitResult.distance).to.be.greaterThan(0);
+
+      // Test distance limit with result
+      expect(physicsScene.sphereCast(center, radius, direction, 0.1, outHitResult)).to.eq(false);
+
+      root.destroy();
+    });
+
     it("capsuleCast", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
@@ -738,7 +814,9 @@ describe("Physics Test", () => {
       const height = 1.0;
       const direction = new Vector3(0, 1, 0);
       const orientation = new Quaternion();
-      expect(physicsScene.capsuleCast(center, radius, height, direction, orientation)).to.eq(false);
+      expect(
+        physicsScene.capsuleCast(center, radius, height, direction, orientation, Number.MAX_VALUE, Layer.Everything)
+      ).to.eq(false);
 
       // Test capsuleCast with hit
       direction.set(-1, -1, -1);
@@ -849,6 +927,45 @@ describe("Physics Test", () => {
           outHitResult
         )
       ).to.eq(false);
+
+      root.destroy();
+    });
+
+    it("capsuleCast - New Overloads", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("root");
+      const sweepTestRoot = root.createChild("root");
+
+      // Create a box collider to test against
+      const collider = sweepTestRoot.addComponent(StaticCollider);
+      const boxShape = new BoxColliderShape();
+      boxShape.size = new Vector3(1, 1, 1);
+      collider.addShape(boxShape);
+
+      const center = new Vector3(3, 3, 3);
+      const radius = 0.5;
+      const height = 1.0;
+      const direction = new Vector3(-1, -1, -1).normalize();
+      const outHitResult = new HitResult();
+
+      // Test capsuleCast(center, radius, height, direction, outHitResult) - direct HitResult
+      expect(physicsScene.capsuleCast(center, radius, height, direction, outHitResult)).to.eq(true);
+      expect(outHitResult.entity).to.be.eq(sweepTestRoot);
+      expect(outHitResult.shape).to.be.eq(boxShape);
+
+      // Test capsuleCast(center, radius, height, direction, distance) - distance only
+      expect(physicsScene.capsuleCast(center, radius, height, direction, 0.1)).to.eq(false);
+      expect(physicsScene.capsuleCast(center, radius, height, direction, Number.MAX_VALUE)).to.eq(true);
+
+      // Test capsuleCast(center, radius, height, direction, distance, outHitResult) - distance + result
+      outHitResult.distance = 0;
+      expect(physicsScene.capsuleCast(center, radius, height, direction, Number.MAX_VALUE, outHitResult)).to.eq(true);
+      expect(outHitResult.entity).to.be.eq(sweepTestRoot);
+      expect(outHitResult.distance).to.be.greaterThan(0);
+
+      // Test distance limit with result
+      expect(physicsScene.capsuleCast(center, radius, height, direction, 0.1, outHitResult)).to.eq(false);
 
       root.destroy();
     });

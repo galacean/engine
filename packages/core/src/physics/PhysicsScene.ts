@@ -359,6 +359,52 @@ export class PhysicsScene {
    * @param center - The center of the box
    * @param halfExtents - Half the size of the box in each dimension
    * @param direction - The direction to sweep along
+   * @returns Returns true if the box intersects with any collider, otherwise false
+   */
+  boxCast(center: Vector3, halfExtents: Vector3, direction: Vector3): boolean;
+
+  /**
+   * Casts a box through the Scene and returns true if there is any hit.
+   * @param center - The center of the box
+   * @param halfExtents - Half the size of the box in each dimension
+   * @param direction - The direction to sweep along
+   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
+   * @returns Returns true if the box intersects with any collider, otherwise false
+   */
+  boxCast(center: Vector3, halfExtents: Vector3, direction: Vector3, outHitResult: HitResult): boolean;
+
+  /**
+   * Casts a box through the Scene and returns true if there is any hit.
+   * @param center - The center of the box
+   * @param halfExtents - Half the size of the box in each dimension
+   * @param direction - The direction to sweep along
+   * @param distance - The max distance to sweep
+   * @returns Returns true if the box intersects with any collider, otherwise false
+   */
+  boxCast(center: Vector3, halfExtents: Vector3, direction: Vector3, distance: number): boolean;
+
+  /**
+   * Casts a box through the Scene and returns true if there is any hit.
+   * @param center - The center of the box
+   * @param halfExtents - Half the size of the box in each dimension
+   * @param direction - The direction to sweep along
+   * @param distance - The max distance to sweep
+   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
+   * @returns Returns true if the box intersects with any collider, otherwise false
+   */
+  boxCast(
+    center: Vector3,
+    halfExtents: Vector3,
+    direction: Vector3,
+    distance: number,
+    outHitResult: HitResult
+  ): boolean;
+
+  /**
+   * Casts a box through the Scene and returns true if there is any hit.
+   * @param center - The center of the box
+   * @param halfExtents - Half the size of the box in each dimension
+   * @param direction - The direction to sweep along
    * @param orientation - The rotation of the box. @defaultValue `Quaternion(0, 0, 0, 1)`
    * @param distance - The max distance to sweep. @defaultValue `Number.MAX_VALUE`
    * @param layerMask - Layer mask that is used to selectively ignore Colliders when sweeping. @defaultValue `Layer.Everything`
@@ -369,11 +415,48 @@ export class PhysicsScene {
     center: Vector3,
     halfExtents: Vector3,
     direction: Vector3,
-    orientation: Quaternion = PhysicsScene._identityQuaternion,
-    distance: number = Number.MAX_VALUE,
-    layerMask: Layer = Layer.Everything,
+    orientation: Quaternion,
+    distance: number,
+    layerMask: Layer,
+    outHitResult?: HitResult
+  ): boolean;
+
+  boxCast(
+    center: Vector3,
+    halfExtents: Vector3,
+    direction: Vector3,
+    orientationOrDistanceOrResult?: Quaternion | number | HitResult,
+    distanceOrResult?: number | HitResult,
+    layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): boolean {
+    let hitResult: HitResult;
+    let orientation = PhysicsScene._identityQuaternion;
+    let distance = Number.MAX_VALUE;
+    let layerMask = Layer.Everything;
+
+    // Parse parameters based on new overload patterns
+    if (typeof orientationOrDistanceOrResult === "number") {
+      distance = orientationOrDistanceOrResult;
+      if (distanceOrResult?.constructor === HitResult) {
+        hitResult = distanceOrResult;
+      }
+    } else if (orientationOrDistanceOrResult?.constructor === HitResult) {
+      hitResult = orientationOrDistanceOrResult;
+    } else if (orientationOrDistanceOrResult?.constructor === Quaternion) {
+      orientation = orientationOrDistanceOrResult;
+      if (typeof distanceOrResult === "number") {
+        distance = distanceOrResult;
+        if (typeof layerMaskOrResult === "number") {
+          layerMask = layerMaskOrResult;
+        }
+      }
+    }
+
+    if (outHitResult) {
+      hitResult = outHitResult;
+    }
+
     const preFilter = this._createPreFilter(layerMask);
 
     const result = this._nativePhysicsScene.boxCast(
@@ -383,11 +466,11 @@ export class PhysicsScene {
       direction,
       distance,
       preFilter,
-      outHitResult ? this._createHitCallback(outHitResult) : undefined
+      hitResult ? this._createHitCallback(hitResult) : undefined
     );
 
-    if (!result && outHitResult) {
-      this._clearHitResult(outHitResult);
+    if (!result && hitResult) {
+      this._clearHitResult(hitResult);
     }
     return result;
   }
@@ -397,19 +480,88 @@ export class PhysicsScene {
    * @param center - The center of the sphere
    * @param radius - The radius of the sphere
    * @param direction - The direction to sweep along
+   * @returns Returns true if the sphere intersects with any collider, otherwise false
+   */
+  sphereCast(center: Vector3, radius: number, direction: Vector3): boolean;
+
+  /**
+   * Casts a sphere through the Scene and returns true if there is any hit.
+   * @param center - The center of the sphere
+   * @param radius - The radius of the sphere
+   * @param direction - The direction to sweep along
+   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
+   * @returns Returns true if the sphere intersects with any collider, otherwise false
+   */
+  sphereCast(center: Vector3, radius: number, direction: Vector3, outHitResult: HitResult): boolean;
+
+  /**
+   * Casts a sphere through the Scene and returns true if there is any hit.
+   * @param center - The center of the sphere
+   * @param radius - The radius of the sphere
+   * @param direction - The direction to sweep along
+   * @param distance - The max distance to sweep
+   * @returns Returns true if the sphere intersects with any collider, otherwise false
+   */
+  sphereCast(center: Vector3, radius: number, direction: Vector3, distance: number): boolean;
+
+  /**
+   * Casts a sphere through the Scene and returns true if there is any hit.
+   * @param center - The center of the sphere
+   * @param radius - The radius of the sphere
+   * @param direction - The direction to sweep along
+   * @param distance - The max distance to sweep
+   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
+   * @returns Returns true if the sphere intersects with any collider, otherwise false
+   */
+  sphereCast(center: Vector3, radius: number, direction: Vector3, distance: number, outHitResult: HitResult): boolean;
+
+  /**
+   * Casts a sphere through the Scene and returns true if there is any hit.
+   * @param center - The center of the sphere
+   * @param radius - The radius of the sphere
+   * @param direction - The direction to sweep along
    * @param distance - The max distance to sweep. @defaultValue `Number.MAX_VALUE`
    * @param layerMask - Layer mask that is used to selectively ignore Colliders when sweeping. @defaultValue `Layer.Everything`
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
-   * @returns Returns True if the sphere intersects with any collider, otherwise false
+   * @returns Returns true if the sphere intersects with any collider, otherwise false
    */
   sphereCast(
     center: Vector3,
     radius: number,
     direction: Vector3,
-    distance: number = Number.MAX_VALUE,
-    layerMask: Layer = Layer.Everything,
+    distance: number,
+    layerMask: Layer,
+    outHitResult?: HitResult
+  ): boolean;
+
+  sphereCast(
+    center: Vector3,
+    radius: number,
+    direction: Vector3,
+    distanceOrResult?: number | HitResult,
+    layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): boolean {
+    let hitResult: HitResult;
+    let distance = Number.MAX_VALUE;
+    let layerMask = Layer.Everything;
+
+    // Parse parameters based on new overload patterns
+    if (typeof distanceOrResult === "number") {
+      distance = distanceOrResult;
+      if (layerMaskOrResult?.constructor === HitResult) {
+        hitResult = layerMaskOrResult;
+      } else if (typeof layerMaskOrResult === "number") {
+        layerMask = layerMaskOrResult;
+      }
+    } else if (distanceOrResult?.constructor === HitResult) {
+      hitResult = distanceOrResult;
+    }
+
+    if (outHitResult) {
+      hitResult = outHitResult;
+    }
+
     const preFilter = this._createPreFilter(layerMask);
 
     const result = this._nativePhysicsScene.sphereCast(
@@ -418,14 +570,65 @@ export class PhysicsScene {
       direction,
       distance,
       preFilter,
-      outHitResult ? this._createHitCallback(outHitResult) : undefined
+      hitResult ? this._createHitCallback(hitResult) : undefined
     );
 
-    if (!result && outHitResult) {
-      this._clearHitResult(outHitResult);
+    if (!result && hitResult) {
+      this._clearHitResult(hitResult);
     }
     return result;
   }
+
+  /**
+   * Casts a capsule through the Scene and returns true if there is any hit.
+   * @param center - The center of the capsule
+   * @param radius - The radius of the capsule
+   * @param height - The height of the capsule
+   * @param direction - The direction to sweep along
+   * @returns Returns true if the capsule intersects with any collider, otherwise false
+   */
+  capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3): boolean;
+
+  /**
+   * Casts a capsule through the Scene and returns true if there is any hit.
+   * @param center - The center of the capsule
+   * @param radius - The radius of the capsule
+   * @param height - The height of the capsule
+   * @param direction - The direction to sweep along
+   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
+   * @returns Returns true if the capsule intersects with any collider, otherwise false
+   */
+  capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3, outHitResult: HitResult): boolean;
+
+  /**
+   * Casts a capsule through the Scene and returns true if there is any hit.
+   * @param center - The center of the capsule
+   * @param radius - The radius of the capsule
+   * @param height - The height of the capsule
+   * @param direction - The direction to sweep along
+   * @param distance - The max distance to sweep
+   * @returns Returns true if the capsule intersects with any collider, otherwise false
+   */
+  capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3, distance: number): boolean;
+
+  /**
+   * Casts a capsule through the Scene and returns true if there is any hit.
+   * @param center - The center of the capsule
+   * @param radius - The radius of the capsule
+   * @param height - The height of the capsule
+   * @param direction - The direction to sweep along
+   * @param distance - The max distance to sweep
+   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
+   * @returns Returns true if the capsule intersects with any collider, otherwise false
+   */
+  capsuleCast(
+    center: Vector3,
+    radius: number,
+    height: number,
+    direction: Vector3,
+    distance: number,
+    outHitResult: HitResult
+  ): boolean;
 
   /**
    * Casts a capsule through the Scene and returns true if there is any hit.
@@ -444,11 +647,48 @@ export class PhysicsScene {
     radius: number,
     height: number,
     direction: Vector3,
-    orientation: Quaternion = PhysicsScene._identityQuaternion,
-    distance: number = Number.MAX_VALUE,
-    layerMask: Layer = Layer.Everything,
+    orientation: Quaternion,
+    distance: number,
+    layerMask: Layer,
+    outHitResult?: HitResult
+  ): boolean;
+
+  capsuleCast(
+    center: Vector3,
+    radius: number,
+    height: number,
+    direction: Vector3,
+    orientationOrDistanceOrResult?: Quaternion | number | HitResult,
+    distanceOrResult?: number | HitResult,
+    layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): boolean {
+    let hitResult: HitResult;
+    let orientation = PhysicsScene._identityQuaternion;
+    let distance = Number.MAX_VALUE;
+    let layerMask = Layer.Everything;
+
+    if (typeof orientationOrDistanceOrResult === "number") {
+      distance = orientationOrDistanceOrResult;
+      if (distanceOrResult?.constructor === HitResult) {
+        hitResult = distanceOrResult;
+      }
+    } else if (orientationOrDistanceOrResult?.constructor === HitResult) {
+      hitResult = orientationOrDistanceOrResult;
+    } else if (orientationOrDistanceOrResult?.constructor === Quaternion) {
+      orientation = orientationOrDistanceOrResult;
+      if (typeof distanceOrResult === "number") {
+        distance = distanceOrResult;
+        if (typeof layerMaskOrResult === "number") {
+          layerMask = layerMaskOrResult;
+        }
+      }
+    }
+
+    if (outHitResult) {
+      hitResult = outHitResult;
+    }
+
     const preFilter = this._createPreFilter(layerMask);
 
     const result = this._nativePhysicsScene.capsuleCast(
@@ -459,11 +699,11 @@ export class PhysicsScene {
       direction,
       distance,
       preFilter,
-      outHitResult ? this._createHitCallback(outHitResult) : undefined
+      hitResult ? this._createHitCallback(hitResult) : undefined
     );
 
-    if (!result && outHitResult) {
-      this._clearHitResult(outHitResult);
+    if (!result && hitResult) {
+      this._clearHitResult(hitResult);
     }
     return result;
   }
