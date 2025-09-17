@@ -51,7 +51,7 @@ export class ShaderPool {
     });
     depthOnlyPass._renderState = new RenderState();
     depthOnlyPass._renderStateDataMap[RenderStateElementKey.RenderQueueType] = BaseMaterial._depthOnlyRenderQueueProp;
-    
+
     const basePasses = [shadowCasterPass, depthOnlyPass];
 
     const forwardPassTags = {
