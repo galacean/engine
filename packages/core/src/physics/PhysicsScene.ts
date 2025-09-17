@@ -436,14 +436,14 @@ export class PhysicsScene {
     let layerMask = Layer.Everything;
 
     // Parse parameters based on new overload patterns
-    if (orientationOrDistanceOrResult instanceof HitResult) {
-      hitResult = orientationOrDistanceOrResult;
-    } else if (typeof orientationOrDistanceOrResult === "number") {
+    if (typeof orientationOrDistanceOrResult === "number") {
       distance = orientationOrDistanceOrResult;
-      if (distanceOrResult instanceof HitResult) {
+      if (distanceOrResult?.constructor === HitResult) {
         hitResult = distanceOrResult;
       }
-    } else if (orientationOrDistanceOrResult instanceof Quaternion) {
+    } else if (orientationOrDistanceOrResult?.constructor === HitResult) {
+      hitResult = orientationOrDistanceOrResult;
+    } else if (orientationOrDistanceOrResult?.constructor === Quaternion) {
       orientation = orientationOrDistanceOrResult;
       if (typeof distanceOrResult === "number") {
         distance = distanceOrResult;
@@ -547,15 +547,15 @@ export class PhysicsScene {
     let layerMask = Layer.Everything;
 
     // Parse parameters based on new overload patterns
-    if (distanceOrResult instanceof HitResult) {
-      hitResult = distanceOrResult;
-    } else if (typeof distanceOrResult === "number") {
+    if (typeof distanceOrResult === "number") {
       distance = distanceOrResult;
-      if (layerMaskOrResult instanceof HitResult) {
+      if (layerMaskOrResult?.constructor === HitResult) {
         hitResult = layerMaskOrResult;
       } else if (typeof layerMaskOrResult === "number") {
         layerMask = layerMaskOrResult;
       }
+    } else if (distanceOrResult?.constructor === HitResult) {
+      hitResult = distanceOrResult;
     }
 
     if (outHitResult) {
@@ -668,14 +668,14 @@ export class PhysicsScene {
     let distance = Number.MAX_VALUE;
     let layerMask = Layer.Everything;
 
-    if (orientationOrDistanceOrResult instanceof HitResult) {
-      hitResult = orientationOrDistanceOrResult;
-    } else if (typeof orientationOrDistanceOrResult === "number") {
+    if (typeof orientationOrDistanceOrResult === "number") {
       distance = orientationOrDistanceOrResult;
-      if (distanceOrResult instanceof HitResult) {
+      if (distanceOrResult?.constructor === HitResult) {
         hitResult = distanceOrResult;
       }
-    } else if (orientationOrDistanceOrResult instanceof Quaternion) {
+    } else if (orientationOrDistanceOrResult?.constructor === HitResult) {
+      hitResult = orientationOrDistanceOrResult;
+    } else if (orientationOrDistanceOrResult?.constructor === Quaternion) {
       orientation = orientationOrDistanceOrResult;
       if (typeof distanceOrResult === "number") {
         distance = distanceOrResult;
