@@ -1,0 +1,14 @@
+{
+  "raycast": {
+    "title": "Raycasting",
+    "order": 0
+  },
+  "sweep": {
+    "title": "Shape Casting",
+    "order": 1
+  },
+  "overlap": {
+    "title": "Overlap Detection",
+    "order": 2
+  }
+}

@@ -15,8 +15,12 @@
     "title": "Physics Scene",
     "order": 3
   },
+  "query": {
+    "title": "Spatial Queries",
+    "order": 4
+  },
   "debug": {
     "title": "Physics Debug",
-    "order": 4
+    "order": 5
   }
 }
