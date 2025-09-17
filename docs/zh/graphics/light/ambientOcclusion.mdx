@@ -1,0 +1,102 @@
+---
+title: 环境光遮蔽
+order: 7
+---
+
+<Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*1fx8QIhX-MsAAAAAgCAAAAgAegDwAQ/original" />
+
+环境光遮蔽（Ambient Occlusion, AO）是一种增强场景真实感的渲染技术，主要用来增强物体表面在缝隙、凹陷、接触点等区域的遮蔽感，从而让画面更真实。
+
+---
+
+
+## 参数总览
+
+| 参数                  | 说明 |
+|-----------------------|------|
+| **启用 (Enable)**      | 开关控制，是否启用环境光遮蔽效果 |
+| **质量 (Quality)**     | 控制采样数量和算法复杂度，低质量能获得更好的性能，高质量更细腻但更耗性能 |
+| **强度 (Intensity)**   | 控制 AO 的整体强弱，数值越大，暗角越明显 |
+| **对比度 (Power)**     | 调整 AO 暗部的对比度，较高的值会让暗部更黑 |
+| **半径 (Radius)**      | AO 的扩散范围，半径越大，暗角扩散越远 |
+| **偏移 (Bias)**        | 防止自遮蔽伪影，避免物体表面自己发黑 |
+| **双边模糊 (Bilateral Blur)** | 用于去掉噪点，不会糊到轮廓外，值越大效果越模糊 |
+| **最小地平角 (Min Horizon Angle)** | 忽略小角度遮蔽，减少伪影 |
+---
+
+## 参数说明
+**半径 (Radius)** 
+<Callout type="positive">
+全局范围，决定 AO 能蔓延多远
+</Callout>
+- 控制 AO 采样的作用范围，半径太小 AO 只出现在很窄的接触区域，看起来“贴边”，半径太大 AO 会蔓延到本不该暗的地方。 
+
+<Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*5YWVTZYSPuoAAAAAgQAAAAgAegDwAQ/original" />
+
+
+**偏移 (Bias)**
+<Callout type="positive">
+局部范围，只影响像素本身与采样点的关系
+</Callout>
+- 通常是一个很小的正数（建议 0.001 – 0.01）
+- 调整遮蔽的起点，避免像素把自己算进遮蔽里，偏移太小容易出现表面发黑，偏移太大本该有的遮蔽也会被忽略，画面过于干净，如果你的画面太脏建议增大偏移，如果画面遮蔽细节太弱建议减小偏移。
+
+<Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*uQONRpF8Sv4AAAAAgIAAAAgAegDwAQ/original" />
+
+**双边模糊 (Bilateral Blur)**
+- 模糊 AO 图像以去掉噪点，只在同一物体表面模糊，保留物体的边缘清晰度，数值越大 AO 更平滑柔和，同时边缘清晰，数值越小 AO 可能有噪点或条纹。
+
+<Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*lq7WSK7fgjUAAAAAgFAAAAgAegDwAQ/original" />
+
+
+**最小地平角 (Min Horizon Angle)**
+- `0° – 45°`
+- 我们可以把它想象成“遮蔽开始计算的最小角度”，比如接近 `0°` 的时候任何小缝隙都会被算作遮蔽，而 `45°` 则只算比较明显的凹陷。
+
+从`0° – 45°`的演示：
+<Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*zGxmS6vR8RoAAAAAgPAAAAgAegDwAQ/original" />
+
+---
+
+## 使用环境光遮蔽
+
+1. 在 **场景** 中找到 **环境光遮蔽 (Ambient Occlusion)**。 
+2. 点击 **启用（Enable）**。 
+
+<Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*FOuFQ4lKRLEAAAAAgEAAAAgAegDwAQ/original" />
+
+
+- **效果对比**
+
+<Comparison
+  leftSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*LEn7SLWoc4MAAAAAgEAAAAgAegDwAQ/fmt.webp"
+  leftText="AO 关闭"
+  rightSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*AT5IQ7dq3VsAAAAAgEAAAAgAegDwAQ/original"
+  rightText="AO 开启"
+/>
+
+---
+
+## 最佳实践
+1. 为什么 AO 看起来过脏？
+   - AO 半径不要开太大，半径大 + 强度高 = 脏，半径适中 + 双边模糊 = 自然。
+
+2. 适当结合后处理
+   - 搭配 [Bloom](/docs/graphics/postProcess/effects/#泛光（Bloom）)、[色调映射](/docs/graphics/postProcess/effects/#色调映射（Tonemapping）) 可以让 AO 的黑白层次在画面里更自然。
+---
+
+## 使用限制说明
+
+环境光遮蔽（AO）的计算依赖 **深度图**，因此存在以下限制：
+1. **不支持透明物体**  
+   - 透明材质不会写入深度缓冲，所以 AO 无法正确计算透明表面的遮蔽效果。  
+2. **深度精度**  
+   - Galacean 使用 **24-bit**  深度缓冲，不支持 **16-bit**，这是为了避免 **16-bit** 精度不足导致的 “分层感” 和 AO 噪点问题。 
+<Callout info="warning">
+在部分移动端设备上，高精度深度可能增加一定的性能开销，如果出现轻微“脏点”，可适当增加 **偏移（Bias）** 来缓解。  
+</Callout>
+
+
+
+
+
