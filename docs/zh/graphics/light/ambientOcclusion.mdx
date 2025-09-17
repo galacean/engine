@@ -14,14 +14,14 @@ order: 7
 
 | 参数                  | 说明 |
 |-----------------------|------|
-| **启用 (Enable)**      | 开关控制，是否启用环境光遮蔽效果 |
-| **质量 (Quality)**     | 控制采样数量和算法复杂度，低质量能获得更好的性能，高质量更细腻但更耗性能 |
-| **强度 (Intensity)**   | 控制 AO 的整体强弱，数值越大，暗角越明显 |
-| **对比度 (Power)**     | 调整 AO 暗部的对比度，较高的值会让暗部更黑 |
-| **半径 (Radius)**      | AO 的扩散范围，半径越大，暗角扩散越远 |
-| **偏移 (Bias)**        | 防止自遮蔽伪影，避免物体表面自己发黑 |
-| **双边模糊 (Bilateral Blur)** | 用于去掉噪点，不会糊到轮廓外，值越大效果越模糊 |
-| **最小地平角 (Min Horizon Angle)** | 忽略小角度遮蔽，减少伪影 |
+| [启用](/apis/core/#AmbientOcclusion-enabled)  | 是否启用环境光遮蔽效果 |
+| [质量](/apis/core/#AmbientOcclusion-quality)  | 控制采样数量和算法复杂度，低质量能获得更好的性能，高质量更细腻但更耗性能 |
+| [强度](/apis/core/#AmbientOcclusion-intensity) | 控制 AO 的整体强弱，数值越大，暗角越明显 |
+| [对比度](/apis/core/#AmbientOcclusion-power)  | 调整 AO 暗部的对比度，较高的值会让暗部更黑 |
+| [半径](/apis/core/#AmbientOcclusion-radius)     | AO 的扩散范围，半径越大，暗角扩散越远 |
+| [偏移](/apis/core/#AmbientOcclusion-bias)      | 防止自遮蔽伪影，避免物体表面自己发黑 |
+| [双边阈值](/apis/core/#AmbientOcclusion-bilateralThreshold)  | 用于去掉噪点，不会糊到轮廓外，值越大效果越模糊 |
+| [最小地平角](/apis/core/#AmbientOcclusion-minHorizonAngle)| 忽略小角度遮蔽，减少伪影 |
 ---
 
 ## 参数说明
@@ -43,14 +43,14 @@ order: 7
 
 <Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*uQONRpF8Sv4AAAAAgIAAAAgAegDwAQ/original" />
 
-**双边模糊 (Bilateral Blur)**
+**双边阈值 (Bilateral Threshold)**
 - 模糊 AO 图像以去掉噪点，只在同一物体表面模糊，保留物体的边缘清晰度，数值越大 AO 更平滑柔和，同时边缘清晰，数值越小 AO 可能有噪点或条纹。
 
 <Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*lq7WSK7fgjUAAAAAgFAAAAgAegDwAQ/original" />
 
 
 **最小地平角 (Min Horizon Angle)**
-- `0° – 45°`
+- 角度范围为 `0° – 45°`
 - 我们可以把它想象成“遮蔽开始计算的最小角度”，比如接近 `0°` 的时候任何小缝隙都会被算作遮蔽，而 `45°` 则只算比较明显的凹陷。
 
 从`0° – 45°`的演示：

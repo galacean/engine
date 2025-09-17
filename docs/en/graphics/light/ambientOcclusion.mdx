@@ -5,7 +5,7 @@ order: 7
 
 <Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*1fx8QIhX-MsAAAAAgCAAAAgAegDwAQ/original" />
 
-Ambient Occlusion (AO) is a rendering technique that enhances scene realism by simulating how objects occlude ambient light in crevices, recesses, and contact areas, making the scene appear more grounded and natural.
+Ambient Occlusion (AO) is a rendering technique that enhances scene realism by simulating how objects block ambient light in crevices, recesses, and contact points, making the scene look more grounded and natural.
 
 ---
 
@@ -13,14 +13,14 @@ Ambient Occlusion (AO) is a rendering technique that enhances scene realism by s
 
 | Parameter              | Description |
 |------------------------|-------------|
-| **Enable**             | Toggle to enable or disable Ambient Occlusion |
-| **Quality**            | Controls the number of samples and algorithm complexity; lower quality improves performance, higher quality gives finer detail but costs more performance |
-| **Intensity**          | Controls the overall strength of AO; higher values make occlusion darker |
-| **Power**              | Adjusts the contrast of AO shadows; higher values make dark areas darker |
-| **Radius**             | Controls the spread of AO; larger radius makes occlusion spread further |
-| **Bias**               | Prevents self-occlusion artifacts to avoid surfaces darkening themselves |
-| **Bilateral Blur**     | Removes noise without blurring object edges; larger values make AO smoother |
-| **Min Horizon Angle**  | Ignores small angle occlusion to reduce artifacts |
+| [Enable](/apis/core/#AmbientOcclusion-enabled)  | Toggle to enable or disable Ambient Occlusion |
+| [Quality](/apis/core/#AmbientOcclusion-quality) | Controls the number of samples and algorithm complexity. Lower quality improves performance, higher quality gives finer detail but costs more performance |
+| [Intensity](/apis/core/#AmbientOcclusion-intensity) | Controls the overall strength of AO; higher values make occlusion darker |
+| [Power](/apis/core/#AmbientOcclusion-power) | Adjusts the contrast of AO shadows; higher values make dark areas darker |
+| [Radius](/apis/core/#AmbientOcclusion-radius) | Controls the spread range of AO. Larger radius makes occlusion spread farther |
+| [Bias](/apis/core/#AmbientOcclusion-bias) | Prevents self-occlusion artifacts, avoids surfaces darkening themselves |
+| [Bilateral Threshold](/apis/core/#AmbientOcclusion-bilateralThreshold) | Removes noise without blurring object edges; higher values make AO smoother |
+| [Min Horizon Angle](/apis/core/#AmbientOcclusion-minHorizonAngle) | Ignores small angle occlusion to reduce artifacts |
 
 ---
 
@@ -30,7 +30,9 @@ Ambient Occlusion (AO) is a rendering technique that enhances scene realism by s
 <Callout type="positive">
 Global range, determines how far AO can spread
 </Callout>
-- Controls the sampling range of AO. If the radius is too small, AO only appears in narrow contact areas, looking “stuck to the edge.” If the radius is too large, AO will spread into areas that shouldn’t be darkened.  
+- Controls the sampling range of AO.  
+- Too small → AO only appears in narrow contact areas, looking “stuck to the edge.”  
+- Too large → AO spreads into areas that shouldn’t be darkened.  
 
 <Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*5YWVTZYSPuoAAAAAgQAAAAgAegDwAQ/original" />
 
@@ -41,19 +43,20 @@ Global range, determines how far AO can spread
 Local adjustment, only affects the relation between the pixel itself and its sample points
 </Callout>
 - Typically a very small positive number (recommended `0.001 – 0.01`).  
-- Adjusts the starting point of occlusion calculations to prevent a pixel from occluding itself.  
-- Too small → surfaces may darken themselves.  
-- Too large → legitimate occlusion may be skipped, resulting in overly clean visuals.  
-- If your image looks too “dirty,” try increasing Bias. If occlusion looks too weak, try decreasing it.  
+- Adjusts the starting point of occlusion calculation to prevent a pixel from occluding itself.  
+- Too small → surfaces may darken themselves (self-occlusion artifacts).  
+- Too large → valid occlusion may be ignored, making the image too clean.  
+- If the image looks too dirty → increase Bias.  
+- If occlusion looks too weak → decrease Bias.  
 
 <Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*uQONRpF8Sv4AAAAAgIAAAAgAegDwAQ/original" />
 
 ---
 
-**Bilateral Blur**  
-- Blurs the AO texture to remove noise, but only within the same object surface while preserving sharp edges.  
-- Higher values → smoother, softer AO with clean edges.  
-- Lower values → noisier AO with possible banding or stripes.  
+**Bilateral Threshold**  
+- Blurs the AO texture to remove noise, but only within the same object surface while preserving edge sharpness.  
+- Higher values → AO becomes smoother and softer while keeping edges clear.  
+- Lower values → AO may contain noise or banding artifacts.  
 
 <Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*lq7WSK7fgjUAAAAAgFAAAAgAegDwAQ/original" />
 
@@ -61,11 +64,11 @@ Local adjustment, only affects the relation between the pixel itself and its sam
 
 **Min Horizon Angle**  
 - Range: `0° – 45°`  
-- Think of it as the “minimum angle required to start counting occlusion.”  
+- Think of it as the “minimum angle required to start calculating occlusion.”  
   - Near `0°`: even tiny gaps are considered occluded.  
   - At `45°`: only more obvious recesses are considered.  
 
-Example across `0° – 45°`:  
+Demonstration from `0° – 45°`:  
 <Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*zGxmS6vR8RoAAAAAgPAAAAgAegDwAQ/original" />
 
 ---
@@ -96,7 +99,7 @@ Example across `0° – 45°`:
    - Moderate radius + Bilateral Blur = natural.  
 
 2. **Combine with other post-processing**  
-   - Use with [Bloom](/docs/graphics/postProcess/effects/#bloom) and [Tonemapping](/docs/graphics/postProcess/effects/#tonemapping) to make AO shadows blend more naturally into the final image.  
+   - Use with [Bloom](/docs/graphics/postProcess/effects/#bloom) and [Tonemapping](/docs/graphics/postProcess/effects/#tonemapping) to make AO blend more naturally into the final image.  
 
 ---
 
