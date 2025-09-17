@@ -76,7 +76,7 @@ WebGLEngine.create({ canvas: "canvas", graphicDeviceOptions: { webGLMode: WebGLM
   capsuleMaterial.baseColor = new Color(1, 1, 1, 0.5);
   capsule.transform.setPosition(1, 0.9, 0.1);
   capsule.transform.setRotation(30, 30, 0);
-  const capsuleMeshRenderer = box.addComponent(MeshRenderer);
+  const capsuleMeshRenderer = capsule.addComponent(MeshRenderer);
   capsuleMeshRenderer.mesh = PrimitiveMesh.createCapsule(engine);
   capsuleMeshRenderer.setMaterial(capsuleMaterial);
 
