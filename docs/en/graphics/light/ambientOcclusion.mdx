@@ -5,7 +5,7 @@ order: 7
 
 <Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*1fx8QIhX-MsAAAAAgCAAAAgAegDwAQ/original" />
 
-Ambient Occlusion (AO) is a rendering technique that enhances scene realism by simulating how objects block ambient light in crevices, recesses, and contact points, making the scene look more grounded and natural.
+Ambient Occlusion (AO) is a rendering technique that enhances scene realism by simulating how objects block ambient light in crevices, recesses, and contact areas, making the scene appear more grounded and natural.
 
 ---
 
@@ -17,9 +17,9 @@ Ambient Occlusion (AO) is a rendering technique that enhances scene realism by s
 | [Quality](/apis/core/#AmbientOcclusion-quality) | Controls the number of samples and algorithm complexity. Lower quality improves performance, higher quality gives finer detail but costs more performance |
 | [Intensity](/apis/core/#AmbientOcclusion-intensity) | Controls the overall strength of AO; higher values make occlusion darker |
 | [Power](/apis/core/#AmbientOcclusion-power) | Adjusts the contrast of AO shadows; higher values make dark areas darker |
-| [Radius](/apis/core/#AmbientOcclusion-radius) | Controls the spread range of AO. Larger radius makes occlusion spread farther |
-| [Bias](/apis/core/#AmbientOcclusion-bias) | Prevents self-occlusion artifacts, avoids surfaces darkening themselves |
-| [Bilateral Threshold](/apis/core/#AmbientOcclusion-bilateralThreshold) | Removes noise without blurring object edges; higher values make AO smoother |
+| [Radius](/apis/core/#AmbientOcclusion-radius) | Controls the spread range of AO, in meters. Larger radius makes occlusion spread farther. Range: 0.1 m – 10 m |
+| [Bias](/apis/core/#AmbientOcclusion-bias) | Prevents self-occlusion artifacts, avoids surfaces darkening themselves. In meters. Range: 0 m – 0.5 m |
+| [Bilateral Threshold](/apis/core/#AmbientOcclusion-bilateralThreshold) | Removes noise without blurring object edges. Higher values make AO smoother |
 | [Min Horizon Angle](/apis/core/#AmbientOcclusion-minHorizonAngle) | Ignores small angle occlusion to reduce artifacts |
 
 ---
@@ -44,7 +44,7 @@ Local adjustment, only affects the relation between the pixel itself and its sam
 </Callout>
 - Typically a very small positive number (recommended `0.001 – 0.01`).  
 - Adjusts the starting point of occlusion calculation to prevent a pixel from occluding itself.  
-- Too small → surfaces may darken themselves (self-occlusion artifacts).  
+- Too small → surfaces may darken themselves.  
 - Too large → valid occlusion may be ignored, making the image too clean.  
 - If the image looks too dirty → increase Bias.  
 - If occlusion looks too weak → decrease Bias.  
