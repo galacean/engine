@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-shader",
-  "version": "1.6.0-beta.1",
+  "version": "1.6.0-beta.2",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -18,7 +18,7 @@
     "b:types": "tsc"
   },
   "umd": {
-    "name": "Galacean.Shader",
+    "name": "Galacean.ShaderFragment",
     "globals": {
       "@galacean/engine": "Galacean"
     }
