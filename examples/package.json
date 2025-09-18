@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-examples",
-  "version": "1.5.14",
+  "version": "1.6.0-beta.2",
   "private": true,
   "license": "MIT",
   "main": "dist/main.js",
@@ -19,7 +19,7 @@
     "@galacean/engine-math": "workspace:*",
     "@galacean/engine-physics-lite": "workspace:*",
     "@galacean/engine-rhi-webgl": "workspace:*",
-    "@galacean/engine-shader-shaderlab": "workspace:*",
+    "@galacean/engine-shader": "workspace:*",
     "@galacean/engine-shaderlab": "workspace:*",
     "@galacean/engine-toolkit": "latest",
     "@galacean/engine-ui": "workspace:*"

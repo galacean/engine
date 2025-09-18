@@ -131,11 +131,7 @@ export class GLTFTextureParser extends GLTFParser {
         return true;
       }
 
-      if (material.extensions?.KHR_materials_pbrSpecularGlossiness?.diffuseTexture?.index === textureIndex) {
-        return true;
-      }
-
-      if (material.extensions?.KHR_materials_pbrSpecularGlossiness?.specularGlossinessTexture?.index === textureIndex) {
+      if (material.extensions?.KHR_materials_specular?.specularColorTexture?.index === textureIndex) {
         return true;
       }
     });

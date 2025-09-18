@@ -1,5 +1,5 @@
-import { ICharacterController, ICollider, ICollision, IPhysics, IPhysicsScene } from "@galacean/engine-design";
-import { MathUtil, Ray, Vector3 } from "@galacean/engine-math";
+import { ICharacterController, ICollider, ICollision, IPhysicsScene } from "@galacean/engine-design";
+import { MathUtil, Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
 import { Scene } from "../Scene";
@@ -9,12 +9,14 @@ import { CharacterController } from "./CharacterController";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
+import { ColliderShape } from "./shape";
 
 /**
  * A physics scene is a collection of colliders and constraints which can interact.
  */
 export class PhysicsScene {
   private static _collision = new Collision();
+  private static _identityQuaternion = new Quaternion(0, 0, 0, 1);
 
   private _scene: Scene;
   private _restTime: number = 0;
@@ -337,45 +339,459 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
-    const onRaycast = (obj: number) => {
-      const shape = Engine._physicalObjectsMap[obj];
-      if (!shape) {
-        return false;
-      }
-      return shape.collider.entity.layer & layerMask && shape.isSceneQuery;
-    };
-    let outIDX: number;
-    let outDistance: number;
-    let outPosition: Vector3;
-    let outNormal: Vector3;
+    const preFilter = this._createPreFilter(layerMask);
 
-    if (hitResult != undefined) {
-      const result = this._nativePhysicsScene.raycast(ray, distance, onRaycast, (idx, distance, position, normal) => {
-        outIDX = idx;
-        outDistance = distance;
-        outPosition = position;
-        outNormal = normal;
-      });
+    const result = this._nativePhysicsScene.raycast(
+      ray,
+      distance,
+      preFilter,
+      hitResult ? this._createHitCallback(hitResult) : undefined
+    );
 
-      if (result) {
-        const hitShape = Engine._physicalObjectsMap[outIDX];
-        hitResult.entity = hitShape._collider.entity;
-        hitResult.shape = hitShape;
-        hitResult.distance = outDistance;
-        hitResult.point.copyFrom(outPosition);
-        hitResult.normal.copyFrom(outNormal);
-        return true;
-      } else {
-        hitResult.entity = null;
-        hitResult.shape = null;
-        hitResult.distance = 0;
-        hitResult.point.set(0, 0, 0);
-        hitResult.normal.set(0, 0, 0);
-        return false;
-      }
-    } else {
-      return this._nativePhysicsScene.raycast(ray, distance, onRaycast);
+    if (!result && hitResult) {
+      this._clearHitResult(hitResult);
     }
+    return result;
+  }
+
+  /**
+   * Casts a box through the Scene and returns true if there is any hit.
+   * @param center - The center of the box
+   * @param halfExtents - Half the size of the box in each dimension
+   * @param direction - The direction to sweep along
+   * @returns Returns true if the box intersects with any collider, otherwise false
+   */
+  boxCast(center: Vector3, halfExtents: Vector3, direction: Vector3): boolean;
+
+  /**
+   * Casts a box through the Scene and returns true if there is any hit.
+   * @param center - The center of the box
+   * @param halfExtents - Half the size of the box in each dimension
+   * @param direction - The direction to sweep along
+   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
+   * @returns Returns true if the box intersects with any collider, otherwise false
+   */
+  boxCast(center: Vector3, halfExtents: Vector3, direction: Vector3, outHitResult: HitResult): boolean;
+
+  /**
+   * Casts a box through the Scene and returns true if there is any hit.
+   * @param center - The center of the box
+   * @param halfExtents - Half the size of the box in each dimension
+   * @param direction - The direction to sweep along
+   * @param distance - The max distance to sweep
+   * @returns Returns true if the box intersects with any collider, otherwise false
+   */
+  boxCast(center: Vector3, halfExtents: Vector3, direction: Vector3, distance: number): boolean;
+
+  /**
+   * Casts a box through the Scene and returns true if there is any hit.
+   * @param center - The center of the box
+   * @param halfExtents - Half the size of the box in each dimension
+   * @param direction - The direction to sweep along
+   * @param distance - The max distance to sweep
+   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
+   * @returns Returns true if the box intersects with any collider, otherwise false
+   */
+  boxCast(
+    center: Vector3,
+    halfExtents: Vector3,
+    direction: Vector3,
+    distance: number,
+    outHitResult: HitResult
+  ): boolean;
+
+  /**
+   * Casts a box through the Scene and returns true if there is any hit.
+   * @param center - The center of the box
+   * @param halfExtents - Half the size of the box in each dimension
+   * @param direction - The direction to sweep along
+   * @param orientation - The rotation of the box. @defaultValue `Quaternion(0, 0, 0, 1)`
+   * @param distance - The max distance to sweep. @defaultValue `Number.MAX_VALUE`
+   * @param layerMask - Layer mask that is used to selectively ignore Colliders when sweeping. @defaultValue `Layer.Everything`
+   * @param outHitResult - Optional HitResult object to store detailed hit information
+   * @returns Returns true if the box intersects with any collider, otherwise false
+   */
+  boxCast(
+    center: Vector3,
+    halfExtents: Vector3,
+    direction: Vector3,
+    orientation: Quaternion,
+    distance: number,
+    layerMask: Layer,
+    outHitResult?: HitResult
+  ): boolean;
+
+  boxCast(
+    center: Vector3,
+    halfExtents: Vector3,
+    direction: Vector3,
+    orientationOrDistanceOrResult?: Quaternion | number | HitResult,
+    distanceOrResult?: number | HitResult,
+    layerMaskOrResult?: Layer | HitResult,
+    outHitResult?: HitResult
+  ): boolean {
+    let hitResult: HitResult;
+    let orientation = PhysicsScene._identityQuaternion;
+    let distance = Number.MAX_VALUE;
+    let layerMask = Layer.Everything;
+
+    // Parse parameters based on new overload patterns
+    if (typeof orientationOrDistanceOrResult === "number") {
+      distance = orientationOrDistanceOrResult;
+      if (distanceOrResult?.constructor === HitResult) {
+        hitResult = distanceOrResult;
+      }
+    } else if (orientationOrDistanceOrResult?.constructor === HitResult) {
+      hitResult = orientationOrDistanceOrResult;
+    } else if (orientationOrDistanceOrResult?.constructor === Quaternion) {
+      orientation = orientationOrDistanceOrResult;
+      if (typeof distanceOrResult === "number") {
+        distance = distanceOrResult;
+        if (typeof layerMaskOrResult === "number") {
+          layerMask = layerMaskOrResult;
+        }
+      }
+    }
+
+    if (outHitResult) {
+      hitResult = outHitResult;
+    }
+
+    const preFilter = this._createPreFilter(layerMask);
+
+    const result = this._nativePhysicsScene.boxCast(
+      center,
+      orientation,
+      halfExtents,
+      direction,
+      distance,
+      preFilter,
+      hitResult ? this._createHitCallback(hitResult) : undefined
+    );
+
+    if (!result && hitResult) {
+      this._clearHitResult(hitResult);
+    }
+    return result;
+  }
+
+  /**
+   * Casts a sphere through the Scene and returns true if there is any hit.
+   * @param center - The center of the sphere
+   * @param radius - The radius of the sphere
+   * @param direction - The direction to sweep along
+   * @returns Returns true if the sphere intersects with any collider, otherwise false
+   */
+  sphereCast(center: Vector3, radius: number, direction: Vector3): boolean;
+
+  /**
+   * Casts a sphere through the Scene and returns true if there is any hit.
+   * @param center - The center of the sphere
+   * @param radius - The radius of the sphere
+   * @param direction - The direction to sweep along
+   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
+   * @returns Returns true if the sphere intersects with any collider, otherwise false
+   */
+  sphereCast(center: Vector3, radius: number, direction: Vector3, outHitResult: HitResult): boolean;
+
+  /**
+   * Casts a sphere through the Scene and returns true if there is any hit.
+   * @param center - The center of the sphere
+   * @param radius - The radius of the sphere
+   * @param direction - The direction to sweep along
+   * @param distance - The max distance to sweep
+   * @returns Returns true if the sphere intersects with any collider, otherwise false
+   */
+  sphereCast(center: Vector3, radius: number, direction: Vector3, distance: number): boolean;
+
+  /**
+   * Casts a sphere through the Scene and returns true if there is any hit.
+   * @param center - The center of the sphere
+   * @param radius - The radius of the sphere
+   * @param direction - The direction to sweep along
+   * @param distance - The max distance to sweep
+   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
+   * @returns Returns true if the sphere intersects with any collider, otherwise false
+   */
+  sphereCast(center: Vector3, radius: number, direction: Vector3, distance: number, outHitResult: HitResult): boolean;
+
+  /**
+   * Casts a sphere through the Scene and returns true if there is any hit.
+   * @param center - The center of the sphere
+   * @param radius - The radius of the sphere
+   * @param direction - The direction to sweep along
+   * @param distance - The max distance to sweep. @defaultValue `Number.MAX_VALUE`
+   * @param layerMask - Layer mask that is used to selectively ignore Colliders when sweeping. @defaultValue `Layer.Everything`
+   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
+   * @returns Returns true if the sphere intersects with any collider, otherwise false
+   */
+  sphereCast(
+    center: Vector3,
+    radius: number,
+    direction: Vector3,
+    distance: number,
+    layerMask: Layer,
+    outHitResult?: HitResult
+  ): boolean;
+
+  sphereCast(
+    center: Vector3,
+    radius: number,
+    direction: Vector3,
+    distanceOrResult?: number | HitResult,
+    layerMaskOrResult?: Layer | HitResult,
+    outHitResult?: HitResult
+  ): boolean {
+    let hitResult: HitResult;
+    let distance = Number.MAX_VALUE;
+    let layerMask = Layer.Everything;
+
+    // Parse parameters based on new overload patterns
+    if (typeof distanceOrResult === "number") {
+      distance = distanceOrResult;
+      if (layerMaskOrResult?.constructor === HitResult) {
+        hitResult = layerMaskOrResult;
+      } else if (typeof layerMaskOrResult === "number") {
+        layerMask = layerMaskOrResult;
+      }
+    } else if (distanceOrResult?.constructor === HitResult) {
+      hitResult = distanceOrResult;
+    }
+
+    if (outHitResult) {
+      hitResult = outHitResult;
+    }
+
+    const preFilter = this._createPreFilter(layerMask);
+
+    const result = this._nativePhysicsScene.sphereCast(
+      center,
+      radius,
+      direction,
+      distance,
+      preFilter,
+      hitResult ? this._createHitCallback(hitResult) : undefined
+    );
+
+    if (!result && hitResult) {
+      this._clearHitResult(hitResult);
+    }
+    return result;
+  }
+
+  /**
+   * Casts a capsule through the Scene and returns true if there is any hit.
+   * @param center - The center of the capsule
+   * @param radius - The radius of the capsule
+   * @param height - The height of the capsule
+   * @param direction - The direction to sweep along
+   * @returns Returns true if the capsule intersects with any collider, otherwise false
+   */
+  capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3): boolean;
+
+  /**
+   * Casts a capsule through the Scene and returns true if there is any hit.
+   * @param center - The center of the capsule
+   * @param radius - The radius of the capsule
+   * @param height - The height of the capsule
+   * @param direction - The direction to sweep along
+   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
+   * @returns Returns true if the capsule intersects with any collider, otherwise false
+   */
+  capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3, outHitResult: HitResult): boolean;
+
+  /**
+   * Casts a capsule through the Scene and returns true if there is any hit.
+   * @param center - The center of the capsule
+   * @param radius - The radius of the capsule
+   * @param height - The height of the capsule
+   * @param direction - The direction to sweep along
+   * @param distance - The max distance to sweep
+   * @returns Returns true if the capsule intersects with any collider, otherwise false
+   */
+  capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3, distance: number): boolean;
+
+  /**
+   * Casts a capsule through the Scene and returns true if there is any hit.
+   * @param center - The center of the capsule
+   * @param radius - The radius of the capsule
+   * @param height - The height of the capsule
+   * @param direction - The direction to sweep along
+   * @param distance - The max distance to sweep
+   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
+   * @returns Returns true if the capsule intersects with any collider, otherwise false
+   */
+  capsuleCast(
+    center: Vector3,
+    radius: number,
+    height: number,
+    direction: Vector3,
+    distance: number,
+    outHitResult: HitResult
+  ): boolean;
+
+  /**
+   * Casts a capsule through the Scene and returns true if there is any hit.
+   * @param center - The center of the capsule
+   * @param radius - The radius of the capsule
+   * @param height - The height of the capsule
+   * @param direction - The direction to sweep along
+   * @param orientation - The rotation of the capsule. @defaultValue `Quaternion(0, 0, 0, 1)`
+   * @param distance - The max distance to sweep. @defaultValue `Number.MAX_VALUE`
+   * @param layerMask - Layer mask that is used to selectively ignore Colliders when sweeping. @defaultValue `Layer.Everything`
+   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
+   * @returns Returns True if the capsule intersects with any collider, otherwise false
+   */
+  capsuleCast(
+    center: Vector3,
+    radius: number,
+    height: number,
+    direction: Vector3,
+    orientation: Quaternion,
+    distance: number,
+    layerMask: Layer,
+    outHitResult?: HitResult
+  ): boolean;
+
+  capsuleCast(
+    center: Vector3,
+    radius: number,
+    height: number,
+    direction: Vector3,
+    orientationOrDistanceOrResult?: Quaternion | number | HitResult,
+    distanceOrResult?: number | HitResult,
+    layerMaskOrResult?: Layer | HitResult,
+    outHitResult?: HitResult
+  ): boolean {
+    let hitResult: HitResult;
+    let orientation = PhysicsScene._identityQuaternion;
+    let distance = Number.MAX_VALUE;
+    let layerMask = Layer.Everything;
+
+    if (typeof orientationOrDistanceOrResult === "number") {
+      distance = orientationOrDistanceOrResult;
+      if (distanceOrResult?.constructor === HitResult) {
+        hitResult = distanceOrResult;
+      }
+    } else if (orientationOrDistanceOrResult?.constructor === HitResult) {
+      hitResult = orientationOrDistanceOrResult;
+    } else if (orientationOrDistanceOrResult?.constructor === Quaternion) {
+      orientation = orientationOrDistanceOrResult;
+      if (typeof distanceOrResult === "number") {
+        distance = distanceOrResult;
+        if (typeof layerMaskOrResult === "number") {
+          layerMask = layerMaskOrResult;
+        }
+      }
+    }
+
+    if (outHitResult) {
+      hitResult = outHitResult;
+    }
+
+    const preFilter = this._createPreFilter(layerMask);
+
+    const result = this._nativePhysicsScene.capsuleCast(
+      center,
+      radius,
+      height,
+      orientation,
+      direction,
+      distance,
+      preFilter,
+      hitResult ? this._createHitCallback(hitResult) : undefined
+    );
+
+    if (!result && hitResult) {
+      this._clearHitResult(hitResult);
+    }
+    return result;
+  }
+
+  /**
+   * Get all colliders that overlap with a box in the scene.
+   * @param center - The center of the box
+   * @param halfExtents - Half the size of the box in each dimension
+   * @param orientation - The rotation of the box. @defaultValue `Quaternion(0, 0, 0, 1)`
+   * @param layerMask - Layer mask that is used to selectively filter colliders. @defaultValue `Layer.Everything`
+   * @param shapes - Array to store overlapping collider shapes. @defaultValue `[]`
+   * @returns The collider shapes overlapping with the box
+   */
+  overlapBoxAll(
+    center: Vector3,
+    halfExtents: Vector3,
+    orientation: Quaternion = PhysicsScene._identityQuaternion,
+    layerMask: Layer = Layer.Everything,
+    shapes: ColliderShape[] = []
+  ): ColliderShape[] {
+    const ids = this._nativePhysicsScene.overlapBoxAll(
+      center,
+      orientation,
+      halfExtents,
+      this._createPreFilter(layerMask)
+    );
+
+    shapes.length = 0;
+    for (let i = 0, n = ids.length; i < n; i++) {
+      shapes.push(Engine._physicalObjectsMap[ids[i]]);
+    }
+    return shapes;
+  }
+
+  /**
+   * Get all colliders that overlap with a sphere in the scene.
+   * @param center - The center of the sphere
+   * @param radius - The radius of the sphere
+   * @param layerMask - Layer mask that is used to selectively filter colliders. @defaultValue `Layer.Everything`
+   * @param shapes - Array to store overlapping collider shapes. @defaultValue `[]`
+   * @returns The collider shapes overlapping with the sphere
+   */
+  overlapSphereAll(
+    center: Vector3,
+    radius: number,
+    layerMask: Layer = Layer.Everything,
+    shapes: ColliderShape[] = []
+  ): ColliderShape[] {
+    const ids = this._nativePhysicsScene.overlapSphereAll(center, radius, this._createPreFilter(layerMask));
+
+    shapes.length = 0;
+    for (let i = 0; i < ids.length; i++) {
+      shapes.push(Engine._physicalObjectsMap[ids[i]]);
+    }
+    return shapes;
+  }
+
+  /**
+   * Get all colliders that overlap with a capsule in the scene.
+   * @param center - The center of the capsule
+   * @param radius - The radius of the capsule
+   * @param height - The height of the capsule
+   * @param orientation - The rotation of the capsule. @defaultValue `Quaternion(0, 0, 0, 1)`
+   * @param layerMask - Layer mask that is used to selectively filter colliders. @defaultValue `Layer.Everything`
+   * @param shapes - Array to store overlapping collider shapes. @defaultValue `[]`
+   * @returns The collider shapes overlapping with the capsule
+   */
+  overlapCapsuleAll(
+    center: Vector3,
+    radius: number,
+    height: number,
+    orientation: Quaternion = PhysicsScene._identityQuaternion,
+    layerMask: Layer = Layer.Everything,
+    shapes: ColliderShape[] = []
+  ): ColliderShape[] {
+    const ids = this._nativePhysicsScene.overlapCapsuleAll(
+      center,
+      radius,
+      height,
+      orientation,
+      this._createPreFilter(layerMask)
+    );
+
+    shapes.length = 0;
+    for (let i = 0; i < ids.length; i++) {
+      shapes.push(Engine._physicalObjectsMap[ids[i]]);
+    }
+    return shapes;
   }
 
   /**
@@ -477,11 +893,41 @@ export class PhysicsScene {
   /**
    * @internal
    */
-  _destroy() {
+  _destroy(): void {
     this._nativePhysicsScene?.destroy();
   }
 
   private _setGravity(): void {
     this._nativePhysicsScene.setGravity(this._gravity);
+  }
+
+  private _createPreFilter(mask: Layer): (obj: number) => boolean {
+    return (obj: number) => {
+      const shape = Engine._physicalObjectsMap[obj];
+      if (!shape) {
+        return false;
+      }
+      return shape.collider.entity.layer & mask && shape.isSceneQuery;
+    };
+  }
+
+  private _createHitCallback(
+    outHitResult: HitResult
+  ): (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void {
+    return (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => {
+      outHitResult.entity = Engine._physicalObjectsMap[shapeUniqueID].collider.entity;
+      outHitResult.shape = Engine._physicalObjectsMap[shapeUniqueID];
+      outHitResult.distance = distance;
+      outHitResult.point.copyFrom(position);
+      outHitResult.normal.copyFrom(normal);
+    };
+  }
+
+  private _clearHitResult(hitResult: HitResult): void {
+    hitResult.entity = null;
+    hitResult.shape = null;
+    hitResult.distance = 0;
+    hitResult.point.set(0, 0, 0);
+    hitResult.normal.set(0, 0, 0);
   }
 }

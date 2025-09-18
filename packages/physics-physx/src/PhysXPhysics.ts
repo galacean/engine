@@ -62,10 +62,10 @@ export class PhysXPhysics implements IPhysics {
     this._runTimeMode = runtimeMode;
     this._wasmModeUrl =
       runtimeUrls?.wasmModeUrl ??
-      "https://mdn.alipayobjects.com/rms/afts/file/A*_sSyR5oWKjkAAAAAAAAAAAAAARQnAQ/physx.release.js";
+      "https://mdn.alipayobjects.com/rms/afts/file/A*m04iQojeKRgAAAAASWAAAAgAehQnAQ/physx.release.js";
     this._downgradeModeUrl =
       runtimeUrls?.javaScriptModeUrl ??
-      "https://mdn.alipayobjects.com/rms/afts/file/A*3frOSZNS8RwAAAAAAAAAAAAAARQnAQ/physx.release.downgrade.js";
+      "https://mdn.alipayobjects.com/rms/afts/file/A*13gEToqpJWcAAAAAgEAAAAgAehQnAQ/physx.release.downgrade.js";
   }
 
   /**
@@ -91,9 +91,9 @@ export class PhysXPhysics implements IPhysics {
         const supported = (() => {
           try {
             if (typeof WebAssembly === "object" && typeof WebAssembly.instantiate === "function") {
-              const module = new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
-              if (module instanceof WebAssembly.Module)
-                return new WebAssembly.Instance(module) instanceof WebAssembly.Instance;
+              const wasmModule = new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
+              if (wasmModule instanceof WebAssembly.Module)
+                return new WebAssembly.Instance(wasmModule) instanceof WebAssembly.Instance;
             }
           } catch (e) {}
           return false;
@@ -135,7 +135,7 @@ export class PhysXPhysics implements IPhysics {
   /**
    * Destroy PhysXPhysics.
    */
-  public destroy(): void {
+  destroy(): void {
     this._physX.PxCloseExtensions();
     this._pxPhysics.release();
     this._pxFoundation.release();
