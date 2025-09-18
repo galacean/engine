@@ -203,8 +203,8 @@ export class BasicRenderPipeline {
 
     // Scalable ambient obscurance pass
     // Before opaque pass so materials can sample ambient occlusion in BRDF
-    if (ambientOcclusionEnabled && supportDepthTexture) {
-      const saoPass = this._saoPass;
+    const saoPass = this._saoPass;
+    if (ambientOcclusionEnabled && supportDepthTexture && saoPass.isSupported) {
       saoPass.onConfig(camera, this._depthOnlyPass.renderTarget);
       saoPass.onRender(context);
     } else {
