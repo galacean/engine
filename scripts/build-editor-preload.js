@@ -88,7 +88,10 @@ if (useNpmArg) {
   const tempPackageJson = {
     name: "temp-install",
     private: true,
-    dependencies: {}
+    dependencies: {
+      // Set a baseline engine version(>=1.x.0-0)
+      "@galacean/engine": ">=" + ecosystemVersion.split("-")[1] + ".0-0"
+    }
   };
 
   // Collect all package names from second-party configs
@@ -101,83 +104,15 @@ if (useNpmArg) {
       tempPackageJson.dependencies[pkg.name] = ecosystemVersion;
     }
   });
-  // Set a baseline engine version(>=1.x.0-0)
-  tempPackageJson.dependencies["@galacean/engine"] = ">=" + ecosystemVersion.split("-")[1] + ".0-0";
 
   fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify(tempPackageJson, null, 2));
 
-  // Debug: Show what we're trying to install
-  console.log("\nDebugging: Created temp package.json with dependencies:");
-  console.log(JSON.stringify(tempPackageJson, null, 2));
-  console.log(`\nTemp directory: ${tempDir}`);
-  console.log(`Working directory exists: ${fs.existsSync(tempDir)}`);
-  
-  // Check if pnpm-lock.yaml or package-lock.json exists
-  const pnpmLockPath = path.join(tempDir, "pnpm-lock.yaml");
-  const npmLockPath = path.join(tempDir, "package-lock.json");
-  console.log(`pnpm-lock.yaml exists before install: ${fs.existsSync(pnpmLockPath)}`);
-  console.log(`package-lock.json exists before install: ${fs.existsSync(npmLockPath)}`);
-
   // Install packages
-  console.log("\nAttempting to install packages...");
   try {
-    console.log("Running: pnpm install --ignore-workspace");
-    const result = execSync("pnpm install --ignore-workspace", { 
-      stdio: ["pipe", "pipe", "pipe"], 
-      cwd: tempDir,
-      encoding: 'utf8'
-    });
-    
-    console.log("pnpm install stdout:");
-    console.log(result);
-    
-    console.log("\nChecking post-install state:");
-    console.log(`pnpm-lock.yaml exists after install: ${fs.existsSync(pnpmLockPath)}`);
-    console.log(`package-lock.json exists after install: ${fs.existsSync(npmLockPath)}`);
-    
-    // List all files in temp directory
-    console.log("\nAll files in temp directory:");
-    const tempContents = fs.readdirSync(tempDir);
-    tempContents.forEach(item => {
-      const itemPath = path.join(tempDir, item);
-      const stats = fs.statSync(itemPath);
-      console.log(`  ${stats.isDirectory() ? '[DIR]' : '[FILE]'} ${item}`);
-    });
-    
-    // Debug: List node_modules contents
-    console.log("\nDebugging: temp-install node_modules contents:");
-    try {
-      const nodeModulesPath = path.join(tempDir, "node_modules");
-      if (fs.existsSync(nodeModulesPath)) {
-        const contents = fs.readdirSync(nodeModulesPath);
-        console.log(`Found ${contents.length} items in node_modules:`);
-        contents.forEach(item => {
-          const itemPath = path.join(nodeModulesPath, item);
-          const stats = fs.statSync(itemPath);
-          console.log(`  ${stats.isDirectory() ? '[DIR]' : '[FILE]'} ${item}`);
-          
-          // For packages, also show their internal structure
-          if (stats.isDirectory() && !item.startsWith('.') && !item.startsWith('@')) {
-            try {
-              const packageContents = fs.readdirSync(itemPath);
-              console.log(`    Contents: ${packageContents.slice(0, 5).join(', ')}${packageContents.length > 5 ? '...' : ''}`);
-            } catch (e) {
-              // Ignore errors reading package contents
-            }
-          }
-        });
-      } else {
-        console.log(`  node_modules directory not found at ${nodeModulesPath}`);
-      }
-    } catch (debugError) {
-      console.warn(`  Warning: Failed to list node_modules contents:`, debugError.message);
-    }
-    console.log(''); // Empty line for readability
+    // 父目录有 pnpm-workspace.yaml，避免冲突加 --ignore-workspace
+    // 若删除此行，temp-install 目录下不会生成 node_modules
+    execSync("pnpm install --ignore-workspace", { stdio: "inherit", cwd: tempDir });
   } catch (error) {
-    console.error("pnpm install failed!");
-    console.error("Error details:", error.message);
-    if (error.stdout) console.error("stdout:", error.stdout.toString());
-    if (error.stderr) console.error("stderr:", error.stderr.toString());
     console.error("Failed to install second-party packages:", error);
     process.exit(1);
   }
