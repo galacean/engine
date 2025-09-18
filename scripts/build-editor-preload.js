@@ -101,6 +101,8 @@ if (useNpmArg) {
       tempPackageJson.dependencies[pkg.name] = ecosystemVersion;
     }
   });
+  // Set a baseline engine version(>=1.x.0-0)
+  tempPackageJson.dependencies["@galacean/engine"] = ">=" + ecosystemVersion.split("-")[1] + ".0-0";
 
   fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify(tempPackageJson, null, 2));
 
