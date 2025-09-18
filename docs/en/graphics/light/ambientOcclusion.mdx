@@ -14,9 +14,9 @@ Ambient Occlusion (AO) is a rendering technique that enhances scene realism by s
 | Parameter              | Description |
 |------------------------|-------------|
 | [Enable](/apis/core/#AmbientOcclusion-enabled)  | Toggle to enable or disable Ambient Occlusion |
-| [Quality](/apis/core/#AmbientOcclusion-quality) |Control the quality of AO. Lower quality improves performance, higher quality gives finer detail but costs more performance |
-| [Intensity](/apis/core/#AmbientOcclusion-intensity) | Controls the overall strength of AO; higher values make occlusion darker |
-| [Power](/apis/core/#AmbientOcclusion-power) | Adjusts the contrast of AO shadows; higher values make AO darker |
+| [Quality](/apis/core/#AmbientOcclusion-quality) | Controls the quality of AO. Lower quality improves performance, higher quality gives finer detail but costs more performance |
+| [Intensity](/apis/core/#AmbientOcclusion-intensity) | Controls the overall strength of AO; higher values make AO more pronounced |
+| [Power](/apis/core/#AmbientOcclusion-power) | Adjusts the contrast of AO shadows; higher values make dark areas darker |
 | [Radius](/apis/core/#AmbientOcclusion-radius) | Controls the spread range of AO, in meters. Larger radius makes occlusion spread farther. Range: 0.1 m – 10 m |
 | [Bias](/apis/core/#AmbientOcclusion-bias) | Prevents self-occlusion artifacts, avoids surfaces darkening themselves. In meters. Range: 0 – 0.5 m |
 | [Bilateral Threshold](/apis/core/#AmbientOcclusion-bilateralThreshold) | Removes noise without blurring object edges. Higher values make AO smoother |
@@ -107,14 +107,4 @@ Demonstration from `0° – 45°`:
 
 Ambient Occlusion relies on the **depth buffer**, so it has the following limitations:
 
-1. **No support for transparent objects**  
-   - Transparent materials do not write to the depth buffer, so AO cannot be applied correctly to transparent surfaces.  
-
-2. **Depth precision**  
-   - Galacean uses a **24-bit depth buffer** and does **not support 16-bit depth**.  
-   - This avoids banding and AO noise caused by insufficient precision in 16-bit depth.  
-
-<Callout info="warning">
-On some mobile devices, high-precision depth may increase performance cost.  
-If you notice subtle “dirty spots,” try increasing **Bias** to mitigate the issue.  
-</Callout>
+- **No support for transparent objects**: Transparent materials do not write to the depth buffer, so AO cannot be applied correctly to transparent surfaces.  
