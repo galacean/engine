@@ -1,0 +1,277 @@
+---
+title: 高级特性与代码复用
+---
+
+本教程通过骨骼动画的一个简单Demo，你将学会：
+- `#include` 指令复用代码片段
+- 引擎内置和自定义代码片段的注册
+- 引擎内置变量的使用
+- 引擎内置函数的调用
+- 调试和开发技巧
+
+
+
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_dmxymu/afts/img/A*YPhHTr6_96AAAAAAQ-AAAAgAeuuHAQ/original"
+/>
+
+
+## #include 指令
+
+`#include` 指令允许引用外部代码片段，实现代码复用：
+
+```glsl
+#include "Common.glsl"      // 通用函数
+#include "Skin.glsl"        // 骨骼动画
+```
+
+**作用**：
+- 避免代码重复
+- 模块化开发
+- 复用引擎优化过的代码
+
+## 引擎内置代码片段
+
+Galacean 引擎提供了丰富的内置代码片段：
+
+<Callout type="info">
+编辑器默认注册了这些片段，前往 [Shader API](/docs/graphics/material/shaderAPI) 了解更多 API
+</Callout>
+
+### 常用内置片段
+
+#### Common.glsl - 通用函数
+```glsl
+#include "Common.glsl"
+
+// 提供常用的数学函数和常量
+float value = pow2(0.5);    // 平方函数
+vec4 linearColor = sRGBToLinear(color); // sRGB 转线性
+```
+
+#### Skin.glsl - 骨骼动画
+```glsl
+#include "Skin.glsl"
+
+// 提供骨骼动画相关函数
+mat4 skinMatrix = getSkinMatrix(attr);
+```
+
+
+## 骨骼动画着色器
+
+骨骼动画需要处理顶点的骨骼变换：
+
+### 顶点数据结构
+```glsl
+ struct Attributes {
+    vec4 POSITION;
+    vec2 TEXCOORD_0;
+    #ifdef RENDERER_HAS_SKIN
+      vec4 JOINTS_0;    // 骨骼索引
+      vec4 WEIGHTS_0;   // 骨骼权重
+    #endif
+};
+```
+
+### 骨骼变换计算
+```glsl
+#include "Skin.glsl"
+
+Varyings vert(Attributes Attribute) {
+  Varyings output;
+  
+  // 使用引擎内置函数进行骨骼变换
+  // getSkinMatrix 函数来自 Skin.glsl
+  mat4 skinMatrix = getSkinMatrix(attr);
+  
+  // 应用骨骼变换
+  vec4 skinnedPosition = skinMatrix * attr.POSITION;
+  
+  // MVP 变换
+  gl_Position = renderer_MVPMat * skinnedPosition;
+  
+  output.uv = attr.TEXCOORD_0;
+  return output;
+}
+```
+
+## 完整骨骼动画着色器
+
+```glsl showLineNumbers
+Shader "Tutorial/05-SkinnedUnlit" {
+  SubShader "Default" {
+    Pass "Forward" {
+      // 引擎内置变量和矩阵
+      #include "Transform.glsl"
+      
+      // 材质属性
+      vec4 material_BaseColor;
+      sampler2D material_BaseTexture;
+      
+      struct Attributes {
+        vec4 POSITION;
+        vec2 TEXCOORD_0;
+        #ifdef RENDERER_HAS_SKIN
+          vec4 JOINTS_0;    // 骨骼索引
+          vec4 WEIGHTS_0;   // 骨骼权重
+        #endif
+      };
+      
+      struct Varyings {
+        vec2 uv;
+      };
+      
+      // 引用引擎内置的骨骼动画代码片段
+      #include "Skin.glsl"
+
+      VertexShader = vert;
+      FragmentShader = frag;
+      
+      Varyings vert(Attributes attr) {
+        Varyings output;
+        
+        // 使用引擎内置函数进行骨骼变换
+        // getSkinMatrix 函数来自 Skin.glsl
+        mat4 skinMatrix = getSkinMatrix(attr);
+        
+        // 应用骨骼变换
+        vec4 skinnedPosition = skinMatrix * attr.POSITION;
+        
+        // MVP 变换
+        gl_Position = renderer_MVPMat * skinnedPosition;
+        
+        // 传递UV坐标
+        output.uv = attr.TEXCOORD_0;
+        
+        return output;
+      }
+      
+      void frag(Varyings varying) {
+        // 简单的 Unlit 着色
+        vec4 texColor = texture2D(material_BaseTexture, varying.uv);
+        vec4 finalColor = texColor * material_BaseColor;
+        
+        gl_FragColor = finalColor;
+      }
+    }
+  }
+}
+```
+
+
+## 自定义代码片段
+
+如果内置代码片段不能满足需求，你也可以创建自己的代码片段：
+
+### 注册自定义片段
+```typescript
+import { ShaderFactory } from '@galacean/engine';
+
+const customShaderCode = `
+vec3 customLighting(vec3 normal, vec3 lightDir) {
+  float NdotL = max(dot(normal, lightDir), 0.0);
+  return vec3(NdotL);
+}
+`;
+
+ShaderFactory.registerInclude('CustomLighting', customShaderCode);
+```
+
+### 使用自定义片段
+```glsl
+#include "CustomLighting"
+
+void frag() {
+  vec3 lighting = customLighting(normal, lightDir);
+  gl_FragColor = vec4(lighting, 1.0);
+}
+```
+
+## 引擎内置变量系统
+
+引擎提供了丰富的内置变量，直接声明使用即可，比如变换矩阵相关变量：
+```glsl
+mat4 renderer_LocalMat;    // 本地变换矩阵
+mat4 renderer_ModelMat;    // 模型矩阵
+mat4 renderer_MVMat;       // 模型视图矩阵
+mat4 renderer_MVPMat;      // MVP矩阵
+mat4 renderer_NormalMat;   // 法线变换矩阵
+```
+
+<Callout type="info">
+前往 [Shader 内置变量](/docs/graphics/material/variables) 了解更多可用变量
+</Callout>
+
+
+## 调试和开发技巧
+
+### 1. 渐进式开发
+```glsl
+// 先实现基础功能
+void frag() {
+  gl_FragColor = material_BaseColor;
+}
+
+// 再逐步添加复杂功能
+void frag() {
+  vec4 color = material_BaseColor;
+  
+  #ifdef USE_TEXTURE
+    color *= texture2D(material_BaseTexture, uv);
+  #endif
+  
+  #ifdef USE_LIGHTING
+    color.rgb *= lighting;
+  #endif
+  
+  gl_FragColor = color;
+}
+```
+
+### 2. 使用调试颜色
+```glsl
+// 调试UV坐标
+gl_FragColor = vec4(uv, 0.0, 1.0);
+
+// 调试法线
+gl_FragColor = vec4(normal * 0.5 + 0.5, 1.0);
+```
+
+
+### 3. 利用宏定义的优势
+shaderlab 编译时会删除没有用到的代码块，因此合理使用宏定义将显著提升性能。
+
+```glsl
+// 不使用宏：每个像素都要判断
+void frag() {
+  vec4 color = material_BaseColor;
+  
+  if (useTexture > 0.5) {  // 运行时判断，性能差
+    color *= texture2D(material_BaseTexture, uv);
+  }
+  
+  gl_FragColor = color;
+}
+
+// 使用宏：编译时若没有命中宏条件，会直接删除该代码块，性能好
+void frag() {
+  vec4 color = material_BaseColor;
+  
+  #ifdef USE_TEXTURE  // 编译时决定，性能好
+    color *= texture2D(material_BaseTexture, uv);
+  #endif
+  
+  gl_FragColor = color;
+}
+```
+
+## 运行效果
+
+这个着色器会：
+1. 展示骨骼相关的结构体声明
+2. 使用引擎内置的 `Skin.glsl` 代码片段实现骨骼动画的播放
+3. 实现高效的骨骼动画渲染
+
+前往 [游乐场](/examples/shaderlab-05-advance)
