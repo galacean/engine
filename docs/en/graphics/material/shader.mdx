@@ -1,0 +1,456 @@
+---
+title: Shader Introduction
+---
+
+ShaderLab is a proprietary shader description language developed by Galacean. It provides a complete syntax for defining the structure, properties, rendering states, and shader code of a shader. With ShaderLab, developers can create a wide range of visual effects, from simple to complex.
+
+## What is ShaderLab?
+
+ShaderLab is a declarative shader description language that organizes the various components of a shader into a modular structure. Unlike traditional GLSL/HLSL, ShaderLab not only includes shader code but also encompasses complete information such as material property definitions, UI configuration, and rendering state settings. ### Problems Solved
+
+The `ShaderLab` framework primarily addresses the following pain points in traditional shader development:
+
+- **Code Duplication**: Writing vertex and fragment shaders requires two separate files, and varying and uniform variables need to be declared twice.
+- **Script Assembly**: Multiple SubShaders and Passes require script assembly.
+- **State Separation**: RenderState cannot be set directly in the shader; it needs to be modified in the script.
+- **Tag Management**: Tags need to be assembled through scripts.
+- **Code Clutter**: Attributes, uniforms, and varyings are mixed together, making the code hard to read.
+- **Property Reflection**: Reflecting shader properties in the editor is difficult.
+
+### Core Features
+
+- **🎯 Modular Design**: Decomposes shaders into independent functional modules.
+- **🎨 Visual Editing**: Automatically generates material property panels.
+- **🔄 Smart Interaction**: Property linking through UIScript.
+- **⚡ High Performance**: Compile-time optimization and efficient runtime execution.
+- **🌐 Cross-Platform**: Automatically adapts to different graphics APIs.
+
+## ShaderLab Structure
+
+```glsl showLineNumbers {3-4, 16, 21, 24, 39, 49, 51, 54, 56, 58, 66, 69, 73, 77-78, 80, 90 }
+Shader "Custom/MyShader" {
+// -------------------- Editor Configuration Section --------------------
+Editor {
+Properties {
+material_BaseColor("Base Color", Color) = (1, 1, 1, 1);
+material_BaseTexture("Base Texture", Texture2D);
+material_Metallic("Metallic", Range(0, 1, 0.01)) = 0.0;
+material_Roughness("Roughness", Range(0, 1, 0.01)) = 1.0;
+
+Header("Advanced Options") {
+material_EmissiveColor("Emissive Color", Color) = (0, 0, 0, 1);
+material_NormalTexture("Normal Map", Texture2D);
+}
+}
+
+Macros {
+[Off] HAS_VERTEX_COLOR("Vertex Color");
+[On] ENABLE_NORMAL_MAP("Normal Map", Boolean) = false;
+}
+
+UIScript "path/to/script.ts";
+}
+
+// -------------------- Global Variable Declaration --------------------
+struct Attributes {
+vec3 POSITION;
+vec2 TEXCOORD_0;
+};
+
+struct Varyings {
+vec2 uv;
+};
+
+// Declare global material properties
+vec4 material_BaseColor;
+sampler2D material_BaseTexture;
+mat4 renderer_MVPMat;
+
+// Declare global rendering state
+BlendState customBlendState {
+Enabled = true;
+SourceColorBlendFactor = BlendFactor.SourceAlpha;
+DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+SourceAlphaBlendFactor = BlendFactor.One;
+DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+};
+
+// -------------------- SubShader Definition --------------------
+SubShader "Default" {
+// Include Shadow Caster Pass
+UsePass "pbr/Default/ShadowCaster"
+
+// Custom Pass
+Pass "Forward Pass" {
+// Specify Shader Tag, the pipeline will call it based on different configurations
+Tags { "pipelineStage" = "Forward" }
+
+// Declare local rendering state
+DepthState customDepthState {
+Enabled = true;
+WriteEnabled = true;
+CompareFunction = CompareFunction.LessEqual;
+}
+
+// Use global rendering state
+BlendState = customBlendState;
+
+// Use local rendering state
+DepthState = customDepthState;
+
+
+// Include code snippets
+#include "Common.glsl"
+
+
+// Specify vertex and fragment shader entry points
+VertexShader = PBRVertex;
+FragmentShader = PBRFragment;
+
+// Vertex shader code
+Varyings vert(Attributes input) {
+Varyings output;
+
+output.uv = input.TEXCOORD_0;
+
+gl_Position = renderer_MVPMat * vec4(input.POSITION, 1.0);
+return output;
+}
+
+// Fragment shader code
+void frag(Varyings input) {
+vec4 baseColor = material_BaseColor;
+
+#ifdef MATERIAL_HAS_BASETEXTURE
+baseColor *= texture2D(material_BaseTexture, input.uv);
+#endif
+
+gl_FragColor = baseColor;
+}
+}
+}
+```
+
+## Syntax Modules
+
+### 1. Shader Module
+
+The Shader module is the root module of ShaderLab, defining the basic information and global settings of the shader:
+
+```glsl showLineNumbers {1-8}
+Shader "Custom/MyShader" {
+// Global variable declaration
+// Editor configuration
+// SubShader definition
+}
+```
+
+**Features:**
+- Defines the shader name and namespace
+- Declares global variables and structures
+- Includes editor configuration and subshaders
+
+### 2. Editor Module
+
+The Editor module defines the material property panel and interaction logic:
+
+<div style={{display: "flex"}}>
+
+<Image src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*mwAxRr45kE8AAAAAAAAAAAAAeteEAQ/fmt.webp" width="435px" />
+
+<Image src= "https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*7MrxTIG5fpkAAAAAAAAAAAAAeteEAQ/fmt.webp" width="200px" />
+
+</div>
+
+
+**Supported Property Types:**
+
+| Type | Syntax Example | Description |
+|------|----------|------|
+| `Boolean` | `property("Description", Boolean) = true` | Boolean switch |
+| `Int` | `property("Description", Int) = 1` | Integer |
+| `Float` | `property("Description", Float) = 0.5` | Floating point number |
+| `Range` | `property("Description", Range(0, 1, 0.01)) = 0.5` | Range slider |
+| `Color` | `property("Description", Color) = (1, 1, 1, 1)` | Color picker |
+| `Vector2/3/4` | `property("Description", Vector4) = (1, 1, 1, 1)` | Vector Input |
+| `Texture2D` | `property("Description", Texture2D)` | 2D Texture |
+| `TextureCube` | `property("Description", TextureCube)` | Cube Texture |
+| `Enum` | `property("Description", Enum(A:0, B:1)) = 0` | Enum Selection |
+
+
+**Supported Macro Types:**
+
+Macros can also be reflected in the editor panel, allowing for flexible adjustment of shader-dependent macros within the editor. However, we recommend using `UIScript` for this purpose.
+
+Scripting system for automatic macro switching:
+
+```glsl showLineNumbers
+// Enable/Disable
+[On/Off]macroName("MacroLabel", EditType) = [DefaultValue];
+```
+
+Use the `[On/Off]` directive to specify the default state of the macro. The following macro types are currently supported by the editor:
+
+| Type | Example                                                                                                   |
+| :---: | :-------------------------------------------------------------------------------------------------------- |
+| `No Value Macro` | `macroName("Macro Description");`                                                                           |
+| `Bool` | `macroName("Macro Description", Boolean) = true;`                                                           |
+| `Int` | `macroName("Macro Description", Int) = 1; macroName("Macro Description", Range(0,8)) = 1;`            |
+| `Float` | `macroName("Macro Description", Float) = 0.5; macroName("Macro Description", Range(0.0, 1.0)) = 0.5;` |
+| `Color` | `macroName("Macro Description", Color) = (0.25, 0.5, 0.5, 1);`                                              |
+| `Vector2` | `macroName("Macro Description", Vector2) = (0.25, 0.5);`                                                    |
+| `Vector3` | `macroName("Macro Description", Vector3) = (0.25, 0.5, 0.5);`                                               |
+| `Vector4` | `macroName("Macro Description", Vector4) = (0.25, 0.5, 0.5, 1.0);`
+
+
+### 3. SubShader Module
+
+The SubShader defines the rendering subshader. Currently, it only supports specifying `replacementTag`, which is used by the engine's `camera.setReplacementShader(shader, tagName)` call:
+
+```glsl showLineNumbers
+SubShader "SubShaderName" {
+Tags {
+"replacementTag" = "test1";
+}
+
+Pass "PassName" {
+// Pass content
+}
+}
+```
+
+### 4. Pass Module
+
+The Pass defines the specific rendering pass:
+
+```glsl showLineNumbers
+Pass "PassName" {
+Tags { "pipelineStage" = "Forward" }
+``` // Rendering state
+BlendState customBlendState{
+Enabled = true;
+SourceColorBlendFactor = BlendFactor.SourceAlpha;
+DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+}
+
+// Local variables
+vec4 color1;
+
+// Specify vertex and fragment shader entry points
+VertexShader = PBRVertex;
+FragmentShader = PBRFragment;
+}
+```
+
+## Rendering State Specification
+Each `Pass` can set rendering states, such as transparency and depth writing.
+
+### 1. Type
+
+The rendering state variables are consistent with the engine's enumeration types. For example, `BlendOperation.Add` corresponds to the engine's [API](/apis/galacean/#BlendOperation). #### 1.1 BlendState - Blending State
+
+```glsl showLineNumbers
+BlendState {
+Enabled: bool;
+ColorBlendOperation: BlendOperation;
+AlphaBlendOperation: BlendOperation;
+SourceColorBlendFactor: BlendFactor;
+SourceAlphaBlendFactor: BlendFactor;
+DestinationColorBlendFactor: BlendFactor;
+DestinationAlphaBlendFactor: BlendFactor;
+ColorWriteMask: ColorWriteMask;
+BlendColor: Color;
+AlphaToCoverage: bool;
+}
+```
+
+#### 1.2 DepthState - Depth State
+
+```glsl showLineNumbers
+DepthState {
+Enabled: bool;
+WriteEnabled: bool;
+CompareFunction: CompareFunction;
+}
+```
+
+#### 1.3 StencilState - Stencil State
+
+```glsl showLineNumbers
+StencilState {
+Enabled: bool;
+ReferenceValue: int;
+Mask: float;
+WriteMask: float;
+CompareFunctionFront: CompareFunction;
+CompareFunctionBack: CompareFunction;
+PassOperationFront: StencilOperation;
+PassOperationBack: StencilOperation;
+FailOperationFront: StencilOperation;
+FailOperationBack: StencilOperation;
+ZFailOperationFront: StencilOperation;
+ZFailOperationBack: StencilOperation;
+}
+```
+
+#### 1.4 RasterState - Rasterization State
+
+```glsl showLineNumbers
+RasterState {
+CullMode: CullMode;
+FillMode: FillMode;
+DepthBias: float;
+SlopeScaledDepthBias: float;
+}
+```
+
+### 2. Declaration
+Rendering state supports both `constant assignment` and `variable assignment`:
+
+```glsl showLineNumbers
+
+// Variable names
+RenderQueueType renderQueueType;
+BlendFactor destinationColorBlendFactor;
+BlendFactor sourceAlphaBlendFactor;
+BlendFactor destinationAlphaBlendFactor;
+
+BlendState customBlendState {
+// Constant assignment
+Enabled = true;
+SourceColorBlendFactor = BlendFactor.SourceColor;
+
+// Variable assignment
+DestinationColorBlendFactor = destinationColorBlendFactor;
+SourceAlphaBlendFactor = sourceAlphaBlendFactor;
+DestinationAlphaBlendFactor = destinationAlphaBlendFactor;
+}
+```
+
+### 3. Usage
+```glsl showLineNumbers
+// Using the structure
+BlendState = customBlendState;
+
+// Variable render queue
+RenderQueueType = renderQueueType;
+// Constant render queue
+RenderQueueType = Opaque;
+RenderQueueType = AlphaTest;
+RenderQueueType = Transparent;
+```
+
+
+## Multi-Render Target (MRT) Support
+
+```glsl showLineNumbers
+struct MRT {
+layout(location = 0) vec4 fragColor0;
+layout(location = 1) vec4 fragColor1;
+};
+
+MRT frag(Varyings input) {
+MRT output;
+output.fragColor0 = vec4(1, 0, 0, 1);
+output.fragColor1 = vec4(0, 1, 0, 1);
+return output;
+}
+```
+
+
+## Including Code Snippets
+
+Include code snippets using the `#include` directive:
+
+```glsl showLineNumbers
+#include "Common.glsl"      // Common functions
+#include "Light.glsl"       // Lighting calculation
+#include "Shadow.glsl"      // Shadow calculation
+#include "Fog.glsl"         // Fog effect calculation
+#include "./MyCustom.glsl" // Custom snippet
+```
+
+## Registering Code Snippets
+
+The framework provides many built-in code snippets; developers can register them directly for use:
+
+```ts showLineNumbers {4} filename="Typescript"
+import { registerIncludes } from "@galacean/engine-shader";
+
+// Register the built-in ShaderLab code snippets.
+registerIncludes();
+```
+
+For custom snippets, you can register them manually through an interface...
+
+Dynamic Registration:
+```ts
+import { ShaderFactory } from '@galacean/engine';
+
+const shaderSource = `{{Your shader code}}`;
+ShaderFactory.registerInclude('YourKey', shaderSource);
+```
+
+
+## UIScript Scripting System
+
+`UIScript` is one of the core features of `ShaderLab`, allowing you to implement intelligent property panel interactions via TypeScript scripts, including setting macro switches and rendering states:
+
+```ts showLineNumbers {}
+import { ShaderUIScript, Material } from "@galacean/engine";
+
+export default class MyShaderScript extends ShaderUIScript {
+constructor() {
+super();
+
+// Listen for property changes
+this.onPropertyChanged("material_BaseTexture", this.onBaseTextureChanged);
+this.onPropertyChanged("material_BlendMode", this.onBlendModeChanged);
+}
+
+// Listen to property changes and set macro switches
+private onBaseTextureChanged = (material: Material, value: Texture2D) => {
+if (value) {
+material.shaderData.enableMacro("MATERIAL_HAS_BASETEXTURE");
+} else {
+material.shaderData.disableMacro("MATERIAL_HAS_BASETEXTURE");
+}
+};
+
+// Listen to property changes and set rendering states
+private onBlendModeChanged = (material: Material, value: BlendMode) => {
+const shaderData = material.shaderData;
+switch (value) {
+case BlendMode.Normal:
+shaderData.setInt("sourceColorBlendFactor", BlendFactor.SourceAlpha);
+shaderData.setInt("destinationColorBlendFactor", BlendFactor.OneMinusSourceAlpha);
+shaderData.setInt("sourceAlphaBlendFactor", BlendFactor.One);
+shaderData.setInt("destinationAlphaBlendFactor", BlendFactor.OneMinusSourceAlpha);
+break;
+case BlendMode.Additive:
+shaderData.setInt("sourceColorBlendFactor", BlendFactor.SourceAlpha);
+shaderData.setInt("destinationColorBlendFactor", BlendFactor.One);
+shaderData.setInt("sourceAlphaBlendFactor", BlendFactor.One);
+shaderData.setInt("destinationAlphaBlendFactor", BlendFactor.OneMinusSourceAlpha);
+break;
+}
+};
+}
+```
+
+Binding `UIScript` in Shader:
+
+```glsl showLineNumbers {3}
+Editor {
+...
+UIScript "/path/to/script";
+...
+}
+```
+
+The path for the bound `UIScript` script supports both relative and absolute paths.  Using the project root directory in the image below as an example, the absolute path is `/PBRScript1.ts`, and the relative path is `./PBRScript1.ts`.
+
+<Image
+src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*t4LFQ4KEL6kAAAAAAAAAAAAADteEAQ/fmt.webp"
+width="70%"
+/>
