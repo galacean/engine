@@ -1,0 +1,110 @@
+---
+title: Ambient Occlusion
+order: 7
+---
+
+<Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*1fx8QIhX-MsAAAAAgCAAAAgAegDwAQ/original" />
+
+Ambient Occlusion (AO) is a rendering technique that enhances scene realism by simulating how objects block ambient light in crevices, recesses, and contact areas, making the scene look more grounded and natural.
+
+---
+
+## Parameters Overview
+
+| Parameter              | Description |
+|------------------------|-------------|
+| [Enable](/apis/core/#AmbientOcclusion-enabled)  | Toggle to enable or disable Ambient Occlusion |
+| [Quality](/apis/core/#AmbientOcclusion-quality) | Controls the quality of AO. Lower quality improves performance, higher quality gives finer detail but costs more performance |
+| [Intensity](/apis/core/#AmbientOcclusion-intensity) | Controls the overall strength of AO; higher values make AO more pronounced |
+| [Power](/apis/core/#AmbientOcclusion-power) | Adjusts the contrast of AO shadows; higher values make dark areas darker |
+| [Radius](/apis/core/#AmbientOcclusion-radius) | Controls the spread range of AO, in meters. Larger radius makes occlusion spread farther. Range: 0.1 m – 10 m |
+| [Bias](/apis/core/#AmbientOcclusion-bias) | Prevents self-occlusion artifacts, avoids surfaces darkening themselves. In meters. Range: 0 – 0.5 m |
+| [Bilateral Threshold](/apis/core/#AmbientOcclusion-bilateralThreshold) | Removes noise without blurring object edges. Higher values make AO smoother |
+| [Min Horizon Angle](/apis/core/#AmbientOcclusion-minHorizonAngle) | Ignores small angle occlusion to reduce artifacts |
+
+---
+
+## Parameter Details
+
+**Radius**  
+<Callout type="positive">
+Global range, determines how far AO can spread
+</Callout>
+- Controls the sampling range of AO.  
+- Too small → AO only appears in narrow contact areas, looking “stuck to the edge.”  
+- Too large → AO spreads into areas that shouldn’t be darkened.  
+
+<Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*5YWVTZYSPuoAAAAAgQAAAAgAegDwAQ/original" />
+
+---
+
+**Bias**  
+<Callout type="positive">
+Local adjustment, only affects the relation between the pixel itself and its sample points
+</Callout>
+- Typically a very small positive number (recommended `0.001 – 0.01`).  
+- Adjusts the starting point of occlusion calculation to prevent a pixel from occluding itself.  
+- Too small → surfaces may darken themselves.  
+- Too large → valid occlusion may be ignored, making the image too clean.  
+- If the image looks too dirty → increase Bias.  
+- If occlusion looks too weak → decrease Bias.  
+
+<Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*uQONRpF8Sv4AAAAAgIAAAAgAegDwAQ/original" />
+
+---
+
+**Bilateral Threshold**  
+- Blurs the AO texture to remove noise, but only within the same object surface while preserving edge sharpness.  
+- Higher values → AO becomes smoother and softer while keeping edges clear.  
+- Lower values → AO may contain noise or banding artifacts.  
+
+<Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*lq7WSK7fgjUAAAAAgFAAAAgAegDwAQ/original" />
+
+---
+
+**Min Horizon Angle**  
+- Range: `0° – 45°`  
+- Think of it as the “minimum angle required to start calculating occlusion.”  
+  - Near `0°`: even tiny gaps are considered occluded.  
+  - At `45°`: only more obvious recesses are considered.  
+
+Demonstration from `0° – 45°`:  
+<Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*zGxmS6vR8RoAAAAAgPAAAAgAegDwAQ/original" />
+
+---
+
+## Using Ambient Occlusion
+
+1. In the **Scene** settings, locate **Ambient Occlusion**.  
+2. Click **Enable**.  
+
+<Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*FOuFQ4lKRLEAAAAAgEAAAAgAegDwAQ/original" />
+
+- **Effect Comparison**
+
+<Comparison
+  leftSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*LEn7SLWoc4MAAAAAgEAAAAgAegDwAQ/fmt.webp"
+  leftText="AO Disabled"
+  rightSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*AT5IQ7dq3VsAAAAAgEAAAAgAegDwAQ/original"
+  rightText="AO Enabled"
+/>
+
+---
+
+## Best Practices
+
+1. **Why does AO look too dirty?**  
+   - Don’t set the radius too high.  
+   - Large radius + high intensity = dirty.  
+   - Moderate radius + Bilateral Blur = natural.  
+
+2. **Combine with other post-processing**  
+   - Use with [Bloom](/en/docs/graphics/postProcess/effects/#bloom) and [Tonemapping](/en/docs/graphics/postProcess/effects/#tonemapping) to make AO blend more naturally into the final image.  
+
+---
+
+## Limitations
+
+Ambient Occlusion relies on the **depth buffer**, so it has the following limitations:
+
+- **No support for transparent objects**: Transparent materials do not write to the depth buffer, so AO cannot be applied correctly to transparent surfaces.  
