@@ -1,7 +1,0 @@
-{
-  "overview": { "title": "Material Overview" },
-  "examples": { "title": "Guidelines and Examples" },
-  "builtinShaders": { "title": "Built-in shaders" },
-  "shaderLab": { "title": "ShaderLab" },
-  "variables": "Built-in Variables"
-}

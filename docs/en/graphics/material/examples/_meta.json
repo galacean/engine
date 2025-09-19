@@ -1,6 +1,0 @@
-{
-  "create": { "title": "Creating Materials" },
-  "builtin": { "title": "Using Built-in Shaders" },
-  "custom": { "title": "Custom Shaders" },
-  "shaderData": { "title": "Using Shader Data" }
-}
