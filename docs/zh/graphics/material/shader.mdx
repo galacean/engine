@@ -1,0 +1,459 @@
+---
+title: Shader 介绍
+---
+
+`ShaderLab` 是 Galacean 针对 Shader 自主研发的一套描述语言，它提供了一套完整的语法来定义着色器的结构、属性、渲染状态和着色器代码。通过 ShaderLab，开发者可以创建从简单到复杂的各种视觉效果。
+
+## 什么是 ShaderLab
+
+`ShaderLab` 是一种声明式的着色器描述语言，它将着色器的各个组成部分组织成模块化的结构。与传统的 GLSL/HLSL 不同，ShaderLab 不仅包含着色器代码，还包含材质属性定义、UI界面配置、渲染状态设置等完整信息。
+
+### 解决的问题
+
+`ShaderLab` 框架主要解决以下传统着色器开发中的痛点：
+
+- **代码重复**：VS 和 FS 编写需要两个文件，varying 需要声明两遍，uniform 也需要声明两遍
+- **脚本拼装**：多 SubShader 和多 Pass 需要脚本拼装问题
+- **状态分离**：Shader 中无法设置 RenderState 状态，需要回到脚本中去修改
+- **标签管理**：Tags 需要通过脚本组装
+- **代码混乱**：attribute、uniform、varying 书写混乱，互相穿插
+- **属性反射**：编辑器中 Shader 属性的反射困难
+
+### 核心特性
+
+- **🎯 模块化设计**：将着色器分解为独立的功能模块
+- **🎨 可视化编辑**：自动生成材质属性面板
+- **🔄 智能交互**：通过 UIScript 实现属性联动
+- **⚡ 高性能**：编译时优化和运行时高效执行
+- **🌐 跨平台**：自动适配不同图形 API
+
+## ShaderLab 结构
+
+```glsl showLineNumbers {3-4, 16, 21, 24, 39, 49, 51, 54, 56, 58, 66, 69, 73, 77-78, 80, 90 }
+Shader "Custom/MyShader" {
+    // -------------------- 编辑器配置区 --------------------
+    Editor {
+        Properties {
+            material_BaseColor("基础颜色", Color) = (1, 1, 1, 1);
+            material_BaseTexture("基础纹理", Texture2D);
+            material_Metallic("金属度", Range(0, 1, 0.01)) = 0.0;
+            material_Roughness("粗糙度", Range(0, 1, 0.01)) = 1.0;
+            
+            Header("高级选项") {
+                material_EmissiveColor("自发光", Color) = (0, 0, 0, 1);
+                material_NormalTexture("法线贴图", Texture2D);
+            }
+        }
+        
+        Macros {
+            [Off] HAS_VERTEX_COLOR("顶点颜色");
+            [On] ENABLE_NORMAL_MAP("法线贴图", Boolean) = false;
+        }
+        
+        UIScript "path/to/script.ts";
+    }
+    
+    // -------------------- 全局变量声明区 --------------------
+    struct Attributes {
+        vec3 POSITION;
+        vec2 TEXCOORD_0;
+    };
+    
+    struct Varyings {
+        vec2 uv;
+    };
+    
+    // 声明全局材质属性
+    vec4 material_BaseColor;
+    sampler2D material_BaseTexture;
+    mat4 renderer_MVPMat;
+    
+    // 声明全局渲染状态
+    BlendState customBlendState {
+        Enabled = true;
+        SourceColorBlendFactor = BlendFactor.SourceAlpha;
+        DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+        SourceAlphaBlendFactor = BlendFactor.One;
+        DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    };
+
+    // -------------------- SubShader 定义区 --------------------
+    SubShader "Default" {
+        // 引入阴影投射 Pass
+        UsePass "pbr/Default/ShadowCaster"
+
+        // 自定义 Pass
+        Pass "Forward Pass" {
+            // 指定 Shader Tag, 管线根据不同配置调用
+            Tags { "pipelineStage" = "Forward" }
+              
+            // 声明局部渲染状态
+            DepthState customDepthState {
+                Enabled = true;
+                WriteEnabled = true;
+                CompareFunction = CompareFunction.LessEqual;
+            }
+
+            // 使用全局渲染状态
+            BlendState = customBlendState;
+          
+            // 使用局部渲染状态
+            DepthState = customDepthState;
+          
+
+            // 代码段引用
+            #include "Common.glsl"
+                
+
+            // 指定 顶点、片元 入口
+            VertexShader = PBRVertex;
+            FragmentShader = PBRFragment;
+
+            // 顶点着色器代码编写
+            Varyings vert(Attributes input) {
+                Varyings output;
+                
+                output.uv = input.TEXCOORD_0;
+                
+                gl_Position = renderer_MVPMat * vec4(input.POSITION, 1.0);
+                return output;
+            }
+
+            // 片元着色器代码编写
+            void frag(Varyings input) {
+                vec4 baseColor = material_BaseColor;
+                
+                #ifdef MATERIAL_HAS_BASETEXTURE
+                    baseColor *= texture2D(material_BaseTexture, input.uv);
+                #endif
+                
+                gl_FragColor = baseColor;
+            }
+        }
+    }
+}
+```
+
+## 语法模块
+
+### 1. Shader 模块
+
+Shader 模块是 ShaderLab 的根模块，定义着色器的基本信息和全局设置：
+
+```glsl showLineNumbers {1-8}
+Shader "Custom/MyShader" {
+    // 全局变量声明
+    // Editor 配置
+    // SubShader 定义
+}
+```
+
+**功能特性：**
+- 定义着色器名称和命名空间
+- 声明全局变量和结构体
+- 包含编辑器配置和子着色器
+
+### 2. Editor 模块
+
+Editor 模块定义材质属性面板和交互逻辑：
+
+<div style={{display: "flex"}}>
+
+  <Image src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*mwAxRr45kE8AAAAAAAAAAAAAeteEAQ/fmt.webp" width="435px" />
+
+  <Image src= "https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*7MrxTIG5fpkAAAAAAAAAAAAAeteEAQ/fmt.webp" width="200px" />
+
+</div>
+
+
+**支持的属性类型：**
+
+| 类型 | 语法示例 | 描述 |
+|------|----------|------|
+| `Boolean` | `property("描述", Boolean) = true` | 布尔开关 |
+| `Int` | `property("描述", Int) = 1` | 整数 |
+| `Float` | `property("描述", Float) = 0.5` | 浮点数 |
+| `Range` | `property("描述", Range(0, 1, 0.01)) = 0.5` | 范围滑块 |
+| `Color` | `property("描述", Color) = (1, 1, 1, 1)` | 颜色选择器 |
+| `Vector2/3/4` | `property("描述", Vector4) = (1, 1, 1, 1)` | 向量输入 |
+| `Texture2D` | `property("描述", Texture2D)` | 2D纹理 |
+| `TextureCube` | `property("描述", TextureCube)` | 立方体纹理 |
+| `Enum` | `property("描述", Enum(A:0, B:1)) = 0` | 枚举选择 |
+
+
+**支持的宏类型：**
+
+宏也可以反射到编辑器面板中，从而在编辑器中对 Shader 依赖的宏进行灵活的调整，当然我们更推荐通过 `UIScript` 脚本系统来实现宏的自动切换：
+
+```glsl showLineNumbers
+// 开启/关闭
+[On/Off]macroName("MacroLabel", EditType) = [DefaultValue];
+```
+
+通过`[On/Off]`指令指定宏的默认开关，当前编辑器支持的宏类型如下:
+
+|  Type   | Example                                                                                                   |
+| :-----: | :-------------------------------------------------------------------------------------------------------- |
+| `无值宏`  | `macroName("Macro Description");`                                                                           |
+|  `Bool`   | `macroName("Macro Description", Boolean) = true;`                                                           |
+|  `Int`   |  `macroName("Macro Description", Int) = 1; macroName("Macro Description", Range(0,8)) = 1;`            |
+|  `Float`  | `macroName("Macro Description", FLoat) = 0.5; macroName("Macro Description", Range(0.0, 1.0)) = 0.5;` |
+|  `Color`  | `macroName("Macro Description", Color) = (0.25, 0.5, 0.5, 1);`                                              |
+| `Vector2` | `macroName("Macro Description", Vector2) = (0.25, 0.5);`                                                    |
+| `Vector3` | `macroName("Macro Description", Vector3) = (0.25, 0.5, 0.5);`                                               |
+| `Vector4` | `macroName("Macro Description", Vector4) = (0.25, 0.5, 0.5, 1.0);`                         
+
+
+### 3. SubShader 模块
+
+SubShader 定义渲染子着色器，目前仅支持指定 `replacementTag`, 通过引擎的 `camera.setReplacementShader(shader, tagName)` 调用：
+
+```glsl showLineNumbers
+SubShader "SubShaderName" {
+    Tags {
+        "replacementTag" = "test1";
+    }
+    
+    Pass "PassName" {
+        // Pass 内容
+    }
+}
+```
+
+### 4. Pass 模块
+
+Pass 定义具体的渲染通道：
+
+```glsl showLineNumbers
+Pass "PassName" {
+    Tags { "pipelineStage" = "Forward" }
+    
+    // 渲染状态
+    BlendState customBlendState{
+        Enabled = true;
+        SourceColorBlendFactor = BlendFactor.SourceAlpha;
+        DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    }
+
+    // 局部变量
+    vec4 color1;
+    
+    // 指定 顶点、片元 入口
+    VertexShader = PBRVertex;
+    FragmentShader = PBRFragment;
+}
+```
+
+## 渲染状态规范
+每个 `Pass` 都可以设置渲染状态，比如透明、深度写入等。
+
+### 1. 类型
+
+渲染状态变量和引擎枚举类型保持一致，比如 `BlendOperation.Add` 对应引擎的 [API](/apis/galacean/#BlendOperation)。
+
+#### 1.1 BlendState 混合状态
+
+```glsl showLineNumbers
+BlendState {
+    Enabled: bool;
+    ColorBlendOperation: BlendOperation;
+    AlphaBlendOperation: BlendOperation;
+    SourceColorBlendFactor: BlendFactor;
+    SourceAlphaBlendFactor: BlendFactor;
+    DestinationColorBlendFactor: BlendFactor;
+    DestinationAlphaBlendFactor: BlendFactor;
+    ColorWriteMask: ColorWriteMask;
+    BlendColor: Color;
+    AlphaToCoverage: bool;
+}
+```
+
+#### 1.2 DepthState 深度状态
+
+```glsl showLineNumbers
+DepthState {
+    Enabled: bool;
+    WriteEnabled: bool;
+    CompareFunction: CompareFunction;
+}
+```
+
+#### 1.3 StencilState 模板状态
+
+```glsl showLineNumbers
+StencilState {
+    Enabled: bool;
+    ReferenceValue: int;
+    Mask: float;
+    WriteMask: float;
+    CompareFunctionFront: CompareFunction;
+    CompareFunctionBack: CompareFunction;
+    PassOperationFront: StencilOperation;
+    PassOperationBack: StencilOperation;
+    FailOperationFront: StencilOperation;
+    FailOperationBack: StencilOperation;
+    ZFailOperationFront: StencilOperation;
+    ZFailOperationBack: StencilOperation;
+}
+```
+
+#### 1.4 RasterState 光栅化状态
+
+```glsl showLineNumbers
+RasterState {
+    CullMode: CullMode;
+    FillMode: FillMode;
+    DepthBias: float;
+    SlopeScaledDepthBias: float;
+}
+```
+
+### 2. 声明
+渲染状态支持`常量赋值`和`变量赋值`：
+
+```glsl showLineNumbers
+
+// 变量名称
+RenderQueueType renderQueueType;
+BlendFactor destinationColorBlendFactor;
+BlendFactor sourceAlphaBlendFactor;
+BlendFactor destinationAlphaBlendFactor;
+
+BlendState customBlendState {
+    // 常量赋值方式
+    Enabled = true;
+    SourceColorBlendFactor = BlendFactor.SourceColor;
+
+    // 变量赋值方式
+    DestinationColorBlendFactor = destinationColorBlendFactor;
+    SourceAlphaBlendFactor = sourceAlphaBlendFactor;
+    DestinationAlphaBlendFactor = destinationAlphaBlendFactor;
+}
+```
+
+### 3. 使用
+```glsl showLineNumbers
+// 使用结构体
+BlendState = customBlendState;
+
+// 变量渲染队列
+RenderQueueType = renderQueueType;
+// 常量渲染队列
+RenderQueueType = Opaque;
+RenderQueueType = AlphaTest;
+RenderQueueType = Transparent;
+```
+
+
+## 多渲染目标（MRT）支持
+
+```glsl showLineNumbers
+struct MRT {
+    layout(location = 0) vec4 fragColor0;
+    layout(location = 1) vec4 fragColor1;
+};
+
+MRT frag(Varyings input) {
+    MRT output;
+    output.fragColor0 = vec4(1, 0, 0, 1);
+    output.fragColor1 = vec4(0, 1, 0, 1);
+    return output;
+}
+```
+
+
+## 引入代码片段
+
+通过 `#include` 指令引入代码片段：
+
+```glsl showLineNumbers
+#include "Common.glsl"      // 通用函数
+#include "Light.glsl"       // 光照计算
+#include "Shadow.glsl"      // 阴影计算
+#include "Fog.glsl"         // 雾效计算
+#include "./MyCustom.glsl" // 自定义片段
+```
+
+## 注册代码片段
+
+官方提供了很多内置代码段，开发者可以直接注册后使用:
+
+```ts showLineNumbers {4} filename="Typescript"
+import { registerIncludes } from "@galacean/engine-shader";
+
+// 对内置 ShaderLab 代码段注册。
+registerIncludes();
+```
+
+如果是自定义的片段，可以通过接口进行手动注册:
+```ts
+import { ShaderFactory } from '@galacean/engine';
+ 
+const shaderSource = `{{Your shader code}}`;
+ShaderFactory.registerInclude('YourKey', shaderSource);
+```
+
+
+## UIScript 脚本系统
+
+`UIScript` 是 `ShaderLab` 的核心特性之一，允许通过 TypeScript 脚本实现智能的属性面板交互，包括设置宏开关、渲染状态等：
+
+```ts showLineNumbers {}
+import { ShaderUIScript, Material } from "@galacean/engine";
+
+export default class MyShaderScript extends ShaderUIScript {
+  constructor() {
+    super();
+    
+    // 属性变化监听
+    this.onPropertyChanged("material_BaseTexture", this.onBaseTextureChanged);
+    this.onPropertyChanged("material_BlendMode", this.onBlendModeChanged);
+  }
+  
+  // 监听属性，设置宏开关
+  private onBaseTextureChanged = (material: Material, value: Texture2D) => {
+    if (value) {
+      material.shaderData.enableMacro("MATERIAL_HAS_BASETEXTURE");
+    } else {
+      material.shaderData.disableMacro("MATERIAL_HAS_BASETEXTURE");
+    }
+  };
+  
+  // 监听属性，设置渲染状态
+  private onBlendModeChanged = (material: Material, value: BlendMode) => {
+    const shaderData = material.shaderData;
+    switch (value) {
+        case BlendMode.Normal:
+          shaderData.setInt("sourceColorBlendFactor", BlendFactor.SourceAlpha);
+          shaderData.setInt("destinationColorBlendFactor", BlendFactor.OneMinusSourceAlpha);
+          shaderData.setInt("sourceAlphaBlendFactor", BlendFactor.One);
+          shaderData.setInt("destinationAlphaBlendFactor", BlendFactor.OneMinusSourceAlpha);
+          break;
+        case BlendMode.Additive:
+          shaderData.setInt("sourceColorBlendFactor", BlendFactor.SourceAlpha);
+          shaderData.setInt("destinationColorBlendFactor", BlendFactor.One);
+          shaderData.setInt("sourceAlphaBlendFactor", BlendFactor.One);
+          shaderData.setInt("destinationAlphaBlendFactor", BlendFactor.OneMinusSourceAlpha);
+          break;
+      }
+  };
+}
+```
+
+在 Shader 中绑定 `UIScript`:
+
+```glsl showLineNumbers {3}
+Editor {
+    ...
+    UIScript "/path/to/script";
+    ...
+}
+```
+
+绑定的`UIScript`脚本路径支持相对路径和绝对路径，以下图项目根目录为例，绝对路径为
+`/PBRScript1.ts`，相对路径为`./PBRScript1.ts`
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*t4LFQ4KEL6kAAAAAAAAAAAAADteEAQ/fmt.webp"
+  width="70%"
+/>

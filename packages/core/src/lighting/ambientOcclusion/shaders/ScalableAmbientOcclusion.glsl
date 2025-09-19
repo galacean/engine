@@ -7,7 +7,7 @@
 
 varying vec2 v_uv;
 uniform vec4 renderer_texelSize;    // x: 1/width, y: 1/height, z: width, w: height
-uniform sampler2D renderer_BlitTexture; // Camera_DepthTexture
+uniform highp sampler2D renderer_BlitTexture; // Camera_DepthTexture
 
 // float inc = (1.0f / (SAMPLE_COUNT - 0.5f)) * SPIRAL_TURNS * 2.0 * PI
 // const vec2 angleIncCosSin = vec2(cos(inc), sin(inc))
@@ -50,7 +50,7 @@ float depthToViewZ(float depth) {
 // reconstructing normal from depth buffer
 // https://atyuwen.github.io/posts/normal-reconstruction
 // https://wickedengine.net/2019/09/22/improved-normal-reconstruction-from-depth/
-vec3 computeViewSpaceNormal(vec2 uv, sampler2D depthTexture, float depth, vec3 viewPos, vec2 texel, vec2 invProjScaleXY) {
+vec3 computeViewSpaceNormal(vec2 uv, highp sampler2D depthTexture, float depth, vec3 viewPos, vec2 texel, vec2 invProjScaleXY) {
     vec3 normal = vec3(0.0);
 #if SSAO_QUALITY == 0 || SSAO_QUALITY == 1
         vec2 uvdx = uv + vec2(texel.x, 0.0);

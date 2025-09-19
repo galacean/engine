@@ -72,6 +72,11 @@ export class GLCapability {
     return this._maxAntiAliasing;
   }
 
+  get isFragmentHighPrecision(): boolean {
+    const gl = this._rhi.gl;
+    return gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT).precision !== 0;
+  }
+
   get rhi() {
     return this._rhi;
   }
