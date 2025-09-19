@@ -1,17 +1,15 @@
 import { ShaderRange } from "../common";
-import { ASTNode, TreeNode } from "./AST";
-import { GSErrorName } from "../GSError";
-import { ShaderData } from "./ShaderInfo";
-import { ESymbolType, SymbolInfo, TargetSymbolTable } from "../parser/symbolTable";
-import { NodeChild } from "./types";
-import { SymbolTableStack } from "../common/BaseSymbolTable";
+import { SymbolTable } from "../common/SymbolTable";
+import { SymbolTableStack } from "../common/SymbolTableStack";
+import { GSError, GSErrorName } from "../GSError";
+import { SymbolInfo } from "../parser/symbolTable";
 import { ShaderLab } from "../ShaderLab";
-import { NonGenericGalaceanType } from "./builtin";
-// #if _VERBOSE
-import { GSError } from "../GSError";
-// #else
+import { ASTNode, TreeNode } from "./AST";
+import { ShaderData } from "./ShaderInfo";
+import { NodeChild } from "./types";
+
 import { Logger } from "@galacean/engine";
-// #endif
+import { MacroDefineList } from "../Preprocessor";
 
 export type TranslationRule<T = any> = (sa: SemanticAnalyzer, ...tokens: NodeChild[]) => T;
 
@@ -22,15 +20,22 @@ export type TranslationRule<T = any> = (sa: SemanticAnalyzer, ...tokens: NodeChi
  * - Static analysis
  */
 export default class SemanticAnalyzer {
+  /**
+   * @internal
+   */
+  static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
+
   semanticStack: TreeNode[] = [];
   acceptRule?: TranslationRule = undefined;
-  symbolTableStack: SymbolTableStack<SymbolInfo, TargetSymbolTable> = new SymbolTableStack();
+  symbolTableStack: SymbolTableStack<SymbolInfo, SymbolTable<SymbolInfo>> = new SymbolTableStack();
   curFunctionInfo: {
     header?: ASTNode.FunctionDeclarator;
     returnStatement?: ASTNode.JumpStatement;
   } = {};
   private _shaderData = new ShaderData();
   private _translationRuleTable: Map<number /** production id */, TranslationRule> = new Map();
+
+  private _macroDefineList: MacroDefineList;
 
   // #if _VERBOSE
   readonly errors: Error[] = [];
@@ -40,27 +45,31 @@ export default class SemanticAnalyzer {
     return this._shaderData;
   }
 
-  constructor() {
-    this.newScope();
+  get macroDefineList(): MacroDefineList {
+    return this._macroDefineList;
   }
 
-  reset() {
+  constructor() {
+    this.pushScope();
+  }
+
+  reset(macroDefineList: MacroDefineList) {
+    this._macroDefineList = macroDefineList;
     this.semanticStack.length = 0;
     this._shaderData = new ShaderData();
     this.symbolTableStack.clear();
-    this.newScope();
+    this.pushScope();
     // #if _VERBOSE
     this.errors.length = 0;
     // #endif
   }
 
-  newScope() {
-    const scope = new TargetSymbolTable();
-    this.symbolTableStack.newScope(scope);
+  pushScope() {
+    this.symbolTableStack.pushScope(new SymbolTable<SymbolInfo>());
   }
 
-  dropScope() {
-    return this.symbolTableStack.dropScope();
+  popScope() {
+    return this.symbolTableStack.popScope();
   }
 
   addTranslationRule(pid: number, rule: TranslationRule) {
@@ -71,25 +80,15 @@ export default class SemanticAnalyzer {
     return this._translationRuleTable.get(pid);
   }
 
-  lookupSymbolBy(
-    ident: string,
-    symbolType: ESymbolType,
-    signature?: NonGenericGalaceanType[],
-    astNode?: ASTNode.FunctionDefinition
-  ): SymbolInfo | undefined {
-    const stack = this.symbolTableStack.stack;
-    for (let length = stack.length, i = length - 1; i >= 0; i--) {
-      const symbolTable = stack[i];
-      const ret = symbolTable.lookup(ident, symbolType, signature, astNode);
-      if (ret) return ret;
-    }
-  }
-
   reportError(loc: ShaderRange, message: string): void {
     // #if _VERBOSE
     this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderLab._processingPassText));
     // #else
     Logger.error(message);
     // #endif
+  }
+
+  reportWarning(loc: ShaderRange, message: string): void {
+    Logger.warn(new GSError(GSErrorName.CompilationWarn, message, loc, ShaderLab._processingPassText).toString());
   }
 }

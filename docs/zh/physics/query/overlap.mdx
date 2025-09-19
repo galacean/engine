@@ -1,0 +1,329 @@
+---
+order: 5
+title: 重叠检测
+type: 物理
+label: Physics
+---
+
+重叠检测（Overlap Detection）是物理引擎中用于检测指定区域内所有重叠碰撞器的功能。与 [形状投射](/docs/physics/query/sweep) 沿方向进行动态检测不同，重叠检测在静态位置检查与指定几何形状重叠的所有物体。
+
+## 概述
+
+Galacean 物理引擎提供三种重叠检测功能：
+
+- **overlapBoxAll** - 盒子重叠：检测与立方体区域重叠的所有碰撞器
+- **overlapSphereAll** - 球体重叠：检测与球形区域重叠的所有碰撞器
+- **overlapCapsuleAll** - 胶囊重叠：检测与胶囊区域重叠的所有碰撞器
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*VDrBSajmuW8AAAAAWeAAAAgAesJ_AQ/original" />
+
+## 应用场景
+
+重叠检测在游戏开发中的常见应用：
+
+- **区域触发器** - 检测进入特定区域的所有物体
+- **爆炸伤害计算** - 确定爆炸范围内的所有目标
+- **收集道具检测** - 检测玩家周围可收集的物品
+- **AI感知系统** - 实现敌人的视野或听力范围检测
+- **建造系统验证** - 检查建造区域是否被其他物体占用
+- **范围攻击判定** - 计算技能或法术的作用范围
+
+## 盒子重叠检测 (overlapBoxAll)
+
+检测与指定立方体区域重叠的所有碰撞器。
+
+### 函数签名
+
+```typescript
+overlapBoxAll(
+  center: Vector3,
+  halfExtents: Vector3,
+  orientation: Quaternion = new Quaternion(),
+  layerMask: Layer = Layer.Everything,
+  shapes: ColliderShape[] = []
+): ColliderShape[]
+```
+
+### 使用示例
+
+```typescript
+import { Vector3, Quaternion, Layer, ColliderShape } from "@galacean/engine";
+
+// 获取物理场景
+const physicsScene = scene.physics;
+
+// 示例1: 基础重叠检测
+const center = new Vector3(0, 0, 0);
+const halfExtents = new Vector3(2, 1, 2); // 盒子半尺寸
+
+const allOverlapping = physicsScene.overlapBoxAll(center, halfExtents);
+console.log(`检测到 ${allOverlapping.length} 个重叠物体`);
+
+allOverlapping.forEach((shape, index) => {
+  console.log(`${index + 1}. ${shape.collider.entity.name}`);
+});
+
+// 示例2: 建造系统 - 检查区域是否被占用
+const buildCenter = new Vector3(5, 0, 3);
+const buildSize = new Vector3(1.5, 1, 1.5);
+const buildingLayerMask = Layer.Layer0 | Layer.Layer1; // 使用实际存在的层
+
+const obstacleShapes: ColliderShape[] = [];
+const obstacles = physicsScene.overlapBoxAll(
+  buildCenter, 
+  buildSize, 
+  new Quaternion(), // 使用新四元数实例代替不存在的 IDENTITY
+  buildingLayerMask, 
+  obstacleShapes
+);
+
+if (obstacles.length === 0) {
+  console.log("区域空闲，可以建造");
+  placeBuildingAt(buildCenter);
+} else {
+  console.log("区域被占用，无法建造");
+  obstacles.forEach(shape => {
+    console.log(`障碍物: ${shape.collider.entity.name}`);
+  });
+}
+
+// 示例3: 旋转盒子检测
+const rotatedOrientation = new Quaternion();
+Quaternion.rotationY(Math.PI / 4, rotatedOrientation); // 使用正确的 API
+const rotatedOverlap = physicsScene.overlapBoxAll(
+  center, 
+  halfExtents, 
+  rotatedOrientation, 
+  Layer.Everything
+);
+```
+
+## 球体重叠检测 (overlapSphereAll)
+
+检测与指定球形区域重叠的所有碰撞器。
+
+### 函数签名
+
+```typescript
+overlapSphereAll(
+  center: Vector3,
+  radius: number,
+  layerMask: Layer = Layer.Everything,
+  shapes: ColliderShape[] = []
+): ColliderShape[]
+```
+
+### 使用示例
+
+```typescript
+// 示例1: 爆炸伤害检测
+const explosionCenter = new Vector3(0, 1, 0);
+const explosionRadius = 5.0;
+const targetLayer = Layer.Layer0; // 使用实际存在的层
+
+const affectedTargets = physicsScene.overlapSphereAll(
+  explosionCenter, 
+  explosionRadius, 
+  targetLayer
+);
+
+affectedTargets.forEach(shape => {
+  const entity = shape.collider.entity;
+  const distance = Vector3.distance(explosionCenter, entity.transform.position);
+  const damage = calculateExplosionDamage(distance, explosionRadius);
+  
+  console.log(`${entity.name} 受到 ${damage} 点爆炸伤害`);
+  applyDamage(entity, damage);
+});
+
+// 示例2: 收集道具系统
+const playerPosition = new Vector3(2, 0, 1);
+const collectRadius = 1.5;
+const itemLayer = Layer.Layer2; // 使用实际存在的层
+
+const collectibleItems = physicsScene.overlapSphereAll(
+  playerPosition, 
+  collectRadius, 
+  itemLayer
+);
+
+collectibleItems.forEach(shape => {
+  const item = shape.collider.entity;
+  console.log(`收集道具: ${item.name}`);
+  collectItem(item);
+});
+
+// 示例3: AI 感知系统
+class AIPerception {
+  private readonly _detectedShapes: ColliderShape[] = [];
+  
+  checkVisionRange(aiPosition: Vector3, visionRadius: number): Entity[] {
+    this._detectedShapes.length = 0; // 清空数组
+    
+    const detectedShapes = physicsScene.overlapSphereAll(
+      aiPosition,
+      visionRadius,
+      Layer.Layer0 | Layer.Layer1, // 使用实际层组合
+      this._detectedShapes
+    );
+    
+    return detectedShapes.map(shape => shape.collider.entity);
+  }
+}
+```
+
+## 胶囊重叠检测 (overlapCapsuleAll)
+
+检测与指定胶囊区域重叠的所有碰撞器，特别适合人形角色的范围检测。
+
+### 函数签名
+
+```typescript
+overlapCapsuleAll(
+  center: Vector3,
+  radius: number,
+  height: number,
+  orientation: Quaternion = new Quaternion(),
+  layerMask: Layer = Layer.Everything,
+  shapes: ColliderShape[] = []
+): ColliderShape[]
+```
+
+### 使用示例
+
+```typescript
+// 示例1: 角色攻击范围检测
+const characterCenter = new Vector3(0, 1, 0);
+const attackRadius = 1.0;
+const attackHeight = 2.0;
+const enemyLayer = Layer.Layer3; // 使用实际存在的层
+
+const attackTargets = physicsScene.overlapCapsuleAll(
+  characterCenter,
+  attackRadius,
+  attackHeight,
+  new Quaternion(), // 使用新四元数实例
+  enemyLayer
+);
+
+if (attackTargets.length > 0) {
+  console.log(`攻击命中 ${attackTargets.length} 个目标`);
+  attackTargets.forEach(shape => {
+    const enemy = shape.collider.entity;
+    applyMeleeDamage(enemy, 50);
+  });
+}
+
+// 示例2: 传送门检测
+const portalCenter = new Vector3(10, 0, 5);
+const portalRadius = 0.8;
+const portalHeight = 2.5;
+const characterLayer = Layer.Layer0; // 使用实际存在的层
+
+const charactersInPortal = physicsScene.overlapCapsuleAll(
+  portalCenter,
+  portalRadius,
+  portalHeight,
+  new Quaternion(), // 使用新四元数实例
+  characterLayer
+);
+
+charactersInPortal.forEach(shape => {
+  const character = shape.collider.entity;
+  console.log(`${character.name} 进入传送门`);
+  teleportCharacter(character, destinationPosition);
+});
+
+// 示例3: 电梯检测系统
+class ElevatorDetector {
+  private readonly _passengersBuffer: ColliderShape[] = [];
+  
+  detectPassengers(elevatorCenter: Vector3): Entity[] {
+    this._passengersBuffer.length = 0;
+    
+    const passengers = physicsScene.overlapCapsuleAll(
+      elevatorCenter,
+      1.2,  // 电梯宽度
+      2.0,  // 电梯高度
+      new Quaternion(), // 使用新四元数实例
+      Layer.Layer0 | Layer.Layer4, // 使用实际层组合
+      this._passengersBuffer
+    );
+    
+    return passengers.map(shape => shape.collider.entity);
+  }
+}
+```
+
+## 参数说明
+
+### 通用参数
+
+- **center** - 检测区域的中心位置（世界坐标）
+- **layerMask** - 层遮罩，用于过滤特定层的碰撞器（默认为 `Layer.Everything`）
+- **shapes** - 可选的输出数组，用于存储结果以避免内存分配
+
+### 形状特定参数
+
+- **halfExtents** (overlapBoxAll) - 盒子的半尺寸
+- **radius** (overlapSphereAll/overlapCapsuleAll) - 球体/胶囊的半径
+- **height** (overlapCapsuleAll) - 胶囊的高度
+- **orientation** (overlapBoxAll/overlapCapsuleAll) - 形状的旋转（默认为无旋转）
+
+## 返回值说明
+
+所有检测函数都返回 `ColliderShape[]` 数组，包含所有重叠的碰撞器形状。
+
+## 性能优化建议
+
+1. **重用结果数组** - 使用预分配的数组来避免垃圾回收
+2. **合理使用层遮罩** - 通过 `layerMask` 只检测相关的碰撞器层
+3. **选择合适的检测形状** - 根据实际需求选择最简单的几何形状
+4. **避免频繁调用** - 在适当的时机进行检测，而不是每帧都检测
+
+```typescript
+// 性能优化示例
+class OverlapDetector {
+  private static readonly _resultBuffer: ColliderShape[] = [];
+  private static readonly _targetLayer = Layer.Layer0 | Layer.Layer3;
+  
+  static detectTargetsInRange(center: Vector3, radius: number): Entity[] {
+    // 清空复用数组
+    this._resultBuffer.length = 0;
+    
+    // 使用预分配数组和层过滤
+    const shapes = physicsScene.overlapSphereAll(
+      center,
+      radius,
+      this._targetLayer,
+      this._resultBuffer
+    );
+    
+    // 转换为实体数组
+    return shapes.map(shape => shape.collider.entity);
+  }
+}
+
+// 使用示例
+const nearbyTargets = OverlapDetector.detectTargetsInRange(playerPosition, 10.0);
+```
+
+## 注意事项
+
+1. **世界坐标系统** - 所有位置参数都基于世界坐标系
+2. **碰撞器要求** - 只有添加了[碰撞器组件](/docs/physics/collider/overview)的实体才能被检测到
+3. **静态检测** - 重叠检测是瞬时的，不考虑物体的运动
+4. **结果顺序** - 检测结果的顺序是不确定的，不应依赖特定顺序
+5. **层遮罩使用** - 使用实际存在的层枚举值（Layer.Layer0 到 Layer.Layer31）进行层过滤
+
+## 与形状投射的区别
+
+| 特性 | 重叠检测 | 形状投射 |
+|------|----------|----------|
+| 检测方式 | 静态区域检测 | 动态方向投射 |
+| 返回结果 | 所有重叠物体 | 第一个碰撞物体 |
+| 适用场景 | 区域触发、范围攻击 | 移动预测、路径检测 |
+| 性能消耗 | 中等 | 中等 |
+| 结果数量 | 多个 | 单个 |
+
+重叠检测为区域性的游戏逻辑提供了强大的支持，特别适合实现触发器、范围攻击、收集系统等功能。结合合适的性能优化策略，可以高效地处理复杂的空间查询需求。

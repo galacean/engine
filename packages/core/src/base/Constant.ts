@@ -110,6 +110,7 @@ export enum GLCapabilityType {
 
   astc = "WEBGL_compressed_texture_astc",
   astc_webkit = "WEBKIT_WEBGL_compressed_texture_astc",
+  astc_hdr = "WEBGL_compressed_texture_astc_hdr",
   etc = "WEBGL_compressed_texture_etc",
   etc_webkit = "WEBKIT_WEBGL_compressed_texture_etc",
   etc1 = "WEBGL_compressed_texture_etc1",

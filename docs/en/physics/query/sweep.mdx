@@ -1,0 +1,288 @@
+---
+order: 4
+title: Shape Casting
+type: Physics
+label: Physics
+---
+
+Shape Casting is an advanced querying feature in physics engines that allows you to "cast" a three-dimensional shape along a specified direction to detect obstructions. Unlike [raycasting](/en/docs/physics/query/raycast) which uses an infinitely thin line, shape casting uses geometric volumes for detection, providing more accurate and practical obstruction information.
+
+## Overview
+
+Galacean Physics Engine provides three shape casting functions:
+
+- **boxCast** - Box Casting: Casts a cubic shape
+- **sphereCast** - Sphere Casting: Casts a spherical shape
+- **capsuleCast** - Capsule Casting: Casts a capsule shape
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*AicVTLV-8dsAAAAAQHAAAAgAesJ_AQ/original" />
+
+## Use Cases
+
+Shape casting has wide applications in game development:
+
+- **Character Movement Detection** - Check for obstructions before character movement
+- **Vehicle Path Prediction** - Detect clear paths for vehicles, aircraft, etc.
+- **Weapon Attack Validation** - Simulate sword strikes, explosions, and area attacks
+- **Object Placement Verification** - Check if space is available before placing objects
+- **AI Path Planning** - Plan safe movement paths for AI characters
+
+## Box Casting (boxCast)
+
+Box casting projects a cube along a specified direction to detect intersections with colliders in the scene.
+
+### Function Overloads
+
+To improve usability, `boxCast` provides multiple overload versions:
+
+```typescript
+// Basic detection - returns only whether obstruction occurred
+boxCast(center: Vector3, halfExtents: Vector3, direction: Vector3): boolean
+
+// Get hit information
+boxCast(center: Vector3, halfExtents: Vector3, direction: Vector3, outHitResult: HitResult): boolean
+
+// Specify casting distance
+boxCast(center: Vector3, halfExtents: Vector3, direction: Vector3, distance: number): boolean
+
+// Specify distance and get hit information
+boxCast(center: Vector3, halfExtents: Vector3, direction: Vector3, distance: number, outHitResult: HitResult): boolean
+
+// Full parameter version
+boxCast(
+  center: Vector3, 
+  halfExtents: Vector3, 
+  direction: Vector3, 
+  orientation: Quaternion, 
+  distance: number, 
+  layerMask: Layer, 
+  outHitResult?: HitResult
+): boolean
+```
+
+### Usage Examples
+
+```typescript
+import { Vector3, HitResult, Layer, Quaternion } from "@galacean/engine";
+
+// Get physics scene
+const physicsScene = scene.physics;
+
+// Example 1: Basic obstruction detection
+const center = new Vector3(0, 5, 0);
+const halfExtents = new Vector3(1, 1, 1); // Box half-size
+const direction = new Vector3(0, -1, 0);  // Cast downward
+
+if (physicsScene.boxCast(center, halfExtents, direction)) {
+  console.log("Obstruction detected!");
+}
+
+// Example 2: Get detailed hit information
+const hitResult = new HitResult();
+if (physicsScene.boxCast(center, halfExtents, direction, hitResult)) {
+  console.log(`Hit entity: ${hitResult.entity.name}`);
+  console.log(`Hit distance: ${hitResult.distance}`);
+  console.log(`Hit point: ${hitResult.point.toString()}`);
+  console.log(`Hit normal: ${hitResult.normal.toString()}`);
+}
+
+// Example 3: Character movement pre-check
+const playerSize = new Vector3(0.5, 1, 0.5);
+const moveDirection = new Vector3(1, 0, 0);
+const moveDistance = 2.0;
+
+if (!physicsScene.boxCast(playerPosition, playerSize, moveDirection, moveDistance)) {
+  // Path is clear, safe to move
+  playerPosition.add(moveDirection.scale(moveDistance));
+}
+
+// Example 4: Precise detection with full parameters
+const orientation = new Quaternion(0, 0, 0, 1); // No rotation
+const layerMask = Layer.Everything; // Check all layers
+const maxDistance = 10.0;
+
+const detailHit = new HitResult();
+if (physicsScene.boxCast(
+  center, 
+  halfExtents, 
+  direction, 
+  orientation, 
+  maxDistance, 
+  layerMask, 
+  detailHit
+)) {
+  console.log("Precise detection successful");
+}
+```
+
+## Sphere Casting (sphereCast)
+
+Sphere casting projects a sphere along a specified direction, suitable for scenarios requiring spherical detection areas.
+
+### Function Overloads
+
+```typescript
+// Basic detection
+sphereCast(center: Vector3, radius: number, direction: Vector3): boolean
+
+// Get collision information
+sphereCast(center: Vector3, radius: number, direction: Vector3, outHitResult: HitResult): boolean
+
+// Specify casting distance
+sphereCast(center: Vector3, radius: number, direction: Vector3, distance: number): boolean
+
+// Specify distance and get collision information
+sphereCast(center: Vector3, radius: number, direction: Vector3, distance: number, outHitResult: HitResult): boolean
+
+// Full parameter version
+sphereCast(
+  center: Vector3,
+  radius: number, 
+  direction: Vector3,
+  distance: number,
+  layerMask: Layer,
+  outHitResult?: HitResult
+): boolean
+```
+
+### Usage Examples
+
+```typescript
+// Example 1: Spherical object movement prediction
+const ballRadius = 0.5;
+const ballPosition = new Vector3(-5, 2, 0);
+const rollDirection = new Vector3(1, 0, 0);
+const rollDistance = 8.0;
+
+const rollHit = new HitResult();
+if (physicsScene.sphereCast(ballPosition, ballRadius, rollDirection, rollDistance, rollHit)) {
+  console.log(`Ball will hit ${rollHit.entity.name} at distance ${rollHit.distance}`);
+}
+
+// Example 2: Projectile path validation
+```
+
+## Capsule Casting (capsuleCast)
+
+Capsule casting projects a capsule shape along a specified direction, particularly suitable for humanoid character collision detection.
+
+### Function Overloads
+
+```typescript
+// Basic detection
+capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3): boolean
+
+// Get collision information
+capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3, outHitResult: HitResult): boolean
+
+// Specify casting distance
+capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3, distance: number): boolean
+
+// Specify distance and get collision information
+capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3, distance: number, outHitResult: HitResult): boolean
+
+// Full parameter version
+capsuleCast(
+  center: Vector3,
+  radius: number,
+  height: number, 
+  direction: Vector3,
+  orientation: Quaternion,
+  distance: number,
+  layerMask: Layer,
+  outHitResult?: HitResult
+): boolean
+```
+
+### Usage Examples
+
+```typescript
+// Example 1: Character jump detection
+const characterCenter = new Vector3(0, 1, 0);
+const characterRadius = 0.5;
+const characterHeight = 1.8;
+const jumpDirection = new Vector3(0, 1, 0);
+const jumpHeight = 2.0;
+
+if (!physicsScene.capsuleCast(characterCenter, characterRadius, characterHeight, jumpDirection, jumpHeight)) {
+  // Enough headroom, safe to jump
+  performJump();
+}
+
+// Example 2: Humanoid character movement detection
+const moveDirection = new Vector3(1, 0, 0);
+const stepDistance = 1.0;
+
+const moveHit = new HitResult();
+if (physicsScene.capsuleCast(
+  characterCenter, 
+  characterRadius, 
+  characterHeight, 
+  moveDirection, 
+  stepDistance, 
+  moveHit
+)) {
+  console.log(`Character movement will hit obstacle at distance ${moveHit.distance}`);
+  // Can implement sliding or other collision response
+}
+```
+
+## Parameter Description
+
+### Common Parameters
+
+- **center** - Center position of the shape (world coordinates)
+- **direction** - Casting direction (must be a unit vector)
+- **distance** - Casting distance (defaults to `Number.MAX_VALUE`)
+- **layerMask** - Layer mask for filtering specific collider layers (defaults to `Layer.Everything`)
+- **outHitResult** - Output hit result information (optional)
+
+### Shape-Specific Parameters
+
+- **halfExtents** (boxCast) - Half-size of the box
+- **radius** (sphereCast/capsuleCast) - Radius of the sphere/capsule
+- **height** (capsuleCast) - Height of the capsule
+- **orientation** (boxCast/capsuleCast) - Shape rotation (defaults to no rotation)
+
+## Performance Optimization Tips
+
+1. **Use Distance Limits Wisely** - Specify appropriate casting distances to avoid unnecessary long-distance detection
+2. **Layer Mask Filtering** - Use `layerMask` to only check relevant collider layers
+3. **Reuse HitResult Objects** - Avoid frequent creation of new HitResult instances
+4. **Choose Appropriate Shapes** - Select the simplest shape type based on actual needs
+
+```typescript
+// Performance optimization example
+class PhysicsQuery {
+  private static readonly _hitResult = new HitResult();
+  private static readonly _playerLayerMask = Layer.Layer0 | Layer.Layer1;
+  
+  static checkPlayerMovement(center: Vector3, direction: Vector3): boolean {
+    return scene.physics.capsuleCast(
+      center,
+      0.5,           // Fixed radius
+      1.8,           // Fixed height
+      direction,
+      2.0,           // Limit detection distance
+      this._playerLayerMask,  // Only check relevant layers
+      this._hitResult         // Reuse result object
+    );
+  }
+}
+```
+
+## Important Notes
+
+1. **Direction Vector Normalization** - Ensure the `direction` parameter is a unit vector
+2. **World Coordinate System** - All positions and directions are based on world coordinates
+3. **Collider Requirements** - Only entities with [collider components](/en/docs/physics/collider/overview) can be detected
+
+## Differences from Raycasting
+
+| Feature | Raycasting | Shape Casting |
+|---------|------------|---------------|
+| Detection Precision | Point precision | Volume precision |
+| Performance Cost | Low | Medium |
+| Use Cases | Picking, aiming | Movement prediction, path validation |
+
+Shape casting provides more accurate obstruction information than raycasting, particularly suitable for scenarios that need to consider object volume. Combined with appropriate performance optimization strategies, it can maintain good runtime efficiency while ensuring precision.

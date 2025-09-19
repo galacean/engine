@@ -254,7 +254,6 @@ export class ShaderProgram {
     // Create program and link shader
     const program = gl.createProgram();
     if (!program) {
-      console.warn("Context lost while create program.");
       return null;
     }
 
@@ -285,7 +284,6 @@ export class ShaderProgram {
     const shader = gl.createShader(shaderType);
 
     if (!shader) {
-      console.warn("Context lost while create shader.");
       return null;
     }
 
@@ -469,7 +467,8 @@ export class ShaderProgram {
   private _getUniformInfos(): WebGLActiveInfo[] {
     const gl = this._gl;
     const program = this._glProgram;
-    const uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+    // uniformCount is `null` when context lost.
+    const uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS) ?? 0;
 
     const uniformInfos = new Array<WebGLActiveInfo>(uniformCount);
     for (let i = 0; i < uniformCount; ++i) {
@@ -485,7 +484,8 @@ export class ShaderProgram {
     const program = this._glProgram;
     const attributeInfos = new Array<WebGLActiveInfo>();
 
-    const attributeCount = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
+    // attributeCount is `null` when context lost.
+    const attributeCount = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES) ?? 0;
     for (let i = 0; i < attributeCount; ++i) {
       const info = gl.getActiveAttrib(program, i);
       attributeInfos[i] = info;

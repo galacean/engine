@@ -20,17 +20,19 @@ export enum ShapeFlag {
  * Abstract class for collider shapes.
  */
 export abstract class PhysXColliderShape implements IColliderShape {
-  protected static _tempVector4 = new Vector4();
   static readonly halfSqrt: number = 0.70710678118655;
   static transform = {
     translation: new Vector3(),
     rotation: null
   };
 
+  protected static _tempVector4 = new Vector4();
+
   /** @internal */
   _controllers: DisorderedArray<PhysXCharacterController> = new DisorderedArray<PhysXCharacterController>();
   /** @internal */
   _contractOffset: number = 0.02;
+
   /** @internal */
   _worldScale: Vector3 = new Vector3(1, 1, 1);
   /** @internal */
@@ -40,12 +42,13 @@ export abstract class PhysXColliderShape implements IColliderShape {
   /** @internal */
   _pxShape: any;
   /** @internal */
-  _pxGeometry: any;
   /** @internal */
   _id: number;
+  /** @internal */
+  _rotation: Vector3 = new Vector3();
 
   protected _physXPhysics: PhysXPhysics;
-  protected _rotation: Vector3 = new Vector3();
+  protected _pxGeometry: any;
   protected _axis: Quaternion = null;
   protected _physXRotation: Quaternion = new Quaternion();
 

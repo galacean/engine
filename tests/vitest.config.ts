@@ -20,7 +20,10 @@ export default defineProject({
       name: "chromium",
       providerOptions: {
         launch: {
-          args: ["--use-gl=egl", "--ignore-gpu-blocklist", "--use-gl=angle"]
+          args:
+            process.env.HEADLESS === "true"
+              ? ["--use-gl=egl", "--ignore-gpu-blocklist", "--use-gl=angle", "--headless"]
+              : ["--use-gl=egl", "--ignore-gpu-blocklist", "--use-gl=angle"]
         }
       }
     }

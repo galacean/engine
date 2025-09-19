@@ -56,17 +56,6 @@ vec4 texture2DSRGB(sampler2D tex, vec2 uv) {
 	return color;
 }
 
-#ifdef HAS_TEX_LOD
-	vec4 texture2DLodSRGB(sampler2D tex, vec2 uv, float lod) {
-		vec4 color = texture2DLodEXT(tex, uv, lod);
-		#ifdef ENGINE_NO_SRGB
-			color = sRGBToLinear(color);
-		#endif
-		return color;
-	}
-#endif
-
-
 vec4 outputSRGBCorrection(vec4 linearIn){
     #ifdef ENGINE_OUTPUT_SRGB_CORRECT
     	return linearToSRGB(linearIn);
@@ -77,11 +66,28 @@ vec4 outputSRGBCorrection(vec4 linearIn){
 
 
 uniform vec4 camera_DepthBufferParams;
+uniform vec4 camera_ProjectionParams;
 
-float remapDepthBufferLinear01(float z){
-	return 1.0/ (camera_DepthBufferParams.x * z + camera_DepthBufferParams.y);
+float remapDepthBufferLinear01(float depth){
+	return 1.0 / (camera_DepthBufferParams.x * depth + camera_DepthBufferParams.y);
 }
 
+float remapDepthBufferEyeDepth(float depth){
+	#ifdef CAMERA_ORTHOGRAPHIC
+		return camera_ProjectionParams.y + (camera_ProjectionParams.z - camera_ProjectionParams.y) * depth;
+	#else
+		return 1.0 / (camera_DepthBufferParams.z * depth + camera_DepthBufferParams.w);
+	#endif
+}
+
+// From Next Generation Post Processing in Call of Duty: Advanced Warfare [Jimenez 2014]
+// http://advances.realtimerendering.com/s2014/index.html
+// sampleCoord must not be normalized (e.g. window coordinates)
+float interleavedGradientNoise(vec2 sampleCoord)
+{
+	const vec3 magic = vec3(0.06711056, 0.00583715, 52.9829189);
+	return fract(magic.z * fract(dot(sampleCoord, magic.xy)));
+}
 
 #ifdef GRAPHICS_API_WEBGL2
 	#define INVERSE_MAT(mat) inverse(mat)

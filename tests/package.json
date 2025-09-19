@@ -1,7 +1,7 @@
 {
   "name": "@galacean/engine-tests",
   "private": true,
-  "version": "1.5.7",
+  "version": "1.6.0",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
@@ -25,7 +25,7 @@
     "@galacean/engine-shaderlab": "workspace:*",
     "@galacean/engine-physics-physx": "workspace:*",
     "@galacean/engine-ui": "workspace:*",
-    "@galacean/engine-shader-shaderlab": "workspace:*"
+    "@galacean/engine-shader": "workspace:*"
   },
   "devDependencies": {
     "@vitest/browser": "2.1.3"

@@ -1,20 +1,15 @@
-import { Lexer } from "./lexer";
-import { ShaderTargetParser } from "./parser";
-import { Preprocessor } from "./preprocessor";
-import { GLES100Visitor, GLES300Visitor } from "./codeGen";
-import { IShaderContent, IShaderLab } from "@galacean/engine-design";
-import { ShaderContentParser } from "./contentParser";
-// @ts-ignore
-import { Logger, ShaderLib, ShaderMacro, ShaderPlatformTarget } from "@galacean/engine";
-import { ShaderPosition, ShaderRange } from "./common";
-// #if _VERBOSE
-import { GSError } from "./GSError";
-// #endif
-import { PpParser } from "./preprocessor/PpParser";
-import { ShaderLabUtils } from "./ShaderLabUtils";
+import { Logger, ShaderMacro, ShaderLanguage } from "@galacean/engine";
+import { IShaderLab, IShaderSource } from "@galacean/engine-design";
 import { IShaderProgramSource } from "@galacean/engine-design/types/shader-lab/IShaderProgramSource";
+import { GLES100Visitor, GLES300Visitor } from "./codeGen";
+import { ShaderPosition, ShaderRange } from "./common";
+import { Lexer } from "./lexer";
+import { MacroParser } from "./macroProcessor/MacroParser";
+import { ShaderTargetParser } from "./parser";
+import { Preprocessor } from "./Preprocessor";
+import { ShaderLabUtils } from "./ShaderLabUtils";
+import { ShaderSourceParser } from "./sourceParser/ShaderSourceParser";
 
-/** @internal */
 export class ShaderLab implements IShaderLab {
   private static _parser = ShaderTargetParser.create();
   private static _shaderPositionPool = ShaderLabUtils.createObjectPool(ShaderPosition);
@@ -42,102 +37,79 @@ export class ShaderLab implements IShaderLab {
     return range;
   }
 
-  // #if _VERBOSE
-  /** Retrieve the compilation errors */
-  readonly errors: Error[] = [];
-  // #endif
+  _parseShaderSource(sourceCode: string): IShaderSource {
+    ShaderLabUtils.clearAllShaderLabObjectPool();
+    const shaderSource = ShaderSourceParser.parse(sourceCode);
+
+    // #if _VERBOSE
+    this._logErrors(ShaderSourceParser.errors);
+    // #endif
+
+    return shaderSource;
+  }
 
   _parseShaderPass(
     source: string,
     vertexEntry: string,
     fragmentEntry: string,
-    macros: ShaderMacro[],
-    backend: ShaderPlatformTarget,
-    platformMacros: string[],
+    backend: ShaderLanguage,
     basePathForIncludeKey: string
   ): IShaderProgramSource | undefined {
-    Preprocessor.reset(ShaderLib, basePathForIncludeKey);
-    for (const macro of macros) {
-      Preprocessor.addPredefinedMacro(macro.name, macro.value);
-    }
+    const totalStartTime = performance.now();
+    const macroDefineList = {};
+    Preprocessor._repeatIncludeSet.clear();
+    const noIncludeContent = Preprocessor.parse(source, basePathForIncludeKey, macroDefineList);
+    Logger.info(`[Task - Pre processor] cost time ${performance.now() - totalStartTime}ms`);
 
-    for (let i = 0; i < platformMacros.length; i++) {
-      Preprocessor.addPredefinedMacro(platformMacros[i]);
-    }
+    const lexer = new Lexer(noIncludeContent, macroDefineList);
 
-    const preprocessorStart = performance.now();
-    const ppdContent = Preprocessor.process(source);
-    // #if _VERBOSE
-    if (PpParser._errors.length > 0) {
-      for (const err of PpParser._errors) {
-        this.errors.push(<GSError>err);
-      }
-      this._logErrors();
-      return undefined;
-    }
-    // #endif
-
-    Logger.info(`[pass compilation - preprocessor]  cost time ${performance.now() - preprocessorStart}ms`);
-
-    const lexer = new Lexer(ppdContent);
     const tokens = lexer.tokenize();
-
     const { _parser: parser } = ShaderLab;
 
-    ShaderLab._processingPassText = ppdContent;
-    const program = parser.parse(tokens);
+    ShaderLab._processingPassText = noIncludeContent;
+
+    const program = parser.parse(tokens, macroDefineList);
 
     // #if _VERBOSE
-    for (const err of parser.errors) {
-      this.errors.push(err);
-    }
+    this._logErrors(parser.errors);
     // #endif
+
     if (!program) {
-      // #if _VERBOSE
-      this._logErrors();
-      // #endif
       return undefined;
     }
 
-    const codeGen =
-      backend === ShaderPlatformTarget.GLES100 ? GLES100Visitor.getVisitor() : GLES300Visitor.getVisitor();
+    const codeGen = backend === ShaderLanguage.GLSLES100 ? GLES100Visitor.getVisitor() : GLES300Visitor.getVisitor();
 
-    const start = performance.now();
+    const codeGenStartTime = performance.now();
     const ret = codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
-    Logger.info(`[CodeGen] cost time: ${performance.now() - start}ms`);
+    Logger.info(`[Task - CodeGen] cost time: ${performance.now() - codeGenStartTime}ms`);
+    Logger.info(`[Task - Total compilation] cost time: ${performance.now() - totalStartTime}ms`);
     ShaderLab._processingPassText = undefined;
 
     // #if _VERBOSE
-    for (const err of codeGen.errors) {
-      this.errors.push(err);
-    }
-    this._logErrors();
+    this._logErrors(codeGen.errors);
     // #endif
 
     return ret;
   }
 
-  _parseShaderContent(shaderSource: string): IShaderContent {
-    ShaderLabUtils.clearAllShaderLabObjectPool();
-    ShaderContentParser.reset();
-    const ret = ShaderContentParser.parse(shaderSource);
+  _parseMacros(content: string, macros: ShaderMacro[]): string {
+    const startTime = performance.now();
+    const parsedContent = MacroParser.parse(content, macros);
+    Logger.info(`[Task -  parse macros] cost time: ${performance.now() - startTime}ms`);
 
     // #if _VERBOSE
-    this.errors.length = 0;
-    for (const error of ShaderContentParser._errors) {
-      this.errors.push(error);
-    }
+    this._logErrors(MacroParser._errors);
     // #endif
 
-    return ret;
+    return parsedContent;
   }
 
   // #if _VERBOSE
   /**
    * @internal
    */
-  _logErrors() {
-    const errors = this.errors;
+  _logErrors(errors: Error[]) {
     if (errors.length === 0 || !Logger.isEnabled) return;
     Logger.error(`${errors.length} errors occur!`);
     for (const err of errors) {
