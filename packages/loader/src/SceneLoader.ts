@@ -157,6 +157,7 @@ class SceneLoader extends Loader<Scene> {
               sceneAmbientOcclusion.power = ambientOcclusion.power;
               sceneAmbientOcclusion.quality = ambientOcclusion.quality;
               sceneAmbientOcclusion.bilateralThreshold = ambientOcclusion.bilateralThreshold;
+              sceneAmbientOcclusion.minHorizonAngle = ambientOcclusion.minHorizonAngle;
             }
 
             return Promise.all(promises).then(() => {
