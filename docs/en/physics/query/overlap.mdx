@@ -1,0 +1,329 @@
+---
+order: 5
+title: Overlap Detection
+type: Physics
+label: Physics
+---
+
+Overlap Detection is a physics engine feature used to detect all overlapping colliders within a specified region. Unlike [shape casting](/en/docs/physics/query/sweep) which performs dynamic detection along a direction, overlap detection checks for all objects overlapping with a specified geometric shape at a static position.
+
+## Overview
+
+Galacean Physics Engine provides three overlap detection functions:
+
+- **overlapBoxAll** - Box Overlap: Detects all colliders overlapping with a cubic region
+- **overlapSphereAll** - Sphere Overlap: Detects all colliders overlapping with a spherical region
+- **overlapCapsuleAll** - Capsule Overlap: Detects all colliders overlapping with a capsule region
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*VDrBSajmuW8AAAAAWeAAAAgAesJ_AQ/original" />
+
+## Use Cases
+
+Common applications of overlap detection in game development:
+
+- **Area Triggers** - Detect all objects entering specific regions
+- **Explosion Damage Calculation** - Determine all targets within explosion range
+- **Collectible Item Detection** - Check for collectible items around the player
+- **AI Perception Systems** - Implement enemy vision or hearing range detection
+- **Building System Validation** - Check if construction areas are occupied by other objects
+- **Area Attack Validation** - Calculate the effective range of skills or spells
+
+## Box Overlap Detection (overlapBoxAll)
+
+Detects all colliders overlapping with a specified cubic region.
+
+### Function Signature
+
+```typescript
+overlapBoxAll(
+  center: Vector3,
+  halfExtents: Vector3,
+  orientation: Quaternion = new Quaternion(),
+  layerMask: Layer = Layer.Everything,
+  shapes: ColliderShape[] = []
+): ColliderShape[]
+```
+
+### Usage Examples
+
+```typescript
+import { Vector3, Quaternion, Layer, ColliderShape } from "@galacean/engine";
+
+// Get physics scene
+const physicsScene = scene.physics;
+
+// Example 1: Basic overlap detection
+const center = new Vector3(0, 0, 0);
+const halfExtents = new Vector3(2, 1, 2); // Box half-size
+
+const allOverlapping = physicsScene.overlapBoxAll(center, halfExtents);
+console.log(`Detected ${allOverlapping.length} overlapping objects`);
+
+allOverlapping.forEach((shape, index) => {
+  console.log(`${index + 1}. ${shape.collider.entity.name}`);
+});
+
+// Example 2: Building system - check if area is occupied
+const buildCenter = new Vector3(5, 0, 3);
+const buildSize = new Vector3(1.5, 1, 1.5);
+const buildingLayerMask = Layer.Layer0 | Layer.Layer1; // Use actual existing layers
+
+const obstacleShapes: ColliderShape[] = [];
+const obstacles = physicsScene.overlapBoxAll(
+  buildCenter, 
+  buildSize, 
+  new Quaternion(), // Use new quaternion instance instead of non-existent IDENTITY
+  buildingLayerMask, 
+  obstacleShapes
+);
+
+if (obstacles.length === 0) {
+  console.log("Area is free, can build");
+  placeBuildingAt(buildCenter);
+} else {
+  console.log("Area is occupied, cannot build");
+  obstacles.forEach(shape => {
+    console.log(`Obstacle: ${shape.collider.entity.name}`);
+  });
+}
+
+// Example 3: Rotated box detection
+const rotatedOrientation = new Quaternion();
+Quaternion.rotationY(Math.PI / 4, rotatedOrientation); // Use correct API
+const rotatedOverlap = physicsScene.overlapBoxAll(
+  center, 
+  halfExtents, 
+  rotatedOrientation, 
+  Layer.Everything
+);
+```
+
+## Sphere Overlap Detection (overlapSphereAll)
+
+Detects all colliders overlapping with a specified spherical region.
+
+### Function Signature
+
+```typescript
+overlapSphereAll(
+  center: Vector3,
+  radius: number,
+  layerMask: Layer = Layer.Everything,
+  shapes: ColliderShape[] = []
+): ColliderShape[]
+```
+
+### Usage Examples
+
+```typescript
+// Example 1: Explosion damage detection
+const explosionCenter = new Vector3(0, 1, 0);
+const explosionRadius = 5.0;
+const targetLayer = Layer.Layer0; // Use actual existing layer
+
+const affectedTargets = physicsScene.overlapSphereAll(
+  explosionCenter, 
+  explosionRadius, 
+  targetLayer
+);
+
+affectedTargets.forEach(shape => {
+  const entity = shape.collider.entity;
+  const distance = Vector3.distance(explosionCenter, entity.transform.position);
+  const damage = calculateExplosionDamage(distance, explosionRadius);
+  
+  console.log(`${entity.name} takes ${damage} explosion damage`);
+  applyDamage(entity, damage);
+});
+
+// Example 2: Collectible item system
+const playerPosition = new Vector3(2, 0, 1);
+const collectRadius = 1.5;
+const itemLayer = Layer.Layer2; // Use actual existing layer
+
+const collectibleItems = physicsScene.overlapSphereAll(
+  playerPosition, 
+  collectRadius, 
+  itemLayer
+);
+
+collectibleItems.forEach(shape => {
+  const item = shape.collider.entity;
+  console.log(`Collected item: ${item.name}`);
+  collectItem(item);
+});
+
+// Example 3: AI perception system
+class AIPerception {
+  private readonly _detectedShapes: ColliderShape[] = [];
+  
+  checkVisionRange(aiPosition: Vector3, visionRadius: number): Entity[] {
+    this._detectedShapes.length = 0; // Clear array
+    
+    const detectedShapes = physicsScene.overlapSphereAll(
+      aiPosition,
+      visionRadius,
+      Layer.Layer0 | Layer.Layer1, // Use actual layer combination
+      this._detectedShapes
+    );
+    
+    return detectedShapes.map(shape => shape.collider.entity);
+  }
+}
+```
+
+## Capsule Overlap Detection (overlapCapsuleAll)
+
+Detects all colliders overlapping with a specified capsule region, particularly suitable for humanoid character range detection.
+
+### Function Signature
+
+```typescript
+overlapCapsuleAll(
+  center: Vector3,
+  radius: number,
+  height: number,
+  orientation: Quaternion = new Quaternion(),
+  layerMask: Layer = Layer.Everything,
+  shapes: ColliderShape[] = []
+): ColliderShape[]
+```
+
+### Usage Examples
+
+```typescript
+// Example 1: Character attack range detection
+const characterCenter = new Vector3(0, 1, 0);
+const attackRadius = 1.0;
+const attackHeight = 2.0;
+const enemyLayer = Layer.Layer3; // Use actual existing layer
+
+const attackTargets = physicsScene.overlapCapsuleAll(
+  characterCenter,
+  attackRadius,
+  attackHeight,
+  new Quaternion(), // Use new quaternion instance
+  enemyLayer
+);
+
+if (attackTargets.length > 0) {
+  console.log(`Attack hit ${attackTargets.length} targets`);
+  attackTargets.forEach(shape => {
+    const enemy = shape.collider.entity;
+    applyMeleeDamage(enemy, 50);
+  });
+}
+
+// Example 2: Portal detection
+const portalCenter = new Vector3(10, 0, 5);
+const portalRadius = 0.8;
+const portalHeight = 2.5;
+const characterLayer = Layer.Layer0; // Use actual existing layer
+
+const charactersInPortal = physicsScene.overlapCapsuleAll(
+  portalCenter,
+  portalRadius,
+  portalHeight,
+  new Quaternion(), // Use new quaternion instance
+  characterLayer
+);
+
+charactersInPortal.forEach(shape => {
+  const character = shape.collider.entity;
+  console.log(`${character.name} entered portal`);
+  teleportCharacter(character, destinationPosition);
+});
+
+// Example 3: Elevator detection system
+class ElevatorDetector {
+  private readonly _passengersBuffer: ColliderShape[] = [];
+  
+  detectPassengers(elevatorCenter: Vector3): Entity[] {
+    this._passengersBuffer.length = 0;
+    
+    const passengers = physicsScene.overlapCapsuleAll(
+      elevatorCenter,
+      1.2,  // Elevator width
+      2.0,  // Elevator height
+      new Quaternion(), // Use new quaternion instance
+      Layer.Layer0 | Layer.Layer4, // Use actual layer combination
+      this._passengersBuffer
+    );
+    
+    return passengers.map(shape => shape.collider.entity);
+  }
+}
+```
+
+## Parameter Description
+
+### Common Parameters
+
+- **center** - Center position of the detection region (world coordinates)
+- **layerMask** - Layer mask for filtering specific collider layers (defaults to `Layer.Everything`)
+- **shapes** - Optional output array for storing results to avoid memory allocation
+
+### Shape-Specific Parameters
+
+- **halfExtents** (overlapBoxAll) - Half-size of the box
+- **radius** (overlapSphereAll/overlapCapsuleAll) - Radius of the sphere/capsule
+- **height** (overlapCapsuleAll) - Height of the capsule
+- **orientation** (overlapBoxAll/overlapCapsuleAll) - Shape rotation (defaults to no rotation)
+
+## Return Values
+
+All detection functions return a `ColliderShape[]` array containing all overlapping collider shapes.
+
+## Performance Optimization Tips
+
+1. **Reuse Result Arrays** - Use pre-allocated arrays to avoid garbage collection
+2. **Use Layer Masks Wisely** - Filter only relevant collider layers through `layerMask`
+3. **Choose Appropriate Detection Shapes** - Select the simplest geometric shape based on actual needs
+4. **Avoid Frequent Calls** - Perform detection at appropriate intervals rather than every frame
+
+```typescript
+// Performance optimization example
+class OverlapDetector {
+  private static readonly _resultBuffer: ColliderShape[] = [];
+  private static readonly _targetLayer = Layer.Layer0 | Layer.Layer3;
+  
+  static detectTargetsInRange(center: Vector3, radius: number): Entity[] {
+    // Clear reused array
+    this._resultBuffer.length = 0;
+    
+    // Use pre-allocated array and layer filtering
+    const shapes = physicsScene.overlapSphereAll(
+      center,
+      radius,
+      this._targetLayer,
+      this._resultBuffer
+    );
+    
+    // Convert to entity array
+    return shapes.map(shape => shape.collider.entity);
+  }
+}
+
+// Usage example
+const nearbyTargets = OverlapDetector.detectTargetsInRange(playerPosition, 10.0);
+```
+
+## Important Notes
+
+1. **World Coordinate System** - All position parameters are based on world coordinates
+2. **Collider Requirements** - Only entities with [collider components](/en/docs/physics/collider/overview) can be detected
+3. **Static Detection** - Overlap detection is instantaneous and doesn't consider object motion
+4. **Result Order** - The order of detection results is non-deterministic and shouldn't be relied upon
+5. **Layer Mask Usage** - Use actual existing layer enum values (Layer.Layer0 to Layer.Layer31) for layer filtering
+
+## Differences from Shape Casting
+
+| Feature | Overlap Detection | Shape Casting |
+|---------|-------------------|---------------|
+| Detection Method | Static region detection | Dynamic directional casting |
+| Return Results | All overlapping objects | First collision object |
+| Use Cases | Area triggers, range attacks | Movement prediction, path detection |
+| Performance Cost | Medium | Medium |
+| Result Count | Multiple | Single |
+
+Overlap detection provides powerful support for area-based game logic, particularly suitable for implementing triggers, range attacks, collection systems, and other functionality. Combined with appropriate performance optimization strategies, it can efficiently handle complex spatial query requirements.
