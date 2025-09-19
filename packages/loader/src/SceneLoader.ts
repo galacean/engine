@@ -30,8 +30,8 @@ class SceneLoader extends Loader<Scene> {
       resourceManager
         // @ts-ignore
         ._request<IScene>(item.url, { ...item, type: "json" })
-        .then((data) => {
-          const scene = new Scene(engine);
+        .then((data: IScene) => {
+          const scene = new Scene(engine, data.name ?? "");
           const context = new ParserContext<IScene, Scene>(engine, ParserType.Scene, scene);
           const parser = new SceneParser(data, context, scene);
           parser._collectDependentAssets(data);
