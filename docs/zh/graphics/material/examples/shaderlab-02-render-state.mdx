@@ -1,236 +1,233 @@
 ---
-title: 渲染状态控制
+title: Rendering State Control
 ---
 
-渲染状态决定了GPU如何处理几何体，包括混合、深度测试、面剔除等。本教程通过对比不透明和透明物体，学习渲染状态的配置，通过本教程，你将学会：
-- 渲染状态的基本概念
-- BlendState 的配置和混合公式
-- DepthState 的深度测试和写入控制
-- 不透明和透明物体的不同处理方式
-- 常见混合模式的应用场景
+Rendering state determines how the GPU processes geometry, including blending, depth testing, and face culling. This tutorial uses opaque and transparent objects to demonstrate how to configure rendering states. By completing this tutorial, you will learn:
+- Basic concepts of rendering states
+- Configuration and blending formulas of BlendState
+- Depth testing and write control of DepthState
+- Different processing methods for opaque and transparent objects
+- Common scenarios for using different blending modes
 
 <Image
-  src="https://mdn.alipayobjects.com/huamei_dmxymu/afts/img/A*cKkoT57kv5kAAAAAQYAAAAgAeuuHAQ/original"
+src="https://mdn.alipayobjects.com/huamei_dmxymu/afts/img/A*cKkoT57kv5kAAAAAQYAAAAgAeuuHAQ/original"
 />
 
 
-## 什么是渲染状态
+## What is Rendering State?
 
-渲染状态是告诉GPU"如何渲染"的一系列设置，主要包括：
-- **BlendState**：控制颜色混合
-- **DepthState**：控制深度测试和写入
-- **RasterState**：控制光栅化过程
-- **StencilState**：控制模板测试
+Rendering state is a set of settings that tells the GPU "how to render".  It mainly includes:
+- **BlendState**: Controls color blending
+- **DepthState**: Controls depth testing and writing
+- **RasterState**: Controls rasterization
+- **StencilState**: Controls stencil testing
 
-## BlendState - 混合状态
+## BlendState - Blending State
 
-混合状态控制新绘制的像素如何与已有像素混合：
+The blending state controls how newly drawn pixels are blended with existing pixels:
 
-### 不透明物体
+### Opaque Objects
 ```glsl
 BlendState customBlendState {
-  Enabled = false;           // 关闭混合
+Enabled = false;           // Disable blending
 }
 ```
 
-不透明物体不需要混合，直接覆盖背景色。
-
-### 透明物体
+Opaque objects do not require blending; they directly overwrite the background color. ### Transparent Objects
 ```glsl
- BlendState customBlendState {
-    Enabled = true;                    // 开启混合
-    SourceColorBlendFactor = BlendFactor.SourceAlpha;
-    DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    SourceAlphaBlendFactor = BlendFactor.One;
-    DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+BlendState customBlendState {
+Enabled = true;                    // Enable blending
+SourceColorBlendFactor = BlendFactor.SourceAlpha;
+DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+SourceAlphaBlendFactor = BlendFactor.One;
+DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
 }
 ```
 
-**混合公式**：
+**Blending Formula:**
 ```
-最终颜色 = 源颜色 × SrcAlpha + 目标颜色 × (1 - SrcAlpha)
+Final Color = Source Color × SrcAlpha + Destination Color × (1 - SrcAlpha)
 ```
 
-**常用混合因子**：
-- `SrcAlpha`：源像素的透明度
-- `OneMinusSrcAlpha`：1减去源像素的透明度
-- `One`：1.0
-- `Zero`：0.0
+**Common Blend Factors:**
+- `SrcAlpha`: Transparency of the source pixel
+- `OneMinusSrcAlpha`: 1 minus the transparency of the source pixel
+- `One`: 1.0
+- `Zero`: 0.0
 
-## DepthState - 深度状态
+## DepthState - Depth State
 
-深度状态控制深度缓冲区的使用：
+The depth state controls the use of the depth buffer:
 
-### 不透明物体
+### Opaque Objects
 ```glsl
 DepthState customDepthState {
-    WriteEnabled = true;        // 开启深度写入（透明物体通常不写深度）
-    CompareFunction = CompareFunction.LessEqual;       // 但仍然进行深度测试
+WriteEnabled = true;        // Enable depth writing (transparent objects usually don't write to depth)
+CompareFunction = CompareFunction.LessEqual;       // But still perform depth testing
 }
 
-// 指定不透明队列
+// Specify the opaque render queue
 RenderQueueType = Opaque;
 ```
 
-### 透明物体
+### Transparent Objects
 ```glsl
 DepthState customDepthState {
-    WriteEnabled = false;        // 关闭深度写入（透明物体通常不写深度）
-    CompareFunction = CompareFunction.LessEqual;       // 但仍然进行深度测试
+WriteEnabled = false;        // Disable depth writing (transparent objects usually don't write to depth)
+CompareFunction = CompareFunction.LessEqual;       // But still perform depth testing
 }
 
-// 指定透明队列
+// Specify the transparent render queue
 RenderQueueType = Transparent;
 ```
 
-**为什么透明物体要关闭深度写入？**
-- 透明物体后面可能还有其他物体
-- 如果写入深度，会阻挡后面的物体渲染
-- 但仍需要深度测试来确定渲染顺序
+**Why disable depth writing for transparent objects? **
+- Transparent objects may have other objects behind them.
+- If depth writing is enabled, it will block the rendering of objects behind it.
+- However, depth testing is still needed to determine the rendering order.
 
-**深度测试函数**：
-- `Less`：小于时通过测试
-- `LessEqual`：小于等于时通过测试
-- `Greater`：大于时通过测试
-- `Always`：总是通过测试
-- `Never`：从不通过测试
+**Depth Test Functions:**
+- `Less`: Passes the test if the value is less than.
+- `LessEqual`: Passes the test if the value is less than or equal to.
+- `Greater`: Passes the test if the value is greater than.
+- `Always`: Always passes the test.
+- `Never`: Never passes the test.
 
-## 完整着色器对比
+## Complete Shader Comparison
 
-### 不透明 Shader
+### Opaque Shader
 ```glsl
 Shader "Tutorial/02-Opaque" {
-  SubShader "Default" {
-    Pass "Forward" {
-      // 渲染状态：不透明物体的标准设置
-      BlendState customBlendState {
-        Enabled = false;           // 关闭混合
-      }
-      
-      DepthState customDepthState {
-        WriteEnabled = true;       // 开启深度写入
-        CompareFunction = CompareFunction.LessEqual; // 深度测试函数
-      }
-      
-      BlendState = customBlendState;
-      DepthState = customDepthState;
-      RenderQueueType = Opaque;
-      
-      mat4 renderer_MVPMat;
-      vec4 material_BaseColor;
-      
-      struct Attributes {
-        vec4 POSITION;
-      };
-      
-      VertexShader = vert;
-      FragmentShader = frag;
-      
-      
-      void vert(Attributes attr) {
-        gl_Position = renderer_MVPMat * attr.POSITION;
-      }
-      
-      void frag() {
-        gl_FragColor = material_BaseColor;
-      }
-    }
-  }
+SubShader "Default" {
+Pass "Forward" {
+// Rendering State: Standard settings for opaque objects
+BlendState customBlendState {
+Enabled = false;           // Disable blending
+}
+
+DepthState customDepthState {
+WriteEnabled = true;       // Enable depth writing
+CompareFunction = CompareFunction.LessEqual; // Depth test function
+}
+
+BlendState = customBlendState;
+DepthState = customDepthState;
+RenderQueueType = Opaque;
+
+mat4 renderer_MVPMat;
+vec4 material_BaseColor;
+
+struct Attributes {
+vec4 POSITION;
+};
+
+VertexShader = vert;
+FragmentShader = frag;
+
+
+void vert(Attributes attr) {
+gl_Position = renderer_MVPMat * attr.POSITION;
+}
+
+void frag() {
+gl_FragColor = material_BaseColor;
+}
+}
+}
 }
 ```
 
-### 透明 Shader
+### Transparent Shader
 ```glsl
 Shader "Tutorial/02-Transparent" {
-  SubShader "Default" {
-    Pass "Forward" {
-      // 渲染状态：透明物体的标准设置
-      BlendState customBlendState {
-        Enabled = true;                    // 开启混合
-        SourceColorBlendFactor = BlendFactor.SourceAlpha;
-        DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-        SourceAlphaBlendFactor = BlendFactor.One;
-        DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-      }
-      
-      DepthState customDepthState {
-        WriteEnabled = false;        // 关闭深度写入（透明物体通常不写深度）
-        CompareFunction = CompareFunction.LessEqual;       // 但仍然进行深度测试
-      }
+SubShader "Default" {
+Pass "Forward" {
+// Rendering State: Standard settings for transparent objects
+BlendState customBlendState {
+Enabled = true;                    // Enable blending
+SourceColorBlendFactor = BlendFactor.SourceAlpha;
+DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+SourceAlphaBlendFactor = BlendFactor.One;
+DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+}
 
-      BlendState = customBlendState;
-      DepthState = customDepthState;
-      RenderQueueType = Transparent;
-      
-      mat4 renderer_MVPMat;
-      vec4 material_BaseColor;
-      float material_Alpha;
-      
-      struct Attributes {
-        vec4 POSITION;
-      };
-      
-      VertexShader = vert;
-      FragmentShader = frag;
-      
-      void vert(Attributes attr) {
-        gl_Position = renderer_MVPMat * attr.POSITION;
-      }
-      
-      void frag() {
-        vec4 color = material_BaseColor;
-        color.a = material_Alpha; // 使用自定义的透明度
-        gl_FragColor = color;
-      }
-    }
-  }
+DepthState customDepthState {
+WriteEnabled = false;        // Disable depth writing (transparent objects usually don't write depth)
+CompareFunction = CompareFunction.LessEqual;       // But still perform depth test
+}
+
+BlendState = customBlendState;
+DepthState = customDepthState;
+RenderQueueType = Transparent;
+
+mat4 renderer_MVPMat;
+vec4 material_BaseColor;
+float material_Alpha;
+
+struct Attributes {
+vec4 POSITION;
+};
+
+VertexShader = vert;
+FragmentShader = frag;
+
+void vert(Attributes attr) {
+gl_Position = renderer_MVPMat * attr.POSITION;
+}
+
+void frag() {
+vec4 color = material_BaseColor;
+color.a = material_Alpha; // Use custom alpha value
+gl_FragColor = color;
+}
+}
 }
 ```
 
-## 透明度控制
+## Transparency Control
 
-在片元着色器中控制透明度：
+Control transparency in the fragment shader:
 
 ```glsl
 void frag() {
-  vec4 color = material_BaseColor;
-  color.a = material_Alpha; // 设置透明度
-  gl_FragColor = color;
+vec4 color = material_BaseColor;
+color.a = material_Alpha; // Set transparency
+gl_FragColor = color;
 }
 ```
 
 
-## 渲染顺序的重要性
+## Importance of Rendering Order
 
-透明物体的渲染顺序很重要：
-1. **先渲染不透明物体**：写入深度缓冲区
-2. **后渲染透明物体**：从后往前渲染，不写入深度
+The rendering order of transparent objects is crucial:
+1. **Render opaque objects first**: Write to the depth buffer
+2. **Render transparent objects later**: Render from back to front, without writing to the depth buffer
 
 ```glsl
-// 引擎会自动处理渲染顺序，但你需要正确设置渲染状态
+// The engine will handle the rendering order automatically, but you need to set the rendering state correctly
 RenderQueueType = **;
 ```
 
-## 其他混合模式
+## Other Blend Modes
 
-### 加法混合（发光效果）
+### Additive Blending (Glow Effect)
 ```glsl
- BlendState customBlendState {
-        Enabled = true;                    // 开启混合
-        SourceColorBlendFactor = BlendFactor.SourceAlpha;
-        DestinationColorBlendFactor = BlendFactor.One;
-        SourceAlphaBlendFactor = BlendFactor.Zero;
-        DestinationAlphaBlendFactor = BlendFactor.One;
-      }
+BlendState customBlendState {
+Enabled = true;                    // Enable blending
+SourceColorBlendFactor = BlendFactor.SourceAlpha;
+DestinationColorBlendFactor = BlendFactor.One;
+SourceAlphaBlendFactor = BlendFactor.Zero;
+DestinationAlphaBlendFactor = BlendFactor.One;
+}
 ```
 
 
-## 运行效果
+## Running Results
 
 
-1. 左侧绿色平面：不透明渲染状态（关闭混合，开启深度写入）
-2. 右侧红色平面：透明渲染状态（开启混合，关闭深度写入）
-3. 展示了 BlendState 和 DepthState 的配置
-4. 透明度会动态变化，观察混合效果
+1. Left green plane: Opaque rendering state (blending off, depth writing on)
+2. Right red plane: Transparent rendering state (blending on, depth writing off)
+3. Demonstrates the configuration of BlendState and DepthState
+4. Transparency changes dynamically; observe the blending effect
 
-前往 [游乐场](/examples/shaderlab-02-render-state)
+Go to [Playground](/examples/shaderlab-02-render-state)

@@ -2,439 +2,213 @@
 title: UIScript System
 ---
 
-The UIScript system allows you to create visual parameter panels for custom shaders, making it easy for artists and designers to adjust material properties without writing code. This tutorial will teach you how to create and use UIScript.
+UIScript enables intelligent property panel interaction for shaders, while macro definitions allow for conditional compilation of shaders. This tutorial demonstrates how to combine these two features to create flexible shaders. By completing this tutorial, you will learn:
+- The syntax for defining properties in the Editor module
+- How to use various property types
+- Conditional compilation syntax using macro definitions
+- The logic for property binding in UIScript
 
-## What is UIScript
 
-UIScript is a JavaScript-based script system that defines the user interface for shader parameters. It allows you to:
-- Create visual parameter controls (sliders, color pickers, checkboxes, etc.)
-- Set parameter ranges and default values
-- Group related parameters
-- Add parameter descriptions and tooltips
+<Image
+src="https://mdn.alipayobjects.com/huamei_dmxymu/afts/img/A*5WoAR7VBZtcAAAAAS9AAAAgAeuuHAQ/original"
+/>
 
-## Basic UIScript Structure
 
-A basic UIScript file structure:
+## Editor Module
 
-```javascript
-/**
- * @title Custom Material
- * @author Your Name
- */
-export const UIScript = {
-  // Material property definitions
-  properties: [
-    {
-      target: "material_BaseColor",
-      type: "Color",
-      default: [1, 1, 1, 1],
-      title: "Base Color"
-    },
-    {
-      target: "material_BaseTexture", 
-      type: "Texture2D",
-      title: "Base Texture"
-    }
-  ]
-};
-```
+The Editor module defines the property panel for materials in the editor:
 
-## Property Types
+```glsl
+Editor {
+Properties {
+// Basic property definition
+material_BaseColor("Base Color", Color) = (1, 1, 1, 1);
+material_BaseTexture("Base Texture", Texture2D);
 
-UIScript supports various property types:
-
-### Basic Types
-
-```javascript
-// Float slider
-{
-  target: "material_Metallic",
-  type: "Float",
-  default: 0.0,
-  range: [0, 1],
-  title: "Metallic"
+// Grouping properties
+Header("Effects") {
+material_UseTexture("Use Texture", Boolean) = true;
+material_Brightness("Brightness", Range(0, 2, 0.01)) = 1.0;
 }
-
-// Integer input
-{
-  target: "material_Steps",
-  type: "Int", 
-  default: 5,
-  range: [1, 10],
-  title: "Steps"
 }
-
-// Boolean checkbox
-{
-  target: "ENABLE_NORMAL_MAP",
-  type: "Boolean",
-  default: false,
-  title: "Enable Normal Map"
 }
 ```
 
-### Vector Types
+<Callout type="info">
+Go to [Shader Introduction](/en/docs/graphics/material/shader/#2-editor-module) to learn more about properties
+</Callout>
 
-```javascript
-// Vector2
-{
-  target: "material_Tiling",
-  type: "Vector2",
-  default: [1, 1],
-  title: "Texture Tiling"
-}
 
-// Vector3
-{
-  target: "material_Position",
-  type: "Vector3", 
-  default: [0, 0, 0],
-  title: "Position"
-}
+## Macro Definition System
 
-// Vector4
-{
-  target: "material_TilingOffset",
-  type: "Vector4",
-  default: [1, 1, 0, 0],
-  title: "Tiling & Offset"
-}
-```
+Macro definitions implement conditional compilation for shaders, generating different shader variants based on different conditions:
 
-### Color and Texture
-
-```javascript
-// Color picker
-{
-  target: "material_EmissiveColor",
-  type: "Color",
-  default: [0, 0, 0, 1],
-  title: "Emissive Color"
-}
-
-// Texture selector
-{
-  target: "material_NormalTexture",
-  type: "Texture2D", 
-  title: "Normal Map"
-}
-
-// Cube texture
-{
-  target: "material_EnvTexture",
-  type: "TextureCube",
-  title: "Environment Map"
-}
-```
-
-## Advanced Features
-
-### Parameter Grouping
-
-```javascript
-export const UIScript = {
-  properties: [
-    // Basic group
-    {
-      type: "header",
-      title: "Basic Properties"
-    },
-    {
-      target: "material_BaseColor",
-      type: "Color",
-      default: [1, 1, 1, 1],
-      title: "Base Color"
-    },
-    {
-      target: "material_BaseTexture",
-      type: "Texture2D",
-      title: "Base Texture"
-    },
-    
-    // Advanced group
-    {
-      type: "header", 
-      title: "Advanced Properties"
-    },
-    {
-      target: "material_Metallic",
-      type: "Float",
-      default: 0.0,
-      range: [0, 1],
-      title: "Metallic"
-    }
-  ]
-};
-```
-
-### Conditional Display
-
-```javascript
-// Show/hide parameters based on conditions
-{
-  target: "material_NormalIntensity",
-  type: "Float",
-  default: 1.0,
-  range: [0, 2],
-  title: "Normal Intensity",
-  // Only show when normal map is enabled
-  condition: "ENABLE_NORMAL_MAP"
-}
-```
-
-### Custom Validation
-
-```javascript
-{
-  target: "material_Roughness",
-  type: "Float", 
-  default: 0.5,
-  range: [0.01, 1.0],  // Prevent zero values
-  title: "Roughness",
-  tooltip: "Surface roughness, 0 = mirror, 1 = completely rough"
-}
-```
-
-## Complete Example
-
-Here's a complete UIScript for a PBR-style material:
-
-```javascript
-/**
- * @title PBR Material
- * @author Galacean Team
- * @description A physically based rendering material
- */
-export const UIScript = {
-  properties: [
-    // === Basic Properties ===
-    {
-      type: "header",
-      title: "Basic Properties"
-    },
-    {
-      target: "material_BaseColor",
-      type: "Color", 
-      default: [1, 1, 1, 1],
-      title: "Base Color",
-      tooltip: "The main color of the material"
-    },
-    {
-      target: "material_BaseTexture",
-      type: "Texture2D",
-      title: "Base Texture"
-    },
-    {
-      target: "material_TilingOffset",
-      type: "Vector4",
-      default: [1, 1, 0, 0], 
-      title: "Tiling & Offset",
-      tooltip: "XY: Tiling, ZW: Offset"
-    },
-    
-    // === PBR Properties ===
-    {
-      type: "header",
-      title: "PBR Properties"
-    },
-    {
-      target: "material_Metallic",
-      type: "Float",
-      default: 0.0,
-      range: [0, 1],
-      title: "Metallic"
-    },
-    {
-      target: "material_Roughness", 
-      type: "Float",
-      default: 0.5,
-      range: [0.01, 1],
-      title: "Roughness"
-    },
-    {
-      target: "material_MetallicRoughnessTexture",
-      type: "Texture2D",
-      title: "Metallic Roughness Map",
-      tooltip: "R: Metallic, G: Roughness"
-    },
-    
-    // === Normal Mapping ===
-    {
-      type: "header",
-      title: "Normal Mapping"
-    },
-    {
-      target: "ENABLE_NORMAL_MAP",
-      type: "Boolean",
-      default: false,
-      title: "Enable Normal Map"
-    },
-    {
-      target: "material_NormalTexture",
-      type: "Texture2D", 
-      title: "Normal Map",
-      condition: "ENABLE_NORMAL_MAP"
-    },
-    {
-      target: "material_NormalIntensity",
-      type: "Float",
-      default: 1.0,
-      range: [0, 2],
-      title: "Normal Intensity",
-      condition: "ENABLE_NORMAL_MAP"
-    },
-    
-    // === Emission ===
-    {
-      type: "header",
-      title: "Emission"
-    },
-    {
-      target: "material_EmissiveColor",
-      type: "Color",
-      default: [0, 0, 0, 1],
-      title: "Emissive Color"
-    },
-    {
-      target: "material_EmissiveTexture",
-      type: "Texture2D",
-      title: "Emissive Map"
-    },
-    {
-      target: "material_EmissiveIntensity",
-      type: "Float", 
-      default: 1.0,
-      range: [0, 10],
-      title: "Emissive Intensity"
-    }
-  ]
-};
-```
-
-## Macro Definitions
-
-UIScript can also control shader macros:
-
-```javascript
-// In UIScript
-{
-  target: "USE_VERTEX_COLOR",
-  type: "Boolean",
-  default: false,
-  title: "Use Vertex Color"
-}
-
-// In Shader
-#ifdef USE_VERTEX_COLOR
-  vec4 vertexColor = input.COLOR_0;
-  finalColor *= vertexColor;
+### Basic Macro Definition
+```glsl
+#ifdef USE_TEXTURE
+// This code will only compile when the USE_TEXTURE macro is defined
+vec4 texColor = texture2D(material_BaseTexture, input.uv);
+color *= texColor;
 #endif
 ```
 
-## Dynamic Parameter Updates
+### Enabling and Disabling Macros
+```typescript
+// Control macros in code
+material.shaderData.enableMacro("USE_TEXTURE");   // Enable macro
+material.shaderData.disableMacro("USE_TEXTURE");  // Disable macro
+```
 
-UIScript supports dynamic parameter updates:
+## Conditional Compilation Syntax
 
-```javascript
-{
-  target: "material_AnimationSpeed",
-  type: "Float",
-  default: 1.0,
-  range: [0, 5],
-  title: "Animation Speed",
-  // Real-time update callback
-  onChange: (value) => {
-    // Custom logic when parameter changes
-    console.log(`Animation speed changed to: ${value}`);
-  }
+### #ifdef - If the macro is defined
+```glsl
+#ifdef USE_TEXTURE
+vec4 texColor = texture2D(material_BaseTexture, uv);
+color *= texColor;
+#endif
+```
+
+### #ifndef - If the macro is not defined
+```glsl
+#ifndef USE_TEXTURE
+// This code will execute when USE_TEXTURE is not defined
+color = material_BaseColor;
+#endif
+```
+
+### #if defined - More Complex Conditions
+```glsl
+#if defined(USE_TEXTURE) && defined(USE_NORMAL_MAP)
+// This code will execute when both macros are defined
+#endif
+```
+
+### #else and #endif
+```glsl
+#ifdef USE_TEXTURE
+vec4 texColor = texture2D(material_BaseTexture, uv);
+color *= texColor;
+#else
+color = material_BaseColor;
+#endif
+```
+
+## UIScript Interaction Logic
+
+UIScript implements property binding (only works in the editor):
+
+```typescript
+export default class UIScriptDemo extends ShaderUIScript {
+constructor() {
+super();
+
+// Listen for property changes
+this.onPropertyChanged("material_UseTexture", (value) => {
+const { material: { shaderData } } = this;
+
+if (value) {
+// When texture is enabled
+shaderData.enableMacro("USE_TEXTURE");
+} else {
+// When texture is disabled
+shaderData.disableMacro("USE_TEXTURE");
+}
+});
+}
 }
 ```
 
-## Best Practices
-
-### 1. Clear Parameter Organization
-```javascript
-// Good: Use headers to group related parameters
-{
-  type: "header",
-  title: "Surface Properties"
-},
-// Related parameters...
-
-{
-  type: "header", 
-  title: "Animation Properties"
-},
-// Animation parameters...
-```
-
-### 2. Meaningful Names and Tooltips
-```javascript
-// Good: Clear names and helpful tooltips
-{
-  target: "material_WaveAmplitude",
-  type: "Float",
-  title: "Wave Amplitude", 
-  tooltip: "Controls the height of the wave effect"
-}
-```
-
-### 3. Reasonable Default Values
-```javascript
-// Good: Set reasonable defaults
-{
-  target: "material_Roughness",
-  type: "Float",
-  default: 0.5,  // Mid-range default
-  range: [0.01, 1.0]
-}
-```
-
-### 4. Appropriate Ranges
-```javascript
-// Good: Prevent invalid values
-{
-  target: "material_Metallic",
-  type: "Float", 
-  default: 0.0,
-  range: [0, 1],  // Physically correct range
-  title: "Metallic"
-}
-```
-
-## Integration with Shader
-
-UIScript parameters automatically map to shader variables:
+## Complete Shader Example
 
 ```glsl
-// In Shader
-Shader "Custom/MyMaterial" {
-  SubShader "Default" {
-    Pass "Forward" {
-      // These variables are automatically available
-      vec4 material_BaseColor;
-      sampler2D material_BaseTexture;
-      float material_Metallic;
-      float material_Roughness;
-      
-      // Macros are automatically defined
-      #ifdef ENABLE_NORMAL_MAP
-        sampler2D material_NormalTexture;
-        float material_NormalIntensity;
-      #endif
-      
-      // Shader code...
-    }
-  }
+Shader "Tutorial/03-UIScript" {
+// The Editor module defines the material panel properties and interactions
+Editor {
+Properties {
+// Basic properties
+material_BaseColor("Base Color", Color) = (1, 1, 1, 1);
+material_BaseTexture("Base Texture", Texture2D);
+
+// Grouped properties
+Header("Effects") {
+material_UseTexture("Use Texture", Boolean) = true;
+material_Brightness("Brightness", Range(0, 2, 0.01)) = 1.0;
+material_Contrast("Contrast", Range(0, 2, 0.01)) = 1.0;
+}
+
+Header("Animation") {
+material_EnableAnimation("Enable Animation", Boolean) = false;
+material_AnimSpeed("Animation Speed", Range(0, 5, 0.1)) = 1.0;
+}
+}
+}
+
+SubShader
+``` "Default" {
+Pass "Forward" {
+mat4 renderer_MVPMat;
+float renderer_Time;
+
+vec4 material_BaseColor;
+sampler2D material_BaseTexture;
+float material_Brightness;
+float material_Contrast;
+float material_AnimSpeed;
+
+struct a2v {
+vec4 POSITION;
+vec2 TEXCOORD_0;
+};
+
+struct v2f {
+vec2 uv;
+};
+
+VertexShader = vert;
+FragmentShader = frag;
+
+v2f vert(a2v input) {
+v2f output;
+
+vec4 pos = input.POSITION;
+
+// Add vertex animation effect if animation is enabled
+#ifdef ENABLE_ANIMATION
+pos.y += sin(pos.x * 3.0 + renderer_Time * material_AnimSpeed) * 0.2;
+#endif
+
+gl_Position = renderer_MVPMat * pos;
+output.uv = input.TEXCOORD_0;
+
+return output;
+}
+
+void frag(v2f input) {
+vec4 color = material_BaseColor;
+
+// Sample texture if texture is enabled
+#ifdef USE_TEXTURE
+vec4 texColor = texture2D(material_BaseTexture, input.uv);
+color *= texColor;
+#endif
+
+// Apply brightness and contrast adjustments
+color.rgb *= material_Brightness;
+color.rgb = (color.rgb - 0.5) * material_Contrast + 0.5;
+
+gl_FragColor = color;
+}
+}
+}
 }
 ```
 
-## Running Effect
+## Demo Effects
 
-This UIScript system will:
-1. Generate a visual parameter panel in the material editor
-2. Allow real-time adjustment of material properties
-3. Automatically sync parameter changes to the shader
-4. Provide organized, user-friendly interface for artists
+1. Demonstrates the definition and grouping of Editor Properties
+2. Shows conditional compilation using macros (#ifdef USE_TEXTURE, ENABLE_ANIMATION)
+3. Simulates the property binding logic in UIScript
+4. Observe the effects of enabling/disabling texture and animation, and the dynamic changes in brightness and contrast
 
-Go to [Playground](/examples/shaderlab-03-ui-script) to experience the effect.
+Go to [Playground](/examples/shaderlab-03-ui-script)

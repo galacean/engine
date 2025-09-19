@@ -2,175 +2,207 @@
 title: Basic Shader Syntax
 ---
 
-This tutorial will guide you through creating your first custom shader, learning the basic syntax and structure of ShaderLab. Through this tutorial, you will learn:
-- Basic structure of ShaderLab
-- How to define vertex and fragment shaders
-- How to pass data between vertex and fragment shaders
-- How to use textures and material properties
+This tutorial will introduce the basic syntax of ShaderLab using a simple texture rendering shader. Through this basic example, you will learn:
+- The basic structure of ShaderLab
+- How to declare variables and structures
+- Basic vertex shader transformations
+- Texture sampling in fragment shaders
+- Passing and using UV coordinates
 
-## What is ShaderLab
+<Image
+src="https://mdn.alipayobjects.com/huamei_dmxymu/afts/img/A*Ykx2T7IuiAIAAAAAT0AAAAgAeuuHAQ/original"
+/>
 
-ShaderLab is Galacean's shader description language that provides a complete syntax for defining shader structure, properties, render states, and shader code. Unlike traditional GLSL/HLSL, ShaderLab not only contains shader code but also includes complete information such as material property definitions, UI interface configurations, and render state settings.
+## Shader Structure
 
-## Basic Shader Structure
-
-A complete ShaderLab shader consists of the following parts:
-
-```glsl
-Shader "ShaderName" {
-  SubShader "SubShaderName" {
-    Pass "PassName" {
-      // Render states
-      // Variable declarations
-      // Vertex and fragment shader code
-    }
-  }
-}
-```
-
-## Creating Your First Shader
-
-Let's create a simple texture shader:
+ShaderLab uses a three-level nested structure: `Shader` → `SubShader` → `Pass`
 
 ```glsl
 Shader "Tutorial/01-BasicShader" {
-  SubShader "Default" {
-    Pass "Forward" {
-      // Built-in variables
-      mat4 renderer_MVPMat;        // Model-View-Projection matrix
-      
-      // Material properties
-      vec4 material_BaseColor;     // Base color
-      sampler2D material_BaseTexture; // Base texture
-      
-      // Vertex input structure
-      struct a2v {
-        vec4 POSITION;    // Vertex position
-        vec2 TEXCOORD_0;  // UV coordinates
-      };
-      
-      // Vertex to fragment structure
-      struct v2f {
-        vec2 uv;          // UV coordinates passed to fragment shader
-      };
-      
-      // Specify vertex and fragment shader entry points
-      VertexShader = vert;
-      FragmentShader = frag;
-      
-      // Vertex shader
-      v2f vert(a2v input) {
-        v2f output;
-        
-        // Transform vertex position to clip space
-        gl_Position = renderer_MVPMat * input.POSITION;
-        
-        // Pass UV coordinates to fragment shader
-        output.uv = input.TEXCOORD_0;
-        
-        return output;
-      }
-      
-      // Fragment shader
-      void frag(v2f input) {
-        // Sample texture
-        vec4 texColor = texture2D(material_BaseTexture, input.uv);
-        
-        // Multiply with base color
-        vec4 finalColor = texColor * material_BaseColor;
-        
-        // Output final color
-        gl_FragColor = finalColor;
-      }
-    }
-  }
+SubShader "Default" {
+Pass "Forward" {
+// Shader code goes here
+}
+}
 }
 ```
 
-## Code Explanation
+- **Shader**: The root node of the shader, defining the shader name.
+- **SubShader**: A variant of the shader; there can be multiple, and the engine will choose the most suitable one.
+- **Pass**: A rendering pass, defining the specific rendering logic.
 
-### 1. Shader Declaration
+## Variable Declaration
+
+In the Pass, we need to declare the variables used by the shader:
+
 ```glsl
+// Engine-built-in variable: MVP transformation matrix
+mat4 renderer_MVPMat;
+
+// Custom material properties
+vec4 material_BaseColor;      // Base color
+sampler2D material_BaseTexture; // Texture sampler
+```
+
+## Structure Definition
+
+Use structures to define vertex data and data to be passed:
+
+```glsl
+// Vertex shader input (from mesh)
+struct Attributes {
+vec4 POSITION;    // Vertex position
+vec2 TEXCOORD_0;  // UV coordinates
+};
+
+// Vertex shader output / Fragment shader input
+struct Varyings {
+vec2 uv;          // UV coordinates passed to the fragment shader
+};
+```
+
+**Built-in vertex attributes**:
+- `POSITION`: Vertex position
+- `TEXCOORD_0`: First set of UV coordinates
+- `NORMAL`: Vertex normal
+- ... `COLOR_0`: Vertex color
+
+## Shader Entry Functions
+
+Specify the entry functions for the vertex and fragment shaders:
+
+```glsl
+VertexShader = vert;    // Vertex shader entry point
+FragmentShader = frag;  // Fragment shader entry point
+```
+
+## Vertex Shader
+
+The vertex shader is responsible for processing the transformation of each vertex:
+
+```glsl
+Varyings vert(Attributes attr) {
+Varyings output;
+
+// MVP transformation: Transform the vertex from model space to clip space
+gl_Position = renderer_MVPMat * attr.POSITION;
+
+// Pass the UV coordinates to the fragment shader
+output.uv = attr.TEXCOORD_0;
+
+return output;
+}
+```
+
+**Key Points:**
+- `gl_Position` is a built-in output variable and must be assigned a value.
+- The returned structure data will be passed to the fragment shader.
+
+## Fragment Shader
+
+The fragment shader is responsible for calculating the color of each pixel:
+
+```glsl
+void frag(Varyings varying) {
+// Sample color from the texture
+vec4 texColor = texture2D(material_BaseTexture, varying.uv);
+
+// Multiply with the material base color
+vec4 finalColor = texColor * material_BaseColor;
+
+// Output the final color
+gl_FragColor = finalColor;
+}
+```
+
+**Key Points:**
+- The `texture2D()` function is used for texture sampling.
+- `gl_FragColor` is a built-in output variable representing the final pixel color.
+- Color operations support vector operations.
+
+## Texture Sampling
+
+Texture sampling is a common operation in shaders:
+
+```glsl
+// Declare the texture sampler
+sampler2D material_BaseTexture;
+
+// Sample in the fragment shader
+vec4 texColor = texture2D(material_BaseTexture, uv);
+```
+
+**Sampling Parameters:**
+- First parameter: Texture sampler
+- Second parameter: UV coordinates (vec2 type)
+
+## Complete Example Analysis
+
+Let's analyze the complete shader code:
+
+```glsl showLineNumbers {}
 Shader "Tutorial/01-BasicShader" {
-```
-Declares a shader named "Tutorial/01-BasicShader", which will appear in the material's shader dropdown.
+SubShader "Default" {
+// Pass defines the rendering pipeline, specifying the rendering logic
+Pass "Forward" {
+// Engine-provided MVP matrix for vertex transformation
+mat4 renderer_MVPMat;
 
-### 2. Variable Declarations
-```glsl
-mat4 renderer_MVPMat;           // Built-in MVP matrix
-vec4 material_BaseColor;        // Material base color
-sampler2D material_BaseTexture; // Material base texture
-```
-- `renderer_MVPMat`: Engine built-in variable, automatically calculated MVP matrix
-- `material_BaseColor`: Material property, can be set in the material panel
-- `material_BaseTexture`: Material texture property
+// Custom material properties
+vec4 material_BaseColor;
+sampler2D material_BaseTexture;
 
-### 3. Data Structures
-```glsl
-struct a2v {          // Application to Vertex
-  vec4 POSITION;      // Vertex position
-  vec2 TEXCOORD_0;    // UV coordinates
+// Vertex shader input structure (Attributes)
+struct Attributes {
+vec4 POSITION;    // Vertex position
+vec2 TEXCOORD_0;  // UV coordinates
 };
 
-struct v2f {          // Vertex to Fragment
-  vec2 uv;            // Data passed to fragment shader
+// Vertex shader output / Fragment shader input structure (Varyings)
+struct Varyings {
+vec2 uv;          // UV coordinates passed to the fragment shader
 };
-```
-- `a2v`: Data passed from application to vertex shader
-- `v2f`: Data passed from vertex shader to fragment shader
 
-### 4. Vertex Shader
-```glsl
-v2f vert(a2v input) {
-  v2f output;
-  gl_Position = renderer_MVPMat * input.POSITION;  // Position transformation
-  output.uv = input.TEXCOORD_0;                    // Pass UV coordinates
-  return output;
+// Specify the shader entry points
+VertexShader = vert;
+FragmentShader = frag;
+
+// Vertex shader: Handles vertex transformation and data passing
+Varyings vert(Attributes attr) {
+Varyings output;
+
+// Transform the vertex from model space to clip space
+gl_Position = renderer_MVPMat * attr.POSITION;
+
+// Pass the UV coordinates to the fragment shader
+output.uv = attr.TEXCOORD_0;
+
+return output;
+}
+
+// Fragment shader: Calculates the final color for each pixel
+void frag(Varyings varying) {
+// Sample color from the texture
+vec4 texColor = texture2D(material_BaseTexture, varying.uv);
+
+// Multiply with the base color
+vec4 finalColor = texColor * material_BaseColor;
+
+// Output the final color
+gl_FragColor = finalColor;
+}
+}
+}
 }
 ```
-The vertex shader's main tasks:
-- Transform vertex positions to clip space
-- Pass data to the fragment shader
 
-### 5. Fragment Shader
-```glsl
-void frag(v2f input) {
-  vec4 texColor = texture2D(material_BaseTexture, input.uv);  // Sample texture
-  vec4 finalColor = texColor * material_BaseColor;            // Color calculation
-  gl_FragColor = finalColor;                                  // Output color
-}
-```
-The fragment shader's main tasks:
-- Sample textures
-- Calculate final pixel color
-- Output to framebuffer
-
-## Key Concepts
-
-### Built-in Variables
-The engine provides many built-in variables:
-- `renderer_MVPMat`: Model-View-Projection matrix
-- `renderer_ModelMat`: Model matrix
-- `renderer_ViewMat`: View matrix
-- `renderer_ProjMat`: Projection matrix
-
-### Material Properties
-Material properties are variables that can be set in the material panel:
-- `material_BaseColor`: Base color
-- `material_BaseTexture`: Base texture
-- Custom properties can be defined as needed
-
-### Data Flow
-```
-Vertex Data → Vertex Shader → Interpolated Data → Fragment Shader → Final Color
-```
-
-## Running Effect
+## Running Results
 
 This shader will:
-1. Transform 3D model vertices to screen space
-2. Pass UV coordinates to the fragment shader
+1. Transform the 3D model's vertices to screen space
+2. Pass the UV coordinates to the fragment shader
 3. Sample the texture
-4. Multiply texture color with base color to get the final color
+4. Multiply the texture color with the base color to get the final color
 
-Go to [Playground](/examples/shaderlab-01-basic-shader) to experience the effect.
+
+Go to [Playground](/examples/shaderlab-01-basic-shader)
