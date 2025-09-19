@@ -146,6 +146,19 @@ class SceneLoader extends Loader<Scene> {
               );
             }
 
+            // Ambient Occlusion
+            const ambientOcclusion = data.scene.ambientOcclusion;
+            if (ambientOcclusion) {
+              const sceneAmbientOcclusion = scene.ambientOcclusion;
+              sceneAmbientOcclusion.enabled = ambientOcclusion.enabledAmbientOcclusion;
+              sceneAmbientOcclusion.intensity = ambientOcclusion.intensity;
+              sceneAmbientOcclusion.radius = ambientOcclusion.radius;
+              sceneAmbientOcclusion.bias = ambientOcclusion.bias;
+              sceneAmbientOcclusion.power = ambientOcclusion.power;
+              sceneAmbientOcclusion.quality = ambientOcclusion.quality;
+              sceneAmbientOcclusion.bilateralThreshold = ambientOcclusion.bilateralThreshold;
+            }
+
             return Promise.all(promises).then(() => {
               resolve(scene);
             });
