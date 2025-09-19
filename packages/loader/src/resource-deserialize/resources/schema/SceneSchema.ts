@@ -70,7 +70,7 @@ export interface IScene extends IHierarchyFile {
         enabled: boolean;
         mode: TonemappingMode;
       };
-    }; 
+    };
     ambientOcclusion?: {
       bias: number;
       bilateralThreshold: number;
@@ -80,7 +80,7 @@ export interface IScene extends IHierarchyFile {
       quality: number;
       radius: number;
       minHorizonAngle: number;
-    }
+    };
   };
   files: Array<{ id: string; type: string; virtualPath: string; path: string }>;
 }
