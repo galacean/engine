@@ -1,5 +1,7 @@
-import { Entity, EntityModifyFlags, Scene, Script } from "@galacean/engine-core";
+import { Vector2 } from "@galacean/engine";
+import { deepClone, Entity, EntityModifyFlags, ignoreClone, Scene, Script } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { TransformModifyFlags } from "packages/core/src/Transform";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 class TestComponent extends Script { }
@@ -527,21 +529,14 @@ describe("Entity", async () => {
       expect(cloneParent.findByName("child")).eq(cloneParent.getChild(0));
 
       // Transform
-      const entityParent = new Entity(engine, "entity");
+      const entityParent = new Entity(engine, "parent");
       const entityChild = entityParent.createChild("child");
-      entityChild.addComponent(class extends Script {
-        constructor(entity: Entity) {
-          super(entity);
-          // @ts-ignore
-          this.entity.transform._getParentTransform();
-        }
-      })
-
-      const entityParentClone = entityParent.clone();
-      const entityChildClone = entityParentClone.children[0];
-      const transformParentClone = entityParentClone.transform;
+      const entityGrandson = entityChild.createChild("grandson");
+      entityGrandson.addComponent(Sample)
+      const entityChildClone = entityParent.clone().children[0];
+      const entityGrandsonClone = entityChildClone.children[0];
       // @ts-ignore
-      expect(transformParentClone).eq(entityChildClone.transform._getParentTransform());
+      expect(entityChildClone.transform.instanceId).eq(entityGrandsonClone.transform._getParentTransform()?.instanceId);
     });
   });
 
@@ -655,3 +650,17 @@ describe("Entity", async () => {
     });
   });
 });
+
+class Sample extends Script {
+  @ignoreClone
+  private _onSelfTransformChanged(type: TransformModifyFlags): void {
+    const worldMatrix = this.entity.transform.worldMatrix
+  }
+
+  constructor(entity: Entity) {
+    super(entity);
+    this._onSelfTransformChanged = this._onSelfTransformChanged.bind(this);
+    // @ts-ignore
+    this.entity._updateFlagManager.addListener(this._onSelfTransformChanged);
+  }
+}
