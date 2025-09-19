@@ -16,6 +16,7 @@ export enum SpecularMode {
 }
 
 export interface IScene extends IHierarchyFile {
+  name?: string;
   scene: {
     background: {
       mode: BackgroundMode;
