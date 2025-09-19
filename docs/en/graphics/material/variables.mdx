@@ -1,0 +1,60 @@
+---
+title: Shader Built-in Variables
+---
+
+Built-in variables are frequently used in Shader code. There are two types: **per-vertex** `attribute` variables and **per-shader** `uniform` variables.
+
+Below are the engine's built-in variables for reference when writing Shaders:
+
+### Vertex Inputs
+
+| Per-vertex Data | Attribute Name | Data Type |
+| :-------------- | :------------- | :-------- |
+| Vertex          | POSITION       | vec3      |
+| Normal          | NORMAL         | vec3      |
+| Tangent         | TANGENT        | vec4      |
+| Vertex Color    | COLOR_0        | vec4      |
+| Bone Indices    | JOINTS_0       | vec4      |
+| Bone Weights    | WEIGHTS_0      | vec4      |
+| First UV Set    | TEXCOORD_0     | vec2      |
+| Second UV Set   | TEXCOORD_1     | vec2      |
+
+### Properties
+
+#### Renderer
+
+| Name              | Type | Description                  |
+| :---------------- | :--- | :--------------------------- |
+| renderer_LocalMat | mat4 | Model local coordinate matrix |
+| renderer_ModelMat | mat4 | Model world coordinate matrix |
+| renderer_MVMat    | mat4 | Model view matrix            |
+| renderer_MVPMat   | mat4 | Model view projection matrix |
+| renderer_NormalMat| mat4 | Normal matrix                |
+
+#### Camera
+
+| Name                        | Type      | Description                                                                 |
+| :-------------------------- | :-------- | :-------------------------------------------------------------------------- |
+| camera_ViewMat              | mat4      | View matrix                                                               |
+| camera_ProjMat              | mat4      | Projection matrix                                                         |
+| camera_VPMat                | mat4      | View projection matrix                                                    |
+| camera_ViewInvMat           | mat4      | Inverse view matrix                                                       |
+| camera_Position             | vec3      | Camera position                                                           |
+| camera_DepthTexture         | sampler2D | Depth information texture                                                 |
+| camera_OpaqueTexture        | sampler2D | Opaque texture                                                            |
+| camera_DepthBufferParams    | Vec4      | Camera depth buffer parameters: (x: 1.0 - far / near, y: far / near, z: 0, w: 0) |
+| camera_ProjectionParams     | Vec4      | Projection matrix parameters: (x: flipProjection ? -1 : 1, y: near, z: far, w: 0) |
+
+#### Time
+
+| Name              | Type | Description                                                      |
+| :---------------- | :--- | :-------------------------------------------------------------- |
+| scene_ElapsedTime | vec4 | Total time since engine started: (x: t, y: sin(t), z: cos(t), w: 0) |
+| scene_DeltaTime   | vec4 | Time since last frame: (x: dt, y: 0, z: 0, w: 0)                |
+
+#### Fog
+
+| Name               | Type | Description |
+| :----------------- | :--- | :---------- |
+| scene_FogColor     | vec4 | Fog color   |
+| scene_FogParams    | vec4 | Fog parameters: (x: -1/(end-start), y: end/(end-start), z: density / ln(2), w: density / sqr(ln(2)) |

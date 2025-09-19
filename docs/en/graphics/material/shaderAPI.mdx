@@ -1,0 +1,197 @@
+---
+title: Shader API
+---
+
+## Common API
+
+The API is used as follows:
+
+```glsl
+#include "Common.glsl"
+
+float f2 = pow2(0.5);
+```
+
+### Common
+
+This module provides commonly used macros such as `PI`, and general-purpose functions like `gammaToLinear` and `pow2`.  See the [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/Common.glsl) for details. ### Fog
+
+Provides a fog effect function:
+
+```glsl
+vec4 fog(vec4 color, vec3 positionVS);
+```
+
+### Transform
+
+Provides system variables for model space, view space, world space, and camera coordinates:
+
+```glsl
+mat4 renderer_LocalMat;
+mat4 renderer_ModelMat;
+mat4 camera_ViewMat;
+mat4 camera_ProjMat;
+mat4 renderer_MVMat;
+mat4 renderer_MVPMat;
+mat4 renderer_NormalMat;
+
+vec3 camera_Position;
+vec3 camera_Forward;
+vec4 camera_ProjectionParams;
+```
+
+### Light
+
+Provides methods to access engine lighting information, including direct and indirect lighting:
+
+```glsl
+// Direct light
+DirectLight getDirectLight(int index);
+PointLight getPointLight(int index);
+SpotLight getSpotLight(int index);
+
+// Indirect light
+EnvMapLight scene_EnvMapLight;
+
+#ifdef SCENE_USE_SH
+vec3 scene_EnvSH[9];
+#endif
+
+#ifdef SCENE_USE_SPECULAR_ENV
+samplerCube scene_EnvSpecularSampler;
+#endif
+```
+
+### Normal
+
+Provides some common methods for normal calculation:
+
+```glsl
+// Normal after normal mapping in tangent space
+vec3 getNormalByNormalTexture(mat3 tbn, sampler2D normalTexture, float normalIntensity, vec2 uv, bool isFrontFacing);
+
+// Calculate tangent using derivatives, for models without pre-calculated tangents
+mat3 getTBNByDerivatives(vec2 uv, vec3 normal, vec3 position, bool isFrontFacing);
+```
+
+### Shadow
+
+Provides shadow-related functions. See the [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/Shadow.glsl) for details. ```glsl
+// Get the cascade index of the shadow map, e.g., if the number of cascades is 4, it returns 0~3
+int computeCascadeIndex(vec3 positionWS);
+
+// Get the coordinate in the shadow map
+vec3 getShadowCoord(vec3 positionWS);
+
+// Get the shadow intensity, including sampling method and shadow attenuation
+float sampleShadowMap(vec3 positionWS, vec3 shadowCoord);
+```
+
+### Skin
+
+Provides skeletal animation calculation methods:
+
+```glsl
+mat4 getSkinMatrix(Attributes attributes);
+```
+
+### BlendShape
+
+Provides blend shape calculation methods:
+
+```glsl
+void calculateBlendShape(Attributes attributes, inout vec4 position, inout vec3 normal, inout vec4 tangent);
+```
+
+## PBR API
+
+Besides the general API, PBR also encapsulates APIs for various lighting models, such as `BSDF`. Users can reuse these APIs by using `#include` when extending other materials.
+
+### AttributesPBR
+
+Encapsulates all attribute variables required for PBR. See [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/AttributesPBR.glsl).
+
+### VaryingsPBR
+
+Encapsulates all varying variables required for PBR. See [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/VaryingsPBR.glsl).
+
+### LightDirectPBR
+
+Encapsulates direct light calculation based on the BSDF lighting model. See [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/LightDirectPBR.glsl). Generally, you can call it directly:
+
+```glsl
+// Evaluate direct lighting
+evaluateDirectRadiance(varyings, surfaceData, bsdfData, shadowAttenuation, totalDiffuseColor, totalSpecularColor);
+```
+
+The following function overload macros are provided to cover the key calculations of the lighting model:
+
+```glsl
+#define FUNCTION_SURFACE_SHADING surfaceShading
+#define FUNCTION_DIFFUSE_LOBE diffuseLobe
+#define FUNCTION_SPECULAR_LOBE specularLobe
+#define FUNCTION_CLEAR_COAT_LOBE clearCoatLobe
+#define FUNCTION_SHEEN_LOBE sheenLobe
+
+void surfaceShading(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, vec3 incidentDirection, vec3 lightColor, inout vec3 totalDiffuseColor, inout vec3 totalSpecularColor);
+void diffuseLobe(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, vec3 attenuationIrradiance, inout vec3 diffuseColor);
+void specularLobe(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, vec3 incidentDirection, vec3 attenuationIrradiance, inout vec3 specularColor);
+float clearCoatLobe(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, vec3 incidentDirection, vec3 color, inout vec3 specularColor);
+void sheenLobe(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, vec3 incidentDirection, vec3 attenuationIrradiance, inout vec3 diffuseColor, inout vec3 specularColor);
+```
+
+### LightInDirectPBR
+
+This encapsulates the calculation of [ambient light](/docs/graphics/light/ambient) based on the BSDF lighting model. See the [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/LightIndirectPBR.glsl) for details. Generally, you can call it directly:
+
+```glsl
+// IBL
+evaluateIBL(varyings, surfaceData, bsdfData, totalDiffuseColor, totalSpecularColor);
+```
+
+The following function overload macros are provided to cover the key calculations of the lighting model:
+
+```glsl
+#define FUNCTION_DIFFUSE_IBL evaluateDiffuseIBL
+#define FUNCTION_SPECULAR_IBL evaluateSpecularIBL
+#define FUNCTION_CLEAR_COAT_IBL evaluateClearCoatIBL
+#define FUNCTION_SHEEN_IBL evaluateSheenIBL
+
+void evaluateDiffuseIBL(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, inout vec3 diffuseColor);
+void evaluateSpecularIBL(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, float radianceAttenuation, inout vec3 outSpecularColor);
+float evaluateClearCoatIBL(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, inout vec3 specularColor);
+void evaluateSheenIBL(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, float radianceAttenuation, inout vec3 diffuseColor, inout vec3 specularColor);
+```
+
+### VertexPBR
+
+Some methods required by the PBR vertex shader, such as obtaining the UV coordinates after TilingOffset, obtaining the world coordinates, normals, and tangents after bone and BS calculations, etc., please refer to the [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/VertexPBR.glsl).
+
+```glsl showLineNumbers
+VertexInputs vertexInputs = getVertexInputs(attributes);
+
+gl_Position = renderer_MVPMat * vertexInputs.positionOS;
+```
+
+### BSDF
+
+This is a key file for the PBR lighting model, encapsulating common calculation functions for BRDF, projection, refraction, etc., as well as the `SurfaceData` and `BSDFData` structures used in subsequent lighting model calculations. See [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/BSDF.glsl) for details.
+
+
+### FragmentPBR
+
+This file contains numerous variables passed from the CPU, such as metalness, roughness, and textures.  It initializes the `SurfaceData` structure using `getSurfaceData`. See [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/FragmentPBR.glsl) for details.
+
+```glsl showLineNumbers
+BSDFData bsdfData;
+
+// Initialize the SurfaceData structure
+SurfaceData surfaceData = getSurfaceData(varyings, aoUV, gl_FrontFacing);
+
+// You can process the data in SurfaceData here
+initBSDFData(surfaceData, bsdfData);
+```
+
+### Finally
+
+Besides the functionality and usage of key APIs, the overall file organization can be referenced in the official website's [ForwardPassPBR](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/ForwardPassPBR.glsl).

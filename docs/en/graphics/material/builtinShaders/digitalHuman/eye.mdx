@@ -1,0 +1,54 @@
+---
+title: Eyes
+---
+
+The eye shader provides realistic rendering for eye models, enhancing your creations with lifelike visual effects.
+
+<img src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*VVUtRL4JfE0AAAAAAAAAAAAADgDwAQ/original"  />
+
+<Callout type="info">
+This shader is closely tied to model UV mapping. If you need to build eyes from scratch, this shader is not recommended. For users without shader coding experience, it's advised to use the official eye geometry model in the example, simply replacing necessary textures to meet your needs. To create custom eye shader variants, refer to the [Shader Lab development tutorial](/en/docs/graphics/shader/shaderLab/intro/) documentation.
+</Callout>
+
+## Importing Eye Examples
+
+Galacean includes built-in eye material examples to help you get started. [Click here](https://galacean.antgroup.com/editor/projects) to view this example.
+
+1. Navigate to the editor homepage in Galacean.
+2. Select the **Templates** panel, browse the template interface, preview and download the eye example to your **Project**.
+
+## Eye Anatomy Breakdown
+
+Before rendering eyes, understand the biological structure of the eye to better utilize the shader.
+
+|       Parameter       |                        Description                        |
+| :-------------------- | :-------------------------------------------------------- |
+| **Sclera**            | The opaque outer layer of the eyeball, commonly known as "the white of the eye" |
+| **Limbus**            | Also called the corneoscleral junction, the boundary between the cornea and sclera |
+| **Iris**              | A ring of color surrounding the pupil, forming a hollow circle |
+| **Pupil**             | The black central part of the eyeball that allows light to enter and reach the retina |
+| **Cornea**            | The transparent front part of the eyeball |
+
+## Eye Textures
+
+|                             Texture                              |         Parameter          | Description                                                                 |
+| :---------------------------------------------------------------: | :------------------------: | :-------------------------------------------------------------------------- |
+| <img src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*74fgRYw9nS4AAAAAAAAAAAAADgDwAQ/original"  /> | **Sclera Texture**         | Controls the sclera (white of the eye) color and blood vessel color around the eye. Modify this texture to add bloodshot effects. |
+| <img src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*Nc_XTpVNlFAAAAAAAAAAAAAADgDwAQ/original"  /> | **Iris Texture**           | Controls the iris color                                           |
+| <img src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*jkZ5QoeXyWUAAAAAAAAAAAAADgDwAQ/original"  /> | **Iris Normal Texture**    | Specifies a normal map for the iris surface to control light flow        |
+| <img src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*B8McQpjhh98AAAAAAAAAAAAADgDwAQ/original"  /> | **Cornea Normal Texture**  | Specifies a normal map for the sclera to provide subtle texture variations on the white of the eye |
+| <img src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*c_zmQ5DwI1wAAAAAAAAAAAAADgDwAQ/original" /> | **Sclera Mask**            | A mask texture controlling the size of sclera/iris/limbus/pupil. `R` channel controls the iris area, `G` channel controls the limbus area, `B` channel controls the pupil scaling area |
+
+## Material Properties
+
+|         Parameter         |               Description               |
+| :------------------------ | :-------------------------------------: |
+| **Sclera Color**          | Sclera texture base color              |
+| **Sclera Size**           | Sclera UV scale                        |
+| **Sclera Specular**       | Metalness of the sclera (white of eye) |
+| **Sclera Roughness**      | Roughness of the sclera (white of eye) |
+| **Pupil Dilation**        | Pupil size, adjustable in XY directions |
+| **Limbal Ring Amount**    | Intensity of the limbus ring           |
+| **Parallax Layer**        | Parallax depth effect                  |
+| **Iris Color**            | Iris base color                        |
+| **Eye Iris Size**         | Iris scaling size                      |

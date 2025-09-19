@@ -1,0 +1,208 @@
+---
+title: Multi-Pass Rendering
+---
+
+Multi-pass rendering allows an object to be rendered multiple times, each time using different rendering logic. This tutorial teaches the principles and applications of multi-pass rendering by implementing an outline effect.
+
+## What is Multi-Pass Rendering
+
+Multi-pass rendering refers to executing multiple rendering passes on the same object in a single draw call:
+
+```glsl
+SubShader "Default" {
+  Pass "Outline" {
+    // First pass: Render outline
+  }
+  
+  Pass "Main" {
+    // Second pass: Render object itself
+  }
+}
+```
+
+**Execution Order**: The engine executes passes sequentially according to their declaration order.
+
+## Outline Effect Principle
+
+The outline effect is implemented through two passes:
+1. **Outline Pass**: Render enlarged back faces to create outline
+2. **Main Pass**: Normally render object front faces
+
+### Outline Pass Details
+
+```glsl
+Pass "Outline" {
+  // Render state: Only render back faces
+  RasterState {
+    CullMode = Front;  // Cull front faces, only render back faces
+  }
+  
+  DepthState {
+    WriteEnabled = true;
+    CompareFunction = LessEqual;
+  }
+  
+  // Outline-related variables
+  vec4 material_OutlineColor;  // Outline color
+  float material_OutlineWidth; // Outline width
+  
+  // Vertex shader: Expand along normals
+  vec4 outlineVert(a2v input) {
+    vec4 pos = input.POSITION;
+    pos.xyz += input.NORMAL * material_OutlineWidth; // Expand along normals
+    
+    gl_Position = renderer_MVPMat * pos;
+    return vec4(0.0);
+  }
+  
+  // Fragment shader: Output outline color
+  void outlineFrag() {
+    gl_FragColor = material_OutlineColor;
+  }
+}
+```
+
+### Main Pass Details
+
+```glsl
+Pass "Main" {
+  // Render state: Normally render front faces
+  RasterState {
+    CullMode = Back;   // Cull back faces, render front faces
+  }
+  
+  DepthState {
+    WriteEnabled = true;
+    CompareFunction = LessEqual;
+  }
+  
+  // Normal texture rendering logic
+  vec4 mainVert(a2v input) {
+    gl_Position = renderer_MVPMat * input.POSITION;
+    return vec4(input.TEXCOORD_0, 0.0, 0.0);
+  }
+  
+  void mainFrag(v2f input) {
+    vec4 texColor = texture2D(material_BaseTexture, input.uv);
+    gl_FragColor = texColor * material_BaseColor;
+  }
+}
+```
+
+## Complete Shader Example
+
+```glsl
+Shader "Tutorial/04-Outline" {
+  SubShader "Default" {
+    // Pass 1: Outline Pass
+    Pass "Outline" {
+      RasterState {
+        CullMode = Front;  // Only render back faces
+      }
+      
+      DepthState {
+        WriteEnabled = true;
+        CompareFunction = LessEqual;
+      }
+      
+      mat4 renderer_MVPMat;
+      vec4 material_OutlineColor;
+      float material_OutlineWidth;
+      
+      struct a2v {
+        vec4 POSITION;
+        vec3 NORMAL;
+      };
+      
+      VertexShader = outlineVert;
+      FragmentShader = outlineFrag;
+      
+      vec4 outlineVert(a2v input) {
+        // Expand vertices along normal direction
+        vec4 pos = input.POSITION;
+        pos.xyz += input.NORMAL * material_OutlineWidth;
+        
+        gl_Position = renderer_MVPMat * pos;
+        return vec4(0.0);
+      }
+      
+      void outlineFrag() {
+        gl_FragColor = material_OutlineColor;
+      }
+    }
+    
+    // Pass 2: Main Pass
+    Pass "Main" {
+      RasterState {
+        CullMode = Back;   // Render front faces
+      }
+      
+      DepthState {
+        WriteEnabled = true;
+        CompareFunction = LessEqual;
+      }
+      
+      mat4 renderer_MVPMat;
+      vec4 material_BaseColor;
+      sampler2D material_BaseTexture;
+      
+      struct a2v {
+        vec4 POSITION;
+        vec2 TEXCOORD_0;
+      };
+      
+      struct v2f {
+        vec2 uv;
+      };
+      
+      VertexShader = mainVert;
+      FragmentShader = mainFrag;
+      
+      v2f mainVert(a2v input) {
+        v2f output;
+        gl_Position = renderer_MVPMat * input.POSITION;
+        output.uv = input.TEXCOORD_0;
+        return output;
+      }
+      
+      void mainFrag(v2f input) {
+        vec4 texColor = texture2D(material_BaseTexture, input.uv);
+        gl_FragColor = texColor * material_BaseColor;
+      }
+    }
+  }
+}
+```
+
+## Multi-Pass Rendering Applications
+
+### 1. Outline Effects
+- First pass renders outline
+- Second pass renders object itself
+
+### 2. Shadow Rendering
+- First pass generates shadow map
+- Second pass renders using shadow map
+
+### 3. Post-processing Effects
+- Multiple passes implement complex post-processing chains
+
+### 4. Multi-layer Materials
+- Each pass renders different material layers
+
+## Performance Considerations
+
+Multi-pass rendering increases draw call count:
+- **Advantages**: Implement complex effects, clear logic
+- **Disadvantages**: Higher performance overhead
+- **Recommendation**: Use cautiously on mobile platforms
+
+## Running Effect
+
+This shader will:
+1. First pass renders black outline (enlarged back faces)
+2. Second pass renders normal textured object
+3. Two passes combine to produce outline effect
+4. Outline width and color can be adjusted
+
+Go to [Playground](/examples/shaderlab-04-multi-pass) to experience the effect.
