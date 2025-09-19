@@ -1,5 +1,4 @@
-import { Vector2 } from "@galacean/engine";
-import { deepClone, Entity, EntityModifyFlags, ignoreClone, Scene, Script } from "@galacean/engine-core";
+import { Entity, EntityModifyFlags, ignoreClone, Scene, Script } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { TransformModifyFlags } from "packages/core/src/Transform";
 import { beforeEach, describe, expect, it, vi } from "vitest";
