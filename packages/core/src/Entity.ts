@@ -278,13 +278,8 @@ export class Entity extends EngineObject {
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this, ...args) as InstanceType<T>;
     this._components.push(component);
-
     // @todo: temporary solution
-    if (component instanceof Transform) {
-      const transform = this._transform;
-      this._transform = component;
-      transform?.destroy();
-    }
+    if (component instanceof Transform) this._setTransform(component);
     component._setActive(true, ActiveChangeFlag.All);
     return component;
   }
@@ -515,7 +510,7 @@ export class Entity extends EngineObject {
   }
 
   private _createCloneEntity(): Entity {
-    const cloneEntity = new Entity(this.engine, this.name);
+    const cloneEntity = new Entity(this.engine, this.name, this._transform.constructor as ComponentConstructor);
     const templateResource = this._templateResource;
     if (templateResource) {
       cloneEntity._templateResource = templateResource;
@@ -530,7 +525,8 @@ export class Entity extends EngineObject {
     }
     const components = this._components;
     for (let i = 0, n = components.length; i < n; i++) {
-      cloneEntity.addComponent(<ComponentConstructor>components[i].constructor);
+      const component = <ComponentConstructor>components[i].constructor;
+      if (!this._isTransform(component)) cloneEntity.addComponent(component);
     }
     return cloneEntity;
   }
@@ -811,6 +807,24 @@ export class Entity extends EngineObject {
         }
       }
     }
+  }
+
+  private _setTransform(value: Transform): void {
+    const transform = this._transform;
+    this._transform = value;
+    transform?.destroy();
+    const children = this._children;
+    for (let i = 0, n = children.length; i < n; i++) {
+      children[i].transform?._parentChange();
+    }
+  }
+
+  private _isTransform(type: ComponentConstructor): boolean {
+    while (type !== Component) {
+      if (type === Transform) return true;
+      type = Object.getPrototypeOf(type);
+    }
+    return false;
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------

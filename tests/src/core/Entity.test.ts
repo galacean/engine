@@ -2,7 +2,7 @@ import { Entity, EntityModifyFlags, Scene, Script } from "@galacean/engine-core"
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-class TestComponent extends Script {}
+class TestComponent extends Script { }
 
 describe("Entity", async () => {
   const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
@@ -525,6 +525,23 @@ describe("Entity", async () => {
       expect(cloneParent.children.length).eq(parent.children.length);
       expect(cloneParent.findByName("child").name).eq(child.name);
       expect(cloneParent.findByName("child")).eq(cloneParent.getChild(0));
+
+      // Transform
+      const entityParent = new Entity(engine, "entity");
+      const entityChild = entityParent.createChild("child");
+      entityChild.addComponent(class extends Script {
+        constructor(entity: Entity) {
+          super(entity);
+          // @ts-ignore
+          this.entity.transform._getParentTransform();
+        }
+      })
+
+      const entityParentClone = entityParent.clone();
+      const entityChildClone = entityParentClone.children[0];
+      const transformParentClone = entityParentClone.transform;
+      // @ts-ignore
+      expect(transformParentClone).eq(entityChildClone.transform._getParentTransform());
     });
   });
 
@@ -611,8 +628,8 @@ describe("Entity", async () => {
 
     it("addChildAfterDestroy", () => {
       class DestroyScript extends Script {
-        onDisable(): void {}
-        onDestroy(): void {}
+        onDisable(): void { }
+        onDestroy(): void { }
       }
       DestroyScript.prototype.onDisable = vi.fn(DestroyScript.prototype.onDisable);
       DestroyScript.prototype.onDestroy = vi.fn(DestroyScript.prototype.onDestroy);
