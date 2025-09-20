@@ -278,6 +278,7 @@ export class Entity extends EngineObject {
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this, ...args) as InstanceType<T>;
     this._components.push(component);
+
     // @todo: temporary solution
     if (component instanceof Transform) this._setTransform(component);
     component._setActive(true, ActiveChangeFlag.All);
@@ -809,9 +810,8 @@ export class Entity extends EngineObject {
   }
 
   private _setTransform(value: Transform): void {
-    const transform = this._transform;
+    this._transform?.destroy();
     this._transform = value;
-    transform?.destroy();
     const children = this._children;
     for (let i = 0, n = children.length; i < n; i++) {
       children[i].transform?._parentChange();
