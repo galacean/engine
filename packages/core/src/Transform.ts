@@ -920,14 +920,3 @@ export enum TransformModifyFlags {
   /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale | WorldUniformScaling */
   WmWpWeWqWsWus = 0x1bc
 }
-
-/**
- * @internal
- */
-export function isTransformOrDerived(type: new (entity: Entity) => Component): boolean {
-  while (type !== Component) {
-    if (type === Transform) return true;
-    type = Object.getPrototypeOf(type);
-  }
-  return false;
-}

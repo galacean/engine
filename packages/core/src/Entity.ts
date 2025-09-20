@@ -6,7 +6,7 @@ import { Engine } from "./Engine";
 import { Layer } from "./Layer";
 import { Scene } from "./Scene";
 import { Script } from "./Script";
-import { isTransformOrDerived, Transform } from "./Transform";
+import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
@@ -510,7 +510,7 @@ export class Entity extends EngineObject {
   }
 
   private _createCloneEntity(): Entity {
-    const cloneEntity = new Entity(this.engine, this.name, this._transform.constructor as ComponentConstructor);
+    const cloneEntity = new Entity(this.engine, this.name);
     const templateResource = this._templateResource;
     if (templateResource) {
       cloneEntity._templateResource = templateResource;
@@ -525,8 +525,7 @@ export class Entity extends EngineObject {
     }
     const components = this._components;
     for (let i = 0, n = components.length; i < n; i++) {
-      const component = <ComponentConstructor>components[i].constructor;
-      if (!isTransformOrDerived(component)) cloneEntity.addComponent(component);
+      cloneEntity.addComponent(<ComponentConstructor>components[i].constructor);
     }
     return cloneEntity;
   }
