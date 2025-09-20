@@ -6,7 +6,7 @@ import { Engine } from "./Engine";
 import { Layer } from "./Layer";
 import { Scene } from "./Scene";
 import { Script } from "./Script";
-import { Transform } from "./Transform";
+import { isTransformOrDerived, Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
@@ -526,7 +526,7 @@ export class Entity extends EngineObject {
     const components = this._components;
     for (let i = 0, n = components.length; i < n; i++) {
       const component = <ComponentConstructor>components[i].constructor;
-      if (!this._isTransform(component)) cloneEntity.addComponent(component);
+      if (!isTransformOrDerived(component)) cloneEntity.addComponent(component);
     }
     return cloneEntity;
   }
@@ -817,14 +817,6 @@ export class Entity extends EngineObject {
     for (let i = 0, n = children.length; i < n; i++) {
       children[i].transform?._parentChange();
     }
-  }
-
-  private _isTransform(type: ComponentConstructor): boolean {
-    while (type !== Component) {
-      if (type === Transform) return true;
-      type = Object.getPrototypeOf(type);
-    }
-    return false;
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
