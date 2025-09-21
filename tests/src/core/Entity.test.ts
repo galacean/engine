@@ -533,6 +533,7 @@ describe("Entity", async () => {
       const entityChild = entityParent.createChild("child");
       const entityGrandson = entityChild.createChild("grandson");
       entityGrandson.transform.rotation.set(90, 0, 0);
+      // DynamicCollider 组件在构造函数中会获取 worldRotationQuaternion
       entityGrandson.addComponent(DynamicCollider);
       const entityChildClone = entityParent.clone().children[0];
       const entityGrandsonClone = entityChildClone.children[0];
