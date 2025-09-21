@@ -1,8 +1,9 @@
-import { Entity, EntityModifyFlags, Scene, Script } from "@galacean/engine-core";
+import { Entity, EntityModifyFlags, ignoreClone, Scene, Script } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { TransformModifyFlags } from "packages/core/src/Transform";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-class TestComponent extends Script {}
+class TestComponent extends Script { }
 
 describe("Entity", async () => {
   const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
@@ -525,6 +526,16 @@ describe("Entity", async () => {
       expect(cloneParent.children.length).eq(parent.children.length);
       expect(cloneParent.findByName("child").name).eq(child.name);
       expect(cloneParent.findByName("child")).eq(cloneParent.getChild(0));
+
+      // Transform
+      const entityParent = new Entity(engine, "parent");
+      const entityChild = entityParent.createChild("child");
+      const entityGrandson = entityChild.createChild("grandson");
+      entityGrandson.addComponent(Sample)
+      const entityChildClone = entityParent.clone().children[0];
+      const entityGrandsonClone = entityChildClone.children[0];
+      // @ts-ignore
+      expect(entityChildClone.transform.instanceId).eq(entityGrandsonClone.transform._getParentTransform()?.instanceId);
     });
   });
 
@@ -611,8 +622,8 @@ describe("Entity", async () => {
 
     it("addChildAfterDestroy", () => {
       class DestroyScript extends Script {
-        onDisable(): void {}
-        onDestroy(): void {}
+        onDisable(): void { }
+        onDestroy(): void { }
       }
       DestroyScript.prototype.onDisable = vi.fn(DestroyScript.prototype.onDisable);
       DestroyScript.prototype.onDestroy = vi.fn(DestroyScript.prototype.onDestroy);
@@ -638,3 +649,17 @@ describe("Entity", async () => {
     });
   });
 });
+
+class Sample extends Script {
+  @ignoreClone
+  private _onSelfTransformChanged(type: TransformModifyFlags): void {
+    const worldMatrix = this.entity.transform.worldMatrix
+  }
+
+  constructor(entity: Entity) {
+    super(entity);
+    this._onSelfTransformChanged = this._onSelfTransformChanged.bind(this);
+    // @ts-ignore
+    this.entity._updateFlagManager.addListener(this._onSelfTransformChanged);
+  }
+}

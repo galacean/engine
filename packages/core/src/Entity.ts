@@ -280,11 +280,7 @@ export class Entity extends EngineObject {
     this._components.push(component);
 
     // @todo: temporary solution
-    if (component instanceof Transform) {
-      const transform = this._transform;
-      this._transform = component;
-      transform?.destroy();
-    }
+    if (component instanceof Transform) this._setTransform(component);
     component._setActive(true, ActiveChangeFlag.All);
     return component;
   }
@@ -810,6 +806,15 @@ export class Entity extends EngineObject {
           child._siblingIndex = i;
         }
       }
+    }
+  }
+
+  private _setTransform(value: Transform): void {
+    this._transform?.destroy();
+    this._transform = value;
+    const children = this._children;
+    for (let i = 0, n = children.length; i < n; i++) {
+      children[i].transform?._parentChange();
     }
   }
 
