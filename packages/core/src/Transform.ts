@@ -597,6 +597,8 @@ export class Transform extends Component {
     rotation._onValueChanged = target._onRotationChanged;
     // @ts-ignore
     scale._onValueChanged = target._onScaleChanged;
+
+    // When cloning, other components may obtain properties such as `rotationQuaternion` in the constructor, local related dirty flags need to be corrected
     target._setDirtyFlagTrue(TransformModifyFlags.LocalQuat | TransformModifyFlags.LocalMatrix);
   }
 
