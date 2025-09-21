@@ -597,6 +597,7 @@ export class Transform extends Component {
     rotation._onValueChanged = target._onRotationChanged;
     // @ts-ignore
     scale._onValueChanged = target._onScaleChanged;
+    target._setDirtyFlagTrue(TransformModifyFlags.LocalQuat | TransformModifyFlags.LocalMatrix);
   }
 
   protected _onLocalMatrixChanging(): void {

@@ -531,11 +531,16 @@ describe("Entity", async () => {
       const entityParent = new Entity(engine, "parent");
       const entityChild = entityParent.createChild("child");
       const entityGrandson = entityChild.createChild("grandson");
+      entityGrandson.transform.position.set(1, 2, 3);
       entityGrandson.addComponent(Sample)
       const entityChildClone = entityParent.clone().children[0];
       const entityGrandsonClone = entityChildClone.children[0];
       // @ts-ignore
       expect(entityChildClone.transform.instanceId).eq(entityGrandsonClone.transform._getParentTransform()?.instanceId);
+      const entityGrandsonCloneLocalMatrixElements = entityGrandsonClone.transform.localMatrix.elements;
+      expect(entityGrandsonCloneLocalMatrixElements[12]).eq(1);
+      expect(entityGrandsonCloneLocalMatrixElements[13]).eq(2);
+      expect(entityGrandsonCloneLocalMatrixElements[14]).eq(3);
     });
   });
 
@@ -658,6 +663,7 @@ class Sample extends Script {
 
   constructor(entity: Entity) {
     super(entity);
+    const localMatrix = this.entity.transform.localMatrix
     this._onSelfTransformChanged = this._onSelfTransformChanged.bind(this);
     // @ts-ignore
     this.entity._updateFlagManager.addListener(this._onSelfTransformChanged);
