@@ -1,12 +1,13 @@
-import { Entity, EntityModifyFlags, ignoreClone, Scene, Script } from "@galacean/engine-core";
+import { Quaternion } from "@galacean/engine";
+import { DynamicCollider, Entity, EntityModifyFlags, Scene, Script } from "@galacean/engine-core";
+import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { TransformModifyFlags } from "packages/core/src/Transform";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 class TestComponent extends Script { }
 
 describe("Entity", async () => {
-  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
   const scene = engine.sceneManager.activeScene;
   engine.run();
   beforeEach(() => {
@@ -531,16 +532,13 @@ describe("Entity", async () => {
       const entityParent = new Entity(engine, "parent");
       const entityChild = entityParent.createChild("child");
       const entityGrandson = entityChild.createChild("grandson");
-      entityGrandson.transform.position.set(1, 2, 3);
-      entityGrandson.addComponent(Sample)
+      entityGrandson.transform.rotation.set(90, 0, 0);
+      entityGrandson.addComponent(DynamicCollider);
       const entityChildClone = entityParent.clone().children[0];
       const entityGrandsonClone = entityChildClone.children[0];
       // @ts-ignore
       expect(entityChildClone.transform.instanceId).eq(entityGrandsonClone.transform._getParentTransform()?.instanceId);
-      const entityGrandsonCloneLocalMatrixElements = entityGrandsonClone.transform.localMatrix.elements;
-      expect(entityGrandsonCloneLocalMatrixElements[12]).eq(1);
-      expect(entityGrandsonCloneLocalMatrixElements[13]).eq(2);
-      expect(entityGrandsonCloneLocalMatrixElements[14]).eq(3);
+      expect(Quaternion.equals(new Quaternion(0.7071067, 0, 0, 0.7071067), entityGrandsonClone.transform.rotationQuaternion)).eq(true);
     });
   });
 
@@ -654,18 +652,3 @@ describe("Entity", async () => {
     });
   });
 });
-
-class Sample extends Script {
-  @ignoreClone
-  private _onSelfTransformChanged(type: TransformModifyFlags): void {
-    const worldMatrix = this.entity.transform.worldMatrix
-  }
-
-  constructor(entity: Entity) {
-    super(entity);
-    const localMatrix = this.entity.transform.localMatrix
-    this._onSelfTransformChanged = this._onSelfTransformChanged.bind(this);
-    // @ts-ignore
-    this.entity._updateFlagManager.addListener(this._onSelfTransformChanged);
-  }
-}
