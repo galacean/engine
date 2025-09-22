@@ -1,11 +1,13 @@
-import { Entity, EntityModifyFlags, Scene, Script } from "@galacean/engine-core";
+import { Quaternion } from "@galacean/engine";
+import { DynamicCollider, Entity, EntityModifyFlags, Scene, Script } from "@galacean/engine-core";
+import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-class TestComponent extends Script {}
+class TestComponent extends Script { }
 
 describe("Entity", async () => {
-  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
   const scene = engine.sceneManager.activeScene;
   engine.run();
   beforeEach(() => {
@@ -525,6 +527,19 @@ describe("Entity", async () => {
       expect(cloneParent.children.length).eq(parent.children.length);
       expect(cloneParent.findByName("child").name).eq(child.name);
       expect(cloneParent.findByName("child")).eq(cloneParent.getChild(0));
+
+      // Transform
+      const entityParent = new Entity(engine, "parent");
+      const entityChild = entityParent.createChild("child");
+      const entityGrandson = entityChild.createChild("grandson");
+      entityGrandson.transform.rotation.set(90, 0, 0);
+      // DynamicCollider 组件在构造函数中会获取 worldRotationQuaternion
+      entityGrandson.addComponent(DynamicCollider);
+      const entityChildClone = entityParent.clone().children[0];
+      const entityGrandsonClone = entityChildClone.children[0];
+      // @ts-ignore
+      expect(entityChildClone.transform.instanceId).eq(entityGrandsonClone.transform._getParentTransform()?.instanceId);
+      expect(Quaternion.equals(new Quaternion(0.7071067, 0, 0, 0.7071067), entityGrandsonClone.transform.rotationQuaternion)).eq(true);
     });
   });
 
@@ -611,8 +626,8 @@ describe("Entity", async () => {
 
     it("addChildAfterDestroy", () => {
       class DestroyScript extends Script {
-        onDisable(): void {}
-        onDestroy(): void {}
+        onDisable(): void { }
+        onDestroy(): void { }
       }
       DestroyScript.prototype.onDisable = vi.fn(DestroyScript.prototype.onDisable);
       DestroyScript.prototype.onDestroy = vi.fn(DestroyScript.prototype.onDestroy);

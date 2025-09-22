@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-examples",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "private": true,
   "license": "MIT",
   "main": "dist/main.js",

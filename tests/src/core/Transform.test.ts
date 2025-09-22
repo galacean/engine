@@ -59,6 +59,19 @@ describe("Transform test", function () {
     expect(worldPosition.x).to.equal(0);
     expect(worldPosition.y).to.equal(0);
     expect(worldPosition.z).to.equal(0);
+
+    // Transform
+    const parent = new Entity(engine, "parent");
+    const child = parent.createChild("child");
+    parent.addChild(child);
+    const worldMatrix = child.transform.worldMatrix;
+
+    // Replace transform
+    parent.addComponent(Transform);
+
+    // Check child transform parent cache
+    // @ts-ignore
+    expect(parent.transform.instanceId).eq(child.transform._getParentTransform()?.instanceId);
   });
 
   it("Subclasses of Transform", () => {
