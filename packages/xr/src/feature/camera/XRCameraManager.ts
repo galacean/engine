@@ -124,7 +124,13 @@ export class XRCameraManager {
   /**
    * @internal
    */
-  _onSessionExit(): void {}
+  _onSessionExit(): void {
+    const cameras = this._xrManager.inputManager._cameras;
+    for (let i = 0, n = cameras.length; i < n; i++) {
+      // @ts-ignore
+      cameras[i]._camera?._updatePixelViewport();
+    }
+  }
 
   /**
    * @internal
