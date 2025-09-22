@@ -1,5 +1,6 @@
 import { RenderQueueType } from "../shader";
 import { BatcherManager } from "./BatcherManager";
+import { ContextRendererUpdateFlag } from "./RenderContext";
 import { RenderQueue } from "./RenderQueue";
 
 /**
@@ -27,6 +28,12 @@ export class CullingResults {
     this.opaqueQueue.sortBatch(RenderQueue.compareForOpaque, batcherManager);
     this.alphaTestQueue.sortBatch(RenderQueue.compareForOpaque, batcherManager);
     this.transparentQueue.sortBatch(RenderQueue.compareForTransparent, batcherManager);
+  }
+
+  addRenderUpdateFlag(rendererUpdateFlag: ContextRendererUpdateFlag): void {
+    this.opaqueQueue.rendererUpdateFlag |= rendererUpdateFlag;
+    this.transparentQueue.rendererUpdateFlag |= rendererUpdateFlag;
+    this.alphaTestQueue.rendererUpdateFlag |= rendererUpdateFlag;
   }
 
   destroy(): void {
