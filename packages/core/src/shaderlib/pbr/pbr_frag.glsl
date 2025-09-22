@@ -28,7 +28,7 @@ float radianceAttenuation = 1.0;
     vec3 clearCoatRadiance = getLightProbeRadiance( geometry, geometry.clearCoatNormal, material.clearCoatRoughness, int(scene_EnvMapLight.mipMapLevel), scene_EnvMapLight.specularIntensity );
 
     reflectedLight.indirectSpecular += material.specularAO * clearCoatRadiance * material.clearCoat * envBRDFApprox(vec3( 0.04 ), 1.0, material.clearCoatRoughness, geometry.clearCoatDotNV);
-    radianceAttenuation -= material.clearCoat * F_Schlick(material.f0, geometry.clearCoatDotNV);
+    radianceAttenuation -= material.clearCoat * F_Schlick(0.04, 1.0, geometry.clearCoatDotNV);
 #endif
 
 #ifdef MATERIAL_ENABLE_IRIDESCENCE

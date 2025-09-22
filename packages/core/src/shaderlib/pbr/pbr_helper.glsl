@@ -225,7 +225,7 @@ void initMaterial(out Material material, inout Geometry geometry){
              
             #ifdef MATERIAL_ENABLE_IRIDESCENCE
                 float topIOR = 1.0;
-                material.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, geometry.dotNV, material.iridescenceIOR, material.specularColor, material.iridescenceThickness);   
+                material.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, geometry.dotNV, material.iridescenceIOR, material.specularF0, material.specularF90, material.iridescenceThickness);   
             #endif
         #endif
 

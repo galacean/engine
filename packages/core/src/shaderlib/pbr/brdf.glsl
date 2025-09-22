@@ -3,11 +3,11 @@
     uniform sampler2D scene_PrefilteredDFG;
 #endif
 
-float F_Schlick(float f0, float dotLH) {
-	return f0 + 0.96 * (pow(1.0 - dotLH, 5.0));
+float F_Schlick(float f0, float f90, float dotLH) {
+	return f0 + (f90 - f0) * (pow(1.0 - dotLH, 5.0));
 }
 
-vec3 F_Schlick(vec3 specularColor, float dotLH ) {
+vec3 F_Schlick(vec3 f0, float f90, float dotLH ) {
 
 	// Original approximation by Christophe Schlick '94
 	// float fresnel = pow( 1.0 - dotLH, 5.0 );
@@ -16,7 +16,7 @@ vec3 F_Schlick(vec3 specularColor, float dotLH ) {
 	// https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
 	float fresnel = exp2( ( -5.55473 * dotLH - 6.98316 ) * dotLH );
 
-	return ( 1.0 - specularColor ) * fresnel + specularColor;
+	return (f90 - f0 ) * fresnel + f0;
 
 }
 
@@ -170,7 +170,7 @@ float DG_GGX(float alpha, float dotNV, float dotNL, float dotNH) {
         return rgb;
     }
 
-    vec3 evalIridescenceSpecular(float outsideIOR, float dotNV, float thinIOR, vec3 baseF0,float iridescenceThickness){ 
+    vec3 evalIridescenceSpecular(float outsideIOR, float dotNV, float thinIOR, vec3 baseF0, float baseF90, float iridescenceThickness){ 
         vec3 iridescence = vec3(1.0);
         // Force iridescenceIOR -> outsideIOR when thinFilmThickness -> 0.0
         float iridescenceIOR = mix( outsideIOR, thinIOR, smoothstep( 0.0, 0.03, iridescenceThickness ) );
@@ -185,7 +185,7 @@ float DG_GGX(float alpha, float dotNV, float dotNL, float dotNH) {
             
         // First interface
         float f0 = iorToFresnel0(iridescenceIOR, outsideIOR);
-        float reflectance = F_Schlick(f0, dotNV);
+        float reflectance = F_Schlick(f0, baseF90, dotNV);
         float t121 = 1.0 - reflectance;
         float phi12 = 0.0;
         // iridescenceIOR has limited greater than 1.0
@@ -195,7 +195,7 @@ float DG_GGX(float alpha, float dotNV, float dotNL, float dotNH) {
         // Second interface
         vec3 baseIOR = fresnelToIOR(clamp(baseF0, 0.0, 0.9999)); // guard against 1.0
         vec3 r1  = iorToFresnel0(baseIOR, iridescenceIOR);
-        vec3 r23 = F_Schlick(r1, cosTheta2);
+        vec3 r23 = F_Schlick(r1, baseF90, cosTheta2);
         vec3 phi23 =vec3(0.0);
         if (baseIOR[0] < iridescenceIOR) {phi23[0] = PI;}
         if (baseIOR[1] < iridescenceIOR) {phi23[1] = PI;}
@@ -235,7 +235,7 @@ vec3 BRDF_Specular_GGX(vec3 incidentDirection, Geometry geometry, Material mater
 	float dotNH = saturate( dot( normal, halfDir ) );
 	float dotLH = saturate( dot( incidentDirection, halfDir ) );
 
-    vec3 F = F_Schlick( specularColor, dotLH );
+    vec3 F = F_Schlick( specularColor, material.specularF90, dotLH );
     #ifdef MATERIAL_ENABLE_IRIDESCENCE
         F = mix(F, material.iridescenceSpecularColor, material.iridescenceFactor);
     #endif

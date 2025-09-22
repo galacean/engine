@@ -17,7 +17,7 @@ void addDirectRadiance(vec3 incidentDirection, vec3 color, Geometry geometry, Ma
         vec3 clearCoatIrradiance = clearCoatDotNL * color;
 
         reflectedLight.directSpecular += material.clearCoat * clearCoatIrradiance * BRDF_Specular_GGX( incidentDirection, geometry, material, geometry.clearCoatNormal, vec3( 0.04 ), material.clearCoatRoughness );
-        attenuation -= material.clearCoat * F_Schlick(material.f0, geometry.clearCoatDotNV);
+        attenuation -= material.clearCoat * F_Schlick(0.04, 1.0, geometry.clearCoatDotNV);
     #endif
 
     float dotNL = saturate( dot( geometry.normal, incidentDirection ) );
