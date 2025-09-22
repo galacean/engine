@@ -96,12 +96,7 @@ void initMaterial(out Material material, inout Geometry geometry){
         vec4 baseColor = material_BaseColor;
         float metal = material_Metal;
         float roughness = material_Roughness;
-        vec3 specularColor = material_PBRSpecularColor;
-        float glossiness = material_Glossiness;
         float alphaCutoff = material_AlphaCutoff;
-        float f0 = pow2( (material_IOR - 1.0) / (material_IOR + 1.0) );
-
-        material.f0 = f0;
         material.IOR = material_IOR;
 
         #ifdef MATERIAL_HAS_BASETEXTURE
@@ -125,25 +120,12 @@ void initMaterial(out Material material, inout Geometry geometry){
             metal *= metalRoughMapColor.b;
         #endif
 
-        #ifdef MATERIAL_HAS_SPECULAR_GLOSSINESS_TEXTURE
-            vec4 specularGlossinessColor = texture2DSRGB(material_SpecularGlossinessTexture, v_uv);
-            specularColor *= specularGlossinessColor.rgb;
-            glossiness *= specularGlossinessColor.a;
+        // Specular
+        material.specularIntensity = material_SpecularIntensity;
+        material.specularColor = material_SpecularColor;
+        #ifdef MATERIAL_HAS_SPECULAR_TEXTURE
+            material.specularIntensity *= texture2D( material_SpecularIntensityTexture, v_uv ).a;
         #endif
-
-
-        #ifdef IS_METALLIC_WORKFLOW
-            material.diffuseColor = baseColor.rgb * ( 1.0 - metal );
-            material.specularColor = mix( vec3(f0), baseColor.rgb, metal );
-            material.roughness = roughness;
-        #else
-            float specularStrength = max( max( specularColor.r, specularColor.g ), specularColor.b );
-            material.diffuseColor = baseColor.rgb * ( 1.0 - specularStrength );
-            material.specularColor = specularColor;
-            material.roughness = 1.0 - glossiness;
-        #endif
-
-        material.roughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(material.roughness + getAARoughnessFactor(geometry.normal), 1.0));
 
         #ifdef MATERIAL_ENABLE_CLEAR_COAT
             material.clearCoat = material_ClearCoat;
@@ -167,7 +149,18 @@ void initMaterial(out Material material, inout Geometry geometry){
             geometry.anisotropicN = getAnisotropicBentNormal(geometry, geometry.normal, material.roughness);
         #endif
 
-        material.envSpecularDFG = envBRDFApprox(material.specularColor, material.roughness, geometry.dotNV );
+        vec3 dielectricBaseF0 = vec3(pow2( (material.IOR - 1.0) / (material.IOR  + 1.0) ));
+        vec3 dielectricF0 = min(dielectricBaseF0 * material.specularColor , vec3(1.0)) * material.specularIntensity;
+        float dielectricF90 = material.specularIntensity;  
+
+        material.specularF0 = mix(dielectricF0, baseColor.rgb, metal);
+        material.specularF90 = mix(dielectricF90, 1.0, metal);
+
+        // Simplify: albedoColor * mix((1.0 - max(max(dielectricF0.r,dielectricF0.g),dielectricF0.b)), 0.0, metallic);
+        material.diffuseColor = baseColor.rgb * (1.0-metal) * (1.0 - max(max(dielectricF0.r,dielectricF0.g),dielectricF0.b));
+        material.roughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(material.roughness + getAARoughnessFactor(geometry.normal), 1.0));
+
+        material.envSpecularDFG = envBRDFApprox(material.specularF0, material.specularF90, material.roughness, geometry.dotNV );
 
         // AO
         float diffuseAO = 1.0;

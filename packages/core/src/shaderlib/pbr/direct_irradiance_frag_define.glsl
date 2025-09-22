@@ -23,7 +23,7 @@ void addDirectRadiance(vec3 incidentDirection, vec3 color, Geometry geometry, Ma
     float dotNL = saturate( dot( geometry.normal, incidentDirection ) );
     vec3 irradiance = dotNL * color * PI;
 
-    reflectedLight.directSpecular += attenuation * irradiance * BRDF_Specular_GGX( incidentDirection, geometry, material, geometry.normal, material.specularColor, material.roughness);
+    reflectedLight.directSpecular += attenuation * irradiance * BRDF_Specular_GGX( incidentDirection, geometry, material, geometry.normal, material.specularF0, material.roughness);
     reflectedLight.directDiffuse += attenuation * irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
 
     // Sheen Lobe

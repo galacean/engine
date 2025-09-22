@@ -27,17 +27,17 @@ float radianceAttenuation = 1.0;
 #ifdef MATERIAL_ENABLE_CLEAR_COAT
     vec3 clearCoatRadiance = getLightProbeRadiance( geometry, geometry.clearCoatNormal, material.clearCoatRoughness, int(scene_EnvMapLight.mipMapLevel), scene_EnvMapLight.specularIntensity );
 
-    reflectedLight.indirectSpecular += material.specularAO * clearCoatRadiance * material.clearCoat * envBRDFApprox(vec3( 0.04 ), material.clearCoatRoughness, geometry.clearCoatDotNV);
+    reflectedLight.indirectSpecular += material.specularAO * clearCoatRadiance * material.clearCoat * envBRDFApprox(vec3( 0.04 ), 1.0, material.clearCoatRoughness, geometry.clearCoatDotNV);
     radianceAttenuation -= material.clearCoat * F_Schlick(material.f0, geometry.clearCoatDotNV);
 #endif
 
 #ifdef MATERIAL_ENABLE_IRIDESCENCE
-    vec3 speculaColor = mix(material.specularColor, material.iridescenceSpecularColor, material.iridescenceFactor);
+    vec3 speculaColor = mix(material.specularF0, material.iridescenceSpecularColor, material.iridescenceFactor);
 #else
-    vec3 speculaColor = material.specularColor;
+    vec3 speculaColor = material.specularF0;
 #endif
 
-reflectedLight.indirectSpecular += material.specularAO * radianceAttenuation * radiance * envBRDFApprox(speculaColor, material.roughness, geometry.dotNV);
+reflectedLight.indirectSpecular += material.specularAO * radianceAttenuation * radiance * envBRDFApprox(speculaColor, material.specularF90, material.roughness, geometry.dotNV);
 
 
 // IBL Sheen
