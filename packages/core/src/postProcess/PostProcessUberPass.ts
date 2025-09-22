@@ -137,7 +137,7 @@ export class PostProcessUberPass extends PostProcessPass {
       uberShaderData.disableMacro(BloomEffect._hqMacro);
     }
     uberShaderData.setTexture(BloomEffect._dirtTextureProp, dirtTexture.value);
-    if (dirtTexture) {
+    if (dirtTexture.value) {
       uberShaderData.enableMacro(BloomEffect._dirtMacro);
     } else {
       uberShaderData.disableMacro(BloomEffect._dirtMacro);
