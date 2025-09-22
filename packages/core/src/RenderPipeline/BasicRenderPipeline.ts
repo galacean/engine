@@ -83,7 +83,7 @@ export class BasicRenderPipeline {
    * @param ignoreClear - Ignore clear flag
    */
   render(context: RenderContext, cubeFace?: TextureCubeFace, mipLevel?: number, ignoreClear?: CameraClearFlags) {
-    context.rendererUpdateFlag = ContextRendererUpdateFlag.All;
+    this._cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.All);
 
     const camera = this._camera;
     const { scene, engine, renderTarget } = camera;
@@ -117,14 +117,13 @@ export class BasicRenderPipeline {
 
     if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
       this._cascadedShadowCasterPass.onRender(context);
-      context.rendererUpdateFlag = ContextRendererUpdateFlag.None;
     }
 
     const batcherManager = engine._batcherManager;
     cullingResults.reset();
 
     // Depth use camera's view and projection matrix
-    context.rendererUpdateFlag |= ContextRendererUpdateFlag.viewProjectionMatrix;
+    this._cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.viewProjectionMatrix);
     context.applyVirtualCamera(camera._virtualCamera, depthPassEnabled);
     this._prepareRender(context);
 
@@ -134,7 +133,6 @@ export class BasicRenderPipeline {
     if (depthPassEnabled) {
       depthOnlyPass.onConfig(camera);
       depthOnlyPass.onRender(context, cullingResults);
-      context.rendererUpdateFlag = ContextRendererUpdateFlag.None;
     } else {
       depthOnlyPass.release();
       camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._basicResources.whiteTexture2D);
@@ -235,7 +233,7 @@ export class BasicRenderPipeline {
 
     if (context.flipProjection !== needFlipProjection) {
       // Just add projection matrix update type is enough
-      context.rendererUpdateFlag |= ContextRendererUpdateFlag.ProjectionMatrix;
+      cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.ProjectionMatrix);
       context.applyVirtualCamera(camera._virtualCamera, needFlipProjection);
     }
 

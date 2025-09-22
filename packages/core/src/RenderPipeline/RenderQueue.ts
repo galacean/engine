@@ -23,6 +23,7 @@ export class RenderQueue {
 
   readonly elements = new Array<RenderElement>();
   readonly batchedSubElements = new Array<SubRenderElement>();
+  rendererUpdateFlag = ContextRendererUpdateFlag.None;
 
   constructor(public renderQueueType: RenderQueueType) {}
 
@@ -50,8 +51,7 @@ export class RenderQueue {
       return;
     }
 
-    const { rendererUpdateFlag, camera } = context;
-    const { engine, scene, instanceId: cameraId, shaderData: cameraData } = camera;
+    const { engine, scene, instanceId: cameraId, shaderData: cameraData } = context.camera;
     const { instanceId: sceneId, shaderData: sceneData, _maskManager: maskManager } = scene;
     const renderCount = engine._renderCount;
     const rhi = engine._hardwareRenderer;
@@ -64,13 +64,13 @@ export class RenderQueue {
 
       // @todo: Can optimize update view projection matrix updated
       if (
-        rendererUpdateFlag & ContextRendererUpdateFlag.WorldViewMatrix ||
+        this.rendererUpdateFlag & ContextRendererUpdateFlag.WorldViewMatrix ||
         renderer._batchedTransformShaderData != batched
       ) {
         // Update world matrix and view matrix and model matrix
         renderer._updateTransformShaderData(context, false, batched);
         renderer._batchedTransformShaderData = batched;
-      } else if (rendererUpdateFlag & ContextRendererUpdateFlag.ProjectionMatrix) {
+      } else if (this.rendererUpdateFlag & ContextRendererUpdateFlag.ProjectionMatrix) {
         // Only projection matrix need updated
         renderer._updateTransformShaderData(context, true, batched);
       }
@@ -195,6 +195,8 @@ export class RenderQueue {
         rhi.drawPrimitive(primitive, subElement.subPrimitive, program);
       }
     }
+
+    this.rendererUpdateFlag = ContextRendererUpdateFlag.None;
   }
 
   clear(): void {
