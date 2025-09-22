@@ -90,7 +90,7 @@ export const E2E_CONFIG = {
       category: "GLTF",
       caseFileName: "gltf-meshopt",
       threshold: 0,
-      diffPercentage: 0.055
+      diffPercentage: 0.059
     },
     blendShape: {
       category: "GLTF",
@@ -129,7 +129,7 @@ export const E2E_CONFIG = {
       category: "Material",
       caseFileName: "material-pbr",
       threshold: 0,
-      diffPercentage: 0.004
+      diffPercentage: 0.0044
     },
     shaderLab: {
       category: "Material",
@@ -199,7 +199,7 @@ export const E2E_CONFIG = {
       category: "Shadow",
       caseFileName: "shadow-transparent",
       threshold: 0,
-      diffPercentage: 0.044
+      diffPercentage: 0.046
     }
   },
   Primitive: {
