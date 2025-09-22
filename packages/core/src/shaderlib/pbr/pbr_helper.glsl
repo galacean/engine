@@ -145,6 +145,9 @@ void initMaterial(out Material material, inout Geometry geometry){
         #else
             material.opacity = 1.0;
         #endif
+
+        material.roughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(roughness + getAARoughnessFactor(geometry.normal), 1.0));
+
         #ifdef MATERIAL_ENABLE_ANISOTROPY
             geometry.anisotropicN = getAnisotropicBentNormal(geometry, geometry.normal, material.roughness);
         #endif
@@ -157,9 +160,7 @@ void initMaterial(out Material material, inout Geometry geometry){
         material.specularF90 = mix(dielectricF90, 1.0, metal);
 
         // Simplify: albedoColor * mix((1.0 - max(max(dielectricF0.r,dielectricF0.g),dielectricF0.b)), 0.0, metallic);
-        material.diffuseColor = baseColor.rgb * (1.0-metal) * (1.0 - max(max(dielectricF0.r,dielectricF0.g),dielectricF0.b));
-        material.roughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(material.roughness + getAARoughnessFactor(geometry.normal), 1.0));
-
+        material.diffuseColor = baseColor.rgb * (1.0 - metal) * (1.0 - max(max(dielectricF0.r,dielectricF0.g),dielectricF0.b));
         material.envSpecularDFG = envBRDFApprox(material.specularF0, material.specularF90, material.roughness, geometry.dotNV );
 
         // AO
