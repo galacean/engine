@@ -114,6 +114,10 @@ export class XRCameraManager {
       if (!Matrix.equals(camera.projectionMatrix, cameraDevice.projectionMatrix)) {
         camera.projectionMatrix = cameraDevice.projectionMatrix;
       }
+      // sync pixel viewport
+      const platformSession = this._xrManager.sessionManager._platformSession;
+      // @ts-ignore
+      camera._adjustPixelViewport(platformSession.framebufferWidth, platformSession.framebufferHeight);
     }
   }
 

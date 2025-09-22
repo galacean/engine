@@ -673,7 +673,7 @@ export class Camera extends Component {
       Logger.error("mipLevel only take effect in WebGL2.0");
     }
     let ignoreClearFlags: CameraClearFlags;
-    if (this._cameraType !== CameraType.Normal && !this._renderTarget && !this._isIndependentCanvasEnabled()) {
+    if (this._cameraType !== CameraType.Normal && !this._renderTarget) {
       ignoreClearFlags = engine.xrManager._getCameraIgnoreClearFlags(this._cameraType);
     }
     this._renderPipeline.render(context, cubeFace, mipLevel, ignoreClearFlags);
@@ -872,6 +872,10 @@ export class Camera extends Component {
       height = canvas.height;
     }
 
+    this._adjustPixelViewport(width, height);
+  }
+
+  private _adjustPixelViewport(width: number, height: number): void {
     const viewport = this._viewport;
     this._pixelViewport.set(viewport.x * width, viewport.y * height, viewport.z * width, viewport.w * height);
     !this._customAspectRatio && this._dispatchModify(CameraModifyFlags.AspectRatio);
