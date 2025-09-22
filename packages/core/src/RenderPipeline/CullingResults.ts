@@ -30,7 +30,7 @@ export class CullingResults {
     this.transparentQueue.sortBatch(RenderQueue.compareForTransparent, batcherManager);
   }
 
-  addRenderUpdateFlag(rendererUpdateFlag: ContextRendererUpdateFlag): void {
+  setRenderUpdateFlagTrue(rendererUpdateFlag: ContextRendererUpdateFlag): void {
     this.opaqueQueue.rendererUpdateFlag |= rendererUpdateFlag;
     this.transparentQueue.rendererUpdateFlag |= rendererUpdateFlag;
     this.alphaTestQueue.rendererUpdateFlag |= rendererUpdateFlag;

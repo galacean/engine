@@ -83,7 +83,7 @@ export class BasicRenderPipeline {
    * @param ignoreClear - Ignore clear flag
    */
   render(context: RenderContext, cubeFace?: TextureCubeFace, mipLevel?: number, ignoreClear?: CameraClearFlags) {
-    this._cullingResults.addRenderUpdateFlag(ContextRendererUpdateFlag.All);
+    this._cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.All);
 
     const camera = this._camera;
     const { scene, engine, renderTarget } = camera;
@@ -123,7 +123,7 @@ export class BasicRenderPipeline {
     cullingResults.reset();
 
     // Depth use camera's view and projection matrix
-    this._cullingResults.addRenderUpdateFlag(ContextRendererUpdateFlag.viewProjectionMatrix);
+    this._cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.viewProjectionMatrix);
     context.applyVirtualCamera(camera._virtualCamera, depthPassEnabled);
     this._prepareRender(context);
 
@@ -233,7 +233,7 @@ export class BasicRenderPipeline {
 
     if (context.flipProjection !== needFlipProjection) {
       // Just add projection matrix update type is enough
-      cullingResults.addRenderUpdateFlag(ContextRendererUpdateFlag.ProjectionMatrix);
+      cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.ProjectionMatrix);
       context.applyVirtualCamera(camera._virtualCamera, needFlipProjection);
     }
 
