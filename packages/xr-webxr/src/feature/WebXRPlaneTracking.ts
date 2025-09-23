@@ -66,7 +66,7 @@ export class WebXRPlaneTracking extends WebXRTrackableFeature<IWebXRTrackedPlane
    * @internal
    */
   _assembleOptions(options: XRSessionInit): void {
-    options.requiredFeatures.push("plane-detection");
+    options.optionalFeatures.push("plane-detection");
   }
 
   private _updatePlane(frame: XRFrame, space: XRSpace, trackedPlane: IWebXRTrackedPlane): void {
