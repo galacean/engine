@@ -488,7 +488,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     const yStart = flipY ? srcHeight - viewport.y * srcHeight - copyHeight : viewport.y * srcHeight;
 
     // @ts-ignore
-    const frameBuffer = srcRT?._platformRenderTarget._frameBuffer ?? null;
+    const frameBuffer = srcRT?._platformRenderTarget._frameBuffer ?? this._mainFrameBuffer;
 
     // @ts-ignore
     gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);

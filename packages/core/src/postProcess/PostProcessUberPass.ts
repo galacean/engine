@@ -9,6 +9,7 @@ import { ShaderLib } from "../shaderlib";
 import blitVs from "../shaderlib/extra/Blit.vs.glsl";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureWrapMode } from "../texture";
 import { BloomDownScaleMode, BloomEffect, TonemappingEffect } from "./effects";
+import { PostProcessManager } from "./PostProcessManager";
 import { PostProcessPass, PostProcessPassEvent } from "./PostProcessPass";
 import Filtering from "./shaders/Filtering.glsl";
 import PostCommon from "./shaders/PostCommon.glsl";
@@ -19,7 +20,6 @@ import RRT from "./shaders/Tonemapping/ACES/RRT.glsl";
 import Tonescale from "./shaders/Tonemapping/ACES/Tonescale.glsl";
 import NeutralTonemapping from "./shaders/Tonemapping/NeutralTonemapping.glsl";
 import UberPost from "./shaders/UberPost.glsl";
-import { PostProcessManager } from "./PostProcessManager";
 
 export class PostProcessUberPass extends PostProcessPass {
   static readonly UBER_SHADER_NAME = "UberPost";
@@ -93,8 +93,8 @@ export class PostProcessUberPass extends PostProcessPass {
     } else {
       uberShaderData.disableMacro(TonemappingEffect._enableMacro);
     }
-
-    Blitter.blitTexture(camera.engine, srcTexture, destTarget, 0, camera.viewport, this._uberMaterial, undefined);
+    const viewport = destTarget === camera.renderTarget ? camera.viewport : undefined;
+    Blitter.blitTexture(camera.engine, srcTexture, destTarget, 0, viewport, this._uberMaterial, undefined);
   }
 
   /**
@@ -137,7 +137,7 @@ export class PostProcessUberPass extends PostProcessPass {
       uberShaderData.disableMacro(BloomEffect._hqMacro);
     }
     uberShaderData.setTexture(BloomEffect._dirtTextureProp, dirtTexture.value);
-    if (dirtTexture) {
+    if (dirtTexture.value) {
       uberShaderData.enableMacro(BloomEffect._dirtMacro);
     } else {
       uberShaderData.disableMacro(BloomEffect._dirtMacro);

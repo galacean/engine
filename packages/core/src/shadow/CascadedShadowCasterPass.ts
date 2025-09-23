@@ -387,7 +387,10 @@ export class CascadedShadowCasterPass extends PipelinePass {
     sceneShaderData.setVector3(CascadedShadowCasterPass._lightDirectionProperty, light.direction);
 
     // Every light use self virtual camera
-    context.rendererUpdateFlag |= ContextRendererUpdateFlag.viewProjectionMatrix;
+    const { opaqueQueue, alphaTestQueue } = context.camera._renderPipeline._cullingResults;
+    opaqueQueue.rendererUpdateFlag |= ContextRendererUpdateFlag.viewProjectionMatrix;
+    alphaTestQueue.rendererUpdateFlag |= ContextRendererUpdateFlag.viewProjectionMatrix;
+
     context.applyVirtualCamera(virtualCamera, true);
   }
 }

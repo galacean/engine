@@ -6,12 +6,12 @@ uniform vec4 material_BaseColor;
 uniform float material_Metal;
 uniform float material_Roughness;
 uniform float material_IOR;
-uniform vec3 material_PBRSpecularColor;
-uniform float material_Glossiness;
 uniform vec3 material_EmissiveColor;
 uniform float material_NormalIntensity;
 uniform float material_OcclusionIntensity;
 uniform float material_OcclusionTextureCoord;
+uniform float material_SpecularIntensity;
+uniform vec3  material_SpecularColor;
 
 #ifdef MATERIAL_ENABLE_CLEAR_COAT
     uniform float material_ClearCoat;
@@ -54,9 +54,12 @@ uniform float material_OcclusionTextureCoord;
     uniform sampler2D material_RoughnessMetallicTexture;
 #endif
 
+#ifdef MATERIAL_HAS_SPECULAR_TEXTURE
+    uniform sampler2D material_SpecularIntensityTexture;
+#endif
 
-#ifdef MATERIAL_HAS_SPECULAR_GLOSSINESS_TEXTURE
-    uniform sampler2D material_SpecularGlossinessTexture;
+#ifdef MATERIAL_HAS_SPECULAR_COLOR_TEXTURE
+    uniform sampler2D material_SpecularColorTexture;
 #endif
 
 #ifdef MATERIAL_HAS_OCCLUSION_TEXTURE
@@ -135,9 +138,11 @@ struct Geometry {
 struct Material {
     vec3  diffuseColor;
     float roughness;
+    vec3  specularF0;
+    float specularF90;
+    float specularIntensity;
     vec3  specularColor;
     float opacity;
-    float f0;
     float diffuseAO;
     float specularAO;
     vec3  envSpecularDFG;
