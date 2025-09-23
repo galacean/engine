@@ -66,7 +66,7 @@ export class WebXRAnchorTracking extends WebXRTrackableFeature<IXRTracked, IWebX
    * @internal
    */
   _assembleOptions(options: XRSessionInit): void {
-    options.requiredFeatures.push("anchors");
+    options.optionalFeatures.push("anchors");
   }
 
   private _addAnchor(session: WebXRSession, frame: WebXRFrame, requestTracking: IWebXRRequestTrackingAnchor): void {
