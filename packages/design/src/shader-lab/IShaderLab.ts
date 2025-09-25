@@ -20,7 +20,7 @@ export interface IShaderLab {
     shaderPassSource: string,
     vertexEntry: string,
     fragmentEntry: string,
-    backend: number,
+    backend: any,
     basePathForIncludeKey: string
   ): IShaderProgramSource;
 

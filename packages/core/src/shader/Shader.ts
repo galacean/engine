@@ -131,7 +131,7 @@ export class Shader implements IReferable {
             passSource.tags
           );
 
-          shaderPass._platformTarget = vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget;
+          shaderPass._platformTarget = vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget as ShaderLanguage;
 
           const { constantMap, variableMap } = passSource.renderStates;
           // Compatible shader lab no render state use material `renderState` to modify render state
