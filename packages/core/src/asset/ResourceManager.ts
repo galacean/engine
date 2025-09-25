@@ -353,17 +353,17 @@ export class ResourceManager {
   private _loadSingleItem<T>(itemOrURL: LoadItem | string): AssetPromise<T> {
     const item = this._assignDefaultOptions(typeof itemOrURL === "string" ? { url: itemOrURL } : itemOrURL);
     let { url } = item;
-
-    // Not absolute and base url is set
-    if (!Utils.isAbsoluteUrl(url) && this.baseUrl) url = Utils.resolveAbsoluteUrl(this.baseUrl, url);
-
     // Parse url
     const { assetBaseURL, queryPath } = this._parseURL(url);
     const paths = queryPath ? this._parseQueryPath(queryPath) : [];
 
     // Get remote asset base url
     const remoteConfig = this._virtualPathResourceMap[assetBaseURL];
-    const remoteAssetBaseURL = remoteConfig?.path ?? assetBaseURL;
+    let remoteAssetBaseURL = remoteConfig?.path ?? assetBaseURL;
+    // Not absolute and base url is set
+    if (!Utils.isAbsoluteUrl(remoteAssetBaseURL) && this.baseUrl) {
+      remoteAssetBaseURL = Utils.resolveAbsoluteUrl(this.baseUrl, remoteAssetBaseURL);
+    }
 
     // Check cache
     const cacheObject = this._assetUrlPool[remoteAssetBaseURL];
