@@ -1,77 +1,110 @@
 Shader "render-state-test" {
-    SubShader "Default" {
-      Pass "Forward Pass" {
-		Tags { LightMode = "ForwardBase", ReplacementTag = "Opaque", pipelineStage = "DepthOnly"}
+    // Global Shader-level variables and render states
+    Bool globalDepthWrite;
 
+    // Shader-level render state (inherited by all SubShaders and Passes)
+    DepthState = {
+      WriteEnabled = globalDepthWrite;  // Variable at shader level
+      Enabled = true;                   // Constant at shader level
+    }
+
+    SubShader "Default" {
+      // SubShader-level variables
+      Bool subShaderBlendEnabled;
+
+      // SubShader-level render state (inherited by all Passes)
+      BlendState = {
+        Enabled = subShaderBlendEnabled; // Variable at SubShader level
+        SourceColorBlendFactor = BlendFactor.SourceAlpha; // Constant at SubShader level
+      }
+      Pass "Forward Pass" {
+        Tags { LightMode = "ForwardBase", ReplacementTag = "Opaque", pipelineStage = "DepthOnly"}
+
+        // Pass-level variables
         RenderQueueType renderQueueType;
         Bool depthWriteEnabled;
-        Bool blendEnabled2;
-        CullMode rasterStateCullMode2;
 
+        // Traditional syntax: declare then assign
         DepthState customDepthState {
-        	WriteEnabled = depthWriteEnabled;
+          WriteEnabled = depthWriteEnabled;  // Pass variable (overrides inherited "globalDepthWrite")
         }
+        DepthState = customDepthState;  // Pass assignment (overrides inherited DepthState)
+        // Result: WriteEnabled = depthWriteEnabled, Enabled = true (inherited from Shader level)
 
-    	BlendState customBlendState {
-    		Enabled[0] = true;
-    	  	ColorWriteMask[0] = 0.8;
-    	  	BlendColor = Color(1.0, 1.0, 1.0, 1.0);
-    	  	AlphaBlendOperation = BlendOperation.Max;
-    	}
-
-		StencilState customStencilState {
-      		Enabled = true;
-      		Mask = 1.3; // 0xffffffff
-      		WriteMask = 0.32; // 0xffffffff
-      		CompareFunctionFront = CompareFunction.Less;
-      		PassOperationBack = StencilOperation.Zero;
-    	}
-
-  		RasterState customRasterState {
-  		  	CullMode = CullMode.Front;
-  		  	DepthBias = 0.1;
-  		  	SlopeScaledDepthBias = 0.8;
-  		}
-
-        DepthState = customDepthState;
+        // Pass-level BlendState (overrides inherited SubShader BlendState)
+        BlendState customBlendState {
+          Enabled[0] = true;  // Pass constant (overrides inherited "subShaderBlendEnabled" variable)
+          ColorWriteMask[0] = 0.8;  // New property at Pass level
+          BlendColor = Color(1.0, 1.0, 1.0, 1.0);  // New property at Pass level
+          AlphaBlendOperation = BlendOperation.Max;  // New property at Pass level
+        }
         BlendState = customBlendState;
-        RasterState = customRasterState;
-		StencilState = customStencilState;
+        // Result: Enabled = true (Pass override), SourceColorBlendFactor = SourceAlpha (inherited), plus new properties
+
+        // Pass-level StencilState (new, not inherited)
+        StencilState customStencilState {
+          Enabled = true;
+          Mask = 1.3;
+          WriteMask = 0.32;
+          CompareFunctionFront = CompareFunction.Less;
+          PassOperationBack = StencilOperation.Zero;
+        }
+        StencilState = customStencilState;
+
         RenderQueueType = renderQueueType;
       }
 
       Pass "Syntax Sugar Pass" {
+        // Pass-level variables
         Bool depthWriteEnabled2;
-        Bool blendEnabled2;
-        CullMode rasterStateCullMode2;
+
+        // Syntax sugar: direct assignment (overrides inherited DepthState)
+        DepthState = {
+          WriteEnabled = depthWriteEnabled2;  // Pass variable (overrides inherited "globalDepthWrite")
+          Enabled = true;  // Pass constant (same as inherited, but explicit override)
+          CompareFunction = CompareFunction.LessEqual;  // New property at Pass level
+        }
+        // Result: WriteEnabled = depthWriteEnabled2, Enabled = true, CompareFunction = LessEqual
+
+        // Syntax sugar: BlendState (overrides inherited SubShader BlendState)
+        BlendState = {
+          Enabled = true;  // Pass constant (overrides inherited "subShaderBlendEnabled" variable)
+          SourceColorBlendFactor = BlendFactor.SourceAlpha;  // Pass constant (same as inherited)
+          DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;  // New property at Pass level
+        }
+        // Result: Enabled = true (Pass override), SourceColorBlendFactor = SourceAlpha (Pass override), plus new property
+      }
+
+      Pass "Override Test Pass" {
+        // Pass-level variables
+        Bool depthWriteVar;
+        Bool blendEnabledVar;
+
+        // Test: Variable → Constant override
+        DepthState = {
+          WriteEnabled = depthWriteVar;   // Variable (first assignment)
+          Enabled = false;                // Constant
+        }
 
         DepthState = {
-          WriteEnabled = depthWriteEnabled2;
-          Enabled = true;
-          CompareFunction = CompareFunction.LessEqual;
+          WriteEnabled = true;            // Constant overrides variable
+          Enabled = true;                 // Constant overrides constant
+          CompareFunction = CompareFunction.Greater; // New constant
+        }
+        // Result: WriteEnabled = true (constant), Enabled = true (constant), CompareFunction = Greater
+
+        // Test: Constant → Variable override
+        BlendState = {
+          Enabled = true;                 // Constant (first assignment)
+          SourceColorBlendFactor = BlendFactor.One; // Constant
         }
 
         BlendState = {
-          Enabled = blendEnabled2;
-          SourceColorBlendFactor = BlendFactor.SourceAlpha;
-          DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-          SourceAlphaBlendFactor = BlendFactor.One;
-          DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+          Enabled = blendEnabledVar;      // Variable overrides constant
+          SourceColorBlendFactor = BlendFactor.SourceAlpha; // Constant overrides constant
+          DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha; // New constant
         }
-
-        RasterState = {
-          CullMode = rasterStateCullMode2;
-          DepthBias = 0.2;
-          SlopeScaledDepthBias = 0.9;
-        }
-
-        StencilState = {
-          Enabled = false;
-          Mask = 2.5;
-          WriteMask = 0.64;
-          CompareFunctionFront = CompareFunction.Greater;
-          PassOperationBack = StencilOperation.Keep;
-        }
+        // Result: Enabled = blendEnabledVar (variable), SourceColorBlendFactor = SourceAlpha, DestinationColorBlendFactor = OneMinusSourceAlpha
       }
     }
   }

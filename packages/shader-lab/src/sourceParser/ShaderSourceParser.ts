@@ -61,13 +61,25 @@ export class ShaderSourceParser {
     for (let i = 0, n = shaderSource.subShaders.length; i < n; i++) {
       const subShader = shaderSource.subShaders[i];
       const curSubShaderGlobalStatements = shaderPendingContents.concat(subShader.pendingContents);
-      const constMap = { ...shaderRenderStates.constantMap, ...subShader.renderStates.constantMap };
-      const variableMap = { ...shaderRenderStates.variableMap, ...subShader.renderStates.variableMap };
+      // Merge Shader and SubShader render states, ensuring SubShader overrides Shader
+      const mergedStates = {
+        constantMap: { ...shaderRenderStates.constantMap },
+        variableMap: { ...shaderRenderStates.variableMap }
+      };
+      this._mergeRenderStates(mergedStates, subShader.renderStates);
 
       for (let j = 0, m = subShader.passes.length; j < m; j++) {
         const pass = subShader.passes[j];
-        Object.assign(pass.renderStates.constantMap, constMap);
-        Object.assign(pass.renderStates.variableMap, variableMap);
+        // Apply inheritance: Pass-level states override inherited states
+        // Create a copy for each pass to avoid shared state
+        const passStates = {
+          constantMap: { ...mergedStates.constantMap },
+          variableMap: { ...mergedStates.variableMap }
+        };
+        this._mergeRenderStates(passStates, pass.renderStates);
+        pass.renderStates.constantMap = passStates.constantMap;
+        pass.renderStates.variableMap = passStates.variableMap;
+
         if (pass.isUsePass) continue;
         const passGlobalStatements = curSubShaderGlobalStatements.concat(pass.pendingContents);
         pass.contents = passGlobalStatements.map((item) => item.content).join("\n");
@@ -138,8 +150,7 @@ export class ShaderSourceParser {
       if (nextToken.lexeme === "{") {
         // Syntax sugar: DepthState = { ... }
         const renderState = this._parseRenderStateProperties(stateToken.lexeme);
-        Object.assign(renderStates.constantMap, renderState.constantMap);
-        Object.assign(renderStates.variableMap, renderState.variableMap);
+        this._mergeRenderStates(renderStates, renderState);
         return;
       } else {
         // Variable assignment: DepthState = customDepthState;
@@ -154,10 +165,24 @@ export class ShaderSourceParser {
           // #endif
         }
         const renderState = sm.value as IRenderStates;
-        Object.assign(renderStates.constantMap, renderState.constantMap);
-        Object.assign(renderStates.variableMap, renderState.variableMap);
+        this._mergeRenderStates(renderStates, renderState);
         return;
       }
+    }
+  }
+
+  private static _mergeRenderStates(target: IRenderStates, source: IRenderStates): void {
+    // For each key in the source, remove it from the opposite map in target to ensure proper override
+    for (const key in source.constantMap) {
+      const numKey = Number(key);
+      delete target.variableMap[numKey];
+      target.constantMap[numKey] = source.constantMap[numKey];
+    }
+
+    for (const key in source.variableMap) {
+      const numKey = Number(key);
+      delete target.constantMap[numKey];
+      target.variableMap[numKey] = source.variableMap[numKey];
     }
   }
 
