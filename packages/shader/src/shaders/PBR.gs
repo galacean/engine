@@ -103,11 +103,11 @@ Shader "PBRShaderName" {
         Bool blendEnabled;
         Bool depthWriteEnabled;
 
-        DepthState customDepthState {
+        DepthState = {
           WriteEnabled = depthWriteEnabled;
         }
 
-        BlendState customBlendState {
+        BlendState = {
           Enabled = blendEnabled;
           SourceColorBlendFactor = sourceColorBlendFactor;
           DestinationColorBlendFactor = destinationColorBlendFactor;
@@ -115,13 +115,10 @@ Shader "PBRShaderName" {
           DestinationAlphaBlendFactor = destinationAlphaBlendFactor;
         }
 
-        RasterState customRasterState {
+        RasterState = {
           CullMode = rasterStateCullMode;
         }
 
-        DepthState = customDepthState;
-        BlendState = customBlendState;
-        RasterState = customRasterState;
         RenderQueueType = renderQueueType;
         
         VertexShader = PBRVertex;

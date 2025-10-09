@@ -132,23 +132,32 @@ export class ShaderSourceParser {
       const symbol = new ShaderSourceSymbol(token.lexeme, stateToken.type, renderState);
       this._symbolTableStack.insert(symbol);
     } else if (token.lexeme === "=") {
-      // Assignment
-      const variable = lexer.scanToken();
+      // Check if it's direct assignment syntax sugar or variable assignment
+      const nextToken = lexer.scanToken();
 
-      lexer.scanLexeme(";");
-      const lookupSymbol = this._lookupSymbol;
-      lookupSymbol.set(variable.lexeme, stateToken.type);
-      const sm = this._symbolTableStack.lookup(lookupSymbol);
-      if (!sm?.value) {
-        this._createCompileError(`Invalid "${stateToken.lexeme}" variable: ${variable.lexeme}`, variable.location);
-        // #if _VERBOSE
+      if (nextToken.lexeme === "{") {
+        // Syntax sugar: DepthState = { ... }
+        const renderState = this._parseRenderStateProperties(stateToken.lexeme);
+        Object.assign(renderStates.constantMap, renderState.constantMap);
+        Object.assign(renderStates.variableMap, renderState.variableMap);
         return;
-        // #endif
+      } else {
+        // Variable assignment: DepthState = customDepthState;
+        lexer.scanLexeme(";");
+        const lookupSymbol = this._lookupSymbol;
+        lookupSymbol.set(nextToken.lexeme, stateToken.type);
+        const sm = this._symbolTableStack.lookup(lookupSymbol);
+        if (!sm?.value) {
+          this._createCompileError(`Invalid "${stateToken.lexeme}" variable: ${nextToken.lexeme}`, nextToken.location);
+          // #if _VERBOSE
+          return;
+          // #endif
+        }
+        const renderState = sm.value as IRenderStates;
+        Object.assign(renderStates.constantMap, renderState.constantMap);
+        Object.assign(renderStates.variableMap, renderState.variableMap);
+        return;
       }
-      const renderState = sm.value as IRenderStates;
-      Object.assign(renderStates.constantMap, renderState.constantMap);
-      Object.assign(renderStates.variableMap, renderState.variableMap);
-      return;
     }
   }
 

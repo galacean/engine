@@ -1,4 +1,5 @@
 import {
+  BlendFactor,
   BlendOperation,
   CompareFunction,
   CullMode,
@@ -90,14 +91,15 @@ describe("ShaderLab", async () => {
     const shader = shaderLabRelease._parseShaderSource(demoShader);
     const subShader = shader.subShaders[0];
     const passList = subShader.passes;
+
+    // Test traditional syntax (first pass)
     const pass0 = passList[0];
+    const { constantMap: constantMap0, variableMap: variableMap0 } = pass0.renderStates;
 
-    const { constantMap, variableMap } = pass0.renderStates;
-
-    expect(constantMap).not.be.empty;
-    expect(variableMap).not.be.empty;
-    expect(constantMap[RenderStateElementKey.BlendStateBlendColor]).include({ r: 1, g: 1, b: 1, a: 1 });
-    expect(constantMap).include({
+    expect(constantMap0).not.be.empty;
+    expect(variableMap0).not.be.empty;
+    expect(constantMap0[RenderStateElementKey.BlendStateBlendColor]).include({ r: 1, g: 1, b: 1, a: 1 });
+    expect(constantMap0).include({
       // Blend State
       [RenderStateElementKey.BlendStateEnabled0]: true,
       [RenderStateElementKey.BlendStateColorWriteMask0]: 0.8,
@@ -114,9 +116,41 @@ describe("ShaderLab", async () => {
       [RenderStateElementKey.RasterStateSlopeScaledDepthBias]: 0.8
     });
 
-    expect(variableMap).include({
+    expect(variableMap0).include({
       [RenderStateElementKey.DepthStateWriteEnabled]: "depthWriteEnabled",
       [RenderStateElementKey.RenderQueueType]: "renderQueueType"
+    });
+
+    // Test syntax sugar (second pass)
+    const pass1 = passList[1];
+    const { constantMap: constantMap1, variableMap: variableMap1 } = pass1.renderStates;
+
+    expect(constantMap1).not.be.empty;
+    expect(variableMap1).not.be.empty;
+    expect(constantMap1).include({
+      // DepthState
+      [RenderStateElementKey.DepthStateEnabled]: true,
+      [RenderStateElementKey.DepthStateCompareFunction]: CompareFunction.LessEqual,
+      // BlendState
+      [RenderStateElementKey.BlendStateSourceColorBlendFactor0]: BlendFactor.SourceAlpha,
+      [RenderStateElementKey.BlendStateDestinationColorBlendFactor0]: BlendFactor.OneMinusSourceAlpha,
+      [RenderStateElementKey.BlendStateSourceAlphaBlendFactor0]: BlendFactor.One,
+      [RenderStateElementKey.BlendStateDestinationAlphaBlendFactor0]: BlendFactor.OneMinusSourceAlpha,
+      // RasterState
+      [RenderStateElementKey.RasterStateDepthBias]: 0.2,
+      [RenderStateElementKey.RasterStateSlopeScaledDepthBias]: 0.9,
+      // StencilState
+      [RenderStateElementKey.StencilStateEnabled]: false,
+      [RenderStateElementKey.StencilStateMask]: 2.5,
+      [RenderStateElementKey.StencilStateWriteMask]: 0.64,
+      [RenderStateElementKey.StencilStateCompareFunctionFront]: CompareFunction.Greater,
+      [RenderStateElementKey.StencilStatePassOperationBack]: StencilOperation.Keep
+    });
+
+    expect(variableMap1).include({
+      [RenderStateElementKey.DepthStateWriteEnabled]: "depthWriteEnabled2",
+      [RenderStateElementKey.BlendStateEnabled0]: "blendEnabled2",
+      [RenderStateElementKey.RasterStateCullMode]: "rasterStateCullMode2"
     });
 
     // tags
