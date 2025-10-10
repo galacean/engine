@@ -1,4 +1,5 @@
 import {
+  BlendFactor,
   BlendOperation,
   CompareFunction,
   CullMode,
@@ -90,34 +91,80 @@ describe("ShaderLab", async () => {
     const shader = shaderLabRelease._parseShaderSource(demoShader);
     const subShader = shader.subShaders[0];
     const passList = subShader.passes;
+
+    // Test traditional syntax (first pass)
     const pass0 = passList[0];
+    const { constantMap: constantMap0, variableMap: variableMap0 } = pass0.renderStates;
 
-    const { constantMap, variableMap } = pass0.renderStates;
-
-    expect(constantMap).not.be.empty;
-    expect(variableMap).not.be.empty;
-    expect(constantMap[RenderStateElementKey.BlendStateBlendColor]).include({ r: 1, g: 1, b: 1, a: 1 });
-    expect(constantMap).include({
-      // Blend State
-      [RenderStateElementKey.BlendStateEnabled0]: true,
+    expect(constantMap0).not.be.empty;
+    expect(variableMap0).not.be.empty;
+    expect(constantMap0[RenderStateElementKey.BlendStateBlendColor]).include({ r: 1, g: 1, b: 1, a: 1 });
+    expect(constantMap0).include({
+      // Inherited from Shader level
+      [RenderStateElementKey.DepthStateEnabled]: true,
+      // Inherited from SubShader level
+      [RenderStateElementKey.BlendStateSourceColorBlendFactor0]: BlendFactor.SourceAlpha,
+      // Pass level (traditional syntax)
+      [RenderStateElementKey.BlendStateEnabled0]: true, // Pass overrides inherited "subShaderBlendEnabled"
       [RenderStateElementKey.BlendStateColorWriteMask0]: 0.8,
       [RenderStateElementKey.BlendStateAlphaBlendOperation0]: BlendOperation.Max,
-      // Stencil State
       [RenderStateElementKey.StencilStateEnabled]: true,
       [RenderStateElementKey.StencilStateMask]: 1.3,
       [RenderStateElementKey.StencilStateWriteMask]: 0.32,
       [RenderStateElementKey.StencilStateCompareFunctionFront]: CompareFunction.Less,
-      [RenderStateElementKey.StencilStatePassOperationBack]: StencilOperation.Zero,
-      // Raster State
-      [RenderStateElementKey.RasterStateCullMode]: CullMode.Front,
-      [RenderStateElementKey.RasterStateDepthBias]: 0.1,
-      [RenderStateElementKey.RasterStateSlopeScaledDepthBias]: 0.8
+      [RenderStateElementKey.StencilStatePassOperationBack]: StencilOperation.Zero
     });
 
-    expect(variableMap).include({
-      [RenderStateElementKey.DepthStateWriteEnabled]: "depthWriteEnabled",
+    expect(variableMap0).include({
+      [RenderStateElementKey.DepthStateWriteEnabled]: "depthWriteEnabled", // Pass overrides inherited "globalDepthWrite"
       [RenderStateElementKey.RenderQueueType]: "renderQueueType"
     });
+
+    // Test syntax sugar (second pass)
+    const pass1 = passList[1];
+    const { constantMap: constantMap1, variableMap: variableMap1 } = pass1.renderStates;
+
+    expect(constantMap1).not.be.empty;
+    expect(variableMap1).not.be.empty;
+    expect(constantMap1).include({
+      // Inherited from Shader level
+      [RenderStateElementKey.DepthStateEnabled]: true,
+      // Inherited from SubShader level
+      [RenderStateElementKey.BlendStateSourceColorBlendFactor0]: BlendFactor.SourceAlpha,
+      // Pass level syntax sugar
+      [RenderStateElementKey.DepthStateCompareFunction]: CompareFunction.LessEqual,
+      [RenderStateElementKey.BlendStateEnabled0]: true, // Pass overrides inherited "subShaderBlendEnabled"
+      [RenderStateElementKey.BlendStateDestinationColorBlendFactor0]: BlendFactor.OneMinusSourceAlpha
+    });
+
+    expect(variableMap1).include({
+      [RenderStateElementKey.DepthStateWriteEnabled]: "depthWriteEnabled2" // Pass overrides inherited "globalDepthWrite"
+    });
+
+    // Test comprehensive override behavior (third pass)
+    const pass2 = passList[2];
+    const { constantMap: constantMap2, variableMap: variableMap2 } = pass2.renderStates;
+
+    expect(constantMap2).not.be.empty;
+    expect(variableMap2).not.be.empty;
+
+    // Test: Variable → Constant override (DepthState)
+    expect(constantMap2).include({
+      [RenderStateElementKey.DepthStateWriteEnabled]: true, // Constant overrides variable
+      [RenderStateElementKey.DepthStateEnabled]: true, // Constant overrides constant
+      [RenderStateElementKey.DepthStateCompareFunction]: CompareFunction.Greater // New constant
+    });
+    expect(variableMap2[RenderStateElementKey.DepthStateWriteEnabled]).to.be.undefined; // Variable removed
+
+    // Test: Constant → Variable override (BlendState)
+    expect(variableMap2).include({
+      [RenderStateElementKey.BlendStateEnabled0]: "blendEnabledVar" // Variable overrides constant
+    });
+    expect(constantMap2).include({
+      [RenderStateElementKey.BlendStateSourceColorBlendFactor0]: BlendFactor.SourceAlpha, // Constant overrides constant
+      [RenderStateElementKey.BlendStateDestinationColorBlendFactor0]: BlendFactor.OneMinusSourceAlpha // New constant
+    });
+    expect(constantMap2[RenderStateElementKey.BlendStateEnabled0]).to.be.undefined; // Constant removed
 
     // tags
     expect(subShader.tags).be.empty;

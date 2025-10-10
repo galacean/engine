@@ -61,13 +61,21 @@ export class ShaderSourceParser {
     for (let i = 0, n = shaderSource.subShaders.length; i < n; i++) {
       const subShader = shaderSource.subShaders[i];
       const curSubShaderGlobalStatements = shaderPendingContents.concat(subShader.pendingContents);
-      const constMap = { ...shaderRenderStates.constantMap, ...subShader.renderStates.constantMap };
-      const variableMap = { ...shaderRenderStates.variableMap, ...subShader.renderStates.variableMap };
+      const globalSubShaderStates = {
+        constantMap: { ...shaderRenderStates.constantMap },
+        variableMap: { ...shaderRenderStates.variableMap }
+      };
+      this._mergeRenderStates(globalSubShaderStates, subShader.renderStates);
 
       for (let j = 0, m = subShader.passes.length; j < m; j++) {
         const pass = subShader.passes[j];
-        Object.assign(pass.renderStates.constantMap, constMap);
-        Object.assign(pass.renderStates.variableMap, variableMap);
+        const globalPassRenderStates = {
+          constantMap: { ...globalSubShaderStates.constantMap },
+          variableMap: { ...globalSubShaderStates.variableMap }
+        };
+        this._mergeRenderStates(globalPassRenderStates, pass.renderStates);
+        pass.renderStates = globalPassRenderStates;
+
         if (pass.isUsePass) continue;
         const passGlobalStatements = curSubShaderGlobalStatements.concat(pass.pendingContents);
         pass.contents = passGlobalStatements.map((item) => item.content).join("\n");
@@ -122,7 +130,7 @@ export class ShaderSourceParser {
     }
   }
 
-  private static _parseRenderStateDeclarationOrAssignment(renderStates: IRenderStates, stateToken: BaseToken): void {
+  private static _parseRenderStateDeclarationOrAssignment(outRenderStates: IRenderStates, stateToken: BaseToken): void {
     const lexer = this._lexer;
     const token = lexer.scanToken();
     if (token.type === ETokenType.ID) {
@@ -132,23 +140,44 @@ export class ShaderSourceParser {
       const symbol = new ShaderSourceSymbol(token.lexeme, stateToken.type, renderState);
       this._symbolTableStack.insert(symbol);
     } else if (token.lexeme === "=") {
-      // Assignment
-      const variable = lexer.scanToken();
+      // Check if it's direct assignment syntax sugar or variable assignment
+      const nextToken = lexer.scanToken();
 
-      lexer.scanLexeme(";");
-      const lookupSymbol = this._lookupSymbol;
-      lookupSymbol.set(variable.lexeme, stateToken.type);
-      const sm = this._symbolTableStack.lookup(lookupSymbol);
-      if (!sm?.value) {
-        this._createCompileError(`Invalid "${stateToken.lexeme}" variable: ${variable.lexeme}`, variable.location);
-        // #if _VERBOSE
-        return;
-        // #endif
+      let renderState: IRenderStates;
+      if (nextToken.lexeme === "{") {
+        // Syntax: DepthState = { ... }
+        renderState = this._parseRenderStateProperties(stateToken.lexeme);
+      } else {
+        // Syntax: DepthState = customDepthState;
+        lexer.scanLexeme(";");
+        const lookupSymbol = this._lookupSymbol;
+        lookupSymbol.set(nextToken.lexeme, stateToken.type);
+        const sm = this._symbolTableStack.lookup(lookupSymbol);
+        if (!sm?.value) {
+          this._createCompileError(`Invalid "${stateToken.lexeme}" variable: ${nextToken.lexeme}`, nextToken.location);
+          // #if _VERBOSE
+          return;
+          // #endif
+        }
+        renderState = sm.value as IRenderStates;
       }
-      const renderState = sm.value as IRenderStates;
-      Object.assign(renderStates.constantMap, renderState.constantMap);
-      Object.assign(renderStates.variableMap, renderState.variableMap);
-      return;
+      this._mergeRenderStates(outRenderStates, renderState);
+    }
+  }
+
+  private static _mergeRenderStates(outTarget: IRenderStates, source: IRenderStates): void {
+    // For each key in the source, remove it from the opposite map in target to ensure proper override
+    const { constantMap: targetConstantMap, variableMap: targetVariableMap } = outTarget;
+    const { constantMap: sourceConstantMap, variableMap: sourceVariableMap } = source;
+
+    for (const key in sourceConstantMap) {
+      delete targetVariableMap[key];
+      targetConstantMap[key] = sourceConstantMap[key];
+    }
+
+    for (const key in sourceVariableMap) {
+      delete targetConstantMap[key];
+      targetVariableMap[key] = sourceVariableMap[key];
     }
   }
 
