@@ -147,13 +147,12 @@ export class ShaderSourceParser {
       // Check if it's direct assignment syntax sugar or variable assignment
       const nextToken = lexer.scanToken();
 
+      let renderState: IRenderStates;
       if (nextToken.lexeme === "{") {
-        // Syntax sugar: DepthState = { ... }
-        const renderState = this._parseRenderStateProperties(stateToken.lexeme);
-        this._mergeRenderStates(renderStates, renderState);
-        return;
+        // Syntax: DepthState = { ... }
+        renderState = this._parseRenderStateProperties(stateToken.lexeme);
       } else {
-        // Variable assignment: DepthState = customDepthState;
+        // Syntax: DepthState = customDepthState;
         lexer.scanLexeme(";");
         const lookupSymbol = this._lookupSymbol;
         lookupSymbol.set(nextToken.lexeme, stateToken.type);
@@ -164,25 +163,25 @@ export class ShaderSourceParser {
           return;
           // #endif
         }
-        const renderState = sm.value as IRenderStates;
-        this._mergeRenderStates(renderStates, renderState);
-        return;
+        renderState = sm.value as IRenderStates;
       }
+      this._mergeRenderStates(renderStates, renderState);
     }
   }
 
   private static _mergeRenderStates(target: IRenderStates, source: IRenderStates): void {
     // For each key in the source, remove it from the opposite map in target to ensure proper override
-    for (const key in source.constantMap) {
-      const numKey = Number(key);
-      delete target.variableMap[numKey];
-      target.constantMap[numKey] = source.constantMap[numKey];
+    const { constantMap: targetConstantMap, variableMap: targetVariableMap } = target;
+    const { constantMap: sourceConstantMap, variableMap: sourceVariableMap } = source;
+
+    for (const key in sourceConstantMap) {
+      delete targetVariableMap[key];
+      targetConstantMap[key] = sourceConstantMap[key];
     }
 
-    for (const key in source.variableMap) {
-      const numKey = Number(key);
-      delete target.constantMap[numKey];
-      target.variableMap[numKey] = source.variableMap[numKey];
+    for (const key in sourceVariableMap) {
+      delete targetConstantMap[key];
+      targetVariableMap[key] = sourceVariableMap[key];
     }
   }
 
