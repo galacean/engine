@@ -61,24 +61,20 @@ export class ShaderSourceParser {
     for (let i = 0, n = shaderSource.subShaders.length; i < n; i++) {
       const subShader = shaderSource.subShaders[i];
       const curSubShaderGlobalStatements = shaderPendingContents.concat(subShader.pendingContents);
-      // Merge Shader and SubShader render states, ensuring SubShader overrides Shader
-      const mergedStates = {
+      const globalSubShaderStates = {
         constantMap: { ...shaderRenderStates.constantMap },
         variableMap: { ...shaderRenderStates.variableMap }
       };
-      this._mergeRenderStates(mergedStates, subShader.renderStates);
+      this._mergeRenderStates(globalSubShaderStates, subShader.renderStates);
 
       for (let j = 0, m = subShader.passes.length; j < m; j++) {
         const pass = subShader.passes[j];
-        // Apply inheritance: Pass-level states override inherited states
-        // Create a copy for each pass to avoid shared state
-        const passStates = {
-          constantMap: { ...mergedStates.constantMap },
-          variableMap: { ...mergedStates.variableMap }
+        const globalPassRenderStates = {
+          constantMap: { ...globalSubShaderStates.constantMap },
+          variableMap: { ...globalSubShaderStates.variableMap }
         };
-        this._mergeRenderStates(passStates, pass.renderStates);
-        pass.renderStates.constantMap = passStates.constantMap;
-        pass.renderStates.variableMap = passStates.variableMap;
+        this._mergeRenderStates(globalPassRenderStates, pass.renderStates);
+        pass.renderStates = globalPassRenderStates;
 
         if (pass.isUsePass) continue;
         const passGlobalStatements = curSubShaderGlobalStatements.concat(pass.pendingContents);
@@ -134,7 +130,7 @@ export class ShaderSourceParser {
     }
   }
 
-  private static _parseRenderStateDeclarationOrAssignment(renderStates: IRenderStates, stateToken: BaseToken): void {
+  private static _parseRenderStateDeclarationOrAssignment(outRenderStates: IRenderStates, stateToken: BaseToken): void {
     const lexer = this._lexer;
     const token = lexer.scanToken();
     if (token.type === ETokenType.ID) {
@@ -165,13 +161,13 @@ export class ShaderSourceParser {
         }
         renderState = sm.value as IRenderStates;
       }
-      this._mergeRenderStates(renderStates, renderState);
+      this._mergeRenderStates(outRenderStates, renderState);
     }
   }
 
-  private static _mergeRenderStates(target: IRenderStates, source: IRenderStates): void {
+  private static _mergeRenderStates(outTarget: IRenderStates, source: IRenderStates): void {
     // For each key in the source, remove it from the opposite map in target to ensure proper override
-    const { constantMap: targetConstantMap, variableMap: targetVariableMap } = target;
+    const { constantMap: targetConstantMap, variableMap: targetVariableMap } = outTarget;
     const { constantMap: sourceConstantMap, variableMap: sourceVariableMap } = source;
 
     for (const key in sourceConstantMap) {
