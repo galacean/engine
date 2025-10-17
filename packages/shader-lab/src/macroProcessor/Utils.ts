@@ -33,6 +33,9 @@ export class PpUtils {
       generatedIdx = generatedIdxEnd;
     }
     ret.push(source.slice(startIdx));
-    return ret.join("");
+    const result = ret.join("");
+
+    // Replace multiple consecutive newlines with a single newline to clean up the output
+    return result.replace(/\n\s*\n+/g, "\n");
   }
 }
