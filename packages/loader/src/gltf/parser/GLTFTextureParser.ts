@@ -1,4 +1,14 @@
-import { AssetPromise, AssetType, Logger, Texture, Texture2D, TextureWrapMode, Utils } from "@galacean/engine-core";
+import {
+  AssetPromise,
+  AssetType,
+  Logger,
+  Texture,
+  Texture2D,
+  TextureFormat,
+  TextureUtils,
+  TextureWrapMode,
+  Utils
+} from "@galacean/engine-core";
 import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
 import { TextureWrapMode as GLTFTextureWrapMode, IMaterial } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
@@ -60,14 +70,18 @@ export class GLTFTextureParser extends GLTFParser {
           const buffer = buffers[bufferView.buffer];
           const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
           return GLTFUtils.loadImageBuffer(imageBuffer, mimeType).then((image) => {
-            const texture = new Texture2D(
-              engine,
-              image.width,
-              image.height,
-              undefined,
-              samplerInfo?.mipmap,
-              isSRGBColorSpace
+            const { width, height } = image;
+            // @ts-ignore
+            const isWebGL2 = engine._hardwareRenderer._isWebGL2;
+            const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
+              width,
+              height,
+              TextureFormat.R8G8B8A8,
+              samplerInfo?.mipmap ?? true,
+              isSRGBColorSpace,
+              isWebGL2
             );
+            const texture = new Texture2D(engine, width, height, undefined, generateMipmap, isSRGBColorSpace);
             texture.setImageSource(image);
             texture.generateMipmaps();
 
