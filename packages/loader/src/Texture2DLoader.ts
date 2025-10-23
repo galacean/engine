@@ -38,26 +38,18 @@ class Texture2DLoader extends Loader<Texture2D> {
             mipmap = true
           } = (item.params as Partial<Texture2DParams>) ?? {};
           const { width, height } = image;
-          // @ts-ignore
-          const isWebGL2 = resourceManager.engine._hardwareRenderer._isWebGL2;
+          const engine = resourceManager.engine;
 
           const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
+            engine,
             width,
             height,
             format,
             mipmap,
-            isSRGBColorSpace,
-            isWebGL2
-          );
-
-          const texture = new Texture2D(
-            resourceManager.engine,
-            width,
-            height,
-            format,
-            generateMipmap,
             isSRGBColorSpace
           );
+
+          const texture = new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace);
 
           texture.anisoLevel = anisoLevel ?? texture.anisoLevel;
           texture.filterMode = filterMode ?? texture.filterMode;
