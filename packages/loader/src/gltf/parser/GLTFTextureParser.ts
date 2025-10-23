@@ -71,15 +71,16 @@ export class GLTFTextureParser extends GLTFParser {
           const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
           return GLTFUtils.loadImageBuffer(imageBuffer, mimeType).then((image) => {
             const { width, height } = image;
+            const format = TextureFormat.R8G8B8A8;
             const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
               engine,
               width,
               height,
-              TextureFormat.R8G8B8A8,
+              format,
               samplerInfo?.mipmap ?? true,
               isSRGBColorSpace
             );
-            const texture = new Texture2D(engine, width, height, undefined, generateMipmap, isSRGBColorSpace);
+            const texture = new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace);
             texture.setImageSource(image);
             texture.generateMipmaps();
 
