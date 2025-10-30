@@ -44,6 +44,8 @@ export class Camera extends Component {
   static _cameraDepthTextureProperty = ShaderProperty.getByName("camera_DepthTexture");
   /** @internal */
   static _cameraOpaqueTextureProperty = ShaderProperty.getByName("camera_OpaqueTexture");
+  /** @internal */
+  static _cameraAOTextureProperty = ShaderProperty.getByName("camera_AOTexture");
 
   private static _inverseViewMatrixProperty = ShaderProperty.getByName("camera_ViewInvMat");
   private static _cameraPositionProperty = ShaderProperty.getByName("camera_Position");
@@ -673,7 +675,7 @@ export class Camera extends Component {
       Logger.error("mipLevel only take effect in WebGL2.0");
     }
     let ignoreClearFlags: CameraClearFlags;
-    if (this._cameraType !== CameraType.Normal && !this._renderTarget && !this._isIndependentCanvasEnabled()) {
+    if (this._cameraType !== CameraType.Normal && !this._renderTarget) {
       ignoreClearFlags = engine.xrManager._getCameraIgnoreClearFlags(this._cameraType);
     }
     this._renderPipeline.render(context, cubeFace, mipLevel, ignoreClearFlags);
@@ -872,6 +874,10 @@ export class Camera extends Component {
       height = canvas.height;
     }
 
+    this._adjustPixelViewport(width, height);
+  }
+
+  private _adjustPixelViewport(width: number, height: number): void {
     const viewport = this._viewport;
     this._pixelViewport.set(viewport.x * width, viewport.y * height, viewport.z * width, viewport.w * height);
     !this._customAspectRatio && this._dispatchModify(CameraModifyFlags.AspectRatio);
@@ -909,8 +915,16 @@ export class Camera extends Component {
     shaderData.setVector3(Camera._cameraUpProperty, transform.worldUp);
 
     const depthBufferParams = this._depthBufferParams;
-    const farDivideNear = this.farClipPlane / this.nearClipPlane;
-    depthBufferParams.set(1.0 - farDivideNear, farDivideNear, 0, 0);
+    const { farClipPlane } = this;
+    const farDivideNear = farClipPlane / this.nearClipPlane;
+    const oneMinusFarDivideNear = 1.0 - farDivideNear;
+
+    depthBufferParams.set(
+      oneMinusFarDivideNear,
+      farDivideNear,
+      oneMinusFarDivideNear / farClipPlane,
+      farDivideNear / farClipPlane
+    );
     shaderData.setVector4(Camera._cameraDepthBufferParamsProperty, depthBufferParams);
   }
 

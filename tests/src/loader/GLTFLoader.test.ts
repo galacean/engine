@@ -4,7 +4,6 @@ import {
   Entity,
   ModelMesh,
   PBRMaterial,
-  PBRSpecularMaterial,
   PointLight,
   RenderFace,
   SkinnedMeshRenderer,
@@ -96,6 +95,16 @@ beforeAll(async function () {
             sampler: 0,
             source: 0,
             name: "test"
+          },
+          {
+            sampler: 0,
+            source: 0,
+            name: "specular intensity"
+          },
+          {
+            sampler: 0,
+            source: 0,
+            name: "specular color"
           }
         ],
         samplers: [
@@ -111,18 +120,13 @@ beforeAll(async function () {
         },
         extensionsUsed: [
           "KHR_materials_unlit",
-          "KHR_materials_pbrSpecularGlossiness",
+          "KHR_materials_specular",
           "KHR_materials_clearcoat",
           "KHR_lights_punctual",
           "Custom_Material",
           "Custom_Light"
         ],
-        extensionsRequired: [
-          "KHR_materials_unlit",
-          "KHR_materials_pbrSpecularGlossiness",
-          "Custom_Material",
-          "Custom_Light"
-        ],
+        extensionsRequired: ["KHR_materials_unlit", "KHR_materials_specular", "Custom_Material", "Custom_Light"],
         extensions: {
           KHR_lights_punctual: {
             lights: [
@@ -248,27 +252,29 @@ beforeAll(async function () {
             }
           },
           {
-            name: "specular",
-            alphaMode: "MASK",
-            alphaCutoff: 0.8,
-            extensions: {
-              KHR_materials_pbrSpecularGlossiness: {
-                diffuseFactor: [0, 0, 1, 1],
-                specularFactor: [1, 0, 0, 1],
-                glossinessFactor: 0.5,
-                diffuseTexture: {
-                  index: 0
-                },
-                specularGlossinessTexture: {
-                  index: 0
-                }
-              }
-            }
-          },
-          {
             name: "custom blinn-phong",
             extensions: {
               Custom_Material: { baseColorFactor: [1, 1, 0, 1] }
+            }
+          },
+          {
+            name: "specular",
+            pbrMetallicRoughness: {
+              baseColorFactor: [1, 0, 0, 1],
+              metallicFactor: 0.0,
+              roughnessFactor: 0.2
+            },
+            extensions: {
+              KHR_materials_specular: {
+                specularFactor: 0.5,
+                specularColorFactor: [1.0, 0.0, 0.0],
+                specularTexture: {
+                  index: 4
+                },
+                specularColorTexture: {
+                  index: 5
+                }
+              }
             }
           }
         ],
@@ -397,14 +403,13 @@ describe("glTF Loader test", function () {
       url: "mock/path/testA.gltf"
     });
     const { materials, entities, defaultSceneRoot, textures, meshes } = glTFResource;
-    const pbrMaterials = materials as PBRSpecularMaterial[] & PBRMaterial[];
+    const pbrMaterials = materials as PBRMaterial[];
 
     // material
     expect(pbrMaterials.length).to.equal(4);
     expect(pbrMaterials[0]).to.instanceOf(PBRMaterial);
     expect(pbrMaterials[1]).to.instanceOf(UnlitMaterial);
-    expect(pbrMaterials[2]).to.instanceOf(PBRSpecularMaterial);
-    expect(pbrMaterials[3]).to.instanceOf(BlinnPhongMaterial);
+    expect(pbrMaterials[2]).to.instanceOf(BlinnPhongMaterial);
 
     expect(pbrMaterials[0].baseColor).to.deep.equal(new Color(1, 0, 0, 1));
     expect(pbrMaterials[0].emissiveColor).to.deep.equal(new Color(1, 1, 1, 1));
@@ -415,11 +420,10 @@ describe("glTF Loader test", function () {
     expect(pbrMaterials[1].baseColor).to.deep.equal(new Color(0, 1, 0, 1));
     expect(pbrMaterials[1].renderFace).to.equal(RenderFace.Front);
     expect(pbrMaterials[1].isTransparent).to.be.false;
-    expect(pbrMaterials[2].baseColor).to.deep.equal(new Color(0, 0, 1, 1));
-    expect(pbrMaterials[2].specularColor).to.deep.equal(new Color(1, 0, 0, 1));
-    expect(pbrMaterials[2].alphaCutoff).to.equal(0.8);
-    expect(pbrMaterials[2].glossiness).to.equal(0.5);
-    expect(pbrMaterials[3].baseColor).to.deep.equal(new Color(1, 1, 0, 1));
+    expect(pbrMaterials[2].baseColor).to.deep.equal(new Color(1, 1, 0, 1));
+    expect(pbrMaterials[3].baseColor).to.deep.equal(new Color(1, 0, 0, 1));
+    expect(pbrMaterials[3].specularIntensity).to.equal(0.5);
+    expect(pbrMaterials[3].specularColor).to.deep.include({ r: 1, g: 0, b: 0 });
 
     // entity
     expect(entities.length).to.equal(2);
@@ -437,7 +441,7 @@ describe("glTF Loader test", function () {
     expect(defaultSceneRoot).to.instanceOf(Entity);
 
     // texture
-    expect(textures.length).to.equal(4);
+    expect(textures.length).to.equal(6);
     expect(textures[0].name).to.equal("test");
     expect(textures[0].filterMode).to.equal(TextureFilterMode.Trilinear);
     expect(textures[0].wrapModeU).to.equal(TextureWrapMode.Repeat);
@@ -457,12 +461,14 @@ describe("glTF Loader test", function () {
     expect(pbrMaterials[0].clearCoatTexture).to.exist;
     expect(pbrMaterials[0].clearCoatRoughnessTexture).to.exist;
     expect(pbrMaterials[0].clearCoatNormalTexture).to.exist;
-    expect(pbrMaterials[2].baseTexture).to.exist;
-    expect(pbrMaterials[2].specularGlossinessTexture).to.exist;
+    expect(pbrMaterials[3].specularIntensityTexture).to.exist;
+    expect(pbrMaterials[3].specularColorTexture).to.exist;
     expect(pbrMaterials[0].baseTexture.isSRGBColorSpace).to.be.true;
     expect(pbrMaterials[0].roughnessMetallicTexture.isSRGBColorSpace).to.be.false;
     expect(pbrMaterials[0].normalTexture.isSRGBColorSpace).to.be.false;
     expect(pbrMaterials[0].occlusionTexture.isSRGBColorSpace).to.be.false;
+    expect(pbrMaterials[3].specularIntensityTexture.isSRGBColorSpace).to.be.false;
+    expect(pbrMaterials[3].specularColorTexture.isSRGBColorSpace).to.be.true;
 
     // mesh
     expect(meshes.length).to.equal(1);

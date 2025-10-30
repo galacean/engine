@@ -62,51 +62,11 @@ scene.physics.gravity.set(0, 0, 0);
 scene.physics.gravity.set(0, -9.81, 0);
 ```
 
-## 使用射线检测
+## 空间查询功能
 
-射线可以理解成 3D 世界中一个点向一个方向发射的一条无终点的线。射线投射在 3D 应用中应用非常广泛：
+物理场景提供了多种空间查询功能，用于检测和分析场景中物体的空间关系：
 
-- 在用户点击屏幕时,用于拾取3D场景中的物体
-- 在射击游戏中,用于判断子弹能否射中目标
-- 检测物体之间的可视性和遮挡关系
+- **[射线检测](/docs/physics/query/raycast)** - 精确的点对点检测，适用于拾取、瞄准等场景
+- **[形状投射](/docs/physics/query/sweep)** - 沿方向投射几何体，适用于移动预测、路径规划
+- **[重叠检测](/docs/physics/query/overlap)** - 检测区域内的重叠物体，适用于触发器、范围攻击
 
-<Image src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*SHM1RI49Bd4AAAAAAAAAAAAAARQnAQ" /> 
-（_图片来源于网络_）
-
-### 射线检测示例
-
-使用射线检测需要以下步骤:
-
-1. 引入 [Ray](/apis/math/Ray) 等必要的模块
-2. 创建射线(可以自定义或通过 [camera.screenPointToRay](/apis/core/#Camera-screenPointToRay) 生成)
-3. 调用 [`raycast`](/apis/core/#PhysicsScene-raycast) 方法检测碰撞
-
-```typescript
-// 加载 Raycast 模块
-import { WebGLEngine, HitResult, Ray } from "@galacean/engine";
-import { LitePhysics } from "@galacean/engine-physics-lite";
-
-const engine = await WebGLEngine.create({
-  canvas: "canvas",
-  physics: new LitePhysics()
-});
-engine.canvas.resizeByClientSize();
-const scene = engine.scenes[0];
-// 将屏幕输入转换成Ray
-document.getElementById("canvas").addEventListener("click", (e) => {
-  const ratio = window.devicePixelRatio;
-  let ray = new Ray();
-  camera.screenPointToRay(new Vector2(e.offsetX, e.offsetY).scale(ratio), ray);
-  const hit = new HitResult();
-  result = scene.physics.raycast(ray, Number.MAX_VALUE, Layer.Everything, hit);
-  if (result) {
-    console.log(hit.entity.name);
-  }
-});
-```
-
-### 注意事项
-
-- Entity 必须添加 [碰撞器](/docs/physics/collider/overview) 组件才能被射线检测到
-- 当射线命中多个相同距离的 [碰撞形状](/docs/physics/collider/colliderShape) 时,会返回先添加的碰撞形状所在的 Entity
-- 建议使用 [InputManager](/docs/input/input/) 来处理输入,它提供了更便捷的输入处理方式

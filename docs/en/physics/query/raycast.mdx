@@ -1,0 +1,321 @@
+---
+order: 0
+title: Raycasting
+type: Physics
+label: Physics
+---
+
+Raycasting is the most fundamental spatial query feature in physics engines. A ray can be understood as an infinitely thin line emitted from a point in a specified direction in the 3D world. Raycasting is widely used in 3D applications and is the core tool for implementing precise point selection and collision detection.
+
+## Overview
+
+Raycasting works by projecting an infinitely thin line to detect the first intersection with colliders in the scene, providing precise point-to-point detection capabilities.
+
+<Image src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*SHM1RI49Bd4AAAAAAAAAAAAAARQnAQ" />
+(_Image source: Internet_)
+
+## Use Cases
+
+Typical applications of raycasting in game development:
+
+- **Object Picking** - Pick objects in 3D scenes when users click the screen
+- **Shooting Detection** - Determine if bullets can hit targets in shooting games
+- **Line of Sight Detection** - Check visibility and occlusion relationships between objects
+- **Ground Detection** - Detect ground position beneath characters
+- **Aiming Assistance** - Implement precise aiming and targeting functionality
+
+## Basic Usage
+
+### Function Signature
+
+```typescript
+raycast(
+  ray: Ray,
+  distance: number = Number.MAX_VALUE,
+  layerMask: Layer = Layer.Everything,
+  outHitResult?: HitResult
+): boolean
+```
+
+### Parameter Description
+
+- **ray** - Ray object defining origin point and direction
+- **distance** - Maximum detection distance for the ray (defaults to infinite)
+- **layerMask** - Layer mask for filtering specific collider layers
+- **outHitResult** - Optional output parameter storing detailed hit information
+
+### Usage Steps
+
+Using raycasting requires the following steps:
+
+1. Import necessary modules such as [Ray](/apis/math/Ray)
+2. Create a ray (can be customized or generated through [camera.screenPointToRay](/apis/core/#Camera-screenPointToRay))
+3. Call the [`raycast`](/apis/core/#PhysicsScene-raycast) method for detection
+
+## Usage Examples
+
+### Example 1: Basic Raycasting
+
+```typescript
+import { WebGLEngine, HitResult, Ray, Vector3, Vector2 } from "@galacean/engine";
+import { LitePhysics } from "@galacean/engine-physics-lite";
+
+const engine = await WebGLEngine.create({
+  canvas: "canvas",
+  physics: new LitePhysics()
+});
+engine.canvas.resizeByClientSize();
+const scene = engine.scenes[0];
+
+// Create a ray from origin pointing downward
+const ray = new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0));
+
+// Basic detection
+if (scene.physics.raycast(ray)) {
+  console.log("Ray hit an object!");
+}
+```
+
+### Example 2: Get Detailed Hit Information
+
+```typescript
+// Create HitResult object to store hit information
+const hitResult = new HitResult();
+
+if (scene.physics.raycast(ray, Number.MAX_VALUE, Layer.Everything, hitResult)) {
+  console.log(`Hit entity: ${hitResult.entity.name}`);
+  console.log(`Hit distance: ${hitResult.distance}`);
+  console.log(`Hit point: ${hitResult.point.toString()}`);
+  console.log(`Hit normal: ${hitResult.normal.toString()}`);
+  console.log(`Hit shape: ${hitResult.shape.constructor.name}`);
+}
+```
+
+### Example 3: Mouse Click Picking
+
+```typescript
+// Convert screen input to Ray
+document.getElementById("canvas").addEventListener("click", (e) => {
+  const ratio = window.devicePixelRatio;
+  const ray = new Ray();
+  const screenPoint = new Vector2(e.offsetX * ratio, e.offsetY * ratio);
+  
+  // Convert screen coordinates to ray
+  camera.screenPointToRay(screenPoint, ray);
+  
+  const hit = new HitResult();
+  if (scene.physics.raycast(ray, Number.MAX_VALUE, Layer.Everything, hit)) {
+    console.log(`Selected: ${hit.entity.name}`);
+    selectObject(hit.entity);
+  }
+});
+```
+
+### Example 4: Shooting Detection
+
+```typescript
+// Shooting detection function
+function fireBullet(startPosition: Vector3, direction: Vector3): Entity | null {
+  const ray = new Ray(startPosition, direction);
+  const hitResult = new HitResult();
+  const maxRange = 100.0; // Range limit
+  const targetLayer = Layer.Layer2 | Layer.Layer1;
+  
+  if (scene.physics.raycast(ray, maxRange, targetLayer, hitResult)) {
+    // Hit target, apply damage or effects
+    const target = hitResult.entity;
+    const distance = hitResult.distance;
+    
+    console.log(`Hit target: ${target.name}, distance: ${distance.toFixed(2)}m`);
+    
+    // Create bullet hole or effects at hit point
+    createImpactEffect(hitResult.point, hitResult.normal);
+    
+    return target;
+  }
+  
+  return null; // No target hit
+}
+```
+
+### Example 5: Ground Detection
+
+```typescript
+// Character ground detection
+function checkGroundBelow(characterPosition: Vector3): number | null {
+  const rayOrigin = characterPosition.clone().add(new Vector3(0, 0.1, 0)); // Start slightly higher
+  const ray = new Ray(
+    rayOrigin,
+    new Vector3(0, -1, 0) // Detect downward
+  );
+  
+  const hit = new HitResult();
+  const maxDistance = 5.0; // Maximum detection distance
+  
+  if (scene.physics.raycast(ray, maxDistance, Layer.Layer1, hit)) {
+    return hit.point.y; // Return ground height
+  }
+  
+  return null; // No ground detected
+}
+
+// Usage example
+const groundHeight = checkGroundBelow(player.transform.position);
+if (groundHeight !== null) {
+  console.log(`Ground height: ${groundHeight}`);
+  // Adjust character position to ground
+  player.transform.position.y = groundHeight;
+}
+```
+
+### Example 6: Line of Sight Detection
+
+```typescript
+// Check if there's line of sight obstruction between two objects
+function hasLineOfSight(from: Vector3, to: Vector3, obstacleLayer: Layer = Layer.Layer1): boolean {
+  const direction = to.clone().subtract(from).normalize();
+  const distance = Vector3.distance(from, to);
+  const ray = new Ray(from, direction);
+  
+  // If ray hits obstacle within target distance, line of sight is blocked
+  return !scene.physics.raycast(ray, distance, obstacleLayer);
+}
+
+// Usage example
+const playerPos = player.transform.position;
+const enemyPos = enemy.transform.position;
+
+if (hasLineOfSight(playerPos, enemyPos)) {
+  console.log("Enemy can see player");
+  enemy.startChasing();
+} else {
+  console.log("Line of sight blocked");
+}
+```
+
+## Performance Optimization Tips
+
+1. **Limit Detection Distance** - Set reasonable maximum distances based on actual needs
+2. **Use Layer Mask Filtering** - Only check relevant collider layers through layerMask
+3. **Reuse HitResult Objects** - Avoid frequent creation of new HitResult instances
+4. **Batch Processing** - Process similar raycasts in batches for improved efficiency
+
+```typescript
+// Performance optimization example
+class RaycastManager {
+  private static readonly _hitResult = new HitResult();
+  private static readonly _commonRay = new Ray();
+  
+  // Quick ground detection
+  static checkGround(position: Vector3, maxDistance: number = 2.0): number | null {
+    this._commonRay.origin.copyFrom(position);
+    this._commonRay.direction.set(0, -1, 0);
+    
+    if (scene.physics.raycast(
+      this._commonRay, 
+      maxDistance, 
+      Layer.Layer1, 
+      this._hitResult
+    )) {
+      return this._hitResult.point.y;
+    }
+    return null;
+  }
+  
+  // Quick obstacle detection
+  static checkObstacle(from: Vector3, to: Vector3): boolean {
+    const direction = to.clone().subtract(from);
+    const distance = direction.length();
+    direction.normalize();
+    
+    this._commonRay.origin.copyFrom(from);
+    this._commonRay.direction.copyFrom(direction);
+    
+    return scene.physics.raycast(this._commonRay, distance, Layer.Layer1);
+  }
+}
+```
+
+## Important Notes
+
+1. **Collider Requirements** - Entity must add [collider components](/en/docs/physics/collider/overview) to be detected by raycasting
+2. **Ray Direction** - Ray direction vector should be a normalized unit vector
+3. **Same Distance Handling** - When a ray hits multiple [collider shapes](/en/docs/physics/collider/colliderShape) at the same distance, it returns the Entity of the first added collider shape
+4. **World Coordinate System** - Ray origin and direction are based on world coordinates
+
+## Comparison with Other Query Methods
+
+| Feature | Raycasting | Shape Casting | Overlap Detection |
+|---------|------------|---------------|-------------------|
+| Detection Precision | Point precision | Volume precision | Area precision |
+| Return Results | First hit | First hit | All overlapping |
+| Use Cases | Picking, aiming | Movement prediction | Area triggers |
+| Performance Cost | Low | Medium | Medium |
+| Implementation Complexity | Simple | Medium | Medium |
+
+## Integration with InputManager
+
+It's recommended to use [InputManager](/en/docs/input/input/) for handling input events, as it provides convenient input querying methods:
+
+### Method 1: Handling Input Events in Scripts
+
+```typescript
+import { Script, PointerEventData, Ray, HitResult, Layer } from "@galacean/engine";
+
+export class ClickDetectionScript extends Script {
+  onPointerUp(eventData: PointerEventData): void {
+    const camera = this.entity.scene.findEntityByName("Camera").getComponent(Camera);
+    const ray = new Ray();
+    
+    // Use world position from event data
+    camera.screenPointToRay(eventData.pointer.position, ray);
+    
+    const hit = new HitResult();
+    if (this.entity.scene.physics.raycast(ray, 50, Layer.Layer0, hit)) {
+      console.log(`Clicked: ${hit.entity.name}`);
+      this.handleObjectClick(hit.entity);
+    }
+  }
+  
+  private handleObjectClick(entity: Entity): void {
+    // Handle click logic
+  }
+}
+```
+
+### Method 2: Polling InputManager State
+
+```typescript
+import { Script, PointerButton, Ray, HitResult, Layer, Vector2 } from "@galacean/engine";
+
+export class InputPollingScript extends Script {
+  onUpdate(): void {
+    const inputManager = this.engine.inputManager;
+    
+    // Check if left mouse button was released this frame
+    if (inputManager.isPointerUp(PointerButton.Primary)) {
+      // Get first pointer position
+      const pointers = inputManager.pointers;
+      if (pointers.length > 0) {
+        const pointer = pointers[0];
+        const camera = this.entity.scene.findEntityByName("Camera").getComponent(Camera);
+        const ray = new Ray();
+        
+        camera.screenPointToRay(pointer.position, ray);
+        
+        const hit = new HitResult();
+        if (this.entity.scene.physics.raycast(ray, 50, Layer.Layer0, hit)) {
+          console.log(`Clicked: ${hit.entity.name}`);
+          this.handleObjectClick(hit.entity);
+        }
+      }
+    }
+  }
+  
+  private handleObjectClick(entity: Entity): void {
+    // Handle click logic
+  }
+}
+```
+
+Raycasting is the most commonly used query function in physics engines, providing an efficient solution for precise point-to-point detection. Mastering the proper use of raycasting is crucial for implementing high-quality interactive experiences.

@@ -6,7 +6,6 @@ import {
   IShaderLab,
   IXRDevice
 } from "@galacean/engine-design";
-import { Color } from "@galacean/engine-math";
 import { CharRenderInfo } from "./2d/text/CharRenderInfo";
 import { Font } from "./2d/text/Font";
 import { BasicResources } from "./BasicResources";
@@ -24,7 +23,6 @@ import { ResourceManager } from "./asset/ResourceManager";
 import { EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
 import { InputManager } from "./input";
-import { Material } from "./material/Material";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
 import { ColliderShape } from "./physics/shape/ColliderShape";
 import { PostProcessPass } from "./postProcess/PostProcessPass";
@@ -96,10 +94,6 @@ export class Engine extends EventDispatcher {
   _renderContext: RenderContext = new RenderContext();
 
   /* @internal */
-  _meshMagentaMaterial: Material;
-  /* @internal */
-  _particleMagentaMaterial: Material;
-  /* @internal */
   _depthTexture2D: Texture2D;
 
   /* @internal */
@@ -131,7 +125,6 @@ export class Engine extends EventDispatcher {
   private _destroyed: boolean = false;
   private _frameInProcess: boolean = false;
   private _waitingDestroy: boolean = false;
-  private _isDeviceLost: boolean = false;
   private _waitingGC: boolean = false;
   private _postProcessPasses = new Array<PostProcessPass>();
   private _activePostProcessPasses = new Array<PostProcessPass>();
@@ -265,16 +258,6 @@ export class Engine extends EventDispatcher {
       this._macroCollection.enable(Engine._noSRGBSupportMacro);
     }
 
-    const meshMagentaMaterial = new Material(this, Shader.find("unlit"));
-    meshMagentaMaterial.isGCIgnored = true;
-    meshMagentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
-    this._meshMagentaMaterial = meshMagentaMaterial;
-
-    const particleMagentaMaterial = new Material(this, Shader.find("particle-shader"));
-    particleMagentaMaterial.isGCIgnored = true;
-    particleMagentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
-    this._particleMagentaMaterial = particleMagentaMaterial;
-
     this._basicResources = new BasicResources(this);
     this._particleBufferUtils = new ParticleBufferUtils(this);
 
@@ -381,7 +364,7 @@ export class Engine extends EventDispatcher {
     }
 
     // Render scene and fire `onBeginRender` and `onEndRender`
-    if (!this._isDeviceLost) {
+    if (!this._hardwareRenderer.isContextLost()) {
       this._render(scenes);
     }
 
@@ -652,7 +635,6 @@ export class Engine extends EventDispatcher {
   }
 
   private _onDeviceLost(): void {
-    this._isDeviceLost = true;
     // Lose graphic resources
     this.resourceManager._lostGraphicResources();
     console.log("Device lost.");
@@ -677,7 +659,6 @@ export class Engine extends EventDispatcher {
       .then(() => {
         console.log("Graphic resource content restored.\n\n" + "Device restored.");
         this.dispatch("devicerestored", this);
-        this._isDeviceLost = false;
       })
       .catch((error) => {
         console.error(error);

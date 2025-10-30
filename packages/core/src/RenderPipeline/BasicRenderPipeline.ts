@@ -6,6 +6,7 @@ import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DepthTextureMode } from "../enums/DepthTextureMode";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
+import { ScalableAmbientObscurancePass } from "../lighting/ambientOcclusion/ScalableAmbientObscurancePass";
 import { FinalPass } from "../postProcess";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
@@ -44,6 +45,7 @@ export class BasicRenderPipeline {
   private _internalColorTarget: RenderTarget = null;
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
+  private _saoPass: ScalableAmbientObscurancePass;
   private _opaqueTexturePass: OpaqueTexturePass;
   private _finalPass: FinalPass;
   private _copyBackgroundTexture: Texture2D;
@@ -60,6 +62,7 @@ export class BasicRenderPipeline {
     this._cullingResults = new CullingResults();
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
+    this._saoPass = new ScalableAmbientObscurancePass(engine);
     this._opaqueTexturePass = new OpaqueTexturePass(engine);
     this._finalPass = new FinalPass(engine);
   }
@@ -80,7 +83,7 @@ export class BasicRenderPipeline {
    * @param ignoreClear - Ignore clear flag
    */
   render(context: RenderContext, cubeFace?: TextureCubeFace, mipLevel?: number, ignoreClear?: CameraClearFlags) {
-    context.rendererUpdateFlag = ContextRendererUpdateFlag.All;
+    this._cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.All);
 
     const camera = this._camera;
     const { scene, engine, renderTarget } = camera;
@@ -89,7 +92,12 @@ export class BasicRenderPipeline {
     const cullingResults = this._cullingResults;
     const sunlight = scene._lightManager._sunlight;
     const depthOnlyPass = this._depthOnlyPass;
-    const depthPassEnabled = camera.depthTextureMode === DepthTextureMode.PrePass && depthOnlyPass._supportDepthTexture;
+    const ambientOcclusionEnabled = scene.ambientOcclusion._isValid();
+    const supportDepthTexture = depthOnlyPass.supportDepthTexture;
+
+    // Ambient occlusion enable will force enable depth prepass
+    const depthPassEnabled =
+      (camera.depthTextureMode === DepthTextureMode.PrePass || ambientOcclusionEnabled) && supportDepthTexture;
     const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
     const msaaSamples = renderTarget ? renderTarget.antiAliasing : camera.msaaSamples;
 
@@ -109,14 +117,13 @@ export class BasicRenderPipeline {
 
     if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
       this._cascadedShadowCasterPass.onRender(context);
-      context.rendererUpdateFlag = ContextRendererUpdateFlag.None;
     }
 
     const batcherManager = engine._batcherManager;
     cullingResults.reset();
 
     // Depth use camera's view and projection matrix
-    context.rendererUpdateFlag |= ContextRendererUpdateFlag.viewProjectionMatrix;
+    this._cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.viewProjectionMatrix);
     context.applyVirtualCamera(camera._virtualCamera, depthPassEnabled);
     this._prepareRender(context);
 
@@ -126,8 +133,8 @@ export class BasicRenderPipeline {
     if (depthPassEnabled) {
       depthOnlyPass.onConfig(camera);
       depthOnlyPass.onRender(context, cullingResults);
-      context.rendererUpdateFlag = ContextRendererUpdateFlag.None;
     } else {
+      depthOnlyPass.release();
       camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._basicResources.whiteTexture2D);
     }
 
@@ -192,6 +199,16 @@ export class BasicRenderPipeline {
       }
     }
 
+    // Scalable ambient obscurance pass
+    // Before opaque pass so materials can sample ambient occlusion in BRDF
+    const saoPass = this._saoPass;
+    if (ambientOcclusionEnabled && supportDepthTexture && saoPass.isSupported) {
+      saoPass.onConfig(camera, this._depthOnlyPass.renderTarget);
+      saoPass.onRender(context);
+    } else {
+      this._saoPass.release();
+    }
+
     this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel);
   }
 
@@ -216,7 +233,7 @@ export class BasicRenderPipeline {
 
     if (context.flipProjection !== needFlipProjection) {
       // Just add projection matrix update type is enough
-      context.rendererUpdateFlag |= ContextRendererUpdateFlag.ProjectionMatrix;
+      cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.ProjectionMatrix);
       context.applyVirtualCamera(camera._virtualCamera, needFlipProjection);
     }
 

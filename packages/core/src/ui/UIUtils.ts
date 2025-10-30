@@ -42,7 +42,7 @@ export class UIUtils {
         (viewE[12] = -position.x), (viewE[13] = -position.y);
         Matrix.multiply(virtualCamera.projectionMatrix, virtualCamera.viewMatrix, virtualCamera.viewProjectionMatrix);
         renderContext.applyVirtualCamera(virtualCamera, false);
-        renderContext.rendererUpdateFlag |= ContextRendererUpdateFlag.ProjectionMatrix;
+        uiRenderQueue.rendererUpdateFlag |= ContextRendererUpdateFlag.ProjectionMatrix;
         uiCanvas._prepareRender(renderContext);
         uiRenderQueue.pushRenderElement(uiCanvas._renderElement);
         uiRenderQueue.batch(batcherManager);

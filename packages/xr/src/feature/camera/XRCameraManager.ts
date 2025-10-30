@@ -94,7 +94,8 @@ export class XRCameraManager {
    * @internal
    */
   _onUpdate(): void {
-    const { _cameras: cameras } = this._xrManager.inputManager;
+    const cameras = this._xrManager.inputManager._cameras;
+    const platformSession = this._xrManager.sessionManager._platformSession;
     for (let i = 0, n = cameras.length; i < n; i++) {
       const cameraDevice = cameras[i];
       const { _camera: camera } = cameraDevice;
@@ -114,13 +115,24 @@ export class XRCameraManager {
       if (!Matrix.equals(camera.projectionMatrix, cameraDevice.projectionMatrix)) {
         camera.projectionMatrix = cameraDevice.projectionMatrix;
       }
+      // sync pixel viewport (only when rendering to XR main framebuffer)
+      if (!camera.renderTarget) {
+        // @ts-ignore
+        camera._adjustPixelViewport(platformSession.framebufferWidth, platformSession.framebufferHeight);
+      }
     }
   }
 
   /**
    * @internal
    */
-  _onSessionExit(): void {}
+  _onSessionExit(): void {
+    const cameras = this._xrManager.inputManager._cameras;
+    for (let i = 0, n = cameras.length; i < n; i++) {
+      // @ts-ignore
+      cameras[i]._camera?._updatePixelViewport();
+    }
+  }
 
   /**
    * @internal

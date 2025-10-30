@@ -83,7 +83,7 @@ export class WebXRImageTracking extends WebXRTrackableFeature<IXRTrackedImage, I
    * @internal
    */
   _assembleOptions(options: XRSessionInit): Promise<void> | void {
-    options.requiredFeatures.push("image-tracking");
+    options.optionalFeatures.push("image-tracking");
     const { _images: images } = this;
     const promiseArr: Promise<ImageBitmap>[] = [];
     if (images) {

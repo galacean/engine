@@ -58,12 +58,12 @@ export class ShaderFactory {
     shader = shader.replace(/\bvarying\b/g, isFrag ? "in" : "out");
     shader = shader.replace(/\btexture(2D|Cube)\b/g, "texture");
     shader = shader.replace(/\btexture2DProj\b/g, "textureProj");
+    shader = shader.replace(/\btexture(2D|Cube)LodEXT\b/g, "textureLod");
+    shader = shader.replace(/\btexture(2D|Cube)GradEXT\b/g, "textureGrad");
+    shader = shader.replace(/\btexture2DProjLodEXT\b/g, "textureProjLod");
+    shader = shader.replace(/\btexture2DProjGradEXT\b/g, "textureProjGrad");
 
     if (isFrag) {
-      shader = shader.replace(/\btexture(2D|Cube)LodEXT\b/g, "textureLod");
-      shader = shader.replace(/\btexture(2D|Cube)GradEXT\b/g, "textureGrad");
-      shader = shader.replace(/\btexture2DProjLodEXT\b/g, "textureProjLod");
-      shader = shader.replace(/\btexture2DProjGradEXT\b/g, "textureProjGrad");
       shader = shader.replace(/\bgl_FragDepthEXT\b/g, "gl_FragDepth");
 
       if (!ShaderFactory._has300Output(shader)) {
@@ -73,7 +73,7 @@ export class ShaderFactory {
           const result = shader.match(/\bgl_FragData\[.+?\]/g);
           shader = this._replaceMRTShader(shader, result);
         } else {
-          shader = shader.replace(/void\s+?main\s*\(/g, `out vec4 glFragColor;\nvoid main(`);
+          shader = "out vec4 glFragColor;\n" + shader;
           shader = shader.replace(/\bgl_FragColor\b/g, "glFragColor");
         }
       }

@@ -15,8 +15,12 @@
     "title": "物理场景",
     "order": 3
   },
+  "query": {
+    "title": "空间查询",
+    "order": 4
+  },
   "debug": {
     "title": "物理调试",
-    "order": 4
+    "order": 5
   }
 }
