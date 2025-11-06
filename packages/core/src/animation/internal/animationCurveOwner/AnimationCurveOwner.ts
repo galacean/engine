@@ -1,5 +1,5 @@
 import { Component } from "../../../Component";
-import { Entity } from "../../../Entity";
+import { ComponentConstructor, Entity } from "../../../Entity";
 import { AnimationCurve } from "../../animationCurve/AnimationCurve";
 import { IAnimationCurveCalculator } from "../../animationCurve/interfaces/IAnimationCurveCalculator";
 import { KeyframeValueType } from "../../Keyframe";
@@ -13,9 +13,9 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   /** @internal */
   static _components: Component[] = [];
 
-  private static _assemblerMap = new Map<ComponentType, Record<string, AssemblerType>>();
+  private static _assemblerMap = new Map<ComponentConstructor, Record<string, AssemblerType>>();
 
-  static registerAssembler(componentType: ComponentType, property: string, assemblerType: AssemblerType): void {
+  static registerAssembler(componentType: ComponentConstructor, property: string, assemblerType: AssemblerType): void {
     let subMap = AnimationCurveOwner._assemblerMap.get(componentType);
     if (!subMap) {
       subMap = {};
@@ -24,7 +24,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     subMap[property] = assemblerType;
   }
 
-  static getAssemblerType(componentType: ComponentType, property: string): AssemblerType {
+  static getAssemblerType(componentType: ComponentConstructor, property: string): AssemblerType {
     const subMap = AnimationCurveOwner._assemblerMap.get(componentType);
     const assemblerType = subMap ? subMap[property] : undefined;
     return assemblerType ?? UniversalAnimationCurveOwnerAssembler;
@@ -47,7 +47,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
 
   constructor(
     target: Entity,
-    type: new (entity: Entity) => Component,
+    type: ComponentConstructor,
     component: Component,
     property: string,
     getProperty: string,
@@ -204,7 +204,6 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   }
 }
 
-type ComponentType = new (entity: Entity) => Component;
 type AssemblerType = new () => IAnimationCurveOwnerAssembler<KeyframeValueType>;
 
 export interface IEvaluateData<V extends KeyframeValueType> {

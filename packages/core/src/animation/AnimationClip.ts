@@ -1,6 +1,6 @@
 import { EngineObject } from "../base/EngineObject";
 import { Component } from "../Component";
-import { Entity } from "../Entity";
+import { ComponentConstructor, Entity } from "../Entity";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
 import { AnimationCurve } from "./animationCurve/AnimationCurve";
@@ -106,7 +106,7 @@ export class AnimationClip extends EngineObject {
    */
   addCurveBinding<T extends Component>(
     entityPath: string,
-    componentType: new (entity: Entity) => T,
+    componentType: ComponentConstructor<T>,
     propertyPath: string,
     curve: AnimationCurve<KeyframeValueType>
   ): void;
@@ -121,7 +121,7 @@ export class AnimationClip extends EngineObject {
    */
   addCurveBinding<T extends Component>(
     entityPath: string,
-    componentType: new (entity: Entity) => T,
+    componentType: ComponentConstructor<T>,
     setPropertyPath: string,
     getPropertyPath: string,
     curve: AnimationCurve<KeyframeValueType>
@@ -137,7 +137,7 @@ export class AnimationClip extends EngineObject {
    */
   addCurveBinding<T extends Component>(
     entityPath: string,
-    componentType: new (entity: Entity) => T,
+    componentType: ComponentConstructor<T>,
     componentIndex: number,
     propertyPath: string,
     curve: AnimationCurve<KeyframeValueType>
@@ -154,7 +154,7 @@ export class AnimationClip extends EngineObject {
    */
   addCurveBinding<T extends Component>(
     entityPath: string,
-    componentType: new (entity: Entity) => T,
+    componentType: ComponentConstructor<T>,
     componentIndex: number,
     setPropertyPath: string,
     getPropertyPath: string,
@@ -163,7 +163,7 @@ export class AnimationClip extends EngineObject {
 
   addCurveBinding<T extends Component>(
     entityPath: string,
-    componentType: new (entity: Entity) => T,
+    componentType: ComponentConstructor<T>,
     propertyOrSetPropertyPathOrComponentIndex: number | string,
     curveOrSetPropertyPathOrGetPropertyPath: AnimationCurve<KeyframeValueType> | string,
     curveOrGetPropertyPath?: AnimationCurve<KeyframeValueType> | string,

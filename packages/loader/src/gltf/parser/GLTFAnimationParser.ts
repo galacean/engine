@@ -5,6 +5,7 @@ import {
   AnimationVector3Curve,
   AssetPromise,
   Component,
+  ComponentConstructor,
   Entity,
   InterpolationType,
   Keyframe,
@@ -117,7 +118,7 @@ export class GLTFAnimationParser extends GLTFParser {
           continue;
         }
 
-        let ComponentType: new (entity: Entity) => Component;
+        let ComponentType: ComponentConstructor<Component>;
         let propertyName: string;
         switch (target.path) {
           case AnimationChannelTargetPath.TRANSLATION:
