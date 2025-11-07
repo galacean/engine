@@ -14,18 +14,18 @@ export class GLTFEntityParser extends GLTFParser {
     entity._markAsTemplate(glTFResource);
 
     const { transform } = entity;
-    if (matrix) {
+    if (this._isValidArray(matrix, 16)) {
       const localMatrix = transform.localMatrix;
       localMatrix.copyFromArray(matrix);
       transform.localMatrix = localMatrix;
     } else {
-      if (translation) {
+      if (this._isValidArray(translation, 3)) {
         transform.setPosition(translation[0], translation[1], translation[2]);
       }
-      if (rotation) {
+      if (this._isValidArray(rotation, 4)) {
         transform.setRotationQuaternion(rotation[0], rotation[1], rotation[2], rotation[3]);
       }
-      if (scale) {
+      if (this._isValidArray(scale, 3)) {
         transform.setScale(scale[0], scale[1], scale[2]);
       }
     }
@@ -42,5 +42,13 @@ export class GLTFEntityParser extends GLTFParser {
     GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, entity, entityInfo);
 
     return entity;
+  }
+
+  private _isValidArray(v: ArrayLike<number>, l: number): boolean {
+    if (!v || v.length < l) return false;
+    for (let i = 0; i < l; i++) {
+      if (!Number.isFinite(v[i])) return false;
+    }
+    return true;
   }
 }
