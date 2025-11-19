@@ -18,7 +18,7 @@ export { Transform, TransformModifyFlags } from "./Transform";
 export { BoolUpdateFlag } from "./BoolUpdateFlag";
 export type { EngineSettings } from "./EngineSettings";
 export type { EngineConfiguration } from "./Engine";
-export type { ComponentArguments, ComponentConstructor } from "./Entity";
+export type { ComponentConstructor } from "./Entity";
 
 export { request } from "./asset/request";
 export type { RequestConfig } from "./asset/request";
