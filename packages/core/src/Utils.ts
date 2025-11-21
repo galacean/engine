@@ -99,10 +99,10 @@ export class Utils {
 
     if (!/^https?:/.test(baseUrl)) {
       let encodeBaseUrl = baseUrl ? this.encodePathComponents(baseUrl) : '';
-      const encoddeRelative = relativeUrl ? this.encodePathComponents(relativeUrl) : '';
+      const encodedRelative = relativeUrl ? this.encodePathComponents(relativeUrl) : '';
       const fileSchema = "file://";
       encodeBaseUrl = fileSchema + encodeBaseUrl;
-      const rejoinsPath = new URL(encoddeRelative, encodeBaseUrl).href.substring(fileSchema.length);
+      const rejoinsPath = new URL(encodedRelative, encodeBaseUrl).href.substring(fileSchema.length);
       // Fallback to original value when decoding fails
       try {
         return decodeURIComponent(rejoinsPath);
