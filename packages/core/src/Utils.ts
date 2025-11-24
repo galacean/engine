@@ -64,25 +64,6 @@ export class Utils {
   }
 
   /**
-   * Encodes individual path components while preserving structural symbols (".", "..", "").
-   * Splits the path by "/", encodes each non-structural component via encodeURIComponent,
-   * then rejoins them to form the final encoded path.
-   * 
-   * @param path - The original path string to be processed.
-   * @returns The encoded path string with structural symbols retained.
-   */
-  static encodePathComponents(path: string): string {
-    return path.split('/').map(component => {
-      // Retain path structure symbols (., .., empty segments)
-      if (component === '.' || component === '..' || component === '') {
-        return component;
-      }
-      // Encode non-structural URI components (Chinese/space-containing parts)
-      return encodeURIComponent(component);
-    }).join('/');
-  }
-
-  /**
    * Convert a relative URL to an absolute URL based on a given base URL.
    * @param baseUrl - The base url.
    * @param relativeUrl - The relative url.
@@ -97,18 +78,17 @@ export class Utils {
       return relativeUrl;
     }
 
+    if (Utils.isAbsoluteUrl(baseUrl)) {
+      return relativeUrl ? new URL(relativeUrl, baseUrl).href : baseUrl;
+    }
+
     if (!/^https?:/.test(baseUrl)) {
       let encodeBaseUrl = baseUrl ? this.encodePathComponents(baseUrl) : '';
       const encodedRelative = relativeUrl ? this.encodePathComponents(relativeUrl) : '';
       const fileSchema = "file://";
       encodeBaseUrl = fileSchema + encodeBaseUrl;
       const rejoinsPath = new URL(encodedRelative, encodeBaseUrl).href.substring(fileSchema.length);
-      // Fallback to original value when decoding fails
-      try {
-        return decodeURIComponent(rejoinsPath);
-      } catch {
-        return rejoinsPath;
-      }
+      return decodeURIComponent(rejoinsPath);
     }
 
     return relativeUrl ? new URL(relativeUrl, baseUrl).href : baseUrl;
@@ -292,6 +272,25 @@ export class Utils {
       }
       a[j + 1] = element;
     }
+  }
+
+  /**
+   * Encodes individual path components while preserving structural symbols (".", "..", "").
+   * Splits the path by "/", encodes each non-structural component via encodeURIComponent,
+   * then rejoins them to form the final encoded path.
+   * 
+   * @param path - The original path string to be processed.
+   * @returns The encoded path string with structural symbols retained.
+   */
+  private static encodePathComponents(path: string): string {
+    return path.split('/').map(component => {
+      // Retain path structure symbols (., .., empty segments)
+      if (component === '.' || component === '..' || component === '') {
+        return component;
+      }
+      // Encode non-structural URI components (Chinese/space-containing parts)
+      return encodeURIComponent(component);
+    }).join('/');
   }
 }
 
