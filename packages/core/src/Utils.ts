@@ -82,16 +82,12 @@ export class Utils {
       return relativeUrl ? new URL(relativeUrl, baseUrl).href : baseUrl;
     }
 
-    if (!/^https?:/.test(baseUrl)) {
-      let encodeBaseUrl = baseUrl ? this.encodePathComponents(baseUrl) : '';
-      const encodedRelative = relativeUrl ? this.encodePathComponents(relativeUrl) : '';
-      const fileSchema = "file://";
-      encodeBaseUrl = fileSchema + encodeBaseUrl;
-      const rejoinsPath = new URL(encodedRelative, encodeBaseUrl).href.substring(fileSchema.length);
-      return decodeURIComponent(rejoinsPath);
-    }
-
-    return relativeUrl ? new URL(relativeUrl, baseUrl).href : baseUrl;
+    let encodedBaseUrl = baseUrl ? this.encodePathComponents(baseUrl) : '';
+    const encodedRelative = relativeUrl ? this.encodePathComponents(relativeUrl) : '';
+    const fileSchema = "file://";
+    encodedBaseUrl = fileSchema + encodedBaseUrl;
+    const rejoinsPath = new URL(encodedRelative, encodedBaseUrl).href.substring(fileSchema.length);
+    return decodeURIComponent(rejoinsPath);
   }
 
   /**
