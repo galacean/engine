@@ -274,14 +274,6 @@ export class Utils {
     }
   }
 
-  /**
-   * Encodes individual path components while preserving structural symbols (".", "..", "").
-   * Splits the path by "/", encodes each non-structural component via encodeURIComponent,
-   * then rejoins them to form the final encoded path.
-   * 
-   * @param path - The original path string to be processed.
-   * @returns The encoded path string with structural symbols retained.
-   */
   private static encodePathComponents(path: string): string {
     return path.split('/').map(component => {
       // Retain path structure symbols (., .., empty segments)
