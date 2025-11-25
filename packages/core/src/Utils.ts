@@ -276,7 +276,7 @@ export class Utils {
       if (component === '.' || component === '..' || component === '') {
         return component;
       }
-      // Encode non-structural URI components (Chinese/space-containing parts)
+      // Encode all other path components to prevent selective encoding by URL constructor
       return encodeURIComponent(component);
     }).join('/');
   }
