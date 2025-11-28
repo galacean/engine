@@ -1,5 +1,5 @@
 {
-  "name": "@galacean/engine",
+  "name": "@galacean/engine-backup",
   "version": "1.6.7",
   "publishConfig": {
     "access": "public",
@@ -18,7 +18,7 @@
     "types/**/*"
   ],
   "umd": {
-    "name": "Galacean"
+    "name": "GalaceanBackup"
   },
   "homepage": "https://galacean.antgroup.com/",
   "repository": {
