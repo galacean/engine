@@ -24,8 +24,8 @@ const pkgs = fs
     };
   });
 
-const shaderLabPkg = pkgs.find((item) => item.pkgJson.name === "@galacean/engine-shaderlab");
-pkgs.push({ ...shaderLabPkg, verboseMode: true });
+// const shaderLabPkg = pkgs.find((item) => item.pkgJson.name === "@galacean/engine-shaderlab");
+// pkgs.push({ ...shaderLabPkg, verboseMode: true });
 
 // toGlobalName
 const extensions = [".js", ".jsx", ".ts", ".tsx"];
@@ -170,6 +170,7 @@ switch (BUILD_TYPE) {
 
 function getUMD() {
   const configs = pkgs.filter((pkg) => pkg.pkgJson.umd);
+  console.log(configs);
   return configs
     .map((config) => makeRollupConfig({ ...config, type: "umd" }))
     .concat(
