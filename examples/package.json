@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-examples",
-  "version": "0.0.0-experimental-backup.4",
+  "version": "0.0.0-experimental-backup.5",
   "private": true,
   "license": "MIT",
   "main": "dist/main.js",
