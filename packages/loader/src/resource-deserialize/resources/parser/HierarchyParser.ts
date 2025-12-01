@@ -62,6 +62,23 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       .catch(this._reject);
   }
 
+  protected _applyEntityData(entity: Entity, entityConfig: IEntity = {}): Entity {
+    entity.isActive = entityConfig.isActive ?? entity.isActive;
+    entity.name = entityConfig.name ?? entity.name;
+    const transform = entity.transform;
+    const transformConfig = entityConfig.transform;
+    if (transformConfig) {
+      this._reflectionParser.parsePropsAndMethods(transform, transformConfig);
+    } else {
+      const { position, rotation, scale } = entityConfig;
+      if (position) transform.position.copyFrom(position);
+      if (rotation) transform.rotation.copyFrom(rotation);
+      if (scale) transform.scale.copyFrom(scale);
+    }
+    if (entityConfig.layer) entity.layer = entityConfig.layer;
+    return entity;
+  }
+
   protected abstract _handleRootEntity(id: string): void;
   protected abstract _clearAndResolve(): Scene | PrefabResource;
 
@@ -302,23 +319,6 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     }
   }
 
-  private _applyEntityData(entity: Entity, entityConfig: IEntity = {}): Entity {
-    entity.isActive = entityConfig.isActive ?? entity.isActive;
-    entity.name = entityConfig.name ?? entity.name;
-    const transform = entity.transform;
-    const transformConfig = entityConfig.transform;
-    if (transformConfig) {
-      this._reflectionParser.parsePropsAndMethods(transform, transformConfig);
-    } else {
-      const { position, rotation, scale } = entityConfig;
-      if (position) transform.position.copyFrom(position);
-      if (rotation) transform.rotation.copyFrom(rotation);
-      if (scale) transform.scale.copyFrom(scale);
-    }
-    if (entityConfig.layer) entity.layer = entityConfig.layer;
-    return entity;
-  }
-
   private _generateInstanceContext(entity: Entity, context: ParserContext<IHierarchyFile, Entity>, path: string) {
     const { entityMap, components } = context;
     const componentsMap = {};
@@ -358,7 +358,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     return Promise.all(promises);
   }
 
-  private _addComponentPlugin(componentId: string, component: Component): void {}
+  private _addComponentPlugin(componentId: string, component: Component): void { }
 
-  private _addEntityPlugin(entityId: string, entity: Entity): void {}
+  private _addEntityPlugin(entityId: string, entity: Entity): void { }
 }
