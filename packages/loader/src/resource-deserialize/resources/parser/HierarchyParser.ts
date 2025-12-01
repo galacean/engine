@@ -358,7 +358,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     return Promise.all(promises);
   }
 
-  private _addComponentPlugin(componentId: string, component: Component): void { }
+  private _addComponentPlugin(componentId: string, component: Component): void {}
 
-  private _addEntityPlugin(entityId: string, entity: Entity): void { }
+  private _addEntityPlugin(entityId: string, entity: Entity): void {}
 }
