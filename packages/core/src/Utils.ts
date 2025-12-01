@@ -78,13 +78,16 @@ export class Utils {
       return relativeUrl;
     }
 
-    if (!/^https?:/.test(baseUrl)) {
-      const fileSchema = "file://";
-      baseUrl = fileSchema + baseUrl;
-      return new URL(relativeUrl, baseUrl).href.substring(fileSchema.length);
+    if (Utils.isAbsoluteUrl(baseUrl)) {
+      return relativeUrl ? new URL(relativeUrl, baseUrl).href : baseUrl;
     }
 
-    return relativeUrl ? new URL(relativeUrl, baseUrl).href : baseUrl;
+    let encodedBaseUrl = baseUrl ? this.encodePathComponents(baseUrl) : "";
+    const encodedRelative = relativeUrl ? this.encodePathComponents(relativeUrl) : "";
+    const fileSchema = "file://";
+    encodedBaseUrl = fileSchema + encodedBaseUrl;
+    const rejoinsPath = new URL(encodedRelative, encodedBaseUrl).href.substring(fileSchema.length);
+    return decodeURIComponent(rejoinsPath);
   }
 
   /**
@@ -265,6 +268,20 @@ export class Utils {
       }
       a[j + 1] = element;
     }
+  }
+
+  private static encodePathComponents(path: string): string {
+    return path
+      .split("/")
+      .map((component) => {
+        // Retain path structure symbols (., .., empty segments)
+        if (component === "." || component === ".." || component === "") {
+          return component;
+        }
+        // Encode all other path components to prevent selective encoding by URL constructor
+        return encodeURIComponent(component);
+      })
+      .join("/");
   }
 }
 
