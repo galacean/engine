@@ -271,10 +271,7 @@ export class Entity extends EngineObject {
    * @param args - The arguments of the component
    * @returns	The component which has been added
    */
-  addComponent<T extends new (entity: Entity, ...args: any[]) => Component>(
-    type: T,
-    ...args: ComponentArguments<T>
-  ): InstanceType<T> {
+  addComponent<T extends ComponentConstructor>(type: T, ...args: ComponentArguments<T>): InstanceType<T> {
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this, ...args) as InstanceType<T>;
     this._components.push(component);
@@ -290,7 +287,7 @@ export class Entity extends EngineObject {
    * @param type - The type of the component
    * @returns	The first component which match type
    */
-  getComponent<T extends Component>(type: new (entity: Entity) => T): T | null {
+  getComponent<T extends Component>(type: ComponentConstructor<T>): T | null {
     const components = this._components;
     for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
@@ -307,7 +304,7 @@ export class Entity extends EngineObject {
    * @param results - The components which match type
    * @returns	The components which match type
    */
-  getComponents<T extends Component>(type: new (entity: Entity) => T, results: T[]): T[] {
+  getComponents<T extends Component>(type: ComponentConstructor<T>, results: T[]): T[] {
     results.length = 0;
     const components = this._components;
     for (let i = 0, n = components.length; i < n; i++) {
@@ -325,7 +322,7 @@ export class Entity extends EngineObject {
    * @param results - The components collection
    * @returns	The components collection which match the type
    */
-  getComponentsIncludeChildren<T extends Component>(type: new (entity: Entity) => T, results: T[]): T[] {
+  getComponentsIncludeChildren<T extends Component>(type: ComponentConstructor<T>, results: T[]): T[] {
     results.length = 0;
     this._getComponentsInChildren<T>(type, results);
     return results;
@@ -735,7 +732,7 @@ export class Entity extends EngineObject {
     }
   }
 
-  private _getComponentsInChildren<T extends Component>(type: new (entity: Entity) => T, results: T[]): void {
+  private _getComponentsInChildren<T extends Component>(type: ComponentConstructor<T>, results: T[]): void {
     for (let i = this._components.length - 1; i >= 0; i--) {
       const component = this._components[i];
       if (component instanceof type) {
@@ -834,11 +831,11 @@ export class Entity extends EngineObject {
   }
 }
 
-type ComponentArguments<T extends new (entity: Entity, ...args: any[]) => Component> = T extends new (
+export type ComponentArguments<T extends new (entity: Entity, ...args: any[]) => Component> = T extends new (
   entity: Entity,
   ...args: infer P
 ) => Component
   ? P
   : never;
 
-type ComponentConstructor = new (entity: Entity) => Component;
+export type ComponentConstructor<T extends Component = Component> = new (entity: Entity, ...args: any[]) => T;
