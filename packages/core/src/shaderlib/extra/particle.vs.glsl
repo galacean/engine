@@ -153,7 +153,7 @@ void main() {
                 v_TextureCoordinate = computeParticleUV(simulateUV, normalizedAge);
             #endif
             #ifdef RENDERER_MODE_MESH
-                simulateUV = a_SimulationUV.xy + TEXCOORD_0 * a_SimulationUV.zw;
+                simulateUV = a_SimulationUV.zw + TEXCOORD_0 * a_SimulationUV.xy;
                 v_TextureCoordinate = computeParticleUV(simulateUV, normalizedAge);
             #endif
         #endif
