@@ -91,9 +91,12 @@ export class ParticleRenderer extends Renderer {
         this._currentRenderModeMacro = renderModeMacro;
       }
 
-      if ((lastRenderMode === ParticleRenderMode.Mesh) !== (value === ParticleRenderMode.Mesh)) {
-        this.generator._reorganizeGeometryBuffers();
-        console.log(this.generator._primitive);
+      const wasMeshMode = lastRenderMode === ParticleRenderMode.Mesh;
+      const isMeshMode = value === ParticleRenderMode.Mesh;
+      if (wasMeshMode !== isMeshMode) {
+        if (!isMeshMode || this.mesh) {
+          this.generator._reorganizeGeometryBuffers();
+        }
       }
     }
   }
@@ -116,7 +119,6 @@ export class ParticleRenderer extends Renderer {
         this._addResourceReferCount(value, 1);
         if (this.renderMode === ParticleRenderMode.Mesh) {
           this.generator._reorganizeGeometryBuffers();
-          console.log(this.generator._primitive);
         }
       }
     }

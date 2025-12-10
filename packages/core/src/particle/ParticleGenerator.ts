@@ -352,10 +352,6 @@ export class ParticleGenerator {
 
     if (renderer.renderMode === ParticleRenderMode.Mesh) {
       const { mesh } = renderer;
-      if (!mesh) {
-        return;
-      }
-
       const positionElement = mesh.getVertexElement(VertexAttribute.Position);
       const colorElement = mesh.getVertexElement(VertexAttribute.Color);
       const uvElement = mesh.getVertexElement(VertexAttribute.UV);
@@ -390,6 +386,7 @@ export class ParticleGenerator {
       primitive.setIndexBufferBinding(indexBufferBinding);
       this._subPrimitive.count = indexBufferBinding.buffer.byteLength / primitive._glIndexByteCount;
     } else {
+      renderer.shaderData.disableMacro(MeshRenderer._enableVertexColorMacro);
       primitive.addVertexElement(particleUtils.billboardVertexElement);
       vertexBufferBindings.push(particleUtils.billboardVertexBufferBinding);
       primitive.setIndexBufferBinding(particleUtils.billboardIndexBufferBinding);
