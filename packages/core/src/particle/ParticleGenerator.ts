@@ -344,16 +344,14 @@ export class ParticleGenerator {
    * @internal
    */
   _reorganizeGeometryBuffers(): void {
-    const renderer = this._renderer;
-    const particleUtils = renderer.engine._particleBufferUtils;
-    const primitive = this._primitive;
-    const vertexBufferBindings = this._vertexBufferBindings;
+    const { _renderer: renderer, _primitive: primitive, _vertexBufferBindings: vertexBufferBindings } = this;
+    const { _particleBufferUtils: particleUtils } = renderer.engine;
 
     primitive.clearVertexElements();
     vertexBufferBindings.length = 0;
 
     if (renderer.renderMode === ParticleRenderMode.Mesh) {
-      const mesh = renderer.mesh;
+      const { mesh } = renderer;
       if (!mesh) {
         return;
       }
@@ -403,6 +401,11 @@ export class ParticleGenerator {
       primitive.addVertexElement(
         new VertexElement(element.attribute, element.offset, element.format, bindingIndex, element.instanceStepRate)
       );
+    }
+
+    // If instance buffer already created
+    if (this._instanceVertexBufferBinding) {
+      primitive.setVertexBufferBinding(primitive.vertexBufferBindings.length, this._instanceVertexBufferBinding);
     }
   }
 

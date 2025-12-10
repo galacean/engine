@@ -21,7 +21,7 @@ export class ParticleRenderer extends Renderer {
   private static readonly _stretchedBillboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_STRETCHED_BILLBOARD");
   private static readonly _horizontalBillboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_HORIZONTAL_BILLBOARD");
   private static readonly _verticalBillboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_VERTICAL_BILLBOARD");
-  private static readonly _renderModeMeshMacro = ShaderMacro.getByName("RENDERER_MODE_MESH");
+  private static readonly _meshModeMacro = ShaderMacro.getByName("RENDERER_MODE_MESH");
 
   private static readonly _pivotOffsetProperty = ShaderProperty.getByName("renderer_PivotOffset");
   private static readonly _lengthScale = ShaderProperty.getByName("renderer_StretchedBillboardLengthScale");
@@ -64,7 +64,6 @@ export class ParticleRenderer extends Renderer {
       this._renderMode = value;
 
       let renderModeMacro = <ShaderMacro>null;
-      const shaderData = this.shaderData;
       switch (value) {
         case ParticleRenderMode.Billboard:
           renderModeMacro = ParticleRenderer._billboardModeMacro;
@@ -81,26 +80,26 @@ export class ParticleRenderer extends Renderer {
           renderModeMacro = ParticleRenderer._verticalBillboardModeMacro;
           break;
         case ParticleRenderMode.Mesh:
-          throw "Not implemented";
-          renderModeMacro = ParticleRenderer._renderModeMeshMacro;
+          renderModeMacro = ParticleRenderer._meshModeMacro;
           break;
       }
 
       if (this._currentRenderModeMacro !== renderModeMacro) {
+        const { shaderData } = this;
         this._currentRenderModeMacro && shaderData.disableMacro(this._currentRenderModeMacro);
         renderModeMacro && shaderData.enableMacro(renderModeMacro);
         this._currentRenderModeMacro = renderModeMacro;
       }
 
-      // @ts-ignore
-      if ((lastRenderMode !== ParticleRenderMode.Mesh) !== (value === ParticleRenderMode.Mesh)) {
+      if ((lastRenderMode === ParticleRenderMode.Mesh) !== (value === ParticleRenderMode.Mesh)) {
         this.generator._reorganizeGeometryBuffers();
+        console.log(this.generator._primitive);
       }
     }
   }
 
   /**
-   * The mesh of particle.
+   * The mesh used to render particles.
    * @remarks Valid when `renderMode` is `Mesh`.
    */
   get mesh(): ModelMesh {
@@ -112,9 +111,13 @@ export class ParticleRenderer extends Renderer {
     if (lastMesh !== value) {
       this._mesh = value;
       lastMesh && this._addResourceReferCount(lastMesh, -1);
-      value && this._addResourceReferCount(value, 1);
-      if (this.renderMode === ParticleRenderMode.Mesh) {
-        this.generator._reorganizeGeometryBuffers();
+
+      if (value) {
+        this._addResourceReferCount(value, 1);
+        if (this.renderMode === ParticleRenderMode.Mesh) {
+          this.generator._reorganizeGeometryBuffers();
+          console.log(this.generator._primitive);
+        }
       }
     }
   }

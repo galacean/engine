@@ -83,5 +83,5 @@
             }
         }
     #endif
-	v_MeshColor = a_MeshColor;
+	v_MeshColor = vec4(1.0,1.0,1.0,1.0);// Test
 #endif
