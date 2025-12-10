@@ -4,7 +4,9 @@
 
 #ifdef RENDERER_MODE_MESH
     attribute vec3 POSITION;
-    attribute vec4 COLOR_0;
+    #ifdef RENDERER_ENABLE_VERTEXCOLOR
+        attribute vec4 COLOR_0;
+    #endif
     attribute vec2 TEXCOORD_0;
     varying vec4 v_MeshColor;
 #endif

@@ -83,5 +83,7 @@
             }
         }
     #endif
-	v_MeshColor = vec4(1.0,1.0,1.0,1.0);// Test
+    #ifdef RENDERER_ENABLE_VERTEXCOLOR
+		v_MeshColor = COLOR_0;
+	#endif
 #endif

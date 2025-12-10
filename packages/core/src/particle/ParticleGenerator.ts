@@ -10,7 +10,7 @@ import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { SetDataOptions } from "../graphic/enums/SetDataOptions";
-import { VertexAttribute } from "../mesh";
+import { MeshRenderer, VertexAttribute } from "../mesh";
 import { ShaderData } from "../shader";
 import { Buffer } from "./../graphic/Buffer";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
@@ -375,6 +375,9 @@ export class ParticleGenerator {
         primitive.addVertexElement(
           new VertexElement(VertexAttribute.Color, colorElement.offset, colorElement.format, index)
         );
+        renderer.shaderData.enableMacro(MeshRenderer._enableVertexColorMacro);
+      } else {
+        renderer.shaderData.disableMacro(MeshRenderer._enableVertexColorMacro);
       }
 
       if (uvBufferBinding) {
