@@ -392,7 +392,6 @@ export class ParticleGenerator {
       primitive.setIndexBufferBinding(particleUtils.billboardIndexBufferBinding);
       this._subPrimitive.count = ParticleBufferUtils.billboardIndexCount;
     }
-    primitive.setVertexBufferBindings(vertexBufferBindings);
 
     const instanceVertexElements = particleUtils.instanceVertexElements;
     const bindingIndex = vertexBufferBindings.length;
@@ -405,8 +404,10 @@ export class ParticleGenerator {
 
     // If instance buffer already created
     if (this._instanceVertexBufferBinding) {
-      primitive.setVertexBufferBinding(primitive.vertexBufferBindings.length, this._instanceVertexBufferBinding);
+      vertexBufferBindings.push(this._instanceVertexBufferBinding);
     }
+
+    primitive.setVertexBufferBindings(vertexBufferBindings);
   }
 
   /**

@@ -6,7 +6,7 @@
             a_StartRotation0.xy,
             computeParticleRotationFloat(a_StartRotation0.z, age, normalizedAge));
             center += rotationByQuaternions(
-            renderer_SizeScale * rotationByEuler(a_MeshPosition * size, rotation),
+            renderer_SizeScale * rotationByEuler(POSITION * size, rotation),
             worldRotation);
         } else {
         #ifdef RENDERER_ROL_IS_SEPARATE
@@ -14,22 +14,22 @@
             if (a_ShapePositionStartLifeTime.x != 0.0 || a_ShapePositionStartLifeTime.y != 0.0) {
             center += (rotationByQuaternions(
                 rotationByAxis(
-                renderer_SizeScale * a_MeshPosition * size,
+                renderer_SizeScale * POSITION * size,
                 normalize(cross(vec3(0.0, 0.0, 1.0),
                     vec3(a_ShapePositionStartLifeTime.xy, 0.0))),
                 angle),
                 worldRotation)); //已验证
             } else {
             #ifdef SHAPE
-                center += renderer_SizeScale.xzy * (rotationByQuaternions(rotationByAxis(a_MeshPosition * size, vec3(0.0, -1.0, 0.0), angle), worldRotation));
+                center += renderer_SizeScale.xzy * (rotationByQuaternions(rotationByAxis(POSITION * size, vec3(0.0, -1.0, 0.0), angle), worldRotation));
             #else
                 if (renderer_SimulationSpace == 1)
-                    center += rotationByAxis(renderer_SizeScale * a_MeshPosition * size,
+                    center += rotationByAxis(renderer_SizeScale * POSITION * size,
                     vec3(0.0, 0.0, -1.0),
                     angle); //已验证
                 else if (renderer_SimulationSpace == 0)
                     center += rotationByQuaternions(
-                    renderer_SizeScale * rotationByAxis(a_MeshPosition * size, vec3(0.0, 0.0, -1.0), angle),
+                    renderer_SizeScale * rotationByAxis(POSITION * size, vec3(0.0, 0.0, -1.0), angle),
                     worldRotation); //已验证
             #endif
             }
@@ -39,7 +39,7 @@
             vec3 angle = computeParticleRotationVec3(
             vec3(0.0, 0.0, -a_StartRotation0.x), age, normalizedAge);
             center += (rotationByQuaternions(
-            rotationByEuler(renderer_SizeScale * a_MeshPosition * size,
+            rotationByEuler(renderer_SizeScale * POSITION * size,
                 vec3(angle.x, angle.y, angle.z)),
             worldRotation)); //已验证
         #endif
@@ -47,37 +47,37 @@
     #else
         if (renderer_ThreeDStartRotation) {
             center += rotationByQuaternions(
-            renderer_SizeScale * rotationByEuler(a_MeshPosition * size, a_StartRotation0),
+            renderer_SizeScale * rotationByEuler(POSITION * size, a_StartRotation0),
             worldRotation); //已验证
         } else {
             if (a_ShapePositionStartLifeTime.x != 0.0 || a_ShapePositionStartLifeTime.y != 0.0) {
             if (renderer_SimulationSpace == 1)
                 center += rotationByAxis(
-                renderer_SizeScale * a_MeshPosition * size,
+                renderer_SizeScale * POSITION * size,
                 normalize(cross(vec3(0.0, 0.0, 1.0),
                     vec3(a_ShapePositionStartLifeTime.xy, 0.0))),
                 a_StartRotation0.x);
             else if (renderer_SimulationSpace == 0)
                 center += (rotationByQuaternions(
-                renderer_SizeScale * rotationByAxis(a_MeshPosition * size, normalize(cross(vec3(0.0, 0.0, 1.0),
+                renderer_SizeScale * rotationByAxis(POSITION * size, normalize(cross(vec3(0.0, 0.0, 1.0),
                                              vec3(a_ShapePositionStartLifeTime.xy, 0.0))), a_StartRotation0.x),
                 worldRotation)); //已验证
             } else {
         #ifdef SHAPE
             if (renderer_SimulationSpace == 1)
-                center += renderer_SizeScale * rotationByAxis(a_MeshPosition * size, vec3(0.0, -1.0, 0.0), a_StartRotation0.x);
+                center += renderer_SizeScale * rotationByAxis(POSITION * size, vec3(0.0, -1.0, 0.0), a_StartRotation0.x);
             else if (renderer_SimulationSpace == 0)
                 center += rotationByQuaternions(
-                renderer_SizeScale * rotationByAxis(a_MeshPosition * size, vec3(0.0, -1.0, 0.0), a_StartRotation0.x),
+                renderer_SizeScale * rotationByAxis(POSITION * size, vec3(0.0, -1.0, 0.0), a_StartRotation0.x),
                 worldRotation);
         #else
             if (renderer_SimulationSpace == 1)
-                center += rotationByAxis(renderer_SizeScale * a_MeshPosition * size,
+                center += rotationByAxis(renderer_SizeScale * POSITION * size,
                 vec3(0.0, 0.0, -1.0),
                 a_StartRotation0.x);
             else if (renderer_SimulationSpace == 0)
                 center += rotationByQuaternions(
-                renderer_SizeScale * rotationByAxis(a_MeshPosition * size, vec3(0.0, 0.0, -1.0), a_StartRotation0.x),
+                renderer_SizeScale * rotationByAxis(POSITION * size, vec3(0.0, 0.0, -1.0), a_StartRotation0.x),
                 worldRotation); //已验证
         #endif
             }

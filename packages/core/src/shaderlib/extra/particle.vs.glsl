@@ -3,9 +3,9 @@
 #endif
 
 #ifdef RENDERER_MODE_MESH
-    attribute vec3 a_MeshPosition;
-    attribute vec4 a_MeshColor;
-    attribute vec2 a_MeshTextureCoordinate;
+    attribute vec3 POSITION;
+    attribute vec4 COLOR_0;
+    attribute vec2 TEXCOORD_0;
     varying vec4 v_MeshColor;
 #endif
 
@@ -153,7 +153,7 @@ void main() {
                 v_TextureCoordinate = computeParticleUV(simulateUV, normalizedAge);
             #endif
             #ifdef RENDERER_MODE_MESH
-                simulateUV = a_SimulationUV.xy + a_MeshTextureCoordinate * a_SimulationUV.zw;
+                simulateUV = a_SimulationUV.xy + TEXCOORD_0 * a_SimulationUV.zw;
                 v_TextureCoordinate = computeParticleUV(simulateUV, normalizedAge);
             #endif
         #endif

@@ -13,6 +13,7 @@ import {
   Engine,
   Entity,
   GLTFResource,
+  Logger,
   ParticleCurve,
   ParticleCurveMode,
   ParticleGradientMode,
@@ -27,6 +28,7 @@ import {
   WebGLEngine
 } from "@galacean/engine";
 
+Logger.enable();
 main();
 
 function createFireParticle(engine: Engine, texture: Texture2D, glTFModel: GLTFResource): Entity {
@@ -47,7 +49,7 @@ function createFireParticle(engine: Engine, texture: Texture2D, glTFModel: GLTFR
   debugger;
   particleRenderer.renderMode = ParticleRenderMode.Mesh;
   // particleRenderer.mesh = glTFModel.meshes[0][0];
-  particleRenderer.mesh = PrimitiveMesh.createSphere(engine, 0.5);
+  particleRenderer.mesh = PrimitiveMesh.createCuboid(engine, 0.5);
   debugger;
 
   const generator = particleRenderer.generator;
@@ -73,7 +75,7 @@ function createFireParticle(engine: Engine, texture: Texture2D, glTFModel: GLTFR
   startRotationZ.constantMax = 360;
   startRotationZ.mode = ParticleCurveMode.TwoConstants;
 
-  main.simulationSpace = ParticleSimulationSpace.World;
+  // main.simulationSpace = ParticleSimulationSpace.World;
 
   // Emission module
   emission.rateOverTime.constant = 35;
