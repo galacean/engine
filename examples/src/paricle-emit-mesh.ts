@@ -35,22 +35,23 @@ function createFireParticle(engine: Engine, texture: Texture2D, glTFModel: GLTFR
   const particleEntity = new Entity(engine, "Fire");
   particleEntity.transform.scale.set(1.268892, 1.268892, 1.268892);
   particleEntity.transform.rotate(90, 0, 0);
-  particleEntity.transform.position.set(-10, 0, 0);
+  // particleEntity.transform.position.set(-10, 0, 0);
 
   const particleRenderer = particleEntity.addComponent(ParticleRenderer);
 
   const material = new ParticleMaterial(engine);
   material.baseColor = new Color(1.0, 1.0, 1.0, 1.0);
   material.blendMode = BlendMode.Additive;
-  material.baseTexture = texture;
+  // material.baseTexture = texture;
+   material.baseTexture = glTFModel.textures[0];
   particleRenderer.setMaterial(material);
   particleRenderer.priority = 2;
 
-  debugger;
+  // debugger;
   particleRenderer.renderMode = ParticleRenderMode.Mesh;
-  // particleRenderer.mesh = glTFModel.meshes[0][0];
-  particleRenderer.mesh = PrimitiveMesh.createCuboid(engine, 0.5);
-  debugger;
+  particleRenderer.mesh = glTFModel.meshes[0][0];
+  // particleRenderer.mesh = PrimitiveMesh.createCuboid(engine, 0.5);
+  // debugger;
 
   const generator = particleRenderer.generator;
   const { main, emission, textureSheetAnimation, sizeOverLifetime, colorOverLifetime } = generator;
@@ -67,47 +68,47 @@ function createFireParticle(engine: Engine, texture: Texture2D, glTFModel: GLTFR
   startSpeed.constantMax = 1.6;
   startSpeed.mode = ParticleCurveMode.TwoConstants;
 
-  startSize.constantMin = 0.6;
-  startSize.constantMax = 0.9;
+  startSize.constantMin = 0.0005;
+  startSize.constantMax = 0.0008;
   startSize.mode = ParticleCurveMode.TwoConstants;
 
   startRotationZ.constantMin = 0;
   startRotationZ.constantMax = 360;
   startRotationZ.mode = ParticleCurveMode.TwoConstants;
 
-  // main.simulationSpace = ParticleSimulationSpace.World;
+  main.simulationSpace = ParticleSimulationSpace.World;
 
   // Emission module
   emission.rateOverTime.constant = 35;
 
   const coneShape = new ConeShape();
-  coneShape.angle = 0.96;
-  coneShape.radius = 0.01;
+  coneShape.angle = .96;
+  coneShape.radius = 0.1;
   emission.shape = coneShape;
 
-  // // Color over lifetime module
-  // colorOverLifetime.enabled = true;
-  // colorOverLifetime.color.mode = ParticleGradientMode.Gradient;
+  // Color over lifetime module
+  colorOverLifetime.enabled = true;
+  colorOverLifetime.color.mode = ParticleGradientMode.Gradient;
 
-  // const gradient = colorOverLifetime.color.gradient;
-  // const colorKeys = gradient.colorKeys;
-  // colorKeys[0].color.set(1.0, 0.21223075741405523, 0.00121410793419535, 1.0);
-  // colorKeys[1].time = 0.998;
-  // colorKeys[1].color.set(1.0, 0.19806931955994886, 0.0, 1.0);
-  // gradient.addColorKey(0.157, new Color(1, 1, 1, 1));
-  // gradient.addColorKey(0.573, new Color(1.0, 1.0, 0.25015828472995344, 1));
-  // gradient.alphaKeys[1].time = 0.089;
+  const gradient = colorOverLifetime.color.gradient;
+  const colorKeys = gradient.colorKeys;
+  colorKeys[0].color.set(1.0, 0.21223075741405523, 0.00121410793419535, 1.0);
+  colorKeys[1].time = 0.998;
+  colorKeys[1].color.set(1.0, 0.19806931955994886, 0.0, 1.0);
+  gradient.addColorKey(0.157, new Color(1, 1, 1, 1));
+  gradient.addColorKey(0.573, new Color(1.0, 1.0, 0.25015828472995344, 1));
+  gradient.alphaKeys[1].time = 0.089;
 
-  // // Size over lifetime module
-  // sizeOverLifetime.enabled = true;
-  // sizeOverLifetime.size.mode = ParticleCurveMode.Curve;
+  // Size over lifetime module
+  sizeOverLifetime.enabled = true;
+  sizeOverLifetime.size.mode = ParticleCurveMode.Curve;
 
-  // const curve = sizeOverLifetime.size.curve;
-  // const keys = curve.keys;
-  // keys[0].value = 0.153;
-  // keys[1].value = 0.529;
-  // curve.addKey(0.074, 0.428 + 0.2);
-  // curve.addKey(0.718, 0.957 + 0.03);
+  const curve = sizeOverLifetime.size.curve;
+  const keys = curve.keys;
+  keys[0].value = 0.153;
+  keys[1].value = 0.529;
+  curve.addKey(0.074, 0.428 + 0.2);
+  curve.addKey(0.718, 0.957 + 0.03);
 
   // Texture sheet animation module
   // textureSheetAnimation.enabled = true;
@@ -128,7 +129,7 @@ async function main() {
 
   // Create camera
   const cameraEntity = rootEntity.createChild("Camera");
-  cameraEntity.transform.position = new Vector3(-10, 1, 3); // -10 can test bounds transform
+  cameraEntity.transform.position = new Vector3(0, 1, 3); // -10 can test bounds transform
   cameraEntity.addComponent(Camera);
 
   engine.resourceManager
