@@ -309,12 +309,17 @@ export class UICanvas extends Component implements IElement {
    * @internal
    */
   _canProcessEvent(camera: Camera): boolean {
-    if (this._renderMode === CanvasRenderMode.ScreenSpaceCamera) {
-      return this._renderCamera === camera;
-    }
+    // WorldSpace模式下，如果设置了eventCamera，则只允许该相机处理事件
     if (this._renderMode === CanvasRenderMode.WorldSpace && this._eventCamera) {
       return this._eventCamera === camera;
     }
+    
+    // ScreenSpaceCamera模式下，只允许renderCamera处理事件（与_canRender保持一致）
+    if (this._renderMode === CanvasRenderMode.ScreenSpaceCamera) {
+      return this._renderCamera === camera;
+    }
+    
+    // ScreenSpaceOverlay模式和WorldSpace未设置eventCamera时，所有相机都可以处理事件
     return true;
   }
 
