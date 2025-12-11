@@ -20,7 +20,7 @@
                     angle),
                     worldRotation)); //已验证
                 } else {
-                #ifdef SHAPE
+                #ifdef RENDERER_EMISSION_SHAPE
                     center += renderer_SizeScale.xzy * (rotationByQuaternions(rotationByAxis(POSITION * size, vec3(0.0, -1.0, 0.0), angle), worldRotation));
                 #else
                     if (renderer_SimulationSpace == 1)
@@ -63,7 +63,7 @@
                                                 vec3(a_ShapePositionStartLifeTime.xy, 0.0))), a_StartRotation0.x),
                     worldRotation)); //已验证
             } else {
-                #ifdef SHAPE
+                #ifdef RENDERER_EMISSION_SHAPE
                     if (renderer_SimulationSpace == 1)
                         center += renderer_SizeScale * rotationByAxis(POSITION * size, vec3(0.0, -1.0, 0.0), a_StartRotation0.x);
                     else if (renderer_SimulationSpace == 0)
