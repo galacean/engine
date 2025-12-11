@@ -84,7 +84,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         // Post-rendering first detection
         for (let k = 0, n = canvasElements.length; k < n; k++) {
           const canvas = canvasElements.get(k);
-          if (!canvas._canRender(camera)) continue;
+          if (!canvas._canProcessEvent(camera)) continue;
           if (canvas._raycast(ray, hitResult, farClipPlane)) {
             this._updateRaycast((<UIHitResult>hitResult).component, pointer);
             return;
