@@ -381,8 +381,7 @@ export class ParticleGenerator {
         primitive.addVertexElement(new VertexElement(VertexAttribute.UV, uvElement.offset, uvElement.format, index));
       }
 
-      const indexBufferBinding = mesh._primitive.indexBufferBinding;
-      primitive.setIndexBufferBinding(indexBufferBinding);
+      primitive.setIndexBufferBinding(mesh._primitive.indexBufferBinding);
       const { subMesh } = mesh;
       const { _subPrimitive: subPrimitive } = this;
       subPrimitive.start = subMesh.start;
