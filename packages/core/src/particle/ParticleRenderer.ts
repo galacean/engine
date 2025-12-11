@@ -4,6 +4,7 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { TransformModifyFlags } from "../Transform";
 import { GLCapabilityType } from "../base/Constant";
+import { Logger } from "../base/Logger";
 import { deepClone, ignoreClone, shallowClone } from "../clone/CloneManager";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
@@ -112,6 +113,10 @@ export class ParticleRenderer extends Renderer {
   set mesh(value: ModelMesh) {
     const lastMesh = this._mesh;
     if (lastMesh !== value) {
+      if (value.subMeshes.length !== 1) {
+        Logger.error("Particle emit mesh must have only one sub mesh.");
+      }
+
       this._mesh = value;
       lastMesh && this._addResourceReferCount(lastMesh, -1);
 

@@ -381,10 +381,13 @@ export class ParticleGenerator {
         primitive.addVertexElement(new VertexElement(VertexAttribute.UV, uvElement.offset, uvElement.format, index));
       }
 
-      // @todo: multi subMesh or not support
       const indexBufferBinding = mesh._primitive.indexBufferBinding;
       primitive.setIndexBufferBinding(indexBufferBinding);
-      this._subPrimitive.count = indexBufferBinding.buffer.byteLength / primitive._glIndexByteCount;
+      const { subMesh } = mesh;
+      const { _subPrimitive: subPrimitive } = this;
+      subPrimitive.start = subMesh.start;
+      subPrimitive.topology = subMesh.topology;
+      subPrimitive.count = subMesh.count;
     } else {
       renderer.shaderData.disableMacro(MeshRenderer._enableVertexColorMacro);
       primitive.addVertexElement(particleUtils.billboardVertexElement);
