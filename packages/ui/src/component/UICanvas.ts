@@ -142,6 +142,11 @@ export class UICanvas extends Component implements IElement {
     const preMode = this._renderMode;
     if (preMode !== mode) {
       this._renderMode = mode;
+      // Clear eventCamera when renderMode changes away from WorldSpace
+      if (preMode === CanvasRenderMode.WorldSpace && mode !== CanvasRenderMode.WorldSpace && this._eventCamera) {
+        Logger.warn("EventCamera has been cleared because render mode is no longer WorldSpace.");
+        this._eventCamera = null;
+      }
       this._updateCameraObserver();
       this._setRealRenderMode(this._getRealRenderMode());
     }
@@ -309,17 +314,17 @@ export class UICanvas extends Component implements IElement {
    * @internal
    */
   _canProcessEvent(camera: Camera): boolean {
-    // WorldSpace模式下，如果设置了eventCamera，则只允许该相机处理事件
+    // WorldSpace mode: if eventCamera is set, only that camera can process events
     if (this._renderMode === CanvasRenderMode.WorldSpace && this._eventCamera) {
       return this._eventCamera === camera;
     }
     
-    // ScreenSpaceCamera模式下，只允许renderCamera处理事件（与_canRender保持一致）
+    // ScreenSpaceCamera mode: only renderCamera can process events (consistent with _canRender)
     if (this._renderMode === CanvasRenderMode.ScreenSpaceCamera) {
       return this._renderCamera === camera;
     }
     
-    // ScreenSpaceOverlay模式和WorldSpace未设置eventCamera时，所有相机都可以处理事件
+    // ScreenSpaceOverlay mode and WorldSpace without eventCamera: all cameras can process events
     return true;
   }
 

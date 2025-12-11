@@ -302,8 +302,6 @@ describe("UICanvas", async () => {
   });
 
   it("EventCamera for WorldSpace", () => {
-    const camera2 = root.createChild("camera2").addComponent(Camera);
-    
     rootCanvas.renderMode = CanvasRenderMode.WorldSpace;
     
     // @ts-ignore
@@ -360,5 +358,17 @@ describe("UICanvas", async () => {
     
     // @ts-ignore
     expect(localCloneCanvas.eventCamera).to.eq(localCloneEntity.findByName("eventCamera").getComponent(Camera));
+  });
+
+  it("_canProcessEvent with ScreenSpaceCamera mode", () => {
+    const camera2 = root.createChild("cameraSSC").addComponent(Camera);
+    
+    rootCanvas.renderMode = CanvasRenderMode.ScreenSpaceCamera;
+    rootCanvas.renderCamera = camera;
+    
+    // @ts-ignore
+    expect(rootCanvas._canProcessEvent(camera)).to.be.true;
+    // @ts-ignore
+    expect(rootCanvas._canProcessEvent(camera2)).to.be.false;
   });
 });
