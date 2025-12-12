@@ -33,6 +33,7 @@
             center += rotationByQuaternions(renderer_SizeScale * rotationByEuler(POSITION * size, a_StartRotation0), worldRotation);
         } else {
             #ifdef RENDERER_EMISSION_SHAPE
+                // Axis is side vector of emit position look at zero
                 vec3 crossResult = cross(vec3(0.0, 0.0, 1.0), vec3(a_ShapePositionStartLifeTime.xy, 0.0));
                 float crossLen = length(crossResult);
                 vec3 rotateAxis = crossLen > 0.0001 ? crossResult / crossLen : vec3(0.0, -1.0, 0.0);
