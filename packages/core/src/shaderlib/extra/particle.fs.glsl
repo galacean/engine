@@ -17,7 +17,7 @@ uniform mediump vec3 material_EmissiveColor;
 void main() {
 	vec4 color = material_BaseColor * v_Color;
 
-	#ifdef RENDERER_MODE_MESH
+	#if defined(RENDERER_MODE_MESH) && defined(RENDERER_ENABLE_VERTEXCOLOR)
 		color *= v_MeshColor;
 	#endif
 

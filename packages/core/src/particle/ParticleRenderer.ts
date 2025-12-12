@@ -4,6 +4,7 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { TransformModifyFlags } from "../Transform";
 import { GLCapabilityType } from "../base/Constant";
+import { Logger } from "../base/Logger";
 import { deepClone, ignoreClone, shallowClone } from "../clone/CloneManager";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
@@ -21,7 +22,7 @@ export class ParticleRenderer extends Renderer {
   private static readonly _stretchedBillboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_STRETCHED_BILLBOARD");
   private static readonly _horizontalBillboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_HORIZONTAL_BILLBOARD");
   private static readonly _verticalBillboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_VERTICAL_BILLBOARD");
-  private static readonly _renderModeMeshMacro = ShaderMacro.getByName("RENDERER_MODE_MESH");
+  private static readonly _meshModeMacro = ShaderMacro.getByName("RENDERER_MODE_MESH");
 
   private static readonly _pivotOffsetProperty = ShaderProperty.getByName("renderer_PivotOffset");
   private static readonly _lengthScale = ShaderProperty.getByName("renderer_StretchedBillboardLengthScale");
@@ -64,7 +65,6 @@ export class ParticleRenderer extends Renderer {
       this._renderMode = value;
 
       let renderModeMacro = <ShaderMacro>null;
-      const shaderData = this.shaderData;
       switch (value) {
         case ParticleRenderMode.Billboard:
           renderModeMacro = ParticleRenderer._billboardModeMacro;
@@ -81,26 +81,29 @@ export class ParticleRenderer extends Renderer {
           renderModeMacro = ParticleRenderer._verticalBillboardModeMacro;
           break;
         case ParticleRenderMode.Mesh:
-          throw "Not implemented";
-          renderModeMacro = ParticleRenderer._renderModeMeshMacro;
+          renderModeMacro = ParticleRenderer._meshModeMacro;
           break;
       }
 
       if (this._currentRenderModeMacro !== renderModeMacro) {
+        const { shaderData } = this;
         this._currentRenderModeMacro && shaderData.disableMacro(this._currentRenderModeMacro);
         renderModeMacro && shaderData.enableMacro(renderModeMacro);
         this._currentRenderModeMacro = renderModeMacro;
       }
 
-      // @ts-ignore
-      if ((lastRenderMode !== ParticleRenderMode.Mesh) !== (value === ParticleRenderMode.Mesh)) {
-        this.generator._reorganizeGeometryBuffers();
+      const wasMeshMode = lastRenderMode === ParticleRenderMode.Mesh;
+      const isMeshMode = value === ParticleRenderMode.Mesh;
+      if (wasMeshMode !== isMeshMode) {
+        if (!isMeshMode || this.mesh) {
+          this.generator._reorganizeGeometryBuffers();
+        }
       }
     }
   }
 
   /**
-   * The mesh of particle.
+   * The mesh used to render particles.
    * @remarks Valid when `renderMode` is `Mesh`.
    */
   get mesh(): ModelMesh {
@@ -110,11 +113,18 @@ export class ParticleRenderer extends Renderer {
   set mesh(value: ModelMesh) {
     const lastMesh = this._mesh;
     if (lastMesh !== value) {
+      if (value.subMeshes.length !== 1) {
+        Logger.error("Particle emit mesh must have only one sub mesh.");
+      }
+
       this._mesh = value;
       lastMesh && this._addResourceReferCount(lastMesh, -1);
-      value && this._addResourceReferCount(value, 1);
-      if (this.renderMode === ParticleRenderMode.Mesh) {
-        this.generator._reorganizeGeometryBuffers();
+
+      if (value) {
+        this._addResourceReferCount(value, 1);
+        if (this.renderMode === ParticleRenderMode.Mesh) {
+          this.generator._reorganizeGeometryBuffers();
+        }
       }
     }
   }

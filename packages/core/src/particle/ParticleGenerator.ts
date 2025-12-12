@@ -10,7 +10,7 @@ import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { SetDataOptions } from "../graphic/enums/SetDataOptions";
-import { VertexAttribute } from "../mesh";
+import { MeshRenderer, VertexAttribute } from "../mesh";
 import { ShaderData } from "../shader";
 import { Buffer } from "./../graphic/Buffer";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
@@ -344,20 +344,14 @@ export class ParticleGenerator {
    * @internal
    */
   _reorganizeGeometryBuffers(): void {
-    const renderer = this._renderer;
-    const particleUtils = renderer.engine._particleBufferUtils;
-    const primitive = this._primitive;
-    const vertexBufferBindings = this._vertexBufferBindings;
+    const { _renderer: renderer, _primitive: primitive, _vertexBufferBindings: vertexBufferBindings } = this;
+    const { _particleBufferUtils: particleUtils } = renderer.engine;
 
     primitive.clearVertexElements();
     vertexBufferBindings.length = 0;
 
     if (renderer.renderMode === ParticleRenderMode.Mesh) {
-      const mesh = renderer.mesh;
-      if (!mesh) {
-        return;
-      }
-
+      const { mesh } = renderer;
       const positionElement = mesh.getVertexElement(VertexAttribute.Position);
       const colorElement = mesh.getVertexElement(VertexAttribute.Color);
       const uvElement = mesh.getVertexElement(VertexAttribute.UV);
@@ -377,6 +371,9 @@ export class ParticleGenerator {
         primitive.addVertexElement(
           new VertexElement(VertexAttribute.Color, colorElement.offset, colorElement.format, index)
         );
+        renderer.shaderData.enableMacro(MeshRenderer._enableVertexColorMacro);
+      } else {
+        renderer.shaderData.disableMacro(MeshRenderer._enableVertexColorMacro);
       }
 
       if (uvBufferBinding) {
@@ -384,17 +381,19 @@ export class ParticleGenerator {
         primitive.addVertexElement(new VertexElement(VertexAttribute.UV, uvElement.offset, uvElement.format, index));
       }
 
-      // @todo: multi subMesh or not support
-      const indexBufferBinding = mesh._primitive.indexBufferBinding;
-      primitive.setIndexBufferBinding(indexBufferBinding);
-      this._subPrimitive.count = indexBufferBinding.buffer.byteLength / primitive._glIndexByteCount;
+      primitive.setIndexBufferBinding(mesh._primitive.indexBufferBinding);
+      const { subMesh } = mesh;
+      const { _subPrimitive: subPrimitive } = this;
+      subPrimitive.start = subMesh.start;
+      subPrimitive.topology = subMesh.topology;
+      subPrimitive.count = subMesh.count;
     } else {
+      renderer.shaderData.disableMacro(MeshRenderer._enableVertexColorMacro);
       primitive.addVertexElement(particleUtils.billboardVertexElement);
       vertexBufferBindings.push(particleUtils.billboardVertexBufferBinding);
       primitive.setIndexBufferBinding(particleUtils.billboardIndexBufferBinding);
       this._subPrimitive.count = ParticleBufferUtils.billboardIndexCount;
     }
-    primitive.setVertexBufferBindings(vertexBufferBindings);
 
     const instanceVertexElements = particleUtils.instanceVertexElements;
     const bindingIndex = vertexBufferBindings.length;
@@ -404,6 +403,13 @@ export class ParticleGenerator {
         new VertexElement(element.attribute, element.offset, element.format, bindingIndex, element.instanceStepRate)
       );
     }
+
+    // If instance buffer already created
+    if (this._instanceVertexBufferBinding) {
+      vertexBufferBindings.push(this._instanceVertexBufferBinding);
+    }
+
+    primitive.setVertexBufferBindings(vertexBufferBindings);
   }
 
   /**
