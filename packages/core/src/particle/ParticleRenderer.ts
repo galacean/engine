@@ -113,14 +113,14 @@ export class ParticleRenderer extends Renderer {
   set mesh(value: ModelMesh) {
     const lastMesh = this._mesh;
     if (lastMesh !== value) {
-      if (value.subMeshes.length !== 1) {
-        Logger.error("Particle emit mesh must have only one sub mesh.");
-      }
-
       this._mesh = value;
       lastMesh && this._addResourceReferCount(lastMesh, -1);
 
       if (value) {
+        if (value.subMeshes.length !== 1) {
+          Logger.error("Particle emit mesh must have only one sub mesh.");
+        }
+        
         this._addResourceReferCount(value, 1);
         if (this.renderMode === ParticleRenderMode.Mesh) {
           this.generator._reorganizeGeometryBuffers();
