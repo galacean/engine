@@ -320,7 +320,7 @@ export class UICanvas extends Component implements IElement {
     }
     
     // ScreenSpaceCamera mode: only renderCamera can process events (consistent with _canRender)
-    if (this._renderMode === CanvasRenderMode.ScreenSpaceCamera) {
+    if (this._renderMode === CanvasRenderMode.ScreenSpaceCamera && this._renderCamera) {
       return this._renderCamera === camera;
     }
     
@@ -440,28 +440,26 @@ export class UICanvas extends Component implements IElement {
    */
   _cloneTo(target: UICanvas, srcRoot: Entity, targetRoot: Entity): void {
     target.renderMode = this._renderMode;
-    const renderCamera = this._renderCamera;
-    if (renderCamera) {
-      const paths = UICanvas._targetTempPath;
-      // @ts-ignore
-      const success = Entity._getEntityHierarchyPath(srcRoot, renderCamera.entity, paths);
-      // @ts-ignore
-      target.renderCamera = success
-        ? // @ts-ignore
-          Entity._getEntityByHierarchyPath(targetRoot, paths).getComponent(Camera)
-        : renderCamera;
+    target.renderCamera = this._cloneCamera(this._renderCamera, srcRoot, targetRoot);
+    target.eventCamera = this._cloneCamera(this._eventCamera, srcRoot, targetRoot);
+  }
+
+  /**
+   * @internal
+   * Clone camera reference for entity cloning
+   */
+  private _cloneCamera(camera: Camera, srcRoot: Entity, targetRoot: Entity): Camera {
+    if (!camera) {
+      return camera;
     }
-    const eventCamera = this._eventCamera;
-    if (eventCamera) {
-      const paths = UICanvas._targetTempPath;
-      // @ts-ignore
-      const success = Entity._getEntityHierarchyPath(srcRoot, eventCamera.entity, paths);
-      // @ts-ignore
-      target.eventCamera = success
-        ? // @ts-ignore
-          Entity._getEntityByHierarchyPath(targetRoot, paths).getComponent(Camera)
-        : eventCamera;
-    }
+    const paths = UICanvas._targetTempPath;
+    // @ts-ignore
+    const success = Entity._getEntityHierarchyPath(srcRoot, camera.entity, paths);
+    // @ts-ignore
+    return success
+      ? // @ts-ignore
+        Entity._getEntityByHierarchyPath(targetRoot, paths).getComponent(Camera)
+      : camera;
   }
 
   private _getRenderers(): UIRenderer[] {
