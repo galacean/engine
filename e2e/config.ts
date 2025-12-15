@@ -328,6 +328,18 @@ export const E2E_CONFIG = {
       caseFileName: "particleRenderer-emissive",
       threshold: 0,
       diffPercentage: 0
+    },
+    particleEmitMeshNoShape: {
+      category: "Particle",
+      caseFileName: "particleRenderer-emit-mesh-no-shape",
+      threshold: 0,
+      diffPercentage: 0
+    },
+    particleEmitMeshCone: {
+      category: "Particle",
+      caseFileName: "particleRenderer-emit-mesh-cone",
+      threshold: 0,
+      diffPercentage: 0
     }
   },
   PostProcess: {
