@@ -120,7 +120,7 @@ export class ParticleRenderer extends Renderer {
         if (value.subMeshes.length !== 1) {
           Logger.error("Particle emit mesh must have only one sub mesh.");
         }
-        
+
         this._addResourceReferCount(value, 1);
         if (this.renderMode === ParticleRenderMode.Mesh) {
           this.generator._reorganizeGeometryBuffers();
