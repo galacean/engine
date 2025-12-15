@@ -232,7 +232,7 @@ export class ParticleRenderer extends Renderer {
     generator._primitive.instanceCount = aliveParticleCount;
 
     let material = this.getMaterial();
-    if (!material) {
+    if (!material || (this._renderMode === ParticleRenderMode.Mesh && !this._mesh)) {
       return;
     }
 
