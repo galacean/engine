@@ -261,7 +261,8 @@ export class ParticleGenerator {
         } else {
           position.set(0, 0, 0);
           direction.set(0, 0, -1);
-          // No shape is specified, speed is not affected by scaling in world space
+          // Speed is scaled with shape scale in world simulation space
+          // So if no shape and in world simulation space, we shouldn't scale the speed
           if (this.main.simulationSpace === ParticleSimulationSpace.Local) {
             const positionScale = this.main._getPositionScale();
             direction.multiply(positionScale);
