@@ -92,6 +92,7 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
   particleRenderer.mesh = PrimitiveMesh.createCylinder(engine);
 
   const generator = particleRenderer.generator;
+  generator.useAutoRandomSeed = false;
   const { main, emission, textureSheetAnimation, sizeOverLifetime, colorOverLifetime } = generator;
 
   // Main module
