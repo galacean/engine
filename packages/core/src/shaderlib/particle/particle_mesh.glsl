@@ -45,7 +45,7 @@
             #else
                 // Axis is negative z
                 vec3 axis = vec3(0.0, 0.0, -1.0);
-                center += rotationByQuaternions(renderer_SizeScale *rotationByAxis(POSITION * size,axis, a_StartRotation0.x), worldRotation);
+                center += rotationByQuaternions(renderer_SizeScale *rotationByAxis(POSITION * size, axis, a_StartRotation0.x), worldRotation);
             #endif
         }
     #endif

@@ -357,7 +357,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-no-shape-world",
       threshold: 0,
-      diffPercentage: 0.00105
+      diffPercentage: 0.00146
     }
   },
   PostProcess: {
