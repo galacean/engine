@@ -34,13 +34,14 @@
         } else {
             #ifdef RENDERER_EMISSION_SHAPE
                 // Axis is side vector of emit position look at zero
-                vec3 crossResult = cross(vec3(0.0, 0.0, 1.0), vec3(a_ShapePositionStartLifeTime.xy, 0.0));
+                vec3 axis = vec3(a_ShapePositionStartLifeTime.xy, 0.0);
+                if (renderer_SimulationSpace == 1){
+                    axis = rotationByQuaternions(axis, worldRotation);
+                }
+                vec3 crossResult = cross(vec3(0.0, 0.0, 1.0), axis);
                 float crossLen = length(crossResult);
                 vec3 rotateAxis = crossLen > 0.0001 ? crossResult / crossLen : vec3(0.0, -1.0, 0.0);
-                if (renderer_SimulationSpace == 1)
-                    center += rotationByAxis(renderer_SizeScale * POSITION * size, rotateAxis, a_StartRotation0.x);
-                else if (renderer_SimulationSpace == 0)
-                    center += rotationByQuaternions(renderer_SizeScale * rotationByAxis(POSITION * size, rotateAxis, a_StartRotation0.x), worldRotation);
+                center += rotationByQuaternions(renderer_SizeScale * rotationByAxis(POSITION * size, rotateAxis, a_StartRotation0.x), worldRotation);
             #else
                 // Axis is negative z
                 if (renderer_SimulationSpace == 1)
