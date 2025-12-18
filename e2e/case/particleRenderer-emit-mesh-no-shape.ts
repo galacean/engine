@@ -14,6 +14,7 @@ import {
   ParticleMaterial,
   ParticleRenderer,
   ParticleRenderMode,
+  ParticleSimulationSpace,
   PrimitiveMesh,
   Texture2D,
   UnlitMaterial,
@@ -72,7 +73,8 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
   meshRenderer.setMaterial(unlitMaterial);
 
   const particleEntity = new Entity(engine, "EmitMeshParticle");
-  particleEntity.transform.rotate(90, 0, 0);
+  particleEntity.transform.rotation.set(90, -45, 30);
+  particleEntity.transform.scale.set(2, 4, 1.3);
 
   const particleRenderer = particleEntity.addComponent(ParticleRenderer);
 
@@ -88,9 +90,15 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
 
   const generator = particleRenderer.generator;
   generator.useAutoRandomSeed = false;
-  const { main } = generator;
+  const { main, emission, textureSheetAnimation, sizeOverLifetime, colorOverLifetime } = generator;
 
-  main.startRotationZ.constant = 66;
+  // Main module
+  const { startLifetime, startSpeed, startSize, startRotationZ } = main;
+  startSpeed.constant = 1.0;
+  startSize.constant = 0.2;
+
+  main.simulationSpace = ParticleSimulationSpace.Local;
+  main.startRotationZ.constant = 90;
 
   return particleEntity;
 }

@@ -253,14 +253,14 @@ export class ParticleGenerator {
       const transform = this._renderer.entity.transform;
       const shape = this.emission.shape;
       for (let i = 0; i < count; i++) {
+        const positionScale = this.main._getPositionScale();
         if (shape?.enabled) {
           shape._generatePositionAndDirection(this.emission._shapeRand, playTime, position, direction);
-          const positionScale = this.main._getPositionScale();
           position.multiply(positionScale);
           direction.normalize().multiply(positionScale);
         } else {
           position.set(0, 0, 0);
-          direction.set(0, 0, -1);
+          direction.set(0, 0, -1).multiply(positionScale);
         }
         this._addNewParticle(position, direction, transform, playTime);
       }
