@@ -44,10 +44,8 @@
                 center += rotationByQuaternions(renderer_SizeScale * rotationByAxis(POSITION * size, rotateAxis, a_StartRotation0.x), worldRotation);
             #else
                 // Axis is negative z
-                if (renderer_SimulationSpace == 1)
-                    center += rotationByAxis(renderer_SizeScale * POSITION * size, vec3(0.0, 0.0, -1.0), a_StartRotation0.x);
-                else if (renderer_SimulationSpace == 0)
-                    center += rotationByQuaternions(renderer_SizeScale * rotationByAxis(POSITION * size, vec3(0.0, 0.0, -1.0), a_StartRotation0.x), worldRotation);
+                vec3 axis = vec3(0.0, 0.0, -1.0);
+                center += rotationByQuaternions(renderer_SizeScale *rotationByAxis(POSITION * size,axis, a_StartRotation0.x), worldRotation);
             #endif
         }
     #endif

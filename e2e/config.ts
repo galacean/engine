@@ -352,6 +352,12 @@ export const E2E_CONFIG = {
       caseFileName: "particleRenderer-emit-mesh-cone-scale-rotation-world",
       threshold: 0,
       diffPercentage: 0.0020
+    },
+    particleEmitMeshNoShapeWorld: {
+      category: "Particle",
+      caseFileName: "particleRenderer-emit-mesh-no-shape-world",
+      threshold: 0,
+      diffPercentage: 0.00105
     }
   },
   PostProcess: {

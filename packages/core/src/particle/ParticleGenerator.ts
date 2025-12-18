@@ -253,14 +253,18 @@ export class ParticleGenerator {
       const transform = this._renderer.entity.transform;
       const shape = this.emission.shape;
       for (let i = 0; i < count; i++) {
-        const positionScale = this.main._getPositionScale();
         if (shape?.enabled) {
+          const positionScale = this.main._getPositionScale();
           shape._generatePositionAndDirection(this.emission._shapeRand, playTime, position, direction);
           position.multiply(positionScale);
           direction.normalize().multiply(positionScale);
         } else {
           position.set(0, 0, 0);
-          direction.set(0, 0, -1).multiply(positionScale);
+          direction.set(0, 0, -1);
+          if (this.main.simulationSpace === ParticleSimulationSpace.Local) {
+            const positionScale = this.main._getPositionScale();
+            direction.multiply(positionScale);
+          }
         }
         this._addNewParticle(position, direction, transform, playTime);
       }
