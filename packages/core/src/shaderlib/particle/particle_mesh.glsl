@@ -16,10 +16,9 @@
                     vec3 rotateAxis = crossLen > 0.0001 ? crossResult / crossLen : vec3(0.0, -1.0, 0.0);
                     center += rotationByQuaternions(rotationByAxis(renderer_SizeScale * POSITION * size, rotateAxis, angle), worldRotation);
                 #else
-                    if (renderer_SimulationSpace == 1)
-                        center += rotationByAxis(renderer_SizeScale * POSITION * size, vec3(0.0, 0.0, -1.0), angle);
-                    else if (renderer_SimulationSpace == 0)
-                        center += rotationByQuaternions(renderer_SizeScale * rotationByAxis(POSITION * size, vec3(0.0, 0.0, -1.0), angle), worldRotation);
+                    // Axis is negative z
+                    vec3 axis = vec3(0.0, 0.0, -1.0);
+                    center += rotationByQuaternions(renderer_SizeScale *rotationByAxis(POSITION * size, axis, angle), worldRotation);
                 #endif
             #endif
             #ifdef ROTATION_OVER_LIFETIME_SEPARATE
