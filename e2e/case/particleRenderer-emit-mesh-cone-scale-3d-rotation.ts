@@ -101,6 +101,8 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
 
   main.simulationSpace = ParticleSimulationSpace.Local;
   main.startRotation3D = true;
+
+  // Unity is (-60,40,-70)
   main.startRotationX.constant = 60;
   main.startRotationY.constant = 40;
   main.startRotationZ.constant = -70;
