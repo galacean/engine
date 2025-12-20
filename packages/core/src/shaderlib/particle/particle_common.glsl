@@ -12,14 +12,13 @@ vec3 rotationByEuler(in vec3 vector, in vec3 rot) {
     float sinYaw = sin(halfYaw);
     float cosYaw = cos(halfYaw);
 
+    float cosYawPitch = cosYaw * cosPitch;
+    float sinYawPitch = sinYaw * sinPitch;
+
     float quaX = (cosYaw * sinPitch * cosRoll) + (sinYaw * cosPitch * sinRoll);
     float quaY = (sinYaw * cosPitch * cosRoll) - (cosYaw * sinPitch * sinRoll);
-    float quaZ = (cosYaw * cosPitch * sinRoll) - (sinYaw * sinPitch * cosRoll);
-    float quaW = (cosYaw * cosPitch * cosRoll) + (sinYaw * sinPitch * sinRoll);
-
-    // vec4 q=vec4(quaX,quaY,quaZ,quaW);
-    // vec3 temp = cross(q.xyz, vector) + q.w * vector;
-    // return (cross(temp, -q.xyz) + dot(q.xyz,vector) * q.xyz + q.w * temp);
+    float quaZ = (cosYawPitch * sinRoll) - (sinYawPitch * cosRoll);
+    float quaW = (cosYawPitch * cosRoll) + (sinYawPitch * sinRoll);
 
     float x = quaX + quaX;
     float y = quaY + quaY;

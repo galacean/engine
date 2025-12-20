@@ -359,6 +359,13 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.00146
     }
+    ,
+    particleEmitMeshConeScale3DRotation: {
+      category: "Particle",
+      caseFileName: "particleRenderer-emit-mesh-cone-scale-3d-rotation",
+      threshold: 0,
+      diffPercentage: 0.00
+    }
   },
   PostProcess: {
     HDRBloomACES: {
