@@ -41,7 +41,7 @@ float computeParticleRotationFloat(in float rotation, in float age, in float nor
 }
 
 
-#if defined(RENDERER_MODE_MESH) && (defined(ROTATION_OVER_LIFETIME) || defined(ROTATION_OVER_LIFETIME_SEPARATE))
+#if defined(RENDERER_MODE_MESH) && (defined(RENDERER_ROL_CONSTANT_MODE) || defined(RENDERER_ROL_CURVE_MODE))
 vec3 computeParticleRotationVec3(in vec3 rotation,
     in float age,
     in float normalizedAge) {
