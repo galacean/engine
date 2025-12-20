@@ -54,49 +54,37 @@ vec3 computeParticleRotationVec3(in vec3 rotation, in float age, in float normal
         #endif
         #ifdef RENDERER_ROL_CURVE_MODE
             #ifdef RENDERER_ROL_IS_RANDOM_TWO
-                rotation += vec3(mix(getTotalValueFromGradientFloat(u_ROLAngularVelocityGradientX,
-                        normalizedAge),
-                    getTotalValueFromGradientFloat(renderer_ROLMaxCurveX,
-                        normalizedAge),
-                    a_Random0.w),
-                mix(getTotalValueFromGradientFloat(u_ROLAngularVelocityGradientY,
-                    normalizedAge),
-                    getTotalValueFromGradientFloat(renderer_ROLMaxCurveY,
-                    normalizedAge),
-                    a_Random0.w),
-                mix(getTotalValueFromGradientFloat(u_ROLAngularVelocityGradientZ,
-                    normalizedAge),
-                    getTotalValueFromGradientFloat(renderer_ROLMaxCurveZ,
-                    normalizedAge),
-                    a_Random0.w));
+                rotation += vec3(
+                mix(getTotalValueFromGradientFloat(renderer_ROLMinCurveX, normalizedAge),
+                    getTotalValueFromGradientFloat(renderer_ROLMaxCurveX, normalizedAge), a_Random0.w),
+                mix(getTotalValueFromGradientFloat(renderer_ROLMinCurveY, normalizedAge),
+                    getTotalValueFromGradientFloat(renderer_ROLMaxCurveY, normalizedAge), a_Random0.w),
+                mix(getTotalValueFromGradientFloat(renderer_ROLMinCurveZ, normalizedAge),
+                    getTotalValueFromGradientFloat(renderer_ROLMaxCurveZ, normalizedAge), a_Random0.w));
             #else
-                rotation += vec3(getTotalValueFromGradientFloat(u_ROLAngularVelocityGradientX,
-                        normalizedAge),
-                getTotalValueFromGradientFloat(u_ROLAngularVelocityGradientY,
-                    normalizedAge),
-                getTotalValueFromGradientFloat(u_ROLAngularVelocityGradientZ,
-                    normalizedAge));
+                rotation += vec3(getTotalValueFromGradientFloat(renderer_ROLMaxCurveX, normalizedAge),
+                getTotalValueFromGradientFloat(renderer_ROLMaxCurveY, normalizedAge),
+                getTotalValueFromGradientFloat(renderer_ROLMaxCurveZ, normalizedAge));
             #endif
         #endif
     #else
         #ifdef RENDERER_ROL_CONSTANT_MODE
             #ifdef RENDERER_ROL_IS_RANDOM_TWO
-                float ageRot = mix(u_ROLAngularVelocityConst, u_ROLAngularVelocityConstMax, a_Random0.w) * age;
+                float ageRot = mix(renderer_ROLMinConst.z, renderer_ROLMaxConst.z, a_Random0.w) * age;
             #else
-                float ageRot = u_ROLAngularVelocityConst * age;
+                float ageRot = renderer_ROLMaxConst.z * age;
             #endif
             rotation += ageRot;
         #endif
 
         #ifdef RENDERER_ROL_CURVE_MODE
             #ifdef RENDERER_ROL_IS_RANDOM_TWO
-                 rotation += mix(
-                getTotalValueFromGradientFloat(u_ROLAngularVelocityGradient, normalizedAge),
-                getTotalValueFromGradientFloat(u_ROLAngularVelocityGradientMax,
-                    normalizedAge),
+                rotation += mix(
+                getTotalValueFromGradientFloat(renderer_ROLMinCurveZ, normalizedAge),
+                getTotalValueFromGradientFloat(renderer_ROLMaxCurveZ, normalizedAge),
                 a_Random0.w);
             #else
-                rotation += getTotalValueFromGradientFloat(u_ROLAngularVelocityGradient, normalizedAge);
+                rotation += getTotalValueFromGradientFloat(renderer_ROLMaxCurveZ, normalizedAge);
             #endif
         #endif
     #endif
