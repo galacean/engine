@@ -29,6 +29,7 @@
         }
     #else
         if (renderer_ThreeDStartRotation) {
+            // 3D Start Rotation is same in local and world simulation space
             center += rotationByQuaternions(renderer_SizeScale * rotationByEuler(POSITION * size, a_StartRotation0), worldRotation);
         } else {
             #ifdef RENDERER_EMISSION_SHAPE
