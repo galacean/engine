@@ -9,6 +9,10 @@
             center += rotationByQuaternions(renderer_SizeScale * rotationByEuler(POSITION * size, rotation),worldRotation);
         } else {
             #ifdef RENDERER_ROL_IS_SEPARATE
+                // TODO:是否应合并if(renderer_ThreeDStartRotation)分支代码,待测试
+                vec3 angle = computeParticleRotationVec3(vec3(0.0, 0.0, -a_StartRotation0.x), age, normalizedAge);
+                center += (rotationByQuaternions(rotationByEuler(renderer_SizeScale * POSITION * size, vec3(angle.x, angle.y, angle.z)),worldRotation));
+            #else
                 float angle = computeParticleRotationFloat(a_StartRotation0.x, age, normalizedAge);
                 #ifdef RENDERER_EMISSION_SHAPE
                     vec3 crossResult = cross(vec3(0.0, 0.0, 1.0), vec3(a_ShapePositionStartLifeTime.xy, 0.0));
@@ -20,11 +24,6 @@
                     vec3 axis = vec3(0.0, 0.0, -1.0);
                     center += rotationByQuaternions(renderer_SizeScale *rotationByAxis(POSITION * size, axis, angle), worldRotation);
                 #endif
-            #endif
-            #ifdef ROTATION_OVER_LIFETIME_SEPARATE
-                // TODO:是否应合并if(renderer_ThreeDStartRotation)分支代码,待测试
-                vec3 angle = computeParticleRotationVec3(vec3(0.0, 0.0, -a_StartRotation0.x), age, normalizedAge);
-                center += (rotationByQuaternions(rotationByEuler(renderer_SizeScale * POSITION * size, vec3(angle.x, angle.y, angle.z)),worldRotation));
             #endif
         }
     #else
