@@ -5,11 +5,10 @@
 	vec3 size = computeParticleSizeMesh(a_StartSize, normalizedAge);
     #if defined(RENDERER_ROL_CONSTANT_MODE) || defined(RENDERER_ROL_CURVE_MODE)
         if (renderer_ThreeDStartRotation) {
-            vec3 rotation = vec3(a_StartRotation0.xy, computeParticleRotationFloat(a_StartRotation0.z, age, normalizedAge));
+            vec3 rotation = computeParticleRotationVec3(a_StartRotation0, age, normalizedAge);
             center += rotationByQuaternions(renderer_SizeScale * rotationByEuler(POSITION * size, rotation),worldRotation);
         } else {
             #ifdef RENDERER_ROL_IS_SEPARATE
-                // TODO:是否应合并if(renderer_ThreeDStartRotation)分支代码,待测试
                 vec3 angle = computeParticleRotationVec3(vec3(0.0, 0.0, a_StartRotation0.x), age, normalizedAge);
                 center += rotationByQuaternions(renderer_SizeScale * rotationByEuler(POSITION * size, angle),worldRotation);
             #else
