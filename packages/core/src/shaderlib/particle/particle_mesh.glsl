@@ -13,14 +13,13 @@
                 vec3 angle = computeParticleRotationVec3(vec3(0.0, 0.0, -a_StartRotation0.x), age, normalizedAge);
                 center += rotationByQuaternions(renderer_SizeScale * rotationByEuler(POSITION * size, angle),worldRotation);
             #else
-                // todo: a_StartRotation0 is inversed in cpu,we should unify it
-                float angle = - computeParticleRotationFloat(-a_StartRotation0.x, age, normalizedAge);
+                float angle = computeParticleRotationFloat(a_StartRotation0.x, age, normalizedAge);
                 #ifdef RENDERER_EMISSION_SHAPE
                     vec3 axis = vec3(a_ShapePositionStartLifeTime.xy, 0.0);
                     if (renderer_SimulationSpace == 1){
                         axis = rotationByQuaternions(axis, worldRotation);
                     }
-                    vec3 crossResult = cross(vec3(0.0, 0.0, 1.0), axis);
+                    vec3 crossResult = cross(axis, vec3(0.0, 0.0, -1.0));
                     float crossLen = length(crossResult);
                     vec3 rotateAxis = crossLen > 0.0001 ? crossResult / crossLen : vec3(0.0, -1.0, 0.0);
                     center += rotationByQuaternions(renderer_SizeScale * rotationByAxis(POSITION * size, rotateAxis, angle), worldRotation);

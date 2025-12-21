@@ -107,7 +107,7 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
   // main.startRotationZ.constant = -70;
 
   rotationOverLifetime.enabled = true;
-  rotationOverLifetime.rotationZ.constant = -180;
+  rotationOverLifetime.rotationZ.constant = 180;
 
   // startLifetime.constantMin = 0.2;
   // startLifetime.constantMax = 0.8;
