@@ -767,16 +767,21 @@ export class ParticleGenerator {
 
     // Start rotation
     const { _startRotationRand: startRotationRand, flipRotation } = main;
-    const isFlip = flipRotation > startRotationRand.random();
+    let isFlip = flipRotation > startRotationRand.random();
+
+    // @todo:None-Mesh mode should inverse the rotation, maybe should unify it
+    if (this._renderer.renderMode !== ParticleRenderMode.Mesh) {
+      isFlip = !isFlip;
+    }
     const rotationZ = MathUtil.degreeToRadian(main.startRotationZ.evaluate(undefined, startRotationRand.random()));
     if (main.startRotation3D) {
       const rotationX = MathUtil.degreeToRadian(main.startRotationX.evaluate(undefined, startRotationRand.random()));
       const rotationY = MathUtil.degreeToRadian(main.startRotationY.evaluate(undefined, startRotationRand.random()));
-      instanceVertices[offset + 15] = isFlip ? rotationX : -rotationX;
-      instanceVertices[offset + 16] = isFlip ? rotationY : -rotationY;
-      instanceVertices[offset + 17] = isFlip ? rotationZ : -rotationZ;
+      instanceVertices[offset + 15] = isFlip ? -rotationX : rotationX;
+      instanceVertices[offset + 16] = isFlip ? -rotationY : rotationY;
+      instanceVertices[offset + 17] = isFlip ? -rotationZ : rotationZ;
     } else {
-      instanceVertices[offset + 15] = isFlip ? rotationZ : -rotationZ;
+      instanceVertices[offset + 15] = isFlip ? -rotationZ : rotationZ;
     }
 
     // Start speed
