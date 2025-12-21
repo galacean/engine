@@ -10,7 +10,7 @@
         } else {
             #ifdef RENDERER_ROL_IS_SEPARATE
                 // TODO:是否应合并if(renderer_ThreeDStartRotation)分支代码,待测试
-                vec3 angle = computeParticleRotationVec3(vec3(0.0, 0.0, -a_StartRotation0.x), age, normalizedAge);
+                vec3 angle = computeParticleRotationVec3(vec3(0.0, 0.0, a_StartRotation0.x), age, normalizedAge);
                 center += rotationByQuaternions(renderer_SizeScale * rotationByEuler(POSITION * size, angle),worldRotation);
             #else
                 float angle = computeParticleRotationFloat(a_StartRotation0.x, age, normalizedAge);
