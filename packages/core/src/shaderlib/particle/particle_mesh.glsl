@@ -36,7 +36,7 @@
             }
             vec3 crossResult = cross(axis, vec3(0.0, 0.0, -1.0));
             float crossLen = length(crossResult);
-            vec3 rotateAxis = crossLen > 0.0001 ? crossResult / crossLen : vec3(0.0, -1.0, 0.0);
+            vec3 rotateAxis = crossLen > 0.0001 ? crossResult / crossLen : vec3(0.0, 1.0, 0.0);
         #else
             // Axis is negative z
             vec3 rotateAxis = vec3(0.0, 0.0, -1.0);
