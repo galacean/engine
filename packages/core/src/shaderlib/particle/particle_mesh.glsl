@@ -37,12 +37,11 @@
             vec3 crossResult = cross(axis, vec3(0.0, 0.0, -1.0));
             float crossLen = length(crossResult);
             vec3 rotateAxis = crossLen > 0.0001 ? crossResult / crossLen : vec3(0.0, -1.0, 0.0);
-            center += rotationByQuaternions(renderer_SizeScale * rotationByAxis(POSITION * size, rotateAxis, angle), worldRotation);
         #else
             // Axis is negative z
-            vec3 axis = vec3(0.0, 0.0, -1.0);
-            center += rotationByQuaternions(renderer_SizeScale *rotationByAxis(POSITION * size, axis, angle), worldRotation);
+            vec3 rotateAxis = vec3(0.0, 0.0, -1.0);
         #endif
+        center += rotationByQuaternions(renderer_SizeScale *rotationByAxis(POSITION * size, rotateAxis, angle), worldRotation);
     }
     #ifdef RENDERER_ENABLE_VERTEXCOLOR
 		v_MeshColor = COLOR_0;
