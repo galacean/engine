@@ -767,16 +767,16 @@ export class ParticleGenerator {
 
     // Start rotation
     const { _startRotationRand: startRotationRand, flipRotation } = main;
-    const isOpposite = flipRotation < startRotationRand.random();
+    const isFlip = flipRotation > startRotationRand.random();
     const rotationZ = MathUtil.degreeToRadian(main.startRotationZ.evaluate(undefined, startRotationRand.random()));
     if (main.startRotation3D) {
       const rotationX = MathUtil.degreeToRadian(main.startRotationX.evaluate(undefined, startRotationRand.random()));
       const rotationY = MathUtil.degreeToRadian(main.startRotationY.evaluate(undefined, startRotationRand.random()));
-      instanceVertices[offset + 15] = isOpposite ? -rotationX : rotationX;
-      instanceVertices[offset + 16] = isOpposite ? -rotationY : rotationY;
-      instanceVertices[offset + 17] = isOpposite ? -rotationZ : rotationZ;
+      instanceVertices[offset + 15] = isFlip ? rotationX : -rotationX;
+      instanceVertices[offset + 16] = isFlip ? rotationY : -rotationY;
+      instanceVertices[offset + 17] = isFlip ? rotationZ : -rotationZ;
     } else {
-      instanceVertices[offset + 15] = isOpposite ? -rotationZ : rotationZ;
+      instanceVertices[offset + 15] = isFlip ? rotationZ : -rotationZ;
     }
 
     // Start speed
