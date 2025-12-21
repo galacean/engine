@@ -103,8 +103,8 @@ export class ParticleRenderer extends Renderer {
   }
 
   /**
-   * The mesh used to render particles.
-   * @remarks Valid when `renderMode` is `Mesh`.
+   * The mesh shape for rendering each emitted particle.
+   * @remarks Only effective when `renderMode` is `ParticleRenderMode.Mesh`.
    */
   get mesh(): ModelMesh {
     return this._mesh;
