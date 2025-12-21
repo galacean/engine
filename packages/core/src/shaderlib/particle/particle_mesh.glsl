@@ -42,7 +42,7 @@
                 if (renderer_SimulationSpace == 1){
                     axis = rotationByQuaternions(axis, worldRotation);
                 }
-                vec3 crossResult = cross(vec3(0.0, 0.0, 1.0), axis);
+                vec3 crossResult = cross(axis, vec3(0.0, 0.0, -1.0));
                 float crossLen = length(crossResult);
                 vec3 rotateAxis = crossLen > 0.0001 ? crossResult / crossLen : vec3(0.0, -1.0, 0.0);
                 center += rotationByQuaternions(renderer_SizeScale * rotationByAxis(POSITION * size, rotateAxis, a_StartRotation0.x), worldRotation);

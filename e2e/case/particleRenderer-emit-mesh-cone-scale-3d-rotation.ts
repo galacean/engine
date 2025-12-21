@@ -103,9 +103,9 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
   main.startRotation3D = true;
 
   // Unity is (-60,40,-70)
-  main.startRotationX.constant = 60;
-  main.startRotationY.constant = 40;
-  main.startRotationZ.constant = -70;
+  main.startRotationX.constant = -60;
+  main.startRotationY.constant = -40;
+  main.startRotationZ.constant = 70;
   // startLifetime.constantMin = 0.2;
   // startLifetime.constantMax = 0.8;
   // startLifetime.mode = ParticleCurveMode.TwoConstants;

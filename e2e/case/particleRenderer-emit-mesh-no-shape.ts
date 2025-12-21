@@ -98,7 +98,7 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
   startSize.constant = 0.2;
 
   main.simulationSpace = ParticleSimulationSpace.Local;
-  main.startRotationZ.constant = 90;
+  main.startRotationZ.constant = -90;
 
   return particleEntity;
 }

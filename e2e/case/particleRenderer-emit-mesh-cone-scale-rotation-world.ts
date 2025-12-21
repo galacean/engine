@@ -101,7 +101,7 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
   startSize.constant = 0.2;
 
   main.simulationSpace = ParticleSimulationSpace.World;
-  main.startRotationZ.constant=90;
+  main.startRotationZ.constant=-90;
   // startLifetime.constantMin = 0.2;
   // startLifetime.constantMax = 0.8;
   // startLifetime.mode = ParticleCurveMode.TwoConstants;
