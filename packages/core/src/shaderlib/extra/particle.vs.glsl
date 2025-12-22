@@ -74,7 +74,7 @@ vec3 getStartPosition(vec3 startVelocity, float age, vec3 dragData) {
     return startPosition;
 }
 
-vec3 computeParticlePosition(in vec3 startVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, vec3 dragData, out vec3 localVelocity, out vec3 worldVelocity) {
+vec3 computeParticlePosition(in vec3 startVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, vec3 dragData, inout vec3 localVelocity, inout vec3 worldVelocity) {
     vec3 startPosition = getStartPosition(startVelocity, age, dragData);
 
     vec3 finalPosition;
