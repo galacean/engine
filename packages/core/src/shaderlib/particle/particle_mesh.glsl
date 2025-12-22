@@ -1,5 +1,3 @@
-#define PI 3.14159265359
-
 // Only support local alignment mode
 #ifdef RENDERER_MODE_MESH
     #if defined(RENDERER_ROL_CONSTANT_MODE) || defined(RENDERER_ROL_CURVE_MODE)
