@@ -28,33 +28,14 @@ export class SystemInfo {
     return window.devicePixelRatio;
   }
 
-  private static _parseAppleOSVersion(userAgent: string, osPrefix: string): string {
-    // Detect if it's Safari browser (not Chrome/Firefox/other browsers or WebView)
-    const isSafariBrowser =
-      /Safari/i.test(userAgent) && /Version\/\d+/i.test(userAgent) && !/CriOS|FxiOS|EdgiOS|OPiOS/i.test(userAgent);
+  private static _parseAppleMobileOSVersion(userAgent: string, osPrefix: string): string {
+    // Since iOS 26, Safari freezes UA OS version at 18.6, so Version/xx is more reliable
+    // Use Version/ if available, otherwise fallback to OS version
+    let v = userAgent.match(/Version\/(\d+)(?:\.(\d+))?(?:\.(\d+))?/);
+    if (v) return `${osPrefix} ${v[1]}.${v[2] || 0}.${v[3] || 0}`;
 
-    if (isSafariBrowser) {
-      // Safari browser: Use Version/xx to infer iOS version
-      // Since iOS 26, Safari freezes UA OS version at 18.6, so Version/xx is the only reliable source
-      const versionMatch = userAgent.match(/Version\/(\d+)(?:\.(\d+))?(?:\.(\d+))?/);
-      if (versionMatch) {
-        const major = parseInt(versionMatch[1]);
-        const minor = versionMatch[2] ? parseInt(versionMatch[2]) : 0;
-        const patch = versionMatch[3] ? parseInt(versionMatch[3]) : 0;
-        return `${osPrefix} ${major}.${minor}.${patch}`;
-      }
-    } else {
-      // Chrome/Firefox/WebView: Use OS version from UA (still accurate)
-      const osMatch = userAgent.match(/OS (\d+)_(\d+)(?:_(\d+))?/);
-      if (osMatch) {
-        const major = parseInt(osMatch[1]);
-        const minor = parseInt(osMatch[2]);
-        const patch = osMatch[3] ? parseInt(osMatch[3]) : 0;
-        return `${osPrefix} ${major}.${minor}.${patch}`;
-      }
-    }
-
-    return osPrefix;
+    v = userAgent.match(/OS (\d+)_(\d+)(?:_(\d+))?/);
+    return v ? `${osPrefix} ${v[1]}.${v[2]}.${v[3] || 0}` : osPrefix;
   }
 
   /**
@@ -82,10 +63,10 @@ export class SystemInfo {
       let v: RegExpMatchArray;
       switch (SystemInfo.platform) {
         case Platform.IPhone:
-          this.operatingSystem = this._parseAppleOSVersion(userAgent, "iPhone OS");
+          this.operatingSystem = this._parseAppleMobileOSVersion(userAgent, "iPhone OS");
           break;
         case Platform.IPad:
-          this.operatingSystem = this._parseAppleOSVersion(userAgent, "iPad OS");
+          this.operatingSystem = this._parseAppleMobileOSVersion(userAgent, "iPad OS");
           break;
         case Platform.Android:
           v = userAgent.match(/Android (\d+).?(\d+)?.?(\d+)?/);
