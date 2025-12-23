@@ -1,8 +1,8 @@
+import { AssetPromise } from "./asset/AssetPromise";
 import { GLCapabilityType } from "./base/Constant";
 import { Engine } from "./Engine";
 import { Platform } from "./Platform";
 import { TextureFormat } from "./texture";
-import { AssetPromise } from "./asset/AssetPromise";
 
 /**
  * Access operating system, platform and hardware information.
@@ -28,16 +28,10 @@ export class SystemInfo {
     return window.devicePixelRatio;
   }
 
-  /**
-   * Parse iOS/iPadOS version from user agent
-   * @internal
-   */
   private static _parseAppleOSVersion(userAgent: string, osPrefix: string): string {
     // Detect if it's Safari browser (not Chrome/Firefox/other browsers or WebView)
     const isSafariBrowser =
-      /Safari/i.test(userAgent) &&
-      /Version\/\d+/i.test(userAgent) &&
-      !/CriOS|FxiOS|EdgiOS|OPiOS/i.test(userAgent);
+      /Safari/i.test(userAgent) && /Version\/\d+/i.test(userAgent) && !/CriOS|FxiOS|EdgiOS|OPiOS/i.test(userAgent);
 
     if (isSafariBrowser) {
       // Safari browser: Use Version/xx to infer iOS version
