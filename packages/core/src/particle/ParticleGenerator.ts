@@ -242,20 +242,22 @@ export class ParticleGenerator {
    * @internal
    */
   _emit(playTime: number, count: number): void {
-    if (this.emission.enabled) {
+    const { emission } = this;
+    if (emission.enabled) {
+      const { main } = this;
       // Wait the existing particles to be retired
       const notRetireParticleCount = this._getNotRetiredParticleCount();
-      if (notRetireParticleCount >= this.main.maxParticles) {
+      if (notRetireParticleCount >= main.maxParticles) {
         return;
       }
       const position = ParticleGenerator._tempVector30;
       const direction = ParticleGenerator._tempVector31;
       const transform = this._renderer.entity.transform;
-      const shape = this.emission.shape;
+      const shape = emission.shape;
+      const positionScale = main._getPositionScale();
       for (let i = 0; i < count; i++) {
         if (shape?.enabled) {
-          const positionScale = this.main._getPositionScale();
-          shape._generatePositionAndDirection(this.emission._shapeRand, playTime, position, direction);
+          shape._generatePositionAndDirection(emission._shapeRand, playTime, position, direction);
           position.multiply(positionScale);
           direction.normalize().multiply(positionScale);
         } else {
@@ -263,8 +265,7 @@ export class ParticleGenerator {
           direction.set(0, 0, -1);
           // Speed is scaled by shape scale in world simulation space
           // So if no shape and in world simulation space, we shouldn't scale the speed
-          if (this.main.simulationSpace === ParticleSimulationSpace.Local) {
-            const positionScale = this.main._getPositionScale();
+          if (main.simulationSpace === ParticleSimulationSpace.Local) {
             direction.multiply(positionScale);
           }
         }
