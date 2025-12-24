@@ -3,9 +3,11 @@
 #endif
 
 #ifdef RENDERER_MODE_MESH
-    attribute vec3 a_MeshPosition;
-    attribute vec4 a_MeshColor;
-    attribute vec2 a_MeshTextureCoordinate;
+    attribute vec3 POSITION;
+    #ifdef RENDERER_ENABLE_VERTEXCOLOR
+        attribute vec4 COLOR_0;
+    #endif
+    attribute vec2 TEXCOORD_0;
     varying vec4 v_MeshColor;
 #endif
 
@@ -72,7 +74,7 @@ vec3 getStartPosition(vec3 startVelocity, float age, vec3 dragData) {
     return startPosition;
 }
 
-vec3 computeParticlePosition(in vec3 startVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, vec3 dragData, out vec3 localVelocity, out vec3 worldVelocity) {
+vec3 computeParticlePosition(in vec3 startVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, vec3 dragData, inout vec3 localVelocity, inout vec3 worldVelocity) {
     vec3 startPosition = getStartPosition(startVelocity, age, dragData);
 
     vec3 finalPosition;
@@ -153,7 +155,7 @@ void main() {
                 v_TextureCoordinate = computeParticleUV(simulateUV, normalizedAge);
             #endif
             #ifdef RENDERER_MODE_MESH
-                simulateUV = a_SimulationUV.xy + a_MeshTextureCoordinate * a_SimulationUV.zw;
+                simulateUV = a_SimulationUV.zw + TEXCOORD_0 * a_SimulationUV.xy;
                 v_TextureCoordinate = computeParticleUV(simulateUV, normalizedAge);
             #endif
         #endif

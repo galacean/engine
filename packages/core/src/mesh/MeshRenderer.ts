@@ -11,11 +11,13 @@ import { ShaderMacro } from "../shader/ShaderMacro";
  * MeshRenderer Component.
  */
 export class MeshRenderer extends Renderer {
+  /** @internal */
+  static _enableVertexColorMacro = ShaderMacro.getByName("RENDERER_ENABLE_VERTEXCOLOR");
+
   private static _uvMacro = ShaderMacro.getByName("RENDERER_HAS_UV");
   private static _uv1Macro = ShaderMacro.getByName("RENDERER_HAS_UV1");
   private static _normalMacro = ShaderMacro.getByName("RENDERER_HAS_NORMAL");
   private static _tangentMacro = ShaderMacro.getByName("RENDERER_HAS_TANGENT");
-  private static _enableVertexColorMacro = ShaderMacro.getByName("RENDERER_ENABLE_VERTEXCOLOR");
 
   private _enableVertexColor: boolean = false;
 
