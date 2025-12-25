@@ -82,8 +82,8 @@ export class Utils {
       return relativeUrl ? new URL(relativeUrl, baseUrl).href : baseUrl;
     }
 
-    let encodedBaseUrl = baseUrl ? this.encodePathComponents(baseUrl) : "";
-    const encodedRelative = relativeUrl ? this.encodePathComponents(relativeUrl) : "";
+    let encodedBaseUrl = baseUrl ? this._encodePathComponents(baseUrl) : "";
+    const encodedRelative = relativeUrl ? this._encodePathComponents(relativeUrl) : "";
     const fileSchema = "file://";
     encodedBaseUrl = fileSchema + encodedBaseUrl;
     const rejoinsPath = new URL(encodedRelative, encodedBaseUrl).href.substring(fileSchema.length);
@@ -270,18 +270,8 @@ export class Utils {
     }
   }
 
-  private static encodePathComponents(path: string): string {
-    return path
-      .split("/")
-      .map((component) => {
-        // Retain path structure symbols (., .., empty segments)
-        if (component === "." || component === ".." || component === "") {
-          return component;
-        }
-        // Encode all other path components to prevent selective encoding by URL constructor
-        return encodeURIComponent(component);
-      })
-      .join("/");
+  private static _encodePathComponents(path: string): string {
+    return path.split("/").map(encodeURIComponent).join("/");
   }
 }
 
