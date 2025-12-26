@@ -300,4 +300,75 @@ describe("UICanvas", async () => {
     const anoCloneCanvas = anoCloneEntity.getComponent(UICanvas);
     expect(anoCloneCanvas.renderCamera).to.eq(anoCloneEntity.findByName("camera").getComponent(Camera));
   });
+
+  it("EventCamera for WorldSpace", () => {
+    rootCanvas.renderMode = CanvasRenderMode.WorldSpace;
+    
+    // @ts-ignore
+    expect(rootCanvas.eventCamera).to.be.null;
+    
+    // @ts-ignore
+    rootCanvas.eventCamera = camera;
+    // @ts-ignore
+    expect(rootCanvas.eventCamera).to.eq(camera);
+    
+    // @ts-ignore
+    rootCanvas.eventCamera = null;
+    // @ts-ignore
+    expect(rootCanvas.eventCamera).to.be.null;
+  });
+
+  it("_canProcessEvent with eventCamera in WorldSpace", () => {
+    const camera2 = root.createChild("camera3").addComponent(Camera);
+    
+    rootCanvas.renderMode = CanvasRenderMode.WorldSpace;
+    // @ts-ignore
+    rootCanvas.eventCamera = camera;
+    
+    // @ts-ignore
+    expect(rootCanvas._canProcessEvent(camera)).to.be.true;
+    // @ts-ignore
+    expect(rootCanvas._canProcessEvent(camera2)).to.be.false;
+    
+    // @ts-ignore
+    rootCanvas.eventCamera = null;
+    // @ts-ignore
+    expect(rootCanvas._canProcessEvent(camera)).to.be.true;
+    // @ts-ignore
+    expect(rootCanvas._canProcessEvent(camera2)).to.be.true;
+  });
+
+  it("Clone with eventCamera", () => {
+    rootCanvas.renderMode = CanvasRenderMode.WorldSpace;
+    // @ts-ignore
+    rootCanvas.eventCamera = camera;
+    
+    const cloneEntity = canvasEntity.clone();
+    const cloneCanvas = cloneEntity.getComponent(UICanvas);
+    
+    // @ts-ignore
+    expect(cloneCanvas.eventCamera).to.eq(camera);
+    
+    const localEventCamera = canvasEntity.createChild('eventCamera').addComponent(Camera);
+    // @ts-ignore
+    rootCanvas.eventCamera = localEventCamera;
+    
+    const localCloneEntity = canvasEntity.clone();
+    const localCloneCanvas = localCloneEntity.getComponent(UICanvas);
+    
+    // @ts-ignore
+    expect(localCloneCanvas.eventCamera).to.eq(localCloneEntity.findByName("eventCamera").getComponent(Camera));
+  });
+
+  it("_canProcessEvent with ScreenSpaceCamera mode", () => {
+    const camera2 = root.createChild("cameraSSC").addComponent(Camera);
+    
+    rootCanvas.renderMode = CanvasRenderMode.ScreenSpaceCamera;
+    rootCanvas.renderCamera = camera;
+    
+    // @ts-ignore
+    expect(rootCanvas._canProcessEvent(camera)).to.be.true;
+    // @ts-ignore
+    expect(rootCanvas._canProcessEvent(camera2)).to.be.false;
+  });
 });
