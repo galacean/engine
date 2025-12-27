@@ -50,23 +50,23 @@ export class TrailRenderer extends Renderer {
   private static _tempVector3 = new Vector3();
 
   /** How long the trail points last (in seconds). */
-  time: number = 5.0;
+  time = 5.0;
 
   /** The width of the trail. */
-  width: number = 1.0;
+  width = 1.0;
 
   /** The minimum distance between trail points (in world units). */
-  minVertexDistance: number = 0.1;
+  minVertexDistance = 0.1;
 
   /** Controls how the texture is applied to the trail. */
-  textureMode: TrailTextureMode = TrailTextureMode.Stretch;
+  textureMode = TrailTextureMode.Stretch;
 
   /** The tile scale for Tile texture mode. */
-  tileScale: number = 1.0;
+  tileScale = 1.0;
 
   /** Trail color (used when colorGradient is not set). */
   @deepClone
-  color: Color = new Color(1, 1, 1, 1);
+  color = new Color(1, 1, 1, 1);
 
   /**
    * Width curve over lifetime.
@@ -74,7 +74,7 @@ export class TrailRenderer extends Renderer {
    * Default is a constant curve of 1.0.
    */
   @deepClone
-  widthCurve: ParticleCompositeCurve = new ParticleCompositeCurve(1.0);
+  widthCurve = new ParticleCompositeCurve(1.0);
 
   /**
    * Color gradient over lifetime.
@@ -85,7 +85,7 @@ export class TrailRenderer extends Renderer {
   colorGradient: ParticleGradient = null;
 
   /** Whether the trail is currently emitting new points. */
-  emitting: boolean = true;
+  emitting = true;
 
   // Internal state
   @ignoreClone
