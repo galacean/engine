@@ -96,10 +96,6 @@ export class TrailRenderer extends Renderer {
   private _boundsDirty = true;
   @ignoreClone
   private _widthCurveData: Float32Array;
-  @ignoreClone
-  private _colorKeysData: Float32Array;
-  @ignoreClone
-  private _alphaKeysData: Float32Array;
 
   /**
    * @internal
@@ -460,29 +456,9 @@ export class TrailRenderer extends Renderer {
       return;
     }
 
-    const colorKeysData = this._colorKeysData || (this._colorKeysData = new Float32Array(16));
-    const alphaKeysData = this._alphaKeysData || (this._alphaKeysData = new Float32Array(8));
-
-    const colorKeys = gradient.colorKeys;
-    const colorCount = Math.min(colorKeys.length, 4);
-    for (let i = 0, offset = 0; i < colorCount; i++, offset += 4) {
-      const key = colorKeys[i];
-      colorKeysData[offset] = key.time;
-      colorKeysData[offset + 1] = key.color.r;
-      colorKeysData[offset + 2] = key.color.g;
-      colorKeysData[offset + 3] = key.color.b;
-    }
-    shaderData.setFloatArray(TrailRenderer._colorKeysProp, colorKeysData);
-    shaderData.setInt(TrailRenderer._colorKeyCountProp, colorCount);
-
-    const alphaKeys = gradient.alphaKeys;
-    const alphaCount = Math.min(alphaKeys.length, 4);
-    for (let i = 0, offset = 0; i < alphaCount; i++, offset += 2) {
-      const key = alphaKeys[i];
-      alphaKeysData[offset] = key.time;
-      alphaKeysData[offset + 1] = key.alpha;
-    }
-    shaderData.setFloatArray(TrailRenderer._alphaKeysProp, alphaKeysData);
-    shaderData.setInt(TrailRenderer._alphaKeyCountProp, alphaCount);
+    shaderData.setFloatArray(TrailRenderer._colorKeysProp, gradient._getColorTypeArray());
+    shaderData.setInt(TrailRenderer._colorKeyCountProp, gradient.colorKeys.length);
+    shaderData.setFloatArray(TrailRenderer._alphaKeysProp, gradient._getAlphaTypeArray());
+    shaderData.setInt(TrailRenderer._alphaKeyCountProp, gradient.alphaKeys.length);
   }
 }
