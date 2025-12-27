@@ -105,10 +105,10 @@ WebGLEngine.create({
       // Set texture on trail material
       material.baseTexture = texture;
 
-      engine.run();
+      // engine.run();
 
-      // // Run for e2e testing
-      // updateForE2E(engine, 50, 20);
-      // initScreenshot(engine, camera);
+      // Run for e2e testing
+      updateForE2E(engine, 50, 20);
+      initScreenshot(engine, camera);
     });
 });

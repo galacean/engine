@@ -110,11 +110,7 @@ export class TrailRenderer extends Renderer {
   @ignoreClone
   private _firstFreeElement: number = 0;
   @ignoreClone
-  private _currentPointCount: number = 0;
-  @ignoreClone
   private _maxPointCount: number = 256;
-  @ignoreClone
-  private _vertexBufferNeedsUpdate: boolean = false;
 
   // Last recorded position
   @ignoreClone
@@ -149,7 +145,6 @@ export class TrailRenderer extends Renderer {
     this._firstActiveElement = 0;
     this._firstNewElement = 0;
     this._firstFreeElement = 0;
-    this._currentPointCount = 0;
     this._hasLastPosition = false;
   }
 
@@ -194,12 +189,8 @@ export class TrailRenderer extends Renderer {
       return; // Need at least 2 points to form a segment
     }
 
-    // Only update vertex buffer when there are new points or buffer needs full update
-    if (
-      this._firstNewElement !== this._firstFreeElement ||
-      this._vertexBufferNeedsUpdate ||
-      this._vertexBuffer.isContentLost
-    ) {
+    // Only update vertex buffer when there are new points or buffer content is lost
+    if (this._firstNewElement !== this._firstFreeElement || this._vertexBuffer.isContentLost) {
       this._uploadNewVertices();
     }
 
@@ -232,8 +223,9 @@ export class TrailRenderer extends Renderer {
     const vertices = this._vertices;
     const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
     const halfWidth = this.width * 0.5;
+    const activeCount = this._getActivePointCount();
 
-    if (this._currentPointCount === 0) {
+    if (activeCount === 0) {
       // No active points, use current entity position
       const worldPosition = this.entity.transform.worldPosition;
       worldBounds.min.set(worldPosition.x - halfWidth, worldPosition.y - halfWidth, worldPosition.z - halfWidth);
@@ -252,7 +244,7 @@ export class TrailRenderer extends Renderer {
 
     // Iterate through all active points
     let idx = this._firstActiveElement;
-    for (let i = 0; i < this._currentPointCount; i++) {
+    for (let i = 0; i < activeCount; i++) {
       const offset = idx * 2 * floatStride;
       const x = vertices[offset];
       const y = vertices[offset + 1];
@@ -354,11 +346,10 @@ export class TrailRenderer extends Renderer {
       if (this._firstActiveElement >= this._maxPointCount) {
         this._firstActiveElement = 0;
       }
-      this._currentPointCount--;
     }
 
     // If all points have expired, reset the trail state
-    if (this._currentPointCount === 0) {
+    if (this._firstActiveElement === this._firstFreeElement) {
       this._hasLastPosition = false;
     }
   }
@@ -386,7 +377,6 @@ export class TrailRenderer extends Renderer {
       if (this._firstActiveElement >= this._maxPointCount) {
         this._firstActiveElement = 0;
       }
-      this._currentPointCount--;
     }
 
     // Add the new point
@@ -410,7 +400,7 @@ export class TrailRenderer extends Renderer {
 
       // If this is the second point, update the first point's tangent
       // to match this tangent (so the tail doesn't have wrong orientation)
-      if (this._currentPointCount === 1) {
+      if (this._getActivePointCount() === 1) {
         const firstIdx = this._firstActiveElement;
         for (let corner = -1; corner <= 1; corner += 2) {
           const vertexIdx = firstIdx * 2 + (corner === -1 ? 0 : 1);
@@ -444,11 +434,15 @@ export class TrailRenderer extends Renderer {
     if (this._firstFreeElement >= this._maxPointCount) {
       this._firstFreeElement = 0;
     }
-    this._currentPointCount++;
   }
 
   private _getActivePointCount(): number {
-    return this._currentPointCount;
+    const firstActive = this._firstActiveElement;
+    const firstFree = this._firstFreeElement;
+    if (firstFree >= firstActive) {
+      return firstFree - firstActive;
+    }
+    return this._maxPointCount - firstActive + firstFree;
   }
 
   private _uploadNewVertices(): void {
@@ -457,8 +451,7 @@ export class TrailRenderer extends Renderer {
     const buffer = this._vertexBuffer;
 
     // If buffer content is lost, need to re-upload all active vertices
-    const needFullUpload = this._vertexBufferNeedsUpdate || buffer.isContentLost;
-    const firstNew = needFullUpload ? firstActive : this._firstNewElement;
+    const firstNew = buffer.isContentLost ? firstActive : this._firstNewElement;
 
     // No vertices to upload
     if (firstNew === firstFree) {
@@ -494,7 +487,6 @@ export class TrailRenderer extends Renderer {
 
     // Update the new element pointer to match free element
     this._firstNewElement = firstFree;
-    this._vertexBufferNeedsUpdate = false;
   }
 
   private _updateIndexBuffer(activeCount: number): number {
