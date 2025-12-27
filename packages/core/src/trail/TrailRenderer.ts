@@ -15,7 +15,6 @@ import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ShaderProperty } from "../shader/ShaderProperty";
-import { TrailMaterial } from "./TrailMaterial";
 import { ParticleCompositeCurve } from "../particle/modules/ParticleCompositeCurve";
 import { ParticleGradient } from "../particle/modules/ParticleGradient";
 import { TrailTextureMode } from "./enums/TrailTextureMode";
@@ -137,9 +136,6 @@ export class TrailRenderer extends Renderer {
   constructor(entity: Entity) {
     super(entity);
     this._initGeometry();
-
-    // Set default material
-    this.setMaterial(new TrailMaterial(this.engine));
   }
 
   /**
