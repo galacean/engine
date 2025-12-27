@@ -95,8 +95,6 @@ export class TrailRenderer extends Renderer {
   @ignoreClone
   private _vertexBuffer: Buffer;
   @ignoreClone
-  private _vertexBufferBinding: VertexBufferBinding;
-  @ignoreClone
   private _vertices: Float32Array;
   @ignoreClone
   private _indexBuffer: Buffer;
@@ -259,29 +257,32 @@ export class TrailRenderer extends Renderer {
     const byteLength = vertexCount * TrailRenderer.VERTEX_STRIDE;
 
     // Create vertex buffer
-    this._vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, byteLength, BufferUsage.Dynamic, false);
+    const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, byteLength, BufferUsage.Dynamic, false);
+    this._vertexBuffer = vertexBuffer;
 
     // Create CPU-side vertex array
     this._vertices = new Float32Array(vertexCount * TrailRenderer.VERTEX_FLOAT_STRIDE);
 
     // Create vertex buffer binding
-    this._vertexBufferBinding = new VertexBufferBinding(this._vertexBuffer, TrailRenderer.VERTEX_STRIDE);
+    const vertexBufferBinding = new VertexBufferBinding(vertexBuffer, TrailRenderer.VERTEX_STRIDE);
 
     // Create index buffer (max indices = maxPoints * 2 for triangle strip)
     const maxIndices = maxPoints * 2;
-    this._indexBuffer = new Buffer(
+    const indexBuffer = new Buffer(
       engine,
       BufferBindFlag.IndexBuffer,
       maxIndices * 2, // Uint16 = 2 bytes
       BufferUsage.Dynamic,
       false
     );
+    this._indexBuffer = indexBuffer;
     this._indices = new Uint16Array(maxIndices);
 
     // Create primitive
-    this._primitive = new Primitive(engine);
-    this._primitive.vertexBufferBindings.push(this._vertexBufferBinding);
-    this._primitive.setIndexBufferBinding(new IndexBufferBinding(this._indexBuffer, IndexFormat.UInt16));
+    const primitive = new Primitive(engine);
+    this._primitive = primitive;
+    primitive.vertexBufferBindings.push(vertexBufferBinding);
+    primitive.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, IndexFormat.UInt16));
 
     // Define vertex elements:
     // a_Position: vec3 (12 bytes, offset 0)
@@ -291,12 +292,12 @@ export class TrailRenderer extends Renderer {
     // a_Corner: float (4 bytes, offset 36)
     // a_Tangent: vec3 (12 bytes, offset 40)
     // Total: 52 bytes per vertex
-    this._primitive.addVertexElement(new VertexElement("a_Position", 0, VertexElementFormat.Vector3, 0));
-    this._primitive.addVertexElement(new VertexElement("a_BirthTime", 12, VertexElementFormat.Float, 0));
-    this._primitive.addVertexElement(new VertexElement("a_NormalizedWidth", 16, VertexElementFormat.Float, 0));
-    this._primitive.addVertexElement(new VertexElement("a_Color", 20, VertexElementFormat.Vector4, 0));
-    this._primitive.addVertexElement(new VertexElement("a_Corner", 36, VertexElementFormat.Float, 0));
-    this._primitive.addVertexElement(new VertexElement("a_Tangent", 40, VertexElementFormat.Vector3, 0));
+    primitive.addVertexElement(new VertexElement("a_Position", 0, VertexElementFormat.Vector3, 0));
+    primitive.addVertexElement(new VertexElement("a_BirthTime", 12, VertexElementFormat.Float, 0));
+    primitive.addVertexElement(new VertexElement("a_NormalizedWidth", 16, VertexElementFormat.Float, 0));
+    primitive.addVertexElement(new VertexElement("a_Color", 20, VertexElementFormat.Vector4, 0));
+    primitive.addVertexElement(new VertexElement("a_Corner", 36, VertexElementFormat.Float, 0));
+    primitive.addVertexElement(new VertexElement("a_Tangent", 40, VertexElementFormat.Vector3, 0));
 
     // Create sub-primitive for drawing
     this._subPrimitive = new SubPrimitive(0, 0, MeshTopology.TriangleStrip);
