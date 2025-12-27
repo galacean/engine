@@ -122,6 +122,14 @@ export class TrailRenderer extends Renderer {
   @ignoreClone
   private _playTime: number = 0;
 
+  // Bounds optimization: cached bounds and dirty flag
+  @ignoreClone
+  private _boundsMin: Vector3 = new Vector3();
+  @ignoreClone
+  private _boundsMax: Vector3 = new Vector3();
+  @ignoreClone
+  private _boundsDirty: boolean = true;
+
   // Shader data cache
   @ignoreClone
   private _widthCurveData: Float32Array;
@@ -146,6 +154,7 @@ export class TrailRenderer extends Renderer {
     this._firstNewElement = 0;
     this._firstFreeElement = 0;
     this._hasLastPosition = false;
+    this._boundsDirty = true;
   }
 
   /**
@@ -220,10 +229,8 @@ export class TrailRenderer extends Renderer {
    * @internal
    */
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    const vertices = this._vertices;
-    const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
-    const halfWidth = this.width * 0.5;
     const activeCount = this._getActivePointCount();
+    const halfWidth = this.width * 0.5;
 
     if (activeCount === 0) {
       // No active points, use current entity position
@@ -233,37 +240,15 @@ export class TrailRenderer extends Renderer {
       return;
     }
 
-    // Initialize with first active point
-    const firstOffset = this._firstActiveElement * 2 * floatStride;
-    let minX = vertices[firstOffset];
-    let minY = vertices[firstOffset + 1];
-    let minZ = vertices[firstOffset + 2];
-    let maxX = minX;
-    let maxY = minY;
-    let maxZ = minZ;
-
-    // Iterate through all active points
-    let idx = this._firstActiveElement;
-    for (let i = 0; i < activeCount; i++) {
-      const offset = idx * 2 * floatStride;
-      const x = vertices[offset];
-      const y = vertices[offset + 1];
-      const z = vertices[offset + 2];
-
-      if (x < minX) minX = x;
-      if (y < minY) minY = y;
-      if (z < minZ) minZ = z;
-      if (x > maxX) maxX = x;
-      if (y > maxY) maxY = y;
-      if (z > maxZ) maxZ = z;
-
-      idx++;
-      if (idx >= this._maxPointCount) idx = 0;
+    // Recalculate bounds only when dirty
+    if (this._boundsDirty) {
+      this._recalculateBounds();
     }
 
-    // Expand bounds by half width (for billboard offset)
-    worldBounds.min.set(minX - halfWidth, minY - halfWidth, minZ - halfWidth);
-    worldBounds.max.set(maxX + halfWidth, maxY + halfWidth, maxZ + halfWidth);
+    // Apply half width offset to cached bounds
+    const { _boundsMin: min, _boundsMax: max } = this;
+    worldBounds.min.set(min.x - halfWidth, min.y - halfWidth, min.z - halfWidth);
+    worldBounds.max.set(max.x + halfWidth, max.y + halfWidth, max.z + halfWidth);
   }
 
   /**
@@ -331,6 +316,7 @@ export class TrailRenderer extends Renderer {
   private _retireActivePoints(): void {
     const currentTime = this._playTime;
     const lifetime = this.time;
+    const firstActiveOld = this._firstActiveElement;
 
     // Move firstActiveElement forward for points that have expired
     while (this._firstActiveElement !== this._firstFreeElement) {
@@ -346,6 +332,11 @@ export class TrailRenderer extends Renderer {
       if (this._firstActiveElement >= this._maxPointCount) {
         this._firstActiveElement = 0;
       }
+    }
+
+    // If points were retired, bounds need recalculation
+    if (this._firstActiveElement !== firstActiveOld) {
+      this._boundsDirty = true;
     }
 
     // If all points have expired, reset the trail state
@@ -429,6 +420,9 @@ export class TrailRenderer extends Renderer {
       tangent.copyToArray(vertices, offset + 10); // a_Tangent (vec3)
     }
 
+    // Expand cached bounds with new point (incremental update)
+    this._expandBounds(position);
+
     // Update pointers
     this._firstFreeElement++;
     if (this._firstFreeElement >= this._maxPointCount) {
@@ -443,6 +437,67 @@ export class TrailRenderer extends Renderer {
       return firstFree - firstActive;
     }
     return this._maxPointCount - firstActive + firstFree;
+  }
+
+  private _expandBounds(position: Vector3): void {
+    const { _boundsMin: min, _boundsMax: max } = this;
+
+    // If bounds are dirty (need full recalc), initialize with first point
+    if (this._boundsDirty) {
+      min.copyFrom(position);
+      max.copyFrom(position);
+      this._boundsDirty = false;
+      return;
+    }
+
+    // Expand bounds incrementally
+    const { x, y, z } = position;
+    if (x < min.x) min.x = x;
+    if (y < min.y) min.y = y;
+    if (z < min.z) min.z = z;
+    if (x > max.x) max.x = x;
+    if (y > max.y) max.y = y;
+    if (z > max.z) max.z = z;
+  }
+
+  private _recalculateBounds(): void {
+    const vertices = this._vertices;
+    const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
+    const activeCount = this._getActivePointCount();
+    const { _boundsMin: min, _boundsMax: max } = this;
+
+    if (activeCount === 0) {
+      min.set(0, 0, 0);
+      max.set(0, 0, 0);
+      this._boundsDirty = false;
+      return;
+    }
+
+    // Initialize with first active point
+    const firstOffset = this._firstActiveElement * 2 * floatStride;
+    min.set(vertices[firstOffset], vertices[firstOffset + 1], vertices[firstOffset + 2]);
+    max.copyFrom(min);
+
+    // Iterate through all active points
+    let idx = this._firstActiveElement;
+    for (let i = 0; i < activeCount; i++) {
+      const offset = idx * 2 * floatStride;
+      const x = vertices[offset];
+      const y = vertices[offset + 1];
+      const z = vertices[offset + 2];
+
+      if (x < min.x) min.x = x;
+      if (y < min.y) min.y = y;
+      if (z < min.z) min.z = z;
+      if (x > max.x) max.x = x;
+      if (y > max.y) max.y = y;
+      if (z > max.z) max.z = z;
+
+      idx++;
+      if (idx >= this._maxPointCount) idx = 0;
+    }
+
+    this._boundsDirty = false;
   }
 
   private _uploadNewVertices(): void {
