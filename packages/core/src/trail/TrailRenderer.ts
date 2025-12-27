@@ -2,6 +2,7 @@ import { BoundingBox, Color, Vector3 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { Renderer } from "../Renderer";
 import { RenderContext } from "../RenderPipeline/RenderContext";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { Buffer } from "../graphic/Buffer";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { Primitive } from "../graphic/Primitive";
@@ -13,10 +14,10 @@ import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
-import { ShaderProperty } from "../shader/ShaderProperty";
 import { ParticleCompositeCurve } from "../particle/modules/ParticleCompositeCurve";
 import { ParticleGradient } from "../particle/modules/ParticleGradient";
+import { ShaderData } from "../shader/ShaderData";
+import { ShaderProperty } from "../shader/ShaderProperty";
 import { TrailTextureMode } from "./enums/TrailTextureMode";
 
 /**
@@ -451,13 +452,8 @@ export class TrailRenderer extends Renderer {
     }
 
     // Expand bounds incrementally
-    const { x, y, z } = position;
-    if (x < min.x) min.x = x;
-    if (y < min.y) min.y = y;
-    if (z < min.z) min.z = z;
-    if (x > max.x) max.x = x;
-    if (y > max.y) max.y = y;
-    if (z > max.z) max.z = z;
+    Vector3.min(min, position, min);
+    Vector3.max(max, position, max);
   }
 
   private _recalculateBounds(): void {
@@ -475,23 +471,19 @@ export class TrailRenderer extends Renderer {
 
     // Initialize with first active point
     const firstOffset = this._firstActiveElement * 2 * floatStride;
-    min.set(vertices[firstOffset], vertices[firstOffset + 1], vertices[firstOffset + 2]);
+    min.copyFromArray(vertices, firstOffset);
     max.copyFrom(min);
 
-    // Iterate through all active points
-    let idx = this._firstActiveElement;
-    for (let i = 0; i < activeCount; i++) {
-      const offset = idx * 2 * floatStride;
-      const x = vertices[offset];
-      const y = vertices[offset + 1];
-      const z = vertices[offset + 2];
+    // Iterate through remaining active points
+    const tempPos = TrailRenderer._tempVector3;
+    let idx = this._firstActiveElement + 1;
+    if (idx >= this._maxPointCount) idx = 0;
 
-      if (x < min.x) min.x = x;
-      if (y < min.y) min.y = y;
-      if (z < min.z) min.z = z;
-      if (x > max.x) max.x = x;
-      if (y > max.y) max.y = y;
-      if (z > max.z) max.z = z;
+    for (let i = 1; i < activeCount; i++) {
+      const offset = idx * 2 * floatStride;
+      tempPos.copyFromArray(vertices, offset);
+      Vector3.min(min, tempPos, min);
+      Vector3.max(max, tempPos, max);
 
       idx++;
       if (idx >= this._maxPointCount) idx = 0;
@@ -567,7 +559,7 @@ export class TrailRenderer extends Renderer {
     return indexCount;
   }
 
-  private _updateWidthCurve(shaderData: import("../shader/ShaderData").ShaderData): void {
+  private _updateWidthCurve(shaderData: ShaderData): void {
     const curve = this.widthCurve;
     const widthCurveData = this._widthCurveData || (this._widthCurveData = new Float32Array(8));
 
@@ -581,9 +573,10 @@ export class TrailRenderer extends Renderer {
       // Curve mode
       const keys = curve.curve.keys;
       const count = Math.min(keys.length, 4);
-      for (let i = 0; i < count; i++) {
-        widthCurveData[i * 2] = keys[i].time;
-        widthCurveData[i * 2 + 1] = keys[i].value;
+      for (let i = 0, offset = 0; i < count; i++, offset += 2) {
+        const key = keys[i];
+        widthCurveData[offset] = key.time;
+        widthCurveData[offset + 1] = key.value;
       }
       shaderData.setFloatArray(TrailRenderer._widthCurveProp, widthCurveData);
       shaderData.setInt(TrailRenderer._widthCurveCountProp, count);
@@ -596,7 +589,7 @@ export class TrailRenderer extends Renderer {
     }
   }
 
-  private _updateColorGradient(shaderData: import("../shader/ShaderData").ShaderData): void {
+  private _updateColorGradient(shaderData: ShaderData): void {
     const gradient = this.colorGradient;
 
     if (!gradient) {
@@ -612,12 +605,12 @@ export class TrailRenderer extends Renderer {
     // Color keys
     const colorKeys = gradient.colorKeys;
     const colorCount = Math.min(colorKeys.length, 4);
-    for (let i = 0; i < colorCount; i++) {
+    for (let i = 0, offset = 0; i < colorCount; i++, offset += 4) {
       const key = colorKeys[i];
-      colorKeysData[i * 4] = key.time;
-      colorKeysData[i * 4 + 1] = key.color.r;
-      colorKeysData[i * 4 + 2] = key.color.g;
-      colorKeysData[i * 4 + 3] = key.color.b;
+      colorKeysData[offset] = key.time;
+      colorKeysData[offset + 1] = key.color.r;
+      colorKeysData[offset + 2] = key.color.g;
+      colorKeysData[offset + 3] = key.color.b;
     }
     shaderData.setFloatArray(TrailRenderer._colorKeysProp, colorKeysData);
     shaderData.setInt(TrailRenderer._colorKeyCountProp, colorCount);
@@ -625,10 +618,10 @@ export class TrailRenderer extends Renderer {
     // Alpha keys
     const alphaKeys = gradient.alphaKeys;
     const alphaCount = Math.min(alphaKeys.length, 4);
-    for (let i = 0; i < alphaCount; i++) {
+    for (let i = 0, offset = 0; i < alphaCount; i++, offset += 2) {
       const key = alphaKeys[i];
-      alphaKeysData[i * 2] = key.time;
-      alphaKeysData[i * 2 + 1] = key.alpha;
+      alphaKeysData[offset] = key.time;
+      alphaKeysData[offset + 1] = key.alpha;
     }
     shaderData.setFloatArray(TrailRenderer._alphaKeysProp, alphaKeysData);
     shaderData.setInt(TrailRenderer._alphaKeyCountProp, alphaCount);
