@@ -1,7 +1,9 @@
 import { Color } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { BaseMaterial } from "../material/BaseMaterial";
-import { BlendFactor, CullMode, Shader } from "../shader";
+import { BlendMode } from "../material/enums/BlendMode";
+import { RenderFace } from "../material/enums/RenderFace";
+import { Shader } from "../shader";
 import { Texture2D } from "../texture";
 
 /**
@@ -79,19 +81,8 @@ export class TrailMaterial extends BaseMaterial {
     shaderData.setColor(BaseMaterial._baseColorProp, new Color(1, 1, 1, 1));
     shaderData.setColor(BaseMaterial._emissiveColorProp, new Color(0, 0, 0, 1));
 
-    // Default blend state for additive blending
-    const target = this.renderState.blendState.targetBlendState;
-    target.enabled = true;
-    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
-    target.destinationColorBlendFactor = BlendFactor.One;
-    target.sourceAlphaBlendFactor = BlendFactor.SourceAlpha;
-    target.destinationAlphaBlendFactor = BlendFactor.One;
-
-    // Disable depth write for transparent rendering
-    this.renderState.depthState.writeEnabled = false;
-
-    // Disable culling for double-sided rendering
-    this.renderState.rasterState.cullMode = CullMode.Off;
+    this.isTransparent = true;
+    this.renderFace = RenderFace.Double;
   }
 
   /**
