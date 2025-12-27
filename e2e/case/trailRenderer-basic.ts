@@ -17,6 +17,7 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
+import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 // Create engine
 WebGLEngine.create({
@@ -89,6 +90,9 @@ WebGLEngine.create({
 
   trailEntity.addComponent(MoveScript);
 
-  engine.run();
-});
+  // engine.run();
 
+  // Run for e2e testing
+  updateForE2E(engine, 50, 20);
+  initScreenshot(engine, camera);
+});
