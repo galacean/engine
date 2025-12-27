@@ -1,8 +1,6 @@
 import { Color } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { BaseMaterial } from "../material/BaseMaterial";
-import { BlendMode } from "../material/enums/BlendMode";
-import { RenderFace } from "../material/enums/RenderFace";
 import { Shader } from "../shader";
 import { Texture2D } from "../texture";
 
@@ -82,7 +80,6 @@ export class TrailMaterial extends BaseMaterial {
     shaderData.setColor(BaseMaterial._emissiveColorProp, new Color(0, 0, 0, 1));
 
     this.isTransparent = true;
-    this.renderFace = RenderFace.Double;
   }
 
   /**
