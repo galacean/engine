@@ -1,9 +1,21 @@
+#include <common>
+
 varying vec2 v_uv;
+varying vec4 v_color;
 
-uniform sampler2D u_texture;
+uniform vec4 material_BaseColor;
 
-void main(void) {
+#ifdef MATERIAL_HAS_BASETEXTURE
+    uniform sampler2D material_BaseTexture;
+#endif
 
-  gl_FragColor = texture2D(u_texture, v_uv);
+void main() {
+    vec4 baseColor = material_BaseColor * v_color;
 
+    #ifdef MATERIAL_HAS_BASETEXTURE
+        baseColor *= texture2DSRGB(material_BaseTexture, v_uv);
+    #endif
+
+    gl_FragColor = baseColor;
 }
+

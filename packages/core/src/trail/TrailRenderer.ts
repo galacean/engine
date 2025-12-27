@@ -1,250 +1,588 @@
-import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
+import { BoundingBox, Color, Vector3 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
+import { Renderer } from "../Renderer";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Buffer } from "../graphic/Buffer";
+import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
+import { Primitive } from "../graphic/Primitive";
+import { SubPrimitive } from "../graphic/SubPrimitive";
+import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
+import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
+import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
-import { BufferMesh } from "../mesh/BufferMesh";
-import { MeshRenderer } from "../mesh/MeshRenderer";
-import { Texture2D } from "../texture";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { ShaderProperty } from "../shader/ShaderProperty";
 import { TrailMaterial } from "./TrailMaterial";
-
-const _tempVector3 = new Vector3();
+import { ParticleCompositeCurve } from "../particle/modules/ParticleCompositeCurve";
+import { ParticleGradient } from "../particle/modules/ParticleGradient";
+import { TrailTextureMode } from "./enums/TrailTextureMode";
 
 /**
- * @deprecated
+ * Trail Renderer Component.
+ * Renders a trail behind a moving object.
  */
-export class TrailRenderer extends MeshRenderer {
-  private _vertexStride: number;
-  private _vertices: Float32Array;
-  private _vertexBuffer: Buffer;
-  private _stroke;
-  private _minSeg;
-  private _lifetime;
-  private _maxPointNum;
-  private _points: Array<Vector3>;
-  private _pointStates: Array<number>;
-  private _strapPoints: Array<Vector3>;
-  private _curPointNum;
-  private _prePointsNum;
+export class TrailRenderer extends Renderer {
+  // Shader properties
+  private static _currentTimeProp = ShaderProperty.getByName("renderer_CurrentTime");
+  private static _lifetimeProp = ShaderProperty.getByName("renderer_Lifetime");
+  private static _widthProp = ShaderProperty.getByName("renderer_Width");
+  private static _textureModeProp = ShaderProperty.getByName("renderer_TextureMode");
+  private static _tileScaleProp = ShaderProperty.getByName("renderer_TileScale");
+
+  // Width curve shader properties
+  private static _widthCurveProp = ShaderProperty.getByName("renderer_WidthCurve");
+  private static _widthCurveCountProp = ShaderProperty.getByName("renderer_WidthCurveCount");
+
+  // Color gradient shader properties
+  private static _colorKeysProp = ShaderProperty.getByName("renderer_ColorKeys");
+  private static _colorKeyCountProp = ShaderProperty.getByName("renderer_ColorKeyCount");
+  private static _alphaKeysProp = ShaderProperty.getByName("renderer_AlphaKeys");
+  private static _alphaKeyCountProp = ShaderProperty.getByName("renderer_AlphaKeyCount");
+
+  // Vertex layout constants
+  private static readonly VERTEX_STRIDE = 52; // bytes per vertex
+  private static readonly VERTEX_FLOAT_STRIDE = 13; // floats per vertex
+
+  // Temp variables
+  private static _tempVector3 = new Vector3();
+
+  /** How long the trail points last (in seconds). */
+  time: number = 5.0;
+
+  /** The width of the trail. */
+  width: number = 1.0;
+
+  /** The minimum distance between trail points (in world units). */
+  minVertexDistance: number = 0.1;
+
+  /** Controls how the texture is applied to the trail. */
+  textureMode: TrailTextureMode = TrailTextureMode.Stretch;
+
+  /** The tile scale for Tile texture mode. */
+  tileScale: number = 1.0;
+
+  /** Trail color (used when colorGradient is not set). */
+  @deepClone
+  color: Color = new Color(1, 1, 1, 1);
+
   /**
-   * @deprecated
+   * Width curve over lifetime.
+   * The curve is evaluated based on normalizedAge (0 = head, 1 = tail).
+   * Default is a constant curve of 1.0.
    */
-  constructor(entity: Entity, props: any) {
+  @deepClone
+  widthCurve: ParticleCompositeCurve = new ParticleCompositeCurve(1.0);
+
+  /**
+   * Color gradient over lifetime.
+   * The gradient is evaluated based on normalizedAge (0 = head, 1 = tail).
+   * If not set (null), the color property is used.
+   */
+  @deepClone
+  colorGradient: ParticleGradient = null;
+
+  /** Whether the trail is currently emitting new points. */
+  emitting: boolean = true;
+
+  // Internal state
+  @ignoreClone
+  private _primitive: Primitive;
+  @ignoreClone
+  private _subPrimitive: SubPrimitive;
+  @ignoreClone
+  private _vertexBuffer: Buffer;
+  @ignoreClone
+  private _vertexBufferBinding: VertexBufferBinding;
+  @ignoreClone
+  private _vertices: Float32Array;
+  @ignoreClone
+  private _indexBuffer: Buffer;
+  @ignoreClone
+  private _indices: Uint16Array;
+
+  // Ring buffer pointers
+  @ignoreClone
+  private _firstActiveElement: number = 0;
+  @ignoreClone
+  private _firstFreeElement: number = 0;
+  @ignoreClone
+  private _currentPointCount: number = 0;
+  @ignoreClone
+  private _maxPointCount: number = 256;
+
+  // Last recorded position
+  @ignoreClone
+  private _lastPosition: Vector3 = new Vector3();
+  @ignoreClone
+  private _hasLastPosition: boolean = false;
+
+  // Playback time
+  @ignoreClone
+  private _playTime: number = 0;
+
+  // Shader data cache
+  @ignoreClone
+  private _widthCurveData: Float32Array;
+  @ignoreClone
+  private _colorKeysData: Float32Array;
+  @ignoreClone
+  private _alphaKeysData: Float32Array;
+
+  /**
+   * @internal
+   */
+  constructor(entity: Entity) {
     super(entity);
-
-    this._stroke = props.stroke || 0.2;
-    this._minSeg = props.minSeg || 0.02;
-    this._lifetime = props.lifetime || 1000;
-    this._maxPointNum = (this._lifetime / 1000.0) * entity.engine.targetFrameRate;
-
-    this._points = [];
-    this._pointStates = [];
-    this._strapPoints = [];
-    for (let i = 0; i < this._maxPointNum; i++) {
-      this._points.push(new Vector3());
-      this._pointStates.push(this._lifetime);
-
-      this._strapPoints.push(new Vector3());
-      this._strapPoints.push(new Vector3());
-    }
-    this._curPointNum = 0;
-
-    const mtl = props.material || new TrailMaterial(this.engine);
-    this.setMaterial(mtl);
-
-    this.setTexture(props.texture);
     this._initGeometry();
+
+    // Set default material
+    this.setMaterial(new TrailMaterial(this.engine));
+  }
+
+  /**
+   * Clear all trail points.
+   */
+  clear(): void {
+    this._firstActiveElement = 0;
+    this._firstFreeElement = 0;
+    this._currentPointCount = 0;
+    this._hasLastPosition = false;
   }
 
   /**
    * @internal
    */
-  override update(deltaTime: number) {
-    let mov = 0,
-      newIdx = 0;
-    for (let i = 0; i < this._curPointNum; i++) {
-      this._pointStates[i] -= deltaTime;
-      if (this._pointStates[i] < 0) {
-        mov++;
-      } else if (mov > 0) {
-        newIdx = i - mov;
+  protected override _update(context: RenderContext): void {
+    super._update(context);
 
-        // Move data
-        this._pointStates[newIdx] = this._pointStates[i];
+    const deltaTime = this.engine.time.deltaTime;
+    this._playTime += deltaTime;
 
-        // Move point
-        this._points[newIdx].copyFrom(this._points[i]);
-      }
-    }
-    this._curPointNum -= mov;
+    // Retire old points
+    this._retireActivePoints();
 
-    let appendNewPoint = true;
-    if (this._curPointNum === this._maxPointNum) {
-      appendNewPoint = false;
-    } else if (this._curPointNum > 0) {
-      const lastPoint = this._points[this._points.length - 1];
-      if (Vector3.distance(this.entity.transform.worldPosition, lastPoint) < this._minSeg) {
-        appendNewPoint = false;
-      } else {
-        // debugger
-      }
+    // Add new point if emitting and moved enough
+    if (this.emitting) {
+      this._tryAddNewPoint();
     }
 
-    if (appendNewPoint) {
-      this._pointStates[this._curPointNum] = this._lifetime;
-      this._points[this._curPointNum].copyFrom(this.entity.transform.worldPosition);
+    // Update shader uniforms
+    const shaderData = this.shaderData;
+    shaderData.setFloat(TrailRenderer._currentTimeProp, this._playTime);
+    shaderData.setFloat(TrailRenderer._lifetimeProp, this.time);
+    shaderData.setFloat(TrailRenderer._widthProp, this.width);
+    shaderData.setInt(TrailRenderer._textureModeProp, this.textureMode);
+    shaderData.setFloat(TrailRenderer._tileScaleProp, this.tileScale);
 
-      this._curPointNum++;
-    }
-  }
+    // Update width curve
+    this._updateWidthCurve(shaderData);
 
-  /**
-   * @deprecated
-   * Set trail texture.
-   * @param texture
-   */
-  setTexture(texture: Texture2D) {
-    if (texture) {
-      this.getMaterial().shaderData.setTexture("u_texture", texture);
-    }
+    // Update color gradient
+    this._updateColorGradient(shaderData);
   }
 
   /**
    * @internal
    */
   protected override _render(context: RenderContext): void {
-    this._updateStrapVertices(context.camera, this._points);
-    this._updateStrapCoords();
-    this._vertexBuffer.setData(this._vertices);
-
-    super._render(context);
-  }
-
-  private _initGeometry() {
-    const mesh = new BufferMesh(this._entity.engine);
-
-    const vertexStride = 20;
-    const vertexCount = this._maxPointNum * 2;
-    const vertexFloatCount = vertexCount * vertexStride;
-    const vertices = new Float32Array(vertexFloatCount);
-    const vertexElements = [
-      new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
-      new VertexElement("TEXCOORD_0", 12, VertexElementFormat.Vector2, 0)
-    ];
-    const vertexBuffer = new Buffer(this.engine, vertexFloatCount * 4, BufferUsage.Dynamic);
-
-    mesh.setVertexBufferBinding(vertexBuffer, vertexStride);
-    mesh.setVertexElements(vertexElements);
-    mesh.addSubMesh(0, vertexCount, MeshTopology.TriangleStrip);
-
-    this._vertexBuffer = vertexBuffer;
-    this._vertexStride = vertexStride;
-    this._vertices = vertices;
-    this.mesh = mesh;
-  }
-
-  private _updateStrapVertices(camera, points: Array<Vector3>) {
-    const m: Matrix = camera.viewMatrix;
-    const e = m.elements;
-    const vx = new Vector3(e[0], e[4], e[8]);
-    const vy = new Vector3(e[1], e[5], e[9]);
-    const vz = new Vector3(e[2], e[6], e[10]);
-    const s = this._stroke;
-
-    vy.scale(s);
-
-    const up = new Vector3();
-    const down = new Vector3();
-
-    const rotation = new Quaternion();
-
-    Vector3.transformByQuat(vx, rotation, vx);
-    Vector3.transformByQuat(vy, rotation, vy);
-
-    const dy = new Vector3();
-    const cross = new Vector3();
-    const perpVector = new Vector3();
-
-    vx.normalize();
-
-    const vertices = this._vertices;
-    //-- quad pos
-    for (let i = 0; i < this._maxPointNum; i++) {
-      //-- center pos
-      if (i < this._curPointNum) {
-        const p = points[i];
-
-        if (i === this._curPointNum - 1 && i !== 0) {
-          Vector3.subtract(p, points[i - 1], perpVector);
-        } else {
-          Vector3.subtract(points[i + 1], p, perpVector);
-        }
-
-        this._projectOnPlane(perpVector, vz, perpVector);
-        perpVector.normalize();
-
-        // Calculate angle between vectors
-        let angle = Math.acos(Vector3.dot(vx, perpVector));
-        Vector3.cross(vx, perpVector, cross);
-        if (Vector3.dot(cross, vz) <= 0) {
-          angle = Math.PI * 2 - angle;
-        }
-        Quaternion.rotationAxisAngle(vz, angle, rotation);
-        Vector3.transformByQuat(vy, rotation, dy);
-
-        Vector3.add(p, dy, up);
-        Vector3.subtract(p, dy, down);
-      }
-
-      const p0 = (i * 2 * this._vertexStride) / 4;
-      const p1 = ((i * 2 + 1) * this._vertexStride) / 4;
-      vertices[p0] = up.x;
-      vertices[p0 + 1] = up.y;
-      vertices[p0 + 2] = up.z;
-
-      vertices[p1] = down.x;
-      vertices[p1 + 1] = down.y;
-      vertices[p1 + 2] = down.z;
+    const activeCount = this._getActivePointCount();
+    if (activeCount < 2) {
+      return; // Need at least 2 points to form a segment
     }
-  }
 
-  private _updateStrapCoords() {
-    if (this._prePointsNum === this._curPointNum) {
+    // Update vertex buffer with new points
+    this._updateVertexBuffer();
+
+    // Update index buffer to handle ring buffer wrap-around
+    const indexCount = this._updateIndexBuffer(activeCount);
+    this._subPrimitive.count = indexCount;
+
+    let material = this.getMaterial();
+    if (!material) {
       return;
     }
 
-    this._prePointsNum = this._curPointNum;
+    if (material.destroyed || material.shader.destroyed) {
+      return;
+    }
 
-    const count = this._curPointNum;
-    const texDelta = 1.0 / count;
+    const engine = this._engine;
+    const renderElement = engine._renderElementPool.get();
+    renderElement.set(this.priority, this._distanceForSort);
+    const subRenderElement = engine._subRenderElementPool.get();
+    subRenderElement.set(this, material, this._primitive, this._subPrimitive);
+    renderElement.addSubRenderElement(subRenderElement);
+    context.camera._renderPipeline.pushRenderElement(context, renderElement);
+  }
+
+  /**
+   * @internal
+   */
+  protected override _updateBounds(worldBounds: BoundingBox): void {
     const vertices = this._vertices;
-    for (let i = 0; i < count; i++) {
-      const d = 1.0 - i * texDelta;
-      const p0 = (i * 2 * this._vertexStride) / 4;
-      const p1 = ((i * 2 + 1) * this._vertexStride) / 4;
+    const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
+    const halfWidth = this.width * 0.5;
 
-      vertices[p0] = 0;
-      vertices[p0 + 1] = d;
+    if (this._currentPointCount === 0) {
+      // No active points, use current entity position
+      const worldPosition = this.entity.transform.worldPosition;
+      worldBounds.min.set(
+        worldPosition.x - halfWidth,
+        worldPosition.y - halfWidth,
+        worldPosition.z - halfWidth
+      );
+      worldBounds.max.set(
+        worldPosition.x + halfWidth,
+        worldPosition.y + halfWidth,
+        worldPosition.z + halfWidth
+      );
+      return;
+    }
 
-      vertices[p1] = 1.0;
-      vertices[p1 + 1] = d;
+    // Initialize with first active point
+    const firstOffset = this._firstActiveElement * 2 * floatStride;
+    let minX = vertices[firstOffset];
+    let minY = vertices[firstOffset + 1];
+    let minZ = vertices[firstOffset + 2];
+    let maxX = minX;
+    let maxY = minY;
+    let maxZ = minZ;
+
+    // Iterate through all active points
+    let idx = this._firstActiveElement;
+    for (let i = 0; i < this._currentPointCount; i++) {
+      const offset = idx * 2 * floatStride;
+      const x = vertices[offset];
+      const y = vertices[offset + 1];
+      const z = vertices[offset + 2];
+
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (z < minZ) minZ = z;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+      if (z > maxZ) maxZ = z;
+
+      idx++;
+      if (idx >= this._maxPointCount) idx = 0;
+    }
+
+    // Expand bounds by half width (for billboard offset)
+    worldBounds.min.set(minX - halfWidth, minY - halfWidth, minZ - halfWidth);
+    worldBounds.max.set(maxX + halfWidth, maxY + halfWidth, maxZ + halfWidth);
+  }
+
+  /**
+   * @internal
+   */
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    this._vertexBuffer?.destroy();
+    this._indexBuffer?.destroy();
+    this._primitive?.destroy();
+  }
+
+  private _initGeometry(): void {
+    const engine = this.engine;
+    const maxPoints = this._maxPointCount;
+
+    // Each point generates 2 vertices (top and bottom of the trail strip)
+    const vertexCount = maxPoints * 2;
+    const byteLength = vertexCount * TrailRenderer.VERTEX_STRIDE;
+
+    // Create vertex buffer
+    this._vertexBuffer = new Buffer(
+      engine,
+      BufferBindFlag.VertexBuffer,
+      byteLength,
+      BufferUsage.Dynamic,
+      false
+    );
+
+    // Create CPU-side vertex array
+    this._vertices = new Float32Array(vertexCount * TrailRenderer.VERTEX_FLOAT_STRIDE);
+
+    // Create vertex buffer binding
+    this._vertexBufferBinding = new VertexBufferBinding(
+      this._vertexBuffer,
+      TrailRenderer.VERTEX_STRIDE
+    );
+
+    // Create index buffer (max indices = maxPoints * 2 for triangle strip)
+    const maxIndices = maxPoints * 2;
+    this._indexBuffer = new Buffer(
+      engine,
+      BufferBindFlag.IndexBuffer,
+      maxIndices * 2, // Uint16 = 2 bytes
+      BufferUsage.Dynamic,
+      false
+    );
+    this._indices = new Uint16Array(maxIndices);
+
+    // Create primitive
+    this._primitive = new Primitive(engine);
+    this._primitive.vertexBufferBindings.push(this._vertexBufferBinding);
+    this._primitive.setIndexBufferBinding(new IndexBufferBinding(this._indexBuffer, IndexFormat.UInt16));
+
+    // Define vertex elements:
+    // a_Position: vec3 (12 bytes, offset 0)
+    // a_BirthTime: float (4 bytes, offset 12)
+    // a_NormalizedWidth: float (4 bytes, offset 16)
+    // a_Color: vec4 (16 bytes, offset 20)
+    // a_Corner: float (4 bytes, offset 36)
+    // a_Tangent: vec3 (12 bytes, offset 40)
+    // Total: 52 bytes per vertex
+    this._primitive.addVertexElement(new VertexElement("a_Position", 0, VertexElementFormat.Vector3, 0));
+    this._primitive.addVertexElement(new VertexElement("a_BirthTime", 12, VertexElementFormat.Float, 0));
+    this._primitive.addVertexElement(new VertexElement("a_NormalizedWidth", 16, VertexElementFormat.Float, 0));
+    this._primitive.addVertexElement(new VertexElement("a_Color", 20, VertexElementFormat.Vector4, 0));
+    this._primitive.addVertexElement(new VertexElement("a_Corner", 36, VertexElementFormat.Float, 0));
+    this._primitive.addVertexElement(new VertexElement("a_Tangent", 40, VertexElementFormat.Vector3, 0));
+
+    // Create sub-primitive for drawing
+    this._subPrimitive = new SubPrimitive(0, 0, MeshTopology.TriangleStrip);
+  }
+
+  private _retireActivePoints(): void {
+    const currentTime = this._playTime;
+    const lifetime = this.time;
+
+    // Move firstActiveElement forward for points that have expired
+    while (this._firstActiveElement !== this._firstFreeElement) {
+      const offset = this._firstActiveElement * 2 * TrailRenderer.VERTEX_FLOAT_STRIDE;
+      const birthTime = this._vertices[offset + 3]; // a_BirthTime offset
+
+      if (currentTime - birthTime < lifetime) {
+        break; // This point is still alive
+      }
+
+      // Move to next element
+      this._firstActiveElement++;
+      if (this._firstActiveElement >= this._maxPointCount) {
+        this._firstActiveElement = 0;
+      }
+      this._currentPointCount--;
+    }
+
+    // If all points have expired, reset the trail state
+    if (this._currentPointCount === 0) {
+      this._hasLastPosition = false;
     }
   }
 
-  private _projectOnVector(a: Vector3, p: Vector3, out: Vector3): void {
-    const n_p = p.clone();
-    Vector3.normalize(n_p, n_p);
-    const cosine = Vector3.dot(a, n_p);
-    out.x = n_p.x * cosine;
-    out.y = n_p.y * cosine;
-    out.z = n_p.z * cosine;
+  private _tryAddNewPoint(): void {
+    const worldPosition = this.entity.transform.worldPosition;
+
+    // Check if we've moved enough to add a new point
+    if (this._hasLastPosition) {
+      const distance = Vector3.distance(worldPosition, this._lastPosition);
+      if (distance < this.minVertexDistance) {
+        return;
+      }
+    }
+
+    // Check if we have space for a new point
+    let nextFreeElement = this._firstFreeElement + 1;
+    if (nextFreeElement >= this._maxPointCount) {
+      nextFreeElement = 0;
+    }
+
+    if (nextFreeElement === this._firstActiveElement) {
+      // Buffer is full, retire oldest point
+      this._firstActiveElement++;
+      if (this._firstActiveElement >= this._maxPointCount) {
+        this._firstActiveElement = 0;
+      }
+      this._currentPointCount--;
+    }
+
+    // Add the new point
+    this._addPoint(worldPosition);
+
+    // Update last position
+    this._lastPosition.copyFrom(worldPosition);
+    this._hasLastPosition = true;
   }
 
-  private _projectOnPlane(a: Vector3, n: Vector3, out: Vector3) {
-    this._projectOnVector(a, n, _tempVector3);
-    Vector3.subtract(a, _tempVector3, out);
+  private _addPoint(position: Vector3): void {
+    const idx = this._firstFreeElement;
+    const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
+    const vertices = this._vertices;
+
+    // Calculate tangent (direction from last position to current position)
+    const tangent = TrailRenderer._tempVector3;
+    if (this._hasLastPosition) {
+      Vector3.subtract(position, this._lastPosition, tangent);
+      tangent.normalize();
+
+      // If this is the second point, update the first point's tangent
+      // to match this tangent (so the tail doesn't have wrong orientation)
+      if (this._currentPointCount === 1) {
+        const firstIdx = this._firstActiveElement;
+        for (let corner = -1; corner <= 1; corner += 2) {
+          const vertexIdx = firstIdx * 2 + (corner === -1 ? 0 : 1);
+          const offset = vertexIdx * floatStride;
+          tangent.copyToArray(vertices, offset + 10);  // Update a_Tangent
+        }
+      }
+    } else {
+      // First point - use forward direction (will be updated when second point is added)
+      tangent.set(0, 0, 1);
+    }
+
+    // Each point has 2 vertices (top and bottom)
+    const color = this.color;
+    for (let corner = -1; corner <= 1; corner += 2) {
+      const vertexIdx = idx * 2 + (corner === -1 ? 0 : 1);
+      const offset = vertexIdx * floatStride;
+
+      position.copyToArray(vertices, offset);      // a_Position (vec3)
+      vertices[offset + 3] = this._playTime;       // a_BirthTime (float)
+      vertices[offset + 4] = 1.0;                  // a_NormalizedWidth (float)
+      color.copyToArray(vertices, offset + 5);     // a_Color (vec4)
+      vertices[offset + 9] = corner;               // a_Corner (float)
+      tangent.copyToArray(vertices, offset + 10);  // a_Tangent (vec3)
+    }
+
+    // Update pointers
+    this._firstFreeElement++;
+    if (this._firstFreeElement >= this._maxPointCount) {
+      this._firstFreeElement = 0;
+    }
+    this._currentPointCount++;
+  }
+
+  private _getActivePointCount(): number {
+    return this._currentPointCount;
+  }
+
+  private _updateVertexBuffer(): void {
+    const firstActive = this._firstActiveElement;
+    const firstFree = this._firstFreeElement;
+
+    if (this._currentPointCount === 0) {
+      return; // No active points
+    }
+
+    const byteStride = TrailRenderer.VERTEX_STRIDE;
+    const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
+    const buffer = this._vertexBuffer;
+    const vertices = this._vertices;
+
+    // Each point has 2 vertices
+    if (firstActive < firstFree) {
+      // Contiguous range - create a view of the relevant portion
+      const startFloat = firstActive * 2 * floatStride;
+      const countFloat = (firstFree - firstActive) * 2 * floatStride;
+      const subArray = new Float32Array(vertices.buffer, startFloat * 4, countFloat);
+      buffer.setData(subArray, firstActive * 2 * byteStride);
+    } else {
+      // Wrapped range - upload in two parts
+      // First segment: from firstActive to end
+      const startFloat1 = firstActive * 2 * floatStride;
+      const countFloat1 = (this._maxPointCount - firstActive) * 2 * floatStride;
+      const subArray1 = new Float32Array(vertices.buffer, startFloat1 * 4, countFloat1);
+      buffer.setData(subArray1, firstActive * 2 * byteStride);
+
+      // Second segment: from 0 to firstFree
+      if (firstFree > 0) {
+        const countFloat2 = firstFree * 2 * floatStride;
+        const subArray2 = new Float32Array(vertices.buffer, 0, countFloat2);
+        buffer.setData(subArray2, 0);
+      }
+    }
+  }
+
+  private _updateIndexBuffer(activeCount: number): number {
+    const indices = this._indices;
+    const firstActive = this._firstActiveElement;
+    const maxPointCount = this._maxPointCount;
+    let indexCount = 0;
+
+    // Build index buffer to create proper triangle strip ordering
+    // This handles the ring buffer wrap-around case
+    for (let i = 0; i < activeCount; i++) {
+      const pointIdx = (firstActive + i) % maxPointCount;
+      const vertexIdx = pointIdx * 2;
+
+      // Each point has 2 vertices (top and bottom)
+      indices[indexCount++] = vertexIdx;     // bottom vertex
+      indices[indexCount++] = vertexIdx + 1; // top vertex
+    }
+
+    // Upload index buffer
+    this._indexBuffer.setData(indices, 0, 0, indexCount * 2);
+
+    return indexCount;
+  }
+
+  private _updateWidthCurve(shaderData: import("../shader/ShaderData").ShaderData): void {
+    const curve = this.widthCurve;
+    const widthCurveData = this._widthCurveData || (this._widthCurveData = new Float32Array(8));
+
+    if (curve.mode === 0) {
+      // Constant mode
+      widthCurveData[0] = 0; // time
+      widthCurveData[1] = curve.constant; // value
+      shaderData.setFloatArray(TrailRenderer._widthCurveProp, widthCurveData);
+      shaderData.setInt(TrailRenderer._widthCurveCountProp, 1);
+    } else if (curve.mode === 2 && curve.curve) {
+      // Curve mode
+      const keys = curve.curve.keys;
+      const count = Math.min(keys.length, 4);
+      for (let i = 0; i < count; i++) {
+        widthCurveData[i * 2] = keys[i].time;
+        widthCurveData[i * 2 + 1] = keys[i].value;
+      }
+      shaderData.setFloatArray(TrailRenderer._widthCurveProp, widthCurveData);
+      shaderData.setInt(TrailRenderer._widthCurveCountProp, count);
+    } else {
+      // Default: constant 1.0
+      widthCurveData[0] = 0;
+      widthCurveData[1] = 1;
+      shaderData.setFloatArray(TrailRenderer._widthCurveProp, widthCurveData);
+      shaderData.setInt(TrailRenderer._widthCurveCountProp, 1);
+    }
+  }
+
+  private _updateColorGradient(shaderData: import("../shader/ShaderData").ShaderData): void {
+    const gradient = this.colorGradient;
+
+    if (!gradient) {
+      // Use vertex color (from this.color)
+      shaderData.setInt(TrailRenderer._colorKeyCountProp, 0);
+      shaderData.setInt(TrailRenderer._alphaKeyCountProp, 0);
+      return;
+    }
+
+    const colorKeysData = this._colorKeysData || (this._colorKeysData = new Float32Array(16));
+    const alphaKeysData = this._alphaKeysData || (this._alphaKeysData = new Float32Array(8));
+
+    // Color keys
+    const colorKeys = gradient.colorKeys;
+    const colorCount = Math.min(colorKeys.length, 4);
+    for (let i = 0; i < colorCount; i++) {
+      const key = colorKeys[i];
+      colorKeysData[i * 4] = key.time;
+      colorKeysData[i * 4 + 1] = key.color.r;
+      colorKeysData[i * 4 + 2] = key.color.g;
+      colorKeysData[i * 4 + 3] = key.color.b;
+    }
+    shaderData.setFloatArray(TrailRenderer._colorKeysProp, colorKeysData);
+    shaderData.setInt(TrailRenderer._colorKeyCountProp, colorCount);
+
+    // Alpha keys
+    const alphaKeys = gradient.alphaKeys;
+    const alphaCount = Math.min(alphaKeys.length, 4);
+    for (let i = 0; i < alphaCount; i++) {
+      const key = alphaKeys[i];
+      alphaKeysData[i * 2] = key.time;
+      alphaKeysData[i * 2 + 1] = key.alpha;
+    }
+    shaderData.setFloatArray(TrailRenderer._alphaKeysProp, alphaKeysData);
+    shaderData.setInt(TrailRenderer._alphaKeyCountProp, alphaCount);
   }
 }
