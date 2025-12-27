@@ -83,4 +83,3 @@ export class TrailMaterial extends Material {
     this.renderState.rasterState.cullMode = CullMode.Off;
   }
 }
-

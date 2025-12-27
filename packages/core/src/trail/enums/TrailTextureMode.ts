@@ -7,4 +7,3 @@ export enum TrailTextureMode {
   /** Repeat the texture along the trail based on its length in world units. */
   Tile = 1
 }
-

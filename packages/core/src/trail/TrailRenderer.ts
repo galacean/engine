@@ -229,16 +229,8 @@ export class TrailRenderer extends Renderer {
     if (this._currentPointCount === 0) {
       // No active points, use current entity position
       const worldPosition = this.entity.transform.worldPosition;
-      worldBounds.min.set(
-        worldPosition.x - halfWidth,
-        worldPosition.y - halfWidth,
-        worldPosition.z - halfWidth
-      );
-      worldBounds.max.set(
-        worldPosition.x + halfWidth,
-        worldPosition.y + halfWidth,
-        worldPosition.z + halfWidth
-      );
+      worldBounds.min.set(worldPosition.x - halfWidth, worldPosition.y - halfWidth, worldPosition.z - halfWidth);
+      worldBounds.max.set(worldPosition.x + halfWidth, worldPosition.y + halfWidth, worldPosition.z + halfWidth);
       return;
     }
 
@@ -294,22 +286,13 @@ export class TrailRenderer extends Renderer {
     const byteLength = vertexCount * TrailRenderer.VERTEX_STRIDE;
 
     // Create vertex buffer
-    this._vertexBuffer = new Buffer(
-      engine,
-      BufferBindFlag.VertexBuffer,
-      byteLength,
-      BufferUsage.Dynamic,
-      false
-    );
+    this._vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, byteLength, BufferUsage.Dynamic, false);
 
     // Create CPU-side vertex array
     this._vertices = new Float32Array(vertexCount * TrailRenderer.VERTEX_FLOAT_STRIDE);
 
     // Create vertex buffer binding
-    this._vertexBufferBinding = new VertexBufferBinding(
-      this._vertexBuffer,
-      TrailRenderer.VERTEX_STRIDE
-    );
+    this._vertexBufferBinding = new VertexBufferBinding(this._vertexBuffer, TrailRenderer.VERTEX_STRIDE);
 
     // Create index buffer (max indices = maxPoints * 2 for triangle strip)
     const maxIndices = maxPoints * 2;
@@ -425,7 +408,7 @@ export class TrailRenderer extends Renderer {
         for (let corner = -1; corner <= 1; corner += 2) {
           const vertexIdx = firstIdx * 2 + (corner === -1 ? 0 : 1);
           const offset = vertexIdx * floatStride;
-          tangent.copyToArray(vertices, offset + 10);  // Update a_Tangent
+          tangent.copyToArray(vertices, offset + 10); // Update a_Tangent
         }
       }
     } else {
@@ -439,12 +422,12 @@ export class TrailRenderer extends Renderer {
       const vertexIdx = idx * 2 + (corner === -1 ? 0 : 1);
       const offset = vertexIdx * floatStride;
 
-      position.copyToArray(vertices, offset);      // a_Position (vec3)
-      vertices[offset + 3] = this._playTime;       // a_BirthTime (float)
-      vertices[offset + 4] = 1.0;                  // a_NormalizedWidth (float)
-      color.copyToArray(vertices, offset + 5);     // a_Color (vec4)
-      vertices[offset + 9] = corner;               // a_Corner (float)
-      tangent.copyToArray(vertices, offset + 10);  // a_Tangent (vec3)
+      position.copyToArray(vertices, offset); // a_Position (vec3)
+      vertices[offset + 3] = this._playTime; // a_BirthTime (float)
+      vertices[offset + 4] = 1.0; // a_NormalizedWidth (float)
+      color.copyToArray(vertices, offset + 5); // a_Color (vec4)
+      vertices[offset + 9] = corner; // a_Corner (float)
+      tangent.copyToArray(vertices, offset + 10); // a_Tangent (vec3)
     }
 
     // Update pointers
@@ -509,7 +492,7 @@ export class TrailRenderer extends Renderer {
       const vertexIdx = pointIdx * 2;
 
       // Each point has 2 vertices (top and bottom)
-      indices[indexCount++] = vertexIdx;     // bottom vertex
+      indices[indexCount++] = vertexIdx; // bottom vertex
       indices[indexCount++] = vertexIdx + 1; // top vertex
     }
 
