@@ -158,9 +158,6 @@ export class TrailRenderer extends Renderer {
     this._boundsDirty = true;
   }
 
-  /**
-   * @internal
-   */
   protected override _update(context: RenderContext): void {
     super._update(context);
 
@@ -190,9 +187,6 @@ export class TrailRenderer extends Renderer {
     this._updateColorGradient(shaderData);
   }
 
-  /**
-   * @internal
-   */
   protected override _render(context: RenderContext): void {
     const activeCount = this._getActivePointCount();
     if (activeCount < 2) {
@@ -226,9 +220,6 @@ export class TrailRenderer extends Renderer {
     context.camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
-  /**
-   * @internal
-   */
   protected override _updateBounds(worldBounds: BoundingBox): void {
     const activeCount = this._getActivePointCount();
     const halfWidth = this.width * 0.5;
@@ -252,9 +243,6 @@ export class TrailRenderer extends Renderer {
     worldBounds.max.set(max.x + halfWidth, max.y + halfWidth, max.z + halfWidth);
   }
 
-  /**
-   * @internal
-   */
   protected override _onDestroy(): void {
     super._onDestroy();
     this._vertexBuffer?.destroy();
@@ -475,15 +463,15 @@ export class TrailRenderer extends Renderer {
     max.copyFrom(min);
 
     // Iterate through remaining active points
-    const tempPos = TrailRenderer._tempVector3;
+    const pointPosition = TrailRenderer._tempVector3;
     let idx = this._firstActiveElement + 1;
     if (idx >= this._maxPointCount) idx = 0;
 
     for (let i = 1; i < activeCount; i++) {
       const offset = idx * 2 * floatStride;
-      tempPos.copyFromArray(vertices, offset);
-      Vector3.min(min, tempPos, min);
-      Vector3.max(max, tempPos, max);
+      pointPosition.copyFromArray(vertices, offset);
+      Vector3.min(min, pointPosition, min);
+      Vector3.max(max, pointPosition, max);
 
       idx++;
       if (idx >= this._maxPointCount) idx = 0;
