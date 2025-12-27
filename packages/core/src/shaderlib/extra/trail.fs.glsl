@@ -9,13 +9,26 @@ uniform vec4 material_BaseColor;
     uniform sampler2D material_BaseTexture;
 #endif
 
+uniform mediump vec3 material_EmissiveColor;
+#ifdef MATERIAL_HAS_EMISSIVETEXTURE
+    uniform sampler2D material_EmissiveTexture;
+#endif
+
 void main() {
-    vec4 baseColor = material_BaseColor * v_color;
+    vec4 color = material_BaseColor * v_color;
 
     #ifdef MATERIAL_HAS_BASETEXTURE
-        baseColor *= texture2DSRGB(material_BaseTexture, v_uv);
+        color *= texture2DSRGB(material_BaseTexture, v_uv);
     #endif
 
-    gl_FragColor = baseColor;
+    // Emissive
+    vec3 emissiveRadiance = material_EmissiveColor;
+    #ifdef MATERIAL_HAS_EMISSIVETEXTURE
+        emissiveRadiance *= texture2DSRGB(material_EmissiveTexture, v_uv).rgb;
+    #endif
+
+    color.rgb += emissiveRadiance;
+
+    gl_FragColor = color;
 }
 
