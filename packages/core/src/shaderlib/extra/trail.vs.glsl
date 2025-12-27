@@ -1,11 +1,8 @@
 // Trail vertex attributes (per-vertex)
 // Each segment has 2 vertices (top and bottom)
-attribute vec3 a_Position;      // World position of the trail point center
-attribute float a_BirthTime;    // Time when this point was created
-attribute float a_NormalizedWidth; // Width factor at this point (unused, kept for compatibility)
+attribute vec4 a_PositionBirthTime; // xyz: World position, w: Birth time
 attribute vec4 a_Color;         // Color at this point (unused when gradient is used)
-attribute float a_Corner;       // -1 for bottom, 1 for top
-attribute vec3 a_Tangent;       // Direction to next point (for billboard calculation)
+attribute vec4 a_CornerTangent; // x: Corner (-1 or 1), yzw: Tangent direction
 
 // Uniforms
 uniform float renderer_CurrentTime;
@@ -90,8 +87,14 @@ float evaluateAlphaGradient(in vec2 keys[4], in int count, in float t) {
 }
 
 void main() {
+    // Extract position and birth time
+    vec3 position = a_PositionBirthTime.xyz;
+    float birthTime = a_PositionBirthTime.w;
+    float corner = a_CornerTangent.x;
+    vec3 tangent = a_CornerTangent.yzw;
+
     // Calculate normalized age (0 = new, 1 = about to die)
-    float age = renderer_CurrentTime - a_BirthTime;
+    float age = renderer_CurrentTime - birthTime;
     float normalizedAge = clamp(age / renderer_Lifetime, 0.0, 1.0);
 
     // Discard vertices that have exceeded their lifetime
@@ -101,16 +104,16 @@ void main() {
     }
 
     // Calculate billboard offset (View alignment)
-    vec3 toCamera = normalize(camera_Position - a_Position);
-    vec3 right = cross(a_Tangent, toCamera);
+    vec3 toCamera = normalize(camera_Position - position);
+    vec3 right = cross(tangent, toCamera);
     float rightLen = length(right);
 
     // Handle edge case when tangent is parallel to camera direction
     if (rightLen < 0.001) {
-        right = cross(a_Tangent, vec3(0.0, 1.0, 0.0));
+        right = cross(tangent, vec3(0.0, 1.0, 0.0));
         rightLen = length(right);
         if (rightLen < 0.001) {
-            right = cross(a_Tangent, vec3(1.0, 0.0, 0.0));
+            right = cross(tangent, vec3(1.0, 0.0, 0.0));
             rightLen = length(right);
         }
     }
@@ -121,12 +124,12 @@ void main() {
     float width = renderer_Width * widthMultiplier;
 
     // Apply offset
-    vec3 worldPosition = a_Position + right * width * 0.5 * a_Corner;
+    vec3 worldPosition = position + right * width * 0.5 * corner;
 
     gl_Position = camera_ProjMat * camera_ViewMat * vec4(worldPosition, 1.0);
 
     // Calculate UV based on texture mode
-    float u = a_Corner * 0.5 + 0.5;  // 0 for bottom, 1 for top
+    float u = corner * 0.5 + 0.5;  // 0 for bottom, 1 for top
     float v;
 
     if (renderer_TextureMode == 0) {

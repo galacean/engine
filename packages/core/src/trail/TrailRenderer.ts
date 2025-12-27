@@ -42,9 +42,9 @@ export class TrailRenderer extends Renderer {
   private static _alphaKeysProp = ShaderProperty.getByName("renderer_AlphaKeys");
   private static _alphaKeyCountProp = ShaderProperty.getByName("renderer_AlphaKeyCount");
 
-  // Vertex layout constants
-  private static readonly VERTEX_STRIDE = 52; // bytes per vertex
-  private static readonly VERTEX_FLOAT_STRIDE = 13; // floats per vertex
+  // Vertex layout constants (3 x vec4 = 48 bytes)
+  private static readonly VERTEX_STRIDE = 48; // bytes per vertex
+  private static readonly VERTEX_FLOAT_STRIDE = 12; // floats per vertex
 
   // Temp variables
   private static _tempVector3 = new Vector3();
@@ -284,20 +284,13 @@ export class TrailRenderer extends Renderer {
     primitive.vertexBufferBindings.push(vertexBufferBinding);
     primitive.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, IndexFormat.UInt16));
 
-    // Define vertex elements:
-    // a_Position: vec3 (12 bytes, offset 0)
-    // a_BirthTime: float (4 bytes, offset 12)
-    // a_NormalizedWidth: float (4 bytes, offset 16)
-    // a_Color: vec4 (16 bytes, offset 20)
-    // a_Corner: float (4 bytes, offset 36)
-    // a_Tangent: vec3 (12 bytes, offset 40)
-    // Total: 52 bytes per vertex
-    primitive.addVertexElement(new VertexElement("a_Position", 0, VertexElementFormat.Vector3, 0));
-    primitive.addVertexElement(new VertexElement("a_BirthTime", 12, VertexElementFormat.Float, 0));
-    primitive.addVertexElement(new VertexElement("a_NormalizedWidth", 16, VertexElementFormat.Float, 0));
-    primitive.addVertexElement(new VertexElement("a_Color", 20, VertexElementFormat.Vector4, 0));
-    primitive.addVertexElement(new VertexElement("a_Corner", 36, VertexElementFormat.Float, 0));
-    primitive.addVertexElement(new VertexElement("a_Tangent", 40, VertexElementFormat.Vector3, 0));
+    // Define vertex elements (3 x vec4 = 48 bytes per vertex):
+    // a_PositionBirthTime: vec4 (16 bytes, offset 0) - xyz: position, w: birthTime
+    // a_Color: vec4 (16 bytes, offset 16)
+    // a_CornerTangent: vec4 (16 bytes, offset 32) - x: corner, yzw: tangent
+    primitive.addVertexElement(new VertexElement("a_PositionBirthTime", 0, VertexElementFormat.Vector4, 0));
+    primitive.addVertexElement(new VertexElement("a_Color", 16, VertexElementFormat.Vector4, 0));
+    primitive.addVertexElement(new VertexElement("a_CornerTangent", 32, VertexElementFormat.Vector4, 0));
 
     // Create sub-primitive for drawing
     this._subPrimitive = new SubPrimitive(0, 0, MeshTopology.TriangleStrip);
@@ -386,7 +379,10 @@ export class TrailRenderer extends Renderer {
         for (let corner = -1; corner <= 1; corner += 2) {
           const vertexIdx = firstIdx * 2 + (corner === -1 ? 0 : 1);
           const offset = vertexIdx * floatStride;
-          tangent.copyToArray(vertices, offset + 10); // Update a_Tangent
+          // Update a_CornerTangent.yzw (tangent part)
+          vertices[offset + 9] = tangent.x;
+          vertices[offset + 10] = tangent.y;
+          vertices[offset + 11] = tangent.z;
         }
         // First point's tangent was updated, need to re-upload it
         this._firstNewElement = this._firstActiveElement;
@@ -397,17 +393,20 @@ export class TrailRenderer extends Renderer {
     }
 
     // Each point has 2 vertices (top and bottom)
+    // Layout: a_PositionBirthTime (vec4), a_Color (vec4), a_CornerTangent (vec4)
     const color = this.color;
     for (let corner = -1; corner <= 1; corner += 2) {
       const vertexIdx = idx * 2 + (corner === -1 ? 0 : 1);
       const offset = vertexIdx * floatStride;
 
-      position.copyToArray(vertices, offset); // a_Position (vec3)
-      vertices[offset + 3] = this._playTime; // a_BirthTime (float)
-      vertices[offset + 4] = 1.0; // a_NormalizedWidth (float)
-      color.copyToArray(vertices, offset + 5); // a_Color (vec4)
-      vertices[offset + 9] = corner; // a_Corner (float)
-      tangent.copyToArray(vertices, offset + 10); // a_Tangent (vec3)
+      // a_PositionBirthTime: xyz = position, w = birthTime
+      position.copyToArray(vertices, offset);
+      vertices[offset + 3] = this._playTime;
+      // a_Color
+      color.copyToArray(vertices, offset + 4);
+      // a_CornerTangent: x = corner, yzw = tangent
+      vertices[offset + 8] = corner;
+      tangent.copyToArray(vertices, offset + 9);
     }
 
     // Expand cached bounds with new point (incremental update)
