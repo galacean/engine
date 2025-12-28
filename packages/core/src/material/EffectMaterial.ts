@@ -83,4 +83,3 @@ export class EffectMaterial extends BaseMaterial {
     this.isTransparent = true;
   }
 }
-
