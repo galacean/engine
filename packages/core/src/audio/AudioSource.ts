@@ -273,5 +273,4 @@ export class AudioSource extends Component {
     this._sourceNode.onended = null;
     this._sourceNode = null;
   }
-
 }
