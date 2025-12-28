@@ -12,7 +12,9 @@ export class AudioSource extends Component {
   playOnEnabled = true;
 
   @ignoreClone
-  private _isPlaying: boolean = false;
+  private _isPlaying = false;
+  @ignoreClone
+  private _pendingPlay = false;
 
   @assignmentClone
   private _clip: AudioClip;
@@ -22,18 +24,18 @@ export class AudioSource extends Component {
   private _sourceNode: AudioBufferSourceNode | null = null;
 
   @ignoreClone
-  private _pausedTime: number = -1;
+  private _pausedTime = -1;
   @ignoreClone
-  private _playTime: number = -1;
+  private _playTime = -1;
 
   @assignmentClone
-  private _volume: number = 1;
+  private _volume = 1;
   @assignmentClone
-  private _lastVolume: number = 1;
+  private _lastVolume = 1;
   @assignmentClone
-  private _playbackRate: number = 1;
+  private _playbackRate = 1;
   @assignmentClone
-  private _loop: boolean = false;
+  private _loop = false;
 
   /**
    * The audio clip to play.
@@ -153,7 +155,7 @@ export class AudioSource extends Component {
     if (!this._clip?._getAudioSource()) {
       return;
     }
-    if (this._isPlaying) {
+    if (this._isPlaying || this._pendingPlay) {
       return;
     }
 
@@ -162,15 +164,20 @@ export class AudioSource extends Component {
     } else {
       // iOS Safari requires resume() to be called within the same user gesture callback that triggers playback.
       // Document-level events won't work - must call resume() directly here in play().
+      this._pendingPlay = true;
       AudioManager.resume().then(
         () => {
+          this._pendingPlay = false;
           // Check if still valid to play after async resume
-          if (this._destroyed || !this.enabled || this._isPlaying) {
+          if (this._destroyed || !this.enabled) {
             return;
           }
           this._startPlayback();
         },
-        (e) => console.warn("AudioContext resume failed:", e)
+        (e) => {
+          this._pendingPlay = false;
+          console.warn("AudioContext resume failed:", e);
+        }
       );
     }
   }
