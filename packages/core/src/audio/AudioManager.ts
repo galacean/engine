@@ -5,17 +5,12 @@
 export class AudioManager {
   private static _context: AudioContext;
   private static _gainNode: GainNode;
-  private static _isResuming = false;
+  private static _resumePromise: Promise<void> = null;
 
   static getContext(): AudioContext {
     let context = AudioManager._context;
     if (!context) {
       AudioManager._context = context = new window.AudioContext();
-
-      // Safari can't resume audio context without element interaction
-      document.addEventListener("pointerdown", AudioManager._tryResume, true);
-      document.addEventListener("touchend", AudioManager._tryResume, true);
-      document.addEventListener("touchstart", AudioManager._tryResume, true);
     }
     return context;
   }
@@ -30,23 +25,12 @@ export class AudioManager {
   }
 
   static isAudioContextRunning(): boolean {
-    if (AudioManager.getContext().state !== "running") {
-      console.warn("The AudioContext is not running and requires user interaction, such as a click or touch.");
-      return false;
-    }
-    return true;
+    return AudioManager.getContext().state === "running";
   }
 
-  private static _tryResume(): void {
-    if (AudioManager._context.state !== "running") {
-      if (AudioManager._isResuming) {
-        return;
-      }
-
-      AudioManager._isResuming = true;
-      AudioManager._context.resume().then(() => {
-        AudioManager._isResuming = false;
-      });
-    }
+  static resume(): Promise<void> {
+    return (AudioManager._resumePromise ??= AudioManager._context.resume().then(() => {
+      AudioManager._resumePromise = null;
+    }));
   }
 }

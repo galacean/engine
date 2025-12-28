@@ -150,18 +150,20 @@ export class AudioSource extends Component {
    * Play the clip.
    */
   play(): void {
-    if (!this._canPlay()) {
+    if (!this._clip?._getAudioSource()) {
       return;
     }
     if (this._isPlaying) {
       return;
     }
-    const startTime = this._pausedTime > 0 ? this._pausedTime - this._playTime : 0;
-    this._initSourceNode(startTime);
 
-    this._playTime = AudioManager.getContext().currentTime - startTime;
-    this._pausedTime = -1;
-    this._isPlaying = true;
+    if (AudioManager.isAudioContextRunning()) {
+      this._startPlayback();
+    } else {
+      // iOS Safari requires resume() to be called within the same user gesture callback that triggers playback.
+      // Document-level events won't work - must call resume() directly here in play().
+      AudioManager.resume().then(() => this._startPlayback());
+    }
   }
 
   /**
@@ -225,6 +227,15 @@ export class AudioSource extends Component {
     this.stop();
   }
 
+  private _startPlayback(): void {
+    const startTime = this._pausedTime > 0 ? this._pausedTime - this._playTime : 0;
+    this._initSourceNode(startTime);
+
+    this._playTime = AudioManager.getContext().currentTime - startTime;
+    this._pausedTime = -1;
+    this._isPlaying = true;
+  }
+
   private _initSourceNode(startTime: number): void {
     const context = AudioManager.getContext();
     const sourceNode = context.createBufferSource();
@@ -247,8 +258,4 @@ export class AudioSource extends Component {
     this._sourceNode = null;
   }
 
-  private _canPlay(): boolean {
-    const isValidClip = this._clip?._getAudioSource() ? true : false;
-    return isValidClip && AudioManager.isAudioContextRunning();
-  }
 }
