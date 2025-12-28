@@ -29,7 +29,7 @@ export class TrailRenderer extends Renderer {
   private static _lifetimeProp = ShaderProperty.getByName("renderer_Lifetime");
   private static _widthProp = ShaderProperty.getByName("renderer_Width");
   private static _textureModeProp = ShaderProperty.getByName("renderer_TextureMode");
-  private static _tileScaleProp = ShaderProperty.getByName("renderer_TileScale");
+  private static _textureScaleProp = ShaderProperty.getByName("renderer_TextureScale");
   private static _widthCurveProp = ShaderProperty.getByName("renderer_WidthCurve");
   private static _widthCurveCountProp = ShaderProperty.getByName("renderer_WidthCurveCount");
   private static _colorKeysProp = ShaderProperty.getByName("renderer_ColorKeys");
@@ -48,8 +48,8 @@ export class TrailRenderer extends Renderer {
   minVertexDistance = 0.1;
   /** Controls how the texture is applied to the trail. */
   textureMode = TrailTextureMode.Stretch;
-  /** The tile scale for Tile texture mode. */
-  tileScale = 1.0;
+  /** The texture scale for Tile texture mode. */
+  textureScale = 1.0;
   /** Trail color (used when colorGradient is not set). */
   @deepClone
   color = new Color(1, 1, 1, 1);
@@ -131,7 +131,7 @@ export class TrailRenderer extends Renderer {
     shaderData.setFloat(TrailRenderer._lifetimeProp, this.time);
     shaderData.setFloat(TrailRenderer._widthProp, this.width);
     shaderData.setInt(TrailRenderer._textureModeProp, this.textureMode);
-    shaderData.setFloat(TrailRenderer._tileScaleProp, this.tileScale);
+    shaderData.setFloat(TrailRenderer._textureScaleProp, this.textureScale);
     this._updateWidthCurve(shaderData);
     this._updateColorGradient(shaderData);
   }

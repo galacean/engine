@@ -9,7 +9,7 @@ uniform float renderer_CurrentTime;
 uniform float renderer_Lifetime;
 uniform float renderer_Width;    // Base width
 uniform int renderer_TextureMode;  // 0: Stretch, 1: Tile
-uniform float renderer_TileScale;
+uniform float renderer_TextureScale;
 
 uniform vec3 camera_Position;
 uniform mat4 camera_ViewMat;
@@ -137,7 +137,7 @@ void main() {
         v = normalizedAge;
     } else {
         // Tile mode: scale by tile scale
-        v = normalizedAge * renderer_TileScale;
+        v = normalizedAge * renderer_TextureScale;
     }
 
     v_uv = vec2(u, v);
