@@ -29,7 +29,7 @@ export class AudioManager {
   }
 
   static resume(): Promise<void> {
-    return (AudioManager._resumePromise ??= AudioManager._context.resume().then(() => {
+    return (AudioManager._resumePromise ??= AudioManager._context.resume().finally(() => {
       AudioManager._resumePromise = null;
     }));
   }
