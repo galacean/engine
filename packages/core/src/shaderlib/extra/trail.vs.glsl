@@ -1,14 +1,13 @@
 // Trail vertex attributes (per-vertex)
 // Each segment has 2 vertices (top and bottom)
 attribute vec4 a_PositionBirthTime; // xyz: World position, w: Birth time
-attribute vec4 a_Color;         // Color at this point (unused when gradient is used)
-attribute vec4 a_CornerTangent; // x: Corner (-1 or 1), yzw: Tangent direction
+attribute vec4 a_CornerTangent;     // x: Corner (-1 or 1), yzw: Tangent direction
 
 // Uniforms
 uniform float renderer_CurrentTime;
 uniform float renderer_Lifetime;
-uniform float renderer_Width;    // Base width
-uniform int renderer_TextureMode;  // 0: Stretch, 1: Tile
+uniform float renderer_Width;
+uniform int renderer_TextureMode;   // 0: Stretch, 1: Tile
 uniform float renderer_TextureScale;
 
 uniform vec3 camera_Position;
@@ -19,17 +18,15 @@ uniform mat4 camera_ProjMat;
 uniform vec2 renderer_WidthCurve[4];
 uniform int renderer_WidthCurveCount;
 
-// Color gradient uniforms
-uniform vec4 renderer_ColorKeys[4];  // x=time, yzw=rgb
-uniform int renderer_ColorKeyCount;
-uniform vec2 renderer_AlphaKeys[4];  // x=time, y=alpha
-uniform int renderer_AlphaKeyCount;
+// Color gradient uniforms (4 keyframes max)
+uniform vec4 renderer_ColorKeys[4]; // x=time, yzw=rgb
+uniform vec2 renderer_AlphaKeys[4]; // x=time, y=alpha
 
 // Varyings
 varying vec2 v_uv;
 varying vec4 v_color;
 
-// Evaluate curve at normalized age
+// Evaluate width curve at normalized age
 float evaluateCurve(in vec2 keys[4], in int count, in float t) {
     if (count <= 0) return 1.0;
     if (count == 1) return keys[0].y;
@@ -39,51 +36,42 @@ float evaluateCurve(in vec2 keys[4], in int count, in float t) {
         if (t <= keys[i].x) {
             float t0 = keys[i - 1].x;
             float t1 = keys[i].x;
-            float v0 = keys[i - 1].y;
-            float v1 = keys[i].y;
             float factor = (t - t0) / (t1 - t0);
-            return mix(v0, v1, factor);
+            return mix(keys[i - 1].y, keys[i].y, factor);
         }
     }
     return keys[count - 1].y;
 }
 
-// Evaluate color gradient at normalized age
-vec3 evaluateColorGradient(in vec4 keys[4], in int count, in float t) {
-    if (count <= 0) return vec3(1.0);
-    if (count == 1) return keys[0].yzw;
+// Evaluate color gradient at normalized age (fixed 4 iterations)
+vec4 evaluateGradient(in vec4 colorKeys[4], in vec2 alphaKeys[4], in float t) {
+    vec4 result = vec4(colorKeys[0].yzw, alphaKeys[0].y);
 
+    // Evaluate color keys
     for (int i = 1; i < 4; i++) {
-        if (i >= count) break;
-        if (t <= keys[i].x) {
-            float t0 = keys[i - 1].x;
-            float t1 = keys[i].x;
-            vec3 c0 = keys[i - 1].yzw;
-            vec3 c1 = keys[i].yzw;
-            float factor = (t - t0) / (t1 - t0);
-            return mix(c0, c1, factor);
+        vec4 key = colorKeys[i];
+        if (t <= key.x) {
+            float t0 = colorKeys[i - 1].x;
+            float factor = (t - t0) / (key.x - t0);
+            result.rgb = mix(colorKeys[i - 1].yzw, key.yzw, factor);
+            break;
         }
+        result.rgb = key.yzw;
     }
-    return keys[count - 1].yzw;
-}
 
-// Evaluate alpha gradient at normalized age
-float evaluateAlphaGradient(in vec2 keys[4], in int count, in float t) {
-    if (count <= 0) return 1.0;
-    if (count == 1) return keys[0].y;
-
+    // Evaluate alpha keys
     for (int i = 1; i < 4; i++) {
-        if (i >= count) break;
-        if (t <= keys[i].x) {
-            float t0 = keys[i - 1].x;
-            float t1 = keys[i].x;
-            float a0 = keys[i - 1].y;
-            float a1 = keys[i].y;
-            float factor = (t - t0) / (t1 - t0);
-            return mix(a0, a1, factor);
+        vec2 key = alphaKeys[i];
+        if (t <= key.x) {
+            float t0 = alphaKeys[i - 1].x;
+            float factor = (t - t0) / (key.x - t0);
+            result.a = mix(alphaKeys[i - 1].y, key.y, factor);
+            break;
         }
+        result.a = key.y;
     }
-    return keys[count - 1].y;
+
+    return result;
 }
 
 void main() {
@@ -142,13 +130,6 @@ void main() {
 
     v_uv = vec2(u, v);
 
-    // Evaluate color gradient or use vertex color
-    if (renderer_ColorKeyCount > 0 || renderer_AlphaKeyCount > 0) {
-        vec3 gradientColor = evaluateColorGradient(renderer_ColorKeys, renderer_ColorKeyCount, normalizedAge);
-        float gradientAlpha = evaluateAlphaGradient(renderer_AlphaKeys, renderer_AlphaKeyCount, normalizedAge);
-        v_color = vec4(gradientColor, gradientAlpha);
-    } else {
-        v_color = a_Color;
-    }
+    // Evaluate color gradient
+    v_color = evaluateGradient(renderer_ColorKeys, renderer_AlphaKeys, normalizedAge);
 }
-

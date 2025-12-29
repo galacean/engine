@@ -15,7 +15,7 @@ import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { ParticleCompositeCurve } from "../particle/modules/ParticleCompositeCurve";
-import { ParticleGradient } from "../particle/modules/ParticleGradient";
+import { GradientAlphaKey, GradientColorKey, ParticleGradient } from "../particle/modules/ParticleGradient";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { TrailTextureMode } from "./enums/TrailTextureMode";
@@ -33,11 +33,9 @@ export class TrailRenderer extends Renderer {
   private static _widthCurveProp = ShaderProperty.getByName("renderer_WidthCurve");
   private static _widthCurveCountProp = ShaderProperty.getByName("renderer_WidthCurveCount");
   private static _colorKeysProp = ShaderProperty.getByName("renderer_ColorKeys");
-  private static _colorKeyCountProp = ShaderProperty.getByName("renderer_ColorKeyCount");
   private static _alphaKeysProp = ShaderProperty.getByName("renderer_AlphaKeys");
-  private static _alphaKeyCountProp = ShaderProperty.getByName("renderer_AlphaKeyCount");
-  private static readonly VERTEX_STRIDE = 48;
-  private static readonly VERTEX_FLOAT_STRIDE = 12;
+  private static readonly VERTEX_STRIDE = 32;
+  private static readonly VERTEX_FLOAT_STRIDE = 8;
   private static _tempVector3 = new Vector3();
 
   /** How long the trail points last (in seconds). */
@@ -50,15 +48,15 @@ export class TrailRenderer extends Renderer {
   textureMode = TrailTextureMode.Stretch;
   /** The texture scale for Tile texture mode. */
   textureScale = 1.0;
-  /** Trail color (used when colorGradient is not set). */
-  @deepClone
-  color = new Color(1, 1, 1, 1);
   /** Width curve over lifetime (0 = head, 1 = tail). */
   @deepClone
   widthCurve = new ParticleCompositeCurve(1.0);
-  /** Color gradient over lifetime (0 = head, 1 = tail). If null, uses color property. */
+  /** Color gradient over lifetime (0 = head, 1 = tail). */
   @deepClone
-  colorGradient: ParticleGradient = null;
+  colorGradient = new ParticleGradient(
+    [new GradientColorKey(0, new Color(1, 1, 1, 1)), new GradientColorKey(1, new Color(1, 1, 1, 1))],
+    [new GradientAlphaKey(0, 1), new GradientAlphaKey(1, 1)]
+  );
   /** Whether the trail is currently emitting new points. */
   emitting = true;
 
@@ -213,13 +211,11 @@ export class TrailRenderer extends Renderer {
     this._primitive = primitive;
     primitive.vertexBufferBindings.push(vertexBufferBinding);
     primitive.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, IndexFormat.UInt16));
-    // Vertex layout (3 x vec4 = 48 bytes):
+    // Vertex layout (2 x vec4 = 32 bytes):
     // a_PositionBirthTime: xyz = position, w = birthTime
-    // a_Color: rgba
     // a_CornerTangent: x = corner (-1 or 1), yzw = tangent direction
     primitive.addVertexElement(new VertexElement("a_PositionBirthTime", 0, VertexElementFormat.Vector4, 0));
-    primitive.addVertexElement(new VertexElement("a_Color", 16, VertexElementFormat.Vector4, 0));
-    primitive.addVertexElement(new VertexElement("a_CornerTangent", 32, VertexElementFormat.Vector4, 0));
+    primitive.addVertexElement(new VertexElement("a_CornerTangent", 16, VertexElementFormat.Vector4, 0));
 
     this._subPrimitive = new SubPrimitive(0, 0, MeshTopology.TriangleStrip);
   }
@@ -277,7 +273,7 @@ export class TrailRenderer extends Renderer {
   }
 
   private _addPoint(position: Vector3): void {
-    const idx = this._firstFreeElement;
+    const pointIndex = this._firstFreeElement;
     const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
     const vertices = this._vertices;
 
@@ -288,10 +284,10 @@ export class TrailRenderer extends Renderer {
 
       // First point has placeholder tangent, update it when second point is added
       if (this._getActivePointCount() === 1) {
-        const firstIdx = this._firstActiveElement;
+        const firstPointIndex = this._firstActiveElement;
         for (let corner = -1; corner <= 1; corner += 2) {
-          const vertexIdx = firstIdx * 2 + (corner === -1 ? 0 : 1);
-          tangent.copyToArray(vertices, vertexIdx * floatStride + 9);
+          const vertexIndex = firstPointIndex * 2 + (corner === -1 ? 0 : 1);
+          tangent.copyToArray(vertices, vertexIndex * floatStride + 5);
         }
         // Mark first point for re-upload since its tangent changed
         this._firstNewElement = this._firstActiveElement;
@@ -302,16 +298,14 @@ export class TrailRenderer extends Renderer {
     }
 
     // Write vertex data for top and bottom vertices (corner = -1 and 1)
-    const color = this.color;
     for (let corner = -1; corner <= 1; corner += 2) {
-      const vertexIdx = idx * 2 + (corner === -1 ? 0 : 1);
-      const offset = vertexIdx * floatStride;
+      const vertexIndex = pointIndex * 2 + (corner === -1 ? 0 : 1);
+      const offset = vertexIndex * floatStride;
 
       position.copyToArray(vertices, offset);
       vertices[offset + 3] = this._playTime;
-      color.copyToArray(vertices, offset + 4);
-      vertices[offset + 8] = corner;
-      tangent.copyToArray(vertices, offset + 9);
+      vertices[offset + 4] = corner;
+      tangent.copyToArray(vertices, offset + 5);
     }
 
     this._expandBounds(position);
@@ -359,16 +353,16 @@ export class TrailRenderer extends Renderer {
     max.copyFrom(min);
 
     const pointPosition = TrailRenderer._tempVector3;
-    let idx = this._firstActiveElement + 1;
-    if (idx >= this._maxPointCount) idx = 0;
+    let pointIndex = this._firstActiveElement + 1;
+    if (pointIndex >= this._maxPointCount) pointIndex = 0;
 
     for (let i = 1; i < activeCount; i++) {
-      pointPosition.copyFromArray(vertices, idx * 2 * floatStride);
+      pointPosition.copyFromArray(vertices, pointIndex * 2 * floatStride);
       Vector3.min(min, pointPosition, min);
       Vector3.max(max, pointPosition, max);
 
-      idx++;
-      if (idx >= this._maxPointCount) idx = 0;
+      pointIndex++;
+      if (pointIndex >= this._maxPointCount) pointIndex = 0;
     }
 
     this._boundsDirty = false;
@@ -411,9 +405,9 @@ export class TrailRenderer extends Renderer {
 
     // Build triangle strip indices, handling ring buffer wrap-around
     for (let i = 0; i < activeCount; i++) {
-      const vertexIdx = ((firstActive + i) % maxPointCount) * 2;
-      indices[indexCount++] = vertexIdx;
-      indices[indexCount++] = vertexIdx + 1;
+      const vertexIndex = ((firstActive + i) % maxPointCount) * 2;
+      indices[indexCount++] = vertexIndex;
+      indices[indexCount++] = vertexIndex + 1;
     }
 
     this._indexBuffer.setData(indices, 0, 0, indexCount * 2);
@@ -449,16 +443,7 @@ export class TrailRenderer extends Renderer {
 
   private _updateColorGradient(shaderData: ShaderData): void {
     const gradient = this.colorGradient;
-
-    if (!gradient) {
-      shaderData.setInt(TrailRenderer._colorKeyCountProp, 0);
-      shaderData.setInt(TrailRenderer._alphaKeyCountProp, 0);
-      return;
-    }
-
     shaderData.setFloatArray(TrailRenderer._colorKeysProp, gradient._getColorTypeArray());
-    shaderData.setInt(TrailRenderer._colorKeyCountProp, gradient.colorKeys.length);
     shaderData.setFloatArray(TrailRenderer._alphaKeysProp, gradient._getAlphaTypeArray());
-    shaderData.setInt(TrailRenderer._alphaKeyCountProp, gradient.alphaKeys.length);
   }
 }
