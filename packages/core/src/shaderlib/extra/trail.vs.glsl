@@ -9,6 +9,8 @@ uniform float renderer_Lifetime;
 uniform float renderer_Width;
 uniform int renderer_TextureMode;   // 0: Stretch, 1: Tile
 uniform float renderer_TextureScale;
+uniform float renderer_OldestBirthTime;  // Birth time of oldest (tail) point
+uniform float renderer_NewestBirthTime;  // Birth time of newest (head) point
 
 uniform vec3 camera_Position;
 uniform mat4 camera_ViewMat;
@@ -81,7 +83,7 @@ void main() {
     float corner = a_CornerTangent.x;
     vec3 tangent = a_CornerTangent.yzw;
 
-    // Calculate normalized age (0 = new, 1 = about to die)
+    // Calculate normalized age (0 = new, 1 = about to die) for lifetime check
     float age = renderer_CurrentTime - birthTime;
     float normalizedAge = clamp(age / renderer_Lifetime, 0.0, 1.0);
 
@@ -89,6 +91,14 @@ void main() {
     if (normalizedAge >= 1.0) {
         gl_Position = vec4(2.0, 2.0, 2.0, 1.0); // Move outside clip space
         return;
+    }
+
+    // Calculate relative position in trail (0 = head/newest, 1 = tail/oldest)
+    // Used for width curve, color gradient, and UV in Stretch mode
+    float timeRange = renderer_NewestBirthTime - renderer_OldestBirthTime;
+    float relativePosition = 0.0;
+    if (timeRange > 0.0001) {
+        relativePosition = (renderer_NewestBirthTime - birthTime) / timeRange;
     }
 
     // Calculate billboard offset (View alignment)
@@ -107,8 +117,8 @@ void main() {
     }
     right = right / rightLen;
 
-    // Evaluate width curve
-    float widthMultiplier = evaluateCurve(renderer_WidthCurve, renderer_WidthCurveCount, normalizedAge);
+    // Evaluate width curve using relative position
+    float widthMultiplier = evaluateCurve(renderer_WidthCurve, renderer_WidthCurveCount, relativePosition);
     float width = renderer_Width * widthMultiplier;
 
     // Apply offset
@@ -121,15 +131,15 @@ void main() {
     float v;
 
     if (renderer_TextureMode == 0) {
-        // Stretch mode: UV.v based on normalized age
-        v = normalizedAge;
+        // Stretch mode: UV.v based on relative position in trail
+        v = relativePosition;
     } else {
-        // Tile mode: scale by tile scale
+        // Tile mode: scale by tile scale (use normalizedAge for tiling effect)
         v = normalizedAge * renderer_TextureScale;
     }
 
     v_uv = vec2(u, v);
 
-    // Evaluate color gradient
-    v_color = evaluateGradient(renderer_ColorKeys, renderer_AlphaKeys, normalizedAge);
+    // Evaluate color gradient using relative position
+    v_color = evaluateGradient(renderer_ColorKeys, renderer_AlphaKeys, relativePosition);
 }

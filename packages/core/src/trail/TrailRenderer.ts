@@ -32,6 +32,8 @@ export class TrailRenderer extends Renderer {
   private static _widthCurveCountProp = ShaderProperty.getByName("renderer_WidthCurveCount");
   private static _colorKeysProp = ShaderProperty.getByName("renderer_ColorKeys");
   private static _alphaKeysProp = ShaderProperty.getByName("renderer_AlphaKeys");
+  private static _oldestBirthTimeProp = ShaderProperty.getByName("renderer_OldestBirthTime");
+  private static _newestBirthTimeProp = ShaderProperty.getByName("renderer_NewestBirthTime");
   private static readonly VERTEX_STRIDE = 32;
   private static readonly VERTEX_FLOAT_STRIDE = 8;
   private static readonly _pointIncreaseCount = 128;
@@ -129,6 +131,21 @@ export class TrailRenderer extends Renderer {
     shaderData.setFloat(TrailRenderer._widthProp, this.width);
     shaderData.setInt(TrailRenderer._textureModeProp, this.textureMode);
     shaderData.setFloat(TrailRenderer._textureScaleProp, this.textureScale);
+
+    // Calculate oldest and newest birth times for UV stretch mode
+    const activeCount = this._getActivePointCount();
+    if (activeCount >= 2) {
+      const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
+      const vertices = this._vertices;
+      const oldestBirthTime = vertices[this._firstActiveElement * 2 * floatStride + 3];
+      // Newest point is at (firstFree - 1), with wrap handling
+      const newestIndex =
+        this._firstFreeElement > 0 ? this._firstFreeElement - 1 : this._currentPointCapacity - 1;
+      const newestBirthTime = vertices[newestIndex * 2 * floatStride + 3];
+      shaderData.setFloat(TrailRenderer._oldestBirthTimeProp, oldestBirthTime);
+      shaderData.setFloat(TrailRenderer._newestBirthTimeProp, newestBirthTime);
+    }
+
     this._updateWidthCurve(shaderData);
     this._updateColorGradient(shaderData);
   }
