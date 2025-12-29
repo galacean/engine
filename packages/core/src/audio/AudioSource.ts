@@ -169,7 +169,7 @@ export class AudioSource extends Component {
         () => {
           this._pendingPlay = false;
           // Check if still valid to play after async resume
-          if (this._destroyed || !this.enabled) {
+          if (this._destroyed || !this.enabled || !this._clip) {
             return;
           }
           this._startPlayback();
