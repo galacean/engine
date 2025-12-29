@@ -144,10 +144,7 @@ export class TrailRenderer extends Renderer {
     const material = this.getMaterial();
     if (!material || material.destroyed || material.shader.destroyed) return;
 
-    const firstActive = this._firstActiveElement;
-    const firstFree = this._firstFreeElement;
-    const capacity = this._currentPointCapacity;
-
+    const { _firstActiveElement: firstActive, _firstFreeElement: firstFree } = this;
     const engine = this._engine;
     const renderElement = engine._renderElementPool.get();
     renderElement.set(this.priority, this._distanceForSort);
@@ -159,7 +156,7 @@ export class TrailRenderer extends Renderer {
 
     if (firstActive >= firstFree) {
       // Wrapped: first segment + bridge, then second segment
-      subPrimitive.count = (capacity - firstActive + 1) * 2;
+      subPrimitive.count = (this._currentPointCapacity - firstActive + 1) * 2;
 
       const subRenderElement = subRenderElementPool.get();
       subRenderElement.set(this, material, primitive, subPrimitive);
@@ -446,37 +443,36 @@ export class TrailRenderer extends Renderer {
 
     if (firstNew === firstFree) return;
 
-    const byteStride = TrailRenderer.VERTEX_STRIDE;
     const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
-    const vertices = this._vertices;
-
+    const byteStride = TrailRenderer.VERTEX_STRIDE;
+    const { buffer: vertexData } = this._vertices;
     const capacity = this._currentPointCapacity;
     let uploadBridge = false;
 
     if (firstNew < firstFree) {
-      const startFloat = firstNew * 2 * floatStride;
-      const countFloat = (firstFree - firstNew) * 2 * floatStride;
-      buffer.setData(new Float32Array(vertices.buffer, startFloat * 4, countFloat), firstNew * 2 * byteStride);
+      buffer.setData(
+        new Float32Array(vertexData, firstNew * 2 * floatStride * 4, (firstFree - firstNew) * 2 * floatStride),
+        firstNew * 2 * byteStride
+      );
       uploadBridge = firstNew === 0;
     } else {
       // Wrapped range: upload in two parts
-      const startFloat1 = firstNew * 2 * floatStride;
-      const countFloat1 = (capacity - firstNew) * 2 * floatStride;
-      buffer.setData(new Float32Array(vertices.buffer, startFloat1 * 4, countFloat1), firstNew * 2 * byteStride);
-
+      buffer.setData(
+        new Float32Array(vertexData, firstNew * 2 * floatStride * 4, (capacity - firstNew) * 2 * floatStride),
+        firstNew * 2 * byteStride
+      );
       if (firstFree > 0) {
-        const countFloat2 = firstFree * 2 * floatStride;
-        buffer.setData(new Float32Array(vertices.buffer, 0, countFloat2), 0);
+        buffer.setData(new Float32Array(vertexData, 0, firstFree * 2 * floatStride), 0);
         uploadBridge = true;
       }
     }
 
     // Upload bridge (copy of point 0) if point 0 was updated
     if (uploadBridge) {
-      const bridgeByteOffset = capacity * 2 * byteStride;
-      const bridgeFloatOffset = capacity * 2 * floatStride;
-      const bridgeFloats = 2 * floatStride;
-      buffer.setData(new Float32Array(vertices.buffer, bridgeFloatOffset * 4, bridgeFloats), bridgeByteOffset);
+      buffer.setData(
+        new Float32Array(vertexData, capacity * 2 * floatStride * 4, 2 * floatStride),
+        capacity * 2 * byteStride
+      );
     }
 
     this._firstNewElement = firstFree;
