@@ -418,28 +418,22 @@ export class TrailRenderer extends Renderer {
     const byteStride = TrailRenderer.VERTEX_STRIDE;
     const { buffer: vertexData } = this._vertices;
     const capacity = this._currentPointCapacity;
-    let uploadBridge = false;
+    const wrapped = firstNew >= firstFree;
 
-    if (firstNew < firstFree) {
-      buffer.setData(
-        new Float32Array(vertexData, firstNew * 2 * floatStride * 4, (firstFree - firstNew) * 2 * floatStride),
-        firstNew * 2 * byteStride
-      );
-      uploadBridge = firstNew === 0;
-    } else {
-      // Wrapped range: upload in two parts
-      buffer.setData(
-        new Float32Array(vertexData, firstNew * 2 * floatStride * 4, (capacity - firstNew) * 2 * floatStride),
-        firstNew * 2 * byteStride
-      );
+    // First segment: wrapped includes bridge (+1 point), non-wrapped ends at firstFree
+    const endPoint = wrapped ? capacity + 1 : firstFree;
+    buffer.setData(
+      new Float32Array(vertexData, firstNew * 2 * floatStride * 4, (endPoint - firstNew) * 2 * floatStride),
+      firstNew * 2 * byteStride
+    );
+
+    if (wrapped) {
+      // Second segment
       if (firstFree > 0) {
         buffer.setData(new Float32Array(vertexData, 0, firstFree * 2 * floatStride), 0);
-        uploadBridge = true;
       }
-    }
-
-    // Upload bridge (copy of point 0) if point 0 was updated
-    if (uploadBridge) {
+    } else if (firstNew === 0) {
+      // Upload bridge separately if point 0 was updated
       buffer.setData(
         new Float32Array(vertexData, capacity * 2 * floatStride * 4, 2 * floatStride),
         capacity * 2 * byteStride
