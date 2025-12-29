@@ -152,10 +152,7 @@ export class AudioSource extends Component {
    * Play the clip.
    */
   play(): void {
-    if (!this._clip?._getAudioSource()) {
-      return;
-    }
-    if (this._isPlaying || this._pendingPlay) {
+    if (!this._clip?._getAudioSource() || this._isPlaying || this._pendingPlay) {
       return;
     }
 
@@ -167,6 +164,10 @@ export class AudioSource extends Component {
       this._pendingPlay = true;
       AudioManager.resume().then(
         () => {
+          // Check if cancelled by stop()/pause()
+          if (!this._pendingPlay) {
+            return;
+          }
           this._pendingPlay = false;
           // Check if still valid to play after async resume
           if (this._destroyed || !this.enabled || !this._clip) {
