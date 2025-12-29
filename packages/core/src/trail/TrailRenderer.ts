@@ -4,14 +4,12 @@ import { Renderer } from "../Renderer";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { Buffer } from "../graphic/Buffer";
-import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { Primitive } from "../graphic/Primitive";
 import { SubPrimitive } from "../graphic/SubPrimitive";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
-import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { ParticleCompositeCurve } from "../particle/modules/ParticleCompositeCurve";
@@ -66,13 +64,11 @@ export class TrailRenderer extends Renderer {
   @ignoreClone
   private _subPrimitive: SubPrimitive;
   @ignoreClone
+  private _subPrimitive2: SubPrimitive;
+  @ignoreClone
   private _vertexBuffer: Buffer;
   @ignoreClone
   private _vertices: Float32Array;
-  @ignoreClone
-  private _indexBuffer: Buffer;
-  @ignoreClone
-  private _indices: Uint16Array;
   @ignoreClone
   private _firstActiveElement = 0;
   @ignoreClone
@@ -145,18 +141,51 @@ export class TrailRenderer extends Renderer {
       this._uploadNewVertices();
     }
 
-    const indexCount = this._updateIndexBuffer(activeCount);
-    this._subPrimitive.count = indexCount;
-
     const material = this.getMaterial();
     if (!material || material.destroyed || material.shader.destroyed) return;
+
+    const firstActive = this._firstActiveElement;
+    const firstFree = this._firstFreeElement;
+    const capacity = this._currentPointCapacity;
 
     const engine = this._engine;
     const renderElement = engine._renderElementPool.get();
     renderElement.set(this.priority, this._distanceForSort);
-    const subRenderElement = engine._subRenderElementPool.get();
-    subRenderElement.set(this, material, this._primitive, this._subPrimitive);
-    renderElement.addSubRenderElement(subRenderElement);
+    const subRenderElementPool = engine._subRenderElementPool;
+    const primitive = this._primitive;
+
+    if (firstActive < firstFree) {
+      // Non-wrapped case: single draw call
+      const subPrimitive = this._subPrimitive;
+      subPrimitive.start = firstActive * 2;
+      subPrimitive.count = (firstFree - firstActive) * 2;
+      const subRenderElement = subRenderElementPool.get();
+      subRenderElement.set(this, material, primitive, subPrimitive);
+      renderElement.addSubRenderElement(subRenderElement);
+    } else {
+      // Wrapped case: two draw calls
+      // Copy point 0 to bridge position (capacity) to connect the two segments
+      this._copyBridgePoint();
+
+      // First draw: from firstActive to capacity (includes bridge = copy of point 0)
+      const subPrimitive1 = this._subPrimitive;
+      subPrimitive1.start = firstActive * 2;
+      subPrimitive1.count = (capacity - firstActive + 1) * 2; // +1 for bridge point
+      const subRenderElement1 = subRenderElementPool.get();
+      subRenderElement1.set(this, material, primitive, subPrimitive1);
+      renderElement.addSubRenderElement(subRenderElement1);
+
+      // Second draw: from 0 to firstFree (point 0 drawn twice, acceptable)
+      if (firstFree > 0) {
+        const subPrimitive2 = this._subPrimitive2;
+        subPrimitive2.start = 0;
+        subPrimitive2.count = firstFree * 2;
+        const subRenderElement2 = subRenderElementPool.get();
+        subRenderElement2.set(this, material, primitive, subPrimitive2);
+        renderElement.addSubRenderElement(subRenderElement2);
+      }
+    }
+
     context.camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
@@ -183,7 +212,6 @@ export class TrailRenderer extends Renderer {
   protected override _onDestroy(): void {
     super._onDestroy();
     this._vertexBuffer?.destroy();
-    this._indexBuffer?.destroy();
     this._primitive?.destroy();
   }
 
@@ -196,6 +224,7 @@ export class TrailRenderer extends Renderer {
     primitive.addVertexElement(new VertexElement("a_PositionBirthTime", 0, VertexElementFormat.Vector4, 0));
     primitive.addVertexElement(new VertexElement("a_CornerTangent", 16, VertexElementFormat.Vector4, 0));
     this._subPrimitive = new SubPrimitive(0, 0, MeshTopology.TriangleStrip);
+    this._subPrimitive2 = new SubPrimitive(0, 0, MeshTopology.TriangleStrip);
 
     this._resizeBuffer(TrailRenderer._pointIncreaseCount);
   }
@@ -206,17 +235,15 @@ export class TrailRenderer extends Renderer {
     const byteStride = TrailRenderer.VERTEX_STRIDE;
 
     const newCapacity = this._currentPointCapacity + increaseCount;
-    const vertexCount = newCapacity * 2;
+    // Buffer layout: [capacity points] + [1 bridge point]
+    // Bridge point is copy of point 0, placed at position capacity to connect wrap-around
+    const vertexCount = newCapacity * 2 + 2; // +2 vertices for bridge point
 
-    // Create new vertex buffer
+    // Create new vertex buffer (no index buffer needed - using drawArrays)
     const newVertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertexCount * byteStride, BufferUsage.Dynamic, false);
     const newVertices = new Float32Array(vertexCount * floatStride);
 
-    // Create new index buffer
-    const newIndexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, vertexCount * 2, BufferUsage.Dynamic, false);
-    const newIndices = new Uint16Array(vertexCount);
-
-    // Migrate existing data if any
+    // Migrate existing vertex data if any
     const lastVertices = this._vertices;
     if (lastVertices) {
       const firstFreeElement = this._firstFreeElement;
@@ -245,17 +272,14 @@ export class TrailRenderer extends Renderer {
       this._bufferResized = true;
     }
 
-    // Destroy old buffers
+    // Destroy old vertex buffer
     this._vertexBuffer?.destroy();
-    this._indexBuffer?.destroy();
 
     this._vertexBuffer = newVertexBuffer;
     this._vertices = newVertices;
-    this._indexBuffer = newIndexBuffer;
-    this._indices = newIndices;
     this._currentPointCapacity = newCapacity;
 
-    // Update primitive bindings
+    // Update primitive vertex buffer binding (no index buffer)
     const primitive = this._primitive;
     const vertexBufferBinding = new VertexBufferBinding(newVertexBuffer, byteStride);
     if (primitive.vertexBufferBindings.length > 0) {
@@ -263,7 +287,6 @@ export class TrailRenderer extends Renderer {
     } else {
       primitive.vertexBufferBindings.push(vertexBufferBinding);
     }
-    primitive.setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, IndexFormat.UInt16));
   }
 
   private _retireActivePoints(): void {
@@ -442,21 +465,29 @@ export class TrailRenderer extends Renderer {
     this._firstNewElement = firstFree;
   }
 
-  private _updateIndexBuffer(activeCount: number): number {
-    const indices = this._indices;
-    const firstActive = this._firstActiveElement;
+  private _copyBridgePoint(): void {
+    // Copy point 0 to bridge position (capacity) to connect wrap-around
+    const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
     const capacity = this._currentPointCapacity;
-    let indexCount = 0;
+    const vertices = this._vertices;
 
-    // Build triangle strip indices, handling ring buffer wrap-around
-    for (let i = 0; i < activeCount; i++) {
-      const vertexIndex = ((firstActive + i) % capacity) * 2;
-      indices[indexCount++] = vertexIndex;
-      indices[indexCount++] = vertexIndex + 1;
+    // Source: point 0 (2 vertices)
+    // Dest: bridge position = capacity (2 vertices)
+    const dstOffset = capacity * 2 * floatStride;
+    const pointFloats = 2 * floatStride; // 2 vertices per point
+
+    // Copy in CPU array
+    for (let i = 0; i < pointFloats; i++) {
+      vertices[dstOffset + i] = vertices[i];
     }
 
-    this._indexBuffer.setData(indices, 0, 0, indexCount * 2);
-    return indexCount;
+    // Upload bridge point to GPU
+    this._vertexBuffer.setData(
+      new Float32Array(vertices.buffer, dstOffset * 4, pointFloats),
+      dstOffset * 4,
+      0,
+      pointFloats * 4
+    );
   }
 
   private _updateWidthCurve(shaderData: ShaderData): void {
