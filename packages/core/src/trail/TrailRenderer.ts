@@ -36,6 +36,7 @@ export class TrailRenderer extends Renderer {
   private static _alphaKeysProp = ShaderProperty.getByName("renderer_AlphaKeys");
   private static readonly VERTEX_STRIDE = 32;
   private static readonly VERTEX_FLOAT_STRIDE = 8;
+  private static readonly _pointIncreaseCount = 128;
   private static _tempVector3 = new Vector3();
 
   /** How long the trail points last (in seconds). */
@@ -79,7 +80,9 @@ export class TrailRenderer extends Renderer {
   @ignoreClone
   private _firstFreeElement = 0;
   @ignoreClone
-  private _maxPointCount = 256;
+  private _currentPointCapacity = 0;
+  @ignoreClone
+  private _bufferResized = false;
   @ignoreClone
   private _lastPosition = new Vector3();
   @ignoreClone
@@ -185,39 +188,82 @@ export class TrailRenderer extends Renderer {
   }
 
   private _initGeometry(): void {
-    const engine = this.engine;
-    const maxPoints = this._maxPointCount;
-    // Each point generates 2 vertices (top and bottom of the trail strip)
-    const vertexCount = maxPoints * 2;
-
-    const vertexBuffer = new Buffer(
-      engine,
-      BufferBindFlag.VertexBuffer,
-      vertexCount * TrailRenderer.VERTEX_STRIDE,
-      BufferUsage.Dynamic,
-      false
-    );
-    this._vertexBuffer = vertexBuffer;
-    this._vertices = new Float32Array(vertexCount * TrailRenderer.VERTEX_FLOAT_STRIDE);
-
-    const vertexBufferBinding = new VertexBufferBinding(vertexBuffer, TrailRenderer.VERTEX_STRIDE);
-
-    const maxIndices = maxPoints * 2;
-    const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, maxIndices * 2, BufferUsage.Dynamic, false);
-    this._indexBuffer = indexBuffer;
-    this._indices = new Uint16Array(maxIndices);
-
-    const primitive = new Primitive(engine);
+    const primitive = new Primitive(this.engine);
     this._primitive = primitive;
-    primitive.vertexBufferBindings.push(vertexBufferBinding);
-    primitive.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, IndexFormat.UInt16));
     // Vertex layout (2 x vec4 = 32 bytes):
     // a_PositionBirthTime: xyz = position, w = birthTime
     // a_CornerTangent: x = corner (-1 or 1), yzw = tangent direction
     primitive.addVertexElement(new VertexElement("a_PositionBirthTime", 0, VertexElementFormat.Vector4, 0));
     primitive.addVertexElement(new VertexElement("a_CornerTangent", 16, VertexElementFormat.Vector4, 0));
-
     this._subPrimitive = new SubPrimitive(0, 0, MeshTopology.TriangleStrip);
+
+    this._resizeBuffer(TrailRenderer._pointIncreaseCount);
+  }
+
+  private _resizeBuffer(increaseCount: number): void {
+    const engine = this.engine;
+    const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
+    const byteStride = TrailRenderer.VERTEX_STRIDE;
+
+    const newCapacity = this._currentPointCapacity + increaseCount;
+    const vertexCount = newCapacity * 2;
+
+    // Create new vertex buffer
+    const newVertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertexCount * byteStride, BufferUsage.Dynamic, false);
+    const newVertices = new Float32Array(vertexCount * floatStride);
+
+    // Create new index buffer
+    const newIndexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, vertexCount * 2, BufferUsage.Dynamic, false);
+    const newIndices = new Uint16Array(vertexCount);
+
+    // Migrate existing data if any
+    const lastVertices = this._vertices;
+    if (lastVertices) {
+      const firstFreeElement = this._firstFreeElement;
+
+      // Copy data before firstFreeElement
+      newVertices.set(new Float32Array(lastVertices.buffer, 0, firstFreeElement * 2 * floatStride));
+
+      // Copy data after firstFreeElement (shift by increaseCount)
+      const nextFreeElement = firstFreeElement + 1;
+      if (nextFreeElement < this._currentPointCapacity) {
+        const freeEndOffset = (nextFreeElement + increaseCount) * 2 * floatStride;
+        newVertices.set(
+          new Float32Array(lastVertices.buffer, nextFreeElement * 2 * floatStride * 4),
+          freeEndOffset
+        );
+      }
+
+      // Update pointers
+      if (this._firstNewElement > firstFreeElement) {
+        this._firstNewElement += increaseCount;
+      }
+      if (this._firstActiveElement > firstFreeElement) {
+        this._firstActiveElement += increaseCount;
+      }
+
+      this._bufferResized = true;
+    }
+
+    // Destroy old buffers
+    this._vertexBuffer?.destroy();
+    this._indexBuffer?.destroy();
+
+    this._vertexBuffer = newVertexBuffer;
+    this._vertices = newVertices;
+    this._indexBuffer = newIndexBuffer;
+    this._indices = newIndices;
+    this._currentPointCapacity = newCapacity;
+
+    // Update primitive bindings
+    const primitive = this._primitive;
+    const vertexBufferBinding = new VertexBufferBinding(newVertexBuffer, byteStride);
+    if (primitive.vertexBufferBindings.length > 0) {
+      primitive.setVertexBufferBinding(0, vertexBufferBinding);
+    } else {
+      primitive.vertexBufferBindings.push(vertexBufferBinding);
+    }
+    primitive.setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, IndexFormat.UInt16));
   }
 
   private _retireActivePoints(): void {
@@ -232,7 +278,7 @@ export class TrailRenderer extends Renderer {
       if (currentTime - birthTime < lifetime) break;
 
       this._firstActiveElement++;
-      if (this._firstActiveElement >= this._maxPointCount) {
+      if (this._firstActiveElement >= this._currentPointCapacity) {
         this._firstActiveElement = 0;
       }
     }
@@ -256,15 +302,13 @@ export class TrailRenderer extends Renderer {
     }
 
     let nextFreeElement = this._firstFreeElement + 1;
-    if (nextFreeElement >= this._maxPointCount) {
+    if (nextFreeElement >= this._currentPointCapacity) {
       nextFreeElement = 0;
     }
 
+    // If buffer is full, expand it
     if (nextFreeElement === this._firstActiveElement) {
-      this._firstActiveElement++;
-      if (this._firstActiveElement >= this._maxPointCount) {
-        this._firstActiveElement = 0;
-      }
+      this._resizeBuffer(TrailRenderer._pointIncreaseCount);
     }
 
     this._addPoint(worldPosition);
@@ -311,14 +355,14 @@ export class TrailRenderer extends Renderer {
     this._expandBounds(position);
 
     this._firstFreeElement++;
-    if (this._firstFreeElement >= this._maxPointCount) {
+    if (this._firstFreeElement >= this._currentPointCapacity) {
       this._firstFreeElement = 0;
     }
   }
 
   private _getActivePointCount(): number {
     const { _firstActiveElement: firstActive, _firstFreeElement: firstFree } = this;
-    return firstFree >= firstActive ? firstFree - firstActive : this._maxPointCount - firstActive + firstFree;
+    return firstFree >= firstActive ? firstFree - firstActive : this._currentPointCapacity - firstActive + firstFree;
   }
 
   private _expandBounds(position: Vector3): void {
@@ -354,7 +398,7 @@ export class TrailRenderer extends Renderer {
 
     const pointPosition = TrailRenderer._tempVector3;
     let pointIndex = this._firstActiveElement + 1;
-    if (pointIndex >= this._maxPointCount) pointIndex = 0;
+    if (pointIndex >= this._currentPointCapacity) pointIndex = 0;
 
     for (let i = 1; i < activeCount; i++) {
       pointPosition.copyFromArray(vertices, pointIndex * 2 * floatStride);
@@ -362,7 +406,7 @@ export class TrailRenderer extends Renderer {
       Vector3.max(max, pointPosition, max);
 
       pointIndex++;
-      if (pointIndex >= this._maxPointCount) pointIndex = 0;
+      if (pointIndex >= this._currentPointCapacity) pointIndex = 0;
     }
 
     this._boundsDirty = false;
@@ -370,7 +414,8 @@ export class TrailRenderer extends Renderer {
 
   private _uploadNewVertices(): void {
     const { _firstActiveElement: firstActive, _firstFreeElement: firstFree, _vertexBuffer: buffer } = this;
-    const firstNew = buffer.isContentLost ? firstActive : this._firstNewElement;
+    const firstNew = buffer.isContentLost || this._bufferResized ? firstActive : this._firstNewElement;
+    this._bufferResized = false;
 
     if (firstNew === firstFree) return;
 
@@ -385,7 +430,7 @@ export class TrailRenderer extends Renderer {
     } else {
       // Wrapped range: upload in two parts
       const startFloat1 = firstNew * 2 * floatStride;
-      const countFloat1 = (this._maxPointCount - firstNew) * 2 * floatStride;
+      const countFloat1 = (this._currentPointCapacity - firstNew) * 2 * floatStride;
       buffer.setData(new Float32Array(vertices.buffer, startFloat1 * 4, countFloat1), firstNew * 2 * byteStride);
 
       if (firstFree > 0) {
@@ -400,12 +445,12 @@ export class TrailRenderer extends Renderer {
   private _updateIndexBuffer(activeCount: number): number {
     const indices = this._indices;
     const firstActive = this._firstActiveElement;
-    const maxPointCount = this._maxPointCount;
+    const capacity = this._currentPointCapacity;
     let indexCount = 0;
 
     // Build triangle strip indices, handling ring buffer wrap-around
     for (let i = 0; i < activeCount; i++) {
-      const vertexIndex = ((firstActive + i) % maxPointCount) * 2;
+      const vertexIndex = ((firstActive + i) % capacity) * 2;
       indices[indexCount++] = vertexIndex;
       indices[indexCount++] = vertexIndex + 1;
     }
