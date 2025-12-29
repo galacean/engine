@@ -323,7 +323,7 @@ describe("Animator test", function () {
     animator.play("Walk");
 
     class TestScript extends Script {
-      event0(): void { }
+      event0(): void {}
     }
 
     const testScript = animator.entity.addComponent(TestScript);
@@ -708,6 +708,110 @@ describe("Animator test", function () {
     expect(animator.entity.transform.position.x).to.eq(5);
   });
 
+  // Added tests for Animator callback semantics fixes
+  it("should only call onExit once and never call onUpdate after Finished in the same frame (duration=0)", () => {
+    // Use existing states from GLTF: Walk -> Run
+    const walkState = animator.findAnimatorState("Walk");
+    const runState = animator.findAnimatorState("Run");
+
+    // Attach test scripts to capture callbacks
+    class TestStateScript extends StateMachineScript {
+      onStateEnter(): void {}
+      onStateUpdate(): void {}
+      onStateExit(): void {}
+    }
+
+    const walkScript = walkState.addStateMachineScript(TestStateScript);
+    const runScript = runState.addStateMachineScript(TestStateScript);
+
+    const walkEnterSpy = vi.spyOn(walkScript, "onStateEnter");
+    const walkUpdateSpy = vi.spyOn(walkScript, "onStateUpdate");
+    const walkExitSpy = vi.spyOn(walkScript, "onStateExit");
+
+    const runEnterSpy = vi.spyOn(runScript, "onStateEnter");
+    const runUpdateSpy = vi.spyOn(runScript, "onStateUpdate");
+    const runExitSpy = vi.spyOn(runScript, "onStateExit");
+
+    // Play source state, then in the same frame crossFade to dest with duration 0
+    animator.play("Walk");
+    animator.crossFade("Run", 0);
+
+    // Same frame update -> deltaTime will be coerced to 0 by Animator (first frame guard)
+    // Expect: source onExit once, no source onUpdate after exit; dest onEnter once, no dest onUpdate (deltaTime===0)
+    animator.update(0.1);
+
+    expect(walkExitSpy).toHaveBeenCalledTimes(1);
+    expect(walkUpdateSpy).toHaveBeenCalledTimes(0);
+
+    expect(runEnterSpy).toHaveBeenCalledTimes(1);
+    expect(runUpdateSpy).toHaveBeenCalledTimes(0);
+    expect(runExitSpy).toHaveBeenCalledTimes(0);
+
+    // cleanup: remove scripts
+    // @ts-ignore
+    walkState._removeStateMachineScript(walkScript);
+    // @ts-ignore
+    runState._removeStateMachineScript(runScript);
+  });
+
+  it("should not duplicate dest onStateUpdate within the same frame when duration=0 (onUpdate aligns with evaluation)", () => {
+    const walkState = animator.findAnimatorState("Walk");
+    const runState = animator.findAnimatorState("Run");
+
+    class TestStateScript extends StateMachineScript {
+      onStateEnter(): void {}
+      onStateUpdate(): void {}
+      onStateExit(): void {}
+    }
+
+    const runScript = runState.addStateMachineScript(TestStateScript);
+    const runEnterSpy = vi.spyOn(runScript, "onStateEnter");
+    const runUpdateSpy = vi.spyOn(runScript, "onStateUpdate");
+
+    animator.play("Walk");
+    animator.crossFade("Run", 0); // duration=0
+
+    // Move to next frame so Animator.update won't coerce deltaTime to 0,
+    // and provide a positive delta to simulate remainDeltaTime recursion inside the same frame.
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+
+    // With the fix: first dest callback (deltaTime===0) skips onUpdate; remainDeltaTime path triggers exactly one onUpdate.
+    expect(runEnterSpy).toHaveBeenCalledTimes(1);
+    expect(runUpdateSpy).toHaveBeenCalledTimes(1);
+
+    // cleanup
+    // @ts-ignore
+    runState._removeStateMachineScript(runScript);
+  });
+
+  it("should call onStateUpdate on reverse playback (deltaTime < 0)", () => {
+    const runState = animator.findAnimatorState("Run");
+
+    class TestStateScript extends StateMachineScript {
+      onStateEnter(): void {}
+      onStateUpdate(): void {}
+      onStateExit(): void {}
+    }
+
+    const runScript = runState.addStateMachineScript(TestStateScript);
+    const runUpdateSpy = vi.spyOn(runScript, "onStateUpdate");
+
+    animator.speed = -1; // reverse playback
+    animator.play("Run");
+    // Move to next frame so deltaTime is not coerced to 0
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+
+    expect(runUpdateSpy).toHaveBeenCalledTimes(1);
+
+    // cleanup
+    // @ts-ignore
+    runState._removeStateMachineScript(runScript);
+  });
+
   it("parameter rename", () => {
     animator.animatorController.addParameter("oldName", 1);
     const param = animator.getParameter("oldName");
@@ -765,8 +869,8 @@ describe("Animator test", function () {
     animator.animatorController = animatorController;
 
     class TestScript extends StateMachineScript {
-      onStateEnter(animator) { }
-      onStateExit(animator) { }
+      onStateEnter(animator) {}
+      onStateExit(animator) {}
     }
 
     const testScript = state1.addStateMachineScript(TestScript);
@@ -1017,5 +1121,5 @@ describe("Animator test", function () {
 
   it("Clone", () => {
     expect(animator.entity.clone().getComponent(Animator).animatorController).to.eq(animator.animatorController);
-  })
+  });
 });
