@@ -144,38 +144,31 @@ export class TrailRenderer extends Renderer {
     const material = this.getMaterial();
     if (!material || material.destroyed || material.shader.destroyed) return;
 
-    const { _firstActiveElement: firstActive, _firstFreeElement: firstFree } = this;
-    const engine = this._engine;
-    const renderElement = engine._renderElementPool.get();
-    renderElement.set(this.priority, this._distanceForSort);
-    const subRenderElementPool = engine._subRenderElementPool;
-    const primitive = this._primitive;
+    const { _firstActiveElement: firstActive, _firstFreeElement: firstFree, _primitive: primitive } = this;
+    const { _renderElementPool: renderElementPool, _subRenderElementPool: subRenderElementPool } = this._engine;
 
+    const renderElement = renderElementPool.get();
+    renderElement.set(this.priority, this._distanceForSort);
+
+    // First segment
     const subPrimitive = this._subPrimitive;
     subPrimitive.start = firstActive * 2;
+    subPrimitive.count =
+      firstActive >= firstFree
+        ? (this._currentPointCapacity - firstActive + 1) * 2 // Wrapped: includes bridge
+        : (firstFree - firstActive) * 2;
+    const subRenderElement = subRenderElementPool.get();
+    subRenderElement.set(this, material, primitive, subPrimitive);
+    renderElement.addSubRenderElement(subRenderElement);
 
-    if (firstActive >= firstFree) {
-      // Wrapped: first segment + bridge, then second segment
-      subPrimitive.count = (this._currentPointCapacity - firstActive + 1) * 2;
-
-      const subRenderElement = subRenderElementPool.get();
-      subRenderElement.set(this, material, primitive, subPrimitive);
-      renderElement.addSubRenderElement(subRenderElement);
-
-      if (firstFree > 0) {
-        const subPrimitive2 = this._subPrimitive2;
-        subPrimitive2.start = 0;
-        subPrimitive2.count = firstFree * 2;
-        const subRenderElement2 = subRenderElementPool.get();
-        subRenderElement2.set(this, material, primitive, subPrimitive2);
-        renderElement.addSubRenderElement(subRenderElement2);
-      }
-    } else {
-      // Non-wrapped: single draw
-      subPrimitive.count = (firstFree - firstActive) * 2;
-      const subRenderElement = subRenderElementPool.get();
-      subRenderElement.set(this, material, primitive, subPrimitive);
-      renderElement.addSubRenderElement(subRenderElement);
+    // Second segment (wrapped case only)
+    if (firstActive >= firstFree && firstFree > 0) {
+      const subPrimitive2 = this._subPrimitive2;
+      subPrimitive2.start = 0;
+      subPrimitive2.count = firstFree * 2;
+      const subRenderElement2 = subRenderElementPool.get();
+      subRenderElement2.set(this, material, primitive, subPrimitive2);
+      renderElement.addSubRenderElement(subRenderElement2);
     }
 
     context.camera._renderPipeline.pushRenderElement(context, renderElement);
@@ -282,26 +275,19 @@ export class TrailRenderer extends Renderer {
   }
 
   private _retireActivePoints(): void {
-    const currentTime = this._playTime;
-    const lifetime = this.time;
+    const { _playTime: currentTime, time: lifetime, _vertices: vertices, _currentPointCapacity: capacity } = this;
     const firstActiveOld = this._firstActiveElement;
+    const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
 
     while (this._firstActiveElement !== this._firstFreeElement) {
-      const offset = this._firstActiveElement * 2 * TrailRenderer.VERTEX_FLOAT_STRIDE;
-      const birthTime = this._vertices[offset + 3];
-
+      const birthTime = vertices[this._firstActiveElement * 2 * floatStride + 3];
       if (currentTime - birthTime < lifetime) break;
-
-      this._firstActiveElement++;
-      if (this._firstActiveElement >= this._currentPointCapacity) {
-        this._firstActiveElement = 0;
-      }
+      this._firstActiveElement = (this._firstActiveElement + 1) % capacity;
     }
 
     if (this._firstActiveElement !== firstActiveOld) {
       this._boundsDirty = true;
     }
-
     if (this._firstActiveElement === this._firstFreeElement) {
       this._hasLastPosition = false;
     }
@@ -310,18 +296,11 @@ export class TrailRenderer extends Renderer {
   private _tryAddNewPoint(): void {
     const worldPosition = this.entity.transform.worldPosition;
 
-    if (this._hasLastPosition) {
-      if (Vector3.distance(worldPosition, this._lastPosition) < this.minVertexDistance) {
-        return;
-      }
+    if (this._hasLastPosition && Vector3.distance(worldPosition, this._lastPosition) < this.minVertexDistance) {
+      return;
     }
 
-    let nextFreeElement = this._firstFreeElement + 1;
-    if (nextFreeElement >= this._currentPointCapacity) {
-      nextFreeElement = 0;
-    }
-
-    // If buffer is full, expand it
+    const nextFreeElement = (this._firstFreeElement + 1) % this._currentPointCapacity;
     if (nextFreeElement === this._firstActiveElement) {
       this._resizeBuffer(TrailRenderer._pointIncreaseCount);
     }
@@ -377,11 +356,7 @@ export class TrailRenderer extends Renderer {
     }
 
     this._expandBounds(position);
-
-    this._firstFreeElement++;
-    if (this._firstFreeElement >= this._currentPointCapacity) {
-      this._firstFreeElement = 0;
-    }
+    this._firstFreeElement = (this._firstFreeElement + 1) % this._currentPointCapacity;
   }
 
   private _getActivePointCount(): number {
@@ -421,16 +396,12 @@ export class TrailRenderer extends Renderer {
     max.copyFrom(min);
 
     const pointPosition = TrailRenderer._tempVector3;
-    let pointIndex = this._firstActiveElement + 1;
-    if (pointIndex >= this._currentPointCapacity) pointIndex = 0;
-
-    for (let i = 1; i < activeCount; i++) {
+    const capacity = this._currentPointCapacity;
+    for (let i = 1, pointIndex = (this._firstActiveElement + 1) % capacity; i < activeCount; i++) {
       pointPosition.copyFromArray(vertices, pointIndex * 2 * floatStride);
       Vector3.min(min, pointPosition, min);
       Vector3.max(max, pointPosition, max);
-
-      pointIndex++;
-      if (pointIndex >= this._currentPointCapacity) pointIndex = 0;
+      pointIndex = (pointIndex + 1) % capacity;
     }
 
     this._boundsDirty = false;
