@@ -186,6 +186,8 @@ export class AudioSource extends Component {
    * Stops playing the clip.
    */
   stop(): void {
+    this._pendingPlay = false;
+
     if (this._isPlaying) {
       this._clearSourceNode();
 
@@ -199,6 +201,8 @@ export class AudioSource extends Component {
    * Pauses playing the clip.
    */
   pause(): void {
+    this._pendingPlay = false;
+
     if (this._isPlaying) {
       this._clearSourceNode();
 
