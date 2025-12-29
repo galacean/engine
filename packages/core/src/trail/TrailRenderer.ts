@@ -154,28 +154,17 @@ export class TrailRenderer extends Renderer {
     const subRenderElementPool = engine._subRenderElementPool;
     const primitive = this._primitive;
 
-    if (firstActive < firstFree) {
-      // Non-wrapped case: single draw call
-      const subPrimitive = this._subPrimitive;
-      subPrimitive.start = firstActive * 2;
-      subPrimitive.count = (firstFree - firstActive) * 2;
+    const subPrimitive = this._subPrimitive;
+    subPrimitive.start = firstActive * 2;
+
+    if (firstActive >= firstFree) {
+      // Wrapped: first segment + bridge, then second segment
+      subPrimitive.count = (capacity - firstActive + 1) * 2;
+
       const subRenderElement = subRenderElementPool.get();
       subRenderElement.set(this, material, primitive, subPrimitive);
       renderElement.addSubRenderElement(subRenderElement);
-    } else {
-      // Wrapped case: two draw calls
-      // Copy point 0 to bridge position (capacity) to connect the two segments
-      this._copyBridgePoint();
 
-      // First draw: from firstActive to capacity (includes bridge = copy of point 0)
-      const subPrimitive1 = this._subPrimitive;
-      subPrimitive1.start = firstActive * 2;
-      subPrimitive1.count = (capacity - firstActive + 1) * 2; // +1 for bridge point
-      const subRenderElement1 = subRenderElementPool.get();
-      subRenderElement1.set(this, material, primitive, subPrimitive1);
-      renderElement.addSubRenderElement(subRenderElement1);
-
-      // Second draw: from 0 to firstFree (point 0 drawn twice, acceptable)
       if (firstFree > 0) {
         const subPrimitive2 = this._subPrimitive2;
         subPrimitive2.start = 0;
@@ -184,6 +173,12 @@ export class TrailRenderer extends Renderer {
         subRenderElement2.set(this, material, primitive, subPrimitive2);
         renderElement.addSubRenderElement(subRenderElement2);
       }
+    } else {
+      // Non-wrapped: single draw
+      subPrimitive.count = (firstFree - firstActive) * 2;
+      const subRenderElement = subRenderElementPool.get();
+      subRenderElement.set(this, material, primitive, subPrimitive);
+      renderElement.addSubRenderElement(subRenderElement);
     }
 
     context.camera._renderPipeline.pushRenderElement(context, renderElement);
@@ -373,6 +368,15 @@ export class TrailRenderer extends Renderer {
       vertices[offset + 3] = this._playTime;
       vertices[offset + 4] = corner;
       tangent.copyToArray(vertices, offset + 5);
+
+      // Also write to bridge position when writing point 0
+      if (pointIndex === 0) {
+        const bridgeOffset = (this._currentPointCapacity * 2 + (corner === -1 ? 0 : 1)) * floatStride;
+        position.copyToArray(vertices, bridgeOffset);
+        vertices[bridgeOffset + 3] = this._playTime;
+        vertices[bridgeOffset + 4] = corner;
+        tangent.copyToArray(vertices, bridgeOffset + 5);
+      }
     }
 
     this._expandBounds(position);
@@ -446,48 +450,36 @@ export class TrailRenderer extends Renderer {
     const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
     const vertices = this._vertices;
 
+    const capacity = this._currentPointCapacity;
+    let uploadBridge = false;
+
     if (firstNew < firstFree) {
       const startFloat = firstNew * 2 * floatStride;
       const countFloat = (firstFree - firstNew) * 2 * floatStride;
       buffer.setData(new Float32Array(vertices.buffer, startFloat * 4, countFloat), firstNew * 2 * byteStride);
+      uploadBridge = firstNew === 0;
     } else {
       // Wrapped range: upload in two parts
       const startFloat1 = firstNew * 2 * floatStride;
-      const countFloat1 = (this._currentPointCapacity - firstNew) * 2 * floatStride;
+      const countFloat1 = (capacity - firstNew) * 2 * floatStride;
       buffer.setData(new Float32Array(vertices.buffer, startFloat1 * 4, countFloat1), firstNew * 2 * byteStride);
 
       if (firstFree > 0) {
         const countFloat2 = firstFree * 2 * floatStride;
         buffer.setData(new Float32Array(vertices.buffer, 0, countFloat2), 0);
+        uploadBridge = true;
       }
     }
 
-    this._firstNewElement = firstFree;
-  }
-
-  private _copyBridgePoint(): void {
-    // Copy point 0 to bridge position (capacity) to connect wrap-around
-    const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
-    const capacity = this._currentPointCapacity;
-    const vertices = this._vertices;
-
-    // Source: point 0 (2 vertices)
-    // Dest: bridge position = capacity (2 vertices)
-    const dstOffset = capacity * 2 * floatStride;
-    const pointFloats = 2 * floatStride; // 2 vertices per point
-
-    // Copy in CPU array
-    for (let i = 0; i < pointFloats; i++) {
-      vertices[dstOffset + i] = vertices[i];
+    // Upload bridge (copy of point 0) if point 0 was updated
+    if (uploadBridge) {
+      const bridgeByteOffset = capacity * 2 * byteStride;
+      const bridgeFloatOffset = capacity * 2 * floatStride;
+      const bridgeFloats = 2 * floatStride;
+      buffer.setData(new Float32Array(vertices.buffer, bridgeFloatOffset * 4, bridgeFloats), bridgeByteOffset);
     }
 
-    // Upload bridge point to GPU
-    this._vertexBuffer.setData(
-      new Float32Array(vertices.buffer, dstOffset * 4, pointFloats),
-      dstOffset * 4,
-      0,
-      pointFloats * 4
-    );
+    this._firstNewElement = firstFree;
   }
 
   private _updateWidthCurve(shaderData: ShaderData): void {
