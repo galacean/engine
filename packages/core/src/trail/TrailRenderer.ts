@@ -87,7 +87,7 @@ export class TrailRenderer extends Renderer {
   /** Width multiplier curve over lifetime, evaluated from the newest point to the oldest point. */
   @deepClone
   widthCurve = new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 1));
-  
+
   /** Color gradient over lifetime, evaluated from the newest point to the oldest point. */
   @deepClone
   colorGradient = new ParticleGradient(
@@ -127,9 +127,7 @@ export class TrailRenderer extends Renderer {
   @ignoreClone
   private _playTime = 0;
   @ignoreClone
-  private _boundsMin = new Vector3();
-  @ignoreClone
-  private _boundsMax = new Vector3();
+  private _localBounds = new BoundingBox();
   @ignoreClone
   private _boundsDirty = true;
 
@@ -246,7 +244,7 @@ export class TrailRenderer extends Renderer {
       this._recalculateBounds();
     }
 
-    const { _boundsMin: min, _boundsMax: max } = this;
+    const { min, max } = this._localBounds;
     worldBounds.min.set(min.x - halfWidth, min.y - halfWidth, min.z - halfWidth);
     worldBounds.max.set(max.x + halfWidth, max.y + halfWidth, max.z + halfWidth);
   }
@@ -471,7 +469,7 @@ export class TrailRenderer extends Renderer {
   }
 
   private _expandBounds(position: Vector3): void {
-    const { _boundsMin: min, _boundsMax: max } = this;
+    const { min, max } = this._localBounds;
 
     if (this._boundsDirty) {
       min.copyFrom(position);
@@ -488,7 +486,7 @@ export class TrailRenderer extends Renderer {
     const vertices = this._vertices;
     const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
     const activeCount = this._getActivePointCount();
-    const { _boundsMin: min, _boundsMax: max } = this;
+    const { min, max } = this._localBounds;
 
     if (activeCount === 0) {
       min.set(0, 0, 0);
