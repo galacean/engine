@@ -22,14 +22,16 @@ import { TrailTextureMode } from "./enums/TrailTextureMode";
  * Renders a trail behind a moving object.
  */
 export class TrailRenderer extends Renderer {
+  private static readonly VERTEX_STRIDE = 32;
+  private static readonly VERTEX_FLOAT_STRIDE = 8;
+  private static readonly POINT_INCREASE_COUNT = 128;
+
   private static _timeParamsProp = ShaderProperty.getByName("renderer_TimeParams");
   private static _trailParamsProp = ShaderProperty.getByName("renderer_TrailParams");
   private static _widthCurveProp = ShaderProperty.getByName("renderer_WidthCurve");
   private static _colorKeysProp = ShaderProperty.getByName("renderer_ColorKeys");
   private static _alphaKeysProp = ShaderProperty.getByName("renderer_AlphaKeys");
-  private static readonly VERTEX_STRIDE = 32;
-  private static readonly VERTEX_FLOAT_STRIDE = 8;
-  private static readonly _pointIncreaseCount = 128;
+
   private static _tempVector3 = new Vector3();
 
   /** The minimum distance between trail points. */
@@ -267,7 +269,7 @@ export class TrailRenderer extends Renderer {
     this._subPrimitive = new SubPrimitive(0, 0, MeshTopology.TriangleStrip);
     this._subPrimitive2 = new SubPrimitive(0, 0, MeshTopology.TriangleStrip);
 
-    this._resizeBuffer(TrailRenderer._pointIncreaseCount);
+    this._resizeBuffer(TrailRenderer.POINT_INCREASE_COUNT);
   }
 
   private _resizeBuffer(increaseCount: number): void {
@@ -398,7 +400,7 @@ export class TrailRenderer extends Renderer {
     // due to the initial alignment of 'freeElement' and 'firstRetiredElement'.
     const nextFreeElement = (this._firstFreeElement + 1) % this._currentPointCapacity;
     if (nextFreeElement === this._firstRetiredElement) {
-      this._resizeBuffer(TrailRenderer._pointIncreaseCount);
+      this._resizeBuffer(TrailRenderer.POINT_INCREASE_COUNT);
     }
 
     this._addPoint(worldPosition);
