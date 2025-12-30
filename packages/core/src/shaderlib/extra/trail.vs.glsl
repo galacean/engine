@@ -4,13 +4,10 @@ attribute vec4 a_PositionBirthTime; // xyz: World position, w: Birth time
 attribute vec4 a_CornerTangent;     // x: Corner (-1 or 1), yzw: Tangent direction
 
 // Uniforms
-uniform float renderer_CurrentTime;
-uniform float renderer_Lifetime;
-uniform float renderer_Width;
-uniform int renderer_TextureMode;   // 0: Stretch, 1: Tile
-uniform float renderer_TextureScale;
-uniform float renderer_OldestBirthTime;  // Birth time of oldest (tail) point
-uniform float renderer_NewestBirthTime;  // Birth time of newest (head) point
+// x: CurrentTime, y: Lifetime, z: OldestBirthTime, w: NewestBirthTime
+uniform vec4 renderer_TimeParams;
+// x: Width, y: TextureMode (0: Stretch, 1: Tile), z: TextureScale
+uniform vec4 renderer_TrailParams;
 
 uniform vec3 camera_Position;
 uniform mat4 camera_ViewMat;
@@ -82,9 +79,18 @@ void main() {
     float corner = a_CornerTangent.x;
     vec3 tangent = a_CornerTangent.yzw;
 
+    // Extract packed uniforms
+    float currentTime = renderer_TimeParams.x;
+    float lifetime = renderer_TimeParams.y;
+    float oldestBirthTime = renderer_TimeParams.z;
+    float newestBirthTime = renderer_TimeParams.w;
+    float trailWidth = renderer_TrailParams.x;
+    float textureMode = renderer_TrailParams.y;
+    float textureScale = renderer_TrailParams.z;
+
     // Calculate normalized age (0 = new, 1 = about to die) for lifetime check
-    float age = renderer_CurrentTime - birthTime;
-    float normalizedAge = clamp(age / renderer_Lifetime, 0.0, 1.0);
+    float age = currentTime - birthTime;
+    float normalizedAge = clamp(age / lifetime, 0.0, 1.0);
 
     // Discard vertices that have exceeded their lifetime
     if (normalizedAge >= 1.0) {
@@ -94,10 +100,10 @@ void main() {
 
     // Calculate relative position in trail (0 = head/newest, 1 = tail/oldest)
     // Used for width curve, color gradient, and UV in Stretch mode
-    float timeRange = renderer_NewestBirthTime - renderer_OldestBirthTime;
+    float timeRange = newestBirthTime - oldestBirthTime;
     float relativePosition = 0.0;
     if (timeRange > 0.0001) {
-        relativePosition = (renderer_NewestBirthTime - birthTime) / timeRange;
+        relativePosition = (newestBirthTime - birthTime) / timeRange;
     }
 
     // Calculate billboard offset (View alignment)
@@ -118,7 +124,7 @@ void main() {
 
     // Evaluate width curve using relative position
     float widthMultiplier = evaluateCurve(renderer_WidthCurve, relativePosition);
-    float width = renderer_Width * widthMultiplier;
+    float width = trailWidth * widthMultiplier;
 
     // Apply offset
     vec3 worldPosition = position + right * width * 0.5 * corner;
@@ -129,12 +135,12 @@ void main() {
     float u = corner * 0.5 + 0.5;  // 0 for bottom, 1 for top
     float v;
 
-    if (renderer_TextureMode == 0) {
+    if (textureMode < 0.5) {
         // Stretch mode: UV.v based on relative position in trail
         v = relativePosition;
     } else {
         // Tile mode: scale by tile scale (use normalizedAge for tiling effect)
-        v = normalizedAge * renderer_TextureScale;
+        v = normalizedAge * textureScale;
     }
 
     v_uv = vec2(u, v);

@@ -1,7 +1,7 @@
-import { BoundingBox, Color, Vector3 } from "@galacean/engine-math";
+import { BoundingBox, Color, Vector3, Vector4 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
-import { Renderer } from "../Renderer";
 import { RenderContext } from "../RenderPipeline/RenderContext";
+import { Renderer } from "../Renderer";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { Buffer } from "../graphic/Buffer";
 import { Primitive } from "../graphic/Primitive";
@@ -22,31 +22,68 @@ import { TrailTextureMode } from "./enums/TrailTextureMode";
  * Renders a trail behind a moving object.
  */
 export class TrailRenderer extends Renderer {
-  private static _currentTimeProp = ShaderProperty.getByName("renderer_CurrentTime");
-  private static _lifetimeProp = ShaderProperty.getByName("renderer_Lifetime");
-  private static _widthProp = ShaderProperty.getByName("renderer_Width");
-  private static _textureModeProp = ShaderProperty.getByName("renderer_TextureMode");
-  private static _textureScaleProp = ShaderProperty.getByName("renderer_TextureScale");
+  private static _timeParamsProp = ShaderProperty.getByName("renderer_TimeParams");
+  private static _trailParamsProp = ShaderProperty.getByName("renderer_TrailParams");
   private static _widthCurveProp = ShaderProperty.getByName("renderer_WidthCurve");
   private static _colorKeysProp = ShaderProperty.getByName("renderer_ColorKeys");
   private static _alphaKeysProp = ShaderProperty.getByName("renderer_AlphaKeys");
-  private static _oldestBirthTimeProp = ShaderProperty.getByName("renderer_OldestBirthTime");
-  private static _newestBirthTimeProp = ShaderProperty.getByName("renderer_NewestBirthTime");
   private static readonly VERTEX_STRIDE = 32;
   private static readonly VERTEX_FLOAT_STRIDE = 8;
   private static readonly _pointIncreaseCount = 128;
   private static _tempVector3 = new Vector3();
 
-  /** How long the trail points last (in seconds). */
-  time = 5.0;
-  /** The width of the trail. */
-  width = 1.0;
   /** The minimum distance between trail points. */
   minVertexDistance = 0.1;
-  /** Controls how the texture is applied to the trail. */
-  textureMode = TrailTextureMode.Stretch;
-  /** The texture scale for Tile texture mode. */
-  textureScale = 1.0;
+
+  // x: currentTime, y: lifetime, z: oldestBirthTime, w: newestBirthTime
+  private _timeParams = new Vector4(0, 5.0, 0, 0);
+  // x: width, y: textureMode, z: textureScale
+  private _trailParams = new Vector4(1.0, TrailTextureMode.Stretch, 1.0, 0);
+
+  /**
+   * How long the trail points last (in seconds).
+   */
+  get time(): number {
+    return this._timeParams.y;
+  }
+
+  set time(value: number) {
+    this._timeParams.y = value;
+  }
+
+  /**
+   * The width of the trail.
+   */
+  get width(): number {
+    return this._trailParams.x;
+  }
+
+  set width(value: number) {
+    this._trailParams.x = value;
+  }
+
+  /**
+   * Controls how the texture is applied to the trail.
+   */
+  get textureMode(): TrailTextureMode {
+    return this._trailParams.y;
+  }
+
+  set textureMode(value: TrailTextureMode) {
+    this._trailParams.y = value;
+  }
+
+  /**
+   * The texture scale for Tile texture mode.
+   */
+  get textureScale(): number {
+    return this._trailParams.z;
+  }
+
+  set textureScale(value: number) {
+    this._trailParams.z = value;
+  }
+
   /** Width multiplier curve over lifetime, evaluated from the newest point to the oldest point. */
   @deepClone
   widthCurve = new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 1));
@@ -56,6 +93,7 @@ export class TrailRenderer extends Renderer {
     [new GradientColorKey(0, new Color(1, 1, 1, 1)), new GradientColorKey(1, new Color(1, 1, 1, 1))],
     [new GradientAlphaKey(0, 1), new GradientAlphaKey(1, 1)]
   );
+
   /** Whether the trail is currently emitting new points. */
   emitting = true;
 
@@ -127,27 +165,27 @@ export class TrailRenderer extends Renderer {
     }
 
     const shaderData = this.shaderData;
-    shaderData.setFloat(TrailRenderer._currentTimeProp, this._playTime);
-    shaderData.setFloat(TrailRenderer._lifetimeProp, this.time);
-    shaderData.setFloat(TrailRenderer._widthProp, this.width);
-    shaderData.setInt(TrailRenderer._textureModeProp, this.textureMode);
-    shaderData.setFloat(TrailRenderer._textureScaleProp, this.textureScale);
+    const timeParams = this._timeParams;
 
-    // Calculate oldest and newest birth times for UV stretch mode
+    // Update dynamic time params (currentTime, oldestBirthTime, newestBirthTime)
+    timeParams.x = this._playTime;
     const { _firstActiveElement: firstActive, _firstFreeElement: firstFree, _currentPointCapacity: capacity } = this;
     if (firstActive !== firstFree) {
       const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
       const vertices = this._vertices;
-      const oldestBirthTime = vertices[firstActive * 2 * floatStride + 3];
-      // Newest point is at (firstFree - 1), with wrap handling
+      timeParams.z = vertices[firstActive * 2 * floatStride + 3];
       const newestIndex = firstFree > 0 ? firstFree - 1 : capacity - 1;
-      const newestBirthTime = vertices[newestIndex * 2 * floatStride + 3];
-      shaderData.setFloat(TrailRenderer._oldestBirthTimeProp, oldestBirthTime);
-      shaderData.setFloat(TrailRenderer._newestBirthTimeProp, newestBirthTime);
+      timeParams.w = vertices[newestIndex * 2 * floatStride + 3];
+    } else {
+      timeParams.z = 0;
+      timeParams.w = 0;
     }
 
-    const { widthCurve, colorGradient } = this;
-    shaderData.setFloatArray(TrailRenderer._widthCurveProp, widthCurve._getTypeArray());
+    shaderData.setVector4(TrailRenderer._timeParamsProp, timeParams);
+    shaderData.setVector4(TrailRenderer._trailParamsProp, this._trailParams);
+
+    const { colorGradient } = this;
+    shaderData.setFloatArray(TrailRenderer._widthCurveProp, this.widthCurve._getTypeArray());
     shaderData.setFloatArray(TrailRenderer._colorKeysProp, colorGradient._getColorTypeArray());
     shaderData.setFloatArray(TrailRenderer._alphaKeysProp, colorGradient._getAlphaTypeArray());
   }
