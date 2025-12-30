@@ -34,14 +34,14 @@ export class TrailRenderer extends Renderer {
 
   private static _tempVector3 = new Vector3();
 
-  /** The minimum distance between trail points. */
+  /** The minimum distance the object must move before a new trail segment is added. */
   minVertexDistance = 0.1;
 
   private _timeParams = new Vector4(0, 5.0, 0, 0); // x: currentTime, y: lifetime, z: oldestBirthTime, w: newestBirthTime
   private _trailParams = new Vector4(1.0, TrailTextureMode.Stretch, 1.0, 0); // x: width, y: textureMode, z: textureScale
 
   /**
-   * How long the trail takes to fade out (in seconds).
+   * The fade-out duration in seconds.
    */
   get time(): number {
     return this._timeParams.y;
@@ -63,7 +63,7 @@ export class TrailRenderer extends Renderer {
   }
 
   /**
-   * Controls how the texture is applied to the trail.
+   * The texture mapping mode for the trail.
    */
   get textureMode(): TrailTextureMode {
     return this._trailParams.y;
@@ -74,7 +74,7 @@ export class TrailRenderer extends Renderer {
   }
 
   /**
-   * The texture scale for Tile texture mode.
+   * The texture scale when using Tile texture mode.
    */
   get textureScale(): number {
     return this._trailParams.z;
@@ -84,18 +84,17 @@ export class TrailRenderer extends Renderer {
     this._trailParams.z = value;
   }
 
-  /** Width multiplier curve over lifetime, evaluated from the newest point to the oldest point. */
+  /** The curve describing the trail width from start to end. */
   @deepClone
   widthCurve = new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 1));
-
-  /** Color gradient over lifetime, evaluated from the newest point to the oldest point. */
+  /** The gradient describing the trail color from start to end. */
   @deepClone
   colorGradient = new ParticleGradient(
     [new GradientColorKey(0, new Color(1, 1, 1, 1)), new GradientColorKey(1, new Color(1, 1, 1, 1))],
     [new GradientAlphaKey(0, 1), new GradientAlphaKey(1, 1)]
   );
 
-  /** Whether the trail is currently emitting new points. */
+  /** Whether the trail is being created as the object moves. */
   emitting = true;
 
   @ignoreClone
