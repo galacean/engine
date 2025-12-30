@@ -121,9 +121,10 @@ export class TrailRenderer extends Renderer {
   protected override _update(context: RenderContext): void {
     super._update(context);
 
-    this._playTime += this.engine.time.deltaTime;
-    this._freeRetiredPoints();
-    this._retireActivePoints();
+    const time = this.engine.time;
+    this._playTime += time.deltaTime;
+    this._freeRetiredPoints(time.frameCount);
+    this._retireActivePoints(time.frameCount);
 
     if (this.emitting) {
       this._tryAddNewPoint();
@@ -137,14 +138,13 @@ export class TrailRenderer extends Renderer {
     shaderData.setFloat(TrailRenderer._textureScaleProp, this.textureScale);
 
     // Calculate oldest and newest birth times for UV stretch mode
-    const activeCount = this._getActivePointCount();
-    if (activeCount >= 2) {
+    const { _firstActiveElement: firstActive, _firstFreeElement: firstFree, _currentPointCapacity: capacity } = this;
+    if (firstActive !== firstFree) {
       const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
       const vertices = this._vertices;
-      const oldestBirthTime = vertices[this._firstActiveElement * 2 * floatStride + 3];
+      const oldestBirthTime = vertices[firstActive * 2 * floatStride + 3];
       // Newest point is at (firstFree - 1), with wrap handling
-      const newestIndex =
-        this._firstFreeElement > 0 ? this._firstFreeElement - 1 : this._currentPointCapacity - 1;
+      const newestIndex = firstFree > 0 ? firstFree - 1 : capacity - 1;
       const newestBirthTime = vertices[newestIndex * 2 * floatStride + 3];
       shaderData.setFloat(TrailRenderer._oldestBirthTimeProp, oldestBirthTime);
       shaderData.setFloat(TrailRenderer._newestBirthTimeProp, newestBirthTime);
@@ -155,8 +155,8 @@ export class TrailRenderer extends Renderer {
   }
 
   protected override _render(context: RenderContext): void {
-    const activeCount = this._getActivePointCount();
-    if (activeCount < 2) return;
+    // Need at least 2 points to form a trail segment
+    if (this._getActivePointCount() < 2) return;
 
     if (this._firstNewElement !== this._firstFreeElement || this._vertexBuffer.isContentLost) {
       this._uploadNewVertices();
@@ -196,10 +196,9 @@ export class TrailRenderer extends Renderer {
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    const activeCount = this._getActivePointCount();
     const halfWidth = this.width * 0.5;
 
-    if (activeCount === 0) {
+    if (this._firstActiveElement === this._firstFreeElement) {
       const worldPosition = this.entity.transform.worldPosition;
       worldBounds.min.set(worldPosition.x - halfWidth, worldPosition.y - halfWidth, worldPosition.z - halfWidth);
       worldBounds.max.set(worldPosition.x + halfWidth, worldPosition.y + halfWidth, worldPosition.z + halfWidth);
@@ -302,11 +301,10 @@ export class TrailRenderer extends Renderer {
    * Move expired points from active to retired state.
    * Points in retired state are waiting for GPU to finish rendering before they can be freed.
    */
-  private _retireActivePoints(): void {
+  private _retireActivePoints(frameCount: number): void {
     const { _playTime: currentTime, time: lifetime, _vertices: vertices, _currentPointCapacity: capacity } = this;
     const firstActiveOld = this._firstActiveElement;
     const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
-    const frameCount = this.engine.time.frameCount;
 
     while (this._firstActiveElement !== this._firstFreeElement) {
       const offset = this._firstActiveElement * 2 * floatStride + 3;
@@ -330,8 +328,7 @@ export class TrailRenderer extends Renderer {
    * WebGL doesn't support mapBufferRange, so this optimization is currently disabled.
    * The condition `frameCount - retireFrame < 0` will never be true, effectively skipping the check.
    */
-  private _freeRetiredPoints(): void {
-    const frameCount = this.engine.time.frameCount;
+  private _freeRetiredPoints(frameCount: number): void {
     const capacity = this._currentPointCapacity;
     const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
     const vertices = this._vertices;
@@ -374,6 +371,7 @@ export class TrailRenderer extends Renderer {
     const pointIndex = this._firstFreeElement;
     const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
     const vertices = this._vertices;
+    const playTime = this._playTime;
 
     const tangent = TrailRenderer._tempVector3;
     if (this._hasLastPosition) {
@@ -383,10 +381,10 @@ export class TrailRenderer extends Renderer {
       // First point has placeholder tangent, update it when second point is added
       if (this._getActivePointCount() === 1) {
         const firstPointIndex = this._firstActiveElement;
-        for (let corner = -1; corner <= 1; corner += 2) {
-          const vertexIndex = firstPointIndex * 2 + (corner === -1 ? 0 : 1);
-          tangent.copyToArray(vertices, vertexIndex * floatStride + 5);
-        }
+        const offset0 = firstPointIndex * 2 * floatStride + 5;
+        const offset1 = offset0 + floatStride;
+        tangent.copyToArray(vertices, offset0);
+        tangent.copyToArray(vertices, offset1);
         // Mark first point for re-upload since its tangent changed
         this._firstNewElement = this._firstActiveElement;
       }
@@ -395,24 +393,32 @@ export class TrailRenderer extends Renderer {
       tangent.set(0, 0, 1);
     }
 
-    // Write vertex data for top and bottom vertices (corner = -1 and 1)
-    for (let corner = -1; corner <= 1; corner += 2) {
-      const vertexIndex = pointIndex * 2 + (corner === -1 ? 0 : 1);
-      const offset = vertexIndex * floatStride;
+    // Write vertex data for top vertex (corner = -1)
+    const topOffset = pointIndex * 2 * floatStride;
+    position.copyToArray(vertices, topOffset);
+    vertices[topOffset + 3] = playTime;
+    vertices[topOffset + 4] = -1;
+    tangent.copyToArray(vertices, topOffset + 5);
 
-      position.copyToArray(vertices, offset);
-      vertices[offset + 3] = this._playTime;
-      vertices[offset + 4] = corner;
-      tangent.copyToArray(vertices, offset + 5);
+    // Write vertex data for bottom vertex (corner = 1)
+    const bottomOffset = topOffset + floatStride;
+    position.copyToArray(vertices, bottomOffset);
+    vertices[bottomOffset + 3] = playTime;
+    vertices[bottomOffset + 4] = 1;
+    tangent.copyToArray(vertices, bottomOffset + 5);
 
-      // Also write to bridge position when writing point 0
-      if (pointIndex === 0) {
-        const bridgeOffset = (this._currentPointCapacity * 2 + (corner === -1 ? 0 : 1)) * floatStride;
-        position.copyToArray(vertices, bridgeOffset);
-        vertices[bridgeOffset + 3] = this._playTime;
-        vertices[bridgeOffset + 4] = corner;
-        tangent.copyToArray(vertices, bridgeOffset + 5);
-      }
+    // Also write to bridge position when writing point 0
+    if (pointIndex === 0) {
+      const bridgeTopOffset = this._currentPointCapacity * 2 * floatStride;
+      const bridgeBottomOffset = bridgeTopOffset + floatStride;
+      position.copyToArray(vertices, bridgeTopOffset);
+      vertices[bridgeTopOffset + 3] = playTime;
+      vertices[bridgeTopOffset + 4] = -1;
+      tangent.copyToArray(vertices, bridgeTopOffset + 5);
+      position.copyToArray(vertices, bridgeBottomOffset);
+      vertices[bridgeBottomOffset + 3] = playTime;
+      vertices[bridgeBottomOffset + 4] = 1;
+      tangent.copyToArray(vertices, bridgeBottomOffset + 5);
     }
 
     this._expandBounds(position);
