@@ -1,6 +1,8 @@
 import { BoundingBox, Color, Vector3, Vector4 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
+import { Material } from "../material/Material";
 import { RenderContext } from "../RenderPipeline/RenderContext";
+import { RenderElement } from "../RenderPipeline/RenderElement";
 import { Renderer } from "../Renderer";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { Buffer } from "../graphic/Buffer";
@@ -182,36 +184,26 @@ export class TrailRenderer extends Renderer {
   }
 
   protected override _render(context: RenderContext): void {
-    if (this._getActivePointCount() < 2) return;
+    if (this._getActivePointCount() < 2) {
+      return;
+    }
 
     const material = this.getMaterial();
-    if (!material || material.destroyed || material.shader.destroyed) return;
+    if (!material || material.destroyed || material.shader.destroyed) {
+      return;
+    }
 
-    const { _firstActiveElement: firstActive, _firstFreeElement: firstFree, _primitive: primitive } = this;
-    const { _renderElementPool: renderElementPool, _subRenderElementPool: subRenderElementPool } = this._engine;
+    const { _firstActiveElement: firstActive, _firstFreeElement: firstFree } = this;
 
-    const renderElement = renderElementPool.get();
+    const renderElement = this._engine._renderElementPool.get();
     renderElement.set(this.priority, this._distanceForSort);
 
-    // Main segment (always rendered)
-    const mainSubPrimitive = this._mainSubPrimitive;
-    mainSubPrimitive.start = firstActive * 2;
-    mainSubPrimitive.count =
-      firstActive >= firstFree
-        ? (this._currentPointCapacity - firstActive + 1) * 2 // Wrapped: includes bridge
-        : (firstFree - firstActive) * 2;
-    const subRenderElement = subRenderElementPool.get();
-    subRenderElement.set(this, material, primitive, mainSubPrimitive);
-    renderElement.addSubRenderElement(subRenderElement);
+    const wrapped = firstActive > firstFree;
+    const mainCount = (wrapped ? this._currentPointCapacity - firstActive + 1 : firstFree - firstActive) * 2;
+    this._addSubRenderElement(renderElement, material, this._mainSubPrimitive, firstActive * 2, mainCount);
 
-    // Wrap segment (only when buffer wraps around)
-    if (firstActive >= firstFree && firstFree > 0) {
-      const wrapSubPrimitive = this._wrapSubPrimitive;
-      wrapSubPrimitive.start = 0;
-      wrapSubPrimitive.count = firstFree * 2;
-      const subRenderElement2 = subRenderElementPool.get();
-      subRenderElement2.set(this, material, primitive, wrapSubPrimitive);
-      renderElement.addSubRenderElement(subRenderElement2);
+    if (wrapped && firstFree > 0) {
+      this._addSubRenderElement(renderElement, material, this._wrapSubPrimitive, 0, firstFree * 2);
     }
 
     context.camera._renderPipeline.pushRenderElement(context, renderElement);
@@ -521,5 +513,19 @@ export class TrailRenderer extends Renderer {
     }
 
     this._firstNewElement = firstFree;
+  }
+
+  private _addSubRenderElement(
+    renderElement: RenderElement,
+    material: Material,
+    subPrimitive: SubPrimitive,
+    start: number,
+    count: number
+  ): void {
+    subPrimitive.start = start;
+    subPrimitive.count = count;
+    const subRenderElement = this._engine._subRenderElementPool.get();
+    subRenderElement.set(this, material, this._primitive, subPrimitive);
+    renderElement.addSubRenderElement(subRenderElement);
   }
 }
