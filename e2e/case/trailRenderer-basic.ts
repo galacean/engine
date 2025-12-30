@@ -4,6 +4,7 @@
  */
 import {
   AssetType,
+  BlendMode,
   Camera,
   Color,
   CurveKey,
@@ -31,7 +32,7 @@ WebGLEngine.create({
 
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
-  scene.background.solidColor = new Color(0.1, 0.1, 0.15, 1);
+  scene.background.solidColor = new Color(0.1, 0.1, 0.1, 1);
 
   // Create camera
   const cameraEntity = rootEntity.createChild("camera");
@@ -47,11 +48,11 @@ WebGLEngine.create({
   // Add TrailRenderer component
   const trail = trailEntity.addComponent(TrailRenderer);
   const material = new TrailMaterial(engine);
+  material.blendMode = BlendMode.Additive;
   trail.setMaterial(material);
   trail.time = 2.0;
   trail.width = 0.5;
-  trail.minVertexDistance = 0.05;
-  trail.color.set(1, 0.5, 0, 1);
+  trail.minVertexDistance = 0.2;
 
   // Setup width curve (taper from head to tail)
   trail.widthCurve = new ParticleCompositeCurve(
@@ -65,11 +66,7 @@ WebGLEngine.create({
       new GradientColorKey(0.5, new Color(1, 0, 0.5, 1)),
       new GradientColorKey(1, new Color(0, 0.5, 1, 1))
     ],
-    [
-      new GradientAlphaKey(0, 1),
-      new GradientAlphaKey(0.7, 0.8),
-      new GradientAlphaKey(1, 0)
-    ]
+    [new GradientAlphaKey(0, 1), new GradientAlphaKey(0.7, 0.8), new GradientAlphaKey(1, 0)]
   );
   trail.colorGradient = gradient;
 
