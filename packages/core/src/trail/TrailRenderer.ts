@@ -78,6 +78,8 @@ export class TrailRenderer extends Renderer {
   @ignoreClone
   private _firstFreeElement = 0;
   @ignoreClone
+  private _firstRetiredElement = 0;
+  @ignoreClone
   private _currentPointCapacity = 0;
   @ignoreClone
   private _bufferResized = false;
@@ -111,6 +113,7 @@ export class TrailRenderer extends Renderer {
     this._firstActiveElement = 0;
     this._firstNewElement = 0;
     this._firstFreeElement = 0;
+    this._firstRetiredElement = 0;
     this._hasLastPosition = false;
     this._boundsDirty = true;
   }
@@ -119,6 +122,7 @@ export class TrailRenderer extends Renderer {
     super._update(context);
 
     this._playTime += this.engine.time.deltaTime;
+    this._freeRetiredPoints();
     this._retireActivePoints();
 
     if (this.emitting) {
@@ -270,6 +274,9 @@ export class TrailRenderer extends Renderer {
       if (this._firstActiveElement > firstFreeElement) {
         this._firstActiveElement += increaseCount;
       }
+      if (this._firstRetiredElement > firstFreeElement) {
+        this._firstRetiredElement += increaseCount;
+      }
 
       this._bufferResized = true;
     }
@@ -291,14 +298,22 @@ export class TrailRenderer extends Renderer {
     }
   }
 
+  /**
+   * Move expired points from active to retired state.
+   * Points in retired state are waiting for GPU to finish rendering before they can be freed.
+   */
   private _retireActivePoints(): void {
     const { _playTime: currentTime, time: lifetime, _vertices: vertices, _currentPointCapacity: capacity } = this;
     const firstActiveOld = this._firstActiveElement;
     const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
+    const frameCount = this.engine.time.frameCount;
 
     while (this._firstActiveElement !== this._firstFreeElement) {
-      const birthTime = vertices[this._firstActiveElement * 2 * floatStride + 3];
+      const offset = this._firstActiveElement * 2 * floatStride + 3;
+      const birthTime = vertices[offset];
       if (currentTime - birthTime < lifetime) break;
+      // Record the frame when this point was retired (reuse birthTime field)
+      vertices[offset] = frameCount;
       this._firstActiveElement = (this._firstActiveElement + 1) % capacity;
     }
 
@@ -310,6 +325,30 @@ export class TrailRenderer extends Renderer {
     }
   }
 
+  /**
+   * Free retired points that GPU has finished rendering.
+   * WebGL doesn't support mapBufferRange, so this optimization is currently disabled.
+   * The condition `frameCount - retireFrame < 0` will never be true, effectively skipping the check.
+   */
+  private _freeRetiredPoints(): void {
+    const frameCount = this.engine.time.frameCount;
+    const capacity = this._currentPointCapacity;
+    const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
+    const vertices = this._vertices;
+
+    while (this._firstRetiredElement !== this._firstActiveElement) {
+      const retireFrame = vertices[this._firstRetiredElement * 2 * floatStride + 3];
+
+      // WebGL doesn't support mapBufferRange, so this optimization is disabled.
+      // When mapBufferRange is available, change condition to check if GPU finished rendering.
+      if (frameCount - retireFrame < 0) {
+        break;
+      }
+
+      this._firstRetiredElement = (this._firstRetiredElement + 1) % capacity;
+    }
+  }
+
   private _tryAddNewPoint(): void {
     const worldPosition = this.entity.transform.worldPosition;
 
@@ -317,8 +356,12 @@ export class TrailRenderer extends Renderer {
       return;
     }
 
+    // Using 'nextFreeElement' instead of 'freeElement' when comparing with '_firstRetiredElement'
+    // aids in definitively identifying the head and tail of the circular queue.
+    // Failure to adopt this approach may impede growth initiation
+    // due to the initial alignment of 'freeElement' and 'firstRetiredElement'.
     const nextFreeElement = (this._firstFreeElement + 1) % this._currentPointCapacity;
-    if (nextFreeElement === this._firstActiveElement) {
+    if (nextFreeElement === this._firstRetiredElement) {
       this._resizeBuffer(TrailRenderer._pointIncreaseCount);
     }
 
