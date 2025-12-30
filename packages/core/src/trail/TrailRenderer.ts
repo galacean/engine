@@ -12,8 +12,7 @@ import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
-import { ParticleCurveMode } from "../particle/enums/ParticleCurveMode";
-import { ParticleCompositeCurve } from "../particle/modules/ParticleCompositeCurve";
+import { CurveKey, ParticleCurve } from "../particle/modules/ParticleCurve";
 import { GradientAlphaKey, GradientColorKey, ParticleGradient } from "../particle/modules/ParticleGradient";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderProperty } from "../shader/ShaderProperty";
@@ -39,7 +38,6 @@ export class TrailRenderer extends Renderer {
   private static readonly VERTEX_FLOAT_STRIDE = 8;
   private static readonly _pointIncreaseCount = 128;
   private static _tempVector3 = new Vector3();
-  private static _defaultWidthCurve = new Float32Array([0, 1, 0, 0, 0, 0, 0, 0]);
 
   /** How long the trail points last (in seconds). */
   time = 5.0;
@@ -51,10 +49,10 @@ export class TrailRenderer extends Renderer {
   textureMode = TrailTextureMode.Stretch;
   /** The texture scale for Tile texture mode. */
   textureScale = 1.0;
-  /** Width curve over lifetime (0 = head, 1 = tail). */
+  /** Width multiplier curve over lifetime, evaluated from the newest point to the oldest point. */
   @deepClone
-  widthCurve = new ParticleCompositeCurve(1.0);
-  /** Color gradient over lifetime (0 = head, 1 = tail). */
+  widthCurve = new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 1));
+  /** Color gradient over lifetime, evaluated from the newest point to the oldest point. */
   @deepClone
   colorGradient = new ParticleGradient(
     [new GradientColorKey(0, new Color(1, 1, 1, 1)), new GradientColorKey(1, new Color(1, 1, 1, 1))],
@@ -511,18 +509,8 @@ export class TrailRenderer extends Renderer {
 
   private _updateWidthCurve(shaderData: ShaderData): void {
     const curve = this.widthCurve;
-    const mode = curve.mode;
-
-    if (mode === ParticleCurveMode.Curve && curve.curve) {
-      shaderData.setFloatArray(TrailRenderer._widthCurveProp, curve.curve._getTypeArray());
-      shaderData.setInt(TrailRenderer._widthCurveCountProp, curve.curve.keys.length);
-    } else {
-      // For Constant mode, use constant value; otherwise default to 1.0
-      const value = mode === ParticleCurveMode.Constant ? curve.constant : 1.0;
-      shaderData.setFloatArray(TrailRenderer._widthCurveProp, TrailRenderer._defaultWidthCurve);
-      TrailRenderer._defaultWidthCurve[1] = value;
-      shaderData.setInt(TrailRenderer._widthCurveCountProp, 1);
-    }
+    shaderData.setFloatArray(TrailRenderer._widthCurveProp, curve._getTypeArray());
+    shaderData.setInt(TrailRenderer._widthCurveCountProp, curve.keys.length);
   }
 
   private _updateColorGradient(shaderData: ShaderData): void {
