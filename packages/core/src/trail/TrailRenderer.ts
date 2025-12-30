@@ -37,13 +37,11 @@ export class TrailRenderer extends Renderer {
   /** The minimum distance between trail points. */
   minVertexDistance = 0.1;
 
-  // x: currentTime, y: lifetime, z: oldestBirthTime, w: newestBirthTime
-  private _timeParams = new Vector4(0, 5.0, 0, 0);
-  // x: width, y: textureMode, z: textureScale
-  private _trailParams = new Vector4(1.0, TrailTextureMode.Stretch, 1.0, 0);
+  private _timeParams = new Vector4(0, 5.0, 0, 0); // x: currentTime, y: lifetime, z: oldestBirthTime, w: newestBirthTime
+  private _trailParams = new Vector4(1.0, TrailTextureMode.Stretch, 1.0, 0); // x: width, y: textureMode, z: textureScale
 
   /**
-   * How long the trail points last (in seconds).
+   * How long the trail takes to fade out (in seconds).
    */
   get time(): number {
     return this._timeParams.y;
@@ -89,6 +87,7 @@ export class TrailRenderer extends Renderer {
   /** Width multiplier curve over lifetime, evaluated from the newest point to the oldest point. */
   @deepClone
   widthCurve = new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 1));
+  
   /** Color gradient over lifetime, evaluated from the newest point to the oldest point. */
   @deepClone
   colorGradient = new ParticleGradient(
