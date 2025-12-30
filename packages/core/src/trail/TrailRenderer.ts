@@ -87,6 +87,7 @@ export class TrailRenderer extends Renderer {
   /** The curve describing the trail width from start to end. */
   @deepClone
   widthCurve = new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 1));
+
   /** The gradient describing the trail color from start to end. */
   @deepClone
   colorGradient = new ParticleGradient(
@@ -100,9 +101,9 @@ export class TrailRenderer extends Renderer {
   @ignoreClone
   private _primitive: Primitive;
   @ignoreClone
-  private _subPrimitive: SubPrimitive;
+  private _mainSubPrimitive: SubPrimitive;
   @ignoreClone
-  private _subPrimitive2: SubPrimitive;
+  private _wrapSubPrimitive: SubPrimitive;
   @ignoreClone
   private _vertexBuffer: Buffer;
   @ignoreClone
@@ -205,24 +206,24 @@ export class TrailRenderer extends Renderer {
     const renderElement = renderElementPool.get();
     renderElement.set(this.priority, this._distanceForSort);
 
-    // First segment
-    const subPrimitive = this._subPrimitive;
-    subPrimitive.start = firstActive * 2;
-    subPrimitive.count =
+    // Main segment (always rendered)
+    const mainSubPrimitive = this._mainSubPrimitive;
+    mainSubPrimitive.start = firstActive * 2;
+    mainSubPrimitive.count =
       firstActive >= firstFree
         ? (this._currentPointCapacity - firstActive + 1) * 2 // Wrapped: includes bridge
         : (firstFree - firstActive) * 2;
     const subRenderElement = subRenderElementPool.get();
-    subRenderElement.set(this, material, primitive, subPrimitive);
+    subRenderElement.set(this, material, primitive, mainSubPrimitive);
     renderElement.addSubRenderElement(subRenderElement);
 
-    // Second segment (wrapped case only)
+    // Wrap segment (only when buffer wraps around)
     if (firstActive >= firstFree && firstFree > 0) {
-      const subPrimitive2 = this._subPrimitive2;
-      subPrimitive2.start = 0;
-      subPrimitive2.count = firstFree * 2;
+      const wrapSubPrimitive = this._wrapSubPrimitive;
+      wrapSubPrimitive.start = 0;
+      wrapSubPrimitive.count = firstFree * 2;
       const subRenderElement2 = subRenderElementPool.get();
-      subRenderElement2.set(this, material, primitive, subPrimitive2);
+      subRenderElement2.set(this, material, primitive, wrapSubPrimitive);
       renderElement.addSubRenderElement(subRenderElement2);
     }
 
@@ -262,8 +263,9 @@ export class TrailRenderer extends Renderer {
     // a_CornerTangent: x = corner (-1 or 1), yzw = tangent direction
     primitive.addVertexElement(new VertexElement("a_PositionBirthTime", 0, VertexElementFormat.Vector4, 0));
     primitive.addVertexElement(new VertexElement("a_CornerTangent", 16, VertexElementFormat.Vector4, 0));
-    this._subPrimitive = new SubPrimitive(0, 0, MeshTopology.TriangleStrip);
-    this._subPrimitive2 = new SubPrimitive(0, 0, MeshTopology.TriangleStrip);
+    
+    this._mainSubPrimitive = new SubPrimitive(0, 0, MeshTopology.TriangleStrip);
+    this._wrapSubPrimitive = new SubPrimitive(0, 0, MeshTopology.TriangleStrip);
 
     this._resizeBuffer(TrailRenderer.POINT_INCREASE_COUNT);
   }
