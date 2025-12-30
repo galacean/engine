@@ -24,6 +24,8 @@ import { TrailTextureMode } from "./enums/TrailTextureMode";
 export class TrailRenderer extends Renderer {
   private static readonly VERTEX_STRIDE = 32;
   private static readonly VERTEX_FLOAT_STRIDE = 8;
+  private static readonly POINT_FLOAT_STRIDE = 16; // 2 vertices per point
+  private static readonly POINT_BYTE_STRIDE = 64; // 2 vertices per point
   private static readonly POINT_INCREASE_COUNT = 128;
 
   private static _timeParamsProp = ShaderProperty.getByName("renderer_TimeParams");
@@ -170,11 +172,11 @@ export class TrailRenderer extends Renderer {
     timeParams.x = this._playTime;
     const { _firstActiveElement: firstActive, _firstFreeElement: firstFree, _currentPointCapacity: capacity } = this;
     if (firstActive !== firstFree) {
-      const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
+      const pointStride = TrailRenderer.POINT_FLOAT_STRIDE;
       const vertices = this._vertices;
-      timeParams.z = vertices[firstActive * 2 * floatStride + 3];
+      timeParams.z = vertices[firstActive * pointStride + 3];
       const newestIndex = firstFree > 0 ? firstFree - 1 : capacity - 1;
-      timeParams.w = vertices[newestIndex * 2 * floatStride + 3];
+      timeParams.w = vertices[newestIndex * pointStride + 3];
     } else {
       timeParams.z = 0;
       timeParams.w = 0;
@@ -272,23 +274,23 @@ export class TrailRenderer extends Renderer {
 
   private _resizeBuffer(increaseCount: number): void {
     const engine = this.engine;
-    const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
-    const byteStride = TrailRenderer.VERTEX_STRIDE;
+    const pointFloatStride = TrailRenderer.POINT_FLOAT_STRIDE;
+    const pointByteStride = TrailRenderer.POINT_BYTE_STRIDE;
 
     const newCapacity = this._currentPointCapacity + increaseCount;
     // Buffer layout: [capacity points] + [1 bridge point]
     // Bridge point is copy of point 0, placed at position capacity to connect wrap-around
-    const vertexCount = (newCapacity + 1) * 2;
+    const pointCount = newCapacity + 1;
 
     // Create new vertex buffer (no index buffer needed - using drawArrays)
     const newVertexBuffer = new Buffer(
       engine,
       BufferBindFlag.VertexBuffer,
-      vertexCount * byteStride,
+      pointCount * pointByteStride,
       BufferUsage.Dynamic,
       false
     );
-    const newVertices = new Float32Array(vertexCount * floatStride);
+    const newVertices = new Float32Array(pointCount * pointFloatStride);
 
     // Migrate existing vertex data if any
     const lastVertices = this._vertices;
@@ -296,13 +298,13 @@ export class TrailRenderer extends Renderer {
       const firstFreeElement = this._firstFreeElement;
 
       // Copy data before firstFreeElement
-      newVertices.set(new Float32Array(lastVertices.buffer, 0, firstFreeElement * 2 * floatStride));
+      newVertices.set(new Float32Array(lastVertices.buffer, 0, firstFreeElement * pointFloatStride));
 
       // Copy data after firstFreeElement (shift by increaseCount)
       const nextFreeElement = firstFreeElement + 1;
       if (nextFreeElement < this._currentPointCapacity) {
-        const freeEndOffset = (nextFreeElement + increaseCount) * 2 * floatStride;
-        newVertices.set(new Float32Array(lastVertices.buffer, nextFreeElement * 2 * floatStride * 4), freeEndOffset);
+        const freeEndOffset = (nextFreeElement + increaseCount) * pointFloatStride;
+        newVertices.set(new Float32Array(lastVertices.buffer, nextFreeElement * pointFloatStride * 4), freeEndOffset);
       }
 
       // Update pointers
@@ -327,7 +329,7 @@ export class TrailRenderer extends Renderer {
     this._currentPointCapacity = newCapacity;
 
     // Update primitive vertex buffer binding
-    const vertexBufferBinding = new VertexBufferBinding(newVertexBuffer, byteStride);
+    const vertexBufferBinding = new VertexBufferBinding(newVertexBuffer, TrailRenderer.VERTEX_STRIDE);
     this._primitive.setVertexBufferBinding(0, vertexBufferBinding);
   }
 
@@ -338,10 +340,10 @@ export class TrailRenderer extends Renderer {
   private _retireActivePoints(frameCount: number): void {
     const { _playTime: currentTime, time: lifetime, _vertices: vertices, _currentPointCapacity: capacity } = this;
     const firstActiveOld = this._firstActiveElement;
-    const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
+    const pointStride = TrailRenderer.POINT_FLOAT_STRIDE;
 
     while (this._firstActiveElement !== this._firstFreeElement) {
-      const offset = this._firstActiveElement * 2 * floatStride + 3;
+      const offset = this._firstActiveElement * pointStride + 3;
       const birthTime = vertices[offset];
       if (currentTime - birthTime < lifetime) break;
       // Record the frame when this point was retired (reuse birthTime field)
@@ -364,11 +366,11 @@ export class TrailRenderer extends Renderer {
    */
   private _freeRetiredPoints(frameCount: number): void {
     const capacity = this._currentPointCapacity;
-    const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
+    const pointStride = TrailRenderer.POINT_FLOAT_STRIDE;
     const vertices = this._vertices;
 
     while (this._firstRetiredElement !== this._firstActiveElement) {
-      const retireFrame = vertices[this._firstRetiredElement * 2 * floatStride + 3];
+      const retireFrame = vertices[this._firstRetiredElement * pointStride + 3];
 
       // WebGL doesn't support mapBufferRange, so this optimization is disabled.
       // When mapBufferRange is available, change condition to check if GPU finished rendering.
@@ -404,6 +406,7 @@ export class TrailRenderer extends Renderer {
   private _addPoint(position: Vector3): void {
     const pointIndex = this._firstFreeElement;
     const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
+    const pointStride = TrailRenderer.POINT_FLOAT_STRIDE;
     const vertices = this._vertices;
     const playTime = this._playTime;
 
@@ -415,7 +418,7 @@ export class TrailRenderer extends Renderer {
       // First point has placeholder tangent, update it when second point is added
       if (this._getActivePointCount() === 1) {
         const firstPointIndex = this._firstActiveElement;
-        const offset0 = firstPointIndex * 2 * floatStride + 5;
+        const offset0 = firstPointIndex * pointStride + 5;
         const offset1 = offset0 + floatStride;
         tangent.copyToArray(vertices, offset0);
         tangent.copyToArray(vertices, offset1);
@@ -428,7 +431,7 @@ export class TrailRenderer extends Renderer {
     }
 
     // Write vertex data for top vertex (corner = -1)
-    const topOffset = pointIndex * 2 * floatStride;
+    const topOffset = pointIndex * pointStride;
     position.copyToArray(vertices, topOffset);
     vertices[topOffset + 3] = playTime;
     vertices[topOffset + 4] = -1;
@@ -443,7 +446,7 @@ export class TrailRenderer extends Renderer {
 
     // Also write to bridge position when writing point 0
     if (pointIndex === 0) {
-      const bridgeTopOffset = this._currentPointCapacity * 2 * floatStride;
+      const bridgeTopOffset = this._currentPointCapacity * pointStride;
       const bridgeBottomOffset = bridgeTopOffset + floatStride;
       position.copyToArray(vertices, bridgeTopOffset);
       vertices[bridgeTopOffset + 3] = playTime;
@@ -480,7 +483,7 @@ export class TrailRenderer extends Renderer {
 
   private _recalculateBounds(): void {
     const vertices = this._vertices;
-    const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
+    const pointStride = TrailRenderer.POINT_FLOAT_STRIDE;
     const activeCount = this._getActivePointCount();
     const { min, max } = this._localBounds;
 
@@ -491,14 +494,14 @@ export class TrailRenderer extends Renderer {
       return;
     }
 
-    const firstOffset = this._firstActiveElement * 2 * floatStride;
+    const firstOffset = this._firstActiveElement * pointStride;
     min.copyFromArray(vertices, firstOffset);
     max.copyFrom(min);
 
     const pointPosition = TrailRenderer._tempVector3;
     const capacity = this._currentPointCapacity;
     for (let i = 1, pointIndex = (this._firstActiveElement + 1) % capacity; i < activeCount; i++) {
-      pointPosition.copyFromArray(vertices, pointIndex * 2 * floatStride);
+      pointPosition.copyFromArray(vertices, pointIndex * pointStride);
       Vector3.min(min, pointPosition, min);
       Vector3.max(max, pointPosition, max);
       pointIndex = (pointIndex + 1) % capacity;
@@ -514,8 +517,8 @@ export class TrailRenderer extends Renderer {
 
     if (firstNew === firstFree) return;
 
-    const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
-    const byteStride = TrailRenderer.VERTEX_STRIDE;
+    const pointFloatStride = TrailRenderer.POINT_FLOAT_STRIDE;
+    const pointByteStride = TrailRenderer.POINT_BYTE_STRIDE;
     const { buffer: vertexData } = this._vertices;
     const capacity = this._currentPointCapacity;
     const wrapped = firstNew >= firstFree;
@@ -523,20 +526,20 @@ export class TrailRenderer extends Renderer {
     // First segment: wrapped includes bridge (+1 point), non-wrapped ends at firstFree
     const endPoint = wrapped ? capacity + 1 : firstFree;
     buffer.setData(
-      new Float32Array(vertexData, firstNew * 2 * floatStride * 4, (endPoint - firstNew) * 2 * floatStride),
-      firstNew * 2 * byteStride
+      new Float32Array(vertexData, firstNew * pointFloatStride * 4, (endPoint - firstNew) * pointFloatStride),
+      firstNew * pointByteStride
     );
 
     if (wrapped) {
       // Second segment
       if (firstFree > 0) {
-        buffer.setData(new Float32Array(vertexData, 0, firstFree * 2 * floatStride), 0);
+        buffer.setData(new Float32Array(vertexData, 0, firstFree * pointFloatStride), 0);
       }
     } else if (firstNew === 0) {
       // Upload bridge separately if point 0 was updated
       buffer.setData(
-        new Float32Array(vertexData, capacity * 2 * floatStride * 4, 2 * floatStride),
-        capacity * 2 * byteStride
+        new Float32Array(vertexData, capacity * pointFloatStride * 4, pointFloatStride),
+        capacity * pointByteStride
       );
     }
 
