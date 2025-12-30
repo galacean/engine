@@ -291,41 +291,30 @@ export class TrailRenderer extends Renderer {
     );
     const newVertices = new Float32Array(pointCount * pointFloatStride);
 
-    // Migrate existing vertex data if any
+    // Migrate existing vertex data
     const lastVertices = this._vertices;
     if (lastVertices) {
       const firstFreeElement = this._firstFreeElement;
-
-      // Copy data before firstFreeElement
       newVertices.set(new Float32Array(lastVertices.buffer, 0, firstFreeElement * pointFloatStride));
 
-      // Copy data after firstFreeElement (shift by increaseCount), including bridge point
+      // Shift data after firstFreeElement by increaseCount (includes bridge point)
       const nextFreeElement = firstFreeElement + 1;
       const freeEndOffset = (nextFreeElement + increaseCount) * pointFloatStride;
       newVertices.set(new Float32Array(lastVertices.buffer, nextFreeElement * pointFloatStride * 4), freeEndOffset);
 
-      // Update pointers
-      if (this._firstNewElement > firstFreeElement) {
-        this._firstNewElement += increaseCount;
-      }
-      if (this._firstActiveElement > firstFreeElement) {
-        this._firstActiveElement += increaseCount;
-      }
-      if (this._firstRetiredElement > firstFreeElement) {
-        this._firstRetiredElement += increaseCount;
-      }
+      if (this._firstNewElement > firstFreeElement) this._firstNewElement += increaseCount;
+      if (this._firstActiveElement > firstFreeElement) this._firstActiveElement += increaseCount;
+      if (this._firstRetiredElement > firstFreeElement) this._firstRetiredElement += increaseCount;
 
       this._bufferResized = true;
     }
 
-    // Destroy old vertex buffer
     this._vertexBuffer?.destroy();
 
     this._vertexBuffer = newVertexBuffer;
     this._vertices = newVertices;
     this._currentPointCapacity = newCapacity;
 
-    // Update primitive vertex buffer binding
     const vertexBufferBinding = new VertexBufferBinding(newVertexBuffer, TrailRenderer.VERTEX_STRIDE);
     this._primitive.setVertexBufferBinding(0, vertexBufferBinding);
   }
@@ -427,21 +416,20 @@ export class TrailRenderer extends Renderer {
       tangent.set(0, 0, 1);
     }
 
-    // Write vertex data for top vertex (corner = -1)
+    // Write top vertex (corner = -1) and bottom vertex (corner = 1)
     const topOffset = pointIndex * pointStride;
     position.copyToArray(vertices, topOffset);
     vertices[topOffset + 3] = playTime;
     vertices[topOffset + 4] = -1;
     tangent.copyToArray(vertices, topOffset + 5);
 
-    // Write vertex data for bottom vertex (corner = 1)
     const bottomOffset = topOffset + floatStride;
     position.copyToArray(vertices, bottomOffset);
     vertices[bottomOffset + 3] = playTime;
     vertices[bottomOffset + 4] = 1;
     tangent.copyToArray(vertices, bottomOffset + 5);
 
-    // Also write to bridge position when writing point 0
+    // Write to bridge position when writing point 0
     if (pointIndex === 0) {
       const bridgeTopOffset = this._currentPointCapacity * pointStride;
       const bridgeBottomOffset = bridgeTopOffset + floatStride;
