@@ -263,7 +263,7 @@ export class TrailRenderer extends Renderer {
     // a_CornerTangent: x = corner (-1 or 1), yzw = tangent direction
     primitive.addVertexElement(new VertexElement("a_PositionBirthTime", 0, VertexElementFormat.Vector4, 0));
     primitive.addVertexElement(new VertexElement("a_CornerTangent", 16, VertexElementFormat.Vector4, 0));
-    
+
     this._mainSubPrimitive = new SubPrimitive(0, 0, MeshTopology.TriangleStrip);
     this._wrapSubPrimitive = new SubPrimitive(0, 0, MeshTopology.TriangleStrip);
 
@@ -278,7 +278,7 @@ export class TrailRenderer extends Renderer {
     const newCapacity = this._currentPointCapacity + increaseCount;
     // Buffer layout: [capacity points] + [1 bridge point]
     // Bridge point is copy of point 0, placed at position capacity to connect wrap-around
-    const vertexCount = newCapacity * 2 + 2; // +2 vertices for bridge point
+    const vertexCount = (newCapacity + 1) * 2;
 
     // Create new vertex buffer (no index buffer needed - using drawArrays)
     const newVertexBuffer = new Buffer(
@@ -326,14 +326,9 @@ export class TrailRenderer extends Renderer {
     this._vertices = newVertices;
     this._currentPointCapacity = newCapacity;
 
-    // Update primitive vertex buffer binding (no index buffer)
-    const primitive = this._primitive;
+    // Update primitive vertex buffer binding
     const vertexBufferBinding = new VertexBufferBinding(newVertexBuffer, byteStride);
-    if (primitive.vertexBufferBindings.length > 0) {
-      primitive.setVertexBufferBinding(0, vertexBufferBinding);
-    } else {
-      primitive.vertexBufferBindings.push(vertexBufferBinding);
-    }
+    this._primitive.setVertexBufferBinding(0, vertexBufferBinding);
   }
 
   /**
