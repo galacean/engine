@@ -162,7 +162,7 @@ export class TrailRenderer extends Renderer {
     this._retireActivePoints(time.frameCount);
 
     if (this.emitting) {
-      this._tryAddNewPoint();
+      this._emitNewPoint();
     }
 
     const shaderData = this.shaderData;
@@ -189,15 +189,14 @@ export class TrailRenderer extends Renderer {
     shaderData.setFloatArray(TrailRenderer._widthCurveProp, this.widthCurve._getTypeArray());
     shaderData.setFloatArray(TrailRenderer._colorKeysProp, colorGradient._getColorTypeArray());
     shaderData.setFloatArray(TrailRenderer._alphaKeysProp, colorGradient._getAlphaTypeArray());
-  }
-
-  protected override _render(context: RenderContext): void {
-    // Need at least 2 points to form a trail segment
-    if (this._getActivePointCount() < 2) return;
 
     if (this._firstNewElement !== this._firstFreeElement || this._vertexBuffer.isContentLost) {
       this._uploadNewVertices();
     }
+  }
+
+  protected override _render(context: RenderContext): void {
+    if (this._getActivePointCount() < 2) return;
 
     const material = this.getMaterial();
     if (!material || material.destroyed || material.shader.destroyed) return;
@@ -368,7 +367,7 @@ export class TrailRenderer extends Renderer {
     }
   }
 
-  private _tryAddNewPoint(): void {
+  private _emitNewPoint(): void {
     const worldPosition = this.entity.transform.worldPosition;
 
     if (this._hasLastPosition && Vector3.distance(worldPosition, this._lastPosition) < this.minVertexDistance) {
