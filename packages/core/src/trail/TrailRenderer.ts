@@ -28,7 +28,6 @@ export class TrailRenderer extends Renderer {
   private static _textureModeProp = ShaderProperty.getByName("renderer_TextureMode");
   private static _textureScaleProp = ShaderProperty.getByName("renderer_TextureScale");
   private static _widthCurveProp = ShaderProperty.getByName("renderer_WidthCurve");
-  private static _widthCurveCountProp = ShaderProperty.getByName("renderer_WidthCurveCount");
   private static _colorKeysProp = ShaderProperty.getByName("renderer_ColorKeys");
   private static _alphaKeysProp = ShaderProperty.getByName("renderer_AlphaKeys");
   private static _oldestBirthTimeProp = ShaderProperty.getByName("renderer_OldestBirthTime");
@@ -149,7 +148,6 @@ export class TrailRenderer extends Renderer {
 
     const { widthCurve, colorGradient } = this;
     shaderData.setFloatArray(TrailRenderer._widthCurveProp, widthCurve._getTypeArray());
-    shaderData.setInt(TrailRenderer._widthCurveCountProp, widthCurve.keys.length);
     shaderData.setFloatArray(TrailRenderer._colorKeysProp, colorGradient._getColorTypeArray());
     shaderData.setFloatArray(TrailRenderer._alphaKeysProp, colorGradient._getAlphaTypeArray());
   }

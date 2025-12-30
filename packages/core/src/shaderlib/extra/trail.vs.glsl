@@ -18,7 +18,6 @@ uniform mat4 camera_ProjMat;
 
 // Width curve uniforms (4 keyframes max: x=time, y=value)
 uniform vec2 renderer_WidthCurve[4];
-uniform int renderer_WidthCurveCount;
 
 // Color gradient uniforms (4 keyframes max)
 uniform vec4 renderer_ColorKeys[4]; // x=time, yzw=rgb
@@ -28,21 +27,21 @@ uniform vec2 renderer_AlphaKeys[4]; // x=time, y=alpha
 varying vec2 v_uv;
 varying vec4 v_color;
 
-// Evaluate width curve at normalized age
-float evaluateCurve(in vec2 keys[4], in int count, in float t) {
-    if (count <= 0) return 1.0;
-    if (count == 1) return keys[0].y;
-
+// Evaluate width curve at normalized age (same as particle system)
+float evaluateCurve(in vec2 keys[4], in float t) {
+    float value;
     for (int i = 1; i < 4; i++) {
-        if (i >= count) break;
-        if (t <= keys[i].x) {
-            float t0 = keys[i - 1].x;
-            float t1 = keys[i].x;
-            float factor = (t - t0) / (t1 - t0);
-            return mix(keys[i - 1].y, keys[i].y, factor);
+        vec2 key = keys[i];
+        float time = key.x;
+        if (time >= t) {
+            vec2 lastKey = keys[i - 1];
+            float lastTime = lastKey.x;
+            float age = (t - lastTime) / (time - lastTime);
+            value = mix(lastKey.y, key.y, age);
+            break;
         }
     }
-    return keys[count - 1].y;
+    return value;
 }
 
 // Evaluate color gradient at normalized age (fixed 4 iterations)
@@ -118,7 +117,7 @@ void main() {
     right = right / rightLen;
 
     // Evaluate width curve using relative position
-    float widthMultiplier = evaluateCurve(renderer_WidthCurve, renderer_WidthCurveCount, relativePosition);
+    float widthMultiplier = evaluateCurve(renderer_WidthCurve, relativePosition);
     float width = renderer_Width * widthMultiplier;
 
     // Apply offset
