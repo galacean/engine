@@ -12,6 +12,7 @@ import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
+import { ParticleCurveMode } from "../particle/enums/ParticleCurveMode";
 import { ParticleCompositeCurve } from "../particle/modules/ParticleCompositeCurve";
 import { GradientAlphaKey, GradientColorKey, ParticleGradient } from "../particle/modules/ParticleGradient";
 import { ShaderData } from "../shader/ShaderData";
@@ -38,6 +39,7 @@ export class TrailRenderer extends Renderer {
   private static readonly VERTEX_FLOAT_STRIDE = 8;
   private static readonly _pointIncreaseCount = 128;
   private static _tempVector3 = new Vector3();
+  private static _defaultWidthCurve = new Float32Array([0, 1, 0, 0, 0, 0, 0, 0]);
 
   /** How long the trail points last (in seconds). */
   time = 5.0;
@@ -95,8 +97,6 @@ export class TrailRenderer extends Renderer {
   private _boundsMax = new Vector3();
   @ignoreClone
   private _boundsDirty = true;
-  @ignoreClone
-  private _widthCurveData: Float32Array;
 
   /**
    * @internal
@@ -511,27 +511,16 @@ export class TrailRenderer extends Renderer {
 
   private _updateWidthCurve(shaderData: ShaderData): void {
     const curve = this.widthCurve;
-    const widthCurveData = this._widthCurveData || (this._widthCurveData = new Float32Array(8));
+    const mode = curve.mode;
 
-    if (curve.mode === 0) {
-      widthCurveData[0] = 0;
-      widthCurveData[1] = curve.constant;
-      shaderData.setFloatArray(TrailRenderer._widthCurveProp, widthCurveData);
-      shaderData.setInt(TrailRenderer._widthCurveCountProp, 1);
-    } else if (curve.mode === 2 && curve.curve) {
-      const keys = curve.curve.keys;
-      const count = Math.min(keys.length, 4);
-      for (let i = 0, offset = 0; i < count; i++, offset += 2) {
-        const key = keys[i];
-        widthCurveData[offset] = key.time;
-        widthCurveData[offset + 1] = key.value;
-      }
-      shaderData.setFloatArray(TrailRenderer._widthCurveProp, widthCurveData);
-      shaderData.setInt(TrailRenderer._widthCurveCountProp, count);
+    if (mode === ParticleCurveMode.Curve && curve.curve) {
+      shaderData.setFloatArray(TrailRenderer._widthCurveProp, curve.curve._getTypeArray());
+      shaderData.setInt(TrailRenderer._widthCurveCountProp, curve.curve.keys.length);
     } else {
-      widthCurveData[0] = 0;
-      widthCurveData[1] = 1;
-      shaderData.setFloatArray(TrailRenderer._widthCurveProp, widthCurveData);
+      // For Constant mode, use constant value; otherwise default to 1.0
+      const value = mode === ParticleCurveMode.Constant ? curve.constant : 1.0;
+      shaderData.setFloatArray(TrailRenderer._widthCurveProp, TrailRenderer._defaultWidthCurve);
+      TrailRenderer._defaultWidthCurve[1] = value;
       shaderData.setInt(TrailRenderer._widthCurveCountProp, 1);
     }
   }
