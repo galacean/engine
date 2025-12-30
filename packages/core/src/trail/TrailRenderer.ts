@@ -164,23 +164,13 @@ export class TrailRenderer extends Renderer {
     if (this.emitting) {
       this._emitNewPoint();
     }
+    if (this._firstNewElement !== this._firstFreeElement || this._vertexBuffer.isContentLost) {
+      this._uploadNewVertices();
+    }
 
     const shaderData = this.shaderData;
     const timeParams = this._timeParams;
-
-    // Update dynamic time params (currentTime, oldestBirthTime, newestBirthTime)
     timeParams.x = this._playTime;
-    const { _firstActiveElement: firstActive, _firstFreeElement: firstFree, _currentPointCapacity: capacity } = this;
-    if (firstActive !== firstFree) {
-      const pointStride = TrailRenderer.POINT_FLOAT_STRIDE;
-      const vertices = this._vertices;
-      timeParams.z = vertices[firstActive * pointStride + 3];
-      const newestIndex = firstFree > 0 ? firstFree - 1 : capacity - 1;
-      timeParams.w = vertices[newestIndex * pointStride + 3];
-    } else {
-      timeParams.z = 0;
-      timeParams.w = 0;
-    }
 
     shaderData.setVector4(TrailRenderer._timeParamsProp, timeParams);
     shaderData.setVector4(TrailRenderer._trailParamsProp, this._trailParams);
@@ -189,10 +179,6 @@ export class TrailRenderer extends Renderer {
     shaderData.setFloatArray(TrailRenderer._widthCurveProp, this.widthCurve._getTypeArray());
     shaderData.setFloatArray(TrailRenderer._colorKeysProp, colorGradient._getColorTypeArray());
     shaderData.setFloatArray(TrailRenderer._alphaKeysProp, colorGradient._getAlphaTypeArray());
-
-    if (this._firstNewElement !== this._firstFreeElement || this._vertexBuffer.isContentLost) {
-      this._uploadNewVertices();
-    }
   }
 
   protected override _render(context: RenderContext): void {
@@ -338,9 +324,15 @@ export class TrailRenderer extends Renderer {
 
     if (this._firstActiveElement !== firstActiveOld) {
       this._boundsDirty = true;
+      // Update oldest birth time
+      if (this._firstActiveElement !== this._firstFreeElement) {
+        this._timeParams.z = vertices[this._firstActiveElement * pointStride + 3];
+      }
     }
     if (this._firstActiveElement === this._firstFreeElement) {
       this._hasLastPosition = false;
+      this._timeParams.z = 0;
+      this._timeParams.w = 0;
     }
   }
 
@@ -444,6 +436,7 @@ export class TrailRenderer extends Renderer {
 
     this._expandBounds(position);
     this._firstFreeElement = (this._firstFreeElement + 1) % this._currentPointCapacity;
+    this._timeParams.w = playTime;
   }
 
   private _getActivePointCount(): number {
