@@ -11,7 +11,6 @@ import {
   GradientAlphaKey,
   GradientColorKey,
   Logger,
-  ParticleCompositeCurve,
   ParticleCurve,
   ParticleGradient,
   Script,
@@ -55,9 +54,7 @@ WebGLEngine.create({
   trail.minVertexDistance = 0.2;
 
   // Setup width curve (taper from head to tail)
-  trail.widthCurve = new ParticleCompositeCurve(
-    new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 0))
-  );
+  trail.widthCurve = new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 0));
 
   // Setup color gradient (orange to blue with fade out)
   const gradient = new ParticleGradient(

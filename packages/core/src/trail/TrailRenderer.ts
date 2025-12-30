@@ -14,7 +14,6 @@ import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { CurveKey, ParticleCurve } from "../particle/modules/ParticleCurve";
 import { GradientAlphaKey, GradientColorKey, ParticleGradient } from "../particle/modules/ParticleGradient";
-import { ShaderData } from "../shader/ShaderData";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { TrailTextureMode } from "./enums/TrailTextureMode";
 
@@ -148,8 +147,11 @@ export class TrailRenderer extends Renderer {
       shaderData.setFloat(TrailRenderer._newestBirthTimeProp, newestBirthTime);
     }
 
-    this._updateWidthCurve(shaderData);
-    this._updateColorGradient(shaderData);
+    const { widthCurve, colorGradient } = this;
+    shaderData.setFloatArray(TrailRenderer._widthCurveProp, widthCurve._getTypeArray());
+    shaderData.setInt(TrailRenderer._widthCurveCountProp, widthCurve.keys.length);
+    shaderData.setFloatArray(TrailRenderer._colorKeysProp, colorGradient._getColorTypeArray());
+    shaderData.setFloatArray(TrailRenderer._alphaKeysProp, colorGradient._getAlphaTypeArray());
   }
 
   protected override _render(context: RenderContext): void {
@@ -243,7 +245,13 @@ export class TrailRenderer extends Renderer {
     const vertexCount = newCapacity * 2 + 2; // +2 vertices for bridge point
 
     // Create new vertex buffer (no index buffer needed - using drawArrays)
-    const newVertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertexCount * byteStride, BufferUsage.Dynamic, false);
+    const newVertexBuffer = new Buffer(
+      engine,
+      BufferBindFlag.VertexBuffer,
+      vertexCount * byteStride,
+      BufferUsage.Dynamic,
+      false
+    );
     const newVertices = new Float32Array(vertexCount * floatStride);
 
     // Migrate existing vertex data if any
@@ -258,10 +266,7 @@ export class TrailRenderer extends Renderer {
       const nextFreeElement = firstFreeElement + 1;
       if (nextFreeElement < this._currentPointCapacity) {
         const freeEndOffset = (nextFreeElement + increaseCount) * 2 * floatStride;
-        newVertices.set(
-          new Float32Array(lastVertices.buffer, nextFreeElement * 2 * floatStride * 4),
-          freeEndOffset
-        );
+        newVertices.set(new Float32Array(lastVertices.buffer, nextFreeElement * 2 * floatStride * 4), freeEndOffset);
       }
 
       // Update pointers
@@ -505,17 +510,5 @@ export class TrailRenderer extends Renderer {
     }
 
     this._firstNewElement = firstFree;
-  }
-
-  private _updateWidthCurve(shaderData: ShaderData): void {
-    const curve = this.widthCurve;
-    shaderData.setFloatArray(TrailRenderer._widthCurveProp, curve._getTypeArray());
-    shaderData.setInt(TrailRenderer._widthCurveCountProp, curve.keys.length);
-  }
-
-  private _updateColorGradient(shaderData: ShaderData): void {
-    const gradient = this.colorGradient;
-    shaderData.setFloatArray(TrailRenderer._colorKeysProp, gradient._getColorTypeArray());
-    shaderData.setFloatArray(TrailRenderer._alphaKeysProp, gradient._getAlphaTypeArray());
   }
 }
