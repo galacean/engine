@@ -282,7 +282,6 @@ export class TrailRenderer extends Renderer {
     // Bridge point is copy of point 0, placed at position capacity to connect wrap-around
     const pointCount = newCapacity + 1;
 
-    // Create new vertex buffer (no index buffer needed - using drawArrays)
     const newVertexBuffer = new Buffer(
       engine,
       BufferBindFlag.VertexBuffer,
@@ -300,12 +299,10 @@ export class TrailRenderer extends Renderer {
       // Copy data before firstFreeElement
       newVertices.set(new Float32Array(lastVertices.buffer, 0, firstFreeElement * pointFloatStride));
 
-      // Copy data after firstFreeElement (shift by increaseCount)
+      // Copy data after firstFreeElement (shift by increaseCount), including bridge point
       const nextFreeElement = firstFreeElement + 1;
-      if (nextFreeElement < this._currentPointCapacity) {
-        const freeEndOffset = (nextFreeElement + increaseCount) * pointFloatStride;
-        newVertices.set(new Float32Array(lastVertices.buffer, nextFreeElement * pointFloatStride * 4), freeEndOffset);
-      }
+      const freeEndOffset = (nextFreeElement + increaseCount) * pointFloatStride;
+      newVertices.set(new Float32Array(lastVertices.buffer, nextFreeElement * pointFloatStride * 4), freeEndOffset);
 
       // Update pointers
       if (this._firstNewElement > firstFreeElement) {
