@@ -46,7 +46,7 @@ export class TrailRenderer extends Renderer {
   /** The minimum distance the object must move before a new trail segment is added. */
   minVertexDistance = 0.1;
 
-  private _timeParams = new Vector4(0, 5.0, 0, 0); // x: currentTime, y: lifetime, z: oldestBirthTime, w: newestBirthTime
+  private _timeParams = new Vector4(0, 5.0, -1, 0); // x: currentTime, y: lifetime, z: oldestBirthTime, w: newestBirthTime
   private _trailParams = new Vector4(1.0, TrailTextureMode.Stretch, 1.0, 0); // x: width, y: textureMode, z: textureScale
 
   /**
@@ -367,7 +367,7 @@ export class TrailRenderer extends Renderer {
     }
     if (this._firstActiveElement === this._firstFreeElement) {
       this._hasLastPosition = false;
-      this._timeParams.z = 0;
+      this._timeParams.z = -1;
       this._timeParams.w = 0;
     }
   }
@@ -474,7 +474,13 @@ export class TrailRenderer extends Renderer {
     }
 
     this._firstFreeElement = (this._firstFreeElement + 1) % this._currentPointCapacity;
-    this._timeParams.w = playTime;
+
+    // Update time params
+    const timeParams = this._timeParams;
+    if (timeParams.z === -1) {
+      timeParams.z = playTime; // First point: set oldest birth time
+    }
+    timeParams.w = playTime; // Always update newest birth time
   }
 
   private _getActivePointCount(): number {
