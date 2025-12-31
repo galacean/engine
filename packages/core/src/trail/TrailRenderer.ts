@@ -145,7 +145,7 @@ export class TrailRenderer extends Renderer {
   @ignoreClone
   private _firstFreeSegmentBounds = 0;
   @ignoreClone
-  private _hasPendingSegmentBounds = false;
+  private _lastSegmentBoundsFrameCount = -1;
 
   /**
    * @internal
@@ -165,7 +165,7 @@ export class TrailRenderer extends Renderer {
     this._firstRetiredElement = 0;
     this._hasLastPosition = false;
     this._firstActiveSegmentBounds = this._firstFreeSegmentBounds;
-    this._hasPendingSegmentBounds = false;
+    this._lastSegmentBoundsFrameCount = -1;
   }
 
   protected override _update(context: RenderContext): void {
@@ -224,21 +224,20 @@ export class TrailRenderer extends Renderer {
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    // Pre-generate or update pending segment bounds for current position (same condition as _emitNewPoint)
+    // Generate segment bounds for current position (same condition as _emitNewPoint)
     if (this.emitting) {
       const worldPosition = this.entity.transform.worldPosition;
       if (!this._hasLastPosition || Vector3.distance(worldPosition, this._lastPosition) >= this.minVertexDistance) {
-        this._generateSegmentBounds(worldPosition, false);
+        this._generateSegmentBounds(worldPosition);
       }
     }
 
     const halfWidth = this.width * 0.5;
     const firstActive = this._firstActiveSegmentBounds;
     const firstFree = this._firstFreeSegmentBounds;
-    const hasPending = this._hasPendingSegmentBounds;
 
     // No active segment bounds - use entity position as fallback
-    if (firstActive === firstFree && !hasPending) {
+    if (firstActive === firstFree) {
       const worldPosition = this.entity.transform.worldPosition;
       worldBounds.min.set(worldPosition.x - halfWidth, worldPosition.y - halfWidth, worldPosition.z - halfWidth);
       worldBounds.max.set(worldPosition.x + halfWidth, worldPosition.y + halfWidth, worldPosition.z + halfWidth);
@@ -247,15 +246,14 @@ export class TrailRenderer extends Renderer {
 
     // Merge all segment bounds
     const boundsArray = this._segmentBoundsArray;
-    const floatStride = TrailRenderer.SEGMENT_BOUNDS_FLOAT_STRIDE;
     const count = this._segmentBoundsCount;
 
     // Initialize with first active segment bounds
-    const firstOffset = firstActive * floatStride;
+    const firstOffset = firstActive * TrailRenderer.SEGMENT_BOUNDS_FLOAT_STRIDE;
     worldBounds.min.copyFromArray(boundsArray, firstOffset);
     worldBounds.max.copyFromArray(boundsArray, firstOffset);
 
-    // Merge remaining confirmed segment bounds
+    // Merge remaining segment bounds
     if (firstActive < firstFree) {
       for (let i = firstActive + 1; i < firstFree; i++) {
         this._mergeSegmentBounds(i, worldBounds);
@@ -267,11 +265,6 @@ export class TrailRenderer extends Renderer {
       for (let i = 0; i < firstFree; i++) {
         this._mergeSegmentBounds(i, worldBounds);
       }
-    }
-
-    // Include pending segment bounds (skip if already used for initialization)
-    if (hasPending && firstActive !== firstFree) {
-      this._mergeSegmentBounds(firstFree, worldBounds);
     }
 
     // Expand by half width for trail thickness
@@ -418,8 +411,8 @@ export class TrailRenderer extends Renderer {
       this._resizeBuffer(TrailRenderer.POINT_INCREASE_COUNT);
     }
 
-    // Confirm segment bounds in sync with trail points
-    this._generateSegmentBounds(worldPosition, true);
+    // Generate segment bounds in sync with trail points
+    this._generateSegmentBounds(worldPosition);
 
     this._addPoint(worldPosition);
     this._lastPosition.copyFrom(worldPosition);
@@ -491,17 +484,23 @@ export class TrailRenderer extends Renderer {
 
   /**
    * Generate or update segment bounds for the given position.
-   * @param position - The world position to record
-   * @param confirm - If true, confirm the segment bounds and advance the pointer (called when emitting point).
-   *                  If false, just update the pending segment bounds (can be overwritten multiple times per frame).
+   * Uses frame count to determine whether to add new or overwrite existing.
    */
-  private _generateSegmentBounds(position: Vector3, confirm: boolean): void {
+  private _generateSegmentBounds(position: Vector3): void {
+    const frameCount = this.engine.time.frameCount;
+    const isSameFrame = frameCount === this._lastSegmentBoundsFrameCount;
     const floatStride = TrailRenderer.SEGMENT_BOUNDS_FLOAT_STRIDE;
-    const firstFree = this._firstFreeSegmentBounds;
     const count = this._segmentBoundsCount;
+    let firstFree = this._firstFreeSegmentBounds;
 
-    // Only check resize when confirming a new segment (not for pending updates)
-    if (confirm && !this._hasPendingSegmentBounds) {
+    if (isSameFrame) {
+      // Same frame: overwrite previous position (go back one slot)
+      firstFree = firstFree - 1;
+      if (firstFree < 0) {
+        firstFree = count - 1;
+      }
+    } else {
+      // New frame: check resize before adding new segment
       let nextFree = firstFree + 1;
       if (nextFree >= count) {
         nextFree = 0;
@@ -511,23 +510,20 @@ export class TrailRenderer extends Renderer {
       }
     }
 
-    // Write segment bounds data at firstFree position
+    // Write segment bounds data
     const offset = firstFree * floatStride;
     const boundsArray = this._segmentBoundsArray;
     position.copyToArray(boundsArray, offset);
     boundsArray[offset + 3] = this._playTime;
 
-    if (confirm) {
-      // Advance pointer to confirm this segment bounds
+    if (!isSameFrame) {
+      // Advance pointer for new segment
       let nextFree = firstFree + 1;
       if (nextFree >= count) {
         nextFree = 0;
       }
       this._firstFreeSegmentBounds = nextFree;
-      this._hasPendingSegmentBounds = false;
-    } else {
-      // Mark as pending (can be overwritten or confirmed later)
-      this._hasPendingSegmentBounds = true;
+      this._lastSegmentBoundsFrameCount = frameCount;
     }
   }
 
