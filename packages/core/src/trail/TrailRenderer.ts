@@ -1,6 +1,5 @@
 import { BoundingBox, Color, Vector3, Vector4 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
-import { Material } from "../material/Material";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderElement } from "../RenderPipeline/RenderElement";
 import { Renderer } from "../Renderer";
@@ -14,6 +13,7 @@ import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
+import { Material } from "../material/Material";
 import { CurveKey, ParticleCurve } from "../particle/modules/ParticleCurve";
 import { GradientAlphaKey, GradientColorKey, ParticleGradient } from "../particle/modules/ParticleGradient";
 import { ShaderProperty } from "../shader/ShaderProperty";
@@ -489,42 +489,34 @@ export class TrailRenderer extends Renderer {
   private _generateSegmentBounds(position: Vector3): void {
     const frameCount = this.engine.time.frameCount;
     const isSameFrame = frameCount === this._lastSegmentBoundsFrameCount;
-    const floatStride = TrailRenderer.SEGMENT_BOUNDS_FLOAT_STRIDE;
-    const count = this._segmentBoundsCount;
-    let firstFree = this._firstFreeSegmentBounds;
+    let writeIndex: number;
 
     if (isSameFrame) {
       // Same frame: overwrite previous position (go back one slot)
-      firstFree = firstFree - 1;
-      if (firstFree < 0) {
-        firstFree = count - 1;
+      writeIndex = this._firstFreeSegmentBounds - 1;
+      if (writeIndex < 0) {
+        writeIndex = this._segmentBoundsCount - 1;
       }
     } else {
-      // New frame: check resize before adding new segment
-      let nextFree = firstFree + 1;
-      if (nextFree >= count) {
+      // New frame: check resize and advance pointer
+      writeIndex = this._firstFreeSegmentBounds;
+      let nextFree = writeIndex + 1;
+      if (nextFree >= this._segmentBoundsCount) {
         nextFree = 0;
       }
       if (nextFree === this._firstActiveSegmentBounds) {
         this._resizeSegmentBoundsArray();
-      }
-    }
-
-    // Write segment bounds data
-    const offset = firstFree * floatStride;
-    const boundsArray = this._segmentBoundsArray;
-    position.copyToArray(boundsArray, offset);
-    boundsArray[offset + 3] = this._playTime;
-
-    if (!isSameFrame) {
-      // Advance pointer for new segment
-      let nextFree = firstFree + 1;
-      if (nextFree >= count) {
-        nextFree = 0;
+        nextFree = writeIndex + 1; // Recalculate after resize (count increased, no wrap needed)
       }
       this._firstFreeSegmentBounds = nextFree;
       this._lastSegmentBoundsFrameCount = frameCount;
     }
+
+    // Write segment bounds data
+    const offset = writeIndex * TrailRenderer.SEGMENT_BOUNDS_FLOAT_STRIDE;
+    const boundsArray = this._segmentBoundsArray;
+    position.copyToArray(boundsArray, offset);
+    boundsArray[offset + 3] = this._playTime;
   }
 
   /**
