@@ -194,7 +194,8 @@ export class TrailRenderer extends Renderer {
     if (activeCount > 0) {
       const headIndex = (this._firstFreeElement - 1 + capacity) % capacity;
       timeDistParams.z = vertices[headIndex * TrailRenderer.POINT_FLOAT_STRIDE + TrailRenderer.DISTANCE_OFFSET];
-      timeDistParams.w = vertices[this._firstActiveElement * TrailRenderer.POINT_FLOAT_STRIDE + TrailRenderer.DISTANCE_OFFSET];
+      timeDistParams.w =
+        vertices[this._firstActiveElement * TrailRenderer.POINT_FLOAT_STRIDE + TrailRenderer.DISTANCE_OFFSET];
     } else {
       timeDistParams.z = timeDistParams.w = 0;
     }
