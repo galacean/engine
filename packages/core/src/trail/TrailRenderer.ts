@@ -46,8 +46,75 @@ export class TrailRenderer extends Renderer {
   /** The minimum distance the object must move before a new trail segment is added. */
   minVertexDistance = 0.1;
 
+  /** The curve describing the trail width from start to end. */
+  @deepClone
+  widthCurve = new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 1));
+
+  /** The gradient describing the trail color from start to end. */
+  @deepClone
+  colorGradient = new ParticleGradient(
+    [new GradientColorKey(0, new Color(1, 1, 1, 1)), new GradientColorKey(1, new Color(1, 1, 1, 1))],
+    [new GradientAlphaKey(0, 1), new GradientAlphaKey(1, 1)]
+  );
+
+  /** Whether the trail is being created as the object moves. */
+  emitting = true;
+
+  // Shader parameters
+  @ignoreClone
   private _timeParams = new Vector4(0, 5.0, -1, 0); // x: currentTime, y: lifetime, z: oldestBirthTime, w: newestBirthTime
+  @ignoreClone
   private _trailParams = new Vector4(1.0, TrailTextureMode.Stretch, 1.0, 0); // x: width, y: textureMode, z: textureScale
+
+  // Geometry and rendering
+  @ignoreClone
+  private _primitive: Primitive;
+  @ignoreClone
+  private _mainSubPrimitive: SubPrimitive;
+  @ignoreClone
+  private _wrapSubPrimitive: SubPrimitive;
+  @ignoreClone
+  private _vertexBuffer: Buffer;
+  @ignoreClone
+  private _vertices: Float32Array;
+
+  // Point management (circular buffer state)
+  @ignoreClone
+  private _firstActiveElement = 0;
+  @ignoreClone
+  private _firstNewElement = 0;
+  @ignoreClone
+  private _firstFreeElement = 0;
+  @ignoreClone
+  private _firstRetiredElement = 0;
+  @ignoreClone
+  private _currentPointCapacity = 0;
+  @ignoreClone
+  private _bufferResized = false;
+
+  // Position tracking
+  @ignoreClone
+  private _lastPosition = new Vector3();
+  @ignoreClone
+  private _hasLastPosition = false;
+
+  // Time tracking
+  @ignoreClone
+  private _playTime = 0;
+  @ignoreClone
+  private _lastPlayTimeUpdateFrameCount = -1;
+
+  // Segment bounds (for efficient bounds calculation)
+  @ignoreClone
+  private _segmentBoundsArray: Float32Array;
+  @ignoreClone
+  private _segmentBoundsCount = 0;
+  @ignoreClone
+  private _firstActiveSegmentBounds = 0;
+  @ignoreClone
+  private _firstFreeSegmentBounds = 0;
+  @ignoreClone
+  private _lastSegmentBoundsFrameCount = -1;
 
   /**
    * The fade-out duration in seconds.
@@ -93,60 +160,6 @@ export class TrailRenderer extends Renderer {
     this._trailParams.z = value;
   }
 
-  /** The curve describing the trail width from start to end. */
-  @deepClone
-  widthCurve = new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 1));
-
-  /** The gradient describing the trail color from start to end. */
-  @deepClone
-  colorGradient = new ParticleGradient(
-    [new GradientColorKey(0, new Color(1, 1, 1, 1)), new GradientColorKey(1, new Color(1, 1, 1, 1))],
-    [new GradientAlphaKey(0, 1), new GradientAlphaKey(1, 1)]
-  );
-
-  /** Whether the trail is being created as the object moves. */
-  emitting = true;
-
-  @ignoreClone
-  private _primitive: Primitive;
-  @ignoreClone
-  private _mainSubPrimitive: SubPrimitive;
-  @ignoreClone
-  private _wrapSubPrimitive: SubPrimitive;
-  @ignoreClone
-  private _vertexBuffer: Buffer;
-  @ignoreClone
-  private _vertices: Float32Array;
-  @ignoreClone
-  private _firstActiveElement = 0;
-  @ignoreClone
-  private _firstNewElement = 0;
-  @ignoreClone
-  private _firstFreeElement = 0;
-  @ignoreClone
-  private _firstRetiredElement = 0;
-  @ignoreClone
-  private _currentPointCapacity = 0;
-  @ignoreClone
-  private _bufferResized = false;
-  @ignoreClone
-  private _lastPosition = new Vector3();
-  @ignoreClone
-  private _hasLastPosition = false;
-  @ignoreClone
-  private _playTime = 0;
-  // Segment bounds for efficient bounds calculation (similar to particle world mode)
-  @ignoreClone
-  private _segmentBoundsArray: Float32Array;
-  @ignoreClone
-  private _segmentBoundsCount = 0;
-  @ignoreClone
-  private _firstActiveSegmentBounds = 0;
-  @ignoreClone
-  private _firstFreeSegmentBounds = 0;
-  @ignoreClone
-  private _lastSegmentBoundsFrameCount = -1;
-
   /**
    * @internal
    */
@@ -172,13 +185,15 @@ export class TrailRenderer extends Renderer {
     super._update(context);
 
     const time = this.engine.time;
-    this._playTime += time.deltaTime;
-    this._freeRetiredPoints(time.frameCount);
-    this._retireActivePoints(time.frameCount);
-    this._retireSegmentBounds();
+    const playTime = this._updateAndGetPlayTime();
+    const frameCount = time.frameCount;
+
+    this._freeRetiredPoints(frameCount);
+    this._retireActivePoints(playTime, frameCount);
+    this._retireSegmentBounds(playTime);
 
     if (this.emitting) {
-      this._emitNewPoint();
+      this._emitNewPoint(playTime);
     }
     if (this._firstNewElement !== this._firstFreeElement || this._vertexBuffer.isContentLost) {
       this._uploadNewVertices();
@@ -186,7 +201,7 @@ export class TrailRenderer extends Renderer {
 
     const shaderData = this.shaderData;
     const timeParams = this._timeParams;
-    timeParams.x = this._playTime;
+    timeParams.x = playTime;
 
     shaderData.setVector4(TrailRenderer._timeParamsProp, timeParams);
     shaderData.setVector4(TrailRenderer._trailParamsProp, this._trailParams);
@@ -228,7 +243,7 @@ export class TrailRenderer extends Renderer {
     if (this.emitting) {
       const worldPosition = this.entity.transform.worldPosition;
       if (!this._hasLastPosition || Vector3.distance(worldPosition, this._lastPosition) >= this.minVertexDistance) {
-        this._generateSegmentBounds(worldPosition);
+        this._generateSegmentBounds(worldPosition, this._updateAndGetPlayTime());
       }
     }
 
@@ -277,6 +292,16 @@ export class TrailRenderer extends Renderer {
     super._onDestroy();
     this._vertexBuffer?.destroy();
     this._primitive?.destroy();
+  }
+
+  private _updateAndGetPlayTime(): number {
+    const time = this.engine.time;
+    const frameCount = time.frameCount;
+    if (frameCount !== this._lastPlayTimeUpdateFrameCount) {
+      this._playTime += time.deltaTime;
+      this._lastPlayTimeUpdateFrameCount = frameCount;
+    }
+    return this._playTime;
   }
 
   private _initGeometry(): void {
@@ -345,8 +370,8 @@ export class TrailRenderer extends Renderer {
    * Move expired points from active to retired state.
    * Points in retired state are waiting for GPU to finish rendering before they can be freed.
    */
-  private _retireActivePoints(frameCount: number): void {
-    const { _playTime: currentTime, time: lifetime, _vertices: vertices, _currentPointCapacity: capacity } = this;
+  private _retireActivePoints(currentTime: number, frameCount: number): void {
+    const { time: lifetime, _vertices: vertices, _currentPointCapacity: capacity } = this;
     const firstActiveOld = this._firstActiveElement;
     const pointStride = TrailRenderer.POINT_FLOAT_STRIDE;
 
@@ -395,7 +420,7 @@ export class TrailRenderer extends Renderer {
     }
   }
 
-  private _emitNewPoint(): void {
+  private _emitNewPoint(playTime: number): void {
     const worldPosition = this.entity.transform.worldPosition;
 
     if (this._hasLastPosition && Vector3.distance(worldPosition, this._lastPosition) < this.minVertexDistance) {
@@ -412,19 +437,18 @@ export class TrailRenderer extends Renderer {
     }
 
     // Generate segment bounds in sync with trail points
-    this._generateSegmentBounds(worldPosition);
+    this._generateSegmentBounds(worldPosition, playTime);
 
-    this._addPoint(worldPosition);
+    this._addPoint(worldPosition, playTime);
     this._lastPosition.copyFrom(worldPosition);
     this._hasLastPosition = true;
   }
 
-  private _addPoint(position: Vector3): void {
+  private _addPoint(position: Vector3, playTime: number): void {
     const pointIndex = this._firstFreeElement;
     const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
     const pointStride = TrailRenderer.POINT_FLOAT_STRIDE;
     const vertices = this._vertices;
-    const playTime = this._playTime;
 
     const tangent = TrailRenderer._tempVector3;
     if (this._hasLastPosition) {
@@ -492,7 +516,7 @@ export class TrailRenderer extends Renderer {
    * Generate or update segment bounds for the given position.
    * Uses frame count to determine whether to add new or overwrite existing.
    */
-  private _generateSegmentBounds(position: Vector3): void {
+  private _generateSegmentBounds(position: Vector3, playTime: number): void {
     const frameCount = this.engine.time.frameCount;
     const isSameFrame = frameCount === this._lastSegmentBoundsFrameCount;
     let writeIndex: number;
@@ -522,20 +546,19 @@ export class TrailRenderer extends Renderer {
     const offset = writeIndex * TrailRenderer.SEGMENT_BOUNDS_FLOAT_STRIDE;
     const boundsArray = this._segmentBoundsArray;
     position.copyToArray(boundsArray, offset);
-    boundsArray[offset + 3] = this._playTime;
+    boundsArray[offset + 3] = playTime;
   }
 
   /**
    * Retire segment bounds that have expired based on lifetime.
    */
-  private _retireSegmentBounds(): void {
+  private _retireSegmentBounds(currentTime: number): void {
     const floatStride = TrailRenderer.SEGMENT_BOUNDS_FLOAT_STRIDE;
     const timeOffset = TrailRenderer.SEGMENT_BOUNDS_TIME_OFFSET;
     const boundsArray = this._segmentBoundsArray;
     const firstFree = this._firstFreeSegmentBounds;
     const count = this._segmentBoundsCount;
     const lifetime = this.time;
-    const currentTime = this._playTime;
 
     while (this._firstActiveSegmentBounds !== firstFree) {
       const index = this._firstActiveSegmentBounds * floatStride;
