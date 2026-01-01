@@ -62,45 +62,33 @@ vec4 evaluateGradient(in vec4 colorKeys[4], in vec2 alphaKeys[4], in float t) {
 }
 
 void main() {
-    // Extract position and birth time
     vec3 position = a_PositionBirthTime.xyz;
     float birthTime = a_PositionBirthTime.w;
     float corner = a_CornerTangent.x;
     vec3 tangent = a_CornerTangent.yzw;
-
-    // Extract packed uniforms
-    float currentTime = renderer_TimeParams.x;
-    float lifetime = renderer_TimeParams.y;
-    float oldestBirthTime = renderer_TimeParams.z;
     float newestBirthTime = renderer_TimeParams.w;
-    float trailWidth = renderer_TrailParams.x;
-    float textureMode = renderer_TrailParams.y;
-    float textureScale = renderer_TrailParams.z;
 
-    // Calculate normalized age (0 = new, 1 = about to die) for lifetime check
-    float age = currentTime - birthTime;
-    float normalizedAge = clamp(age / lifetime, 0.0, 1.0);
+    // age: time since birth, normalizedAge: 0=new, 1=expired
+    float age = renderer_TimeParams.x - birthTime;
+    float normalizedAge = clamp(age / renderer_TimeParams.y, 0.0, 1.0);
 
-    // Discard vertices that have exceeded their lifetime
+    // Discard expired vertices
     if (normalizedAge >= 1.0) {
-        gl_Position = vec4(2.0, 2.0, 2.0, 1.0); // Move outside clip space
+        gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
         return;
     }
 
-    // Calculate relative position in trail (0 = head/newest, 1 = tail/oldest)
-    // Used for width curve, color gradient, and UV in Stretch mode
-    float timeRange = newestBirthTime - oldestBirthTime;
+    // relativePosition: 0=head(newest), 1=tail(oldest)
+    float timeRange = newestBirthTime - renderer_TimeParams.z;
     float relativePosition = 0.0;
     if (timeRange > 0.0001) {
         relativePosition = (newestBirthTime - birthTime) / timeRange;
     }
 
-    // Calculate billboard offset (View alignment)
+    // Billboard: expand perpendicular to tangent and view direction
     vec3 toCamera = normalize(camera_Position - position);
     vec3 right = cross(tangent, toCamera);
     float rightLen = length(right);
-
-    // Handle edge case when tangent is parallel to camera direction
     if (rightLen < 0.001) {
         right = cross(tangent, vec3(0.0, 1.0, 0.0));
         rightLen = length(right);
@@ -111,29 +99,18 @@ void main() {
     }
     right = right / rightLen;
 
-    // Evaluate width curve using relative position
     float widthMultiplier = evaluateCurve(renderer_WidthCurve, relativePosition);
-    float width = trailWidth * widthMultiplier;
-
-    // Apply offset
+    float width = renderer_TrailParams.x * widthMultiplier;
     vec3 worldPosition = position + right * width * 0.5 * corner;
 
     gl_Position = camera_ProjMat * camera_ViewMat * vec4(worldPosition, 1.0);
 
-    // Calculate UV based on texture mode
-    float u = corner * 0.5 + 0.5;  // 0 for bottom, 1 for top
-    float v;
-
-    if (textureMode < 0.5) {
-        // Stretch mode: UV.v based on relative position in trail
-        v = relativePosition;
-    } else {
-        // Tile mode: scale by tile scale (use normalizedAge for tiling effect)
-        v = normalizedAge * textureScale;
-    }
-
+    // UV: u=corner side, v=position along trail or tiled
+    float u = corner * 0.5 + 0.5;
+    float v = renderer_TrailParams.y < 0.5
+        ? relativePosition
+        : normalizedAge * renderer_TrailParams.z;
     v_uv = vec2(u, v);
 
-    // Evaluate color gradient using relative position
     v_color = evaluateGradient(renderer_ColorKeys, renderer_AlphaKeys, relativePosition);
 }
