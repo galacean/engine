@@ -242,13 +242,14 @@ export class TrailRenderer extends Renderer {
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    const halfWidth = this.width * 0.5;
     const firstActive = this._firstActiveElement;
     const firstFree = this._firstFreeElement;
     const { min, max } = worldBounds;
 
+    let hasTrailGeometry = firstActive !== firstFree;
+
     // Merge all active points from vertex data
-    if (firstActive !== firstFree) {
+    if (hasTrailGeometry) {
       const vertices = this._vertices;
       const pointStride = TrailRenderer.POINT_FLOAT_STRIDE;
 
@@ -272,17 +273,21 @@ export class TrailRenderer extends Renderer {
     }
 
     // Pre-generate: merge current position if it would create a new point
-    if (this.emitting) {
+    if (this.emitting && this._hasLastPosition) {
       const worldPosition = this.entity.transform.worldPosition;
-      if (this._hasLastPosition && Vector3.distance(worldPosition, this._lastPosition) >= this.minVertexDistance) {
+      if (Vector3.distance(worldPosition, this._lastPosition) >= this.minVertexDistance) {
         Vector3.min(min, worldPosition, min);
         Vector3.max(max, worldPosition, max);
+        hasTrailGeometry = true;
       }
     }
 
-    // Expand by half width for trail thickness
-    min.set(min.x - halfWidth, min.y - halfWidth, min.z - halfWidth);
-    max.set(max.x + halfWidth, max.y + halfWidth, max.z + halfWidth);
+    // Only expand by half width when there's actual/upcoming trail geometry
+    if (hasTrailGeometry) {
+      const halfWidth = this.width * 0.5;
+      min.set(min.x - halfWidth, min.y - halfWidth, min.z - halfWidth);
+      max.set(max.x + halfWidth, max.y + halfWidth, max.z + halfWidth);
+    }
   }
 
   private _mergePointPosition(vertices: Float32Array, offset: number, min: Vector3, max: Vector3): void {
