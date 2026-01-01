@@ -222,41 +222,31 @@ export class TrailRenderer extends Renderer {
     const halfWidth = this.width * 0.5;
     const firstActive = this._firstActiveElement;
     const firstFree = this._firstFreeElement;
-
-    // No active points - use entity position as fallback
-    if (firstActive === firstFree) {
-      const worldPosition = this.entity.transform.worldPosition;
-      worldBounds.min.set(worldPosition.x - halfWidth, worldPosition.y - halfWidth, worldPosition.z - halfWidth);
-      worldBounds.max.set(worldPosition.x + halfWidth, worldPosition.y + halfWidth, worldPosition.z + halfWidth);
-      return;
-    }
+    const { min, max } = worldBounds;
 
     // Merge all active points from vertex data
-    const vertices = this._vertices;
-    const pointStride = TrailRenderer.POINT_FLOAT_STRIDE;
-    const capacity = this._currentPointCapacity;
+    if (firstActive !== firstFree) {
+      const vertices = this._vertices;
+      const pointStride = TrailRenderer.POINT_FLOAT_STRIDE;
+      const capacity = this._currentPointCapacity;
 
-    // Initialize with first active point
-    const firstOffset = firstActive * pointStride;
-    worldBounds.min.set(vertices[firstOffset], vertices[firstOffset + 1], vertices[firstOffset + 2]);
-    worldBounds.max.copyFrom(worldBounds.min);
+      min.set(Infinity, Infinity, Infinity);
+      max.set(-Infinity, -Infinity, -Infinity);
 
-    // Merge remaining active points
-    const { min, max } = worldBounds;
-    if (firstActive < firstFree) {
-      for (let i = firstActive + 1; i < firstFree; i++) {
-        const offset = i * pointStride;
-        this._mergePointPosition(vertices, offset, min, max);
+      const wrapped = firstActive > firstFree;
+      for (let i = firstActive, end = wrapped ? capacity : firstFree; i < end; i++) {
+        this._mergePointPosition(vertices, i * pointStride, min, max);
+      }
+      if (wrapped) {
+        for (let i = 0; i < firstFree; i++) {
+          this._mergePointPosition(vertices, i * pointStride, min, max);
+        }
       }
     } else {
-      for (let i = firstActive + 1; i < capacity; i++) {
-        const offset = i * pointStride;
-        this._mergePointPosition(vertices, offset, min, max);
-      }
-      for (let i = 0; i < firstFree; i++) {
-        const offset = i * pointStride;
-        this._mergePointPosition(vertices, offset, min, max);
-      }
+      // No active points - initialize with entity position
+      const { x, y, z } = this.entity.transform.worldPosition;
+      min.set(x, y, z);
+      max.set(x, y, z);
     }
 
     // Pre-generate: merge current position if it would create a new point
