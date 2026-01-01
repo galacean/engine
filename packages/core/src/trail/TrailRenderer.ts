@@ -38,6 +38,9 @@ export class TrailRenderer extends Renderer {
 
   private static _tempVector3 = new Vector3();
 
+  /** Whether the trail is being created as the object moves. */
+  emitting = true;
+
   /** The minimum distance the object must move before a new trail segment is added. */
   minVertexDistance = 0.1;
 
@@ -51,9 +54,6 @@ export class TrailRenderer extends Renderer {
     [new GradientColorKey(0, new Color(1, 1, 1, 1)), new GradientColorKey(1, new Color(1, 1, 1, 1))],
     [new GradientAlphaKey(0, 1), new GradientAlphaKey(1, 1)]
   );
-
-  /** Whether the trail is being created as the object moves. */
-  emitting = true;
 
   // Shader parameters
   @ignoreClone
@@ -242,19 +242,18 @@ export class TrailRenderer extends Renderer {
         }
       }
     } else {
-      // No active points - initialize with entity position
-      const worldPosition = this.entity.transform.worldPosition;
-      min.copyFrom(worldPosition);
-      max.copyFrom(worldPosition);
+      // No active points - initialize with last position or entity position
+      const position = this._hasLastPosition ? this._lastPosition : this.entity.transform.worldPosition;
+      min.copyFrom(position);
+      max.copyFrom(position);
     }
 
     // Pre-generate: merge current position if it would create a new point
     if (this.emitting) {
       const worldPosition = this.entity.transform.worldPosition;
-      if (!this._hasLastPosition || Vector3.distance(worldPosition, this._lastPosition) >= this.minVertexDistance) {
-        const { x, y, z } = worldPosition;
-        min.set(Math.min(min.x, x), Math.min(min.y, y), Math.min(min.z, z));
-        max.set(Math.max(max.x, x), Math.max(max.y, y), Math.max(max.z, z));
+      if (this._hasLastPosition && Vector3.distance(worldPosition, this._lastPosition) >= this.minVertexDistance) {
+        Vector3.min(min, worldPosition, min);
+        Vector3.max(max, worldPosition, max);
       }
     }
 
@@ -374,7 +373,6 @@ export class TrailRenderer extends Renderer {
       }
     }
     if (this._firstActiveElement === this._firstFreeElement) {
-      this._hasLastPosition = false;
       this._timeParams.z = -1;
       this._timeParams.w = 0;
     }
