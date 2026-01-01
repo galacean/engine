@@ -30,11 +30,6 @@ export class TrailRenderer extends Renderer {
   private static readonly POINT_BYTE_STRIDE = 64; // 2 vertices per point
   private static readonly POINT_INCREASE_COUNT = 128;
 
-  // Segment bounds array layout: posX, posY, posZ, birthTime = 4 floats per segment
-  private static readonly SEGMENT_BOUNDS_FLOAT_STRIDE = 4;
-  private static readonly SEGMENT_BOUNDS_TIME_OFFSET = 3;
-  private static readonly SEGMENT_BOUNDS_INCREASE_COUNT = 64;
-
   private static _timeParamsProp = ShaderProperty.getByName("renderer_TimeParams");
   private static _trailParamsProp = ShaderProperty.getByName("renderer_TrailParams");
   private static _widthCurveProp = ShaderProperty.getByName("renderer_WidthCurve");
@@ -104,18 +99,6 @@ export class TrailRenderer extends Renderer {
   @ignoreClone
   private _lastPlayTimeUpdateFrameCount = -1;
 
-  // Segment bounds (for efficient bounds calculation)
-  @ignoreClone
-  private _segmentBoundsArray: Float32Array;
-  @ignoreClone
-  private _segmentBoundsCount = 0;
-  @ignoreClone
-  private _firstActiveSegmentBounds = 0;
-  @ignoreClone
-  private _firstFreeSegmentBounds = 0;
-  @ignoreClone
-  private _lastSegmentBoundsFrameCount = -1;
-
   /**
    * The fade-out duration in seconds.
    */
@@ -177,8 +160,6 @@ export class TrailRenderer extends Renderer {
     this._firstFreeElement = 0;
     this._firstRetiredElement = 0;
     this._hasLastPosition = false;
-    this._firstActiveSegmentBounds = this._firstFreeSegmentBounds;
-    this._lastSegmentBoundsFrameCount = -1;
   }
 
   protected override _update(context: RenderContext): void {
@@ -190,7 +171,6 @@ export class TrailRenderer extends Renderer {
 
     this._freeRetiredPoints(frameCount);
     this._retireActivePoints(playTime, frameCount);
-    this._retireSegmentBounds(playTime);
 
     if (this.emitting) {
       this._emitNewPoint(playTime);
@@ -239,19 +219,11 @@ export class TrailRenderer extends Renderer {
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    // Generate segment bounds for current position (same condition as _emitNewPoint)
-    if (this.emitting) {
-      const worldPosition = this.entity.transform.worldPosition;
-      if (!this._hasLastPosition || Vector3.distance(worldPosition, this._lastPosition) >= this.minVertexDistance) {
-        this._generateSegmentBounds(worldPosition, this._updateAndGetPlayTime());
-      }
-    }
-
     const halfWidth = this.width * 0.5;
-    const firstActive = this._firstActiveSegmentBounds;
-    const firstFree = this._firstFreeSegmentBounds;
+    const firstActive = this._firstActiveElement;
+    const firstFree = this._firstFreeElement;
 
-    // No active segment bounds - use entity position as fallback
+    // No active points - use entity position as fallback
     if (firstActive === firstFree) {
       const worldPosition = this.entity.transform.worldPosition;
       worldBounds.min.set(worldPosition.x - halfWidth, worldPosition.y - halfWidth, worldPosition.z - halfWidth);
@@ -259,33 +231,55 @@ export class TrailRenderer extends Renderer {
       return;
     }
 
-    // Merge all segment bounds
-    const boundsArray = this._segmentBoundsArray;
-    const count = this._segmentBoundsCount;
+    // Merge all active points from vertex data
+    const vertices = this._vertices;
+    const pointStride = TrailRenderer.POINT_FLOAT_STRIDE;
+    const capacity = this._currentPointCapacity;
 
-    // Initialize with first active segment bounds
-    const firstOffset = firstActive * TrailRenderer.SEGMENT_BOUNDS_FLOAT_STRIDE;
-    worldBounds.min.copyFromArray(boundsArray, firstOffset);
-    worldBounds.max.copyFromArray(boundsArray, firstOffset);
+    // Initialize with first active point
+    const firstOffset = firstActive * pointStride;
+    worldBounds.min.set(vertices[firstOffset], vertices[firstOffset + 1], vertices[firstOffset + 2]);
+    worldBounds.max.copyFrom(worldBounds.min);
 
-    // Merge remaining segment bounds
+    // Merge remaining active points
+    const { min, max } = worldBounds;
     if (firstActive < firstFree) {
       for (let i = firstActive + 1; i < firstFree; i++) {
-        this._mergeSegmentBounds(i, worldBounds);
+        const offset = i * pointStride;
+        this._mergePointPosition(vertices, offset, min, max);
       }
-    } else if (firstActive > firstFree) {
-      for (let i = firstActive + 1; i < count; i++) {
-        this._mergeSegmentBounds(i, worldBounds);
+    } else {
+      for (let i = firstActive + 1; i < capacity; i++) {
+        const offset = i * pointStride;
+        this._mergePointPosition(vertices, offset, min, max);
       }
       for (let i = 0; i < firstFree; i++) {
-        this._mergeSegmentBounds(i, worldBounds);
+        const offset = i * pointStride;
+        this._mergePointPosition(vertices, offset, min, max);
+      }
+    }
+
+    // Pre-generate: merge current position if it would create a new point
+    if (this.emitting) {
+      const worldPosition = this.entity.transform.worldPosition;
+      if (!this._hasLastPosition || Vector3.distance(worldPosition, this._lastPosition) >= this.minVertexDistance) {
+        const { x, y, z } = worldPosition;
+        min.set(Math.min(min.x, x), Math.min(min.y, y), Math.min(min.z, z));
+        max.set(Math.max(max.x, x), Math.max(max.y, y), Math.max(max.z, z));
       }
     }
 
     // Expand by half width for trail thickness
-    const { min, max } = worldBounds;
     min.set(min.x - halfWidth, min.y - halfWidth, min.z - halfWidth);
     max.set(max.x + halfWidth, max.y + halfWidth, max.z + halfWidth);
+  }
+
+  private _mergePointPosition(vertices: Float32Array, offset: number, min: Vector3, max: Vector3): void {
+    const x = vertices[offset];
+    const y = vertices[offset + 1];
+    const z = vertices[offset + 2];
+    min.set(Math.min(min.x, x), Math.min(min.y, y), Math.min(min.z, z));
+    max.set(Math.max(max.x, x), Math.max(max.y, y), Math.max(max.z, z));
   }
 
   protected override _onDestroy(): void {
@@ -436,9 +430,6 @@ export class TrailRenderer extends Renderer {
       this._resizeBuffer(TrailRenderer.POINT_INCREASE_COUNT);
     }
 
-    // Generate segment bounds in sync with trail points
-    this._generateSegmentBounds(worldPosition, playTime);
-
     this._addPoint(worldPosition, playTime);
     this._lastPosition.copyFrom(worldPosition);
     this._hasLastPosition = true;
@@ -510,101 +501,6 @@ export class TrailRenderer extends Renderer {
   private _getActivePointCount(): number {
     const { _firstActiveElement: firstActive, _firstFreeElement: firstFree } = this;
     return firstFree >= firstActive ? firstFree - firstActive : this._currentPointCapacity - firstActive + firstFree;
-  }
-
-  /**
-   * Generate or update segment bounds for the given position.
-   * Uses frame count to determine whether to add new or overwrite existing.
-   */
-  private _generateSegmentBounds(position: Vector3, playTime: number): void {
-    const frameCount = this.engine.time.frameCount;
-    const isSameFrame = frameCount === this._lastSegmentBoundsFrameCount;
-    let writeIndex: number;
-
-    if (isSameFrame) {
-      // Same frame: overwrite previous position (go back one slot)
-      writeIndex = this._firstFreeSegmentBounds - 1;
-      if (writeIndex < 0) {
-        writeIndex = this._segmentBoundsCount - 1;
-      }
-    } else {
-      // New frame: check resize and advance pointer
-      writeIndex = this._firstFreeSegmentBounds;
-      let nextFree = writeIndex + 1;
-      if (nextFree >= this._segmentBoundsCount) {
-        nextFree = 0;
-      }
-      if (nextFree === this._firstActiveSegmentBounds) {
-        this._resizeSegmentBoundsArray();
-        nextFree = writeIndex + 1; // Recalculate after resize (count increased, no wrap needed)
-      }
-      this._firstFreeSegmentBounds = nextFree;
-      this._lastSegmentBoundsFrameCount = frameCount;
-    }
-
-    // Write segment bounds data
-    const offset = writeIndex * TrailRenderer.SEGMENT_BOUNDS_FLOAT_STRIDE;
-    const boundsArray = this._segmentBoundsArray;
-    position.copyToArray(boundsArray, offset);
-    boundsArray[offset + 3] = playTime;
-  }
-
-  /**
-   * Retire segment bounds that have expired based on lifetime.
-   */
-  private _retireSegmentBounds(currentTime: number): void {
-    const floatStride = TrailRenderer.SEGMENT_BOUNDS_FLOAT_STRIDE;
-    const timeOffset = TrailRenderer.SEGMENT_BOUNDS_TIME_OFFSET;
-    const boundsArray = this._segmentBoundsArray;
-    const firstFree = this._firstFreeSegmentBounds;
-    const count = this._segmentBoundsCount;
-    const lifetime = this.time;
-
-    while (this._firstActiveSegmentBounds !== firstFree) {
-      const index = this._firstActiveSegmentBounds * floatStride;
-      const age = currentTime - boundsArray[index + timeOffset];
-      if (age <= lifetime) {
-        break;
-      }
-      if (++this._firstActiveSegmentBounds >= count) {
-        this._firstActiveSegmentBounds = 0;
-      }
-    }
-  }
-
-  private _mergeSegmentBounds(index: number, bounds: BoundingBox): void {
-    const boundsArray = this._segmentBoundsArray;
-    const offset = index * TrailRenderer.SEGMENT_BOUNDS_FLOAT_STRIDE;
-    const x = boundsArray[offset];
-    const y = boundsArray[offset + 1];
-    const z = boundsArray[offset + 2];
-    const { min, max } = bounds;
-    min.set(Math.min(min.x, x), Math.min(min.y, y), Math.min(min.z, z));
-    max.set(Math.max(max.x, x), Math.max(max.y, y), Math.max(max.z, z));
-  }
-
-  private _resizeSegmentBoundsArray(): void {
-    const floatStride = TrailRenderer.SEGMENT_BOUNDS_FLOAT_STRIDE;
-    const increaseCount = TrailRenderer.SEGMENT_BOUNDS_INCREASE_COUNT;
-
-    this._segmentBoundsCount += increaseCount;
-    const lastBoundsArray = this._segmentBoundsArray;
-    const boundsArray = new Float32Array(this._segmentBoundsCount * floatStride);
-
-    if (lastBoundsArray) {
-      const firstFree = this._firstFreeSegmentBounds;
-      boundsArray.set(new Float32Array(lastBoundsArray.buffer, 0, firstFree * floatStride));
-
-      const nextFree = firstFree + 1;
-      const freeEndOffset = (nextFree + increaseCount) * floatStride;
-      boundsArray.set(new Float32Array(lastBoundsArray.buffer, nextFree * floatStride * 4), freeEndOffset);
-
-      if (this._firstActiveSegmentBounds > firstFree) {
-        this._firstActiveSegmentBounds += increaseCount;
-      }
-    }
-
-    this._segmentBoundsArray = boundsArray;
   }
 
   private _uploadNewVertices(): void {
