@@ -427,11 +427,9 @@ export class TrailRenderer extends Renderer {
 
       // First point has placeholder tangent, update it when second point is added
       if (this._getActivePointCount() === 1) {
-        const firstPointIndex = this._firstActiveElement;
-        const offset0 = firstPointIndex * pointStride + 5;
-        const offset1 = offset0 + floatStride;
-        tangent.copyToArray(vertices, offset0);
-        tangent.copyToArray(vertices, offset1);
+        const firstPointOffset = this._firstActiveElement * pointStride;
+        tangent.copyToArray(vertices, firstPointOffset + 5); // Top vertex tangent
+        tangent.copyToArray(vertices, firstPointOffset + floatStride + 5); // Bottom vertex tangent
         // Mark first point for re-upload since its tangent changed
         this._firstNewElement = this._firstActiveElement;
       }
@@ -478,13 +476,14 @@ export class TrailRenderer extends Renderer {
   }
 
   private _getActivePointCount(): number {
-    const { _firstActiveElement: firstActive, _firstFreeElement: firstFree } = this;
-    return firstFree >= firstActive ? firstFree - firstActive : this._currentPointCapacity - firstActive + firstFree;
+    const { _firstActiveElement: firstActive, _firstFreeElement: firstFree, _currentPointCapacity: capacity } = this;
+    return firstFree >= firstActive ? firstFree - firstActive : capacity - firstActive + firstFree;
   }
 
   private _uploadNewVertices(): void {
     const { _firstActiveElement: firstActive, _firstFreeElement: firstFree, _vertexBuffer: buffer } = this;
-    const firstNew = buffer.isContentLost || this._bufferResized ? firstActive : this._firstNewElement;
+    const needFullUpload = buffer.isContentLost || this._bufferResized;
+    const firstNew = needFullUpload ? firstActive : this._firstNewElement;
     this._bufferResized = false;
 
     if (firstNew === firstFree) return;
