@@ -228,13 +228,12 @@ export class TrailRenderer extends Renderer {
     if (firstActive !== firstFree) {
       const vertices = this._vertices;
       const pointStride = TrailRenderer.POINT_FLOAT_STRIDE;
-      const capacity = this._currentPointCapacity;
 
       min.set(Infinity, Infinity, Infinity);
       max.set(-Infinity, -Infinity, -Infinity);
 
       const wrapped = firstActive > firstFree;
-      for (let i = firstActive, end = wrapped ? capacity : firstFree; i < end; i++) {
+      for (let i = firstActive, end = wrapped ? this._currentPointCapacity : firstFree; i < end; i++) {
         this._mergePointPosition(vertices, i * pointStride, min, max);
       }
       if (wrapped) {
@@ -244,9 +243,9 @@ export class TrailRenderer extends Renderer {
       }
     } else {
       // No active points - initialize with entity position
-      const { x, y, z } = this.entity.transform.worldPosition;
-      min.set(x, y, z);
-      max.set(x, y, z);
+      const worldPosition = this.entity.transform.worldPosition;
+      min.copyFrom(worldPosition);
+      max.copyFrom(worldPosition);
     }
 
     // Pre-generate: merge current position if it would create a new point
