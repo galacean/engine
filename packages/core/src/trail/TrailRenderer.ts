@@ -24,14 +24,15 @@ import { TrailTextureMode } from "./enums/TrailTextureMode";
  * Renders a trail behind a moving object.
  */
 export class TrailRenderer extends Renderer {
-  private static readonly VERTEX_STRIDE = 32;
-  private static readonly VERTEX_FLOAT_STRIDE = 8;
-  private static readonly POINT_FLOAT_STRIDE = 16; // 2 vertices per point
-  private static readonly POINT_BYTE_STRIDE = 64; // 2 vertices per point
+  private static readonly VERTEX_STRIDE = 36; // 9 floats * 4 bytes
+  private static readonly VERTEX_FLOAT_STRIDE = 9; // pos(3) + birthTime(1) + corner(1) + tangent(3) + distance(1)
+  private static readonly DISTANCE_OFFSET = 8; // offset of distance field in vertex
+  private static readonly POINT_FLOAT_STRIDE = 18; // 2 vertices per point
+  private static readonly POINT_BYTE_STRIDE = 72; // 2 vertices per point
   private static readonly POINT_INCREASE_COUNT = 128;
 
-  private static _timeParamsProp = ShaderProperty.getByName("renderer_TimeParams");
   private static _trailParamsProp = ShaderProperty.getByName("renderer_TrailParams");
+  private static _timeDistParamsProp = ShaderProperty.getByName("renderer_TimeDistParams");
   private static _widthCurveProp = ShaderProperty.getByName("renderer_WidthCurve");
   private static _colorKeysProp = ShaderProperty.getByName("renderer_ColorKeys");
   private static _alphaKeysProp = ShaderProperty.getByName("renderer_AlphaKeys");
@@ -58,9 +59,9 @@ export class TrailRenderer extends Renderer {
 
   // Shader parameters
   @ignoreClone
-  private _timeParams = new Vector4(0, 5.0, -1, 0); // x: currentTime, y: lifetime, z: oldestBirthTime, w: newestBirthTime
-  @ignoreClone
   private _trailParams = new Vector4(1.0, TrailTextureMode.Stretch, 1.0, 0); // x: width, y: textureMode, z: textureScale
+  @ignoreClone
+  private _timeDistParams = new Vector4(0, 5.0, 0, 0); // x: currentTime, y: lifetime, z: headDistance, w: tailDistance
   @ignoreClone
   private _gradientMaxTime = new Vector4(); // x: colorMaxTime, y: alphaMaxTime
 
@@ -95,6 +96,8 @@ export class TrailRenderer extends Renderer {
   private _lastPosition = new Vector3();
   @ignoreClone
   private _hasLastPosition = false;
+  @ignoreClone
+  private _cumulativeDistance = 0; // Total distance traveled since trail start
 
   // Time tracking
   @ignoreClone
@@ -106,11 +109,11 @@ export class TrailRenderer extends Renderer {
    * The fade-out duration in seconds.
    */
   get time(): number {
-    return this._timeParams.y;
+    return this._timeDistParams.y;
   }
 
   set time(value: number) {
-    this._timeParams.y = value;
+    this._timeDistParams.y = value;
   }
 
   /**
@@ -183,11 +186,21 @@ export class TrailRenderer extends Renderer {
     }
 
     const shaderData = this.shaderData;
-    const timeParams = this._timeParams;
-    timeParams.x = playTime;
+    const timeDistParams = this._timeDistParams;
+    const { _vertices: vertices, _currentPointCapacity: capacity } = this;
+    const activeCount = this._getActivePointCount();
+    timeDistParams.x = playTime;
+    // z: headDistance (newest point), w: tailDistance (oldest point)
+    if (activeCount > 0) {
+      const headIndex = (this._firstFreeElement - 1 + capacity) % capacity;
+      timeDistParams.z = vertices[headIndex * TrailRenderer.POINT_FLOAT_STRIDE + TrailRenderer.DISTANCE_OFFSET];
+      timeDistParams.w = vertices[this._firstActiveElement * TrailRenderer.POINT_FLOAT_STRIDE + TrailRenderer.DISTANCE_OFFSET];
+    } else {
+      timeDistParams.z = timeDistParams.w = 0;
+    }
 
-    shaderData.setVector4(TrailRenderer._timeParamsProp, timeParams);
     shaderData.setVector4(TrailRenderer._trailParamsProp, this._trailParams);
+    shaderData.setVector4(TrailRenderer._timeDistParamsProp, timeDistParams);
 
     const { colorGradient } = this;
     shaderData.setFloatArray(TrailRenderer._widthCurveProp, this.widthCurve._getTypeArray());
@@ -299,11 +312,13 @@ export class TrailRenderer extends Renderer {
   private _initGeometry(): void {
     const primitive = new Primitive(this.engine);
     this._primitive = primitive;
-    // Vertex layout (2 x vec4 = 32 bytes):
-    // a_PositionBirthTime: xyz = position, w = birthTime
-    // a_CornerTangent: x = corner (-1 or 1), yzw = tangent direction
+    // Vertex layout (9 floats = 36 bytes):
+    // a_PositionBirthTime: xyz = position, w = birthTime (offset 0)
+    // a_CornerTangent: x = corner (-1 or 1), yzw = tangent direction (offset 16)
+    // a_Distance: distance from trail head in world units (offset 32)
     primitive.addVertexElement(new VertexElement("a_PositionBirthTime", 0, VertexElementFormat.Vector4, 0));
     primitive.addVertexElement(new VertexElement("a_CornerTangent", 16, VertexElementFormat.Vector4, 0));
+    primitive.addVertexElement(new VertexElement("a_Distance", 32, VertexElementFormat.Float, 0));
 
     this._mainSubPrimitive = new SubPrimitive(0, 0, MeshTopology.TriangleStrip);
     this._wrapSubPrimitive = new SubPrimitive(0, 0, MeshTopology.TriangleStrip);
@@ -359,7 +374,6 @@ export class TrailRenderer extends Renderer {
 
   private _retireActivePoints(currentTime: number, frameCount: number): void {
     const { time: lifetime, _vertices: vertices, _currentPointCapacity: capacity } = this;
-    const firstActiveOld = this._firstActiveElement;
     const pointStride = TrailRenderer.POINT_FLOAT_STRIDE;
 
     while (this._firstActiveElement !== this._firstFreeElement) {
@@ -372,16 +386,6 @@ export class TrailRenderer extends Renderer {
       // Record the frame when this point was retired (reuse birthTime field)
       vertices[offset] = frameCount;
       this._firstActiveElement = (this._firstActiveElement + 1) % capacity;
-    }
-
-    // Update time params after retiring points
-    if (this._firstActiveElement === this._firstFreeElement) {
-      // No active points remaining
-      this._timeParams.z = -1;
-      this._timeParams.w = 0;
-    } else if (this._firstActiveElement !== firstActiveOld) {
-      // Some points retired, update oldest birth time
-      this._timeParams.z = vertices[this._firstActiveElement * pointStride + 3];
     }
   }
 
@@ -429,10 +433,12 @@ export class TrailRenderer extends Renderer {
     const floatStride = TrailRenderer.VERTEX_FLOAT_STRIDE;
     const pointStride = TrailRenderer.POINT_FLOAT_STRIDE;
     const vertices = this._vertices;
+    const capacity = this._currentPointCapacity;
 
     const tangent = TrailRenderer._tempVector3;
     if (this._hasLastPosition) {
       Vector3.subtract(position, this._lastPosition, tangent);
+      const segmentLength = tangent.length();
       tangent.normalize();
 
       // First point has placeholder tangent, update it when second point is added
@@ -443,46 +449,49 @@ export class TrailRenderer extends Renderer {
         // Mark first point for re-upload since its tangent changed
         this._firstNewElement = this._firstActiveElement;
       }
+
+      // Update cumulative distance
+      this._cumulativeDistance += segmentLength;
     } else {
       // First point uses placeholder tangent (will be corrected when second point arrives)
       tangent.set(0, 0, 1);
     }
 
     // Write top vertex (corner = -1) and bottom vertex (corner = 1)
+    // Store absolute cumulative distance (written once, never updated)
+    const distOffset = TrailRenderer.DISTANCE_OFFSET;
+    const cumulativeDist = this._cumulativeDistance;
     const topOffset = pointIndex * pointStride;
     position.copyToArray(vertices, topOffset);
     vertices[topOffset + 3] = playTime;
     vertices[topOffset + 4] = -1;
     tangent.copyToArray(vertices, topOffset + 5);
+    vertices[topOffset + distOffset] = cumulativeDist;
 
     const bottomOffset = topOffset + floatStride;
     position.copyToArray(vertices, bottomOffset);
     vertices[bottomOffset + 3] = playTime;
     vertices[bottomOffset + 4] = 1;
     tangent.copyToArray(vertices, bottomOffset + 5);
+    vertices[bottomOffset + distOffset] = cumulativeDist;
 
     // Write to bridge position when writing point 0
     if (pointIndex === 0) {
-      const bridgeTopOffset = this._currentPointCapacity * pointStride;
+      const bridgeTopOffset = capacity * pointStride;
       const bridgeBottomOffset = bridgeTopOffset + floatStride;
       position.copyToArray(vertices, bridgeTopOffset);
       vertices[bridgeTopOffset + 3] = playTime;
       vertices[bridgeTopOffset + 4] = -1;
       tangent.copyToArray(vertices, bridgeTopOffset + 5);
+      vertices[bridgeTopOffset + distOffset] = cumulativeDist;
       position.copyToArray(vertices, bridgeBottomOffset);
       vertices[bridgeBottomOffset + 3] = playTime;
       vertices[bridgeBottomOffset + 4] = 1;
       tangent.copyToArray(vertices, bridgeBottomOffset + 5);
+      vertices[bridgeBottomOffset + distOffset] = cumulativeDist;
     }
 
-    this._firstFreeElement = (this._firstFreeElement + 1) % this._currentPointCapacity;
-
-    // Update time params
-    const timeParams = this._timeParams;
-    if (timeParams.z === -1) {
-      timeParams.z = playTime; // First point: set oldest birth time
-    }
-    timeParams.w = playTime; // Always update newest birth time
+    this._firstFreeElement = (this._firstFreeElement + 1) % capacity;
   }
 
   private _getActivePointCount(): number {

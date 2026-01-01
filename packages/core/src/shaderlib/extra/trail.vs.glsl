@@ -1,8 +1,9 @@
 attribute vec4 a_PositionBirthTime; // xyz: World position, w: Birth time
 attribute vec4 a_CornerTangent;     // x: Corner (-1 or 1), yzw: Tangent direction
+attribute float a_Distance;         // Absolute cumulative distance (written once per point)
 
-uniform vec4 renderer_TimeParams;   // x: CurrentTime, y: Lifetime, z: OldestBirthTime, w: NewestBirthTime
-uniform vec4 renderer_TrailParams;  // x: Width, y: TextureMode (0: Stretch, 1: Tile), z: TextureScale
+uniform vec4 renderer_TrailParams;    // x: Width, y: TextureMode (0: Stretch, 1: Tile), z: TextureScale
+uniform vec4 renderer_TimeDistParams; // x: CurrentTime, y: Lifetime, z: HeadDistance, w: TailDistance
 uniform vec3 camera_Position;
 uniform mat4 camera_ViewMat;
 uniform mat4 camera_ProjMat;
@@ -21,51 +22,46 @@ void main() {
     float birthTime = a_PositionBirthTime.w;
     float corner = a_CornerTangent.x;
     vec3 tangent = a_CornerTangent.yzw;
-    float newestBirthTime = renderer_TimeParams.w;
 
     // age: time since birth, normalizedAge: 0=new, 1=expired
-    float age = renderer_TimeParams.x - birthTime;
-    float normalizedAge = clamp(age / renderer_TimeParams.y, 0.0, 1.0);
+    float age = renderer_TimeDistParams.x - birthTime;
+    float normalizedAge = age / renderer_TimeDistParams.y;
 
     // Discard expired vertices
     if (normalizedAge >= 1.0) {
         gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
-        return;
-    }
+    } else {
+        // Distance-based relative position: 0=head(newest), 1=tail(oldest)
+        float distFromHead = renderer_TimeDistParams.z - a_Distance;
+        float totalDist = renderer_TimeDistParams.z - renderer_TimeDistParams.w;
+        float relativePos = totalDist > 0.0 ? distFromHead / totalDist : 0.0;
 
-    // relativePosition: 0=head(newest), 1=tail(oldest)
-    float timeRange = newestBirthTime - renderer_TimeParams.z;
-    float relativePosition = 0.0;
-    if (timeRange > 0.0001) {
-        relativePosition = (newestBirthTime - birthTime) / timeRange;
-    }
-
-    // Billboard: expand perpendicular to tangent and view direction
-    vec3 toCamera = normalize(camera_Position - position);
-    vec3 right = cross(tangent, toCamera);
-    float rightLen = length(right);
-    if (rightLen < 0.001) {
-        right = cross(tangent, vec3(0.0, 1.0, 0.0));
-        rightLen = length(right);
+        // Billboard: expand perpendicular to tangent and view direction
+        vec3 toCamera = normalize(camera_Position - position);
+        vec3 right = cross(tangent, toCamera);
+        float rightLen = length(right);
         if (rightLen < 0.001) {
-            right = cross(tangent, vec3(1.0, 0.0, 0.0));
+            right = cross(tangent, vec3(0.0, 1.0, 0.0));
             rightLen = length(right);
+            if (rightLen < 0.001) {
+                right = cross(tangent, vec3(1.0, 0.0, 0.0));
+                rightLen = length(right);
+            }
         }
+        right = right / rightLen;
+
+        float widthMultiplier = evaluateParticleCurve(renderer_WidthCurve, relativePos);
+        float width = renderer_TrailParams.x * widthMultiplier;
+        vec3 worldPosition = position + right * width * 0.5 * corner;
+
+        gl_Position = camera_ProjMat * camera_ViewMat * vec4(worldPosition, 1.0);
+
+        // UV: u=corner side, v=position along trail
+        float u = corner * 0.5 + 0.5;
+        // Stretch: normalize to 0-1, Tile: use world distance directly
+        float v = renderer_TrailParams.y == 0.0 ? relativePos : distFromHead;
+        v_uv = vec2(u, v * renderer_TrailParams.z);
+
+        v_color = evaluateParticleGradient(renderer_ColorKeys, renderer_GradientMaxTime.x, renderer_AlphaKeys, renderer_GradientMaxTime.y, relativePos);
     }
-    right = right / rightLen;
-
-    float widthMultiplier = evaluateParticleCurve(renderer_WidthCurve, relativePosition);
-    float width = renderer_TrailParams.x * widthMultiplier;
-    vec3 worldPosition = position + right * width * 0.5 * corner;
-
-    gl_Position = camera_ProjMat * camera_ViewMat * vec4(worldPosition, 1.0);
-
-    // UV: u=corner side, v=position along trail or tiled
-    float u = corner * 0.5 + 0.5;
-    float v = renderer_TrailParams.y < 0.5
-        ? relativePosition
-        : normalizedAge * renderer_TrailParams.z;
-    v_uv = vec2(u, v);
-
-    v_color = evaluateParticleGradient(renderer_ColorKeys, renderer_GradientMaxTime.x, renderer_AlphaKeys, renderer_GradientMaxTime.y, relativePosition);
 }
