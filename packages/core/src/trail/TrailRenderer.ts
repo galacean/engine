@@ -344,14 +344,9 @@ export class TrailRenderer extends Renderer {
     this._vertices = newVertices;
     this._currentPointCapacity = newCapacity;
 
-    const vertexBufferBinding = new VertexBufferBinding(newVertexBuffer, TrailRenderer.VERTEX_STRIDE);
-    this._primitive.setVertexBufferBinding(0, vertexBufferBinding);
+    this._primitive.setVertexBufferBinding(0, new VertexBufferBinding(newVertexBuffer, TrailRenderer.VERTEX_STRIDE));
   }
 
-  /**
-   * Move expired points from active to retired state.
-   * Points in retired state are waiting for GPU to finish rendering before they can be freed.
-   */
   private _retireActivePoints(currentTime: number, frameCount: number): void {
     const { time: lifetime, _vertices: vertices, _currentPointCapacity: capacity } = this;
     const firstActiveOld = this._firstActiveElement;
@@ -359,30 +354,27 @@ export class TrailRenderer extends Renderer {
 
     while (this._firstActiveElement !== this._firstFreeElement) {
       const offset = this._firstActiveElement * pointStride + 3;
-      const birthTime = vertices[offset];
-      if (currentTime - birthTime < lifetime) break;
+      const age = currentTime - vertices[offset];
+      // Use Math.fround to ensure CPU/GPU precision consistency
+      if (Math.fround(age) < lifetime) {
+        break;
+      }
       // Record the frame when this point was retired (reuse birthTime field)
       vertices[offset] = frameCount;
       this._firstActiveElement = (this._firstActiveElement + 1) % capacity;
     }
 
-    if (this._firstActiveElement !== firstActiveOld) {
-      // Update oldest birth time
-      if (this._firstActiveElement !== this._firstFreeElement) {
-        this._timeParams.z = vertices[this._firstActiveElement * pointStride + 3];
-      }
-    }
+    // Update time params after retiring points
     if (this._firstActiveElement === this._firstFreeElement) {
+      // No active points remaining
       this._timeParams.z = -1;
       this._timeParams.w = 0;
+    } else if (this._firstActiveElement !== firstActiveOld) {
+      // Some points retired, update oldest birth time
+      this._timeParams.z = vertices[this._firstActiveElement * pointStride + 3];
     }
   }
 
-  /**
-   * Free retired points that GPU has finished rendering.
-   * WebGL doesn't support mapBufferRange, so this optimization is currently disabled.
-   * The condition `frameCount - retireFrame < 0` will never be true, effectively skipping the check.
-   */
   private _freeRetiredPoints(frameCount: number): void {
     const capacity = this._currentPointCapacity;
     const pointStride = TrailRenderer.POINT_FLOAT_STRIDE;
