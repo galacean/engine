@@ -12,6 +12,7 @@ import { VertexElement } from "../graphic/VertexElement";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
+import { SetDataOptions } from "../graphic/enums/SetDataOptions";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { Material } from "../material/Material";
 import { CurveKey, ParticleCurve } from "../particle/modules/ParticleCurve";
@@ -181,8 +182,13 @@ export class TrailRenderer extends Renderer {
     if (this.emitting) {
       this._emitNewPoint(playTime);
     }
-    if (this._firstNewElement !== this._firstFreeElement || this._vertexBuffer.isContentLost) {
-      this._uploadNewVertices();
+    // Add active points to vertex buffer when has new points or buffer state changed
+    if (
+      this._firstNewElement !== this._firstFreeElement ||
+      this._bufferResized ||
+      this._vertexBuffer.isContentLost
+    ) {
+      this._addActivePointsToVertexBuffer();
     }
 
     const shaderData = this.shaderData;
@@ -505,41 +511,52 @@ export class TrailRenderer extends Renderer {
     return firstFree >= firstActive ? firstFree - firstActive : capacity - firstActive + firstFree;
   }
 
-  private _uploadNewVertices(): void {
+  private _addActivePointsToVertexBuffer(): void {
     const { _firstActiveElement: firstActive, _firstFreeElement: firstFree, _vertexBuffer: buffer } = this;
-    const needFullUpload = buffer.isContentLost || this._bufferResized;
-    const firstNew = needFullUpload ? firstActive : this._firstNewElement;
-    this._bufferResized = false;
 
-    if (firstNew === firstFree) return;
+    if (firstActive === firstFree) return;
 
     const pointFloatStride = TrailRenderer.POINT_FLOAT_STRIDE;
     const pointByteStride = TrailRenderer.POINT_BYTE_STRIDE;
-    const { buffer: vertexData } = this._vertices;
     const capacity = this._currentPointCapacity;
-    const wrapped = firstNew >= firstFree;
+    const wrapped = firstActive > firstFree;
 
-    // First segment: wrapped includes bridge (+1 point), non-wrapped ends at firstFree
-    const endPoint = wrapped ? capacity + 1 : firstFree;
-    buffer.setData(
-      new Float32Array(vertexData, firstNew * pointFloatStride * 4, (endPoint - firstNew) * pointFloatStride),
-      firstNew * pointByteStride
-    );
-
+    // Use Discard mode (buffer orphaning) to avoid GPU sync stalls
+    // Upload all active vertices as a full buffer update
     if (wrapped) {
+      // Wrapped case: [firstActive -> capacity+bridge] + [0 -> firstFree]
+      // First segment includes bridge point
+      buffer.setData(
+        new Float32Array(this._vertices.buffer, firstActive * pointFloatStride * 4, (capacity + 1 - firstActive) * pointFloatStride),
+        firstActive * pointByteStride,
+        0,
+        undefined,
+        SetDataOptions.Discard
+      );
       // Second segment
       if (firstFree > 0) {
-        buffer.setData(new Float32Array(vertexData, 0, firstFree * pointFloatStride), 0);
+        buffer.setData(new Float32Array(this._vertices.buffer, 0, firstFree * pointFloatStride), 0);
       }
-    } else if (firstNew === 0) {
-      // Upload bridge separately if point 0 was updated
+    } else {
+      // Non-wrapped case: [firstActive -> firstFree]
       buffer.setData(
-        new Float32Array(vertexData, capacity * pointFloatStride * 4, pointFloatStride),
-        capacity * pointByteStride
+        new Float32Array(this._vertices.buffer, firstActive * pointFloatStride * 4, (firstFree - firstActive) * pointFloatStride),
+        firstActive * pointByteStride,
+        0,
+        undefined,
+        SetDataOptions.Discard
       );
+      // Upload bridge if point 0 is active
+      if (firstActive === 0) {
+        buffer.setData(
+          new Float32Array(this._vertices.buffer, capacity * pointFloatStride * 4, pointFloatStride),
+          capacity * pointByteStride
+        );
+      }
     }
 
     this._firstNewElement = firstFree;
+    this._bufferResized = false;
   }
 
   private _addSubRenderElement(
