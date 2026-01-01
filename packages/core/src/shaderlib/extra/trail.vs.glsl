@@ -1,26 +1,15 @@
-// Trail vertex attributes (per-vertex)
-// Each segment has 2 vertices (top and bottom)
 attribute vec4 a_PositionBirthTime; // xyz: World position, w: Birth time
 attribute vec4 a_CornerTangent;     // x: Corner (-1 or 1), yzw: Tangent direction
 
-// Uniforms
-// x: CurrentTime, y: Lifetime, z: OldestBirthTime, w: NewestBirthTime
-uniform vec4 renderer_TimeParams;
-// x: Width, y: TextureMode (0: Stretch, 1: Tile), z: TextureScale
-uniform vec4 renderer_TrailParams;
-
+uniform vec4 renderer_TimeParams;   // x: CurrentTime, y: Lifetime, z: OldestBirthTime, w: NewestBirthTime
+uniform vec4 renderer_TrailParams;  // x: Width, y: TextureMode (0: Stretch, 1: Tile), z: TextureScale
 uniform vec3 camera_Position;
 uniform mat4 camera_ViewMat;
 uniform mat4 camera_ProjMat;
+uniform vec2 renderer_WidthCurve[4];  // Width curve (4 keyframes max: x=time, y=value)
+uniform vec4 renderer_ColorKeys[4];   // Color gradient (x=time, yzw=rgb)
+uniform vec2 renderer_AlphaKeys[4];   // Alpha gradient (x=time, y=alpha)
 
-// Width curve uniforms (4 keyframes max: x=time, y=value)
-uniform vec2 renderer_WidthCurve[4];
-
-// Color gradient uniforms (4 keyframes max)
-uniform vec4 renderer_ColorKeys[4]; // x=time, yzw=rgb
-uniform vec2 renderer_AlphaKeys[4]; // x=time, y=alpha
-
-// Varyings
 varying vec2 v_uv;
 varying vec4 v_color;
 
