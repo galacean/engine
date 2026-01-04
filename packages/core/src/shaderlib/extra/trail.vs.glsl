@@ -27,41 +27,36 @@ void main() {
     float age = renderer_TimeDistParams.x - birthTime;
     float normalizedAge = age / renderer_TimeDistParams.y;
 
-    // Discard expired vertices
-    if (normalizedAge >= 1.0) {
-        gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
-    } else {
-        // Distance-based relative position: 0=head(newest), 1=tail(oldest)
-        float distFromHead = renderer_TimeDistParams.z - a_Distance;
-        float totalDist = renderer_TimeDistParams.z - renderer_TimeDistParams.w;
-        float relativePos = totalDist > 0.0 ? distFromHead / totalDist : 0.0;
+    // Distance-based relative position: 0=head(newest), 1=tail(oldest)
+    float distFromHead = renderer_TimeDistParams.z - a_Distance;
+    float totalDist = renderer_TimeDistParams.z - renderer_TimeDistParams.w;
+    float relativePos = totalDist > 0.0 ? distFromHead / totalDist : 0.0;
 
-        // Billboard: expand perpendicular to tangent and view direction
-        vec3 toCamera = normalize(camera_Position - position);
-        vec3 right = cross(tangent, toCamera);
-        float rightLen = length(right);
+    // Billboard: expand perpendicular to tangent and view direction
+    vec3 toCamera = normalize(camera_Position - position);
+    vec3 right = cross(tangent, toCamera);
+    float rightLen = length(right);
+    if (rightLen < 0.001) {
+        right = cross(tangent, vec3(0.0, 1.0, 0.0));
+        rightLen = length(right);
         if (rightLen < 0.001) {
-            right = cross(tangent, vec3(0.0, 1.0, 0.0));
+            right = cross(tangent, vec3(1.0, 0.0, 0.0));
             rightLen = length(right);
-            if (rightLen < 0.001) {
-                right = cross(tangent, vec3(1.0, 0.0, 0.0));
-                rightLen = length(right);
-            }
         }
-        right = right / rightLen;
-
-        float widthMultiplier = evaluateParticleCurve(renderer_WidthCurve, relativePos);
-        float width = renderer_TrailParams.x * widthMultiplier;
-        vec3 worldPosition = position + right * width * 0.5 * corner;
-
-        gl_Position = camera_ProjMat * camera_ViewMat * vec4(worldPosition, 1.0);
-
-        // UV: u=corner side, v=position along trail
-        float u = corner * 0.5 + 0.5;
-        // Stretch: normalize to 0-1, Tile: use world distance directly
-        float v = renderer_TrailParams.y == 0.0 ? relativePos : distFromHead;
-        v_uv = vec2(u, v * renderer_TrailParams.z);
-
-        v_color = evaluateParticleGradient(renderer_ColorKeys, renderer_GradientMaxTime.x, renderer_AlphaKeys, renderer_GradientMaxTime.y, relativePos);
     }
+    right = right / rightLen;
+
+    float widthMultiplier = evaluateParticleCurve(renderer_WidthCurve, relativePos);
+    float width = renderer_TrailParams.x * widthMultiplier;
+    vec3 worldPosition = position + right * width * 0.5 * corner;
+
+    gl_Position = camera_ProjMat * camera_ViewMat * vec4(worldPosition, 1.0);
+
+    // UV: u=corner side, v=position along trail
+    float u = corner * 0.5 + 0.5;
+    // Stretch: normalize to 0-1, Tile: use world distance directly
+    float v = renderer_TrailParams.y == 0.0 ? relativePos : distFromHead;
+    v_uv = vec2(u, v * renderer_TrailParams.z);
+
+    v_color = evaluateParticleGradient(renderer_ColorKeys, renderer_GradientMaxTime.x, renderer_AlphaKeys, renderer_GradientMaxTime.y, relativePos);
 }
