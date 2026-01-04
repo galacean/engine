@@ -183,11 +183,7 @@ export class TrailRenderer extends Renderer {
       this._emitNewPoint(playTime);
     }
     // Add active points to vertex buffer when has new points or buffer state changed
-    if (
-      this._firstNewElement !== this._firstFreeElement ||
-      this._bufferResized ||
-      this._vertexBuffer.isContentLost
-    ) {
+    if (this._firstNewElement !== this._firstFreeElement || this._bufferResized || this._vertexBuffer.isContentLost) {
       this._addActivePointsToVertexBuffer();
     }
 
@@ -246,9 +242,7 @@ export class TrailRenderer extends Renderer {
     const spansBoundary = firstActive > firstFree;
     const wrapped = spansBoundary && firstFree > 0;
     const mainCount =
-      (spansBoundary
-        ? this._currentPointCapacity - firstActive + (wrapped ? 1 : 0)
-        : firstFree - firstActive) * 2;
+      (spansBoundary ? this._currentPointCapacity - firstActive + (wrapped ? 1 : 0) : firstFree - firstActive) * 2;
     this._addSubRenderElement(renderElement, material, this._mainSubPrimitive, firstActive * 2, mainCount);
 
     if (wrapped) {
@@ -540,7 +534,11 @@ export class TrailRenderer extends Renderer {
       // First segment: [firstActive -> capacity], +bridge only if wrapped (point 0 was written)
       const firstSegmentPoints = capacity - firstActive + (wrapped ? 1 : 0);
       buffer.setData(
-        new Float32Array(this._vertices.buffer, firstActive * pointFloatStride * 4, firstSegmentPoints * pointFloatStride),
+        new Float32Array(
+          this._vertices.buffer,
+          firstActive * pointFloatStride * 4,
+          firstSegmentPoints * pointFloatStride
+        ),
         firstActive * pointByteStride,
         0,
         undefined,
@@ -553,7 +551,11 @@ export class TrailRenderer extends Renderer {
     } else {
       // Non-wrapped case: [firstActive -> firstFree]
       buffer.setData(
-        new Float32Array(this._vertices.buffer, firstActive * pointFloatStride * 4, (firstFree - firstActive) * pointFloatStride),
+        new Float32Array(
+          this._vertices.buffer,
+          firstActive * pointFloatStride * 4,
+          (firstFree - firstActive) * pointFloatStride
+        ),
         firstActive * pointByteStride,
         0,
         undefined,
