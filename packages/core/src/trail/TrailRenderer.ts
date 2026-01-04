@@ -241,11 +241,17 @@ export class TrailRenderer extends Renderer {
     const renderElement = this._engine._renderElementPool.get();
     renderElement.set(this.priority, this._distanceForSort);
 
-    const wrapped = firstActive > firstFree;
-    const mainCount = (wrapped ? this._currentPointCapacity - firstActive + 1 : firstFree - firstActive) * 2;
+    // spansBoundary: active points cross buffer end
+    // wrapped: spansBoundary AND point 0 has been written (need bridge + second segment)
+    const spansBoundary = firstActive > firstFree;
+    const wrapped = spansBoundary && firstFree > 0;
+    const mainCount =
+      (spansBoundary
+        ? this._currentPointCapacity - firstActive + (wrapped ? 1 : 0)
+        : firstFree - firstActive) * 2;
     this._addSubRenderElement(renderElement, material, this._mainSubPrimitive, firstActive * 2, mainCount);
 
-    if (wrapped && firstFree > 0) {
+    if (wrapped) {
       this._addSubRenderElement(renderElement, material, this._wrapSubPrimitive, 0, firstFree * 2);
     }
 
@@ -491,7 +497,7 @@ export class TrailRenderer extends Renderer {
     tangent.copyToArray(vertices, bottomOffset + 5);
     vertices[bottomOffset + distOffset] = cumulativeDist;
 
-    // Write to bridge position when writing point 0
+    // Write to bridge position when writing point 0 (bridge = copy of point 0 to connect wrap-around)
     if (pointIndex === 0) {
       const bridgeTopOffset = capacity * pointStride;
       const bridgeBottomOffset = bridgeTopOffset + floatStride;
@@ -523,21 +529,24 @@ export class TrailRenderer extends Renderer {
     const pointFloatStride = TrailRenderer.POINT_FLOAT_STRIDE;
     const pointByteStride = TrailRenderer.POINT_BYTE_STRIDE;
     const capacity = this._currentPointCapacity;
-    const wrapped = firstActive > firstFree;
+    // spansBoundary: active points cross buffer end
+    // wrapped: spansBoundary AND point 0 has been written (bridge is valid)
+    const spansBoundary = firstActive > firstFree;
+    const wrapped = spansBoundary && firstFree > 0;
 
     // Use Discard mode (buffer orphaning) to avoid GPU sync stalls
     // Upload all active vertices as a full buffer update
-    if (wrapped) {
-      // Wrapped case: [firstActive -> capacity+bridge] + [0 -> firstFree]
-      // First segment includes bridge point
+    if (spansBoundary) {
+      // First segment: [firstActive -> capacity], +bridge only if wrapped (point 0 was written)
+      const firstSegmentPoints = capacity - firstActive + (wrapped ? 1 : 0);
       buffer.setData(
-        new Float32Array(this._vertices.buffer, firstActive * pointFloatStride * 4, (capacity + 1 - firstActive) * pointFloatStride),
+        new Float32Array(this._vertices.buffer, firstActive * pointFloatStride * 4, firstSegmentPoints * pointFloatStride),
         firstActive * pointByteStride,
         0,
         undefined,
         SetDataOptions.Discard
       );
-      // Second segment
+      // Second segment: [0 -> firstFree]
       if (firstFree > 0) {
         buffer.setData(new Float32Array(this._vertices.buffer, 0, firstFree * pointFloatStride), 0);
       }
