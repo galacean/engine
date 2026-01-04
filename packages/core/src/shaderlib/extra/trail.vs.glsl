@@ -10,7 +10,7 @@ uniform mat4 camera_ProjMat;
 uniform vec2 renderer_WidthCurve[4];   // Width curve (4 keyframes max: x=time, y=value)
 uniform vec4 renderer_ColorKeys[4];   // Color gradient (x=time, yzw=rgb)
 uniform vec2 renderer_AlphaKeys[4];   // Alpha gradient (x=time, y=alpha)
-uniform vec4 renderer_GradientMaxTime; // x: colorMaxTime, y: alphaMaxTime
+uniform vec4 renderer_CurveMaxTime; // x: colorMaxTime, y: alphaMaxTime, z: widthMaxTime
 
 varying vec2 v_uv;
 varying vec4 v_color;
@@ -46,7 +46,7 @@ void main() {
     }
     right = right / rightLen;
 
-    float widthMultiplier = evaluateParticleCurve(renderer_WidthCurve, relativePos);
+    float widthMultiplier = evaluateParticleCurve(renderer_WidthCurve, min(relativePos, renderer_CurveMaxTime.z));
     float width = renderer_TrailParams.x * widthMultiplier;
     vec3 worldPosition = position + right * width * 0.5 * corner;
 
@@ -58,5 +58,5 @@ void main() {
     float v = renderer_TrailParams.y == 0.0 ? relativePos : distFromHead;
     v_uv = vec2(u, v * renderer_TrailParams.z);
 
-    v_color = evaluateParticleGradient(renderer_ColorKeys, renderer_GradientMaxTime.x, renderer_AlphaKeys, renderer_GradientMaxTime.y, relativePos);
+    v_color = evaluateParticleGradient(renderer_ColorKeys, renderer_CurveMaxTime.x, renderer_AlphaKeys, renderer_CurveMaxTime.y, relativePos);
 }

@@ -37,7 +37,7 @@ export class TrailRenderer extends Renderer {
   private static _widthCurveProp = ShaderProperty.getByName("renderer_WidthCurve");
   private static _colorKeysProp = ShaderProperty.getByName("renderer_ColorKeys");
   private static _alphaKeysProp = ShaderProperty.getByName("renderer_AlphaKeys");
-  private static _gradientMaxTimeProp = ShaderProperty.getByName("renderer_GradientMaxTime");
+  private static _curveMaxTimeProp = ShaderProperty.getByName("renderer_CurveMaxTime");
 
   private static _tempVector3 = new Vector3();
 
@@ -64,7 +64,7 @@ export class TrailRenderer extends Renderer {
   @ignoreClone
   private _timeDistParams = new Vector4(0, 5.0, 0, 0); // x: currentTime, y: lifetime, z: headDistance, w: tailDistance
   @ignoreClone
-  private _gradientMaxTime = new Vector4(); // x: colorMaxTime, y: alphaMaxTime
+  private _curveMaxTime = new Vector4(); // x: colorMaxTime, y: alphaMaxTime, z: widthMaxTime
 
   // Geometry and rendering
   @ignoreClone
@@ -216,10 +216,14 @@ export class TrailRenderer extends Renderer {
 
     const colorKeys = colorGradient.colorKeys;
     const alphaKeys = colorGradient.alphaKeys;
-    const gradientMaxTime = this._gradientMaxTime;
-    gradientMaxTime.x = colorKeys.length ? colorKeys[colorKeys.length - 1].time : 0;
-    gradientMaxTime.y = alphaKeys.length ? alphaKeys[alphaKeys.length - 1].time : 0;
-    shaderData.setVector4(TrailRenderer._gradientMaxTimeProp, gradientMaxTime);
+    const widthKeys = this.widthCurve.keys;
+    this._curveMaxTime.set(
+      colorKeys.length ? colorKeys[colorKeys.length - 1].time : 0,
+      alphaKeys.length ? alphaKeys[alphaKeys.length - 1].time : 0,
+      widthKeys.length ? widthKeys[widthKeys.length - 1].time : 0,
+      0
+    );
+    shaderData.setVector4(TrailRenderer._curveMaxTimeProp, this._curveMaxTime);
   }
 
   protected override _render(context: RenderContext): void {
