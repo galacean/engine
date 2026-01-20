@@ -4,15 +4,14 @@ import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { PhysXColliderShape, ShapeFlag } from "./PhysXColliderShape";
 
+/** TriangleMesh flag: eDOUBLE_SIDED = 2 (1<<1) */
+const DOUBLE_SIDED_FLAG = 2;
+/** ConvexMesh flag: eTIGHT_BOUNDS = 1 (1<<0) */
+const TIGHT_BOUNDS_FLAG = 1;
+
 /**
  * Mesh collider shape in PhysX.
  */
-// Flags:
-// - TriangleMesh: eDOUBLE_SIDED = 2 (1<<1)
-// - ConvexMesh: eTIGHT_BOUNDS = 1 (1<<0)
-const DOUBLE_SIDED_FLAG = 2;
-const TIGHT_BOUNDS_FLAG = 1;
-
 export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshColliderShape {
   private _pxMesh: any = null;
   private _isConvex: boolean;
