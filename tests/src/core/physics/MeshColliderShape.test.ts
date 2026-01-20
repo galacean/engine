@@ -354,6 +354,66 @@ describe("MeshColliderShape PhysX", () => {
       meshMaterial?.destroy();
       sphereMaterial?.destroy();
     });
+
+    it("should apply correct scale when adding shape to existing collider at runtime", async () => {
+      // This test verifies that setWorldScale is called in _addNativeShape.
+      // Without it, shapes added to an existing collider (where transform hasn't changed)
+      // would have incorrect scale because _onUpdate only runs when _updateFlag.flag is true.
+
+      // Create scaled entity with collider
+      const groundEntity = root.createChild("runtimeScaleGround");
+      groundEntity.transform.setPosition(0, 0, 0);
+      groundEntity.transform.setScale(2, 1, 2); // Scale X and Z by 2
+      const groundCollider = groundEntity.addComponent(StaticCollider);
+
+      // Add initial shape and run physics to clear _updateFlag
+      const initialShape = new BoxColliderShape();
+      const initialMaterial = initialShape.material;
+      initialShape.size = new Vector3(0.1, 0.1, 0.1); // Small box, won't interfere
+      initialShape.position = new Vector3(100, 0, 100); // Far away
+      groundCollider.addShape(initialShape);
+
+      // Run physics multiple times to ensure _updateFlag.flag becomes false
+      for (let i = 0; i < 10; i++) {
+        physicsScene._update(1 / 60);
+      }
+
+      // Now add mesh shape at runtime - this is the critical test
+      // If setWorldScale is not called in _addNativeShape, the mesh will have scale (1,1,1)
+      const meshShape = new MeshColliderShape();
+      const meshMaterial = meshShape.material;
+      // Small ground plane: -2 to 2 in local space, but scaled by 2 -> -4 to 4 in world space
+      const vertices = new Float32Array([-2, 0, -2, 2, 0, -2, -2, 0, 2, 2, 0, -2, 2, 0, 2, -2, 0, 2]);
+      const indices = new Uint16Array([0, 2, 1, 3, 5, 4]);
+      meshShape.setMeshData(vertices, indices);
+      groundCollider.addShape(meshShape);
+
+      // Create sphere at x=3, which is:
+      // - Outside unscaled mesh range (-2 to 2)
+      // - Inside scaled mesh range (-4 to 4)
+      const sphereEntity = root.createChild("runtimeScaleSphere");
+      sphereEntity.transform.setPosition(3, 2, 0);
+      const dynamicCollider = sphereEntity.addComponent(DynamicCollider);
+      const sphereShape = new SphereColliderShape();
+      const sphereMaterial = sphereShape.material;
+      sphereShape.radius = 0.5;
+      dynamicCollider.addShape(sphereShape);
+
+      // Simulate - sphere should be stopped by correctly scaled mesh
+      for (let i = 0; i < 60; i++) {
+        physicsScene._update(1 / 60);
+      }
+
+      // If scale is correct (2x), sphere at x=3 should land on the ground
+      // If scale is wrong (1x), sphere would fall through (mesh only covers -2 to 2)
+      expect(sphereEntity.transform.position.y).toBeGreaterThan(-1);
+
+      groundEntity.destroy();
+      sphereEntity.destroy();
+      initialMaterial?.destroy();
+      meshMaterial?.destroy();
+      sphereMaterial?.destroy();
+    });
   });
 
   describe("Mesh Data Update", () => {
