@@ -172,12 +172,7 @@ export class MeshColliderShape extends ColliderShape {
 
     if (this._nativeShape) {
       // Update existing shape
-      (<IMeshColliderShape>this._nativeShape).setMeshData(
-        this._vertices,
-        vertexCount,
-        this._indices,
-        this._isConvex
-      );
+      (<IMeshColliderShape>this._nativeShape).setMeshData(this._vertices, vertexCount, this._indices, this._isConvex);
     } else {
       // Create new shape
       this._nativeShape = Engine._nativePhysics.createMeshColliderShape(
