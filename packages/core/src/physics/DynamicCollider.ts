@@ -363,6 +363,10 @@ export class DynamicCollider extends Collider {
   move(position: Vector3, rotation: Quaternion): void;
 
   move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void {
+    if (!this._isKinematic) {
+      console.warn("DynamicCollider.move() should only be called when isKinematic is true.");
+      return;
+    }
     this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).move(positionOrRotation, rotation);
   }
 
