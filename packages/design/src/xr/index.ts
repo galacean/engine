@@ -1,5 +1,7 @@
 export type { IXRPlatformFeature } from "./feature/IXRPlatformFeature";
 export type { IXRTrackablePlatformFeature } from "./feature/trackable/IXRTrackablePlatformFeature";
+export type { IXRLightEstimate } from "./feature/lightEstimation/IXRLightEstimate";
+export type { IXRLightEstimationPlatformFeature } from "./feature/lightEstimation/IXRLightEstimationPlatformFeature";
 
 export type { IXRInputEvent } from "./IXRInputEvent";
 export type { IXRPose } from "./IXRPose";

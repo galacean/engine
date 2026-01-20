@@ -12,6 +12,9 @@ export { XRCameraManager } from "./feature/camera/XRCameraManager";
 export { TrackableType } from "./feature/hitTest/TrackableType";
 export { XRHitResult } from "./feature/hitTest/XRHitResult";
 export { XRHitTest } from "./feature/hitTest/XRHitTest";
+// light estimation
+export { XRLightEstimate } from "./feature/lightEstimation/XRLightEstimate";
+export { XRLightEstimation } from "./feature/lightEstimation/XRLightEstimation";
 // anchor tracking
 export { XRAnchor } from "./feature/trackable/anchor/XRAnchor";
 export { XRAnchorTracking } from "./feature/trackable/anchor/XRAnchorTracking";

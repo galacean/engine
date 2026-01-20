@@ -116,8 +116,10 @@ export class PhysicsScene {
     const physicalObjectsMap = Engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
+    const scripts1 = shape1.collider.entity._scripts;
+    const scripts2 = shape2.collider.entity._scripts;
 
-    shape1.collider.entity._scripts.forEach(
+    scripts1.forEach(
       (element: Script) => {
         element.onTriggerEnter(shape2);
       },
@@ -126,7 +128,7 @@ export class PhysicsScene {
       }
     );
 
-    shape2.collider.entity._scripts.forEach(
+    scripts2.forEach(
       (element: Script) => {
         element.onTriggerEnter(shape1);
       },

@@ -34,6 +34,9 @@ export class WebXRDevice implements IXRDevice {
       case XRFeatureType.ImageTracking:
         // @ts-ignore
         return typeof XRImageTrackingResult !== "undefined";
+      case XRFeatureType.LightEstimation:
+        // @ts-ignore
+        return typeof XRLightProbe !== "undefined";
     }
   }
 

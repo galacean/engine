@@ -117,6 +117,7 @@ export class TiledSpriteAssembler {
         o += 36;
       }
     }
+    indices.length = trianglesOffset;
 
     // @ts-ignore
     const bounds = renderer._bounds;
