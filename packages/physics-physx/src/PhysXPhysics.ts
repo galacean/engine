@@ -47,6 +47,8 @@ export class PhysXPhysics implements IPhysics {
   _pxPhysics: any;
   /** @internal PhysX cooking object for mesh colliders */
   _pxCooking: any;
+  /** @internal PhysX cooking params for mesh colliders */
+  _pxCookingParams: any;
 
   private _runTimeMode: PhysXRuntimeMode;
   private _initializeState: InitializeState = InitializeState.Uninitialized;
@@ -141,12 +143,37 @@ export class PhysXPhysics implements IPhysics {
    */
   destroy(): void {
     this._pxCooking.release();
+    this._pxCookingParams.delete();
     this._physX.PxCloseExtensions();
     this._pxPhysics.release();
     this._pxFoundation.release();
     this._defaultErrorCallback.delete();
     this._allocator.delete();
     this._tolerancesScale.delete();
+  }
+
+  /**
+   * Set cooking parameters for mesh colliders.
+   * @param params - Cooking parameters
+   */
+  setCookingParams(params: {
+    /** Mesh weld tolerance. If mesh welding is enabled, this controls the distance at which vertices are welded. */
+    meshWeldTolerance?: number;
+    /** Mesh preprocessing flags (bitwise OR of MeshPreprocessingFlag values). */
+    meshPreprocessParams?: number;
+    /** When true, the triangle adjacency information is created. */
+    buildTriangleAdjacencies?: boolean;
+  }): void {
+    const cp = this._pxCookingParams;
+    if (params.meshWeldTolerance !== undefined) {
+      cp.meshWeldTolerance = params.meshWeldTolerance;
+    }
+    if (params.meshPreprocessParams !== undefined) {
+      this._physX.setCookingMeshPreprocessParams(cp, params.meshPreprocessParams);
+    }
+    if (params.buildTriangleAdjacencies !== undefined) {
+      cp.buildTriangleAdjacencies = params.buildTriangleAdjacencies;
+    }
   }
 
   /**
@@ -309,13 +336,17 @@ export class PhysXPhysics implements IPhysics {
 
     // Initialize cooking for mesh colliders
     const cookingParams = new physX.PxCookingParams(tolerancesScale);
+    // Set Unity-compatible default cooking params (WeldVertices + small tolerance)
+    physX.setCookingMeshPreprocessParams(cookingParams, 1); // WeldVertices = 1
+    cookingParams.meshWeldTolerance = 0.001;
     const pxCooking = physX.PxCreateCooking(version, pxFoundation, cookingParams);
-    cookingParams.delete();
+    // Keep cookingParams for runtime modification (don't delete)
 
     this._physX = physX;
     this._pxFoundation = pxFoundation;
     this._pxPhysics = pxPhysics;
     this._pxCooking = pxCooking;
+    this._pxCookingParams = cookingParams;
     this._defaultErrorCallback = defaultErrorCallback;
     this._allocator = allocator;
     this._tolerancesScale = tolerancesScale;
