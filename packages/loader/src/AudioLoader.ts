@@ -19,27 +19,32 @@ class AudioLoader extends Loader<AudioClip> {
         type: "arraybuffer"
       };
 
-      // @ts-ignore
-      resourceManager._request<ArrayBuffer>(url, requestConfig).then((arrayBuffer) => {
-        const audioClip = new AudioClip(resourceManager.engine);
+      resourceManager
         // @ts-ignore
-        AudioManager.getContext()
-          .decodeAudioData(arrayBuffer)
-          .then((result: AudioBuffer) => {
-            // @ts-ignore
-            audioClip._setAudioSource(result);
+        ._request<ArrayBuffer>(url, requestConfig)
+        .then((arrayBuffer) => {
+          const audioClip = new AudioClip(resourceManager.engine);
+          // @ts-ignore
+          AudioManager.getContext()
+            .decodeAudioData(arrayBuffer)
+            .then((result: AudioBuffer) => {
+              // @ts-ignore
+              audioClip._setAudioSource(result);
 
-            if (url.indexOf("data:") !== 0) {
-              const index = url.lastIndexOf("/");
-              audioClip.name = url.substring(index + 1);
-            }
+              if (url.indexOf("data:") !== 0) {
+                const index = url.lastIndexOf("/");
+                audioClip.name = url.substring(index + 1);
+              }
 
-            resolve(audioClip);
-          })
-          .catch((e) => {
-            reject(e);
-          });
-      });
+              resolve(audioClip);
+            })
+            .catch((e) => {
+              reject(e);
+            });
+        })
+        .catch((e) => {
+          reject(e);
+        });
     });
   }
 }
