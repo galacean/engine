@@ -3,8 +3,6 @@ import { ignoreClone } from "../../clone/CloneManager";
 import { Engine } from "../../Engine";
 import { Mesh } from "../../graphic/Mesh";
 import { ModelMesh } from "../../mesh/ModelMesh";
-import { ColliderShapeChangeFlag } from "../enums/ColliderShapeChangeFlag";
-import { PhysicsMaterial } from "../PhysicsMaterial";
 import { ColliderShape } from "./ColliderShape";
 
 /**
@@ -70,55 +68,6 @@ export class MeshColliderShape extends ColliderShape {
   }
 
   /**
-   * {@inheritDoc ColliderShape.contactOffset}
-   */
-  override get contactOffset(): number {
-    return super.contactOffset;
-  }
-
-  override set contactOffset(value: number) {
-    value = Math.max(0, value);
-    const internalContactOffset = (this as any)._contactOffset;
-    if (internalContactOffset !== value) {
-      (this as any)._contactOffset = value;
-      this._nativeShape?.setContactOffset(value);
-    }
-  }
-
-  /**
-   * {@inheritDoc ColliderShape.material}
-   */
-  override get material(): PhysicsMaterial {
-    return (this as any)._material;
-  }
-
-  override set material(value: PhysicsMaterial) {
-    if (!value) {
-      throw new Error("The physics material of the shape can't be null.");
-    }
-    const internalMaterial = (this as any)._material;
-    if (internalMaterial !== value) {
-      (this as any)._material = value;
-      this._nativeShape?.setMaterial(value._nativeMaterial);
-    }
-  }
-
-  /**
-   * {@inheritDoc ColliderShape.isTrigger}
-   */
-  override get isTrigger(): boolean {
-    return super.isTrigger;
-  }
-
-  override set isTrigger(value: boolean) {
-    const internalIsTrigger = (this as any)._isTrigger;
-    if (internalIsTrigger !== value) {
-      (this as any)._isTrigger = value;
-      this._nativeShape?.setIsTrigger(value);
-    }
-  }
-
-  /**
    * Create a MeshColliderShape.
    * @param isConvex - Whether to use convex mesh mode (default: false)
    */
@@ -127,24 +76,6 @@ export class MeshColliderShape extends ColliderShape {
     this._isConvex = isConvex;
     // Native shape is created lazily when mesh data is set
     this._nativeShape = null;
-
-    // Rebind position/rotation callbacks to handle null _nativeShape
-    //@ts-ignore
-    this.position._onValueChanged = this._onPositionChanged.bind(this);
-    //@ts-ignore
-    this.rotation._onValueChanged = this._onRotationChanged.bind(this);
-  }
-
-  @ignoreClone
-  private _onPositionChanged(): void {
-    this._nativeShape?.setPosition(this.position);
-    this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
-  }
-
-  @ignoreClone
-  private _onRotationChanged(): void {
-    this._nativeShape?.setRotation(this.rotation);
-    this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
   }
 
   /**

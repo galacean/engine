@@ -50,7 +50,6 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     indices: Uint16Array | Uint32Array | null,
     isConvex: boolean
   ): void {
-    // Release old mesh
     this._releaseMesh();
 
     this._isConvex = isConvex;
@@ -58,8 +57,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     this._vertexCount = vertexCount;
     this._indices = indices;
 
-    // Recreate geometry and update shape
-    this._createMeshGeometry();
+    this._createMesh();
     this._pxShape.setGeometry(this._pxGeometry);
   }
 
@@ -69,7 +67,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
   setDoubleSided(value: boolean): void {
     this._doubleSided = value;
     if (!this._isConvex && this._pxMesh) {
-      this._updateMeshScale();
+      this._updateGeometry();
     }
   }
 
@@ -79,7 +77,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
   setTightBounds(value: boolean): void {
     this._tightBounds = value;
     if (this._isConvex && this._pxMesh) {
-      this._updateMeshScale();
+      this._updateGeometry();
     }
   }
 
@@ -88,7 +86,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
    */
   override setWorldScale(scale: Vector3): void {
     super.setWorldScale(scale);
-    this._updateMeshScale();
+    this._updateGeometry();
   }
 
   /**
@@ -102,20 +100,12 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
   private _createMeshAndShape(material: PhysXPhysicsMaterial, uniqueID: number): void {
     const physX = this._physXPhysics._physX;
     const physics = this._physXPhysics._pxPhysics;
-    const cooking = this._physXPhysics._pxCooking;
-
-    // Allocate memory for vertices
-    const verticesPtr = physX._malloc(this._vertexCount * 3 * 4);
-    const verticesView = new Float32Array(physX.HEAPF32.buffer, verticesPtr, this._vertexCount * 3);
-    verticesView.set(this._vertices);
-
     const shapeFlags = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
-    if (this._isConvex) {
-      // Create convex mesh
-      this._pxMesh = cooking.createConvexMesh(verticesPtr, this._vertexCount, physics);
+    this._createMesh();
 
-      // Use helper to create shape directly
+    // Create shape with material
+    if (this._isConvex) {
       this._pxShape = physX.createConvexMeshShape(
         this._pxMesh,
         this._worldScale.x,
@@ -126,40 +116,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
         material._pxMaterial,
         physics
       );
-
-      // Also create geometry for later use (setGeometry)
-      this._pxGeometry = physX.createConvexMeshGeometry(
-        this._pxMesh,
-        this._worldScale.x,
-        this._worldScale.y,
-        this._worldScale.z,
-        this._tightBounds ? TIGHT_BOUNDS_FLAG : 0
-      );
     } else {
-      // Create triangle mesh
-      if (!this._indices) {
-        physX._free(verticesPtr);
-        throw new Error("Triangle mesh requires indices");
-      }
-
-      const isU16 = this._indices instanceof Uint16Array;
-      const triangleCount = this._indices.length / 3;
-
-      // Allocate memory for indices
-      const bytesPerIndex = isU16 ? 2 : 4;
-      const indicesPtr = physX._malloc(this._indices.length * bytesPerIndex);
-
-      if (isU16) {
-        const indicesView = new Uint16Array(physX.HEAPU16.buffer, indicesPtr, this._indices.length);
-        indicesView.set(this._indices);
-      } else {
-        const indicesView = new Uint32Array(physX.HEAPU32.buffer, indicesPtr, this._indices.length);
-        indicesView.set(this._indices as Uint32Array);
-      }
-
-      this._pxMesh = cooking.createTriMesh(verticesPtr, this._vertexCount, indicesPtr, triangleCount, isU16, physics);
-
-      // Use helper to create shape directly
       this._pxShape = physX.createTriMeshShape(
         this._pxMesh,
         this._worldScale.x,
@@ -170,36 +127,19 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
         material._pxMaterial,
         physics
       );
-
-      // Also create geometry for later use (setGeometry)
-      this._pxGeometry = physX.createTriMeshGeometry(
-        this._pxMesh,
-        this._worldScale.x,
-        this._worldScale.y,
-        this._worldScale.z,
-        this._doubleSided ? DOUBLE_SIDED_FLAG : 0
-      );
-
-      physX._free(indicesPtr);
     }
 
-    physX._free(verticesPtr);
-
-    // Set up shape
     this._id = uniqueID;
     this._pxMaterial = material._pxMaterial;
     this._pxShape.setUUID(uniqueID);
   }
 
-  private _createMeshGeometry(): void {
+  private _createMesh(): void {
     const physX = this._physXPhysics._physX;
     const physics = this._physXPhysics._pxPhysics;
     const cooking = this._physXPhysics._pxCooking;
 
-    // Allocate memory for vertices
-    const verticesPtr = physX._malloc(this._vertexCount * 3 * 4);
-    const verticesView = new Float32Array(physX.HEAPF32.buffer, verticesPtr, this._vertexCount * 3);
-    verticesView.set(this._vertices);
+    const verticesPtr = this._allocateVertices();
 
     if (this._isConvex) {
       this._pxMesh = cooking.createConvexMesh(verticesPtr, this._vertexCount, physics);
@@ -216,19 +156,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
         throw new Error("Triangle mesh requires indices");
       }
 
-      const isU16 = this._indices instanceof Uint16Array;
-      const triangleCount = this._indices.length / 3;
-      const bytesPerIndex = isU16 ? 2 : 4;
-      const indicesPtr = physX._malloc(this._indices.length * bytesPerIndex);
-
-      if (isU16) {
-        const indicesView = new Uint16Array(physX.HEAPU16.buffer, indicesPtr, this._indices.length);
-        indicesView.set(this._indices);
-      } else {
-        const indicesView = new Uint32Array(physX.HEAPU32.buffer, indicesPtr, this._indices.length);
-        indicesView.set(this._indices as Uint32Array);
-      }
-
+      const { ptr: indicesPtr, isU16, triangleCount } = this._allocateIndices();
       this._pxMesh = cooking.createTriMesh(verticesPtr, this._vertexCount, indicesPtr, triangleCount, isU16, physics);
       this._pxGeometry = physX.createTriMeshGeometry(
         this._pxMesh,
@@ -237,39 +165,58 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
         this._worldScale.z,
         this._doubleSided ? DOUBLE_SIDED_FLAG : 0
       );
-
       physX._free(indicesPtr);
     }
 
     physX._free(verticesPtr);
   }
 
-  private _updateMeshScale(): void {
+  private _allocateVertices(): number {
     const physX = this._physXPhysics._physX;
+    const ptr = physX._malloc(this._vertexCount * 3 * 4);
+    const view = new Float32Array(physX.HEAPF32.buffer, ptr, this._vertexCount * 3);
+    view.set(this._vertices);
+    return ptr;
+  }
 
-    // Create new geometry with updated scale
-    if (this._isConvex) {
-      const newGeometry = physX.createConvexMeshGeometry(
-        this._pxMesh,
-        this._worldScale.x,
-        this._worldScale.y,
-        this._worldScale.z,
-        this._tightBounds ? TIGHT_BOUNDS_FLAG : 0
-      );
-      this._pxGeometry.delete();
-      this._pxGeometry = newGeometry;
+  private _allocateIndices(): { ptr: number; isU16: boolean; triangleCount: number } {
+    const physX = this._physXPhysics._physX;
+    const indices = this._indices!;
+    const isU16 = indices instanceof Uint16Array;
+    const triangleCount = indices.length / 3;
+    const bytesPerIndex = isU16 ? 2 : 4;
+    const ptr = physX._malloc(indices.length * bytesPerIndex);
+
+    if (isU16) {
+      new Uint16Array(physX.HEAPU16.buffer, ptr, indices.length).set(indices);
     } else {
-      const newGeometry = physX.createTriMeshGeometry(
-        this._pxMesh,
-        this._worldScale.x,
-        this._worldScale.y,
-        this._worldScale.z,
-        this._doubleSided ? DOUBLE_SIDED_FLAG : 0
-      );
-      this._pxGeometry.delete();
-      this._pxGeometry = newGeometry;
+      new Uint32Array(physX.HEAPU32.buffer, ptr, indices.length).set(indices as Uint32Array);
     }
 
+    return { ptr, isU16, triangleCount };
+  }
+
+  private _updateGeometry(): void {
+    const physX = this._physXPhysics._physX;
+
+    const newGeometry = this._isConvex
+      ? physX.createConvexMeshGeometry(
+          this._pxMesh,
+          this._worldScale.x,
+          this._worldScale.y,
+          this._worldScale.z,
+          this._tightBounds ? TIGHT_BOUNDS_FLAG : 0
+        )
+      : physX.createTriMeshGeometry(
+          this._pxMesh,
+          this._worldScale.x,
+          this._worldScale.y,
+          this._worldScale.z,
+          this._doubleSided ? DOUBLE_SIDED_FLAG : 0
+        );
+
+    this._pxGeometry.delete();
+    this._pxGeometry = newGeometry;
     this._pxShape.setGeometry(this._pxGeometry);
   }
 
