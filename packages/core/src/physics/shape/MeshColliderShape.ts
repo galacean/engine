@@ -2,6 +2,7 @@ import { IMeshColliderShape } from "@galacean/engine-design";
 import { ignoreClone } from "../../clone/CloneManager";
 import { Engine } from "../../Engine";
 import { Mesh } from "../../graphic/Mesh";
+import { VertexAttribute } from "../../mesh/enums/VertexAttribute";
 import { ModelMesh } from "../../mesh/ModelMesh";
 import { ColliderShape } from "./ColliderShape";
 
@@ -123,28 +124,62 @@ export class MeshColliderShape extends ColliderShape {
   }
 
   private _extractMeshData(mesh: ModelMesh): void {
-    // Get positions from mesh
-    const positions = mesh.getPositions();
-    if (!positions || positions.length === 0) {
-      console.warn("MeshColliderShape: Mesh has no position data or data is not accessible");
+    // @ts-ignore: Access internal property for performance optimization
+    const primitive = mesh._primitive;
+    const vertexElement = primitive._vertexElementMap?.[VertexAttribute.Position];
+
+    if (!vertexElement) {
+      console.warn("MeshColliderShape: Mesh has no position attribute");
       return;
     }
 
-    // Convert Vector3[] to Float32Array
-    const vertexCount = positions.length;
-    this._vertices = new Float32Array(vertexCount * 3);
-    for (let i = 0; i < vertexCount; i++) {
-      const pos = positions[i];
-      this._vertices[i * 3] = pos.x;
-      this._vertices[i * 3 + 1] = pos.y;
-      this._vertices[i * 3 + 2] = pos.z;
+    const bufferBinding = primitive.vertexBufferBindings[vertexElement.bindingIndex];
+    const buffer = bufferBinding?.buffer;
+
+    if (!buffer) {
+      console.warn("MeshColliderShape: Position buffer not found");
+      return;
     }
 
-    // Get indices for triangle mesh
+    if (!buffer.readable) {
+      console.warn("MeshColliderShape: Buffer is not readable");
+      return;
+    }
+
+    const vertexCount = mesh.vertexCount;
+    const byteOffset = vertexElement.offset;
+    const byteStride = bufferBinding.stride;
+    const bufferData = buffer.data;
+
+    // Reuse or create Float32Array
+    if (!this._vertices || this._vertices.length !== vertexCount * 3) {
+      this._vertices = new Float32Array(vertexCount * 3);
+    }
+
+    // Create Float32Array view to read source data
+    const sourceData = new Float32Array(bufferData.buffer, bufferData.byteOffset, bufferData.byteLength / 4);
+
+    // Choose optimal copy method based on stride
+    if (byteStride === 12 && byteOffset === 0) {
+      // Tightly packed: direct copy
+      this._vertices.set(sourceData.subarray(0, vertexCount * 3));
+    } else {
+      // Interleaved: copy per vertex
+      const floatStride = byteStride / 4;
+      const floatOffset = byteOffset / 4;
+      for (let i = 0; i < vertexCount; i++) {
+        const srcIdx = i * floatStride + floatOffset;
+        const dstIdx = i * 3;
+        this._vertices[dstIdx] = sourceData[srcIdx];
+        this._vertices[dstIdx + 1] = sourceData[srcIdx + 1];
+        this._vertices[dstIdx + 2] = sourceData[srcIdx + 2];
+      }
+    }
+
+    // Extract indices for triangle mesh
     if (!this._isConvex) {
       const indices = mesh.getIndices();
       if (indices) {
-        // Convert Uint8Array to Uint16Array if needed
         if (indices instanceof Uint8Array) {
           this._indices = new Uint16Array(indices);
         } else {
