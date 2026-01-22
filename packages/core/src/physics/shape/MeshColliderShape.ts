@@ -97,8 +97,9 @@ export class MeshColliderShape extends ColliderShape {
    */
   setMesh(mesh: Mesh): void {
     if (mesh instanceof ModelMesh) {
-      this._extractMeshData(mesh);
-      this._updateNativeMesh();
+      if (this._extractMeshData(mesh)) {
+        this._updateNativeMesh();
+      }
     } else {
       console.warn("MeshColliderShape: Only ModelMesh is supported");
     }
@@ -123,14 +124,14 @@ export class MeshColliderShape extends ColliderShape {
     this._indices = null;
   }
 
-  private _extractMeshData(mesh: ModelMesh): void {
+  private _extractMeshData(mesh: ModelMesh): boolean {
     // @ts-ignore: Access internal property for performance optimization
     const primitive = mesh._primitive;
     const vertexElement = primitive._vertexElementMap?.[VertexAttribute.Position];
 
     if (!vertexElement) {
       console.warn("MeshColliderShape: Mesh has no position attribute");
-      return;
+      return false;
     }
 
     const bufferBinding = primitive.vertexBufferBindings[vertexElement.bindingIndex];
@@ -138,12 +139,12 @@ export class MeshColliderShape extends ColliderShape {
 
     if (!buffer) {
       console.warn("MeshColliderShape: Position buffer not found");
-      return;
+      return false;
     }
 
     if (!buffer.readable) {
       console.warn("MeshColliderShape: Buffer is not readable");
-      return;
+      return false;
     }
 
     const vertexCount = mesh.vertexCount;
@@ -189,6 +190,8 @@ export class MeshColliderShape extends ColliderShape {
         console.warn("MeshColliderShape: Triangle mesh requires indices");
       }
     }
+
+    return true;
   }
 
   @ignoreClone

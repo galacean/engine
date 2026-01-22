@@ -6,7 +6,8 @@ import {
   DynamicCollider,
   StaticCollider,
   PhysicsMaterial,
-  Script
+  Script,
+  ModelMesh
 } from "@galacean/engine-core";
 import { Ray, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
@@ -476,6 +477,56 @@ describe("MeshColliderShape PhysX", () => {
       expect(hitFromBack).toBe(true);
 
       groundEntity.destroy();
+      meshMaterial?.destroy();
+    });
+  });
+
+  describe("setMesh Error Handling", () => {
+    it("should not call _updateNativeMesh when mesh extraction fails", () => {
+      const entity = root.createChild("errorMesh");
+      const staticCollider = entity.addComponent(StaticCollider);
+
+      const meshShape = new MeshColliderShape();
+      const meshMaterial = meshShape.material;
+
+      // Set initial valid mesh data
+      const vertices = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
+      const indices = new Uint16Array([0, 1, 2]);
+      meshShape.setMeshData(vertices, indices);
+      staticCollider.addShape(meshShape);
+
+      // Spy on _updateNativeMesh to verify it's NOT called on failure
+      // @ts-ignore - Access private method for testing
+      const updateSpy = vi.spyOn(meshShape, "_updateNativeMesh");
+      const warnSpy = vi.spyOn(console, "warn");
+
+      // Create a mock object that passes instanceof check by setting prototype
+      const mockMesh = Object.create(ModelMesh.prototype);
+      Object.defineProperty(mockMesh, "_primitive", {
+        value: {
+          _vertexElementMap: {}, // No Position attribute
+          vertexBufferBindings: []
+        },
+        writable: true
+      });
+      Object.defineProperty(mockMesh, "vertexCount", {
+        value: 0,
+        writable: true
+      });
+      mockMesh.getIndices = () => null;
+
+      // Call setMesh with invalid mesh - should warn and NOT update
+      meshShape.setMesh(mockMesh);
+
+      // Should have warned about missing position attribute
+      expect(warnSpy).toHaveBeenCalledWith("MeshColliderShape: Mesh has no position attribute");
+
+      // _updateNativeMesh should NOT have been called (this is the key assertion)
+      expect(updateSpy).not.toHaveBeenCalled();
+
+      updateSpy.mockRestore();
+      warnSpy.mockRestore();
+      entity.destroy();
       meshMaterial?.destroy();
     });
   });
