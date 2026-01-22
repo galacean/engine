@@ -18,6 +18,7 @@ export class MeshColliderShape extends ColliderShape {
   private _indices: Uint16Array | Uint32Array = null;
   private _doubleSided: boolean = false;
   private _tightBounds: boolean = true;
+  private _indicesU16Cache: Uint16Array = null;
 
   /**
    * Whether to use convex mesh mode.
@@ -122,6 +123,7 @@ export class MeshColliderShape extends ColliderShape {
     delete Engine._physicalObjectsMap[this._id];
     this._vertices = null;
     this._indices = null;
+    this._indicesU16Cache = null;
   }
 
   private _extractMeshData(mesh: ModelMesh): boolean {
@@ -181,7 +183,13 @@ export class MeshColliderShape extends ColliderShape {
       const indices = mesh.getIndices();
       if (indices) {
         if (indices instanceof Uint8Array) {
-          this._indices = new Uint16Array(indices);
+          const len = indices.length;
+          if (!this._indicesU16Cache || this._indicesU16Cache.length < len) {
+            this._indicesU16Cache = new Uint16Array(len);
+          }
+          this._indicesU16Cache.set(indices);
+          // Use subarray to ensure correct length (cache may be larger than needed)
+          this._indices = this._indicesU16Cache.subarray(0, len);
         } else {
           this._indices = indices as Uint16Array | Uint32Array;
         }
