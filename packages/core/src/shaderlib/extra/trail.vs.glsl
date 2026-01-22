@@ -35,16 +35,16 @@ void main() {
     // Billboard: expand perpendicular to tangent and view direction
     vec3 toCamera = normalize(camera_Position - position);
     vec3 right = cross(tangent, toCamera);
-    float rightLen = length(right);
-    if (rightLen < 0.001) {
+    float rightLenSq = dot(right, right);
+    if (rightLenSq < 0.000001) {
         right = cross(tangent, vec3(0.0, 1.0, 0.0));
-        rightLen = length(right);
-        if (rightLen < 0.001) {
+        rightLenSq = dot(right, right);
+        if (rightLenSq < 0.000001) {
             right = cross(tangent, vec3(1.0, 0.0, 0.0));
-            rightLen = length(right);
+            rightLenSq = dot(right, right);
         }
     }
-    right = right / rightLen;
+    right = right * inversesqrt(rightLenSq);
 
     float widthMultiplier = evaluateParticleCurve(renderer_WidthCurve, min(relativePos, renderer_CurveMaxTime.z));
     float width = renderer_TrailParams.x * widthMultiplier;
