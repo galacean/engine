@@ -165,15 +165,14 @@ export class MeshColliderShape extends ColliderShape {
       // Tightly packed: direct copy
       this._vertices.set(sourceData.subarray(0, vertexCount * 3));
     } else {
-      // Interleaved: copy per vertex
+      // Interleaved: copy per vertex with optimized indexing
       const floatStride = byteStride / 4;
       const floatOffset = byteOffset / 4;
-      for (let i = 0; i < vertexCount; i++) {
-        const srcIdx = i * floatStride + floatOffset;
-        const dstIdx = i * 3;
-        this._vertices[dstIdx] = sourceData[srcIdx];
-        this._vertices[dstIdx + 1] = sourceData[srcIdx + 1];
-        this._vertices[dstIdx + 2] = sourceData[srcIdx + 2];
+      const vertices = this._vertices;
+      for (let i = 0, srcIdx = floatOffset, dstIdx = 0; i < vertexCount; i++, srcIdx += floatStride, dstIdx += 3) {
+        vertices[dstIdx] = sourceData[srcIdx];
+        vertices[dstIdx + 1] = sourceData[srcIdx + 1];
+        vertices[dstIdx + 2] = sourceData[srcIdx + 2];
       }
     }
 
