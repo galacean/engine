@@ -8,7 +8,7 @@ import {
   PhysicsMaterial,
   Script
 } from "@galacean/engine-core";
-import { Vector3 } from "@galacean/engine-math";
+import { Ray, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { describe, beforeAll, beforeEach, expect, it, vi } from "vitest";
@@ -439,6 +439,44 @@ describe("MeshColliderShape PhysX", () => {
 
       entity.destroy();
       defaultMaterial?.destroy();
+    });
+  });
+
+  describe("doubleSided Property Sync", () => {
+    it("should detect raycast from back side when doubleSided is true", async () => {
+      // 验证：doubleSided=true 时，从背面的射线应该能检测到碰撞
+      // PhysX 的 eDOUBLE_SIDED 标志只影响 raycast 和 sweep，不影响刚体碰撞
+      const groundEntity = root.createChild("doubleSidedGround");
+      groundEntity.transform.setPosition(0, 0, 0);
+      const groundCollider = groundEntity.addComponent(StaticCollider);
+
+      const meshShape = new MeshColliderShape();
+      const meshMaterial = meshShape.material;
+      meshShape.doubleSided = true; // 先设置双面
+
+      // 顶点构成一个水平面，法线朝 +Y
+      const vertices = new Float32Array([
+        -5, 0, -5, // v0
+        5, 0, -5, // v1
+        -5, 0, 5, // v2
+        5, 0, 5 // v3
+      ]);
+      // CCW 顺序使法线朝 +Y
+      const indices = new Uint16Array([0, 2, 1, 1, 2, 3]);
+      meshShape.setMeshData(vertices, indices);
+      groundCollider.addShape(meshShape);
+
+      // 从下方向上发射射线（从背面检测）
+      const ray = new Ray(new Vector3(0, -2, 0), new Vector3(0, 1, 0));
+      const hitFromBack = physicsScene.raycast(ray);
+
+      console.log("[TEST] Raycast from back side hit:", hitFromBack);
+
+      // doubleSided=true 时，从背面的射线应该能检测到碰撞
+      expect(hitFromBack).toBe(true);
+
+      groundEntity.destroy();
+      meshMaterial?.destroy();
     });
   });
 });

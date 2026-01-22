@@ -219,6 +219,10 @@ export class MeshColliderShape extends ColliderShape {
         this._material._nativeMaterial
       );
       Engine._physicalObjectsMap[this._id] = this;
+
+      // Sync doubleSided and tightBounds to newly created native shape
+      (<IMeshColliderShape>this._nativeShape).setDoubleSided(this._doubleSided);
+      (<IMeshColliderShape>this._nativeShape).setTightBounds(this._tightBounds);
     }
   }
 }
