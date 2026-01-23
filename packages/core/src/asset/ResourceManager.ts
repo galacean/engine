@@ -595,9 +595,9 @@ export class ResourceManager {
       }
 
       promise = this.load<T>({
-        params: resourceConfig.params,
         url,
-        type: resourceConfig.type
+        type: resourceConfig.type,
+        params: resourceConfig.params
       });
     }
     return promise.then((item) => (isClone ? <T>(<IClone>item).clone() : item));
@@ -655,13 +655,13 @@ const rePropName = RegExp(
 type ResourceId = string;
 type VirtualPath = string;
 type EditorResourceItem = {
-  params?: Record<string, any>;
   virtualPath: string;
   path: string;
   type: string;
   id: string;
   dependentAssetMap?: { [key: string]: string };
   subpackageName?: string;
+  params?: Record<string, any>;
 };
 type SubAssetPromiseCallbacks<T> = Record<
   // main asset url, ie. "https://***.glb"
