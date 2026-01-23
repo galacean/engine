@@ -422,7 +422,7 @@ export class DynamicCollider extends Collider {
    */
   override addShape(shape: ColliderShape): void {
     if (shape instanceof MeshColliderShape && !shape.isConvex && !this._isKinematic) {
-      console.error("DynamicCollider: Triangle mesh is not supported on non-kinematic DynamicCollider.");
+      console.error("DynamicCollider: triangle mesh is not supported on non-kinematic DynamicCollider.");
       return;
     }
     super.addShape(shape);
