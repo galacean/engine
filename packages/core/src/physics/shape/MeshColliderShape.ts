@@ -9,8 +9,9 @@ import { ColliderShape } from "./ColliderShape";
 /**
  * Physical collider shape for mesh.
  * @remarks
- * - Triangle mesh (isConvex=false) only works with StaticCollider
+ * - Triangle mesh (isConvex=false) works with StaticCollider or kinematic DynamicCollider
  * - Convex mesh (isConvex=true) works with both StaticCollider and DynamicCollider
+ * @see https://nvidia-omniverse.github.io/PhysX/physx/5.4.1/docs/Geometry.html#triangle-meshes
  */
 export class MeshColliderShape extends ColliderShape {
   private _isConvex: boolean = false;
@@ -23,8 +24,8 @@ export class MeshColliderShape extends ColliderShape {
   /**
    * Whether to use convex mesh mode.
    * @remarks
-   * - Convex mesh: Works with DynamicCollider, PhysX auto-computes convex hull
-   * - Triangle mesh: Only works with StaticCollider, requires indices
+   * - Convex mesh: Works with all collider types, PhysX auto-computes convex hull
+   * - Triangle mesh: Works with StaticCollider or kinematic DynamicCollider, requires indices
    */
   get isConvex(): boolean {
     return this._isConvex;
