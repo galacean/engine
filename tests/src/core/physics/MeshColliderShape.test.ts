@@ -482,6 +482,31 @@ describe("MeshColliderShape PhysX", () => {
   });
 
   describe("setMesh Error Handling", () => {
+    it("should warn when setMesh is called with non-ModelMesh", () => {
+      const warnSpy = vi.spyOn(console, "warn");
+      const entity = root.createChild("nonModelMesh");
+      const staticCollider = entity.addComponent(StaticCollider);
+
+      const meshShape = new MeshColliderShape();
+      const meshMaterial = meshShape.material;
+
+      // Set initial data so shape exists
+      const vertices = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
+      const indices = new Uint16Array([0, 1, 2]);
+      meshShape.setMeshData(vertices, indices);
+      staticCollider.addShape(meshShape);
+
+      // Create a mock non-ModelMesh object
+      const fakeMesh = { notAModelMesh: true } as any;
+      meshShape.setMesh(fakeMesh);
+
+      expect(warnSpy).toHaveBeenCalledWith("MeshColliderShape: Only ModelMesh is supported");
+
+      warnSpy.mockRestore();
+      entity.destroy();
+      meshMaterial?.destroy();
+    });
+
     it("should not call _updateNativeMesh when mesh extraction fails", () => {
       const entity = root.createChild("errorMesh");
       const staticCollider = entity.addComponent(StaticCollider);
