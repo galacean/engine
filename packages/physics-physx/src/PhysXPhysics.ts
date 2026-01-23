@@ -68,10 +68,10 @@ export class PhysXPhysics implements IPhysics {
     this._runTimeMode = runtimeMode;
     this._wasmModeUrl =
       runtimeUrls?.wasmModeUrl ??
-      "https://mdn.alipayobjects.com/rms/afts/file/A*Z656QZNnJWoAAAAASWAAAAgAehQnAQ/physx.release.js";
+      "https://mdn.alipayobjects.com/rms/afts/file/A*8pf0QJKeUXsAAAAASWAAAAgAehQnAQ/physx.release.js";
     this._downgradeModeUrl =
       runtimeUrls?.javaScriptModeUrl ??
-      "https://mdn.alipayobjects.com/rms/afts/file/A*mONLRaH3fK8AAAAAgFAAAAgAehQnAQ/physx.release.downgrade.js";
+      "https://mdn.alipayobjects.com/rms/afts/file/A*PLtBTLf8Sm0AAAAAgFAAAAgAehQnAQ/physx.release.downgrade.js";
   }
 
   /**
@@ -336,7 +336,7 @@ export class PhysXPhysics implements IPhysics {
 
     // Initialize cooking for mesh colliders
     const cookingParams = new physX.PxCookingParams(tolerancesScale);
-    // Set Unity-compatible default cooking params (WeldVertices + small tolerance)
+    // Set default cooking params (WeldVertices + small tolerance)
     physX.setCookingMeshPreprocessParams(cookingParams, 1); // WeldVertices = 1
     cookingParams.meshWeldTolerance = 0.001;
     const pxCooking = physX.PxCreateCooking(version, pxFoundation, cookingParams);

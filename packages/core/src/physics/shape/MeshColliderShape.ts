@@ -16,7 +16,7 @@ import { ColliderShape } from "./ColliderShape";
 export class MeshColliderShape extends ColliderShape {
   private _isConvex: boolean = false;
   private _vertices: Float32Array = null;
-  private _indices: Uint16Array | Uint32Array = null;
+  private _indices: Uint16Array | Uint32Array | null = null;
   private _doubleSided: boolean = false;
   private _tightBounds: boolean = true;
   private _indicesU16Cache: Uint16Array = null;
@@ -26,6 +26,7 @@ export class MeshColliderShape extends ColliderShape {
    * @remarks
    * - Convex mesh: Works with all collider types, PhysX auto-computes convex hull
    * - Triangle mesh: Works with StaticCollider or kinematic DynamicCollider, requires indices
+   * - After changing this property, you must call {@link setMesh} or {@link setMeshData} again to apply the change
    */
   get isConvex(): boolean {
     return this._isConvex;
@@ -181,25 +182,35 @@ export class MeshColliderShape extends ColliderShape {
 
     // Extract indices for triangle mesh
     if (!this._isConvex) {
-      const indices = mesh.getIndices();
-      if (indices) {
-        if (indices instanceof Uint8Array) {
-          const len = indices.length;
-          if (!this._indicesU16Cache || this._indicesU16Cache.length < len) {
-            this._indicesU16Cache = new Uint16Array(len);
-          }
-          this._indicesU16Cache.set(indices);
-          // Use subarray to ensure correct length (cache may be larger than needed)
-          this._indices = this._indicesU16Cache.subarray(0, len);
-        } else {
-          this._indices = indices as Uint16Array | Uint32Array;
-        }
-      } else {
+      this._extractIndices(mesh);
+      if (!this._indices) {
         console.warn("MeshColliderShape: Triangle mesh requires indices");
+        return false;
       }
     }
 
     return true;
+  }
+
+  private _extractIndices(mesh: ModelMesh): void {
+    const indices = mesh.getIndices();
+    if (!indices) {
+      this._indices = null;
+      return;
+    }
+
+    // PhysX only supports Uint16 and Uint32 indices, convert Uint8 to Uint16
+    if (indices instanceof Uint8Array) {
+      const len = indices.length;
+      if (!this._indicesU16Cache || this._indicesU16Cache.length < len) {
+        this._indicesU16Cache = new Uint16Array(len);
+      }
+      this._indicesU16Cache.set(indices);
+      // Use subarray to ensure correct length (cache may be larger than needed)
+      this._indices = this._indicesU16Cache.subarray(0, len);
+    } else {
+      this._indices = indices;
+    }
   }
 
   @ignoreClone
@@ -234,6 +245,14 @@ export class MeshColliderShape extends ColliderShape {
       // Sync doubleSided and tightBounds to newly created native shape
       (<IMeshColliderShape>this._nativeShape).setDoubleSided(this._doubleSided);
       (<IMeshColliderShape>this._nativeShape).setTightBounds(this._tightBounds);
+      // Sync base class properties (position, rotation, contactOffset, isTrigger, material)
+      super._syncNative();
+
+      // If already attached to a collider, add the newly created native shape to it
+      if (this._collider) {
+        this._nativeShape.setWorldScale(this._collider.entity.transform.lossyWorldScale);
+        this._collider._nativeCollider.addShape(this._nativeShape);
+      }
     }
   }
 }
