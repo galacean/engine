@@ -595,6 +595,7 @@ export class ResourceManager {
       }
 
       promise = this.load<T>({
+        params: resourceConfig.params,
         url,
         type: resourceConfig.type
       });
@@ -654,6 +655,7 @@ const rePropName = RegExp(
 type ResourceId = string;
 type VirtualPath = string;
 type EditorResourceItem = {
+  params?: Record<string, any>;
   virtualPath: string;
   path: string;
   type: string;
