@@ -530,4 +530,100 @@ describe("MeshColliderShape PhysX", () => {
       meshMaterial?.destroy();
     });
   });
+
+  describe("Triangle Mesh with DynamicCollider", () => {
+    it("should log error when adding triangle mesh to non-kinematic DynamicCollider", () => {
+      const errorSpy = vi.spyOn(console, "error");
+
+      const entity = root.createChild("nonKinematicMesh");
+      const dynamicCollider = entity.addComponent(DynamicCollider);
+      dynamicCollider.isKinematic = false; // Ensure non-kinematic
+
+      const meshShape = new MeshColliderShape();
+      const meshMaterial = meshShape.material;
+      meshShape.isConvex = false; // Triangle mesh
+      const vertices = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
+      const indices = new Uint16Array([0, 1, 2]);
+      meshShape.setMeshData(vertices, indices);
+
+      dynamicCollider.addShape(meshShape);
+
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("Triangle mesh"));
+
+      errorSpy.mockRestore();
+      entity.destroy();
+      meshMaterial?.destroy();
+    });
+
+    it("should log error when setting isKinematic to false with existing triangle mesh", () => {
+      const errorSpy = vi.spyOn(console, "error");
+
+      const entity = root.createChild("kinematicToNonKinematic");
+      const dynamicCollider = entity.addComponent(DynamicCollider);
+      dynamicCollider.isKinematic = true; // Start as kinematic
+
+      const meshShape = new MeshColliderShape();
+      const meshMaterial = meshShape.material;
+      meshShape.isConvex = false; // Triangle mesh
+      const vertices = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
+      const indices = new Uint16Array([0, 1, 2]);
+      meshShape.setMeshData(vertices, indices);
+
+      dynamicCollider.addShape(meshShape); // OK with kinematic
+      expect(errorSpy).not.toHaveBeenCalled();
+
+      dynamicCollider.isKinematic = false; // Switch to non-kinematic
+
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("Triangle mesh"));
+
+      errorSpy.mockRestore();
+      entity.destroy();
+      meshMaterial?.destroy();
+    });
+
+    it("should NOT log error when adding triangle mesh to kinematic DynamicCollider", () => {
+      const errorSpy = vi.spyOn(console, "error");
+
+      const entity = root.createChild("kinematicMesh");
+      const dynamicCollider = entity.addComponent(DynamicCollider);
+      dynamicCollider.isKinematic = true;
+
+      const meshShape = new MeshColliderShape();
+      const meshMaterial = meshShape.material;
+      meshShape.isConvex = false; // Triangle mesh
+      const vertices = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
+      const indices = new Uint16Array([0, 1, 2]);
+      meshShape.setMeshData(vertices, indices);
+
+      dynamicCollider.addShape(meshShape);
+
+      expect(errorSpy).not.toHaveBeenCalled();
+
+      errorSpy.mockRestore();
+      entity.destroy();
+      meshMaterial?.destroy();
+    });
+
+    it("should NOT log error when adding convex mesh to non-kinematic DynamicCollider", () => {
+      const errorSpy = vi.spyOn(console, "error");
+
+      const entity = root.createChild("convexNonKinematic");
+      const dynamicCollider = entity.addComponent(DynamicCollider);
+      dynamicCollider.isKinematic = false;
+
+      const meshShape = new MeshColliderShape();
+      const meshMaterial = meshShape.material;
+      meshShape.isConvex = true; // Convex mesh - should work
+      const vertices = new Float32Array([0, 1, 0, -1, 0, -1, 1, 0, -1, 0, 0, 1]);
+      meshShape.setMeshData(vertices);
+
+      dynamicCollider.addShape(meshShape);
+
+      expect(errorSpy).not.toHaveBeenCalled();
+
+      errorSpy.mockRestore();
+      entity.destroy();
+      meshMaterial?.destroy();
+    });
+  });
 });
