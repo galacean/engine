@@ -198,6 +198,35 @@ describe("MeshColliderShape PhysX", () => {
     });
   });
 
+  describe("tightBounds Property", () => {
+    it("should get and set tightBounds property", () => {
+      const entity = root.createChild("tightBoundsMesh");
+      const staticCollider = entity.addComponent(StaticCollider);
+
+      const meshShape = new MeshColliderShape();
+      const meshMaterial = meshShape.material;
+      meshShape.isConvex = true;
+
+      // Default value
+      expect(meshShape.tightBounds).toBe(true);
+
+      // Set before mesh data
+      meshShape.tightBounds = false;
+      expect(meshShape.tightBounds).toBe(false);
+
+      const vertices = new Float32Array([0, 1, 0, -1, 0, -1, 1, 0, -1, 0, 0, 1]);
+      meshShape.setMeshData(vertices);
+      staticCollider.addShape(meshShape);
+
+      // Set after mesh data
+      meshShape.tightBounds = true;
+      expect(meshShape.tightBounds).toBe(true);
+
+      entity.destroy();
+      meshMaterial?.destroy();
+    });
+  });
+
   describe("Convex Mesh (Dynamic)", () => {
     it("should create convex mesh collider", () => {
       const entity = root.createChild("convexEntity");
