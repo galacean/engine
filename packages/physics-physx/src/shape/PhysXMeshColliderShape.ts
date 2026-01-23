@@ -17,7 +17,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
   private _isConvex: boolean;
   private _doubleSided: boolean = false;
   private _tightBounds: boolean = true;
-  private _vertices: Float32Array;
+  private _vertices: Float32Array | null;
   private _vertexCount: number;
   private _indices: Uint16Array | Uint32Array | null;
 
@@ -49,8 +49,13 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     indices: Uint16Array | Uint32Array | null,
     isConvex: boolean
   ): void {
-    this._releaseMesh();
+    // Save old resources
+    const oldMesh = this._pxMesh;
+    const oldGeometry = this._pxGeometry;
 
+    // Update data and create new mesh (may throw on failure)
+    this._pxMesh = null;
+    this._pxGeometry = null;
     this._isConvex = isConvex;
     this._vertices = vertices;
     this._vertexCount = vertexCount;
@@ -58,6 +63,14 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
 
     this._createMesh();
     this._pxShape.setGeometry(this._pxGeometry);
+
+    // Release old resources only after successful creation
+    if (oldMesh) {
+      oldMesh.release();
+    }
+    if (oldGeometry) {
+      oldGeometry.delete();
+    }
   }
 
   /**
@@ -139,35 +152,49 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     const cooking = this._physXPhysics._pxCooking;
 
     const verticesPtr = this._allocateVertices();
+    let indicesPtr = 0;
 
-    if (this._isConvex) {
-      this._pxMesh = cooking.createConvexMesh(verticesPtr, this._vertexCount, physics);
-      this._pxGeometry = physX.createConvexMeshGeometry(
-        this._pxMesh,
-        this._worldScale.x,
-        this._worldScale.y,
-        this._worldScale.z,
-        this._tightBounds ? TIGHT_BOUNDS_FLAG : 0
-      );
-    } else {
-      if (!this._indices) {
-        physX._free(verticesPtr);
-        throw new Error("Triangle mesh requires indices");
+    try {
+      if (this._isConvex) {
+        this._pxMesh = cooking.createConvexMesh(verticesPtr, this._vertexCount, physics);
+        if (!this._pxMesh) {
+          throw new Error("Failed to create convex mesh. Check if vertex count <= 255 and geometry is valid.");
+        }
+        this._pxGeometry = physX.createConvexMeshGeometry(
+          this._pxMesh,
+          this._worldScale.x,
+          this._worldScale.y,
+          this._worldScale.z,
+          this._tightBounds ? TIGHT_BOUNDS_FLAG : 0
+        );
+      } else {
+        if (!this._indices) {
+          throw new Error("Triangle mesh requires indices");
+        }
+
+        const { ptr, isU16, triangleCount } = this._allocateIndices();
+        indicesPtr = ptr;
+        this._pxMesh = cooking.createTriMesh(verticesPtr, this._vertexCount, indicesPtr, triangleCount, isU16, physics);
+        if (!this._pxMesh) {
+          throw new Error("Failed to create triangle mesh. Check if geometry is valid.");
+        }
+        this._pxGeometry = physX.createTriMeshGeometry(
+          this._pxMesh,
+          this._worldScale.x,
+          this._worldScale.y,
+          this._worldScale.z,
+          this._doubleSided ? DOUBLE_SIDED_FLAG : 0
+        );
       }
-
-      const { ptr: indicesPtr, isU16, triangleCount } = this._allocateIndices();
-      this._pxMesh = cooking.createTriMesh(verticesPtr, this._vertexCount, indicesPtr, triangleCount, isU16, physics);
-      this._pxGeometry = physX.createTriMeshGeometry(
-        this._pxMesh,
-        this._worldScale.x,
-        this._worldScale.y,
-        this._worldScale.z,
-        this._doubleSided ? DOUBLE_SIDED_FLAG : 0
-      );
-      physX._free(indicesPtr);
+    } finally {
+      physX._free(verticesPtr);
+      if (indicesPtr) {
+        physX._free(indicesPtr);
+      }
+      // Release JS memory after copying to WASM
+      this._vertices = null;
+      this._indices = null;
     }
-
-    physX._free(verticesPtr);
   }
 
   private _allocateVertices(): number {
