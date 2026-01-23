@@ -680,4 +680,21 @@ describe("MeshColliderShape PhysX", () => {
       meshMaterial?.destroy();
     });
   });
+
+  describe("DynamicCollider.move()", () => {
+    it("should warn when move() is called on non-kinematic DynamicCollider", () => {
+      const warnSpy = vi.spyOn(console, "warn");
+
+      const entity = root.createChild("nonKinematicMove");
+      const dynamicCollider = entity.addComponent(DynamicCollider);
+      dynamicCollider.isKinematic = false;
+
+      dynamicCollider.move(new Vector3(1, 0, 0));
+
+      expect(warnSpy).toHaveBeenCalledWith("DynamicCollider.move() should only be called when isKinematic is true.");
+
+      warnSpy.mockRestore();
+      entity.destroy();
+    });
+  });
 });
