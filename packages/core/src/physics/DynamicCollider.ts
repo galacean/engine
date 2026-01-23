@@ -287,6 +287,11 @@ export class DynamicCollider extends Collider {
       }
 
       (<IDynamicCollider>this._nativeCollider).setIsKinematic(value);
+
+      // Resync CCD mode when switching back to dynamic
+      if (!value) {
+        (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(this._collisionDetectionMode);
+      }
     }
   }
 
