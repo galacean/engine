@@ -111,6 +111,8 @@ export class MeshColliderShape extends ColliderShape {
   protected override _syncNative(): void {
     if (this._nativeShape) {
       super._syncNative();
+      (<IMeshColliderShape>this._nativeShape).setDoubleSided(this._doubleSided);
+      (<IMeshColliderShape>this._nativeShape).setTightBounds(this._tightBounds);
     }
   }
 
