@@ -1,5 +1,4 @@
 import { IMeshColliderShape } from "@galacean/engine-design";
-import { ignoreClone } from "../../clone/CloneManager";
 import { Engine } from "../../Engine";
 import { Mesh } from "../../graphic/Mesh";
 import { VertexAttribute } from "../../mesh/enums/VertexAttribute";
@@ -215,7 +214,6 @@ export class MeshColliderShape extends ColliderShape {
     }
   }
 
-  @ignoreClone
   private _updateNativeMesh(): void {
     if (!this._vertices || this._vertices.length === 0) {
       return;
