@@ -161,8 +161,6 @@ export class PhysXPhysics implements IPhysics {
     meshWeldTolerance?: number;
     /** Mesh preprocessing flags (bitwise OR of MeshPreprocessingFlag values). */
     meshPreprocessParams?: number;
-    /** When true, the triangle adjacency information is created. */
-    buildTriangleAdjacencies?: boolean;
   }): void {
     const cp = this._pxCookingParams;
     if (params.meshWeldTolerance !== undefined) {
@@ -170,9 +168,6 @@ export class PhysXPhysics implements IPhysics {
     }
     if (params.meshPreprocessParams !== undefined) {
       this._physX.setCookingMeshPreprocessParams(cp, params.meshPreprocessParams);
-    }
-    if (params.buildTriangleAdjacencies !== undefined) {
-      cp.buildTriangleAdjacencies = params.buildTriangleAdjacencies;
     }
   }
 

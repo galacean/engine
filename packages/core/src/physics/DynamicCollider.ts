@@ -271,21 +271,19 @@ export class DynamicCollider extends Collider {
 
   set isKinematic(value: boolean) {
     if (this._isKinematic !== value) {
-      this._isKinematic = value;
-
-      // Check for existing triangle mesh shapes when switching to non-kinematic
+      // Block switching to non-kinematic if triangle mesh is attached
       if (!value) {
-        for (const shape of this._shapes) {
+        const shapes = this._shapes;
+        for (let i = 0, n = shapes.length; i < n; i++) {
+          const shape = shapes[i];
           if (shape instanceof MeshColliderShape && !shape.isConvex) {
-            console.error(
-              "DynamicCollider: Triangle mesh (non-convex MeshColliderShape) requires isKinematic=true. " +
-                "The collision behavior may be incorrect."
-            );
-            break;
+            console.error("DynamicCollider: Cannot set isKinematic=false when triangle mesh is attached.");
+            return;
           }
         }
       }
 
+      this._isKinematic = value;
       (<IDynamicCollider>this._nativeCollider).setIsKinematic(value);
 
       // Resync CCD mode when switching back to dynamic
@@ -420,10 +418,8 @@ export class DynamicCollider extends Collider {
    */
   override addShape(shape: ColliderShape): void {
     if (shape instanceof MeshColliderShape && !shape.isConvex && !this._isKinematic) {
-      console.error(
-        "DynamicCollider: Triangle mesh (non-convex MeshColliderShape) requires isKinematic=true. " +
-          "Set isKinematic=true or use convex mesh (isConvex=true) instead."
-      );
+      console.error("DynamicCollider: Triangle mesh is not supported on non-kinematic DynamicCollider.");
+      return;
     }
     super.addShape(shape);
   }
@@ -507,6 +503,10 @@ export class DynamicCollider extends Collider {
   }
 
   private _setMassAndUpdateInertia(): void {
+    // Kinematic bodies don't need mass/inertia computation (PhysX doc: mass is not used in kinematic mode)
+    if (this._isKinematic) {
+      return;
+    }
     (<IDynamicCollider>this._nativeCollider).setMassAndUpdateInertia(this._mass);
 
     this._automaticCenterOfMass || (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
