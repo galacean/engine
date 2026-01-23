@@ -696,5 +696,21 @@ describe("MeshColliderShape PhysX", () => {
       warnSpy.mockRestore();
       entity.destroy();
     });
+
+    it("should resync collisionDetectionMode when switching from kinematic to dynamic", () => {
+      const entity = root.createChild("kinematicCCDResync");
+      const dynamicCollider = entity.addComponent(DynamicCollider);
+
+      // Set CCD mode first
+      dynamicCollider.collisionDetectionMode = 1; // Continuous
+      dynamicCollider.isKinematic = true;
+
+      // Switch back to dynamic - should resync CCD
+      dynamicCollider.isKinematic = false;
+
+      expect(dynamicCollider.collisionDetectionMode).toBe(1);
+
+      entity.destroy();
+    });
   });
 });
