@@ -272,6 +272,20 @@ export class DynamicCollider extends Collider {
   set isKinematic(value: boolean) {
     if (this._isKinematic !== value) {
       this._isKinematic = value;
+
+      // Check for existing triangle mesh shapes when switching to non-kinematic
+      if (!value) {
+        for (const shape of this._shapes) {
+          if (shape instanceof MeshColliderShape && !shape.isConvex) {
+            console.error(
+              "DynamicCollider: Triangle mesh (non-convex MeshColliderShape) requires isKinematic=true. " +
+                "The collision behavior may be incorrect."
+            );
+            break;
+          }
+        }
+      }
+
       (<IDynamicCollider>this._nativeCollider).setIsKinematic(value);
     }
   }
