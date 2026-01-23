@@ -5,6 +5,8 @@ import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
 import { ColliderShapeChangeFlag } from "./enums/ColliderShapeChangeFlag";
+import { ColliderShape } from "./shape/ColliderShape";
+import { MeshColliderShape } from "./shape/MeshColliderShape";
 
 /**
  * A dynamic collider can act with self-defined movement or physical force.
@@ -34,6 +36,7 @@ export class DynamicCollider extends Collider {
   private _sleepThreshold = 5e-3;
   private _automaticCenterOfMass = true;
   private _automaticInertiaTensor = true;
+  private _kinematicTargetSet = false;
 
   /**
    * The linear damping of the dynamic collider.
@@ -367,6 +370,7 @@ export class DynamicCollider extends Collider {
       console.warn("DynamicCollider.move() should only be called when isKinematic is true.");
       return;
     }
+    this._kinematicTargetSet = true;
     this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).move(positionOrRotation, rotation);
   }
 
@@ -393,9 +397,36 @@ export class DynamicCollider extends Collider {
   }
 
   /**
+   * @inheritdoc
+   */
+  override addShape(shape: ColliderShape): void {
+    if (shape instanceof MeshColliderShape && !shape.isConvex && !this._isKinematic) {
+      console.error(
+        "DynamicCollider: Triangle mesh (non-convex MeshColliderShape) requires isKinematic=true. " +
+          "Set isKinematic=true or use convex mesh (isConvex=true) instead."
+      );
+    }
+    super.addShape(shape);
+  }
+
+  /**
+   * @internal
+   */
+  override _onUpdate(): void {
+    if (this._isKinematic && !this._kinematicTargetSet) {
+      // Kinematic actor 需要每帧调用 setKinematicTarget 才能正确参与碰撞检测
+      // 如果用户没有调用 move()，则自动调用保持当前位置
+      const { transform } = this.entity;
+      (<IDynamicCollider>this._nativeCollider).move(transform.worldPosition, transform.worldRotationQuaternion);
+    }
+    super._onUpdate();
+  }
+
+  /**
    * @internal
    */
   override _onLateUpdate(): void {
+    this._kinematicTargetSet = false; // 重置标志
     const { transform } = this.entity;
     const { worldPosition, worldRotationQuaternion } = transform;
     const outPosition = DynamicCollider._tempVector3;
