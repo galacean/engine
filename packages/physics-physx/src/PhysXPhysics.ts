@@ -47,7 +47,10 @@ export class PhysXPhysics implements IPhysics {
   _pxPhysics: any;
   /** @internal PhysX cooking object for mesh colliders */
   _pxCooking: any;
-  /** @internal PhysX cooking params for mesh colliders */
+  /**
+   * @internal PhysX cooking params.
+   * @remarks Do not delete after PxCreateCooking - still needed for runtime modification via setCookingParams().
+   */
   _pxCookingParams: any;
 
   private _runTimeMode: PhysXRuntimeMode;
@@ -335,7 +338,6 @@ export class PhysXPhysics implements IPhysics {
     physX.setCookingMeshPreprocessParams(cookingParams, 1); // WeldVertices = 1
     cookingParams.meshWeldTolerance = 0.001;
     const pxCooking = physX.PxCreateCooking(version, pxFoundation, cookingParams);
-    // Keep cookingParams for runtime modification (don't delete)
 
     this._physX = physX;
     this._pxFoundation = pxFoundation;

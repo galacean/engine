@@ -286,9 +286,13 @@ export class DynamicCollider extends Collider {
       this._isKinematic = value;
       (<IDynamicCollider>this._nativeCollider).setIsKinematic(value);
 
-      // Resync CCD mode when switching back to dynamic
+      // Resync when switching back to dynamic
       if (!value) {
         (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(this._collisionDetectionMode);
+        // Recalculate mass/inertia that was skipped in kinematic mode
+        if (this._automaticCenterOfMass || this._automaticInertiaTensor) {
+          this._setMassAndUpdateInertia();
+        }
       }
     }
   }
