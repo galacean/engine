@@ -210,6 +210,7 @@ export class AudioSource extends Component {
 
       this._pausedTime = AudioManager.getContext().currentTime;
       this._isPlaying = false;
+      AudioManager._playingCount--;
     }
   }
 
