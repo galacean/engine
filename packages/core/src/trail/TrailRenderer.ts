@@ -109,7 +109,7 @@ export class TrailRenderer extends Renderer {
   private _lastPlayTimeUpdateFrameCount = -1;
 
   /**
-   * The fade-out duration in seconds.
+   * How long the trail takes to fade out, in seconds.
    */
   get time(): number {
     return this._time;
