@@ -1,4 +1,4 @@
-attribute vec4 a_PositionBirthTime; // xyz: World position, w: Birth time
+attribute vec4 a_PositionBirthTime; // xyz: World position, w: Birth time (used by CPU only)
 attribute vec4 a_CornerTangent;     // x: Corner (-1 or 1), yzw: Tangent direction
 attribute float a_Distance;         // Absolute cumulative distance (written once per point)
 
@@ -19,13 +19,8 @@ varying vec4 v_color;
 
 void main() {
     vec3 position = a_PositionBirthTime.xyz;
-    float birthTime = a_PositionBirthTime.w;
     float corner = a_CornerTangent.x;
     vec3 tangent = a_CornerTangent.yzw;
-
-    // age: time since birth, normalizedAge: 0=new, 1=expired
-    float age = renderer_TimeDistParams.x - birthTime;
-    float normalizedAge = age / renderer_TimeDistParams.y;
 
     // Distance-based relative position: 0=head(newest), 1=tail(oldest)
     float distFromHead = renderer_TimeDistParams.z - a_Distance;
