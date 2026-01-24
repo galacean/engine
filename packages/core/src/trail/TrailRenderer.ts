@@ -59,9 +59,9 @@ export class TrailRenderer extends Renderer {
   );
 
   // Shader parameters
-  @ignoreClone
+  @deepClone
   private _trailParams = new Vector4(1.0, TrailTextureMode.Stretch, 1.0, 0); // x: width, y: textureMode, z: textureScale
-  @ignoreClone
+  @deepClone
   private _timeDistParams = new Vector4(0, 5.0, 0, 0); // x: currentTime, y: lifetime, z: headDistance, w: tailDistance
   @ignoreClone
   private _curveMaxTime = new Vector4(); // x: colorMaxTime, y: alphaMaxTime, z: widthMaxTime
