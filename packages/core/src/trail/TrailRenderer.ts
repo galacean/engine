@@ -267,8 +267,9 @@ export class TrailRenderer extends Renderer {
       min.set(Infinity, Infinity, Infinity);
       max.set(-Infinity, -Infinity, -Infinity);
 
-      const wrapped = firstActive > firstFree;
-      for (let i = firstActive, end = wrapped ? this._currentPointCapacity : firstFree; i < end; i++) {
+      const spansBoundary = firstActive > firstFree;
+      const wrapped = spansBoundary && firstFree > 0;
+      for (let i = firstActive, end = spansBoundary ? this._currentPointCapacity : firstFree; i < end; i++) {
         this._mergePointPosition(vertices, i * pointStride, min, max);
       }
       if (wrapped) {
