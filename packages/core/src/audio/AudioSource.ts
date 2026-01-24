@@ -177,7 +177,7 @@ export class AudioSource extends Component {
         },
         (e) => {
           this._pendingPlay = false;
-          console.warn("AudioContext resume failed:", e);
+          console.warn("Failed to resume AudioContext:", e);
         }
       );
     }
@@ -195,6 +195,7 @@ export class AudioSource extends Component {
       this._isPlaying = false;
       this._pausedTime = -1;
       this._playTime = -1;
+      AudioManager._playingCount--;
     }
   }
 
@@ -255,6 +256,7 @@ export class AudioSource extends Component {
     this._playTime = AudioManager.getContext().currentTime - startTime;
     this._pausedTime = -1;
     this._isPlaying = true;
+    AudioManager._playingCount++;
   }
 
   private _initSourceNode(startTime: number): void {
@@ -268,8 +270,7 @@ export class AudioSource extends Component {
     this._sourceNode = sourceNode;
 
     sourceNode.connect(this._gainNode);
-
-    this._sourceNode.start(0, startTime);
+    sourceNode.start(0, startTime);
   }
 
   private _clearSourceNode(): void {
