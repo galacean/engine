@@ -1,4 +1,4 @@
-import { BoundingBox, Color, Vector3, Vector4 } from "@galacean/engine-math";
+import { BoundingBox, Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderElement } from "../RenderPipeline/RenderElement";
@@ -33,7 +33,7 @@ export class TrailRenderer extends Renderer {
   private static readonly POINT_INCREASE_COUNT = 128;
 
   private static _trailParamsProp = ShaderProperty.getByName("renderer_TrailParams");
-  private static _timeDistParamsProp = ShaderProperty.getByName("renderer_TimeDistParams");
+  private static _distanceParamsProp = ShaderProperty.getByName("renderer_DistanceParams");
   private static _widthCurveProp = ShaderProperty.getByName("renderer_WidthCurve");
   private static _colorKeysProp = ShaderProperty.getByName("renderer_ColorKeys");
   private static _alphaKeysProp = ShaderProperty.getByName("renderer_AlphaKeys");
@@ -61,10 +61,12 @@ export class TrailRenderer extends Renderer {
   // Shader parameters
   @deepClone
   private _trailParams = new Vector4(1.0, TrailTextureMode.Stretch, 1.0, 0); // x: width, y: textureMode, z: textureScale
-  @deepClone
-  private _timeDistParams = new Vector4(0, 5.0, 0, 0); // x: currentTime, y: lifetime, z: headDistance, w: tailDistance
+  @ignoreClone
+  private _distanceParams = new Vector2(); // x: headDistance, y: tailDistance
   @ignoreClone
   private _curveMaxTime = new Vector4(); // x: colorMaxTime, y: alphaMaxTime, z: widthMaxTime
+
+  private _time = 5.0;
 
   // Geometry and rendering
   @ignoreClone
@@ -110,11 +112,11 @@ export class TrailRenderer extends Renderer {
    * The fade-out duration in seconds.
    */
   get time(): number {
-    return this._timeDistParams.y;
+    return this._time;
   }
 
   set time(value: number) {
-    this._timeDistParams.y = value;
+    this._time = value;
   }
 
   /**
@@ -188,22 +190,21 @@ export class TrailRenderer extends Renderer {
     }
 
     const shaderData = this.shaderData;
-    const timeDistParams = this._timeDistParams;
+    const distanceParams = this._distanceParams;
     const { _vertices: vertices, _currentPointCapacity: capacity } = this;
     const activeCount = this._getActivePointCount();
-    timeDistParams.x = playTime;
-    // z: headDistance (newest point), w: tailDistance (oldest point)
+    // x: headDistance (newest point), y: tailDistance (oldest point)
     if (activeCount > 0) {
       const headIndex = (this._firstFreeElement - 1 + capacity) % capacity;
-      timeDistParams.z = vertices[headIndex * TrailRenderer.POINT_FLOAT_STRIDE + TrailRenderer.DISTANCE_OFFSET];
-      timeDistParams.w =
+      distanceParams.x = vertices[headIndex * TrailRenderer.POINT_FLOAT_STRIDE + TrailRenderer.DISTANCE_OFFSET];
+      distanceParams.y =
         vertices[this._firstActiveElement * TrailRenderer.POINT_FLOAT_STRIDE + TrailRenderer.DISTANCE_OFFSET];
     } else {
-      timeDistParams.z = timeDistParams.w = 0;
+      distanceParams.x = distanceParams.y = 0;
     }
 
     shaderData.setVector4(TrailRenderer._trailParamsProp, this._trailParams);
-    shaderData.setVector4(TrailRenderer._timeDistParamsProp, timeDistParams);
+    shaderData.setVector2(TrailRenderer._distanceParamsProp, distanceParams);
 
     const { colorGradient } = this;
     shaderData.setFloatArray(TrailRenderer._widthCurveProp, this.widthCurve._getTypeArray());

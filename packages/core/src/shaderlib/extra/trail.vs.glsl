@@ -3,7 +3,7 @@ attribute vec4 a_CornerTangent;     // x: Corner (-1 or 1), yzw: Tangent directi
 attribute float a_Distance;         // Absolute cumulative distance (written once per point)
 
 uniform vec4 renderer_TrailParams;    // x: Width, y: TextureMode (0: Stretch, 1: Tile), z: TextureScale
-uniform vec4 renderer_TimeDistParams; // x: CurrentTime, y: Lifetime, z: HeadDistance, w: TailDistance
+uniform vec2 renderer_DistanceParams;   // x: HeadDistance, y: TailDistance
 uniform vec3 camera_Position;
 uniform mat4 camera_ViewMat;
 uniform mat4 camera_ProjMat;
@@ -23,8 +23,8 @@ void main() {
     vec3 tangent = a_CornerTangent.yzw;
 
     // Distance-based relative position: 0=head(newest), 1=tail(oldest)
-    float distFromHead = renderer_TimeDistParams.z - a_Distance;
-    float totalDist = renderer_TimeDistParams.z - renderer_TimeDistParams.w;
+    float distFromHead = renderer_DistanceParams.x - a_Distance;
+    float totalDist = renderer_DistanceParams.x - renderer_DistanceParams.y;
     float relativePos = totalDist > 0.0 ? distFromHead / totalDist : 0.0;
 
     // Billboard: expand perpendicular to tangent and view direction
