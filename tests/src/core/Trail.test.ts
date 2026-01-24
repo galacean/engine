@@ -189,8 +189,7 @@ describe("Trail", async () => {
       expect(trailRenderer.bounds.min).to.deep.include({ x: 0, y: 0, z: 0 });
       expect(trailRenderer.bounds.max).to.deep.include({ x: 0, y: 0, z: 0 });
 
-      // Move entity to (5, 0, 0) - distance > minVertexDistance, creates trail point
-      engine.update(); //@todo:删除会触发包围盒无法更新的bug
+      engine.update(); // Trail generates new vertices only after engine.update(), so we need to call it first to record initial position
       trailEntity.transform.position = new Vector3(5, 0, 0);
 
       // Now has trail geometry, bounds should encompass (0,0,0) to (5,0,0) expanded by halfWidth
