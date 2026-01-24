@@ -44,7 +44,7 @@ export class TrailRenderer extends Renderer {
   /** Whether the trail is being created as the object moves. */
   emitting = true;
 
-  /** The minimum distance the object must move before a new trail segment is added. */
+  /** The minimum distance the object must move before a new trail segment is added, in world units. */
   minVertexDistance = 0.1;
 
   /** The curve describing the trail width from start to end. */
