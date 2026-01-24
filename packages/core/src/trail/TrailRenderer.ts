@@ -2,7 +2,7 @@ import { BoundingBox, Color, Vector3, Vector4 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderElement } from "../RenderPipeline/RenderElement";
-import { Renderer } from "../Renderer";
+import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { Buffer } from "../graphic/Buffer";
 import { Primitive } from "../graphic/Primitive";
@@ -401,6 +401,7 @@ export class TrailRenderer extends Renderer {
   private _retireActivePoints(currentTime: number, frameCount: number): void {
     const { time: lifetime, _vertices: vertices, _currentPointCapacity: capacity } = this;
     const pointStride = TrailRenderer.POINT_FLOAT_STRIDE;
+    const firstActiveElement = this._firstActiveElement;
 
     while (this._firstActiveElement !== this._firstFreeElement) {
       const offset = this._firstActiveElement * pointStride + 3;
@@ -412,6 +413,11 @@ export class TrailRenderer extends Renderer {
       // Record the frame when this point was retired (reuse birthTime field)
       vertices[offset] = frameCount;
       this._firstActiveElement = (this._firstActiveElement + 1) % capacity;
+    }
+
+    // Mark bounds dirty if any points were retired
+    if (this._firstActiveElement !== firstActiveElement) {
+      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
   }
 
