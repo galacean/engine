@@ -169,6 +169,8 @@ export class TrailRenderer extends Renderer {
     this._firstFreeElement = 0;
     this._firstRetiredElement = 0;
     this._hasLastPosition = false;
+    this._cumulativeDistance = 0;
+    this._playTime = 0;
   }
 
   protected override _update(context: RenderContext): void {
