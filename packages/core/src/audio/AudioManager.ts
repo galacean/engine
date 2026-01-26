@@ -2,9 +2,13 @@
  * Audio Manager for managing global audio context and settings.
  */
 export class AudioManager {
+  /** @internal */
+  static _playingCount = 0;
+
   private static _context: AudioContext;
   private static _gainNode: GainNode;
   private static _resumePromise: Promise<void> = null;
+  private static _needsUserGestureResume = false;
 
   /**
    * Resume the audio context.
@@ -12,9 +16,14 @@ export class AudioManager {
    * @returns A promise that resolves when the audio context is resumed
    */
   static resume(): Promise<void> {
-    return (AudioManager._resumePromise ??= AudioManager._context.resume().finally(() => {
-      AudioManager._resumePromise = null;
-    }));
+    return (AudioManager._resumePromise ??= AudioManager._context
+      .resume()
+      .then(() => {
+        AudioManager._needsUserGestureResume = false;
+      })
+      .finally(() => {
+        AudioManager._resumePromise = null;
+      }));
   }
 
   /**
@@ -24,6 +33,11 @@ export class AudioManager {
     let context = AudioManager._context;
     if (!context) {
       AudioManager._context = context = new window.AudioContext();
+      document.addEventListener("visibilitychange", AudioManager._onVisibilityChange);
+      // iOS Safari requires user gesture to resume AudioContext
+      document.addEventListener("touchstart", AudioManager._resumeAfterInterruption, { passive: true });
+      document.addEventListener("touchend", AudioManager._resumeAfterInterruption, { passive: true });
+      document.addEventListener("click", AudioManager._resumeAfterInterruption);
     }
     return context;
   }
@@ -33,9 +47,10 @@ export class AudioManager {
    */
   static getGainNode(): GainNode {
     let gainNode = AudioManager._gainNode;
-    if (!AudioManager._gainNode) {
-      AudioManager._gainNode = gainNode = AudioManager.getContext().createGain();
-      gainNode.connect(AudioManager.getContext().destination);
+    if (!gainNode) {
+      const context = AudioManager.getContext();
+      AudioManager._gainNode = gainNode = context.createGain();
+      gainNode.connect(context.destination);
     }
     return gainNode;
   }
@@ -45,5 +60,19 @@ export class AudioManager {
    */
   static isAudioContextRunning(): boolean {
     return AudioManager.getContext().state === "running";
+  }
+
+  private static _onVisibilityChange(): void {
+    if (!document.hidden && AudioManager._playingCount > 0 && !AudioManager.isAudioContextRunning()) {
+      AudioManager._needsUserGestureResume = true;
+    }
+  }
+
+  private static _resumeAfterInterruption(): void {
+    if (AudioManager._needsUserGestureResume) {
+      AudioManager.resume().catch((e) => {
+        console.warn("Failed to resume AudioContext:", e);
+      });
+    }
   }
 }
