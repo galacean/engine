@@ -445,6 +445,14 @@ export const E2E_CONFIG = {
       diffPercentage: 0
     }
   },
+  Trail: {
+    basic: {
+      category: "Trail",
+      caseFileName: "trailRenderer-basic",
+      threshold: 0,
+      diffPercentage: 0
+    }
+  },
   Other: {
     ProjectLoader: {
       category: "Advance",

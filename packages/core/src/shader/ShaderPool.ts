@@ -26,6 +26,8 @@ import spriteFs from "../shaderlib/extra/sprite.fs.glsl";
 import spriteVs from "../shaderlib/extra/sprite.vs.glsl";
 import textFs from "../shaderlib/extra/text.fs.glsl";
 import textVs from "../shaderlib/extra/text.vs.glsl";
+import trailFs from "../shaderlib/extra/trail.fs.glsl";
+import trailVs from "../shaderlib/extra/trail.vs.glsl";
 import unlitFs from "../shaderlib/extra/unlit.fs.glsl";
 import unlitVs from "../shaderlib/extra/unlit.vs.glsl";
 import { Shader } from "./Shader";
@@ -72,6 +74,7 @@ export class ShaderPool {
     Shader.create("SkyProcedural", [new ShaderPass("Forward", skyProceduralVs, skyProceduralFs, forwardPassTags)]);
 
     Shader.create("particle-shader", [new ShaderPass("Forward", particleVs, particleFs, forwardPassTags)]);
+    Shader.create("trail", [new ShaderPass("Forward", trailVs, trailFs, forwardPassTags)]);
     Shader.create("SpriteMask", [new ShaderPass("Forward", spriteMaskVs, spriteMaskFs, forwardPassTags)]);
     Shader.create("Sprite", [new ShaderPass("Forward", spriteVs, spriteFs, forwardPassTags)]);
     Shader.create("Text", [new ShaderPass("Forward", textVs, textFs, forwardPassTags)]);

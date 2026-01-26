@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-rhi-webgl",
-  "version": "1.6.11",
+  "version": "1.6.13",
   "repository": {
     "url": "https://github.com/galacean/engine.git"
   },

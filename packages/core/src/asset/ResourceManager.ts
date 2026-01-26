@@ -596,7 +596,8 @@ export class ResourceManager {
 
       promise = this.load<T>({
         url,
-        type: resourceConfig.type
+        type: resourceConfig.type,
+        params: resourceConfig.params
       });
     }
     return promise.then((item) => (isClone ? <T>(<IClone>item).clone() : item));
@@ -660,6 +661,7 @@ type EditorResourceItem = {
   id: string;
   dependentAssetMap?: { [key: string]: string };
   subpackageName?: string;
+  params?: Record<string, any>;
 };
 type SubAssetPromiseCallbacks<T> = Record<
   // main asset url, ie. "https://***.glb"

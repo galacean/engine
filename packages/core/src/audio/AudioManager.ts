@@ -1,51 +1,77 @@
 /**
- * @internal
- * Audio Manager.
+ * Audio Manager for managing global audio context and settings.
  */
 export class AudioManager {
+  /** @internal */
+  static _playingCount = 0;
+
   private static _context: AudioContext;
   private static _gainNode: GainNode;
-  private static _isResuming = false;
+  private static _resumePromise: Promise<void> = null;
+  private static _needsUserGestureResume = false;
 
+  /**
+   * Resume the audio context.
+   * @remarks On iOS Safari, calling this within a user gesture (e.g., click/touch event handler) can pre-unlock audio and reduce playback delay.
+   * @returns A promise that resolves when the audio context is resumed
+   */
+  static resume(): Promise<void> {
+    return (AudioManager._resumePromise ??= AudioManager._context
+      .resume()
+      .then(() => {
+        AudioManager._needsUserGestureResume = false;
+      })
+      .finally(() => {
+        AudioManager._resumePromise = null;
+      }));
+  }
+
+  /**
+   * @internal
+   */
   static getContext(): AudioContext {
     let context = AudioManager._context;
     if (!context) {
       AudioManager._context = context = new window.AudioContext();
-
-      // Safari can't resume audio context without element interaction
-      document.addEventListener("pointerdown", AudioManager._tryResume, true);
-      document.addEventListener("touchend", AudioManager._tryResume, true);
-      document.addEventListener("touchstart", AudioManager._tryResume, true);
+      document.addEventListener("visibilitychange", AudioManager._onVisibilityChange);
+      // iOS Safari requires user gesture to resume AudioContext
+      document.addEventListener("touchstart", AudioManager._resumeAfterInterruption, { passive: true });
+      document.addEventListener("touchend", AudioManager._resumeAfterInterruption, { passive: true });
+      document.addEventListener("click", AudioManager._resumeAfterInterruption);
     }
     return context;
   }
 
+  /**
+   * @internal
+   */
   static getGainNode(): GainNode {
     let gainNode = AudioManager._gainNode;
-    if (!AudioManager._gainNode) {
-      AudioManager._gainNode = gainNode = AudioManager.getContext().createGain();
-      gainNode.connect(AudioManager.getContext().destination);
+    if (!gainNode) {
+      const context = AudioManager.getContext();
+      AudioManager._gainNode = gainNode = context.createGain();
+      gainNode.connect(context.destination);
     }
     return gainNode;
   }
 
+  /**
+   * @internal
+   */
   static isAudioContextRunning(): boolean {
-    if (AudioManager.getContext().state !== "running") {
-      console.warn("The AudioContext is not running and requires user interaction, such as a click or touch.");
-      return false;
-    }
-    return true;
+    return AudioManager.getContext().state === "running";
   }
 
-  private static _tryResume(): void {
-    if (AudioManager._context.state !== "running") {
-      if (AudioManager._isResuming) {
-        return;
-      }
+  private static _onVisibilityChange(): void {
+    if (!document.hidden && AudioManager._playingCount > 0 && !AudioManager.isAudioContextRunning()) {
+      AudioManager._needsUserGestureResume = true;
+    }
+  }
 
-      AudioManager._isResuming = true;
-      AudioManager._context.resume().then(() => {
-        AudioManager._isResuming = false;
+  private static _resumeAfterInterruption(): void {
+    if (AudioManager._needsUserGestureResume) {
+      AudioManager.resume().catch((e) => {
+        console.warn("Failed to resume AudioContext:", e);
       });
     }
   }

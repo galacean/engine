@@ -72,3 +72,39 @@ float evaluateParticleCurveCumulative(in vec2 keys[4], in float normalizedAge, o
 	}
     return cumulativeValue;
 }
+
+vec4 evaluateParticleGradient(in vec4 colorKeys[4], in float colorMaxTime, in vec2 alphaKeys[4], in float alphaMaxTime, in float t) {
+    vec4 value;
+
+    float alphaT = min(t, alphaMaxTime);
+    for (int i = 0; i < 4; i++) {
+        vec2 key = alphaKeys[i];
+        if (alphaT <= key.x) {
+            if (i == 0) {
+                value.a = alphaKeys[0].y;
+            } else {
+                vec2 lastKey = alphaKeys[i - 1];
+                float age = (alphaT - lastKey.x) / (key.x - lastKey.x);
+                value.a = mix(lastKey.y, key.y, age);
+            }
+            break;
+        }
+    }
+
+    float colorT = min(t, colorMaxTime);
+    for (int i = 0; i < 4; i++) {
+        vec4 key = colorKeys[i];
+        if (colorT <= key.x) {
+            if (i == 0) {
+                value.rgb = colorKeys[0].yzw;
+            } else {
+                vec4 lastKey = colorKeys[i - 1];
+                float age = (colorT - lastKey.x) / (key.x - lastKey.x);
+                value.rgb = mix(lastKey.yzw, key.yzw, age);
+            }
+            break;
+        }
+    }
+
+    return value;
+}
