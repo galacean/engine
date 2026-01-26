@@ -14,7 +14,7 @@ import {
 import { AtlasConfig, AtlasSprite } from "@galacean/engine-core/types/2d/atlas/types";
 import { Rect, Vector2, Vector4 } from "@galacean/engine-math";
 
-@resourceLoader(AssetType.SpriteAtlas, ["atlas"], false)
+@resourceLoader(AssetType.SpriteAtlas, ["atlas"])
 class SpriteAtlasLoader extends Loader<SpriteAtlas> {
   private _tempRect: Rect = new Rect();
   private _tempVec2: Vector2 = new Vector2();
