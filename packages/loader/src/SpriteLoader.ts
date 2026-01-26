@@ -10,7 +10,7 @@ import {
   resourceLoader
 } from "@galacean/engine-core";
 
-@resourceLoader(AssetType.Sprite, ["sprite"], false)
+@resourceLoader(AssetType.Sprite, ["sprite"])
 class SpriteLoader extends Loader<Sprite> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Sprite> {
     return (
