@@ -3,3 +3,4 @@ export { BoxColliderShape } from "./BoxColliderShape";
 export { SphereColliderShape } from "./SphereColliderShape";
 export { PlaneColliderShape } from "./PlaneColliderShape";
 export { CapsuleColliderShape } from "./CapsuleColliderShape";
+export { MeshColliderShape } from "./MeshColliderShape";

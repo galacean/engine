@@ -47,3 +47,5 @@ CLAUDE.md
 # For bison generated files used by ShaderLab
 *.tab.c
 *.output
+.serena
+docs/plans

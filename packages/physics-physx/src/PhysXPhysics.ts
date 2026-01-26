@@ -7,6 +7,7 @@ import {
   IDynamicCollider,
   IFixedJoint,
   IHingeJoint,
+  IMeshColliderShape,
   IPhysics,
   IPhysicsManager,
   IPhysicsMaterial,
@@ -29,6 +30,7 @@ import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
 import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
 import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
 import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
+import { PhysXMeshColliderShape } from "./shape/PhysXMeshColliderShape";
 import { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
 import { PhysXSphereColliderShape } from "./shape/PhysXSphereColliderShape";
 
@@ -43,6 +45,13 @@ export class PhysXPhysics implements IPhysics {
   _pxFoundation: any;
   /** @internal PhysX physics object */
   _pxPhysics: any;
+  /** @internal PhysX cooking object for mesh colliders */
+  _pxCooking: any;
+  /**
+   * @internal PhysX cooking params.
+   * @remarks Do not delete after PxCreateCooking - still needed for runtime modification via setCookingParams().
+   */
+  _pxCookingParams: any;
 
   private _runTimeMode: PhysXRuntimeMode;
   private _initializeState: InitializeState = InitializeState.Uninitialized;
@@ -62,10 +71,10 @@ export class PhysXPhysics implements IPhysics {
     this._runTimeMode = runtimeMode;
     this._wasmModeUrl =
       runtimeUrls?.wasmModeUrl ??
-      "https://mdn.alipayobjects.com/rms/afts/file/A*m04iQojeKRgAAAAASWAAAAgAehQnAQ/physx.release.js";
+      "https://mdn.alipayobjects.com/rms/afts/file/A*8pf0QJKeUXsAAAAASWAAAAgAehQnAQ/physx.release.js";
     this._downgradeModeUrl =
       runtimeUrls?.javaScriptModeUrl ??
-      "https://mdn.alipayobjects.com/rms/afts/file/A*13gEToqpJWcAAAAAgEAAAAgAehQnAQ/physx.release.downgrade.js";
+      "https://mdn.alipayobjects.com/rms/afts/file/A*PLtBTLf8Sm0AAAAAgFAAAAgAehQnAQ/physx.release.downgrade.js";
   }
 
   /**
@@ -116,7 +125,7 @@ export class PhysXPhysics implements IPhysics {
       scriptPromise
         .then(
           () =>
-            (<any>window).PHYSX().then((PHYSX) => {
+            (<any>window).PHYSX().then((PHYSX: any) => {
               this._init(PHYSX);
               this._initializeState = InitializeState.Initialized;
               this._initializePromise = null;
@@ -136,12 +145,33 @@ export class PhysXPhysics implements IPhysics {
    * Destroy PhysXPhysics.
    */
   destroy(): void {
+    this._pxCooking.release();
+    this._pxCookingParams.delete();
     this._physX.PxCloseExtensions();
     this._pxPhysics.release();
     this._pxFoundation.release();
     this._defaultErrorCallback.delete();
     this._allocator.delete();
     this._tolerancesScale.delete();
+  }
+
+  /**
+   * Set cooking parameters for mesh colliders.
+   * @param params - Cooking parameters
+   */
+  setCookingParams(params: {
+    /** Mesh weld tolerance. If mesh welding is enabled, this controls the distance at which vertices are welded. */
+    meshWeldTolerance?: number;
+    /** Mesh preprocessing flags (bitwise OR of MeshPreprocessingFlag values). */
+    meshPreprocessParams?: number;
+  }): void {
+    const cp = this._pxCookingParams;
+    if (params.meshWeldTolerance !== undefined) {
+      cp.meshWeldTolerance = params.meshWeldTolerance;
+    }
+    if (params.meshPreprocessParams !== undefined) {
+      this._physX.setCookingMeshPreprocessParams(cp, params.meshPreprocessParams);
+    }
   }
 
   /**
@@ -244,6 +274,20 @@ export class PhysXPhysics implements IPhysics {
   }
 
   /**
+   * {@inheritDoc IPhysics.createMeshColliderShape }
+   */
+  createMeshColliderShape(
+    uniqueID: number,
+    vertices: Float32Array,
+    vertexCount: number,
+    indices: Uint16Array | Uint32Array | null,
+    isConvex: boolean,
+    material: PhysXPhysicsMaterial
+  ): IMeshColliderShape {
+    return new PhysXMeshColliderShape(this, uniqueID, vertices, vertexCount, indices, isConvex, material);
+  }
+
+  /**
    * {@inheritDoc IPhysics.createFixedJoint }
    */
   createFixedJoint(collider: PhysXCollider): IFixedJoint {
@@ -287,9 +331,19 @@ export class PhysXPhysics implements IPhysics {
     const pxPhysics = physX.PxCreatePhysics(version, pxFoundation, tolerancesScale, false, null);
 
     physX.PxInitExtensions(pxPhysics, null);
+
+    // Initialize cooking for mesh colliders
+    const cookingParams = new physX.PxCookingParams(tolerancesScale);
+    // Set default cooking params (WeldVertices + small tolerance)
+    physX.setCookingMeshPreprocessParams(cookingParams, 1); // WeldVertices = 1
+    cookingParams.meshWeldTolerance = 0.001;
+    const pxCooking = physX.PxCreateCooking(version, pxFoundation, cookingParams);
+
     this._physX = physX;
     this._pxFoundation = pxFoundation;
     this._pxPhysics = pxPhysics;
+    this._pxCooking = pxCooking;
+    this._pxCookingParams = cookingParams;
     this._defaultErrorCallback = defaultErrorCallback;
     this._allocator = allocator;
     this._tolerancesScale = tolerancesScale;

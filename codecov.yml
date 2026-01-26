@@ -1,0 +1,13 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 77%
+    patch:
+      default:
+        target: 60%
+
+ignore:
+  - "e2e/**"
+  - "**/*.test.ts"
+  - "**/tests/**"
