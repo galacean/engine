@@ -931,21 +931,28 @@ describe("Animator test", function () {
     const walkState = animator.findAnimatorState("Walk");
     walkState.clearTransitions();
     const runState = animator.findAnimatorState("Run");
-    runState.clipStartTime = runState.clipEndTime = 0;
-    runState.clearTransitions();
-    const walkToRunTransition = walkState.addTransition(runState);
-    walkToRunTransition.hasExitTime = false;
-    walkToRunTransition.isFixedDuration = true;
-    walkToRunTransition.duration = 0.1;
-    walkToRunTransition.addCondition("triggerRun", AnimatorConditionMode.If, true);
-    animator.play("Walk");
-    animator.activateTriggerParameter("triggerRun");
-    // @ts-ignore
-    animator.engine.time._frameCount++;
-    animator.update(0.1);
-    expect(layerData.srcPlayData.state.name).to.eq("Run");
-    expect(layerData.srcPlayData.playedTime).to.eq(0.1);
-    expect(layerData.srcPlayData.clipTime).to.eq(0);
+    const originClipStartTime = runState.clipStartTime;
+    const originClipEndTime = runState.clipEndTime;
+    try {
+      runState.clipStartTime = runState.clipEndTime = 0;
+      runState.clearTransitions();
+      const walkToRunTransition = walkState.addTransition(runState);
+      walkToRunTransition.hasExitTime = false;
+      walkToRunTransition.isFixedDuration = true;
+      walkToRunTransition.duration = 0.1;
+      walkToRunTransition.addCondition("triggerRun", AnimatorConditionMode.If, true);
+      animator.play("Walk");
+      animator.activateTriggerParameter("triggerRun");
+      // @ts-ignore
+      animator.engine.time._frameCount++;
+      animator.update(0.1);
+      expect(layerData.srcPlayData.state.name).to.eq("Run");
+      expect(layerData.srcPlayData.playedTime).to.eq(0.1);
+      expect(layerData.srcPlayData.clipTime).to.eq(0);
+    } finally {
+      runState.clipStartTime = originClipStartTime;
+      runState.clipEndTime = originClipEndTime;
+    }
   });
 
   it("transitionIndex", () => {
@@ -1017,5 +1024,56 @@ describe("Animator test", function () {
 
   it("Clone", () => {
     expect(animator.entity.clone().getComponent(Animator).animatorController).to.eq(animator.animatorController);
-  })
+  });
+
+  it("anyState transition interrupts crossFade", () => {
+    const { animatorController } = animator;
+    animatorController.addParameter("interrupt", false);
+    const stateMachine = animatorController.layers[0].stateMachine;
+    const originAnyStateTransitions = stateMachine.anyStateTransitions.slice();
+    const originNoExitTimeTransitions = originAnyStateTransitions.filter((t) => !t.hasExitTime);
+    const originExitTimeTransitions = originAnyStateTransitions.filter((t) => t.hasExitTime);
+    stateMachine.clearAnyStateTransitions();
+    try {
+      const idleState = animator.findAnimatorState("Survey");
+
+      // AnyState -> Idle (can interrupt)
+      const anyToIdle = stateMachine.addAnyStateTransition(idleState);
+      anyToIdle.hasExitTime = false;
+      anyToIdle.duration = 0.2;
+      anyToIdle.addCondition("interrupt", AnimatorConditionMode.If, true);
+
+      // Start crossFade using crossFade method
+      animator.play("Walk");
+      animator.crossFade("Run", 1.0);
+      // @ts-ignore
+      animator.engine.time._frameCount++;
+      animator.update(0.1);
+
+      // Get layerData after update (layerData is recreated after _reset in afterEach)
+      // @ts-ignore
+      const layerData = animator._getAnimatorLayerData(0);
+
+      // LayerState.CrossFading = 2
+      expect(layerData.layerState).to.eq(2);
+      expect(layerData.destPlayData.state.name).to.eq("Run");
+
+      // Trigger interrupt during crossFade
+      animator.setParameterValue("interrupt", true);
+      // @ts-ignore
+      animator.engine.time._frameCount++;
+      animator.update(0.1);
+
+      // Should have interrupted to Idle
+      expect(layerData.destPlayData.state.name).to.eq("Survey");
+    } finally {
+      stateMachine.clearAnyStateTransitions();
+      for (let i = 0; i < originExitTimeTransitions.length; i++) {
+        stateMachine.addAnyStateTransition(originExitTimeTransitions[i]);
+      }
+      for (let i = originNoExitTimeTransitions.length - 1; i >= 0; i--) {
+        stateMachine.addAnyStateTransition(originNoExitTimeTransitions[i]);
+      }
+    }
+  });
 });

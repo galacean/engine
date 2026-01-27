@@ -744,9 +744,21 @@ export class Animator extends Component {
   ) {
     const { srcPlayData, destPlayData, layerIndex } = layerData;
     const { speed } = this;
+    const transitionDuration = layerData.crossFadeTransition._getFixedDuration();
     const { state: srcState } = srcPlayData;
     const { state: destState } = destPlayData;
-    const transitionDuration = layerData.crossFadeTransition._getFixedDuration();
+
+    // Check anyState noExitTime transitions, allow interrupting crossFade
+    // Must check before any update() calls to preserve events and let new state consume deltaTime
+    if (transitionDuration > 0) {
+      const { _anyStateTransitionCollection: anyStateTransitions } = layerData.layer.stateMachine;
+      if (anyStateTransitions.noExitTimeCount) {
+        if (this._checkCrossFadeInterrupt(layerData, anyStateTransitions, destState, aniUpdate)) {
+          this._updateState(layerData, deltaTime, aniUpdate);
+          return;
+        }
+      }
+    }
 
     const srcPlaySpeed = srcState.speed * speed;
     const dstPlaySpeed = destState.speed * speed;
@@ -872,8 +884,19 @@ export class Animator extends Component {
   ) {
     const { destPlayData } = layerData;
     const { state } = destPlayData;
-
     const transitionDuration = layerData.crossFadeTransition._getFixedDuration();
+
+    // Check anyState noExitTime transitions, allow interrupting crossFade
+    // Must check before any update() calls to preserve events and let new state consume deltaTime
+    if (transitionDuration > 0) {
+      const { _anyStateTransitionCollection: anyStateTransitions } = layerData.layer.stateMachine;
+      if (anyStateTransitions.noExitTimeCount) {
+        if (this._checkCrossFadeInterrupt(layerData, anyStateTransitions, state, aniUpdate)) {
+          this._updateState(layerData, deltaTime, aniUpdate);
+          return;
+        }
+      }
+    }
 
     const playSpeed = state.speed * this.speed;
     const playDeltaTime = playSpeed * deltaTime;
@@ -1162,6 +1185,28 @@ export class Animator extends Component {
   ): AnimatorStateTransition {
     for (let i = 0, n = transitionCollection.count; i < n; ++i) {
       const transition = transitionCollection.get(i);
+      if (
+        transition.mute ||
+        (transitionCollection.isSoloMode && !transition.solo) ||
+        !this._checkConditions(transition)
+      )
+        continue;
+
+      return this._applyTransition(layerData, transition, aniUpdate);
+    }
+    return null;
+  }
+
+  private _checkCrossFadeInterrupt(
+    layerData: AnimatorLayerData,
+    transitionCollection: AnimatorStateTransitionCollection,
+    currentDestState: AnimatorState,
+    aniUpdate: boolean
+  ): AnimatorStateTransition {
+    for (let i = 0, n = transitionCollection.noExitTimeCount; i < n; ++i) {
+      const transition = transitionCollection.get(i);
+      // Skip if target is same as current crossFade destination to avoid infinite loop
+      if (transition.destinationState === currentDestState) continue;
       if (
         transition.mute ||
         (transitionCollection.isSoloMode && !transition.solo) ||
