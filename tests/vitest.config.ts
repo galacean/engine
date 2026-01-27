@@ -10,7 +10,8 @@ export default defineProject({
       "@galacean/engine-loader",
       "@galacean/engine-rhi-webgl",
       "@galacean/engine-math",
-      "@galacean/engine-core"
+      "@galacean/engine-core",
+      "fsevents"
     ]
   },
   test: {
