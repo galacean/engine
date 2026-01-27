@@ -1183,18 +1183,7 @@ export class Animator extends Component {
     transitionCollection: AnimatorStateTransitionCollection,
     aniUpdate: boolean
   ): AnimatorStateTransition {
-    for (let i = 0, n = transitionCollection.noExitTimeCount; i < n; ++i) {
-      const transition = transitionCollection.get(i);
-      if (
-        transition.mute ||
-        (transitionCollection.isSoloMode && !transition.solo) ||
-        !this._checkConditions(transition)
-      )
-        continue;
-
-      return this._applyTransition(layerData, transition, aniUpdate);
-    }
-    return null;
+    return this._checkNoExitTimeTransitions(layerData, transitionCollection, aniUpdate);
   }
 
   private _checkCrossFadeInterrupt(
@@ -1203,10 +1192,20 @@ export class Animator extends Component {
     currentDestState: AnimatorState,
     aniUpdate: boolean
   ): AnimatorStateTransition {
+    return this._checkNoExitTimeTransitions(layerData, transitionCollection, aniUpdate, currentDestState);
+  }
+
+  private _checkNoExitTimeTransitions(
+    layerData: AnimatorLayerData,
+    transitionCollection: AnimatorStateTransitionCollection,
+    aniUpdate: boolean,
+    excludeDestState?: AnimatorState
+  ): AnimatorStateTransition {
     for (let i = 0, n = transitionCollection.noExitTimeCount; i < n; ++i) {
       const transition = transitionCollection.get(i);
-      // Skip if target is same as current crossFade destination to avoid infinite loop
-      if (transition.destinationState === currentDestState) continue;
+      // Skip if destination is same as current state (equivalent to Unity's canTransitionToSelf=false)
+      // TODO: Support canTransitionToSelf option on AnimatorStateTransition
+      if (excludeDestState && transition.destinationState === excludeDestState) continue;
       if (
         transition.mute ||
         (transitionCollection.isSoloMode && !transition.solo) ||
