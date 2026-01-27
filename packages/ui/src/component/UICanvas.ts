@@ -82,6 +82,8 @@ export class UICanvas extends Component implements IElement {
   @ignoreClone
   private _renderCamera: Camera;
   @ignoreClone
+  private _eventCamera: Camera | null = null;
+  @ignoreClone
   private _cameraObserver: Camera;
   @assignmentClone
   private _resolutionAdaptationMode = ResolutionAdaptationMode.HeightAdaptation;
@@ -140,6 +142,11 @@ export class UICanvas extends Component implements IElement {
     const preMode = this._renderMode;
     if (preMode !== mode) {
       this._renderMode = mode;
+      // Clear eventCamera when renderMode changes away from WorldSpace
+      if (preMode === CanvasRenderMode.WorldSpace && mode !== CanvasRenderMode.WorldSpace && this._eventCamera) {
+        Logger.warn("EventCamera has been cleared because render mode is no longer WorldSpace.");
+        this._eventCamera = null;
+      }
       this._updateCameraObserver();
       this._setRealRenderMode(this._getRealRenderMode());
     }
@@ -173,6 +180,31 @@ export class UICanvas extends Component implements IElement {
       } else {
         this._setRealRenderMode(curRenderMode);
       }
+    }
+  }
+
+  /**
+   * The camera used for event detection in `WorldSpace` mode.
+   * @remarks If not set, all cameras will be used for event detection. Only effective in `WorldSpace` render mode.
+   */
+  get eventCamera(): Camera | null {
+    return this._eventCamera;
+  }
+
+  set eventCamera(value: Camera | null) {
+    const preEventCamera = this._eventCamera;
+    if (preEventCamera !== value) {
+      if (value && this._renderMode !== CanvasRenderMode.WorldSpace) {
+        Logger.warn(
+          "EventCamera is only effective in WorldSpace render mode. Current render mode is not WorldSpace."
+        );
+      }
+      value &&
+        this._isSameOrChildEntity(value.entity) &&
+        Logger.warn(
+          "Event camera entity matching or nested within the canvas entity may cause unexpected behavior in WorldSpace mode."
+        );
+      this._eventCamera = value;
     }
   }
 
@@ -275,6 +307,25 @@ export class UICanvas extends Component implements IElement {
    */
   _canRender(camera: Camera): boolean {
     return this._renderMode !== CanvasRenderMode.ScreenSpaceCamera || this._renderCamera === camera;
+  }
+
+  /**
+   * Check if this camera can process UI events for this canvas
+   * @internal
+   */
+  _canProcessEvent(camera: Camera): boolean {
+    // WorldSpace mode: if eventCamera is set, only that camera can process events
+    if (this._renderMode === CanvasRenderMode.WorldSpace && this._eventCamera) {
+      return this._eventCamera === camera;
+    }
+    
+    // ScreenSpaceCamera mode: only renderCamera can process events (consistent with _canRender)
+    if (this._renderMode === CanvasRenderMode.ScreenSpaceCamera && this._renderCamera) {
+      return this._renderCamera === camera;
+    }
+    
+    // ScreenSpaceOverlay mode and WorldSpace without eventCamera: all cameras can process events
+    return true;
   }
 
   /**
@@ -389,17 +440,26 @@ export class UICanvas extends Component implements IElement {
    */
   _cloneTo(target: UICanvas, srcRoot: Entity, targetRoot: Entity): void {
     target.renderMode = this._renderMode;
-    const renderCamera = this._renderCamera;
-    if (renderCamera) {
-      const paths = UICanvas._targetTempPath;
-      // @ts-ignore
-      const success = Entity._getEntityHierarchyPath(srcRoot, renderCamera.entity, paths);
-      // @ts-ignore
-      target.renderCamera = success
-        ? // @ts-ignore
-          Entity._getEntityByHierarchyPath(targetRoot, paths).getComponent(Camera)
-        : renderCamera;
+    target.renderCamera = this._cloneCamera(this._renderCamera, srcRoot, targetRoot);
+    target.eventCamera = this._cloneCamera(this._eventCamera, srcRoot, targetRoot);
+  }
+
+  /**
+   * @internal
+   * Clone camera reference for entity cloning
+   */
+  private _cloneCamera(camera: Camera, srcRoot: Entity, targetRoot: Entity): Camera {
+    if (!camera) {
+      return camera;
     }
+    const paths = UICanvas._targetTempPath;
+    // @ts-ignore
+    const success = Entity._getEntityHierarchyPath(srcRoot, camera.entity, paths);
+    // @ts-ignore
+    return success
+      ? // @ts-ignore
+        Entity._getEntityByHierarchyPath(targetRoot, paths).getComponent(Camera)
+      : camera;
   }
 
   private _getRenderers(): UIRenderer[] {
