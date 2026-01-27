@@ -1183,7 +1183,7 @@ export class Animator extends Component {
     transitionCollection: AnimatorStateTransitionCollection,
     aniUpdate: boolean
   ): AnimatorStateTransition {
-    for (let i = 0, n = transitionCollection.count; i < n; ++i) {
+    for (let i = 0, n = transitionCollection.noExitTimeCount; i < n; ++i) {
       const transition = transitionCollection.get(i);
       if (
         transition.mute ||

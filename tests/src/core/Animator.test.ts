@@ -55,6 +55,24 @@ describe("Animator test", function () {
     // @ts-ignore
     animator._reset();
     animator.animatorController.clearParameters();
+
+    // 清理 state machine transitions
+    const stateMachine = animator.animatorController.layers[0].stateMachine;
+    stateMachine.clearAnyStateTransitions();
+    stateMachine.clearEntryStateTransitions();
+
+    // 清理各状态的 transitions 并恢复默认属性
+    const stateNames = ["Survey", "Walk", "Run"];
+    for (const name of stateNames) {
+      const state = animator.findAnimatorState(name);
+      if (state) {
+        state.clearTransitions();
+        state.speed = 1;
+        state.clipStartTime = 0;
+        state.clipEndTime = 1;
+        state.wrapMode = WrapMode.Loop;
+      }
+    }
   });
   it("constructor", () => {
     // Test default values
@@ -1073,6 +1091,86 @@ describe("Animator test", function () {
       }
       for (let i = originNoExitTimeTransitions.length - 1; i >= 0; i--) {
         stateMachine.addAnyStateTransition(originNoExitTimeTransitions[i]);
+      }
+    }
+  });
+
+  it("noExitTime transition scan should ignore exitTime transitions", () => {
+    const { animatorController } = animator;
+    animatorController.addParameter("goRun", true);
+    animatorController.addParameter("never", false);
+
+    const stateMachine = animatorController.layers[0].stateMachine;
+    const originAnyStateTransitions = stateMachine.anyStateTransitions.slice();
+    const originNoExitTimeAnyTransitions = originAnyStateTransitions.filter((t) => !t.hasExitTime);
+    const originExitTimeAnyTransitions = originAnyStateTransitions.filter((t) => t.hasExitTime);
+    stateMachine.clearAnyStateTransitions();
+
+    const walkState = animator.findAnimatorState("Walk");
+    const runState = animator.findAnimatorState("Run");
+    const idleState = animator.findAnimatorState("Survey");
+
+    const originWalkTransitions = walkState.transitions.slice();
+    const originNoExitTimeWalkTransitions = originWalkTransitions.filter((t) => !t.hasExitTime);
+    const originExitTimeWalkTransitions = originWalkTransitions.filter((t) => t.hasExitTime);
+
+    const originClipStartTime = walkState.clipStartTime;
+    const originClipEndTime = walkState.clipEndTime;
+
+    try {
+      walkState.clipStartTime = 0;
+      walkState.clipEndTime = 1;
+      walkState.clearTransitions();
+
+      // A noExitTime transition that fails (ensures noExitTimeCount > 0).
+      const noExitFailTransition = walkState.addTransition(idleState);
+      noExitFailTransition.hasExitTime = false;
+      noExitFailTransition.duration = 0;
+      noExitFailTransition.addCondition("never", AnimatorConditionMode.If, true);
+
+      // A hasExitTime transition whose conditions are true, but should not fire until exitTime.
+      // Use pre-configured transition to avoid dynamic hasExitTime switching
+      const exitTimeTransition = new AnimatorStateTransition();
+      exitTimeTransition.exitTime = 0.5;
+      exitTimeTransition.duration = 0;
+      exitTimeTransition.destinationState = runState;
+      exitTimeTransition.addCondition("goRun", AnimatorConditionMode.If, true);
+      walkState.addTransition(exitTimeTransition);
+
+      // @ts-ignore
+      const layerData = animator._getAnimatorLayerData(0);
+      animator.play("Walk");
+
+      // Update before exitTime, should still be in Walk and not start transitioning to Run.
+      const preExitDeltaTime = walkState.clip.length * 0.25;
+      // @ts-ignore
+      animator.engine.time._frameCount++;
+      animator.update(preExitDeltaTime);
+      expect(layerData.srcPlayData.state.name).to.eq("Walk");
+      expect(layerData.destPlayData.state).to.be.undefined;
+
+      // Update past exitTime, should transition to Run.
+      // @ts-ignore
+      animator.engine.time._frameCount++;
+      animator.update(walkState.clip.length * 0.5);
+      expect(animator.getCurrentAnimatorState(0).name).to.eq("Run");
+    } finally {
+      walkState.clipStartTime = originClipStartTime;
+      walkState.clipEndTime = originClipEndTime;
+      walkState.clearTransitions();
+      for (let i = 0; i < originExitTimeWalkTransitions.length; i++) {
+        walkState.addTransition(originExitTimeWalkTransitions[i]);
+      }
+      for (let i = originNoExitTimeWalkTransitions.length - 1; i >= 0; i--) {
+        walkState.addTransition(originNoExitTimeWalkTransitions[i]);
+      }
+
+      stateMachine.clearAnyStateTransitions();
+      for (let i = 0; i < originExitTimeAnyTransitions.length; i++) {
+        stateMachine.addAnyStateTransition(originExitTimeAnyTransitions[i]);
+      }
+      for (let i = originNoExitTimeAnyTransitions.length - 1; i >= 0; i--) {
+        stateMachine.addAnyStateTransition(originNoExitTimeAnyTransitions[i]);
       }
     }
   });
