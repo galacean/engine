@@ -11,6 +11,15 @@ export class AudioManager {
   private static _needsUserGestureResume = false;
 
   /**
+   * Suspend the audio context.
+   * @remarks This will pause all audio processing. The audio context can be resumed later using the `resume()` method.
+   * @returns A promise that resolves when the audio context is suspended
+   */
+  static suspend(): Promise<void> {
+    return AudioManager._context.suspend();
+  }
+
+  /**
    * Resume the audio context.
    * @remarks On iOS Safari, calling this within a user gesture (e.g., click/touch event handler) can pre-unlock audio and reduce playback delay.
    * @returns A promise that resolves when the audio context is resumed
