@@ -12,7 +12,7 @@ export class AudioManager {
 
   /**
    * Pause all audio processing.
-   * @remarks This will suspend the audio context. The audio can be resumed later using the `resume()` method.
+   * @remarks The audio can be resumed later using the `resume()` method.
    * @returns A promise that resolves when the audio is paused
    */
   static pause(): Promise<void> {
