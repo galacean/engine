@@ -11,11 +11,11 @@ export class AudioManager {
   private static _needsUserGestureResume = false;
 
   /**
-   * Suspend the audio context.
-   * @remarks This will pause all audio processing. The audio context can be resumed later using the `resume()` method.
-   * @returns A promise that resolves when the audio context is suspended
+   * Pause all audio processing.
+   * @remarks This will suspend the audio context. The audio can be resumed later using the `resume()` method.
+   * @returns A promise that resolves when the audio is paused
    */
-  static suspend(): Promise<void> {
+  static pause(): Promise<void> {
     return AudioManager._context.suspend();
   }
 
