@@ -290,6 +290,18 @@ export const E2E_CONFIG = {
       caseFileName: "physx-customUrl",
       threshold: 0,
       diffPercentage: 0
+    },
+    "PhysX Mesh Collider": {
+      category: "Physics",
+      caseFileName: "physx-mesh-collider",
+      threshold: 0,
+      diffPercentage: 0.02
+    },
+    "PhysX Mesh Collider Data": {
+      category: "Physics",
+      caseFileName: "physx-mesh-collider-data",
+      threshold: 0,
+      diffPercentage: 0.02
     }
   },
   Particle: {

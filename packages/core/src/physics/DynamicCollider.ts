@@ -5,6 +5,8 @@ import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
 import { ColliderShapeChangeFlag } from "./enums/ColliderShapeChangeFlag";
+import { ColliderShape } from "./shape/ColliderShape";
+import { MeshColliderShape } from "./shape/MeshColliderShape";
 
 /**
  * A dynamic collider can act with self-defined movement or physical force.
@@ -268,8 +270,29 @@ export class DynamicCollider extends Collider {
 
   set isKinematic(value: boolean) {
     if (this._isKinematic !== value) {
+      // Block switching to non-kinematic if triangle mesh is attached
+      if (!value) {
+        const shapes = this._shapes;
+        for (let i = 0, n = shapes.length; i < n; i++) {
+          const shape = shapes[i];
+          if (shape instanceof MeshColliderShape && !shape.isConvex) {
+            console.error("DynamicCollider: Cannot set isKinematic=false when triangle mesh is attached.");
+            return;
+          }
+        }
+      }
+
       this._isKinematic = value;
       (<IDynamicCollider>this._nativeCollider).setIsKinematic(value);
+
+      // Resync when switching back to dynamic
+      if (!value) {
+        (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(this._collisionDetectionMode);
+        // Recalculate mass/inertia that was skipped in kinematic mode
+        if (this._automaticCenterOfMass || this._automaticInertiaTensor) {
+          this._setMassAndUpdateInertia();
+        }
+      }
     }
   }
 
@@ -363,6 +386,10 @@ export class DynamicCollider extends Collider {
   move(position: Vector3, rotation: Quaternion): void;
 
   move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void {
+    if (!this._isKinematic) {
+      console.warn("DynamicCollider.move() should only be called when isKinematic is true.");
+      return;
+    }
     this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).move(positionOrRotation, rotation);
   }
 
@@ -386,6 +413,17 @@ export class DynamicCollider extends Collider {
    */
   wakeUp(): void {
     (<IDynamicCollider>this._nativeCollider).wakeUp();
+  }
+
+  /**
+   * @inheritdoc
+   */
+  override addShape(shape: ColliderShape): void {
+    if (shape instanceof MeshColliderShape && !shape.isConvex && !this._isKinematic) {
+      console.error("DynamicCollider: triangle mesh is not supported on non-kinematic DynamicCollider.");
+      return;
+    }
+    super.addShape(shape);
   }
 
   /**
@@ -453,6 +491,10 @@ export class DynamicCollider extends Collider {
   }
 
   private _setMassAndUpdateInertia(): void {
+    // Kinematic bodies don't need mass/inertia computation (PhysX doc: mass is not used in kinematic mode)
+    if (this._isKinematic) {
+      return;
+    }
     (<IDynamicCollider>this._nativeCollider).setMassAndUpdateInertia(this._mass);
 
     this._automaticCenterOfMass || (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);

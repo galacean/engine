@@ -8,6 +8,7 @@ import {
   IDynamicCollider,
   IFixedJoint,
   IHingeJoint,
+  IMeshColliderShape,
   IPhysics,
   IPhysicsManager,
   IPhysicsMaterial,
@@ -130,6 +131,20 @@ export class LitePhysics implements IPhysics {
     material: LitePhysicsMaterial
   ): ICapsuleColliderShape {
     throw new Error("Physics-lite doesn't support CapsuleColliderShape. Use Physics-PhysX instead!");
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createMeshColliderShape }
+   */
+  createMeshColliderShape(
+    uniqueID: number,
+    vertices: Float32Array,
+    vertexCount: number,
+    indices: Uint16Array | Uint32Array | null,
+    isConvex: boolean,
+    material: LitePhysicsMaterial
+  ): IMeshColliderShape {
+    throw new Error("Physics-lite doesn't support MeshColliderShape. Use Physics-PhysX instead!");
   }
 
   /**
