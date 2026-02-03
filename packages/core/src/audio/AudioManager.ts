@@ -72,6 +72,11 @@ export class AudioManager {
 
   private static _onVisibilityChange(): void {
     if (!document.hidden && AudioManager._playingCount > 0 && !AudioManager.isAudioContextRunning()) {
+      // iOS Safari WebKit bug: AudioContext may be in a "zombie" state where
+      // state reports "suspended" but resume() alone won't restart audio rendering.
+      // Calling suspend() first forces a clean internal state reset before user gesture triggers resume.
+      // See: https://bugs.webkit.org/show_bug.cgi?id=263627
+      AudioManager.suspend();
       AudioManager._needsUserGestureResume = true;
     }
   }
