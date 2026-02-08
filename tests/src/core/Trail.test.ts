@@ -38,7 +38,7 @@ describe("Trail", async () => {
       expect(trailRenderer.emitting).to.eq(true);
       expect(trailRenderer.minVertexDistance).to.eq(0.1);
       expect(trailRenderer.time).to.eq(5.0);
-      expect(trailRenderer.width).to.eq(1.0);
+      expect(trailRenderer.widthMultiplier).to.eq(1.0);
       expect(trailRenderer.textureMode).to.eq(TrailTextureMode.Stretch);
       expect(trailRenderer.textureScale.x).to.eq(1.0);
       expect(trailRenderer.textureScale.y).to.eq(1.0);
@@ -80,16 +80,16 @@ describe("Trail", async () => {
       expect(trailRenderer.time).to.eq(10.0);
     });
 
-    it("set width", () => {
+    it("set widthMultiplier", () => {
       const rootEntity = scene.getRootEntity();
       const trailEntity = rootEntity.createChild("trail");
       const trailRenderer = trailEntity.addComponent(TrailRenderer);
 
-      trailRenderer.width = 0.5;
-      expect(trailRenderer.width).to.eq(0.5);
+      trailRenderer.widthMultiplier = 0.5;
+      expect(trailRenderer.widthMultiplier).to.eq(0.5);
 
-      trailRenderer.width = 2.0;
-      expect(trailRenderer.width).to.eq(2.0);
+      trailRenderer.widthMultiplier = 2.0;
+      expect(trailRenderer.widthMultiplier).to.eq(2.0);
     });
 
     it("set textureMode", () => {
@@ -183,10 +183,10 @@ describe("Trail", async () => {
       const trailEntity = rootEntity.createChild("trail");
       const trailRenderer = trailEntity.addComponent(TrailRenderer);
       trailRenderer.setMaterial(new TrailMaterial(engine));
-      trailRenderer.width = 2.0;
+      trailRenderer.widthMultiplier = 2.0;
       trailRenderer.minVertexDistance = 0.1;
 
-      const halfWidth = trailRenderer.width * 0.5; // 1.0
+      const halfWidth = trailRenderer.widthMultiplier * 0.5; // 1.0
 
       // Initial bounds is (0,0,0) because dirty flag is not set initially
       expect(trailRenderer.bounds.min).to.deep.include({ x: 0, y: 0, z: 0 });
@@ -217,7 +217,7 @@ describe("Trail", async () => {
       expect(trailRenderer.bounds.max.z).to.closeTo(halfWidth, 0.01);
 
       // Test width change affects bounds
-      trailRenderer.width = 4.0;
+      trailRenderer.widthMultiplier = 4.0;
       const newHalfWidth = 2.0;
       trailEntity.transform.position = new Vector3(5, 4, 0);
 

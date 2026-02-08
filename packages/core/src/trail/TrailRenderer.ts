@@ -60,7 +60,7 @@ export class TrailRenderer extends Renderer {
 
   // Shader parameters
   @deepClone
-  private _trailParams = new Vector4(1.0, TrailTextureMode.Stretch, 1.0, 1.0); // x: width, y: textureMode, z: textureScaleX, w: textureScaleY
+  private _trailParams = new Vector4(1.0, TrailTextureMode.Stretch, 1.0, 1.0); // x: widthMultiplier, y: textureMode, z: textureScaleX, w: textureScaleY
   @deepClone
   private _textureScale = new Vector2(1.0, 1.0);
   @ignoreClone
@@ -122,13 +122,13 @@ export class TrailRenderer extends Renderer {
   }
 
   /**
-   * The width of the trail.
+   * The trail width multiplier.
    */
-  get width(): number {
+  get widthMultiplier(): number {
     return this._trailParams.x;
   }
 
-  set width(value: number) {
+  set widthMultiplier(value: number) {
     this._trailParams.x = value;
   }
 
@@ -314,7 +314,7 @@ export class TrailRenderer extends Renderer {
           maxWidthMultiplier = value;
         }
       }
-      const halfWidth = this.width * maxWidthMultiplier * 0.5;
+      const halfWidth = this.widthMultiplier * maxWidthMultiplier * 0.5;
       min.set(min.x - halfWidth, min.y - halfWidth, min.z - halfWidth);
       max.set(max.x + halfWidth, max.y + halfWidth, max.z + halfWidth);
     }

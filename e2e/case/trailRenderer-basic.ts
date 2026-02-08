@@ -34,7 +34,7 @@ interface TrailConfig {
   color2: Color;
   color3: Color;
   emissive: Color;
-  width: number;
+  widthMultiplier: number;
   time: number;
   speed: number;
   radius: number;
@@ -55,7 +55,7 @@ const trailConfigs: TrailConfig[] = [
     color2: new Color(1, 0, 1, 1),
     color3: new Color(0.5, 0, 1, 1),
     emissive: new Color(0.8, 1.2, 2.0, 1),
-    width: 0.7,
+    widthMultiplier: 0.7,
     time: 3.0,
     speed: 1.5,
     radius: 5,
@@ -71,7 +71,7 @@ const trailConfigs: TrailConfig[] = [
     color2: new Color(1, 0.4, 0, 1),
     color3: new Color(1, 0.2, 0.3, 1),
     emissive: new Color(1.8, 1.0, 0.4, 1),
-    width: 0.55,
+    widthMultiplier: 0.55,
     time: 2.5,
     speed: 2.0,
     radius: 4,
@@ -87,7 +87,7 @@ const trailConfigs: TrailConfig[] = [
     color2: new Color(0, 0.8, 1, 1),
     color3: new Color(0.5, 0.3, 1, 1),
     emissive: new Color(0.6, 1.2, 2.0, 1),
-    width: 0.45,
+    widthMultiplier: 0.45,
     time: 2.0,
     speed: 2.8,
     radius: 3.5,
@@ -103,7 +103,7 @@ const trailConfigs: TrailConfig[] = [
     color2: new Color(0.8, 0, 1, 1),
     color3: new Color(0.5, 0.3, 1, 1),
     emissive: new Color(1.5, 0.6, 1.5, 1),
-    width: 0.6,
+    widthMultiplier: 0.6,
     time: 2.8,
     speed: 1.4,
     radius: 5.5,
@@ -119,7 +119,7 @@ const trailConfigs: TrailConfig[] = [
     color2: new Color(0, 1, 0.8, 1),
     color3: new Color(0.3, 0.8, 1, 1),
     emissive: new Color(0.6, 1.8, 1.0, 1),
-    width: 0.5,
+    widthMultiplier: 0.5,
     time: 2.3,
     speed: 1.8,
     radius: 4.5,
@@ -135,7 +135,7 @@ const trailConfigs: TrailConfig[] = [
     color2: new Color(0.9, 0.9, 1, 1),
     color3: new Color(0.7, 0.8, 1, 1),
     emissive: new Color(2.0, 2.0, 2.5, 1),
-    width: 0.35,
+    widthMultiplier: 0.35,
     time: 1.5,
     speed: 3.2,
     radius: 2.5,
@@ -151,7 +151,7 @@ const trailConfigs: TrailConfig[] = [
     color2: new Color(0.3, 0, 1, 1),
     color3: new Color(0.2, 0.2, 0.8, 1),
     emissive: new Color(1.0, 0.4, 1.8, 1),
-    width: 0.65,
+    widthMultiplier: 0.65,
     time: 3.5,
     speed: 1.2,
     radius: 6,
@@ -211,7 +211,7 @@ WebGLEngine.create({
     material.emissiveColor.copyFrom(config.emissive);
     trail.setMaterial(material);
     trail.time = config.time;
-    trail.width = config.width;
+    trail.widthMultiplier = config.widthMultiplier;
     trail.minVertexDistance = 0.15;
     trailMaterials.push(material);
 
