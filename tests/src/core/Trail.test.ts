@@ -11,7 +11,7 @@ import {
   BlendMode,
   Camera
 } from "@galacean/engine-core";
-import { Color, Vector3 } from "@galacean/engine-math";
+import { Color, Vector2, Vector3 } from "@galacean/engine-math";
 import { describe, it, expect, beforeEach } from "vitest";
 
 describe("Trail", async () => {
@@ -40,7 +40,8 @@ describe("Trail", async () => {
       expect(trailRenderer.time).to.eq(5.0);
       expect(trailRenderer.width).to.eq(1.0);
       expect(trailRenderer.textureMode).to.eq(TrailTextureMode.Stretch);
-      expect(trailRenderer.textureScale).to.eq(1.0);
+      expect(trailRenderer.textureScale.x).to.eq(1.0);
+      expect(trailRenderer.textureScale.y).to.eq(1.0);
     });
 
     it("set emitting", () => {
@@ -108,11 +109,13 @@ describe("Trail", async () => {
       const trailEntity = rootEntity.createChild("trail");
       const trailRenderer = trailEntity.addComponent(TrailRenderer);
 
-      trailRenderer.textureScale = 2.0;
-      expect(trailRenderer.textureScale).to.eq(2.0);
+      trailRenderer.textureScale = new Vector2(2.0, 0.5);
+      expect(trailRenderer.textureScale.x).to.eq(2.0);
+      expect(trailRenderer.textureScale.y).to.eq(0.5);
 
-      trailRenderer.textureScale = 0.5;
-      expect(trailRenderer.textureScale).to.eq(0.5);
+      trailRenderer.textureScale.set(0.5, 3.0);
+      expect(trailRenderer.textureScale.x).to.eq(0.5);
+      expect(trailRenderer.textureScale.y).to.eq(3.0);
     });
 
     it("set widthCurve", () => {

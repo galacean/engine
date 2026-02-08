@@ -60,7 +60,9 @@ export class TrailRenderer extends Renderer {
 
   // Shader parameters
   @deepClone
-  private _trailParams = new Vector4(1.0, TrailTextureMode.Stretch, 1.0, 0); // x: width, y: textureMode, z: textureScale
+  private _trailParams = new Vector4(1.0, TrailTextureMode.Stretch, 1.0, 1.0); // x: width, y: textureMode, z: textureScaleX, w: textureScaleY
+  @deepClone
+  private _textureScale = new Vector2(1.0, 1.0);
   @ignoreClone
   private _distanceParams = new Vector2(); // x: headDistance, y: tailDistance
   @ignoreClone
@@ -142,14 +144,15 @@ export class TrailRenderer extends Renderer {
   }
 
   /**
-   * The texture scale when using Tile texture mode.
+   * Scale of the UV coordinates.
+   * x scales the coordinate along the trail, y scales the coordinate across the trail.
    */
-  get textureScale(): number {
-    return this._trailParams.z;
+  get textureScale(): Vector2 {
+    return this._textureScale;
   }
 
-  set textureScale(value: number) {
-    this._trailParams.z = value;
+  set textureScale(value: Vector2) {
+    value !== this._textureScale && this._textureScale.copyFrom(value);
   }
 
   /**
@@ -157,6 +160,9 @@ export class TrailRenderer extends Renderer {
    */
   constructor(entity: Entity) {
     super(entity);
+    // @ts-ignore
+    this._textureScale._onValueChanged = this._onTextureScaleChanged.bind(this);
+    this._onTextureScaleChanged();
     this._initGeometry();
   }
 
@@ -605,5 +611,11 @@ export class TrailRenderer extends Renderer {
     const subRenderElement = this._engine._subRenderElementPool.get();
     subRenderElement.set(this, material, this._primitive, subPrimitive);
     renderElement.addSubRenderElement(subRenderElement);
+  }
+
+  @ignoreClone
+  private _onTextureScaleChanged(): void {
+    this._trailParams.z = this._textureScale.x;
+    this._trailParams.w = this._textureScale.y;
   }
 }
