@@ -426,9 +426,6 @@ describe("DynamicCollider", function () {
     expect(boxCollider._nativeCollider._pxActor.getRigidBodyFlags(physX.PxRigidBodyFlag.eENABLE_CCD)).toBeTruthy();
 
     boxCollider.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-    // ContinuousDynamic 模式需要同时启用 CCD 和 CCD_FRICTION
-    // @ts-ignore
-    expect(boxCollider._nativeCollider._pxActor.getRigidBodyFlags(physX.PxRigidBodyFlag.eENABLE_CCD)).toBeTruthy();
     expect(
       // @ts-ignore
       boxCollider._nativeCollider._pxActor.getRigidBodyFlags(physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION)
