@@ -118,11 +118,7 @@ export class MeshColliderShape extends ColliderShape {
    * @internal
    */
   override _destroy() {
-    if (this._nativeShape) {
-      this._nativeShape.destroy();
-      this._nativeShape = null;
-    }
-    delete Engine._physicalObjectsMap[this._id];
+    super._destroy();
     this._vertices = null;
     this._indices = null;
     this._indicesU16Cache = null;
