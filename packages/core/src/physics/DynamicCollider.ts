@@ -270,13 +270,13 @@ export class DynamicCollider extends Collider {
 
   set isKinematic(value: boolean) {
     if (this._isKinematic !== value) {
-      // Block switching to non-kinematic if triangle mesh is attached
+      // Block switching to non-kinematic if non-convex MeshColliderShape is attached
       if (!value) {
         const shapes = this._shapes;
         for (let i = 0, n = shapes.length; i < n; i++) {
           const shape = shapes[i];
           if (shape instanceof MeshColliderShape && !shape.isConvex) {
-            console.error("DynamicCollider: Cannot set isKinematic=false when triangle mesh is attached.");
+            console.error("DynamicCollider: Cannot set isKinematic=false when non-convex MeshColliderShape is attached.");
             return;
           }
         }
@@ -420,7 +420,7 @@ export class DynamicCollider extends Collider {
    */
   override addShape(shape: ColliderShape): void {
     if (shape instanceof MeshColliderShape && !shape.isConvex && !this._isKinematic) {
-      console.error("DynamicCollider: triangle mesh is not supported on non-kinematic DynamicCollider.");
+      console.error("DynamicCollider: Non-convex MeshColliderShape is not supported on non-kinematic DynamicCollider.");
       return;
     }
     super.addShape(shape);

@@ -3,6 +3,7 @@ import { Engine } from "../../Engine";
 import { Mesh } from "../../graphic/Mesh";
 import { VertexAttribute } from "../../mesh/enums/VertexAttribute";
 import { ModelMesh } from "../../mesh/ModelMesh";
+import { DynamicCollider } from "../DynamicCollider";
 import { ColliderShape } from "./ColliderShape";
 
 /**
@@ -77,8 +78,6 @@ export class MeshColliderShape extends ColliderShape {
   constructor(isConvex: boolean = false) {
     super();
     this._isConvex = isConvex;
-    // Native shape is created lazily when mesh data is set
-    this._nativeShape = null;
   }
 
   /**
@@ -216,6 +215,12 @@ export class MeshColliderShape extends ColliderShape {
 
   private _updateNativeMesh(): void {
     if (!this._vertices || this._vertices.length === 0) {
+      return;
+    }
+
+    // Non-convex MeshColliderShape is only supported on StaticCollider or kinematic DynamicCollider
+    if (!this._isConvex && this._collider instanceof DynamicCollider && !this._collider.isKinematic) {
+      console.error("MeshColliderShape: Non-convex mesh is not supported on non-kinematic DynamicCollider.");
       return;
     }
 
