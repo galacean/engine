@@ -173,8 +173,10 @@ export abstract class ColliderShape implements ICustomClone {
    * @internal
    */
   _destroy() {
-    this._nativeShape.destroy();
-    this._nativeShape = null;
+    if (this._nativeShape) {
+      this._nativeShape.destroy();
+      this._nativeShape = null;
+    }
     delete Engine._physicalObjectsMap[this._id];
   }
 
