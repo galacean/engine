@@ -1,4 +1,4 @@
-import { Quaternion, Vector3 } from "@galacean/engine";
+import { Quaternion, SystemInfo, Vector3 } from "@galacean/engine";
 import {
   IBoxColliderShape,
   ICapsuleColliderShape,
@@ -56,22 +56,22 @@ export class PhysXPhysics implements IPhysics {
   private _defaultErrorCallback: any;
   private _allocator: any;
   private _tolerancesScale: any;
+  private _simdModeUrl: string;
   private _wasmModeUrl: string;
-  private _downgradeModeUrl: string;
 
   /**
    * Create a PhysXPhysics instance.
-   * @param runtimeMode - Runtime use WebAssembly mode or downgrade JavaScript mode, `Auto` prefers webAssembly mode if supported @see {@link PhysXRuntimeMode}
-   * @param runtimeUrls - Manually specify the `PhysXRuntimeMode.WebAssembly` mode and `PhysXRuntimeMode.JavaScript` mode URL
+   * @param runtimeMode - Runtime mode, `Auto` prefers WebAssembly SIMD if supported @see {@link PhysXRuntimeMode}
+   * @param runtimeUrls - Manually specify the runtime URLs
    */
   constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto, runtimeUrls?: PhysXRuntimeUrls) {
     this._runTimeMode = runtimeMode;
+    this._simdModeUrl =
+      runtimeUrls?.simdModeUrl ??
+      "https://mdn.alipayobjects.com/rms/afts/file/A*8pf0QJKeUXsAAAAASWAAAAgAehQnAQ/physx.release.simd.js";
     this._wasmModeUrl =
       runtimeUrls?.wasmModeUrl ??
       "https://mdn.alipayobjects.com/rms/afts/file/A*8pf0QJKeUXsAAAAASWAAAAgAehQnAQ/physx.release.js";
-    this._downgradeModeUrl =
-      runtimeUrls?.javaScriptModeUrl ??
-      "https://mdn.alipayobjects.com/rms/afts/file/A*PLtBTLf8Sm0AAAAAgFAAAAgAehQnAQ/physx.release.downgrade.js";
   }
 
   /**
@@ -94,26 +94,14 @@ export class PhysXPhysics implements IPhysics {
       script.onload = resolve;
       script.onerror = reject;
       if (runtimeMode == PhysXRuntimeMode.Auto) {
-        const supported = (() => {
-          try {
-            if (typeof WebAssembly === "object" && typeof WebAssembly.instantiate === "function") {
-              const wasmModule = new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
-              if (wasmModule instanceof WebAssembly.Module)
-                return new WebAssembly.Instance(wasmModule) instanceof WebAssembly.Instance;
-            }
-          } catch (e) {}
-          return false;
-        })();
-        if (supported) {
-          runtimeMode = PhysXRuntimeMode.WebAssembly;
-        } else {
-          runtimeMode = PhysXRuntimeMode.JavaScript;
-        }
+        runtimeMode = (SystemInfo as any)._detectSIMDSupported()
+          ? PhysXRuntimeMode.WebAssemblySIMD
+          : PhysXRuntimeMode.WebAssembly;
       }
 
-      if (runtimeMode == PhysXRuntimeMode.JavaScript) {
-        script.src = this._downgradeModeUrl;
-      } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
+      if (runtimeMode == PhysXRuntimeMode.WebAssemblySIMD) {
+        script.src = this._simdModeUrl;
+      } else {
         script.src = this._wasmModeUrl;
       }
     });
@@ -123,6 +111,7 @@ export class PhysXPhysics implements IPhysics {
         .then(
           () =>
             (<any>window).PHYSX().then((PHYSX: any) => {
+              this._runTimeMode = runtimeMode;
               this._init(PHYSX);
               this._initializeState = InitializeState.Initialized;
               this._initializePromise = null;
@@ -315,6 +304,10 @@ export class PhysXPhysics implements IPhysics {
     const cookingParams = new physX.PxCookingParams(tolerancesScale);
     physX.setCookingMeshPreprocessParams(cookingParams, 1); // eWELD_VERTICES
     cookingParams.meshWeldTolerance = 0.001;
+    // BVH34 midphase requires SSE2; SIMD WASM provides SSE2 via WASM SIMD
+    if (this._runTimeMode === PhysXRuntimeMode.WebAssemblySIMD) {
+      physX.setCookingMidphaseType(cookingParams, 1); // eBVH34
+    }
     const pxCooking = physX.PxCreateCooking(version, pxFoundation, cookingParams);
 
     this._physX = physX;
@@ -335,8 +328,8 @@ enum InitializeState {
 }
 
 interface PhysXRuntimeUrls {
+  /*** The URL of `PhysXRuntimeMode.WebAssemblySIMD` mode. */
+  simdModeUrl?: string;
   /*** The URL of `PhysXRuntimeMode.WebAssembly` mode. */
   wasmModeUrl?: string;
-  /*** The URL of `PhysXRuntimeMode.JavaScript` mode. */
-  javaScriptModeUrl?: string;
 }
