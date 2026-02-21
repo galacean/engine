@@ -276,7 +276,9 @@ export class DynamicCollider extends Collider {
         for (let i = 0, n = shapes.length; i < n; i++) {
           const shape = shapes[i];
           if (shape instanceof MeshColliderShape && !shape.isConvex) {
-            console.error("DynamicCollider: Cannot set isKinematic=false when non-convex MeshColliderShape is attached.");
+            console.error(
+              "DynamicCollider: Cannot set isKinematic=false when non-convex MeshColliderShape is attached."
+            );
             return;
           }
         }

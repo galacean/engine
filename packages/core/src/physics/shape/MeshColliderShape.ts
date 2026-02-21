@@ -122,7 +122,12 @@ export class MeshColliderShape extends ColliderShape {
     }
 
     if (this._nativeShape) {
-      (<IMeshColliderShape>this._nativeShape).setMeshData(this._positions, this._indices, this._isConvex, this._cookingFlags);
+      (<IMeshColliderShape>this._nativeShape).setMeshData(
+        this._positions,
+        this._indices,
+        this._isConvex,
+        this._cookingFlags
+      );
     } else {
       const nativeShape = Engine._nativePhysics.createMeshColliderShape(
         this._id,

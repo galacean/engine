@@ -37,7 +37,14 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     const createShapeFn = isConvex ? physX.createConvexMeshShape : physX.createTriMeshShape;
 
     this._pxShape = createShapeFn(
-      this._pxMesh, scaleX, scaleY, scaleZ, meshFlag, shapeFlags, material._pxMaterial, physics
+      this._pxMesh,
+      scaleX,
+      scaleY,
+      scaleZ,
+      meshFlag,
+      shapeFlags,
+      material._pxMaterial,
+      physics
     );
 
     this._id = uniqueID;
@@ -89,8 +96,12 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     cookingFlags: number
   ): boolean {
-    const { _physX: physX, _pxPhysics: physics, _pxCooking: cooking, _pxCookingParams: cookingParams } =
-      this._physXPhysics;
+    const {
+      _physX: physX,
+      _pxPhysics: physics,
+      _pxCooking: cooking,
+      _pxCookingParams: cookingParams
+    } = this._physXPhysics;
 
     // Apply per-shape cooking flags
     let preprocessFlags = 0;
@@ -122,7 +133,14 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
 
       const isU32 = indices instanceof Uint32Array;
       const indicesPtr = this._allocateIndices(indices, isU32);
-      this._pxMesh = cooking.createTriMesh(verticesPtr, positions.length, indicesPtr, indices.length / 3, !isU32, physics);
+      this._pxMesh = cooking.createTriMesh(
+        verticesPtr,
+        positions.length,
+        indicesPtr,
+        indices.length / 3,
+        !isU32,
+        physics
+      );
       physX._free(verticesPtr);
       physX._free(indicesPtr);
 
@@ -207,5 +225,4 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     this._pxGeometry = newGeometry;
     this._pxShape.setGeometry(this._pxGeometry);
   }
-
 }
