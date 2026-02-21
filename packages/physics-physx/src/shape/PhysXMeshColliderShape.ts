@@ -55,27 +55,17 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     isConvex: boolean,
     cookingFlags: number
   ): void {
-    const oldMesh = this._pxMesh;
-    const oldGeometry = this._pxGeometry;
-
+    this._pxMesh?.release();
+    this._pxGeometry?.delete();
     this._pxMesh = null;
     this._pxGeometry = null;
     this._isConvex = isConvex;
 
     if (!this._createMesh(positions, indices, cookingFlags)) {
-      this._pxMesh = oldMesh;
-      this._pxGeometry = oldGeometry;
       return;
     }
 
     this._pxShape.setGeometry(this._pxGeometry);
-
-    if (oldMesh) {
-      oldMesh.release();
-    }
-    if (oldGeometry) {
-      oldGeometry.delete();
-    }
   }
 
   /**
@@ -204,6 +194,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
   }
 
   private _updateGeometry(): void {
+    if (!this._pxMesh) return;
     const physX = this._physXPhysics._physX;
     const { x: scaleX, y: scaleY, z: scaleZ } = this._worldScale;
     const meshFlag = this._isConvex ? PhysXMeshColliderShape._tightBoundsFlag : 0;
