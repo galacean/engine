@@ -306,7 +306,7 @@ export class PhysXPhysics implements IPhysics {
     cookingParams.meshWeldTolerance = 0.001;
     // BVH34 midphase requires SSE2; SIMD WASM provides SSE2 via WASM SIMD
     if (this._runTimeMode === PhysXRuntimeMode.WebAssemblySIMD) {
-      // physX.setCookingMidphaseType(cookingParams, 1); // eBVH34
+      physX.setCookingMidphaseType(cookingParams, 1); // eBVH34
     }
     const pxCooking = physX.PxCreateCooking(version, pxFoundation, cookingParams);
 
