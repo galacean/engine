@@ -20,7 +20,7 @@ import {
   Layer
 } from "@galacean/engine";
 
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
+import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 class CheckScript extends Script {
@@ -71,7 +71,11 @@ function createPhysicsSphere(
   return sphereEntity;
 }
 
-WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engine) => {
+const physics = new PhysXPhysics(PhysXRuntimeMode.Auto, {
+  simdModeUrl: "../physx.release.simd.js",
+  wasmModeUrl: "../physx.release.js"
+});
+WebGLEngine.create({ canvas: "canvas", physics }).then((engine) => {
   engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity("root");

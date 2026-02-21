@@ -24,7 +24,7 @@ import {
 } from "@galacean/engine";
 import { WireframeManager } from "@galacean/engine-toolkit";
 
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
+import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 function addBox(rootEntity: Entity, cubeSize: number, x: number, y: number, z: number, index: number) {
@@ -57,7 +57,11 @@ function addBox(rootEntity: Entity, cubeSize: number, x: number, y: number, z: n
   return boxEntity;
 }
 
-WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engine) => {
+const physics = new PhysXPhysics(PhysXRuntimeMode.Auto, {
+  simdModeUrl: "../physx.release.simd.js",
+  wasmModeUrl: "../physx.release.js"
+});
+WebGLEngine.create({ canvas: "canvas", physics }).then((engine) => {
   engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity("root");

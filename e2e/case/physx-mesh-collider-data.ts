@@ -19,7 +19,7 @@ import {
   ModelMesh,
   MeshColliderShape
 } from "@galacean/engine";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
+import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 // Create wavy terrain mesh for visualization
@@ -218,7 +218,11 @@ class CollisionScript extends Script {
   }
 }
 
-WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engine) => {
+const physics = new PhysXPhysics(PhysXRuntimeMode.Auto, {
+  simdModeUrl: "../physx.release.simd.js",
+  wasmModeUrl: "../physx.release.js"
+});
+WebGLEngine.create({ canvas: "canvas", physics }).then((engine) => {
   engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity("root");
