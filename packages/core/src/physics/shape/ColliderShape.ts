@@ -181,6 +181,7 @@ export abstract class ColliderShape implements ICustomClone {
   }
 
   protected _syncNative(): void {
+    if (!this._nativeShape) return;
     this._nativeShape.setPosition(this._position);
     this._nativeShape.setRotation(this._rotation);
     this._nativeShape.setContactOffset(this._contactOffset);

@@ -81,12 +81,6 @@ export class MeshColliderShape extends ColliderShape {
     return super.getClosestPoint(point, outClosestPoint);
   }
 
-  protected override _syncNative(): void {
-    if (this._nativeShape) {
-      super._syncNative();
-    }
-  }
-
   /**
    * @internal
    */
@@ -105,6 +99,7 @@ export class MeshColliderShape extends ColliderShape {
     }
 
     this._positions = positions;
+    this._indices = null;
 
     if (!this._isConvex) {
       const indices = mesh.getIndices();
@@ -142,7 +137,6 @@ export class MeshColliderShape extends ColliderShape {
       }
 
       this._nativeShape = nativeShape;
-      Engine._physicalObjectsMap[this._id] = this;
 
       // Sync base class properties (position, rotation, contactOffset, isTrigger, material)
       super._syncNative();
