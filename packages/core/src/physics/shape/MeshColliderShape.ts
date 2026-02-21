@@ -63,10 +63,11 @@ export class MeshColliderShape extends ColliderShape {
   }
 
   set mesh(value: ModelMesh) {
-    if (this._mesh === value) return;
-    this._mesh = value;
-    if (this._extractMeshData(value)) {
-      this._updateNativeMesh();
+    if (this._mesh !== value) {
+      this._mesh = value;
+      if (this._extractMeshData(value)) {
+        this._updateNativeMesh();
+      }
     }
   }
 
