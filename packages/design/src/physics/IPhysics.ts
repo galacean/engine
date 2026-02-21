@@ -131,6 +131,7 @@ export interface IPhysics {
    * @param indices - Index array (null for convex mesh)
    * @param isConvex - Whether to create convex mesh (true) or triangle mesh (false)
    * @param material - The material of this shape
+   * @param cookingFlags - Cooking flags
    */
   createMeshColliderShape(
     uniqueID: number,
@@ -138,7 +139,8 @@ export interface IPhysics {
     vertexCount: number,
     indices: Uint16Array | Uint32Array | null,
     isConvex: boolean,
-    material: IPhysicsMaterial
+    material: IPhysicsMaterial,
+    cookingFlags: number
   ): IMeshColliderShape | null;
 
   /**

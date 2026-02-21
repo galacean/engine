@@ -47,10 +47,7 @@ export class PhysXPhysics implements IPhysics {
   _pxPhysics: any;
   /** @internal PhysX cooking object for mesh colliders */
   _pxCooking: any;
-  /**
-   * @internal PhysX cooking params.
-   * @remarks Do not delete after PxCreateCooking - still needed for runtime modification via setCookingParams().
-   */
+  /** @internal PhysX cooking params */
   _pxCookingParams: any;
 
   private _runTimeMode: PhysXRuntimeMode;
@@ -153,30 +150,6 @@ export class PhysXPhysics implements IPhysics {
     this._defaultErrorCallback.delete();
     this._allocator.delete();
     this._tolerancesScale.delete();
-  }
-
-  /**
-   * Set cooking parameters for mesh colliders.
-   * @param params - Cooking parameters
-   */
-  setCookingParams(params: {
-    /** Mesh weld tolerance. If mesh welding is enabled, this controls the distance at which vertices are welded. */
-    meshWeldTolerance?: number;
-    /** Mesh preprocessing flags (bitwise OR of MeshPreprocessingFlag values). */
-    meshPreprocessParams?: number;
-    /** Midphase acceleration structure type. 0 = BVH33 (legacy), 1 = BVH34 (faster, default). */
-    midphaseType?: number;
-  }): void {
-    const cp = this._pxCookingParams;
-    if (params.meshWeldTolerance !== undefined) {
-      cp.meshWeldTolerance = params.meshWeldTolerance;
-    }
-    if (params.meshPreprocessParams !== undefined) {
-      this._physX.setCookingMeshPreprocessParams(cp, params.meshPreprocessParams);
-    }
-    if (params.midphaseType !== undefined) {
-      this._physX.setCookingMidphase(cp, params.midphaseType);
-    }
   }
 
   /**
@@ -287,9 +260,10 @@ export class PhysXPhysics implements IPhysics {
     vertexCount: number,
     indices: Uint16Array | Uint32Array | null,
     isConvex: boolean,
-    material: PhysXPhysicsMaterial
+    material: PhysXPhysicsMaterial,
+    cookingFlags: number
   ): IMeshColliderShape | null {
-    const shape = new PhysXMeshColliderShape(this, uniqueID, vertices, vertexCount, indices, isConvex, material);
+    const shape = new PhysXMeshColliderShape(this, uniqueID, vertices, vertexCount, indices, isConvex, material, cookingFlags);
     return shape._pxShape ? shape : null;
   }
 
@@ -340,9 +314,7 @@ export class PhysXPhysics implements IPhysics {
 
     // Initialize cooking for mesh colliders
     const cookingParams = new physX.PxCookingParams(tolerancesScale);
-    // Set default cooking params: WeldVertices, BVH34 midphase, small weld tolerance
-    physX.setCookingMeshPreprocessParams(cookingParams, 1); // WeldVertices
-    physX.setCookingMidphase(cookingParams, 1); // BVH34 (faster than BVH33)
+    physX.setCookingMeshPreprocessParams(cookingParams, 1); // eWELD_VERTICES
     cookingParams.meshWeldTolerance = 0.001;
     const pxCooking = physX.PxCreateCooking(version, pxFoundation, cookingParams);
 

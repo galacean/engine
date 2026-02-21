@@ -1,11 +1,9 @@
-import { Vector3 } from "@galacean/engine";
+import { MeshColliderShapeCookingFlag, Vector3 } from "@galacean/engine";
 import { IMeshColliderShape } from "@galacean/engine-design";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { PhysXColliderShape, ShapeFlag } from "./PhysXColliderShape";
 
-/** TriangleMesh flag: eDOUBLE_SIDED = 2 (1<<1) */
-const DOUBLE_SIDED_FLAG = 2;
 /** ConvexMesh flag: eTIGHT_BOUNDS = 1 (1<<0) */
 const TIGHT_BOUNDS_FLAG = 1;
 
@@ -15,8 +13,6 @@ const TIGHT_BOUNDS_FLAG = 1;
 export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshColliderShape {
   private _pxMesh: any = null;
   private _isConvex: boolean;
-  private _doubleSided: boolean = false;
-  private _tightBounds: boolean = true;
   private _vertices: Float32Array | null;
   private _vertexCount: number;
   private _indices: Uint16Array | Uint32Array | null;
@@ -28,7 +24,8 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     vertexCount: number,
     indices: Uint16Array | Uint32Array | null,
     isConvex: boolean,
-    material: PhysXPhysicsMaterial
+    material: PhysXPhysicsMaterial,
+    cookingFlags: number
   ) {
     super(physXPhysics);
     this._isConvex = isConvex;
@@ -36,7 +33,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     this._vertexCount = vertexCount;
     this._indices = indices;
 
-    this._createMeshAndShape(material, uniqueID);
+    this._createMeshAndShape(material, uniqueID, cookingFlags);
     this._setLocalPose();
   }
 
@@ -47,7 +44,8 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     vertices: Float32Array,
     vertexCount: number,
     indices: Uint16Array | Uint32Array | null,
-    isConvex: boolean
+    isConvex: boolean,
+    cookingFlags: number
   ): void {
     // Save old resources
     const oldMesh = this._pxMesh;
@@ -61,7 +59,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     this._vertexCount = vertexCount;
     this._indices = indices;
 
-    if (!this._createMesh()) {
+    if (!this._createMesh(cookingFlags)) {
       // Restore old resources on failure
       this._pxMesh = oldMesh;
       this._pxGeometry = oldGeometry;
@@ -76,26 +74,6 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     }
     if (oldGeometry) {
       oldGeometry.delete();
-    }
-  }
-
-  /**
-   * {@inheritDoc IMeshColliderShape.setDoubleSided }
-   */
-  setDoubleSided(value: boolean): void {
-    this._doubleSided = value;
-    if (!this._isConvex && this._pxMesh) {
-      this._updateGeometry();
-    }
-  }
-
-  /**
-   * {@inheritDoc IMeshColliderShape.setTightBounds }
-   */
-  setTightBounds(value: boolean): void {
-    this._tightBounds = value;
-    if (this._isConvex && this._pxMesh) {
-      this._updateGeometry();
     }
   }
 
@@ -115,8 +93,8 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     super.destroy();
   }
 
-  private _createMeshAndShape(material: PhysXPhysicsMaterial, uniqueID: number): void {
-    if (!this._createMesh()) {
+  private _createMeshAndShape(material: PhysXPhysicsMaterial, uniqueID: number, cookingFlags: number): void {
+    if (!this._createMesh(cookingFlags)) {
       return;
     }
 
@@ -131,7 +109,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
         scaleX,
         scaleY,
         scaleZ,
-        this._tightBounds ? TIGHT_BOUNDS_FLAG : 0,
+        TIGHT_BOUNDS_FLAG,
         shapeFlags,
         material._pxMaterial,
         physics
@@ -142,7 +120,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
         scaleX,
         scaleY,
         scaleZ,
-        this._doubleSided ? DOUBLE_SIDED_FLAG : 0,
+        0,
         shapeFlags,
         material._pxMaterial,
         physics
@@ -154,9 +132,21 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     this._pxShape.setUUID(uniqueID);
   }
 
-  private _createMesh(): boolean {
-    const { _physX: physX, _pxPhysics: physics, _pxCooking: cooking } = this._physXPhysics;
+  private _createMesh(cookingFlags: number): boolean {
+    const { _physX: physX, _pxPhysics: physics, _pxCooking: cooking, _pxCookingParams: cookingParams } =
+      this._physXPhysics;
     const { x: scaleX, y: scaleY, z: scaleZ } = this._worldScale;
+
+    // Apply per-shape cooking flags
+    let preprocessFlags = 0;
+    if (cookingFlags & MeshColliderShapeCookingFlag.VertexWelding) {
+      preprocessFlags |= 1; // eWELD_VERTICES
+    }
+    if (!(cookingFlags & MeshColliderShapeCookingFlag.Cleaning)) {
+      preprocessFlags |= 2; // eDISABLE_CLEAN_MESH
+    }
+    physX.setCookingMeshPreprocessParams(cookingParams, preprocessFlags);
+    cooking.setParams(cookingParams);
 
     const verticesPtr = this._allocateVertices();
 
@@ -176,7 +166,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
         scaleX,
         scaleY,
         scaleZ,
-        this._tightBounds ? TIGHT_BOUNDS_FLAG : 0
+        TIGHT_BOUNDS_FLAG
       );
     } else {
       if (!this._indices) {
@@ -203,7 +193,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
         scaleX,
         scaleY,
         scaleZ,
-        this._doubleSided ? DOUBLE_SIDED_FLAG : 0
+        0
       );
     }
 
@@ -271,8 +261,8 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     const { x: scaleX, y: scaleY, z: scaleZ } = this._worldScale;
 
     const newGeometry = this._isConvex
-      ? physX.createConvexMeshGeometry(this._pxMesh, scaleX, scaleY, scaleZ, this._tightBounds ? TIGHT_BOUNDS_FLAG : 0)
-      : physX.createTriMeshGeometry(this._pxMesh, scaleX, scaleY, scaleZ, this._doubleSided ? DOUBLE_SIDED_FLAG : 0);
+      ? physX.createConvexMeshGeometry(this._pxMesh, scaleX, scaleY, scaleZ, TIGHT_BOUNDS_FLAG)
+      : physX.createTriMeshGeometry(this._pxMesh, scaleX, scaleY, scaleZ, 0);
 
     this._pxGeometry.delete();
     this._pxGeometry = newGeometry;
