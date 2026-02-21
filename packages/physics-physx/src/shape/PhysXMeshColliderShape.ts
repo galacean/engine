@@ -8,8 +8,7 @@ import { PhysXColliderShape, ShapeFlag } from "./PhysXColliderShape";
  * Mesh collider shape in PhysX.
  */
 export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshColliderShape {
-  /** @internal eTIGHT_BOUNDS = 1 (1<<0) */
-  private static _tightBoundsFlag = 1;
+  private static _tightBoundsFlag = 1; // eTIGHT_BOUNDS = 1 (1<<0)
 
   private _pxMesh: any = null;
   private _isConvex: boolean;
