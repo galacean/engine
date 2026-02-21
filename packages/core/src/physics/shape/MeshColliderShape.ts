@@ -12,8 +12,8 @@ import { ColliderShape } from "./ColliderShape";
 export class MeshColliderShape extends ColliderShape {
   private _mesh: ModelMesh = null;
   private _isConvex = false;
-  private _vertices: Float32Array = null;
-  private _indices: Uint16Array | Uint32Array | null = null;
+  private _positions: Vector3[] = null;
+  private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _cookingFlags = MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding;
 
   /**
@@ -93,7 +93,7 @@ export class MeshColliderShape extends ColliderShape {
   override _destroy() {
     super._destroy();
     this._mesh = null;
-    this._vertices = null;
+    this._positions = null;
     this._indices = null;
   }
 
@@ -104,24 +104,15 @@ export class MeshColliderShape extends ColliderShape {
       return false;
     }
 
-    const vertexCount = positions.length;
-    if (!this._vertices || this._vertices.length !== vertexCount * 3) {
-      this._vertices = new Float32Array(vertexCount * 3);
-    }
+    this._positions = positions;
 
-    const vertices = this._vertices;
-    for (let i = 0, offset = 0; i < vertexCount; i++, offset += 3) {
-      positions[i].copyToArray(vertices, offset);
-    }
-
-    // Extract indices for triangle mesh (PhysX only supports Uint16/Uint32)
     if (!this._isConvex) {
       const indices = mesh.getIndices();
       if (!indices) {
         console.warn("MeshColliderShape: Triangle mesh requires indices");
         return false;
       }
-      this._indices = indices instanceof Uint8Array ? new Uint16Array(indices) : indices;
+      this._indices = indices;
     }
 
     return true;
@@ -134,17 +125,12 @@ export class MeshColliderShape extends ColliderShape {
       return;
     }
 
-    const vertexCount = this._vertices.length / 3;
-
     if (this._nativeShape) {
-      // Update existing shape
-      (<IMeshColliderShape>this._nativeShape).setMeshData(this._vertices, vertexCount, this._indices, this._isConvex, this._cookingFlags);
+      (<IMeshColliderShape>this._nativeShape).setMeshData(this._positions, this._indices, this._isConvex, this._cookingFlags);
     } else {
-      // Create new shape (returns null if cooking fails)
       const nativeShape = Engine._nativePhysics.createMeshColliderShape(
         this._id,
-        this._vertices,
-        vertexCount,
+        this._positions,
         this._indices,
         this._isConvex,
         this._material._nativeMaterial,

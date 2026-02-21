@@ -256,14 +256,13 @@ export class PhysXPhysics implements IPhysics {
    */
   createMeshColliderShape(
     uniqueID: number,
-    vertices: Float32Array,
-    vertexCount: number,
-    indices: Uint16Array | Uint32Array | null,
+    positions: Vector3[],
+    indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
     material: PhysXPhysicsMaterial,
     cookingFlags: number
   ): IMeshColliderShape | null {
-    const shape = new PhysXMeshColliderShape(this, uniqueID, vertices, vertexCount, indices, isConvex, material, cookingFlags);
+    const shape = new PhysXMeshColliderShape(this, uniqueID, positions, indices, isConvex, material, cookingFlags);
     return shape._pxShape ? shape : null;
   }
 

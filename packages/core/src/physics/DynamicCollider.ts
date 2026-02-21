@@ -270,8 +270,8 @@ export class DynamicCollider extends Collider {
 
   set isKinematic(value: boolean) {
     if (this._isKinematic !== value) {
-      // Block switching to non-kinematic if non-convex MeshColliderShape is attached
       if (!value) {
+        // Block switching to non-kinematic if non-convex MeshColliderShape is attached
         const shapes = this._shapes;
         for (let i = 0, n = shapes.length; i < n; i++) {
           const shape = shapes[i];
@@ -285,10 +285,9 @@ export class DynamicCollider extends Collider {
       this._isKinematic = value;
       (<IDynamicCollider>this._nativeCollider).setIsKinematic(value);
 
-      // Resync when switching back to dynamic
+      // Resync properties that PhysX ignores/resets during kinematic mode
       if (!value) {
         (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(this._collisionDetectionMode);
-        // Recalculate mass/inertia that was skipped in kinematic mode
         if (this._automaticCenterOfMass || this._automaticInertiaTensor) {
           this._setMassAndUpdateInertia();
         }
@@ -387,7 +386,7 @@ export class DynamicCollider extends Collider {
 
   move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void {
     if (!this._isKinematic) {
-      console.warn("DynamicCollider.move() should only be called when isKinematic is true.");
+      console.warn("DynamicCollider: move() is only supported when isKinematic is true.");
       return;
     }
     this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).move(positionOrRotation, rotation);

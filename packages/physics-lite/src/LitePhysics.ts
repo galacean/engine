@@ -138,9 +138,8 @@ export class LitePhysics implements IPhysics {
    */
   createMeshColliderShape(
     uniqueID: number,
-    vertices: Float32Array,
-    vertexCount: number,
-    indices: Uint16Array | Uint32Array | null,
+    positions: Vector3[],
+    indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
     material: LitePhysicsMaterial,
     cookingFlags: number
