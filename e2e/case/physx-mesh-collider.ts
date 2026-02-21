@@ -23,7 +23,7 @@ import {
   PrimitiveMesh,
   Color
 } from "@galacean/engine";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
+import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 // Create a sphere that falls into the pot
@@ -87,7 +87,11 @@ function createFallingBox(
   return entity;
 }
 
-WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engine) => {
+const physics = new PhysXPhysics(PhysXRuntimeMode.Auto, {
+  simdModeUrl: "../physx.release.simd.js",
+  wasmModeUrl: "../physx.release.js"
+});
+WebGLEngine.create({ canvas: "canvas", physics }).then((engine) => {
   engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity("root");
@@ -112,7 +116,7 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
     engine.resourceManager.load<GLTFResource>({
       url: "https://mdn.alipayobjects.com/rms/afts/file/A*UZO7RaRQa2kAAAAAgDAAAAgAehQnAQ/pot.glb",
       type: AssetType.GLTF,
-      params: { keepMeshData: true } // Required for MeshColliderShape.setMesh()
+      params: { keepMeshData: true } // Required for MeshColliderShape.mesh
     }),
     engine.resourceManager.load<AmbientLight>({
       type: AssetType.Env,
@@ -154,13 +158,13 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
 
           // Add collider to the RENDERER'S entity, not root
           const meshEntity = renderer.entity;
-          let collider = meshEntity.getComponent(StaticCollider);
+                    let collider = meshEntity.getComponent(StaticCollider);
           if (!collider) {
             collider = meshEntity.addComponent(StaticCollider);
           }
 
-          const meshShape = new MeshColliderShape(false); // isConvex = false for concave pot
-          meshShape.setMesh(mesh);
+          const meshShape = new MeshColliderShape();
+          meshShape.mesh = mesh;
           collider.addShape(meshShape);
         }
       }
