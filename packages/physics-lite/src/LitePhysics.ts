@@ -143,7 +143,7 @@ export class LitePhysics implements IPhysics {
     indices: Uint16Array | Uint32Array | null,
     isConvex: boolean,
     material: LitePhysicsMaterial
-  ): IMeshColliderShape {
+  ): IMeshColliderShape | null {
     throw new Error("Physics-lite doesn't support MeshColliderShape. Use Physics-PhysX instead!");
   }
 

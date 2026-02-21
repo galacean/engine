@@ -53,7 +53,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     const oldMesh = this._pxMesh;
     const oldGeometry = this._pxGeometry;
 
-    // Update data and create new mesh (may throw on failure)
+    // Update data and create new mesh
     this._pxMesh = null;
     this._pxGeometry = null;
     this._isConvex = isConvex;
@@ -61,7 +61,13 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     this._vertexCount = vertexCount;
     this._indices = indices;
 
-    this._createMesh();
+    if (!this._createMesh()) {
+      // Restore old resources on failure
+      this._pxMesh = oldMesh;
+      this._pxGeometry = oldGeometry;
+      return;
+    }
+
     this._pxShape.setGeometry(this._pxGeometry);
 
     // Release old resources only after successful creation
@@ -110,19 +116,21 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
   }
 
   private _createMeshAndShape(material: PhysXPhysicsMaterial, uniqueID: number): void {
-    const physX = this._physXPhysics._physX;
-    const physics = this._physXPhysics._pxPhysics;
-    const shapeFlags = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
+    if (!this._createMesh()) {
+      return;
+    }
 
-    this._createMesh();
+    const { _physX: physX, _pxPhysics: physics } = this._physXPhysics;
+    const { x: scaleX, y: scaleY, z: scaleZ } = this._worldScale;
+    const shapeFlags = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
     // Create shape with material
     if (this._isConvex) {
       this._pxShape = physX.createConvexMeshShape(
         this._pxMesh,
-        this._worldScale.x,
-        this._worldScale.y,
-        this._worldScale.z,
+        scaleX,
+        scaleY,
+        scaleZ,
         this._tightBounds ? TIGHT_BOUNDS_FLAG : 0,
         shapeFlags,
         material._pxMaterial,
@@ -131,9 +139,9 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     } else {
       this._pxShape = physX.createTriMeshShape(
         this._pxMesh,
-        this._worldScale.x,
-        this._worldScale.y,
-        this._worldScale.z,
+        scaleX,
+        scaleY,
+        scaleZ,
         this._doubleSided ? DOUBLE_SIDED_FLAG : 0,
         shapeFlags,
         material._pxMaterial,
@@ -146,54 +154,90 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     this._pxShape.setUUID(uniqueID);
   }
 
-  private _createMesh(): void {
-    const physX = this._physXPhysics._physX;
-    const physics = this._physXPhysics._pxPhysics;
-    const cooking = this._physXPhysics._pxCooking;
+  private _createMesh(): boolean {
+    const { _physX: physX, _pxPhysics: physics, _pxCooking: cooking } = this._physXPhysics;
+    const { x: scaleX, y: scaleY, z: scaleZ } = this._worldScale;
 
     const verticesPtr = this._allocateVertices();
-    let indicesPtr = 0;
 
-    try {
-      if (this._isConvex) {
-        this._pxMesh = cooking.createConvexMesh(verticesPtr, this._vertexCount, physics);
-        if (!this._pxMesh) {
-          throw new Error("Failed to create convex mesh. Check if vertex count <= 255 and geometry is valid.");
-        }
-        this._pxGeometry = physX.createConvexMeshGeometry(
-          this._pxMesh,
-          this._worldScale.x,
-          this._worldScale.y,
-          this._worldScale.z,
-          this._tightBounds ? TIGHT_BOUNDS_FLAG : 0
-        );
-      } else {
-        if (!this._indices) {
-          throw new Error("Triangle mesh requires indices");
-        }
-
-        const { ptr, isU16, triangleCount } = this._allocateIndices();
-        indicesPtr = ptr;
-        this._pxMesh = cooking.createTriMesh(verticesPtr, this._vertexCount, indicesPtr, triangleCount, isU16, physics);
-        if (!this._pxMesh) {
-          throw new Error("Failed to create triangle mesh. Check if geometry is valid.");
-        }
-        this._pxGeometry = physX.createTriMeshGeometry(
-          this._pxMesh,
-          this._worldScale.x,
-          this._worldScale.y,
-          this._worldScale.z,
-          this._doubleSided ? DOUBLE_SIDED_FLAG : 0
-        );
-      }
-    } finally {
+    if (this._isConvex) {
+      this._pxMesh = cooking.createConvexMesh(verticesPtr, this._vertexCount, physics);
       physX._free(verticesPtr);
-      if (indicesPtr) {
-        physX._free(indicesPtr);
-      }
-      // Release JS memory after copying to WASM
       this._vertices = null;
       this._indices = null;
+
+      if (!this._pxMesh) {
+        this._logConvexCookingError(physX);
+        return false;
+      }
+
+      this._pxGeometry = physX.createConvexMeshGeometry(
+        this._pxMesh,
+        scaleX,
+        scaleY,
+        scaleZ,
+        this._tightBounds ? TIGHT_BOUNDS_FLAG : 0
+      );
+    } else {
+      if (!this._indices) {
+        physX._free(verticesPtr);
+        this._vertices = null;
+        console.error("PhysXMeshColliderShape: Triangle mesh requires indices.");
+        return false;
+      }
+
+      const { ptr: indicesPtr, isU16, triangleCount } = this._allocateIndices();
+      this._pxMesh = cooking.createTriMesh(verticesPtr, this._vertexCount, indicesPtr, triangleCount, isU16, physics);
+      physX._free(verticesPtr);
+      physX._free(indicesPtr);
+      this._vertices = null;
+      this._indices = null;
+
+      if (!this._pxMesh) {
+        this._logTriMeshCookingError(physX);
+        return false;
+      }
+
+      this._pxGeometry = physX.createTriMeshGeometry(
+        this._pxMesh,
+        scaleX,
+        scaleY,
+        scaleZ,
+        this._doubleSided ? DOUBLE_SIDED_FLAG : 0
+      );
+    }
+
+    return true;
+  }
+
+  private _logConvexCookingError(physX: any): void {
+    switch (physX.getLastConvexCookingResult()) {
+      case 1: // eZERO_AREA_TEST_FAILED
+        console.error(
+          "PhysXMeshColliderShape: Failed to create convex mesh. Could not find 4 vertices that do not form a zero-area triangle."
+        );
+        break;
+      case 2: // ePOLYGONS_LIMIT_REACHED
+        console.error(
+          "PhysXMeshColliderShape: Failed to create convex mesh within the maximum polygons limit (256). Consider simplifying the mesh."
+        );
+        break;
+      default: // eFAILURE
+        console.error("PhysXMeshColliderShape: Failed to create convex mesh. The input geometry may be invalid.");
+        break;
+    }
+  }
+
+  private _logTriMeshCookingError(physX: any): void {
+    switch (physX.getLastTriMeshCookingResult()) {
+      case 1: // eLARGE_TRIANGLE
+        console.error(
+          "PhysXMeshColliderShape: Failed to create triangle mesh. One of the triangles is too large. Consider tessellating large triangles."
+        );
+        break;
+      default: // eFAILURE
+        console.error("PhysXMeshColliderShape: Failed to create triangle mesh. The input geometry may be invalid.");
+        break;
     }
   }
 
@@ -224,22 +268,11 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
 
   private _updateGeometry(): void {
     const physX = this._physXPhysics._physX;
+    const { x: scaleX, y: scaleY, z: scaleZ } = this._worldScale;
 
     const newGeometry = this._isConvex
-      ? physX.createConvexMeshGeometry(
-          this._pxMesh,
-          this._worldScale.x,
-          this._worldScale.y,
-          this._worldScale.z,
-          this._tightBounds ? TIGHT_BOUNDS_FLAG : 0
-        )
-      : physX.createTriMeshGeometry(
-          this._pxMesh,
-          this._worldScale.x,
-          this._worldScale.y,
-          this._worldScale.z,
-          this._doubleSided ? DOUBLE_SIDED_FLAG : 0
-        );
+      ? physX.createConvexMeshGeometry(this._pxMesh, scaleX, scaleY, scaleZ, this._tightBounds ? TIGHT_BOUNDS_FLAG : 0)
+      : physX.createTriMeshGeometry(this._pxMesh, scaleX, scaleY, scaleZ, this._doubleSided ? DOUBLE_SIDED_FLAG : 0);
 
     this._pxGeometry.delete();
     this._pxGeometry = newGeometry;

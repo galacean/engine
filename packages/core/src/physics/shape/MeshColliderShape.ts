@@ -244,8 +244,8 @@ export class MeshColliderShape extends ColliderShape {
       // Update existing shape
       (<IMeshColliderShape>this._nativeShape).setMeshData(this._vertices, vertexCount, this._indices, this._isConvex);
     } else {
-      // Create new shape
-      this._nativeShape = Engine._nativePhysics.createMeshColliderShape(
+      // Create new shape (returns null if cooking fails)
+      const nativeShape = Engine._nativePhysics.createMeshColliderShape(
         this._id,
         this._vertices,
         vertexCount,
@@ -253,18 +253,24 @@ export class MeshColliderShape extends ColliderShape {
         this._isConvex,
         this._material._nativeMaterial
       );
+
+      if (!nativeShape) {
+        return;
+      }
+
+      this._nativeShape = nativeShape;
       Engine._physicalObjectsMap[this._id] = this;
 
       // Sync doubleSided and tightBounds to newly created native shape
-      (<IMeshColliderShape>this._nativeShape).setDoubleSided(this._doubleSided);
-      (<IMeshColliderShape>this._nativeShape).setTightBounds(this._tightBounds);
+      (<IMeshColliderShape>nativeShape).setDoubleSided(this._doubleSided);
+      (<IMeshColliderShape>nativeShape).setTightBounds(this._tightBounds);
       // Sync base class properties (position, rotation, contactOffset, isTrigger, material)
       super._syncNative();
 
       // If already attached to a collider, add the newly created native shape to it
       if (this._collider) {
-        this._nativeShape.setWorldScale(this._collider.entity.transform.lossyWorldScale);
-        this._collider._nativeCollider.addShape(this._nativeShape);
+        nativeShape.setWorldScale(this._collider.entity.transform.lossyWorldScale);
+        this._collider._nativeCollider.addShape(nativeShape);
       }
     }
   }

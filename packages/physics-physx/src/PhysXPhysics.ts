@@ -283,8 +283,9 @@ export class PhysXPhysics implements IPhysics {
     indices: Uint16Array | Uint32Array | null,
     isConvex: boolean,
     material: PhysXPhysicsMaterial
-  ): IMeshColliderShape {
-    return new PhysXMeshColliderShape(this, uniqueID, vertices, vertexCount, indices, isConvex, material);
+  ): IMeshColliderShape | null {
+    const shape = new PhysXMeshColliderShape(this, uniqueID, vertices, vertexCount, indices, isConvex, material);
+    return shape._pxShape ? shape : null;
   }
 
   /**

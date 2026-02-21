@@ -139,7 +139,7 @@ export interface IPhysics {
     indices: Uint16Array | Uint32Array | null,
     isConvex: boolean,
     material: IPhysicsMaterial
-  ): IMeshColliderShape;
+  ): IMeshColliderShape | null;
 
   /**
    * Create fixed joint.
