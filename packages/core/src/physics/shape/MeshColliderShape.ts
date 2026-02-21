@@ -3,6 +3,7 @@ import { Engine } from "../../Engine";
 import { Mesh } from "../../graphic/Mesh";
 import { VertexAttribute } from "../../mesh/enums/VertexAttribute";
 import { ModelMesh } from "../../mesh/ModelMesh";
+import { Vector3 } from "@galacean/engine-math";
 import { DynamicCollider } from "../DynamicCollider";
 import { ColliderShape } from "./ColliderShape";
 
@@ -104,6 +105,17 @@ export class MeshColliderShape extends ColliderShape {
     } else {
       console.warn("MeshColliderShape: Only ModelMesh is supported");
     }
+  }
+
+  /**
+   * {@inheritDoc ColliderShape.getClosestPoint}
+   */
+  override getClosestPoint(point: Vector3, outClosestPoint: Vector3): number {
+    if (!this._nativeShape) {
+      console.warn("MeshColliderShape: Cannot get closest point. Ensure setMesh or setMeshData has been called with valid data.");
+      return -1;
+    }
+    return super.getClosestPoint(point, outClosestPoint);
   }
 
   protected override _syncNative(): void {

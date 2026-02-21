@@ -116,8 +116,9 @@ export class Collider extends Component implements ICustomClone {
       );
 
       const worldScale = transform.lossyWorldScale;
-      for (let i = 0, n = this.shapes.length; i < n; i++) {
-        this.shapes[i]._nativeShape.setWorldScale(worldScale);
+      const shapes = this._shapes;
+      for (let i = 0, n = shapes.length; i < n; i++) {
+        shapes[i]._nativeShape?.setWorldScale(worldScale);
       }
       this._updateFlag.flag = false;
     }
