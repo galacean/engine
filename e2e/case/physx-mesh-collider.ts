@@ -3,25 +3,25 @@
  * @category Physics
  */
 import {
-  WebGLEngine,
-  Vector3,
-  MeshRenderer,
-  PointLight,
-  Camera,
-  StaticCollider,
-  DynamicCollider,
-  CollisionDetectionMode,
-  PBRMaterial,
   AmbientLight,
   AssetType,
-  Entity,
-  ModelMesh,
-  MeshColliderShape,
-  GLTFResource,
-  SphereColliderShape,
   BoxColliderShape,
+  Camera,
+  CollisionDetectionMode,
+  Color,
+  DynamicCollider,
+  Entity,
+  GLTFResource,
+  MeshColliderShape,
+  MeshRenderer,
+  ModelMesh,
+  PBRMaterial,
+  PointLight,
   PrimitiveMesh,
-  Color
+  SphereColliderShape,
+  StaticCollider,
+  Vector3,
+  WebGLEngine
 } from "@galacean/engine";
 import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
@@ -158,7 +158,7 @@ WebGLEngine.create({ canvas: "canvas", physics }).then((engine) => {
 
           // Add collider to the RENDERER'S entity, not root
           const meshEntity = renderer.entity;
-                    let collider = meshEntity.getComponent(StaticCollider);
+          let collider = meshEntity.getComponent(StaticCollider);
           if (!collider) {
             collider = meshEntity.addComponent(StaticCollider);
           }
