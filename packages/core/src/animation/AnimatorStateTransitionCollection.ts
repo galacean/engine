@@ -77,6 +77,9 @@ export class AnimatorStateTransitionCollection {
   updateTransitionsIndex(transition: AnimatorStateTransition, hasExitTime: boolean): void {
     const transitions = this.transitions;
     transitions.splice(transitions.indexOf(transition), 1);
+    if (hasExitTime) {
+      this.noExitTimeCount--;
+    }
     this._addTransition(transition);
   }
 

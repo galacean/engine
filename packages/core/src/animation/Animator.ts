@@ -748,17 +748,7 @@ export class Animator extends Component {
     const { state: srcState } = srcPlayData;
     const { state: destState } = destPlayData;
 
-    // Check anyState noExitTime transitions, allow interrupting crossFade
-    // Must check before any update() calls to preserve events and let new state consume deltaTime
-    if (transitionDuration > 0) {
-      const { _anyStateTransitionCollection: anyStateTransitions } = layerData.layer.stateMachine;
-      if (anyStateTransitions.noExitTimeCount) {
-        if (this._checkCrossFadeInterrupt(layerData, anyStateTransitions, destState, aniUpdate)) {
-          this._updateState(layerData, deltaTime, aniUpdate);
-          return;
-        }
-      }
-    }
+    if (this._tryCrossFadeInterrupt(layerData, transitionDuration, destState, deltaTime, aniUpdate)) return;
 
     const srcPlaySpeed = srcState.speed * speed;
     const dstPlaySpeed = destState.speed * speed;
@@ -886,17 +876,7 @@ export class Animator extends Component {
     const { state } = destPlayData;
     const transitionDuration = layerData.crossFadeTransition._getFixedDuration();
 
-    // Check anyState noExitTime transitions, allow interrupting crossFade
-    // Must check before any update() calls to preserve events and let new state consume deltaTime
-    if (transitionDuration > 0) {
-      const { _anyStateTransitionCollection: anyStateTransitions } = layerData.layer.stateMachine;
-      if (anyStateTransitions.noExitTimeCount) {
-        if (this._checkCrossFadeInterrupt(layerData, anyStateTransitions, state, aniUpdate)) {
-          this._updateState(layerData, deltaTime, aniUpdate);
-          return;
-        }
-      }
-    }
+    if (this._tryCrossFadeInterrupt(layerData, transitionDuration, state, deltaTime, aniUpdate)) return;
 
     const playSpeed = state.speed * this.speed;
     const playDeltaTime = playSpeed * deltaTime;
@@ -1104,7 +1084,7 @@ export class Animator extends Component {
     const endTime = state.clipEndTime * clipDuration;
 
     if (transitionCollection.noExitTimeCount) {
-      targetTransition = this._checkNoExitTimeTransition(layerData, transitionCollection, aniUpdate);
+      targetTransition = this._checkNoExitTimeTransitions(layerData, transitionCollection, aniUpdate);
       if (targetTransition) {
         return targetTransition;
       }
@@ -1178,21 +1158,24 @@ export class Animator extends Component {
     return targetTransition;
   }
 
-  private _checkNoExitTimeTransition(
+  private _tryCrossFadeInterrupt(
     layerData: AnimatorLayerData,
-    transitionCollection: AnimatorStateTransitionCollection,
-    aniUpdate: boolean
-  ): AnimatorStateTransition {
-    return this._checkNoExitTimeTransitions(layerData, transitionCollection, aniUpdate);
-  }
-
-  private _checkCrossFadeInterrupt(
-    layerData: AnimatorLayerData,
-    transitionCollection: AnimatorStateTransitionCollection,
+    transitionDuration: number,
     currentDestState: AnimatorState,
+    deltaTime: number,
     aniUpdate: boolean
-  ): AnimatorStateTransition {
-    return this._checkNoExitTimeTransitions(layerData, transitionCollection, aniUpdate, currentDestState);
+  ): boolean {
+    if (transitionDuration > 0) {
+      const { _anyStateTransitionCollection: anyStateTransitions } = layerData.layer.stateMachine;
+      if (
+        anyStateTransitions.noExitTimeCount &&
+        this._checkNoExitTimeTransitions(layerData, anyStateTransitions, aniUpdate, currentDestState)
+      ) {
+        this._updateState(layerData, deltaTime, aniUpdate);
+        return true;
+      }
+    }
+    return false;
   }
 
   private _checkNoExitTimeTransitions(
