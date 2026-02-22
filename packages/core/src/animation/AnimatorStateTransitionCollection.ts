@@ -97,24 +97,20 @@ export class AnimatorStateTransitionCollection {
   private _addTransition(transition: AnimatorStateTransition): void {
     const transitions = this.transitions;
 
-    // NoExitTime transitions are stored at the front of the array [0, noExitTimeCount)
     if (!transition.hasExitTime) {
       transitions.unshift(transition);
       this.noExitTimeCount++;
       return;
     }
 
-    // HasExitTime transitions are sorted by exitTime in range [noExitTimeCount, count)
     const { exitTime } = transition;
     const { noExitTimeCount } = this;
     const count = transitions.length;
-    // Only compare with hasExitTime transitions (after noExitTimeCount)
     const maxExitTime = count > noExitTimeCount ? transitions[count - 1].exitTime : 0;
     if (exitTime >= maxExitTime) {
       transitions.push(transition);
     } else {
       let index = count;
-      // Stop at noExitTimeCount boundary to avoid comparing with noExitTime transitions
       while (--index >= noExitTimeCount && exitTime < transitions[index].exitTime);
       transitions.splice(index + 1, 0, transition);
     }
