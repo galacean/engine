@@ -744,11 +744,13 @@ export class Animator extends Component {
   ) {
     const { srcPlayData, destPlayData, layerIndex } = layerData;
     const { speed } = this;
-    const transitionDuration = layerData.crossFadeTransition._getFixedDuration();
     const { state: srcState } = srcPlayData;
     const { state: destState } = destPlayData;
+    const transitionDuration = layerData.crossFadeTransition._getFixedDuration();
 
-    if (this._tryCrossFadeInterrupt(layerData, transitionDuration, destState, deltaTime, aniUpdate)) return;
+    if (this._tryCrossFadeInterrupt(layerData, transitionDuration, destState, deltaTime, aniUpdate)) {
+      return;
+    }
 
     const srcPlaySpeed = srcState.speed * speed;
     const dstPlaySpeed = destState.speed * speed;
@@ -876,7 +878,9 @@ export class Animator extends Component {
     const { state } = destPlayData;
     const transitionDuration = layerData.crossFadeTransition._getFixedDuration();
 
-    if (this._tryCrossFadeInterrupt(layerData, transitionDuration, state, deltaTime, aniUpdate)) return;
+    if (this._tryCrossFadeInterrupt(layerData, transitionDuration, state, deltaTime, aniUpdate)) {
+      return;
+    }
 
     const playSpeed = state.speed * this.speed;
     const playDeltaTime = playSpeed * deltaTime;
