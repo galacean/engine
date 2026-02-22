@@ -58,7 +58,7 @@ function addBox(rootEntity: Entity, cubeSize: number, x: number, y: number, z: n
 }
 
 const physics = new PhysXPhysics(PhysXRuntimeMode.Auto, {
-  simdModeUrl: "../physx.release.simd.js",
+  wasmSIMDModeUrl: "../physx.release.simd.js",
   wasmModeUrl: "../physx.release.js"
 });
 WebGLEngine.create({ canvas: "canvas", physics }).then((engine) => {

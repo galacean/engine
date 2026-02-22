@@ -56,7 +56,7 @@ export class PhysXPhysics implements IPhysics {
   private _defaultErrorCallback: any;
   private _allocator: any;
   private _tolerancesScale: any;
-  private _simdModeUrl: string;
+  private _wasmSIMDModeUrl: string;
   private _wasmModeUrl: string;
 
   /**
@@ -66,8 +66,8 @@ export class PhysXPhysics implements IPhysics {
    */
   constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto, runtimeUrls?: PhysXRuntimeUrls) {
     this._runTimeMode = runtimeMode;
-    this._simdModeUrl =
-      runtimeUrls?.simdModeUrl ??
+    this._wasmSIMDModeUrl =
+      runtimeUrls?.wasmSIMDModeUrl ??
       "https://mdn.alipayobjects.com/rms/afts/file/A*8pf0QJKeUXsAAAAASWAAAAgAehQnAQ/physx.release.simd.js";
     this._wasmModeUrl =
       runtimeUrls?.wasmModeUrl ??
@@ -100,7 +100,7 @@ export class PhysXPhysics implements IPhysics {
       }
 
       if (runtimeMode == PhysXRuntimeMode.WebAssemblySIMD) {
-        script.src = this._simdModeUrl;
+        script.src = this._wasmSIMDModeUrl;
       } else {
         script.src = this._wasmModeUrl;
       }
@@ -328,8 +328,8 @@ enum InitializeState {
 }
 
 interface PhysXRuntimeUrls {
-  /*** The URL of `PhysXRuntimeMode.WebAssemblySIMD` mode. */
-  simdModeUrl?: string;
   /*** The URL of `PhysXRuntimeMode.WebAssembly` mode. */
   wasmModeUrl?: string;
+  /*** The URL of `PhysXRuntimeMode.WebAssemblySIMD` mode. */
+  wasmSIMDModeUrl?: string;
 }
