@@ -1,5 +1,6 @@
 import { Camera } from "./Camera";
 import { Component } from "./Component";
+import { Entity } from "./Entity";
 import { Renderer } from "./Renderer";
 import { Script } from "./Script";
 import { Animator } from "./animation";
@@ -32,6 +33,11 @@ export class ComponentsManager {
 
   private _pendingDestroyScripts: Script[] = [];
   private _disposeDestroyScripts: Script[] = [];
+
+  /** @internal */
+  _entityDestroyDeferred = false;
+  /** @internal */
+  _pendingDestroyEntities: Entity[] = [];
 
   // Animation
   private _onUpdateAnimations: DisorderedArray<Animator> = new DisorderedArray();
@@ -181,6 +187,17 @@ export class ComponentsManager {
 
   addPendingDestroyScript(component: Script): void {
     this._pendingDestroyScripts.push(component);
+  }
+
+  /**
+   * @internal
+   */
+  processPendingDestroyEntities(): void {
+    const pending = this._pendingDestroyEntities;
+    for (let i = 0; i < pending.length; i++) {
+      pending[i].destroy();
+    }
+    pending.length = 0;
   }
 
   callScriptOnStart(): void {

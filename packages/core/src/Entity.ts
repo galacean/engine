@@ -555,6 +555,12 @@ export class Entity extends EngineObject {
       return;
     }
 
+    const componentsManager = this._scene?._componentsManager;
+    if (componentsManager?._entityDestroyDeferred) {
+      componentsManager._pendingDestroyEntities.push(this);
+      return;
+    }
+
     super.destroy();
 
     if (this._templateResource) {
