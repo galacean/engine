@@ -325,7 +325,7 @@ export class Engine extends EventDispatcher {
     for (let i = 0; i < sceneCount; i++) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
-      scene._componentsManager._entityDestroyDeferred = true;
+      scene._componentsManager._destroyDeferred = true;
     }
 
     // Sort cameras and fire script `onStart`
@@ -383,8 +383,8 @@ export class Engine extends EventDispatcher {
         const scene = scenes[i];
         if (!scene.isActive || scene.destroyed) continue;
         const componentsManager = scene._componentsManager;
-        componentsManager._entityDestroyDeferred = false;
-        componentsManager.processPendingDestroyEntities();
+        componentsManager._destroyDeferred = false;
+        componentsManager.processPendingDestroyObjects();
       }
     }
 

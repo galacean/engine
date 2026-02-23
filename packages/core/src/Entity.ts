@@ -556,9 +556,9 @@ export class Entity extends EngineObject {
     }
 
     const componentsManager = this._scene?._componentsManager;
-    if (componentsManager?._entityDestroyDeferred) {
+    if (componentsManager?._destroyDeferred) {
       this._pendingDestroy = true;
-      componentsManager._pendingDestroyEntities.push(this);
+      componentsManager._pendingDestroyObjects.push(this);
       return;
     }
 

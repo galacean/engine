@@ -1,9 +1,9 @@
 import { Camera } from "./Camera";
 import { Component } from "./Component";
-import { Entity } from "./Entity";
 import { Renderer } from "./Renderer";
 import { Script } from "./Script";
 import { Animator } from "./animation";
+import { EngineObject } from "./base";
 import { IUICanvas } from "./ui/IUICanvas";
 import { DisorderedArray } from "./utils/DisorderedArray";
 
@@ -32,9 +32,9 @@ export class ComponentsManager {
   private _onPhysicsUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
 
   /** @internal */
-  _entityDestroyDeferred = false;
+  _destroyDeferred = false;
   /** @internal */
-  _pendingDestroyEntities: Entity[] = [];
+  _pendingDestroyObjects: EngineObject[] = [];
 
   // Animation
   private _onUpdateAnimations: DisorderedArray<Animator> = new DisorderedArray();
@@ -185,12 +185,12 @@ export class ComponentsManager {
   /**
    * @internal
    */
-  processPendingDestroyEntities(): void {
-    const pending = this._pendingDestroyEntities;
+  processPendingDestroyObjects(): void {
+    const pending = this._pendingDestroyObjects;
     for (let i = 0; i < pending.length; i++) {
-      const entity = pending[i];
-      entity._pendingDestroy = false;
-      entity.destroy();
+      const object = pending[i];
+      object._pendingDestroy = false;
+      object.destroy();
     }
     pending.length = 0;
   }
