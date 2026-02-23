@@ -26,18 +26,19 @@ export abstract class EngineObject {
   }
 
   /**
+   * Whether this object is pending destruction.
+   * @remarks `destroy()` has been called but the actual destruction is deferred until end of frame,
+   * during this period all properties are still accessible.
+   */
+  get pendingDestroy(): boolean {
+    return this._pendingDestroy;
+  }
+
+  /**
    * Whether it has been destroyed.
    */
   get destroyed(): boolean {
     return this._destroyed;
-  }
-
-  /**
-   * Whether this object is pending destruction.
-   * @remarks This is `true` when `destroy()` has been called but the actual destruction is deferred.
-   */
-  get pendingDestroy(): boolean {
-    return this._pendingDestroy;
   }
 
   constructor(engine: Engine) {
