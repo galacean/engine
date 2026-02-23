@@ -34,8 +34,7 @@ export abstract class EngineObject {
 
   /**
    * Whether this object is pending destruction.
-   * @remarks This is `true` when `destroy()` has been called during physics event dispatch,
-   * but the actual destruction is deferred until all physics events have been dispatched.
+   * @remarks This is `true` when `destroy()` has been called but the actual destruction is deferred.
    */
   get pendingDestroy(): boolean {
     return this._pendingDestroy;

@@ -1,7 +1,6 @@
 import { ICharacterController, ICollider, ICollision, IPhysicsScene } from "@galacean/engine-design";
 import { MathUtil, Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import { Engine } from "../Engine";
-import { Entity } from "../Entity";
 import { Layer } from "../Layer";
 import { Scene } from "../Scene";
 import { Script } from "../Script";
