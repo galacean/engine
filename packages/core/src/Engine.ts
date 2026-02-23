@@ -73,6 +73,8 @@ export class Engine extends EventDispatcher {
   /** @internal */
   _pendingDestroyObjects: EngineObject[] = [];
   /** @internal */
+  _processingPendingDestroys = false;
+  /** @internal */
   _physicsInitialized: boolean = false;
   /** @internal */
   _nativePhysicsManager: IPhysicsManager;
@@ -371,10 +373,10 @@ export class Engine extends EventDispatcher {
       this._render(scenes);
     }
 
-    this._frameInProcess = false;
-
     // Process pending destroys
     this._processPendingDestroyObjects();
+
+    this._frameInProcess = false;
 
     if (this._waitingDestroy) {
       this._destroy();
@@ -475,10 +477,12 @@ export class Engine extends EventDispatcher {
 
   private _processPendingDestroyObjects(): void {
     const pending = this._pendingDestroyObjects;
+    this._processingPendingDestroys = true;
     for (let i = 0, n = pending.length; i < n; i++) {
       pending[i].destroy();
     }
     pending.length = 0;
+    this._processingPendingDestroys = false;
   }
 
   private _destroy(): void {
