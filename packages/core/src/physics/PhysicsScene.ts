@@ -32,6 +32,7 @@ export class PhysicsScene {
     const { shape0Id, shape1Id } = nativeCollision;
     const shape1 = physicalObjectsMap[shape0Id];
     const shape2 = physicalObjectsMap[shape1Id];
+    if (!shape1 || !shape2) return;
     const collision = PhysicsScene._collision;
     collision._nativeCollision = nativeCollision;
 
@@ -45,15 +46,17 @@ export class PhysicsScene {
       }
     );
 
-    shape2.collider.entity._scripts.forEach(
-      (element: Script) => {
-        collision.shape = shape1;
-        element.onCollisionEnter(collision);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
+    if (!shape2.collider.entity.destroyed) {
+      shape2.collider.entity._scripts.forEach(
+        (element: Script) => {
+          collision.shape = shape1;
+          element.onCollisionEnter(collision);
+        },
+        (element: Script, index: number) => {
+          element._entityScriptsIndex = index;
+        }
+      );
+    }
   };
 
   private _onContactExit = (nativeCollision: ICollision) => {
@@ -61,6 +64,7 @@ export class PhysicsScene {
     const { shape0Id, shape1Id } = nativeCollision;
     const shape1 = physicalObjectsMap[shape0Id];
     const shape2 = physicalObjectsMap[shape1Id];
+    if (!shape1 || !shape2) return;
     const collision = PhysicsScene._collision;
     collision._nativeCollision = nativeCollision;
 
@@ -74,21 +78,24 @@ export class PhysicsScene {
       }
     );
 
-    shape2.collider.entity._scripts.forEach(
-      (element: Script) => {
-        collision.shape = shape1;
-        element.onCollisionExit(collision);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
+    if (!shape2.collider.entity.destroyed) {
+      shape2.collider.entity._scripts.forEach(
+        (element: Script) => {
+          collision.shape = shape1;
+          element.onCollisionExit(collision);
+        },
+        (element: Script, index: number) => {
+          element._entityScriptsIndex = index;
+        }
+      );
+    }
   };
   private _onContactStay = (nativeCollision: ICollision) => {
     const physicalObjectsMap = Engine._physicalObjectsMap;
     const { shape0Id, shape1Id } = nativeCollision;
     const shape1 = physicalObjectsMap[shape0Id];
     const shape2 = physicalObjectsMap[shape1Id];
+    if (!shape1 || !shape2) return;
     const collision = PhysicsScene._collision;
     collision._nativeCollision = nativeCollision;
 
@@ -102,20 +109,23 @@ export class PhysicsScene {
       }
     );
 
-    shape2.collider.entity._scripts.forEach(
-      (element: Script) => {
-        collision.shape = shape1;
-        element.onCollisionStay(collision);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
+    if (!shape2.collider.entity.destroyed) {
+      shape2.collider.entity._scripts.forEach(
+        (element: Script) => {
+          collision.shape = shape1;
+          element.onCollisionStay(collision);
+        },
+        (element: Script, index: number) => {
+          element._entityScriptsIndex = index;
+        }
+      );
+    }
   };
   private _onTriggerEnter = (obj1: number, obj2: number) => {
     const physicalObjectsMap = Engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
+    if (!shape1 || !shape2) return;
 
     shape1.collider.entity._scripts.forEach(
       (element: Script) => {
@@ -126,20 +136,23 @@ export class PhysicsScene {
       }
     );
 
-    shape2.collider.entity._scripts.forEach(
-      (element: Script) => {
-        element.onTriggerEnter(shape1);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
+    if (!shape2.collider.entity.destroyed) {
+      shape2.collider.entity._scripts.forEach(
+        (element: Script) => {
+          element.onTriggerEnter(shape1);
+        },
+        (element: Script, index: number) => {
+          element._entityScriptsIndex = index;
+        }
+      );
+    }
   };
 
   private _onTriggerExit = (obj1: number, obj2: number) => {
     const physicalObjectsMap = Engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
+    if (!shape1 || !shape2) return;
 
     shape1.collider.entity._scripts.forEach(
       (element: Script) => {
@@ -150,20 +163,23 @@ export class PhysicsScene {
       }
     );
 
-    shape2.collider.entity._scripts.forEach(
-      (element: Script) => {
-        element.onTriggerExit(shape1);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
+    if (!shape2.collider.entity.destroyed) {
+      shape2.collider.entity._scripts.forEach(
+        (element: Script) => {
+          element.onTriggerExit(shape1);
+        },
+        (element: Script, index: number) => {
+          element._entityScriptsIndex = index;
+        }
+      );
+    }
   };
 
   private _onTriggerStay = (obj1: number, obj2: number) => {
     const physicalObjectsMap = Engine._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
     const shape2 = physicalObjectsMap[obj2];
+    if (!shape1 || !shape2) return;
 
     shape1.collider.entity._scripts.forEach(
       (element: Script) => {
@@ -174,14 +190,16 @@ export class PhysicsScene {
       }
     );
 
-    shape2.collider.entity._scripts.forEach(
-      (element: Script) => {
-        element.onTriggerStay(shape1);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
+    if (!shape2.collider.entity.destroyed) {
+      shape2.collider.entity._scripts.forEach(
+        (element: Script) => {
+          element.onTriggerStay(shape1);
+        },
+        (element: Script, index: number) => {
+          element._entityScriptsIndex = index;
+        }
+      );
+    }
   };
 
   /**
