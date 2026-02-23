@@ -5,18 +5,18 @@ import { Engine } from "../Engine";
  * EngineObject.
  */
 export abstract class EngineObject {
-  private static _instanceIdCounter: number = 0;
+  private static _instanceIdCounter = 0;
 
   /** Engine unique id. */
   @ignoreClone
-  readonly instanceId: number = ++EngineObject._instanceIdCounter;
+  readonly instanceId = ++EngineObject._instanceIdCounter;
 
   @ignoreClone
   protected _engine: Engine;
-  protected _destroyed: boolean = false;
+  protected _destroyed = false;
 
   /** @internal */
-  _pendingDestroy: boolean = false;
+  _pendingDestroy = false;
 
   /**
    * Get the engine which the object belongs.
