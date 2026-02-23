@@ -19,22 +19,6 @@ import { DisorderedArray } from "./utils/DisorderedArray";
  * Entity, be used as components container.
  */
 export class Entity extends EngineObject {
-  /** @internal */
-  static _destroyDeferred = false;
-  /** @internal */
-  static _pendingDestroyEntities: Entity[] = [];
-
-  /**
-   * @internal
-   */
-  static _processPendingDestroys(): void {
-    const pending = Entity._pendingDestroyEntities;
-    for (let i = 0; i < pending.length; i++) {
-      pending[i].destroy();
-    }
-    pending.length = 0;
-  }
-
   /**
    * @internal
    */
