@@ -808,10 +808,7 @@ export class PhysicsScene {
     for (let i = 0; i < step; i++) {
       componentsManager.callScriptOnPhysicsUpdate();
       this._callColliderOnUpdate();
-      componentsManager._entityDestroyDeferred = true;
       nativePhysicsManager.update(fixedTimeStep);
-      componentsManager._entityDestroyDeferred = false;
-      componentsManager.processPendingDestroyEntities();
       this._callColliderOnLateUpdate();
     }
   }

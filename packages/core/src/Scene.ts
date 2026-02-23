@@ -507,7 +507,6 @@ export class Scene extends EngineObject {
     this.background.destroy();
     this._ambientLight && this._ambientLight._removeFromScene(this);
     this.shaderData._addReferCount(-1);
-    this._componentsManager.handlingInvalidScripts();
     this._maskManager.destroy();
 
     const allCreatedScenes = sceneManager._allCreatedScenes;

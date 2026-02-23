@@ -31,9 +31,6 @@ export class ComponentsManager {
   private _onLateUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onPhysicsUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
 
-  private _pendingDestroyScripts: Script[] = [];
-  private _disposeDestroyScripts: Script[] = [];
-
   /** @internal */
   _entityDestroyDeferred = false;
   /** @internal */
@@ -185,10 +182,6 @@ export class ComponentsManager {
     renderer._onUpdateIndex = -1;
   }
 
-  addPendingDestroyScript(component: Script): void {
-    this._pendingDestroyScripts.push(component);
-  }
-
   /**
    * @internal
    */
@@ -272,19 +265,6 @@ export class ComponentsManager {
         element._onUpdateIndex = index;
       }
     );
-  }
-
-  handlingInvalidScripts(): void {
-    const { _disposeDestroyScripts: pendingDestroyScripts, _pendingDestroyScripts: disposeDestroyScripts } = this;
-    this._disposeDestroyScripts = disposeDestroyScripts;
-    this._pendingDestroyScripts = pendingDestroyScripts;
-    const length = disposeDestroyScripts.length;
-    if (length > 0) {
-      for (let i = length - 1; i >= 0; i--) {
-        disposeDestroyScripts[i].onDestroy();
-      }
-      disposeDestroyScripts.length = 0;
-    }
   }
 
   callCameraOnBeginRender(camera: Camera): void {

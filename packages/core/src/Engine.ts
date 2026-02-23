@@ -321,6 +321,13 @@ export class Engine extends EventDispatcher {
     const scenes = this._sceneManager._scenes.getLoopArray();
     const sceneCount = scenes.length;
 
+    // Enable deferred destruction for all callback batches
+    for (let i = 0; i < sceneCount; i++) {
+      const scene = scenes[i];
+      if (!scene.isActive || scene.destroyed) continue;
+      scene._componentsManager._entityDestroyDeferred = true;
+    }
+
     // Sort cameras and fire script `onStart`
     for (let i = 0; i < sceneCount; i++) {
       const scene = scenes[i];
@@ -371,11 +378,13 @@ export class Engine extends EventDispatcher {
     if (this._waitingDestroy) {
       this._destroy();
     } else {
-      // Handling invalid scripts and fire `onDestroy`
+      // Disable deferred destruction and process pending destroys
       for (let i = 0; i < sceneCount; i++) {
         const scene = scenes[i];
         if (!scene.isActive || scene.destroyed) continue;
-        scene._componentsManager.handlingInvalidScripts();
+        const componentsManager = scene._componentsManager;
+        componentsManager._entityDestroyDeferred = false;
+        componentsManager.processPendingDestroyEntities();
       }
     }
 
