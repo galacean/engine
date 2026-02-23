@@ -69,6 +69,7 @@ export class Engine extends EventDispatcher {
 
   _particleBufferUtils: ParticleBufferUtils;
   /** @internal */
+  _frameInProcess = false;
   /** @internal */
   _pendingDestroyObjects: EngineObject[] = [];
   /** @internal */
@@ -126,8 +127,6 @@ export class Engine extends EventDispatcher {
   private _vSyncCounter: number = 1;
   private _targetFrameInterval: number = 1000 / 60;
   private _destroyed: boolean = false;
-  /** @internal */
-  _frameInProcess = false;
   private _waitingDestroy: boolean = false;
   private _waitingGC: boolean = false;
   private _postProcessPasses = new Array<PostProcessPass>();
@@ -475,8 +474,12 @@ export class Engine extends EventDispatcher {
 
   private _processPendingDestroyObjects(): void {
     const pending = this._pendingDestroyObjects;
-    for (let i = 0; i < pending.length; i++) {
-      pending[i].destroy();
+    for (let i = 0, n = pending.length; i < n; i++) {
+      try {
+        pending[i].destroy();
+      } catch (e) {
+        Logger.error("Error during deferred destruction:", e);
+      }
     }
     pending.length = 0;
   }
