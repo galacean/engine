@@ -30,7 +30,6 @@ export class ComponentsManager {
   private _onLateUpdateScripts = new DisorderedArray<Script>();
   private _onPhysicsUpdateScripts = new DisorderedArray<Script>();
 
-
   // Animation
   private _onUpdateAnimations = new DisorderedArray<Animator>();
 
