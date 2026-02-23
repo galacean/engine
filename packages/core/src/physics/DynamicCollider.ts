@@ -368,21 +368,27 @@ export class DynamicCollider extends Collider {
   }
 
   /**
-   * Moves kinematically controlled dynamic actors through the game world.
-   * @param position - The desired position for the kinematic actor
+   * Moves the kinematic collider to the specified position.
+   * @remarks Only available when {@link isKinematic} is true.
+   * Unlike setting the transform directly (teleport), this method affects dynamic colliders along the movement path.
+   * @param position - The desired position for the kinematic collider
    */
   move(position: Vector3): void;
 
   /**
-   * Moves kinematically controlled dynamic actors through the game world.
-   * @param rotation - The desired rotation for the kinematic actor
+   * Moves the kinematic collider to the specified rotation.
+   * @remarks Only available when {@link isKinematic} is true.
+   * Unlike setting the transform directly (teleport), this method affects dynamic colliders along the movement path.
+   * @param rotation - The desired rotation for the kinematic collider
    */
   move(rotation: Quaternion): void;
 
   /**
-   * Moves kinematically controlled dynamic actors through the game world.
-   * @param position - The desired position for the kinematic actor
-   * @param rotation - The desired rotation for the kinematic actor
+   * Moves the kinematic collider to the specified position and rotation.
+   * @remarks Only available when {@link isKinematic} is true.
+   * Unlike setting the transform directly (teleport), this method affects dynamic colliders along the movement path.
+   * @param position - The desired position for the kinematic collider
+   * @param rotation - The desired rotation for the kinematic collider
    */
   move(position: Vector3, rotation: Quaternion): void;
 
