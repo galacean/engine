@@ -3,7 +3,6 @@ import { Component } from "./Component";
 import { Renderer } from "./Renderer";
 import { Script } from "./Script";
 import { Animator } from "./animation";
-import { EngineObject } from "./base";
 import { IUICanvas } from "./ui/IUICanvas";
 import { DisorderedArray } from "./utils/DisorderedArray";
 
@@ -12,35 +11,31 @@ import { DisorderedArray } from "./utils/DisorderedArray";
  */
 export class ComponentsManager {
   /* @internal */
-  _cameraNeedSorting: boolean = false;
+  _cameraNeedSorting = false;
   /** @internal */
-  _activeCameras: DisorderedArray<Camera> = new DisorderedArray();
+  _activeCameras = new DisorderedArray<Camera>();
   /** @internal */
-  _renderers: DisorderedArray<Renderer> = new DisorderedArray();
+  _renderers = new DisorderedArray<Renderer>();
 
   /** @internal */
-  _overlayCanvases: DisorderedArray<IUICanvas> = new DisorderedArray();
+  _overlayCanvases = new DisorderedArray<IUICanvas>();
   /* @internal */
-  _overlayCanvasesSortingDirty: boolean = false;
+  _overlayCanvasesSortingDirty = false;
   /** @internal */
-  _canvases: DisorderedArray<IUICanvas> = new DisorderedArray();
+  _canvases = new DisorderedArray<IUICanvas>();
 
   // Script
-  private _onStartScripts: DisorderedArray<Script> = new DisorderedArray();
-  private _onUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
-  private _onLateUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
-  private _onPhysicsUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
+  private _onStartScripts = new DisorderedArray<Script>();
+  private _onUpdateScripts = new DisorderedArray<Script>();
+  private _onLateUpdateScripts = new DisorderedArray<Script>();
+  private _onPhysicsUpdateScripts = new DisorderedArray<Script>();
 
-  /** @internal */
-  _destroyDeferred = false;
-  /** @internal */
-  _pendingDestroyObjects: EngineObject[] = [];
 
   // Animation
-  private _onUpdateAnimations: DisorderedArray<Animator> = new DisorderedArray();
+  private _onUpdateAnimations = new DisorderedArray<Animator>();
 
   // Render
-  private _onUpdateRenderers: DisorderedArray<Renderer> = new DisorderedArray();
+  private _onUpdateRenderers = new DisorderedArray<Renderer>();
 
   // Delay dispose active/inActive Pool
   private _componentsContainerPool: Component[][] = [];
@@ -180,19 +175,6 @@ export class ComponentsManager {
     const replaced = this._onUpdateRenderers.deleteByIndex(renderer._onUpdateIndex);
     replaced && (replaced._onUpdateIndex = renderer._onUpdateIndex);
     renderer._onUpdateIndex = -1;
-  }
-
-  /**
-   * @internal
-   */
-  processPendingDestroyObjects(): void {
-    const pending = this._pendingDestroyObjects;
-    for (let i = 0; i < pending.length; i++) {
-      const object = pending[i];
-      object._pendingDestroy = false;
-      object.destroy();
-    }
-    pending.length = 0;
   }
 
   callScriptOnStart(): void {

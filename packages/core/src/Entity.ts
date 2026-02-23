@@ -551,18 +551,14 @@ export class Entity extends EngineObject {
    * Destroy self.
    */
   override destroy(): void {
-    if (this._destroyed) {
-      return;
-    }
-
-    const componentsManager = this._scene?._componentsManager;
-    if (componentsManager?._destroyDeferred) {
-      this._pendingDestroy = true;
-      componentsManager._pendingDestroyObjects.push(this);
+    if (this._destroyed || this._pendingDestroy) {
       return;
     }
 
     super.destroy();
+    if (this._pendingDestroy) {
+      return;
+    }
 
     if (this._templateResource) {
       this._isTemplate || this._templateResource._addReferCount(-1);

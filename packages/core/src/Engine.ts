@@ -20,7 +20,7 @@ import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { ResourceManager } from "./asset/ResourceManager";
-import { EventDispatcher, Logger, Time } from "./base";
+import { EngineObject, EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
 import { InputManager } from "./input";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
@@ -68,6 +68,9 @@ export class Engine extends EventDispatcher {
   _batcherManager: BatcherManager;
 
   _particleBufferUtils: ParticleBufferUtils;
+  /** @internal */
+  /** @internal */
+  _pendingDestroyObjects: EngineObject[] = [];
   /** @internal */
   _physicsInitialized: boolean = false;
   /** @internal */
@@ -123,7 +126,8 @@ export class Engine extends EventDispatcher {
   private _vSyncCounter: number = 1;
   private _targetFrameInterval: number = 1000 / 60;
   private _destroyed: boolean = false;
-  private _frameInProcess: boolean = false;
+  /** @internal */
+  _frameInProcess = false;
   private _waitingDestroy: boolean = false;
   private _waitingGC: boolean = false;
   private _postProcessPasses = new Array<PostProcessPass>();
@@ -321,13 +325,6 @@ export class Engine extends EventDispatcher {
     const scenes = this._sceneManager._scenes.getLoopArray();
     const sceneCount = scenes.length;
 
-    // Enable deferred destruction for all callback batches
-    for (let i = 0; i < sceneCount; i++) {
-      const scene = scenes[i];
-      if (!scene.isActive || scene.destroyed) continue;
-      scene._componentsManager._destroyDeferred = true;
-    }
-
     // Sort cameras and fire script `onStart`
     for (let i = 0; i < sceneCount; i++) {
       const scene = scenes[i];
@@ -375,17 +372,11 @@ export class Engine extends EventDispatcher {
       this._render(scenes);
     }
 
+    // Process pending destroys
+    this._processPendingDestroyObjects();
+
     if (this._waitingDestroy) {
       this._destroy();
-    } else {
-      // Disable deferred destruction and process pending destroys
-      for (let i = 0; i < sceneCount; i++) {
-        const scene = scenes[i];
-        if (!scene.isActive || scene.destroyed) continue;
-        const componentsManager = scene._componentsManager;
-        componentsManager._destroyDeferred = false;
-        componentsManager.processPendingDestroyObjects();
-      }
     }
 
     if (this._waitingGC) {
@@ -480,6 +471,16 @@ export class Engine extends EventDispatcher {
   _getActivePostProcessPasses(): ReadonlyArray<PostProcessPass> {
     this._refreshActivePostProcessPasses();
     return this._activePostProcessPasses;
+  }
+
+  private _processPendingDestroyObjects(): void {
+    const pending = this._pendingDestroyObjects;
+    for (let i = 0; i < pending.length; i++) {
+      const object = pending[i];
+      object._pendingDestroy = false;
+      object.destroy();
+    }
+    pending.length = 0;
   }
 
   private _destroy(): void {
