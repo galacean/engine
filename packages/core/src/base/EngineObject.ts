@@ -15,6 +15,9 @@ export abstract class EngineObject {
   protected _engine: Engine;
   protected _destroyed: boolean = false;
 
+  /** @internal */
+  _pendingDestroy: boolean = false;
+
   /**
    * Get the engine which the object belongs.
    */
@@ -27,6 +30,15 @@ export abstract class EngineObject {
    */
   get destroyed(): boolean {
     return this._destroyed;
+  }
+
+  /**
+   * Whether this object is pending destruction.
+   * @remarks This is `true` when `destroy()` has been called during physics event dispatch,
+   * but the actual destruction is deferred until all physics events have been dispatched.
+   */
+  get pendingDestroy(): boolean {
+    return this._pendingDestroy;
   }
 
   constructor(engine: Engine) {

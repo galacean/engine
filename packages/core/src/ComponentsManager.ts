@@ -195,7 +195,9 @@ export class ComponentsManager {
   processPendingDestroyEntities(): void {
     const pending = this._pendingDestroyEntities;
     for (let i = 0; i < pending.length; i++) {
-      pending[i].destroy();
+      const entity = pending[i];
+      entity._pendingDestroy = false;
+      entity.destroy();
     }
     pending.length = 0;
   }
