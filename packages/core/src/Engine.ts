@@ -371,6 +371,8 @@ export class Engine extends EventDispatcher {
       this._render(scenes);
     }
 
+    this._frameInProcess = false;
+
     // Process pending destroys
     this._processPendingDestroyObjects();
 
@@ -382,7 +384,6 @@ export class Engine extends EventDispatcher {
       this._gc();
       this._waitingGC = false;
     }
-    this._frameInProcess = false;
   }
 
   /**
