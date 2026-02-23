@@ -475,11 +475,7 @@ export class Engine extends EventDispatcher {
   private _processPendingDestroyObjects(): void {
     const pending = this._pendingDestroyObjects;
     for (let i = 0, n = pending.length; i < n; i++) {
-      try {
-        pending[i].destroy();
-      } catch (e) {
-        Logger.error("Error during deferred destruction:", e);
-      }
+      pending[i].destroy();
     }
     pending.length = 0;
   }
