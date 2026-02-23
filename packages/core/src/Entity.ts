@@ -551,12 +551,8 @@ export class Entity extends EngineObject {
    * Destroy self.
    */
   override destroy(): void {
-    if (this._destroyed || this._pendingDestroy) {
-      return;
-    }
-
     super.destroy();
-    if (this._pendingDestroy) {
+    if (!this._destroyed) {
       return;
     }
 

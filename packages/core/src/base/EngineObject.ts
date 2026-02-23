@@ -50,13 +50,17 @@ export abstract class EngineObject {
    */
   destroy(): void {
     if (this._destroyed) return;
+
     if (this._engine._frameInProcess) {
-      this._pendingDestroy = true;
-      this._engine._pendingDestroyObjects.push(this);
-      return;
+      if (!this._pendingDestroy) {
+        this._pendingDestroy = true;
+        this._engine._pendingDestroyObjects.push(this);
+      }
+    } else {
+      this._pendingDestroy = false;
+      this._onDestroy();
+      this._destroyed = true;
     }
-    this._onDestroy();
-    this._destroyed = true;
   }
 
   protected _onDestroy(): void {
