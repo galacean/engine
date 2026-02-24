@@ -1120,6 +1120,115 @@ describe("Animator test", function () {
     expect(animator.getCurrentAnimatorState(0).name).to.eq("Run");
   });
 
+  it("anyState transition interrupts FixedCrossFading", () => {
+    const { animatorController } = animator;
+    animatorController.addParameter("interrupt", false);
+    const stateMachine = animatorController.layers[0].stateMachine;
+    const idleState = animator.findAnimatorState("Survey");
+    const walkState = animator.findAnimatorState("Walk");
+
+    // AnyState -> Idle (can interrupt)
+    const anyToIdle = stateMachine.addAnyStateTransition(idleState);
+    anyToIdle.hasExitTime = false;
+    anyToIdle.duration = 0.2;
+    anyToIdle.addCondition("interrupt", AnimatorConditionMode.If, true);
+
+    // Play Walk with Once mode, let it finish to reach Finished state
+    walkState.wrapMode = WrapMode.Once;
+    animator.play("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(walkState.clip.length + 0.1);
+
+    // @ts-ignore
+    const layerData = animator._getAnimatorLayerData(0);
+
+    // LayerState.Finished = 4
+    expect(layerData.layerState).to.eq(4);
+
+    // CrossFade from Finished state → FixedCrossFading
+    animator.crossFade("Run", 1.0);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+
+    // LayerState.FixedCrossFading = 3
+    expect(layerData.layerState).to.eq(3);
+    expect(layerData.destPlayData.state.name).to.eq("Run");
+
+    // Trigger interrupt during FixedCrossFading
+    animator.setParameterValue("interrupt", true);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+
+    // Should have interrupted to Idle
+    expect(layerData.destPlayData.state.name).to.eq("Survey");
+  });
+
+  it("anyState interrupt should skip transition to same destination state", () => {
+    const { animatorController } = animator;
+    animatorController.addParameter("alwaysTrue", true);
+    const stateMachine = animatorController.layers[0].stateMachine;
+    const runState = animator.findAnimatorState("Run");
+
+    // AnyState -> Run (always true, noExitTime)
+    const anyToRun = stateMachine.addAnyStateTransition(runState);
+    anyToRun.hasExitTime = false;
+    anyToRun.duration = 0.2;
+    anyToRun.addCondition("alwaysTrue", AnimatorConditionMode.If, true);
+
+    // Start crossFade Walk -> Run
+    animator.play("Walk");
+    animator.crossFade("Run", 1.0);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+
+    // @ts-ignore
+    const layerData = animator._getAnimatorLayerData(0);
+
+    // Should be in CrossFading state, dest = Run
+    // LayerState.CrossFading = 2
+    expect(layerData.layerState).to.eq(2);
+    expect(layerData.destPlayData.state.name).to.eq("Run");
+
+    // Update again - anyState -> Run should be skipped because dest is already Run
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+
+    // Should still be CrossFading to Run (not interrupted/reset)
+    expect(layerData.layerState).to.eq(2);
+    expect(layerData.destPlayData.state.name).to.eq("Run");
+  });
+
+  it("zero-duration crossFade should not be interrupted by anyState transition", () => {
+    const { animatorController } = animator;
+    animatorController.addParameter("interrupt", true);
+    const stateMachine = animatorController.layers[0].stateMachine;
+    const idleState = animator.findAnimatorState("Survey");
+
+    // AnyState -> Idle (always true, noExitTime)
+    const anyToIdle = stateMachine.addAnyStateTransition(idleState);
+    anyToIdle.hasExitTime = false;
+    anyToIdle.duration = 0.2;
+    anyToIdle.addCondition("interrupt", AnimatorConditionMode.If, true);
+
+    // Start crossFade with duration = 0 (instant transition)
+    animator.play("Walk");
+    animator.crossFade("Run", 0);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+
+    // @ts-ignore
+    const layerData = animator._getAnimatorLayerData(0);
+
+    // Zero-duration crossFade completes instantly, should be Playing Run (not interrupted to Survey)
+    expect(layerData.srcPlayData.state.name).to.eq("Run");
+  });
+
   it("toggle hasExitTime should maintain correct noExitTimeCount", () => {
     const walkState = animator.findAnimatorState("Walk");
     const runState = animator.findAnimatorState("Run");
