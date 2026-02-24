@@ -74,10 +74,11 @@ export class AnimatorStateTransitionCollection {
     this._soloCount += isModifiedSolo ? 1 : -1;
   }
 
-  updateTransitionsIndex(transition: AnimatorStateTransition, hasExitTime: boolean): void {
+  updateTransitionsIndex(transition: AnimatorStateTransition, newHasExitTime: boolean): void {
     const transitions = this.transitions;
     transitions.splice(transitions.indexOf(transition), 1);
-    if (hasExitTime) {
+    // newHasExitTime=true means transition was noExitTime before, so decrement
+    if (newHasExitTime) {
       this.noExitTimeCount--;
     }
     this._addTransition(transition);

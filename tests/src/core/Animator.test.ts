@@ -28,6 +28,15 @@ const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
 canvasDOM.height = 1024;
 
+// Mirror of internal LayerState enum (not exported from @galacean/engine-core)
+const LayerState = {
+  Standby: 0,
+  Playing: 1,
+  CrossFading: 2,
+  FixedCrossFading: 3,
+  Finished: 4
+} as const;
+
 describe("Animator test", function () {
   let animator: Animator;
   let resource: GLTFResource;
@@ -1060,8 +1069,7 @@ describe("Animator test", function () {
     // @ts-ignore
     const layerData = animator._getAnimatorLayerData(0);
 
-    // LayerState.CrossFading = 2
-    expect(layerData.layerState).to.eq(2);
+    expect(layerData.layerState).to.eq(LayerState.CrossFading);
     expect(layerData.destPlayData.state.name).to.eq("Run");
 
     // Trigger interrupt during crossFade
@@ -1143,8 +1151,7 @@ describe("Animator test", function () {
     // @ts-ignore
     const layerData = animator._getAnimatorLayerData(0);
 
-    // LayerState.Finished = 4
-    expect(layerData.layerState).to.eq(4);
+    expect(layerData.layerState).to.eq(LayerState.Finished);
 
     // CrossFade from Finished state → FixedCrossFading
     animator.crossFade("Run", 1.0);
@@ -1152,8 +1159,7 @@ describe("Animator test", function () {
     animator.engine.time._frameCount++;
     animator.update(0.1);
 
-    // LayerState.FixedCrossFading = 3
-    expect(layerData.layerState).to.eq(3);
+    expect(layerData.layerState).to.eq(LayerState.FixedCrossFading);
     expect(layerData.destPlayData.state.name).to.eq("Run");
 
     // Trigger interrupt during FixedCrossFading
@@ -1189,8 +1195,7 @@ describe("Animator test", function () {
     const layerData = animator._getAnimatorLayerData(0);
 
     // Should be in CrossFading state, dest = Run
-    // LayerState.CrossFading = 2
-    expect(layerData.layerState).to.eq(2);
+    expect(layerData.layerState).to.eq(LayerState.CrossFading);
     expect(layerData.destPlayData.state.name).to.eq("Run");
 
     // Update again - anyState -> Run should be skipped because dest is already Run
@@ -1199,7 +1204,7 @@ describe("Animator test", function () {
     animator.update(0.1);
 
     // Should still be CrossFading to Run (not interrupted/reset)
-    expect(layerData.layerState).to.eq(2);
+    expect(layerData.layerState).to.eq(LayerState.CrossFading);
     expect(layerData.destPlayData.state.name).to.eq("Run");
   });
 
