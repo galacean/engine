@@ -83,7 +83,7 @@ export class WebXRDevice implements IXRDevice {
               });
             }
             session.requestReferenceSpace("local").then((referenceSpace: XRReferenceSpace) => {
-              resolve(new WebXRSession(session, layer, referenceSpace));
+              resolve(new WebXRSession(session, layer, referenceSpace, gl));
             }, reject);
           }, reject);
         }, reject);

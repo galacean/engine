@@ -1,5 +1,6 @@
 const path = require("path");
 const fs = require("fs-extra");
+const basicSsl = require("@vitejs/plugin-basic-ssl");
 const OUT_PATH = "dist";
 const templateStr = fs.readFileSync(path.join(__dirname, "template/iframe.ejs"), "utf8");
 
@@ -30,11 +31,22 @@ const demoList = fs
     };
   });
 
+const outDir = path.resolve(__dirname, OUT_PATH);
+const validDemoFileSet = new Set(demoList.map(({ file }) => file));
+fs.ensureDirSync(outDir);
+fs.readdirSync(outDir).forEach((name) => {
+  if (!/\.(ts|html)$/.test(name)) return;
+  const file = name.replace(/\.(ts|html)$/, "");
+  if (!validDemoFileSet.has(file)) {
+    fs.removeSync(path.join(outDir, name));
+  }
+});
+
 demoList.forEach(({ title, file }) => {
   const ejs = templateStr.replaceEJS("title", title).replaceEJS("url", `./${file}.ts`);
 
-  fs.outputFileSync(path.resolve(__dirname, OUT_PATH, file + ".ts"), `import "../src/${file}"`);
-  fs.outputFileSync(path.resolve(__dirname, OUT_PATH, file + ".html"), ejs);
+  fs.outputFileSync(path.join(outDir, file + ".ts"), `import "../src/${file}"`);
+  fs.outputFileSync(path.join(outDir, file + ".html"), ejs);
 });
 
 // output demolist
@@ -49,9 +61,12 @@ demoList.forEach(({ title, category, file }) => {
   });
 });
 
-fs.outputJSONSync(path.join(__dirname, OUT_PATH, ".demoList.json"), demoSorted);
+fs.outputJSONSync(path.join(outDir, ".demoList.json"), demoSorted);
+
+const useHttps = process.argv.includes("--https");
 
 module.exports = {
+  plugins: useHttps ? [basicSsl()] : [],
   server: {
     open: true,
     host: "0.0.0.0",

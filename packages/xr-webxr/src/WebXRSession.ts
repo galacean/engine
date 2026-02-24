@@ -15,6 +15,8 @@ export class WebXRSession implements IXRSession {
   _platformLayer: XRWebGLLayer;
   /** @internal */
   _platformReferenceSpace: XRReferenceSpace;
+  /** @internal */
+  _gl: WebGLRenderingContext | WebGL2RenderingContext;
 
   private _frame: WebXRFrame;
   private _events: IXRInputEvent[] = [];
@@ -78,11 +80,17 @@ export class WebXRSession implements IXRSession {
     return events;
   }
 
-  constructor(session: XRSession, layer: XRWebGLLayer, referenceSpace: XRReferenceSpace) {
+  constructor(
+    session: XRSession,
+    layer: XRWebGLLayer,
+    referenceSpace: XRReferenceSpace,
+    gl: WebGLRenderingContext | WebGL2RenderingContext
+  ) {
     this._frame = new WebXRFrame(this);
     this._platformSession = session;
     this._platformLayer = layer;
     this._platformReferenceSpace = referenceSpace;
+    this._gl = gl;
     const xrRequestAnimationFrame = session.requestAnimationFrame.bind(session);
     const onFrame = function (time: number, frame: XRFrame, callback: FrameRequestCallback) {
       this._frame._platformFrame = frame;

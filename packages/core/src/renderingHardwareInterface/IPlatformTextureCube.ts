@@ -66,3 +66,47 @@ export interface IPlatformTextureCube extends IPlatformTexture {
     out: ArrayBufferView
   ): void;
 }
+
+/**
+ * @internal
+ */
+export interface IPlatformTextureCubeExternalOptions {
+  /**
+   * The face size of the external cube texture.
+   */
+  size?: number;
+  /**
+   * Mipmap count of the external cube texture.
+   */
+  mipmapCount?: number;
+  /**
+   * Whether the external handle should be destroyed by engine.
+   * @defaultValue `false`
+   */
+  ownedByEngine?: boolean;
+  /**
+   * Whether the external texture data should be treated as immutable.
+   * @defaultValue `true`
+   */
+  immutable?: boolean;
+}
+
+/**
+ * @internal
+ */
+export interface IPlatformTextureCubeInternal extends IPlatformTextureCube {
+  /**
+   * Bind an external native cube texture handle.
+   */
+  _bindExternalTexture(handle: unknown, options?: IPlatformTextureCubeExternalOptions): void;
+
+  /**
+   * Unbind current external texture and restore engine-owned texture.
+   */
+  _unbindExternalTexture(): void;
+
+  /**
+   * Whether current texture is backed by an external handle.
+   */
+  _isExternalTextureBound(): boolean;
+}

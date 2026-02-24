@@ -516,6 +516,18 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     }
   }
 
+  /**
+   * @internal
+   */
+  invalidateTextureBinding(texture: GLTexture): void {
+    const activeTextures = this._activeTextures;
+    for (let i = 0, n = activeTextures.length; i < n; i++) {
+      if (activeTextures[i] === texture) {
+        activeTextures[i] = null;
+      }
+    }
+  }
+
   setGlobalDepthBias(bias: number, slopeBias: number): void {
     const gl = this._gl;
     const enable = bias !== 0 || slopeBias !== 0;

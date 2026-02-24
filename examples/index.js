@@ -102,6 +102,12 @@ function onHashChange() {
     return;
   }
 
+  const hasMatch = items.some(({ itemDOM }) => `dist/${itemDOM.title}` === hashPath);
+  if (!hasMatch) {
+    clickItem(items[0].itemDOM);
+    return;
+  }
+
   iframe.src = hashPath + ".html";
 
   items.forEach(({ itemDOM }) => {

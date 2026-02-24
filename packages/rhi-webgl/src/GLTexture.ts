@@ -440,6 +440,10 @@ export class GLTexture implements IPlatformTexture {
   /** @internal */
   _glTexture: WebGLTexture;
   /** @internal */
+  _ownsGLTexture: boolean = true;
+  /** @internal */
+  _isExternalTexture: boolean = false;
+  /** @internal */
   _rhi: WebGLGraphicDevice;
   /** @internal */
   _gl: WebGLRenderingContext & WebGL2RenderingContext;
@@ -549,10 +553,12 @@ export class GLTexture implements IPlatformTexture {
    * Destroy texture.
    */
   destroy() {
-    this._gl.deleteTexture(this._glTexture);
+    this._ownsGLTexture && this._glTexture && this._gl.deleteTexture(this._glTexture);
     this._texture = null;
     this._glTexture = null;
     this._formatDetail = null;
+    this._ownsGLTexture = true;
+    this._isExternalTexture = false;
   }
 
   /**
@@ -567,6 +573,11 @@ export class GLTexture implements IPlatformTexture {
    * Generate multi-level textures based on the 0th level data.
    */
   generateMipmaps(): void {
+    if (this._isExternalTexture) {
+      Logger.warn("Cannot generate mipmaps for external texture.");
+      return;
+    }
+
     const texture = this._texture;
     //@ts-ignore
     const mipmap = texture._mipmap;
@@ -587,6 +598,11 @@ export class GLTexture implements IPlatformTexture {
 
   protected _bind() {
     this._rhi.bindTexture(this);
+  }
+
+  /** @internal */
+  protected _invalidateTextureBindingCache() {
+    this._rhi.invalidateTextureBinding(this);
   }
 
   /**

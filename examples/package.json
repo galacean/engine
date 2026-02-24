@@ -25,6 +25,7 @@
     "@galacean/engine-ui": "workspace:*"
   },
   "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^2.1.4",
     "dat.gui": "^0.7.9",
     "vite": "^4.4.4"
   }

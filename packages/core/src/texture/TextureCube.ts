@@ -1,5 +1,9 @@
 import { Engine } from "../Engine";
-import { IPlatformTextureCube } from "../renderingHardwareInterface";
+import type {
+  IPlatformTextureCube,
+  IPlatformTextureCubeExternalOptions,
+  IPlatformTextureCubeInternal
+} from "../renderingHardwareInterface/IPlatformTextureCube";
 import { TextureCubeFace } from "./enums/TextureCubeFace";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
@@ -189,5 +193,36 @@ export class TextureCube extends Texture {
   override _rebuild(): void {
     this._platformTexture = this._engine._hardwareRenderer.createPlatformTextureCube(this);
     super._rebuild();
+  }
+
+  /**
+   * Bind an external native cube texture handle.
+   * @internal
+   */
+  _bindExternalTexture(handle: unknown, options?: IPlatformTextureCubeExternalOptions): void {
+    const platformTexture = this._platformTexture as IPlatformTextureCubeInternal;
+    if (!platformTexture._bindExternalTexture) {
+      throw new Error("Current backend does not support external cube texture binding.");
+    }
+    platformTexture._bindExternalTexture(handle, options);
+    this._isContentLost = false;
+  }
+
+  /**
+   * Unbind current external texture and restore engine-owned texture.
+   * @internal
+   */
+  _unbindExternalTexture(): void {
+    const platformTexture = this._platformTexture as IPlatformTextureCubeInternal;
+    platformTexture._unbindExternalTexture && platformTexture._unbindExternalTexture();
+  }
+
+  /**
+   * Whether current texture is backed by an external handle.
+   * @internal
+   */
+  _isExternalTextureBound(): boolean {
+    const platformTexture = this._platformTexture as IPlatformTextureCubeInternal;
+    return !!platformTexture._isExternalTextureBound?.();
   }
 }

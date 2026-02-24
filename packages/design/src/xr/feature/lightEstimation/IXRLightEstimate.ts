@@ -10,4 +10,10 @@ export interface IXRLightEstimate {
   primaryLightDirection: Vector3;
   /** Main light intensity (linear RGB). */
   primaryLightIntensity: Color;
+  /** Reflection cube map native handle from XR light probe. */
+  reflectionCubeMap: unknown | null;
+  /** Reflection cube map face size. */
+  reflectionCubeMapSize: number;
+  /** Reflection cube map mipmap count. */
+  reflectionCubeMapMipmapCount: number;
 }

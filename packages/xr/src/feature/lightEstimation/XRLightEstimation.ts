@@ -1,5 +1,5 @@
 import { IXRLightEstimationPlatformFeature } from "@galacean/engine-design";
-import { registerXRFeature } from "../../XRManagerExtended";
+import { XRManagerExtended, registerXRFeature } from "../../XRManagerExtended";
 import { XRFeature } from "../XRFeature";
 import { XRFeatureType } from "../XRFeatureType";
 import { XRLightEstimate } from "./XRLightEstimate";
@@ -11,6 +11,10 @@ import { XRLightEstimate } from "./XRLightEstimate";
 export class XRLightEstimation extends XRFeature<IXRLightEstimationPlatformFeature> {
   private _estimate: XRLightEstimate = new XRLightEstimate();
   private _available: boolean = false;
+
+  constructor(xrManager: XRManagerExtended) {
+    super(xrManager, XRFeatureType.LightEstimation);
+  }
 
   /**
    * The latest light estimation data.

@@ -2,12 +2,24 @@ import { IPlatformTextureCube, TextureCube, TextureCubeFace } from "@galacean/en
 import { GLTexture } from "./GLTexture";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
+interface IExternalCubeTextureOptions {
+  size?: number;
+  mipmapCount?: number;
+  ownedByEngine?: boolean;
+  immutable?: boolean;
+}
+
+interface IWebGL2CubeTextureQueryContext extends WebGL2RenderingContext {
+  getTexLevelParameter(target: number, level: number, pname: number): number;
+}
+
 /**
  * Cube texture in WebGL platform.
  */
 export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
   /** Backward compatible with WebGL1.0. */
   private _compressedFaceFilled: number[] = [0, 0, 0, 0, 0, 0];
+  private _externalTextureImmutable: boolean = true;
 
   constructor(rhi: WebGLGraphicDevice, textureCube: TextureCube) {
     super(rhi, textureCube, rhi.gl.TEXTURE_CUBE_MAP);
@@ -32,6 +44,10 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
     width?: number,
     height?: number
   ): void {
+    if (this._isExternalTexture && this._externalTextureImmutable) {
+      throw new Error("Cannot upload pixel data to an immutable external cube texture.");
+    }
+
     const gl = this._gl;
     const isWebGL2 = this._isWebGL2;
     const formatDetail = this._formatDetail;
@@ -99,6 +115,10 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
     x: number,
     y: number
   ): void {
+    if (this._isExternalTexture && this._externalTextureImmutable) {
+      throw new Error("Cannot upload image data to an immutable external cube texture.");
+    }
+
     const gl = this._gl;
     const { baseFormat, dataType } = this._formatDetail;
 
@@ -133,5 +153,105 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
       throw new Error("Unable to read compressed texture");
     }
     super._getPixelBuffer(face, x, y, width, height, mipLevel, out);
+  }
+
+  /**
+   * @internal
+   */
+  _bindExternalTexture(handle: unknown, options?: IExternalCubeTextureOptions): void {
+    const externalTexture = handle as WebGLTexture;
+    if (!externalTexture) {
+      throw new Error("External cube texture handle is invalid.");
+    }
+
+    if (this._glTexture === externalTexture && this._isExternalTexture) {
+      this._externalTextureImmutable = options?.immutable ?? true;
+      this._syncExternalTextureMeta(options);
+      return;
+    }
+
+    this._ownsGLTexture && this._glTexture && this._gl.deleteTexture(this._glTexture);
+
+    this._glTexture = externalTexture;
+    this._isExternalTexture = true;
+    this._ownsGLTexture = options?.ownedByEngine ?? false;
+    this._externalTextureImmutable = options?.immutable ?? true;
+    this._syncExternalTextureMeta(options);
+    this._applyTextureState();
+    this._invalidateTextureBindingCache();
+  }
+
+  /**
+   * @internal
+   */
+  _unbindExternalTexture(): void {
+    if (!this._isExternalTexture) {
+      return;
+    }
+
+    this._ownsGLTexture && this._glTexture && this._gl.deleteTexture(this._glTexture);
+
+    this._glTexture = this._gl.createTexture();
+    this._isExternalTexture = false;
+    this._ownsGLTexture = true;
+    this._externalTextureImmutable = true;
+    this._compressedFaceFilled.fill(0);
+    (this._formatDetail.isCompressed && !this._isWebGL2) || this._init(true);
+    this._applyTextureState();
+    this._invalidateTextureBindingCache();
+  }
+
+  /**
+   * @internal
+   */
+  _isExternalTextureBound(): boolean {
+    return this._isExternalTexture;
+  }
+
+  private _applyTextureState(): void {
+    const texture = this._texture as any;
+    this.wrapModeU = texture._wrapModeU;
+    this.wrapModeV = texture._wrapModeV;
+    this.filterMode = texture._filterMode;
+    this.anisoLevel = texture._anisoLevel;
+  }
+
+  private _syncExternalTextureMeta(options?: IExternalCubeTextureOptions): void {
+    let size = options?.size ?? 0;
+    let mipmapCount = options?.mipmapCount ?? 0;
+
+    if (this._isWebGL2 && (size <= 0 || mipmapCount <= 0)) {
+      const gl = this._gl as IWebGL2CubeTextureQueryContext;
+      const currentBinding = gl.getParameter(gl.TEXTURE_BINDING_CUBE_MAP) as WebGLTexture | null;
+      const textureWidth = 0x1000;
+      gl.bindTexture(gl.TEXTURE_CUBE_MAP, this._glTexture);
+      try {
+        if (size <= 0) {
+          size = gl.getTexLevelParameter(gl.TEXTURE_CUBE_MAP_POSITIVE_X, 0, textureWidth) || 0;
+        }
+        if (mipmapCount <= 0 && size > 0) {
+          for (let level = 0; level < 16; level++) {
+            const levelSize = gl.getTexLevelParameter(gl.TEXTURE_CUBE_MAP_POSITIVE_X, level, textureWidth) || 0;
+            if (levelSize <= 0) {
+              break;
+            }
+            mipmapCount++;
+            if (levelSize === 1) {
+              break;
+            }
+          }
+        }
+      } finally {
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, currentBinding);
+      }
+    }
+
+    const texture = this._texture as any;
+    size = Math.max(size || texture._width || 1, 1);
+    mipmapCount = Math.max(mipmapCount || texture._mipmapCount || 1, 1);
+    texture._width = size;
+    texture._height = size;
+    texture._mipmap = mipmapCount > 1;
+    texture._mipmapCount = mipmapCount;
   }
 }
