@@ -294,7 +294,7 @@ export class TrailRenderer extends Renderer {
 
     // Only expand by half width when there's actual/upcoming trail geometry
     if (hasTrailGeometry) {
-      // Find max width multiplier from widthCurve
+      // Find max width from widthCurve
       let maxWidth = 0;
       const widthKeys = this.widthCurve.keys;
       for (let i = 0, n = widthKeys.length; i < n; i++) {
