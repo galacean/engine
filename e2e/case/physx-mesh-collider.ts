@@ -55,10 +55,7 @@ function createFallingBox(
   return entity;
 }
 
-const physics = new PhysXPhysics(PhysXRuntimeMode.Auto, {
-  simdModeUrl: "../physx.release.simd.js",
-  wasmModeUrl: "../physx.release.js"
-});
+const physics = new PhysXPhysics(PhysXRuntimeMode.Auto);
 WebGLEngine.create({ canvas: "canvas", physics }).then((engine) => {
   engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
