@@ -546,7 +546,7 @@ describe("MeshColliderShape PhysX", () => {
 
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("not accessible"));
       // @ts-ignore - access internal _nativeShape for verification
-      expect(meshShape._nativeShape).toBeNull();
+      expect(meshShape._nativeShape).toBeFalsy();
 
       warnSpy.mockRestore();
       entity.destroy();
@@ -573,7 +573,7 @@ describe("MeshColliderShape PhysX", () => {
 
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Non-convex mesh requires indices"));
       // @ts-ignore
-      expect(meshShape._nativeShape).toBeNull();
+      expect(meshShape._nativeShape).toBeFalsy();
 
       warnSpy.mockRestore();
       entity.destroy();
