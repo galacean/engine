@@ -11,7 +11,7 @@ import {
   BlendMode,
   Camera
 } from "@galacean/engine-core";
-import { Color, Vector3 } from "@galacean/engine-math";
+import { Color, Vector2, Vector3 } from "@galacean/engine-math";
 import { describe, it, expect, beforeEach } from "vitest";
 
 describe("Trail", async () => {
@@ -38,9 +38,9 @@ describe("Trail", async () => {
       expect(trailRenderer.emitting).to.eq(true);
       expect(trailRenderer.minVertexDistance).to.eq(0.1);
       expect(trailRenderer.time).to.eq(5.0);
-      expect(trailRenderer.width).to.eq(1.0);
       expect(trailRenderer.textureMode).to.eq(TrailTextureMode.Stretch);
-      expect(trailRenderer.textureScale).to.eq(1.0);
+      expect(trailRenderer.textureScale.x).to.eq(1.0);
+      expect(trailRenderer.textureScale.y).to.eq(1.0);
     });
 
     it("set emitting", () => {
@@ -79,18 +79,6 @@ describe("Trail", async () => {
       expect(trailRenderer.time).to.eq(10.0);
     });
 
-    it("set width", () => {
-      const rootEntity = scene.getRootEntity();
-      const trailEntity = rootEntity.createChild("trail");
-      const trailRenderer = trailEntity.addComponent(TrailRenderer);
-
-      trailRenderer.width = 0.5;
-      expect(trailRenderer.width).to.eq(0.5);
-
-      trailRenderer.width = 2.0;
-      expect(trailRenderer.width).to.eq(2.0);
-    });
-
     it("set textureMode", () => {
       const rootEntity = scene.getRootEntity();
       const trailEntity = rootEntity.createChild("trail");
@@ -108,11 +96,13 @@ describe("Trail", async () => {
       const trailEntity = rootEntity.createChild("trail");
       const trailRenderer = trailEntity.addComponent(TrailRenderer);
 
-      trailRenderer.textureScale = 2.0;
-      expect(trailRenderer.textureScale).to.eq(2.0);
+      trailRenderer.textureScale = new Vector2(2.0, 0.5);
+      expect(trailRenderer.textureScale.x).to.eq(2.0);
+      expect(trailRenderer.textureScale.y).to.eq(0.5);
 
-      trailRenderer.textureScale = 0.5;
-      expect(trailRenderer.textureScale).to.eq(0.5);
+      trailRenderer.textureScale.set(0.5, 3.0);
+      expect(trailRenderer.textureScale.x).to.eq(0.5);
+      expect(trailRenderer.textureScale.y).to.eq(3.0);
     });
 
     it("set widthCurve", () => {
@@ -180,10 +170,10 @@ describe("Trail", async () => {
       const trailEntity = rootEntity.createChild("trail");
       const trailRenderer = trailEntity.addComponent(TrailRenderer);
       trailRenderer.setMaterial(new TrailMaterial(engine));
-      trailRenderer.width = 2.0;
+      trailRenderer.widthCurve = new ParticleCurve(new CurveKey(0, 2), new CurveKey(1, 2));
       trailRenderer.minVertexDistance = 0.1;
 
-      const halfWidth = trailRenderer.width * 0.5; // 1.0
+      const halfWidth = 2.0 * 0.5; // 1.0
 
       // Initial bounds is (0,0,0) because dirty flag is not set initially
       expect(trailRenderer.bounds.min).to.deep.include({ x: 0, y: 0, z: 0 });
@@ -214,7 +204,7 @@ describe("Trail", async () => {
       expect(trailRenderer.bounds.max.z).to.closeTo(halfWidth, 0.01);
 
       // Test width change affects bounds
-      trailRenderer.width = 4.0;
+      trailRenderer.widthCurve = new ParticleCurve(new CurveKey(0, 4), new CurveKey(1, 4));
       const newHalfWidth = 2.0;
       trailEntity.transform.position = new Vector3(5, 4, 0);
 

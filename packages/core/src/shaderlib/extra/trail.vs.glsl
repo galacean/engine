@@ -2,7 +2,7 @@ attribute vec4 a_PositionBirthTime; // xyz: World position, w: Birth time (used 
 attribute vec4 a_CornerTangent;     // x: Corner (-1 or 1), yzw: Tangent direction
 attribute float a_Distance;         // Absolute cumulative distance (written once per point)
 
-uniform vec4 renderer_TrailParams;    // x: Width, y: TextureMode (0: Stretch, 1: Tile), z: TextureScale
+uniform vec4 renderer_TrailParams;    // x: TextureMode (0: Stretch, 1: Tile), y: TextureScaleX, z: TextureScaleY
 uniform vec2 renderer_DistanceParams;   // x: HeadDistance, y: TailDistance
 uniform vec3 camera_Position;
 uniform mat4 camera_ViewMat;
@@ -41,17 +41,15 @@ void main() {
     }
     right = right * inversesqrt(rightLenSq);
 
-    float widthMultiplier = evaluateParticleCurve(renderer_WidthCurve, min(relativePos, renderer_CurveMaxTime.z));
-    float width = renderer_TrailParams.x * widthMultiplier;
+    float width = evaluateParticleCurve(renderer_WidthCurve, min(relativePos, renderer_CurveMaxTime.z));
     vec3 worldPosition = position + right * width * 0.5 * corner;
 
     gl_Position = camera_ProjMat * camera_ViewMat * vec4(worldPosition, 1.0);
 
-    // UV: u=corner side, v=position along trail
-    float u = corner * 0.5 + 0.5;
-    // Stretch: normalize to 0-1, Tile: use world distance directly
-    float v = renderer_TrailParams.y == 0.0 ? relativePos : distFromHead;
-    v_uv = vec2(u, v * renderer_TrailParams.z);
+    // u = position along trail (affected by textureMode), v = corner side.
+    float u = renderer_TrailParams.x == 0.0 ? relativePos : distFromHead;
+    float v = corner * 0.5 + 0.5;
+    v_uv = vec2(u * renderer_TrailParams.y, v * renderer_TrailParams.z);
 
     v_color = evaluateParticleGradient(renderer_ColorKeys, renderer_CurveMaxTime.x, renderer_AlphaKeys, renderer_CurveMaxTime.y, relativePos);
 }

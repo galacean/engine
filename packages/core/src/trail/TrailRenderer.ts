@@ -60,7 +60,9 @@ export class TrailRenderer extends Renderer {
 
   // Shader parameters
   @deepClone
-  private _trailParams = new Vector4(1.0, TrailTextureMode.Stretch, 1.0, 0); // x: width, y: textureMode, z: textureScale
+  private _trailParams = new Vector4(TrailTextureMode.Stretch, 1.0, 1.0, 0); // x: textureMode, y: textureScaleX, z: textureScaleY
+  @deepClone
+  private _textureScale = new Vector2(1.0, 1.0);
   @ignoreClone
   private _distanceParams = new Vector2(); // x: headDistance, y: tailDistance
   @ignoreClone
@@ -120,36 +122,26 @@ export class TrailRenderer extends Renderer {
   }
 
   /**
-   * The width of the trail.
+   * The texture mapping mode for the trail.
    */
-  get width(): number {
+  get textureMode(): TrailTextureMode {
     return this._trailParams.x;
   }
 
-  set width(value: number) {
+  set textureMode(value: TrailTextureMode) {
     this._trailParams.x = value;
   }
 
   /**
-   * The texture mapping mode for the trail.
+   * Scale of the UV coordinates.
+   * x scales the coordinate along the trail, y scales the coordinate across the trail.
    */
-  get textureMode(): TrailTextureMode {
-    return this._trailParams.y;
+  get textureScale(): Vector2 {
+    return this._textureScale;
   }
 
-  set textureMode(value: TrailTextureMode) {
-    this._trailParams.y = value;
-  }
-
-  /**
-   * The texture scale when using Tile texture mode.
-   */
-  get textureScale(): number {
-    return this._trailParams.z;
-  }
-
-  set textureScale(value: number) {
-    this._trailParams.z = value;
+  set textureScale(value: Vector2) {
+    value !== this._textureScale && this._textureScale.copyFrom(value);
   }
 
   /**
@@ -157,6 +149,9 @@ export class TrailRenderer extends Renderer {
    */
   constructor(entity: Entity) {
     super(entity);
+    // @ts-ignore
+    this._textureScale._onValueChanged = this._onTextureScaleChanged.bind(this);
+    this._onTextureScaleChanged();
     this._initGeometry();
   }
 
@@ -299,16 +294,16 @@ export class TrailRenderer extends Renderer {
 
     // Only expand by half width when there's actual/upcoming trail geometry
     if (hasTrailGeometry) {
-      // Find max width multiplier from widthCurve
-      let maxWidthMultiplier = 0;
+      // Find max width from widthCurve
+      let maxWidth = 0;
       const widthKeys = this.widthCurve.keys;
       for (let i = 0, n = widthKeys.length; i < n; i++) {
         const value = widthKeys[i].value;
-        if (value > maxWidthMultiplier) {
-          maxWidthMultiplier = value;
+        if (value > maxWidth) {
+          maxWidth = value;
         }
       }
-      const halfWidth = this.width * maxWidthMultiplier * 0.5;
+      const halfWidth = maxWidth * 0.5;
       min.set(min.x - halfWidth, min.y - halfWidth, min.z - halfWidth);
       max.set(max.x + halfWidth, max.y + halfWidth, max.z + halfWidth);
     }
@@ -605,5 +600,11 @@ export class TrailRenderer extends Renderer {
     const subRenderElement = this._engine._subRenderElementPool.get();
     subRenderElement.set(this, material, this._primitive, subPrimitive);
     renderElement.addSubRenderElement(subRenderElement);
+  }
+
+  @ignoreClone
+  private _onTextureScaleChanged(): void {
+    this._trailParams.y = this._textureScale.x;
+    this._trailParams.z = this._textureScale.y;
   }
 }

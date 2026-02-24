@@ -211,12 +211,12 @@ WebGLEngine.create({
     material.emissiveColor.copyFrom(config.emissive);
     trail.setMaterial(material);
     trail.time = config.time;
-    trail.width = config.width;
     trail.minVertexDistance = 0.15;
     trailMaterials.push(material);
 
-    // Tapered width curve
-    trail.widthCurve = new ParticleCurve(new CurveKey(0, 1), new CurveKey(0.8, 0.3), new CurveKey(1, 0));
+    // Tapered width curve (width baked into curve values)
+    const w = config.width;
+    trail.widthCurve = new ParticleCurve(new CurveKey(0, w), new CurveKey(0.8, 0.3 * w), new CurveKey(1, 0));
 
     // Color gradient
     const gradient = new ParticleGradient(
