@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-ui",
-  "version": "1.6.13",
+  "version": "0.0.0-experimental-1.6-xr.0",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
