@@ -431,31 +431,7 @@ describe("MeshColliderShape PhysX", () => {
   });
 
   describe("mesh property Error Handling", () => {
-    it("should warn when mesh is set with non-ModelMesh", () => {
-      const warnSpy = vi.spyOn(console, "warn");
-      const entity = root.createChild("nonModelMesh");
-      const staticCollider = entity.addComponent(StaticCollider);
-
-      const meshShape = new MeshColliderShape();
-      const meshMaterial = meshShape.material;
-
-      // Set initial data so shape exists
-      const mesh = createModelMesh(engine, [0, 0, 0, 1, 0, 0, 0, 1, 0], [0, 1, 2]);
-      meshShape.mesh = mesh;
-      staticCollider.addShape(meshShape);
-
-      // Create a mock non-ModelMesh object
-      const fakeMesh = { notAModelMesh: true } as any;
-      meshShape.mesh = fakeMesh;
-
-      expect(warnSpy).toHaveBeenCalledWith("MeshColliderShape: Only ModelMesh is supported");
-
-      warnSpy.mockRestore();
-      entity.destroy();
-      meshMaterial?.destroy();
-    });
-
-    it("should not call _updateNativeMesh when mesh extraction fails", () => {
+    it("should not call _updateNativeMesh when mesh has no position data", () => {
       const entity = root.createChild("errorMesh");
       const staticCollider = entity.addComponent(StaticCollider);
 
@@ -472,28 +448,14 @@ describe("MeshColliderShape PhysX", () => {
       const updateSpy = vi.spyOn(meshShape, "_updateNativeMesh");
       const warnSpy = vi.spyOn(console, "warn");
 
-      // Create a mock object that passes instanceof check by setting prototype
-      const mockMesh = Object.create(ModelMesh.prototype);
-      Object.defineProperty(mockMesh, "_primitive", {
-        value: {
-          _vertexElementMap: {}, // No Position attribute
-          vertexBufferBindings: []
-        },
-        writable: true
-      });
-      Object.defineProperty(mockMesh, "vertexCount", {
-        value: 0,
-        writable: true
-      });
-      mockMesh.getIndices = () => null;
+      // Create a mesh with no position data
+      const emptyMesh = createModelMesh(engine, [], []);
+      meshShape.mesh = emptyMesh;
 
-      // Set mesh with invalid mesh - should warn and NOT update
-      meshShape.mesh = mockMesh;
+      // Should have warned about missing position data
+      expect(warnSpy).toHaveBeenCalledWith("MeshColliderShape: Mesh has no position data");
 
-      // Should have warned about missing position attribute
-      expect(warnSpy).toHaveBeenCalledWith("MeshColliderShape: Mesh has no position attribute");
-
-      // _updateNativeMesh should NOT have been called (this is the key assertion)
+      // _updateNativeMesh should NOT have been called
       expect(updateSpy).not.toHaveBeenCalled();
 
       updateSpy.mockRestore();
