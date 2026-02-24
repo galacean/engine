@@ -519,7 +519,7 @@ describe("MeshColliderShape PhysX", () => {
 
       dynamicCollider.addShape(meshShape);
 
-      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("triangle mesh"));
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("Non-convex MeshColliderShape"));
 
       errorSpy.mockRestore();
       entity.destroy();
@@ -544,7 +544,7 @@ describe("MeshColliderShape PhysX", () => {
 
       dynamicCollider.isKinematic = false; // Switch to non-kinematic
 
-      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("triangle mesh"));
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("Non-convex MeshColliderShape"));
 
       errorSpy.mockRestore();
       entity.destroy();
@@ -606,7 +606,7 @@ describe("MeshColliderShape PhysX", () => {
 
       dynamicCollider.move(new Vector3(1, 0, 0));
 
-      expect(warnSpy).toHaveBeenCalledWith("DynamicCollider.move() should only be called when isKinematic is true.");
+      expect(warnSpy).toHaveBeenCalledWith("DynamicCollider: move() is only supported when isKinematic is true.");
 
       warnSpy.mockRestore();
       entity.destroy();
