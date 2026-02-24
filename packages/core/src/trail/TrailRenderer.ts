@@ -295,15 +295,15 @@ export class TrailRenderer extends Renderer {
     // Only expand by half width when there's actual/upcoming trail geometry
     if (hasTrailGeometry) {
       // Find max width multiplier from widthCurve
-      let maxWidthMultiplier = 0;
+      let maxWidth = 0;
       const widthKeys = this.widthCurve.keys;
       for (let i = 0, n = widthKeys.length; i < n; i++) {
         const value = widthKeys[i].value;
-        if (value > maxWidthMultiplier) {
-          maxWidthMultiplier = value;
+        if (value > maxWidth) {
+          maxWidth = value;
         }
       }
-      const halfWidth = maxWidthMultiplier * 0.5;
+      const halfWidth = maxWidth * 0.5;
       min.set(min.x - halfWidth, min.y - halfWidth, min.z - halfWidth);
       max.set(max.x + halfWidth, max.y + halfWidth, max.z + halfWidth);
     }
