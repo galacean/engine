@@ -449,7 +449,7 @@ describe("MeshColliderShape PhysX", () => {
       const warnSpy = vi.spyOn(console, "warn");
 
       // Create a mesh with no position data
-      const emptyMesh = createModelMesh(engine, [], []);
+      const emptyMesh = new ModelMesh(engine);
       meshShape.mesh = emptyMesh;
 
       // Should have warned about missing position data
@@ -506,7 +506,7 @@ describe("MeshColliderShape PhysX", () => {
 
       dynamicCollider.isKinematic = false; // Switch to non-kinematic
 
-      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("Non-convex MeshColliderShape"));
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("non-convex MeshColliderShape"));
 
       errorSpy.mockRestore();
       entity.destroy();
