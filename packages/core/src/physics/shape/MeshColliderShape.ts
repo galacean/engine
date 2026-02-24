@@ -47,6 +47,8 @@ export class MeshColliderShape extends ColliderShape {
       this._isConvex = value;
       const mesh = this._mesh;
       if (mesh) {
+        // PxShape.setGeometry requires matching geometry type, so recreate when isConvex changes
+        this._destroyNativeShape();
         if (this._extractMeshData(mesh)) {
           this._updateNativeMesh();
         }
@@ -65,7 +67,8 @@ export class MeshColliderShape extends ColliderShape {
   set mesh(value: ModelMesh) {
     if (this._mesh !== value) {
       this._mesh = value;
-      if (this._extractMeshData(value)) {
+      this._destroyNativeShape();
+      if (value && this._extractMeshData(value)) {
         this._updateNativeMesh();
       }
     }
@@ -92,10 +95,25 @@ export class MeshColliderShape extends ColliderShape {
     this._indices = null;
   }
 
+  private _destroyNativeShape(): void {
+    if (this._nativeShape) {
+      if (this._collider) {
+        this._collider._nativeCollider.removeShape(this._nativeShape);
+      }
+      this._nativeShape.destroy();
+      this._nativeShape = null;
+    }
+  }
+
   private _extractMeshData(mesh: ModelMesh): boolean {
+    if (!mesh.accessible) {
+      console.warn("MeshColliderShape: Mesh data is not accessible. Set 'keepMeshData' before uploading.");
+      return false;
+    }
+
     const positions = mesh.getPositions();
     if (!positions || positions.length === 0) {
-      console.warn("MeshColliderShape: Mesh has no position data");
+      console.warn("MeshColliderShape: Mesh has no position data.");
       return false;
     }
 
@@ -105,7 +123,7 @@ export class MeshColliderShape extends ColliderShape {
     if (!this._isConvex) {
       const indices = mesh.getIndices();
       if (!indices) {
-        console.warn("MeshColliderShape: Triangle mesh requires indices");
+        console.warn("MeshColliderShape: Non-convex mesh requires indices.");
         return false;
       }
       this._indices = indices;
@@ -122,12 +140,16 @@ export class MeshColliderShape extends ColliderShape {
     }
 
     if (this._nativeShape) {
-      (<IMeshColliderShape>this._nativeShape).setMeshData(
-        this._positions,
-        this._indices,
-        this._isConvex,
-        this._cookingFlags
-      );
+      if (
+        !(<IMeshColliderShape>this._nativeShape).setMeshData(
+          this._positions,
+          this._indices,
+          this._isConvex,
+          this._cookingFlags
+        )
+      ) {
+        this._destroyNativeShape();
+      }
     } else {
       const nativeShape = Engine._nativePhysics.createMeshColliderShape(
         this._id,

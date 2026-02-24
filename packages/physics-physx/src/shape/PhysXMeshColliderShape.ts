@@ -25,7 +25,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     super(physXPhysics);
     this._isConvex = isConvex;
 
-    if (!this._createMesh(positions, indices, cookingFlags)) {
+    if (!this._cookMesh(positions, indices, cookingFlags)) {
       return;
     }
 
@@ -60,18 +60,19 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
     cookingFlags: number
-  ): void {
+  ): boolean {
     this._pxMesh?.release();
     this._pxGeometry?.delete();
     this._pxMesh = null;
     this._pxGeometry = null;
     this._isConvex = isConvex;
 
-    if (!this._createMesh(positions, indices, cookingFlags)) {
-      return;
+    if (!this._cookMesh(positions, indices, cookingFlags)) {
+      return false;
     }
 
     this._pxShape.setGeometry(this._pxGeometry);
+    return true;
   }
 
   /**
@@ -90,7 +91,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     super.destroy();
   }
 
-  private _createMesh(
+  private _cookMesh(
     positions: Vector3[],
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     cookingFlags: number

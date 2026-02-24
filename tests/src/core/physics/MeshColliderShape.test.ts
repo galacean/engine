@@ -1,6 +1,7 @@
 import {
   Entity,
   MeshColliderShape,
+  MeshColliderShapeCookingFlag,
   SphereColliderShape,
   BoxColliderShape,
   DynamicCollider,
@@ -520,6 +521,229 @@ describe("MeshColliderShape PhysX", () => {
       errorSpy.mockRestore();
       entity.destroy();
       meshMaterial?.destroy();
+    });
+  });
+
+  describe("Inaccessible Mesh Guard", () => {
+    it("should warn and not create native shape when mesh data is released", () => {
+      const warnSpy = vi.spyOn(console, "warn");
+
+      const entity = root.createChild("inaccessibleMesh");
+      const staticCollider = entity.addComponent(StaticCollider);
+
+      const meshShape = new MeshColliderShape();
+      const defaultMaterial = meshShape.material;
+
+      // Create mesh with releaseData=true so accessible becomes false
+      const mesh = new ModelMesh(engine);
+      const positions = [new Vector3(0, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 1, 0)];
+      mesh.setPositions(positions);
+      mesh.setIndices(new Uint16Array([0, 1, 2]));
+      mesh.uploadData(true); // Releases data, _accessible = false
+
+      staticCollider.addShape(meshShape);
+      meshShape.mesh = mesh;
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("not accessible"));
+      // @ts-ignore - access internal _nativeShape for verification
+      expect(meshShape._nativeShape).toBeNull();
+
+      warnSpy.mockRestore();
+      entity.destroy();
+      defaultMaterial?.destroy();
+    });
+
+    it("should warn when non-convex mesh has no indices", () => {
+      const warnSpy = vi.spyOn(console, "warn");
+
+      const entity = root.createChild("noIndicesMesh");
+      const staticCollider = entity.addComponent(StaticCollider);
+
+      const meshShape = new MeshColliderShape();
+      const defaultMaterial = meshShape.material;
+      meshShape.isConvex = false;
+
+      // Create mesh without indices
+      const mesh = new ModelMesh(engine);
+      mesh.setPositions([new Vector3(0, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 1, 0)]);
+      mesh.uploadData(false);
+
+      staticCollider.addShape(meshShape);
+      meshShape.mesh = mesh;
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Non-convex mesh requires indices"));
+      // @ts-ignore
+      expect(meshShape._nativeShape).toBeNull();
+
+      warnSpy.mockRestore();
+      entity.destroy();
+      defaultMaterial?.destroy();
+    });
+  });
+
+  describe("isConvex Switching", () => {
+    it("should destroy and recreate native shape when toggling isConvex", () => {
+      const entity = root.createChild("switchConvex");
+      const staticCollider = entity.addComponent(StaticCollider);
+
+      const meshShape = new MeshColliderShape();
+      const defaultMaterial = meshShape.material;
+      meshShape.isConvex = true;
+
+      const mesh = createModelMesh(
+        engine,
+        [0, 1, 0, -1, 0, -1, 1, 0, -1, 0, 0, 1],
+        [0, 1, 2, 0, 2, 3, 0, 3, 1, 1, 3, 2]
+      );
+      meshShape.mesh = mesh;
+      staticCollider.addShape(meshShape);
+
+      // @ts-ignore
+      const firstNativeShape = meshShape._nativeShape;
+      expect(firstNativeShape).not.toBeNull();
+
+      // Switch from convex to triangle mesh
+      meshShape.isConvex = false;
+
+      // @ts-ignore
+      const secondNativeShape = meshShape._nativeShape;
+      expect(secondNativeShape).not.toBeNull();
+      // Should be a different native shape instance (destroyed and recreated)
+      expect(secondNativeShape).not.toBe(firstNativeShape);
+
+      entity.destroy();
+      defaultMaterial?.destroy();
+    });
+
+    it("should disable shape when switching to non-convex and mesh has no indices", () => {
+      const warnSpy = vi.spyOn(console, "warn");
+
+      const entity = root.createChild("switchConvexNoIndices");
+      const staticCollider = entity.addComponent(StaticCollider);
+
+      const meshShape = new MeshColliderShape();
+      const defaultMaterial = meshShape.material;
+      meshShape.isConvex = true;
+
+      // Create convex mesh (no indices needed for convex)
+      const mesh = new ModelMesh(engine);
+      mesh.setPositions([new Vector3(0, 1, 0), new Vector3(-1, 0, -1), new Vector3(1, 0, -1), new Vector3(0, 0, 1)]);
+      mesh.uploadData(false);
+
+      meshShape.mesh = mesh;
+      staticCollider.addShape(meshShape);
+
+      // @ts-ignore
+      expect(meshShape._nativeShape).not.toBeNull();
+
+      // Switch to non-convex - should fail because no indices
+      meshShape.isConvex = false;
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Non-convex mesh requires indices"));
+      // @ts-ignore - shape should be destroyed (failure = disable)
+      expect(meshShape._nativeShape).toBeNull();
+
+      warnSpy.mockRestore();
+      entity.destroy();
+      defaultMaterial?.destroy();
+    });
+  });
+
+  describe("Set Mesh Null", () => {
+    it("should destroy native shape when setting mesh to null", () => {
+      const entity = root.createChild("nullMesh");
+      const staticCollider = entity.addComponent(StaticCollider);
+
+      const meshShape = new MeshColliderShape();
+      const defaultMaterial = meshShape.material;
+
+      const mesh = createModelMesh(engine, [0, 0, 0, 1, 0, 0, 0, 1, 0], [0, 1, 2]);
+      meshShape.mesh = mesh;
+      staticCollider.addShape(meshShape);
+
+      // @ts-ignore
+      expect(meshShape._nativeShape).not.toBeNull();
+
+      // Set mesh to null - should disable shape
+      meshShape.mesh = null;
+
+      // @ts-ignore
+      expect(meshShape._nativeShape).toBeNull();
+      expect(meshShape.mesh).toBeNull();
+
+      entity.destroy();
+      defaultMaterial?.destroy();
+    });
+
+    it("should still work after setting mesh to null and then setting a new mesh", () => {
+      const entity = root.createChild("nullThenNewMesh");
+      const staticCollider = entity.addComponent(StaticCollider);
+
+      const meshShape = new MeshColliderShape();
+      const defaultMaterial = meshShape.material;
+
+      const mesh1 = createModelMesh(engine, [0, 0, 0, 1, 0, 0, 0, 1, 0], [0, 1, 2]);
+      meshShape.mesh = mesh1;
+      staticCollider.addShape(meshShape);
+
+      // @ts-ignore
+      expect(meshShape._nativeShape).not.toBeNull();
+
+      // Disable
+      meshShape.mesh = null;
+      // @ts-ignore
+      expect(meshShape._nativeShape).toBeNull();
+
+      // Re-enable with new mesh
+      const mesh2 = createModelMesh(
+        engine,
+        [0, 0, 0, 2, 0, 0, 0, 2, 0, 2, 0, 0, 2, 2, 0, 0, 2, 0],
+        [0, 1, 2, 3, 4, 5]
+      );
+      meshShape.mesh = mesh2;
+      // @ts-ignore
+      expect(meshShape._nativeShape).not.toBeNull();
+
+      entity.destroy();
+      defaultMaterial?.destroy();
+    });
+  });
+
+  describe("CookingFlags", () => {
+    it("should reuse existing native shape when changing cookingFlags", () => {
+      const entity = root.createChild("cookingFlags");
+      const staticCollider = entity.addComponent(StaticCollider);
+
+      const meshShape = new MeshColliderShape();
+      const defaultMaterial = meshShape.material;
+
+      const mesh = createModelMesh(engine, [0, 0, 0, 1, 0, 0, 0, 1, 0], [0, 1, 2]);
+      meshShape.mesh = mesh;
+      staticCollider.addShape(meshShape);
+
+      // @ts-ignore
+      const nativeShapeBefore = meshShape._nativeShape;
+      expect(nativeShapeBefore).not.toBeNull();
+
+      // Change cooking flags - should reuse existing shape via setMeshData
+      meshShape.cookingFlags = MeshColliderShapeCookingFlag.Cleaning;
+
+      // @ts-ignore - same native shape instance (reused, not recreated)
+      expect(meshShape._nativeShape).toBe(nativeShapeBefore);
+
+      entity.destroy();
+      defaultMaterial?.destroy();
+    });
+
+    it("should not update when no mesh is set", () => {
+      const meshShape = new MeshColliderShape();
+      const defaultMaterial = meshShape.material;
+
+      // Change cookingFlags without mesh - should not throw
+      meshShape.cookingFlags = MeshColliderShapeCookingFlag.Cleaning;
+      expect(meshShape.cookingFlags).toBe(MeshColliderShapeCookingFlag.Cleaning);
+
+      defaultMaterial?.destroy();
     });
   });
 
