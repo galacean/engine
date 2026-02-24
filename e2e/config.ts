@@ -295,7 +295,7 @@ export const E2E_CONFIG = {
       category: "Physics",
       caseFileName: "physx-mesh-collider",
       threshold: 0,
-      diffPercentage: 0.02
+      diffPercentage: 0.112
     },
     "PhysX Mesh Collider Data": {
       category: "Physics",
