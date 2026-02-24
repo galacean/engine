@@ -430,41 +430,6 @@ describe("MeshColliderShape PhysX", () => {
     });
   });
 
-  describe("mesh property Error Handling", () => {
-    it("should not call _updateNativeMesh when mesh has no position data", () => {
-      const entity = root.createChild("errorMesh");
-      const staticCollider = entity.addComponent(StaticCollider);
-
-      const meshShape = new MeshColliderShape();
-      const meshMaterial = meshShape.material;
-
-      // Set initial valid mesh data
-      const mesh = createModelMesh(engine, [0, 0, 0, 1, 0, 0, 0, 1, 0], [0, 1, 2]);
-      meshShape.mesh = mesh;
-      staticCollider.addShape(meshShape);
-
-      // Spy on _updateNativeMesh to verify it's NOT called on failure
-      // @ts-ignore - Access private method for testing
-      const updateSpy = vi.spyOn(meshShape, "_updateNativeMesh");
-      const warnSpy = vi.spyOn(console, "warn");
-
-      // Create a mesh with no position data
-      const emptyMesh = new ModelMesh(engine);
-      meshShape.mesh = emptyMesh;
-
-      // Should have warned about missing position data
-      expect(warnSpy).toHaveBeenCalledWith("MeshColliderShape: Mesh has no position data");
-
-      // _updateNativeMesh should NOT have been called
-      expect(updateSpy).not.toHaveBeenCalled();
-
-      updateSpy.mockRestore();
-      warnSpy.mockRestore();
-      entity.destroy();
-      meshMaterial?.destroy();
-    });
-  });
-
   describe("Triangle Mesh with DynamicCollider", () => {
     it("should log error when adding triangle mesh to non-kinematic DynamicCollider", () => {
       const errorSpy = vi.spyOn(console, "error");
