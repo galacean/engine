@@ -87,11 +87,7 @@ function createFallingBox(
   return entity;
 }
 
-const physics = new PhysXPhysics(PhysXRuntimeMode.Auto, {
-  wasmSIMDModeUrl: "../physx.release.simd.js",
-  wasmModeUrl: "../physx.release.js"
-});
-WebGLEngine.create({ canvas: "canvas", physics }).then((engine) => {
+WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engine) => {
   engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity("root");
