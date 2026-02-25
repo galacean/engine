@@ -352,51 +352,7 @@ export class Entity extends EngineObject {
       index = undefined;
       child = indexOrChild;
     }
-
-    if (child._isRoot) {
-      const oldScene = child._scene;
-      Entity._removeFromChildren(oldScene._rootEntities, child);
-      child._isRoot = false;
-
-      this._addToChildrenList(index, child);
-      child._parent = this;
-
-      const newScene = this._scene;
-
-      let inActiveChangeFlag = ActiveChangeFlag.None;
-      if (!this._isActiveInHierarchy) {
-        child._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
-      }
-      if (child._isActiveInScene) {
-        if (this._isActiveInScene) {
-          // Cross scene should inActive first and then active
-          oldScene !== newScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-        } else {
-          inActiveChangeFlag |= ActiveChangeFlag.Scene;
-        }
-      }
-
-      inActiveChangeFlag && child._processInActive(inActiveChangeFlag);
-
-      if (child._scene !== newScene) {
-        Entity._traverseSetOwnerScene(child, newScene);
-      }
-
-      let activeChangeFlag = ActiveChangeFlag.None;
-      if (child._isActive) {
-        if (this._isActiveInHierarchy) {
-          !child._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
-        }
-        if (this._isActiveInScene) {
-          (!child._isActiveInScene || oldScene !== newScene) && (activeChangeFlag |= ActiveChangeFlag.Scene);
-        }
-      }
-      activeChangeFlag && child._processActive(activeChangeFlag);
-
-      child._setParentChange();
-    } else {
-      child._setParent(this, index);
-    }
+    child._setParent(this, index);
   }
 
   /**
@@ -404,6 +360,7 @@ export class Entity extends EngineObject {
    * @param child - The child entity which want to be removed
    */
   removeChild(child: Entity): void {
+    if (child._parent !== this) return;
     child._setParent(null);
   }
 
@@ -682,7 +639,12 @@ export class Entity extends EngineObject {
   private _setParent(parent: Entity, siblingIndex?: number): void {
     const oldParent = this._parent;
     if (parent !== oldParent) {
-      this._removeFromParent();
+      if (this._isRoot) {
+        Entity._removeFromChildren(this._scene._rootEntities, this);
+        this._isRoot = false;
+      } else {
+        this._removeFromParent();
+      }
       this._parent = parent;
       if (parent) {
         this._isRoot = false;
