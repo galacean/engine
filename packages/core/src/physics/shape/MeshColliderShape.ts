@@ -15,6 +15,7 @@ export class MeshColliderShape extends ColliderShape {
   private _positions: Vector3[] = null;
   private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _cookingFlags = MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding;
+  private _isShapeAttached = false;
 
   /**
    * Cooking flags for this mesh collider shape.
@@ -28,6 +29,8 @@ export class MeshColliderShape extends ColliderShape {
       this._cookingFlags = value;
       if (this._nativeShape) {
         this._updateNativeMeshData();
+      } else if (this._mesh && this._extractMeshData(this._mesh)) {
+        this._createNativeMesh();
       }
     }
   }
@@ -110,8 +113,8 @@ export class MeshColliderShape extends ColliderShape {
 
   private _destroyNativeShape(): void {
     if (this._nativeShape) {
-      if (this._collider) {
-        this._collider._nativeCollider.removeShape(this._nativeShape);
+      if (this._isShapeAttached) {
+        this._detachFromCollider();
       }
       this._nativeShape.destroy();
       this._nativeShape = null;
@@ -147,15 +150,30 @@ export class MeshColliderShape extends ColliderShape {
 
   private _updateNativeMeshData(): void {
     if (
-      !(<IMeshColliderShape>this._nativeShape).setMeshData(
+      (<IMeshColliderShape>this._nativeShape).setMeshData(
         this._positions,
         this._indices,
         this._isConvex,
         this._cookingFlags
       )
     ) {
-      this._destroyNativeShape();
+      // Re-add to collider if previously removed due to cooking failure
+      if (this._collider && !this._isShapeAttached) {
+        this._attachToCollider();
+      }
+    } else if (this._isShapeAttached) {
+      this._detachFromCollider();
     }
+  }
+
+  private _detachFromCollider(): void {
+    this._collider._nativeCollider.removeShape(this._nativeShape);
+    this._isShapeAttached = false;
+  }
+
+  private _attachToCollider(): void {
+    this._collider._nativeCollider.addShape(this._nativeShape);
+    this._isShapeAttached = true;
   }
 
   private _createNativeMesh(): void {
@@ -186,7 +204,7 @@ export class MeshColliderShape extends ColliderShape {
     // If already attached to a collider, add the newly created native shape to it
     if (this._collider) {
       nativeShape.setWorldScale(this._collider.entity.transform.lossyWorldScale);
-      this._collider._nativeCollider.addShape(nativeShape);
+      this._attachToCollider();
     }
   }
 }
