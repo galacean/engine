@@ -86,6 +86,7 @@ export class PhysXPhysics implements IPhysics {
       return this._initializePromise;
     }
 
+    this._initializeState = InitializeState.Initializing;
     let runtimeMode = this._runTimeMode;
     const scriptPromise = new Promise((resolve, reject) => {
       const script = document.createElement("script");

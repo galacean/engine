@@ -72,6 +72,9 @@ export class MeshColliderShape extends ColliderShape {
       this._destroyNativeShape();
       if (value && this._extractMeshData(value)) {
         this._createNativeMesh();
+      } else {
+        this._positions = null;
+        this._indices = null;
       }
     }
   }
