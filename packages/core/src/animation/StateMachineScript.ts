@@ -37,9 +37,6 @@ export class StateMachineScript extends EngineObject {
    */
   onStateExit(animator: Animator, animatorState: AnimatorState, layerIndex: number): void {}
 
-  /**
-   * @internal
-   */
   protected override _onDestroy(): void {
     super._onDestroy();
     this._state._removeStateMachineScript(this);

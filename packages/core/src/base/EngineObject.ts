@@ -58,8 +58,8 @@ export abstract class EngineObject {
       }
     } else {
       this._pendingDestroy = false;
-      this._onDestroy();
       this._destroyed = true;
+      this._onDestroy();
     }
   }
 
