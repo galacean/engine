@@ -7,16 +7,15 @@ import { Engine } from "../Engine";
 export abstract class EngineObject {
   private static _instanceIdCounter = 0;
 
-  /** Engine unique id. */
   @ignoreClone
   readonly instanceId = ++EngineObject._instanceIdCounter;
-
+  /** @internal */
   @ignoreClone
-  protected _engine: Engine;
-  protected _destroyed = false;
-
+  _engine: Engine;
   /** @internal */
   _pendingDestroy = false;
+
+  protected _destroyed = false;
 
   /**
    * Get the engine which the object belongs.
@@ -51,10 +50,11 @@ export abstract class EngineObject {
   destroy(): void {
     if (this._destroyed) return;
 
-    if (this._engine._frameInProcess && !this._engine._processingPendingDestroys) {
+    const engine = this._engine;
+    if (engine?._frameInProcess && !engine._processingPendingDestroys) {
       if (!this._pendingDestroy) {
         this._pendingDestroy = true;
-        this._engine._pendingDestroyObjects.push(this);
+        engine._pendingDestroyObjects.push(this);
       }
     } else {
       this._pendingDestroy = false;
@@ -64,8 +64,11 @@ export abstract class EngineObject {
   }
 
   protected _onDestroy(): void {
-    const { resourceManager } = this._engine;
-    resourceManager._deleteAsset(this);
-    resourceManager._deleteContentRestorer(this);
+    const engine = this._engine;
+    if (engine) {
+      const { resourceManager } = engine;
+      resourceManager._deleteAsset(this);
+      resourceManager._deleteContentRestorer(this);
+    }
   }
 }

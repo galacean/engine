@@ -486,6 +486,9 @@ export class Engine extends EventDispatcher {
   }
 
   private _destroy(): void {
+    this._destroyed = true;
+    this._waitingDestroy = false;
+
     this._sceneManager._destroyAllScene();
     this._resourceManager._destroy();
 
@@ -501,8 +504,6 @@ export class Engine extends EventDispatcher {
     this._hardwareRenderer.destroy();
 
     this.removeAllEventListeners();
-    this._waitingDestroy = false;
-    this._destroyed = true;
   }
 
   /**

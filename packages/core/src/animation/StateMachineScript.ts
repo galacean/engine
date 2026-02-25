@@ -1,14 +1,18 @@
 import { Animator } from "../animation/Animator";
 import { AnimatorState } from "../animation/AnimatorState";
+import { EngineObject } from "../base/EngineObject";
 
 /**
  * StateMachineScript is a component that can be added to a animator state. It's the base class every script on a state derives from.
  */
-export class StateMachineScript {
-  /** @internal */
-  _destroyed: boolean = false;
+export class StateMachineScript extends EngineObject {
   /** @internal */
   _state: AnimatorState;
+
+  constructor() {
+    super(null);
+  }
+
   /**
    * onStateEnter is called when a transition starts and the state machine starts to evaluate this state.
    * @param animator - The animator
@@ -34,14 +38,10 @@ export class StateMachineScript {
   onStateExit(animator: Animator, animatorState: AnimatorState, layerIndex: number): void {}
 
   /**
-   * Destroy this instance.
+   * @internal
    */
-  destroy(): void {
-    if (this._destroyed) {
-      return;
-    }
-
+  protected override _onDestroy(): void {
+    super._onDestroy();
     this._state._removeStateMachineScript(this);
-    this._destroyed = true;
   }
 }
